@@ -1,0 +1,22 @@
+[Unit]
+Description=treachery.online game server
+After=network.target
+
+[Service]
+User=exedev
+Group=exedev
+WorkingDirectory=/opt/treachery/app
+ExecStart=/usr/bin/dotnet /opt/treachery/app/Treachery.Server.dll
+Restart=always
+RestartSec=5
+Environment=ASPNETCORE_URLS=http://0.0.0.0:8000
+Environment=ASPNETCORE_ENVIRONMENT=Production
+# exe.dev terminates TLS in front of us. This makes the app see the original https scheme.
+Environment=ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
+# Absolute path so a redeploy of /opt/treachery/app never touches the database.
+Environment="ConnectionStrings__TreacheryDatabase=Data Source=/opt/treachery/data/treachery.db"
+Environment=DOTNET_CLI_TELEMETRY_OPTOUT=1
+Environment=DOTNET_NOLOGO=1
+
+[Install]
+WantedBy=multi-user.target

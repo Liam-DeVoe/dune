@@ -1,0 +1,95 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits GameComponent;
+@typeparam T
+
+@if (Label != null)
+{
+    <label class="mb-0" for="@Id">@Label</label>
+}
+
+@foreach (var item in _shown.Values)
+{
+    <div class="form-check mb-0">
+        <input class="form-check-input" style="cursor:pointer" type="radio" id="@Id-@item.Id" value=@item.Id @onclick=@(_ => ChangeValue(item.Value)) checked=@Equals(item.Value, Value)>
+        <label class="form-check-label" style="cursor:pointer" for="@Id-@item.Id">@item.Label</label>
+    </div>
+}
+
+@code {
+
+    [Parameter]
+    public IEnumerable<T>? Values { get; set; }
+
+    [Parameter]
+    public T? Value { get; set; }
+
+    private Dictionary<string, ValueToShow> _shown = [];
+
+    [Parameter]
+    public IEnumerable<string>? ValueLabels { get; set; }
+
+    [Parameter]
+    public string EmptyLabel { get; set; } = "";
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public EventCallback<T> ValueChanged { get; set; }
+
+    [Parameter]
+    public RenderFragment? Label { get; set; }
+
+    [Parameter]
+    public bool Required { get; set; } = true;
+
+    private T[] ValuesToShow { get; set; } = [];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+
+        ValuesToShow = Values?.ToArray() ?? [];
+
+        if (!ValuesToShow.Contains(Value))
+        {
+            await SetValue(Required ? ValuesToShow.FirstOrDefault() : default);
+        }
+
+        var valueLabels = ValueLabels?.ToArray();
+        if (valueLabels == null || valueLabels.Length != ValuesToShow.Length)
+        {
+            valueLabels = ValuesToShow.Select(v => v != null ? Client.CurrentSkin.Describe(v) : EmptyLabel).ToArray();
+        }
+
+        _shown = ValuesToShow.Zip(valueLabels, (v, l) => new ValueToShow { Value = v, Id = GetId(v), Label = l }).ToDictionary(triple => triple.Id, triple => triple);
+    }
+
+    private async Task ChangeValue(T? value)
+    {
+        await SetValue(value);
+    }
+
+    private async Task SetValue(T? newValue)
+    {
+        if (!Equals(Value, newValue))
+        {
+            Value = newValue;
+            await ValueChanged.InvokeAsync(newValue);
+        }
+    }
+
+    private struct ValueToShow
+    {
+        internal T? Value;
+        internal string Id;
+        internal string Label;
+    }
+}

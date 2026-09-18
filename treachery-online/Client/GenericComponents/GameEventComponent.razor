@@ -1,0 +1,105 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+
+@inherits GameComponent
+@typeparam T
+ 
+@code {
+
+    protected virtual Faction IsFactionSpecific { get; set; } = Faction.None;
+
+    protected virtual bool IsUrgent { get; set; } = false;
+
+    [Parameter]
+    public virtual string BackgroundImage
+    {
+        get => Background;
+        set => Background = value;
+    }
+
+    protected virtual string Background { get; set; } = "";
+
+    protected virtual async Task Confirm()
+    {
+        await Request(ConfirmedResult);
+        StateHasChanged();
+    }
+
+    protected async Task Pass()
+    {
+        await Request(PassedResult);
+        StateHasChanged();
+    }
+
+    protected async Task Other()
+    {
+        await Request(OtherResult);
+        StateHasChanged();
+    }
+
+    protected Message Validation
+    {
+        get
+        {
+            try
+            {
+                return ConfirmedResult.Validate();
+            }
+            catch (Exception)
+            {
+                return Message.Express("Validation failed");
+            }
+        }
+    }
+
+    protected void SetIfValid<TDisplayType, TOriginalType>(ref TDisplayType field, IEnumerable<TOriginalType> validValues, TOriginalType newValue)
+    {
+        if ((object)field == (object)newValue || !validValues.Contains(newValue)) return;
+        
+        var sameType = typeof(TOriginalType) == typeof(TDisplayType);
+        var useId = typeof(TDisplayType) == typeof(int) && typeof(IIdentifiable).IsAssignableFrom(typeof(TOriginalType));
+
+        if (sameType)
+        {
+            field = (TDisplayType)(object)newValue;
+        }
+        else if (useId)
+        {
+            field = (TDisplayType)(object)((IIdentifiable)newValue).Id;
+        }
+        else
+        {
+            field = (TDisplayType)(object)Name(newValue);
+        }
+
+        StateHasChanged();
+    }
+
+    protected string BackgroundStyle
+    {
+        get
+        {
+            if (Background == "")
+            {
+                if (IsFactionSpecific == Faction.None)
+                {
+                    return "";
+                }
+
+                return $"background-color: {Client.CurrentSkin.GetFactionColorTransparent(IsFactionSpecific, "bb")};";
+            }
+
+            return $"background-color: rgba(0,0,0,0); background-image: url('{BackgroundImage}'); background-origin: content-box; background-size: cover; background-repeat: no-repeat;";
+        }
+    }
+
+    protected string HeaderStyle => Background != "" ? "background-color:rgba(0,0,0,0.9);" : "";
+
+    protected string BodyStyle => Background != "" ? "background-color:rgba(0,0,0,0.7);" : "";
+}

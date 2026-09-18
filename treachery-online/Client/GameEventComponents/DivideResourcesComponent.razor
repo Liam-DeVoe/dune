@@ -1,0 +1,51 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits GameEventComponent<DivideResources>
+
+<GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
+
+    <Header>Please choose how to divide collected @Name(Concept.Resource)</Header>
+    <Body>
+
+        @{
+            var toBeDivided = DivideResources.GetResourcesToBeDivided(Game);
+
+            <div class="mt-1">
+                @toBeDivided.Amount @Name(Concept.Resource) was collected from @Name(toBeDivided.Territory) by you and <FactionComponent Faction=@toBeDivided.OtherFaction Diameter="30"/>
+            </div>
+
+            <div class="mt-1">
+                <SelectResourcesComponent @bind-Value="amountToFirstFaction" Min=0 Max=@toBeDivided.Amount Label="How much should go to you?" />
+            </div>
+
+            <div class="mt-1">
+                If <FactionComponent Faction=@toBeDivided.OtherFaction Diameter="30"/> agree, they will receive the remaining @(toBeDivided.Amount - amountToFirstFaction) @Name(Concept.Resource)
+            </div>
+
+            <div class="mt-1">
+                If you pass, you get @DivideResources.GainedByFirstFaction(toBeDivided, false, amountToFirstFaction) and <FactionComponent Faction=@toBeDivided.OtherFaction Diameter="30"/> get @DivideResources.GainedByOtherFaction(toBeDivided, false, amountToFirstFaction)
+            </div>
+
+            <ButtonRowComponent Pass="Pass" Confirm="Confirm" ConfirmError=@Validation />
+        }
+
+    </Body>
+
+</GameEventComponentLayout>
+
+@code {
+
+    protected override bool IsUrgent => true;
+
+    private int amountToFirstFaction;
+
+    protected override DivideResources ConfirmedResult => new(Game, Faction) { PortionToFirstPlayer = amountToFirstFaction };
+
+    protected override DivideResources PassedResult => new(Game, Faction) { Passed = true };
+}

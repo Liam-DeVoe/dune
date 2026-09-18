@@ -1,0 +1,133 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits GameEventComponent<GameEventType>
+@typeparam GameEventType
+
+@if (!dismissed)
+{
+    <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle=@BodyStyle CollapsedType=GetType()>
+
+        <Header>@Title</Header>
+        <Body>
+
+            @if (Dismissable)
+            {
+                <ButtonRowComponent Confirm="Confirm" ConfirmText="@ConfirmLabel" ConfirmError=@Validation Other="Dismiss" OtherText="@DismissLabel" />
+            }
+            else
+            {
+                <ButtonRowComponent Confirm="Confirm" ConfirmText="@ConfirmLabel" ConfirmError=@Validation />
+            }
+
+            @if (AllowAutoConfirm)
+            {
+                <div class="mt-0 float-end">
+                    <CheckboxComponent @bind-Value=autoConfirm OnChanged=SaveAutoConfirmSetting>Next time, auto @ConfirmLabel after 3 seconds</CheckboxComponent>
+                </div>
+            }
+
+        </Body>
+
+    </GameEventComponentLayout>
+}
+
+@code {
+
+    protected override bool IsUrgent => Alert;
+
+    private bool dismissed = false;
+    private bool autoConfirm = false;
+
+    [Parameter]
+    public string? Title { get; set; }
+
+    [Parameter]
+    public string ConfirmLabel { get; set; } = "Ok";
+
+    [Parameter]
+    public bool Alert { get; set; }
+
+    [Parameter]
+    public bool Dismissable { get; set; } = false;
+
+    [Parameter]
+    public string DismissLabel { get; set; } = "Dismiss";
+
+    [Parameter]
+    public bool AllowAutoConfirm { get; set; } = false;
+
+    [Parameter]
+    public new Faction IsFactionSpecific { get; set; }
+
+    protected override GameEventType ConfirmedResult => CreateEvent();
+
+    protected GameEventType CreateEvent()
+    {
+        var result = new GameEventType();
+        result.Initialize(Game, Faction);
+        return result;
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        
+        autoConfirm = GetAutoConfirmSetting();
+
+        if (autoConfirm)
+        {
+            _ = Task.Delay(5000).ContinueWith(e => AutoPass());
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        base.IsFactionSpecific = IsFactionSpecific;
+    }
+
+    private async Task AutoPass()
+    {
+        if (autoConfirm && ConfirmedResult.IsValid)
+        {
+            await Confirm();
+        }
+    }
+
+    private void Dismiss()
+    {
+        dismissed = true;
+    }
+
+    private static Dictionary<Type, bool> AutoConfirmSettings = new();
+
+    private void SaveAutoConfirmSetting(bool value)
+    {
+        var type = typeof(GameEventType);
+
+        if (AutoConfirmSettings.ContainsKey(type))
+        {
+            AutoConfirmSettings.Remove(type);
+        }
+
+        AutoConfirmSettings.Add(type, autoConfirm);
+    }
+
+    private bool GetAutoConfirmSetting()
+    {
+        var type = typeof(GameEventType);
+
+        if (AutoConfirmSettings.ContainsKey(type))
+        {
+            return AutoConfirmSettings[type];
+        }
+
+        return false;
+    }
+}
+

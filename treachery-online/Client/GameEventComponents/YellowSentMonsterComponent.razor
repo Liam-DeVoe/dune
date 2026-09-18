@@ -1,0 +1,52 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits GameEventComponent<YellowSentMonster>
+@implements IDisposable
+
+<GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
+
+    <Header>Select where to make @Client.CurrentSkin.Describe(Concept.Monster) appear</Header>
+    <Body>
+
+        <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="target" Values="YellowSentMonster.ValidTargets(Game).OrderBy(t => Name(t))"/>
+
+        <ButtonRowComponent Confirm="Confirm" ConfirmText="@Client.CurrentSkin.Format("Appear in {0}", target)" ConfirmError="@Validation" />
+
+    </Body>
+
+</GameEventComponentLayout>
+
+@code {
+
+    protected override bool IsUrgent => true;
+    protected override Faction IsFactionSpecific => Faction.Yellow;
+
+    public Territory? target;
+
+    protected override YellowSentMonster ConfirmedResult => new(Game, Faction) { Territory = target };
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Client.OnLocationSelected += HandleLocationSelected;
+        }
+    }
+
+    public override void Dispose()
+    {
+        base.Dispose();
+        Client.OnLocationSelected -= HandleLocationSelected;
+    }
+
+    private void HandleLocationSelected(object sender, Location l)
+    {
+        SetIfValid(ref target, YellowSentMonster.ValidTargets(Game), l.Territory);
+    }
+}

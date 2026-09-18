@@ -1,0 +1,33 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits GameEventComponent<RockWasMelted>
+
+<GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
+
+    <Header>Use @Client.CurrentSkin.Describe(TreacheryCardType.Rockmelter) to kill or to reduce leader strength to zero?</Header>
+    <Body>
+        <ButtonRowComponent Confirm="Confirm" ConfirmText="Kill" ConfirmError="@Validation" Other="Other" OtherText="Reduce to 0"/>
+    </Body>
+
+</GameEventComponentLayout>
+
+@code {
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        BackgroundImage = GetImage(TreacheryCardType.Rockmelter);
+    }
+
+    protected override bool IsUrgent => true;
+
+    protected override RockWasMelted ConfirmedResult => new(Game, Faction) { Kill = true };
+
+    protected override RockWasMelted OtherResult => new(Game, Faction) { Kill = false };
+}

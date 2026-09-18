@@ -1,0 +1,128 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits GameEventComponent<RaiseDeadPlayed>
+@implements IDisposable
+
+<GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
+
+    <Header>Use @Client.CurrentSkin.Describe(TreacheryCardType.RaiseDead) to revive up to five forces or one leader for free</Header>
+    <Body>
+
+        @{
+            var hasForcesToRevive = RaiseDeadPlayed.ValidMaxAmount(Game, Player, false) > 0;
+            var hasSpecialForcesToRevive = RaiseDeadPlayed.ValidMaxAmount(Game, Player, true) > 0;
+            var hasHeroesToRevive = RaiseDeadPlayed.ValidHeroes(Game, Player).Any();
+
+            if (hasForcesToRevive)
+            {
+                <SelectForcesComponent @bind-Value="amountOfForces" Min="0" Max="RaiseDeadPlayed.ValidMaxAmount(Game, Player, false)" Faction="Faction" Special="false" />
+            }
+            else
+            {
+                amountOfForces = 0;
+            }
+
+            if (hasSpecialForcesToRevive)
+            {
+                <SelectForcesComponent @bind-Value="amountOfSpecialForces" Min="0" Max="RaiseDeadPlayed.ValidMaxAmount(Game, Player, true)" Faction="Faction" Special="true" />
+            }
+            else
+            {
+                amountOfSpecialForces = 0;
+            }
+
+            var maxSpecialForcesPlacedOnPlanet = Revival.ValidRevivedForceLocations(Game, Player).Any() ? Revival.NumberOfSpecialForcesThatMayBePlacedOnPlanet(Player, amountOfSpecialForces) : 0;
+            if (maxSpecialForcesPlacedOnPlanet > 0)
+            {
+                <div>
+                    <SelectForcesComponent Label="Place forces on the planet?" @bind-Value="amountOfSpecialForcesToLocation" Min=0 Max=maxSpecialForcesPlacedOnPlanet Faction=Faction Special="true"/>
+                </div>
+            }
+            else
+            {
+                amountOfSpecialForcesToLocation = 0;
+            }
+
+            if (amountOfSpecialForcesToLocation > 0)
+            {
+                <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="location" Values=@Revival.ValidRevivedForceLocations(Game, Player)>
+                    <Label>Place them where?</Label>
+                </SelectComponent>
+            }
+            else
+            {
+                location = null;
+            }
+
+            if (hasHeroesToRevive)
+            {
+                <SelectFromImageComponent Game="Game" @bind-Value="hero" Values="RaiseDeadPlayed.ValidHeroes(Game, Player)" Required="false" ImageWidth="80" />
+            }
+
+            if (hero != null && Revival.MayAssignSkill(Game, Player, hero))
+            {
+                <RadioComponent @bind-Value="assignSkill" Values="@(new[] {false,true})" ValueLabels="@(new[] {"No","Yes"})">
+                    <Label>Do you wish to assign a skill to this leader?</Label>
+                </RadioComponent>
+            }
+            else
+            {
+                assignSkill = false;
+            }
+
+            if (!(hasForcesToRevive || hasSpecialForcesToRevive || hasHeroesToRevive))
+            {
+                <div class="text-info small">You currently have nothing to revive</div>
+            }
+        }
+
+        <ButtonRowComponent Confirm="Confirm" ConfirmText="@Client.CurrentSkin.Format("Use {0}", TreacheryCardType.RaiseDead)" ConfirmError="@Validation" />
+
+    </Body>
+
+</GameEventComponentLayout>
+
+@code {
+
+    private int amountOfForces;
+    private int amountOfSpecialForces;
+    private IHero? hero;
+    private bool assignSkill;
+    private int amountOfSpecialForcesToLocation;
+    private Location? location;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Client.OnLocationSelected += HandleLocationSelected;
+        }
+    }
+
+    public override void Dispose()
+    {
+        base.Dispose();
+        Client.OnLocationSelected -= HandleLocationSelected;
+    }
+
+    protected override RaiseDeadPlayed ConfirmedResult => new(Game, Faction)
+    {
+        AmountOfForces = amountOfForces, 
+        AmountOfSpecialForces = amountOfSpecialForces, 
+        Hero = hero, 
+        AssignSkill = assignSkill,
+        NumberOfSpecialForcesInLocation = amountOfSpecialForcesToLocation,
+        Location = location
+    };
+
+    private void HandleLocationSelected(object sender, Location l)
+    {
+        SetIfValid(ref location, Revival.ValidRevivedForceLocations(Game, Player), l);
+    }
+}

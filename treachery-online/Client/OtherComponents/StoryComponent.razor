@@ -1,0 +1,258 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+
+<ModalComponent Id="@Id" Title="The story of this game..." Size="modal-xl" Scrolling="true" Printable="true">
+
+    @{
+        var previousPhase = Phase.AwaitingPlayers;
+        var previousMainPhase = MainPhase.Started;
+        IBid previousWinningBid = null;
+
+        var replayBase = new Game(Game.Version, Game.Participation);
+
+        for (var i = 0; i < Game.History.Count; i++)
+        {
+            var evt = Game.History[i].Clone();
+            evt.Initialize(replayBase);
+            evt.Execute(false, true);
+
+            var replay = replayBase.Clone();
+
+            if ((previousPhase == Phase.TradingFactions || previousPhase == Phase.SelectingFactions) &&
+                replay.CurrentPhase != Phase.TradingFactions && replay.CurrentPhase != Phase.SelectingFactions)
+            {
+                <h4 class="h4">Setup</h4>
+
+                <div class="mt-1"><strong>Ruleset:</strong> @Client.CurrentSkin.Describe(replay.Ruleset)</div>
+
+                @if (replay.GetCustomRules().Any())
+                {
+                    <div class="mt-1"><strong>Custom rules:</strong> @Client.CurrentSkin.Join(replay.GetCustomRules())</div>
+                }
+
+                <div class="mt-1"><strong>Game started:</strong> @evt.Time.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss \"UTC\"")</div>
+
+                <StoryPlayerInfoComponent Game="replay" ShowName="true" />
+            }
+
+            if (evt is BluePrediction bp && replay.YieldsSecrets(evt.Initiator))
+            {
+                <div>
+                    <img class="img-fluid" width="24" src="@Client.CurrentSkin.GetImageUrl(Faction.Blue)" /> Predicted that <img class="img-fluid" width="24" src="@Client.CurrentSkin.GetImageUrl(bp.ToWin)" /> win in turn @bp.Turn.
+                </div>
+            }
+
+            if (evt is IBid && replay.WinningBid != null)
+            {
+                if (replay.WinningBid != previousWinningBid)
+                {
+                    <div>
+                        <img class="img-fluid" width="24" src="@Client.CurrentSkin.GetImageUrl(replay.WinningBid.Initiator)" /> 
+                        buy 
+                        <RichText Shown=@replay.CardJustWon/>
+                        for @replay.WinningBid.TotalAmount
+                        @if (replay.WinningBid is Bid b && b.KarmaCard != null)
+                        {
+                            <span> using <strong>@Client.CurrentSkin.Describe(b.KarmaCard)</strong></span>
+                        }
+                        @if (replay.CurrentAuctionType != AuctionType.Normal)
+                        {
+                            <span> (@Client.CurrentSkin.DescribeDetailed(replay.CurrentAuctionType))</span>
+                        }
+                    </div>
+                }
+
+                previousWinningBid = replay.WinningBid;
+            }
+
+            if (replay.CurrentMainPhase != previousMainPhase && replay.CurrentMainPhase == MainPhase.Bidding)
+            {
+                <h4 class="h4">Turn @replay.CurrentTurn</h4>
+
+                <h5 class="mt-2">Situation at the start of Bidding:</h5>
+                <StoryPlayerInfoComponent Game="replay" ShowAlly="ShowAllies(replay)" ShowCards="true" ShowTraitorsAndFacedancers="true" ShowResources="true" ShowTechTokens="@(replay.Applicable(Rule.TechTokens))" />
+            }
+
+            if (replay.CurrentMainPhase != previousMainPhase && replay.CurrentMainPhase == MainPhase.Resurrection)
+            {
+                <h5 class="mt-2">Situation at the end of Bidding:</h5>
+                <StoryPlayerInfoComponent Game="replay" ShowCards="true" ShowResources="true" />
+            }
+
+            if (replay.CurrentMainPhase != previousMainPhase && replay.CurrentMainPhase == MainPhase.Battle)
+            {
+                <h5 class="mt-2">Situation at the end of Ship & Move:</h5>
+                <StoryPlayerInfoComponent Game="replay" ShowAlly="ShowAllies(replay)" ShowResources="true" ShowForces="true" ShowLeaders="true" ShowPoints="true" />
+            }
+
+            if (evt is BattleInitiated)
+            {
+                <h5 class="mt-2">Battle for @Client.CurrentSkin.Describe(replay.BattleAboutToStart.Territory)</h5>
+            }
+
+            if (IsMilestone(evt))
+            {
+                <div class="mb-1">
+                    <img class="img-fluid" width="24" src="@Client.CurrentSkin.GetImageUrl(evt.Initiator)" /> @evt.GetMessage().ToString(Client.CurrentSkin)
+                </div>
+            }
+
+            if (replay.CurrentPhase != previousPhase && replay.CurrentPhase == Phase.BattleReport)
+            {
+                <StoryBattleComponent Game="replay" />
+            }
+
+            if (replay.CurrentPhase != previousPhase && replay.CurrentPhase == Phase.TurnConcluded)
+            {
+                <h5 class="mt-2">Situation at the end of turn @replay.CurrentTurn:</h5>
+                <StoryPlayerInfoComponent Game="replay" ShowAlly="ShowAllies(replay)" ShowForces="true" ShowTanks="true" ShowResources="true" ShowTechTokens="true" ShowPoints="true" />
+
+                <table class="table table-sm" style="background-color:#FFFFFF32">
+
+                    <thead>
+                        <tr class="table-dark">
+                            <th>Stronghold</th>
+                            <th>Forces</th>
+                            @if (replay.Applicable(Rule.StrongholdBonus))
+                            {
+                                <th>Owned by</th>
+                            }
+                            @if (replay.IsPlaying(Faction.Pink) || replay.IsPlaying(Faction.Cyan))
+                            {
+                                <th>Ambassadors and Terror</th>
+                            }
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                    @foreach (var sh in replay.Map.Strongholds)
+                    {
+                            <tr class="table-dark">
+                            <td>@Client.CurrentSkin.Describe(sh)</td>
+                            <td>
+                                @foreach (var b in replay.BattalionsIn(sh))
+                                {
+                                    if (b.AmountOfForces > 0)
+                                    {
+                                        <Image Width=24 Shown=replay.GetPlayer(b.Faction).Force />
+                                        <strong>@b.AmountOfForces</strong>
+                                        <span>&nbsp;</span>
+                                    }
+
+                                    @if (b.AmountOfSpecialForces > 0)
+                                    {
+                                        <Image Width=24 Shown=replay.GetPlayer(b.Faction).SpecialForce />
+                                        <strong>@b.AmountOfSpecialForces</strong>
+                                    }
+                                }
+                            </td>
+
+                            @if (replay.Applicable(Rule.StrongholdBonus))
+                            {
+                                var owner = replay.OwnerOf(sh);
+
+                                <td>
+                                
+                                    @if (owner != null)
+                                    {
+                                        <Image Width=24 Shown=owner.Faction />
+                                    }
+
+                                </td>
+                            }
+
+                            @if (replay.IsPlaying(Faction.Pink) || replay.IsPlaying(Faction.Cyan))
+                            {
+                                <td>
+                                @{
+                                    var ambassador = replay.AmbassadorIn(sh.Territory);
+                                    if (ambassador != Ambassador.None)
+                                    {
+                                        <Image Width=24 Shown=ambassador />
+                                    }
+
+                                    foreach (var terror in replay.TerrorIn(sh.Territory))
+                                    {
+                                        <Image Width=24 Shown=terror />
+                                    }
+                                }
+                                </td>
+                            }
+
+                        </tr>
+                    }
+                    </tbody>
+
+                </table>
+            }
+
+            @if (replay.CurrentMainPhase != previousMainPhase && replay.CurrentMainPhase == MainPhase.Ended)
+            {
+                @foreach (var w in replay.Winners)
+                {
+                    <div>
+                        <h3 class="h3"><img class="img-fluid" width="30" src="@Client.CurrentSkin.GetImageUrl(w.Faction)" /> @w.Name wins @Client.CurrentSkin.Describe(replay.WinMethod)!</h3>
+                    </div>
+                }
+
+                <div class="mt-2 mb-0"><strong>Game ended:</strong> @evt.Time.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss \"UTC\"")</div>
+            }
+
+            previousPhase = replay.CurrentPhase;
+            previousMainPhase = replay.CurrentMainPhase;
+        }
+    }
+
+</ModalComponent>
+
+@code {
+
+    [Parameter]
+    public string Id { get; set; } = "";
+
+    [Parameter]
+    public Game? Game { get; set; }
+
+    private bool IsMilestone(GameEvent evt)
+    {
+        return
+            (evt is FaceDanced fd && fd.FaceDancerCalled) ||
+            (evt is FaceDancerRevealed fdr && !fdr.Passed) ||
+            (evt is TreacheryCalled tc && tc.TraitorCalled) ||
+            (evt is GreySwappedCardOnBid gscob && !gscob.Passed) ||
+            (evt is TerrorRevealed tr && tr.Type == TerrorType.Atomics) ||
+            evt is PoisonToothCancelled ||
+            evt is ReplacedCardWon ||
+            evt is Voice ||
+            evt is Prescience ||
+            evt is Move ||
+            evt is Caravan ||
+            evt is Karma ||
+            evt is Shipment ||
+            evt is KarmaHandSwap ||
+            evt is KarmaFreeRevival ||
+            evt is KarmaMonster ||
+            evt is KarmaHmsMovement ||
+            evt is KarmaPrescience ||
+            evt is MetheorPlayed ||
+            evt is StormSpellPlayed ||
+            evt is AmalPlayed ||
+            evt is ClairVoyancePlayed ||
+            evt is BrownEconomics ||
+            evt is RaiseDeadPlayed ||
+            evt is PortableAntidoteUsed ||
+            evt is ClairVoyanceAnswered;
+    }
+
+    private bool ShowAllies(Game g)
+    {
+        return g.Players.Any(p => p.Ally != Faction.None);
+    }
+
+}

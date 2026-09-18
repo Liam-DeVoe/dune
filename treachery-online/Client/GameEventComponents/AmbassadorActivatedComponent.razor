@@ -1,0 +1,269 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits GameEventComponent<AmbassadorActivated>
+
+<GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
+
+    <Header>Activate the <Image Shown="@AmbassadorActivated.GetAmbassador(Game)" Width="30"/> Ambassador?</Header>
+    <Body>
+
+        @{
+            var ambassador = AmbassadorActivated.GetAmbassador(Game);
+            var victim = AmbassadorActivated.GetVictim(Game);
+
+            if (ambassador == Ambassador.Blue)
+            {
+                <SelectFromImageComponent @bind-Value=_actualAmbassador Values=@AmbassadorActivated.GetValidBlueAmbassadors(Game)>
+                    <Label>Activate the effect of which ambassador?</Label>
+                </SelectFromImageComponent>
+                <br/>
+            }
+            else
+            {
+                _actualAmbassador = ambassador;
+            }
+
+            switch (_actualAmbassador)
+            {
+                case Ambassador.Green:
+
+                    <div>See the <Image Shown=@victim Width="30"/> hand?</div>
+                    break;
+
+                case Ambassador.Brown:
+
+                    <div>Discard cards from your hand for 3 @Name(Concept.Resource) each?</div>
+                    <SelectFromImageComponent Selected="_brownCards" Values=@AmbassadorActivated.GetValidBrownCards(Player) T=TreacheryCard OnChanged=StateHasChanged ImageWidth="80">
+                        <Label>Select the cards you wish to discard for 3 @Client.CurrentSkin.Describe(Concept.Resource) each</Label>
+                    </SelectFromImageComponent>
+                    break;
+
+                case Ambassador.Pink:
+                
+                    if (AmbassadorActivated.VidalCanBeTaken(Game, Player)) {
+
+                        <CheckboxComponent @bind-Value="_pinkTakeVidal">Take @Name(Game.Vidal)</CheckboxComponent>
+                    }
+                    else
+                    {
+                        _pinkTakeVidal = false;
+                    }
+                    
+                    if (!_pinkTakeVidal && AmbassadorActivated.AllianceCanBeOffered(Game, Player))
+                    {
+                        <CheckboxComponent @bind-Value="_pinkOfferAlliance">Offer an alliance to @Name(victim)</CheckboxComponent>
+                        
+                        if (_pinkOfferAlliance && AmbassadorActivated.VidalCanBeOfferedToNewAlly(Game, Player))
+                        {
+                            <CheckboxComponent @bind-Value="_pinkGiveVidal">Give @Name(Game.Vidal) to @Name(victim) if they agree to ally</CheckboxComponent>
+                        }
+                        else
+                        {
+                            _pinkGiveVidal = false;
+                        }
+                    }
+                    else
+                    {
+                        _pinkOfferAlliance = false;
+                        _pinkGiveVidal = false;
+                    }
+                    break;
+
+                case Ambassador.Red:
+
+                    <div>Receive 5 @Name(Concept.Resource)?</div>
+                    break;
+
+                case Ambassador.Yellow:
+
+                    <div>Move a group of your forces?</div>
+
+                    var validSources = AmbassadorActivated.ValidYellowSources(Game, Player);
+
+                    if (validSources.Any())
+                    {
+                        _yellowFromTerritory ??= validSources.First();
+
+                        <div class="mt-1 mb-1">
+                            <SelectComponent T=Territory OnChanged="StateHasChanged" ButtonHint="ClickHintButton.Lmb" ModifierHint="ClickHintModifier.Ctrl" @bind-Value="_yellowFromTerritory" Values="validSources">
+                                <Label>From</Label>
+                            </SelectComponent>
+
+                            <ForceSelectionComponent Game=Game Player=Player OnChanged="StateHasChanged" Forces="_yellowForces" Locations="Player.LocationsWithAnyForcesInTerritory(_yellowFromTerritory)" InitializeToMaximum="true"/>
+
+                            <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="_yellowOrOrangeToLocation" Values=@AmbassadorActivated.ValidYellowTargets(Game, Player)>
+                                <Label>To</Label>
+                            </SelectComponent>
+                        </div>
+                    }
+                    else
+                    {
+                        _yellowFromTerritory = null;
+                        _yellowForces = new Dictionary<Location, Battalion>();
+                        _yellowOrOrangeToLocation = null;
+
+                        <div>You don't have any forces to move.</div>
+                    }
+                    break;
+
+                case Ambassador.Black:
+                    
+                    if (victim == Faction.Black)
+                    {
+                        <div>See one of the <Image Shown=@victim Width="30"/> traitors?</div>
+                    }
+                    else if (victim == Faction.Purple)
+                    {
+                        <div>See one of the <Image Shown=@victim Width="30"/> unrevealed Face Dancers?</div>
+                    }
+                    else {
+
+                        <div>See the <Image Shown=@victim Width="30"/> traitor?</div>
+                    }
+                    break;
+
+                case Ambassador.Grey:
+
+                    <div>Discard a card from your hand to draw a new one?</div>
+                    <SelectFromImageComponent @bind-Value=@_greyCard Values=@AmbassadorActivated.GetValidGreyCards(Player) ImageWidth="80">
+                        <Label>Select the card you wish to discard</Label>
+                    </SelectFromImageComponent>
+                    break;
+
+                case Ambassador.White:
+
+                    <div>Buy a treachery card for 3 @Name(Concept.Resource)?</div>
+                    break;
+
+                case Ambassador.Orange:
+
+                    <div>Send up to 4 forces to any location?</div>
+
+                    var validTargets = AmbassadorActivated.ValidOrangeTargets(Game, Player);
+                    if (validTargets.Any())
+                    {
+                        <div class="mt-1 mb-1">
+                            <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="_yellowOrOrangeToLocation" Values="validTargets.OrderByDescending(l => l.IsStronghold).ThenBy(l => Name(l))">
+                                <Label>To</Label>
+                            </SelectComponent>
+                        </div>
+
+                        <SelectForcesComponent @bind-Value=_orangeForceAmount Min="0" Max=@AmbassadorActivated.ValidOrangeMaxForces(Player) Faction="Faction" Special="false" />
+                    }
+                    else
+                    {
+                        _yellowOrOrangeToLocation = null;
+                        _orangeForceAmount = 0;
+
+                        <div>There are no valid locations to ship to.</div>
+                    }
+                    break;
+
+                case Ambassador.Purple:
+
+                    <div>Revive one of your leaders or up to 4 forces for free?</div>
+                    @if (AmbassadorActivated.ValidPurpleMaxAmount(Player) > 0)
+                    {
+                        <SelectForcesComponent @bind-Value="_purpleAmountOfForces" Min="0" Max=@AmbassadorActivated.ValidPurpleMaxAmount(Player) Faction="Faction" Special="false" />
+                    }
+                    else
+                    {
+                        _purpleAmountOfForces = 0;
+                    }
+
+                    <SelectFromImageComponent Game="Game" @bind-Value=@_purpleHero Values="AmbassadorActivated.ValidPurpleHeroes(Game, Player)" Required="false" ImageWidth="80"/>
+
+                    @if (_purpleHero != null && Revival.MayAssignSkill(Game, Player, _purpleHero))
+                    {
+                        <RadioComponent @bind-Value=_purpleAssignSkill Values="@(new[] {false,true})" ValueLabels="@(new[] {"No","Yes"})">
+                            <Label>Do you wish to assign a skill to this leader?</Label>
+                        </RadioComponent>
+                    }
+                    else
+                    {
+                        _purpleAssignSkill = false;
+                    }
+
+                    break;
+            }
+        }
+
+        @if (AmbassadorActivated.MayPass(Player)) 
+        {
+            <ButtonRowComponent Confirm="Confirm" ConfirmError=@Validation Pass="Pass" />
+        }
+        else
+        {
+            <ButtonRowComponent Confirm="Confirm" ConfirmError=@Validation />
+        }
+
+    </Body>
+
+</GameEventComponentLayout>
+
+@code {
+
+    protected override bool IsUrgent => true;
+    protected override Faction IsFactionSpecific => Faction.Pink;
+
+    private Ambassador _actualAmbassador;
+    private List<TreacheryCard> _brownCards = new();
+    private bool _pinkOfferAlliance;
+    private bool _pinkTakeVidal;
+    private bool _pinkGiveVidal;
+    private Territory? _yellowFromTerritory;
+    private Location? _yellowOrOrangeToLocation;
+    private Dictionary<Location, Battalion> _yellowForces = new();
+    private TreacheryCard? _greyCard;
+    private int _orangeForceAmount;
+    private int _purpleAmountOfForces;
+    private IHero? _purpleHero;
+    private bool _purpleAssignSkill;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Client.OnLocationSelected += HandleLocationSelected;
+            Client.OnLocationSelectedWithCtrlOrAlt += HandleLocationSelectedWithModifier;
+        }
+    }
+
+    public override void Dispose()
+    {
+        base.Dispose();
+        Client.OnLocationSelected -= HandleLocationSelected;
+        Client.OnLocationSelectedWithCtrlOrAlt -= HandleLocationSelectedWithModifier;
+    }
+
+    protected override AmbassadorActivated ConfirmedResult => new(Game, Faction) { 
+        BlueSelectedAmbassador = _actualAmbassador,  
+        BrownCards = _brownCards,
+        PinkOfferAlliance = _pinkOfferAlliance, PinkGiveVidalToAlly = _pinkGiveVidal, PinkTakeVidal = _pinkTakeVidal,
+        YellowOrOrangeTo = _yellowOrOrangeToLocation, 
+        YellowForceLocations = _yellowForces,
+        OrangeForceAmount = _orangeForceAmount,
+        GreyCard = _greyCard,
+        PurpleAmountOfForces = _purpleAmountOfForces, PurpleHero = _purpleHero, PurpleAssignSkill = _purpleAssignSkill
+
+    };
+
+    protected override AmbassadorActivated PassedResult => new(Game, Faction) { Passed = true };
+
+    private void HandleLocationSelected(object sender, Location l)
+    {
+        var targets = _actualAmbassador == Ambassador.Yellow ? AmbassadorActivated.ValidYellowTargets(Game, Player) : AmbassadorActivated.ValidOrangeTargets(Game, Player);
+        SetIfValid(ref _yellowOrOrangeToLocation, targets.OrderByDescending(l => l.IsStronghold).ThenBy(l => Name(l)), l);
+    }
+
+    private void HandleLocationSelectedWithModifier(object sender, Location l)
+    {
+        SetIfValid(ref _yellowFromTerritory, AmbassadorActivated.ValidYellowSources(Game, Player), l.Territory);
+    }
+}

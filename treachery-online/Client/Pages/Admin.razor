@@ -1,0 +1,271 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+
+@page "/admin/"
+
+@using Treachery.Client.OtherComponents
+@implements IDisposable
+
+@if (!Client.IsConnected)
+{
+    <div class="row d-flex align-items-center" style="@StartScreenStyle">
+        <div class="d-flex justify-content-center">
+            Not Connected
+        </div>
+    </div>
+}
+else if (!Client.LoggedIn)
+{
+    <div class="row d-flex align-items-center" style="@StartScreenStyle">
+        <div class="col-sm-12 col-lg-3"></div>
+        <div class="col-sm-12 col-lg-6">
+            <div class="d-flex justify-content-center">
+                <LoginComponent/>
+            </div>
+        </div>
+        <div class="col-sm-12 col-lg-3"></div>
+    </div>
+}
+else 
+{
+    <div class="row" style="@StartScreenStyle">
+        <div class="col-sm-12 col-lg-2"></div>
+        <div class="col-sm-12 col-lg-6">
+            <div class="card mb-2">
+                <div class="card-header">Server info</div>
+                <div class="card-body">
+                    <h3 class="h3">Info</h3>
+                    <button class="btn btn-primary me-1" @onclick="@GetAdminInfo">Get admin info</button>
+                    <h3 class="h3">Maintenance window</h3>
+                    <DateTimePicker @bind-Value="@MaintenanceDate"/>
+                    <button class="btn btn-primary me-1" @onclick="@UpdateMaintenance">Update</button>
+                    <h3 class="h3">Persist data</h3>
+                    <button class="btn btn-primary me-1" @onclick="@PersistState">Persist data</button>
+                    <h3 class="h3">Restore persisted data</h3>
+                    <button class="btn btn-primary me-1" @onclick="@RestoreState">Restore data</button>
+                </div>
+            </div>
+            @if (Client.AdminInfo != null)
+            {
+                <div class="card mb-2">
+                    <div class="card-header">Info</div>
+                    <div class="card-body">
+                        <p><strong>Users by User Token: </strong>@Client.AdminInfo.UsersByUserTokenCount</p>
+                        <p><strong>Games by Game Id: </strong>@Client.AdminInfo.GamesByGameIdCount</p>
+                        <p><strong>Total Users: </strong>@Client.AdminInfo.Users.Count</p>
+                        <p><strong>ConnectionInfo by UserId: </strong>@Client.AdminInfo.ConnectionInfoByUserIdCount</p>
+                        <table class="table table-sm">
+                            <thead>
+                            <tr class="small table-dark">
+                                <th>User id</th>
+                                <th>Username</th>
+                                <th>Player name</th>
+                                <th>Email</th>
+                                <th>Last login</th>
+                                <th>Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var av in Client.AdminInfo.Users)
+                            {
+                                <tr class="small table-dark">
+                                    <td>@av.Id</td>
+                                    <td>@av.Username</td>
+                                    <td>@av.PlayerName</td>
+                                    <td>@av.Email</td>
+                                    <td>
+                                        @if (av.LastLogin != default)
+                                        {
+                                            @av.LastLogin.LocalDateTime
+                                        }
+                                    </td>
+                                    <td><button class="btn btn-primary btn-sm me-1" @onclick="@(_ => DeleteUser(av))">Delete</button></td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+            <div class="card mb-2">
+                <div class="card-header">Running games</div>
+                <div class="card-body">
+                    <div class="row g-2 mb-3">
+                        <div class="col-sm-12 col-md-4">
+                            <label class="form-label" for="gameUsernameFilter">Username</label>
+                            <input id="gameUsernameFilter" class="form-control form-control-sm" @bind="@GameUsernameFilter" @bind:event="oninput"/>
+                        </div>
+                        <div class="col-sm-12 col-md-4">
+                            <label class="form-label" for="gameTimeFromFilter">Game time from</label>
+                            <input id="gameTimeFromFilter" type="datetime-local" class="form-control form-control-sm"
+                                   @bind="@GameTimeFrom" @bind:format="yyyy-MM-ddTHH:mm"/>
+                        </div>
+                        <div class="col-sm-12 col-md-4">
+                            <label class="form-label" for="gameTimeToFilter">Game time to</label>
+                            <input id="gameTimeToFilter" type="datetime-local" class="form-control form-control-sm"
+                                   @bind="@GameTimeTo" @bind:format="yyyy-MM-ddTHH:mm"/>
+                        </div>
+                    </div>
+                    <table class="table table-sm">
+                        <thead>
+                        <tr class="small table-dark">
+                            <th>Created</th>
+                            <th>Username</th>
+                            <th>Last activity</th>
+                            <th>Game</th>
+                            <th>Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var av in FilteredGames)
+                        {
+                            var fontColorStyle = av.LastActivity != null && DateTimeOffset.Now.Subtract((DateTimeOffset)av.LastActivity).TotalMinutes > 20 ? "color:grey" : "color:white";
+                            <tr class="small table-dark">
+                                <td style="@fontColorStyle">
+                                    @av.CreationDate.LocalDateTime
+                                </td>
+                                <td style="@fontColorStyle">
+                                    @av.CreatorUsername
+                                </td>
+                                <td style="@fontColorStyle">
+                                    @av.LastActivity
+                                </td>
+                                <td style="@fontColorStyle">
+                                    @av.Name
+                                </td>
+                                <td>
+                                    <button class="btn btn-primary btn-sm me-1" title="Download savegame"
+                                            aria-label="Download savegame" @onclick="@(_ => Download(av))">
+                                        <span class="oi oi-data-transfer-download" aria-hidden="true"></span>
+                                    </button>
+                                    <button class="btn btn-primary btn-sm me-1" @onclick="@(_ => Close(av))">Close</button>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card mb-2">
+                <div class="card-header">Scheduled games</div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tbody>
+                        @foreach (var av in Client.ScheduledGames.OrderByDescending(av => av.DateTime))
+                        {
+                            <tr class="small table-dark">
+                                <td class="w-25">
+                                    @av.DateTime
+                                </td>
+                                <td class="w-25">
+                                    @av.CreatorName
+                                </td>
+                                <td class="w-25">
+                                    <button class="btn btn-primary btn-sm me-1" @onclick="@(_ => Cancel(av))">Cancel</button>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-12 col-lg-2">
+            <div class="card mb-2">
+                <div class="card-header">Log</div>
+                <div class="card-body">
+                    @foreach (var m in Messages)
+                    {
+                        <div>@m</div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-12 col-lg-2"></div>
+    </div>
+}
+
+@code {
+
+    private DateTimeOffset MaintenanceDate { get; set; }
+    private string GameUsernameFilter { get; set; } = string.Empty;
+    private DateTime? GameTimeFrom { get; set; }
+    private DateTime? GameTimeTo { get; set; }
+    private List<string> Messages { get; } = [];
+
+    private IEnumerable<GameInfo> FilteredGames => Client.ActiveGames
+        .Where(game => string.IsNullOrWhiteSpace(GameUsernameFilter)
+                       || game.CreatorUsername.Contains(GameUsernameFilter, StringComparison.OrdinalIgnoreCase))
+        .Where(game => GameTimeFrom == null || game.CreationDate.LocalDateTime >= GameTimeFrom)
+        .Where(game => GameTimeTo == null || game.CreationDate.LocalDateTime <= GameTimeTo)
+        .OrderByDescending(game => game.LastActivity);
+
+    protected override async Task OnInitializedAsync()
+    {
+        Client.RefreshHandler += StateHasChanged;
+        Client.IsAdmin = true;
+        await Client.Start();
+        MaintenanceDate = Client.ServerInfo.ScheduledMaintenance;
+    }
+
+    public void Dispose()
+    {
+        Client.RefreshHandler += StateHasChanged;
+    }
+    
+    private const string StartScreenStyle = "min-height: 97vh; background-image: url('art/planet.png'); background-size: 1024px; background-position-x: center; background-position-y: -50px; background-repeat: no-repeat;";
+
+    private async Task UpdateMaintenance()
+    {
+        Messages.Add(await Client.AdminUpdateMaintenance(MaintenanceDate));
+        StateHasChanged();
+    }
+    
+    private async Task GetAdminInfo()
+    {
+        Messages.Add(await Client.GetAdminInfo());
+        StateHasChanged();
+    }
+    
+    private async Task PersistState()
+    {
+        Messages.Add(await Client.AdminPersistState());
+        StateHasChanged();
+    }
+    
+    private async Task RestoreState()
+    {
+        Messages.Add(await Client.AdminRestoreState());
+        StateHasChanged();
+    }
+
+    private async Task Close(GameInfo av)
+    {
+        Messages.Add(await Client.AdminCloseGame(av.GameId));
+        StateHasChanged();
+    }
+
+    private async Task Download(GameInfo av)
+    {
+        Messages.Add(await Client.AdminDownloadGame(av.GameId));
+        StateHasChanged();
+    }
+    
+    private async Task Cancel(ScheduledGameInfo av)
+    {
+        Messages.Add(await Client.AdminCancelGame(av.ScheduledGameId));
+        StateHasChanged();
+    }
+    
+    private async Task DeleteUser(UserInfo av)
+    {
+        Messages.Add(await Client.AdminDeleteUser(av.Id));
+        StateHasChanged();
+    }
+}

@@ -1,0 +1,32 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits BiddingPanel<BlackMarketBid>
+
+@{
+    base.BuildRenderTree(__builder);
+}
+
+@code {
+
+    protected override BlackMarketBid ConfirmedResult => new(Game, Faction) { Passed = false, Amount = Amount, AllyContributionAmount = AllyContributionAmount, RedContributionAmount = RedContributionAmount };
+
+    protected override BlackMarketBid PassedResult => new(Game, Faction) { Passed = true };
+
+    protected override bool ShowRepeatAutoPass => false;
+
+    protected override bool CanUseKarma => false;
+
+    protected override bool CanUseRedSecretAlly => false;
+
+    protected override int MaxAllyBidAmount => BlackMarketBid.ValidMaxAllyAmount(Game, Player);
+
+    protected override int MaxBidAmount => BlackMarketBid.ValidMaxAmount(Player);
+
+    protected override string AuctionDescription => "Black Market";
+}

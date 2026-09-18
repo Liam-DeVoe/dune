@@ -1,0 +1,155 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits GameEventComponent<PlacementEventType>
+@typeparam PlacementEventType
+
+<GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
+
+    <Header>@(Title)?</Header>
+    <Body>
+
+        @if (InformAboutCaravan)
+        {
+            <div class="text-info small">Note: if you wish to perform a @Client.CurrentSkin.Describe(TreacheryCardType.Caravan) this turn, you need to do that before performing your regular move.</div>
+        }
+
+        @if (ValidSources.Any())
+        {
+            fromTerritory ??= ValidSources.First();
+
+            @if (Game.CurrentPlanetology != null && Game.CurrentPlanetology.MoveFromTwoTerritories && Game.CurrentPlanetology.Initiator == Faction)
+            {
+                <ForceSelectionComponent Game=Game Player=Player OnChanged="StateHasChanged" Forces="forces" Locations="Game.LocationsWithAnyForcesNotInStorm(Player)" AlwaysShowLocation="true" AllowMultipleTerritories="true" InitializeToMaximum="true"/>
+            }
+            else
+            {
+                <SelectComponent T=Territory OnChanged="StateHasChanged" ButtonHint="ClickHintButton.Lmb" ModifierHint="ClickHintModifier.Ctrl" @bind-Value="fromTerritory" Values="ValidSources">
+                    <Label>From</Label>
+                </SelectComponent>
+
+                <ForceSelectionComponent Game=Game Player=Player OnChanged="StateHasChanged" Forces="forces" Locations="Player.LocationsWithAnyForcesInTerritory(fromTerritory).Where(l => !Game.IsInStorm(l))" InitializeToMaximum="true"/>
+            }
+
+            <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="toLocation" Values="ValidTargets">
+                <Label>To</Label>
+            </SelectComponent>
+
+            @if (toLocation != null && Game.ContainsConflictingAlly(Player, toLocation))
+            {
+                <div class="text-danger bg-dark">Note: if you place forces there, all of your forces there at the end of your move turn will be destroyed due to ally presence!</div>
+            }
+
+            @if (Faction == Faction.Blue && toLocation != null)
+            {
+                var mayMoveAsAdvisors = PlacementEvent.MayMoveAsAdvisors(Game, Player, toLocation.Territory, Player.SpecialForcesIn(fromTerritory) > 0);
+
+                if (mayMoveAsAdvisors && PlacementEvent.MayMoveAsBlueFighters(Player, toLocation.Territory))
+                {
+                    <RadioComponent @bind-Value="asAdvisors" Values="new[] { false, true }" ValueLabels="@(new[] {"Fighters", "Advisors"})">
+                        <Label>Become fighters or advisors?</Label>
+                    </RadioComponent>
+                }
+                else
+                {
+                    asAdvisors = mayMoveAsAdvisors;
+                }
+            }
+            else
+            {
+                asAdvisors = false;
+            }
+
+
+            @if (MayPass)
+            {
+                <ButtonRowComponent Confirm="Confirm" ConfirmText=@Title ConfirmError=@Validation Pass="Pass" PassText="Pass" />
+            }
+            else
+            {
+                <ButtonRowComponent Confirm="Confirm" ConfirmText=@Title ConfirmError=@Validation />
+            }
+        }
+        else if (MayPass)
+        {
+            <ButtonRowComponent Pass="Pass" PassText="Pass" />
+        }
+
+    </Body>
+
+</GameEventComponentLayout>
+
+@code {
+
+    protected Territory? fromTerritory;
+    protected Location? toLocation;
+    protected Dictionary<Location, Battalion> forces = new();
+    protected bool asAdvisors;
+    private Game? selectionGame;
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        if (ReferenceEquals(selectionGame, Game))
+            return;
+
+        selectionGame = Game;
+        fromTerritory = null;
+        toLocation = null;
+        forces.Clear();
+        asAdvisors = false;
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Client.OnLocationSelected += HandleLocationSelected;
+            Client.OnLocationSelectedWithCtrlOrAlt += HandleLocationSelectedWithModifier;
+        }
+    }
+
+    public override void Dispose()
+    {
+        base.Dispose();
+        Client.OnLocationSelected -= HandleLocationSelected;
+        Client.OnLocationSelectedWithCtrlOrAlt -= HandleLocationSelectedWithModifier;
+    }
+
+    protected void AsAdvisorsOnChange(ChangeEventArgs args)
+    {
+        asAdvisors = Convert.ToBoolean(args.Value);
+        StateHasChanged();
+    }
+
+    protected virtual IEnumerable<Territory> ValidSources => PlacementEvent.ValidMovementSources(Game, Player);
+
+    protected virtual IEnumerable<Location> ValidTargets
+    {
+        get
+        {
+            if (forces.Sum(kvp => kvp.Value.TotalAmountOfForces) > 0)
+            {
+                return PlacementEvent.ValidTargets(Game, Player, forces).OrderByDescending(l => l.IsStronghold).ThenBy(l => Client.CurrentSkin.Describe(l));
+            }
+
+            return Array.Empty<Location>();
+        }
+    }
+
+    private void HandleLocationSelected(object sender, Location l)
+    {
+        SetIfValid(ref toLocation, ValidTargets, l);
+    }
+
+    private void HandleLocationSelectedWithModifier(object sender, Location l)
+    {
+        SetIfValid(ref fromTerritory, ValidSources, l.Territory);
+    }
+}

@@ -1,0 +1,130 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits GameComponent;
+ 
+@if (Visible)
+{
+    <div class="card p-1 mb-2 small">
+        <div class="card-body">
+            
+            <label for="musicVolume" class="form-label">&nbsp;Music volume</label>
+            <input id="musicVolume" class="form-range" type="range" min="0" max="100" step="1" @bind="@DesiredMusicVolume" @bind:event="oninput" @onchange="@AdjustVolume"/>
+
+            <label for="effectVolume" class="form-label">&nbsp;Sound effects volume</label>
+            <input id="effectVolume" class="form-range" type="range" min="0" max="100" step="1" @bind="@DesiredEffectVolume" @bind:event="oninput" @onchange="@AdjustVolume" />
+                        
+            <label for="chatVolume" class="form-label">&nbsp;Chat notification volume</label>
+            <input id="chatVolume" class="form-range" type="range" min="0" max="100" step="1" @bind="@DesiredChatVolume" @bind:event="oninput" @onchange="@AdjustVolume" />
+                        
+        </div>
+    </div>
+
+}
+
+@code {
+
+    [Parameter]
+    public bool Visible { get; set; }
+
+    private float DesiredMusicVolume { get; set; } = 0;
+    private float DesiredEffectVolume { get; set; } = 0;
+    private float DesiredChatVolume { get; set; } = 0;
+    private string CurrentSoundtrack { get; set; } = "";
+    private float CurrentMusicVolume { get; set; } = -1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSettings();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await UpdateMusicAndSound();
+    }
+
+    private async Task UpdateMusicAndSound()
+    {
+        if (!Client.InGame)
+            return;
+        
+        var soundtrackToPlay = DetermineSoundtrack();
+
+        if (CurrentSoundtrack != soundtrackToPlay)
+        {
+            if (CurrentSoundtrack != "")
+            {
+                await Browser.StopSound(CurrentSoundtrack);
+            }
+
+            CurrentSoundtrack = soundtrackToPlay;
+            await Browser.PlaySound(soundtrackToPlay, DesiredMusicVolume, true);
+        }
+        else if (Math.Abs(CurrentMusicVolume - DesiredMusicVolume) > 0.001f)
+        {
+            CurrentMusicVolume = DesiredMusicVolume;
+
+            if (DesiredMusicVolume <= 4)
+            {
+                await Browser.StopSounds();
+                CurrentSoundtrack = "";
+            }
+            else
+            {
+                await Browser.ChangeSoundVolume(soundtrackToPlay, DesiredMusicVolume);
+            }
+        }
+
+        Client.CurrentEffectVolume = DesiredEffectVolume;
+        Client.CurrentChatVolume = DesiredChatVolume;
+    }
+
+    private string DetermineSoundtrack()
+    {
+        if (Client.Game == null)
+        {
+            return Client.CurrentSkin.MusicGeneral_URL;
+        }
+
+        return Client.Game.CurrentMainPhase switch
+        {
+            MainPhase.Setup => Client.CurrentSkin.MusicSetup_URL,
+            MainPhase.Blow or MainPhase.Charity => Client.CurrentSkin.MusicResourceBlow_URL,
+            MainPhase.Bidding => Client.CurrentSkin.MusicBidding_URL,
+            MainPhase.ShipmentAndMove => Client.CurrentSkin.MusicShipmentAndMove_URL,
+            MainPhase.Battle when Game.CurrentPhase >= Phase.CallTraitorOrPass => Client.CurrentSkin.MusicBattleClimax_URL,
+            MainPhase.Battle => Client.CurrentSkin.MusicBattle_URL,
+            MainPhase.Collection or MainPhase.Contemplate or MainPhase.Ended => Client.CurrentSkin.MusicMentat_URL,
+            _ => Client.CurrentSkin.MusicGeneral_URL
+        };
+    }
+
+    private async Task AdjustVolume()
+    {
+        await Browser.SaveSetting("treachery.online;setting.music", DesiredMusicVolume);
+        await Browser.SaveSetting("treachery.online;setting.effect", DesiredEffectVolume);
+        await Browser.SaveSetting("treachery.online;setting.chatvolume", DesiredChatVolume);
+    }
+
+    private async Task LoadSettings()
+    {
+        try
+        {
+            DesiredMusicVolume = await Browser.LoadSetting<float>("treachery.online;setting.music");
+            if (DesiredMusicVolume == 0) DesiredMusicVolume = 50;
+            DesiredEffectVolume = await Browser.LoadSetting<float>("treachery.online;setting.effect");
+            if (DesiredEffectVolume == 0) DesiredEffectVolume = 50;
+            DesiredChatVolume = await Browser.LoadSetting<float>("treachery.online;setting.chatvolume");
+            if (DesiredChatVolume == 0) DesiredChatVolume = 50;
+        }
+        catch (Exception)
+        {
+            //Do nothing
+        }
+    }
+}

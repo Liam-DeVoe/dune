@@ -1,0 +1,158 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits GameEventComponent<PerformYellowSetup>
+@implements IDisposable
+
+<GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
+
+    <Header>Distribute @(10 - forces.Sum(fl => fl.Value.AmountOfForces + fl.Value.AmountOfSpecialForces)) forces on @Client.CurrentSkin.Describe(Game.Map.SietchTabr), @Client.CurrentSkin.Describe(Game.Map.FalseWallSouth), and @Client.CurrentSkin.Describe(Game.Map.FalseWallWest).</Header>
+    <Body>
+
+        <ForceSelectionComponent Game="Game" Player="Player" OnChanged="@StateHasChanged" Forces="forces" Locations="ValidLocations" MaySelectFromStorm="true" AlwaysShowLocation="true" FullLocationName="true" FixedMaxForces="10" FixedMaxSpecialForces="@(Player.HasSpecialForces ? 10 : 0)" AllowMultipleTerritories="true" />
+
+        <ButtonRowComponent Confirm="Confirm" ConfirmText="Confirm" ConfirmError="@Validation" />
+
+        <div>You can use the planet map:</div>
+        <div>Add @Client.CurrentSkin.Describe(Player.Force): <ClickHintComponent Button="ClickHintButton.Lmb" /></div>
+        <div>Remove @Client.CurrentSkin.Describe(Player.Force): <ClickHintComponent Button="ClickHintButton.Lmb" Modifier="ClickHintModifier.Shift" /></div>
+
+        @if (Player.HasSpecialForces)
+        {
+            <div>Add @Client.CurrentSkin.Describe(Player.SpecialForce): <ClickHintComponent Button="ClickHintButton.Lmb" Modifier="ClickHintModifier.Ctrl" /> </div>
+            <div>Remove @Client.CurrentSkin.Describe(Player.SpecialForce): <ClickHintComponent Button="ClickHintButton.Lmb" Modifier="ClickHintModifier.Ctrl | ClickHintModifier.Shift" /></div>
+        }
+
+    </Body>
+
+</GameEventComponentLayout>
+
+@code {
+
+    protected override bool IsUrgent => true;
+    protected override Faction IsFactionSpecific => Faction.Yellow;
+
+    private Dictionary<Location, Battalion> forces = new();
+
+    protected override PerformYellowSetup ConfirmedResult => new(Game, Faction) { ForceLocations = forces };
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Client.OnLocationSelected += HandleAddForce;
+            Client.OnLocationSelectedWithShift += HandleRemoveForce;
+
+            if (Player.HasSpecialForces)
+            {
+                Client.OnLocationSelectedWithCtrlOrAlt += HandleAddSpecialForce;
+                Client.OnLocationSelectedWithShiftAndWithCtrlOrAlt += HandleRemoveSpecialForce;
+            }
+        }
+    }
+
+    public override void Dispose()
+    {
+        base.Dispose();
+        Client.OnLocationSelected -= HandleAddForce;
+        Client.OnLocationSelectedWithShift -= HandleRemoveForce;
+
+        if (Player.HasSpecialForces)
+        {
+            Client.OnLocationSelectedWithCtrlOrAlt -= HandleAddSpecialForce;
+            Client.OnLocationSelectedWithShiftAndWithCtrlOrAlt -= HandleRemoveSpecialForce;
+        }
+    }
+
+    private void HandleAddForce(object sender, Location l)
+    {
+        if (ValidLocations.Contains(l))
+        {
+            ForceAmountButton(l, 1, false);
+        }
+    }
+
+    private void HandleAddSpecialForce(object sender, Location l)
+    {
+        if (ValidLocations.Contains(l))
+        {
+            ForceAmountButton(l, 1, true);
+        }
+    }
+
+    private void HandleRemoveForce(object sender, Location l)
+    {
+        if (ValidLocations.Contains(l))
+        {
+            ForceAmountButton(l, -1, false);
+        }
+    }
+
+    private void HandleRemoveSpecialForce(object sender, Location l)
+    {
+        if (ValidLocations.Contains(l))
+        {
+            ForceAmountButton(l, -1, true);
+        }
+    }
+
+    private IEnumerable<Location> ValidLocations
+    {
+        get
+        {
+            var result = new List<Location>();
+            result.Add(Game.Map.SietchTabr);
+            result.AddRange(Game.Map.FalseWallSouth.Locations);
+            result.AddRange(Game.Map.FalseWallWest.Locations);
+            return result;
+        }
+    }
+
+    protected int Forces(Location l, bool special)
+    {
+        if (forces.ContainsKey(l))
+        {
+            if (special)
+            {
+                return forces[l].AmountOfSpecialForces;
+            }
+
+            return forces[l].AmountOfForces;
+        }
+
+        return 0;
+    }
+
+    protected void ForceAmountButton(Location location, int amount, bool specialForces)
+    {
+        if (forces.ContainsKey(location))
+        {
+            if (specialForces)
+            {
+                forces[location].ChangeSpecialForces(amount);
+            }
+            else
+            {
+                forces[location].ChangeForces(amount);
+            }
+        }
+        else if (amount > 0)
+        {
+            if (specialForces)
+            {
+                forces.Add(location, new Battalion(Faction, 0, amount, location));
+            }
+            else
+            {
+                forces.Add(location, new Battalion(Faction, amount, 0, location));
+            }
+        }
+
+        StateHasChanged();
+    }
+}

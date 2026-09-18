@@ -1,0 +1,120 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits GameComponent
+
+<div class="card mb-2" style="animation:fadeIn 1s;">
+
+    @{
+        var acceptableDeals = DealAccepted.AcceptableDeals(Game, Player).ToArray();
+        var cancellableDeals = DealAccepted.CancellableDeals(Game, Player).ToArray();
+        var currentDeals = DealAccepted.CurrentDeals(Game).ToArray();
+
+        <div class="card-header" @onclick=@(e => _collapsed = !_collapsed) style="cursor:pointer">
+            Deals
+            @if (acceptableDeals.Any())
+            {
+                <span class="badge bg-warning" title="Deals offered to you">@acceptableDeals.Length</span>
+            }
+            @if (cancellableDeals.Any())
+            {
+                <span class="badge bg-success" title="Your deal offers">@cancellableDeals.Length</span>
+            }
+            @if (currentDeals.Any())
+            {
+                <span class="badge bg-primary" title="Current deals">@currentDeals.Length</span>
+            }
+
+            <CollapseButton Collapsed=@_collapsed />
+        </div>
+
+        @if (!_collapsed)
+        {
+            <div class="card-body">
+
+                @if (!Client.IsObserver && (acceptableDeals.Any() || cancellableDeals.Any())) 
+                {
+                    <label>Deal offers</label>
+                    <table class="table table-sm">
+
+                        <tbody>
+
+                            @foreach (var offer in acceptableDeals) 
+                            {
+                                var offerToShow = offer;
+                                var validity = offer.Acceptance(Faction).Validate();
+
+                                <tr class="table-dark">
+                                    <td><img width=24 src="@Client.CurrentSkin.GetImageUrl(offer.Initiator)" /></td>
+                                    <td>@offer.Price</td>
+                                    <td class="text-break">@offer.GetDealDescription().ToString(Client.CurrentSkin)</td>
+                                    <td>
+                                        <button class="btn btn-primary btn-sm" @onclick="e => Accept(offerToShow)" disabled=@(validity != null)>Accept</button>
+                                    </td>
+                                </tr>
+                            }
+
+                            @foreach (var offer in cancellableDeals)
+                            {
+                                var offerToShow = offer;
+
+                                <tr class="table-dark">
+                                    <td><img width=24 src="@Client.CurrentSkin.GetImageUrl(offer.Initiator)" /></td>
+                                    <td>@offer.Price</td>
+                                    <td class="text-break">@offer.GetDealDescription().ToString(Client.CurrentSkin)</td>
+                                    <td>
+                                        <button class="btn btn-primary btn-sm" @onclick="e => Cancel(offerToShow)">Withdraw</button>
+                                    </td>
+                                </tr>
+
+                            }
+
+                        </tbody>
+
+                    </table>
+                }
+
+                @if (currentDeals.Any())
+                {
+                    <label>Current deals</label>
+                    <table class="table table-sm">
+                        <tbody>
+                            @foreach (var deal in currentDeals)
+                            {
+                                <tr class="table-dark">
+                                    <td class="p-0">
+                                        <img width=24 src="@Client.CurrentSkin.GetImageUrl(deal.BoundFaction)" />
+                                        ⇒
+                                        <img width=24 src="@Client.CurrentSkin.GetImageUrl(deal.ConsumingFaction)" />
+                                    </td>
+                                    <td class="text-break">@deal.DealContentsDescription(Game).ToString(Client.CurrentSkin)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    
+    private bool _collapsed = true;
+
+    private async Task Accept(DealOffered offered)
+    {
+        await Request(offered.Acceptance(Faction));
+    }
+
+    private async Task Cancel(DealOffered offered)
+    {
+        await Request(offered.Cancellation());
+    }
+
+}

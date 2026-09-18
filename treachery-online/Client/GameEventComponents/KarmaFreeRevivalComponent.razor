@@ -1,0 +1,63 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits GameEventComponent<KarmaFreeRevival>
+
+<GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
+
+    <Header>Use @Client.CurrentSkin.Describe(TreacheryCardType.Karma) to revive forces or a leader</Header>
+    <Body>
+
+        @if (KarmaFreeRevival.ValidMaxAmount(Player, false) > 0)
+        {
+            <SelectForcesComponent @bind-Value="amountOfForces" Min="0" Max="KarmaFreeRevival.ValidMaxAmount(Player, false)" Faction="Faction" Special="false" />
+        }
+        else
+        {
+            amountOfForces = 0;
+        }
+
+        @if (KarmaFreeRevival.ValidMaxAmount(Player, true) > 0)
+        {
+            <SelectForcesComponent @bind-Value="amountOfSpecialForces" Min="0" Max="KarmaFreeRevival.ValidMaxAmount(Player, true)" Faction="Faction" Special="true" />
+        }
+        else
+        {
+            amountOfSpecialForces = 0;
+        }
+
+        <SelectFromImageComponent Game="Game" @bind-Value="hero" Values="Game.KilledHeroes(Player)" Required="false" ImageWidth="80"/>
+
+        @if (hero != null && Revival.MayAssignSkill(Game, Player, hero))
+        {
+            <RadioComponent @bind-Value="assignSkill" Values="@(new[] {false,true})" ValueLabels="@(new[] {"No","Yes"})">
+                <Label>Do you wish to assign a skill to this leader?</Label>
+            </RadioComponent>
+        }
+        else
+        {
+            assignSkill = false;
+        }
+
+        <ButtonRowComponent Confirm="Confirm" ConfirmText="@Client.CurrentSkin.Format("Use {0}", TreacheryCardType.Karma)" ConfirmError="@Validation" />
+
+    </Body>
+
+</GameEventComponentLayout>
+
+@code {
+
+    protected override Faction IsFactionSpecific => Faction.Red;
+
+    private int amountOfForces;
+    private int amountOfSpecialForces;
+    private IHero? hero;
+    private bool assignSkill;
+
+    protected override KarmaFreeRevival ConfirmedResult => new(Game, Faction) { AmountOfForces = amountOfForces, AmountOfSpecialForces = amountOfSpecialForces, Hero = hero, AssignSkill = assignSkill };
+}

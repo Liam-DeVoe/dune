@@ -1,0 +1,84 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits GameComponent
+
+<div class="card p-1 mb-2">
+
+    <div class="card-header">Select up to (including) which action should be undone</div>
+
+    <div class="card-body">
+        <select class="form-select" @bind="_undoEventId" id="undoEventNr">
+            @foreach (var group in UndoableEvents)
+            {
+                <optgroup label="@group.Key">
+                    @foreach (var evt in group.Value)
+                    {
+                        <option value=@evt.Key selected="@(evt.Key == _undoEventId)">@DetermineEventDescription(evt.Key, evt.Value)</option>
+                    }
+                </optgroup>
+            }
+        </select>
+       
+        <button class="btn btn-primary mt-1" @onclick="ConfirmUndo">Confirm</button>
+    </div>
+</div>
+
+@code {
+
+    private int _undoEventId;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        _undoEventId = Game.History.Count - 1;
+    }
+
+    private async Task ConfirmUndo()
+    {
+        await Client.RequestUndo(_undoEventId);
+        _undoEventId = Game.History.Count - 1;
+    }
+
+    private string DetermineEventDescription(int eventNumber, GameEvent e)
+    {
+        return "" + eventNumber + ". " + e.GetShortMessage()?.ToString(Client.CurrentSkin);
+    }
+
+    private string DetermineGroup(Moment m)
+    {
+        return "Turn " + m.Turn + " - " + Client.CurrentSkin.Describe(m.Phase);
+    }
+
+    private Dictionary<string,Dictionary<int, GameEvent>> UndoableEvents
+    {
+        get
+        {
+            var result = new Dictionary<string,Dictionary<int, GameEvent>>();
+
+            for (var i = Client.Game.History.Count - 1; i > 0; i--)
+            {
+                var e = Client.Game.History[i];
+                if (e is AllyPermission or BattleRevision or AutomationConfigured) 
+                    continue;
+                
+                var group = DetermineGroup(Client.Game.Moments[i-1]);
+                if (!result.ContainsKey(group))
+                {
+                    result.Add(group, new Dictionary<int, GameEvent>());
+                }
+
+                var groupedEvents = result[group];
+
+                groupedEvents.Add(i, e);
+            }
+
+            return result;
+        }
+    }
+}

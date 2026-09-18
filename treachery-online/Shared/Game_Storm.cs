@@ -1,0 +1,238 @@
+﻿/*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+namespace Treachery.Shared;
+
+public partial class Game
+{
+    #region State
+
+    public int HmsMovesLeft { get; internal set; }
+    public List<Faction> HasBattleWheel { get; } = [];
+    internal List<int> Dials { get; } = [];
+    public bool CurrentTestingStationUsed { get; internal set; }
+    internal Phase PhaseBeforeStormLoss { get; private set; }
+    public List<LossToTake> StormLossesToTake { get; } = [];
+
+    #endregion State
+
+    #region Storm
+
+    internal void EnterStormPhase()
+    {
+        CurrentTurn++;
+        MainPhaseStart(MainPhase.Storm, CurrentTurn > 1);
+        FactionsThatRevivedSpecialForcesThisTurn.Clear();
+        StormLossesToTake.Clear();
+        CurrentTestingStationUsed = false;
+
+        if (CurrentTurn == 1)
+        {
+            Dials.Clear();
+            HasActedOrPassed.Clear();
+            Enter(Phase.DiallingStorm);
+        }
+        else
+        {
+            if (JustRevealedDiscoveryStrongholds.Any())
+                Enter(Phase.BeginningOfStorm);
+            else
+                MoveHmsBeforeDiallingStorm();
+        }
+
+        DetermineOccupationAtStartOrEndOfTurn();
+    }
+
+    internal void MoveHmsBeforeDiallingStorm()
+    {
+        var grey = GetPlayer(Faction.Grey);
+        if (grey != null && grey.AnyForcesIn(Map.HiddenMobileStronghold) > 0)
+        {
+            if (Prevented(FactionAdvantage.GreyMovingHms))
+            {
+                LogPreventionByKarma(FactionAdvantage.GreyMovingHms);
+                if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.GreyMovingHms);
+                DetermineStorm();
+            }
+            else if (HasLowThreshold(Faction.Grey))
+            {
+                LogPreventionByLowThreshold(FactionAdvantage.GreyMovingHms);
+                DetermineStorm();
+            }
+            else
+            {
+                if (Map.HiddenMobileStronghold.AttachedToLocation?.Sector == SectorInStorm)
+                {
+                    Log("The storm prevents ", Map.HiddenMobileStronghold, " from moving");
+                    DetermineStorm();
+                }
+                else
+                {
+                    HmsMovesLeft = 3;
+                    Enter(Phase.HmsMovement);
+                }
+            }
+        }
+        else
+        {
+            DetermineStorm();
+        }
+    }
+
+    internal int DetermineLaterStormWithStormDeck()
+    {
+        return Random!.Next(6) + 1;
+    }
+
+    internal void DetermineStorm()
+    {
+        if (UseStormDeck)
+        {
+            RevealStorm();
+        }
+        else
+        {
+            Dials.Clear();
+            HasActedOrPassed.Clear();
+            Enter(Phase.DiallingStorm);
+        }
+    }
+
+    internal void RevealStorm()
+    {
+        HasActedOrPassed.Clear();
+        Log("The storm will move ", NextStormMoves, " sectors...");
+        Enter(Phase.MetheorAndStormSpell);
+    }
+
+    internal void CollectSpiceFrom(Faction faction, Location l, int maximumAmount)
+    {
+        if (!ResourcesOnPlanet.TryGetValue(l, out var value)) return;
+        
+        var collected = Math.Min(value, maximumAmount);
+        ChangeResourcesOnPlanet(l, -collected);
+        var collector = GetPlayer(faction);
+        if (collector == null) return;
+        collector.Resources += collected;
+        Log(faction, " collect ", Payment.Of(collected), " from ", l);
+    }
+
+    internal void MoveStormAndDetermineNext(int amount)
+    {
+        if (amount == 0) PerformStorm();
+
+        for (var i = 0; i < amount; i++)
+        {
+            SectorInStorm = (SectorInStorm + 1) % Map.NumberOfSectors;
+            PerformStorm();
+        }
+
+        if (UseStormDeck) NextStormMoves = DetermineLaterStormWithStormDeck();
+
+        Stone(Milestone.Storm);
+    }
+
+    internal void PerformStorm()
+    {
+        foreach (var l in Forces().Where(f => f.Key.Sector == SectorInStorm && !IsProtectedFromStorm(f.Key)))
+        foreach (var battalion in l.Value)
+        {
+            var player = GetPlayer(battalion.Faction);
+            if (player is null) continue;
+
+            var killCount = 0;
+            if (battalion.Is(Faction.Yellow) && Applicable(Rule.YellowStormLosses))
+            {
+                if (!Prevented(FactionAdvantage.YellowProtectedFromStorm))
+                {
+                    StormLossesToTake.Add(new LossToTake { Location = l.Key, Amount = TakeLosses.HalfOf(battalion.AmountOfForces, battalion.AmountOfSpecialForces), Faction = battalion.Faction });
+                }
+                else
+                {
+                    killCount += player.AnyForcesIn(l.Key);
+                    player.KillAllForces(l.Key, false);
+                    if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.YellowProtectedFromStorm);
+                }
+            }
+            else if (battalion.Is(Faction.Brown) && (!Prevented(FactionAdvantage.BrownDiscarding) || Applicable(Rule.NexusCards)))
+            {
+                StormLossesToTake.Add(new LossToTake { Location = l.Key, Amount = battalion.TotalAmountOfForces, Faction = battalion.Faction });
+            }
+            else
+            {
+                RevealCurrentNoField(player, l.Key);
+                killCount += player.AnyForcesIn(l.Key);
+                player.KillAllForces(l.Key, false);
+            }
+
+            if (killCount > 0) Log("The storm kills ", killCount, battalion.Faction, " forces in ", l.Key);
+        }
+
+        if (Version >= 163) FlipBlueAdvisorsWhenAlone();
+
+        foreach (var t in Strongholds.Where(s => s.Locations.Any(l => l.Sector == SectorInStorm && !IsProtectedFromStorm(l))))
+        {
+            var ambassador = AmbassadorIn(t);
+            if (ambassador != Ambassador.None)
+            {
+                var pink = GetPlayer(Faction.Pink);
+                if (pink is null) continue;
+                AmbassadorsOnPlanet.Remove(t);
+                pink.Ambassadors.Add(ambassador);
+                Log("The ambassador in ", t, " returns to ", Faction.Pink);
+            }
+        }
+
+        foreach (var l in Map.Locations(false).Where(l => l.Sector == SectorInStorm))
+        {
+            var removed = RemoveResources(l);
+            if (removed > 0) Log("The storm destroys ", Payment.Of(removed), " in ", l);
+        }
+    }
+
+    internal void EndStormPhase()
+    {
+        JustRevealedDiscoveryStrongholds.Clear();
+
+        MainPhaseEnd();
+
+        if (StormLossesToTake.Count > 0)
+        {
+            PhaseBeforeStormLoss = Phase.BlowA;
+            Enter(Phase.StormLosses);
+        }
+        else
+        {
+            if (Version >= 103)
+            {
+                if (Version >= 132) MainPhaseEnd();
+                Enter(Phase.StormReport);
+            }
+            else
+            {
+                EnterSpiceBlowPhase();
+            }
+        }
+    }
+
+    #endregion Storm
+
+    #region Information
+
+    internal bool UseStormDeck => Applicable(Rule.StormDeckWithoutYellow) || (IsPlaying(Faction.Yellow) && Applicable(Rule.YellowDeterminesStorm));
+
+    public bool IsProtectedFromStorm(Location l)
+    {
+        if (!ShieldWallDestroyed)
+            return l.Territory.IsProtectedFromStorm;
+        return l.Territory.IsProtectedFromStorm && !(l.Id == Map.Arrakeen.Id || l.Territory == Map.ImperialBasin || l.Id == Map.Carthag.Id);
+    }
+
+    #endregion Information
+}

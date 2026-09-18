@@ -1,0 +1,89 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits GameComponent
+
+@if (Client.InGame)
+{
+    <div class="card mb-2 border-white">
+
+        <div class="card-header">Welcome to @(Client.GameName)</div>
+
+        <div class="card-body">
+
+            <div class="mt-1 mb-0"><strong>Maximum number of turns:</strong> @Settings.MaximumTurns</div>
+
+            <div class="mt-1 mb-0"><strong>Maximum number of players:</strong> @Settings.NumberOfPlayers</div>
+
+            <div class="mt-1 mb-0">
+                @foreach (var faction in Settings.AllowedFactionsInPlay)
+                {
+                    <FactionComponent Faction="@faction"/>
+                }
+            </div>
+            
+            <JoinedPlayersPanel/>
+            
+            <label class="mt-1 mb-0 small">Core Game, Advanced Rules</label>
+            <ul class="mt-0 mb-1">
+                @foreach (var rule in Game.GetRulesInGroup(RuleGroup.CoreAdvanced, Game.ExpansionLevel))
+                {
+                    <li class="small" style="@DetermineRuleClass(Settings.InitialRules.Contains(rule))">@Client.CurrentSkin.Describe(rule)</li>
+                }
+            </ul>
+
+            <label class="mt-1 mb-0 small">Core Game, Exceptions to Basic Rules</label>
+            <ul class="mt-0 mb-1">
+                @foreach (var rule in Game.GetRulesInGroup(RuleGroup.CoreBasicExceptions, Game.ExpansionLevel))
+                {
+                    <li class="small" style="@DetermineRuleClass(Settings.InitialRules.Contains(rule))">@Client.CurrentSkin.Describe(rule)</li>
+                }
+            </ul>
+
+            <label class="mt-1 mb-0 small">Core Game, Exceptions to Advanced Rules</label>
+            <ul class="mt-0 mb-1">
+                @foreach (var rule in Game.GetRulesInGroup(RuleGroup.CoreAdvancedExceptions, Game.ExpansionLevel))
+                {
+                    <li class="small" style="@DetermineRuleClass(Settings.InitialRules.Contains(rule))">@Client.CurrentSkin.Describe(rule)</li>
+                }
+            </ul>
+
+            <label class="mt-1 mb-0 small">Ixians &amp; Tleilaxu Expansion</label>
+            <ul class="mt-0 mb-1">
+                @foreach (var rule in Game.GetRulesInGroup(RuleGroup.ExpansionIxAndBtBasic, Game.ExpansionLevel))
+                {
+                    <li class="small" style="@DetermineRuleClass(Settings.InitialRules.Contains(rule))">@Client.CurrentSkin.Describe(rule)</li>
+                }
+            </ul>
+
+            <label class="mt-1 mb-0 small">Ixians &amp; Tleilaxu Expansion, Advanced Rules</label>
+            <ul class="mt-0 mb-1">
+                @foreach (var rule in Game.GetRulesInGroup(RuleGroup.ExpansionIxAndBtAdvanced, Game.ExpansionLevel))
+                {
+                    <li class="small" style="@DetermineRuleClass(Settings.InitialRules.Contains(rule))">@Client.CurrentSkin.Describe(rule)</li>
+                }
+            </ul>
+
+            <label class="mt-1 mb-0 small">House Rules</label>
+            <ul class="mt-0 mb-1">
+                @foreach (var rule in Game.GetRulesInGroup(RuleGroup.House, Game.ExpansionLevel))
+                {
+                    <li class="small" style="@DetermineRuleClass(Settings.InitialRules.Contains(rule))">@Client.CurrentSkin.Describe(rule)</li>
+                }
+            </ul>
+
+        </div>
+    </div>
+}
+
+@code {
+
+    private GameSettings Settings => Game.Settings;
+    
+    private static string DetermineRuleClass(bool applicable) => applicable ? "color:white" : "color:grey";
+}

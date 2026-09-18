@@ -1,0 +1,27 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits GameEventComponent<ResourcesAudited>
+
+<GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
+
+    <Header>Force a faction to reveal the amount of @Name(Concept.Resource), weapons and defenses?</Header>
+
+    <Body>
+        <SelectFromImageComponent @bind-Value="target" Values="@ResourcesAudited.ValidFactions(Game, Player)" Required="true" ImageWidth="40" />
+        <ButtonRowComponent Confirm="Confirm" ConfirmError="@Validation" />
+    </Body>
+
+</GameEventComponentLayout>
+
+@code {
+
+    private Faction target;
+
+    protected override ResourcesAudited ConfirmedResult => new(Game, Faction) { Target = target };
+}

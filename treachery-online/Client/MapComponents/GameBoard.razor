@@ -1,0 +1,48 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits MapComponent
+
+<div id="planetmap" style="position:absolute; left:0px">
+
+    <div id="planetmap_inner" style="position:absolute; width:@Px(Client.CurrentSkin.MapDimensions.X); height:@Px(Client.CurrentSkin.MapDimensions.Y);">
+
+        <BackgroundImage X="0" Y="0" Width="@Client.CurrentSkin.MapDimensions.X" Height="@Client.CurrentSkin.MapDimensions.Y" Src="@Client.CurrentSkin.Map_URL"/>
+
+        @if (Client.Game.CurrentPhase > Phase.AwaitingPlayers)
+        {
+            <div style="width:100%; height:100%;">
+
+                <SSW  />
+                <ResourcesOnPlanet  />
+                <Monsters  />
+                <Phases  />
+                <CardPiles  />
+                <Planet  OnLocationClick="@OnLocationClick"/>
+                <RecentMoves  />
+                <ForcesOnPlanet  OnLocationClick="@OnLocationClick" />
+                <Players  OnLocationClick="@OnLocationClick" />
+                <Bids  />
+                <Tanks  />
+                <Disconnection  />
+                <BattlePlans  />
+
+            </div>
+        }
+
+    </div>
+
+</div>
+
+<div id="planetmap-filler" style="display:block" />
+
+@code {
+
+    [Parameter]
+    public EventCallback<LocationEventArgs> OnLocationClick { get; set; }
+}

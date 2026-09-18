@@ -1,0 +1,79 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits GameEventComponent<GameEventType>
+@typeparam GameEventType
+
+@if (!dismissed)
+{
+    <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle=@BodyStyle CollapsedType=GetType()>
+
+        <Header>@Title</Header>
+        <Body>
+
+            @if (Dismissable)
+            {
+                <ButtonRowComponent Confirm="Confirm" ConfirmText="@ConfirmLabel" ConfirmError=@Validation Pass="Pass" PassText="@PassLabel" Other="Dismiss" OtherText="@DismissLabel" />
+            }
+            else
+            {
+                <ButtonRowComponent Confirm="Confirm" ConfirmText="@ConfirmLabel" ConfirmError=@Validation Pass="Pass" PassText="@PassLabel" />
+            }
+
+        </Body>
+
+    </GameEventComponentLayout>
+}
+
+@code {
+
+    protected override bool IsUrgent => Alert;
+
+    protected override Faction IsFactionSpecific => ForFaction;
+
+    private bool dismissed = false;
+
+    [Parameter]
+    public string? Title { get; set; }
+
+    [Parameter]
+    public string ConfirmLabel { get; set; } = "Yes";
+
+    [Parameter]
+    public string PassLabel { get; set; } = "No";
+
+    [Parameter]
+    public bool Alert { get; set; }
+
+    [Parameter]
+    public Faction ForFaction { get; set; } = Faction.None;
+
+    [Parameter]
+    public bool Dismissable { get; set; } = false;
+
+    [Parameter]
+    public string DismissLabel { get; set; } = "Dismiss";
+
+    protected override GameEventType ConfirmedResult => CreateEvent(false);
+
+    protected override GameEventType PassedResult => CreateEvent(true);
+
+    protected GameEventType CreateEvent(bool passed)
+    {
+        var result = new GameEventType();
+        result.Initialize(Game, Faction);
+        result.Passed = passed;
+        return result;
+    }
+
+    private void Dismiss()
+    {
+        dismissed = true;
+    }
+}
+

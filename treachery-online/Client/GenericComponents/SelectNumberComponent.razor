@@ -1,0 +1,59 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+
+<div class="d-flex align-items-center">
+
+    @if (Label != "")
+    {
+        <label class="me-1">@Label</label>
+    }
+    
+    <NumberPickerComponent Disabled="@Disabled" @bind-Value="@Value" OnChanged="Notify" Min="Min" Max="Max" StepUp="StepUp" StepDown="StepDown" 
+        SymbolBackgroundFillColor="white" SymbolBackgroundBorderColor="black" Size="Size" />
+
+</div>
+
+@code {
+
+    [Parameter]
+    public int Value { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<int> ValueChanged { get; set; }
+
+    [Parameter]
+    public int Min { get; set; }
+
+    [Parameter]
+    public int Max { get; set; }
+
+    [Parameter]
+    public int StepUp { get; set; } = 1;
+
+    [Parameter]
+    public int StepDown { get; set; } = 1;
+
+    [Parameter]
+    public string Label { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public int Size { get; set; } = 36;
+
+    private async Task Notify() {
+
+        await ValueChanged.InvokeAsync(Value);
+        await OnChanged.InvokeAsync(Value);
+    }
+}

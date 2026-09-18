@@ -1,0 +1,167 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+
+@implements IDisposable;
+
+@code {
+
+    protected Game Game => Client.Game!;
+
+    protected Player Player => Client.Player!;
+
+    protected Faction Faction => Client.Faction!.Value;
+
+    protected string Id => field ??= Guid.NewGuid().ToString();
+
+    protected override void OnInitialized()
+    {
+        Client.RefreshHandler += Redraw;
+    }
+
+    public virtual void Dispose()
+    {
+        Client.RefreshHandler -= Redraw;
+        _redrawCycleStarted = false;
+    }
+
+    protected async Task Request<T>(T e) where T : GameEvent
+    {
+        var result = await Client.RequestGameEvent(e);
+        if (result != null)
+        {
+            Console.WriteLine(result);            
+        }
+    }
+
+    private bool _redrawCycleStarted;
+    protected void StartRedrawCycle(int interval)
+    {
+        if (!_redrawCycleStarted && interval > 0)
+        {
+            _redrawCycleStarted = true;
+            _ = Task.Delay(interval).ContinueWith(_ => ContinueRedrawCycle(interval));
+        }
+    }
+
+    protected async Task StartRedrawCycleAsync(int interval)
+    {
+        if (!_redrawCycleStarted && interval > 0)
+        {
+            _redrawCycleStarted = true;
+            await Task.Delay(interval).ContinueWith(_ => ContinueRedrawCycleAsync(interval));
+        }
+    }
+
+    private void ContinueRedrawCycle(int interval)
+    {
+        if (_redrawCycleStarted)
+        {
+            Redraw();
+            _ = Task.Delay(interval).ContinueWith(_ => ContinueRedrawCycle(interval));
+        }
+    }
+
+    private async Task ContinueRedrawCycleAsync(int interval)
+    {
+        if (_redrawCycleStarted)
+        {
+            await RedrawAsync();
+            await Task.Delay(interval).ContinueWith(_ => ContinueRedrawCycleAsync(interval));
+        }
+    }
+
+    protected virtual void Redraw()
+    {
+        StateHasChanged();
+    }
+
+    protected virtual async Task RedrawAsync()
+    {
+        await Task.Delay(10).ContinueWith(_ => StateHasChanged());
+    }
+
+    private bool _timerCycleStarted;
+    protected void StartTimerCycle(int interval)
+    {
+        if (!_timerCycleStarted && interval > 0)
+        {
+            _timerCycleStarted = true;
+            _ = Task.Delay(interval).ContinueWith(_ => ContinueTimerCycle(interval));
+        }
+    }
+
+    protected async Task StartTimerCycleAsync(int interval)
+    {
+        if (!_timerCycleStarted && interval > 0)
+        {
+            _timerCycleStarted = true;
+            await Task.Delay(interval).ContinueWith(_ => ContinueTimerCycleAsync(interval));
+        }
+    }
+
+    private void ContinueTimerCycle(int interval)
+    {
+        if (_timerCycleStarted)
+        {
+            Cycle();
+            _ = Task.Delay(interval).ContinueWith(_ => ContinueTimerCycle(interval));
+        }
+    }
+
+    private async Task ContinueTimerCycleAsync(int interval)
+    {
+        if (_timerCycleStarted)
+        {
+            await CycleAsync();
+            await Task.Delay(interval).ContinueWith(_ => ContinueTimerCycleAsync(interval));
+        }
+    }
+
+    protected virtual void Cycle()
+    {
+
+    }
+
+    protected virtual async Task CycleAsync()
+    {
+        await Task.CompletedTask;
+    }
+
+    protected IEnumerable<string> GetLabels<T>(IEnumerable<T> items, string labelIfNull = "")
+    {
+        return items.Select(i => i != null ? Name(i) : labelIfNull);
+    }
+
+    protected string Name(object? o)
+    {
+        return Client.CurrentSkin.Describe(o);
+    }
+
+    protected string GetImage(TreacheryCardType type)
+    {
+        return Client.CurrentSkin.GetImageUrl(TreacheryCardManager.GetCardsInAndOutsidePlay().FirstOrDefault(c => c.Type == type));
+    }
+
+    protected string DescribeCard(TreacheryCardType t)
+    {
+        return Client.CurrentSkin.Format("Use {0}?", t);
+    }
+
+    protected string GetId(object? value)
+    {
+        if (value == null)
+            return string.Empty;
+
+        if (value is IIdentifiable valueAsIdentifiable)
+            return valueAsIdentifiable.Id.ToString();
+
+        return Client.CurrentSkin.Describe(value);
+    }
+}
+

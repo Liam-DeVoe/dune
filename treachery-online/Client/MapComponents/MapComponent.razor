@@ -1,0 +1,270 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+
+@implements IDisposable
+
+@code {
+
+    protected override void OnInitialized()
+    {
+        Client.RefreshHandler += StateHasChanged;
+    }
+
+    private double _x;
+    [Parameter]
+    public double X { get; set; }
+
+    private double _y;
+    [Parameter]
+    public double Y { get; set; }
+
+    private PointD _xy;
+    [Parameter]
+    public PointD Xy { get; set; }
+
+    private double _diameter;
+    [Parameter]
+    public double Diameter { get; set; }
+
+    private double _width;
+    [Parameter]
+    public double Width { get; set; }
+
+    private double _height;
+    [Parameter]
+    public double Height { get; set; }
+
+    [Parameter]
+    public double Opacity { get; set; } = 1.0f;
+
+    [Parameter]
+    public string PopoverStyle { get; set; } = "background-color:black;text-align:center;border:1px solid white;padding:3px 3px 3px 3px;filter:drop-shadow(-5px 5px 2px #000000AA);";
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        if (Math.Abs(Diameter - _diameter) > 0)
+        {
+            _diameter = Diameter;
+            _width = _diameter;
+            Width = _diameter;
+            _height = _diameter;
+            Height = _diameter;
+        }
+        else if (Math.Abs(Width - _width) > 0 || Math.Abs(Height - _height) > 0)
+        {
+            _width = Width;
+            _height = Height;
+            _diameter = Math.Max(_width, _height);
+            Diameter = _diameter;
+        }
+
+        if (Xy != _xy)
+        {
+            _xy = Xy;
+            _x = _xy.X;
+            X = _xy.X;
+            _y = _xy.Y;
+            Y = _xy.Y;
+        }
+        else if (Math.Abs(X - _x) > 0 || Math.Abs(Y - _y) > 0)
+        {
+            _x = X;
+            _y = Y;
+            _xy = new PointD(_x, _y);
+            Xy = _xy;
+        }
+    }
+
+    protected const float TwoPi = 6.2831853072f;
+
+    protected Game Game => Client.Game;
+
+    protected Player Player => Client.Player;
+
+    protected static string Px(double x) => Utilities.Px(x);
+
+    protected static string Round(double x) => Utilities.Round(x);
+
+    private static int _nextId;
+    private string? _id;
+    protected string Id
+    {
+        get { return _id ??= (_nextId++).ToString(); }
+    }
+
+    protected PointD PlayerTokenPosition(Game game, int positionAtTable)
+    {
+        var positionSector = Math.Floor((float)positionAtTable * Map.NumberOfSectors / game.MaximumPlayers);
+        var angle = (4.5 - positionSector) * TwoPi / Map.NumberOfSectors;
+        var x = Client.CurrentSkin.PlanetCenter.X + (float)(Client.CurrentSkin.MapRadius * Math.Cos(angle));
+        var y = Client.CurrentSkin.PlanetCenter.Y + (float)(Client.CurrentSkin.MapRadius * Math.Sin(angle));
+        return new PointD(x, y);
+    }
+
+    protected string PopoverTemplate => $"<div class=\"popover\" role=\"tooltip\" style=\"{PopoverStyle}\"><div class=\"arrow\"></div><h3 class=\"popover-header p-0\"></h3><div class=\"popover-body p-0\"></div></div>";
+    
+    protected string Intel(Location intelligenceLocation)
+    {
+        var result = "<div style='width:300px'>";
+
+        if (Game.StrongholdOwnership.TryGetValue(intelligenceLocation, out var owner))
+        {
+            result += Client.CurrentSkin.GetPopup(intelligenceLocation.Advantage, owner);
+        }
+        else
+        {
+            result += Client.CurrentSkin.Format("<h5>{0}</h5>", Client.CurrentSkin.Describe(intelligenceLocation.Territory));
+            if (intelligenceLocation.Orientation != "")
+            {
+                result += "<div class='mt-0 mb-2'><strong>Sector: " + intelligenceLocation.Orientation + "</strong></div>";
+            }
+        }
+
+        if (Client.CurrentSkin.ShowVerboseToolipsOnMap)
+        {
+            if (Game.Map.PolarSink.Equals(intelligenceLocation))
+            {
+                result += Client.CurrentSkin.Format("<p>Safe haven: no battles are fought here.</p>");
+            }
+
+            if (intelligenceLocation.Territory.IsStronghold || Game.IsSpecialStronghold(intelligenceLocation.Territory))
+            {
+                result += Client.CurrentSkin.Format("<p>Yields a victory point at end of turn.</p>");
+            }
+
+            if (intelligenceLocation is DiscoveredLocation dl)
+            {
+                result += Client.CurrentSkin.Format("<p>{0}.</p>", Client.CurrentSkin.GetDiscoveryTokenDescription(dl.Discovery));
+            }
+
+            if (intelligenceLocation.Territory == Game.AtomicsAftermath)
+            {
+                result += Client.CurrentSkin.Format("<p>ATOMICS AFTERMATH - No shipping here.</p>");
+            }
+
+            if (Equals(intelligenceLocation, Game.Map.Arrakeen) || Equals(intelligenceLocation, Game.Map.Carthag))
+            {
+                result += Client.CurrentSkin.Format("<p><strong>Harvesters: </strong>when occupied, grants a {0} collection rate of 3-per-force.</p>", Concept.Resource);
+                result += Client.CurrentSkin.Format("<p><strong>Ornithopters: </strong>when occupied, your forces can move up to 3 territories.</p>", Concept.Resource);
+            }
+
+            if (Game.Applicable(Rule.IncreasedResourceFlow))
+            {
+                if (Equals(intelligenceLocation, Game.Map.Arrakeen) || Equals(intelligenceLocation, Game.Map.Carthag) || Equals(intelligenceLocation, Game.Map.TueksSietch))
+                {
+                    var bonus = Equals(intelligenceLocation, Game.Map.Arrakeen) || Equals(intelligenceLocation, Game.Map.Carthag) ? 2 : 1;
+                    result += Client.CurrentSkin.Format("<p>Yields <strong>{0} {1}</strong> at end of turn when occupied.</p>", bonus, Concept.Resource);
+                }
+            }
+
+            result += Client.CurrentSkin.Format("<p>{0} from {1}.</p>", ProtectedFromMonsterText(intelligenceLocation), Concept.Monster);
+            result += Client.CurrentSkin.Format("<p>{0} from Storms.</p>", ProtectedFromStormText(intelligenceLocation));
+
+            if (intelligenceLocation.Sector == Game.SectorInStorm)
+            {
+                result += "<p>Currently in Storm.</p>";
+            }
+
+            if (intelligenceLocation.SpiceBlowAmount > 0)
+            {
+                result += Client.CurrentSkin.Format("<p>May contain <strong>{0} {1}</strong> after {2}.</p>", intelligenceLocation.SpiceBlowAmount, Concept.Resource, MainPhase.Blow);
+            }
+        }
+
+        result += SpiceAndForceAndTokenInfo(intelligenceLocation);
+
+        result += "</div>";
+
+        return result;
+    }
+
+    private string SpiceAndForceAndTokenInfo(Location intelligenceLocation)
+    {
+        var result = "";
+
+        result += "<div class=\"row m-0 bg-dark d-flex justify-content-center\">";
+
+        if (Game.ResourcesOnPlanet.ContainsKey(intelligenceLocation))
+        {
+            result += string.Format("<div class=\"col col-auto\"><img class=\"img-fluid m-0 p-0\" width=\"32\" height=\"32\" src=\"{0}\" /><strong>&nbsp;{1}</strong></div>",
+                Client.CurrentSkin.Harvester_URL,
+                Game.ResourcesOnPlanet[intelligenceLocation]);
+        }
+
+        if (Game.ForcesOnPlanetExcludingEmptyLocations().ContainsKey(intelligenceLocation))
+        {
+            foreach (var b in Game.BattalionsIn(intelligenceLocation))
+            {
+                var p = Game.GetPlayer(b.Faction);
+                if (b.AmountOfSpecialForces > 0 || b.AmountOfForces > 0)
+                {
+                    if (b.AmountOfForces > 0)
+                    {
+                        result += string.Format("<div class=\"col col-auto\"><img class=\"img-fluid m-0 p-0\" width=\"32\" height=\"32\" src=\"{0}\" /><strong>&nbsp;{1}</strong></div>",
+                            Client.CurrentSkin.GetFactionForceImageUrl(p.Faction),
+                            b.AmountOfForces);
+                    }
+
+                    if (b.AmountOfSpecialForces > 0)
+                    {
+                        result += string.Format("<div class=\"col col-auto\"><img class=\"img-fluid m-0 p-0\" width=\"32\" height=\"32\" src=\"{0}\" /><strong>&nbsp;{1}</strong></div>",
+                            Client.CurrentSkin.GetFactionSpecialForceImageUrl(p.Faction),
+                            b.Faction == Faction.White && Client.Faction != Faction.White ? "?" : "" + (b.Faction == Faction.White ? Game.CurrentNoFieldValue : b.AmountOfSpecialForces));
+                    }
+                }
+            }
+        }
+
+        if (Game.TerrorIn(intelligenceLocation.Territory).Any())
+        {
+            result += string.Format("<div class=\"col col-auto\"><img class=\"img-fluid m-0 p-0\" width=\"32\" height=\"32\" src=\"{0}\" style=\"filter:hue-rotate(180deg);\" /><strong>&nbsp;{1}</strong></div>",
+                Client.CurrentSkin.GetImageUrl(Faction.Cyan),
+                Game.TerrorIn(intelligenceLocation.Territory).Count());
+        }
+
+        var ambassador = Game.AmbassadorIn(intelligenceLocation.Territory);
+        if (ambassador != Ambassador.None)
+        {
+            result += $"<div class=\"col col-auto\"><img class=\"img-fluid m-0 p-0\" width=\"32\" height=\"32\" src=\"{Client.CurrentSkin.GetImageUrl(ambassador)}\" /><strong></div>";
+        }
+
+        if (Game.DiscoveriesOnPlanet.TryGetValue(intelligenceLocation, out var discovery))
+        {
+            result += $"<div class=\"col col-auto\"><img class=\"img-fluid m-0 p-0\" width=\"32\" height=\"32\" src=\"{Client.CurrentSkin.GetImageUrl(discovery.TokenType)}\" /></div>";
+        }
+
+        foreach (var hero in Game.LeaderState.Where(state => state.Value.Alive && state.Value.CurrentTerritory == intelligenceLocation.Territory).Select(state => state.Key))
+        {
+            result += $"<div class=\"col col-auto\"><img class=\"img-fluid m-0 p-0\" width=\"64\" height=\"64\" src=\"{Client.CurrentSkin.GetImageUrl(hero)}\" /></div>";
+        }
+
+        result += "</div>";
+
+        return result;
+    }
+
+    private static string ProtectedFromMonsterText(Location l)
+    {
+        return l.Territory.IsProtectedFromWorm ? "Protected" : "NOT protected";
+    }
+
+    private string ProtectedFromStormText(Location l)
+    {
+        return Client.Game.IsProtectedFromStorm(l) ? "Protected" : "NOT protected";
+    }
+
+    protected ElementReference Element;
+    
+    public void Dispose()
+    {
+        Client.RefreshHandler -= StateHasChanged;
+    }
+}

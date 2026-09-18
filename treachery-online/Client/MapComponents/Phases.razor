@@ -1,0 +1,138 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits MapComponent
+
+@{
+    var x = Client.CurrentSkin.MapDimensions.X - 5;
+
+    if (Game.CurrentTurn >= 1)
+    {
+        <MapText ToShow="@string.Format("Turn {0} of {1}", Client.Game.CurrentTurn, Client.Game.MaximumTurns)"
+                 X="x"
+                 Y=@(0.3f * TurnFontHeight)
+                 Font="@Client.CurrentSkin.TURN_FONT"
+                 FontColor="@Client.CurrentSkin.TURN_FONT_COLOR"
+                 BorderWidth="@Client.CurrentSkin.TURN_FONT_BORDERWIDTH"
+                 BorderColor="@Client.CurrentSkin.TURN_FONT_BORDERCOLOR"
+                 Popover=@TurnPopover
+                 Align="@TextAlignment.Right"/>
+    }
+
+    if (Game.CurrentMainPhase > MainPhase.Setup)
+    {
+        var posX = x;
+        double posY = 0.7f * TurnFontHeight;
+
+        foreach (var phase in Enumerations.GetValues<MainPhase>().Where(p => p >= MainPhase.Storm && p <= MainPhase.Contemplate))
+        {
+            if (phase == Game.CurrentMainPhase)
+            {
+                posY += 0.7f * ActiveFontHeight;
+
+                <MapText ToShow="@Client.CurrentSkin.Describe(phase)"
+                         X="@(posX)" Y="@(posY)"
+                         Font="@Client.CurrentSkin.PHASE_ACTIVE_FONT" FontColor="@Client.CurrentSkin.PHASE_ACTIVE_FONTCOLOR"
+                         BorderWidth="@Client.CurrentSkin.PHASE_ACTIVE_FONT_BORDERWIDTH" BorderColor="@Client.CurrentSkin.PHASE_FONT_BORDERCOLOR"
+                         Align="@TextAlignment.Right"/>
+
+                if (Game.EconomicsStatus != BrownEconomicsStatus.None && Game.EconomicsStatus != BrownEconomicsStatus.RemovedFromGame && phase == MainPhase.Charity)
+                {
+                    var diameter = 2 * Client.CurrentSkin.PlayerTokenRadius;
+
+                    <MapImage X="@(posX - diameter)" Y="@(posY - Client.CurrentSkin.PlayerTokenRadius)" Diameter=diameter Src="@Client.CurrentSkin.GetImageUrl(Faction.Brown)" ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="1" ShadowY="1" ShadowBlur="0" />
+
+                    <MapText ToShow="@Client.CurrentSkin.Describe(Game.EconomicsStatus)"
+                             X="@(posX - Client.CurrentSkin.PlayerTokenRadius)" Y="@(posY)"
+                             Font="@Client.CurrentSkin.SKILL_FONT" FontColor="white"
+                             BorderWidth="1" BorderColor="black"
+                             Align="@TextAlignment.Center"/>
+                }
+
+                posY += 0.6f * ActiveFontHeight;
+            }
+            else
+            {
+                posY += PassiveFontHeight;
+
+                <MapText ToShow="@Client.CurrentSkin.Describe(phase)"
+                         X="@(posX)" Y="@(posY)"
+                         Font="@Client.CurrentSkin.PHASE_FONT" FontColor="@Client.CurrentSkin.PHASE_FONTCOLOR"
+                         BorderWidth="@Client.CurrentSkin.PHASE_FONT_BORDERWIDTH" BorderColor="@Client.CurrentSkin.PHASE_FONT_BORDERCOLOR"
+                         Align="@TextAlignment.Right"/>
+
+                if (Game.EconomicsStatus != BrownEconomicsStatus.None && Game.EconomicsStatus != BrownEconomicsStatus.RemovedFromGame && phase == MainPhase.Charity)
+                {
+                    <MapImage X="@(posX - Client.CurrentSkin.PlayerTokenRadius)" Y="@(posY - 0.5f * Client.CurrentSkin.PlayerTokenRadius)" Diameter=Client.CurrentSkin.PlayerTokenRadius Src="@Client.CurrentSkin.GetImageUrl(Faction.Brown)" ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="1" ShadowY="1" ShadowBlur="0" />
+
+                    <MapText ToShow="@Client.CurrentSkin.Describe(Game.EconomicsStatus)"
+                             X="@(posX - 0.5f * Client.CurrentSkin.PlayerTokenRadius)" Y="@(posY)"
+                             Font="@Client.CurrentSkin.SKILL_FONT" FontColor="white"
+                             BorderWidth="1" BorderColor="black"
+                             Align="@TextAlignment.Center"/>
+                }
+
+                posY += 0.5f * PassiveFontHeight;
+            }
+        }
+    }
+}
+
+@code {
+
+    private const float TurnFontHeight = 16;
+    private const float ActiveFontHeight = 16;
+    private const float PassiveFontHeight = 8;   
+
+    private string TurnPopover
+    {
+        get
+        {
+            var result = "<div>";
+            var rulesWithGroups = Game.Rules.Select(r => new { Rule = r, Group = Game.GetRuleGroup(r)}).ToList();
+            var groups = rulesWithGroups.Where(rg => rg.Group != RuleGroup.CoreBasic && rg.Group != RuleGroup.Bots && rg.Group != RuleGroup.None).Select(rg => rg.Group).Distinct();
+
+            var ruleInfo = "";
+            foreach (var group in groups)
+            {
+                ruleInfo += Client.CurrentSkin.Format("<h5 class='h5'>{0}</h5><p class='mt-0 mb-2'>{1}.</p>", group, rulesWithGroups.Where(rg => rg.Group == group).Select(rg => rg.Rule));
+            }
+
+            result += Client.CurrentSkin.Format("<h4>{0}</h4><p>Game version: {1}</p>{2}", Game.Ruleset, Game.Version, ruleInfo);
+
+            result += Client.CurrentSkin.Format("<h4>Timers</h4>");
+            result += $"<p><string>Game started:</strong> {Game.Started:dddd, dd MMMM yyyy H:mm:ss}";
+            result += $"<p><string>Last activity:</strong> {Game.History.Last().Time:dddd, dd MMMM yyyy H:mm:ss}";
+            result += $"<p><string>Game duration:</strong> {Math.Round(Game.Duration.TotalHours, 1)} hours";
+            result += "<table class='table table-sm'>";
+            result += "<thead>";
+            result += "<tr class='table-dark'><th>Player</th><th>Bidding</th><th>Move</th><th>Battle</th><th>Total</th></tr>";
+            result += "</thead>";
+            
+            result += "<tbody>";
+
+            foreach (var p in Game.Players) {
+
+                var timeBidding = Game.TimeSpent(p.Faction, MainPhase.Bidding);
+                var timeShipping = Game.TimeSpent(p.Faction, MainPhase.ShipmentAndMove);
+                var timeBattling = Game.TimeSpent(p.Faction, MainPhase.Battle);
+                var timeTotal = timeBidding + timeShipping + timeBattling;
+
+                result += Client.CurrentSkin.Format("<tr class='table-dark'><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td><td>{4}</td></tr>",
+                Game.GetPlayerName(p), timeBidding.ToString(@"h\:mm\:ss"), timeShipping.ToString(@"h\:mm\:ss"), timeBattling.ToString(@"h\:mm\:ss"), timeTotal.ToString(@"h\:mm\:ss"));
+            }
+
+            result += "</tbody>";
+            result += "</table>";
+
+            result += "</div>";
+
+            return result;
+        }
+    }
+}

@@ -1,0 +1,78 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits GameEventComponent<DealOffered>
+
+<GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()" Collapsed="CollapseState.Collapsed">
+
+    <Header>Offer a Deal</Header>
+    <Body>
+
+        <SelectFromImageComponent Selected="to" Values="Game.PlayersOtherThan(Player).Where(p => p != Player.Ally)" T="Faction" OnChanged="StateHasChanged" Required="false" ImageWidth="40">
+            <Label>Offer to whom (select none to offer to all)</Label>
+        </SelectFromImageComponent>
+
+        <SelectResourcesComponent @bind-Value="price" Min="0" Max="50" Label="How much will it cost them to accept this deal?"/>
+
+        <SelectResourcesComponent @bind-Value="benefit" Min="0" Max="50" Label="How much will they get from you when they accept?"/>
+        
+        @{
+            var dealTypes = DealOffered.GetStandardDealTypes(Game, Player).ToList();
+            <SelectComponent @bind-Value="type" Values=@dealTypes ValueLabels=@dealTypes.Select(dt => Deal.Express(dt).ToString(Client.CurrentSkin))>
+                <Label>Type of deal</Label>
+            </SelectComponent>
+        }
+
+        <SelectComponent @bind-Value="until" Values="ApplicableEndPhases">
+            <Label>Until</Label>
+        </SelectComponent>
+
+        <textarea class="form-control mt-1" rows="5" @bind="text" maxlength="512" placeholder="Deal description"></textarea>
+
+        <ButtonRowComponent Confirm="ConfirmOffer" ConfirmText="Offer Deal" ConfirmError="@Validation" />
+
+    </Body>
+
+</GameEventComponentLayout>
+
+@code {
+
+    private List<Faction> to = new();
+    private int price;
+    private int benefit;
+    private DealType type;
+    private string text = "";
+    private Phase until;
+
+    private void OnChangeFactions()
+    {
+        StateHasChanged();
+    }
+
+    protected override DealOffered ConfirmedResult => new(Game, Faction) { To = to.Count >= Game.Players.Count - 1 ? Array.Empty<Faction>() : to.ToArray(), Price = price, Benefit = benefit, Type = type, Text = text, EndPhase = until };
+
+    private async Task ConfirmOffer()
+    {
+        await Confirm();
+        text = "";
+    }
+
+    private IEnumerable<Phase> ApplicableEndPhases
+    {
+        get
+        {
+            return type switch
+            {
+                DealType.ShareStormPrescience => new[] { Phase.TurnConcluded },
+                DealType.ShareBiddingPrescience => new[] { Phase.Bidding, Phase.BiddingReport },
+                DealType.ShareResourceDeckPrescience => new[] { Phase.TurnConcluded },
+                _ => new[] { Phase.TurnConcluded, Phase.GameEnded }
+            };
+        }
+    }
+}

@@ -1,0 +1,165 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+
+<table class="table table-borderless table-sm m-0 w-auto">
+    <tbody>
+
+        @foreach (var l in Locations)
+        {
+            <tr class="small bg-transparent">
+
+                @if (AlwaysShowLocation || Locations.Count() > 1)
+                {
+                    <td class="ps-0 bg-transparent align-middle">@Client.CurrentSkin.Describe(l)</td>
+                }
+
+                @if (MaySelectFromStorm || !Game.IsInStorm(l)) {
+
+                    if (Max(l) > 0 && ShowNormalForces) 
+                    {
+                        <td class="ps-0 bg-transparent">
+                            <SelectForcesComponent Value=@Forces[l].AmountOfForces OnDown="@(_ => ChangeForceAmount(l, -1, false))" OnUp="@(_ => ChangeForceAmount(l, 1, false))" Min="Min" Max="Max(l)" Faction="Player.Faction" Special="false"/>
+                        </td>
+                    }
+
+                    if (MaxSpecial(l) > 0 && ShowSpecialForces) 
+                    {
+                        <td class="ps-0 bg-transparent">
+                            <SelectForcesComponent Value=@Forces[l].AmountOfSpecialForces OnDown="@(_ => ChangeForceAmount(l, -1, true))" OnUp="@(_ => ChangeForceAmount(l, 1, true))" Min="Min" Max="MaxSpecial(l)" Faction="Player.Faction" Special="true"/>
+                        </td>
+                    }
+                }
+                else
+                {
+                    <td class="font-italic text-danger ps-0 bg-transparent">cannot move from storm</td>
+                }
+
+            </tr>
+        }
+
+    </tbody>
+</table>
+
+@code {
+
+    [Parameter]
+    public Game? Game { get; set; }
+
+    [Parameter]
+    public Player? Player { get; set; }
+
+    [Parameter]
+    public Dictionary<Location, Battalion>? Forces { get; set; }
+
+    [Parameter]
+    public IEnumerable<Location>? Locations { get; set; }
+
+    [Parameter]
+    public bool MaySelectFromStorm { get; set; }
+
+    [Parameter]
+    public bool AlwaysShowLocation { get; set; }
+
+    [Parameter]
+    public bool FullLocationName { get; set; }
+
+    [Parameter]
+    public int FixedMaxForces { get; set; } = -1;
+    
+    [Parameter]
+    public bool ShowNormalForces { get; set; } = true;
+
+    [Parameter]
+    public int FixedMaxSpecialForces { get; set; } = -1;
+    
+    [Parameter]
+    public bool ShowSpecialForces { get; set; } = true;
+
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+
+    [Parameter]
+    public bool AllowMultipleTerritories { get; set; }
+
+    [Parameter]
+    public bool InitializeToMaximum { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+
+        var changed = false;
+
+        foreach (var l in Forces.Keys.Where(l => !Locations.Contains(l) || Forces[l].AmountOfForces > Max(l) || Forces[l].AmountOfSpecialForces > MaxSpecial(l)).ToArray())
+        {
+            Forces.Remove(l);
+            changed = true;
+        }
+
+        foreach (var l in Locations.Where(l => !Forces.ContainsKey(l)).ToArray())
+        {
+            var toAdd = new Battalion(Player.Faction, InitializeToMaximum ? Max(l) : 0, InitializeToMaximum ? MaxSpecial(l) : 0, l);
+            Forces.Add(l, toAdd);
+            changed = true;
+        }
+
+        if (changed)
+        {
+            await OnChanged.InvokeAsync();
+        }
+    }
+
+    private int Min => 0;
+    private int Max(Location l)
+    {
+        return Game.IsInStorm(l) && !MaySelectFromStorm ? 0 : FixedMaxForces > 0 ? FixedMaxForces : Player.ForcesIn(l);
+    }
+
+    private int MaxSpecial(Location l)
+    {
+        return Game.IsInStorm(l) && !MaySelectFromStorm ? 0 : FixedMaxSpecialForces > 0 ? FixedMaxSpecialForces : Player.SpecialForcesIn(l);
+    }
+
+    private async Task ChangeForceAmount(Location location, int amount, bool specialForces)
+    {
+        if (!AllowMultipleTerritories)
+        {
+            RemoveForcesFromOtherTerritoriesThan(location.Territory);
+        }
+
+        if (Forces.TryGetValue(location, out var battalion))
+        {
+            if (specialForces)
+            {
+                battalion.ChangeSpecialForces(amount);
+            }
+            else
+            {
+                battalion.ChangeForces(amount);
+            }
+        }
+        else if (amount > 0)
+        {
+            Forces.Add(location, specialForces 
+                ? new Battalion(Player.Faction, 0, amount, location) 
+                : new Battalion(Player.Faction, amount, 0, location));
+        }
+
+        await OnChanged.InvokeAsync();
+    }
+
+    private void RemoveForcesFromOtherTerritoriesThan(Territory toCheck)
+    {
+        foreach (var bat in Forces.Where(kvp => kvp.Key.Territory != toCheck && kvp.Value.TotalAmountOfForces != 0).Select(kvp => kvp.Value).ToArray())
+        {
+            bat.Clear();
+        }
+    }
+
+}

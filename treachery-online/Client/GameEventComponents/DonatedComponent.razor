@@ -1,0 +1,75 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits GameEventComponent<Donated>
+
+<GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()" Collapsed="CollapseState.Collapsed">
+
+    <Header>Give @Client.CurrentSkin.Describe(Concept.Resource) to a faction</Header>
+    <Body>
+
+        <SelectFromImageComponent @bind-Value="target" Values="Targets" Required="true" ImageWidth="40" />
+
+        <div class="mt-1">
+            <SelectResourcesComponent @bind-Value="resources" Min="MinAmount" Max="MaxAmount" />
+        </div>
+
+        @if (Game.Applicable(Rule.CardsCanBeTraded))
+        {
+            <div class="mt-1">
+                <SelectFromImageComponent @bind-Value="card" Values="Player.TreacheryCards" Required="false" ImageWidth="80" />
+            </div>
+        }
+        else
+        {
+            card = null;
+        }
+
+        @if (Client.IsHost)
+        {
+            <CheckboxComponent @bind-Value="fromBank">
+                Host only: give from @Client.CurrentSkin.Describe(Concept.Resource) bank (you may select a negative amount to put that amount of @Client.CurrentSkin.Describe(Concept.Resource) from target faction in the bank)
+            </CheckboxComponent>
+        }
+        else
+        {
+            fromBank = false;
+        }
+
+        <ButtonRowComponent Confirm="Confirm" ConfirmText="Confirm Gift" ConfirmError="@Validation" />
+
+    </Body>
+
+</GameEventComponentLayout>
+
+@code {
+
+    private Faction target;
+    private int resources;
+    private TreacheryCard? card;
+    private bool fromBank;
+
+    protected override Donated ConfirmedResult => new(Game, Faction) { Target = target, Resources = resources, Card = card, FromBank = fromBank };
+
+    private IEnumerable<Faction> Targets
+    {
+        get
+        {
+            if (!fromBank)
+            {
+                return Donated.ValidTargets(Game, Player);
+            }
+
+            return Game.Players.Select(p => p.Faction);
+        }
+    }
+
+    private int MaxAmount => !fromBank ? Donated.MaxAmount(Player) : 99;
+
+    private int MinAmount => !fromBank ? Donated.MinAmount(Game, Player) : -99;
+}

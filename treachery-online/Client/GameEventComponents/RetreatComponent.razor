@@ -1,0 +1,82 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits GameEventComponent<Retreat>
+@implements IDisposable
+
+<GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
+
+    <Header>You may retreat from the battle any number of undialed forces to an adjacent empty non-stronghold territory</Header>
+    <Body>
+
+        <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="target" Values="Retreat.ValidTargets(Game, Player)">
+            <Label>To</Label>
+        </SelectComponent>
+
+        @if (Retreat.MaxForces(Game, Player) > 0)
+        {
+            <SelectForcesComponent @bind-Value="forces" Min="0" Max="Retreat.MaxForces(Game, Player)" Faction="Faction" Special="false" />
+        }
+        else
+        {
+            forces = 0;
+        }
+
+        @if (Retreat.MaxSpecialForces(Game, Player) > 0)
+        {
+            <SelectForcesComponent @bind-Value="specialForces" Min="0" Max="Retreat.MaxSpecialForces(Game, Player)" Faction="Faction" Special="true" />
+        }
+        else
+        {
+            specialForces = 0;
+        }
+
+        <ButtonRowComponent Pass="Pass" Confirm="Confirm" ConfirmText="Retreat" />
+
+    </Body>
+
+</GameEventComponentLayout>
+
+@code {
+
+    protected override bool IsUrgent => true;
+
+    private Location? target;
+    private int forces;
+    private int specialForces;
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        BackgroundImage = Client.CurrentSkin.GetImageUrl(LeaderSkill.Diplomat);
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Client.OnLocationSelected += HandleLocationSelected;
+        }
+    }
+
+    public override void Dispose()
+    {
+        base.Dispose();
+        Client.OnLocationSelected -= HandleLocationSelected;
+    }
+
+    protected override Retreat ConfirmedResult => new(Game, Faction) { Location = target, Forces = forces, SpecialForces = specialForces };
+
+    protected override Retreat PassedResult => new(Game, Faction) { Location = target, Forces = 0, SpecialForces = 0 };
+
+    private void HandleLocationSelected(object sender, Location l)
+    {
+        SetIfValid(ref target, Retreat.ValidTargets(Game, Player), l);
+    }
+}

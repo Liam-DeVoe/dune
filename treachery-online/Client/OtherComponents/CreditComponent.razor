@@ -1,0 +1,52 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+
+<ModalComponent Id="@Id" Title="Credits">
+
+    <table class="table-borderless text-center">
+        <tbody>
+            <tr>
+                <td style="width: 50%" class="p-2 text-end align-text-top">Game Development</td>
+                <td style="width: 50%" class="p-2 text-start align-text-top fw-bold">Ronald Ossendrijver, <a href="mailto:admin@treachery.online" target="_blank">admin@treachery.online</a></td>
+            </tr>
+            <tr>
+                <td style="width: 50%" class="p-2 text-end align-text-top">Design &amp; Artwork</td>
+                <td style="width: 50%" class="p-2 text-start align-text-top fw-bold">Ilya Baranovsky, Reinier de Graaf &amp; Piper</td>
+            </tr>
+            <tr>
+                <td style="width: 50%" class="p-2 text-end align-text-top">Leader &amp; Treachery Card Artwork</td>
+                <td style="width: 50%" class="p-2 text-start align-text-top fw-bold">Avalon Hill</td>
+            </tr>
+            <tr>
+                <td style="width: 50%" class="p-2 text-end align-text-top">Music</td>
+                <td style="width: 50%" class="p-2 text-start align-text-top fw-bold">St&eacute;phane Picq & Philippe Ulrich</td>
+            </tr>
+            <tr>
+                <td style="width: 50%" class="p-2 text-end align-text-top">Donations</td>
+                <td style="width: 50%" class="p-2 text-start align-text-top fw-bold">
+                    Andries, Stuart, Eamon, Adriaan, Luca, Valerio, Richard, Peter, Patrick, Vladislav, <strong>Derek</strong>, Darren, Doug, Aaron, Marko, Daniel, Erik, Shea, Justin, Lee, Marko, Aaron W.,
+                    Tom, Nathan, Denis, Jason, Stefan, Eliot, Dean, Chris, Sebastian, Brian, Nikita, Andreas, Klaude, Robert, Frederic, Howard, Francis, Marc, Andr&eacute;, Kenny, William, 
+                    Jean-Fran&ccedil;ois, Jorge, MelonNinja, Donovan, <strong>Ken-Yu</strong>, Peter, John, Maxwell, Dominic, Conquer Today, Duane, Michael, Rodrigo, Salvatore, André,
+                    Petr, Oliver, Sam, Vytautas, Erik, Marcel, Justin, Dimitris, Jerry, Sheehan, Graydon, Jerrod, <strong>Jennifer</strong>, <strong>Thomas</strong>, Robert, Seth, Daniel, Bradley, <strong>Christian</strong>,
+                    Nathaniel, Andrew, Thomas, Damien, Finn, <strong>Stanko</strong>, <strong>Jack</strong>, <strong>André</strong>, <strong>Jeffrey</strong>, David, Richard, <strong>Nicolai</strong>, Caspar, Ryan, Stuart, 
+                    <strong>André</strong>, Rowan, Dirk, Michael, Dale, Ace_xD (Nico), Johaney, Kev, Alexander, Tyler, BigDave, Qaanaaq, Gurr, Damian, Delta & RaiderOfTwix
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <a href="https://ko-fi.com/N4N618W4XV" target="_blank"><img height="36" style="border:0;height:36px;" src="https://storage.ko-fi.com/cdn/kofi2.png?v=6" alt="Donate" /></a>
+
+</ModalComponent>
+
+@code {
+
+    [Parameter]
+    public string Id { get; set; } = "";
+}

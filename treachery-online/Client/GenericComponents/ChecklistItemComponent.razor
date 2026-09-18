@@ -1,0 +1,54 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits GameComponent;
+@typeparam T
+
+<div class="form-check">
+    <input class="form-check-input" style="cursor:pointer" id="@Id" type="checkbox" disabled="@Disabled" checked="@Values.Contains(Value)" @onchange="e => { CheckboxClicked(Value, e.Value); }" />
+    <label class="form-check-label" style="cursor:pointer" for="@Id">@Client.CurrentSkin.Describe(Value) @ChildContent</label>
+</div>
+
+@code {
+
+    [Parameter]
+    public T? Value { get; set; }
+
+    [Parameter]
+    public List<T>? Values { get; set; }
+
+    [Parameter]
+    public Action? Callback { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private void CheckboxClicked(T value, object checkedValue)
+    {
+        if (Values == null)
+            return;
+
+        var check = (bool)checkedValue;
+        if (check)
+        {
+            Values.Add(value);
+        }
+        else
+        {
+            Values.Remove(value);
+        }
+
+        if (Callback != null)
+        {
+            Callback.Invoke();
+        }
+    }
+}

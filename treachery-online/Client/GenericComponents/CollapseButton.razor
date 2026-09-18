@@ -1,0 +1,36 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+
+<div class="btn btn-link p-0 float-end" @onclick="e => { Collapsed = !Collapsed; }" style="display: inline-block;">
+
+    @if (Collapsed)
+    {
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M13.825 7.15833L10 10.975L6.175 7.15833L5 8.33332L10 13.3333L15 8.33332L13.825 7.15833Z" fill="white"/>
+        </svg>
+    }
+    else
+    {
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10 6.66669L5 11.6667L6.175 12.8417L10 9.02502L13.825 12.8417L15 11.6667L10 6.66669Z" fill="white" />
+        </svg>
+    }
+
+</div>
+
+@code {
+
+    [Parameter]
+    public bool Collapsed { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> CollapsedChanged { get; set; }
+}
+
+

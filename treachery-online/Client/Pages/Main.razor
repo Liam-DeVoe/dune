@@ -1,0 +1,230 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+
+@page "/"
+@page "/{userToken}/{gameId}"
+@using Treachery.Client.OtherComponents
+@using Treachery.Client.MapComponents
+@using Treachery.Client.GameEventComponents
+@implements IDisposable
+
+@if (Client.InScheduledMaintenance)
+{
+    <div class="alert alert-danger text-center p-0" role="alert">
+        treachery.online will be down for maintenance from @Client.ServerInfo.ScheduledMaintenance.ToLocalTime() until @Client.ServerInfo.ScheduledMaintenance.AddMinutes(15).ToLocalTime() (your local time)
+    </div>
+}
+
+@if (!Client.IsConnected)
+{
+    <div class="row d-flex align-items-center" style="@StartScreenStyle">
+        <div class="d-flex justify-content-center">
+            Not Connected
+        </div>
+    </div>
+}
+else if (!Client.LoggedIn)
+{
+    <div class="row d-flex align-items-center" style="@StartScreenStyle">
+        <div class="col-sm-12 col-lg-3"></div>
+        <div class="col-sm-12 col-lg-6">
+            <div class="d-flex justify-content-center">
+                <LoginComponent  />
+            </div>
+        </div>
+        <div class="col-sm-12 col-lg-3"></div>
+    </div>
+}
+else if (!Client.InGame)
+{
+    <div class="row" style="@StartScreenStyle">
+        <div class="col-sm-12 col-lg-2"></div>
+        <div class="col-sm-12 col-lg-5">
+            <RunningGamesComponent/>
+        </div>
+        <div class="col-sm-12 col-lg-3">
+            <OwnGamesComponent/>
+        </div>
+        <div class="col-sm-12 col-lg-2"></div>
+    </div>
+}
+else if (Client.Game.CurrentPhase is Phase.AwaitingPlayers)
+{
+    <div class="row d-flex align-items-center" style="@StartScreenStyle">
+        <div class="col-sm-12 col-lg-3"></div>
+        <div class="col-sm-12 col-lg-6">
+            <div class="d-flex justify-content-center">
+                @if (Client.IsHost)
+                {
+                    <EstablishPlayersComponent/>
+                }
+                else
+                {
+                    <AwaitingGameComponent/>
+                }
+            </div>
+        </div>
+        <div class="col-sm-12 col-lg-3"></div>
+    </div>
+}
+else if (Client.PlayersNeedSeating)
+{
+    <div class="row d-flex align-items-center" style="@StartScreenStyle">
+        <div class="col-sm-12 col-lg-3"></div>
+        <div class="col-sm-12 col-lg-6">
+            <div class="d-flex justify-content-center">
+                <SeatPlayersComponent/>
+            </div>
+        </div>
+        <div class="col-sm-12 col-lg-3"></div>
+    </div>
+}
+else
+{
+    <div @ref="@_element" class="row" style="@InGameScreenStyle">
+
+        @if (!Client.IsObserver)
+        {
+            <!--Map Column-->
+            <div id="mapdiv" class="col-sm-12 col-lg-6">
+                <GameBoard OnLocationClick="@Client.LocationClick" />
+            </div>
+
+            <!--Actions-->
+            <div class="col-sm-12 col-lg-3 @Scrollbars">
+                <GameStatusComponent CanEndPhase="@Client.Actions.Contains(typeof(EndPhase))" />
+                <ActionPanel/>
+            </div>
+            
+            <!--Menu, player panel and report-->
+            <div class="col-sm-12 col-lg-3 cursor-hand @Scrollbars">
+                <MenuComponent/>
+                @if (Client.CurrentPhase > Phase.TradingFactions)
+                {
+                    if (Client.Player.Faction is Faction.None)
+                    {
+                        foreach (var p in Client.Game.Players)
+                        {
+                            <PlayerPanel ShownPlayer="p" ShowHeader="true" />
+                        }    
+                    }
+                    else
+                    {
+                        <PlayerPanel ShownPlayer="Client.Player" />                        
+                    }
+                }
+                @if (Client.Game.CurrentReport != null)
+                {
+                    <ReportComponent Report="Client.Game.CurrentReport" />
+                }
+            </div>
+        }
+        else
+        {
+            <div class="col-sm-12 col-lg-1"></div>
+            
+            <!--Map Column-->
+            <div id="mapdiv" class="col-sm-12 col-lg-6">
+                <GameBoard OnLocationClick="@Client.LocationClick" />
+            </div>
+
+            <!--Actions-->
+            <div class="col-sm-12 col-lg-4 cursor-hand @Scrollbars">
+                <MenuComponent/>
+                <GameStatusComponent/>
+                <ActionPanel/>
+                @if (Client.Game.CurrentReport != null)
+                {
+                    <ReportComponent Report="Client.Game.CurrentReport"/>
+                }
+            </div>
+            
+            <!--Menu-->
+            <div class="col-sm-12 col-lg-1"></div>
+        }
+
+        <ImageFlashComponent  />
+
+    </div>
+}
+@if (Client.IsConnected && Client.LoggedIn)
+{
+    <!--Chat-->
+    <HoverPanel Width=400 HandleWidth=14 BackgroundColor="#e8dba6ee">
+        <ChatComponent/>
+    </HoverPanel>
+    
+    <!--Users-->
+    <HoverPanel Width=200 HandleWidth=14 BackgroundColor="#e8dba6ee" Position="HoverPanel.HoverPanelPosition.Right">
+        <UserListComponent/>
+    </HoverPanel>
+}
+    
+@code {
+
+    [Parameter] public string? UserToken { get; set; }
+    [Parameter] public string? GameId { get; set; }
+
+    private ElementReference _element;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Client.RefreshHandler += StateHasChanged;
+        Client.RefreshPopoverHandler += RefreshPopovers;
+        
+        await Client.Start(UserToken, GameId);
+        
+        Message.DefaultDescriber = DefaultSkin.Default;
+        
+        await LoadSkinDataIfSaved();
+    }
+    
+    public void Dispose()
+    {
+        Client.RefreshHandler -= StateHasChanged;
+        Client.RefreshPopoverHandler -= RefreshPopovers;
+    }
+
+    private bool _isFullscreen;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        var checkFullscreen = await Browser.IsFullScreen();
+        if (_isFullscreen != checkFullscreen)
+        {
+            _isFullscreen = checkFullscreen;
+            StateHasChanged();
+        }
+        else
+        {
+            await Browser.SetPlanetMapScale();
+        }
+    }
+
+    private async Task LoadSkinDataIfSaved()
+    {
+        var existingSkinData = await Browser.LoadStringSetting("treachery.online;setting.skin");
+        if (existingSkinData is { Length: > 0 })
+        {
+            var skin = Skin.Load(existingSkinData, DefaultSkin.Default);
+            if (skin.Version == Skin.LatestVersion)
+            {
+                Client.CurrentSkin = Skin.Load(existingSkinData, DefaultSkin.Default);
+                Message.DefaultDescriber = Client.CurrentSkin;
+            }
+        }
+    }
+
+    private void RefreshPopovers() => _ = Browser.RefreshPopovers(_element);
+
+    private string Scrollbars => _isFullscreen? "vh-97 overflow-auto" : "";
+
+    private const string StartScreenStyle = "min-height: 97vh; background-image: url('art/planet.png'); background-size: 1024px; background-position-x: center; background-position-y: -50px; background-repeat: no-repeat;";
+    
+    private const string InGameScreenStyle = "overflow-y: hidden;";
+}

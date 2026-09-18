@@ -1,0 +1,59 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits MapComponent
+
+@{
+    var pos = Client.CurrentSkin.GetCenter(Location, Client.Game.Map).Translate(-(int)(0.5f * Diameter), 0);
+    double yOffset = 0;
+
+    if (Battalions.TryGetValue(Location, out var battalionInLocation))
+    {
+        yOffset = - 0.5f * (battalionInLocation.Count * Diameter);
+
+        foreach (var battalion in battalionInLocation)
+        {
+            var player = Game.GetPlayer(battalion.Faction);
+            var threatened = Game.ThreatenedByAllyPresence(player, Location.Territory);
+
+            double xOffset = 0;
+            if (battalion.AmountOfForces > 0)
+            {
+                <MapForce X=@pos.X Y=@(yOffset + pos.Y) Special=@false Amount=@battalion.AmountOfForces Faction=@battalion.Faction Threatened=@threatened ShowPopover="false" Diameter=Diameter/>
+                xOffset += Diameter;
+            }
+
+            if (battalion.AmountOfSpecialForces > 0)
+            {
+                <MapForce X=@(pos.X + xOffset) Y=@(yOffset + pos.Y) Special=@true Amount=@battalion.AmountOfSpecialForces Faction=@battalion.Faction Threatened=@threatened ShowPopover="false" Diameter=Diameter />
+                xOffset += Diameter;
+            }
+
+            yOffset += Diameter;
+        }
+    }
+
+    if (Game.AnyForcesIn(Location.Territory) ? battalionInLocation != null : Location == Location.Territory.MiddleLocation)
+    {
+        double xOffset = 0;
+        foreach (var hero in Game.LeaderState.Where(state => state.Key is IHero && state.Value.Alive && state.Value.CurrentTerritory == Location.Territory).Select(state => state.Key))
+        {
+            <MapLeader  ToShow="hero" X=@(pos.X + xOffset) Y=@(yOffset + pos.Y) Diameter=Diameter />
+            xOffset += Diameter;
+        }
+    }
+}
+
+@code {
+
+    [Parameter, EditorRequired]
+    public Location Location { get; set; }
+    
+    [Parameter]
+    public Dictionary<Location, List<Battalion>>? Battalions { get; set; }
+}

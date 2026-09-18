@@ -1,0 +1,173 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@implements IDisposable
+@typeparam T
+
+<ModalComponent Id="@Id" Title="@(Title ?? string.Empty)">
+
+    <div @ref="@_modalElement" class="row row-cols-3 row-cols-md-6 m-0">
+
+        <div class="card p-1 m-0 border-0">
+            <div class="card-img-top" @onclick="@(_ => Click(default))" style="cursor:pointer;">
+                @if (Placeholder != null)
+                {
+                    @Placeholder
+                }
+                else
+                {
+                    <svg width=@ImageWidth height=@ImageWidth>
+                        <circle cx=@Support.Round(0.5f * ImageWidth) cy=@Support.Round(0.5f * ImageWidth) r=@Support.Round(0.5f * ImageWidth) fill="white"/>
+                        <text text-anchor="middle" alignment-baseline="middle" font-size=@Support.Px(0.5f * ImageWidth) font-weight="bold" x="@Support.Round(0.5f * ImageWidth)" y="@Support.Round(ImageWidth/1.5)" font-style="italic">?</text>
+                    </svg>
+                }
+            </div>
+        </div>
+
+        @foreach (var valueToShow in ValuesToShow)
+        {
+            <div class="card p-1 m-0 border-0">
+                <div class="card-img-top">
+
+                    <Image Class="card-img"
+                           Shown="@valueToShow"
+                           OnClick="@(_ => Click(valueToShow))"
+                           Highlighted="@DetermineHighlighted(valueToShow)"
+                           Darkened="@DetermineDarkened(valueToShow)"
+                           Pointer
+                           HighlightOnHover/>
+                </div>
+            </div>
+        }
+
+    </div>
+
+</ModalComponent>
+
+<a @ref="@_valueElement" class="btn btn-link p-1" data-bs-toggle="modal" data-bs-target="#@Id">
+    
+    @if (Value != null && !Value.Equals(null))
+    {
+        <Image Shown="@Value" Width="@ImageWidth" Pointer/>
+    }
+    else
+    {
+        @if (Placeholder != null)
+        {
+            @Placeholder
+        }
+        else
+        {
+            <svg width=@ImageWidth height=@ImageWidth>
+                <circle cx=@Support.Round(0.5f * ImageWidth) cy=@Support.Round(0.5f * ImageWidth) r=@Support.Round(0.5f * ImageWidth) fill="white"/>
+                <text text-anchor="middle" alignment-baseline="middle" font-size=@Support.Px(0.5f * ImageWidth) font-weight="bold" x="@Support.Round(0.5f * ImageWidth)" y="@Support.Round(ImageWidth/1.5)" font-style="italic">?</text>
+            </svg>
+        }
+    }
+
+</a>
+
+@code {
+
+    [Parameter]
+    public IEnumerable<T>? Values { get; set; }
+
+    [Parameter]
+    public T? Value { get; set; }
+
+    private string Id { get; } = "picker" + new Random().Next();
+
+    [Parameter]
+    public EventCallback<T> ValueChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<T> OnChanged { get; set; }
+
+    [Parameter]
+    public T? Highlighted { get; set; }
+
+    [Parameter]
+    public int ImageWidth { get; set; } = 60;
+
+    [Parameter]
+    public RenderFragment? Placeholder { get; set; }
+
+    [Parameter]
+    public string UnselectedFilter { get; set; } = "grayscale(50%) brightness(50%) contrast(80%)";
+
+    [Parameter]
+    public string HighlightFilter { get; set; } = "hue-rotate(90deg);";
+
+    [Parameter]
+    public bool Required { get; set; } = true;
+
+    [Parameter]
+    public string? Title { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildComponent { get; set; }
+
+    private T[] ValuesToShow { get; set; } = [];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+
+        ValuesToShow = Values?.ToArray() ?? [];
+
+        if (!ValuesToShow.Contains(Value) && Required)
+        {
+            Value = ValuesToShow.FirstOrDefault();
+            await Notify();
+        }
+    }
+
+    private async Task Click(T? item)
+    {
+        if (!Disabled)
+        {
+            if (Equals(Value, item))
+            {
+                if (!Required)
+                {
+                    Value = default;
+                    await Notify();
+                }
+            }
+            else
+            {
+                Value = item;
+                await Notify();
+            }
+
+            await Browser.HideModal(Id);
+        }
+    }
+
+    private ElementReference _modalElement;
+    private ElementReference _valueElement;
+
+    private bool DetermineHighlighted(T item) => Equals(Highlighted, item);
+
+    private bool DetermineDarkened(T item) => !Equals(Value, item);
+    
+    public void Dispose()
+    {
+        _ = Browser.RemovePopovers(_valueElement);
+        _ = Browser.RemovePopovers(_modalElement);
+    }
+
+    private async Task Notify()
+    {
+        await ValueChanged.InvokeAsync(Value);
+        await OnChanged.InvokeAsync(Value);
+    }
+}

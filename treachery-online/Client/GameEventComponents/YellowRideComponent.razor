@@ -1,0 +1,93 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits PlacementComponent<YellowRidesMonster>
+
+<GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
+
+    <Header>@Title</Header>
+    <Body>
+
+        @if (YellowRidesMonster.ValidSources(Game).Any())
+        {
+            _forcesFromReserves = 0;
+            _specialForcesFromReserves = 0;
+            
+            <ForceSelectionComponent Game=Game Player=Player OnChanged="@StateHasChanged" Forces=@forces Locations=@YellowRidesMonster.ValidSources(Game) />
+        }
+        else
+        {
+            var maxForcesFromReserves = YellowRidesMonster.MaxForcesFromReserves(Game, Player, false);
+            var maxSpecialForcesFromReserves = YellowRidesMonster.MaxForcesFromReserves(Game, Player, true);
+
+            if (maxForcesFromReserves > 0 || maxSpecialForcesFromReserves > 0)
+            {
+                if (maxForcesFromReserves > 0)
+                {
+                    <SelectForcesComponent @bind-Value="_forcesFromReserves" Min="0" Max=@maxForcesFromReserves Faction="Faction" Special="false" />
+                }
+                else
+                {
+                    _forcesFromReserves = 0;
+                }
+
+                if (maxSpecialForcesFromReserves > 0)
+                {
+                    <SelectForcesComponent @bind-Value="_specialForcesFromReserves" Min="0" Max=@maxSpecialForcesFromReserves Faction="Faction" Special="true" />
+                }
+                else
+                {
+                    _specialForcesFromReserves = 0;
+                }
+            }
+
+            forces = new();
+        }
+        
+        <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="toLocation" Values="ValidTargets">
+            <Label>To</Label>
+        </SelectComponent>
+
+        <ButtonRowComponent Confirm="Confirm" ConfirmText="Ride!" ConfirmError="@Validation" Pass="Pass" PassText="Pass" />
+
+    </Body>
+
+</GameEventComponentLayout>
+
+@code {
+
+    private int _forcesFromReserves;
+    private int _specialForcesFromReserves;
+
+    protected override bool IsUrgent => true;
+    protected override Faction IsFactionSpecific => Faction.Yellow;
+
+    protected override YellowRidesMonster ConfirmedResult => new(Game, Faction) { ForceLocations = forces, To = toLocation, ForcesFromReserves = _forcesFromReserves, SpecialForcesFromReserves = _specialForcesFromReserves, Passed = false };
+
+    protected override YellowRidesMonster PassedResult => new(Game, Faction) { Passed = true };
+
+    protected override IEnumerable<Location> ValidTargets => YellowRidesMonster.ValidTargets(Game, Player).OrderByDescending(l => l.IsStronghold).ThenBy(l => Client.CurrentSkin.Describe(l));
+
+    protected override bool InformAboutCaravan => false;
+
+    protected override string Title
+    {
+        get
+        {
+            var toRide = YellowRidesMonster.ToRide(Game);
+            if (toRide.IsGreatMonster)
+            {
+                return Client.CurrentSkin.Format("Ride the {0} with forces from your reserves?", Concept.GreatMonster);
+            }
+
+            return Client.CurrentSkin.Format("Ride the Worm that appeared in {0}?", toRide.Territory);
+        }
+    }
+
+    protected override bool MayPass => false;
+}

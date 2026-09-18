@@ -1,0 +1,137 @@
+﻿@using System.Collections
+@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+
+@if (Expression is { } expression)
+{
+    @foreach (var part in expression.Elements)
+    {
+        switch (part)
+        {
+            case null:
+                <span class="fw-bold">none</span>
+                break;
+
+            case string:
+                <span style=@TextBorder>@part</span>
+                break;
+
+            case IEnumerable e:
+                foreach (var nestedExpression in DetermineElements(e))
+                {
+                    <ExpressionComponent Expression="@nestedExpression" Size=@Size Game=Game TextBorder=@TextBorder/>
+                }
+                break;
+
+            case Message m:
+                <ExpressionComponent Expression=m.Expression Size=@Size Game=Game/>
+                break;
+
+            case MessagePart mp:
+                <ExpressionComponent Expression=mp.Expression Size=@Size Game=Game/>
+                break;
+
+            case int i:
+                <SimpleNumberComponent Size=@Size>@i</SimpleNumberComponent>
+                break;
+
+            case float f:
+                <SimpleNumberComponent Size=@Size>@Support.RoundWithHalves(f)</SimpleNumberComponent>
+                break;
+
+            case double d:
+                <SimpleNumberComponent Size=@Size>@Support.RoundWithHalves(d)</SimpleNumberComponent>
+                break;
+
+            case Payment payment:
+                <TextBeforeImage ImageUrl="@Client.CurrentSkin.Harvester_URL" Size=@Size Title="@Client.CurrentSkin.Describe(Concept.Resource)">@payment.Amount</TextBeforeImage>
+                if (payment.By != Faction.None)
+                {
+                    <span> by <FactionComponent Faction=payment.By Diameter=@Size/></span>
+                }
+                break;
+
+            case Faction faction:
+                <FactionComponent Faction=faction Diameter=@Size HasShadow="false"/>
+                break;
+
+            case TreacheryCard or ResourceCard or LeaderSkill or TechToken or DiscoveryToken or IHero or TerrorType when Game is { } game:
+                <RichText Shown=@part Game=game Style=@TextBorder/>
+                break;
+
+            case TreacheryCard or ResourceCard or LeaderSkill or TechToken or DiscoveryToken or IHero or TerrorType:
+                <span style=@TextBorder>@Client.CurrentSkin.Describe(part)</span>
+                break;
+
+            case Concept monster when monster == Concept.Monster:
+                var label = @Client.CurrentSkin.Describe(Concept.Monster);
+                <img src="@Client.CurrentSkin.Monster_URL" alt="@label" width="@Size" height="@Size" title="@label" style="filter: drop-shadow(2px 2px 2px black);"/>
+                break;
+    
+            case FactionForce or FactionSpecialForce or Ambassador:
+                <Image Shown=@part Width=@Size/>
+                break;
+
+            case Location or Territory or AuctionType or BrownEconomicsStatus or TreacheryCardType or StrongholdAdvantage or FactionAdvantage or Ruleset or Rule:
+                <span class="fw-bold" style=@TextBorder>@Client.CurrentSkin.Describe(part)</span>
+                break;
+
+            default:
+                <span style=@TextBorder>@Client.CurrentSkin.Describe(part)</span>
+                break;
+        }
+    }
+}
+
+@code {
+
+    [Parameter]
+    public Game? Game { get; set; }
+
+    [Parameter]
+    public Expression? Expression { get; set; }
+
+    [Parameter]
+    public int Size { get; set; } = 14;
+
+    [Parameter]
+    public string TextBorder { get; set; } = "";
+
+    private List<Expression> DetermineElements(IEnumerable e)
+    {
+        var result = new List<Expression>();
+        var useSeparators = false;
+        var firstItem = true;
+
+        foreach (var elt in e)
+        {
+            if (firstItem) {
+
+                useSeparators = ShowWithSeparator(elt);
+            }
+
+            if (useSeparators && !firstItem)
+            {
+                result.Add(new Expression(", ", elt));
+            }
+            else
+            {
+                result.Add(new Expression(elt));
+            }
+
+            firstItem = false;
+        }
+
+        return result;
+    }
+
+    private static bool ShowWithSeparator(object e) 
+        => !(e is Faction || e is MessagePart || e is FactionForce || e is FactionSpecialForce || e is Leader);
+
+}

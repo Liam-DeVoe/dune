@@ -1,0 +1,58 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits GameEventComponent<BrownMovePrevention>
+@implements IDisposable
+
+<GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
+
+    <Header>Use @ToUse to prevent the current player from moving forces into a territory you occupy?</Header>
+
+    <Body>
+
+        <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="territory" Values="BrownMovePrevention.ValidTerritories(Player)">
+            <Label>Territory</Label>
+        </SelectComponent>
+        
+        <ButtonRowComponent Confirm="Confirm" ConfirmText="Prevent Move" ConfirmError="@Validation" />
+
+    </Body>
+
+</GameEventComponentLayout>
+
+@code {
+
+    protected override Faction IsFactionSpecific => Faction.Brown;
+
+    protected override string Background => Client.CurrentSkin.GetImageUrl(BrownMovePrevention.CardToUse(Player));
+
+    private Territory? territory;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Client.OnLocationSelected += HandleLocationSelected;
+        }
+    }
+
+     private void HandleLocationSelected(object sender, Location l)
+    {
+        SetIfValid(ref territory, BrownMovePrevention.ValidTerritories(Player), l.Territory);
+    }
+
+    protected override BrownMovePrevention ConfirmedResult => new(Game, Faction) { Territory = territory };
+
+    public override void Dispose()
+    {
+        base.Dispose();
+        Client.OnLocationSelected -= HandleLocationSelected;
+    }
+
+    private string ToUse => BrownMovePrevention.CardToUse(Player) != null ? Client.CurrentSkin.Describe(BrownMovePrevention.CardToUse(Player)) : "Nexus Cunning";
+}

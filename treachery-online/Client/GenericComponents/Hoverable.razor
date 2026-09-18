@@ -1,0 +1,73 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@implements IDisposable;
+
+@if (Popover != null && Popover.Length > 0)
+{
+    <div @ref=@element class=@Class style=@Style data-bs-toggle="popover" data-bs-animation="true" data-bs-html="true" data-bs-placement="auto" data-bs-trigger="hover" data-bs-content="@Popover">
+        @ChildContent
+    </div>
+}
+else
+{
+    <div @ref=@element class=@Class style=@Style>
+        @ChildContent
+    </div>
+}
+
+@code {
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    [Parameter]
+    public string? Style { get; set; }
+
+    [Parameter]
+    public string? Popover { get; set; }
+    private string? _popover;
+    private bool _popoverNeedsRefresh = false;
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        if (_popover != Popover)
+        {
+            _popover = Popover;
+            _popoverNeedsRefresh = true;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && Popover != null)
+        {
+            await Browser.EnablePopover(element);
+        }
+        else if (_popoverNeedsRefresh)
+        {
+            _popoverNeedsRefresh = false;
+            await Browser.RefreshPopover(element);
+        }
+    }
+
+    private ElementReference element;
+
+    public void Dispose()
+    {
+        if (Popover != null)
+        {
+            _ = Browser.RemovePopover(element);
+        }
+    }
+}

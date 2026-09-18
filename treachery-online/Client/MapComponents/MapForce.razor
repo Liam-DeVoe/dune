@@ -1,0 +1,97 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits MapComponent;
+
+<div @ref="@Element" @attributes="_attributes" style=@($"position:absolute;left:{Px(X)};top:{Px(Y)};")>
+
+    @for (var i = 0; i < Amount; i++)
+    {
+        <img src="@ForceUrl" style=@($"{PointerType};position:absolute;left:{Px(-0.07 * i * Diameter)};top:{Px(-0.08 * i * Diameter)};width:{Px(Diameter)};opacity:{Opacity};filter:drop-shadow({Px(ShadowSize)} {Px(ShadowSize)} {Px(ShadowBlur)} {ShadowColor})") alt="Token"/>
+    }
+
+</div>
+
+@if (!((Faction == Faction.White && Special) || Amount == 0))
+{
+    <MapText ToShow="@Amount.ToString()" X=@(X + 0.5f * Diameter) Y=@(Y + 0.5f * Diameter) Font=@Font BorderWidth=@BorderWidth BorderColor=@BorderColor />
+}
+
+@code {
+
+    [Parameter]
+    public bool Special { get; set; }
+
+    [Parameter]
+    public int Amount { get; set; }
+
+    [Parameter]
+    public Faction Faction { get; set; }
+
+    [Parameter]
+    public bool Threatened { get; set; }
+
+    [Parameter]
+    public bool ShowPopover { get; set; } = true;
+
+    private bool _popoverNeedsRefresh;
+
+    [Parameter]
+    public string Font { get; set; } = "";
+
+    private Dictionary<string, object> _attributes = [];
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        if (Diameter == 0) Diameter = 2 * Client.CurrentSkin.FORCETOKEN_RADIUS;
+        if (Font == "") Font = Client.CurrentSkin.FORCETOKEN_FONT;
+
+        _attributes = new Dictionary<string, object>();
+
+        if (ShowPopover) 
+        {
+            _attributes.Add("data-bs-trigger", "hover");
+            _attributes.Add("data-bs-toggle", "popover");
+            _attributes.Add("data-bs-html", "true");
+            _attributes.Add("data-bs-animation", "false");
+            _attributes.Add("data-bs-delay", "100");
+            _attributes.Add("data-container", "body");
+            _attributes.Add("data-bs-content", $"<div style='position:relative'><img style='position:relative;filter:drop-shadow(-2px 2px 1px black);' src='{ForceUrl}' width=80/><span style='color:white;font-size:32px;font-weight:900;position:absolute;left:55px;top:-10px;-webkit-text-stroke:1px black'>{Amount}</span></div>");
+            _popoverNeedsRefresh = true;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Browser.EnablePopover(Element);
+        }
+        else if (_popoverNeedsRefresh)
+        {
+            _popoverNeedsRefresh = false;
+            await Browser.RefreshPopover(Element);
+        }
+    }
+
+    private string ForceUrl => Special ? Client.CurrentSkin.GetFactionSpecialForceImageUrl(Faction) : Client.CurrentSkin.GetFactionForceImageUrl(Faction);
+
+    private string ShadowColor => Threatened ? "red" : Client.CurrentSkin.SHADOW;
+
+    private float ShadowSize => Threatened ? 1f : 0.5f;
+
+    private float ShadowBlur => Threatened ? 1f : 0.5f;
+
+    private string BorderColor => Threatened ? "red" : Client.CurrentSkin.FORCETOKEN_FONT_BORDERCOLOR;
+
+    private int BorderWidth => Threatened ? 2 * Client.CurrentSkin.FORCETOKEN_FONT_BORDERWIDTH : Client.CurrentSkin.FORCETOKEN_FONT_BORDERWIDTH;
+
+    private string PointerType => ShowPopover ? "" : "pointer-events:none";
+}

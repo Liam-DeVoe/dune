@@ -1,0 +1,87 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits GameComponent
+
+<ModalComponent Id="@Id" Title="Pick a card">
+
+    <div class="row row-cols-3 row-cols-md-6 m-0">
+
+        <div class="card p-1 m-0 border-0">
+            <img src="@Client.CurrentSkin.CardBack_TreacheryCard_URL" class="card-img" alt="Unknown" @onclick="@(_ => Pick(TreacheryCard.Unknown))" title="Set as unknown card" style="cursor:pointer;">
+        </div>
+
+        @if (Tracker.CurrentCard != TreacheryCard.None)
+        {
+            <div class="card p-1 m-0 border-0" title="Set to 'none'" style="cursor:pointer;">
+                <svg viewBox="0 0 16 22.5" xmlns="http://www.w3.org/2000/svg" @onclick="@(_ => Pick(TreacheryCard.None))">
+                    <rect width="16" height="22.5" rx="2" style="fill:rgb(64,64,64);stroke-width:1;stroke:rgb(200,200,200)" />
+                </svg>
+            </div>
+        }
+
+        @if (Tracker.CurrentCard != TreacheryCard.None && Tracker.CurrentCard != TreacheryCard.Unknown)
+        {
+            <div class="card p-1 m-0 border-0" title="Discard this card" style="cursor:pointer;">
+                <svg viewBox="0 0 16 22.5" xmlns="http://www.w3.org/2000/svg" @onclick="@(_ => Discard())">
+                    <rect width="16" height="22.5" rx="2" style="fill:rgb(64,64,64);stroke-width:1;stroke:rgb(200,200,200)" />
+                    <path transform="translate(0,4)" fill="white" d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z" />
+                    <path transform="translate(0,4)" fill="white" fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4L4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z" />
+                </svg>
+            </div>
+        }
+
+        @{
+            var green = Client.Game.GetPlayer(Faction.Green);
+            var lastWonCardName = Client.Game.CardJustWon != null && Client.Game.KnownCards(green).Contains(Client.Game.CardJustWon) ? Name(Client.Game.CardJustWon) : "";
+
+            @foreach (var v in Tracker.CardsToPick)
+            {
+                var cardName = Name(v);
+                var isCardJustWon = lastWonCardName == cardName;
+                var border = isCardJustWon? "border-success" : "border-0";
+                var cardbg = isCardJustWon? "bg-light" : "";
+
+                <div class="card p-1 m-0 @border @cardbg">
+                    <div class="card-img-top">
+                        <Image Class="card-img" Shown=@v OnClick="@(_ => Pick(v.Id))" Pointer/>
+                    </div>
+                </div>
+            }
+        }
+
+    </div>
+
+</ModalComponent>
+
+@code {
+
+    [Parameter]
+    public new string Id { get; set; } = "";
+
+    [Parameter]
+    public TrackerComponent? Tracker { get; set; }
+
+    private async Task Pick(int cardId)
+    {
+        Tracker.Pick(cardId);
+        await Browser.HideModal(Id);
+    }
+
+    private async Task Discard()
+    {
+        Tracker.Discard();
+        await Browser.HideModal(Id);
+    }
+
+    private string Name(TreacheryCard card)
+    {
+        return Client.CurrentSkin.Describe(card);
+    }
+
+}

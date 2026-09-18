@@ -1,0 +1,50 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+
+@inherits GameComponent
+
+@if (Client.UserStatus is null) return;
+
+<div class="btn-group">
+    <button type="button" class="btn @BtnTypeFromStatus(Client.UserStatus.Value) dropdown-toggle btn-sm" data-bs-toggle="dropdown" aria-expanded="false" disabled="@_busy">
+        @Name(Client.UserStatus)
+    </button>
+    <ul class="dropdown-menu">
+        @foreach (var status in Enumerations.GetValuesExceptDefault(UserStatus.None).Where(s => s != Client.UserStatus))
+        {
+            <li><a class="dropdown-item" href="#" @onclick="@(_ => SetUserStatus(status))">@Name(status)</a></li>
+        }
+    </ul>
+</div>
+
+@code 
+{
+    private bool _busy;
+    
+    private string BtnTypeFromStatus(UserStatus status) => status switch
+    {
+        UserStatus.None => "btn-dark",
+        UserStatus.Online => "btn-success",
+        UserStatus.Away => "btn-dark",
+        UserStatus.Lfg => "btn-primary",
+        UserStatus.Lfm => "btn-primary",
+        UserStatus.InGame => "btn-secondary",
+        _ => "btn-dark",
+    };
+
+
+    private async Task SetUserStatus(UserStatus status)
+    {
+        _busy = true;
+        StateHasChanged();
+        await Client.RequestSetUserStatus(status);
+        _busy = false;
+        StateHasChanged();
+    }
+}

@@ -1,0 +1,415 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="Description" content="Online multiplayer game inspired by the Dune board game" />
+
+    <title>treachery.online</title>
+
+    <base href="/" />
+
+    <link href="css/bootstrap.min.css" rel="stylesheet" />
+    
+    <script src="js/bootstrap.bundle.min.js"></script>
+
+    <link rel="stylesheet" href="css/app.css?v=182" />
+
+    <link rel="stylesheet" href="Treachery.Client.styles.css?v=182">
+
+    <script type="text/javascript">
+
+        const LoggingEnabled = false;
+
+        function GetLocalStorageKeys() {
+
+            let result = [];
+            for (let i = 0; i < localStorage.length; i++)
+            {
+                result.push(localStorage.key(i));
+            }
+
+            return result;
+        }
+
+        function MeasureText(text, font) {
+
+            // re-use canvas object for better performance
+            const canvas = MeasureText.canvas || (MeasureText.canvas = document.createElement("canvas"));
+            const context = canvas.getContext("2d");
+
+            context.font = font;
+            const metrics = context.measureText(text);
+
+            if ("fontBoundingBoxAscent" in metrics) {
+
+                return {
+                    Width: metrics.width,
+                    Height: metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent,
+                };
+            }
+            else {
+
+                return {
+                    Width: metrics.width,
+                    Height: 1.4 * (metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent),
+                };
+            }
+        }
+
+        function SetPlanetMapScale() {
+
+            try {
+
+                planetmap = document.getElementById('planetmap');
+                if (planetmap != null) {
+
+                    mapdiv = document.getElementById('mapdiv');
+                    if (mapdiv != null) {
+
+                        planetmap_inner = document.getElementById('planetmap_inner');
+                        scale = mapdiv.offsetWidth / planetmap_inner.offsetWidth;
+                        planetmap.style.transform = 'scale(' + scale + ')';
+
+                        planetmap_filler = document.getElementById('planetmap-filler');
+                        planetmap_filler.style.height = 1.110012062726176 * mapdiv.offsetWidth + "px";
+                    }
+                }
+            }
+            catch {
+
+            }
+        }
+
+        function GetWindowDimensions() {
+
+            try {
+
+                determinedWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+                determinedHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+            }
+            catch (error) {
+
+                determinedWidth = 800;
+                determinedHeight = 600;
+            }
+
+            return { Width: determinedWidth, Height: determinedHeight };
+        }
+
+        function GetScreenDimensions() {
+
+            return { Width: window.screen.width * window.devicePixelRatio, Height: window.screen.height * window.devicePixelRatio };
+        }
+
+        function GetImageDimensions(imgUrl) {
+
+            return new Promise((resolve) => {
+                let img = document.createElement('img');
+                img.onload = () => {
+                    resolve({ Width: img.naturalWidth, Height: img.naturalHeight });
+                }
+                img.onerror = () => {
+                    resolve({ Width: 0, Height: 0 });
+                }
+                img.src = imgUrl;
+            });
+        }
+
+        function RemoveFocusFromButtons() {
+
+            document.querySelectorAll("button").forEach(item => item.blur());
+        }
+
+        function EnablePopover(element) {
+
+            if (element == null) return;
+            
+            new bootstrap.Popover(element, { sanitize: false });
+        }
+                
+        function EnablePopovers(element) {
+
+            if (element == null) return;
+            
+            element.querySelectorAll('[data-bs-toggle="popover"]').forEach( function (trigger) { EnablePopover(trigger); } );
+        }
+
+        function RemovePopover(element) {
+
+            if (element == null) return;
+            
+            var popover = bootstrap.Popover.getInstance(element);
+
+            if (popover != null) {
+
+                popover.dispose();
+            }
+        }
+
+        function RemovePopovers(element) {
+
+            if (element == null) return;
+            
+            element.querySelectorAll('[data-bs-toggle="popover"]').forEach( function (trigger) { RemovePopover(trigger); } );
+        }
+
+        function RefreshPopover(element) {
+
+            if (element == null) return;
+            
+            var popover = bootstrap.Popover.getInstance(element);
+            if (popover != null) {
+
+                popover.dispose();
+            }
+
+            new bootstrap.Popover(element, { sanitize: false });
+        }
+
+        function RefreshPopovers(element) {
+            
+            if (element == null) return;
+            
+            element.querySelectorAll('[data-bs-toggle="popover"]').forEach( function (trigger) { RefreshPopover(trigger); } );
+        }
+
+        /*
+         * Sounds
+         */
+
+        let currentSounds = new Map();
+        function PlaySound(file, fadeTime, volume, loop) {
+
+            let sound = currentSounds.get(file);
+            if (sound != null)
+            {
+                sound.currentTime = 0;
+                sound.play();
+            }
+            else
+            {
+                sound = new Audio(file);
+                sound.loop = loop;
+
+                currentSounds.set(file, sound);
+
+                if (fadeTime > 0) {
+                    fadeStepTimeInterval = fadeTime / 8;
+                    fadeStepVolumeInterval = volume / 8;
+                    var interval = setInterval(function () {
+                        if (sound.volume + fadeStepVolumeInterval >= volume) {
+                            clearInterval(interval);
+                            sound.volume = volume;
+                        }
+                        else {
+                            sound.volume += fadeStepVolumeInterval;
+                        }
+                    }, fadeStepTimeInterval)
+                }
+                else {
+
+                    sound.volume = volume;
+                }
+
+                sound.play();
+            }
+        }
+
+        function StopSound(file, fadeTime) {
+
+            let sound = currentSounds.get(file);         
+
+            if (sound != null)
+            {
+                if (fadeTime > 0)
+                {
+                    fadeStepTimeInterval = fadeTime / 8;
+                    fadeStepVolumeInterval = sound.volume / 8;
+                    var interval = setInterval(function ()
+                    {
+                        if (sound.volume <= fadeStepVolumeInterval)
+                        {
+                            clearInterval(interval);
+                            sound.pause();
+                            currentSounds.delete(file);
+                        }
+                        else
+                        {
+                            sound.volume -= fadeStepVolumeInterval;
+                        }
+                    }, fadeStepTimeInterval)
+                }
+                else
+                {
+                    sound.pause();
+                    currentSounds.delete(file);
+                }
+
+            }
+        }
+
+        function StopSounds(fadeTime) {
+
+            currentSounds.forEach((values, key) => {
+                StopSound(key, fadeTime);
+            })
+        }
+
+        function ChangeSoundVolume(file, volume) {
+
+            let sound = currentSounds.get(file);
+
+            if (sound != null) {
+
+                sound.volume = volume;
+            }
+        }
+
+        /*
+         * Read and write files locally
+         */
+
+        function saveFile(filename, data) {
+            const blob = new Blob([data], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            let link = document.createElement('a');
+            link.download = filename;
+            link.href = url;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        function readFile(inputFile) {
+
+            const temporaryFileReader = new FileReader();
+            return new Promise((resolve, reject) => {
+
+                temporaryFileReader.onerror = () => {
+                    temporaryFileReader.abort();
+                    reject(new DOMException("Problem parsing input file."));
+                };
+
+                temporaryFileReader.addEventListener("load", function () {
+                    resolve(temporaryFileReader.result);
+                }, false);
+
+                temporaryFileReader.readAsText(inputFile.files[0]);
+            });
+        }
+
+        function Clear(id) {
+
+            document.getElementById(id).value = "";
+        }
+
+        function UrlExists(url) {
+
+            let img = new Image();
+
+            return new Promise(
+
+                (resolve) => {
+
+                    img.onerror = () => {
+                        resolve(false);
+                    };
+
+                    img.onload = () => {
+                        resolve(true);
+                    };
+
+                    img.src = url;
+
+                });
+        }
+
+        /*
+         * Other support functions
+         */
+
+        function ClearSelection() {
+
+            if (window.getSelection) { window.getSelection().removeAllRanges(); }
+            else if (document.selection) { document.selection.empty(); }
+        }
+
+        function HideModal(modalId) {
+
+            let element = document.getElementById(modalId);
+            let modal = bootstrap.Modal.getInstance(element);
+
+            if (modal != null) {
+
+                modal.hide();
+            }
+        }
+
+        function ToggleFullScreen() {
+
+            let element = document.body;
+            let isFullscreen = IsFullScreen();
+
+            element.requestFullScreen = element.requestFullScreen || element.webkitRequestFullScreen || element.mozRequestFullScreen || function () { return false; };
+            document.cancelFullScreen = document.cancelFullScreen || document.webkitCancelFullScreen || document.mozCancelFullScreen || function () { return false; };
+
+            isFullscreen ? document.cancelFullScreen() : element.requestFullScreen();
+        }
+
+        function IsFullScreen() {
+
+            return document.fullscreenElement != null
+        }
+
+        function Print(elementId) {
+
+            let elem = document.getElementById(elementId);
+            let domClone = elem.cloneNode(true);
+            let printSection = document.getElementById("printSection");
+
+            if (!printSection) {
+
+                printSection = document.createElement("div");
+                printSection.id = "printSection";
+                document.body.appendChild(printSection);
+            }
+
+            printSection.innerHTML = "";
+            printSection.appendChild(domClone);
+            window.print();
+        }
+
+        function Log(text) {
+
+            if (LoggingEnabled) {
+
+                console.log(text);
+            }
+        }
+
+    </script>
+
+</head>
+
+<body style="background-color:black">
+
+    <div id="app">Loading...</div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <script src="_framework/blazor.webassembly.js"></script>
+
+    <script type="text/javascript">
+        window.addEventListener("resize", SetPlanetMapScale);
+    </script>
+
+</body>
+
+</html>

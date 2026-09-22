@@ -1,0 +1,137 @@
+@use "../shared";
+
+// .prompt-act: the guide's .prompt.act as a single class, for the beige
+// prompt card, which is a Bootstrap .card. It also re-points the card
+// variables so .card-body text is ink on parchment.
+.prompt-act {
+  --bs-card-bg: var(--parchment);
+  --bs-card-color: var(--ink-1);
+  --bs-card-border-color: var(--gold-3);
+  --bs-card-cap-color: var(--ink-1);
+  border-radius: var(--r-2);
+  position: relative;
+  overflow: hidden;
+  @include shared.parchment-act;
+
+  .kicker {
+    @include shared.prompt-kicker;
+    color: var(--rock-2);
+  }
+
+  .title {
+    @include shared.prompt-title;
+  }
+
+  .actions {
+    @include shared.prompt-actions;
+  }
+
+  // On parchment, the dark-surface variants of the controls flip.
+  .btn-secondary,
+  .btn-outline-secondary {
+    --bs-btn-color: var(--ink-1);
+    --bs-btn-border-color: #{shared.$ink-line-strong};
+    --bs-btn-hover-color: var(--ink-1);
+    --bs-btn-hover-bg: #{shared.$ink-tint};
+    --bs-btn-hover-border-color: var(--ink-1);
+    --bs-btn-active-color: var(--ink-1);
+    --bs-btn-active-bg: rgba(29, 12, 0, 0.1);
+    --bs-btn-active-border-color: var(--ink-1);
+    --bs-btn-disabled-color: var(--ink-1);
+    --bs-btn-disabled-border-color: #{shared.$ink-line-strong};
+  }
+}
+
+// Links on any parchment surface, the prompt card or an .on-parchment
+// region, are rock rather than gold.
+.prompt-act .btn-link,
+.prompt-act a,
+.on-parchment .btn-link,
+.on-parchment a {
+  --bs-btn-color: var(--rock-2);
+  --bs-btn-hover-color: var(--ink-1);
+  color: var(--rock-2);
+}
+
+.prompt-act {
+  .btn-quiet {
+    color: var(--rock-2);
+  }
+
+  // Bootstrap's info and primary text become the rock brown.
+  .text-info,
+  .text-primary {
+    --bs-info-rgb: 140, 107, 62;
+    --bs-primary-rgb: 140, 107, 62;
+  }
+
+  .text-muted {
+    --bs-secondary-color: var(--rock-2);
+  }
+
+  .form-check-input {
+    --bs-form-check-bg: #{shared.$parchment-check-bg};
+    border-color: shared.$ink-line-strong;
+
+    &:checked {
+      background-color: var(--gold);
+      border-color: var(--gold-3);
+    }
+  }
+
+  .form-control,
+  .form-select {
+    background-color: shared.$parchment-input-bg;
+    color: var(--ink-1);
+    border-color: shared.$ink-line;
+  }
+
+  .form-control::placeholder {
+    color: var(--rock-2);
+  }
+
+  .num {
+    background: shared.$parchment-input-bg;
+    border-color: shared.$ink-line;
+  }
+
+  .num input,
+  .num button {
+    color: var(--ink-1);
+  }
+
+  .num .ic {
+    border-right-color: shared.$ink-line-soft;
+  }
+
+  .check i {
+    background: shared.$parchment-check-bg;
+    border-color: shared.$ink-line-strong;
+  }
+
+  .seg {
+    border-color: shared.$ink-line;
+    background: shared.$parchment-input-bg;
+
+    button {
+      color: var(--ink-1);
+    }
+
+    button.on {
+      color: var(--ink-0);
+    }
+  }
+
+  .card-header {
+    color: var(--ink-1);
+    border-bottom-color: rgba(29, 12, 0, 0.15);
+  }
+
+  // A card nested inside the prompt card goes back to ink.
+  .card {
+    --bs-card-bg: var(--ink-2);
+    --bs-card-color: var(--parchment);
+    --bs-card-border-color: #{shared.$hairline};
+    --bs-card-cap-color: var(--sand);
+  }
+}

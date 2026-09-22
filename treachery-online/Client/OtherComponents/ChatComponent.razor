@@ -27,22 +27,7 @@
 
             @if (ShowGameChat)
             {
-                <select name="faction" class="form-select form-select-sm me-1" style="color:@SelectedFactionForegroundColor;background-color:@SelectedFactionColor" @bind="@_selectedPlayerName">
-
-                    @if (!Client.MuteGlobalChat)
-                    {
-                        <option style="color:lightcoral;font-weight:bold;background-color:white" value="@LabelGlobalChat">@LabelGlobalChat</option>
-                    }
-
-                    <option style="color:red;font-weight:bold;background-color:white" value="@LabelAllPlayersInGame">@LabelAllPlayersInGame</option>
-
-                    @foreach (var p in Game.Players.Where(p => p != Client.Player))
-                    {
-                        var name = Game.GetPlayerName(p);
-                        <option style="color:@Client.CurrentSkin.GetFactionColor(p.Faction);background-color:white" value="@name">@name</option>
-                    }
-
-                </select>
+                <SelectComponent T="string" @bind-Value="_selectedPlayerName" Values="ChatTargets" Small Class="me-1 flex-grow-1" />
             }
             else
             {
@@ -53,20 +38,14 @@
 
         @foreach (var m in Client.Messages.Where(msg => !Client.MuteGlobalChat || msg is not GlobalChatMessage))
         {
-            var color = m switch
-            {
-                GameChatMessage gcm => Client.CurrentSkin.GetFactionColor(gcm.GetFaction(gcm.SourceUserId, Game)),
-                _ => "grey"
-            };
-
-            <div class='text-break p-1 mt-1 small' style="background-color:@color;user-select: text;">
+            <div class='text-break p-1 mt-1 small bg-ink-3' style="user-select: text;">
                 <ExpressionComponent Game="@Game" Expression="@m.GetBodyIncludingPlayerInfo(Client.UserId!.Value, Client.RecentlySeenUsers, Game, !Client.InGame).Expression" Size="20"/>
             </div>
         }
 
         @if (ShowGameChat)
         {
-            <div class="mt-1" style="color:black">
+            <div class="mt-1">
                 <CheckboxComponent @bind-Value="@Client.MuteGlobalChat">Hide global chat messages</CheckboxComponent>
             </div>
         }
@@ -85,6 +64,16 @@
 
     private string? _message;
     private string? _selectedPlayerName;
+
+    private IEnumerable<string> ChatTargets
+    {
+        get
+        {
+            if (!Client.MuteGlobalChat) yield return LabelGlobalChat;
+            yield return LabelAllPlayersInGame;
+            foreach (var p in Game.Players.Where(p => p != Client.Player)) yield return Game.GetPlayerName(p);
+        }
+    }
 
     protected override void OnInitialized()
     {
@@ -143,21 +132,6 @@
     }
 
     private string Placeholder => "Chat to " + _selectedPlayerName + "...";
-
-    private string SelectedFactionColor
-    {
-        get
-        {
-            if (Game.CurrentPhase < Phase.SelectingFactions || _selectedPlayerName is null)
-                return "white";
-
-            var p = Game.GetPlayerByName(_selectedPlayerName);
-            return p != null ? Client.CurrentSkin.GetFactionColor(p.Faction) : "red";
-        }
-    }
-
-    private string SelectedFactionForegroundColor => Client.Faction == Faction.None ? "black" : "white";
-    
 
     private bool ShowGameChat => Client.InGame && !Client.IsObserver;
 }

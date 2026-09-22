@@ -10,7 +10,7 @@
 
 @if (Client.InGame)
 {
-    <div class="card mb-2 border-white">
+    <div class="card mb-2">
 
         <div class="card-header">Welcome to @(Client.GameName)</div>
 
@@ -85,5 +85,5 @@
 
     private GameSettings Settings => Game.Settings;
     
-    private static string DetermineRuleClass(bool applicable) => applicable ? "color:white" : "color:grey";
+    private static string DetermineRuleClass(bool applicable) => applicable ? "color:var(--parchment)" : "color:var(--text-3)";
 }

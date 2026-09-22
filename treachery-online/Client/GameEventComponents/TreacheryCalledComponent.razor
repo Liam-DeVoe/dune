@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
  * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
@@ -8,23 +8,17 @@
 *@
 @inherits GameEventComponent<TreacheryCalled>
 
-<GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
+@if (TreacheryCalled.MayCallTreachery(Game, Player))
+{
+    <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
-    <Header>Call TREACHERY?</Header>
-    <Body>
-
-        @if (TreacheryCalled.MayCallTreachery(Game, Player))
-        {
+        <Header>Call TREACHERY?</Header>
+        <Body>
             <ButtonRowComponent Confirm="Confirm" ConfirmText="TREACHERY!" ConfirmError=@Validation Pass="Pass" PassText="Pass" />
-        }
-        else
-        {
-            <ButtonRowComponent Pass="Pass" PassText="Pass" />
-        }
+        </Body>
 
-    </Body>
-
-</GameEventComponentLayout>
+    </GameEventComponentLayout>
+}
 
 @code {
 
@@ -33,4 +27,19 @@
     protected override TreacheryCalled ConfirmedResult => new(Game, Faction) { TraitorCalled = true };
 
     protected override TreacheryCalled PassedResult => new(Game, Faction) { TraitorCalled = false };
+
+    // A player who cannot call treachery has nothing to decide, so pass for them
+    // without showing the prompt. Once per battle.
+    private BattleInitiated? _passedFor;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+
+        if (Game.CurrentBattle == null || TreacheryCalled.MayCallTreachery(Game, Player) || _passedFor == Game.CurrentBattle)
+            return;
+
+        _passedFor = Game.CurrentBattle;
+        await Pass();
+    }
 }

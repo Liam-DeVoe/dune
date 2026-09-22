@@ -65,7 +65,7 @@
                         @foreach (var c in cards)
                         {
                             var isKnown = IsKnownCard(c);
-                            var popover = isKnown ? Client.CurrentSkin.GetPopup(c) : "<div class='p-1 small' style='color:black;background-color:white;border: 1px solid black;'>Unknown</div>";
+                            var popover = isKnown ? Client.CurrentSkin.GetPopup(c) : "<div class='p-1 small' style='color:var(--parchment);background-color:var(--ink-0);border: 1px solid rgba(255,255,255,.16);'>Unknown</div>";
 
                             <Hoverable Class="card border-0 p-1" Popover=@popover>
 

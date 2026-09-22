@@ -6,31 +6,16 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
-@inherits GameEventComponent<DiscoveryEntered>
+@inherits MapPickComponent<DiscoveryEntered>
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
     <Header>Enter a discovered stronghold?</Header>
     <Body>
 
-        @if (DiscoveryEntered.ValidTargets(Game, Player).Count() > 1)
-        {
-            <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="toLocation" Values=@DiscoveryEntered.ValidTargets(Game, Player)>
-                <Label>Which stronghold to enter?</Label>
-            </SelectComponent>
-        }
-        else
-        {
-            toLocation = DiscoveryEntered.ValidTargets(Game, Player).FirstOrDefault();
-            <div>Enter @Name(toLocation)?</div>
-        }
+        <div class="small">Use the map to choose a location.</div>
 
-        @if (toLocation != null)
-        {
-            <ForceSelectionComponent Game=Game Player=Player OnChanged="@StateHasChanged" Forces=@forces Locations=@DiscoveryEntered.ValidSources(Player, toLocation) />
-        }
-
-        <ButtonRowComponent Confirm="Confirm" ConfirmError="@Validation" />
+        <ButtonRowComponent Pass="Pass" PassText="Don't enter" />
 
     </Body>
 
@@ -40,9 +25,62 @@
 
     private Dictionary<Location, Battalion> forces = new();
 
-    private DiscoveredLocation? toLocation;
+    protected override IEnumerable<Location> PickTargets => DiscoveryEntered.ValidTargets(Game, Player);
 
-    protected override DiscoveryEntered ConfirmedResult => new(Game, Faction) { ForceLocations = forces, To = toLocation, Passed = false };
+    private DiscoveredLocation? To => Target as DiscoveredLocation;
+
+    private IEnumerable<Location> Sources => To != null ? DiscoveryEntered.ValidSources(Player, To) : [];
+
+    protected override void OnGameChanged()
+    {
+        forces.Clear();
+    }
+
+    // The forces that may enter are the ones next to the pinned stronghold; start with all of them.
+    protected override void OnPickChanged()
+    {
+        forces.Clear();
+        foreach (var l in Sources)
+        {
+            forces[l] = new Battalion(Faction, Player.ForcesIn(l), Player.SpecialForcesIn(l), l);
+        }
+    }
+
+    protected override DiscoveryEntered ConfirmedResult => new(Game, Faction) { ForceLocations = forces, To = To, Passed = false };
 
     protected override DiscoveryEntered PassedResult => new(Game, Faction) { Passed = true };
+
+    private void SetAmount(Location l, int amount, bool special)
+    {
+        if (!forces.TryGetValue(l, out var battalion)) return;
+        if (special) battalion.AmountOfSpecialForces = amount;
+        else battalion.AmountOfForces = amount;
+        RefreshPin();
+    }
+
+    protected override RenderFragment PinContent => __builder =>
+    {
+        <div class="pin-body">
+            @foreach (var kvp in forces)
+            {
+                var l = kvp.Key;
+                var b = kvp.Value;
+                <div class="pin-row">
+                    @if (forces.Count > 1)
+                    {
+                        <span class="pin-from">@Name(l)</span>
+                    }
+                    @if (Player.ForcesIn(l) > 0)
+                    {
+                        <MapForceStepper Value="@b.AmountOfForces" ValueChanged="@(v => SetAmount(l, v, false))" Min="0" Max="@Player.ForcesIn(l)" Faction="Faction" Special="false"/>
+                    }
+                    @if (Player.SpecialForcesIn(l) > 0)
+                    {
+                        <MapForceStepper Value="@b.AmountOfSpecialForces" ValueChanged="@(v => SetAmount(l, v, true))" Min="0" Max="@Player.SpecialForcesIn(l)" Faction="Faction" Special="true"/>
+                    }
+                </div>
+            }
+            @PinActions("Enter")
+        </div>
+    };
 }

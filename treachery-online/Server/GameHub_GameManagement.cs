@@ -52,7 +52,7 @@ public partial class GameHub
         return Success(new GameInitInfo
         {
             GameId = gameId, 
-            GameState = stateData, 
+            GameState = GameState.GetStateAsString(game), 
             GameName = managedGame.Name,
             Participation = game.Participation
         });
@@ -530,6 +530,8 @@ public partial class GameHub
 
     public async Task<Result<ServerStatus>> RequestHeartbeat(string userToken, GameListScope scope)
     {
+        await RestoreGamesIfServerJustStarted();
+        
         if (!UsersByUserToken.TryGetValue(userToken, out var loggedInUser))
             return Error<ServerStatus>(ErrorType.UserNotFound);
 

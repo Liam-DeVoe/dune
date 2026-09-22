@@ -257,7 +257,7 @@
 @code {
 
     [Parameter]
-    public EventCallback<LocationEventArgs> OnLocationClick { get; set; }
+    public Action<LocationEventArgs>? OnLocationClick { get; set; }
 
     private Situation situation = new();
     protected override bool ShouldRender()
@@ -297,9 +297,9 @@
         return "video" + p.Seat;
     }
 
-    private async Task OnClick(MouseEventArgs e, Location l)
+    private void OnClick(MouseEventArgs e, Location l)
     {
-        await OnLocationClick.InvokeAsync(new LocationEventArgs { Location = l, AltKey = e.AltKey, CtrlKey = e.CtrlKey, ShiftKey = e.ShiftKey });
+        OnLocationClick?.Invoke(new LocationEventArgs { Location = l, AltKey = e.AltKey, CtrlKey = e.CtrlKey, ShiftKey = e.ShiftKey });
     }
 
     internal class MapForce

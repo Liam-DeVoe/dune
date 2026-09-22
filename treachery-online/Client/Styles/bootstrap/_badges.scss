@@ -1,0 +1,67 @@
+@use "sass:list";
+@use "sass:map";
+
+// Badges: the guide's .badge rule, then Bootstrap's colour utilities mapped
+// onto the game's palette.
+.badge {
+  font-family: var(--font-display);
+  font-size: 13px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: var(--r-pill);
+  display: inline-grid;
+  place-items: center;
+  background: var(--gold);
+  color: var(--ink-0);
+
+  &.spice {
+    background: var(--spice);
+    color: var(--parchment);
+  }
+
+  &.storm {
+    background: var(--storm);
+    color: var(--parchment);
+  }
+
+  &.quiet {
+    background: rgba(252, 249, 209, 0.12);
+    color: var(--text-2);
+  }
+}
+
+// Each entry covers both .bg-<name> and .text-bg-<name> for every name in the
+// key. Bootstrap's utilities carry !important, so these must too.
+$utilities: (
+  (primary, info): (
+      bg: var(--gold),
+      color: var(--ink-0),
+    ),
+  warning: (
+    bg: var(--spice),
+    color: var(--parchment),
+  ),
+  danger: (
+    bg: var(--storm),
+    color: var(--parchment),
+  ),
+  (secondary, success, light, dark): (
+      bg: rgba(252, 249, 209, 0.12),
+      color: var(--text-2),
+    ),
+);
+
+@each $names, $colours in $utilities {
+  $selectors: ();
+
+  @each $name in $names {
+    $selectors: list.append($selectors, ".badge.bg-#{$name}", comma);
+    $selectors: list.append($selectors, ".badge.text-bg-#{$name}", comma);
+  }
+
+  #{$selectors} {
+    background-color: map.get($colours, bg) !important;
+    color: map.get($colours, color) !important;
+  }
+}

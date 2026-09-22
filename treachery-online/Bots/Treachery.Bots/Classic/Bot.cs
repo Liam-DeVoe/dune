@@ -9,7 +9,7 @@
 
 namespace Treachery.Bots;
 
-public partial class ClassicBot(Game game, Player player, BotParameters param) : IBot
+public partial class ClassicBot(Game game, Player player, BotParameters param, LoggedRandom? random = null) : IBot
 {
     private const bool LogBotInfo = false;
     
@@ -297,7 +297,7 @@ public partial class ClassicBot(Game game, Player player, BotParameters param) :
         }
     }
 
-    private readonly LoggedRandom _random = new();
+    private readonly LoggedRandom _random = random ?? new LoggedRandom();
 
     private int D(int amount, int sides)
     {

@@ -8,8 +8,10 @@
  */
 
 using System.Net.Http;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Treachery.Client.Scene;
 
 namespace Treachery.Client;
 
@@ -20,8 +22,22 @@ public class Program
         var builder = WebAssemblyHostBuilder.CreateDefault(args);
         builder.RootComponents.Add<App>("#app");
         builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
-        builder.Services.AddSingleton<IGameService, Client>();
+
+        // The /scene page (for screenshots) plays a saved game without a
+        // server, so it gets a service that never connects. Everything else
+        // gets the real client.
+        builder.Services.AddSingleton<IGameService>(services =>
+            IsScenePage(services.GetRequiredService<NavigationManager>())
+                ? new SceneGameService()
+                : ActivatorUtilities.CreateInstance<Client>(services));
+
         builder.Services.AddSingleton<Browser>();
         await builder.Build().RunAsync();
+    }
+
+    private static bool IsScenePage(NavigationManager navigation)
+    {
+        var path = navigation.ToBaseRelativePath(navigation.Uri).Split('?', '#')[0].TrimEnd('/');
+        return path.Equals("scene", StringComparison.OrdinalIgnoreCase);
     }
 }

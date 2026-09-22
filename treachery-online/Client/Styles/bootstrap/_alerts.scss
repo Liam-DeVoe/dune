@@ -1,0 +1,5 @@
+// Alert colours come from the *-bg-subtle / *-border-subtle / *-text-emphasis
+// tokens on :root.
+.alert {
+  --bs-alert-border-radius: var(--r-2);
+}

@@ -1,0 +1,67 @@
+// Log entries: a column of rows, each a small sigil beside the text. .n is
+// a pill-shaped count (spice-coloured with .spice), .hi is a highlighted row,
+// .when is a timestamp.
+.log {
+  display: flex;
+  flex-direction: column;
+
+  .entry {
+    display: grid;
+    grid-template-columns: 24px 1fr;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    font-size: 15px;
+    line-height: 1.35;
+    align-items: start;
+
+    .sigil {
+      width: 22px;
+      height: 22px;
+      margin-top: 1px;
+    }
+
+    b {
+      color: var(--parchment);
+      font-weight: 600;
+    }
+
+    .n {
+      display: inline-grid;
+      place-items: center;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 5px;
+      border-radius: var(--r-pill);
+      font-family: var(--font-display);
+      font-size: 13px;
+      background: rgba(252, 249, 209, 0.14);
+      color: var(--parchment);
+      vertical-align: middle;
+    }
+
+    .n.spice {
+      background: var(--spice);
+    }
+
+    // A highlighted row bleeds to the panel edges with a gold bar.
+    &.hi {
+      background: rgba(231, 191, 60, 0.08);
+      margin: 0 -14px;
+      padding: 8px 14px;
+      border-left: 3px solid var(--gold);
+    }
+
+    // The viewing player's own name in an entry about them.
+    &.you b.you {
+      color: var(--gold);
+    }
+
+    .when {
+      font-size: 12px;
+      color: var(--text-3);
+      font-family: var(--font-label);
+      letter-spacing: 0.08em;
+    }
+  }
+}

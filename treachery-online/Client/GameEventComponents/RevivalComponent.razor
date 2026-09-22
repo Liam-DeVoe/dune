@@ -6,8 +6,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
-@inherits GameEventComponent<Revival>
-@implements IDisposable
+@inherits MapPickComponent<Revival>
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
@@ -97,13 +96,7 @@
 
             if (amountOfForcesToLocation > 0 || amountOfSpecialForcesToLocation > 0)
             {
-                <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="location" Values=@Revival.ValidRevivedForceLocations(Game, Player)>
-                    <Label>Place them where?</Label>
-                </SelectComponent>
-            }
-            else
-            {
-                location = null;
+                <div class="small">Use the map to choose where to place them.</div>
             }
 
             @if (Revival.ValidRevivalHeroes(Game, Player).Any())
@@ -150,21 +143,18 @@
     private bool useRedSecretAlly;
     private int amountOfForcesToLocation;
     private int amountOfSpecialForcesToLocation;
-    private Location? location;
-    
-    protected override void OnAfterRender(bool firstRender)
-    {
-        if (firstRender)
-        {
-            Client.OnLocationSelected += HandleLocationSelected;
-        }
-    }
 
-    public override void Dispose()
+    // The map is only needed while some revived forces go onto the planet.
+    protected override bool PickEnabled => amountOfForcesToLocation > 0 || amountOfSpecialForcesToLocation > 0;
+
+    protected override IEnumerable<Location> PickTargets => Revival.ValidRevivedForceLocations(Game, Player);
+
+    protected override RenderFragment PinContent => __builder =>
     {
-        base.Dispose();
-        Client.OnLocationSelected -= HandleLocationSelected;
-    }
+        <div class="pin-body">
+            @PinActions("Revive")
+        </div>
+    };
 
     protected override Revival ConfirmedResult => new(Game, Faction)
     {
@@ -176,14 +166,9 @@
         AssignSkill = assignSkill,
         NumberOfForcesInLocation = amountOfForcesToLocation,
         NumberOfSpecialForcesInLocation = amountOfSpecialForcesToLocation,
-        Location = location,
+        Location = Target,
         UsesRedSecretAlly = useRedSecretAlly
     };
 
     private RevivalCost CostOfRevival => Revival.DetermineCost(Game, Player, hero, amountOfForces, amountOfSpecialForces, forcesPaidByRed, specialForcesPaidByRed, useRedSecretAlly);
-
-    private void HandleLocationSelected(object sender, Location l)
-    {
-        SetIfValid(ref location, Revival.ValidRevivedForceLocations(Game, Player), l);
-    }
 }

@@ -6,7 +6,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
-@inherits GameEventComponent<AmbassadorActivated>
+@inherits MapPickComponent<AmbassadorActivated>
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
@@ -84,30 +84,12 @@
 
                     <div>Move a group of your forces?</div>
 
-                    var validSources = AmbassadorActivated.ValidYellowSources(Game, Player);
-
-                    if (validSources.Any())
+                    if (YellowSources.Any())
                     {
-                        _yellowFromTerritory ??= validSources.First();
-
-                        <div class="mt-1 mb-1">
-                            <SelectComponent T=Territory OnChanged="StateHasChanged" ButtonHint="ClickHintButton.Lmb" ModifierHint="ClickHintModifier.Ctrl" @bind-Value="_yellowFromTerritory" Values="validSources">
-                                <Label>From</Label>
-                            </SelectComponent>
-
-                            <ForceSelectionComponent Game=Game Player=Player OnChanged="StateHasChanged" Forces="_yellowForces" Locations="Player.LocationsWithAnyForcesInTerritory(_yellowFromTerritory)" InitializeToMaximum="true"/>
-
-                            <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="_yellowOrOrangeToLocation" Values=@AmbassadorActivated.ValidYellowTargets(Game, Player)>
-                                <Label>To</Label>
-                            </SelectComponent>
-                        </div>
+                        <div class="small">Use the map to move forces: click the sector to move from, then where to move to.</div>
                     }
                     else
                     {
-                        _yellowFromTerritory = null;
-                        _yellowForces = new Dictionary<Location, Battalion>();
-                        _yellowOrOrangeToLocation = null;
-
                         <div>You don't have any forces to move.</div>
                     }
                     break;
@@ -145,20 +127,12 @@
 
                     <div>Send up to 4 forces to any location?</div>
 
-                    var validTargets = AmbassadorActivated.ValidOrangeTargets(Game, Player);
-                    if (validTargets.Any())
+                    if (AmbassadorActivated.ValidOrangeTargets(Game, Player).Any())
                     {
-                        <div class="mt-1 mb-1">
-                            <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="_yellowOrOrangeToLocation" Values="validTargets.OrderByDescending(l => l.IsStronghold).ThenBy(l => Name(l))">
-                                <Label>To</Label>
-                            </SelectComponent>
-                        </div>
-
-                        <SelectForcesComponent @bind-Value=_orangeForceAmount Min="0" Max=@AmbassadorActivated.ValidOrangeMaxForces(Player) Faction="Faction" Special="false" />
+                        <div class="small">Use the map to choose a location.</div>
                     }
                     else
                     {
-                        _yellowOrOrangeToLocation = null;
                         _orangeForceAmount = 0;
 
                         <div>There are no valid locations to ship to.</div>
@@ -217,8 +191,6 @@
     private bool _pinkOfferAlliance;
     private bool _pinkTakeVidal;
     private bool _pinkGiveVidal;
-    private Territory? _yellowFromTerritory;
-    private Location? _yellowOrOrangeToLocation;
     private Dictionary<Location, Battalion> _yellowForces = new();
     private TreacheryCard? _greyCard;
     private int _orangeForceAmount;
@@ -226,27 +198,95 @@
     private IHero? _purpleHero;
     private bool _purpleAssignSkill;
 
-    protected override void OnAfterRender(bool firstRender)
+    // The Yellow ambassador moves forces like a regular move: sources first,
+    // then the destination. The Orange one ships from reserves: destination only.
+    private bool MovesForces => _actualAmbassador == Ambassador.Yellow;
+
+    private bool ShipsForces => _actualAmbassador == Ambassador.Orange;
+
+    private IEnumerable<Location> YellowSources =>
+        AmbassadorActivated.ValidYellowSources(Game, Player).SelectMany(t => t.Locations).Where(l => Player.AnyForcesIn(l) > 0 && !Game.IsInStorm(l));
+
+    protected override bool PickEnabled => (MovesForces && YellowSources.Any()) || (ShipsForces && AmbassadorActivated.ValidOrangeTargets(Game, Player).Any());
+
+    protected override IEnumerable<Location> PickSources => MovesForces ? YellowSources : [];
+
+    protected override IEnumerable<Location> PickTargets =>
+        MovesForces ? (SelectedSources.Count > 0 ? AmbassadorActivated.ValidYellowTargets(Game, Player) : []) :
+        ShipsForces ? AmbassadorActivated.ValidOrangeTargets(Game, Player) : [];
+
+    protected override void OnGameChanged()
     {
-        if (firstRender)
-        {
-            Client.OnLocationSelected += HandleLocationSelected;
-            Client.OnLocationSelectedWithCtrlOrAlt += HandleLocationSelectedWithModifier;
-        }
+        _yellowForces.Clear();
+        _orangeForceAmount = 0;
     }
 
-    public override void Dispose()
+    // Moving starts with everything in the clicked sectors; shipping starts with one force.
+    protected override void OnPickChanged()
     {
-        base.Dispose();
-        Client.OnLocationSelected -= HandleLocationSelected;
-        Client.OnLocationSelectedWithCtrlOrAlt -= HandleLocationSelectedWithModifier;
+        foreach (var l in _yellowForces.Keys.Where(l => !SelectedSources.Contains(l)).ToList()) _yellowForces.Remove(l);
+        foreach (var l in SelectedSources.Where(l => !_yellowForces.ContainsKey(l)))
+        {
+            _yellowForces[l] = new Battalion(Faction, Player.ForcesIn(l), Player.SpecialForcesIn(l), l);
+        }
+        if (ShipsForces && Target != null && _orangeForceAmount == 0) _orangeForceAmount = Math.Min(1, AmbassadorActivated.ValidOrangeMaxForces(Player));
     }
+
+    private void SetYellowAmount(Location l, int amount, bool special)
+    {
+        if (!_yellowForces.TryGetValue(l, out var battalion)) return;
+        if (special) battalion.AmountOfSpecialForces = amount;
+        else battalion.AmountOfForces = amount;
+        RefreshPin();
+    }
+
+    private void SetOrangeAmount(int amount)
+    {
+        _orangeForceAmount = amount;
+        RefreshPin();
+    }
+
+    protected override RenderFragment PinContent => __builder =>
+    {
+        <div class="pin-body">
+            @if (MovesForces)
+            {
+                foreach (var kvp in _yellowForces)
+                {
+                    var l = kvp.Key;
+                    var b = kvp.Value;
+                    <div class="pin-row">
+                        @if (_yellowForces.Count > 1)
+                        {
+                            <span class="pin-from">@Name(l)</span>
+                        }
+                        @if (Player.ForcesIn(l) > 0)
+                        {
+                            <MapForceStepper Value="@b.AmountOfForces" ValueChanged="@(v => SetYellowAmount(l, v, false))" Min="0" Max="@Player.ForcesIn(l)" Faction="Faction" Special="false"/>
+                        }
+                        @if (Player.SpecialForcesIn(l) > 0)
+                        {
+                            <MapForceStepper Value="@b.AmountOfSpecialForces" ValueChanged="@(v => SetYellowAmount(l, v, true))" Min="0" Max="@Player.SpecialForcesIn(l)" Faction="Faction" Special="true"/>
+                        }
+                    </div>
+                }
+                @PinActions("Move")
+            }
+            else
+            {
+                <div class="pin-row">
+                    <MapForceStepper Value="@_orangeForceAmount" ValueChanged="@SetOrangeAmount" Min="0" Max="@AmbassadorActivated.ValidOrangeMaxForces(Player)" Faction="Faction" Special="false"/>
+                </div>
+                @PinActions("Send")
+            }
+        </div>
+    };
 
     protected override AmbassadorActivated ConfirmedResult => new(Game, Faction) { 
         BlueSelectedAmbassador = _actualAmbassador,  
         BrownCards = _brownCards,
         PinkOfferAlliance = _pinkOfferAlliance, PinkGiveVidalToAlly = _pinkGiveVidal, PinkTakeVidal = _pinkTakeVidal,
-        YellowOrOrangeTo = _yellowOrOrangeToLocation, 
+        YellowOrOrangeTo = Target, 
         YellowForceLocations = _yellowForces,
         OrangeForceAmount = _orangeForceAmount,
         GreyCard = _greyCard,
@@ -256,14 +296,4 @@
 
     protected override AmbassadorActivated PassedResult => new(Game, Faction) { Passed = true };
 
-    private void HandleLocationSelected(object sender, Location l)
-    {
-        var targets = _actualAmbassador == Ambassador.Yellow ? AmbassadorActivated.ValidYellowTargets(Game, Player) : AmbassadorActivated.ValidOrangeTargets(Game, Player);
-        SetIfValid(ref _yellowOrOrangeToLocation, targets.OrderByDescending(l => l.IsStronghold).ThenBy(l => Name(l)), l);
-    }
-
-    private void HandleLocationSelectedWithModifier(object sender, Location l)
-    {
-        SetIfValid(ref _yellowFromTerritory, AmbassadorActivated.ValidYellowSources(Game, Player), l.Territory);
-    }
 }

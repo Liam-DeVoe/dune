@@ -1,4 +1,4 @@
-﻿// /*
+// /*
 //  * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
 //  * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
 //  * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
@@ -12,8 +12,12 @@ public interface IGameService
 {
     public const int HeartbeatDelay = 6000;
 
+    // Chat is implemented but not shown anywhere. Flip this to bring it back.
+    public const bool ChatEnabled = false;
+
     //Logged in?
     public bool LoggedIn { get; }
+    public Task RememberLogin(bool keep);
     public int? UserId { get; }
     public string? UserName { get; }
     public string? UserEmail { get; }
@@ -48,6 +52,9 @@ public interface IGameService
     public int Timer { get; set; }
     public bool MuteGlobalChat { get; set; }
 
+    // Deal offers this user has rejected. The engine has no reject event, so this only hides them locally.
+    public ISet<string> RejectedDealOffers { get; }
+
     public event Action RefreshHandler;
     public event Action RefreshPopoverHandler;
     
@@ -77,8 +84,11 @@ public interface IGameService
     public event EventHandler<Location> OnLocationSelectedWithCtrlOrAlt;
     public event EventHandler<Location> OnLocationSelectedWithShift;
     public event EventHandler<Location> OnLocationSelectedWithShiftAndWithCtrlOrAlt;
+    public event EventHandler<Location> OnLocationRightClicked;
 
     public void LocationClick(LocationEventArgs e);
+
+    public MapInteraction MapInteraction { get; }
     
     //Authentication
     

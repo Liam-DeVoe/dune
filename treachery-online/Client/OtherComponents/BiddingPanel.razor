@@ -9,7 +9,7 @@
 @inherits GameEventComponent<TBid>
 @typeparam TBid
 
-<div class="card p-1 mb-2 border-white" style="animation:fadeIn 1s;">
+<div class="card p-1 mb-2" style="animation:fadeIn 1s;">
 
     <div class="card-body">
 
@@ -58,7 +58,7 @@
 
                     @if (CanBid)
                     {
-                        <hr style="border-color:white" />
+                        <hr class="hr-hairline" />
                     }
                 }
 
@@ -231,5 +231,5 @@
 
     private bool IsSilentAuction => Game.CurrentAuctionType == AuctionType.BlackMarketSilent || Game.CurrentAuctionType == AuctionType.WhiteSilent;
 
-    private static string AuctionDescriptionStyle => $"font-size: 22px; font-weight: bold; {Support.TextBorder(2, "black")}";
+    private static string AuctionDescriptionStyle => $"font-size: 22px; font-weight: bold; {Support.TextBorder(2, "var(--ink-0)")}";
 }

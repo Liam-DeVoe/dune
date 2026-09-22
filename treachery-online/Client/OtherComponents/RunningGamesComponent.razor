@@ -8,7 +8,7 @@
 *@
 @inherits GameComponent
 
-<div class="card mb-2 shadow-lg border-light" style="opacity:0.9;animation:fadeIn90 1s">
+<div class="card mb-2 shadow-lg" style="animation:fadeIn 1s">
     <div class="card-header">
         <div class="d-flex justify-content-between">
             <div>Active games</div>
@@ -32,11 +32,11 @@
                         Passwords.TryAdd(av.GameId, string.Empty);
                         JoinErrors.TryAdd(av.GameId, string.Empty);
 
-                        var fontColorStyle = av.LastActivity != null && DateTimeOffset.Now.Subtract((DateTimeOffset)av.LastActivity).TotalMinutes > 15 ? "color:grey" : "color:white";
+                        var fontColorStyle = av.LastActivity != null && DateTimeOffset.Now.Subtract((DateTimeOffset)av.LastActivity).TotalMinutes > 15 ? "color:var(--text-3)" : "color:var(--parchment)";
 
                         <tr class="small table-dark">
                             <td style="@fontColorStyle">
-                                <span style="font: normal normal normal 14px Advokat, Calibri, Tahoma, sans-serif;">@av.Name</span>
+                                <span style="font-size:14px;">@av.Name</span>
                             </td>
                             <td style="@fontColorStyle">
                                 @if (av.Phase == Phase.AwaitingPlayers)
@@ -132,7 +132,7 @@
                         {
                             <tr class="small table-dark">
                                 <td>
-                                    <span style="font: normal normal normal 18px Advokat, Calibri, Tahoma, sans-serif;">@game.CreatorName</span>
+                                    <span style="font-size:18px;">@game.CreatorName</span>
                                 </td>
                                 <td>
                                     @game.DateTime.ToLocalTime().ToString("dd-MM HH:mm")
@@ -159,7 +159,7 @@
                                     @foreach (var p in game.Subscribers.Where(u => u.Value != SubscriptionType.DontParticipate))
                                     {
                                         <div class="me-1">
-                                            <span style="font: normal normal normal 15px Advokat, Calibri, Tahoma, sans-serif;">@game.SubscriberNames.GetValueOrDefault(p.Key, "?")</span>
+                                            <span style="font-size:15px;">@game.SubscriberNames.GetValueOrDefault(p.Key, "?")</span>
                                             <span class="badge text-bg-primary ms-1">@Name(p.Value)</span>
                                         </div>
                                     }                                    
@@ -182,11 +182,11 @@
                         Passwords.TryAdd(av.GameId, string.Empty);
                         JoinErrors.TryAdd(av.GameId, string.Empty);
 
-                        var fontColorStyle = av.LastActivity != null && DateTimeOffset.Now.Subtract((DateTimeOffset)av.LastActivity).TotalMinutes > 20 ? "color:grey" : "color:white";
+                        var fontColorStyle = av.LastActivity != null && DateTimeOffset.Now.Subtract((DateTimeOffset)av.LastActivity).TotalMinutes > 20 ? "color:var(--text-3)" : "color:var(--parchment)";
 
                         <tr class="small table-dark">
                             <td style="@fontColorStyle">
-                                <span style="font: normal normal normal 14px Advokat, Calibri, Tahoma, sans-serif;">@av.Name</span>
+                                <span style="font-size:14px;">@av.Name</span>
                             </td>
                             <td style="@fontColorStyle">
                                 <div style="display: inline-block;">

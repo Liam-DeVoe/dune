@@ -4,7 +4,7 @@ public partial class GameHub
 {
     public async Task<Result<ServerInfo>> Connect()
     {
-        await Task.CompletedTask;
+        await RestoreGamesIfServerJustStarted();
         
         var result = new ServerInfo
         {
@@ -45,6 +45,15 @@ public partial class GameHub
             {
                 UsersByUserToken.Remove(tokenAndInfo.Key, out _);
             } 
+        }
+
+        await using (var db = GetDbContext())
+        {
+            var expired = db.UserTokens.AsEnumerable()
+                .Where(t => now.Subtract(t.Created).TotalDays >= MaximumLoginTimeDays)
+                .ToList();
+            db.UserTokens.RemoveRange(expired);
+            await db.SaveChangesAsync();
         }
 
         foreach (var userIdAndConnectionInfo in ConnectionInfoByUserId)
@@ -288,12 +297,23 @@ public partial class GameHub
     }
 
     private static bool Restoring { get; set; }
+    private static readonly System.Threading.SemaphoreSlim RestoreLock = new(1, 1);
     
+    // Called before any token lookup, so the first request after a restart waits for the caches
+    // instead of failing with UserNotFound and logging the user out.
     private async Task RestoreGamesIfServerJustStarted()
     {
-        if (LastRestored == default && !Restoring)
+        if (LastRestored != default) return;
+
+        await RestoreLock.WaitAsync();
+        try
         {
-            await RestoreGamesAndUserCache();
+            if (LastRestored == default)
+                await RestoreGamesAndUserCache();
+        }
+        finally
+        {
+            RestoreLock.Release();
         }
     } 
     
@@ -313,6 +333,8 @@ public partial class GameHub
             {
                 UsersById.TryAdd(user.Id, user);
             }
+
+            RestoreUserTokens(context);
 
             RunningGamesByGameId.Clear();
 
@@ -392,6 +414,18 @@ public partial class GameHub
         return (amountRunning, amountScheduled);
     }
     
+    // Tokens already in memory are kept, so an admin-triggered restore does not reset anyone's status.
+    private static void RestoreUserTokens(TreacheryContext context)
+    {
+        var now = DateTimeOffset.Now;
+        foreach (var token in context.UserTokens.AsNoTracking())
+        {
+            if (now.Subtract(token.Created).TotalDays >= MaximumLoginTimeDays) continue;
+            if (!UsersById.TryGetValue(token.UserId, out var user)) continue;
+            UsersByUserToken.TryAdd(token.Token, new LoggedInUser(user, token.Created));
+        }
+    }
+
     public async Task<Result<string>> AdminCloseGame(string userToken, string gameId)
     {
         if (!UsersByUserToken.TryGetValue(userToken, out var user) || user.Username != Configuration["GameAdminUsername"])

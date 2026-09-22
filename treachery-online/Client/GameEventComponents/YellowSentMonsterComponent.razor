@@ -6,17 +6,14 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
-@inherits GameEventComponent<YellowSentMonster>
-@implements IDisposable
+@inherits MapPickComponent<YellowSentMonster>
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
     <Header>Select where to make @Client.CurrentSkin.Describe(Concept.Monster) appear</Header>
     <Body>
 
-        <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="target" Values="YellowSentMonster.ValidTargets(Game).OrderBy(t => Name(t))"/>
-
-        <ButtonRowComponent Confirm="Confirm" ConfirmText="@Client.CurrentSkin.Format("Appear in {0}", target)" ConfirmError="@Validation" />
+        <div class="small">Use the map to choose a territory.</div>
 
     </Body>
 
@@ -27,26 +24,16 @@
     protected override bool IsUrgent => true;
     protected override Faction IsFactionSpecific => Faction.Yellow;
 
-    public Territory? target;
+    protected override bool PickByTerritory => true;
 
-    protected override YellowSentMonster ConfirmedResult => new(Game, Faction) { Territory = target };
+    protected override IEnumerable<Location> PickTargets => SectorsOf(YellowSentMonster.ValidTargets(Game));
 
-    protected override void OnAfterRender(bool firstRender)
+    protected override YellowSentMonster ConfirmedResult => new(Game, Faction) { Territory = TargetTerritory };
+
+    protected override RenderFragment PinContent => __builder =>
     {
-        if (firstRender)
-        {
-            Client.OnLocationSelected += HandleLocationSelected;
-        }
-    }
-
-    public override void Dispose()
-    {
-        base.Dispose();
-        Client.OnLocationSelected -= HandleLocationSelected;
-    }
-
-    private void HandleLocationSelected(object sender, Location l)
-    {
-        SetIfValid(ref target, YellowSentMonster.ValidTargets(Game), l.Territory);
-    }
+        <div class="pin-body">
+            @PinActions(Client.CurrentSkin.Format("Appear in {0}", TargetTerritory))
+        </div>
+    };
 }

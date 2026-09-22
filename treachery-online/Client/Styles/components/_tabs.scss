@@ -1,0 +1,30 @@
+@use "../shared";
+
+// Tabs, the plain-markup version (Bootstrap's .nav-tabs is mapped in the
+// override layer): buttons on a hairline, the .on one underlined in gold.
+.tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid shared.$hairline;
+
+  button {
+    font-family: var(--font-body);
+    font-size: 15px;
+    padding: 8px 14px;
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    color: var(--text-2);
+    cursor: pointer;
+    margin-bottom: -1px;
+
+    &.on {
+      color: var(--gold);
+      border-bottom-color: var(--gold);
+    }
+
+    &:hover {
+      color: var(--parchment);
+    }
+  }
+}

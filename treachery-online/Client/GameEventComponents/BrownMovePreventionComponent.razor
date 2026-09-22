@@ -6,8 +6,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
-@inherits GameEventComponent<BrownMovePrevention>
-@implements IDisposable
+@inherits MapPickComponent<BrownMovePrevention>
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
@@ -15,11 +14,7 @@
 
     <Body>
 
-        <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="territory" Values="BrownMovePrevention.ValidTerritories(Player)">
-            <Label>Territory</Label>
-        </SelectComponent>
-        
-        <ButtonRowComponent Confirm="Confirm" ConfirmText="Prevent Move" ConfirmError="@Validation" />
+        <div class="small">Use the map to choose a territory.</div>
 
     </Body>
 
@@ -31,28 +26,18 @@
 
     protected override string Background => Client.CurrentSkin.GetImageUrl(BrownMovePrevention.CardToUse(Player));
 
-    private Territory? territory;
+    protected override bool PickByTerritory => true;
 
-    protected override void OnAfterRender(bool firstRender)
-    {
-        if (firstRender)
-        {
-            Client.OnLocationSelected += HandleLocationSelected;
-        }
-    }
+    protected override IEnumerable<Location> PickTargets => SectorsOf(BrownMovePrevention.ValidTerritories(Player));
 
-     private void HandleLocationSelected(object sender, Location l)
-    {
-        SetIfValid(ref territory, BrownMovePrevention.ValidTerritories(Player), l.Territory);
-    }
-
-    protected override BrownMovePrevention ConfirmedResult => new(Game, Faction) { Territory = territory };
-
-    public override void Dispose()
-    {
-        base.Dispose();
-        Client.OnLocationSelected -= HandleLocationSelected;
-    }
+    protected override BrownMovePrevention ConfirmedResult => new(Game, Faction) { Territory = TargetTerritory };
 
     private string ToUse => BrownMovePrevention.CardToUse(Player) != null ? Client.CurrentSkin.Describe(BrownMovePrevention.CardToUse(Player)) : "Nexus Cunning";
+
+    protected override RenderFragment PinContent => __builder =>
+    {
+        <div class="pin-body">
+            @PinActions("Prevent move")
+        </div>
+    };
 }

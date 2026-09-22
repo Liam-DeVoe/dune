@@ -1,0 +1,170 @@
+@use "../shared";
+
+// Popover box: a small floating ink card with a heading, paragraphs and
+// .kv rows of label/value pairs.
+.pop {
+  background: var(--ink-0);
+  border: 1px solid shared.$hairline-strong;
+  border-radius: var(--r-2);
+  padding: 12px 14px;
+  box-shadow: var(--shadow-3);
+  max-width: 340px;
+  font-size: 15px;
+
+  h6 {
+    margin: 0 0 6px;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 20px;
+    color: var(--sand);
+  }
+
+  .kv {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid shared.$hairline;
+  }
+
+  p {
+    margin: 4px 0;
+    color: var(--text-2);
+    font-size: 14px;
+  }
+}
+
+// The map intel popover. Its frame is styled inline in MapComponent; these
+// are the parts inside it.
+
+// The strip under the heading for a sector the storm is in right now. Storm
+// red as a fill, never as text, since the guide reserves red text for the
+// timer. Its corners match the 3px gap to the popover frame.
+.in-storm {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 5px 12px;
+  border-radius: var(--r-1);
+  background: var(--storm);
+  color: var(--parchment);
+  font-size: 14px;
+  font-weight: 500;
+
+  svg {
+    display: block;
+    width: 18px;
+    height: 18px;
+    flex: none;
+  }
+}
+
+// Hazard chips: the hazard is the icon (worm, storm), the state is the word,
+// and the chip's edge repeats the state in colour: rock for protected, storm
+// red for exposed. The edge is 1.5px in place of the 1px hairline, with the
+// padding trimmed half a pixel so the chip keeps its size.
+.hazards {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 6px 0 10px;
+}
+
+.chip.hazard {
+  gap: 6px;
+  padding: 3px 10px 3px 5px;
+  font-size: 14px;
+
+  img,
+  svg {
+    display: block;
+    width: 22px;
+    height: 22px;
+    flex: none;
+  }
+
+  &.protected,
+  &.exposed {
+    border-width: 1.5px;
+    padding: 2.5px 9.5px 2.5px 4.5px;
+  }
+
+  &.protected {
+    border-color: var(--rock);
+  }
+
+  &.exposed {
+    border-color: var(--storm);
+  }
+}
+
+// Feature rows: what the territory does, one row each. Spacing alone separates
+// them. Every row has an icon slot so the titles line up even when it is empty.
+.feats {
+  text-align: left;
+  margin-top: 2px;
+}
+
+.feat {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 6px 0;
+
+  .ic {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    margin-top: 1px;
+    display: grid;
+    place-items: center;
+
+    img,
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  b {
+    display: block;
+    color: var(--sand);
+    font-size: 15px;
+    line-height: 1.2;
+  }
+
+  span {
+    display: block;
+    color: var(--text-2);
+    font-size: 14px;
+    line-height: 1.3;
+  }
+
+  strong {
+    color: var(--parchment);
+  }
+}
+
+// An icon standing in for a word inside a sentence.
+.popover .inline-icon {
+  width: 18px;
+  height: 18px;
+  vertical-align: -3px;
+  margin-left: 2px;
+}
+
+// The sector after the territory name, in the label face like the guide's
+// "Sietch Tabr · Sector 4", so the name stays the thing you read first.
+.popover h5 .sector {
+  font-family: var(--font-label);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  white-space: nowrap;
+  margin-left: 4px;
+}

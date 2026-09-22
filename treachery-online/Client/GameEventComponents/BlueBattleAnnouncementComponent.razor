@@ -6,19 +6,14 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
-@inherits GameEventComponent<BlueBattleAnnouncement>
-@implements IDisposable
+@inherits MapPickComponent<BlueBattleAnnouncement>
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
     <Header>Flip advisors to fighters</Header>
     <Body>
 
-        <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="target" Values="BlueBattleAnnouncement.ValidTerritories(Game, Player)">
-            <Label>Territory</Label>
-        </SelectComponent>
-
-        <ButtonRowComponent Confirm="Confirm" ConfirmText="Flip to Fighters" ConfirmError="@Validation" />
+        <div class="small">Use the map to choose a territory.</div>
 
     </Body>
 
@@ -28,26 +23,16 @@
 
     protected override Faction IsFactionSpecific => Faction.Blue;
 
-    private Territory? target;
+    protected override bool PickByTerritory => true;
 
-    protected override void OnAfterRender(bool firstRender)
+    protected override IEnumerable<Location> PickTargets => SectorsOf(BlueBattleAnnouncement.ValidTerritories(Game, Player));
+
+    protected override BlueBattleAnnouncement ConfirmedResult => new(Game, Faction) { Territory = TargetTerritory };
+
+    protected override RenderFragment PinContent => __builder =>
     {
-        if (firstRender)
-        {
-            Client.OnLocationSelected += HandleLocationSelected;
-        }
-    }
-
-    protected override BlueBattleAnnouncement ConfirmedResult => new(Game, Faction) { Territory = target };
-
-    private void HandleLocationSelected(object sender, Location l)
-    {
-        SetIfValid(ref target, BlueBattleAnnouncement.ValidTerritories(Game, Player), l.Territory);
-    }
-
-    public override void Dispose()
-    {
-        base.Dispose();
-        Client.OnLocationSelected -= HandleLocationSelected;
-    }
+        <div class="pin-body">
+            @PinActions("Flip to fighters")
+        </div>
+    };
 }

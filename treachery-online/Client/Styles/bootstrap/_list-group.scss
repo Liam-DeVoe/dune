@@ -1,0 +1,16 @@
+.list-group {
+  --bs-list-group-color: var(--parchment);
+  --bs-list-group-bg: var(--ink-2);
+  --bs-list-group-border-color: rgba(255, 255, 255, 0.09);
+  --bs-list-group-border-radius: var(--r-2);
+  --bs-list-group-action-color: var(--text-2);
+  --bs-list-group-action-hover-color: var(--parchment);
+  --bs-list-group-action-hover-bg: rgba(231, 191, 60, 0.06);
+  --bs-list-group-action-active-color: var(--parchment);
+  --bs-list-group-action-active-bg: rgba(231, 191, 60, 0.1);
+  --bs-list-group-disabled-color: var(--text-3);
+  --bs-list-group-disabled-bg: var(--ink-2);
+  --bs-list-group-active-color: var(--ink-0);
+  --bs-list-group-active-bg: var(--gold);
+  --bs-list-group-active-border-color: var(--gold);
+}

@@ -1,0 +1,32 @@
+@use "../shared" as v;
+
+// Accordion and progress bar.
+.accordion {
+  --bs-accordion-bg: var(--ink-2);
+  --bs-accordion-border-color: rgba(255, 255, 255, 0.09);
+  --bs-accordion-btn-bg: var(--ink-2);
+  --bs-accordion-btn-color: var(--parchment);
+  --bs-accordion-active-bg: var(--ink-3);
+  --bs-accordion-active-color: var(--gold);
+  --bs-accordion-btn-focus-border-color: var(--gold);
+  --bs-accordion-btn-focus-box-shadow: #{v.$focus-ring-gold};
+}
+
+.progress {
+  --bs-progress-bg: var(--ink-0);
+  --bs-progress-bar-bg: var(--gold);
+  --bs-progress-bar-color: var(--ink-0);
+}
+
+// Validation colours used by app.css.
+.valid.modified:not([type="checkbox"]) {
+  outline-color: #79b34c;
+}
+
+.invalid {
+  outline-color: var(--storm);
+}
+
+.validation-message {
+  color: #e46b6b;
+}

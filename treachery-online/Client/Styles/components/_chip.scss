@@ -1,0 +1,88 @@
+@use "../shared";
+
+// Faction chips: the single most important component. A .sigil is the round
+// faction emblem (tinted by --fc); a .chip is a sigil plus a name, used
+// wherever a player or faction is referred to.
+.sigil {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  background: var(--fc, var(--ink-3));
+  box-shadow:
+    0 0 0 1.5px var(--ink-0),
+    0 0 0 2.5px rgba(252, 249, 209, 0.25);
+  flex: none;
+
+  img {
+    width: 66%;
+    height: 66%;
+    filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.5));
+  }
+
+  &.lg {
+    width: 44px;
+    height: 44px;
+  }
+
+  &.sm {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 10px 3px 3px;
+  border-radius: var(--r-pill);
+  background: rgba(18, 8, 0, 0.55);
+  border: 1px solid rgba(252, 249, 209, 0.12);
+  font-size: 15px;
+  color: var(--text);
+  line-height: 1;
+  white-space: nowrap;
+
+  .name {
+    font-family: var(--font-body);
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+
+  // The player behind the faction.
+  .who {
+    color: var(--text-3);
+    font-size: 13px;
+  }
+
+  // The chip for the viewing player.
+  &.you {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 1px rgba(231, 191, 60, 0.35);
+
+    .who {
+      color: var(--gold);
+    }
+  }
+
+  &.muted {
+    opacity: 0.55;
+  }
+
+  &.on-parchment {
+    background: rgba(29, 12, 0, 0.08);
+    border-color: rgba(29, 12, 0, 0.2);
+    color: var(--ink-1);
+
+    .who {
+      color: var(--rock-2);
+    }
+  }
+
+  // A bot player gets a gear before its name.
+  &.bot .who::before {
+    content: "⚙ ";
+  }
+}

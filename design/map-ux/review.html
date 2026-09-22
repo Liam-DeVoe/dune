@@ -1,0 +1,82 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Map UX review: movement and shipment</title><style>
+body{margin:0;background:#1d0c00;color:#fcf9d1;font-family:"Alegreya Sans",Candara,sans-serif;padding:32px 48px}
+h1{font-weight:400;font-size:36px;margin:0 0 4px} p,li{color:#b3915f;max-width:80ch} h3{font-weight:600;font-size:18px;margin:36px 0 10px;color:#f3d987}
+.ba2{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start} .lbl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#a68d63;margin:0 0 6px}
+.shot{border:1px solid rgba(255,255,255,.12);border-radius:6px;overflow:hidden;background:#000} .shot img{width:100%;display:block}
+.seq{display:grid;grid-template-columns:1fr 1fr;gap:16px} .seq p{margin:6px 0 0;font-size:14px}
+ol li{margin:8px 0} strong{color:#fcf9d1}
+</style></head><body>
+<h1>Map UX review: movement and shipment</h1>
+<p>The move is now made on the map. The sidebar panel only says what to click next and offers Pass. Screenshots are from the local client, playing Fremen on turn 1 with forces in False Wall South and False Wall West. Fremen also hold a Hajr card, so a Hajr panel and a Move panel are both open.</p>
+
+<h3>Before and after: the move phase opens</h3>
+<div class="ba2">
+  <div><p class="lbl">Before</p><div class="shot"><img src="before/move-1-start.png"></div></div>
+  <div><p class="lbl">After</p><div class="shot"><img src="after/move-1-start.png"></div></div>
+</div>
+<p>After: the sectors you can move from are tinted in your faction colour. The dropdowns and number pickers are gone from the sidebar. Valid destinations get a solid white outline, distinct from the map's dashed sector lines.</p>
+
+<h3>After: the sequence</h3>
+<div class="seq">
+  <div><div class="shot"><img src="after/move-2-source.png"></div><p>Click a source sector. It gets a solid outline, every valid destination gets a white dashed outline, and an arrow follows the cursor.</p></div>
+  <div><div class="shot"><img src="after/move-3-pinned.png"></div><p>Click a destination. The arrow pins and a panel appears over it with one stepper per force type, Cancel, and the confirm button.</p></div>
+  <div><div class="shot"><img src="after/move-3-pinned-zoom.png"></div><p>The pinned panel up close.</p></div>
+  <div><div class="shot"><img src="after/move-4-cleared.png"></div><p>Clicking the selected source again clears the selection.</p></div>
+  <div><div class="shot"><img src="after/move-5-hajr.png"></div><p>Hajr: the card's panel is a single button. Pressing it hands the map to the extra move, with the same flow. Cancel gives the map back to the regular move.</p></div>
+</div>
+
+
+<h3>Shipment: before and after</h3>
+<div class="ba2">
+  <div><p class="lbl">Before</p><div class="shot"><img src="before/ship-1-start.png"></div></div>
+  <div><p class="lbl">After</p><div class="shot"><img src="after/ship-1-start.png"></div></div>
+</div>
+<p>Emperor on turn 1. After: every sector you can ship to is outlined, and the sidebar only says to use the map and offers Pass. The type radio, the dropdowns, and the pickers are gone.</p>
+
+<h3>Shipment: the sequence</h3>
+<div class="seq">
+  <div><div class="shot"><img src="after/ship-2-pinned.png"></div><p>From reserves: click the destination. The arrow runs from your token on the map's edge. The panel shows a counter per force type, the spice cost, and Ship.</p></div>
+  <div><div class="shot"><img src="after/ship-2-pinned-zoom.png"></div><p>The pinned panel up close.</p></div>
+  <div><div class="shot"><img src="after/ship-guild-2-source.png"></div><p>Guild, site-to-site: click a sector holding your forces first. The arrow follows the cursor and every destination is outlined.</p></div>
+  <div><div class="shot"><img src="after/ship-guild-3-pinned-zoom.png"></div><p>Guild: destination pinned. The counter is limited to the forces in the source sector.</p></div>
+  <div><div class="shot"><img src="after/ship-guild-3b-source-panel.png"></div><p>Guild: a source is selected but no destination yet. A small panel at the source offers Cancel, Here from reserves, and To reserves.</p></div>
+  <div><div class="shot"><img src="after/ship-guild-3c-from-reserves-zoom.png"></div><p>Guild, Here from reserves: the first click on a sector holding your forces always picks it as a source, so this button is how you ship onto it from reserves instead. Once a source is picked, clicking another sector with your forces pins it as the destination; the same holds for moves.</p></div>
+  <div><div class="shot"><img src="after/ship-guild-4-reserves-zoom.png"></div><p>Guild, back to reserves: after To reserves, the arrow runs to your token and the panel shows the counter and the half-price cost.</p></div>
+  <div><div class="shot"><img src="after/ship-fremen-2-pinned-zoom.png"></div><p>Fremen: same flow, cost zero. Only the Great Flat and the territories near it are outlined.</p></div>
+</div>
+
+<h3>Shipment: before and after for the Guild</h3>
+<div class="ba2">
+  <div><p class="lbl">Before</p><div class="shot"><img src="before/ship-guild-1-start.png"></div></div>
+  <div><p class="lbl">After</p><div class="shot"><img src="after/ship-guild-1-start.png"></div></div>
+</div>
+
+<h3>Shipment: calls I made that you should approve or change</h3>
+<ol>
+  <li><strong>The panel opens with one force selected</strong>, so a common shipment is two clicks and Ship. Movement opens at the maximum because moving everything is the common case; shipping everything is not.</li>
+  <li><strong>Options only appear when they apply</strong>, inside the panel: White's No-Field choice (and the Cunning second No-Field), the free smuggled force, which homeworld to ship from when there are several, the Karama card for Guild rates, a spice counter for what your ally pays, and the ally-presence warning.</li>
+  <li><strong>White as secret ally</strong> is a Normal / secret ally toggle at the top of the panel when it applies.</li>
+  <li><strong>Homeworlds are not clickable.</strong> They are drawn next to the player token rather than as sectors, so shipping to another faction's homeworld (Homeworlds expansion rule) is not offered on the map yet.</li>
+  <li><strong>Clicking the selected source again</strong> drops it and returns to shipping from reserves. Cancel in the panel does the same.</li>
+  <li><strong>The panel stays inside the map</strong> near the left and right edges, so its caret can point a little off centre.</li>
+  <li><strong>Karama shipment prevention</strong> leaves nothing outlined and the sidebar says why, with Pass.</li>
+</ol>
+
+<h3>Pinned panel variants</h3>
+<div class="seq">
+  <div><div class="shot"><img src="after/pin-blue-toggle.png"></div><p>Bene Gesserit moving advisors somewhere they may arrive as either: a Fighters / Advisors toggle appears in the panel.</p></div>
+  <div><div class="shot"><img src="after/pin-ally-warning.png"></div><p>Moving into a territory where your ally has forces: the warning appears in the panel.</p></div>
+</div>
+
+<h3>Calls I made that you should approve or change</h3>
+<ol>
+  <li><strong>Hajr is opt-in.</strong> The regular move owns the map. The Hajr panel is one button, "Play Hajr for an extra move first". While the Hajr has the map, the Move panel says to finish or cancel it first.</li>
+  <li><strong>Several sources.</strong> Clicking another sector of the same territory adds it as a second source, since the rules allow that. Clicking a sector in a different territory replaces the selection, unless Planetology is active, in which case it is added as the second territory. The pinned panel then shows one row per source with the sector name.</li>
+  <li><strong>Counters start at the maximum</strong>, as the old pickers did.</li>
+  <li><strong>Hover intel is switched off</strong> on the map while a source is selected. Without this, the popover for the sector you just clicked covers the pinned panel.</li>
+  <li><strong>Bene Gesserit</strong> get a small Fighters / Advisors toggle inside the pinned panel when both are allowed. Not shown here.</li>
+  <li><strong>The ally warning</strong> (forces destroyed at end of move if your ally is there) is shown inside the pinned panel, in red.</li>
+  <li><strong>Cancel</strong> in the pinned panel clears the whole selection. There is no Escape key handling yet.</li>
+  <li><strong>The worm ride</strong> (Fremen riding Shai-Hulud) shares this component but keeps its old sidebar picker for now. It will get the same treatment in a later step.</li>
+</ol>
+</body></html>

@@ -1,0 +1,97 @@
+// Keyframes shared by components: fades of various timings and the slow
+// "infinity" drift used for looping background motion.
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+// Stays invisible for most of the duration, then fades in at the end.
+@keyframes fadeInLate {
+  0% {
+    opacity: 0;
+  }
+
+  80% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+// Fades in but stops short of fully opaque.
+@keyframes fadeIn90 {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 0.9;
+  }
+}
+
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes fadeInFadeOut {
+  0% {
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 1;
+  }
+
+  80% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+// Traces a figure-eight by a few percent of the element's size.
+@keyframes infinity {
+  0% {
+    transform: translate(-2%, -2%);
+  }
+
+  12.5% {
+    transform: translate(0%, -2.5%);
+  }
+
+  25% {
+    transform: translate(2%, -2%);
+  }
+
+  50% {
+    transform: translate(-2%, 2%);
+  }
+
+  62.5% {
+    transform: translate(0%, 2.5%);
+  }
+
+  75% {
+    transform: translate(2%, 2%);
+  }
+
+  100% {
+    transform: translate(-2%, -2%);
+  }
+}

@@ -8,7 +8,7 @@
 *@
 @inherits GameEventComponent<EndPhase>
 
-<div class="card p-0 mb-2" style="background-color:#e8dba6ee;animation:fadeIn 1s">
+<div class="card p-0 mb-2 prompt-act" style="animation:fadeIn 1s">
 
     <div class="card-body bg-transparent border-bottom-0">
 
@@ -116,14 +116,14 @@
 
         @if (AutoConfirm || CanEndPhase)
         {
-            <div class="mt-1 mb-n3 float-end" style="color:black;">
+            <div class="mt-1 mb-n3 float-end">
                 <CheckboxComponent @bind-Value=AutoConfirm>Continue automatically</CheckboxComponent>
             </div>
         }
 
         @if (Client.IsHost && Game.CurrentMainPhase == MainPhase.Bidding && Game.Players.Count(p => !p.IsBot) > 1)
         {
-            <div class="mt-1" style="color:black;">
+            <div class="mt-1">
                 <CheckboxComponent @bind-Value="@TimeLimitSet" OnChanged=EnableOrDisableTimer>Time limit (seconds)</CheckboxComponent>
                 @if (TimeLimitSet)
                 {
@@ -228,7 +228,7 @@
 
     private bool PlayersAreInSequence => Client.Status.WaitingInSequence.Any();
 
-    private string StatusStyle => Client.Status.WaitingForMe(Player, Client.IsHost) ? Support.TextBorder(1, "#FF000016") : "";
+    private string StatusStyle => Client.Status.WaitingForMe(Player, Client.IsHost) ? Support.TextBorder(1, "rgba(195,50,50,.09)") : "";
 
     private string PlayerWithCardsTitle(Player player)
     {
@@ -258,7 +258,7 @@
 
     private string TimerColor(bool hasTurn)
     {
-        return hasTurn ? "red" : "black";
+        return hasTurn ? "var(--storm)" : "var(--ink-1)";
     }
 
     private int TimerStepUp

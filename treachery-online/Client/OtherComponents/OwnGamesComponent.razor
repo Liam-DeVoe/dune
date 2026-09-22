@@ -8,7 +8,7 @@
 *@
 @inherits GameComponent
 
-<div class="card mb-2 shadow-lg border-light" style="opacity:0.9;animation:fadeIn90 1s">
+<div class="card mb-2 shadow-lg" style="animation:fadeIn 1s">
     <div class="card-header">Your games</div>
     
     <div class="card-body">
@@ -49,7 +49,7 @@
                         <tbody>
                         @foreach (var av in myGames)
                         {
-                            var fontColorStyle = av.LastActivity != null && DateTimeOffset.Now.Subtract((DateTimeOffset)av.LastActivity).TotalMinutes > 20 ? "color:grey" : "color:white";
+                            var fontColorStyle = av.LastActivity != null && DateTimeOffset.Now.Subtract((DateTimeOffset)av.LastActivity).TotalMinutes > 20 ? "color:var(--text-3)" : "color:var(--parchment)";
                             var factions = av.FactionsInPlay ?? [];
 
                             <tr class="small table-dark">
@@ -118,13 +118,13 @@
                                     @foreach (var p in game.Subscribers.Where(u => u.Value != SubscriptionType.DontParticipate))
                                     {
                                         <div class="me-1">
-                                            <span style="font: normal normal normal 18px Advokat, Calibri, Tahoma, sans-serif;">@(game.SubscriberNames.GetValueOrDefault(p.Key, "?"))</span>
+                                            <span style="font-size:18px;">@(game.SubscriberNames.GetValueOrDefault(p.Key, "?"))</span>
                                             <span class="badge text-bg-primary ms-1">@Name(p.Value)</span>
                                         </div>
                                     }                                    
                                 </td>
                                 <td class="w-20">
-                                    <CommandButton Small OnClick="@(_ => Cancel(game))">🗙</CommandButton>
+                                    <CommandButton Small OnClick="@(_ => Cancel(game))"><CancelIcon /></CommandButton>
                                 </td>
                             </tr>
                         }
@@ -145,7 +145,7 @@
                 <label class="btn btn-primary mt-1" disabled="@Loading">Load game from file
                     @if (Loading)
                     {
-                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                        <div class="spinner-border spinner-border-sm" role="status">
                             <span class="visually-hidden">Loading...</span>
                         </div>
                     }
@@ -182,7 +182,7 @@
     </div>
 </div>
 
-<div class="card mb-2 shadow-lg border-light" style="opacity:0.9;animation:fadeIn90 1s">
+<div class="card mb-2 shadow-lg" style="animation:fadeIn 1s">
     <div class="card-header">Your account</div>
     <div class="card-body">
         <UserStatusComponent/>
@@ -206,7 +206,7 @@
                 <label for="playerName" class="col-4 col-form-label">Player name</label>
                 <div class="col-8">
                     <input type="text" class="form-control" id="playerName" @bind="@PlayerName"
-                           style="font: normal normal normal 20px Advokat, Calibri, Tahoma, sans-serif;">
+                           style="font-size:20px;">
                 </div>
             </div>
             <div class="row">
@@ -238,7 +238,7 @@
                 <label for="playerName" class="col-4 col-form-label">Player name</label>
                 <div class="col-8">
                     <input type="text" readonly class="form-control-plaintext" id="playerName" @bind="@PlayerName"
-                           style="font: normal normal normal 20px Advokat, Calibri, Tahoma, sans-serif;">
+                           style="font-size:20px;">
                 </div>
             </div>
             <div class="row">
@@ -248,15 +248,16 @@
                 </div>
             </div>
             <button class="btn btn-primary me-1" @onclick="@EnterEdit">Change account info</button>
+            <button class="btn btn-secondary" @onclick="@Client.Logout">Log out</button>
         }
     </div>
 </div>
 
-<div class="card mb-2 shadow-lg border-light" style="opacity:0.9;animation:fadeIn90 1s">
+<div class="card mb-2 shadow-lg" style="animation:fadeIn 1s">
     <div class="card-header">About...</div>
     <div class="card-body">
         <div class="mb-1">Game version @Game.LatestVersion</div>
-        <div class="mb-1">Developed by <a href="https://www.nullentropy.nl" target="_blank" style="opacity: 80%; color: white; text-decoration: none; font-family: OrthodoxHerbertarian, sans-serif; vertical-align: bottom;">Nullentropy</a></div>
+        <div class="mb-1">Developed by <a href="https://www.nullentropy.nl" target="_blank" style="opacity: 80%; color: var(--parchment); text-decoration: none; font-family: var(--font-logo); vertical-align: bottom;">Nullentropy</a></div>
         <div>Use 
             <a class="btn btn-link p-1" href="https://github.com/ronaldossendrijver/treachery.online/issues" target="_blank" title="Report a bug or suggest improvements">
                 <svg width="98" height="96" viewBox="0 0 98 96" xmlns="http://www.w3.org/2000/svg" style="width:16px;height:16px;vertical-align: text-top;">
@@ -429,9 +430,8 @@
     
     private bool ValidateUpdatedUserInfo()
     {
-        if (!string.IsNullOrEmpty(Password1) && Password1.Length < 6) ChangeUserInfoMessage = "Password must be at least 6 characters";
-        else if (!string.IsNullOrEmpty(Password1) && !Password1.Equals(Password2)) ChangeUserInfoMessage = "Passwords do not not match";
-        else if (Email?.Contains('@') is not true || Email?.Contains('.') is not true) ChangeUserInfoMessage = "Enter a valid e-mail address";
+        if (!string.IsNullOrEmpty(Password1) && !Password1.Equals(Password2)) ChangeUserInfoMessage = "Passwords do not match";
+        else if (!string.IsNullOrWhiteSpace(Email) && (!Email.Contains('@') || !Email.Contains('.'))) ChangeUserInfoMessage = "Enter a valid e-mail address, or leave it empty";
         else ChangeUserInfoMessage = null;
 
         return ChangeUserInfoMessage == null;

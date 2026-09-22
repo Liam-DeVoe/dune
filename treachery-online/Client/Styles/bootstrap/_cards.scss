@@ -1,0 +1,33 @@
+// Cards are the game's panels.
+.card {
+  --bs-card-bg: var(--ink-2);
+  --bs-card-color: var(--parchment);
+  --bs-card-border-color: rgba(255, 255, 255, 0.09);
+  --bs-card-border-radius: var(--r-2);
+  --bs-card-inner-border-radius: 5px;
+  --bs-card-cap-bg: transparent;
+  --bs-card-cap-color: var(--sand);
+  --bs-card-box-shadow: var(--shadow-1);
+  font-family: var(--font-body);
+}
+
+// Titled headers ("Chat", "Victory!", "Your games") are set in the display face.
+.card-header {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 18px;
+  letter-spacing: 0.02em;
+  color: var(--sand);
+
+  // Collapsible headers (they contain a CollapseButton, rendered as
+  // .btn-link.float-end) hold sentences or badges rather than titles. The scope
+  // examples keep those in the body face, 16px/600, parchment.
+  &:has(> .btn-link.float-end),
+  &.plain {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 16px;
+    letter-spacing: 0;
+    color: var(--parchment);
+  }
+}

@@ -1,0 +1,125 @@
+@use "../shared" as v;
+
+// Inputs: ink 0, hairline, gold focus ring.
+.form-control,
+.form-select {
+  font-family: var(--font-body);
+  color: var(--parchment);
+  background-color: var(--ink-0);
+  border-color: v.$hairline-strong;
+  border-radius: var(--r-2);
+
+  &:focus {
+    color: var(--parchment);
+    background-color: var(--ink-0);
+    border-color: var(--gold);
+    box-shadow: v.$focus-ring-gold;
+  }
+}
+
+.form-control::placeholder {
+  color: var(--text-3);
+}
+
+.form-control:disabled,
+.form-select:disabled {
+  background-color: var(--ink-2);
+  color: var(--text-3);
+}
+
+.form-control-plaintext {
+  color: var(--parchment);
+}
+
+.form-select {
+  --bs-form-select-bg-img: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23d9c79a' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+
+  option {
+    background-color: var(--ink-0);
+    color: var(--parchment);
+  }
+}
+
+.input-group-text {
+  color: var(--text-2);
+  background-color: var(--ink-2);
+  border-color: v.$hairline-strong;
+}
+
+.form-label,
+.col-form-label {
+  color: var(--parchment);
+}
+
+.form-text {
+  color: var(--text-3);
+}
+
+// Checkboxes and radios: the language checkbox.
+.form-check-input {
+  --bs-form-check-bg: var(--ink-0);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--r-1);
+
+  &[type="radio"] {
+    border-radius: 50%;
+  }
+
+  &:focus {
+    border-color: var(--gold);
+    box-shadow: v.$focus-ring-gold;
+  }
+
+  &:checked {
+    background-color: var(--gold);
+    border-color: var(--gold-3);
+
+    &[type="checkbox"] {
+      --bs-form-check-bg-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23120800' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e");
+    }
+
+    &[type="radio"] {
+      --bs-form-check-bg-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='2' fill='%23120800'/%3e%3c/svg%3e");
+    }
+  }
+
+  &[type="checkbox"]:indeterminate {
+    background-color: var(--gold);
+    border-color: var(--gold-3);
+  }
+}
+
+// Range slider.
+.form-range {
+  &::-webkit-slider-thumb {
+    background-color: var(--gold);
+
+    &:active {
+      background-color: var(--gold-2);
+    }
+  }
+
+  &::-moz-range-thumb {
+    background-color: var(--gold);
+
+    &:active {
+      background-color: var(--gold-2);
+    }
+  }
+
+  &::-webkit-slider-runnable-track {
+    background-color: var(--ink-3);
+  }
+
+  &::-moz-range-track {
+    background-color: var(--ink-3);
+  }
+
+  &:focus::-webkit-slider-thumb {
+    box-shadow: v.$focus-ring-gold;
+  }
+
+  &:focus::-moz-range-thumb {
+    box-shadow: v.$focus-ring-gold;
+  }
+}

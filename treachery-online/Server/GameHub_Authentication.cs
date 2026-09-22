@@ -17,6 +17,7 @@ public partial class GameHub
         }
         
         var trimmedPlayerName = playerName.Trim();
+        var trimmedEmail = email?.Trim() ?? string.Empty;
         
         if (trimmedPlayerName.Length <= 3)
         {
@@ -36,7 +37,7 @@ public partial class GameHub
         }
 
         db.Add(new User
-            { Name = cleanedUsername, HashedPassword = hashedPassword, Email = email, PlayerName = trimmedPlayerName, LastLogin = DateTimeOffset.Now });
+            { Name = cleanedUsername, HashedPassword = hashedPassword, Email = trimmedEmail, PlayerName = trimmedPlayerName, LastLogin = DateTimeOffset.Now });
 
         await db.SaveChangesAsync();
         
@@ -47,6 +48,11 @@ public partial class GameHub
             return Error<LoginInfo>(ErrorType.UserCreationFailed);
 
         UsersById.TryAdd(user.Id, user);
+        
+        var userToken = await LoginAndCreateToken(db, user);
+
+        if (string.IsNullOrEmpty(trimmedEmail))
+            return Success(new LoginInfo { UserId = user.Id, Token = userToken, PlayerName = user.PlayerName, UserName = user.Name, Email = user.Email });
         
         MailMessage mailMessage = new()
         {
@@ -61,15 +67,13 @@ public partial class GameHub
                     """
         };
 
-        var userToken = LoginAndCreateToken(user);
-        
-        mailMessage.To.Add(new MailAddress(email));
+        mailMessage.To.Add(new MailAddress(trimmedEmail));
         await SendMail(mailMessage);
         
         return Success(new LoginInfo { UserId = user.Id, Token = userToken, PlayerName = user.PlayerName, UserName = user.Name, Email = user.Email });
     }
 
-    private static string LoginAndCreateToken(User user)
+    private static async Task<string> LoginAndCreateToken(TreacheryContext db, User user)
     {
         var existingLoggedInUser = UsersByUserToken.FirstOrDefault(x => x.Value.Id == user.Id);
         if (existingLoggedInUser.Value != null && existingLoggedInUser.Value.Id == user.Id)
@@ -78,6 +82,10 @@ public partial class GameHub
         var userToken = GenerateToken();
         var loggedInUser = new LoggedInUser(user);
         UsersByUserToken.TryAdd(userToken, loggedInUser);
+
+        // Saved so the token is still valid after a restart. See RestoreUserTokens.
+        db.UserTokens.Add(new PersistedUserToken { Token = userToken, UserId = user.Id, Created = loggedInUser.LoggedInDateTime });
+        await db.SaveChangesAsync();
         return userToken;
     } 
     
@@ -97,7 +105,7 @@ public partial class GameHub
         user.LastLogin = DateTimeOffset.Now;
         await db.SaveChangesAsync();
 
-        var userToken = LoginAndCreateToken(user);
+        var userToken = await LoginAndCreateToken(db, user);
         
         return Success(new LoginInfo { UserId = user.Id, Token = userToken, PlayerName = user.PlayerName, UserName = user.Name, Email = user.Email });
     }
@@ -116,8 +124,8 @@ public partial class GameHub
 
         var mail = users[0].Email;
         
-        if (string.IsNullOrEmpty(mail))
-            return Error(ErrorType.UnknownUsernameOrEmailAddress);
+        if (string.IsNullOrWhiteSpace(mail))
+            return Error(ErrorType.NoEmailAddressForUser);
 
         if (users.Any(u => (DateTimeOffset.Now - u.PasswordResetTokenCreated).TotalMinutes < 5))
             return Error(ErrorType.ResetRequestTooSoon);
@@ -176,12 +184,14 @@ public partial class GameHub
 
         await db.SaveChangesAsync();
         
-        var userToken = LoginAndCreateToken(user);
+        var userToken = await LoginAndCreateToken(db, user);
         return Success(new LoginInfo { UserId = user.Id, Token = userToken, PlayerName = user.PlayerName, UserName = user.Name, Email = user.Email });
     }
     
     public async Task<Result<LoginInfo>> GetLoginInfo(string userToken)
     {
+        await RestoreGamesIfServerJustStarted();
+        
         if (!UsersByUserToken.TryGetValue(userToken, out var user))
             return Error<LoginInfo>(ErrorType.UserNotFound);
             
@@ -195,7 +205,7 @@ public partial class GameHub
 
         var user = loggedInUser.User;
         user.PlayerName = playerName.Trim();
-        user.Email = email;
+        user.Email = email?.Trim() ?? string.Empty;
         if (!string.IsNullOrEmpty(hashedPassword))
             user.HashedPassword = hashedPassword;
         

@@ -1,0 +1,10 @@
+// Popover: the box stays transparent (app.css) because the game supplies
+// self-styled HTML as popover content from Shared/. Only the frame's type changes.
+.popover {
+  --bs-popover-bg: transparent;
+  --bs-popover-border-color: transparent;
+  --bs-popover-font-size: 15px;
+  --bs-popover-body-color: var(--parchment);
+  --bs-popover-box-shadow: none;
+  font-family: var(--font-body);
+}

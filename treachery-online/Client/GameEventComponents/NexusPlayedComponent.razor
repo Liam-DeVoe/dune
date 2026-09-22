@@ -6,8 +6,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
-@inherits GameEventComponent<NexusPlayed>
-@implements IDisposable
+@inherits MapPickComponent<NexusPlayed>
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
@@ -149,13 +148,7 @@
 
                     if (purpleAmountOfSpecialForcesToLocation > 0)
                     {
-                        <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value=purpleOrYellowLocation Values=@Revival.ValidRevivedForceLocations(Game, Player)>
-                            <Label>Place them where?</Label>
-                        </SelectComponent>
-                    }
-                    else
-                    {
-                        purpleOrYellowLocation = null;
+                        <div class="small">Use the map to choose where to place them.</div>
                     }
 
                     <SelectFromImageComponent Game="Game" @bind-Value="purpleHero" Values="NexusPlayed.ValidPurpleHeroes(Game, Player)" Required="false" ImageWidth="80"/>
@@ -201,9 +194,7 @@
 
                 case Faction.Pink when betrayal:
                     <div>Return all <FactionComponent Faction=@Faction.Pink Diameter="20"/> in a territory they occupy with their ally to reserves?</div>
-                    <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value=pinkTerritory Values=@NexusPlayed.ValidPinkTerritories(Game)>
-                        <Label>Territory</Label>
-                    </SelectComponent>
+                    <div class="small">Use the map to choose a territory.</div>
                     break;
 
                 case Faction.Pink when cunning:
@@ -217,9 +208,7 @@
 
                 case Faction.Cyan when betrayal:
                     <div>Remove a Terror token from a stronghold?</div>
-                    <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value=cyanTerritory Values=@NexusPlayed.ValidCyanTerritories(Game)>
-                        <Label>Stronghold</Label>
-                    </SelectComponent>
+                    <div class="small">Use the map to choose a stronghold.</div>
                     break;
 
             }
@@ -246,12 +235,7 @@
 
     private TreacheryCard? brownCard;
 
-    private Territory? pinkTerritory;
     private Faction pinkFaction;
-
-    private Territory? cyanTerritory;
-
-    private Location? purpleOrYellowLocation;
 
     protected override void OnInitialized()
     {
@@ -259,19 +243,41 @@
         BackgroundImage = Client.CurrentSkin.GetImageUrl(Player.Nexus.ToNexus());
     }
 
-    protected override void OnAfterRender(bool firstRender)
-    {
-        if (firstRender)
-        {
-            Client.OnLocationSelected += HandleLocationSelected;
-        }
-    }
+    // Which of the card's effects asks for a place on the map, if any.
+    private enum MapChoice { None, PurpleLocation, PinkTerritory, CyanTerritory }
 
-    public override void Dispose()
+    private MapChoice CurrentPick => Player.Nexus switch
     {
-        base.Dispose();
-        Client.OnLocationSelected -= HandleLocationSelected;
-    }
+        Faction.Purple when NexusPlayed.CanUseSecretAlly(Game, Player) && purpleAmountOfSpecialForcesToLocation > 0 => MapChoice.PurpleLocation,
+        Faction.Pink when NexusPlayed.CanUseBetrayal(Game, Player) => MapChoice.PinkTerritory,
+        Faction.Cyan when NexusPlayed.CanUseBetrayal(Game, Player) => MapChoice.CyanTerritory,
+        _ => MapChoice.None
+    };
+
+    protected override bool PickEnabled => CurrentPick != MapChoice.None;
+
+    protected override bool PickByTerritory => CurrentPick is MapChoice.PinkTerritory or MapChoice.CyanTerritory;
+
+    protected override IEnumerable<Location> PickTargets => CurrentPick switch
+    {
+        MapChoice.PurpleLocation => Revival.ValidRevivedForceLocations(Game, Player),
+        MapChoice.PinkTerritory => SectorsOf(NexusPlayed.ValidPinkTerritories(Game)),
+        MapChoice.CyanTerritory => SectorsOf(NexusPlayed.ValidCyanTerritories(Game)),
+        _ => []
+    };
+
+    private Territory? pinkTerritory => CurrentPick == MapChoice.PinkTerritory ? TargetTerritory : null;
+
+    private Territory? cyanTerritory => CurrentPick == MapChoice.CyanTerritory ? TargetTerritory : null;
+
+    private Location? purpleLocation => CurrentPick == MapChoice.PurpleLocation ? Target : null;
+
+    protected override RenderFragment PinContent => __builder =>
+    {
+        <div class="pin-body">
+            @PinActions("Confirm")
+        </div>
+    };
 
     protected override NexusPlayed ConfirmedResult => new(Game, Faction)
     {
@@ -281,29 +287,13 @@
         PurpleSpecialForces = purpleAmountOfSpecialForces,
         PurpleHero = purpleHero,
         PurpleAssignSkill = purpleAssignSkill,
-        PurpleLocation = purpleOrYellowLocation,
+        PurpleLocation = purpleLocation,
         PurpleNumberOfSpecialForcesInLocation = purpleAmountOfSpecialForcesToLocation,
         BrownCard = brownCard,
         PinkTerritory = pinkTerritory,
         PinkFaction = pinkFaction,
         CyanTerritory = cyanTerritory
     };
-
-    private void HandleLocationSelected(object sender, Location l)
-    {
-        if (Faction == Faction.Pink)
-        {
-            SetIfValid(ref pinkTerritory, NexusPlayed.ValidPinkTerritories(Game).OrderBy(l => l.IsStronghold).ThenBy(l => Name(l)), l.Territory);
-        }
-        else if (Faction == Faction.Cyan)
-        {
-            SetIfValid(ref cyanTerritory, NexusPlayed.ValidCyanTerritories(Game).OrderBy(l => Name(l)), l.Territory);
-        }
-        else if (Faction == Faction.Purple || Faction == Faction.Yellow)
-        {
-            SetIfValid(ref purpleOrYellowLocation, Revival.ValidRevivedForceLocations(Game, Player), l);
-        }
-    }
 
     private string NexusTypeText => NexusPlayed.CanUseCunning(Player) ? "Cunning" : NexusPlayed.CanUseSecretAlly(Game, Player) ? "Secret Ally" : "Betrayal";
 

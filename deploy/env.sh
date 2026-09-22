@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Shared settings for the deploy scripts. Sourced, not executed.
 # Override any of these in your shell before running a script.
 

@@ -1,0 +1,100 @@
+@use "../shared";
+
+// The custom select. The trigger is a <button> carrying Bootstrap's
+// .form-select class, so it inherits the ink fill, hairline, chevron, focus
+// ring and the parchment variant on the act card for free. The option list
+// is a popover in the browser's top layer, positioned by js/listbox.js, and
+// stays an ink card everywhere: floating layers are ink, whatever they float
+// over.
+.select {
+  position: relative;
+}
+
+.select-trigger {
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+.select-list {
+  // Undo the UA popover styles (centred, bordered, canvas colours).
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 4px;
+  width: auto;
+  height: auto;
+  max-width: min(420px, calc(100vw - 16px));
+  overflow-y: auto;
+  --listbox-max-height: 320px;
+
+  list-style: none;
+  background: var(--ink-0);
+  border: 1px solid shared.$hairline-strong;
+  border-radius: var(--r-2);
+  box-shadow: var(--shadow-3);
+  color: var(--parchment);
+  font-family: var(--font-body);
+  font-size: 16px;
+  z-index: 2000; // browsers without the popover attribute
+
+  &:not(:popover-open) {
+    display: none;
+  }
+}
+
+.select-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 6px 8px;
+  border-radius: var(--r-1);
+  cursor: pointer;
+  color: var(--text-2);
+
+  // The check cell is always present so labels line up.
+  &::before {
+    content: "";
+    flex: none;
+    width: 14px;
+    height: 14px;
+  }
+
+  &.is-selected {
+    color: var(--parchment);
+
+    &::before {
+      background: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23e7bf3c' stroke-linecap='round' stroke-linejoin='round' stroke-width='2.2' d='m3 8.5 3.2 3.2L13 5'/%3e%3c/svg%3e")
+        center / contain no-repeat;
+    }
+  }
+
+  &.is-active {
+    background: shared.$gold-wash-strong;
+    color: var(--parchment);
+  }
+}
+
+.select-group {
+  padding: 8px 10px 2px;
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-3);
+
+  & + .select-option {
+    margin-top: 0;
+  }
+}
+
+.select-option + .select-group {
+  margin-top: 4px;
+  border-top: 1px solid shared.$hairline;
+}

@@ -18,7 +18,7 @@ else
     echo "==> creating VM $VM_NAME"
     exe new --name="$VM_NAME" --cpu=2 --memory=8GB --disk=30GB --no-email --comment=treachery-online-mirror
     # DNS and sshd need a moment.
-    for i in $(seq 1 30); do vm_ssh true 2>/dev/null && break; sleep 5; done
+    for _ in $(seq 1 30); do vm_ssh true 2>/dev/null && break; sleep 5; done
 fi
 
 echo "==> exposing port $APP_PORT publicly"

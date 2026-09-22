@@ -1,0 +1,117 @@
+@use "../shared";
+
+// Form fields: a labelled field, the text input, help text, the custom
+// checkbox and the segmented control.
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  label {
+    font-family: var(--font-label);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+}
+
+.input,
+select.input,
+textarea.input {
+  font-family: var(--font-body);
+  font-size: 16px;
+  padding: 9px 12px;
+  background: var(--ink-0);
+  border: 1px solid shared.$hairline-strong;
+  color: var(--parchment);
+  border-radius: var(--r-2);
+}
+
+.input {
+  &::placeholder {
+    color: var(--text-3);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(231, 191, 60, 0.2);
+  }
+
+  &.invalid {
+    border-color: var(--storm);
+  }
+}
+
+// Help text under a field; .err is the validation message.
+.help {
+  font-size: 13px;
+  color: var(--text-3);
+
+  &.err {
+    color: #e46b6b;
+  }
+}
+
+// Checkbox: the <i> is the box, .on draws the tick.
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  cursor: pointer;
+
+  i {
+    width: 18px;
+    height: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: var(--r-1);
+    display: inline-grid;
+    place-items: center;
+    background: var(--ink-0);
+  }
+
+  &.on i {
+    background: var(--gold);
+    border-color: var(--gold-3);
+  }
+
+  &.on i::after {
+    content: "";
+    width: 5px;
+    height: 9px;
+    border: solid var(--ink-0);
+    border-width: 0 2px 2px 0;
+    transform: translateY(-1px) rotate(45deg);
+  }
+}
+
+.on-parchment .check i {
+  background: shared.$parchment-check-bg;
+  border-color: shared.$ink-line-strong;
+}
+
+// Segmented control: a row of buttons where one is .on.
+.seg {
+  display: inline-flex;
+  border: 1px solid shared.$hairline-strong;
+  border-radius: var(--r-2);
+  overflow: hidden;
+
+  button {
+    font-family: var(--font-body);
+    font-size: 15px;
+    padding: 7px 14px;
+    background: transparent;
+    border: 0;
+    color: var(--text-2);
+    cursor: pointer;
+
+    &.on {
+      background: var(--gold);
+      color: var(--ink-0);
+      font-weight: 700;
+    }
+  }
+}

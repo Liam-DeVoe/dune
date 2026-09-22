@@ -935,6 +935,7 @@ public class Skin : IDescriber
             ErrorType.InvalidUserNameOrPassword => "Invalid user name or password",
             ErrorType.NotAdmin => "You are not ad administrator",
             ErrorType.UnknownUsernameOrEmailAddress => "Unknown user name or email address",
+            ErrorType.NoEmailAddressForUser => "This account has no e-mail address, so its password cannot be reset",
             ErrorType.ResetRequestTooSoon => "Please wait at least 5 minutes before requesting another password reset",
             ErrorType.UnknownUserName => "Unknown user name",
             ErrorType.InvalidResetToken => "Invalid password reset token",

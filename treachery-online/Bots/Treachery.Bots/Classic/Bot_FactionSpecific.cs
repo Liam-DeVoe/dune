@@ -68,10 +68,10 @@ public partial class ClassicBot
         {
             if (Player.TreacheryCards.Count >= 3 || ResourcesIncludingAllyAndRedContribution < 5)
                 //Remove the best card from auction
-                toBeRemoved = Game.CardsOnAuction.Items.HighestOrDefault(c => CardQuality(c, Player));
+                toBeRemoved = Game.CardsOnAuction.Items.HighestOrDefault(_random, c => CardQuality(c, Player));
             else
                 //Remove the worst card from auction
-                toBeRemoved = Game.CardsOnAuction.Items.LowestOrDefault(c => CardQuality(c, Player));
+                toBeRemoved = Game.CardsOnAuction.Items.LowestOrDefault(_random, c => CardQuality(c, Player));
         }
 
         toBeRemoved ??= Game.CardsOnAuction.Items.First();
@@ -83,7 +83,7 @@ public partial class ClassicBot
 
     private GreySwappedCardOnBid DetermineGreySwappedCardOnBid()
     {
-        var card = Player.TreacheryCards.LowestOrDefault(c => CardQuality(c, Player));
+        var card = Player.TreacheryCards.LowestOrDefault(_random, c => CardQuality(c, Player));
 
         if (card != null && CardQuality(card, Player) <= 2)
             return new GreySwappedCardOnBid(Game, Faction) { Passed = false, Card = card };
@@ -118,12 +118,12 @@ public partial class ClassicBot
     {
         var currentLocation = Game.Map.HiddenMobileStronghold.AttachedToLocation;
 
-        var richestAdjacentSpiceLocation = PerformHmsMovement.ValidLocations(Game).Where(l => !Equals(l, currentLocation) && ResourcesIn(l) > 0).HighestOrDefault(l => ResourcesIn(l));
+        var richestAdjacentSpiceLocation = PerformHmsMovement.ValidLocations(Game).Where(l => !Equals(l, currentLocation) && ResourcesIn(l) > 0).HighestOrDefault(_random, l => ResourcesIn(l));
         if (richestAdjacentSpiceLocation != null) return new PerformHmsMovement(Game, Faction) { Passed = false, Target = richestAdjacentSpiceLocation };
 
         var reachableFromCurrentLocation = Game.Map.FindNeighbours(currentLocation, Game.HmsMovesLeft, false, Faction, Game, false);
 
-        var richestReachableSpiceLocation = reachableFromCurrentLocation.Where(l => !Equals(l, currentLocation) && ResourcesIn(l) > 0).HighestOrDefault(l => ResourcesIn(l));
+        var richestReachableSpiceLocation = reachableFromCurrentLocation.Where(l => !Equals(l, currentLocation) && ResourcesIn(l) > 0).HighestOrDefault(_random, l => ResourcesIn(l));
         if (richestReachableSpiceLocation != null)
         {
             var nextStepTowardsSpice = PerformHmsMovement.ValidLocations(Game).FirstOrDefault(l => WithinDistance(l, richestReachableSpiceLocation, 1));
@@ -199,7 +199,7 @@ public partial class ClassicBot
 
     private YellowSentMonster DetermineYellowSentMonster()
     {
-        var target = YellowSentMonster.ValidTargets(Game).HighestOrDefault(t => TotalMaxDialOfOpponents(t) + 2 * Player.AnyForcesIn(t));
+        var target = YellowSentMonster.ValidTargets(Game).HighestOrDefault(_random, t => TotalMaxDialOfOpponents(t) + 2 * Player.AnyForcesIn(t));
         return new YellowSentMonster(Game, Faction) { Territory = target };
     }
 
@@ -216,14 +216,14 @@ public partial class ClassicBot
         if (target == null && validLocations.Contains(Game.Map.Arrakeen) && VacantAndSafeFromStorm(Game.Map.Arrakeen)) target = Game.Map.Arrakeen;
         if (target == null && validLocations.Contains(Game.Map.HabbanyaSietch) && VacantAndSafeFromStorm(Game.Map.HabbanyaSietch)) target = Game.Map.HabbanyaSietch;
 
-        target ??= Game.ResourcesOnPlanet.Where(l => validLocations.Contains(l.Key) && VacantAndSafeFromStorm(l.Key)).HighestOrDefault(r => r.Value).Key;
+        target ??= Game.ResourcesOnPlanet.Where(l => validLocations.Contains(l.Key) && VacantAndSafeFromStorm(l.Key)).HighestOrDefault(_random, r => r.Value).Key;
 
         if (target == null)
         {
             var strength = battalionsToMove.Sum(forcesAtLocation => forcesAtLocation.Value.AmountOfForces + forcesAtLocation.Value.AmountOfSpecialForces * 2) + forcesFromReserves + specialForcesFromReserves * 2;
 
-            target ??= validLocations.Where(l => Game.ResourcesOnPlanet.ContainsKey(l) && TotalMaxDialOfOpponents(l.Territory) < strength).HighestOrDefault(l => Game.ResourcesOnPlanet[l]);
-            target ??= validLocations.Where(l => !Equals(l, Game.Map.SietchTabr) && l.IsStronghold && TotalMaxDialOfOpponents(l.Territory) < strength).LowestOrDefault(l => TotalMaxDialOfOpponents(l.Territory));
+            target ??= validLocations.Where(l => Game.ResourcesOnPlanet.ContainsKey(l) && TotalMaxDialOfOpponents(l.Territory) < strength).HighestOrDefault(_random, l => Game.ResourcesOnPlanet[l]);
+            target ??= validLocations.Where(l => !Equals(l, Game.Map.SietchTabr) && l.IsStronghold && TotalMaxDialOfOpponents(l.Territory) < strength).LowestOrDefault(_random, l => TotalMaxDialOfOpponents(l.Territory));
         }
 
         target ??= Game.Map.PolarSink;
@@ -284,7 +284,7 @@ public partial class ClassicBot
     {
         if (Game.CurrentMainPhase > MainPhase.Bidding && NrOfBattlesToFight <= Battle.ValidBattleHeroes(Game, Player).Count())
         {
-            var territory = BlueBattleAnnouncement.ValidTerritories(Game, Player).Where(IWantToAnnounceBattleIn).LowestOrDefault(t => GetDialNeeded(t, GetOpponentThatOccupies(t), false));
+            var territory = BlueBattleAnnouncement.ValidTerritories(Game, Player).Where(IWantToAnnounceBattleIn).LowestOrDefault(_random, t => GetDialNeeded(t, GetOpponentThatOccupies(t), false));
 
             if (territory != null) return new BlueBattleAnnouncement(Game, Faction) { Territory = territory };
         }
@@ -339,9 +339,9 @@ public partial class ClassicBot
 
     private BluePrediction DetermineBluePrediction()
     {
-        var predicted = D(1, 2) == 1 ? Others.Where(p => !Game.IsBot(p)).RandomOrDefault() : null;
-        predicted ??= Others.Where(p => !Game.IsBot(p)).RandomOrDefault();
-        predicted ??= Others.RandomOrDefault();
+        var predicted = D(1, 2) == 1 ? Others.Where(p => !Game.IsBot(p)).RandomOrDefault(_random) : null;
+        predicted ??= Others.Where(p => !Game.IsBot(p)).RandomOrDefault(_random);
+        predicted ??= Others.RandomOrDefault(_random);
 
         int turn;
         if (predicted.Is(Faction.Black))
@@ -787,15 +787,15 @@ public partial class ClassicBot
 
         if (TurnWhenRevivalWasRequested == Game.CurrentTurn) return null;
 
-        var toRevive = RequestPurpleRevival.ValidTargets(Game, Player).Where(l => SafeOrKnownTraitorLeaders.Contains(l)).HighestOrDefault(l => l.Value);
+        var toRevive = RequestPurpleRevival.ValidTargets(Game, Player).Where(l => SafeOrKnownTraitorLeaders.Contains(l)).HighestOrDefault(_random, l => l.Value);
 
         if (toRevive == null)
         {
             var knownOpponentTraitors = Opponents.SelectMany(p => p.RevealedTraitors);
-            toRevive = RequestPurpleRevival.ValidTargets(Game, Player).Where(l => !knownOpponentTraitors.Contains(l)).HighestOrDefault(l => l.Value);
+            toRevive = RequestPurpleRevival.ValidTargets(Game, Player).Where(l => !knownOpponentTraitors.Contains(l)).HighestOrDefault(_random, l => l.Value);
         }
 
-        if (toRevive != null && Battle.ValidBattleHeroes(Game, Player).Count() <= 3) toRevive = RequestPurpleRevival.ValidTargets(Game, Player).HighestOrDefault(l => l.Value);
+        if (toRevive != null && Battle.ValidBattleHeroes(Game, Player).Count() <= 3) toRevive = RequestPurpleRevival.ValidTargets(Game, Player).HighestOrDefault(_random, l => l.Value);
 
         if (toRevive != null)
         {
@@ -967,15 +967,15 @@ public partial class ClassicBot
             && availableToPlace.Contains(TerrorType.Extortion) 
             && Resources < 5) type = TerrorType.Extortion;
         
-        if (type == TerrorType.None) type = availableToPlace.RandomOrDefault();
+        if (type == TerrorType.None) type = availableToPlace.RandomOrDefault(_random);
 
         var stronghold = type == TerrorType.Atomics 
-            ? validStrongholds.HighestOrDefault(t => Opponents.Sum(o => o.AnyForcesIn(t))) 
-            : validStrongholds.HighestOrDefault(t => Player.AnyForcesIn(t));
+            ? validStrongholds.HighestOrDefault(_random, t => Opponents.Sum(o => o.AnyForcesIn(t))) 
+            : validStrongholds.HighestOrDefault(_random, t => Player.AnyForcesIn(t));
         
-        if (stronghold == null && Player.HasAlly) stronghold = validStrongholds.HighestOrDefault(t => AlliedPlayer!.AnyForcesIn(t) > 0);
+        if (stronghold == null && Player.HasAlly) stronghold = validStrongholds.HighestOrDefault(_random, t => AlliedPlayer!.AnyForcesIn(t) > 0);
         
-        stronghold ??= validStrongholds.RandomOrDefault();
+        stronghold ??= validStrongholds.RandomOrDefault(_random);
 
         return stronghold != null 
             ? new TerrorPlanted(Game, Faction) { Type = type, Stronghold = stronghold } 
@@ -998,7 +998,7 @@ public partial class ClassicBot
 
         var type = TerrorRevealed.GetTypes(Game).Where(t => 
             (t != TerrorType.SneakAttack || TerrorRevealed.ValidSneakAttackTargets(Game, Player).Any()) &&
-            (t != TerrorType.Atomics || mayUseAtomics)).RandomOrDefault();
+            (t != TerrorType.Atomics || mayUseAtomics)).RandomOrDefault(_random);
         var cardInSabotage = Player.TreacheryCards.FirstOrDefault(c => c.IsUseless);
         var victim = Game.GetPlayer(TerrorRevealed.GetVictim(Game));
 
@@ -1018,14 +1018,14 @@ public partial class ClassicBot
         if ((Resources <= 1 || Game.AmbassadorsPlacedThisTurn != 0) &&
             Resources <= 3 + Game.AmbassadorsPlacedThisTurn) return null;
         
-        var stronghold = AmbassadorPlaced.ValidStrongholds(Game, Player).Where(s => Player.AnyForcesIn(s) > 0).RandomOrDefault();
+        var stronghold = AmbassadorPlaced.ValidStrongholds(Game, Player).Where(s => Player.AnyForcesIn(s) > 0).RandomOrDefault(_random);
         if (stronghold == null && Player.HasAlly) 
-            stronghold = AmbassadorPlaced.ValidStrongholds(Game, Player).Where(s => AlliedPlayer!.AnyForcesIn(s) > 0).RandomOrDefault();
+            stronghold = AmbassadorPlaced.ValidStrongholds(Game, Player).Where(s => AlliedPlayer!.AnyForcesIn(s) > 0).RandomOrDefault(_random);
         
         var avoidEntering = stronghold != null;
 
-        stronghold ??= AmbassadorPlaced.ValidStrongholds(Game, Player).Where(Vacant).RandomOrDefault();
-        stronghold ??= AmbassadorPlaced.ValidStrongholds(Game, Player).RandomOrDefault();
+        stronghold ??= AmbassadorPlaced.ValidStrongholds(Game, Player).Where(Vacant).RandomOrDefault(_random);
+        stronghold ??= AmbassadorPlaced.ValidStrongholds(Game, Player).RandomOrDefault(_random);
 
         var ambassador = Ambassador.None;
         var availableAmbassadors = AmbassadorPlaced.ValidAmbassadors(Player).ToList();
@@ -1053,7 +1053,7 @@ public partial class ClassicBot
                                           && DetermineMovedBattalion(false) != null) ambassador = Ambassador.Yellow;
         if (ambassador == Ambassador.None && availableAmbassadors.Contains(Ambassador.Pink) 
                                           && !Player.HasAlly) ambassador = Ambassador.Pink;
-        if (Game.AmbassadorsPlacedThisTurn == 0 && ambassador == Ambassador.None) ambassador = AmbassadorPlaced.ValidAmbassadors(Player).RandomOrDefault();
+        if (Game.AmbassadorsPlacedThisTurn == 0 && ambassador == Ambassador.None) ambassador = AmbassadorPlaced.ValidAmbassadors(Player).RandomOrDefault(_random);
 
         return ambassador != Ambassador.None 
             ? new AmbassadorPlaced(Game, Faction) { Ambassador = ambassador, Stronghold = stronghold } 
@@ -1069,7 +1069,7 @@ public partial class ClassicBot
         if (ambassador == Ambassador.Blue)
         {
             //This is for now just random
-            blueSelectedAmbassador = AmbassadorActivated.GetValidBlueAmbassadors(Game).RandomOrDefault();
+            blueSelectedAmbassador = AmbassadorActivated.GetValidBlueAmbassadors(Game).RandomOrDefault(_random);
             ambassador = blueSelectedAmbassador;
         }
 
@@ -1101,7 +1101,7 @@ public partial class ClassicBot
                 if (target == null && validLocations.Contains(Game.Map.Carthag) && VacantAndSafeFromStorm(Game.Map.Carthag)) target = Game.Map.Carthag;
                 if (target == null && validLocations.Contains(Game.Map.Arrakeen) && VacantAndSafeFromStorm(Game.Map.Arrakeen)) target = Game.Map.Arrakeen;
                 if (target == null && validLocations.Contains(Game.Map.HabbanyaSietch) && VacantAndSafeFromStorm(Game.Map.HabbanyaSietch)) target = Game.Map.HabbanyaSietch;
-                target ??= Game.ResourcesOnPlanet.Where(l => validLocations.Contains(l.Key) && VacantAndSafeFromStorm(l.Key)).HighestOrDefault(r => r.Value).Key;
+                target ??= Game.ResourcesOnPlanet.Where(l => validLocations.Contains(l.Key) && VacantAndSafeFromStorm(l.Key)).HighestOrDefault(_random, r => r.Value).Key;
 
                 if (target != null)
                 {
@@ -1142,7 +1142,7 @@ public partial class ClassicBot
                     .Select(l => ConstructAttack(l, 0, 0, 4))
                     .Where(s => s is { ForcesToShip: <= 4, Opponent: not null } && !WinWasPredictedByMeThisTurn(s.Opponent.Faction));
 
-                var attack = possibleAttacks.Where(s => s is { HasForces: true, ShortageForShipment: 0 }).LowestOrDefault(s => s.DialNeeded + DeterminePenalty(s.Opponent));
+                var attack = possibleAttacks.Where(s => s is { HasForces: true, ShortageForShipment: 0 }).LowestOrDefault(_random, s => s.DialNeeded + DeterminePenalty(s.Opponent));
 
                 if (attack != null)
                     return new AmbassadorActivated(Game, Faction) { BlueSelectedAmbassador = blueSelectedAmbassador, YellowOrOrangeTo = attack.Location, OrangeForceAmount = AmbassadorActivated.ValidOrangeMaxForces(Player) };
@@ -1150,8 +1150,8 @@ public partial class ClassicBot
 
             case Ambassador.Purple:
 
-                var heroToRevive = AmbassadorActivated.ValidPurpleHeroes(Game, Player).Where(l => SafeOrKnownTraitorLeaders.Contains(l)).HighestOrDefault(l => l.Value);
-                heroToRevive ??= AmbassadorActivated.ValidPurpleHeroes(Game, Player).HighestOrDefault(l => l.Value);
+                var heroToRevive = AmbassadorActivated.ValidPurpleHeroes(Game, Player).Where(l => SafeOrKnownTraitorLeaders.Contains(l)).HighestOrDefault(_random, l => l.Value);
+                heroToRevive ??= AmbassadorActivated.ValidPurpleHeroes(Game, Player).HighestOrDefault(_random, l => l.Value);
 
                 if (heroToRevive != null && (Player.ForcesInReserve > 3 || Battle.ValidBattleHeroes(Game, Player).Count() <= 1))
                     return new AmbassadorActivated(Game, Faction) { BlueSelectedAmbassador = blueSelectedAmbassador, PurpleHero = heroToRevive, PurpleAssignSkill = Revival.MayAssignSkill(Game, Player, heroToRevive) };

@@ -1,0 +1,83 @@
+// Design tokens, copied from design/design-language.html. Every colour is
+// sampled from map.svg, the skin, or the shipped textures. They are CSS
+// custom properties because components read them with var(--gold) etc.
+
+:root {
+  // ink: the line colour of the map
+  --ink-0: #120800;
+  --ink-1: #1d0c00;
+  --ink-2: #2a1607;
+  --ink-3: #3b2310;
+  --ink-4: #4e3218;
+
+  // sand and parchment: the map's ground
+  --parchment: #fcf9d1;
+  --parchment-2: #fffed8;
+  --sand: #f3d987;
+  --sand-2: #e8dba6;
+  --rock: #b3915f;
+  --rock-2: #8c6b3e;
+
+  // the ring around the map
+  --gold: #e7bf3c;
+  --gold-2: #e3a631;
+  --gold-3: #b8841e;
+
+  // strongholds, spice, storm
+  --stronghold: #f27f34;
+  --spice: #e8762a;
+  --storm: #c33232;
+  --storm-2: #8f1f1f;
+
+  // text on dark
+  --text: var(--parchment);
+  --text-2: #d9c79a;
+  --text-3: #a68d63;
+
+  // faction colours, from DefaultSkin.cs
+  --f-atreides: #63842e;
+  --f-harkonnen: #2c2c2c;
+  --f-fremen: #d29422;
+  --f-emperor: #b33715;
+  --f-guild: #c85b20;
+  --f-bg: #385884;
+  --f-ixian: #b0b079;
+  --f-tleilaxu: #602d8b;
+  --f-choam: #582d1b;
+  --f-richese: #b3afa4;
+  --f-ecaz: #a85f9c;
+  --f-moritani: #289caa;
+
+  // type. "Copperplate" is the family name _fonts.scss registers for Copperplate.ttf.
+  --font-display: "Advokat", "Copperplate", serif;
+  --font-label: "Copperplate", serif;
+  --font-body: "Alegreya Sans", "Candara", "Calibri", sans-serif;
+  --font-prose: "Alegreya", Georgia, serif;
+  --font-logo: "OrthodoxHerbertarian", serif;
+
+  // spacing on a 4px grid
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+
+  // radii: tokens on the map are circles, everything else is nearly square
+  --r-1: 3px;
+  --r-2: 6px;
+  --r-pill: 999px;
+
+  // elevation: warm shadows, never grey
+  --shadow-1: 0 1px 2px rgba(18, 8, 0, 0.6);
+  --shadow-2: 0 4px 14px rgba(18, 8, 0, 0.55), 0 1px 2px rgba(18, 8, 0, 0.6);
+  --shadow-3: 0 18px 40px rgba(18, 8, 0, 0.6), 0 2px 6px rgba(18, 8, 0, 0.6);
+
+  // motion
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --t-fast: 120ms;
+  --t-base: 200ms;
+  --t-slow: 420ms;
+}

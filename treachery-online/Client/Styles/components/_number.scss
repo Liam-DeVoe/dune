@@ -1,0 +1,146 @@
+@use "../shared";
+
+// Number input: a minus / value / plus control that replaces the browser's
+// arrow stepper. An optional .ic cell on the left shows what is being counted
+// (a force or spice icon).
+.num {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid shared.$hairline-strong;
+  border-radius: var(--r-2);
+  overflow: hidden;
+  background: var(--ink-0);
+  height: 32px;
+  // Never let a flex parent squeeze the control. Because of overflow: hidden
+  // it would shrink below its content and clip the plus button; a label next
+  // to it should wrap instead.
+  flex: none;
+
+  > * {
+    flex: none;
+  }
+
+  button {
+    background: transparent;
+    border: 0;
+    color: var(--sand);
+    font-family: var(--font-display);
+    font-size: 16px;
+    width: 30px;
+    cursor: pointer;
+
+    &:hover {
+      background: shared.$gold-wash-strong;
+    }
+  }
+
+  input {
+    width: 44px;
+    text-align: center;
+    border: 0;
+    background: transparent;
+    color: var(--parchment);
+    // Stays at or above 16px so iOS does not zoom the page when the box is focused.
+    font-family: var(--font-display);
+    font-size: 18px;
+    border-left: 1px solid shared.$hairline-mid;
+    border-right: 1px solid shared.$hairline-mid;
+
+    &:focus {
+      outline: none;
+      background: shared.$gold-wash;
+    }
+  }
+
+  .ic {
+    display: inline-grid;
+    place-items: center;
+    width: 30px;
+    background: rgba(255, 255, 255, 0.06);
+    border-right: 1px solid shared.$hairline-mid;
+
+    img {
+      width: 18px;
+      height: 18px;
+    }
+
+    // Counting forces: the cell takes the faction colour.
+    &.force {
+      background: var(--fc, var(--ink-3));
+    }
+
+    &.force img {
+      filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.6));
+    }
+
+    // Counting spice: the spice icon is already orange, so the cell keeps the
+    // neutral background and lets the icon show.
+  }
+}
+
+// On parchment the icon cell's divider is an ink line.
+.on-parchment .num .ic {
+  border-right-color: shared.$ink-line-soft;
+}
+
+// Quick-pick buttons beside the number input (all, half, none).
+.quick {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 8px;
+
+  button {
+    font-family: var(--font-body);
+    font-size: 13px;
+    padding: 4px 8px;
+    border-radius: var(--r-1);
+    border: 1px solid shared.$hairline-strong;
+    background: transparent;
+    color: var(--text-2);
+    cursor: pointer;
+
+    &:hover {
+      color: var(--gold);
+      border-color: var(--gold);
+    }
+  }
+}
+
+// On parchment the input and quick buttons flip to ink on a light fill.
+.on-parchment {
+  .num {
+    background: shared.$parchment-input-bg;
+    border-color: shared.$ink-line;
+  }
+
+  .num input,
+  .num button {
+    color: var(--ink-1);
+  }
+
+  .quick button {
+    color: var(--ink-1);
+    border-color: shared.$ink-line;
+  }
+}
+
+// In a prompt card's action row the control is slightly smaller.
+.prompt .actions {
+  .num {
+    height: 28px;
+
+    button {
+      width: 26px;
+      font-size: 14px;
+    }
+
+    input {
+      width: 40px;
+      font-size: 16px;
+    }
+  }
+
+  .quick {
+    margin-left: 4px;
+  }
+}

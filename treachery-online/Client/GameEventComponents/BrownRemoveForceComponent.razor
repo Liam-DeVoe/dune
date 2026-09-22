@@ -6,8 +6,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
-@inherits GameEventComponent<BrownRemoveForce>
-@implements IDisposable
+@inherits MapPickComponent<BrownRemoveForce>
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
@@ -15,17 +14,7 @@
 
     <Body>
 
-        <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="location" Values="BrownRemoveForce.ValidLocations(Game)">
-            <Label>From</Label>
-        </SelectComponent>
-
-        <SelectFromImageComponent @bind-Value="target" Values="BrownRemoveForce.ValidFactions(Game, Player, location)" Required="true" ImageWidth="40" />
-
-        <div class="mt-1">
-            <SelectFromImageComponent @bind-Value="special" Values="ForceChoices" ImageWidth="40" Required="true" />
-        </div>
-
-        <ButtonRowComponent Confirm="Confirm" ConfirmText="Remove Force" ConfirmError="@Validation" />
+        <div class="small">Use the map to choose a location.</div>
 
     </Body>
 
@@ -37,34 +26,67 @@
 
     protected override string Background => BrownRemoveForce.CardToUse(Player) != null ? Client.CurrentSkin.GetImageUrl(BrownRemoveForce.CardToUse(Player)) : Client.CurrentSkin.GetImageUrl(Nexus.Brown);
 
-    private Location? location;
     private Faction target;
     private bool special;
 
-    protected override BrownRemoveForce ConfirmedResult => new(Game, Faction) { Location = location, Target = target, SpecialForce = special };
+    protected override IEnumerable<Location> PickTargets => BrownRemoveForce.ValidLocations(Game);
 
-    protected override void OnAfterRender(bool firstRender)
+    protected override BrownRemoveForce ConfirmedResult => new(Game, Faction) { Location = Target, Target = target, SpecialForce = special };
+
+    // The pinned location decides whose forces are there, so the faction and force type follow it.
+    protected override void OnPickChanged()
     {
-        if (firstRender)
-        {
-            Client.OnLocationSelected += HandleLocationSelected;
-        }
+        var factions = BrownRemoveForce.ValidFactions(Game, Player, Target).ToList();
+        if (!factions.Contains(target)) target = factions.FirstOrDefault();
+        var choices = BrownRemoveForce.ValidSpecialForceChoices(Game, Target, target).ToList();
+        if (!choices.Contains(special)) special = choices.FirstOrDefault();
     }
 
-    public override void Dispose()
+    private void SetTarget(Faction f)
     {
-        base.Dispose();
-        Client.OnLocationSelected -= HandleLocationSelected;
+        target = f;
+        var choices = BrownRemoveForce.ValidSpecialForceChoices(Game, Target, target).ToList();
+        if (!choices.Contains(special)) special = choices.FirstOrDefault();
+        RefreshPin();
     }
 
-    private IEnumerable<bool> ForceChoices => BrownRemoveForce.ValidSpecialForceChoices(Game, location, target);
-
-    private IEnumerable<string> ImageURLs => BrownRemoveForce.ValidSpecialForceChoices(Game, location, target).Select(special => special ? Client.CurrentSkin.GetFactionSpecialForceImageUrl(target) : Client.CurrentSkin.GetFactionForceImageUrl(target));
-
-    private void HandleLocationSelected(object sender, Location l)
+    private void SetSpecial(bool value)
     {
-        SetIfValid(ref location, BrownRemoveForce.ValidLocations(Game), l);
+        special = value;
+        RefreshPin();
     }
 
     private string ToUse => BrownRemoveForce.CardToUse(Player) != null ? Client.CurrentSkin.Describe(BrownRemoveForce.CardToUse(Player)) : "Nexus Cunning";
+
+    protected override RenderFragment PinContent => __builder =>
+    {
+        var factions = BrownRemoveForce.ValidFactions(Game, Player, Target).ToList();
+        var choices = BrownRemoveForce.ValidSpecialForceChoices(Game, Target, target).ToList();
+        var victim = Game.GetPlayer(target);
+
+        <div class="pin-body">
+            @if (factions.Count > 1)
+            {
+                <div class="pin-hint">Whose force?</div>
+                <div class="pin-choice">
+                    @foreach (var f in factions)
+                    {
+                        <button type="button" class="@(f == target ? "on" : "")" @onclick="@(() => SetTarget(f))">@Name(f)</button>
+                    }
+                </div>
+            }
+            else if (factions.Count == 1)
+            {
+                <div class="pin-hint">@Name(factions[0])</div>
+            }
+            @if (choices.Count > 1 && victim != null)
+            {
+                <div class="pin-choice">
+                    <button type="button" class="@(special ? "" : "on")" @onclick="@(() => SetSpecial(false))">@Name(victim.Force)</button>
+                    <button type="button" class="@(special ? "on" : "")" @onclick="@(() => SetSpecial(true))">@Name(victim.SpecialForce)</button>
+                </div>
+            }
+            @PinActions("Remove force")
+        </div>
+    };
 }

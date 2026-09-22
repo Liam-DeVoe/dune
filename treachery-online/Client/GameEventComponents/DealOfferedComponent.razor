@@ -28,9 +28,9 @@
             </SelectComponent>
         }
 
-        <SelectComponent @bind-Value="until" Values="ApplicableEndPhases">
+        <SegmentedComponent @bind-Value="until" Values="ApplicableEndPhases">
             <Label>Until</Label>
-        </SelectComponent>
+        </SegmentedComponent>
 
         <textarea class="form-control mt-1" rows="5" @bind="text" maxlength="512" placeholder="Deal description"></textarea>
 

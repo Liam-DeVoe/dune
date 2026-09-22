@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
  * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
@@ -6,8 +6,15 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
-@inherits GameEventComponent<PerformSetup>
+@inherits StagedPlacementComponent<PerformSetup>
 @implements IDisposable
+
+@*
+ Custom setup: the host places each faction's starting forces on the map in
+ turn, and sets its starting spice. Click a sector for a force, shift-click
+ for a special force, right-click to take one back. The list below the
+ instructions is a fallback for people who cannot right-click.
+*@
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
@@ -19,15 +26,39 @@
 
         <SelectResourcesComponent @bind-Value="resources" Min="0" Max="100" Label="@Client.CurrentSkin.Describe(Concept.Resource)" />
 
-        <div class="mt-1">Initial forces on planet (you may use the planet map):</div>
-        <div class="small">Add / Remove @Client.CurrentSkin.Describe(currentPlayer.Force): <ClickHintComponent Button="ClickHintButton.Lmb" /> / <ClickHintComponent Button="ClickHintButton.Lmb" Modifier="ClickHintModifier.Shift" /></div>
+        <div class="small mt-2">Use the map to place forces.</div>
+        <div class="small text-2">
+            <div><ClickHintComponent Button="ClickHintButton.Lmb" /> place <img class="setup-hint-force" src="@Client.CurrentSkin.GetFactionForceImageUrl(Placer.Faction)" alt="@Name(Placer.Force)" title="@Name(Placer.Force)"/></div>
+            @if (MayStageSpecial)
+            {
+                <div><ClickHintComponent Button="ClickHintButton.Lmb" Modifier="ClickHintModifier.Shift" /> place <img class="setup-hint-force" src="@Client.CurrentSkin.GetFactionSpecialForceImageUrl(Placer.Faction)" alt="@Name(Placer.SpecialForce)" title="@Name(Placer.SpecialForce)"/></div>
+            }
+            <div><ClickHintComponent Button="ClickHintButton.Rmb" /> remove force</div>
+        </div>
 
-        @if (currentPlayer.HasSpecialForces && !currentPlayer.Is(Faction.White))
+        @if (Staged.Any())
         {
-            <div class="small">Add / Remove @Client.CurrentSkin.Describe(currentPlayer.SpecialForce): <ClickHintComponent Button="ClickHintButton.Lmb" Modifier="ClickHintModifier.Ctrl" /> / <ClickHintComponent Button="ClickHintButton.Lmb" Modifier="ClickHintModifier.Ctrl | ClickHintModifier.Shift" /></div>
+            <div class="mt-2">
+                @foreach (var kvp in Staged)
+                {
+                    var l = kvp.Key;
+                    var b = kvp.Value;
+                    <div class="d-flex align-items-center gap-1 mt-1 small">
+                        <span class="flex-grow-1">@Name(l)</span>
+                        <MapForceStepper Value="@b.AmountOfForces" ValueChanged="@(v => Step(l, v, false))" Min="0" Max="@(b.AmountOfForces + Room(false))" Faction="CurrentFaction" Special="false" Label="@Name(Placer.Force)" />
+                        @if (MayStageSpecial)
+                        {
+                            <MapForceStepper Value="@b.AmountOfSpecialForces" ValueChanged="@(v => Step(l, v, true))" Min="0" Max="@(b.AmountOfSpecialForces + Room(true))" Faction="CurrentFaction" Special="true" Label="@Name(Placer.SpecialForce)" />
+                        }
+                    </div>
+                }
+            </div>
         }
 
-        <ForceSelectionComponent Game="Client.Game" Player="currentPlayer" OnChanged="@StateHasChanged" Forces="forces" Locations="ValidLocations" MaySelectFromStorm="true" AlwaysShowLocation="true" FullLocationName="false" FixedMaxForces="20" FixedMaxSpecialForces="MaxSpecialForces" AllowMultipleTerritories="true"/>
+        @if (Validation is { } error)
+        {
+            <div class="small text-danger mt-2">@error.ToString(Client.CurrentSkin)</div>
+        }
 
         <ButtonRowComponent Confirm="Confirm" ConfirmText="Confirm" ConfirmError="@Validation" />
 
@@ -41,122 +72,46 @@
 
     private Player? currentPlayer;
     private int resources;
-    private Dictionary<Location, Battalion> forces = new();
 
     protected override PerformSetup ConfirmedResult => new(Game, Faction) { Passed = false, Resources = resources, ForceLocations = forces };
 
     protected override void OnParametersSet()
     {
         base.OnParametersSet();
-
-        if (currentPlayer == null || currentPlayer.Faction != Game.NextFactionToPerformCustomSetup)
-        {
-            forces = new Dictionary<Location, Battalion>();
-            currentPlayer = CurrentPlayer;
-        }
+        SyncPlacer();
     }
 
-    protected override void OnAfterRender(bool firstRender)
+    // A game update does not reach OnParametersSet (this component has no
+    // parameters), so the faction switch is also checked on every refresh.
+    protected override void Redraw()
     {
-        if (firstRender)
-        {
-            Client.OnLocationSelected += HandleAddForce;
-            Client.OnLocationSelectedWithShift += HandleRemoveForce;
-            Client.OnLocationSelectedWithCtrlOrAlt += HandleAddSpecialForce;
-            Client.OnLocationSelectedWithShiftAndWithCtrlOrAlt += HandleRemoveSpecialForce;
-        }
+        SyncPlacer();
+        base.Redraw();
     }
 
-    public override void Dispose()
+    private void SyncPlacer()
     {
-        base.Dispose();
-        Client.OnLocationSelected -= HandleAddForce;
-        Client.OnLocationSelectedWithShift -= HandleRemoveForce;
-        Client.OnLocationSelectedWithCtrlOrAlt -= HandleAddSpecialForce;
-        Client.OnLocationSelectedWithShiftAndWithCtrlOrAlt -= HandleRemoveSpecialForce;
+        var next = Game.NextFactionToPerformCustomSetup;
+        if (next == Faction.None || currentPlayer?.Faction == next) return;
+
+        currentPlayer = Game.GetPlayer(next);
+        resources = 0;
+        ResetStaging();
     }
 
-    private Player CurrentPlayer => Game.GetPlayer(Game.NextFactionToPerformCustomSetup);
+    protected override Player Placer => currentPlayer ?? Game.GetPlayer(Game.NextFactionToPerformCustomSetup);
 
-    private void HandleAddForce(object sender, Location l)
+    // White's special forces are No-Field tokens, which are not placed this way.
+    protected override bool MayStageSpecial => Placer.HasSpecialForces && !Placer.Is(Faction.White);
+
+    protected override IEnumerable<Location> ValidLocations => Game.Map.Locations(false);
+
+    private Faction CurrentFaction => Placer.Faction;
+
+    private void Step(Location l, int value, bool special)
     {
-        if (ValidLocations.Contains(l))
-        {
-            ForceAmountButton(l, 1, false);
-        }
+        var current = special ? forces[l].AmountOfSpecialForces : forces[l].AmountOfForces;
+        if (value > current) Add(l, special);
+        else if (value < current) Remove(l, special);
     }
-
-    private void HandleAddSpecialForce(object sender, Location l)
-    {
-        if (CurrentPlayer.HasSpecialForces && ValidLocations.Contains(l))
-        {
-            ForceAmountButton(l, 1, true);
-        }
-    }
-
-    private void HandleRemoveForce(object sender, Location l)
-    {
-        if (ValidLocations.Contains(l))
-        {
-            ForceAmountButton(l, -1, false);
-        }
-    }
-
-    private void HandleRemoveSpecialForce(object sender, Location l)
-    {
-        if (CurrentPlayer.HasSpecialForces && ValidLocations.Contains(l))
-        {
-            ForceAmountButton(l, -1, true);
-        }
-    }
-
-    private IEnumerable<Location> ValidLocations => Game.Map.Locations(false).OrderByDescending(l => l.IsStronghold).ThenBy(l => Client.CurrentSkin.Describe(l));
-
-    protected int Forces(Location l, bool special)
-    {
-        if (forces.ContainsKey(l))
-        {
-            if (special)
-            {
-                return forces[l].AmountOfSpecialForces;
-            }
-
-            return forces[l].AmountOfForces;
-        }
-
-        return 0;
-    }
-
-    protected void ForceAmountButton(Location location, int amount, bool specialForces)
-    {
-        if (forces.ContainsKey(location))
-        {
-            if (specialForces)
-            {
-                forces[location].ChangeSpecialForces(amount);
-            }
-            else
-            {
-                forces[location].ChangeForces(amount);
-            }
-        }
-        else if (amount > 0)
-        {
-            if (specialForces)
-            {
-                forces.Add(location, new Battalion(Faction, 0, amount, location));
-            }
-            else
-            {
-                forces.Add(location, new Battalion(Faction, amount, 0, location));
-            }
-        }
-
-        StateHasChanged();
-    }
-
-    private Faction CurrentFaction => currentPlayer != null ? currentPlayer.Faction : Faction.Black;
-
-    private int MaxSpecialForces => currentPlayer != null && currentPlayer.HasSpecialForces ? 20 : 0;
 }
-

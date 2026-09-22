@@ -99,6 +99,54 @@ public static class ExtensionMethods
         }
     }
 
+    extension<T>(IEnumerable<T>? source)
+    {
+        // Same as the helpers above, but breaking ties with the caller's random, so a seeded caller stays deterministic.
+        public T? HighestOrDefault(LoggedRandom random, Func<T, IComparable> selector)
+        {
+            if (source is null) return default;
+
+            var sourceArray = source.ToArray();
+
+            if (sourceArray.Length == 0) return default;
+
+            var best = sourceArray.Max(selector);
+
+            return sourceArray.Where(v => selector(v).Equals(best)).RandomOrDefault(random);
+        }
+
+        public T? LowestOrDefault(LoggedRandom random, Func<T, IComparable> selector)
+        {
+            if (source is null) return default;
+
+            var sourceArray = source.ToArray();
+
+            if (sourceArray.Length == 0) return default;
+
+            var best = sourceArray.Min(selector);
+
+            return sourceArray.Where(v => selector(v).Equals(best)).RandomOrDefault(random);
+        }
+
+        public T? OneOfHighestNOrDefault(LoggedRandom random, Func<T, IComparable> selector, int n)
+        {
+            if (source is null || n <= 0) return default;
+
+            var toSelectFrom = source.OrderByDescending(selector).Take(n).ToList();
+
+            return toSelectFrom.Count == 0 ? default : toSelectFrom.RandomOrDefault(random);
+        }
+
+        public T? OneOfLowestNOrDefault(LoggedRandom random, Func<T, IComparable> selector, int n)
+        {
+            if (source is null || n <= 0) return default;
+
+            var toSelectFrom = source.OrderBy(selector).Take(n).ToList();
+
+            return toSelectFrom.Count == 0 ? default : toSelectFrom.RandomOrDefault(random);
+        }
+    }
+
     public static IEnumerable<T> TakeRandomN<T>(this IEnumerable<T>? source, int n)
     {
         return source is null 

@@ -6,19 +6,14 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
-@inherits GameEventComponent<PerformHmsPlacement>
-@implements IDisposable
+@inherits MapPickComponent<PerformHmsPlacement>
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
     <Header>Position the Hidden Mobile Stronghold</Header>
     <Body>
 
-        <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="target" Values="PerformHmsPlacement.ValidLocations(Game, Player)">
-            <Label>In</Label>
-        </SelectComponent>
-
-        <ButtonRowComponent Confirm="Confirm" ConfirmText="Confirm" ConfirmError="@Validation"/>
+        <div class="small">Use the map to choose a location.</div>
 
     </Body>
 
@@ -26,26 +21,14 @@
 
 @code {
 
-    public Location? target;
+    protected override IEnumerable<Location> PickTargets => PerformHmsPlacement.ValidLocations(Game, Player);
 
-    protected override void OnAfterRender(bool firstRender)
+    protected override PerformHmsPlacement ConfirmedResult => new(Game, Faction) { Target = Target };
+
+    protected override RenderFragment PinContent => __builder =>
     {
-        if (firstRender)
-        {
-            Client.OnLocationSelected += HandleLocationSelected;
-        }
-    }
-
-    public override void Dispose()
-    {
-        base.Dispose();
-        Client.OnLocationSelected -= HandleLocationSelected;
-    }
-
-    protected override PerformHmsPlacement ConfirmedResult => new(Game, Faction) { Target = target };
-
-    private void HandleLocationSelected(object sender, Location l)
-    {
-        SetIfValid(ref target, PerformHmsPlacement.ValidLocations(Game, Player), l);
-    }
+        <div class="pin-body">
+            @PinActions("Place stronghold")
+        </div>
+    };
 }

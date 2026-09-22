@@ -25,6 +25,7 @@ internal sealed class ComponentTestContext : IDisposable
         Client.CurrentPhase.Returns(_ => Client.Game?.CurrentPhase);
         Client.CurrentSkin.Returns(DefaultSkin.Default);
         Client.Actions.Returns([]);
+        Client.MapInteraction.Returns(new MapInteraction());
 
         RenderContext.Services.AddSingleton(Client);
         RenderContext.Services.AddSingleton(new Browser(RenderContext.JSInterop.JSRuntime));

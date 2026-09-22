@@ -76,6 +76,32 @@ public class Browser(IJSRuntime jsRuntime)
         return await JsInvoke<bool>("UrlExists", url);
     }
 
+    public async Task SetMapPopoversEnabled(bool enabled)
+    {
+        await JsInvoke("SetMapPopoversEnabled", enabled);
+    }
+
+    public async Task TrackMapCursor(bool on)
+    {
+        await JsInvoke("TrackMapCursor", on);
+    }
+
+    // Passing null stops listening.
+    public async Task ListenForMapCancel(DotNetObjectReference<MapComponents.MapSelectionOverlay>? overlay)
+    {
+        await JsInvoke("ListenForMapCancel", overlay);
+    }
+
+    public async Task ClampMapPin()
+    {
+        await JsInvoke("ClampMapPin");
+    }
+
+    public async Task StartMapHover()
+    {
+        await JsInvoke("StartMapHover");
+    }
+
     public async Task SetPlanetMapScale()
     {
         await JsInvoke("SetPlanetMapScale");
@@ -163,6 +189,27 @@ public class Browser(IJSRuntime jsRuntime)
     public async Task Print(string elementName)
     {
         await JsInvoke("Print", elementName);
+    }
+
+    // The custom select. See wwwroot/js/listbox.js.
+    public async Task ListboxInit(ElementReference trigger, object component)
+    {
+        await JsInvoke("listbox.init", trigger, component);
+    }
+
+    public async Task ListboxOpen(ElementReference trigger, ElementReference list, object component)
+    {
+        await JsInvoke("listbox.open", trigger, list, component);
+    }
+
+    public async Task ListboxClose(ElementReference list)
+    {
+        await JsInvoke("listbox.close", list);
+    }
+
+    public async Task ListboxReveal(ElementReference list, string optionId)
+    {
+        await JsInvoke("listbox.reveal", list, optionId);
     }
 
     private async Task<T?> JsInvoke<T>(string method, params object[] args)

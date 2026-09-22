@@ -91,7 +91,7 @@ public partial class ClassicBot
             !StormWillProbablyHit(kvp.Key) &&
             ProbablySafeFromMonster(kvp.Key.Territory) &&
             NearbyBattalionsOutsideStrongholds(kvp.Key).Count == 0
-        ).HighestOrDefault(kvp => kvp.Value).Key;
+        ).HighestOrDefault(_random, kvp => kvp.Value).Key;
 
         if (bestLocation != null)
         {
@@ -175,7 +175,7 @@ public partial class ClassicBot
             TotalMaxDialOfOpponents(kvp.Key.Territory) <= Param.Shipment_MaxEnemyForceStrengthFightingForSpice &&
             AllyDoesntBlock(kvp.Key.Territory) &&
             NearbyBattalionsOutsideStrongholds(kvp.Key).Count == 0
-        ).HighestOrDefault(kvp => kvp.Value).Key;
+        ).HighestOrDefault(_random, kvp => kvp.Value).Key;
 
         if (bestLocation != null)
         {
@@ -258,7 +258,7 @@ public partial class ClassicBot
 
         LogInfo("MyWeakStrongholds:" + string.Join(",", myWeakStrongholds));
 
-        var weakestStronghold = myWeakStrongholds.Where(s => s.Difference > 0).HighestOrDefault(s => s.Difference);
+        var weakestStronghold = myWeakStrongholds.Where(s => s.Difference > 0).HighestOrDefault(_random, s => s.Difference);
         LogInfo("WeakestStronghold:" + weakestStronghold);
 
         if (weakestStronghold != null)
@@ -313,7 +313,7 @@ public partial class ClassicBot
                 .Where(l =>
                     (Equals(l, Game.Map.Arrakeen) && AllyDoesntBlock(Game.Map.Arrakeen)) ||
                     (Equals(l, Game.Map.Carthag) && AllyDoesntBlock(Game.Map.Carthag)))
-                .LowestOrDefault(l => TotalMaxDialOfOpponents(l.Territory));
+                .LowestOrDefault(_random, l => TotalMaxDialOfOpponents(l.Territory));
 
             if (target != null)
             {
@@ -393,7 +393,7 @@ public partial class ClassicBot
             .Where(l => l is Homeworld && !Game.AnyForcesIn(l.Territory))
             .Cast<Homeworld>();
 
-        var target = validEmptyHomeworlds.RandomOrDefault();
+        var target = validEmptyHomeworlds.RandomOrDefault(_random);
         
         if (target != null)
         {
@@ -461,7 +461,7 @@ public partial class ClassicBot
         var attack = shippableStrongholdsOfWinningOpponents.Where(a =>
                 a.HasForces &&
                 a.ShortageForShipment <= riskAppetite)
-            .LowestOrDefault(a => a.DialNeeded);
+            .LowestOrDefault(_random, a => a.DialNeeded);
 
         LogInfo("weakestShippableLocationOfWinningOpponent:" + attack + " with extra forces: " + extraForces);
 
@@ -489,7 +489,7 @@ public partial class ClassicBot
             .Where(s =>
                 s.HasForces &&
                 s.ShortageForShipment - UnlockedForcesInPolarSink(s.Location) <= extraForces)
-            .LowestOrDefault(s => s.DialNeeded + DeterminePenalty(s.Opponent));
+            .LowestOrDefault(_random, s => s.DialNeeded + DeterminePenalty(s.Opponent));
 
         LogInfo("WeakestEnemyStronghold:" + attack);
 
@@ -761,7 +761,7 @@ public partial class ClassicBot
             TotalMaxDialOfOpponents(kvp.Key.Territory) <= Param.Shipment_MaxEnemyForceStrengthFightingForSpice &&
             !StormWillProbablyHit(kvp.Key) &&
             ProbablySafeFromMonster(kvp.Key.Territory))
-        .HighestOrDefault(kvp => kvp.Value).Key;
+        .HighestOrDefault(_random, kvp => kvp.Value).Key;
 
     private int DetermineForcesNeededForCollection(Location location)
     {
@@ -849,7 +849,7 @@ public partial class ClassicBot
         {
             if (opponents.Count == 0) opponents = OpponentsToShipAndMove;
 
-            var mostDangerousOpponent = opponents.HighestOrDefault(opp => MaxReinforcedDialTo(Game, Player, opp, s.Territory));
+            var mostDangerousOpponent = opponents.HighestOrDefault(_random, opp => MaxReinforcedDialTo(Game, Player, opp, s.Territory));
 
             if (mostDangerousOpponent != null) maxReinforcedDial = MaxReinforcedDialTo(Game, Player, mostDangerousOpponent, s.Territory);
         }

@@ -1,0 +1,15 @@
+@use "../shared" as v;
+
+// Tooltip, like .tip in the guide.
+.tooltip {
+  --bs-tooltip-bg: var(--ink-0);
+  --bs-tooltip-color: var(--parchment);
+  --bs-tooltip-opacity: 1;
+  --bs-tooltip-border-radius: var(--r-1);
+  --bs-tooltip-font-size: 13px;
+  font-family: var(--font-body);
+}
+
+.tooltip-inner {
+  border: 1px solid v.$hairline-strong;
+}

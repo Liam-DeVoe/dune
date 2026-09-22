@@ -81,25 +81,12 @@
         StateHasChanged();
     }
 
-    protected string BackgroundStyle
-    {
-        get
-        {
-            if (Background == "")
-            {
-                if (IsFactionSpecific == Faction.None)
-                {
-                    return "";
-                }
+    // Panels are solid ink 2 (the .card default). The faction tint and the card image that used
+    // to sit behind the panel are not part of the visual language; IsFactionSpecific and
+    // Background are kept so every component keeps compiling.
+    protected string BackgroundStyle => "";
 
-                return $"background-color: {Client.CurrentSkin.GetFactionColorTransparent(IsFactionSpecific, "bb")};";
-            }
+    protected string HeaderStyle => "";
 
-            return $"background-color: rgba(0,0,0,0); background-image: url('{BackgroundImage}'); background-origin: content-box; background-size: cover; background-repeat: no-repeat;";
-        }
-    }
-
-    protected string HeaderStyle => Background != "" ? "background-color:rgba(0,0,0,0.9);" : "";
-
-    protected string BodyStyle => Background != "" ? "background-color:rgba(0,0,0,0.7);" : "";
+    protected string BodyStyle => "";
 }

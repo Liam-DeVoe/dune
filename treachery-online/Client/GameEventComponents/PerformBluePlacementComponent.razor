@@ -6,19 +6,14 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
-@inherits GameEventComponent<PerformBluePlacement>
-@implements IDisposable
+@inherits MapPickComponent<PerformBluePlacement>
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
     <Header>Place one peaceful advisor in any territory of your choice. If you are alone in the territory, it is flipped to a fighter.</Header>
     <Body>
 
-        <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="target" Values="PerformBluePlacement.ValidLocations(Game)">
-            <Label>To</Label>
-        </SelectComponent>
-
-        <ButtonRowComponent Confirm="Confirm" ConfirmText="Confirm" ConfirmError="@Validation" />
+        <div class="small">Use the map to choose a location.</div>
 
     </Body>
 
@@ -29,26 +24,14 @@
     protected override bool IsUrgent => true;
     protected override Faction IsFactionSpecific => Faction.Blue;
 
-    public Location? target;
+    protected override IEnumerable<Location> PickTargets => PerformBluePlacement.ValidLocations(Game);
 
-    protected override void OnAfterRender(bool firstRender)
+    protected override PerformBluePlacement ConfirmedResult => new(Game, Faction) { Target = Target };
+
+    protected override RenderFragment PinContent => __builder =>
     {
-        if (firstRender)
-        {
-            Client.OnLocationSelected += HandleLocationSelected;
-        }
-    }
-
-    public override void Dispose()
-    {
-        base.Dispose();
-        Client.OnLocationSelected -= HandleLocationSelected;
-    }
-
-    protected override PerformBluePlacement ConfirmedResult => new(Game, Faction) { Target = target };
-
-    private void HandleLocationSelected(object sender, Location l)
-    {
-        SetIfValid(ref target, Game.Map.Locations(false), l);
-    }
+        <div class="pin-body">
+            @PinActions("Place advisor")
+        </div>
+    };
 }

@@ -6,33 +6,31 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
-@inherits GameEventComponent<TerrorPlanted>
+@inherits MapPickComponent<TerrorPlanted>
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
     <Header>@HeaderMessage</Header>
     <Body>
 
-        @if (!TerrorPlanted.MayRemoveTokens(Game, Player))
+        @if (Removing)
         {
-            <SelectComponent ButtonHint=ClickHintButton.Lmb @bind-Value=_stronghold Values=@TerrorPlanted.ValidStrongholds(Game, Player)>
-                <Label>Stronghold</Label>
+            <SelectComponent @bind-Value="_type" Values="@TerrorPlanted.ValidTerrorTypes(Game, true)">
+                <Label>Token</Label>
             </SelectComponent>
+
+            <div class="text-info">
+                @Client.CurrentSkin.GetTerrorTypeDescription(_type)
+            </div>
+
+            <ButtonRowComponent Pass="Pass" Confirm="Confirm" ConfirmText="Remove token" ConfirmError="@Validation" />
         }
         else
         {
-            _stronghold = null;
+            <div class="small">Use the map to choose a stronghold.</div>
+
+            <ButtonRowComponent Pass="Pass" PassText="Pass" />
         }
-
-        <SelectComponent @bind-Value="_type" Values="@TerrorPlanted.ValidTerrorTypes(Game, TerrorPlanted.MayRemoveTokens(Game, Player))">
-            <Label>Token</Label>
-        </SelectComponent>
-
-        <div class="text-info">
-            @Client.CurrentSkin.GetTerrorTypeDescription(_type)
-        </div>
-
-        <ButtonRowComponent Pass="Pass" Confirm="Confirm" ConfirmText="@ConfirmLabel" ConfirmError="@Validation" />
 
     </Body>
 
@@ -43,34 +41,44 @@
     protected override Faction IsFactionSpecific => Faction.Cyan;
 
     private TerrorType _type;
-    private Territory? _stronghold;
 
-    protected override void OnAfterRender(bool firstRender)
-    {
-        if (firstRender)
-        {
-            Client.OnLocationSelected += HandleLocationSelected;
-        }
-    }
+    private bool Removing => TerrorPlanted.MayRemoveTokens(Game, Player);
 
-    protected override TerrorPlanted ConfirmedResult => new(Game, Faction) { Type = _type, Stronghold = _stronghold };
+    // Removing a token names no stronghold, so the map is left alone.
+    protected override bool PickEnabled => !Removing;
+
+    protected override bool PickByTerritory => true;
+
+    protected override IEnumerable<Location> PickTargets => SectorsOf(TerrorPlanted.ValidStrongholds(Game, Player));
+
+    protected override TerrorPlanted ConfirmedResult => new(Game, Faction) { Type = _type, Stronghold = TargetTerritory };
 
     protected override TerrorPlanted PassedResult => new(Game, Faction) { Passed = true };
 
-    private void HandleLocationSelected(object sender, Location l)
+    private void SetType(TerrorType type)
     {
-        SetIfValid(ref _stronghold, TerrorPlanted.ValidStrongholds(Game, Player), l.Territory);
+        _type = type;
+        RefreshPin();
     }
 
-    public override void Dispose()
+    private string ConfirmLabel => Game.UnplacedTerrorTokens.Contains(_type) ? "Place token" : "Move token";
+
+    private string HeaderMessage => Removing ? "You may now remove Terror" : "You may now place Terror";
+
+    protected override RenderFragment PinContent => __builder =>
     {
-        base.Dispose();
-        Client.OnLocationSelected -= HandleLocationSelected;
-    }
+        var types = TerrorPlanted.ValidTerrorTypes(Game, false).ToList();
+        if (!types.Contains(_type)) _type = types.FirstOrDefault();
 
-    private string[] ValueLabels => ["Place or move a token", Client.CurrentSkin.Format("Remove a token to gain 4 ", Concept.Resource)];
-
-    private string ConfirmLabel => TerrorPlanted.MayRemoveTokens(Game, Player) ? "Remove token" : Game.UnplacedTerrorTokens.Contains(_type) ? "Place token" : "Move token";
-
-    private string HeaderMessage => TerrorPlanted.MayRemoveTokens(Game, Player) ? "You may now remove Terror" : "You may now place Terror";
+        <div class="pin-body">
+            <div class="pin-choice wrap">
+                @foreach (var t in types)
+                {
+                    <button type="button" class="@(t == _type ? "on" : "")" @onclick="@(() => SetType(t))">@Name(t)</button>
+                }
+            </div>
+            <div class="pin-text">@Client.CurrentSkin.GetTerrorTypeDescription(_type)</div>
+            @PinActions(ConfirmLabel)
+        </div>
+    };
 }

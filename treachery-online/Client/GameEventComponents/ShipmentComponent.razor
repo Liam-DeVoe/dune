@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
  * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
@@ -6,271 +6,56 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
+@using Treachery.Client.MapComponents
 @inherits GameEventComponent<Shipment>
+
+@*
+ A shipment is made on the map. From reserves: click the destination, and the
+ arrow runs from your token on the map's edge. Site-to-site (Guild): click the
+ sector to ship from, then the destination. Back to reserves (Guild): click the
+ sector, then press "To reserves" in the pinned panel. A first click on a
+ sector holding your forces always picks it as a source, so the same panel
+ offers "Here from reserves" for shipping onto it instead. Counters, cost,
+ and every option that applies live in the panel pinned to the arrow. This
+ panel only explains the situation and offers Pass.
+*@
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
-    <Header>
+    <Header>Ship?</Header>
+    <Body>
 
         @if (Faction == Faction.Yellow)
         {
-            <div>Bring any number of forces onto @Client.CurrentSkin.Describe(Game.Map.TheGreatFlat.Territory) or onto any one territory within two territories of @Client.CurrentSkin.Describe(Game.Map.TheGreatFlat.Territory).</div>
-
+            <div class="small text-2">You may bring any number of forces onto @Client.CurrentSkin.Describe(Game.Map.TheGreatFlat.Territory) or onto any one territory within two territories of it, for free.</div>
             @if (Shipment.MayShipCrossPlanet(Game, Player))
             {
-                <div>In addition, your ally allows you to ship to other locations as well from your reserves.</div>
+                <div class="small text-2">Your ally also lets you ship elsewhere from your reserves.</div>
             }
-
-            @if (Shipment.MayUseWhiteSecretAlly(Game, Player))
-            {
-                <div>You may also ship with <FactionComponent Faction="Faction.White"/> as your secret ally.</div>
-            }
-        }
-        else
-        {
-            <div>Select forces to ship, or pass.</div>
         }
 
         @if (Shipment.MayShipCrossPlanet(Game, Player))
         {
-            <div>You may ship site-to-site any number of forces from a source location to another location.</div>
+            <div class="small text-2">You may also ship site-to-site: click the sector to ship from first.</div>
         }
 
         @if (Shipment.MayShipToReserves(Game, Player))
         {
-            <div>You may ship any number of forces from any one location back to your reserves.</div>
+            <div class="small text-2">You may also ship forces back to your reserves: click the sector holding them.</div>
         }
 
-    </Header>
-    <Body>
-
-        @if (ValidShipmentTypes.Count() > 1)
+        @if (PreventedFromShipping)
         {
-            <RadioComponent @bind-Value="ShipmentType" Values="@ValidShipmentTypes" ValueLabels="@ValidShipmentTypeLabels" />
+            <div class="small">@Client.CurrentSkin.Describe(TreacheryCardType.Karma) prevents you from shipping.</div>
         }
         else
         {
-            ShipmentType = ShipmentType.ShipmentNormal;
+            <div class="small">Use the map to ship forces.</div>
         }
 
-        @if (ShipmentType is ShipmentType.ShipmentSiteToSite)
-        {
-            <SelectComponent ButtonHint="ClickHintButton.Lmb" ModifierHint="ClickHintModifier.Ctrl" @bind-Value="_shipmentFrom" Values="@Shipment.ValidSourceLocations(Game, Player)">
-                <Label>From</Label>
-            </SelectComponent>
-        }
-        else if (ShipmentType is ShipmentType.ShipmentSiteToSite && Player.HomeWorlds.Count > 1)
-        {
-            <SelectComponent ButtonHint="ClickHintButton.Lmb" ModifierHint="ClickHintModifier.Ctrl" @bind-Value="_shipmentFrom" Values="@Player.HomeWorlds">
-                <Label>To</Label>
-            </SelectComponent>
-        }
-        else
-        {
-            _shipmentFrom = Player.HomeWorlds[0];
-        }
-
-        <div class="mt-1 mb-1">
-            <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="_shipmentTo" Values="ValidShipmentLocations.OrderByDescending(l => l.IsStronghold).ThenBy(Name)">
-                <Label>
-                    @if (ShipmentType is ShipmentType.ShipmentBack)
-                    {
-                        <span>From</span>
-                    }
-                    else
-                    {
-                        <span>To</span>
-                    }
-                </Label>
-            </SelectComponent>
-        </div>
-
-        @if (ShipmentType is not ShipmentType.ShipmentBack && _shipmentTo != null && Game.ContainsConflictingAlly(Player, _shipmentTo))
-        {
-            <div class="text-danger bg-dark">Note: if you place forces there, all of your forces there at the end of your move turn will be destroyed due to ally presence!</div>
-        }
-
-        @if (Shipment.MayUseNoField(Game, Player))
-        {
-            var validNoFieldValues = new List<int> { -1 };
-            validNoFieldValues.AddRange(Shipment.ValidNoFieldValues(Game, Player));
-
-            var validNoFieldValueLabels = new List<string> { "Don't use a No-Field" };
-            validNoFieldValueLabels.AddRange(Shipment.ValidNoFieldValues(Game, Player).Select(v => $"No-Field of {v}"));
-
-            <RadioComponent @bind-Value="NoFieldValue" Values="validNoFieldValues" ValueLabels="validNoFieldValueLabels">
-                <Label>Use a @Client.CurrentSkin.Describe(Faction.White) No-Field for this shipment?</Label>
-            </RadioComponent>
-
-            if (Shipment.MayUseCunningNoField(Player))
-            {
-                var cunningValidNoFieldValues = new List<int> { -1 };
-                cunningValidNoFieldValues.AddRange(Shipment.ValidCunningNoFieldValues(Game, Player, NoFieldValue));
-
-                var validCunningNoFieldValueLabels = new List<string> { "Don't use a second No-Field" };
-                validCunningNoFieldValueLabels.AddRange(Shipment.ValidCunningNoFieldValues(Game, Player, NoFieldValue).Select(v => $"No-Field of {v}"));
-
-                <RadioComponent @bind-Value="CunningNoFieldValue" Values="cunningValidNoFieldValues" ValueLabels="validCunningNoFieldValueLabels">
-                    <Label>Use Nexus Cunning to ship a second No-Field (that will be immediately revealed)?</Label>
-                </RadioComponent>
-            }
-            else
-            {
-                CunningNoFieldValue = -1;
-            }
-        }
-        else
-        {
-            NoFieldValue = -1;
-            CunningNoFieldValue = -1;
-        }
-
-        @if (Faction is not Faction.White || NoFieldValue < 0 || Game.HasHighThreshold(Faction.White))
-        {
-            var selectNormalForceSources = false;
-            var selectSpecialForceSources = false;
-            Homeworld[] worlds = [];
-            if (ShipmentType is ShipmentType.ShipmentNormal or ShipmentType.ShipmentWhiteSecretAlly)
-            {
-                var worldsWithNormalForces = Shipment.HomeworldsToShipFrom(Player, false).ToArray();
-                selectNormalForceSources = worldsWithNormalForces.Length > 1;
-            
-                var worldsWithSpecialForces = Shipment.HomeworldsToShipFrom(Player, true).ToArray();
-                selectSpecialForceSources = worldsWithSpecialForces.Length > 1;
-
-                worlds = worldsWithNormalForces.Union(worldsWithSpecialForces).ToArray();
-            }
-            
-            <div class="mt-1">
-
-                @if (ValidShipmentForces > 0)
-                {
-                    <SelectForcesComponent @bind-Value="ShipmentForceAmount" Min="0" Max="ValidShipmentForces" Faction="Faction" Special="false" />
-                }
-                else
-                {
-                    ShipmentForceAmount = 0;
-                }
-                
-                @if (ValidShipmentSpecialForces > 0 && Faction != Faction.White)
-                {
-                    <SelectForcesComponent @bind-Value="ShipmentSpecialForceAmount" Min="0" Max="ValidShipmentSpecialForces" Faction="Faction" Special="true" />
-                }
-                else
-                {
-                    ShipmentSpecialForceAmount = Shipment.DefaultNoFieldSpecialForceAmount(Faction, NoFieldValue);
-                }
-
-                @if (selectNormalForceSources || selectSpecialForceSources)
-                {
-                    <div class="mt-1">Select from which worlds to ship these forces:</div>
-                    <ForceSelectionComponent Game=Game 
-                                             Player=Player 
-                                             Locations="@worlds" 
-                                             OnChanged="@StateHasChanged" 
-                                             Forces="ForceOrigins" 
-                                             AllowMultipleTerritories="true" 
-                                             ShowNormalForces="@selectNormalForceSources" 
-                                             ShowSpecialForces="@selectSpecialForceSources"/>
-                }
-                else
-                {
-                    ForceOrigins.Clear();
-                }
-                
-            </div>
-        }
-        else
-        {
-            ShipmentForceAmount = 0;
-            ShipmentSpecialForceAmount = 1;
-        }
-        
-        @if (
-            _shipmentTo != null &&
-            ShipmentType is ShipmentType.ShipmentNormal or ShipmentType.ShipmentWhiteSecretAlly && 
-            (ShipmentForceAmount > 0 || ShipmentSpecialForceAmount > 0) && 
-            Shipment.MaySmuggle(Game, Player, _shipmentTo))
-        {
-            <div class="mt-1">
-
-                <div>You may smuggle 1 force for free:</div>
-
-                @if (Player.ForcesInReserve > 0)
-                {
-                    <SelectForcesComponent @bind-Value="SmuggledForceAmount" Min="0" Max="1" Faction="Faction" Special="false" />
-                }
-                else
-                {
-                    SmuggledForceAmount = 0;
-                }
-
-                @if (Player.SpecialForcesInReserve > 0 && Faction != Faction.White)
-                {
-                    <SelectForcesComponent @bind-Value="SmuggledSpecialForceAmount" Min="0" Max="1" Faction="Faction" Special="true" />
-                }
-                else
-                {
-                    SmuggledSpecialForceAmount = 0;
-                }
-
-            </div>
-        }
-        else
-        {
-            SmuggledForceAmount = 0;
-            SmuggledSpecialForceAmount = 0;
-        }
-
-        @if (Player.Ally != Faction.None && Cost > 0 && Game.ResourcesYourAllyCanPay(Player) > 0)
-        {
-            <div class="mt-1">Let your ally support this shipment?</div>
-            <div class="mt-1">
-                <SelectResourcesFromFactionComponent @bind-Value="ShipmentAllyContributionAmount" 
-                                                     Min="0" 
-                                                     Max="Game.ResourcesYourAllyCanPay(Player)" 
-                                                     Faction="Player.Ally" 
-                                                     Title=@Client.CurrentSkin.Format("{0} paid by your ally", Concept.Resource) />
-            </div>
-        }
-        else
-        {
-            ShipmentAllyContributionAmount = 0;
-        }
-
-        @if (Shipment.CanKarma(Game, Player) && (Faction != Faction.Yellow || ShipmentType is ShipmentType.ShipmentSiteToSite) && !Shipment.MayShipCrossPlanet(Game, Player))
-        {
-            <div class="mt-1">
-
-                <SelectFromImageComponent @bind-Value="KarmaCard" Values="Shipment.ValidKarmaCards(Game, Player)" Required="false" ImageWidth="80">
-                    <Label>Use @Client.CurrentSkin.Describe(TreacheryCardType.Karma) to ship at @Client.CurrentSkin.Describe(Faction.Orange) rate?</Label>
-                </SelectFromImageComponent>
-            
-                @if (KarmaCard != null && !Player.TreacheryCards.Contains(KarmaCard))
-                {
-                    <div class="text-info">This card is offered to you by your ally</div>
-                }
-
-            </div>
-        }
-        else
-        {
-            KarmaCard = null;
-        }
-
-        <div class="mt-1 text-end">Total cost of shipment: <SimpleNumberComponent>@Cost</SimpleNumberComponent></div>
-
-        @if (ShipmentType is ShipmentType.ShipmentNormal && Faction != Faction.Yellow && Game.PreventedFromShipping(Faction))
+        @if (ShipmentType is not ShipmentType.ShipmentWhiteSecretAlly)
         {
             <ButtonRowComponent Pass="Pass" PassText="Pass" />
-        }
-        else if (ShipmentType is ShipmentType.ShipmentWhiteSecretAlly)
-        {
-            <ButtonRowComponent Confirm="Confirm" ConfirmText="Ship" ConfirmError=@Validation />
-        }
-        else
-        {
-            <ButtonRowComponent Confirm="Confirm" ConfirmText="Ship" ConfirmError=@Validation Pass="Pass" PassText="Pass" />
         }
 
     </Body>
@@ -285,22 +70,26 @@
     private TreacheryCard? KarmaCard { get; set; }
     private int ShipmentForceAmount { get; set; }
     private int ShipmentSpecialForceAmount { get; set; }
-    private int ShipmentAllyContributionAmount { get; set; } 
+    private int ShipmentAllyContributionAmount { get; set; }
     private int NoFieldValue { get; set; } = -1;
-    private int CunningNoFieldValue { get; set; }= -1;
+    private int CunningNoFieldValue { get; set; } = -1;
     private int SmuggledForceAmount { get; set; }
     private int SmuggledSpecialForceAmount { get; set; }
     private Dictionary<Location, Battalion> ForceOrigins { get; } = new();
-
     private Location? _shipmentFrom;
     private Location? _shipmentTo;
+    private Game? _selectionGame;
+    private MapInteraction? _localMap;
+
+    private MapInteraction Map => Client.MapInteraction ?? (_localMap ??= new MapInteraction());
+
+    private bool OwnsMap => Map.IsOwnedBy(this);
 
     protected override Shipment ConfirmedResult
     {
         get
         {
             var direction = ShipmentType == ShipmentType.ShipmentBack ? -1 : 1;
-
             return new Shipment(Game, Faction)
             {
                 ShipmentType = ShipmentType,
@@ -323,47 +112,65 @@
 
     protected override Shipment PassedResult => new(Game, Faction) { Passed = true };
 
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        if (ReferenceEquals(_selectionGame, Game))
+            return;
+
+        _selectionGame = Game;
+        ResetSelection();
+        if (OwnsMap) PushToMap();
+    }
+
     protected override void OnAfterRender(bool firstRender)
     {
         if (!firstRender) return;
-        
         Client.OnLocationSelected += HandleLocationSelected;
-        Client.OnLocationSelectedWithShift += HandleLocationSelectedWithModifier;
-        Client.OnLocationSelectedWithCtrlOrAlt += HandleLocationSelectedWithModifier;
-        Client.OnLocationSelectedWithShiftAndWithCtrlOrAlt += HandleLocationSelectedWithModifier;
+        Map.Changed += HandleMapChanged;
+        ClaimIfFree();
     }
 
     public override void Dispose()
     {
         base.Dispose();
         Client.OnLocationSelected -= HandleLocationSelected;
-        Client.OnLocationSelectedWithShift -= HandleLocationSelectedWithModifier;
-        Client.OnLocationSelectedWithCtrlOrAlt -= HandleLocationSelectedWithModifier;
-        Client.OnLocationSelectedWithShiftAndWithCtrlOrAlt -= HandleLocationSelectedWithModifier;
+        Map.Changed -= HandleMapChanged;
+        Map.Release(this);
     }
 
-    private void HandleLocationSelected(object sender, Location l)
-    {
-        SetIfValid(ref _shipmentTo, 
-            Shipment.ValidShipmentLocations(Game, Player, ShipmentType is ShipmentType.ShipmentSiteToSite, ShipmentType is ShipmentType.ShipmentWhiteSecretAlly), l);
-    }
+    private bool PreventedFromShipping => Faction != Faction.Yellow && Game.PreventedFromShipping(Faction) && !Shipment.MayShipCrossPlanet(Game, Player);
 
-    private void HandleLocationSelectedWithModifier(object sender, Location l)
+    private bool MaySelectSource => Shipment.MayShipCrossPlanet(Game, Player) || Shipment.MayShipToReserves(Game, Player);
+
+    // Only locations drawn on the map can be clicked. Homeworlds are not, so
+    // shipping to or from another homeworld is not offered here.
+    private bool OnMap(Location l) => SectorGeometry.HasCenter(Client.CurrentSkin, l);
+
+    private IEnumerable<Location> SelectableSources => MaySelectSource ? Shipment.ValidSourceLocations(Game, Player).Where(OnMap) : [];
+
+    // The source sector for site-to-site and back-to-reserves shipments. The
+    // event stores it in From for the former and in To for the latter.
+    private Location? Source => ShipmentType switch
     {
-        SetIfValid(ref _shipmentFrom, Shipment.ValidSourceLocations(Game, Player), l);
-    }
-    
+        ShipmentType.ShipmentSiteToSite => _shipmentFrom,
+        ShipmentType.ShipmentBack => _shipmentTo,
+        _ => null
+    };
+
+    private Location? Destination => ShipmentType is ShipmentType.ShipmentBack ? null : _shipmentTo;
+
     private int Cost => Shipment.DetermineCost(Game, Player, ConfirmedResult);
 
     private IEnumerable<Location> ValidShipmentLocations =>
-        ShipmentType switch
+        (ShipmentType switch
         {
             ShipmentType.ShipmentNormal => Shipment.ValidShipmentLocations(Game, Player, false, false),
             ShipmentType.ShipmentWhiteSecretAlly => Shipment.ValidShipmentLocations(Game, Player, false, true),
             ShipmentType.ShipmentSiteToSite => Shipment.ValidShipmentLocations(Game, Player, true, false),
-            ShipmentType.ShipmentBack => Shipment.ValidSourceLocations(Game, Player),
             _ => []
-        };
+        }).Where(OnMap);
 
     private int ValidShipmentForces =>
         ShipmentType switch
@@ -372,7 +179,7 @@
             ShipmentType.ShipmentWhiteSecretAlly => Shipment.ValidMaxSecretAllyShipmentForces(Player, false),
             ShipmentType.ShipmentSiteToSite => Shipment.ValidMaxShipmentSiteToSiteForces(Player, false, _shipmentFrom),
             ShipmentType.ShipmentBack => Shipment.ValidMaxShipmentBackForces(Player, false, _shipmentTo),
-            _ => throw new ArgumentOutOfRangeException()
+            _ => 0
         };
 
     private int ValidShipmentSpecialForces =>
@@ -385,32 +192,398 @@
             _ => 0
         };
 
-
-    private IEnumerable<ShipmentType> ValidShipmentTypes
+    private void ResetSelection()
     {
-        get
-        {
-            var result = new List<ShipmentType> { ShipmentType.ShipmentNormal };
-
-            if (Shipment.MayShipCrossPlanet(Game, Player)) result.Add(ShipmentType.ShipmentSiteToSite);
-            if (Shipment.MayShipToReserves(Game, Player)) result.Add(ShipmentType.ShipmentBack);
-            if (Shipment.MayUseWhiteSecretAlly(Game, Player)) result.Add(ShipmentType.ShipmentWhiteSecretAlly);
-
-            return result;
-        }
+        ShipmentType = ShipmentType.ShipmentNormal;
+        _shipmentFrom = null;
+        _shipmentTo = null;
+        ShipmentForceAmount = 0;
+        ShipmentSpecialForceAmount = 0;
+        ShipmentAllyContributionAmount = 0;
+        NoFieldValue = -1;
+        CunningNoFieldValue = -1;
+        SmuggledForceAmount = 0;
+        SmuggledSpecialForceAmount = 0;
+        KarmaCard = null;
+        ForceOrigins.Clear();
     }
 
-    private IEnumerable<string> ValidShipmentTypeLabels
+    // Starts a shipment with one force of whichever kind is available, so the
+    // panel opens ready to confirm.
+    private void InitializeAmounts()
     {
-        get
-        {
-            var result = new List<string> { "Normal Shipment" };
-
-            if (Shipment.MayShipCrossPlanet(Game, Player)) result.Add("Site-to-site");
-            if (Shipment.MayShipToReserves(Game, Player)) result.Add("Back to reserves");
-            if (Shipment.MayUseWhiteSecretAlly(Game, Player)) result.Add($"{Name(Faction.White)} Secret Ally");
-
-            return result;
-        }
+        ShipmentForceAmount = Math.Min(1, ValidShipmentForces);
+        ShipmentSpecialForceAmount = ShipmentForceAmount == 0 ? Math.Min(1, ValidShipmentSpecialForces) : 0;
+        if (Faction == Faction.White && NoFieldValue >= 0) ShipmentSpecialForceAmount = 1;
     }
+
+    private void ClaimIfFree()
+    {
+        if (!Map.IsFree) return;
+        Map.Claim(this);
+        PushToMap();
+    }
+
+    private void HandleMapChanged()
+    {
+        if (Map.IsFree) ClaimIfFree();
+        StateHasChanged();
+    }
+
+    private void PushToMap()
+    {
+        Map.Faction = Faction;
+        Map.Selectable.Clear();
+        Map.Selected.Clear();
+        Map.Targets.Clear();
+        Map.Target = null;
+        Map.Origin = null;
+        Map.EndPoint = null;
+        Map.Pin = null;
+        Map.ShowCursorArrow = true;
+
+        if (!PreventedFromShipping)
+        {
+            foreach (var l in SelectableSources) Map.Selectable.Add(l);
+
+            var token = SectorGeometry.PlayerTokenPosition(Client.CurrentSkin, Game, Player.Seat);
+            if (Source != null)
+            {
+                Map.Selected.Add(Source);
+            }
+            else
+            {
+                Map.Origin = token;
+            }
+
+            if (ShipmentType is ShipmentType.ShipmentBack)
+            {
+                Map.EndPoint = token;
+                Map.ShowCursorArrow = false;
+            }
+            else
+            {
+                foreach (var l in ValidShipmentLocations) Map.Targets.Add(l);
+                Map.Target = Destination;
+            }
+
+            if (Destination != null || ShipmentType is ShipmentType.ShipmentBack)
+            {
+                Map.Pin = PinContent;
+            }
+            else if (Source != null)
+            {
+                Map.Pin = SourcePinContent;
+            }
+        }
+
+        Map.OnCancel = ClearSelection;
+        Map.Refresh();
+    }
+
+    private void HandleLocationSelected(object? sender, Location l)
+    {
+        if (!OwnsMap || PreventedFromShipping) return;
+
+        if (Source == l)
+        {
+            // Clicking the source again drops it and returns to shipping from reserves.
+            ResetSelection();
+        }
+        else if (Destination == l)
+        {
+            _shipmentTo = null;
+        }
+        else if (Source != null && ShipmentType is not ShipmentType.ShipmentBack && ValidShipmentLocations.Contains(l))
+        {
+            // With a source chosen, a click means "ship here", even on a
+            // sector holding more of your forces.
+            var firstPick = _shipmentTo == null;
+            _shipmentTo = l;
+            if (firstPick) InitializeAmounts();
+        }
+        else if (SelectableSources.Contains(l))
+        {
+            ResetSelection();
+            if (Shipment.MayShipCrossPlanet(Game, Player))
+            {
+                ShipmentType = ShipmentType.ShipmentSiteToSite;
+                _shipmentFrom = l;
+            }
+            else
+            {
+                ShipmentType = ShipmentType.ShipmentBack;
+                _shipmentTo = l;
+                InitializeAmounts();
+            }
+        }
+        else if (ShipmentType is not ShipmentType.ShipmentBack && ValidShipmentLocations.Contains(l))
+        {
+            var firstPick = _shipmentTo == null;
+            _shipmentTo = l;
+            if (firstPick) InitializeAmounts();
+        }
+        else
+        {
+            return;
+        }
+
+        PushToMap();
+        StateHasChanged();
+    }
+
+    // Guild clicks a sector holding its forces to ship from it; this is the
+    // way to ship onto that sector from reserves instead.
+    private bool MayShipHereFromReserves =>
+        _shipmentFrom != null && !Game.PreventedFromShipping(Faction) && Shipment.ValidShipmentLocations(Game, Player, false, false).Contains(_shipmentFrom);
+
+    private void ShipHereFromReserves()
+    {
+        var destination = _shipmentFrom;
+        ResetSelection();
+        _shipmentTo = destination;
+        InitializeAmounts();
+        PushToMap();
+    }
+
+    private void ShipBackToReserves()
+    {
+        var source = _shipmentFrom;
+        ResetSelection();
+        ShipmentType = ShipmentType.ShipmentBack;
+        _shipmentTo = source;
+        InitializeAmounts();
+        PushToMap();
+    }
+
+    private void SetShipmentType(ShipmentType type)
+    {
+        if (ShipmentType == type) return;
+        var to = _shipmentTo;
+        ResetSelection();
+        ShipmentType = type;
+        _shipmentTo = ValidShipmentLocations.Contains(to) ? to : null;
+        if (_shipmentTo != null) InitializeAmounts();
+        PushToMap();
+    }
+
+    private void SetNoField(int value, bool cunning)
+    {
+        if (cunning)
+        {
+            CunningNoFieldValue = value;
+        }
+        else
+        {
+            NoFieldValue = value;
+            if (value < 0) CunningNoFieldValue = -1;
+            if (Faction == Faction.White)
+            {
+                ShipmentSpecialForceAmount = Shipment.DefaultNoFieldSpecialForceAmount(Faction, NoFieldValue);
+                if (value >= 0 && !Game.HasHighThreshold(Faction.White)) ShipmentForceAmount = 0;
+            }
+        }
+        ShipmentForceAmount = Math.Min(ShipmentForceAmount, ValidShipmentForces);
+        ShipmentSpecialForceAmount = Math.Min(ShipmentSpecialForceAmount, ValidShipmentSpecialForces);
+        PushToMap();
+    }
+
+    private void SetOrigin(Homeworld world, int amount, bool special)
+    {
+        if (!ForceOrigins.TryGetValue(world, out var battalion))
+        {
+            battalion = new Battalion(Faction, 0, 0, world);
+            ForceOrigins[world] = battalion;
+        }
+        if (special) battalion.AmountOfSpecialForces = amount;
+        else battalion.AmountOfForces = amount;
+        PushToMap();
+    }
+
+    private void Change(Action change)
+    {
+        change();
+        PushToMap();
+    }
+
+    private void ClearSelection()
+    {
+        ResetSelection();
+        PushToMap();
+    }
+
+    // Shown at a selected source before a destination is picked: the way to
+    // send those forces back to reserves instead.
+    private RenderFragment SourcePinContent => __builder =>
+    {
+        <div class="pin-body">
+            <div class="pin-hint">Click where to ship to</div>
+            <div class="pin-actions">
+                <button type="button" class="btn btn-secondary" @onclick="ClearSelection">Cancel</button>
+                @if (MayShipHereFromReserves)
+                {
+                    <button type="button" class="btn btn-secondary" @onclick="ShipHereFromReserves">Here from reserves</button>
+                }
+                @if (Shipment.MayShipToReserves(Game, Player))
+                {
+                    <button type="button" class="btn btn-secondary" @onclick="ShipBackToReserves">To reserves</button>
+                }
+            </div>
+        </div>
+    };
+
+    private RenderFragment PinContent => __builder =>
+    {
+        var canChooseType = ShipmentType is ShipmentType.ShipmentNormal or ShipmentType.ShipmentWhiteSecretAlly && Shipment.MayUseWhiteSecretAlly(Game, Player);
+        var whiteNoField = Faction is Faction.White && NoFieldValue >= 0 && !Game.HasHighThreshold(Faction.White);
+        var fromReserves = ShipmentType is ShipmentType.ShipmentNormal or ShipmentType.ShipmentWhiteSecretAlly;
+
+        Homeworld[] normalWorlds = [];
+        Homeworld[] specialWorlds = [];
+        if (fromReserves)
+        {
+            normalWorlds = Shipment.HomeworldsToShipFrom(Player, false).ToArray();
+            specialWorlds = Shipment.HomeworldsToShipFrom(Player, true).ToArray();
+        }
+        var chooseNormalWorld = normalWorlds.Length > 1;
+        var chooseSpecialWorld = specialWorlds.Length > 1;
+        if (!chooseNormalWorld && !chooseSpecialWorld) ForceOrigins.Clear();
+
+        if (!Shipment.MayUseNoField(Game, Player))
+        {
+            NoFieldValue = -1;
+            CunningNoFieldValue = -1;
+        }
+        if (!Shipment.MaySmuggle(Game, Player, _shipmentTo) || !fromReserves || Faction == Faction.Yellow)
+        {
+            SmuggledForceAmount = 0;
+            SmuggledSpecialForceAmount = 0;
+        }
+        var mayKarma = Shipment.CanKarma(Game, Player) && (Faction != Faction.Yellow || ShipmentType is ShipmentType.ShipmentSiteToSite) && !Shipment.MayShipCrossPlanet(Game, Player);
+        if (!mayKarma) KarmaCard = null;
+
+        var cost = Cost;
+        var allyCanPay = Player.Ally != Faction.None && cost > 0 ? Game.ResourcesYourAllyCanPay(Player) : 0;
+        if (allyCanPay == 0) ShipmentAllyContributionAmount = 0;
+        var validation = Validation;
+
+        <div class="pin-body">
+            @if (ShipmentType is ShipmentType.ShipmentBack)
+            {
+                <div class="pin-hint">Back to reserves from @Name(_shipmentTo)</div>
+            }
+
+            @if (canChooseType)
+            {
+                <div class="pin-choice">
+                    <button type="button" class="@(ShipmentType is ShipmentType.ShipmentNormal ? "on" : "")" @onclick="@(() => SetShipmentType(ShipmentType.ShipmentNormal))">Normal</button>
+                    <button type="button" class="@(ShipmentType is ShipmentType.ShipmentWhiteSecretAlly ? "on" : "")" @onclick="@(() => SetShipmentType(ShipmentType.ShipmentWhiteSecretAlly))">@Name(Faction.White) secret ally</button>
+                </div>
+            }
+
+            @if (Shipment.MayUseNoField(Game, Player) && fromReserves)
+            {
+                <div class="pin-choice">
+                    <button type="button" class="@(NoFieldValue < 0 ? "on" : "")" @onclick="@(() => SetNoField(-1, false))">No No-Field</button>
+                    @foreach (var v in Shipment.ValidNoFieldValues(Game, Player))
+                    {
+                        <button type="button" class="@(NoFieldValue == v ? "on" : "")" @onclick="@(() => SetNoField(v, false))">No-Field @v</button>
+                    }
+                </div>
+                @if (NoFieldValue >= 0 && Shipment.MayUseCunningNoField(Player))
+                {
+                    <div class="pin-choice">
+                        <button type="button" class="@(CunningNoFieldValue < 0 ? "on" : "")" @onclick="@(() => SetNoField(-1, true))">No second No-Field</button>
+                        @foreach (var v in Shipment.ValidCunningNoFieldValues(Game, Player, NoFieldValue))
+                        {
+                            <button type="button" class="@(CunningNoFieldValue == v ? "on" : "")" @onclick="@(() => SetNoField(v, true))">Cunning No-Field @v</button>
+                        }
+                    </div>
+                }
+            }
+
+            <div class="pin-row">
+                @if (ValidShipmentForces > 0 && !whiteNoField)
+                {
+                    <MapForceStepper Value="@ShipmentForceAmount" ValueChanged="@(v => Change(() => ShipmentForceAmount = v))" Min="0" Max="@ValidShipmentForces" Faction="Faction" Special="false"/>
+                }
+                @if (ValidShipmentSpecialForces > 0 && Faction != Faction.White)
+                {
+                    <MapForceStepper Value="@ShipmentSpecialForceAmount" ValueChanged="@(v => Change(() => ShipmentSpecialForceAmount = v))" Min="0" Max="@ValidShipmentSpecialForces" Faction="Faction" Special="true"/>
+                }
+            </div>
+
+            @if (chooseNormalWorld || chooseSpecialWorld)
+            {
+                <div class="pin-hint">From which worlds:</div>
+                @foreach (var world in normalWorlds.Union(specialWorlds))
+                {
+                    var origin = ForceOrigins.GetValueOrDefault(world);
+                    <div class="pin-row">
+                        <span class="pin-from">@Name(world)</span>
+                        @if (chooseNormalWorld && Player.ForcesIn(world) > 0)
+                        {
+                            <MapForceStepper Value="@(origin?.AmountOfForces ?? 0)" ValueChanged="@(v => SetOrigin(world, v, false))" Min="0" Max="@Player.ForcesIn(world)" Faction="Faction" Special="false"/>
+                        }
+                        @if (chooseSpecialWorld && Player.SpecialForcesIn(world) > 0)
+                        {
+                            <MapForceStepper Value="@(origin?.AmountOfSpecialForces ?? 0)" ValueChanged="@(v => SetOrigin(world, v, true))" Min="0" Max="@Player.SpecialForcesIn(world)" Faction="Faction" Special="true"/>
+                        }
+                    </div>
+                }
+            }
+
+            @if (fromReserves && Faction != Faction.Yellow && (ShipmentForceAmount > 0 || ShipmentSpecialForceAmount > 0) && Shipment.MaySmuggle(Game, Player, _shipmentTo))
+            {
+                <div class="pin-row">
+                    <span class="pin-from">Smuggle 1 for free</span>
+                    @if (Player.ForcesInReserve > 0)
+                    {
+                        <MapForceStepper Value="@SmuggledForceAmount" ValueChanged="@(v => Change(() => SmuggledForceAmount = v))" Min="0" Max="1" Faction="Faction" Special="false"/>
+                    }
+                    @if (Player.SpecialForcesInReserve > 0 && Faction != Faction.White)
+                    {
+                        <MapForceStepper Value="@SmuggledSpecialForceAmount" ValueChanged="@(v => Change(() => SmuggledSpecialForceAmount = v))" Min="0" Max="1" Faction="Faction" Special="true"/>
+                    }
+                </div>
+            }
+
+            @if (mayKarma)
+            {
+                <div class="pin-hint">@Name(TreacheryCardType.Karma) for @Name(Faction.Orange) rate:</div>
+                <div class="pin-choice">
+                    <button type="button" class="@(KarmaCard == null ? "on" : "")" @onclick="@(() => Change(() => KarmaCard = null))">None</button>
+                    @foreach (var card in Shipment.ValidKarmaCards(Game, Player))
+                    {
+                        <button type="button" class="@(KarmaCard == card ? "on" : "")" @onclick="@(() => Change(() => KarmaCard = card))">@Name(card)@(Player.TreacheryCards.Contains(card) ? "" : " (ally)")</button>
+                    }
+                </div>
+            }
+
+            <div class="pin-row pin-cost">
+                <img src="@Client.CurrentSkin.Resource_URL" alt=""/>
+                <span>Cost @cost</span>
+                @if (allyCanPay > 0)
+                {
+                    <span class="pin-from">ally pays</span>
+                    <MapForceStepper Value="@ShipmentAllyContributionAmount" ValueChanged="@(v => Change(() => ShipmentAllyContributionAmount = v))" Min="0" Max="@Math.Min(allyCanPay, cost)" Faction="Player.Ally" Spice="true"/>
+                }
+            </div>
+
+            @if (Destination != null && Game.ContainsConflictingAlly(Player, Destination))
+            {
+                <div class="pin-warn">Your ally is there: all your forces there at the end of your move will be destroyed.</div>
+            }
+
+            @if (validation != null)
+            {
+                <div class="pin-error">@validation.ToString(Client.CurrentSkin)</div>
+            }
+
+            <div class="pin-actions">
+                <button type="button" class="btn btn-secondary" @onclick="ClearSelection">Cancel</button>
+                <button type="button" class="btn btn-primary" disabled="@(validation != null)" @onclick="Confirm">Ship</button>
+            </div>
+        </div>
+    };
 }

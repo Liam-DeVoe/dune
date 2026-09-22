@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
  * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
@@ -15,4 +15,8 @@ public class LocationEventArgs
     public bool CtrlKey { get; init; }
     public bool ShiftKey { get; init; }
     public bool AltKey { get; init; }
+
+    // Set for a contextmenu event, so ctrl-click on a Mac and a long press on
+    // a touch screen count as a right click too.
+    public bool RightButton { get; init; }
 }

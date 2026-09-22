@@ -1,0 +1,62 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Spice blow review: marking the new pile</title><style>
+body{margin:0;background:#1d0c00;color:#fcf9d1;font-family:"Alegreya Sans",Candara,sans-serif;padding:32px 48px}
+h1{font-weight:400;font-size:36px;margin:0 0 4px} p,li{color:#b3915f;max-width:80ch} h2{font-weight:400;font-size:26px;margin:48px 0 8px;color:#fcf9d1}
+h3{font-weight:600;font-size:18px;margin:32px 0 10px;color:#f3d987}
+.ba2{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start} .ba4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;align-items:start}
+.lbl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#a68d63;margin:0 0 6px}
+.shot{border:1px solid rgba(255,255,255,.12);border-radius:6px;overflow:hidden;background:#000} .shot img{width:100%;display:block}
+.note{margin:6px 0 0;font-size:14px} strong{color:#fcf9d1} .pick{border-color:#e7bf3c}
+</style></head><body>
+<h1>Spice blow review: marking the new pile</h1>
+<p>During the spice blow phase nothing on the map says where the spice just landed. These are real screenshots of the local client, turn 8 of a bot game, seen as the Atreides. Spice blew in Sihaya Ridge, top right. Three older piles are still on the map, in Hagga Basin, The Great Flat and Wind Pass North. Every option is in the code behind a class on the map layer, so they were all shot from one page load.</p>
+
+<h2>The problem</h2>
+<div class="ba2">
+  <div><p class="lbl">Whole map, as it is today</p><div class="shot"><img src="shots/before.png"></div></div>
+  <div><p class="lbl">Sihaya Ridge, close</p><div class="shot"><img src="shots/before-zoom.png"></div><p class="note">Two things compound. The new pile looks exactly like the three older ones. And every place that can ever blow carries a grey placeholder token with a faint number, fifteen of them, so even a real pile has to be found among lookalikes. The drawn card sits in the corner and names the territory; the player then hunts for it by label.</p></div>
+</div>
+
+<h2>Marking the new pile</h2>
+<p>Four ways to say "here", all shown with the placeholders left as they are so the marker is judged on its own.</p>
+<div class="ba4">
+  <div><p class="lbl">A. Sector tint</p><div class="shot"><img src="shots/sector-zoom.png"></div><p class="note">The sector that blew gets the same clipped wash and inset edge the action tints use, in gold instead of a faction colour, plus the amount above the pile. Same language as the rest of the map. On a small territory like this one the wash is quiet; gold on parchment does not carry far.</p></div>
+  <div><p class="lbl">B. Halo and a larger token</p><div class="shot"><img src="shots/halo-zoom.png"></div><p class="note">A gold ring around the pile, the token itself scaled up, and the amount above. Reads at a glance from across the map because it changes the token rather than the ground. Says nothing about the sector, which matters when a territory spans several.</p></div>
+  <div><p class="lbl">C. Pin</p><div class="shot"><img src="shots/pin-zoom.png"></div><p class="note">The pinned-action callout, anchored on the pile, with the amount and the territory name. The most legible of the four and the only one that can carry words like "lost in the storm". Also the heaviest, and it covers a neighbour.</p></div>
+  <div><p class="lbl">D. Line from the card</p><div class="shot"><img src="shots/connector-zoom.png"></div><p class="note">A dashed line from the drawn card in the corner to the pile, with a halo at the end. Ties the card to the place, but the line crosses half the board and adds noise for one fact. Shown for completeness; I would not ship it.</p></div>
+</div>
+<div class="ba2" style="margin-top:16px">
+  <div><p class="lbl">A on the whole map</p><div class="shot"><img src="shots/sector.png"></div></div>
+  <div><p class="lbl">C on the whole map</p><div class="shot"><img src="shots/pin.png"></div></div>
+</div>
+
+<h2>Quieting the placeholders</h2>
+<p>This is independent of the phase. Whatever marks the new pile, real piles should read as real piles in every phase, and today they do not. Nothing else changes in these three; compare with the map at the top.</p>
+<div class="ba2">
+  <div><p class="lbl">Number removed</p><div class="shot"><img src="shots/ph-quiet.png"></div><p class="note">The grey token stays, the faint number goes. The number was the main thing that made a placeholder look like a pile.</p></div>
+  <div><p class="lbl">Faded, number removed</p><div class="shot"><img src="shots/ph-faded.png"></div><p class="note">Token at 40% and no number. The four real piles now pop without any marker at all. Where spice can blow is still visible for anyone planning a shipment.</p></div>
+</div>
+<div class="ba2" style="margin-top:16px">
+  <div><p class="lbl">Hidden</p><div class="shot"><img src="shots/ph-hidden.png"></div><p class="note">No placeholders. Cleanest map, but the "may contain spice" information is gone from the board and lives only in the hover popover.</p></div>
+  <div><p class="lbl">Faded, close</p><div class="shot"><img src="shots/ph-faded-zoom.png"></div></div>
+</div>
+
+<h2>Combinations</h2>
+<div class="ba2">
+  <div><p class="lbl">A + faded placeholders</p><div class="shot pick"><img src="shots/sector-faded.png"></div><p class="note"><strong>My pick.</strong> The faded placeholders do most of the work in every phase, and the sector tint does the rest during the blow using a mark the map already uses. Quiet, and nothing is covered.</p></div>
+  <div><p class="lbl">B + faded placeholders</p><div class="shot"><img src="shots/halo-faded.png"></div><p class="note">Louder from a distance than A. The fallback if the tint turns out too subtle in play, since it is the same code with a different class.</p></div>
+</div>
+<div class="ba2" style="margin-top:16px">
+  <div><p class="lbl">A + C + faded placeholders</p><div class="shot"><img src="shots/sector-pin-faded.png"></div><p class="note">Tint plus pin. The most explicit, at the cost of a card-sized label sitting on the map for the whole phase.</p></div>
+  <div><p class="lbl">A + faded placeholders, close</p><div class="shot pick"><img src="shots/sector-faded-zoom.png"></div></div>
+</div>
+
+<h2>Calls I made that you should approve or change</h2>
+<ol>
+  <li><strong>The marker shows for the whole blow main phase</strong>, which includes thumper, harvester, nexus and the report. It is gone once charity starts. Extending it into bidding is a one-line change.</li>
+  <li><strong>Spice lost to the storm is marked too</strong>, in white instead of gold, with the word "lost" where the amount would be. The code does this but this fixture had no storm blow, so it is not in the screenshots.</li>
+  <li><strong>The amount label is the card's printed amount</strong>, so it would read wrong on the rare turn a sandtrout doubles the blow. The pile total under it is right regardless.</li>
+  <li><strong>The pile marker is the same size as before.</strong> Only option B enlarges it, and only for the new pile.</li>
+  <li>With the double blow rule both cards are marked, A and B alike.</li>
+</ol>
+<p>Fixture: <code>scripts/fixtures/blow.json</code>, made with <code>dotnet run scripts/make-fixture.cs -- blow</code>. Shots: <code>scripts/ui/shots.py blow</code>.</p>
+</body></html>

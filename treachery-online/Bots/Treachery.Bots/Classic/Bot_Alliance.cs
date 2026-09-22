@@ -39,10 +39,10 @@ public partial class ClassicBot
         var nrOfUnalliedHumans = Game.Players.Count(p => !Game.IsBot(p) && !p.HasAlly);
         var offer = Game.CurrentAllianceOffers
                         .Where(offer => offer.Target == Faction && !Game.IsBot(offer.Player))
-                        .HighestOrDefault(offer => PlayerStanding(offer.Player))
+                        .HighestOrDefault(_random, offer => PlayerStanding(offer.Player))
                     ?? Game.CurrentAllianceOffers
                         .Where(allianceOffered => allianceOffered.Target == Faction)
-                        .HighestOrDefault(allianceOffered => PlayerStanding(allianceOffered.Player));
+                        .HighestOrDefault(_random, allianceOffered => PlayerStanding(allianceOffered.Player));
 
         if (offer != null) 
             return new AllianceOffered(Game, Faction) { Target = offer.Initiator };
@@ -55,7 +55,7 @@ public partial class ClassicBot
         {
             var mostInterestingOpponentBotWithoutAlly = Game.Players
                 .Where(p => p != Player && Game.IsBot(p) && !p.HasAlly && AllianceOffered.ValidTargets(Game, Player).Contains(p.Faction))
-                .HighestOrDefault(p => PlayerStanding(p));
+                .HighestOrDefault(_random, p => PlayerStanding(p));
 
             if (mostInterestingOpponentBotWithoutAlly != null) 
                 return new AllianceOffered(Game, Faction) { Target = mostInterestingOpponentBotWithoutAlly.Faction };
@@ -79,7 +79,7 @@ public partial class ClassicBot
     {
         var offer = Game.CurrentAllianceOffers
             .Where(offer => offer.Target == Faction && !Game.IsBot(offer.Player))
-            .HighestOrDefault(offer => PlayerStanding(offer.Player));
+            .HighestOrDefault(_random, offer => PlayerStanding(offer.Player));
 
         if (offer != null && Player.HasAlly && PlayerStanding(offer.Player) > PlayerStanding(AlliedPlayer!)) 
             return new AllianceBroken(Game, Faction);

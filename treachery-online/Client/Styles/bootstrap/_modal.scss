@@ -1,0 +1,26 @@
+.modal {
+  --bs-modal-bg: var(--ink-2);
+  --bs-modal-color: var(--parchment);
+  --bs-modal-border-color: rgba(255, 255, 255, 0.14);
+  --bs-modal-border-radius: var(--r-2);
+  --bs-modal-inner-border-radius: 5px;
+  --bs-modal-box-shadow: var(--shadow-3);
+  --bs-modal-header-border-color: rgba(255, 255, 255, 0.09);
+  --bs-modal-footer-border-color: rgba(255, 255, 255, 0.09);
+}
+
+.modal-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 24px;
+  color: var(--sand);
+}
+
+.modal-backdrop {
+  --bs-backdrop-bg: var(--ink-0);
+  --bs-backdrop-opacity: 0.7;
+}
+
+.btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}

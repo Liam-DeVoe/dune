@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hazard chips: protected vs exposed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya:ital,wght@0,500;0,700;1,500&display=swap" rel="stylesheet">
+<style>
+@font-face { font-family: "Advokat"; src: url("../treachery-online/Client/wwwroot/Advokat.ttf"); }
+@font-face { font-family: "Copperplate Dune"; src: url("../treachery-online/Client/wwwroot/Copperplate.ttf"); }
+
+:root {
+  --ink-0: #120800; --ink-1: #1d0c00; --ink-2: #2a1607; --ink-3: #3b2310; --ink-4: #4e3218;
+  --parchment: #fcf9d1; --sand: #f3d987; --rock: #b3915f; --rock-2: #8c6b3e;
+  --gold: #e7bf3c; --gold-3: #b8841e;
+  --spice: #e8762a; --storm: #c33232; --storm-2: #8f1f1f;
+  --text: var(--parchment); --text-2: #d9c79a; --text-3: #a68d63;
+  --font-display: "Advokat", serif;
+  --font-label: "Copperplate Dune", "Copperplate", serif;
+  --font-body: "Alegreya Sans", "Candara", sans-serif;
+  --r-2: 6px; --r-pill: 999px;
+  --shadow-3: 0 18px 40px rgba(18,8,0,.6), 0 2px 6px rgba(18,8,0,.6);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--ink-1); color: var(--text); font-family: var(--font-body); font-size: 16px; line-height: 1.45; }
+main { max-width: 1180px; margin: 0 auto; padding: 40px 24px 80px; }
+h1 { font-family: var(--font-display); font-weight: 400; font-size: 34px; color: var(--sand); margin: 0 0 8px; }
+h2 { font-family: var(--font-display); font-weight: 400; font-size: 24px; color: var(--sand); margin: 0; }
+.lede { color: var(--text-2); max-width: 720px; margin: 0 0 12px; }
+.lede.rec { border-left: 2px solid var(--gold); padding-left: 12px; }
+section { margin-top: 44px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,.09); }
+section header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px; }
+section header .k { font-family: var(--font-label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-3); }
+section header .tag { font-family: var(--font-label); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); border: 1px solid rgba(231,191,60,.45); border-radius: var(--r-pill); padding: 2px 8px; }
+section p { color: var(--text-2); max-width: 720px; margin: 0 0 16px; }
+section p.con { color: var(--text-3); }
+
+/* the four popovers, in a row */
+.row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.pop {
+  background: var(--ink-0); text-align: center;
+  border: 1px solid rgba(255,255,255,.16); border-radius: var(--r-2);
+  padding: 10px 12px 12px; box-shadow: var(--shadow-3);
+}
+.pop h5 { margin: 0 0 6px; font-family: var(--font-display); font-weight: 400; font-size: 22px; color: var(--parchment); }
+.pop h5 .sector { font-family: var(--font-label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-3); white-space: nowrap; margin-left: 4px; }
+.pop p { margin: 4px 0; color: var(--text-2); font-size: 14px; max-width: none; }
+.pop .inline-icon { width: 18px; height: 18px; vertical-align: -3px; margin-left: 2px; }
+.hazards { display: flex; justify-content: center; gap: 8px; margin: 6px 0 4px; }
+
+/* the chip as shipped */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 5px;
+  border-radius: var(--r-pill); background: rgba(18,8,0,.55);
+  border: 1px solid rgba(252,249,209,.12); font-size: 14px; color: var(--text); line-height: 1; white-space: nowrap;
+}
+.chip .name { font-weight: 500; letter-spacing: .01em; }
+.chip img, .chip svg { display: block; width: 22px; height: 22px; flex: none; }
+.chip .ic { position: relative; display: block; width: 22px; height: 22px; flex: none; }
+.chip .ic img, .chip .ic svg { position: absolute; inset: 0; }
+.chip.storm { background: var(--storm); border-color: var(--storm); color: var(--parchment); }
+
+/* 0. current */
+.v0 .chip.safe { opacity: .55; }
+.v0 .chip.safe img { filter: grayscale(1); }
+
+/* A. word only */
+/* nothing: both chips are the plain chip */
+
+/* B. danger scale: plain, red hairline, red fill */
+.vB .chip.open { border-color: rgba(195,50,50,.55); background: rgba(195,50,50,.10); }
+
+/* C. walled vs open */
+.vC .chip.safe { background: var(--ink-3); border-color: rgba(252,249,209,.22); }
+.vC .chip.open { background: transparent; border-style: dashed; border-color: rgba(252,249,209,.28); }
+
+/* D. crossed icon for protected */
+.vD .chip.safe .ic::after {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 2px; height: 30px;
+  background: var(--sand); transform: translate(-50%,-50%) rotate(-45deg);
+  box-shadow: 0 0 0 1.5px var(--ink-0);
+}
+
+/* E. a corner badge: check for protected, mark for exposed */
+.vE .chip .ic i {
+  position: absolute; right: -5px; bottom: -4px; width: 12px; height: 12px; border-radius: 50%;
+  display: grid; place-items: center; font-style: normal; font-weight: 700; font-size: 9px; line-height: 1;
+  box-shadow: 0 0 0 1.5px var(--ink-0);
+}
+.vE .chip.safe .ic i { background: var(--sand); color: var(--ink-0); }
+.vE .chip.open .ic i { background: var(--storm); color: var(--parchment); }
+
+/* F. protected word in secondary text colour, icon untouched */
+.vF .chip.safe { color: var(--text-2); }
+.vF .chip.safe .name { font-weight: 400; }
+
+/* G. combine B and C: walled protected, red-edged exposed */
+.vG .chip.safe { background: var(--ink-3); border-color: rgba(252,249,209,.22); }
+.vG .chip.open { background: rgba(195,50,50,.10); border-color: rgba(195,50,50,.55); }
+</style>
+</head>
+<body>
+<main>
+<h1>Hazard chips</h1>
+<p class="lede">The intel popover shows two chips: whether the territory is safe from the worm, and whether it is safe from the storm. Today the safe one is faded to 55% with a grey icon. Faded reads as disabled or irrelevant, and here it marks the state a player is usually glad to see. Every option below drops the fade. The red fill for the sector the storm is in right now stays in all of them, since that is the one state that blocks movement outright.</p>
+<p class="lede rec">Recommendation: B. It gives the three storm states a single scale (plain, red edge, red fill) so the eye learns one rule, and the loud state is the one that costs you forces. G is B plus a walled fill for protected, if plain feels too plain.</p>
+
+<script>
+const worm = "../treachery-online/Client/wwwroot/art/monster.svg";
+const stormGlyph = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round'><path d='M3 7h9.5a2.5 2.5 0 1 0-2.5-2.5'/><path d='M3 12h15a2.5 2.5 0 1 1-2.5 2.5'/><path d='M3 17h7a2 2 0 1 1-2 2'/></svg>";
+const spice = "<img class='inline-icon' src='../treachery-online/Client/wwwroot/art/ActiveSpice.svg'>";
+
+// state: "safe" | "open" | "storm"
+function chip(kind, state, badge) {
+  const icon = kind === "worm" ? `<img src='${worm}'>` : stormGlyph;
+  const word = state === "safe" ? "Protected" : state === "open" ? "Exposed" : "In storm";
+  const b = badge && state !== "storm" ? `<i>${state === "safe" ? "✓" : "!"}</i>` : "";
+  return `<span class='chip ${state}'><span class='ic'>${icon}${b}</span><span class='name'>${word}</span></span>`;
+}
+
+const cases = [
+  { name: "Imperial Basin", sector: "East", worm: "open", storm: "safe" },
+  { name: "Polar Sink", sector: "", worm: "safe", storm: "safe", before: "<p>Safe haven: no battles are fought here.</p>" },
+  { name: "Cielago North", sector: "Center", worm: "open", storm: "storm" },
+  { name: "Cielago North", sector: "East", worm: "open", storm: "open", after: `<p>May contain <strong>8${spice}</strong> after Spice Blow.</p>` },
+];
+
+function row(badge) {
+  return `<div class='row'>` + cases.map(c => `
+    <div class='pop'>
+      <h5>${c.name}${c.sector ? `<span class='sector'>${c.sector}</span>` : ""}</h5>
+      ${c.before || ""}
+      <div class='hazards'>${chip("worm", c.worm, badge)}${chip("storm", c.storm, badge)}</div>
+      ${c.after || ""}
+    </div>`).join("") + `</div>`;
+}
+
+const options = [
+  { k: "0", cls: "v0", title: "As shipped", why: "Protected is the guide's muted chip: 55% opacity and a grey icon. Exposed is the plain chip.", con: "The safe state looks switched off. A player scanning for danger reads the faded chip as \"not applicable\", not \"you are fine here\"." },
+  { k: "A", cls: "vA", title: "Word only", why: "Both states are the plain chip. The word carries the meaning and nothing else does. In storm keeps its red fill.", con: "Honest and cheap, but Exposed and Protected look identical at a glance, so the reader has to read every chip." },
+  { k: "B", cls: "vB", title: "Danger scale", tag: "recommended", why: "Protected is the plain chip. Exposed gets a storm-red hairline and a faint red wash. In storm is the red fill. The three storm states now sit on one scale from calm to alarm, and the same red edge on the worm chip means the same thing.", con: "Red at low alpha on ink can look muddy on a bad monitor. The wash is 10%, the edge 55%." },
+  { k: "C", cls: "vC", title: "Walled vs open", why: "Protected is a solid raised chip, the guide's ink 3, with a firmer edge: something is around it. Exposed is transparent with a dashed edge: nothing is. Both at full opacity, both with the icon in colour.", con: "Dashed borders are not used anywhere else in the language, so this adds a material. Solid vs transparent alone is too subtle." },
+  { k: "D", cls: "vD", title: "Crossed icon", why: "Protected strikes a sand slash through the hazard icon, the universal \"none here\" sign. Exposed shows the icon plain. The chip chrome is identical in both states.", con: "A slash through the worm can be read as \"no worm\" when the territory is protected from the worm, which is right, but a slash through wind lines is less obvious. The slash also fights the icon at 22px." },
+  { k: "E", cls: "vE", title: "Corner badge", badge: true, why: "A small badge on the icon: a sand check for Protected, a red mark for Exposed. The chip chrome is identical in both states.", con: "It is a third glyph on a 22px icon, so it is the busiest option. Adds a checkmark as a symbol, which the language does not use elsewhere except in the checkbox." },
+  { k: "F", cls: "vF", title: "Secondary text", why: "Protected sets the word in the popover's paragraph colour at regular weight, the same colour as the sentence above the chips, so it recedes to body text rather than fading below it. The icon stays in colour. Exposed keeps the parchment bold word.", con: "It is still a quieter Protected, just less so. If the objection is to any de-emphasis of the safe state, this does not answer it." },
+  { k: "G", cls: "vG", title: "Danger scale, walled", why: "B and C together, without the dashed edge: Protected is the solid raised chip, Exposed is the red-edged plain chip, In storm is the red fill.", con: "Two things vary at once, fill and edge colour. It is the most legible pair but the least minimal." },
+];
+
+document.currentScript.insertAdjacentHTML("afterend", options.map(o => `
+  <section class='${o.cls}'>
+    <header><span class='k'>Option ${o.k}</span><h2>${o.title}</h2>${o.tag ? `<span class='tag'>${o.tag}</span>` : ""}</header>
+    <p>${o.why}</p>
+    ${row(o.badge)}
+    <p class='con' style='margin-top:12px'>${o.con}</p>
+  </section>`).join(""));
+</script>
+</main>
+</body>
+</html>

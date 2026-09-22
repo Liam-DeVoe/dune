@@ -1,0 +1,20 @@
+// Document-level defaults: icon font sheet, page font and selection behaviour,
+// content padding and placeholder styling.
+
+@import url("open-iconic/font/css/open-iconic-bootstrap.min.css");
+
+html,
+body {
+  font-family: Calibri, Tahoma, sans-serif;
+  user-select: none;
+  overflow-x: hidden;
+}
+
+.content {
+  padding-top: 0.75rem;
+}
+
+.form-control::placeholder {
+  color: #999;
+  font-style: italic;
+}

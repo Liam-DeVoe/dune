@@ -6,19 +6,14 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
-@inherits GameEventComponent<PerformCyanSetup>
-@implements IDisposable
+@inherits MapPickComponent<PerformCyanSetup>
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
     <Header>Place 6 forces in an empty territory of your choice.</Header>
     <Body>
 
-        <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="target" Values="PerformCyanSetup.ValidLocations(Game)">
-            <Label>To</Label>
-        </SelectComponent>
-
-        <ButtonRowComponent Confirm="Confirm" ConfirmText="Confirm" ConfirmError="@Validation" />
+        <div class="small">Use the map to choose a location.</div>
 
     </Body>
 
@@ -29,26 +24,14 @@
     protected override bool IsUrgent => true;
     protected override Faction IsFactionSpecific => Faction.Cyan;
 
-    private Location? target;
+    protected override IEnumerable<Location> PickTargets => PerformCyanSetup.ValidLocations(Game);
 
-    protected override PerformCyanSetup ConfirmedResult => new(Game, Faction) { Target = target };
+    protected override PerformCyanSetup ConfirmedResult => new(Game, Faction) { Target = Target };
 
-    protected override void OnAfterRender(bool firstRender)
+    protected override RenderFragment PinContent => __builder =>
     {
-        if (firstRender)
-        {
-            Client.OnLocationSelected += HandleLocationSelected;
-        }
-    }
-
-    public override void Dispose()
-    {
-        base.Dispose();
-        Client.OnLocationSelected -= HandleLocationSelected;
-    }
-
-    private void HandleLocationSelected(object sender, Location l)
-    {
-        SetIfValid(ref target, Game.Map.Locations(false), l);
-    }
+        <div class="pin-body">
+            @PinActions("Place forces")
+        </div>
+    };
 }

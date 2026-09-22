@@ -1,0 +1,86 @@
+// App chrome: form validation states, the Blazor error bar, the map
+// container, the top row, popover and tooltip sizing, card font and
+// svg selection behaviour.
+
+.valid.modified:not([type="checkbox"]) {
+  outline: 1px solid #26b050;
+}
+
+.invalid {
+  outline: 1px solid red;
+}
+
+.validation-message {
+  color: red;
+}
+
+// Bar pinned to the bottom of the viewport that Blazor shows on an
+// unhandled exception.
+#blazor-error-ui {
+  background: lightyellow;
+  bottom: 0;
+  box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+  display: none;
+  left: 0;
+  padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+  position: fixed;
+  width: 100%;
+  z-index: 1000;
+
+  .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+  }
+}
+
+// The map image is absolutely positioned inside its container so overlays
+// can stack on top of it.
+#mapdiv {
+  position: relative;
+}
+
+#mapimg {
+  position: absolute;
+  z-index: 1;
+}
+
+.top-row {
+  height: 3.5rem;
+  display: flex;
+  align-items: center;
+}
+
+// Popovers and tooltips are display-only: large enough for card images and
+// never intercept the pointer.
+.popover {
+  max-width: 800px;
+  max-height: 1000px;
+  background-color: transparent;
+  border: none;
+  pointer-events: none;
+}
+
+.tooltip {
+  pointer-events: none;
+}
+
+.tooltip-inner {
+  max-width: 800px;
+  max-height: 1000px;
+  pointer-events: none;
+}
+
+.card {
+  font-family: Candara, sans-serif;
+}
+
+// Map svg must not be selectable or trigger the touch callout.
+svg {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}

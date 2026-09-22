@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
  * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
@@ -6,8 +6,15 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
+@using Treachery.Client.MapComponents
 @inherits GameEventComponent<PlacementEventType>
 @typeparam PlacementEventType
+
+@*
+ A move is made on the map: click the sector to move from, then the sector to
+ move to. The force counter and the confirm button appear on the map, pinned
+ to the arrow. This panel only explains the next step and offers Pass.
+*@
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
@@ -21,58 +28,26 @@
 
         @if (ValidSources.Any())
         {
-            fromTerritory ??= ValidSources.First();
-
-            @if (Game.CurrentPlanetology != null && Game.CurrentPlanetology.MoveFromTwoTerritories && Game.CurrentPlanetology.Initiator == Faction)
+            @if (OwnsMap)
             {
-                <ForceSelectionComponent Game=Game Player=Player OnChanged="StateHasChanged" Forces="forces" Locations="Game.LocationsWithAnyForcesNotInStorm(Player)" AlwaysShowLocation="true" AllowMultipleTerritories="true" InitializeToMaximum="true"/>
+                <div class="small">Use the map to move forces.</div>
+                @if (!ClaimsMapByDefault)
+                {
+                    <button class="btn btn-secondary btn-sm mt-1" @onclick="ReleaseMap">Cancel</button>
+                }
+            }
+            else if (ClaimsMapByDefault)
+            {
+                <div class="small text-2">Finish the extra move on the map first, or cancel it.</div>
             }
             else
             {
-                <SelectComponent T=Territory OnChanged="StateHasChanged" ButtonHint="ClickHintButton.Lmb" ModifierHint="ClickHintModifier.Ctrl" @bind-Value="fromTerritory" Values="ValidSources">
-                    <Label>From</Label>
-                </SelectComponent>
-
-                <ForceSelectionComponent Game=Game Player=Player OnChanged="StateHasChanged" Forces="forces" Locations="Player.LocationsWithAnyForcesInTerritory(fromTerritory).Where(l => !Game.IsInStorm(l))" InitializeToMaximum="true"/>
+                <button class="btn btn-secondary btn-sm" @onclick="ClaimMap">@Client.CurrentSkin.Format("Play {0}", TreacheryCardType.Caravan)</button>
             }
-
-            <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="toLocation" Values="ValidTargets">
-                <Label>To</Label>
-            </SelectComponent>
-
-            @if (toLocation != null && Game.ContainsConflictingAlly(Player, toLocation))
-            {
-                <div class="text-danger bg-dark">Note: if you place forces there, all of your forces there at the end of your move turn will be destroyed due to ally presence!</div>
-            }
-
-            @if (Faction == Faction.Blue && toLocation != null)
-            {
-                var mayMoveAsAdvisors = PlacementEvent.MayMoveAsAdvisors(Game, Player, toLocation.Territory, Player.SpecialForcesIn(fromTerritory) > 0);
-
-                if (mayMoveAsAdvisors && PlacementEvent.MayMoveAsBlueFighters(Player, toLocation.Territory))
-                {
-                    <RadioComponent @bind-Value="asAdvisors" Values="new[] { false, true }" ValueLabels="@(new[] {"Fighters", "Advisors"})">
-                        <Label>Become fighters or advisors?</Label>
-                    </RadioComponent>
-                }
-                else
-                {
-                    asAdvisors = mayMoveAsAdvisors;
-                }
-            }
-            else
-            {
-                asAdvisors = false;
-            }
-
 
             @if (MayPass)
             {
-                <ButtonRowComponent Confirm="Confirm" ConfirmText=@Title ConfirmError=@Validation Pass="Pass" PassText="Pass" />
-            }
-            else
-            {
-                <ButtonRowComponent Confirm="Confirm" ConfirmText=@Title ConfirmError=@Validation />
+                <ButtonRowComponent Pass="Pass" PassText="Pass" />
             }
         }
         else if (MayPass)
@@ -86,11 +61,32 @@
 
 @code {
 
-    protected Territory? fromTerritory;
     protected Location? toLocation;
     protected Dictionary<Location, Battalion> forces = new();
     protected bool asAdvisors;
+    protected int forcesFromReserves;
+    protected int specialForcesFromReserves;
     private Game? selectionGame;
+    private MapInteraction? localMap;
+
+    // The regular move takes the map as soon as it appears. An optional extra
+    // move (the Caravan card) waits until the player asks for it.
+    protected virtual bool ClaimsMapByDefault => true;
+
+    // Some placements bring forces from reserves instead of from a sector,
+    // such as the Fremen riding the Great Maker. There is nothing to click as
+    // a source: the arrow starts at the player's token and the counters in
+    // the pinned panel draw from reserves.
+    protected virtual bool FromReserves => false;
+
+    protected virtual int MaxFromReserves(bool special) => 0;
+
+    // The header shows Title as a question; the pinned confirm button shows this.
+    protected virtual string ConfirmLabel => Title;
+
+    private MapInteraction Map => Client.MapInteraction ?? (localMap ??= new MapInteraction());
+
+    protected bool OwnsMap => Map.IsOwnedBy(this);
 
     protected override void OnParametersSet()
     {
@@ -100,10 +96,9 @@
             return;
 
         selectionGame = Game;
-        fromTerritory = null;
-        toLocation = null;
-        forces.Clear();
-        asAdvisors = false;
+        ResetSelection();
+
+        if (OwnsMap) PushToMap();
     }
 
     protected override void OnAfterRender(bool firstRender)
@@ -111,7 +106,8 @@
         if (firstRender)
         {
             Client.OnLocationSelected += HandleLocationSelected;
-            Client.OnLocationSelectedWithCtrlOrAlt += HandleLocationSelectedWithModifier;
+            Map.Changed += HandleMapChanged;
+            if (ClaimsMapByDefault) ClaimIfFree();
         }
     }
 
@@ -119,13 +115,8 @@
     {
         base.Dispose();
         Client.OnLocationSelected -= HandleLocationSelected;
-        Client.OnLocationSelectedWithCtrlOrAlt -= HandleLocationSelectedWithModifier;
-    }
-
-    protected void AsAdvisorsOnChange(ChangeEventArgs args)
-    {
-        asAdvisors = Convert.ToBoolean(args.Value);
-        StateHasChanged();
+        Map.Changed -= HandleMapChanged;
+        Map.Release(this);
     }
 
     protected virtual IEnumerable<Territory> ValidSources => PlacementEvent.ValidMovementSources(Game, Player);
@@ -143,13 +134,228 @@
         }
     }
 
-    private void HandleLocationSelected(object sender, Location l)
+    // The sectors that may be clicked as a source.
+    protected virtual IEnumerable<Location> SelectableSources =>
+        ValidSources.SelectMany(t => t.Locations).Where(l => Player.AnyForcesIn(l) > 0 && !Game.IsInStorm(l));
+
+    private bool MayMoveFromTwoTerritories =>
+        Game.CurrentPlanetology != null && Game.CurrentPlanetology.MoveFromTwoTerritories && Game.CurrentPlanetology.Initiator == Faction;
+
+    private int SelectedTerritoryCount => forces.Keys.Select(l => l.Territory).Distinct().Count();
+
+    private bool MayAddSource(Location l) =>
+        forces.Count == 0 ||
+        forces.Keys.Any(k => k.Territory == l.Territory) ||
+        (MayMoveFromTwoTerritories && SelectedTerritoryCount < 2);
+
+    private void ResetSelection()
     {
-        SetIfValid(ref toLocation, ValidTargets, l);
+        forces.Clear();
+        toLocation = null;
+        asAdvisors = false;
+        forcesFromReserves = 0;
+        specialForcesFromReserves = 0;
     }
 
-    private void HandleLocationSelectedWithModifier(object sender, Location l)
+    // Like a shipment, a ride from reserves opens with one force selected.
+    private void InitializeReserveAmounts()
     {
-        SetIfValid(ref fromTerritory, ValidSources, l.Territory);
+        forcesFromReserves = Math.Min(1, MaxFromReserves(false));
+        specialForcesFromReserves = forcesFromReserves == 0 ? Math.Min(1, MaxFromReserves(true)) : 0;
     }
+
+    private void ClaimIfFree()
+    {
+        if (!Map.IsFree) return;
+        Map.Claim(this);
+        PushToMap();
+    }
+
+    private void ClaimMap()
+    {
+        Map.Claim(this);
+        PushToMap();
+    }
+
+    private void ReleaseMap()
+    {
+        ResetSelection();
+        Map.Release(this);
+    }
+
+    private void HandleMapChanged()
+    {
+        if (Map.IsFree && ClaimsMapByDefault)
+        {
+            ClaimIfFree();
+        }
+        else if (!OwnsMap && (forces.Count > 0 || toLocation != null))
+        {
+            // Another action took the map; a half-made selection would be stale.
+            ResetSelection();
+        }
+        StateHasChanged();
+    }
+
+    private void PushToMap()
+    {
+        Map.Faction = Faction;
+        Map.Selectable.Clear();
+        foreach (var l in SelectableSources) Map.Selectable.Add(l);
+        Map.Selected.Clear();
+        Map.Selected.AddRange(forces.Keys);
+        Map.Targets.Clear();
+        foreach (var l in ValidTargets) Map.Targets.Add(l);
+        Map.Target = toLocation;
+        Map.Origin = FromReserves ? SectorGeometry.PlayerTokenPosition(Client.CurrentSkin, Game, Player.Seat) : null;
+        Map.Pin = toLocation != null ? PinContent : null;
+        Map.OnCancel = ClearSelection;
+        Map.Refresh();
+    }
+
+    private void HandleLocationSelected(object? sender, Location l)
+    {
+        if (!OwnsMap) return;
+
+        if (forces.ContainsKey(l))
+        {
+            forces.Remove(l);
+            toLocation = null;
+        }
+        else if (toLocation == l)
+        {
+            toLocation = null;
+        }
+        else if (ValidTargets.Contains(l) && !forces.Keys.Any(k => k.Territory == l.Territory))
+        {
+            // With a source chosen, a click means "move here", even on a
+            // sector holding more of your forces. Another sector of a source
+            // territory still joins the sources, so a territory split by the
+            // storm can be gathered up before picking a destination.
+            var firstPick = toLocation == null;
+            toLocation = l;
+            if (FromReserves && firstPick) InitializeReserveAmounts();
+        }
+        else if (SelectableSources.Contains(l))
+        {
+            if (!MayAddSource(l))
+            {
+                forces.Clear();
+            }
+            toLocation = null;
+            forces[l] = new Battalion(Faction, Player.ForcesIn(l), Player.SpecialForcesIn(l), l);
+        }
+        else
+        {
+            return;
+        }
+
+        PushToMap();
+        StateHasChanged();
+    }
+
+    private void SetAmount(Location l, int amount, bool special)
+    {
+        if (!forces.TryGetValue(l, out var battalion)) return;
+        if (special) battalion.AmountOfSpecialForces = amount;
+        else battalion.AmountOfForces = amount;
+        PushToMap();
+    }
+
+    private void SetReserveAmount(int amount, bool special)
+    {
+        if (special) specialForcesFromReserves = amount;
+        else forcesFromReserves = amount;
+        PushToMap();
+    }
+
+    private void SetAsAdvisors(bool value)
+    {
+        asAdvisors = value;
+        PushToMap();
+    }
+
+    private void ClearSelection()
+    {
+        ResetSelection();
+        PushToMap();
+    }
+
+    private RenderFragment PinContent => __builder =>
+    {
+        var to = toLocation!;
+        var showAdvisorChoice = false;
+
+        if (Faction == Faction.Blue)
+        {
+            var mayMoveAsAdvisors = PlacementEvent.MayMoveAsAdvisors(Game, Player, to.Territory, forces.Values.Any(b => b.AmountOfSpecialForces > 0));
+            showAdvisorChoice = mayMoveAsAdvisors && PlacementEvent.MayMoveAsBlueFighters(Player, to.Territory);
+            if (!showAdvisorChoice) asAdvisors = mayMoveAsAdvisors;
+        }
+        else
+        {
+            asAdvisors = false;
+        }
+
+        var validation = Validation;
+
+        <div class="pin-body">
+            @foreach (var kvp in forces)
+            {
+                var l = kvp.Key;
+                var b = kvp.Value;
+                <div class="pin-row">
+                    @if (forces.Count > 1)
+                    {
+                        <span class="pin-from">@Name(l)</span>
+                    }
+                    @if (Player.ForcesIn(l) > 0)
+                    {
+                        <MapForceStepper Value="@b.AmountOfForces" ValueChanged="@(v => SetAmount(l, v, false))" Min="0" Max="@Player.ForcesIn(l)" Faction="Faction" Special="false"/>
+                    }
+                    @if (Player.SpecialForcesIn(l) > 0)
+                    {
+                        <MapForceStepper Value="@b.AmountOfSpecialForces" ValueChanged="@(v => SetAmount(l, v, true))" Min="0" Max="@Player.SpecialForcesIn(l)" Faction="Faction" Special="true"/>
+                    }
+                </div>
+            }
+
+            @if (FromReserves)
+            {
+                <div class="pin-row">
+                    @if (MaxFromReserves(false) > 0)
+                    {
+                        <MapForceStepper Value="@forcesFromReserves" ValueChanged="@(v => SetReserveAmount(v, false))" Min="0" Max="@MaxFromReserves(false)" Faction="Faction" Special="false"/>
+                    }
+                    @if (MaxFromReserves(true) > 0)
+                    {
+                        <MapForceStepper Value="@specialForcesFromReserves" ValueChanged="@(v => SetReserveAmount(v, true))" Min="0" Max="@MaxFromReserves(true)" Faction="Faction" Special="true"/>
+                    }
+                </div>
+            }
+
+            @if (showAdvisorChoice)
+            {
+                <div class="pin-choice">
+                    <button type="button" class="@(asAdvisors ? "" : "on")" @onclick="@(() => SetAsAdvisors(false))">Fighters</button>
+                    <button type="button" class="@(asAdvisors ? "on" : "")" @onclick="@(() => SetAsAdvisors(true))">Advisors</button>
+                </div>
+            }
+
+            @if (Game.ContainsConflictingAlly(Player, to))
+            {
+                <div class="pin-warn">Your ally is there: all your forces there at the end of your move will be destroyed.</div>
+            }
+
+            @if (validation != null)
+            {
+                <div class="pin-error">@validation.ToString(Client.CurrentSkin)</div>
+            }
+
+            <div class="pin-actions">
+                <button type="button" class="btn btn-secondary" @onclick="ClearSelection">Cancel</button>
+                <button type="button" class="btn btn-primary" disabled="@(validation != null)" @onclick="Confirm">@ConfirmLabel</button>
+            </div>
+        </div>
+    };
 }

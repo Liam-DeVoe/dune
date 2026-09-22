@@ -1,0 +1,20 @@
+@use "../shared";
+
+// The Blazor error bar keeps its words; app.css keeps its position and
+// padding. This gives it the ink surface and a storm-coloured edge.
+#blazor-error-ui {
+  background: var(--ink-0);
+  color: var(--parchment);
+  font-family: var(--font-body);
+  border-top: 1px solid shared.$hairline-strong;
+  border-left: 4px solid var(--storm);
+  box-shadow: var(--shadow-3);
+
+  a {
+    color: var(--gold);
+  }
+
+  .dismiss {
+    color: var(--text-2);
+  }
+}

@@ -1,0 +1,64 @@
+// Values repeated verbatim across the stylesheet: the translucent
+// hairlines and washes that sit on the ink and parchment surfaces, and the
+// prompt card's text styles, which both the guide's .prompt and the app's
+// .prompt-act use. Emits no CSS on its own.
+
+// Translucent light lines on dark (ink) surfaces.
+$hairline: rgba(255, 255, 255, 0.09); // panel edges and dividers
+$hairline-mid: rgba(255, 255, 255, 0.12); // dividers inside the number input
+$hairline-strong: rgba(255, 255, 255, 0.16); // control borders
+
+// Translucent dark lines and tints on parchment.
+$ink-line-soft: rgba(29, 12, 0, 0.2);
+$ink-line: rgba(29, 12, 0, 0.3);
+$ink-line-strong: rgba(29, 12, 0, 0.35);
+$ink-tint: rgba(29, 12, 0, 0.06); // hover background
+
+// Gold washes for hover and selected states on ink.
+$gold-wash: rgba(231, 191, 60, 0.08);
+$gold-wash-strong: rgba(231, 191, 60, 0.12);
+
+// Light fills for controls sitting on parchment.
+$parchment-input-bg: rgba(255, 255, 255, 0.55);
+$parchment-check-bg: rgba(255, 255, 255, 0.6);
+
+// The prompt card's small uppercase label above the title.
+@mixin prompt-kicker {
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+// The prompt card's display-face title.
+@mixin prompt-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 1.05;
+  margin: 0 0 10px;
+}
+
+// The prompt card's row of buttons and inputs.
+@mixin prompt-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+// Parchment surface for the "your move" state of the prompt card.
+@mixin parchment-act {
+  background: var(--parchment);
+  color: var(--ink-1);
+  border: 1px solid var(--gold-3);
+  box-shadow: var(--shadow-1);
+}
+
+// Gold focus ring shared by inputs, checks, range thumbs and the accordion.
+$focus-ring-gold: 0 0 0 3px rgba(231, 191, 60, 0.2);

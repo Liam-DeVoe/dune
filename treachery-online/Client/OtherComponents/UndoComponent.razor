@@ -13,17 +13,10 @@
     <div class="card-header">Select up to (including) which action should be undone</div>
 
     <div class="card-body">
-        <select class="form-select" @bind="_undoEventId" id="undoEventNr">
-            @foreach (var group in UndoableEvents)
-            {
-                <optgroup label="@group.Key">
-                    @foreach (var evt in group.Value)
-                    {
-                        <option value=@evt.Key selected="@(evt.Key == _undoEventId)">@DetermineEventDescription(evt.Key, evt.Value)</option>
-                    }
-                </optgroup>
-            }
-        </select>
+        @{
+            var options = UndoableEvents.SelectMany(group => group.Value.Select(evt => (Id: evt.Key, Group: group.Key, Label: DetermineEventDescription(evt.Key, evt.Value)))).ToList();
+        }
+        <SelectComponent T="int" @bind-Value="_undoEventId" Values="options.Select(o => o.Id)" ValueLabels="options.Select(o => o.Label)" GroupLabels="options.Select(o => o.Group)" Class="" />
        
         <button class="btn btn-primary mt-1" @onclick="ConfirmUndo">Confirm</button>
     </div>

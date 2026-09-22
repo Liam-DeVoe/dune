@@ -1,0 +1,113 @@
+@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits MapComponent
+@implements IDisposable
+
+@*
+ Tints the sectors a player may click for the current map-driven action. Sits
+ below the force tokens so the tint never covers them.
+*@
+
+@{
+    var map = Client.MapInteraction;
+    var skin = Client.CurrentSkin;
+    var faction = skin.GetFactionColor(map.Faction);
+}
+
+@if (map.Owner != null && (map.Selectable.Count > 0 || map.Selected.Count > 0 || map.Targets.Count > 0))
+{
+    <svg class="mapsel" width="@skin.MapDimensions.X" height="@skin.MapDimensions.Y" viewBox="0 0 @skin.MapDimensions.X @skin.MapDimensions.Y"
+         style="position:absolute; left:0; top:0; width:100%; height:100%; --c:@faction" pointer-events="none">
+
+        <defs>
+            @foreach (var territory in Involved(map).Select(l => l.Territory).Distinct())
+            {
+                <clipPath id="mapsel-t-@territory.Id">
+                    <path d="@skin.GetTerritoryBorder(territory)"/>
+                </clipPath>
+            }
+        </defs>
+
+        @foreach (var location in map.Selectable.Where(l => !map.Selected.Contains(l) && SectorGeometry.HasCenter(skin, l)))
+        {
+            @Highlight(location, "mapsel-selectable")
+        }
+        @foreach (var location in map.Targets.Where(l => l != map.Target && SectorGeometry.HasCenter(skin, l)))
+        {
+            @Highlight(location, "mapsel-target")
+        }
+        @foreach (var location in map.Selected.Where(l => SectorGeometry.HasCenter(skin, l)))
+        {
+            @Highlight(location, "mapsel-selected")
+        }
+        @if (map.Target != null && SectorGeometry.HasCenter(skin, map.Target))
+        {
+            @Highlight(map.Target, "mapsel-pinned")
+        }
+    </svg>
+}
+
+@code {
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Client.MapInteraction.Changed += StateHasChanged;
+    }
+
+    public new void Dispose()
+    {
+        Client.MapInteraction.Changed -= StateHasChanged;
+        base.Dispose();
+    }
+
+    private static IEnumerable<Location> Involved(MapInteraction map) =>
+        map.Selectable.Concat(map.Selected).Concat(map.Targets).Concat(map.Target != null ? [map.Target] : []);
+
+    private bool HasBorder(Location l) =>
+        l is not HiddenMobileStronghold && l is not DiscoveredLocation && !l.IsHomeworld && Client.CurrentSkin.GetTerritoryBorder(l.Territory) != "";
+
+    private RenderFragment Highlight(Location l, string cls) => __builder =>
+    {
+        var skin = Client.CurrentSkin;
+
+        if (HasBorder(l))
+        {
+            var border = skin.GetTerritoryBorder(l.Territory);
+            var sectorClip = SectorGeometry.SectorClipId(l.Sector);
+
+            <g class="@cls">
+                <g clip-path="url(#@sectorClip)">
+                    <path d="@border" class="fill"/>
+                    <path d="@border" class="core"/>
+                    <path d="@border" class="edge"/>
+                </g>
+                @if (l.Sector >= 0)
+                {
+                    @* Clipped by both shapes, so only the inner half of the stroke shows; .radial doubles the width to make up for it. *@
+                    <g clip-path="url(#mapsel-t-@l.Territory.Id)">
+                        <g clip-path="url(#@sectorClip)">
+                            <path d="@SectorGeometry.WedgePath(skin, l.Sector)" class="core radial"/>
+                            <path d="@SectorGeometry.WedgePath(skin, l.Sector)" class="edge radial"/>
+                        </g>
+                    </g>
+                }
+            </g>
+        }
+        else
+        {
+            var center = skin.GetCenter(l, Game.Map);
+            var radius = l is HiddenMobileStronghold ? skin.HmsRadius : 2.2f * skin.PlayerTokenRadius;
+            <g class="@cls">
+                <circle cx="@Round(center.X)" cy="@Round(center.Y)" r="@Round(radius)" class="fill"/>
+                <circle cx="@Round(center.X)" cy="@Round(center.Y)" r="@Round(radius)" class="edge"/>
+            </g>
+        }
+    };
+}

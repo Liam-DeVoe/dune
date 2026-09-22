@@ -6,7 +6,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
-@inherits GameEventComponent<TerrorRevealed>
+@inherits MapPickComponent<TerrorRevealed>
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
@@ -49,26 +49,20 @@
 
         @if (_type == TerrorType.SneakAttack)
         {
-            if (TerrorRevealed.ValidSneakAttackTargets(Game, Player).Any())
+            if (SneakAttackPossible)
             {
-                <SelectForcesComponent @bind-Value="_forcesInSneakAttack" Min="0" Max=@TerrorRevealed.MaxAmountOfForcesInSneakAttack(Player) Faction=Faction Special=false Label="Amount of forces" />
-
-                <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="_sneakAttackTo" Values="TerrorRevealed.ValidSneakAttackTargets(Game, Player)">
-                    <Label>To</Label>
-                </SelectComponent>
+                <div class="small">Use the map to choose a location.</div>
             }
             else
             {
                 <div class="alert alert-danger mt-2">You cannot send forces there.</div>
 
                 _forcesInSneakAttack = 0;
-                _sneakAttackTo = null;
             }
         }
         else
         {
             _forcesInSneakAttack = 0;
-            _sneakAttackTo = null;
         }
 
         @if (TerrorRevealed.MayOfferAlliance(Game))
@@ -105,11 +99,38 @@
     private bool _robberyTakesCard;
     private TreacheryCard? _toGiveInSabotage;
     private int _forcesInSneakAttack;
-    private Location? _sneakAttackTo;
 
-    protected override TerrorRevealed ConfirmedResult => new(Game, Faction) { Type = _type, RobberyTakesCard = _robberyTakesCard, CardToGiveInSabotage = _toGiveInSabotage, ForcesInSneakAttack = _forcesInSneakAttack, SneakAttackTo = _sneakAttackTo };
+    private bool SneakAttackPossible => TerrorRevealed.ValidSneakAttackTargets(Game, Player).Any();
+
+    // Only a sneak attack sends forces somewhere; the other kinds leave the map alone.
+    protected override bool PickEnabled => _type == TerrorType.SneakAttack && SneakAttackPossible;
+
+    protected override IEnumerable<Location> PickTargets => TerrorRevealed.ValidSneakAttackTargets(Game, Player);
+
+    protected override void OnPickChanged()
+    {
+        if (Target != null && _forcesInSneakAttack == 0) _forcesInSneakAttack = TerrorRevealed.MaxAmountOfForcesInSneakAttack(Player);
+    }
+
+    protected override TerrorRevealed ConfirmedResult => new(Game, Faction) { Type = _type, RobberyTakesCard = _robberyTakesCard, CardToGiveInSabotage = _toGiveInSabotage, ForcesInSneakAttack = _forcesInSneakAttack, SneakAttackTo = Target };
 
     protected override TerrorRevealed PassedResult => new(Game, Faction) { Passed = true };
 
     protected override TerrorRevealed OtherResult => new(Game, Faction) { AllianceOffered = true };
+
+    private void SetForces(int amount)
+    {
+        _forcesInSneakAttack = amount;
+        RefreshPin();
+    }
+
+    protected override RenderFragment PinContent => __builder =>
+    {
+        <div class="pin-body">
+            <div class="pin-row">
+                <MapForceStepper Value="@_forcesInSneakAttack" ValueChanged="@SetForces" Min="0" Max="@TerrorRevealed.MaxAmountOfForcesInSneakAttack(Player)" Faction="Faction" Special="false"/>
+            </div>
+            @PinActions("Sneak attack")
+        </div>
+    };
 }

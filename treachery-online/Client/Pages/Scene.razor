@@ -1,0 +1,237 @@
+@page "/scene"
+@using System.Net.Http
+@using Treachery.Client.OtherComponents
+@using Treachery.Client.MapComponents
+@using Treachery.Client.GameEventComponents
+@using Treachery.Client.Scene
+@inject HttpClient Http
+@inject IJSRuntime JS
+@implements IDisposable
+
+@*
+ A saved game rendered as one faction, with no server, for screenshots.
+ /scene?fixture=ship&faction=red&steps=click:Carthag|button:Confirm
+
+ fixture  name of a file under fixtures/ (without .json), or a URL
+ faction  the colour or skin name of the faction to play as
+ steps    optional '|'-separated clicks to make after the first render:
+          click:<location>, shift:<location>, ctrl:<location>,
+          right:<location>, button:<label>. Locations are named as the
+          default skin names them: "Carthag", "False Wall South (East Sector)".
+
+ The page reproduces Main.razor's in-game layout. wwwroot/js/scene.js
+ exposes what the screenshot harness needs: <html data-scene> goes from
+ loading to ready once the steps have run, and window.treacheryScene has
+ the location centres, a click function and a way to wait for the DOM to
+ settle. The service behind Client is SceneGameService; Program.cs picks it
+ for this path.
+*@
+
+@if (_error != null)
+{
+    <div class="alert alert-danger m-3" role="alert">@_error</div>
+}
+else if (!_loaded)
+{
+    <div class="m-3">Loading scene...</div>
+}
+else
+{
+    <div @ref="@_element" class="row" style="overflow-y: hidden;">
+
+        <!--Map Column-->
+        <div id="mapdiv" class="col-sm-12 col-lg-6">
+            <GameBoard OnLocationClick="@Client.LocationClick" />
+        </div>
+
+        <!--Actions-->
+        <div class="col-sm-12 col-lg-3">
+            <GameStatusComponent CanEndPhase="@Client.Actions.Contains(typeof(EndPhase))" />
+            <ActionPanel/>
+        </div>
+
+        <!--Menu, player panel and report-->
+        <div class="col-sm-12 col-lg-3 cursor-hand">
+            <MenuComponent/>
+            @if (Client.CurrentPhase > Phase.TradingFactions)
+            {
+                if (Client.Player.Faction is Faction.None)
+                {
+                    foreach (var p in Client.Game.Players)
+                    {
+                        <PlayerPanel ShownPlayer="p" ShowHeader="true" />
+                    }
+                }
+                else
+                {
+                    <PlayerPanel ShownPlayer="Client.Player" />
+                }
+            }
+            @if (Client.Game.CurrentReport != null)
+            {
+                <ReportComponent Report="Client.Game.CurrentReport" />
+            }
+        </div>
+
+        <ImageFlashComponent />
+
+    </div>
+}
+
+@code {
+
+    [SupplyParameterFromQuery] public string? Fixture { get; set; }
+    [SupplyParameterFromQuery(Name = "faction")] public string? FactionName { get; set; }
+    [SupplyParameterFromQuery] public string? Steps { get; set; }
+
+    private SceneGameService? _scene;
+    private List<SceneStep> _steps = [];
+    private string? _error;
+    private bool _loaded;
+    private bool _stepsStarted;
+    private ElementReference _element;
+    private DotNetObjectReference<Scene>? _self;
+    private TaskCompletionSource? _rendered;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Client.RefreshHandler += StateHasChanged;
+        Client.RefreshPopoverHandler += RefreshPopovers;
+        Message.DefaultDescriber = DefaultSkin.Default;
+
+        _self = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("treacheryScene.attach", _self);
+
+        try
+        {
+            _scene = Client as SceneGameService
+                ?? throw new InvalidOperationException("Open /scene with a full page load. The scene service is chosen when the app starts.");
+            if (string.IsNullOrWhiteSpace(Fixture))
+                throw new ArgumentException("The fixture query parameter is required.");
+            var faction = SceneScript.ParseFaction(FactionName)
+                ?? throw new ArgumentException($"Unknown faction '{FactionName}'. Use a colour such as red, or a skin name such as Emperor.");
+            _steps = SceneStep.ParseAll(Steps);
+
+            var url = Fixture.Contains('/') || Fixture.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                ? Fixture
+                : $"fixtures/{Fixture}.json";
+            using var response = await Http.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+                throw new InvalidOperationException($"Could not fetch {url}: {(int)response.StatusCode} {response.ReasonPhrase}.");
+            var json = await response.Content.ReadAsStringAsync();
+
+            _scene.Load(json, faction);
+            await JS.InvokeVoidAsync("treacheryScene.setLocations", SceneScript.LocationCentres(_scene.Game!));
+            _loaded = true;
+        }
+        catch (Exception e)
+        {
+            await Fail(e.Message);
+        }
+    }
+
+    public void Dispose()
+    {
+        Client.RefreshHandler -= StateHasChanged;
+        Client.RefreshPopoverHandler -= RefreshPopovers;
+        _self?.Dispose();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JS.InvokeVoidAsync("treacheryScene.rendered");
+        _rendered?.TrySetResult();
+
+        if (!_loaded) return;
+
+        await Browser.SetPlanetMapScale();
+
+        if (!_stepsStarted)
+        {
+            _stepsStarted = true;
+            _ = RunInitialSteps();
+        }
+    }
+
+    private async Task RunInitialSteps()
+    {
+        try
+        {
+            foreach (var step in _steps) await Run(step);
+            await JS.InvokeVoidAsync("treacheryScene.setState", "ready");
+        }
+        catch (Exception e)
+        {
+            await Fail(e.Message);
+        }
+    }
+
+    private async Task Run(SceneStep step)
+    {
+        if (step.IsButton)
+            await PressButton(step.Target);
+        else
+            await Click(step.Target, step.Shift, step.Ctrl, step.Right);
+    }
+
+    // Clicks a location the way the map does, once the action that uses the
+    // map has claimed it, and returns after the page has redrawn.
+    [JSInvokable]
+    public async Task Click(string location, bool shift, bool ctrl, bool right)
+    {
+        var l = SceneScript.FindLocation(_scene!.Game!, location)
+            ?? throw new ArgumentException($"Unknown location '{location}'. Names are the default skin's, such as 'Carthag' or 'False Wall South (East Sector)'.");
+
+        await WaitForMapOwner();
+        Client.LocationClick(new LocationEventArgs { Location = l, ShiftKey = shift, CtrlKey = ctrl, RightButton = right });
+        await Settle();
+    }
+
+    // Clicks the first visible button with this label and returns after the
+    // page has redrawn.
+    [JSInvokable]
+    public async Task PressButton(string label)
+    {
+        var found = await JS.InvokeAsync<bool>("treacheryScene.pressButton", label);
+        if (!found) throw new InvalidOperationException($"No visible button labelled '{label}'.");
+        await Settle();
+    }
+
+    // The component owning the map claims it after its first render, so a
+    // click right after loading could come too early. Gives up after a
+    // second: some phases have no map action at all.
+    private async Task WaitForMapOwner()
+    {
+        for (var i = 0; i < 50 && Client.MapInteraction.IsFree; i++)
+        {
+            await Task.Delay(20);
+            await Render();
+        }
+    }
+
+    // Two renders with a pause between them, so that handlers which queue
+    // their own render (a button's event, a map redraw) have run too.
+    private async Task Settle()
+    {
+        await Render();
+        await Task.Delay(30);
+        await Render();
+    }
+
+    private async Task Render()
+    {
+        _rendered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await InvokeAsync(StateHasChanged);
+        await _rendered.Task;
+    }
+
+    private async Task Fail(string message)
+    {
+        _error = message;
+        _loaded = false;
+        await InvokeAsync(StateHasChanged);
+        await JS.InvokeVoidAsync("treacheryScene.setState", "error");
+    }
+
+    private void RefreshPopovers() => _ = Browser.RefreshPopovers(_element);
+}

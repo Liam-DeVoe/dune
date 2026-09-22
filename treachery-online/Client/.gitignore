@@ -1,0 +1,6 @@
+# Generated from the .razor.scss beside each one by the Sass compiler on build.
+*.razor.css
+
+# Compiled from Styles/treachery.scss on build.
+wwwroot/css/treachery.css
+*.pyc

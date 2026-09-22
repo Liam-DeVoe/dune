@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
  * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
@@ -8,52 +8,22 @@
 *@
 @inherits PlacementComponent<YellowRidesMonster>
 
+@*
+ The worm is ridden on the map: click the sector holding the forces that ride,
+ then where they ride to. The Great Maker is ridden from reserves, so there is
+ no source to click and the arrow starts at the Fremen token. The counters and
+ the Ride button are pinned to the arrow. This panel names the worm and offers
+ Pass.
+*@
+
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
     <Header>@Title</Header>
     <Body>
 
-        @if (YellowRidesMonster.ValidSources(Game).Any())
-        {
-            _forcesFromReserves = 0;
-            _specialForcesFromReserves = 0;
-            
-            <ForceSelectionComponent Game=Game Player=Player OnChanged="@StateHasChanged" Forces=@forces Locations=@YellowRidesMonster.ValidSources(Game) />
-        }
-        else
-        {
-            var maxForcesFromReserves = YellowRidesMonster.MaxForcesFromReserves(Game, Player, false);
-            var maxSpecialForcesFromReserves = YellowRidesMonster.MaxForcesFromReserves(Game, Player, true);
+        <div class="small">Use the map to ride the worm.</div>
 
-            if (maxForcesFromReserves > 0 || maxSpecialForcesFromReserves > 0)
-            {
-                if (maxForcesFromReserves > 0)
-                {
-                    <SelectForcesComponent @bind-Value="_forcesFromReserves" Min="0" Max=@maxForcesFromReserves Faction="Faction" Special="false" />
-                }
-                else
-                {
-                    _forcesFromReserves = 0;
-                }
-
-                if (maxSpecialForcesFromReserves > 0)
-                {
-                    <SelectForcesComponent @bind-Value="_specialForcesFromReserves" Min="0" Max=@maxSpecialForcesFromReserves Faction="Faction" Special="true" />
-                }
-                else
-                {
-                    _specialForcesFromReserves = 0;
-                }
-            }
-
-            forces = new();
-        }
-        
-        <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="toLocation" Values="ValidTargets">
-            <Label>To</Label>
-        </SelectComponent>
-
-        <ButtonRowComponent Confirm="Confirm" ConfirmText="Ride!" ConfirmError="@Validation" Pass="Pass" PassText="Pass" />
+        <ButtonRowComponent Pass="Pass" PassText="Pass" />
 
     </Body>
 
@@ -61,17 +31,33 @@
 
 @code {
 
-    private int _forcesFromReserves;
-    private int _specialForcesFromReserves;
-
     protected override bool IsUrgent => true;
+
     protected override Faction IsFactionSpecific => Faction.Yellow;
 
-    protected override YellowRidesMonster ConfirmedResult => new(Game, Faction) { ForceLocations = forces, To = toLocation, ForcesFromReserves = _forcesFromReserves, SpecialForcesFromReserves = _specialForcesFromReserves, Passed = false };
+    // The component can outlive the worm by a render, so every lookup copes with there being none.
+    private MonsterAppearence? ToRide => YellowRidesMonster.ToRide(Game);
+
+    private IEnumerable<Location> RideSources => ToRide != null ? YellowRidesMonster.ValidSources(Game) : [];
+
+    protected override bool FromReserves => !RideSources.Any() && (MaxFromReserves(false) > 0 || MaxFromReserves(true) > 0);
+
+    protected override int MaxFromReserves(bool special) => YellowRidesMonster.MaxForcesFromReserves(Game, Player, special);
+
+    protected override IEnumerable<Territory> ValidSources => RideSources.Select(l => l.Territory).Distinct();
+
+    protected override IEnumerable<Location> SelectableSources => RideSources;
+
+    // Where the worm may go does not depend on which forces ride, but the
+    // destinations only light up once there is something to ride with.
+    protected override IEnumerable<Location> ValidTargets =>
+        FromReserves || forces.Count > 0
+            ? YellowRidesMonster.ValidTargets(Game, Player).OrderByDescending(l => l.IsStronghold).ThenBy(l => Client.CurrentSkin.Describe(l))
+            : [];
+
+    protected override YellowRidesMonster ConfirmedResult => new(Game, Faction) { ForceLocations = forces, To = toLocation, ForcesFromReserves = forcesFromReserves, SpecialForcesFromReserves = specialForcesFromReserves, Passed = false };
 
     protected override YellowRidesMonster PassedResult => new(Game, Faction) { Passed = true };
-
-    protected override IEnumerable<Location> ValidTargets => YellowRidesMonster.ValidTargets(Game, Player).OrderByDescending(l => l.IsStronghold).ThenBy(l => Client.CurrentSkin.Describe(l));
 
     protected override bool InformAboutCaravan => false;
 
@@ -79,7 +65,12 @@
     {
         get
         {
-            var toRide = YellowRidesMonster.ToRide(Game);
+            var toRide = ToRide;
+            if (toRide == null)
+            {
+                return Client.CurrentSkin.Format("Ride {0}?", Concept.Monster);
+            }
+
             if (toRide.IsGreatMonster)
             {
                 return Client.CurrentSkin.Format("Ride the {0} with forces from your reserves?", Concept.GreatMonster);
@@ -89,5 +80,7 @@
         }
     }
 
-    protected override bool MayPass => false;
+    protected override string ConfirmLabel => "Ride!";
+
+    protected override bool MayPass => true;
 }

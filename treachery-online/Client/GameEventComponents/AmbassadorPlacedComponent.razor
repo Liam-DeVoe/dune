@@ -6,7 +6,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
-@inherits GameEventComponent<AmbassadorPlaced>
+@inherits MapPickComponent<AmbassadorPlaced>
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
@@ -17,15 +17,11 @@
             <Label>Which ambassador?</Label>
         </SelectFromImageComponent>
 
-        <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="_stronghold" Values="@AmbassadorPlaced.ValidStrongholds(Game, Player)">
-            <Label>Where?</Label>
-        </SelectComponent>
+        <div class="small mt-1">Use the map to choose a stronghold.</div>
 
         <div>
             Cost: <SimpleNumberComponent Size="20">@(Game.AmbassadorsPlacedThisTurn + 1)</SimpleNumberComponent>
         </div>
-
-        <ButtonRowComponent Confirm="Confirm" ConfirmText="Place Ambassador" ConfirmError="@Validation" />
 
     </Body>
 
@@ -36,26 +32,21 @@
     protected override Faction IsFactionSpecific => Faction.Pink;
 
     private Ambassador _ambassador;
-    private Territory? _stronghold;
 
-    protected override void OnAfterRender(bool firstRender)
+    protected override bool PickByTerritory => true;
+
+    protected override IEnumerable<Location> PickTargets => SectorsOf(AmbassadorPlaced.ValidStrongholds(Game, Player));
+
+    protected override AmbassadorPlaced ConfirmedResult => new(Game, Faction) { Ambassador = _ambassador, Stronghold = TargetTerritory };
+
+    protected override RenderFragment PinContent => __builder =>
     {
-        if (firstRender)
-        {
-            Client.OnLocationSelected += HandleLocationSelected;
-        }
-    }
-
-    protected override AmbassadorPlaced ConfirmedResult => new(Game, Faction) { Ambassador = _ambassador, Stronghold = _stronghold };
-
-    private void HandleLocationSelected(object sender, Location l)
-    {
-        SetIfValid(ref _stronghold, AmbassadorPlaced.ValidStrongholds(Game, Player), l.Territory);
-    }
-
-    public override void Dispose()
-    {
-        base.Dispose();
-        Client.OnLocationSelected -= HandleLocationSelected;
-    }
+        <div class="pin-body">
+            <div class="pin-row">
+                <Image Shown="@_ambassador" Width="28"/>
+                <span>@Name(_ambassador) ambassador</span>
+            </div>
+            @PinActions("Place ambassador")
+        </div>
+    };
 }

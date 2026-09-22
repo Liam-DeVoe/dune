@@ -1,0 +1,19 @@
+// Bootstrap 5.3 (Bootswatch Darkly) override layer: mostly --bs-* custom
+// properties, plus the few plain rules Bootstrap does not expose a token for.
+// Loaded after bootstrap.min.css and app.css, so everything here wins by
+// source order. Partials are listed in cascade order; do not reorder them.
+@use "root";
+@use "buttons";
+@use "cards";
+@use "forms";
+@use "nav";
+@use "badges";
+@use "text";
+@use "tables";
+@use "modal";
+@use "popover";
+@use "tooltip";
+@use "alerts";
+@use "dropdown";
+@use "list-group";
+@use "misc";

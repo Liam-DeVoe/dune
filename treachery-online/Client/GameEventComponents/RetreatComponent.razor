@@ -6,37 +6,16 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
-@inherits GameEventComponent<Retreat>
-@implements IDisposable
+@inherits MapPickComponent<Retreat>
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
     <Header>You may retreat from the battle any number of undialed forces to an adjacent empty non-stronghold territory</Header>
     <Body>
 
-        <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="target" Values="Retreat.ValidTargets(Game, Player)">
-            <Label>To</Label>
-        </SelectComponent>
+        <div class="small">Use the map to choose a location.</div>
 
-        @if (Retreat.MaxForces(Game, Player) > 0)
-        {
-            <SelectForcesComponent @bind-Value="forces" Min="0" Max="Retreat.MaxForces(Game, Player)" Faction="Faction" Special="false" />
-        }
-        else
-        {
-            forces = 0;
-        }
-
-        @if (Retreat.MaxSpecialForces(Game, Player) > 0)
-        {
-            <SelectForcesComponent @bind-Value="specialForces" Min="0" Max="Retreat.MaxSpecialForces(Game, Player)" Faction="Faction" Special="true" />
-        }
-        else
-        {
-            specialForces = 0;
-        }
-
-        <ButtonRowComponent Pass="Pass" Confirm="Confirm" ConfirmText="Retreat" />
+        <ButtonRowComponent Pass="Pass" PassText="Pass" />
 
     </Body>
 
@@ -46,7 +25,6 @@
 
     protected override bool IsUrgent => true;
 
-    private Location? target;
     private int forces;
     private int specialForces;
 
@@ -57,26 +35,47 @@
         BackgroundImage = Client.CurrentSkin.GetImageUrl(LeaderSkill.Diplomat);
     }
 
-    protected override void OnAfterRender(bool firstRender)
+    // Start with everything that may retreat, trimmed to what the leader allows.
+    protected override void OnGameChanged()
     {
-        if (firstRender)
+        forces = Retreat.MaxForces(Game, Player);
+        specialForces = Retreat.MaxSpecialForces(Game, Player);
+        var max = Retreat.MaxTotalForces(Game, Player);
+        while (forces + specialForces > max)
         {
-            Client.OnLocationSelected += HandleLocationSelected;
+            if (specialForces > 0) specialForces--;
+            else forces--;
         }
     }
 
-    public override void Dispose()
+    protected override IEnumerable<Location> PickTargets => Retreat.ValidTargets(Game, Player);
+
+    protected override Retreat ConfirmedResult => new(Game, Faction) { Location = Target, Forces = forces, SpecialForces = specialForces };
+
+    // Passing still names a location, because the event insists on a valid one.
+    protected override Retreat PassedResult => new(Game, Faction) { Location = Target ?? Retreat.ValidTargets(Game, Player).FirstOrDefault(), Forces = 0, SpecialForces = 0 };
+
+    private void SetForces(int amount, bool special)
     {
-        base.Dispose();
-        Client.OnLocationSelected -= HandleLocationSelected;
+        if (special) specialForces = amount;
+        else forces = amount;
+        RefreshPin();
     }
 
-    protected override Retreat ConfirmedResult => new(Game, Faction) { Location = target, Forces = forces, SpecialForces = specialForces };
-
-    protected override Retreat PassedResult => new(Game, Faction) { Location = target, Forces = 0, SpecialForces = 0 };
-
-    private void HandleLocationSelected(object sender, Location l)
+    protected override RenderFragment PinContent => __builder =>
     {
-        SetIfValid(ref target, Retreat.ValidTargets(Game, Player), l);
-    }
+        <div class="pin-body">
+            <div class="pin-row">
+                @if (Retreat.MaxForces(Game, Player) > 0)
+                {
+                    <MapForceStepper Value="@forces" ValueChanged="@(v => SetForces(v, false))" Min="0" Max="@Retreat.MaxForces(Game, Player)" Faction="Faction" Special="false"/>
+                }
+                @if (Retreat.MaxSpecialForces(Game, Player) > 0)
+                {
+                    <MapForceStepper Value="@specialForces" ValueChanged="@(v => SetForces(v, true))" Min="0" Max="@Retreat.MaxSpecialForces(Game, Player)" Faction="Faction" Special="true"/>
+                }
+            </div>
+            @PinActions("Retreat")
+        </div>
+    };
 }

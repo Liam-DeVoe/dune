@@ -15,7 +15,7 @@ namespace Treachery.Server.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.10");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.12");
 
             modelBuilder.Entity("Treachery.Server.ArchivedGame", b =>
                 {
@@ -140,6 +140,23 @@ namespace Treachery.Server.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ScheduledGames");
+                });
+
+            modelBuilder.Entity("Treachery.Server.PersistedUserToken", b =>
+                {
+                    b.Property<string>("Token")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("Created")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Token");
+
+                    b.ToTable("UserTokens");
                 });
 
             modelBuilder.Entity("Treachery.Server.User", b =>

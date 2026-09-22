@@ -14,9 +14,13 @@
     
     <script src="js/bootstrap.bundle.min.js"></script>
 
-    <link rel="stylesheet" href="css/app.css?v=182" />
+    <script src="js/listbox.js?v=1"></script>
 
-    <link rel="stylesheet" href="Treachery.Client.styles.css?v=182">
+    <script src="js/scene.js?v=1"></script>
+
+    <link rel="stylesheet" href="css/treachery.css?v=183" />
+
+    <link rel="stylesheet" href="Treachery.Client.styles.css?v=183">
 
     <script type="text/javascript">
 
@@ -74,12 +78,208 @@
 
                         planetmap_filler = document.getElementById('planetmap-filler');
                         planetmap_filler.style.height = 1.110012062726176 * mapdiv.offsetWidth + "px";
+
+                        ClampMapPin();
                     }
                 }
             }
             catch {
 
             }
+        }
+
+        // Moves the map's cursor arrows (line.mapsel-cursor) to the mouse. The
+        // map is CSS-scaled, so mouse coordinates are converted to map units.
+        // Over a sector the arrow snaps to the sector's centre instead, trimmed
+        // like a pinned arrow, so it ends where clicking the sector would put it.
+        var mapCursorHandler = null;
+        var mapCursorPosition = null;
+
+        function TrackMapCursor(on) {
+
+            const inner = document.getElementById('planetmap_inner');
+            if (inner == null) return;
+
+            if (mapCursorHandler != null) {
+                inner.removeEventListener('mousemove', mapCursorHandler);
+                mapCursorHandler = null;
+            }
+
+            if (!on) {
+                mapCursorPosition = null;
+                return;
+            }
+
+            mapCursorHandler = function (e) {
+                const rect = inner.getBoundingClientRect();
+                const scale = rect.width / inner.offsetWidth;
+                mapCursorPosition = { x: (e.clientX - rect.left) / scale, y: (e.clientY - rect.top) / scale };
+                UpdateMapCursorArrows(inner);
+            };
+
+            inner.addEventListener('mousemove', mapCursorHandler);
+            UpdateMapCursorArrows(inner);
+        }
+
+        function UpdateMapCursorArrows(inner) {
+            if (mapCursorPosition == null) return;
+            const hovered = inner.querySelector('.maphover .hover-shape.on');
+            const snap = hovered != null && hovered.dataset.cx ? { x: Number(hovered.dataset.cx), y: Number(hovered.dataset.cy) } : null;
+            inner.querySelectorAll('line.mapsel-cursor').forEach(function (line) {
+                const start = { x: Number(line.dataset.x1), y: Number(line.dataset.y1) };
+                // Hovering the arrow's own source would collapse it to a point; follow the mouse there.
+                const useSnap = snap != null && Math.hypot(snap.x - start.x, snap.y - start.y) > 1;
+                const segment = useSnap ? TrimMapArrow(start, snap, 10, 12) : [start, mapCursorPosition];
+                line.setAttribute('x1', segment[0].x);
+                line.setAttribute('y1', segment[0].y);
+                line.setAttribute('x2', segment[1].x);
+                line.setAttribute('y2', segment[1].y);
+            });
+        }
+
+        // Lets Escape or a right click on the map cancel a half-made move or
+        // shipment. Only listens while there is something to cancel, so the
+        // browser's own context menu keeps working the rest of the time.
+        // Passing null stops listening.
+        var mapCancelKeyHandler = null;
+        var mapCancelMenuHandler = null;
+        var mapCancelMenuTarget = null;
+
+        function ListenForMapCancel(overlay) {
+
+            if (mapCancelKeyHandler != null) {
+                document.removeEventListener('keydown', mapCancelKeyHandler);
+                mapCancelKeyHandler = null;
+            }
+
+            if (mapCancelMenuHandler != null) {
+                mapCancelMenuTarget.removeEventListener('contextmenu', mapCancelMenuHandler);
+                mapCancelMenuHandler = null;
+                mapCancelMenuTarget = null;
+            }
+
+            if (overlay == null) return;
+
+            mapCancelKeyHandler = function (e) {
+                if (e.key !== 'Escape') return;
+                // An open dialog or dropdown takes Escape first, and a field
+                // outside the map keeps it.
+                if (document.querySelector('.modal.show, [aria-expanded="true"]') != null) return;
+                const t = e.target;
+                const outsideMap = t == null || t.closest == null || t.closest('#planetmap_inner') == null;
+                if (outsideMap && t != null && t.matches != null && t.matches('input, textarea, select, [contenteditable]')) return;
+                overlay.invokeMethodAsync('CancelMapInteraction');
+            };
+            document.addEventListener('keydown', mapCancelKeyHandler);
+
+            const inner = document.getElementById('planetmap_inner');
+            if (inner == null) return;
+
+            mapCancelMenuHandler = function (e) {
+                e.preventDefault();
+                overlay.invokeMethodAsync('CancelMapInteraction');
+            };
+            mapCancelMenuTarget = inner;
+            inner.addEventListener('contextmenu', mapCancelMenuHandler);
+        }
+
+        // Same as Trim in MapSelectionOverlay.razor: keeps the arrow off the tokens at either end.
+        function TrimMapArrow(a, b, fromStart, fromEnd) {
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const length = Math.hypot(dx, dy);
+            if (length < fromStart + fromEnd + 1) return [a, b];
+            const ux = dx / length;
+            const uy = dy / length;
+            return [{ x: a.x + ux * fromStart, y: a.y + uy * fromStart }, { x: b.x - ux * fromEnd, y: b.y - uy * fromEnd }];
+        }
+
+        // Shows the shape of the sector under the mouse. The shapes are
+        // rendered hidden by MapHover.razor; the one whose data-location-id
+        // matches the hovered Planet location is switched on. Listeners are
+        // delegated from the map so re-rendered locations keep working, and
+        // calling this again after a render only refreshes the shown shape.
+        var mapHoverInner = null;
+
+        function StartMapHover() {
+
+            const inner = document.getElementById('planetmap_inner');
+            if (inner == null) return;
+
+            if (mapHoverInner !== inner) {
+                mapHoverInner = inner;
+                inner.addEventListener('mouseover', function (e) {
+                    const id = MapHoverLocation(e.target);
+                    if (id != null) ShowMapHover(id);
+                });
+                inner.addEventListener('mouseout', function (e) {
+                    if (MapHoverLocation(e.target) != null) ShowMapHover(null);
+                });
+            }
+
+            ShowMapHover(MapHoverLocation(inner.querySelector('g[data-location-id]:not(.hover-shape):hover')));
+        }
+
+        function MapHoverLocation(element) {
+            if (element == null || element.closest == null) return null;
+            const group = element.closest('g[data-location-id]:not(.hover-shape)');
+            return group == null ? null : group.dataset.locationId;
+        }
+
+        function ShowMapHover(locationId) {
+            if (mapHoverInner == null) return;
+            mapHoverInner.querySelectorAll('.maphover .hover-shape.on').forEach(function (shape) { shape.classList.remove('on'); });
+            if (locationId == null) return;
+            const shape = mapHoverInner.querySelector('.maphover .hover-shape[data-location-id="' + locationId + '"]');
+            if (shape != null) shape.classList.add('on');
+            UpdateMapCursorArrows(mapHoverInner);
+        }
+
+        // A panel pinned near the page's edge would run off it. This shifts
+        // it back inside by setting --dx, which .map-pin adds to its
+        // position while its caret stays over the anchor. The map is
+        // CSS-scaled, so the shift is converted to map units. Runs after
+        // every render of the panel and after the map is rescaled.
+        function ClampMapPin() {
+
+            const pin = document.querySelector('.map-pin');
+            if (pin == null) return;
+
+            const inner = document.getElementById('planetmap_inner');
+            const scale = inner != null && inner.offsetWidth > 0 ? inner.getBoundingClientRect().width / inner.offsetWidth : 1;
+
+            // Undo the current shift so the measurement is of the unshifted panel.
+            const current = parseFloat(pin.style.getPropertyValue('--dx')) || 0;
+            const rect = pin.getBoundingClientRect();
+            const left = rect.left - current * scale;
+            const right = rect.right - current * scale;
+
+            const margin = 8;
+            const max = document.documentElement.clientWidth - margin;
+            let dx = 0;
+            if (left < margin) dx = margin - left;
+            else if (right > max) dx = max - right;
+
+            pin.style.setProperty('--dx', (dx / scale) + 'px');
+        }
+
+        // Hover intel on locations would cover the panel pinned to a
+        // destination, so it is switched off while a panel is pinned.
+        function SetMapPopoversEnabled(enabled) {
+
+            const inner = document.getElementById('planetmap_inner');
+            if (inner == null) return;
+
+            inner.querySelectorAll('[data-bs-toggle="popover"]').forEach(function (el) {
+                const popover = bootstrap.Popover.getInstance(el);
+                if (popover == null) return;
+                if (enabled) {
+                    popover.enable();
+                } else {
+                    popover.hide();
+                    popover.disable();
+                }
+            });
         }
 
         function GetWindowDimensions() {
@@ -394,7 +594,7 @@
 
 </head>
 
-<body style="background-color:black">
+<body style="background-color:#1d0c00">
 
     <div id="app">Loading...</div>
 

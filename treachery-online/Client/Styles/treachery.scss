@@ -1,0 +1,14 @@
+// The client's stylesheet. Compiled to wwwroot/css/treachery.css on build by
+// AspNetCore.SassCompiler (see sasscompiler.json) and loaded after
+// bootstrap.min.css, so everything here wins over Bootstrap by source order.
+//
+// Layer order matters for the cascade:
+//   foundation  fonts, design tokens, page-level rules and animations
+//   bootstrap   Bootstrap 5.3 overrides, mostly --bs-* variables
+//   components  the design language's own components (chips, prompt, panels, ...)
+//   app         hooks specific to this app (the act card, error bar, utilities)
+
+@use "foundation";
+@use "bootstrap";
+@use "components";
+@use "app";

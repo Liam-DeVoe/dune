@@ -19,8 +19,11 @@
             <label for="effectVolume" class="form-label">&nbsp;Sound effects volume</label>
             <input id="effectVolume" class="form-range" type="range" min="0" max="100" step="1" @bind="@DesiredEffectVolume" @bind:event="oninput" @onchange="@AdjustVolume" />
                         
+            @if (IGameService.ChatEnabled)
+            {
             <label for="chatVolume" class="form-label">&nbsp;Chat notification volume</label>
             <input id="chatVolume" class="form-range" type="range" min="0" max="100" step="1" @bind="@DesiredChatVolume" @bind:event="oninput" @onchange="@AdjustVolume" />
+            }
                         
         </div>
     </div>

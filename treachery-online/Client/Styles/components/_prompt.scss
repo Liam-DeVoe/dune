@@ -1,0 +1,86 @@
+@use "../shared";
+
+// The prompt card, in three states: .act (parchment, your move), .wait (ink,
+// someone else's move) and .ended (raised ink, the phase is over). The
+// .timer sits at the right of the kicker row.
+.prompt {
+  border-radius: var(--r-2);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-1);
+  position: relative;
+  overflow: hidden;
+
+  .kicker {
+    @include shared.prompt-kicker;
+  }
+
+  .title {
+    @include shared.prompt-title;
+  }
+
+  .actions {
+    @include shared.prompt-actions;
+  }
+
+  &.act {
+    @include shared.parchment-act;
+
+    .kicker {
+      color: var(--rock-2);
+    }
+  }
+
+  &.wait {
+    background: var(--ink-2);
+    color: var(--text-2);
+    border: 1px solid shared.$hairline;
+
+    .kicker {
+      color: var(--text-3);
+    }
+
+    .title {
+      color: var(--text-2);
+      font-size: 20px;
+    }
+  }
+
+  &.ended {
+    background: var(--ink-3);
+    border: 1px solid shared.$hairline;
+
+    .kicker {
+      color: var(--gold-2);
+    }
+  }
+}
+
+// Countdown: a display-face number and a bar whose fill width is --p.
+.timer {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--text-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+
+  &.low {
+    color: var(--storm);
+  }
+
+  .bar {
+    width: 90px;
+    height: 4px;
+    background: rgba(0, 0, 0, 0.35);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .bar i {
+    display: block;
+    height: 100%;
+    width: var(--p, 60%);
+    background: currentColor;
+  }
+}

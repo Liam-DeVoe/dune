@@ -1,4 +1,4 @@
-﻿@*
+@*
  * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
  * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
@@ -6,27 +6,64 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
-@inherits GameEventComponent<PerformYellowSetup>
+@inherits StagedPlacementComponent<PerformYellowSetup>
 @implements IDisposable
+
+@*
+ The Fremen place their starting forces on the map: click a sector for a
+ force, shift-click for a Fedaykin, right-click to take one back. The list
+ below the instructions is a fallback for people who cannot right-click.
+*@
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
-    <Header>Distribute @(10 - forces.Sum(fl => fl.Value.AmountOfForces + fl.Value.AmountOfSpecialForces)) forces on @Client.CurrentSkin.Describe(Game.Map.SietchTabr), @Client.CurrentSkin.Describe(Game.Map.FalseWallSouth), and @Client.CurrentSkin.Describe(Game.Map.FalseWallWest).</Header>
+    <Header>
+        @if (Remaining > 0)
+        {
+            <text>Distribute @Remaining forces on @Name(Game.Map.SietchTabr), @Name(Game.Map.FalseWallSouth), and @Name(Game.Map.FalseWallWest).</text>
+        }
+        else
+        {
+            <text>All forces placed.</text>
+        }
+    </Header>
     <Body>
 
-        <ForceSelectionComponent Game="Game" Player="Player" OnChanged="@StateHasChanged" Forces="forces" Locations="ValidLocations" MaySelectFromStorm="true" AlwaysShowLocation="true" FullLocationName="true" FixedMaxForces="10" FixedMaxSpecialForces="@(Player.HasSpecialForces ? 10 : 0)" AllowMultipleTerritories="true" />
+        <div class="small">Use the map to place forces.</div>
+        <div class="small text-2">
+            <div><ClickHintComponent Button="ClickHintButton.Lmb" /> place <img class="setup-hint-force" src="@Client.CurrentSkin.GetFactionForceImageUrl(Player.Faction)" alt="@Name(Player.Force)" title="@Name(Player.Force)"/></div>
+            @if (MayStageSpecial)
+            {
+                <div><ClickHintComponent Button="ClickHintButton.Lmb" Modifier="ClickHintModifier.Shift" /> place <img class="setup-hint-force" src="@Client.CurrentSkin.GetFactionSpecialForceImageUrl(Player.Faction)" alt="@Name(Player.SpecialForce)" title="@Name(Player.SpecialForce)"/></div>
+            }
+            <div><ClickHintComponent Button="ClickHintButton.Rmb" /> remove force</div>
+        </div>
+
+        @if (Staged.Any())
+        {
+            <div class="mt-2">
+                @foreach (var kvp in Staged)
+                {
+                    var l = kvp.Key;
+                    var b = kvp.Value;
+                    <div class="d-flex align-items-center gap-1 mt-1 small">
+                        <span class="flex-grow-1">@Name(l)</span>
+                        <MapForceStepper Value="@b.AmountOfForces" ValueChanged="@(v => Step(l, v, false))" Min="0" Max="@(b.AmountOfForces + Room(false))" Faction="Faction" Special="false" Label="@Name(Player.Force)" />
+                        @if (MayStageSpecial)
+                        {
+                            <MapForceStepper Value="@b.AmountOfSpecialForces" ValueChanged="@(v => Step(l, v, true))" Min="0" Max="@(b.AmountOfSpecialForces + Room(true))" Faction="Faction" Special="true" Label="@Name(Player.SpecialForce)" />
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        @if (Validation is { } error)
+        {
+            <div class="small text-danger mt-2">@error.ToString(Client.CurrentSkin)</div>
+        }
 
         <ButtonRowComponent Confirm="Confirm" ConfirmText="Confirm" ConfirmError="@Validation" />
-
-        <div>You can use the planet map:</div>
-        <div>Add @Client.CurrentSkin.Describe(Player.Force): <ClickHintComponent Button="ClickHintButton.Lmb" /></div>
-        <div>Remove @Client.CurrentSkin.Describe(Player.Force): <ClickHintComponent Button="ClickHintButton.Lmb" Modifier="ClickHintModifier.Shift" /></div>
-
-        @if (Player.HasSpecialForces)
-        {
-            <div>Add @Client.CurrentSkin.Describe(Player.SpecialForce): <ClickHintComponent Button="ClickHintButton.Lmb" Modifier="ClickHintModifier.Ctrl" /> </div>
-            <div>Remove @Client.CurrentSkin.Describe(Player.SpecialForce): <ClickHintComponent Button="ClickHintButton.Lmb" Modifier="ClickHintModifier.Ctrl | ClickHintModifier.Shift" /></div>
-        }
 
     </Body>
 
@@ -37,122 +74,21 @@
     protected override bool IsUrgent => true;
     protected override Faction IsFactionSpecific => Faction.Yellow;
 
-    private Dictionary<Location, Battalion> forces = new();
-
     protected override PerformYellowSetup ConfirmedResult => new(Game, Faction) { ForceLocations = forces };
 
-    protected override void OnAfterRender(bool firstRender)
+    protected override Player Placer => Player;
+
+    protected override int MaxTotal => 10;
+
+    private int Remaining => MaxTotal - StagedForces - StagedSpecialForces;
+
+    protected override IEnumerable<Location> ValidLocations =>
+        [Game.Map.SietchTabr, .. Game.Map.FalseWallSouth.Locations, .. Game.Map.FalseWallWest.Locations];
+
+    private void Step(Location l, int value, bool special)
     {
-        if (firstRender)
-        {
-            Client.OnLocationSelected += HandleAddForce;
-            Client.OnLocationSelectedWithShift += HandleRemoveForce;
-
-            if (Player.HasSpecialForces)
-            {
-                Client.OnLocationSelectedWithCtrlOrAlt += HandleAddSpecialForce;
-                Client.OnLocationSelectedWithShiftAndWithCtrlOrAlt += HandleRemoveSpecialForce;
-            }
-        }
-    }
-
-    public override void Dispose()
-    {
-        base.Dispose();
-        Client.OnLocationSelected -= HandleAddForce;
-        Client.OnLocationSelectedWithShift -= HandleRemoveForce;
-
-        if (Player.HasSpecialForces)
-        {
-            Client.OnLocationSelectedWithCtrlOrAlt -= HandleAddSpecialForce;
-            Client.OnLocationSelectedWithShiftAndWithCtrlOrAlt -= HandleRemoveSpecialForce;
-        }
-    }
-
-    private void HandleAddForce(object sender, Location l)
-    {
-        if (ValidLocations.Contains(l))
-        {
-            ForceAmountButton(l, 1, false);
-        }
-    }
-
-    private void HandleAddSpecialForce(object sender, Location l)
-    {
-        if (ValidLocations.Contains(l))
-        {
-            ForceAmountButton(l, 1, true);
-        }
-    }
-
-    private void HandleRemoveForce(object sender, Location l)
-    {
-        if (ValidLocations.Contains(l))
-        {
-            ForceAmountButton(l, -1, false);
-        }
-    }
-
-    private void HandleRemoveSpecialForce(object sender, Location l)
-    {
-        if (ValidLocations.Contains(l))
-        {
-            ForceAmountButton(l, -1, true);
-        }
-    }
-
-    private IEnumerable<Location> ValidLocations
-    {
-        get
-        {
-            var result = new List<Location>();
-            result.Add(Game.Map.SietchTabr);
-            result.AddRange(Game.Map.FalseWallSouth.Locations);
-            result.AddRange(Game.Map.FalseWallWest.Locations);
-            return result;
-        }
-    }
-
-    protected int Forces(Location l, bool special)
-    {
-        if (forces.ContainsKey(l))
-        {
-            if (special)
-            {
-                return forces[l].AmountOfSpecialForces;
-            }
-
-            return forces[l].AmountOfForces;
-        }
-
-        return 0;
-    }
-
-    protected void ForceAmountButton(Location location, int amount, bool specialForces)
-    {
-        if (forces.ContainsKey(location))
-        {
-            if (specialForces)
-            {
-                forces[location].ChangeSpecialForces(amount);
-            }
-            else
-            {
-                forces[location].ChangeForces(amount);
-            }
-        }
-        else if (amount > 0)
-        {
-            if (specialForces)
-            {
-                forces.Add(location, new Battalion(Faction, 0, amount, location));
-            }
-            else
-            {
-                forces.Add(location, new Battalion(Faction, amount, 0, location));
-            }
-        }
-
-        StateHasChanged();
+        var current = special ? forces[l].AmountOfSpecialForces : forces[l].AmountOfForces;
+        if (value > current) Add(l, special);
+        else if (value < current) Remove(l, special);
     }
 }

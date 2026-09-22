@@ -1,0 +1,9 @@
+// Text utilities: .text-info reads --bs-info-rgb (gold). Storm is too dark for
+// small text on ink, so .text-danger uses the guide's error red.
+.text-danger {
+  --bs-danger-rgb: 228, 107, 107;
+}
+
+.text-muted {
+  --bs-secondary-color: var(--text-3);
+}

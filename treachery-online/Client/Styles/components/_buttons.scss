@@ -1,0 +1,32 @@
+@use "../shared";
+
+// Buttons on parchment. The .btn-* variants themselves are the Bootstrap
+// overrides; these are the quiet text button and the flips that keep
+// secondary and quiet buttons legible on a parchment surface.
+.btn-quiet {
+  background: transparent;
+  color: var(--text-2);
+  border-color: transparent;
+  font-weight: 500;
+
+  &:hover {
+    color: var(--gold);
+    background: shared.$gold-wash;
+  }
+}
+
+.on-parchment {
+  .btn-secondary {
+    color: var(--ink-1);
+    border-color: shared.$ink-line-strong;
+
+    &:hover {
+      background: shared.$ink-tint;
+      border-color: var(--ink-1);
+    }
+  }
+
+  .btn-quiet {
+    color: var(--rock-2);
+  }
+}

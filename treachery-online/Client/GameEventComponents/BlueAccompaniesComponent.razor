@@ -6,27 +6,16 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
-@inherits GameEventComponent<BlueAccompanies>
+@inherits MapPickComponent<BlueAccompanies>
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
     <Header>Accompany the latest shipment?</Header>
     <Body>
 
-        <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="target" Values="BlueAccompanies.ValidTargets(Game, Player)">
-            <Label>To</Label>
-        </SelectComponent>
+        <div class="small">Use the map to choose a location.</div>
 
-        @if (BlueAccompanies.MaySendExtraAdvisor(Game, Player, target))
-        {
-            <CheckboxComponent @bind-Value="addExtraAdvisor">Do you wish to send one additional @Name(Player.SpecialForce)?</CheckboxComponent>
-        }
-        else
-        {
-            addExtraAdvisor = false;
-        }
-
-        <ButtonRowComponent Confirm="Confirm" ConfirmText="Yes" ConfirmError="@Validation" Pass="Pass" PassText="No" />
+        <ButtonRowComponent Pass="Pass" PassText="Don't accompany" />
 
     </Body>
 
@@ -37,29 +26,35 @@
     protected override bool IsUrgent => true;
     protected override Faction IsFactionSpecific => Faction.Blue;
 
-    private Location? target;
     private bool addExtraAdvisor;
 
-    protected override void OnAfterRender(bool firstRender)
-    {
-        if (firstRender)
-        {
-            Client.OnLocationSelected += HandleLocationSelected;
-        }
-    }
+    protected override IEnumerable<Location> PickTargets => BlueAccompanies.ValidTargets(Game, Player);
 
-    public override void Dispose()
-    {
-        base.Dispose();
-        Client.OnLocationSelected -= HandleLocationSelected;
-    }
-
-    protected override BlueAccompanies ConfirmedResult => new(Game, Faction) { Location = target, Accompanies = true, ExtraAdvisor = addExtraAdvisor };
+    protected override BlueAccompanies ConfirmedResult => new(Game, Faction) { Location = Target, Accompanies = true, ExtraAdvisor = addExtraAdvisor };
 
     protected override BlueAccompanies PassedResult => new(Game, Faction) { Accompanies = false };
 
-    private void HandleLocationSelected(object sender, Location l)
+    private void SetExtraAdvisor(bool value)
     {
-        SetIfValid(ref target, BlueAccompanies.ValidTargets(Game, Player), l);
+        addExtraAdvisor = value;
+        RefreshPin();
     }
+
+    protected override RenderFragment PinContent => __builder =>
+    {
+        var mayAddExtra = BlueAccompanies.MaySendExtraAdvisor(Game, Player, Target);
+        if (!mayAddExtra) addExtraAdvisor = false;
+
+        <div class="pin-body">
+            @if (mayAddExtra)
+            {
+                <div class="pin-hint">How many @Name(Player.SpecialForce)s?</div>
+                <div class="pin-choice">
+                    <button type="button" class="@(addExtraAdvisor ? "" : "on")" @onclick="@(() => SetExtraAdvisor(false))">1</button>
+                    <button type="button" class="@(addExtraAdvisor ? "on" : "")" @onclick="@(() => SetExtraAdvisor(true))">2</button>
+                </div>
+            }
+            @PinActions("Accompany")
+        </div>
+    };
 }

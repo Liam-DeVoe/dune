@@ -962,10 +962,10 @@ public partial class Game
 
     internal bool EveryoneActedOrPassed => HasActedOrPassed.Count == Players.Count;
 
-    public bool AssistedNoteKeepingEnabled(Player p)
+    public bool AssistedNoteKeepingEnabled(Player? p)
     {
-        return Applicable(Rule.AssistedNotekeeping) ||
-               (p.Is(Faction.Green) && Applicable(Rule.AssistedNotekeepingForGreen));
+        return p != null && (Applicable(Rule.AssistedNotekeeping) ||
+               (p.Is(Faction.Green) && Applicable(Rule.AssistedNotekeepingForGreen)));
     }
 
     public bool HasStormPrescience(Player? p)

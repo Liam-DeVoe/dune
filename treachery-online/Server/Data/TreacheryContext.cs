@@ -11,6 +11,7 @@ public partial class TreacheryContext(DbContextOptions<TreacheryContext> options
     public DbSet<PersistedGame> PersistedGames { get; set; }
     public DbSet<ArchivedGame> ArchivedGames { get; set; }
     public DbSet<PersistedScheduledGame> ScheduledGames { get; set; }
+    public DbSet<PersistedUserToken> UserTokens { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

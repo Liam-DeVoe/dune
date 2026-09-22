@@ -56,6 +56,8 @@
             <g
                 fill="@LocationColor(location)"
                 cursor="pointer" pointer-events="all" @onclick=@(e => OnClick(e, location))
+                @oncontextmenu=@(e => OnRightClick(e, location)) @oncontextmenu:preventDefault
+                data-location-id="@location.Id"
                 data-bs-trigger="hover" data-bs-toggle="popover" data-bs-html="true" data-bs-animation="false" data-bs-delay="50" data-bs-content="@Intel(location)" data-bs-template="@PopoverTemplate">
 
                     <path d="@Client.CurrentSkin.GetTerritoryBorder(location.Territory)"/>
@@ -70,7 +72,7 @@
 @code {
 
     [Parameter]
-    public EventCallback<LocationEventArgs> OnLocationClick { get; set; }
+    public Action<LocationEventArgs>? OnLocationClick { get; set; }
     
     private Situation situation = new();
     protected override bool ShouldRender()
@@ -111,9 +113,16 @@
     }
 
 
-    private async Task OnClick(MouseEventArgs e, Location l)
+    private void OnClick(MouseEventArgs e, Location l)
     {
-        await OnLocationClick.InvokeAsync(new LocationEventArgs { Location = l, AltKey = e.AltKey, CtrlKey = e.CtrlKey, ShiftKey = e.ShiftKey });
+        OnLocationClick?.Invoke(new LocationEventArgs { Location = l, AltKey = e.AltKey, CtrlKey = e.CtrlKey, ShiftKey = e.ShiftKey });
+    }
+
+    // The browser's context menu is suppressed on sectors so a right click,
+    // ctrl-click on a Mac, or a long press on a touch screen reaches the game.
+    private void OnRightClick(MouseEventArgs e, Location l)
+    {
+        OnLocationClick?.Invoke(new LocationEventArgs { Location = l, RightButton = true });
     }
 
     private float Angle => 360f / Map.NumberOfSectors;
@@ -142,7 +151,7 @@
 
     private double ScaleY => 626f / Client.CurrentSkin.MapDimensions.Y;
 
-    private string PointerEvents => OnLocationClick.HasDelegate ? "all" : "none";
+    private string PointerEvents => OnLocationClick != null ? "all" : "none";
 
     private string SectorClipName(int i)
     {

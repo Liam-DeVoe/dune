@@ -1,2 +1,5 @@
 deploy/.admin-password
 .DS_Store
+*.pyc
+__pycache__/
+*.pyc

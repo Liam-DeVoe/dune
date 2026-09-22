@@ -1,0 +1,81 @@
+@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits MapComponent
+
+@*
+ The shape of the sector under the mouse, in every phase. Every sector gets a
+ hidden shape here and StartMapHover in index.html shows the one matching the
+ hovered Planet location, so a mouse move never reaches Blazor. The shapes
+ also carry the sector's centre, which TrackMapCursor snaps the cursor arrow to.
+*@
+
+@{
+    var skin = Client.CurrentSkin;
+    var locations = Game.Map.Locations(false).Where(HasBorder).ToList();
+}
+
+<svg class="maphover" width="@skin.MapDimensions.X" height="@skin.MapDimensions.Y" viewBox="0 0 @skin.MapDimensions.X @skin.MapDimensions.Y"
+     style="position:absolute; left:0; top:0; width:100%; height:100%;" pointer-events="none">
+
+    <defs>
+        @foreach (var territory in locations.Select(l => l.Territory).Distinct())
+        {
+            <clipPath id="maphover-t-@territory.Id">
+                <path d="@skin.GetTerritoryBorder(territory)"/>
+            </clipPath>
+        }
+    </defs>
+
+    @foreach (var location in locations)
+    {
+        var border = skin.GetTerritoryBorder(location.Territory);
+        var sectorClip = SectorGeometry.SectorClipId(location.Sector);
+
+        @* The centre is where a pinned arrow ends, so the cursor arrow can snap to it. *@
+        var center = SectorGeometry.HasCenter(skin, location) ? skin.GetCenter(location, Game.Map) : (PointD?)null;
+
+        <g class="hover-shape" data-location-id="@location.Id" data-cx="@(center is { } c ? Round(c.X) : null)" data-cy="@(center is { } d ? Round(d.Y) : null)">
+            <g clip-path="url(#@sectorClip)">
+                <path d="@border" class="fill"/>
+                <path d="@border" class="core"/>
+                <path d="@border" class="edge"/>
+            </g>
+            @if (location.Sector >= 0)
+            {
+                @* Clipped by both shapes, so only the inner half of the stroke shows; .radial doubles the width to make up for it. *@
+                <g clip-path="url(#maphover-t-@location.Territory.Id)">
+                    <g clip-path="url(#@sectorClip)">
+                        <path d="@SectorGeometry.WedgePath(skin, location.Sector)" class="core radial"/>
+                        <path d="@SectorGeometry.WedgePath(skin, location.Sector)" class="edge radial"/>
+                    </g>
+                </g>
+            }
+        </g>
+    }
+</svg>
+
+@code {
+
+    private Situation situation = new();
+
+    protected override bool ShouldRender()
+    {
+        return Client.InGame && situation.RequiresUpdate(Client);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // The shapes are new elements after every render, so the hover script
+        // has to find them again.
+        await Browser.StartMapHover();
+    }
+
+    private bool HasBorder(Location l) =>
+        l is not HiddenMobileStronghold && l is not DiscoveredLocation && !l.IsHomeworld && Client.CurrentSkin.GetTerritoryBorder(l.Territory) != "";
+}

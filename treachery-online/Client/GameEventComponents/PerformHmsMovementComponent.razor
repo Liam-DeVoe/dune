@@ -6,8 +6,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
-@inherits GameEventComponent<PerformHmsMovement>
-@implements IDisposable
+@inherits MapPickComponent<PerformHmsMovement>
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
@@ -16,11 +15,9 @@
 
         <p class="text-info">You have @Game.HmsMovesLeft move(s) left. </p>
 
-        <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="target" Values="PerformHmsMovement.ValidLocations(Game)">
-            <Label>To</Label>
-        </SelectComponent>
+        <div class="small">Use the map to choose a location.</div>
 
-        <ButtonRowComponent Confirm="Confirm" ConfirmText="Move" ConfirmError="@Validation" Pass="Pass" PassText="Pass" />
+        <ButtonRowComponent Pass="Pass" PassText="Pass" />
 
     </Body>
 
@@ -28,28 +25,16 @@
 
 @code {
 
-    public Location? target;
+    protected override IEnumerable<Location> PickTargets => PerformHmsMovement.ValidLocations(Game);
 
-    protected override void OnAfterRender(bool firstRender)
-    {
-        if (firstRender)
-        {
-            Client.OnLocationSelected += HandleLocationSelected;
-        }
-    }
-
-    public override void Dispose()
-    {
-        base.Dispose();
-        Client.OnLocationSelected -= HandleLocationSelected;
-    }
-
-    protected override PerformHmsMovement ConfirmedResult => new(Game, Faction) { Passed = false, Target = target };
+    protected override PerformHmsMovement ConfirmedResult => new(Game, Faction) { Passed = false, Target = Target };
 
     protected override PerformHmsMovement PassedResult => new(Game, Faction) { Passed = true };
 
-    private void HandleLocationSelected(object sender, Location l)
+    protected override RenderFragment PinContent => __builder =>
     {
-        SetIfValid(ref target, Game.Map.Locations(false), l);
-    }
+        <div class="pin-body">
+            @PinActions("Move")
+        </div>
+    };
 }

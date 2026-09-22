@@ -1,0 +1,18 @@
+// Component classes from the design guide. Names match the guide so any
+// component can use them. The guide's .card thumbnail rules are not here:
+// Bootstrap's .card is the game's panel. Order matters for the cascade.
+@use "chip";
+@use "buttons";
+@use "number";
+@use "field";
+@use "select";
+@use "panel";
+@use "prompt";
+@use "log";
+@use "leader";
+@use "toolbar";
+@use "pop";
+@use "status";
+@use "tabs";
+@use "helpers";
+@use "map";

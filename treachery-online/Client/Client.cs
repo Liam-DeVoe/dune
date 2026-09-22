@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
  * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
@@ -79,6 +79,8 @@ public class Client : IGameService, IGameClient, IAsyncDisposable
     public int Timer { get; set; } = -1;
     public bool MuteGlobalChat { get; set; } = false;
 
+    public ISet<string> RejectedDealOffers { get; } = new HashSet<string>();
+
     public event Action RefreshHandler = null!;
     public event Action RefreshPopoverHandler = null!;
 
@@ -125,6 +127,10 @@ public class Client : IGameService, IGameClient, IAsyncDisposable
                 GameId = gameId;
                 await RequestReconnectGame();
             }
+        }
+        else
+        {
+            await TryResumeSavedLogin();
         }
         
         _ = Task.Delay(IGameService.HeartbeatDelay).ContinueWith(_ => Heartbeat());
@@ -352,7 +358,7 @@ public class Client : IGameService, IGameClient, IAsyncDisposable
     {
         Messages.AddFirst(m);
 
-        if (!MuteGlobalChat)
+        if (!MuteGlobalChat && IGameService.ChatEnabled)
         {
             await Browser.PlaySound(CurrentSkin.Sound_Chatmessage_URL, CurrentChatVolume);
             Refresh(nameof(HandleGlobalChatMessage));
@@ -364,7 +370,8 @@ public class Client : IGameService, IGameClient, IAsyncDisposable
         if (m.TargetUserId == -1 || m.SourceUserId == -1 || m.SourceUserId == UserId || m.TargetUserId == UserId)
         {
             Messages.AddFirst(m);
-            await Browser.PlaySound(CurrentSkin.Sound_Chatmessage_URL, CurrentChatVolume);
+            if (IGameService.ChatEnabled)
+                await Browser.PlaySound(CurrentSkin.Sound_Chatmessage_URL, CurrentChatVolume);
             Refresh(nameof(HandleChatMessage));
         }
     }
@@ -375,28 +382,37 @@ public class Client : IGameService, IGameClient, IAsyncDisposable
         ((InGame && ServerInfo.ScheduledMaintenance.Subtract(DateTime.UtcNow).TotalHours < 6 && CurrentPhase <= Phase.AwaitingPlayers) ||
          ServerInfo.ScheduledMaintenance.Subtract(DateTime.UtcNow).TotalHours < 1);
   
-    public event EventHandler<Location> OnLocationSelected = null!;
-    public event EventHandler<Location> OnLocationSelectedWithCtrlOrAlt = null!;
-    public event EventHandler<Location> OnLocationSelectedWithShift = null!;
-    public event EventHandler<Location> OnLocationSelectedWithShiftAndWithCtrlOrAlt = null!;
+    public MapInteraction MapInteraction { get; } = new();
+
+    public event EventHandler<Location>? OnLocationSelected;
+    public event EventHandler<Location>? OnLocationSelectedWithCtrlOrAlt;
+    public event EventHandler<Location>? OnLocationSelectedWithShift;
+    public event EventHandler<Location>? OnLocationSelectedWithShiftAndWithCtrlOrAlt;
+    public event EventHandler<Location>? OnLocationRightClicked;
 
     public void LocationClick(LocationEventArgs e)
     {
         if (e.Location is null) return;
+
+        if (e.RightButton)
+        {
+            OnLocationRightClicked?.Invoke(this, e.Location);
+            return;
+        }
         
         if (e.ShiftKey)
         {
             if (e.CtrlKey || e.AltKey)
-                OnLocationSelectedWithShiftAndWithCtrlOrAlt.Invoke(this, e.Location);
+                OnLocationSelectedWithShiftAndWithCtrlOrAlt?.Invoke(this, e.Location);
             else
-                OnLocationSelectedWithShift.Invoke(this, e.Location);
+                OnLocationSelectedWithShift?.Invoke(this, e.Location);
         }
         else
         {
             if (e.CtrlKey || e.AltKey)
-                OnLocationSelectedWithCtrlOrAlt.Invoke(this, e.Location);
+                OnLocationSelectedWithCtrlOrAlt?.Invoke(this, e.Location);
             else
-                OnLocationSelected.Invoke(this, e.Location);
+                OnLocationSelected?.Invoke(this, e.Location);
         }
     }
 
@@ -439,7 +455,34 @@ public class Client : IGameService, IGameClient, IAsyncDisposable
     {
         StoredPassword = null;
         LoginInfo = null;
+        _ = Browser.SaveStringSetting(AuthTokenSetting, string.Empty);
         Refresh(nameof(Logout));
+    }
+
+    private const string AuthTokenSetting = "treachery.online;auth.token";
+
+    // Stores the server session token so a reload does not ask for credentials.
+    // The server keeps tokens in its database, so they survive a restart. They expire after 90 days.
+    public async Task RememberLogin(bool keep)
+    {
+        await Browser.SaveStringSetting(AuthTokenSetting, keep && LoginInfo != null ? LoginInfo.Token : string.Empty);
+    }
+
+    private async Task<bool> TryResumeSavedLogin()
+    {
+        var saved = await Browser.LoadStringSetting(AuthTokenSetting);
+        if (string.IsNullOrEmpty(saved)) return false;
+
+        var loginInfo = await _connection.InvokeAsync<Result<LoginInfo>>(nameof(IGameHub.GetLoginInfo), saved);
+        if (!loginInfo.Success)
+        {
+            await Browser.SaveStringSetting(AuthTokenSetting, string.Empty);
+            return false;
+        }
+
+        LoginInfo = loginInfo.Contents;
+        await SendHeartbeatAndGetServerStatus();
+        return true;
     }
 
     public async Task<VoidResult> RequestPasswordReset(string usernameOrEmail) 
@@ -820,12 +863,16 @@ public class Client : IGameService, IGameClient, IAsyncDisposable
 
     private async Task<Message?> LoadGame(GameInitInfo initInfo)
     {
+        if (string.IsNullOrEmpty(initInfo.GameState))
+            return Message.Express("The server sent no game state");
+
         var currentState = GameState.Load(initInfo.GameState);
         var resultMessage = Game.TryLoad(currentState, initInfo.Participation, false, false, out var result);
         if (resultMessage == null)
         {
             Game = result;
             GameName = initInfo.GameName;
+            RejectedDealOffers.Clear();
             await PerformPostEventTasks();
             RefreshPopovers();
         }
@@ -852,7 +899,7 @@ public class Client : IGameService, IGameClient, IAsyncDisposable
     
     private async Task PerformPostEventTasks()
     {
-        if (!InGame || Player is null) return;
+        if (!InGame) return;
         
         Status = GameStatus.DetermineStatus(Game, Player, !IsObserver);
         Actions = Game.GetApplicableEvents(Player, IsHost);

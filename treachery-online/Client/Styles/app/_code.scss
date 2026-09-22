@@ -1,0 +1,9 @@
+// Code spans, like the guide: sand text on a dark pill.
+code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.85em;
+  color: var(--sand);
+  background: rgba(0, 0, 0, 0.35);
+  padding: 1px 5px;
+  border-radius: var(--r-1);
+}

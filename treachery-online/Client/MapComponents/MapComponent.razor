@@ -44,7 +44,7 @@
     public double Opacity { get; set; } = 1.0f;
 
     [Parameter]
-    public string PopoverStyle { get; set; } = "background-color:black;text-align:center;border:1px solid white;padding:3px 3px 3px 3px;filter:drop-shadow(-5px 5px 2px #000000AA);";
+    public string PopoverStyle { get; set; } = "background-color:var(--ink-0);text-align:center;border:1px solid rgba(255,255,255,.16);border-radius:var(--r-2);padding:3px 3px 3px 3px;box-shadow:var(--shadow-3);";
 
     protected override void OnParametersSet()
     {
@@ -87,7 +87,7 @@
 
     protected Game Game => Client.Game;
 
-    protected Player Player => Client.Player;
+    protected Player? Player => Client.Player;
 
     protected static string Px(double x) => Utilities.Px(x);
 
@@ -100,14 +100,8 @@
         get { return _id ??= (_nextId++).ToString(); }
     }
 
-    protected PointD PlayerTokenPosition(Game game, int positionAtTable)
-    {
-        var positionSector = Math.Floor((float)positionAtTable * Map.NumberOfSectors / game.MaximumPlayers);
-        var angle = (4.5 - positionSector) * TwoPi / Map.NumberOfSectors;
-        var x = Client.CurrentSkin.PlanetCenter.X + (float)(Client.CurrentSkin.MapRadius * Math.Cos(angle));
-        var y = Client.CurrentSkin.PlanetCenter.Y + (float)(Client.CurrentSkin.MapRadius * Math.Sin(angle));
-        return new PointD(x, y);
-    }
+    protected PointD PlayerTokenPosition(Game game, int positionAtTable) =>
+        SectorGeometry.PlayerTokenPosition(Client.CurrentSkin, game, positionAtTable);
 
     protected string PopoverTemplate => $"<div class=\"popover\" role=\"tooltip\" style=\"{PopoverStyle}\"><div class=\"arrow\"></div><h3 class=\"popover-header p-0\"></h3><div class=\"popover-body p-0\"></div></div>";
     
@@ -121,39 +115,49 @@
         }
         else
         {
-            result += Client.CurrentSkin.Format("<h5>{0}</h5>", Client.CurrentSkin.Describe(intelligenceLocation.Territory));
-            if (intelligenceLocation.Orientation != "")
-            {
-                result += "<div class='mt-0 mb-2'><strong>Sector: " + intelligenceLocation.Orientation + "</strong></div>";
-            }
+            var sector = intelligenceLocation.Orientation != "" ? $" <span class='sector'>{intelligenceLocation.Orientation}</span>" : "";
+            result += Client.CurrentSkin.Format("<h5>{0}{1}</h5>", Client.CurrentSkin.Describe(intelligenceLocation.Territory), sector);
         }
 
         if (Client.CurrentSkin.ShowVerboseToolipsOnMap)
         {
+            // The storm sitting in this sector right now is the one fact here that
+            // changes what you can do this turn, so it gets a red strip under the
+            // heading, the same red the sector wears on the map. The storm chip
+            // below keeps saying protected or exposed, as it does every turn.
+            if (intelligenceLocation.Sector == Game.SectorInStorm)
+            {
+                result += $"<div class='in-storm'>{StormGlyph}<span>In storm</span></div>";
+            }
+
+            var spice = $"<img class='inline-icon' src='{Client.CurrentSkin.Harvester_URL}' />";
+
+            result += "<div class='feats'>";
+
             if (Game.Map.PolarSink.Equals(intelligenceLocation))
             {
-                result += Client.CurrentSkin.Format("<p>Safe haven: no battles are fought here.</p>");
+                result += Feature("Safe haven", "No battles are fought here.");
             }
 
             if (intelligenceLocation.Territory.IsStronghold || Game.IsSpecialStronghold(intelligenceLocation.Territory))
             {
-                result += Client.CurrentSkin.Format("<p>Yields a victory point at end of turn.</p>");
+                result += Feature("Stronghold", "Yields a victory point at end of turn.");
             }
 
             if (intelligenceLocation is DiscoveredLocation dl)
             {
-                result += Client.CurrentSkin.Format("<p>{0}.</p>", Client.CurrentSkin.GetDiscoveryTokenDescription(dl.Discovery));
+                result += Feature(Client.CurrentSkin.Describe(dl.Discovery), Client.CurrentSkin.GetDiscoveryTokenDescription(dl.Discovery) + ".");
             }
 
             if (intelligenceLocation.Territory == Game.AtomicsAftermath)
             {
-                result += Client.CurrentSkin.Format("<p>ATOMICS AFTERMATH - No shipping here.</p>");
+                result += Feature("Atomics aftermath", "No shipping here.");
             }
 
             if (Equals(intelligenceLocation, Game.Map.Arrakeen) || Equals(intelligenceLocation, Game.Map.Carthag))
             {
-                result += Client.CurrentSkin.Format("<p><strong>Harvesters: </strong>when occupied, grants a {0} collection rate of 3-per-force.</p>", Concept.Resource);
-                result += Client.CurrentSkin.Format("<p><strong>Ornithopters: </strong>when occupied, your forces can move up to 3 territories.</p>", Concept.Resource);
+                result += Feature("Harvesters", Client.CurrentSkin.Format("When occupied, collect 3 {0} per force.", Concept.Resource));
+                result += Feature("Ornithopters", "When occupied, your forces move up to 3 territories.");
             }
 
             if (Game.Applicable(Rule.IncreasedResourceFlow))
@@ -161,22 +165,21 @@
                 if (Equals(intelligenceLocation, Game.Map.Arrakeen) || Equals(intelligenceLocation, Game.Map.Carthag) || Equals(intelligenceLocation, Game.Map.TueksSietch))
                 {
                     var bonus = Equals(intelligenceLocation, Game.Map.Arrakeen) || Equals(intelligenceLocation, Game.Map.Carthag) ? 2 : 1;
-                    result += Client.CurrentSkin.Format("<p>Yields <strong>{0} {1}</strong> at end of turn when occupied.</p>", bonus, Concept.Resource);
+                    result += Feature(Client.CurrentSkin.Format("{0} flow", Concept.Resource), Client.CurrentSkin.Format("Yields <strong>{0}{1}</strong> at end of turn when occupied.", bonus, spice));
                 }
-            }
-
-            result += Client.CurrentSkin.Format("<p>{0} from {1}.</p>", ProtectedFromMonsterText(intelligenceLocation), Concept.Monster);
-            result += Client.CurrentSkin.Format("<p>{0} from Storms.</p>", ProtectedFromStormText(intelligenceLocation));
-
-            if (intelligenceLocation.Sector == Game.SectorInStorm)
-            {
-                result += "<p>Currently in Storm.</p>";
             }
 
             if (intelligenceLocation.SpiceBlowAmount > 0)
             {
-                result += Client.CurrentSkin.Format("<p>May contain <strong>{0} {1}</strong> after {2}.</p>", intelligenceLocation.SpiceBlowAmount, Concept.Resource, MainPhase.Blow);
+                result += Feature(Client.CurrentSkin.Format("{0} blow", Concept.Resource), Client.CurrentSkin.Format("May contain <strong>{0}{1}</strong> after {2}.", intelligenceLocation.SpiceBlowAmount, spice, MainPhase.Blow));
             }
+
+            result += "</div>";
+
+            result += "<div class='hazards'>";
+            result += Hazard(intelligenceLocation.Territory.IsProtectedFromWorm, $"<img src='{Client.CurrentSkin.Monster_URL}' />");
+            result += Hazard(Client.Game.IsProtectedFromStorm(intelligenceLocation), StormGlyph);
+            result += "</div>";
         }
 
         result += SpiceAndForceAndTokenInfo(intelligenceLocation);
@@ -251,15 +254,28 @@
         return result;
     }
 
-    private static string ProtectedFromMonsterText(Location l)
+    // A feature row: an icon slot, a title, and the rule in one sentence. The
+    // slot stays empty until a territory feature has a glyph worth showing;
+    // it is kept so titles line up across rows.
+    private static string Feature(string title, string body, string icon = "")
     {
-        return l.Territory.IsProtectedFromWorm ? "Protected" : "NOT protected";
+        return $"<div class='feat'><div class='ic'>{icon}</div><div><b>{title}</b><span>{body}</span></div></div>";
     }
 
-    private string ProtectedFromStormText(Location l)
+    // A hazard chip: the hazard as an icon, the state as one word, and the
+    // chip's edge in a colour that says which: rock for protected, storm red
+    // for exposed. Neither state is faded, since faded reads as disabled.
+    private static string Hazard(bool protectedFrom, string icon)
     {
-        return Client.Game.IsProtectedFromStorm(l) ? "Protected" : "NOT protected";
+        var classes = protectedFrom ? "chip hazard protected" : "chip hazard exposed";
+        var word = protectedFrom ? "Protected" : "Exposed";
+        return $"<span class='{classes}'>{icon}<span class='name'>{word}</span></span>";
     }
+
+    // Three wind lines. There is no storm image in the skin, only a map overlay colour.
+    private const string StormGlyph =
+        "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round'>" +
+        "<path d='M3 7h9.5a2.5 2.5 0 1 0-2.5-2.5'/><path d='M3 12h15a2.5 2.5 0 1 1-2.5 2.5'/><path d='M3 17h7a2 2 0 1 1-2 2'/></svg>";
 
     protected ElementReference Element;
     

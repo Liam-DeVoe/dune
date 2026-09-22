@@ -1,0 +1,113 @@
+// Darkly's theme lives on :root (its "light" theme is the dark look);
+// index.html does not set data-bs-theme, so redefining on :root is enough.
+:root {
+  --bs-font-sans-serif:
+    "Alegreya Sans", "Candara", "Calibri", sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI Symbol";
+  --bs-body-font-family: var(--font-body);
+  --bs-body-color: #fcf9d1;
+  --bs-body-color-rgb: 252, 249, 209;
+  --bs-body-bg: #1d0c00;
+  --bs-body-bg-rgb: 29, 12, 0;
+  --bs-emphasis-color: #fffed8;
+  --bs-emphasis-color-rgb: 255, 254, 216;
+  --bs-secondary-color: #d9c79a;
+  --bs-secondary-color-rgb: 217, 199, 154;
+  --bs-secondary-bg: #2a1607;
+  --bs-secondary-bg-rgb: 42, 22, 7;
+  --bs-tertiary-color: #a68d63;
+  --bs-tertiary-color-rgb: 166, 141, 99;
+  --bs-tertiary-bg: #3b2310;
+  --bs-tertiary-bg-rgb: 59, 35, 16;
+  --bs-heading-color: inherit;
+
+  --bs-primary: #e7bf3c;
+  --bs-primary-rgb: 231, 191, 60;
+  --bs-secondary: #3b2310;
+  --bs-secondary-rgb: 59, 35, 16;
+  --bs-success: #79b34c;
+  --bs-success-rgb: 121, 179, 76;
+  --bs-info: #e7bf3c;
+  --bs-info-rgb: 231, 191, 60;
+  --bs-warning: #e8762a;
+  --bs-warning-rgb: 232, 118, 42;
+  --bs-danger: #c33232;
+  --bs-danger-rgb: 195, 50, 50;
+  --bs-light: #f3d987;
+  --bs-light-rgb: 243, 217, 135;
+  --bs-dark: #120800;
+  --bs-dark-rgb: 18, 8, 0;
+
+  --bs-primary-text-emphasis: #e7bf3c;
+  --bs-secondary-text-emphasis: #d9c79a;
+  --bs-success-text-emphasis: #79b34c;
+  --bs-info-text-emphasis: #e7bf3c;
+  --bs-warning-text-emphasis: #e8762a;
+  --bs-danger-text-emphasis: #e46b6b;
+  --bs-light-text-emphasis: #f3d987;
+  --bs-dark-text-emphasis: #fcf9d1;
+  --bs-primary-bg-subtle: #120800;
+  --bs-secondary-bg-subtle: #120800;
+  --bs-success-bg-subtle: #120800;
+  --bs-info-bg-subtle: #120800;
+  --bs-warning-bg-subtle: #120800;
+  --bs-danger-bg-subtle: #120800;
+  --bs-light-bg-subtle: #2a1607;
+  --bs-dark-bg-subtle: #120800;
+  --bs-primary-border-subtle: #b8841e;
+  --bs-secondary-border-subtle: rgba(255, 255, 255, 0.16);
+  --bs-success-border-subtle: #79b34c;
+  --bs-info-border-subtle: #b8841e;
+  --bs-warning-border-subtle: #e8762a;
+  --bs-danger-border-subtle: #c33232;
+  --bs-light-border-subtle: #b3915f;
+  --bs-dark-border-subtle: #4e3218;
+
+  --bs-link-color: #e7bf3c;
+  --bs-link-color-rgb: 231, 191, 60;
+  --bs-link-hover-color: #f0cb50;
+  --bs-link-hover-color-rgb: 240, 203, 80;
+  --bs-code-color: #f3d987;
+  --bs-highlight-bg: rgba(231, 191, 60, 0.25);
+
+  --bs-border-width: 1px;
+  --bs-border-color: rgba(255, 255, 255, 0.09);
+  --bs-border-color-translucent: rgba(255, 255, 255, 0.09);
+  --bs-border-radius: 6px;
+  --bs-border-radius-sm: 3px;
+  --bs-border-radius-lg: 6px;
+  --bs-border-radius-xl: 6px;
+  --bs-border-radius-xxl: 6px;
+  --bs-border-radius-pill: 999px;
+
+  --bs-box-shadow: var(--shadow-2);
+  --bs-box-shadow-sm: var(--shadow-1);
+  --bs-box-shadow-lg: var(--shadow-3);
+  --bs-box-shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+
+  --bs-focus-ring-width: 3px;
+  --bs-focus-ring-opacity: 0.2;
+  --bs-focus-ring-color: rgba(231, 191, 60, 0.2);
+  --bs-form-valid-color: #79b34c;
+  --bs-form-valid-border-color: #79b34c;
+  --bs-form-invalid-color: #e46b6b;
+  --bs-form-invalid-border-color: #c33232;
+}
+
+// index.html sets an inline black background on <body>; the page is ink 1.
+body {
+  background-color: var(--ink-1) !important;
+}
+
+html,
+body {
+  font-family: var(--font-body);
+}
+
+a {
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

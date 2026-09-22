@@ -268,7 +268,7 @@ public partial class GameHub
             {
                 var user = await context.Users.FindAsync(userId);
                 var mail = user?.Email;
-                if (mail == null) continue;
+                if (string.IsNullOrWhiteSpace(mail)) continue;
 
                 var player = game.Game.GetPlayerByUserId(userId);
                 if (player == null) continue;

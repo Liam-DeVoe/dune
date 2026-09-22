@@ -70,8 +70,10 @@ public class DealAccepted : GameEvent
             (g.CurrentBid.Initiator != p.Faction && (g.CurrentBid.AllyContributionAmount == 0 || g.CurrentBid.Player.Ally != p.Faction));
     }
 
-    public static IEnumerable<DealOffered> AcceptableDeals(Game g, Player p)
+    public static IEnumerable<DealOffered> AcceptableDeals(Game g, Player? p)
     {
+        if (p == null) return [];
+
         return g.DealOffers.Where(offer =>
             offer.Initiator != p.Faction &&
             offer.Initiator != p.Ally &&
@@ -79,8 +81,10 @@ public class DealAccepted : GameEvent
             (g.EconomicsStatus != BrownEconomicsStatus.Double || (offer.Benefit == 0 && offer.Price == 0)));
     }
 
-    public static IEnumerable<DealOffered> CancellableDeals(Game g, Player p)
+    public static IEnumerable<DealOffered> CancellableDeals(Game g, Player? p)
     {
+        if (p == null) return [];
+
         return g.DealOffers.Where(offer => offer.Initiator == p.Faction);
     }
 

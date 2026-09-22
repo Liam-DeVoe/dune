@@ -9,31 +9,52 @@
 @inherits GameComponent;
 @typeparam T
 
-<div class="mt-1">
+@*
+    A select whose open list is drawn by us instead of the operating system,
+    so it can follow the design language. The trigger is a button that reuses
+    Bootstrap's .form-select look. The list is a popover placed under the
+    trigger by js/listbox.js, which also forwards keyboard input to OnKey.
+    Keyboard: arrows move, Enter or Space picks, Escape closes, typing jumps
+    to the first matching label.
+*@
+
+<div class="select @Class">
 
     @if (Label != null)
     {
-        <label class="mb-0" for=@Id>
+        <label class="mb-0" id="@Id-label" for=@Id>
             @Label
             <ClickHintComponent Button="@ButtonHint" Modifier="@ModifierHint" />
         </label>
     }
 
-    <select class="form-select" style="cursor:pointer" @onchange="@(ChangeValue)" disabled="@Disabled" id="@Id">
+    <button type="button" id="@Id" class="select-trigger form-select @(Small ? "form-select-sm" : "")"
+            role="combobox" aria-haspopup="listbox" aria-expanded="@(_open ? "true" : "false")" aria-controls="@Id-list"
+            aria-activedescendant="@(_open && _active >= 0 ? OptionId(_active) : null)"
+            disabled="@Disabled" @ref="_trigger" @onclick="Toggle">
+        @GetLabel(Value)
+    </button>
 
-        @if (AddEmptyValue)
+    <ul class="select-list" id="@Id-list" role="listbox" popover="manual" @ref="_list">
+
+        @for (var i = 0; i < _options.Length; i++)
         {
-            <option value="">@EmptyLabel</option>
+            var index = i;
+            var option = _options[index];
+
+            @if (option.Group != null && (index == 0 || _options[index - 1].Group != option.Group))
+            {
+                <li class="select-group" role="presentation">@option.Group</li>
+            }
+
+            <li id="@OptionId(index)" role="option" aria-selected="@(option.Selected ? "true" : "false")"
+                class="select-option @(option.Selected ? "is-selected" : "") @(index == _active ? "is-active" : "")"
+                @onpointermove="@(_ => _active = index)" @onclick="@(_ => Choose(index))">
+                @option.Label
+            </li>
         }
 
-        @Options
-
-        @foreach (var item in ValuesToShow) {
-
-            <option value=@GetId(item) selected=@Equals(item, Value)>@GetLabel(item)</option>
-        }
-
-    </select>
+    </ul>
 
 </div>
 
@@ -48,6 +69,10 @@
     [Parameter]
     public IEnumerable<string>? ValueLabels { get; set; }
 
+    // Optional, parallel to Values. A heading is drawn where the group changes.
+    [Parameter]
+    public IEnumerable<string>? GroupLabels { get; set; }
+
     [Parameter]
     public EventCallback<T> ValueChanged { get; set; }
 
@@ -61,10 +86,13 @@
     public string EmptyLabel { get; set; } = "";
 
     [Parameter]
-    public RenderFragment? Options { get; set; }
+    public bool Disabled { get; set; }
 
     [Parameter]
-    public bool Disabled { get; set; }
+    public bool Small { get; set; }
+
+    [Parameter]
+    public string Class { get; set; } = "mt-1";
 
     [Parameter]
     public RenderFragment? Label { get; set; }
@@ -78,7 +106,19 @@
     [Parameter]
     public bool Required { get; set; } = true;
 
+    private record Option(T? Value, string Label, string? Group, bool Selected);
+
+    private const int TypeAheadResetMs = 600;
+
     private T[] ValuesToShow { get; set; } = [];
+    private Option[] _options = [];
+    private bool _open;
+    private int _active = -1;
+    private string _typed = "";
+    private DateTime _typedAt;
+    private ElementReference _trigger;
+    private ElementReference _list;
+    private DotNetObjectReference<SelectComponent<T>>? _self;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -90,40 +130,194 @@
         {
             await SetValue(Required ? ValuesToShow.FirstOrDefault() : default);
         }
+
+        _options = BuildOptions();
+
+        if (_open && (Disabled || _options.Length == 0))
+        {
+            await Close();
+        }
+        else if (_open)
+        {
+            _active = Math.Clamp(_active, 0, _options.Length - 1);
+        }
     }
 
-    private async Task ChangeValue(ChangeEventArgs e)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await SetValue(ValuesToShow.FirstOrDefault(v => GetId(v).Equals(e.Value as string)));
+        await base.OnAfterRenderAsync(firstRender);
+
+        if (firstRender)
+        {
+            _self = DotNetObjectReference.Create(this);
+            await Browser.ListboxInit(_trigger, _self);
+        }
     }
 
-    private async Task SetValue(T? newValue) {
+    public override void Dispose()
+    {
+        base.Dispose();
+        if (_open) _ = Browser.ListboxClose(_list);
+        _self?.Dispose();
+    }
 
+    private Option[] BuildOptions()
+    {
+        var labels = ValueLabels != null && ValueLabels.Count() == ValuesToShow.Length ? ValueLabels.ToArray() : null;
+        var groups = GroupLabels != null && GroupLabels.Count() == ValuesToShow.Length ? GroupLabels.ToArray() : null;
+        var result = new List<Option>();
+
+        if (AddEmptyValue)
+        {
+            result.Add(new Option(default, EmptyLabel, null, Value == null));
+        }
+
+        for (var i = 0; i < ValuesToShow.Length; i++)
+        {
+            var item = ValuesToShow[i];
+            result.Add(new Option(item, labels?[i] ?? Client.CurrentSkin.Describe(item), groups?[i], Equals(item, Value)));
+        }
+
+        return result.ToArray();
+    }
+
+    private string OptionId(int index) => $"{Id}-option-{index}";
+
+    private int SelectedIndex => Array.FindIndex(_options, o => o.Selected);
+
+    private async Task Toggle()
+    {
+        if (_open) await Close();
+        else await Open();
+    }
+
+    private async Task Open()
+    {
+        if (Disabled || _options.Length == 0) return;
+
+        _open = true;
+        _active = Math.Max(SelectedIndex, 0);
+        _typed = "";
+        StateHasChanged();
+        await Browser.ListboxOpen(_trigger, _list, _self!);
+        await Browser.ListboxReveal(_list, OptionId(_active));
+    }
+
+    private async Task Close()
+    {
+        if (!_open) return;
+
+        _open = false;
+        StateHasChanged();
+        await Browser.ListboxClose(_list);
+    }
+
+    private async Task Choose(int index)
+    {
+        await SetValue(_options[index].Value);
+        await Close();
+    }
+
+    [JSInvokable]
+    public async Task CloseFromBrowser()
+    {
+        await InvokeAsync(Close);
+    }
+
+    [JSInvokable]
+    public async Task OnKey(string key)
+    {
+        await InvokeAsync(() => HandleKey(key));
+    }
+
+    private async Task HandleKey(string key)
+    {
+        if (!_open)
+        {
+            await Open();
+            if (key.Length == 1) TypeAhead(key);
+            await RevealActive();
+            return;
+        }
+
+        switch (key)
+        {
+            case "ArrowDown": MoveActive(1); break;
+            case "ArrowUp": MoveActive(-1); break;
+            case "PageDown": MoveActive(10); break;
+            case "PageUp": MoveActive(-10); break;
+            case "Home": _active = 0; break;
+            case "End": _active = _options.Length - 1; break;
+            case "Enter":
+            case " ":
+            case "Tab":
+                await Choose(_active);
+                return;
+            case "Escape":
+                await Close();
+                return;
+            default:
+                if (key.Length == 1) TypeAhead(key);
+                break;
+        }
+
+        await RevealActive();
+    }
+
+    private void MoveActive(int delta)
+    {
+        _active = Math.Clamp(_active + delta, 0, _options.Length - 1);
+    }
+
+    // Typing jumps to the next label starting with what was typed. Repeating
+    // one letter cycles through the labels starting with it.
+    private void TypeAhead(string key)
+    {
+        var now = DateTime.UtcNow;
+        if ((now - _typedAt).TotalMilliseconds > TypeAheadResetMs) _typed = "";
+        _typedAt = now;
+        _typed += key;
+
+        var cycling = _typed.Length > 1 && _typed.All(c => c == _typed[0]);
+        var prefix = cycling ? _typed[..1] : _typed;
+        var start = cycling ? _active + 1 : 0;
+
+        for (var step = 0; step < _options.Length; step++)
+        {
+            var index = (start + step) % _options.Length;
+            if (_options[index].Label.StartsWith(prefix, StringComparison.CurrentCultureIgnoreCase))
+            {
+                _active = index;
+                return;
+            }
+        }
+    }
+
+    private async Task RevealActive()
+    {
+        StateHasChanged();
+        if (_open && _active >= 0) await Browser.ListboxReveal(_list, OptionId(_active));
+    }
+
+    private async Task SetValue(T? newValue)
+    {
         if (!Equals(Value, newValue))
         {
             Value = newValue;
+            _options = BuildOptions();
             await ValueChanged.InvokeAsync(newValue);
             await OnChanged.InvokeAsync(newValue);
         }
     }
 
-    private string GetLabel(T value) 
+    private string GetLabel(T? value)
     {
         if (value == null)
         {
             return EmptyLabel;
         }
 
-        if (ValueLabels != null && ValueLabels.Count() == ValuesToShow.Length)
-        {
-            var i = 0;
-            foreach (var item in ValuesToShow)
-            {
-                if (value.Equals(item)) return ValueLabels.ElementAt(i);
-                i++;
-            }
-        }
-
-        return Client.CurrentSkin.Describe(value);
+        var option = _options.FirstOrDefault(o => Equals(o.Value, value));
+        return option?.Label ?? Client.CurrentSkin.Describe(value);
     }
 }

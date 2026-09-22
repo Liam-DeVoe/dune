@@ -1,0 +1,59 @@
+// Fixed column widths for the two game tables, so long names and descriptions
+// wrap inside their cell instead of stretching the table.
+
+.table-running-games {
+  td {
+    &:nth-child(1) {
+      width: 15%;
+      word-break: break-all;
+    }
+
+    &:nth-child(2) {
+      width: 10%;
+      word-break: break-all;
+    }
+
+    &:nth-child(3) {
+      width: 45%;
+      word-break: break-word;
+    }
+
+    // Action buttons, right aligned.
+    &:nth-child(4) {
+      width: 30%;
+      word-break: break-all;
+      text-align: right;
+    }
+  }
+}
+
+.table-scheduled-games {
+  td {
+    &:nth-child(1) {
+      width: 15%;
+      word-break: break-all;
+    }
+
+    &:nth-child(2) {
+      width: 10%;
+      word-break: break-word;
+    }
+
+    &:nth-child(3) {
+      width: 45%;
+      word-break: break-word;
+    }
+
+    &:nth-child(4) {
+      width: 20%;
+      word-break: break-all;
+    }
+
+    // Action buttons, right aligned.
+    &:nth-child(5) {
+      width: 10%;
+      word-break: break-all;
+      text-align: right;
+    }
+  }
+}

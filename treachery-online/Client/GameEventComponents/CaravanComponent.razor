@@ -20,6 +20,8 @@
 
     protected override bool InformAboutCaravan => false;
 
+    protected override bool ClaimsMapByDefault => false;
+
     protected override string Title => Client.CurrentSkin.Format("Perform a {0}", TreacheryCardType.Caravan);
 
     protected override bool MayPass => false;

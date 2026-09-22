@@ -1,0 +1,10 @@
+// App-specific hooks layered on the design-language components: the
+// parchment prompt card as a Bootstrap card, the Blazor error bar,
+// scrollbars, code spans and per-component utility classes. Order matters
+// for the cascade.
+@use "prompt-act";
+@use "error-ui";
+@use "scrollbars";
+@use "code";
+@use "utilities";
+@use "scene";

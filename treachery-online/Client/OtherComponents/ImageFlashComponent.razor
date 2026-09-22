@@ -20,7 +20,7 @@
 
                 @if (img.Message != null)
                 {
-                    <div style="@MsgStyle"><ExpressionComponent Game=Game Expression=@img.Message.Expression Size=24 TextBorder=@Support.TextBorder(2, "black")/></div>
+                    <div style="@MsgStyle"><ExpressionComponent Game=Game Expression=@img.Message.Expression Size=24 TextBorder=@Support.TextBorder(2, "var(--ink-0)")/></div>
                 }
 
             </div>
@@ -110,7 +110,7 @@
     }
 
     private string MsgStyle =>
-        string.Format("width:{0};font:normal normal normal 24px Advokat, Calibri, Tahoma, sans-serif;color:white;text-align:center;", Support.Px(CardWidth));
+        string.Format("width:{0};font:normal normal normal 24px var(--font-display);color:var(--parchment);text-align:center;", Support.Px(CardWidth));
 
     private int ItemWidth => (int)(SPACING_X * CardWidth);
 }

@@ -1,0 +1,214 @@
+{
+  "ally": {
+    "seed": 3,
+    "situation": {
+      "phase": "NonOrangeMove",
+      "event": "Move",
+      "has_ally": true,
+      "can": "move-to-ally"
+    }
+  },
+  "battle": {
+    "rules": [
+      "AdvancedCombat"
+    ],
+    "seed": 1,
+    "situation": {
+      "phase": "BattlePhase",
+      "event": "Battle",
+      "faction_not": [
+        "Blue",
+        "Yellow"
+      ],
+      "spice_min": 3
+    }
+  },
+  "bid": {
+    "seed": 1,
+    "situation": {
+      "phase": "Bidding",
+      "event": "Bid",
+      "spice_min": 4
+    }
+  },
+  "blow": {
+    "max_attempts": 2000,
+    "seed": 502,
+    "situation": {
+      "phase": "BlowReport",
+      "turn_min": 2,
+      "spice_blow_on_map": true,
+      "older_spice_piles_min": 3
+    }
+  },
+  "blue-accompanies": {
+    "rules": [
+      "BlueAccompaniesToShipmentLocation"
+    ],
+    "seed": 1,
+    "situation": {
+      "event": "BlueAccompanies",
+      "accompany_targets_min": 2
+    }
+  },
+  "blue": {
+    "rules": [
+      "BlueAdvisors"
+    ],
+    "seed": 1,
+    "situation": {
+      "phase": "NonOrangeMove",
+      "event": "Move",
+      "faction": "Blue",
+      "can": "advisors-to-fighters"
+    }
+  },
+  "move-reinforce": {
+    "seed": 1,
+    "situation": {
+      "phase": "NonOrangeMove",
+      "event": "Move",
+      "faction_not": [
+        "Blue"
+      ],
+      "can": "reinforce"
+    }
+  },
+  "move": {
+    "seed": 1,
+    "situation": {
+      "phase": "NonOrangeMove",
+      "event": "Move",
+      "faction_not": [
+        "Blue"
+      ],
+      "sectors_with_forces_min": 2,
+      "special_forces_on_planet": true
+    }
+  },
+  "retreat": {
+    "max_attempts": 2000,
+    "rules": [
+      "LeaderSkills"
+    ],
+    "seed": 835,
+    "situation": {
+      "phase": "Retreating",
+      "event": "Retreat"
+    }
+  },
+  "revival": {
+    "seed": 1,
+    "situation": {
+      "phase": "Resurrection",
+      "event": "Revival",
+      "killed_min": 2,
+      "special_killed_min": 1,
+      "spice_min": 4
+    }
+  },
+  "setup-host": {
+    "rules": [
+      "CustomInitialForcesAndResources"
+    ],
+    "seed": 1,
+    "situation": {
+      "host_event": "PerformSetup",
+      "next_custom_setup": true
+    }
+  },
+  "setup": {
+    "seed": 1,
+    "situation": {
+      "event": "PerformYellowSetup"
+    }
+  },
+  "ship-fremen": {
+    "seed": 1,
+    "situation": {
+      "phase": "NonOrangeShip",
+      "event": "Shipment",
+      "faction": "Yellow",
+      "reserves_min": 2
+    }
+  },
+  "ship-guild": {
+    "seed": 1,
+    "situation": {
+      "phase": [
+        "NonOrangeShip",
+        "OrangeShip"
+      ],
+      "event": "Shipment",
+      "faction": "Orange",
+      "can": "ship-site-to-site",
+      "sectors_with_forces_min": 2,
+      "reserves_min": 2
+    }
+  },
+  "ship": {
+    "seed": 1,
+    "situation": {
+      "phase": "NonOrangeShip",
+      "event": "Shipment",
+      "faction_not": [
+        "Orange",
+        "Yellow"
+      ],
+      "reserves_min": 3,
+      "spice_min": 6
+    }
+  },
+  "worm-ride-reserves": {
+    "rules": [
+      "GreatMaker"
+    ],
+    "seed": 1,
+    "situation": {
+      "event": "YellowRidesMonster",
+      "great_maker": true,
+      "reserves_min": 2,
+      "special_reserves_min": 1
+    }
+  },
+  "worm-ride-ssw": {
+    "rules": [
+      "Ssw"
+    ],
+    "handmade": true,
+    "situation": {
+      "event": "YellowRidesMonster",
+      "any_of": [
+        {
+          "ride_sources_min": 2
+        },
+        {
+          "ride_source_with_both_types": true
+        }
+      ]
+    }
+  },
+  "worm-ride": {
+    "seed": 6,
+    "situation": {
+      "event": "YellowRidesMonster",
+      "any_of": [
+        {
+          "ride_sources_min": 2
+        },
+        {
+          "ride_source_with_both_types": true
+        }
+      ]
+    }
+  },
+  "worm": {
+    "rules": [
+      "YellowSendingMonster"
+    ],
+    "seed": 1,
+    "situation": {
+      "event": "YellowSentMonster"
+    }
+  }
+}

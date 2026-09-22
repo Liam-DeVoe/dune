@@ -1,0 +1,21 @@
+// Tables: ink with hairlines. .table and .table-dark share every token except
+// the background.
+@mixin tokens($bg) {
+  --bs-table-color: var(--parchment);
+  --bs-table-bg: #{$bg};
+  --bs-table-border-color: rgba(255, 255, 255, 0.09);
+  --bs-table-striped-color: var(--parchment);
+  --bs-table-striped-bg: rgba(252, 249, 209, 0.04);
+  --bs-table-active-color: var(--parchment);
+  --bs-table-active-bg: rgba(231, 191, 60, 0.1);
+  --bs-table-hover-color: var(--parchment);
+  --bs-table-hover-bg: rgba(231, 191, 60, 0.06);
+}
+
+.table {
+  @include tokens(transparent);
+}
+
+.table-dark {
+  @include tokens(var(--ink-1));
+}

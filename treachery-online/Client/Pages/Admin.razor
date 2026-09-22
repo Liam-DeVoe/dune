@@ -125,7 +125,7 @@ else
                         <tbody>
                         @foreach (var av in FilteredGames)
                         {
-                            var fontColorStyle = av.LastActivity != null && DateTimeOffset.Now.Subtract((DateTimeOffset)av.LastActivity).TotalMinutes > 20 ? "color:grey" : "color:white";
+                            var fontColorStyle = av.LastActivity != null && DateTimeOffset.Now.Subtract((DateTimeOffset)av.LastActivity).TotalMinutes > 20 ? "color:var(--text-3)" : "color:var(--parchment)";
                             <tr class="small table-dark">
                                 <td style="@fontColorStyle">
                                     @av.CreationDate.LocalDateTime

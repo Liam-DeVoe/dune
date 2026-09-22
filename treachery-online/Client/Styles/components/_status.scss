@@ -1,0 +1,25 @@
+// Status dot: a coloured dot before a short label. Gold by default, green
+// for an open lobby, spice for a running game.
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-2);
+
+  &::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--gold);
+  }
+
+  &.open::before {
+    background: #79b34c;
+  }
+
+  &.running::before {
+    background: var(--spice);
+  }
+}

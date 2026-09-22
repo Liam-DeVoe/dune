@@ -17,11 +17,11 @@
         {
             var isMe = Client.UserId == userId;
             var isHost = Game.IsHost(userId);
-            var emphasis = isMe ? "gold" : "white";
-            var rowBorder = userId == players[0] ? "vertical-align: center; min-height: 2rem;" : "border-top: 1px solid darkgrey; vertical-align: center; min-height: 2rem;";
+            var emphasis = isMe ? "player-name you" : "player-name";
+            var rowBorder = userId == players[0] ? "" : "hairline-top";
 
-            <div style="@rowBorder">
-                <span class="@emphasis" style="font: normal normal normal 18px Advokat, Calibri, Tahoma, sans-serif; color: @emphasis;">
+            <div class="@rowBorder" style="vertical-align: center; min-height: 2rem;">
+                <span class="@emphasis">
                     @Game.GetPlayerName(userId)
                 </span>
                 @if (isHost)
@@ -52,9 +52,9 @@
             var makeAvailableText = Game.SeatIsAvailable(player.Seat) ? "Close" : "Open";
             var isMe = Client.UserId == userId;
             var isHost = Game.IsHost(userId);
-            var rowBorder = player == playersOrderedBySeat[0] ? "min-height: 2rem;" : "border-top: 1px solid darkgrey; min-height: 2rem;";
+            var rowBorder = player == playersOrderedBySeat[0] ? "" : "hairline-top";
             
-            <div style="@rowBorder">
+            <div class="@rowBorder" style="min-height: 2rem;">
                 @if (player.Faction != Faction.None)
                 {
                     <FactionComponent Faction="@player.Faction" Diameter="20"/>    
@@ -65,8 +65,8 @@
                 }
                 else
                 {
-                    var emphasis = isMe ? "gold" : "white";
-                    <span class="m-1" style="font: normal normal normal 18px Advokat, Calibri, Tahoma, sans-serif; color: @emphasis;">@Game.GetPlayerName(player)</span>
+                    var emphasis = isMe ? "player-name you" : "player-name";
+                    <span class="m-1 @emphasis">@Game.GetPlayerName(player)</span>
                 }
                 @if (isHost)
                 {
@@ -114,7 +114,7 @@
         <div>
             @foreach (var o in Game.ObserverNames)
             {
-                <span class="me-1" style="font: normal normal normal 18px Advokat, Calibri, Tahoma, sans-serif; color: white;">@o</span>
+                <span class="me-1 player-name">@o</span>
             }
         </div>
     }

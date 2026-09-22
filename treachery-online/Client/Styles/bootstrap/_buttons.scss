@@ -1,0 +1,179 @@
+.btn {
+  --bs-btn-font-family: var(--font-body);
+  --bs-btn-font-weight: 700;
+  --bs-btn-border-radius: var(--r-2);
+  --bs-btn-box-shadow: none;
+  --bs-btn-disabled-opacity: 0.4;
+  --bs-btn-focus-box-shadow: 0 0 0 2px var(--ink-0), 0 0 0 4px var(--gold);
+  letter-spacing: 0.02em;
+}
+
+// Every colour variant has the same shape. The disabled state keeps the
+// resting colour, background and border. Hover and active text default to the
+// resting colour; only .btn-outline-primary overrides them, because it fills
+// with gold on hover and its text has to flip to ink.
+@mixin variant(
+  $color,
+  $bg,
+  $border,
+  $hover-bg,
+  $hover-border,
+  $focus-rgb,
+  $active-bg,
+  $active-border,
+  $hover-color: $color,
+  $active-color: $color
+) {
+  --bs-btn-color: #{$color};
+  --bs-btn-bg: #{$bg};
+  --bs-btn-border-color: #{$border};
+  --bs-btn-hover-color: #{$hover-color};
+  --bs-btn-hover-bg: #{$hover-bg};
+  --bs-btn-hover-border-color: #{$hover-border};
+  --bs-btn-focus-shadow-rgb: #{$focus-rgb};
+  --bs-btn-active-color: #{$active-color};
+  --bs-btn-active-bg: #{$active-bg};
+  --bs-btn-active-border-color: #{$active-border};
+  --bs-btn-active-shadow: none;
+  --bs-btn-disabled-color: #{$color};
+  --bs-btn-disabled-bg: #{$bg};
+  --bs-btn-disabled-border-color: #{$border};
+}
+
+.btn-primary,
+.btn-info {
+  @include variant(
+    $color: var(--ink-0),
+    $bg: var(--gold),
+    $border: var(--gold),
+    $hover-bg: #f0cb50,
+    $hover-border: #f0cb50,
+    $focus-rgb: (
+      231,
+      191,
+      60,
+    ),
+    $active-bg: var(--gold-2),
+    $active-border: var(--gold-2)
+  );
+}
+
+.btn-secondary,
+.btn-outline-secondary {
+  @include variant(
+    $color: var(--sand),
+    $bg: transparent,
+    $border: rgba(231, 191, 60, 0.45),
+    $hover-bg: rgba(231, 191, 60, 0.1),
+    $hover-border: var(--gold),
+    $focus-rgb: (
+      231,
+      191,
+      60,
+    ),
+    $active-bg: rgba(231, 191, 60, 0.16),
+    $active-border: var(--gold)
+  );
+}
+
+.btn-outline-primary {
+  @include variant(
+    $color: var(--gold),
+    $bg: transparent,
+    $border: rgba(231, 191, 60, 0.45),
+    $hover-bg: var(--gold),
+    $hover-border: var(--gold),
+    $focus-rgb: (
+      231,
+      191,
+      60,
+    ),
+    $active-bg: var(--gold-2),
+    $active-border: var(--gold-2),
+    $hover-color: var(--ink-0),
+    $active-color: var(--ink-0)
+  );
+}
+
+.btn-danger {
+  @include variant(
+    $color: var(--parchment),
+    $bg: var(--storm),
+    $border: var(--storm-2),
+    $hover-bg: #d63b3b,
+    $hover-border: var(--storm-2),
+    $focus-rgb: (
+      195,
+      50,
+      50,
+    ),
+    $active-bg: var(--storm-2),
+    $active-border: var(--storm-2)
+  );
+}
+
+.btn-warning {
+  @include variant(
+    $color: var(--parchment),
+    $bg: var(--spice),
+    $border: var(--spice),
+    $hover-bg: var(--stronghold),
+    $hover-border: var(--stronghold),
+    $focus-rgb: (
+      232,
+      118,
+      42,
+    ),
+    $active-bg: var(--spice),
+    $active-border: var(--spice)
+  );
+}
+
+.btn-success {
+  @include variant(
+    $color: var(--ink-0),
+    $bg: #79b34c,
+    $border: #79b34c,
+    $hover-bg: #8bc55d,
+    $hover-border: #8bc55d,
+    $focus-rgb: (
+      121,
+      179,
+      76,
+    ),
+    $active-bg: #79b34c,
+    $active-border: #79b34c
+  );
+}
+
+.btn-dark,
+.btn-light {
+  @include variant(
+    $color: var(--parchment),
+    $bg: var(--ink-3),
+    $border: rgba(255, 255, 255, 0.16),
+    $hover-bg: var(--ink-4),
+    $hover-border: rgba(255, 255, 255, 0.25),
+    $focus-rgb: (
+      231,
+      191,
+      60,
+    ),
+    $active-bg: var(--ink-4),
+    $active-border: rgba(255, 255, 255, 0.25)
+  );
+}
+
+.btn-link {
+  --bs-btn-font-weight: 500;
+  --bs-btn-color: var(--gold);
+  --bs-btn-hover-color: #f0cb50;
+  --bs-btn-active-color: var(--gold-2);
+  --bs-btn-disabled-color: var(--text-3);
+  --bs-btn-focus-shadow-rgb: 231, 191, 60;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

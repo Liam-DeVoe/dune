@@ -153,17 +153,19 @@ else
 
     </div>
 }
-@if (Client.IsConnected && Client.LoggedIn)
+@if (Client.IsConnected && Client.LoggedIn && IGameService.ChatEnabled)
 {
     <!--Chat-->
-    <HoverPanel Width=400 HandleWidth=14 BackgroundColor="#e8dba6ee">
+    <HoverPanel Width=400 HandleWidth=14 BackgroundColor="var(--ink-2)" BorderColor="rgba(255,255,255,.09)" BorderWidth=1>
         <ChatComponent/>
     </HoverPanel>
     
-    <!--Users-->
-    <HoverPanel Width=200 HandleWidth=14 BackgroundColor="#e8dba6ee" Position="HoverPanel.HoverPanelPosition.Right">
+    @* The online users panel is hidden for now. UserListComponent and
+       Client.RecentlySeenUsers still work; restore this block to show it again.
+    <HoverPanel Width=200 HandleWidth=14 BackgroundColor="var(--ink-2)" BorderColor="rgba(255,255,255,.09)" BorderWidth=1 Position="HoverPanel.HoverPanelPosition.Right">
         <UserListComponent/>
     </HoverPanel>
+    *@
 }
     
 @code {

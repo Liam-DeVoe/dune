@@ -48,7 +48,7 @@ public class PlacementComponentTests
         protected override string Title => "";
         protected override bool MayPass => true;
 
-        public bool HasSelection => fromTerritory != null || toLocation != null || forces.Count != 0 || asAdvisors;
+        public bool HasSelection => toLocation != null || forces.Count != 0 || asAdvisors;
 
         public void ApplyParameters() => base.OnParametersSet();
 
@@ -74,7 +74,6 @@ public class PlacementComponentTests
 
         public void Select(Location location)
         {
-            fromTerritory = location.Territory;
             toLocation = location;
             forces.Add(location, new Battalion(Faction.None, 1, 0, location));
             asAdvisors = true;

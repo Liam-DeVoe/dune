@@ -313,9 +313,9 @@ public partial class ClassicBot
 
     #region PlanetaryForceInformation
 
-    private static Player? OccupyingOpponentIn(Game game, Player player, Territory t) =>
+    private Player? OccupyingOpponentIn(Game game, Player player, Territory t) =>
         game.Players.Where(p => p.Faction != player.Faction && p.Faction != player.Ally && p.Occupies(t))
-            .HighestOrDefault(p => MaxDial(game, p, t, player));
+            .HighestOrDefault(_random, p => MaxDial(game, p, t, player));
 
     private static List<Player> OccupyingOpponentsIn(Game game, Player player, Territory t) 
         => game.Players.Where(p => p.Faction != player.Faction && p.Faction != player.Ally && p.Occupies(t)).ToList();
@@ -339,7 +339,7 @@ public partial class ClassicBot
                         !InStorm(locationWithBattalion.Key) &&
                         !AllyDoesntBlock(locationWithBattalion.Key))
                     .Select(x => new BattalionInLocation(x.Key,x.Value))
-                    .HighestOrDefault(locationWithBattalion => locationWithBattalion.Battalion.TotalAmountOfForces);
+                    .HighestOrDefault(_random, locationWithBattalion => locationWithBattalion.Battalion.TotalAmountOfForces);
             
             //Ally has not acted yet => move the smallest battalion
             return ForcesOnPlanet.Where(locationWithBattalion =>
@@ -347,7 +347,7 @@ public partial class ClassicBot
                     !InStorm(locationWithBattalion.Key) &&
                     !AllyDoesntBlock(locationWithBattalion.Key.Territory))
                 .Select(x => new BattalionInLocation(x.Key,x.Value))
-                .LowestOrDefault(locationWithBattalion => locationWithBattalion.Battalion.TotalAmountOfForces);
+                .LowestOrDefault(_random, locationWithBattalion => locationWithBattalion.Battalion.TotalAmountOfForces);
         }
     }
 
@@ -363,7 +363,7 @@ public partial class ClassicBot
             MayFleeOutOf(locationWithBattalion.Key) &&
             !HasResources(locationWithBattalion.Key))
         .Select(x => new BattalionInLocation(x.Key, x.Value))
-        .HighestOrDefault(locationWithBattalion => locationWithBattalion.Battalion.TotalAmountOfForces);
+        .HighestOrDefault(_random, locationWithBattalion => locationWithBattalion.Battalion.TotalAmountOfForces);
 
     protected virtual BattalionInLocation? BiggestBattalionInSpicelessNonStrongholdLocationOnRock => ForcesOnPlanet
         .Where(locationWithBattalion =>
@@ -373,7 +373,7 @@ public partial class ClassicBot
             ResourcesIn(locationWithBattalion.Key) == 0 &&
             (!Player.Has(TreacheryCardType.Metheor) || locationWithBattalion.Key.Territory != Game.Map.PastyMesa))
         .Select(x => new BattalionInLocation(x.Key, x.Value))
-        .HighestOrDefault(locationWithBattalion => locationWithBattalion.Battalion.TotalAmountOfForces);
+        .HighestOrDefault(_random, locationWithBattalion => locationWithBattalion.Battalion.TotalAmountOfForces);
 
     protected virtual BattalionInLocation? BiggestBattalionInSpicelessNonStrongholdLocationInSandOrNotNearStronghold =>
         ForcesOnPlanet.Where(locationWithBattalion =>
@@ -384,7 +384,7 @@ public partial class ClassicBot
                 ResourcesIn(locationWithBattalion.Key) == 0 &&
                 (!Player.Has(TreacheryCardType.Metheor) || locationWithBattalion.Key.Territory != Game.Map.PastyMesa))
             .Select(x => new BattalionInLocation(x.Key, x.Value))
-            .HighestOrDefault(locationWithBattalion => locationWithBattalion.Battalion.TotalAmountOfForces);
+            .HighestOrDefault(_random, locationWithBattalion => locationWithBattalion.Battalion.TotalAmountOfForces);
 
     protected virtual BattalionInLocation? BiggestBattalionInSpicelessNonStrongholdLocationNotNearStrongholdAndSpice 
         => ForcesOnPlanet.Where(locationWithBattalion =>
@@ -395,7 +395,7 @@ public partial class ClassicBot
             VacantAndSafeNearbyStronghold(locationWithBattalion.Key, locationWithBattalion.Value) == null &&
             BestSafeAndNearbyResources(locationWithBattalion.Key, locationWithBattalion.Value) == null)
         .Select(x => new BattalionInLocation(x.Key, x.Value))
-        .HighestOrDefault(locationWithBattalion => locationWithBattalion.Battalion.TotalAmountOfForces);
+        .HighestOrDefault(_random, locationWithBattalion => locationWithBattalion.Battalion.TotalAmountOfForces);
 
     protected virtual BattalionInLocation? BiggestLargeUnthreatenedMovableBattalionInStrongholdNearVacantStronghold => ForcesOnPlanet.Where(locationWithBattalion =>
             IsStronghold(locationWithBattalion.Key) &&
@@ -404,7 +404,7 @@ public partial class ClassicBot
             locationWithBattalion.Value.TotalAmountOfForces >= 8 &&
             VacantAndSafeNearbyStronghold(locationWithBattalion.Key, locationWithBattalion.Value) != null)
         .Select(x => new BattalionInLocation(x.Key, x.Value))
-        .HighestOrDefault(locationWithBattalion => locationWithBattalion.Battalion.TotalAmountOfForces);
+        .HighestOrDefault(_random, locationWithBattalion => locationWithBattalion.Battalion.TotalAmountOfForces);
 
     protected virtual BattalionInLocation? BiggestMovableStackOfAdvisorsInStrongholdNearVacantStronghold => ForcesOnPlanet.Where(locationWithBattalion =>
             locationWithBattalion.Value is { Faction: Faction.Blue, AmountOfSpecialForces: > 0 } &&
@@ -413,7 +413,7 @@ public partial class ClassicBot
             !InStorm(locationWithBattalion.Key) &&
             VacantAndSafeNearbyStronghold(locationWithBattalion.Key, locationWithBattalion.Value) != null)
         .Select(x => new BattalionInLocation(x.Key, x.Value))
-        .HighestOrDefault(locationWithBattalion => locationWithBattalion.Battalion.TotalAmountOfForces);
+        .HighestOrDefault(_random, locationWithBattalion => locationWithBattalion.Battalion.TotalAmountOfForces);
 
     protected virtual BattalionInLocation? BiggestLargeUnthreatenedMovableBattalionInStrongholdNearSpice => ForcesOnPlanet.Where(locationWithBattalion =>
             IsStronghold(locationWithBattalion.Key) &&
@@ -422,11 +422,11 @@ public partial class ClassicBot
             locationWithBattalion.Value.TotalAmountOfForces >= (IAmDesperateForResources ? 5 : 7) &&
             BestSafeAndNearbyResources(locationWithBattalion.Key, locationWithBattalion.Value) != null)
         .Select(x => new BattalionInLocation(x.Key, x.Value))
-        .HighestOrDefault(locationWithBattalion => locationWithBattalion.Battalion.TotalAmountOfForces);
+        .HighestOrDefault(_random, locationWithBattalion => locationWithBattalion.Battalion.TotalAmountOfForces);
 
     private Location? BestSafeAndNearbyResources(Location location, Battalion b, bool mayFight = false)
     {
-        return Game.ResourcesOnPlanet.Where(l => IsSafeAndNearby(location, l.Key, b, mayFight)).HighestOrDefault(r => r.Value).Key;
+        return Game.ResourcesOnPlanet.Where(l => IsSafeAndNearby(location, l.Key, b, mayFight)).HighestOrDefault(_random, r => r.Value).Key;
     }
 
     private Location? BestSafeAndNearbyDiscovery(Location location, Battalion b, bool mayFight = false)
@@ -490,7 +490,7 @@ public partial class ClassicBot
             IsStronghold(to) &&
             AllyDoesntBlock(to.Territory) &&
             WinningOpponentsIWishToAttack(20, includeBots).Any(opponent => opponent.Occupies(to))
-        ).LowestOrDefault(l => TotalMaxDialOfOpponents(l.Territory));
+        ).LowestOrDefault(_random, l => TotalMaxDialOfOpponents(l.Territory));
     }
 
     protected virtual Location? NearbyStrongholdOfAlmostWinningOpponent(Location from, Battalion battalion, bool includeBots)
@@ -499,7 +499,7 @@ public partial class ClassicBot
             IsStronghold(to) &&
             AllyDoesntBlock(to.Territory) &&
             AlmostWinningOpponentsIWishToAttack(20, includeBots).Any(opponent => opponent.Occupies(to))
-        ).LowestOrDefault(l => TotalMaxDialOfOpponents(l.Territory));
+        ).LowestOrDefault(_random, l => TotalMaxDialOfOpponents(l.Territory));
     }
 
     private bool IsWinningOpponent(Player p) 

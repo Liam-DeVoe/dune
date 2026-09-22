@@ -1,0 +1,31 @@
+// Tabs, like .tabs in the guide.
+.nav {
+  --bs-nav-link-color: var(--text-2);
+  --bs-nav-link-hover-color: var(--parchment);
+  --bs-nav-link-font-size: 15px;
+  --bs-nav-link-padding-x: 14px;
+  --bs-nav-link-padding-y: 8px;
+  --bs-nav-link-disabled-color: var(--text-3);
+}
+
+.nav-tabs {
+  --bs-nav-tabs-border-width: 1px;
+  --bs-nav-tabs-border-color: rgba(255, 255, 255, 0.09);
+  --bs-nav-tabs-border-radius: 0;
+  --bs-nav-tabs-link-hover-border-color: transparent;
+  --bs-nav-tabs-link-active-color: var(--gold);
+  --bs-nav-tabs-link-active-bg: transparent;
+  --bs-nav-tabs-link-active-border-color: transparent transparent var(--gold);
+  gap: 2px;
+
+  .nav-link {
+    border-width: 0 0 2px;
+    font-family: var(--font-body);
+  }
+}
+
+.nav-pills {
+  --bs-nav-pills-link-active-color: var(--ink-0);
+  --bs-nav-pills-link-active-bg: var(--gold);
+  --bs-nav-pills-border-radius: var(--r-2);
+}

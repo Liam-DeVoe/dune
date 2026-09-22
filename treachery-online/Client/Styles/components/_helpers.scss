@@ -1,0 +1,58 @@
+// Small helpers from the guide: the section eyebrow, spec text, a callout
+// note, the error bar, and the reveal animation.
+
+// A small uppercase gold heading above a section.
+.eyebrow {
+  font-family: var(--font-label);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold-2);
+  margin-bottom: var(--s-2);
+}
+
+// Muted detail text.
+.spec {
+  font-size: 13px;
+  color: var(--text-3);
+  font-family: var(--font-body);
+}
+
+// A callout with a gold bar down the left.
+.note {
+  border-left: 2px solid var(--gold-3);
+  padding: var(--s-2) var(--s-4);
+  color: var(--text-2);
+  background: var(--ink-2);
+  border-radius: 0 var(--r-1) var(--r-1) 0;
+  max-width: 72ch;
+}
+
+// An error strip with a thick storm-coloured left edge.
+.errbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: rgba(18, 8, 0, 0.96);
+  border: 1px solid var(--storm);
+  border-left-width: 4px;
+  border-radius: var(--r-2);
+  padding: 10px 14px;
+}
+
+// Fade and rise in when an element appears.
+.reveal {
+  animation: reveal var(--t-slow) var(--ease) both;
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

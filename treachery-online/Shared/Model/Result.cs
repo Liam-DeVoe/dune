@@ -43,6 +43,7 @@ public enum ErrorType
     InvalidUserNameOrPassword,
     NotAdmin,
     UnknownUsernameOrEmailAddress,
+    NoEmailAddressForUser,
     ResetRequestTooSoon,
     UnknownUserName,
     InvalidResetToken,

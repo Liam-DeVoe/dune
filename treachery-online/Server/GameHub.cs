@@ -45,13 +45,12 @@ public partial class GameHub(DbContextOptions<TreacheryContext> dbContextOptions
 
     
     private static readonly char[] TokenChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".ToCharArray();
-    private static readonly Random TokenRandom = new();
     private static string GenerateToken() 
     {
         var result = new char[16];
         for (var i = 0; i < 16; i++)
         {
-            result[i] = TokenChars[TokenRandom.Next(TokenChars.Length)];
+            result[i] = TokenChars[System.Security.Cryptography.RandomNumberGenerator.GetInt32(TokenChars.Length)];
         }
         return new string(result);
     }

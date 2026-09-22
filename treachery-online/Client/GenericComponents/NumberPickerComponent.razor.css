@@ -1,27 +1,35 @@
-﻿.number-picker-component
-{
-    display: inline-block;
-    position: relative;
-    user-select: none;
+.num.sm {
+  height: 28px;
 }
-
-.arrow-up
-{
-    position: absolute; 
-    top: 3px; 
-    pointer-events: bounding-box; 
-    cursor: pointer;
+.num.sm button {
+  width: 26px;
+  font-size: 14px;
 }
-
-.arrow-down
-{
-    position: absolute;
-    bottom: 3px;
-    pointer-events: bounding-box;
-    cursor: pointer;
+.num.sm input {
+  width: 40px;
+  font-size: 16px;
 }
-
-.arrow-on:hover
-{
-    filter: brightness(150%); drop-shadow(1px 1px 1px black);
+.num.sm .ic {
+  width: 26px;
+}
+.num.sm .ic img {
+  width: 16px;
+  height: 16px;
+}
+.num button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.num button:disabled:hover {
+  background: transparent;
+}
+.num.off {
+  opacity: 0.4;
+}
+.num.off button,
+.num.off input {
+  cursor: not-allowed;
+}
+.num input:disabled {
+  color: inherit;
 }

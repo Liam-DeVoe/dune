@@ -102,18 +102,18 @@ public partial class ClassicBot
     private TraitorDiscarded DetermineTraitorDiscarded()
     {
         var worstTraitor = DetermineWorstTraitor();
-        worstTraitor ??= Player.Traitors.LowestOrDefault(t => t.Value);
+        worstTraitor ??= Player.Traitors.LowestOrDefault(_random, t => t.Value);
         return new TraitorDiscarded(Game, Faction) { Traitor = worstTraitor };
     }
 
     private IHero? DetermineWorstTraitor()
     {
-        var result = Player.Traitors.Where(t => Player.RevealedTraitors.Contains(t)).HighestOrDefault(t => t.Value);
+        var result = Player.Traitors.Where(t => Player.RevealedTraitors.Contains(t)).HighestOrDefault(_random, t => t.Value);
 
-        if (result == null && (Ally == Faction.Purple || !Game.IsPlaying(Faction.Purple))) result = Player.Traitors.Where(t => t.Faction == Faction).LowestOrDefault(t => t.Value);
+        if (result == null && (Ally == Faction.Purple || !Game.IsPlaying(Faction.Purple))) result = Player.Traitors.Where(t => t.Faction == Faction).LowestOrDefault(_random, t => t.Value);
 
-        result ??= Player.Traitors.Where(t => t is Leader && !Game.IsAlive(t)).LowestOrDefault(t => t.Value);
-        result ??= Player.Traitors.Where(t => t is Leader).LowestOrDefault(t => t.Value);
+        result ??= Player.Traitors.Where(t => t is Leader && !Game.IsAlive(t)).LowestOrDefault(_random, t => t.Value);
+        result ??= Player.Traitors.Where(t => t is Leader).LowestOrDefault(_random, t => t.Value);
 
         return result;
     }
@@ -232,10 +232,10 @@ public partial class ClassicBot
         
         var pink = Game.GetPlayer(Faction.Pink);
 
-        if (territoriesWithPinkAndPinkAlly.Count >= 2) result = territoriesWithPinkAndPinkAlly.HighestOrDefault(t => pink.AnyForcesIn(t));
+        if (territoriesWithPinkAndPinkAlly.Count >= 2) result = territoriesWithPinkAndPinkAlly.HighestOrDefault(_random, t => pink.AnyForcesIn(t));
 
         result ??= territoriesWithPinkAndPinkAlly.Where(t => pink.AnyForcesIn(t) > 7)
-            .HighestOrDefault(t => pink.AnyForcesIn(t));
+            .HighestOrDefault(_random, t => pink.AnyForcesIn(t));
     
         return result;
     }
@@ -362,7 +362,7 @@ public partial class ClassicBot
                            amountOfSpecialForces + amountOfForces + 1 <= 5)
                         amountOfForces++;
 
-                    var hero = NexusPlayed.ValidPurpleHeroes(Game, Player).HighestOrDefault(l => l.Value);
+                    var hero = NexusPlayed.ValidPurpleHeroes(Game, Player).HighestOrDefault(_random, l => l.Value);
                     if ((hero != null && amountOfForces + amountOfSpecialForces > 2) || amountOfForces + amountOfSpecialForces >= 5)
                     {
                         result.PurpleForces = amountOfForces;
@@ -474,7 +474,7 @@ public partial class ClassicBot
 
         if (Player.TreacheryCards.Count(c => CardQuality(c, Player) <= 2) < 2) return null;
         
-        var bestOpponentToSwapWith = Opponents.HighestOrDefault(o => KnownCardsHeldByOtherPlayer(Game, Player, o).Count(c => CardQuality(c, Player) >= 3));
+        var bestOpponentToSwapWith = Opponents.HighestOrDefault(_random, o => KnownCardsHeldByOtherPlayer(Game, Player, o).Count(c => CardQuality(c, Player) >= 3));
         LogInfo("opponent with most known good cards: " + bestOpponentToSwapWith);
 
         if (bestOpponentToSwapWith != null && KnownCardsHeldByOtherPlayer(Game, Player, bestOpponentToSwapWith).Count(c => CardQuality(c, Player) >= 3) >= 2)
@@ -570,8 +570,8 @@ public partial class ClassicBot
 
         if (Game.CurrentPhase == Phase.Bidding && !Player.HasRoomForCards)
         {
-            var bestLeaderToAskAbout = Player.Leaders.Where(l => Game.IsAlive(l) && !SafeOrKnownTraitorLeaders.Contains(l)).HighestOrDefault(l => l.Value);
-            var bestPlayerToAsk = Opponents.Where(o => !o.ToldNonTraitors.Contains(bestLeaderToAskAbout)).HighestOrDefault(p => p.Traitors.Count - p.RevealedTraitors.Count);
+            var bestLeaderToAskAbout = Player.Leaders.Where(l => Game.IsAlive(l) && !SafeOrKnownTraitorLeaders.Contains(l)).HighestOrDefault(_random, l => l.Value);
+            var bestPlayerToAsk = Opponents.Where(o => !o.ToldNonTraitors.Contains(bestLeaderToAskAbout)).HighestOrDefault(_random, p => p.Traitors.Count - p.RevealedTraitors.Count);
 
             if (bestLeaderToAskAbout != null && bestPlayerToAsk != null) return new ClairVoyancePlayed(Game, Faction) { Target = bestPlayerToAsk.Faction, Question = ClairvoyanceQuestion.LeaderAsTraitor, Parameter1 = bestLeaderToAskAbout.Id };
         }
@@ -721,10 +721,10 @@ public partial class ClassicBot
                 SafeOrKnownTraitorLeaders.Contains(l) &&
                 l.Faction != Ally &&
                 l.Value >= minimumValue
-            ).HighestOrDefault(l => l.Value + HeroRevivalPenalty(l)) ?? RaiseDeadPlayed.ValidHeroes(Game, Player).Where(l =>
+            ).HighestOrDefault(_random, l => l.Value + HeroRevivalPenalty(l)) ?? RaiseDeadPlayed.ValidHeroes(Game, Player).Where(l =>
                 l.Faction != Ally &&
                 l.Value >= minimumValue
-            ).HighestOrDefault(l => l.Value + HeroRevivalPenalty(l));
+            ).HighestOrDefault(_random, l => l.Value + HeroRevivalPenalty(l));
 
             if (leaderToRevive == null) return null;
             
@@ -786,8 +786,8 @@ public partial class ClassicBot
 
     protected virtual TraitorsSelected DetermineTraitorsSelected()
     {
-        var traitor = Player.Traitors.Where(l => l.Faction != Faction).HighestOrDefault(l => l.Value) 
-                      ?? Player.Traitors.HighestOrDefault(l => l.Value - (l.Faction == Faction.Green && Game.Applicable(Rule.GreenMessiah) ? 2 : 0));
+        var traitor = Player.Traitors.Where(l => l.Faction != Faction).HighestOrDefault(_random, l => l.Value) 
+                      ?? Player.Traitors.HighestOrDefault(_random, l => l.Value - (l.Faction == Faction.Green && Game.Applicable(Rule.GreenMessiah) ? 2 : 0));
         return new TraitorsSelected(Game, Faction) { SelectedTraitor = traitor };
     }
 
@@ -832,7 +832,7 @@ public partial class ClassicBot
             enemyKills.Add(moves, enemyKills[moves - 1] + enemyForces);
         }
 
-        var mostEffectiveMove = myKills.HighestOrDefault(x => enemyKills[x.Key] - x.Value);
+        var mostEffectiveMove = myKills.HighestOrDefault(_random, x => enemyKills[x.Key] - x.Value);
         LogInfo("StormSpellPlayed() - Most effective number of moves: {0} sectors with {1} allied and {2} enemy kills.", mostEffectiveMove.Key, myKills[mostEffectiveMove.Key], enemyKills[mostEffectiveMove.Key]);
 
         if (enemyKills[mostEffectiveMove.Key] - myKills[mostEffectiveMove.Key] >= 10 - (Game.CurrentTurn + (Player.HasRoomForCards ? 0 : 4)))
@@ -848,14 +848,14 @@ public partial class ClassicBot
     {
         if (Game.CurrentPhase != Phase.WaitingForNextBiddingRound) return null;
         
-        var worstCard = DistransUsed.ValidCards(Player).LowestOrDefault(c => CardQuality(c, Player));
+        var worstCard = DistransUsed.ValidCards(Player).LowestOrDefault(_random, c => CardQuality(c, Player));
         
         if (worstCard == null || CardQuality(worstCard, Player) > 1) return null;
         
         var target = DistransUsed.ValidTargets(Game, Player)
             .Where(f => f != Ally && (!Game.Applicable(Rule.BlueWorthlessAsKarma) || f != Faction.Blue))
             .Select(f => Game.GetPlayer(f))
-            .HighestOrDefault(p => Game.NumberOfVictoryPoints(p, true));
+            .HighestOrDefault(_random, p => Game.NumberOfVictoryPoints(p, true));
 
         return target != null ? new DistransUsed(Game, Faction) { Card = worstCard, Target = target.Faction } : null;
     }
@@ -882,11 +882,11 @@ public partial class ClassicBot
             Revival.GetPriceOfHeroRevival(Game, Player, l) <= maxToSpendOnHeroRevival &&
             l.Faction != Ally &&
             l.Value >= minimumValue
-        ).HighestOrDefault(l => l.Value + HeroRevivalPenalty(l)) ?? Revival.ValidRevivalHeroes(Game, Player).Where(l =>
+        ).HighestOrDefault(_random, l => l.Value + HeroRevivalPenalty(l)) ?? Revival.ValidRevivalHeroes(Game, Player).Where(l =>
             Revival.GetPriceOfHeroRevival(Game, Player, l) <= maxToSpendOnHeroRevival &&
             l.Faction != Ally &&
             l.Value >= minimumValue
-        ).HighestOrDefault(l => l.Value + HeroRevivalPenalty(l));
+        ).HighestOrDefault(_random, l => l.Value + HeroRevivalPenalty(l));
 
         var useSecretAlly = Revival.MayUseRedSecretAlly(Game, Player) && Player.ForcesKilled - Game.FreeRevivals(Player, false) >= 3;
 
@@ -1007,7 +1007,7 @@ public partial class ClassicBot
     {
         if (Game.CurrentMainPhase == MainPhase.Contemplate)
         {
-            var cardToSearch = DiscardedSearched.ValidCards(Game).HighestOrDefault(c => CardQuality(c, Player));
+            var cardToSearch = DiscardedSearched.ValidCards(Game).HighestOrDefault(_random, c => CardQuality(c, Player));
             if (cardToSearch != null && CardQuality(cardToSearch, Player) >= 4) return new DiscardedSearchedAnnounced(Game, Faction);
         }
 
@@ -1016,13 +1016,13 @@ public partial class ClassicBot
 
     private DiscardedSearched DetermineDiscardedSearched()
     {
-        var cardToSearch = DiscardedSearched.ValidCards(Game).HighestOrDefault(c => CardQuality(c, Player));
+        var cardToSearch = DiscardedSearched.ValidCards(Game).HighestOrDefault(_random, c => CardQuality(c, Player));
         return new DiscardedSearched(Game, Faction) { Card = cardToSearch };
     }
 
     private DiscardedTaken? DetermineDiscardedTaken()
     {
-        var cardToTake = DiscardedTaken.ValidCards(Game, Player).HighestOrDefault(c => CardQuality(c, Player));
+        var cardToTake = DiscardedTaken.ValidCards(Game, Player).HighestOrDefault(_random, c => CardQuality(c, Player));
         if (cardToTake != null && CardQuality(cardToTake, Player) >= 4) return new DiscardedTaken(Game, Faction) { Card = cardToTake };
 
         return null;

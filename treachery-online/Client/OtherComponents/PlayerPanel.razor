@@ -11,7 +11,7 @@
 
 @if (Player != null && Client.CurrentPhase >= Phase.TradingFactions)
 {
-    <div class="card p-1 border-light mb-1" style="animation:fadeIn 3s;">
+    <div class="card p-1 mb-1" style="animation:fadeIn 3s;">
 
         @if (ShowHeader)
         {
@@ -24,7 +24,7 @@
         @if (!_collapsed || !ShowHeader) {
             <div class="card-body p-0 bg-transparent text-center" style="background-image: url('@Client.CurrentSkin.GetImageUrl(ShownPlayer.Faction)'); background-position:center; background-size:300px 300px; background-clip:content-box; background-repeat: no-repeat">
 
-                <div class="card-text h-100 text-white" style="background-color:rgba(0,0,0,0.6);">
+                <div class="card-text h-100 veil-ink-2">
 
                     @if (Client.CurrentPhase >= Phase.BlackMulligan)
                     {
@@ -161,7 +161,7 @@
 
                         @if (ShownPlayer.Faction == Faction.Cyan && Client.CurrentPhase > Phase.BluePredicting)
                         {
-                            var style = $"color:white;{Support.TextBorder(1, "#289caa")}";
+                            var style = $"color:var(--parchment);{Support.TextBorder(1, "var(--f-moritani)")}";
 
                             <div>
                             Available Terror:

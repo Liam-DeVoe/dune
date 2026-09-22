@@ -16,7 +16,7 @@
     <div class="card-body">
         @foreach (var user in Client.RecentlySeenUsers.Values.OrderBy(u => u.Name))
         {
-            <div class='text-break p-1 mt-1 small' style="background-color:gray">
+            <div class='text-break p-1 mt-1 small bg-ink-3'>
                 <span>@user.Name </span>
                 @switch (user.Status)
                 {

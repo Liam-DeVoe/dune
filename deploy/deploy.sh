@@ -28,7 +28,7 @@ sudo systemctl start treachery.service
 EOF
 
 echo "==> waiting for the service"
-for i in $(seq 1 30); do
+for _ in $(seq 1 30); do
     if vm_ssh "curl -sf -o /dev/null http://127.0.0.1:$APP_PORT/"; then
         echo "==> up: https://$VM_HOST/"
         exit 0

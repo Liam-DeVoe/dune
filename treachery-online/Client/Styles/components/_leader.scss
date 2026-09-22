@@ -1,0 +1,70 @@
+// Leader picker: a round portrait ringed in the faction colour, with the
+// strength value in a badge at the bottom right. .on is selected, .off is
+// unavailable. .leader-wrap adds the name underneath.
+.leader {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 3px solid var(--fc, var(--gold));
+  background: #d8cbb0 center/cover;
+  position: relative;
+  cursor: pointer;
+  transition:
+    transform var(--t-fast) var(--ease),
+    box-shadow var(--t-fast) var(--ease);
+  box-shadow:
+    0 0 0 1px var(--ink-0),
+    var(--shadow-1);
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  &.on {
+    box-shadow:
+      0 0 0 2px var(--ink-0),
+      0 0 0 5px var(--gold),
+      var(--shadow-2);
+  }
+
+  &.off {
+    filter: grayscale(1) brightness(0.6);
+    cursor: not-allowed;
+  }
+
+  // The strength badge.
+  .v {
+    position: absolute;
+    right: -6px;
+    bottom: -6px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--ink-0);
+    color: var(--parchment);
+    font-family: var(--font-display);
+    font-size: 15px;
+    display: grid;
+    place-items: center;
+    border: 2px solid var(--fc, var(--gold));
+  }
+}
+
+.leader-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 84px;
+
+  .nm {
+    font-size: 13px;
+    color: var(--text-2);
+    text-align: center;
+    line-height: 1.1;
+  }
+
+  &.off .nm {
+    color: var(--text-3);
+  }
+}

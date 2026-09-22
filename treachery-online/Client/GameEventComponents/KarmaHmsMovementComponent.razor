@@ -6,8 +6,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
-@inherits GameEventComponent<KarmaHmsMovement>
-@implements IDisposable
+@inherits MapPickComponent<KarmaHmsMovement>
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
@@ -16,11 +15,9 @@
 
         <p class="text-info">You have @Game.KarmaHmsMovesLeft move(s) left. </p>
 
-        <SelectComponent ButtonHint="ClickHintButton.Lmb" @bind-Value="target" Values="KarmaHmsMovement.ValidLocations(Game)">
-            <Label>To</Label>
-        </SelectComponent>
+        <div class="small">Use the map to choose a location.</div>
 
-        <ButtonRowComponent Confirm="Confirm" ConfirmText="@Client.CurrentSkin.Format("Use {0}", TreacheryCardType.Karma)" ConfirmError="@Validation" Pass="Pass" PassText="Pass" />
+        <ButtonRowComponent Pass="Pass" PassText="Pass" />
 
     </Body>
 
@@ -30,28 +27,16 @@
 
     protected override Faction IsFactionSpecific => Faction.Grey;
 
-    public Location? target;
+    protected override IEnumerable<Location> PickTargets => KarmaHmsMovement.ValidLocations(Game);
 
-    protected override void OnAfterRender(bool firstRender)
-    {
-        if (firstRender)
-        {
-            Client.OnLocationSelected += HandleLocationSelected;
-        }
-    }
-
-    public override void Dispose()
-    {
-        base.Dispose();
-        Client.OnLocationSelected -= HandleLocationSelected;
-    }
-
-    protected override KarmaHmsMovement ConfirmedResult => new(Game, Faction) { Passed = false, Target = target };
+    protected override KarmaHmsMovement ConfirmedResult => new(Game, Faction) { Passed = false, Target = Target };
 
     protected override KarmaHmsMovement PassedResult => new(Game, Faction) { Passed = true };
 
-    private void HandleLocationSelected(object sender, Location l)
+    protected override RenderFragment PinContent => __builder =>
     {
-        SetIfValid(ref target, Game.Map.Locations(false), l);
-    }
+        <div class="pin-body">
+            @PinActions(Client.CurrentSkin.Format("Use {0}", TreacheryCardType.Karma))
+        </div>
+    };
 }

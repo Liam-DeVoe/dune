@@ -210,5 +210,32 @@
     "situation": {
       "event": "YellowSentMonster"
     }
+  },
+  "move-within": {
+    "place": {
+      "Yellow": {
+        "spice": 3,
+        "forces": {
+          "Pasty Mesa (Far North Sector)": [
+            4,
+            1
+          ],
+          "Pasty Mesa (North Sector)": [
+            3,
+            0
+          ],
+          "Sietch Tabr": [
+            3,
+            1
+          ]
+        }
+      }
+    },
+    "seed": 1,
+    "situation": {
+      "phase": "NonOrangeMove",
+      "event": "Move",
+      "faction": "Yellow"
+    }
   }
 }

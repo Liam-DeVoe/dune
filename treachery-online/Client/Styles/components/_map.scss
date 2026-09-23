@@ -397,3 +397,226 @@
   vertical-align: middle;
   filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.7));
 }
+
+// ---------------------------------------------------------------------------
+// Exploratory highlight variants, switched by an hlv-<name> class on body.
+// Compared in design/map-ux/review-highlights.html. Whichever one is chosen
+// should be folded into the rules above and the rest deleted.
+// ---------------------------------------------------------------------------
+
+// Layers that only a variant shows.
+.mapsel {
+  .mapsel-territories,
+  .mapsel-dots,
+  .mapsel-dim,
+  .mapsel-union {
+    display: none;
+  }
+}
+
+// Round 1 ------------------------------------------------------------------
+
+// quiet: targets are a thin faction-coloured line and nothing else; hover is a wash and nothing else.
+.hlv-quiet {
+  .mapsel .mapsel-target {
+    .fill { display: none; }
+    .core { display: none; }
+    .edge { stroke: var(--c); stroke-width: 1.6; stroke-opacity: 0.85; }
+    .edge.radial { stroke-width: 3.2; }
+  }
+  .maphover {
+    .core, .edge { display: none; }
+    .fill { fill-opacity: 0.16; }
+  }
+}
+
+// fill: no edges anywhere except on what has been clicked.
+.hlv-fill {
+  .mapsel .mapsel-target,
+  .mapsel .mapsel-selectable {
+    .core, .edge { display: none; }
+  }
+  .mapsel .mapsel-target .fill { fill: #fff; fill-opacity: 0.22; }
+  .mapsel .mapsel-selectable .fill { fill-opacity: 0.16; }
+  .mapsel .mapsel-selected .fill { fill-opacity: 0.38; }
+  .maphover {
+    .core, .edge { display: none; }
+    .fill { fill-opacity: 0.22; }
+  }
+}
+
+// ink: targets in the map's own dark border colour, hairline, with a faint wash; hover is a wash.
+.hlv-ink {
+  .mapsel .mapsel-target {
+    .fill { fill: #fff; fill-opacity: 0.08; }
+    .core { display: none; }
+    .edge { stroke: #1d0c00; stroke-width: 1.4; stroke-opacity: 0.7; }
+    .edge.radial { stroke-width: 2.8; }
+  }
+  .mapsel .mapsel-selectable {
+    .core { display: none; }
+    .edge { stroke-width: 1.4; stroke-opacity: 0.8; }
+    .edge.radial { stroke-width: 2.8; }
+  }
+  .maphover {
+    .core, .edge { display: none; }
+    .fill { fill-opacity: 0.18; }
+  }
+}
+
+// faction: everything in the acting faction's colour at low strength; white is kept for the hover only.
+.hlv-faction {
+  .mapsel .mapsel-target {
+    .fill { fill: var(--c); fill-opacity: 0.09; }
+    .core { display: none; }
+    .edge { stroke: var(--c); stroke-width: 1.5; stroke-opacity: 0.6; }
+    .edge.radial { stroke-width: 3; }
+  }
+  .mapsel .mapsel-selectable {
+    .fill { fill-opacity: 0.12; }
+    .core { display: none; }
+    .edge { stroke-width: 1.5; stroke-opacity: 0.7; }
+    .edge.radial { stroke-width: 3; }
+  }
+  .maphover {
+    .core { display: none; }
+    .fill { fill-opacity: 0.12; }
+    .edge { stroke-width: 1.6; stroke-opacity: 0.9; }
+    .edge.radial { stroke-width: 3.2; }
+  }
+}
+
+// territory: a territory whose sectors are all targets is outlined once, along its border;
+// only partly reachable territories show sector wedges. Hover is a wash.
+.hlv-territory {
+  .mapsel .mapsel-territories { display: block; }
+  .mapsel .mapsel-territory {
+    .fill { fill: #fff; fill-opacity: 0.1; }
+    .core { display: none; }
+    .edge { stroke: #fff; stroke-width: 2; stroke-opacity: 0.85; }
+  }
+  .mapsel .mapsel-target.whole { display: none; }
+  .mapsel .mapsel-target {
+    .fill { fill-opacity: 0.1; }
+    .core { display: none; }
+    .edge { stroke-width: 2; stroke-opacity: 0.85; }
+    .edge.radial { stroke-width: 4; }
+  }
+  .maphover {
+    .core, .edge { display: none; }
+    .fill { fill-opacity: 0.16; }
+  }
+}
+
+// edge-hover: the hover is a thin outline and no wash; targets are a faint wash and no outline.
+.hlv-edge-hover {
+  .mapsel .mapsel-target,
+  .mapsel .mapsel-selectable {
+    .core, .edge { display: none; }
+  }
+  .mapsel .mapsel-target .fill { fill: #fff; fill-opacity: 0.2; }
+  .mapsel .mapsel-selectable .fill { fill-opacity: 0.16; }
+  .maphover {
+    .fill { display: none; }
+    .core { stroke-width: 1.6; }
+    .core.radial { stroke-width: 3.2; }
+    .edge { stroke-width: 1.4; stroke-opacity: 1; }
+    .edge.radial { stroke-width: 2.8; }
+  }
+}
+
+// Round 2 ------------------------------------------------------------------
+
+// cursor: nothing is marked until the mouse is over it. A sector that takes
+// part in the action lights up in the faction colour; one that does not gets
+// a grey wash and a not-allowed cursor.
+.hlv-cursor {
+  .mapsel .mapsel-target,
+  .mapsel .mapsel-selectable {
+    display: none;
+    &.hov { display: block; }
+  }
+  .mapsel .mapsel-target.hov {
+    .fill { fill: var(--c); fill-opacity: 0.3; }
+    .edge { stroke: var(--c); stroke-width: 2.5; stroke-opacity: 1; }
+    .edge.radial { stroke-width: 5; }
+  }
+  .mapsel .mapsel-selectable.hov {
+    .fill { fill-opacity: 0.28; }
+    .edge { stroke-width: 2.5; stroke-opacity: 1; }
+    .edge.radial { stroke-width: 5; }
+  }
+  .maphover {
+    .core, .edge { display: none; }
+    .fill { fill-opacity: 0.12; }
+  }
+  #planetmap_inner.hov-valid .maphover .hover-shape.on { display: none; }
+  #planetmap_inner.hov-invalid {
+    .maphover .fill { fill: #1d0c00; fill-opacity: 0.28; }
+    svg g[data-location-id] { cursor: not-allowed; }
+  }
+}
+
+// dots: a small ring at the centre of every target instead of a shape. Hover is a wash.
+.hlv-dots {
+  .mapsel .mapsel-target { display: none; }
+  .mapsel .mapsel-dots { display: block; }
+  .mapsel .dot-core { fill: none; stroke: #1d0c00; stroke-width: 4; stroke-opacity: 0.7; }
+  .mapsel .dot { fill: rgba(255, 255, 255, 0.35); stroke: #fff; stroke-width: 2; }
+  .mapsel .mapsel-selectable {
+    .core { display: none; }
+    .edge { stroke-width: 1.6; }
+    .edge.radial { stroke-width: 3.2; }
+  }
+  .maphover {
+    .core, .edge { display: none; }
+    .fill { fill-opacity: 0.16; }
+  }
+}
+
+// spotlight: instead of brightening what may be clicked, darken what may not.
+.hlv-spotlight {
+  .mapsel .mapsel-target { display: none; }
+  .mapsel .mapsel-dim { display: block; fill: #1d0c00; fill-opacity: 0.38; }
+  .mapsel .mapsel-selectable {
+    .fill { display: none; }
+    .core { display: none; }
+    .edge { stroke-width: 1.6; stroke-opacity: 0.9; }
+    .edge.radial { stroke-width: 3.2; }
+  }
+  .maphover {
+    .core, .edge { display: none; }
+    .fill { fill-opacity: 0.16; }
+  }
+}
+
+// contour: one line around the whole reachable region; the sector lines inside it are left alone.
+.hlv-contour {
+  .mapsel .mapsel-target { display: none; }
+  .mapsel .mapsel-union { display: block; }
+  .mapsel .mapsel-selectable {
+    .fill { fill-opacity: 0.12; }
+    .core { display: none; }
+    .edge { stroke-width: 1.6; }
+    .edge.radial { stroke-width: 3.2; }
+  }
+  .maphover {
+    .core, .edge { display: none; }
+    .fill { fill-opacity: 0.16; }
+  }
+}
+
+// reveal: the cursor variant by default; holding a key or a toggle (show-all on body) brings every target up in the quiet style.
+.hlv-reveal {
+  @extend .hlv-cursor;
+  &.show-all {
+    .mapsel .mapsel-target,
+    .mapsel .mapsel-selectable { display: block; }
+    .mapsel .mapsel-target:not(.hov) {
+      .fill { display: none; }
+      .core { display: none; }
+      .edge { stroke: var(--c); stroke-width: 1.6; stroke-opacity: 0.85; }
+      .edge.radial { stroke-width: 3.2; }
+    }
+  }
+}

@@ -81,9 +81,9 @@ public class Browser(IJSRuntime jsRuntime)
         await JsInvoke("SetMapPopoversEnabled", enabled);
     }
 
-    public async Task TrackMapCursor(bool on)
+    public async Task UpdateMapCursorArrows()
     {
-        await JsInvoke("TrackMapCursor", on);
+        await JsInvoke("UpdateMapCursorArrows");
     }
 
     // Passing null stops listening.

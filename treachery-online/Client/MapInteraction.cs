@@ -37,7 +37,8 @@ public class MapInteraction
     // Content shown next to the pinned arrow, usually a force counter and a confirm button.
     public RenderFragment? Pin { get; set; }
 
-    // Draw an arrow from each selected source to the cursor while no destination is pinned.
+    // Draw an arrow from each selected source to the last target the cursor
+    // was over while no destination is pinned.
     public bool ShowCursorArrow { get; set; } = true;
 
     // Forces the owner has placed on the map but not yet confirmed, drawn as

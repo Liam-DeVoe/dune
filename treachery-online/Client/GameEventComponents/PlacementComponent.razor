@@ -62,6 +62,10 @@
 @code {
 
     protected Location? toLocation;
+
+    // A sector clicked while it could either join the sources or be the
+    // destination. The map shows both choices there until the player picks.
+    private Location? undecidedPick;
     protected Dictionary<Location, Battalion> forces = new();
     protected bool asAdvisors;
     protected int forcesFromReserves;
@@ -152,6 +156,7 @@
     {
         forces.Clear();
         toLocation = null;
+        undecidedPick = null;
         asAdvisors = false;
         forcesFromReserves = 0;
         specialForcesFromReserves = 0;
@@ -208,7 +213,8 @@
         foreach (var l in ValidTargets) Map.Targets.Add(l);
         Map.Target = toLocation;
         Map.Origin = FromReserves ? SectorGeometry.PlayerTokenPosition(Client.CurrentSkin, Game, Player.Seat) : null;
-        Map.Pin = toLocation != null ? PinContent : null;
+        Map.EndPoint = undecidedPick != null ? Client.CurrentSkin.GetCenter(undecidedPick, Game.Map) : null;
+        Map.Pin = toLocation != null ? PinContent : undecidedPick != null ? ChoiceContent : null;
         Map.OnCancel = ClearSelection;
         Map.Refresh();
     }
@@ -216,6 +222,8 @@
     private void HandleLocationSelected(object? sender, Location l)
     {
         if (!OwnsMap) return;
+
+        undecidedPick = null;
 
         if (forces.ContainsKey(l))
         {
@@ -226,15 +234,19 @@
         {
             toLocation = null;
         }
-        else if (ValidTargets.Contains(l) && !forces.Keys.Any(k => k.Territory == l.Territory))
+        else if (ValidTargets.Contains(l) && SelectableSources.Contains(l) && forces.Keys.Any(k => k.Territory == l.Territory))
+        {
+            // Another sector of a source territory that holds your forces
+            // could join the sources, gathering up a territory split by the
+            // storm, or be the destination, pulling the sources into it. The
+            // click alone cannot tell which, so the map asks.
+            undecidedPick = l;
+        }
+        else if (ValidTargets.Contains(l))
         {
             // With a source chosen, a click means "move here", even on a
-            // sector holding more of your forces. Another sector of a source
-            // territory still joins the sources, so a territory split by the
-            // storm can be gathered up before picking a destination.
-            var firstPick = toLocation == null;
-            toLocation = l;
-            if (FromReserves && firstPick) InitializeReserveAmounts();
+            // sector holding more of your forces elsewhere.
+            SetDestination(l);
         }
         else if (SelectableSources.Contains(l))
         {
@@ -242,14 +254,37 @@
             {
                 forces.Clear();
             }
-            toLocation = null;
-            forces[l] = new Battalion(Faction, Player.ForcesIn(l), Player.SpecialForcesIn(l), l);
+            AddSource(l);
         }
         else
         {
             return;
         }
 
+        PushToMap();
+        StateHasChanged();
+    }
+
+    private void SetDestination(Location l)
+    {
+        var firstPick = toLocation == null;
+        toLocation = l;
+        if (FromReserves && firstPick) InitializeReserveAmounts();
+    }
+
+    private void AddSource(Location l)
+    {
+        toLocation = null;
+        forces[l] = new Battalion(Faction, Player.ForcesIn(l), Player.SpecialForcesIn(l), l);
+    }
+
+    private void DecidePick(bool asDestination)
+    {
+        var l = undecidedPick;
+        undecidedPick = null;
+        if (l == null) return;
+        if (asDestination) SetDestination(l);
+        else AddSource(l);
         PushToMap();
         StateHasChanged();
     }
@@ -280,6 +315,17 @@
         ResetSelection();
         PushToMap();
     }
+
+    private RenderFragment ChoiceContent => __builder =>
+    {
+        <div class="pin-body">
+            <div class="pin-from">@Name(undecidedPick)</div>
+            <div class="pin-actions">
+                <button type="button" class="btn btn-secondary" @onclick="@(() => DecidePick(false))">Add as source</button>
+                <button type="button" class="btn btn-primary" @onclick="@(() => DecidePick(true))">Move here</button>
+            </div>
+        </div>
+    };
 
     private RenderFragment PinContent => __builder =>
     {

@@ -88,52 +88,51 @@
             }
         }
 
-        // Moves the map's cursor arrows (line.mapsel-cursor) to the mouse. The
-        // map is CSS-scaled, so mouse coordinates are converted to map units.
-        // Over a sector the arrow snaps to the sector's centre instead, trimmed
-        // like a pinned arrow, so it ends where clicking the sector would put it.
-        var mapCursorHandler = null;
-        var mapCursorPosition = null;
+        // Points the map's cursor arrows (line.mapsel-cursor) at the last
+        // valid destination the mouse was over, trimmed like a pinned arrow so
+        // it ends where clicking would put it. The arrows never follow the
+        // mouse: they stay hidden until a destination is hovered, and moving
+        // off it, whether onto a sector that cannot be clicked or off the map,
+        // leaves them where they are. The valid destinations are listed by
+        // MapSelectionOverlay.razor in data-targets. Called after the overlay
+        // renders and by ShowMapHover when the hovered sector changes. The
+        // last destination is forgotten once the arrows are gone, so a new
+        // selection starts with nothing pointed at.
+        var mapCursorTarget = null;
 
-        function TrackMapCursor(on) {
+        function UpdateMapCursorArrows() {
 
             const inner = document.getElementById('planetmap_inner');
             if (inner == null) return;
 
-            if (mapCursorHandler != null) {
-                inner.removeEventListener('mousemove', mapCursorHandler);
-                mapCursorHandler = null;
-            }
-
-            if (!on) {
-                mapCursorPosition = null;
+            const arrows = inner.querySelector('.maparrows');
+            const lines = inner.querySelectorAll('line.mapsel-cursor');
+            if (arrows == null || lines.length == 0) {
+                mapCursorTarget = null;
                 return;
             }
 
-            mapCursorHandler = function (e) {
-                const rect = inner.getBoundingClientRect();
-                const scale = rect.width / inner.offsetWidth;
-                mapCursorPosition = { x: (e.clientX - rect.left) / scale, y: (e.clientY - rect.top) / scale };
-                UpdateMapCursorArrows(inner);
-            };
-
-            inner.addEventListener('mousemove', mapCursorHandler);
-            UpdateMapCursorArrows(inner);
-        }
-
-        function UpdateMapCursorArrows(inner) {
-            if (mapCursorPosition == null) return;
+            const targets = new Set((arrows.dataset.targets || '').split(',').filter(function (id) { return id !== ''; }));
             const hovered = inner.querySelector('.maphover .hover-shape.on');
-            const snap = hovered != null && hovered.dataset.cx ? { x: Number(hovered.dataset.cx), y: Number(hovered.dataset.cy) } : null;
-            inner.querySelectorAll('line.mapsel-cursor').forEach(function (line) {
+            if (hovered != null && targets.has(hovered.dataset.locationId)) mapCursorTarget = hovered.dataset.locationId;
+
+            const shape = mapCursorTarget != null && targets.has(mapCursorTarget)
+                ? inner.querySelector('.maphover .hover-shape[data-location-id="' + mapCursorTarget + '"]')
+                : null;
+            const end = shape != null && shape.dataset.cx ? { x: Number(shape.dataset.cx), y: Number(shape.dataset.cy) } : null;
+
+            lines.forEach(function (line) {
+                if (end == null) {
+                    line.setAttribute('visibility', 'hidden');
+                    return;
+                }
                 const start = { x: Number(line.dataset.x1), y: Number(line.dataset.y1) };
-                // Hovering the arrow's own source would collapse it to a point; follow the mouse there.
-                const useSnap = snap != null && Math.hypot(snap.x - start.x, snap.y - start.y) > 1;
-                const segment = useSnap ? TrimMapArrow(start, snap, 10, 12) : [start, mapCursorPosition];
+                const segment = TrimMapArrow(start, end, 10, 12);
                 line.setAttribute('x1', segment[0].x);
                 line.setAttribute('y1', segment[0].y);
                 line.setAttribute('x2', segment[1].x);
                 line.setAttribute('y2', segment[1].y);
+                line.removeAttribute('visibility');
             });
         }
 
@@ -229,10 +228,26 @@
         function ShowMapHover(locationId) {
             if (mapHoverInner == null) return;
             mapHoverInner.querySelectorAll('.maphover .hover-shape.on').forEach(function (shape) { shape.classList.remove('on'); });
+            MarkMapHoverValidity(locationId);
             if (locationId == null) return;
             const shape = mapHoverInner.querySelector('.maphover .hover-shape[data-location-id="' + locationId + '"]');
             if (shape != null) shape.classList.add('on');
-            UpdateMapCursorArrows(mapHoverInner);
+            UpdateMapCursorArrows();
+        }
+
+        // Tells the selection layer which of its sectors is under the mouse
+        // (.hov on that sector's group) and tells the map whether the hovered
+        // sector takes part in the current action at all (hov-valid or
+        // hov-invalid on the map), so CSS can style the hover by validity.
+        function MarkMapHoverValidity(locationId) {
+            const inner = mapHoverInner;
+            inner.querySelectorAll('.mapsel .hov').forEach(function (g) { g.classList.remove('hov'); });
+            inner.classList.remove('hov-valid', 'hov-invalid');
+            const sel = inner.querySelector('.mapsel');
+            if (sel == null || locationId == null) return;
+            const groups = sel.querySelectorAll('[data-sel-location="' + locationId + '"]');
+            groups.forEach(function (g) { g.classList.add('hov'); });
+            inner.classList.add(groups.length > 0 ? 'hov-valid' : 'hov-invalid');
         }
 
         // A panel pinned near the page's edge would run off it. This shifts

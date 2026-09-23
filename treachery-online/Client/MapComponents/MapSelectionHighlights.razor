@@ -25,6 +25,37 @@
     <svg class="mapsel" width="@skin.MapDimensions.X" height="@skin.MapDimensions.Y" viewBox="0 0 @skin.MapDimensions.X @skin.MapDimensions.Y"
          style="position:absolute; left:0; top:0; width:100%; height:100%; --c:@faction" pointer-events="none">
 
+        @* Exploratory variants of this layer, switched by an hlv-<name> class on body.
+           See design/map-ux/review-highlights.html. Everything below that is not a
+           plain state group is hidden unless a variant shows it. *@
+        @{
+            var targets = map.Targets.Where(l => l != map.Target && !map.Selected.Contains(l) && SectorGeometry.HasCenter(skin, l) && HasBorder(l)).ToList();
+            var wholeTerritories = targets.Select(l => l.Territory).Distinct()
+                .Where(t => Game.Map.Locations(false).Where(l => l.Territory == t && SectorGeometry.HasCenter(skin, l) && HasBorder(l)).All(targets.Contains))
+                .ToHashSet();
+            var involvedShapes = map.Selectable.Concat(map.Selected).Concat(map.Targets).Distinct().Where(l => SectorGeometry.HasCenter(skin, l) && HasBorder(l)).ToList();
+        }
+
+        <defs>
+            <mask id="mapsel-spot" maskUnits="userSpaceOnUse" x="0" y="0" width="@skin.MapDimensions.X" height="@skin.MapDimensions.Y">
+                <rect x="0" y="0" width="@skin.MapDimensions.X" height="@skin.MapDimensions.Y" fill="#fff"/>
+                @foreach (var l in involvedShapes) { @Shape(l, "#000") }
+            </mask>
+            <filter id="mapsel-contour" x="-5%" y="-5%" width="110%" height="110%" filterUnits="userSpaceOnUse">
+                <feMorphology in="SourceAlpha" operator="dilate" radius="2.8" result="outer"/>
+                <feComposite in="outer" in2="SourceAlpha" operator="out" result="ring-wide"/>
+                <feFlood flood-color="#1d0c00" flood-opacity="0.8" result="ink"/>
+                <feComposite in="ink" in2="ring-wide" operator="in" result="ring-ink"/>
+                <feMorphology in="SourceAlpha" operator="dilate" radius="1.8" result="mid"/>
+                <feComposite in="mid" in2="SourceAlpha" operator="out" result="ring-thin"/>
+                <feFlood flood-color="#fff" flood-opacity="0.95" result="pale"/>
+                <feComposite in="pale" in2="ring-thin" operator="in" result="ring-pale"/>
+                <feFlood flood-color="#fff" flood-opacity="0.09" result="wash"/>
+                <feComposite in="wash" in2="SourceAlpha" operator="in" result="wash-in"/>
+                <feMerge><feMergeNode in="wash-in"/><feMergeNode in="ring-ink"/><feMergeNode in="ring-pale"/></feMerge>
+            </filter>
+        </defs>
+
         <defs>
             @foreach (var territory in Involved(map).Select(l => l.Territory).Distinct())
             {
@@ -50,6 +81,31 @@
         {
             @Highlight(map.Target, "mapsel-pinned")
         }
+
+        @* Variant layers, hidden by default. *@
+        <g class="mapsel-territories">
+            @foreach (var t in wholeTerritories)
+            {
+                var border = skin.GetTerritoryBorder(t);
+                <g class="mapsel-territory">
+                    <path d="@border" class="fill"/>
+                    <path d="@border" class="core"/>
+                    <path d="@border" class="edge"/>
+                </g>
+            }
+        </g>
+        <g class="mapsel-dots">
+            @foreach (var l in targets)
+            {
+                var c = skin.GetCenter(l, Game.Map);
+                <circle cx="@Round(c.X)" cy="@Round(c.Y)" r="5.5" class="dot-core"/>
+                <circle cx="@Round(c.X)" cy="@Round(c.Y)" r="5.5" class="dot"/>
+            }
+        </g>
+        <circle class="mapsel-dim" cx="@Round(skin.PlanetCenter.X)" cy="@Round(skin.PlanetCenter.Y)" r="@Round(skin.PlanetRadius + 1)" mask="url(#mapsel-spot)"/>
+        <g class="mapsel-union" filter="url(#mapsel-contour)">
+            @foreach (var l in targets) { @Shape(l, "#fff") }
+        </g>
     </svg>
 }
 
@@ -73,6 +129,24 @@
     private bool HasBorder(Location l) =>
         l is not HiddenMobileStronghold && l is not DiscoveredLocation && !l.IsHomeworld && Client.CurrentSkin.GetTerritoryBorder(l.Territory) != "";
 
+    // A target whose whole territory is a target, so a variant may outline the territory instead of each sector.
+    private bool WholeTerritoryTarget(Location l)
+    {
+        var map = Client.MapInteraction;
+        var skin = Client.CurrentSkin;
+        return Game.Map.Locations(false).Where(x => x.Territory == l.Territory && SectorGeometry.HasCenter(skin, x) && HasBorder(x))
+            .All(x => map.Targets.Contains(x) && x != map.Target && !map.Selected.Contains(x));
+    }
+
+    // The sector's area with a plain fill, for masks and filters.
+    private RenderFragment Shape(Location l, string fill) => __builder =>
+    {
+        var skin = Client.CurrentSkin;
+        <g clip-path="url(#@SectorGeometry.SectorClipId(l.Sector))">
+            <path d="@skin.GetTerritoryBorder(l.Territory)" fill="@fill"/>
+        </g>
+    };
+
     private RenderFragment Highlight(Location l, string cls) => __builder =>
     {
         var skin = Client.CurrentSkin;
@@ -82,7 +156,7 @@
             var border = skin.GetTerritoryBorder(l.Territory);
             var sectorClip = SectorGeometry.SectorClipId(l.Sector);
 
-            <g class="@cls">
+            <g class="@cls @(cls == "mapsel-target" && WholeTerritoryTarget(l) ? "whole" : "")" data-sel-location="@l.Id">
                 <g clip-path="url(#@sectorClip)">
                     <path d="@border" class="fill"/>
                     <path d="@border" class="core"/>
@@ -104,7 +178,7 @@
         {
             var center = skin.GetCenter(l, Game.Map);
             var radius = l is HiddenMobileStronghold ? skin.HmsRadius : 2.2f * skin.PlayerTokenRadius;
-            <g class="@cls">
+            <g class="@cls" data-sel-location="@l.Id">
                 <circle cx="@Round(center.X)" cy="@Round(center.Y)" r="@Round(radius)" class="fill"/>
                 <circle cx="@Round(center.X)" cy="@Round(center.Y)" r="@Round(radius)" class="edge"/>
             </g>

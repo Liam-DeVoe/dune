@@ -12,10 +12,13 @@
 @*
  Arrows from the selected sources to the cursor or to the pinned destination,
  plus the pinned panel (force counter, confirm). Sits above the force tokens.
- The cursor arrow is moved by TrackMapCursor in index.html, not by Blazor,
- so it follows the mouse without a render per mouse move. It snaps to the
- centre of the hovered sector, trimmed like a pinned arrow, so it ends where
- the pinned arrow would end if that sector were clicked.
+ The cursor arrow is positioned by UpdateMapCursorArrows in index.html, not
+ by Blazor, so hovering never causes a render. It points at the last valid
+ destination the mouse was over, at that sector's centre and trimmed like a
+ pinned arrow, so it ends where the pinned arrow would end if that sector
+ were clicked. Until a destination has been hovered there is no arrow. The
+ valid destinations are passed along in data-targets; a selected source is
+ left out because clicking it deselects.
  While something is selected, Escape or a right click on the map cancels it;
  ListenForMapCancel in index.html calls back into CancelMapInteraction.
 *@
@@ -35,8 +38,9 @@
 
 @if (map.Owner != null && starts.Count > 0 && (end != null || map.Selected.Count > 0))
 {
+    var cursorTargets = string.Join(",", map.Targets.Where(l => !map.Selected.Contains(l)).Select(l => l.Id));
     <svg class="maparrows" width="@skin.MapDimensions.X" height="@skin.MapDimensions.Y" viewBox="0 0 @skin.MapDimensions.X @skin.MapDimensions.Y"
-         style="position:absolute; left:0; top:0; width:100%; height:100%; --c:@faction" pointer-events="none">
+         style="position:absolute; left:0; top:0; width:100%; height:100%; --c:@faction" pointer-events="none" data-targets="@cursorTargets">
 
         <defs>
             <marker id="mapsel-head-outline" viewBox="0 0 12 12" refX="9" refY="6" markerWidth="4" markerHeight="4" orient="auto-start-reverse" markerUnits="strokeWidth">
@@ -57,9 +61,9 @@
             }
             else if (map.ShowCursorArrow)
             {
-                @* data-x1/y1 keep the untrimmed start, which the tracker trims when it snaps. *@
-                <line class="arrow-outline mapsel-cursor" data-x1="@Round(a.X)" data-y1="@Round(a.Y)" x1="@Round(a.X)" y1="@Round(a.Y)" x2="@Round(a.X)" y2="@Round(a.Y)" marker-end="url(#mapsel-head-outline)"/>
-                <line class="arrow mapsel-cursor" data-x1="@Round(a.X)" data-y1="@Round(a.Y)" x1="@Round(a.X)" y1="@Round(a.Y)" x2="@Round(a.X)" y2="@Round(a.Y)" marker-end="url(#mapsel-head)"/>
+                @* Hidden until the script points it at a hovered target. data-x1/y1 keep the untrimmed start, which the script trims. *@
+                <line class="arrow-outline mapsel-cursor" visibility="hidden" data-x1="@Round(a.X)" data-y1="@Round(a.Y)" x1="@Round(a.X)" y1="@Round(a.Y)" x2="@Round(a.X)" y2="@Round(a.Y)" marker-end="url(#mapsel-head-outline)"/>
+                <line class="arrow mapsel-cursor" visibility="hidden" data-x1="@Round(a.X)" data-y1="@Round(a.Y)" x1="@Round(a.X)" y1="@Round(a.Y)" x2="@Round(a.X)" y2="@Round(a.Y)" marker-end="url(#mapsel-head)"/>
             }
         }
     </svg>
@@ -75,7 +79,6 @@
 
 @code {
 
-    private bool _tracking;
     private bool _popoversSuppressed;
     private bool _cancelable;
     private DotNetObjectReference<MapSelectionOverlay>? _self;
@@ -89,7 +92,6 @@
     public new void Dispose()
     {
         Client.MapInteraction.Changed -= StateHasChanged;
-        if (_tracking) _ = Browser.TrackMapCursor(false);
         if (_popoversSuppressed) _ = Browser.SetMapPopoversEnabled(true);
         if (_cancelable) _ = Browser.ListenForMapCancel(null);
         _self?.Dispose();
@@ -120,17 +122,10 @@
             await Browser.ListenForMapCancel(cancelable ? _self : null);
         }
 
-        var shouldTrack = map.Owner != null && map.Selected.Count > 0 && map.Target == null && map.EndPoint == null && map.ShowCursorArrow;
-        if (shouldTrack != _tracking)
-        {
-            _tracking = shouldTrack;
-            await Browser.TrackMapCursor(shouldTrack);
-        }
-        else if (shouldTrack)
-        {
-            // The lines were re-rendered; make sure the tracker points at the new elements.
-            await Browser.TrackMapCursor(true);
-        }
+        // The cursor arrows are new elements after every render, so they are
+        // pointed at the last hovered target again, or hidden if there is none.
+        var cursorArrows = map.Owner != null && map.Selected.Count > 0 && map.Target == null && map.EndPoint == null && map.ShowCursorArrow;
+        if (cursorArrows) await Browser.UpdateMapCursorArrows();
     }
 
     [JSInvokable]
@@ -149,23 +144,48 @@
         return (new PointD(a.X + ux * fromStart, a.Y + uy * fromStart), new PointD(b.X - ux * fromEnd, b.Y - uy * fromEnd));
     }
 
-    // The panel sits above the whole arrow so it covers neither end. Near the
-    // top of the map it sits below the arrow instead. A start on the ring
-    // around the planet is ignored so the panel stays close to the destination.
-    // Keeping the panel on the page is left to ClampMapPin in index.html,
-    // which knows the rendered width.
+    // The panel hangs above the destination, in line with it, so the caret
+    // points at the sector being moved to. A selected source sitting where
+    // the panel would be pushes it up until the token shows. Near the top of
+    // the map the panel sits below the destination instead, and a source in
+    // the way pushes it down. Before a destination is picked the panel sits
+    // above the selected sources. A start on the ring around the planet is
+    // not a token on the map and is ignored. Keeping the panel on the page
+    // is left to ClampMapPin in index.html, which knows the rendered width.
     private (PointD, bool) PinAnchor(List<PointD> starts, PointD? end)
     {
         var skin = Client.CurrentSkin;
-        var points = new List<PointD>();
-        if (end is { } e) points.Add(e);
-        var onMap = starts.Where(p => Client.MapInteraction.Selected.Count > 0 || end == null).ToList();
-        points.AddRange(onMap);
-        if (points.Count == 0) points.AddRange(starts);
-        var x = points.Average(p => p.X);
-        var clearance = 1.5 * skin.FORCETOKEN_RADIUS;
-        var top = points.Min(p => p.Y) - clearance;
-        if (top > 110) return (new PointD(x, top), false);
-        return (new PointD(x, points.Max(p => p.Y) + clearance), true);
+        var radius = skin.FORCETOKEN_RADIUS;
+        var clearance = 1.5 * radius;
+
+        if (end is not { } e)
+        {
+            var x = starts.Average(p => p.X);
+            var top = starts.Min(p => p.Y) - clearance;
+            if (top > 110) return (new PointD(x, top), false);
+            return (new PointD(x, starts.Max(p => p.Y) + clearance), true);
+        }
+
+        // The panel's size in map units, with room to spare: the move panel
+        // measures about 200 by 100. Only used to tell whether a source
+        // token would end up underneath the panel.
+        const double halfWidth = 110;
+        const double height = 110;
+        var sources = Client.MapInteraction.Selected.Count > 0 ? starts : new List<PointD>();
+        var inColumn = sources.Where(p => Math.Abs(p.X - e.X) < halfWidth + radius).ToList();
+
+        var above = e.Y - clearance;
+        foreach (var p in inColumn.Where(p => p.Y < e.Y).OrderByDescending(p => p.Y))
+        {
+            if (p.Y - radius < above && p.Y + radius > above - height) above = p.Y - clearance;
+        }
+        if (above > 110) return (new PointD(e.X, above), false);
+
+        var below = e.Y + clearance;
+        foreach (var p in inColumn.Where(p => p.Y >= e.Y).OrderBy(p => p.Y))
+        {
+            if (p.Y + radius > below && p.Y - radius < below + height) below = p.Y + clearance;
+        }
+        return (new PointD(e.X, below), true);
     }
 }

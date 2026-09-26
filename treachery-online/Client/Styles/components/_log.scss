@@ -1,6 +1,6 @@
 // Log entries: a column of rows, each a small sigil beside the text. .n is
-// a pill-shaped count (spice-coloured with .spice), .hi is a highlighted row,
-// .when is a timestamp.
+// a pill-shaped count, .hi is a highlighted row, .when is a timestamp. Spice
+// amounts are not pills; they use .spice-amt from _spice.scss.
 .log {
   display: flex;
   flex-direction: column;
@@ -38,10 +38,6 @@
       background: rgba(252, 249, 209, 0.14);
       color: var(--parchment);
       vertical-align: middle;
-    }
-
-    .n.spice {
-      background: var(--spice);
     }
 
     // A highlighted row bleeds to the panel edges with a gold bar.

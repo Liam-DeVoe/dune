@@ -40,6 +40,22 @@ public static class Support
         return builder.ToString();
     }
 
+    // The markup SpiceComponent renders, for code that builds popover HTML as a string.
+    public static string SpiceHtml(Skin skin, object amount, int size)
+    {
+        var name = skin.Describe(Concept.Resource);
+        return $"<span class='spice-amt' style='--s:{size}px' title='{name}'><img src='{skin.Harvester_URL}' alt='{name}'/><b>{amount}</b></span>";
+    }
+
+    // Splits "5, 2 at Mentat" into ("5", ", 2 at Mentat") so the leading amount can
+    // go on the harvester icon and the rest can follow as text.
+    public static (string amount, string rest) SplitLeadingNumber(string text)
+    {
+        var digits = 0;
+        while (digits < text.Length && char.IsDigit(text[digits])) digits++;
+        return (text[..digits], text[digits..]);
+    }
+
     public static string TextBorder(int borderWidth, string borderColor)
     {
         return

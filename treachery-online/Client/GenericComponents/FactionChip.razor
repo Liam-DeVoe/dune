@@ -1,0 +1,38 @@
+@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+
+@*
+ A faction named in a sentence: its sigil and its name in a pill, the name
+ in gold when it is the viewing player's own faction. While the mouse is over it, the hover script in
+ index.html tints every sector holding the faction's forces
+ (data-ref-locations) and marks anything on the page tagged
+ data-faction-of with this faction, such as a traitor card of theirs.
+*@
+
+<span class="chip faction @(IsYou ? "you" : "")" data-ref-faction="@Faction" data-ref-locations="@LocationIds"
+      style="--fc:@Client.CurrentSkin.GetFactionColor(Faction)" title="@Client.CurrentSkin.Describe(Faction)">
+    <img src="@Client.CurrentSkin.GetImageUrl(Faction)" alt=""/>
+    <span class="name">@Client.CurrentSkin.Describe(Faction)</span>
+</span>
+
+@code {
+
+    [Parameter, EditorRequired]
+    public Faction Faction { get; set; }
+
+    [Parameter]
+    public Game? Game { get; set; }
+
+    private bool IsYou => !Client.IsObserver && Client.Faction == Faction;
+
+    private string LocationIds =>
+        Game?.GetPlayer(Faction) is { } player
+            ? string.Join(",", player.ForcesOnPlanet.Keys.Select(l => l.Id))
+            : "";
+}

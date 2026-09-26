@@ -1,0 +1,318 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Turn report: the log panel for a whole turn</title>
+<style>
+@font-face { font-family: "Advokat"; src: url("../../treachery-online/Client/wwwroot/Advokat.ttf"); }
+@font-face { font-family: "Alegreya Sans"; font-weight: 400; font-style: normal; src: url("../../treachery-online/Client/wwwroot/fonts/AlegreyaSans-400-latin.woff2") format("woff2"); }
+@font-face { font-family: "Alegreya Sans"; font-weight: 400; font-style: italic; src: url("../../treachery-online/Client/wwwroot/fonts/AlegreyaSans-400italic-latin.woff2") format("woff2"); }
+@font-face { font-family: "Alegreya Sans"; font-weight: 500; font-style: normal; src: url("../../treachery-online/Client/wwwroot/fonts/AlegreyaSans-500-latin.woff2") format("woff2"); }
+@font-face { font-family: "Alegreya Sans"; font-weight: 700; font-style: normal; src: url("../../treachery-online/Client/wwwroot/fonts/AlegreyaSans-700-latin.woff2") format("woff2"); }
+@font-face { font-family: "Copperplate Dune"; src: url("../../treachery-online/Client/wwwroot/Copperplate.ttf"); }
+:root{
+  --ink-0:#120800;--ink-1:#1d0c00;--ink-2:#2a1607;--ink-3:#3b2310;--ink-4:#4e3218;
+  --parchment:#fcf9d1;--sand:#f3d987;--rock:#b3915f;--rock-2:#8c6b3e;
+  --gold:#e7bf3c;--spice:#e8762a;
+  --text:var(--parchment);--text-2:#d9c79a;--text-3:#a68d63;
+  --font-display:"Advokat",serif;--font-label:"Copperplate Dune","Copperplate",serif;--font-body:"Alegreya Sans",Candara,sans-serif;
+  --r-pill:999px;--hair:rgba(255,255,255,.09);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ink-1);color:var(--text);font-family:var(--font-body);padding:32px 48px 80px;font-size:16px}
+h1{font-family:var(--font-display);font-weight:400;font-size:40px;margin:0 0 6px}
+h2{font-family:var(--font-display);font-weight:400;font-size:28px;margin:52px 0 8px;color:var(--gold)}
+p,li{color:var(--rock);max-width:84ch;line-height:1.45} strong{color:var(--parchment)}
+code{font-size:14px;color:var(--sand)}
+.lbl{font-family:var(--font-label);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-3);margin:0 0 8px}
+.note{font-size:14px;color:var(--text-3);margin:10px 0 0;line-height:1.45}
+.row{display:flex;gap:36px;align-items:flex-start;flex-wrap:wrap}
+.col{width:370px}
+.pro,.con{font-size:14px;margin:6px 0 0;padding-left:18px;line-height:1.45}
+.pro li{color:var(--text-2)} .con li{color:var(--text-3)}
+.pro li::marker{content:"+  ";color:var(--sand)} .con li::marker{content:"−  "}
+
+/* ---- the panel, as the app draws it */
+.panel{background:var(--ink-2);border:1px solid var(--hair);border-radius:6px;width:370px;display:flex;flex-direction:column}
+.panel .hd{font-family:var(--font-display);font-size:18px;letter-spacing:.02em;color:var(--sand);text-align:center;padding:9px 12px;border-bottom:1px solid var(--hair);position:relative;display:flex;align-items:center;justify-content:center;gap:8px}
+.panel .hd .sort{position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text-3);font-family:var(--font-body);font-size:15px}
+.panel .hd .sort:hover{color:var(--gold)}
+.panel .bd{padding:4px 8px 6px;overflow:auto;max-height:640px}
+.line{font-size:15px;line-height:1.95;padding:1px 0}
+.line.private{font-style:italic}
+.line b{font-weight:600;color:var(--parchment)}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:1px 8px 1px 3px;border-radius:var(--r-pill);background:rgba(18,8,0,.55);border:1px solid rgba(252,249,209,.14);font-size:14px;line-height:1;white-space:nowrap;vertical-align:middle}
+.chip img{width:20px;height:20px}
+.chip .name{font-weight:600}
+.chip.you .name{color:var(--gold)}
+.chip .sector{font-family:var(--font-label);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3)}
+svg.wedge{width:20px;height:20px}
+svg.wedge .disc{fill:var(--ink-4)} svg.wedge .ring{fill:none;stroke:var(--rock);stroke-width:1.2} svg.wedge .w{fill:var(--gold)}
+.spice-amt{position:relative;display:inline-grid;place-items:center;width:20px;height:20px;vertical-align:middle;line-height:1}
+.spice-amt img{position:absolute;inset:0;width:100%;height:100%}
+.spice-amt b{position:relative;font-family:var(--font-display);font-weight:400!important;font-size:12.5px;color:var(--parchment)!important;text-shadow:0 0 1px #000,0 0 1px #000,0 0 3px #000}
+.disc{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--parchment);color:var(--ink-0);font-family:var(--font-display);font-size:13px;vertical-align:middle}
+img.force{width:20px;height:20px;vertical-align:middle}
+
+/* phase headings, shared */
+.ph{display:flex;align-items:center;gap:8px;font-family:var(--font-label);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-3);padding:12px 0 4px}
+.ph::after{content:"";flex:1;height:1px;background:var(--hair)}
+.ph.now{color:var(--gold)}
+.ph .tag{font-family:var(--font-body);font-size:11px;letter-spacing:.04em;text-transform:none;padding:1px 7px;border-radius:var(--r-pill);background:rgba(231,191,60,.14);border:1px solid rgba(231,191,60,.35);color:var(--gold)}
+.battle{margin:4px 0 6px;padding-left:9px;border-left:2px solid var(--ink-4)}
+.battle .bt{font-size:13px;color:var(--text-2);padding:4px 0 0;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center}
+.battle .res{font-family:var(--font-label);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);padding:2px 0 0}
+.battle.live .res{color:var(--gold)}
+.battle.live{border-left-color:var(--gold)}
+.muted{color:var(--text-3);font-style:italic;font-size:14px;padding:4px 0}
+
+/* A: sticky headings */
+.A .ph{position:sticky;top:0;background:var(--ink-2);z-index:1}
+
+/* B: accordion */
+.acc{border-bottom:1px solid var(--hair)}
+.acc:last-child{border-bottom:0}
+.acc>.sum{display:flex;align-items:center;gap:8px;padding:8px 2px;cursor:pointer;user-select:none}
+.acc>.sum:hover .pn{color:var(--sand)}
+.acc .chev{width:10px;color:var(--text-3);font-size:11px;transition:transform .15s}
+.acc.open .chev{transform:rotate(90deg)}
+.acc .pn{font-family:var(--font-label);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-2);flex:none}
+.acc.now .pn{color:var(--gold)}
+.acc .who{display:flex;margin-left:auto}
+.acc .who img{width:18px;height:18px;margin-left:-4px;border-radius:50%;box-shadow:0 0 0 1.5px var(--ink-2)}
+.acc .ct{font-size:12px;color:var(--text-3);min-width:22px;text-align:right}
+.acc .body{display:none;padding:0 2px 8px 18px}
+.acc.open .body{display:block}
+
+/* C: stepper */
+.step{display:grid;grid-template-columns:36px 1fr 36px;align-items:center;gap:8px;padding:10px 10px 8px;border-bottom:1px solid var(--hair)}
+.step button{width:36px;height:52px;border-radius:4px;display:grid;place-items:center;padding:0;cursor:pointer;background:none;border:0;color:var(--text-2)}
+.step button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.step button:hover:not(:disabled){color:var(--gold);background:rgba(252,249,209,.05)}
+.step button:disabled{opacity:.25;cursor:default}
+.step .t{text-align:center}
+.step .t .turn{font-family:var(--font-label);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-3);height:12px}
+.step .t .nm{font-family:var(--font-display);font-size:18px;color:var(--sand);line-height:1.2}
+.dots{display:flex;gap:6px;justify-content:center;padding:6px 0 0}
+.dots i{width:8px;height:8px;border-radius:50%;background:var(--rock-2);cursor:pointer;display:block}
+.dots i.future{background:none;box-shadow:inset 0 0 0 1px var(--ink-4);cursor:default}
+.dots i.now{background:var(--gold)}
+.dots i.sel{box-shadow:0 0 0 2px var(--ink-2),0 0 0 3.5px var(--sand)}
+
+/* rollover */
+.prevturn{margin-top:6px;border-top:1px solid var(--hair);padding:8px 2px;display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text-3);font-size:14px}
+.prevturn:hover{color:var(--sand)}
+.hdnav{font-family:var(--font-body);font-size:16px;color:var(--text-3);cursor:pointer;padding:0 4px}
+.hdnav.off{opacity:.25;cursor:default}
+</style></head><body>
+
+<h1>Turn report</h1>
+<p><strong>Built: layout C.</strong> The client shows one phase at a time, with arrows that page back through the whole game. Each battle has the face-off heading from <a href="battle-headings.html" style="color:var(--sand)">battle headings</a>, not the caption drawn below. Screenshots of the built panel are in the <a href="gallery.html" style="color:var(--sand)">gallery</a>. The rest of this page is the exploration that led there.</p>
+<p>The report panel below the player panel shows the log for the current main phase only. The engine throws the report away at the start of each phase, and at the start of each battle. This page mocks up the panel covering the whole turn instead. Nothing here is built.</p>
+<p>All three panels show the same moment: turn 4, seen as the Fremen, during the second battle. The lines are written in the log's style and use the shipped chips, but they are made up, not copied from a game. Every panel is live: click the headings, arrows and dots.</p>
+
+<h2>Three layouts</h2>
+<div class="row">
+  <div class="col">
+    <p class="lbl">A · One scroll, newest first</p>
+    <div class="panel A" id="A"></div>
+    <ul class="pro"><li>Smallest change from today: the same list with phase headings added.</li><li>Nothing to click. Everything from this turn is on screen or one scroll away.</li></ul>
+    <ul class="con"><li>This sample is already 32 lines by the second battle, and a busy turn runs well past that. The column gets long.</li><li>Newest first puts the latest line at the top, but each line still reads left to right as a sentence, so battles read in reverse.</li></ul>
+    <p class="note">The phase headings stick to the top while you scroll. The sort arrow flips the whole list, phases included.</p>
+  </div>
+  <div class="col">
+    <p class="lbl">B · Earlier phases folded</p>
+    <div class="panel B" id="B"></div>
+    <ul class="pro"><li>The current phase reads exactly like today. Earlier phases cost one line each.</li><li>The sigils on a folded row show who was involved, so you can tell where to look without opening it.</li></ul>
+    <ul class="con"><li>One click to see anything earlier.</li><li>The sigils are only who was named. That doesn't say what happened.</li></ul>
+    <p class="note">The current phase is open and pinned at the top. Earlier phases follow in reverse order. The count is the number of lines you can see.</p>
+  </div>
+  <div class="col">
+    <p class="lbl">C · Phase stepper</p>
+    <div class="panel C" id="C"></div>
+    <ul class="pro"><li>Always one phase at a time, the same height as today.</li><li>The dots double as a turn-progress bar.</li></ul>
+    <ul class="con"><li>Phases with nothing in them still take a dot and a click.</li><li>The map's phase list already shows where you are in the turn, so the dots repeat it.</li></ul>
+    <p class="note">Arrows or dots step through phases. Hollow dots are phases still to come. The turn number appears above the phase name only when you're looking at an earlier turn.</p>
+  </div>
+</div>
+
+<h2>Battles</h2>
+<p>The engine also starts a new report for each battle, so the panel shows only the current fight today. In all three layouts the battle phase keeps every fight, each under its own caption: who fought where, and the winner once the fight is decided. The fight in progress gets a gold rule. The engine already knows the aggressor, defender and territory when a battle starts, so the caption doesn't need new data.</p>
+
+<h2>When the turn ends</h2>
+<p>At the start of a turn the panel shows the storm phase, which often has only a line or two. The left arrow keeps going past the storm into the previous turn's Mentat phase, and on back through the game. The turn number appears above the phase name while you're looking at an earlier turn, and the dots switch to that turn's phases.</p>
+<div class="row">
+  <div class="col">
+    <p class="lbl">Start of turn 5</p>
+    <div class="panel C" id="R"></div>
+    <p class="note">Press the left arrow once to reach turn 4's Mentat phase, which logged nothing, and again for its collection.</p>
+  </div>
+</div>
+
+<h2>The Shai-Hulud ride line</h2>
+<p>The engine already logs a ride with its places (<code>Shared/Events/YellowRidesMonster.cs:151</code>): one line per territory ridden from, reading "3 [force] ride from Funeral Plain to Plastic Basin". It also carries a route, so hovering it draws the arrow on the map like a move line. What it lacks is the faction chip at the start, which every move line has. The mock above adds it. That's a one-word change to the two <code>Log</code> calls there.</p>
+
+<h2>Chosen: C</h2>
+<p>One phase at a time, with arrows that walk back through the whole game. Layouts A and B stay on this page for reference.</p>
+
+<h2>What changes in the engine</h2>
+<p>A report is replaced in two places: <code>Game.MainPhaseStart</code> (<code>Shared/Game.cs:287</code>) and <code>BattleInitiated.ExecuteConcreteEvent</code> (<code>Shared/Events/BattleInitiated.cs:219</code>). Both would append the new <code>Report</code> to a list on <code>Game</code> instead of dropping the old one. A new turn would start a new list at the storm phase. That code already skips clearing on turn 1, so the setup log stays with turn 1. A battle report needs a caption, which <code>BattleInitiated</code> can set from its aggressor, defender and territory. <code>ReportComponent</code> then renders the list rather than <code>Game.CurrentReport</code>.</p>
+
+<script src="../log-refs/mapdata.js"></script>
+<script>
+const ART = "../../treachery-online/Client/wwwroot/art/";
+const M = window.MAPDATA, NS = 18;
+const FN = {1:"Atreides", 2:"Harkonnen", 3:"Fremen", 4:"Emperor", 5:"Guild", 6:"Bene Gesserit"};
+const YOU = 3;
+const tid = name => +Object.entries(M.territories).find(([, t]) => t.name === name)[0];
+const sectors = (name, o) => M.locations.filter(l => l.territory === tid(name) && (!o || l.orientation === o)).map(l => l.sector).filter(s => s >= 0);
+function wedge(s, r) { const a0 = 2*Math.PI*(6-s)/NS, a1 = 2*Math.PI*(5-s)/NS; return `M10,10 L${10+Math.cos(a0)*r},${10+Math.sin(a0)*r} A${r} ${r} 0 0 0 ${10+Math.cos(a1)*r},${10+Math.sin(a1)*r} Z`; }
+const glyph = ss => `<svg class="wedge" viewBox="0 0 20 20"><circle class="disc" cx="10" cy="10" r="9"/>${ss.map(s => `<path class="w" d="${wedge(s, 9)}"/>`).join("")}<circle class="ring" cx="10" cy="10" r="9"/></svg>`;
+
+const F = f => `<span class="chip${f === YOU ? " you" : ""}"><img src="${ART}faction${f}.svg" alt=""><span class="name">${FN[f]}</span></span>`;
+const P = (name, o = "") => `<span class="chip">${glyph(sectors(name, o))}<span class="name">${name}</span>${o ? `<span class="sector">${o}</span>` : ""}</span>`;
+const S = n => `<span class="spice-amt"><img src="${ART}ActiveSpice.svg" alt=""><b>${n}</b></span>`;
+const N = n => `<span class="disc">${n}</span>`;
+const FO = f => `<img class="force" src="${ART}faction${f}force.svg" alt="">`;
+const priv = s => ({ s, priv: true });
+
+// ---- turn 4, up to the second battle. who = factions named, for B's sigils.
+const TURN4 = [
+  { name: "Storm", who: [2], lines: [
+    `The storm moves ${N(3)} sectors`,
+    `${F(2)} lose ${N(3)}${FO(2)} to the storm in ${P("Imperial Basin", "Center")}`,
+    `${S(6)} in ${P("Old Gap", "Middle")} is lost to the storm`]},
+  { name: "Spice Blow", who: [1, 3], lines: [
+    `Spice card: ${P("The Great Flat")}, ${S(10)} is placed there`,
+    `Shai-Hulud appears in ${P("Funeral Plain")}`,
+    `${F(1)} lose ${N(2)}${FO(1)} to Shai-Hulud in ${P("Funeral Plain")}`,
+    `${F(3)} ride ${N(3)}${FO(3)} from ${P("Funeral Plain")} to ${P("Plastic Basin", "South")}`]},
+  { name: "CHOAM Charity", who: [6], lines: [
+    `${F(6)} claim ${S(2)} CHOAM Charity`]},
+  { name: "Bidding", who: [2, 4, 3, 1, 5], lines: [
+    `${F(2)} buy card 1 for ${S(7)} → ${F(4)} get ${S(7)}`,
+    `${F(3)} buy card 2 for ${S(3)} → ${F(4)} get ${S(3)}`,
+    priv(`${F(3)} get <b>Crysknife</b>`),
+    `${F(1)} buy card 3 for ${S(5)} → ${F(4)} get ${S(5)}`,
+    `${F(5)} buy card 4 for ${S(2)} → ${F(4)} get ${S(2)}`,
+    `Card 5 is not bought. Bidding ends`]},
+  { name: "Revival", who: [3, 1], lines: [
+    `${F(3)} revive ${N(3)}${FO(3)} for free`,
+    `${F(1)} revive ${N(2)}${FO(1)} for ${S(4)}`]},
+  { name: "Ship & Move", who: [3, 1, 5, 6, 2, 4], lines: [
+    `${F(3)} move ${N(7)}${FO(3)} from ${P("Funeral Plain")} to ${P("Plastic Basin", "North")}`,
+    `${F(1)} ship ${N(4)}${FO(1)} to ${P("Tuek's Sietch")} for ${S(4)} → ${F(5)} get ${S(4)}`,
+    `${F(6)} accompany to ${P("Tuek's Sietch")}`,
+    `${F(1)} pass movement`,
+    `${F(2)} ship ${N(2)}${FO(2)} to ${P("Arrakeen")} for ${S(2)} → ${F(5)} get ${S(2)}`,
+    `${F(2)} move ${N(2)}${FO(2)} from ${P("Arrakeen")} to ${P("Old Gap", "Middle")}`,
+    `${F(5)} ship ${N(3)}${FO(5)} to ${P("Arrakeen")} for ${S(2)}`,
+    `${F(5)} pass movement`,
+    `${F(4)} ship ${N(2)}${FO(4)} to ${P("Habbanya Sietch")} for ${S(2)} → ${F(5)} get ${S(2)}`,
+    `${F(4)} pass movement`,
+    `${F(6)} pass shipment`]},
+  { name: "Battle", now: true, who: [2, 5, 3, 4], battles: [
+    { title: `${F(2)} vs ${F(5)} in ${P("Arrakeen")}`, lines: [
+      `${F(2)} lead with <b>Feyd-Rautha</b>, dial ${N(4)}, <b>Lasgun</b>`,
+      `${F(5)} lead with <b>Staban Tuek</b>, dial ${N(3)}, <b>Shield</b>`,
+      `Lasgun and Shield explode in ${P("Arrakeen")}`,
+      `All forces and leaders in ${P("Arrakeen")} are killed`]},
+    { title: `${F(3)} vs ${F(4)} in ${P("Habbanya Sietch")}`, live: true, lines: [
+      `${F(3)} attack ${F(4)} in ${P("Habbanya Sietch")}`]}]},
+];
+const LATER = ["Collection", "Mentat"];
+
+const TURN4_DONE = [
+  ...TURN4.filter(p => !p.now),
+  { name: "Battle", who: [2, 5, 3, 4], battles: [
+    { ...TURN4.find(p => p.now).battles[0] },
+    { title: `${F(3)} vs ${F(4)} in ${P("Habbanya Sietch")}`, result: "Fremen win", lines: [
+      `${F(3)} attack ${F(4)} in ${P("Habbanya Sietch")}`,
+      `${F(3)} lead with <b>Stilgar</b>, dial ${N(5)}, <b>Crysknife</b>`,
+      `${F(4)} lead with <b>Bashar</b>, dial ${N(2)}, no defense`,
+      `<b>Bashar</b> is killed. ${F(3)} win`,
+      `${F(4)} lose ${N(2)}${FO(4)} in ${P("Habbanya Sietch")}`]}]},
+  { name: "Collection", who: [3, 1], lines: [
+    `${F(3)} collect ${S(6)} in ${P("Plastic Basin", "North")}`,
+    `${F(1)} collect ${S(2)} in ${P("Tuek's Sietch")}`]},
+  { name: "Mentat", who: [], lines: [] },
+];
+
+const TURN5 = [
+  { name: "Storm", now: true, who: [4], lines: [
+    `The storm moves ${N(5)} sectors`,
+    `${F(4)} lose ${N(2)}${FO(4)} to the storm in ${P("Hagga Basin", "West")}`]},
+];
+
+const line = l => typeof l === "string" ? `<div class="line">${l}</div>` : `<div class="line private">${l.s}</div>`;
+function body(ph, desc) {
+  if (ph.battles) {
+    const bs = desc ? [...ph.battles].reverse() : ph.battles;
+    return bs.map(b => {
+      const ls = desc ? [...b.lines].reverse() : b.lines;
+      return `<div class="battle${b.live ? " live" : ""}"><div class="bt">${b.title}</div><div class="res">${b.live ? "In progress" : b.result || "No winner"}</div>${ls.map(line).join("")}</div>`;
+    }).join("");
+  }
+  if (!ph.lines.length) return `<div class="muted">Nothing to report</div>`;
+  return (desc ? [...ph.lines].reverse() : ph.lines).map(line).join("");
+}
+const count = ph => ph.battles ? ph.battles.reduce((n, b) => n + b.lines.length, 0) : ph.lines.length;
+const sortIcon = desc => `<span class="sort" title="${desc ? "Newest first" : "Oldest first"}">${desc ? "↑" : "↓"}</span>`;
+
+// ---- A: one scroll
+function renderA(el, turn, desc) {
+  const phs = desc ? [...turn].reverse() : turn;
+  el.innerHTML = `<div class="hd">Turn 4 Report ${sortIcon(desc)}</div><div class="bd">${phs.map(ph =>
+    `<div class="ph${ph.now ? " now" : ""}">${ph.name}${ph.now ? ` <span class="tag">now</span>` : ""}</div>${body(ph, desc)}`).join("")}</div>`;
+  el.querySelector(".sort").onclick = () => renderA(el, turn, !desc);
+}
+renderA(document.getElementById("A"), TURN4, true);
+
+// ---- B: accordion, current phase pinned open at top
+function accordion(turn, open) {
+  const phs = [...turn].reverse();
+  return phs.map((ph, i) => {
+    const isOpen = open.has(ph.name);
+    return `<div class="acc${isOpen ? " open" : ""}${ph.now ? " now" : ""}" data-p="${ph.name}">
+      <div class="sum"><span class="chev">▶</span><span class="pn">${ph.name}</span>
+      <span class="who">${[...new Set(ph.who)].map(f => `<img src="${ART}faction${f}.svg" alt="" title="${FN[f]}">`).join("")}</span>
+      <span class="ct">${count(ph)}</span></div>
+      <div class="body">${body(ph, false)}</div></div>`;
+  }).join("");
+}
+function renderB(el, turn, title, open, extra = "", head = t => t, after = () => {}) {
+  el.innerHTML = `<div class="hd">${head(title)}</div><div class="bd">${accordion(turn, open)}${extra}</div>`;
+  el.querySelectorAll(".acc > .sum").forEach(s => s.onclick = () => {
+    const p = s.parentElement.dataset.p;
+    open.has(p) ? open.delete(p) : open.add(p);
+    renderB(el, turn, title, open, extra, head, after);
+  });
+  after(el);
+}
+renderB(document.getElementById("B"), TURN4, "Turn 4 Report", new Set(["Battle"]));
+
+// ---- C: stepper. turns maps turn number to its phases so far; the last
+// turn in it is the current one. Stepping back from a turn's first phase goes
+// to the previous turn's last phase.
+const PHASES = ["Storm", "Spice Blow", "CHOAM Charity", "Bidding", "Revival", "Ship & Move", "Battle", "Collection", "Mentat"];
+const chevron = d => `<svg viewBox="0 0 16 16"><path d="${d < 0 ? "M10 3 5 8l5 5" : "M6 3l5 5-5 5"}"/></svg>`;
+function stepper(el, turns) {
+  const current = Math.max(...Object.keys(turns).map(Number));
+  let t = current, i = turns[t].length - 1;
+  const first = Math.min(...Object.keys(turns).map(Number));
+  function draw() {
+    const phs = turns[t], ph = phs[i];
+    const atStart = t === first && i === 0, atEnd = t === current && i === phs.length - 1;
+    const dotClass = j => j >= phs.length ? "future" : (t === current && j === phs.length - 1 ? "now" : "") + (j === i ? " sel" : "");
+    el.innerHTML = `<div class="step">
+        <button class="prev" title="Previous phase" ${atStart ? "disabled" : ""}>${chevron(-1)}</button>
+        <div class="t"><div class="turn">${t === current ? "" : `Turn ${t}`}</div><div class="nm">${ph.name}</div>
+          <div class="dots">${PHASES.map((n, j) => `<i title="${n}" data-j="${j}" class="${dotClass(j)}"></i>`).join("")}</div></div>
+        <button class="next" title="Next phase" ${atEnd ? "disabled" : ""}>${chevron(1)}</button></div>
+      <div class="bd">${body(ph, false)}</div>`;
+    el.querySelector(".prev").onclick = () => { if (i > 0) i--; else { t--; i = turns[t].length - 1; } draw(); };
+    el.querySelector(".next").onclick = () => { if (i < phs.length - 1) i++; else { t++; i = 0; } draw(); };
+    el.querySelectorAll(".dots i:not(.future)").forEach(d => d.onclick = () => { i = +d.dataset.j; draw(); });
+  }
+  draw();
+}
+stepper(document.getElementById("C"), {4: TURN4});
+stepper(document.getElementById("R"), {4: TURN4_DONE, 5: TURN5});
+</script>
+</body></html>

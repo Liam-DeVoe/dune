@@ -27,7 +27,7 @@ public partial class Game
     internal void EnterStormPhase()
     {
         CurrentTurn++;
-        MainPhaseStart(MainPhase.Storm, CurrentTurn > 1);
+        MainPhaseStart(MainPhase.Storm);
         FactionsThatRevivedSpecialForcesThisTurn.Clear();
         StormLossesToTake.Clear();
         CurrentTestingStationUsed = false;

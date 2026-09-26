@@ -1,0 +1,76 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Spice blow headers: before / after</title>
+<style>
+@font-face { font-family: "Advokat"; src: url("../../treachery-online/Client/wwwroot/Advokat.ttf"); }
+@font-face { font-family: "Alegreya Sans"; font-weight: 400; src: url("../../treachery-online/Client/wwwroot/fonts/AlegreyaSans-400-latin.woff2") format("woff2"); }
+@font-face { font-family: "Alegreya Sans"; font-weight: 500; src: url("../../treachery-online/Client/wwwroot/fonts/AlegreyaSans-500-latin.woff2") format("woff2"); }
+@font-face { font-family: "Alegreya Sans"; font-weight: 700; src: url("../../treachery-online/Client/wwwroot/fonts/AlegreyaSans-700-latin.woff2") format("woff2"); }
+@font-face { font-family: "Copperplate Dune"; src: url("../../treachery-online/Client/wwwroot/Copperplate.ttf"); }
+:root{
+  --ink-0:#120800;--ink-1:#1d0c00;--ink-2:#2a1607;--ink-3:#3b2310;--ink-4:#4e3218;
+  --parchment:#fcf9d1;--sand:#f3d987;--rock:#b3915f;--gold:#e7bf3c;
+  --text:var(--parchment);--text-2:#d9c79a;--text-3:#a68d63;
+  --font-display:"Advokat",serif;--font-label:"Copperplate Dune","Copperplate",serif;--font-body:"Alegreya Sans",Candara,sans-serif;
+  --hair:rgba(255,255,255,.09);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ink-1);color:var(--text);font-family:var(--font-body);padding:32px 48px 80px;font-size:16px}
+h1{font-family:var(--font-display);font-weight:400;font-size:36px;margin:0 0 6px}
+p{color:var(--rock);max-width:80ch;line-height:1.45;margin:0 0 8px}
+.lbl{font-family:var(--font-label);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-3);margin:0 0 8px}
+.grid{display:grid;grid-template-columns:repeat(2,370px);gap:28px 40px;margin-top:28px}
+
+.panel{background:var(--ink-2);border:1px solid var(--hair);border-radius:6px;width:370px}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--hair)}
+.nav .arr{width:36px;height:52px;display:grid;place-items:center;border-radius:5px;color:var(--gold);font-size:28px}
+.nav .arr.l{background:rgba(255,255,255,.04)}
+.nav .mid{text-align:center}
+.nav .t{font-family:var(--font-label);font-size:12px;letter-spacing:.16em;color:var(--text-3)}
+.nav .p{font-family:var(--font-display);font-size:22px;color:var(--sand);line-height:1.1}
+.dots{display:flex;gap:6px;justify-content:center;margin-top:6px}
+.dots i{width:8px;height:8px;border-radius:50%;background:var(--rock);opacity:.8}
+.dots i.on{outline:1.5px solid var(--gold);outline-offset:2px}
+.bd{padding:6px 10px 10px}
+.line{font-size:15px;line-height:1.95}
+.line b{font-weight:700;color:var(--parchment)}
+.spice-amt{position:relative;display:inline-grid;place-items:center;width:22px;height:22px;vertical-align:middle;line-height:1;margin-right:2px}
+.spice-amt img{position:absolute;inset:0;width:100%;height:100%}
+.spice-amt b{position:relative;font-family:var(--font-display);font-weight:400!important;font-size:12.5px;color:var(--parchment)!important;text-shadow:0 0 1px #000,0 0 1px #000,0 0 3px #000}
+
+/* after: section divider, same treatment as the other phase headings in the report */
+.ph{display:flex;align-items:center;gap:8px;font-family:var(--font-label);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-3);padding:10px 0 2px}
+.ph:first-child{padding-top:4px}
+.ph::after{content:"";flex:1;height:1px;background:var(--hair)}
+</style></head><body>
+
+<h1>Spice blow headers</h1>
+<p>The top row is a typical turn with one card per deck. The bottom row is a turn where a worm shows up, which is when the grouping actually matters.</p>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const S = n => `<span class="spice-amt"><img src="../../treachery-online/Client/wwwroot/art/ActiveSpice.svg"><b>${n}</b></span>`;
+const nav = `<div class="nav"><div class="arr l">‹</div><div class="mid"><div class="t">TURN 2</div><div class="p">Spice Blow</div>
+  <div class="dots"><i></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div><div class="arr">›</div></div>`;
+
+const simple = {
+  A: [`${S(8)} detected in <b>The Minor Erg</b>`],
+  B: [`${S(10)} detected in <b>South Mesa</b>`],
+};
+const busy = {
+  A: [`<b>Shai-Hulud</b> devours ${S(6)} in <b>Hagga Basin</b>`,
+      `<b>Shai-Hulud</b> appears in <b>Hagga Basin</b>`,
+      `${S(8)} detected in <b>The Minor Erg</b>`],
+  B: [`${S(10)} detected in <b>South Mesa</b>`],
+};
+
+const before = d => Object.entries(d).map(([k, ls]) =>
+  `<div class="line">*** Spice Blow ${k} ***</div>` + ls.map(l => `<div class="line">${l}</div>`).join("")).join("");
+const after = d => Object.entries(d).map(([k, ls]) =>
+  `<div class="ph">Blow ${k}</div>` + ls.map(l => `<div class="line">${l}</div>`).join("")).join("");
+
+const cell = (label, body) => `<div><div class="lbl">${label}</div><div class="panel">${nav}<div class="bd">${body}</div></div></div>`;
+document.getElementById("grid").innerHTML =
+  cell("Before", before(simple)) + cell("After", after(simple)) +
+  cell("Before, with a worm", before(busy)) + cell("After, with a worm", after(busy));
+</script>
+</body></html>

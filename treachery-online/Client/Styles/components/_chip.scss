@@ -86,3 +86,112 @@
     content: "⚙ ";
   }
 }
+
+// Chips inside a sentence: log lines, prompts, chat. Smaller than the seat
+// chip so a line stays a line. .place names a sector or territory and
+// carries a storm-wheel glyph whose lit wedges are its sectors; .faction
+// names a faction. Both carry data-ref-locations, which the hover script in
+// index.html reads to light those sectors on the map while the mouse is over
+// the chip.
+.chip.place,
+.chip.faction {
+  gap: 5px;
+  padding: 1px 8px 1px 3px;
+  font-size: 14px;
+  vertical-align: middle;
+  // Hovering does something, so the pointer, as the card popovers use.
+  cursor: pointer;
+
+  img {
+    width: 20px;
+    height: 20px;
+  }
+
+  .name {
+    font-weight: 600;
+  }
+
+  // The viewing player's own faction is named like any other, in gold. Only
+  // the name changes, so the gold border can mean "hovered" alone.
+  &.you {
+    border-color: rgba(252, 249, 209, 0.14);
+    box-shadow: none;
+
+    .name {
+      color: var(--gold);
+    }
+  }
+
+  &:hover {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 1px rgba(231, 191, 60, 0.35);
+  }
+
+  + .chip {
+    margin-left: 3px;
+  }
+}
+
+// The sector's compass word, in the label face like the map popover's title.
+.chip .sector {
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+// The planet glyph on a place chip: a disc with the place's outline in gold.
+// The ring keeps a one-pixel stroke at any size.
+.chip .wedge {
+  width: 20px;
+  height: 20px;
+  flex: none;
+
+  .disc {
+    fill: var(--ink-4);
+  }
+  .ring {
+    fill: none;
+    stroke: var(--rock);
+    stroke-width: 1.4;
+  }
+  .w {
+    fill: var(--gold);
+  }
+}
+
+// Something on the page that belongs to the faction whose chip the mouse is
+// over, such as a traitor card of theirs in the player panel. The hover
+// script adds .ref-hi to elements tagged data-faction-of.
+// A ring rather than a glow: Image.razor's scoped .shadowy already sets a
+// filter on these images, and a box-shadow does not fight it.
+[data-faction-of].ref-hi img {
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 3px var(--gold),
+    0 0 14px 2px rgba(231, 191, 60, 0.7);
+}
+
+// Chips inside the parchment prompt card take the on-parchment colours.
+.prompt-act .chip.place,
+.prompt-act .chip.faction {
+  background: rgba(29, 12, 0, 0.08);
+  border-color: rgba(29, 12, 0, 0.2);
+  color: var(--ink-1);
+
+  .sector {
+    color: var(--rock-2);
+  }
+}
+
+// A log line that tells of a journey. Hovering anywhere on it draws the
+// journey on the map, so the whole line invites the mouse.
+[data-ref-arrow] {
+  cursor: pointer;
+  border-radius: var(--r-1);
+}
+// Not while a chip inside it is hovered: then only the chip is meant.
+[data-ref-arrow]:hover:not(:has(.chip:hover)) {
+  background: rgba(252, 249, 209, 0.05);
+}

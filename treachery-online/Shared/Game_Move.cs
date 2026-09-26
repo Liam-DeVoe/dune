@@ -91,7 +91,11 @@ public partial class Game
 
             if (initiator.Is(Faction.Blue)) initiator.FlipForces(evt.To, wasOccupiedBeforeMove && asAdvisors);
 
-            if (totalNumberOfForces > 0 || totalNumberOfSpecialForces > 0) LogMove(initiator, fromTerritory, evt.To, totalNumberOfForces, totalNumberOfSpecialForces, wasOccupiedBeforeMove && asAdvisors, byCaravan);
+            if (totalNumberOfForces > 0 || totalNumberOfSpecialForces > 0)
+            {
+                var fromLocations = forceLocations.Where(fl => fl.Key.Territory == fromTerritory && fl.Value.TotalAmountOfForces > 0).Select(fl => fl.Key);
+                LogMove(initiator, fromTerritory, fromLocations, evt.To, totalNumberOfForces, totalNumberOfSpecialForces, wasOccupiedBeforeMove && asAdvisors, byCaravan);
+            }
         }
 
         Stone(Milestone.Move);
@@ -166,9 +170,9 @@ public partial class Game
         return !targetsAvoidingStorm.Contains(to) && targetsIgnoringStorm.Contains(to);
     }
 
-    internal void LogMove(Player initiator, Territory from, Location to, int forceAmount, int specialForceAmount, bool asAdvisors, bool byCaravan)
+    internal void LogMove(Player initiator, Territory from, IEnumerable<Location> fromLocations, Location to, int forceAmount, int specialForceAmount, bool asAdvisors, bool byCaravan)
     {
-        Log(
+        Log(Message.Express(
             CaravanMessage(byCaravan),
             initiator.Faction,
             " move ",
@@ -178,7 +182,8 @@ public partial class Game
             from,
             " to ",
             to,
-            MessagePart.ExpressIf(initiator.Is(Faction.Blue) && Applicable(Rule.BlueAdvisors), " as ", asAdvisors ? initiator.SpecialForce : initiator.Force));
+            MessagePart.ExpressIf(initiator.Is(Faction.Blue) && Applicable(Rule.BlueAdvisors), " as ", asAdvisors ? initiator.SpecialForce : initiator.Force))
+            .WithRoute(initiator.Faction, fromLocations, to));
     }
 
     private static MessagePart CaravanMessage(bool byCaravan)

@@ -9,9 +9,25 @@
 
 namespace Treachery.Shared;
 
-public class Report(MainPhase about)
+public class Report(MainPhase about, int turn)
 {
-    public MainPhase About { private set; get; } = about;
+    public MainPhase About { get; } = about;
+
+    /// <summary>
+    /// The value of Game.CurrentTurn when this report was started (0 for the setup report).
+    /// </summary>
+    public int Turn { get; } = turn;
+
+    // Only set on a report that covers a single battle (started by BattleInitiated).
+    public Faction Aggressor { get; internal set; } = Faction.None;
+    public Faction Defender { get; internal set; } = Faction.None;
+    public Territory? Territory { get; internal set; }
+    public bool IsBattle => Aggressor != Faction.None;
+
+    // Set once the battle outcome is resolved. BattleWinner stays Faction.None when nobody won
+    // (lasgun/shield explosion, or both leaders turning out to be traitors).
+    public bool BattleDecided { get; internal set; }
+    public Faction BattleWinner { get; internal set; } = Faction.None;
 
     public readonly LinkedList<Message> Messages = [];
 

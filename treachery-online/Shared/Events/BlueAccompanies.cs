@@ -67,7 +67,7 @@ public class BlueAccompanies : GameEvent, ILocationEvent
             else
                 Player.ShipAdvisors(Location, Game.Version >= 160 ? SpecialForcesAddedToLocation : 1);
 
-            Log(Initiator, " accompany to ", Location);
+            Log(Message.Express(Initiator, " accompany to ", Location).WithRoute(Initiator, [], Location));
             Game.LastShipmentOrMovement = this;
             Game.CheckIntrusion(this);
         }

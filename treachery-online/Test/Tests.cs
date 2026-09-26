@@ -392,6 +392,74 @@ public class Tests
         statistics.Output(DefaultSkin.Default);
     }
     
+    [TestMethod]
+    public void ReportsCoverEveryPhaseOfEveryTurn()
+    {
+        Message.DefaultDescriber = DefaultSkin.Default;
+
+        var rules = Game.RulesetDefinition[Ruleset.AllExpansionsAdvancedGame].ToList();
+        rules.Add(Rule.FillWithBots);
+        rules.Add(Rule.AssistedNotekeeping);
+        var rulesAsArray = rules.ToArray();
+
+        var battleReportsChecked = 0;
+        for (var i = 0; i < 6; i++)
+        {
+            var game = LetBotsPlay(rulesAsArray, 6, 5, null, false, null, 60);
+            var reports = game.Reports;
+
+            Assert.AreSame(reports[^1], game.CurrentReport);
+            Assert.AreEqual(MainPhase.Setup, reports[0].About);
+            Assert.AreEqual(0, reports[0].Turn);
+            Assert.IsTrue(reports.Skip(1).All(r => r.About != MainPhase.Setup));
+
+            for (var r = 1; r < reports.Count; r++)
+            {
+                var previous = reports[r - 1];
+                var current = reports[r];
+                Assert.IsTrue(current.Turn > previous.Turn || (current.Turn == previous.Turn && current.About >= previous.About),
+                    $"Report {r} ({current.About}, turn {current.Turn}) is out of order after ({previous.About}, turn {previous.Turn})");
+            }
+
+            for (var turn = 1; turn <= game.CurrentTurn; turn++)
+            {
+                var phases = reports.Where(r => r.Turn == turn).Select(r => r.About).ToHashSet();
+                var expected = new List<MainPhase> { MainPhase.Storm, MainPhase.Blow, MainPhase.Bidding, MainPhase.Resurrection, MainPhase.ShipmentAndMove, MainPhase.Battle, MainPhase.Collection, MainPhase.Contemplate };
+                if (game.Applicable(Rule.HasCharityPhase)) expected.Add(MainPhase.Charity);
+                foreach (var phase in expected)
+                    Assert.Contains(phase, phases, $"Turn {turn} has no {phase} report");
+            }
+
+            foreach (var battle in reports.Where(r => r.IsBattle))
+            {
+                Assert.AreEqual(MainPhase.Battle, battle.About);
+                Assert.AreNotEqual(Faction.None, battle.Defender);
+                Assert.IsNotNull(battle.Territory);
+                Assert.IsTrue(battle.BattleDecided, $"Battle in turn {battle.Turn} was never decided");
+                Assert.IsTrue(battle.BattleWinner == Faction.None || battle.BattleWinner == battle.Aggressor || battle.BattleWinner == battle.Defender,
+                    $"Winner {battle.BattleWinner} is neither aggressor {battle.Aggressor} nor defender {battle.Defender}");
+                battleReportsChecked++;
+            }
+
+            Assert.IsTrue(reports.All(r => r.IsBattle || !r.BattleDecided));
+        }
+
+        Assert.IsGreaterThan(0, battleReportsChecked);
+    }
+
+    [TestMethod]
+    public void CloningAGameDoesNotShareItsReportList()
+    {
+        var game = new Game();
+        var clone = game.Clone();
+
+        PerformEstablishPlayers([Rule.FillWithBots], 6, 3, game, EstablishPlayers.AvailableFactions().ToList());
+
+        Assert.AreEqual(0, clone.Reports.Count);
+        Assert.AreEqual(1, game.Reports.Count);
+        Assert.AreEqual(MainPhase.Setup, game.Reports[0].About);
+    }
+
     private void PlayGameAndRecordResults(int nrOfPlayers, int nrOfTurns, Rule[] rulesAsArray, ObjectCounter<Faction> winCounter, Statistics statistics, int timeout)
     {
         var game = LetBotsPlay(rulesAsArray, nrOfPlayers, nrOfTurns, null, true, statistics, timeout);

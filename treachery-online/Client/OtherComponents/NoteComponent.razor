@@ -37,7 +37,8 @@
 
                     <!-- Resources -->
                     <div class="col col-auto ps-0">
-                        <img class="img-fluid m-0 p-0" width="24" height="24" src="@Client.CurrentSkin.Harvester_URL" title="@Client.CurrentSkin.Describe(Concept.Resource)" /><strong>&nbsp;@ResourcesText(p)</strong>
+                        @{ var (spice, spiceRest) = Support.SplitLeadingNumber(ResourcesText(p)); }
+                        <SpiceComponent Amount="@spice" Size="24"/>@if (spiceRest.Length > 0) { <strong>@spiceRest</strong> }
                     </div>
 
                     <!-- Forces -->

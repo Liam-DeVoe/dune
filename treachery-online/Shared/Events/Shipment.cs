@@ -664,22 +664,34 @@ public class Shipment : PassableGameEvent, ILocationEvent
             return Message.Express(Initiator, " pass shipment");
         
         return IsBackToReserves ? 
-            Message.Express(Initiator, " ship from ", To, " to reserves") 
-            : Message.Express(Initiator, " ship to ", To);
+            Message.Express(Initiator, " ship from ", To, " to reserves").WithRoute(Initiator, Sources, null)
+            : Message.Express(Initiator, " ship to ", To).WithRoute(Initiator, Sources, To);
+    }
+
+    // Where the shipped forces come from: the shipped-back location, the
+    // site-to-site source, or reserves.
+    private IEnumerable<Location> Sources
+    {
+        get
+        {
+            if (IsBackToReserves) return To != null ? [To] : [];
+            if (IsSiteToSite && From != null) return [From];
+            return [];
+        }
     }
 
     private Message GetVerboseMessage(int cost, MessagePart orangeIncome, Player? ownerOfKarma)
     {
         if (Passed) return Message.Express(Initiator, " pass shipment");
 
-        if (IsBackToReserves) return Message.Express(Initiator, " ship from ", To, " back to reserves", CostMessage(cost), KaramaMessage(ownerOfKarma), orangeIncome);
+        if (IsBackToReserves) return Message.Express(Initiator, " ship from ", To, " back to reserves", CostMessage(cost), KaramaMessage(ownerOfKarma), orangeIncome).WithRoute(Initiator, Sources, null);
 
-        if (IsSiteToSite) return Message.Express(Initiator, " site-to-site ship ", ForceMessage, " from ", From, " to ", To, CostMessage(cost), KaramaMessage(ownerOfKarma), orangeIncome);
+        if (IsSiteToSite) return Message.Express(Initiator, " site-to-site ship ", ForceMessage, " from ", From, " to ", To, CostMessage(cost), KaramaMessage(ownerOfKarma), orangeIncome).WithRoute(Initiator, Sources, To);
 
         if (cost > 0)
-            return Message.Express(Initiator, " ship ", ForceMessage, " to ", To, NoFieldMessage, CostMessage(cost), KaramaMessage(ownerOfKarma), orangeIncome);
+            return Message.Express(Initiator, " ship ", ForceMessage, " to ", To, NoFieldMessage, CostMessage(cost), KaramaMessage(ownerOfKarma), orangeIncome).WithRoute(Initiator, Sources, To);
         
-        return Message.Express(Initiator, " rally ", ForceMessage, " in ", To);
+        return Message.Express(Initiator, " rally ", ForceMessage, " in ", To).WithRoute(Initiator, Sources, To);
     }
 
     private MessagePart NoFieldMessage => MessagePart.ExpressIf(IsNoField && Initiator != Faction.White, " (using a ", FactionSpecialForce.White, ")");

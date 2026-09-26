@@ -67,10 +67,7 @@ else
                     <PlayerPanel ShownPlayer="Client.Player" />
                 }
             }
-            @if (Client.Game.CurrentReport != null)
-            {
-                <ReportComponent Report="Client.Game.CurrentReport" />
-            }
+            <ReportComponent/>
         </div>
 
         <ImageFlashComponent />

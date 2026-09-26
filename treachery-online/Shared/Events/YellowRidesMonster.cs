@@ -148,24 +148,28 @@ public class YellowRidesMonster : PlacementEvent
                 var from = fl.Key;
                 initiator.MoveForces(from, To, fl.Value.AmountOfForces);
                 initiator.MoveSpecialForces(from, To, fl.Value.AmountOfSpecialForces);
-                Log(
+                Log(Message.Express(
+                    Initiator,
+                    " ride ",
                     MessagePart.ExpressIf(fl.Value.AmountOfForces > 0, fl.Value.AmountOfForces, initiator.Force),
                     MessagePart.ExpressIf(fl.Value.AmountOfSpecialForces > 0, fl.Value.AmountOfSpecialForces, initiator.SpecialForce),
-                    " ride from ",
+                    " from ",
                     from,
                     " to ",
-                    To);
+                    To).WithRoute(Initiator, [from], To));
             }
 
             if (ForcesFromReserves > 0 || SpecialForcesFromReserves > 0)
             {
                 if (ForcesFromReserves > 0) initiator.ShipForces(To, ForcesFromReserves);
                 if (SpecialForcesFromReserves > 0) initiator.ShipSpecialForces(To, SpecialForcesFromReserves);
-                Log(
+                Log(Message.Express(
+                    Initiator,
+                    " ride ",
                     MessagePart.ExpressIf(ForcesFromReserves > 0, ForcesFromReserves, initiator.Force),
                     MessagePart.ExpressIf(SpecialForcesFromReserves > 0, SpecialForcesFromReserves, initiator.SpecialForce),
-                    " ride from their reserves to ",
-                    To);
+                    " from their reserves to ",
+                    To).WithRoute(Initiator, [], To));
             }
 
             Game.FlipBlueAdvisorsWhenAlone();
@@ -185,7 +189,7 @@ public class YellowRidesMonster : PlacementEvent
 
         var from = ForceLocations.Keys.FirstOrDefault()?.Territory;
         if (from != null)
-            return Message.Express(Initiator, " ride from ", from, " to ", To);
+            return Message.Express(Initiator, " ride from ", from, " to ", To).WithRoute(Initiator, ForceLocations.Keys, To);
         return Message.Express(Initiator, " ride from reserves to ", To);
     }
 

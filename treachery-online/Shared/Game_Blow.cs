@@ -216,13 +216,13 @@ public partial class Game
 
         if (blowCard.Location.Sector != SectorInStorm)
         {
-            Log(Payment.Of(spiceAmount), " detected in ", blowCard, SandtroutMessage(SandTroutDoublesResources));
+            Log(Payment.Of(spiceAmount), " detected in ", blowCard.Location, SandtroutMessage(SandTroutDoublesResources));
             SandTroutDoublesResources = false;
             ChangeResourcesOnPlanet(blowCard.Location, spiceAmount);
         }
         else
         {
-            Log(Payment.Of(spiceAmount), " in ", blowCard, " is lost in the storm");
+            Log(Payment.Of(spiceAmount), " in ", blowCard.Location, " is lost in the storm");
         }
 
         Enter(Applicable(Rule.ExpansionTreacheryCardsExceptPBandSSandAmal), CurrentPhase == Phase.BlowA ? Phase.HarvesterA : Phase.HarvesterB, MoveToNextPhaseAfterResourceBlow);
@@ -340,7 +340,7 @@ public partial class Game
     {
         Monsters.Clear();
         Enter(Phase.BlowA);
-        LogIf(Applicable(Rule.IncreasedResourceFlow), "*** Spice Blow A ***");
+        if (Applicable(Rule.IncreasedResourceFlow)) Log(Message.Express("Deck A").AsHeading(Concept.Resource));
         DrawResourceCard();
         LetFactionsDiscardSurplusCards();
     }
@@ -349,7 +349,7 @@ public partial class Game
     {
         Monsters.Clear();
         Enter(Phase.BlowB);
-        Log("*** Spice Blow B ***");
+        Log(Message.Express("Deck B").AsHeading(Concept.Resource));
         DrawResourceCard();
         LetFactionsDiscardSurplusCards();
     }

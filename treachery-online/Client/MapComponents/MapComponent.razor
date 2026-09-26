@@ -130,8 +130,6 @@
                 result += $"<div class='in-storm'>{StormGlyph}<span>In storm</span></div>";
             }
 
-            var spice = $"<img class='inline-icon' src='{Client.CurrentSkin.Harvester_URL}' />";
-
             result += "<div class='feats'>";
 
             if (Game.Map.PolarSink.Equals(intelligenceLocation))
@@ -165,13 +163,13 @@
                 if (Equals(intelligenceLocation, Game.Map.Arrakeen) || Equals(intelligenceLocation, Game.Map.Carthag) || Equals(intelligenceLocation, Game.Map.TueksSietch))
                 {
                     var bonus = Equals(intelligenceLocation, Game.Map.Arrakeen) || Equals(intelligenceLocation, Game.Map.Carthag) ? 2 : 1;
-                    result += Feature(Client.CurrentSkin.Format("{0} flow", Concept.Resource), Client.CurrentSkin.Format("Yields <strong>{0}{1}</strong> at end of turn when occupied.", bonus, spice));
+                    result += Feature(Client.CurrentSkin.Format("{0} flow", Concept.Resource), Client.CurrentSkin.Format("Yields {0} at end of turn when occupied.", Support.SpiceHtml(Client.CurrentSkin, bonus, 18)));
                 }
             }
 
             if (intelligenceLocation.SpiceBlowAmount > 0)
             {
-                result += Feature(Client.CurrentSkin.Format("{0} blow", Concept.Resource), Client.CurrentSkin.Format("May contain <strong>{0}{1}</strong> after {2}.", intelligenceLocation.SpiceBlowAmount, spice, MainPhase.Blow));
+                result += Feature(Client.CurrentSkin.Format("{0} blow", Concept.Resource), Client.CurrentSkin.Format("May contain {0} after {1}.", Support.SpiceHtml(Client.CurrentSkin, intelligenceLocation.SpiceBlowAmount, 18), MainPhase.Blow));
             }
 
             result += "</div>";
@@ -197,9 +195,7 @@
 
         if (Game.ResourcesOnPlanet.ContainsKey(intelligenceLocation))
         {
-            result += string.Format("<div class=\"col col-auto\"><img class=\"img-fluid m-0 p-0\" width=\"32\" height=\"32\" src=\"{0}\" /><strong>&nbsp;{1}</strong></div>",
-                Client.CurrentSkin.Harvester_URL,
-                Game.ResourcesOnPlanet[intelligenceLocation]);
+            result += $"<div class=\"col col-auto\">{Support.SpiceHtml(Client.CurrentSkin, Game.ResourcesOnPlanet[intelligenceLocation], 32)}</div>";
         }
 
         if (Game.ForcesOnPlanetExcludingEmptyLocations().ContainsKey(intelligenceLocation))

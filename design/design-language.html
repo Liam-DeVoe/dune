@@ -271,7 +271,10 @@ table.tokens th { font-family: var(--font-label); font-size: 11px; letter-spacin
 .log .entry .sigil { width: 22px; height: 22px; margin-top: 1px; }
 .log .entry b { color: var(--parchment); font-weight: 600; }
 .log .entry .n { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: var(--r-pill); font-family: var(--font-display); font-size: 13px; background: rgba(252,249,209,.14); color: var(--parchment); vertical-align: middle; }
-.log .entry .n.spice { background: var(--spice); }
+/* a spice amount: the digits drawn on the harvester icon, the one form everywhere */
+.spice-amt { position: relative; display: inline-grid; place-items: center; width: var(--s,20px); height: var(--s,20px); vertical-align: middle; line-height: 1; }
+.spice-amt img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.spice-amt b { position: relative; font-family: var(--font-display); font-weight: 400; font-size: calc(var(--s,20px)*.62); color: var(--parchment); text-shadow: 0 0 1px #000, 0 0 1px #000, 0 0 3px #000; white-space: nowrap; }
 .log .entry.hi { background: rgba(231,191,60,.08); margin: 0 -14px; padding: 8px 14px; border-left: 3px solid var(--gold); }
 .log .entry.you b.you { color: var(--gold); }
 .log .entry .when { font-size: 12px; color: var(--text-3); font-family: var(--font-label); letter-spacing: .08em; }
@@ -804,14 +807,14 @@ table.tokens th { font-family: var(--font-label); font-size: 11px; letter-spacin
 <section id="panels">
   <div class="eyebrow">Components</div>
   <h2>Panels and badges</h2>
-  <p>Every secondary thing on the screen is a panel: the report, deals, automation, your shield. They share one header style and collapse. Counts are gold badges; spice counts are stronghold orange; time and danger are storm.</p>
+  <p>Every secondary thing on the screen is a panel: the report, deals, automation, your shield. They share one header style and collapse. Counts are gold badges; a spice amount is its digits on the harvester icon; time and danger are storm.</p>
   <div class="grid g3">
     <div class="panel">
       <header><h5>Deals</h5><span class="badge">2 new</span><span class="chev">▾</span></header>
       <div class="body">
         <div class="log">
-          <div class="entry"><span class="sigil" style="--fc:var(--f-atreides)"><img src="../treachery-online/Client/wwwroot/art/faction1.svg" alt=""></span><div><b>Atreides</b> offers to share prescience for <span class="n spice">1</span> until next bidding round <div class="row" style="margin-top:6px"><button class="btn btn-primary btn-sm">Accept</button><button class="btn btn-quiet btn-sm">Decline</button></div></div></div>
-          <div class="entry"><span class="sigil" style="--fc:var(--f-emperor)"><img src="../treachery-online/Client/wwwroot/art/faction4.svg" alt=""></span><div><b>Emperor</b> will tell which traitors they discarded for <span class="n spice">7</span> until end of turn <div class="row" style="margin-top:6px"><button class="btn btn-primary btn-sm">Accept</button><button class="btn btn-quiet btn-sm">Decline</button></div></div></div>
+          <div class="entry"><span class="sigil" style="--fc:var(--f-atreides)"><img src="../treachery-online/Client/wwwroot/art/faction1.svg" alt=""></span><div><b>Atreides</b> offers to share prescience for <span class="spice-amt"><img src="../treachery-online/Client/wwwroot/art/ActiveSpice.svg" alt="spice"><b>1</b></span> until next bidding round <div class="row" style="margin-top:6px"><button class="btn btn-primary btn-sm">Accept</button><button class="btn btn-quiet btn-sm">Decline</button></div></div></div>
+          <div class="entry"><span class="sigil" style="--fc:var(--f-emperor)"><img src="../treachery-online/Client/wwwroot/art/faction4.svg" alt=""></span><div><b>Emperor</b> will tell which traitors they discarded for <span class="spice-amt"><img src="../treachery-online/Client/wwwroot/art/ActiveSpice.svg" alt="spice"><b>7</b></span> until end of turn <div class="row" style="margin-top:6px"><button class="btn btn-primary btn-sm">Accept</button><button class="btn btn-quiet btn-sm">Decline</button></div></div></div>
         </div>
       </div>
     </div>
@@ -870,7 +873,7 @@ table.tokens th { font-family: var(--font-label); font-size: 11px; letter-spacin
     <div class="panel"><header><h5>Spice blow</h5><span class="spec when">Turn 2</span></header><div class="body"><div class="log">
       <div class="entry"><span class="sigil" style="background:#5a3a1c"><img src="../treachery-online/Client/wwwroot/art/monster.svg" alt=""></span><div><b>Shai-Hulud</b> appears in <b>The Minor Erg</b> and devours <span class="n">3</span> <b>Harkonnen</b> forces</div></div>
       <div class="entry"><span class="sigil" style="background:#5a3a1c"><img src="../treachery-online/Client/wwwroot/art/monster.svg" alt=""></span><div><b>Shai-Hulud</b> appears a second time. Nexus!</div></div>
-      <div class="entry"><span class="sigil" style="background:var(--spice)"><img src="../treachery-online/Client/wwwroot/art/ActiveSpice.svg" alt=""></span><div><span class="n spice">10</span> spice in <b>South Mesa</b></div></div>
+      <div class="entry"><span class="sigil" style="background:var(--spice)"><img src="../treachery-online/Client/wwwroot/art/ActiveSpice.svg" alt=""></span><div><span class="spice-amt"><img src="../treachery-online/Client/wwwroot/art/ActiveSpice.svg" alt="spice"><b>10</b></span> in <b>South Mesa</b></div></div>
     </div></div></div>
   </div>
 </section>
@@ -980,8 +983,8 @@ table.tokens th { font-family: var(--font-label); font-size: 11px; letter-spacin
           <div class="actions"><div class="num"><button>−</button><input value="4"><button>+</button></div><div class="quick"><button>max 9</button></div><button class="btn btn-primary" style="margin-left:auto">Bid 4</button><button class="btn btn-secondary">Pass</button></div>
         </div>
         <div class="panel"><header><h5>Deals</h5><span class="badge">2 new</span><span class="chev">▾</span></header><div class="body"><div class="log">
-          <div class="entry"><span class="sigil" style="--fc:var(--f-atreides)"><img src="../treachery-online/Client/wwwroot/art/faction1.svg" alt=""></span><div><b>Atreides</b> offers to share prescience for <span class="n spice">1</span> until next bidding round<div class="row" style="margin-top:6px"><button class="btn btn-primary btn-sm">Accept</button><button class="btn btn-quiet btn-sm">Decline</button></div></div></div>
-          <div class="entry"><span class="sigil" style="--fc:var(--f-emperor)"><img src="../treachery-online/Client/wwwroot/art/faction4.svg" alt=""></span><div><b>Emperor</b> will tell which traitors they discarded for <span class="n spice">7</span><div class="row" style="margin-top:6px"><button class="btn btn-primary btn-sm">Accept</button><button class="btn btn-quiet btn-sm">Decline</button></div></div></div>
+          <div class="entry"><span class="sigil" style="--fc:var(--f-atreides)"><img src="../treachery-online/Client/wwwroot/art/faction1.svg" alt=""></span><div><b>Atreides</b> offers to share prescience for <span class="spice-amt"><img src="../treachery-online/Client/wwwroot/art/ActiveSpice.svg" alt="spice"><b>1</b></span> until next bidding round<div class="row" style="margin-top:6px"><button class="btn btn-primary btn-sm">Accept</button><button class="btn btn-quiet btn-sm">Decline</button></div></div></div>
+          <div class="entry"><span class="sigil" style="--fc:var(--f-emperor)"><img src="../treachery-online/Client/wwwroot/art/faction4.svg" alt=""></span><div><b>Emperor</b> will tell which traitors they discarded for <span class="spice-amt"><img src="../treachery-online/Client/wwwroot/art/ActiveSpice.svg" alt="spice"><b>7</b></span><div class="row" style="margin-top:6px"><button class="btn btn-primary btn-sm">Accept</button><button class="btn btn-quiet btn-sm">Decline</button></div></div></div>
         </div></div></div>
         <div class="panel collapsed"><header><h5>Offer a deal</h5><span class="chev">▸</span></header><div class="body"></div></div>
         <div class="panel collapsed"><header><h5>Give spice</h5><span class="chev">▸</span></header><div class="body"></div></div>
@@ -1006,10 +1009,10 @@ table.tokens th { font-family: var(--font-label); font-size: 11px; letter-spacin
         </div>
         <div class="panel log-panel"><header><h5>Log</h5><span class="seg" style="margin-left:auto;font-size:12px"><button class="on" style="padding:3px 8px;font-size:12px">This phase</button><button style="padding:3px 8px;font-size:12px">All</button></span></header><div class="body"><div class="log">
           <div class="entry"><span class="sigil" style="--fc:var(--f-harkonnen)"><img src="../treachery-online/Client/wwwroot/art/faction2.svg" alt=""></span><div><b>Harkonnen</b> pass</div></div>
-          <div class="entry"><span class="sigil" style="--fc:var(--f-atreides)"><img src="../treachery-online/Client/wwwroot/art/faction1.svg" alt=""></span><div><b>Atreides</b> bid <span class="n spice">3</span></div></div>
-          <div class="entry hi you"><span class="sigil" style="--fc:var(--f-bg)"><img src="../treachery-online/Client/wwwroot/art/faction6.svg" alt=""></span><div><b class="you">You</b> won <b>Cheap Hero</b> for <span class="n spice">4</span> → Emperor</div></div>
+          <div class="entry"><span class="sigil" style="--fc:var(--f-atreides)"><img src="../treachery-online/Client/wwwroot/art/faction1.svg" alt=""></span><div><b>Atreides</b> bid <span class="spice-amt"><img src="../treachery-online/Client/wwwroot/art/ActiveSpice.svg" alt="spice"><b>3</b></span></div></div>
+          <div class="entry hi you"><span class="sigil" style="--fc:var(--f-bg)"><img src="../treachery-online/Client/wwwroot/art/faction6.svg" alt=""></span><div><b class="you">You</b> won <b>Cheap Hero</b> for <span class="spice-amt"><img src="../treachery-online/Client/wwwroot/art/ActiveSpice.svg" alt="spice"><b>4</b></span> → Emperor</div></div>
           <div class="entry"><span class="sigil" style="--fc:var(--f-fremen)"><img src="../treachery-online/Client/wwwroot/art/faction3.svg" alt=""></span><div><b>Fremen</b> pass</div></div>
-          <div class="entry"><span class="sigil" style="--fc:var(--f-guild)"><img src="../treachery-online/Client/wwwroot/art/faction5.svg" alt=""></span><div><b>Guild</b> get card 1 for <span class="n spice">2</span> → Emperor</div></div>
+          <div class="entry"><span class="sigil" style="--fc:var(--f-guild)"><img src="../treachery-online/Client/wwwroot/art/faction5.svg" alt=""></span><div><b>Guild</b> get card 1 for <span class="spice-amt"><img src="../treachery-online/Client/wwwroot/art/ActiveSpice.svg" alt="spice"><b>2</b></span> → Emperor</div></div>
           <div class="entry"><span class="sigil" style="background:var(--ink-3)"><img src="../treachery-online/Client/wwwroot/art/ActiveSpice.svg" alt=""></span><div><span class="n">5</span> cards drawn for bidding</div></div>
         </div></div></div>
       </div>
@@ -1323,9 +1326,9 @@ table.tokens th { font-family: var(--font-label); font-size: 11px; letter-spacin
   <div><div class="lbl now">Today</div><div class="shot cap"><img src="before/deals.png" alt=""></div></div>
   <div class="after"><div class="lbl new">Proposed</div><div class="panel"><header><h5>Deals</h5><span class="badge">1 new</span><span class="badge quiet">5 bot offers</span><span class="chev">▾</span></header><div class="body">
 <div class="log">
-  <div class="entry hi"><span class="sigil" style="--fc:var(--f-atreides)"><img src="../treachery-online/Client/wwwroot/art/faction1.svg" alt=""></span><div><b>Atreides</b> <span class="spec">(Alice)</span> will share prescience for one card, for <span class="n spice">1</span>, until the next bidding round<div class="row" style="margin-top:6px"><button class="btn btn-primary btn-sm">Accept for 1</button><button class="btn btn-quiet btn-sm">Decline</button><button class="btn btn-quiet btn-sm">Counter</button></div></div></div>
-  <div class="entry" style="opacity:.75"><span class="sigil" style="--fc:var(--f-fremen)"><img src="../treachery-online/Client/wwwroot/art/faction3.svg" alt=""></span><div><b>Fremen</b> <span class="spec">bot</span> will tell which traitors they discarded for <span class="n spice">6</span> until end of turn<div class="row" style="margin-top:6px"><button class="btn btn-secondary btn-sm">Accept for 6</button></div></div></div>
-  <div class="entry" style="opacity:.75"><span class="sigil" style="--fc:var(--f-guild)"><img src="../treachery-online/Client/wwwroot/art/faction5.svg" alt=""></span><div><b>Guild</b> <span class="spec">bot</span> same offer for <span class="n spice">6</span></div></div>
+  <div class="entry hi"><span class="sigil" style="--fc:var(--f-atreides)"><img src="../treachery-online/Client/wwwroot/art/faction1.svg" alt=""></span><div><b>Atreides</b> <span class="spec">(Alice)</span> will share prescience for one card, for <span class="spice-amt"><img src="../treachery-online/Client/wwwroot/art/ActiveSpice.svg" alt="spice"><b>1</b></span>, until the next bidding round<div class="row" style="margin-top:6px"><button class="btn btn-primary btn-sm">Accept for 1</button><button class="btn btn-quiet btn-sm">Decline</button><button class="btn btn-quiet btn-sm">Counter</button></div></div></div>
+  <div class="entry" style="opacity:.75"><span class="sigil" style="--fc:var(--f-fremen)"><img src="../treachery-online/Client/wwwroot/art/faction3.svg" alt=""></span><div><b>Fremen</b> <span class="spec">bot</span> will tell which traitors they discarded for <span class="spice-amt"><img src="../treachery-online/Client/wwwroot/art/ActiveSpice.svg" alt="spice"><b>6</b></span> until end of turn<div class="row" style="margin-top:6px"><button class="btn btn-secondary btn-sm">Accept for 6</button></div></div></div>
+  <div class="entry" style="opacity:.75"><span class="sigil" style="--fc:var(--f-guild)"><img src="../treachery-online/Client/wwwroot/art/faction5.svg" alt=""></span><div><b>Guild</b> <span class="spec">bot</span> same offer for <span class="spice-amt"><img src="../treachery-online/Client/wwwroot/art/ActiveSpice.svg" alt="spice"><b>6</b></span></div></div>
   <div class="entry" style="opacity:.75"><span class="spec" style="grid-column:1/-1">3 more bot offers ▸</span></div>
 </div>
 <h4 style="margin:14px 0 6px">Active deals</h4>

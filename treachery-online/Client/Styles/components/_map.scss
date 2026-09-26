@@ -10,7 +10,8 @@
 // 50 to 100 ms per frame. Paints nothing differently, only separately.
 .maphover,
 .mapsel,
-.maparrows {
+.maparrows,
+.maprefs {
   will-change: transform;
 }
 
@@ -127,6 +128,20 @@
     &.on {
       display: block;
     }
+
+    // A sector named by a chip the mouse is over. The hover script sets --c
+    // to the chip's faction colour when it has one.
+    &.ref {
+      display: block;
+
+      .fill {
+        fill: var(--c, #fff);
+        fill-opacity: 0.3;
+      }
+      .edge {
+        stroke: var(--c, #fff);
+      }
+    }
   }
 
   .fill {
@@ -147,7 +162,8 @@
   }
 }
 
-.maparrows {
+.maparrows,
+.maprefs {
   .arrow-outline {
     stroke: rgba(29, 12, 0, 0.75);
     stroke-width: 6;
@@ -158,11 +174,12 @@
     stroke-width: 3.5;
     stroke-linecap: round;
   }
-  .head-outline {
-    fill: rgba(29, 12, 0, 0.75);
-  }
+  // The head is one triangle in the faction colour with a dark outline.
   .head {
     fill: var(--c);
+    stroke: rgba(29, 12, 0, 0.75);
+    stroke-width: 1.4;
+    stroke-linejoin: round;
   }
 }
 

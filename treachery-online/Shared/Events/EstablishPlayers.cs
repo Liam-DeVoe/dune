@@ -181,7 +181,7 @@ public class EstablishPlayers : GameEvent
 
     protected override void ExecuteConcreteEvent()
     {
-        Game.CurrentReport = new Report(MainPhase.Setup);
+        Game.StartReport(MainPhase.Setup);
         Log("Game started!");
         Game.Stone(Milestone.GameStarted);
         

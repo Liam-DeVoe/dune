@@ -60,6 +60,7 @@ public partial class Game
     internal void InitiateBattle()
     {
         CurrentBattle = BattleAboutToStart ?? throw new Exception("Cannot initiate battle when BattleAboutToStart is null");
+        UpdateBattleReportParticipants(CurrentBattle);
         
         ChosenHmsAdvantage = StrongholdAdvantage.None;
         BattleOutcome = null;
@@ -68,6 +69,15 @@ public partial class Game
         AnnounceHeroAvailability(CurrentBattle.AggressivePlayer);
         AnnounceHeroAvailability(CurrentBattle.DefendingPlayer);
         AssignBattleWheels(CurrentBattle.AggressivePlayer, CurrentBattle.DefendingPlayer);
+    }
+
+    // Pink's ally may take over the fight (BattleClaimed) after the battle report was started
+    private void UpdateBattleReportParticipants(BattleInitiated battle)
+    {
+        if (!CurrentReport.IsBattle) return;
+        CurrentReport.Aggressor = battle.Aggressor;
+        CurrentReport.Defender = battle.Defender;
+        CurrentReport.Territory = battle.Territory;
     }
 
     private void AssignBattleWheels(Player? player1, Player? player2)
@@ -98,6 +108,7 @@ public partial class Game
         DiscardOneTimeCardsUsedInBattle(AggressorTraitorAction, DefenderTraitorAction);
 
         ResolveBattle(CurrentBattle, AggressorPlan, DefenderPlan, AggressorTraitorAction, DefenderTraitorAction);
+        RecordBattleOutcomeInReport();
 
         if (CardUsedByDiplomat != null)
         {
@@ -175,6 +186,13 @@ public partial class Game
 
         DetermineIfCapturedLeadersMustBeReleased();
         AuditorSurvivedBattle = (agg.Hero?.HeroType == HeroType.Auditor && IsAlive(agg.Hero)) || (def.Hero?.HeroType == HeroType.Auditor && IsAlive(def.Hero));
+    }
+
+    private void RecordBattleOutcomeInReport()
+    {
+        if (!CurrentReport.IsBattle) return;
+        CurrentReport.BattleDecided = true;
+        CurrentReport.BattleWinner = BattleWinner ?? Faction.None;
     }
 
     internal bool BlackMustDecideToCapture => Version >= 116 && BattleWinner == Faction.Black && Applicable(Rule.BlackCapturesOrKillsLeaders) && !Prevented(FactionAdvantage.BlackCaptureLeader);

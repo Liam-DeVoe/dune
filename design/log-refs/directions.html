@@ -75,6 +75,9 @@ svg.wedge .w{fill:var(--gold)}
 .pop .v .tag{font-size:12px;padding:1px 7px;border-radius:var(--r-pill);background:rgba(231,191,60,.15);color:var(--gold);border:1px solid rgba(231,191,60,.35)}
 
 table{border-collapse:collapse;font-size:14px;margin-top:8px}
+table.glyphs td,table.glyphs th{text-align:center;padding:5px 8px}
+.sliders{display:flex;gap:28px;flex-wrap:wrap;margin:10px 0 14px;font-size:14px;color:var(--text-2)} .sliders label{display:flex;align-items:center;gap:8px} .sliders input{width:180px;accent-color:var(--gold)} .sliders span{color:var(--sand);min-width:2.5em;text-align:right}
+.grown-row{display:flex;align-items:center;gap:18px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:14px} .grown-row .pl{width:220px;color:var(--parchment)} .grown-row .k{color:var(--text-3);font-size:12px;width:120px} table.glyphs td:first-child{text-align:left;padding-right:18px} table.glyphs th[colspan]{color:var(--sand);letter-spacing:.08em}
 th,td{text-align:left;padding:6px 12px 6px 0;border-bottom:1px solid rgba(255,255,255,.08);vertical-align:middle;color:var(--text-2)}
 th{font-family:var(--font-label);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);font-weight:400}
 td:first-child{color:var(--parchment)}
@@ -123,6 +126,19 @@ td:first-child{color:var(--parchment)}
     <p class="note">The game names sectors by compass word. The storm wheel numbers them 0 to 17, and the number is what decides whether the storm hits. The wedge glyph in B and C shows the number's position without saying it.</p></div>
 </div>
 
+<h3>The glyph: wedge, region, or both</h3>
+<p>The wedge marks the storm sector a place occupies, at the angle the map uses. It says where around the planet a place is, not its shape or how far in. The other two columns draw the real outline from the skin, clipped to the sector for a sector reference, shrunk onto the disc. Each is shown at 20, 24 and 28 pixels. The last row is a whole log line at each size, so the chip's height in a sentence is visible too.</p>
+<div id="glyphs"></div>
+<p class="note">Region only: a stronghold is a few pixels wide at 20px, a large territory reads. Both: the faint wedge gives the angle even when the region is a dot. Whole territory: the territory's full outline whether the line names one sector or all of it, so Pasty Mesa North and Pasty Mesa look the same.</p>
+
+<h3>Region, grown</h3>
+<p>Region only, but a region smaller than a minimum is scaled up about its own centre until it reaches that minimum. The minimum is a fraction of the disc's width; the client uses 20 percent. Large regions are drawn as they are. Drag the sliders; every glyph below redraws.</p>
+<div class="sliders">
+  <label>Minimum size <input type="range" id="gMin" min="0" max="60" value="20"> <span id="gMinV"></span>% of the disc</label>
+  <label>Glyph size <input type="range" id="gSize" min="16" max="32" value="20"> <span id="gSizeV"></span>px</label>
+</div>
+<div id="grown"></div>
+
 <!-- ============================================================ -->
 <h2>2. Factions</h2>
 <p>A faction reference is the sigil today, with the name only as a browser tooltip. The design language asks for the name beside the sigil everywhere. All three directions get the same hover: every sector holding that faction's forces is tinted in the faction's colour, and a card opens with what you know about them.</p>
@@ -131,7 +147,7 @@ td:first-child{color:var(--parchment)}
   <div class="card"><p class="lbl">A · Sigil only, as today</p><div class="log" id="facA"></div>
     <p class="note">Nothing changes visually until hover. Cheapest, and keeps lines short. A new player still has to learn six sigils to read the log.</p></div>
   <div class="card"><p class="lbl">B · Sigil and name</p><div class="log" id="facB"></div>
-    <p class="note">The name follows the sigil as bold text, so the sentence has a subject. "You" for your own faction, in gold. Lines get longer by one word.</p></div>
+    <p class="note">The name follows the sigil as bold text, so the sentence has a subject. Your own faction's name in gold. Lines get longer by one word.</p></div>
   <div class="card"><p class="lbl">C · Faction chip</p><div class="log" id="facC"></div>
     <p class="note">The chip from the design language. Strongest identity, and the same object as in the lobby and seats. Heavy when a line names three factions.</p></div>
 </div>
@@ -257,8 +273,8 @@ const placeStyles = {
 };
 const factionStyles = {
   A: (f, hov) => sig(f),
-  B: (f, hov) => f === 3 ? `${sig(f)} <b class="fname you">You</b>` : `${sig(f)} <b class="fname">${FN[f]}</b>`,
-  C: (f, hov) => `<span class="chip${hov ? " hov" : ""}">${sig(f)}<span class="name${f === 3 ? " you" : ""}">${f === 3 ? "You" : FN[f]}</span></span>`,
+  B: (f, hov) => `${sig(f)} <b class="fname${f === 3 ? " you" : ""}">${FN[f]}</b>`,
+  C: (f, hov) => `<span class="chip${hov ? " hov" : ""}">${sig(f)}<span class="name${f === 3 ? " you" : ""}">${FN[f]}</span></span>`,
 };
 function lines(place, fac) {
   return [
@@ -272,6 +288,154 @@ function lines(place, fac) {
 }
 for (const k of "ABC") document.getElementById("sec" + k).innerHTML = lines(placeStyles[k], factionStyles.A);
 for (const k of "ABC") document.getElementById("fac" + k).innerHTML = lines(placeStyles.A, factionStyles[k]);
+
+
+// ---- glyph variants at three sizes, drawn from the real outlines
+function planetGlyph(locs, variant, size) {
+  const r = C.r, x0 = C.cx - r, y0 = C.cy - r, d = 2 * r;
+  const id = "g" + Math.random().toString(36).slice(2, 8);
+  let defs = `<clipPath id="${id}-disc"><circle cx="${C.cx}" cy="${C.cy}" r="${r}"/></clipPath>`;
+  let body = `<circle cx="${C.cx}" cy="${C.cy}" r="${r}" fill="var(--ink-4)"/>`;
+  const sectors = [...new Set(locs.map(l => l.sector).filter(s => s >= 0))];
+  if (variant !== "region") {
+    const op = variant === "wedge" ? 1 : 0.4;
+    sectors.forEach(s => body += `<path d="${wedge(s, C.cx, C.cy, r)}" fill="var(--gold)" fill-opacity="${op}"/>`);
+  }
+  if (variant === "territory") {
+    [...new Set(locs.map(l => l.territory))].forEach(tid => {
+      body += `<path d="${M.territories[tid].path}" fill="var(--gold)"/>`;
+    });
+  } else if (variant !== "wedge") {
+    locs.forEach((l, i) => {
+      const t = M.territories[l.territory];
+      const cid = `${id}-s${i}`;
+      if (l.sector >= 0) defs += `<clipPath id="${cid}"><path d="${wedge(l.sector, C.cx, C.cy, r)}"/></clipPath>`;
+      body += `<g ${l.sector >= 0 ? `clip-path="url(#${cid})"` : ""}><path d="${t.path}" fill="var(--gold)"/></g>`;
+    });
+  }
+  return `<svg class="wedge" style="width:${size}px;height:${size}px;vertical-align:${-(size / 4)}px" viewBox="${x0 - 3} ${y0 - 3} ${d + 6} ${d + 6}"><defs>${defs}</defs><g clip-path="url(#${id}-disc)">${body}</g><circle cx="${C.cx}" cy="${C.cy}" r="${r}" fill="none" stroke="var(--rock)" stroke-width="1.4" vector-effect="non-scaling-stroke"/></svg>`;
+}
+(function () {
+  const places = [
+    ["Arrakeen", [L("Arrakeen")]],
+    ["Habbanya Sietch", [L("Habbanya Sietch")]],
+    ["Plastic Basin · North", [L("Plastic Basin", "North")]],
+    ["Pasty Mesa · North", [L("Pasty Mesa", "North")]],
+    ["False Wall South (territory)", sectorsOf("False Wall South")],
+    ["The Great Flat (territory)", sectorsOf("The Great Flat")],
+    ["Polar Sink", [L("Polar Sink")]],
+  ];
+  const variants = [["wedge", "Wedge, as built"], ["region", "Region only"], ["both", "Both"], ["territory", "Whole territory"]];
+  const sizes = [20, 24, 28];
+  let h = '<table class="glyphs"><tr><th>Place</th>' + variants.map(v => `<th colspan="3">${v[1]}</th>`).join("") + "</tr>";
+  h += "<tr><th></th>" + variants.map(() => sizes.map(z => `<th>${z}</th>`).join("")).join("") + "</tr>";
+  places.forEach(([name, locs]) => {
+    h += `<tr><td>${name}</td>` + variants.map(v => sizes.map(z => `<td>${planetGlyph(locs, v[0], z)}</td>`).join("")).join("") + "</tr>";
+  });
+  h += "</table>";
+  h += '<div class="cols" style="margin-top:14px;grid-template-columns:repeat(4,1fr)">' + variants.map(v => `<div class="card"><p class="lbl">${v[1]}</p><div class="log">` + sizes.map(z => {
+    const chip = (locs, name, o) => `<span class="chip">${planetGlyph(locs, v[0], z)}<span class="name">${name}${o ? ` <span class="sectorword">· ${o}</span>` : ""}</span></span>`;
+    return `<div class="e">${sig(2)} ship ${disc(2)} ${force(2)} from ${chip([L("Arrakeen")], "Arrakeen")} to ${chip([L("Old Gap", "Middle")], "Old Gap", "Middle")} <span class="note" style="display:inline;margin-left:6px">${z}px</span></div>`;
+  }).join("") + "</div></div>").join("") + "</div>";
+  document.getElementById("glyphs").innerHTML = h;
+})();
+
+// ---- region only, grown when small
+const bboxCache = {};
+function pathBBox(d) {
+  if (bboxCache[d]) return bboxCache[d];
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("style", "position:absolute;width:0;height:0;visibility:hidden");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", d); svg.appendChild(path); document.body.appendChild(svg);
+  const b = path.getBBox(); document.body.removeChild(svg);
+  return bboxCache[d] = { x: b.x, y: b.y, w: b.width, h: b.height };
+}
+function wedgeBBox(s) {
+  const pts = [[C.cx, C.cy]];
+  const a0 = 2 * Math.PI * (5 - s) / C.n, a1 = 2 * Math.PI * (6 - s) / C.n;
+  for (let t = 0; t <= 1; t += 0.1) { const a = a0 + (a1 - a0) * t; pts.push([C.cx + Math.cos(a) * C.r, C.cy + Math.sin(a) * C.r]); }
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  return { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
+}
+function intersect(a, b) {
+  const x = Math.max(a.x, b.x), y = Math.max(a.y, b.y);
+  return { x, y, w: Math.max(0, Math.min(a.x + a.w, b.x + b.w) - x), h: Math.max(0, Math.min(a.y + a.h, b.y + b.h) - y) };
+}
+// The size of a location's region: the side of a square with the same area,
+// in map units. The area comes from sampling points over the territory's box
+// and keeping those inside the outline and, for a sector, inside its wedge.
+const sizeCache = {};
+function regionSize(l) {
+  const key = l.id;
+  if (sizeCache[key]) return sizeCache[key];
+  const d = M.territories[l.territory].path;
+  const b = pathBBox(d);
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("style", "position:absolute;width:0;height:0;visibility:hidden");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", d); svg.appendChild(path); document.body.appendChild(svg);
+  const n = 40, step = Math.max(b.w, b.h) / n;
+  let inside = 0;
+  const pt = svg.createSVGPoint();
+  for (let x = b.x + step / 2; x < b.x + b.w; x += step) for (let y = b.y + step / 2; y < b.y + b.h; y += step) {
+    pt.x = x; pt.y = y;
+    if (!path.isPointInFill(pt)) continue;
+    if (l.sector >= 0) {
+      // Which wedge the point is in, by the same angle convention as wedge().
+      let a = Math.atan2(y - C.cy, x - C.cx);
+      let sector = Math.round((6 - a * C.n / (2 * Math.PI)) - 0.5);
+      sector = ((sector % C.n) + C.n) % C.n;
+      if (sector !== l.sector) continue;
+    }
+    inside++;
+  }
+  document.body.removeChild(svg);
+  return sizeCache[key] = Math.sqrt(inside) * step;
+}
+function grownGlyph(locs, size, minFrac) {
+  const r = C.r, x0 = C.cx - r, y0 = C.cy - r, d = 2 * r;
+  const id = "h" + Math.random().toString(36).slice(2, 8);
+  let defs = `<clipPath id="${id}-disc"><circle cx="${C.cx}" cy="${C.cy}" r="${r}"/></clipPath>`;
+  let body = `<circle cx="${C.cx}" cy="${C.cy}" r="${r}" fill="var(--ink-4)"/>`;
+  const minSize = minFrac * d;
+  let kUsed = 1;
+  locs.forEach((l, i) => {
+    const t = M.territories[l.territory];
+    const sz = regionSize(l);
+    const k = sz < minSize ? minSize / sz : 1;
+    kUsed = Math.max(kUsed, k);
+    const cid = `${id}-s${i}`;
+    if (l.sector >= 0) defs += `<clipPath id="${cid}"><path d="${wedge(l.sector, C.cx, C.cy, r)}"/></clipPath>`;
+    body += `<g transform="translate(${l.cx},${l.cy}) scale(${k}) translate(${-l.cx},${-l.cy})"><g ${l.sector >= 0 ? `clip-path="url(#${cid})"` : ""}><path d="${t.path}" fill="var(--gold)"/></g></g>`;
+  });
+  const svg = `<svg class="wedge" style="width:${size}px;height:${size}px;vertical-align:${-(size / 4)}px" viewBox="${x0 - 3} ${y0 - 3} ${d + 6} ${d + 6}"><defs>${defs}</defs><g clip-path="url(#${id}-disc)">${body}</g><circle cx="${C.cx}" cy="${C.cy}" r="${r}" fill="none" stroke="var(--rock)" stroke-width="1.4" vector-effect="non-scaling-stroke"/></svg>`;
+  return { svg, k: kUsed };
+}
+function drawGrown() {
+  const minFrac = Number(document.getElementById("gMin").value) / 100;
+  const size = Number(document.getElementById("gSize").value);
+  document.getElementById("gMinV").textContent = Math.round(minFrac * 100);
+  document.getElementById("gSizeV").textContent = size;
+  const places = [
+    ["Arrakeen", [L("Arrakeen")]], ["Carthag", [L("Carthag")]], ["Habbanya Sietch", [L("Habbanya Sietch")]], ["Tuek's Sietch", [L("Tuek's Sietch")]],
+    ["Plastic Basin · North", [L("Plastic Basin", "North")]], ["Old Gap · Middle", [L("Old Gap", "Middle")]], ["Pasty Mesa · North", [L("Pasty Mesa", "North")]],
+    ["False Wall South (territory)", sectorsOf("False Wall South")], ["The Great Flat (territory)", sectorsOf("The Great Flat")], ["Polar Sink", [L("Polar Sink")]],
+  ];
+  let h = "";
+  places.forEach(([name, locs]) => {
+    const g = grownGlyph(locs, size, minFrac);
+    const plain = grownGlyph(locs, size, 0);
+    h += `<div class="grown-row"><span class="pl">${name}</span>${plain.svg}<span class="k">as is</span>${g.svg}<span class="k">grown ×${g.k.toFixed(1)}</span>`
+       + `<span class="chip">${g.svg}<span class="name">${name.replace(" (territory)", "").replace(" · ", ` <span class="sectorword">· `)}${name.includes("·") ? "</span>" : ""}</span></span></div>`;
+  });
+  const line = (locs, name, o) => `<span class="chip">${grownGlyph(locs, size, minFrac).svg}<span class="name">${name}${o ? ` <span class="sectorword">· ${o}</span>` : ""}</span></span>`;
+  h += `<div class="card" style="margin-top:12px"><div class="log"><div class="e">${sig(2)} ship ${disc(2)} ${force(2)} from ${line([L("Arrakeen")], "Arrakeen")} to ${line([L("Old Gap", "Middle")], "Old Gap", "Middle")}</div>`
+     + `<div class="e">${sig(3)} move ${disc(7)} ${force(3)} from ${line(sectorsOf("Funeral Plain"), "Funeral Plain")} to ${line([L("Plastic Basin", "North")], "Plastic Basin", "North")}</div></div></div>`;
+  document.getElementById("grown").innerHTML = h;
+}
+["gMin", "gSize"].forEach(id => document.getElementById(id).addEventListener("input", drawGrown));
+drawGrown();
 
 // ---- maps
 drawMap(document.getElementById("mapSec1"), [340, 180, 210, 240], 330, [{cls:"hover", locs:[L("Pasty Mesa", "North")]}]);

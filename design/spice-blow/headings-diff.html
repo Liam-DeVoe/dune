@@ -1,0 +1,40 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Spice blow report: before / after</title>
+<style>
+@font-face { font-family: "Advokat"; src: url("../../treachery-online/Client/wwwroot/Advokat.ttf"); }
+@font-face { font-family: "Alegreya Sans"; font-weight: 400; src: url("../../treachery-online/Client/wwwroot/fonts/AlegreyaSans-400-latin.woff2") format("woff2"); }
+@font-face { font-family: "Copperplate Dune"; src: url("../../treachery-online/Client/wwwroot/Copperplate.ttf"); }
+body{margin:0;background:#1d0c00;color:#fcf9d1;font-family:"Alegreya Sans",sans-serif;padding:32px 48px 80px}
+h1{font-family:"Advokat",serif;font-weight:400;font-size:36px;margin:0 0 6px}
+h2{font-family:"Advokat",serif;font-weight:400;font-size:24px;color:#e7bf3c;margin:40px 0 8px}
+p{color:#b3915f;max-width:80ch;line-height:1.45;margin:0 0 8px}
+.lbl{font-family:"Copperplate Dune",serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#a68d63;margin:0 0 8px}
+.row{display:flex;gap:40px;align-items:flex-start;margin-top:16px}
+img{width:368px;display:block}
+.flip{cursor:pointer;user-select:none;display:inline-block}
+.flip .lbl b{color:#e7bf3c;font-weight:400}
+</style></head><body>
+
+<h1>Spice blow report</h1>
+<p>The same game in both shots: turn 2 or later under the advanced rules, right after both spice decks were drawn. Screenshots from the real client, before and after the change.</p>
+
+<h2>Side by side</h2>
+<div class="row">
+  <div><div class="lbl">Before</div><img src="before/headings-1-report.png"></div>
+  <div><div class="lbl">After</div><img src="after/headings-1-report.png"></div>
+</div>
+
+<h2>Flip</h2>
+<p>Click the image, or hold space, to switch between the two.</p>
+<div class="flip" id="flip">
+  <div class="lbl">Showing <b id="which">After</b></div>
+  <img id="img" src="after/headings-1-report.png">
+</div>
+
+<script>
+const img = document.getElementById("img"), which = document.getElementById("which");
+const show = s => { img.src = `${s}/headings-1-report.png`; which.textContent = s[0].toUpperCase() + s.slice(1); };
+document.getElementById("flip").onclick = () => show(which.textContent === "After" ? "before" : "after");
+addEventListener("keydown", e => { if (e.code === "Space") { e.preventDefault(); show("before"); } });
+addEventListener("keyup", e => { if (e.code === "Space") show("after"); });
+</script>
+</body></html>

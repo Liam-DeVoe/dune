@@ -32,10 +32,8 @@
 
                             <!-- Resources -->
                             <div class="col p-0">
-                                <img class="img-fluid m-0 p-0" width="24" height="24" 
-                                     src="@Client.CurrentSkin.Harvester_URL" 
-                                     title="@Name(Concept.Resource)" 
-                                     alt="@Name(Concept.Resource)"/><strong>&nbsp;@ResourcesText</strong>
+                                @{ var (spice, spiceRest) = Support.SplitLeadingNumber(ResourcesText); }
+                                <SpiceComponent Amount="@spice" Size="24"/>@if (spiceRest.Length > 0) { <strong>@spiceRest</strong> }
                             </div>
 
                             <!-- Forces -->
@@ -76,16 +74,16 @@
                             <h5 class="mt-1 mb-0">Face Dancers</h5>
                             @foreach (var v in ShownPlayer.FaceDancers)
                             {
-                                <Image Src=@Client.CurrentSkin.GetImageUrl(v) Blurred="@ShownPlayer.RevealedFaceDancers.Contains(v)" Class="img-fluid p-1" Width=60 Popover=@Client.CurrentSkin.GetPopup(v, Client.Game)/>
+                                <span data-faction-of="@v.Faction"><Image Src=@Client.CurrentSkin.GetImageUrl(v) Blurred="@ShownPlayer.RevealedFaceDancers.Contains(v)" Class="img-fluid p-1" Width=60 Popover=@Client.CurrentSkin.GetPopup(v, Client.Game)/></span>
                             }
                         }
                         else if (!Client.Game.AssistedNoteKeepingEnabled(Player) && ShownPlayer.Traitors.Count == 1)
                         {
                             <div>
-                                <Image Src="@Client.CurrentSkin.GetImageUrl(ShownPlayer.Traitors.First())" 
+                                <span data-faction-of="@ShownPlayer.Traitors.First().Faction"><Image Src="@Client.CurrentSkin.GetImageUrl(ShownPlayer.Traitors.First())" 
                                        Class="img-fluid p-1" 
                                        Width=60 
-                                       Popover=@Client.CurrentSkin.GetPopup(ShownPlayer.Traitors.First(), Client.Game)/> is your traitor.
+                                       Popover=@Client.CurrentSkin.GetPopup(ShownPlayer.Traitors.First(), Client.Game)/></span> is your traitor.
                             </div>
                         }
                         else if (ShownPlayer.Traitors.Count > 0)
@@ -101,7 +99,7 @@
 
                             @foreach (var v in ShownPlayer.Traitors)
                             {
-                                <Image Src=@Client.CurrentSkin.GetImageUrl(v) Blurred="@ShownPlayer.RevealedTraitors.Contains(v)" Class="img-fluid p-1" Width=60 Popover=@Client.CurrentSkin.GetPopup(v, Client.Game)/>
+                                <span data-faction-of="@v.Faction"><Image Src=@Client.CurrentSkin.GetImageUrl(v) Blurred="@ShownPlayer.RevealedTraitors.Contains(v)" Class="img-fluid p-1" Width=60 Popover=@Client.CurrentSkin.GetPopup(v, Client.Game)/></span>
                             }
 
                             @foreach (var v in ShownPlayer.DiscardedTraitors)

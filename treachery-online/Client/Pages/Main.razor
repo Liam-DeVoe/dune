@@ -119,10 +119,7 @@ else
                         <PlayerPanel ShownPlayer="Client.Player" />                        
                     }
                 }
-                @if (Client.Game.CurrentReport != null)
-                {
-                    <ReportComponent Report="Client.Game.CurrentReport" />
-                }
+                <ReportComponent/>
             </div>
         }
         else
@@ -139,10 +136,7 @@ else
                 <MenuComponent/>
                 <GameStatusComponent/>
                 <ActionPanel/>
-                @if (Client.Game.CurrentReport != null)
-                {
-                    <ReportComponent Report="Client.Game.CurrentReport"/>
-                }
+                <ReportComponent/>
             </div>
             
             <!--Menu-->

@@ -41,6 +41,16 @@
       "older_spice_piles_min": 3
     }
   },
+  "blow-two-decks": {
+    "rules": [
+      "IncreasedResourceFlow"
+    ],
+    "seed": 1,
+    "situation": {
+      "phase": "BlowReport",
+      "turn_min": 2
+    }
+  },
   "blue-accompanies": {
     "rules": [
       "BlueAccompaniesToShipmentLocation"
@@ -236,6 +246,33 @@
       "phase": "NonOrangeMove",
       "event": "Move",
       "faction": "Yellow"
+    }
+  },
+  "facedancer": {
+    "factions": [
+      "Green",
+      "Black",
+      "Yellow",
+      "Red",
+      "Orange",
+      "Purple"
+    ],
+    "seed": 1,
+    "situation": {
+      "phase": "NonOrangeMove",
+      "event": "Move",
+      "faction": "Purple",
+      "turn_min": 2
+    }
+  },
+  "blow-two-decks": {
+    "rules": [
+      "IncreasedResourceFlow"
+    ],
+    "seed": 1,
+    "situation": {
+      "phase": "BlowReport",
+      "turn_min": 2
     }
   }
 }

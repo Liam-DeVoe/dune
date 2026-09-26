@@ -32,6 +32,26 @@ public class Message
 
     public Expression Expression { get; }
 
+    // Set when the message tells of forces travelling, so the client can
+    // draw the journey while the message is hovered.
+    public Route? Route { get; private set; }
+
+    public Message WithRoute(Faction faction, IEnumerable<Location> from, Location? to)
+    {
+        Route = new Route(faction, from.ToList(), to);
+        return this;
+    }
+
+    // Set when the message heads the lines after it, such as the spice deck a
+    // blow was drawn from. The concept picks the icon drawn beside it.
+    public Concept? Heading { get; private set; }
+
+    public Message AsHeading(Concept icon)
+    {
+        Heading = icon;
+        return this;
+    }
+
     public override string ToString()
     {
         if (DefaultDescriber != null)
@@ -93,3 +113,6 @@ public class MessagePart
         return string.Join("", Expression.Elements);
     }
 }
+// Where forces went in a message: from the listed locations, or from reserves
+// when the list is empty, to a location, or back to reserves when To is null.
+public record Route(Faction Faction, List<Location> From, Location? To);

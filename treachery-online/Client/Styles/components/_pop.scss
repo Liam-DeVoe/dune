@@ -146,14 +146,20 @@
   strong {
     color: var(--parchment);
   }
-}
 
-// An icon standing in for a word inside a sentence.
-.popover .inline-icon {
-  width: 18px;
-  height: 18px;
-  vertical-align: -3px;
-  margin-left: 2px;
+  // A spice amount in a row's text stays inline; the row's span and b rules
+  // above would otherwise stack it as a block.
+  .spice-amt {
+    display: inline-grid;
+    vertical-align: middle;
+
+    b {
+      display: inline;
+      color: var(--parchment);
+      font-size: calc(var(--s, 20px) * 0.62);
+      line-height: 1;
+    }
+  }
 }
 
 // The sector after the territory name, in the label face like the guide's

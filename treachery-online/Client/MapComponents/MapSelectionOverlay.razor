@@ -43,10 +43,8 @@
          style="position:absolute; left:0; top:0; width:100%; height:100%; --c:@faction" pointer-events="none" data-targets="@cursorTargets">
 
         <defs>
-            <marker id="mapsel-head-outline" viewBox="0 0 12 12" refX="9" refY="6" markerWidth="4" markerHeight="4" orient="auto-start-reverse" markerUnits="strokeWidth">
-                <path d="M0,0 L12,6 L0,12 Z" class="head-outline"/>
-            </marker>
-            <marker id="mapsel-head" viewBox="0 0 12 12" refX="9" refY="6" markerWidth="4" markerHeight="4" orient="auto-start-reverse" markerUnits="strokeWidth">
+            @* One head, filled in the faction colour and outlined, the same as the journey arrows in MapRefArrows. *@
+            <marker id="mapsel-head" viewBox="0 0 12 12" refX="9" refY="6" markerWidth="4" markerHeight="4" orient="auto-start-reverse" markerUnits="strokeWidth" overflow="visible">
                 <path d="M0,0 L12,6 L0,12 Z" class="head"/>
             </marker>
         </defs>
@@ -56,13 +54,13 @@
             if (end is { } b)
             {
                 var (p, q) = Trim(a, b, 10, 12);
-                <line class="arrow-outline" x1="@Round(p.X)" y1="@Round(p.Y)" x2="@Round(q.X)" y2="@Round(q.Y)" marker-end="url(#mapsel-head-outline)"/>
+                <line class="arrow-outline" x1="@Round(p.X)" y1="@Round(p.Y)" x2="@Round(q.X)" y2="@Round(q.Y)"/>
                 <line class="arrow" x1="@Round(p.X)" y1="@Round(p.Y)" x2="@Round(q.X)" y2="@Round(q.Y)" marker-end="url(#mapsel-head)"/>
             }
             else if (map.ShowCursorArrow)
             {
                 @* Hidden until the script points it at a hovered target. data-x1/y1 keep the untrimmed start, which the script trims. *@
-                <line class="arrow-outline mapsel-cursor" visibility="hidden" data-x1="@Round(a.X)" data-y1="@Round(a.Y)" x1="@Round(a.X)" y1="@Round(a.Y)" x2="@Round(a.X)" y2="@Round(a.Y)" marker-end="url(#mapsel-head-outline)"/>
+                <line class="arrow-outline mapsel-cursor" visibility="hidden" data-x1="@Round(a.X)" data-y1="@Round(a.Y)" x1="@Round(a.X)" y1="@Round(a.Y)" x2="@Round(a.X)" y2="@Round(a.Y)"/>
                 <line class="arrow mapsel-cursor" visibility="hidden" data-x1="@Round(a.X)" data-y1="@Round(a.Y)" x1="@Round(a.X)" y1="@Round(a.Y)" x2="@Round(a.X)" y2="@Round(a.Y)" marker-end="url(#mapsel-head)"/>
             }
         }

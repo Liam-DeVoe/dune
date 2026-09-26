@@ -41,7 +41,18 @@ public partial class Game
     public MainPhaseMoment CurrentMoment { get; private set; } = MainPhaseMoment.None;
     public Phase CurrentPhase { get; private set; } = Phase.None;
     public List<Faction> HasActedOrPassed { get; } = [];
-    public Report CurrentReport { get; internal set; } = new(MainPhase.None);
+    private List<Report> ReportList { get; set; } = [];
+    private readonly Report _preGameReport = new(MainPhase.None, 0);
+
+    /// <summary>
+    /// Every report in the game, in the order they were started.
+    /// </summary>
+    public IReadOnlyList<Report> Reports => ReportList;
+
+    /// <summary>
+    /// The report that new log messages are added to (the last one in Reports).
+    /// </summary>
+    public Report CurrentReport => ReportList.Count > 0 ? ReportList[^1] : _preGameReport;
     public Deck<TreacheryCard>? TreacheryDeck { get; internal set; }
     public Deck<TreacheryCard>? TreacheryDiscardPile { get; internal set; }
     public List<TreacheryCard> RemovedTreacheryCards { get; } = [];
@@ -280,11 +291,23 @@ public partial class Game
 
     #region PhaseTransitions
 
-    internal void MainPhaseStart(MainPhase phase, bool clearReport = true)
+    internal Report StartReport(MainPhase about)
+    {
+        // Avoid leaving an empty duplicate behind if a report for the same phase is started twice in a row
+        var current = CurrentReport;
+        if (ReportList.Count > 0 && current.About == about && current.Turn == CurrentTurn && !current.IsBattle && current.Messages.Count == 0)
+            return current;
+
+        var result = new Report(about, CurrentTurn);
+        ReportList.Add(result);
+        return result;
+    }
+
+    internal void MainPhaseStart(MainPhase phase, bool startReport = true)
     {
         CurrentMainPhase = phase;
         CurrentMoment = MainPhaseMoment.Start;
-        if (clearReport) CurrentReport = new Report(phase);
+        if (startReport) StartReport(phase);
         CurrentKarmaPrevention = null;
         CurrentJuice = null;
         BureaucratWasUsedThisPhase = false;
@@ -736,7 +759,9 @@ public partial class Game
 
     internal void Log(params object?[] expression)
     {
-        CurrentReport.Express(expression);
+        // A message logged on its own keeps what it carries, such as a route.
+        if (expression is [Message message]) CurrentReport.Express(message);
+        else CurrentReport.Express(expression);
     }
 
     internal void LogIf(bool condition, params object?[] expression)
@@ -757,6 +782,8 @@ public partial class Game
     public Game Clone()
     {
         var result = (Game)MemberwiseClone();
+
+        result.ReportList = new List<Report>(ReportList);
 
         result.Players = Utilities.CloneList(Players);
         result.LeaderState = Utilities.CloneObjectDictionary(LeaderState);

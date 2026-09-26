@@ -74,7 +74,7 @@ public sealed class BotGeneratedComponentSmokeTests
             $"Expected broad component coverage, but rendered only: {string.Join(", ", renderedActionTypes.Select(type => type.Name).Order())}");
     }
 
-    private static Game CreateGame()
+    internal static Game CreateGame()
     {
         var game = new Game();
         var rules = Game.RulesetDefinition[Ruleset.AllExpansionsAdvancedGame].ToList();
@@ -126,7 +126,7 @@ public sealed class BotGeneratedComponentSmokeTests
         throw new InvalidOperationException($"No current-version scenario produced {typeof(TEvent).Name}.");
     }
 
-    private static GameEvent? DetermineBotEvent(Game game, IReadOnlyDictionary<Faction, ClassicBot> bots)
+    internal static GameEvent? DetermineBotEvent(Game game, IReadOnlyDictionary<Faction, ClassicBot> bots)
     {
         foreach (var priority in new Func<ClassicBot, List<Type>, GameEvent?>[]
                  {

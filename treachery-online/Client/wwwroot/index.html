@@ -235,6 +235,64 @@
             UpdateMapCursorArrows();
         }
 
+        // A chip in a sentence names sectors (data-ref-locations) and maybe a
+        // faction (data-ref-faction). While the mouse is over it, those sectors
+        // show their hover shape, tinted with the chip's --fc when it has one,
+        // and anything tagged data-faction-of with that faction gets .ref-hi.
+        // Listening on the document means chips work wherever a message is
+        // rendered, and survive re-renders.
+        document.addEventListener('mouseover', function (e) {
+            const chip = e.target.closest == null ? null : e.target.closest('[data-ref-locations]');
+            if (chip != null) ShowMapRefs(chip);
+        });
+        document.addEventListener('mouseout', function (e) {
+            const chip = e.target.closest == null ? null : e.target.closest('[data-ref-locations]');
+            if (chip != null && !chip.contains(e.relatedTarget)) ShowMapRefs(null);
+        });
+
+        function ShowMapRefs(chip) {
+            document.querySelectorAll('.maphover .hover-shape.ref').forEach(function (shape) {
+                shape.classList.remove('ref');
+                shape.style.removeProperty('--c');
+            });
+            document.querySelectorAll('.ref-hi').forEach(function (el) { el.classList.remove('ref-hi'); });
+            const lines = document.querySelector('.maprefs .lines');
+            if (lines != null) lines.replaceChildren();
+            if (chip == null) return;
+            const color = getComputedStyle(chip).getPropertyValue('--fc').trim();
+
+            // A log line that tells of a journey draws it when the mouse is on
+            // the line's text. A chip inside the line lights its own sector only.
+            const journey = chip.hasAttribute('data-ref-arrow') ? chip : null;
+            if (journey != null && lines != null) {
+                const arrowColor = getComputedStyle(journey).getPropertyValue('--fc').trim();
+                // On the svg, not the group: the arrowhead markers sit in its defs.
+                lines.closest('svg').style.setProperty('--c', arrowColor !== '' ? arrowColor : '#fff');
+                journey.dataset.refArrow.split(';').forEach(function (segment) {
+                    const n = segment.split(',').map(Number);
+                    if (n.length !== 4) return;
+                    const ends = TrimMapArrow({ x: n[0], y: n[1] }, { x: n[2], y: n[3] }, 10, 12);
+                    ['arrow-outline', 'arrow'].forEach(function (cls) {
+                        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                        line.setAttribute('class', cls);
+                        line.setAttribute('x1', ends[0].x); line.setAttribute('y1', ends[0].y);
+                        line.setAttribute('x2', ends[1].x); line.setAttribute('y2', ends[1].y);
+                        if (cls === 'arrow') line.setAttribute('marker-end', 'url(#mapref-head)');
+                        lines.appendChild(line);
+                    });
+                });
+            }
+            chip.dataset.refLocations.split(',').forEach(function (id) {
+                if (id === '') return;
+                document.querySelectorAll('.maphover .hover-shape[data-location-id="' + id + '"]').forEach(function (shape) {
+                    shape.classList.add('ref');
+                    if (color !== '') shape.style.setProperty('--c', color);
+                });
+            });
+            const faction = chip.dataset.refFaction;
+            if (faction) document.querySelectorAll('[data-faction-of="' + faction + '"]').forEach(function (el) { el.classList.add('ref-hi'); });
+        }
+
         // Tells the selection layer which of its sectors is under the mouse
         // (.hov on that sector's group) and tells the map whether the hovered
         // sector takes part in the current action at all (hov-valid or

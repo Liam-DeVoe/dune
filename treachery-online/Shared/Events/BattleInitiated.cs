@@ -216,8 +216,11 @@ public class BattleInitiated : GameEvent
 
     protected override void ExecuteConcreteEvent()
     {
-        Game.CurrentReport = new Report(MainPhase.Battle);
-        Log();
+        // Not logged: the report panel shows who attacks whom where in the battle's heading.
+        var report = Game.StartReport(MainPhase.Battle);
+        report.Aggressor = Aggressor;
+        report.Defender = Defender;
+        report.Territory = Territory;
         Game.BattleAboutToStart = this;
 
         var pink = GetPlayer(Faction.Pink);

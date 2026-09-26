@@ -6,48 +6,99 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
+@using Treachery.Client.MapComponents
 @inherits GameComponent
 
-@{
-    var messages = MessagesInOrder.ToList();
+@*
+ The game's log, one phase at a time. The arrows step through every phase of
+ the game, and the dots jump within the turn on show. The panel follows each
+ new phase as it starts, unless the player has stepped back to an earlier one.
+ Then it stays put until they return to the latest phase.
+*@
 
-    <div class="card pb-1" style="animation:fadeIn 1s;">
+@if (Client.Game?.Reports is { Count: > 0 })
+{
+    var steps = Steps();
+    var index = SelectedIndex(steps);
+    var step = steps[index];
+    var empty = step.Reports.All(r => !r.IsBattle && !Visible(r).Any());
 
-        <div class="card-header text-center">
+    <div class="card report pb-1" style="animation:fadeIn 1s;">
 
-            @Client.CurrentSkin.Describe(Client.Game.CurrentReport.About) Report &nbsp;
+        <div class="card-header stepper">
 
-            @if (SortDescending)
-            {
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-sort-up" viewBox="0 0 16 16" @onclick=@ChangeSortOrder style="cursor:pointer">
-                    <title>Sort Descending (latest event first)</title>
-                    <path d="M3.5 12.5a.5.5 0 0 1-1 0V3.707L1.354 4.854a.5.5 0 1 1-.708-.708l2-1.999.007-.007a.498.498 0 0 1 .7.006l2 2a.5.5 0 1 1-.707.708L3.5 3.707V12.5zm3.5-9a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zM7.5 6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1h-5zm0 3a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1h-3zm0 3a.5.5 0 0 0 0 1h1a.5.5 0 0 0 0-1h-1z" />
-                </svg>               
-            }
-            else
-            {
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-sort-down" viewBox="0 0 16 16" @onclick=@ChangeSortOrder style="cursor:pointer">
-                    <title>Sort Ascending (latest event last)</title>
-                    <path d="M3.5 2.5a.5.5 0 0 0-1 0v8.793l-1.146-1.147a.5.5 0 0 0-.708.708l2 1.999.007.007a.497.497 0 0 0 .7-.006l2-2a.5.5 0 0 0-.707-.708L3.5 11.293V2.5zm3.5 1a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zM7.5 6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1h-5zm0 3a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1h-3zm0 3a.5.5 0 0 0 0 1h1a.5.5 0 0 0 0-1h-1z" />
-                </svg>
-            }
+            <button title="Previous phase" aria-label="Previous phase" disabled="@(index == 0)" @onclick="@(() => Select(steps, index - 1))">
+                <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg>
+            </button>
 
-         </div>
+            <div class="title">
+                <div class="turn">@(step.Turn != Game.CurrentTurn && step.About != MainPhase.Setup ? $"Turn {step.Turn}" : "")</div>
+                <div class="phase">@Client.CurrentSkin.Describe(step.About)</div>
+                @if (step.About is >= MainPhase.Storm and <= MainPhase.Contemplate)
+                {
+                    <div class="dots">
+                        @foreach (var phase in TurnPhases)
+                        {
+                            var target = steps.FindIndex(s => s.Turn == step.Turn && s.About == phase);
+                            if (target < 0)
+                            {
+                                <span class="future" title="@Client.CurrentSkin.Describe(phase)"></span>
+                            }
+                            else
+                            {
+                                var now = target == steps.Count - 1 ? "now" : "";
+                                var sel = target == index ? "sel" : "";
+                                <span class="@now @sel" title="@Client.CurrentSkin.Describe(phase)" @onclick="@(() => Select(steps, target))"></span>
+                            }
+                        }
+                    </div>
+                }
+            </div>
+
+            <button title="Next phase" aria-label="Next phase" disabled="@(index == steps.Count - 1)" @onclick="@(() => Select(steps, index + 1))">
+                <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg>
+            </button>
+
+        </div>
 
         <div class="card-body p-1 overflow-auto">
 
-            @if (messages.Any())
+            @if (empty)
             {
-                foreach (var message in MessagesInOrder)
-                {
-                    <div style="@FontStyle(message)">
-                        <ExpressionComponent Expression="@message.Expression" Game="@Game" Size="20"/>
-                    </div>
-                }
+                <div class="mt-1 ps-1 pe-1"><i>Nothing to report</i></div>
             }
             else
             {
-                <div class="mt-1 ps-1 pe-1"><i>Nothing to report</i></div>
+                foreach (var report in step.Reports)
+                {
+                    if (report.IsBattle)
+                    {
+                        <div class="battle @(report.BattleDecided ? "" : "live")">
+                            <div class="faceoff" title="@BattleResult(report)">
+                                @Side(report, report.Aggressor)
+                                <div class="middle" data-ref-locations="@(report.Territory == null ? "" : string.Join(",", report.Territory.Locations.Select(l => l.Id)))">
+                                    <div class="vs">vs</div>
+                                    @if (report.Territory != null)
+                                    {
+                                        <div class="where">@Client.CurrentSkin.Describe(report.Territory)</div>
+                                    }
+                                </div>
+                                @Side(report, report.Defender)
+                            </div>
+                            @foreach (var message in Visible(report))
+                            {
+                                @Line(message)
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        foreach (var message in Visible(report))
+                        {
+                            @Line(message)
+                        }
+                    }
+                }
             }
 
         </div>
@@ -57,33 +108,123 @@
 
 @code {
 
-    [Parameter]
-    public Report? Report { get; set; }
+    // The main phases of a turn, one dot each.
+    private static readonly MainPhase[] TurnPhases =
+        Enum.GetValues<MainPhase>().Where(p => p is >= MainPhase.Storm and <= MainPhase.Contemplate).ToArray();
 
-    public bool SortDescending { get; set; } = false;
+    // Every report of one phase of one turn. The battle phase has one report
+    // for the phase itself and one per battle.
+    private sealed record Step(int Turn, MainPhase About, List<Report> Reports);
 
-    private string FontStyle(Message m)
+    // The phase on show, or null to follow the latest one.
+    private (int Turn, MainPhase About)? _selected;
+
+    private List<Step> Steps()
+    {
+        var steps = new List<Step>();
+        foreach (var report in Game.Reports)
+        {
+            if (steps.Count > 0 && steps[^1].Turn == report.Turn && steps[^1].About == report.About)
+                steps[^1].Reports.Add(report);
+            else
+                steps.Add(new Step(report.Turn, report.About, [report]));
+        }
+
+        return steps;
+    }
+
+    private int SelectedIndex(List<Step> steps)
+    {
+        var index = _selected is var (turn, about) ? steps.FindIndex(s => s.Turn == turn && s.About == about) : -1;
+        return index >= 0 ? index : steps.Count - 1;
+    }
+
+    // Choosing the latest phase goes back to following.
+    private void Select(List<Step> steps, int index)
+    {
+        if (index < 0 || index >= steps.Count) return;
+        _selected = index == steps.Count - 1 ? null : (steps[index].Turn, steps[index].About);
+    }
+
+    private IEnumerable<Message> Visible(Report report) =>
+        report.Messages.Where(m => m.Target == Faction.None || m.Target == Client.Faction);
+
+    private string BattleResult(Report report)
+    {
+        if (!report.BattleDecided) return "In progress";
+        if (report.BattleWinner == Faction.None) return "No winner";
+        return $"{Client.CurrentSkin.Describe(report.BattleWinner)} win";
+    }
+
+    // One side of a battle heading: sigil over name. Once
+    // the battle is decided the winner's sigil gets a gold ring and the loser
+    // fades; with no winner both fade. Hovering it lights the faction's forces
+    // on the map, like a faction chip.
+    private RenderFragment Side(Report report, Faction faction)
+    {
+        var outcome = !report.BattleDecided ? "" : report.BattleWinner == faction ? "win" : "lose";
+        var you = !Client.IsObserver && Client.Faction == faction ? "you" : "";
+        var locations = Game.GetPlayer(faction) is { } player ? string.Join(",", player.ForcesOnPlanet.Keys.Select(l => l.Id)) : "";
+        var sigil = Client.CurrentSkin.GetImageUrl(faction);
+        var name = Client.CurrentSkin.Describe(faction);
+        return @<div class="side @outcome @you" data-ref-faction="@faction" data-ref-locations="@locations" style="--fc:@Client.CurrentSkin.GetFactionColor(faction)">
+            <img src="@sigil" alt=""/><span class="name">@name</span>
+        </div>;
+    }
+
+    private static string FontStyle(Message m)
     {
         return m.Target == Faction.None ? "" : "font-style: italic;";
     }
 
-    private IEnumerable<Message> MessagesInOrder {
-
-        get {
-
-            var messagesAscending = Report.Messages.Where(m => m.Target == Faction.None || m.Target == Client.Faction);
-
-            if (SortDescending)
+    private RenderFragment Line(Message message) =>
+        @<text>
+            @if (message.Heading is { } icon)
             {
-                return messagesAscending.OrderByDescending(m => m.Nr);
+                <div class="heading">
+                    @if (HeadingIcon(icon) is { Length: > 0 } url)
+                    {
+                        <img src="@url" alt=""/>
+                    }
+                    <ExpressionComponent Expression="@message.Expression" Game="@Game" Size="20"/>
+                </div>
             }
+            else if (message.Route is { } route)
+            {
+                <div style="@FontStyle(message); --fc:@Client.CurrentSkin.GetFactionColor(route.Faction)" data-ref-locations="@RouteLocations(route)" data-ref-arrow="@RouteArrow(route)">
+                    <ExpressionComponent Expression="@message.Expression" Game="@Game" Size="20"/>
+                </div>
+            }
+            else
+            {
+                <div style="@FontStyle(message)">
+                    <ExpressionComponent Expression="@message.Expression" Game="@Game" Size="20"/>
+                </div>
+            }
+        </text>;
 
-            return messagesAscending;
-        }
-    }
-
-    private void ChangeSortOrder()
+    // The picture beside a heading line. Spice blow headings show the back of a spice card.
+    private string HeadingIcon(Concept icon) => icon switch
     {
-        SortDescending = !SortDescending;
+        Concept.Resource => Client.CurrentSkin.CardBack_ResourceCard_URL,
+        _ => ""
+    };
+
+    // The sectors a route touches, for the hover script to light.
+    private static string RouteLocations(Route route) =>
+        string.Join(",", route.From.Concat(route.To != null ? [route.To] : []).Select(l => l.Id));
+
+    // One arrow per source, as "x1,y1,x2,y2" segments in map units. Reserves
+    // are the faction's token on the ring, where the shipment picker starts
+    // its arrow too.
+    private string RouteArrow(Route route)
+    {
+        var skin = Client.CurrentSkin;
+        var token = Game.GetPlayer(route.Faction) is { } player ? SectorGeometry.PlayerTokenPosition(skin, Game, player.Seat) : (PointD?)null;
+        var end = route.To != null && SectorGeometry.HasCenter(skin, route.To) ? skin.GetCenter(route.To, Game.Map) : token;
+        if (end == null) return "";
+        var starts = route.From.Where(l => SectorGeometry.HasCenter(skin, l)).Select(l => skin.GetCenter(l, Game.Map)).ToList();
+        if (starts.Count == 0 && token is { } t) starts.Add(t);
+        return string.Join(";", starts.Select(p => $"{Support.Round(p.X)},{Support.Round(p.Y)},{Support.Round(end.Value.X)},{Support.Round(end.Value.Y)}"));
     }
 }

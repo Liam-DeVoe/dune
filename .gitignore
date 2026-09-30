@@ -3,4 +3,4 @@ deploy/.admin-password
 *.pyc
 __pycache__/
 *.pyc
-/design/
+design/

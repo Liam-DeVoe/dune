@@ -62,3 +62,23 @@ $parchment-check-bg: rgba(255, 255, 255, 0.6);
 
 // Gold focus ring shared by inputs, checks, range thumbs and the accordion.
 $focus-ring-gold: 0 0 0 3px rgba(231, 191, 60, 0.2);
+
+// The language's colours for Bootstrap's dropdown menu, as its --bs-dropdown-*
+// variables. Shared with the toolbar menu, which draws Bootstrap's dropdown
+// rows without the .dropdown-menu class (see components/_menu.scss).
+@mixin dropdown-colours {
+  --bs-dropdown-bg: var(--ink-0);
+  --bs-dropdown-color: var(--parchment);
+  --bs-dropdown-border-color: rgba(255, 255, 255, 0.16);
+  --bs-dropdown-border-radius: var(--r-2);
+  --bs-dropdown-inner-border-radius: 5px;
+  --bs-dropdown-divider-bg: rgba(255, 255, 255, 0.09);
+  --bs-dropdown-box-shadow: var(--shadow-3);
+  --bs-dropdown-link-color: var(--parchment);
+  --bs-dropdown-link-hover-color: var(--gold);
+  --bs-dropdown-link-hover-bg: rgba(231, 191, 60, 0.1);
+  --bs-dropdown-link-active-color: var(--ink-0);
+  --bs-dropdown-link-active-bg: var(--gold);
+  --bs-dropdown-link-disabled-color: var(--text-3);
+  --bs-dropdown-header-color: var(--text-3);
+}

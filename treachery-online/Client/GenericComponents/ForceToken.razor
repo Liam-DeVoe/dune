@@ -1,0 +1,44 @@
+@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+
+@* A faction's force or special force token. Starred special forces (see Support.HasStarredSpecialForce) get a star badge on the edge. *@
+<span class="force-token @(Starred ? "starred" : "") @Class" style="--d:@(Size)px; @Style" title="@Title">
+    <img src="@Src" width="@Size" height="@Size" alt="@Title" class="@ImgClass" style="@ImgStyle" />
+</span>
+
+@code {
+
+    [Parameter]
+    public Faction Faction { get; set; }
+
+    [Parameter]
+    public bool Special { get; set; }
+
+    [Parameter]
+    public int Size { get; set; } = 24;
+
+    [Parameter]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public string Class { get; set; } = "";
+
+    [Parameter]
+    public string Style { get; set; } = "";
+
+    [Parameter]
+    public string ImgClass { get; set; } = "";
+
+    [Parameter]
+    public string ImgStyle { get; set; } = "";
+
+    private bool Starred => Special && Support.HasStarredSpecialForce(Faction);
+
+    private string Src => Special ? Client.CurrentSkin.GetFactionSpecialForceImageUrl(Faction) : Client.CurrentSkin.GetFactionForceImageUrl(Faction);
+}

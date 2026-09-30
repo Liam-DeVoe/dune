@@ -13,12 +13,11 @@
     <label class="d-block mt-1 mb-0">@Label</label>
 }
 
-<div>
+<div class="img-choices">
 
     @foreach (var valueToShow in Values)
     {
         <Image Shown=@valueToShow Game=Game
-               Class="pe-1"
                OnClick="@(_ => Click(valueToShow))"
                Darkened="@DetermineDarkened(valueToShow)"
                Pointer

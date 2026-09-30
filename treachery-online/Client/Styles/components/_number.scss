@@ -24,8 +24,9 @@
     background: transparent;
     border: 0;
     color: var(--sand);
-    font-family: var(--font-display);
-    font-size: 16px;
+    // The display face draws the minus sign with serifs, like a bracket.
+    font-family: var(--font-body);
+    font-size: 18px;
     width: 30px;
     cursor: pointer;
 

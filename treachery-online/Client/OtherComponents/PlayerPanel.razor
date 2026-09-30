@@ -48,10 +48,8 @@
                             @if (ShownPlayer.HasSpecialForces)
                             {
                                 <div class="col p-0">
-                                    <img class="img-fluid m-0 p-0" width="24" height="24" 
-                                         src="@Client.CurrentSkin.GetFactionSpecialForceImageUrl(ShownPlayer.Faction)" 
-                                         title="@Name(ShownPlayer.SpecialForce)" 
-                                         alt="@Name(ShownPlayer.SpecialForce)"/><strong>&nbsp;@ShownPlayer.SpecialForcesInReserve</strong>
+                                    <ForceToken Faction="ShownPlayer.Faction" Special="true" Size="24" ImgClass="img-fluid m-0 p-0"
+                                                Title="@Name(ShownPlayer.SpecialForce)"/><strong>&nbsp;@ShownPlayer.SpecialForcesInReserve</strong>
                                 </div>
                             }
 

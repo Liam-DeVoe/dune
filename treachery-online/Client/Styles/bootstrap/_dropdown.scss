@@ -1,16 +1,5 @@
+@use "../shared";
+
 .dropdown-menu {
-  --bs-dropdown-bg: var(--ink-0);
-  --bs-dropdown-color: var(--parchment);
-  --bs-dropdown-border-color: rgba(255, 255, 255, 0.16);
-  --bs-dropdown-border-radius: var(--r-2);
-  --bs-dropdown-inner-border-radius: 5px;
-  --bs-dropdown-divider-bg: rgba(255, 255, 255, 0.09);
-  --bs-dropdown-box-shadow: var(--shadow-3);
-  --bs-dropdown-link-color: var(--parchment);
-  --bs-dropdown-link-hover-color: var(--gold);
-  --bs-dropdown-link-hover-bg: rgba(231, 191, 60, 0.1);
-  --bs-dropdown-link-active-color: var(--ink-0);
-  --bs-dropdown-link-active-bg: var(--gold);
-  --bs-dropdown-link-disabled-color: var(--text-3);
-  --bs-dropdown-header-color: var(--text-3);
+  @include shared.dropdown-colours;
 }

@@ -12,7 +12,20 @@
 
     @for (var i = 0; i < Amount; i++)
     {
-        <img src="@ForceUrl" style=@($"{PointerType};position:absolute;left:{Px(-0.07 * i * Diameter)};top:{Px(-0.08 * i * Diameter)};width:{Px(Diameter)};opacity:{Opacity};filter:drop-shadow({Px(ShadowSize)} {Px(ShadowSize)} {Px(ShadowBlur)} {ShadowColor})") alt="Token"/>
+        var position = $"{PointerType};position:absolute;left:{Px(-0.07 * i * Diameter)};top:{Px(-0.08 * i * Diameter)};opacity:{Opacity}";
+        var look = $"width:{Px(Diameter)};filter:drop-shadow({Px(ShadowSize)} {Px(ShadowSize)} {Px(ShadowBlur)} {ShadowColor})";
+
+        @* Only the top token of a stack gets the star badge. *@
+        if (Starred && i == Amount - 1)
+        {
+            <span class="force-token starred" style=@($"{position};--d:{Px(Diameter)}")>
+                <img src="@ForceUrl" style=@look alt="Token"/>
+            </span>
+        }
+        else
+        {
+            <img src="@ForceUrl" style=@($"{position};{look}") alt="Token"/>
+        }
     }
 
 </div>
@@ -82,6 +95,8 @@
     }
 
     private string ForceUrl => Special ? Client.CurrentSkin.GetFactionSpecialForceImageUrl(Faction) : Client.CurrentSkin.GetFactionForceImageUrl(Faction);
+
+    private bool Starred => Special && Support.HasStarredSpecialForce(Faction);
 
     private string ShadowColor => Threatened ? "red" : Client.CurrentSkin.SHADOW;
 

@@ -176,6 +176,18 @@ public class Browser(IJSRuntime jsRuntime)
         return await Storage.GetStringAsync(name);
     }
 
+    // Calls OnEscape on the given object when Escape is pressed, until
+    // StopListeningForEscape with the same key. The latest listener wins.
+    public async Task ListenForEscape(string key, object dotNetObject)
+    {
+        await JsInvoke("ListenForEscape", key, dotNetObject);
+    }
+
+    public async Task StopListeningForEscape(string key)
+    {
+        await JsInvoke("StopListeningForEscape", key);
+    }
+
     public async Task ToggleFullScreen()
     {
         await JsInvoke("ToggleFullScreen");

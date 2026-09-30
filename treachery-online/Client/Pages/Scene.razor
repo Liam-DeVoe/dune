@@ -42,6 +42,10 @@ else
         <!--Map Column-->
         <div id="mapdiv" class="col-sm-12 col-lg-6">
             <GameBoard OnLocationClick="@Client.LocationClick" />
+            @if (Client.UndoSession != null)
+            {
+                <UndoTimeline/>
+            }
         </div>
 
         <!--Actions-->

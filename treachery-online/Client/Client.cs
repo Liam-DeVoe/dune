@@ -69,7 +69,47 @@ public class Client : IGameService, IGameClient, IAsyncDisposable
     public bool IsObserver => InGame && Game.IsObserver(UserId);
     public bool IsHost => InGame && Game.IsHost(UserId);
     public Phase? CurrentPhase => Game?.CurrentPhase;
-    
+
+    // Components reach the client through IGameService. While the host is
+    // choosing a moment to undo to, these show that moment's game, and there
+    // is nothing to act on. The members above stay on the live game, which
+    // is what the server's events apply to.
+    public UndoSession? UndoSession { get; private set; }
+    private Game? ShownGame => UndoSession?.Preview ?? Game;
+    Game? IGameService.Game => ShownGame;
+    Player? IGameService.Player => ShownGame?.GetPlayerByUserId(UserId);
+    GameStatus? IGameService.Status => UndoSession?.PreviewStatus ?? Status;
+    List<Type> IGameService.Actions => UndoSession?.Preview != null ? [] : Actions;
+    Phase? IGameService.CurrentPhase => ShownGame?.CurrentPhase;
+
+    public void OpenUndo()
+    {
+        if (!InGame || UndoSession != null) return;
+        UndoSession = new UndoSession(Game, UserId ?? -1);
+        Refresh(nameof(OpenUndo));
+    }
+
+    public void PreviewUndo(int gap)
+    {
+        if (UndoSession == null) return;
+        UndoSession.MoveTo(gap);
+        Refresh(nameof(PreviewUndo));
+    }
+
+    public void CloseUndo()
+    {
+        if (UndoSession == null) return;
+        EndUndoSession();
+        Refresh(nameof(CloseUndo));
+    }
+
+    // Also called when the live game is replaced, which ends any session on the old one.
+    private void EndUndoSession()
+    {
+        UndoSession?.RebindLiveHistory();
+        UndoSession = null;
+    }
+
     //Settings
     public float CurrentEffectVolume { get; set; } = -1;
     public float CurrentChatVolume { get; set; } = -1;
@@ -167,6 +207,7 @@ public class Client : IGameService, IGameClient, IAsyncDisposable
     public async Task ExitGame()
     {
         await SendHeartbeatAndGetServerStatus();
+        EndUndoSession();
         Game = null;
         GameName = null;
         GameId = null;
@@ -289,6 +330,7 @@ public class Client : IGameService, IGameClient, IAsyncDisposable
         
         try
         {
+            EndUndoSession();
             Game = Game.Undo(untilEventNr);
             await PerformPostEventTasks();
         }
@@ -306,6 +348,7 @@ public class Client : IGameService, IGameClient, IAsyncDisposable
         
         try
         {
+            EndUndoSession();
             Game = Game.RestoreRecentlyUndone();
             await PerformPostEventTasks();
         }
@@ -322,6 +365,7 @@ public class Client : IGameService, IGameClient, IAsyncDisposable
         
         try
         {
+            EndUndoSession();
             Game = Game.DismissRecentlyUndone();
             await PerformPostEventTasks();
         }
@@ -870,6 +914,7 @@ public class Client : IGameService, IGameClient, IAsyncDisposable
         var resultMessage = Game.TryLoad(currentState, initInfo.Participation, false, false, out var result);
         if (resultMessage == null)
         {
+            EndUndoSession();
             Game = result;
             GameName = initInfo.GameName;
             RejectedDealOffers.Clear();

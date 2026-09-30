@@ -1,0 +1,167 @@
+@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits GameComponent
+
+@*
+ The timeline under the map while the host chooses a moment to undo to.
+ The top strip is the whole game, one block per turn; the track under it is
+ the focused turn, one segment per phase and one tick per event. The handle
+ always sits in a gap between two events. Every gap has an invisible zone
+ around it, so pressing and dragging across the track picks gaps without
+ measuring the track in script. Hovering a gap shows the event it keeps and
+ the one it undoes.
+*@
+
+@if (Client.UndoSession is { } session && session.ListedEvents() is { Count: > 0 } events)
+{
+    var now = session.Live.History.Count;
+    var cutIndex = session.AtNow ? events.Count : events.FindIndex(i => i >= session.Gap);
+    var turns = events.GroupBy(i => session.MomentOf(i).Turn).Select(g => (Turn: g.Key, Events: g.ToList())).ToList();
+    var focus = turns.FirstOrDefault(t => t.Turn == (_focus ?? TurnOfCut(session, events, cutIndex)), turns[^1]);
+    var first = events.IndexOf(focus.Events[0]);
+    var m = focus.Events.Count;
+    var isLast = focus.Turn == turns[^1].Turn;
+
+    <div class="undo-timeline">
+
+        <div class="turns">
+            @foreach (var turn in turns)
+            {
+                <div class="turn @(turn.Turn == focus.Turn ? "focus" : "")" style="flex:@turn.Events.Count" @onclick="@(() => { _focus = turn.Turn; _hover = null; })" title="Turn @turn.Turn">@turn.Turn</div>
+            }
+            @if (!session.AtNow)
+            {
+                var at = Pct(cutIndex, events.Count);
+                <div class="gone" style="left:@at"></div>
+                <div class="mark" style="left:@at"></div>
+            }
+        </div>
+
+        <div class="track" @onpointerleave="@(() => _hover = null)">
+
+            @foreach (var (from, to, phase) in Phases(session, focus.Events))
+            {
+                <div class="phase" style="left:@Pct(from, m);width:@Pct(to - from, m)" title="@Client.CurrentSkin.Describe(phase)">
+                    <span>@Client.CurrentSkin.Describe(phase)</span>
+                </div>
+            }
+
+            @for (var j = 0; j < m; j++)
+            {
+                <div class="tick" style="left:@Pct(j * 2 + 1, m * 2)"></div>
+            }
+
+            @{ var cutInTurn = cutIndex - first; }
+            @if (!session.AtNow && cutInTurn < m)
+            {
+                <div class="gone" style="left:@Pct(Math.Max(0, cutInTurn), m)"></div>
+            }
+            @if (isLast)
+            {
+                <div class="now"></div>
+            }
+            @if (cutInTurn >= 0 && (cutInTurn < m || isLast))
+            {
+                <div class="handle" style="left:@Pct(cutInTurn, m)"></div>
+            }
+
+            @for (var j = 0; j <= m; j++)
+            {
+                var gap = first + j < events.Count ? events[first + j] : now;
+                var jj = j;
+                <div class="zone" style="left:@Pct(Math.Max(0, j * 2 - 1), m * 2);right:@Pct(Math.Max(0, m * 2 - j * 2 - 1), m * 2)"
+                     @onpointerdown="@(() => Pick(gap))"
+                     @onpointerenter="@(e => Enter(jj, gap, e))"></div>
+            }
+
+            @if (_hover is { } h && h <= m)
+            {
+                var kept = first + h - 1 >= 0 ? events[first + h - 1] : (int?)null;
+                var undone = first + h < events.Count ? events[first + h] : (int?)null;
+                <div class="pop undo-tip" style="left:clamp(170px, @Pct(h, m), calc(100% - 170px))">
+                    <div class="when">@(undone is { } u ? $"Turn {session.MomentOf(u).Turn} · {Client.CurrentSkin.Describe(session.MomentOf(u).Phase)}" : "Now")</div>
+                    @if (kept is { } k)
+                    {
+                        <div class="line"><ExpressionComponent Expression="@session.Live.History[k].GetShortMessage().Expression" Game="@session.Live" Size="18"/></div>
+                    }
+                    <div class="cut"></div>
+                    @if (undone is { } u2)
+                    {
+                        <div class="line out"><ExpressionComponent Expression="@session.Live.History[u2].GetShortMessage().Expression" Game="@session.Live" Size="18"/></div>
+                    }
+                    else
+                    {
+                        <div class="line nothing">Nothing is undone</div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+
+    // The turn shown in the track, or null to show the turn the handle is in.
+    private int? _focus;
+
+    // The gap under the pointer, counted from the start of the focused turn.
+    private int? _hover;
+
+    private static string Pct(int part, int whole) =>
+        (whole == 0 ? 0 : 100.0 * part / whole).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + "%";
+
+    private static int TurnOfCut(UndoSession session, List<int> events, int cutIndex) =>
+        session.MomentOf(events[Math.Min(cutIndex, events.Count - 1)]).Turn;
+
+    // Runs of consecutive events in the same phase, as [from, to) positions within the turn.
+    private static IEnumerable<(int From, int To, MainPhase Phase)> Phases(UndoSession session, List<int> turnEvents)
+    {
+        var from = 0;
+        for (var j = 1; j <= turnEvents.Count; j++)
+        {
+            if (j == turnEvents.Count || session.MomentOf(turnEvents[j]).Phase != session.MomentOf(turnEvents[from]).Phase)
+            {
+                yield return (from, j, session.MomentOf(turnEvents[from]).Phase);
+                from = j;
+            }
+        }
+    }
+
+    private async Task Enter(int j, int gap, PointerEventArgs e)
+    {
+        _hover = j;
+        if ((e.Buttons & 1) != 0) await Pick(gap);
+    }
+
+    // Each preview replays the game from the start. While the pointer is
+    // dragged faster than that, only the latest gap is replayed.
+    private int? _pending;
+    private bool _replaying;
+
+    private async Task Pick(int gap)
+    {
+        _pending = gap;
+        if (_replaying) return;
+
+        _replaying = true;
+        try
+        {
+            while (_pending is { } next)
+            {
+                _pending = null;
+                Client.PreviewUndo(next);
+                await Task.Delay(1);
+            }
+        }
+        finally
+        {
+            _replaying = false;
+        }
+    }
+}

@@ -11,7 +11,13 @@ strong{color:#fcf9d1} code{color:#f3d987;font-size:.95em}
 </style></head><body>
 <h1>Map UX review: sector highlights</h1>
 <p>The map marks three things with the same kind of shape: the sector under the mouse, the sectors you may click, and the sectors you have clicked. Each is a wash over the sector plus a solid outline along its edges. The outlines are the problem. They repeat lines the map already draws, and when many sectors are marked at once, as in every shipment, they cover the planet in a white web. This page tries out alternatives in two rounds. Round 1 keeps the idea of tinting sectors and changes how. Round 2 drops that idea for something else that still tells you where the mouse is and where you may go.</p>
-<p>Every variant is shot in the same two situations. <strong>Move</strong>: Fremen, source False Wall South (East) already clicked, mouse over Pasty Mesa (South), so sources, the selected source, destinations and the hover are all on screen. <strong>Ship</strong>: the Emperor shipping from reserves, mouse over Hagga Basin, where every sector on the planet is a destination. The shots come from the real client. Each variant is a class on <code>body</code> defined at the end of <code>Styles/components/_map.scss</code>, and <code>scripts/ui/scenarios/highlights.py</code> takes the shots.</p>
+<p>Every variant is shot in the same two situations. <strong>Move</strong>: Fremen, source False Wall South (East) already clicked, mouse over Pasty Mesa (South), so sources, the selected source, destinations and the hover are all on screen. <strong>Ship</strong>: the Emperor shipping from reserves, mouse over Hagga Basin, where every sector on the planet is a destination. The shots come from the real client, from an exploration build in which each variant was a class on <code>body</code>.</p>
+
+<h2>Outcome</h2>
+<div class="pick">
+<p><strong>The contour (variant 10) was chosen</strong>, for destinations in every phase and every map action: movement, shipment, setup placement and the single picks. Its settings: line 2.5 wide, white, fully opaque; a dark halo 1.5 wide outside it, fully opaque; a white wash of 0.15 over the reachable region. Sources keep the thin faction outline the round 2 variants used. <strong>The hover is an outline plus a wash</strong> everywhere: a white band 1.5 wide inside the sector over a white wash of 0.14. The band is the same width along borders and sector lines, and its dark core is no wider than the band, so no dark shows inside it.</p>
+<p>The other variants, the picker on the scene page and its sliders were removed from the client when this was adopted. The shots on this page are a record from the exploration build and cannot be regenerated.</p>
+</div>
 
 <h3>Current</h3>
 <div class="row">
@@ -79,7 +85,7 @@ strong{color:#fcf9d1} code{color:#f3d987;font-size:.95em}
   <div><div class="shot"><img src="highlights/after/cursor-move-invalid.png"></div><p class="sub">Over a sector you cannot move to: a grey wash and a not-allowed cursor.</p></div>
   <div><div class="shot"><img src="highlights/after/cursor-ship.png"></div><p class="sub">The shipment shows nothing until you point at a sector.</p></div>
 </div>
-<p>Nothing on the map is marked until the mouse is over it. Point at a sector and it tells you whether it takes part in the action. The map stays a map. The cost is the overview: you no longer see how far a move reaches without sweeping the mouse over it, and a new player would not know that some sectors are off limits until they touch one. The hover script now marks the hovered sector's validity on the map for this, whichever variant is chosen.</p>
+<p>Nothing on the map is marked until the mouse is over it. Point at a sector and it tells you whether it takes part in the action. The map stays a map. The cost is the overview: you no longer see how far a move reaches without sweeping the mouse over it, and a new player would not know that some sectors are off limits until they touch one. For the exploration, the hover script marked the hovered sector's validity on the map so that any variant could use it.</p>
 
 <h3>8. Markers</h3>
 <div class="row">
@@ -103,7 +109,7 @@ strong{color:#fcf9d1} code{color:#f3d987;font-size:.95em}
   <div><div class="shot"><img src="highlights/after/contour-move.png"></div></div>
   <div><div class="shot"><img src="highlights/after/contour-ship.png"></div></div>
 </div>
-<p>A single line around the whole reachable region. The sector lines inside it are left alone, so the map's own drawing does the work of showing the sectors and the contour only says where reach ends. The shipment becomes one ring around the planet with a notch for the storm. Drawn with an SVG filter that dilates the union of the reachable shapes and keeps the rim, so it costs nothing per sector. A sector that is unreachable inside the region shows up as a hole with its own contour.</p>
+<p>A single line around the whole reachable region. The sector lines inside it are left alone, so the map's own drawing does the work of showing the sectors and the contour only says where reach ends. The shipment becomes one ring around the planet with a notch for the storm. Every reachable sector's border and wedge are stroked and then masked to the outside of the region, so strokes between two reachable sectors vanish and only the rim survives. A sector that is unreachable inside the region shows up as a hole with its own contour. The section below tries widths, colours and contrasts. Along the planet's edge the strokes are clipped to a wedge slightly larger than the planet, since the territory borders end exactly on the rim and the outer half of the stroke would otherwise be cut off.</p>
 
 <h3>11. Quiet by default, everything on request</h3>
 <div class="row4">
@@ -112,7 +118,7 @@ strong{color:#fcf9d1} code{color:#f3d987;font-size:.95em}
   <div><div class="shot"><img src="highlights/after/reveal-ship.png"></div><p class="sub">Shipment, default.</p></div>
   <div><div class="shot"><img src="highlights/after/reveal-ship-all.png"></div><p class="sub">Shipment, revealed.</p></div>
 </div>
-<p>Variant 7 with a way to get the overview back: hold a key, or a toggle in the panel, and every destination comes up in the quiet style of variant 1. The shot fakes the key with a <code>show-all</code> class; no key is wired up. The revealed shipment is still a web, but you only see it when you ask for it.</p>
+<p>Variant 7 with a way to get the overview back: hold a key, or a toggle in the panel, and every destination comes up in the quiet style of variant 1. The shot faked the key with a class on <code>body</code>; no key was wired up. The revealed shipment is still a web, but you only see it when you ask for it.</p>
 
 <h3>12. A list beside the map</h3>
 <div class="row2">
@@ -121,18 +127,61 @@ strong{color:#fcf9d1} code{color:#f3d987;font-size:.95em}
 </div>
 <p>Take the destinations off the map. The panel lists them as chips; hovering a chip would light its sector, clicking one would pin it, and the map itself shows only the hover. This is a picture only: the chips were written into the panel by the screenshot script. It gives a precise, searchable overview and works for people who find the map hard to read, but thirty chips is a lot to scan, and for a shipment it would be the whole planet. It could also sit alongside any of the map variants rather than replace them.</p>
 
-<h2>What I would take</h2>
-<div class="pick">
-<p><strong>Contour for destinations, wash-only hover, thin faction line for sources.</strong> Variant 10, with the hover from variant 1. The contour is the only variant that stays calm in the shipment without giving up the overview. The hover outline is what makes the hover feel heavy, and the wash alone still shows the sector because the map's dashed lines already bound it. Sources keep a line because they are few and the line is the only thing that says "yours to move".</p>
-<p><strong>Add the hover validity from variant 7 on top.</strong> A grey wash and a not-allowed cursor over a sector that cannot be clicked is cheap and answers the question the outlines were answering, one sector at a time. It is already wired in the hover script and works with every variant.</p>
-<p>Second choice: the spotlight (9). It is stronger than the contour in the move and calmer in the shipment, and the two could be judged side by side in play for a day each.</p>
+<h2>Tuning the contour</h2>
+<p>The contour is drawn as strokes masked to the outside of the reachable region rather than with a filter, so its width, colour and opacity were CSS custom properties during the exploration. The picker on the scene page had sliders for them; these are the same knobs at fixed settings. Every shot is the move with the mouse over Pasty Mesa (South).</p>
+
+<h3>Line width by contrast</h3>
+<p>Rows: visible line width 1, 2 and 3.5 map units. Columns: soft (line at 0.55, halo at 0.4), mid (0.9 and 0.8), strong (1 and 0.95). The dark halo on each side scales with the line.</p>
+<div class="row"><div><p class="lbl">Soft</p></div><div><p class="lbl">Mid</p></div><div><p class="lbl">Strong</p></div></div>
+<div class="row">
+  <div><div class="shot"><img src="highlights/after/contour-w1-soft.png"></div><p class="sub">Width 1</p></div>
+  <div><div class="shot"><img src="highlights/after/contour-w1-mid.png"></div></div>
+  <div><div class="shot"><img src="highlights/after/contour-w1-strong.png"></div></div>
+</div>
+<div class="row">
+  <div><div class="shot"><img src="highlights/after/contour-w2-soft.png"></div><p class="sub">Width 2</p></div>
+  <div><div class="shot"><img src="highlights/after/contour-w2-mid.png"></div></div>
+  <div><div class="shot"><img src="highlights/after/contour-w2-strong.png"></div></div>
+</div>
+<div class="row">
+  <div><div class="shot"><img src="highlights/after/contour-w3-soft.png"></div><p class="sub">Width 3.5</p></div>
+  <div><div class="shot"><img src="highlights/after/contour-w3-mid.png"></div></div>
+  <div><div class="shot"><img src="highlights/after/contour-w3-strong.png"></div></div>
 </div>
 
-<h3>Calls I made that you should approve or change</h3>
+<h3>Line colour</h3>
+<div class="row4">
+  <div><div class="shot"><img src="highlights/after/contour-colour-white.png"></div><p class="sub">White over a dark halo.</p></div>
+  <div><div class="shot"><img src="highlights/after/contour-colour-faction.png"></div><p class="sub">The acting faction's colour over a dark halo.</p></div>
+  <div><div class="shot"><img src="highlights/after/contour-colour-gold.png"></div><p class="sub">The skin's gold over a dark halo.</p></div>
+  <div><div class="shot"><img src="highlights/after/contour-colour-ink.png"></div><p class="sub">Dark ink alone, no halo.</p></div>
+</div>
+<p>Width 2, mid contrast in all four. White and ink are neutral and read the same for every faction. Faction colour ties the region to who is moving but is close to the map's own browns for the Fremen and the Guild, and gold is close to the storm ring.</p>
+
+<h3>Hover wash</h3>
+<div class="row4">
+  <div><div class="shot"><img src="highlights/after/contour-hover-h08.png"></div><p class="sub">White at 0.08.</p></div>
+  <div><div class="shot"><img src="highlights/after/contour-hover-h16.png"></div><p class="sub">White at 0.16, the default.</p></div>
+  <div><div class="shot"><img src="highlights/after/contour-hover-h30.png"></div><p class="sub">White at 0.30.</p></div>
+  <div><div class="shot"><img src="highlights/after/contour-hover-dark.png"></div><p class="sub">Dark at 0.20.</p></div>
+</div>
+<p>The hover is a wash with no outline in every case. White lightens the rock more than the sand, so the low settings vanish on sand. A dark wash shows equally on both but reads as "unavailable", which is what the cursor variant used it for. The picker also offered an outline instead of, or as well as, the wash, and that combination is what was adopted.</p>
+
+<div class="row2">
+  <div><div class="shot"><img src="highlights/after/contour-mid-move.png"></div><p class="sub">Width 2, mid, white, hover 0.16: the move.</p></div>
+  <div><div class="shot"><img src="highlights/after/contour-mid-ship.png"></div><p class="sub">The same in the shipment.</p></div>
+</div>
+
+<h2>The decision</h2>
+<div class="pick">
+<p><strong>Contour for destinations, outline plus wash for the hover, thin faction line for sources.</strong> The contour is the only variant that stays calm in the shipment without giving up the overview. The hover kept an outline after all, once it was rebuilt as a uniform band inside the sector: the heaviness came from mismatched bands at the corners, not from the outline itself. Sources keep a line because they are few and the line is the only thing that says "yours to move".</p>
+<p>The hover validity from variant 7, a grey wash and a not-allowed cursor over a sector that cannot be clicked, was left for a later round. The spotlight (9) was the second choice.</p>
+</div>
+
+<h3>Calls made during the exploration</h3>
 <ul>
-  <li><strong>Everything is behind body classes</strong> named <code>hlv-&lt;name&gt;</code>. The client looks the same as before with none of them set. To adopt a variant, fold its rules into the base rules in <code>_map.scss</code> and delete the rest, and drop the extra layers from <code>MapSelectionHighlights.razor</code> that it does not use. Those layers (territory outlines, markers, the dim mask, the contour union) are rendered on every change of the selection whether or not a variant shows them, which is fine for review and not for keeps.</li>
-  <li><strong>The hover script marks validity for every variant.</strong> The hovered sector's group in the selection layer gets <code>hov</code>, and the map gets <code>hov-valid</code> or <code>hov-invalid</code> while an action owns the map. Only variants 7 and 11 use it today.</li>
+  <li><strong>The variant classes and the extra map layers they used were removed on adoption.</strong> The same goes for the hover script's validity marking, which only variants 7 and 11 used.</li>
   <li><strong>The selected source and the pinned destination are unchanged</strong> in every variant. They are one or two sectors and the strong outline is doing its job there.</li>
-  <li><strong>Sources are drawn with a thin line in every round 2 variant</strong>, since the variants are about destinations. Sources could get the same treatment; in the move there are two and it hardly matters, and in the Guild's site-to-site shipment there can be many.</li>
+  <li><strong>Sources are drawn with a thin line in every round 2 variant</strong>, since the variants are about destinations. That thin line is what was adopted for sources.</li>
 </ul>
 </body></html>

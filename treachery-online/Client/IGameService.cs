@@ -121,6 +121,13 @@ public interface IGameService
     Task<string> RequestAssignSeats(Dictionary<int, int> seatedPlayers);
     Task<string> RequestSetSkin(string skin);
     Task<string> RequestUndo(int untilEventNr);
+
+    // The host choosing a moment to undo to, or null. While it is open, Game,
+    // Player, Status, Actions and CurrentPhase describe the game at that moment.
+    public UndoSession? UndoSession { get; }
+    public void OpenUndo();
+    public void PreviewUndo(int gap);
+    public void CloseUndo();
     Task<string> RequestRestoreRecentlyUndone();
     Task<string> RequestDismissRecentlyUndone();
     Task<string> RequestSetBotSpeed(int speed);

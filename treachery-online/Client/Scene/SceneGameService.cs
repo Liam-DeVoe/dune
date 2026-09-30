@@ -22,6 +22,54 @@ public class SceneGameService : IGameService
     public Faction? Faction => Player?.Faction;
     public Phase? CurrentPhase => Game?.CurrentPhase;
 
+    // As in Client: components see the moment the host is choosing to undo
+    // to, while the members above stay on the live game.
+    public UndoSession? UndoSession { get; private set; }
+    private Game? ShownGame => UndoSession?.Preview ?? Game;
+    Game? IGameService.Game => ShownGame;
+    Player? IGameService.Player => ShownGame?.GetPlayerByUserId(UserId);
+    GameStatus? IGameService.Status => UndoSession?.PreviewStatus ?? Status;
+    List<Type> IGameService.Actions => UndoSession?.Preview != null ? [] : Actions;
+    Phase? IGameService.CurrentPhase => ShownGame?.CurrentPhase;
+
+    public void OpenUndo()
+    {
+        if (Game == null || UndoSession != null) return;
+        UndoSession = new UndoSession(Game, SceneUserId);
+        Refresh(nameof(OpenUndo));
+    }
+
+    public void PreviewUndo(int gap)
+    {
+        if (UndoSession == null) return;
+        UndoSession.MoveTo(gap);
+        Refresh(nameof(PreviewUndo));
+    }
+
+    public void CloseUndo()
+    {
+        if (UndoSession == null) return;
+        EndUndoSession();
+        Refresh(nameof(CloseUndo));
+    }
+
+    private void EndUndoSession()
+    {
+        UndoSession?.RebindLiveHistory();
+        UndoSession = null;
+    }
+
+    // Runs after the session ends, so the history isn't re-bound to the game being replaced.
+    private Task<string> ReplaceGame(Func<Game, Game> next, string source)
+    {
+        if (Game == null) return Task.FromResult("Not in game");
+        EndUndoSession();
+        Game = next(Game);
+        UpdateStatusAndActions();
+        Refresh(source);
+        return Task.FromResult(string.Empty);
+    }
+
     public bool LoggedIn => true;
     public bool IsConnected => true;
     public bool IsHost => true;
@@ -96,6 +144,7 @@ public class SceneGameService : IGameService
         game.Participation.PlayerNames[SceneUserId] = PlayerName!;
         game.Participation.Hosts.Add(SceneUserId);
 
+        EndUndoSession();
         Game = game;
         UpdateStatusAndActions();
     }
@@ -152,14 +201,7 @@ public class SceneGameService : IGameService
         return Task.FromResult<string?>(null);
     }
 
-    public Task<string> RequestUndo(int untilEventNr)
-    {
-        if (Game == null) return Task.FromResult("Not in game");
-        Game = Game.Undo(untilEventNr);
-        UpdateStatusAndActions();
-        Refresh(nameof(RequestUndo));
-        return Task.FromResult(string.Empty);
-    }
+    public Task<string> RequestUndo(int untilEventNr) => ReplaceGame(g => g.Undo(untilEventNr), nameof(RequestUndo));
 
     public Task<string> RequestLoadGame(string state, string? skin = null)
     {
@@ -225,8 +267,8 @@ public class SceneGameService : IGameService
     public Task<string> RequestCancelGame(string scheduledGameId) => Ok();
     public Task<string> RequestSubscribeGame(string scheduledGameId, SubscriptionType subscription) => Ok();
     public Task<string> RequestAssignSeats(Dictionary<int, int> seatedPlayers) => Ok();
-    public Task<string> RequestRestoreRecentlyUndone() => Ok();
-    public Task<string> RequestDismissRecentlyUndone() => Ok();
+    public Task<string> RequestRestoreRecentlyUndone() => ReplaceGame(g => g.RestoreRecentlyUndone(), nameof(RequestRestoreRecentlyUndone));
+    public Task<string> RequestDismissRecentlyUndone() => ReplaceGame(g => g.DismissRecentlyUndone(), nameof(RequestDismissRecentlyUndone));
     public Task SendChatMessage(GameChatMessage e) => Task.CompletedTask;
     public Task SendGlobalChatMessage(GlobalChatMessage message) => Task.CompletedTask;
     public Task<string> AdminUpdateMaintenance(DateTimeOffset maintenanceDate) => Ok();

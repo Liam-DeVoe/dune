@@ -33,13 +33,13 @@
 
         if (staged.AmountOfForces > 0)
         {
-            @Token(skin.GetFactionForceImageUrl(staged.Faction), staged.AmountOfForces, x, y, diameter)
+            @Token(skin.GetFactionForceImageUrl(staged.Faction), staged.AmountOfForces, x, y, diameter, false)
             x += 1.2 * diameter;
         }
 
         if (staged.AmountOfSpecialForces > 0)
         {
-            @Token(skin.GetFactionSpecialForceImageUrl(staged.Faction), staged.AmountOfSpecialForces, x, y, diameter)
+            @Token(skin.GetFactionSpecialForceImageUrl(staged.Faction), staged.AmountOfSpecialForces, x, y, diameter, Support.HasStarredSpecialForce(staged.Faction))
         }
     }
 }
@@ -58,9 +58,10 @@
         base.Dispose();
     }
 
-    private RenderFragment Token(string src, int amount, double x, double y, double diameter) => __builder =>
+    private RenderFragment Token(string src, int amount, double x, double y, double diameter, bool starred) => __builder =>
     {
-        <div class="staged-force" style=@($"left:{Px(x)};top:{Px(y)};width:{Px(diameter)};height:{Px(diameter)}")>
+        // The inline position keeps .force-token from making it relative.
+        <div class="staged-force @(starred ? "force-token starred" : "")" style=@($"position:absolute;left:{Px(x)};top:{Px(y)};width:{Px(diameter)};height:{Px(diameter)};--d:{Px(diameter)}")>
             <img src="@src" alt="Staged force"/>
             <span class="count" style=@($"font:{Client.CurrentSkin.FORCETOKEN_FONT}")>@amount</span>
         </div>

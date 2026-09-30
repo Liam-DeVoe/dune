@@ -27,6 +27,10 @@ fixture *args:
 shots *args:
     uv run scripts/ui/shots.py {{args}}
 
+# Serve the published client with the fixtures on http://127.0.0.1:8765 and print scene URLs to open by hand.
+serve *args:
+    uv run scripts/ui/serve.py {{args}}
+
 # Write design/<area>/gallery.html pairing every before and after shot by name.
 gallery area:
     uv run scripts/ui/gallery.py {{area}}

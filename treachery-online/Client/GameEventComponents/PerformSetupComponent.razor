@@ -31,7 +31,7 @@
             <div><ClickHintComponent Button="ClickHintButton.Lmb" /> place <img class="setup-hint-force" src="@Client.CurrentSkin.GetFactionForceImageUrl(Placer.Faction)" alt="@Name(Placer.Force)" title="@Name(Placer.Force)"/></div>
             @if (MayStageSpecial)
             {
-                <div><ClickHintComponent Button="ClickHintButton.Lmb" Modifier="ClickHintModifier.Shift" /> place <img class="setup-hint-force" src="@Client.CurrentSkin.GetFactionSpecialForceImageUrl(Placer.Faction)" alt="@Name(Placer.SpecialForce)" title="@Name(Placer.SpecialForce)"/></div>
+                <div><ClickHintComponent Button="ClickHintButton.Lmb" Modifier="ClickHintModifier.Shift" /> place <ForceToken Faction="Placer.Faction" Special="true" Size="18" ImgClass="setup-hint-force" Title="@Name(Placer.SpecialForce)"/></div>
             }
             <div><ClickHintComponent Button="ClickHintButton.Rmb" /> remove force</div>
         </div>

@@ -17,37 +17,50 @@
 
     <Body>
 
-        <div class="mt-1">
-            Opponent forces: 
-            @if (Opponent.ForcesIn(Game.CurrentBattle.Territory) > 0)
-            {
-                <img class="img-fluid ms-1" src="@Client.CurrentSkin.GetFactionForceImageUrl(Opponent.Faction)" width=30 height="30" alt="@Client.CurrentSkin.Describe(Opponent.Force)"/>
-                <span>&nbsp;<strong>@Opponent.ForcesIn(Game.CurrentBattle.Territory)</strong></span>
-            }
-            @if (Opponent.HasAlly && Opponent.AlliedPlayer.ForcesIn(Game.CurrentBattle.Territory) > 0)
-            {
-                <img class="img-fluid ms-1" src="@Client.CurrentSkin.GetFactionForceImageUrl(Opponent.Ally)" width=30 height="30" alt="@Client.CurrentSkin.Describe(Opponent.Force)"/>
-                <span>&nbsp;<strong>@Opponent.AlliedPlayer.ForcesIn(Game.CurrentBattle.Territory)</strong></span>
-            }
-            @if (Opponent.SpecialForcesIn(Game.CurrentBattle.Territory) > 0)
-            {
-                <img class="img-fluid ms-1" src="@Client.CurrentSkin.GetFactionSpecialForceImageUrl(Opponent.Faction)" alt="@Client.CurrentSkin.Describe(Opponent.SpecialForce)" width=30 height="30"/>
-                
-                @if (Opponent.Faction != Faction.White) {
-
-                    <span>&nbsp;<strong>@Opponent.SpecialForcesIn(Game.CurrentBattle.Territory)</strong></span>
-                }
-            }
-            @if (Opponent.HasAlly && Opponent.AlliedPlayer.SpecialForcesIn(Game.CurrentBattle.Territory) > 0)
-            {
-                <img class="img-fluid ms-1" src="@Client.CurrentSkin.GetFactionSpecialForceImageUrl(Opponent.Ally)" alt="@Client.CurrentSkin.Describe(Opponent.SpecialForce)" width=30 height="30"/>
-
-                @if (Opponent.Ally != Faction.White)
+        <div class="bp-facts">
+            <div class="bp-fact">
+                <span class="bp-key">Opponent forces</span>
+                @if (Opponent.ForcesIn(Game.CurrentBattle.Territory) > 0)
                 {
-                    <span>&nbsp;<strong>@Opponent.AlliedPlayer.SpecialForcesIn(Game.CurrentBattle.Territory)</strong></span>
+                    <img src="@Client.CurrentSkin.GetFactionForceImageUrl(Opponent.Faction)" width="26" height="26" alt="@Client.CurrentSkin.Describe(Opponent.Force)"/>
+                    <strong>@Opponent.ForcesIn(Game.CurrentBattle.Territory)</strong>
                 }
-            }
+                @if (Opponent.HasAlly && Opponent.AlliedPlayer.ForcesIn(Game.CurrentBattle.Territory) > 0)
+                {
+                    <img src="@Client.CurrentSkin.GetFactionForceImageUrl(Opponent.Ally)" width="26" height="26" alt="@Client.CurrentSkin.Describe(Opponent.Force)"/>
+                    <strong>@Opponent.AlliedPlayer.ForcesIn(Game.CurrentBattle.Territory)</strong>
+                }
+                @if (Opponent.SpecialForcesIn(Game.CurrentBattle.Territory) > 0)
+                {
+                    <ForceToken Faction="Opponent.Faction" Special="true" Size="26" Title="@Client.CurrentSkin.Describe(Opponent.SpecialForce)"/>
 
+                    @if (Opponent.Faction != Faction.White)
+                    {
+                        <strong>@Opponent.SpecialForcesIn(Game.CurrentBattle.Territory)</strong>
+                    }
+                }
+                @if (Opponent.HasAlly && Opponent.AlliedPlayer.SpecialForcesIn(Game.CurrentBattle.Territory) > 0)
+                {
+                    <ForceToken Faction="Opponent.Ally" Special="true" Size="26" Title="@Client.CurrentSkin.Describe(Opponent.SpecialForce)"/>
+
+                    @if (Opponent.Ally != Faction.White)
+                    {
+                        <strong>@Opponent.AlliedPlayer.SpecialForcesIn(Game.CurrentBattle.Territory)</strong>
+                    }
+                }
+            </div>
+
+            <div class="bp-fact">
+                <span class="bp-key">Aggressor</span>
+                @if (Client.Faction == Game.CurrentBattle.Aggressor)
+                {
+                    <strong>You</strong>
+                }
+                else
+                {
+                    <FactionComponent Faction="@Game.CurrentBattle.Aggressor" Diameter="26"/>
+                }
+            </div>
         </div>
 
         @if (Game.CurrentPinkBattleContribution > 0 && !(Player.Faction == Faction.Pink || Player.Ally == Faction.Pink))
@@ -59,17 +72,6 @@
         {
             <div class="text-warning mt-1">Your opponent has no leaders available for this battle!</div>
         }
-
-        <div class="text-warning mt-1">
-            @if(Client.Faction == Game.CurrentBattle.Aggressor) {
-
-                <span>You are aggressor.</span>
-            }
-            else
-            {
-                <span>Aggressor: </span><FactionComponent Faction="@Game.CurrentBattle.Aggressor" Diameter="30"/>
-            }
-        </div>
 
         @if (Game.CurrentVoice != null)
         {
@@ -133,69 +135,82 @@
             <div class="text-success mt-1"><FactionComponent Faction=Faction.Pink Diameter="20"/> forces contribute <strong>@Game.CurrentPinkBattleContribution</strong> to your dial.</div>
         }
 
-        <div class="mt-1">
+        @{
+            var forceSupplier = Battle.DetermineForceSupplier(Game, Player);
+            var maxForces = Battle.MaxForces(Game, forceSupplier, false);
+            var maxSpecialForces = Battle.MaxForces(Game, forceSupplier, true);
+            var mustPay = Forces + SpecialForces > 0 && Battle.MustPayForAnyForcesInBattle(Game, Player);
 
-            @{
-                var forceSupplier = Battle.DetermineForceSupplier(Game, Player);
+            if (maxForces == 0) Forces = 0;
+            if (maxSpecialForces == 0) SpecialForces = 0;
+        }
 
-                if (Battle.MaxForces(Game, forceSupplier, false) > 0)
+        <div class="bp-row">
+
+            @if (maxForces > 0)
+            {
+                <div class="bp-group">
+                    <span class="bp-key">Forces</span>
+                    <SelectForcesComponent @bind-Value="Forces" Min="0" Max="maxForces" Faction=@forceSupplier.Faction Special="false" Class="d-flex" />
+                </div>
+            }
+
+            @if (maxSpecialForces > 0)
+            {
+                <div class="bp-group">
+                    <span class="bp-key">@Client.CurrentSkin.Describe(forceSupplier.SpecialForce)</span>
+                    <SelectForcesComponent @bind-Value="SpecialForces" Min="0" Max="maxSpecialForces" Faction=@forceSupplier.Faction Special="true" Class="d-flex" />
+                </div>
+            }
+
+            @if (mustPay)
+            {
+                var maxResources = Battle.MaxResources(Game, Player, Forces, SpecialForces);
+                var maxAllyResources = Battle.MaxAllyResources(Game, Player, Forces, SpecialForces);
+                var maxTotalResources = Math.Min(Forces + SpecialForces, maxResources + maxAllyResources);
+                var maxPaidByAlly = Math.Min(maxAllyResources, Resources);
+
+                <div class="bp-group">
+                    <span class="bp-key">@Client.CurrentSkin.Describe(Concept.Resource)</span>
+                    <SelectResourcesComponent @bind-Value=@Resources Min=0 Max=@maxTotalResources Title=@Client.CurrentSkin.Format("{0} used to support forces", Concept.Resource) Class="d-flex" />
+                </div>
+
+                @if (Player.Ally == Faction.Brown && maxPaidByAlly > 0)
                 {
-                    <SelectForcesComponent @bind-Value="Forces" Min="0" Max="Battle.MaxForces(Game, forceSupplier, false)" Faction=@forceSupplier.Faction Special="false" /> <span>&nbsp;</span>
-                }
-                else {
-                
-                    Forces = 0;
-                }
-
-                if (Battle.MaxForces(Game, forceSupplier, true) > 0)
-                {
-                    <SelectForcesComponent @bind-Value="SpecialForces" Min="0" Max="Battle.MaxForces(Game, forceSupplier, true)" Faction=@forceSupplier.Faction Special="true" /> <span>&nbsp;</span>
+                    <div class="bp-group">
+                        <span class="bp-key">From ally</span>
+                        <SelectResourcesFromFactionComponent @bind-Value=@ResourcesFromAlly Min=0 Max=@maxPaidByAlly Faction="Player.Ally" Title=@Client.CurrentSkin.Format("{0} paid by your ally", Concept.Resource) Class="d-flex" />
+                    </div>
                 }
                 else
                 {
-                    SpecialForces = 0;
-                }
-
-                if (Forces + SpecialForces > 0 && Battle.MustPayForAnyForcesInBattle(Game, Player))
-                {
-                    var maxResources = Battle.MaxResources(Game, Player, Forces, SpecialForces);
-                    var maxAllyResources = Battle.MaxAllyResources(Game, Player, Forces, SpecialForces);
-                    var maxTotalResources = Math.Min(Forces + SpecialForces, maxResources + maxAllyResources);
-
-                    <SelectResourcesComponent @bind-Value=@Resources Min=0 Max=@maxTotalResources Title=@Client.CurrentSkin.Format("{0} used to support forces", Concept.Resource)/> <span>&nbsp;</span>
-
-                    var maxPaidByAlly = Math.Min(maxAllyResources, Resources);
-
-                    @if (Player.Ally == Faction.Brown && maxPaidByAlly > 0)
-                    {
-                        <SelectResourcesFromFactionComponent @bind-Value=@ResourcesFromAlly Min=0 Max=@maxPaidByAlly Faction="Player.Ally" Title=@Client.CurrentSkin.Format("{0} paid by your ally", Concept.Resource) />
-                    }
-                    else
-                    {
-                        ResourcesFromAlly = 0;
-                    }
-                }
-                else
-                {
-                    Resources = 0;
                     ResourcesFromAlly = 0;
                 }
             }
+            else
+            {
+                Resources = 0;
+                ResourcesFromAlly = 0;
+            }
 
-            @* The arrow and the total wrap as one unit, so a line break after the pickers never separates them. *@
-            <span class="text-nowrap">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" class="bi bi-arrow-right" stroke="currentColor" viewBox="0 0 16 16" style="vertical-align: super">
-                    <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z" />
-                </svg>
+        </div>
 
-                <NumberComponent Value="ConfirmedResult.Dial(Game, Game.CurrentBattle.OpponentOf(Faction).Faction)" NumberBackgroundFillColor="white" NumberBackgroundBorderColor="black" />
-            </span>
-
+        <div class="bp-dial" title="The strength of your forces in this battle">
+            <span class="bp-key">Dial</span>
+            <output>@ConfirmedResult.Dial(Game, Game.CurrentBattle.OpponentOf(Faction).Faction)</output>
+            @if (mustPay && HalfStrengthForces > 0)
+            {
+                <span class="bp-hint">@HalfStrengthForces @(HalfStrengthForces == 1 ? "force counts" : "forces count") at half strength without @Client.CurrentSkin.Describe(Concept.Resource) support.</span>
+            }
         </div>
 
         @if (Battle.ValidBattleHeroes(Game, Player).Any())
         {
-            <SelectFromImageComponent Game="Game" @bind-Value="Hero" Values="Battle.ValidBattleHeroes(Game, Player)" Required="!Game.Applicable(Rule.BattleWithoutLeader)" ImageWidth="80"/>
+            <div class="bp-section">
+                <SelectFromImageComponent Game="Game" @bind-Value="Hero" Values="Battle.ValidBattleHeroes(Game, Player)" Required="!Game.Applicable(Rule.BattleWithoutLeader)" ImageWidth="80">
+                    <Label>Leader</Label>
+                </SelectFromImageComponent>
+            </div>
         }
         else
         {
@@ -204,9 +219,11 @@
 
         @if (Weapons.Any())
         {
-            <SelectFromImageComponent @bind-Value="Weapon" Values="Weapons" Required="false" ImageWidth="80">
-                <Label>Weapon</Label>
-            </SelectFromImageComponent>
+            <div class="bp-section">
+                <SelectFromImageComponent @bind-Value="Weapon" Values="Weapons" Required="false" ImageWidth="80">
+                    <Label>Weapon</Label>
+                </SelectFromImageComponent>
+            </div>
         }
         else
         {
@@ -215,9 +232,11 @@
 
         @if (Defenses.Any())
         {
-            <SelectFromImageComponent @bind-Value="Defense" Values="Defenses" Required="false" ImageWidth="80">
-                <Label>Defense</Label>
-            </SelectFromImageComponent>
+            <div class="bp-section">
+                <SelectFromImageComponent @bind-Value="Defense" Values="Defenses" Required="false" ImageWidth="80">
+                    <Label>Defense</Label>
+                </SelectFromImageComponent>
+            </div>
         }
         else
         {
@@ -313,6 +332,15 @@
     }
 
     private Player Opponent => Game.CurrentBattle.OpponentOf(Faction);
+
+    private int HalfStrengthForces
+    {
+        get
+        {
+            Battle.DetermineForces(Game, Player, Forces, SpecialForces, Resources, out _, out var forcesHalf, out _, out var specialForcesHalf);
+            return forcesHalf + specialForcesHalf;
+        }
+    }
 
     private string GetTextForAspect(PrescienceAspect aspect, Battle plan, bool showEverything)
     {

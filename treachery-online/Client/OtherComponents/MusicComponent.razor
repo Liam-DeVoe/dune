@@ -8,26 +8,22 @@
 *@
 @inherits GameComponent;
  
+@* The volume sliders, drawn inside the menu. The component stays mounted while they are hidden, because it also plays the music. *@
 @if (Visible)
 {
-    <div class="card p-1 mb-2 small">
-        <div class="card-body">
-            
-            <label for="musicVolume" class="form-label">&nbsp;Music volume</label>
-            <input id="musicVolume" class="form-range" type="range" min="0" max="100" step="1" @bind="@DesiredMusicVolume" @bind:event="oninput" @onchange="@AdjustVolume"/>
+    <div class="volume">
+        <label for="musicVolume">Music volume</label>
+        <input id="musicVolume" class="form-range" type="range" min="0" max="100" step="1" @bind="@DesiredMusicVolume" @bind:event="oninput" @onchange="@AdjustVolume"/>
 
-            <label for="effectVolume" class="form-label">&nbsp;Sound effects volume</label>
-            <input id="effectVolume" class="form-range" type="range" min="0" max="100" step="1" @bind="@DesiredEffectVolume" @bind:event="oninput" @onchange="@AdjustVolume" />
-                        
-            @if (IGameService.ChatEnabled)
-            {
-            <label for="chatVolume" class="form-label">&nbsp;Chat notification volume</label>
+        <label for="effectVolume">Sound effects volume</label>
+        <input id="effectVolume" class="form-range" type="range" min="0" max="100" step="1" @bind="@DesiredEffectVolume" @bind:event="oninput" @onchange="@AdjustVolume" />
+
+        @if (IGameService.ChatEnabled)
+        {
+            <label for="chatVolume">Chat notification volume</label>
             <input id="chatVolume" class="form-range" type="range" min="0" max="100" step="1" @bind="@DesiredChatVolume" @bind:event="oninput" @onchange="@AdjustVolume" />
-            }
-                        
-        </div>
+        }
     </div>
-
 }
 
 @code {

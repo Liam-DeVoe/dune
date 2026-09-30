@@ -1,0 +1,38 @@
+@use "../shared";
+
+// A force token image in a wrapper, so that a starred special force can carry
+// its badge (an <img> can't have ::after). --d is the token's diameter. See
+// Support.HasStarredSpecialForce for which special forces are starred.
+.force-token {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+  vertical-align: middle;
+
+  > img {
+    display: block;
+  }
+}
+
+// The star badge: 44% of the token, sitting just past its top-right edge,
+// ink with a parchment star and a thin parchment and ink outline.
+.force-token.starred::after {
+  content: "★";
+  position: absolute;
+  z-index: 1;
+  top: calc(var(--d) * -0.066);
+  right: calc(var(--d) * -0.066);
+  width: calc(var(--d) * 0.44);
+  height: calc(var(--d) * 0.44);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ink-0);
+  color: var(--parchment);
+  font-size: calc(var(--d) * 0.34);
+  line-height: 1;
+  box-shadow:
+    0 0 0 max(1px, calc(var(--d) * 0.027)) var(--parchment),
+    0 0 0 max(1.5px, calc(var(--d) * 0.054)) var(--ink-0);
+  pointer-events: none;
+}

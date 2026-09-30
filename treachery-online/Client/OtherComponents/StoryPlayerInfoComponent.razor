@@ -194,7 +194,7 @@
 
                                     @if (p.SpecialForcesIn(l) > 0)
                                     {
-                                        <img class='img-fluid m-0 p-0' width='24' height='24' src='@Client.CurrentSkin.GetFactionSpecialForceImageUrl(p.Faction)' title=@Client.CurrentSkin.Describe(p.SpecialForce) /><strong>&nbsp;@p.SpecialForcesIn(l)</strong>
+                                        <ForceToken Faction="p.Faction" Special="true" Size="24" ImgClass="img-fluid m-0 p-0" Title="@Client.CurrentSkin.Describe(p.SpecialForce)" /><strong>&nbsp;@p.SpecialForcesIn(l)</strong>
                                     }
 
                                 </div>
@@ -229,7 +229,7 @@
 
                             @if (p.SpecialForcesKilled > 0)
                             {
-                                <img class='img-fluid m-0 p-0' width='24' height='24' src='@Client.CurrentSkin.GetFactionSpecialForceImageUrl(p.Faction)' title=@Client.CurrentSkin.Describe(p.SpecialForce) /><strong>&nbsp;@p.SpecialForcesKilled</strong>
+                                <ForceToken Faction="p.Faction" Special="true" Size="24" ImgClass="img-fluid m-0 p-0" Title="@Client.CurrentSkin.Describe(p.SpecialForce)" /><strong>&nbsp;@p.SpecialForcesKilled</strong>
                             }
 
                             @foreach (var c in p.Leaders.Where(l => !Game.IsAlive(l)))

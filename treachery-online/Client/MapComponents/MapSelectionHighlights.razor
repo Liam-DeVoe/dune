@@ -10,8 +10,25 @@
 @implements IDisposable
 
 @*
- Tints the sectors a player may click for the current map-driven action. Sits
- below the force tokens so the tint never covers them.
+ Marks the sectors that take part in the current map-driven action. Sits
+ below the force tokens so nothing here covers them.
+
+ Destinations are shown as one contour around the whole reachable region,
+ with a light wash inside it, so the map's own sector lines do the work of
+ showing the sectors and the contour only says where reach ends. Sources get
+ a thin outline in the faction's colour. The selected source and the pinned
+ destination keep a strong outline. Locations without a territory border on
+ the map, such as homeworlds and the hidden mobile stronghold, get a circle
+ instead.
+
+ The contour is the region within the line's width of the reachable region,
+ minus the reachable region itself. The near region is built in a mask as the
+ union of every destination's border and wedge, stroked to twice the visible
+ width, so overlapping strokes merge instead of poking out at junctions. A
+ border stroke is limited to its sector's wedge grown by the same width,
+ which keeps the outer half of a border that lies on a sector line or on the
+ planet's rim, where a plain clip would cut it off. There is one such mask
+ for the line and one for the dark halo outside it.
 *@
 
 @{
@@ -22,39 +39,12 @@
 
 @if (map.Owner != null && (map.Selectable.Count > 0 || map.Selected.Count > 0 || map.Targets.Count > 0))
 {
+    // The pinned destination stays in the contour, so pinning it doesn't cut it out of the reachable region.
+    var destinations = map.Targets.Where(l => !map.Selected.Contains(l) && SectorGeometry.HasCenter(skin, l)).ToList();
+    var traced = destinations.Where(HasBorder).ToList();
+
     <svg class="mapsel" width="@skin.MapDimensions.X" height="@skin.MapDimensions.Y" viewBox="0 0 @skin.MapDimensions.X @skin.MapDimensions.Y"
          style="position:absolute; left:0; top:0; width:100%; height:100%; --c:@faction" pointer-events="none">
-
-        @* Exploratory variants of this layer, switched by an hlv-<name> class on body.
-           See design/map-ux/review-highlights.html. Everything below that is not a
-           plain state group is hidden unless a variant shows it. *@
-        @{
-            var targets = map.Targets.Where(l => l != map.Target && !map.Selected.Contains(l) && SectorGeometry.HasCenter(skin, l) && HasBorder(l)).ToList();
-            var wholeTerritories = targets.Select(l => l.Territory).Distinct()
-                .Where(t => Game.Map.Locations(false).Where(l => l.Territory == t && SectorGeometry.HasCenter(skin, l) && HasBorder(l)).All(targets.Contains))
-                .ToHashSet();
-            var involvedShapes = map.Selectable.Concat(map.Selected).Concat(map.Targets).Distinct().Where(l => SectorGeometry.HasCenter(skin, l) && HasBorder(l)).ToList();
-        }
-
-        <defs>
-            <mask id="mapsel-spot" maskUnits="userSpaceOnUse" x="0" y="0" width="@skin.MapDimensions.X" height="@skin.MapDimensions.Y">
-                <rect x="0" y="0" width="@skin.MapDimensions.X" height="@skin.MapDimensions.Y" fill="#fff"/>
-                @foreach (var l in involvedShapes) { @Shape(l, "#000") }
-            </mask>
-            <filter id="mapsel-contour" x="-5%" y="-5%" width="110%" height="110%" filterUnits="userSpaceOnUse">
-                <feMorphology in="SourceAlpha" operator="dilate" radius="2.8" result="outer"/>
-                <feComposite in="outer" in2="SourceAlpha" operator="out" result="ring-wide"/>
-                <feFlood flood-color="#1d0c00" flood-opacity="0.8" result="ink"/>
-                <feComposite in="ink" in2="ring-wide" operator="in" result="ring-ink"/>
-                <feMorphology in="SourceAlpha" operator="dilate" radius="1.8" result="mid"/>
-                <feComposite in="mid" in2="SourceAlpha" operator="out" result="ring-thin"/>
-                <feFlood flood-color="#fff" flood-opacity="0.95" result="pale"/>
-                <feComposite in="pale" in2="ring-thin" operator="in" result="ring-pale"/>
-                <feFlood flood-color="#fff" flood-opacity="0.09" result="wash"/>
-                <feComposite in="wash" in2="SourceAlpha" operator="in" result="wash-in"/>
-                <feMerge><feMergeNode in="wash-in"/><feMergeNode in="ring-ink"/><feMergeNode in="ring-pale"/></feMerge>
-            </filter>
-        </defs>
 
         <defs>
             @foreach (var territory in Involved(map).Select(l => l.Territory).Distinct())
@@ -63,16 +53,53 @@
                     <path d="@skin.GetTerritoryBorder(territory)"/>
                 </clipPath>
             }
+
+            @foreach (var kind in new[] { "line", "halo" })
+            {
+                @foreach (var sector in traced.Select(l => l.Sector).Where(s => s >= 0).Distinct())
+                {
+                    <mask id="mapsel-grow-@kind-@sector" maskUnits="userSpaceOnUse" x="0" y="0" width="@skin.MapDimensions.X" height="@skin.MapDimensions.Y">
+                        <path d="@SectorGeometry.WedgePath(skin, sector)" class="near-@kind"/>
+                    </mask>
+                }
+                <mask id="mapsel-near-@kind" maskUnits="userSpaceOnUse" x="0" y="0" width="@skin.MapDimensions.X" height="@skin.MapDimensions.Y">
+                    @foreach (var l in traced)
+                    {
+                        <g mask="url(#mapsel-grow-@kind-@l.Sector)">
+                            <path d="@skin.GetTerritoryBorder(l.Territory)" class="near-@kind"/>
+                        </g>
+                        @if (l.Sector >= 0)
+                        {
+                            <g clip-path="url(#mapsel-t-@l.Territory.Id)">
+                                <path d="@SectorGeometry.WedgePath(skin, l.Sector)" class="near-@kind"/>
+                            </g>
+                        }
+                    }
+                </mask>
+            }
+            <mask id="mapsel-outside" maskUnits="userSpaceOnUse" x="0" y="0" width="@skin.MapDimensions.X" height="@skin.MapDimensions.Y">
+                <rect x="0" y="0" width="@skin.MapDimensions.X" height="@skin.MapDimensions.Y" fill="#fff"/>
+                @foreach (var l in traced) { @Shape(l, "#000") }
+            </mask>
         </defs>
 
         @foreach (var location in map.Selectable.Where(l => !map.Selected.Contains(l) && SectorGeometry.HasCenter(skin, l)))
         {
             @Highlight(location, "mapsel-selectable")
         }
-        @foreach (var location in map.Targets.Where(l => l != map.Target && SectorGeometry.HasCenter(skin, l)))
+
+        <g class="mapsel-contour">
+            @foreach (var l in traced) { @Shape(l, "#fff", "wash") }
+            <g mask="url(#mapsel-outside)">
+                <rect x="0" y="0" width="@skin.MapDimensions.X" height="@skin.MapDimensions.Y" class="halo" mask="url(#mapsel-near-halo)"/>
+                <rect x="0" y="0" width="@skin.MapDimensions.X" height="@skin.MapDimensions.Y" class="line" mask="url(#mapsel-near-line)"/>
+            </g>
+        </g>
+        @foreach (var location in destinations.Where(l => l != map.Target && !HasBorder(l)))
         {
             @Highlight(location, "mapsel-target")
         }
+
         @foreach (var location in map.Selected.Where(l => SectorGeometry.HasCenter(skin, l)))
         {
             @Highlight(location, "mapsel-selected")
@@ -81,31 +108,6 @@
         {
             @Highlight(map.Target, "mapsel-pinned")
         }
-
-        @* Variant layers, hidden by default. *@
-        <g class="mapsel-territories">
-            @foreach (var t in wholeTerritories)
-            {
-                var border = skin.GetTerritoryBorder(t);
-                <g class="mapsel-territory">
-                    <path d="@border" class="fill"/>
-                    <path d="@border" class="core"/>
-                    <path d="@border" class="edge"/>
-                </g>
-            }
-        </g>
-        <g class="mapsel-dots">
-            @foreach (var l in targets)
-            {
-                var c = skin.GetCenter(l, Game.Map);
-                <circle cx="@Round(c.X)" cy="@Round(c.Y)" r="5.5" class="dot-core"/>
-                <circle cx="@Round(c.X)" cy="@Round(c.Y)" r="5.5" class="dot"/>
-            }
-        </g>
-        <circle class="mapsel-dim" cx="@Round(skin.PlanetCenter.X)" cy="@Round(skin.PlanetCenter.Y)" r="@Round(skin.PlanetRadius + 1)" mask="url(#mapsel-spot)"/>
-        <g class="mapsel-union" filter="url(#mapsel-contour)">
-            @foreach (var l in targets) { @Shape(l, "#fff") }
-        </g>
     </svg>
 }
 
@@ -129,21 +131,12 @@
     private bool HasBorder(Location l) =>
         l is not HiddenMobileStronghold && l is not DiscoveredLocation && !l.IsHomeworld && Client.CurrentSkin.GetTerritoryBorder(l.Territory) != "";
 
-    // A target whose whole territory is a target, so a variant may outline the territory instead of each sector.
-    private bool WholeTerritoryTarget(Location l)
-    {
-        var map = Client.MapInteraction;
-        var skin = Client.CurrentSkin;
-        return Game.Map.Locations(false).Where(x => x.Territory == l.Territory && SectorGeometry.HasCenter(skin, x) && HasBorder(x))
-            .All(x => map.Targets.Contains(x) && x != map.Target && !map.Selected.Contains(x));
-    }
-
-    // The sector's area with a plain fill, for masks and filters.
-    private RenderFragment Shape(Location l, string fill) => __builder =>
+    // The sector's area with a plain fill, for the masks and the wash.
+    private RenderFragment Shape(Location l, string fill, string cls = "") => __builder =>
     {
         var skin = Client.CurrentSkin;
         <g clip-path="url(#@SectorGeometry.SectorClipId(l.Sector))">
-            <path d="@skin.GetTerritoryBorder(l.Territory)" fill="@fill"/>
+            <path d="@skin.GetTerritoryBorder(l.Territory)" fill="@fill" class="@cls"/>
         </g>
     };
 
@@ -156,7 +149,7 @@
             var border = skin.GetTerritoryBorder(l.Territory);
             var sectorClip = SectorGeometry.SectorClipId(l.Sector);
 
-            <g class="@cls @(cls == "mapsel-target" && WholeTerritoryTarget(l) ? "whole" : "")" data-sel-location="@l.Id">
+            <g class="@cls">
                 <g clip-path="url(#@sectorClip)">
                     <path d="@border" class="fill"/>
                     <path d="@border" class="core"/>
@@ -178,7 +171,7 @@
         {
             var center = skin.GetCenter(l, Game.Map);
             var radius = l is HiddenMobileStronghold ? skin.HmsRadius : 2.2f * skin.PlayerTokenRadius;
-            <g class="@cls" data-sel-location="@l.Id">
+            <g class="@cls">
                 <circle cx="@Round(center.X)" cy="@Round(center.Y)" r="@Round(radius)" class="fill"/>
                 <circle cx="@Round(center.X)" cy="@Round(center.Y)" r="@Round(radius)" class="edge"/>
             </g>

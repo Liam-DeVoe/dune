@@ -90,11 +90,11 @@ class Server(ThreadingHTTPServer):
 class StaticServer:
     """Serves a published client from a free port on 127.0.0.1 until stopped."""
 
-    def __init__(self, client: Path):
+    def __init__(self, client: Path, port: int = 0):
         self.wwwroot = client / "wwwroot"
         if not (self.wwwroot / "index.html").exists():
             raise FileNotFoundError(f"{self.wwwroot}/index.html; publish the client with scripts/publish-client.sh")
-        self._httpd = Server(("127.0.0.1", 0), partial(Handler, wwwroot=self.wwwroot))
+        self._httpd = Server(("127.0.0.1", port), partial(Handler, wwwroot=self.wwwroot))
         self._thread = threading.Thread(target=self._httpd.serve_forever, daemon=True)
 
     @property

@@ -40,22 +40,23 @@
         @* The centre is where a pinned arrow ends, so the cursor arrow can snap to it. *@
         var center = SectorGeometry.HasCenter(skin, location) ? skin.GetCenter(location, Game.Map) : (PointD?)null;
 
+        @* The outline is clipped to the sector's own area, so every stroke
+           shows only its inner half and the band is the same width along a
+           border and along a sector line, meeting cleanly at the corners.
+           Stroke widths in CSS are twice the visible width for this. *@
         <g class="hover-shape" data-location-id="@location.Id" data-cx="@(center is { } c ? Round(c.X) : null)" data-cy="@(center is { } d ? Round(d.Y) : null)">
             <g clip-path="url(#@sectorClip)">
                 <path d="@border" class="fill"/>
-                <path d="@border" class="core"/>
-                <path d="@border" class="edge"/>
-            </g>
-            @if (location.Sector >= 0)
-            {
-                @* Clipped by both shapes, so only the inner half of the stroke shows; .radial doubles the width to make up for it. *@
                 <g clip-path="url(#maphover-t-@location.Territory.Id)">
-                    <g clip-path="url(#@sectorClip)">
+                    <path d="@border" class="core"/>
+                    <path d="@border" class="edge"/>
+                    @if (location.Sector >= 0)
+                    {
                         <path d="@SectorGeometry.WedgePath(skin, location.Sector)" class="core radial"/>
                         <path d="@SectorGeometry.WedgePath(skin, location.Sector)" class="edge radial"/>
-                    </g>
+                    }
                 </g>
-            }
+            </g>
         </g>
     }
 </svg>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Battle plan prompt: original, before, after</title>
+<style>
+  body { margin: 0; background: #1d0c00; color: #fcf9d1; font-family: "Alegreya Sans", Candara, sans-serif; padding: 32px 48px 80px; }
+  h1 { font-weight: 400; font-size: 34px; margin: 0 0 8px; }
+  p { color: #d9c7a0; max-width: 88ch; line-height: 1.45; margin: 0 0 10px; }
+  code { font-family: ui-monospace, Menlo, monospace; font-size: 0.9em; color: #f3d987; }
+  .cols, .row .shots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; align-items: start; }
+  .cols { position: sticky; top: 0; background: #1d0c00; padding: 12px 0 8px; z-index: 1; border-bottom: 1px solid rgba(255,255,255,.1); }
+  .cols div { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: #a68d63; }
+  .cols div b { display: block; font-size: 15px; letter-spacing: 0; text-transform: none; color: #fcf9d1; font-weight: 600; }
+  .row { margin-top: 36px; }
+  .row h2 { font-size: 20px; font-weight: 600; margin: 0 0 6px; color: #f3d987; }
+  .row h2 .n { display: inline-block; min-width: 28px; }
+  .scope { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 10px; margin-left: 8px; vertical-align: 2px; font-weight: 400; }
+  .scope.local { background: rgba(255,255,255,.08); color: #d9c7a0; }
+  .scope.global { background: rgba(228,107,107,.2); color: #f0a3a3; }
+  .shot { border: 1px solid rgba(255,255,255,.12); border-radius: 6px; overflow: hidden; background: #000; }
+  .shot img { width: 100%; display: block; }
+  .shot.native img { width: auto; max-width: 100%; }
+  .none { border: 1px dashed rgba(255,255,255,.2); border-radius: 6px; padding: 18px; color: #a68d63; font-size: 14px; }
+  hr { border: 0; border-top: 1px solid rgba(255,255,255,.1); margin: 48px 0 0; }
+</style>
+</head>
+<body>
+
+<h1>Battle plan prompt</h1>
+<p>Each row below is one change, shown in three builds of the same game: Guild fighting Atreides in Habbanya Sietch, with Advanced Combat on and 2 forces dialled.</p>
+<p>The rows are numbered, so you can reply with the ones to keep or drop. A red tag means the change also affects prompts other than the battle plan.</p>
+
+<div class="cols">
+  <div><b>Original fork</b>commit 8f203621</div>
+  <div><b>Before</b>the fork's redesign, as of today</div>
+  <div><b>After</b>this change</div>
+</div>
+
+<div class="row">
+  <h2><span class="n">1.</span>Opponent and aggressor line<span class="scope local">battle only</span></h2>
+  <p>"Opponent forces" and "Aggressor" become small uppercase labels. Aggressor was orange, the warning colour, and is now neutral. When you are the aggressor it says "You" instead of "You are aggressor."</p>
+  <div class="shots">
+    <div class="shot"><img src="crops/facts-original.png" alt=""></div>
+    <div class="shot"><img src="crops/facts-before.png" alt=""></div>
+    <div class="shot"><img src="crops/facts-after.png" alt=""></div>
+  </div>
+</div>
+
+<div class="row">
+  <h2><span class="n">2.</span>Labels above the steppers<span class="scope local">battle only</span></h2>
+  <p>Each stepper gets a label: "Forces", the special force's name when you have them, "Spice", and "From ally" when an ally pays. Without labels the only difference between the forces and spice steppers is the icon.</p>
+  <div class="shots">
+    <div class="shot"><img src="crops/steppers-original.png" alt=""></div>
+    <div class="shot"><img src="crops/steppers-before.png" alt=""></div>
+    <div class="shot"><img src="crops/steppers-after.png" alt=""></div>
+  </div>
+</div>
+
+<div class="row">
+  <h2><span class="n">3.</span>Dial on its own line<span class="scope local">battle only</span></h2>
+  <p>The arrow and white circle become a gold box labelled "Dial", on its own line under the steppers.</p>
+  <p>In the original, both steppers and the dial fit on one line. The fork's redesign made the steppers wider, so the dial already wrapped to a second line in "Before," with the arrow sitting higher than the number. Change 3 makes that second line deliberate. If you'd rather keep the dial on the stepper line, the other fix is to make the steppers narrower again.</p>
+  <p>Same shots as row 2.</p>
+</div>
+
+<div class="row">
+  <h2><span class="n">4.</span>Half-strength hint<span class="scope local">battle only</span></h2>
+  <p>With Advanced Combat on, forces without spice support count half. When that lowers the dial, a line under it explains why: "2 forces count at half strength without Spice support." Neither earlier build explains why 2 forces give a dial of 1. You can see the hint at the bottom of the row 2 "After" shot.</p>
+</div>
+
+<div class="row">
+  <h2><span class="n">5.</span>Section labels and spacing<span class="scope local">battle only</span></h2>
+  <p>The leaders get a "Leader" label, which they never had. Leader, Weapon and Defense use the same small label as the steppers and sit 16px apart, where every block used to be 4px apart.</p>
+  <div class="shots">
+    <div class="shot"><img src="crops/leaders-original.png" alt=""></div>
+    <div class="shot"><img src="crops/leaders-before.png" alt=""></div>
+    <div class="shot"><img src="crops/leaders-after.png" alt=""></div>
+  </div>
+  <div class="shots" style="margin-top:12px">
+    <div class="shot"><img src="crops/sections-original.png" alt=""></div>
+    <div class="shot"><img src="crops/sections-before.png" alt=""></div>
+    <div class="shot"><img src="crops/sections-after.png" alt=""></div>
+  </div>
+</div>
+
+<div class="row">
+  <h2><span class="n">6.</span>Gap between rows of images<span class="scope global">every image picker</span></h2>
+  <p>In both earlier builds, when the images wrap to a second row it touches the first. They now sit 6px apart, and 4px side by side (previously 4px of right padding). This is <code>SelectFromImageComponent</code>, which is also used for card and leader choices in other prompts. I haven't screenshotted those. See the leader row in row 5.</p>
+</div>
+
+<div class="row">
+  <h2><span class="n">7.</span>Stepper button font<span class="scope global">every number stepper</span></h2>
+  <p>The − and + buttons switch from the display font to the body font, because the display font draws the minus sign with little serifs, like a bracket. This is <code>.num</code> in <code>_number.scss</code>, used by every stepper. The original didn't have these buttons; it had arrow icons.</p>
+  <div class="shots">
+    <div class="shot native"><img src="crops/minus-original.png" alt=""></div>
+    <div class="shot native"><img src="crops/minus-before.png" alt=""></div>
+    <div class="shot native"><img src="crops/minus-after.png" alt=""></div>
+  </div>
+</div>
+
+<hr>
+
+<div class="row">
+  <h2>Full prompt, 2 forces dialled</h2>
+  <div class="shots">
+    <div class="shot"><img src="original/battle-2-forces.png" alt=""></div>
+    <div class="shot"><img src="before/battle-2-forces.png" alt=""></div>
+    <div class="shot"><img src="after/battle-2-forces.png" alt=""></div>
+  </div>
+</div>
+
+<div class="row">
+  <h2>Full prompt, no forces dialled</h2>
+  <div class="shots">
+    <div class="shot"><img src="original/battle-1-plan.png" alt=""></div>
+    <div class="shot"><img src="before/battle-1-plan.png" alt=""></div>
+    <div class="shot"><img src="after/battle-1-plan.png" alt=""></div>
+  </div>
+</div>
+
+<p style="margin-top:32px;font-size:13px;color:#a68d63">The original column was built from 8f203621 with the screenshot page copied in from the fork. The battle prompt itself is unchanged from that commit.</p>
+
+</body>
+</html>

@@ -11,7 +11,16 @@
 
     @if (SymbolSrc != null)
     {
-        <span class="ic @IconClass" style="@IconStyle"><img src="@SymbolSrc" alt="" /></span>
+        <span class="ic @IconClass" style="@IconStyle">
+            @if (SymbolStarred)
+            {
+                <span class="force-token starred" style="--d:18px"><img src="@SymbolSrc" alt="" /></span>
+            }
+            else
+            {
+                <img src="@SymbolSrc" alt="" />
+            }
+        </span>
     }
 
     <button type="button" tabindex="-1" aria-label="Decrease" disabled="@(!MayDecrease)" @onclick="Decrease">−</button>
@@ -54,6 +63,10 @@
 
     [Parameter]
     public string? SymbolSrc { get; set; }
+
+    // The symbol is a starred special force (see Support.HasStarredSpecialForce) and gets the star badge.
+    [Parameter]
+    public bool SymbolStarred { get; set; }
 
     [Parameter]
     public string? SymbolBackgroundFillColor { get; set; }

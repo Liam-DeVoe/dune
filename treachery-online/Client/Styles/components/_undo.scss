@@ -1,0 +1,268 @@
+@use "../shared";
+
+// Undo: the host's panel (UndoComponent) and the timeline under the map
+// (UndoTimeline). The board, player panel and report need no styles of their
+// own while undoing; they draw the game at the chosen moment as usual.
+
+// The part of the game that would be undone, in both timeline rows.
+@mixin undone-hatch {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(135deg, rgba(195, 50, 50, 0.28) 0 3px, transparent 3px 7px);
+}
+
+@mixin label-face($size: 11px) {
+  font-family: var(--font-label);
+  font-size: $size;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.panel.undo {
+  > .body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .kicker {
+    @include label-face;
+  }
+
+  .dest {
+    font-family: var(--font-display);
+    font-size: 20px;
+    color: var(--parchment);
+    line-height: 1.1;
+    margin-top: 2px;
+  }
+
+  .empty {
+    color: var(--text-2);
+  }
+
+  // What would be undone, newest first. Lines are the report's.
+  .undone {
+    max-height: 200px;
+    overflow-y: auto;
+    margin: 4px -14px 0;
+    padding: 0 14px 6px;
+    border-top: 1px solid shared.$hairline;
+    border-bottom: 1px solid shared.$hairline;
+
+    .group {
+      @include label-face(10.5px);
+      padding: 8px 0 2px;
+    }
+
+    .line {
+      color: var(--text-2);
+      font-size: 14px;
+      padding: 2px 0;
+    }
+  }
+
+  .actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+}
+
+.undo-timeline {
+  margin: 8px 0 28px;
+  user-select: none;
+
+  // The whole game, one block per turn.
+  .turns {
+    display: flex;
+    gap: 2px;
+    height: 18px;
+    position: relative;
+
+    .turn {
+      background: var(--ink-2);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 2px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: clip;
+      min-width: 0;
+      @include label-face(10px);
+      letter-spacing: 0.12em;
+
+      &:hover {
+        background: var(--ink-3);
+        color: var(--text-2);
+      }
+
+      &.focus {
+        background: var(--ink-3);
+        color: var(--sand);
+        border-color: rgba(255, 255, 255, 0.2);
+      }
+    }
+
+    .gone {
+      @include undone-hatch;
+    }
+
+    .mark {
+      position: absolute;
+      top: -3px;
+      bottom: -3px;
+      width: 2px;
+      margin-left: -1px;
+      background: var(--gold);
+      pointer-events: none;
+    }
+  }
+
+  // One turn: a segment per phase, a tick per event, a zone per gap.
+  .track {
+    position: relative;
+    height: 44px;
+    margin-top: 18px;
+    cursor: pointer;
+    touch-action: none;
+
+    .phase {
+      position: absolute;
+      top: 0;
+      height: 44px;
+      background: var(--ink-2);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-left-width: 2px;
+      border-left-color: var(--ink-1);
+      border-radius: 2px;
+      pointer-events: none;
+
+      span {
+        position: absolute;
+        top: 48px;
+        left: 2px;
+        right: 0;
+        font-size: 12px;
+        color: var(--text-3);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+
+    .tick {
+      position: absolute;
+      top: 15px;
+      width: 1px;
+      height: 14px;
+      background: rgba(252, 249, 209, 0.3);
+      pointer-events: none;
+    }
+
+    .gone {
+      @include undone-hatch;
+    }
+
+    .now {
+      position: absolute;
+      right: 0;
+      top: -6px;
+      height: 56px;
+      width: 2px;
+      margin-right: -1px;
+      background: rgba(252, 249, 209, 0.45);
+      pointer-events: none;
+
+      &::after {
+        content: "Now";
+        position: absolute;
+        top: 58px;
+        right: 4px;
+        @include label-face(10px);
+      }
+    }
+
+    .handle {
+      position: absolute;
+      top: -8px;
+      height: 60px;
+      width: 2px;
+      margin-left: -1px;
+      background: var(--gold);
+      pointer-events: none;
+
+      &::before {
+        content: "";
+        position: absolute;
+        top: -6px;
+        left: -6px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--gold);
+        box-shadow: 0 0 0 2px var(--ink-1);
+      }
+    }
+
+    .zone {
+      position: absolute;
+      top: -8px;
+      bottom: -4px;
+
+      &:hover::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 4px;
+        bottom: 0;
+        width: 1px;
+        background: rgba(231, 191, 60, 0.55);
+      }
+    }
+  }
+
+  // The gap under the pointer: the event it keeps, the cut, the event it undoes.
+  .undo-tip {
+    position: absolute;
+    bottom: 62px;
+    transform: translateX(-50%);
+    z-index: 5;
+    width: 330px;
+    max-width: none;
+    padding: 8px 10px;
+    pointer-events: none;
+
+    .when {
+      @include label-face(10px);
+      margin-bottom: 2px;
+    }
+
+    .line {
+      font-size: 14px;
+      padding: 3px 0;
+    }
+
+    .out {
+      color: var(--text-3);
+      text-decoration: line-through;
+      text-decoration-color: rgba(252, 249, 209, 0.3);
+    }
+
+    .nothing {
+      color: var(--text-3);
+    }
+
+    .cut {
+      height: 2px;
+      background: var(--gold);
+      margin: 3px 0;
+    }
+  }
+}

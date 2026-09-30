@@ -6,26 +6,16 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
+@using Microsoft.AspNetCore.Components.Rendering
 @implements IDisposable;
 
-@if (!PopoverAsTooltip && Popover != null)
+@if (Starred)
 {
-    if (OnClick.HasDelegate)
-    {
-        <img alt="@Alt" class="@JointClass" width=@_imgWidth src=@Src @onclick="@OnClick" @ref=@_element data-bs-toggle="popover" data-bs-animation="true" data-bs-html="true" data-bs-placement="auto" data-bs-trigger="hover" data-bs-content=@Popover />
-    }
-    else
-    {
-        <img alt="@Alt" class="@JointClass" width=@_imgWidth src=@Src @ref=@_element data-bs-toggle="popover" data-bs-animation="true" data-bs-html="true" data-bs-placement="auto" data-bs-trigger="hover" data-bs-content=@Popover />
-    }
-}
-else if (Popover != null)
-{
-    <img alt="@Alt" class="@JointClass" width=@_imgWidth src=@Src @onclick="@OnClick" title=@Popover />
+    <span class="force-token starred" style="--d:@(_imgWidth)px">@{ RenderImg(__builder); }</span>
 }
 else
 {
-    <img alt="@Alt" class="@JointClass" width=@_imgWidth src=@Src @onclick="@OnClick"/>
+    RenderImg(__builder);
 }
 
 @code {
@@ -137,6 +127,32 @@ else
             _ => Client.CurrentSkin.Describe(Shown)
         };
     }
+
+    private void RenderImg(RenderTreeBuilder __builder)
+    {
+        @if (!PopoverAsTooltip && Popover != null)
+        {
+            if (OnClick.HasDelegate)
+            {
+                <img alt="@Alt" class="@JointClass" width=@_imgWidth src=@Src @onclick="@OnClick" @ref=@_element data-bs-toggle="popover" data-bs-animation="true" data-bs-html="true" data-bs-placement="auto" data-bs-trigger="hover" data-bs-content=@Popover />
+            }
+            else
+            {
+                <img alt="@Alt" class="@JointClass" width=@_imgWidth src=@Src @ref=@_element data-bs-toggle="popover" data-bs-animation="true" data-bs-html="true" data-bs-placement="auto" data-bs-trigger="hover" data-bs-content=@Popover />
+            }
+        }
+        else if (Popover != null)
+        {
+            <img alt="@Alt" class="@JointClass" width=@_imgWidth src=@Src @onclick="@OnClick" title=@Popover />
+        }
+        else
+        {
+            <img alt="@Alt" class="@JointClass" width=@_imgWidth src=@Src @onclick="@OnClick"/>
+        }
+    }
+
+    // A starred special force (see Support.HasStarredSpecialForce) gets the star badge. Width is its diameter.
+    private bool Starred => Shown is FactionSpecialForce.Yellow or FactionSpecialForce.Red or FactionSpecialForce.Grey && Width > 0;
 
     private string Alt => Shown != null ? Client.CurrentSkin.Describe(Shown) : "";
 

@@ -228,7 +228,6 @@
         function ShowMapHover(locationId) {
             if (mapHoverInner == null) return;
             mapHoverInner.querySelectorAll('.maphover .hover-shape.on').forEach(function (shape) { shape.classList.remove('on'); });
-            MarkMapHoverValidity(locationId);
             if (locationId == null) return;
             const shape = mapHoverInner.querySelector('.maphover .hover-shape[data-location-id="' + locationId + '"]');
             if (shape != null) shape.classList.add('on');
@@ -291,21 +290,6 @@
             });
             const faction = chip.dataset.refFaction;
             if (faction) document.querySelectorAll('[data-faction-of="' + faction + '"]').forEach(function (el) { el.classList.add('ref-hi'); });
-        }
-
-        // Tells the selection layer which of its sectors is under the mouse
-        // (.hov on that sector's group) and tells the map whether the hovered
-        // sector takes part in the current action at all (hov-valid or
-        // hov-invalid on the map), so CSS can style the hover by validity.
-        function MarkMapHoverValidity(locationId) {
-            const inner = mapHoverInner;
-            inner.querySelectorAll('.mapsel .hov').forEach(function (g) { g.classList.remove('hov'); });
-            inner.classList.remove('hov-valid', 'hov-invalid');
-            const sel = inner.querySelector('.mapsel');
-            if (sel == null || locationId == null) return;
-            const groups = sel.querySelectorAll('[data-sel-location="' + locationId + '"]');
-            groups.forEach(function (g) { g.classList.add('hov'); });
-            inner.classList.add(groups.length > 0 ? 'hov-valid' : 'hov-invalid');
         }
 
         // A panel pinned near the page's edge would run off it. This shifts
@@ -619,6 +603,23 @@
 
                 modal.hide();
             }
+        }
+
+        // Escape goes to the most recent listener still registered, so an
+        // open menu closes before the undo panel under it.
+        const escapeTargets = [];
+        document.addEventListener("keydown", e => {
+            if (e.key === "Escape" && escapeTargets.length) escapeTargets[escapeTargets.length - 1].target.invokeMethodAsync("OnEscape");
+        });
+
+        function ListenForEscape(key, dotNetObject) {
+            StopListeningForEscape(key);
+            escapeTargets.push({ key: key, target: dotNetObject });
+        }
+
+        function StopListeningForEscape(key) {
+            const i = escapeTargets.findIndex(t => t.key === key);
+            if (i >= 0) escapeTargets.splice(i, 1);
         }
 
         function ToggleFullScreen() {

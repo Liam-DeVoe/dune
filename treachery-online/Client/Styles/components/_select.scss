@@ -98,3 +98,11 @@
   margin-top: 4px;
   border-top: 1px solid shared.$hairline;
 }
+
+// A row of image choices (leaders, cards) from SelectFromImageComponent.
+// Rows that wrap get a gap, so they do not touch.
+.img-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 4px;
+}

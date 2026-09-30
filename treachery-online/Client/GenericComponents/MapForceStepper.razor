@@ -11,7 +11,16 @@
 @* A small force counter for panels pinned on the map. *@
 
 <div class="pin-step" title="@Title">
-    <span class="ic" style="background:@Background"><img src="@Src" alt=""/></span>
+    <span class="ic" style="background:@Background">
+        @if (Starred)
+        {
+            <span class="force-token starred" style="--d:16px"><img src="@Src" alt=""/></span>
+        }
+        else
+        {
+            <img src="@Src" alt=""/>
+        }
+    </span>
     <button type="button" tabindex="-1" aria-label="Fewer" disabled="@(Value <= Min)" @onclick="@(() => Change(-1))">−</button>
     <span class="val">@Value</span>
     <button type="button" tabindex="-1" aria-label="More" disabled="@(Value >= Max)" @onclick="@(() => Change(1))">+</button>
@@ -45,6 +54,8 @@
     public string? Label { get; set; }
 
     private string Src => Spice ? Client.CurrentSkin.Resource_URL : Special ? Client.CurrentSkin.GetFactionSpecialForceImageUrl(Faction) : Client.CurrentSkin.GetFactionForceImageUrl(Faction);
+
+    private bool Starred => !Spice && Special && Support.HasStarredSpecialForce(Faction);
 
     private string Background => Spice ? "transparent" : Client.CurrentSkin.GetFactionColor(Faction);
 

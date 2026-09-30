@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Special forces: ways to tell them apart</title>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+@font-face { font-family: "Advokat"; src: url("../treachery-online/Client/wwwroot/Advokat.ttf"); }
+@font-face { font-family: "Copperplate Dune"; src: url("../treachery-online/Client/wwwroot/Copperplate.ttf"); }
+:root {
+  --ink-0: #120800; --ink-1: #1d0c00; --ink-2: #2a1607; --ink-3: #3b2310;
+  --parchment: #fcf9d1; --sand: #f3d987; --rock-2: #8c6b3e;
+  --text-2: #d9c79a; --text-3: #a68d63; --gold: #e7bf3c; --gold-3: #b8841e;
+  --font-display: "Advokat", serif; --font-label: "Copperplate Dune", serif;
+  --font-body: "Alegreya Sans", sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--ink-1); color: var(--parchment); font-family: var(--font-body); font-size: 16px; padding: 28px 36px 80px; }
+h1 { font-family: var(--font-display); font-weight: 400; font-size: 32px; margin: 0 0 6px; }
+.intro { color: var(--text-2); max-width: 92ch; margin: 0 0 16px; line-height: 1.45; }
+.bar { display: flex; gap: 6px; align-items: center; margin-bottom: 16px; position: sticky; top: 0; background: var(--ink-1); padding: 10px 0; z-index: 5; }
+.bar .lbl { margin-right: 6px; }
+.bar button { font: 14px var(--font-body); padding: 5px 12px; border-radius: 3px; border: 1px solid rgba(255,255,255,.16); background: transparent; color: var(--text-2); cursor: pointer; }
+.bar button.on { background: var(--ink-3); color: var(--parchment); border-color: var(--gold-3); }
+.lbl { font-family: var(--font-label); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-3); }
+
+table { border-collapse: separate; border-spacing: 0 10px; }
+th { text-align: left; font-weight: 400; padding: 0 10px 4px; vertical-align: bottom; }
+td { vertical-align: middle; padding: 0 10px; }
+td.name { width: 230px; padding-left: 0; }
+td.name b { display: block; font-size: 16px; color: var(--sand); font-weight: 500; }
+td.name span { display: block; font-size: 13px; color: var(--text-3); line-height: 1.3; margin-top: 2px; }
+td.name i { display: inline-block; font-style: normal; font-size: 11px; color: #f0a3a3; background: rgba(228,107,107,.16); padding: 0 6px; border-radius: 8px; margin-top: 4px; }
+.cell { border-radius: 6px; display: flex; align-items: center; gap: 10px; }
+
+/* Backgrounds each context sits on */
+.map { background: url("../treachery-online/Client/wwwroot/art/map.svg") var(--mx) var(--my) / 1689px 1878px, #e9d7a4; width: 140px; height: 70px; position: relative; overflow: hidden; border: 1px solid rgba(0,0,0,.4); }
+.map.far { width: 110px; }
+.ink { background: var(--ink-2); border: 1px solid rgba(255,255,255,.09); padding: 10px 12px; width: 150px; height: 70px; }
+.parch { background: var(--parchment); color: var(--ink-1); border: 1px solid var(--gold-3); padding: 10px 12px; width: 150px; height: 70px; }
+.parch.wide { width: 190px; }
+
+/* A force token. Decorations are sized in em, so one rule works at every size. */
+.tk { --fc: var(--fac); font-size: var(--s, 24px); width: 1em; height: 1em; position: relative; display: inline-block; flex: none; border-radius: 50%; }
+.tk img { width: 100%; height: 100%; display: block; position: relative; z-index: 1; }
+.tk::before, .tk::after { content: none; position: absolute; pointer-events: none; }
+
+/* Map stacks, drawn as MapForce does: one image per force, offset up and left, count at the bottom right. */
+.stack { position: absolute; }
+.stack .tk { position: absolute; }
+.count { position: absolute; font: 700 calc(var(--s) * .62) var(--font-body); color: #fff; -webkit-text-stroke: 1px #000; paint-order: stroke; z-index: 3; line-height: 1; white-space: nowrap; }
+
+/* Panel and prompt rows: token then count */
+.pair { display: inline-flex; align-items: center; gap: 4px; }
+.pair b { font-family: var(--font-display); font-weight: 400; font-size: 18px; }
+.pair.sp-pair { margin-left: 6px; }
+.pair.sp-pair b { margin-left: 4px; }
+
+/* Stepper icon cell, as in the number input */
+.num { display: inline-flex; height: 32px; border: 1px solid rgba(29,12,0,.3); border-radius: 6px; overflow: hidden; background: rgba(255,255,255,.55); }
+.num .ic { width: 34px; display: grid; place-items: center; background: var(--fac); border-right: 1px solid rgba(29,12,0,.2); }
+.num .v { width: 36px; display: grid; place-items: center; font: 18px var(--font-display); }
+
+/* Battle token row: full, half, not dialled */
+.row { display: flex; gap: 5px; align-items: center; }
+.tk.half .veil { position: absolute; inset: 0; z-index: 2; border-radius: 50%; background: linear-gradient(90deg, transparent 50%, rgba(252,249,209,.7) 50%); }
+.tk.out { opacity: .35; filter: grayscale(1); }
+
+/* ---------- The options. Each only touches .sp tokens inside its row. ---------- */
+
+/* 1. Double ring */
+.o-ring .sp { box-shadow: 0 0 0 .05em var(--ink-0), 0 0 0 .12em var(--parchment), 0 0 0 .16em var(--ink-0); }
+
+/* 2. Bright rim: one thick parchment band */
+.o-rim .sp { box-shadow: 0 0 0 .11em var(--parchment), 0 0 0 .15em var(--ink-0); }
+
+/* 3. Milled edge, like a coin */
+.o-milled .sp::before { content: ""; inset: -.13em; border-radius: 50%; z-index: 0;
+  background: repeating-conic-gradient(var(--ink-0) 0 7deg, var(--parchment) 7deg 15deg); }
+
+/* 4. Sun rays behind the token */
+.o-rays .sp::before { content: ""; inset: -.24em; z-index: 0; background: var(--ink-0);
+  clip-path: polygon(50% 0%, 56% 30%, 75% 7%, 67% 35%, 93% 25%, 72% 45%, 100% 50%, 72% 55%, 93% 75%, 67% 65%, 75% 93%, 56% 70%, 50% 100%, 44% 70%, 25% 93%, 33% 65%, 7% 75%, 28% 55%, 0% 50%, 28% 45%, 7% 25%, 33% 35%, 25% 7%, 44% 30%); }
+
+/* 5. Cog edge in a deep shade of the faction colour */
+.o-cog .sp::before { content: ""; inset: -.13em; z-index: 0; background: color-mix(in srgb, var(--fac) 45%, #120800);
+  -webkit-mask: repeating-conic-gradient(#000 0 11.25deg, transparent 11.25deg 22.5deg), radial-gradient(circle, #000 0 44%, transparent 44.5%);
+  mask: repeating-conic-gradient(#000 0 11.25deg, transparent 11.25deg 22.5deg), radial-gradient(circle, #000 0 44%, transparent 44.5%); border-radius: 50%; }
+
+/* 6. Stacked coin: a second disc peeking out behind */
+.o-stacked .sp::before { content: ""; inset: 0; z-index: 0; border-radius: 50%; transform: translate(.14em, .14em);
+  background: color-mix(in srgb, var(--fac) 55%, #120800); box-shadow: 0 0 0 .04em var(--ink-0); }
+
+/* 7. Star badge on the edge */
+.o-star .sp::after { content: "★"; z-index: 3; font-size: .5em; width: 1.1em; height: 1.1em; top: -.35em; right: -.35em; border-radius: 50%;
+  background: var(--ink-0); color: var(--parchment); line-height: 1; display: grid; place-items: center; box-shadow: 0 0 0 .14em var(--parchment); }
+
+/* 7a–7h. Star badge variants: size, position, fill. Shared base first. */
+[class*="o-star-"] .sp::after { content: "★"; z-index: 3; position: absolute; display: grid; place-items: center; line-height: 1; border-radius: 50%; }
+/* Only the top token of a map stack carries a badge */
+[class*="o-star"] .stack .sp:not(.top)::after { content: none !important; }
+
+/* Small, tucked inside the top-right edge, over the art's own star */
+.o-star-in .sp::after { font-size: max(.36em, 7px); width: 1.3em; height: 1.3em; top: -.05em; right: -.05em; background: var(--ink-0); color: var(--parchment); box-shadow: 0 0 0 .1em var(--parchment); }
+/* Bare star, no disc, with an ink outline */
+.o-star-bare .sp::after { font-size: .64em; top: -.36em; right: -.26em; color: var(--parchment); -webkit-text-stroke: .14em var(--ink-0); paint-order: stroke fill; border-radius: 0; }
+/* Faction-coloured disc */
+.o-star-fac .sp::after { font-size: .46em; width: 1.2em; height: 1.2em; top: -.32em; right: -.32em; background: color-mix(in srgb, var(--fac) 70%, #120800); color: var(--parchment); box-shadow: 0 0 0 .12em var(--ink-0); }
+/* Parchment disc, ink star */
+.o-star-light .sp::after { font-size: .46em; width: 1.2em; height: 1.2em; top: -.32em; right: -.32em; background: var(--parchment); color: var(--ink-0); box-shadow: 0 0 0 .1em var(--ink-0); }
+/* Top centre, straddling the edge */
+.o-star-top .sp::after { font-size: .44em; width: 1.2em; height: 1.2em; top: -.62em; left: 50%; transform: translateX(-50%); background: var(--ink-0); color: var(--parchment); box-shadow: 0 0 0 .12em var(--parchment); }
+/* Top left, away from the count */
+.o-star-left .sp::after { font-size: .46em; width: 1.2em; height: 1.2em; top: -.32em; left: -.32em; background: var(--ink-0); color: var(--parchment); box-shadow: 0 0 0 .12em var(--parchment); }
+/* Same as the badge, but never smaller than 9px, so it survives the zoomed-out map */
+.o-star-min .sp::after { font-size: max(.46em, 9px); width: 1.2em; height: 1.2em; top: -.35em; right: -.35em; background: var(--ink-0); color: var(--parchment); box-shadow: 0 0 0 .12em var(--parchment); }
+/* Half-covered: the badge sits on the edge with a thin ring, smaller */
+/* --bs is the badge size as a share of the token; --bo is how far it sits past the edge, as a share of the badge; --bmin is a floor in px. */
+[class*="o-star-edge"] .sp::after { --bs: .38; --bo: .15; --bmin: 0px;
+  font-size: max(calc(var(--bs) * 1em / 1.3), var(--bmin)); width: 1.3em; height: 1.3em;
+  top: calc(var(--bo) * -1.3em); right: calc(var(--bo) * -1.3em);
+  background: var(--ink-0); color: var(--parchment); box-shadow: 0 0 0 .08em var(--parchment), 0 0 0 .16em var(--ink-0); }
+.o-star-edge-xs .sp::after { --bs: .3; }
+.o-star-edge-s .sp::after { --bs: .34; }
+.o-star-edge-l .sp::after { --bs: .46; }
+.o-star-edge-pick .sp::after { --bs: .44; }
+.o-star-edge-xl .sp::after { --bs: .54; }
+.o-star-edge-in .sp::after { --bo: 0; }
+.o-star-edge-out .sp::after { --bo: .3; }
+.o-star-edge-floor .sp::after { --bmin: 8px; }
+.o-star-edge-lfloor .sp::after { --bs: .46; --bmin: 8px; }
+
+/* 8. Crown: a parchment chevron cap on the top edge */
+.o-crown .sp::after { content: ""; z-index: 3; top: -.2em; left: 50%; width: .5em; height: .3em; transform: translateX(-50%);
+  background: var(--parchment); clip-path: polygon(0 100%, 0 20%, 25% 60%, 50% 0, 75% 60%, 100% 20%, 100% 100%);
+  filter: drop-shadow(0 0 .03em var(--ink-0)) drop-shadow(0 0 .03em var(--ink-0)); }
+
+/* 9. Inverted: light disc, dark figure */
+.o-invert .sp img { filter: invert(1) hue-rotate(180deg) saturate(1.2); }
+.o-invert .sp { box-shadow: 0 0 0 .04em var(--ink-0); }
+
+/* 10. Bezel: a thick ring in a deep shade of the faction colour */
+.o-bezel .sp { box-shadow: 0 0 0 .13em color-mix(in srgb, var(--fac) 50%, #120800), 0 0 0 .17em var(--ink-0); }
+
+/* 11. Dashed halo, floating off the edge */
+.o-halo .sp::before { content: ""; inset: -.26em; z-index: 0; border-radius: 50%;
+  background: repeating-conic-gradient(var(--ink-0) 0 14deg, transparent 14deg 30deg);
+  -webkit-mask: radial-gradient(circle, transparent 0 57%, #000 58% 70%, transparent 71%);
+  mask: radial-gradient(circle, transparent 0 57%, #000 58% 70%, transparent 71%); }
+.ink .o-halo .sp::before, .o-halo .ink .sp::before { background: repeating-conic-gradient(var(--parchment) 0 14deg, transparent 14deg 30deg); }
+
+/* 12. Octagon token */
+.o-octagon .sp { border-radius: 0; }
+.o-octagon .sp img { clip-path: polygon(29% 0, 71% 0, 100% 29%, 100% 71%, 71% 100%, 29% 100%, 0 71%, 0 29%); transform: scale(1.12); }
+.o-octagon .sp::before { content: ""; inset: -.1em; z-index: 0; background: var(--ink-0);
+  clip-path: polygon(29% 0, 71% 0, 100% 29%, 100% 71%, 71% 100%, 29% 100%, 0 71%, 0 29%); }
+
+/* 13. Star in the count only */
+.o-count .count.sp-count::before { content: "★"; font-size: .8em; margin-right: .05em; }
+.o-count .pair.sp-pair b::before { content: "★"; font-size: .7em; margin-right: .1em; vertical-align: .15em; }
+
+.notes { margin-top: 26px; max-width: 92ch; color: var(--text-2); font-size: 15px; line-height: 1.45; }
+.notes b { color: var(--parchment); }
+</style>
+</head>
+<body>
+
+<h1>Special forces: ways to tell them apart</h1>
+<p class="intro">Today a special force only differs from a normal one by a small star in the art, which nearly disappears at map size. Each row below is one way to mark special forces more strongly. It's shown in the places forces appear: map stacks on sand, rock and a stronghold (the rock one at zoomed-out size), the player panel, the prompt card, the number input's icon cell, and the battle plan's token row. Every option is CSS over the existing token art. Special forces stay the same size as normal forces.</p>
+
+<div class="bar">
+  <span class="lbl">Faction</span>
+  <button data-f="4" class="on">Emperor · Sardaukar</button>
+  <button data-f="3">Fremen · Fedaykin</button>
+  <button data-f="7">Ixian · cyborgs</button>
+</div>
+
+<table id="grid"></table>
+
+<div class="notes">
+  <p><b>Things to weigh.</b> On the map a stack is drawn as one image per force, offset up and to the left, so anything that draws outside the token's edge gets repeated down the stack. Rings and rims stay tidy. Rays, halos and the stacked coin get busy on a stack of 5. The stacked coin also reads as "two forces", which is true of Sardaukar strength but could be mistaken for a count. The octagon breaks the design language's rule that tokens are circles because they're round on the board. The star-in-count option only helps where a count is shown, so the token row and icon cell get nothing from it.</p>
+</div>
+
+<script>
+const ART = "../treachery-online/Client/wwwroot/art/";
+const COLORS = { 3: "#d29422", 4: "#b33715", 7: "#b0b079" };
+let f = 4;
+
+const OPTIONS = [
+  ["today", "Today", "The star in the art, nothing else."],
+  ["ring", "Double ring", "Ink, parchment, ink outline."],
+  ["rim", "Bright rim", "One thick parchment band."],
+  ["milled", "Milled edge", "Tick marks round the edge, like a coin."],
+  ["rays", "Sun rays", "Points behind the token.", "busy on map stacks"],
+  ["cog", "Cog edge", "Teeth in a deep shade of the faction colour."],
+  ["stacked", "Stacked coin", "A second disc peeks out behind.", "reads like a count"],
+  ["star", "Star badge", "A large star on the edge, like a notification badge. Variants follow."],
+  ["star-in", "Star badge · tucked in", "Small, inside the top-right edge, covering the art's own star."],
+  ["star-edge", "Star badge · on the edge", "Badge 38% of the token, a little past the edge, with a thin double outline. Sizes and offsets follow."],
+  ["star-edge-pick", "On the edge · 44% (chosen)", "The pick: badge 44% of the token, a little past the edge."],
+  ["star-edge-xs", "On the edge · 30%", "Smaller badge."],
+  ["star-edge-s", "On the edge · 34%", ""],
+  ["star-edge-l", "On the edge · 46%", "Larger badge."],
+  ["star-edge-xl", "On the edge · 54%", ""],
+  ["star-edge-in", "On the edge · 38%, inside", "Badge flush with the token's corner instead of past it."],
+  ["star-edge-out", "On the edge · 38%, further out", "More of the badge outside the token."],
+  ["star-edge-floor", "On the edge · 38%, 8px floor", "Never smaller than 8px, for the zoomed-out map."],
+  ["star-edge-lfloor", "On the edge · 46%, 8px floor", "Larger, with the same floor."],
+  ["star-bare", "Star badge · bare star", "No disc, just an outlined star."],
+  ["star-fac", "Star badge · faction disc", "The disc in a deep shade of the faction colour."],
+  ["star-light", "Star badge · light disc", "Parchment disc, ink star."],
+  ["star-top", "Star badge · top centre", "Straddles the top edge."],
+  ["star-left", "Star badge · top left", "Away from the count at the bottom right."],
+  ["star-min", "Star badge · minimum size", "The original badge, but never smaller than 9px."],
+  ["crown", "Crown", "A small parchment crown on the top edge."],
+  ["invert", "Inverted", "Light disc, dark figure."],
+  ["bezel", "Bezel", "Thick ring in a deep shade of the faction colour."],
+  ["halo", "Dashed halo", "A broken ring floating off the edge.", "busy on map stacks"],
+  ["octagon", "Octagon", "A different shape.", "breaks the circle rule"],
+  ["count", "Star in the count", "The token is unchanged; its count gets a star.", "only where a count shows"],
+];
+
+const img = (sp) => `${ART}faction${f}${sp ? "specialforce" : "force"}.svg`;
+const tk = (sp, s, cls = "") => `<span class="tk ${sp ? "sp" : ""} ${cls}" style="--s:${s}px"><img src="${img(sp)}" alt="">${cls.includes("half") ? `<span class="veil"></span>` : ""}</span>`;
+
+// A map stack at (x, y): n tokens, each offset up-left, with the count at the bottom right.
+function stack(sp, n, x, y, d) {
+  let h = `<div class="stack" style="left:${x}px;top:${y}px">`;
+  for (let i = 0; i < n; i++) h += tk(sp, d, i === n - 1 ? "top" : "").replace('style="', `style="left:${-0.07 * i * d}px;top:${-0.08 * i * d}px;`);
+  h += `<span class="count ${sp ? "sp-count" : ""}" style="--s:${d}px;left:${0.55 * d}px;top:${0.45 * d}px">${n}</span></div>`;
+  return h;
+}
+const pair = (sp, n, s) => `<span class="pair ${sp ? "sp-pair" : ""}">${tk(sp, s)}<b>${n}</b></span>`;
+
+function render() {
+  document.documentElement.style.setProperty("--fac", COLORS[f]);
+  const heads = ["", "Map, sand", "Map, rock, zoomed out", "Map, stronghold", "Player panel", "Prompt card", "Number input", "Battle tokens"];
+  let h = `<tr>${heads.map(x => `<th><span class="lbl">${x}</span></th>`).join("")}</tr>`;
+  for (const [key, name, desc, flag] of OPTIONS) {
+    h += `<tr class="o-${key}">
+      <td class="name"><b>${name}</b><span>${desc}</span>${flag ? `<i>${flag}</i>` : ""}</td>
+      <td><div class="cell map" style="--mx:-640px;--my:-690px">${stack(false, 4, 34, 30, 24)}${stack(true, 2, 92, 26, 24)}</div></td>
+      <td><div class="cell map far" style="--mx:-1200px;--my:-1300px">${stack(false, 4, 26, 30, 16)}${stack(true, 2, 62, 30, 16)}</div></td>
+      <td><div class="cell map" style="--mx:-330px;--my:-640px">${stack(false, 4, 34, 30, 24)}${stack(true, 2, 92, 26, 24)}</div></td>
+      <td><div class="cell ink">${pair(false, 5, 28)}${pair(true, 2, 28)}</div></td>
+      <td><div class="cell parch">${pair(false, 5, 20)}${pair(true, 2, 20)}</div></td>
+      <td><div class="cell parch" style="gap:6px"><span class="num"><span class="ic">${tk(true, 18)}</span><span class="v">1</span></span></div></td>
+      <td><div class="cell parch wide"><span class="row">${tk(true, 26)}${tk(true, 26, "half")}${tk(true, 26, "out")}</span><span class="row">${tk(false, 26)}${tk(false, 26, "half")}</span></div></td>
+    </tr>`;
+  }
+  document.getElementById("grid").innerHTML = h;
+  document.querySelectorAll(".bar button").forEach(b => b.classList.toggle("on", +b.dataset.f === f));
+}
+document.querySelector(".bar").addEventListener("click", e => { const b = e.target.closest("button"); if (b) { f = +b.dataset.f; render(); } });
+render();
+</script>
+</body>
+</html>

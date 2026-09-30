@@ -47,6 +47,18 @@ public static class Support
         return $"<span class='spice-amt' style='--s:{size}px' title='{name}'><img src='{skin.Harvester_URL}' alt='{name}'/><b>{amount}</b></span>";
     }
 
+    // Special forces whose token differs from the faction's normal token only by a small star in the art:
+    // Fedaykin, Sardaukar and cyborgs. These get a star badge so they can be told apart at map size.
+    public static bool HasStarredSpecialForce(Faction faction) => faction is Faction.Yellow or Faction.Red or Faction.Grey;
+
+    // The markup ForceToken renders, for code that builds popover HTML as a string.
+    public static string ForceTokenHtml(Skin skin, Faction faction, bool special, int size, string title = "")
+    {
+        var src = special ? skin.GetFactionSpecialForceImageUrl(faction) : skin.GetFactionForceImageUrl(faction);
+        var starred = special && HasStarredSpecialForce(faction) ? " starred" : "";
+        return $"<span class='force-token{starred}' style='--d:{size}px' title='{title}'><img src='{src}' width='{size}' height='{size}' alt='{title}'/></span>";
+    }
+
     // Splits "5, 2 at Mentat" into ("5", ", 2 at Mentat") so the leading amount can
     // go on the harvester icon and the rest can follow as text.
     public static (string amount, string rest) SplitLeadingNumber(string text)

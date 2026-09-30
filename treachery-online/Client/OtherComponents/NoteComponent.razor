@@ -50,7 +50,7 @@
                     @if (p.HasSpecialForces)
                     {
                         <div class="col col-auto ps-0">
-                            <img class="img-fluid m-0 p-0" width="24" height="24" src="@Client.CurrentSkin.GetFactionSpecialForceImageUrl(p.Faction)" title="@Client.CurrentSkin.Describe(p.SpecialForce)" /><strong>&nbsp;@p.SpecialForcesInReserve</strong>
+                            <ForceToken Faction="p.Faction" Special="true" Size="24" ImgClass="img-fluid m-0 p-0" Title="@Client.CurrentSkin.Describe(p.SpecialForce)" /><strong>&nbsp;@p.SpecialForcesInReserve</strong>
                         </div>
                     }
 

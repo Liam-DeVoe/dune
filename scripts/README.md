@@ -10,6 +10,7 @@ so design work can be reviewed from screenshots and reproduced later.
 | `build-client.sh` | Compiles the client without publishing, for a quick error check (`just build`) |
 | `ui/shots.py` | Serves a published client, drives the scenarios in `ui/scenarios/` in parallel, writes PNGs under `design/` |
 | `ui/gallery.py` | Writes `design/<area>/gallery.html` pairing every before and after shot by name |
+| `ui/serve.py` | Serves a published client with the fixtures on a fixed port, for looking at a scene by hand |
 
 No game server is involved. The client has a `/scene` page that loads a
 fixture over HTTP, seats one faction and renders the in-game screen, with
@@ -22,6 +23,7 @@ fixtures from a port it picks, and each scenario opens that page.
 just publish                  # after any client change; about 10 s incremental
 just shots ship worm-ride     # writes design/map-ux/after/{ship,worm-ride}-*.png
 just gallery map-ux           # writes design/map-ux/gallery.html
+just serve                    # serves the published client on port 8765 and prints scene URLs
 ```
 
 `just shots` with no names runs every scenario, four at a time

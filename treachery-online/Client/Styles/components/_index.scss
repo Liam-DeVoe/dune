@@ -10,8 +10,12 @@
 @use "prompt";
 @use "log";
 @use "report";
+@use "undo";
 @use "leader";
+@use "force";
+@use "battle";
 @use "toolbar";
+@use "menu";
 @use "pop";
 @use "spice";
 @use "status";

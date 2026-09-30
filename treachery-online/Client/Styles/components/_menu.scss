@@ -1,0 +1,186 @@
+@use "../shared";
+
+// The toolbar above the player panel (MenuComponent) and the menu that drops
+// from it. The menu is Bootstrap's .dropdown-menu, which the bootstrap layer
+// already maps onto the language; these are the rows inside it.
+.menu-bar {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+
+  // "Bots paused", a badge that resumes them.
+  > .badge {
+    border: 0;
+    cursor: pointer;
+    font-size: 12px;
+    height: 24px;
+    padding: 0 10px;
+  }
+}
+
+// Catches the click outside an open menu.
+.menu-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1040;
+}
+
+@mixin row-icon {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  fill: none;
+  stroke: var(--text-3);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+// Bootstrap's dropdown menu look, without its .dropdown-menu class: Bootstrap
+// handles keys pressed inside any .dropdown-menu and throws on Escape when
+// the menu has no Bootstrap toggle, which this one doesn't.
+.menu-overflow {
+  @include shared.dropdown-colours;
+  --bs-dropdown-divider-margin-y: 0.5rem;
+  display: none;
+  margin: 0;
+  list-style: none;
+  color: var(--bs-dropdown-color);
+  background: var(--bs-dropdown-bg);
+  border: 1px solid var(--bs-dropdown-border-color);
+  border-radius: var(--bs-dropdown-border-radius);
+  box-shadow: var(--bs-dropdown-box-shadow);
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 1045;
+  min-width: 290px;
+  padding: 4px;
+  font-size: 16px;
+
+  &.show {
+    display: block;
+  }
+
+  .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px 6px 8px;
+    border-radius: var(--r-1);
+    cursor: pointer;
+    margin: 0;
+
+    > svg {
+      @include row-icon;
+    }
+
+    &:hover > svg {
+      stroke: currentColor;
+    }
+  }
+
+  .trail {
+    margin-left: auto;
+    color: var(--text-3);
+    display: flex;
+    align-items: center;
+
+    .chev {
+      font-size: 12px;
+    }
+
+    .ext {
+      @include row-icon;
+      width: 13px;
+      height: 13px;
+    }
+
+    // The select's gold check, for the fullscreen row while fullscreen.
+    .check {
+      width: 14px;
+      height: 14px;
+      background: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23e7bf3c' stroke-linecap='round' stroke-linejoin='round' stroke-width='2.2' d='m3 8.5 3.2 3.2L13 5'/%3e%3c/svg%3e")
+        center / contain no-repeat;
+    }
+  }
+
+  .dropdown-header {
+    font-family: var(--font-label);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 8px 10px 4px;
+  }
+
+  // Rules and help, expanded under its row.
+  .nested {
+    padding: 0 0 4px 36px;
+
+    .dropdown-item {
+      font-size: 15px;
+      color: var(--text-2);
+      padding: 4px 8px;
+
+      &:hover {
+        color: var(--gold);
+      }
+    }
+  }
+
+  // The volume sliders, expanded under the sound row.
+  .sliders .volume {
+    padding: 2px 12px 8px 36px;
+
+    label {
+      display: block;
+      font-size: 14px;
+      color: var(--text-2);
+    }
+  }
+
+  .bots {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    color: var(--parchment);
+
+    > svg {
+      @include row-icon;
+    }
+
+    .seg {
+      margin-left: auto;
+
+      button {
+        font-size: 13px;
+        padding: 3px 9px;
+
+        &:not(.on):hover {
+          color: var(--gold);
+          background: shared.$gold-wash;
+        }
+      }
+    }
+  }
+}
+
+// "Leave this game?" under the leave button.
+.menu-leave {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 1045;
+  width: 270px;
+
+  .actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 12px;
+  }
+}

@@ -1,6 +1,6 @@
 deploy/.admin-password
+design/
+
 .DS_Store
 *.pyc
 __pycache__/
-*.pyc
-design/

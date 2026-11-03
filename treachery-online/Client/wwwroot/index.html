@@ -379,11 +379,40 @@
             document.querySelectorAll("button").forEach(item => item.blur());
         }
 
+        // Popper places a popover once, when it opens. Card images in it often
+        // load after that, and the popover then grows without moving, off the
+        // bottom of the window. This places it again whenever its size changes.
+        document.addEventListener('inserted.bs.popover', function (e) {
+            const popover = bootstrap.Popover.getInstance(e.target);
+            const tip = popover?.tip;
+            if (tip == null) return;
+            const observer = new ResizeObserver(() => popover.update());
+            observer.observe(tip);
+            e.target.addEventListener('hidden.bs.popover', () => observer.disconnect(), { once: true });
+        });
+
+        // Options for every popover. Popper normally keeps a popover level
+        // with the element it belongs to. With tether off it can slide along
+        // that element until the whole popover is in the window. The game
+        // screen is one window tall, so a popover low on the screen, such as
+        // a discard pile's under the map, would otherwise run off the bottom.
+        function PopoverOptions() {
+            return {
+                sanitize: false,
+                popperConfig: defaults => ({
+                    ...defaults,
+                    modifiers: defaults.modifiers.map(m => m.name === 'preventOverflow'
+                        ? { ...m, options: { ...m.options, tether: false, altAxis: true, padding: 8 } }
+                        : m),
+                }),
+            };
+        }
+
         function EnablePopover(element) {
 
             if (element == null) return;
             
-            new bootstrap.Popover(element, { sanitize: false });
+            new bootstrap.Popover(element, PopoverOptions());
         }
                 
         function EnablePopovers(element) {
@@ -422,7 +451,7 @@
                 popover.dispose();
             }
 
-            new bootstrap.Popover(element, { sanitize: false });
+            new bootstrap.Popover(element, PopoverOptions());
         }
 
         function RefreshPopovers(element) {

@@ -34,6 +34,13 @@ def measure(g):
     }""")
 
 
+def popover_box(g):
+    return g.page.evaluate("""() => {
+        const p = document.querySelector('.popover').getBoundingClientRect();
+        return {top: Math.round(p.top), bottom: Math.round(p.bottom), window: innerHeight};
+    }""")
+
+
 def run(r):
     with r.game(FIXTURE, "green") as g:
         for w, h in SIZES:
@@ -43,6 +50,38 @@ def run(r):
             g.settle()
             g.shot(f"layout-{w}x{h}")
             r.note(f"{w}x{h}", measure(g))
+
+        # The discard piles sit at the bottom corners of the map, so their
+        # popovers are the ones that can run off the bottom of the window.
+        g.page.set_viewport_size({"width": 1000, "height": 604})
+        g.page.evaluate("window.dispatchEvent(new Event('resize'))")
+        g.settle()
+        piles = g.page.locator('#planetmap [data-bs-content*="Discard pile"]')
+        for i in range(piles.count()):
+            piles.nth(i).hover()
+            g.page.wait_for_selector(".popover", state="visible")
+            g.settle()
+            g.shot(f"layout-pile-{i + 1}-hover", park=False)
+            r.note(f"pile {i + 1} popover", popover_box(g))
+            g.page.mouse.move(500, 10)
+            g.page.wait_for_selector(".popover", state="detached")
+
+            # The first time a pile is hovered its card image isn't loaded yet,
+            # so Popper places a short popover that grows when the image
+            # arrives. Imitate that: hide the images when the popover is
+            # inserted, just before Popper places it, then show them.
+            g.page.evaluate("""() => document.addEventListener('inserted.bs.popover', e => {
+                bootstrap.Popover.getInstance(e.target).tip.querySelectorAll('img').forEach(i => i.style.display = 'none');
+            }, {once: true})""")
+            piles.nth(i).hover()
+            g.page.wait_for_selector(".popover", state="visible")
+            g.settle()
+            g.page.evaluate("document.querySelectorAll('.popover img').forEach(i => i.style.display = '')")
+            g.settle()
+            g.shot(f"layout-pile-{i + 1}-hover-late", park=False)
+            r.note(f"pile {i + 1} popover, image loaded late", popover_box(g))
+            g.page.mouse.move(500, 10)
+            g.page.wait_for_selector(".popover", state="detached")
 
         if not r.after:
             return

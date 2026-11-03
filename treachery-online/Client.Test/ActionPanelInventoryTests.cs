@@ -11,6 +11,7 @@ public sealed partial class ActionPanelInventoryTests
         nameof(Bid),
         nameof(BlackMarketBid),
         nameof(DealAccepted),
+        nameof(DealRejected),
         nameof(EndPhase),
         nameof(PlayerReplaced)
     ];

@@ -1,15 +1,22 @@
 @use "../shared";
 
-// The toolbar above the player panel (MenuComponent) and the menu that drops
-// from it. The menu is Bootstrap's .dropdown-menu, which the bootstrap layer
+// The bar under the map (MenuComponent) and the menu that opens upward from
+// it. The menu is Bootstrap's .dropdown-menu, which the bootstrap layer
 // already maps onto the language; these are the rows inside it.
 .menu-bar {
   position: relative;
   display: flex;
-  justify-content: flex-end;
   align-items: center;
   gap: 10px;
-  margin-bottom: 8px;
+  height: 36px;
+  flex: none;
+
+  // Bare icons: the bar is part of the page's edge, not a box of its own.
+  > .toolbar {
+    background: transparent;
+    border: 0;
+    padding: 0;
+  }
 
   // "Bots paused", a badge that resumes them.
   > .badge {
@@ -54,10 +61,14 @@
   border-radius: var(--bs-dropdown-border-radius);
   box-shadow: var(--bs-dropdown-box-shadow);
   position: absolute;
-  right: 0;
-  top: calc(100% + 4px);
+  left: 0;
+  bottom: calc(100% + 4px);
   z-index: 1045;
   min-width: 290px;
+  // Rules, sound and the host's tools all open at once can be taller than
+  // the space above the bar.
+  max-height: calc(100dvh - 60px);
+  overflow-y: auto;
   padding: 4px;
   font-size: 16px;
 
@@ -169,11 +180,11 @@
   }
 }
 
-// "Leave this game?" under the leave button.
+// "Leave this game?" above the leave button.
 .menu-leave {
   position: absolute;
-  right: 0;
-  top: calc(100% + 4px);
+  left: 0;
+  bottom: calc(100% + 4px);
   z-index: 1045;
   width: 270px;
 

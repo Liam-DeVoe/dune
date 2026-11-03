@@ -102,7 +102,6 @@ public class SceneGameService : IGameService
     public bool KeepAutoPassSetting { get; set; }
     public int Timer { get; set; } = -1;
     public bool MuteGlobalChat { get; set; }
-    public ISet<string> RejectedDealOffers { get; } = new HashSet<string>();
     public LinkedList<ChatMessage> Messages { get; } = [];
     public Skin CurrentSkin { get; set; } = DefaultSkin.Default;
     public MapInteraction MapInteraction { get; } = new();

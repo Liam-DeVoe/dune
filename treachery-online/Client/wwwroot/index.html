@@ -77,7 +77,7 @@
                         planetmap.style.transform = 'scale(' + scale + ')';
 
                         planetmap_filler = document.getElementById('planetmap-filler');
-                        planetmap_filler.style.height = 1.110012062726176 * mapdiv.offsetWidth + "px";
+                        planetmap_filler.style.height = scale * planetmap_inner.offsetHeight + "px";
 
                         ClampMapPin();
                     }

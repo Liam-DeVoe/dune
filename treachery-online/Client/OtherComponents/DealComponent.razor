@@ -11,7 +11,7 @@
 <div class="card mb-2" style="animation:fadeIn 1s;">
 
     @{
-        var acceptableDeals = DealAccepted.AcceptableDeals(Game, Player).Where(o => !Client.RejectedDealOffers.Contains(Key(o))).ToArray();
+        var acceptableDeals = DealAccepted.AcceptableDeals(Game, Player).ToArray();
         var cancellableDeals = DealAccepted.CancellableDeals(Game, Player).ToArray();
         var currentDeals = DealAccepted.CurrentDeals(Game).ToArray();
 
@@ -55,7 +55,7 @@
                                     <td class="text-break">@offer.GetDealDescription().ToString(Client.CurrentSkin)</td>
                                     <td>
                                         <button class="btn btn-primary btn-sm" @onclick="e => Accept(offerToShow)" disabled=@(validity != null)>Accept</button>
-                                        <button class="btn btn-secondary btn-sm ms-1" @onclick="e => Reject(offerToShow)">Reject</button>
+                                        <button class="btn btn-secondary btn-sm ms-1" @onclick="e => Decline(offerToShow)">Decline</button>
                                     </td>
                                 </tr>
                             }
@@ -67,9 +67,27 @@
                                 <tr class="table-dark">
                                     <td><img width=24 src="@Client.CurrentSkin.GetImageUrl(offer.Initiator)" /></td>
                                     <td>@offer.Price</td>
-                                    <td class="text-break">@offer.GetDealDescription().ToString(Client.CurrentSkin)</td>
+                                    <td class="text-break">
+                                        @offer.GetDealDescription().ToString(Client.CurrentSkin)
+                                        @{
+                                            var recipients = Game.DealRecipients(offer).ToArray();
+                                        }
+                                        <div class="deal-answers">
+                                            @foreach (var recipient in recipients)
+                                            {
+                                                var answer = Game.DealResponse(offer, recipient) switch { true => "accepted", false => "declined", null => "deciding" };
+                                                <span class="deal-answer @answer" title="@Client.CurrentSkin.Describe(recipient): @answer">
+                                                    <img width="18" height="18" src="@Client.CurrentSkin.GetImageUrl(recipient)" alt="@Client.CurrentSkin.Describe(recipient)" />@answer
+                                                </span>
+                                            }
+                                            @if (recipients.Any() && recipients.All(r => Game.DealResponse(offer, r) == false))
+                                            {
+                                                <span class="deal-answer-none">Declined by everyone</span>
+                                            }
+                                        </div>
+                                    </td>
                                     <td>
-                                        <button class="btn btn-primary btn-sm" @onclick="e => Cancel(offerToShow)">Withdraw</button>
+                                        <button class="btn btn-secondary btn-sm" @onclick="e => Cancel(offerToShow)">Withdraw</button>
                                     </td>
                                 </tr>
 
@@ -118,12 +136,9 @@
         await Request(offered.Cancellation());
     }
 
-    private void Reject(DealOffered offered)
+    private async Task Decline(DealOffered offered)
     {
-        Client.RejectedDealOffers.Add(Key(offered));
+        await Request(offered.Rejection(Faction));
     }
-
-    private string Key(DealOffered o)
-        => string.Join("|", Game.Seed, o.Initiator, o.Price, o.Type, o.Text, o.Benefit, o.EndPhase, o.DealParameter1, o.DealParameter2, string.Join(",", o.To));
 
 }

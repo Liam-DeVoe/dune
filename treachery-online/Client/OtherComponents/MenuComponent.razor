@@ -7,26 +7,23 @@
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
 @inherits GameComponent
+@inject MenuState Menu
 
 @*
- The toolbar above the player panel: players, a menu, and leave. The menu
- holds everything else. Rules and sound expand in place; the host's tools sit
+ The bar under the map: players, a menu, and leave. The menu holds everything
+ else and opens upward. Rules and sound expand in place; the host's tools sit
  in their own section at the bottom. A click outside or Escape closes the
  menu. The menu stays in the page while closed, because the music player
- lives inside it with the volume sliders.
+ lives inside it with the volume sliders. The panels these buttons open
+ (players, undo) show at the top of a side column instead, in MenuPanels.
 *@
 
 <div class="menu-bar">
 
-    @if (BotsPaused)
-    {
-        <button class="badge spice" title="Bots are paused. Click to resume." @onclick="@(() => Client.RequestSetBotSpeed(1))">Bots paused</button>
-    }
-
     <div class="toolbar">
         @if (Started)
         {
-            <button class="@(IsVisible(Players) ? "on" : "")" title="Players" @onclick="@(() => { CloseMenus(); SetVisible(Players); })">
+            <button class="@(Menu.Panel == MenuPanel.Players ? "on" : "")" title="Players" @onclick="@(() => { CloseMenus(); TogglePanel(MenuPanel.Players); })">
                 <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-4 3-6 7-6s7 2 7 6"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c3 0 5 1.5 5 5"/></svg>
             </button>
         }
@@ -40,6 +37,11 @@
             </button>
         }
     </div>
+
+    @if (BotsPaused)
+    {
+        <button class="badge spice" title="Bots are paused. Click to resume." @onclick="@(() => Client.RequestSetBotSpeed(1))">Bots paused</button>
+    }
 
     @if (_menuOpen || _leaveOpen)
     {
@@ -156,45 +158,16 @@
     }
 </div>
 
-<div class="text-danger small">@_loadValidationError</div>
-
-@if (_loadValidationError != "")
-{
-    <button class="btn btn-primary mt-1 btn-sm" @onclick="ClearValidationErrors">Clear errors</button>
-}
-
-@* Shown whenever there is something to restore, so it stays up after the undo panel closes. *@
-@if (Client.IsHost)
-{
-    <RedoComponent/>
-}
-
-@if (IsVisible(Host))
-{
-    <UndoComponent OnClose="@(() => SetVisible(Host))"/>
-}
-else if (IsVisible(Players))
-{
-    <JoinedPlayersPanel/>
-}
-
 <MentatComponent Id="mentatModal"/>
 <CreditComponent Id="creditModal"/>
 
 @code {
 
-    private string _loadValidationError = "";
     private object? _fileInput;
     private object? _skinInput;
 
-    private const string Host = "host";
-    private const string Players = "players";
-
     private const int MaxSaveGameSize = 4194304;
     private const int MaxSkinFileSize = 262144;
-
-    [Parameter]
-    public object Visible { get; set; } = null;
 
     private bool _menuOpen;
     private bool _leaveOpen;
@@ -264,7 +237,20 @@ else if (IsVisible(Players))
     private void OpenUndo()
     {
         CloseMenus();
-        Visible = Host;
+        Menu.Open(MenuPanel.Undo);
+        Client.Refresh(nameof(OpenUndo));
+    }
+
+    private void TogglePanel(MenuPanel panel)
+    {
+        Menu.Toggle(panel);
+        Client.Refresh(nameof(TogglePanel));
+    }
+
+    private void SetLoadError(string error)
+    {
+        Menu.LoadError = error;
+        Client.Refresh(nameof(SetLoadError));
     }
 
     private async Task ToMainScreen()
@@ -272,16 +258,6 @@ else if (IsVisible(Players))
         CloseMenus();
         await Client.ExitGame();
         Client.Refresh(nameof(ToMainScreen));
-    }
-
-    private void SetVisible(object o)
-    {
-        Visible = Visible == o ? null : o;
-    }
-
-    private bool IsVisible(object o)
-    {
-        return o == Visible;
     }
 
     private async Task ToggleFullScreen()
@@ -304,7 +280,7 @@ else if (IsVisible(Players))
         CloseMenus();
         try
         {
-            _loadValidationError = "";
+            SetLoadError("");
             var data = await Browser.LoadFile(_fileInput);
             await Browser.ClearFileInput("fileInput");
 
@@ -314,12 +290,12 @@ else if (IsVisible(Players))
             }
             else
             {
-                _loadValidationError = "Saved Game file is too big...";
+                SetLoadError("Saved Game file is too big...");
             }
         }
         catch (Exception e)
         {
-            _loadValidationError = $"Error loading game ({e.Message})";
+            SetLoadError($"Error loading game ({e.Message})");
         }
     }
 
@@ -328,7 +304,7 @@ else if (IsVisible(Players))
         CloseMenus();
         try
         {
-            _loadValidationError = "";
+            SetLoadError("");
             var data = await Browser.LoadFile(_skinInput);
             await Browser.ClearFileInput("skinInput");
 
@@ -338,17 +314,12 @@ else if (IsVisible(Players))
             }
             else
             {
-                _loadValidationError = "Skin file is too big...";
+                SetLoadError("Skin file is too big...");
             }
         }
         catch (Exception e)
         {
-            _loadValidationError = $"Error loading skin ({e.Message})";
+            SetLoadError($"Error loading skin ({e.Message})");
         }
-    }
-
-    private void ClearValidationErrors()
-    {
-        _loadValidationError = "";
     }
 }

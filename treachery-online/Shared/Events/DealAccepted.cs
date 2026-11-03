@@ -57,6 +57,7 @@ public class DealAccepted : GameEvent
 
         if ((Price > 0 || (Game.Version >= 142 && Benefit > 0)) && Game.Applicable(Rule.DisableResourceTransfers)) return Message.Express(Concept.Resource, " transfers are disabled by house rule");
         if (!Game.DealOffers.Any(offer => offer.IsAcceptedBy(this))) return Message.Express("Offer is not valid (anymore)");
+        if (OpenOffer == null) return Message.Express("You already answered this offer");
 
         return null;
     }
@@ -78,6 +79,7 @@ public class DealAccepted : GameEvent
             offer.Initiator != p.Faction &&
             offer.Initiator != p.Ally &&
             (offer.To.Length == 0 || offer.To.Contains(p.Faction)) &&
+            !g.HasRespondedToDeal(offer, p.Faction) &&
             (g.EconomicsStatus != BrownEconomicsStatus.Double || (offer.Benefit == 0 && offer.Price == 0)));
     }
 
@@ -93,6 +95,9 @@ public class DealAccepted : GameEvent
         return g.Deals;
     }
 
+    // The matching offer this faction hasn't answered yet.
+    private DealOffered? OpenOffer => Game.DealOffers.FirstOrDefault(offer => offer.IsAcceptedBy(this) && !Game.HasRespondedToDeal(offer, Initiator));
+
     #endregion Validation
 
     #region Execution
@@ -100,10 +105,14 @@ public class DealAccepted : GameEvent
     protected override void ExecuteConcreteEvent()
     {
         Log();
-        var offer = Game.DealOffers.FirstOrDefault(offer => offer.IsAcceptedBy(this));
+        // Saved games from before acceptances were recorded replay without
+        // validation and may accept the same offer twice, hence the fallback.
+        var offer = OpenOffer ?? Game.DealOffers.FirstOrDefault(offer => offer.IsAcceptedBy(this));
 
         if (offer != null)
         {
+            Game.RecordDealResponse(offer, Initiator, true);
+
             var newDeal = new Deal
             {
                 BoundFaction = offer.Initiator,

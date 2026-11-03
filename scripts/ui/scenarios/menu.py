@@ -1,4 +1,4 @@
-"""The toolbar above the player panel: players, a menu holding everything else, and leave."""
+"""The bar under the map: players, a menu holding everything else, and leave."""
 
 AREA = "menu"
 
@@ -8,9 +8,17 @@ MENU = '.toolbar button[title="Menu"]'
 
 
 def column(g, name):
-    # The menu sits at the top of the rightmost column; the menu drops over the player panel.
-    box = g.page.locator(".col-lg-3").last.bounding_box()
-    g.clip(name, box["x"] - 40, 0, box["width"] + 40, 760)
+    # Before the redesign the toolbar sat at the top of the rightmost column, with
+    # the menu dropping over the player panel. Now the bar is at the bottom of the
+    # map column and the menu opens upward over the map.
+    bar = g.page.locator("#mapdiv > .menu-bar")
+    if bar.count():
+        box = g.page.locator("#mapdiv").bounding_box()
+        top = g.page.viewport_size["height"] - 760
+        g.clip(name, box["x"], top, min(box["width"], 520), 760)
+    else:
+        box = g.page.locator(".col-lg-3").last.bounding_box()
+        g.clip(name, box["x"] - 40, 0, box["width"] + 40, 760)
 
 
 def run(r):

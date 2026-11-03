@@ -52,9 +52,6 @@ public interface IGameService
     public int Timer { get; set; }
     public bool MuteGlobalChat { get; set; }
 
-    // Deal offers this user has rejected. The engine has no reject event, so this only hides them locally.
-    public ISet<string> RejectedDealOffers { get; }
-
     public event Action RefreshHandler;
     public event Action RefreshPopoverHandler;
     

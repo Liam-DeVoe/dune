@@ -15,6 +15,36 @@ public partial class Game
 
     public List<Deal> Deals { get; } = new();
 
+    // How each recipient answered an open offer: true if they accepted, false
+    // if they declined. A recipient with no entry hasn't answered yet.
+    public Dictionary<DealOffered, Dictionary<Faction, bool>> DealResponses { get; } = new();
+
+    internal void RecordDealResponse(DealOffered offer, Faction faction, bool accepted)
+    {
+        if (!DealResponses.TryGetValue(offer, out var responses))
+        {
+            responses = new Dictionary<Faction, bool>();
+            DealResponses.Add(offer, responses);
+        }
+
+        responses[faction] = accepted;
+    }
+
+    public bool? DealResponse(DealOffered offer, Faction faction)
+    {
+        return DealResponses.TryGetValue(offer, out var responses) && responses.TryGetValue(faction, out var accepted) ? accepted : null;
+    }
+
+    public bool HasRespondedToDeal(DealOffered offer, Faction faction) => DealResponse(offer, faction) != null;
+
+    // The factions that may accept an offer, in seat order.
+    public IEnumerable<Faction> DealRecipients(DealOffered offer)
+    {
+        return Players
+            .Where(p => p.Faction != offer.Initiator && p.Ally != offer.Initiator && (offer.To.Length == 0 || offer.To.Contains(p.Faction)))
+            .Select(p => p.Faction);
+    }
+
     internal void StartDeal(Deal deal)
     {
         Deals.Add(deal);

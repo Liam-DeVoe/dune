@@ -87,7 +87,7 @@ else if (Client.PlayersNeedSeating)
 }
 else
 {
-    <div @ref="@_element" class="row" style="@InGameScreenStyle">
+    <div @ref="@_element" class="row game-screen" style="@GameScreenStyle">
 
         @if (!Client.IsObserver)
         {
@@ -98,17 +98,18 @@ else
                 {
                     <UndoTimeline/>
                 }
+                <MenuComponent/>
             </div>
 
             <!--Actions-->
-            <div class="col-sm-12 col-lg-3 @Scrollbars">
+            <div class="col-sm-12 col-lg-3 side-column">
                 <GameStatusComponent CanEndPhase="@Client.Actions.Contains(typeof(EndPhase))" />
                 <ActionPanel/>
             </div>
             
             <!--Menu, player panel and report-->
-            <div class="col-sm-12 col-lg-3 cursor-hand @Scrollbars">
-                <MenuComponent/>
+            <div class="col-sm-12 col-lg-3 cursor-hand side-column">
+                <MenuPanels/>
                 @if (Client.CurrentPhase > Phase.TradingFactions)
                 {
                     if (Client.Player.Faction is Faction.None)
@@ -137,11 +138,12 @@ else
                 {
                     <UndoTimeline/>
                 }
+                <MenuComponent/>
             </div>
 
             <!--Actions-->
-            <div class="col-sm-12 col-lg-4 cursor-hand @Scrollbars">
-                <MenuComponent/>
+            <div class="col-sm-12 col-lg-4 cursor-hand side-column">
+                <MenuPanels/>
                 <GameStatusComponent/>
                 <ActionPanel/>
                 <ReportComponent/>
@@ -195,19 +197,9 @@ else
         Client.RefreshPopoverHandler -= RefreshPopovers;
     }
 
-    private bool _isFullscreen;
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        var checkFullscreen = await Browser.IsFullScreen();
-        if (_isFullscreen != checkFullscreen)
-        {
-            _isFullscreen = checkFullscreen;
-            StateHasChanged();
-        }
-        else
-        {
-            await Browser.SetPlanetMapScale();
-        }
+        await Browser.SetPlanetMapScale();
     }
 
     private async Task LoadSkinDataIfSaved()
@@ -226,9 +218,7 @@ else
 
     private void RefreshPopovers() => _ = Browser.RefreshPopovers(_element);
 
-    private string Scrollbars => _isFullscreen? "vh-97 overflow-auto" : "";
-
     private const string StartScreenStyle = "min-height: 97vh; background-image: url('art/planet.png'); background-size: 1024px; background-position-x: center; background-position-y: -50px; background-repeat: no-repeat;";
     
-    private const string InGameScreenStyle = "overflow-y: hidden;";
+    private string GameScreenStyle => GameScreen.Style(Client);
 }

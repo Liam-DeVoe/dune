@@ -32,6 +32,7 @@ public class Program
                 : ActivatorUtilities.CreateInstance<Client>(services));
 
         builder.Services.AddSingleton<Browser>();
+        builder.Services.AddSingleton<MenuState>();
         await builder.Build().RunAsync();
     }
 

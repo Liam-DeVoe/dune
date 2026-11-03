@@ -87,18 +87,45 @@ public class DealOffered : GameEvent
             offeredDeal.To.SequenceEqual(To);
     }
 
+    public DealRejected Rejection(Faction by)
+    {
+        return new DealRejected(Game, by)
+        {
+            BoundFaction = Initiator,
+            Price = Price,
+            Type = Type,
+            DealParameter1 = DealParameter1,
+            DealParameter2 = DealParameter2,
+            Text = Text,
+            Benefit = Benefit,
+            End = EndPhase
+        };
+    }
+
     public bool IsAcceptedBy(DealAccepted acceptedDeal)
     {
+        return Matches(acceptedDeal.Initiator, acceptedDeal.BoundFaction, acceptedDeal.Price, acceptedDeal.Type, acceptedDeal.DealParameter1,
+            acceptedDeal.DealParameter2, acceptedDeal.Text, acceptedDeal.Benefit, acceptedDeal.End);
+    }
+
+    public bool IsRejectedBy(DealRejected rejectedDeal)
+    {
+        return Matches(rejectedDeal.Initiator, rejectedDeal.BoundFaction, rejectedDeal.Price, rejectedDeal.Type, rejectedDeal.DealParameter1,
+            rejectedDeal.DealParameter2, rejectedDeal.Text, rejectedDeal.Benefit, rejectedDeal.End);
+    }
+
+    private bool Matches(Faction by, Faction boundFaction, int price, DealType type, string? dealParameter1, string? dealParameter2, string? text, int benefit, Phase end)
+    {
         return
-            acceptedDeal.BoundFaction == Initiator &&
-            acceptedDeal.Price == Price &&
-            acceptedDeal.Type == Type &&
-            acceptedDeal.DealParameter1 == DealParameter1 &&
-            acceptedDeal.DealParameter2 == DealParameter2 &&
-            acceptedDeal.Text == Text &&
-            acceptedDeal.Benefit == Benefit &&
-            acceptedDeal.End == EndPhase &&
-            (To.Length == 0 || To.Contains(acceptedDeal.Initiator));
+            boundFaction == Initiator &&
+            price == Price &&
+            type == Type &&
+            dealParameter1 == DealParameter1 &&
+            dealParameter2 == DealParameter2 &&
+            text == Text &&
+            benefit == Benefit &&
+            end == EndPhase &&
+            (To.Length == 0 || To.Contains(by));
     }
 
     public static IEnumerable<DealType> GetStandardDealTypes(Game g, Player p)
@@ -139,7 +166,11 @@ public class DealOffered : GameEvent
         if (Cancel)
         {
             var sameOffer = Game.DealOffers.FirstOrDefault(o => o.Same(this));
-            if (sameOffer != null) Game.DealOffers.Remove(sameOffer);
+            if (sameOffer != null)
+            {
+                Game.DealOffers.Remove(sameOffer);
+                Game.DealResponses.Remove(sameOffer);
+            }
         }
         else
         {

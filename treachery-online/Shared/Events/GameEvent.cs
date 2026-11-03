@@ -50,6 +50,7 @@ namespace Treachery.Shared;
 [JsonDerivedType(typeof(ClairVoyancePlayed),nameof(ClairVoyancePlayed))]
 [JsonDerivedType(typeof(DealAccepted),nameof(DealAccepted))]
 [JsonDerivedType(typeof(DealOffered),nameof(DealOffered))]
+[JsonDerivedType(typeof(DealRejected),nameof(DealRejected))]
 [JsonDerivedType(typeof(Diplomacy),nameof(Diplomacy))]
 [JsonDerivedType(typeof(Discarded),nameof(Discarded))]
 [JsonDerivedType(typeof(DiscardedSearched),nameof(DiscardedSearched))]

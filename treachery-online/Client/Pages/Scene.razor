@@ -37,7 +37,7 @@ else if (!_loaded)
 }
 else
 {
-    <div @ref="@_element" class="row" style="overflow-y: hidden;">
+    <div @ref="@_element" class="row game-screen" style="@GameScreen.Style(Client)">
 
         <!--Map Column-->
         <div id="mapdiv" class="col-sm-12 col-lg-6">
@@ -46,17 +46,18 @@ else
             {
                 <UndoTimeline/>
             }
+            <MenuComponent/>
         </div>
 
         <!--Actions-->
-        <div class="col-sm-12 col-lg-3">
+        <div class="col-sm-12 col-lg-3 side-column">
             <GameStatusComponent CanEndPhase="@Client.Actions.Contains(typeof(EndPhase))" />
             <ActionPanel/>
         </div>
 
         <!--Menu, player panel and report-->
-        <div class="col-sm-12 col-lg-3 cursor-hand">
-            <MenuComponent/>
+        <div class="col-sm-12 col-lg-3 cursor-hand side-column">
+            <MenuPanels/>
             @if (Client.CurrentPhase > Phase.TradingFactions)
             {
                 if (Client.Player.Faction is Faction.None)

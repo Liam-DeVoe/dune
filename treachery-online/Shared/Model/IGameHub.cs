@@ -115,6 +115,7 @@ public interface IGameHub
     Task<VoidResult> RequestRedBidSupport(string userToken, string gameId, RedBidSupport e);
     Task<VoidResult> RequestDealOffered(string userToken, string gameId, DealOffered e);
     Task<VoidResult> RequestDealAccepted(string userToken, string gameId, DealAccepted e);
+    Task<VoidResult> RequestDealRejected(string userToken, string gameId, DealRejected e);
     Task<VoidResult> RequestDiscoveryEntered(string userToken, string gameId, DiscoveryEntered e);
     Task<VoidResult> RequestStormDialled(string userToken, string gameId, StormDialled e);
     Task<VoidResult> RequestHideSecrets(string userToken, string gameId, HideSecrets e);

@@ -103,6 +103,7 @@ public partial class GameHub
     public async Task<VoidResult> RequestRedBidSupport(string userToken, string gameId, RedBidSupport e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestDealOffered(string userToken, string gameId, DealOffered e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestDealAccepted(string userToken, string gameId, DealAccepted e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestDealRejected(string userToken, string gameId, DealRejected e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestDiscoveryEntered(string userToken, string gameId, DiscoveryEntered e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestStormDialled(string userToken, string gameId, StormDialled e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestHideSecrets(string userToken, string gameId, HideSecrets e) => await ProcessGameEvent(userToken, gameId, e);

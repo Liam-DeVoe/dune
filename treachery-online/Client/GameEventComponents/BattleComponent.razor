@@ -331,7 +331,7 @@
     private static Commit[] Row(int length, int full, int half) =>
         Enumerable.Range(0, length).Select(i => i < full ? Commit.Full : i < full + half ? Commit.Half : Commit.Out).ToArray();
 
-    // One token per force that can fight. A token that is no longer there drops off the end.
+    // One token per force that can fight. Tokens keep their place; a token that is no longer there drops off the end.
     private void EnsureTokens()
     {
         var supplier = Battle.DetermineForceSupplier(Game, Player);
@@ -340,7 +340,7 @@
     }
 
     private static Commit[] Resize(Commit[] row, int length) =>
-        row.Length == length ? row : Row(length, Math.Min(Count(row, Commit.Full), length), Math.Min(Count(row, Commit.Half), Math.Max(0, length - Count(row, Commit.Full))));
+        row.Length == length ? row : Enumerable.Range(0, length).Select(i => i < row.Length ? row[i] : Commit.Out).ToArray();
 
     // Half strength only means something when a force of that kind costs spice to be at full strength.
     private bool HalfAllowed(bool special) => special
@@ -396,7 +396,6 @@
     private List<int> CostsAt(float dial) => Mixes.Where(m => m.Dial == dial).Select(m => m.Cost).Distinct().Order().ToList();
 
     // Reach a dial and cost by changing as few tokens as possible. Ties keep special forces out, then commit fewer forces.
-    // Rows are kept sorted: full, then half, then out.
     private void MoveTo(float dial, int cost)
     {
         var fs = Count(_special, Commit.Full); var hs = Count(_special, Commit.Half);
@@ -412,8 +411,34 @@
 
         if (best == null) return;
 
-        _special = Row(_special.Length, best.Fs, best.Hs);
-        _normal = Row(_normal.Length, best.Fn, best.Hn);
+        _special = Assign(_special, best.Fs, best.Hs);
+        _normal = Assign(_normal, best.Fn, best.Hn);
+    }
+
+    // Change a row to hold these counts, touching only as many tokens as it must.
+    // Tokens that join the battle are taken from the left, tokens that leave from the right,
+    // and the freed places are filled full, then half, then out, left to right.
+    private static Commit[] Assign(Commit[] row, int full, int half)
+    {
+        var want = new Dictionary<Commit, int> { [Commit.Full] = full, [Commit.Half] = half, [Commit.Out] = row.Length - full - half };
+        var result = (Commit[])row.Clone();
+        var freed = new List<int>();
+
+        foreach (var state in want.Keys)
+        {
+            var places = Enumerable.Range(0, row.Length).Where(i => row[i] == state).ToList();
+            var surplus = places.Count - want[state];
+            if (surplus <= 0) continue;
+            freed.AddRange(state == Commit.Out ? places.Take(surplus) : places.TakeLast(surplus));
+        }
+
+        var fill = new[] { Commit.Full, Commit.Half, Commit.Out }
+            .SelectMany(state => Enumerable.Repeat(state, Math.Max(0, want[state] - row.Count(c => c == state))));
+
+        foreach (var (place, state) in freed.Order().Zip(fill))
+            result[place] = state;
+
+        return result;
     }
 
     private void StepDial(int dir)
@@ -461,7 +486,7 @@
     }
 
     // A token cycles out, half, full, out. Only that token changes; dial and spice follow.
-    // A step that can't be paid for goes back to out. The row is then sorted again.
+    // A step that can't be paid for goes back to out.
     private void ClickToken(bool special, int i)
     {
         var row = special ? _special : _normal;
@@ -473,9 +498,6 @@
         };
 
         if (CurrentCost > SpiceAvailable) row[i] = Commit.Out;
-
-        var sorted = Row(row.Length, Count(row, Commit.Full), Count(row, Commit.Half));
-        if (special) _special = sorted; else _normal = sorted;
     }
 
     private static string FormatStrength(float value)

@@ -16,6 +16,7 @@ public sealed class SavegameComponentReplayTests
         typeof(Bid),
         typeof(BlackMarketBid),
         typeof(DealAccepted),
+        typeof(DealRejected),
         typeof(EndPhase),
         typeof(PlayerReplaced)
     ];

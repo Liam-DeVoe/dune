@@ -669,6 +669,7 @@ public partial class Game
             {
                 result.Add(typeof(DealOffered));
                 result.Add(typeof(DealAccepted));
+                result.Add(typeof(DealRejected));
             }
         }
 
@@ -678,6 +679,7 @@ public partial class Game
 
             result.Add(typeof(DealOffered));
             result.Add(typeof(DealAccepted));
+            result.Add(typeof(DealRejected));
         }
 
     }

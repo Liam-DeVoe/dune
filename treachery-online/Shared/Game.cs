@@ -136,12 +136,12 @@ public partial class Game
         
         ClearRecentPayments();
 
-        if (e is not (DealOffered or DealAccepted)) RecentlyDiscarded.Clear();
+        if (e is not (DealOffered or DealAccepted or DealRejected)) RecentlyDiscarded.Clear();
     }
 
     public void PerformPostEventTasks(GameEvent e, bool justEnteredStartOfPhase)
     {
-        if (!justEnteredStartOfPhase && e is not (AllyPermission or DealOffered or DealAccepted)) MainPhaseMiddle();
+        if (!justEnteredStartOfPhase && e is not (AllyPermission or DealOffered or DealAccepted or DealRejected)) MainPhaseMiddle();
 
         History.Add(e);
         Moments.Add(new Moment(CurrentTurn, CurrentMainPhase));

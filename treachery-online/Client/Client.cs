@@ -119,8 +119,6 @@ public class Client : IGameService, IGameClient, IAsyncDisposable
     public int Timer { get; set; } = -1;
     public bool MuteGlobalChat { get; set; } = false;
 
-    public ISet<string> RejectedDealOffers { get; } = new HashSet<string>();
-
     public event Action RefreshHandler = null!;
     public event Action RefreshPopoverHandler = null!;
 
@@ -917,7 +915,6 @@ public class Client : IGameService, IGameClient, IAsyncDisposable
             EndUndoSession();
             Game = result;
             GameName = initInfo.GameName;
-            RejectedDealOffers.Clear();
             await PerformPostEventTasks();
             RefreshPopovers();
         }

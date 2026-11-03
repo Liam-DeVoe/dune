@@ -1,94 +1,271 @@
 @use "../shared";
 
-// The battle plan prompt. Every part of the plan (forces, spice, leader,
-// weapon, defense) sits under the same small label, and the dial total is a
-// read-only box in the same row as the steppers that set it.
+// The battle plan prompt, on the parchment act card (see app/_prompt-act.scss).
+// The territory is the kicker, one line compares both sides, then forces,
+// leader, weapon and defense each sit under the same small label, and the
+// total strength and the Battle! button close the card.
 
-// Opponent forces and aggressor, as label and value pairs on one line.
-.bp-facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 20px;
-  margin: 4px 0 14px;
-}
+.battle-plan {
+  // The header only carries the kicker and the collapse chevron.
+  > .card-header {
+    background: transparent;
+    border-bottom: 0;
+    padding-bottom: 0;
 
-.bp-fact {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+    .kicker {
+      display: inline-flex;
+      margin: 0;
+    }
 
-  .bp-key {
-    margin-right: 2px;
+    > .btn-link.float-end {
+      --bs-btn-color: var(--rock-2);
+      --bs-btn-hover-color: var(--ink-1);
+      --bs-btn-active-color: var(--ink-1);
+    }
   }
 
-  strong {
-    font-family: var(--font-display);
-    font-weight: 400;
-    font-size: 18px;
-    color: var(--parchment);
+  > .card-body {
+    padding-top: 8px;
   }
 }
 
-.bp-key,
-.bp-section > label {
+.bp-label {
   font-family: var(--font-label);
   font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--text-3);
+  color: var(--rock-2);
+  margin-bottom: 8px;
 }
 
-// The steppers, each a label over its control.
-.bp-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 10px 12px;
-  margin-top: 10px;
-}
-
-.bp-group {
-  display: flex;
-  flex-direction: column;
+// Who is in the fight: you on the left, them on the right.
+.bp-matchup {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
   gap: 6px;
+  padding: 8px 10px;
+  border-radius: var(--r-2);
+  background: rgba(29, 12, 0, 0.05);
+  border: 1px solid rgba(29, 12, 0, 0.16);
+  font-size: 14px;
+  color: var(--rock-2);
 }
 
-// The dial those steppers add up to, read-only, with the reason when it is
-// lower than the number of forces.
-.bp-dial {
+.bp-side {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 10px;
-  margin-top: 10px;
+  gap: 4px 8px;
 
-  output {
-    display: grid;
-    place-items: center;
-    min-width: 40px;
-    height: 32px;
-    padding: 0 8px;
-    border-radius: var(--r-2);
-    background: shared.$gold-wash-strong;
-    border: 1px solid var(--gold-3);
-    color: var(--gold);
-    font-family: var(--font-display);
-    font-size: 20px;
-    line-height: 1;
+  &.them {
+    justify-content: flex-end;
+    text-align: right;
   }
 }
 
-.bp-hint {
-  flex-basis: 100%;
-  font-size: 13px;
-  color: var(--text-3);
+.bp-who {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.bp-agg {
+  font-family: var(--font-label);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rock-2);
+}
+
+.bp-groups {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  b {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 18px;
+    color: var(--ink-1);
+    margin-right: 4px;
+  }
+}
+
+.bp-vs {
+  font-family: var(--font-display);
+  color: var(--rock);
+  font-size: 14px;
+}
+
+// What the opponent knows, or what Voice forces on you.
+.bp-note {
+  display: block;
+  margin-top: 6px;
+  font-size: 14px;
+
+  &.good {
+    color: #3f5f1c;
+  }
+
+  &.bad {
+    color: var(--storm-2);
+  }
 }
 
 .bp-section {
-  margin-top: 16px;
+  margin-top: 18px;
+}
 
-  > label {
-    display: block;
-    margin: 0 0 6px !important;
+// A labelled stepper: Dial, Spice, From ally.
+.bp-ctl {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+
+  & + & {
+    margin-top: 8px;
   }
+}
+
+.bp-what {
+  width: 64px;
+  font-size: 14px;
+  color: var(--rock-2);
+}
+
+// One token per force: solid is full strength, half-shaded is half strength,
+// faded is kept out of the battle. Clicking cycles the token.
+.bp-pips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+
+  & + & {
+    margin-top: 6px;
+  }
+}
+
+.bp-pip {
+  position: relative;
+  border: 0;
+  padding: 0;
+  background: none;
+  border-radius: 50%;
+  cursor: pointer;
+  line-height: 0;
+  transition:
+    transform var(--t-fast) var(--ease),
+    opacity var(--t-fast) var(--ease);
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  img {
+    transition: filter var(--t-fast) var(--ease);
+  }
+
+  // The right half washed out with parchment.
+  &.half::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 50%;
+    border-radius: 0 999px 999px 0;
+    background: rgba(252, 249, 209, 0.72);
+    pointer-events: none;
+  }
+
+  &.out {
+    opacity: 0.35;
+
+    img {
+      filter: grayscale(1);
+    }
+  }
+}
+
+// Leaders and cards: the picked one stays in colour, the rest grey out.
+.bp-choices {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.bp-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.bp-none {
+  width: 50px;
+  aspect-ratio: 5 / 7;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 4px;
+  border: 1.5px dashed shared.$ink-line;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--rock-2);
+  cursor: pointer;
+  transition: transform var(--t-fast) var(--ease);
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  &.on {
+    border-style: solid;
+    border-color: var(--ink-1);
+    color: var(--ink-1);
+  }
+}
+
+// The total, and the button.
+.bp-total {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(29, 12, 0, 0.16);
+
+  .bp-label {
+    margin-bottom: 4px;
+  }
+
+  .btn {
+    margin-left: auto;
+    flex: none;
+  }
+}
+
+.bp-big {
+  font-family: var(--font-display);
+  font-size: 44px;
+  line-height: 0.9;
+  color: var(--ink-1);
+}
+
+.bp-sum {
+  font-size: 13px;
+  color: var(--rock-2);
+  line-height: 1.35;
+}
+
+.bp-why-not {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--storm-2);
+  text-align: right;
 }

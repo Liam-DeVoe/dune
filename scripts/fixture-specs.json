@@ -265,14 +265,26 @@
       "turn_min": 2
     }
   },
-  "blow-two-decks": {
+  "battle-special": {
     "rules": [
-      "IncreasedResourceFlow"
+      "AdvancedCombat"
     ],
+    "place": {
+      "Red": {
+        "spice": 10,
+        "forces": {
+          "Carthag": [
+            5,
+            1
+          ]
+        }
+      }
+    },
     "seed": 1,
     "situation": {
-      "phase": "BlowReport",
-      "turn_min": 2
+      "phase": "BattlePhase",
+      "event": "Battle",
+      "faction": "Red"
     }
   }
 }

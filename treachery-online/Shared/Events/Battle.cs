@@ -234,12 +234,18 @@ public class Battle : GameEvent
 
     public float Dial(Game g, Faction opponent)
     {
-        var pinkBattleContribution = !g.Prevented(FactionAdvantage.PinkOccupation) && (Initiator == Faction.Pink || Player.Ally == Faction.Pink) ? g.CurrentPinkBattleContribution : 0;
-        
-        if (Game.CurrentPinkOrAllyFighter == Faction.None || Initiator != Faction.Pink)
-            return ForceValue(g, Initiator, opponent, Forces, SpecialForces, ForcesAtHalfStrength, SpecialForcesAtHalfStrength) + pinkBattleContribution;
-        
-        return ForceValue(g, Player.Ally, opponent, Forces, SpecialForces, ForcesAtHalfStrength, SpecialForcesAtHalfStrength) + pinkBattleContribution;
+        return Dial(g, Player, opponent, Forces, SpecialForces, ForcesAtHalfStrength, SpecialForcesAtHalfStrength);
+    }
+
+    // The dial of a plan by p with these forces, without building the plan.
+    public static float Dial(Game g, Player p, Faction opponent, int forces, int specialForces, int forcesAtHalfStrength, int specialForcesAtHalfStrength)
+    {
+        var pinkBattleContribution = !g.Prevented(FactionAdvantage.PinkOccupation) && (p.Faction == Faction.Pink || p.Ally == Faction.Pink) ? g.CurrentPinkBattleContribution : 0;
+
+        if (g.CurrentPinkOrAllyFighter == Faction.None || p.Faction != Faction.Pink)
+            return ForceValue(g, p.Faction, opponent, forces, specialForces, forcesAtHalfStrength, specialForcesAtHalfStrength) + pinkBattleContribution;
+
+        return ForceValue(g, p.Ally, opponent, forces, specialForces, forcesAtHalfStrength, specialForcesAtHalfStrength) + pinkBattleContribution;
     }
 
     public int Cost(Game g)

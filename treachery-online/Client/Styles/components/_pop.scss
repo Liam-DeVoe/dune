@@ -386,3 +386,36 @@
     }
   }
 }
+
+// Spice card popover: the card at 200px in a frame, with the place chip of
+// its territory on the left under it and its spice amount on the right. Worm
+// cards have no footer.
+.pop-spice {
+  width: 200px;
+  overflow: hidden;
+  background: var(--ink-0);
+  border: 1px solid shared.$hairline-strong;
+  border-radius: var(--r-2);
+  box-shadow: var(--shadow-3);
+
+  > img {
+    display: block;
+    width: 100%;
+    background: #fff;
+  }
+}
+
+// A long territory and sector name doesn't fit beside the spice amount at
+// this width, so the amount wraps to its own line, still at the right.
+.pop-spice-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 8px;
+  border-top: 1px solid shared.$hairline-strong;
+
+  .spice-amt {
+    margin-left: auto;
+  }
+}

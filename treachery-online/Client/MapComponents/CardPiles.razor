@@ -21,10 +21,12 @@
     //Resource cards
     @if (!Game.ResourceCardDeck.IsEmpty)
     {
-        var cardImageToShow = Game.CurrentMainPhase == MainPhase.ShipmentAndMove && Game.HasResourceDeckPrescience(Client.Player) ? Client.CurrentSkin.GetImageUrl(Game.ResourceCardDeck.Top) : Client.CurrentSkin.CardBack_ResourceCard_URL;
+        // The deck has a popover only while the player can see its top card.
+        var topIsVisible = Game.CurrentMainPhase == MainPhase.ShipmentAndMove && Game.HasResourceDeckPrescience(Client.Player);
+        var cardImageToShow = topIsVisible ? Client.CurrentSkin.GetImageUrl(Game.ResourceCardDeck.Top) : Client.CurrentSkin.CardBack_ResourceCard_URL;
         <MapImage X="@(x)" Y="@(y)" Width=@(cardWidth) Height="@(cardHeight)" Src="@cardImageToShow" 
            ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="2" ShadowY="2" ShadowBlur="2" 
-           Popover="@IntelOfResourceCardPile()"/>
+           Popover="@(topIsVisible ? Client.CurrentSkin.GetPopup(Game.ResourceCardDeck.Top) : null)" PopoverStyle=""/>
 
         <MapText ToShow="@Game.ResourceCardDeck.Items.Count.ToString()"
              X="@(x + cardWidth / 2)" Y="@(y + cardHeight / 1.5f)"
@@ -38,7 +40,7 @@
     {
         <MapImage X="@(x)" Y="@(y)" Width=@(cardWidth) Height="@(cardHeight)" Src="@Client.CurrentSkin.GetImageUrl(Game.LatestSpiceCardA)" 
                ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="2" ShadowY="2" ShadowBlur="1" 
-               Popover="@IntelOfResourceDiscardPileA()"/>
+               Popover="@IntelOfResourceDiscardPile(Game.ResourceCardDiscardPileA, Game.LatestSpiceCardA, "A")" PopoverStyle=""/>
     }
 
     if (Game.Applicable(Rule.IncreasedResourceFlow))
@@ -54,7 +56,7 @@
         {
             <MapImage X="@(x)" Y="@(y)" Width=@(cardWidth) Height="@(cardHeight)" Src="@Client.CurrentSkin.GetImageUrl(Game.LatestSpiceCardB)" 
                    ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="2" ShadowY="2" ShadowBlur="1" 
-                   Popover="@IntelOfResourceDiscardPileB()"/>
+                   Popover="@IntelOfResourceDiscardPile(Game.ResourceCardDiscardPileB, Game.LatestSpiceCardB, "B")" PopoverStyle=""/>
         }
 
         <MapText ToShow="B"
@@ -68,7 +70,7 @@
     {
         x += cardWidth + cardspacing;
         <MapImage X="@(x)" Y="@(y)" Width=@(cardWidth) Height="@(cardHeight)" Src="@Client.CurrentSkin.GetImageUrl(Game.SandTrout)"
-            ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="2" ShadowY="2" ShadowBlur="1" Popover=@Client.CurrentSkin.GetPopup(Game.SandTrout)/>
+            ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="2" ShadowY="2" ShadowBlur="1" Popover=@Client.CurrentSkin.GetPopup(Game.SandTrout) PopoverStyle=""/>
     }
 
     //Treachery cards
@@ -134,17 +136,17 @@
 
         var known = Game.KnownCards(Player);
         var heading = Client.CurrentSkin.Format("Discard pile · {0}", Client.Game.TreacheryDiscardPile.Items.Count);
-        var result = $"<div class=\"pop-pile\"><h6>{heading}</h6><div class=\"pop-pile-cards\">";
-        foreach (var c in Client.Game.TreacheryDiscardPile.Items)
-        {
-            if (known.Contains(c))
-                result += $"<img src=\"{Client.CurrentSkin.GetImageUrl(c)}\"/>";
-            else
-                result += $"<img class=\"face-down\" src=\"{Client.CurrentSkin.CardBack_TreacheryCard_URL}\"/>";
-        }
+        var images = Client.Game.TreacheryDiscardPile.Items.Select(c => known.Contains(c)
+            ? $"<img src=\"{Client.CurrentSkin.GetImageUrl(c)}\"/>"
+            : $"<img class=\"face-down\" src=\"{Client.CurrentSkin.CardBack_TreacheryCard_URL}\"/>");
 
-        return result + "</div></div>";
+        return PileHtml(heading, images);
     }
+
+    // A discard pile's popover with note-keeping on: a heading and every card
+    // as a thumbnail, newest first. Styled by .pop-pile in _pop.scss.
+    private static string PileHtml(string heading, IEnumerable<string> images)
+        => $"<div class=\"pop-pile\"><h6>{heading}</h6><div class=\"pop-pile-cards\">{string.Concat(images)}</div></div>";
 
     private string GetCardImages<T>(IEnumerable<T> items)
     {
@@ -174,63 +176,19 @@
         return result;
     }
 
-    private string IntelOfResourceCardPile()
+    // The latest card's own popover. With note-keeping on, every card in the
+    // pile instead, all face up since spice cards are discarded openly. The
+    // pile letter is only shown when there are two piles.
+    private string IntelOfResourceDiscardPile(Deck<ResourceCard> pile, ResourceCard? latest, string letter)
     {
-        var result = "";
-
-        result += Client.CurrentSkin.Format("<h4>{0} Cards: {1} on deck</h4>", Concept.Resource, Client.Game.ResourceCardDeck.Items.Count);
-
-        if (Client.Game.CurrentMainPhase == MainPhase.ShipmentAndMove && Client.Game.HasResourceDeckPrescience(Client.Player) && Client.Game.ResourceCardDeck.Top != null)
+        if (!Client.Game.AssistedNoteKeepingEnabled(Player))
         {
-            result += "<p>Top Card:</p>";
-            result += Client.CurrentSkin.GetPopup(Client.Game.ResourceCardDeck.Top);
+            return Client.CurrentSkin.GetPopup(latest);
         }
 
-        return result;
-    }
-
-    private string IntelOfResourceDiscardPileA()
-    {
-        var result = "";
-        var pileName = Client.Game.Applicable(Rule.IncreasedResourceFlow) ? " A" : "";
-
-        result += $"<h4>Discard pile{pileName}: {Client.Game.ResourceCardDiscardPileA.Items.Count} cards</h4>";
-        if (Client.Game.LatestSpiceCardA != null)
-        {
-            if (Client.Game.AssistedNoteKeepingEnabled(Player))
-            {
-                result += GetCardImages(Client.Game.ResourceCardDiscardPileA.Items);
-            }
-            else
-            {
-                result += Client.CurrentSkin.GetPopup(Client.Game.LatestSpiceCardA);
-            }
-        }
-
-        return result;
-    }
-
-    private string IntelOfResourceDiscardPileB()
-    {
-        var result = "";
-
-        if (Client.Game.Applicable(Rule.IncreasedResourceFlow))
-        {
-            result += Client.CurrentSkin.Format("<h4>Discard pile B: {0} cards</h4>", Client.Game.ResourceCardDiscardPileB.Items.Count);
-            if (Client.Game.LatestSpiceCardB != null)
-            {
-                if (Client.Game.AssistedNoteKeepingEnabled(Player))
-                {
-                    result += GetCardImages(Client.Game.ResourceCardDiscardPileB.Items); 
-                }
-                else
-                {
-                    result += Client.CurrentSkin.GetPopup(Client.Game.LatestSpiceCardB);
-                }
-            }
-        }
-
-        return result;
+        var name = Client.Game.Applicable(Rule.IncreasedResourceFlow) ? $"Discard pile {letter}" : "Discard pile";
+        var images = pile.Items.Select(c => $"<img src=\"{Client.CurrentSkin.GetImageUrl(c)}\"/>");
+        return PileHtml($"{name} · {pile.Items.Count}", images);
     }
 
 }

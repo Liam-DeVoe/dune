@@ -56,7 +56,7 @@ def run(r):
         g.page.set_viewport_size({"width": 1000, "height": 604})
         g.page.evaluate("window.dispatchEvent(new Event('resize'))")
         g.settle()
-        piles = g.page.locator('#planetmap [data-bs-content*="Discard pile"]')
+        piles = g.page.locator('#planetmap :is([data-bs-content*="pop-card"], [data-bs-content*="pop-spice"], [data-bs-content*="pop-pile"])')
         for i in range(piles.count()):
             piles.nth(i).hover()
             g.page.wait_for_selector(".popover", state="visible")

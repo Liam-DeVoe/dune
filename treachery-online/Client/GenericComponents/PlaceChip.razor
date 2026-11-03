@@ -1,4 +1,4 @@
-@*
+﻿@*
  * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
  * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
@@ -6,72 +6,14 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
-@using Treachery.Client.MapComponents
+@* A sector or territory named in a sentence. The markup is built by
+   Support.PlaceChipHtml, which also serves popovers built as strings. *@
 
-@*
- A sector or territory named in a sentence. A pill with a glyph of the planet
- showing the place's real outline where it lies, the territory name, and for
- a sector its compass word in the label face. A region too small to see at
- glyph size is scaled up about its own centre until it is a fifth of the
- disc wide. The hover script in index.html reads data-ref-locations and
- lights those sectors on the map while the mouse is over the chip.
-*@
-
-@{
-    var skin = Client.CurrentSkin;
-    var (cx, cy) = RegionGeometry.PlanetCenter(skin);
-    var r = RegionGeometry.PlanetRadius(skin);
-    var border = skin.GetTerritoryBorder(Territory);
-    var view = $"{Support.Round(cx - r - 3)} {Support.Round(cy - r - 3)} {Support.Round(2 * r + 6)} {Support.Round(2 * r + 6)}";
-}
-
-<span class="chip place" data-ref-locations="@LocationIds" title="@skin.Describe(Place)">
-    <svg class="wedge" viewBox="@view" aria-hidden="true">
-        <defs>
-            <clipPath id="@(_id)-disc"><circle cx="@Support.Round(cx)" cy="@Support.Round(cy)" r="@Support.Round(r)"/></clipPath>
-            @if (Place is Location { Sector: >= 0 } sectorLocation)
-            {
-                <clipPath id="@(_id)-sector"><path d="@SectorGeometry.WedgePath(skin, sectorLocation.Sector)"/></clipPath>
-            }
-        </defs>
-        <g clip-path="url(#@(_id)-disc)">
-            <circle class="disc" cx="@Support.Round(cx)" cy="@Support.Round(cy)" r="@Support.Round(r)"/>
-            @if (border != "")
-            {
-                var piece = RegionGeometry.Measure(skin, border, Place is Location l ? l.Sector : -1);
-                var grow = piece.Size > 0 ? Math.Max(1, MinimumSize * 2 * r / piece.Size) : 1;
-                var clip = Place is Location { Sector: >= 0 } ? $"url(#{_id}-sector)" : null;
-                <g transform="translate(@Support.Round(piece.Center.X),@Support.Round(piece.Center.Y)) scale(@Support.Round(grow)) translate(@Support.Round(-piece.Center.X),@Support.Round(-piece.Center.Y))">
-                    <g clip-path="@clip">
-                        <path class="w" d="@border"/>
-                    </g>
-                </g>
-            }
-        </g>
-        <circle class="ring" cx="@Support.Round(cx)" cy="@Support.Round(cy)" r="@Support.Round(r)" vector-effect="non-scaling-stroke"/>
-    </svg>
-    <span class="name">@skin.Describe(Territory)</span>
-    @if (Place is Location { Orientation: not "" } location)
-    {
-        <span class="sector">@location.Orientation</span>
-    }
-</span>
+@((MarkupString)Support.PlaceChipHtml(Client.CurrentSkin, Place))
 
 @code {
 
     // A Location or a Territory.
     [Parameter, EditorRequired]
     public object Place { get; set; } = null!;
-
-    // A region narrower than this fraction of the disc is scaled up to it.
-    private const double MinimumSize = 0.20;
-
-    private static int _counter;
-    private readonly string _id = "place" + System.Threading.Interlocked.Increment(ref _counter);
-
-    private Territory Territory => Place is Location l ? l.Territory : (Territory)Place;
-
-    private IEnumerable<Location> Locations => Place is Location l ? [l] : Territory.Locations;
-
-    private string LocationIds => string.Join(",", Locations.Select(l => l.Id));
 }

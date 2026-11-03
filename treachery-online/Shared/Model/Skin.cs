@@ -424,8 +424,8 @@ public class Skin : IDescriber
     private static string GetPopup(string c)
         => $"<div style='background-color:white;border-color:black;border-width:1px;border-style:solid;color:black;padding:2px;'>{c}</div>";
 
-    public string GetPopup(ResourceCard c)
-        => GetImageHoverHtml(GetImageUrl(c));
+    // The popover of a ResourceCard is Support.GetPopup in the client, which
+    // needs the map geometry for its place chip.
 
     public string GetPopup(TerrorType t)
         => GetPopup(GetTerrorTypeDescription(t));

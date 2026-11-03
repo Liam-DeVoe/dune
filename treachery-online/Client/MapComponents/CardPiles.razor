@@ -78,8 +78,7 @@
     if (Game.TreacheryDeck.Items.Count > 0)
     {
         <MapImage X="@(x)" Y=@y Width=@(cardWidth) Height="@(cardHeight)" Src="@Client.CurrentSkin.CardBack_TreacheryCard_URL" 
-               ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="2" ShadowY="2" ShadowBlur="1" 
-               Popover="@IntelOfTreacheryCardPile()"/>
+               ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="2" ShadowY="2" ShadowBlur="1"/>
     }
 
     <MapText ToShow="@Game.TreacheryDeck.Items.Count.ToString()"
@@ -93,7 +92,8 @@
         x += cardWidth + cardspacing;
         <MapImage X="@(x)" Y=@y Width=@(cardWidth) Height="@(cardHeight)" Src="@Client.CurrentSkin.GetImageUrl(Game.TreacheryDiscardPile.Top)" 
                ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="2" ShadowY="2" ShadowBlur="1" 
-               Popover="@IntelOfTreacheryDiscardPile()"/>
+               Popover="@IntelOfTreacheryDiscardPile()"
+               PopoverStyle=""/>
 
         <MapText ToShow="@Game.TreacheryDiscardPile.Items.Count.ToString()"
                  X="@(x + cardWidth / 2)" Y="@(y + cardHeight / 1.5f)"
@@ -122,35 +122,28 @@
 
 @code {
 
-    private string IntelOfTreacheryCardPile()
-    {
-        return Client.CurrentSkin.Format("<h4>Treachery Cards: {0} on deck</h4>", Client.Game.TreacheryDeck.Items.Count); ;
-    }
-
+    // The top card's own popover. With note-keeping on, every card in the
+    // pile instead, newest first, with the ones this player hasn't seen face
+    // down. Both bring their own frame, so the map's popover frame is off.
     private string IntelOfTreacheryDiscardPile()
     {
-        var result = "";
-
-        result += Client.CurrentSkin.Format("<h4>Discard pile: {0} cards</h4>", Client.Game.TreacheryDiscardPile.Items.Count);
-
-        if (Client.Game.AssistedNoteKeepingEnabled(Player))
+        if (!Client.Game.AssistedNoteKeepingEnabled(Player))
         {
-            var known = Game.KnownCards(Player);
-            result += "<div class=\"row row-cols-6 mt-1\">";
-            foreach (var c in Client.Game.TreacheryDiscardPile.Items)
-            {
-                var imgUrl = known.Contains(c) ? Client.CurrentSkin.GetImageUrl(c) : Client.CurrentSkin.CardBack_TreacheryCard_URL;
-                result += $"<img src=\"{imgUrl}\" class=\"img-fluid p-1\"/>";
-            }
-            result += "</div>";
-
-        }
-        else if (Client.Game.TreacheryDiscardPile.Top != null)
-        {
-            result += Client.CurrentSkin.GetPopup(Client.Game.TreacheryDiscardPile.Top);
+            return Client.CurrentSkin.GetPopup(Client.Game.TreacheryDiscardPile.Top);
         }
 
-        return result;
+        var known = Game.KnownCards(Player);
+        var heading = Client.CurrentSkin.Format("Discard pile · {0}", Client.Game.TreacheryDiscardPile.Items.Count);
+        var result = $"<div class=\"pop-pile\"><h6>{heading}</h6><div class=\"pop-pile-cards\">";
+        foreach (var c in Client.Game.TreacheryDiscardPile.Items)
+        {
+            if (known.Contains(c))
+                result += $"<img src=\"{Client.CurrentSkin.GetImageUrl(c)}\"/>";
+            else
+                result += $"<img class=\"face-down\" src=\"{Client.CurrentSkin.CardBack_TreacheryCard_URL}\"/>";
+        }
+
+        return result + "</div></div>";
     }
 
     private string GetCardImages<T>(IEnumerable<T> items)

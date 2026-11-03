@@ -174,3 +174,215 @@
   white-space: nowrap;
   margin-left: 4px;
 }
+
+// Treachery card popover: the card's art fills the left edge of the box, with
+// its name, type and rules text beside it. The box's corners clip the art. The
+// art's height (about 240px) sets the box's height for all but the longest
+// rules texts.
+.pop-card {
+  display: flex;
+  width: 460px;
+  overflow: hidden;
+  text-align: left;
+  background: var(--ink-0);
+  border: 1px solid shared.$hairline-strong;
+  border-radius: var(--r-2);
+  box-shadow: var(--shadow-3);
+
+  .pop-card-art {
+    flex: none;
+    display: block;
+    width: 160px;
+    // Stretched to the box's height when the text runs longer than the art,
+    // with the card's own white filling the gap.
+    align-self: stretch;
+    object-fit: contain;
+    background: #fff;
+    border-right: 1px solid shared.$hairline-strong;
+  }
+
+  .pop-card-body {
+    min-width: 0;
+    padding: 12px 14px;
+  }
+
+  h6 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 21px;
+    line-height: 1.1;
+    color: var(--sand);
+  }
+
+  p {
+    margin: 8px 0 0;
+    font-size: 14.5px;
+    line-height: 1.38;
+    color: var(--text-2);
+  }
+}
+
+// The type line under the name, with a square in the card category's colour.
+.pop-card-type {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 4px;
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-3);
+
+  i {
+    display: block;
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+    flex: none;
+  }
+
+  .weapon { background: var(--storm); }
+  .defense { background: #4f7bb3; }
+  .special { background: #6f9a3a; }
+  .worthless { background: var(--rock-2); }
+}
+
+// The treachery discard pile with note-keeping on: every card as a small
+// thumbnail, six to a row, newest first. Cards the player hasn't seen show
+// their back, dimmed.
+.pop-pile {
+  padding: 10px 12px 12px;
+  text-align: left;
+  background: var(--ink-0);
+  border: 1px solid shared.$hairline-strong;
+  border-radius: var(--r-2);
+  box-shadow: var(--shadow-3);
+
+  h6 {
+    margin: 0 0 8px;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 20px;
+    color: var(--sand);
+  }
+}
+
+.pop-pile-cards {
+  display: grid;
+  grid-template-columns: repeat(6, 64px);
+  gap: 6px;
+
+  img {
+    display: block;
+    width: 64px;
+    border-radius: 2px;
+    box-shadow: 0 1px 2px rgba(18, 8, 0, 0.7);
+  }
+
+  .face-down {
+    opacity: 0.55;
+  }
+}
+
+// The tanks popover (Tanks.razor): one row per faction with its chip, its
+// forces and special forces as token and count, and its dead leaders.
+.tanks-pop {
+  padding: 7px 9px 3px;
+  // The map popover frame centres its text.
+  text-align: left;
+
+  h6 {
+    margin: 0 0 6px;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 15px;
+    color: var(--gold);
+    text-align: left;
+  }
+
+  table {
+    border-collapse: collapse;
+  }
+
+  th {
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-3);
+    text-align: left;
+    padding: 0 12px 4px 0;
+    border-bottom: 1px solid shared.$hairline-strong;
+  }
+
+  td {
+    padding: 3px 12px 3px 0;
+    border-bottom: 1px solid shared.$hairline;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  tr:last-child td {
+    border-bottom: 0;
+  }
+
+  th:last-child,
+  td:last-child {
+    padding-right: 0;
+  }
+
+  // Forces and special forces share the Forces heading, so they sit closer.
+  td.forces {
+    padding-right: 6px;
+  }
+
+  // The in-sentence faction chip a size up, to match the 44px leaders.
+  // Nothing in a popover is hoverable, so it drops the hover ring.
+  .chip.faction {
+    padding: 1px 10px 1px 1px;
+    font-size: 15px;
+    cursor: default;
+
+    img {
+      width: 28px;
+      height: 28px;
+    }
+
+    &:hover {
+      border-color: rgba(252, 249, 209, 0.12);
+      box-shadow: none;
+    }
+  }
+
+  // A token and its count, as in the battle prompt's force groups.
+  .count {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    b {
+      font-family: var(--font-display);
+      font-weight: 400;
+      font-size: 21px;
+      color: var(--parchment);
+      min-width: 2ch;
+    }
+  }
+
+  .leaders {
+    display: flex;
+    gap: 3px;
+
+    img {
+      width: 44px;
+      height: 44px;
+      filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.8));
+    }
+
+    // A face-down leader, shown by name only to its owner and Tleilaxu.
+    img.face-down {
+      filter: grayscale(1) brightness(0.65);
+    }
+  }
+}

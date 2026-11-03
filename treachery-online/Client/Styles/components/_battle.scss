@@ -218,11 +218,6 @@
   font-size: 12px;
   color: var(--rock-2);
   cursor: pointer;
-  transition: transform var(--t-fast) var(--ease);
-
-  &:hover {
-    transform: translateY(-2px);
-  }
 
   &.on {
     border-style: solid;

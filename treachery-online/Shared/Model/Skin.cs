@@ -442,22 +442,72 @@ public class Skin : IDescriber
     public string GetPopup(Homeworld w)
         => $"<div style='position:relative'><img width=480 style='position:relative;filter:drop-shadow(-3px 3px 2px black);' src='{GetHomeworldCardImageUrl(w.World)}'/></div>";
 
+    // The card's art down the left edge of the box and its name, type and
+    // rules text on the right. Styled by .pop-card in _pop.scss.
     public string GetPopup(TreacheryCard? c)
     {
         if (c == null)
             return "";
-        return
-            $"<div style='filter:drop-shadow(-3px 3px 2px black);'><img src='{GetImageUrl(c)}' width=300 class='img-fluid'/></div><div class='bg-dark text-white text-center' style='width:300px'>{GetTreacheryCardDescription(c)}</div>";
+
+        var (category, type) = GetTreacheryCardCategory(c);
+
+        return $"<div class='pop-card'><img class='pop-card-art' src='{GetImageUrl(c)}'/><div class='pop-card-body'>" +
+               $"<h6>{Describe(c)}</h6><div class='pop-card-type'><i class='{category}'></i>{type}</div>" +
+               $"<p>{GetTreacheryCardRulesText(c)}</p></div></div>";
+    }
+
+    // The type line comes from the card's type rather than from the prefix of
+    // its description: the prefixes are missing on some cards and vague on
+    // others (Poison Blade says "Weapon - Special").
+    private static (string Category, string Type) GetTreacheryCardCategory(TreacheryCard c)
+    {
+        return c.Type switch
+        {
+            TreacheryCardType.Projectile => ("weapon", "Projectile weapon"),
+            TreacheryCardType.Poison => ("weapon", "Poison weapon"),
+            TreacheryCardType.ProjectileAndPoison => ("weapon", "Projectile and poison weapon"),
+            TreacheryCardType.Laser or TreacheryCardType.WeirdingWay or TreacheryCardType.PoisonTooth or
+                TreacheryCardType.ArtilleryStrike or TreacheryCardType.MirrorWeapon or TreacheryCardType.Rockmelter => ("weapon", "Special weapon"),
+            TreacheryCardType.Shield or TreacheryCardType.ProjectileDefense => ("defense", "Projectile defense"),
+            TreacheryCardType.Antidote or TreacheryCardType.PoisonDefense or TreacheryCardType.PortableAntidote => ("defense", "Poison defense"),
+            TreacheryCardType.ShieldAndAntidote => ("defense", "Projectile and poison defense"),
+            TreacheryCardType.Chemistry => ("defense", "Special defense"),
+            TreacheryCardType.Useless => ("worthless", "Worthless"),
+            _ => ("special", "Special")
+        };
+    }
+
+    // The description without its leading type ("Weapon - Poison - ") or name
+    // ("Distrans - "), since the popup shows both above the text already.
+    private string GetTreacheryCardRulesText(TreacheryCard c)
+    {
+        var text = GetTreacheryCardDescription(c);
+
+        foreach (var prefix in new[] { "Weapon - ", "Defense - " })
+        {
+            if (!text.StartsWith(prefix)) continue;
+            var end = text.IndexOf(" - ", prefix.Length, StringComparison.Ordinal);
+            return end >= 0 ? text[(end + 3)..] : text;
+        }
+
+        foreach (var prefix in new[] { "Worthless Card - ", Describe(c) + " - " })
+        {
+            if (text.StartsWith(prefix)) return text[prefix.Length..];
+        }
+
+        return text;
     }
 
     public string GetPopup(IHero h)
     {
+        if (h is TreacheryCard tc) return GetPopup(tc);
         return GetImageHoverHtml(GetImageUrl(h));
     }
 
     public string GetPopup(IHero? h, Game g)
     {
         if (h == null) return "";
+        if (h is TreacheryCard tc) return GetPopup(tc);
 
         var skill = g.Skill(h);
 

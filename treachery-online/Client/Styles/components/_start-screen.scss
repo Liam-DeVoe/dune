@@ -1,0 +1,18 @@
+// The screens before a game starts (login, the home page with the game
+// lists, waiting for players, seating) are, like the game screen, exactly one
+// window tall on desktop (Bootstrap's lg and up). Each column scrolls on its
+// own, so a long list or setup form never scrolls the page. A short panel in a
+// centred row stays centred. Below lg the columns stack and the page scrolls.
+@media (min-width: 992px) {
+  .start-screen {
+    // .content above it has 0.75rem of padding.
+    height: calc(100dvh - 0.75rem);
+    min-height: 0;
+    overflow: hidden;
+
+    > [class*="col-"] {
+      max-height: 100%;
+      overflow-y: auto;
+    }
+  }
+}

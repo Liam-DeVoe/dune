@@ -22,8 +22,9 @@
         }
         else
         {
-            if (Client.ActiveGamesWithOpenSeats.Any())
+            if (Client.ActiveGamesWithOpenSeats.Any() || Client.ActiveGamesWithoutOpenSeats.Any())
             {
+                @* Open games first, then full ones. *@
                 <table class="table table-sm table-running-games">
                     <tbody>
                     @foreach (var av in Client.ActiveGamesWithOpenSeats)
@@ -110,12 +111,68 @@
                             </td>
                         </tr>
                     }
+                    @foreach (var av in Client.ActiveGamesWithoutOpenSeats)
+                    {
+                        Passwords.TryAdd(av.GameId, string.Empty);
+                        JoinErrors.TryAdd(av.GameId, string.Empty);
+
+                        var fontColorStyle = av.LastActivity != null && DateTimeOffset.Now.Subtract((DateTimeOffset)av.LastActivity).TotalMinutes > 20 ? "color:var(--text-3)" : "color:var(--parchment)";
+
+                        <tr class="small table-dark">
+                            <td style="@fontColorStyle">
+                                <span style="font-size:14px;">@av.Name</span>
+                            </td>
+                            <td style="@fontColorStyle">
+                                <div style="display: inline-block;">
+                                    <UserIcon Size="20" Title="Players" MarginClass=""/><span class="me-1">@av.NrOfPlayers</span>
+                                </div>
+                                @if (av.NrOfBots > 0)
+                                {
+                                    <div style="display: inline-block;"><BotIcon Size="16" Title="Bots" MarginClass="me-1"/><span>@av.NrOfBots</span></div>
+                                }
+                            </td>
+                            <td style="@fontColorStyle">
+                                @if (av.Phase == Phase.AwaitingPlayers)
+                                {
+                                    <div>
+                                        @Name(av.Ruleset), @av.MaxTurns turns
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div>
+                                        <div>
+                                           @Name(av.Ruleset), Turn @av.Turn: @Name(av.MainPhase)
+                                        </div>
+                                        <div>
+                                            @foreach (var f in av.FactionsInPlay)
+                                            {
+                                                <Image Shown="f" Width="18" NoShadow/>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </td>
+                            <td>
+                                @if (!av.YouAreIn(Client.UserId!.Value))
+                                {
+                                    <span class="full-tag" title="No open seats">Full</span>
+                                    <CommandButton Small OnClick="@(_ => JoinGameAsObserver(av.GameId, Passwords[av.GameId]))" Title="Observe game" MarginClass="m-1">👁</CommandButton>
+                                }
+                                else
+                                {
+                                    <CommandButton Small OnClick="@(_ => JoinGameAsPlayer(av.GameId, string.Empty, av.YourCurrentSeat(Client.UserId!.Value)))" Title="Resume game" MarginClass="m-1"><PlayIcon /></CommandButton>
+                                }
+                                <div class="text-danger">@JoinErrors[av.GameId]</div>
+                            </td>
+                        </tr>
+                    }
                     </tbody>
                 </table>
             }
             if (Client.ScheduledGames.Any())
             {
-                <div class="text-info">Scheduled games</div>
+                <div class="games-section-label">Scheduled</div>
                 <table class="table table-sm table-scheduled-games">
                         <thead>
                         <tr class="small table-dark">
@@ -170,69 +227,6 @@
                         }
                         </tbody>
                     </table>
-            }
-            if (Client.ActiveGamesWithoutOpenSeats.Any())
-            {
-                <div class="text-info">Games without open seats</div>
-                <table class="table table-sm table-running-games">
-                    <tbody>
-                    @foreach (var av in Client.ActiveGamesWithoutOpenSeats)
-                    {
-                        Passwords.TryAdd(av.GameId, string.Empty);
-                        JoinErrors.TryAdd(av.GameId, string.Empty);
-
-                        var fontColorStyle = av.LastActivity != null && DateTimeOffset.Now.Subtract((DateTimeOffset)av.LastActivity).TotalMinutes > 20 ? "color:var(--text-3)" : "color:var(--parchment)";
-
-                        <tr class="small table-dark">
-                            <td style="@fontColorStyle">
-                                <span style="font-size:14px;">@av.Name</span>
-                            </td>
-                            <td style="@fontColorStyle">
-                                <div style="display: inline-block;">
-                                    <UserIcon Size="20" Title="Players" MarginClass=""/><span class="me-1">@av.NrOfPlayers</span>
-                                </div>
-                                @if (av.NrOfBots > 0)
-                                {
-                                    <div style="display: inline-block;"><BotIcon Size="16" Title="Bots" MarginClass="me-1"/><span>@av.NrOfBots</span></div>
-                                }
-                            </td>
-                            <td style="@fontColorStyle">
-                                @if (av.Phase == Phase.AwaitingPlayers)
-                                {
-                                    <div>
-                                        @Name(av.Ruleset), @av.MaxTurns turns
-                                    </div>
-                                }
-                                else
-                                {
-                                    <div>
-                                        <div>
-                                           @Name(av.Ruleset), Turn @av.Turn: @Name(av.MainPhase)
-                                        </div>
-                                        <div>
-                                            @foreach (var f in av.FactionsInPlay)
-                                            {
-                                                <Image Shown="f" Width="18" NoShadow/>
-                                            }
-                                        </div>
-                                    </div>
-                                }
-                            </td>
-                            <td>
-                                @if (!av.YouAreIn(Client.UserId!.Value))
-                                {
-                                    <CommandButton Small OnClick="@(_ => JoinGameAsObserver(av.GameId, Passwords[av.GameId]))" Title="Observe game" MarginClass="m-1">👁</CommandButton>
-                                }
-                                else
-                                {
-                                    <CommandButton Small OnClick="@(_ => JoinGameAsPlayer(av.GameId, string.Empty, av.YourCurrentSeat(Client.UserId!.Value)))" Title="Resume game" MarginClass="m-1"><PlayIcon /></CommandButton>
-                                }
-                                <div class="text-danger">@JoinErrors[av.GameId]</div>
-                            </td>
-                        </tr>
-                    }
-                    </tbody>
-                </table>
             }
         }
     </div>

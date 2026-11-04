@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
  * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
@@ -25,11 +25,28 @@ public class MenuState
     public void Open(MenuPanel panel) => Panel = panel;
 
     public void Close() => Panel = MenuPanel.None;
+
+    // The faction whose rules sheet the FactionRules panel shows. Clicking a
+    // faction's token on the map opens it; clicking the same faction again closes it.
+    public Faction RulesFaction { get; private set; }
+
+    public void ShowRules(Faction faction)
+    {
+        if (Panel == MenuPanel.FactionRules && RulesFaction == faction)
+        {
+            Close();
+            return;
+        }
+
+        RulesFaction = faction;
+        Panel = MenuPanel.FactionRules;
+    }
 }
 
 public enum MenuPanel
 {
     None,
     Players,
-    Undo
+    Undo,
+    FactionRules
 }

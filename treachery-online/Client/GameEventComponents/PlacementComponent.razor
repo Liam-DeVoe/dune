@@ -395,7 +395,7 @@
 
             @if (validation != null)
             {
-                <div class="pin-error">@validation.ToString(Client.CurrentSkin)</div>
+                <div class="pin-error"><ExpressionComponent Expression=@(validation.Expression) Game=Game/></div>
             }
 
             <div class="pin-actions">

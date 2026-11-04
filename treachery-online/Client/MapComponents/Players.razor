@@ -7,6 +7,7 @@
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
 @inherits MapComponent
+@inject MenuState Menu
 
 <div @ref="@Element">
 
@@ -32,13 +33,13 @@
 
             <MapImage X="@(x)" Y="@(y)" Diameter=@factionTokenDiameter Src="@Client.CurrentSkin.GetFactionTableImageUrl(p.Faction)" 
                    ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="1" ShadowY="1" ShadowBlur="1" 
-                   Popover="@Intel(p)"/>
+                   Popover="@Intel(p)" PopoverStyle="" OnClick="@(_ => ShowRules(p.Faction))"/>
 
             if (p.Ally != Faction.None)
             {
                 <MapImage X="@(position.X)" Y="@(position.Y + 0.25f * Client.CurrentSkin.PlayerTokenRadius)" Diameter=@(1.2f * Client.CurrentSkin.PlayerTokenRadius) Src="@Client.CurrentSkin.GetFactionTableImageUrl(p.Ally)" 
                        ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="1" ShadowY="1" ShadowBlur="1" 
-                       Popover="@Intel(p.AlliedPlayer)"/>
+                       Popover="@Intel(p.AlliedPlayer)" PopoverStyle="" OnClick="@(_ => ShowRules(p.Ally))"/>
             }
 
             var positionOnCircle = TwoPi / 180 + (4.5f - positionSector) * TwoPi / Map.NumberOfSectors;
@@ -170,7 +171,7 @@
                               Y=@(ambassadorXY.Y + yOffset)
                               Diameter=@(Client.CurrentSkin.PlayerTokenRadius)
                               Src="@Client.CurrentSkin.GetImageUrl(a)" ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="1" ShadowY="1" ShadowBlur="1"
-                              Popover=@Client.CurrentSkin.GetAmbassadorDescription(a) PopoverAsTooltip="true"/>
+                              Popover=@Client.CurrentSkin.GetPopup(a) PopoverStyle=""/>
 
                     yOffset += 0.2f * Client.CurrentSkin.PlayerTokenRadius;
                     xOffset = xOffset == 0 ? 0.5f * Client.CurrentSkin.PlayerTokenRadius : 0;
@@ -204,7 +205,7 @@
                     Diameter=@(2 * Client.CurrentSkin.FORCETOKEN_RADIUS)
                     Src="@Client.CurrentSkin.Harvester_URL"
                     Popover=@tooltip PopoverAsTooltip=true
-                    BackgroundCircleColor="#black"
+                    BackgroundCircleColor="black"
                     BackgroundCircleDiameter=@(1.5f * Client.CurrentSkin.FORCETOKEN_RADIUS)
                     ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="1" ShadowY="1" ShadowBlur="1" />
 
@@ -231,7 +232,7 @@
                     BackgroundCircleDiameter=@(1.5f * Client.CurrentSkin.FORCETOKEN_RADIUS)
                     ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="1" ShadowY="1" ShadowBlur="1" />
 
-                <MapText ToShow=@tooltip
+                <MapText ToShow=@p.ResourcesAfterBidding.ToString()
                     Xy=@Pos(positionOnCircle)
                     Font="@Client.CurrentSkin.RESOURCETOKEN_FONT" FontColor="@Client.CurrentSkin.RESOURCETOKEN_FONTCOLOR"
                     Popover=@tooltip PopoverAsTooltip=true
@@ -265,31 +266,13 @@
         return Client.InGame && situation.RequiresUpdate(Client);
     }
 
-    private string Intel(Player p)
+    private string Intel(Player p) => Support.FactionPopupHtml(Client.CurrentSkin, Game, p);
+
+    // Opens the faction's full rules sheet in a panel at the top of the side column.
+    private void ShowRules(Faction faction)
     {
-        var result = Client.CurrentSkin.Format("<p><strong>{0} plays {1}</strong></p>", p.Name, p.Faction);
-
-        foreach (var v in LeaderManager.Leaders.Where(l => l.Faction == p.Faction))
-        {
-            result += GetLeaderHTML(v);
-        }
-
-        result += "<div class=\"row m-0 mt-1 justify-content-center\">";
-
-        result += "</div>";
-
-        result += "<div class=\"mt-1 text-start\">" + Client.CurrentSkin.GetFactionInfo_HTML(Client.Game, p.Faction) + "</div>";
-        return result;
-    }
-
-    private string GetLeaderHTML(Leader l)
-    {
-        if (l == null)
-        {
-            return "";
-        }
-
-        return string.Format("<img class='img-fluid' src='{0}' width=80 style='filter:drop-shadow(-3px 3px 2px black);'/>", Client.CurrentSkin.GetImageUrl(l));
+        Menu.ShowRules(faction);
+        Client.Refresh(nameof(ShowRules));
     }
 
     private string DetermineVideoStreamId(Player p)

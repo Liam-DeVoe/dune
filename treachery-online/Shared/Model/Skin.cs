@@ -427,17 +427,60 @@ public class Skin : IDescriber
     // The popover of a ResourceCard is Support.GetPopup in the client, which
     // needs the map geometry for its place chip.
 
+    // A spice amount: the digits drawn on the harvester icon. Every spice amount
+    // shown in the client takes this form. Styled by .spice-amt in _spice.scss.
+    public string SpiceHtml(object amount, int size = 18)
+    {
+        var name = Describe(Concept.Resource);
+        return $"<span class='spice-amt' style='--s:{size}px' title='{name}'><img src='{Harvester_URL}' alt='{name}'/><b>{amount}</b></span>";
+    }
+
+    // The text as HTML, with each amount of spice in it ("gain 3 spice") drawn as
+    // a spice amount. The skin's rules texts write amounts out in words. A number
+    // before "spice card", "spice blow" or "spice deck" counts things, not spice,
+    // and is left as it is. Pass encode: false for text that is already HTML.
+    public string WithSpiceIcons(string text, int size = 18, bool encode = true)
+    {
+        if (string.IsNullOrEmpty(text)) return "";
+        if (encode) text = System.Net.WebUtility.HtmlEncode(text);
+        var name = System.Text.RegularExpressions.Regex.Escape(Describe(Concept.Resource));
+        return System.Text.RegularExpressions.Regex.Replace(text,
+            $@"\b(\d+) (?:spice|{name})\b(?! (?:cards?|blows?|decks?)\b)",
+            m => SpiceHtml(m.Groups[1].Value, size),
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+    }
+
+    // A token's art on a dark panel at the left, with its name and rules text
+    // beside it. A token without art of its own gets just the text. Styled by
+    // .pop-token in _pop.scss.
+    private string GetTokenPopup(string? imageUrl, string name, string rulesText)
+    {
+        var art = string.IsNullOrEmpty(imageUrl) ? "" : $"<div class='pop-token-art'><img src='{imageUrl}'/></div>";
+        return $"<div class='pop-token'>{art}<div class='pop-token-body'><h6>{name}</h6><p>{WithSpiceIcons(rulesText)}</p></div></div>";
+    }
+
     public string GetPopup(TerrorType t)
-        => GetPopup(GetTerrorTypeDescription(t));
+        => GetTokenPopup(null, Describe(t), GetTerrorTypeDescription(t));
+
+    // The skin's descriptions start with the ambassador's faction ("Emperor - Gain
+    // 5 spice"), which the heading already names.
+    public string GetPopup(Ambassador a)
+    {
+        var name = Describe(a);
+        var text = GetAmbassadorDescription(a);
+        var dash = text.IndexOf(" - ", StringComparison.Ordinal);
+        if (dash >= 0) text = text[(dash + 3)..];
+        return GetTokenPopup(GetImageUrl(a), $"{name} Ambassador", text);
+    }
+
+    public string GetPopup(DiscoveryToken dt)
+        => GetTokenPopup(GetImageUrl(dt), Describe(dt), GetDiscoveryTokenDescription(dt));
 
     public string GetPopup(LeaderSkill c)
         => GetFramedCardHtml(GetImageUrl(c));
 
-    // The token on a dark panel at the left, with its name and rules text
-    // beside it. Styled by .pop-token in _pop.scss.
     public string GetPopup(TechToken tt)
-        => $"<div class='pop-token'><div class='pop-token-art'><img src='{GetImageUrl(tt)}'/></div><div class='pop-token-body'>" +
-           $"<h6>{Describe(tt)}</h6><p>{GetLabel(TechTokenDescription_STR, tt)}</p></div></div>";
+        => GetTokenPopup(GetImageUrl(tt), Describe(tt), GetLabel(TechTokenDescription_STR, tt));
 
     public string GetNexusCardPopup(Nexus n)
         => GetFramedCardHtml(GetImageUrl(n));
@@ -461,7 +504,7 @@ public class Skin : IDescriber
 
         return $"<div class='pop-card'><img class='pop-card-art' src='{GetImageUrl(c)}'/><div class='pop-card-body'>" +
                $"<h6>{Describe(c)}</h6><div class='pop-card-type'><i class='{category}'></i>{type}</div>" +
-               $"<p>{GetTreacheryCardRulesText(c)}</p></div></div>";
+               $"<p>{WithSpiceIcons(GetTreacheryCardRulesText(c))}</p></div></div>";
     }
 
     // The type line comes from the card's type rather than from the prefix of
@@ -1120,9 +1163,63 @@ public class Skin : IDescriber
 
     #region FactionManual
 
-    public string GetFactionInfo_HTML(Game g, Faction f)
+    // The faction's rules sheet. sheetStyle replaces the sheet's own inline
+    // style (FACTION_INFORMATIONCARDSTYLE), for a sheet shown inside a panel
+    // that styles it.
+    public string GetFactionInfo_HTML(Game g, Faction f, string? sheetStyle = null)
     {
-        object[] parameters =
+        var parameters = FactionSheetParameters(g, sheetStyle ?? FACTION_INFORMATIONCARDSTYLE);
+        var template = FactionSheetTemplate(g, f);
+        return template == "" ? "" : WithSpiceIcons(Format(template, parameters), 20, encode: false);
+    }
+
+    // The parts of a faction's rules sheet a summary needs. AtStart has the
+    // sheet's {n} placeholders still in it, for Parameters, so a territory can
+    // be shown as a place chip rather than as its name.
+    public record FactionSheet(string AtStart, int Resources, int FreeRevival, string Theme,
+        List<string> Advantages, List<string> AdvancedAdvantages, object[] Parameters);
+
+    private FactionSheet? _sheetBeingRead;
+
+    public FactionSheet? GetFactionSheet(Game g, Faction f)
+    {
+        _sheetBeingRead = new FactionSheet("", 0, 0, "", [], [], FactionSheetParameters(g, ""));
+        try
+        {
+            return FactionSheetTemplate(g, f) == "" ? null : _sheetBeingRead;
+        }
+        finally
+        {
+            _sheetBeingRead = null;
+        }
+    }
+
+    private bool _sheetInAdvanced;
+
+    private string FactionSheetTemplate(Game g, Faction f)
+    {
+        _sheetInAdvanced = false;
+        return f switch
+        {
+            Faction.Green => GetGreenTemplate(g),
+            Faction.Black => GetBlackTemplate(g),
+            Faction.Yellow => GetYellowTemplate(g),
+            Faction.Red => GetRedTemplate(g),
+            Faction.Orange => GetOrangeTemplate(g),
+            Faction.Blue => GetBlueTemplate(g),
+            Faction.Purple => GetPurpleTemplate(g),
+            Faction.Grey => GetGreyTemplate(g),
+            Faction.Brown => GetBrownTemplate(g),
+            Faction.White => GetWhiteTemplate(g),
+            Faction.Pink => GetPinkTemplate(g),
+            Faction.Cyan => GetCyanTemplate(g),
+            _ => ""
+        };
+    }
+
+    private object[] FactionSheetParameters(Game g, string sheetStyle)
+    {
+        return
         [
             Faction.Green, //0
             Faction.Black, //1
@@ -1149,7 +1246,7 @@ public class Skin : IDescriber
             g.Map.HabbanyaSietch, //22
             SpecialForceName_STR[Faction.Yellow], //23
             SpecialForceName_STR[Faction.Red], //24
-            FACTION_INFORMATIONCARDSTYLE, //25
+            sheetStyle, //25
             g.Map.PolarSink, //26
             Faction.Purple, //27
             Faction.Grey, //28
@@ -1177,33 +1274,22 @@ public class Skin : IDescriber
             g.Map.ImperialBasin // 50
 
         ];
-
-        return f switch
-        {
-            Faction.Green => Format(GetGreenTemplate(g), parameters),
-            Faction.Black => Format(GetBlackTemplate(g), parameters),
-            Faction.Yellow => Format(GetYellowTemplate(g), parameters),
-            Faction.Red => Format(GetRedTemplate(g), parameters),
-            Faction.Orange => Format(GetOrangeTemplate(g), parameters),
-            Faction.Blue => Format(GetBlueTemplate(g), parameters),
-            Faction.Purple => Format(GetPurpleTemplate(g), parameters),
-            Faction.Grey => Format(GetGreyTemplate(g), parameters),
-            Faction.Brown => Format(GetBrownTemplate(g), parameters),
-            Faction.White => Format(GetWhiteTemplate(g), parameters),
-            Faction.Pink => Format(GetPinkTemplate(g), parameters),
-            Faction.Cyan => Format(GetCyanTemplate(g), parameters),
-            _ => ""
-        };
     }
 
-    private static string SheetHeader(string atStart, int resources, int freeRevival, string theme)
+    // The helpers below build the sheet's HTML and, while GetFactionSheet is
+    // reading one, also note its parts.
+    private string SheetHeader(string atStart, int resources, int freeRevival, string theme)
     {
+        if (_sheetBeingRead != null)
+            _sheetBeingRead = _sheetBeingRead with { AtStart = atStart, Resources = resources, FreeRevival = freeRevival, Theme = theme };
+
         return
             $"<div style='{{25}}'><p><strong>AT START:</strong> {atStart}. Start with {resources} {{16}}.</p><p><strong>FREE REVIVAL:</strong> {freeRevival}</p><h5>{theme}</h5>";
     }
 
-    private static string Advantage(string advantageName, string advantageDescription, bool condition = true)
+    private string Advantage(string advantageName, string advantageDescription, bool condition = true)
     {
+        if (condition) NoteAdvantage(advantageName);
         return condition ? $"<p><strong>{advantageName.ToUpper()}</strong> - {advantageDescription}" : "";
     }
 
@@ -1214,6 +1300,7 @@ public class Skin : IDescriber
 
     private string Advantage(Game g, Rule rule, string advantageName, string advantageDescription)
     {
+        if (g.Applicable(rule)) NoteAdvantage(advantageName);
         return g.Applicable(rule) ? $"<p><strong>{advantageName.ToUpper()}</strong> - {advantageDescription}" : "";
     }
 
@@ -1222,9 +1309,16 @@ public class Skin : IDescriber
         return Advantage(g, rule, Describe(title), advantageDescription);
     }
 
-    private static string AdvancedHeader(Game g, params Rule[] rules)
+    private string AdvancedHeader(Game g, params Rule[] rules)
     {
+        if (rules.Any(g.Applicable)) _sheetInAdvanced = true;
         return rules.Any(g.Applicable) ? "<h5>Advanced Game Advantages</h5>" : "";
+    }
+
+    private void NoteAdvantage(string name)
+    {
+        if (_sheetBeingRead == null) return;
+        (_sheetInAdvanced ? _sheetBeingRead.AdvancedAdvantages : _sheetBeingRead.Advantages).Add(name);
     }
 
     private string GetGreenTemplate(Game g)

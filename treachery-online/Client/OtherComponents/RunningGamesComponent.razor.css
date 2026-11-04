@@ -37,3 +37,21 @@
   word-break: break-all;
   text-align: right;
 }
+
+.games-section-label {
+  margin: 16px 0 4px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.full-tag {
+  display: inline-block;
+  vertical-align: middle;
+  padding: 1px 5px;
+  border: 1px solid var(--rock-2);
+  border-radius: 3px;
+  font-size: 11px;
+  color: var(--text-3);
+}

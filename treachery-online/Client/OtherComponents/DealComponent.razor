@@ -52,7 +52,7 @@
                                 <tr class="table-dark">
                                     <td><img width=24 src="@Client.CurrentSkin.GetImageUrl(offer.Initiator)" /></td>
                                     <td>@offer.Price</td>
-                                    <td class="text-break">@offer.GetDealDescription().ToString(Client.CurrentSkin)</td>
+                                    <td class="text-break"><ExpressionComponent Expression=@(offer.GetDealDescription().Expression)/></td>
                                     <td>
                                         <button class="btn btn-primary btn-sm" @onclick="e => Accept(offerToShow)" disabled=@(validity != null)>Accept</button>
                                         <button class="btn btn-secondary btn-sm ms-1" @onclick="e => Decline(offerToShow)">Decline</button>
@@ -68,7 +68,7 @@
                                     <td><img width=24 src="@Client.CurrentSkin.GetImageUrl(offer.Initiator)" /></td>
                                     <td>@offer.Price</td>
                                     <td class="text-break">
-                                        @offer.GetDealDescription().ToString(Client.CurrentSkin)
+                                        <ExpressionComponent Expression=@(offer.GetDealDescription().Expression)/>
                                         @{
                                             var recipients = Game.DealRecipients(offer).ToArray();
                                         }
@@ -111,7 +111,7 @@
                                         ⇒
                                         <img width=24 src="@Client.CurrentSkin.GetImageUrl(deal.ConsumingFaction)" />
                                     </td>
-                                    <td class="text-break">@deal.DealContentsDescription(Game).ToString(Client.CurrentSkin)</td>
+                                    <td class="text-break"><ExpressionComponent Expression=@(deal.DealContentsDescription(Game).Expression)/></td>
                                 </tr>
                             }
                         </tbody>

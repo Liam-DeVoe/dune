@@ -65,3 +65,44 @@
     gap: 10px;
   }
 }
+
+// A faction's full rules sheet (Skin.GetFactionInfo_HTML) in the side column,
+// opened by clicking the faction's token on the map. The sheet is plain
+// paragraphs and h5 headings; this gives them the panel's type.
+// The side column shares its height among its panels, so this one keeps a
+// fixed share: up to 60% of the window, with the sheet scrolling inside it
+// under a header that stays put.
+.panel.faction-rules {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  max-height: 60vh;
+}
+
+.panel.faction-rules > .body {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text-2);
+
+  h5 {
+    margin: 14px 0 6px;
+    padding-top: 10px;
+    border-top: 1px solid shared.$hairline;
+    font-family: var(--font-label);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+
+  p {
+    margin: 0 0 8px;
+  }
+
+  strong {
+    color: var(--sand);
+  }
+}

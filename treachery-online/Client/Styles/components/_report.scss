@@ -107,6 +107,21 @@
     max-height: 70vh;
   }
 
+  // On desktop the side column is one window tall. The panel shrinks to the
+  // height left under the panels above it and its body scrolls, so the column
+  // itself only scrolls once the panel is down to its minimum height.
+  @media (min-width: 992px) {
+    .game-screen > .side-column > & {
+      flex: 0 1 auto;
+      min-height: 320px;
+
+      > .card-body {
+        max-height: none;
+        min-height: 0;
+      }
+    }
+  }
+
   // One fight in the battle phase: the two sides facing each other with the
   // territory between them, then the fight's lines. The fight still going has
   // a gold border and a gold "vs".

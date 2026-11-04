@@ -1,23 +1,39 @@
 @use "../shared";
 
 // The battle plan prompt, on the parchment act card (see app/_prompt-act.scss).
-// The territory is the kicker, one line compares both sides, then forces,
+// The matchup up top shows both sides with the territory between them, then forces,
 // leader, weapon and defense each sit under the same small label, and the
 // total strength and the Battle! button close the card.
 
 .battle-plan {
-  // The header only carries the kicker and the collapse chevron.
+  // The header only carries the collapse chevron. The territory is in the
+  // matchup, so the kicker shows only while the card is collapsed (the header
+  // is then the card's only child).
   > .card-header {
     background: transparent;
     border-bottom: 0;
     padding-bottom: 0;
 
     .kicker {
-      display: inline-flex;
+      display: none;
       margin: 0;
     }
 
+    // Expanded, the header is just the chevron, so keep the row short.
+    &:not(:only-child) {
+      padding-top: 6px;
+      padding-bottom: 0;
+      line-height: 1;
+    }
+
+    &:only-child .kicker {
+      display: inline-flex;
+    }
+
     > .btn-link.float-end {
+      display: block !important;
+      line-height: 0;
+      border: 0;
       --bs-btn-color: var(--rock-2);
       --bs-btn-hover-color: var(--ink-1);
       --bs-btn-active-color: var(--ink-1);
@@ -25,7 +41,7 @@
   }
 
   > .card-body {
-    padding-top: 8px;
+    padding-top: 4px;
   }
 }
 
@@ -38,36 +54,48 @@
   margin-bottom: 8px;
 }
 
-// Who is in the fight: you on the left, them on the right.
+// Who is in the fight: you on the left, them on the right, the territory
+// between. Mirrors the battle report's faceoff (see _report.scss).
 .bp-matchup {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 6px;
-  padding: 8px 10px;
+  gap: 8px;
+  padding: 10px 8px 8px;
   border-radius: var(--r-2);
   background: rgba(29, 12, 0, 0.05);
   border: 1px solid rgba(29, 12, 0, 0.16);
-  font-size: 14px;
+}
+
+// Sigil above name above forces, so a long faction name doesn't squeeze the
+// middle.
+.bp-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.bp-sigil {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 50%;
+  margin-bottom: 2px;
+}
+
+.bp-name {
+  max-width: 100%;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.1;
   color: var(--rock-2);
 }
 
-.bp-side {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 8px;
-
-  &.them {
-    justify-content: flex-end;
-    text-align: right;
-  }
-}
-
-.bp-who {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.1;
+.bp-side.you .bp-name {
+  color: var(--ink-1);
 }
 
 .bp-agg {
@@ -75,27 +103,58 @@
   font-size: 9px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+  line-height: 1.2;
   color: var(--rock-2);
+}
+
+.bp-forces {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px 6px;
+  margin-top: 2px;
 }
 
 .bp-groups {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 
   b {
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 18px;
+    font-size: 17px;
     color: var(--ink-1);
-    margin-right: 4px;
+    margin-right: 3px;
   }
+
+  &:empty {
+    display: none;
+  }
+}
+
+// A long territory name wraps rather than squeezing the sides.
+.bp-middle {
+  max-width: 110px;
+  text-align: center;
+  cursor: pointer;
 }
 
 .bp-vs {
   font-family: var(--font-display);
   color: var(--rock);
-  font-size: 14px;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.bp-where {
+  margin-top: 3px;
+  font-family: var(--font-label);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1.3;
+  color: var(--rock-2);
 }
 
 // What the opponent knows, or what Voice forces on you.

@@ -42,11 +42,7 @@ public static class Support
     }
 
     // The markup SpiceComponent renders, for code that builds popover HTML as a string.
-    public static string SpiceHtml(Skin skin, object amount, int size)
-    {
-        var name = skin.Describe(Concept.Resource);
-        return $"<span class='spice-amt' style='--s:{size}px' title='{name}'><img src='{skin.Harvester_URL}' alt='{name}'/><b>{amount}</b></span>";
-    }
+    public static string SpiceHtml(Skin skin, object amount, int size) => skin.SpiceHtml(amount, size);
 
     // A region narrower than this fraction of the planet glyph's disc is scaled up to it.
     private const double PlaceGlyphMinimumSize = 0.20;
@@ -116,6 +112,47 @@ public static class Support
         return html + "</div>";
     }
 
+    // A faction's popover on the map: its sigil, name and player, its leaders,
+    // where it starts, its free revival, the sheet's theme line, and the names
+    // of its advantages as they head the sheet's paragraphs. All of it is from
+    // the faction's rules sheet (Skin.GetFactionSheet); the full sheet opens
+    // when the faction's token is clicked. Styled by .pop-faction in _pop.scss.
+    public static string FactionPopupHtml(Skin skin, Game game, Player player)
+    {
+        var sheet = skin.GetFactionSheet(game, player.Faction);
+        if (sheet == null) return "";
+
+        var html = new StringBuilder("<div class=\"pop-faction\">");
+        html.Append($"<div class=\"pop-faction-head\"><img src=\"{skin.GetImageUrl(player.Faction)}\" alt=\"\"/>");
+        html.Append($"<div><h6>{skin.Describe(player.Faction)}</h6><div class=\"who\">{player.Name}</div></div></div>");
+
+        html.Append("<div class=\"pop-faction-leaders\">");
+        foreach (var leader in LeaderManager.Leaders.Where(l => l.Faction == player.Faction))
+            html.Append($"<img src=\"{skin.GetImageUrl(leader)}\" alt=\"\"/>");
+        html.Append("</div>");
+
+        // The sheet's own wording: "<at start>. Start with <n> <spice>."
+        var atStart = $"{sheet.AtStart}. Start with {sheet.Resources} {{16}}.";
+        atStart = System.Text.RegularExpressions.Regex.Replace(atStart, @"\{(\d+)\}", m =>
+        {
+            var value = sheet.Parameters[int.Parse(m.Groups[1].Value)];
+            return value is Territory or Location ? PlaceChipHtml(skin, value) : skin.Describe(value);
+        });
+        atStart = skin.WithSpiceIcons(atStart, 18, encode: false);
+        html.Append($"<dl><dt>At start</dt><dd>{atStart}</dd><dt>Free revival</dt><dd>{sheet.FreeRevival}</dd></dl>");
+
+        html.Append($"<div class=\"theme\">{sheet.Theme}</div>");
+        html.Append(AdvantageNames(sheet.Advantages));
+        if (sheet.AdvancedAdvantages.Count > 0)
+            html.Append("<div class=\"section\">Advanced Game Advantages</div>").Append(AdvantageNames(sheet.AdvancedAdvantages));
+
+        html.Append("<div class=\"foot\"><kbd>Click</kbd> for full rules</div></div>");
+        return html.ToString();
+    }
+
+    private static string AdvantageNames(IEnumerable<string> names)
+        => $"<ul>{string.Concat(names.Select(n => $"<li>{n}</li>"))}</ul>";
+
     // Special forces whose token differs from the faction's normal token only by a small star in the art:
     // Fedaykin, Sardaukar and cyborgs. These get a star badge so they can be told apart at map size.
     public static bool HasStarredSpecialForce(Faction faction) => faction is Faction.Yellow or Faction.Red or Faction.Grey;
@@ -128,13 +165,27 @@ public static class Support
         return $"<span class='force-token{starred}' style='--d:{size}px' title='{title}'><img src='{src}' width='{size}' height='{size}' alt='{title}'/></span>";
     }
 
-    // Splits "5, 2 at Mentat" into ("5", ", 2 at Mentat") so the leading amount can
-    // go on the harvester icon and the rest can follow as text.
-    public static (string amount, string rest) SplitLeadingNumber(string text)
+    // A faction's spice line, "5, 2 at end of turn, 3 at Mentat Pause", with every
+    // number in it drawn on the harvester icon: the first, the spice in hand, at
+    // `size` and the rest smaller. The words between them are bold.
+    public static string SpiceLineHtml(Skin skin, string text, int size)
     {
-        var digits = 0;
-        while (digits < text.Length && char.IsDigit(text[digits])) digits++;
-        return (text[..digits], text[digits..]);
+        var html = new StringBuilder();
+        var first = true;
+        foreach (var part in System.Text.RegularExpressions.Regex.Split(text, @"(\d+)"))
+        {
+            if (part.Length == 0) continue;
+            if (char.IsDigit(part[0]))
+            {
+                html.Append(skin.SpiceHtml(part, first ? size : size - 6));
+                first = false;
+            }
+            else
+            {
+                html.Append($"<strong>{System.Net.WebUtility.HtmlEncode(part)}</strong>");
+            }
+        }
+        return html.ToString();
     }
 
     public static string TextBorder(int borderWidth, string borderColor)

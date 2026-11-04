@@ -18,7 +18,7 @@
 {
     <div class="form-check mb-0">
         <input class="form-check-input" style="cursor:pointer" type="radio" id="@Id-@item.Id" value=@item.Id @onclick=@(_ => ChangeValue(item.Value)) checked=@Equals(item.Value, Value)>
-        <label class="form-check-label" style="cursor:pointer" for="@Id-@item.Id">@item.Label</label>
+        <label class="form-check-label" style="cursor:pointer" for="@Id-@item.Id">@((MarkupString)Client.CurrentSkin.WithSpiceIcons(item.Label))</label>
     </div>
 }
 

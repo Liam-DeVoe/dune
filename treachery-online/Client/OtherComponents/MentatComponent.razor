@@ -133,7 +133,7 @@
                 if (t != Ambassador.Cyan)
                 {
                     <div class="card">
-                        <img src="@Client.CurrentSkin.GetImageUrl(t)" class="card-img" title=@Client.CurrentSkin.GetAmbassadorDescription(t) alt="@Name(t)">
+                        <Image Shown=@t Class="card-img"/>
                     </div>
                 }
             }
@@ -149,7 +149,7 @@
             <ul>
                 @foreach (var t in Enumerations.GetValuesExceptDefault(TerrorType.None))
                 {
-                    <li><strong>@Name(t) -</strong> @Client.CurrentSkin.GetTerrorTypeDescription(t)</li>
+                    <li><strong>@Name(t) -</strong> @((MarkupString)Client.CurrentSkin.WithSpiceIcons(Client.CurrentSkin.GetTerrorTypeDescription(t)))</li>
                 }
             </ul>
 
@@ -164,7 +164,7 @@
             <ul>
             @foreach (var t in Enumerations.GetValuesExceptDefault(DiscoveryToken.None))
             {
-                <li><strong>@Name(t) -</strong> @Client.CurrentSkin.GetDiscoveryTokenDescription(t)</li>
+                <li><strong>@Name(t) -</strong> @((MarkupString)Client.CurrentSkin.WithSpiceIcons(Client.CurrentSkin.GetDiscoveryTokenDescription(t)))</li>
             }
             </ul>
 

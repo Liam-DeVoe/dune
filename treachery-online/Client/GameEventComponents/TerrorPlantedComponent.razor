@@ -20,7 +20,7 @@
             </SelectComponent>
 
             <div class="text-info">
-                @Client.CurrentSkin.GetTerrorTypeDescription(_type)
+                @((MarkupString)Client.CurrentSkin.WithSpiceIcons(Client.CurrentSkin.GetTerrorTypeDescription(_type)))
             </div>
 
             <ButtonRowComponent Pass="Pass" Confirm="Confirm" ConfirmText="Remove token" ConfirmError="@Validation" />
@@ -77,7 +77,7 @@
                     <button type="button" class="@(t == _type ? "on" : "")" @onclick="@(() => SetType(t))">@Name(t)</button>
                 }
             </div>
-            <div class="pin-text">@Client.CurrentSkin.GetTerrorTypeDescription(_type)</div>
+            <div class="pin-text">@((MarkupString)Client.CurrentSkin.WithSpiceIcons(Client.CurrentSkin.GetTerrorTypeDescription(_type)))</div>
             @PinActions(ConfirmLabel)
         </div>
     };

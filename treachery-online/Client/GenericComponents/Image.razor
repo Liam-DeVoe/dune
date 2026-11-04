@@ -122,8 +122,9 @@ else
             LeaderSkill ls => Client.CurrentSkin.GetPopup(ls),
             TechToken tt => Client.CurrentSkin.GetPopup(tt),
             StrongholdAdvantage loc => Client.CurrentSkin.GetPopup(loc),
-            TerrorType terr => Client.CurrentSkin.GetTerrorTypeDescription(terr),
-            Ambassador amb => Client.CurrentSkin.GetAmbassadorDescription(amb),
+            TerrorType terr => Client.CurrentSkin.GetPopup(terr),
+            Ambassador amb => Client.CurrentSkin.GetPopup(amb),
+            DiscoveryToken dt => Client.CurrentSkin.GetPopup(dt),
             _ => Client.CurrentSkin.Describe(Shown)
         };
     }
@@ -158,7 +159,7 @@ else
 
     private string JointClass => $"{ImageClass} {Class} {ShadowClass} {PointerClass} {HighlightedClass} {DarkenedClass} {BlurredClass} {GreyedOutClass}";
 
-    private bool ShownHasRichPopover => Shown is TreacheryCard or ResourceCard or IHero or LeaderSkill or TechToken or StrongholdAdvantage;
+    private bool ShownHasRichPopover => Shown is TreacheryCard or ResourceCard or IHero or LeaderSkill or TechToken or StrongholdAdvantage or TerrorType or Ambassador or DiscoveryToken;
 
     private string PointerClass => Popover != null || Pointer ? "pointer" : "";
 

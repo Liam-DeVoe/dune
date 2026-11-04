@@ -53,31 +53,12 @@
     <Body>
 
         <div class="bp-matchup">
-            <div class="bp-side">
-                <span class="bp-who">
-                    <span>You</span>
-                    @if (Game.CurrentBattle.Aggressor == Faction)
-                    {
-                        <span class="bp-agg">aggressor</span>
-                    }
-                </span>
-                @ForceGroups(supplier, false)
+            @Side(Player, "You", false, ForceGroups(supplier, false))
+            <div class="bp-middle" data-ref-locations="@string.Join(",", territory.Locations.Select(l => l.Id))">
+                <div class="bp-vs">vs</div>
+                <div class="bp-where">@Name(territory)</div>
             </div>
-            <span class="bp-vs">vs</span>
-            <div class="bp-side them">
-                @ForceGroups(Opponent, true)
-                @if (Opponent.HasAlly)
-                {
-                    @ForceGroups(Opponent.AlliedPlayer, true)
-                }
-                <span class="bp-who">
-                    <span>@Client.CurrentSkin.Describe(Opponent.Faction)</span>
-                    @if (Game.CurrentBattle.Aggressor == Opponent.Faction)
-                    {
-                        <span class="bp-agg">aggressor</span>
-                    }
-                </span>
-            </div>
+            @Side(Opponent, Client.CurrentSkin.Describe(Opponent.Faction), true, OpponentForceGroups())
         </div>
 
         @if (Game.CurrentPinkBattleContribution > 0 && !(Player.Faction == Faction.Pink || Player.Ally == Faction.Pink))
@@ -257,7 +238,7 @@
         </div>
         @if (validation != null)
         {
-            <div class="bp-why-not">@validation.ToString(Client.CurrentSkin)</div>
+            <div class="bp-why-not"><ExpressionComponent Expression=@(validation.Expression) Game=Game/></div>
         }
 
     </Body>
@@ -508,6 +489,34 @@
         if (rest == 0.5f) return (whole == 0 ? "" : whole.ToString(CultureInfo.InvariantCulture)) + "½";
         return value.ToString("0.##", CultureInfo.InvariantCulture);
     }
+
+    // One side of the matchup: sigil, name, and the forces it brings. The
+    // aggressor gets an "aggressor" label under its name. Hovering it lights
+    // the faction's forces on the map, like a faction chip.
+    private RenderFragment Side(Player p, string name, bool isOpponent, RenderFragment groups)
+    {
+        var aggressor = Game.CurrentBattle.Aggressor == p.Faction;
+        var locations = string.Join(",", p.ForcesOnPlanet.Keys.Select(l => l.Id));
+        return @<div class="bp-side @(isOpponent ? "them" : "you")" data-ref-faction="@p.Faction" data-ref-locations="@locations"
+                     style="--fc:@Client.CurrentSkin.GetFactionColor(p.Faction)">
+            <img class="bp-sigil" src="@Client.CurrentSkin.GetImageUrl(p.Faction)" alt="" title="@Client.CurrentSkin.Describe(p.Faction)"/>
+            <span class="bp-name">@name</span>
+            @if (aggressor)
+            {
+                <span class="bp-agg">aggressor</span>
+            }
+            <span class="bp-forces">@groups</span>
+        </div>;
+    }
+
+    // The opponent's forces, followed by their ally's if the ally has any there.
+    private RenderFragment OpponentForceGroups() => @<text>
+        @ForceGroups(Opponent, true)
+        @if (Opponent.HasAlly)
+        {
+            @ForceGroups(Opponent.AlliedPlayer, true)
+        }
+    </text>;
 
     private RenderFragment ForceGroups(Player p, bool isOpponent)
     {

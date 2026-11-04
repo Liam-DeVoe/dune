@@ -144,7 +144,7 @@
 
             if (intelligenceLocation is DiscoveredLocation dl)
             {
-                result += Feature(Client.CurrentSkin.Describe(dl.Discovery), Client.CurrentSkin.GetDiscoveryTokenDescription(dl.Discovery) + ".");
+                result += Feature(Client.CurrentSkin.Describe(dl.Discovery), Client.CurrentSkin.WithSpiceIcons(Client.CurrentSkin.GetDiscoveryTokenDescription(dl.Discovery) + "."));
             }
 
             if (intelligenceLocation.Territory == Game.AtomicsAftermath)
@@ -154,7 +154,7 @@
 
             if (Equals(intelligenceLocation, Game.Map.Arrakeen) || Equals(intelligenceLocation, Game.Map.Carthag))
             {
-                result += Feature("Harvesters", Client.CurrentSkin.Format("When occupied, collect 3 {0} per force.", Concept.Resource));
+                result += Feature("Harvesters", $"When occupied, collect {Client.CurrentSkin.SpiceHtml(3)} per force.");
                 result += Feature("Ornithopters", "When occupied, your forces move up to 3 territories.");
             }
 

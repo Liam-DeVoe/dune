@@ -114,14 +114,15 @@
             TechToken tt => Client.CurrentSkin.GetPopup(tt),
             StrongholdAdvantage loc => Client.CurrentSkin.GetPopup(loc),
 
-            TerrorType terr => Client.CurrentSkin.GetTerrorTypeDescription(terr),
-            Ambassador amb => Client.CurrentSkin.GetAmbassadorDescription(amb),
+            TerrorType terr => Client.CurrentSkin.GetPopup(terr),
+            Ambassador amb => Client.CurrentSkin.GetPopup(amb),
+            DiscoveryToken dt => Client.CurrentSkin.GetPopup(dt),
 
             _ => Client.CurrentSkin.Describe(Shown)
         };
     }
 
-    private bool ShownHasRichPopover => Shown is TreacheryCard or ResourceCard or IHero or LeaderSkill or TechToken or StrongholdAdvantage;
+    private bool ShownHasRichPopover => Shown is TreacheryCard or ResourceCard or IHero or LeaderSkill or TechToken or StrongholdAdvantage or TerrorType or Ambassador or DiscoveryToken;
 
     private string SpanStyle => Popover != null ? "cursor:pointer;" + Style : Style;
 }

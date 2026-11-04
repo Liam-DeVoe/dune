@@ -115,7 +115,7 @@
                     break;
 
                 case Faction.Purple when secretAlly:
-                    <div>Revive up to 5 forces for 1 @Name(Concept.Resource) each and one leader for free?</div>
+                    <div>Revive up to 5 forces for <SpiceComponent Amount="1"/> each and one leader for free?</div>
                     if (NexusPlayed.ValidPurpleMaxAmount(Game, Player, false) > 0)
                     {
                         <SelectForcesComponent @bind-Value="purpleAmountOfForces" Min="0" Max="NexusPlayed.ValidPurpleMaxAmount(Game, Player, false)" Faction="Faction" Special="false" />
@@ -173,7 +173,7 @@
                     break;
 
                 case Faction.Brown when secretAlly && Game.CurrentMainPhase == MainPhase.Collection:
-                    <div>Discard a @Client.CurrentSkin.Describe(TreacheryCardType.Useless) card for 2 @Client.CurrentSkin.Describe(Concept.Resource)?</div>
+                    <div>Discard a @Client.CurrentSkin.Describe(TreacheryCardType.Useless) card for <SpiceComponent Amount="2"/>?</div>
                     <SelectFromImageComponent @bind-Value=brownCard Values="NexusPlayed.ValidBrownCards(Player)" Required="true" ImageWidth="80" />
                     break;
 

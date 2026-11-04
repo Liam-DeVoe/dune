@@ -10,7 +10,7 @@
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
-    <Header>Use @Client.CurrentSkin.Describe(TreacheryCardType.Karma) to buy one of your special Treachery cards for 3 @Client.CurrentSkin.Describe(Concept.Resource)</Header>
+    <Header>Use @Client.CurrentSkin.Describe(TreacheryCardType.Karma) to buy one of your special Treachery cards for <SpiceComponent Amount="3"/></Header>
     <Body>
 
         <SelectFromImageComponent @bind-Value="card" Values="Game.WhiteCache" ImageWidth="80" />

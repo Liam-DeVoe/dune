@@ -1,4 +1,4 @@
-@*
+﻿@*
  * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
  * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
@@ -11,8 +11,9 @@
 
 @*
  What the menu bar under the map (MenuComponent) opens, shown at the top of a
- side column: the players list, the host's undo panel, the recently undone
- events, and errors from loading a game or skin.
+ side column: the players list, the host's undo panel, a faction's rules sheet
+ (opened by clicking its token on the map), the recently undone events, and
+ errors from loading a game or skin.
 *@
 
 @if (Menu.LoadError != "")
@@ -34,6 +35,16 @@
 else if (Menu.Panel == MenuPanel.Players)
 {
     <JoinedPlayersPanel/>
+}
+else if (Menu.Panel == MenuPanel.FactionRules && Client.Game != null)
+{
+    <div class="panel faction-rules mb-2">
+        <header>
+            <h5>@Client.CurrentSkin.Describe(Menu.RulesFaction)</h5>
+            <button class="btn-close btn-close-sm" title="Close" @onclick="Close"></button>
+        </header>
+        <div class="body">@((MarkupString)Client.CurrentSkin.GetFactionInfo_HTML(Client.Game, Menu.RulesFaction, ""))</div>
+    </div>
 }
 
 @code {

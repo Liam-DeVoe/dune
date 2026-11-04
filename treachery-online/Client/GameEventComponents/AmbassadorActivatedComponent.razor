@@ -38,9 +38,9 @@
 
                 case Ambassador.Brown:
 
-                    <div>Discard cards from your hand for 3 @Name(Concept.Resource) each?</div>
+                    <div>Discard cards from your hand for <SpiceComponent Amount="3"/> each?</div>
                     <SelectFromImageComponent Selected="_brownCards" Values=@AmbassadorActivated.GetValidBrownCards(Player) T=TreacheryCard OnChanged=StateHasChanged ImageWidth="80">
-                        <Label>Select the cards you wish to discard for 3 @Client.CurrentSkin.Describe(Concept.Resource) each</Label>
+                        <Label>Select the cards you wish to discard for <SpiceComponent Amount="3"/> each</Label>
                     </SelectFromImageComponent>
                     break;
 
@@ -77,7 +77,7 @@
 
                 case Ambassador.Red:
 
-                    <div>Receive 5 @Name(Concept.Resource)?</div>
+                    <div>Receive <SpiceComponent Amount="5"/>?</div>
                     break;
 
                 case Ambassador.Yellow:
@@ -120,7 +120,7 @@
 
                 case Ambassador.White:
 
-                    <div>Buy a treachery card for 3 @Name(Concept.Resource)?</div>
+                    <div>Buy a treachery card for <SpiceComponent Amount="3"/>?</div>
                     break;
 
                 case Ambassador.Orange:

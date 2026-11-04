@@ -37,8 +37,7 @@
 
                     <!-- Resources -->
                     <div class="col col-auto ps-0">
-                        @{ var (spice, spiceRest) = Support.SplitLeadingNumber(ResourcesText(p)); }
-                        <SpiceComponent Amount="@spice" Size="24"/>@if (spiceRest.Length > 0) { <strong>@spiceRest</strong> }
+                        @((MarkupString)Support.SpiceLineHtml(Client.CurrentSkin, ResourcesText(p), 24))
                     </div>
 
                     <!-- Forces -->

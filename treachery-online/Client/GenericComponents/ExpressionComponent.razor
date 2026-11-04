@@ -83,7 +83,7 @@
                 break;
 
             case AuctionType or BrownEconomicsStatus or TreacheryCardType or StrongholdAdvantage or FactionAdvantage or Ruleset or Rule:
-                <span class="fw-bold" style=@TextBorder>@Client.CurrentSkin.Describe(part)</span>
+                <span class="fw-bold" style=@TextBorder>@((MarkupString)Client.CurrentSkin.WithSpiceIcons(Client.CurrentSkin.Describe(part), Size))</span>
                 break;
 
             default:

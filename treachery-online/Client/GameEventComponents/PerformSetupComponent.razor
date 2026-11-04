@@ -57,7 +57,7 @@
 
         @if (Validation is { } error)
         {
-            <div class="small text-danger mt-2">@error.ToString(Client.CurrentSkin)</div>
+            <div class="small text-danger mt-2"><ExpressionComponent Expression=@(error.Expression) Game=Game/></div>
         }
 
         <ButtonRowComponent Confirm="Confirm" ConfirmText="Confirm" ConfirmError="@Validation" />

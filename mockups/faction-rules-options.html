@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Faction rules: where should the full sheet open?</title>
+<style>
+  :root {
+    --ink-0: #120800; --ink-1: #1d0c00; --ink-2: #2a1607; --ink-3: #3b2310; --ink-4: #4e3218;
+    --parchment: #fcf9d1; --sand: #f3d987; --spice: #e8762a;
+    --text-2: #d9c79a; --text-3: #a68d63;
+    --hair: rgba(255,255,255,.09); --hair-strong: rgba(255,255,255,.16);
+    --font-display: "Advokat", "Copperplate", "Copperplate Gothic Light", serif;
+    --font-label: "Copperplate", serif;
+    --font-body: "Alegreya Sans", "Candara", "Calibri", sans-serif;
+    --font-prose: "Alegreya", Georgia, serif;
+    --shadow-3: 0 18px 40px rgba(18,8,0,.6), 0 2px 6px rgba(18,8,0,.6);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0b0500; color: var(--parchment); font-family: var(--font-body); }
+  main { max-width: 1060px; margin: 0 auto; padding: 32px 24px 80px; }
+  h1 { font-family: var(--font-display); font-weight: 400; color: var(--sand); margin: 0 0 6px; }
+  .lede { color: var(--text-2); margin: 0 0 28px; max-width: 760px; line-height: 1.5; }
+  section { margin-bottom: 44px; }
+  section h2 { font-family: var(--font-display); font-weight: 400; color: var(--sand); margin: 0 0 4px; font-size: 26px; }
+  section h2 .tag { font-family: var(--font-label); font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 999px; border: 1px solid var(--hair-strong); color: var(--text-3); vertical-align: middle; margin-left: 8px; }
+  section h2 .tag.rec { color: var(--ink-0); background: var(--sand); border-color: var(--sand); }
+  .how { color: var(--text-2); margin: 0 0 10px; }
+  .how kbd, .foot kbd { padding: 0 5px; border: 1px solid var(--hair-strong); border-radius: 3px; font-family: var(--font-body); font-size: 12px; color: var(--text-2); }
+  .pc { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; margin: 10px 0 0; font-size: 14px; line-height: 1.45; }
+  .pc div::before { margin-right: 6px; font-weight: 700; }
+  .pc .p::before { content: "+"; color: #9fd28a; }
+  .pc .c::before { content: "−"; color: #e88a6a; }
+
+  /* The fake game screen */
+  .frame { position: relative; height: 470px; display: grid; grid-template-columns: 1fr 270px; gap: 0;
+    background: var(--ink-1); border: 1px solid var(--hair-strong); border-radius: 6px; overflow: hidden; user-select: none; }
+  .map { position: relative; overflow: hidden; }
+  .planet { position: absolute; left: 50%; top: 50%; width: 400px; height: 400px; transform: translate(-50%,-50%);
+    border-radius: 50%; background: radial-gradient(circle at 40% 35%, #c98b45, #8a5420 60%, #4e2a0c);
+    box-shadow: 0 0 0 26px var(--ink-2), 0 0 0 27px var(--hair-strong); opacity: .9; }
+  .token { position: absolute; width: 46px; height: 46px; border-radius: 50%; cursor: pointer;
+    border: 2px solid rgba(0,0,0,.6); box-shadow: 1px 1px 2px rgba(0,0,0,.8);
+    display: grid; place-items: center; font-family: var(--font-display); font-size: 20px; color: var(--ink-0); }
+  .token.active { outline: 2px solid var(--sand); outline-offset: 3px; }
+  .side { border-left: 1px solid var(--hair); background: var(--ink-0); padding: 10px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+  .side .panel { border: 1px solid var(--hair); border-radius: 6px; background: var(--ink-1); padding: 8px 10px; }
+  .side .panel h5 { margin: 0 0 6px; font-family: var(--font-label); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-3); }
+  .side .row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-2); padding: 3px 0; }
+  .side .dot { width: 14px; height: 14px; border-radius: 50%; }
+  .side .ghost { height: 9px; border-radius: 4px; background: var(--ink-3); margin: 6px 0; }
+  .side .rules { max-height: 250px; overflow: auto; font-family: var(--font-prose); font-size: 13px; line-height: 1.45; }
+  .side .rules p { margin: 0 0 8px; }
+  .side .rules b { color: var(--sand); }
+  .side .rules-head { display: flex; justify-content: space-between; align-items: center; }
+  .side .x { cursor: pointer; color: var(--text-3); }
+  .flash { animation: flash 1.2s ease-out; }
+  @keyframes flash { 0% { box-shadow: 0 0 0 2px var(--sand); } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+  /* The popover, after .pop-faction in _pop.scss */
+  .pop { position: absolute; z-index: 5; width: 340px; padding: 14px 16px; text-align: left; background: var(--ink-0);
+    border: 1px solid var(--hair-strong); border-radius: 6px; box-shadow: var(--shadow-3); font-size: 14px; }
+  .pop.wide { width: 560px; }
+  .pop .head { display: flex; align-items: center; gap: 10px; }
+  .pop .sigil { width: 34px; height: 34px; border-radius: 50%; flex: none; }
+  .pop h6 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 24px; line-height: 1; color: var(--sand); }
+  .pop .who { margin-top: 2px; font-size: 13px; color: var(--text-3); }
+  .pop .leaders { display: flex; gap: 5px; margin-top: 10px; }
+  .pop .leaders span { width: 34px; height: 34px; border-radius: 50%; background: var(--ink-3); border: 1px solid var(--hair-strong);
+    display: grid; place-items: center; font-size: 12px; color: var(--text-2); }
+  .pop dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--hair); }
+  .pop dt { color: var(--text-3); } .pop dd { margin: 0; line-height: 1.5; }
+  .pop .theme { margin-top: 12px; font-family: var(--font-display); font-size: 18px; }
+  .pop ul { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; padding: 0; list-style: none; }
+  .pop li { padding: 2px 10px; border: 1px solid var(--hair-strong); border-radius: 999px; background: var(--ink-2); color: var(--sand); }
+  .pop .foot { margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--hair); font-size: 13px; color: var(--text-3); display: flex; justify-content: space-between; }
+  .pop .sheet { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--hair); font-family: var(--font-prose); font-size: 14px; line-height: 1.5; overflow: auto; }
+  .pop .sheet p { margin: 0 0 10px; } .pop .sheet b { color: var(--sand); }
+  .pop .sheet h4 { margin: 14px 0 6px; font-family: var(--font-label); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-3); font-weight: 400; }
+  .pop .close { cursor: pointer; color: var(--text-3); font-size: 18px; line-height: 1; margin-left: auto; align-self: flex-start; }
+  .pop.pinned { border-color: rgba(243,217,135,.45); }
+  .pop.grow { animation: grow .16s ease-out; transform-origin: top left; }
+  @keyframes grow { from { transform: scale(.94); opacity: .6; } to { transform: none; opacity: 1; } }
+
+  .modal-back { position: absolute; inset: 0; z-index: 4; background: rgba(8,3,0,.7); display: grid; place-items: center; }
+  .modal-back .pop { position: relative; width: 620px; max-height: 430px; display: flex; flex-direction: column; }
+  .modal-back .pop .sheet { flex: 1; }
+  .hint { position: absolute; left: 10px; bottom: 8px; font-size: 12px; color: var(--text-3); z-index: 1; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Where should a faction's full rules open?</h1>
+  <p class="lede">Each box below is a working mockup. Hover a faction token on the map edge to see its popover, then try the interaction listed for that option. The faction, leaders and rules text are placeholders. The popover styling follows <code>.pop-faction</code> in <code>_pop.scss</code>.</p>
+
+  <section>
+    <h2>A. Side column panel <span class="tag">current</span></h2>
+    <p class="how">Hover for the summary. <kbd>Click</kbd> the token and the full sheet opens at the top of the side column.</p>
+    <div class="frame" data-mode="side"></div>
+    <div class="pc">
+      <div class="p">The sheet stays open while you play, so you can keep reading it.</div>
+      <div class="c">It opens on the far side of the screen, so nothing ties it to the token you clicked.</div>
+      <div class="c">It pushes the players list down.</div>
+      <div class="c">The hover popover covers the map while the panel opens, and you then have to look across the screen.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>B. Full sheet in the hover popover <span class="tag">always big</span></h2>
+    <p class="how">Hover shows everything: the summary and the full rules. Clicking does nothing.</p>
+    <div class="frame" data-mode="big"></div>
+    <div class="pc">
+      <div class="p">No extra interaction to learn.</div>
+      <div class="c">A huge popover appears every time the mouse crosses a token, covering much of the map.</div>
+      <div class="c">You can't scroll it. It closes as soon as the mouse leaves the token.</div>
+      <div class="c">The short summary, which is what you want most of the time, gets buried.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>C. Hold <kbd>Shift</kbd> to expand</h2>
+    <p class="how">Hover for the summary. Hold <kbd>Shift</kbd> and the same popover grows into the full sheet. Let go and it shrinks back.</p>
+    <div class="frame" data-mode="shift"></div>
+    <div class="pc">
+      <div class="p">The full sheet grows out of the same popover, so it clearly belongs to that token.</div>
+      <div class="p">Quick for experienced players.</div>
+      <div class="c">Hard to discover without a hint, and there's no Shift on touch screens.</div>
+      <div class="c">You have to keep holding a key and keep the mouse still while you read.</div>
+      <div class="c">Still can't scroll, because moving the mouse into the popover closes it.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>D. Click to pin and expand in place <span class="tag rec">recommended</span></h2>
+    <p class="how">Hover for the summary. <kbd>Click</kbd> and the popover stays put, grows into the full sheet, and scrolls. Close it with ×, <kbd>Esc</kbd>, a click elsewhere, or another click on the token.</p>
+    <div class="frame" data-mode="pin"></div>
+    <div class="pc">
+      <div class="p">Opens right where you were looking, out of the popover you were already reading.</div>
+      <div class="p">Scrollable, stays open, and works on touch.</div>
+      <div class="p">The existing "Click for full rules" footer already tells people how to get there.</div>
+      <div class="c">Covers part of the map while it's open (but only until you close it).</div>
+      <div class="c">Needs a rule for when the game opens its own pinned panel on the map. Simplest: only one pin at a time.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>E. Click to open a centered dialog</h2>
+    <p class="how">Hover for the summary. <kbd>Click</kbd> opens the full sheet in a dialog in the middle of the screen, over a dimmed backdrop.</p>
+    <div class="frame" data-mode="modal"></div>
+    <div class="pc">
+      <div class="p">The most room for reading, and it's obvious how to close it.</div>
+      <div class="c">Blocks the whole game while open, which is heavy for a quick check.</div>
+      <div class="c">Like A, it moves away from the token, though the dimmed backdrop makes the jump less confusing.</div>
+    </div>
+  </section>
+</main>
+
+<script>
+const FACTIONS = [
+  { key: "T", name: "Guild of Tides", color: "#6fa6c9", who: "Ana", leaders: ["Ma", "Or", "Ve", "Ki", "Su"],
+    start: "10 forces in Harbor Reach. Start with 8 spice.", revival: "1 force", theme: "Masters of passage and toll.",
+    adv: ["Ferrying", "Toll", "Tidecall"], advanced: ["Undertow"] },
+  { key: "E", name: "Ember Court", color: "#d9643a", who: "Bo", leaders: ["Ia", "Pe", "Ro", "Lu", "Da"],
+    start: "20 forces in reserve. Start with 10 spice.", revival: "2 forces", theme: "Fire answers to its keepers.",
+    adv: ["Kindling", "Ashfall", "Brand"], advanced: ["Pyre"] },
+];
+const SHEET = f => `
+  <p><b>${f.adv[0]}:</b> During the movement phase you may move a group of forces as if it were two separate groups, provided neither group passes through a storm sector. Forces moved this way may not end in the same territory.</p>
+  <p><b>${f.adv[1]}:</b> Whenever another player ships forces onto the board, they pay half the cost to you instead of to the bank. If you are allied with that player, they pay nothing.</p>
+  <p><b>${f.adv[2]}:</b> Once per game, at the start of any phase, you may name a territory. No forces may enter or leave it until the end of that phase.</p>
+  <p><b>Alliance:</b> Your ally may use ${f.adv[0]} once per turn. You may pay for your ally's shipment.</p>
+  <h4>Advanced game advantages</h4>
+  <p><b>${f.advanced[0]}:</b> When you win a battle in a territory adjacent to the polar sink, you may immediately move up to three of your forces from that territory to any adjacent territory, ignoring the storm.</p>
+  <h4>Strategy</h4>
+  <p>You start with few forces on the board and depend on income from other players' shipments. Early on, pick fights you are sure to win and keep spice in hand for the bidding round. Later, use ${f.adv[2]} to lock a stronghold the leader needs.</p>`;
+
+const leaders = f => `<div class="leaders">${f.leaders.map(l => `<span>${l}</span>`).join("")}</div>`;
+const head = (f, closable) => `<div class="head"><span class="sigil" style="background:${f.color}"></span>
+  <div><h6>${f.name}</h6><div class="who">${f.who}</div></div>${closable ? '<span class="close" title="Close">×</span>' : ""}</div>`;
+const summary = f => `${leaders(f)}
+  <dl><dt>At start</dt><dd>${f.start}</dd><dt>Free revival</dt><dd>${f.revival}</dd></dl>
+  <div class="theme">${f.theme}</div><ul>${f.adv.map(a => `<li>${a}</li>`).join("")}</ul>`;
+
+const FOOT = {
+  side: '<div class="foot"><span><kbd>Click</kbd> for full rules</span></div>',
+  big: "",
+  shift: '<div class="foot"><span>Hold <kbd>Shift</kbd> for full rules</span></div>',
+  pin: '<div class="foot"><span><kbd>Click</kbd> for full rules</span></div>',
+  modal: '<div class="foot"><span><kbd>Click</kbd> for full rules</span></div>',
+};
+
+function build(frame) {
+  const mode = frame.dataset.mode;
+  frame.innerHTML = `<div class="map"><div class="planet"></div><div class="hint"></div></div>
+    <div class="side">
+      <div class="rules-slot"></div>
+      <div class="panel"><h5>Players</h5>${FACTIONS.map(f => `<div class="row"><span class="dot" style="background:${f.color}"></span>${f.name} · ${f.who}</div>`).join("")}
+        <div class="row"><span class="dot" style="background:#8fae6a"></span>Verdant Pact · Cy</div><div class="row"><span class="dot" style="background:#b49ad6"></span>Veiled Order · Di</div></div>
+      <div class="panel"><h5>Phase</h5><div class="ghost"></div><div class="ghost" style="width:70%"></div></div>
+      <div class="panel" style="flex:1"><h5>Log</h5><div class="ghost"></div><div class="ghost" style="width:80%"></div><div class="ghost" style="width:60%"></div><div class="ghost" style="width:85%"></div></div>
+    </div>`;
+  const map = frame.querySelector(".map");
+  const hint = frame.querySelector(".hint");
+  hint.textContent = { side: "Hover a token, then click it", big: "Hover a token", shift: "Hover a token, then hold Shift",
+                       pin: "Hover a token, then click it", modal: "Hover a token, then click it" }[mode];
+
+  const spots = [{ x: 70, y: 80 }, { x: 80, y: 340 }];
+  let hovered = null, pinned = null, pop = null, shift = false;
+
+  const tokens = FACTIONS.map((f, i) => {
+    const t = document.createElement("div");
+    t.className = "token"; t.style.left = spots[i].x + "px"; t.style.top = spots[i].y + "px";
+    t.style.background = f.color; t.textContent = f.key;
+    map.appendChild(t);
+    t.addEventListener("mouseenter", () => { hovered = i; render(); });
+    t.addEventListener("mouseleave", () => { hovered = null; render(); });
+    t.addEventListener("click", e => { e.stopPropagation(); onClick(i); });
+    return t;
+  });
+
+  function place(el, i) {
+    const s = spots[i];
+    const h = map.clientHeight;
+    el.style.left = (s.x + 60) + "px";
+    el.style.top = "0px";
+    const ph = el.offsetHeight;
+    el.style.top = Math.max(8, Math.min(s.y - 20, h - ph - 8)) + "px";
+  }
+
+  function clearPop() { if (pop) { pop.remove(); pop = null; } }
+
+  function render() {
+    clearPop();
+    tokens.forEach((t, i) => t.classList.toggle("active", pinned === i && (mode === "pin")));
+    if (mode === "pin" && pinned !== null) {
+      const f = FACTIONS[pinned];
+      pop = document.createElement("div");
+      pop.className = "pop wide pinned" + (render.justPinned ? " grow" : "");
+      render.justPinned = false;
+      pop.innerHTML = head(f, true) + `<div class="sheet" style="max-height:290px">${SHEET(f)}</div>`;
+      pop.addEventListener("click", e => e.stopPropagation());
+      pop.querySelector(".close").addEventListener("click", () => { pinned = null; render(); });
+      map.appendChild(pop); place(pop, pinned);
+      return;
+    }
+    if (hovered === null) return;
+    const f = FACTIONS[hovered];
+    pop = document.createElement("div");
+    const expanded = mode === "big" || (mode === "shift" && shift);
+    pop.className = "pop" + (expanded ? " wide" : "") + (mode === "shift" && shift ? " grow" : "");
+    pop.style.pointerEvents = "none";
+    pop.innerHTML = head(f) + summary(f) +
+      (expanded ? `<div class="sheet" style="max-height:${mode === "big" ? 9999 : 9999}px">${SHEET(f)}</div>` : FOOT[mode]);
+    map.appendChild(pop); place(pop, hovered);
+  }
+
+  function onClick(i) {
+    if (mode === "side") {
+      const slot = frame.querySelector(".rules-slot");
+      const f = FACTIONS[i];
+      if (slot.dataset.f === String(i)) { slot.innerHTML = ""; slot.dataset.f = ""; return; }
+      slot.dataset.f = i;
+      slot.innerHTML = `<div class="panel flash"><div class="rules-head"><h5 style="margin:0 0 6px;display:flex;gap:6px;align-items:center">
+        <span class="dot" style="background:${f.color}"></span>${f.name}</h5><span class="x">×</span></div><div class="rules">${SHEET(f)}</div></div>`;
+      slot.querySelector(".x").addEventListener("click", () => { slot.innerHTML = ""; slot.dataset.f = ""; });
+    } else if (mode === "pin") {
+      pinned = pinned === i ? null : i; render.justPinned = pinned !== null; render();
+    } else if (mode === "modal") {
+      const f = FACTIONS[i];
+      const back = document.createElement("div");
+      back.className = "modal-back";
+      back.innerHTML = `<div class="pop">${head(f, true)}<div class="sheet">${SHEET(f)}</div></div>`;
+      back.addEventListener("click", e => { if (e.target === back) back.remove(); });
+      back.querySelector(".close").addEventListener("click", () => back.remove());
+      frame.appendChild(back);
+      hovered = null; render();
+    }
+  }
+
+  frame.addEventListener("click", () => { if (mode === "pin" && pinned !== null) { pinned = null; render(); } });
+  frame.setShift = v => { if (shift !== v) { shift = v; if (mode === "shift") render(); } };
+  frame.escape = () => {
+    if (mode === "pin" && pinned !== null) { pinned = null; render(); }
+    frame.querySelectorAll(".modal-back").forEach(b => b.remove());
+  };
+}
+
+const frames = [...document.querySelectorAll(".frame")];
+frames.forEach(build);
+document.addEventListener("keydown", e => {
+  if (e.key === "Shift") frames.forEach(f => f.setShift(true));
+  if (e.key === "Escape") frames.forEach(f => f.escape());
+});
+document.addEventListener("keyup", e => { if (e.key === "Shift") frames.forEach(f => f.setShift(false)); });
+window.addEventListener("blur", () => frames.forEach(f => f.setShift(false)));
+</script>
+</body>
+</html>

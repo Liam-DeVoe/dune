@@ -1,4 +1,4 @@
-"""The faction popover on the map, the rules panel its click opens, and the leader tokens with their strength badge."""
+"""The faction popover on the map, and the full rules sheet it shows while Shift is held."""
 
 AREA = "popovers"
 
@@ -11,9 +11,12 @@ def run(r):
         g.settle()
         g.shot("faction-hover", park=False)
 
-        token.click()
-        g.page.mouse.move(5, 5)
-        g.page.wait_for_selector(".panel.faction-rules", state="visible")
+        g.page.keyboard.down("Shift")
+        g.page.wait_for_selector(".popover .pop-faction-full", state="visible")
         g.settle()
         g.shot("faction-rules", park=False)
-        g.element_shot("faction-rules-panel", ".panel.faction-rules", park=False)
+        g.element_shot("faction-rules-popover", ".popover", park=False)
+
+        g.page.keyboard.up("Shift")
+        g.page.wait_for_selector(".popover .pop-faction-full", state="hidden")
+        r.note("summary back after Shift released", g.count(".popover .pop-faction-brief:visible") == 1)

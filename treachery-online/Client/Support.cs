@@ -115,8 +115,9 @@ public static class Support
     // A faction's popover on the map: its sigil, name and player, its leaders,
     // where it starts, its free revival, the sheet's theme line, and the names
     // of its advantages as they head the sheet's paragraphs. All of it is from
-    // the faction's rules sheet (Skin.GetFactionSheet); the full sheet opens
-    // when the faction's token is clicked. Styled by .pop-faction in _pop.scss.
+    // the faction's rules sheet (Skin.GetFactionSheet). The full sheet is in
+    // the popover too, hidden until Shift is held (see shift-held in
+    // index.html). Styled by .pop-faction in _pop.scss.
     public static string FactionPopupHtml(Skin skin, Game game, Player player)
     {
         var sheet = skin.GetFactionSheet(game, player.Faction);
@@ -126,6 +127,7 @@ public static class Support
         html.Append($"<div class=\"pop-faction-head\"><img src=\"{skin.GetImageUrl(player.Faction)}\" alt=\"\"/>");
         html.Append($"<div><h6>{skin.Describe(player.Faction)}</h6><div class=\"who\">{player.Name}</div></div></div>");
 
+        html.Append("<div class=\"pop-faction-brief\">");
         html.Append("<div class=\"pop-faction-leaders\">");
         foreach (var leader in LeaderManager.Leaders.Where(l => l.Faction == player.Faction))
             html.Append($"<img src=\"{skin.GetImageUrl(leader)}\" alt=\"\"/>");
@@ -146,7 +148,8 @@ public static class Support
         if (sheet.AdvancedAdvantages.Count > 0)
             html.Append("<div class=\"section\">Advanced Game Advantages</div>").Append(AdvantageNames(sheet.AdvancedAdvantages));
 
-        html.Append("<div class=\"foot\"><kbd>Click</kbd> for full rules</div></div>");
+        html.Append("<div class=\"foot\">Hold <kbd>Shift</kbd> for full rules</div></div>");
+        html.Append($"<div class=\"pop-faction-full\">{skin.GetFactionInfo_HTML(game, player.Faction, "")}</div></div>");
         return html.ToString();
     }
 

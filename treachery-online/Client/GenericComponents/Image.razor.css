@@ -5,7 +5,7 @@
   filter: drop-shadow(0 0 0.75rem var(--gold));
 }
 .image.darkened {
-  filter: grayscale(100%) opacity(55%);
+  filter: grayscale(50%) brightness(50%) contrast(80%);
 }
 .image.blurred {
   filter: brightness(150%) contrast(100%) blur(1px);
@@ -27,7 +27,7 @@
   filter: drop-shadow(0 0 0.75rem var(--gold));
 }
 .image-hover.darkened {
-  filter: grayscale(100%) opacity(55%);
+  filter: grayscale(50%) brightness(50%) contrast(80%);
 }
 .image-hover.blurred {
   filter: brightness(150%) contrast(100%) blur(1px);

@@ -25,28 +25,11 @@ public class MenuState
     public void Open(MenuPanel panel) => Panel = panel;
 
     public void Close() => Panel = MenuPanel.None;
-
-    // The faction whose rules sheet the FactionRules panel shows. Clicking a
-    // faction's token on the map opens it; clicking the same faction again closes it.
-    public Faction RulesFaction { get; private set; }
-
-    public void ShowRules(Faction faction)
-    {
-        if (Panel == MenuPanel.FactionRules && RulesFaction == faction)
-        {
-            Close();
-            return;
-        }
-
-        RulesFaction = faction;
-        Panel = MenuPanel.FactionRules;
-    }
 }
 
 public enum MenuPanel
 {
     None,
     Players,
-    Undo,
-    FactionRules
+    Undo
 }

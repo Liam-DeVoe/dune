@@ -7,7 +7,6 @@
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
 @inherits MapComponent
-@inject MenuState Menu
 
 <div @ref="@Element">
 
@@ -33,13 +32,13 @@
 
             <MapImage X="@(x)" Y="@(y)" Diameter=@factionTokenDiameter Src="@Client.CurrentSkin.GetFactionTableImageUrl(p.Faction)" 
                    ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="1" ShadowY="1" ShadowBlur="1" 
-                   Popover="@Intel(p)" PopoverStyle="" OnClick="@(_ => ShowRules(p.Faction))"/>
+                   Popover="@Intel(p)" PopoverStyle=""/>
 
             if (p.Ally != Faction.None)
             {
                 <MapImage X="@(position.X)" Y="@(position.Y + 0.25f * Client.CurrentSkin.PlayerTokenRadius)" Diameter=@(1.2f * Client.CurrentSkin.PlayerTokenRadius) Src="@Client.CurrentSkin.GetFactionTableImageUrl(p.Ally)" 
                        ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="1" ShadowY="1" ShadowBlur="1" 
-                       Popover="@Intel(p.AlliedPlayer)" PopoverStyle="" OnClick="@(_ => ShowRules(p.Ally))"/>
+                       Popover="@Intel(p.AlliedPlayer)" PopoverStyle=""/>
             }
 
             var positionOnCircle = TwoPi / 180 + (4.5f - positionSector) * TwoPi / Map.NumberOfSectors;
@@ -267,13 +266,6 @@
     }
 
     private string Intel(Player p) => Support.FactionPopupHtml(Client.CurrentSkin, Game, p);
-
-    // Opens the faction's full rules sheet in a panel at the top of the side column.
-    private void ShowRules(Faction faction)
-    {
-        Menu.ShowRules(faction);
-        Client.Refresh(nameof(ShowRules));
-    }
 
     private string DetermineVideoStreamId(Player p)
     {

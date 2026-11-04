@@ -393,6 +393,14 @@
             e.target.addEventListener('hidden.bs.popover', () => observer.disconnect(), { once: true });
         });
 
+        // While Shift is held, popovers that have a longer form show it (the
+        // faction popover shows the full rules sheet; see .pop-faction in
+        // _pop.scss). Cleared when the window loses focus, since the keyup
+        // then never arrives.
+        document.addEventListener('keydown', e => { if (e.key === 'Shift') document.body.classList.add('shift-held'); });
+        document.addEventListener('keyup', e => { if (e.key === 'Shift') document.body.classList.remove('shift-held'); });
+        window.addEventListener('blur', () => document.body.classList.remove('shift-held'));
+
         // Options for every popover. Popper normally keeps a popover level
         // with the element it belongs to. With tether off it can slide along
         // that element until the whole popover is in the window. The game

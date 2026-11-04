@@ -486,3 +486,56 @@
   min-width: 0;
   padding: 12px 14px;
 }
+
+// Leader popover: the token on a panel in a flat mix of the faction's colour
+// (--fc) and the ink, the leader's name and faction chip beside it.
+.pop-leader {
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  text-align: left;
+  background: var(--ink-0);
+  border: 1px solid shared.$hairline-strong;
+  border-radius: var(--r-2);
+  box-shadow: var(--shadow-3);
+
+  h6 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 21px;
+    line-height: 1.1;
+    color: var(--sand);
+    white-space: nowrap;
+  }
+
+  .chip {
+    margin-top: 6px;
+  }
+}
+
+.pop-leader-art {
+  flex: none;
+  width: 118px;
+  display: grid;
+  place-items: center;
+  padding: 12px 0;
+  background: color-mix(in srgb, var(--fc) 45%, var(--ink-1));
+  border-right: 1px solid shared.$hairline-strong;
+
+  img {
+    display: block;
+    width: 92px;
+    height: 92px;
+    border-radius: 50%;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.8));
+  }
+}
+
+.pop-leader-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 12px 16px 12px 14px;
+}

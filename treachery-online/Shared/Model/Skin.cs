@@ -509,7 +509,20 @@ public class Skin : IDescriber
     public string GetPopup(IHero h)
     {
         if (h is TreacheryCard tc) return GetPopup(tc);
+        if (h is Leader l) return GetLeaderPopup(l);
         return GetImageHoverHtml(GetImageUrl(h));
+    }
+
+    // A leader's token on a panel in a flat mix of its faction's colour and the
+    // ink, with its name and faction chip beside it. Styled by .pop-leader in
+    // _pop.scss; the chip is the markup FactionChip.razor renders.
+    private string GetLeaderPopup(Leader l)
+    {
+        var color = GetFactionColor(l.Faction);
+        var faction = Describe(l.Faction);
+        return $"<div class='pop-leader'><div class='pop-leader-art' style='--fc:{color}'><img src='{GetImageUrl(l)}'/></div>" +
+               $"<div class='pop-leader-body'><h6>{Describe(l)}</h6>" +
+               $"<span class='chip faction' style='--fc:{color}'><img src='{GetImageUrl(l.Faction)}' alt=''/><span class='name'>{faction}</span></span></div></div>";
     }
 
     public string GetPopup(IHero? h, Game g)
@@ -521,7 +534,7 @@ public class Skin : IDescriber
 
         if (skill == LeaderSkill.None)
         {
-            return GetImageHoverHtml(GetImageUrl(h));
+            return GetPopup(h);
         }
 
         return GetPopup(h as Leader, skill);

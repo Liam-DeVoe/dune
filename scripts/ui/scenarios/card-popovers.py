@@ -1,4 +1,4 @@
-"""Card popovers: a treachery card in the hand, the treachery and spice discard piles, and spice cards with their place chip."""
+"""Card popovers: a leader and a treachery card in the player panel, the treachery and spice discard piles, and spice cards with their place chip."""
 
 AREA = "popovers"
 
@@ -15,6 +15,10 @@ def hover_shot(g, locator, name):
 def run(r):
     # Increased spice flow, so there are two spice discard piles.
     with r.game("blow-two-decks", "green") as g:
+        leader = g.page.locator('[data-bs-content*="pop-leader"]:not(#planetmap *):visible')
+        if leader.count():
+            hover_shot(g, leader.first, "card-leader")
+
         hand = g.page.locator('[data-bs-content*="pop-card"]:not(#planetmap *):visible')
         if hand.count():
             hover_shot(g, hand.first, "card-hand")

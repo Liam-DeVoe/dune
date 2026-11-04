@@ -105,7 +105,7 @@
                                 }
                                 else
                                 {
-                                    <CommandButton Small OnClick="@(_ => JoinGameAsPlayer(av.GameId, string.Empty, av.YourCurrentSeat(Client.UserId!.Value)))" Title="Resume game" MarginClass="m-1">▶</CommandButton>
+                                    <CommandButton Small OnClick="@(_ => JoinGameAsPlayer(av.GameId, string.Empty, av.YourCurrentSeat(Client.UserId!.Value)))" Title="Resume game" MarginClass="m-1"><PlayIcon /></CommandButton>
                                 }
                                 <div class="text-danger">@JoinErrors[av.GameId]</div>
                             </td>
@@ -226,7 +226,7 @@
                                 }
                                 else
                                 {
-                                    <CommandButton Small OnClick="@(_ => JoinGameAsPlayer(av.GameId, string.Empty, av.YourCurrentSeat(Client.UserId!.Value)))" Title="Resume game" MarginClass="m-1">▶</CommandButton>
+                                    <CommandButton Small OnClick="@(_ => JoinGameAsPlayer(av.GameId, string.Empty, av.YourCurrentSeat(Client.UserId!.Value)))" Title="Resume game" MarginClass="m-1"><PlayIcon /></CommandButton>
                                 }
                                 <div class="text-danger">@JoinErrors[av.GameId]</div>
                             </td>

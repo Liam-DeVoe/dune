@@ -14,7 +14,11 @@
     color: var(--gold);
   }
 
+  // A plain times sign: the body font has no glyph for Blazor's default 🗙.
   .dismiss {
     color: var(--text-2);
+    font-size: 1.5rem;
+    line-height: 1;
+    text-decoration: none;
   }
 }

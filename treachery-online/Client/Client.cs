@@ -580,7 +580,6 @@ public class Client : IGameService, IGameClient, IAsyncDisposable
             if (loadMessage != null)
                 return loadMessage.ToString();
 
-            GameId = result.Contents.GameId;
         }
         
         return result.Success 
@@ -631,7 +630,6 @@ public class Client : IGameService, IGameClient, IAsyncDisposable
         if (loadMessage != null)
             return loadMessage.ToString();
 
-        GameId = result.Contents.GameId;
         return null;
     }
     
@@ -651,7 +649,6 @@ public class Client : IGameService, IGameClient, IAsyncDisposable
         if (loadMessage != null)
             return loadMessage.ToString();
 
-        GameId = result.Contents.GameId;
         return null;
     }
 
@@ -913,6 +910,10 @@ public class Client : IGameService, IGameClient, IAsyncDisposable
         if (resultMessage == null)
         {
             EndUndoSession();
+            // GameId goes in with the game: rendering it can send events right
+            // away (TreacheryCalledComponent passes for players who cannot call
+            // treachery), and those need the id.
+            GameId = initInfo.GameId;
             Game = result;
             GameName = initInfo.GameName;
             await PerformPostEventTasks();
@@ -1019,7 +1020,6 @@ public class Client : IGameService, IGameClient, IAsyncDisposable
             if (loadMessage != null)
                 return;
 
-            GameId = result.Contents.GameId;
             Refresh(nameof(RequestReconnectGame));
         }
     }

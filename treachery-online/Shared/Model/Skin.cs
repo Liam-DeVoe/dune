@@ -1056,6 +1056,8 @@ public class Skin : IDescriber
             ErrorType.None => string.Empty,
             ErrorType.UserNotFound => "User not found",
             ErrorType.GameNotFound => "Game not found",
+            ErrorType.GameIdNotFound => "No game was given",
+            ErrorType.UserTokenNotFound => "You are not logged in",
             ErrorType.ScheduledGameNotFound => "Game not found",
             ErrorType.UserNameTooShort => "Username must be more than 3 characters",
             ErrorType.PlayerNameTooShort => "Player name must be more than 3 characters",
@@ -1085,8 +1087,9 @@ public class Skin : IDescriber
             ErrorType.NoCreator => "You are not the creator of this game",
             ErrorType.AlreadyPlayer => "You are already a player in this game",
             ErrorType.UserNotInGame => "User not found in game",
-            
-            _ => throw new ArgumentOutOfRangeException(nameof(e), e, null)
+
+            // An error shown to the player must never take the client down.
+            _ => e.ToString()
         };
     }
 

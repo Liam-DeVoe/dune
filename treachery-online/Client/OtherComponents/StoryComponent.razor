@@ -99,7 +99,7 @@
             if (IsMilestone(evt))
             {
                 <div class="mb-1">
-                    <img class="img-fluid" width="24" src="@Client.CurrentSkin.GetImageUrl(evt.Initiator)" /> <ExpressionComponent Expression=@(evt.GetMessage().Expression)/>
+                    <img class="img-fluid" width="24" src="@Client.CurrentSkin.GetImageUrl(evt.Initiator)" /> <ExpressionComponent Expression=@(evt.GetMessage().Expression) Game=replay/>
                 </div>
             }
 

@@ -40,6 +40,13 @@
       // panels above it (see _report.scss).
       display: flex;
       flex-direction: column;
+
+      // Panels keep their height. A panel with overflow: hidden (the prompt
+      // card) would otherwise shrink to nothing and clip its contents. The
+      // report panel opts back into shrinking in _report.scss.
+      > * {
+        flex-shrink: 0;
+      }
     }
 
     // The menu bar sits at the bottom of the window, under the board.

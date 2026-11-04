@@ -110,7 +110,7 @@
 
         <MapImage X="@(x)" Y=@y Width=@(cardWidth) Height="@(cardHeight)" Src="@Client.CurrentSkin.CardBack_TreacheryCard_URL" 
                ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="2" ShadowY="2" ShadowBlur="1" 
-               Popover="@IntelOfWhiteCardPile()"/>
+               Popover="@IntelOfWhiteCardPile()" PopoverStyle=""/>
 
         <MapImage X="@(x + cardWidth / 3)" Y="@(y + cardHeight / 8)" Diameter="@(cardWidth / 3)" Src="@Client.CurrentSkin.GetImageUrl(Faction.White)" ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="1" ShadowY="1" ShadowBlur="0" />
 
@@ -148,32 +148,14 @@
     private static string PileHtml(string heading, IEnumerable<string> images)
         => $"<div class=\"pop-pile\"><h6>{heading}</h6><div class=\"pop-pile-cards\">{string.Concat(images)}</div></div>";
 
-    private string GetCardImages<T>(IEnumerable<T> items)
+    // Richese's cards are known only to Richese, who sees them as thumbnails.
+    // Other players get no popover, as with the treachery deck.
+    private string? IntelOfWhiteCardPile()
     {
-        var result = "<div class=\"row row-cols-6 mt-1\">";
-        foreach (var c in items)
-        {
-            result += string.Format("<img src=\"{0}\" class=\"img-fluid p-1\"/>", Client.CurrentSkin.GetImageUrl(c));
-        }
-        result += "</div>";
+        if (Client.Faction != Faction.White || Client.Game.WhiteCache.Count == 0) return null;
 
-        return result;
-    }
-
-    private string IntelOfWhiteCardPile()
-    {
-        var result = "";
-        if (Client.Game.WhiteCache.Count > 0)
-        {
-            result += Client.CurrentSkin.Format("<h4>{0} cards: {1} on deck</h4>", Faction.White, Client.Game.WhiteCache.Count);
-
-            if (Client.Faction == Faction.White)
-            {
-                result += GetCardImages(Client.Game.WhiteCache);
-            }
-        }
-
-        return result;
+        var heading = Client.CurrentSkin.Format("{0} cards · {1}", Faction.White, Client.Game.WhiteCache.Count);
+        return PileHtml(heading, Client.Game.WhiteCache.Select(c => $"<img src=\"{Client.CurrentSkin.GetImageUrl(c)}\"/>"));
     }
 
     // The latest card's own popover. With note-keeping on, every card in the

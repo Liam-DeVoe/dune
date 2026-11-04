@@ -6,7 +6,7 @@ AREA = "log-refs"
 
 # The right column holds the player panel and, under it, the report card.
 # Neither selector names a class the change adds, so both builds match.
-PANEL = ".col-lg-3:last-child > .card"
+PANEL = ".side-column.cursor-hand > .card.mb-1"  # the player panel; the menu panels card above it is empty
 REPORT = ".col-lg-3:last-child > .card:last-of-type"
 PANEL_HEADER = f"{PANEL} .row"  # spice, forces and special forces in reserve
 BID_PANEL = ".col-lg-3 > .card:has(.num)"  # the bidding card, found by its spice picker

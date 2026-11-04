@@ -36,7 +36,12 @@
         var ambassador = Game.AmbassadorIn(stronghold.Territory);
         if (ambassador != Ambassador.None)
         {
-            var popover = $"{Client.CurrentSkin.Describe(ambassador)} Ambassador - {Client.CurrentSkin.GetAmbassadorDescription(ambassador)}";
+            // The skin's descriptions start with the ambassador's name ("Atreides - See
+            // visitor's hand"), so it isn't repeated after "Atreides Ambassador".
+            var ambassadorName = Client.CurrentSkin.Describe(ambassador);
+            var ambassadorDescription = Client.CurrentSkin.GetAmbassadorDescription(ambassador);
+            if (ambassadorDescription.StartsWith(ambassadorName + " - ")) ambassadorDescription = ambassadorDescription[(ambassadorName.Length + 3)..];
+            var popover = $"{ambassadorName} Ambassador - {ambassadorDescription}";
             <MapImage X=x Y=y Diameter=@Client.CurrentSkin.PlayerTokenRadius Src=@Client.CurrentSkin.GetImageUrl(ambassador)
             ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="1" ShadowY="1" ShadowBlur="0" Popover=@popover PopoverAsTooltip="true"/>
 

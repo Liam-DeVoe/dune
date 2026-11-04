@@ -2,7 +2,7 @@
 
 AREA = "log-refs"
 
-PANEL = ".col-lg-3:last-child > .card"
+PANEL = ".side-column.cursor-hand > .card.mb-1"  # the player panel; the menu panels card above it is empty
 REPORT = ".col-lg-3:last-child > .card:last-of-type"
 PROMPT = ".prompt-act"
 

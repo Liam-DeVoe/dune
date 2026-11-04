@@ -419,3 +419,70 @@
     margin-left: auto;
   }
 }
+
+// A card whose rules are printed on its art (leader skills, Nexus cards,
+// homeworlds), in the popover frame at 268px, the art's own width, so the
+// printed text isn't scaled and stays sharp.
+.pop-art {
+  width: 268px;
+  overflow: hidden;
+  background: var(--ink-0);
+  border: 1px solid shared.$hairline-strong;
+  border-radius: var(--r-2);
+  box-shadow: var(--shadow-3);
+
+  > img {
+    display: block;
+    width: 100%;
+    background: #fff;
+  }
+}
+
+// Tech token popover: the round token on a dark panel at the left, its name
+// and rules text beside it, like the treachery card popover.
+.pop-token {
+  display: flex;
+  width: 400px;
+  overflow: hidden;
+  text-align: left;
+  background: var(--ink-0);
+  border: 1px solid shared.$hairline-strong;
+  border-radius: var(--r-2);
+  box-shadow: var(--shadow-3);
+
+  h6 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 21px;
+    line-height: 1.1;
+    color: var(--sand);
+  }
+
+  p {
+    margin: 8px 0 0;
+    font-size: 14.5px;
+    line-height: 1.38;
+    color: var(--text-2);
+  }
+}
+
+.pop-token-art {
+  flex: none;
+  width: 128px;
+  display: grid;
+  place-items: center;
+  padding: 14px 0;
+  background: var(--ink-2);
+  border-right: 1px solid shared.$hairline-strong;
+
+  img {
+    display: block;
+    width: 96px;
+  }
+}
+
+.pop-token-body {
+  min-width: 0;
+  padding: 12px 14px;
+}

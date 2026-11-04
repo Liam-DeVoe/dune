@@ -431,16 +431,24 @@ public class Skin : IDescriber
         => GetPopup(GetTerrorTypeDescription(t));
 
     public string GetPopup(LeaderSkill c)
-        => GetImageHoverHtml(GetImageUrl(c));
+        => GetFramedCardHtml(GetImageUrl(c));
 
+    // The token on a dark panel at the left, with its name and rules text
+    // beside it. Styled by .pop-token in _pop.scss.
     public string GetPopup(TechToken tt)
-        => GetImageHoverHtml(GetImageUrl(tt));
+        => $"<div class='pop-token'><div class='pop-token-art'><img src='{GetImageUrl(tt)}'/></div><div class='pop-token-body'>" +
+           $"<h6>{Describe(tt)}</h6><p>{GetLabel(TechTokenDescription_STR, tt)}</p></div></div>";
 
     public string GetNexusCardPopup(Nexus n)
-        => GetImageHoverHtml(GetImageUrl(n));
+        => GetFramedCardHtml(GetImageUrl(n));
 
     public string GetPopup(Homeworld w)
-        => $"<div style='position:relative'><img width=480 style='position:relative;filter:drop-shadow(-3px 3px 2px black);' src='{GetHomeworldCardImageUrl(w.World)}'/></div>";
+        => GetFramedCardHtml(GetHomeworldCardImageUrl(w.World));
+
+    // A card whose rules are printed on its art, at the art's own width so the
+    // text stays sharp, in the popover frame. Styled by .pop-art in _pop.scss.
+    private static string GetFramedCardHtml(string imageUrl)
+        => $"<div class='pop-art'><img src='{imageUrl}'/></div>";
 
     // The card's art down the left edge of the box and its name, type and
     // rules text on the right. Styled by .pop-card in _pop.scss.

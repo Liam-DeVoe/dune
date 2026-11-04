@@ -60,7 +60,7 @@
                     if (Game.IsOccupied(homeworld.World))
                     {
                         var occupier = Game.OccupierOf(homeworld.World).Faction;
-                        var occupierMessage = Client.CurrentSkin.Format("Occupied by ", occupier);
+                        var occupierMessage = Client.CurrentSkin.Format("Occupied by {0}", occupier);
 
                         <MapImage X=@(homeworldXY.X + 0.75f * Client.CurrentSkin.PlayerTokenRadius) Y=@(homeworldXY.Y + 1.5f * Client.CurrentSkin.PlayerTokenRadius)
                                   Diameter=@(0.5f * Client.CurrentSkin.PlayerTokenRadius)

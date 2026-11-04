@@ -26,7 +26,7 @@
 
     @if (Client.Game.IsPlaying(Faction.White))
     {
-        <h5 class="mt-2">@Client.CurrentSkin.Describe(Faction.White) Cards</h5>
+        <h5 class="mt-2"><FactionChip Faction=Faction.White Game=Client.Game/> Cards</h5>
         <div class="row row-cols-3 row-cols-md-6 ms-1 me-1">
 
             @foreach (var v in TreacheryCardManager.GetWhiteCards())

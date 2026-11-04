@@ -10,7 +10,7 @@
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
-    <Header>@Client.CurrentSkin.Describe(Game.LatestClairvoyance.Initiator) questions you with @Client.CurrentSkin.Describe(TreacheryCardType.Clairvoyance)!</Header>
+    <Header><FactionChip Faction=@Game.LatestClairvoyance.Initiator Game=Game/> questions you with @Client.CurrentSkin.Describe(TreacheryCardType.Clairvoyance)!</Header>
     <Body>
 
         <div class="font-italic bg-dark"><ExpressionComponent Expression=@(Game.LatestClairvoyance.GetQuestion().Expression) Game=Game/></div>

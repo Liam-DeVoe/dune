@@ -10,7 +10,7 @@
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
-    <Header>Use @ToUse to force a player to send 1 force to their reserves?</Header>
+    <Header>Use @if (CardToUse is { } card) { <RichText Shown=@card Game=Game/> } else { @("Nexus Cunning") } to force a player to send 1 force to their reserves?</Header>
 
     <Body>
 
@@ -56,7 +56,7 @@
         RefreshPin();
     }
 
-    private string ToUse => BrownRemoveForce.CardToUse(Player) != null ? Client.CurrentSkin.Describe(BrownRemoveForce.CardToUse(Player)) : "Nexus Cunning";
+    private TreacheryCard? CardToUse => BrownRemoveForce.CardToUse(Player);
 
     protected override RenderFragment PinContent => __builder =>
     {
@@ -77,7 +77,7 @@
             }
             else if (factions.Count == 1)
             {
-                <div class="pin-hint">@Name(factions[0])</div>
+                <div class="pin-hint"><FactionChip Faction=@factions[0] Game=Game/></div>
             }
             @if (choices.Count > 1 && victim != null)
             {

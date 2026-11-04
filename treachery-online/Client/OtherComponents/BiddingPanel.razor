@@ -29,7 +29,7 @@
                 <div style="position: absolute; top: 80px; left: 5px; width: 180px; text-align: center; filter:drop-shadow(2px 2px 2px black)">
 
                     <div style="@AuctionDescriptionStyle">
-                        @AuctionDescription
+                        @((MarkupString)AuctionDescription)
                     </div>
                             
                     @if (ShowCurrentBid)

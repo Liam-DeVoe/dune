@@ -19,7 +19,7 @@
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
     <Header>
-        Set <FactionComponent Faction="CurrentFaction"/> initial @Client.CurrentSkin.Describe(Concept.Resource) and forces.
+        Set <FactionChip Faction="CurrentFaction" Game=Game/> initial @Client.CurrentSkin.Describe(Concept.Resource) and forces.
     </Header>
 
     <Body>
@@ -28,7 +28,7 @@
 
         <div class="small mt-2">Use the map to place forces.</div>
         <div class="small text-2">
-            <div><ClickHintComponent Button="ClickHintButton.Lmb" /> place <img class="setup-hint-force" src="@Client.CurrentSkin.GetFactionForceImageUrl(Placer.Faction)" alt="@Name(Placer.Force)" title="@Name(Placer.Force)"/></div>
+            <div><ClickHintComponent Button="ClickHintButton.Lmb" /> place <ForceToken Faction="Placer.Faction" Size="18" ImgClass="setup-hint-force" Title="@Name(Placer.Force)"/></div>
             @if (MayStageSpecial)
             {
                 <div><ClickHintComponent Button="ClickHintButton.Lmb" Modifier="ClickHintModifier.Shift" /> place <ForceToken Faction="Placer.Faction" Special="true" Size="18" ImgClass="setup-hint-force" Title="@Name(Placer.SpecialForce)"/></div>
@@ -44,7 +44,7 @@
                     var l = kvp.Key;
                     var b = kvp.Value;
                     <div class="d-flex align-items-center gap-1 mt-1 small">
-                        <span class="flex-grow-1">@Name(l)</span>
+                        <span class="flex-grow-1"><PlaceChip Place=@l/></span>
                         <MapForceStepper Value="@b.AmountOfForces" ValueChanged="@(v => Step(l, v, false))" Min="0" Max="@(b.AmountOfForces + Room(false))" Faction="CurrentFaction" Special="false" Label="@Name(Placer.Force)" />
                         @if (MayStageSpecial)
                         {

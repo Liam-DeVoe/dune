@@ -50,8 +50,8 @@
                                 var validity = offer.Acceptance(Faction).Validate();
 
                                 <tr class="table-dark">
-                                    <td><img width=24 src="@Client.CurrentSkin.GetImageUrl(offer.Initiator)" /></td>
-                                    <td>@offer.Price</td>
+                                    <td><FactionChip Faction=@offer.Initiator Game=Game/></td>
+                                    <td><SpiceComponent Amount="@offer.Price.ToString()"/></td>
                                     <td class="text-break"><ExpressionComponent Expression=@(offer.GetDealDescription().Expression) Game=Game/></td>
                                     <td>
                                         <button class="btn btn-primary btn-sm" @onclick="e => Accept(offerToShow)" disabled=@(validity != null)>Accept</button>
@@ -65,8 +65,8 @@
                                 var offerToShow = offer;
 
                                 <tr class="table-dark">
-                                    <td><img width=24 src="@Client.CurrentSkin.GetImageUrl(offer.Initiator)" /></td>
-                                    <td>@offer.Price</td>
+                                    <td><FactionChip Faction=@offer.Initiator Game=Game/></td>
+                                    <td><SpiceComponent Amount="@offer.Price.ToString()"/></td>
                                     <td class="text-break">
                                         <ExpressionComponent Expression=@(offer.GetDealDescription().Expression) Game=Game/>
                                         @{
@@ -107,9 +107,9 @@
                             {
                                 <tr class="table-dark">
                                     <td class="p-0">
-                                        <img width=24 src="@Client.CurrentSkin.GetImageUrl(deal.BoundFaction)" />
+                                        <FactionChip Faction=@deal.BoundFaction Game=Game/>
                                         ⇒
-                                        <img width=24 src="@Client.CurrentSkin.GetImageUrl(deal.ConsumingFaction)" />
+                                        <FactionChip Faction=@deal.ConsumingFaction Game=Game/>
                                     </td>
                                     <td class="text-break"><ExpressionComponent Expression=@(deal.DealContentsDescription(Game).Expression) Game=Game/></td>
                                 </tr>

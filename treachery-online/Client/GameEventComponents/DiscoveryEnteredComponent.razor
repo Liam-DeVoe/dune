@@ -68,7 +68,7 @@
                 <div class="pin-row">
                     @if (forces.Count > 1)
                     {
-                        <span class="pin-from">@Name(l)</span>
+                        <span class="pin-from"><PlaceChip Place=@l/></span>
                     }
                     @if (Player.ForcesIn(l) > 0)
                     {

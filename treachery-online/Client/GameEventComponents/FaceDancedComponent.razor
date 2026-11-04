@@ -15,7 +15,7 @@
         <Header>Choose which forces to replace by your own</Header>
         <Body>
 
-            <div class="mb-2">You may place up to <strong>@FaceDanced.MaximumNumberOfForces(Game, Player)</strong> forces in <strong>@Name(Game.CurrentBattle.Territory)</strong> from your reserves and/or from anywhere on the planet.</div>
+            <div class="mb-2">You may place up to <strong>@FaceDanced.MaximumNumberOfForces(Game, Player)</strong> <ForceToken Faction=@Faction Size="20"/> in <PlaceChip Place=@Game.CurrentBattle.Territory/> from your reserves and/or from anywhere on the planet.</div>
 
             @if (FaceDanced.MaximumNumberOfForces(Game, Player) > 0)
             {
@@ -55,7 +55,7 @@ else {
 
         @if (FaceDanced.MayCallFaceDancer(Game, Player))
         {
-            <div class="mb-2">If you decide to reveal, you may place up to <strong>@FaceDanced.MaximumNumberOfForces(Game, Player)</strong> forces in <strong>@Name(Game.CurrentBattle.Territory)</strong> from your reserves and/or from anywhere on the planet.</div>
+            <div class="mb-2">If you decide to reveal, you may place up to <strong>@FaceDanced.MaximumNumberOfForces(Game, Player)</strong> <ForceToken Faction=@Faction Size="20"/> in <PlaceChip Place=@Game.CurrentBattle.Territory/> from your reserves and/or from anywhere on the planet.</div>
 
             <SelectForcesComponent @bind-Value="forcesFromReserve" Min="0" Max="Player.ForcesInReserve" Faction="Faction" Special="false" Label="From reserves:"/>
 

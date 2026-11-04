@@ -13,7 +13,7 @@
 {
     <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle=@BodyStyle CollapsedType=GetType()>
 
-        <Header>@Title</Header>
+        <Header>@if (TitleMessage != null) { <ExpressionComponent Expression=@TitleMessage.Expression Game=Game Size="20"/> } else { @Title }</Header>
         <Body>
 
             @if (Dismissable)
@@ -40,6 +40,11 @@
 
     [Parameter]
     public string? Title { get; set; }
+
+    // A title that names factions, places, cards and the like, drawn with
+    // their chips as in the log. Used instead of Title when set.
+    [Parameter]
+    public Message? TitleMessage { get; set; }
 
     [Parameter]
     public string ConfirmLabel { get; set; } = "Yes";

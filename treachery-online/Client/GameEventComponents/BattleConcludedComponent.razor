@@ -21,7 +21,7 @@
             var maxReplacementForces = BattleConcluded.ValidMaxReplacementForceAmount(Game, forceSupplier);
             if (maxReplacementForces > 0)
             {
-                <label>How many <Image Shown="@forceSupplier.SpecialForce" Width="20"/> losses should be exchanged with <Image Shown="@forceSupplier.Force" Width="20"/>?</label>
+                <label>How many <ForceToken Faction=@forceSupplier.Faction Special="true" Size="20"/> losses should be exchanged with <ForceToken Faction=@forceSupplier.Faction Size="20"/>?</label>
                 <SelectForcesComponent @bind-Value="@replacementAmount" Min="0" Max="maxReplacementForces" Faction="@forceSupplier.Faction" Special="true" />
             }
             else
@@ -41,17 +41,17 @@
 
                     if (discardableMercenary != null)
                     {
-                        <CheckboxComponent @bind-Value="discardMercenary">@Client.CurrentSkin.Describe(discardableMercenary)</CheckboxComponent>
+                        <CheckboxComponent @bind-Value="discardMercenary"><RichText Shown=@discardableMercenary Game=Game/></CheckboxComponent>
                     }
 
                     if (discardableWeapon != null)
                     {
-                        <CheckboxComponent @bind-Value="discardWeapon">@Client.CurrentSkin.Describe(discardableWeapon)</CheckboxComponent>
+                        <CheckboxComponent @bind-Value="discardWeapon"><RichText Shown=@discardableWeapon Game=Game/></CheckboxComponent>
                     }
 
                     if (discardableDefense != null)
                     {
-                        <CheckboxComponent @bind-Value="discardDefense">@Client.CurrentSkin.Describe(discardableDefense)</CheckboxComponent>
+                        <CheckboxComponent @bind-Value="discardDefense"><RichText Shown=@discardableDefense Game=Game/></CheckboxComponent>
                     }
                 }
             }
@@ -89,7 +89,7 @@
             if (Game.TraitorsDeciphererCanLookAt.Any())
             {
                 <SelectFromImageComponent Game="Game" @bind-Value="selectedNewTraitor" Values="Game.TraitorsDeciphererCanLookAt" Required="false" ImageWidth="80">
-                    <Label>@Client.CurrentSkin.Describe(LeaderSkill.Decipherer) shows you the following leaders from the traitor deck:</Label>
+                    <Label><RichText Shown=LeaderSkill.Decipherer Game=Game/> shows you the following leaders from the traitor deck:</Label>
                 </SelectFromImageComponent>
 
                 @if (Game.DeciphererMayReplaceTraitor)
@@ -113,7 +113,7 @@
 
             if (BattleConcluded.MayAddExtraForce(Game, Player))
             {
-                <CheckboxComponent @bind-Value="addExtraForce">Do you wish to add one force from reserves in @Name(Game.CurrentBattle.Territory)?</CheckboxComponent>
+                <CheckboxComponent @bind-Value="addExtraForce">Do you wish to add one force from reserves in <PlaceChip Place=@Game.CurrentBattle.Territory/>?</CheckboxComponent>
             }
             else
             {

@@ -48,7 +48,7 @@
         <div class="pin-body">
             @if (mayAddExtra)
             {
-                <div class="pin-hint">How many @Name(Player.SpecialForce)s?</div>
+                <div class="pin-hint">How many <ForceToken Faction=@Player.Faction Special="true" Size="20"/> @Name(Player.SpecialForce)?</div>
                 <div class="pin-choice">
                     <button type="button" class="@(addExtraAdvisor ? "" : "on")" @onclick="@(() => SetExtraAdvisor(false))">1</button>
                     <button type="button" class="@(addExtraAdvisor ? "on" : "")" @onclick="@(() => SetExtraAdvisor(true))">2</button>

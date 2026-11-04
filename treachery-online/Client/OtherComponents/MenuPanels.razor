@@ -40,7 +40,7 @@ else if (Menu.Panel == MenuPanel.FactionRules && Client.Game != null)
 {
     <div class="panel faction-rules mb-2">
         <header>
-            <h5>@Client.CurrentSkin.Describe(Menu.RulesFaction)</h5>
+            <h5><FactionChip Faction=@Menu.RulesFaction Game=Client.Game/></h5>
             <button class="btn-close btn-close-sm" title="Close" @onclick="Close"></button>
         </header>
         <div class="body">@((MarkupString)Client.CurrentSkin.GetFactionInfo_HTML(Client.Game, Menu.RulesFaction, ""))</div>

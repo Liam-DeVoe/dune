@@ -272,6 +272,7 @@ public class Skin : IDescriber
             Concept c => Describe(c),
             Faction faction => Describe(faction),
             Ambassador ambassador => Describe(ambassador),
+            PrescienceAspect aspect => Describe(aspect),
             FactionForce ff => Describe(ff),
             FactionSpecialForce fsf => Describe(fsf),
             FactionAdvantage factionAdvantage => Describe(factionAdvantage),
@@ -405,6 +406,15 @@ public class Skin : IDescriber
     {
         return GetLabel(TreacheryCardName_STR, c.SkinId);
     }
+
+    public string Describe(PrescienceAspect aspect) => aspect switch
+    {
+        PrescienceAspect.Dial => "Dial",
+        PrescienceAspect.Leader => "Leader",
+        PrescienceAspect.Weapon => "Weapon",
+        PrescienceAspect.Defense => "Defense",
+        _ => ""
+    };
 
     public string Describe(LeaderSkill l)
     {
@@ -562,10 +572,19 @@ public class Skin : IDescriber
     private string GetLeaderPopup(Leader l)
     {
         var color = GetFactionColor(l.Faction);
-        var faction = Describe(l.Faction);
         return $"<div class='pop-leader'><div class='pop-leader-art' style='--fc:{color}'><img src='{GetImageUrl(l)}'/></div>" +
-               $"<div class='pop-leader-body'><h6>{Describe(l)}</h6>" +
-               $"<span class='chip faction' style='--fc:{color}'><img src='{GetImageUrl(l.Faction)}' alt=''/><span class='name'>{faction}</span></span></div></div>";
+               $"<div class='pop-leader-body'><h6>{Describe(l)}</h6>{FactionChipHtml(l.Faction)}</div></div>";
+    }
+
+    // The markup FactionChip.razor renders, for HTML built as a string. you
+    // draws the name in gold, for the viewing player's own faction.
+    // locationIds are the sectors the hover script tints.
+    public string FactionChipHtml(Faction f, bool you = false, IEnumerable<int>? locationIds = null)
+    {
+        var name = System.Net.WebUtility.HtmlEncode(Describe(f));
+        var locations = locationIds != null ? string.Join(",", locationIds) : "";
+        return $"<span class='chip faction{(you ? " you" : "")}' data-ref-faction='{f}' data-ref-locations='{locations}' style='--fc:{GetFactionColor(f)}' title='{name}'>" +
+               $"<img src='{GetImageUrl(f)}' alt=''/><span class='name'>{name}</span></span>";
     }
 
     public string GetPopup(IHero? h, Game g)

@@ -16,7 +16,7 @@
 
                 @if (AlwaysShowLocation || Locations.Count() > 1)
                 {
-                    <td class="ps-0 bg-transparent align-middle">@Client.CurrentSkin.Describe(l)</td>
+                    <td class="ps-0 bg-transparent align-middle"><PlaceChip Place=@l/></td>
                 }
 
                 @if (MaySelectFromStorm || !Game.IsInStorm(l)) {

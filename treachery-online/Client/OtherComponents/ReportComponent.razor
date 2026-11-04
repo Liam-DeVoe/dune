@@ -74,13 +74,13 @@
                     if (report.IsBattle)
                     {
                         <div class="battle @(report.BattleDecided ? "" : "live")">
-                            <div class="faceoff" title="@BattleResult(report)">
+                            <div class="faceoff">
                                 @Side(report, report.Aggressor)
                                 <div class="middle" data-ref-locations="@(report.Territory == null ? "" : string.Join(",", report.Territory.Locations.Select(l => l.Id)))">
                                     <div class="vs">vs</div>
                                     @if (report.Territory != null)
                                     {
-                                        <div class="where">@Client.CurrentSkin.Describe(report.Territory)</div>
+                                        <div class="where"><PlaceChip Place=@report.Territory/></div>
                                     }
                                 </div>
                                 @Side(report, report.Defender)
@@ -148,13 +148,6 @@
 
     private IEnumerable<Message> Visible(Report report) =>
         report.Messages.Where(m => m.Target == Faction.None || m.Target == Client.Faction);
-
-    private string BattleResult(Report report)
-    {
-        if (!report.BattleDecided) return "In progress";
-        if (report.BattleWinner == Faction.None) return "No winner";
-        return $"{Client.CurrentSkin.Describe(report.BattleWinner)} win";
-    }
 
     // One side of a battle heading: sigil over name. Once
     // the battle is decided the winner's sigil gets a gold ring and the loser

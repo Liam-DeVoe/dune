@@ -10,7 +10,7 @@
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()" Collapsed="CollapseState.Collapsed">
 
-    <Header>Manage your Alliance with &nbsp;<img width="32" src="@Client.CurrentSkin.GetImageUrl(Player.Ally)" /></Header>
+    <Header>Manage your Alliance with <FactionChip Faction=@Player.Ally Game=Game/></Header>
 
     <Body>
 
@@ -67,7 +67,7 @@
             var permittedKarma = Game.GetPermittedUseOfAllyKarma(Player.Ally);
 
             <SelectFromImageComponent @bind-Value="karmaCard" Values="Karma.ValidKarmaCards(Game, Player)" Required="false" T=TreacheryCard OnChanged=SetEdited ImageWidth="80">
-                <Label>Select a @Client.CurrentSkin.Describe(TreacheryCardType.Karma) card they may use to ship at @Client.CurrentSkin.Describe(Faction.Orange) rates (currently: <strong>@(permittedKarma == null ? "none" : Name(permittedKarma))</strong>)?</Label>
+                <Label>Select a @Client.CurrentSkin.Describe(TreacheryCardType.Karma) card they may use to ship at <FactionChip Faction=Faction.Orange Game=Game/> rates (currently: @if (permittedKarma == null) { <strong>none</strong> } else { <RichText Shown=@permittedKarma Game=Game/> })?</Label>
             </SelectFromImageComponent>
         }
         else
@@ -86,13 +86,13 @@
 
             case Faction.Orange:
                 <CheckboxComponent @bind-Value="guildAllyMayShipAsGuild" OnChanged=SetEdited>
-                    Allow shipment at @Client.CurrentSkin.Describe(Faction.Orange) rates and site-to-site (currently: <strong>@(Game.OrangeAllowsShippingDiscount ? "yes" : "no")</strong>)
+                    Allow shipment at <FactionChip Faction=Faction.Orange Game=Game/> rates and site-to-site (currently: <strong>@(Game.OrangeAllowsShippingDiscount ? "yes" : "no")</strong>)
                 </CheckboxComponent>
                 break;
 
             case Faction.Purple:
                 <CheckboxComponent @bind-Value="purpleAllyMyReviveAsPurple" OnChanged=SetEdited>
-                    Allow revival at @Client.CurrentSkin.Describe(Faction.Purple) rates (currently: <strong>@(Game.PurpleAllowsRevivalDiscount ? "yes" : "no")</strong>)
+                    Allow revival at <FactionChip Faction=Faction.Purple Game=Game/> rates (currently: <strong>@(Game.PurpleAllowsRevivalDiscount ? "yes" : "no")</strong>)
                 </CheckboxComponent>
                 break;
 
@@ -108,7 +108,7 @@
                 </CheckboxComponent>
 
                 <CheckboxComponent @bind-Value="fremenWillProtectFromShaiHulud" OnChanged=SetEdited>
-                    Protect them from @Client.CurrentSkin.Describe(Concept.Monster) (currently: <strong>@(Game.YellowWillProtectFromMonster ? "yes" : "no")</strong>)
+                    Protect them from <MonsterIcon/> (currently: <strong>@(Game.YellowWillProtectFromMonster ? "yes" : "no")</strong>)
                 </CheckboxComponent>
 
                 @if (Game.Applicable(Rule.YellowDeterminesStorm))

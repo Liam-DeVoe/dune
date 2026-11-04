@@ -10,7 +10,7 @@
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
-    <Header>Use @ToUse to prevent the current player from moving forces into a territory you occupy?</Header>
+    <Header>Use @if (CardToUse is { } card) { <RichText Shown=@card Game=Game/> } else { @("Nexus Cunning") } to prevent the current player from moving forces into a territory you occupy?</Header>
 
     <Body>
 
@@ -32,7 +32,7 @@
 
     protected override BrownMovePrevention ConfirmedResult => new(Game, Faction) { Territory = TargetTerritory };
 
-    private string ToUse => BrownMovePrevention.CardToUse(Player) != null ? Client.CurrentSkin.Describe(BrownMovePrevention.CardToUse(Player)) : "Nexus Cunning";
+    private TreacheryCard? CardToUse => BrownMovePrevention.CardToUse(Player);
 
     protected override RenderFragment PinContent => __builder =>
     {

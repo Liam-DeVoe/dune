@@ -17,7 +17,7 @@
             var toBeDivided = DivideResources.GetResourcesToBeDivided(Game);
 
             <div class="mt-1">
-                <SpiceComponent Amount="@toBeDivided.Amount.ToString()"/> was collected from @Name(toBeDivided.Territory) by you and <FactionComponent Faction=@toBeDivided.OtherFaction Diameter="30"/>
+                <SpiceComponent Amount="@toBeDivided.Amount.ToString()"/> was collected from <PlaceChip Place=@toBeDivided.Territory/> by you and <FactionChip Faction=@toBeDivided.OtherFaction Game=Game/>
             </div>
 
             <div class="mt-1">
@@ -25,11 +25,11 @@
             </div>
 
             <div class="mt-1">
-                If <FactionComponent Faction=@toBeDivided.OtherFaction Diameter="30"/> agree, they will receive the remaining <SpiceComponent Amount="@((toBeDivided.Amount - amountToFirstFaction).ToString())"/>
+                If <FactionChip Faction=@toBeDivided.OtherFaction Game=Game/> agree, they will receive the remaining <SpiceComponent Amount="@((toBeDivided.Amount - amountToFirstFaction).ToString())"/>
             </div>
 
             <div class="mt-1">
-                If you pass, you get @DivideResources.GainedByFirstFaction(toBeDivided, false, amountToFirstFaction) and <FactionComponent Faction=@toBeDivided.OtherFaction Diameter="30"/> get @DivideResources.GainedByOtherFaction(toBeDivided, false, amountToFirstFaction)
+                If you pass, you get <SpiceComponent Amount="@DivideResources.GainedByFirstFaction(toBeDivided, false, amountToFirstFaction).ToString()"/> and <FactionChip Faction=@toBeDivided.OtherFaction Game=Game/> get <SpiceComponent Amount="@DivideResources.GainedByOtherFaction(toBeDivided, false, amountToFirstFaction).ToString()"/>
             </div>
 
             <ButtonRowComponent Pass="Pass" Confirm="Confirm" ConfirmError=@Validation />

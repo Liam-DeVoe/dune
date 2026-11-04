@@ -10,7 +10,7 @@
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
-    <Header>Use @ToUse to prevent a faction from playing @Client.CurrentSkin.Describe(TreacheryCardType.Karma) this phase?</Header>
+    <Header>Use @if (CardToUse is { } card) { <RichText Shown=@card Game=Game/> } else { @("Nexus Cunning") } to prevent a faction from playing @Client.CurrentSkin.Describe(TreacheryCardType.Karma) this phase?</Header>
 
     <Body>
         <SelectFromImageComponent @bind-Value="target" Values="Game.PlayersOtherThan(Player)" Required="true" ImageWidth="40" />
@@ -29,5 +29,5 @@
 
     protected override BrownKarmaPrevention ConfirmedResult => new(Game, Faction) { Target = target };
 
-    private string ToUse => BrownKarmaPrevention.CardToUse(Player) != null ? Client.CurrentSkin.Describe(BrownKarmaPrevention.CardToUse(Player)) : "Nexus Cunning";
+    private TreacheryCard? CardToUse => BrownKarmaPrevention.CardToUse(Player);
 }

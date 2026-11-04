@@ -16,7 +16,7 @@
         @if (ShowHeader)
         {
             <div class="card-header" @onclick=@(_ => _collapsed = !_collapsed) style="cursor:pointer">
-                @Name(ShownPlayer.Faction)
+                <FactionChip Faction=@ShownPlayer.Faction Game=Client.Game/>
                 <CollapseButton Collapsed=@_collapsed />
             </div>
         }
@@ -37,10 +37,7 @@
 
                             <!-- Forces -->
                             <div class="col p-0">
-                                <img class="img-fluid m-0 p-0" width="24" height="24" 
-                                     src="@Client.CurrentSkin.GetFactionForceImageUrl(ShownPlayer.Faction)" 
-                                     title="@Name(ShownPlayer.Force)" 
-                                     alt="@Name(ShownPlayer.Force)" /><strong>&nbsp;@ShownPlayer.ForcesInReserve</strong>
+                                <ForceToken Faction="ShownPlayer.Faction" Size="24" ImgClass="img-fluid m-0 p-0" Title="@Name(ShownPlayer.Force)"/><strong>&nbsp;@ShownPlayer.ForcesInReserve</strong>
                             </div>
 
                             <!-- Special Forces -->
@@ -112,7 +109,7 @@
 
                         @if (ShownPlayer.Faction == Faction.Blue && Client.CurrentPhase > Phase.BluePredicting)
                         {
-                            <div>Prediction: <FactionComponent Diameter=30 Faction=@ShownPlayer.PredictedFaction/><SimpleNumberComponent Size=30>@ShownPlayer.PredictedTurn</SimpleNumberComponent></div>
+                            <div>Prediction: <FactionChip Faction=@ShownPlayer.PredictedFaction Game=Client.Game/> <SimpleNumberComponent Size=30>@ShownPlayer.PredictedTurn</SimpleNumberComponent></div>
                         }
 
                         @if (ShownPlayer.Faction == Faction.Green)
@@ -166,7 +163,7 @@
 
                         @if (Client.Game.CurrentMainPhase == MainPhase.ShipmentAndMove && Client.Game.HasResourceDeckPrescience(Player) && !Client.Game.ResourceCardDeck.IsEmpty)
                         {
-                            <Hoverable Popover=@Client.CurrentSkin.GetPopup(Client.Game.ResourceCardDeck.Top)>Top card of @Name(Concept.Resource) Deck: <strong>@Name(Client.Game.ResourceCardDeck.Top)</strong></Hoverable>
+                            <div>Top card of @Name(Concept.Resource) Deck: <RichText Shown=@Client.Game.ResourceCardDeck.Top Game=Client.Game/></div>
                         }
 
                         <!-- Cards -->

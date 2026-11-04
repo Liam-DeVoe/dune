@@ -10,7 +10,7 @@
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
-    <Header>Resort to Terror against @Name(TerrorRevealed.GetVictim(Game)) in @Name(TerrorRevealed.GetTerritory(Game))?</Header>
+    <Header>Resort to Terror against <FactionChip Faction=@TerrorRevealed.GetVictim(Game) Game=Game/> in <PlaceChip Place=@TerrorRevealed.GetTerritory(Game)/>?</Header>
     <Body>
 
         @if (TerrorRevealed.GetTypes(Game).Count() > 1)
@@ -22,7 +22,7 @@
         else
         {
             _type = TerrorRevealed.GetTypes(Game).First();
-            <div>Use @Name(_type)?</div>
+            <div>Use <RichText Shown=@_type Game=Game/>?</div>
         }
 
         @if(_type == TerrorType.Robbery)

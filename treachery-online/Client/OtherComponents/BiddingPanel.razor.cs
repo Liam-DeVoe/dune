@@ -2,6 +2,7 @@
 
 public abstract partial class BiddingPanel<TBid> where TBid : GameEvent, new()
 {
+    // HTML: the panel renders it as markup, so a faction in it can be a chip.
     protected abstract string AuctionDescription { get; }
 
     protected abstract bool ShowRepeatAutoPass { get; }

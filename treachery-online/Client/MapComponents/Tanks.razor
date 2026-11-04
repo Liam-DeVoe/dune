@@ -135,10 +135,9 @@
 
             if (p.ForcesKilled == 0 && p.SpecialForcesKilled == 0 && corpses.Length == 0 && !messiahDead) continue;
 
-            var you = !Client.IsObserver && Client.Faction == p.Faction ? " you" : "";
-            var name = Encode(skin.Describe(p.Faction));
+            var you = !Client.IsObserver && Client.Faction == p.Faction;
             rows.Append("<tr>");
-            rows.Append($"<td><span class='chip faction{you}' style='--fc:{skin.GetFactionColor(p.Faction)}'><img src='{skin.GetImageUrl(p.Faction)}' alt=''/><span class='name'>{name}</span></span></td>");
+            rows.Append($"<td>{skin.FactionChipHtml(p.Faction, you, p.ForcesOnPlanet.Keys.Select(l => l.Id))}</td>");
 
             rows.Append("<td class='forces'>");
             if (p.ForcesKilled > 0)

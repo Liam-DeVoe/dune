@@ -174,20 +174,13 @@
                                         <span>! </span>
                                     }
 
-                                    @if (l.Territory.IsStronghold || Game.IsSpecialStronghold(l.Territory))
-                                    {
-                                        <strong>@Client.CurrentSkin.Describe(l.Territory)</strong>
-                                    }
-                                    else
-                                    {
-                                        @Client.CurrentSkin.Describe(l.Territory)
-                                    }
+                                    <PlaceChip Place=@l.Territory/>
 
                                     <span>:&nbsp;</span>
 
                                     @if (p.ForcesIn(l) > 0)
                                     {
-                                        <img class='img-fluid m-0 p-0' width='24' height='24' src='@Client.CurrentSkin.GetFactionForceImageUrl(p.Faction)' title=@Client.CurrentSkin.Describe(p.Force) /><strong>&nbsp;@p.ForcesIn(l)</strong>
+                                        <ForceToken Faction="p.Faction" Size="24" ImgClass="img-fluid m-0 p-0" Title="@Client.CurrentSkin.Describe(p.Force)" /><strong>&nbsp;@p.ForcesIn(l)</strong>
                                     }
 
                                     <span>&nbsp;</span>
@@ -224,7 +217,7 @@
                         <td>
                             @if (p.ForcesKilled > 0)
                             {
-                                <img class='img-fluid m-0 p-0' width='24' height='24' src='@Client.CurrentSkin.GetFactionForceImageUrl(p.Faction)' title=@Client.CurrentSkin.Describe(p.Force) /><strong>&nbsp;@p.ForcesKilled</strong>
+                                <ForceToken Faction="p.Faction" Size="24" ImgClass="img-fluid m-0 p-0" Title="@Client.CurrentSkin.Describe(p.Force)" /><strong>&nbsp;@p.ForcesKilled</strong>
                             }
 
                             @if (p.SpecialForcesKilled > 0)

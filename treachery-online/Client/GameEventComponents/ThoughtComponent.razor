@@ -10,7 +10,7 @@
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
-    <Header>Use your @Client.CurrentSkin.Describe(LeaderSkill.Thinker) to ask if your opponent has a specific weapon</Header>
+    <Header>Use your <RichText Shown=@LeaderSkill.Thinker Game=Game/> to ask if your opponent has a specific weapon</Header>
     <Body>
 
         <SelectFromImageComponent @bind-Value="card" Values="Thought.ValidCards(Game)" Required="true" ImageWidth="80" />

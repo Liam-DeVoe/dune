@@ -27,7 +27,7 @@
 
         @if (Faction == Faction.Yellow)
         {
-            <div class="small text-2">You may bring any number of forces onto @Client.CurrentSkin.Describe(Game.Map.TheGreatFlat.Territory) or onto any one territory within two territories of it, for free.</div>
+            <div class="small text-2">You may bring any number of forces onto <PlaceChip Place=@Game.Map.TheGreatFlat.Territory/> or onto any one territory within two territories of it, for free.</div>
             @if (Shipment.MayShipCrossPlanet(Game, Player))
             {
                 <div class="small text-2">Your ally also lets you ship elsewhere from your reserves.</div>
@@ -470,7 +470,7 @@
         <div class="pin-body">
             @if (ShipmentType is ShipmentType.ShipmentBack)
             {
-                <div class="pin-hint">Back to reserves from @Name(_shipmentTo)</div>
+                <div class="pin-hint">Back to reserves from <PlaceChip Place=@(_shipmentTo!)/></div>
             }
 
             @if (canChooseType)
@@ -550,7 +550,7 @@
 
             @if (mayKarma)
             {
-                <div class="pin-hint">@Name(TreacheryCardType.Karma) for @Name(Faction.Orange) rate:</div>
+                <div class="pin-hint">@Name(TreacheryCardType.Karma) for <FactionChip Faction=Faction.Orange Game=Game/> rate:</div>
                 <div class="pin-choice">
                     <button type="button" class="@(KarmaCard == null ? "on" : "")" @onclick="@(() => Change(() => KarmaCard = null))">None</button>
                     @foreach (var card in Shipment.ValidKarmaCards(Game, Player))

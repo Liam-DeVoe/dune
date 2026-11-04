@@ -33,7 +33,7 @@
             {
                 case Ambassador.Green:
 
-                    <div>See the <Image Shown=@victim Width="30"/> hand?</div>
+                    <div>See the <FactionChip Faction=@victim Game=Game/> hand?</div>
                     break;
 
                 case Ambassador.Brown:
@@ -48,7 +48,7 @@
                 
                     if (AmbassadorActivated.VidalCanBeTaken(Game, Player)) {
 
-                        <CheckboxComponent @bind-Value="_pinkTakeVidal">Take @Name(Game.Vidal)</CheckboxComponent>
+                        <CheckboxComponent @bind-Value="_pinkTakeVidal">Take <RichText Shown=@Game.Vidal Game=Game/></CheckboxComponent>
                     }
                     else
                     {
@@ -57,11 +57,11 @@
                     
                     if (!_pinkTakeVidal && AmbassadorActivated.AllianceCanBeOffered(Game, Player))
                     {
-                        <CheckboxComponent @bind-Value="_pinkOfferAlliance">Offer an alliance to @Name(victim)</CheckboxComponent>
+                        <CheckboxComponent @bind-Value="_pinkOfferAlliance">Offer an alliance to <FactionChip Faction=@victim Game=Game/></CheckboxComponent>
                         
                         if (_pinkOfferAlliance && AmbassadorActivated.VidalCanBeOfferedToNewAlly(Game, Player))
                         {
-                            <CheckboxComponent @bind-Value="_pinkGiveVidal">Give @Name(Game.Vidal) to @Name(victim) if they agree to ally</CheckboxComponent>
+                            <CheckboxComponent @bind-Value="_pinkGiveVidal">Give <RichText Shown=@Game.Vidal Game=Game/> to <FactionChip Faction=@victim Game=Game/> if they agree to ally</CheckboxComponent>
                         }
                         else
                         {
@@ -98,15 +98,15 @@
                     
                     if (victim == Faction.Black)
                     {
-                        <div>See one of the <Image Shown=@victim Width="30"/> traitors?</div>
+                        <div>See one of the <FactionChip Faction=@victim Game=Game/> traitors?</div>
                     }
                     else if (victim == Faction.Purple)
                     {
-                        <div>See one of the <Image Shown=@victim Width="30"/> unrevealed Face Dancers?</div>
+                        <div>See one of the <FactionChip Faction=@victim Game=Game/> unrevealed Face Dancers?</div>
                     }
                     else {
 
-                        <div>See the <Image Shown=@victim Width="30"/> traitor?</div>
+                        <div>See the <FactionChip Faction=@victim Game=Game/> traitor?</div>
                     }
                     break;
 
@@ -125,7 +125,7 @@
 
                 case Ambassador.Orange:
 
-                    <div>Send up to 4 forces to any location?</div>
+                    <div>Send up to 4 <ForceToken Faction=@Faction Size="20"/> to any location?</div>
 
                     if (AmbassadorActivated.ValidOrangeTargets(Game, Player).Any())
                     {
@@ -141,7 +141,7 @@
 
                 case Ambassador.Purple:
 
-                    <div>Revive one of your leaders or up to 4 forces for free?</div>
+                    <div>Revive one of your leaders or up to 4 <ForceToken Faction=@Faction Size="20"/> for free?</div>
                     @if (AmbassadorActivated.ValidPurpleMaxAmount(Player) > 0)
                     {
                         <SelectForcesComponent @bind-Value="_purpleAmountOfForces" Min="0" Max=@AmbassadorActivated.ValidPurpleMaxAmount(Player) Faction="Faction" Special="false" />
@@ -258,7 +258,7 @@
                     <div class="pin-row">
                         @if (_yellowForces.Count > 1)
                         {
-                            <span class="pin-from">@Name(l)</span>
+                            <span class="pin-from"><PlaceChip Place=@l/></span>
                         }
                         @if (Player.ForcesIn(l) > 0)
                         {

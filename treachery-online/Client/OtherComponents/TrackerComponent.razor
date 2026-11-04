@@ -152,18 +152,18 @@
                 {
                     if (Client.Game.ResourceCardDiscardPileA?.Items.Any() is true)
                     {
-                        <div class="small"><strong>Discard pile A:</strong> @Client.CurrentSkin.Join(Client.Game.ResourceCardDiscardPileA.Items)</div>
+                        <div class="small"><strong>Discard pile A:</strong> @foreach (var (card, i) in Client.Game.ResourceCardDiscardPileA.Items.Select((c, i) => (c, i))) { if (i > 0) { <span>, </span> } <RichText Shown=@card Game=Client.Game/> }</div>
                     }
                     if (Client.Game.ResourceCardDiscardPileB?.Items.Any() is true)
                     {
-                        <div class="small"><strong>Discard pile B:</strong> @Client.CurrentSkin.Join(Client.Game.ResourceCardDiscardPileB.Items)</div>
+                        <div class="small"><strong>Discard pile B:</strong> @foreach (var (card, i) in Client.Game.ResourceCardDiscardPileB.Items.Select((c, i) => (c, i))) { if (i > 0) { <span>, </span> } <RichText Shown=@card Game=Client.Game/> }</div>
                     }
                 }
                 else
                 {
                     if (Client.Game.ResourceCardDiscardPileA?.Items.Any() is true)
                     {
-                        <div class="small"><strong>Discarded:</strong> @Client.CurrentSkin.Join(Client.Game.ResourceCardDiscardPileA.Items)</div>
+                        <div class="small"><strong>Discarded:</strong> @foreach (var (card, i) in Client.Game.ResourceCardDiscardPileA.Items.Select((c, i) => (c, i))) { if (i > 0) { <span>, </span> } <RichText Shown=@card Game=Client.Game/> }</div>
                     }
                 }
             }

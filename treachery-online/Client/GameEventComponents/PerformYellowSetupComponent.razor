@@ -20,7 +20,7 @@
     <Header>
         @if (Remaining > 0)
         {
-            <text>Distribute @Remaining forces on @Name(Game.Map.SietchTabr), @Name(Game.Map.FalseWallSouth), and @Name(Game.Map.FalseWallWest).</text>
+            <text>Distribute @Remaining <ForceToken Faction="Player.Faction" Size="20" Title="@Name(Player.Force)"/> on <PlaceChip Place=@Game.Map.SietchTabr/>, <PlaceChip Place=@Game.Map.FalseWallSouth/>, and <PlaceChip Place=@Game.Map.FalseWallWest/>.</text>
         }
         else
         {
@@ -31,7 +31,7 @@
 
         <div class="small">Use the map to place forces.</div>
         <div class="small text-2">
-            <div><ClickHintComponent Button="ClickHintButton.Lmb" /> place <img class="setup-hint-force" src="@Client.CurrentSkin.GetFactionForceImageUrl(Player.Faction)" alt="@Name(Player.Force)" title="@Name(Player.Force)"/></div>
+            <div><ClickHintComponent Button="ClickHintButton.Lmb" /> place <ForceToken Faction="Player.Faction" Size="18" ImgClass="setup-hint-force" Title="@Name(Player.Force)"/></div>
             @if (MayStageSpecial)
             {
                 <div><ClickHintComponent Button="ClickHintButton.Lmb" Modifier="ClickHintModifier.Shift" /> place <ForceToken Faction="Player.Faction" Special="true" Size="18" ImgClass="setup-hint-force" Title="@Name(Player.SpecialForce)"/></div>
@@ -47,7 +47,7 @@
                     var l = kvp.Key;
                     var b = kvp.Value;
                     <div class="d-flex align-items-center gap-1 mt-1 small">
-                        <span class="flex-grow-1">@Name(l)</span>
+                        <span class="flex-grow-1"><PlaceChip Place=@l/></span>
                         <MapForceStepper Value="@b.AmountOfForces" ValueChanged="@(v => Step(l, v, false))" Min="0" Max="@(b.AmountOfForces + Room(false))" Faction="Faction" Special="false" Label="@Name(Player.Force)" />
                         @if (MayStageSpecial)
                         {

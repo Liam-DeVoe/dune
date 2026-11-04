@@ -18,7 +18,7 @@
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
-    <Header>@Title</Header>
+    <Header><ExpressionComponent Expression=@TitleMessage.Expression Game=Game Size="20"/></Header>
     <Body>
 
         <div class="small">Use the map to ride the worm.</div>
@@ -61,22 +61,25 @@
 
     protected override bool InformAboutCaravan => false;
 
-    protected override string Title
+    protected override string Title => TitleMessage.ToString(Client.CurrentSkin);
+
+    // The header, with the worm and the territory drawn as in the log.
+    private Message TitleMessage
     {
         get
         {
             var toRide = ToRide;
             if (toRide == null)
             {
-                return Client.CurrentSkin.Format("Ride {0}?", Concept.Monster);
+                return Message.Express("Ride ", Concept.Monster, "?");
             }
 
             if (toRide.IsGreatMonster)
             {
-                return Client.CurrentSkin.Format("Ride the {0} with forces from your reserves?", Concept.GreatMonster);
+                return Message.Express("Ride the ", Concept.GreatMonster, " with forces from your reserves?");
             }
 
-            return Client.CurrentSkin.Format("Ride the Worm that appeared in {0}?", toRide.Territory);
+            return Message.Express("Ride the Worm that appeared in ", toRide.Territory, "?");
         }
     }
 

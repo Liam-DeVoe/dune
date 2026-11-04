@@ -319,7 +319,7 @@
     private RenderFragment ChoiceContent => __builder =>
     {
         <div class="pin-body">
-            <div class="pin-from">@Name(undecidedPick)</div>
+            <div class="pin-from"><PlaceChip Place=@(undecidedPick!)/></div>
             <div class="pin-actions">
                 <button type="button" class="btn btn-secondary" @onclick="@(() => DecidePick(false))">Add as source</button>
                 <button type="button" class="btn btn-primary" @onclick="@(() => DecidePick(true))">Move here</button>
@@ -353,7 +353,7 @@
                 <div class="pin-row">
                     @if (forces.Count > 1)
                     {
-                        <span class="pin-from">@Name(l)</span>
+                        <span class="pin-from"><PlaceChip Place=@l/></span>
                     }
                     @if (Player.ForcesIn(l) > 0)
                     {

@@ -26,7 +26,7 @@
             if (_selectedLocation == null || !Game.DiscoveriesOnPlanet.ContainsKey(_selectedLocation)) 
                 _selectedLocation = locations.First();
             
-            <div>Reveal the <strong>@Name(Game.DiscoveriesOnPlanet[_selectedLocation].Token)</strong> in @Name(_selectedLocation.Territory)?</div>
+            <div>Reveal the <RichText Shown=@Game.DiscoveriesOnPlanet[_selectedLocation].Token Game=Game/> in <PlaceChip Place=@_selectedLocation.Territory/>?</div>
             <div class="label-info">@((MarkupString)Client.CurrentSkin.WithSpiceIcons(Client.CurrentSkin.GetDiscoveryTokenDescription(Game.DiscoveriesOnPlanet[_selectedLocation].Token)))</div>
         }
 

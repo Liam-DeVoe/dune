@@ -10,7 +10,7 @@
 
 <GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
 
-    <Header>Nexus: Play <FactionComponent Faction="@Player.Nexus"/> @NexusTypeText</Header>
+    <Header>Nexus: Play <FactionChip Faction="@Player.Nexus" Game=Game/> @NexusTypeText</Header>
     <Body>
 
         @{
@@ -31,7 +31,7 @@
                     break;
 
                 case Faction.Black when betrayal: 
-                    <div>Cancel the revealed <FactionComponent Faction=@Faction.Black Diameter="20"/> traitor?</div>
+                    <div>Cancel the revealed <FactionChip Faction=@Faction.Black Game=Game/> traitor?</div>
                     break;
 
                 case Faction.Black when cunning:
@@ -43,19 +43,19 @@
                     break;
 
                 case Faction.Yellow when betrayal && Game.CurrentMainPhase == MainPhase.Blow:
-                    <div>Prevent <FactionComponent Faction=@Faction.Yellow Diameter="20"/> from riding @Name(Concept.Monster)?</div>
+                    <div>Prevent <FactionChip Faction=@Faction.Yellow Game=Game/> from riding <MonsterIcon/>?</div>
                     break;
 
                 case Faction.Yellow when betrayal && Game.CurrentMainPhase == MainPhase.ShipmentAndMove:
-                    <div>Prevent <FactionComponent Faction=@Faction.Yellow Diameter="20"/> moving 2 territories?</div>
+                    <div>Prevent <FactionChip Faction=@Faction.Yellow Game=Game/> moving 2 territories?</div>
                     break;
 
                 case Faction.Yellow when cunning:
-                    <div>Let forces in another territory where @Name(Concept.Monster) appeared ride?</div>
+                    <div>Let forces in another territory where <MonsterIcon/> appeared ride?</div>
                     break;
 
                 case Faction.Yellow when secretAlly && Game.CurrentMainPhase == MainPhase.Blow:
-                    <div>Avoid @Name(Concept.Monster) devouring your forces?</div>
+                    <div>Avoid <MonsterIcon/> devouring your forces?</div>
                     break;
 
                 case Faction.Yellow when secretAlly && Game.CurrentMainPhase == MainPhase.Resurrection:
@@ -63,15 +63,15 @@
                     break;
 
                 case Faction.Red when betrayal && Game.CurrentMainPhase == MainPhase.Bidding:
-                    <div>Force <FactionComponent Faction=@Faction.Red Diameter="20"/> to pay for the next card their ally buys?</div>
+                    <div>Force <FactionChip Faction=@Faction.Red Game=Game/> to pay for the next card their ally buys?</div>
                     break;
 
                 case Faction.Red when betrayal && Game.CurrentMainPhase == MainPhase.Battle:
-                    <div>Let <Image Shown=FactionSpecialForce.Red Width="20"/> count as <Image Shown=FactionForce.Red Width="20"/> in this battle?</div>
+                    <div>Let <ForceToken Faction=Faction.Red Special="true" Size="20"/> count as <ForceToken Faction=Faction.Red Size="20"/> in this battle?</div>
                     break;
 
                 case Faction.Red when cunning:
-                    <div>Let up to 5 <Image Shown=FactionForce.Red Width="20"/> count as <Image Shown=FactionSpecialForce.Red Width="20"/> in this battle?</div>
+                    <div>Let up to 5 <ForceToken Faction=Faction.Red Size="20"/> count as <ForceToken Faction=Faction.Red Special="true" Size="20"/> in this battle?</div>
                     break;
 
                 case Faction.Orange when betrayal:
@@ -83,7 +83,7 @@
                     break;
 
                 case Faction.Orange when secretAlly:
-                    <div>Ship at <Image Shown=FactionForce.Orange Width="20"/> rates or perform a shipment cross-planet or to reserves?</div>
+                    <div>Ship at <FactionChip Faction=Faction.Orange Game=Game/> rates or perform a shipment cross-planet or to reserves?</div>
                     break;
 
                 case Faction.Blue when betrayal:
@@ -103,11 +103,11 @@
                     break;
 
                 case Faction.Grey when cunning:
-                    <div>Let all <Image Shown=FactionForce.Grey Width="20"/> in this battle count full strength?</div>
+                    <div>Let all <ForceToken Faction=Faction.Grey Size="20"/> in this battle count full strength?</div>
                     break;
 
                 case Faction.Purple when betrayal:
-                    <div>Cancel the revealed <FactionComponent Faction=@Faction.Purple Diameter="20"/> face dancer?</div>
+                    <div>Cancel the revealed <FactionChip Faction=@Faction.Purple Game=Game/> face dancer?</div>
                     break;
 
                 case Faction.Purple when cunning:
@@ -169,7 +169,7 @@
                     break;
 
                 case Faction.Brown when betrayal:
-                    <div>Force <FactionComponent Faction=@Faction.Brown Diameter="20"/> to discard a random card from their hand?</div>
+                    <div>Force <FactionChip Faction=@Faction.Brown Game=Game/> to discard a random card from their hand?</div>
                     break;
 
                 case Faction.Brown when secretAlly && Game.CurrentMainPhase == MainPhase.Collection:
@@ -184,16 +184,16 @@
                 case Faction.White when betrayal:
                     if (Game.GetPlayer(Faction.White).TreacheryCards.Contains(Game.CardJustWon))
                     {
-                        <div>Force <FactionComponent Faction=@Faction.White Diameter="20"/> to discard the <FactionComponent Faction=@Faction.White Diameter="20"/> they just bought?</div>
+                        <div>Force <FactionChip Faction=@Faction.White Game=Game/> to discard the <RichText Shown=@Game.CardJustWon Game=Game/> they just bought?</div>
                     }
                     else
                     {
-                        <div>Prevent <FactionComponent Faction=@Faction.White Diameter="20"/> from getting paid for a card they sold?</div>
+                        <div>Prevent <FactionChip Faction=@Faction.White Game=Game/> from getting paid for a card they sold?</div>
                     }
                     break;
 
                 case Faction.Pink when betrayal:
-                    <div>Return all <FactionComponent Faction=@Faction.Pink Diameter="20"/> in a territory they occupy with their ally to reserves?</div>
+                    <div>Return all <FactionChip Faction=@Faction.Pink Game=Game/> forces <ForceToken Faction=@Faction.Pink Size="20"/> in a territory they occupy with their ally to reserves?</div>
                     <div class="small">Use the map to choose a territory.</div>
                     break;
 

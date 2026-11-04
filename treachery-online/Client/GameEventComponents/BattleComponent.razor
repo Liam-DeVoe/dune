@@ -47,7 +47,7 @@
 <GameEventComponentLayout Class="battle-plan prompt-act" CollapsedType="GetType()" TimedEvent="Game.LatestEvent(typeof(BattleInitiated))">
 
     <Header>
-        <span class="kicker">Battle · @Name(territory)</span>
+        <span class="kicker">Battle · <PlaceChip Place=@territory/></span>
     </Header>
 
     <Body>
@@ -63,7 +63,7 @@
 
         @if (Game.CurrentPinkBattleContribution > 0 && !(Player.Faction == Faction.Pink || Player.Ally == Faction.Pink))
         {
-            <div class="bp-note good"><Image Shown=Faction.Pink Width="30"/> forces contribute <strong>@Game.CurrentPinkBattleContribution</strong> to your opponents dial.</div>
+            <div class="bp-note good"><FactionChip Faction=Faction.Pink Game=Game/> forces contribute <strong>@Game.CurrentPinkBattleContribution</strong> to your opponent's dial.</div>
         }
 
         @if (!Battle.ValidBattleHeroes(Game, Opponent).Any())
@@ -90,10 +90,10 @@
             {
                 if (opponentBattlePlan != null)
                 {
-                    <div class="bp-note good">Enemy @PrescienceAspect.Dial: @GetTextForAspect(PrescienceAspect.Dial, opponentBattlePlan, true).</div>
-                    <Hoverable Class="bp-note good" Popover=@GetPopupForAspect(PrescienceAspect.Weapon, opponentBattlePlan, true)>Enemy @PrescienceAspect.Weapon: @GetTextForAspect(PrescienceAspect.Weapon, opponentBattlePlan, true).</Hoverable>
-                    <Hoverable Class="bp-note good" Popover=@GetPopupForAspect(PrescienceAspect.Defense, opponentBattlePlan, true)>Enemy @PrescienceAspect.Defense: @GetTextForAspect(PrescienceAspect.Defense, opponentBattlePlan, true).</Hoverable>
-                    <Hoverable Class="bp-note good" Popover=@GetPopupForAspect(PrescienceAspect.Leader, opponentBattlePlan, true)>Enemy @PrescienceAspect.Leader: @GetTextForAspect(PrescienceAspect.Leader, opponentBattlePlan, true).</Hoverable>
+                    @PrescienceNote(PrescienceAspect.Dial, opponentBattlePlan, true)
+                    @PrescienceNote(PrescienceAspect.Weapon, opponentBattlePlan, true)
+                    @PrescienceNote(PrescienceAspect.Defense, opponentBattlePlan, true)
+                    @PrescienceNote(PrescienceAspect.Leader, opponentBattlePlan, true)
                 }
                 else
                 {
@@ -106,11 +106,11 @@
                 {
                     if (opponentBattlePlan != null)
                     {
-                        <Hoverable Class="bp-note good" Popover=@GetPopupForAspect(Game.CurrentPrescience.Aspect, opponentBattlePlan, false)>Enemy @Game.CurrentPrescience.Aspect: @GetTextForAspect(Game.CurrentPrescience.Aspect, opponentBattlePlan, false).</Hoverable>
+                        @PrescienceNote(Game.CurrentPrescience.Aspect, opponentBattlePlan, false)
                     }
                     else
                     {
-                        <div class="bp-note good">Opponent @Game.CurrentPrescience.Aspect will be visible as soon as they confirm their battle plan.</div>
+                        <div class="bp-note good">Opponent @Name(Game.CurrentPrescience.Aspect).ToLowerInvariant() will be visible as soon as they confirm their battle plan.</div>
                     }
                 }
 
@@ -118,11 +118,11 @@
                 {
                     if (opponentBattlePlan != null)
                     {
-                        <Hoverable Class="bp-note good" Popover=@GetPopupForAspect(Game.CurrentNexusPrescience.GreenPrescienceAspect, opponentBattlePlan, false)>Enemy @Game.CurrentNexusPrescience.GreenPrescienceAspect: @GetTextForAspect(Game.CurrentNexusPrescience.GreenPrescienceAspect, opponentBattlePlan, false).</Hoverable>
+                        @PrescienceNote(Game.CurrentNexusPrescience.GreenPrescienceAspect, opponentBattlePlan, false)
                     }
                     else
                     {
-                        <div class="bp-note good">Opponent @Game.CurrentNexusPrescience.GreenPrescienceAspect will be visible as soon as they confirm their battle plan.</div>
+                        <div class="bp-note good">Opponent @Name(Game.CurrentNexusPrescience.GreenPrescienceAspect).ToLowerInvariant() will be visible as soon as they confirm their battle plan.</div>
                     }
                 }
             }
@@ -130,7 +130,7 @@
 
         @if (Game.CurrentPinkBattleContribution > 0 && (Player.Faction == Faction.Pink || Player.Ally == Faction.Pink))
         {
-            <div class="bp-note good"><FactionComponent Faction=Faction.Pink Diameter="20"/> forces contribute <strong>@Game.CurrentPinkBattleContribution</strong> to your dial.</div>
+            <div class="bp-note good"><FactionChip Faction=Faction.Pink Game=Game/> forces contribute <strong>@Game.CurrentPinkBattleContribution</strong> to your dial.</div>
         }
 
 
@@ -599,30 +599,31 @@
         return sum;
     }
 
-    private string GetTextForAspect(PrescienceAspect aspect, Battle plan, bool showEverything)
+    // What prescience shows of the opponent's plan: a card or leader (with its
+    // popover), the dial, or "None".
+    private RenderFragment PrescienceNote(PrescienceAspect aspect, Battle plan, bool showEverything)
     {
-        switch (aspect)
+        object? shown = aspect switch
         {
-            case PrescienceAspect.Defense: return plan.Defense == null || (!showEverything && !plan.Defense.IsDefense) ? "None" : Name(plan.Defense);
-            case PrescienceAspect.Weapon: return plan.Weapon == null || (!showEverything && !plan.Weapon.IsWeapon) ? "None" : Name(plan.Weapon);
-            case PrescienceAspect.Dial: return plan.Dial(Game, Faction).ToString(CultureInfo.InvariantCulture);
-            case PrescienceAspect.Leader: return plan.Hero == null ? "None" : Name(plan.Hero);
-        }
+            PrescienceAspect.Defense => plan.Defense == null || (!showEverything && !plan.Defense.IsDefense) ? null : plan.Defense,
+            PrescienceAspect.Weapon => plan.Weapon == null || (!showEverything && !plan.Weapon.IsWeapon) ? null : plan.Weapon,
+            PrescienceAspect.Leader => plan.Hero,
+            _ => null
+        };
 
-        return "?";
-    }
-
-    private string GetPopupForAspect(PrescienceAspect aspect, Battle plan, bool showEverything)
-    {
-        switch (aspect)
-        {
-            case PrescienceAspect.Defense: return plan.Defense == null || (!showEverything && !plan.Defense.IsDefense) ? "" : Client.CurrentSkin.GetPopup(plan.Defense);
-            case PrescienceAspect.Weapon: return plan.Weapon == null || (!showEverything && !plan.Weapon.IsWeapon) ? "" : Client.CurrentSkin.GetPopup(plan.Weapon);
-            case PrescienceAspect.Dial: return "";
-            case PrescienceAspect.Leader: return plan.Hero == null ? "" : Client.CurrentSkin.GetPopup(plan.Hero, Game);
-        }
-
-        return "?";
+        return @<div class="bp-note good">Enemy @Name(aspect).ToLowerInvariant():
+            @if (aspect == PrescienceAspect.Dial)
+            {
+                <strong>@plan.Dial(Game, Faction).ToString(CultureInfo.InvariantCulture)</strong>
+            }
+            else if (shown != null)
+            {
+                <RichText Shown=@shown Game=Game/>
+            }
+            else
+            {
+                <span>none</span>
+            }.</div>;
     }
 
     private IEnumerable<TreacheryCard> Weapons 

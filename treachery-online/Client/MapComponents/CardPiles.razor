@@ -154,7 +154,7 @@
     {
         if (Client.Faction != Faction.White || Client.Game.WhiteCache.Count == 0) return null;
 
-        var heading = Client.CurrentSkin.Format("{0} cards · {1}", Faction.White, Client.Game.WhiteCache.Count);
+        var heading = $"{Client.CurrentSkin.FactionChipHtml(Faction.White, Client.Faction == Faction.White)} cards · {Client.Game.WhiteCache.Count}";
         return PileHtml(heading, Client.Game.WhiteCache.Select(c => $"<img src=\"{Client.CurrentSkin.GetImageUrl(c)}\"/>"));
     }
 

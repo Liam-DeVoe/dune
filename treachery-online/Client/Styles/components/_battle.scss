@@ -223,6 +223,8 @@
     border-style: solid;
     border-color: var(--ink-1);
     color: var(--ink-1);
+    // Already selected, so clicking it does nothing.
+    cursor: default;
   }
 }
 

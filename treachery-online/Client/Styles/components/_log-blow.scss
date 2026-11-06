@@ -43,6 +43,25 @@
   margin: 1px 0;
 }
 
+// An alliance change in the Nexus: chip, glyph, chip.
+.nexus-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 3px 0;
+}
+
+.nexus-glyph {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  fill: none;
+  stroke: var(--parchment);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .blow-forces {
   display: inline-flex;
   align-items: center;

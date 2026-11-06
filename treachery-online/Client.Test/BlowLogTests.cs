@@ -50,6 +50,33 @@ public sealed class BlowLogTests
         Assert.IsNotEmpty(component.FindAll(".log-aside.blow-nexus .log-label"));
     }
 
+    [TestMethod]
+    public void AnAcceptedOfferIsFoldedIntoItsAlliance()
+    {
+        var driver = new BotDriver();
+        using var test = new ComponentTestContext(driver.Game);
+        Message Change(NexusAllianceChange change, Faction from, Faction to) =>
+            Message.Express(from, " ", change, " ", to).WithLog(new NexusLog(Alliance: new NexusAlliance(change, from, to)));
+        var messages = new List<Message>
+        {
+            Change(NexusAllianceChange.Offered, Faction.Blue, Faction.Black),
+            Change(NexusAllianceChange.Offered, Faction.Yellow, Faction.Black),
+            Change(NexusAllianceChange.Made, Faction.Black, Faction.Yellow),
+            Change(NexusAllianceChange.Ended, Faction.Red, Faction.Orange),
+        };
+        var component = test.RenderContext.Render<BlowLog>(p => p.Add(x => x.Messages, messages).Add(x => x.Line, _ => _ => { }));
+
+        var rows = component.FindAll(".blow-nexus .nexus-step")
+            .Select(r => (r.QuerySelector("svg title")!.TextContent, string.Join(",", r.QuerySelectorAll(".chip").Select(c => c.GetAttribute("data-ref-faction")))))
+            .ToArray();
+        CollectionAssert.AreEqual(new[]
+        {
+            ("offer an alliance to", "Blue,Black"),
+            ("allied with", "Yellow,Black"),
+            ("ended their alliance with", "Red,Orange"),
+        }, rows);
+    }
+
     private static bool HasWorm(Report report) =>
         report.About == MainPhase.Blow && report.Messages.Any(m => m.Log is WormAppearedLog);
 

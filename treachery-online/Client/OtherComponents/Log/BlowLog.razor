@@ -5,7 +5,9 @@
  The Spice Blow's log (design/battle-log/log-matrix.html, Spice Blow, column A).
  Each spice card drawn is shown as the card, with its amount and place beside
  it. A worm is an aside holding what it devoured, and the Nexus after it an
- aside with the alliance changes and the Fremen ride. With Increased Spice Flow
+ aside with the alliance changes and the Fremen ride. An alliance change is two
+ faction chips with a glyph between them (design/battle-log/nexus.html, column
+ C); an offer that was accepted is folded into its alliance. With Increased Spice Flow
  a small caps label heads each deck. Every other message is a plain line in
  its place.
 *@
@@ -42,9 +44,9 @@
                 {
                     <div class="blow-none">No alliance changes</div>
                 }
-                @foreach (var message in nexus.Messages)
+                @foreach (var message in nexus.Messages.Where(m => !Accepted(m, nexus.Messages)))
                 {
-                    @NexusLine(message)
+                    @NexusLine(message, nexus.Messages)
                 }
             </div>
             break;
@@ -254,8 +256,12 @@
     // A line inside the Nexus aside: the game's sentence, with ridden forces
     // drawn as number and token. Other messages logged during the Nexus are
     // plain lines.
-    private RenderFragment NexusLine(Message message) => message.Log switch
+    private RenderFragment NexusLine(Message message, List<Message> nexus) => message.Log switch
     {
+        NexusLog { Alliance: { Change: NexusAllianceChange.Made } made } =>
+            AllianceMade(made, nexus),
+        NexusLog { Alliance: { } change } =>
+            AllianceStep(change.Change, change.From, change.To),
         NexusLog { Ride: { } ride } =>
             @<div class="blow-line" style="--fc:@Client.CurrentSkin.GetFactionColor(ride.Faction)" data-ref-locations="@RouteLocations(message.Route)" data-ref-arrow="@RouteArrow(message.Route)">
                 <FactionChip Faction="@ride.Faction" Game="@Game"/> ride @Forces(ride.Faction, ride.Forces, ride.SpecialForces)
@@ -272,6 +278,53 @@
             @<div class="blow-line"><ExpressionComponent Expression="@message.Expression" Game="@Game" Size="20" LogStyle/></div>,
         _ => Line(message)
     };
+
+    // One alliance change as two faction chips with a glyph for the verb
+    // between them (design/battle-log/nexus.html, column C).
+    private RenderFragment AllianceStep(NexusAllianceChange change, Faction from, Faction to) =>
+        @<div class="blow-line nexus-step">
+            <FactionChip Faction="@from" Game="@Game"/>
+            @AllianceGlyph(change)
+            <FactionChip Faction="@to" Game="@Game"/>
+        </div>;
+
+    // The faction that made the offer goes first, so the row reads in the order it happened.
+    private RenderFragment AllianceMade(NexusAlliance made, List<Message> nexus)
+    {
+        var first = Offerer(made, nexus);
+        return AllianceStep(NexusAllianceChange.Made, first, first == made.From ? made.To : made.From);
+    }
+
+    private static RenderFragment AllianceGlyph(NexusAllianceChange change) => change switch
+    {
+        NexusAllianceChange.Made =>
+            @<svg class="nexus-glyph" viewBox="0 0 22 22" role="img" aria-label="allied with"><title>allied with</title>
+                <circle cx="8" cy="11" r="5"/><path d="M14 6a5 5 0 1 1 0 10"/><path d="M14 16a5 5 0 0 1-4.6-3"/><path d="M9.4 9A5 5 0 0 1 14 6"/>
+            </svg>,
+        NexusAllianceChange.Offered =>
+            @<svg class="nexus-glyph" viewBox="0 0 22 22" role="img" aria-label="offer an alliance to"><title>offer an alliance to</title>
+                <path d="M3 11h11" stroke-dasharray="2.2 2.6"/><path d="M13 6.5l5 4.5-5 4.5"/>
+            </svg>,
+        _ =>
+            @<svg class="nexus-glyph" viewBox="0 0 22 22" role="img" aria-label="ended their alliance with"><title>ended their alliance with</title>
+                <path d="M8.5 7.2A4.2 4.2 0 1 0 8.5 14.8"/><path d="M13.5 7.2A4.2 4.2 0 1 1 13.5 14.8"/><path d="M11 5.5v2.2M11 14.3v2.2M11 10v2"/>
+            </svg>
+    };
+
+    // An offer that an alliance later in the same Nexus answered. The
+    // alliance's row stands for it.
+    private static bool Accepted(Message message, List<Message> nexus) =>
+        message.Log is NexusLog { Alliance: { Change: NexusAllianceChange.Offered } offer } &&
+        nexus.Skip(nexus.IndexOf(message) + 1).Any(m => m.Log is NexusLog { Alliance: { Change: NexusAllianceChange.Made } made } && SamePair(made, offer));
+
+    // Who made the offer an alliance accepted. An alliance without an offer in
+    // this Nexus keeps the game's order.
+    private static Faction Offerer(NexusAlliance made, List<Message> nexus) =>
+        nexus.Select(m => m.Log).OfType<NexusLog>().Select(l => l.Alliance)
+            .FirstOrDefault(a => a is { Change: NexusAllianceChange.Offered } && SamePair(a, made))?.From ?? made.From;
+
+    private static bool SamePair(NexusAlliance a, NexusAlliance b) =>
+        (a.From == b.From && a.To == b.To) || (a.From == b.To && a.To == b.From);
 
     // Forces as number and token, special forces after.
     private RenderFragment Forces(Faction faction, int forces, int specialForces) =>

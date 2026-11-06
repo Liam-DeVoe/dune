@@ -31,5 +31,6 @@ public enum MenuPanel
 {
     None,
     Players,
-    Undo
+    Undo,
+    Automation
 }

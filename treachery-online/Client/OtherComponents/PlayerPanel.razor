@@ -9,6 +9,12 @@
 
 @inherits GameComponent
 
+@*
+ A player's panel: spice and reserves in a bar, the leaders with the traitors
+ (or face dancers) in a recessed well at the right, any faction extras, and
+ the hand of cards under a rule. Styles in _player-panel.scss.
+*@
+
 @if (Player != null && Client.CurrentPhase >= Phase.TradingFactions)
 {
     <div class="card p-1 mb-1" style="animation:fadeIn 3s;">
@@ -22,85 +28,69 @@
         }
 
         @if (!_collapsed || !ShowHeader) {
-            <div class="card-body p-0 bg-transparent text-center" style="background-image: url('@Client.CurrentSkin.GetImageUrl(ShownPlayer.Faction)'); background-position:center; background-size:300px 300px; background-clip:content-box; background-repeat: no-repeat">
+            <div class="card-body p-0 bg-transparent player-panel">
 
-                <div class="card-text h-100 veil-ink-2">
+                <div class="card-text h-100">
 
                     @if (Client.CurrentPhase >= Phase.BlackMulligan)
                     {
-                        <div class="row m-0 bg-dark justify-content-center">
+                        <div class="pp-bar">
 
-                            <!-- Resources -->
-                            <div class="col p-0">
-                                @((MarkupString)Support.SpiceLineHtml(Client.CurrentSkin, ResourcesText, 24))
-                            </div>
+                            @if (!ShowHeader)
+                            {
+                                <FactionChip Faction=@ShownPlayer.Faction Game=Client.Game/>
+                            }
 
-                            <!-- Forces -->
-                            <div class="col p-0">
-                                <ForceToken Faction="ShownPlayer.Faction" Size="24" ImgClass="img-fluid m-0 p-0" Title="@Name(ShownPlayer.Force)"/><strong>&nbsp;@ShownPlayer.ForcesInReserve</strong>
-                            </div>
+                            <span class="pp-stat">@((MarkupString)Support.SpiceLineHtml(Client.CurrentSkin, ResourcesText, 24))</span>
 
-                            <!-- Special Forces -->
+                            <span class="pp-stat">
+                                <ForceToken Faction="ShownPlayer.Faction" Size="22" ImgClass="m-0 p-0" Title="@Name(ShownPlayer.Force)"/>@ShownPlayer.ForcesInReserve
+                            </span>
+
                             @if (ShownPlayer.HasSpecialForces)
                             {
-                                <div class="col p-0">
-                                    <ForceToken Faction="ShownPlayer.Faction" Special="true" Size="24" ImgClass="img-fluid m-0 p-0"
-                                                Title="@Name(ShownPlayer.SpecialForce)"/><strong>&nbsp;@ShownPlayer.SpecialForcesInReserve</strong>
-                                </div>
+                                <span class="pp-stat">
+                                    <ForceToken Faction="ShownPlayer.Faction" Special="true" Size="22" ImgClass="m-0 p-0" Title="@Name(ShownPlayer.SpecialForce)"/>@ShownPlayer.SpecialForcesInReserve
+                                </span>
                             }
 
                         </div>
 
-                        <!-- Leaders -->
-                        @foreach (var v in ShownPlayer.Leaders.Where(l => Client.Game.IsAlive(l)))
-                        {
-                            <Image Src=@Client.CurrentSkin.GetImageUrl(v) Highlighted="@Game.IsSkilled(v)" Class="img-fluid p-1" Width=60 Popover=@Client.CurrentSkin.GetPopup(v, Client.Game)/>
-                        }
+                        @* Leaders, then the traitors held (or face dancers) in a recessed well at the right. The traitors passed on at the start aren't shown. *@
+                        <div class="pp-people">
 
-                        @foreach (var v in ShownPlayer.Leaders.Where(l => !Client.Game.IsAlive(l)))
-                        {
-                            <Image Src=@Client.CurrentSkin.GetImageUrl(v) Darkened Class="img-fluid p-1" Width=60 Popover=@Client.CurrentSkin.GetPopup(v, Client.Game)/>
-                        }
-
-                        <!-- Traitors and Face Dancers -->
-                        @if (ShownPlayer.FaceDancers.Count > 0)
-                        {
-                            <h5 class="mt-1 mb-0">Face Dancers</h5>
-                            @foreach (var v in ShownPlayer.FaceDancers)
+                            @foreach (var v in ShownPlayer.Leaders.Where(l => Client.Game.IsAlive(l)))
                             {
-                                <span data-faction-of="@v.Faction"><Image Src=@Client.CurrentSkin.GetImageUrl(v) Blurred="@ShownPlayer.RevealedFaceDancers.Contains(v)" Class="img-fluid p-1" Width=60 Popover=@Client.CurrentSkin.GetPopup(v, Client.Game)/></span>
-                            }
-                        }
-                        else if (!Client.Game.AssistedNoteKeepingEnabled(Player) && ShownPlayer.Traitors.Count == 1)
-                        {
-                            <div>
-                                <span data-faction-of="@ShownPlayer.Traitors.First().Faction"><Image Src="@Client.CurrentSkin.GetImageUrl(ShownPlayer.Traitors.First())" 
-                                       Class="img-fluid p-1" 
-                                       Width=60 
-                                       Popover=@Client.CurrentSkin.GetPopup(ShownPlayer.Traitors.First(), Client.Game)/></span> is your traitor.
-                            </div>
-                        }
-                        else if (ShownPlayer.Traitors.Count > 0)
-                        {
-                            @if (ShownPlayer.Traitors.Count > 1)
-                            {
-                                <h5 class="mt-1 mb-0">Traitors</h5>
-                            }
-                            else
-                            {
-                                <h5 class="mt-1 mb-0">Traitor</h5>
+                                <Image Src=@Client.CurrentSkin.GetImageUrl(v) Highlighted="@Game.IsSkilled(v)" Width=44 NoShadow Popover=@Client.CurrentSkin.GetPopup(v, Client.Game)/>
                             }
 
-                            @foreach (var v in ShownPlayer.Traitors)
+                            @foreach (var v in ShownPlayer.Leaders.Where(l => !Client.Game.IsAlive(l)))
                             {
-                                <span data-faction-of="@v.Faction"><Image Src=@Client.CurrentSkin.GetImageUrl(v) Blurred="@ShownPlayer.RevealedTraitors.Contains(v)" Class="img-fluid p-1" Width=60 Popover=@Client.CurrentSkin.GetPopup(v, Client.Game)/></span>
+                                <Image Src=@Client.CurrentSkin.GetImageUrl(v) Darkened Width=44 NoShadow Popover=@Client.CurrentSkin.GetPopup(v, Client.Game)/>
                             }
 
-                            @foreach (var v in ShownPlayer.DiscardedTraitors)
+                            @if (ShownPlayer.FaceDancers.Count > 0)
                             {
-                                <Image Src=@Client.CurrentSkin.GetImageUrl(v) GreyedOut Class="img-fluid p-1" Width=60 Popover=@Client.CurrentSkin.GetPopup(v, Client.Game)/>
+                                <span class="pp-well" title="Face Dancers">
+                                    @foreach (var v in ShownPlayer.FaceDancers)
+                                    {
+                                        <span data-faction-of="@v.Faction"><Image Src=@Client.CurrentSkin.GetImageUrl(v) Blurred="@ShownPlayer.RevealedFaceDancers.Contains(v)" Width=38 NoShadow Popover=@Client.CurrentSkin.GetPopup(v, Client.Game)/></span>
+                                    }
+                                </span>
                             }
-                        }
+                            else if (ShownPlayer.Traitors.Count > 0)
+                            {
+                                <span class="pp-well" title="@(ShownPlayer.Traitors.Count == 1 ? "Your traitor" : "Your traitors")">
+                                    @foreach (var v in ShownPlayer.Traitors)
+                                    {
+                                        <span data-faction-of="@v.Faction"><Image Src=@Client.CurrentSkin.GetImageUrl(v) Blurred="@ShownPlayer.RevealedTraitors.Contains(v)" Width=38 NoShadow Popover=@Client.CurrentSkin.GetPopup(v, Client.Game)/></span>
+                                    }
+                                </span>
+                            }
+
+                        </div>
+
+                        <div class="pp-extras">
 
                         @if (Client.CurrentPhase > Phase.DiallingStorm && Client.Game.HasStormPrescience(Player))
                         {
@@ -166,32 +156,31 @@
                             <div>Top card of @Name(Concept.Resource) Deck: <RichText Shown=@Client.Game.ResourceCardDeck.Top Game=Client.Game/></div>
                         }
 
-                        <!-- Cards -->
-                        @if (ShownPlayer.TreacheryCards.Count == 0 && Client.Game.GetCardSetAsideForBid(Player) == null)
-                        {
-                            <div>You don't own any treachery cards.</div>
-                        }
-                        else
-                        {
-                            <div class="row row-cols-2 row-cols-xl-4 ms-0 me-0 mt-1 justify-content-center">
+                        </div>
 
+                        @* The hand, under a rule. *@
+                        <div class="pp-cards">
+                            @if (ShownPlayer.TreacheryCards.Count == 0 && Client.Game.GetCardSetAsideForBid(Player) == null)
+                            {
+                                <span class="pp-none">You don't own any treachery cards.</span>
+                            }
+                            else
+                            {
                                 @foreach (var v in ShownPlayer.TreacheryCards)
                                 {
-                                    <Image Shown=@v Class="img-fluid p-1"/>
+                                    <Image Shown=@v Width=48 NoShadow/>
                                 }
 
-                                @if (Client.Game.GetCardSetAsideForBid(Player) != null)
+                                @if (Client.Game.GetCardSetAsideForBid(Player) is { } setAside)
                                 {
-                                    var v = Client.Game.GetCardSetAsideForBid(Player);
-                                    <Image Shown=@v Class="img-fluid p-1"/>
+                                    <Image Shown=@setAside Width=48 NoShadow/>
                                 }
-
-                            </div>
-                        }
+                            }
+                        </div>
 
                         @if (ShownPlayer.Nexus != Faction.None)
                         {
-                            <div>Nexus: <Image Width=30 Src=@Client.CurrentSkin.GetFactionFaceDownImageUrl(ShownPlayer.Nexus) Popover=@Client.CurrentSkin.GetNexusCardPopup(ShownPlayer.Nexus.ToNexus())/></div>
+                            <div class="pp-extras">Nexus: <Image Width=30 Src=@Client.CurrentSkin.GetFactionFaceDownImageUrl(ShownPlayer.Nexus) Popover=@Client.CurrentSkin.GetNexusCardPopup(ShownPlayer.Nexus.ToNexus())/></div>
                         }
                     }
                     else

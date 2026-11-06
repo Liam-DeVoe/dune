@@ -33,6 +33,7 @@ public class Program
 
         builder.Services.AddSingleton<Browser>();
         builder.Services.AddSingleton<MenuState>();
+        builder.Services.AddSingleton<TurnClock>();
         await builder.Build().RunAsync();
     }
 

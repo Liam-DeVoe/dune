@@ -32,8 +32,13 @@
             </button>
 
             <div class="title">
-                <div class="turn">@(step.Turn != Game.CurrentTurn && step.About != MainPhase.Setup ? $"Turn {step.Turn}" : "")</div>
-                <div class="phase">@Client.CurrentSkin.Describe(step.About)</div>
+                <div class="name">
+                    @if (step.Turn != Game.CurrentTurn && step.About != MainPhase.Setup)
+                    {
+                        <span class="turn">Turn @step.Turn</span>
+                    }
+                    <span class="phase">@Client.CurrentSkin.Describe(step.About)</span>
+                </div>
                 @if (step.About is >= MainPhase.Storm and <= MainPhase.Contemplate)
                 {
                     <div class="dots">
@@ -61,7 +66,8 @@
 
         </div>
 
-        <div class="card-body p-1 overflow-auto">
+        @* Follows the newest line while the player is at the bottom (js/follow-log.js). *@
+        <div class="card-body p-1 overflow-auto" data-follow-bottom data-step="@($"{step.Turn}-{step.About}")">
 
             @if (empty)
             {

@@ -1,0 +1,90 @@
+// The player's own panel (OtherComponents/PlayerPanel.razor): a top line with
+// the faction, spice and reserves, the leaders with the traitors in a recessed well at the
+// right, any faction extras, and the hand of cards under a rule.
+.player-panel {
+  .pp-bar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 4px 8px 8px;
+    border-bottom: 1px solid rgba(252, 249, 209, 0.08);
+    font-family: var(--font-display);
+    font-size: 17px;
+
+    .chip {
+      margin-right: auto;
+    }
+
+    // Without a chip, the stats spread out as they used to.
+    .pp-stat:first-child {
+      margin-left: auto;
+    }
+
+    .pp-stat:last-child {
+      margin-right: auto;
+    }
+
+    .chip ~ .pp-stat:last-child {
+      margin-right: 0;
+    }
+  }
+
+  .pp-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .pp-people {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 8px 8px;
+  }
+
+  // The traitors (or face dancers), held apart in a dark pill with a faint
+  // red edge. Its title names what's in it.
+  .pp-well {
+    margin-left: auto;
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 7px;
+    border-radius: 26px;
+    background: rgba(0, 0, 0, 0.35);
+    box-shadow: inset 0 0 0 1px rgba(195, 50, 50, 0.45);
+  }
+
+  .pp-extras {
+    padding: 0 10px 8px;
+    font-size: 14px;
+    color: var(--text-2);
+
+    &:not(:has(*)) {
+      display: none;
+    }
+  }
+
+  .pp-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px 8px 8px;
+    border-top: 1px solid rgba(252, 249, 209, 0.08);
+
+    img {
+      border-radius: 3px;
+      box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.6),
+        0 2px 4px rgba(0, 0, 0, 0.4);
+    }
+  }
+
+  .pp-none {
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-3);
+  }
+}

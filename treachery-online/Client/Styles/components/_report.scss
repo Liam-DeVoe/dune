@@ -6,16 +6,16 @@
 .report {
   > .card-header.stepper {
     display: grid;
-    grid-template-columns: 36px 1fr 36px;
+    grid-template-columns: 34px 1fr 34px;
     align-items: center;
     gap: 8px;
-    padding: 10px 10px 8px;
+    padding: 10px 8px 9px;
   }
 
   .stepper {
     > button {
-      width: 36px;
-      height: 52px;
+      width: 34px;
+      height: 34px;
       border-radius: 4px;
       display: grid;
       place-items: center;
@@ -50,13 +50,21 @@
       text-align: center;
     }
 
+    // The phase, with the turn before it in small caps when it isn't the
+    // current turn. One line either way, so the header keeps its height.
+    .name {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 8px;
+    }
+
     .turn {
       font-family: var(--font-label);
       font-size: 10px;
       letter-spacing: 0.14em;
       text-transform: uppercase;
       color: var(--text-3);
-      height: 12px;
     }
 
     .phase {
@@ -74,7 +82,7 @@
     display: flex;
     gap: 6px;
     justify-content: center;
-    padding: 6px 0 0;
+    padding: 4px 0 0;
 
     > span {
       width: 8px;

@@ -1,4 +1,4 @@
-@*
+﻿@*
  * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
  * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
@@ -10,12 +10,13 @@
 @inject MenuState Menu
 
 @*
- The bar under the map: players, a menu, and leave. The menu holds everything
- else and opens upward. Rules and sound expand in place; the host's tools sit
+ The bar under the map: players, automation, and a menu. The menu holds
+ everything else, leaving the game included, and opens upward. Rules and sound expand in place; the host's tools sit
  in their own section at the bottom. A click outside or Escape closes the
  menu. The menu stays in the page while closed, because the music player
  lives inside it with the volume sliders. The panels these buttons open
- (players, undo) show at the top of a side column instead, in MenuPanels.
+ (players, automation, undo) show at the top of a side column instead, in
+ MenuPanels.
 *@
 
 <div class="menu-bar">
@@ -27,15 +28,15 @@
                 <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-4 3-6 7-6s7 2 7 6"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c3 0 5 1.5 5 5"/></svg>
             </button>
         }
-        <button class="@(_menuOpen ? "on" : "")" title="Menu" @onclick="ToggleMenu">
-            <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg>
-        </button>
-        @if (Client.InGame)
+        @if (CanAutomate)
         {
-            <button class="@(_leaveOpen ? "on" : "")" title="To main screen" @onclick="ToggleLeave">
-                <svg viewBox="0 0 24 24"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg>
+            <button class="@(Menu.Panel == MenuPanel.Automation ? "on" : "")" title="Automation" @onclick="@(() => { CloseMenus(); TogglePanel(MenuPanel.Automation); })">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>
             </button>
         }
+        <button class="@(_menuOpen || _leaveOpen ? "on" : "")" title="Menu" @onclick="ToggleMenu">
+            <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg>
+        </button>
     </div>
 
     @if (BotsPaused)
@@ -92,6 +93,15 @@
                 <svg viewBox="0 0 24 24"><path d="M8 9a4 4 0 0 1 8 0v5a4 4 0 0 1-8 0z"/><path d="M12 9v9M4 13h4M16 13h4M5 7l3 2M19 7l-3 2M5 19l3-2M19 19l-3-2M10 5l-1-2M14 5l1-2"/></svg>Report a bug or suggest improvements<span class="trail"><svg class="ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/></svg></span>
             </a>
         </li>
+
+        @if (Client.InGame)
+        {
+            <li>
+                <button class="dropdown-item" @onclick="ToggleLeave">
+                    <svg viewBox="0 0 24 24"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg>Leave game
+                </button>
+            </li>
+        }
 
         @if (CanSave)
         {
@@ -180,6 +190,8 @@
     private bool Started => Client.Game?.EventCount > 0;
 
     private bool CanSave => Started && (Client.IsHost || Client.UserName == Client.ServerInfo.AdminName);
+
+    private bool CanAutomate => Client.InGame && Client.Actions.Contains(typeof(AutomationConfigured));
 
     private bool HostTools => Started && Client.IsHost && !Client.IsObserver;
 

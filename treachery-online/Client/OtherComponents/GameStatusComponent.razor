@@ -7,6 +7,7 @@
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
 @inherits GameEventComponent<EndPhase>
+@inject TurnClock Clock
 
 <div class="card p-0 mb-2 prompt-act" style="animation:fadeIn 1s">
 
@@ -151,6 +152,7 @@
     protected override async Task OnInitializedAsync()
     {
         Client.RefreshHandler += CheckAutoContinueCancelled;
+        Clock.Tick += RedrawClock;
         await StartRedrawCycleAsync(1000);
     }
 
@@ -239,13 +241,14 @@
     {
         if (timedEvent == null) return "";
 
-        var elapsed = DateTimeOffset.Now.Subtract(timedEvent.Time);
+        // The shared clock, so this matches the turn banner second for second.
+        var elapsed = Clock.Now - timedEvent.Time;
 
         var result = "";
 
         if (elapsed.TotalSeconds >= 1)
         {
-            result = elapsed.ToString(elapsed.TotalHours >= 1 ? @"hh\:mm\:ss" : @"m\:ss");
+            result = Clock.Since(timedEvent.Time);
 
             if (Game.CurrentPhase == Phase.Bidding && Client.Timer > 0)
             {
@@ -281,9 +284,13 @@
         }
     }
     
+    // Redraws on the shared clock's tick, so the time changes when the banner's does.
+    private void RedrawClock() => InvokeAsync(StateHasChanged);
+
     public override void Dispose()
     {
         Client.RefreshHandler -= CheckAutoContinueCancelled;
+        Clock.Tick -= RedrawClock;
         base.Dispose();
     }
 }

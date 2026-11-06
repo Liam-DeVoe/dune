@@ -53,6 +53,7 @@
 //                                 "advisors-to-fighters"  Bene Gesserit can move advisors somewhere they may become fighters
 //                                 "move-to-ally"          can move into a territory held by its ally
 //                                 "ship-site-to-site"     may ship from one map location to another
+//                                 "face-down-leader"      has a leader lying face down in the tanks
 //   accompany_targets_min       Bene Gesserit may accompany a shipment to at least this many places
 //   ride_sources_min            the worm can be ridden from at least this many locations
 //   ride_source_with_both_types true: some ride source holds both normal and special forces
@@ -325,6 +326,7 @@ static bool Can(Game game, Player p, string check) => check switch
     "advisors-to-fighters" => AdvisorMoves(game, p).Any(),
     "move-to-ally" => AllyMoves(game, p).Any(),
     "ship-site-to-site" => Shipment.MayShipCrossPlanet(game, p),
+    "face-down-leader" => p.Leaders.Any(game.IsFaceDownDead),
     _ => throw new Exception($"unknown check '{check}' under can"),
 };
 

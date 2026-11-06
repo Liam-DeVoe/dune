@@ -8,8 +8,8 @@ AREA = "turn-log"
 # Nothing here names a class the change adds, so both builds match.
 REPORT = "[data-turnlog-report]"
 COLUMN = "[data-turnlog-column]"
-PREV = f'{REPORT} button[title="Previous phase"]'
-NEXT = f'{REPORT} button[title="Next phase"]'
+PREV = f'{REPORT} button[aria-label="Previous phase"]'
+NEXT = f'{REPORT} button[aria-label="Next phase"]'
 DOTS = f"{REPORT} .card-header span[title]"  # one per phase of the turn, Storm first, Mentat last
 
 MARK = """(() => {

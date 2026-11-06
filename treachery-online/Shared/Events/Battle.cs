@@ -130,8 +130,8 @@ public class Battle : GameEvent
                 Game.RevealCurrentNoField(DetermineForceSupplier(Game, Game.DefenderPlan.Player), battleTerritory);
             }
 
-            Log(Game.AggressorPlan.GetBattlePlanMessage());
-            Log(Game.DefenderPlan.GetBattlePlanMessage());
+            Log(Message.Express(Game.AggressorPlan.GetBattlePlanMessage(), "; ", Game.DefenderPlan.GetBattlePlanMessage())
+                .WithPlans(Game.AggressorPlan.GetPlanSummary(), Game.DefenderPlan.GetPlanSummary()));
 
             RegisterKnownCards(Game.AggressorPlan);
             RegisterKnownCards(Game.DefenderPlan);
@@ -178,6 +178,17 @@ public class Battle : GameEvent
             ", defense: ",
             Defense);
     }
+
+    public PlanSummary GetPlanSummary() => new(
+        Initiator,
+        Hero,
+        Messiah,
+        Dial(Game, Game.CurrentBattle!.OpponentOf(Initiator)!.Faction),
+        Game.Applicable(Rule.AdvancedCombat) ? Cost(Game) : null,
+        AllyContributionAmount,
+        Player.Ally,
+        Weapon,
+        Defense);
 
     private void ActivateDynamicWeapons(IHero hero, TreacheryCard? opponentWeapon, TreacheryCard? opponentDefense)
     {

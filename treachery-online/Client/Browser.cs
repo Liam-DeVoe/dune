@@ -46,6 +46,12 @@ public class Browser(IJSRuntime jsRuntime)
         if (!string.IsNullOrEmpty(element.Id)) await JsInvoke("RefreshPopovers", element);
     }
 
+    // The red dot on the tab's icon, for while it's the player's turn (js/turn.js).
+    public async Task SetTurnDot(bool show)
+    {
+        await JsInvoke("SetTurnDot", show);
+    }
+
     public async Task RemoveFocusFromButtons()
     {
         await JsInvoke("RemoveFocusFromButtons");

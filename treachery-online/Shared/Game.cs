@@ -708,7 +708,8 @@ public partial class Game
     {
         if (player != null && card != null)
         {
-            Log(player.Faction, " discard ", card);
+            Log(Message.Express(player.Faction, " discard ", card)
+                .WithFact(new BattleFact(BattleFactKind.Discard, player.Faction) { Card = card }));
             player.TreacheryCards.Remove(card);
             TreacheryDiscardPile!.PutOnTop(card);
             RegisterKnown(card);

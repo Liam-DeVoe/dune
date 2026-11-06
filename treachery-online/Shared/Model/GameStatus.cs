@@ -404,12 +404,12 @@ public class GameStatus
 
             Phase.NonOrangeMove => Status(
                 Express("Please decide to move forces or pass."),
-                Express(game.ShipmentAndMoveSequence!.CurrentFaction, " are thinking about about moving forces."),
+                Express(game.ShipmentAndMoveSequence!.CurrentFaction, " are thinking about moving forces."),
                 game.ShipmentAndMoveSequence.GetPlayersInSequence().ToList(), game.FindMostRecentEvent(typeof(EndPhase), typeof(OrangeDelay), typeof(Move))),
 
             Phase.OrangeMove => Status(
                 Express("Please decide to move forces or pass."),
-                Express(Faction.Orange, " are thinking about about moving forces."),
+                Express(Faction.Orange, " are thinking about moving forces."),
                 game.ShipmentAndMoveSequence!.GetPlayersInSequence().ToList(), game.FindMostRecentEvent(typeof(EndPhase), typeof(OrangeDelay), typeof(Move))),
 
             /* Battle */

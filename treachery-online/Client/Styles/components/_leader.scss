@@ -68,3 +68,16 @@
     color: var(--text-3);
   }
 }
+
+// The shipped leader tokens (art/leader<id>.png, made by
+// scripts/leader-tokens.py) have a strength badge that sticks out past the
+// token, so each image is this much bigger than the token in it. Scaling them
+// up by the same amount draws the token at the size it is laid out at, with
+// the badge overhanging. A transform leaves layout alone, so every place a
+// token is drawn keeps its spacing. Skins with their own token art don't
+// match the selector and are drawn as they are.
+$leader-art-canvas: 1.068; // CANVAS in scripts/leader-tokens.py
+
+img[src*="art/leader"] {
+  transform: scale($leader-art-canvas);
+}

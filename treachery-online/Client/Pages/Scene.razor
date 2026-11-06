@@ -1,4 +1,4 @@
-@page "/scene"
+﻿@page "/scene"
 @using System.Net.Http
 @using Treachery.Client.OtherComponents
 @using Treachery.Client.MapComponents
@@ -37,6 +37,7 @@ else if (!_loaded)
 }
 else
 {
+    <TurnBanner/>
     <div @ref="@_element" class="row game-screen" style="@GameScreen.Style(Client)">
 
         <!--Map Column-->

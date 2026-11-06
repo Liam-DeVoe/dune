@@ -87,6 +87,7 @@ else if (Client.PlayersNeedSeating)
 }
 else
 {
+    <TurnBanner/>
     <div @ref="@_element" class="row game-screen" style="@GameScreenStyle">
 
         @if (!Client.IsObserver)

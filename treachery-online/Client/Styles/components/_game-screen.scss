@@ -1,4 +1,4 @@
-// The in-game screen on desktop (Bootstrap's lg and up) is exactly one
+﻿// The in-game screen on desktop (Bootstrap's lg and up) is exactly one
 // window tall and never scrolls. The map column is as wide as it can be while
 // the board, plus whatever sits under it, still fits the height. The side
 // columns share the rest of the width and each scroll on their own. Below lg
@@ -8,14 +8,16 @@
 //   --map-ratio  the skin's map height over its width
 //   --below-map  the height under the board: the menu bar, plus the undo
 //                timeline while an undo session is open
+//   --turn-banner-h  the height the turn banner takes above the row, or 0
 .game-screen {
   overflow-y: hidden;
 }
 
 @media (min-width: 992px) {
   .game-screen {
-    // .content above it has 0.75rem of padding.
-    --screen-h: calc(100dvh - 0.75rem);
+    // .content above it has 0.75rem of padding, and the turn banner (when
+    // it's the player's turn) takes --turn-banner-h more.
+    --screen-h: calc(100dvh - 0.75rem - var(--turn-banner-h, 0px));
     height: var(--screen-h);
     min-height: 560px;
     flex-wrap: nowrap;

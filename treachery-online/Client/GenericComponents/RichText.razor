@@ -9,7 +9,14 @@
 @implements IDisposable;
 
 <span @ref="@_element" @attributes="_attributes" class="@Class" style="@SpanStyle">
-    @Client.CurrentSkin.Describe(Shown)
+    @if (ChildContent != null)
+    {
+        @ChildContent
+    }
+    else
+    {
+        @Client.CurrentSkin.Describe(Shown)
+    }
 </span>
 
 @code {
@@ -22,6 +29,10 @@
 
     [Parameter]
     public string Class { get; set; } = "fw-bold";
+
+    // Drawn instead of the name, keeping the popover.
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
 
     [Parameter] public string Style { get; set; } = string.Empty;
 

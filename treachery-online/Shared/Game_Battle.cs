@@ -515,8 +515,7 @@ public partial class Game
         LogIf(BattleOutcome.AggBattlePenalty != 0, agg.Hero, " ", BattleOutcome.DefActivatedPenaltySkill, " penalty: ", BattleOutcome.AggBattlePenalty);
         LogIf(BattleOutcome.DefBattlePenalty != 0, def.Hero, " ", BattleOutcome.AggActivatedPenaltySkill, " penalty: ", BattleOutcome.DefBattlePenalty);
 
-        LogIf(BattleOutcome.AggMessiahContribution > 0, agg.Hero, " ", Concept.Messiah, " bonus: ", BattleOutcome.AggMessiahContribution);
-        LogIf(BattleOutcome.DefMessiahContribution > 0, def.Hero, " ", Concept.Messiah, " bonus: ", BattleOutcome.DefMessiahContribution);
+        // The Kwisatz Haderach bonus shows on the leader in the revealed plans.
 
         BattleWinner = winner.Faction;
         BattleLoser = loser.Faction;
@@ -533,13 +532,13 @@ public partial class Game
 
         if (BattleInitiated.IsAggressorByJuice(this, def.Player.Faction))
         {
-            Log(agg.Initiator, " (defending) strength: ", BattleOutcome.AggTotal);
-            Log(def.Initiator, " (aggressor by ", TreacheryCardType.Juice, ") strength: ", BattleOutcome.DefTotal);
+            Log(agg.Initiator, " strength: ", BattleOutcome.AggTotal);
+            Log(def.Initiator, " strength: ", BattleOutcome.DefTotal, " (aggressor by ", TreacheryCardType.Juice, ")");
         }
         else
         {
-            Log(agg.Initiator, " (aggressor) strength: ", BattleOutcome.AggTotal);
-            Log(def.Initiator, " (defending) strength: ", BattleOutcome.DefTotal);
+            LogStrength(agg.Initiator, BattleOutcome.AggTotal);
+            LogStrength(def.Initiator, BattleOutcome.DefTotal);
         }
 
         LoserMayTryToAssassinate = BattleLoser == Faction.Cyan && Applicable(Rule.CyanAssassinate) && 
@@ -547,7 +546,8 @@ public partial class Game
                                    winnerBattlePlan.Hero is Leader && 
                                    IsAlive(winnerBattlePlan.Hero);
 
-        Log(winner.Faction, " WIN THE BATTLE");
+        Log(Message.Express(winner.Faction, " WIN THE BATTLE")
+            .WithFact(new BattleFact(BattleFactKind.Winner, winner.Faction)));
 
         HandleHarassAndWithdraw(agg, territory);
         HandleHarassAndWithdraw(def, territory);
@@ -610,7 +610,7 @@ public partial class Game
         var forceSupplier = Battle.DetermineForceSupplier(this, loser);
         ProcessPinkOccupationLoserLosses(territory, loser);
 
-        Log(forceSupplier.Faction, " lose all ", forceSupplier.AnyForcesIn(territory), " forces ", InOrOn(territory), territory);
+        LogAllForcesLost(forceSupplier, territory);
         PayDialedSpice(loser, loserGambit, false);
         forceSupplier.KillAllForces(territory, true);
         LoseCards(loserGambit, MayKeepCardsAfterLosingBattle(loser));
@@ -625,7 +625,7 @@ public partial class Game
             var pink = GetPlayer(Faction.Pink);
             if (pink is null) return;
             pink.KillForces(territory, CurrentPinkBattleContribution, false, true);
-            Log(Faction.Pink, " lose ", CurrentPinkBattleContribution, pink.Force, InOrOn(territory), territory);
+            Log(Faction.Pink, " lose ", CurrentPinkBattleContribution, pink.Force);
         }
     }
 
@@ -635,7 +635,7 @@ public partial class Game
         {
             var pink = GetPlayer(Faction.Pink);
             if (pink is null) return;
-            Log(Faction.Pink, " lose all ", pink.AnyForcesIn(territory), " forces ", InOrOn(territory), territory);
+            LogAllForcesLost(pink, territory);
             pink.KillAllForces(territory, true);
         }
     }
@@ -818,20 +818,40 @@ public partial class Game
 
     private void KillLeaderInBattle(IHero killedHero, TreacheryCardType causeOfDeath, Player winner, int heroValue)
     {
-        Log(causeOfDeath, " kills ", killedHero, " → ", winner.Faction, " get ", Payment.Of(heroValue));
+        Log(Message.Express(causeOfDeath, " kills ", killedHero, " → ", winner.Faction, " get ", Payment.Of(heroValue))
+            .WithFact(new BattleFact(BattleFactKind.Killed, winner.Faction) { Hero = killedHero, Cause = causeOfDeath, Value = heroValue }));
         if (killedHero is Leader) KillHero(killedHero);
         winner.Resources += heroValue;
+    }
+
+    // Before the forces are removed, so the counts are what was lost.
+    private void LogAllForcesLost(Player player, Territory territory)
+    {
+        var forces = player.ForcesIn(territory);
+        var specialForces = player.SpecialForcesIn(territory);
+        Log(Message.Express(
+                player.Faction,
+                " lose all ",
+                MessagePart.ExpressIf(forces > 0, forces, player.Force),
+                MessagePart.ExpressIf(specialForces > 0, specialForces, player.SpecialForce))
+            .WithFact(new BattleFact(BattleFactKind.ForcesLost, player.Faction) { Forces = forces, SpecialForces = specialForces, All = true }));
+    }
+
+    private void LogStrength(Faction faction, float strength)
+    {
+        Log(Message.Express(faction, " strength: ", strength)
+            .WithFact(new BattleFact(BattleFactKind.Strength, faction) { Strength = strength }));
     }
 
     private void LogLosses(Player player, int forcesLost, int specialForcesLost)
     {
         if (forcesLost > 0 || specialForcesLost > 0)
-            Log(
-                player.Faction,
-                " lose ",
-                MessagePart.ExpressIf(forcesLost > 0, forcesLost, player.Force),
-                MessagePart.ExpressIf(specialForcesLost > 0, specialForcesLost, player.SpecialForce),
-                " during battle ");
+            Log(Message.Express(
+                    player.Faction,
+                    " lose ",
+                    MessagePart.ExpressIf(forcesLost > 0, forcesLost, player.Force),
+                    MessagePart.ExpressIf(specialForcesLost > 0, specialForcesLost, player.SpecialForce))
+                .WithFact(new BattleFact(BattleFactKind.ForcesLost, player.Faction) { Forces = forcesLost, SpecialForces = specialForcesLost }));
     }
 
     private void SetHeroLocations(Battle b, Territory territory)
@@ -878,11 +898,21 @@ public partial class Game
         var traitorValue = traitor.ValueInCombatAgainst(winnerPlan.Hero);
         var traitorOwner = winner.Traitors.Any(t => t.IsTraitor(traitor)) ? winner.Faction : Faction.Black;
 
-        Log(traitor, " is a ", traitorOwner, " traitor! ", loser.Faction, " lose everything");
+        // The traitor decides the battle, but the strengths were worked out
+        // already, and the log shows them.
+        if (CurrentBattle is not null && BattleOutcome is not null)
+        {
+            LogStrength(CurrentBattle.Aggressor, BattleOutcome.AggTotal);
+            LogStrength(CurrentBattle.Defender, BattleOutcome.DefTotal);
+        }
+
+        Log(Message.Express(traitor, " is a ", traitorOwner, " traitor! ", loser.Faction, " lose everything")
+            .WithFact(new BattleFact(BattleFactKind.Traitor, traitorOwner) { Hero = traitor }));
 
         if (traitor is Leader)
         {
-            Log("Treachery kills ", traitor, " → ", winner.Faction, " get ", Payment.Of(traitorValue));
+            Log(Message.Express("Treachery kills ", traitor, " → ", winner.Faction, " get ", Payment.Of(traitorValue))
+                .WithFact(new BattleFact(BattleFactKind.Killed, winner.Faction) { Hero = traitor, Cause = "Treachery", Value = traitorValue }));
             KillHero(traitor);
             winner.Resources += traitorValue;
         }
@@ -896,11 +926,11 @@ public partial class Game
 
         if (forceSupplierOfLoser != loser)
         {
-            Log(forceSupplierOfLoser.Faction, " lose all ", forceSupplierOfLoser.SpecialForcesIn(territory) + forceSupplierOfLoser.ForcesIn(territory), " forces ", InOrOn(territory), territory);
+            LogAllForcesLost(forceSupplierOfLoser, territory);
             forceSupplierOfLoser.KillAllForces(territory, true);
         }
 
-        Log(loser.Faction, " lose all ", loser.SpecialForcesIn(territory) + loser.ForcesIn(territory), " forces ", InOrOn(territory), territory);
+        LogAllForcesLost(loser, territory);
         loser.KillAllForces(territory, true);
         LoseCards(loserPlan, MayKeepCardsAfterLosingBattle(loser));
         PayDialedSpice(loser, loserPlan, true);
@@ -920,22 +950,22 @@ public partial class Game
         ProcessPinkOccupationLoserLosses(territory, defender);
         if (forceSupplierOfDefender != defender)
         {
-            Log(forceSupplierOfDefender.Faction, " lose all ", forceSupplierOfDefender.SpecialForcesIn(territory) + forceSupplierOfDefender.ForcesIn(territory), " forces ", InOrOn(territory), territory);
+            LogAllForcesLost(forceSupplierOfDefender, territory);
             forceSupplierOfDefender.KillAllForces(territory, true);
         }
 
-        Log(defender.Faction, " lose all ", defender.SpecialForcesIn(territory) + defender.ForcesIn(territory), " forces ", InOrOn(territory), territory);
+        LogAllForcesLost(defender, territory);
         defender.KillAllForces(territory, true);
 
         var forceSupplierOfAggressor = Battle.DetermineForceSupplier(this, aggressor);
         ProcessPinkOccupationLoserLosses(territory, aggressor);
         if (forceSupplierOfAggressor != aggressor)
         {
-            Log(forceSupplierOfAggressor.Faction, " lose all ", forceSupplierOfAggressor.SpecialForcesIn(territory) + forceSupplierOfAggressor.ForcesIn(territory), " forces ", InOrOn(territory), territory);
+            LogAllForcesLost(forceSupplierOfAggressor, territory);
             forceSupplierOfAggressor.KillAllForces(territory, true);
         }
 
-        Log(aggressor.Faction, " lose all ", aggressor.SpecialForcesIn(territory) + aggressor.ForcesIn(territory), " forces ", InOrOn(territory), territory);
+        LogAllForcesLost(aggressor, territory);
         aggressor.KillAllForces(territory, true);
 
         LoseCards(def, false);
@@ -945,11 +975,6 @@ public partial class Game
         PayDialedSpice(aggressor, agg, true);
 
         if ((aggressor.MessiahAvailable || defender.MessiahAvailable) && !hadMessiahBeforeLosses) Stone(Milestone.Messiah);
-    }
-
-    private string InOrOn(Territory t)
-    {
-        return t.IsHomeworld ? " on " : " in ";
     }
 
     private void LasgunShieldExplosion(Battle agg, Battle def, Player aggressor, Player defender, Territory territory, IHero? aggLeader, IHero? defLeader)

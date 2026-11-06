@@ -1,4 +1,4 @@
-// The report panel (ReportComponent). It shows one phase of the game at a
+﻿// The report panel (ReportComponent). It shows one phase of the game at a
 // time. The header has an arrow either side of the phase name, and under the
 // name a dot for each phase of the turn. The turn number sits above the name
 // only while the panel shows an earlier turn; its line keeps its height when
@@ -229,6 +229,283 @@
       height: 22px;
       border-radius: 2px;
       box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  // A leader named in a log line, drawn as their disc.
+  .leader-disc {
+    vertical-align: middle;
+    margin: -3px 1px 0;
+  }
+
+  // A treachery card named in a log line: its art and name in a chip,
+  // near-square because only tokens are round.
+  .card-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px 2px 2px;
+    border-radius: 4px;
+    background: rgba(18, 8, 0, 0.55);
+    border: 1px solid rgba(252, 249, 209, 0.12);
+    font-weight: 700;
+    font-size: 15px;
+    line-height: 1;
+    white-space: nowrap;
+    vertical-align: middle;
+
+    img {
+      width: 16px;
+      height: 22px;
+      border-radius: 2px;
+    }
+  }
+
+  // Both revealed battle plans, aggressor on the left like the heading above.
+  .plans {
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    gap: 0 10px;
+    margin: 4px 0 6px;
+    padding: 10px 6px 8px;
+    border-radius: 6px;
+    background: rgba(18, 8, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+
+    .rule {
+      background: rgba(252, 249, 209, 0.08);
+    }
+
+    .plan {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      text-align: center;
+    }
+
+    .plan-leader {
+      position: relative;
+
+      > img {
+        display: block;
+        width: 58px;
+        height: 58px;
+      }
+
+      > .empty {
+        width: 52px;
+        height: 52px;
+        margin: 3px;
+        border-radius: 50%;
+        border: 1.5px dashed var(--ink-4);
+      }
+
+      // The Kwisatz Haderach and its +2, just left of the disc so it doesn't
+      // cover the name printed on it.
+      .messiah {
+        position: absolute;
+        right: calc(100% + 4px);
+        top: 50%;
+        transform: translateY(-50%);
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        padding: 2px 7px 2px 2px;
+        border-radius: var(--r-pill);
+        background: var(--ink-0);
+        border: 1px solid rgba(252, 249, 209, 0.12);
+        font-family: var(--font-display);
+        font-size: 14px;
+        line-height: 1;
+        color: var(--parchment);
+
+        img {
+          width: 18px;
+          height: 18px;
+        }
+      }
+    }
+
+    .dial {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .ally {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 3px;
+      font-size: 12px;
+      color: var(--text-3);
+    }
+
+    .cards {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .card-slot {
+      width: 54px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+
+      > img {
+        display: block;
+        width: 40px;
+        border-radius: 3px;
+        box-shadow:
+          0 0 0 1px rgba(0, 0, 0, 0.6),
+          0 2px 4px rgba(0, 0, 0, 0.5);
+      }
+
+      > .empty {
+        width: 40px;
+        height: 56px;
+        border-radius: 3px;
+        border: 1.5px dashed var(--ink-4);
+      }
+
+      .cap {
+        font-size: 11px;
+        line-height: 1.05;
+        color: var(--text-2);
+
+        &.none {
+          color: var(--text-3);
+          font-style: italic;
+        }
+      }
+    }
+  }
+
+  // A leader who died in the battle, or turned out a traitor.
+  .plans .plan-leader.fallen > img {
+    filter: grayscale(1) brightness(0.6);
+  }
+
+  .plans .skull {
+    position: absolute;
+    left: -4px;
+    bottom: -2px;
+    width: 24px;
+    height: 24px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--ink-0);
+    border: 1px solid rgba(252, 249, 209, 0.18);
+
+    svg {
+      width: 15px;
+      height: 15px;
+      fill: var(--parchment);
+    }
+  }
+
+  .plans .traitor {
+    position: absolute;
+    left: 50%;
+    bottom: -6px;
+    transform: translateX(-50%);
+    padding: 2px 6px 1px;
+    border-radius: 3px;
+    background: var(--storm);
+    color: var(--parchment);
+    font-family: var(--font-label);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  // The two strengths under the plans, the loser's dimmed.
+  .verdict {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin: 0 0 6px;
+    padding: 6px;
+    background: var(--ink-1);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 6px;
+
+    .total {
+      text-align: center;
+      font-family: var(--font-display);
+      font-size: 30px;
+      line-height: 1;
+      color: var(--parchment);
+
+      &.lost {
+        color: var(--text-3);
+      }
+    }
+  }
+
+  // What each side gained and lost, under its own plan.
+  .aftermath {
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    gap: 0 10px;
+    margin: 0 0 6px;
+    padding: 6px;
+    border-radius: 6px;
+    background: rgba(18, 8, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+
+    .rule {
+      background: rgba(252, 249, 209, 0.08);
+    }
+
+    .side-after {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      min-width: 0;
+      font-size: 14px;
+      line-height: 1.15;
+    }
+
+    .item {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .plus,
+    .minus {
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .plus {
+      color: var(--parchment);
+    }
+
+    .minus {
+      color: var(--text-3);
+    }
+
+    .for {
+      font-size: 12.5px;
+      color: var(--text-3);
+    }
+
+    .quiet {
+      color: var(--text-3);
+      font-style: italic;
+      font-size: 13px;
     }
   }
 

@@ -7,9 +7,14 @@ The shipped token art (Client/wwwroot/art/person*.png and .gif) has the
 strength printed on the disc beside the portrait. design/leader-tokens/clean/
 holds the same tokens with that number retouched out by hand, one
 leader<id>.png per leader. This shrinks each clean token a little and draws
-the strength on a disc in the faction's colour, overlapping the ring at the
-top right. The result goes to Client/wwwroot/art/leader<id>.png, which
-DefaultSkin.cs and skin.json point at.
+the strength in ink on a parchment disc centred on the ring at the top right.
+The disc is big enough to stick out past the token's square, so the image is
+CANVAS times the token's square, with the token in the middle. The client
+scales these images up by CANVAS (see .leader-art in _leader.scss), so the
+token draws at its usual size and the disc overhangs it. The result goes to
+Client/wwwroot/art/leader<id>.png, which DefaultSkin.cs and skin.json point at.
+Those URLs end in ?v=<n> so browsers don't keep showing old tokens: bump it in
+both files whenever the tokens are redrawn.
 
     uv run scripts/leader-tokens.py            # writes the tokens
     uv run scripts/leader-tokens.py --sheet    # also writes /tmp/leader-tokens.png to review
@@ -29,8 +34,11 @@ DIGITS = ROOT / "Client" / "wwwroot" / "Advokat.ttf"
 LETTERS = ROOT / "Client" / "wwwroot" / "Copperplate.ttf"  # for Zoal's X, which Advokat draws oddly
 
 TOKEN_SCALE = 0.86      # the token's diameter in the new image, as a fraction of its side
-BADGE = 0.36            # the badge's diameter, same units
+BADGE = 0.44            # the badge's diameter, same units
 BADGE_OUTLINE = 0.025   # its dark edge
+# The image's side, in the same units: room for the badge plus a hair. Keep in
+# step with $leader-art-canvas in Client/Styles/components/_leader.scss.
+CANVAS = 1.068
 INK = (18, 8, 0, 255)
 PARCHMENT = (252, 249, 209, 255)
 
@@ -48,23 +56,24 @@ def leaders():
         yield id, value.group(1) if value else "X", colours[faction.group(1)]
 
 
-def badge(size, text, colour):
-    """The strength on a disc on the ring, up and to the right of the token's centre."""
-    s = 4 * size  # drawn large and scaled down, for smooth edges
+def badge(size, text):
+    """The strength on a disc on the ring, up and to the right of the token's centre.
+    size is the side of the token's square; the result is CANVAS times that."""
+    u = 4 * size  # the token's square, drawn large and scaled down for smooth edges
+    s = round(CANVAS * size) * 4
     out = Image.new("RGBA", (s, s))
     d = ImageDraw.Draw(out)
-    r = BADGE * s / 2
-    off = 0.707 * TOKEN_SCALE * s / 2
+    r = BADGE * u / 2
+    off = 0.707 * TOKEN_SCALE * u / 2
     cx, cy = s / 2 + off, s / 2 - off
-    edge = BADGE_OUTLINE * s
+    assert cx + r <= s and cy - r >= 0, "the badge doesn't fit; raise CANVAS"
+    edge = BADGE_OUTLINE * u
     d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=INK)
-    d.ellipse((cx - r + edge, cy - r + edge, cx + r - edge, cy + r - edge), fill=colour)
+    d.ellipse((cx - r + edge, cy - r + edge, cx + r - edge, cy + r - edge), fill=PARCHMENT)
     digit = text.isdigit()
-    font = ImageFont.truetype(str(DIGITS if digit else LETTERS), int(BADGE * s * (0.74 if digit else 0.56)))
-    for ox, oy in ((-1, 0), (1, 0), (0, -1), (0, 1), (0, 2)):  # a soft dark edge on the number
-        d.text((cx + ox * edge * 0.6, cy + oy * edge * 0.6), text, font=font, fill=(18, 8, 0, 170), anchor="mm")
-    d.text((cx, cy), text, font=font, fill=PARCHMENT, anchor="mm")
-    return out.resize((size, size), Image.Resampling.LANCZOS)
+    font = ImageFont.truetype(str(DIGITS if digit else LETTERS), int(BADGE * u * (0.74 if digit else 0.56)))
+    d.text((cx, cy), text, font=font, fill=INK, anchor="mm")
+    return out.resize((s // 4,) * 2, Image.Resampling.LANCZOS)
 
 
 def main():
@@ -73,14 +82,14 @@ def main():
     if missing:
         sys.exit(f"no clean token for {', '.join(missing)} in {CLEAN}")
 
-    for id, value, colour in rows:
+    for id, value, _ in rows:
         clean = Image.open(CLEAN / f"leader{id}.png").convert("RGBA")
         size = max(clean.size)
         token = clean.resize((round(TOKEN_SCALE * size),) * 2, Image.Resampling.LANCZOS)
-        out = Image.new("RGBA", (size, size))
-        offset = (size - token.width) // 2
+        out = Image.new("RGBA", (round(CANVAS * size),) * 2)
+        offset = (out.width - token.width) // 2
         out.paste(token, (offset, offset), token)
-        out.alpha_composite(badge(size, value, colour))
+        out.alpha_composite(badge(size, value))
         out.save(ART / f"leader{id}.png")
     print(f"wrote {len(rows)} tokens to {ART}")
 

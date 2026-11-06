@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
  * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
@@ -20,10 +20,19 @@ public static class GameScreen
     // menu bar while the host has the undo panel open.
     private const int UndoTimelineHeight = 116;
 
+    // The height the turn banner's spacer adds above the row, as
+    // $turn-banner-h in _turn-banner.scss sets it.
+    private const int TurnBannerHeight = 40;
+
+    // Whether it's the player's turn, so TurnBanner shows.
+    public static bool ShowsTurnBanner(IGameService client) =>
+        !client.IsObserver && client.Player is { } player && client.Status is { } status && status.WaitingForMe(player, client.IsHost);
+
     public static string Style(IGameService client)
     {
         var map = client.CurrentSkin.MapDimensions;
         var belowMap = MenuBarHeight + (client.UndoSession != null ? UndoTimelineHeight : 0);
-        return FormattableString.Invariant($"--map-ratio: {map.Y / map.X:0.#####}; --below-map: {belowMap}px;");
+        var banner = ShowsTurnBanner(client) ? TurnBannerHeight : 0;
+        return FormattableString.Invariant($"--map-ratio: {map.Y / map.X:0.#####}; --below-map: {belowMap}px; --turn-banner-h: {banner}px;");
     }
 }

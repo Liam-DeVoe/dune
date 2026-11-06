@@ -85,9 +85,21 @@
                                 </div>
                                 @Side(report, report.Defender)
                             </div>
-                            @foreach (var message in Visible(report))
+                            @{
+                                var messages = Visible(report).ToList();
+                                var facts = OutcomeFacts(report, messages);
+                            }
+                            @foreach (var message in messages)
                             {
-                                @Line(message)
+                                if (facts.Contains(message)) continue;
+                                if (message.Plans is { } plans)
+                                {
+                                    @Outcome(report, plans, facts.Select(m => m.Fact!).ToList())
+                                }
+                                else
+                                {
+                                    @Line(message)
+                                }
                             }
                         </div>
                     }
@@ -179,22 +191,201 @@
                     {
                         <img src="@url" alt=""/>
                     }
-                    <ExpressionComponent Expression="@message.Expression" Game="@Game" Size="20"/>
+                    <ExpressionComponent Expression="@message.Expression" Game="@Game" Size="20" LogStyle/>
+                </div>
+            }
+            else if (message.Plans is { } plans)
+            {
+                <div class="plans">
+                    @Plan(plans.Aggressor, [])
+                    <div class="rule"></div>
+                    @Plan(plans.Defender, [])
                 </div>
             }
             else if (message.Route is { } route)
             {
                 <div style="@FontStyle(message); --fc:@Client.CurrentSkin.GetFactionColor(route.Faction)" data-ref-locations="@RouteLocations(route)" data-ref-arrow="@RouteArrow(route)">
-                    <ExpressionComponent Expression="@message.Expression" Game="@Game" Size="20"/>
+                    <ExpressionComponent Expression="@message.Expression" Game="@Game" Size="20" LogStyle/>
                 </div>
             }
             else
             {
                 <div style="@FontStyle(message)">
-                    <ExpressionComponent Expression="@message.Expression" Game="@Game" Size="20"/>
+                    <ExpressionComponent Expression="@message.Expression" Game="@Game" Size="20" LogStyle/>
                 </div>
             }
         </text>;
+
+    // The messages after a battle's revealed plans that state its outcome:
+    // strengths, the winner, kills, traitors, and what the two sides lost.
+    // These are drawn under the plans instead of as lines. Facts about anyone
+    // else, and anything logged before the plans, stay lines.
+    private static HashSet<Message> OutcomeFacts(Report report, List<Message> messages)
+    {
+        var at = messages.FindIndex(m => m.Plans != null);
+        if (at < 0) return [];
+
+        var plans = messages[at].Plans!;
+        bool Side(Faction f) => f == report.Aggressor || f == report.Defender;
+        bool Fought(IHero? h) => h != null && (Equals(h, plans.Aggressor.Leader) || Equals(h, plans.Defender.Leader));
+
+        return messages.Skip(at + 1).Where(m => m.Fact switch
+        {
+            null => false,
+            { Kind: BattleFactKind.Winner } => true,
+            { Kind: BattleFactKind.Killed } f => Fought(f.Hero) && Side(f.Faction),
+            { Kind: BattleFactKind.Traitor } f => Fought(f.Hero),
+            var f => Side(f.Faction)
+        }).ToHashSet();
+    }
+
+    // The revealed plans, then the two strengths with the winner's bright and
+    // the loser's dimmed, then what each side gained and lost.
+    private RenderFragment Outcome(Report report, Treachery.Shared.BattlePlans plans, List<BattleFact> facts)
+    {
+        var aggStrength = facts.FirstOrDefault(f => f.Kind == BattleFactKind.Strength && f.Faction == report.Aggressor);
+        var defStrength = facts.FirstOrDefault(f => f.Kind == BattleFactKind.Strength && f.Faction == report.Defender);
+        var anyAftermath = facts.Any(f => f.Kind is BattleFactKind.Killed or BattleFactKind.ForcesLost or BattleFactKind.Discard);
+
+        return @<text>
+            <div class="plans">
+                @Plan(plans.Aggressor, facts)
+                <div class="rule"></div>
+                @Plan(plans.Defender, facts)
+            </div>
+            @if (aggStrength != null && defStrength != null)
+            {
+                <div class="verdict">
+                    @Total(report, aggStrength)
+                    @Total(report, defStrength)
+                </div>
+            }
+            @if (anyAftermath)
+            {
+                <div class="aftermath">
+                    @Aftermath(report.Aggressor, facts)
+                    <div class="rule"></div>
+                    @Aftermath(report.Defender, facts)
+                </div>
+            }
+        </text>;
+    }
+
+    private RenderFragment Total(Report report, BattleFact strength)
+    {
+        var lost = report.BattleDecided && report.BattleWinner != strength.Faction;
+        return @<div class="total @(lost ? "lost" : "")" title="@($"{Client.CurrentSkin.Describe(strength.Faction)} strength")">@Support.RoundWithHalves(strength.Strength)</div>;
+    }
+
+    // One side's spice from killed leaders, forces lost and cards discarded.
+    private RenderFragment Aftermath(Faction faction, List<BattleFact> facts)
+    {
+        var mine = facts.Where(f => f.Faction == faction && f.Kind is BattleFactKind.Killed or BattleFactKind.ForcesLost or BattleFactKind.Discard).ToList();
+        var player = Game.GetPlayer(faction);
+
+        return @<div class="side-after">
+            @if (mine.Count == 0)
+            {
+                <div class="quiet">no losses</div>
+            }
+            @foreach (var f in mine)
+            {
+                switch (f.Kind)
+                {
+                    case BattleFactKind.Killed:
+                        <div class="item"><span class="plus">+</span><SpiceComponent Amount="@f.Value.ToString()" Size="22"/><span class="for">for</span><Image Shown="@f.Hero" Game="@Game" Width="22" Class="leader-disc" NoShadow/></div>
+                        break;
+
+                    case BattleFactKind.ForcesLost:
+                        <div class="item">
+                            <span class="minus">−</span>
+                            @if (f.All)
+                            {
+                                <span>all</span>
+                            }
+                            @if (f.Forces > 0 && player != null)
+                            {
+                                <SimpleNumberComponent Size="20">@f.Forces</SimpleNumberComponent><Image Shown="@player.Force" Width="20" NoShadow/>
+                            }
+                            @if (f.SpecialForces > 0 && player != null)
+                            {
+                                <SimpleNumberComponent Size="20">@f.SpecialForces</SimpleNumberComponent><Image Shown="@player.SpecialForce" Width="20" NoShadow/>
+                            }
+                        </div>
+                        break;
+
+                    case BattleFactKind.Discard:
+                        <div class="item"><span class="minus">−</span><ExpressionComponent Expression="@(new Expression(f.Card))" Game="@Game" Size="20" LogStyle/></div>
+                        break;
+                }
+            }
+        </div>;
+    }
+
+    // One side of the revealed plans, laid out like the pieces on the table:
+    // the leader disc (with the Kwisatz Haderach's +2 when it joins), the dial
+    // with the spice backing it, then the weapon and defense cards. Hovering
+    // the disc or a card shows its popover, so the leader isn't named. A
+    // leader who died gets a skull, and a traitor a Traitor tag.
+    private RenderFragment Plan(PlanSummary plan, List<BattleFact> facts)
+    {
+        var killed = facts.FirstOrDefault(f => f.Kind == BattleFactKind.Killed && plan.Leader != null && Equals(f.Hero, plan.Leader));
+        var traitor = facts.FirstOrDefault(f => f.Kind == BattleFactKind.Traitor && plan.Leader != null && Equals(f.Hero, plan.Leader));
+
+        return @<div class="plan" data-ref-faction="@plan.Faction">
+            <div class="plan-leader @(killed != null || traitor != null ? "fallen" : "")">
+                @if (plan.Leader != null)
+                {
+                    <Image Shown="@plan.Leader" Game="@Game" Width="58" NoShadow/>
+                }
+                else
+                {
+                    <div class="empty" title="No leader"></div>
+                }
+                @if (plan is { Messiah: true, Leader: not null })
+                {
+                    <span class="messiah" title="@Client.CurrentSkin.Describe(Concept.Messiah)"><img src="@Client.CurrentSkin.Messiah_URL" alt="@Client.CurrentSkin.Describe(Concept.Messiah)"/>+2</span>
+                }
+                @if (traitor != null)
+                {
+                    <span class="traitor" title="@($"Traitor for {Client.CurrentSkin.Describe(traitor.Faction)}")">Traitor</span>
+                }
+                else if (killed != null)
+                {
+                    <span class="skull" title="@($"Killed by {Client.CurrentSkin.Describe(killed.Cause)}")"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5C4.7 1.5 2.5 3.8 2.5 6.8c0 1.8.8 3 2 3.8v2.2c0 .5.4.9.9.9h.6v-1.4h1v1.4h2v-1.4h1v1.4h.6c.5 0 .9-.4.9-.9v-2.2c1.2-.8 2-2 2-3.8 0-3-2.2-5.3-5.5-5.3zM5.7 9a1.4 1.4 0 1 1 0-2.8 1.4 1.4 0 0 1 0 2.8zm4.6 0a1.4 1.4 0 1 1 0-2.8 1.4 1.4 0 0 1 0 2.8z"/></svg></span>
+                }
+            </div>
+            <div class="dial">
+                <SimpleNumberComponent Size="30">@Support.RoundWithHalves(plan.Dial)</SimpleNumberComponent>
+                @if (plan.Spice is > 0)
+                {
+                    <SpiceComponent Amount="@plan.Spice.Value.ToString()" Size="22"/>
+                }
+            </div>
+            @if (plan.AllyContribution > 0)
+            {
+                <div class="ally">+<SpiceComponent Amount="@plan.AllyContribution.ToString()" Size="18"/> from <FactionChip Faction="@plan.Ally" Game="@Game"/></div>
+            }
+            <div class="cards">
+                @Card(plan.Weapon, "no weapon")
+                @Card(plan.Defense, "no defense")
+            </div>
+        </div>;
+    }
+
+    private RenderFragment Card(TreacheryCard? card, string none) =>
+        @<div class="card-slot">
+            @if (card != null)
+            {
+                <Image Shown="@card" Game="@Game" Width="40" NoShadow/>
+                <div class="cap">@Client.CurrentSkin.Describe(card)</div>
+            }
+            else
+            {
+                <div class="empty"></div>
+                <div class="cap none">@none</div>
+            }
+        </div>;
 
     // The picture beside a heading line. Spice blow headings show the back of a spice card.
     private string HeadingIcon(Concept icon) => icon switch

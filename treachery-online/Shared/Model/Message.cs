@@ -52,6 +52,26 @@ public class Message
         return this;
     }
 
+    // Set when the message reveals both battle plans, so the client can lay
+    // them out side by side.
+    public BattlePlans? Plans { get; private set; }
+
+    public Message WithPlans(PlanSummary aggressor, PlanSummary defender)
+    {
+        Plans = new BattlePlans(aggressor, defender);
+        return this;
+    }
+
+    // Set when the message states one fact of a battle's outcome, so the
+    // client can gather the facts into the battle's report block.
+    public BattleFact? Fact { get; private set; }
+
+    public Message WithFact(BattleFact fact)
+    {
+        Fact = fact;
+        return this;
+    }
+
     public override string ToString()
     {
         if (DefaultDescriber != null)
@@ -116,3 +136,53 @@ public class MessagePart
 // Where forces went in a message: from the listed locations, or from reserves
 // when the list is empty, to a location, or back to reserves when To is null.
 public record Route(Faction Faction, List<Location> From, Location? To);
+
+// Both revealed battle plans, aggressor first.
+public record BattlePlans(PlanSummary Aggressor, PlanSummary Defender);
+
+// One side's revealed plan. Spice is null when spice isn't dialed (no
+// advanced combat). AllyContribution is spice paid by Ally.
+public record PlanSummary(
+    Faction Faction,
+    IHero? Leader,
+    bool Messiah,
+    float Dial,
+    int? Spice,
+    int AllyContribution,
+    Faction Ally,
+    TreacheryCard? Weapon,
+    TreacheryCard? Defense);
+
+public enum BattleFactKind
+{
+    // Faction's total strength was Strength.
+    Strength,
+
+    // Faction won the battle.
+    Winner,
+
+    // Hero was killed by Cause; Faction got Value spice for it.
+    Killed,
+
+    // Hero turned out to be a traitor working for Faction.
+    Traitor,
+
+    // Faction lost Forces and SpecialForces; All when that was every force they had there.
+    ForcesLost,
+
+    // Faction discarded Card.
+    Discard
+}
+
+// One fact of a battle's outcome. Only the fields its kind describes are set.
+public record BattleFact(BattleFactKind Kind, Faction Faction)
+{
+    public float Strength { get; init; }
+    public IHero? Hero { get; init; }
+    public object? Cause { get; init; }
+    public int Value { get; init; }
+    public int Forces { get; init; }
+    public int SpecialForces { get; init; }
+    public bool All { get; init; }
+    public TreacheryCard? Card { get; init; }
+}

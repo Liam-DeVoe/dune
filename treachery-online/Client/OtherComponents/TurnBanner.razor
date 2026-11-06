@@ -1,0 +1,51 @@
+@inherits GameComponent
+@implements IDisposable
+
+@*
+ A bright bar pinned across the top of the window while it's the player's
+ turn, so nobody holds up the game without noticing. It says "Your turn" and
+ how long it has been. A spacer under it pushes the game screen down, and
+ GameScreen.Style makes the screen shorter to match.
+*@
+
+@if (GameScreen.ShowsTurnBanner(Client))
+{
+    <div class="turn-banner-space"></div>
+    <div class="turn-banner" role="status">
+        <span class="label">Your turn</span>
+        <span class="clock">@Elapsed()</span>
+    </div>
+}
+
+@code {
+
+    private System.Threading.Timer? _tick;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        _tick = new System.Threading.Timer(_ =>
+        {
+            if (GameScreen.ShowsTurnBanner(Client)) InvokeAsync(StateHasChanged);
+        }, null, 1000, 1000);
+    }
+
+    // Since the event the game is waiting on, as the prompt's own clock
+    // counts it, or else since the last thing that happened.
+    private string Elapsed()
+    {
+        var since = Client.Status?.TimedEvent?.Time ?? Game.History.LastOrDefault()?.Time;
+        if (since is null) return "";
+        var t = DateTimeOffset.Now - since.Value;
+        if (t < TimeSpan.Zero) t = TimeSpan.Zero;
+        // mm:ss, with the hours (all of them, not just today's) in front once there are any.
+        return t.TotalHours >= 1
+            ? $"{(int)t.TotalHours}:{t.Minutes:00}:{t.Seconds:00}"
+            : $"{t.Minutes:00}:{t.Seconds:00}";
+    }
+
+    public void Dispose()
+    {
+        _tick?.Dispose();
+    }
+}

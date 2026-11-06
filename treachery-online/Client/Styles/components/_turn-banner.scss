@@ -1,0 +1,44 @@
+// The bar across the top of the window on the player's turn
+// (OtherComponents/TurnBanner.razor). It is fixed to the window's top edge,
+// so it spans the whole width whatever padding the page has. The spacer
+// under it takes its place in the page, pushing the game screen down:
+// 0.75rem of .content's top padding is already there, so the spacer adds
+// the rest. GameScreen.TurnBannerHeight is the height it adds; keep them in step.
+$turn-banner-h: 40px;
+$turn-banner-bright: #ffd84d; // brighter than --gold, so it reads as an alert
+
+.turn-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1030;
+  height: $turn-banner-h;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: $turn-banner-bright;
+  color: var(--ink-0);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+
+  .label {
+    font-family: var(--font-display);
+    font-size: 22px;
+    line-height: 1;
+  }
+
+  .clock {
+    font-family: var(--font-display);
+    font-size: 17px;
+    line-height: 1;
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: rgba(18, 8, 0, 0.12);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.turn-banner-space {
+  height: $turn-banner-h;
+}

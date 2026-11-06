@@ -25,16 +25,16 @@
             case IEnumerable e:
                 foreach (var nestedExpression in DetermineElements(e))
                 {
-                    <ExpressionComponent Expression="@nestedExpression" Size=@Size Game=Game TextBorder=@TextBorder/>
+                    <ExpressionComponent Expression="@nestedExpression" Size=@Size Game=Game TextBorder=@TextBorder LogStyle=@LogStyle/>
                 }
                 break;
 
             case Message m:
-                <ExpressionComponent Expression=m.Expression Size=@Size Game=Game/>
+                <ExpressionComponent Expression=m.Expression Size=@Size Game=Game LogStyle=@LogStyle/>
                 break;
 
             case MessagePart mp:
-                <ExpressionComponent Expression=mp.Expression Size=@Size Game=Game/>
+                <ExpressionComponent Expression=mp.Expression Size=@Size Game=Game LogStyle=@LogStyle/>
                 break;
 
             case int i:
@@ -59,6 +59,14 @@
 
             case Faction faction:
                 <FactionChip Faction=faction Game=Game/>
+                break;
+
+            case TreacheryCard card when LogStyle:
+                <RichText Shown=@card Game=@Game Class="card-chip"><img src="@Client.CurrentSkin.GetImageUrl(card)" alt=""/>@Client.CurrentSkin.Describe(card)</RichText>
+                break;
+
+            case Leader leader when LogStyle:
+                <Image Shown=@leader Game=@Game Width=@(Size * 1.3f) Class="leader-disc" NoShadow/>
                 break;
 
             case TreacheryCard or ResourceCard or LeaderSkill or TechToken or DiscoveryToken or IHero or TerrorType when Game is { } game:
@@ -105,6 +113,11 @@
 
     [Parameter]
     public string TextBorder { get; set; } = "";
+
+    // The log's way of showing things: a leader as their disc, with the name
+    // in its popover, and a treachery card as a chip with its art.
+    [Parameter]
+    public bool LogStyle { get; set; }
 
     private List<Expression> DetermineElements(IEnumerable e)
     {

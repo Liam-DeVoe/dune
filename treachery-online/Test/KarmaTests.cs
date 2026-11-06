@@ -8,6 +8,7 @@
  */
 
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Treachery.Shared;
@@ -52,6 +53,31 @@ public class KarmaTests
         }.Execute(false, true);
 
         Assert.AreEqual(Phase.GreySwappingCard, game.CurrentPhase);
+    }
+
+    [TestMethod]
+    public void PlayingKarmaLogsOneAside()
+    {
+        var game = CreateGameInGreySwapPhase();
+        var grey = game.GetPlayer(Faction.Grey)!;
+        var karama = TreacheryCardManager.Get(23)!;
+        grey.TreacheryCards.Add(karama);
+        var before = game.CurrentReport.Messages.Count;
+
+        new Karma(game, Faction.Grey)
+        {
+            Card = karama,
+            Prevented = FactionAdvantage.RedReceiveBid
+        }.Execute(false, true);
+
+        var logged = game.CurrentReport.Messages.Skip(before).ToList();
+        Assert.AreEqual(1, logged.Count(m => m.Log is AsideLog));
+        var aside = logged.Single(m => m.Log is AsideLog).Expression.Elements;
+        Assert.AreEqual(Faction.Grey, aside[0]);
+        Assert.AreEqual(" play ", aside[1]);
+        Assert.AreEqual(karama, aside[2]);
+        Assert.IsFalse(logged.Any(m => m.Expression.Elements.Contains(" discard ")));
+        Assert.IsFalse(logged.Any(m => m.Expression.Elements.Contains(" prevent ")));
     }
 
     private static Game CreateGameInGreySwapPhase()

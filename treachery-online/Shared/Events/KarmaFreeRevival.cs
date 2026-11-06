@@ -74,9 +74,19 @@ public class KarmaFreeRevival : GameEvent
     protected override void ExecuteConcreteEvent()
     {
         Game.Stone(Milestone.Revival);
-        Log();
+        var card = Karma.ValidKarmaCards(Game, Player).FirstOrDefault();
 
-        Game.Discard(Player, Karma.ValidKarmaCards(Game, Player).FirstOrDefault());
+        // A face down leader stays a plain line, so the log doesn't name them.
+        if (Hero != null && Game.IsFaceDownDead(Hero))
+            Log();
+        else
+            Log(GetMessage().WithLog(new RevivalRow(Initiator, Hero == null ? AmountOfForces : 0, Hero == null ? AmountOfSpecialForces : 0, 0)
+            {
+                Hero = Hero,
+                Card = card
+            }));
+
+        Game.Discard(Player, card);
         Player.SpecialKarmaPowerUsed = true;
 
         if (Hero != null)

@@ -63,7 +63,8 @@ public class StormDialled : GameEvent
 
         if (Game.HasBattleWheel.All(f => Game.HasActedOrPassed.Contains(f)))
         {
-            Log("Storm dial: ", Game.Dials[0], Game.HasActedOrPassed[0], " + ", Game.Dials[1], Game.HasActedOrPassed[1], " = ", Game.Dials[0] + Game.Dials[1]);
+            Log(Message.Express("Storm dial: ", Game.Dials[0], Game.HasActedOrPassed[0], " + ", Game.Dials[1], Game.HasActedOrPassed[1], " = ", Game.Dials[0] + Game.Dials[1])
+                .WithLog(new StormDials(Game.HasActedOrPassed[0], Game.Dials[0], Game.HasActedOrPassed[1], Game.Dials[1])));
             Game.NextStormMoves = Game.Dials.Sum();
 
             if (Game.CurrentTurn == 1)
@@ -76,7 +77,7 @@ public class StormDialled : GameEvent
     private void PositionFirstStorm()
     {
         Game.SectorInStorm = Game.NextStormMoves % Map.NumberOfSectors;
-        Log("The first storm moves ", Game.SectorInStorm, " sectors");
+        Log(Message.Express("The first storm moves ", Game.SectorInStorm, " sectors").WithLog(new StormPlaced(Game.SectorInStorm)));
         Game.PerformStorm();
 
         if (Game.Applicable(Rule.TechTokens)) AssignTechTokens();

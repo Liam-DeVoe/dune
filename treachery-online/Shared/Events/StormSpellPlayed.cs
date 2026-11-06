@@ -44,8 +44,9 @@ public class StormSpellPlayed : GameEvent
 
     protected override void ExecuteConcreteEvent()
     {
+        var card = Player.Card(TreacheryCardType.StormSpell);
         Game.Discard(Player, TreacheryCardType.StormSpell);
-        Log();
+        Log(GetMessage().WithLog(new StormMoved(Game.SectorInStorm, MoveAmount, Initiator, card)));
         Game.MoveStormAndDetermineNext(MoveAmount);
         Game.EndStormPhase();
     }

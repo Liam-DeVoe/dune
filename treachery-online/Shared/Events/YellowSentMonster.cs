@@ -58,7 +58,7 @@ public class YellowSentMonster : GameEvent
 
     protected override void ExecuteConcreteEvent()
     {
-        Log();
+        Log(GetMessage().WithLog(new WormSentLog(Initiator, Territory)));
         var monster = new MonsterAppearence(Territory, false);
         Game.Monsters.Add(monster);
         Game.PerformMonster(monster);

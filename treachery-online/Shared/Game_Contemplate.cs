@@ -132,9 +132,9 @@ public partial class Game
             CurrentMainPhase = MainPhase.Ended;
             Enter(Phase.GameEnded);
             Stone(Milestone.GameWon);
-            Log("The game has ended.");
+            Log(Message.Express("The game has ended.").WithLog(new GameEnded(Winners.Select(w => w.Faction).ToList())));
 
-            foreach (var w in Winners) Log(w.Faction, " win!");
+            foreach (var w in Winners) Log(Message.Express(w.Faction, " win!").WithLog(new GameWinner(w.Faction)));
         }
         else
         {
@@ -154,7 +154,7 @@ public partial class Game
             if (p.Bribes > 0)
             {
                 p.Resources += p.Bribes;
-                Log(p.Faction, " add ", Payment.Of(p.Bribes), " from bribes to their reserves");
+                Log(Message.Express(p.Faction, " add ", Payment.Of(p.Bribes), " from bribes to their reserves").WithLog(new BribesCollected(p.Faction, p.Bribes)));
                 p.Bribes = 0;
             }
     }
@@ -222,7 +222,7 @@ public partial class Game
         var blue = GetPlayer(Faction.Blue);
         if (blue != null && blue.PredictedTurn == CurrentTurn && Winners.Any(w => w.Faction == blue.PredictedFaction))
         {
-            Log(Faction.Blue, " predicted ", blue.PredictedFaction, " victory in turn ", blue.PredictedTurn, "! They had everything planned...");
+            LogWinReason(WinMethod.Prediction, Faction.Blue, " predicted ", blue.PredictedFaction, " victory in turn ", blue.PredictedTurn, "! They had everything planned...");
             WinMethod = WinMethod.Prediction;
             Winners.Clear();
             Winners.Add(blue);
@@ -244,11 +244,8 @@ public partial class Game
                 Winners.Add(p);
 
                 var ally = GetPlayer(p.Ally);
-                if (ally != null)
-                {
-                    Winners.Add(ally);
-                    LogNormalWin(p, ally);
-                }
+                if (ally != null) Winners.Add(ally);
+                LogNormalWin(p, ally);
             }
 
             if (Winners.Count > 0) break;
@@ -262,17 +259,22 @@ public partial class Game
         if (Players.Any(p => !Winners.Contains(p) && MeetsNormalVictoryCondition(p, Applicable(Rule.ContestedStongholdsCountAsOccupied))))
         {
             if (ally == null)
-                Log(player.Faction, " are the first in front of the storm with enough victory points to win the game");
+                LogWinReason(WinMethod.Strongholds, player.Faction, " are the first in front of the storm with enough victory points to win the game");
             else
-                Log(player.Faction, " and ", player.Ally, " are the first in front of the storm with enough victory points to win the game");
+                LogWinReason(WinMethod.Strongholds, player.Faction, " and ", player.Ally, " are the first in front of the storm with enough victory points to win the game");
         }
         else
         {
             if (ally == null)
-                Log(player.Faction, " have enough victory points to win the game");
+                LogWinReason(WinMethod.Strongholds, player.Faction, " have enough victory points to win the game");
             else
-                Log(player.Faction, " and ", player.Ally, " have enough victory points to win the game");
+                LogWinReason(WinMethod.Strongholds, player.Faction, " and ", player.Ally, " have enough victory points to win the game");
         }
+    }
+
+    private void LogWinReason(WinMethod method, params object?[] expression)
+    {
+        Log(Message.Express(expression).WithLog(new WinReason(method)));
     }
 
     public bool MeetsNormalVictoryCondition(Player p, bool contestedStrongholdsCountAsOccupied)
@@ -345,21 +347,21 @@ public partial class Game
 
         if (yellow != null && YellowVictoryConditionMet)
         {
-            Log(Faction.Yellow, " special victory conditions are met!");
+            LogWinReason(WinMethod.YellowSpecial, Faction.Yellow, " special victory conditions are met!");
             WinMethod = WinMethod.YellowSpecial;
             Winners.Add(yellow);
             if (yellow.HasAlly) Winners.Add(yellow.AlliedPlayer);
         }
         else if (orange != null && !Applicable(Rule.DisableOrangeSpecialVictory))
         {
-            Log(Faction.Orange, " special victory conditions are met!");
+            LogWinReason(WinMethod.OrangeSpecial, Faction.Orange, " special victory conditions are met!");
             WinMethod = WinMethod.OrangeSpecial;
             Winners.Add(orange);
             if (orange.HasAlly) Winners.Add(orange.AlliedPlayer);
         }
         else if (yellow != null && !Applicable(Rule.DisableOrangeSpecialVictory))
         {
-            Log(Faction.Yellow, " win because ", Faction.Orange, " are not playing and no one else won");
+            LogWinReason(WinMethod.OrangeSpecial, Faction.Yellow, " win because ", Faction.Orange, " are not playing and no one else won");
             WinMethod = WinMethod.OrangeSpecial;
             Winners.Add(yellow);
             if (yellow.HasAlly) Winners.Add(yellow.AlliedPlayer);
@@ -402,7 +404,7 @@ public partial class Game
         {
             Winners.Add(withMostPoints);
             WinMethod = WinMethod.Strongholds;
-            Log(withMostPoints.Faction, " are the first after the storm with most victory points");
+            LogWinReason(WinMethod.Strongholds, withMostPoints.Faction, " are the first after the storm with most victory points");
 
             if (withMostPoints.HasAlly) Winners.Add(withMostPoints.AlliedPlayer);
         }

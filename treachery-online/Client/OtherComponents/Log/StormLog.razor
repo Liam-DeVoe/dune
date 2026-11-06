@@ -1,0 +1,245 @@
+@inherits PhaseLogBase
+@using System.Globalization
+
+@*
+ The Storm log: a ring of the board's 18 sectors with the stretch the storm
+ swept in red and the distance in the middle, the dials under it, and one box
+ per place the storm hit with each loss on its own line. Flips, Weather
+ Control and Family Atomics are asides above the ring. Hovering a box lights
+ its sectors on the ring (and on the map), and hovering a sector lights the
+ boxes in it. The "storm will move" and "storm moves" lines are left out
+ because the ring shows them. Every other line keeps its place.
+*@
+@{
+    var anchor = Messages.FindIndex(m => m.Log is StormMoved or StormPlaced);
+    var drawn = anchor >= 0;
+    var weatherCard = drawn && Messages[anchor].Log is StormMoved { Card: { } card } ? card : null;
+}
+@for (var i = 0; i < Messages.Count; i++)
+{
+    var message = Messages[i];
+    switch (message.Log)
+    {
+        case BlueFlipped flip:
+            <div class="log-aside">
+                <FactionChip Faction="Faction.Blue" Game="@Game"/> are alone and flip to <ForceToken Faction="Faction.Blue" Size="20" Title="@Client.CurrentSkin.Describe(FactionForce.Blue)"/> in <PlaceChip Place="@flip.Territory"/>
+            </div>
+            break;
+
+        case FamilyAtomicsUsed atomics:
+            <div class="log-aside">
+                <FactionChip Faction="@atomics.Faction" Game="@Game"/> use @CardPill(atomics.Card, TreacheryCardType.Metheor) to destroy the <PlaceChip Place="@Game.Map.ShieldWall"/>!
+            </div>
+            var killed = Messages.Skip(i + 1).Select(m => m.Log).OfType<FamilyAtomicsKilled>().ToList();
+            if (killed.Count > 0)
+            {
+                <div class="log-box" data-ref-locations="@string.Join(",", Game.Map.ShieldWall.Locations.Select(l => l.Id))">
+                    <PlaceChip Place="@Game.Map.ShieldWall"/>
+                    <div class="lines">
+                        @foreach (var k in killed)
+                        {
+                            <div>@Client.CurrentSkin.Describe(TreacheryCardType.Metheor) kills @Forces(k.Faction, k.Forces, k.SpecialForces)</div>
+                        }
+                    </div>
+                </div>
+            }
+            break;
+
+        case FamilyAtomicsKilled:
+            break;
+
+        case StormForecast or StormDials or StormKilled or StormDestroyedSpice when drawn:
+            break;
+
+        case StormMoved or StormPlaced when i == anchor:
+            if (message.Log is StormMoved { By: not Faction.None } weather)
+            {
+                <div class="log-aside">
+                    <FactionChip Faction="@weather.By" Game="@Game"/> use @CardPill(weather.Card, TreacheryCardType.StormSpell) to move the storm <SimpleNumberComponent>@weather.Distance</SimpleNumberComponent> sectors
+                </div>
+            }
+            @Ring(message.Log)
+            @Dials()
+            @Boxes()
+            break;
+
+        default:
+            if (weatherCard != null && message.Fact is { Kind: BattleFactKind.Discard } fact && fact.Card == weatherCard) break;
+            @Line(message)
+            break;
+    }
+}
+
+@code {
+
+    // Ring geometry, in the SVG's 200x200 viewBox.
+    private const double Cx = 100, Cy = 100, Outer = 92, Inner = 57;
+
+    // Sectors lit by hovering a box or a sector.
+    private HashSet<int> _hot = [];
+
+    // One box per territory the storm hit: the locations hit, in order, and
+    // each loss (StormKilled or StormDestroyedSpice) in the game's order.
+    private sealed record Place(Territory Territory, List<Location> Locations, List<object> Losses)
+    {
+        public HashSet<int> Sectors => Locations.Select(l => l.Sector).ToHashSet();
+    }
+
+    private List<Place> Places()
+    {
+        var places = new List<Place>();
+        foreach (var data in Messages.Select(m => m.Log))
+        {
+            var location = data switch
+            {
+                StormKilled k => k.Location,
+                StormDestroyedSpice s => s.Location,
+                _ => null
+            };
+            if (location == null) continue;
+
+            var place = places.FirstOrDefault(p => p.Territory == location.Territory);
+            if (place == null)
+            {
+                place = new Place(location.Territory, [], []);
+                places.Add(place);
+            }
+
+            if (!place.Locations.Contains(location)) place.Locations.Add(location);
+            place.Losses.Add(data!);
+        }
+
+        return places;
+    }
+
+    private RenderFragment Boxes() =>
+        @<text>
+            @foreach (var place in Places())
+            {
+                var sectors = place.Sectors;
+                var hot = _hot.Overlaps(sectors) ? "hot" : "";
+                <div class="log-box storm-place @hot" data-ref-locations="@string.Join(",", place.Locations.Select(l => l.Id))"
+                     @onmouseenter="@(() => Light(sectors))" @onmouseleave="@(() => Light([]))">
+                    <PlaceChip Place="@(place.Locations.Count == 1 ? place.Locations[0] : place.Territory)"/>
+                    <div class="lines">
+                        @foreach (var loss in place.Losses)
+                        {
+                            if (loss is StormKilled k)
+                            {
+                                <div>The storm kills @Forces(k.Faction, k.Forces, k.SpecialForces)</div>
+                            }
+                            else if (loss is StormDestroyedSpice s)
+                            {
+                                <div>The storm destroys <SpiceComponent Amount="@s.Amount.ToString()"/></div>
+                            }
+                        }
+                    </div>
+                </div>
+            }
+        </text>;
+
+    private RenderFragment Dials() =>
+        @<text>
+            @if (Messages.Select(m => m.Log).OfType<StormDials>().LastOrDefault() is { } dials)
+            {
+                <div class="storm-dials">
+                    <FactionChip Faction="@dials.First" Game="@Game"/><SimpleNumberComponent>@dials.FirstDial</SimpleNumberComponent>
+                    <span class="plus">+</span>
+                    <FactionChip Faction="@dials.Second" Game="@Game"/><SimpleNumberComponent>@dials.SecondDial</SimpleNumberComponent>
+                </div>
+            }
+        </text>;
+
+    // The storm's sectors: the one it started in, the ones it swept and the
+    // one it stopped in. Turn 1 lights only the sector it was placed in.
+    private RenderFragment Ring(object? data)
+    {
+        int? from = null;
+        int end, distance = 0;
+        if (data is StormMoved moved)
+        {
+            from = moved.From;
+            distance = moved.Distance;
+            end = (moved.From + moved.Distance) % Map.NumberOfSectors;
+        }
+        else
+        {
+            end = ((StormPlaced)data!).Sector;
+        }
+
+        var swept = Enumerable.Range(1, distance).Select(d => (from!.Value + d) % Map.NumberOfSectors).ToHashSet();
+        var locations = Game.Map.Locations(false).Where(l => l.Sector >= 0).ToLookup(l => l.Sector);
+
+        return @<svg class="storm-ring" viewBox="0 0 200 200" width="170" height="170" role="img"
+                     aria-label="@(from == null ? $"The storm is in sector {end + 1}" : $"The storm moves {distance} sectors")">
+            <defs>
+                <marker id="storm-ring-head" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+                    <path d="M0 0 L10 5 L0 10z"/>
+                </marker>
+            </defs>
+            @for (var s = 0; s < Map.NumberOfSectors; s++)
+            {
+                var sector = s;
+                var state = sector == end ? "end" : swept.Contains(sector) ? "swept" : sector == from ? "start" : "";
+                var hot = _hot.Contains(sector) ? "hot" : "";
+                <path class="w @state @hot" d="@Wedge(sector)" data-ref-locations="@string.Join(",", locations[sector].Select(l => l.Id))"
+                      @onmouseenter="@(() => Light([sector]))" @onmouseleave="@(() => Light([]))"/>
+            }
+            <circle class="rim" cx="@N(Cx)" cy="@N(Cy)" r="@N(Outer + 1.5)"/>
+            @if (from != null && distance > 1)
+            {
+                <path class="arrow" d="@Arrow(from.Value, distance)" marker-end="url(#storm-ring-head)"/>
+            }
+            @if (from != null)
+            {
+                @* Razor reserves <text>, so the SVG labels go in as markup. *@
+                @((MarkupString)$"<text class=\"distance\" x=\"{N(Cx)}\" y=\"{N(Cy + 6)}\" text-anchor=\"middle\">{distance}</text>")
+                @((MarkupString)$"<text class=\"label\" x=\"{N(Cx)}\" y=\"{N(Cy + 24)}\" text-anchor=\"middle\">SECTORS</text>")
+            }
+        </svg>;
+    }
+
+    private void Light(HashSet<int> sectors) => _hot = sectors;
+
+    // Sector s spans angles (6 - s) to (5 - s) times 20 degrees, as on the map (SectorGeometry).
+    private static double Angle(double sector) => 2 * Math.PI * (6 - sector) / Map.NumberOfSectors;
+
+    private static string P(double angle, double r) => $"{N(Cx + r * Math.Cos(angle))},{N(Cy + r * Math.Sin(angle))}";
+
+    private static string N(double d) => d.ToString("0.##", CultureInfo.InvariantCulture);
+
+    private static string Wedge(int sector)
+    {
+        double a0 = Angle(sector), a1 = Angle(sector + 1);
+        return $"M{P(a0, Inner)} L{P(a0, Outer)} A{N(Outer)},{N(Outer)} 0 0 0 {P(a1, Outer)} L{P(a1, Inner)} A{N(Inner)},{N(Inner)} 0 0 1 {P(a0, Inner)}Z";
+    }
+
+    // An arc inside the ring along the swept sectors, in the storm's direction.
+    private static string Arrow(int from, int distance)
+    {
+        const double r = Inner - 9;
+        double a0 = Angle(from + 1) - 0.08, a1 = Angle(from + distance + 1) + 0.14;
+        var large = distance * 20 > 180 ? 1 : 0;
+        return $"M{P(a0, r)} A{N(r)},{N(r)} 0 {large} 0 {P(a1, r)}";
+    }
+
+    // "[faction] 3 [force] 1 [special force]": a count and an icon per kind.
+    private RenderFragment Forces(Faction faction, int forces, int specialForces) =>
+        @<text>
+            <FactionChip Faction="@faction" Game="@Game"/>
+            @if (forces > 0)
+            {
+                <span class="storm-forces"><SimpleNumberComponent>@forces</SimpleNumberComponent><ForceToken Faction="@faction" Size="20"/></span>
+            }
+            @if (specialForces > 0)
+            {
+                <span class="storm-forces"><SimpleNumberComponent>@specialForces</SimpleNumberComponent><ForceToken Faction="@faction" Special Size="20"/></span>
+            }
+        </text>;
+
+    // A card as a pill with its art, as the log shows treachery cards.
+    private RenderFragment CardPill(TreacheryCard? card, TreacheryCardType type) =>
+        card == null
+            ? @<b>@Client.CurrentSkin.Describe(type)</b>
+            : @<RichText Shown="@card" Game="@Game" Class="card-chip"><img src="@Client.CurrentSkin.GetImageUrl(card)" alt=""/>@Client.CurrentSkin.Describe(card)</RichText>;
+}

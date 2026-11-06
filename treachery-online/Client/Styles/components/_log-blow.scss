@@ -1,0 +1,70 @@
+// Blow log design. See design/battle-log/log-matrix.html (Spice Blow, column A).
+
+// DECK A / DECK B over each deck's lines (Increased Spice Flow).
+.blow-deck {
+  margin: 4px 0 2px;
+}
+
+// The drawn spice card as a card, with the amount and the place beside it.
+// A card the storm took is greyed.
+.blow-card {
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 3px 2px;
+
+  .card {
+    width: 58px;
+    height: 82px;
+    border-radius: 4px;
+    object-fit: cover;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.5);
+
+    &.lost {
+      filter: grayscale(1) brightness(0.6);
+    }
+  }
+
+  .big {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+  }
+
+  .where {
+    margin-top: 5px;
+  }
+}
+
+// One line in a worm's or the Nexus' aside.
+.blow-line {
+  margin: 1px 0;
+}
+
+.blow-forces {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  vertical-align: middle;
+
+  .force-token {
+    margin: 0;
+  }
+}
+
+.blow-nexus .log-label {
+  margin-bottom: 2px;
+}
+
+// "No alliance changes", and the small lines: a worm ignored on turn 1, the
+// deck reshuffled.
+.blow-none,
+.blow-note {
+  font-size: 13.5px;
+}
+
+.blow-note {
+  margin-bottom: 4px;
+}

@@ -83,7 +83,7 @@ public partial class Game
 
         if (NumberOfCardsOnAuction == 0)
         {
-            Log("Bidding is skipped because no faction is able to buy cards");
+            Log(Message.Express("Bidding is skipped because no faction is able to buy cards").WithLog(new BiddingSkipped()));
             EndBiddingPhase();
         }
         else
@@ -106,7 +106,7 @@ public partial class Game
 
         if (numberOfCardsToDraw > 0 && IsPlaying(Faction.Grey) && !Prevented(FactionAdvantage.GreySelectingCardsOnAuction)) numberOfCardsToDraw++;
 
-        Log(numberOfCardsToDraw, " cards were drawn for bidding");
+        Log(Message.Express(numberOfCardsToDraw, " cards were drawn for bidding").WithLog(new BiddingDrawn(numberOfCardsToDraw)));
 
         for (var i = 0; i < numberOfCardsToDraw; i++)
         {
@@ -178,12 +178,18 @@ public partial class Game
         if (CurrentBid is { UsingKarmaToRemoveBidLimit: true }) CurrentBid.Player.TreacheryCards.Add(CurrentBid.KarmaCard);
     }
 
-    internal void LogBid(Player initiator, int bidAmount, int bidAllyContributionAmount, int bidRedContributionAmount, MessagePart receiverIncome)
+    // paidTo is the faction that received the spice, or Faction.None for the
+    // bank. A card won for free (Secret Ally) carries no log record.
+    internal void LogBid(Player initiator, int bidAmount, int bidAllyContributionAmount, int bidRedContributionAmount, MessagePart receiverIncome, Faction paidTo, bool free = false)
     {
         var bidTotalAmount = bidAmount + bidAllyContributionAmount + bidRedContributionAmount;
         var cardNumber = MessagePart.ExpressIf(CurrentAuctionType == AuctionType.Normal, CardNumber);
 
-        Log(
+        var shares = new List<BidShare>();
+        if (bidAllyContributionAmount > 0) shares.Add(new BidShare(initiator.Ally, bidAllyContributionAmount));
+        if (bidRedContributionAmount > 0) shares.Add(new BidShare(Faction.Red, bidRedContributionAmount));
+
+        LogBidding(free ? null : new CardSold(CardNumber, initiator.Faction, bidTotalAmount, paidTo, shares, null),
             initiator.Faction,
             " get card ",
             cardNumber,
@@ -195,26 +201,42 @@ public partial class Game
             receiverIncome);
     }
 
+    // Logs a message for everyone, with a Bidding log record in normal auctions.
+    internal void LogBidding(object? record, params object?[] expression)
+    {
+        var message = Message.Express(expression);
+        if (record != null && CurrentAuctionType == AuctionType.Normal) message.WithLog(record);
+        CurrentReport.Express(message);
+    }
+
+    // Logs a message for one faction, with a Bidding log record in normal auctions.
+    internal void LogBiddingTo(Faction faction, object record, params object?[] expression)
+    {
+        var message = Message.ExpressTo(faction, expression);
+        if (CurrentAuctionType == AuctionType.Normal) message.WithLog(record);
+        CurrentReport.Express(message);
+    }
+
     internal TreacheryCard WinByHighestBid(Player winner, IBid bid, int bidAmount, int bidAllyContributionAmount, int bidRedContributionAmount, Faction paymentReceiver, Deck<TreacheryCard> toDrawFrom, bool usesRedSecretAlly)
     {
         var receiverIncomeMessage = MessagePart.Express();
 
         if (!usesRedSecretAlly)
         {
-            PayForCard(winner, bid, bidAmount, bidAllyContributionAmount, bidRedContributionAmount, paymentReceiver, ref receiverIncomeMessage);
-            LogBid(winner, bidAmount, bidAllyContributionAmount, bidRedContributionAmount, receiverIncomeMessage);
+            var paidTo = PayForCard(winner, bid, bidAmount, bidAllyContributionAmount, bidRedContributionAmount, paymentReceiver, ref receiverIncomeMessage);
+            LogBid(winner, bidAmount, bidAllyContributionAmount, bidRedContributionAmount, receiverIncomeMessage, paidTo);
         }
         else
         {
             PlayNexusCard(winner, "Secret Ally", "get this card for free");
-            LogBid(winner, 0, 0, 0, receiverIncomeMessage);
+            LogBid(winner, 0, 0, 0, receiverIncomeMessage, Faction.None, true);
         }
 
         Stone(Milestone.AuctionWon);
         var card = toDrawFrom.Draw();
         RegisterWonCardAsKnown(card);
         winner.TreacheryCards.Add(card);
-        LogTo(winner.Faction, "You won: ", card);
+        LogBiddingTo(winner.Faction, new CardWonShown(card), "You won: ", card);
         GivePlayerExtraCardIfApplicable(winner);
         return card;
     }
@@ -233,8 +255,10 @@ public partial class Game
         }
     }
 
-    internal void PayForCard(Player initiator, IBid bid, int bidAmount, int bidAllyContributionAmount, int bidRedContributionAmount, Faction paymentReceiver, ref MessagePart message)
+    // Returns the faction that received the spice, or Faction.None when it went to the bank.
+    internal Faction PayForCard(Player initiator, IBid bid, int bidAmount, int bidAllyContributionAmount, int bidRedContributionAmount, Faction paymentReceiver, ref MessagePart message)
     {
+        var paidTo = Faction.None;
         initiator.Resources -= bidAmount;
 
         var receiverProfit = 0;
@@ -282,6 +306,7 @@ public partial class Game
                 ModifyIncomeBecauseOfLowThresholdOrOccupation(receiver, ref receiverProfit);
                 receiver.Resources += receiverProfit;
                 receiver.ResourcesAfterBidding += bidRedContributionAmount;
+                paidTo = receiver.Faction;
                 message = MessagePart.Express(" → ", receiver.Faction, " get ", Payment.Of(receiverProfit),
                     redReceivedInsteadMessage,
                     MessagePart.ExpressIf(bidRedContributionAmount > 0, " immediately and ", Payment.Of(bidRedContributionAmount), " at the end of the bidding phase"));
@@ -296,9 +321,12 @@ public partial class Game
         else if (totalAmountReceivedByRedInsteadOfWhite > 0)
         {
             message = MessagePart.Express(" → ", Faction.Red, " get ", Payment.Of(totalAmountReceivedByRedInsteadOfWhite));
+            paidTo = Faction.Red;
         }
 
         if (totalAmount - receiverProfit - totalAmountReceivedByRedInsteadOfWhite >= 4) ActivateBanker(initiator);
+
+        return paidTo;
     }
 
     internal void GivePlayerExtraCardIfApplicable(Player winner)
@@ -342,8 +370,8 @@ public partial class Game
                 if (extraCard != null)
                 {
                     receiver.TreacheryCards.Add(extraCard);
-                    Log(receiver.Faction, " receive an extra treachery card");
-                    LogTo(receiver.Faction, "Your extra card is: ", extraCard);
+                    LogBidding(new ExtraCardReceived(receiver.Faction), receiver.Faction, " receive an extra treachery card");
+                    LogBiddingTo(receiver.Faction, new ExtraCardShown(extraCard), "Your extra card is: ", extraCard);
 
                     if (extraCardMustBeDecidedAbout) CardThatMustBeKeptOrGivenToAlly = extraCard;
                 }
@@ -355,7 +383,7 @@ public partial class Game
     {
         if (TreacheryDeck?.IsEmpty is true)
         {
-            Log("Shuffled ", TreacheryDiscardPile!.Items.Count, " cards from the treachery discard pile into a new deck");
+            Log(Message.Express("Shuffled ", TreacheryDiscardPile!.Items.Count, " cards from the treachery discard pile into a new deck").WithLog(new TreacheryReshuffled(TreacheryDiscardPile.Items.Count)));
 
             foreach (var i in TreacheryDiscardPile.Items)
             {

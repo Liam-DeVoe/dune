@@ -62,7 +62,7 @@ public class DealRejected : GameEvent
 
     protected override void ExecuteConcreteEvent()
     {
-        Log();
+        Log(GetMessage().WithLog(AsideLog.Aside));
 
         var offer = OpenOffer;
         if (offer != null) Game.RecordDealResponse(offer, Initiator, false);

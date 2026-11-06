@@ -37,7 +37,7 @@ public class OrangeDelay : GameEvent
     protected override void ExecuteConcreteEvent()
     {
         Game.BeginningOfShipmentAndMovePhase = false;
-        Log();
+        Log(GetMessage().WithLog(new GuildDelayed()));
         Game.Enter(Phase.NonOrangeShip);
     }
 

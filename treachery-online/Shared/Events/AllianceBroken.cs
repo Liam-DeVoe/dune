@@ -38,7 +38,7 @@ public class AllianceBroken : GameEvent
 
     protected override void ExecuteConcreteEvent()
     {
-        Log();
+        Log(GetMessage().WithLog(new NexusLog(Alliance: new NexusAlliance(NexusAllianceChange.Ended, Initiator, Player.Ally))));
         Game.BreakAlliance(Initiator);
         Game.LetFactionsDiscardSurplusCards();
     }

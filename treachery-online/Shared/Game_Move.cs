@@ -63,7 +63,7 @@ public partial class Game
         var orangeIsOnAutoDelay = orange != null && IsAutomated(AutomationRuleType.ShipmentOrangeAutoDelay, orange);
         if (orangeHasToAct && orangeIsOnAutoDelay && orangeMayDelay)
         {
-            Log(Faction.Orange, " delay their shipment");
+            Log(Message.Express(Faction.Orange, " delay their shipment").WithLog(new GuildDelayed()));
         }
 
         return orangeHasToAct && !(orangeIsOnAutoDelay && orangeMayDelay);
@@ -76,6 +76,7 @@ public partial class Game
         LastShipmentOrMovement = evt;
         var wasOccupiedBeforeMove = IsOccupied(evt.To.Territory);
         var dist = DetermineMaximumMoveDistance(initiator, forceLocations.Values);
+        int? moveNumber = evt is Move or Caravan ? ++MovesLogged : null;
 
         foreach (var fromTerritory in forceLocations.Keys.Select(l => l.Territory).Distinct())
         {
@@ -94,7 +95,7 @@ public partial class Game
             if (totalNumberOfForces > 0 || totalNumberOfSpecialForces > 0)
             {
                 var fromLocations = forceLocations.Where(fl => fl.Key.Territory == fromTerritory && fl.Value.TotalAmountOfForces > 0).Select(fl => fl.Key);
-                LogMove(initiator, fromTerritory, fromLocations, evt.To, totalNumberOfForces, totalNumberOfSpecialForces, wasOccupiedBeforeMove && asAdvisors, byCaravan);
+                LogMove(initiator, fromTerritory, fromLocations, evt.To, totalNumberOfForces, totalNumberOfSpecialForces, wasOccupiedBeforeMove && asAdvisors, byCaravan, moveNumber);
             }
         }
 
@@ -150,7 +151,8 @@ public partial class Game
                 initiator.KillForces(from, battalion.AmountOfForces, battalion.AmountOfSpecialForces, false);
             }
 
-            if (killCount > 0) Log(killCount, initiator.Faction, "forces are killed by the storm while travelling");
+            if (killCount > 0) Log(Message.Express(killCount, initiator.Faction, " forces are killed by the storm while travelling")
+                .WithLog(new ShipMoveLoss(initiator.Faction, true, true, killCount, null)));
         }
         else
         {
@@ -170,9 +172,16 @@ public partial class Game
         return !targetsAvoidingStorm.Contains(to) && targetsIgnoringStorm.Contains(to);
     }
 
-    internal void LogMove(Player initiator, Territory from, IEnumerable<Location> fromLocations, Location to, int forceAmount, int specialForceAmount, bool asAdvisors, bool byCaravan)
+    // Counts logged moves, so the phase log can join the lines of a move from
+    // several territories.
+    private int MovesLogged { get; set; }
+
+    // moveNumber is set for a faction's own move (or Hajr move) in the
+    // Ship & Move phase; those lines carry a record for the phase log.
+    internal void LogMove(Player initiator, Territory from, IEnumerable<Location> fromLocations, Location to, int forceAmount, int specialForceAmount, bool asAdvisors, bool byCaravan, int? moveNumber = null)
     {
-        Log(Message.Express(
+        var blueAs = initiator.Is(Faction.Blue) && Applicable(Rule.BlueAdvisors);
+        var message = Message.Express(
             CaravanMessage(byCaravan),
             initiator.Faction,
             " move ",
@@ -182,8 +191,13 @@ public partial class Game
             from,
             " to ",
             to,
-            MessagePart.ExpressIf(initiator.Is(Faction.Blue) && Applicable(Rule.BlueAdvisors), " as ", asAdvisors ? initiator.SpecialForce : initiator.Force))
-            .WithRoute(initiator.Faction, fromLocations, to));
+            MessagePart.ExpressIf(blueAs, " as ", asAdvisors ? initiator.SpecialForce : initiator.Force))
+            .WithRoute(initiator.Faction, fromLocations, to);
+
+        if (moveNumber is { } nr)
+            message.WithLog(new MoveLogged(initiator.Faction, nr, from, forceAmount, specialForceAmount, to, byCaravan, blueAs ? asAdvisors : null));
+
+        Log(message);
     }
 
     private static MessagePart CaravanMessage(bool byCaravan)
@@ -317,7 +331,7 @@ public partial class Game
             InOrangeCunningShipment = false;
         }
 
-        Log(player.Faction, " pass movement");
+        Log(Message.Express(player.Faction, " pass movement").WithLog(new MovePassed(player.Faction)));
 
         DetermineNextShipmentAndMoveSubPhase();
         CheckIfForcesShouldBeDestroyedByAllyPresence(player);
@@ -668,7 +682,8 @@ public partial class Game
             foreach (var t in ChosenDestinationsWithAllies)
                 if (!(specialForcesAreAllowed && p.SpecialForcesIn(t) > 0) && p.AnyForcesIn(t) > 0)
                 {
-                    Log("All ", p.Faction, " forces in ", t, " were killed due to ally presence");
+                    Log(Message.Express("All ", p.Faction, " forces in ", t, " were killed due to ally presence")
+                        .WithLog(new ShipMoveLoss(p.Faction, false, false, 0, t)));
                     RevealCurrentNoField(p, t);
                     p.KillAllForces(t, false);
                 }
@@ -686,7 +701,8 @@ public partial class Game
 
                 foreach (var t in playerTerritories.Intersect(allyTerritories).Where(x => x != Map.PolarSink.Territory).ToList())
                 {
-                    Log("All ", p.Faction, " forces in ", t, " were killed due to ally presence");
+                    Log(Message.Express("All ", p.Faction, " forces in ", t, " were killed due to ally presence")
+                        .WithLog(new ShipMoveLoss(p.Faction, false, false, 0, t)));
                     RevealCurrentNoField(p, t);
                     p.KillAllForces(t, false);
                 }

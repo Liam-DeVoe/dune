@@ -1,0 +1,73 @@
+// Bidding log design. See design/battle-log/log-matrix.html.
+
+// "N cards were drawn for bidding", the reshuffle, "Bidding ends because
+// everyone passed": small lines around the card blocks.
+.bid-note {
+  font-size: 13.5px;
+  color: var(--parchment);
+  margin: 2px 0;
+}
+
+// One card: number, winner, and the price on the right; what followed from
+// the sale hangs under it.
+.bid-lot {
+  margin: 5px 0;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--ink-1);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+
+  .top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .n {
+    font-family: var(--font-display);
+    color: var(--sand);
+    font-size: 14px;
+    width: 48px;
+    flex: none;
+  }
+
+  // The price with its payee under it, or the Karama card played.
+  .price {
+    margin-left: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+
+  .payee {
+    font-size: 12.5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    img {
+      width: 22px;
+      height: 22px;
+    }
+  }
+
+  .under {
+    margin: 4px 0 0 56px;
+    font-size: 13.5px;
+    color: var(--parchment);
+    display: grid;
+    gap: 3px;
+  }
+
+  // A line only the viewer sees, italic like private lines elsewhere in the log.
+  .private {
+    font-style: italic;
+  }
+
+  // Everyone passed on this card: nobody bought it.
+  &.unsold {
+    border-style: dashed;
+    border-color: rgba(252, 249, 209, 0.18);
+  }
+}

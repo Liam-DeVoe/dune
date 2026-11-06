@@ -1,0 +1,91 @@
+// Storm log design. See design/battle-log/log-matrix.html (Storm, column C).
+// The ring of 18 sectors: the swept stretch red, the sector the storm stopped
+// in darker, the one it started in faint. A hovered sector, or the sectors of
+// a hovered place box, light up (.hot).
+
+.storm-ring {
+  display: block;
+  margin: 2px auto 4px;
+
+  .w {
+    fill: #2a1607;
+    stroke: #1d0c00;
+    stroke-width: 2;
+    transition: fill 0.1s;
+
+    &.start { fill: rgba(195, 50, 50, 0.22); }
+    &.swept { fill: rgba(195, 50, 50, 0.55); }
+    &.end { fill: rgba(195, 50, 50, 0.8); }
+    &.hot { fill: rgba(252, 249, 209, 0.28); }
+    &.start.hot, &.swept.hot, &.end.hot { fill: #e05a4a; }
+  }
+
+  .rim {
+    fill: none;
+    stroke: var(--gold);
+    stroke-opacity: 0.6;
+    stroke-width: 1.8;
+  }
+
+  .arrow {
+    fill: none;
+    stroke: var(--parchment);
+    stroke-opacity: 0.85;
+    stroke-width: 3;
+    stroke-linecap: round;
+  }
+
+  marker path { fill: var(--parchment); }
+
+  .distance {
+    font-family: var(--font-display);
+    font-size: 38px;
+    fill: var(--parchment);
+  }
+
+  .label {
+    font-family: var(--font-label);
+    font-size: 9px;
+    letter-spacing: 2px;
+    fill: var(--text-3);
+  }
+}
+
+// The two dials under the ring: "[Atreides] 7 + [Emperor] 5".
+.storm-dials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--parchment);
+
+  .plus { margin: 0 2px; }
+}
+
+.storm-place {
+  transition: background 0.1s;
+
+  &.hot {
+    background: rgba(195, 50, 50, 0.22);
+    border-color: rgba(195, 50, 50, 0.5);
+  }
+
+  .lines > div {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    color: var(--parchment);
+  }
+}
+
+// A count and its force icon, kept together.
+.storm-forces {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+
+  .force-token { margin: 0; }
+}

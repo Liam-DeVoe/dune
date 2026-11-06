@@ -111,10 +111,7 @@
                     }
                     else
                     {
-                        foreach (var message in Visible(report))
-                        {
-                            @Line(message)
-                        }
+                        @PhaseLog(report)
                     }
                 }
             }
@@ -164,6 +161,25 @@
         _selected = index == steps.Count - 1 ? null : (steps[index].Turn, steps[index].About);
     }
 
+    // Each main phase draws its own log design; phases without one are plain lines.
+    private RenderFragment PhaseLog(Report report)
+    {
+        var messages = Visible(report).ToList();
+        RenderFragment<Message> line = m => Line(m);
+        return report.About switch
+        {
+            MainPhase.Storm => @<StormLog Messages="@messages" Line="@line"/>,
+            MainPhase.Blow => @<BlowLog Messages="@messages" Line="@line"/>,
+            MainPhase.Charity => @<CharityLog Messages="@messages" Line="@line"/>,
+            MainPhase.Bidding => @<BiddingLog Messages="@messages" Line="@line"/>,
+            MainPhase.Resurrection => @<RevivalLog Messages="@messages" Line="@line"/>,
+            MainPhase.ShipmentAndMove => @<ShipMoveLog Messages="@messages" Line="@line"/>,
+            MainPhase.Collection => @<CollectionLog Messages="@messages" Line="@line"/>,
+            MainPhase.Contemplate => @<MentatLog Messages="@messages" Line="@line"/>,
+            _ => @<text>@foreach (var message in messages) { @Line(message) }</text>
+        };
+    }
+
     private IEnumerable<Message> Visible(Report report) =>
         report.Messages.Where(m => m.Target == Faction.None || m.Target == Client.Faction);
 
@@ -208,6 +224,12 @@
                     @Plan(plans.Defender, [])
                 </div>
             }
+            else if (message.Log is AsideLog aside)
+            {
+                <div class="log-aside @AsideClass(aside)" style="@FontStyle(message)">
+                    @AsideParts(message.Expression)
+                </div>
+            }
             else if (message.Route is { } route)
             {
                 <div style="@FontStyle(message); --fc:@Client.CurrentSkin.GetFactionColor(route.Faction)" data-ref-locations="@RouteLocations(route)" data-ref-arrow="@RouteArrow(route)">
@@ -221,6 +243,68 @@
                 </div>
             }
         </text>;
+
+    private static string AsideClass(AsideLog aside) => aside.Kind switch
+    {
+        AsideKind.Answer => "answer",
+        AsideKind.After => "after",
+        _ => ""
+    };
+
+    // An aside's sentence, part by part as the log draws it, except that a
+    // faction advantage ("Fremen not taking storm losses when hit") gets its
+    // faction as a pill and its spice as the spice icon, in plain text.
+    private RenderFragment AsideParts(Expression expression) =>
+        @<text>
+            @foreach (var part in expression.Elements)
+            {
+                switch (part)
+                {
+                    case MessagePart mp:
+                        @AsideParts(mp.Expression)
+                        break;
+                    case Message m:
+                        @AsideParts(m.Expression)
+                        break;
+                    case FactionAdvantage advantage:
+                        @Advantage(advantage)
+                        break;
+                    default:
+                        <ExpressionComponent Expression="@(new Expression(new[] { part }))" Game="@Game" Size="20" LogStyle/>
+                        break;
+                }
+            }
+        </text>;
+
+    private RenderFragment Advantage(FactionAdvantage advantage)
+    {
+        var skin = Client.CurrentSkin;
+        var text = skin.Describe(advantage);
+        var owner = AdvantageOwner(advantage);
+        var name = owner == Faction.None ? "" : skin.Describe(owner);
+        var named = name.Length > 0 && text.StartsWith(name, StringComparison.Ordinal);
+        var rest = named ? text[name.Length..] : text;
+        return @<text>@if (named) {<FactionChip Faction="@owner" Game="@Game"/>}<span>@((MarkupString)WithSpice(rest))</span></text>;
+    }
+
+    // The faction an advantage belongs to, from the colour its name starts with.
+    private static Faction AdvantageOwner(FactionAdvantage advantage)
+    {
+        var colour = System.Text.RegularExpressions.Regex.Match(advantage.ToString(), "^[A-Z][a-z]+").Value;
+        return Enum.TryParse<Faction>(colour, out var faction) ? faction : Faction.None;
+    }
+
+    // The text as HTML with "2 spice" as the spice amount and a lone "spice" as
+    // the spice icon. "Spice card", "spice blow" and "spice deck" stay words.
+    private string WithSpice(string text)
+    {
+        var skin = Client.CurrentSkin;
+        var name = System.Text.RegularExpressions.Regex.Escape(skin.Describe(Concept.Resource));
+        return System.Text.RegularExpressions.Regex.Replace(System.Net.WebUtility.HtmlEncode(text),
+            $@"\b(?:(\d+) )?{name}\b(?! (?:cards?|blows?|decks?)\b)",
+            m => skin.SpiceHtml(m.Groups[1].Value, 20),
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+    }
 
     // The messages after a battle's revealed plans that state its outcome:
     // strengths, the winner, kills, traitors, and what the two sides lost.

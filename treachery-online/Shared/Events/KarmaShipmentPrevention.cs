@@ -50,9 +50,8 @@ public class KarmaShipmentPrevention : GameEvent
     protected override void ExecuteConcreteEvent()
     {
         Game.CurrentKarmaShipmentPrevention = this;
-        Game.Discard(Player, Karma.ValidKarmaCards(Game, Player).FirstOrDefault());
+        Game.PlayKarma(Player, Karma.ValidKarmaCards(Game, Player).FirstOrDefault(), "prevent shipment by ", Target);
         Player.SpecialKarmaPowerUsed = true;
-        Log();
         Game.Stone(Milestone.Karma);
     }
 

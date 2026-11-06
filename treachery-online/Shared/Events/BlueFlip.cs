@@ -49,7 +49,7 @@ public class BlueFlip : GameEvent
 
     protected override void ExecuteConcreteEvent()
     {
-        Log(GetDynamicMessage());
+        Log(GetDynamicMessage().WithLog(LogRecord()));
 
         Player.FlipForces(Game.LastShipmentOrMovement!.To!.Territory, AsAdvisors);
 
@@ -62,6 +62,13 @@ public class BlueFlip : GameEvent
     public override Message GetMessage()
     {
         return Message.Express(Initiator, " flip to ", AsAdvisors ? FactionSpecialForce.Blue : FactionForce.Blue);
+    }
+
+    private BlueReaction LogRecord()
+    {
+        var territory = GetTerritory(Game);
+        var become = (Player.SpecialForcesIn(territory) > 0) ^ AsAdvisors;
+        return new BlueReaction(become ? BlueReactionKind.Become : BlueReactionKind.StayAs, territory, AsAdvisors);
     }
 
     public Message GetDynamicMessage()

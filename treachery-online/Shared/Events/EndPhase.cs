@@ -190,7 +190,7 @@ public class EndPhase : GameEvent
 
     private void EnterNormalStormPhase()
     {
-        Log("The storm moves ", Game.NextStormMoves, " sectors");
+        Log(Message.Express("The storm moves ", Game.NextStormMoves, " sectors").WithLog(new StormMoved(Game.SectorInStorm, Game.NextStormMoves)));
         Game.MoveStormAndDetermineNext(Game.NextStormMoves);
         Game.EndStormPhase();
     }

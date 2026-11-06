@@ -1,0 +1,27 @@
+// Any log design. See design/battle-log/log-matrix.html.
+
+// Asides (.log-aside in _log-kit.scss) come from the report's plain line
+// (ReportComponent.Line), for messages marked with AsideLog.
+
+// A Truthtrance answer straight after its question joins the question's aside.
+.log-aside:has(+ .log-aside.answer) {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.log-aside + .log-aside.answer {
+  margin-top: 0;
+  padding-top: 3px;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+// The end of an effect ("... is no longer prevented"): a small note, not an aside.
+.log-aside.after {
+  margin: 2px 0;
+  padding: 0 0 0 4px;
+  background: none;
+  font-size: 12px;
+}

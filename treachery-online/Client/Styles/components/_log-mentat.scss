@@ -1,0 +1,43 @@
+// Mentat log design. See design/battle-log/log-matrix.html.
+// Bribes use the shared .log-label and .log-cols.
+
+.mentat-bribes-label {
+  margin: 3px 0 2px;
+}
+
+// The end of the game: a faint gold block with a gold hairline, centred,
+// with a gold title, as in the approved mockup.
+.mentat-result {
+  margin: 5px 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgba(231, 191, 60, 0.1);
+  border: 1px solid rgba(231, 191, 60, 0.55);
+  color: var(--parchment);
+  text-align: center;
+
+  .title {
+    font-family: var(--font-display);
+    color: var(--gold);
+    font-size: 20px;
+    line-height: 1.2;
+  }
+
+  .winners {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    margin: 6px 0;
+  }
+
+  .winner {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .reason {
+    font-size: 14px;
+  }
+}

@@ -55,9 +55,8 @@ public class KarmaMonster : GameEvent
 
     protected override void ExecuteConcreteEvent()
     {
-        Game.Discard(Player, Karma.ValidKarmaCards(Game, Player).FirstOrDefault());
+        Game.PlayKarma(Player, Karma.ValidKarmaCards(Game, Player).FirstOrDefault(), "send ", Concept.Monster, " to ", Territory);
         Player.SpecialKarmaPowerUsed = true;
-        Log();
         Game.Stone(Milestone.Karma);
         Game.NumberOfMonsters++;
         Game.LetMonsterAppear(Territory, false);

@@ -65,8 +65,7 @@ public class KarmaBrownDiscard : GameEvent
 
     protected override void ExecuteConcreteEvent()
     {
-        Game.Discard(Player, Karma.ValidKarmaCards(Game, Player).FirstOrDefault());
-        Log();
+        Game.PlayKarma(Player, Karma.ValidKarmaCards(Game, Player).FirstOrDefault(), "discard ", Cards.Select(c => MessagePart.Express(" ", c, " ")), "to get ", Payment.Of(Cards.Count() * 3));
 
         foreach (var card in Cards) Game.Discard(Player, card);
 

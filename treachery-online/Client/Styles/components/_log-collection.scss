@@ -1,0 +1,36 @@
+// Collection log design. See design/battle-log/log-matrix.html (Collection,
+// "By territory"): place, amount and faction in three aligned columns, with
+// stronghold income under a brighter rule.
+
+.log-table.collection-table {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+
+  > .cell.place {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  > .cell.amount {
+    justify-content: center;
+  }
+
+  > .cell.faction {
+    padding-right: 0;
+    justify-content: flex-start;
+  }
+
+  // The sector of a field, when its territory had two fields that paid out.
+  .sector {
+    font-size: 9.5px;
+    letter-spacing: 0.1em;
+    margin: 2px 0 0 8px;
+  }
+
+  // Stronghold income starts under this rule.
+  > .income-rule {
+    grid-column: 1 / -1;
+    margin-top: 3px;
+    border-top: 1px solid rgba(252, 249, 209, 0.22);
+  }
+}

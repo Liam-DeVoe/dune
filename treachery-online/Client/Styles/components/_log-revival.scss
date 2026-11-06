@@ -1,0 +1,58 @@
+// Revival log design. See design/battle-log/log-matrix.html.
+// The table is the shared .log-table: faction, what came back, cost.
+
+.log-table.revival-table {
+  grid-template-columns: max-content 1fr max-content;
+
+  > .what {
+    flex-wrap: wrap;
+    gap: 2px;
+
+    .leader-disc {
+      margin: 0 2px 0 0;
+    }
+
+    .force-token {
+      margin: 0;
+    }
+  }
+
+  // The Kwisatz Haderach, on a dark green disc like the mockup's token.
+  .kh {
+    width: 22px;
+    height: 22px;
+    padding: 2px;
+    border-radius: 50%;
+    background: #2c4a1c;
+    margin-right: 2px;
+  }
+
+  .note {
+    font-size: 13px;
+    color: var(--parchment);
+    margin: 0 4px 0 1px;
+  }
+
+  // Cost on the right, with who paid or who got paid on a line under it.
+  > .cost {
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 2px;
+  }
+
+  .by {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--parchment);
+    white-space: nowrap;
+  }
+
+  .sig {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+  }
+}

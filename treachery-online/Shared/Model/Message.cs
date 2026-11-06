@@ -64,6 +64,16 @@ public class Message
 
     // Set when the message states one fact of a battle's outcome, so the
     // client can gather the facts into the battle's report block.
+    // Structured data a phase's log design draws from (records in Shared/Model/Log/). The
+    // expression stays the plain-text fallback.
+    public object? Log { get; private set; }
+
+    public Message WithLog(object data)
+    {
+        Log = data;
+        return this;
+    }
+
     public BattleFact? Fact { get; private set; }
 
     public Message WithFact(BattleFact fact)

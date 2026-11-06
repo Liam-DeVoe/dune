@@ -53,8 +53,7 @@ public class KarmaWhiteBuy : GameEvent
 
     protected override void ExecuteConcreteEvent()
     {
-        Game.Discard(Player, Karma.ValidKarmaCards(Game, Player).FirstOrDefault());
-        Log();
+        Game.PlayKarma(Player, Karma.ValidKarmaCards(Game, Player).FirstOrDefault(), "buy a card from their cache for ", Payment.Of(3));
         Player.TreacheryCards.Add(Card);
         Game.WhiteCache.Remove(Card);
         Player.Resources -= 3;

@@ -112,7 +112,13 @@ public class RaiseDeadPlayed : GameEvent, ILocationEvent
     protected override void ExecuteConcreteEvent()
     {
         Game.Stone(Milestone.RaiseDead);
-        Log();
+        // The revival log draws this as a row with the card in the cost column. A face-down
+        // leader keeps the plain line so the table doesn't name them.
+        var card = Player.TreacheryCards.FirstOrDefault(c => c.Type == TreacheryCardType.RaiseDead);
+        var message = GetMessage();
+        if (Hero == null || !Game.IsFaceDownDead(Hero))
+            message.WithLog(new RevivalRow(Initiator, Hero == null ? AmountOfForces : 0, Hero == null ? AmountOfSpecialForces : 0, 0) { Hero = Hero, Card = card });
+        Game.CurrentReport.Express(message);
         Game.Discard(Player, TreacheryCardType.RaiseDead);
 
         var purple = GetPlayer(Faction.Purple);

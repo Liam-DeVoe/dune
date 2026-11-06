@@ -46,9 +46,9 @@ public class KarmaHandSwapInitiated : GameEvent
         Game.Enter(Phase.PerformingKarmaHandSwap);
 
         var victim = GetPlayer(Target);
+        var karama = Karma.ValidKarmaCards(Game, Player).FirstOrDefault();
 
         Player.SpecialKarmaPowerUsed = true;
-        Game.Discard(Player, Karma.ValidKarmaCards(Game, Player).FirstOrDefault());
 
         Game.KarmaHandSwapNumberOfCards = victim.TreacheryCards.Count;
         Game.KarmaHandSwapTarget = Target;
@@ -64,7 +64,7 @@ public class KarmaHandSwapInitiated : GameEvent
             Player.TreacheryCards.Add(card);
         }
 
-        Log();
+        Game.PlayKarma(Player, karama, "swap cards with ", Target);
         Game.Stone(Milestone.Karma);
     }
 

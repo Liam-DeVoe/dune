@@ -38,7 +38,7 @@ public class KarmaPinkDial : GameEvent
 
     protected override void ExecuteConcreteEvent()
     {
-        Game.Discard(Player, Karma.ValidKarmaCards(Game, Player).FirstOrDefault());
+        var karama = Karma.ValidKarmaCards(Game, Player).FirstOrDefault();
         Player.SpecialKarmaPowerUsed = true;
         Game.Stone(Milestone.Karma);
         var myLeader = Game.CurrentBattle.PlanOf(Initiator).Hero;
@@ -46,7 +46,7 @@ public class KarmaPinkDial : GameEvent
 
         if (myLeader != null && opponentLeader != null) Game.PinkKarmaBonus = Math.Abs(myLeader.Value - opponentLeader.ValueInCombatAgainst(myLeader));
 
-        Log("Using ", TreacheryCardType.Karma, ", ", Initiator, " add ", Game.PinkKarmaBonus, " to their dial");
+        Game.PlayKarma(Player, karama, "add ", Game.PinkKarmaBonus, " to their dial");
     }
 
     public override Message GetMessage()

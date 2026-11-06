@@ -29,6 +29,9 @@ bld/
 [Bb]in/
 [Oo]bj/
 [Ll]og/
+# The phase log designs live in Log/ folders; keep them.
+!Client/OtherComponents/Log/
+!Shared/Model/Log/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/

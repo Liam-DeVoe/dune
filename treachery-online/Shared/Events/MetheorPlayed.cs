@@ -67,13 +67,22 @@ public class MetheorPlayed : GameEvent
         Game.ShieldWallDestroyed = true;
         Player.TreacheryCards.Remove(card);
         Game.RemovedTreacheryCards.Add(card);
-        Log();
+        Log(GetMessage().WithLog(new FamilyAtomicsUsed(Initiator, card)));
 
         foreach (var p in Game.Players)
-        foreach (var location in Game.Map.ShieldWall.Locations.Where(l => p.AnyForcesIn(l) > 0))
         {
-            Game.RevealCurrentNoField(p, location);
-            p.KillAllForces(location, false);
+            int forces = 0, specialForces = 0;
+            foreach (var location in Game.Map.ShieldWall.Locations.Where(l => p.AnyForcesIn(l) > 0))
+            {
+                Game.RevealCurrentNoField(p, location);
+                forces += p.ForcesIn(location);
+                specialForces += p.SpecialForcesIn(location);
+                p.KillAllForces(location, false);
+            }
+
+            if (forces + specialForces > 0)
+                Log(Message.Express(TreacheryCardType.Metheor, " kills ", forces + specialForces, p.Faction, " forces on the ", Game.Map.ShieldWall)
+                    .WithLog(new FamilyAtomicsKilled(p.Faction, forces, specialForces)));
         }
     }
 

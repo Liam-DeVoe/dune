@@ -107,7 +107,7 @@ public partial class Game
     internal void RevealStorm()
     {
         HasActedOrPassed.Clear();
-        Log("The storm will move ", NextStormMoves, " sectors...");
+        Log(Message.Express("The storm will move ", NextStormMoves, " sectors...").WithLog(new StormForecast(NextStormMoves)));
         Enter(Phase.MetheorAndStormSpell);
     }
 
@@ -147,6 +147,8 @@ public partial class Game
             if (player is null) continue;
 
             var killCount = 0;
+            var killedForces = 0;
+            var killedSpecialForces = 0;
             if (battalion.Is(Faction.Yellow) && Applicable(Rule.YellowStormLosses))
             {
                 if (!Prevented(FactionAdvantage.YellowProtectedFromStorm))
@@ -156,6 +158,8 @@ public partial class Game
                 else
                 {
                     killCount += player.AnyForcesIn(l.Key);
+                    killedForces += player.ForcesIn(l.Key);
+                    killedSpecialForces += player.SpecialForcesIn(l.Key);
                     player.KillAllForces(l.Key, false);
                     if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.YellowProtectedFromStorm);
                 }
@@ -168,10 +172,14 @@ public partial class Game
             {
                 RevealCurrentNoField(player, l.Key);
                 killCount += player.AnyForcesIn(l.Key);
+                killedForces += player.ForcesIn(l.Key);
+                killedSpecialForces += player.SpecialForcesIn(l.Key);
                 player.KillAllForces(l.Key, false);
             }
 
-            if (killCount > 0) Log("The storm kills ", killCount, battalion.Faction, " forces in ", l.Key);
+            if (killCount > 0)
+                Log(Message.Express("The storm kills ", killCount, battalion.Faction, " forces in ", l.Key)
+                    .WithLog(new StormKilled(battalion.Faction, l.Key, killedForces, killedSpecialForces)));
         }
 
         if (Version >= 163) FlipBlueAdvisorsWhenAlone();
@@ -192,7 +200,9 @@ public partial class Game
         foreach (var l in Map.Locations(false).Where(l => l.Sector == SectorInStorm))
         {
             var removed = RemoveResources(l);
-            if (removed > 0) Log("The storm destroys ", Payment.Of(removed), " in ", l);
+            if (removed > 0)
+                Log(Message.Express("The storm destroys ", Payment.Of(removed), " in ", l)
+                    .WithLog(new StormDestroyedSpice(l, removed)));
         }
     }
 

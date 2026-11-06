@@ -50,7 +50,7 @@ public partial class Game
         playerB!.Ally = a;
         DiscardNexusCard(playerA);
         DiscardNexusCard(playerB);
-        Log(a, " and ", b, " are now allies");
+        Log(Message.Express(a, " and ", b, " are now allies").WithLog(new NexusLog(Alliance: new NexusAlliance(NexusAllianceChange.Made, a, b))));
 
         if (Version > 150)
         {
@@ -68,7 +68,7 @@ public partial class Game
         foreach (var p in Players.Where(p => p.HasAlly).ToList())
             if (p.HasAlly)
             {
-                Log(p.Faction, " and ", p.Ally, " alliance is broken");
+                Log(Message.Express(p.Faction, " and ", p.Ally, " alliance is broken").WithLog(new NexusLog(Alliance: new NexusAlliance(NexusAllianceChange.Ended, p.Faction, p.Ally))));
                 BreakAlliance(p.Faction);
             }
     }

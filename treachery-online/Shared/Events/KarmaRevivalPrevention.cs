@@ -50,9 +50,8 @@ public class KarmaRevivalPrevention : GameEvent
     protected override void ExecuteConcreteEvent()
     {
         Game.CurrentKarmaRevivalPrevention = this;
-        Game.Discard(Player, Karma.ValidKarmaCards(Game, Player).FirstOrDefault());
+        Game.PlayKarma(Player, Karma.ValidKarmaCards(Game, Player).FirstOrDefault(), "prevent revival by ", Target);
         Player.SpecialKarmaPowerUsed = true;
-        Log();
         Game.Stone(Milestone.Karma);
     }
 

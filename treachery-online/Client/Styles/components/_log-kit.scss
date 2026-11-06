@@ -1,0 +1,84 @@
+// Pieces the phase log designs share (design/battle-log/log-matrix.html).
+// Log text is parchment; only small caps labels are grey. No red or gold
+// tints on log text: the only "you" mark is the gold tint of your own
+// faction chip.
+
+// An aside: a card play, a deal, a flip. Card and faction are pills inside
+// the sentence; nothing on the left.
+.log-aside {
+  margin: 5px 0;
+  padding: 5px 7px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.22);
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--parchment);
+}
+
+// Small caps label: DECK A, NEXUS, SHIP, MOVE.
+.log-label {
+  font-family: var(--font-label);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+// Two aligned columns: faction pills left, amounts right (charity, bribes).
+.log-cols {
+  display: grid;
+  grid-template-columns: max-content max-content;
+  gap: 5px 14px;
+  align-items: center;
+  justify-content: start;
+  padding: 3px 0;
+}
+
+// A table whose rows are separated by one unbroken hairline. Set the
+// columns with grid-template-columns; every cell is a direct child.
+.log-table {
+  display: grid;
+  align-items: stretch;
+
+  > .cell {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 5px 10px 5px 0;
+    border-top: 1px solid rgba(252, 249, 209, 0.07);
+
+    &.first {
+      border-top: 0;
+    }
+
+    &:last-child,
+    &.end {
+      padding-right: 0;
+      justify-content: flex-end;
+    }
+  }
+}
+
+// A box: one place, one card, one turn.
+.log-box {
+  margin: 5px 0;
+  padding: 5px 7px 6px;
+  border-radius: 6px;
+  background: rgba(18, 8, 0, 0.25);
+  border: 1px solid rgba(252, 249, 209, 0.1);
+
+  .lines {
+    display: grid;
+    gap: 3px;
+    margin-top: 4px;
+  }
+}
+
+// "Nothing to report" for an empty phase.
+.log-empty {
+  color: var(--parchment);
+  font-style: italic;
+  font-size: 14px;
+  text-align: center;
+  padding: 4px 0;
+}

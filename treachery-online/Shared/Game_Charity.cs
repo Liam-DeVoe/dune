@@ -76,7 +76,8 @@ public partial class Game
         }
         else
         {
-            Log(to.Faction, " claim ", Payment.Of(basicAmount + homeworldBonus));
+            var amount = basicAmount + homeworldBonus;
+            Log(Message.Express(to.Faction, " claim ", Payment.Of(amount)).WithLog(new CharityClaim(to.Faction, amount)));
         }
     }
 

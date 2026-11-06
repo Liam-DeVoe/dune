@@ -1,0 +1,72 @@
+// Ship & Move log design: one block per faction turn. See
+// design/battle-log/log-matrix.html (Ship & Move, "One block per turn").
+
+// A faction's turn, in a .log-box: its number and pill, then the rows.
+.shipmove-turn {
+  .head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .nr {
+    width: 12px;
+    font-family: var(--font-display);
+    font-size: 14px;
+    color: var(--text-3);
+  }
+
+  // Label column (SHIP, MOVE, +) and content column.
+  .rows {
+    display: grid;
+    grid-template-columns: 38px 1fr;
+    gap: 3px 6px;
+    align-items: start;
+    margin: 4px 0 0 20px;
+    font-size: 14px;
+    color: var(--parchment);
+
+    > .log-label {
+      padding-top: 5px;
+      font-size: 9.5px;
+      letter-spacing: 0.1em;
+    }
+
+    > .plus {
+      opacity: 0.6;
+    }
+
+    // A line the design doesn't draw, kept in its place in the turn.
+    > .other {
+      grid-column: 1 / -1;
+    }
+  }
+
+  .route {
+    display: flex;
+    align-items: center;
+    gap: 3px 4px;
+    flex-wrap: wrap;
+    min-height: 24px;
+  }
+
+  .forces {
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+  }
+
+  .small {
+    font-size: 13.5px;
+  }
+}
+
+// "Guild delay their turn", between blocks.
+.shipmove-delay {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 2px 26px;
+  font-size: 13.5px;
+  color: var(--parchment);
+}

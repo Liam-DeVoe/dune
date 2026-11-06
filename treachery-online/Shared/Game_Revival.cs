@@ -184,11 +184,15 @@ public partial class Game
         FreeRevivalsThisTurn[player.Faction] = FreeRevivalsThisTurn.GetValueOrDefault(player.Faction, 0) + freeRevivedNormalForces + freeRevivedSpecialForces;
         TotalRevivalsThisTurn[player.Faction] = TotalRevivalsThisTurn.GetValueOrDefault(player.Faction, 0) + freeRevivedNormalForces + freeRevivedSpecialForces;
         
-        Log(player.Faction, " revive ",
+        Log(Message.Express(player.Faction, " revive ",
             MessagePart.ExpressIf(freeRevivedSpecialForces > 0, freeRevivedSpecialForces, player.SpecialForce),
             MessagePart.ExpressIf(freeRevivedNormalForces > 0, freeRevivedNormalForces, player.Force),
             " for free",
-            MessagePart.ExpressIf(purpleReceivesIncome, Faction.Purple, " receive ", Payment.Of(1)));
+            MessagePart.ExpressIf(purpleReceivesIncome, Faction.Purple, " receive ", Payment.Of(1)))
+            .WithLog(new RevivalRow(player.Faction, freeRevivedNormalForces, freeRevivedSpecialForces, 0)
+            {
+                PurpleIncome = purpleReceivesIncome ? 1 : 0
+            }));
         
         Stone(Milestone.Revival);
     }

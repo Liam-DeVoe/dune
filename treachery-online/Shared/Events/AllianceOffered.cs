@@ -66,7 +66,7 @@ public class AllianceOffered : GameEvent
         }
         else
         {
-            Log();
+            Log(GetMessage().WithLog(new NexusLog(Alliance: new NexusAlliance(NexusAllianceChange.Offered, Initiator, Target))));
             Game.CurrentAllianceOffers.Add(this);
         }
     }

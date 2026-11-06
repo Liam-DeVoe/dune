@@ -54,7 +54,8 @@ public class Discarded : GameEvent
     protected override void ExecuteConcreteEvent()
     {
         Game.FactionsThatMustDiscard.Remove(Initiator);
-        Game.Discard(Player, Card);
+        Log(GetMessage().WithFact(new BattleFact(BattleFactKind.Discard, Initiator) { Card = Card }).WithLog(AsideLog.Aside));
+        Game.Discard(Player, Card, false);
 
         if (!Game.FactionsThatMustDiscard.Any()) Game.Enter(Game.PhaseBeforeDiscarding);
     }

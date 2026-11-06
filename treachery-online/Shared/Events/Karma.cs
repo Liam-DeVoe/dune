@@ -247,11 +247,11 @@ public class Karma : GameEvent
 
     protected override void ExecuteConcreteEvent()
     {
-        Game.Discard(Card);
-        Log();
+        Game.Discard(Card, false);
+        Game.Log(Game.KarmaPlayed(Initiator, Card, Prevented is FactionAdvantage.None ? [] : ["prevent ", Prevented]));
         Game.Stone(Milestone.Karma);
 
-        if (Prevented is not FactionAdvantage.None) Game.Prevent(Initiator, Prevented);
+        if (Prevented is not FactionAdvantage.None) Game.Prevent(Initiator, Prevented, false);
 
         RevokeBattlePlansIfNeeded();
 

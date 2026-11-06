@@ -599,19 +599,33 @@ public class Revival : GameEvent, ILocationEvent
         
         Game.TotalRevivalsThisTurn[Initiator] = Game.TotalRevivalsThisTurn.GetValueOrDefault(Initiator, 0) + totalAmountOfForces; 
 
-        Log(
+        // Each kind of force counted once; Grey's free extra suboids have their own part.
+        var forces = AmountOfForces + ExtraForcesPaidByRed;
+        var specialForces = AmountOfSpecialForces + ExtraSpecialForcesPaidByRed;
+        var totalCost = cost.TotalCostForPlayer + cost.CostForEmperor;
+        var paidByEmperor = ExtraForcesPaidByRed > 0 || ExtraSpecialForcesPaidByRed > 0;
+
+        Log(Message.Express(
             Initiator,
             " revive ",
             MessagePart.ExpressIf(Hero != null, Hero),
             MessagePart.ExpressIf(asGhola, " as Ghola"),
-            MessagePart.ExpressIf(Hero != null && totalAmountOfForces > 0, " and "),
-            MessagePart.ExpressIf(AmountOfForces + ExtraForcesPaidByRed > 0, totalAmountOfForces, Player.Force),
-            MessagePart.ExpressIf(AmountOfSpecialForces + ExtraSpecialForcesPaidByRed > 0, AmountOfSpecialForces + ExtraSpecialForcesPaidByRed, Player.SpecialForce),
+            MessagePart.ExpressIf(Hero != null && forces + specialForces > 0, " and "),
+            MessagePart.ExpressIf(forces > 0, forces, Player.Force),
+            MessagePart.ExpressIf(specialForces > 0, specialForces, Player.SpecialForce),
             " for ",
-            Payment.Of(cost.TotalCostForPlayer + cost.CostForEmperor),
-            MessagePart.ExpressIf(ExtraForcesPaidByRed > 0 || ExtraSpecialForcesPaidByRed > 0, " (", Payment.Of(cost.CostForEmperor, Faction.Red), ")"),
+            Payment.Of(totalCost),
+            MessagePart.ExpressIf(paidByEmperor, " (", Payment.Of(cost.CostForEmperor, Faction.Red), ")"),
             MessagePart.ExpressIf(purpleReceivedResources > 0, " → ", Faction.Purple, " get ", Payment.Of(purpleReceivedResources)),
-            MessagePart.ExpressIf(highThresholdExtraSuboids > 0, " + ", highThresholdExtraSuboids, FactionForce.Grey, " for free"));
+            MessagePart.ExpressIf(highThresholdExtraSuboids > 0, " + ", highThresholdExtraSuboids, FactionForce.Grey, " for free"))
+            .WithLog(new RevivalRow(Initiator, forces + highThresholdExtraSuboids, specialForces, totalCost)
+            {
+                Hero = Hero,
+                AsGhola = asGhola,
+                PaidByOther = paidByEmperor ? cost.CostForEmperor : 0,
+                Payer = paidByEmperor ? Faction.Red : Faction.None,
+                PurpleIncome = purpleReceivedResources
+            }));
     }
 
     public override Message GetMessage()

@@ -67,6 +67,38 @@ public sealed class ReportComponentTests
 
     [TestMethod]
     [Timeout(30_000, CooperativeCancellation = true)]
+    public void AsidesShowCardsAndAdvantagesInTheSentence()
+    {
+        var driver = new BotDriver();
+        driver.PlayUntil(game => PhaseCount(game) >= 2);
+        var report = driver.Game.CurrentReport;
+        var karama = TreacheryCardManager.GetCardsInAndOutsidePlay().First(c => c.Type == TreacheryCardType.Karma);
+        report.Express(Message.Express(Faction.Black, " play ", karama, MessagePart.Express(": ", MessagePart.Express("prevent ", FactionAdvantage.RedReceiveBid))).WithLog(AsideLog.Aside));
+        report.Express(Message.Express("By ", karama, ", ", Faction.Red, " ask ", Faction.Yellow, " a question").WithLog(AsideLog.Aside));
+        report.Express(Message.Express(Faction.Yellow, " answer: No").WithLog(AsideLog.Answer));
+        report.Express(Message.Express(FactionAdvantage.BlackFreeCard, " is no longer prevented").WithLog(AsideLog.After));
+        using var test = new ComponentTestContext(driver.Game);
+        var component = test.RenderContext.Render<ReportComponent>();
+
+        var asides = component.FindAll(".log-aside").TakeLast(4).ToList();
+        Assert.AreEqual(4, asides.Count);
+
+        // Atreides (Black) play [Karama]: prevent [Emperor] receiving [spice] for a treachery card
+        var karamaLine = asides[0];
+        Assert.AreEqual(2, karamaLine.QuerySelectorAll(".chip.faction").Length, karamaLine.InnerHtml);
+        Assert.IsNotNull(karamaLine.QuerySelector(".card-chip"), karamaLine.InnerHtml);
+        Assert.IsNotNull(karamaLine.QuerySelector(".spice-amt"), karamaLine.InnerHtml);
+        Assert.IsNull(karamaLine.QuerySelector(".fw-bold"), karamaLine.InnerHtml);
+        StringAssert.Contains(karamaLine.TextContent, "for a treachery card");
+        Assert.IsFalse(karamaLine.TextContent.Contains("spice"), karamaLine.TextContent);
+
+        Assert.IsTrue(asides[2].ClassList.Contains("answer"));
+        Assert.IsTrue(asides[3].ClassList.Contains("after"));
+        Assert.IsNotNull(asides[3].QuerySelector(".chip.faction"), asides[3].InnerHtml);
+    }
+
+    [TestMethod]
+    [Timeout(30_000, CooperativeCancellation = true)]
     public void SpiceBlowHasDeckHeadingsAndPlaceChips()
     {
         var driver = new BotDriver();
@@ -74,10 +106,8 @@ public sealed class ReportComponentTests
         using var test = new ComponentTestContext(driver.Game);
         var component = test.RenderContext.Render<ReportComponent>();
 
-        var headings = component.FindAll(".card-body .heading");
+        var headings = component.FindAll(".card-body .blow-deck");
         CollectionAssert.AreEqual(new[] { "Deck A", "Deck B" }, headings.Select(h => h.TextContent.Trim()).ToArray());
-        foreach (var heading in headings)
-            Assert.AreEqual(DefaultSkin.Default.CardBack_ResourceCard_URL, heading.QuerySelector("img")!.GetAttribute("src"));
 
         var spiceLines = component.FindAll(".card-body > div")
             .Where(line => line.TextContent.Contains("detected in") || line.TextContent.Contains("lost in the storm"))
@@ -102,31 +132,4 @@ public sealed class ReportComponentTests
     private static AngleSharp.Dom.IElement Next(IRenderedComponent<ReportComponent> component) =>
         component.Find("button[title='Next phase']");
 
-    private sealed class BotDriver
-    {
-        public Game Game { get; } = BotGeneratedComponentSmokeTests.CreateGame();
-
-        private readonly Dictionary<Faction, ClassicBot> _bots;
-
-        private int _events;
-
-        public BotDriver()
-        {
-            _bots = Game.Players.ToDictionary(
-                player => player.Faction,
-                player => new ClassicBot(Game, player, BotParameters.GetDefaultParameters(player.Faction)));
-        }
-
-        public void PlayUntil(Func<Game, bool> done)
-        {
-            while (!done(Game))
-            {
-                Assert.AreNotEqual(Phase.GameEnded, Game.CurrentPhase);
-                var gameEvent = BotGeneratedComponentSmokeTests.DetermineBotEvent(Game, _bots);
-                Assert.IsNotNull(gameEvent, $"No bot could act in phase {Game.CurrentPhase}.");
-                gameEvent.Time = DateTimeOffset.UnixEpoch.AddSeconds(_events++);
-                Assert.IsNull(gameEvent.Execute(true, true));
-            }
-        }
-    }
 }

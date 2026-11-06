@@ -36,9 +36,8 @@ public class KarmaPrescience : GameEvent
 
     protected override void ExecuteConcreteEvent()
     {
-        Game.Discard(Player, Karma.ValidKarmaCards(Game, Player).FirstOrDefault());
+        Game.PlayKarma(Player, Karma.ValidKarmaCards(Game, Player).FirstOrDefault(), "see the entire enemy battle plan");
         Player.SpecialKarmaPowerUsed = true;
-        Log();
         Game.Stone(Milestone.Karma);
         Game.GreenKarma = true;
     }

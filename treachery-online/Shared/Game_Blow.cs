@@ -65,7 +65,7 @@ public partial class Game
             }
             else if (drawn != null && (drawn.IsShaiHulud || drawn.IsGreatMaker) && CurrentTurn == 1)
             {
-                Log(drawn.IsShaiHulud ? Concept.Monster : Concept.GreatMonster, " on turn 1 was ignored");
+                LogIgnoredMonster(drawn.IsGreatMaker);
                 IgnoredMonsters.Add(CurrentDiscardPile!.Draw());
             }
             else if ((ThumperCalledShaiHulud && Version > 150) || drawn is { IsShaiHulud: true } || drawn is { IsGreatMaker: true })
@@ -126,6 +126,14 @@ public partial class Game
         }
     }
 
+    private void LogIgnoredMonster(bool isGreatMonster)
+    {
+        if (isGreatMonster)
+            Log(Concept.GreatMonster, " on turn 1 was ignored");
+        else
+            Log(Message.Express(Concept.Monster, " on turn 1 was ignored").WithLog(new WormIgnoredLog()));
+    }
+
     private void CancelAllAlliances()
     {
         foreach (var p in Players)
@@ -146,7 +154,8 @@ public partial class Game
         if (Applicable(Rule.IncreasedResourceFlow))
             Log(ResourceCardDiscardPileA!.Items.Count + ResourceCardDiscardPileB!.Items.Count, " cards were shuffled from ", Concept.Resource, " discard piles A en B into a new deck.");
         else
-            Log(ResourceCardDiscardPileA!.Items.Count, " cards were shuffled from the ", Concept.Resource, " discard pile into a new deck");
+            Log(Message.Express(ResourceCardDiscardPileA!.Items.Count, " cards were shuffled from the ", Concept.Resource, " discard pile into a new deck")
+                .WithLog(new BlowReshuffleLog(ResourceCardDiscardPileA.Items.Count)));
 
         var excludeDiscoveryCardsWhenReshuffling = Version >= 158;
 
@@ -216,13 +225,15 @@ public partial class Game
 
         if (blowCard.Location.Sector != SectorInStorm)
         {
-            Log(Payment.Of(spiceAmount), " detected in ", blowCard.Location, SandtroutMessage(SandTroutDoublesResources));
+            Log(Message.Express(Payment.Of(spiceAmount), " detected in ", blowCard.Location, SandtroutMessage(SandTroutDoublesResources))
+                .WithLog(new BlowCardLog(blowCard, blowCard.Location, spiceAmount, false, SandTroutDoublesResources)));
             SandTroutDoublesResources = false;
             ChangeResourcesOnPlanet(blowCard.Location, spiceAmount);
         }
         else
         {
-            Log(Payment.Of(spiceAmount), " in ", blowCard.Location, " is lost in the storm");
+            Log(Message.Express(Payment.Of(spiceAmount), " in ", blowCard.Location, " is lost in the storm")
+                .WithLog(new BlowCardLog(blowCard, blowCard.Location, spiceAmount, true, false)));
         }
 
         Enter(Applicable(Rule.ExpansionTreacheryCardsExceptPBandSSandAmal), CurrentPhase == Phase.BlowA ? Phase.HarvesterA : Phase.HarvesterB, MoveToNextPhaseAfterResourceBlow);
@@ -263,12 +274,13 @@ public partial class Game
         {
             var m = new MonsterAppearence(t, isGreatMonster);
             
+            var appeared = new WormAppearedLog(m.Territory, Monsters.Count + 1);
             if (m.IsGreatMonster)
                 Log(Concept.GreatMonster, " appears in ", m.Territory);
             else if (Monsters.Count > 0)
-                Log(Concept.Monster, " appears a ", Natural(Monsters.Count + 1), " time during this ", MainPhase.Blow);
+                Log(Message.Express(Concept.Monster, " appears a ", Natural(Monsters.Count + 1), " time during this ", MainPhase.Blow).WithLog(appeared));
             else
-                Log(Concept.Monster, " appears in ", m.Territory);
+                Log(Message.Express(Concept.Monster, " appears in ", m.Territory).WithLog(appeared));
 
             if (Monsters.Count > 0)
             {
@@ -298,7 +310,7 @@ public partial class Game
         }
         else
         {
-            Log(isGreatMonster ? Concept.GreatMonster : Concept.Monster, " on turn 1 was ignored");
+            LogIgnoredMonster(isGreatMonster);
         }
     }
 
@@ -312,7 +324,9 @@ public partial class Game
                 {
                     RevealCurrentNoField(p);
 
-                    Log(m.DescribingConcept, " devours ", p.AnyForcesIn(l), p.Faction, " forces in ", l);
+                    var devoured = Message.Express(m.DescribingConcept, " devours ", p.AnyForcesIn(l), p.Faction, " forces in ", l);
+                    if (!m.IsGreatMonster) devoured.WithLog(new WormDevouredForcesLog(p.Faction, p.ForcesIn(l), p.SpecialForcesIn(l), l));
+                    Log(devoured);
                     p.KillAllForces(l, false);
 
                     if (p.Is(Faction.Yellow))
@@ -326,12 +340,19 @@ public partial class Game
                 }
                 else
                 {
-                    Log(p.Faction, " survive ", m.DescribingConcept, " in ", l);
+                    var survived = Message.Express(p.Faction, " survive ", m.DescribingConcept, " in ", l);
+                    if (!m.IsGreatMonster) survived.WithLog(new WormSurvivedLog(p.Faction, l));
+                    Log(survived);
                 }
             }
 
         var devouredResources = RemoveResources(m.Territory);
-        LogIf(devouredResources > 0, m.DescribingConcept, " devours ", Payment.Of(devouredResources), " in ", m.Territory);
+        if (devouredResources > 0)
+        {
+            var devoured = Message.Express(m.DescribingConcept, " devours ", Payment.Of(devouredResources), " in ", m.Territory);
+            if (!m.IsGreatMonster) devoured.WithLog(new WormDevouredSpiceLog(devouredResources, m.Territory));
+            Log(devoured);
+        }
 
         FlipBlueAdvisorsWhenAlone();
     }
@@ -340,7 +361,7 @@ public partial class Game
     {
         Monsters.Clear();
         Enter(Phase.BlowA);
-        if (Applicable(Rule.IncreasedResourceFlow)) Log(Message.Express("Deck A").AsHeading(Concept.Resource));
+        if (Applicable(Rule.IncreasedResourceFlow)) Log(Message.Express("Deck A").AsHeading(Concept.Resource).WithLog(new BlowDeckLog("A")));
         DrawResourceCard();
         LetFactionsDiscardSurplusCards();
     }
@@ -349,7 +370,7 @@ public partial class Game
     {
         Monsters.Clear();
         Enter(Phase.BlowB);
-        Log(Message.Express("Deck B").AsHeading(Concept.Resource));
+        Log(Message.Express("Deck B").AsHeading(Concept.Resource).WithLog(new BlowDeckLog("B")));
         DrawResourceCard();
         LetFactionsDiscardSurplusCards();
     }

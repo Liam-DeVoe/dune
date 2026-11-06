@@ -50,9 +50,11 @@ public partial class Game
         CurrentDivisionProposal = null;
     }
 
-    private void GainCollectedResources(Faction faction, Territory from, int amount)
+    // field: the location collected from, when spice was taken from the desert.
+    // income: spice paid by a stronghold or an occupied homeworld.
+    private void GainCollectedResources(Faction faction, Territory from, int amount, Location? field = null, bool income = false)
     {
-        Log(faction, " collect ", Payment.Of(amount), " from ", from);
+        Log(Message.Express(faction, " collect ", Payment.Of(amount), " from ", from).WithLog(new SpiceCollected(faction, from, amount, field, income)));
         var player = GetPlayer(faction);
         player?.Resources += amount;
         if (faction == Faction.Yellow) ResourcesCollectedByYellow += amount;
@@ -106,7 +108,7 @@ public partial class Game
             var occupier = OccupierOf(homeworld.World);
             if (occupier != null)
             {
-                GainCollectedResources(occupier.Faction, homeworld.Territory, homeworld.ResourceAmount);
+                GainCollectedResources(occupier.Faction, homeworld.Territory, homeworld.ResourceAmount, income: true);
                 occupier.TransferableResources += homeworld.ResourceAmount;
             }
         }
@@ -116,7 +118,7 @@ public partial class Game
     {
         if (player.Controls(this, stronghold, Applicable(Rule.ContestedStongholdsCountAsOccupied)) &&
             !(player.Is(Faction.Pink) && Prevented(FactionAdvantage.PinkCollection) && player.HasAlly && !player.AlliedPlayer.Controls(this, stronghold, Applicable(Rule.ContestedStongholdsCountAsOccupied))))
-            GainCollectedResources(player.Faction, stronghold.Territory, amount);
+            GainCollectedResources(player.Faction, stronghold.Territory, amount, income: true);
     }
 
     private void CollectResourcesFromTerritories()
@@ -150,7 +152,7 @@ public partial class Game
                 }
 
                 if (playersToCollect.Length == 1)
-                    GainCollectedResources(p.Faction, l.Key.Territory, collectedAmountByThisPlayer);
+                    GainCollectedResources(p.Faction, l.Key.Territory, collectedAmountByThisPlayer, l.Key);
                 else
                     totalCollectedAmount += collectedAmountByThisPlayer;
 

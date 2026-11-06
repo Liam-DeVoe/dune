@@ -1,0 +1,65 @@
+@inherits PhaseLogBase
+
+@*
+ The Collection log: one table of where, how much and who. Spice collected from
+ the desert comes first; stronghold and homeworld income follows under a brighter
+ rule. When two fields in one territory paid out, each row names its sector under
+ the place. Other lines (thefts, shared spice, occupation) keep their place: those
+ before the first collection above the table, the rest below it.
+*@
+@{
+    var first = Messages.FindIndex(m => m.Log is SpiceCollected);
+    var collected = Messages.Select(m => m.Log).OfType<SpiceCollected>().ToList();
+    var fields = collected.Where(c => !c.Income).ToList();
+    var income = collected.Where(c => c.Income).ToList();
+    var split = fields
+        .Where(c => c.Field != null)
+        .GroupBy(c => c.Territory)
+        .Where(g => g.Select(c => c.Field).Distinct().Count() > 1)
+        .Select(g => g.Key)
+        .ToHashSet();
+}
+@for (var i = 0; i < Messages.Count; i++)
+{
+    var message = Messages[i];
+    if (i == first)
+    {
+        <div class="log-table collection-table">
+            @for (var r = 0; r < fields.Count; r++)
+            {
+                @Row(fields[r], r == 0, split.Contains(fields[r].Territory))
+            }
+            @if (fields.Count > 0 && income.Count > 0)
+            {
+                <div class="income-rule"></div>
+            }
+            @for (var r = 0; r < income.Count; r++)
+            {
+                @Row(income[r], r == 0, false)
+            }
+        </div>
+    }
+    else if (message.Log is not SpiceCollected)
+    {
+        @Line(message)
+    }
+}
+
+@code {
+
+    private RenderFragment Row(SpiceCollected c, bool first, bool showSector) =>
+        @<text>
+            <div class="cell place @(first ? "first" : "")">
+                <PlaceChip Place="@c.Territory"/>
+                @if (showSector && c.Field != null)
+                {
+                    <div class="log-label sector">@SectorName(c.Field)</div>
+                }
+            </div>
+            <div class="cell amount @(first ? "first" : "")"><SpiceComponent Amount="@c.Amount.ToString()"/></div>
+            <div class="cell faction @(first ? "first" : "")"><FactionChip Faction="@c.Faction" Game="@Game"/></div>
+        </text>;
+
+    private static string SectorName(Location l) =>
+        l.Orientation != "" ? $"{l.Orientation} sector" : $"sector {l.Sector}";
+}

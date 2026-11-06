@@ -119,9 +119,10 @@ public class TakeLosses : GameEvent
         }
         else
         {
-            player.KillForces(LossesToTake(Game).Location, ForceAmount, SpecialForceAmount, false);
+            var location = LossesToTake(Game).Location;
+            player.KillForces(location, ForceAmount, SpecialForceAmount, false);
             Game.StormLossesToTake.RemoveAt(0);
-            Log();
+            Log(GetMessage().WithLog(new StormKilled(Initiator, location, ForceAmount, SpecialForceAmount)));
         }
 
         if (Game.PhaseBeforeStormLoss == Phase.BlowA)

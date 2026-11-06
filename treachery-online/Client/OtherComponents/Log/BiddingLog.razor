@@ -1,0 +1,112 @@
+@inherits PhaseLogBase
+
+@*
+ The Bidding log: one block per card. Each block has the card number, the
+ winner's pill and, on the right, the price with "to [sigil]" under it when a
+ faction (the Emperor) was paid; spice paid to the bank shows nothing there.
+ A card won with Karama shows the card played instead of a price. What follows
+ from the sale hangs under the block: an ally's share, the winner's private
+ "You won" line, Harkonnen's extra card. Every other line keeps its place,
+ and lines from White's auctions and the black market (no records) stay plain.
+*@
+@foreach (var item in Items())
+{
+    switch (item)
+    {
+        case Lot lot:
+            @Block(lot)
+            break;
+
+        case Message { Log: BiddingDrawn or TreacheryReshuffled or BiddingPassedByAll } note:
+            <div class="bid-note">@Text(note)</div>
+            break;
+
+        case Message message:
+            @Line(message)
+            break;
+    }
+}
+
+@code {
+
+    // A card's block: the sale (or, when everyone passed, just the number) and
+    // the lines that hang under it.
+    private sealed record Lot(int Number, CardSold? Sold, List<Message> Under);
+
+    // The messages in order, with each sale and the lines that belong to it
+    // gathered into a Lot. A line that belongs to a sale joins its block even
+    // when another line (a card play) was logged in between.
+    private List<object> Items()
+    {
+        var items = new List<object>();
+        Lot? current = null;
+
+        foreach (var message in Messages)
+        {
+            switch (message.Log)
+            {
+                case CardSold sold:
+                    current = new Lot(sold.CardNumber, sold, []);
+                    items.Add(current);
+                    break;
+
+                case CardWonShown or ExtraCardReceived or ExtraCardShown when current != null:
+                    current.Under.Add(message);
+                    break;
+
+                case BiddingPassedByAll passed:
+                    items.Add(new Lot(passed.CardNumber, null, []));
+                    items.Add(message);
+                    current = null;
+                    break;
+
+                default:
+                    items.Add(message);
+                    break;
+            }
+        }
+
+        return items;
+    }
+
+    private RenderFragment Block(Lot lot) =>
+        @<div class="bid-lot @(lot.Sold == null ? "unsold" : "")">
+            <div class="top">
+                <span class="n">Card @lot.Number</span>
+                @if (lot.Sold is { } sold)
+                {
+                    <FactionChip Faction="@sold.Winner" Game="@Game"/>
+                    <span class="price">
+                        @if (sold.KaramaCard != null)
+                        {
+                            <ExpressionComponent Expression="@(new Expression(sold.KaramaCard))" Game="@Game" Size="20" LogStyle/>
+                        }
+                        else
+                        {
+                            <SpiceComponent Amount="@sold.Price.ToString()" Size="22"/>
+                            @if (sold.PaidTo != Faction.None)
+                            {
+                                <span class="payee">to <img src="@Client.CurrentSkin.GetImageUrl(sold.PaidTo)" alt="@Client.CurrentSkin.Describe(sold.PaidTo)" title="@Client.CurrentSkin.Describe(sold.PaidTo)"/></span>
+                            }
+                        }
+                    </span>
+                }
+            </div>
+            @if (lot.Sold is { Shares.Count: > 0 } || lot.Under.Count > 0)
+            {
+                <div class="under">
+                    @foreach (var share in lot.Sold?.Shares ?? [])
+                    {
+                        <div><SpiceComponent Amount="@share.Amount.ToString()"/> paid by <FactionChip Faction="@share.By" Game="@Game"/></div>
+                    }
+                    @foreach (var message in lot.Under)
+                    {
+                        <div class="@(message.Target != Faction.None ? "private" : "")">@Text(message)</div>
+                    }
+                </div>
+            }
+        </div>;
+
+    private RenderFragment Text(Message message) =>
+        @<ExpressionComponent Expression="@message.Expression" Game="@Game" Size="20" LogStyle/>;
+}

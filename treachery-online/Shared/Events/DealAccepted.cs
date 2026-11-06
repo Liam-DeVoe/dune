@@ -104,7 +104,7 @@ public class DealAccepted : GameEvent
 
     protected override void ExecuteConcreteEvent()
     {
-        Log();
+        Log(GetMessage().WithLog(AsideLog.Aside));
         // Saved games from before acceptances were recorded replay without
         // validation and may accept the same offer twice, hence the fallback.
         var offer = OpenOffer ?? Game.DealOffers.FirstOrDefault(offer => offer.IsAcceptedBy(this));

@@ -110,7 +110,7 @@ public class Donated : GameEvent
                 }
             }
 
-            Log();
+            Log(GetMessage().WithLog(AsideLog.Aside));
             Game.Stone(Milestone.Bribe);
         }
         else

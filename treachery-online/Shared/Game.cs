@@ -598,7 +598,7 @@ public partial class Game
             foreach (var t in territoriesWhereAdvisorsAreInSinkOrAloneOrWithPink)
             {
                 bg.FlipForces(t, false);
-                Log(Faction.Blue, " are alone and flip to ", FactionForce.Blue, " in ", t);
+                Log(Message.Express(Faction.Blue, " are alone and flip to ", FactionForce.Blue, " in ", t).WithLog(new BlueFlipped(t)));
             }
         }
     }
@@ -684,6 +684,26 @@ public partial class Game
         WhenToSetAsideVidal = VidalMoment.None;
     }
 
+    // Discards the card a player plays as Karama and logs the play as one aside:
+    // "X play [Karama]: <effect>". A card played as Karama that isn't one says
+    // so: "X play [Baliset] as a Karama card: <effect>".
+    internal void PlayKarma(Player player, TreacheryCard? card, params object?[] effect)
+    {
+        Discard(player, card, false);
+        Log(KarmaPlayed(player.Faction, card, effect));
+    }
+
+    internal static Message KarmaPlayed(Faction initiator, TreacheryCard? card, params object?[] effect)
+    {
+        return Message.Express(
+            initiator,
+            " play ",
+            card ?? (object)TreacheryCardType.Karma,
+            MessagePart.ExpressIf(card != null && card.Type != TreacheryCardType.Karma, " as a ", TreacheryCardType.Karma, " card"),
+            MessagePart.ExpressIf(effect.Length > 0, ": ", MessagePart.Express(effect!)))
+            .WithLog(AsideLog.Aside);
+    }
+
     internal void Discard(Player player, TreacheryCardType cardType)
     {
         TreacheryCard card;
@@ -695,21 +715,23 @@ public partial class Game
         Discard(player, card);
     }
 
-    internal void Discard(TreacheryCard? card)
+    // log is false when the caller logs the card's play itself, such as PlayKarma.
+    internal void Discard(TreacheryCard? card, bool log = true)
     {
         if (card is null) return;
         
         var player = Players.SingleOrDefault(p => p.Has(card));
-        Discard(player, card);
+        Discard(player, card, log);
         RegisterKnown(card);
     }
 
-    internal void Discard(Player? player, TreacheryCard? card)
+    internal void Discard(Player? player, TreacheryCard? card, bool log = true)
     {
         if (player != null && card != null)
         {
-            Log(Message.Express(player.Faction, " discard ", card)
-                .WithFact(new BattleFact(BattleFactKind.Discard, player.Faction) { Card = card }));
+            if (log)
+                Log(Message.Express(player.Faction, " discard ", card)
+                    .WithFact(new BattleFact(BattleFactKind.Discard, player.Faction) { Card = card }));
             player.TreacheryCards.Remove(card);
             TreacheryDiscardPile!.PutOnTop(card);
             RegisterKnown(card);

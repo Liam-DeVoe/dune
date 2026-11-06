@@ -156,7 +156,8 @@ public class YellowRidesMonster : PlacementEvent
                     " from ",
                     from,
                     " to ",
-                    To).WithRoute(Initiator, [from], To));
+                    To).WithRoute(Initiator, [from], To)
+                    .WithLog(new NexusLog(new NexusRide(Initiator, fl.Value.AmountOfForces, fl.Value.AmountOfSpecialForces, from, To))));
             }
 
             if (ForcesFromReserves > 0 || SpecialForcesFromReserves > 0)
@@ -169,7 +170,8 @@ public class YellowRidesMonster : PlacementEvent
                     MessagePart.ExpressIf(ForcesFromReserves > 0, ForcesFromReserves, initiator.Force),
                     MessagePart.ExpressIf(SpecialForcesFromReserves > 0, SpecialForcesFromReserves, initiator.SpecialForce),
                     " from their reserves to ",
-                    To).WithRoute(Initiator, [], To));
+                    To).WithRoute(Initiator, [], To)
+                    .WithLog(new NexusLog(new NexusRide(Initiator, ForcesFromReserves, SpecialForcesFromReserves, null, To))));
             }
 
             Game.FlipBlueAdvisorsWhenAlone();
@@ -177,7 +179,7 @@ public class YellowRidesMonster : PlacementEvent
         }
         else
         {
-            Log(Initiator, " pass a ride on ", Concept.Monster);
+            Log(Message.Express(Initiator, " pass a ride on ", Concept.Monster).WithLog(new NexusLog()));
         }
 
         Game.DetermineNextShipmentAndMoveSubPhase();

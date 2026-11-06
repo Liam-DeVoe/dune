@@ -195,8 +195,9 @@ public class ClairVoyancePlayed : GameEvent
 
         if (card != null)
         {
-            Game.Discard(card);
-            Log();
+            // The question names the card, so it's not logged as a separate discard.
+            Game.Discard(card, false);
+            Log(Asked(card).WithLog(AsideLog.Aside));
             Game.Stone(Milestone.Clairvoyance);
         }
 
@@ -229,13 +230,16 @@ public class ClairVoyancePlayed : GameEvent
         }
     }
 
-    public override Message GetMessage()
+    public override Message GetMessage() => Asked(TreacheryCardType.Clairvoyance);
+
+    // The card is the card type, or the card played when the game logs it.
+    private Message Asked(object card)
     {
-        if (Target == Faction.None) return Message.Express(Initiator, " perform ", TreacheryCardType.Clairvoyance);
+        if (Target == Faction.None) return Message.Express(Initiator, " perform ", card);
 
         if (Question == ClairvoyanceQuestion.None)
-            return Message.Express("By ", TreacheryCardType.Clairvoyance, ", ", Initiator, " ask ", Target, " a question");
-        return Message.Express("By ", TreacheryCardType.Clairvoyance, ", ", Initiator, " ask ", Target, ": \"", GetQuestion(), "\"");
+            return Message.Express("By ", card, ", ", Initiator, " ask ", Target, " a question");
+        return Message.Express("By ", card, ", ", Initiator, " ask ", Target, ": \"", GetQuestion(), "\"");
     }
 
     public override Message GetShortMessage()

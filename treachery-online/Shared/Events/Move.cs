@@ -77,7 +77,7 @@ public class Move : PlacementEvent
         }
         else
         {
-            Log(Initiator, " pass movement");
+            Log(Message.Express(Initiator, " pass movement").WithLog(new MovePassed(Initiator)));
         }
 
         Game.DetermineNextShipmentAndMoveSubPhase();

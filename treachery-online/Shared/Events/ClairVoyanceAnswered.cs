@@ -67,7 +67,7 @@ public class ClairVoyanceAnswered : GameEvent
     {
         Game.LatestClairvoyanceQnA = new ClairVoyanceQandA(Game.LatestClairvoyance!, this);
 
-        Log();
+        Log(GetMessage().WithLog(AsideLog.Answer));
 
         if (Game.LatestClairvoyance!.Question == ClairvoyanceQuestion.WillAttackX && IsNo)
         {

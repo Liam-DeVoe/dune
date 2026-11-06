@@ -219,10 +219,11 @@ public class Bid : PassableGameEvent, IBid
 
         Game.Discard(karmaCard);
 
+        var sold = new CardSold(Game.CardNumber, bid.Initiator, 0, Faction.None, [], karmaCard);
         if (karmaCard.Type == TreacheryCardType.Karma)
-            Log(bid.Initiator, " get card ", Game.CardNumber, " using ", TreacheryCardType.Karma);
+            Game.LogBidding(sold, bid.Initiator, " get card ", Game.CardNumber, " using ", TreacheryCardType.Karma);
         else
-            Log(bid.Initiator, " get card ", Game.CardNumber, " using ", karmaCard, " for ", TreacheryCardType.Karma);
+            Game.LogBidding(sold, bid.Initiator, " get card ", Game.CardNumber, " using ", karmaCard, " for ", TreacheryCardType.Karma);
 
         Game.Stone(Milestone.AuctionWon);
         Game.Stone(Milestone.Karma);
@@ -230,14 +231,14 @@ public class Bid : PassableGameEvent, IBid
         var card = Game.CardsOnAuction.Draw();
         winner.TreacheryCards.Add(card);
         Game.RegisterWonCardAsKnown(card);
-        LogTo(winner.Faction, "You won: ", card);
+        Game.LogBiddingTo(winner.Faction, new CardWonShown(card), "You won: ", card);
         Game.GivePlayerExtraCardIfApplicable(winner);
         return card;
     }
 
     private void EveryonePassedBid()
     {
-        Log("Bid is passed by everyone; bidding ends and remaining cards are returned to the Treachery Deck");
+        Game.LogBidding(new BiddingPassedByAll(Game.CardNumber), "Bidding ends because everyone passed");
         Game.Stone(Milestone.AuctionWon);
 
         if (Game.CardsOnAuction == null) return;
@@ -262,20 +263,20 @@ public class Bid : PassableGameEvent, IBid
 
         if (!bid.UsesRedSecretAlly)
         {
-            Game.PayForCard(winner, bid, Game.CurrentBid.Amount, Game.CurrentBid.AllyContributionAmount, Game.CurrentBid.RedContributionAmount, paymentReceiver, ref receiverIncomeMessage);
-            Game.LogBid(winner, Game.CurrentBid.Amount, Game.CurrentBid.AllyContributionAmount, Game.CurrentBid.RedContributionAmount, receiverIncomeMessage);
+            var paidTo = Game.PayForCard(winner, bid, Game.CurrentBid.Amount, Game.CurrentBid.AllyContributionAmount, Game.CurrentBid.RedContributionAmount, paymentReceiver, ref receiverIncomeMessage);
+            Game.LogBid(winner, Game.CurrentBid.Amount, Game.CurrentBid.AllyContributionAmount, Game.CurrentBid.RedContributionAmount, receiverIncomeMessage, paidTo);
         }
         else
         {
             Game.PlayNexusCard(winner, "Secret Ally", "get this card for free");
-            Game.LogBid(winner, 0, 0, 0, receiverIncomeMessage);
+            Game.LogBid(winner, 0, 0, 0, receiverIncomeMessage, Faction.None, true);
         }
 
         Game.Stone(Milestone.AuctionWon);
         var card = toDrawFrom.Draw();
         Game.RegisterWonCardAsKnown(card);
         winner.TreacheryCards.Add(card);
-        LogTo(winner.Faction, "You won: ", card);
+        Game.LogBiddingTo(winner.Faction, new CardWonShown(card), "You won: ", card);
         Game.GivePlayerExtraCardIfApplicable(winner);
         return card;
     }

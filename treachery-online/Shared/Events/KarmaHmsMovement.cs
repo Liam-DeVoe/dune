@@ -60,12 +60,18 @@ public class KarmaHmsMovement : GameEvent
     protected override void ExecuteConcreteEvent()
     {
         var collectionRate = Player.AnyForcesIn(Game.Map.HiddenMobileStronghold) * 2;
-        Log();
-
         if (!Player.SpecialKarmaPowerUsed)
         {
-            Game.Discard(Player, Karma.ValidKarmaCards(Game, Player).FirstOrDefault());
+            if (Passed)
+                Game.PlayKarma(Player, Karma.ValidKarmaCards(Game, Player).FirstOrDefault(), "pass movement of the ", Game.Map.HiddenMobileStronghold);
+            else
+                Game.PlayKarma(Player, Karma.ValidKarmaCards(Game, Player).FirstOrDefault(), "move the ", Game.Map.HiddenMobileStronghold, " to ", Target);
+
             Player.SpecialKarmaPowerUsed = true;
+        }
+        else
+        {
+            Log();
         }
 
         var currentLocation = Game.Map.HiddenMobileStronghold.AttachedToLocation;

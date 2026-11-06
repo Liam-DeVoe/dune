@@ -525,7 +525,7 @@ public class Shipment : PassableGameEvent, ILocationEvent
             Game.DetermineNextShipmentAndMoveSubPhase();
 
             var receivedPayment = HandleReceivedShipmentPayment(ref receivedPaymentMessage);
-            Log(GetVerboseMessage(totalCost, receivedPaymentMessage, ownerOfKarma));
+            Log(GetVerboseMessage(totalCost, receivedPaymentMessage, ownerOfKarma).WithLog(LogRecord(totalCost, receivedPayment)));
 
             if (totalCost - receivedPayment >= 4) Game.ActivateBanker(Player);
 
@@ -534,7 +534,7 @@ public class Shipment : PassableGameEvent, ILocationEvent
         }
         else
         {
-            Log(GetVerboseMessage(totalCost, receivedPaymentMessage, null));
+            Log(GetVerboseMessage(totalCost, receivedPaymentMessage, null).WithLog(LogRecord(0, 0)));
             Game.DetermineNextShipmentAndMoveSubPhase();
         }
     }
@@ -588,6 +588,7 @@ public class Shipment : PassableGameEvent, ILocationEvent
                 else
                 {
                     profitMessage = MessagePart.Express(" → ", TreacheryCardType.Karma, " prevents ", Faction.Orange, " from receiving", Payment.Of(receiverProfit));
+                    _guildIncomePrevented = true;
                     if (!Game.Applicable(Rule.FullPhaseKarma)) Game.Allow(FactionAdvantage.OrangeReceiveShipment);
                 }
             }
@@ -652,7 +653,8 @@ public class Shipment : PassableGameEvent, ILocationEvent
                 killCount = initiator.KillForces(to, forceAmount, specialForceAmount, false);
             }
 
-            if (killCount > 0) Log(killCount, initiator.Faction, " forces are killed by the storm");
+            if (killCount > 0) Log(Message.Express(killCount, initiator.Faction, " forces are killed by the storm")
+                .WithLog(new ShipMoveLoss(initiator.Faction, true, false, killCount, null)));
         }
 
         if (initiator.Faction != Faction.Yellow && initiator.Faction != Faction.Orange && !IsSiteToSite) Game.ShipsTechTokenIncome = true;
@@ -684,7 +686,7 @@ public class Shipment : PassableGameEvent, ILocationEvent
     {
         if (Passed) return Message.Express(Initiator, " pass shipment");
 
-        if (IsBackToReserves) return Message.Express(Initiator, " ship from ", To, " back to reserves", CostMessage(cost), KaramaMessage(ownerOfKarma), orangeIncome).WithRoute(Initiator, Sources, null);
+        if (IsBackToReserves) return Message.Express(Initiator, " ship ", MessagePart.ExpressIf(ForceAmount > 0, ForceAmount, Player.Force, " "), "from ", To, " back to reserves", CostMessage(cost), KaramaMessage(ownerOfKarma), orangeIncome).WithRoute(Initiator, Sources, null);
 
         if (IsSiteToSite) return Message.Express(Initiator, " site-to-site ship ", ForceMessage, " from ", From, " to ", To, CostMessage(cost), KaramaMessage(ownerOfKarma), orangeIncome).WithRoute(Initiator, Sources, To);
 
@@ -692,6 +694,33 @@ public class Shipment : PassableGameEvent, ILocationEvent
             return Message.Express(Initiator, " ship ", ForceMessage, " to ", To, NoFieldMessage, CostMessage(cost), KaramaMessage(ownerOfKarma), orangeIncome).WithRoute(Initiator, Sources, To);
         
         return Message.Express(Initiator, " rally ", ForceMessage, " in ", To).WithRoute(Initiator, Sources, To);
+    }
+
+    private bool _guildIncomePrevented;
+
+    // What the phase log draws for this shipment (see ShipMoveLog.cs).
+    private ShipLogged LogRecord(int cost, int guildIncome)
+    {
+        var kind = Passed ? ShipKind.Passed : IsBackToReserves ? ShipKind.BackToReserves : IsSiteToSite ? ShipKind.SiteToSite : ShipKind.Normal;
+        var blocked = Passed && Game.PreventedFromShipping(Initiator);
+        var blockedBy = blocked ? Game.TreacheryDiscardPile?.Items.FirstOrDefault(c => c.Type == TreacheryCardType.Karma) : null;
+        var plain = !Passed && (IsNoField || _guildIncomePrevented);
+
+        return new ShipLogged(
+            Initiator,
+            kind,
+            Passed ? 0 : ForceAmount,
+            Passed || IsBackToReserves ? 0 : SpecialForceAmount,
+            IsSiteToSite || IsBackToReserves ? Sources.FirstOrDefault() : null,
+            IsBackToReserves || Passed ? null : To,
+            cost,
+            AllyContributionAmount,
+            Player.Ally,
+            guildIncome > 0,
+            KarmaCard,
+            blocked,
+            blockedBy,
+            plain);
     }
 
     private MessagePart NoFieldMessage => MessagePart.ExpressIf(IsNoField && Initiator != Faction.White, " (using a ", FactionSpecialForce.White, ")");

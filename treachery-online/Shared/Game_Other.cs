@@ -104,9 +104,10 @@ public partial class Game
         else if (plan == DefenderPlan) DefenderPlan = null;
     }
 
-    internal void Prevent(Faction initiator, FactionAdvantage advantage)
+    // log is false when the Karama play that prevents it already said so.
+    internal void Prevent(Faction initiator, FactionAdvantage advantage, bool log = true)
     {
-        Log(initiator, " prevent ", advantage);
+        if (log) Log(initiator, " prevent ", advantage);
 
         if (!PreventedAdvantages.Contains(advantage)) PreventedAdvantages.Add(advantage);
     }
@@ -116,7 +117,7 @@ public partial class Game
         if (PreventedAdvantages.Contains(advantage))
         {
             PreventedAdvantages.Remove(advantage);
-            Log(advantage, " is no longer prevented");
+            Log(Message.Express(advantage, " is no longer prevented").WithLog(AsideLog.After));
         }
     }
 
@@ -171,7 +172,9 @@ public partial class Game
 
     internal void LogPreventionByKarma(FactionAdvantage prevented)
     {
-        Log(TreacheryCardType.Karma, " prevents ", prevented);
+        // A Karama card rather than the card type, so it shows as a card pill.
+        var karama = TreacheryCardManager.GetCardsInAndOutsidePlay().FirstOrDefault(c => c.Type == TreacheryCardType.Karma);
+        Log(Message.Express(karama ?? (object)TreacheryCardType.Karma, " prevents ", prevented).WithLog(AsideLog.Aside));
     }
 
     internal void LogPreventionByLowThreshold(FactionAdvantage prevented)

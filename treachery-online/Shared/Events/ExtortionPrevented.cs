@@ -32,7 +32,7 @@ public class ExtortionPrevented : GameEvent
 
     public static bool CanBePlayed(Game g, Player p)
     {
-        return p.Faction != Faction.Cyan && p.Resources >= 3 && (g.Version < 166 || g.ExtortionToBeReturned);
+        return p.Faction != Faction.Moritani && p.Resources >= 3 && (g.Version < 166 || g.ExtortionToBeReturned);
     }
 
     #endregion Validation
@@ -47,13 +47,13 @@ public class ExtortionPrevented : GameEvent
 
         if (Game.Version >= 164)
         {
-            GetPlayer(Faction.Cyan).Resources += 3;            
+            GetPlayer(Faction.Moritani).Resources += 3;            
         }
     }
 
     public override Message GetMessage()
     {
-        return Message.Express(Initiator, " pay ", Payment.Of(3), " to prevent ", Faction.Cyan, " from regaining ", TerrorType.Extortion);
+        return Message.Express(Initiator, " pay ", Payment.Of(3), " to prevent ", Faction.Moritani, " from regaining ", TerrorType.Extortion);
     }
 
     #endregion Execution

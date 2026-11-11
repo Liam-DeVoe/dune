@@ -72,7 +72,7 @@ public class EndPhase : GameEvent
 
             case Phase.AllianceA:
             case Phase.AllianceB:
-                EndNexus();
+                Game.EndNexus();
                 break;
 
             case Phase.BlowReport:
@@ -100,7 +100,7 @@ public class EndPhase : GameEvent
 
             case Phase.ReplacingCardJustWon:
                 if (Game.CardJustWon == Game.CardSoldOnBlackMarket)
-                    Game.EnterWhiteBidding();
+                    Game.EnterRicheseBidding();
                 else
                     Game.DetermineNextStepAfterCardWasSold();
                 break;
@@ -166,7 +166,7 @@ public class EndPhase : GameEvent
             case Phase.TurnConcluded:
                 if (Game.Version < 108) Game.AddBribesToPlayerResources();
                 Game.EnterStormPhase();
-                Game.FlipBlueAdvisorsWhenAlone();
+                Game.FlipBeneGesseritAdvisorsWhenAlone();
                 break;
         }
     }
@@ -183,7 +183,7 @@ public class EndPhase : GameEvent
 
     private void EstablishDecks()
     {
-        if (Game.IsPlaying(Faction.White)) Game.WhiteCache = TreacheryCardManager.GetWhiteCards();
+        if (Game.IsPlaying(Faction.Richese)) Game.RicheseCache = TreacheryCardManager.GetRicheseCards();
 
         Game.Enter(Game.Applicable(Rule.CustomDecks) && Game.Version >= 134, Phase.CustomizingDecks, Game.EnterSetupPhase);
     }
@@ -195,31 +195,14 @@ public class EndPhase : GameEvent
         Game.EndStormPhase();
     }
 
-    private void EndNexus()
-    {
-        Game.NexusHasOccured = true;
-        Game.CurrentAllianceOffers.Clear();
-
-        if (YellowRidesMonster.IsApplicable(Game))
-        {
-            Game.Enter(Game.CurrentPhase == Phase.AllianceA, Phase.YellowRidingMonsterA, Phase.YellowRidingMonsterB);
-        }
-        else
-        {
-            if (Game.CurrentPhase == Phase.AllianceA)
-                Game.Enter(Game.Applicable(Rule.IncreasedResourceFlow), Game.EnterBlowB, Game.StartNexusCardPhase);
-            else if (Game.CurrentPhase == Phase.AllianceB) Game.StartNexusCardPhase();
-        }
-    }
-
     private void EnterCharityPhase()
     {
         Game.MainPhaseStart(MainPhase.Charity);
         Game.HasActedOrPassed.Clear();
         Game.Monsters.Clear();
         Game.ResourceTechTokenIncome = false;
-        Game.Allow(FactionAdvantage.YellowControlsMonster);
-        Game.Allow(FactionAdvantage.YellowProtectedFromMonster);
+        Game.Allow(FactionAdvantage.FremenControlsMonster);
+        Game.Allow(FactionAdvantage.FremenProtectedFromMonster);
 
         if (Game.Version < 122)
         {
@@ -233,36 +216,36 @@ public class EndPhase : GameEvent
 
     private void StartClaimingCharity()
     {
-        if (!Game.Prevented(FactionAdvantage.BrownControllingCharity))
+        if (!Game.Prevented(FactionAdvantage.ChoamControllingCharity))
         {
-            var brown = GetPlayer(Faction.Brown);
-            if (brown != null)
+            var choam = GetPlayer(Faction.Choam);
+            if (choam != null)
             {
                 var toCollect = Game.Players.Count * 2 * Game.CurrentCharityMultiplier;
-                brown.Resources += toCollect;
-                Log(Faction.Brown, " collect ", Payment.Of(toCollect));
+                choam.Resources += toCollect;
+                Log(Faction.Choam, " collect ", Payment.Of(toCollect));
             }
         }
         else
         {
-            Game.LogPreventionByKarma(FactionAdvantage.BrownControllingCharity);
+            Game.LogPreventionByKarma(FactionAdvantage.ChoamControllingCharity);
         }
 
-        var blue = GetPlayer(Faction.Blue);
-        if (blue != null && Game.Applicable(Rule.BlueAutoCharity))
+        var bene_gesserit = GetPlayer(Faction.BeneGesserit);
+        if (bene_gesserit != null && Game.Applicable(Rule.BeneGesseritAutoCharity))
         {
             if (Game.Version < 179 || !Game.CharityIsCancelled)
             {
-                if (!Game.Prevented(FactionAdvantage.BlueCharity))
+                if (!Game.Prevented(FactionAdvantage.BeneGesseritCharity))
                 {
-                    Game.HasActedOrPassed.Add(Faction.Blue);
-                    Game.GiveCharity(blue, 2 * Game.CurrentCharityMultiplier);
+                    Game.HasActedOrPassed.Add(Faction.BeneGesserit);
+                    Game.GiveCharity(bene_gesserit, 2 * Game.CurrentCharityMultiplier);
                     Game.Stone(Milestone.CharityClaimed);
                 }
                 else
                 {
-                    Game.LogPreventionByKarma(FactionAdvantage.BlueCharity);
-                    if (!Game.Applicable(Rule.FullPhaseKarma)) Game.Allow(FactionAdvantage.BlueCharity);
+                    Game.LogPreventionByKarma(FactionAdvantage.BeneGesseritCharity);
+                    if (!Game.Applicable(Rule.FullPhaseKarma)) Game.Allow(FactionAdvantage.BeneGesseritCharity);
                 }
             }
         }
@@ -295,16 +278,16 @@ public class EndPhase : GameEvent
     {
         Game.CardJustWon = null;
         Game.MainPhaseStart(MainPhase.Resurrection);
-        Game.Allow(FactionAdvantage.BlackFreeCard);
-        Game.Allow(FactionAdvantage.RedReceiveBid);
-        Game.Allow(FactionAdvantage.GreyAllyDiscardingCard);
+        Game.Allow(FactionAdvantage.HarkonnenFreeCard);
+        Game.Allow(FactionAdvantage.EmperorReceiveBid);
+        Game.Allow(FactionAdvantage.IxianAllyDiscardingCard);
         Game.RevivalTechTokenIncome = false;
         Game.AmbassadorsPlacedThisTurn = 0;
         Game.FreeRevivalsThisTurn.Clear();
         Game.TotalRevivalsThisTurn.Clear();
         Game.LeaderRevivalsThisTurn.Clear();
         //Game.HasActedOrPassed.Clear();
-        Game.PurpleStartedRevivalWithLowThreshold = Game.HasLowThreshold(Faction.Purple);
+        Game.TleilaxuStartedRevivalWithLowThreshold = Game.HasLowThreshold(Faction.Tleilaxu);
 
         if (Game.Version < 122)
             Game.Enter(Phase.Resurrection);
@@ -314,10 +297,10 @@ public class EndPhase : GameEvent
 
     private void EndResurrectionPhase()
     {
-        Game.Allow(FactionAdvantage.PurpleReviveGhola);
+        Game.Allow(FactionAdvantage.TleilaxuReviveGhola);
         if (Game.RevivalTechTokenIncome) Game.ReceiveTechIncome(TechToken.Graveyard);
         Game.CurrentKarmaRevivalPrevention = null;
-        Game.CurrentYellowSecretAlly = null;
+        Game.CurrentFremenSecretAlly = null;
         Game.CurrentRecruitsPlayed = null;
         
         if (Game.Version < 122)
@@ -342,10 +325,10 @@ public class EndPhase : GameEvent
 
         Game.ShipsTechTokenIncome = false;
         Game.CurrentFreeRevivalPrevention = null;
-        Game.Allow(FactionAdvantage.BlueAnnouncesBattle);
-        Game.Allow(FactionAdvantage.RedLetAllyReviveExtraForces);
-        Game.Allow(FactionAdvantage.PurpleReceiveRevive);
-        Game.Allow(FactionAdvantage.BrownRevival);
+        Game.Allow(FactionAdvantage.BeneGesseritAnnouncesBattle);
+        Game.Allow(FactionAdvantage.EmperorLetAllyReviveExtraForces);
+        Game.Allow(FactionAdvantage.TleilaxuReceiveRevive);
+        Game.Allow(FactionAdvantage.ChoamRevival);
 
         Game.HasActedOrPassed.Clear();
         Game.LastShipmentOrMovement = null;
@@ -360,8 +343,8 @@ public class EndPhase : GameEvent
         Game.MainPhaseStart(MainPhase.Battle);
         Game.NrOfBattlesFought = 0;
         Game.BattleSequence = new PlayerSequence(Game);
-        Game.CurrentOrangeCunning = null;
-        Game.CurrentOrangeSecretAlly = null;
+        Game.CurrentGuildCunning = null;
+        Game.CurrentGuildSecretAlly = null;
         if (Game.KarmaHmsMovesLeft != 2) Game.KarmaHmsMovesLeft = 0;
         ResetBattle();
         Game.Enter(Game.NextPlayerToBattle == null, EnterSpiceCollectionPhase, Game.Version >= 107, Phase.BeginningOfBattle, Phase.BattlePhase);
@@ -372,13 +355,14 @@ public class EndPhase : GameEvent
         Game.FacedancerWasCancelled = false;
         Game.CurrentBattle = null;
         Game.CurrentPrescience = null;
+        Game.PrescienceSeenPlans.Clear();
         Game.CurrentThought = null;
         Game.CurrentVoice = null;
         Game.CurrentNexusPrescience = null;
-        Game.CurrentBlueCunning = null;
-        Game.CurrentRedCunning = null;
-        Game.CurrentGreyCunning = null;
-        Game.BlackVictim = null;
+        Game.CurrentBeneGesseritCunning = null;
+        Game.CurrentEmperorCunning = null;
+        Game.CurrentIxianCunning = null;
+        Game.HarkonnenVictim = null;
         Game.AggressorPlan = null;
         Game.DefenderPlan = null;
         Game.PreviousAggressorPlan = null;
@@ -386,7 +370,7 @@ public class EndPhase : GameEvent
         Game.AggressorTraitorAction = null;
         Game.DefenderTraitorAction = null;
         Game.PoisonToothCancelled = false;
-        Game.GreySpecialForceLossesToTake = 0;
+        Game.IxianSpecialForceLossesToTake = 0;
         Game.BattleWinner = Faction.None;
         Game.BattleLoser = Faction.None;
         Game.HasActedOrPassed.Clear();
@@ -396,17 +380,17 @@ public class EndPhase : GameEvent
         Game.LoserMayTryToAssassinate = false;
         Game.BattleWinnerMayChooseToDiscard = true;
         Game.BattleAboutToStart = null;
-        Game.CurrentPinkOrAllyFighter = Faction.None;
-        Game.CurrentPinkBattleContribution = 0;
-        Game.GreenKarma = false;
-        Game.PinkKarmaBonus = 0;
+        Game.CurrentEcazOrAllyFighter = Faction.None;
+        Game.CurrentEcazBattleContribution = 0;
+        Game.AtreidesKarma = false;
+        Game.EcazKarmaBonus = 0;
     }
 
     private void EnterSpiceCollectionPhase()
     {
         Game.MainPhaseStart(MainPhase.Collection);
-        Game.ResourcesCollectedByYellow = 0;
-        Game.ResourcesCollectedByBlackFromDesertOrHomeworld = 0;
+        Game.ResourcesCollectedByFremen = 0;
+        Game.ResourcesCollectedByHarkonnenFromDesertOrHomeworld = 0;
         CallHeroesHome();
         Game.PendingDiscoveries = Game.DiscoveriesOnPlanet.Where(kvp => Game.AnyForcesIn(kvp.Key.Territory)).Select(kvp => kvp.Value.Token).ToList();
 

@@ -152,7 +152,7 @@ public sealed class SavegameComponentReplayTests
         {
             throw new InvalidOperationException($"{context}: component was not instantiated.");
         }
-        if (historicalEvent is AcceptOrCancelPurpleRevival
+        if (historicalEvent is AcceptOrCancelTleilaxuRevival
             {
                 Cancel: true,
                 Hero: { } cancelledHero
@@ -189,7 +189,7 @@ public sealed class SavegameComponentReplayTests
         var buttonRow = rendered.FindComponents<ButtonRowComponent>().LastOrDefault();
         var buttonText = historicalEvent switch
         {
-            GreyRemovedCardFromAuction { PutOnTop: false } => "Put at bottom",
+            IxianRemovedCardFromAuction { PutOnTop: false } => "Put at bottom",
             _ when buttonRow == null
                 => historicalEvent switch
                 {

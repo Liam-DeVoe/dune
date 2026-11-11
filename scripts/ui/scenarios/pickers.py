@@ -9,9 +9,9 @@ AREA = "map-ux"
 
 PANELS = [
     # fixture, faction, dial a force first?
-    ("bid", "green", False),
-    ("battle", "orange", True),
-    ("revival", "red", False),
+    ("bid", "atreides", False),
+    ("battle", "guild", True),
+    ("revival", "emperor", False),
 ]
 
 # Tall enough to include the panel under the phase card, without the unrelated panels below.

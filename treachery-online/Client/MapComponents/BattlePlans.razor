@@ -10,8 +10,9 @@
 
 @if (Game.CurrentMainPhase == MainPhase.Battle && Game.CurrentPhase != Phase.BattleReport)
 {
-    var maySeeAggressorBattlePlan = Game.AggressorPlan != null && (Game.AggressorPlan.Initiator == Client.Faction || (Game.GreenKarma && Game.CurrentBattle.OpponentOf(Faction.Green) == Game.AggressorPlan.Player));
-    var maySeeDefenderBattlePlan = Game.DefenderPlan != null && (Game.DefenderPlan.Initiator == Client.Faction || (Game.GreenKarma && Game.CurrentBattle.OpponentOf(Faction.Green) == Game.DefenderPlan.Player));
+    var seesAtreidesKarma = Game.AtreidesKarma && (Client.Faction == Faction.Atreides || Player?.Ally == Faction.Atreides);
+    var maySeeAggressorBattlePlan = Game.AggressorPlan != null && (Game.AggressorPlan.Initiator == Client.Faction || (seesAtreidesKarma && Game.CurrentBattle.OpponentOf(Faction.Atreides) == Game.AggressorPlan.Player));
+    var maySeeDefenderBattlePlan = Game.DefenderPlan != null && (Game.DefenderPlan.Initiator == Client.Faction || (seesAtreidesKarma && Game.CurrentBattle.OpponentOf(Faction.Atreides) == Game.DefenderPlan.Player));
 
     var maySeeBothBattlePlans = Game.AggressorPlan != null && Game.DefenderPlan != null;
     

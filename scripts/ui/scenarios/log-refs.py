@@ -30,7 +30,7 @@ def run(r):
     # Turn 3 Ship & Move report seen by the Bene Gesserit. It has moves into
     # Plastic Basin (North Sector) and Old Gap (Middle Sector), shipments paid in
     # spice, and the Harkonnen, whose leader is the Bene Gesserit player's traitor.
-    with r.game("blue", "blue") as g:
+    with r.game("bene_gesserit", "bene_gesserit") as g:
         r.note("report", g.eval(REPORT_TEXT))
         g.element_shot("report-1-panel", REPORT)
 
@@ -46,9 +46,9 @@ def run(r):
         # Hover the first Harkonnen reference. After the change every sector with
         # Harkonnen forces tints and the traitor card in the panel is marked.
         if r.after:
-            hover_element(g, f'{REPORT} .chip.faction[data-ref-faction="Black"]')
+            hover_element(g, f'{REPORT} .chip.faction[data-ref-faction="Harkonnen"]')
             r.note("faction chips", g.count(f"{REPORT} .chip.faction"))
-            r.note("traitor marked", g.count(f"{PANEL} [data-faction-of=Black].ref-hi"))
+            r.note("traitor marked", g.count(f"{PANEL} [data-faction-of=Harkonnen].ref-hi"))
         else:
             hover_element(g, f'{REPORT} img[title="Harkonnen"]')
         g.shot("report-3-faction-hover", park=False)
@@ -72,9 +72,9 @@ def run(r):
         g.shot("report-5-ship-hover", park=False)
 
     # Spice just blew at Sihaya Ridge, so the popover has a spice amount to draw.
-    with r.game("blow", "green") as g:
+    with r.game("blow", "atreides") as g:
         intel_shot(g, "intel-1-spice", "Sihaya Ridge")
 
     # A control: the bidding card's spice picker should not change.
-    with r.game("bid", "green") as g:
+    with r.game("bid", "atreides") as g:
         g.element_shot("bid-1-panel", BID_PANEL)

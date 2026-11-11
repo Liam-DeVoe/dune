@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bidding card: redesign</title>
+<style>
+@font-face { font-family: "Advokat"; src: url("../treachery-online/Client/wwwroot/Advokat.ttf"); }
+@font-face { font-family: "Copperplate Dune"; src: url("../treachery-online/Client/wwwroot/Copperplate.ttf"); }
+@font-face { font-family: "Alegreya Sans"; font-weight: 400; src: url("../treachery-online/Client/wwwroot/fonts/AlegreyaSans-400-latin.woff2"); }
+@font-face { font-family: "Alegreya Sans"; font-weight: 700; src: url("../treachery-online/Client/wwwroot/fonts/AlegreyaSans-700-latin.woff2"); }
+:root {
+  --ink-0: #120800; --ink-1: #1d0c00; --ink-2: #2a1607; --ink-3: #3b2310;
+  --parchment: #fcf9d1; --sand: #f3d987; --rock: #b3915f; --rock-2: #8c6b3e;
+  --gold: #e7bf3c; --gold-2: #e3a631; --gold-3: #b8841e; --spice: #e8762a; --storm: #c33232;
+  --text-2: #d9c79a; --text-3: #a68d63;
+  --hair: rgba(255,255,255,.09); --hair-strong: rgba(255,255,255,.16);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: #0b0500; color: var(--parchment); font-family: "Alegreya Sans", Candara, sans-serif; font-size: 17px; line-height: 1.45; }
+main { max-width: 1400px; margin: 0 auto; padding: 32px 28px 100px; }
+.eyebrow { font-family: "Copperplate Dune", serif; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--gold-2); }
+h1 { font-family: "Advokat", serif; font-weight: 400; font-size: 44px; margin: 6px 0 8px; }
+h2 { font-family: "Advokat", serif; font-weight: 400; font-size: 28px; color: var(--gold); margin: 0 0 6px; }
+p { max-width: 80ch; color: var(--text-2); margin: 0 0 12px; }
+section { border-top: 1px solid var(--hair); padding-top: 24px; margin-top: 32px; }
+.opts { display: flex; gap: 28px; align-items: flex-start; flex-wrap: wrap; }
+figure { margin: 0; }
+figcaption { font-family: "Copperplate Dune", serif; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+figcaption b { color: var(--sand); font-weight: 400; }
+figure > p { font-size: 14.5px; color: var(--text-3); max-width: 352px; margin-top: 8px; }
+.shot { display: block; width: 400px; border: 1px solid var(--hair-strong); border-radius: 4px; }
+.changes { color: var(--text-2); max-width: 82ch; padding-left: 22px; }
+.changes li { margin: 0 0 8px; }
+.changes b { color: var(--parchment); }
+
+/* the column the card sits in, at 1x */
+.colwrap { width: 400px; background: #1d0c00; border: 1px solid var(--hair-strong); border-radius: 4px; padding: 26px 24px; }
+.colwrap.bare { background: transparent; border: 0; padding: 0; }
+
+/* ---------- shared atoms ---------- */
+.sigil { width: 20px; height: 20px; border-radius: 50%; display: inline-grid; place-items: center; background: var(--fc); flex: none; }
+.sigil img { width: 68%; height: 68%; }
+.spice { display: inline-grid; place-items: center; position: relative; width: 22px; height: 22px; vertical-align: -6px; }
+.spice img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.spice b { position: relative; font: 400 13px "Advokat", serif; color: var(--parchment); text-shadow: 0 0 1px #000, 0 0 1px #000, 0 0 3px #000; }
+.fname { font-weight: 700; }
+.inl { display: inline-flex; gap: 4px; align-items: center; vertical-align: -4px; }
+
+/* ---------- the card ---------- */
+.bid { width: 352px; border-radius: 6px; position: relative; overflow: hidden; font-size: 15px; line-height: 1.35; }
+.bid.act { background: var(--parchment); color: var(--ink-1); border: 1px solid var(--gold-3); box-shadow: 0 2px 6px rgba(18,8,0,.5); padding: 12px 14px 12px 20px; }
+.bid.act::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--gold-2); }
+.bid.wait { background: var(--ink-2); color: var(--text-2); border: 1px solid var(--hair); padding: 12px 14px 12px 20px; }
+
+.kick { display: flex; align-items: center; gap: 8px; font-family: "Copperplate Dune", serif; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--rock-2); }
+.wait .kick { color: var(--text-3); }
+.kick .timer { margin-left: auto; font-family: "Advokat", serif; font-size: 14px; letter-spacing: 0; display: inline-flex; align-items: center; gap: 6px; }
+.kick .timer .bar { width: 44px; height: 3px; border-radius: 2px; background: rgba(29,12,0,.15); overflow: hidden; }
+.kick .timer .bar i { display: block; height: 100%; width: var(--p); background: currentColor; }
+.wait .kick .timer .bar { background: rgba(255,255,255,.12); }
+.kick .timer.low { color: var(--storm); }
+.pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 3px rgba(231,191,60,.25); }
+
+.lot { display: flex; gap: 12px; margin-top: 8px; }
+.lot > img { width: 52px; height: auto; align-self: flex-start; border: 1px solid rgba(0,0,0,.45); border-radius: 3px; box-shadow: 0 1px 2px rgba(18,8,0,.5); }
+.lot .t { flex: 1; min-width: 0; }
+.title { font-family: "Advokat", serif; font-size: 22px; line-height: 1.05; margin: 0 0 4px; }
+.wait .title { font-size: 19px; color: var(--text-2); }
+.state { color: var(--rock-2); }
+.state b { color: var(--ink-1); }
+.wait .state { color: var(--text-3); }
+.wait .state b { color: var(--parchment); }
+.seen { font-size: 13.5px; color: var(--rock-2); margin-top: 3px; }
+.seen b { color: var(--ink-1); }
+
+/* bid order */
+.order { display: flex; flex-wrap: wrap; gap: 4px 4px; margin-top: 10px; padding-top: 9px; border-top: 1px solid rgba(29,12,0,.12); }
+.wait .order { border-top-color: var(--hair); }
+.oc { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px 1px 1px; border-radius: 999px; font-size: 13px; font-weight: 700; border: 1px solid rgba(29,12,0,.16); background: rgba(29,12,0,.04); white-space: nowrap; }
+.oc .hand { font-weight: 400; color: var(--rock-2); font-size: 12px; display: inline-flex; align-items: center; gap: 2px; margin-left: 1px; }
+.oc .hand::before { content: ""; width: 7px; height: 10px; border: 1.2px solid currentColor; border-radius: 1.5px; }
+.oc.up { border-color: var(--gold-3); background: rgba(231,191,60,.28); box-shadow: 0 0 0 1px var(--gold-3); }
+.oc.high { background: rgba(232,118,42,.13); border-color: rgba(232,118,42,.5); }
+.spice.sm { width: 18px; height: 18px; vertical-align: 0; } .spice.sm b { font-size: 11px; }
+.oc.out { opacity: .45; font-weight: 400; }
+.oc.out .nm { text-decoration: line-through; }
+.oc .tag { font-weight: 400; font-size: 12px; color: var(--rock-2); }
+.oc.full .hand { color: var(--storm); }
+.wait .oc { border-color: var(--hair-strong); background: rgba(255,255,255,.03); color: var(--parchment); }
+.wait .oc .hand, .wait .oc .tag { color: var(--text-3); }
+.wait .oc.up { border-color: var(--gold-2); background: rgba(231,191,60,.14); box-shadow: 0 0 0 1px var(--gold-2); }
+.wait .oc.high { background: rgba(232,118,42,.16); border-color: rgba(232,118,42,.5); }
+.wait .oc.full .hand { color: #e06a5a; }
+
+/* controls */
+.acts { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.num { display: inline-flex; height: 32px; border: 1px solid rgba(29,12,0,.3); border-radius: 6px; overflow: hidden; background: rgba(255,255,255,.55); flex: none; }
+.num .ic { width: 28px; display: grid; place-items: center; border-right: 1px solid rgba(29,12,0,.2); background: var(--fc, transparent); }
+.num .ic img { width: 17px; height: 17px; }
+.num .ic.fac img { width: 15px; height: 15px; }
+.num button { width: 24px; border: 0; background: transparent; font: 400 15px "Advokat", serif; color: var(--ink-1); padding: 0; }
+.num input { width: 34px; border: 0; border-left: 1px solid rgba(29,12,0,.2); border-right: 1px solid rgba(29,12,0,.2); text-align: center; font: 400 17px "Advokat", serif; color: var(--ink-1); background: transparent; padding: 0; }
+.btn { font: 700 15px "Alegreya Sans", sans-serif; padding: 6px 13px; border-radius: 6px; border: 1px solid transparent; white-space: nowrap; height: 32px; }
+.btn.primary { background: var(--gold); color: var(--ink-0); }
+.btn.secondary { background: transparent; color: var(--ink-1); border-color: rgba(29,12,0,.35); }
+.btn.right { margin-left: auto; }
+.quick { display: flex; gap: 4px; margin-top: 5px; }
+.quick button { font: 13px "Alegreya Sans", sans-serif; color: var(--rock-2); background: transparent; border: 1px solid rgba(29,12,0,.18); border-radius: 3px; padding: 0 6px; height: 21px; }
+.split { display: flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 13.5px; color: var(--rock-2); }
+.split .num { height: 28px; }
+.split .num input { width: 30px; font-size: 15px; }
+.split .num button { width: 20px; }
+.split .num .ic { width: 24px; }
+.why { font-size: 13px; color: var(--storm); margin-top: 4px; }
+
+.opt { display: flex; align-items: center; gap: 7px; margin-top: 10px; font-size: 14px; }
+.box { width: 15px; height: 15px; border: 1px solid rgba(29,12,0,.4); border-radius: 3px; background: rgba(255,255,255,.6); flex: none; display: grid; place-items: center; font-size: 11px; line-height: 1; }
+.box.on { background: var(--gold); border-color: var(--gold-3); }
+.box.on::after { content: "✓"; color: var(--ink-0); font-weight: 700; }
+
+.auto { display: flex; align-items: center; gap: 7px; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(29,12,0,.12); font-size: 13.5px; color: var(--rock-2); flex-wrap: wrap; }
+.auto .num { height: 24px; border-radius: 3px; }
+.auto .num input { width: 28px; font-size: 14px; border: 0; }
+.auto .num .ic { width: 22px; }
+.auto .num .ic img { width: 14px; height: 14px; }
+.auto.on { color: var(--ink-1); }
+.wait .auto { border-top-color: var(--hair); color: var(--text-3); }
+.wait .auto.on { color: var(--text-2); }
+.wait .box { border-color: rgba(255,255,255,.3); background: rgba(255,255,255,.06); }
+.wait .box.on { background: var(--gold); border-color: var(--gold); }
+.wait .num { background: var(--ink-0); border-color: var(--hair-strong); }
+.wait .num input, .wait .num button { color: var(--parchment); }
+.wait .num .ic { border-right-color: var(--hair-strong); }
+.sub { margin-left: 22px; width: 100%; display: flex; gap: 7px; align-items: center; }
+</style>
+</head>
+<body>
+<main>
+<div class="eyebrow">treachery.online · bidding</div>
+<h1>A tighter bidding card</h1>
+<p>Today the bidding prompt is two parchment boxes: the shared status header, then the bidding panel. The proposal folds them into one card that's about a quarter shorter (310px against 415px). It also states the facts players currently piece together on their own: the current bid, your spice, who's still in, and what the card is.</p>
+
+<section>
+  <h2>Today and proposed</h2>
+  <div class="opts">
+    <figure><figcaption>Today</figcaption><img class="shot" src="../design/middle-column/open/now-bidding.png" alt="current bidding panel"></figure>
+    <figure><figcaption><b>Proposed</b> · same moment, same column</figcaption>
+      <div class="colwrap" id="hero"></div>
+    </figure>
+  </div>
+
+  <ol class="changes">
+    <li><b>One card, not two.</b> The status header's prompt line ("Please bid or pass.") and its sigil row move into the bidding card. The sigil row becomes the order line, and the header goes away for this phase. The design language already asks for this: the form lives inside the prompt, not in a second panel.</li>
+    <li><b>The facts are a sentence.</b> "Fremen bid 1. You have 10." Today the bid is a chip and a number with no verb, and your spice is only in the header above.</li>
+    <li><b>The order line is labelled.</b> Today it's six sigils on card backs: the faction's hand size, with the current bidder drawn slightly bigger. Now each entry is named and shows, in turn order, who is up (gold), who holds the bid (with the amount), who passed (struck out), and hand size. A full hand shows in red, as it does today.</li>
+    <li><b>One gold button.</b> Bid is gold. Pass is outlined and pushed to the far right, so a quick click doesn't hit the wrong one. Today both are gold and sit side by side.</li>
+    <li><b>The card is named.</b> When you can see it, through prescience or a faction-sold card, the text says what it is. At 52px the art alone can't be read. When you can't see it, the card back is dropped, because it tells you nothing.</li>
+    <li><b>Quick values.</b> "+1", "+2", and "max 10" under the field, per the design language's "type it, don't tap it". Getting to 8 from 2 is one click instead of six.</li>
+    <li><b>Auto-pass says what it does.</b> The threshold sits on the same line as the checkbox, so the setting reads as one sentence. It's also there while you wait, which is when you'd set it.</li>
+    <li><b>Timer only when there is one.</b> "1184:49:37" is the elapsed time on a game with no limit. Show a countdown only when the host set one.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Other states</h2>
+  <p>The same parts cover every case the current panel handles: ally and Emperor contributions, Karama, and silent auctions. Nothing moves between states, so the eye stays in one place.</p>
+  <div class="opts" id="states"></div>
+</section>
+
+</main>
+<script>
+const ART = '../treachery-online/Client/wwwroot/art/';
+const F = {
+  atr: {n: 'Atreides', c: '#63842e', i: 1}, hark: {n: 'Harkonnen', c: '#2c2c2c', i: 2},
+  fre: {n: 'Fremen', c: '#d29422', i: 3}, emp: {n: 'Emperor', c: '#b33715', i: 4},
+  gld: {n: 'Guild', c: '#c85b20', i: 5}, bg: {n: 'Bene Gesserit', c: '#385884', i: 6},
+};
+const sig = f => `<span class="sigil" style="--fc:${F[f].c}"><img src="${ART}faction${F[f].i}.svg" alt=""></span>`;
+const fac = f => `<span class="inl">${sig(f)}<span class="fname">${F[f].n}</span></span>`;
+const spice = n => `<span class="spice"><img src="${ART}ActiveSpice.svg" alt="spice"><b>${n}</b></span>`;
+
+// order: [faction, hand, state, extra]; state: up | high | out | full | ''
+function order(rows) {
+  return `<div class="order">${rows.map(([f, hand, st, x]) => {
+    const name = f === 'atr' ? 'You' : F[f].n;
+    const amt = st === 'high' ? `<span class="spice sm"><img src="${ART}ActiveSpice.svg" alt="spice"><b>${x}</b></span>` : '';
+    return `<span class="oc ${st || ''}" title="${F[f].n}: ${hand} card${hand === 1 ? '' : 's'} in hand">${sig(f)}<span class="nm">${name}</span>${amt}<span class="hand">${hand}</span></span>`;
+  }).join('')}</div>`;
+}
+const num = (v, ic = `<span class="ic"><img src="${ART}ActiveSpice.svg" alt=""></span>`) => `<span class="num">${ic}<button>−</button><input value="${v}"><button>+</button></span>`;
+const facIc = f => `<span class="ic fac" style="--fc:${F[f].c}"><img src="${ART}faction${F[f].i}.svg" alt=""></span>`;
+const kick = (txt, t, cls = '') => `<div class="kick">${txt}${t ? `<span class="timer ${cls}">${t.s}<span class="bar"><i style="--p:${t.p}%"></i></span></span>` : ''}</div>`;
+const auto = (on, n, wait) => on
+  ? `<div class="auto on"><span class="box on"></span>Auto-pass once the bid is over ${num(n)}<div class="sub"><span class="box on"></span>Keep it on for every card this round</div></div>`
+  : `<div class="auto"><span class="box"></span>Auto-pass once the bid is over ${num(n)}</div>`;
+const quick = items => `<div class="quick">${items.map(i => `<button>${i}</button>`).join('')}</div>`;
+const card = src => `<img src="${ART}${src}" alt="">`;
+
+const ORDER1 = [['fre', 1, 'high', 1], ['atr', 1, 'up'], ['hark', 2], ['gld', 1], ['emp', 1], ['bg', 1]];
+
+const hero = `
+<div class="bid act">
+  ${kick('Bidding · card 1 of 6', null)}
+  <div class="lot">
+    ${card('Chaumas.gif')}
+    <div class="t">
+      <div class="title">Bid or pass</div>
+      <div class="state">${fac('fre')} bid ${spice(1)}. You have ${spice(10)}.</div>
+      <div class="seen">You see this card: <b>Chaumas</b>, a poison weapon.</div>
+    </div>
+  </div>
+  ${order(ORDER1)}
+  <div class="acts">${num(2)}<button class="btn primary">Bid 2</button><button class="btn secondary right">Pass</button></div>
+  ${quick(['+1', '+2', 'max 10'])}
+  ${auto(false, 5)}
+</div>`;
+document.getElementById('hero').innerHTML = hero;
+
+const STATES = [
+  {cap: '<b>Outbid</b> · card unseen, timer low', note: 'The title says what changed since your last turn. With no prescience there is no card image, so the text takes the full width.', html: `
+<div class="bid act">
+  ${kick('Bidding · card 3 of 6', {s: '0:08', p: 13}, 'low')}
+  <div class="title" style="margin-top:6px">Harkonnen outbid you</div>
+  <div class="state">${fac('hark')} bid ${spice(5)} over your 4. You have ${spice(10)}.</div>
+  ${order([['hark', 2, 'high', 5], ['gld', 1, 'out'], ['emp', 1, 'out'], ['bg', 1, 'out'], ['fre', 1, 'out'], ['atr', 1, 'up']])}
+  <div class="acts">${num(6)}<button class="btn primary">Bid 6</button><button class="btn secondary right">Pass</button></div>
+  ${quick(['+1', '+2', 'max 10'])}
+  ${auto(false, 5)}
+</div>`},
+
+  {cap: '<b>No bids yet</b> · you open', note: 'Today this says "No bids yet" under the card. Here it is part of the sentence.', html: `
+<div class="bid act">
+  ${kick('Bidding · card 2 of 6', {s: '0:42', p: 70})}
+  <div class="title" style="margin-top:6px">Open the bidding</div>
+  <div class="state">No bids yet. You have ${spice(10)}.</div>
+  ${order([['atr', 2, 'up'], ['hark', 2], ['gld', 1], ['emp', 1], ['bg', 1], ['fre', 4, 'full']])}
+  <div class="acts">${num(1)}<button class="btn primary">Bid 1</button><button class="btn secondary right">Pass</button></div>
+  ${quick(['+1', '+2', 'max 10'])}
+  ${auto(false, 5)}
+</div>`},
+
+  {cap: '<b>Waiting</b> · someone else is up', note: 'The dark waiting card, same layout. Auto-pass can be set here, before your turn comes round.', html: `
+<div class="bid wait">
+  ${kick('<span class="pulse"></span>Bidding · card 1 of 6', {s: '0:31', p: 52})}
+  <div class="title" style="margin-top:6px">Harkonnen is thinking about their bid</div>
+  <div class="state">You hold the bid at ${spice(2)}. You have ${spice(10)}.</div>
+  ${order([['fre', 1, 'out'], ['atr', 1, 'high', 2], ['hark', 2, 'up'], ['gld', 1], ['emp', 1], ['bg', 1]])}
+  ${auto(true, 6)}
+</div>`},
+
+  {cap: '<b>Ally pays part</b>', note: 'Today these are two full-width steppers. Here they share one line, and the button shows the total. It starts with the ally paying first, as the code does now.', html: `
+<div class="bid act">
+  ${kick('Bidding · card 4 of 6', {s: '0:40', p: 66})}
+  <div class="title" style="margin-top:6px">Bid or pass</div>
+  <div class="state">${fac('emp')} bid ${spice(6)}. You have ${spice(4)}, plus ${spice(5)} from your ally.</div>
+  ${order([['emp', 1, 'high', 6], ['atr', 1, 'up'], ['hark', 2], ['gld', 1], ['bg', 1], ['fre', 1]])}
+  <div class="split">${num(2, facIc('atr'))} you + ${num(5, facIc('fre'))} Fremen</div>
+  <div class="acts" style="margin-top:8px"><button class="btn primary">Bid 7</button><button class="btn secondary right">Pass</button></div>
+  ${auto(false, 5)}
+</div>`},
+
+  {cap: '<b>Karama available</b>', note: 'Karama is one checkbox instead of a card picker. Ticking it lifts the spice cap and adds "Win now with Karama". If you hold more than one Karama, the checkbox becomes a short pick list.', html: `
+<div class="bid act">
+  ${kick('Bidding · card 5 of 6', {s: '0:37', p: 61})}
+  <div class="title" style="margin-top:6px">Bid or pass</div>
+  <div class="state">${fac('hark')} bid ${spice(9)}. You have ${spice(3)}.</div>
+  ${order([['hark', 2, 'high', 9], ['atr', 1, 'up'], ['gld', 1], ['emp', 1], ['bg', 1], ['fre', 1]])}
+  <label class="opt"><span class="box on"></span>Use Karama: bid past your spice, or win outright</label>
+  <div class="acts">${num(10)}<button class="btn primary">Bid 10</button><button class="btn secondary right">Pass</button></div>
+  <div class="opt" style="margin-top:8px;color:var(--rock-2)">or <button class="btn secondary" style="height:28px;padding:3px 10px">Win now with Karama</button></div>
+  ${auto(false, 5)}
+</div>`},
+
+  {cap: '<b>Silent auction</b>', note: 'No order line and no Pass, as today. Bidding 0 is how you sit it out, so the quick values include it.', html: `
+<div class="bid act">
+  ${kick('Richese · silent auction', {s: '0:50', p: 83})}
+  <div class="title" style="margin-top:6px">Place a sealed bid</div>
+  <div class="state">Everyone bids once, in secret. You have ${spice(10)}.</div>
+  <div class="acts">${num(0)}<button class="btn primary">Bid 0</button></div>
+  ${quick(['0', '+1', 'max 10'])}
+</div>`},
+];
+document.getElementById('states').innerHTML = STATES.map(s => `<figure><figcaption>${s.cap}</figcaption><div class="colwrap bare">${s.html}</div><p>${s.note}</p></figure>`).join('');
+</script>
+</body>
+</html>

@@ -46,16 +46,16 @@ public class AllianceByTerror : PassableGameEvent
                 Game.BreakAlliance(Initiator);
             }
 
-            var cyan = Game.GetPlayer(Faction.Cyan);
-            if (cyan is { HasAlly: true })
+            var moritani = Game.GetPlayer(Faction.Moritani);
+            if (moritani is { HasAlly: true })
             {
-                Log(Faction.Cyan, " and ", cyan.Ally, " end their alliance");
-                Game.BreakAlliance(Faction.Cyan);
+                Log(Faction.Moritani, " and ", moritani.Ally, " end their alliance");
+                Game.BreakAlliance(Faction.Moritani);
             }
 
-            Game.MakeAlliance(Initiator, Faction.Cyan);
+            Game.MakeAlliance(Initiator, Faction.Moritani);
 
-            if (Game.HasActedOrPassed.Contains(Initiator) && Game.HasActedOrPassed.Contains(Faction.Cyan)) Game.CheckIfForcesShouldBeDestroyedByAllyPresence(Player);
+            if (Game.HasActedOrPassed.Contains(Initiator) && Game.HasActedOrPassed.Contains(Faction.Moritani)) Game.CheckIfForcesShouldBeDestroyedByAllyPresence(Player);
 
             var territory = Game.LastTerrorTrigger!.Territory;
             Log("Terror in ", territory, " is returned to supplies");
@@ -71,7 +71,7 @@ public class AllianceByTerror : PassableGameEvent
         }
         else
         {
-            Log(Initiator, " don't ally with ", Faction.Cyan);
+            Log(Initiator, " don't ally with ", Faction.Moritani);
         }
 
         Game.LetFactionsDiscardSurplusCards();

@@ -1,0 +1,80 @@
+/* The razor-scoped styles of the lobby components, which Blazor scoped with b-xxxx attributes.
+   The selectors keep the C# class names, which the comparison checks. */
+
+/* GenericComponents/DateTimePicker.razor.css (its "label" rule is scoped to the picker's labels) */
+label[for="datePicker"], label[for="timePicker"] {
+  font-weight: bold;
+}
+
+input[type=date], input[type=time] {
+  font-size: 1rem;
+  padding: 0.5rem;
+  color-scheme: dark;
+}
+
+/* OtherComponents/RunningGamesComponent.razor.css */
+.table-running-games td:nth-child(1) { width: 15%; word-break: break-all; }
+.table-running-games td:nth-child(2) { width: 10%; word-break: break-all; }
+.table-running-games td:nth-child(3) { width: 45%; word-break: break-word; }
+.table-running-games td:nth-child(4) { width: 30%; word-break: break-all; text-align: right; }
+
+.table-scheduled-games td:nth-child(1) { width: 15%; word-break: break-all; }
+.table-scheduled-games td:nth-child(2) { width: 10%; word-break: break-word; }
+.table-scheduled-games td:nth-child(3) { width: 45%; word-break: break-word; }
+.table-scheduled-games td:nth-child(4) { width: 20%; word-break: break-all; }
+.table-scheduled-games td:nth-child(5) { width: 10%; word-break: break-all; text-align: right; }
+
+.games-section-label {
+  margin: 16px 0 4px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.full-tag {
+  display: inline-block;
+  vertical-align: middle;
+  padding: 1px 5px;
+  border: 1px solid var(--rock-2);
+  border-radius: 3px;
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+/* GenericComponents/NumberPickerComponent.razor.css (SelectNumber in widgets.tsx) */
+.num.sm {
+  height: 28px;
+}
+.num.sm button {
+  width: 26px;
+  font-size: 14px;
+}
+.num.sm input {
+  width: 40px;
+  font-size: 16px;
+}
+.num.sm .ic {
+  width: 26px;
+}
+.num.sm .ic img {
+  width: 16px;
+  height: 16px;
+}
+.num button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.num button:disabled:hover {
+  background: transparent;
+}
+.num.off {
+  opacity: 0.4;
+}
+.num.off button,
+.num.off input {
+  cursor: not-allowed;
+}
+.num input:disabled {
+  color: inherit;
+}

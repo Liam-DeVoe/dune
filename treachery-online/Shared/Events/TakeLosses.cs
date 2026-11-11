@@ -74,15 +74,15 @@ public class TakeLosses : GameEvent
 
     public static TreacheryCard ValidUselessCardToPreventLosses(Game g, Player p)
     {
-        if (p.Faction == Faction.Brown && !g.Prevented(FactionAdvantage.BrownDiscarding)) return p.TreacheryCards.FirstOrDefault(c => c.Id == TreacheryCardManager.CardJubbaCloak);
+        if (p.Faction == Faction.Choam && !g.Prevented(FactionAdvantage.ChoamDiscarding)) return p.TreacheryCards.FirstOrDefault(c => c.Id == TreacheryCardManager.CardJubbaCloak);
 
         return null;
     }
 
     public static bool CanPreventLosses(Game g, Player p)
     {
-        return p.Is(Faction.Brown) &&
-               ((!g.Prevented(FactionAdvantage.BrownDiscarding) && ValidUselessCardToPreventLosses(g, p) != null) ||
+        return p.Is(Faction.Choam) &&
+               ((!g.Prevented(FactionAdvantage.ChoamDiscarding) && ValidUselessCardToPreventLosses(g, p) != null) ||
                 (NexusPlayed.CanUseCunning(p) && p.TreacheryCards.Any()));
     }
 

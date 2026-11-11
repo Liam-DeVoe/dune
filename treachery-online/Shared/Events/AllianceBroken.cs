@@ -39,6 +39,10 @@ public class AllianceBroken : GameEvent
     protected override void ExecuteConcreteEvent()
     {
         Log(GetMessage().WithLog(new NexusLog(Alliance: new NexusAlliance(NexusAllianceChange.Ended, Initiator, Player.Ally))));
+
+        //Since v188 the former ally gets to act again in the alliance phase, even if they already passed
+        if (Game.Version >= 188 && Game.CurrentPhase is Phase.AllianceA or Phase.AllianceB) Game.HasActedOrPassed.Remove(Player.Ally);
+
         Game.BreakAlliance(Initiator);
         Game.LetFactionsDiscardSurplusCards();
     }

@@ -73,14 +73,14 @@ public class Voice : GameEvent
             result.Add(TreacheryCardType.ShieldAndAntidote);
         }
 
-        if (g.IsPlaying(Faction.White))
+        if (g.IsPlaying(Faction.Richese))
         {
             result.Add(TreacheryCardType.Rockmelter);
             result.Add(TreacheryCardType.MirrorWeapon);
             result.Add(TreacheryCardType.PortableAntidote);
         }
 
-        if (!g.Applicable(Rule.BlueVoiceMustNameSpecialCards))
+        if (!g.Applicable(Rule.BeneGesseritVoiceMustNameSpecialCards))
         {
             result.Add(TreacheryCardType.PoisonDefense);
             result.Add(TreacheryCardType.ProjectileDefense);
@@ -95,13 +95,13 @@ public class Voice : GameEvent
 
         if (!disableWhenPrescienceIsUsed && g.CurrentVoice == null && g.CurrentBattle != null && g.CurrentBattle.IsInvolved(p))
         {
-            if (p.Nexus == Faction.Blue && NexusPlayed.CanUseSecretAlly(g, p)) return g.CurrentBattle.IsAggressorOrDefender(p);
+            if (p.Nexus == Faction.BeneGesserit && NexusPlayed.CanUseSecretAlly(g, p)) return g.CurrentBattle.IsAggressorOrDefender(p);
 
-            if (!g.Prevented(FactionAdvantage.BlueUsingVoice) && !g.IsOccupiedByFactionOrTheirAlly(World.Blue, g.CurrentBattle!.OpponentOf(p)))
+            if (!g.Prevented(FactionAdvantage.BeneGesseritUsingVoice) && !g.IsOccupiedByFactionOrTheirAlly(World.BeneGesserit, g.CurrentBattle!.OpponentOf(p)))
             {
-                if (p.Faction == Faction.Blue)
+                if (p.Faction == Faction.BeneGesserit)
                     return g.CurrentBattle.IsInvolved(p);
-                if (p.Ally == Faction.Blue && g.BlueAllowsUseOfVoice) return g.CurrentBattle!.IsAggressorOrDefender(p);
+                if (p.Ally == Faction.BeneGesserit && g.BeneGesseritAllowsUseOfVoice) return g.CurrentBattle!.IsAggressorOrDefender(p);
             }
         }
 
@@ -112,7 +112,7 @@ public class Voice : GameEvent
     {
         if (cardType == voicedType) return true;
 
-        if (!g.Applicable(Rule.BlueVoiceMustNameSpecialCards))
+        if (!g.Applicable(Rule.BeneGesseritVoiceMustNameSpecialCards))
             switch (voicedType)
             {
                 case TreacheryCardType.PoisonDefense:
@@ -157,7 +157,7 @@ public class Voice : GameEvent
     {
         Game.CurrentVoice = this;
 
-        if (!IsPlaying(Faction.Blue)) Game.PlayNexusCard(Player, "Secret Ally", " to use Voice");
+        if (!IsPlaying(Faction.BeneGesserit)) Game.PlayNexusCard(Player, "Secret Ally", " to use Voice");
 
         if (Game.CurrentBattle != null)
         {

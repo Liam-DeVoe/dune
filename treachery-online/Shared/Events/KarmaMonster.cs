@@ -61,7 +61,7 @@ public class KarmaMonster : GameEvent
         Game.NumberOfMonsters++;
         Game.LetMonsterAppear(Territory, false);
 
-        if (Game.CurrentPhase == Phase.BlowReport) Game.Enter(Phase.AllianceB);
+        if (Game.CurrentPhase == Phase.BlowReport) Game.EnterAlliancePhase(false);
     }
 
     public override Message GetMessage()

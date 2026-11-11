@@ -45,7 +45,7 @@ public class NexusVoted : PassableGameEvent
             else
             {
                 if (Game.Applicable(Rule.BreakAlliancesOnAlliancePhase)) Game.BreakAllAlliances();
-                Game.Enter(Game.CurrentPhase == Phase.VoteAllianceA, Phase.AllianceA, Phase.AllianceB);
+                Game.EnterAlliancePhase(Game.CurrentPhase == Phase.VoteAllianceA);
             }
         }
     }

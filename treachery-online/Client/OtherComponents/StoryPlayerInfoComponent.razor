@@ -204,7 +204,7 @@
                                 <Image Class="img-fluid p-1" Width=60 Shown=@c />
                             }
 
-                            @if (Game.Applicable(Rule.GreenMessiah) && p.Faction == Faction.Green && p.TotalForcesKilledInBattle >= 7 && Game.IsAlive(LeaderManager.Messiah))
+                            @if (Game.Applicable(Rule.AtreidesMessiah) && p.Faction == Faction.Atreides && p.TotalForcesKilledInBattle >= 7 && Game.IsAlive(LeaderManager.Messiah))
                             {
                                 <img class="img-fluid p-1" width=60 src="@Client.CurrentSkin.Messiah_URL" title=@Client.CurrentSkin.Describe(Concept.Messiah)/>
                             }
@@ -230,7 +230,7 @@
                                 <Image Shown=@c Class="img-fluid p-1" Width=60 />
                             }
 
-                            @if (p.Faction == Faction.Green && Game.Applicable(Rule.GreenMessiah) && !Game.MessiahIsAlive)
+                            @if (p.Faction == Faction.Atreides && Game.Applicable(Rule.AtreidesMessiah) && !Game.MessiahIsAlive)
                             {
                                 <img class="img-fluid p-1" width=60 src="@Client.CurrentSkin.Messiah_URL" title=@Client.CurrentSkin.Describe(Concept.Messiah)/>
                             }

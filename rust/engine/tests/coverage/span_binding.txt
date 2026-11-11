@@ -1,0 +1,11 @@
+Events/DealAccepted.cs:81:offer.To.Contains(p.Faction)	System.MemoryExtensions.Contains	Treachery.Shared.Faction[]	offer.To
+Events/DealOffered.cs:128:To.Contains(by)	System.MemoryExtensions.Contains	Treachery.Shared.Faction[]	To
+Events/DealOffered.cs:87:offeredDeal.To.SequenceEqual(To)	System.MemoryExtensions.SequenceEqual	Treachery.Shared.Faction[], Treachery.Shared.Faction[]	offeredDeal.To, To
+Events/RicheseGaveCard.cs:49:c.Rules.Contains(Rule.RicheseTreacheryCards)	System.MemoryExtensions.Contains	Treachery.Shared.Rule[]	c.Rules
+Game.cs:285:types.Contains(History[i].GetType())	System.MemoryExtensions.Contains	System.Type[]	types
+Game_Deals.cs:44:offer.To.Contains(p.Faction)	System.MemoryExtensions.Contains	Treachery.Shared.Faction[]	offer.To
+Game_Revival.cs:114:FactionsWithIncreasedRevivalLimits.Contains(p.Faction)	System.MemoryExtensions.Contains	Treachery.Shared.Faction[]	FactionsWithIncreasedRevivalLimits
+Model/DiscoveryStronghold.cs:16:UNANALYZED	Roslyn crashed on this member		
+Model/HiddenMobileStronghold.cs:14:UNANALYZED	Roslyn crashed on this member		
+Model/Homeworld.cs:30:UNANALYZED	Roslyn crashed on this member		
+TreacheryCardManager.cs:129:c.Rules.Contains(rule)	System.MemoryExtensions.Contains	Treachery.Shared.Rule[]	c.Rules

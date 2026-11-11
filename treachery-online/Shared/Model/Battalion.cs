@@ -34,7 +34,7 @@ public class Battalion : ICloneable
         return Faction == f;
     }
 
-    public bool CanOccupy => AmountOfForces > 0 || (Faction != Faction.Blue && AmountOfSpecialForces > 0);
+    public bool CanOccupy => AmountOfForces > 0 || (Faction != Faction.BeneGesserit && AmountOfSpecialForces > 0);
 
     public int TotalAmountOfForces => AmountOfForces + AmountOfSpecialForces;
 

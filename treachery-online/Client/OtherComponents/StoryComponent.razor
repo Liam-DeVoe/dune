@@ -41,10 +41,10 @@
                 <StoryPlayerInfoComponent Game="replay" ShowName="true" />
             }
 
-            if (evt is BluePrediction bp && replay.YieldsSecrets(evt.Initiator))
+            if (evt is BeneGesseritPrediction bp && replay.YieldsSecrets(evt.Initiator))
             {
                 <div>
-                    <FactionChip Faction=Faction.Blue Game=replay/> Predicted that <FactionChip Faction=@bp.ToWin Game=replay/> win in turn @bp.Turn.
+                    <FactionChip Faction=Faction.BeneGesserit Game=replay/> Predicted that <FactionChip Faction=@bp.ToWin Game=replay/> win in turn @bp.Turn.
                 </div>
             }
 
@@ -123,7 +123,7 @@
                             {
                                 <th>Owned by</th>
                             }
-                            @if (replay.IsPlaying(Faction.Pink) || replay.IsPlaying(Faction.Cyan))
+                            @if (replay.IsPlaying(Faction.Ecaz) || replay.IsPlaying(Faction.Moritani))
                             {
                                 <th>Ambassadors and Terror</th>
                             }
@@ -167,7 +167,7 @@
                                 </td>
                             }
 
-                            @if (replay.IsPlaying(Faction.Pink) || replay.IsPlaying(Faction.Cyan))
+                            @if (replay.IsPlaying(Faction.Ecaz) || replay.IsPlaying(Faction.Moritani))
                             {
                                 <td>
                                 @{
@@ -225,7 +225,7 @@
             (evt is FaceDanced fd && fd.FaceDancerCalled) ||
             (evt is FaceDancerRevealed fdr && !fdr.Passed) ||
             (evt is TreacheryCalled tc && tc.TraitorCalled) ||
-            (evt is GreySwappedCardOnBid gscob && !gscob.Passed) ||
+            (evt is IxianSwappedCardOnBid gscob && !gscob.Passed) ||
             (evt is TerrorRevealed tr && tr.Type == TerrorType.Atomics) ||
             evt is PoisonToothCancelled ||
             evt is ReplacedCardWon ||
@@ -244,7 +244,7 @@
             evt is StormSpellPlayed ||
             evt is AmalPlayed ||
             evt is ClairVoyancePlayed ||
-            evt is BrownEconomics ||
+            evt is ChoamEconomics ||
             evt is RaiseDeadPlayed ||
             evt is PortableAntidoteUsed ||
             evt is ClairVoyanceAnswered;

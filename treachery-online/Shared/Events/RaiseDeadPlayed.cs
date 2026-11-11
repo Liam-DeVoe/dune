@@ -76,8 +76,8 @@ public class RaiseDeadPlayed : GameEvent, ILocationEvent
         if (AmountOfForces > p.ForcesKilled) return Message.Express("You can't revive that many");
         if (AmountOfSpecialForces > p.SpecialForcesKilled) return Message.Express("You can't revive that many");
         if (AmountOfForces + AmountOfSpecialForces > 5) return Message.Express("You can't revive that many");
-        if (Initiator != Faction.Grey && AmountOfSpecialForces > 1) return Message.Express("You can only revive one ", p.SpecialForce, " per turn");
-        if (AmountOfSpecialForces > 0 && Initiator != Faction.Grey && Game.FactionsThatRevivedSpecialForcesThisTurn.Contains(Initiator)) return Message.Express("You already revived one ", p.SpecialForce, " this turn");
+        if (Initiator != Faction.Ixian && AmountOfSpecialForces > 1) return Message.Express("You can only revive one ", p.SpecialForce, " per turn");
+        if (AmountOfSpecialForces > 0 && Initiator != Faction.Ixian && Game.FactionsThatRevivedSpecialForcesThisTurn.Contains(Initiator)) return Message.Express("You already revived one ", p.SpecialForce, " this turn");
         if (AmountOfForces + AmountOfSpecialForces > 0 && Hero != null) return Message.Express("You can't revive both forces and a leader");
         if (Hero != null && !ValidHeroes(Game, p).Contains(Hero)) return Message.Express("Invalid leader");
 
@@ -101,7 +101,7 @@ public class RaiseDeadPlayed : GameEvent, ILocationEvent
 
     public static bool MaySelectLocationForRevivedForces(Game game, Player player, int specialForces)
     {
-        return player.Is(Faction.Yellow) && specialForces >= 1 && player.HasHighThreshold() &&
+        return player.Is(Faction.Fremen) && specialForces >= 1 && player.HasHighThreshold() &&
                Revival.ValidRevivedForceLocations(game, player).Any();
     }
 
@@ -121,11 +121,11 @@ public class RaiseDeadPlayed : GameEvent, ILocationEvent
         Game.CurrentReport.Express(message);
         Game.Discard(Player, TreacheryCardType.RaiseDead);
 
-        var purple = GetPlayer(Faction.Purple);
-        if (purple != null)
+        var tleilaxu = GetPlayer(Faction.Tleilaxu);
+        if (tleilaxu != null)
         {
-            purple.Resources += 1;
-            Log(Faction.Purple, " get ", Payment.Of(1), " for revival by ", TreacheryCardType.RaiseDead);
+            tleilaxu.Resources += 1;
+            Log(Faction.Tleilaxu, " get ", Payment.Of(1), " for revival by ", TreacheryCardType.RaiseDead);
         }
 
         if (Hero != null)
@@ -145,10 +145,10 @@ public class RaiseDeadPlayed : GameEvent, ILocationEvent
             if (AmountOfSpecialForces > 0) Game.FactionsThatRevivedSpecialForcesThisTurn.Add(Initiator);
         }
 
-        if (Location != null && Initiator == Faction.Yellow)
+        if (Location != null && Initiator == Faction.Fremen)
         {
             Player.ShipSpecialForces(Location, 1);
-            Log(Initiator, " place ", FactionSpecialForce.Yellow, " in ", Location);
+            Log(Initiator, " place ", FactionSpecialForce.Fremen, " in ", Location);
         }
     }
 
@@ -176,7 +176,7 @@ public class RaiseDeadPlayed : GameEvent, ILocationEvent
     {
         if (specialForces)
         {
-            if (p.Faction == Faction.Red || p.Faction == Faction.Yellow)
+            if (p.Faction == Faction.Emperor || p.Faction == Faction.Fremen)
             {
                 if (g.FactionsThatRevivedSpecialForcesThisTurn.Contains(p.Faction))
                     return 0;

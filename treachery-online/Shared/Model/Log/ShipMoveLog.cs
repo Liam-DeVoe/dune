@@ -47,7 +47,7 @@ public record MoveLogged(
 // Faction passed their move.
 public record MovePassed(Faction Faction);
 
-public enum BlueReactionKind
+public enum BeneGesseritReactionKind
 {
     Accompany,
     DontAccompany,
@@ -58,7 +58,7 @@ public enum BlueReactionKind
 // The Bene Gesserit answering another faction's shipment or move. Place is
 // where they accompanied to, or the territory they flipped (or stayed) in.
 // Advisors tells which side they flipped to or stayed as.
-public record BlueReaction(BlueReactionKind Kind, object? Place, bool Advisors);
+public record BeneGesseritReaction(BeneGesseritReactionKind Kind, object? Place, bool Advisors);
 
 // Forces of Faction lost during their turn: Forces killed by the storm
 // (Storm, logged before the shipment or move that caused it; Travelling when

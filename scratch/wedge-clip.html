@@ -1,0 +1,46 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Place chip glyph: before and after</title>
+<style>
+  :root { --ink-1: #1d0c00; --ink-4: #4e3218; --rock: #b3915f; --gold: #e7bf3c; --parchment: #fcf9d1; }
+  body { background: var(--ink-1); color: var(--parchment); font: 15px/1.4 system-ui, sans-serif; padding: 32px; }
+  h1 { font-size: 20px; font-weight: 600; margin: 0 0 6px; }
+  p { color: #c9bf9a; max-width: 60ch; margin: 0 0 28px; }
+  .grid { display: grid; grid-template-columns: auto auto; gap: 16px 64px; align-items: center; justify-content: start; }
+  .lbl { font-size: 13px; color: #c9bf9a; text-transform: uppercase; letter-spacing: .1em; }
+
+  .chip { display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px 1px 3px; border-radius: 999px;
+          background: rgba(18, 8, 0, .55); border: 1px solid rgba(252, 249, 209, .12); font-size: 14px; line-height: 1; white-space: nowrap; }
+  .chip .name { font-weight: 600; }
+  .wedge { width: 20px; height: 20px; flex: none; }
+  .wedge .disc { fill: var(--ink-4); }
+  .wedge .ring { fill: none; stroke: var(--rock); stroke-width: 1.4; }
+  .wedge .w { fill: var(--gold); }
+  .after .wedge { overflow: visible; }
+
+  .z1 { zoom: 1; }
+  .z8 { zoom: 8; }
+  .z8 .name { display: none; }
+</style>
+
+<h1>Place chip glyph: before and after</h1>
+<p>Same markup and geometry as <code>Support.PlaceChipHtml</code> on the default skin: a viewBox of the planet (radius 260) plus 3 units of padding, drawn at 20px. The gold piece is a stand-in for a territory outline. The only difference between the two columns is <code>overflow: visible</code> on the SVG.</p>
+
+<template id="chip">
+  <span class="chip"><svg class="wedge" viewBox="18 48 526 526"><g>
+    <circle class="disc" cx="281" cy="311" r="260"/>
+    <path class="w" d="M110 140 L190 120 L175 210 Z"/>
+  </g><circle class="ring" cx="281" cy="311" r="260" vector-effect="non-scaling-stroke"/></svg><span class="name">Sietch Tabr</span></span>
+</template>
+
+<div class="grid">
+  <div class="lbl">Before</div><div class="lbl">After</div>
+  <div class="z1 before" data-chip></div><div class="z1 after" data-chip></div>
+  <div class="z8 before" data-chip></div><div class="z8 after" data-chip></div>
+</div>
+<p style="margin-top:20px">Top row is actual size. Bottom row is the glyph alone at 8× zoom.</p>
+
+<script>
+  const t = document.getElementById('chip');
+  document.querySelectorAll('[data-chip]').forEach(el => el.appendChild(t.content.cloneNode(true)));
+</script>

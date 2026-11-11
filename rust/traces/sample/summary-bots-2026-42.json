@@ -1,0 +1,1 @@
+{"mode":"bots","masterSeed":2026,"start":42,"endReasons":{"gameEnded":1},"games":[{"index":42,"file":"bots-2026-00042.jsonl.gz","endReason":"gameEnded","detail":null,"steps":153,"historyCount":153,"version":188,"players":7,"hostStyle":"ServerHumanHost"}]}

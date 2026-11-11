@@ -2,7 +2,7 @@
 
 A scenario receives a Run and opens games from it:
 
-    with run.game("ship", "red") as g:
+    with run.game("ship", "emperor") as g:
         g.shot("ship-1-start")
         if run.after:
             g.click("Carthag")
@@ -36,7 +36,7 @@ SCRIPTS = Path(__file__).resolve().parent.parent
 REPO = SCRIPTS.parent
 FIXTURES = SCRIPTS / "fixtures"
 
-FACTIONS = ("green", "black", "yellow", "red", "orange", "blue", "grey", "purple")
+FACTIONS = ("atreides", "harkonnen", "fremen", "emperor", "guild", "bene_gesserit", "ixian", "tleilaxu", "choam", "richese", "ecaz", "moritani")
 
 VIEWPORT = {"width": 1600, "height": 1000}
 SCALE = 2  # device pixels per CSS pixel, so PNGs are 3200x2000

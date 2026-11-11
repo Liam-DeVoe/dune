@@ -53,8 +53,8 @@ public class GameStatistics
             WinMethod.Prediction => "PREDICTION",
             WinMethod.Timeout => "TIMEOUT",
             WinMethod.Forfeit => "FORFEIT",
-            WinMethod.YellowSpecial => "FREMEN_DEFAULT",
-            WinMethod.OrangeSpecial => "GUILD_DEFAULT",
+            WinMethod.FremenSpecial => "FREMEN_DEFAULT",
+            WinMethod.GuildSpecial => "GUILD_DEFAULT",
             _ => "None"
         };
     }
@@ -63,16 +63,16 @@ public class GameStatistics
     {
         return f switch
         {
-            Faction.Yellow => "FREMEN",
-            Faction.Green => "ATREIDES",
-            Faction.Black => "HARKONNEN",
-            Faction.Red => "EMPEROR",
-            Faction.Orange => "GUILD",
-            Faction.Blue => "BG",
-            Faction.Grey => "IX",
-            Faction.Purple => "TLEILAXU",
-            Faction.White => "RICHESE",
-            Faction.Brown => "CHOAM",
+            Faction.Fremen => "FREMEN",
+            Faction.Atreides => "ATREIDES",
+            Faction.Harkonnen => "HARKONNEN",
+            Faction.Emperor => "EMPEROR",
+            Faction.Guild => "GUILD",
+            Faction.BeneGesserit => "BG",
+            Faction.Ixian => "IX",
+            Faction.Tleilaxu => "TLEILAXU",
+            Faction.Richese => "RICHESE",
+            Faction.Choam => "CHOAM",
             _ => "None"
         };
     }

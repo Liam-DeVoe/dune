@@ -42,7 +42,7 @@ def popover_box(g):
 
 
 def run(r):
-    with r.game(FIXTURE, "green") as g:
+    with r.game(FIXTURE, "atreides") as g:
         for w, h in SIZES:
             g.page.set_viewport_size({"width": w, "height": h})
             g.settle()

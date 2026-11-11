@@ -35,7 +35,7 @@
                             <td><img width=24 src="@Client.CurrentSkin.GetImageUrl(kvp.Key)" /></td>
                             <td>@((kvp.Value & ShipmentPermission.Cross) == ShipmentPermission.Cross ? "Yes" : "No")</td>
                             <td>@((kvp.Value & ShipmentPermission.ToHomeworld) == ShipmentPermission.ToHomeworld ? "Yes" : "No")</td>
-                            <td>@((kvp.Value & ShipmentPermission.OrangeRate) == ShipmentPermission.OrangeRate ? "Yes" : "No")</td>
+                            <td>@((kvp.Value & ShipmentPermission.GuildRate) == ShipmentPermission.GuildRate ? "Yes" : "No")</td>
                             <td>
                                 <button class="btn btn-primary btn-sm" @onclick="e => Revoke(kvp.Key)">Revoke</button>
                             </td>
@@ -72,7 +72,7 @@
     private bool _homeworldPermission;
     private bool _discountPermission;
 
-    protected override Faction IsFactionSpecific => Faction.Orange;
+    protected override Faction IsFactionSpecific => Faction.Guild;
 
     protected override SetShipmentPermission ConfirmedResult => new(Game, Faction) { Factions = targets.ToArray(), Permission = GetPermissions() };
 
@@ -86,7 +86,7 @@
         var result = ShipmentPermission.None;
         if (_crossPermission) result |= ShipmentPermission.Cross;
         if (_homeworldPermission) result |= ShipmentPermission.ToHomeworld;
-        if (_discountPermission) result |= ShipmentPermission.OrangeRate;
+        if (_discountPermission) result |= ShipmentPermission.GuildRate;
         return result;
     }
 }

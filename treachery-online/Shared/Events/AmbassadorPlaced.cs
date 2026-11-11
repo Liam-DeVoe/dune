@@ -66,7 +66,7 @@ public class AmbassadorPlaced : GameEvent
     {
         return p.Resources > g.AmbassadorsPlacedThisTurn &&
                g.CurrentPhase == Phase.ResurrectionReport &&
-               !g.Prevented(FactionAdvantage.PinkAmbassadors) &&
+               !g.Prevented(FactionAdvantage.EcazAmbassadors) &&
                ValidAmbassadors(p).Any() &&
                ValidStrongholds(g, p).Any();
     }

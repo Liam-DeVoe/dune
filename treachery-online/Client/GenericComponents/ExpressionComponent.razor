@@ -42,11 +42,11 @@
                 break;
 
             case float f:
-                <SimpleNumberComponent Size=@Size>@Support.RoundWithHalves(f)</SimpleNumberComponent>
+                <SimpleNumberComponent Size=@Size>@Support.Round(f)</SimpleNumberComponent>
                 break;
 
             case double d:
-                <SimpleNumberComponent Size=@Size>@Support.RoundWithHalves(d)</SimpleNumberComponent>
+                <SimpleNumberComponent Size=@Size>@Support.Round(d)</SimpleNumberComponent>
                 break;
 
             case Payment payment:
@@ -89,7 +89,7 @@
                 <PlaceChip Place=@part/>
                 break;
 
-            case AuctionType or BrownEconomicsStatus or TreacheryCardType or StrongholdAdvantage or FactionAdvantage or Ruleset or Rule:
+            case AuctionType or ChoamEconomicsStatus or TreacheryCardType or StrongholdAdvantage or FactionAdvantage or Ruleset or Rule:
                 <span class="fw-bold" style=@TextBorder>@((MarkupString)Client.CurrentSkin.WithSpiceIcons(Client.CurrentSkin.Describe(part), Size))</span>
                 break;
 

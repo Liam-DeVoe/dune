@@ -47,6 +47,9 @@ public partial class GameHub(DbContextOptions<TreacheryContext> dbContextOptions
     private static readonly char[] TokenChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".ToCharArray();
     private static string GenerateToken() 
     {
+        if (TestHooks.NewToken != null)
+            return TestHooks.NewToken();
+        
         var result = new char[16];
         for (var i = 0; i < 16; i++)
         {
@@ -132,6 +135,12 @@ public partial class GameHub(DbContextOptions<TreacheryContext> dbContextOptions
             var username = Configuration["GameEndEmailUsername"];
             if (string.IsNullOrEmpty(username)) 
                 return;
+            
+            if (TestHooks.MailSink != null)
+            {
+                await TestHooks.MailSink(mail);
+                return;
+            }
             
             var password = Configuration["GameEndEmailPassword"];
 

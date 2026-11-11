@@ -1,0 +1,1 @@
+{"mode":"fuzz","masterSeed":2026,"start":84,"endReasons":{"gameEnded":1},"games":[{"index":84,"file":"fuzz-2026-00084.jsonl.gz","endReason":"gameEnded","detail":null,"steps":304,"historyCount":227,"version":115,"players":5,"hostStyle":"ServerHumanHost"}]}

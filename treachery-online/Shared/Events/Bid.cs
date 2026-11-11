@@ -29,9 +29,9 @@ public class Bid : PassableGameEvent, IBid
 
     public int AllyContributionAmount { get; init; }
 
-    public int RedContributionAmount { get; init; }
+    public int EmperorContributionAmount { get; init; }
 
-    public bool UsesRedSecretAlly { get; init; }
+    public bool UsesEmperorSecretAlly { get; init; }
 
     public int _karmaCardId = -1;
     
@@ -43,7 +43,7 @@ public class Bid : PassableGameEvent, IBid
     }
 
     [JsonIgnore]
-    public int TotalAmount => Amount + AllyContributionAmount + RedContributionAmount;
+    public int TotalAmount => Amount + AllyContributionAmount + EmperorContributionAmount;
 
     /// <summary>
     /// This indicates Karma was used to remove the bid amount limit
@@ -63,11 +63,11 @@ public class Bid : PassableGameEvent, IBid
 
     public override Message? Validate()
     {
-        if ((Game.CurrentAuctionType == AuctionType.BlackMarketSilent || Game.CurrentAuctionType == AuctionType.WhiteSilent) && Passed) return Message.Express("You cannot pass a silent bid");
+        if ((Game.CurrentAuctionType == AuctionType.BlackMarketSilent || Game.CurrentAuctionType == AuctionType.RicheseSilent) && Passed) return Message.Express("You cannot pass a silent bid");
 
         if (Passed) return null;
 
-        var isSpecialAuction = Game.CurrentAuctionType == AuctionType.WhiteOnceAround || Game.CurrentAuctionType == AuctionType.WhiteSilent;
+        var isSpecialAuction = Game.CurrentAuctionType == AuctionType.RicheseOnceAround || Game.CurrentAuctionType == AuctionType.RicheseSilent;
         if (KarmaBid && isSpecialAuction) return Message.Express("You can't use ", TreacheryCardType.Karma, " in Once Around or Silent bidding");
 
         if (KarmaBid && !CanKarma(Game, Player)) return Message.Express("You can't use ", TreacheryCardType.Karma, " for this bid");
@@ -75,20 +75,20 @@ public class Bid : PassableGameEvent, IBid
         if (KarmaBid) return null;
 
         var p = Game.GetPlayer(Initiator);
-        if (TotalAmount < 1 && Game.CurrentAuctionType != AuctionType.WhiteSilent) return Message.Express("Bid must be higher than 0");
-        if (Game.CurrentBid != null && TotalAmount <= Game.CurrentBid.TotalAmount && Game.CurrentAuctionType != AuctionType.WhiteSilent) return Message.Express("Bid not high enough");
+        if (TotalAmount < 1 && Game.CurrentAuctionType != AuctionType.RicheseSilent) return Message.Express("Bid must be higher than 0");
+        if (Game.CurrentBid != null && TotalAmount <= Game.CurrentBid.TotalAmount && Game.CurrentAuctionType != AuctionType.RicheseSilent) return Message.Express("Bid not high enough");
 
         if (AllyContributionAmount > ValidMaxAllyAmount(Game, Player)) return Message.Express("your ally won't pay that much");
 
-        var red = Game.GetPlayer(Faction.Red);
-        if (RedContributionAmount > 0 && RedContributionAmount > (red?.Resources ?? 0)) return Message.Express(Faction.Red, " won't pay that much");
+        var emperor = Game.GetPlayer(Faction.Emperor);
+        if (EmperorContributionAmount > 0 && EmperorContributionAmount > (emperor?.Resources ?? 0)) return Message.Express(Faction.Emperor, " won't pay that much");
 
         if (!UsingKarmaToRemoveBidLimit && Amount > Player.Resources) return Message.Express("You can't pay ", Payment.Of(Amount));
         if (KarmaCard != null && (p == null || !Karma.ValidKarmaCards(Game, p).Contains(KarmaCard))) return Message.Express("Invalid ", TreacheryCardType.Karma, " card");
 
-        if (UsesRedSecretAlly && !MayUseRedSecretAlly(Game, Player)) return Message.Express("You can't use ", Faction.Red, " cunning");
+        if (UsesEmperorSecretAlly && !MayUseEmperorSecretAlly(Game, Player)) return Message.Express("You can't use ", Faction.Emperor, " cunning");
 
-        if (Game.Version >= 155 && Game.CurrentAuctionType == AuctionType.WhiteSilent && TotalAmount > Player.Resources) return Message.Express("In a Silent auction, you can't bid more than you have");
+        if (Game.Version >= 155 && Game.CurrentAuctionType == AuctionType.RicheseSilent && TotalAmount > Player.Resources) return Message.Express("In a Silent auction, you can't bid more than you have");
 
         return null;
     }
@@ -111,8 +111,8 @@ public class Bid : PassableGameEvent, IBid
         var sequencePlayers = g.BidSequence?.GetPlayersInSequence() ?? Array.Empty<SequenceElement>();
         return g.CurrentAuctionType switch
         {
-            AuctionType.Normal or AuctionType.WhiteOnceAround => sequencePlayers,
-            AuctionType.WhiteSilent => g.Players.Select(p => new SequenceElement { Player = p, HasTurn = p.HasRoomForCards && !g.Bids.Keys.Contains(p.Faction) }),
+            AuctionType.Normal or AuctionType.RicheseOnceAround => sequencePlayers,
+            AuctionType.RicheseSilent => g.Players.Select(p => new SequenceElement { Player = p, HasTurn = p.HasRoomForCards && !g.Bids.Keys.Contains(p.Faction) }),
             _ => Array.Empty<SequenceElement>()
         };
     }
@@ -133,13 +133,13 @@ public class Bid : PassableGameEvent, IBid
     public static bool MayBePlayed(Game game, Player? player)
     {
         if (player == null) return false;
-        return (game.CurrentAuctionType == AuctionType.WhiteSilent && !game.Bids.ContainsKey(player.Faction) && player.HasRoomForCards) ||
-               (game.CurrentAuctionType != AuctionType.WhiteSilent && player == game.BidSequence?.CurrentPlayer);
+        return (game.CurrentAuctionType == AuctionType.RicheseSilent && !game.Bids.ContainsKey(player.Faction) && player.HasRoomForCards) ||
+               (game.CurrentAuctionType != AuctionType.RicheseSilent && player == game.BidSequence?.CurrentPlayer);
     }
 
-    public static bool MayUseRedSecretAlly(Game game, Player player)
+    public static bool MayUseEmperorSecretAlly(Game game, Player player)
     {
-        return game.CurrentAuctionType == AuctionType.Normal && player.Nexus == Faction.Red &&
+        return game.CurrentAuctionType == AuctionType.Normal && player.Nexus == Faction.Emperor &&
                NexusPlayed.CanUseSecretAlly(game, player);
     }
 
@@ -182,16 +182,16 @@ public class Bid : PassableGameEvent, IBid
                 {
                     if (Game.CardsOnAuction == null) return;
 
-                    var receiver = Faction.Red;
+                    var receiver = Faction.Emperor;
                     var card = Game.WinByHighestBid(
                         winningBid.Player,
                         winningBid,
                         winningBid.Amount,
                         winningBid.AllyContributionAmount,
-                        winningBid.RedContributionAmount,
+                        winningBid.EmperorContributionAmount,
                         receiver,
                         Game.CardsOnAuction,
-                        winningBid.UsesRedSecretAlly);
+                        winningBid.UsesEmperorSecretAlly);
 
                     Game.FinishBid(winningBid.Player, winningBid, card, true);
                 }
@@ -205,7 +205,7 @@ public class Bid : PassableGameEvent, IBid
         {
             if (Game.CardsOnAuction == null || Game.CurrentBid == null) return;
 
-            var card = BidWonByOnlyPlayer(this, Faction.Red, Game.CardsOnAuction);
+            var card = BidWonByOnlyPlayer(this, Faction.Emperor, Game.CardsOnAuction);
             Game.FinishBid(Game.CurrentBid.Player, this, card, true);
         }
     }
@@ -261,10 +261,10 @@ public class Bid : PassableGameEvent, IBid
         if (winner == null) throw new InvalidOperationException("Cannot resolve winner for single-player bid");
         var receiverIncomeMessage = MessagePart.Express();
 
-        if (!bid.UsesRedSecretAlly)
+        if (!bid.UsesEmperorSecretAlly)
         {
-            var paidTo = Game.PayForCard(winner, bid, Game.CurrentBid.Amount, Game.CurrentBid.AllyContributionAmount, Game.CurrentBid.RedContributionAmount, paymentReceiver, ref receiverIncomeMessage);
-            Game.LogBid(winner, Game.CurrentBid.Amount, Game.CurrentBid.AllyContributionAmount, Game.CurrentBid.RedContributionAmount, receiverIncomeMessage, paidTo);
+            var paidTo = Game.PayForCard(winner, bid, Game.CurrentBid.Amount, Game.CurrentBid.AllyContributionAmount, Game.CurrentBid.EmperorContributionAmount, paymentReceiver, ref receiverIncomeMessage);
+            Game.LogBid(winner, Game.CurrentBid.Amount, Game.CurrentBid.AllyContributionAmount, Game.CurrentBid.EmperorContributionAmount, receiverIncomeMessage, paidTo);
         }
         else
         {
@@ -281,19 +281,19 @@ public class Bid : PassableGameEvent, IBid
         return card;
     }
 
-    public void HandleWhiteBid()
+    public void HandleRicheseBid()
     {
-        var bidSequenceHasPassedWhite = Game.BidSequence?.HasPassedWhite == true;
-        var whiteHasNoRoom = GetPlayer(Faction.White)?.HasRoomForCards == false;
+        var bidSequenceHasPassedRichese = Game.BidSequence?.HasPassedRichese == true;
+        var richeseHasNoRoom = GetPlayer(Faction.Richese)?.HasRoomForCards == false;
 
         var isLastBid = Game.Version < 140 ? Game.Players.Count(p => p.HasRoomForCards) == Game.Bids.Count :
-            (Game.CurrentAuctionType == AuctionType.WhiteSilent && Game.Players.Count(p => p.HasRoomForCards) == Game.Bids.Count) ||
-            (Game.Version < 151 && ((Game.CurrentAuctionType == AuctionType.WhiteOnceAround && Initiator == Faction.White) || (whiteHasNoRoom && bidSequenceHasPassedWhite))) ||
-            (Game is { Version: >= 151, CurrentAuctionType: AuctionType.WhiteOnceAround } && (Initiator == Faction.White || (whiteHasNoRoom && bidSequenceHasPassedWhite)));
+            (Game.CurrentAuctionType == AuctionType.RicheseSilent && Game.Players.Count(p => p.HasRoomForCards) == Game.Bids.Count) ||
+            (Game.Version < 151 && ((Game.CurrentAuctionType == AuctionType.RicheseOnceAround && Initiator == Faction.Richese) || (richeseHasNoRoom && bidSequenceHasPassedRichese))) ||
+            (Game is { Version: >= 151, CurrentAuctionType: AuctionType.RicheseOnceAround } && (Initiator == Faction.Richese || (richeseHasNoRoom && bidSequenceHasPassedRichese)));
 
         if (isLastBid)
         {
-            if (Game.CurrentAuctionType == AuctionType.WhiteSilent) Log("Bids: ", Game.Bids.Select(b => MessagePart.Express(b.Key, Payment.Of(b.Value.TotalAmount), " ")).ToList());
+            if (Game.CurrentAuctionType == AuctionType.RicheseSilent) Log("Bids: ", Game.Bids.Select(b => MessagePart.Express(b.Key, Payment.Of(b.Value.TotalAmount), " ")).ToList());
 
             var highestBid = Game.DetermineHighestBid(Game.Bids);
             if (highestBid is { TotalAmount: > 0 } winningBid)
@@ -306,8 +306,8 @@ public class Bid : PassableGameEvent, IBid
                     winningBid,
                     winningBid.Amount,
                     winningBid.AllyContributionAmount,
-                    winningBid.RedContributionAmount,
-                    winningBid.Initiator != Faction.White ? Faction.White : Faction.Red,
+                    winningBid.EmperorContributionAmount,
+                    winningBid.Initiator != Faction.Richese ? Faction.Richese : Faction.Emperor,
                     cardsOnAuction, false);
 
                 Game.FinishBid(winningBid.Player, winningBid, card, true);
@@ -315,10 +315,10 @@ public class Bid : PassableGameEvent, IBid
             else
             {
                 Log("Card not sold as no faction bid on it");
-                var white = GetPlayer(Faction.White);
-                if (white?.HasRoomForCards == true)
+                var richese = GetPlayer(Faction.Richese);
+                if (richese?.HasRoomForCards == true)
                 {
-                    Game.Enter(Phase.WhiteKeepingUnsoldCard);
+                    Game.Enter(Phase.RicheseKeepingUnsoldCard);
                 }
                 else
                 {

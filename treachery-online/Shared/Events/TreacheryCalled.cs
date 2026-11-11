@@ -29,7 +29,7 @@ public class TreacheryCalled : GameEvent
     public bool TraitorCalled { get; set; }
 
     [JsonIgnore]
-    public bool Succeeded => TraitorCalled && (Initiator != Faction.Black || !Game.BlackTraitorWasCancelled);
+    public bool Succeeded => TraitorCalled && (Initiator != Faction.Harkonnen || !Game.HarkonnenTraitorWasCancelled);
 
     #endregion Properties
 
@@ -51,12 +51,12 @@ public class TreacheryCalled : GameEvent
             {
                 if (!g.DefenderPlan.Messiah)
                     if ((g.AggressorPlan.Initiator == p.Faction && HasTraitor(g, p, g.DefenderPlan.Hero)) ||
-                        (p.Is(Faction.Black) && p.Ally == g.AggressorPlan.Initiator && !g.Prevented(FactionAdvantage.BlackCallTraitorForAlly) && HasTraitor(g, p, g.DefenderPlan.Hero)))
+                        (p.Is(Faction.Harkonnen) && p.Ally == g.AggressorPlan.Initiator && !g.Prevented(FactionAdvantage.HarkonnenCallTraitorForAlly) && HasTraitor(g, p, g.DefenderPlan.Hero)))
                         return true;
 
                 if (!g.AggressorPlan.Messiah)
                     if ((g.DefenderPlan.Initiator == p.Faction && HasTraitor(g, p, g.AggressorPlan.Hero)) ||
-                        (p.Is(Faction.Black) && p.Ally == g.DefenderPlan.Initiator && !g.Prevented(FactionAdvantage.BlackCallTraitorForAlly) && HasTraitor(g, p, g.AggressorPlan.Hero)))
+                        (p.Is(Faction.Harkonnen) && p.Ally == g.DefenderPlan.Initiator && !g.Prevented(FactionAdvantage.HarkonnenCallTraitorForAlly) && HasTraitor(g, p, g.AggressorPlan.Hero)))
                         return true;
             }
 
@@ -74,7 +74,7 @@ public class TreacheryCalled : GameEvent
 
     protected override void ExecuteConcreteEvent()
     {
-        if (Game.AggressorPlan.By(Initiator) || (By(Faction.Black) && Game.AreAllies(Game.AggressorPlan.Initiator, Faction.Black)))
+        if (Game.AggressorPlan.By(Initiator) || (By(Faction.Harkonnen) && Game.AreAllies(Game.AggressorPlan.Initiator, Faction.Harkonnen)))
         {
             Game.AggressorTraitorAction = this;
             if (TraitorCalled)
@@ -85,7 +85,7 @@ public class TreacheryCalled : GameEvent
             }
         }
 
-        if (Game.DefenderPlan.By(Initiator) || (By(Faction.Black) && Game.AreAllies(Game.DefenderPlan.Initiator, Faction.Black)))
+        if (Game.DefenderPlan.By(Initiator) || (By(Faction.Harkonnen) && Game.AreAllies(Game.DefenderPlan.Initiator, Faction.Harkonnen)))
         {
             Game.DefenderTraitorAction = this;
             if (TraitorCalled)
@@ -98,9 +98,9 @@ public class TreacheryCalled : GameEvent
 
         if (Game.AggressorTraitorAction != null && Game.DefenderTraitorAction != null)
         {
-            var treachery = Game.CurrentBattle.TreacheryOf(Faction.Black);
+            var treachery = Game.CurrentBattle.TreacheryOf(Faction.Harkonnen);
 
-            if (Game.Applicable(Rule.NexusCards) && treachery != null && treachery.Initiator == Faction.Black && treachery.TraitorCalled)
+            if (Game.Applicable(Rule.NexusCards) && treachery != null && treachery.Initiator == Faction.Harkonnen && treachery.TraitorCalled)
                 Game.Enter(Phase.CancellingTraitor);
             else
                 Game.HandleRevealedBattlePlans();

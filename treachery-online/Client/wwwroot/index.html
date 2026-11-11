@@ -66,26 +66,59 @@
             }
         }
 
+        // Scales the board to its area. On desktop (992px and up, where the
+        // game screen fits the window) the board fills the area's height,
+        // cropped to the ring and the seat tokens around it (data-view-top
+        // and data-view-bottom, in map units), and is centred across the
+        // width. The four corner pieces (tanks, turn and phases, the two
+        // decks; .map-corner in _map.scss) are shifted out to the area's
+        // edges through --map-dx-l and friends, so the ring can use the
+        // space they took. The spice deck also clears the menu bar in the
+        // bottom-left corner. Below 992px the board is as wide as its column
+        // and the page scrolls, as before.
         function SetPlanetMapScale() {
 
             try {
 
-                planetmap = document.getElementById('planetmap');
-                if (planetmap != null) {
+                const planetmap = document.getElementById('planetmap');
+                const inner = document.getElementById('planetmap_inner');
+                if (planetmap == null || inner == null) return;
 
-                    mapdiv = document.getElementById('mapdiv');
-                    if (mapdiv != null) {
+                const area = planetmap.parentElement;
+                const filler = document.getElementById('planetmap-filler');
+                const mapW = inner.offsetWidth, mapH = inner.offsetHeight;
+                const W = area.clientWidth, H = area.clientHeight;
+                const fit = window.innerWidth >= 992 && H > 0;
 
-                        planetmap_inner = document.getElementById('planetmap_inner');
-                        scale = mapdiv.offsetWidth / planetmap_inner.offsetWidth;
-                        planetmap.style.transform = 'scale(' + scale + ')';
+                let s, tx = 0, ty = 0, l = 0, r = 0, t = 0, b = 0, bar = 0;
 
-                        planetmap_filler = document.getElementById('planetmap-filler');
-                        planetmap_filler.style.height = scale * planetmap_inner.offsetHeight + "px";
-
-                        ClampMapPin();
-                    }
+                if (fit) {
+                    const top = Number(inner.dataset.viewTop) || 0;
+                    const bottom = Number(inner.dataset.viewBottom) || mapH;
+                    s = Math.min(H / (bottom - top), W / mapW);
+                    tx = (W - mapW * s) / 2;
+                    ty = (H - (bottom - top) * s) / 2 - top * s;
+                    l = -tx / s;
+                    r = (W - tx) / s - mapW;
+                    t = -ty / s;
+                    b = (H - ty) / s - mapH;
+                    const menu = area.querySelector(':scope > .menu-bar');
+                    bar = menu != null ? menu.offsetHeight / s : 0;
+                    filler.style.height = '0px';
+                } else {
+                    s = W / mapW;
+                    filler.style.height = s * mapH + 'px';
                 }
+
+                planetmap.style.transformOrigin = '0 0';
+                planetmap.style.transform = 'translate(' + tx + 'px, ' + ty + 'px) scale(' + s + ')';
+                inner.style.setProperty('--map-dx-l', l + 'px');
+                inner.style.setProperty('--map-dx-r', r + 'px');
+                inner.style.setProperty('--map-dy-t', t + 'px');
+                inner.style.setProperty('--map-dy-b', b + 'px');
+                inner.style.setProperty('--map-bar', bar + 'px');
+
+                ClampMapPin();
             }
             catch {
 
@@ -255,7 +288,7 @@
 
         function ShowMapRefs(chip) {
             document.querySelectorAll('.maphover .hover-shape.ref').forEach(function (shape) {
-                shape.classList.remove('ref');
+                shape.classList.remove('ref', 'joined-start', 'joined-end');
                 shape.style.removeProperty('--c');
             });
             document.querySelectorAll('.ref-hi').forEach(function (el) { el.classList.remove('ref-hi'); });
@@ -285,12 +318,26 @@
                     });
                 });
             }
+            const lit = [];
             chip.dataset.refLocations.split(',').forEach(function (id) {
                 if (id === '') return;
                 document.querySelectorAll('.maphover .hover-shape[data-location-id="' + id + '"]').forEach(function (shape) {
                     shape.classList.add('ref');
                     if (color !== '') shape.style.setProperty('--c', color);
+                    lit.push(shape);
                 });
+            });
+
+            // Lit sectors of one territory that sit side by side drop the
+            // radial line between them, so the territory gets one outline.
+            const sectors = Number(document.querySelector('.maphover')?.dataset.sectors) || 18;
+            const litKeys = new Set(lit.map(function (shape) { return shape.dataset.territoryId + ':' + shape.dataset.sector; }));
+            lit.forEach(function (shape) {
+                const sector = Number(shape.dataset.sector);
+                if (!(sector >= 0)) return;
+                const t = shape.dataset.territoryId;
+                if (litKeys.has(t + ':' + ((sector + sectors - 1) % sectors))) shape.classList.add('joined-start');
+                if (litKeys.has(t + ':' + ((sector + 1) % sectors))) shape.classList.add('joined-end');
             });
             const faction = chip.dataset.refFaction;
             if (faction) document.querySelectorAll('[data-faction-of="' + faction + '"]').forEach(function (el) { el.classList.add('ref-hi'); });
@@ -453,12 +500,27 @@
             element.querySelectorAll('[data-bs-toggle="popover"]').forEach( function (trigger) { RemovePopover(trigger); } );
         }
 
+        // Disposing a popover closes it, so an open one is updated in place
+        // instead. Otherwise any redraw of the board would close the popover
+        // the player is reading, such as a faction's rules sheet under Shift.
         function RefreshPopover(element) {
 
             if (element == null) return;
-            
+
             var popover = bootstrap.Popover.getInstance(element);
             if (popover != null) {
+
+                if (popover._isShown()) {
+
+                    const content = element.getAttribute('data-bs-content');
+                    if (content !== (popover._shownContent ?? popover._config.content)) {
+                        popover._shownContent = content;
+                        popover.setContent({ '.popover-body': content });
+                    } else {
+                        popover.update();
+                    }
+                    return;
+                }
 
                 popover.dispose();
             }

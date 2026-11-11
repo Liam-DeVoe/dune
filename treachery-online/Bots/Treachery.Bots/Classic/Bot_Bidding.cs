@@ -28,8 +28,8 @@ public partial class ClassicBot
         var thisCardIsPerfect = isKnownCard && CardQuality(Game.CardsOnAuction.Top, Player) == 5;
 
         var resourcesToKeep = thisCardIsPerfect ? Param.Bidding_ResourcesToKeepWhenCardIsPerfect : Param.Bidding_ResourcesToKeepWhenCardIsntPerfect;
-        var resourcesAvailable = Math.Max(0, Resources - resourcesToKeep) + ResourcesFromAlly + ResourcesFromRed;
-        var couldUseKarmaForBid = Game.CurrentAuctionType == AuctionType.Normal && !Game.KarmaPrevented(Faction) && Ally != Faction.Red && (Player.SpecialKarmaPowerUsed || !Param.Karma_SaveCardToUseSpecialKarmaAbility || Game.CurrentTurn >= 5 || Player.MaximumNumberOfCards - Player.TreacheryCards.Count <= 1);
+        var resourcesAvailable = Math.Max(0, Resources - resourcesToKeep) + ResourcesFromAlly + ResourcesFromEmperor;
+        var couldUseKarmaForBid = Game.CurrentAuctionType == AuctionType.Normal && !Game.KarmaPrevented(Faction) && Ally != Faction.Emperor && (Player.SpecialKarmaPowerUsed || !Param.Karma_SaveCardToUseSpecialKarmaAbility || Game.CurrentTurn >= 5 || Player.MaximumNumberOfCards - Player.TreacheryCards.Count <= 1);
         var karmaCardToUseForBidding = couldUseKarmaForBid && ((MayUseUselessAsKarma && currentBid > 2) || currentBid > 4 || resourcesAvailable <= currentBid) ? Player.TreacheryCards.FirstOrDefault(c => c.Type == TreacheryCardType.Karma || (MayUseUselessAsKarma && c.Type == TreacheryCardType.Useless)) : null;
         var karmaWorth = karmaCardToUseForBidding == null ? 0 : 8;
         var maximumIWillSpend = D(1, Math.Min(resourcesAvailable, 12) + karmaWorth);
@@ -38,24 +38,24 @@ public partial class ClassicBot
         LogInfo("currentBidIsFromAlly: {0}, PlayerCardIsUseless: {1}, PlayerCardIsCrappy: {2}, resourcesAvailable:, {3}, karmaWorth: {4}, maximumIWillSpend: {5}, karmaCardToUseForBidding: {6}.",
             currentBidIsFromAlly, thisCardIsUseless, thisCardIsCrappy, resourcesAvailable, karmaWorth, maximumIWillSpend, karmaCardToUseForBidding);
 
-        if ((Faction == Faction.White || Ally == Faction.White) &&
+        if ((Faction == Faction.Richese || Ally == Faction.Richese) &&
             (Game.CurrentAuctionType == AuctionType.BlackMarketSilent || Game.CurrentAuctionType == AuctionType.BlackMarketNormal || Game.CurrentAuctionType == AuctionType.BlackMarketOnceAround))
         {
             LogInfo("Player is my own card");
             if (Game.CurrentAuctionType == AuctionType.BlackMarketSilent)
-                return CreateBidUsingAllyAndRedSpice(0, null);
+                return CreateBidUsingAllyAndEmperorSpice(0, null);
             return PassedBid();
         }
 
-        if (Game.CurrentAuctionType == AuctionType.BlackMarketSilent || Game.CurrentAuctionType == AuctionType.WhiteSilent)
+        if (Game.CurrentAuctionType == AuctionType.BlackMarketSilent || Game.CurrentAuctionType == AuctionType.RicheseSilent)
         {
             if (thisCardIsUseless || thisCardIsCrappy)
             {
                 var toBid = thisCardIsUseless || Math.Max(0, Resources - resourcesToKeep) < 2 ? 0 : D(1, 2);
-                return CreateBidUsingAllyAndRedSpice(toBid,  null);
+                return CreateBidUsingAllyAndEmperorSpice(toBid,  null);
             }
 
-            return CreateBidUsingAllyAndRedSpice(Math.Min(Math.Max(0, Resources - resourcesToKeep), amountToBidInSilentOrOnceAround), null);
+            return CreateBidUsingAllyAndEmperorSpice(Math.Min(Math.Max(0, Resources - resourcesToKeep), amountToBidInSilentOrOnceAround), null);
         }
 
         if (currentBidIsFromAlly || (thisCardIsUseless && currentBid > 0) || (thisCardIsCrappy && D(1, 1 + 2 * currentBid) > 1))
@@ -64,22 +64,22 @@ public partial class ClassicBot
             return PassedBid();
         }
 
-        if (Game.CurrentAuctionType == AuctionType.BlackMarketOnceAround || Game.CurrentAuctionType == AuctionType.WhiteOnceAround)
+        if (Game.CurrentAuctionType == AuctionType.BlackMarketOnceAround || Game.CurrentAuctionType == AuctionType.RicheseOnceAround)
         {
             return amountToBidInSilentOrOnceAround > currentBid 
-                ? CreateBidUsingAllyAndRedSpice(amountToBidInSilentOrOnceAround, null) 
+                ? CreateBidUsingAllyAndEmperorSpice(amountToBidInSilentOrOnceAround, null) 
                 : PassedBid();
         }
 
-        if (currentBid == 0 && ResourcesIncludingAllyAndRedContribution > 0)
+        if (currentBid == 0 && ResourcesIncludingAllyAndEmperorContribution > 0)
         {
             LogInfo("always bid at least 1 if possible");
-            return CreateBidUsingAllyAndRedSpice(1, null);
+            return CreateBidUsingAllyAndEmperorSpice(1, null);
         }
 
-        if (Ally != Faction.Red && currentBid > Param.Bidding_PassingTreshold + maximumIWillSpend)
+        if (Ally != Faction.Emperor && currentBid > Param.Bidding_PassingTreshold + maximumIWillSpend)
         {
-            LogInfo("Ally != Faction.Red && currentBid ({0}) > Param.Bidding_PassingThreshold ({1}) + maximumIWillSpend (D(1,{2}+{3}) => {4})",
+            LogInfo("Ally != Faction.Emperor && currentBid ({0}) > Param.Bidding_PassingThreshold ({1}) + maximumIWillSpend (D(1,{2}+{3}) => {4})",
                 currentBid,
                 Param.Bidding_PassingTreshold,
                 resourcesAvailable,
@@ -98,7 +98,7 @@ public partial class ClassicBot
                 resourcesAvailable
             );
 
-            return CreateBidUsingAllyAndRedSpice(maxBidOfOtherPlayer, karmaCardToUseForBidding);
+            return CreateBidUsingAllyAndEmperorSpice(maxBidOfOtherPlayer, karmaCardToUseForBidding);
         }
 
         if (currentBid + 1 <= resourcesAvailable || karmaCardToUseForBidding != null)
@@ -108,7 +108,7 @@ public partial class ClassicBot
                 resourcesAvailable,
                 karmaCardToUseForBidding);
 
-            return CreateBidUsingAllyAndRedSpice(currentBid + 1, karmaCardToUseForBidding);
+            return CreateBidUsingAllyAndEmperorSpice(currentBid + 1, karmaCardToUseForBidding);
         }
 
         LogInfo("Not enough spice available for bid");
@@ -120,21 +120,21 @@ public partial class ClassicBot
         return new Bid(Game, Faction) { Passed = true };
     }
 
-    private Bid CreateBidUsingAllyAndRedSpice(int amount, TreacheryCard? karmaCard)
+    private Bid CreateBidUsingAllyAndEmperorSpice(int amount, TreacheryCard? karmaCard)
     {
         if (karmaCard != null)
             return new Bid(Game, Faction) { Amount = amount, KarmaBid = false, KarmaCard = karmaCard, Passed = false };
         
-        var useRedSecretAlly = amount > 6 && Player.ForcesKilled < 12 && Bid.MayUseRedSecretAlly(Game, Player);
+        var useEmperorSecretAlly = amount > 6 && Player.ForcesKilled < 12 && Bid.MayUseEmperorSecretAlly(Game, Player);
 
         var spiceLeftToPay = amount;
-        var redContribution = Math.Min(spiceLeftToPay, Game.SpiceForBidsRedCanPay(Faction));
-        spiceLeftToPay -= redContribution;
+        var emperorContribution = Math.Min(spiceLeftToPay, Game.SpiceForBidsEmperorCanPay(Faction));
+        spiceLeftToPay -= emperorContribution;
 
         var allyContribution = Math.Min(spiceLeftToPay, Game.ResourcesYourAllyCanPay(Player));
         spiceLeftToPay -= allyContribution;
 
-        return new Bid(Game, Faction) { Amount = spiceLeftToPay, AllyContributionAmount = allyContribution, RedContributionAmount = redContribution, KarmaBid = false, KarmaCard = null, Passed = false, UsesRedSecretAlly = useRedSecretAlly };
+        return new Bid(Game, Faction) { Amount = spiceLeftToPay, AllyContributionAmount = allyContribution, EmperorContributionAmount = emperorContribution, KarmaBid = false, KarmaCard = null, Passed = false, UsesEmperorSecretAlly = useEmperorSecretAlly };
 
     }
 
@@ -165,6 +165,6 @@ public partial class ClassicBot
     private BlackMarketBid DetermineBlackMarketBid()
     {
         var bid = DetermineBid();
-        return new BlackMarketBid(Game, Faction) { Amount = bid.Amount, AllyContributionAmount = bid.AllyContributionAmount, RedContributionAmount = bid.RedContributionAmount, Passed = bid.Passed };
+        return new BlackMarketBid(Game, Faction) { Amount = bid.Amount, AllyContributionAmount = bid.AllyContributionAmount, EmperorContributionAmount = bid.EmperorContributionAmount, Passed = bid.Passed };
     }
 }

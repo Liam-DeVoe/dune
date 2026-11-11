@@ -54,10 +54,10 @@
                     }
                     else if (OneOrMorePlayersNeedToAct)
                     {
-                        if (Client.Status.WaitingForPlayers.Count() == 1)
+                        if (WaitingForPlayers.Count() == 1)
                         {
 
-                            var player = Client.Status.WaitingForPlayers.First();
+                            var player = WaitingForPlayers.First();
 
                             <div style="position: relative; width: 64px; height: 64px;">
                                 <img title="@player.Name" src="@Client.CurrentSkin.GetImageUrl(player.Faction)" style="position: absolute; left: 0; filter: drop-shadow(2px 2px 2px black); width: 64px;" alt="@player.Name"/>
@@ -67,7 +67,7 @@
                         else
                         {
 
-                            foreach (var p in Client.Status.WaitingForPlayers)
+                            foreach (var p in WaitingForPlayers)
                             {
                                 <div style="position: relative; width: 48px;">
                                     <img class="p-2" title="@p.Name" src="@Client.CurrentSkin.GetImageUrl(p.Faction)" style="filter:drop-shadow(2px 2px 2px black);width:48px;" alt="@p.Name"/>
@@ -106,20 +106,40 @@
             </ErrorBoundary>
         }
 
-        <div class="text-dark fw-bold text-center" style="@StatusStyle">
-            <ExpressionComponent Game=Game Expression=@Client.Status.GetMessage(Client.Player, Client.IsHost).Expression Size="20"/>
-        </div>
-
-        @if (!AutoConfirm && CanEndPhase)
+        @if (Pause.Active)
         {
-            <ButtonRowComponent Confirm="Confirm" ConfirmText="Continue" ConfirmError=@Validation/>
-        }
+            <div class="text-dark fw-bold text-center" style="@StatusStyle">@PauseMessage</div>
 
-        @if (AutoConfirm || CanEndPhase)
-        {
-            <div class="mt-1 mb-n3 float-end">
-                <CheckboxComponent @bind-Value=AutoConfirm>Continue automatically</CheckboxComponent>
+            @if (PauseHolders.Any())
+            {
+                <div class="text-dark text-center">Held by @string.Join(", ", PauseHolders.Select(p => p.Name))</div>
+            }
+
+            <div class="mt-2 text-end">
+                @if (Client.IsHost && !OnlyBotsPending)
+                {
+                    <button class="btn btn-outline-secondary me-1" @onclick="ContinueNow" title="Continue without waiting">Continue now</button>
+                }
+                @if (CanHold)
+                {
+                    <button class="btn btn-outline-secondary me-1" @onclick="Hold">Hold</button>
+                }
+                @if (AmWaitedFor || AmHolding)
+                {
+                    <button class="btn btn-primary" @onclick="Done">Done</button>
+                }
             </div>
+        }
+        else
+        {
+            <div class="text-dark fw-bold text-center" style="@StatusStyle">
+                <ExpressionComponent Game=Game Expression=@Client.Status.GetMessage(Client.Player, Client.IsHost).Expression Size="20"/>
+            </div>
+
+            @if (CanEndPhase)
+            {
+                <ButtonRowComponent Confirm="Confirm" ConfirmText="Continue" ConfirmError=@Validation/>
+            }
         }
 
         @if (Client.IsHost && Game.CurrentMainPhase == MainPhase.Bidding && Game.Players.Count(p => !p.IsBot) > 1)
@@ -142,8 +162,6 @@
 
     [Parameter] public bool CanEndPhase { get; set; }
 
-    private bool AutoConfirm { get; set; }
-    private int TicksPassed { get; set; } = 0;
     private bool TimeLimitSet { get; set; }
     private int TimeLimit { get; set; } = 20;
 
@@ -151,23 +169,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Client.RefreshHandler += CheckAutoContinueCancelled;
         Clock.Tick += RedrawClock;
         await StartRedrawCycleAsync(1000);
-    }
-
-    private void CheckAutoContinueCancelled()
-    {
-        if (AutoConfirm && Client.InGame && Game.Players.Any(p => !p.IsBot) && (
-                Game.CurrentPhase == Phase.AllianceA && _previousPhase != Phase.AllianceA ||
-                Game.CurrentPhase == Phase.AllianceB && _previousPhase != Phase.AllianceB ||
-                Game.CurrentPhase == Phase.ClaimingCharity && _previousPhase != Phase.ClaimingCharity ||
-                Game.CurrentTurn > 1 && (Game.CurrentPhase == Phase.Resurrection && _previousPhase != Phase.Resurrection || Game.CurrentPhase == Phase.ResurrectionReport && Game.IsPlaying(Faction.Pink)) || 
-                Game.CurrentPhase == Phase.Contemplate && (Game.IsPlaying(Faction.Brown) || Game.IsPlaying(Faction.Cyan))))
-        {
-            TicksPassed = 0;
-            AutoConfirm = false;
-        }
     }
 
     protected override void OnAfterRender(bool firstRender)
@@ -175,22 +178,59 @@
         _errorBoundary?.Recover();
     }
 
-    private Phase _previousPhase;
+    private PhaseControlInfo Pause => Client.PhaseControl;
 
-    protected override async Task RedrawAsync()
+    private IEnumerable<Player> SeatsToPlayers(IEnumerable<int> seats) =>
+        seats.Select(s => Game.GetPlayerBySeat(s)).OfType<Player>();
+
+    private IEnumerable<Player> WaitingForPlayers =>
+        Pause.Active ? SeatsToPlayers(Pause.WaitingFor) : Client.Status.WaitingForPlayers;
+
+    private IEnumerable<Player> PauseHolders => SeatsToPlayers(Pause.Holding);
+
+    private bool AmWaitedFor => Player != null && Pause.WaitingFor.Contains(Player.Seat);
+
+    /// <summary>
+    /// The pause only waits for the bots' turn, which ends it by itself after the bot delay. The host's Continue
+    /// would only flash up and vanish then, so it is not shown.
+    /// </summary>
+    private bool OnlyBotsPending =>
+        Pause.Active && Pause.CountdownEnds == null && !Pause.Holding.Any() && WaitingForPlayers.All(p => p.IsBot);
+
+    private bool AmHolding => Player != null && Pause.Holding.Contains(Player.Seat);
+
+    private bool CanHold => Player != null && Pause.CountdownEnds != null && !AmHolding;
+
+    private string PauseMessage
     {
-        TicksPassed++;
-
-        if (AutoConfirm && CanEndPhase && TicksPassed >= 3 + Client.Status.FlashInfo.Count)
+        get
         {
-            TicksPassed = 0;
-            await Confirm();
+            var phase = Client.CurrentSkin.Format("{0}", Game.CurrentMainPhase);
+
+            if (AmWaitedFor) return $"You may still act before the {phase} phase continues.";
+            if (OnlyBotsPending) return $"The {phase} phase continues...";
+            if (Pause.WaitingFor.Any()) return $"Waiting for players before the {phase} phase continues...";
+
+            if (Pause.CountdownEnds is { } ends)
+            {
+                var seconds = Math.Max(0, (int)Math.Ceiling((ends - Clock.Now).TotalSeconds));
+                return $"The {phase} phase continues in {seconds}s.";
+            }
+
+            return Pause.Holding.Any()
+                ? $"Waiting for the hold before the {phase} phase continues..."
+                : $"The {phase} phase continues...";
         }
-
-        await base.RedrawAsync();
-
-        _previousPhase = Game.CurrentPhase;
     }
+
+    private async Task Done()
+    {
+        _ = AmWaitedFor ? await Client.RequestPhaseDone() : await Client.RequestPhaseRelease();
+    }
+
+    private async Task Hold() => await Client.RequestPhaseHold();
+
+    private async Task ContinueNow() => await Client.RequestPhaseContinue();
 
     private void EnableOrDisableTimer(bool value)
     {
@@ -226,11 +266,11 @@
 
     private bool IsBiddingPhase => Client.Game.CurrentMainPhase == MainPhase.Bidding;
 
-    private bool OneOrMorePlayersNeedToAct => Client.Status.WaitingForPlayers.Any();
+    private bool OneOrMorePlayersNeedToAct => WaitingForPlayers.Any();
 
     private bool PlayersAreInSequence => Client.Status.WaitingInSequence.Any();
 
-    private string StatusStyle => Client.Status.WaitingForMe(Player, Client.IsHost) ? Support.TextBorder(1, "rgba(195,50,50,.09)") : "";
+    private string StatusStyle => (Pause.Active ? AmWaitedFor : Client.Status.WaitingForMe(Player, Client.IsHost)) ? Support.TextBorder(1, "rgba(195,50,50,.09)") : "";
 
     private string PlayerWithCardsTitle(Player player)
     {
@@ -289,7 +329,6 @@
 
     public override void Dispose()
     {
-        Client.RefreshHandler -= CheckAutoContinueCancelled;
         Clock.Tick -= RedrawClock;
         base.Dispose();
     }

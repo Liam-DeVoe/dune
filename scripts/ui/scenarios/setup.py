@@ -6,7 +6,7 @@ EAST = "False Wall South (East Sector)"
 
 
 def run(r):
-    with r.game("setup", "yellow") as g:
+    with r.game("setup", "fremen") as g:
         g.shot("setup-1-start")
         if r.after:
             for _ in range(3):

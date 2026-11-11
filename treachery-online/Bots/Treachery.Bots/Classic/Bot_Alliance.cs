@@ -15,15 +15,15 @@ public partial class ClassicBot
 {
     protected virtual AllianceByTerror DetermineAllianceByTerror()
     {
-        var cyan = Game.GetPlayer(Faction.Cyan);
-        var accept = !Player.HasAlly || PlayerStanding(cyan) > 0.75f * PlayerStanding(AlliedPlayer!);
+        var moritani = Game.GetPlayer(Faction.Moritani);
+        var accept = !Player.HasAlly || PlayerStanding(moritani) > 0.75f * PlayerStanding(AlliedPlayer!);
         return new AllianceByTerror(Game, Faction) { Passed = !accept };
     }
 
     protected virtual AllianceByAmbassador DetermineAllianceByAmbassador()
     {
-        var pink = Game.GetPlayer(Faction.Pink);
-        var accept = !Player.HasAlly || PlayerStanding(pink) > 0.75f * PlayerStanding(AlliedPlayer!);
+        var ecaz = Game.GetPlayer(Faction.Ecaz);
+        var accept = !Player.HasAlly || PlayerStanding(ecaz) > 0.75f * PlayerStanding(AlliedPlayer!);
         return new AllianceByAmbassador(Game, Faction) { Passed = !accept };
     }
 
@@ -64,6 +64,17 @@ public partial class ClassicBot
         return null;
     }
 
+    protected virtual AlliancePassed? DetermineAlliancePassed()
+    {
+        //Keep waiting while one of our offers is still open; it is withdrawn when the other faction passes
+        if (Game.CurrentAllianceOffers.Any(o => o.Initiator == Faction)) return null;
+
+        //Humans may still offer us an alliance until they are done
+        if (Game.Players.Any(p => !Game.IsBot(p) && !Game.HasActedOrPassed.Contains(p.Faction))) return null;
+
+        return new AlliancePassed(Game, Faction);
+    }
+
     private int PlayerStanding(Player p)
     {
         return 2 * p.TreacheryCards.Count() +
@@ -91,9 +102,9 @@ public partial class ClassicBot
     {
         if (NexusCardDrawn.MayDraw(Game, Player))
             if (Player.Nexus == Faction.None ||
-                (Faction == Faction.Red && Player.Nexus == Faction.Red && !Game.Applicable(Rule.RedSpecialForces)) ||
-                (Faction == Faction.Blue && Player.Nexus == Faction.Blue && !Game.Applicable(Rule.BlueAdvisors)) ||
-                (Faction == Faction.Grey && Player.Nexus == Faction.Grey && !Game.Applicable(Rule.AdvancedCombat)))
+                (Faction == Faction.Emperor && Player.Nexus == Faction.Emperor && !Game.Applicable(Rule.EmperorSpecialForces)) ||
+                (Faction == Faction.BeneGesserit && Player.Nexus == Faction.BeneGesserit && !Game.Applicable(Rule.BeneGesseritAdvisors)) ||
+                (Faction == Faction.Ixian && Player.Nexus == Faction.Ixian && !Game.Applicable(Rule.AdvancedCombat)))
                 return new NexusCardDrawn(Game, Faction) { Passed = false };
 
         return new NexusCardDrawn(Game, Faction) { Passed = true };
@@ -128,9 +139,9 @@ public partial class ClassicBot
 
         switch (Faction)
         {
-            case Faction.Red:
-                permission.RedWillPayForExtraRevival = 3;
-                if (Game.RedWillPayForExtraRevival != 3) result = true;
+            case Faction.Emperor:
+                permission.EmperorWillPayForExtraRevival = 3;
+                if (Game.EmperorWillPayForExtraRevival != 3) result = true;
                 break;
         }
 
@@ -141,43 +152,43 @@ public partial class ClassicBot
     {
         switch (Faction)
         {
-            case Faction.Green:
-            case Faction.Blue:
-            case Faction.White:
-            case Faction.Black:
-            case Faction.Pink:
-            case Faction.Cyan:
-            case Faction.Grey:
+            case Faction.Atreides:
+            case Faction.BeneGesserit:
+            case Faction.Richese:
+            case Faction.Harkonnen:
+            case Faction.Ecaz:
+            case Faction.Moritani:
+            case Faction.Ixian:
 
                 if (Game.CurrentMainPhase == MainPhase.ShipmentAndMove && Game.HasActedOrPassed.Contains(Faction))
                     return Math.Max(Resources - 5, 0);
                 return Math.Max(Resources - 10, 0);
 
-            case Faction.Brown:
+            case Faction.Choam:
                 if (Game.CurrentMainPhase == MainPhase.Battle)
                     return Resources;
                 if (Game.CurrentMainPhase == MainPhase.ShipmentAndMove && Game.HasActedOrPassed.Contains(Faction))
                     return Math.Max(Resources - 5, 0);
                 return Math.Max(Resources - 10, 0);
 
-            case Faction.Orange:
+            case Faction.Guild:
                 if (Game.CurrentMainPhase == MainPhase.ShipmentAndMove)
                     return Resources;
                 return Math.Max(Resources - 10, 0);
 
-            case Faction.Yellow:
+            case Faction.Fremen:
                 if (Game.CurrentMainPhase == MainPhase.ShipmentAndMove || Player.TreacheryCards.Count() == 4)
                     return Resources;
                 return Math.Max(Resources - 10, 0);
 
-            case Faction.Red:
+            case Faction.Emperor:
                 if (Game.CurrentMainPhase == MainPhase.Bidding)
                     return Resources;
                 if (Game.CurrentMainPhase == MainPhase.ShipmentAndMove && Game.HasActedOrPassed.Contains(Faction))
                     return Math.Max(Resources - 5, 0);
                 return Math.Max(Resources - 10, 0);
 
-            case Faction.Purple:
+            case Faction.Tleilaxu:
                 if (Game.CurrentMainPhase == MainPhase.Resurrection)
                     return Resources;
                 if (Game.CurrentMainPhase == MainPhase.ShipmentAndMove && Game.HasActedOrPassed.Contains(Faction))
@@ -209,15 +220,15 @@ public partial class ClassicBot
 
     private IEnumerable<string> GetPermissionProperties() => Faction switch
     {
-        Faction.Green => ["GreenSharesPrescience"],
-        Faction.Yellow => ["YellowSharesPrescience", "YellowWillProtectFromMonster", "YellowAllowsThreeFreeRevivals", "YellowRefundsBattleDial"],
-        Faction.Orange => ["OrangeAllowsShippingDiscount"],
-        Faction.Blue => ["BlueAllowsUseOfVoice"],
-        Faction.Grey => ["GreyAllowsReplacingCards"],
-        Faction.Purple => ["PurpleAllowsRevivalDiscount"],
-        Faction.White => ["WhiteAllowsUseOfNoField"],
-        Faction.Cyan => ["CyanAllowsKeepingCards"],
-        Faction.Pink => ["PinkSharesAmbassadors"],
+        Faction.Atreides => ["AtreidesSharesPrescience"],
+        Faction.Fremen => ["FremenSharesPrescience", "FremenWillProtectFromMonster", "FremenAllowsThreeFreeRevivals", "FremenRefundsBattleDial"],
+        Faction.Guild => ["GuildAllowsShippingDiscount"],
+        Faction.BeneGesserit => ["BeneGesseritAllowsUseOfVoice"],
+        Faction.Ixian => ["IxianAllowsReplacingCards"],
+        Faction.Tleilaxu => ["TleilaxuAllowsRevivalDiscount"],
+        Faction.Richese => ["RicheseAllowsUseOfNoField"],
+        Faction.Moritani => ["MoritaniAllowsKeepingCards"],
+        Faction.Ecaz => ["EcazSharesAmbassadors"],
         _ => []
     };
 

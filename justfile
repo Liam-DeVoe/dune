@@ -7,7 +7,11 @@ default:
 deploy:
     deploy/deploy.sh
 
-# Create the box from nothing (idempotent), then deploy.
+# Deploy the Rust server and the web client to https://treachery.exe.xyz/beta/ (built on the box).
+deploy-beta:
+    deploy/deploy-beta.sh
+
+# Create the box from nothing (idempotent), then deploy both.
 provision:
     deploy/provision.sh
 
@@ -26,6 +30,10 @@ fixture *args:
 # Screenshot scenarios from the published client: `just shots --list`, `just shots ship`, `just shots --before`.
 shots *args:
     uv run scripts/ui/shots.py {{args}}
+
+# Compare the web client with the C# client on every fixture and seat: `just compare`, `just compare alliance/Emperor`, `just compare --require side-column`. Writes design/compare/gallery.html.
+compare *args:
+    uv run scripts/ui/compare.py {{args}}
 
 # Serve the published client with the fixtures on http://127.0.0.1:8765 and print scene URLs to open by hand.
 serve *args:
@@ -46,6 +54,10 @@ run:
 # Tail the service log on the box.
 logs:
     ssh -i ~/.ssh/id_ed25519_exepersonal exedev@treachery.exe.xyz sudo journalctl -u treachery -f
+
+# Tail the beta's service log on the box.
+logs-beta:
+    ssh -i ~/.ssh/id_ed25519_exepersonal exedev@treachery.exe.xyz sudo journalctl -u treachery-beta -f
 
 # Format the SCSS under Client/Styles and the scoped .razor.scss files.
 fmt-css:

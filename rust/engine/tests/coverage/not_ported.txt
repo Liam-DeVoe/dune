@@ -1,0 +1,43 @@
+# Public C# members of ported types that have no Rust counterpart, or whose
+# result cannot be compared. Format: `signature | reason`. tests/boundary.rs
+# fails for any member of a ported type that is neither here nor in its table.
+
+LoggedRandom..ctor() | unseeded `new Random()`; bots must be given a seeded LoggedRandom
+Deck<T>.Randomize(IEnumerable<T>) | uses an unseeded LoggedRandom and has no callers
+
+# Static tables: Rust builds these objects once, as handles into generated data.
+Location..ctor(Int32) | static table construction (map_data.rs)
+Homeworld..ctor(World,Faction,Territory,Boolean,Boolean,Int32,Int32,Int32,Int32,Int32) | static table construction (map_data.rs)
+DiscoveredLocation..ctor(Territory,Int32,DiscoveryToken) | static table construction (map_data.rs)
+HiddenMobileStronghold..ctor(Territory,Int32) | static table construction (map_data.rs)
+Territory..ctor(Boolean,Boolean,Boolean,Boolean,Boolean,Boolean,Int32) | static table construction (map_data.rs)
+Territory..ctor(Int32) | static table construction (map_data.rs)
+Territory.AddLocation(Location) | only used while building the static map
+Territory.Clone() | only Game.Clone calls it, which is not ported
+ResourceCard..ctor(Int32) | static table construction (resource_card.rs)
+Leader..ctor(Int32) | static table construction (leader_manager.rs)
+Messiah..ctor() | static table construction (Hero::Messiah)
+TreacheryCard..ctor(Int32,Int32,TreacheryCardType,Rule) | static table construction (treachery_card_manager.rs)
+TreacheryCard..ctor(Int32,Int32,TreacheryCardType,Rule[]) | static table construction (treachery_card_manager.rs)
+
+PointD.GetHashCode() | ValueTuple hashing is seeded per process; drawing code only
+
+# Skin and describers are not ported (engine-conventions.md, "Not ported").
+Message.DefaultDescriber | Skin is not ported; always null in the engine
+Message.ToString(IDescriber) | Skin is not ported
+MessagePart.ToString(IDescriber) | Skin is not ported
+Message.Nr | process-wide counter; checked in static_data.rs messages, omitted from state dumps
+
+# Compiler-generated record members that game logic never calls.
+Route.Deconstruct(Faction&,List<Location>&,Location&) | record boilerplate
+Route.GetHashCode() | record boilerplate
+Route.ToString() | record boilerplate
+BattlePlans.Deconstruct(PlanSummary&,PlanSummary&) | record boilerplate
+BattlePlans.GetHashCode() | record boilerplate
+BattlePlans.ToString() | record boilerplate
+PlanSummary.Deconstruct(Faction&,IHero&,Boolean&,Single&,Int32?&,Int32&,Faction&,TreacheryCard&,TreacheryCard&) | record boilerplate
+PlanSummary.GetHashCode() | record boilerplate
+PlanSummary.ToString() | record boilerplate
+BattleFact.Deconstruct(BattleFactKind&,Faction&) | record boilerplate
+BattleFact.GetHashCode() | record boilerplate
+BattleFact.ToString() | record boilerplate

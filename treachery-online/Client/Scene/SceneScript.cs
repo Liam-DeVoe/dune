@@ -37,19 +37,21 @@ public sealed record SceneStep(string Kind, string Target)
 
 public static class SceneScript
 {
-    // Accepts the faction's enum name (which is its colour), the number of
-    // its image in the default skin (1 = Green .. 8 = Purple), or the name the
-    // default skin gives it (Atreides, Harkonnen, ...).
+    // Accepts the faction's enum name in any case, with or without separators
+    // ("BeneGesserit", "bene_gesserit", "bene-gesserit"), the number of its image
+    // in the default skin (1 = Atreides .. 8 = Tleilaxu), or the name the default
+    // skin gives it ("Bene Gesserit").
     public static Faction? ParseFaction(string? text)
     {
         if (string.IsNullOrWhiteSpace(text)) return null;
         text = text.Trim();
 
         // Enum.TryParse would also take a number as the enum's own value.
-        if (!char.IsDigit(text[0]) && Enum.TryParse<Faction>(text, true, out var byName) && byName != Faction.None)
+        var joined = text.Replace("_", "").Replace("-", "");
+        if (!char.IsDigit(text[0]) && Enum.TryParse<Faction>(joined, true, out var byName) && byName != Faction.None)
             return byName;
 
-        Faction[] bySkinNumber = [Faction.Green, Faction.Black, Faction.Yellow, Faction.Red, Faction.Orange, Faction.Blue, Faction.Grey, Faction.Purple];
+        Faction[] bySkinNumber = [Faction.Atreides, Faction.Harkonnen, Faction.Fremen, Faction.Emperor, Faction.Guild, Faction.BeneGesserit, Faction.Ixian, Faction.Tleilaxu];
         if (int.TryParse(text, out var number) && number >= 1 && number <= bySkinNumber.Length)
             return bySkinNumber[number - 1];
 

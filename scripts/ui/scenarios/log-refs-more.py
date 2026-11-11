@@ -7,7 +7,7 @@ REPORT = ".col-lg-3:last-child > .card:last-of-type"
 PROMPT = ".prompt-act"
 
 # Faction enum names, as data-faction-of carries them, to the skin's names, as the old sigils' titles carry them.
-NAMES = {"Green": "Atreides", "Black": "Harkonnen", "Yellow": "Fremen", "Red": "Emperor", "Orange": "Guild", "Blue": "Bene Gesserit", "Purple": "Tleilaxu"}
+NAMES = {"Atreides": "Atreides", "Harkonnen": "Harkonnen", "Fremen": "Fremen", "Emperor": "Emperor", "Guild": "Guild", "BeneGesserit": "Bene Gesserit", "Tleilaxu": "Tleilaxu"}
 
 
 def hover_faction_of_a_card(g, r, name):
@@ -35,21 +35,21 @@ def hover_faction_of_a_card(g, r, name):
 
 def run(r):
     # The Atreides player waiting on the Fremen: the prompt names a faction on the parchment card.
-    with r.game("move", "green") as g:
+    with r.game("move", "atreides") as g:
         r.note("prompt", g.eval(f"document.querySelector('{PROMPT}').innerText.replace(/\\\\s+/g, ' ')"))
         g.element_shot("prompt-1-waiting", PROMPT)
 
     # A battle prompt names the territory and both factions.
-    with r.game("battle", "green") as g:
+    with r.game("battle", "atreides") as g:
         r.note("prompt", g.eval(f"document.querySelector('{PROMPT}').innerText.replace(/\\\\s+/g, ' ')"))
         g.element_shot("prompt-2-battle", PROMPT)
 
     # The Harkonnen hold four traitors; hovering a faction in the report marks the traitor of theirs.
-    with r.game("move", "black") as g:
+    with r.game("move", "harkonnen") as g:
         if hover_faction_of_a_card(g, r, "traitors"):
             g.element_shot("traitors-1-harkonnen", PANEL, park=False)
 
     # The Tleilaxu hold three face dancers; the same mark applies to them.
-    with r.game("facedancer", "purple") as g:
+    with r.game("facedancer", "tleilaxu") as g:
         if hover_faction_of_a_card(g, r, "face dancers"):
             g.element_shot("facedancers-1-tleilaxu", PANEL, park=False)

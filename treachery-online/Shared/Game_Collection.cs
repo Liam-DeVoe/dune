@@ -13,8 +13,8 @@ public partial class Game
 {
     #region State
 
-    internal int ResourcesCollectedByYellow { get; set; }
-    internal int ResourcesCollectedByBlackFromDesertOrHomeworld { get; set; }
+    internal int ResourcesCollectedByFremen { get; set; }
+    internal int ResourcesCollectedByHarkonnenFromDesertOrHomeworld { get; set; }
     public List<DiscoveryToken> PendingDiscoveries { get; set; } = [];
     public List<ResourcesToBeDivided> CollectedResourcesToBeDivided { get; } = [];
     public DivideResources? CurrentDivisionProposal { get; internal set; }
@@ -57,8 +57,8 @@ public partial class Game
         Log(Message.Express(faction, " collect ", Payment.Of(amount), " from ", from).WithLog(new SpiceCollected(faction, from, amount, field, income)));
         var player = GetPlayer(faction);
         player?.Resources += amount;
-        if (faction == Faction.Yellow) ResourcesCollectedByYellow += amount;
-        if (faction == Faction.Black && from is { IsStronghold: false, IsProtectedFromWorm: false }) ResourcesCollectedByBlackFromDesertOrHomeworld += amount;
+        if (faction == Faction.Fremen) ResourcesCollectedByFremen += amount;
+        if (faction == Faction.Harkonnen && from is { IsStronghold: false, IsProtectedFromWorm: false }) ResourcesCollectedByHarkonnenFromDesertOrHomeworld += amount;
     }
 
     internal void ModifyIncomeBecauseOfLowThresholdOrOccupation(Player from, ref int receivedAmount)
@@ -69,14 +69,14 @@ public partial class Game
             var occupier = OccupierOf(homeworld.World);
 
             var halfIsLost = Version >= 169
-                ? (occupier != null || from.Is(Faction.Red) || from.Is(Faction.Orange)) && from.HasLowThreshold(homeworld.World)
+                ? (occupier != null || from.Is(Faction.Emperor) || from.Is(Faction.Guild)) && from.HasLowThreshold(homeworld.World)
                 : Version switch
                     {
-                        >= 166 when (occupier != null || from.Is(Faction.Red) || from.Is(Faction.Orange)) &&
+                        >= 166 when (occupier != null || from.Is(Faction.Emperor) || from.Is(Faction.Guild)) &&
                                     from.HasLowThreshold(homeworld.World) => true,
-                        >= 164 when (occupier != null || from.Is(Faction.Red) || from.Is(Faction.Orange)) &&
+                        >= 164 when (occupier != null || from.Is(Faction.Emperor) || from.Is(Faction.Guild)) &&
                                     from.HasLowThreshold() => true,
-                        <  164 when (!from.Is(Faction.White) || occupier != null) && from.HasLowThreshold() => true,
+                        <  164 when (!from.Is(Faction.Richese) || occupier != null) && from.HasLowThreshold() => true,
                         _ => false
                     };
             
@@ -117,7 +117,7 @@ public partial class Game
     private void CollectResourcesFromStronghold(Location stronghold, Player player, int amount)
     {
         if (player.Controls(this, stronghold, Applicable(Rule.ContestedStongholdsCountAsOccupied)) &&
-            !(player.Is(Faction.Pink) && Prevented(FactionAdvantage.PinkCollection) && player.HasAlly && !player.AlliedPlayer.Controls(this, stronghold, Applicable(Rule.ContestedStongholdsCountAsOccupied))))
+            !(player.Is(Faction.Ecaz) && Prevented(FactionAdvantage.EcazCollection) && player.HasAlly && !player.AlliedPlayer.Controls(this, stronghold, Applicable(Rule.ContestedStongholdsCountAsOccupied))))
             GainCollectedResources(player.Faction, stronghold.Territory, amount, income: true);
     }
 
@@ -136,8 +136,8 @@ public partial class Game
             foreach (var p in playersToCollect)
             {
                 var collectionRate = ResourceCollectionRate(p);
-                var forcesCollectingDefaultAmountOfSpice = p.Faction != Faction.Grey ? p.OccupyingForcesIn(l.Key) : p.ForcesIn(l.Key);
-                var forcesCollecting3Spice = p.Is(Faction.Grey) ? p.SpecialForcesIn(l.Key) : 0;
+                var forcesCollectingDefaultAmountOfSpice = p.Faction != Faction.Ixian ? p.OccupyingForcesIn(l.Key) : p.ForcesIn(l.Key);
+                var forcesCollecting3Spice = p.Is(Faction.Ixian) ? p.SpecialForcesIn(l.Key) : 0;
                 var maximumSpiceThatCanBeCollected = forcesCollectingDefaultAmountOfSpice * collectionRate + forcesCollecting3Spice * 3;
                 var collectedAmountByThisPlayer = Math.Min(spiceLeft, maximumSpiceThatCanBeCollected);
                 ChangeResourcesOnPlanet(l.Key, -collectedAmountByThisPlayer);
@@ -163,10 +163,10 @@ public partial class Game
             {
                 var toBeDivided = new ResourcesToBeDivided();
 
-                if (playersToCollect.Any(p => p.Is(Faction.Pink)))
+                if (playersToCollect.Any(p => p.Is(Faction.Ecaz)))
                 {
-                    toBeDivided.FirstFaction = Faction.Pink;
-                    toBeDivided.OtherFaction = playersToCollect.First(p => !p.Is(Faction.Pink)).Faction;
+                    toBeDivided.FirstFaction = Faction.Ecaz;
+                    toBeDivided.OtherFaction = playersToCollect.First(p => !p.Is(Faction.Ecaz)).Faction;
                 }
                 else
                 {
@@ -184,20 +184,20 @@ public partial class Game
 
     internal void EndCollectionMainPhase()
     {
-        var yellow = GetPlayer(Faction.Yellow);
-        if (yellow != null)
+        var fremen = GetPlayer(Faction.Fremen);
+        if (fremen != null)
         {
-            var receivedAmountByYellowAfterTakingIntoAccountOccupation = ResourcesCollectedByYellow;
-            ModifyIncomeBecauseOfLowThresholdOrOccupation(yellow, ref receivedAmountByYellowAfterTakingIntoAccountOccupation);
+            var receivedAmountByFremenAfterTakingIntoAccountOccupation = ResourcesCollectedByFremen;
+            ModifyIncomeBecauseOfLowThresholdOrOccupation(fremen, ref receivedAmountByFremenAfterTakingIntoAccountOccupation);
 
-            if (Version >= 162) yellow.Resources -= ResourcesCollectedByYellow - receivedAmountByYellowAfterTakingIntoAccountOccupation;
+            if (Version >= 162) fremen.Resources -= ResourcesCollectedByFremen - receivedAmountByFremenAfterTakingIntoAccountOccupation;
         }
 
-        var black = GetPlayer(Faction.Black);
-        if (ResourcesCollectedByBlackFromDesertOrHomeworld != 0 && black?.HasHighThreshold() == true)
+        var harkonnen = GetPlayer(Faction.Harkonnen);
+        if (ResourcesCollectedByHarkonnenFromDesertOrHomeworld != 0 && harkonnen?.HasHighThreshold() == true)
         {
-            black.Resources += 2;
-            Log(Faction.Black, " get ", Payment.Of(2), " extra as they collected from desert or homeworld");
+            harkonnen.Resources += 2;
+            Log(Faction.Harkonnen, " get ", Payment.Of(2), " extra as they collected from desert or homeworld");
         }
 
         MainPhaseEnd();

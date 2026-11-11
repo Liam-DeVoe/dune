@@ -1,0 +1,46 @@
+# C# types (namespace Treachery.Shared) that have a Rust port. Nested types
+# use a dot: Map.LocationFetcher. Generic types keep the arity: Deck`1.
+#
+# csharp-ref writes every public member of these types, called with boundary
+# inputs, to tests/golden/boundary.json. tests/boundary.rs fails for any
+# member without a Rust entry or a line in not_ported.txt. When you port a
+# new type, add it here, regenerate the golden files, and add the entries.
+
+Enumerations
+EnumerationExtensions
+ExtensionMethods
+LoggedRandom
+Deck`1
+
+Location
+Homeworld
+AttachedLocation
+DiscoveredLocation
+HiddenMobileStronghold
+Territory
+Map
+Map.LocationFetcher
+Map.TerritoryFetcher
+ResourceCard
+PointD
+
+IIdentifiable
+IHero
+IFetcher`1
+Leader
+Messiah
+LeaderManager
+LeaderManager.LeaderFetcher
+LeaderManager.HeroFetcher
+TreacheryCard
+TreacheryCardManager
+
+Expression
+Message
+MessagePart
+Route
+BattlePlans
+PlanSummary
+BattleFact
+Payment
+Report

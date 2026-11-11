@@ -266,3 +266,61 @@
     }
   }
 }
+
+// The host's redo offer after an undo (RedoToast), centred at the bottom of
+// the map. The board area is its positioning parent.
+.redo-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 10px 10px 14px;
+  background: var(--ink-0);
+  border: 1px solid shared.$hairline-strong;
+  border-radius: var(--r-2);
+  box-shadow: var(--shadow-3);
+  white-space: nowrap;
+
+  .icon {
+    width: 20px;
+    height: 20px;
+    flex: none;
+    fill: none;
+    stroke: var(--gold);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .t {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--parchment);
+  }
+
+  .d {
+    font-size: 13.5px;
+    color: var(--text-3);
+  }
+
+  .x {
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: var(--r-1);
+    background: transparent;
+    color: var(--text-3);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+
+    &:hover {
+      background: shared.$gold-wash-strong;
+      color: var(--gold);
+    }
+  }
+}

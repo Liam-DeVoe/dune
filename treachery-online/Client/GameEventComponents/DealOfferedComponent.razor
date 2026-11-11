@@ -13,13 +13,19 @@
     <Header>Offer a Deal</Header>
     <Body>
 
-        <SelectFromImageComponent Selected="to" Values="Game.PlayersOtherThan(Player).Where(p => p != Player.Ally)" T="Faction" OnChanged="StateHasChanged" Required="false" ImageWidth="40">
-            <Label>Offer to whom (select none to offer to all)</Label>
+        @* Every faction starts picked, which means the offer goes to everyone.
+           Click drops a faction; shift-click offers to that faction alone. *@
+        <SelectFromImageComponent Selected="to" Values="Targets" T="Faction" OnChanged="StateHasChanged" Required="false" ImageWidth="40">
+            <Label>Offer to</Label>
         </SelectFromImageComponent>
 
-        <SelectResourcesComponent @bind-Value="price" Min="0" Max="50" Label="How much will it cost them to accept this deal?"/>
-
-        <SelectResourcesComponent @bind-Value="benefit" Min="0" Max="50" Label="How much will they get from you when they accept?"/>
+        @* One payment, in one direction. The event keeps Price (they pay you) and
+           Benefit (you pay them) as separate fields; only one of them is ever set here. *@
+        <label class="d-block mt-1 mb-0">Payment on accepting</label>
+        <div class="d-flex align-items-center flex-wrap gap-2">
+            <SegmentedComponent @bind-Value="theyPay" Values="@(new[] { true, false })" ValueLabels="@(new[] { "They pay you", "You pay them" })" Class=""/>
+            <SelectResourcesComponent @bind-Value="amount" Min="0" Max="50"/>
+        </div>
         
         @{
             var dealTypes = DealOffered.GetStandardDealTypes(Game, Player).ToList();
@@ -34,7 +40,7 @@
 
         <textarea class="form-control mt-1" rows="5" @bind="text" maxlength="512" placeholder="Deal description"></textarea>
 
-        <ButtonRowComponent Confirm="ConfirmOffer" ConfirmText="Offer Deal" ConfirmError="@Validation" />
+        <ButtonRowComponent Confirm="ConfirmOffer" ConfirmText="Offer Deal" ConfirmError="@OfferError" />
 
     </Body>
 
@@ -42,9 +48,20 @@
 
 @code {
 
-    private List<Faction> to = new();
-    private int price;
-    private int benefit;
+    private List<Faction>? _to;
+
+    // Starts as every target. Kept across renders; a faction that stops being
+    // a target (say, by becoming an ally) is ignored rather than removed.
+    private List<Faction> to => _to ??= Targets.ToList();
+
+    private IEnumerable<Faction> Targets => Game.PlayersOtherThan(Player).Where(p => p != Player.Ally);
+
+    private Faction[] Picked => Targets.Where(to.Contains).ToArray();
+
+    private Message OfferError => Picked.Length == 0 ? Message.Express("Pick at least one faction") : Validation;
+
+    private bool theyPay = true;
+    private int amount;
     private DealType type;
     private string text = "";
     private Phase until;
@@ -54,7 +71,7 @@
         StateHasChanged();
     }
 
-    protected override DealOffered ConfirmedResult => new(Game, Faction) { To = to.Count >= Game.Players.Count - 1 ? Array.Empty<Faction>() : to.ToArray(), Price = price, Benefit = benefit, Type = type, Text = text, EndPhase = until };
+    protected override DealOffered ConfirmedResult => new(Game, Faction) { To = Targets.All(to.Contains) ? Array.Empty<Faction>() : Picked, Price = theyPay ? amount : 0, Benefit = theyPay ? 0 : amount, Type = type, Text = text, EndPhase = until };
 
     private async Task ConfirmOffer()
     {

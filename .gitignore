@@ -1,6 +1,16 @@
 deploy/.admin-password
+deploy/.admin-password-beta
 design/
 
 .DS_Store
 *.pyc
 __pycache__/
+target/
+obj/
+bin/
+target-*/
+debug/
+
+# Oracle trace output; only the small sample corpus is checked in.
+rust/traces/*
+!rust/traces/sample/

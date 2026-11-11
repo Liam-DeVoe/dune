@@ -72,6 +72,8 @@
     flex-wrap: wrap;
     gap: 6px;
     padding: 10px 8px 8px;
+    // One row of cards tall, with or without cards.
+    min-height: calc(48px * 7 / 5 + 18px);
     border-top: 1px solid rgba(252, 249, 209, 0.08);
 
     img {
@@ -82,9 +84,45 @@
     }
   }
 
-  .pp-none {
-    font-size: 14px;
-    font-style: italic;
-    color: var(--text-3);
+  // A card you can play now: a gold ring held off the card by a strip of panel
+  // colour, and a Play tag across the bottom. A ring touching the card blends
+  // into the card art's own cream and gold frame. Clicking it opens its panel
+  // (CardPlayPopover); hovered or open, the ring and tag turn parchment.
+  .pp-card.playable {
+    position: relative;
+    display: inline-block;
+    border-radius: var(--r-1);
+    cursor: pointer;
+    box-shadow: 0 0 0 2px var(--ink-2), 0 0 0 4px var(--gold);
+    transition: box-shadow var(--t-fast) var(--ease);
+    line-height: 0;
+
+    &::after {
+      content: "Play";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 3px 0 2px;
+      border-radius: 0 0 var(--r-1) var(--r-1);
+      background: var(--gold);
+      color: var(--ink-0);
+      font-family: var(--font-label);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      line-height: 1;
+      text-align: center;
+      text-transform: uppercase;
+      transition: background var(--t-fast) var(--ease);
+    }
+
+    &:hover,
+    &.open {
+      box-shadow: 0 0 0 2px var(--ink-2), 0 0 0 4px var(--parchment);
+
+      &::after {
+        background: var(--parchment);
+      }
+    }
   }
 }

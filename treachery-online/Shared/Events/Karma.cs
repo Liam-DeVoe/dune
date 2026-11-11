@@ -55,169 +55,169 @@ public class Karma : GameEvent
             FactionAdvantage.None
         };
 
-        if (p.Faction != Faction.Green && g.IsPlaying(Faction.Green))
+        if (p.Faction != Faction.Atreides && g.IsPlaying(Faction.Atreides))
         {
 
-            if (In(g, MainPhase.Bidding)) result.Add(FactionAdvantage.GreenBiddingPrescience);
-            if (In(g, MainPhase.Resurrection) || In(g, MainPhase.ShipmentAndMove)) result.Add(FactionAdvantage.GreenSpiceBlowPrescience);
+            if (In(g, MainPhase.Bidding)) result.Add(FactionAdvantage.AtreidesBiddingPrescience);
+            if (In(g, MainPhase.Resurrection) || In(g, MainPhase.ShipmentAndMove)) result.Add(FactionAdvantage.AtreidesSpiceBlowPrescience);
 
             if (In(g, MainPhase.Battle))
             {
-                if (g.Applicable(Rule.GreenMessiah)) result.Add(FactionAdvantage.GreenUseMessiah);
-                result.Add(FactionAdvantage.GreenBattlePlanPrescience);
+                if (g.Applicable(Rule.AtreidesMessiah)) result.Add(FactionAdvantage.AtreidesUseMessiah);
+                result.Add(FactionAdvantage.AtreidesBattlePlanPrescience);
             }
         }
 
-        if (p.Faction != Faction.Black && g.IsPlaying(Faction.Black))
+        if (p.Faction != Faction.Harkonnen && g.IsPlaying(Faction.Harkonnen))
         {
-            if (In(g, MainPhase.Bidding)) result.Add(FactionAdvantage.BlackFreeCard);
+            if (In(g, MainPhase.Bidding)) result.Add(FactionAdvantage.HarkonnenFreeCard);
 
             if (In(g, MainPhase.Battle))
             {
-                if (g.Applicable(Rule.BlackCapturesOrKillsLeaders)) result.Add(FactionAdvantage.BlackCaptureLeader);
+                if (g.Applicable(Rule.HarkonnenCapturesOrKillsLeaders)) result.Add(FactionAdvantage.HarkonnenCaptureLeader);
 
-                result.Add(FactionAdvantage.BlackCallTraitorForAlly);
+                result.Add(FactionAdvantage.HarkonnenCallTraitorForAlly);
             }
         }
 
-        if (p.Faction != Faction.Yellow && g.IsPlaying(Faction.Yellow))
+        if (p.Faction != Faction.Fremen && g.IsPlaying(Faction.Fremen))
         {
             if (In(g, MainPhase.Storm))
             {
-                if (g.Applicable(Rule.YellowDeterminesStorm)) result.Add(FactionAdvantage.YellowStormPrescience);
-                if (g.Applicable(Rule.YellowStormLosses)) result.Add(FactionAdvantage.YellowProtectedFromStorm);
+                if (g.Applicable(Rule.FremenDeterminesStorm)) result.Add(FactionAdvantage.FremenStormPrescience);
+                if (g.Applicable(Rule.FremenStormLosses)) result.Add(FactionAdvantage.FremenProtectedFromStorm);
             }
 
             if (In(g, MainPhase.Blow))
             {
-                result.Add(FactionAdvantage.YellowControlsMonster);
-                result.Add(FactionAdvantage.YellowProtectedFromMonster);
+                result.Add(FactionAdvantage.FremenControlsMonster);
+                result.Add(FactionAdvantage.FremenProtectedFromMonster);
             }
 
-            if (In(g, MainPhase.ShipmentAndMove)) result.Add(FactionAdvantage.YellowExtraMove);
+            if (In(g, MainPhase.ShipmentAndMove)) result.Add(FactionAdvantage.FremenExtraMove);
 
             if (In(g, MainPhase.Battle))
             {
-                if (g.Applicable(Rule.YellowSpecialForces)) result.Add(FactionAdvantage.YellowSpecialForceBonus);
-                if (g.Applicable(Rule.AdvancedCombat)) result.Add(FactionAdvantage.YellowNotPayingForBattles);
+                if (g.Applicable(Rule.FremenSpecialForces)) result.Add(FactionAdvantage.FremenSpecialForceBonus);
+                if (g.Applicable(Rule.AdvancedCombat)) result.Add(FactionAdvantage.FremenNotPayingForBattles);
             }
         }
 
-        if (p.Faction != Faction.Red && g.IsPlaying(Faction.Red))
+        if (p.Faction != Faction.Emperor && g.IsPlaying(Faction.Emperor))
         {
-            result.Add(FactionAdvantage.RedGiveSpiceToAlly);
+            result.Add(FactionAdvantage.EmperorGiveSpiceToAlly);
 
-            if (In(g, MainPhase.Bidding)) result.Add(FactionAdvantage.RedReceiveBid);
+            if (In(g, MainPhase.Bidding)) result.Add(FactionAdvantage.EmperorReceiveBid);
 
-            if (In(g, MainPhase.Resurrection)) result.Add(FactionAdvantage.RedLetAllyReviveExtraForces);
+            if (In(g, MainPhase.Resurrection)) result.Add(FactionAdvantage.EmperorLetAllyReviveExtraForces);
 
-            if (In(g, MainPhase.Battle) && g.Applicable(Rule.RedSpecialForces)) result.Add(FactionAdvantage.RedSpecialForceBonus);
+            if (In(g, MainPhase.Battle) && g.Applicable(Rule.EmperorSpecialForces)) result.Add(FactionAdvantage.EmperorSpecialForceBonus);
         }
 
-        if (p.Faction != Faction.Orange && g.IsPlaying(Faction.Orange))
+        if (p.Faction != Faction.Guild && g.IsPlaying(Faction.Guild))
             if (In(g, MainPhase.ShipmentAndMove))
             {
-                var guildDetermineShipmentMayStillBePrevented = g.Version < 156 || (!g.HasActedOrPassed.Contains(Faction.Orange) && g.CurrentPhase != Phase.OrangeShip);
-                if (g.Applicable(Rule.OrangeDetermineShipment) && guildDetermineShipmentMayStillBePrevented) result.Add(FactionAdvantage.OrangeDetermineMoveMoment);
-                result.Add(FactionAdvantage.OrangeSpecialShipments);
-                result.Add(FactionAdvantage.OrangeShipmentsDiscount);
-                result.Add(FactionAdvantage.OrangeShipmentsDiscountAlly);
-                result.Add(FactionAdvantage.OrangeReceiveShipment);
+                var guildDetermineShipmentMayStillBePrevented = g.Version < 156 || (!g.HasActedOrPassed.Contains(Faction.Guild) && g.CurrentPhase != Phase.GuildShip);
+                if (g.Applicable(Rule.GuildDetermineShipment) && guildDetermineShipmentMayStillBePrevented) result.Add(FactionAdvantage.GuildDetermineMoveMoment);
+                result.Add(FactionAdvantage.GuildSpecialShipments);
+                result.Add(FactionAdvantage.GuildShipmentsDiscount);
+                result.Add(FactionAdvantage.GuildShipmentsDiscountAlly);
+                result.Add(FactionAdvantage.GuildReceiveShipment);
             }
 
-        if (p.Faction != Faction.Blue && g.IsPlaying(Faction.Blue))
+        if (p.Faction != Faction.BeneGesserit && g.IsPlaying(Faction.BeneGesserit))
         {
             if (In(g, MainPhase.Charity))
-                if (g.Applicable(Rule.BlueAutoCharity)) result.Add(FactionAdvantage.BlueCharity);
+                if (g.Applicable(Rule.BeneGesseritAutoCharity)) result.Add(FactionAdvantage.BeneGesseritCharity);
 
-            if (g.Applicable(Rule.BlueWorthlessAsKarma)) result.Add(FactionAdvantage.BlueWorthlessAsKarma);
-            if (g.Applicable(Rule.BlueAdvisors)) result.Add(FactionAdvantage.BlueAnnouncesBattle);
+            if (g.Applicable(Rule.BeneGesseritWorthlessAsKarma)) result.Add(FactionAdvantage.BeneGesseritWorthlessAsKarma);
+            if (g.Applicable(Rule.BeneGesseritAdvisors)) result.Add(FactionAdvantage.BeneGesseritAnnouncesBattle);
 
             if (In(g, MainPhase.ShipmentAndMove))
             {
-                if (g.Applicable(Rule.BlueAdvisors)) result.Add(FactionAdvantage.BlueIntrusion);
-                result.Add(FactionAdvantage.BlueAccompanies);
+                if (g.Applicable(Rule.BeneGesseritAdvisors)) result.Add(FactionAdvantage.BeneGesseritIntrusion);
+                result.Add(FactionAdvantage.BeneGesseritAccompanies);
             }
 
-            if (In(g, MainPhase.Battle)) result.Add(FactionAdvantage.BlueUsingVoice);
+            if (In(g, MainPhase.Battle)) result.Add(FactionAdvantage.BeneGesseritUsingVoice);
         }
 
-        if (p.Faction != Faction.Grey && g.IsPlaying(Faction.Grey))
+        if (p.Faction != Faction.Ixian && g.IsPlaying(Faction.Ixian))
         {
-            if (In(g, MainPhase.Storm)) result.Add(FactionAdvantage.GreyMovingHms);
+            if (In(g, MainPhase.Storm)) result.Add(FactionAdvantage.IxianMovingHms);
 
             if (In(g, MainPhase.Bidding))
             {
-                result.Add(FactionAdvantage.GreySelectingCardsOnAuction);
-                result.Add(FactionAdvantage.GreyAllyDiscardingCard);
-                if (g.Applicable(Rule.GreySwappingCardOnBid)) result.Add(FactionAdvantage.GreySwappingCard);
+                result.Add(FactionAdvantage.IxianSelectingCardsOnAuction);
+                result.Add(FactionAdvantage.IxianAllyDiscardingCard);
+                if (g.Applicable(Rule.IxianSwappingCardOnBid)) result.Add(FactionAdvantage.IxianSwappingCard);
             }
 
-            if (In(g, MainPhase.ShipmentAndMove)) result.Add(FactionAdvantage.GreyCyborgExtraMove);
+            if (In(g, MainPhase.ShipmentAndMove)) result.Add(FactionAdvantage.IxianCyborgExtraMove);
 
             if (In(g, MainPhase.Battle))
             {
-                result.Add(FactionAdvantage.GreySpecialForceBonus);
-                result.Add(FactionAdvantage.GreyReplacingSpecialForces);
+                result.Add(FactionAdvantage.IxianSpecialForceBonus);
+                result.Add(FactionAdvantage.IxianReplacingSpecialForces);
             }
         }
 
-        if (p.Faction != Faction.Purple && g.IsPlaying(Faction.Purple))
+        if (p.Faction != Faction.Tleilaxu && g.IsPlaying(Faction.Tleilaxu))
         {
-            if (In(g, MainPhase.Bidding) || In(g, MainPhase.Resurrection)) result.Add(FactionAdvantage.PurpleIncreasingRevivalLimits);
+            if (In(g, MainPhase.Bidding) || In(g, MainPhase.Resurrection)) result.Add(FactionAdvantage.TleilaxuIncreasingRevivalLimits);
 
             if (In(g, MainPhase.Resurrection))
             {
-                result.Add(FactionAdvantage.PurpleRevivalDiscount);
-                result.Add(FactionAdvantage.PurpleRevivalDiscountAlly);
-                result.Add(FactionAdvantage.PurpleReceiveRevive);
-                result.Add(FactionAdvantage.PurpleEarlyLeaderRevive);
-                if (g.Applicable(Rule.PurpleGholas)) result.Add(FactionAdvantage.PurpleReviveGhola);
+                result.Add(FactionAdvantage.TleilaxuRevivalDiscount);
+                result.Add(FactionAdvantage.TleilaxuRevivalDiscountAlly);
+                result.Add(FactionAdvantage.TleilaxuReceiveRevive);
+                result.Add(FactionAdvantage.TleilaxuEarlyLeaderRevive);
+                if (g.Applicable(Rule.TleilaxuGholas)) result.Add(FactionAdvantage.TleilaxuReviveGhola);
             }
 
-            if (In(g, MainPhase.Contemplate)) result.Add(FactionAdvantage.PurpleReplacingFaceDancer);
+            if (In(g, MainPhase.Contemplate)) result.Add(FactionAdvantage.TleilaxuReplacingFaceDancer);
         }
 
-        if (p.Faction != Faction.Brown && g.IsPlaying(Faction.Brown))
+        if (p.Faction != Faction.Choam && g.IsPlaying(Faction.Choam))
         {
-            if (In(g, MainPhase.Charity)) result.Add(FactionAdvantage.BrownControllingCharity);
+            if (In(g, MainPhase.Charity)) result.Add(FactionAdvantage.ChoamControllingCharity);
 
-            result.Add(FactionAdvantage.BrownDiscarding);
+            result.Add(FactionAdvantage.ChoamDiscarding);
 
-            if (In(g, MainPhase.Resurrection)) result.Add(FactionAdvantage.BrownRevival);
+            if (In(g, MainPhase.Resurrection)) result.Add(FactionAdvantage.ChoamRevival);
 
             if (In(g, MainPhase.Battle))
             {
-                result.Add(FactionAdvantage.BrownReceiveForcePayment);
-                if (g.Applicable(Rule.BrownAuditor)) result.Add(FactionAdvantage.BrownAudit);
+                result.Add(FactionAdvantage.ChoamReceiveForcePayment);
+                if (g.Applicable(Rule.ChoamAuditor)) result.Add(FactionAdvantage.ChoamAudit);
             }
 
-            if (In(g, MainPhase.Contemplate)) result.Add(FactionAdvantage.BrownEconomics);
+            if (In(g, MainPhase.Contemplate)) result.Add(FactionAdvantage.ChoamEconomics);
         }
 
-        if (p.Faction != Faction.White && g.IsPlaying(Faction.White))
+        if (p.Faction != Faction.Richese && g.IsPlaying(Faction.Richese))
         {
             if (In(g, MainPhase.Bidding))
             {
-                result.Add(FactionAdvantage.WhiteAuction);
-                if (g.Applicable(Rule.WhiteBlackMarket)) result.Add(FactionAdvantage.WhiteBlackMarket);
+                result.Add(FactionAdvantage.RicheseAuction);
+                if (g.Applicable(Rule.RicheseBlackMarket)) result.Add(FactionAdvantage.RicheseBlackMarket);
             }
 
-            if (In(g, MainPhase.ShipmentAndMove)) result.Add(FactionAdvantage.WhiteNofield);
+            if (In(g, MainPhase.ShipmentAndMove)) result.Add(FactionAdvantage.RicheseNofield);
         }
 
-        if (p.Faction != Faction.Pink && g.IsPlaying(Faction.Pink))
+        if (p.Faction != Faction.Ecaz && g.IsPlaying(Faction.Ecaz))
         {
-            if (In(g, MainPhase.Resurrection)) result.Add(FactionAdvantage.PinkAmbassadors);
-            if (In(g, MainPhase.Battle)) result.Add(FactionAdvantage.PinkOccupation);
-            if (In(g, MainPhase.Collection)) result.Add(FactionAdvantage.PinkCollection);
+            if (In(g, MainPhase.Resurrection)) result.Add(FactionAdvantage.EcazAmbassadors);
+            if (In(g, MainPhase.Battle)) result.Add(FactionAdvantage.EcazOccupation);
+            if (In(g, MainPhase.Collection)) result.Add(FactionAdvantage.EcazCollection);
         }
 
-        if (p.Faction != Faction.Cyan && g.IsPlaying(Faction.Cyan))
+        if (p.Faction != Faction.Moritani && g.IsPlaying(Faction.Moritani))
         {
-            result.Add(FactionAdvantage.CyanEnemyOfEnemy);
-            if (In(g, MainPhase.ShipmentAndMove)) result.Add(FactionAdvantage.CyanGainingVidal);
-            if (In(g, MainPhase.Contemplate)) result.Add(FactionAdvantage.CyanPlantingTerror);
+            result.Add(FactionAdvantage.MoritaniEnemyOfEnemy);
+            if (In(g, MainPhase.ShipmentAndMove)) result.Add(FactionAdvantage.MoritaniGainingVidal);
+            if (In(g, MainPhase.Contemplate)) result.Add(FactionAdvantage.MoritaniPlantingTerror);
         }
 
         return result;
@@ -232,7 +232,7 @@ public class Karma : GameEvent
     {
         return p.TreacheryCards.Where(c =>
             c.Type == TreacheryCardType.Karma ||
-            (c.Type == TreacheryCardType.Useless && p.Is(Faction.Blue) && g.Applicable(Rule.BlueWorthlessAsKarma)) ||
+            (c.Type == TreacheryCardType.Useless && p.Is(Faction.BeneGesserit) && g.Applicable(Rule.BeneGesseritWorthlessAsKarma)) ||
             (c.Type == TreacheryCardType.Clairvoyance && p.Occupies(g.Map.Shrine)));
     }
 
@@ -255,16 +255,16 @@ public class Karma : GameEvent
 
         RevokeBattlePlansIfNeeded();
 
-        if (Prevented is FactionAdvantage.BlueUsingVoice) Game.CurrentVoice = null;
+        if (Prevented is FactionAdvantage.BeneGesseritUsingVoice) Game.CurrentVoice = null;
 
-        if (Prevented is FactionAdvantage.GreenBattlePlanPrescience) Game.CurrentPrescience = null;
+        if (Prevented is FactionAdvantage.AtreidesBattlePlanPrescience) Game.CurrentPrescience = null;
 
-        if (Player.Is(Faction.Grey) &&
-            Game.CurrentPhase == Phase.GreySwappingCard &&
+        if (Player.Is(Faction.Ixian) &&
+            Game.CurrentPhase == Phase.IxianSwappingCard &&
             Player.TreacheryCards.Count == 0)
-            Game.ContinueAfterGreyCardSwapDecision();
+            Game.ContinueAfterIxianCardSwapDecision();
         
-        if (Prevented is FactionAdvantage.YellowRidesMonster && Game.CurrentPhase is Phase.YellowRidingMonsterA or Phase.YellowRidingMonsterB)
+        if (Prevented is FactionAdvantage.FremenRidesMonster && Game.CurrentPhase is Phase.FremenRidingMonsterA or Phase.FremenRidingMonsterB)
         {
             Game.DetermineNextShipmentAndMoveSubPhase();
         }
@@ -274,15 +274,15 @@ public class Karma : GameEvent
     {
         if (Game.CurrentMainPhase == MainPhase.Battle)
         {
-            if (Prevented == FactionAdvantage.YellowNotPayingForBattles ||
-                Prevented == FactionAdvantage.YellowSpecialForceBonus)
-                Game.RevokePlanIfNeeded(Faction.Yellow);
+            if (Prevented == FactionAdvantage.FremenNotPayingForBattles ||
+                Prevented == FactionAdvantage.FremenSpecialForceBonus)
+                Game.RevokePlanIfNeeded(Faction.Fremen);
 
-            if (Prevented == FactionAdvantage.RedSpecialForceBonus) Game.RevokePlanIfNeeded(Faction.Red);
+            if (Prevented == FactionAdvantage.EmperorSpecialForceBonus) Game.RevokePlanIfNeeded(Faction.Emperor);
 
-            if (Prevented == FactionAdvantage.GreySpecialForceBonus) Game.RevokePlanIfNeeded(Faction.Grey);
+            if (Prevented == FactionAdvantage.IxianSpecialForceBonus) Game.RevokePlanIfNeeded(Faction.Ixian);
 
-            if (Prevented == FactionAdvantage.GreenUseMessiah) Game.RevokePlanIfNeeded(Faction.Green);
+            if (Prevented == FactionAdvantage.AtreidesUseMessiah) Game.RevokePlanIfNeeded(Faction.Atreides);
         }
     }
 

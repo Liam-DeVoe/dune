@@ -1,0 +1,33 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits GameEventComponent<ChoamKarmaPrevention>
+
+<GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
+
+    <Header>Use @if (CardToUse is { } card) { <RichText Shown=@card Game=Game/> } else { @("Nexus Cunning") } to prevent a faction from playing @Client.CurrentSkin.Describe(TreacheryCardType.Karma) this phase?</Header>
+
+    <Body>
+        <SelectFromImageComponent @bind-Value="target" Values="Game.PlayersOtherThan(Player)" Required="true" ImageWidth="40" />
+        <ButtonRowComponent Confirm="Confirm" ConfirmText="@Client.CurrentSkin.Format("Prevent use of {0}", TreacheryCardType.Karma)" ConfirmError="@Validation" />
+    </Body>
+
+</GameEventComponentLayout>
+
+@code { 
+
+    protected override Faction IsFactionSpecific => Faction.Choam;
+
+    protected override string Background => Client.CurrentSkin.GetImageUrl(ChoamKarmaPrevention.CardToUse(Player));
+
+    private Faction target;
+
+    protected override ChoamKarmaPrevention ConfirmedResult => new(Game, Faction) { Target = target };
+
+    private TreacheryCard? CardToUse => ChoamKarmaPrevention.CardToUse(Player);
+}

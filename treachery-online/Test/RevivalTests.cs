@@ -18,10 +18,10 @@ namespace Treachery.Test;
 public class RevivalTests
 {
     [TestMethod]
-    public void NonPurplePlayerCannotReviveMultipleLeadersInOneTurn()
+    public void NonTleilaxuPlayerCannotReviveMultipleLeadersInOneTurn()
     {
         var game = new Game();
-        var player = new Player(game, Faction.Black)
+        var player = new Player(game, Faction.Harkonnen)
         {
             Resources = 100
         };

@@ -101,8 +101,8 @@
 
     protected override Player Placer => currentPlayer ?? Game.GetPlayer(Game.NextFactionToPerformCustomSetup);
 
-    // White's special forces are No-Field tokens, which are not placed this way.
-    protected override bool MayStageSpecial => Placer.HasSpecialForces && !Placer.Is(Faction.White);
+    // Richese's special forces are No-Field tokens, which are not placed this way.
+    protected override bool MayStageSpecial => Placer.HasSpecialForces && !Placer.Is(Faction.Richese);
 
     protected override IEnumerable<Location> ValidLocations => Game.Map.Locations(false);
 

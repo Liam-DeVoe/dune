@@ -82,14 +82,14 @@
 
                 </div>
 
-                @if (shown.Faction == Faction.Green)
+                @if (shown.Faction == Faction.Atreides)
                 {
                     <div>Traitors discarded at start</div>
                     <PickFromImageComponent Value=@GetDiscardedTraitor(0) T=IHero OnChanged=@(hero => SetDiscardedTraitor(0, hero)) Title="Select Discarded Traitor" Required=false ImageWidth=60 Values="AllTraitors"/>
                     <PickFromImageComponent Value=@GetDiscardedTraitor(1) T=IHero OnChanged=@(hero => SetDiscardedTraitor(1, hero)) Title="Select Discarded Traitor" Required=false ImageWidth=60 Values="AllTraitors"/>
                     <PickFromImageComponent Value=@GetDiscardedTraitor(2) T=IHero OnChanged=@(hero => SetDiscardedTraitor(2, hero)) Title="Select Discarded Traitor" Required=false ImageWidth=60 Values="AllTraitors"/>
                 }
-                else if (shown.Faction != Faction.Purple)
+                else if (shown.Faction != Faction.Tleilaxu)
                 {
                     <div>Revealed @(shown.NumberOfTraitors > 1 ? "Traitors" : "Traitor")</div>
                     @for (var i = 0; i < shown.NumberOfTraitors; i++)
@@ -178,14 +178,30 @@
 
     private object? Shown { get; set; }
     private int _trackedGameId = -1;
-    private GreenIntelligence? Info { get; set; }
+    private AtreidesIntelligence? Info { get; set; }
     private bool _popoversNeedUpdate = true;
     private ElementReference _element;
     private bool _collapsed = true;
 
+    // Opened up when shown in a popover from the menu bar (TradePopover).
+    [CascadingParameter(Name = "InPopover")]
+    public bool InPopover { get; set; }
+
+    private bool _openedInPopover;
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        if (InPopover && !_openedInPopover)
+        {
+            _openedInPopover = true;
+            _collapsed = false;
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
-        Info = new GreenIntelligence(Client);
+        Info = new AtreidesIntelligence(Client);
 
         try
         {
@@ -336,7 +352,7 @@
         var trackerData = await Browser.LoadSetting<string>($"treachery.online;currentgame;{Client.Game!.Seed};trackerdata");
         if (!string.IsNullOrEmpty(trackerData))
         {
-            Info = GreenIntelligence.Parse(Client, trackerData);
+            Info = AtreidesIntelligence.Parse(Client, trackerData);
             StateHasChanged();
         }
     }
@@ -359,7 +375,7 @@
 
     private IEnumerable<Player> Players => Client.Game!.Players.OrderBy(p => Name(p.Faction));
 
-    private string InfoMessage => Client.CurrentSkin.Format("Welcome to the {0} Tracker! Use it to take note of (discarded) traitors, the top spice card and treachery cards.<br>When a (possibly unknown) card is won, click on an empty card placeholder and select it.<br>To indicate that a card was discarded, click it and then select the 'trash can' which will move the card to the Discarded section. When an unknown card becomes known and discarded, select it first, then discard it.<br>When the discard pile is shuffled into a new draw pile, click 'reshuffle' to clear the Discarded section.<br>If you sent a card to the Discarded section by mistake, click on the X next to it.", Faction.Green);
+    private string InfoMessage => Client.CurrentSkin.Format("Welcome to the {0} Tracker! Use it to take note of (discarded) traitors, the top spice card and treachery cards.<br>When a (possibly unknown) card is won, click on an empty card placeholder and select it.<br>To indicate that a card was discarded, click it and then select the 'trash can' which will move the card to the Discarded section. When an unknown card becomes known and discarded, select it first, then discard it.<br>When the discard pile is shuffled into a new draw pile, click 'reshuffle' to clear the Discarded section.<br>If you sent a card to the Discarded section by mistake, click on the X next to it.", Faction.Atreides);
 
     private void Toggle(object toShow)
     {

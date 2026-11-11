@@ -31,13 +31,43 @@
         @if (CanAutomate)
         {
             <button class="@(Menu.Panel == MenuPanel.Automation ? "on" : "")" title="Automation" @onclick="@(() => { CloseMenus(); TogglePanel(MenuPanel.Automation); })">
-                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>
+                <svg viewBox="0 0 24 24"><rect x="5" y="8" width="14" height="11" rx="2.5"/><path d="M12 5v3"/><circle cx="12" cy="4" r="1"/><circle cx="9.5" cy="13" r=".6" fill="currentColor"/><circle cx="14.5" cy="13" r=".6" fill="currentColor"/><path d="M9.5 16.2h5M3 12.5v3M21 12.5v3"/></svg>
             </button>
         }
         <button class="@(_menuOpen || _leaveOpen ? "on" : "")" title="Menu" @onclick="ToggleMenu">
             <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg>
         </button>
+        @if (TradeIcons)
+        {
+            <span class="toolbar-sep"></span>
+            <button class="@(Menu.Panel == MenuPanel.Deals ? "on" : "")" title="Deals" @onclick="@(() => { CloseMenus(); TogglePanel(MenuPanel.Deals); })">
+                <svg viewBox="0 0 24 24"><path d="M3 12l4-4 4 2 3-3 4 1 3 4-4 4"/><path d="M7 8l-4 4 5 5 2-1"/><path d="M11 13l2 2M13 11l3 3"/></svg>
+                @if (DealsOffered > 0)
+                {
+                    <span class="count">@DealsOffered</span>
+                }
+            </button>
+            @if (Client.Actions.Contains(typeof(AllyPermission)) && Client.Player.Ally != Faction.None)
+            {
+                <button class="@(Menu.Panel == MenuPanel.Alliance ? "on" : "")" title="@Client.CurrentSkin.Format("Manage your Alliance with {0}", Client.Player.Ally)" @onclick="@(() => { CloseMenus(); TogglePanel(MenuPanel.Alliance); })">
+                    <img class="ally" src="@Client.CurrentSkin.GetImageUrl(Client.Player.Ally)" alt="@Client.CurrentSkin.Describe(Client.Player.Ally)"/>
+                </button>
+            }
+        }
+        @if (TradePopover.HasCardTools(Client))
+        {
+            <button class="@(Menu.Panel == MenuPanel.Cards ? "on" : "")" title="Card Tracker" @onclick="@(() => { CloseMenus(); TogglePanel(MenuPanel.Cards); })">
+                <svg viewBox="0 0 24 24"><rect x="4" y="6" width="10" height="14" rx="1.5"/><path d="M8 4h10.5A1.5 1.5 0 0 1 20 5.5V18"/></svg>
+            </button>
+        }
     </div>
+
+    <TradePopover/>
+
+    @if (TradeIcons)
+    {
+        <DealToasts/>
+    }
 
     @if (BotsPaused)
     {
@@ -194,6 +224,11 @@
     private bool CanAutomate => Client.InGame && Client.Actions.Contains(typeof(AutomationConfigured));
 
     private bool HostTools => Started && Client.IsHost && !Client.IsObserver;
+
+    // Deals, offering one and giving spice open from here, like the alliance.
+    private bool TradeIcons => Started && !Client.IsObserver && Client.CurrentPhase > Phase.TradingFactions;
+
+    private int DealsOffered => DealAccepted.AcceptableDeals(Client.Game, Client.Player).Count();
 
     private bool BotsPaused => HostTools && Client.Game.NumberOfBots > 0 && Client.Game.Participation.BotsSpeed == 0;
 

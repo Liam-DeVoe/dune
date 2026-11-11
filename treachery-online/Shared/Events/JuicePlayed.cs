@@ -60,8 +60,8 @@ public class JuicePlayed : GameEvent
             g.CurrentMainPhase == MainPhase.Bidding ||
 
             g.CurrentPhase == Phase.BeginningOfShipAndMove ||
-            g.CurrentPhase == Phase.OrangeShip ||
-            g.CurrentPhase == Phase.NonOrangeShip ||
+            g.CurrentPhase == Phase.GuildShip ||
+            g.CurrentPhase == Phase.NonGuildShip ||
 
             g.CurrentMainPhase == MainPhase.Battle ||
 

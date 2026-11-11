@@ -20,19 +20,19 @@ internal static class HistoricalComponentDriver
             ["traitor"] = "traitor",
             ["selectedtraitor"] = "traitor",
             ["permittedresources"] = "spice",
-            ["redwillpayforextrarevival"] = "emperorWillPayForExtraRevival",
-            ["yellowwillprotectfrommonster"] = "fremenWillProtectFromShaiHulud",
-            ["yellowallowsthreefreerevivals"] = "fremenAllowsThreeFreeRevivals",
-            ["yellowsharesprescience"] = "fremenShareStormPrescience",
-            ["yellowrefundsbattledial"] = "fremenRefundsDial",
-            ["greensharesprescience"] = "greenSharePrescience",
-            ["blueallowsuseofvoice"] = "blueAllyMayUseVoice",
-            ["whiteallowsuseofnofield"] = "whiteAllyMayUseNoField",
-            ["orangeallowsshippingdiscount"] = "guildAllyMayShipAsGuild",
-            ["purpleallowsrevivaldiscount"] = "purpleAllyMyReviveAsPurple",
-            ["greyallowsreplacingcards"] = "greyAllyMayReplace",
-            ["cyanallowskeepingcards"] = "cyanAllyMayKeepCards",
-            ["pinksharesambassadors"] = "pinkAllyMayUseAmbassadors",
+            ["emperorwillpayforextrarevival"] = "emperorWillPayForExtraRevival",
+            ["fremenwillprotectfrommonster"] = "fremenWillProtectFromShaiHulud",
+            ["fremenallowsthreefreerevivals"] = "fremenAllowsThreeFreeRevivals",
+            ["fremensharesprescience"] = "fremenShareStormPrescience",
+            ["fremenrefundsbattledial"] = "fremenRefundsDial",
+            ["atreidessharesprescience"] = "atreidesSharePrescience",
+            ["benegesseritallowsuseofvoice"] = "beneGesseritAllyMayUseVoice",
+            ["richeseallowsuseofnofield"] = "richeseAllyMayUseNoField",
+            ["guildallowsshippingdiscount"] = "guildAllyMayShipAsGuild",
+            ["tleilaxuallowsrevivaldiscount"] = "tleilaxuAllyMyReviveAsTleilaxu",
+            ["ixianallowsreplacingcards"] = "ixianAllyMayReplace",
+            ["moritaniallowskeepingcards"] = "moritaniAllyMayKeepCards",
+            ["ecazsharesambassadors"] = "ecazAllyMayUseAmbassadors",
             ["parameter1"] = "questionParameterA",
             ["parameter2"] = "questionParameterB",
             ["moveamount"] = "nrOfSectors",
@@ -122,7 +122,7 @@ internal static class HistoricalComponentDriver
         var eventType = historicalEvent.GetType();
         var concreteName = eventType.Name switch
         {
-            nameof(YellowRidesMonster) => nameof(YellowRideComponent),
+            nameof(FremenRidesMonster) => nameof(FremenRideComponent),
             nameof(RaiseDeadPlayed) => nameof(RaiseDeadComponent),
             _ => $"{eventType.Name}Component"
         };
@@ -245,12 +245,12 @@ internal static class HistoricalComponentDriver
         {
             SetMember(component, "amountOfForces", revival.AmountOfForces);
             SetMember(component, "amountOfSpecialForces", revival.AmountOfSpecialForces);
-            SetMember(component, "forcesPaidByRed", revival.ExtraForcesPaidByRed);
-            SetMember(component, "specialForcesPaidByRed",
-                revival.ExtraSpecialForcesPaidByRed);
+            SetMember(component, "forcesPaidByEmperor", revival.ExtraForcesPaidByEmperor);
+            SetMember(component, "specialForcesPaidByEmperor",
+                revival.ExtraSpecialForcesPaidByEmperor);
             SetMember(component, "hero", revival.Hero);
             SetMember(component, "assignSkill", revival.AssignSkill);
-            SetMember(component, "useRedSecretAlly", revival.UsesRedSecretAlly);
+            SetMember(component, "useEmperorSecretAlly", revival.UsesEmperorSecretAlly);
             SetMember(component, "amountOfForcesToLocation",
                 revival.NumberOfForcesInLocation);
             SetMember(component, "amountOfSpecialForcesToLocation",
@@ -316,10 +316,10 @@ internal static class HistoricalComponentDriver
             return;
         }
 
-        if (historicalEvent is AcceptOrCancelPurpleRevival purpleRevival)
+        if (historicalEvent is AcceptOrCancelTleilaxuRevival tleilaxuRevival)
         {
-            SetMember(component, "offerHero", purpleRevival.Hero);
-            SetMember(component, "price", purpleRevival.Price);
+            SetMember(component, "offerHero", tleilaxuRevival.Hero);
+            SetMember(component, "price", tleilaxuRevival.Price);
             return;
         }
 
@@ -342,26 +342,26 @@ internal static class HistoricalComponentDriver
             SetMember(component, "_homeworldPermission",
                 shipmentPermission.Permission.HasFlag(ShipmentPermission.ToHomeworld));
             SetMember(component, "_discountPermission",
-                shipmentPermission.Permission.HasFlag(ShipmentPermission.OrangeRate));
+                shipmentPermission.Permission.HasFlag(ShipmentPermission.GuildRate));
             return;
         }
 
         if (historicalEvent is NexusPlayed nexus)
         {
-            SetMember(component, "greenPrescienceAspect",
-                nexus.GreenPrescienceAspect);
-            SetMember(component, "purpleAmountOfForces", nexus.PurpleForces);
-            SetMember(component, "purpleAmountOfSpecialForces",
-                nexus.PurpleSpecialForces);
-            SetMember(component, "purpleHero", nexus.PurpleHero);
-            SetMember(component, "purpleAssignSkill", nexus.PurpleAssignSkill);
-            SetMember(component, "purpleAmountOfSpecialForcesToLocation",
-                nexus.PurpleNumberOfSpecialForcesInLocation);
-            SetMember(component, "brownCard", nexus.BrownCard);
-            SetMember(component, "pinkTerritory", nexus.PinkTerritory);
-            SetMember(component, "pinkFaction", nexus.PinkFaction);
-            SetMember(component, "cyanTerritory", nexus.CyanTerritory);
-            SetMember(component, "purpleOrYellowLocation", nexus.PurpleLocation);
+            SetMember(component, "atreidesPrescienceAspect",
+                nexus.AtreidesPrescienceAspect);
+            SetMember(component, "tleilaxuAmountOfForces", nexus.TleilaxuForces);
+            SetMember(component, "tleilaxuAmountOfSpecialForces",
+                nexus.TleilaxuSpecialForces);
+            SetMember(component, "tleilaxuHero", nexus.TleilaxuHero);
+            SetMember(component, "tleilaxuAssignSkill", nexus.TleilaxuAssignSkill);
+            SetMember(component, "tleilaxuAmountOfSpecialForcesToLocation",
+                nexus.TleilaxuNumberOfSpecialForcesInLocation);
+            SetMember(component, "choamCard", nexus.ChoamCard);
+            SetMember(component, "ecazTerritory", nexus.EcazTerritory);
+            SetMember(component, "ecazFaction", nexus.EcazFaction);
+            SetMember(component, "moritaniTerritory", nexus.MoritaniTerritory);
+            SetMember(component, "tleilaxuOrFremenLocation", nexus.TleilaxuLocation);
             return;
         }
 
@@ -372,7 +372,7 @@ internal static class HistoricalComponentDriver
             return;
         }
 
-        if (historicalEvent is WhiteSpecifiesAuction auction)
+        if (historicalEvent is RicheseSpecifiesAuction auction)
         {
             SetMember(component, "card", auction.Card);
             SetMember(component, "auctionType", auction.AuctionType);
@@ -380,7 +380,7 @@ internal static class HistoricalComponentDriver
             return;
         }
 
-        if (historicalEvent is WhiteAnnouncesBlackMarket blackMarket)
+        if (historicalEvent is RicheseAnnouncesBlackMarket blackMarket)
         {
             SetMember(component, "card", blackMarket.Card);
             SetMember(component, "auctionType", blackMarket.AuctionType);
@@ -388,7 +388,7 @@ internal static class HistoricalComponentDriver
             return;
         }
 
-        if (historicalEvent is YellowSentMonster sentMonster)
+        if (historicalEvent is FremenSentMonster sentMonster)
         {
             SetMember(component, "target", sentMonster.Territory);
             return;
@@ -406,13 +406,13 @@ internal static class HistoricalComponentDriver
             return;
         }
 
-        if (historicalEvent is BlueBattleAnnouncement battleAnnouncement)
+        if (historicalEvent is BeneGesseritBattleAnnouncement battleAnnouncement)
         {
             SetMember(component, "target", battleAnnouncement.Territory);
             return;
         }
 
-        if (historicalEvent is BlueAccompanies accompanies)
+        if (historicalEvent is BeneGesseritAccompanies accompanies)
         {
             SetMember(component, "target", accompanies.Location);
             SetMember(component, "addExtraAdvisor", accompanies.ExtraAdvisor);
@@ -450,31 +450,31 @@ internal static class HistoricalComponentDriver
             SetMember(component, "spice", allyPermission.PermittedResources);
             SetMember(component, "karmaCard", allyPermission.PermittedKarmaCard);
             SetMember(component, "emperorWillPayForExtraRevival",
-                allyPermission.RedWillPayForExtraRevival);
+                allyPermission.EmperorWillPayForExtraRevival);
             SetMember(component, "fremenWillProtectFromShaiHulud",
-                allyPermission.YellowWillProtectFromMonster);
+                allyPermission.FremenWillProtectFromMonster);
             SetMember(component, "fremenAllowsThreeFreeRevivals",
-                allyPermission.YellowAllowsThreeFreeRevivals);
+                allyPermission.FremenAllowsThreeFreeRevivals);
             SetMember(component, "fremenShareStormPrescience",
-                allyPermission.YellowSharesPrescience);
+                allyPermission.FremenSharesPrescience);
             SetMember(component, "fremenRefundsDial",
-                allyPermission.YellowRefundsBattleDial);
-            SetMember(component, "greenSharePrescience",
-                allyPermission.GreenSharesPrescience);
-            SetMember(component, "blueAllyMayUseVoice",
-                allyPermission.BlueAllowsUseOfVoice);
-            SetMember(component, "whiteAllyMayUseNoField",
-                allyPermission.WhiteAllowsUseOfNoField);
+                allyPermission.FremenRefundsBattleDial);
+            SetMember(component, "atreidesSharePrescience",
+                allyPermission.AtreidesSharesPrescience);
+            SetMember(component, "beneGesseritAllyMayUseVoice",
+                allyPermission.BeneGesseritAllowsUseOfVoice);
+            SetMember(component, "richeseAllyMayUseNoField",
+                allyPermission.RicheseAllowsUseOfNoField);
             SetMember(component, "guildAllyMayShipAsGuild",
-                allyPermission.OrangeAllowsShippingDiscount);
-            SetMember(component, "purpleAllyMyReviveAsPurple",
-                allyPermission.PurpleAllowsRevivalDiscount);
-            SetMember(component, "greyAllyMayReplace",
-                allyPermission.GreyAllowsReplacingCards);
-            SetMember(component, "cyanAllyMayKeepCards",
-                allyPermission.CyanAllowsKeepingCards);
-            SetMember(component, "pinkAllyMayUseAmbassadors",
-                allyPermission.PinkSharesAmbassadors);
+                allyPermission.GuildAllowsShippingDiscount);
+            SetMember(component, "tleilaxuAllyMyReviveAsTleilaxu",
+                allyPermission.TleilaxuAllowsRevivalDiscount);
+            SetMember(component, "ixianAllyMayReplace",
+                allyPermission.IxianAllowsReplacingCards);
+            SetMember(component, "moritaniAllyMayKeepCards",
+                allyPermission.MoritaniAllowsKeepingCards);
+            SetMember(component, "ecazAllyMayUseAmbassadors",
+                allyPermission.EcazSharesAmbassadors);
             SetMember(component, "edited", true);
             return;
         }
@@ -482,32 +482,32 @@ internal static class HistoricalComponentDriver
         if (historicalEvent is AmbassadorActivated ambassadorActivated)
         {
             SetMember(component, "_actualAmbassador",
-                AmbassadorActivated.GetAmbassador(ambassadorActivated.Game) == Ambassador.Blue
-                    ? ambassadorActivated.BlueSelectedAmbassador
+                AmbassadorActivated.GetAmbassador(ambassadorActivated.Game) == Ambassador.BeneGesserit
+                    ? ambassadorActivated.BeneGesseritSelectedAmbassador
                     : AmbassadorActivated.GetAmbassador(ambassadorActivated.Game));
-            SetMember(component, "_brownCards",
-                ambassadorActivated.BrownCards.ToList());
-            SetMember(component, "_pinkOfferAlliance",
-                ambassadorActivated.PinkOfferAlliance);
-            SetMember(component, "_pinkGiveVidal",
-                ambassadorActivated.PinkGiveVidalToAlly);
-            SetMember(component, "_pinkTakeVidal",
-                ambassadorActivated.PinkTakeVidal);
-            SetMember(component, "_yellowFromTerritory",
-                ambassadorActivated.YellowForceLocations.Keys
+            SetMember(component, "_choamCards",
+                ambassadorActivated.ChoamCards.ToList());
+            SetMember(component, "_ecazOfferAlliance",
+                ambassadorActivated.EcazOfferAlliance);
+            SetMember(component, "_ecazGiveVidal",
+                ambassadorActivated.EcazGiveVidalToAlly);
+            SetMember(component, "_ecazTakeVidal",
+                ambassadorActivated.EcazTakeVidal);
+            SetMember(component, "_fremenFromTerritory",
+                ambassadorActivated.FremenForceLocations.Keys
                     .FirstOrDefault()?.Territory);
-            SetMember(component, "_yellowOrOrangeToLocation",
-                ambassadorActivated.YellowOrOrangeTo);
-            SetMember(component, "_yellowForces",
-                ambassadorActivated.YellowForceLocations);
-            SetMember(component, "_greyCard", ambassadorActivated.GreyCard);
-            SetMember(component, "_orangeForceAmount",
-                ambassadorActivated.OrangeForceAmount);
-            SetMember(component, "_purpleAmountOfForces",
-                ambassadorActivated.PurpleAmountOfForces);
-            SetMember(component, "_purpleHero", ambassadorActivated.PurpleHero);
-            SetMember(component, "_purpleAssignSkill",
-                ambassadorActivated.PurpleAssignSkill);
+            SetMember(component, "_fremenOrGuildToLocation",
+                ambassadorActivated.FremenOrGuildTo);
+            SetMember(component, "_fremenForces",
+                ambassadorActivated.FremenForceLocations);
+            SetMember(component, "_ixianCard", ambassadorActivated.IxianCard);
+            SetMember(component, "_guildForceAmount",
+                ambassadorActivated.GuildForceAmount);
+            SetMember(component, "_tleilaxuAmountOfForces",
+                ambassadorActivated.TleilaxuAmountOfForces);
+            SetMember(component, "_tleilaxuHero", ambassadorActivated.TleilaxuHero);
+            SetMember(component, "_tleilaxuAssignSkill",
+                ambassadorActivated.TleilaxuAssignSkill);
             return;
         }
 

@@ -1,0 +1,37 @@
+@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits GameComponent
+@inject MenuState Menu
+
+@*
+ The panel for playing a treachery card, opened by clicking the card in your
+ faction card (PlayerPanel). It floats to the left of the right column, over
+ the board, at the height the card was clicked. It shows the same panels the
+ action column used to, for every action that plays this card. It closes on
+ a click outside, or by itself once the card can no longer be played.
+*@
+
+@if (Menu.CardPlay is { } card && !Client.IsObserver && CardPlays.Playable(card, Client.Actions, Game, Player))
+{
+    <div class="menu-scrim" @onclick="Close"></div>
+    <div class="card-play-pop" style="top:@(Math.Max(8, Menu.CardPlayY - 40).ToString(System.Globalization.CultureInfo.InvariantCulture))px">
+        <CascadingValue Name="InPopover" Value="true">
+            <ActionPanel Filter="@(a => CardPlays.PlaysCard(a, card, Game, Player))"/>
+        </CascadingValue>
+    </div>
+}
+
+@code {
+
+    private void Close()
+    {
+        Menu.CloseCardPlay();
+        Client.Refresh(nameof(CardPlayPopover));
+    }
+}

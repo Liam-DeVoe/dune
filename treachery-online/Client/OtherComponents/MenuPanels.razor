@@ -12,20 +12,14 @@
 
 @*
  What the menu bar under the map (MenuComponent) opens, shown at the top of a
- side column: the players list, the automation rules, the host's undo panel,
- the recently undone events, and errors from loading a game or skin.
+ side column: the players list, the automation rules, the host's undo panel, and errors
+ from loading a game or skin.
 *@
 
 @if (Menu.LoadError != "")
 {
     <div class="text-danger small">@Menu.LoadError</div>
     <button class="btn btn-primary mt-1 mb-2 btn-sm" @onclick="ClearLoadError">Clear errors</button>
-}
-
-@* Shown whenever there is something to restore, so it stays up after the undo panel closes. *@
-@if (Client.IsHost)
-{
-    <RedoComponent/>
 }
 
 @if (Menu.Panel == MenuPanel.Undo)

@@ -14,7 +14,7 @@ def hover_shot(g, locator, name):
 
 def run(r):
     # Increased spice flow, so there are two spice discard piles.
-    with r.game("blow-two-decks", "green") as g:
+    with r.game("blow-two-decks", "atreides") as g:
         leader = g.page.locator('[data-bs-content*="pop-leader"]:not(#planetmap *):visible')
         if leader.count():
             hover_shot(g, leader.first, "card-leader")

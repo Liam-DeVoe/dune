@@ -332,10 +332,10 @@
         var to = toLocation!;
         var showAdvisorChoice = false;
 
-        if (Faction == Faction.Blue)
+        if (Faction == Faction.BeneGesserit)
         {
             var mayMoveAsAdvisors = PlacementEvent.MayMoveAsAdvisors(Game, Player, to.Territory, forces.Values.Any(b => b.AmountOfSpecialForces > 0));
-            showAdvisorChoice = mayMoveAsAdvisors && PlacementEvent.MayMoveAsBlueFighters(Player, to.Territory);
+            showAdvisorChoice = mayMoveAsAdvisors && PlacementEvent.MayMoveAsBeneGesseritFighters(Player, to.Territory);
             if (!showAdvisorChoice) asAdvisors = mayMoveAsAdvisors;
         }
         else

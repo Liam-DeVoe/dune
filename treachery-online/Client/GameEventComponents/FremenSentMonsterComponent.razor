@@ -1,0 +1,30 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits MapPickComponent<FremenSentMonster>
+
+@* No panel: the status line above says what to do, and the territory is picked on the map. *@
+
+@code {
+
+    protected override bool IsUrgent => true;
+    protected override Faction IsFactionSpecific => Faction.Fremen;
+
+    protected override bool PickByTerritory => true;
+
+    protected override IEnumerable<Location> PickTargets => SectorsOf(FremenSentMonster.ValidTargets(Game));
+
+    protected override FremenSentMonster ConfirmedResult => new(Game, Faction) { Territory = TargetTerritory };
+
+    protected override RenderFragment PinContent => __builder =>
+    {
+        <div class="pin-body">
+            @PinActions(Client.CurrentSkin.Format("Appear in {0}", TargetTerritory))
+        </div>
+    };
+}

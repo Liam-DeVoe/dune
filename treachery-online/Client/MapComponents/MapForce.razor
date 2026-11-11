@@ -30,7 +30,7 @@
 
 </div>
 
-@if (!((Faction == Faction.White && Special) || Amount == 0))
+@if (!((Faction == Faction.Richese && Special) || Amount == 0))
 {
     <MapText ToShow="@Amount.ToString()" X=@(X + 0.5f * Diameter) Y=@(Y + 0.5f * Diameter) Font=@Font BorderWidth=@BorderWidth BorderColor=@BorderColor />
 }

@@ -10,22 +10,22 @@
 @using Treachery.Client.GameEventComponents
 @inherits GameComponent;
 
-@if (Client.CurrentPhase is Phase.GameEnded)
+@if (Filter == null && Client.CurrentPhase is Phase.GameEnded)
 {
     <WinnerPanel/>
 }
 
-@if (Client.Game.CurrentPhase is Phase.Bidding)
+@if (Filter == null && Client.Game.CurrentPhase is Phase.Bidding)
 {
     <NormalBiddingPanel CanBid="@Client.Actions.Contains(typeof(Bid))" />
 }
 
-@if (Client.Game.CurrentPhase is Phase.BlackMarketBidding)
+@if (Filter == null && Client.Game.CurrentPhase is Phase.BlackMarketBidding)
 {
     <BlackMarketBiddingPanel CanBid="@Client.Actions.Contains(typeof(BlackMarketBid))" />
 }
 
-@foreach (var a in Client.Actions)
+@foreach (var a in Client.Actions.Where(Shows))
 {
     switch (a.Name)
     {
@@ -67,20 +67,20 @@
             <PerformSetupComponent/>
             break;
 
-        case nameof(PerformYellowSetup):
-            <PerformYellowSetupComponent/>
+        case nameof(PerformFremenSetup):
+            <PerformFremenSetupComponent/>
             break;
 
-        case nameof(BluePrediction):
-            <BluePredictionComponent/>
+        case nameof(BeneGesseritPrediction):
+            <BeneGesseritPredictionComponent/>
             break;
 
-        case nameof(PerformBluePlacement):
-            <PerformBluePlacementComponent/>
+        case nameof(PerformBeneGesseritPlacement):
+            <PerformBeneGesseritPlacementComponent/>
             break;
 
-        case nameof(PerformCyanSetup):
-            <PerformCyanSetupComponent/>
+        case nameof(PerformMoritaniSetup):
+            <PerformMoritaniSetupComponent/>
             break;
 
         case nameof(MulliganPerformed):
@@ -107,12 +107,12 @@
             <YesNoActionComponent GameEventType="NexusVoted" Title="Should a Nexus occur?" Alert="true"/>
             break;
 
-        case nameof(YellowSentMonster):
-            <YellowSentMonsterComponent/>
+        case nameof(FremenSentMonster):
+            <FremenSentMonsterComponent/>
             break;
 
-        case nameof(YellowRidesMonster):
-            <YellowRideComponent/>
+        case nameof(FremenRidesMonster):
+            <FremenRideComponent/>
             break;
 
         case nameof(AllianceOffered):
@@ -121,6 +121,17 @@
 
         case nameof(AllianceBroken):
             <SimpleActionComponent GameEventType="AllianceBroken" Title="Break your current alliance?" Alert="false" ConfirmLabel="Break"/>
+            break;
+
+        case nameof(AlliancePassed):
+            if (Player.HasAlly)
+            {
+                <SimpleActionComponent GameEventType="AlliancePassed" TitleMessage=@(Message.Express("Keep your alliance with ", Player.Ally, "?")) Alert="true" ConfirmLabel="Keep alliance"/>
+            }
+            else
+            {
+                <SimpleActionComponent GameEventType="AlliancePassed" Title="Done making alliances?" Alert="true" ConfirmLabel="Pass"/>
+            }
             break;
 
         case nameof(NexusCardDrawn):
@@ -139,16 +150,16 @@
             <ShipmentComponent/>
             break;
 
-        case nameof(OrangeDelay):
-            <SimpleActionComponent GameEventType="OrangeDelay" Title="Delay your turn?" Alert="true" ConfirmLabel="Delay" AllowAutoConfirm="true"/>
+        case nameof(GuildDelay):
+            <SimpleActionComponent GameEventType="GuildDelay" Title="Delay your turn?" Alert="true" ConfirmLabel="Delay" AllowAutoConfirm="true"/>
             break;
 
-        case nameof(BlueAccompanies):
-            <BlueAccompaniesComponent/>
+        case nameof(BeneGesseritAccompanies):
+            <BeneGesseritAccompaniesComponent/>
             break;
 
-        case nameof(BlueFlip):
-            <BlueFlipComponent/>
+        case nameof(BeneGesseritFlip):
+            <BeneGesseritFlipComponent/>
             break;
 
         case nameof(TerrorRevealed):
@@ -160,19 +171,19 @@
             break;
 
         case nameof(AllianceByTerror):
-            <YesNoActionComponent GameEventType="AllianceByTerror" TitleMessage=@(Message.Express("Enter an alliance with ", Faction.Cyan, "?")) Alert="true"/>
+            <YesNoActionComponent GameEventType="AllianceByTerror" TitleMessage=@(Message.Express("Enter an alliance with ", Faction.Moritani, "?")) Alert="true"/>
             break;
 
         case nameof(AllianceByAmbassador):
-            <YesNoActionComponent GameEventType="AllianceByAmbassador" TitleMessage=@(Message.Express("Enter an alliance with ", Faction.Pink, "?")) Alert="true"/>
+            <YesNoActionComponent GameEventType="AllianceByAmbassador" TitleMessage=@(Message.Express("Enter an alliance with ", Faction.Ecaz, "?")) Alert="true"/>
             break;
 
         case nameof(NexusPlayed):
             <NexusPlayedComponent/>
             break;
 
-        case nameof(BlueBattleAnnouncement):
-            <BlueBattleAnnouncementComponent/>
+        case nameof(BeneGesseritBattleAnnouncement):
+            <BeneGesseritBattleAnnouncementComponent/>
             break;
 
         case nameof(Move):
@@ -188,7 +199,7 @@
             break;
 
         case nameof(BattleClaimed):
-            var titleBattleClaimed = Faction == Faction.Pink ? Message.Express("Do you wish to fight in ", Game.BattleAboutToStart.Territory, "? Otherwise, your ally will.") : Message.Express("Should ", Faction.Pink, " fight the battle in ", Game.BattleAboutToStart.Territory, "?");
+            var titleBattleClaimed = Faction == Faction.Ecaz ? Message.Express("Do you wish to fight in ", Game.BattleAboutToStart.Territory, "? Otherwise, your ally will.") : Message.Express("Should ", Faction.Ecaz, " fight the battle in ", Game.BattleAboutToStart.Territory, "?");
             <YesNoActionComponent GameEventType="BattleClaimed" TitleMessage=@titleBattleClaimed Alert="true"/>
             break;
 
@@ -252,8 +263,8 @@
             <ResourcesTransferredComponent/>
             break;
 
-        case nameof(WhiteGaveCard):
-            <WhiteGaveCardComponent/>
+        case nameof(RicheseGaveCard):
+            <RicheseGaveCardComponent/>
             break;
 
         case nameof(AllyPermission):
@@ -300,12 +311,12 @@
             <SimpleActionComponent GameEventType="KarmaPrescience" BackgroundImage="@GetImage(TreacheryCardType.Karma)" Title="@Client.CurrentSkin.Format("Use {0} to see the entire enemy battle plan", TreacheryCardType.Karma)" Alert="false" ConfirmLabel="@Client.CurrentSkin.Format("Use {0}", TreacheryCardType.Karma)"/>
             break;
 
-        case nameof(KarmaPinkDial):
-            <SimpleActionComponent GameEventType="KarmaPinkDial" BackgroundImage="@GetImage(TreacheryCardType.Karma)" Title="@Client.CurrentSkin.Format("Use {0} to add the difference between the leader discs to your dial", TreacheryCardType.Karma)" Alert="false" ConfirmLabel="@Client.CurrentSkin.Format("Use {0}", TreacheryCardType.Karma)"/>
+        case nameof(KarmaEcazDial):
+            <SimpleActionComponent GameEventType="KarmaEcazDial" BackgroundImage="@GetImage(TreacheryCardType.Karma)" Title="@Client.CurrentSkin.Format("Use {0} to add the difference between the leader discs to your dial", TreacheryCardType.Karma)" Alert="false" ConfirmLabel="@Client.CurrentSkin.Format("Use {0}", TreacheryCardType.Karma)"/>
             break;
 
-        case nameof(KarmaWhiteBuy):
-            <KarmaWhiteBuyComponent BackgroundImage="@GetImage(TreacheryCardType.Karma)"/>
+        case nameof(KarmaRicheseBuy):
+            <KarmaRicheseBuyComponent BackgroundImage="@GetImage(TreacheryCardType.Karma)"/>
             break;
 
         case nameof(Karma):
@@ -328,16 +339,16 @@
             <SetShipmentPermissionComponent/>
             break;
 
-        case nameof(RedBidSupport):
-            <RedBidSupportComponent/>
+        case nameof(EmperorBidSupport):
+            <EmperorBidSupportComponent/>
             break;
 
-        case nameof(RequestPurpleRevival):
-            <RequestPurpleRevivalComponent/>
+        case nameof(RequestTleilaxuRevival):
+            <RequestTleilaxuRevivalComponent/>
             break;
 
-        case nameof(AcceptOrCancelPurpleRevival):
-            <AcceptOrCancelPurpleRevivalComponent/>
+        case nameof(AcceptOrCancelTleilaxuRevival):
+            <AcceptOrCancelTleilaxuRevivalComponent/>
             break;
 
         case nameof(AmalPlayed):
@@ -348,20 +359,20 @@
             <SimpleActionComponent GameEventType="RecruitsPlayed" BackgroundImage="@GetImage(TreacheryCardType.Recruits)" Title="@DescribeCard(TreacheryCardType.Recruits)" Alert="false" ConfirmLabel="@Client.CurrentSkin.Format("Play {0}", TreacheryCardType.Recruits)"/>
             break;
 
-        case nameof(WhiteAnnouncesBlackMarket):
-            <WhiteAnnouncesBlackMarketComponent/>
+        case nameof(RicheseAnnouncesBlackMarket):
+            <RicheseAnnouncesBlackMarketComponent/>
             break;
 
-        case nameof(GreyRemovedCardFromAuction):
-            <GreyRemovedCardFromAuctionComponent/>
+        case nameof(IxianRemovedCardFromAuction):
+            <IxianRemovedCardFromAuctionComponent/>
             break;
 
-        case nameof(GreySelectedStartingCard):
-            <GreySelectedStartingCardComponent/>
+        case nameof(IxianSelectedStartingCard):
+            <IxianSelectedStartingCardComponent/>
             break;
 
-        case nameof(GreySwappedCardOnBid):
-            <GreySwappedCardOnBidComponent/>
+        case nameof(IxianSwappedCardOnBid):
+            <IxianSwappedCardOnBidComponent/>
             break;
 
         case nameof(PerformHmsMovement):
@@ -400,16 +411,16 @@
             <DiscardedComponent/>
             break;
 
-        case nameof(RedDiscarded):
-            <RedDiscardedComponent/>
+        case nameof(EmperorDiscarded):
+            <EmperorDiscardedComponent/>
             break;
 
         case nameof(TraitorDiscarded):
             <TraitorDiscardedComponent/>
             break;
 
-        case nameof(BrownDiscarded):
-            <BrownDiscardedComponent/>
+        case nameof(ChoamDiscarded):
+            <ChoamDiscardedComponent/>
             break;
 
         case nameof(TerrorPlanted):
@@ -421,20 +432,20 @@
             break;
 
         case nameof(ExtortionPrevented):
-            var titleExtortionPrevented = Message.Express("Pay ", Payment.Of(3), " to prevent ", Faction.Cyan, " regaining their ", TerrorType.Extortion, " token?");
+            var titleExtortionPrevented = Message.Express("Pay ", Payment.Of(3), " to prevent ", Faction.Moritani, " regaining their ", TerrorType.Extortion, " token?");
             <SimpleActionComponent GameEventType="ExtortionPrevented" TitleMessage=@titleExtortionPrevented ConfirmLabel="Yes" Alert="false"/>
             break;
 
-        case nameof(BrownEconomics):
-            <BrownEconomicsComponent/>
+        case nameof(ChoamEconomics):
+            <ChoamEconomicsComponent/>
             break;
 
         case nameof(CardTraded):
             <CardTradedComponent/>
             break;
 
-        case nameof(KarmaBrownDiscard):
-            <KarmaBrownDiscardComponent BackgroundImage="@GetImage(TreacheryCardType.Karma)"/>
+        case nameof(KarmaChoamDiscard):
+            <KarmaChoamDiscardComponent BackgroundImage="@GetImage(TreacheryCardType.Karma)"/>
             break;
 
         case nameof(AuditCancelled):
@@ -449,45 +460,45 @@
             <ResourcesAuditedComponent/>
             break;
 
-        case nameof(BrownExtraMove):
-            var cardToUse = BrownExtraMove.CardToUse(Client.Player);
-            var titleBrownExtraMove = Message.Express("Use ", cardToUse != null ? cardToUse : "Nexus Cunning", " to be able to move your forces one extra territory?");
-            var background = cardToUse != null ? Client.CurrentSkin.GetImageUrl(cardToUse) : Client.CurrentSkin.GetImageUrl(Nexus.Brown);
-            <SimpleActionComponent GameEventType="BrownExtraMove" BackgroundImage=@background TitleMessage=@titleBrownExtraMove Alert="false"/>
+        case nameof(ChoamExtraMove):
+            var cardToUse = ChoamExtraMove.CardToUse(Client.Player);
+            var titleChoamExtraMove = Message.Express("Use ", cardToUse != null ? cardToUse : "Nexus Cunning", " to be able to move your forces one extra territory?");
+            var background = cardToUse != null ? Client.CurrentSkin.GetImageUrl(cardToUse) : Client.CurrentSkin.GetImageUrl(Nexus.Choam);
+            <SimpleActionComponent GameEventType="ChoamExtraMove" BackgroundImage=@background TitleMessage=@titleChoamExtraMove Alert="false"/>
             break;
 
-        case nameof(BrownMovePrevention):
-            <BrownMovePreventionComponent/>
+        case nameof(ChoamMovePrevention):
+            <ChoamMovePreventionComponent/>
             break;
 
-        case nameof(BrownKarmaPrevention):
-            <BrownKarmaPreventionComponent/>
+        case nameof(ChoamKarmaPrevention):
+            <ChoamKarmaPreventionComponent/>
             break;
 
-        case nameof(BrownFreeRevivalPrevention):
-            <BrownFreeRevivalPreventionComponent/>
+        case nameof(ChoamFreeRevivalPrevention):
+            <ChoamFreeRevivalPreventionComponent/>
             break;
 
-        case nameof(BrownRemoveForce):
-            <BrownRemoveForceComponent/>
+        case nameof(ChoamRemoveForce):
+            <ChoamRemoveForceComponent/>
             break;
 
-        case nameof(WhiteAnnouncesAuction):
-            <WhiteAnnouncesAuctionComponent/>
+        case nameof(RicheseAnnouncesAuction):
+            <RicheseAnnouncesAuctionComponent/>
             break;
 
-        case nameof(WhiteSpecifiesAuction):
-            <WhiteSpecifiesAuctionComponent/>
+        case nameof(RicheseSpecifiesAuction):
+            <RicheseSpecifiesAuctionComponent/>
             break;
 
-        case nameof(WhiteKeepsUnsoldCard):
-            <WhiteKeepsUnsoldCardComponent/>
+        case nameof(RicheseKeepsUnsoldCard):
+            <RicheseKeepsUnsoldCardComponent/>
             break;
 
-        case nameof(WhiteRevealedNoField):
-            <SimpleActionComponent GameEventType="WhiteRevealedNoField"
-                                   IsFactionSpecific=Faction.White
-                                   TitleMessage=@(Message.Express("Reveal your currently active No-Field of ", Client.Game.CurrentNoFieldValue, ", placing ", Math.Min(Client.Game.CurrentNoFieldValue, Client.Player.ForcesInReserve), " ", FactionForce.White, "?"))
+        case nameof(RicheseRevealedNoField):
+            <SimpleActionComponent GameEventType="RicheseRevealedNoField"
+                                   IsFactionSpecific=Faction.Richese
+                                   TitleMessage=@(Message.Express("Reveal your currently active No-Field of ", Client.Game.CurrentNoFieldValue, ", placing ", Math.Min(Client.Game.CurrentNoFieldValue, Client.Player.ForcesInReserve), " ", FactionForce.Richese, "?"))
                                    ConfirmLabel="Reveal"/>
             break;
 
@@ -545,7 +556,7 @@
             break;
 
         case nameof(Captured):
-            <YesNoActionComponent GameEventType="Captured" Title="Do you wish to capture a random leader from your opponent?" Alert="true" ForFaction="Faction.Black"/>
+            <YesNoActionComponent GameEventType="Captured" Title="Do you wish to capture a random leader from your opponent?" Alert="true" ForFaction="Faction.Harkonnen"/>
             break;
 
         case nameof(Diplomacy):
@@ -584,23 +595,20 @@
     }
 }
 
-@if (DealAccepted.CurrentDeals(Client.Game).Any() || (!Client.IsObserver && (DealAccepted.AcceptableDeals(Client.Game, Client.Player).Any() || DealAccepted.CancellableDeals(Client.Game, Client.Player).Any())))
-{
-    <DealComponent/>
-}
-
-@if (!Client.IsObserver && Client.Game.AssistedNoteKeepingEnabled(Player))
-{
-    <NoteComponent/>
-}
-
-@if (!Client.IsObserver && Client.CurrentPhase >= Phase.SelectingTraitors && Client.Faction is Faction.Green)
-{
-    <TrackerComponent/>
-}
-
-@if (Client.Game.CurrentMainPhase != MainPhase.Ended && Client.Actions.Contains(typeof(PlayerReplaced)))
+@if (Filter == null && Client.Game.CurrentMainPhase != MainPhase.Ended && Client.Actions.Contains(typeof(PlayerReplaced)))
 {
     <PlayerReplacedComponent/>
 }
 
+@code {
+
+    // Which of the available actions to show. Without one, this is the
+    // action panel in the right column: everything except the treachery
+    // cards you play from your faction card (CardPlayPopover) and the trade
+    // panels opened from the menu bar (TradePopover), which use this
+    // component with a filter of their own.
+    [Parameter]
+    public Func<Type, bool>? Filter { get; set; }
+
+    private bool Shows(Type action) => Filter?.Invoke(action) ?? !(CardPlays.PlayedFromHand(action, Game, Player) || Trade.Actions.Contains(action));
+}

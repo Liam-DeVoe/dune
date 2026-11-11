@@ -34,7 +34,7 @@ public class SwitchedSkilledLeader : GameEvent
     {
         return player.Leaders.FirstOrDefault(l =>
             game.IsSkilled(l) && !game.CapturedLeaders.ContainsKey(l) &&
-            (player.Faction == Faction.Pink || l.HeroType != HeroType.Vidal));
+            (player.Faction == Faction.Ecaz || l.HeroType != HeroType.Vidal));
     }
 
     public static bool CanBePlayed(Game game, Player player)

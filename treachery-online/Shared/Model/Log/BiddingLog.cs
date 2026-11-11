@@ -1,7 +1,7 @@
 namespace Treachery.Shared;
 
 // Records the Bidding log design draws from. Only normal auctions carry them;
-// White's auctions and the black market stay plain lines.
+// Richese's auctions and the black market stay plain lines.
 
 // "N cards were drawn for bidding".
 public record BiddingDrawn(int Count);

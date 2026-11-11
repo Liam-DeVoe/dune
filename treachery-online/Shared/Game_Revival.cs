@@ -18,12 +18,12 @@ public partial class Game
     public Dictionary<Faction, int> FreeRevivalsThisTurn { get; } = [];
     public List<Faction> FactionsThatRevivedSpecialForcesThisTurn { get; } = [];
     public Dictionary<Faction, int> LeaderRevivalsThisTurn { get; } = [];
-    internal bool PurpleStartedRevivalWithLowThreshold { get; set; }
+    internal bool TleilaxuStartedRevivalWithLowThreshold { get; set; }
     public RecruitsPlayed? CurrentRecruitsPlayed { get; set; }
     public Faction[] FactionsWithIncreasedRevivalLimits { get; internal set; } = [];
-    public List<RequestPurpleRevival> CurrentRevivalRequests { get; } = [];
+    public List<RequestTleilaxuRevival> CurrentRevivalRequests { get; } = [];
     public Dictionary<IHero, int> EarlyRevivalsOffers { get; } = new();
-    public BrownFreeRevivalPrevention? CurrentFreeRevivalPrevention { get; internal set; }
+    public ChoamFreeRevivalPrevention? CurrentFreeRevivalPrevention { get; internal set; }
     internal KarmaRevivalPrevention? CurrentKarmaRevivalPrevention { get; set; }
     public int AmbassadorsPlacedThisTurn { get; internal set; }
     
@@ -49,7 +49,7 @@ public partial class Game
 
     #region Information
 
-    public int FreeRevivals(Player player, bool usesRedSecretAlly)
+    public int FreeRevivals(Player player, bool usesEmperorSecretAlly)
     {
         if (FreeRevivalPrevented(player.Faction)) return 0;
 
@@ -59,29 +59,29 @@ public partial class Game
 
         switch (player.Faction)
         {
-            case Faction.Yellow: nrOfFreeRevivals = 3; break;
-            case Faction.Green: nrOfFreeRevivals = 2; break;
-            case Faction.Black: nrOfFreeRevivals = 2; break;
-            case Faction.Red: nrOfFreeRevivals = 1; break;
-            case Faction.Orange: nrOfFreeRevivals = 1; break;
-            case Faction.Blue: nrOfFreeRevivals = 1; break;
-            case Faction.Grey: nrOfFreeRevivals = 1; break;
-            case Faction.Purple: nrOfFreeRevivals = 2; break;
+            case Faction.Fremen: nrOfFreeRevivals = 3; break;
+            case Faction.Atreides: nrOfFreeRevivals = 2; break;
+            case Faction.Harkonnen: nrOfFreeRevivals = 2; break;
+            case Faction.Emperor: nrOfFreeRevivals = 1; break;
+            case Faction.Guild: nrOfFreeRevivals = 1; break;
+            case Faction.BeneGesserit: nrOfFreeRevivals = 1; break;
+            case Faction.Ixian: nrOfFreeRevivals = 1; break;
+            case Faction.Tleilaxu: nrOfFreeRevivals = 2; break;
 
-            case Faction.Brown: nrOfFreeRevivals = 0; break;
-            case Faction.White: nrOfFreeRevivals = 2; break;
-            case Faction.Pink: nrOfFreeRevivals = 2; break;
-            case Faction.Cyan: nrOfFreeRevivals = 2; break;
+            case Faction.Choam: nrOfFreeRevivals = 0; break;
+            case Faction.Richese: nrOfFreeRevivals = 2; break;
+            case Faction.Ecaz: nrOfFreeRevivals = 2; break;
+            case Faction.Moritani: nrOfFreeRevivals = 2; break;
         }
         
         if (Version < 176 && CurrentRecruitsPlayed != null) nrOfFreeRevivals *= 2;
 
-        if (player.Ally == Faction.Yellow && YellowAllowsThreeFreeRevivals ||
-            CurrentYellowSecretAlly != null && CurrentYellowSecretAlly.Player == player) nrOfFreeRevivals = 3;
+        if (player.Ally == Faction.Fremen && FremenAllowsThreeFreeRevivals ||
+            CurrentFremenSecretAlly != null && CurrentFremenSecretAlly.Player == player) nrOfFreeRevivals = 3;
         
         if (Version is >= 176 and <= 179 && CurrentRecruitsPlayed != null) nrOfFreeRevivals *= 2;
 
-        if (usesRedSecretAlly) nrOfFreeRevivals += 3;
+        if (usesEmperorSecretAlly) nrOfFreeRevivals += 3;
 
         if (GetsExtraCharityAndFreeRevivalDueToLowThreshold(player)) nrOfFreeRevivals += 1;
         
@@ -92,29 +92,29 @@ public partial class Game
 
     private bool GetsExtraCharityAndFreeRevivalDueToLowThreshold(Player player)
     {
-        return (!(player.Is(Faction.Red) || player.Is(Faction.Brown)) && player.HasLowThreshold()) ||
-               (player.Is(Faction.Red) && player.HasLowThreshold(World.Red)) ||
-               (player.Is(Faction.Brown) && player.HasLowThreshold() && OccupierOf(World.Brown) == null);
+        return (!(player.Is(Faction.Emperor) || player.Is(Faction.Choam)) && player.HasLowThreshold()) ||
+               (player.Is(Faction.Emperor) && player.HasLowThreshold(World.Emperor)) ||
+               (player.Is(Faction.Choam) && player.HasLowThreshold() && OccupierOf(World.Choam) == null);
     }
 
-    public int GetMaxRevivals(Game g, Player p, bool redSecretAllyUsed)
+    public int GetMaxRevivals(Game g, Player p, bool emperorSecretAllyUsed)
     {
-        //int nrOfFreeRevivals = g.FreeRevivals(p, redSecretAllyUsed);
+        //int nrOfFreeRevivals = g.FreeRevivals(p, emperorSecretAllyUsed);
 
-        if (p.Is(Faction.Purple) || (p.Is(Faction.Brown) && !g.Prevented(FactionAdvantage.BrownRevival)))
+        if (p.Is(Faction.Tleilaxu) || (p.Is(Faction.Choam) && !g.Prevented(FactionAdvantage.ChoamRevival)))
             return int.MaxValue;
 
-        var redSecretAlly = redSecretAllyUsed ? 3 : 0;
+        var emperorSecretAlly = emperorSecretAllyUsed ? 3 : 0;
         var lowThreshold = g.HasLowThreshold(p.Faction) ? 1 : 0;
         var alreadyRevived = g.TotalRevivalsThisTurn.GetValueOrDefault(p.Faction, 0);
         
         if (CurrentRecruitsPlayed != null)
-            return Math.Max(7 + redSecretAlly + lowThreshold - alreadyRevived, 0);
+            return Math.Max(7 + emperorSecretAlly + lowThreshold - alreadyRevived, 0);
         
         if (FactionsWithIncreasedRevivalLimits.Contains(p.Faction))
-            return Math.Max(5 + lowThreshold + redSecretAlly - alreadyRevived, 0);
+            return Math.Max(5 + lowThreshold + emperorSecretAlly - alreadyRevived, 0);
         
-        return Math.Max(3 + lowThreshold + redSecretAlly - alreadyRevived, 0);
+        return Math.Max(3 + lowThreshold + emperorSecretAlly - alreadyRevived, 0);
     }
 
     private bool FreeRevivalPrevented(Faction f)
@@ -166,18 +166,18 @@ public partial class Game
         if (freeRevivedSpecialForces > 0)
             player.ReviveSpecialForces(freeRevivedSpecialForces);
        
-        if (player.Faction != Faction.Purple) RevivalTechTokenIncome = true;
+        if (player.Faction != Faction.Tleilaxu) RevivalTechTokenIncome = true;
 
-        var purple = GetPlayer(Faction.Purple);
-        var purpleReceivesIncome = false;
+        var tleilaxu = GetPlayer(Faction.Tleilaxu);
+        var tleilaxuReceivesIncome = false;
         
-        if (purple != null)
+        if (tleilaxu != null)
         {
-            purpleReceivesIncome = !PurpleStartedRevivalWithLowThreshold && !Prevented(FactionAdvantage.PurpleReceiveRevive);
+            tleilaxuReceivesIncome = !TleilaxuStartedRevivalWithLowThreshold && !Prevented(FactionAdvantage.TleilaxuReceiveRevive);
 
-            if (purpleReceivesIncome)
+            if (tleilaxuReceivesIncome)
             {
-                purple.Resources += 1;
+                tleilaxu.Resources += 1;
             }
         }
         
@@ -188,10 +188,10 @@ public partial class Game
             MessagePart.ExpressIf(freeRevivedSpecialForces > 0, freeRevivedSpecialForces, player.SpecialForce),
             MessagePart.ExpressIf(freeRevivedNormalForces > 0, freeRevivedNormalForces, player.Force),
             " for free",
-            MessagePart.ExpressIf(purpleReceivesIncome, Faction.Purple, " receive ", Payment.Of(1)))
+            MessagePart.ExpressIf(tleilaxuReceivesIncome, Faction.Tleilaxu, " receive ", Payment.Of(1)))
             .WithLog(new RevivalRow(player.Faction, freeRevivedNormalForces, freeRevivedSpecialForces, 0)
             {
-                PurpleIncome = purpleReceivesIncome ? 1 : 0
+                TleilaxuIncome = tleilaxuReceivesIncome ? 1 : 0
             }));
         
         Stone(Milestone.Revival);

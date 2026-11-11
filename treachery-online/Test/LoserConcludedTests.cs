@@ -21,7 +21,7 @@ public class LoserConcludedTests
     public void AssassinationRewardRequiresAnAvailableLeader()
     {
         var game = new Game();
-        var winner = new Player(game, Faction.Black);
+        var winner = new Player(game, Faction.Harkonnen);
         game.Players.Add(winner);
 
         var feydRautha = LeaderManager.Leaders.Single(leader => leader.Id == 1026);
@@ -38,7 +38,7 @@ public class LoserConcludedTests
     public void AssassinationRewardForVariableValueLeaderIsThree()
     {
         var game = new Game();
-        var winner = new Player(game, Faction.Purple);
+        var winner = new Player(game, Faction.Tleilaxu);
         game.Players.Add(winner);
 
         var variableValueLeader = LeaderManager.Leaders.Single(leader => leader.HeroType == HeroType.VariableValue);

@@ -11,7 +11,7 @@ internal sealed class ComponentTestContext : IDisposable
 
     public IGameService Client { get; }
 
-    public ComponentTestContext(Game? game = null, Faction faction = Faction.Green)
+    public ComponentTestContext(Game? game = null, Faction faction = Faction.Atreides)
     {
         game ??= new Game();
 
@@ -26,6 +26,7 @@ internal sealed class ComponentTestContext : IDisposable
         Client.CurrentSkin.Returns(DefaultSkin.Default);
         Client.Actions.Returns([]);
         Client.MapInteraction.Returns(new MapInteraction());
+        Client.PhaseControl.Returns(new PhaseControlInfo());
 
         RenderContext.Services.AddSingleton(Client);
         RenderContext.Services.AddSingleton(new Browser(RenderContext.JSInterop.JSRuntime));

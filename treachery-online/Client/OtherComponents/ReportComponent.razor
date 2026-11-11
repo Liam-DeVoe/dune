@@ -22,6 +22,9 @@
     var index = SelectedIndex(steps);
     var step = steps[index];
     var empty = step.Reports.All(r => !r.IsBattle && !Visible(r).Any());
+    // The latest phase may still be under way, so an empty log there just
+    // means nothing has happened yet.
+    var over = index < steps.Count - 1 || Game.CurrentMainPhase == MainPhase.Ended;
 
     <div class="card report pb-1" style="animation:fadeIn 1s;">
 
@@ -71,7 +74,10 @@
 
             @if (empty)
             {
-                <div class="mt-1 ps-1 pe-1"><i>Nothing to report</i></div>
+                if (over)
+                {
+                    <div class="mt-1 ps-1 pe-1"><i>Nothing to report</i></div>
+                }
             }
             else
             {
@@ -287,11 +293,11 @@
         return @<text>@if (named) {<FactionChip Faction="@owner" Game="@Game"/>}<span>@((MarkupString)WithSpice(rest))</span></text>;
     }
 
-    // The faction an advantage belongs to, from the colour its name starts with.
+    // The faction an advantage belongs to, from the faction name its name starts with.
     private static Faction AdvantageOwner(FactionAdvantage advantage)
     {
-        var colour = System.Text.RegularExpressions.Regex.Match(advantage.ToString(), "^[A-Z][a-z]+").Value;
-        return Enum.TryParse<Faction>(colour, out var faction) ? faction : Faction.None;
+        var name = advantage.ToString();
+        return Enum.GetValues<Faction>().FirstOrDefault(f => f != Faction.None && name.StartsWith(f.ToString(), StringComparison.Ordinal));
     }
 
     // The text as HTML with "2 spice" as the spice amount and a lone "spice" as
@@ -364,7 +370,7 @@
     private RenderFragment Total(Report report, BattleFact strength)
     {
         var lost = report.BattleDecided && report.BattleWinner != strength.Faction;
-        return @<div class="total @(lost ? "lost" : "")" title="@($"{Client.CurrentSkin.Describe(strength.Faction)} strength")">@Support.RoundWithHalves(strength.Strength)</div>;
+        return @<div class="total @(lost ? "lost" : "")" title="@($"{Client.CurrentSkin.Describe(strength.Faction)} strength")">@Support.Round(strength.Strength)</div>;
     }
 
     // One side's spice from killed leaders, forces lost and cards discarded.
@@ -446,7 +452,7 @@
                 }
             </div>
             <div class="dial">
-                <SimpleNumberComponent Size="30">@Support.RoundWithHalves(plan.Dial)</SimpleNumberComponent>
+                <SimpleNumberComponent Size="30">@Support.Round(plan.Dial)</SimpleNumberComponent>
                 @if (plan.Spice is > 0)
                 {
                     <SpiceComponent Amount="@plan.Spice.Value.ToString()" Size="22"/>

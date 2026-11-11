@@ -35,68 +35,68 @@ public class DealTests
     [TestMethod]
     public void DecliningHidesTheOfferFromThatRecipientOnly()
     {
-        var game = GameWith(Faction.Green, Faction.Black, Faction.Red);
-        var offer = Offer(game, Faction.Green);
+        var game = GameWith(Faction.Atreides, Faction.Harkonnen, Faction.Emperor);
+        var offer = Offer(game, Faction.Atreides);
 
-        var rejection = offer.Rejection(Faction.Black);
+        var rejection = offer.Rejection(Faction.Harkonnen);
         Assert.IsNull(rejection.Validate());
         Assert.IsNull(rejection.Execute(false, false));
 
-        Assert.IsFalse(game.DealResponse(offer, Faction.Black));
-        Assert.IsNull(game.DealResponse(offer, Faction.Red));
-        Assert.IsEmpty(DealAccepted.AcceptableDeals(game, game.GetPlayer(Faction.Black)).ToArray());
-        Assert.HasCount(1, DealAccepted.AcceptableDeals(game, game.GetPlayer(Faction.Red)).ToArray());
+        Assert.IsFalse(game.DealResponse(offer, Faction.Harkonnen));
+        Assert.IsNull(game.DealResponse(offer, Faction.Emperor));
+        Assert.IsEmpty(DealAccepted.AcceptableDeals(game, game.GetPlayer(Faction.Harkonnen)).ToArray());
+        Assert.HasCount(1, DealAccepted.AcceptableDeals(game, game.GetPlayer(Faction.Emperor)).ToArray());
 
-        Assert.IsNotNull(offer.Rejection(Faction.Black).Validate());
-        Assert.IsNotNull(offer.Acceptance(Faction.Black).Validate());
+        Assert.IsNotNull(offer.Rejection(Faction.Harkonnen).Validate());
+        Assert.IsNotNull(offer.Acceptance(Faction.Harkonnen).Validate());
     }
 
     [TestMethod]
     public void AnOfferCanOnlyBeAcceptedOncePerRecipient()
     {
-        var game = GameWith(Faction.Green, Faction.Black);
-        var offer = Offer(game, Faction.Green);
+        var game = GameWith(Faction.Atreides, Faction.Harkonnen);
+        var offer = Offer(game, Faction.Atreides);
 
-        Assert.IsNull(offer.Acceptance(Faction.Black).Validate());
-        Assert.IsNull(offer.Acceptance(Faction.Black).Execute(false, false));
+        Assert.IsNull(offer.Acceptance(Faction.Harkonnen).Validate());
+        Assert.IsNull(offer.Acceptance(Faction.Harkonnen).Execute(false, false));
 
-        Assert.IsTrue(game.DealResponse(offer, Faction.Black));
+        Assert.IsTrue(game.DealResponse(offer, Faction.Harkonnen));
         Assert.HasCount(1, game.Deals);
-        Assert.IsNotNull(offer.Acceptance(Faction.Black).Validate());
-        Assert.IsNotNull(offer.Rejection(Faction.Black).Validate());
+        Assert.IsNotNull(offer.Acceptance(Faction.Harkonnen).Validate());
+        Assert.IsNotNull(offer.Rejection(Faction.Harkonnen).Validate());
     }
 
     [TestMethod]
     public void MakingTheOfferAgainAsksAgain()
     {
-        var game = GameWith(Faction.Green, Faction.Black);
-        var offer = Offer(game, Faction.Green);
-        Assert.IsNull(offer.Rejection(Faction.Black).Execute(false, false));
+        var game = GameWith(Faction.Atreides, Faction.Harkonnen);
+        var offer = Offer(game, Faction.Atreides);
+        Assert.IsNull(offer.Rejection(Faction.Harkonnen).Execute(false, false));
 
         Assert.IsNull(offer.Cancellation().Execute(false, false));
         Assert.IsEmpty(game.DealResponses);
 
-        Offer(game, Faction.Green);
-        Assert.HasCount(1, DealAccepted.AcceptableDeals(game, game.GetPlayer(Faction.Black)).ToArray());
+        Offer(game, Faction.Atreides);
+        Assert.HasCount(1, DealAccepted.AcceptableDeals(game, game.GetPlayer(Faction.Harkonnen)).ToArray());
     }
 
     [TestMethod]
     public void RecipientsOfAnOpenOfferExcludeTheOfferersAlly()
     {
-        var game = GameWith(Faction.Green, Faction.Black, Faction.Red);
-        game.GetPlayer(Faction.Green)!.Ally = Faction.Red;
-        game.GetPlayer(Faction.Red)!.Ally = Faction.Green;
+        var game = GameWith(Faction.Atreides, Faction.Harkonnen, Faction.Emperor);
+        game.GetPlayer(Faction.Atreides)!.Ally = Faction.Emperor;
+        game.GetPlayer(Faction.Emperor)!.Ally = Faction.Atreides;
 
-        CollectionAssert.AreEqual(new[] { Faction.Black }, game.DealRecipients(Offer(game, Faction.Green)).ToArray());
-        CollectionAssert.AreEqual(new[] { Faction.Red }, game.DealRecipients(Offer(game, Faction.Black, Faction.Red)).ToArray());
+        CollectionAssert.AreEqual(new[] { Faction.Harkonnen }, game.DealRecipients(Offer(game, Faction.Atreides)).ToArray());
+        CollectionAssert.AreEqual(new[] { Faction.Emperor }, game.DealRecipients(Offer(game, Faction.Harkonnen, Faction.Emperor)).ToArray());
     }
 
     [TestMethod]
     public void OnlyRecipientsMayDecline()
     {
-        var game = GameWith(Faction.Green, Faction.Black, Faction.Red);
-        var offer = Offer(game, Faction.Green, Faction.Black);
+        var game = GameWith(Faction.Atreides, Faction.Harkonnen, Faction.Emperor);
+        var offer = Offer(game, Faction.Atreides, Faction.Harkonnen);
 
-        Assert.IsNotNull(offer.Rejection(Faction.Red).Validate());
+        Assert.IsNotNull(offer.Rejection(Faction.Emperor).Validate());
     }
 }

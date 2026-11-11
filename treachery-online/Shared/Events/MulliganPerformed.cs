@@ -49,22 +49,22 @@ public class MulliganPerformed : PassableGameEvent
             Player.Traitors.Clear();
             Game.TraitorDeck.Shuffle();
             Game.Stone(Milestone.Shuffled);
-            Game.DealBlackTraitorCards();
-            Game.Enter(Phase.BlackMulligan);
+            Game.DealHarkonnenTraitorCards();
+            Game.Enter(Phase.HarkonnenMulligan);
         }
         else
         {
-            DealNonBlackTraitorCards();
+            DealNonHarkonnenTraitorCards();
             Game.EnterSelectTraitors();
         }
 
         Log();
     }
 
-    private void DealNonBlackTraitorCards()
+    private void DealNonHarkonnenTraitorCards()
     {
         for (var i = 1; i <= 4; i++)
-            foreach (var p in Game.Players.Where(p => p.Faction != Faction.Black && p.Faction != Faction.Purple)) p.Traitors.Add(Game.TraitorDeck.Draw());
+            foreach (var p in Game.Players.Where(p => p.Faction != Faction.Harkonnen && p.Faction != Faction.Tleilaxu)) p.Traitors.Add(Game.TraitorDeck.Draw());
     }
 
     public override Message GetMessage()

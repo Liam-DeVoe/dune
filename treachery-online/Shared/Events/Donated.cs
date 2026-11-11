@@ -51,9 +51,9 @@ public class Donated : GameEvent
         if (!MayDonate(Game, Player)) return Message.Express("You currently have an outstanding bid");
         if (Card == null && Resources <= 0) return Message.Express("Invalid amount");
         if (Player.Resources < Resources) return Message.Express("You can't give that much");
-        if (Initiator != Faction.Red && Target == Player.Ally) return Message.Express("You can't bribe your ally");
-        if (Initiator != Faction.Red && Game.Applicable(Rule.DisableResourceTransfers)) return Message.Express(Concept.Resource, " transfers are disabled by house rule");
-        if (!FromBank && (Game.EconomicsStatus == BrownEconomicsStatus.Double || Game.EconomicsStatus == BrownEconomicsStatus.DoubleFlipped)) Message.Express("No bribes can be made during Double Inflation");
+        if (Initiator != Faction.Emperor && Target == Player.Ally) return Message.Express("You can't bribe your ally");
+        if (Initiator != Faction.Emperor && Game.Applicable(Rule.DisableResourceTransfers)) return Message.Express(Concept.Resource, " transfers are disabled by house rule");
+        if (!FromBank && (Game.EconomicsStatus == ChoamEconomicsStatus.Double || Game.EconomicsStatus == ChoamEconomicsStatus.DoubleFlipped)) Message.Express("No bribes can be made during Double Inflation");
 
         var targetPlayer = Game.GetPlayer(Target);
         if (Card != null && !targetPlayer!.HasRoomForCards) return Message.Express("Target faction's hand is full");
@@ -63,7 +63,7 @@ public class Donated : GameEvent
 
     public static IEnumerable<Faction> ValidTargets(Game g, Player p)
     {
-        return g.Players.Where(x => x.Faction != p.Faction && (p.Is(Faction.Red) || x.Faction != p.Ally)).Select(x => x.Faction);
+        return g.Players.Where(x => x.Faction != p.Faction && (p.Is(Faction.Emperor) || x.Faction != p.Ally)).Select(x => x.Faction);
     }
 
     public static bool MayDonate(Game g, Player p)

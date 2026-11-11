@@ -24,23 +24,23 @@ BADGES = """sel => [...document.querySelectorAll(sel)].map(t => {
 
 
 def run(r):
-    with r.game("battle", "red") as g:
-        g.element_shot("panel-red", PANEL_HEADER)
+    with r.game("battle", "emperor") as g:
+        g.element_shot("panel-emperor", PANEL_HEADER)
 
-    with r.game("battle", "yellow") as g:
-        g.element_shot("panel-yellow", PANEL_HEADER)
+    with r.game("battle", "fremen") as g:
+        g.element_shot("panel-fremen", PANEL_HEADER)
 
     # Emperor revival: the special force picker, alone and in its column.
-    with r.game("revival", "red") as g:
+    with r.game("revival", "emperor") as g:
         r.note("picker badges", g.eval(f"({BADGES})('{PICKER} {STARRED}')"))
         g.element_shot("picker", PICKER)
         g.element_shot("picker-column", ".col-lg-3", height=500)
 
-    with r.game("setup", "yellow") as g:
+    with r.game("setup", "fremen") as g:
         g.element_shot("setup-hints", SETUP_HINTS)
 
     # The Ship & Move report names Fedaykin that shipped.
-    with r.game("ship-fremen", "yellow") as g:
+    with r.game("ship-fremen", "fremen") as g:
         r.note("report badges", g.eval(f"({BADGES})('{REPORT_LINE} {STARRED}')"))
         g.element_shot("report-line", REPORT_LINE)
         g.element_shot("report", ".card.report", height=400)

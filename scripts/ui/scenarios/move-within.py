@@ -11,7 +11,7 @@ ZOOM = dict(zoom=(FAR_NORTH, SOUTH), size=(560, 420), dy=-40)
 def run(r):
     # Fremen with 4 forces and a Fedaykin in Pasty Mesa (Far North) and 3 forces
     # in Pasty Mesa (North). Pasty Mesa (South) is empty.
-    with r.game("move-within", "yellow") as g:
+    with r.game("move-within", "fremen") as g:
         g.click(FAR_NORTH)
         g.shot("move-within-1-source", **ZOOM)
         # The second sector holds forces too, so the click could add a source or
@@ -23,7 +23,7 @@ def run(r):
             g.shot("move-within-3-move-here", **ZOOM)
         r.note("pin buttons", g.count(".map-pin button"))
 
-    with r.game("move-within", "yellow") as g:
+    with r.game("move-within", "fremen") as g:
         g.click(FAR_NORTH)
         # An empty sector of the source territory. Before, the click did nothing.
         g.click(SOUTH)

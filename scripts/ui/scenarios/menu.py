@@ -22,7 +22,7 @@ def column(g, name):
 
 
 def run(r):
-    with r.game(FIXTURE, "green") as g:
+    with r.game(FIXTURE, "atreides") as g:
         g.shot("menu-1-closed")
         column(g, "menu-1-closed-column")
 

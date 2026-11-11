@@ -21,7 +21,7 @@ public class LoggedInUser(User user, DateTimeOffset? loggedInDateTime = null)
     
     public string Email => User.Email;
     
-    public DateTimeOffset LoggedInDateTime { get; } = loggedInDateTime ?? DateTimeOffset.Now;
+    public DateTimeOffset LoggedInDateTime { get; } = loggedInDateTime ?? TestHooks.Now();
 
     public UserStatus Status { get; set; } = UserStatus.Online;
     

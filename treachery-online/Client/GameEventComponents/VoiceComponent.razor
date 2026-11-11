@@ -13,7 +13,7 @@
     <Header>Use Voice</Header>
     <Body>
 
-        @if (Game.CurrentBattle.IsInvolved(Faction.Green))
+        @if (Game.CurrentBattle.IsInvolved(Faction.Atreides))
         {
             <div class="text-info small mb-2">Note: Voice should be used before Prescience.</div>
         }
@@ -30,7 +30,7 @@
 
 @code {
 
-    protected override Faction IsFactionSpecific => Faction.Blue;
+    protected override Faction IsFactionSpecific => Faction.BeneGesserit;
 
     private bool mustUse = true;
     private TreacheryCardType type;

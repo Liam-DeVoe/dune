@@ -1,9 +1,14 @@
 @use "../shared";
 
+// The action panels under the status card (.act-stack in GameColumns) get
+// the same treatment, so the status and what you're asked to do read as one
+// card; see .act-stack below.
+//
 // .prompt-act: the guide's .prompt.act as a single class, for the beige
 // prompt card, which is a Bootstrap .card. It also re-points the card
 // variables so .card-body text is ink on parchment.
-.prompt-act {
+.prompt-act,
+.act-stack > .card:not(.battle-plan) {
   --bs-card-bg: var(--parchment);
   --bs-card-color: var(--ink-1);
   --bs-card-border-color: var(--gold-3);
@@ -45,7 +50,9 @@
 // Links on any parchment surface, the prompt card or an .on-parchment
 // region, are rock rather than gold.
 .prompt-act .btn-link,
+.act-stack > .card:not(.battle-plan) .btn-link,
 .prompt-act a,
+.act-stack > .card:not(.battle-plan) a,
 .on-parchment .btn-link,
 .on-parchment a {
   --bs-btn-color: var(--rock-2);
@@ -53,7 +60,8 @@
   color: var(--rock-2);
 }
 
-.prompt-act {
+.prompt-act,
+.act-stack > .card:not(.battle-plan) {
   .btn-quiet {
     color: var(--rock-2);
   }
@@ -133,5 +141,48 @@
     --bs-card-color: var(--parchment);
     --bs-card-border-color: #{shared.$hairline};
     --bs-card-cap-color: var(--sand);
+  }
+}
+
+// The status card and the action panels under it, joined into one parchment
+// card with a hairline between the parts. The battle plan keeps its own card.
+.act-stack {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+
+  > .card:not(.battle-plan) {
+    --bs-card-cap-bg: transparent;
+    margin: 0 !important;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  > .card:not(.battle-plan) + .card:not(.battle-plan) {
+    border-top-color: rgba(29, 12, 0, 0.14);
+  }
+
+  > .card:not(.battle-plan):has(+ .card:not(.battle-plan)) {
+    border-bottom-width: 0;
+  }
+
+  > .card:first-child {
+    border-top-left-radius: var(--r-2);
+    border-top-right-radius: var(--r-2);
+  }
+
+  > .card:not(.battle-plan):not(:has(+ .card:not(.battle-plan))) {
+    border-bottom-left-radius: var(--r-2);
+    border-bottom-right-radius: var(--r-2);
+  }
+
+  > .card:not(.battle-plan) + .card:not(.battle-plan) {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+
+  > .battle-plan {
+    margin-top: 8px;
   }
 }

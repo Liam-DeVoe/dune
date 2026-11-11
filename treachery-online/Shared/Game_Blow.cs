@@ -61,7 +61,7 @@ public partial class Game
                 ThumperCalledShaiHulud = false;
                 NumberOfMonsters++;
                 LetMonsterAppear(PreviousBlowCard == null || PreviousBlowCard.IsShaiHulud || PreviousBlowCard.IsGreatMaker ? null : PreviousBlowCard.Territory, false);
-                if (CurrentPhase == Phase.YellowSendingMonsterA || CurrentPhase == Phase.YellowSendingMonsterB) break;
+                if (CurrentPhase == Phase.FremenSendingMonsterA || CurrentPhase == Phase.FremenSendingMonsterB) break;
             }
             else if (drawn != null && (drawn.IsShaiHulud || drawn.IsGreatMaker) && CurrentTurn == 1)
             {
@@ -82,7 +82,7 @@ public partial class Game
                     LetMonsterAppear(PreviousBlowCard == null 
                                      || PreviousBlowCard.IsShaiHulud 
                                      || PreviousBlowCard.IsGreatMaker ? null : PreviousBlowCard.Territory, !ThumperCalledShaiHulud && drawn?.IsGreatMaker is true);
-                    if (CurrentPhase is Phase.YellowSendingMonsterA or Phase.YellowSendingMonsterB) break;
+                    if (CurrentPhase is Phase.FremenSendingMonsterA or Phase.FremenSendingMonsterB) break;
                 }
                 else
                 {
@@ -119,7 +119,7 @@ public partial class Game
             ThumperCalledShaiHulud = false;
         }
 
-        if (CurrentPhase != Phase.YellowSendingMonsterA && CurrentPhase != Phase.YellowSendingMonsterB && drawn != null)
+        if (CurrentPhase != Phase.FremenSendingMonsterA && CurrentPhase != Phase.FremenSendingMonsterB && drawn != null)
         {
             PreviousBlowCard = drawn;
             ProcessBlowCard(drawn);
@@ -188,28 +188,28 @@ public partial class Game
             LogIf(devouredResources > 0, Payment.Of(devouredResources), " in ", blowCard.Territory, " is destroyed");
 
             var drawnToken = DiscoveryToken.None;
-            if (blowCard.DiscoveryLocation!.DiscoveryTokenType == DiscoveryTokenType.Orange)
+            if (blowCard.DiscoveryLocation!.DiscoveryTokenType == DiscoveryTokenType.Guild)
             {
-                if (!OrangeDiscoveryTokens!.IsEmpty)
+                if (!GuildDiscoveryTokens!.IsEmpty)
                 {
-                    drawnToken = OrangeDiscoveryTokens.Draw();
-                    DiscoveriesOnPlanet.Add(blowCard.DiscoveryLocation, new Discovery(drawnToken, DiscoveryTokenType.Orange, blowCard.DiscoveryLocation));
+                    drawnToken = GuildDiscoveryTokens.Draw();
+                    DiscoveriesOnPlanet.Add(blowCard.DiscoveryLocation, new Discovery(drawnToken, DiscoveryTokenType.Guild, blowCard.DiscoveryLocation));
                 }
                 else
                 {
-                    Log("There are no more ", DiscoveryTokenType.Orange, " discoveries left");
+                    Log("There are no more ", DiscoveryTokenType.Guild, " discoveries left");
                 }
             }
-            else if (blowCard.DiscoveryLocation.DiscoveryTokenType == DiscoveryTokenType.Yellow)
+            else if (blowCard.DiscoveryLocation.DiscoveryTokenType == DiscoveryTokenType.Fremen)
             {
-                if (!YellowDiscoveryTokens!.IsEmpty)
+                if (!FremenDiscoveryTokens!.IsEmpty)
                 {
-                    drawnToken = YellowDiscoveryTokens.Draw();
-                    DiscoveriesOnPlanet.Add(blowCard.DiscoveryLocation, new Discovery(drawnToken, DiscoveryTokenType.Yellow, blowCard.DiscoveryLocation));
+                    drawnToken = FremenDiscoveryTokens.Draw();
+                    DiscoveriesOnPlanet.Add(blowCard.DiscoveryLocation, new Discovery(drawnToken, DiscoveryTokenType.Fremen, blowCard.DiscoveryLocation));
                 }
                 else
                 {
-                    Log("There are no more ", DiscoveryTokenType.Yellow, " discoveries left");
+                    Log("There are no more ", DiscoveryTokenType.Fremen, " discoveries left");
                 }
             }
 
@@ -263,7 +263,7 @@ public partial class Game
             }
             else
             {
-                Enter(CurrentPhase is Phase.BlowA or Phase.HarvesterA, Phase.AllianceA, Phase.AllianceB);
+                EnterAlliancePhase(CurrentPhase is Phase.BlowA or Phase.HarvesterA);
             }
         }
     }
@@ -284,17 +284,17 @@ public partial class Game
 
             if (Monsters.Count > 0)
             {
-                if (IsPlaying(Faction.Yellow) && Applicable(Rule.YellowSendingMonster))
+                if (IsPlaying(Faction.Fremen) && Applicable(Rule.FremenSendingMonster))
                 {
-                    if (!Prevented(FactionAdvantage.YellowControlsMonster))
+                    if (!Prevented(FactionAdvantage.FremenControlsMonster))
                     {
-                        Enter(CurrentPhase == Phase.BlowA, Phase.YellowSendingMonsterA, Phase.YellowSendingMonsterB);
+                        Enter(CurrentPhase == Phase.BlowA, Phase.FremenSendingMonsterA, Phase.FremenSendingMonsterB);
                     }
                     else
                     {
                         Monsters.Add(m);
-                        LogPreventionByKarma(FactionAdvantage.YellowControlsMonster);
-                        if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.YellowControlsMonster);
+                        LogPreventionByKarma(FactionAdvantage.FremenControlsMonster);
+                        if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.FremenControlsMonster);
                     }
                 }
                 else
@@ -329,13 +329,13 @@ public partial class Game
                     Log(devoured);
                     p.KillAllForces(l, false);
 
-                    if (p.Is(Faction.Yellow))
+                    if (p.Is(Faction.Fremen))
                     {
-                        if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.YellowProtectedFromMonster);
+                        if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.FremenProtectedFromMonster);
                     }
-                    else if (p.Ally == Faction.Yellow && YellowWillProtectFromMonster)
+                    else if (p.Ally == Faction.Fremen && FremenWillProtectFromMonster)
                     {
-                        if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.YellowProtectedFromMonsterAlly);
+                        if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.FremenProtectedFromMonsterAlly);
                     }
                 }
                 else
@@ -354,7 +354,7 @@ public partial class Game
             Log(devoured);
         }
 
-        FlipBlueAdvisorsWhenAlone();
+        FlipBeneGesseritAdvisorsWhenAlone();
     }
 
     internal void EnterBlowA()
@@ -379,13 +379,13 @@ public partial class Game
     {
         CurrentPhase = phase;
 
-        if (YellowRidesMonster.IsApplicable(this))
+        if (FremenRidesMonster.IsApplicable(this))
         {
-            Enter(CurrentPhase == Phase.AllianceA || CurrentPhase == Phase.YellowRidingMonsterA, Phase.YellowRidingMonsterA, Phase.YellowRidingMonsterB);
+            Enter(CurrentPhase == Phase.AllianceA || CurrentPhase == Phase.FremenRidingMonsterA, Phase.FremenRidingMonsterA, Phase.FremenRidingMonsterB);
         }
         else
         {
-            if (CurrentPhase == Phase.YellowRidingMonsterA && Applicable(Rule.IncreasedResourceFlow))
+            if (CurrentPhase == Phase.FremenRidingMonsterA && Applicable(Rule.IncreasedResourceFlow))
                 EnterBlowB();
             else
                 StartNexusCardPhase();
@@ -395,6 +395,38 @@ public partial class Game
     #endregion ResourceBlow
 
     #region EndOfResourceBlow
+
+    internal void EnterAlliancePhase(bool isA)
+    {
+        //Since v188 every faction must pass or form an alliance before the phase ends
+        if (Version >= 188) HasActedOrPassed.Clear();
+        Enter(isA, Phase.AllianceA, Phase.AllianceB);
+    }
+
+    internal void EndNexus()
+    {
+        NexusHasOccured = true;
+        CurrentAllianceOffers.Clear();
+
+        if (FremenRidesMonster.IsApplicable(this))
+        {
+            Enter(CurrentPhase == Phase.AllianceA, Phase.FremenRidingMonsterA, Phase.FremenRidingMonsterB);
+        }
+        else
+        {
+            if (CurrentPhase == Phase.AllianceA)
+                Enter(Applicable(Rule.IncreasedResourceFlow), EnterBlowB, StartNexusCardPhase);
+            else if (CurrentPhase == Phase.AllianceB) StartNexusCardPhase();
+        }
+    }
+
+    /// <summary>
+    /// Since v188 the alliance phase ends when every faction has either passed or formed an alliance.
+    /// </summary>
+    internal void EndNexusIfEveryoneIsDone()
+    {
+        if (Version >= 188 && CurrentPhase is Phase.AllianceA or Phase.AllianceB && EveryoneActedOrPassed) EndNexus();
+    }
 
     internal void StartNexusCardPhase()
     {
@@ -436,7 +468,7 @@ public partial class Game
     internal void EndBlowPhase()
     {
         FactionsThatMayDrawNexusCard.Clear();
-        CurrentYellowSecretAlly = null;
+        CurrentFremenSecretAlly = null;
         HasActedOrPassed.Clear();
         ReshuffleIgnoredMonsters();
         MainPhaseEnd();
@@ -505,11 +537,11 @@ public partial class Game
 
     public bool ProtectedFromMonster(Player p)
     {
-        if (CurrentYellowSecretAlly != null && CurrentYellowSecretAlly.Player == p)
+        if (CurrentFremenSecretAlly != null && CurrentFremenSecretAlly.Player == p)
             return true;
-        if (p.Is(Faction.Yellow))
-            return !Prevented(FactionAdvantage.YellowProtectedFromMonster);
-        return p.Ally == Faction.Yellow && YellowWillProtectFromMonster && !Prevented(FactionAdvantage.YellowProtectedFromMonsterAlly);
+        if (p.Is(Faction.Fremen))
+            return !Prevented(FactionAdvantage.FremenProtectedFromMonster);
+        return p.Ally == Faction.Fremen && FremenWillProtectFromMonster && !Prevented(FactionAdvantage.FremenProtectedFromMonsterAlly);
     }
 
     #endregion Information

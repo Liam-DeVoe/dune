@@ -384,6 +384,13 @@
     img.face-down {
       filter: grayscale(1) brightness(0.65);
     }
+
+    // Leader art draws its disc across ~80% of the image (the corner is room for
+    // the strength badge), but the faction back fills its box. Inset it to match.
+    img.faction-back {
+      box-sizing: border-box;
+      padding: 4px;
+    }
   }
 }
 

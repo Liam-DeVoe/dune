@@ -84,40 +84,40 @@ public class StormDialled : GameEvent
 
         if (Game.UseStormDeck) Game.NextStormMoves = Game.DetermineLaterStormWithStormDeck();
 
-        Game.Enter(IsPlaying(Faction.Grey) || Game.Applicable(Rule.HmSwithoutGrey), Phase.HmsPlacement, Game.EndStormPhase);
+        Game.Enter(IsPlaying(Faction.Ixian) || Game.Applicable(Rule.HmSwithoutIxian), Phase.HmsPlacement, Game.EndStormPhase);
     }
 
     private void AssignTechTokens()
     {
         var techTokensToBeDealt = new List<TechToken>();
 
-        var yellow = GetPlayer(Faction.Yellow);
-        if (yellow != null)
+        var fremen = GetPlayer(Faction.Fremen);
+        if (fremen != null)
         {
-            yellow.TechTokens.Add(TechToken.Resources);
-            Log(Faction.Yellow, " receive ", TechToken.Resources);
+            fremen.TechTokens.Add(TechToken.Resources);
+            Log(Faction.Fremen, " receive ", TechToken.Resources);
         }
         else
         {
             techTokensToBeDealt.Add(TechToken.Resources);
         }
 
-        var purple = GetPlayer(Faction.Purple);
-        if (purple != null)
+        var tleilaxu = GetPlayer(Faction.Tleilaxu);
+        if (tleilaxu != null)
         {
-            purple.TechTokens.Add(TechToken.Graveyard);
-            Log(Faction.Purple, " receive ", TechToken.Graveyard);
+            tleilaxu.TechTokens.Add(TechToken.Graveyard);
+            Log(Faction.Tleilaxu, " receive ", TechToken.Graveyard);
         }
         else
         {
             techTokensToBeDealt.Add(TechToken.Graveyard);
         }
 
-        var grey = GetPlayer(Faction.Grey);
-        if (grey != null)
+        var ixian = GetPlayer(Faction.Ixian);
+        if (ixian != null)
         {
-            grey.TechTokens.Add(TechToken.Ships);
-            Log(Faction.Grey, " receive ", TechToken.Ships);
+            ixian.TechTokens.Add(TechToken.Ships);
+            Log(Faction.Ixian, " receive ", TechToken.Ships);
         }
         else
         {

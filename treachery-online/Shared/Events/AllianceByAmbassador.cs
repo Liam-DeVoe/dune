@@ -42,20 +42,20 @@ public class AllianceByAmbassador : PassableGameEvent
         {
             Game.MakeAlliance(Initiator, Game.CurrentAmbassadorActivated!.Initiator);
 
-            if (Game.CurrentAmbassadorActivated.PinkGiveVidalToAlly)
+            if (Game.CurrentAmbassadorActivated.EcazGiveVidalToAlly)
                 Game.TakeVidal(Player, VidalMoment.EndOfTurn);
-            else if (Game.Version < 176 && Game.CurrentAmbassadorActivated.PinkTakeVidal) 
+            else if (Game.Version < 176 && Game.CurrentAmbassadorActivated.EcazTakeVidal) 
                 Game.TakeVidal(Game.CurrentAmbassadorActivated.Player, Game.Version >= 167 ? VidalMoment.Never : VidalMoment.AfterUsedInBattle);
 
             if (Game.HasActedOrPassed.Contains(Initiator) && Game.HasActedOrPassed.Contains(Game.CurrentAmbassadorActivated.Initiator)) Game.CheckIfForcesShouldBeDestroyedByAllyPresence(Player);
 
-            Game.FlipBlueAdvisorsWhenAlone();
+            Game.FlipBeneGesseritAdvisorsWhenAlone();
         }
         else
         {
             Log(Initiator, " don't ally with ", Game.CurrentAmbassadorActivated!.Initiator);
 
-            if (Game.CurrentAmbassadorActivated.PinkTakeVidal) Game.TakeVidal(Game.CurrentAmbassadorActivated.Player, VidalMoment.AfterUsedInBattle);
+            if (Game.CurrentAmbassadorActivated.EcazTakeVidal) Game.TakeVidal(Game.CurrentAmbassadorActivated.Player, VidalMoment.AfterUsedInBattle);
         }
 
         Game.DetermineNextShipmentAndMoveSubPhase();

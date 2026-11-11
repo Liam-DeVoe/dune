@@ -1,0 +1,44 @@
+{"scenario": "authentication", "start": "2026-03-02T10:00:00+02:00"}
+{"op": "connect", "conn": 1}
+{"op": "call", "conn": 1, "method": "Connect", "args": []}
+{"op": "call", "conn": 1, "method": "RequestCreateUser", "args": ["ab", "h", null, "Player"]}
+{"op": "call", "conn": 1, "method": "RequestCreateUser", "args": ["xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "h", null, "Player"]}
+{"op": "call", "conn": 1, "method": "RequestCreateUser", "args": ["Alice ", "hashA", " alice@example.com ", "Alice Player"]}
+{"op": "call", "conn": 1, "method": "RequestCreateUser", "args": ["ALICE", "x", null, "Someone"]}
+{"op": "call", "conn": 1, "method": "RequestCreateUser", "args": ["bob1", "hashB", "not an address", "Bob Player"]}
+{"op": "call", "conn": 1, "method": "RequestCreateUser", "args": ["İSTANBUL Σ", "hashC", "Ünïcode <ü@exämple.com>", "Pl😀yer"]}
+{"op": "call", "conn": 1, "method": "RequestCreateUser", "args": ["carol", "hashC", null, "pla"]}
+{"op": "call", "conn": 1, "method": "RequestCreateUser", "args": ["carol", "hashC", null, "ppppppppppppppppppppppppppppppppppppppppp"]}
+{"op": "call", "conn": 1, "method": "RequestCreateUser", "args": [" abc😀\t", "hashE", "  ", "E Player"]}
+{"op": "call", "conn": 1, "method": "RequestLogin", "args": [187, "alice", "hashA"]}
+{"op": "call", "conn": 1, "method": "RequestLogin", "args": [188, "alice", "wrong"]}
+{"op": "advance", "minutes": 3}
+{"op": "call", "conn": 1, "method": "RequestLogin", "args": [188, " ALICE ", "hashA"]}
+{"op": "call", "conn": 1, "method": "RequestLogin", "args": [188, "bob1", "hashB"]}
+{"op": "call", "conn": 1, "method": "GetLoginInfo", "args": ["TOKEN00000000001"]}
+{"op": "call", "conn": 1, "method": "GetLoginInfo", "args": ["nope"]}
+{"op": "call", "conn": 1, "method": "RequestUpdateUserInfo", "args": ["TOKEN00000000001", "", " Alice P ", " a@b "]}
+{"op": "call", "conn": 1, "method": "RequestUpdateUserInfo", "args": ["nope", "", "x", null]}
+{"op": "call", "conn": 1, "method": "RequestPasswordReset", "args": ["nobody"]}
+{"op": "call", "conn": 1, "method": "RequestPasswordReset", "args": ["abc😀"]}
+{"op": "call", "conn": 1, "method": "RequestPasswordReset", "args": ["İSTANBUL Σ"]}
+{"op": "call", "conn": 1, "method": "RequestPasswordReset", "args": [" A@B"]}
+{"op": "call", "conn": 1, "method": "RequestPasswordReset", "args": ["ALICE"]}
+{"op": "advance", "minutes": 2}
+{"op": "call", "conn": 1, "method": "RequestSetPassword", "args": ["nobody", "TOKEN00000000005", "x"]}
+{"op": "call", "conn": 1, "method": "RequestSetPassword", "args": ["alice", "TOKEN00000000005", "new"]}
+{"op": "call", "conn": 1, "method": "RequestSetPassword", "args": ["alice", " TOKEN00000000006", "new"]}
+{"op": "call", "conn": 1, "method": "RequestSetPassword", "args": ["Alice", "TOKEN00000000006", "hashA2"]}
+{"op": "call", "conn": 1, "method": "RequestSetPassword", "args": ["alice", "TOKEN00000000006", "hashA3"]}
+{"op": "call", "conn": 1, "method": "RequestLogin", "args": [188, "alice", "hashA2"]}
+{"op": "advance", "minutes": 61}
+{"op": "call", "conn": 1, "method": "RequestSetPassword", "args": ["İSTANBUL Σ", "TOKEN00000000005", "x"]}
+{"op": "call", "conn": 1, "method": "RequestPasswordReset", "args": ["İstanbul σ"]}
+{"op": "call", "conn": 1, "method": "RequestCreateUser", "args": ["dave", "hashD", "d@example.com", "Dave Player"]}
+{"op": "call", "conn": 1, "method": "DeleteUser", "args": ["TOKEN00000000008", 5]}
+{"op": "call", "conn": 1, "method": "RequestUpdateUserInfo", "args": ["TOKEN00000000008", null, "Dave", null]}
+{"op": "restart"}
+{"op": "call", "conn": 1, "method": "GetLoginInfo", "args": ["TOKEN00000000001"]}
+{"op": "call", "conn": 1, "method": "RequestPasswordReset", "args": ["bob1"]}
+{"op": "call", "conn": 1, "method": "RequestUpdateUserInfo", "args": ["TOKEN00000000001", "h3", "Alice", "x@y"]}
+{"op": "call", "conn": 1, "method": "RequestLogin", "args": [188, "alice", "h3"]}

@@ -117,6 +117,9 @@ public class Client : IGameService, IGameClient, IAsyncDisposable
     public bool AutoPass { get; set; }
     public bool KeepAutoPassSetting { get; set; } = false;
     public int Timer { get; set; } = -1;
+
+    /// <summary>What the current pause between phases waits for, from the server.</summary>
+    public PhaseControlInfo PhaseControl { get; private set; } = new();
     public bool MuteGlobalChat { get; set; } = false;
 
     public event Action RefreshHandler = null!;
@@ -181,6 +184,7 @@ public class Client : IGameService, IGameClient, IAsyncDisposable
         _connection.On<GlobalChatMessage>(nameof(HandleGlobalChatMessage), HandleGlobalChatMessage);
         _connection.On<GameSettings>(nameof(HandleUpdateSettings), HandleUpdateSettings);
         _connection.On<int>(nameof(HandleSetTimer), HandleSetTimer);
+        _connection.On<PhaseControlInfo>(nameof(HandlePhaseControl), HandlePhaseControl);
         _connection.On<string>(nameof(HandleSetSkin), HandleSetSkin);
         _connection.On<int>(nameof(HandleUndo), HandleUndo);
         _connection.On(nameof(HandleRestoreRecentlyUndone), HandleRestoreRecentlyUndone);
@@ -211,6 +215,7 @@ public class Client : IGameService, IGameClient, IAsyncDisposable
         GameId = null;
         Status = null;
         Actions = [];
+        PhaseControl = new();
         _ = Browser.StopSounds();
         Refresh(nameof(ExitGame));
     }
@@ -220,6 +225,13 @@ public class Client : IGameService, IGameClient, IAsyncDisposable
     public Task HandleSetTimer(int value)
     {
         Timer = value;
+        return Task.CompletedTask;
+    }
+
+    public Task HandlePhaseControl(PhaseControlInfo info)
+    {
+        PhaseControl = info;
+        Refresh(nameof(HandlePhaseControl));
         return Task.CompletedTask;
     }
 
@@ -741,6 +753,28 @@ public class Client : IGameService, IGameClient, IAsyncDisposable
         return CurrentSkin.Describe((await Invoke(nameof(IGameHub.RequestDismissRecentlyUndone), UserToken, GameId)).Error);
     }
 
+    public async Task<string> RequestPhaseDone() => await PhaseControlRequest(nameof(IGameHub.RequestPhaseDone));
+
+    public async Task<string> RequestPhaseHold() => await PhaseControlRequest(nameof(IGameHub.RequestPhaseHold));
+
+    public async Task<string> RequestPhaseRelease() => await PhaseControlRequest(nameof(IGameHub.RequestPhaseRelease));
+
+    public async Task<string> RequestPhaseContinue()
+    {
+        if (!LoggedIn) return "Not logged in";
+        if (!InGame) return "Not in game";
+
+        return CurrentSkin.Describe((await Invoke(nameof(IGameHub.RequestPhaseContinue), UserToken, GameId, Game.History.Count)).Error);
+    }
+
+    private async Task<string> PhaseControlRequest(string method)
+    {
+        if (!LoggedIn) return "Not logged in";
+        if (!InGame) return "Not in game";
+
+        return CurrentSkin.Describe((await Invoke(method, UserToken, GameId)).Error);
+    }
+
     public async Task<string> SetTimer(int value)
     {
         if (!LoggedIn) return "Not logged in";
@@ -916,6 +950,7 @@ public class Client : IGameService, IGameClient, IAsyncDisposable
             GameId = initInfo.GameId;
             Game = result;
             GameName = initInfo.GameName;
+            PhaseControl = initInfo.PhaseControl ?? new();
             await PerformPostEventTasks();
             RefreshPopovers();
         }

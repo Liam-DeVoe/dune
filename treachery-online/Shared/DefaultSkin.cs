@@ -307,7 +307,7 @@ public static class DefaultSkin
                     [51] = DEFAULT_ART_LOCATION + "/art/SemutaDrug.gif",
                     [52] = DEFAULT_ART_LOCATION + "/art/ResidualPoison.gif",
                     [53] = DEFAULT_ART_LOCATION + "/art/StoneBurner.gif",
-                    [54] = DEFAULT_ART_LOCATION + "/art/WhiteKarama.gif"
+                    [54] = DEFAULT_ART_LOCATION + "/art/RicheseKarama.gif"
                 }
             ).Concat(Game.ExpansionLevel < 3 ? Array.Empty<KeyValuePair<int, string>>() : new Dictionary<int, string>
                 {
@@ -734,284 +734,284 @@ public static class DefaultSkin
         FactionName_STR = new Dictionary<Faction, string>
             {
                 [Faction.None] = "None",
-                [Faction.Green] = "Atreides",
-                [Faction.Black] = "Harkonnen",
-                [Faction.Yellow] = "Fremen",
-                [Faction.Red] = "Emperor",
-                [Faction.Orange] = "Guild",
-                [Faction.Blue] = "Bene Gesserit"
+                [Faction.Atreides] = "Atreides",
+                [Faction.Harkonnen] = "Harkonnen",
+                [Faction.Fremen] = "Fremen",
+                [Faction.Emperor] = "Emperor",
+                [Faction.Guild] = "Guild",
+                [Faction.BeneGesserit] = "Bene Gesserit"
             }
             .Concat(Game.ExpansionLevel < 1 ? Array.Empty<KeyValuePair<Faction, string>>() : new Dictionary<Faction, string>
                 {
-                    [Faction.Grey] = "Ixian",
-                    [Faction.Purple] = "Tleilaxu"
+                    [Faction.Ixian] = "Ixian",
+                    [Faction.Tleilaxu] = "Tleilaxu"
                 }
             ).Concat(Game.ExpansionLevel < 2 ? Array.Empty<KeyValuePair<Faction, string>>() : new Dictionary<Faction, string>
                 {
-                    [Faction.Brown] = "CHOAM",
-                    [Faction.White] = "Richese"
+                    [Faction.Choam] = "CHOAM",
+                    [Faction.Richese] = "Richese"
                 }
             ).Concat(Game.ExpansionLevel < 3 ? Array.Empty<KeyValuePair<Faction, string>>() : new Dictionary<Faction, string>
                 {
-                    [Faction.Pink] = "Ecaz",
-                    [Faction.Cyan] = "Moritani"
+                    [Faction.Ecaz] = "Ecaz",
+                    [Faction.Moritani] = "Moritani"
                 }
             ).ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
 
         FactionImage_URL = new Dictionary<Faction, string>
             {
-                [Faction.Green] = DEFAULT_ART_LOCATION + "/art/faction1.svg",
-                [Faction.Black] = DEFAULT_ART_LOCATION + "/art/faction2.svg",
-                [Faction.Yellow] = DEFAULT_ART_LOCATION + "/art/faction3.svg",
-                [Faction.Red] = DEFAULT_ART_LOCATION + "/art/faction4.svg",
-                [Faction.Orange] = DEFAULT_ART_LOCATION + "/art/faction5.svg",
-                [Faction.Blue] = DEFAULT_ART_LOCATION + "/art/faction6.svg"
+                [Faction.Atreides] = DEFAULT_ART_LOCATION + "/art/faction1.svg",
+                [Faction.Harkonnen] = DEFAULT_ART_LOCATION + "/art/faction2.svg",
+                [Faction.Fremen] = DEFAULT_ART_LOCATION + "/art/faction3.svg",
+                [Faction.Emperor] = DEFAULT_ART_LOCATION + "/art/faction4.svg",
+                [Faction.Guild] = DEFAULT_ART_LOCATION + "/art/faction5.svg",
+                [Faction.BeneGesserit] = DEFAULT_ART_LOCATION + "/art/faction6.svg"
             }
             .Concat(Game.ExpansionLevel < 1 ? Array.Empty<KeyValuePair<Faction, string>>() : new Dictionary<Faction, string>
                 {
-                    [Faction.Grey] = DEFAULT_ART_LOCATION + "/art/faction7.svg",
-                    [Faction.Purple] = DEFAULT_ART_LOCATION + "/art/faction8.svg"
+                    [Faction.Ixian] = DEFAULT_ART_LOCATION + "/art/faction7.svg",
+                    [Faction.Tleilaxu] = DEFAULT_ART_LOCATION + "/art/faction8.svg"
                 }
             ).Concat(Game.ExpansionLevel < 2 ? Array.Empty<KeyValuePair<Faction, string>>() : new Dictionary<Faction, string>
                 {
-                    [Faction.Brown] = DEFAULT_ART_LOCATION + "/art/faction9.svg",
-                    [Faction.White] = DEFAULT_ART_LOCATION + "/art/faction10.svg"
+                    [Faction.Choam] = DEFAULT_ART_LOCATION + "/art/faction9.svg",
+                    [Faction.Richese] = DEFAULT_ART_LOCATION + "/art/faction10.svg"
                 }
             ).Concat(Game.ExpansionLevel < 3 ? Array.Empty<KeyValuePair<Faction, string>>() : new Dictionary<Faction, string>
                 {
-                    [Faction.Pink] = DEFAULT_ART_LOCATION + "/art/faction11.svg",
-                    [Faction.Cyan] = DEFAULT_ART_LOCATION + "/art/faction12.svg"
+                    [Faction.Ecaz] = DEFAULT_ART_LOCATION + "/art/faction11.svg",
+                    [Faction.Moritani] = DEFAULT_ART_LOCATION + "/art/faction12.svg"
                 }
             ).ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
 
         FactionTableImage_URL = new Dictionary<Faction, string>
             {
-                [Faction.Green] = DEFAULT_ART_LOCATION + "/art/faction1.svg",
-                [Faction.Black] = DEFAULT_ART_LOCATION + "/art/faction2.svg",
-                [Faction.Yellow] = DEFAULT_ART_LOCATION + "/art/faction3.svg",
-                [Faction.Red] = DEFAULT_ART_LOCATION + "/art/faction4.svg",
-                [Faction.Orange] = DEFAULT_ART_LOCATION + "/art/faction5.svg",
-                [Faction.Blue] = DEFAULT_ART_LOCATION + "/art/faction6.svg"
+                [Faction.Atreides] = DEFAULT_ART_LOCATION + "/art/faction1.svg",
+                [Faction.Harkonnen] = DEFAULT_ART_LOCATION + "/art/faction2.svg",
+                [Faction.Fremen] = DEFAULT_ART_LOCATION + "/art/faction3.svg",
+                [Faction.Emperor] = DEFAULT_ART_LOCATION + "/art/faction4.svg",
+                [Faction.Guild] = DEFAULT_ART_LOCATION + "/art/faction5.svg",
+                [Faction.BeneGesserit] = DEFAULT_ART_LOCATION + "/art/faction6.svg"
             }
             .Concat(Game.ExpansionLevel < 1 ? Array.Empty<KeyValuePair<Faction, string>>() : new Dictionary<Faction, string>
                 {
-                    [Faction.Grey] = DEFAULT_ART_LOCATION + "/art/faction7.svg",
-                    [Faction.Purple] = DEFAULT_ART_LOCATION + "/art/faction8.svg"
+                    [Faction.Ixian] = DEFAULT_ART_LOCATION + "/art/faction7.svg",
+                    [Faction.Tleilaxu] = DEFAULT_ART_LOCATION + "/art/faction8.svg"
                 }
             ).Concat(Game.ExpansionLevel < 2 ? Array.Empty<KeyValuePair<Faction, string>>() : new Dictionary<Faction, string>
                 {
-                    [Faction.Brown] = DEFAULT_ART_LOCATION + "/art/faction9.svg",
-                    [Faction.White] = DEFAULT_ART_LOCATION + "/art/faction10.svg"
+                    [Faction.Choam] = DEFAULT_ART_LOCATION + "/art/faction9.svg",
+                    [Faction.Richese] = DEFAULT_ART_LOCATION + "/art/faction10.svg"
                 }
             ).Concat(Game.ExpansionLevel < 3 ? Array.Empty<KeyValuePair<Faction, string>>() : new Dictionary<Faction, string>
                 {
-                    [Faction.Pink] = DEFAULT_ART_LOCATION + "/art/faction11.svg",
-                    [Faction.Cyan] = DEFAULT_ART_LOCATION + "/art/faction12.svg"
+                    [Faction.Ecaz] = DEFAULT_ART_LOCATION + "/art/faction11.svg",
+                    [Faction.Moritani] = DEFAULT_ART_LOCATION + "/art/faction12.svg"
                 }
             ).ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
 
         FactionFacedownImage_URL = new Dictionary<Faction, string>
             {
-                [Faction.Green] = DEFAULT_ART_LOCATION + "/art/faction1.svg",
-                [Faction.Black] = DEFAULT_ART_LOCATION + "/art/faction2.svg",
-                [Faction.Yellow] = DEFAULT_ART_LOCATION + "/art/faction3.svg",
-                [Faction.Red] = DEFAULT_ART_LOCATION + "/art/faction4.svg",
-                [Faction.Orange] = DEFAULT_ART_LOCATION + "/art/faction5.svg",
-                [Faction.Blue] = DEFAULT_ART_LOCATION + "/art/faction6.svg"
+                [Faction.Atreides] = DEFAULT_ART_LOCATION + "/art/faction1.svg",
+                [Faction.Harkonnen] = DEFAULT_ART_LOCATION + "/art/faction2.svg",
+                [Faction.Fremen] = DEFAULT_ART_LOCATION + "/art/faction3.svg",
+                [Faction.Emperor] = DEFAULT_ART_LOCATION + "/art/faction4.svg",
+                [Faction.Guild] = DEFAULT_ART_LOCATION + "/art/faction5.svg",
+                [Faction.BeneGesserit] = DEFAULT_ART_LOCATION + "/art/faction6.svg"
             }
             .Concat(Game.ExpansionLevel < 1 ? Array.Empty<KeyValuePair<Faction, string>>() : new Dictionary<Faction, string>
                 {
-                    [Faction.Grey] = DEFAULT_ART_LOCATION + "/art/faction7.svg",
-                    [Faction.Purple] = DEFAULT_ART_LOCATION + "/art/faction8.svg"
+                    [Faction.Ixian] = DEFAULT_ART_LOCATION + "/art/faction7.svg",
+                    [Faction.Tleilaxu] = DEFAULT_ART_LOCATION + "/art/faction8.svg"
                 }
             ).Concat(Game.ExpansionLevel < 2 ? Array.Empty<KeyValuePair<Faction, string>>() : new Dictionary<Faction, string>
                 {
-                    [Faction.Brown] = DEFAULT_ART_LOCATION + "/art/faction9.svg",
-                    [Faction.White] = DEFAULT_ART_LOCATION + "/art/faction10.svg"
+                    [Faction.Choam] = DEFAULT_ART_LOCATION + "/art/faction9.svg",
+                    [Faction.Richese] = DEFAULT_ART_LOCATION + "/art/faction10.svg"
                 }
             ).Concat(Game.ExpansionLevel < 3 ? Array.Empty<KeyValuePair<Faction, string>>() : new Dictionary<Faction, string>
                 {
-                    [Faction.Pink] = DEFAULT_ART_LOCATION + "/art/faction11.svg",
-                    [Faction.Cyan] = DEFAULT_ART_LOCATION + "/art/faction12.svg"
+                    [Faction.Ecaz] = DEFAULT_ART_LOCATION + "/art/faction11.svg",
+                    [Faction.Moritani] = DEFAULT_ART_LOCATION + "/art/faction12.svg"
                 }
             ).ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
 
         FactionForceImage_URL = new Dictionary<Faction, string>
             {
-                [Faction.Green] = DEFAULT_ART_LOCATION + "/art/faction1force.svg",
-                [Faction.Black] = DEFAULT_ART_LOCATION + "/art/faction2force.svg",
-                [Faction.Yellow] = DEFAULT_ART_LOCATION + "/art/faction3force.svg",
-                [Faction.Red] = DEFAULT_ART_LOCATION + "/art/faction4force.svg",
-                [Faction.Orange] = DEFAULT_ART_LOCATION + "/art/faction5force.svg",
-                [Faction.Blue] = DEFAULT_ART_LOCATION + "/art/faction6force.svg"
+                [Faction.Atreides] = DEFAULT_ART_LOCATION + "/art/faction1force.svg",
+                [Faction.Harkonnen] = DEFAULT_ART_LOCATION + "/art/faction2force.svg",
+                [Faction.Fremen] = DEFAULT_ART_LOCATION + "/art/faction3force.svg",
+                [Faction.Emperor] = DEFAULT_ART_LOCATION + "/art/faction4force.svg",
+                [Faction.Guild] = DEFAULT_ART_LOCATION + "/art/faction5force.svg",
+                [Faction.BeneGesserit] = DEFAULT_ART_LOCATION + "/art/faction6force.svg"
             }
             .Concat(Game.ExpansionLevel < 1 ? Array.Empty<KeyValuePair<Faction, string>>() : new Dictionary<Faction, string>
                 {
-                    [Faction.Grey] = DEFAULT_ART_LOCATION + "/art/faction7force.svg",
-                    [Faction.Purple] = DEFAULT_ART_LOCATION + "/art/faction8force.svg"
+                    [Faction.Ixian] = DEFAULT_ART_LOCATION + "/art/faction7force.svg",
+                    [Faction.Tleilaxu] = DEFAULT_ART_LOCATION + "/art/faction8force.svg"
                 }
             ).Concat(Game.ExpansionLevel < 2 ? Array.Empty<KeyValuePair<Faction, string>>() : new Dictionary<Faction, string>
                 {
-                    [Faction.Brown] = DEFAULT_ART_LOCATION + "/art/faction9force.svg",
-                    [Faction.White] = DEFAULT_ART_LOCATION + "/art/faction10force.svg"
+                    [Faction.Choam] = DEFAULT_ART_LOCATION + "/art/faction9force.svg",
+                    [Faction.Richese] = DEFAULT_ART_LOCATION + "/art/faction10force.svg"
                 }
             ).Concat(Game.ExpansionLevel < 3 ? Array.Empty<KeyValuePair<Faction, string>>() : new Dictionary<Faction, string>
                 {
-                    [Faction.Pink] = DEFAULT_ART_LOCATION + "/art/faction11force.svg",
-                    [Faction.Cyan] = DEFAULT_ART_LOCATION + "/art/faction12force.svg"
+                    [Faction.Ecaz] = DEFAULT_ART_LOCATION + "/art/faction11force.svg",
+                    [Faction.Moritani] = DEFAULT_ART_LOCATION + "/art/faction12force.svg"
                 }
             ).ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
 
         FactionSpecialForceImage_URL = new Dictionary<Faction, string>
             {
-                { Faction.Yellow, DEFAULT_ART_LOCATION + "/art/faction3specialforce.svg" },
-                { Faction.Red, DEFAULT_ART_LOCATION + "/art/faction4specialforce.svg" },
-                { Faction.Blue, DEFAULT_ART_LOCATION + "/art/faction6specialforce.svg" }
+                { Faction.Fremen, DEFAULT_ART_LOCATION + "/art/faction3specialforce.svg" },
+                { Faction.Emperor, DEFAULT_ART_LOCATION + "/art/faction4specialforce.svg" },
+                { Faction.BeneGesserit, DEFAULT_ART_LOCATION + "/art/faction6specialforce.svg" }
             }
             .Concat(Game.ExpansionLevel < 1 ? Array.Empty<KeyValuePair<Faction, string>>() : new Dictionary<Faction, string>
                 {
-                    { Faction.Grey, DEFAULT_ART_LOCATION + "/art/faction7specialforce.svg" }
+                    { Faction.Ixian, DEFAULT_ART_LOCATION + "/art/faction7specialforce.svg" }
                 }
             ).Concat(Game.ExpansionLevel < 2 ? Array.Empty<KeyValuePair<Faction, string>>() : new Dictionary<Faction, string>
                 {
-                    { Faction.White, DEFAULT_ART_LOCATION + "/art/faction10specialforce.svg" }
+                    { Faction.Richese, DEFAULT_ART_LOCATION + "/art/faction10specialforce.svg" }
                 }
             ).ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
 
         FactionColor = new Dictionary<Faction, string>
             {
                 [Faction.None] = "#646464",
-                [Faction.Green] = "#63842e",
-                [Faction.Black] = "#2c2c2c",
-                [Faction.Yellow] = "#d29422",
-                [Faction.Red] = "#b33715",
-                [Faction.Orange] = "#c85b20",
-                [Faction.Blue] = "#385884"
+                [Faction.Atreides] = "#63842e",
+                [Faction.Harkonnen] = "#2c2c2c",
+                [Faction.Fremen] = "#d29422",
+                [Faction.Emperor] = "#b33715",
+                [Faction.Guild] = "#c85b20",
+                [Faction.BeneGesserit] = "#385884"
             }
             .Concat(Game.ExpansionLevel < 1 ? Array.Empty<KeyValuePair<Faction, string>>() : new Dictionary<Faction, string>
                 {
-                    [Faction.Grey] = "#b0b079",
-                    [Faction.Purple] = "#602d8b"
+                    [Faction.Ixian] = "#b0b079",
+                    [Faction.Tleilaxu] = "#602d8b"
                 }
             ).Concat(Game.ExpansionLevel < 2 ? Array.Empty<KeyValuePair<Faction, string>>() : new Dictionary<Faction, string>
                 {
-                    [Faction.Brown] = "#582d1b",
-                    [Faction.White] = "#b3afa4"
+                    [Faction.Choam] = "#582d1b",
+                    [Faction.Richese] = "#b3afa4"
                 }
             ).Concat(Game.ExpansionLevel < 3 ? Array.Empty<KeyValuePair<Faction, string>>() : new Dictionary<Faction, string>
                 {
-                    [Faction.Pink] = "#a85f9c",
-                    [Faction.Cyan] = "#289caa"
+                    [Faction.Ecaz] = "#a85f9c",
+                    [Faction.Moritani] = "#289caa"
                 }
             ).ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
 
         ForceName_STR = new Dictionary<Faction, string>
             {
                 [Faction.None] = "-",
-                [Faction.Green] = "forces",
-                [Faction.Black] = "forces",
-                [Faction.Yellow] = "forces",
-                [Faction.Red] = "forces",
-                [Faction.Orange] = "forces",
-                [Faction.Blue] = "fighters"
+                [Faction.Atreides] = "forces",
+                [Faction.Harkonnen] = "forces",
+                [Faction.Fremen] = "forces",
+                [Faction.Emperor] = "forces",
+                [Faction.Guild] = "forces",
+                [Faction.BeneGesserit] = "fighters"
             }
             .Concat(Game.ExpansionLevel < 1 ? Array.Empty<KeyValuePair<Faction, string>>() : new Dictionary<Faction, string>
                 {
-                    [Faction.Grey] = "suboids",
-                    [Faction.Purple] = "forces"
+                    [Faction.Ixian] = "suboids",
+                    [Faction.Tleilaxu] = "forces"
                 }
             ).Concat(Game.ExpansionLevel < 2 ? Array.Empty<KeyValuePair<Faction, string>>() : new Dictionary<Faction, string>
                 {
-                    [Faction.Brown] = "forces",
-                    [Faction.White] = "forces"
+                    [Faction.Choam] = "forces",
+                    [Faction.Richese] = "forces"
                 }
             ).Concat(Game.ExpansionLevel < 3 ? Array.Empty<KeyValuePair<Faction, string>>() : new Dictionary<Faction, string>
                 {
-                    [Faction.Pink] = "forces",
-                    [Faction.Cyan] = "forces"
+                    [Faction.Ecaz] = "forces",
+                    [Faction.Moritani] = "forces"
                 }
             ).ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
 
         SpecialForceName_STR = new Dictionary<Faction, string>
             {
                 [Faction.None] = "-",
-                [Faction.Green] = "-",
-                [Faction.Black] = "-",
-                [Faction.Yellow] = "Fedaykin",
-                [Faction.Red] = "Sardaukar",
-                [Faction.Orange] = "-",
-                [Faction.Blue] = "advisors"
+                [Faction.Atreides] = "-",
+                [Faction.Harkonnen] = "-",
+                [Faction.Fremen] = "Fedaykin",
+                [Faction.Emperor] = "Sardaukar",
+                [Faction.Guild] = "-",
+                [Faction.BeneGesserit] = "advisors"
             }
             .Concat(Game.ExpansionLevel < 1 ? Array.Empty<KeyValuePair<Faction, string>>() : new Dictionary<Faction, string>
                 {
-                    [Faction.Grey] = "cyborgs",
-                    [Faction.Purple] = "-"
+                    [Faction.Ixian] = "cyborgs",
+                    [Faction.Tleilaxu] = "-"
                 }
             ).Concat(Game.ExpansionLevel < 2 ? Array.Empty<KeyValuePair<Faction, string>>() : new Dictionary<Faction, string>
                 {
-                    [Faction.Brown] = "-",
-                    [Faction.White] = "No-Field"
+                    [Faction.Choam] = "-",
+                    [Faction.Richese] = "No-Field"
                 }
             ).Concat(Game.ExpansionLevel < 3 ? Array.Empty<KeyValuePair<Faction, string>>() : new Dictionary<Faction, string>
                 {
-                    [Faction.Pink] = "-",
-                    [Faction.Cyan] = "-"
+                    [Faction.Ecaz] = "-",
+                    [Faction.Moritani] = "-"
                 }
             ).ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
 
         AmbassadorName_STR = Game.ExpansionLevel < 3 ? new() : new Dictionary<Ambassador, string>
         {
             [Ambassador.None] = "None",
-            [Ambassador.Green] = "Atreides",
-            [Ambassador.Black] = "Harkonnen",
-            [Ambassador.Yellow] = "Fremen",
-            [Ambassador.Red] = "Emperor",
-            [Ambassador.Orange] = "Guild",
-            [Ambassador.Blue] = "Bene Gesserit",
-            [Ambassador.Grey] = "Ixian",
-            [Ambassador.Purple] = "Tleilaxu",
-            [Ambassador.Brown] = "CHOAM",
-            [Ambassador.White] = "Richese",
-            [Ambassador.Pink] = "Ecaz",
-            [Ambassador.Cyan] = "Moritani"
+            [Ambassador.Atreides] = "Atreides",
+            [Ambassador.Harkonnen] = "Harkonnen",
+            [Ambassador.Fremen] = "Fremen",
+            [Ambassador.Emperor] = "Emperor",
+            [Ambassador.Guild] = "Guild",
+            [Ambassador.BeneGesserit] = "Bene Gesserit",
+            [Ambassador.Ixian] = "Ixian",
+            [Ambassador.Tleilaxu] = "Tleilaxu",
+            [Ambassador.Choam] = "CHOAM",
+            [Ambassador.Richese] = "Richese",
+            [Ambassador.Ecaz] = "Ecaz",
+            [Ambassador.Moritani] = "Moritani"
         },
 
         AmbassadorImage_URL = Game.ExpansionLevel < 3 ? new() : new Dictionary<Ambassador, string>
         {
-            [Ambassador.Green] = DEFAULT_ART_LOCATION + "/art/faction1ambassador.svg",
-            [Ambassador.Black] = DEFAULT_ART_LOCATION + "/art/faction2ambassador.svg",
-            [Ambassador.Yellow] = DEFAULT_ART_LOCATION + "/art/faction3ambassador.svg",
-            [Ambassador.Red] = DEFAULT_ART_LOCATION + "/art/faction4ambassador.svg",
-            [Ambassador.Orange] = DEFAULT_ART_LOCATION + "/art/faction5ambassador.svg",
-            [Ambassador.Blue] = DEFAULT_ART_LOCATION + "/art/faction6ambassador.svg",
-            [Ambassador.Grey] = DEFAULT_ART_LOCATION + "/art/faction7ambassador.svg",
-            [Ambassador.Purple] = DEFAULT_ART_LOCATION + "/art/faction8ambassador.svg",
+            [Ambassador.Atreides] = DEFAULT_ART_LOCATION + "/art/faction1ambassador.svg",
+            [Ambassador.Harkonnen] = DEFAULT_ART_LOCATION + "/art/faction2ambassador.svg",
+            [Ambassador.Fremen] = DEFAULT_ART_LOCATION + "/art/faction3ambassador.svg",
+            [Ambassador.Emperor] = DEFAULT_ART_LOCATION + "/art/faction4ambassador.svg",
+            [Ambassador.Guild] = DEFAULT_ART_LOCATION + "/art/faction5ambassador.svg",
+            [Ambassador.BeneGesserit] = DEFAULT_ART_LOCATION + "/art/faction6ambassador.svg",
+            [Ambassador.Ixian] = DEFAULT_ART_LOCATION + "/art/faction7ambassador.svg",
+            [Ambassador.Tleilaxu] = DEFAULT_ART_LOCATION + "/art/faction8ambassador.svg",
 
-            [Ambassador.Brown] = DEFAULT_ART_LOCATION + "/art/faction9ambassador.svg",
-            [Ambassador.White] = DEFAULT_ART_LOCATION + "/art/faction10ambassador.svg",
+            [Ambassador.Choam] = DEFAULT_ART_LOCATION + "/art/faction9ambassador.svg",
+            [Ambassador.Richese] = DEFAULT_ART_LOCATION + "/art/faction10ambassador.svg",
 
-            [Ambassador.Pink] = DEFAULT_ART_LOCATION + "/art/faction11ambassador.svg",
-            [Ambassador.Cyan] = DEFAULT_ART_LOCATION + "/art/faction12ambassador.svg"
+            [Ambassador.Ecaz] = DEFAULT_ART_LOCATION + "/art/faction11ambassador.svg",
+            [Ambassador.Moritani] = DEFAULT_ART_LOCATION + "/art/faction12ambassador.svg"
         },
 
         AmbassadorDescription_STR = Game.ExpansionLevel < 3 ? new() : new Dictionary<Ambassador, string>
         {
             [Ambassador.None] = "None",
 
-            [Ambassador.Green] = "Atreides - See visitor's hand",
-            [Ambassador.Black] = "Harkonnen - Look at a random Traitor Card the visiting faction holds",
-            [Ambassador.Yellow] = "Fremen - Move a group of your forces on the board to any territory (subject to storm and occupancy rules)",
-            [Ambassador.Red] = "Emperor - Gain 5 spice",
-            [Ambassador.Orange] = "Guild - Send up to 4 of your forces in reserves to any territory not in storm for free",
-            [Ambassador.Blue] = "Bene Gesserit - Trigger the effect of any Ambassador that was not part of your supply",
+            [Ambassador.Atreides] = "Atreides - See visitor's hand",
+            [Ambassador.Harkonnen] = "Harkonnen - Look at a random Traitor Card the visiting faction holds",
+            [Ambassador.Fremen] = "Fremen - Move a group of your forces on the board to any territory (subject to storm and occupancy rules)",
+            [Ambassador.Emperor] = "Emperor - Gain 5 spice",
+            [Ambassador.Guild] = "Guild - Send up to 4 of your forces in reserves to any territory not in storm for free",
+            [Ambassador.BeneGesserit] = "Bene Gesserit - Trigger the effect of any Ambassador that was not part of your supply",
 
-            [Ambassador.Grey] = "Ixian - Discard a Treachery Card and draw from the deck",
-            [Ambassador.Purple] = "Tleilaxu - Revive one of your leaders or up to 4 of your forces for free",
+            [Ambassador.Ixian] = "Ixian - Discard a Treachery Card and draw from the deck",
+            [Ambassador.Tleilaxu] = "Tleilaxu - Revive one of your leaders or up to 4 of your forces for free",
 
-            [Ambassador.Brown] = "CHOAM - Discard any of your Treachery Cards and gain 3 spice for each one",
-            [Ambassador.White] = "Richese - Pay 3 spice to the Bank for a Treachery Card",
+            [Ambassador.Choam] = "CHOAM - Discard any of your Treachery Cards and gain 3 spice for each one",
+            [Ambassador.Richese] = "Richese - Pay 3 spice to the Bank for a Treachery Card",
 
-            [Ambassador.Pink] = "Ecaz - Gain Vidal if he is not in the Tanks, captured, or a ghola until used in a battle, or form an alliance with the visiting faction (if neither of you are allied); they may take control of Vidal instead. This token returns to your available supply"
+            [Ambassador.Ecaz] = "Ecaz - Gain Vidal if he is not in the Tanks, captured, or a ghola until used in a battle, or form an alliance with the visiting faction (if neither of you are allied); they may take control of Vidal instead. This token returns to your available supply"
         },
 
         TechTokenName_STR = Game.ExpansionLevel < 1 ? new() : new Dictionary<TechToken, string>
@@ -1066,61 +1066,61 @@ public static class DefaultSkin
 
         HomeWorldImage_URL = new Dictionary<World, string>
         {
-            [World.Green] = DEFAULT_ART_LOCATION + "/art/faction1planet.svg",
-            [World.Black] = DEFAULT_ART_LOCATION + "/art/faction2planet.svg",
-            [World.Yellow] = DEFAULT_ART_LOCATION + "/art/faction3planet.svg",
-            [World.Red] = DEFAULT_ART_LOCATION + "/art/faction4planet.svg",
-            [World.RedStar] = DEFAULT_ART_LOCATION + "/art/faction4planet2.svg",
-            [World.Orange] = DEFAULT_ART_LOCATION + "/art/faction5planet.svg",
-            [World.Blue] = DEFAULT_ART_LOCATION + "/art/faction6planet.svg",
+            [World.Atreides] = DEFAULT_ART_LOCATION + "/art/faction1planet.svg",
+            [World.Harkonnen] = DEFAULT_ART_LOCATION + "/art/faction2planet.svg",
+            [World.Fremen] = DEFAULT_ART_LOCATION + "/art/faction3planet.svg",
+            [World.Emperor] = DEFAULT_ART_LOCATION + "/art/faction4planet.svg",
+            [World.SalusaSecundus] = DEFAULT_ART_LOCATION + "/art/faction4planet2.svg",
+            [World.Guild] = DEFAULT_ART_LOCATION + "/art/faction5planet.svg",
+            [World.BeneGesserit] = DEFAULT_ART_LOCATION + "/art/faction6planet.svg",
 
-            [World.Grey] = DEFAULT_ART_LOCATION + "/art/faction7planet.svg",
-            [World.Purple] = DEFAULT_ART_LOCATION + "/art/faction8planet.svg",
+            [World.Ixian] = DEFAULT_ART_LOCATION + "/art/faction7planet.svg",
+            [World.Tleilaxu] = DEFAULT_ART_LOCATION + "/art/faction8planet.svg",
 
-            [World.Brown] = DEFAULT_ART_LOCATION + "/art/faction9planet.svg",
-            [World.White] = DEFAULT_ART_LOCATION + "/art/faction10planet.svg",
+            [World.Choam] = DEFAULT_ART_LOCATION + "/art/faction9planet.svg",
+            [World.Richese] = DEFAULT_ART_LOCATION + "/art/faction10planet.svg",
 
-            [World.Pink] = DEFAULT_ART_LOCATION + "/art/faction11planet.svg",
-            [World.Cyan] = DEFAULT_ART_LOCATION + "/art/faction12planet.svg"
+            [World.Ecaz] = DEFAULT_ART_LOCATION + "/art/faction11planet.svg",
+            [World.Moritani] = DEFAULT_ART_LOCATION + "/art/faction12planet.svg"
         },
 
         HomeWorldCardImage_URL = Game.ExpansionLevel < 3 ? new() : new Dictionary<World, string>
         {
-            [World.Green] = DEFAULT_ART_LOCATION + "/art/CaladanCard.gif",
-            [World.Black] = DEFAULT_ART_LOCATION + "/art/GiediPrimeCard.gif",
-            [World.Yellow] = DEFAULT_ART_LOCATION + "/art/ArrakisCard.gif",
-            [World.Red] = DEFAULT_ART_LOCATION + "/art/KaitainCard.gif",
-            [World.RedStar] = DEFAULT_ART_LOCATION + "/art/SalusaSecundusCard.gif",
-            [World.Orange] = DEFAULT_ART_LOCATION + "/art/JunctionCard.gif",
-            [World.Blue] = DEFAULT_ART_LOCATION + "/art/WallachIXCard.gif",
+            [World.Atreides] = DEFAULT_ART_LOCATION + "/art/CaladanCard.gif",
+            [World.Harkonnen] = DEFAULT_ART_LOCATION + "/art/GiediPrimeCard.gif",
+            [World.Fremen] = DEFAULT_ART_LOCATION + "/art/ArrakisCard.gif",
+            [World.Emperor] = DEFAULT_ART_LOCATION + "/art/KaitainCard.gif",
+            [World.SalusaSecundus] = DEFAULT_ART_LOCATION + "/art/SalusaSecundusCard.gif",
+            [World.Guild] = DEFAULT_ART_LOCATION + "/art/JunctionCard.gif",
+            [World.BeneGesserit] = DEFAULT_ART_LOCATION + "/art/WallachIXCard.gif",
 
-            [World.Grey] = DEFAULT_ART_LOCATION + "/art/IxCard.gif",
-            [World.Purple] = DEFAULT_ART_LOCATION + "/art/TleilaxCard.gif",
+            [World.Ixian] = DEFAULT_ART_LOCATION + "/art/IxCard.gif",
+            [World.Tleilaxu] = DEFAULT_ART_LOCATION + "/art/TleilaxCard.gif",
 
-            [World.Brown] = DEFAULT_ART_LOCATION + "/art/TupileCard.gif",
-            [World.White] = DEFAULT_ART_LOCATION + "/art/RicheseCard.gif",
+            [World.Choam] = DEFAULT_ART_LOCATION + "/art/TupileCard.gif",
+            [World.Richese] = DEFAULT_ART_LOCATION + "/art/RicheseCard.gif",
 
-            [World.Pink] = DEFAULT_ART_LOCATION + "/art/EcazCard.gif",
-            [World.Cyan] = DEFAULT_ART_LOCATION + "/art/GrummanCard.gif"
+            [World.Ecaz] = DEFAULT_ART_LOCATION + "/art/EcazCard.gif",
+            [World.Moritani] = DEFAULT_ART_LOCATION + "/art/GrummanCard.gif"
         },
 
         NexusCardImage_URL = Game.ExpansionLevel < 3 ? new() : new Dictionary<Nexus, string>
         {
-            [Nexus.Green] = DEFAULT_ART_LOCATION + "/art/faction1nexus.gif",
-            [Nexus.Black] = DEFAULT_ART_LOCATION + "/art/faction2nexus.gif",
-            [Nexus.Yellow] = DEFAULT_ART_LOCATION + "/art/faction3nexus.gif",
-            [Nexus.Red] = DEFAULT_ART_LOCATION + "/art/faction4nexus.gif",
-            [Nexus.Orange] = DEFAULT_ART_LOCATION + "/art/faction5nexus.gif",
-            [Nexus.Blue] = DEFAULT_ART_LOCATION + "/art/faction6nexus.gif",
+            [Nexus.Atreides] = DEFAULT_ART_LOCATION + "/art/faction1nexus.gif",
+            [Nexus.Harkonnen] = DEFAULT_ART_LOCATION + "/art/faction2nexus.gif",
+            [Nexus.Fremen] = DEFAULT_ART_LOCATION + "/art/faction3nexus.gif",
+            [Nexus.Emperor] = DEFAULT_ART_LOCATION + "/art/faction4nexus.gif",
+            [Nexus.Guild] = DEFAULT_ART_LOCATION + "/art/faction5nexus.gif",
+            [Nexus.BeneGesserit] = DEFAULT_ART_LOCATION + "/art/faction6nexus.gif",
 
-            [Nexus.Grey] = DEFAULT_ART_LOCATION + "/art/faction7nexus.gif",
-            [Nexus.Purple] = DEFAULT_ART_LOCATION + "/art/faction8nexus.gif",
+            [Nexus.Ixian] = DEFAULT_ART_LOCATION + "/art/faction7nexus.gif",
+            [Nexus.Tleilaxu] = DEFAULT_ART_LOCATION + "/art/faction8nexus.gif",
 
-            [Nexus.Brown] = DEFAULT_ART_LOCATION + "/art/faction9nexus.gif",
-            [Nexus.White] = DEFAULT_ART_LOCATION + "/art/faction10nexus.gif",
+            [Nexus.Choam] = DEFAULT_ART_LOCATION + "/art/faction9nexus.gif",
+            [Nexus.Richese] = DEFAULT_ART_LOCATION + "/art/faction10nexus.gif",
 
-            [Nexus.Pink] = DEFAULT_ART_LOCATION + "/art/faction11nexus.gif",
-            [Nexus.Cyan] = DEFAULT_ART_LOCATION + "/art/faction12nexus.gif"
+            [Nexus.Ecaz] = DEFAULT_ART_LOCATION + "/art/faction11nexus.gif",
+            [Nexus.Moritani] = DEFAULT_ART_LOCATION + "/art/faction12nexus.gif"
         },
 
         TerrorTokenName_STR = Game.ExpansionLevel < 3 ? new() : new Dictionary<TerrorType, string>
@@ -1171,14 +1171,14 @@ public static class DefaultSkin
 
         DiscoveryTokenTypeName_STR = Game.ExpansionLevel < 3 ? new() : new Dictionary<DiscoveryTokenType, string>
         {
-            [DiscoveryTokenType.Yellow] = "Hiereg",
-            [DiscoveryTokenType.Orange] = "Smuggler"
+            [DiscoveryTokenType.Fremen] = "Hiereg",
+            [DiscoveryTokenType.Guild] = "Smuggler"
         },
 
         DiscoveryTokenTypeImage_URL = Game.ExpansionLevel < 3 ? new() : new Dictionary<DiscoveryTokenType, string>
         {
-            [DiscoveryTokenType.Yellow] = "/art/discoverytype1.png",
-            [DiscoveryTokenType.Orange] = "/art/discoverytype2.png"
+            [DiscoveryTokenType.Fremen] = "/art/discoverytype1.png",
+            [DiscoveryTokenType.Guild] = "/art/discoverytype2.png"
         },
 
         DiscoveryTokenImage_URL = Game.ExpansionLevel < 3 ? new() : new Dictionary<DiscoveryToken, string>

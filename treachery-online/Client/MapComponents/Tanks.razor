@@ -81,7 +81,7 @@
             y += Spacing * leaderDiameter;
         }
 
-        if (p.Faction == Faction.Green && !Client.Game.MessiahIsAlive)
+        if (p.Faction == Faction.Atreides && !Client.Game.MessiahIsAlive)
         {
             <MapImage X="@(x)" Y="@(y)" Diameter="@(0.5f * leaderDiameter)"
                    Src="@Client.CurrentSkin.Messiah_URL"
@@ -122,7 +122,7 @@
     }
 
     // A face-down leader's identity is known only to its owner and to Tleilaxu.
-    private bool MayIdentify(Leader l) => Player != null && (Player.Is(l.Faction) || Player.Is(Faction.Purple));
+    private bool MayIdentify(Leader l) => Player != null && (Player.Is(l.Faction) || Player.Is(Faction.Tleilaxu));
 
     // The popover: one row per faction with anything in the tanks. The faction chip, its forces and
     // special forces as token and count, and its dead leaders in order of death.
@@ -138,7 +138,7 @@
                 .OrderBy(l => Game.LeaderState[l].TimeOfDeath)
                 .ToArray();
 
-            var messiahDead = p.Faction == Faction.Green && !Game.MessiahIsAlive;
+            var messiahDead = p.Faction == Faction.Atreides && !Game.MessiahIsAlive;
 
             if (p.ForcesKilled == 0 && p.SpecialForcesKilled == 0 && corpses.Length == 0 && !messiahDead) continue;
 
@@ -157,7 +157,7 @@
             if (p.SpecialForcesKilled > 0)
             {
                 // As on the map, the number of No-Field tokens stays hidden.
-                var amount = p.Faction == Faction.White ? "" : $"<b>{p.SpecialForcesKilled}</b>";
+                var amount = p.Faction == Faction.Richese ? "" : $"<b>{p.SpecialForcesKilled}</b>";
                 rows.Append($"<span class='count'>{Support.ForceTokenHtml(skin, p.Faction, true, 28, Encode(skin.Describe(p.SpecialForce)))}{amount}</span>");
             }
             rows.Append("</td>");
@@ -175,7 +175,7 @@
                 }
                 else
                 {
-                    rows.Append($"<img src='{skin.GetFactionFaceDownImageUrl(p.Faction)}' title='Face down' alt=''/>");
+                    rows.Append($"<img class='faction-back' src='{skin.GetFactionFaceDownImageUrl(p.Faction)}' title='Face down' alt=''/>");
                 }
             }
             if (messiahDead)

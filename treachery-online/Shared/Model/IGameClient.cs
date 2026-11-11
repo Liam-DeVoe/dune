@@ -17,6 +17,7 @@ public interface IGameClient
     Task HandleChatMessage(GameChatMessage gameChatMessage);
     Task HandleGlobalChatMessage(GlobalChatMessage message);
     Task HandleSetTimer(int value);
+    Task HandlePhaseControl(PhaseControlInfo info);
     Task HandleSetSkin(string skin);
     Task HandleUndo(int untilEventNr);
     Task HandleRestoreRecentlyUndone();

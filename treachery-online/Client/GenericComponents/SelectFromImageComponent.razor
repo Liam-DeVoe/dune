@@ -18,7 +18,7 @@
     @foreach (var valueToShow in Values)
     {
         <Image Shown=@valueToShow Game=Game
-               OnClick="@(_ => Click(valueToShow))"
+               OnClick="@(e => Click(valueToShow, e as MouseEventArgs))"
                Darkened="@DetermineDarkened(valueToShow)"
                Pointer
                Width="@ImageWidth" 
@@ -94,11 +94,18 @@
         await Notify();
     }
 
-    private async Task Click(T item)
+    private async Task Click(T item, MouseEventArgs? e = null)
     {
         if (!Disabled)
         {
-            if (Selected == null)
+            // In a multi-select row, shift-click picks only the clicked value.
+            if (Selected != null && e?.ShiftKey == true)
+            {
+                Selected.Clear();
+                Selected.Add(item);
+                await Notify();
+            }
+            else if (Selected == null)
             {
                 if (Equals(Value, item))
                 {

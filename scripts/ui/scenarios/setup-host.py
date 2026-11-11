@@ -5,7 +5,7 @@ AREA = "map-ux"
 
 def run(r):
     # The host loaded the game and takes the seat of the faction being set up, the Emperor.
-    with r.game("setup-host", "red") as g:
+    with r.game("setup-host", "emperor") as g:
         g.shot("setup-host-1-start")
         if r.after:
             g.click("Tuek's Sietch")

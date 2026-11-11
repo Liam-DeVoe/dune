@@ -11,8 +11,8 @@ public sealed class MentatLogTests
     public void BribesAreRowsOfFactionAndAmount()
     {
         var html = Render(
-            Message.Express(Faction.Green, " add ", Payment.Of(3), " from bribes to their reserves").WithLog(new BribesCollected(Faction.Green, 3)),
-            Message.Express(Faction.Orange, " add ", Payment.Of(5), " from bribes to their reserves").WithLog(new BribesCollected(Faction.Orange, 5)));
+            Message.Express(Faction.Atreides, " add ", Payment.Of(3), " from bribes to their reserves").WithLog(new BribesCollected(Faction.Atreides, 3)),
+            Message.Express(Faction.Guild, " add ", Payment.Of(5), " from bribes to their reserves").WithLog(new BribesCollected(Faction.Guild, 5)));
 
         Assert.AreEqual("Bribes collected", html.Find(".log-label").TextContent.Trim());
         var cells = html.Find(".log-cols").Children;
@@ -25,9 +25,9 @@ public sealed class MentatLogTests
     public void GameEndIsOneBlockWithWinnersAndReason()
     {
         var html = Render(
-            Message.Express(Faction.Black, " have enough victory points to win the game").WithLog(new WinReason(WinMethod.Strongholds)),
-            Message.Express("The game has ended.").WithLog(new GameEnded([Faction.Black])),
-            Message.Express(Faction.Black, " win!").WithLog(new GameWinner(Faction.Black)));
+            Message.Express(Faction.Harkonnen, " have enough victory points to win the game").WithLog(new WinReason(WinMethod.Strongholds)),
+            Message.Express("The game has ended.").WithLog(new GameEnded([Faction.Harkonnen])),
+            Message.Express(Faction.Harkonnen, " win!").WithLog(new GameWinner(Faction.Harkonnen)));
 
         var block = html.Find(".mentat-result");
         Assert.AreEqual("The game has ended.", block.QuerySelector(".title")!.TextContent.Trim());
@@ -40,10 +40,10 @@ public sealed class MentatLogTests
     public void PredictionIsTheReasonAndTheEarlierReasonStaysAPlainLine()
     {
         var html = Render(
-            Message.Express(Faction.Red, " and ", Faction.Orange, " have enough victory points to win the game").WithLog(new WinReason(WinMethod.Strongholds)),
-            Message.Express(Faction.Blue, " predicted ", Faction.Red, " victory in turn ", 6, "! They had everything planned...").WithLog(new WinReason(WinMethod.Prediction)),
-            Message.Express("The game has ended.").WithLog(new GameEnded([Faction.Blue])),
-            Message.Express(Faction.Blue, " win!").WithLog(new GameWinner(Faction.Blue)));
+            Message.Express(Faction.Emperor, " and ", Faction.Guild, " have enough victory points to win the game").WithLog(new WinReason(WinMethod.Strongholds)),
+            Message.Express(Faction.BeneGesserit, " predicted ", Faction.Emperor, " victory in turn ", 6, "! They had everything planned...").WithLog(new WinReason(WinMethod.Prediction)),
+            Message.Express("The game has ended.").WithLog(new GameEnded([Faction.BeneGesserit])),
+            Message.Express(Faction.BeneGesserit, " win!").WithLog(new GameWinner(Faction.BeneGesserit)));
 
         Assert.Contains("predicted", html.Find(".mentat-result .reason").TextContent);
         var plain = html.FindAll(".plain");

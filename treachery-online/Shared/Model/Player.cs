@@ -87,7 +87,7 @@ public class Player(Game game, Faction faction = Faction.None) : ICloneable
 
     public List<TechToken> TechTokens { get; private set; } = [];
 
-    public bool NoFieldIsActive => Faction == Faction.White && ForcesInLocations.Any(locationWithForces => locationWithForces.Value.AmountOfSpecialForces > 0);
+    public bool NoFieldIsActive => Faction == Faction.Richese && ForcesInLocations.Any(locationWithForces => locationWithForces.Value.AmountOfSpecialForces > 0);
 
     public Leader? MostRecentlyRevivedLeader { get; set; }
 
@@ -129,7 +129,7 @@ public class Player(Game game, Faction faction = Faction.None) : ICloneable
         var result = GetAndCreateIfNeeded(location);
         result.ChangeSpecialForces(nrOfForces);
         if (result.TotalAmountOfForces == 0) ForcesInLocations.Remove(location);
-        CheckIfRedStarThresholdWasPassed();
+        CheckIfSalusaSecundusThresholdWasPassed();
     }
 
     public void AddForces(Location location, int nrOfForces, bool fromReserves)
@@ -164,25 +164,25 @@ public class Player(Game game, Faction faction = Faction.None) : ICloneable
         if (sourceWorld != null) ChangeForces(sourceWorld, nrOfForces);
     }
 
-    private bool RedStarHomeworldIsOnLowThreshold { get; set; }
-    private void CheckIfRedStarThresholdWasPassed()
+    private bool SalusaSecundusHomeworldIsOnLowThreshold { get; set; }
+    private void CheckIfSalusaSecundusThresholdWasPassed()
     {
-        if (Faction == Faction.Red && Game.Applicable(Rule.RedSpecialForces))
+        if (Faction == Faction.Emperor && Game.Applicable(Rule.EmperorSpecialForces))
         {
-            var homeWorld = HomeWorlds.FirstOrDefault(hw => hw.World == World.RedStar);
+            var homeWorld = HomeWorlds.FirstOrDefault(hw => hw.World == World.SalusaSecundus);
 
             if (homeWorld == null)
                 return;
             
             var hasLessThanThreshold = Game.Version <= 163 ? AnyForcesIn(homeWorld) < homeWorld.Threshold : SpecialForcesIn(homeWorld) < homeWorld.Threshold;
 
-            if (hasLessThanThreshold && !RedStarHomeworldIsOnLowThreshold)
+            if (hasLessThanThreshold && !SalusaSecundusHomeworldIsOnLowThreshold)
             {
-                RedStarHomeworldIsOnLowThreshold = true;
+                SalusaSecundusHomeworldIsOnLowThreshold = true;
             }
-            else if (!hasLessThanThreshold && RedStarHomeworldIsOnLowThreshold)
+            else if (!hasLessThanThreshold && SalusaSecundusHomeworldIsOnLowThreshold)
             {
-                RedStarHomeworldIsOnLowThreshold = false;
+                SalusaSecundusHomeworldIsOnLowThreshold = false;
             }
         }
     }
@@ -241,12 +241,12 @@ public class Player(Game game, Faction faction = Faction.None) : ICloneable
 
         AddForcesToReserves(battalion.AmountOfForces);
 
-        if (Faction == Faction.Blue)
+        if (Faction == Faction.BeneGesserit)
             AddForcesToReserves(battalion.AmountOfSpecialForces);
-        else if (Faction != Faction.White) AddSpecialForcesToReserves(battalion.AmountOfSpecialForces);
+        else if (Faction != Faction.Richese) AddSpecialForcesToReserves(battalion.AmountOfSpecialForces);
 
         ForcesInLocations.Remove(location);
-        CheckIfRedStarThresholdWasPassed();
+        CheckIfSalusaSecundusThresholdWasPassed();
     }
 
     public void ForcesToReserves(Location location, int amount)
@@ -257,9 +257,9 @@ public class Player(Game game, Faction faction = Faction.None) : ICloneable
 
     public void SpecialForcesToReserves(Location location, int amount)
     {
-        if (Faction == Faction.Blue)
+        if (Faction == Faction.BeneGesserit)
             AddForcesToReserves(amount);
-        else if (Faction != Faction.White) AddSpecialForcesToReserves(amount);
+        else if (Faction != Faction.Richese) AddSpecialForcesToReserves(amount);
 
         ChangeSpecialForces(location, -amount);
     }
@@ -276,9 +276,9 @@ public class Player(Game game, Faction faction = Faction.None) : ICloneable
                 {
                     var toRemoveInThisLocation = Math.Min(forcesIn, toRemoveInTotal);
 
-                    if (special && Faction != Faction.Blue)
+                    if (special && Faction != Faction.BeneGesserit)
                         AddSpecialForcesToReserves(toRemoveInTotal);
-                    else if (!special || Faction != Faction.White) AddForcesToReserves(toRemoveInTotal);
+                    else if (!special || Faction != Faction.Richese) AddForcesToReserves(toRemoveInTotal);
 
                     if (special)
                         ChangeSpecialForces(l, -toRemoveInTotal);
@@ -306,13 +306,13 @@ public class Player(Game game, Faction faction = Faction.None) : ICloneable
             ForcesKilled += killCount;
 
             var specialKillCount = battalion.AmountOfSpecialForces;
-            if (Faction == Faction.Blue)
+            if (Faction == Faction.BeneGesserit)
                 ForcesKilled += specialKillCount;
             else
                 SpecialForcesKilled += specialKillCount;
 
             ForcesInLocations.Remove(location);
-            CheckIfRedStarThresholdWasPassed();
+            CheckIfSalusaSecundusThresholdWasPassed();
 
             if (inBattle) TotalForcesKilledInBattle += killCount + specialKillCount;
 
@@ -334,7 +334,7 @@ public class Player(Game game, Faction faction = Faction.None) : ICloneable
             
         ForcesKilled += amountOfForces;
 
-        if (Faction == Faction.Blue)
+        if (Faction == Faction.BeneGesserit)
             ForcesKilled += amountOfSpecialForces;
         else
             SpecialForcesKilled += amountOfSpecialForces;
@@ -388,7 +388,7 @@ public class Player(Game game, Faction faction = Faction.None) : ICloneable
     
     public void ShipSpecialForces(Location to, int amount)
     {
-        if (Faction is Faction.White)
+        if (Faction is Faction.Richese)
         {
             ChangeSpecialForces(to, amount);
         }
@@ -400,7 +400,7 @@ public class Player(Game game, Faction faction = Faction.None) : ICloneable
     
     public void ShipSpecialForces(Location to, Homeworld from, int amount)
     {
-        if (Faction is Faction.White)
+        if (Faction is Faction.Richese)
         {
             ChangeSpecialForces(to, amount);
         }
@@ -430,7 +430,7 @@ public class Player(Game game, Faction faction = Faction.None) : ICloneable
 
     public void FlipForces(Location l, bool asAdvisors)
     {
-        if (Faction == Faction.Blue)
+        if (Faction == Faction.BeneGesserit)
         {
             if (asAdvisors)
             {
@@ -454,13 +454,13 @@ public class Player(Game game, Faction faction = Faction.None) : ICloneable
 
     public int OccupyingForcesIn(Location l)
     {
-        return ForcesIn(l) + (Faction == Faction.Blue ? 0 : SpecialForcesIn(l));
+        return ForcesIn(l) + (Faction == Faction.BeneGesserit ? 0 : SpecialForcesIn(l));
     }
 
     public bool Occupies(Location? l)
     {
         return l is not null && (OccupyingForcesIn(l) > 0 
-                                 || Game.Version >= 164 && Ally is Faction.Pink && OccupyingForcesIn(l) > 0 && AlliedPlayer?.OccupyingForcesIn(l) > 0);
+                                 || Game.Version >= 164 && Ally is Faction.Ecaz && OccupyingForcesIn(l) > 0 && AlliedPlayer?.OccupyingForcesIn(l) > 0);
     }
 
     public bool Occupies(Territory? t)
@@ -498,18 +498,18 @@ public class Player(Game game, Faction faction = Faction.None) : ICloneable
         {
             return Faction switch
             {
-                Faction.Green => FactionForce.Green,
-                Faction.Black => FactionForce.Black,
-                Faction.Yellow => FactionForce.Yellow,
-                Faction.Red => FactionForce.Red,
-                Faction.Orange => FactionForce.Orange,
-                Faction.Blue => FactionForce.Blue,
-                Faction.Grey => FactionForce.Grey,
-                Faction.Purple => FactionForce.Purple,
-                Faction.Brown => FactionForce.Brown,
-                Faction.White => FactionForce.White,
-                Faction.Pink => FactionForce.Pink,
-                Faction.Cyan => FactionForce.Cyan,
+                Faction.Atreides => FactionForce.Atreides,
+                Faction.Harkonnen => FactionForce.Harkonnen,
+                Faction.Fremen => FactionForce.Fremen,
+                Faction.Emperor => FactionForce.Emperor,
+                Faction.Guild => FactionForce.Guild,
+                Faction.BeneGesserit => FactionForce.BeneGesserit,
+                Faction.Ixian => FactionForce.Ixian,
+                Faction.Tleilaxu => FactionForce.Tleilaxu,
+                Faction.Choam => FactionForce.Choam,
+                Faction.Richese => FactionForce.Richese,
+                Faction.Ecaz => FactionForce.Ecaz,
+                Faction.Moritani => FactionForce.Moritani,
                 _ => FactionForce.None
             };
         }
@@ -521,19 +521,19 @@ public class Player(Game game, Faction faction = Faction.None) : ICloneable
         {
             return Faction switch
             {
-                Faction.Red => FactionSpecialForce.Red,
-                Faction.Yellow => FactionSpecialForce.Yellow,
-                Faction.Blue => FactionSpecialForce.Blue,
-                Faction.Grey => FactionSpecialForce.Grey,
-                Faction.White => FactionSpecialForce.White,
+                Faction.Emperor => FactionSpecialForce.Emperor,
+                Faction.Fremen => FactionSpecialForce.Fremen,
+                Faction.BeneGesserit => FactionSpecialForce.BeneGesserit,
+                Faction.Ixian => FactionSpecialForce.Ixian,
+                Faction.Richese => FactionSpecialForce.Richese,
                 _ => FactionSpecialForce.None
             };
         }
     }
     public bool HasSpecialForces =>
-        (Game.Applicable(Rule.YellowSpecialForces) && Is(Faction.Yellow)) ||
-        (Game.Applicable(Rule.RedSpecialForces) && Is(Faction.Red)) ||
-        Is(Faction.Grey);
+        (Game.Applicable(Rule.FremenSpecialForces) && Is(Faction.Fremen)) ||
+        (Game.Applicable(Rule.EmperorSpecialForces) && Is(Faction.Emperor)) ||
+        Is(Faction.Ixian);
 
     #endregion Forces
 
@@ -574,14 +574,14 @@ public class Player(Game game, Faction faction = Faction.None) : ICloneable
     {
         get
         {
-            var occupierOfBrownHomeworld = Game.OccupierOf(World.Brown);
-            var occupationBonus = occupierOfBrownHomeworld != null && (occupierOfBrownHomeworld == this || occupierOfBrownHomeworld.Faction == Ally) ? 1 : 0;
-            var atomicsPenalty = Game.AtomicsAftermath != null && (Faction == Faction.Cyan || (Game.Version >= 158 && Ally == Faction.Cyan)) ? 1 : 0;
+            var occupierOfChoamHomeworld = Game.OccupierOf(World.Choam);
+            var occupationBonus = occupierOfChoamHomeworld != null && (occupierOfChoamHomeworld == this || occupierOfChoamHomeworld.Faction == Ally) ? 1 : 0;
+            var atomicsPenalty = Game.AtomicsAftermath != null && (Faction == Faction.Moritani || (Game.Version >= 158 && Ally == Faction.Moritani)) ? 1 : 0;
 
             var amount = Faction switch
             {
-                Faction.Black => 8,
-                Faction.Brown => 5,
+                Faction.Harkonnen => 8,
+                Faction.Choam => 5,
                 _ => 4
             };
 
@@ -590,15 +590,15 @@ public class Player(Game game, Faction faction = Faction.None) : ICloneable
     }
     
     public bool HasNoFieldIn(Territory territory) 
-        => Faction == Faction.White && SpecialForcesIn(territory) > 0;
+        => Faction == Faction.Richese && SpecialForcesIn(territory) > 0;
 
     public bool HasRoomForCards => TreacheryCards.Count < MaximumNumberOfCards;
 
     public bool HandSizeExceeded => TreacheryCards.Count > MaximumNumberOfCards;
 
-    public int NumberOfTraitors => Faction == Faction.Black ? 4 : 1;
+    public int NumberOfTraitors => Faction == Faction.Harkonnen ? 4 : 1;
 
-    public int NumberOfFaceDancers => Faction == Faction.Purple ? 3 : 0;
+    public int NumberOfFaceDancers => Faction == Faction.Tleilaxu ? 3 : 0;
     
     public Dictionary<Location, Battalion> BattalionsIn(Territory territory)
     {
@@ -623,8 +623,8 @@ public class Player(Game game, Faction faction = Faction.None) : ICloneable
     {
         Leaders = Faction switch
         {
-            Faction.Brown => LeaderManager.GetLeaders(Faction.Brown).Where(l => g.Applicable(Rule.BrownAuditor) || l.HeroType != HeroType.Auditor).ToList(),
-            Faction.Pink => LeaderManager.GetLeaders(Faction.Pink).Where(l => l.HeroType != HeroType.Vidal).ToList(),
+            Faction.Choam => LeaderManager.GetLeaders(Faction.Choam).Where(l => g.Applicable(Rule.ChoamAuditor) || l.HeroType != HeroType.Auditor).ToList(),
+            Faction.Ecaz => LeaderManager.GetLeaders(Faction.Ecaz).Where(l => l.HeroType != HeroType.Vidal).ToList(),
             _ => LeaderManager.GetLeaders(Faction).ToList()
         };
     }
@@ -635,7 +635,7 @@ public class Player(Game game, Faction faction = Faction.None) : ICloneable
 
     public IEnumerable<IHero> UnrevealedFaceDancers => FaceDancers.Where(f => !RevealedFaceDancers.Contains(f));
 
-    public bool MessiahAvailable => Game.Applicable(Rule.GreenMessiah) && Is(Faction.Green) && TotalForcesKilledInBattle >= 7 && Game.IsAlive(LeaderManager.Messiah);
+    public bool MessiahAvailable => Game.Applicable(Rule.AtreidesMessiah) && Is(Faction.Atreides) && TotalForcesKilledInBattle >= 7 && Game.IsAlive(LeaderManager.Messiah);
     public bool IsBot => Game.IsBot(this);
     public bool AllyIsBot => HasAlly && Game.IsBot(AlliedPlayer);
     public Homeworld PrimaryHomeworld => HomeWorlds.First();
@@ -647,7 +647,7 @@ public class Player(Game game, Faction faction = Faction.None) : ICloneable
         if (initialNormalForces > 0) AddForces(world, initialNormalForces, false);
         if (initialSpecialForces > 0) AddSpecialForces(world, initialSpecialForces, false);
 
-        RedStarHomeworldIsOnLowThreshold = world.World == World.RedStar && initialSpecialForces < world.Threshold;
+        SalusaSecundusHomeworldIsOnLowThreshold = world.World == World.SalusaSecundus && initialSpecialForces < world.Threshold;
 
         HomeWorlds.Add(world);
     }
@@ -661,7 +661,7 @@ public class Player(Game game, Faction faction = Faction.None) : ICloneable
         if (homeworld == null)
             return false;
 
-        if (homeworld.World == World.RedStar) return !RedStarHomeworldIsOnLowThreshold;
+        if (homeworld.World == World.SalusaSecundus) return !SalusaSecundusHomeworldIsOnLowThreshold;
 
         return AnyForcesIn(homeworld) >= homeworld.Threshold;
     }
@@ -681,7 +681,7 @@ public class Player(Game game, Faction faction = Faction.None) : ICloneable
         if (homeworld == null)
             return false;
 
-        if (homeworld.World == World.RedStar) return RedStarHomeworldIsOnLowThreshold;
+        if (homeworld.World == World.SalusaSecundus) return SalusaSecundusHomeworldIsOnLowThreshold;
 
         return AnyForcesIn(homeworld) < homeworld.Threshold;
     }

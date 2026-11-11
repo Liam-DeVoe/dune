@@ -19,9 +19,9 @@
         Amount = Amount, 
         KarmaBid = false, 
         KarmaCard = KarmaCard, 
-        UsesRedSecretAlly = UseRedSecretAlly,
+        UsesEmperorSecretAlly = UseEmperorSecretAlly,
         AllyContributionAmount = AllyContributionAmount, 
-        RedContributionAmount = RedContributionAmount };
+        EmperorContributionAmount = EmperorContributionAmount };
 
     protected override Bid OtherResult => new(Game, Faction) { Passed = false, KarmaBid = true, KarmaCard = KarmaCard };
 
@@ -31,7 +31,7 @@
 
     protected override bool CanUseKarma => Bid.CanKarma(Game, Player);
 
-    protected override bool CanUseRedSecretAlly => Bid.MayUseRedSecretAlly(Game, Player);
+    protected override bool CanUseEmperorSecretAlly => Bid.MayUseEmperorSecretAlly(Game, Player);
 
     protected override int MaxAllyBidAmount => Bid.ValidMaxAllyAmount(Game, Player);
 
@@ -47,7 +47,7 @@
                 return string.Format("Card {0} of {1}", Game.CardNumber, Game.NumberOfCardsOnRegularAuction);
             }
 
-            return $"{Client.CurrentSkin.FactionChipHtml(Faction.White, Client.Faction == Faction.White)} Card ({Client.CurrentSkin.Describe(Game.CurrentAuctionType)})";
+            return $"{Client.CurrentSkin.FactionChipHtml(Faction.Richese, Client.Faction == Faction.Richese)} Card ({Client.CurrentSkin.Describe(Game.CurrentAuctionType)})";
         }
     }
 }

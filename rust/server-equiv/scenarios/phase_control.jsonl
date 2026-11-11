@@ -1,0 +1,35 @@
+{"scenario":"phase_control","start":"2026-03-02T10:00:00+02:00"}
+{"op":"connect","conn":1}
+{"op":"call","conn":1,"method":"RequestCreateUser","args":["alice","hash-alice","alice@example.com","Alice"],"as":"a"}
+{"op":"connect","conn":2}
+{"op":"call","conn":2,"method":"RequestCreateUser","args":["bobby","hash-bobby","bob@example.com","Bobby"],"as":"b"}
+{"op":"connect","conn":3}
+{"op":"call","conn":3,"method":"RequestCreateUser","args":["carol","hash-carol",null,"Carol"],"as":"c"}
+{"op":"call","conn":1,"method":"RequestCreateGame","args":["Game","${a.Token}","","",""],"as":"g"}
+{"op":"call","conn":2,"method":"RequestJoinGame","args":["${b.Token}","${g.GameId}","",-1]}
+{"op":"call","conn":3,"method":"RequestObserveGame","args":["${c.Token}","${g.GameId}",""]}
+{"op":"call","conn":1,"method":"SubmitEvent","args":["nobody","${g.GameId}",{"$type":"EndPhase","Initiator":0}]}
+{"op":"call","conn":1,"method":"SubmitEvent","args":["${a.Token}","nope",{"$type":"EndPhase","Initiator":0}]}
+{"op":"call","conn":1,"method":"SubmitEvent","args":["${a.Token}","${g.GameId}",{"$type":"EndPhase","Initiator":0}],"note":"invalid in AwaitingPlayers"}
+{"op":"call","conn":2,"method":"SubmitEvent","args":["${b.Token}","${g.GameId}",{"$type":"EstablishPlayers","Settings":{"NumberOfPlayers":2,"MaximumTurns":10,"InitialRules":[80,35,603,1015,106,20,10,70,97,96,1010,85,25,65,212,109,110,45,113,30,700,60,108,15,105,107,50],"AllowedFactionsInPlay":[70,90,10,80,120,50,100,40,20,110,30],"AutoOpenEmptySeats":true,"AsyncPlay":false,"AsyncPlayMessageIntervalMinutes":0},"Seed":1275318553,"MaximumNumberOfPlayers":2,"MaximumTurns":10,"ApplicableRules":[80,35,603,1015,106,20,10,70,97,96,1010,85,25,65,212,109,110,45,113,30,700,60,108,15,105,107,50],"_players":"","_factionsInPlay":"Ixian,Choam,Fremen,Tleilaxu,Moritani,Guild,Richese,Emperor,Atreides,Ecaz,Harkonnen","Initiator":0,"Time":"2024-01-01T12:01:53+00:00"}],"note":"EstablishPlayers by a non-host"}
+{"op":"call","conn":3,"method":"RequestPhaseDone","args":["${c.Token}","${g.GameId}"],"note":"observers cannot pass"}
+{"op":"call","conn":1,"method":"RequestPhaseDone","args":["nobody","${g.GameId}"]}
+{"op":"call","conn":1,"method":"RequestPhaseDone","args":["${a.Token}","${g.GameId}"],"note":"trading factions waits for both players"}
+{"op":"call","conn":1,"method":"RequestPhaseHold","args":["${a.Token}","${g.GameId}"],"note":"no countdown to hold"}
+{"op":"call","conn":2,"method":"RequestPhaseDone","args":["${b.Token}","${g.GameId}"],"note":"the last player is done, so the server continues"}
+{"op":"call","conn":1,"method":"SubmitEvent","args":["${a.Token}","${g.GameId}",{"$type":"TraitorsSelected","_traitorId":1021,"Initiator":110,"Time":"2024-01-01T12:03:00+00:00"}]}
+{"op":"call","conn":2,"method":"SubmitEvent","args":["${b.Token}","${g.GameId}",{"$type":"TraitorsSelected","_traitorId":1052,"Initiator":50,"Time":"2024-01-01T12:04:13+00:00"}]}
+{"op":"call","conn":2,"method":"SubmitEvent","args":["${b.Token}","${g.GameId}",{"$type":"StormDialled","Amount":19,"Initiator":50,"Time":"2024-01-01T12:08:24+00:00"}]}
+{"op":"advance","seconds":30}
+{"op":"call","conn":1,"method":"SubmitEvent","args":["${a.Token}","${g.GameId}",{"$type":"StormDialled","Amount":11,"Initiator":110,"Time":"2024-01-01T14:26:26+00:00"}]}
+{"op":"call","conn":2,"method":"RequestPhaseHold","args":["${b.Token}","${g.GameId}"],"note":"hold the Thumper countdown"}
+{"op":"advance","seconds":10}
+{"op":"call","conn":1,"method":"RequestPhaseContinue","args":["${a.Token}","${g.GameId}",3],"note":"a stale Continue does nothing"}
+{"op":"call","conn":2,"method":"RequestPhaseContinue","args":["${b.Token}","${g.GameId}",13],"note":"only the host"}
+{"op":"call","conn":3,"method":"RequestReconnectGame","args":["${c.Token}","${g.GameId}"],"note":"the reply carries the pause"}
+{"op":"call","conn":2,"method":"RequestPhaseRelease","args":["${b.Token}","${g.GameId}"],"note":"released after the countdown ran out, so the server continues"}
+{"op":"call","conn":1,"method":"RequestUndo","args":["${a.Token}","${g.GameId}",7]}
+{"op":"advance","seconds":10}
+{"op":"call","conn":3,"method":"RequestGameState","args":["${c.Token}","${g.GameId}"],"note":"suspended after the undo"}
+{"op":"call","conn":1,"method":"RequestPhaseContinue","args":["${a.Token}","${g.GameId}",7],"note":"the host continues"}
+{"op":"advance","seconds":10}

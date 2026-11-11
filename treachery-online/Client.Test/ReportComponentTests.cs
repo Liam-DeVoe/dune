@@ -73,17 +73,17 @@ public sealed class ReportComponentTests
         driver.PlayUntil(game => PhaseCount(game) >= 2);
         var report = driver.Game.CurrentReport;
         var karama = TreacheryCardManager.GetCardsInAndOutsidePlay().First(c => c.Type == TreacheryCardType.Karma);
-        report.Express(Message.Express(Faction.Black, " play ", karama, MessagePart.Express(": ", MessagePart.Express("prevent ", FactionAdvantage.RedReceiveBid))).WithLog(AsideLog.Aside));
-        report.Express(Message.Express("By ", karama, ", ", Faction.Red, " ask ", Faction.Yellow, " a question").WithLog(AsideLog.Aside));
-        report.Express(Message.Express(Faction.Yellow, " answer: No").WithLog(AsideLog.Answer));
-        report.Express(Message.Express(FactionAdvantage.BlackFreeCard, " is no longer prevented").WithLog(AsideLog.After));
+        report.Express(Message.Express(Faction.Harkonnen, " play ", karama, MessagePart.Express(": ", MessagePart.Express("prevent ", FactionAdvantage.EmperorReceiveBid))).WithLog(AsideLog.Aside));
+        report.Express(Message.Express("By ", karama, ", ", Faction.Emperor, " ask ", Faction.Fremen, " a question").WithLog(AsideLog.Aside));
+        report.Express(Message.Express(Faction.Fremen, " answer: No").WithLog(AsideLog.Answer));
+        report.Express(Message.Express(FactionAdvantage.HarkonnenFreeCard, " is no longer prevented").WithLog(AsideLog.After));
         using var test = new ComponentTestContext(driver.Game);
         var component = test.RenderContext.Render<ReportComponent>();
 
         var asides = component.FindAll(".log-aside").TakeLast(4).ToList();
         Assert.AreEqual(4, asides.Count);
 
-        // Atreides (Black) play [Karama]: prevent [Emperor] receiving [spice] for a treachery card
+        // Atreides (Harkonnen) play [Karama]: prevent [Emperor] receiving [spice] for a treachery card
         var karamaLine = asides[0];
         Assert.AreEqual(2, karamaLine.QuerySelectorAll(".chip.faction").Length, karamaLine.InnerHtml);
         Assert.IsNotNull(karamaLine.QuerySelector(".card-chip"), karamaLine.InnerHtml);

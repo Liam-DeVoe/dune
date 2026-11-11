@@ -27,74 +27,74 @@ public class NexusPlayed : GameEvent, ILocationEvent
 
     public Faction Faction { get; set; }
 
-    public PrescienceAspect GreenPrescienceAspect { get; set; }
+    public PrescienceAspect AtreidesPrescienceAspect { get; set; }
 
-    public int PurpleForces { get; set; }
+    public int TleilaxuForces { get; set; }
 
-    public int PurpleSpecialForces { get; set; }
+    public int TleilaxuSpecialForces { get; set; }
 
-    public int _purpleHeroId = -1;
+    public int _tleilaxuHeroId = -1;
 
     [JsonIgnore]
-    public IHero? PurpleHero
+    public IHero? TleilaxuHero
     {
-        get => LeaderManager.HeroLookup.Find(_purpleHeroId);
-        set => _purpleHeroId = LeaderManager.HeroLookup.GetId(value);
+        get => LeaderManager.HeroLookup.Find(_tleilaxuHeroId);
+        set => _tleilaxuHeroId = LeaderManager.HeroLookup.GetId(value);
     }
 
-    public bool PurpleAssignSkill { get; set; } = false;
+    public bool TleilaxuAssignSkill { get; set; } = false;
 
-    public int _brownCardId;
+    public int _choamCardId;
 
     [JsonIgnore]
-    public TreacheryCard? BrownCard
+    public TreacheryCard? ChoamCard
     {
-        get => TreacheryCardManager.Get(_brownCardId);
-        set => _brownCardId = TreacheryCardManager.GetId(value);
+        get => TreacheryCardManager.Get(_choamCardId);
+        set => _choamCardId = TreacheryCardManager.GetId(value);
     }
 
-    public int _pinkTerritoryId;
+    public int _ecazTerritoryId;
 
     [JsonIgnore]
-    public Territory? PinkTerritory
+    public Territory? EcazTerritory
     {
-        get => Game.Map.TerritoryLookup.Find(_pinkTerritoryId);
-        set => _pinkTerritoryId = Game.Map.TerritoryLookup.GetId(value);
+        get => Game.Map.TerritoryLookup.Find(_ecazTerritoryId);
+        set => _ecazTerritoryId = Game.Map.TerritoryLookup.GetId(value);
     }
 
-    public Faction PinkFaction { get; set; }
+    public Faction EcazFaction { get; set; }
 
-    public int _cyanTerritoryId;
+    public int _moritaniTerritoryId;
 
     [JsonIgnore]
-    public Territory? CyanTerritory
+    public Territory? MoritaniTerritory
     {
-        get => Game.Map.TerritoryLookup.Find(_cyanTerritoryId);
-        set => _cyanTerritoryId = Game.Map.TerritoryLookup.GetId(value);
+        get => Game.Map.TerritoryLookup.Find(_moritaniTerritoryId);
+        set => _moritaniTerritoryId = Game.Map.TerritoryLookup.GetId(value);
     }
 
-    public int PurpleNumberOfSpecialForcesInLocation { get; set; }
+    public int TleilaxuNumberOfSpecialForcesInLocation { get; set; }
 
-    public int _purpleLocationId = -1;
+    public int _tleilaxuLocationId = -1;
 
     [JsonIgnore]
-    public Location? PurpleLocation
+    public Location? TleilaxuLocation
     {
-        get => Game.Map.LocationLookup.Find(_purpleLocationId);
-        set => _purpleLocationId = Game.Map.LocationLookup.GetId(value);
+        get => Game.Map.LocationLookup.Find(_tleilaxuLocationId);
+        set => _tleilaxuLocationId = Game.Map.LocationLookup.GetId(value);
     }
 
     [JsonIgnore]
-    public Location To => PurpleLocation!;
+    public Location To => TleilaxuLocation!;
 
     [JsonIgnore]
-    public int TotalAmountOfForcesAddedToLocation => PurpleNumberOfSpecialForcesInLocation;
+    public int TotalAmountOfForcesAddedToLocation => TleilaxuNumberOfSpecialForcesInLocation;
 
     [JsonIgnore]
     public int ForcesAddedToLocation => 0;
 
     [JsonIgnore]
-    public int SpecialForcesAddedToLocation => PurpleNumberOfSpecialForcesInLocation;
+    public int SpecialForcesAddedToLocation => TleilaxuNumberOfSpecialForcesInLocation;
 
 
     [JsonIgnore]
@@ -116,52 +116,52 @@ public class NexusPlayed : GameEvent, ILocationEvent
         {
             case Faction.None: return Message.Express("Invalid Nexus faction");
 
-            case Faction.Green:
-                if ((IsCunning || IsSecretAlly) && GreenPrescienceAspect == PrescienceAspect.None) return Message.Express("Invalid battle plan element");
+            case Faction.Atreides:
+                if ((IsCunning || IsSecretAlly) && AtreidesPrescienceAspect == PrescienceAspect.None) return Message.Express("Invalid battle plan element");
                 break;
 
-            case Faction.Purple:
+            case Faction.Tleilaxu:
                 if (IsSecretAlly)
                 {
-                    if (PurpleHero != null && !ValidPurpleHeroes(Game, Player).Contains(PurpleHero)) return Message.Express("Invalid leader");
-                    if (PurpleForces > ValidPurpleMaxAmount(Game, Player, false)) return Message.Express("You can't revive that many ", Player.Force);
-                    if (PurpleSpecialForces > ValidPurpleMaxAmount(Game, Player, true)) return Message.Express("You can't revive that many ", Player.SpecialForce);
-                    if (DeterminePurpleCost() > Player.Resources) return Message.Express("You can't pay that much");
-                    if (PurpleForces + PurpleSpecialForces > 5) return Message.Express("You can't revive that many forces");
-                    if (PurpleAssignSkill && PurpleHero == null) return Message.Express("You must revive a leader to assign a skill to");
-                    if (PurpleAssignSkill && (PurpleHero == null || !Revival.MayAssignSkill(Game, Player, PurpleHero))) return Message.Express("You can't assign a skill to this leader");
+                    if (TleilaxuHero != null && !ValidTleilaxuHeroes(Game, Player).Contains(TleilaxuHero)) return Message.Express("Invalid leader");
+                    if (TleilaxuForces > ValidTleilaxuMaxAmount(Game, Player, false)) return Message.Express("You can't revive that many ", Player.Force);
+                    if (TleilaxuSpecialForces > ValidTleilaxuMaxAmount(Game, Player, true)) return Message.Express("You can't revive that many ", Player.SpecialForce);
+                    if (DetermineTleilaxuCost() > Player.Resources) return Message.Express("You can't pay that much");
+                    if (TleilaxuForces + TleilaxuSpecialForces > 5) return Message.Express("You can't revive that many forces");
+                    if (TleilaxuAssignSkill && TleilaxuHero == null) return Message.Express("You must revive a leader to assign a skill to");
+                    if (TleilaxuAssignSkill && (TleilaxuHero == null || !Revival.MayAssignSkill(Game, Player, TleilaxuHero))) return Message.Express("You can't assign a skill to this leader");
 
-                    if (PurpleLocation != null)
+                    if (TleilaxuLocation != null)
                     {
-                        if (!Revival.ValidRevivedForceLocations(Game, Player).Contains(PurpleLocation)) return Message.Express("You can't place revived forces there");
+                        if (!Revival.ValidRevivedForceLocations(Game, Player).Contains(TleilaxuLocation)) return Message.Express("You can't place revived forces there");
 
-                        if (PurpleNumberOfSpecialForcesInLocation > Revival.NumberOfSpecialForcesThatMayBePlacedOnPlanet(Player, PurpleSpecialForces)) return Message.Express("You can't place that many forces directly on the planet");
+                        if (TleilaxuNumberOfSpecialForcesInLocation > Revival.NumberOfSpecialForcesThatMayBePlacedOnPlanet(Player, TleilaxuSpecialForces)) return Message.Express("You can't place that many forces directly on the planet");
                     }
                 }
                 break;
 
-            case Faction.Brown:
+            case Faction.Choam:
                 if (IsCunning)
                 {
-                    if (BrownCard == null) return Message.Express("Select a ", TreacheryCardType.Useless, " card to discard");
-                    if (BrownCard != null && !ValidBrownCards(Player).Contains(BrownCard)) return Message.Express("Invalid card");
+                    if (ChoamCard == null) return Message.Express("Select a ", TreacheryCardType.Useless, " card to discard");
+                    if (ChoamCard != null && !ValidChoamCards(Player).Contains(ChoamCard)) return Message.Express("Invalid card");
                 }
                 break;
 
-            case Faction.Pink:
+            case Faction.Ecaz:
                 if (IsBetrayal)
                 {
-                    if (PinkTerritory == null) return Message.Express("Select a territory");
-                    if (!ValidPinkTerritories(Game).Contains(PinkTerritory)) return Message.Express("Invalid territory");
+                    if (EcazTerritory == null) return Message.Express("Select a territory");
+                    if (!ValidEcazTerritories(Game).Contains(EcazTerritory)) return Message.Express("Invalid territory");
                 }
                 else if (IsSecretAlly)
                 {
-                    if (!ValidPinkFactions(Game).Contains(PinkFaction)) return Message.Express("Invalid faction");
+                    if (!ValidEcazFactions(Game).Contains(EcazFaction)) return Message.Express("Invalid faction");
                 }
                 break;
 
-            case Faction.Cyan:
-                if (IsBetrayal && (CyanTerritory == null || !ValidCyanTerritories(Game).Contains(CyanTerritory))) return Message.Express("This territory contains no terror token");
+            case Faction.Moritani:
+                if (IsBetrayal && (MoritaniTerritory == null || !ValidMoritaniTerritories(Game).Contains(MoritaniTerritory))) return Message.Express("This territory contains no terror token");
                 break;
 
 
@@ -198,58 +198,58 @@ public class NexusPlayed : GameEvent, ILocationEvent
 
         return p.Nexus switch
         {
-            Faction.Green when betrayal => gameIsInBattle && g.CurrentBattle!.IsAggressorOrDefender(Faction.Green),
-            Faction.Green when cunning || secretAlly => isCurrentlyFormulatingBattlePlan,
+            Faction.Atreides when betrayal => gameIsInBattle && g.CurrentBattle!.IsAggressorOrDefender(Faction.Atreides),
+            Faction.Atreides when cunning || secretAlly => isCurrentlyFormulatingBattlePlan,
 
-            Faction.Black when betrayal => g.CurrentPhase == Phase.CancellingTraitor,
-            Faction.Black when cunning => true,
-            Faction.Black when secretAlly => g.CurrentMainPhase == MainPhase.Contemplate,
+            Faction.Harkonnen when betrayal => g.CurrentPhase == Phase.CancellingTraitor,
+            Faction.Harkonnen when cunning => true,
+            Faction.Harkonnen when secretAlly => g.CurrentMainPhase == MainPhase.Contemplate,
 
-            Faction.Yellow when betrayal => g.CurrentMainPhase == MainPhase.Blow || g.CurrentMainPhase == MainPhase.ShipmentAndMove,
-            Faction.Yellow when secretAlly => g.CurrentMainPhase == MainPhase.Blow || g.CurrentMainPhase == MainPhase.Resurrection,
+            Faction.Fremen when betrayal => g.CurrentMainPhase == MainPhase.Blow || g.CurrentMainPhase == MainPhase.ShipmentAndMove,
+            Faction.Fremen when secretAlly => g.CurrentMainPhase == MainPhase.Blow || g.CurrentMainPhase == MainPhase.Resurrection,
 
-            Faction.Red when betrayal => g.CurrentMainPhase == MainPhase.Bidding || (gameIsInBattle && g.Applicable(Rule.RedSpecialForces) && g.CurrentBattle!.IsAggressorOrDefender(Faction.Red)),
-            Faction.Red when cunning => isCurrentlyFormulatingBattlePlan,
+            Faction.Emperor when betrayal => g.CurrentMainPhase == MainPhase.Bidding || (gameIsInBattle && g.Applicable(Rule.EmperorSpecialForces) && g.CurrentBattle!.IsAggressorOrDefender(Faction.Emperor)),
+            Faction.Emperor when cunning => isCurrentlyFormulatingBattlePlan,
 
-            Faction.Orange when betrayal => g.CurrentMainPhase == MainPhase.ShipmentAndMove && g.HasRecentPaymentFor(typeof(Shipment)),
-            Faction.Orange when cunning => g.CurrentPhase == Phase.OrangeMove && !g.InOrangeCunningShipment,
-            Faction.Orange when secretAlly => g.CurrentPhase == Phase.NonOrangeShip,
+            Faction.Guild when betrayal => g.CurrentMainPhase == MainPhase.ShipmentAndMove && g.HasRecentPaymentFor(typeof(Shipment)),
+            Faction.Guild when cunning => g.CurrentPhase == Phase.GuildMove && !g.InGuildCunningShipment,
+            Faction.Guild when secretAlly => g.CurrentPhase == Phase.NonGuildShip,
 
-            Faction.Blue when betrayal => gameIsInBattle && g.CurrentBattle!.IsInvolved(Faction.Blue),
-            Faction.Blue when cunning => g.CurrentMainPhase == MainPhase.ShipmentAndMove,
+            Faction.BeneGesserit when betrayal => gameIsInBattle && g.CurrentBattle!.IsInvolved(Faction.BeneGesserit),
+            Faction.BeneGesserit when cunning => g.CurrentMainPhase == MainPhase.ShipmentAndMove,
 
-            Faction.Grey when betrayal => g.CurrentMainPhase == MainPhase.Bidding && g.CurrentPhase < Phase.BiddingReport,
-            Faction.Grey when cunning => isCurrentlyFormulatingBattlePlan,
+            Faction.Ixian when betrayal => g.CurrentMainPhase == MainPhase.Bidding && g.CurrentPhase < Phase.BiddingReport,
+            Faction.Ixian when cunning => isCurrentlyFormulatingBattlePlan,
 
-            Faction.Purple when betrayal => g.CurrentPhase == Phase.Facedancing,
-            Faction.Purple when cunning => true,
-            Faction.Purple when secretAlly => g.CurrentPhase == Phase.Resurrection,
+            Faction.Tleilaxu when betrayal => g.CurrentPhase == Phase.Facedancing,
+            Faction.Tleilaxu when cunning => true,
+            Faction.Tleilaxu when secretAlly => g.CurrentPhase == Phase.Resurrection,
 
-            Faction.Brown when betrayal => true,
-            Faction.Brown when secretAlly => (g.CurrentMainPhase == MainPhase.Collection && ValidBrownCards(p).Any()) || (g.CurrentPhase == Phase.BattleConclusion && g.CurrentBattle != null && p.Faction == g.BattleWinner),
+            Faction.Choam when betrayal => true,
+            Faction.Choam when secretAlly => (g.CurrentMainPhase == MainPhase.Collection && ValidChoamCards(p).Any()) || (g.CurrentPhase == Phase.BattleConclusion && g.CurrentBattle != null && p.Faction == g.BattleWinner),
 
-            Faction.White when betrayal && g.CurrentMainPhase is MainPhase.Bidding => 
+            Faction.Richese when betrayal && g.CurrentMainPhase is MainPhase.Bidding => 
                     g.Version >= 164 ? 
                 
-                    (g.WhiteBiddingJustFinished || g.CardSoldOnBlackMarket != null) 
-                    && (g.HasQuiteRecentPaymentTo(Faction.White) || (g.CardJustWon != null && g.GetPlayer(Faction.White)?.Has(g.CardJustWon) == true)) :
+                    (g.RicheseBiddingJustFinished || g.CardSoldOnBlackMarket != null) 
+                    && (g.HasQuiteRecentPaymentTo(Faction.Richese) || (g.CardJustWon != null && g.GetPlayer(Faction.Richese)?.Has(g.CardJustWon) == true)) :
 
-                    g.WhiteBiddingJustFinished && g.CardJustWon != null,
+                    g.RicheseBiddingJustFinished && g.CardJustWon != null,
 
-            Faction.Pink when betrayal => g.CurrentMainPhase < MainPhase.ShipmentAndMove && ValidPinkTerritories(g).Any(),
-            Faction.Pink when cunning || secretAlly => true,
+            Faction.Ecaz when betrayal => g.CurrentMainPhase < MainPhase.ShipmentAndMove && ValidEcazTerritories(g).Any(),
+            Faction.Ecaz when cunning || secretAlly => true,
 
-            Faction.Cyan when betrayal => ValidCyanTerritories(g).Any(),
+            Faction.Moritani when betrayal => ValidMoritaniTerritories(g).Any(),
 
             _ => false
         };
     }
 
-    public static int ValidPurpleMaxAmount(Game g, Player p, bool specialForces)
+    public static int ValidTleilaxuMaxAmount(Game g, Player p, bool specialForces)
     {
         if (specialForces)
         {
-            if (p.Faction == Faction.Red || p.Faction == Faction.Yellow)
+            if (p.Faction == Faction.Emperor || p.Faction == Faction.Fremen)
             {
                 if (g.FactionsThatRevivedSpecialForcesThisTurn.Contains(p.Faction))
                     return 0;
@@ -262,47 +262,47 @@ public class NexusPlayed : GameEvent, ILocationEvent
         return Math.Min(p.ForcesKilled, 5);
     }
 
-    public static IEnumerable<IHero> ValidPurpleHeroes(Game game, Player player)
+    public static IEnumerable<IHero> ValidTleilaxuHeroes(Game game, Player player)
     {
         return RaiseDeadPlayed.ValidHeroes(game, player);
     }
 
-    public static IEnumerable<TreacheryCard> ValidBrownCards(Player player)
+    public static IEnumerable<TreacheryCard> ValidChoamCards(Player player)
     {
         return player.TreacheryCards.Where(c => c.Type == TreacheryCardType.Useless);
     }
 
-    public static IEnumerable<Territory> ValidPinkTerritories(Game g)
+    public static IEnumerable<Territory> ValidEcazTerritories(Game g)
     {
-        var pink = g.GetPlayer(Faction.Pink);
+        var ecaz = g.GetPlayer(Faction.Ecaz);
 
-        if (pink != null && pink.HasAlly) return g.Map.Territories(false).Where(t => pink.AnyForcesIn(t) > 0 && pink.AlliedPlayer.AnyForcesIn(t) > 0);
+        if (ecaz != null && ecaz.HasAlly) return g.Map.Territories(false).Where(t => ecaz.AnyForcesIn(t) > 0 && ecaz.AlliedPlayer.AnyForcesIn(t) > 0);
 
         return Array.Empty<Territory>();
     }
 
-    public static IEnumerable<Faction> ValidPinkFactions(Game g)
+    public static IEnumerable<Faction> ValidEcazFactions(Game g)
     {
-        return g.Players.Where(p => p.Faction != Faction.Pink && p.Faction != Faction.Purple).Select(p => p.Faction);
+        return g.Players.Where(p => p.Faction != Faction.Ecaz && p.Faction != Faction.Tleilaxu).Select(p => p.Faction);
     }
 
-    public static IEnumerable<Territory> ValidCyanTerritories(Game g)
+    public static IEnumerable<Territory> ValidMoritaniTerritories(Game g)
     {
         return g.TerrorOnPlanet.Values.Distinct();
     }
 
     public static bool MaySelectLocationForRevivedForces(Game game, Player player, int specialForces)
     {
-        return player.Is(Faction.Yellow) && specialForces >= 1 && player.HasHighThreshold() &&
+        return player.Is(Faction.Fremen) && specialForces >= 1 && player.HasHighThreshold() &&
                Revival.ValidRevivedForceLocations(game, player).Any();
     }
 
-    public int DeterminePurpleCost()
+    public int DetermineTleilaxuCost()
     {
-        return DeterminePurpleCost(PurpleForces, PurpleSpecialForces);
+        return DetermineTleilaxuCost(TleilaxuForces, TleilaxuSpecialForces);
     }
 
-    public static int DeterminePurpleCost(int Forces, int SpecialForces)
+    public static int DetermineTleilaxuCost(int Forces, int SpecialForces)
     {
         return Forces + SpecialForces;
     }
@@ -328,56 +328,56 @@ public class NexusPlayed : GameEvent, ILocationEvent
 
         switch (Faction)
         {
-            case Faction.Green:
+            case Faction.Atreides:
                 Game.PlayNexusCard(Player);
-                Game.Prevent(Initiator, FactionAdvantage.GreenBattlePlanPrescience);
+                Game.Prevent(Initiator, FactionAdvantage.AtreidesBattlePlanPrescience);
                 Game.CurrentPrescience = null;
                 break;
 
-            case Faction.Black:
+            case Faction.Harkonnen:
                 var currentBattle = Game.CurrentBattle;
                 var traitorDeck = Game.TraitorDeck;
                 if (currentBattle == null || traitorDeck == null) break;
-                var black = GetPlayer(Faction.Black);
-                var traitor = currentBattle.PlanOfOpponent(Faction.Black).Hero;
-                if (black != null && traitor != null)
+                var harkonnen = GetPlayer(Faction.Harkonnen);
+                var traitor = currentBattle.PlanOfOpponent(Faction.Harkonnen).Hero;
+                if (harkonnen != null && traitor != null)
                 {
-                    black.Traitors.Remove(traitor);
+                    harkonnen.Traitors.Remove(traitor);
                     traitorDeck.Items.Add(traitor);
                     traitorDeck.Shuffle();
                     Game.Stone(Milestone.Shuffled);
-                    Game.BlackTraitorWasCancelled = true;
-                    Game.PlayNexusCard(Player, "cancel the ", Faction.Black, " traitor call");
+                    Game.HarkonnenTraitorWasCancelled = true;
+                    Game.PlayNexusCard(Player, "cancel the ", Faction.Harkonnen, " traitor call");
                     Game.Enter(Phase.CallTraitorOrPass);
                     Game.HandleRevealedBattlePlans();
                 }
                 break;
 
-            case Faction.Yellow:
+            case Faction.Fremen:
                 Game.PlayNexusCard(Player);
                 if (Game.CurrentMainPhase == MainPhase.Blow)
                 {
-                    Game.Prevent(Initiator, FactionAdvantage.YellowRidesMonster);
-                    if (Game.CurrentPhase is Phase.YellowRidingMonsterA or Phase.YellowRidingMonsterB)
+                    Game.Prevent(Initiator, FactionAdvantage.FremenRidesMonster);
+                    if (Game.CurrentPhase is Phase.FremenRidingMonsterA or Phase.FremenRidingMonsterB)
                     {
                         Game.DetermineNextShipmentAndMoveSubPhase();
                     }
                 }
                 else if (Game.CurrentMainPhase == MainPhase.ShipmentAndMove)
                 {
-                    Game.Prevent(Initiator, FactionAdvantage.YellowExtraMove);
+                    Game.Prevent(Initiator, FactionAdvantage.FremenExtraMove);
                 }
 
                 break;
 
-            case Faction.Red:
+            case Faction.Emperor:
                 Game.PlayNexusCard(Player);
                 if (Game.CurrentMainPhase == MainPhase.Bidding)
-                    Game.Prevent(Initiator, FactionAdvantage.RedReceiveBid);
-                else if (Game.CurrentMainPhase == MainPhase.Battle && Game.Applicable(Rule.RedSpecialForces)) Game.Prevent(Initiator, FactionAdvantage.RedSpecialForceBonus);
+                    Game.Prevent(Initiator, FactionAdvantage.EmperorReceiveBid);
+                else if (Game.CurrentMainPhase == MainPhase.Battle && Game.Applicable(Rule.EmperorSpecialForces)) Game.Prevent(Initiator, FactionAdvantage.EmperorSpecialForceBonus);
                 break;
 
-            case Faction.Orange:
+            case Faction.Guild:
                 Game.PlayNexusCard(Player);
                 foreach (var p in Game.StoredRecentlyPaid)
                 {
@@ -392,87 +392,87 @@ public class NexusPlayed : GameEvent, ILocationEvent
                     Player.Resources += p.Amount;
                 }
 
-                if (Game.TargetOfBureaucracy == Faction.Orange) Game.TargetOfBureaucracy = Initiator;
+                if (Game.TargetOfBureaucracy == Faction.Guild) Game.TargetOfBureaucracy = Initiator;
 
                 break;
 
-            case Faction.Blue:
+            case Faction.BeneGesserit:
                 Game.PlayNexusCard(Player);
-                Game.Prevent(Initiator, FactionAdvantage.BlueUsingVoice);
+                Game.Prevent(Initiator, FactionAdvantage.BeneGesseritUsingVoice);
                 Game.CurrentVoice = null;
                 break;
 
-            case Faction.Grey:
+            case Faction.Ixian:
                 Game.PlayNexusCard(Player);
-                if (Game.CurrentPhase < Phase.GreySelectingCard)
-                    Game.Prevent(Initiator, FactionAdvantage.GreySelectingCardsOnAuction);
-                else if (Game.CurrentPhase > Phase.GreySelectingCard && Game.CurrentPhase < Phase.BiddingReport) Game.Prevent(Initiator, FactionAdvantage.GreySwappingCard);
+                if (Game.CurrentPhase < Phase.IxianSelectingCard)
+                    Game.Prevent(Initiator, FactionAdvantage.IxianSelectingCardsOnAuction);
+                else if (Game.CurrentPhase > Phase.IxianSelectingCard && Game.CurrentPhase < Phase.BiddingReport) Game.Prevent(Initiator, FactionAdvantage.IxianSwappingCard);
                 break;
 
-            case Faction.Purple:
+            case Faction.Tleilaxu:
                 Game.FacedancerWasCancelled = true;
-                Game.PlayNexusCard(Player, "cancel the ", Faction.Purple, " face dancer reveal");
+                Game.PlayNexusCard(Player, "cancel the ", Faction.Tleilaxu, " face dancer reveal");
                 Game.FinishBattle();
                 break;
 
-            case Faction.Brown:
-                Game.PlayNexusCard(Player, "force ", Faction.Brown, " to discard one of their treachery cards at random");
-                var victimPlayer = GetPlayer(Faction.Brown);
+            case Faction.Choam:
+                Game.PlayNexusCard(Player, "force ", Faction.Choam, " to discard one of their treachery cards at random");
+                var victimPlayer = GetPlayer(Faction.Choam);
                 if (victimPlayer?.TreacheryCards.Any() == true)
                 {
                     var card = victimPlayer.TreacheryCards.RandomOrDefault(Game.Random!);
                     if (card != null) Game.Discard(card);
                 }
                 else
-                    Log(Faction.Brown, " have no treachery cards to discard");
+                    Log(Faction.Choam, " have no treachery cards to discard");
                 break;
 
-            case Faction.White:
-                var paymentToWhite = Game.QuiteRecentPaymentTo(Faction.White);
-                var white = GetPlayer(Faction.White);
-                if (paymentToWhite != null)
+            case Faction.Richese:
+                var paymentToRichese = Game.QuiteRecentPaymentTo(Faction.Richese);
+                var richese = GetPlayer(Faction.Richese);
+                if (paymentToRichese != null)
                 {
-                    var amountReceived = paymentToWhite.Amount - (Game.WasVictimOfBureaucracy == Faction.White ? 2 : 0);
-                    Game.PlayNexusCard(Player, "let ", Faction.White, " return the payment of ", Payment.Of(amountReceived), " they just received");
-                    if (white != null) white.Resources -= amountReceived;
+                    var amountReceived = paymentToRichese.Amount - (Game.WasVictimOfBureaucracy == Faction.Richese ? 2 : 0);
+                    Game.PlayNexusCard(Player, "let ", Faction.Richese, " return the payment of ", Payment.Of(amountReceived), " they just received");
+                    if (richese != null) richese.Resources -= amountReceived;
                 }
-                else if (white != null && Game.CardJustWon != null && white.Has(Game.CardJustWon))
+                else if (richese != null && Game.CardJustWon != null && richese.Has(Game.CardJustWon))
                 {
-                    Game.PlayNexusCard(Player, "force ", Faction.White, " to discard the card they just won, refunding payment");
-                    Game.Discard(white, Game.CardJustWon);
-                    if (Game is { Version: >= 174, WinningBid: { KarmaBid: false, Initiator: Faction.White } })
+                    Game.PlayNexusCard(Player, "force ", Faction.Richese, " to discard the card they just won, refunding payment");
+                    Game.Discard(richese, Game.CardJustWon);
+                    if (Game is { Version: >= 174, WinningBid: { KarmaBid: false, Initiator: Faction.Richese } })
                     {
-                        white.Resources += Game.WinningBid.Amount;
-                        var whiteAlly = white.AlliedPlayer;
-                        if (whiteAlly != null && Game.WinningBid.AllyContributionAmount > 0)
+                        richese.Resources += Game.WinningBid.Amount;
+                        var richeseAlly = richese.AlliedPlayer;
+                        if (richeseAlly != null && Game.WinningBid.AllyContributionAmount > 0)
                         {
-                            whiteAlly.Resources += Game.WinningBid.AllyContributionAmount;
+                            richeseAlly.Resources += Game.WinningBid.AllyContributionAmount;
                         }
-                        if (whiteAlly != null && Game.WinningBid.RedContributionAmount > 0)
+                        if (richeseAlly != null && Game.WinningBid.EmperorContributionAmount > 0)
                         {
-                            whiteAlly.Resources += Game.WinningBid.RedContributionAmount;
+                            richeseAlly.Resources += Game.WinningBid.EmperorContributionAmount;
                         }
                     }
                 }
                 break;
 
-            case Faction.Pink:
-                var pinksAlly = Game.GetPlayer(Faction.Pink)?.AlliedPlayer;
-                if (pinksAlly != null && PinkTerritory != null)
+            case Faction.Ecaz:
+                var ecazsAlly = Game.GetPlayer(Faction.Ecaz)?.AlliedPlayer;
+                if (ecazsAlly != null && EcazTerritory != null)
                 {
-                    pinksAlly.ForcesToReserves(PinkTerritory);
-                    Game.PlayNexusCard(Player, "return all ", pinksAlly.Faction, " forces in ", PinkTerritory, " to reserves");
-                    Game.FlipBlueAdvisorsWhenAlone();
+                    ecazsAlly.ForcesToReserves(EcazTerritory);
+                    Game.PlayNexusCard(Player, "return all ", ecazsAlly.Faction, " forces in ", EcazTerritory, " to reserves");
+                    Game.FlipBeneGesseritAdvisorsWhenAlone();
                 }
                 break;
 
-            case Faction.Cyan:
-                if (CyanTerritory != null)
+            case Faction.Moritani:
+                if (MoritaniTerritory != null)
                 {
-                    var terrorToRemove = Game.TerrorIn(CyanTerritory).RandomOrDefault(Game.Random!);
+                    var terrorToRemove = Game.TerrorIn(MoritaniTerritory).RandomOrDefault(Game.Random!);
                     Game.TerrorOnPlanet.Remove(terrorToRemove);
                     if (Game.Version >= 169) Game.UnplacedTerrorTokens.Add(terrorToRemove);
-                    Game.PlayNexusCard(Player, "return a terror token from ", CyanTerritory, " to reserves");
+                    Game.PlayNexusCard(Player, "return a terror token from ", MoritaniTerritory, " to reserves");
                 }
                 break;
 
@@ -486,12 +486,12 @@ public class NexusPlayed : GameEvent, ILocationEvent
 
         switch (Faction)
         {
-            case Faction.Green:
+            case Faction.Atreides:
                 Game.CurrentNexusPrescience = this;
-                Game.PlayNexusCard(Player, "see their opponent's ", GreenPrescienceAspect);
+                Game.PlayNexusCard(Player, "see their opponent's ", AtreidesPrescienceAspect);
                 break;
 
-            case Faction.Black:
+            case Faction.Harkonnen:
                 if (Game.TraitorDeck == null) break;
                 Game.PhaseBeforeDiscardingTraitor = Game.CurrentPhase;
                 Game.FactionThatMustDiscardTraitor = Initiator;
@@ -501,51 +501,51 @@ public class NexusPlayed : GameEvent, ILocationEvent
                 Game.Enter(Phase.DiscardingTraitor);
                 break;
 
-            case Faction.Red:
-                Game.CurrentRedCunning = this;
-                Game.PlayNexusCard(Player, "let 5 ", FactionForce.Red, " count as ", FactionSpecialForce.Red, " during this battle");
+            case Faction.Emperor:
+                Game.CurrentEmperorCunning = this;
+                Game.PlayNexusCard(Player, "let 5 ", FactionForce.Emperor, " count as ", FactionSpecialForce.Emperor, " during this battle");
                 break;
 
-            case Faction.Orange:
-                Game.CurrentOrangeCunning = this;
+            case Faction.Guild:
+                Game.CurrentGuildCunning = this;
                 Game.PlayNexusCard(Player, "perform an extra shipment after their move");
                 break;
 
-            case Faction.Blue:
-                Game.CurrentBlueCunning = this;
+            case Faction.BeneGesserit:
+                Game.CurrentBeneGesseritCunning = this;
                 Game.PlayNexusCard(Player, "be able to flip advisor to fighters during ", MainPhase.ShipmentAndMove);
                 break;
 
-            case Faction.Grey:
-                Game.CurrentGreyCunning = this;
-                Game.PlayNexusCard(Player, "let ", FactionForce.Grey, " be full strength during this battle");
+            case Faction.Ixian:
+                Game.CurrentIxianCunning = this;
+                Game.PlayNexusCard(Player, "let ", FactionForce.Ixian, " be full strength during this battle");
                 break;
 
-            case Faction.Purple:
+            case Faction.Tleilaxu:
                 if (Game.TraitorDeck == null) break;
-                if (GetPlayer(Faction.Purple) is not { } purple) break;
+                if (GetPlayer(Faction.Tleilaxu) is not { } tleilaxu) break;
 
-                Game.PlayNexusCard(actor, "replace their ", purple.RevealedFaceDancers.Count, " revealed face dancers");
-                if (purple.RevealedFaceDancers.Count > 0)
+                Game.PlayNexusCard(actor, "replace their ", tleilaxu.RevealedFaceDancers.Count, " revealed face dancers");
+                if (tleilaxu.RevealedFaceDancers.Count > 0)
                 {
-                    for (var i = 0; i < purple.RevealedFaceDancers.Count; i++) purple.FaceDancers.Add(Game.TraitorDeck.Draw());
+                    for (var i = 0; i < tleilaxu.RevealedFaceDancers.Count; i++) tleilaxu.FaceDancers.Add(Game.TraitorDeck.Draw());
 
-                    Game.TraitorDeck.Items.AddRange(purple.RevealedFaceDancers);
+                    Game.TraitorDeck.Items.AddRange(tleilaxu.RevealedFaceDancers);
                     Game.TraitorDeck.Shuffle();
 
-                    foreach (var dancer in purple.RevealedFaceDancers) purple.FaceDancers.Remove(dancer);
-                    purple.RevealedFaceDancers.Clear();
+                    foreach (var dancer in tleilaxu.RevealedFaceDancers) tleilaxu.FaceDancers.Remove(dancer);
+                    tleilaxu.RevealedFaceDancers.Clear();
 
                     Game.Stone(Milestone.Shuffled);
                 }
                 break;
 
-            case Faction.Pink:
+            case Faction.Ecaz:
                 if (Game.Vidal != null && !Game.IsAlive(Game.Vidal))
                 {
                     Game.Revive(Player, Game.Vidal);
 
-                    if (PurpleAssignSkill) Game.PrepareSkillAssignmentToRevivedLeader(Player, Game.Vidal);
+                    if (TleilaxuAssignSkill) Game.PrepareSkillAssignmentToRevivedLeader(Player, Game.Vidal);
                 }
                 Game.TakeVidal(Player, VidalMoment.EndOfTurn);
                 Game.PlayNexusCard(Player, "take ", Game.Vidal, " this turn");
@@ -560,12 +560,12 @@ public class NexusPlayed : GameEvent, ILocationEvent
 
         switch (Faction)
         {
-            case Faction.Green:
+            case Faction.Atreides:
                 Game.CurrentNexusPrescience = this;
-                Game.PlayNexusCard(Player, "see their opponent's ", GreenPrescienceAspect);
+                Game.PlayNexusCard(Player, "see their opponent's ", AtreidesPrescienceAspect);
                 break;
 
-            case Faction.Black:
+            case Faction.Harkonnen:
                 if (Game.TraitorDeck == null) break;
                 Game.PhaseBeforeDiscardingTraitor = Game.CurrentPhase;
                 Game.FactionThatMustDiscardTraitor = Initiator;
@@ -576,56 +576,56 @@ public class NexusPlayed : GameEvent, ILocationEvent
                 Game.Enter(Phase.DiscardingTraitor);
                 break;
 
-            case Faction.Yellow:
-                Game.CurrentYellowSecretAlly = this;
+            case Faction.Fremen:
+                Game.CurrentFremenSecretAlly = this;
                 if (Game.CurrentMainPhase == MainPhase.Blow)
                     Game.PlayNexusCard(Player, "prevent their forces from being devoured by ", Concept.Monster);
                 else if (Game.CurrentMainPhase == MainPhase.Resurrection) Game.PlayNexusCard(Player, "increase their free revival to 3");
                 break;
 
-            case Faction.Orange:
-                Game.CurrentOrangeSecretAlly = this;
-                Game.PlayNexusCard(Player, "be able to ship as ", Faction.Orange);
+            case Faction.Guild:
+                Game.CurrentGuildSecretAlly = this;
+                Game.PlayNexusCard(Player, "be able to ship as ", Faction.Guild);
                 break;
 
-            case Faction.Purple:
+            case Faction.Tleilaxu:
                 Game.Stone(Milestone.RaiseDead);
                 var player = GetPlayer(Initiator);
                 if (player == null) break;
 
-                player.ReviveForces(PurpleForces);
-                player.ReviveSpecialForces(PurpleSpecialForces);
+                player.ReviveForces(TleilaxuForces);
+                player.ReviveSpecialForces(TleilaxuSpecialForces);
 
-                if (PurpleSpecialForces > 0) Game.FactionsThatRevivedSpecialForcesThisTurn.Add(Initiator);
+                if (TleilaxuSpecialForces > 0) Game.FactionsThatRevivedSpecialForcesThisTurn.Add(Initiator);
 
-                if (PurpleHero != null)
+                if (TleilaxuHero != null)
                 {
-                    Game.Revive(Player, PurpleHero);
+                    Game.Revive(Player, TleilaxuHero);
 
-                    if (PurpleAssignSkill && PurpleHero is Leader revivedLeader) Game.PrepareSkillAssignmentToRevivedLeader(player, revivedLeader);
+                    if (TleilaxuAssignSkill && TleilaxuHero is Leader revivedLeader) Game.PrepareSkillAssignmentToRevivedLeader(player, revivedLeader);
                 }
 
                 Game.PlayNexusCard(Player, "revive ",
-                    MessagePart.ExpressIf(PurpleHero != null, PurpleHero),
-                    MessagePart.ExpressIf(PurpleHero != null && PurpleForces + PurpleSpecialForces > 0, " and "),
-                    MessagePart.ExpressIf(PurpleForces > 0, PurpleForces, " ", player.Force),
-                    MessagePart.ExpressIf(PurpleForces > 0 && PurpleSpecialForces > 0, " and "),
-                    MessagePart.ExpressIf(PurpleSpecialForces > 0, PurpleSpecialForces, " ", player.SpecialForce));
+                    MessagePart.ExpressIf(TleilaxuHero != null, TleilaxuHero),
+                    MessagePart.ExpressIf(TleilaxuHero != null && TleilaxuForces + TleilaxuSpecialForces > 0, " and "),
+                    MessagePart.ExpressIf(TleilaxuForces > 0, TleilaxuForces, " ", player.Force),
+                    MessagePart.ExpressIf(TleilaxuForces > 0 && TleilaxuSpecialForces > 0, " and "),
+                    MessagePart.ExpressIf(TleilaxuSpecialForces > 0, TleilaxuSpecialForces, " ", player.SpecialForce));
 
-                if (PurpleLocation != null && Initiator == Faction.Yellow)
+                if (TleilaxuLocation != null && Initiator == Faction.Fremen)
                 {
-                    player.ShipSpecialForces(PurpleLocation, 1);
-                    Log(Initiator, " place ", FactionSpecialForce.Yellow, " in ", PurpleLocation);
+                    player.ShipSpecialForces(TleilaxuLocation, 1);
+                    Log(Initiator, " place ", FactionSpecialForce.Fremen, " in ", TleilaxuLocation);
                 }
 
                 break;
 
-            case Faction.Brown:
+            case Faction.Choam:
                 if (Game.CurrentMainPhase == MainPhase.Collection)
                 {
                     Game.PlayNexusCard(Player, "discard a ", TreacheryCardType.Useless, " card to get ", Payment.Of(2));
-                    if (BrownCard == null) break;
-                    Game.Discard(Player, BrownCard);
+                    if (ChoamCard == null) break;
+                    Game.Discard(Player, ChoamCard);
                     Player.Resources += 2;
                 }
                 else if (Game.CurrentPhase == Phase.BattleConclusion)
@@ -658,12 +658,12 @@ public class NexusPlayed : GameEvent, ILocationEvent
                 }
                 break;
 
-            case Faction.Pink:
-                Game.PlayNexusCard(Player, "force ", PinkFaction, " to reveal if they have an ", Faction.Pink, " traitor");
-                Log(PinkFaction, " reveal to ", Initiator, " if they have a ", Initiator, " traitor");
-                var hasTraitor = GetPlayer(PinkFaction)?.Traitors.Any(t => t.Faction == Initiator) == true;
-                LogTo(Initiator, PinkFaction, " reveal that they ", hasTraitor ? "DO" : "DON'T", " have a ", Initiator, " traitor ");
-                LogTo(PinkFaction, " you revealed to them that you ", hasTraitor ? "DO" : "DON'T", " have a ", Initiator, " traitor ");
+            case Faction.Ecaz:
+                Game.PlayNexusCard(Player, "force ", EcazFaction, " to reveal if they have an ", Faction.Ecaz, " traitor");
+                Log(EcazFaction, " reveal to ", Initiator, " if they have a ", Initiator, " traitor");
+                var hasTraitor = GetPlayer(EcazFaction)?.Traitors.Any(t => t.Faction == Initiator) == true;
+                LogTo(Initiator, EcazFaction, " reveal that they ", hasTraitor ? "DO" : "DON'T", " have a ", Initiator, " traitor ");
+                LogTo(EcazFaction, " you revealed to them that you ", hasTraitor ? "DO" : "DON'T", " have a ", Initiator, " traitor ");
                 break;
 
         }

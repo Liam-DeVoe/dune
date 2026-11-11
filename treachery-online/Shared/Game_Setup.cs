@@ -18,7 +18,7 @@ public partial class Game
     internal Phase PhaseBeforeSkillAssignment { get; private set; }
     public Faction NextFactionToPerformCustomSetup => Players.Select(p => p.Faction).FirstOrDefault(f => !HasActedOrPassed.Contains(f));
     public Deck<TreacheryCard>? StartingTreacheryCards { get; private set; }
-    private TreacheryCard? ExtraStartingCardForBlack { get; set; }
+    private TreacheryCard? ExtraStartingCardForHarkonnen { get; set; }
 
     #endregion State
 
@@ -81,19 +81,19 @@ public partial class Game
 
         foreach (var p in Players) p.AssignLeaders(this);
 
-        var pink = GetPlayer(Faction.Pink);
-        if (pink != null)
+        var ecaz = GetPlayer(Faction.Ecaz);
+        if (ecaz != null)
         {
-            AssignInitialAmbassadors(pink);
+            AssignInitialAmbassadors(ecaz);
 
-            if (Applicable(Rule.PinkLoyalty))
+            if (Applicable(Rule.EcazLoyalty))
             {
-                PinkLoyalLeader = pink.Leaders.RandomOrDefault(Random!);
-                Log(PinkLoyalLeader!, " is forever loyal to ", Faction.Pink);
+                EcazLoyalLeader = ecaz.Leaders.RandomOrDefault(Random!);
+                Log(EcazLoyalLeader!, " is forever loyal to ", Faction.Ecaz);
             }
         }
 
-        Enter(IsPlaying(Faction.Blue), Phase.BluePredicting, TreacheryCardsBeforeTraitors, DealStartingTreacheryCards, DealTraitors);
+        Enter(IsPlaying(Faction.BeneGesserit), Phase.BeneGesseritPredicting, TreacheryCardsBeforeTraitors, DealStartingTreacheryCards, DealTraitors);
     }
 
     internal void DealTraitors()
@@ -101,15 +101,15 @@ public partial class Game
         Stone(Milestone.Shuffled);
         TraitorDeck = CreateAndShuffleTraitorDeck(Random!);
 
-        if (Applicable(Rule.BlackMulligan) && IsPlaying(Faction.Black))
+        if (Applicable(Rule.HarkonnenMulligan) && IsPlaying(Faction.Harkonnen))
         {
-            DealBlackTraitorCards();
-            Enter(Phase.BlackMulligan);
+            DealHarkonnenTraitorCards();
+            Enter(Phase.HarkonnenMulligan);
         }
         else
         {
             for (var i = 1; i <= 4; i++)
-                foreach (var p in Players.Where(p => p.Faction != Faction.Purple)) p.Traitors.Add(TraitorDeck.Draw());
+                foreach (var p in Players.Where(p => p.Faction != Faction.Tleilaxu)) p.Traitors.Add(TraitorDeck.Draw());
 
             EnterSelectTraitors();
         }
@@ -119,10 +119,10 @@ public partial class Game
     {
         var result = new Deck<IHero>(TraitorsInPlay, random);
 
-        if (PinkLoyalLeader != null)
+        if (EcazLoyalLeader != null)
         {
-            result.Items.Remove(PinkLoyalLeader);
-            foreach (var p in Players) p.KnownNonTraitors.Add(PinkLoyalLeader);
+            result.Items.Remove(EcazLoyalLeader);
+            foreach (var p in Players) p.KnownNonTraitors.Add(EcazLoyalLeader);
         }
 
         if (Vidal != null)
@@ -132,35 +132,35 @@ public partial class Game
         return result;
     }
 
-    internal void DealBlackTraitorCards()
+    internal void DealHarkonnenTraitorCards()
     {
-        var black = GetPlayer(Faction.Black);
-        if (black is null) return;
-        for (var i = 1; i <= 4; i++) black.Traitors.Add(TraitorDeck!.Draw());
+        var harkonnen = GetPlayer(Faction.Harkonnen);
+        if (harkonnen is null) return;
+        for (var i = 1; i <= 4; i++) harkonnen.Traitors.Add(TraitorDeck!.Draw());
     }
 
     internal void EnterSelectTraitors()
     {
         HasActedOrPassed.Clear();
 
-        if (IsPlaying(Faction.Black)) HasActedOrPassed.Add(Faction.Black);
+        if (IsPlaying(Faction.Harkonnen)) HasActedOrPassed.Add(Faction.Harkonnen);
 
-        if (IsPlaying(Faction.Purple)) HasActedOrPassed.Add(Faction.Purple);
+        if (IsPlaying(Faction.Tleilaxu)) HasActedOrPassed.Add(Faction.Tleilaxu);
 
-        Enter(Players.Any(p => !(p.Is(Faction.Black) || p.Is(Faction.Purple))), Phase.SelectingTraitors, AssignFaceDancers);
+        Enter(Players.Any(p => !(p.Is(Faction.Harkonnen) || p.Is(Faction.Tleilaxu))), Phase.SelectingTraitors, AssignFaceDancers);
     }
 
     internal void AssignFaceDancers()
     {
-        var purple = GetPlayer(Faction.Purple);
-        if (purple != null)
+        var tleilaxu = GetPlayer(Faction.Tleilaxu);
+        if (tleilaxu != null)
         {
             TraitorDeck!.Shuffle();
             for (var i = 0; i < 3; i++)
             {
                 var leader = TraitorDeck.Draw();
-                purple.FaceDancers.Add(leader);
-                purple.KnownNonTraitors.Add(leader);
+                tleilaxu.FaceDancers.Add(leader);
+                tleilaxu.KnownNonTraitors.Add(leader);
             }
         }
 
@@ -208,9 +208,9 @@ public partial class Game
                 methodAfterSettingUp = DealStartingTreacheryCards;
 
             Enter(
-                IsPlaying(Faction.Yellow), Phase.YellowSettingUp,
-                IsPlaying(Faction.Blue) && PerformBluePlacement.BlueMayPlaceFirstForceInAnyTerritory(this), Phase.BlueSettingUp,
-                IsPlaying(Faction.Cyan), Phase.CyanSettingUp,
+                IsPlaying(Faction.Fremen), Phase.FremenSettingUp,
+                IsPlaying(Faction.BeneGesserit) && PerformBeneGesseritPlacement.BeneGesseritMayPlaceFirstForceInAnyTerritory(this), Phase.BeneGesseritSettingUp,
+                IsPlaying(Faction.Moritani), Phase.MoritaniSettingUp,
                 methodAfterSettingUp);
         }
     }
@@ -221,29 +221,29 @@ public partial class Game
 
         switch (p.Faction)
         {
-            case Faction.Yellow:
-                p.InitializeHomeworld(normalForceWorld, Applicable(Rule.YellowSpecialForces) ? 17 : 20, Applicable(Rule.YellowSpecialForces) ? 3 : 0);
+            case Faction.Fremen:
+                p.InitializeHomeworld(normalForceWorld, Applicable(Rule.FremenSpecialForces) ? 17 : 20, Applicable(Rule.FremenSpecialForces) ? 3 : 0);
                 break;
 
-            case Faction.Red:
-                p.InitializeHomeworld(normalForceWorld, Applicable(Rule.RedSpecialForces) ? 15 : 20, 0);
-                if (Applicable(Rule.RedSpecialForces)) 
+            case Faction.Emperor:
+                p.InitializeHomeworld(normalForceWorld, Applicable(Rule.EmperorSpecialForces) ? 15 : 20, 0);
+                if (Applicable(Rule.EmperorSpecialForces)) 
                     p.InitializeHomeworld(Map.Homeworlds.First(w => w.Faction == p.Faction && w.IsHomeOfSpecialForces), 0, 5);
                 break;
 
-            case Faction.Grey:
+            case Faction.Ixian:
                 p.InitializeHomeworld(normalForceWorld, 13, 7);
                 break;
 
-            case Faction.Green:
-            case Faction.Black:
-            case Faction.Orange:
-            case Faction.Blue:
-            case Faction.Purple:
-            case Faction.Brown:
-            case Faction.White:
-            case Faction.Pink:
-            case Faction.Cyan:
+            case Faction.Atreides:
+            case Faction.Harkonnen:
+            case Faction.Guild:
+            case Faction.BeneGesserit:
+            case Faction.Tleilaxu:
+            case Faction.Choam:
+            case Faction.Richese:
+            case Faction.Ecaz:
+            case Faction.Moritani:
                 p.InitializeHomeworld(normalForceWorld, 20, 0);
                 break;
         }
@@ -253,58 +253,58 @@ public partial class Game
     {
         switch (p.Faction)
         {
-            case Faction.Yellow:
+            case Faction.Fremen:
                 p.Resources = 3;
                 break;
 
-            case Faction.Green:
+            case Faction.Atreides:
                 p.Resources = 10;
                 p.AddForces(Map.Arrakeen, 10, true);
                 break;
 
-            case Faction.Black:
+            case Faction.Harkonnen:
                 p.Resources = 10;
                 p.AddForces(Map.Carthag, 10, true);
                 break;
 
-            case Faction.Red:
+            case Faction.Emperor:
                 p.Resources = 10;
                 break;
 
-            case Faction.Orange:
+            case Faction.Guild:
                 p.Resources = 5;
                 p.AddForces(Map.TueksSietch, 5, true);
                 break;
 
-            case Faction.Blue:
+            case Faction.BeneGesserit:
                 p.Resources = 5;
-                if (!PerformBluePlacement.BlueMayPlaceFirstForceInAnyTerritory(this)) p.AddForces(Map.PolarSink, 1, true);
+                if (!PerformBeneGesseritPlacement.BeneGesseritMayPlaceFirstForceInAnyTerritory(this)) p.AddForces(Map.PolarSink, 1, true);
                 break;
 
-            case Faction.Grey:
+            case Faction.Ixian:
                 p.Resources = 10;
                 p.AddForces(Map.HiddenMobileStronghold, 3, true);
                 p.AddSpecialForces(Map.HiddenMobileStronghold, 3, true);
                 break;
 
-            case Faction.Purple:
+            case Faction.Tleilaxu:
                 p.Resources = 5;
                 break;
 
-            case Faction.Brown:
+            case Faction.Choam:
                 p.Resources = 2;
                 break;
 
-            case Faction.White:
+            case Faction.Richese:
                 p.Resources = 5;
                 break;
 
-            case Faction.Pink:
+            case Faction.Ecaz:
                 p.Resources = 12;
                 p.AddForces(Map.ImperialBasin.MiddleLocation, 6, true);
                 break;
 
-            case Faction.Cyan:
+            case Faction.Moritani:
                 p.Resources = 12;
                 break;
         }
@@ -312,9 +312,9 @@ public partial class Game
 
     private void AssignInitialAmbassadors(Player p)
     {
-        p.Ambassadors.Add(Ambassador.Pink);
-        UnassignedAmbassadors!.Items.Remove(Ambassador.Pink);
-        Log(p.Faction, " receive the ", Faction.Pink, " ambassador");
+        p.Ambassadors.Add(Ambassador.Ecaz);
+        UnassignedAmbassadors!.Items.Remove(Ambassador.Ecaz);
+        Log(p.Faction, " receive the ", Faction.Ecaz, " ambassador");
         AssignRandomAmbassadors(p);
     }
 
@@ -336,24 +336,24 @@ public partial class Game
         {
             StartingTreacheryCards.Items.Add(TreacheryDeck!.Draw());
 
-            if (p.Is(Faction.Black)) ExtraStartingCardForBlack = TreacheryDeck.Draw();
+            if (p.Is(Faction.Harkonnen)) ExtraStartingCardForHarkonnen = TreacheryDeck.Draw();
         }
 
-        Enter(IsPlaying(Faction.Grey), Phase.GreySelectingCard, DealRemainingStartingTreacheryCardsToNonGrey);
+        Enter(IsPlaying(Faction.Ixian), Phase.IxianSelectingCard, DealRemainingStartingTreacheryCardsToNonIxian);
     }
 
-    internal void DealRemainingStartingTreacheryCardsToNonGrey()
+    internal void DealRemainingStartingTreacheryCardsToNonIxian()
     {
-        foreach (var p in Players.Where(p => p.Faction != Faction.Grey))
+        foreach (var p in Players.Where(p => p.Faction != Faction.Ixian))
         {
             var card = StartingTreacheryCards!.Draw();
             p.TreacheryCards.Add(card);
             LogTo(p.Faction, "Your starting treachery card is: ", card);
 
-            if (p.Is(Faction.Black) && ExtraStartingCardForBlack != null)
+            if (p.Is(Faction.Harkonnen) && ExtraStartingCardForHarkonnen != null)
             {
-                p.TreacheryCards.Add(ExtraStartingCardForBlack);
-                LogTo(Faction.Black, "Your extra card is: ", ExtraStartingCardForBlack);
+                p.TreacheryCards.Add(ExtraStartingCardForHarkonnen);
+                LogTo(Faction.Harkonnen, "Your extra card is: ", ExtraStartingCardForHarkonnen);
             }
         }
 

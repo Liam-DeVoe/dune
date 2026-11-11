@@ -41,12 +41,12 @@ public class Audited : GameEvent
 
         foreach (var card in Game.AuditedCards) Game.RegisterKnown(Player, card);
 
-        Game.Enter(Game.BattleWinner == Faction.None, Game.FinishBattle, Game.BlackMustDecideToCapture, Phase.CaptureDecision, Phase.BattleConclusion);
+        Game.Enter(Game.BattleWinner == Faction.None, Game.FinishBattle, Game.HarkonnenMustDecideToCapture, Phase.CaptureDecision, Phase.BattleConclusion);
     }
 
     public override Message GetMessage()
     {
-        return Message.Express(Faction.Brown, " finish their audit");
+        return Message.Express(Faction.Choam, " finish their audit");
     }
 
     #endregion Execution

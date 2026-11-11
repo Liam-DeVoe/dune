@@ -26,7 +26,7 @@ public partial class Game
     internal KarmaShipmentPrevention? CurrentKarmaShipmentPrevention { get; set; }
     internal List<Territory> ChosenDestinationsWithAllies { get; } = [];
     internal bool CurrentPlayerMayPerformExtraMove { get; set; }
-    internal bool BlueMayAccompany { get; set; }
+    internal bool BeneGesseritMayAccompany { get; set; }
     internal Phase PhaseBeforeCaravanCausedIntrusion { get; set; }
     internal Phase PhaseBeforeRevivalCausedIntrusion { get; set; }
     internal FlightUsed? CurrentFlightUsed { get; set; }
@@ -39,34 +39,34 @@ public partial class Game
     internal Phase PausedTerrorPhase { get; set; }
     public bool AllianceByTerrorWasOffered { get; internal set; }
     public Faction AllianceByTerrorOfferedTo { get; internal set; }
-    public bool InOrangeCunningShipment { get; internal set; }
+    public bool InGuildCunningShipment { get; internal set; }
     public List<Territory> CurrentBlockedTerritories { get; } = [];
-    internal bool BrownHasExtraMove { get; set; }
+    internal bool ChoamHasExtraMove { get; set; }
 
     #endregion State
 
     internal void StartShipAndMoveSequence()
     {
-        if (ShipmentAndMoveSequence?.CurrentFaction == Faction.Orange && OrangeMayShipOutOfTurnOrder) 
+        if (ShipmentAndMoveSequence?.CurrentFaction == Faction.Guild && GuildMayShipOutOfTurnOrder) 
             ShipmentAndMoveSequence.NextPlayer();
         
-        Enter(JuiceForcesFirstPlayer && CurrentJuice.Initiator != Faction.Orange, 
-            Phase.NonOrangeShip, 
-            CheckIfOrangeActsOrAutoDelays(), Phase.OrangeShip, Phase.NonOrangeShip);
+        Enter(JuiceForcesFirstPlayer && CurrentJuice.Initiator != Faction.Guild, 
+            Phase.NonGuildShip, 
+            CheckIfGuildActsOrAutoDelays(), Phase.GuildShip, Phase.NonGuildShip);
     }
 
-    private bool CheckIfOrangeActsOrAutoDelays()
+    private bool CheckIfGuildActsOrAutoDelays()
     {
-        var orange = GetPlayer(Faction.Orange);
-        var orangeMayDelay = OrangeMayDelay;
-        var orangeHasToAct = IsPlaying(Faction.Orange) && HasActedOrPassed.All(p => p != Faction.Orange) && OrangeMayShipOutOfTurnOrder;
-        var orangeIsOnAutoDelay = orange != null && IsAutomated(AutomationRuleType.ShipmentOrangeAutoDelay, orange);
-        if (orangeHasToAct && orangeIsOnAutoDelay && orangeMayDelay)
+        var guild = GetPlayer(Faction.Guild);
+        var guildMayDelay = GuildMayDelay;
+        var guildHasToAct = IsPlaying(Faction.Guild) && HasActedOrPassed.All(p => p != Faction.Guild) && GuildMayShipOutOfTurnOrder;
+        var guildIsOnAutoDelay = guild != null && IsAutomated(AutomationRuleType.ShipmentGuildAutoDelay, guild);
+        if (guildHasToAct && guildIsOnAutoDelay && guildMayDelay)
         {
-            Log(Message.Express(Faction.Orange, " delay their shipment").WithLog(new GuildDelayed()));
+            Log(Message.Express(Faction.Guild, " delay their shipment").WithLog(new GuildDelayed()));
         }
 
-        return orangeHasToAct && !(orangeIsOnAutoDelay && orangeMayDelay);
+        return guildHasToAct && !(guildIsOnAutoDelay && guildMayDelay);
     }
 
     internal void PerformMoveFromLocations(Player initiator, Dictionary<Location, Battalion> forceLocations, ILocationEvent evt, bool asAdvisors, bool byCaravan)
@@ -90,7 +90,7 @@ public partial class Game
                     CheckSandmaster(initiator, evt.To, dist, fl);
                 }
 
-            if (initiator.Is(Faction.Blue)) initiator.FlipForces(evt.To, wasOccupiedBeforeMove && asAdvisors);
+            if (initiator.Is(Faction.BeneGesserit)) initiator.FlipForces(evt.To, wasOccupiedBeforeMove && asAdvisors);
 
             if (totalNumberOfForces > 0 || totalNumberOfSpecialForces > 0)
             {
@@ -100,14 +100,14 @@ public partial class Game
         }
 
         Stone(Milestone.Move);
-        FlipBlueAdvisorsWhenAlone();
+        FlipBeneGesseritAdvisorsWhenAlone();
     }
 
     private void CheckSandmaster(Player initiator, Location to, int dist, KeyValuePair<Location, Battalion> fl)
     {
         if (SkilledAs(initiator, LeaderSkill.Sandmaster))
         {
-            var paths = Map.FindPaths(fl.Key, to, dist, initiator.Faction == Faction.Yellow && Applicable(Rule.YellowMayMoveIntoStorm), initiator.Faction, this);
+            var paths = Map.FindPaths(fl.Key, to, dist, initiator.Faction == Faction.Fremen && Applicable(Rule.FremenMayMoveIntoStorm), initiator.Faction, this);
             var mostSpice = 0;
             List<Location>? pathWithMostSpice = null;
             foreach (var p in paths)
@@ -138,7 +138,7 @@ public partial class Game
         if (!ignoreStorm && (IsInStorm(to) || mustMoveThroughStorm))
         {
             int killCount;
-            if (initiator.Is(Faction.Yellow) && !Prevented(FactionAdvantage.YellowProtectedFromStorm) && Applicable(Rule.YellowStormLosses))
+            if (initiator.Is(Faction.Fremen) && !Prevented(FactionAdvantage.FremenProtectedFromStorm) && Applicable(Rule.FremenStormLosses))
             {
                 killCount = 0;
                 initiator.MoveForces(from, to, battalion.AmountOfForces);
@@ -180,7 +180,7 @@ public partial class Game
     // Ship & Move phase; those lines carry a record for the phase log.
     internal void LogMove(Player initiator, Territory from, IEnumerable<Location> fromLocations, Location to, int forceAmount, int specialForceAmount, bool asAdvisors, bool byCaravan, int? moveNumber = null)
     {
-        var blueAs = initiator.Is(Faction.Blue) && Applicable(Rule.BlueAdvisors);
+        var beneGesseritAs = initiator.Is(Faction.BeneGesserit) && Applicable(Rule.BeneGesseritAdvisors);
         var message = Message.Express(
             CaravanMessage(byCaravan),
             initiator.Faction,
@@ -191,11 +191,11 @@ public partial class Game
             from,
             " to ",
             to,
-            MessagePart.ExpressIf(blueAs, " as ", asAdvisors ? initiator.SpecialForce : initiator.Force))
+            MessagePart.ExpressIf(beneGesseritAs, " as ", asAdvisors ? initiator.SpecialForce : initiator.Force))
             .WithRoute(initiator.Faction, fromLocations, to);
 
         if (moveNumber is { } nr)
-            message.WithLog(new MoveLogged(initiator.Faction, nr, from, forceAmount, specialForceAmount, to, byCaravan, blueAs ? asAdvisors : null));
+            message.WithLog(new MoveLogged(initiator.Faction, nr, from, forceAmount, specialForceAmount, to, byCaravan, beneGesseritAs ? asAdvisors : null));
 
         Log(message);
     }
@@ -242,10 +242,10 @@ public partial class Game
         var ambassador = AmbassadorIn(territory);
         if (ambassador != Ambassador.None)
         {
-            var pink = GetPlayer(Faction.Pink);
+            var ecaz = GetPlayer(Faction.Ecaz);
             AmbassadorsOnPlanet.Remove(territory);
-            pink!.Ambassadors.Add(ambassador);
-            Log("The ambassador in ", territory, " returns to ", Faction.Pink);
+            ecaz!.Ambassadors.Add(ambassador);
+            Log("The ambassador in ", territory, " returns to ", Faction.Ecaz);
         }
     }
 
@@ -253,17 +253,17 @@ public partial class Game
     {
         CleanupObsoleteIntrusions();
 
-        if (BlueMayAccompany)
+        if (BeneGesseritMayAccompany)
         {
-            if (Prevented(FactionAdvantage.BlueAccompanies))
+            if (Prevented(FactionAdvantage.BeneGesseritAccompanies))
             {
-                LogPreventionByKarma(FactionAdvantage.BlueAccompanies);
-                BlueMayAccompany = false;
-                if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.BlueAccompanies);
+                LogPreventionByKarma(FactionAdvantage.BeneGesseritAccompanies);
+                BeneGesseritMayAccompany = false;
+                if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.BeneGesseritAccompanies);
             }
-            else if (HasLowThreshold(Faction.Blue))
+            else if (HasLowThreshold(Faction.BeneGesserit))
             {
-                BlueMayAccompany = false;
+                BeneGesseritMayAccompany = false;
             }
         }
 
@@ -276,9 +276,9 @@ public partial class Game
         {
             switch (Intrusions.Peek().Type)
             {
-                case IntrusionType.BlueIntrusion:
+                case IntrusionType.BeneGesseritIntrusion:
 
-                    DetermineNextShipmentAndMoveSubPhaseOnBlueIntruded();
+                    DetermineNextShipmentAndMoveSubPhaseOnBeneGesseritIntruded();
                     break;
 
                 case IntrusionType.Terror:
@@ -302,11 +302,11 @@ public partial class Game
 
     private void SkipMoveIfNothingToMove()
     {
-        if (Version < 179 || CurrentPhase is not Phase.OrangeMove and not Phase.NonOrangeMove)
+        if (Version < 179 || CurrentPhase is not Phase.GuildMove and not Phase.NonGuildMove)
             return;
         
-        var player = CurrentPhase is Phase.OrangeMove 
-            ? GetPlayer(Faction.Orange) 
+        var player = CurrentPhase is Phase.GuildMove 
+            ? GetPlayer(Faction.Guild) 
             : ShipmentAndMoveSequence!.CurrentPlayer;
 
         if (player == null)
@@ -318,27 +318,27 @@ public partial class Game
         StormLossesToTake.Clear();
         HasActedOrPassed.Add(player.Faction);
 
-        if (CurrentPhase is Phase.NonOrangeMove)
+        if (CurrentPhase is Phase.NonGuildMove)
         {
             ShipmentAndMoveSequence!.NextPlayer();
-            if (ShipmentAndMoveSequence.CurrentFaction == Faction.Orange && OrangeMayShipOutOfTurnOrder)
+            if (ShipmentAndMoveSequence.CurrentFaction == Faction.Guild && GuildMayShipOutOfTurnOrder)
                 ShipmentAndMoveSequence.NextPlayer();
         }
 
-        if (InOrangeCunningShipment)
+        if (InGuildCunningShipment)
         {
-            CurrentOrangeCunning = null;
-            InOrangeCunningShipment = false;
+            CurrentGuildCunning = null;
+            InGuildCunningShipment = false;
         }
 
         Log(Message.Express(player.Faction, " pass movement").WithLog(new MovePassed(player.Faction)));
 
         DetermineNextShipmentAndMoveSubPhase();
         CheckIfForcesShouldBeDestroyedByAllyPresence(player);
-        FlipBlueAdvisorsWhenAlone();
+        FlipBeneGesseritAdvisorsWhenAlone();
 
-        if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.YellowExtraMove);
-        if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.GreyCyborgExtraMove);
+        if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.FremenExtraMove);
+        if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.IxianCyborgExtraMove);
 
         CurrentFlightUsed = null;
         CurrentFlightDiscoveryUsed = null;
@@ -357,8 +357,8 @@ public partial class Game
                 i++;
                 if (i > 100) throw new Exception("Stuck");
 
-                if (LastBlueIntrusion != null && GetPlayer(Faction.Blue)!.ForcesIn(LastBlueIntrusion.Territory) == 0)
-                    DequeueIntrusion(IntrusionType.BlueIntrusion);
+                if (LastBeneGesseritIntrusion != null && GetPlayer(Faction.BeneGesserit)!.ForcesIn(LastBeneGesseritIntrusion.Territory) == 0)
+                    DequeueIntrusion(IntrusionType.BeneGesseritIntrusion);
                 else if (LastTerrorTrigger != null && !TerrorIn(LastTerrorTrigger.Territory).Any())
                     DequeueIntrusion(IntrusionType.Terror);
                 else if (LastAmbassadorTrigger != null && AmbassadorIn(LastAmbassadorTrigger.Territory) == Ambassador.None)
@@ -373,67 +373,67 @@ public partial class Game
     {
         switch (CurrentPhase)
         {
-            case Phase.YellowRidingMonsterA:
-            case Phase.BlueIntrudedByYellowRidingMonsterA:
-            case Phase.TerrorTriggeredByYellowRidingMonsterA:
-            case Phase.AmbassadorTriggeredByYellowRidingMonsterA:
-                EndWormRideDuringPhase(Phase.YellowRidingMonsterA);
+            case Phase.FremenRidingMonsterA:
+            case Phase.BeneGesseritIntrudedByFremenRidingMonsterA:
+            case Phase.TerrorTriggeredByFremenRidingMonsterA:
+            case Phase.AmbassadorTriggeredByFremenRidingMonsterA:
+                EndWormRideDuringPhase(Phase.FremenRidingMonsterA);
                 break;
 
-            case Phase.YellowRidingMonsterB:
-            case Phase.BlueIntrudedByYellowRidingMonsterB:
-            case Phase.TerrorTriggeredByYellowRidingMonsterB:
-            case Phase.AmbassadorTriggeredByYellowRidingMonsterB:
-                EndWormRideDuringPhase(Phase.YellowRidingMonsterB);
+            case Phase.FremenRidingMonsterB:
+            case Phase.BeneGesseritIntrudedByFremenRidingMonsterB:
+            case Phase.TerrorTriggeredByFremenRidingMonsterB:
+            case Phase.AmbassadorTriggeredByFremenRidingMonsterB:
+                EndWormRideDuringPhase(Phase.FremenRidingMonsterB);
                 break;
 
-            case Phase.OrangeShip:
-            case Phase.BlueIntrudedByOrangeShip:
-            case Phase.TerrorTriggeredByOrangeShip:
-            case Phase.AmbassadorTriggeredByOrangeShip:
-                Enter(IsPlaying(Faction.Blue) && BlueMayAccompany, Phase.BlueAccompaniesOrangeShip, !InOrangeCunningShipment, Phase.OrangeMove, Phase.NonOrangeMove);
+            case Phase.GuildShip:
+            case Phase.BeneGesseritIntrudedByGuildShip:
+            case Phase.TerrorTriggeredByGuildShip:
+            case Phase.AmbassadorTriggeredByGuildShip:
+                Enter(IsPlaying(Faction.BeneGesserit) && BeneGesseritMayAccompany, Phase.BeneGesseritAccompaniesGuildShip, !InGuildCunningShipment, Phase.GuildMove, Phase.NonGuildMove);
                 break;
 
-            case Phase.BlueAccompaniesOrangeShip:
-            case Phase.TerrorTriggeredByBlueAccompaniesOrangeShip:
-            case Phase.AmbassadorTriggeredByBlueAccompaniesOrangeShip:
-                Enter(!InOrangeCunningShipment, Phase.OrangeMove, Phase.NonOrangeMove);
+            case Phase.BeneGesseritAccompaniesGuildShip:
+            case Phase.TerrorTriggeredByBeneGesseritAccompaniesGuildShip:
+            case Phase.AmbassadorTriggeredByBeneGesseritAccompaniesGuildShip:
+                Enter(!InGuildCunningShipment, Phase.GuildMove, Phase.NonGuildMove);
                 break;
 
-            case Phase.NonOrangeShip:
-            case Phase.BlueIntrudedByNonOrangeShip:
-            case Phase.TerrorTriggeredByNonOrangeShip:
-            case Phase.AmbassadorTriggeredByNonOrangeShip:
-                Enter(IsPlaying(Faction.Blue) && BlueMayAccompany, Phase.BlueAccompaniesNonOrangeShip, Phase.NonOrangeMove);
+            case Phase.NonGuildShip:
+            case Phase.BeneGesseritIntrudedByNonGuildShip:
+            case Phase.TerrorTriggeredByNonGuildShip:
+            case Phase.AmbassadorTriggeredByNonGuildShip:
+                Enter(IsPlaying(Faction.BeneGesserit) && BeneGesseritMayAccompany, Phase.BeneGesseritAccompaniesNonGuildShip, Phase.NonGuildMove);
                 break;
 
-            case Phase.BlueAccompaniesNonOrangeShip:
-            case Phase.TerrorTriggeredByBlueAccompaniesNonOrangeShip:
-            case Phase.AmbassadorTriggeredByBlueAccompaniesNonOrangeShip:
-                Enter(Phase.NonOrangeMove);
+            case Phase.BeneGesseritAccompaniesNonGuildShip:
+            case Phase.TerrorTriggeredByBeneGesseritAccompaniesNonGuildShip:
+            case Phase.AmbassadorTriggeredByBeneGesseritAccompaniesNonGuildShip:
+                Enter(Phase.NonGuildMove);
                 break;
 
-            case Phase.OrangeMove:
-            case Phase.BlueIntrudedByOrangeMove:
-            case Phase.TerrorTriggeredByOrangeMove:
-            case Phase.AmbassadorTriggeredByOrangeMove:
-                DetermineNextSubPhaseAfterOrangeShipAndMove();
+            case Phase.GuildMove:
+            case Phase.BeneGesseritIntrudedByGuildMove:
+            case Phase.TerrorTriggeredByGuildMove:
+            case Phase.AmbassadorTriggeredByGuildMove:
+                DetermineNextSubPhaseAfterGuildShipAndMove();
                 break;
 
-            case Phase.NonOrangeMove:
-            case Phase.BlueIntrudedByNonOrangeMove:
-            case Phase.TerrorTriggeredByNonOrangeMove:
-            case Phase.AmbassadorTriggeredByNonOrangeMove:
-                DetermineNextSubPhaseAfterNonOrangeMove();
+            case Phase.NonGuildMove:
+            case Phase.BeneGesseritIntrudedByNonGuildMove:
+            case Phase.TerrorTriggeredByNonGuildMove:
+            case Phase.AmbassadorTriggeredByNonGuildMove:
+                DetermineNextSubPhaseAfterNonGuildMove();
                 break;
 
-            case Phase.BlueIntrudedByCaravan:
+            case Phase.BeneGesseritIntrudedByCaravan:
             case Phase.TerrorTriggeredByCaravan:
             case Phase.AmbassadorTriggeredByCaravan:
                 Enter(PhaseBeforeCaravanCausedIntrusion);
                 break;
 
-            case Phase.BlueIntrudedByRevival:
+            case Phase.BeneGesseritIntrudedByRevival:
             case Phase.TerrorTriggeredByRevival:
             case Phase.AmbassadorTriggeredByRevival:
             {
@@ -453,70 +453,70 @@ public partial class Game
         }
     }
 
-    private void DetermineNextShipmentAndMoveSubPhaseOnBlueIntruded()
+    private void DetermineNextShipmentAndMoveSubPhaseOnBeneGesseritIntruded()
     {
         switch (CurrentPhase)
         {
-            case Phase.YellowRidingMonsterA:
-            case Phase.BlueIntrudedByYellowRidingMonsterA:
-            case Phase.TerrorTriggeredByYellowRidingMonsterA:
-            case Phase.AmbassadorTriggeredByYellowRidingMonsterA:
-                Enter(Phase.BlueIntrudedByYellowRidingMonsterA);
+            case Phase.FremenRidingMonsterA:
+            case Phase.BeneGesseritIntrudedByFremenRidingMonsterA:
+            case Phase.TerrorTriggeredByFremenRidingMonsterA:
+            case Phase.AmbassadorTriggeredByFremenRidingMonsterA:
+                Enter(Phase.BeneGesseritIntrudedByFremenRidingMonsterA);
                 break;
 
-            case Phase.YellowRidingMonsterB:
-            case Phase.BlueIntrudedByYellowRidingMonsterB:
-            case Phase.TerrorTriggeredByYellowRidingMonsterB:
-            case Phase.AmbassadorTriggeredByYellowRidingMonsterB:
-                Enter(Phase.BlueIntrudedByYellowRidingMonsterB);
+            case Phase.FremenRidingMonsterB:
+            case Phase.BeneGesseritIntrudedByFremenRidingMonsterB:
+            case Phase.TerrorTriggeredByFremenRidingMonsterB:
+            case Phase.AmbassadorTriggeredByFremenRidingMonsterB:
+                Enter(Phase.BeneGesseritIntrudedByFremenRidingMonsterB);
                 break;
 
-            case Phase.OrangeShip:
-            case Phase.BlueIntrudedByOrangeShip:
-            case Phase.TerrorTriggeredByOrangeShip:
-            case Phase.AmbassadorTriggeredByOrangeShip:
-            case Phase.TerrorTriggeredByBlueAccompaniesOrangeShip:
-            case Phase.AmbassadorTriggeredByBlueAccompaniesOrangeShip:
-                Enter(Phase.BlueIntrudedByOrangeShip);
+            case Phase.GuildShip:
+            case Phase.BeneGesseritIntrudedByGuildShip:
+            case Phase.TerrorTriggeredByGuildShip:
+            case Phase.AmbassadorTriggeredByGuildShip:
+            case Phase.TerrorTriggeredByBeneGesseritAccompaniesGuildShip:
+            case Phase.AmbassadorTriggeredByBeneGesseritAccompaniesGuildShip:
+                Enter(Phase.BeneGesseritIntrudedByGuildShip);
                 break;
 
-            case Phase.NonOrangeShip:
-            case Phase.BlueIntrudedByNonOrangeShip:
-            case Phase.TerrorTriggeredByNonOrangeShip:
-            case Phase.AmbassadorTriggeredByNonOrangeShip:
-            case Phase.TerrorTriggeredByBlueAccompaniesNonOrangeShip:
-            case Phase.AmbassadorTriggeredByBlueAccompaniesNonOrangeShip:
-                Enter(Phase.BlueIntrudedByNonOrangeShip);
+            case Phase.NonGuildShip:
+            case Phase.BeneGesseritIntrudedByNonGuildShip:
+            case Phase.TerrorTriggeredByNonGuildShip:
+            case Phase.AmbassadorTriggeredByNonGuildShip:
+            case Phase.TerrorTriggeredByBeneGesseritAccompaniesNonGuildShip:
+            case Phase.AmbassadorTriggeredByBeneGesseritAccompaniesNonGuildShip:
+                Enter(Phase.BeneGesseritIntrudedByNonGuildShip);
                 break;
 
-            case Phase.OrangeMove:
-            case Phase.BlueIntrudedByOrangeMove:
-            case Phase.TerrorTriggeredByOrangeMove:
-            case Phase.AmbassadorTriggeredByOrangeMove:
-                Enter(Phase.BlueIntrudedByOrangeMove);
+            case Phase.GuildMove:
+            case Phase.BeneGesseritIntrudedByGuildMove:
+            case Phase.TerrorTriggeredByGuildMove:
+            case Phase.AmbassadorTriggeredByGuildMove:
+                Enter(Phase.BeneGesseritIntrudedByGuildMove);
                 break;
 
-            case Phase.NonOrangeMove:
-            case Phase.BlueIntrudedByNonOrangeMove:
-            case Phase.TerrorTriggeredByNonOrangeMove:
-            case Phase.AmbassadorTriggeredByNonOrangeMove:
-                Enter(Phase.BlueIntrudedByNonOrangeMove);
+            case Phase.NonGuildMove:
+            case Phase.BeneGesseritIntrudedByNonGuildMove:
+            case Phase.TerrorTriggeredByNonGuildMove:
+            case Phase.AmbassadorTriggeredByNonGuildMove:
+                Enter(Phase.BeneGesseritIntrudedByNonGuildMove);
                 break;
 
-            case Phase.BlueIntrudedByCaravan:
+            case Phase.BeneGesseritIntrudedByCaravan:
             case Phase.TerrorTriggeredByCaravan:
             case Phase.AmbassadorTriggeredByCaravan:
-                Enter(Phase.BlueIntrudedByCaravan);
+                Enter(Phase.BeneGesseritIntrudedByCaravan);
                 break;
 
-            case Phase.BlueIntrudedByRevival:
+            case Phase.BeneGesseritIntrudedByRevival:
             case Phase.TerrorTriggeredByRevival:
             case Phase.AmbassadorTriggeredByRevival:
-                Enter(Phase.BlueIntrudedByRevival);
+                Enter(Phase.BeneGesseritIntrudedByRevival);
                 break;
 
             default:
-                throw new Exception($"Blue intrusion triggered during undefined phase: {CurrentPhase}");
+                throw new Exception($"BeneGesserit intrusion triggered during undefined phase: {CurrentPhase}");
         }
     }
 
@@ -524,67 +524,67 @@ public partial class Game
     {
         switch (CurrentPhase)
         {
-            case Phase.YellowRidingMonsterA:
-            case Phase.BlueIntrudedByYellowRidingMonsterA:
-            case Phase.TerrorTriggeredByYellowRidingMonsterA:
-            case Phase.AmbassadorTriggeredByYellowRidingMonsterA:
-                Enter(Phase.TerrorTriggeredByYellowRidingMonsterA);
+            case Phase.FremenRidingMonsterA:
+            case Phase.BeneGesseritIntrudedByFremenRidingMonsterA:
+            case Phase.TerrorTriggeredByFremenRidingMonsterA:
+            case Phase.AmbassadorTriggeredByFremenRidingMonsterA:
+                Enter(Phase.TerrorTriggeredByFremenRidingMonsterA);
                 break;
 
-            case Phase.YellowRidingMonsterB:
-            case Phase.BlueIntrudedByYellowRidingMonsterB:
-            case Phase.TerrorTriggeredByYellowRidingMonsterB:
-            case Phase.AmbassadorTriggeredByYellowRidingMonsterB:
-                Enter(Phase.TerrorTriggeredByYellowRidingMonsterB);
+            case Phase.FremenRidingMonsterB:
+            case Phase.BeneGesseritIntrudedByFremenRidingMonsterB:
+            case Phase.TerrorTriggeredByFremenRidingMonsterB:
+            case Phase.AmbassadorTriggeredByFremenRidingMonsterB:
+                Enter(Phase.TerrorTriggeredByFremenRidingMonsterB);
                 break;
 
-            case Phase.OrangeShip:
-            case Phase.BlueIntrudedByOrangeShip:
-            case Phase.TerrorTriggeredByOrangeShip:
-            case Phase.AmbassadorTriggeredByOrangeShip:
-                Enter(Phase.TerrorTriggeredByOrangeShip);
+            case Phase.GuildShip:
+            case Phase.BeneGesseritIntrudedByGuildShip:
+            case Phase.TerrorTriggeredByGuildShip:
+            case Phase.AmbassadorTriggeredByGuildShip:
+                Enter(Phase.TerrorTriggeredByGuildShip);
                 break;
 
-            case Phase.BlueAccompaniesOrangeShip:
-            case Phase.TerrorTriggeredByBlueAccompaniesOrangeShip:
-            case Phase.AmbassadorTriggeredByBlueAccompaniesOrangeShip:
-                Enter(Phase.TerrorTriggeredByOrangeShip);
+            case Phase.BeneGesseritAccompaniesGuildShip:
+            case Phase.TerrorTriggeredByBeneGesseritAccompaniesGuildShip:
+            case Phase.AmbassadorTriggeredByBeneGesseritAccompaniesGuildShip:
+                Enter(Phase.TerrorTriggeredByGuildShip);
                 break;
 
-            case Phase.NonOrangeShip:
-            case Phase.BlueIntrudedByNonOrangeShip:
-            case Phase.TerrorTriggeredByNonOrangeShip:
-            case Phase.AmbassadorTriggeredByNonOrangeShip:
-                Enter(Phase.TerrorTriggeredByNonOrangeShip);
+            case Phase.NonGuildShip:
+            case Phase.BeneGesseritIntrudedByNonGuildShip:
+            case Phase.TerrorTriggeredByNonGuildShip:
+            case Phase.AmbassadorTriggeredByNonGuildShip:
+                Enter(Phase.TerrorTriggeredByNonGuildShip);
                 break;
 
-            case Phase.BlueAccompaniesNonOrangeShip:
-            case Phase.TerrorTriggeredByBlueAccompaniesNonOrangeShip:
-            case Phase.AmbassadorTriggeredByBlueAccompaniesNonOrangeShip:
-                Enter(Phase.TerrorTriggeredByNonOrangeShip);
+            case Phase.BeneGesseritAccompaniesNonGuildShip:
+            case Phase.TerrorTriggeredByBeneGesseritAccompaniesNonGuildShip:
+            case Phase.AmbassadorTriggeredByBeneGesseritAccompaniesNonGuildShip:
+                Enter(Phase.TerrorTriggeredByNonGuildShip);
                 break;
 
-            case Phase.OrangeMove:
-            case Phase.BlueIntrudedByOrangeMove:
-            case Phase.TerrorTriggeredByOrangeMove:
-            case Phase.AmbassadorTriggeredByOrangeMove:
-                Enter(Phase.TerrorTriggeredByOrangeMove);
+            case Phase.GuildMove:
+            case Phase.BeneGesseritIntrudedByGuildMove:
+            case Phase.TerrorTriggeredByGuildMove:
+            case Phase.AmbassadorTriggeredByGuildMove:
+                Enter(Phase.TerrorTriggeredByGuildMove);
                 break;
 
-            case Phase.NonOrangeMove:
-            case Phase.BlueIntrudedByNonOrangeMove:
-            case Phase.TerrorTriggeredByNonOrangeMove:
-            case Phase.AmbassadorTriggeredByNonOrangeMove:
-                Enter(Phase.TerrorTriggeredByNonOrangeMove);
+            case Phase.NonGuildMove:
+            case Phase.BeneGesseritIntrudedByNonGuildMove:
+            case Phase.TerrorTriggeredByNonGuildMove:
+            case Phase.AmbassadorTriggeredByNonGuildMove:
+                Enter(Phase.TerrorTriggeredByNonGuildMove);
                 break;
 
-            case Phase.BlueIntrudedByCaravan:
+            case Phase.BeneGesseritIntrudedByCaravan:
             case Phase.TerrorTriggeredByCaravan:
             case Phase.AmbassadorTriggeredByCaravan:
                 Enter(Phase.TerrorTriggeredByCaravan);
                 break;
 
-            case Phase.BlueIntrudedByRevival:
+            case Phase.BeneGesseritIntrudedByRevival:
             case Phase.TerrorTriggeredByRevival:
             case Phase.AmbassadorTriggeredByRevival:
                 Enter(Phase.TerrorTriggeredByRevival);
@@ -599,67 +599,67 @@ public partial class Game
     {
         switch (CurrentPhase)
         {
-            case Phase.YellowRidingMonsterA:
-            case Phase.BlueIntrudedByYellowRidingMonsterA:
-            case Phase.TerrorTriggeredByYellowRidingMonsterA:
-            case Phase.AmbassadorTriggeredByYellowRidingMonsterA:
-                Enter(Phase.AmbassadorTriggeredByYellowRidingMonsterA);
+            case Phase.FremenRidingMonsterA:
+            case Phase.BeneGesseritIntrudedByFremenRidingMonsterA:
+            case Phase.TerrorTriggeredByFremenRidingMonsterA:
+            case Phase.AmbassadorTriggeredByFremenRidingMonsterA:
+                Enter(Phase.AmbassadorTriggeredByFremenRidingMonsterA);
                 break;
 
-            case Phase.YellowRidingMonsterB:
-            case Phase.BlueIntrudedByYellowRidingMonsterB:
-            case Phase.TerrorTriggeredByYellowRidingMonsterB:
-            case Phase.AmbassadorTriggeredByYellowRidingMonsterB:
-                Enter(Phase.AmbassadorTriggeredByYellowRidingMonsterB);
+            case Phase.FremenRidingMonsterB:
+            case Phase.BeneGesseritIntrudedByFremenRidingMonsterB:
+            case Phase.TerrorTriggeredByFremenRidingMonsterB:
+            case Phase.AmbassadorTriggeredByFremenRidingMonsterB:
+                Enter(Phase.AmbassadorTriggeredByFremenRidingMonsterB);
                 break;
 
-            case Phase.OrangeShip:
-            case Phase.BlueIntrudedByOrangeShip:
-            case Phase.TerrorTriggeredByOrangeShip:
-            case Phase.AmbassadorTriggeredByOrangeShip:
-                Enter(Phase.AmbassadorTriggeredByOrangeShip);
+            case Phase.GuildShip:
+            case Phase.BeneGesseritIntrudedByGuildShip:
+            case Phase.TerrorTriggeredByGuildShip:
+            case Phase.AmbassadorTriggeredByGuildShip:
+                Enter(Phase.AmbassadorTriggeredByGuildShip);
                 break;
 
-            case Phase.BlueAccompaniesOrangeShip:
-            case Phase.TerrorTriggeredByBlueAccompaniesOrangeShip:
-            case Phase.AmbassadorTriggeredByBlueAccompaniesOrangeShip:
-                Enter(Phase.AmbassadorTriggeredByBlueAccompaniesOrangeShip);
+            case Phase.BeneGesseritAccompaniesGuildShip:
+            case Phase.TerrorTriggeredByBeneGesseritAccompaniesGuildShip:
+            case Phase.AmbassadorTriggeredByBeneGesseritAccompaniesGuildShip:
+                Enter(Phase.AmbassadorTriggeredByBeneGesseritAccompaniesGuildShip);
                 break;
 
-            case Phase.NonOrangeShip:
-            case Phase.BlueIntrudedByNonOrangeShip:
-            case Phase.TerrorTriggeredByNonOrangeShip:
-            case Phase.AmbassadorTriggeredByNonOrangeShip:
-                Enter(Phase.AmbassadorTriggeredByNonOrangeShip);
+            case Phase.NonGuildShip:
+            case Phase.BeneGesseritIntrudedByNonGuildShip:
+            case Phase.TerrorTriggeredByNonGuildShip:
+            case Phase.AmbassadorTriggeredByNonGuildShip:
+                Enter(Phase.AmbassadorTriggeredByNonGuildShip);
                 break;
 
-            case Phase.BlueAccompaniesNonOrangeShip:
-            case Phase.TerrorTriggeredByBlueAccompaniesNonOrangeShip:
-            case Phase.AmbassadorTriggeredByBlueAccompaniesNonOrangeShip:
-                Enter(Phase.AmbassadorTriggeredByBlueAccompaniesNonOrangeShip);
+            case Phase.BeneGesseritAccompaniesNonGuildShip:
+            case Phase.TerrorTriggeredByBeneGesseritAccompaniesNonGuildShip:
+            case Phase.AmbassadorTriggeredByBeneGesseritAccompaniesNonGuildShip:
+                Enter(Phase.AmbassadorTriggeredByBeneGesseritAccompaniesNonGuildShip);
                 break;
 
-            case Phase.OrangeMove:
-            case Phase.BlueIntrudedByOrangeMove:
-            case Phase.TerrorTriggeredByOrangeMove:
-            case Phase.AmbassadorTriggeredByOrangeMove:
-                Enter(Phase.AmbassadorTriggeredByOrangeMove);
+            case Phase.GuildMove:
+            case Phase.BeneGesseritIntrudedByGuildMove:
+            case Phase.TerrorTriggeredByGuildMove:
+            case Phase.AmbassadorTriggeredByGuildMove:
+                Enter(Phase.AmbassadorTriggeredByGuildMove);
                 break;
 
-            case Phase.NonOrangeMove:
-            case Phase.BlueIntrudedByNonOrangeMove:
-            case Phase.TerrorTriggeredByNonOrangeMove:
-            case Phase.AmbassadorTriggeredByNonOrangeMove:
-                Enter(Phase.AmbassadorTriggeredByNonOrangeMove);
+            case Phase.NonGuildMove:
+            case Phase.BeneGesseritIntrudedByNonGuildMove:
+            case Phase.TerrorTriggeredByNonGuildMove:
+            case Phase.AmbassadorTriggeredByNonGuildMove:
+                Enter(Phase.AmbassadorTriggeredByNonGuildMove);
                 break;
 
-            case Phase.BlueIntrudedByCaravan:
+            case Phase.BeneGesseritIntrudedByCaravan:
             case Phase.TerrorTriggeredByCaravan:
             case Phase.AmbassadorTriggeredByCaravan:
                 Enter(Phase.AmbassadorTriggeredByCaravan);
                 break;
 
-            case Phase.BlueIntrudedByRevival:
+            case Phase.BeneGesseritIntrudedByRevival:
             case Phase.TerrorTriggeredByRevival:
             case Phase.AmbassadorTriggeredByRevival:
                 Enter(Phase.AmbassadorTriggeredByRevival);
@@ -674,9 +674,9 @@ public partial class Game
 
     internal void CheckIfForcesShouldBeDestroyedByAllyPresence(Player p)
     {
-        if (p.Ally != Faction.None && p.Faction != Faction.Pink && p.Ally != Faction.Pink)
+        if (p.Ally != Faction.None && p.Faction != Faction.Ecaz && p.Ally != Faction.Ecaz)
         {
-            var specialForcesAreAllowed = Version >= 177 && p.Is(Faction.Blue) && Applicable(Rule.AdvisorsDontConflictWithAlly);
+            var specialForcesAreAllowed = Version >= 177 && p.Is(Faction.BeneGesserit) && Applicable(Rule.AdvisorsDontConflictWithAlly);
             
             //Forces that must be destroyed because moves ended where allies are
             foreach (var t in ChosenDestinationsWithAllies)
@@ -717,79 +717,79 @@ public partial class Game
         var ally = GetPlayer(p.Ally);
         if (ally == null) return false;
 
-        if (p.Faction == Faction.Pink || p.Ally == Faction.Pink) return false;
+        if (p.Faction == Faction.Ecaz || p.Ally == Faction.Ecaz) return false;
 
         if (Applicable(Rule.AdvisorsDontConflictWithAlly))
         {
-            if (p.Is(Faction.Blue) && !p.Occupies(t))
+            if (p.Is(Faction.BeneGesserit) && !p.Occupies(t))
                 return false;
             
-            if (p.Ally == Faction.Blue && !ally.Occupies(t))
+            if (p.Ally == Faction.BeneGesserit && !ally.Occupies(t))
                 return false;
         }
 
         return ally.AnyForcesIn(t) > 0;
     }
 
-    private void DetermineNextSubPhaseAfterNonOrangeMove()
+    private void DetermineNextSubPhaseAfterNonGuildMove()
     {
         if (CurrentPlayerMayPerformExtraMove)
         {
             CurrentPlayerMayPerformExtraMove = false;
-            Enter(Phase.NonOrangeMove);
+            Enter(Phase.NonGuildMove);
         }
         else
         {
             Enter(
                 EveryoneActedOrPassed, ConcludeShipmentAndMove,
-                CheckIfOrangeActsOrAutoDelays(), Phase.OrangeShip,
-                Phase.NonOrangeShip);
+                CheckIfGuildActsOrAutoDelays(), Phase.GuildShip,
+                Phase.NonGuildShip);
         }
     }
 
-    private void DetermineNextSubPhaseAfterOrangeShipAndMove()
+    private void DetermineNextSubPhaseAfterGuildShipAndMove()
     {
         if (CurrentPlayerMayPerformExtraMove)
         {
             CurrentPlayerMayPerformExtraMove = false;
-            Enter(Phase.OrangeMove);
+            Enter(Phase.GuildMove);
         }
-        else if (!InOrangeCunningShipment && CurrentOrangeCunning != null && CurrentOrangeCunning.By(Faction.Orange))
+        else if (!InGuildCunningShipment && CurrentGuildCunning != null && CurrentGuildCunning.By(Faction.Guild))
         {
-            InOrangeCunningShipment = true;
-            Enter(Phase.OrangeShip);
+            InGuildCunningShipment = true;
+            Enter(Phase.GuildShip);
         }
         else
         {
-            Enter(!EveryoneActedOrPassed, Phase.NonOrangeShip, ConcludeShipmentAndMove);
+            Enter(!EveryoneActedOrPassed, Phase.NonGuildShip, ConcludeShipmentAndMove);
         }
     }
 
     private void ConcludeShipmentAndMove()
     {
-        CheckIfCyanGainsVidal();
+        CheckIfMoritaniGainsVidal();
         CurrentKarmaShipmentPrevention = null;
         MainPhaseEnd();
         Enter(Phase.ShipmentAndMoveConcluded);
         ReceiveShipsTechIncome();
-        BrownHasExtraMove = false;
-        CurrentBlueCunning = null;
+        ChoamHasExtraMove = false;
+        CurrentBeneGesseritCunning = null;
     }
 
-    private void CheckIfCyanGainsVidal()
+    private void CheckIfMoritaniGainsVidal()
     {
-        var cyan = GetPlayer(Faction.Cyan);
-        if (cyan == null || Prevented(FactionAdvantage.CyanGainingVidal)) 
+        var moritani = GetPlayer(Faction.Moritani);
+        if (moritani == null || Prevented(FactionAdvantage.MoritaniGainingVidal)) 
             return;
 
         if (!VidalIsAlive) 
             return;
         
-        var pink = GetPlayer(Faction.Pink);
-        var nrOfBattlesInStrongholds = Battle.BattlesToBeFought(this, cyan).Select(b => b.Territory)
-            .Where(t => (pink == null || pink.AnyForcesIn(t) == 0) && (t.IsStronghold || IsSpecialStronghold(t))).Distinct().Count();
+        var ecaz = GetPlayer(Faction.Ecaz);
+        var nrOfBattlesInStrongholds = Battle.BattlesToBeFought(this, moritani).Select(b => b.Territory)
+            .Where(t => (ecaz == null || ecaz.AnyForcesIn(t) == 0) && (t.IsStronghold || IsSpecialStronghold(t))).Distinct().Count();
 
-        if (nrOfBattlesInStrongholds >= 2 && !VidalIsCapturedOrGhola && OccupierOf(World.Pink) == null) TakeVidal(cyan, VidalMoment.EndOfTurn);
+        if (nrOfBattlesInStrongholds >= 2 && !VidalIsCapturedOrGhola && OccupierOf(World.Ecaz) == null) TakeVidal(moritani, VidalMoment.EndOfTurn);
     }
 
     private void ReceiveShipsTechIncome()
@@ -810,42 +810,42 @@ public partial class Game
 
     internal bool CheckIntrusion(ILocationEvent e)
     {
-        CheckBlueIntrusion(e, e.Initiator, e.To!.Territory);
+        CheckBeneGesseritIntrusion(e, e.Initiator, e.To!.Territory);
         CheckAmbassadorTriggered(e);
         CheckTerrorTriggered(e);
         return Intrusions.Count > 0;
     }
 
-    private void CheckBlueIntrusion(ILocationEvent e, Faction initiator, Territory territory)
+    private void CheckBeneGesseritIntrusion(ILocationEvent e, Faction initiator, Territory territory)
     {
-        var bgPlayer = GetPlayer(Faction.Blue);
+        var bgPlayer = GetPlayer(Faction.BeneGesserit);
         if (bgPlayer != null &&
             territory != Map.PolarSink.Territory &&
             !territory.IsHomeworld &&
-            Applicable(Rule.BlueAdvisors) &&
+            Applicable(Rule.BeneGesseritAdvisors) &&
             initiator != bgPlayer.Ally &&
-            initiator != Faction.Blue &&
+            initiator != Faction.BeneGesserit &&
             bgPlayer.ForcesIn(territory) > 0)
         {
-            if (Prevented(FactionAdvantage.BlueIntrusion))
+            if (Prevented(FactionAdvantage.BeneGesseritIntrusion))
             {
-                LogPreventionByKarma(FactionAdvantage.BlueIntrusion);
-                if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.BlueIntrusion);
+                LogPreventionByKarma(FactionAdvantage.BeneGesseritIntrusion);
+                if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.BeneGesseritIntrusion);
             }
             else
             {
-                QueueIntrusion(e, IntrusionType.BlueIntrusion);
+                QueueIntrusion(e, IntrusionType.BeneGesseritIntrusion);
             }
         }
     }
 
     private void CheckAmbassadorTriggered(ILocationEvent e)
     {
-        var pinkPlayer = GetPlayer(Faction.Pink);
-        if (pinkPlayer != null &&
-            (Version < 160 || e.Initiator != Faction.Blue || e.ForcesAddedToLocation > 0) &&
-            e.Initiator != Faction.Pink &&
-            e.Initiator != pinkPlayer.Ally &&
+        var ecazPlayer = GetPlayer(Faction.Ecaz);
+        if (ecazPlayer != null &&
+            (Version < 160 || e.Initiator != Faction.BeneGesserit || e.ForcesAddedToLocation > 0) &&
+            e.Initiator != Faction.Ecaz &&
+            e.Initiator != ecazPlayer.Ally &&
             AmbassadorIn(e.To!.Territory) != Ambassador.None &&
             AmbassadorIn(e.To.Territory) != AmbassadorOf(e.Initiator))
             QueueIntrusion(e, IntrusionType.Ambassador);
@@ -853,12 +853,12 @@ public partial class Game
 
     private void CheckTerrorTriggered(ILocationEvent e)
     {
-        var cyanPlayer = GetPlayer(Faction.Cyan);
-        if (cyanPlayer != null &&
-            (e.TotalAmountOfForcesAddedToLocation >= 3 || !cyanPlayer.HasLowThreshold()) &&
-            e.Initiator != Faction.Cyan &&
-            e.Initiator != cyanPlayer.Ally &&
-            !IsOccupiedByFactionOrTheirAlly(World.Cyan, e.Initiator) &&
+        var moritaniPlayer = GetPlayer(Faction.Moritani);
+        if (moritaniPlayer != null &&
+            (e.TotalAmountOfForcesAddedToLocation >= 3 || !moritaniPlayer.HasLowThreshold()) &&
+            e.Initiator != Faction.Moritani &&
+            e.Initiator != moritaniPlayer.Ally &&
+            !IsOccupiedByFactionOrTheirAlly(World.Moritani, e.Initiator) &&
             TerrorIn(e.To!.Territory).Any())
             QueueIntrusion(e, IntrusionType.Terror);
     }
@@ -890,7 +890,7 @@ public partial class Game
         get
         {
             var playerWithVidal = Players.FirstOrDefault(p => p.Leaders.Any(l => l.HeroType == HeroType.Vidal));
-            return playerWithVidal != null && (CapturedLeaders.Keys.Any(h => h.HeroType == HeroType.Vidal) || playerWithVidal.Is(Faction.Purple));
+            return playerWithVidal != null && (CapturedLeaders.Keys.Any(h => h.HeroType == HeroType.Vidal) || playerWithVidal.Is(Faction.Tleilaxu));
         }
     }
 
@@ -906,7 +906,7 @@ public partial class Game
                (permissions & permission) == permission;
     }
 
-    public Intrusion? LastBlueIntrusion => Intrusions.Count > 0 && Intrusions.Peek().Type == IntrusionType.BlueIntrusion ? Intrusions.Peek() : null;
+    public Intrusion? LastBeneGesseritIntrusion => Intrusions.Count > 0 && Intrusions.Peek().Type == IntrusionType.BeneGesseritIntrusion ? Intrusions.Peek() : null;
 
     public Intrusion? LastTerrorTrigger => Intrusions.Count > 0 && Intrusions.Peek().Type == IntrusionType.Terror ? Intrusions.Peek() : null;
 
@@ -922,9 +922,9 @@ public partial class Game
         return (Ambassador)(int)faction;
     }
 
-    public bool OrangeMayDelay => OrangeMayShipOutOfTurnOrder && Players.Count - HasActedOrPassed.Count > (JuiceForcesLastPlayer && !HasActedOrPassed.Contains(CurrentJuice.Initiator) ? 2 : 1);
+    public bool GuildMayDelay => GuildMayShipOutOfTurnOrder && Players.Count - HasActedOrPassed.Count > (JuiceForcesLastPlayer && !HasActedOrPassed.Contains(CurrentJuice.Initiator) ? 2 : 1);
 
-    internal bool OrangeMayShipOutOfTurnOrder => Applicable(Rule.OrangeDetermineShipment) && (Version < 113 || !Prevented(FactionAdvantage.OrangeDetermineMoveMoment));
+    internal bool GuildMayShipOutOfTurnOrder => Applicable(Rule.GuildDetermineShipment) && (Version < 113 || !Prevented(FactionAdvantage.GuildDetermineMoveMoment));
 
     #endregion Information
 }

@@ -294,7 +294,7 @@ public class Skin : IDescriber
             IHero hero => Describe(hero),
             WinMethod w => Describe(w),
             Phase p => Describe(p),
-            BrownEconomicsStatus bes => Describe(bes),
+            ChoamEconomicsStatus bes => Describe(bes),
             AuctionType at => Describe(at),
             JuiceType jt => Describe(jt),
             CaptureDecision cd => Describe(cd),
@@ -688,18 +688,18 @@ public class Skin : IDescriber
     {
         return f switch
         {
-            FactionForce.Green => Faction.Green,
-            FactionForce.Black => Faction.Black,
-            FactionForce.Yellow => Faction.Yellow,
-            FactionForce.Red => Faction.Red,
-            FactionForce.Orange => Faction.Orange,
-            FactionForce.Blue => Faction.Blue,
-            FactionForce.Grey => Faction.Grey,
-            FactionForce.Purple => Faction.Purple,
-            FactionForce.Brown => Faction.Brown,
-            FactionForce.White => Faction.White,
-            FactionForce.Pink => Faction.Pink,
-            FactionForce.Cyan => Faction.Cyan,
+            FactionForce.Atreides => Faction.Atreides,
+            FactionForce.Harkonnen => Faction.Harkonnen,
+            FactionForce.Fremen => Faction.Fremen,
+            FactionForce.Emperor => Faction.Emperor,
+            FactionForce.Guild => Faction.Guild,
+            FactionForce.BeneGesserit => Faction.BeneGesserit,
+            FactionForce.Ixian => Faction.Ixian,
+            FactionForce.Tleilaxu => Faction.Tleilaxu,
+            FactionForce.Choam => Faction.Choam,
+            FactionForce.Richese => Faction.Richese,
+            FactionForce.Ecaz => Faction.Ecaz,
+            FactionForce.Moritani => Faction.Moritani,
             _ => Faction.None
         };
     }
@@ -713,11 +713,11 @@ public class Skin : IDescriber
     {
         return f switch
         {
-            FactionSpecialForce.Red => Faction.Red,
-            FactionSpecialForce.Yellow => Faction.Yellow,
-            FactionSpecialForce.Blue => Faction.Blue,
-            FactionSpecialForce.Grey => Faction.Grey,
-            FactionSpecialForce.White => Faction.White,
+            FactionSpecialForce.Emperor => Faction.Emperor,
+            FactionSpecialForce.Fremen => Faction.Fremen,
+            FactionSpecialForce.BeneGesserit => Faction.BeneGesserit,
+            FactionSpecialForce.Ixian => Faction.Ixian,
+            FactionSpecialForce.Richese => Faction.Richese,
             _ => Faction.None
         };
     }
@@ -732,60 +732,60 @@ public class Skin : IDescriber
         return advantage switch
         {
             FactionAdvantage.None => "- Any stoppable advantage not listed below -",
-            FactionAdvantage.GreenBiddingPrescience => Format("{0} seeing the card on auction", Faction.Green),
-            FactionAdvantage.GreenSpiceBlowPrescience => Format("{0} seeing the top {1} card this turn", Faction.Green, Concept_STR[Concept.Resource]),
-            FactionAdvantage.GreenBattlePlanPrescience => Format("{0} seeing part of the opponent battle plan", Faction.Green),
-            FactionAdvantage.GreenUseMessiah => Format("{0} using the {1} in this battle", Faction.Green, Concept_STR[Concept.Messiah]),
-            FactionAdvantage.BlackFreeCard => Format("{0} taking a free treachery card", Faction.Black),
-            FactionAdvantage.BlackCaptureLeader => Format("{0} capturing a leader after this battle", Faction.Black),
-            FactionAdvantage.BlackCallTraitorForAlly => Format("{0} calling TREACHERY for their ally in this battle", Faction.Black),
-            FactionAdvantage.BlueAccompanies => Format("{0} accompanying shipment", Faction.Blue),
-            FactionAdvantage.BlueAnnouncesBattle => Format("{0} flipping advisors to fighters*", Faction.Blue),
-            FactionAdvantage.BlueIntrusion => Format("{0} becoming advisors on intrusion", Faction.Blue),
-            FactionAdvantage.BlueUsingVoice => Format("{0} using Voice during this battle", Faction.Blue),
-            FactionAdvantage.BlueWorthlessAsKarma => Format("{0} using a {1} as a {2} card*", Faction.Blue, TreacheryCardType.Useless, TreacheryCardType.Karma),
-            FactionAdvantage.BlueCharity => Format("{0} receiving 2 {1} at {2}", Faction.Blue, Concept.Resource, MainPhase.Charity),
-            FactionAdvantage.YellowControlsMonster => Format("{0} sending {1} when a subsequent {1} card is drawn", Faction.Yellow, Concept.Monster),
-            FactionAdvantage.YellowRidesMonster => Format("{0} riding {1}", Faction.Yellow, Concept.Monster),
-            FactionAdvantage.YellowNotPayingForBattles => Format("{0} not paying for forces in this battle", Faction.Yellow),
-            FactionAdvantage.YellowSpecialForceBonus => Format("{0} counting {1} bonus in this battle", Faction.Yellow, FactionSpecialForce.Yellow),
-            FactionAdvantage.YellowExtraMove => Format("{0} moving two territories as part of their move action", Faction.Yellow),
-            FactionAdvantage.YellowProtectedFromStorm => Format("{0} not taking storm losses when hit", Faction.Yellow),
-            FactionAdvantage.YellowProtectedFromMonster => Format("{0} not being devoured by {1}", Faction.Yellow, Concept.Monster),
-            FactionAdvantage.YellowProtectedFromMonsterAlly => Format("{0} ally not being devoured by {1}", Faction.Yellow, Concept.Monster),
-            FactionAdvantage.YellowStormPrescience => Format("{0} seeing the storm movement this turn", Faction.Yellow),
-            FactionAdvantage.RedSpecialForceBonus => Format("{0} counting {1} bonus in this battle", Faction.Red, FactionSpecialForce.Red),
-            FactionAdvantage.RedReceiveBid => Format("{0} receiving {1} for a treachery card", Faction.Red, Concept.Resource),
-            FactionAdvantage.RedGiveSpiceToAlly => Format("{0} giving {1} to their ally*", Faction.Red, Concept.Resource),
-            FactionAdvantage.RedLetAllyReviveExtraForces => Format("{0} allowing their ally to revive 3 extra forces", Faction.Red, Concept.Resource),
-            FactionAdvantage.OrangeDetermineMoveMoment => Format("{0} shipping out of turn order (play before their normal turn)", Faction.Orange),
-            FactionAdvantage.OrangeSpecialShipments => Format("{0} (and ally) shipping site-to-site or back to reserves", Faction.Orange),
-            FactionAdvantage.OrangeShipmentsDiscount => Format("{0} shipping at half price", Faction.Orange),
-            FactionAdvantage.OrangeShipmentsDiscountAlly => Format("{0} ally shipping at half price", Faction.Orange),
-            FactionAdvantage.OrangeReceiveShipment => Format("{0} receiving {1} for a shipment", Faction.Orange, Concept.Resource),
-            FactionAdvantage.PurpleRevivalDiscount => Format("{0} reviving at half price", Faction.Purple),
-            FactionAdvantage.PurpleRevivalDiscountAlly => Format("{0} ally reviving at half price", Faction.Purple),
-            FactionAdvantage.PurpleReplacingFaceDancer => Format("{0} replacing a face dancer at end of turn", Faction.Purple),
-            FactionAdvantage.PurpleIncreasingRevivalLimits => Format("{0} increasing revival limits", Faction.Purple),
-            FactionAdvantage.PurpleReceiveRevive => Format("{0} receiving {1} for revival", Faction.Purple, Concept.Resource),
-            FactionAdvantage.PurpleEarlyLeaderRevive => Format("{0} allowing early revival of a leader*", Faction.Purple),
-            FactionAdvantage.PurpleReviveGhola => Format("{0} reviving a leader as a Ghola", Faction.Purple),
-            FactionAdvantage.GreyMovingHms => Format("{0} moving the Hidden Mobile Stronghold", Faction.Grey),
-            FactionAdvantage.GreySpecialForceBonus => Format("{0} counting {1} bonus in this battle", Faction.Grey, FactionSpecialForce.Grey),
-            FactionAdvantage.GreySelectingCardsOnAuction => Format("{0} selecting a card to go on top or bottom (play before they draw cards on auction)", Faction.Grey),
-            FactionAdvantage.GreyCyborgExtraMove => Format("{0} moving {1} two territories", Faction.Grey, FactionSpecialForce.Grey),
-            FactionAdvantage.GreyReplacingSpecialForces => Format("{0} replacing {1} lost in battle with {2}", Faction.Grey, FactionSpecialForce.Grey, FactionForce.Grey),
-            FactionAdvantage.GreyAllyDiscardingCard => Format("{0} allowing their ally to replace a won card", Faction.Grey),
-            FactionAdvantage.GreySwappingCard => Format("{0} replacing a treachery card during bidding", Faction.Grey),
-            FactionAdvantage.BrownControllingCharity => Format("{0} receiving and giving {1} during {2}", Faction.Brown, Concept.Resource, MainPhase.Charity),
-            FactionAdvantage.BrownDiscarding => Format("{0} discarding cards for {1} or a {2} card for its special effect*", Faction.Brown, Concept.Resource, TreacheryCardType.Useless),
-            FactionAdvantage.BrownRevival => Format("{0} having unlimited force revival and reduced revival cost", Faction.Brown),
-            FactionAdvantage.BrownEconomics => Format("{0} playing their Inflation token during {1}", Faction.Brown, MainPhase.Contemplate),
-            FactionAdvantage.BrownReceiveForcePayment => Format("{0} collecting {1} payment for forces this battle", Faction.Brown, Concept.Resource),
-            FactionAdvantage.BrownAudit => Format("{0} auditing their opponent after this battle", Faction.Brown),
-            FactionAdvantage.WhiteAuction => Format("{0} auctioning a card from their card cache", Faction.White),
-            FactionAdvantage.WhiteNofield => Format("{0} using a No-Field to ship", Faction.White),
-            FactionAdvantage.WhiteBlackMarket => Format("{0} selling a card from their hand", Faction.White),
+            FactionAdvantage.AtreidesBiddingPrescience => Format("{0} seeing the card on auction", Faction.Atreides),
+            FactionAdvantage.AtreidesSpiceBlowPrescience => Format("{0} seeing the top {1} card this turn", Faction.Atreides, Concept_STR[Concept.Resource]),
+            FactionAdvantage.AtreidesBattlePlanPrescience => Format("{0} seeing part of the opponent battle plan", Faction.Atreides),
+            FactionAdvantage.AtreidesUseMessiah => Format("{0} using the {1} in this battle", Faction.Atreides, Concept_STR[Concept.Messiah]),
+            FactionAdvantage.HarkonnenFreeCard => Format("{0} taking a free treachery card", Faction.Harkonnen),
+            FactionAdvantage.HarkonnenCaptureLeader => Format("{0} capturing a leader after this battle", Faction.Harkonnen),
+            FactionAdvantage.HarkonnenCallTraitorForAlly => Format("{0} calling TREACHERY for their ally in this battle", Faction.Harkonnen),
+            FactionAdvantage.BeneGesseritAccompanies => Format("{0} accompanying shipment", Faction.BeneGesserit),
+            FactionAdvantage.BeneGesseritAnnouncesBattle => Format("{0} flipping advisors to fighters*", Faction.BeneGesserit),
+            FactionAdvantage.BeneGesseritIntrusion => Format("{0} becoming advisors on intrusion", Faction.BeneGesserit),
+            FactionAdvantage.BeneGesseritUsingVoice => Format("{0} using Voice during this battle", Faction.BeneGesserit),
+            FactionAdvantage.BeneGesseritWorthlessAsKarma => Format("{0} using a {1} as a {2} card*", Faction.BeneGesserit, TreacheryCardType.Useless, TreacheryCardType.Karma),
+            FactionAdvantage.BeneGesseritCharity => Format("{0} receiving 2 {1} at {2}", Faction.BeneGesserit, Concept.Resource, MainPhase.Charity),
+            FactionAdvantage.FremenControlsMonster => Format("{0} sending {1} when a subsequent {1} card is drawn", Faction.Fremen, Concept.Monster),
+            FactionAdvantage.FremenRidesMonster => Format("{0} riding {1}", Faction.Fremen, Concept.Monster),
+            FactionAdvantage.FremenNotPayingForBattles => Format("{0} not paying for forces in this battle", Faction.Fremen),
+            FactionAdvantage.FremenSpecialForceBonus => Format("{0} counting {1} bonus in this battle", Faction.Fremen, FactionSpecialForce.Fremen),
+            FactionAdvantage.FremenExtraMove => Format("{0} moving two territories as part of their move action", Faction.Fremen),
+            FactionAdvantage.FremenProtectedFromStorm => Format("{0} not taking storm losses when hit", Faction.Fremen),
+            FactionAdvantage.FremenProtectedFromMonster => Format("{0} not being devoured by {1}", Faction.Fremen, Concept.Monster),
+            FactionAdvantage.FremenProtectedFromMonsterAlly => Format("{0} ally not being devoured by {1}", Faction.Fremen, Concept.Monster),
+            FactionAdvantage.FremenStormPrescience => Format("{0} seeing the storm movement this turn", Faction.Fremen),
+            FactionAdvantage.EmperorSpecialForceBonus => Format("{0} counting {1} bonus in this battle", Faction.Emperor, FactionSpecialForce.Emperor),
+            FactionAdvantage.EmperorReceiveBid => Format("{0} receiving {1} for a treachery card", Faction.Emperor, Concept.Resource),
+            FactionAdvantage.EmperorGiveSpiceToAlly => Format("{0} giving {1} to their ally*", Faction.Emperor, Concept.Resource),
+            FactionAdvantage.EmperorLetAllyReviveExtraForces => Format("{0} allowing their ally to revive 3 extra forces", Faction.Emperor, Concept.Resource),
+            FactionAdvantage.GuildDetermineMoveMoment => Format("{0} shipping out of turn order (play before their normal turn)", Faction.Guild),
+            FactionAdvantage.GuildSpecialShipments => Format("{0} (and ally) shipping site-to-site or back to reserves", Faction.Guild),
+            FactionAdvantage.GuildShipmentsDiscount => Format("{0} shipping at half price", Faction.Guild),
+            FactionAdvantage.GuildShipmentsDiscountAlly => Format("{0} ally shipping at half price", Faction.Guild),
+            FactionAdvantage.GuildReceiveShipment => Format("{0} receiving {1} for a shipment", Faction.Guild, Concept.Resource),
+            FactionAdvantage.TleilaxuRevivalDiscount => Format("{0} reviving at half price", Faction.Tleilaxu),
+            FactionAdvantage.TleilaxuRevivalDiscountAlly => Format("{0} ally reviving at half price", Faction.Tleilaxu),
+            FactionAdvantage.TleilaxuReplacingFaceDancer => Format("{0} replacing a face dancer at end of turn", Faction.Tleilaxu),
+            FactionAdvantage.TleilaxuIncreasingRevivalLimits => Format("{0} increasing revival limits", Faction.Tleilaxu),
+            FactionAdvantage.TleilaxuReceiveRevive => Format("{0} receiving {1} for revival", Faction.Tleilaxu, Concept.Resource),
+            FactionAdvantage.TleilaxuEarlyLeaderRevive => Format("{0} allowing early revival of a leader*", Faction.Tleilaxu),
+            FactionAdvantage.TleilaxuReviveGhola => Format("{0} reviving a leader as a Ghola", Faction.Tleilaxu),
+            FactionAdvantage.IxianMovingHms => Format("{0} moving the Hidden Mobile Stronghold", Faction.Ixian),
+            FactionAdvantage.IxianSpecialForceBonus => Format("{0} counting {1} bonus in this battle", Faction.Ixian, FactionSpecialForce.Ixian),
+            FactionAdvantage.IxianSelectingCardsOnAuction => Format("{0} selecting a card to go on top or bottom (play before they draw cards on auction)", Faction.Ixian),
+            FactionAdvantage.IxianCyborgExtraMove => Format("{0} moving {1} two territories", Faction.Ixian, FactionSpecialForce.Ixian),
+            FactionAdvantage.IxianReplacingSpecialForces => Format("{0} replacing {1} lost in battle with {2}", Faction.Ixian, FactionSpecialForce.Ixian, FactionForce.Ixian),
+            FactionAdvantage.IxianAllyDiscardingCard => Format("{0} allowing their ally to replace a won card", Faction.Ixian),
+            FactionAdvantage.IxianSwappingCard => Format("{0} replacing a treachery card during bidding", Faction.Ixian),
+            FactionAdvantage.ChoamControllingCharity => Format("{0} receiving and giving {1} during {2}", Faction.Choam, Concept.Resource, MainPhase.Charity),
+            FactionAdvantage.ChoamDiscarding => Format("{0} discarding cards for {1} or a {2} card for its special effect*", Faction.Choam, Concept.Resource, TreacheryCardType.Useless),
+            FactionAdvantage.ChoamRevival => Format("{0} having unlimited force revival and reduced revival cost", Faction.Choam),
+            FactionAdvantage.ChoamEconomics => Format("{0} playing their Inflation token during {1}", Faction.Choam, MainPhase.Contemplate),
+            FactionAdvantage.ChoamReceiveForcePayment => Format("{0} collecting {1} payment for forces this battle", Faction.Choam, Concept.Resource),
+            FactionAdvantage.ChoamAudit => Format("{0} auditing their opponent after this battle", Faction.Choam),
+            FactionAdvantage.RicheseAuction => Format("{0} auctioning a card from their card cache", Faction.Richese),
+            FactionAdvantage.RicheseNofield => Format("{0} using a No-Field to ship", Faction.Richese),
+            FactionAdvantage.RicheseBlackMarket => Format("{0} selling a card from their hand", Faction.Richese),
 
             _ => "Unknown"
         };
@@ -817,11 +817,11 @@ public class Skin : IDescriber
         return s switch
         {
             AutomationRuleType.CharityAutoClaim => "Claim charity if possible",
-            AutomationRuleType.BiddingPassWhenGreenOrGreenAllyPassed => $"Pass if most recent bid by {Describe(Faction.Green)} or their ally passed",
+            AutomationRuleType.BiddingPassWhenAtreidesOrAtreidesAllyPassed => $"Pass if most recent bid by {Describe(Faction.Atreides)} or their ally passed",
             AutomationRuleType.BiddingPassAboveAmount => "Pass if current bid is equal to or higher than...",
             AutomationRuleType.BiddingPassWhenHighestBidByFaction => "Pass if current highest bid by...",
             AutomationRuleType.RevivalAutoClaimFreeRevival => "Auto claim free revival",
-            AutomationRuleType.ShipmentOrangeAutoDelay => "Auto delay shipment until last",
+            AutomationRuleType.ShipmentGuildAutoDelay => "Auto delay shipment until last",
             _ => "unknown automation rule"
         };
     }
@@ -837,11 +837,11 @@ public class Skin : IDescriber
             RuleGroup.ExpansionIxAndBtBasic => "Ixians & Tleilaxu Expansion",
             RuleGroup.ExpansionIxAndBtAdvanced => "Ixians & Tleilaxu Expansion, Advanced Rules",
 
-            RuleGroup.ExpansionBrownAndWhiteBasic => "CHOAM & Richese Expansion",
-            RuleGroup.ExpansionBrownAndWhiteAdvanced => "CHOAM & Richese Expansion, Advanced Rules",
+            RuleGroup.ExpansionChoamAndRicheseBasic => "CHOAM & Richese Expansion",
+            RuleGroup.ExpansionChoamAndRicheseAdvanced => "CHOAM & Richese Expansion, Advanced Rules",
 
-            RuleGroup.ExpansionPinkAndCyanBasic => "Ecaz & Moritani Expansion",
-            RuleGroup.ExpansionPinkAndCyanAdvanced => "Ecaz & Moritani Expansion, Advanced Rules",
+            RuleGroup.ExpansionEcazAndMoritaniBasic => "Ecaz & Moritani Expansion",
+            RuleGroup.ExpansionEcazAndMoritaniAdvanced => "Ecaz & Moritani Expansion, Advanced Rules",
 
             RuleGroup.House => "House Rules",
 
@@ -857,8 +857,8 @@ public class Skin : IDescriber
             WinMethod.Prediction => "by prediction",
             WinMethod.Timeout => "by running out of time",
             WinMethod.Forfeit => "by forfeit",
-            WinMethod.YellowSpecial => Format("by {0} special victory", Faction.Yellow),
-            WinMethod.OrangeSpecial => Format("by {0} special victory", Faction.Orange),
+            WinMethod.FremenSpecial => Format("by {0} special victory", Faction.Fremen),
+            WinMethod.GuildSpecial => Format("by {0} special victory", Faction.Guild),
             _ => "None"
         };
     }
@@ -877,15 +877,15 @@ public class Skin : IDescriber
         };
     }
 
-    private static string Describe(BrownEconomicsStatus p)
+    private static string Describe(ChoamEconomicsStatus p)
     {
         return p switch
         {
-            BrownEconomicsStatus.Cancel => "Cancel",
-            BrownEconomicsStatus.CancelFlipped => "Cancel",
-            BrownEconomicsStatus.Double => "Double",
-            BrownEconomicsStatus.DoubleFlipped => "Double",
-            BrownEconomicsStatus.RemovedFromGame => "Removed from game",
+            ChoamEconomicsStatus.Cancel => "Cancel",
+            ChoamEconomicsStatus.CancelFlipped => "Cancel",
+            ChoamEconomicsStatus.Double => "Double",
+            ChoamEconomicsStatus.DoubleFlipped => "Double",
+            ChoamEconomicsStatus.RemovedFromGame => "Removed from game",
             _ => "None"
         };
     }
@@ -898,8 +898,8 @@ public class Skin : IDescriber
             AuctionType.BlackMarketNormal => "Normal",
             AuctionType.BlackMarketSilent => "Silent",
             AuctionType.BlackMarketOnceAround => "Once Around",
-            AuctionType.WhiteSilent => "Silent",
-            AuctionType.WhiteOnceAround => "Once Around",
+            AuctionType.RicheseSilent => "Silent",
+            AuctionType.RicheseOnceAround => "Once Around",
             _ => "None"
         };
     }
@@ -912,8 +912,8 @@ public class Skin : IDescriber
             AuctionType.BlackMarketNormal => "Black Market / Normal",
             AuctionType.BlackMarketSilent => "Black Market / Silent",
             AuctionType.BlackMarketOnceAround => "Black Market / Once Around",
-            AuctionType.WhiteSilent => Format("{0} / Silent", Faction.White),
-            AuctionType.WhiteOnceAround => Format("{0} / Once Around", Faction.White),
+            AuctionType.RicheseSilent => Format("{0} / Silent", Faction.Richese),
+            AuctionType.RicheseOnceAround => Format("{0} / Once Around", Faction.Richese),
             _ => "None"
         };
     }
@@ -963,29 +963,29 @@ public class Skin : IDescriber
             Rule.AdvancedCombat => "Advanced Combat",
             Rule.IncreasedResourceFlow => "Increased Spice Flow",
             Rule.AdvancedKarama => "Advanced Karama Cards",
-            Rule.YellowDeterminesStorm => Format("{0} determine storm movement with the Storm Deck", Faction.Yellow),
-            Rule.YellowStormLosses => Format("{0} storm losses are halved", Faction.Yellow),
-            Rule.YellowSendingMonster => Format("{0} place additional {1}s", Faction.Yellow, Concept.Monster),
-            Rule.YellowSpecialForces => Format("{0} can use {1}", Faction.Yellow, FactionSpecialForce.Yellow),
-            Rule.GreenMessiah => Format("Enable {0}", Concept.Messiah),
-            Rule.BlackCapturesOrKillsLeaders => Format("{0} can kill or capture leaders", Faction.Black),
-            Rule.BlueFirstForceInAnyTerritory => Format("{0} can put their initial force anywhere", Faction.Blue),
-            Rule.BlueAutoCharity => Format("{0} get 2 charity each turn", Faction.Blue),
-            Rule.BlueWorthlessAsKarma => Format("{0} can use {1} cards for {2}", Faction.Blue, TreacheryCardType.Useless, TreacheryCardType.Karma),
-            Rule.BlueAdvisors => Format("{0} can use {1}", Faction.Blue, FactionSpecialForce.Blue),
-            Rule.BlueAccompaniesToShipmentLocation => Format("{0} can accompany to the shipped to territory", Faction.Blue),
-            Rule.OrangeDetermineShipment => Format("{0} can determine when they ship and move", Faction.Orange),
-            Rule.RedSpecialForces => Format("{0} can use {1}", Faction.Red, FactionSpecialForce.Red),
+            Rule.FremenDeterminesStorm => Format("{0} determine storm movement with the Storm Deck", Faction.Fremen),
+            Rule.FremenStormLosses => Format("{0} storm losses are halved", Faction.Fremen),
+            Rule.FremenSendingMonster => Format("{0} place additional {1}s", Faction.Fremen, Concept.Monster),
+            Rule.FremenSpecialForces => Format("{0} can use {1}", Faction.Fremen, FactionSpecialForce.Fremen),
+            Rule.AtreidesMessiah => Format("Enable {0}", Concept.Messiah),
+            Rule.HarkonnenCapturesOrKillsLeaders => Format("{0} can kill or capture leaders", Faction.Harkonnen),
+            Rule.BeneGesseritFirstForceInAnyTerritory => Format("{0} can put their initial force anywhere", Faction.BeneGesserit),
+            Rule.BeneGesseritAutoCharity => Format("{0} get 2 charity each turn", Faction.BeneGesserit),
+            Rule.BeneGesseritWorthlessAsKarma => Format("{0} can use {1} cards for {2}", Faction.BeneGesserit, TreacheryCardType.Useless, TreacheryCardType.Karma),
+            Rule.BeneGesseritAdvisors => Format("{0} can use {1}", Faction.BeneGesserit, FactionSpecialForce.BeneGesserit),
+            Rule.BeneGesseritAccompaniesToShipmentLocation => Format("{0} can accompany to the shipped to territory", Faction.BeneGesserit),
+            Rule.GuildDetermineShipment => Format("{0} can determine when they ship and move", Faction.Guild),
+            Rule.EmperorSpecialForces => Format("{0} can use {1}", Faction.Emperor, FactionSpecialForce.Emperor),
             Rule.BribesAreImmediate => Format("{0} bribes are immediately added to reserves", Concept.Resource),
             Rule.ContestedStongholdsCountAsOccupied => "Contested strongholds count as occupied @ end of turn",
-            Rule.AdvisorsDontConflictWithAlly => Format("{0} {1} can coexist with allied forces", Faction.Blue, FactionSpecialForce.Blue),
-            Rule.OrangeShipmentContributionsFlowBack => Format("{0} contributions to shipments flow back to them", Faction.Orange),
+            Rule.AdvisorsDontConflictWithAlly => Format("{0} {1} can coexist with allied forces", Faction.BeneGesserit, FactionSpecialForce.BeneGesserit),
+            Rule.GuildShipmentContributionsFlowBack => Format("{0} contributions to shipments flow back to them", Faction.Guild),
             Rule.CustomInitialForcesAndResources => Format("Custom initial {0} and force positions (for Spice Harvest)", Concept.Resource),
-            Rule.HmSwithoutGrey => Format("Use the {0} if {1} are not in play", "Hidden Mobile Stronghold", Faction.Grey),
-            Rule.StormDeckWithoutYellow => Format("Use the Storm Deck if {0} are not in play", Faction.Yellow),
+            Rule.HmSwithoutIxian => Format("Use the {0} if {1} are not in play", "Hidden Mobile Stronghold", Faction.Ixian),
+            Rule.StormDeckWithoutFremen => Format("Use the Storm Deck if {0} are not in play", Faction.Fremen),
 
             Rule.Ssw => Format("SSW: {0} counts for victory after fourth {1}", "Shield Wall", Concept.Monster),
-            Rule.BlackMulligan => Format("{0} mulligan traitors when they drew > 1 of their own", Faction.Black),
+            Rule.HarkonnenMulligan => Format("{0} mulligan traitors when they drew > 1 of their own", Faction.Harkonnen),
 
             Rule.TechTokens => "Tech Tokens",
             Rule.ExpansionTreacheryCards => "Expansion Treachery Cards",
@@ -994,55 +994,55 @@ public class Skin : IDescriber
             Rule.ExpansionTreacheryCardsAmal => Format("Treachery Card: {0}", TreacheryCardType.Amal),
             Rule.CheapHeroTraitor => "Cheap Hero Traitor",
             Rule.SandTrout => Describe(Concept.BabyMonster),
-            Rule.PurpleGholas => Format("{0} may revive leaders as Gholas", Faction.Purple),
-            Rule.GreySwappingCardOnBid => Format("{0} may swap one card on bid with a card from their hand", Faction.Grey),
+            Rule.TleilaxuGholas => Format("{0} may revive leaders as Gholas", Faction.Tleilaxu),
+            Rule.IxianSwappingCardOnBid => Format("{0} may swap one card on bid with a card from their hand", Faction.Ixian),
 
             Rule.LeaderSkills => "Leader Skills",
             Rule.Expansion2TreacheryCards => Format("Treachery Cards: {0} and {1}", TreacheryCardType.ArtilleryStrike, TreacheryCardType.PoisonTooth),
             Rule.StrongholdBonus => "Stronghold Bonus",
-            Rule.BrownAuditor => Format("{0} gains the Auditor leader", Faction.Brown),
-            Rule.WhiteBlackMarket => Format("{0} Black Market bidding", Faction.White),
+            Rule.ChoamAuditor => Format("{0} gains the Auditor leader", Faction.Choam),
+            Rule.RicheseBlackMarket => Format("{0} Black Market bidding", Faction.Richese),
 
             Rule.GreatMaker => "Great Maker",
             Rule.DiscoveryTokens => "Discovery Tokens",
             Rule.Homeworlds => "Homeworlds",
             Rule.NexusCards => "Nexus Cards",
             Rule.Expansion3TreacheryCards => "Expansion Treachery Cards",
-            Rule.CyanAssassinate => Format("{0} can assassinate leaders", Faction.Cyan),
-            Rule.PinkLoyalty => Format("{0} gain a loyal leader", Faction.Pink),
+            Rule.MoritaniAssassinate => Format("{0} can assassinate leaders", Faction.Moritani),
+            Rule.EcazLoyalty => Format("{0} gain a loyal leader", Faction.Ecaz),
 
             Rule.CustomDecks => "Customized Treachery Card Deck",
             Rule.ExtraKaramaCards => Format("Add three extra {0} cards to the game", TreacheryCardType.Karma),
             Rule.FullPhaseKarma => Format("Full phase {0} (instead of single instance)", TreacheryCardType.Karma),
-            Rule.YellowMayMoveIntoStorm => Format("{0} may move into storm", Faction.Yellow),
-            Rule.BlueVoiceMustNameSpecialCards => "Voice must target special cards by name",
+            Rule.FremenMayMoveIntoStorm => Format("{0} may move into storm", Faction.Fremen),
+            Rule.BeneGesseritVoiceMustNameSpecialCards => "Voice must target special cards by name",
             Rule.BattlesUnderStorm => "Battles may happen under the storm",
             Rule.MovementBonusRequiresOccupationBeforeMovement => "Arrakeen/Carthag must be occupied before Ship&Move to grant ornithopters",
             Rule.AssistedNotekeeping => "Mentat: auto notekeeping of knowable info (spice owned, cards seen, ...)",
-            Rule.AssistedNotekeepingForGreen => Format("Mentat: auto notekeeping for {0}", Faction.Green),
+            Rule.AssistedNotekeepingForAtreides => Format("Mentat: auto notekeeping for {0}", Faction.Atreides),
             Rule.ResourceBonusForStrongholds => "Stronghold spice bonus (even without increased spice flow)",
             Rule.DisableNovaFlipping  => "No Nova flipping (advisors will not auto flip after shipment phase)",
             
             Rule.FillWithBots => "Fill empty seats with random Bots",
-            Rule.OrangeBot => Format("{0}Bot", Faction.Orange),
-            Rule.RedBot => Format("{0}Bot", Faction.Red),
-            Rule.BlackBot => Format("{0}Bot", Faction.Black),
-            Rule.PurpleBot => Format("{0}Bot", Faction.Purple),
-            Rule.GreenBot => Format("{0}Bot", Faction.Green),
-            Rule.BlueBot => Format("{0}Bot", Faction.Blue),
-            Rule.YellowBot => Format("{0}Bot", Faction.Yellow),
-            Rule.GreyBot => Format("{0}Bot", Faction.Grey),
+            Rule.GuildBot => Format("{0}Bot", Faction.Guild),
+            Rule.EmperorBot => Format("{0}Bot", Faction.Emperor),
+            Rule.HarkonnenBot => Format("{0}Bot", Faction.Harkonnen),
+            Rule.TleilaxuBot => Format("{0}Bot", Faction.Tleilaxu),
+            Rule.AtreidesBot => Format("{0}Bot", Faction.Atreides),
+            Rule.BeneGesseritBot => Format("{0}Bot", Faction.BeneGesserit),
+            Rule.FremenBot => Format("{0}Bot", Faction.Fremen),
+            Rule.IxianBot => Format("{0}Bot", Faction.Ixian),
 
             Rule.BotsCannotAlly => "Bots may not initiate alliances",
             Rule.CardsCanBeTraded => Format("Allow players to give cards to each other"),
             Rule.PlayersChooseFactions => Format("Let players choose their factions at start"),
-            Rule.RedSupportingNonAllyBids => Format("{0} may support bids of non-ally players", Faction.Red),
+            Rule.EmperorSupportingNonAllyBids => Format("{0} may support bids of non-ally players", Faction.Emperor),
             Rule.BattleWithoutLeader => "Allow leaderless battles even if leaders are available",
             Rule.CapturedLeadersAreTraitorsToOwnFaction => "Captured leaders can be called as traitors by their original factions without a traitor card",
             Rule.DisableEndOfGameReport => "Disable end-of-game report (don't reveal player shields)",
-            Rule.DisableOrangeSpecialVictory => Format("Disable {0} special victory condition", Faction.Orange),
+            Rule.DisableGuildSpecialVictory => Format("Disable {0} special victory condition", Faction.Guild),
             Rule.DisableResourceTransfers => Format("Only allow transfer of {0} by alliance rules", Concept.Resource),
-            Rule.YellowAllyGetsDialedResourcesRefunded => Format("{0} ally may get {1} dialled in battles refunded in {2} phase", Faction.Yellow, Concept.Resource, MainPhase.Contemplate),
+            Rule.FremenAllyGetsDialedResourcesRefunded => Format("{0} ally may get {1} dialled in battles refunded in {2} phase", Faction.Fremen, Concept.Resource, MainPhase.Contemplate),
             Rule.BreakAlliancesOnAlliancePhase => "Alliances are  broken at the start of each alliance phase",
 
             _ => "unknown rule"
@@ -1223,18 +1223,18 @@ public class Skin : IDescriber
         _sheetInAdvanced = false;
         return f switch
         {
-            Faction.Green => GetGreenTemplate(g),
-            Faction.Black => GetBlackTemplate(g),
-            Faction.Yellow => GetYellowTemplate(g),
-            Faction.Red => GetRedTemplate(g),
-            Faction.Orange => GetOrangeTemplate(g),
-            Faction.Blue => GetBlueTemplate(g),
-            Faction.Purple => GetPurpleTemplate(g),
-            Faction.Grey => GetGreyTemplate(g),
-            Faction.Brown => GetBrownTemplate(g),
-            Faction.White => GetWhiteTemplate(g),
-            Faction.Pink => GetPinkTemplate(g),
-            Faction.Cyan => GetCyanTemplate(g),
+            Faction.Atreides => GetAtreidesTemplate(g),
+            Faction.Harkonnen => GetHarkonnenTemplate(g),
+            Faction.Fremen => GetFremenTemplate(g),
+            Faction.Emperor => GetEmperorTemplate(g),
+            Faction.Guild => GetGuildTemplate(g),
+            Faction.BeneGesserit => GetBeneGesseritTemplate(g),
+            Faction.Tleilaxu => GetTleilaxuTemplate(g),
+            Faction.Ixian => GetIxianTemplate(g),
+            Faction.Choam => GetChoamTemplate(g),
+            Faction.Richese => GetRicheseTemplate(g),
+            Faction.Ecaz => GetEcazTemplate(g),
+            Faction.Moritani => GetMoritaniTemplate(g),
             _ => ""
         };
     }
@@ -1243,12 +1243,12 @@ public class Skin : IDescriber
     {
         return
         [
-            Faction.Green, //0
-            Faction.Black, //1
-            Faction.Red, //2
-            Faction.Yellow, //3
-            Faction.Orange, //4
-            Faction.Blue, //5
+            Faction.Atreides, //0
+            Faction.Harkonnen, //1
+            Faction.Emperor, //2
+            Faction.Fremen, //3
+            Faction.Guild, //4
+            Faction.BeneGesserit, //5
             g.Map.Arrakeen, //6 
             g.Map.Carthag, //7
             g.Map.TueksSietch, //8
@@ -1266,20 +1266,20 @@ public class Skin : IDescriber
             Concept_STR[Concept.Messiah], //20
             MainPhase_STR[MainPhase.ShipmentAndMove], //21
             g.Map.HabbanyaSietch, //22
-            SpecialForceName_STR[Faction.Yellow], //23
-            SpecialForceName_STR[Faction.Red], //24
+            SpecialForceName_STR[Faction.Fremen], //23
+            SpecialForceName_STR[Faction.Emperor], //24
             sheetStyle, //25
             g.Map.PolarSink, //26
-            Faction.Purple, //27
-            Faction.Grey, //28
-            ForceName_STR[Faction.Grey], //29
-            SpecialForceName_STR[Faction.Grey], //30
+            Faction.Tleilaxu, //27
+            Faction.Ixian, //28
+            ForceName_STR[Faction.Ixian], //29
+            SpecialForceName_STR[Faction.Ixian], //30
             Concept.Graveyard, //31
-            FactionForce.Grey, //32
-            FactionSpecialForce.Grey, //33
+            FactionForce.Ixian, //32
+            FactionSpecialForce.Ixian, //33
             g.Map.HiddenMobileStronghold, // 34
-            Faction.White, //35
-            Faction.Brown, //36
+            Faction.Richese, //35
+            Faction.Choam, //36
             TreacheryCardName_STR.GetValueOrDefault(TreacheryCardManager.Lookup.Find(TreacheryCardManager.CardBaliset)?.SkinId ?? -1, "?"), //37
             TreacheryCardName_STR.GetValueOrDefault(TreacheryCardManager.Lookup.Find(TreacheryCardManager.CardJubbaCloak)?.SkinId ?? -1, "?"), //38
             TreacheryCardName_STR.GetValueOrDefault(TreacheryCardManager.Lookup.Find(TreacheryCardManager.CardKullWahad)?.SkinId ?? -1, "?"), //39
@@ -1291,8 +1291,8 @@ public class Skin : IDescriber
             MainPhase_STR[MainPhase.Bidding], //45
             MainPhase_STR[MainPhase.Battle], //46
             MainPhase_STR[MainPhase.Charity], //47
-            Faction.Pink, //48
-            Faction.Cyan, //49
+            Faction.Ecaz, //48
+            Faction.Moritani, //49
             g.Map.ImperialBasin // 50
 
         ];
@@ -1343,7 +1343,7 @@ public class Skin : IDescriber
         (_sheetInAdvanced ? _sheetBeingRead.AdvancedAdvantages : _sheetBeingRead.Advantages).Add(name);
     }
 
-    private string GetGreenTemplate(Game g)
+    private string GetAtreidesTemplate(Game g)
     {
         return SheetHeader("10 tokens in {6} and 10 in reserve (off-planet)", 10, 2,
                    "You have limited prescience") +
@@ -1351,8 +1351,8 @@ public class Skin : IDescriber
                Advantage("Spice Blow Prescience", "you see the top card of the {16} deck.") +
                Advantage("Battle Prescience",
                    "you may force your opponent to tell you your choice of one of the four elements he will use in his battle plan against you; the leader, the weapon, the defense or the number dialed. If your opponent tells you that he is not playing a weapon or defense, you may not ask something else.") +
-               AdvancedHeader(g, Rule.GreenMessiah, Rule.AdvancedKarama) +
-               Advantage(g, Rule.GreenMessiah, Concept.Messiah,
+               AdvancedHeader(g, Rule.AtreidesMessiah, Rule.AdvancedKarama) +
+               Advantage(g, Rule.AtreidesMessiah, Concept.Messiah,
                    "after losing a total of at least 7 forces in battle, you may use the {20}. It cannot be used alone in battle but may add its +2 strength to any one leader or {13} per turn. If the leader or {13} is killed, the {20} has no effect in the battle. {20} can only be killed if blown up by a {18}/{17} explosion. A leader accompanied by {20} cannot turn traitor. If killed, the {20} must be revived like any other leader. The {20} has no effect on {0} leader revival.") +
                Advantage(g, Rule.AdvancedKarama, TreacheryCardType.Karma,
                    "you may use {19} to see one player's entire battle plan.") +
@@ -1364,17 +1364,17 @@ public class Skin : IDescriber
     }
 
 
-    private string GetBlackTemplate(Game g)
+    private string GetHarkonnenTemplate(Game g)
     {
         return SheetHeader("10 tokens in {7} and 10 tokens in reserve (off-planet)", 10, 2,
                    "You excel in treachery") +
                Advantage("Traitors", "you keep all traitors you draw at the start of the game.") +
                Advantage("Treachery",
                    "you may hold up to 8 treachery cards. At start of game, you are dealt 2 cards instead of 1, and every time you buy a card you get an extra card free from the deck (if you have less than 8 total).") +
-               Advantage(g, Rule.BlackMulligan, "Mulligan",
+               Advantage(g, Rule.HarkonnenMulligan, "Mulligan",
                    "at start, when you draw 2 or more of your own leaders as traitors, you may shuffle them back and redraw four traitors.") +
-               AdvancedHeader(g, Rule.BlackCapturesOrKillsLeaders, Rule.AdvancedKarama) +
-               Advantage(g, Rule.BlackCapturesOrKillsLeaders, "Captured leaders",
+               AdvancedHeader(g, Rule.HarkonnenCapturesOrKillsLeaders, Rule.AdvancedKarama) +
+               Advantage(g, Rule.HarkonnenCapturesOrKillsLeaders, "Captured leaders",
                    "every time you win a battle you can select randomly one leader from the loser (including the leader used in battle, if not killed, but excluding all leaders already used elsewhere that turn). You can kill that leader for 2 {16}; or use the leader once in a battle after which you must return it to the original owner. If all your own leaders have been killed, all captured leaders are immediately returned to their original owners. Killed captured leaders are put in the 'tanks' from which the original owners can revive them (subject to the revival rules).") +
                Advantage(g, Rule.AdvancedKarama, TreacheryCardType.Karma,
                    "during the Bidding phase, you may use {19} to take at random up to all treachery cards of any one player of your choice, as long has your maximum hand size is not exceeded. Then, for each card you took you must give him one of your cards in return.") +
@@ -1385,7 +1385,7 @@ public class Skin : IDescriber
                 </div>";
     }
 
-    private string GetYellowTemplate(Game g)
+    private string GetFremenTemplate(Game g)
     {
         return SheetHeader(
                    "10 tokens distributed as you like on {9}, {10}, and {11}; and 10 tokens in on-planet reserves",
@@ -1399,16 +1399,16 @@ public class Skin : IDescriber
                    "if no player has won by the end of the last turn and if you (or no one) occupies {9} and {22} and neither {1}, {0}, {2} nor {35} occupy {8}, you and your ally have prevented interference with your plans to alter the planet and win the game.") +
                Advantage("Special victory condition",
                    "if no player has been able to win the game by the end of play, you prevented control over the planet and you and your ally automatically win the game.",
-                   !g.IsPlaying(Faction.Orange) && !g.Applicable(Rule.DisableOrangeSpecialVictory)) +
-               AdvancedHeader(g, Rule.YellowDeterminesStorm, Rule.YellowSendingMonster, Rule.YellowStormLosses,
-                   Rule.YellowSpecialForces, Rule.AdvancedCombat, Rule.AdvancedKarama) +
-               Advantage(g, Rule.YellowDeterminesStorm, "Storm rule",
+                   !g.IsPlaying(Faction.Guild) && !g.Applicable(Rule.DisableGuildSpecialVictory)) +
+               AdvancedHeader(g, Rule.FremenDeterminesStorm, Rule.FremenSendingMonster, Rule.FremenStormLosses,
+                   Rule.FremenSpecialForces, Rule.AdvancedCombat, Rule.AdvancedKarama) +
+               Advantage(g, Rule.FremenDeterminesStorm, "Storm rule",
                    "you can see the number of sectors the next storm will move.") +
-               Advantage(g, Rule.YellowSendingMonster, "Sandworms",
+               Advantage(g, Rule.FremenSendingMonster, "Sandworms",
                    "during a {16} blow, each time {15} appears after the first time, you choose in which unprotected territory it appears.") +
-               Advantage(g, Rule.YellowStormLosses, MainPhase.Storm,
+               Advantage(g, Rule.FremenStormLosses, MainPhase.Storm,
                    "If caught in a storm, only half your forces are killed. You may rally forces into a storm at half loss.") +
-               Advantage(g, Rule.YellowSpecialForces, FactionSpecialForce.Yellow,
+               Advantage(g, Rule.FremenSpecialForces, FactionSpecialForce.Fremen,
                    "Your 3 {23} are worth two normal forces in battle and in taking losses. They are treated as one token in revival. Only one {23} can be revived per turn.") +
                Advantage(g, Rule.AdvancedCombat, MainPhase.Battle,
                    "Your forces do not require {16} to count at full strength.") +
@@ -1421,14 +1421,14 @@ public class Skin : IDescriber
                 </div>";
     }
 
-    private string GetRedTemplate(Game g)
+    private string GetEmperorTemplate(Game g)
     {
         return SheetHeader("20 tokens in reserve (off-planet)", 10, 1, "You have access to great wealth") +
                Advantage(MainPhase.Bidding, "Payments for treachery cards go to you.") +
-               Advantage(g, Rule.RedSupportingNonAllyBids, "Support",
+               Advantage(g, Rule.EmperorSupportingNonAllyBids, "Support",
                    "you may support bids of non-allied players. Any {16} paid this way flows back to you at the end of the bidding phase.") +
-               AdvancedHeader(g, Rule.RedSpecialForces) +
-               Advantage(g, Rule.RedSpecialForces, FactionSpecialForce.Red,
+               AdvancedHeader(g, Rule.EmperorSpecialForces) +
+               Advantage(g, Rule.EmperorSpecialForces, FactionSpecialForce.Emperor,
                    "your 5 {24} have a special fighting capability. They are worth two normal tokens in battle and in taking losses against all opponents except {3}. They are treated as one token in revival. Only one {24} can be revived per turn.") +
                Advantage(g, Rule.AdvancedKarama, TreacheryCardType.Karma,
                    "you may use {19} to revive up to three tokens or one leader for free.") +
@@ -1439,7 +1439,7 @@ public class Skin : IDescriber
                 </div>";
     }
 
-    private string GetOrangeTemplate(Game g)
+    private string GetGuildTemplate(Game g)
     {
         return SheetHeader("5 tokens in {8} and 15 tokens in reserve (off-planet)", 5, 1,
                    "You control all shipments onto the planet") +
@@ -1451,9 +1451,9 @@ public class Skin : IDescriber
                    "You pay only half the fee when shipping. The cost for shipping to your reserves is one {16} for every two tokens shipped.") +
                Advantage("Special victory condition",
                    "If no player has been able to win the game by the end of play, you prevented control over the planet and you and your ally automatically win the game.",
-                   !g.Applicable(Rule.DisableOrangeSpecialVictory)) +
-               AdvancedHeader(g, Rule.OrangeDetermineShipment) +
-               Advantage(g, Rule.OrangeDetermineShipment, "Ship when you wish",
+                   !g.Applicable(Rule.DisableGuildSpecialVictory)) +
+               AdvancedHeader(g, Rule.GuildDetermineShipment) +
+               Advantage(g, Rule.GuildDetermineShipment, "Ship when you wish",
                    "During Shipment & Move, you decide when you take your turn. You do not have to reveal when you intend to take your turn until the moment you wish to take it.") +
                Advantage(g, Rule.AdvancedKarama, TreacheryCardType.Karma,
                    "You may use {19} to stop one off-planet shipment of any one player. You may do this directly before or after the shipment occurs.") +
@@ -1464,7 +1464,7 @@ public class Skin : IDescriber
                 </div>";
     }
 
-    private string GetBlueTemplate(Game g)
+    private string GetBeneGesseritTemplate(Game g)
     {
         return SheetHeader("1 token in {26} and 19 tokens in reserve (off-planet)", 5, 1,
                    "You are adept in the ways of mind control") +
@@ -1473,24 +1473,24 @@ public class Skin : IDescriber
                Advantage("Shipment", "Whenever any other player ships, you may ship for free one force to {26}.") +
                Advantage("Voice",
                    "You may Voice your opponent in battle to play or not to play a projectile/poison weapon or defense, a worthless card or a <i>specific</i> special card. If he can't comply with your command, he may do as he wishes.") +
-               AdvancedHeader(g, Rule.BlueFirstForceInAnyTerritory, Rule.BlueAutoCharity, Rule.BlueAdvisors,
-                   Rule.BlueWorthlessAsKarma) +
-               Advantage(g, Rule.BlueAutoCharity, MainPhase.Charity,
+               AdvancedHeader(g, Rule.BeneGesseritFirstForceInAnyTerritory, Rule.BeneGesseritAutoCharity, Rule.BeneGesseritAdvisors,
+                   Rule.BeneGesseritWorthlessAsKarma) +
+               Advantage(g, Rule.BeneGesseritAutoCharity, MainPhase.Charity,
                    "You automatically receive 2 charity during the {47} Phase.") +
-               Advantage(g, Rule.BlueAdvisors, "Advisors",
+               Advantage(g, Rule.BeneGesseritAdvisors, "Advisors",
                    "You can peacefully coexist as <i>spiritual advisors</i> with opponent forces in the same territory. Advisors cannot collect {16}, cannot be involved in combat, don't prevent opponent control of a stronghold and don't yield three territory movement bonus. They are still susceptible to storms, {15} and {18}/{17} explosions. You can never have both advisors and fighters in the same territory.") +
-               Advantage(g, Rule.BlueAdvisors, "At Start",
+               Advantage(g, Rule.BeneGesseritAdvisors, "At Start",
                    "Instead of starting with 1 force in {26} you may start with an advisor in a territory of choice.") +
-               Advantage(g, Rule.BlueAdvisors, "Advisor Shipment",
+               Advantage(g, Rule.BeneGesseritAdvisors, "Advisor Shipment",
                    "You can ship advisors to a territory where you have advisors and whenever any other player ships, instead of shipping a force to {26}, you may ship an advisor to the same territory.") +
-               Advantage(g, Rule.BlueAdvisors, "End peaceful coexistence",
+               Advantage(g, Rule.BeneGesseritAdvisors, "End peaceful coexistence",
                    "You may announce before the {21} phase all territories in which you no longer wish to peacefully coexist. Advisors there are flipped to fighters.") +
-               Advantage(g, Rule.BlueAdvisors, "Flipping",
+               Advantage(g, Rule.BeneGesseritAdvisors, "Flipping",
                    "When you move forces into an occupied territory where you don't have forces or when another player moves tokens into a territory where you have advisors, you decide to stay there as either advisors or fighters.") +
                Advantage("Not with ally",
                    "Allied forces may not willingly end up in a territory where you have advisors (and vice versa).",
-                   g.Applicable(Rule.BlueAdvisors) && !g.Applicable(Rule.AdvisorsDontConflictWithAlly)) +
-               Advantage(g, Rule.BlueWorthlessAsKarma, TreacheryCardType.Karma,
+                   g.Applicable(Rule.BeneGesseritAdvisors) && !g.Applicable(Rule.AdvisorsDontConflictWithAlly)) +
+               Advantage(g, Rule.BeneGesseritWorthlessAsKarma, TreacheryCardType.Karma,
                    "You may use a worthless card as a {19} card.") +
                @"<h5>Alliance Power</h5>
                 <p>You may Voice your ally's opponent.</p>
@@ -1499,7 +1499,7 @@ public class Skin : IDescriber
                 </div>";
     }
 
-    private string GetPurpleTemplate(Game g)
+    private string GetTleilaxuTemplate(Game g)
     {
         return SheetHeader("20 tokens in reserve (off-planet)", 5, 2,
                    "You have superior genetic engineering technology") +
@@ -1520,7 +1520,7 @@ public class Skin : IDescriber
                    "Upon request by a faction for a specific killed leader, you can set a price for its early revival. This can only be done when this leader cannot be revived according to normal revival rules.") +
                Advantage("Zoal",
                    "{44}’s value in battle matches the value of the opponent’s leader (0 for a Cheap Hero), and for collecting {16} when killed. {44} costs 3 to revive.") +
-               AdvancedHeader(g, Rule.PurpleGholas, Rule.AdvancedKarama) +
+               AdvancedHeader(g, Rule.TleilaxuGholas, Rule.AdvancedKarama) +
                Advantage("Gholas",
                    "When you have fewer than five leaders available, you may revive dead leaders of other factions at your discounted rate and add them to your leader pool.") +
                Advantage(g, Rule.AdvancedKarama, TreacheryCardType.Karma,
@@ -1532,7 +1532,7 @@ public class Skin : IDescriber
                 </div>";
     }
 
-    private string GetGreyTemplate(Game g)
+    private string GetIxianTemplate(Game g)
     {
         return SheetHeader("3 {32} and 3 {33} in the {34}. 10 {32} and 4 {33} in reserve (off-planet)", 10, 1,
                    "You are skilled in technology and production") +
@@ -1540,14 +1540,14 @@ public class Skin : IDescriber
                    "During Setup you see all initially dealt Treachery Cards and choose your starting card from them.") +
                Advantage("Bidding",
                    "Before Bidding, one extra card is drawn and you see them all and put one of those cards on top or on the bottom of the Treachery Card deck. The remaining cards are shuffled for the bidding round.") +
-               Advantage(FactionSpecialForce.Grey,
+               Advantage(FactionSpecialForce.Ixian,
                    "Your 7 {33} are each worth 2 normal forces in battle, are able to move 2 territories instead of 1 and can collect 3 {16}. Your {33} forces ship normally, but each costs 3 to revive.") +
-               Advantage(FactionForce.Grey,
+               Advantage(FactionForce.Ixian,
                    "Your 13 {32} ship normally but are worth ½ in battle. {32} can be used to absorb losses after a battle. After battle losses are calculated, any of your surviving {32} in that territory can be exchanged for {33} you lost in that battle. {32} can control strongholds and collect {16}. {32} move 2 if accompanied by a {33}, or 1 if they are not.") +
                Advantage("Hidden Mobile Stronghold",
                    "After the first storm movement, place your {34} in any non-stronghold territory. This stronghold counts towards the game win and is protected from worms and storms. Subsequently, before storms are revealed and as long as your forces occupy it, you may move your {34} up to 3 territories to any non-stronghold territory. You can't move it into or out of a storm. When you move into, from, or through a sector containing {16}, you may immediately collect 2 {16} per force in your stronghold. No other faction may ship forces directly into your {34}, or move it if they take control. Other factions must move or ship forces into the territory it is pointing at (including {26}), and then use one movement to enter.") +
-               AdvancedHeader(g, Rule.GreySwappingCardOnBid, Rule.AdvancedCombat, Rule.AdvancedKarama) +
-               Advantage(g, Rule.GreySwappingCardOnBid, "Tech",
+               AdvancedHeader(g, Rule.IxianSwappingCardOnBid, Rule.AdvancedCombat, Rule.AdvancedKarama) +
+               Advantage(g, Rule.IxianSwappingCardOnBid, "Tech",
                    "Once, during the Bidding phase, before {0} gets to look and bidding begins, you may take the card about to be bid on and replace it with a card from your hand.") +
                Advantage(g, Rule.AdvancedCombat, "{32} strength",
                    "{32} are worth ½ in battle. You can’t increase the effectiveness of {32} in battle by spending {16}.") +
@@ -1560,7 +1560,7 @@ public class Skin : IDescriber
                 </div>";
     }
 
-    private string GetWhiteTemplate(Game g)
+    private string GetRicheseTemplate(Game g)
     {
         return SheetHeader(
                    "20 tokens in reserve (off-planet). Start with 5 {16}. You have a separate deck of 10 {35} cards that are not part of your hand",
@@ -1575,8 +1575,8 @@ public class Skin : IDescriber
                    @"Instead of normal shipping, you may ship one of your No-Field tokens (0, 3 or 5) face-down, paying for one force. Other factions do not know how many of your forces are located there and proceed as if at least one is there. You may reveal a No-Field token at any time before the Battle phase, placing the indicated number of forces from your reserves (or up to that amount if you have fewer forces left). You may move a No-Field token like a force.<br>
               You may not have two No-Field tokens on the planet at the same time. The last revealed token stays face-up in front of your shield until another one is revealed.<br>
               When you are in a battle, you must reveal the value of a No-Field token in that territory and place the indicated number of forces from your reserves (or up to that amount if you have fewer forces left). When you are in a Battle with a No-Field token, {0} may not see your force dial.") +
-               AdvancedHeader(g, Rule.WhiteBlackMarket, Rule.AdvancedCombat) +
-               Advantage(g, Rule.WhiteBlackMarket, "Black Market",
+               AdvancedHeader(g, Rule.RicheseBlackMarket, Rule.AdvancedCombat) +
+               Advantage(g, Rule.RicheseBlackMarket, "Black Market",
                    "At the start of the Bidding Round, you may auction one card from your hand. You may tell what you are selling (you may lie) and keep the card face-down ({0} may still look). You may use any type of auction. If no player bids, you keep the card. If it is sold, one fewer card is put up for auction as part of the normal Bidding Round. Payments by other players go to you. Black market cards cannot be bought with {19}. If the normal bidding type was used, the regular bidding round resumes wherever it left off.") +
                Advantage(g, Rule.AdvancedKarama, TreacheryCardType.Karma,
                    "You may buy a card from your separate cache for 3 {16} at any time.") +
@@ -1588,7 +1588,7 @@ public class Skin : IDescriber
                 </div>";
     }
 
-    private string GetBrownTemplate(Game g)
+    private string GetChoamTemplate(Game g)
     {
         return SheetHeader("20 tokens in reserve (off-planet)", 2, 0,
                    "You control economic affairs across the Imperium") +
@@ -1608,10 +1608,10 @@ public class Skin : IDescriber
                 </ul>") +
                Advantage("Inflation",
                    "You may play your Inflation token during {43} with either the Double or Cancel side face-up. In the following game turn, Charity is either doubled or canceled for that turn (including {5} in the advanced game). While Charity is doubled, no bribes can be made. In the next Mentat the Inflation token is flipped to the other side. If the token has already been flipped it is removed from the game instead.") +
-               AdvancedHeader(g, Rule.BrownAuditor, Rule.AdvancedCombat, Rule.AdvancedKarama) +
+               AdvancedHeader(g, Rule.ChoamAuditor, Rule.AdvancedCombat, Rule.AdvancedKarama) +
                Advantage(g, Rule.AdvancedCombat, "Forces",
                    "When other players pay for their forces in battle, half of the {16} (rounded down) goes to you.") +
-               Advantage(g, Rule.BrownAuditor, "Auditor",
+               Advantage(g, Rule.ChoamAuditor, "Auditor",
                    "You gain the Auditor Leader and it is added to the Traitor deck at the start of the game. Whenever you use the Auditor as a leader in a battle, you may audit your opponent. You may look at two cards in your opponent's hand at random (not counting cards used in battle) if the Auditor survived, or one card if killed. That faction may pay you 1 {16} per card you would get to see to cancel the audit. The Auditor may be revived as if all of your leaders were in the Tanks. The Auditor can't be revived as a ghola, nor be captured by {1}. The Auditor can't have a Leader Skill.") +
                Advantage(g, Rule.AdvancedKarama, TreacheryCardType.Karma,
                    "You may discard any Treachery cards from your hand and gain 3 {16} each.") +
@@ -1623,7 +1623,7 @@ public class Skin : IDescriber
                 </div>";
     }
 
-    private string GetPinkTemplate(Game g)
+    private string GetEcazTemplate(Game g)
     {
         return SheetHeader("6 tokens in {50} and 14 in reserve (off-planet)", 12, 2, "You forge strong alliances") +
                Advantage("Ambassadors",
@@ -1632,8 +1632,8 @@ public class Skin : IDescriber
                    "When you are in an alliance, you and your ally’s forces are considered the same faction, and may enter and occupy the same territory. If you both collect spice from a desert territory, you split the it however you both agree (as evenly as possible if you can’t agree). If both in a battle, you decide which of you is considered the faction that fights. Regardless of who fights, your ally's forces are the ones dialed, and half of your forces in the territory (rounded up) are added to the number dialed. After the battle, half of your forces (rounded down) remain in the territory if your side wins, and the rest go to the Tanks. If you and your ally both occupy a stronghold at the end of a turn, it only counts as one stronghold for both of you, and you control it. It only takes three strongholds for you and your ally to win, if you both are co-occupied in all three.") +
                Advantage(MainPhase.Resurrection,
                    "You may always revive Duke Vidal for 5 spice, no matter how many of your leaders are in the Tanks.  You may revive leaders normally when at least 5 are in the Tanks (counting Duke Vidal).") +
-               AdvancedHeader(g, Rule.PinkLoyalty, Rule.IncreasedResourceFlow, Rule.AdvancedKarama) +
-               Advantage(g, Rule.PinkLoyalty, "Loyalty",
+               AdvancedHeader(g, Rule.EcazLoyalty, Rule.IncreasedResourceFlow, Rule.AdvancedKarama) +
+               Advantage(g, Rule.EcazLoyalty, "Loyalty",
                    "At the start of the game, one of your leader (selected randomly) is removed from the Traitor deck.") +
                Advantage(g, Rule.IncreasedResourceFlow, MainPhase.Collection,
                    "You and your ally both gain income from strongholds that yield {16} during collection.") +
@@ -1646,7 +1646,7 @@ public class Skin : IDescriber
                 </div>";
     }
 
-    private string GetCyanTemplate(Game g)
+    private string GetMoritaniTemplate(Game g)
     {
         return SheetHeader(
                    "6 tokens in any unoccupied territory when all other factions set up and 14 in reserve (off-planet)",
@@ -1657,8 +1657,8 @@ public class Skin : IDescriber
                    "You gain Duke Vidal at the end of Shipping and Movement if you are in at least two battles in strongholds (not counting battles involving Ecaz) if he is not captured, a ghola, or in the Tanks, taking him from any faction currently controlling him.  Set him aside at the end of the turn if he’s not in the Tanks or captured.") +
                Advantage("Enemy of my Enemy",
                    "When a faction (other than Ecaz) would trigger a Terror token, you may offer to enter into an alliance with that faction before the token is revealed.  If that faction accepts, you both are now allied (breaking existing alliances either or both of you were in).  Your Terror token is not revealed, and returns to your supply.  If that faction does not accept, the Terror token must be revealed.") +
-               AdvancedHeader(g, Rule.CyanAssassinate, Rule.AdvancedKarama) +
-               Advantage(g, Rule.CyanAssassinate, "Assassinate Leaders",
+               AdvancedHeader(g, Rule.MoritaniAssassinate, Rule.AdvancedKarama) +
+               Advantage(g, Rule.MoritaniAssassinate, "Assassinate Leaders",
                    "When you lose a battle in which the opposing player had a leader disc that was not killed (and no Traitor was called), you may reveal a Traitor Card for the same faction (other than the leader you opposed).  If they are not in the Tanks, kill that leader and collect spice for them.  During the Mentat Pause, set the revealed card aside face up as a marker, then draw a new Traitor Card.  You may only use this advantage once against each other faction in the game. You may reveal a Traitor Card normally, but then this advantage is lost.") +
                Advantage(g, Rule.AdvancedKarama, TreacheryCardType.Karma,
                    "If you lose a battle, force your opponent to discard or keep any or all Treachery Cards they played.") +

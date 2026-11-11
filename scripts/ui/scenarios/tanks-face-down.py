@@ -8,6 +8,6 @@ TANKS = (40, 60)
 
 def run(r):
     # Turn 9 revival. Atreides has a leader killed twice, so it lies face down.
-    for faction in ("green", "black"):
+    for faction in ("atreides", "harkonnen"):
         with r.game("tanks-face-down", faction) as g:
             g.zoom(f"tanks-{faction}", TANKS, size=(360, 420), dy=0)

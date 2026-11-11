@@ -4,7 +4,7 @@ AREA = "popovers"
 
 
 def run(r):
-    with r.game("retreat", "green") as g:
+    with r.game("retreat", "atreides") as g:
         token = g.page.locator('#planetmap img[data-bs-content*="pop-faction"]:visible').first
         token.hover()
         g.page.wait_for_selector(".popover", state="visible")

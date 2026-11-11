@@ -1,0 +1,92 @@
+﻿@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits MapPickComponent<ChoamRemoveForce>
+
+<GameEventComponentLayout IsUrgent="@IsUrgent" BackgroundStyle="@BackgroundStyle" HeaderStyle="@HeaderStyle" BodyStyle="@BodyStyle" CollapsedType="GetType()">
+
+    <Header>Use @if (CardToUse is { } card) { <RichText Shown=@card Game=Game/> } else { @("Nexus Cunning") } to force a player to send 1 force to their reserves?</Header>
+
+    <Body>
+
+        <div class="small">Use the map to choose a location.</div>
+
+    </Body>
+
+</GameEventComponentLayout>
+
+@code {
+
+    protected override Faction IsFactionSpecific => Faction.Choam;
+
+    protected override string Background => ChoamRemoveForce.CardToUse(Player) != null ? Client.CurrentSkin.GetImageUrl(ChoamRemoveForce.CardToUse(Player)) : Client.CurrentSkin.GetImageUrl(Nexus.Choam);
+
+    private Faction target;
+    private bool special;
+
+    protected override IEnumerable<Location> PickTargets => ChoamRemoveForce.ValidLocations(Game);
+
+    protected override ChoamRemoveForce ConfirmedResult => new(Game, Faction) { Location = Target, Target = target, SpecialForce = special };
+
+    // The pinned location decides whose forces are there, so the faction and force type follow it.
+    protected override void OnPickChanged()
+    {
+        var factions = ChoamRemoveForce.ValidFactions(Game, Player, Target).ToList();
+        if (!factions.Contains(target)) target = factions.FirstOrDefault();
+        var choices = ChoamRemoveForce.ValidSpecialForceChoices(Game, Target, target).ToList();
+        if (!choices.Contains(special)) special = choices.FirstOrDefault();
+    }
+
+    private void SetTarget(Faction f)
+    {
+        target = f;
+        var choices = ChoamRemoveForce.ValidSpecialForceChoices(Game, Target, target).ToList();
+        if (!choices.Contains(special)) special = choices.FirstOrDefault();
+        RefreshPin();
+    }
+
+    private void SetSpecial(bool value)
+    {
+        special = value;
+        RefreshPin();
+    }
+
+    private TreacheryCard? CardToUse => ChoamRemoveForce.CardToUse(Player);
+
+    protected override RenderFragment PinContent => __builder =>
+    {
+        var factions = ChoamRemoveForce.ValidFactions(Game, Player, Target).ToList();
+        var choices = ChoamRemoveForce.ValidSpecialForceChoices(Game, Target, target).ToList();
+        var victim = Game.GetPlayer(target);
+
+        <div class="pin-body">
+            @if (factions.Count > 1)
+            {
+                <div class="pin-hint">Whose force?</div>
+                <div class="pin-choice">
+                    @foreach (var f in factions)
+                    {
+                        <button type="button" class="@(f == target ? "on" : "")" @onclick="@(() => SetTarget(f))">@Name(f)</button>
+                    }
+                </div>
+            }
+            else if (factions.Count == 1)
+            {
+                <div class="pin-hint"><FactionChip Faction=@factions[0] Game=Game/></div>
+            }
+            @if (choices.Count > 1 && victim != null)
+            {
+                <div class="pin-choice">
+                    <button type="button" class="@(special ? "" : "on")" @onclick="@(() => SetSpecial(false))">@Name(victim.Force)</button>
+                    <button type="button" class="@(special ? "on" : "")" @onclick="@(() => SetSpecial(true))">@Name(victim.SpecialForce)</button>
+                </div>
+            }
+            @PinActions("Remove force")
+        </div>
+    };
+}

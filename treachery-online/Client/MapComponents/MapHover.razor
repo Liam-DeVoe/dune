@@ -20,7 +20,7 @@
     var locations = Game.Map.Locations(false).Where(HasBorder).ToList();
 }
 
-<svg class="maphover" width="@skin.MapDimensions.X" height="@skin.MapDimensions.Y" viewBox="0 0 @skin.MapDimensions.X @skin.MapDimensions.Y"
+<svg class="maphover" data-sectors="@Map.NumberOfSectors" width="@skin.MapDimensions.X" height="@skin.MapDimensions.Y" viewBox="0 0 @skin.MapDimensions.X @skin.MapDimensions.Y"
      style="position:absolute; left:0; top:0; width:100%; height:100%;" pointer-events="none">
 
     <defs>
@@ -44,7 +44,7 @@
            shows only its inner half and the band is the same width along a
            border and along a sector line, meeting cleanly at the corners.
            Stroke widths in CSS are twice the visible width for this. *@
-        <g class="hover-shape" data-location-id="@location.Id" data-cx="@(center is { } c ? Round(c.X) : null)" data-cy="@(center is { } d ? Round(d.Y) : null)">
+        <g class="hover-shape" data-location-id="@location.Id" data-territory-id="@location.Territory.Id" data-sector="@location.Sector" data-cx="@(center is { } c ? Round(c.X) : null)" data-cy="@(center is { } d ? Round(d.Y) : null)">
             <g clip-path="url(#@sectorClip)">
                 <path d="@border" class="fill"/>
                 <g clip-path="url(#maphover-t-@location.Territory.Id)">
@@ -52,8 +52,16 @@
                     <path d="@border" class="edge"/>
                     @if (location.Sector >= 0)
                     {
-                        <path d="@SectorGeometry.WedgePath(skin, location.Sector)" class="core radial"/>
-                        <path d="@SectorGeometry.WedgePath(skin, location.Sector)" class="edge radial"/>
+                        @* Each side is its own path so ShowMapRefs can hide a side
+                           shared with another lit sector of the same territory,
+                           leaving one outline around the whole lit area. *@
+                        var (start, end, arc) = SectorGeometry.WedgeEdges(skin, location.Sector);
+                        <path d="@start" class="core radial start"/>
+                        <path d="@end" class="core radial end"/>
+                        <path d="@arc" class="core radial"/>
+                        <path d="@start" class="edge radial start"/>
+                        <path d="@end" class="edge radial end"/>
+                        <path d="@arc" class="edge radial"/>
                     }
                 </g>
             </g>

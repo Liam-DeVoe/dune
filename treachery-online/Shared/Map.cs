@@ -395,7 +395,7 @@ public class Map
                 Orientation = "West",
                 Sector = 0,
                 SpiceBlowAmount = 0,
-                DiscoveryTokenType = DiscoveryTokenType.Yellow
+                DiscoveryTokenType = DiscoveryTokenType.Fremen
             });
             _locations.Add(new Location(16)
             {
@@ -446,7 +446,7 @@ public class Map
                 Orientation = "West",
                 Sector = 2,
                 SpiceBlowAmount = 0,
-                DiscoveryTokenType = DiscoveryTokenType.Yellow
+                DiscoveryTokenType = DiscoveryTokenType.Fremen
             });
             _locations.Add(new Location(20)
             {
@@ -621,7 +621,7 @@ public class Map
                 Orientation = "North",
                 Sector = 6,
                 SpiceBlowAmount = 0,
-                DiscoveryTokenType = DiscoveryTokenType.Orange
+                DiscoveryTokenType = DiscoveryTokenType.Guild
             });
             _locations.Add(new Location(37)
             {
@@ -794,7 +794,7 @@ public class Map
                 Orientation = "",
                 Sector = 7,
                 SpiceBlowAmount = 0,
-                DiscoveryTokenType = DiscoveryTokenType.Yellow
+                DiscoveryTokenType = DiscoveryTokenType.Fremen
             });
         }
 
@@ -959,7 +959,7 @@ public class Map
                 Orientation = "Middle",
                 Sector = 12,
                 SpiceBlowAmount = 0,
-                DiscoveryTokenType = DiscoveryTokenType.Orange
+                DiscoveryTokenType = DiscoveryTokenType.Guild
             });
             _locations.Add(new Location(63)
             {
@@ -1164,7 +1164,7 @@ public class Map
                 Orientation = "Middle",
                 Sector = 16,
                 SpiceBlowAmount = 0,
-                DiscoveryTokenType = DiscoveryTokenType.Orange
+                DiscoveryTokenType = DiscoveryTokenType.Guild
             });
             _locations.Add(new Location(79)
             {
@@ -1266,19 +1266,19 @@ public class Map
             _locations.Add(HiddenMobileStronghold);
         }
 
-        AddHomeworld(43, 87, World.Green, Faction.Green, true, false, 6, 2, 2, 2);
-        AddHomeworld(44, 88, World.Black, Faction.Black, true, false, 7, 2, 2, 2);
-        AddHomeworld(45, 89, World.Yellow, Faction.Yellow, true, true, 3, 2, 2, 0);
-        AddHomeworld(46, 90, World.Red, Faction.Red, true, false, 5, 2, 3, 2);
-        AddHomeworld(47, 91, World.RedStar, Faction.Red, false, true, 2, 3, 2, 0);
-        AddHomeworld(48, 92, World.Orange, Faction.Orange, true, false, 5, 2, 2, 2);
-        AddHomeworld(49, 93, World.Blue, Faction.Blue, true, false, 11, 3, 2, 1);
-        AddHomeworld(50, 94, World.Grey, Faction.Grey, true, true, 5, 2, 2, 2);
-        AddHomeworld(51, 95, World.Purple, Faction.Purple, true, false, 9, 2, 2, 2);
-        AddHomeworld(52, 96, World.Brown, Faction.Brown, true, false, 11, 2, 2, 2);
-        AddHomeworld(53, 97, World.White, Faction.White, true, false, 10, 2, 2, 1);
-        AddHomeworld(54, 98, World.Pink, Faction.Pink, true, false, 7, 2, 2, 2);
-        AddHomeworld(55, 99, World.Cyan, Faction.Cyan, true, false, 8, 2, 2, 2);
+        AddHomeworld(43, 87, World.Atreides, Faction.Atreides, true, false, 6, 2, 2, 2);
+        AddHomeworld(44, 88, World.Harkonnen, Faction.Harkonnen, true, false, 7, 2, 2, 2);
+        AddHomeworld(45, 89, World.Fremen, Faction.Fremen, true, true, 3, 2, 2, 0);
+        AddHomeworld(46, 90, World.Emperor, Faction.Emperor, true, false, 5, 2, 3, 2);
+        AddHomeworld(47, 91, World.SalusaSecundus, Faction.Emperor, false, true, 2, 3, 2, 0);
+        AddHomeworld(48, 92, World.Guild, Faction.Guild, true, false, 5, 2, 2, 2);
+        AddHomeworld(49, 93, World.BeneGesserit, Faction.BeneGesserit, true, false, 11, 3, 2, 1);
+        AddHomeworld(50, 94, World.Ixian, Faction.Ixian, true, true, 5, 2, 2, 2);
+        AddHomeworld(51, 95, World.Tleilaxu, Faction.Tleilaxu, true, false, 9, 2, 2, 2);
+        AddHomeworld(52, 96, World.Choam, Faction.Choam, true, false, 11, 2, 2, 2);
+        AddHomeworld(53, 97, World.Richese, Faction.Richese, true, false, 10, 2, 2, 1);
+        AddHomeworld(54, 98, World.Ecaz, Faction.Ecaz, true, false, 7, 2, 2, 2);
+        AddHomeworld(55, 99, World.Moritani, Faction.Moritani, true, false, 8, 2, 2, 2);
 
         Jacurutu = AddDiscoveredLocation(56, 100, DiscoveryToken.Jacurutu, true);
         Cistern = AddDiscoveredLocation(57, 101, DiscoveryToken.Cistern, false);
@@ -1751,7 +1751,7 @@ public class Map
 
     private static bool BelongsTo(Game game, Battalion b, Faction f)
     {
-        return b.Faction == f || (game.GetPlayer(f)?.Ally == Faction.Pink && b.Faction == Faction.Pink);
+        return b.Faction == f || (game.GetPlayer(f)?.Ally == Faction.Ecaz && b.Faction == Faction.Ecaz);
     }
 
     private static List<Location> DetermineForceObstacles(Faction f, Game game)

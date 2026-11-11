@@ -2,7 +2,7 @@
   "ally": {
     "seed": 3,
     "situation": {
-      "phase": "NonOrangeMove",
+      "phase": "NonGuildMove",
       "event": "Move",
       "has_ally": true,
       "can": "move-to-ally"
@@ -17,8 +17,8 @@
       "phase": "BattlePhase",
       "event": "Battle",
       "faction_not": [
-        "Blue",
-        "Yellow"
+        "BeneGesserit",
+        "Fremen"
       ],
       "spice_min": 3
     }
@@ -51,35 +51,35 @@
       "turn_min": 2
     }
   },
-  "blue-accompanies": {
+  "bene-gesserit-accompanies": {
     "rules": [
-      "BlueAccompaniesToShipmentLocation"
+      "BeneGesseritAccompaniesToShipmentLocation"
     ],
     "seed": 1,
     "situation": {
-      "event": "BlueAccompanies",
+      "event": "BeneGesseritAccompanies",
       "accompany_targets_min": 2
     }
   },
-  "blue": {
+  "bene_gesserit": {
     "rules": [
-      "BlueAdvisors"
+      "BeneGesseritAdvisors"
     ],
     "seed": 1,
     "situation": {
-      "phase": "NonOrangeMove",
+      "phase": "NonGuildMove",
       "event": "Move",
-      "faction": "Blue",
+      "faction": "BeneGesserit",
       "can": "advisors-to-fighters"
     }
   },
   "move-reinforce": {
     "seed": 1,
     "situation": {
-      "phase": "NonOrangeMove",
+      "phase": "NonGuildMove",
       "event": "Move",
       "faction_not": [
-        "Blue"
+        "BeneGesserit"
       ],
       "can": "reinforce"
     }
@@ -87,10 +87,10 @@
   "move": {
     "seed": 1,
     "situation": {
-      "phase": "NonOrangeMove",
+      "phase": "NonGuildMove",
       "event": "Move",
       "faction_not": [
-        "Blue"
+        "BeneGesserit"
       ],
       "sectors_with_forces_min": 2,
       "special_forces_on_planet": true
@@ -130,15 +130,15 @@
   "setup": {
     "seed": 1,
     "situation": {
-      "event": "PerformYellowSetup"
+      "event": "PerformFremenSetup"
     }
   },
   "ship-fremen": {
     "seed": 1,
     "situation": {
-      "phase": "NonOrangeShip",
+      "phase": "NonGuildShip",
       "event": "Shipment",
-      "faction": "Yellow",
+      "faction": "Fremen",
       "reserves_min": 2
     }
   },
@@ -146,11 +146,11 @@
     "seed": 1,
     "situation": {
       "phase": [
-        "NonOrangeShip",
-        "OrangeShip"
+        "NonGuildShip",
+        "GuildShip"
       ],
       "event": "Shipment",
-      "faction": "Orange",
+      "faction": "Guild",
       "can": "ship-site-to-site",
       "sectors_with_forces_min": 2,
       "reserves_min": 2
@@ -159,11 +159,11 @@
   "ship": {
     "seed": 1,
     "situation": {
-      "phase": "NonOrangeShip",
+      "phase": "NonGuildShip",
       "event": "Shipment",
       "faction_not": [
-        "Orange",
-        "Yellow"
+        "Guild",
+        "Fremen"
       ],
       "reserves_min": 3,
       "spice_min": 6
@@ -175,7 +175,7 @@
     ],
     "seed": 1,
     "situation": {
-      "event": "YellowRidesMonster",
+      "event": "FremenRidesMonster",
       "great_maker": true,
       "reserves_min": 2,
       "special_reserves_min": 1
@@ -187,7 +187,7 @@
     ],
     "handmade": true,
     "situation": {
-      "event": "YellowRidesMonster",
+      "event": "FremenRidesMonster",
       "any_of": [
         {
           "ride_sources_min": 2
@@ -201,7 +201,7 @@
   "worm-ride": {
     "seed": 6,
     "situation": {
-      "event": "YellowRidesMonster",
+      "event": "FremenRidesMonster",
       "any_of": [
         {
           "ride_sources_min": 2
@@ -214,16 +214,16 @@
   },
   "worm": {
     "rules": [
-      "YellowSendingMonster"
+      "FremenSendingMonster"
     ],
     "seed": 1,
     "situation": {
-      "event": "YellowSentMonster"
+      "event": "FremenSentMonster"
     }
   },
   "move-within": {
     "place": {
-      "Yellow": {
+      "Fremen": {
         "spice": 3,
         "forces": {
           "Pasty Mesa (Far North Sector)": [
@@ -243,25 +243,25 @@
     },
     "seed": 1,
     "situation": {
-      "phase": "NonOrangeMove",
+      "phase": "NonGuildMove",
       "event": "Move",
-      "faction": "Yellow"
+      "faction": "Fremen"
     }
   },
   "facedancer": {
     "factions": [
-      "Green",
-      "Black",
-      "Yellow",
-      "Red",
-      "Orange",
-      "Purple"
+      "Atreides",
+      "Harkonnen",
+      "Fremen",
+      "Emperor",
+      "Guild",
+      "Tleilaxu"
     ],
     "seed": 1,
     "situation": {
-      "phase": "NonOrangeMove",
+      "phase": "NonGuildMove",
       "event": "Move",
-      "faction": "Purple",
+      "faction": "Tleilaxu",
       "turn_min": 2
     }
   },
@@ -270,7 +270,7 @@
       "AdvancedCombat"
     ],
     "place": {
-      "Red": {
+      "Emperor": {
         "spice": 10,
         "forces": {
           "Carthag": [
@@ -284,7 +284,7 @@
     "situation": {
       "phase": "BattlePhase",
       "event": "Battle",
-      "faction": "Red"
+      "faction": "Emperor"
     }
   },
   "tanks-face-down": {
@@ -293,11 +293,280 @@
     "situation": {
       "phase": [
         "Resurrection",
-        "NonOrangeShip",
-        "NonOrangeMove",
+        "NonGuildShip",
+        "NonGuildMove",
         "BattlePhase"
       ],
       "can": "face-down-leader"
+    }
+  },
+  "mc-traitors": {
+    "seed": 1,
+    "situation": {
+      "event": "TraitorsSelected"
+    }
+  },
+  "mc-prediction": {
+    "seed": 1,
+    "situation": {
+      "event": "BeneGesseritPrediction"
+    }
+  },
+  "mc-voice": {
+    "max_attempts": 400,
+    "seed": 1,
+    "situation": {
+      "event": "Voice"
+    }
+  },
+  "mc-prescience": {
+    "max_attempts": 400,
+    "seed": 1,
+    "situation": {
+      "event": "Prescience"
+    }
+  },
+  "mc-treachery": {
+    "max_attempts": 400,
+    "seed": 1,
+    "situation": {
+      "event": "TreacheryCalled"
+    }
+  },
+  "mc-concluded": {
+    "max_attempts": 400,
+    "seed": 1,
+    "situation": {
+      "event": "BattleConcluded"
+    }
+  },
+  "mc-charity": {
+    "max_attempts": 400,
+    "seed": 1,
+    "situation": {
+      "event": "CharityClaimed"
+    }
+  },
+  "mc-clairvoyance": {
+    "max_attempts": 400,
+    "seed": 1,
+    "situation": {
+      "event": "ClairVoyancePlayed"
+    }
+  },
+  "karma-prescience-base": {
+    "rules": [
+      "AdvancedKarama"
+    ],
+    "max_attempts": 400,
+    "seed": 4,
+    "situation": {
+      "event": "KarmaPrescience"
+    }
+  },
+  "nexus-prescience-base": {
+    "rules": [
+      "NexusCards"
+    ],
+    "factions": [
+      "Harkonnen",
+      "Emperor",
+      "Guild",
+      "Fremen",
+      "BeneGesserit"
+    ],
+    "players": 5,
+    "max_attempts": 400,
+    "seed": 22,
+    "situation": {
+      "event": "NexusPlayed",
+      "can": "atreides-secret-ally"
+    }
+  },
+  "mc-thumper": {
+    "deck": [
+      "Thumper",
+      "Harvester",
+      "Karma"
+    ],
+    "max_attempts": 300,
+    "seed": 1,
+    "situation": {
+      "event": "ThumperPlayed"
+    }
+  },
+  "mc-harvester": {
+    "deck": [
+      "Thumper",
+      "Harvester",
+      "Karma"
+    ],
+    "rules": [
+      "ExpansionTreacheryCardsExceptPBandSSandAmal"
+    ],
+    "max_attempts": 300,
+    "seed": 1,
+    "situation": {
+      "event": "HarvesterPlayed"
+    }
+  },
+  "mc-handswap": {
+    "deck": [
+      "Karma"
+    ],
+    "rules": [
+      "AdvancedKarama"
+    ],
+    "max_attempts": 300,
+    "seed": 1,
+    "situation": {
+      "event": "KarmaHandSwapInitiated",
+      "faction": "Harkonnen"
+    }
+  },
+  "mc-ended": {
+    "max_turns": 2,
+    "max_attempts": 20,
+    "seed": 1,
+    "situation": {
+      "phase": "GameEnded"
+    }
+  },
+  "mc-discard": {
+    "factions": [
+      "Atreides",
+      "Harkonnen",
+      "Emperor",
+      "Guild",
+      "Choam",
+      "Moritani"
+    ],
+    "rules": [
+      "Homeworlds",
+      "NexusCards",
+      "DiscoveryTokens",
+      "Expansion3TreacheryCards"
+    ],
+    "max_attempts": 300,
+    "seed": 38,
+    "situation": {
+      "event": "Discarded"
+    }
+  },
+  "karma-monster": {
+    "deck": [
+      "Karma"
+    ],
+    "rules": [
+      "AdvancedKarama"
+    ],
+    "max_attempts": 300,
+    "seed": 1,
+    "situation": {
+      "event": "KarmaMonster",
+      "faction": "Fremen"
+    }
+  },
+  "nexus-moritani": {
+    "factions": [
+      "Atreides",
+      "Harkonnen",
+      "Fremen",
+      "Emperor",
+      "Guild",
+      "Moritani"
+    ],
+    "rules": [
+      "NexusCards"
+    ],
+    "max_attempts": 1000,
+    "seed": 30,
+    "situation": {
+      "event": "NexusPlayed",
+      "can": "nexus-moritani-betrayal"
+    }
+  },
+  "take-losses": {
+    "rules": [
+      "FremenStormLosses"
+    ],
+    "seed": 2,
+    "situation": {
+      "phase": "StormLosses",
+      "event": "TakeLosses",
+      "faction": "Fremen"
+    }
+  },
+  "clairvoyance-answer": {
+    "deck": [
+      "Clairvoyance"
+    ],
+    "seed": 1,
+    "situation": {
+      "event": "ClairVoyanceAnswered"
+    }
+  },
+  "face-danced": {
+    "factions": [
+      "Atreides",
+      "Harkonnen",
+      "Fremen",
+      "Emperor",
+      "Guild",
+      "Tleilaxu"
+    ],
+    "max_attempts": 400,
+    "seed": 2,
+    "situation": {
+      "event": "FaceDanced",
+      "faction": "Tleilaxu"
+    }
+  },
+  "bg-announcement": {
+    "rules": [
+      "BeneGesseritAdvisors"
+    ],
+    "max_attempts": 1000,
+    "seed": 1,
+    "situation": {
+      "event": "BeneGesseritBattleAnnouncement",
+      "faction": "BeneGesserit"
+    }
+  },
+  "karma-revival": {
+    "deck": [
+      "Karma"
+    ],
+    "rules": [
+      "AdvancedKarama"
+    ],
+    "max_attempts": 400,
+    "seed": 1,
+    "situation": {
+      "event": "KarmaFreeRevival",
+      "faction": "Emperor",
+      "killed_min": 2
+    }
+  },
+  "revival-planet": {
+    "factions": [
+      "Atreides",
+      "Harkonnen",
+      "Fremen",
+      "Emperor",
+      "Guild",
+      "Tleilaxu"
+    ],
+    "rules": [
+      "Homeworlds"
+    ],
+    "max_attempts": 400,
+    "seed": 2,
+    "situation": {
+      "phase": "Resurrection",
+      "event": "Revival",
+      "faction": "Tleilaxu",
+      "killed_min": 2
     }
   }
 }

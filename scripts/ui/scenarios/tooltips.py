@@ -18,7 +18,7 @@ def hover_shot(g, locator, name):
 
 
 def run(r):
-    with r.game("retreat", "green") as g:
+    with r.game("retreat", "atreides") as g:
         # The first titled map icon that the mouse can reach: some are covered
         # by other pieces' hover areas.
         g.page.evaluate("""() => {

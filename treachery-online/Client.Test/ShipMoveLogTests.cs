@@ -47,31 +47,31 @@ public sealed class ShipMoveLogTests
         var messages = new List<Message>
         {
             // Two delays in a row are one line.
-            Message.Express(Faction.Orange, " delay their turn").WithLog(new GuildDelayed()),
-            Message.Express(Faction.Orange, " delay their turn").WithLog(new GuildDelayed()),
+            Message.Express(Faction.Guild, " delay their turn").WithLog(new GuildDelayed()),
+            Message.Express(Faction.Guild, " delay their turn").WithLog(new GuildDelayed()),
             // Fremen storm losses are logged before the shipment.
-            Message.Express(3, Faction.Yellow, " forces are killed by the storm").WithLog(new ShipMoveLoss(Faction.Yellow, true, false, 3, null)),
-            Message.Express(Faction.Yellow, " rally ...").WithLog(new ShipLogged(Faction.Yellow, ShipKind.Normal, 3, 0, null, map.Arrakeen, 0, 0, Faction.None, false, null, false, null, false)),
-            Message.Express(Faction.Yellow, " pass movement").WithLog(new MovePassed(Faction.Yellow)),
+            Message.Express(3, Faction.Fremen, " forces are killed by the storm").WithLog(new ShipMoveLoss(Faction.Fremen, true, false, 3, null)),
+            Message.Express(Faction.Fremen, " rally ...").WithLog(new ShipLogged(Faction.Fremen, ShipKind.Normal, 3, 0, null, map.Arrakeen, 0, 0, Faction.None, false, null, false, null, false)),
+            Message.Express(Faction.Fremen, " pass movement").WithLog(new MovePassed(Faction.Fremen)),
             // A Karama shipment: its discard line goes.
-            Message.Express(Faction.Black, " discard ", karama).WithFact(new BattleFact(BattleFactKind.Discard, Faction.Black) { Card = karama }),
-            Message.Express(Faction.Black, " ship ...").WithLog(new ShipLogged(Faction.Black, ShipKind.Normal, 8, 0, null, map.Carthag, 4, 0, Faction.None, false, karama, false, null, false)),
-            Message.Express(Faction.Blue, " stay as advisors").WithLog(new BlueReaction(BlueReactionKind.StayAs, map.Carthag.Territory, true)),
-            Message.Express(Faction.Blue, " accompany").WithLog(new BlueReaction(BlueReactionKind.Accompany, map.PolarSink, false)),
+            Message.Express(Faction.Harkonnen, " discard ", karama).WithFact(new BattleFact(BattleFactKind.Discard, Faction.Harkonnen) { Card = karama }),
+            Message.Express(Faction.Harkonnen, " ship ...").WithLog(new ShipLogged(Faction.Harkonnen, ShipKind.Normal, 8, 0, null, map.Carthag, 4, 0, Faction.None, false, karama, false, null, false)),
+            Message.Express(Faction.BeneGesserit, " stay as advisors").WithLog(new BeneGesseritReaction(BeneGesseritReactionKind.StayAs, map.Carthag.Territory, true)),
+            Message.Express(Faction.BeneGesserit, " accompany").WithLog(new BeneGesseritReaction(BeneGesseritReactionKind.Accompany, map.PolarSink, false)),
             // A move from two territories, a storm loss logged between the two lines.
-            Message.Express(Faction.Black, " move a").WithLog(new MoveLogged(Faction.Black, 7, map.Carthag.Territory, 2, 0, map.Arrakeen, false, null)),
-            Message.Express(1, Faction.Black, "forces are killed by the storm while travelling").WithLog(new ShipMoveLoss(Faction.Black, true, true, 1, null)),
-            Message.Express(Faction.Black, " move b").WithLog(new MoveLogged(Faction.Black, 7, map.PolarSink.Territory, 1, 0, map.Arrakeen, false, null)),
-            Message.Express(Faction.Blue, " become fighters").WithLog(new BlueReaction(BlueReactionKind.Become, map.Arrakeen.Territory, false)),
-            Message.Express("All ", Faction.Black, " forces in ", map.Arrakeen.Territory, " were killed due to ally presence").WithLog(new ShipMoveLoss(Faction.Black, false, false, 0, map.Arrakeen.Territory)),
+            Message.Express(Faction.Harkonnen, " move a").WithLog(new MoveLogged(Faction.Harkonnen, 7, map.Carthag.Territory, 2, 0, map.Arrakeen, false, null)),
+            Message.Express(1, Faction.Harkonnen, "forces are killed by the storm while travelling").WithLog(new ShipMoveLoss(Faction.Harkonnen, true, true, 1, null)),
+            Message.Express(Faction.Harkonnen, " move b").WithLog(new MoveLogged(Faction.Harkonnen, 7, map.PolarSink.Territory, 1, 0, map.Arrakeen, false, null)),
+            Message.Express(Faction.BeneGesserit, " become fighters").WithLog(new BeneGesseritReaction(BeneGesseritReactionKind.Become, map.Arrakeen.Territory, false)),
+            Message.Express("All ", Faction.Harkonnen, " forces in ", map.Arrakeen.Territory, " were killed due to ally presence").WithLog(new ShipMoveLoss(Faction.Harkonnen, false, false, 0, map.Arrakeen.Territory)),
             Message.Express("between turns"),
             // The game skips the move before logging the shipment: the Move row still comes last.
-            Message.Express(Faction.Orange, " pass movement").WithLog(new MovePassed(Faction.Orange)),
-            Message.Express(Faction.Orange, " ship back").WithLog(new ShipLogged(Faction.Orange, ShipKind.BackToReserves, 2, 0, map.Arrakeen, null, 1, 0, Faction.None, false, null, false, null, false)),
-            Message.Express(Faction.Green, " pass shipment").WithLog(new ShipLogged(Faction.Green, ShipKind.Passed, 0, 0, null, null, 0, 0, Faction.None, false, null, true, karama, false)),
+            Message.Express(Faction.Guild, " pass movement").WithLog(new MovePassed(Faction.Guild)),
+            Message.Express(Faction.Guild, " ship back").WithLog(new ShipLogged(Faction.Guild, ShipKind.BackToReserves, 2, 0, map.Arrakeen, null, 1, 0, Faction.None, false, null, false, null, false)),
+            Message.Express(Faction.Atreides, " pass shipment").WithLog(new ShipLogged(Faction.Atreides, ShipKind.Passed, 0, 0, null, null, 0, 0, Faction.None, false, null, true, karama, false)),
             Message.Express("inside the turn"),
-            Message.Express(Faction.Green, " move hajr").WithLog(new MoveLogged(Faction.Green, 8, map.Carthag.Territory, 2, 0, map.Arrakeen, true, null)),
-            Message.Express(Faction.Green, " pass movement").WithLog(new MovePassed(Faction.Green)),
+            Message.Express(Faction.Atreides, " move hajr").WithLog(new MoveLogged(Faction.Atreides, 8, map.Carthag.Territory, 2, 0, map.Arrakeen, true, null)),
+            Message.Express(Faction.Atreides, " pass movement").WithLog(new MovePassed(Faction.Atreides)),
         };
         var component = Render(test, messages);
 
@@ -84,13 +84,13 @@ public sealed class ShipMoveLogTests
         CollectionAssert.AreEqual(new[] { "Rally", "+", "Move" }, Labels(blocks[0]));
         StringAssert.Contains(Rows(blocks[0])[1], "are killed by the storm");
         CollectionAssert.AreEqual(new[] { "Ship", "+", "+", "Move", "+", "+", "+" }, Labels(blocks[1]));
-        var black = Rows(blocks[1]);
-        StringAssert.Contains(black[1], "stay as");
-        StringAssert.Contains(black[2], "accompany to");
-        StringAssert.Contains(black[3], "+");
-        StringAssert.Contains(black[4], "while travelling");
-        StringAssert.Contains(black[5], "become");
-        StringAssert.Contains(black[6], "ally presence");
+        var harkonnen = Rows(blocks[1]);
+        StringAssert.Contains(harkonnen[1], "stay as");
+        StringAssert.Contains(harkonnen[2], "accompany to");
+        StringAssert.Contains(harkonnen[3], "+");
+        StringAssert.Contains(harkonnen[4], "while travelling");
+        StringAssert.Contains(harkonnen[5], "become");
+        StringAssert.Contains(harkonnen[6], "ally presence");
         Assert.IsNotNull(blocks[1].QuerySelector(".card-chip"));
         CollectionAssert.AreEqual(new[] { "Ship", "Move" }, Labels(blocks[2]));
         StringAssert.Contains(Rows(blocks[2])[0], "reserves");

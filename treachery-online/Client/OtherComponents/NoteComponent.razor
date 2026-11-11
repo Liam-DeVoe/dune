@@ -112,7 +112,7 @@
 
                 <div>Current victory points: <strong>@Game.NumberOfVictoryPoints(p, true)</strong></div>
 
-                if (p.Faction == Faction.Green && Game.Applicable(Rule.GreenMessiah))
+                if (p.Faction == Faction.Atreides && Game.Applicable(Rule.AtreidesMessiah))
                 {
                     if (p.TotalForcesKilledInBattle >= 7)
                     {
@@ -143,6 +143,22 @@
     protected ElementReference element;
     private bool popoversNeedUpdate = true;
     private bool _collapsed = true;
+
+    // Opened up when shown in a popover from the menu bar (TradePopover).
+    [CascadingParameter(Name = "InPopover")]
+    public bool InPopover { get; set; }
+
+    private bool _openedInPopover;
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        if (InPopover && !_openedInPopover)
+        {
+            _openedInPopover = true;
+            _collapsed = false;
+        }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

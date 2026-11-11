@@ -99,9 +99,9 @@ public abstract class PlacementEvent : PassableGameEvent, ILocationEvent, IPlace
 
         if (To == null) return Message.Express("To not selected");
         if (!ValidTargets(Game, p, ForceLocations).Contains(To)) return Message.Express("Invalid To location");
-        if (asAdvisors && !(p.Is(Faction.Blue) && Game.Applicable(Rule.BlueAdvisors))) return Message.Express("You can't move as advisors");
+        if (asAdvisors && !(p.Is(Faction.BeneGesserit) && Game.Applicable(Rule.BeneGesseritAdvisors))) return Message.Express("You can't move as advisors");
 
-        if (Initiator == Faction.Blue)
+        if (Initiator == Faction.BeneGesserit)
         {
             if (Game.Version < 153)
             {
@@ -111,7 +111,7 @@ public abstract class PlacementEvent : PassableGameEvent, ILocationEvent, IPlace
             else
             {
                 if (asAdvisors && !MayMoveAsAdvisors(Game, Player, To.Territory, specialForceAmount > 0)) return Message.Express("You can't be advisors there");
-                if (!asAdvisors && !MayMoveAsBlueFighters(Player, To.Territory)) return Message.Express("You can't be fighters there");
+                if (!asAdvisors && !MayMoveAsBeneGesseritFighters(Player, To.Territory)) return Message.Express("You can't be fighters there");
             }
         }
 
@@ -122,20 +122,20 @@ public abstract class PlacementEvent : PassableGameEvent, ILocationEvent, IPlace
 
         if (Game.Version >= 156 && ForceLocations.Keys.Any(l => Game.IsInStorm(l))) return Message.Express("Cannot move out of a storm");
 
-        if (Initiator == Faction.White && ForceLocations.Values.Any(v => v.AmountOfSpecialForces != 0) && Game.HasLowThreshold(Faction.White)) return Message.Express("Low Threshold prevents you from moving your No-Field");
+        if (Initiator == Faction.Richese && ForceLocations.Values.Any(v => v.AmountOfSpecialForces != 0) && Game.HasLowThreshold(Faction.Richese)) return Message.Express("Low Threshold prevents you from moving your No-Field");
 
         return null;
     }
 
     public static bool MayMoveAsAdvisors(Game g, Player p, Territory to, bool areAdvisors)
     {
-        return p.Is(Faction.Blue) && g.Applicable(Rule.BlueAdvisors) &&
+        return p.Is(Faction.BeneGesserit) && g.Applicable(Rule.BeneGesseritAdvisors) &&
                (p.SpecialForcesIn(to) > 0 || ((g.Version < 177 || areAdvisors) && p.ForcesIn(to) == 0 && g.AnyForcesIn(to)));
     }
 
-    public static bool MayMoveAsBlueFighters(Player p, Territory to)
+    public static bool MayMoveAsBeneGesseritFighters(Player p, Territory to)
     {
-        return p.Is(Faction.Blue) && p.SpecialForcesIn(to) == 0;
+        return p.Is(Faction.BeneGesserit) && p.SpecialForcesIn(to) == 0;
     }
 
     public static IEnumerable<Location> ValidTargets(Game g, Player p, Location location, Battalion battalion)
@@ -169,26 +169,26 @@ public abstract class PlacementEvent : PassableGameEvent, ILocationEvent, IPlace
 
     private static IEnumerable<Location> ValidMoveToTargets(Game g, Player p, Location from, IEnumerable<Battalion> moved)
     {
-        if (p.Is(Faction.Red) && from is Homeworld hw && g.Applicable(Rule.RedSpecialForces))
+        if (p.Is(Faction.Emperor) && from is Homeworld hw && g.Applicable(Rule.EmperorSpecialForces))
         {
-            if (hw.World is World.Red)
+            if (hw.World is World.Emperor)
             {
-                var redStar = g.Map.GetHomeWorld(World.RedStar);
-                if (redStar != null)
-                    return [redStar];
+                var salusaSecundus = g.Map.GetHomeWorld(World.SalusaSecundus);
+                if (salusaSecundus != null)
+                    return [salusaSecundus];
             }
             
-            if (hw.World is World.RedStar)
+            if (hw.World is World.SalusaSecundus)
             {
-                var red = g.Map.GetHomeWorld(World.Red);
-                if (red != null)
-                    return [red];
+                var emperor = g.Map.GetHomeWorld(World.Emperor);
+                if (emperor != null)
+                    return [emperor];
             }
         }
         else
         {
             var maximumDistance = g.DetermineMaximumMoveDistance(p, moved);
-            var mayMoveIntoStorm = p.Faction == Faction.Yellow && g.Applicable(Rule.YellowMayMoveIntoStorm) && g.Applicable(Rule.YellowStormLosses);
+            var mayMoveIntoStorm = p.Faction == Faction.Fremen && g.Applicable(Rule.FremenMayMoveIntoStorm) && g.Applicable(Rule.FremenStormLosses);
             return g.Map.FindNeighbours(from, maximumDistance, mayMoveIntoStorm, p.Faction, g);
         }
         
@@ -198,15 +198,15 @@ public abstract class PlacementEvent : PassableGameEvent, ILocationEvent, IPlace
     public static IEnumerable<Territory> ValidMovementSources(Game g, Player p)
     {
         var res = g.Map.Territories(false).Where(t => t.Locations.Any(l => l.Sector != g.SectorInStorm && p.AnyForcesIn(l) > 0)).ToList();
-        if (p.Is(Faction.Red) && g.Applicable(Rule.RedSpecialForces))
+        if (p.Is(Faction.Emperor) && g.Applicable(Rule.EmperorSpecialForces))
         {
-            var redStar = g.Map.GetHomeWorld(World.RedStar);
-            if (redStar != null && p.AnyForcesIn(redStar) > 0)
-                res.Add(redStar.Territory);
+            var salusaSecundus = g.Map.GetHomeWorld(World.SalusaSecundus);
+            if (salusaSecundus != null && p.AnyForcesIn(salusaSecundus) > 0)
+                res.Add(salusaSecundus.Territory);
             
-            var red = g.Map.GetHomeWorld(World.Red);
-            if (red != null && p.AnyForcesIn(red) > 0)
-                res.Add(red.Territory);
+            var emperor = g.Map.GetHomeWorld(World.Emperor);
+            if (emperor != null && p.AnyForcesIn(emperor) > 0)
+                res.Add(emperor.Territory);
         }
 
         return res;

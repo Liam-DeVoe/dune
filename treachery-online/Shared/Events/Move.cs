@@ -33,7 +33,7 @@ public class Move : PlacementEvent
 
     public override Message? Validate()
     {
-        if (!Passed && Game.InOrangeCunningShipment) return Message.Express("You cannot move after Cunning shipment");
+        if (!Passed && Game.InGuildCunningShipment) return Message.Express("You cannot move after Cunning shipment");
 
         return ValidateMove(AsAdvisors);
     }
@@ -48,22 +48,22 @@ public class Move : PlacementEvent
 
         Game.CurrentPlayerMayPerformExtraMove = Game.CurrentFlightUsed != null && Game.CurrentFlightUsed.Initiator == Initiator && Game.CurrentFlightUsed.ExtraMove;
 
-        if (!Game.CurrentPlayerMayPerformExtraMove && !Game.InOrangeCunningShipment)
+        if (!Game.CurrentPlayerMayPerformExtraMove && !Game.InGuildCunningShipment)
         {
             Game.HasActedOrPassed.Add(Initiator);
 
-            if (Game.CurrentPhase == Phase.NonOrangeMove)
+            if (Game.CurrentPhase == Phase.NonGuildMove)
             {
                 Game.ShipmentAndMoveSequence.NextPlayer();
 
-                if (Game.ShipmentAndMoveSequence.CurrentFaction == Faction.Orange && Game.OrangeMayShipOutOfTurnOrder) Game.ShipmentAndMoveSequence.NextPlayer();
+                if (Game.ShipmentAndMoveSequence.CurrentFaction == Faction.Guild && Game.GuildMayShipOutOfTurnOrder) Game.ShipmentAndMoveSequence.NextPlayer();
             }
         }
 
-        if (Game.InOrangeCunningShipment)
+        if (Game.InGuildCunningShipment)
         {
-            Game.CurrentOrangeCunning = null;
-            Game.InOrangeCunningShipment = false;
+            Game.CurrentGuildCunning = null;
+            Game.InGuildCunningShipment = false;
         }
 
         if (!Passed)
@@ -72,7 +72,7 @@ public class Move : PlacementEvent
 
             if (Game.ContainsConflictingAlly(Player, To)) Game.ChosenDestinationsWithAllies.Add(To.Territory);
 
-            Game.PerformMoveFromLocations(Player, ForceLocations, this, Initiator != Faction.Blue || AsAdvisors, false);
+            Game.PerformMoveFromLocations(Player, ForceLocations, this, Initiator != Faction.BeneGesserit || AsAdvisors, false);
             Game.CheckIntrusion(this);
         }
         else
@@ -82,10 +82,10 @@ public class Move : PlacementEvent
 
         Game.DetermineNextShipmentAndMoveSubPhase();
         Game.CheckIfForcesShouldBeDestroyedByAllyPresence(Player);
-        Game.FlipBlueAdvisorsWhenAlone();
+        Game.FlipBeneGesseritAdvisorsWhenAlone();
 
-        if (!Game.Applicable(Rule.FullPhaseKarma)) Game.Allow(FactionAdvantage.YellowExtraMove);
-        if (!Game.Applicable(Rule.FullPhaseKarma)) Game.Allow(FactionAdvantage.GreyCyborgExtraMove);
+        if (!Game.Applicable(Rule.FullPhaseKarma)) Game.Allow(FactionAdvantage.FremenExtraMove);
+        if (!Game.Applicable(Rule.FullPhaseKarma)) Game.Allow(FactionAdvantage.IxianCyborgExtraMove);
 
         Game.CurrentFlightUsed = null;
         Game.CurrentFlightDiscoveryUsed = null;

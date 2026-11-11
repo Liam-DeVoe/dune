@@ -139,12 +139,12 @@ public class DealOffered : GameEvent
 
         switch (p.Faction)
         {
-            case Faction.Green:
+            case Faction.Atreides:
                 if (g.HasBiddingPrescience(p)) result.Add(DealType.ShareBiddingPrescience);
                 if (g.HasResourceDeckPrescience(p)) result.Add(DealType.ShareResourceDeckPrescience);
                 break;
 
-            case Faction.Yellow:
+            case Faction.Fremen:
                 if (g.HasStormPrescience(p)) result.Add(DealType.ShareStormPrescience);
                 break;
         }

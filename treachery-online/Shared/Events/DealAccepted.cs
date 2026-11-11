@@ -80,7 +80,7 @@ public class DealAccepted : GameEvent
             offer.Initiator != p.Ally &&
             (offer.To.Length == 0 || offer.To.Contains(p.Faction)) &&
             !g.HasRespondedToDeal(offer, p.Faction) &&
-            (g.EconomicsStatus != BrownEconomicsStatus.Double || (offer.Benefit == 0 && offer.Price == 0)));
+            (g.EconomicsStatus != ChoamEconomicsStatus.Double || (offer.Benefit == 0 && offer.Price == 0)));
     }
 
     public static IEnumerable<DealOffered> CancellableDeals(Game g, Player? p)

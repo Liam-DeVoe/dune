@@ -72,8 +72,10 @@ public class SceneGameService : IGameService
 
     public bool LoggedIn => true;
     public bool IsConnected => true;
-    public bool IsHost => true;
-    public bool IsObserver => false;
+    // The scene's user is the seated faction's player and host, or, with
+    // faction=observer, a non-host observer (for the web client comparison).
+    public bool IsHost => !IsObserver;
+    public bool IsObserver { get; private set; }
     public bool PlayersNeedSeating => false;
     public bool IsAdmin { get; set; }
     public bool InScheduledMaintenance => false;
@@ -101,6 +103,8 @@ public class SceneGameService : IGameService
     public bool AutoPass { get; set; }
     public bool KeepAutoPassSetting { get; set; }
     public int Timer { get; set; } = -1;
+
+    public PhaseControlInfo PhaseControl { get; } = new();
     public bool MuteGlobalChat { get; set; }
     public LinkedList<ChatMessage> Messages { get; } = [];
     public Skin CurrentSkin { get; set; } = DefaultSkin.Default;
@@ -116,8 +120,9 @@ public class SceneGameService : IGameService
     public event EventHandler<Location>? OnLocationRightClicked;
 
     // Replays a savegame into a fresh game and seats the scene's user as the
-    // given faction. Throws when the savegame cannot be replayed.
-    public void Load(string stateData, Faction faction)
+    // given faction, or adds them as an observer when faction is null.
+    // Throws when the savegame cannot be replayed.
+    public void Load(string stateData, Faction? faction)
     {
         var state = GameState.Load(stateData);
         if (state.Version != Game.LatestVersion)
@@ -134,14 +139,24 @@ public class SceneGameService : IGameService
             nr++;
         }
 
-        var player = game.GetPlayer(faction)
-            ?? throw new InvalidOperationException($"{DefaultSkin.Default.Describe(faction)} is not in this game. Playing: {string.Join(", ", game.Players.Select(p => p.Faction))}.");
+        if (faction is { } f)
+        {
+            var player = game.GetPlayer(f)
+                ?? throw new InvalidOperationException($"{DefaultSkin.Default.Describe(f)} is not in this game. Playing: {string.Join(", ", game.Players.Select(p => p.Faction))}.");
 
-        // Seated directly rather than through Game.AddPlayer, which would
-        // write "now controls" into the report shown on the page.
-        game.Participation.SeatedPlayers[SceneUserId] = player.Seat;
-        game.Participation.PlayerNames[SceneUserId] = PlayerName!;
-        game.Participation.Hosts.Add(SceneUserId);
+            // Seated directly rather than through Game.AddPlayer, which would
+            // write "now controls" into the report shown on the page.
+            game.Participation.SeatedPlayers[SceneUserId] = player.Seat;
+            game.Participation.PlayerNames[SceneUserId] = PlayerName!;
+            game.Participation.Hosts.Add(SceneUserId);
+        }
+        else
+        {
+            game.Participation.Observers.Add(SceneUserId);
+            game.Participation.PlayerNames[SceneUserId] = PlayerName!;
+        }
+
+        IsObserver = faction == null;
 
         EndUndoSession();
         Game = game;
@@ -206,7 +221,7 @@ public class SceneGameService : IGameService
     {
         try
         {
-            Load(state, Faction ?? Shared.Faction.None);
+            Load(state, Faction);
             Refresh(nameof(RequestLoadGame));
             RefreshPopoverHandler?.Invoke();
             return Task.FromResult(string.Empty);
@@ -225,6 +240,14 @@ public class SceneGameService : IGameService
         RefreshPopoverHandler?.Invoke();
         return Task.FromResult(string.Empty);
     }
+
+    public Task<string> RequestPhaseDone() => Task.FromResult("");
+
+    public Task<string> RequestPhaseHold() => Task.FromResult("");
+
+    public Task<string> RequestPhaseRelease() => Task.FromResult("");
+
+    public Task<string> RequestPhaseContinue() => Task.FromResult("");
 
     public Task<string> SetTimer(int value)
     {

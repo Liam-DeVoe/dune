@@ -14,7 +14,8 @@ def open_undo(g):
     if g.count(OLD_UNDO_BUTTON):
         g.page.click(OLD_UNDO_BUTTON)
     else:
-        g.page.click('.toolbar button[title="Menu"]')
+        # The tooltip script moves title into data-tip once the button is hovered.
+        g.page.click('.toolbar button[title="Menu"], .toolbar button[data-tip="Menu"]')
         g.page.click('.menu-overflow button:has-text("Undo")')
     g.settle()
 
@@ -23,7 +24,7 @@ TURNS = ".undo-timeline .turns .turn"
 
 
 def run(r):
-    with r.game(FIXTURE, "green") as g:
+    with r.game(FIXTURE, "atreides") as g:
         g.shot("undo-1-closed")
         open_undo(g)
         g.shot("undo-2-open")
@@ -68,11 +69,28 @@ def run(r):
         r.note("timeline after escape", g.count(".undo-timeline"))
         g.shot("undo-6-escaped")
 
-        # Undo for real, then the "Recently undone" card.
-        open_undo(g)
-        track = g.page.locator(TRACK).bounding_box()
-        g.page.mouse.click(track["x"] + track["width"] * 0.5, track["y"] + track["height"] / 2)
-        g.settle()
-        g.page.locator(".panel.undo .btn-primary").click()
-        g.settle()
+        # Undo for real, then the redo toast over the map.
+        def confirm_undo():
+            open_undo(g)
+            track = g.page.locator(TRACK).bounding_box()
+            g.page.mouse.click(track["x"] + track["width"] * 0.5, track["y"] + track["height"] / 2)
+            g.settle()
+            g.page.locator(".panel.undo .btn-primary").click()
+            g.settle()
+
+        confirm_undo()
+        r.note("redo toasts after undo", g.count(".redo-toast"))
         g.shot("undo-7-confirmed")
+
+        # Redo puts the events back and the toast goes.
+        g.page.locator('.redo-toast button:has-text("Redo")').click()
+        g.settle()
+        r.note("redo toasts after redo", g.count(".redo-toast"))
+        g.shot("undo-8-redone")
+
+        # × keeps the undo and the toast goes.
+        confirm_undo()
+        g.page.locator(".redo-toast .x").click()
+        g.settle()
+        r.note("redo toasts after ×", g.count(".redo-toast"))
+        g.shot("undo-9-kept")

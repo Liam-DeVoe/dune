@@ -145,14 +145,14 @@ public class GameStatus
                 "Waiting for factions to assign leader skills...",
                 game.Players.Where(p => p.SkillsToChooseFrom.Any()).ToList()),
 
-            Phase.BluePredicting => Status(game,
+            Phase.BeneGesseritPredicting => Status(game,
                 Express("Please predict who will win the game and when."),
-                Express(Faction.Blue, " are predicting who will win the game and when..."), Faction.Blue),
+                Express(Faction.BeneGesserit, " are predicting who will win the game and when..."), Faction.BeneGesserit),
 
-            Phase.BlackMulligan => Status(game,
+            Phase.HarkonnenMulligan => Status(game,
                 Express("You may draw a new set of traitors if you were dealt two or more of your own leaders."),
-                Express(Faction.Black, " may draw a new set of traitors if they were dealt two or more of their own leaders..."),
-                Faction.Black),
+                Express(Faction.Harkonnen, " may draw a new set of traitors if they were dealt two or more of their own leaders..."),
+                Faction.Harkonnen),
 
             Phase.SelectingTraitors => Status(
                 "Please select one leader to keep as a traitor.",
@@ -167,37 +167,37 @@ public class GameStatus
                 Express("Please set up ", game.NextFactionToPerformCustomSetup, " starting ", Concept.Resource, " and force positions."),
                 Express("The host is setting up ", game.NextFactionToPerformCustomSetup, " starting ", Concept.Resource, " and force positions...")),
 
-            Phase.YellowSettingUp => Status(game,
+            Phase.FremenSettingUp => Status(game,
                 Express("Please choose your initial force positions."),
-                Express(Faction.Yellow, " are setting up their starting force positions..."),
-                Faction.Yellow),
+                Express(Faction.Fremen, " are setting up their starting force positions..."),
+                Faction.Fremen),
 
-            Phase.BlueSettingUp => Status(game,
+            Phase.BeneGesseritSettingUp => Status(game,
                 Express("Please select your starting force position."),
-                Express(Faction.Blue, " are selecting their starting force position..."),
-                Faction.Blue),
+                Express(Faction.BeneGesserit, " are selecting their starting force position..."),
+                Faction.BeneGesserit),
 
-            Phase.CyanSettingUp => Status(game,
+            Phase.MoritaniSettingUp => Status(game,
                 Express("Please select your starting force position."),
-                Express(Faction.Cyan, " are selecting their starting force position..."),
-                Faction.Cyan),
+                Express(Faction.Moritani, " are selecting their starting force position..."),
+                Faction.Moritani),
 
-            Phase.GreySelectingCard => Status(game,
+            Phase.IxianSelectingCard => Status(game,
                 Express("Please select your starting Treachery Card."),
-                Express(Faction.Grey, " are selecting their starting Treachery Card..."),
-                Faction.Grey),
+                Express(Faction.Ixian, " are selecting their starting Treachery Card..."),
+                Faction.Ixian),
 
             Phase.HmsPlacement => Status(game,
                 Express("Please position the Hidden Mobile Stronghold."),
-                Express(Faction.Grey, " are positioning the Hidden Mobile Stronghold..."),
-                Faction.Grey),
+                Express(Faction.Ixian, " are positioning the Hidden Mobile Stronghold..."),
+                Faction.Ixian),
 
             /* Storm */
 
             Phase.HmsMovement => Status(game,
                 Express("You may move the Hidden Mobile Stronghold to a sector in an adjacent territory, or pass."),
-                Express(Faction.Grey, " are moving the Hidden Mobile Stronghold..."),
-                Faction.Grey),
+                Express(Faction.Ixian, " are moving the Hidden Mobile Stronghold..."),
+                Faction.Ixian),
 
             Phase.DiallingStorm => Status(game,
                 "Please dial a number to determine storm movement.",
@@ -213,20 +213,20 @@ public class GameStatus
 
             /* Spice Blow */
 
-            Phase.YellowSendingMonsterA or Phase.YellowSendingMonsterB => Status(game,
+            Phase.FremenSendingMonsterA or Phase.FremenSendingMonsterB => Status(game,
                 Express("Please decide where to let ", Concept.Monster, " appear."),
-                Express(Faction.Yellow, " are deciding where to let ", Concept.Monster, " appear..."),
-                Faction.Yellow),
+                Express(Faction.Fremen, " are deciding where to let ", Concept.Monster, " appear..."),
+                Faction.Fremen),
 
-            Phase.YellowRidingMonsterA or Phase.YellowRidingMonsterB => Status(game,
+            Phase.FremenRidingMonsterA or Phase.FremenRidingMonsterB => Status(game,
                 Express("Please decide where to travel with ", Concept.Monster, "."),
-                Express(Faction.Yellow, " are deciding where to travel with ", Concept.Monster, "..."),
-                Faction.Yellow),
+                Express(Faction.Fremen, " are deciding where to travel with ", Concept.Monster, "..."),
+                Faction.Fremen),
 
-            Phase.BlueIntrudedByYellowRidingMonsterA or Phase.BlueIntrudedByYellowRidingMonsterB => Status(game,
+            Phase.BeneGesseritIntrudedByFremenRidingMonsterA or Phase.BeneGesseritIntrudedByFremenRidingMonsterB => Status(game,
                 Express("Please decide what to do in response to an intrusion of ", game.LastShipmentOrMovement!.To?.Territory, "; be fighters or advisors?"),
-                Express(Faction.Blue, " are deciding what to do in response to an intrusion of ", game.LastShipmentOrMovement.To?.Territory, "..."),
-                Faction.Blue),
+                Express(Faction.BeneGesserit, " are deciding what to do in response to an intrusion of ", game.LastShipmentOrMovement.To?.Territory, "..."),
+                Faction.BeneGesserit),
 
             Phase.BlowA or Phase.HarvesterA => Status(Express(
                 "Factions may use a ", TreacheryCardType.Harvester, " to double the ", Concept.Resource, " blow in ", game.LatestSpiceCardA!.Location!.Territory, "...")),
@@ -238,7 +238,12 @@ public class GameStatus
                 "Factions are voting on about a Nexus...",
                 PlayersThatHaveNotActedOrPassed(game)),
 
-            Phase.AllianceA or Phase.AllianceB => Status("Factions may now make and break alliances."),
+            Phase.AllianceA or Phase.AllianceB when game.Version < 188 => Status("Factions may now make and break alliances."),
+
+            Phase.AllianceA or Phase.AllianceB => Status(
+                "You may now make or break an alliance.",
+                "Factions are making and breaking alliances...",
+                PlayersThatHaveNotActedOrPassed(game)),
 
             Phase.NexusCards => Status(
                 "Do you wish to draw a Nexus card in case you have none or have your own faction?",
@@ -252,9 +257,9 @@ public class GameStatus
             /* Bidding */
 
             Phase.BlackMarketAnnouncement => Status(game,
-                Express("You may now select a card to sell on the Black Markt, or pass."),
-                Express(Faction.White, " are thinking about selling one of their cards on the Black Market..."),
-                Faction.White),
+                Express("You may now select a card to sell on the Harkonnen Markt, or pass."),
+                Express(Faction.Richese, " are thinking about selling one of their cards on the Black Market..."),
+                Faction.Richese),
 
             Phase.BlackMarketBidding when game.CurrentAuctionType != AuctionType.BlackMarketSilent => Status(
                 Express("Please bid or pass."),
@@ -264,42 +269,42 @@ public class GameStatus
             Phase.BlackMarketBidding when game.CurrentAuctionType == AuctionType.BlackMarketSilent => Status(
                 "Please bid.",
                 "Factions are thinking about their bids...",
-                game.Players.Where(p => p.HasRoomForCards && !game.Bids.ContainsKey(p.Faction)).ToList(), game.LatestEvent(typeof(WhiteAnnouncesBlackMarket))),
+                game.Players.Where(p => p.HasRoomForCards && !game.Bids.ContainsKey(p.Faction)).ToList(), game.LatestEvent(typeof(RicheseAnnouncesBlackMarket))),
 
-            Phase.WhiteAnnouncingAuction => Status(game,
+            Phase.RicheseAnnouncingAuction => Status(game,
                 Express("Please decide if you will auction a card from your cache First or Last."),
-                Express(Faction.White, " are deciding to auction a card from their cache First or Last..."),
-                Faction.White),
+                Express(Faction.Richese, " are deciding to auction a card from their cache First or Last..."),
+                Faction.Richese),
 
-            Phase.WhiteSpecifyingAuction => Status(game,
-                Express("Please select a ", Faction.White, " card to put on auction."),
-                Express(FactionOrOccupier(game, Faction.White, World.White), " are putting a ", Faction.White, " card on auction..."),
-                FactionOrOccupier(game, Faction.White, World.White)),
+            Phase.RicheseSpecifyingAuction => Status(game,
+                Express("Please select a ", Faction.Richese, " card to put on auction."),
+                Express(FactionOrOccupier(game, Faction.Richese, World.Richese), " are putting a ", Faction.Richese, " card on auction..."),
+                FactionOrOccupier(game, Faction.Richese, World.Richese)),
 
-            Phase.WhiteKeepingUnsoldCard => Status(game,
+            Phase.RicheseKeepingUnsoldCard => Status(game,
                 Express("Please decide if you wish to keep this unsold card."),
-                Express(FactionOrOccupier(game, Faction.White, World.White), " are deciding about keeping the unsold card..."),
-                FactionOrOccupier(game, Faction.White, World.White)),
+                Express(FactionOrOccupier(game, Faction.Richese, World.Richese), " are deciding about keeping the unsold card..."),
+                FactionOrOccupier(game, Faction.Richese, World.Richese)),
 
-            Phase.GreyRemovingCardFromBid => Status(game,
+            Phase.IxianRemovingCardFromBid => Status(game,
                 Express("Please put one card from the auction on top or at the bottom of the Treachery Card deck."),
-                Express(FactionOrOccupier(game, Faction.Grey, World.Grey), " are putting one card from the auction on top or at the bottom of the Treachery Card deck..."),
-                FactionOrOccupier(game, Faction.Grey, World.Grey)),
+                Express(FactionOrOccupier(game, Faction.Ixian, World.Ixian), " are putting one card from the auction on top or at the bottom of the Treachery Card deck..."),
+                FactionOrOccupier(game, Faction.Ixian, World.Ixian)),
 
-            Phase.GreySwappingCard => Status(game,
+            Phase.IxianSwappingCard => Status(game,
                 Express("You may swap the next card on auction with a card from your hand, or pass."),
-                Express(Faction.Grey, " are thinking about swapping the next card on auction with a card from their hand..."),
-                Faction.Grey),
+                Express(Faction.Ixian, " are thinking about swapping the next card on auction with a card from their hand..."),
+                Faction.Ixian),
 
-            Phase.Bidding when game.CurrentAuctionType != AuctionType.WhiteSilent => Status(
+            Phase.Bidding when game.CurrentAuctionType != AuctionType.RicheseSilent => Status(
                 Express("Please bid or pass."),
                 Express(game.BidSequence!.CurrentFaction, " are thinking about their bid..."),
                 Bid.PlayersToBid(game).ToList(), game.LatestEvent()),
 
-            Phase.Bidding when game.CurrentAuctionType == AuctionType.WhiteSilent => Status(
+            Phase.Bidding when game.CurrentAuctionType == AuctionType.RicheseSilent => Status(
                 "Please bid.",
                 "Factions are thinking about their bids...",
-                game.Players.Where(p => p.HasRoomForCards && !game.Bids.ContainsKey(p.Faction)).ToList(), game.LatestEvent(typeof(WhiteSpecifiesAuction))),
+                game.Players.Where(p => p.HasRoomForCards && !game.Bids.ContainsKey(p.Faction)).ToList(), game.LatestEvent(typeof(RicheseSpecifiesAuction))),
 
             Phase.ReplacingCardJustWon => Status(
                 Express("You might discard the card you just won and draw a new card instead, in case you have the necessary Nexus or alliance advantage."),
@@ -310,8 +315,8 @@ public class GameStatus
 
             Phase.PerformingKarmaHandSwap => Status(game,
                 Express("Please decide which ", game.KarmaHandSwapNumberOfCards, " cards to return to ", game.KarmaHandSwapTarget, "."),
-                Express(Faction.Black, " are deciding which ", game.KarmaHandSwapNumberOfCards, " cards to return to ", game.KarmaHandSwapTarget, "..."),
-                Faction.Black),
+                Express(Faction.Harkonnen, " are deciding which ", game.KarmaHandSwapNumberOfCards, " cards to return to ", game.KarmaHandSwapTarget, "..."),
+                Faction.Harkonnen),
 
             /* Revival */
 
@@ -323,94 +328,94 @@ public class GameStatus
                 Express("You may now start the Ship & Move sequence..."),
                 Express("Waiting for the host to start the Ship & Move sequence...")),
 
-            Phase.NonOrangeShip when game.ShipmentAndMoveSequence!.CurrentFaction == Faction.Yellow => Status(
+            Phase.NonGuildShip when game.ShipmentAndMoveSequence!.CurrentFaction == Faction.Fremen => Status(
                 Express("Please decide to rally forces or pass."),
-                Express(Faction.Yellow, " are thinking about rallying forces..."),
-                game.ShipmentAndMoveSequence.GetPlayersInSequence().ToList(), game.FindMostRecentEvent(typeof(EndPhase), typeof(OrangeDelay), typeof(Move))),
+                Express(Faction.Fremen, " are thinking about rallying forces..."),
+                game.ShipmentAndMoveSequence.GetPlayersInSequence().ToList(), game.FindMostRecentEvent(typeof(EndPhase), typeof(GuildDelay), typeof(Move))),
 
-            Phase.NonOrangeShip when game.ShipmentAndMoveSequence!.CurrentFaction != Faction.Yellow => Status(
+            Phase.NonGuildShip when game.ShipmentAndMoveSequence!.CurrentFaction != Faction.Fremen => Status(
                 Express("Please decide to ship forces or pass."),
                 Express(game.ShipmentAndMoveSequence!.CurrentFaction, " are thinking about shipping forces..."),
-                game.ShipmentAndMoveSequence.GetPlayersInSequence().ToList(), game.FindMostRecentEvent(typeof(EndPhase), typeof(OrangeDelay), typeof(Move))),
+                game.ShipmentAndMoveSequence.GetPlayersInSequence().ToList(), game.FindMostRecentEvent(typeof(EndPhase), typeof(GuildDelay), typeof(Move))),
 
-            Phase.OrangeShip when game.OrangeMayDelay => Status(
+            Phase.GuildShip when game.GuildMayDelay => Status(
                 Express("Please decide to ship now or delay your turn and let other factions go first."),
-                Express(Faction.Orange, " are deciding about taking their turn now..."),
-                game.ShipmentAndMoveSequence!.GetPlayersInSequence().ToList(), game.FindMostRecentEvent(typeof(EndPhase), typeof(OrangeDelay), typeof(Move))),
+                Express(Faction.Guild, " are deciding about taking their turn now..."),
+                game.ShipmentAndMoveSequence!.GetPlayersInSequence().ToList(), game.FindMostRecentEvent(typeof(EndPhase), typeof(GuildDelay), typeof(Move))),
 
-            Phase.OrangeShip when !game.OrangeMayDelay => Status(
+            Phase.GuildShip when !game.GuildMayDelay => Status(
                 Express("Please decide to ship forces or pass."),
-                Express(Faction.Orange, " are thinking about shipping forces..."),
-                game.ShipmentAndMoveSequence!.GetPlayersInSequence().ToList(), game.FindMostRecentEvent(typeof(EndPhase), typeof(OrangeDelay), typeof(Move))),
+                Express(Faction.Guild, " are thinking about shipping forces..."),
+                game.ShipmentAndMoveSequence!.GetPlayersInSequence().ToList(), game.FindMostRecentEvent(typeof(EndPhase), typeof(GuildDelay), typeof(Move))),
 
-            Phase.BlueAccompaniesNonOrangeShip or Phase.BlueAccompaniesOrangeShip => Status(game,
+            Phase.BeneGesseritAccompaniesNonGuildShip or Phase.BeneGesseritAccompaniesGuildShip => Status(game,
                 Express("Do you wish to accompany the latest shipment?"),
-                Express(Faction.Blue, " are thinking about accompanying the latest shipment..."),
-                Faction.Blue),
+                Express(Faction.BeneGesserit, " are thinking about accompanying the latest shipment..."),
+                Faction.BeneGesserit),
 
-            Phase.TerrorTriggeredByBlueAccompaniesNonOrangeShip or
-                Phase.TerrorTriggeredByBlueAccompaniesOrangeShip or
-                Phase.TerrorTriggeredByYellowRidingMonsterA or
-                Phase.TerrorTriggeredByYellowRidingMonsterB or
-                Phase.TerrorTriggeredByOrangeShip or
-                Phase.TerrorTriggeredByNonOrangeShip or
-                Phase.TerrorTriggeredByNonOrangeShip or
-                Phase.TerrorTriggeredByOrangeShip or
-                Phase.TerrorTriggeredByNonOrangeMove or
-                Phase.TerrorTriggeredByOrangeMove or
+            Phase.TerrorTriggeredByBeneGesseritAccompaniesNonGuildShip or
+                Phase.TerrorTriggeredByBeneGesseritAccompaniesGuildShip or
+                Phase.TerrorTriggeredByFremenRidingMonsterA or
+                Phase.TerrorTriggeredByFremenRidingMonsterB or
+                Phase.TerrorTriggeredByGuildShip or
+                Phase.TerrorTriggeredByNonGuildShip or
+                Phase.TerrorTriggeredByNonGuildShip or
+                Phase.TerrorTriggeredByGuildShip or
+                Phase.TerrorTriggeredByNonGuildMove or
+                Phase.TerrorTriggeredByGuildMove or
                 Phase.TerrorTriggeredByCaravan or
                 Phase.TerrorTriggeredByRevival => Status(game,
                     Express("Do you wish to respond to this intrusion with terror?"),
-                    Express(Faction.Cyan, " are thinking about resorting to terror..."),
-                    Faction.Cyan),
+                    Express(Faction.Moritani, " are thinking about resorting to terror..."),
+                    Faction.Moritani),
 
             Phase.AllianceByTerror => Status(game,
-                Express("Please decide about entering an alliance offered to you by ", Faction.Cyan),
-                Express(game.AllianceByTerrorOfferedTo, " are considering entering an alliance with ", Faction.Cyan, "..."),
+                Express("Please decide about entering an alliance offered to you by ", Faction.Moritani),
+                Express(game.AllianceByTerrorOfferedTo, " are considering entering an alliance with ", Faction.Moritani, "..."),
                 game.AllianceByTerrorOfferedTo),
 
-            Phase.AmbassadorTriggeredByBlueAccompaniesNonOrangeShip or
-                Phase.AmbassadorTriggeredByBlueAccompaniesOrangeShip or
-                Phase.AmbassadorTriggeredByYellowRidingMonsterA or
-                Phase.AmbassadorTriggeredByYellowRidingMonsterB or
-                Phase.AmbassadorTriggeredByOrangeShip or
-                Phase.AmbassadorTriggeredByNonOrangeShip or
-                Phase.AmbassadorTriggeredByNonOrangeShip or
-                Phase.AmbassadorTriggeredByOrangeShip or
-                Phase.AmbassadorTriggeredByNonOrangeMove or
-                Phase.AmbassadorTriggeredByOrangeMove or
+            Phase.AmbassadorTriggeredByBeneGesseritAccompaniesNonGuildShip or
+                Phase.AmbassadorTriggeredByBeneGesseritAccompaniesGuildShip or
+                Phase.AmbassadorTriggeredByFremenRidingMonsterA or
+                Phase.AmbassadorTriggeredByFremenRidingMonsterB or
+                Phase.AmbassadorTriggeredByGuildShip or
+                Phase.AmbassadorTriggeredByNonGuildShip or
+                Phase.AmbassadorTriggeredByNonGuildShip or
+                Phase.AmbassadorTriggeredByGuildShip or
+                Phase.AmbassadorTriggeredByNonGuildMove or
+                Phase.AmbassadorTriggeredByGuildMove or
                 Phase.AmbassadorTriggeredByCaravan or 
                 Phase.AmbassadorTriggeredByRevival => Status(
                     Express("Do you wish to activate your ambassador?"),
-                    Express(Faction.Pink, Ally(game, Faction.Pink), " are thinking about activating their ambassador..."),
-                    PlayerAndAlly(game, Faction.Pink)),
+                    Express(Faction.Ecaz, Ally(game, Faction.Ecaz), " are thinking about activating their ambassador..."),
+                    PlayerAndAlly(game, Faction.Ecaz)),
 
             Phase.AllianceByAmbassador => Status(game,
-                Express("Please decide about entering an alliance offered to you by ", Faction.Pink),
-                Express(game.AllianceByAmbassadorOfferedTo, " are considering entering an alliance with ", Faction.Pink, "..."),
+                Express("Please decide about entering an alliance offered to you by ", Faction.Ecaz),
+                Express(game.AllianceByAmbassadorOfferedTo, " are considering entering an alliance with ", Faction.Ecaz, "..."),
                 game.AllianceByAmbassadorOfferedTo),
 
-            Phase.BlueIntrudedByNonOrangeShip or
-                Phase.BlueIntrudedByOrangeShip or
-                Phase.BlueIntrudedByYellowRidingMonsterA or
-                Phase.BlueIntrudedByYellowRidingMonsterB or
-                Phase.BlueIntrudedByNonOrangeMove or
-                Phase.BlueIntrudedByOrangeMove or
-                Phase.BlueIntrudedByCaravan or 
-                Phase.BlueIntrudedByRevival => Status(game,
+            Phase.BeneGesseritIntrudedByNonGuildShip or
+                Phase.BeneGesseritIntrudedByGuildShip or
+                Phase.BeneGesseritIntrudedByFremenRidingMonsterA or
+                Phase.BeneGesseritIntrudedByFremenRidingMonsterB or
+                Phase.BeneGesseritIntrudedByNonGuildMove or
+                Phase.BeneGesseritIntrudedByGuildMove or
+                Phase.BeneGesseritIntrudedByCaravan or 
+                Phase.BeneGesseritIntrudedByRevival => Status(game,
                     Express("Please decide how to respond to the intrusion in ", game.LastShipmentOrMovement?.To?.Territory, "; be fighters or advisors?"),
-                    Express(Faction.Blue, " are deciding how to respond to the intrusion in ", game.LastShipmentOrMovement?.To?.Territory, "..."),
-                    Faction.Blue),
+                    Express(Faction.BeneGesserit, " are deciding how to respond to the intrusion in ", game.LastShipmentOrMovement?.To?.Territory, "..."),
+                    Faction.BeneGesserit),
 
-            Phase.NonOrangeMove => Status(
+            Phase.NonGuildMove => Status(
                 Express("Please decide to move forces or pass."),
                 Express(game.ShipmentAndMoveSequence!.CurrentFaction, " are thinking about moving forces."),
-                game.ShipmentAndMoveSequence.GetPlayersInSequence().ToList(), game.FindMostRecentEvent(typeof(EndPhase), typeof(OrangeDelay), typeof(Move))),
+                game.ShipmentAndMoveSequence.GetPlayersInSequence().ToList(), game.FindMostRecentEvent(typeof(EndPhase), typeof(GuildDelay), typeof(Move))),
 
-            Phase.OrangeMove => Status(
+            Phase.GuildMove => Status(
                 Express("Please decide to move forces or pass."),
-                Express(Faction.Orange, " are thinking about moving forces."),
-                game.ShipmentAndMoveSequence!.GetPlayersInSequence().ToList(), game.FindMostRecentEvent(typeof(EndPhase), typeof(OrangeDelay), typeof(Move))),
+                Express(Faction.Guild, " are thinking about moving forces."),
+                game.ShipmentAndMoveSequence!.GetPlayersInSequence().ToList(), game.FindMostRecentEvent(typeof(EndPhase), typeof(GuildDelay), typeof(Move))),
 
             /* Battle */
 
@@ -420,8 +425,8 @@ public class GameStatus
 
             Phase.ClaimingBattle => Status(
                 Express("You may now decide who will fight in ", game.BattleAboutToStart!.Territory),
-                Express(game.HasLowThreshold(Faction.Pink) ? game.BattleAboutToStart.OpponentOf(Faction.Pink)?.Faction : Faction.Pink, " are deciding who will fight in ", game.BattleAboutToStart.Territory, "..."),
-                game.HasLowThreshold(Faction.Pink) ? game.BattleAboutToStart.OpponentOf(Faction.Pink) : game.GetPlayer(Faction.Pink)),
+                Express(game.HasLowThreshold(Faction.Ecaz) ? game.BattleAboutToStart.OpponentOf(Faction.Ecaz)?.Faction : Faction.Ecaz, " are deciding who will fight in ", game.BattleAboutToStart.Territory, "..."),
+                game.HasLowThreshold(Faction.Ecaz) ? game.BattleAboutToStart.OpponentOf(Faction.Ecaz) : game.GetPlayer(Faction.Ecaz)),
 
             Phase.Thought => Status(
                 Express(game.CurrentThought!.Initiator, " asked you a question and are waiting for your answer."),
@@ -456,28 +461,28 @@ public class GameStatus
 
             Phase.CaptureDecision => Status(game,
                 Express("Please decide if you wish to capture a leader."),
-                Express(Faction.Black, " are deciding about capturing a leader..."),
-                Faction.Black),
+                Express(Faction.Harkonnen, " are deciding about capturing a leader..."),
+                Faction.Harkonnen),
 
             Phase.Auditing => Status(game,
                 Express("Please conclude the audit when done inspecting your opponents cards."),
-                Express(Faction.Brown, " are performing their audit..."),
-                Faction.Brown),
+                Express(Faction.Choam, " are performing their audit..."),
+                Faction.Choam),
 
             Phase.BattleConclusion => Status(game,
-                Express("You won! Conclude the battle when done celebrating your victory."),
+                Express("You won!"),
                 Express(game.BattleWinner, " are celebrating their victory in battle..."),
                 game.BattleWinner),
 
             Phase.RevealingFacedancer => Status(game,
                 Express("You may reveal a leader to be one of your face dancers."),
-                Express("Waiting for ", Faction.Purple, " to reveal a face dancer..."),
-                Faction.Purple),
+                Express("Waiting for ", Faction.Tleilaxu, " to reveal a face dancer..."),
+                Faction.Tleilaxu),
 
             Phase.Facedancing =>
                 game.Version <= 150 ?
-                    Status(game, Express("You may reveal a leader to be one of your face dancers."), Express("Waiting for ", Faction.Purple, " to reveal a face dancer..."), Faction.Purple) :
-                    Status(game, Express("You may now replace opponent forces by your own."), Express("Waiting for ", Faction.Purple, " to replace forces..."), Faction.Purple),
+                    Status(game, Express("You may reveal a leader to be one of your face dancers."), Express("Waiting for ", Faction.Tleilaxu, " to reveal a face dancer..."), Faction.Tleilaxu) :
+                    Status(game, Express("You may now replace opponent forces by your own."), Express("Waiting for ", Faction.Tleilaxu, " to replace forces..."), Faction.Tleilaxu),
 
             Phase.BattleReport when game.NextPlayerToBattle != null => Status(Express("Factions may now review the battle report before the next battle begins...")),
             Phase.BattleReport when game.NextPlayerToBattle == null => Status(Express(game.CurrentMainPhase, " phase ended.")),
@@ -497,13 +502,13 @@ public class GameStatus
             /* Mentat */
 
             Phase.Extortion => Status(
-                Express("You may proceed when done waiting for players to avoid future {0} by {1}", TerrorType.Extortion, Faction.Cyan),
-                Express("Players may pay {0} to avoid future {1} by {2}...", Concept.Resource, TerrorType.Extortion, Faction.Cyan)),
+                Express("You may proceed when done waiting for players to avoid future {0} by {1}", TerrorType.Extortion, Faction.Moritani),
+                Express("Players may pay {0} to avoid future {1} by {2}...", Concept.Resource, TerrorType.Extortion, Faction.Moritani)),
 
             Phase.ReplacingFaceDancer => Status(game,
                 "You may replace an unrevealed Face Dancer with a new one from the Traitor Deck.",
                 "Waiting for a Face Dancer to be replaced...",
-                Faction.Purple),
+                Faction.Tleilaxu),
 
             Phase.Contemplate => Status("Check for victories?", "Waiting for the host to start determining victories..."),
 
@@ -513,7 +518,7 @@ public class GameStatus
         };
 
         result.FlashInfo = DetermineFlash(game, me?.Faction ?? Faction.None, isPlayer);
-        result.HighlightedTerritories = DetermineHighlights(game).ToList();
+        result.HighlightedTerritories = DetermineHighlights(game, me?.Faction ?? Faction.None).ToList();
 
         return result;
     }
@@ -545,43 +550,44 @@ public class GameStatus
         return MessagePart.ExpressIf(player?.HasAlly is true, player!.Ally);
     }
 
-    private static List<Territory> DetermineHighlights(Game game)
+    private static List<Territory> DetermineHighlights(Game game, Faction myFaction)
     {
         return game.CurrentPhase switch
         {
-            Phase.YellowSettingUp => [game.Map.SietchTabr.Territory, game.Map.FalseWallSouth, game.Map.FalseWallWest],
+            // Where Fremen may set up is their choice to make, so only they see it.
+            Phase.FremenSettingUp when myFaction == Faction.Fremen => [game.Map.SietchTabr.Territory, game.Map.FalseWallSouth, game.Map.FalseWallWest],
 
             Phase.StormLosses => [TakeLosses.LossesToTake(game).Location.Territory],
 
             Phase.HarvesterA => [game.LatestSpiceCardA!.Location!.Territory],
             Phase.HarvesterB => [game.LatestSpiceCardB!.Location!.Territory],
 
-            Phase.TerrorTriggeredByBlueAccompaniesNonOrangeShip or
-                Phase.TerrorTriggeredByBlueAccompaniesOrangeShip or
-                Phase.TerrorTriggeredByOrangeShip or
-                Phase.TerrorTriggeredByNonOrangeShip or
-                Phase.TerrorTriggeredByNonOrangeMove or
-                Phase.TerrorTriggeredByOrangeMove or
+            Phase.TerrorTriggeredByBeneGesseritAccompaniesNonGuildShip or
+                Phase.TerrorTriggeredByBeneGesseritAccompaniesGuildShip or
+                Phase.TerrorTriggeredByGuildShip or
+                Phase.TerrorTriggeredByNonGuildShip or
+                Phase.TerrorTriggeredByNonGuildMove or
+                Phase.TerrorTriggeredByGuildMove or
                 Phase.TerrorTriggeredByCaravan or
                 Phase.TerrorTriggeredByRevival or
-                Phase.AmbassadorTriggeredByBlueAccompaniesNonOrangeShip or
-                Phase.AmbassadorTriggeredByBlueAccompaniesOrangeShip or
-                Phase.AmbassadorTriggeredByOrangeShip or
-                Phase.AmbassadorTriggeredByNonOrangeShip or
-                Phase.AmbassadorTriggeredByNonOrangeMove or
-                Phase.AmbassadorTriggeredByOrangeMove or
+                Phase.AmbassadorTriggeredByBeneGesseritAccompaniesNonGuildShip or
+                Phase.AmbassadorTriggeredByBeneGesseritAccompaniesGuildShip or
+                Phase.AmbassadorTriggeredByGuildShip or
+                Phase.AmbassadorTriggeredByNonGuildShip or
+                Phase.AmbassadorTriggeredByNonGuildMove or
+                Phase.AmbassadorTriggeredByGuildMove or
                 Phase.AmbassadorTriggeredByCaravan or
                 Phase.AmbassadorTriggeredByRevival or
-                Phase.BlueIntrudedByCaravan or
-                Phase.BlueIntrudedByRevival or
-                Phase.BlueIntrudedByNonOrangeMove or
-                Phase.BlueIntrudedByNonOrangeShip or
-                Phase.BlueIntrudedByOrangeMove or
-                Phase.BlueIntrudedByOrangeShip or
-                Phase.BlueIntrudedByYellowRidingMonsterA or
-                Phase.BlueIntrudedByYellowRidingMonsterB or
-                Phase.BlueAccompaniesOrangeShip or
-                Phase.BlueAccompaniesNonOrangeShip when game.LastShipmentOrMovement != null => [game.LastShipmentOrMovement!.To!.Territory],
+                Phase.BeneGesseritIntrudedByCaravan or
+                Phase.BeneGesseritIntrudedByRevival or
+                Phase.BeneGesseritIntrudedByNonGuildMove or
+                Phase.BeneGesseritIntrudedByNonGuildShip or
+                Phase.BeneGesseritIntrudedByGuildMove or
+                Phase.BeneGesseritIntrudedByGuildShip or
+                Phase.BeneGesseritIntrudedByFremenRidingMonsterA or
+                Phase.BeneGesseritIntrudedByFremenRidingMonsterB or
+                Phase.BeneGesseritAccompaniesGuildShip or
+                Phase.BeneGesseritAccompaniesNonGuildShip when game.LastShipmentOrMovement != null => [game.LastShipmentOrMovement!.To!.Territory],
 
             Phase.BattlePhase or
                 Phase.MeltingRock or
@@ -709,7 +715,7 @@ public class GameStatus
                 case ResidualPlayed: Flash(result, latestEvent, TreacheryCardType.Residual); break;
                 case FlightUsed: Flash(result, latestEvent, TreacheryCardType.Flight); break;
                 case DistransUsed: Flash(result, latestEvent, TreacheryCardType.Distrans); break;
-                case Karma or KarmaFreeRevival or KarmaHandSwapInitiated or KarmaHmsMovement or KarmaMonster or KarmaPrescience or KarmaRevivalPrevention or KarmaShipmentPrevention or KarmaWhiteBuy or KarmaBrownDiscard: Flash(result, latestEvent, TreacheryCardType.Karma); break;
+                case Karma or KarmaFreeRevival or KarmaHandSwapInitiated or KarmaHmsMovement or KarmaMonster or KarmaPrescience or KarmaRevivalPrevention or KarmaShipmentPrevention or KarmaRicheseBuy or KarmaChoamDiscard: Flash(result, latestEvent, TreacheryCardType.Karma); break;
                 case PortableAntidoteUsed: Flash(result, latestEvent, TreacheryCardType.PortableAntidote); break;
                 case RockWasMelted: Flash(result, latestEvent, TreacheryCardType.Rockmelter); break;
                 case DiscardedTaken: Flash(result, latestEvent, TreacheryCardType.TakeDiscarded); break;
@@ -724,9 +730,9 @@ public class GameStatus
                 case Thought: Flash(result, latestEvent, LeaderSkill.Thinker); break;
 
                 //Show Event description
-                case WhiteSpecifiesAuction or BlueBattleAnnouncement or Voice or Prescience or GreyRemovedCardFromAuction or BrownDiscarded or CardTraded or BrownEconomics or SwitchedSkilledLeader:
-                case WhiteAnnouncesBlackMarket { Passed: false }:
-                case GreySwappedCardOnBid { Passed: false }:
+                case RicheseSpecifiesAuction or BeneGesseritBattleAnnouncement or Voice or Prescience or IxianRemovedCardFromAuction or ChoamDiscarded or CardTraded or ChoamEconomics or SwitchedSkilledLeader:
+                case RicheseAnnouncesBlackMarket { Passed: false }:
+                case IxianSwappedCardOnBid { Passed: false }:
                 case ReplacedCardWon { Passed: false }:
                 case FaceDancerReplaced { Passed: false }: 
                     Flash(result, latestEvent); break;
@@ -737,7 +743,7 @@ public class GameStatus
 
                 //Show Nexus card played
                 case NexusPlayed np: Flash(result, Message.Express(np.Initiator, " play a Nexus card"), np.Faction.ToNexus()); break;
-                case Revival { UsesRedSecretAlly: true } nexusRevival: Flash(result, Message.Express(nexusRevival.Initiator, " play a Nexus card"), Faction.Red.ToNexus()); break;
+                case Revival { UsesEmperorSecretAlly: true } nexusRevival: Flash(result, Message.Express(nexusRevival.Initiator, " play a Nexus card"), Faction.Emperor.ToNexus()); break;
             }
 
         var nrOfSpiceBlows = g.RecentMilestones.Count(m => m == Milestone.Resource);

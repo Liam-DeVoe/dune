@@ -37,9 +37,9 @@ def intel_shot(g, name, location):
 
 def run(r):
     # Atreides hold Arrakeen with 10 forces; the Fremen player is looking.
-    with r.game("move", "yellow") as g:
+    with r.game("move", "fremen") as g:
         intel_shot(g, "intel-arrakeen", "Arrakeen")
         intel_shot(g, "intel-tueks", "Tuek's Sietch")
     # Spice just blew at Sihaya Ridge, so the blow row and the spice strip both show.
-    with r.game("blow", "green") as g:
+    with r.game("blow", "atreides") as g:
         intel_shot(g, "intel-sihaya", "Sihaya Ridge")

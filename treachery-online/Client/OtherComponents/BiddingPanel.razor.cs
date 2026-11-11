@@ -9,7 +9,7 @@ public abstract partial class BiddingPanel<TBid> where TBid : GameEvent, new()
 
     protected abstract bool CanUseKarma { get; }
 
-    protected abstract bool CanUseRedSecretAlly { get; }
+    protected abstract bool CanUseEmperorSecretAlly { get; }
 
     protected abstract int MaxAllyBidAmount { get; }
 

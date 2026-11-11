@@ -24,12 +24,12 @@
 
     </div>
 
-    @if (Client.Game.IsPlaying(Faction.White))
+    @if (Client.Game.IsPlaying(Faction.Richese))
     {
-        <h5 class="mt-2"><FactionChip Faction=Faction.White Game=Client.Game/> Cards</h5>
+        <h5 class="mt-2"><FactionChip Faction=Faction.Richese Game=Client.Game/> Cards</h5>
         <div class="row row-cols-3 row-cols-md-6 ms-1 me-1">
 
-            @foreach (var v in TreacheryCardManager.GetWhiteCards())
+            @foreach (var v in TreacheryCardManager.GetRicheseCards())
             {
                 <div class="card">
                     <Hoverable Class="card-img-top" Popover=@Client.CurrentSkin.GetPopup(v)>
@@ -123,14 +123,14 @@
         </div>
     }
 
-    @if (Client.Game.IsPlaying(Faction.Pink))
+    @if (Client.Game.IsPlaying(Faction.Ecaz))
     {
         <h5 class="mt-2">Ambassador Tokens</h5>
         <div class="row row-cols-6 row-cols-md-12 ms-1 me-1">
 
             @foreach (var t in Enumerations.GetValuesExceptDefault(Ambassador.None))
             {
-                if (t != Ambassador.Cyan)
+                if (t != Ambassador.Moritani)
                 {
                     <div class="card">
                         <Image Shown=@t Class="card-img"/>
@@ -141,7 +141,7 @@
         </div>
     }
 
-    @if (Client.Game.IsPlaying(Faction.Cyan))
+    @if (Client.Game.IsPlaying(Faction.Moritani))
     {
         <h5 class="mt-2">Terror Tokens</h5>
         <div>

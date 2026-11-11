@@ -17,7 +17,7 @@ public partial class ClassicBot
 
     private int MaxExpectedStormMoves => Game.HasStormPrescience(Player) ? Game.NextStormMoves : Param.Shipment_ExpectedStormMovesWhenUnknown;
 
-    protected virtual bool MayFlipToAdvisors => Faction == Faction.Blue && Game.Applicable(Rule.BlueAdvisors);
+    protected virtual bool MayFlipToAdvisors => Faction == Faction.BeneGesserit && Game.Applicable(Rule.BeneGesseritAdvisors);
 
     private Dictionary<Location, Battalion> ForcesOnPlanet => Player.ForcesOnPlanet;
 
@@ -30,7 +30,7 @@ public partial class ClassicBot
     private bool WinWasPredictedByMeThisTurn(Faction opponentFaction)
     {
         var ally = Game.GetPlayer(opponentFaction).Ally;
-        return Faction == Faction.Blue && Game.CurrentTurn == Player.PredictedTurn 
+        return Faction == Faction.BeneGesserit && Game.CurrentTurn == Player.PredictedTurn 
                                        && (opponentFaction == Player.PredictedFaction || ally == Player.PredictedFaction);
     }
 
@@ -70,9 +70,9 @@ public partial class ClassicBot
         (game.LatestClairvoyance.Initiator == player.Faction || game.LatestClairvoyance.Initiator == player.Ally) &&
         game.LatestClairvoyance.Question is ClairvoyanceQuestion.CardTypeAsWeaponInBattle or ClairvoyanceQuestion.CardTypeInBattle ? game.LatestClairvoyanceQnA : null;
 
-    private Voice? MyVoice => Game.CurrentVoice != null && (Faction == Faction.Blue || Ally == Faction.Blue) ? Game.CurrentVoice : null;
+    private Voice? MyVoice => Game.CurrentVoice != null && (Faction == Faction.BeneGesserit || Ally == Faction.BeneGesserit) ? Game.CurrentVoice : null;
 
-    private bool MayUseUselessAsKarma => Faction == Faction.Blue && Game.Applicable(Rule.BlueWorthlessAsKarma);
+    private bool MayUseUselessAsKarma => Faction == Faction.BeneGesserit && Game.Applicable(Rule.BeneGesseritWorthlessAsKarma);
 
     #endregion
 
@@ -127,15 +127,15 @@ public partial class ClassicBot
         if (cardToRate.Type == TreacheryCardType.ShieldAndAntidote) return 5;
         if (cardToRate.Type == TreacheryCardType.Laser) return 5;
         if (cardToRate.Type == TreacheryCardType.Rockmelter) return 5;
-        if (cardToRate.Type == TreacheryCardType.Karma && Faction == Faction.Black && !Player.SpecialKarmaPowerUsed) return 5;
+        if (cardToRate.Type == TreacheryCardType.Karma && Faction == Faction.Harkonnen && !Player.SpecialKarmaPowerUsed) return 5;
 
-        var qualityWhenObtainingBothKinds = Faction == Faction.Green || Faction == Faction.Blue ? 5 : 4;
+        var qualityWhenObtainingBothKinds = Faction == Faction.Atreides || Faction == Faction.BeneGesserit ? 5 : 4;
         if (cardToRate.IsProjectileDefense && !cardsToTakeIntoAccount.Any(c => c != cardToRate && c.IsProjectileDefense) && cardsToTakeIntoAccount.Any(c => c != cardToRate && c.IsPoisonDefense)) return qualityWhenObtainingBothKinds;
         if (cardToRate.IsPoisonDefense && !cardsToTakeIntoAccount.Any(c => c != cardToRate && c.IsPoisonDefense) && cardsToTakeIntoAccount.Any(c => c != cardToRate && c.IsProjectileDefense)) return qualityWhenObtainingBothKinds;
         if (cardToRate.IsProjectileWeapon && !cardsToTakeIntoAccount.Any(c => c != cardToRate && c.IsProjectileWeapon) && cardsToTakeIntoAccount.Any(c => c != cardToRate && c.IsPoisonWeapon)) return qualityWhenObtainingBothKinds;
         if (cardToRate.IsPoisonWeapon && !cardsToTakeIntoAccount.Any(c => c != cardToRate && c.IsPoisonWeapon) && cardsToTakeIntoAccount.Any(c => c != cardToRate && c.IsProjectileWeapon)) return qualityWhenObtainingBothKinds;
 
-        if (Faction == Faction.Blue)
+        if (Faction == Faction.BeneGesserit)
         {
             if (cardToRate.IsProjectileWeapon && !cardsToTakeIntoAccount.Any(c => c != cardToRate && c.IsProjectileWeapon)) return 5;
             if (cardToRate.IsPoisonWeapon && !cardsToTakeIntoAccount.Any(c => c != cardToRate && c.IsPoisonWeapon)) return 5;
@@ -165,11 +165,11 @@ public partial class ClassicBot
 
     protected virtual int ResourcesIncludingAllyContribution => Resources + ResourcesFromAlly;
 
-    protected virtual int ResourcesIncludingAllyAndRedContribution => Resources + ResourcesFromAlly + ResourcesFromRed;
+    protected virtual int ResourcesIncludingAllyAndEmperorContribution => Resources + ResourcesFromAlly + ResourcesFromEmperor;
 
     protected virtual int ResourcesFromAlly => Ally != Faction.None ? Game.GetPermittedUseOfAllyResources(Faction) : 0;
 
-    protected virtual int ResourcesFromRed => Game.SpiceForBidsRedCanPay(Faction);
+    protected virtual int ResourcesFromEmperor => Game.SpiceForBidsEmperorCanPay(Faction);
 
     protected virtual int AllyResources => AlliedPlayer?.Resources ?? 0;
 
@@ -256,7 +256,7 @@ public partial class ClassicBot
 
     protected virtual bool VacantAndSafeFromStorm(Location location)
     {
-        if (Faction == Faction.Yellow && !Game.Prevented(FactionAdvantage.YellowProtectedFromStorm))
+        if (Faction == Faction.Fremen && !Game.Prevented(FactionAdvantage.FremenProtectedFromStorm))
             return NotOccupied(location.Territory);
         return NotOccupied(location.Territory) && location.Sector != Game.SectorInStorm && !StormWillProbablyHit(location);
     }
@@ -264,17 +264,17 @@ public partial class ClassicBot
 
     private bool IDontHaveAdvisorsIn(Location l)
     {
-        return Faction != Faction.Blue || Player.SpecialForcesIn(l.Territory) == 0;
+        return Faction != Faction.BeneGesserit || Player.SpecialForcesIn(l.Territory) == 0;
     }
 
     private bool AllyDoesntBlock(Territory t)
     {
-        return Ally is Faction.None or Faction.Pink ||
-               Faction is Faction.Pink ||
+        return Ally is Faction.None or Faction.Ecaz ||
+               Faction is Faction.Ecaz ||
                AlliedPlayer!.AnyForcesIn(t) == 0 ||
-               (Faction is Faction.Blue && Game.Applicable(Rule.AdvisorsDontConflictWithAlly) &&
+               (Faction is Faction.BeneGesserit && Game.Applicable(Rule.AdvisorsDontConflictWithAlly) &&
                 Player.SpecialForcesIn(t) > 0) ||
-               (Ally is Faction.Blue && Game.Applicable(Rule.AdvisorsDontConflictWithAlly) &&
+               (Ally is Faction.BeneGesserit && Game.Applicable(Rule.AdvisorsDontConflictWithAlly) &&
                 AlliedPlayer.SpecialForcesIn(t) > 0);
     }
 
@@ -285,7 +285,7 @@ public partial class ClassicBot
 
     protected virtual bool WithinRange(Location from, Location to, Battalion b)
     {
-        var onlyAdvisors = b is { Faction: Faction.Blue, AmountOfForces: 0 };
+        var onlyAdvisors = b is { Faction: Faction.BeneGesserit, AmountOfForces: 0 };
 
         var willGetOrnithopters =
             !onlyAdvisors && !Game.Applicable(Rule.MovementBonusRequiresOccupationBeforeMovement) && (Equals(from, Game.Map.Arrakeen) || Equals(from, Game.Map.Carthag)) ? 3 : 0;
@@ -407,7 +407,7 @@ public partial class ClassicBot
         .HighestOrDefault(_random, locationWithBattalion => locationWithBattalion.Battalion.TotalAmountOfForces);
 
     protected virtual BattalionInLocation? BiggestMovableStackOfAdvisorsInStrongholdNearVacantStronghold => ForcesOnPlanet.Where(locationWithBattalion =>
-            locationWithBattalion.Value is { Faction: Faction.Blue, AmountOfSpecialForces: > 0 } &&
+            locationWithBattalion.Value is { Faction: Faction.BeneGesserit, AmountOfSpecialForces: > 0 } &&
             IsStronghold(locationWithBattalion.Key) &&
             NotOccupiedByOthers(locationWithBattalion.Key) &&
             !InStorm(locationWithBattalion.Key) &&
@@ -545,7 +545,7 @@ public partial class ClassicBot
                 DialNeeded = GetDialNeeded(s.Stronghold.Territory, GetOpponentThatOccupies(s.Stronghold.Territory), true)
             });
 
-        var resourcesForBattle = Ally == Faction.Brown ? ResourcesIncludingAllyContribution : Resources;
+        var resourcesForBattle = Ally == Faction.Choam ? ResourcesIncludingAllyContribution : Resources;
 
         var winnableNearbyStronghold = enemyWeakStrongholds.Where(s =>
             WinWasPredictedByMeThisTurn(s.Opponent) ||
@@ -565,19 +565,19 @@ public partial class ClassicBot
 
     private static float MaxDial(Game game, Player player, Territory t, Player? opponent, bool ignoreSpiceDialing = false)
     {
-        var countForcesForWhite = 0;
-        if (player.Faction == Faction.White && player.SpecialForcesIn(t) > 0) 
-            countForcesForWhite = player.Faction == Faction.White || player.Ally == Faction.White 
+        var countForcesForRichese = 0;
+        if (player.Faction == Faction.Richese && player.SpecialForcesIn(t) > 0) 
+            countForcesForRichese = player.Faction == Faction.Richese || player.Ally == Faction.Richese 
                 ? game.CurrentNoFieldValue 
                 : game.LatestRevealedNoFieldValue == 5 ? 3 : 5;
 
         return MaxDial(
             game,
             ignoreSpiceDialing ? 99 : player.Resources,
-            player.ForcesIn(t) + countForcesForWhite,
-            player.Faction != Faction.White ? player.SpecialForcesIn(t) : 0,
+            player.ForcesIn(t) + countForcesForRichese,
+            player.Faction != Faction.Richese ? player.SpecialForcesIn(t) : 0,
             player,
-            opponent?.Faction ?? Faction.Black);
+            opponent?.Faction ?? Faction.Harkonnen);
     }
 
     private static float MaxDial(Game game, int resources, Battalion battalion, Faction opponent) 
@@ -637,7 +637,7 @@ public partial class ClassicBot
 
             var opponentResources = opponent.Resources + opponent.AlliedResources;
 
-            var opponentMayUseWorthlessAsKarma = opponent.Faction == Faction.Blue && game.Applicable(Rule.BlueWorthlessAsKarma);
+            var opponentMayUseWorthlessAsKarma = opponent.Faction == Faction.BeneGesserit && game.Applicable(Rule.BeneGesseritWorthlessAsKarma);
             var hasKarma = KnownCardsHeldByOtherPlayer(game, player, opponent).Any(c => c.Type == TreacheryCardType.Karma || (opponentMayUseWorthlessAsKarma && c.Type == TreacheryCardType.Karma));
 
             while (specialForces + 1 <= opponent.SpecialForcesInReserve && Shipment.DetermineCost(game, opponent, normalForces, specialForces + 1, to.MiddleLocation, hasKarma, false, false, false, false) <= opponentResources) specialForces++;

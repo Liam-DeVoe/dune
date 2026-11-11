@@ -48,7 +48,7 @@ public class PerformHmsPlacement : GameEvent
 
     public static IEnumerable<Location> ValidLocations(Game g, Player p)
     {
-        if (p.Faction != Faction.Grey)
+        if (p.Faction != Faction.Ixian)
             return g.Map.Locations(false).Where(l => !l.Territory.IsStronghold);
         return g.Map.Locations(false).Where(l => !l.Territory.IsStronghold && l.Sector != g.SectorInStorm);
     }

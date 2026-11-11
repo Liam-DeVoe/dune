@@ -17,7 +17,7 @@ public partial class GameHub
 
     private async Task CleanupUserTokensIfNeeded()
     {
-        if (LastCleanedUpUserTokens.AddHours(CleanupFrequencyHours) > DateTimeOffset.Now)
+        if (LastCleanedUpUserTokens.AddHours(CleanupFrequencyHours) > TestHooks.Now())
             return;
 
         await CleanupUserTokens();
@@ -30,7 +30,7 @@ public partial class GameHub
 
     private async Task CleanupUserTokens()
     {
-        var now = DateTimeOffset.Now;
+        var now = TestHooks.Now();
         if (LastCleanedUpUserTokens.AddHours(CleanupFrequencyHours) > now)
             return;
         
@@ -67,18 +67,18 @@ public partial class GameHub
 
     private static void CleanupScheduledGamesIfNeeded()
     {
-        if (LastCleanedUpScheduledGames.AddHours(CleanupFrequencyHours) > DateTimeOffset.Now)
+        if (LastCleanedUpScheduledGames.AddHours(CleanupFrequencyHours) > TestHooks.Now())
             return;
         
         Log($"{nameof(CleanupScheduledGamesIfNeeded)} {ScheduledGamesByGameId.Count}");
         
-        var thresholdDateTime = DateTimeOffset.Now.AddHours(-4);
+        var thresholdDateTime = TestHooks.Now().AddHours(-4);
         foreach (var gameIdAndGame in ScheduledGamesByGameId.Where(g => g.Value.DateTime < thresholdDateTime).ToArray())
         {
             ScheduledGamesByGameId.Remove(gameIdAndGame.Key, out _);
         }
         
-        LastCleanedUpScheduledGames = DateTimeOffset.Now;
+        LastCleanedUpScheduledGames = TestHooks.Now();
     }
 
     public async Task<Result<string>> AdminUpdateMaintenance(string userToken, DateTimeOffset maintenanceDate)
@@ -103,7 +103,7 @@ public partial class GameHub
     
     private async Task PersistScheduledGamesIfNeeded()
     {
-        if (LastPersistedScheduledGames.AddMinutes(PersistFrequencyMinutes) > DateTimeOffset.Now)
+        if (LastPersistedScheduledGames.AddMinutes(PersistFrequencyMinutes) > TestHooks.Now())
             return;
 
         await PersistScheduledGames();
@@ -114,7 +114,7 @@ public partial class GameHub
         if (LastRestored == default)
             return (0, 0, 0, 0);
         
-        var now = DateTimeOffset.Now;
+        var now = TestHooks.Now();
         
         Log($"{nameof(PersistRunningGames)} started...");
 
@@ -190,7 +190,7 @@ public partial class GameHub
         if (LastRestored == default)
             return 0;
 
-        LastPersistedScheduledGames = DateTimeOffset.Now;
+        LastPersistedScheduledGames = TestHooks.Now();
         
         Log($"{nameof(PersistScheduledGames)} started...");
         
@@ -240,7 +240,7 @@ public partial class GameHub
 
     private async Task PersistGameIfNeeded(ManagedGame game)
     {
-        if (game.LastPersisted.AddMinutes(GamePersistFrequencyMinutes) > DateTimeOffset.Now)
+        if (game.LastPersisted.AddMinutes(GamePersistFrequencyMinutes) > TestHooks.Now())
             return;
         
         await PersistGame(game);
@@ -248,7 +248,7 @@ public partial class GameHub
 
     private async Task PersistGame(ManagedGame game)
     {
-        game.LastPersisted = DateTimeOffset.Now;
+        game.LastPersisted = TestHooks.Now();
         
         await using var context = GetDbContext();
         
@@ -404,7 +404,7 @@ public partial class GameHub
             }
         }
         
-        LastRestored = DateTimeOffset.Now;
+        LastRestored = TestHooks.Now();
         LastPersistedRunningGames = LastRestored;
         
         Log($"{nameof(RestoreGamesAndUserCache)} {amountRunning} {amountScheduled}");
@@ -417,7 +417,7 @@ public partial class GameHub
     // Tokens already in memory are kept, so an admin-triggered restore does not reset anyone's status.
     private static void RestoreUserTokens(TreacheryContext context)
     {
-        var now = DateTimeOffset.Now;
+        var now = TestHooks.Now();
         foreach (var token in context.UserTokens.AsNoTracking())
         {
             if (now.Subtract(token.Created).TotalDays >= MaximumLoginTimeDays) continue;
@@ -434,6 +434,7 @@ public partial class GameHub
         if (RunningGamesByGameId.TryGetValue(gameId, out var game))
         {
             RunningGamesByGameId.Remove(gameId, out _);
+            PausesByGameId.Remove(gameId, out _);
 
             foreach (var userId in game.Game.Participation.PlayerNames.Keys)
             {
@@ -485,6 +486,7 @@ public partial class GameHub
             }
             
             RunningGamesByGameId.Remove(game.GameId, out _);
+            PausesByGameId.Remove(game.GameId, out _);
             await EraseGame(game);
         }
 

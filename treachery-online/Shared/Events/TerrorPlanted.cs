@@ -72,12 +72,12 @@ public class TerrorPlanted : PassableGameEvent
 
     public static bool MayRemoveTokens(Game g, Player p)
     {
-        return g.CurrentMainPhase is MainPhase.Collection && p.HasHighThreshold(World.Cyan) && g.TerrorOnPlanet.Any();
+        return g.CurrentMainPhase is MainPhase.Collection && p.HasHighThreshold(World.Moritani) && g.TerrorOnPlanet.Any();
     }
 
     public static bool MayPlaceAtExistingToken(Player p)
     {
-        return p.HasHighThreshold(World.Cyan) || (p.Nexus == Faction.Cyan && NexusPlayed.CanUseCunning(p));
+        return p.HasHighThreshold(World.Moritani) || (p.Nexus == Faction.Moritani && NexusPlayed.CanUseCunning(p));
     }
 
     public static IEnumerable<TerrorType> ValidTerrorTypes(Game g, bool toRemove)
@@ -95,8 +95,8 @@ public class TerrorPlanted : PassableGameEvent
                g.CurrentPhase is Phase.Contemplate &&
                ValidTerrorTypes(g, false).Any() &&
                ValidStrongholds(g, p).Any() &&
-               !g.CyanHasPerformedTerror &&
-               !g.Prevented(FactionAdvantage.CyanPlantingTerror);
+               !g.MoritaniHasPerformedTerror &&
+               !g.Prevented(FactionAdvantage.MoritaniPlantingTerror);
     }
 
     #endregion Validation
@@ -107,7 +107,7 @@ public class TerrorPlanted : PassableGameEvent
     {
         Log(GetVerboseMessage());
 
-        Game.CyanHasPerformedTerror = true;
+        Game.MoritaniHasPerformedTerror = true;
         
         if (!Passed)
         {
@@ -121,7 +121,7 @@ public class TerrorPlanted : PassableGameEvent
             }
             else
             {
-                if (Game.TerrorIn(Stronghold).Any() && !Player.HasHighThreshold(World.Cyan)) Game.PlayNexusCard(Player, "Cunning", "to plant additional Terror in ", Stronghold);
+                if (Game.TerrorIn(Stronghold).Any() && !Player.HasHighThreshold(World.Moritani)) Game.PlayNexusCard(Player, "Cunning", "to plant additional Terror in ", Stronghold);
 
                 if (Game.UnplacedTerrorTokens.Contains(Type))
                 {

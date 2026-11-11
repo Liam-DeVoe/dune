@@ -77,7 +77,7 @@ public partial class ClassicBot
     {
         return new CardGiven(Game, Faction)
         {
-            Passed = !(CardQuality(Game.CardThatMustBeKeptOrGivenToAlly, Player) <= 2 && (Ally == Faction.Blue || Ally == Faction.Brown || CardQuality(Game.CardThatMustBeKeptOrGivenToAlly, AlliedPlayer) > 0))
+            Passed = !(CardQuality(Game.CardThatMustBeKeptOrGivenToAlly, Player) <= 2 && (Ally == Faction.BeneGesserit || Ally == Faction.Choam || CardQuality(Game.CardThatMustBeKeptOrGivenToAlly, AlliedPlayer) > 0))
         };
     }
 
@@ -110,7 +110,7 @@ public partial class ClassicBot
     {
         var result = Player.Traitors.Where(t => Player.RevealedTraitors.Contains(t)).HighestOrDefault(_random, t => t.Value);
 
-        if (result == null && (Ally == Faction.Purple || !Game.IsPlaying(Faction.Purple))) result = Player.Traitors.Where(t => t.Faction == Faction).LowestOrDefault(_random, t => t.Value);
+        if (result == null && (Ally == Faction.Tleilaxu || !Game.IsPlaying(Faction.Tleilaxu))) result = Player.Traitors.Where(t => t.Faction == Faction).LowestOrDefault(_random, t => t.Value);
 
         result ??= Player.Traitors.Where(t => t is Leader && !Game.IsAlive(t)).LowestOrDefault(_random, t => t.Value);
         result ??= Player.Traitors.Where(t => t is Leader).LowestOrDefault(_random, t => t.Value);
@@ -142,49 +142,49 @@ public partial class ClassicBot
         
         switch (Player.Nexus)
         {
-            case Faction.Green:
-                if (IsWinningOrIsOpponentInBattle(Faction.Green) && !Game.Prevented(FactionAdvantage.GreenBattlePlanPrescience)) return result;
+            case Faction.Atreides:
+                if (IsWinningOrIsOpponentInBattle(Faction.Atreides) && !Game.Prevented(FactionAdvantage.AtreidesBattlePlanPrescience)) return result;
                 break;
 
-            case Faction.Black:
+            case Faction.Harkonnen:
                 if (Game.CurrentBattle.IsInvolved(Player)) return result;
                 break;
 
-            case Faction.Yellow:
-                if ((Game.CurrentMainPhase == MainPhase.Blow && YellowRidesMonster.IsApplicable(Game)) ||
-                    (Game.CurrentMainPhase == MainPhase.ShipmentAndMove && IWishToAttack(0, Faction.Yellow))) return result;
+            case Faction.Fremen:
+                if ((Game.CurrentMainPhase == MainPhase.Blow && FremenRidesMonster.IsApplicable(Game)) ||
+                    (Game.CurrentMainPhase == MainPhase.ShipmentAndMove && IWishToAttack(0, Faction.Fremen))) return result;
                 break;
 
-            case Faction.Red:
-                if ((Game is { CurrentMainPhase: MainPhase.Bidding, CurrentBid: not null } && Game.CurrentBid.Player.Ally == Faction.Red && Game.CurrentBid.TotalAmount > 5 && !Game.Prevented(FactionAdvantage.RedReceiveBid)) ||
-                    (Game.CurrentMainPhase == MainPhase.Battle && IsWinningOrIsOpponentInBattle(Faction.Red) && Game.GetPlayer(Faction.Red).SpecialForcesIn(Game.CurrentBattle.Territory) >= 3)) return result;
+            case Faction.Emperor:
+                if ((Game is { CurrentMainPhase: MainPhase.Bidding, CurrentBid: not null } && Game.CurrentBid.Player.Ally == Faction.Emperor && Game.CurrentBid.TotalAmount > 5 && !Game.Prevented(FactionAdvantage.EmperorReceiveBid)) ||
+                    (Game.CurrentMainPhase == MainPhase.Battle && IsWinningOrIsOpponentInBattle(Faction.Emperor) && Game.GetPlayer(Faction.Emperor).SpecialForcesIn(Game.CurrentBattle.Territory) >= 3)) return result;
                 break;
 
-            case Faction.Orange:
+            case Faction.Guild:
                 if (Game.RecentlyPaidTotalAmount > 5) return result;
                 break;
 
-            case Faction.Blue:
-                if (IsWinningOrIsOpponentInBattle(Faction.Blue) && !Game.Prevented(FactionAdvantage.BlueUsingVoice)) return result;
+            case Faction.BeneGesserit:
+                if (IsWinningOrIsOpponentInBattle(Faction.BeneGesserit) && !Game.Prevented(FactionAdvantage.BeneGesseritUsingVoice)) return result;
                 break;
 
-            case Faction.Grey: return result;
+            case Faction.Ixian: return result;
 
-            case Faction.Purple:
+            case Faction.Tleilaxu:
                 if (Game.CurrentBattle.IsInvolved(Player)) return result;
                 break;
 
-            case Faction.Brown:
-                if (IsWinningOrIsOpponentInBattle(Faction.Brown) 
-                    && KnownOpponentCards(Game, Player, Game.GetPlayer(Faction.Brown)).Any(c => c.IsWeapon || c.IsDefense)) 
+            case Faction.Choam:
+                if (IsWinningOrIsOpponentInBattle(Faction.Choam) 
+                    && KnownOpponentCards(Game, Player, Game.GetPlayer(Faction.Choam)).Any(c => c.IsWeapon || c.IsDefense)) 
                     return result;
                 break;
 
-            case Faction.White:
-                var white = Game.GetPlayer(Faction.White);
-                if (white.Has(Game.CardJustWon))
+            case Faction.Richese:
+                var richese = Game.GetPlayer(Faction.Richese);
+                if (richese.Has(Game.CardJustWon))
                 {
-                    if (CardQuality(Game.CardJustWon, white) > 2) return result;
+                    if (CardQuality(Game.CardJustWon, richese) > 2) return result;
                 }
                 else if (Game.RecentlyPaidTotalAmount > 4)
                 {
@@ -193,26 +193,26 @@ public partial class ClassicBot
 
                 break;
 
-            case Faction.Pink:
+            case Faction.Ecaz:
                 if (Game.CurrentPhase == Phase.ResurrectionReport)
                 {
-                    var territoryToRemovePinkFrom = DetermineTerritoryToRemovePinkFrom();
-                    if (territoryToRemovePinkFrom != null)
+                    var territoryToRemoveEcazFrom = DetermineTerritoryToRemoveEcazFrom();
+                    if (territoryToRemoveEcazFrom != null)
                     {
-                        result.PinkTerritory = territoryToRemovePinkFrom;
+                        result.EcazTerritory = territoryToRemoveEcazFrom;
                         return result;
                     }
                 }
                 break;
 
-            case Faction.Cyan:
-                if ((Faction == Faction.Orange && Game is { CurrentPhase: Phase.OrangeShip, OrangeMayDelay: false }) ||
-                    (Faction != Faction.Orange && Game.CurrentPhase == Phase.NonOrangeShip && Game.ShipmentAndMoveSequence.CurrentPlayer == Player))
+            case Faction.Moritani:
+                if ((Faction == Faction.Guild && Game is { CurrentPhase: Phase.GuildShip, GuildMayDelay: false }) ||
+                    (Faction != Faction.Guild && Game.CurrentPhase == Phase.NonGuildShip && Game.ShipmentAndMoveSequence.CurrentPlayer == Player))
                 {
                     var shipment = DetermineShipment();
                     if (Game.TerrorIn(shipment.To.Territory).Any())
                     {
-                        result.CyanTerritory = shipment.To.Territory;
+                        result.MoritaniTerritory = shipment.To.Territory;
                         return result;
                     }
                 }
@@ -223,19 +223,19 @@ public partial class ClassicBot
         return null;
     }
 
-    private Territory? DetermineTerritoryToRemovePinkFrom()
+    private Territory? DetermineTerritoryToRemoveEcazFrom()
     {
         Territory? result = null;
-        var territoriesWithPinkAndPinkAlly = NexusPlayed.ValidPinkTerritories(Game).Where(t => t.IsStronghold || Game.IsSpecialStronghold(t)).ToList();
+        var territoriesWithEcazAndEcazAlly = NexusPlayed.ValidEcazTerritories(Game).Where(t => t.IsStronghold || Game.IsSpecialStronghold(t)).ToList();
 
-        if (territoriesWithPinkAndPinkAlly.Count == 0) return result;
+        if (territoriesWithEcazAndEcazAlly.Count == 0) return result;
         
-        var pink = Game.GetPlayer(Faction.Pink);
+        var ecaz = Game.GetPlayer(Faction.Ecaz);
 
-        if (territoriesWithPinkAndPinkAlly.Count >= 2) result = territoriesWithPinkAndPinkAlly.HighestOrDefault(_random, t => pink.AnyForcesIn(t));
+        if (territoriesWithEcazAndEcazAlly.Count >= 2) result = territoriesWithEcazAndEcazAlly.HighestOrDefault(_random, t => ecaz.AnyForcesIn(t));
 
-        result ??= territoriesWithPinkAndPinkAlly.Where(t => pink.AnyForcesIn(t) > 7)
-            .HighestOrDefault(_random, t => pink.AnyForcesIn(t));
+        result ??= territoriesWithEcazAndEcazAlly.Where(t => ecaz.AnyForcesIn(t) > 7)
+            .HighestOrDefault(_random, t => ecaz.AnyForcesIn(t));
     
         return result;
     }
@@ -251,7 +251,7 @@ public partial class ClassicBot
     {
         switch (Player.Nexus)
         {
-            case Faction.Green:
+            case Faction.Atreides:
 
                 if (Game.CurrentPrescience != null)
                 {
@@ -260,45 +260,45 @@ public partial class ClassicBot
                     if (!(Voice.MayUseVoice(Game, opponent) && Game.CurrentVoice == null && Game.CurrentBattle.PlanOf(opponent) == null))
                         if (Game.CurrentBattle.IsAggressorOrDefender(Player))
                         {
-                            result.GreenPrescienceAspect = BestPrescience(Player, opponent, MaxDial(Game, Player, Game.CurrentBattle.Territory, opponent), 
+                            result.AtreidesPrescienceAspect = BestPrescience(Player, opponent, MaxDial(Game, Player, Game.CurrentBattle.Territory, opponent), 
                                 Game.CurrentPrescience.Aspect, Game.CurrentBattle.Territory);
 
-                            if (result.GreenPrescienceAspect != PrescienceAspect.None) return result;
+                            if (result.AtreidesPrescienceAspect != PrescienceAspect.None) return result;
                         }
                 }
                 break;
 
-            case Faction.Black:
+            case Faction.Harkonnen:
                 if (Game.CurrentPhase == Phase.ShipmentAndMoveConcluded && DetermineWorstTraitor() != null) return result;
                 break;
 
-            case Faction.Yellow:
+            case Faction.Fremen:
                 if (Game.Monsters.Any() && DetermineMovedBattalion(true) != null) return result;
                 break;
 
-            case Faction.Red:
+            case Faction.Emperor:
                 if (Player.ForcesIn(Game.CurrentBattle.Territory) >= 4) return result;
                 break;
 
-            case Faction.Orange:
+            case Faction.Guild:
                 var shipment = DetermineShipment();
-                if (!shipment.Passed && DecidedShipmentAction is ShipmentDecision.PreventNormalWin or ShipmentDecision.PreventYellowWin or ShipmentDecision.AttackWeakStronghold) return result;
+                if (!shipment.Passed && DecidedShipmentAction is ShipmentDecision.PreventNormalWin or ShipmentDecision.PreventFremenWin or ShipmentDecision.AttackWeakStronghold) return result;
                 break;
 
-            case Faction.Blue:
-                var flip = DetermineBlueBattleAnnouncement();
+            case Faction.BeneGesserit:
+                var flip = DetermineBeneGesseritBattleAnnouncement();
                 if (flip != null) return result;
                 break;
 
-            case Faction.Grey:
+            case Faction.Ixian:
                 if (Player.ForcesIn(Game.CurrentBattle.Territory) >= 3) return result;
                 break;
 
-            case Faction.Purple:
+            case Faction.Tleilaxu:
                 if (Game.CurrentMainPhase == MainPhase.Battle && Player.RevealedFaceDancers.Any()) return result;
                 break;
 
-            case Faction.Pink:
+            case Faction.Ecaz:
                 if (Game is { CurrentPhase: Phase.BattlePhase, CurrentBattle: not null } && Game.CurrentBattle.IsAggressorOrDefender(Player) && !Player.Leaders.Contains(Game.Vidal)) return result;
                 break;
 
@@ -311,70 +311,70 @@ public partial class ClassicBot
     {
         switch (Player.Nexus)
         {
-            case Faction.Green:
+            case Faction.Atreides:
 
                 var opponent = Game.CurrentBattle.OpponentOf(Faction);
                 if (!(Voice.MayUseVoice(Game, opponent) && Game.CurrentVoice == null && Game.CurrentBattle.PlanOf(opponent) == null))
                     if (Game.CurrentBattle.IsAggressorOrDefender(Player))
                     {
                         var maxDial = MaxDial(Game, Player, Game.CurrentBattle.Territory, opponent);
-                        result.GreenPrescienceAspect = BestPrescience(Player, opponent, maxDial, 
+                        result.AtreidesPrescienceAspect = BestPrescience(Player, opponent, maxDial, 
                             PrescienceAspect.None, Game.CurrentBattle.Territory);
-                        if (result.GreenPrescienceAspect != PrescienceAspect.None) return result;
+                        if (result.AtreidesPrescienceAspect != PrescienceAspect.None) return result;
                     }
 
                 break;
 
-            case Faction.Black:
+            case Faction.Harkonnen:
                 if (DetermineWorstTraitor() != null) return result;
                 break;
 
-            case Faction.Yellow:
+            case Faction.Fremen:
                 if (Game.CurrentMainPhase == MainPhase.Resurrection && Player.ForcesKilled >= 3) return result;
                 break;
 
-            case Faction.Orange:
+            case Faction.Guild:
                 var shipment = DetermineShipment();
                 if (!shipment.Passed && Shipment.DetermineCost(Game, Player, shipment) > 5) return result;
                 break;
 
-            case Faction.Blue:
+            case Faction.BeneGesserit:
                 if (Game.CurrentBattle != null && Game.CurrentBattle.IsInvolved(Player)) return result;
                 break;
 
-            case Faction.Grey:
+            case Faction.Ixian:
                 if (CardQuality(Game.CardJustWon, Player) < 2) return result;
                 break;
 
-            case Faction.Purple:
+            case Faction.Tleilaxu:
                 if (Game.HasActedOrPassed.Contains(Faction))
                 {
                     var amountOfSpecialForces = 0;
                     var amountOfForces = 0;
 
-                    while (amountOfSpecialForces + 1 < NexusPlayed.ValidPurpleMaxAmount(Game, Player, true) &&
-                           NexusPlayed.DeterminePurpleCost(0, amountOfSpecialForces + 1) < Resources &&
+                    while (amountOfSpecialForces + 1 < NexusPlayed.ValidTleilaxuMaxAmount(Game, Player, true) &&
+                           NexusPlayed.DetermineTleilaxuCost(0, amountOfSpecialForces + 1) < Resources &&
                            amountOfSpecialForces + 1 + amountOfForces <= 5)
                         amountOfSpecialForces++;
 
-                    while (amountOfForces + 1 < NexusPlayed.ValidPurpleMaxAmount(Game, Player, false) &&
-                           NexusPlayed.DeterminePurpleCost(0, amountOfForces + 1) < Resources &&
+                    while (amountOfForces + 1 < NexusPlayed.ValidTleilaxuMaxAmount(Game, Player, false) &&
+                           NexusPlayed.DetermineTleilaxuCost(0, amountOfForces + 1) < Resources &&
                            amountOfSpecialForces + amountOfForces + 1 <= 5)
                         amountOfForces++;
 
-                    var hero = NexusPlayed.ValidPurpleHeroes(Game, Player).HighestOrDefault(_random, l => l.Value);
+                    var hero = NexusPlayed.ValidTleilaxuHeroes(Game, Player).HighestOrDefault(_random, l => l.Value);
                     if ((hero != null && amountOfForces + amountOfSpecialForces > 2) || amountOfForces + amountOfSpecialForces >= 5)
                     {
-                        result.PurpleForces = amountOfForces;
-                        result.PurpleSpecialForces = amountOfSpecialForces;
-                        result.PurpleHero = hero;
-                        result.PurpleAssignSkill = Revival.MayAssignSkill(Game, Player, hero);
+                        result.TleilaxuForces = amountOfForces;
+                        result.TleilaxuSpecialForces = amountOfSpecialForces;
+                        result.TleilaxuHero = hero;
+                        result.TleilaxuAssignSkill = Revival.MayAssignSkill(Game, Player, hero);
 
-                        result.PurpleNumberOfSpecialForcesInLocation = Revival.NumberOfSpecialForcesThatMayBePlacedOnPlanet(Player, amountOfSpecialForces);
-                        if (result.PurpleNumberOfSpecialForcesInLocation > 0)
+                        result.TleilaxuNumberOfSpecialForcesInLocation = Revival.NumberOfSpecialForcesThatMayBePlacedOnPlanet(Player, amountOfSpecialForces);
+                        if (result.TleilaxuNumberOfSpecialForcesInLocation > 0)
                         {
-                            result.PurpleLocation = BestRevivalLocation(Revival.ValidRevivedForceLocations(Game, Player).ToList());
-                            if (result.PurpleLocation == null) result.PurpleNumberOfSpecialForcesInLocation = 0;
+                            result.TleilaxuLocation = BestRevivalLocation(Revival.ValidRevivedForceLocations(Game, Player).ToList());
+                            if (result.TleilaxuLocation == null) result.TleilaxuNumberOfSpecialForcesInLocation = 0;
                         }
 
                         return result;
@@ -382,12 +382,12 @@ public partial class ClassicBot
                 }
                 break;
 
-            case Faction.Brown:
+            case Faction.Choam:
                 if (Game.CurrentMainPhase == MainPhase.Collection)
                 {
-                    if (Faction != Faction.Blue)
+                    if (Faction != Faction.BeneGesserit)
                     {
-                        result.BrownCard = NexusPlayed.ValidBrownCards(Player).FirstOrDefault();
+                        result.ChoamCard = NexusPlayed.ValidChoamCards(Player).FirstOrDefault();
                         return result;
                     }
                 }
@@ -401,13 +401,13 @@ public partial class ClassicBot
                 }
                 break;
 
-            case Faction.Pink:
+            case Faction.Ecaz:
                 if (Game is { CurrentPhase: Phase.BattlePhase, CurrentBattle: not null } && Game.CurrentBattle.IsAggressorOrDefender(Player))
                 {
                     var opp = Game.CurrentBattle.OpponentOf(Player);
-                    if (opp.Faction != Faction.Purple && opp.UnrevealedTraitors.Any())
+                    if (opp.Faction != Faction.Tleilaxu && opp.UnrevealedTraitors.Any())
                     {
-                        result.PinkFaction = opp.Faction;
+                        result.EcazFaction = opp.Faction;
                         return result;
                     }
                 }
@@ -419,7 +419,7 @@ public partial class ClassicBot
 
     private CharityClaimed? DetermineCharityClaimed()
     {
-        if (!(Game.EconomicsStatus == BrownEconomicsStatus.Cancel || Game.EconomicsStatus == BrownEconomicsStatus.CancelFlipped))
+        if (!(Game.EconomicsStatus == ChoamEconomicsStatus.Cancel || Game.EconomicsStatus == ChoamEconomicsStatus.CancelFlipped))
             return new CharityClaimed(Game, Faction);
         
         return null;
@@ -453,7 +453,7 @@ public partial class ClassicBot
 
     private KarmaShipmentPrevention? DetermineKarmaShipmentPrevention()
     {
-        if (Game.CurrentPhase != Phase.NonOrangeShip) return null;
+        if (Game.CurrentPhase != Phase.NonGuildShip) return null;
         
         var validTargets = KarmaShipmentPrevention.GetValidTargets(Game, Player).ToList();
 
@@ -514,10 +514,10 @@ public partial class ClassicBot
         return new MulliganPerformed(Game, Faction) { Passed = !MulliganPerformed.MayMulligan(Player) };
     }
 
-    protected virtual OrangeDelay? DetermineDelay()
+    protected virtual GuildDelay? DetermineDelay()
     {
-        if (!Game.Prevented(FactionAdvantage.OrangeDetermineMoveMoment))
-            return new OrangeDelay(Game, Faction);
+        if (!Game.Prevented(FactionAdvantage.GuildDetermineMoveMoment))
+            return new GuildDelay(Game, Faction);
         
         return null;
     }
@@ -715,7 +715,7 @@ public partial class ClassicBot
                 return new RaiseDeadPlayed(Game, Faction) { Hero = null, AmountOfForces = forces, AmountOfSpecialForces = specialForcesThatCanBeRevived, AssignSkill = false, Location = targetOfForces, NumberOfSpecialForcesInLocation = specialForcesToPlanet };
             }
 
-            var minimumValue = Faction == Faction.Purple && nrOfLivingLeaders > 2 ? 4 : 0;
+            var minimumValue = Faction == Faction.Tleilaxu && nrOfLivingLeaders > 2 ? 4 : 0;
 
             var leaderToRevive = RaiseDeadPlayed.ValidHeroes(Game, Player).Where(l =>
                 SafeOrKnownTraitorLeaders.Contains(l) &&
@@ -737,7 +737,7 @@ public partial class ClassicBot
 
     protected virtual AmalPlayed? DetermineAmalPlayed()
     {
-        if (Faction == Faction.Orange)
+        if (Faction == Faction.Guild)
         {
             var allyResources = Ally != Faction.None ? Player.AlliedResources : 0;
 
@@ -787,7 +787,7 @@ public partial class ClassicBot
     protected virtual TraitorsSelected DetermineTraitorsSelected()
     {
         var traitor = Player.Traitors.Where(l => l.Faction != Faction).HighestOrDefault(_random, l => l.Value) 
-                      ?? Player.Traitors.HighestOrDefault(_random, l => l.Value - (l.Faction == Faction.Green && Game.Applicable(Rule.GreenMessiah) ? 2 : 0));
+                      ?? Player.Traitors.HighestOrDefault(_random, l => l.Value - (l.Faction == Faction.Atreides && Game.Applicable(Rule.AtreidesMessiah) ? 2 : 0));
         return new TraitorsSelected(Game, Faction) { SelectedTraitor = traitor };
     }
 
@@ -853,7 +853,7 @@ public partial class ClassicBot
         if (worstCard == null || CardQuality(worstCard, Player) > 1) return null;
         
         var target = DistransUsed.ValidTargets(Game, Player)
-            .Where(f => f != Ally && (!Game.Applicable(Rule.BlueWorthlessAsKarma) || f != Faction.Blue))
+            .Where(f => f != Ally && (!Game.Applicable(Rule.BeneGesseritWorthlessAsKarma) || f != Faction.BeneGesserit))
             .Select(f => Game.GetPlayer(f))
             .HighestOrDefault(_random, p => Game.NumberOfVictoryPoints(p, true));
 
@@ -874,7 +874,7 @@ public partial class ClassicBot
         if (Game.CurrentRevivalRequests.Any(r => r.By(Faction))) return null;
 
         var nrOfLivingLeaders = Player.Leaders.Count(l => Game.IsAlive(l));
-        var minimumValue = Faction == Faction.Purple && nrOfLivingLeaders > 2 ? 4 : 0;
+        var minimumValue = Faction == Faction.Tleilaxu && nrOfLivingLeaders > 2 ? 4 : 0;
         var maxToSpendOnHeroRevival = Math.Min(Resources, 8);
 
         var leaderToRevive = Revival.ValidRevivalHeroes(Game, Player).Where(l =>
@@ -888,20 +888,20 @@ public partial class ClassicBot
             l.Value >= minimumValue
         ).HighestOrDefault(_random, l => l.Value + HeroRevivalPenalty(l));
 
-        var useSecretAlly = Revival.MayUseRedSecretAlly(Game, Player) && Player.ForcesKilled - Game.FreeRevivals(Player, false) >= 3;
+        var useSecretAlly = Revival.MayUseEmperorSecretAlly(Game, Player) && Player.ForcesKilled - Game.FreeRevivals(Player, false) >= 3;
 
-        DetermineOptimalUseOfRedRevivals(Game, Player, out var forcesRevivedByRed, out var specialForcesRevivedByRed, useSecretAlly);
+        DetermineOptimalUseOfEmperorRevivals(Game, Player, out var forcesRevivedByEmperor, out var specialForcesRevivedByEmperor, useSecretAlly);
 
         var specialForcesToRevive = 0;
         while (
             //check limit of special forces
-            specialForcesRevivedByRed + specialForcesToRevive + 1 <= Revival.ValidMaxRevivals(Game, Player, true, useSecretAlly) &&
+            specialForcesRevivedByEmperor + specialForcesToRevive + 1 <= Revival.ValidMaxRevivals(Game, Player, true, useSecretAlly) &&
 
             //check if there are enough forces killed
-            specialForcesRevivedByRed + specialForcesToRevive + 1 <= Player.SpecialForcesKilled &&
+            specialForcesRevivedByEmperor + specialForcesToRevive + 1 <= Player.SpecialForcesKilled &&
 
             //check if I have enough spice
-            Revival.DetermineCost(Game, Player, leaderToRevive, 0, specialForcesToRevive + 1, forcesRevivedByRed, specialForcesRevivedByRed, useSecretAlly).TotalCostForPlayer <= Resources)
+            Revival.DetermineCost(Game, Player, leaderToRevive, 0, specialForcesToRevive + 1, forcesRevivedByEmperor, specialForcesRevivedByEmperor, useSecretAlly).TotalCostForPlayer <= Resources)
             specialForcesToRevive++;
 
         var normalForcesToRevive = 0;
@@ -911,17 +911,17 @@ public partial class ClassicBot
             specialForcesToRevive + normalForcesToRevive + 1 <= Revival.ValidMaxRevivals(Game, Player, false, useSecretAlly) &&
 
             //check if there are enough forces killed
-            forcesRevivedByRed + normalForcesToRevive + 1 <= Player.ForcesKilled &&
+            forcesRevivedByEmperor + normalForcesToRevive + 1 <= Player.ForcesKilled &&
 
             //check if I have enough spice
-            Revival.DetermineCost(Game, Player, leaderToRevive, normalForcesToRevive + 1, specialForcesToRevive, forcesRevivedByRed, specialForcesRevivedByRed, useSecretAlly).TotalCostForPlayer <= Resources)
+            Revival.DetermineCost(Game, Player, leaderToRevive, normalForcesToRevive + 1, specialForcesToRevive, forcesRevivedByEmperor, specialForcesRevivedByEmperor, useSecretAlly).TotalCostForPlayer <= Resources)
             normalForcesToRevive++;
 
         var assignSkill = leaderToRevive != null && Revival.MayAssignSkill(Game, Player, leaderToRevive);
 
         Location? targetOfForces = null;
-        var forcesToPlanet = Revival.NumberOfForcesThatMayBePlacedOnPlanet(Game, Player, useSecretAlly, normalForcesToRevive + forcesRevivedByRed);
-        var specialForcesToPlanet = Revival.NumberOfSpecialForcesThatMayBePlacedOnPlanet(Player, specialForcesToRevive + specialForcesRevivedByRed);
+        var forcesToPlanet = Revival.NumberOfForcesThatMayBePlacedOnPlanet(Game, Player, useSecretAlly, normalForcesToRevive + forcesRevivedByEmperor);
+        var specialForcesToPlanet = Revival.NumberOfSpecialForcesThatMayBePlacedOnPlanet(Player, specialForcesToRevive + specialForcesRevivedByEmperor);
 
         if (forcesToPlanet > 0)
         {
@@ -939,11 +939,11 @@ public partial class ClassicBot
             {
                 Hero = leaderToRevive,
                 AmountOfForces = normalForcesToRevive,
-                ExtraForcesPaidByRed = forcesRevivedByRed,
+                ExtraForcesPaidByEmperor = forcesRevivedByEmperor,
                 AmountOfSpecialForces = specialForcesToRevive,
-                ExtraSpecialForcesPaidByRed = specialForcesRevivedByRed,
+                ExtraSpecialForcesPaidByEmperor = specialForcesRevivedByEmperor,
                 AssignSkill = assignSkill,
-                UsesRedSecretAlly = useSecretAlly,
+                UsesEmperorSecretAlly = useSecretAlly,
                 Location = targetOfForces,
                 NumberOfForcesInLocation = forcesToPlanet,
                 NumberOfSpecialForcesInLocation = specialForcesToPlanet
@@ -963,16 +963,16 @@ public partial class ClassicBot
         return result;
     }
 
-    private static void DetermineOptimalUseOfRedRevivals(Game g, Player p, out int forces, out int specialForces, bool useCunning)
+    private static void DetermineOptimalUseOfEmperorRevivals(Game g, Player p, out int forces, out int specialForces, bool useCunning)
     {
         forces = 0;
         specialForces = 0;
 
-        if (p.Ally != Faction.Red) return;
+        if (p.Ally != Faction.Emperor) return;
 
-        var red = g.GetPlayer(Faction.Red);
+        var emperor = g.GetPlayer(Faction.Emperor);
 
-        var potentialMaximumByRed = p.Ally == Faction.Red && (g.Version < 113 || !g.Prevented(FactionAdvantage.RedLetAllyReviveExtraForces)) ? Revival.ValidMaxRevivalsByRed(g, p) : 0;
+        var potentialMaximumByEmperor = p.Ally == Faction.Emperor && (g.Version < 113 || !g.Prevented(FactionAdvantage.EmperorLetAllyReviveExtraForces)) ? Revival.ValidMaxRevivalsByEmperor(g, p) : 0;
 
         var maxSpecialForces = Revival.ValidMaxRevivals(g, p, true, useCunning);
 
@@ -987,8 +987,8 @@ public partial class ClassicBot
         while (
             specialForces + 1 <= p.SpecialForcesKilled &&
             specialForces + 1 <= maxSpecialForces &&
-            specialForces + 1 <= potentialMaximumByRed &&
-            Revival.DetermineCostOfForcesForRed(g, red, p.Faction, 0, specialForces + 1) <= red.Resources)
+            specialForces + 1 <= potentialMaximumByEmperor &&
+            Revival.DetermineCostOfForcesForEmperor(g, emperor, p.Faction, 0, specialForces + 1) <= emperor.Resources)
             specialForces++;
 
         var maxForces = Revival.ValidMaxRevivals(g, p, false, useCunning);
@@ -998,8 +998,8 @@ public partial class ClassicBot
         while (
             forces + 1 <= p.ForcesKilled &&
             forces + 1 <= maxForces &&
-            specialForces + forces + 1 <= potentialMaximumByRed &&
-            Revival.DetermineCostOfForcesForRed(g, red, p.Faction, forces + 1, specialForces) <= red.Resources)
+            specialForces + forces + 1 <= potentialMaximumByEmperor &&
+            Revival.DetermineCostOfForcesForEmperor(g, emperor, p.Faction, forces + 1, specialForces) <= emperor.Resources)
             forces++;
     }
 
@@ -1031,7 +1031,7 @@ public partial class ClassicBot
     private JuicePlayed? DetermineJuicePlayed()
     {
         if (Game is { CurrentMainPhase: MainPhase.ShipmentAndMove, CurrentMoment: MainPhaseMoment.Start } 
-            && Faction != Faction.Orange 
+            && Faction != Faction.Guild 
             && Game.ShipmentAndMoveSequence.GetPlayersInSequence().LastOrDefault()?.Player != Player)
             return new JuicePlayed(Game, Faction) { Type = JuiceType.GoLast };
         
@@ -1067,16 +1067,16 @@ public partial class ClassicBot
         if (skill == LeaderSkill.None && Player.TreacheryCards.Any(c => c.IsUseless)) skill = skills.FirstOrDefault(s => s == LeaderSkill.Warmaster);
 
         if (skill == LeaderSkill.None) skill = skills.FirstOrDefault(s => s == LeaderSkill.Graduate);
-        if (skill == LeaderSkill.None && !Player.Is(Faction.Green)) skill = skills.FirstOrDefault(s => s == LeaderSkill.Thinker);
+        if (skill == LeaderSkill.None && !Player.Is(Faction.Atreides)) skill = skills.FirstOrDefault(s => s == LeaderSkill.Thinker);
 
-        if (skill == LeaderSkill.None && Player.Is(Faction.Yellow)) skill = skills.FirstOrDefault(s => s == LeaderSkill.Sandmaster);
-        if (skill == LeaderSkill.None && !Player.Is(Faction.Yellow)) skill = skills.FirstOrDefault(s => s == LeaderSkill.Smuggler);
+        if (skill == LeaderSkill.None && Player.Is(Faction.Fremen)) skill = skills.FirstOrDefault(s => s == LeaderSkill.Sandmaster);
+        if (skill == LeaderSkill.None && !Player.Is(Faction.Fremen)) skill = skills.FirstOrDefault(s => s == LeaderSkill.Smuggler);
 
-        var isEconomicFaction = Player.Is(Faction.Red) || Player.Is(Faction.Orange) || Player.Is(Faction.Brown) || Player.Is(Faction.Purple);
+        var isEconomicFaction = Player.Is(Faction.Emperor) || Player.Is(Faction.Guild) || Player.Is(Faction.Choam) || Player.Is(Faction.Tleilaxu);
         if (skill == LeaderSkill.None && !isEconomicFaction) skill = skills.FirstOrDefault(s => s == LeaderSkill.Bureaucrat);
         if (skill == LeaderSkill.None && !isEconomicFaction) skill = skills.FirstOrDefault(s => s == LeaderSkill.Banker);
 
-        if (skill == LeaderSkill.None && !Player.Is(Faction.Purple)) skill = skills.FirstOrDefault(s => s == LeaderSkill.Decipherer);
+        if (skill == LeaderSkill.None && !Player.Is(Faction.Tleilaxu)) skill = skills.FirstOrDefault(s => s == LeaderSkill.Decipherer);
 
         if (skill == LeaderSkill.None) skill = skills.FirstOrDefault(s => s == LeaderSkill.Swordmaster);
         if (skill == LeaderSkill.None) skill = skills.FirstOrDefault(s => s == LeaderSkill.MasterOfAssassins);

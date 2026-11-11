@@ -79,7 +79,7 @@ public class TreacheryCard(int id, int skinId, TreacheryCardType type, Rule[] ru
 
     public bool IsMercenary => Type is TreacheryCardType.Mercenary;
 
-    public bool IsGreen => !(IsWeapon || IsDefense || IsUseless || IsMercenary);
+    public bool IsAtreides => !(IsWeapon || IsDefense || IsUseless || IsMercenary);
 
     public bool CounteredBy(TreacheryCard defense, TreacheryCard combinedWithWeapon)
     {

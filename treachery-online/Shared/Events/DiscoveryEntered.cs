@@ -69,7 +69,7 @@ public class DiscoveryEntered : PlacementEvent
                 {
                     var fromLocations = ForceLocations.Where(fl => fl.Key.Territory == fromTerritory && fl.Value.TotalAmountOfForces > 0).Select(fl => fl.Key);
                     Game.LogMove(Player, fromTerritory, fromLocations, To, totalNumberOfForces, totalNumberOfSpecialForces, false, false);
-                    Game.FlipBlueAdvisorsWhenAlone();
+                    Game.FlipBeneGesseritAdvisorsWhenAlone();
                 }
             }
     }

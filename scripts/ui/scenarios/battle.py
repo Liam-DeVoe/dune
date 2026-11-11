@@ -25,7 +25,7 @@ def click_token(g, i):
 
 
 def run(r):
-    with r.game("battle", "orange") as g:
+    with r.game("battle", "guild") as g:
         g.element_shot("battle-1-plan", PANEL)
         click_token(g, 2)
         click_token(g, 2)
@@ -41,7 +41,7 @@ def run(r):
         g.element_shot("battle-4-token", PANEL)
 
     # Emperor with 1 force and 3 Sardaukar in Tuek's Sietch.
-    with r.game("battle-special", "red") as g:
+    with r.game("battle-special", "emperor") as g:
         g.element_shot("battle-5-special", PANEL)
         step(g, "Dial", "+", 3)
         g.element_shot("battle-6-special-dial", PANEL)

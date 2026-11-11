@@ -58,7 +58,7 @@ public class ReplacedCardWon : PassableGameEvent
         }
 
         if (Game.CardJustWon == Game.CardSoldOnBlackMarket)
-            Game.EnterWhiteBidding();
+            Game.EnterRicheseBidding();
         else
             Game.DetermineNextStepAfterCardWasSold();
     }

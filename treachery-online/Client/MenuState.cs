@@ -20,11 +20,36 @@ public class MenuState
     // Set when a saved game or skin fails to load.
     public string LoadError { get; set; } = "";
 
-    public void Toggle(MenuPanel panel) => Panel = Panel == panel ? MenuPanel.None : panel;
+    public void Toggle(MenuPanel panel)
+    {
+        Panel = Panel == panel ? MenuPanel.None : panel;
+        MarkedDeal = null;
+    }
 
     public void Open(MenuPanel panel) => Panel = panel;
 
-    public void Close() => Panel = MenuPanel.None;
+    public void Close()
+    {
+        Panel = MenuPanel.None;
+        MarkedDeal = null;
+    }
+
+    // The offer whose toast (DealToasts) was clicked, marked in Deals until it closes.
+    public DealOffered? MarkedDeal { get; set; }
+
+    // The treachery card whose play panel is open beside your faction card
+    // (CardPlayPopover), and the height, in window pixels, it was clicked at.
+    public TreacheryCard? CardPlay { get; private set; }
+
+    public double CardPlayY { get; private set; }
+
+    public void ToggleCardPlay(TreacheryCard card, double y)
+    {
+        CardPlay = CardPlay == card ? null : card;
+        CardPlayY = y;
+    }
+
+    public void CloseCardPlay() => CardPlay = null;
 }
 
 public enum MenuPanel
@@ -32,5 +57,10 @@ public enum MenuPanel
     None,
     Players,
     Undo,
-    Automation
+    Automation,
+
+    // These open in a popover above the menu bar (TradePopover), not in a side column.
+    Deals,
+    Alliance,
+    Cards
 }

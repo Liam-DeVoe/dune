@@ -7,15 +7,14 @@ PREV = f'{REPORT} button[aria-label="Previous phase"]'
 
 MARK = """(() => {
     document.querySelectorAll('[data-nexus-report]').forEach(e => e.removeAttribute('data-nexus-report'));
-    const col = [...document.querySelectorAll('.col-lg-3')].at(-1);
-    [...col.children].filter(c => c.classList.contains('card')).at(-1).setAttribute('data-nexus-report', '');
+    document.querySelector('.side-column > .card.report').setAttribute('data-nexus-report', '');
 })()"""
 
 
 def run(r):
     # Mid-game with an alliance made in an earlier Nexus. Step back through the
     # report until a Nexus with an alliance change is showing.
-    with r.game("ally", "green") as g:
+    with r.game("ally", "atreides") as g:
         g.eval(MARK)
         for _ in range(60):
             if g.count(f"{REPORT} .blow-nexus .nexus-step"):

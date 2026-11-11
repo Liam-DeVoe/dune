@@ -25,7 +25,7 @@
     <Header>Ship?</Header>
     <Body>
 
-        @if (Faction == Faction.Yellow)
+        @if (Faction == Faction.Fremen)
         {
             <div class="small text-2">You may bring any number of forces onto <PlaceChip Place=@Game.Map.TheGreatFlat.Territory/> or onto any one territory within two territories of it, for free.</div>
             @if (Shipment.MayShipCrossPlanet(Game, Player))
@@ -53,7 +53,7 @@
             <div class="small">Use the map to ship forces.</div>
         }
 
-        @if (ShipmentType is not ShipmentType.ShipmentWhiteSecretAlly)
+        @if (ShipmentType is not ShipmentType.ShipmentRicheseSecretAlly)
         {
             <ButtonRowComponent Pass="Pass" PassText="Pass" />
         }
@@ -104,7 +104,7 @@
                 Passed = false,
                 KarmaCard = KarmaCard,
                 AllyContributionAmount = ShipmentAllyContributionAmount,
-                UseWhiteSecretAlly = ShipmentType is ShipmentType.ShipmentWhiteSecretAlly,
+                UseRicheseSecretAlly = ShipmentType is ShipmentType.ShipmentRicheseSecretAlly,
                 ForceLocations = ForceOrigins
             };
         }
@@ -140,7 +140,7 @@
         Map.Release(this);
     }
 
-    private bool PreventedFromShipping => Faction != Faction.Yellow && Game.PreventedFromShipping(Faction) && !Shipment.MayShipCrossPlanet(Game, Player);
+    private bool PreventedFromShipping => Faction != Faction.Fremen && Game.PreventedFromShipping(Faction) && !Shipment.MayShipCrossPlanet(Game, Player);
 
     private bool MaySelectSource => Shipment.MayShipCrossPlanet(Game, Player) || Shipment.MayShipToReserves(Game, Player);
 
@@ -167,7 +167,7 @@
         (ShipmentType switch
         {
             ShipmentType.ShipmentNormal => Shipment.ValidShipmentLocations(Game, Player, false, false),
-            ShipmentType.ShipmentWhiteSecretAlly => Shipment.ValidShipmentLocations(Game, Player, false, true),
+            ShipmentType.ShipmentRicheseSecretAlly => Shipment.ValidShipmentLocations(Game, Player, false, true),
             ShipmentType.ShipmentSiteToSite => Shipment.ValidShipmentLocations(Game, Player, true, false),
             _ => []
         }).Where(OnMap);
@@ -176,7 +176,7 @@
         ShipmentType switch
         {
             ShipmentType.ShipmentNormal => Shipment.ValidMaxNormalShipmentForces(Player, false, NoFieldValue),
-            ShipmentType.ShipmentWhiteSecretAlly => Shipment.ValidMaxSecretAllyShipmentForces(Player, false),
+            ShipmentType.ShipmentRicheseSecretAlly => Shipment.ValidMaxSecretAllyShipmentForces(Player, false),
             ShipmentType.ShipmentSiteToSite => Shipment.ValidMaxShipmentSiteToSiteForces(Player, false, _shipmentFrom),
             ShipmentType.ShipmentBack => Shipment.ValidMaxShipmentBackForces(Player, false, _shipmentTo),
             _ => 0
@@ -186,7 +186,7 @@
         ShipmentType switch
         {
             ShipmentType.ShipmentNormal => Shipment.ValidMaxNormalShipmentForces(Player, true, NoFieldValue),
-            ShipmentType.ShipmentWhiteSecretAlly => Shipment.ValidMaxSecretAllyShipmentForces(Player, true),
+            ShipmentType.ShipmentRicheseSecretAlly => Shipment.ValidMaxSecretAllyShipmentForces(Player, true),
             ShipmentType.ShipmentSiteToSite => Shipment.ValidMaxShipmentSiteToSiteForces(Player, true, _shipmentFrom),
             ShipmentType.ShipmentBack => Shipment.ValidMaxShipmentBackForces(Player, true, _shipmentTo),
             _ => 0
@@ -214,7 +214,7 @@
     {
         ShipmentForceAmount = Math.Min(1, ValidShipmentForces);
         ShipmentSpecialForceAmount = ShipmentForceAmount == 0 ? Math.Min(1, ValidShipmentSpecialForces) : 0;
-        if (Faction == Faction.White && NoFieldValue >= 0) ShipmentSpecialForceAmount = 1;
+        if (Faction == Faction.Richese && NoFieldValue >= 0) ShipmentSpecialForceAmount = 1;
     }
 
     private void ClaimIfFree()
@@ -377,10 +377,10 @@
         {
             NoFieldValue = value;
             if (value < 0) CunningNoFieldValue = -1;
-            if (Faction == Faction.White)
+            if (Faction == Faction.Richese)
             {
                 ShipmentSpecialForceAmount = Shipment.DefaultNoFieldSpecialForceAmount(Faction, NoFieldValue);
-                if (value >= 0 && !Game.HasHighThreshold(Faction.White)) ShipmentForceAmount = 0;
+                if (value >= 0 && !Game.HasHighThreshold(Faction.Richese)) ShipmentForceAmount = 0;
             }
         }
         ShipmentForceAmount = Math.Min(ShipmentForceAmount, ValidShipmentForces);
@@ -434,9 +434,9 @@
 
     private RenderFragment PinContent => __builder =>
     {
-        var canChooseType = ShipmentType is ShipmentType.ShipmentNormal or ShipmentType.ShipmentWhiteSecretAlly && Shipment.MayUseWhiteSecretAlly(Game, Player);
-        var whiteNoField = Faction is Faction.White && NoFieldValue >= 0 && !Game.HasHighThreshold(Faction.White);
-        var fromReserves = ShipmentType is ShipmentType.ShipmentNormal or ShipmentType.ShipmentWhiteSecretAlly;
+        var canChooseType = ShipmentType is ShipmentType.ShipmentNormal or ShipmentType.ShipmentRicheseSecretAlly && Shipment.MayUseRicheseSecretAlly(Game, Player);
+        var richeseNoField = Faction is Faction.Richese && NoFieldValue >= 0 && !Game.HasHighThreshold(Faction.Richese);
+        var fromReserves = ShipmentType is ShipmentType.ShipmentNormal or ShipmentType.ShipmentRicheseSecretAlly;
 
         Homeworld[] normalWorlds = [];
         Homeworld[] specialWorlds = [];
@@ -454,12 +454,12 @@
             NoFieldValue = -1;
             CunningNoFieldValue = -1;
         }
-        if (!Shipment.MaySmuggle(Game, Player, _shipmentTo) || !fromReserves || Faction == Faction.Yellow)
+        if (!Shipment.MaySmuggle(Game, Player, _shipmentTo) || !fromReserves || Faction == Faction.Fremen)
         {
             SmuggledForceAmount = 0;
             SmuggledSpecialForceAmount = 0;
         }
-        var mayKarma = Shipment.CanKarma(Game, Player) && (Faction != Faction.Yellow || ShipmentType is ShipmentType.ShipmentSiteToSite) && !Shipment.MayShipCrossPlanet(Game, Player);
+        var mayKarma = Shipment.CanKarma(Game, Player) && (Faction != Faction.Fremen || ShipmentType is ShipmentType.ShipmentSiteToSite) && !Shipment.MayShipCrossPlanet(Game, Player);
         if (!mayKarma) KarmaCard = null;
 
         var cost = Cost;
@@ -477,7 +477,7 @@
             {
                 <div class="pin-choice">
                     <button type="button" class="@(ShipmentType is ShipmentType.ShipmentNormal ? "on" : "")" @onclick="@(() => SetShipmentType(ShipmentType.ShipmentNormal))">Normal</button>
-                    <button type="button" class="@(ShipmentType is ShipmentType.ShipmentWhiteSecretAlly ? "on" : "")" @onclick="@(() => SetShipmentType(ShipmentType.ShipmentWhiteSecretAlly))">@Name(Faction.White) secret ally</button>
+                    <button type="button" class="@(ShipmentType is ShipmentType.ShipmentRicheseSecretAlly ? "on" : "")" @onclick="@(() => SetShipmentType(ShipmentType.ShipmentRicheseSecretAlly))">@Name(Faction.Richese) secret ally</button>
                 </div>
             }
 
@@ -503,11 +503,11 @@
             }
 
             <div class="pin-row">
-                @if (ValidShipmentForces > 0 && !whiteNoField)
+                @if (ValidShipmentForces > 0 && !richeseNoField)
                 {
                     <MapForceStepper Value="@ShipmentForceAmount" ValueChanged="@(v => Change(() => ShipmentForceAmount = v))" Min="0" Max="@ValidShipmentForces" Faction="Faction" Special="false"/>
                 }
-                @if (ValidShipmentSpecialForces > 0 && Faction != Faction.White)
+                @if (ValidShipmentSpecialForces > 0 && Faction != Faction.Richese)
                 {
                     <MapForceStepper Value="@ShipmentSpecialForceAmount" ValueChanged="@(v => Change(() => ShipmentSpecialForceAmount = v))" Min="0" Max="@ValidShipmentSpecialForces" Faction="Faction" Special="true"/>
                 }
@@ -533,7 +533,7 @@
                 }
             }
 
-            @if (fromReserves && Faction != Faction.Yellow && (ShipmentForceAmount > 0 || ShipmentSpecialForceAmount > 0) && Shipment.MaySmuggle(Game, Player, _shipmentTo))
+            @if (fromReserves && Faction != Faction.Fremen && (ShipmentForceAmount > 0 || ShipmentSpecialForceAmount > 0) && Shipment.MaySmuggle(Game, Player, _shipmentTo))
             {
                 <div class="pin-row">
                     <span class="pin-from">Smuggle 1 for free</span>
@@ -541,7 +541,7 @@
                     {
                         <MapForceStepper Value="@SmuggledForceAmount" ValueChanged="@(v => Change(() => SmuggledForceAmount = v))" Min="0" Max="1" Faction="Faction" Special="false"/>
                     }
-                    @if (Player.SpecialForcesInReserve > 0 && Faction != Faction.White)
+                    @if (Player.SpecialForcesInReserve > 0 && Faction != Faction.Richese)
                     {
                         <MapForceStepper Value="@SmuggledSpecialForceAmount" ValueChanged="@(v => Change(() => SmuggledSpecialForceAmount = v))" Min="0" Max="1" Faction="Faction" Special="true"/>
                     }
@@ -550,7 +550,7 @@
 
             @if (mayKarma)
             {
-                <div class="pin-hint">@Name(TreacheryCardType.Karma) for <FactionChip Faction=Faction.Orange Game=Game/> rate:</div>
+                <div class="pin-hint">@Name(TreacheryCardType.Karma) for <FactionChip Faction=Faction.Guild Game=Game/> rate:</div>
                 <div class="pin-choice">
                     <button type="button" class="@(KarmaCard == null ? "on" : "")" @onclick="@(() => Change(() => KarmaCard = null))">None</button>
                     @foreach (var card in Shipment.ValidKarmaCards(Game, Player))

@@ -33,7 +33,7 @@ public class AutomationConfigured : GameEvent
 
     // CharityAutoClaim = 201, *
     
-    // BiddingPassWhenGreenOrGreenAllyPassed = 301,
+    // BiddingPassWhenAtreidesOrAtreidesAllyPassed = 301,
     
     // BiddingPassAboveAmount = 302,
     public int BiddingAboveAmount { get; set; }
@@ -43,7 +43,7 @@ public class AutomationConfigured : GameEvent
     
     // RevivalAutoClaimFreeRevival = 401,
     
-    // ShipmentOrangeAutoDelay = 502,
+    // ShipmentGuildAutoDelay = 502,
     
     #endregion Properties
 
@@ -97,11 +97,11 @@ public class AutomationConfigured : GameEvent
 
     public static List<AutomationRuleType> GetAvailableRuleTypes(Game g, Player p)
     {
-        var greenIsPlaying = g.IsPlaying(Faction.Green);
+        var atreidesIsPlaying = g.IsPlaying(Faction.Atreides);
         return Enumerations.GetValuesExceptDefault(AutomationRuleType.Unknown).Where(x =>
-            (x != AutomationRuleType.BiddingPassWhenGreenOrGreenAllyPassed || greenIsPlaying)
-            && (x != AutomationRuleType.CharityAutoClaim || !p.Is(Faction.Blue))
-            && (x != AutomationRuleType.ShipmentOrangeAutoDelay || p.Is(Faction.Orange) && g.Applicable(Rule.OrangeDetermineShipment))
+            (x != AutomationRuleType.BiddingPassWhenAtreidesOrAtreidesAllyPassed || atreidesIsPlaying)
+            && (x != AutomationRuleType.CharityAutoClaim || !p.Is(Faction.BeneGesserit))
+            && (x != AutomationRuleType.ShipmentGuildAutoDelay || p.Is(Faction.Guild) && g.Applicable(Rule.GuildDetermineShipment))
             && (x != AutomationRuleType.BiddingPassWhenHighestBidByFaction || GetValidBiddingFactions(g, p).Count > 0)).ToList();
     }
     
@@ -122,10 +122,10 @@ public class AutomationConfigured : GameEvent
             case AutomationRuleType.BiddingPassWhenHighestBidByFaction:
                 return Message.Express("Auto pass if highest bid by ", BiddingWinningFaction);
 
-            case AutomationRuleType.BiddingPassWhenGreenOrGreenAllyPassed:
-                var green = Game.GetPlayer(Faction.Green);
-                return Message.Express("Auto pass if most recent bid by ", Faction.Green,
-                    MessagePart.ExpressIf(green is { HasAlly: true }, green?.Ally),
+            case AutomationRuleType.BiddingPassWhenAtreidesOrAtreidesAllyPassed:
+                var atreides = Game.GetPlayer(Faction.Atreides);
+                return Message.Express("Auto pass if most recent bid by ", Faction.Atreides,
+                    MessagePart.ExpressIf(atreides is { HasAlly: true }, atreides?.Ally),
                     " was passed");
 
             case AutomationRuleType.RevivalAutoClaimFreeRevival:
@@ -134,7 +134,7 @@ public class AutomationConfigured : GameEvent
 
                 return Message.Express("Auto claim free revival");
 
-            case AutomationRuleType.ShipmentOrangeAutoDelay:
+            case AutomationRuleType.ShipmentGuildAutoDelay:
                 return Message.Express("Auto delay shipment until last");
         }
 

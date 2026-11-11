@@ -72,25 +72,25 @@ public class AuditCancelled : GameEvent
     protected override void ExecuteConcreteEvent()
     {
         if (Cancelled)
-            Log(Initiator, " pay ", Faction.Brown, Payment.Of(Cost(Game)), " to cancel an audit of ", GetNumberOfCardsThatMayBeAudited(Game), " cards");
+            Log(Initiator, " pay ", Faction.Choam, Payment.Of(Cost(Game)), " to cancel an audit of ", GetNumberOfCardsThatMayBeAudited(Game), " cards");
         else
             Log(Initiator, " don't cancel an audit targeting ", GetNumberOfCardsThatMayBeAudited(Game), " of their cards");
 
         if (Cancelled)
         {
             Player.Resources -= Cost();
-            var brown = GetPlayer(Faction.Brown);
-            brown?.Resources += Cost();
+            var choam = GetPlayer(Faction.Choam);
+            choam?.Resources += Cost();
         }
 
         if (!Cancelled)
         {
             Game.Enter(Phase.Auditing);
-            LogTo(Initiator, Faction.Brown, " see: ", Game.AuditedCards);
+            LogTo(Initiator, Faction.Choam, " see: ", Game.AuditedCards);
         }
         else
         {
-            Game.Enter(Game.BattleWinner == Faction.None, Game.FinishBattle, Game.BlackMustDecideToCapture, Phase.CaptureDecision, Phase.BattleConclusion);
+            Game.Enter(Game.BattleWinner == Faction.None, Game.FinishBattle, Game.HarkonnenMustDecideToCapture, Phase.CaptureDecision, Phase.BattleConclusion);
         }
     }
 

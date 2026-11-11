@@ -2,7 +2,7 @@
 @using Treachery.Client.MapComponents
 
 @*
- The Ship & Move log: one numbered block per faction turn, in acting order.
+ The Ship & Move log: one block per faction turn, in acting order.
  Each block has a Ship (or Rally) row and a Move row, "passed" when the
  faction did nothing; a Hajr move gets its own row. Bene Gesserit answers and
  forces lost follow the row that caused them, marked +. The game logs storm
@@ -10,9 +10,6 @@
  Lines the design doesn't draw keep their place: inside the block while the
  turn is under way, between blocks otherwise.
 *@
-@{
-    var number = 0;
-}
 @foreach (var item in Build())
 {
     switch (item)
@@ -32,10 +29,8 @@
             break;
 
         case Turn turn:
-            number++;
             <div class="log-box shipmove-turn">
                 <div class="head">
-                    <span class="nr">@number</span>
                     <FactionChip Faction="@turn.Faction" Game="@Game"/>
                 </div>
                 <div class="rows">
@@ -163,7 +158,7 @@
                     early.Add(message);
                     break;
 
-                case BlueReaction when turn != null:
+                case BeneGesseritReaction when turn != null:
                     turn.Rows.Add(new RowData(RowKind.Plus, [message]));
                     break;
 
@@ -280,7 +275,7 @@
                         @if (s.GuildPaid)
                         {
                             <span class="small">→</span>
-                            <FactionChip Faction="Faction.Orange" Game="@Game"/>
+                            <FactionChip Faction="Faction.Guild" Game="@Game"/>
                         }
                         @if (s.Karama != null)
                         {
@@ -322,15 +317,15 @@
 
     private RenderFragment PlusText(Message message) => message.Log switch
     {
-        BlueReaction { Kind: BlueReactionKind.Accompany } r =>
-            @<text><FactionChip Faction="Faction.Blue" Game="@Game"/><span>accompany to</span><PlaceChip Place="@(r.Place!)"/></text>,
-        BlueReaction { Kind: BlueReactionKind.DontAccompany } =>
-            @<text><FactionChip Faction="Faction.Blue" Game="@Game"/><span>don't accompany</span></text>,
-        BlueReaction r =>
+        BeneGesseritReaction { Kind: BeneGesseritReactionKind.Accompany } r =>
+            @<text><FactionChip Faction="Faction.BeneGesserit" Game="@Game"/><span>accompany to</span><PlaceChip Place="@(r.Place!)"/></text>,
+        BeneGesseritReaction { Kind: BeneGesseritReactionKind.DontAccompany } =>
+            @<text><FactionChip Faction="Faction.BeneGesserit" Game="@Game"/><span>don't accompany</span></text>,
+        BeneGesseritReaction r =>
             @<text>
-                <FactionChip Faction="Faction.Blue" Game="@Game"/>
-                <span>@(r.Kind == BlueReactionKind.Become ? "become" : "stay as")</span>
-                <ForceToken Faction="Faction.Blue" Special="@r.Advisors" Size="20"/>
+                <FactionChip Faction="Faction.BeneGesserit" Game="@Game"/>
+                <span>@(r.Kind == BeneGesseritReactionKind.Become ? "become" : "stay as")</span>
+                <ForceToken Faction="Faction.BeneGesserit" Special="@r.Advisors" Size="20"/>
                 <span>in</span>
                 <PlaceChip Place="@(r.Place!)"/>
             </text>,

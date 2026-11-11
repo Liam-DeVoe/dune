@@ -4,6 +4,6 @@ AREA = "spice-blow"
 
 
 def run(r):
-    with r.game("blow", "green") as g:
+    with r.game("blow", "atreides") as g:
         g.element_shot("blow", "#planetmap_inner")
         g.zoom("blow-zoom", "Sihaya Ridge", size=(340, 230), dy=0)  # where the spice blew

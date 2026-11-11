@@ -27,11 +27,15 @@ public partial class Game
     public Faction? BattleLoser { get; internal set; }
     internal int NrOfBattlesFought { get; set; }
 
-    public Faction? CurrentPinkOrAllyFighter { get; internal set; }
-    public int CurrentPinkBattleContribution { get; internal set; }
+    public Faction? CurrentEcazOrAllyFighter { get; internal set; }
+    public int CurrentEcazBattleContribution { get; internal set; }
 
     public Voice? CurrentVoice { get; internal set; }
     public Prescience? CurrentPrescience { get; internal set; }
+
+    // For each element of a plan the other side could see through prescience, the plan it was seen in.
+    // A plan withdrawn after being seen has to keep those elements when it comes back.
+    public Dictionary<PrescienceAspect, Battle> PrescienceSeenPlans { get; } = [];
     public Thought? CurrentThought { get; internal set; }
     public StrongholdAdvantage? ChosenHmsAdvantage { get; internal set; }
 
@@ -47,8 +51,8 @@ public partial class Game
     public List<TreacheryCard> CardsToBeDiscardedByLoserAfterBattle { get; } = [];
     public Diplomacy? CurrentDiplomacy { get; internal set; }
     public List<TreacheryCard> AuditedCards { get; } = [];
-    public Leader? BlackVictim { get; internal set; }
-    public int GreySpecialForceLossesToTake { get; internal set; }
+    public Leader? HarkonnenVictim { get; internal set; }
+    public int IxianSpecialForceLossesToTake { get; internal set; }
     internal TriggeredBureaucracy? BattleTriggeredBureaucracy { get; set; }
     internal TreacheryCard? CardUsedByDiplomat { get; set; }
     internal bool AuditorSurvivedBattle { get; private set; }
@@ -71,7 +75,7 @@ public partial class Game
         AssignBattleWheels(CurrentBattle.AggressivePlayer, CurrentBattle.DefendingPlayer);
     }
 
-    // Pink's ally may take over the fight (BattleClaimed) after the battle report was started
+    // Ecaz's ally may take over the fight (BattleClaimed) after the battle report was started
     private void UpdateBattleReportParticipants(BattleInitiated battle)
     {
         if (!CurrentReport.IsBattle) return;
@@ -133,7 +137,7 @@ public partial class Game
 
         if (Version < 116) CaptureLeaderIfApplicable();
 
-        FlipBlueAdvisorsWhenAlone();
+        FlipBeneGesseritAdvisorsWhenAlone();
         if (Version >= 162 && CurrentBattle.Territory != null) 
             DetermineOccupation(CurrentBattle.Territory);
             
@@ -195,22 +199,22 @@ public partial class Game
         CurrentReport.BattleWinner = BattleWinner ?? Faction.None;
     }
 
-    internal bool BlackMustDecideToCapture => Version >= 116 && BattleWinner == Faction.Black && Applicable(Rule.BlackCapturesOrKillsLeaders) && !Prevented(FactionAdvantage.BlackCaptureLeader);
+    internal bool HarkonnenMustDecideToCapture => Version >= 116 && BattleWinner == Faction.Harkonnen && Applicable(Rule.HarkonnenCapturesOrKillsLeaders) && !Prevented(FactionAdvantage.HarkonnenCaptureLeader);
 
     private void CaptureLeaderIfApplicable()
     {
-        if (Version >= 116 || BattleWinner != Faction.Black || !Applicable(Rule.BlackCapturesOrKillsLeaders)) return;
+        if (Version >= 116 || BattleWinner != Faction.Harkonnen || !Applicable(Rule.HarkonnenCapturesOrKillsLeaders)) return;
         
-        if (!Prevented(FactionAdvantage.BlackCaptureLeader))
+        if (!Prevented(FactionAdvantage.HarkonnenCaptureLeader))
             CaptureLeader();
         else
-            LogPreventionByKarma(FactionAdvantage.BlackCaptureLeader);
+            LogPreventionByKarma(FactionAdvantage.HarkonnenCaptureLeader);
     }
 
     internal void CaptureLeader()
     {
         if (BattleWinner is null || AggressorPlan is null || DefenderPlan is null) return;
-        SelectVictimOfBlackWinner(AggressorPlan.By(BattleWinner.Value) ? DefenderPlan : AggressorPlan);
+        SelectVictimOfHarkonnenWinner(AggressorPlan.By(BattleWinner.Value) ? DefenderPlan : AggressorPlan);
     }
 
     private void HandleReinforcements(Battle plan)
@@ -401,13 +405,13 @@ public partial class Game
 
     internal void DetermineHowToProceedAfterRevealingBattlePlans()
     {
-        if (Auditee != null && !BrownLeaderWasRevealedAsTraitor)
+        if (Auditee != null && !ChoamLeaderWasRevealedAsTraitor)
         {
             PrepareAudit();
         }
         else
         {
-            Enter(BattleWinner == Faction.None, FinishBattle, BlackMustDecideToCapture, Phase.CaptureDecision, Phase.BattleConclusion);
+            Enter(BattleWinner == Faction.None, FinishBattle, HarkonnenMustDecideToCapture, Phase.CaptureDecision, Phase.BattleConclusion);
             LetFactionsDiscardSurplusCards();
         }
     }
@@ -433,7 +437,7 @@ public partial class Game
         else
         {
             Log(auditee.Faction, " don't have cards to audit");
-            Enter(BattleWinner == Faction.None, FinishBattle, BlackMustDecideToCapture, Phase.CaptureDecision, Phase.BattleConclusion);
+            Enter(BattleWinner == Faction.None, FinishBattle, HarkonnenMustDecideToCapture, Phase.CaptureDecision, Phase.BattleConclusion);
         }
             
         LetFactionsDiscardSurplusCards();
@@ -444,26 +448,26 @@ public partial class Game
         if (CurrentBattle is null)
             return;
 
-        var black = GetPlayer(Faction.Black);
-        if (black == null || !CurrentBattle.IsAggressorOrDefender(Faction.Black)) return;
+        var harkonnen = GetPlayer(Faction.Harkonnen);
+        if (harkonnen == null || !CurrentBattle.IsAggressorOrDefender(Faction.Harkonnen)) return;
         
         //DetermineIfDeadLeaderMustBeReleased
-        var deadCaptives = black.Leaders.Where(l => CapturedLeaders.ContainsKey(l) && !IsAlive(l)).ToList();
-        foreach (var captive in deadCaptives) ReturnCapturedLeader(black, captive);
+        var deadCaptives = harkonnen.Leaders.Where(l => CapturedLeaders.ContainsKey(l) && !IsAlive(l)).ToList();
+        foreach (var captive in deadCaptives) ReturnCapturedLeader(harkonnen, captive);
 
         //DetermineIfLeaderUsedInBattleMustBeReleased
-        if (Version < 179 || !BlackDoNotHaveToReturnUsedCapturedLeader)
+        if (Version < 179 || !HarkonnenDoNotHaveToReturnUsedCapturedLeader)
         {
-            var usedLeaderInBattle = CurrentBattle.PlanOf(black)?.Hero;
+            var usedLeaderInBattle = CurrentBattle.PlanOf(harkonnen)?.Hero;
             if (usedLeaderInBattle is Leader leader && CapturedLeaders.ContainsKey(leader))
-                ReturnCapturedLeader(black, leader);
+                ReturnCapturedLeader(harkonnen, leader);
         }
 
-        //DetermineIfCapturedLeadersMustBeReleasedWhenBlackHasNoLeadersLeft
-        if (!black.Leaders.Any(l => !CapturedLeaders.ContainsKey(l) && IsAlive(l)))
+        //DetermineIfCapturedLeadersMustBeReleasedWhenHarkonnenHasNoLeadersLeft
+        if (!harkonnen.Leaders.Any(l => !CapturedLeaders.ContainsKey(l) && IsAlive(l)))
         {
-            var captives = black.Leaders.Where(l => CapturedLeaders.ContainsKey(l)).ToList();
-            foreach (var captive in captives) ReturnCapturedLeader(black, captive);
+            var captives = harkonnen.Leaders.Where(l => CapturedLeaders.ContainsKey(l)).ToList();
+            foreach (var captive in captives) ReturnCapturedLeader(harkonnen, captive);
         }
     }
 
@@ -484,15 +488,15 @@ public partial class Game
         }
     }
 
-    private bool BrownLeaderWasRevealedAsTraitor
+    private bool ChoamLeaderWasRevealedAsTraitor
     {
         get
         {
-            var brown = GetPlayer(Faction.Brown);
-            if (brown is null) return false;
+            var choam = GetPlayer(Faction.Choam);
+            if (choam is null) return false;
             return CurrentBattle != null && 
-                   CurrentBattle.IsAggressorOrDefender(brown) && 
-                   CurrentBattle.TreacheryOfOpponent(brown)?.Succeeded is true;
+                   CurrentBattle.IsAggressorOrDefender(choam) && 
+                   CurrentBattle.TreacheryOfOpponent(choam)?.Succeeded is true;
         }
     }
 
@@ -541,7 +545,7 @@ public partial class Game
             LogStrength(def.Initiator, BattleOutcome.DefTotal);
         }
 
-        LoserMayTryToAssassinate = BattleLoser == Faction.Cyan && Applicable(Rule.CyanAssassinate) && 
+        LoserMayTryToAssassinate = BattleLoser == Faction.Moritani && Applicable(Rule.MoritaniAssassinate) && 
                                    Assassinated.All(l => l.Faction != BattleWinner) && 
                                    winnerBattlePlan.Hero is Leader && 
                                    IsAlive(winnerBattlePlan.Hero);
@@ -608,7 +612,7 @@ public partial class Game
     {
         var hadMessiahBeforeLosses = loser.MessiahAvailable;
         var forceSupplier = Battle.DetermineForceSupplier(this, loser);
-        ProcessPinkOccupationLoserLosses(territory, loser);
+        ProcessEcazOccupationLoserLosses(territory, loser);
 
         LogAllForcesLost(forceSupplier, territory);
         PayDialedSpice(loser, loserGambit, false);
@@ -618,44 +622,44 @@ public partial class Game
         if (loser.MessiahAvailable && !hadMessiahBeforeLosses) Stone(Milestone.Messiah);
     }
 
-    private void ProcessPinkOccupationWinnerLosses(Territory territory, Player winner)
+    private void ProcessEcazOccupationWinnerLosses(Territory territory, Player winner)
     {
-        if (CurrentPinkBattleContribution > 0 && winner.OrAllyIs(Faction.Pink))
+        if (CurrentEcazBattleContribution > 0 && winner.OrAllyIs(Faction.Ecaz))
         {
-            var pink = GetPlayer(Faction.Pink);
-            if (pink is null) return;
-            pink.KillForces(territory, CurrentPinkBattleContribution, false, true);
-            Log(Faction.Pink, " lose ", CurrentPinkBattleContribution, pink.Force);
+            var ecaz = GetPlayer(Faction.Ecaz);
+            if (ecaz is null) return;
+            ecaz.KillForces(territory, CurrentEcazBattleContribution, false, true);
+            Log(Faction.Ecaz, " lose ", CurrentEcazBattleContribution, ecaz.Force);
         }
     }
 
-    private void ProcessPinkOccupationLoserLosses(Territory territory, Player loser)
+    private void ProcessEcazOccupationLoserLosses(Territory territory, Player loser)
     {
-        if (CurrentPinkBattleContribution > 0 && loser.OrAllyIs(Faction.Pink))
+        if (CurrentEcazBattleContribution > 0 && loser.OrAllyIs(Faction.Ecaz))
         {
-            var pink = GetPlayer(Faction.Pink);
-            if (pink is null) return;
-            LogAllForcesLost(pink, territory);
-            pink.KillAllForces(territory, true);
+            var ecaz = GetPlayer(Faction.Ecaz);
+            if (ecaz is null) return;
+            LogAllForcesLost(ecaz, territory);
+            ecaz.KillAllForces(territory, true);
         }
     }
 
     private bool MayKeepCardsAfterLosingBattle(Player p)
     {
-        return (p.Ally == Faction.Cyan && CyanAllowsKeepingCards) ||
-               (p.Nexus == Faction.Cyan && NexusPlayed.CanUseSecretAlly(this, p));
+        return (p.Ally == Faction.Moritani && MoritaniAllowsKeepingCards) ||
+               (p.Nexus == Faction.Moritani && NexusPlayed.CanUseSecretAlly(this, p));
     }
 
     private bool DialledResourcesAreRefunded(Player p)
     {
-        return Applicable(Rule.YellowAllyGetsDialedResourcesRefunded) && p.Ally == Faction.Yellow &&
-               YellowRefundsBattleDial;
+        return Applicable(Rule.FremenAllyGetsDialedResourcesRefunded) && p.Ally == Faction.Fremen &&
+               FremenRefundsBattleDial;
     }
 
     private void PayDialedSpice(Player p, Battle plan, bool traitorWasRevealed)
     {
         var cost = plan.Cost(this, out var paidByArrakeen);
-        var costToBrown = p.Ally == Faction.Brown ? plan.AllyContributionAmount : 0;
+        var costToChoam = p.Ally == Faction.Choam ? plan.AllyContributionAmount : 0;
 
         if (paidByArrakeen > 0) Log(Map.Arrakeen, " stronghold advantage supports ", Payment.Of(paidByArrakeen));
 
@@ -685,10 +689,10 @@ public partial class Game
                 }
             }
 
-            var dialledResourcesRelevantForBrown = cost - costToBrown - refundedResources;
-            if (Version >= 155) dialledResourcesRelevantForBrown += paidByArrakeen;
+            var dialledResourcesRelevantForChoam = cost - costToChoam - refundedResources;
+            if (Version >= 155) dialledResourcesRelevantForChoam += paidByArrakeen;
 
-            var receiverProfit = HandleBrownIncome(p, dialledResourcesRelevantForBrown, traitorWasRevealed);
+            var receiverProfit = HandleChoamIncome(p, dialledResourcesRelevantForChoam, traitorWasRevealed);
 
             if (cost - receiverProfit >= 4) ActivateBanker(p);
         }
@@ -700,27 +704,27 @@ public partial class Game
         }
     }
 
-    private int HandleBrownIncome(Player paidBy, int costsExcludingPaymentByBrownAlly, bool traitorWasRevealed)
+    private int HandleChoamIncome(Player paidBy, int costsExcludingPaymentByChoamAlly, bool traitorWasRevealed)
     {
         var result = 0;
 
-        var brown = GetPlayer(Faction.Brown);
-        if (brown != null && paidBy.Faction != Faction.Brown && (Version < 126 || !traitorWasRevealed))
+        var choam = GetPlayer(Faction.Choam);
+        if (choam != null && paidBy.Faction != Faction.Choam && (Version < 126 || !traitorWasRevealed))
         {
-            result = (int)Math.Floor(0.5f * costsExcludingPaymentByBrownAlly);
+            result = (int)Math.Floor(0.5f * costsExcludingPaymentByChoamAlly);
 
             if (result > 0)
             {
-                if (!Prevented(FactionAdvantage.BrownReceiveForcePayment))
+                if (!Prevented(FactionAdvantage.ChoamReceiveForcePayment))
                 {
-                    brown.Resources += result;
-                    Log(Faction.Brown, " get ", Payment.Of(result), " from supported forces");
+                    choam.Resources += result;
+                    Log(Faction.Choam, " get ", Payment.Of(result), " from supported forces");
 
-                    if (result >= 5) BattleTriggeredBureaucracy = new TriggeredBureaucracy { PaymentFrom = paidBy.Faction, PaymentTo = Faction.Brown };
+                    if (result >= 5) BattleTriggeredBureaucracy = new TriggeredBureaucracy { PaymentFrom = paidBy.Faction, PaymentTo = Faction.Choam };
                 }
                 else
                 {
-                    LogPreventionByKarma(FactionAdvantage.BrownReceiveForcePayment);
+                    LogPreventionByKarma(FactionAdvantage.ChoamReceiveForcePayment);
                 }
             }
         }
@@ -737,7 +741,7 @@ public partial class Game
     private void ProcessWinnerForceLosses(Territory territory, Player winner, Battle plan)
     {
         var forceSupplier = Battle.DetermineForceSupplier(this, winner);
-        ProcessPinkOccupationWinnerLosses(territory, winner);
+        ProcessEcazOccupationWinnerLosses(territory, winner);
 
         var specialForcesToLose = plan.SpecialForces + plan.SpecialForcesAtHalfStrength;
         var forcesToLose = plan.Forces + plan.ForcesAtHalfStrength;
@@ -793,7 +797,7 @@ public partial class Game
         }
         else
         {
-            GreySpecialForceLossesToTake = specialForcesToLose - specialForcesToSaveToReserves - specialForcesToSaveInTerritory;
+            IxianSpecialForceLossesToTake = specialForcesToLose - specialForcesToSaveToReserves - specialForcesToSaveInTerritory;
         }
     }
 
@@ -801,7 +805,7 @@ public partial class Game
 
     private bool MaySubstituteForceLosses(Player p)
     {
-        return p.Faction == Faction.Grey && (Version < 113 || !Prevented(FactionAdvantage.GreyReplacingSpecialForces));
+        return p.Faction == Faction.Ixian && (Version < 113 || !Prevented(FactionAdvantage.IxianReplacingSpecialForces));
     }
 
     internal void HandleForceLosses(Territory territory, Player player, int forcesLost, int specialForcesLost)
@@ -867,7 +871,7 @@ public partial class Game
 
     #region NonBattleOutcomes
 
-    private bool BlackDoNotHaveToReturnUsedCapturedLeader { get; set; }
+    private bool HarkonnenDoNotHaveToReturnUsedCapturedLeader { get; set; }
     
     private void TraitorCalled(BattleInitiated b, Battle agg, Battle def, TreacheryCalled defenderTreachery, IHero? aggLeader, IHero? defLeader)
     {
@@ -884,7 +888,7 @@ public partial class Game
             var loser = AggressorTraitorAction.Succeeded ? def.Player : agg.Player;
             var loserGambit = AggressorTraitorAction.Succeeded ? def : agg;
             var winnerGambit = AggressorTraitorAction.Succeeded ? agg : def;
-            if (winner.Is(Faction.Black)) BlackDoNotHaveToReturnUsedCapturedLeader = true;
+            if (winner.Is(Faction.Harkonnen)) HarkonnenDoNotHaveToReturnUsedCapturedLeader = true;
             OneTraitorCalled(b.Territory!, winner, loser, loserGambit, winnerGambit);
         }
     }
@@ -896,7 +900,7 @@ public partial class Game
         
         var hadMessiahBeforeLosses = loser.MessiahAvailable;
         var traitorValue = traitor.ValueInCombatAgainst(winnerPlan.Hero);
-        var traitorOwner = winner.Traitors.Any(t => t.IsTraitor(traitor)) ? winner.Faction : Faction.Black;
+        var traitorOwner = winner.Traitors.Any(t => t.IsTraitor(traitor)) ? winner.Faction : Faction.Harkonnen;
 
         // The traitor decides the battle, but the strengths were worked out
         // already, and the log shows them.
@@ -922,7 +926,7 @@ public partial class Game
 
         var forceSupplierOfLoser = Battle.DetermineForceSupplier(this, loser);
 
-        ProcessPinkOccupationLoserLosses(territory, loser);
+        ProcessEcazOccupationLoserLosses(territory, loser);
 
         if (forceSupplierOfLoser != loser)
         {
@@ -947,7 +951,7 @@ public partial class Game
         KillHero(aggLeader);
 
         var forceSupplierOfDefender = Battle.DetermineForceSupplier(this, defender);
-        ProcessPinkOccupationLoserLosses(territory, defender);
+        ProcessEcazOccupationLoserLosses(territory, defender);
         if (forceSupplierOfDefender != defender)
         {
             LogAllForcesLost(forceSupplierOfDefender, territory);
@@ -958,7 +962,7 @@ public partial class Game
         defender.KillAllForces(territory, true);
 
         var forceSupplierOfAggressor = Battle.DetermineForceSupplier(this, aggressor);
-        ProcessPinkOccupationLoserLosses(territory, aggressor);
+        ProcessEcazOccupationLoserLosses(territory, aggressor);
         if (forceSupplierOfAggressor != aggressor)
         {
             LogAllForcesLost(forceSupplierOfAggressor, territory);
@@ -1054,7 +1058,7 @@ public partial class Game
 
     public List<Leader> Assassinated { get; } = new();
 
-    private void SelectVictimOfBlackWinner(Battle victimAction)
+    private void SelectVictimOfHarkonnenWinner(Battle victimAction)
     {
         var victim = GetPlayer(victimAction.Initiator);
         if (victim is null) return;
@@ -1067,12 +1071,12 @@ public partial class Game
         if (!availableLeaders.IsEmpty)
         {
             availableLeaders.Shuffle();
-            BlackVictim = availableLeaders.Draw();
+            HarkonnenVictim = availableLeaders.Draw();
         }
         else
         {
-            BlackVictim = null;
-            Log(victim.Faction, " don't have any leaders for ", Faction.Black, " to capture or kill");
+            HarkonnenVictim = null;
+            Log(victim.Faction, " don't have any leaders for ", Faction.Harkonnen, " to capture or kill");
         }
     }
 
@@ -1097,7 +1101,7 @@ public partial class Game
         CurrentDiplomacy = null;
         CurrentRockWasMelted = null;
         CurrentPortableAntidoteUsed = null;
-        BlackDoNotHaveToReturnUsedCapturedLeader = false;
+        HarkonnenDoNotHaveToReturnUsedCapturedLeader = false;
         FinishDeciphererIfApplicable();
         if (NextPlayerToBattle == null) MainPhaseEnd();
         Enter(Phase.BattleReport);
@@ -1131,7 +1135,7 @@ public partial class Game
 
             CheckIfShipmentPermissionsShouldBeRevoked();
 
-            if (hw.World == World.Pink) CheckIfOccupierTakesVidal(previousOccupier);
+            if (hw.World == World.Ecaz) CheckIfOccupierTakesVidal(previousOccupier);
         }
     }
     
@@ -1145,7 +1149,7 @@ public partial class Game
             var currentOwner = Players.FirstOrDefault(p => p.Leaders.Contains(leader));
 
             if (currentOwner == null || 
-                (!CapturedLeaders.ContainsKey(leader) && !(currentOwner.Faction != Faction.Pink && leader.HeroType == HeroType.Vidal) && CurrentBattle.IsAggressorOrDefender(currentOwner)))
+                (!CapturedLeaders.ContainsKey(leader) && !(currentOwner.Faction != Faction.Ecaz && leader.HeroType == HeroType.Vidal) && CurrentBattle.IsAggressorOrDefender(currentOwner)))
             {
                 SetInFrontOfShield(leader, true);
 
@@ -1156,17 +1160,17 @@ public partial class Game
 
     private void AllowPreventedBattleFactionAdvantages()
     {
-        Allow(FactionAdvantage.GreenUseMessiah);
-        Allow(FactionAdvantage.GreenBattlePlanPrescience);
-        Allow(FactionAdvantage.BlueUsingVoice);
-        Allow(FactionAdvantage.YellowSpecialForceBonus);
-        Allow(FactionAdvantage.YellowNotPayingForBattles);
-        Allow(FactionAdvantage.RedSpecialForceBonus);
-        Allow(FactionAdvantage.GreySpecialForceBonus);
-        Allow(FactionAdvantage.GreyReplacingSpecialForces);
-        Allow(FactionAdvantage.BlackCallTraitorForAlly);
-        Allow(FactionAdvantage.BlackCaptureLeader);
-        Allow(FactionAdvantage.BrownReceiveForcePayment);
+        Allow(FactionAdvantage.AtreidesUseMessiah);
+        Allow(FactionAdvantage.AtreidesBattlePlanPrescience);
+        Allow(FactionAdvantage.BeneGesseritUsingVoice);
+        Allow(FactionAdvantage.FremenSpecialForceBonus);
+        Allow(FactionAdvantage.FremenNotPayingForBattles);
+        Allow(FactionAdvantage.EmperorSpecialForceBonus);
+        Allow(FactionAdvantage.IxianSpecialForceBonus);
+        Allow(FactionAdvantage.IxianReplacingSpecialForces);
+        Allow(FactionAdvantage.HarkonnenCallTraitorForAlly);
+        Allow(FactionAdvantage.HarkonnenCaptureLeader);
+        Allow(FactionAdvantage.ChoamReceiveForcePayment);
     }
 
     #endregion
@@ -1175,7 +1179,7 @@ public partial class Game
 
     private void LoseCards(Battle plan, bool mayChooseToKeepOne)
     {
-        if (!(plan.Player.Ally == Faction.Cyan && CyanAllowsKeepingCards) && plan.Player.Nexus == Faction.Cyan && NexusPlayed.CanUseSecretAlly(this, plan.Player)) SecretAllyAllowsKeepingCardsAfterLosingBattle = true;
+        if (!(plan.Player.Ally == Faction.Moritani && MoritaniAllowsKeepingCards) && plan.Player.Nexus == Faction.Moritani && NexusPlayed.CanUseSecretAlly(this, plan.Player)) SecretAllyAllowsKeepingCardsAfterLosingBattle = true;
 
         if (mayChooseToKeepOne)
         {
@@ -1216,7 +1220,7 @@ public partial class Game
     {
         get
         {
-            if (Applicable(Rule.BrownAuditor) && !Prevented(FactionAdvantage.BrownAudit))
+            if (Applicable(Rule.ChoamAuditor) && !Prevented(FactionAdvantage.ChoamAudit))
             {
                 if (AggressorPlan is { Hero.HeroType: HeroType.Auditor } && DefenderPlan != null)
                     return DefenderPlan.Player;

@@ -35,13 +35,13 @@ public class CardsDetermined : GameEvent
         set => _treacheryCardIds = ObjectsToIdString(value, TreacheryCardManager.Lookup);
     }
 
-    public string _whiteCardIds = string.Empty;
+    public string _richeseCardIds = string.Empty;
 
     [JsonIgnore]
-    public IEnumerable<TreacheryCard> WhiteCards
+    public IEnumerable<TreacheryCard> RicheseCards
     {
-        get => IdStringToObjects(_whiteCardIds, TreacheryCardManager.Lookup);
-        set => _whiteCardIds = ObjectsToIdString(value, TreacheryCardManager.Lookup);
+        get => IdStringToObjects(_richeseCardIds, TreacheryCardManager.Lookup);
+        set => _richeseCardIds = ObjectsToIdString(value, TreacheryCardManager.Lookup);
     }
 
     #endregion Properties
@@ -50,7 +50,7 @@ public class CardsDetermined : GameEvent
 
     public override Message? Validate()
     {
-        if (TreacheryCards.Count() + WhiteCards.Count() < Game.Players.Sum(p => p.MaximumNumberOfCards) + 1) return Message.Express("Not enough cards selected");
+        if (TreacheryCards.Count() + RicheseCards.Count() < Game.Players.Sum(p => p.MaximumNumberOfCards) + 1) return Message.Express("Not enough cards selected");
 
         return null;
     }
@@ -64,7 +64,7 @@ public class CardsDetermined : GameEvent
         Game.TreacheryDeck = new Deck<TreacheryCard>(TreacheryCards, Game.Random!);
         Game.TreacheryDeck.Shuffle();
         Game.Stone(Milestone.Shuffled);
-        Game.WhiteCache = [..WhiteCards];
+        Game.RicheseCache = [..RicheseCards];
         Log(GetVerboseMessage());
         Game.Enter(Game.Version < 134, Game.EnterPhaseTradingFactions, Game.EnterSetupPhase);
     }
@@ -76,8 +76,8 @@ public class CardsDetermined : GameEvent
 
     private Message GetVerboseMessage()
     {
-        if (WhiteCards.Any())
-            return Message.Express("Treachery Cards: ", TreacheryCards, ". ", Faction.White, " Cards: ", WhiteCards);
+        if (RicheseCards.Any())
+            return Message.Express("Treachery Cards: ", TreacheryCards, ". ", Faction.Richese, " Cards: ", RicheseCards);
         return Message.Express("Treachery Cards: ", TreacheryCards);
     }
 

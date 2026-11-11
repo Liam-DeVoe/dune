@@ -14,7 +14,7 @@ public record StormForecast(int Distance);
 public record StormMoved(int From, int Distance, Faction By = Faction.None, TreacheryCard? Card = null);
 
 // Forces the storm killed in a location. Also logged when a faction chose its
-// storm losses (Fremen losing half, Brown).
+// storm losses (Fremen losing half, Choam).
 public record StormKilled(Faction Faction, Location Location, int Forces, int SpecialForces);
 
 // Spice the storm destroyed in a location.
@@ -27,4 +27,4 @@ public record FamilyAtomicsUsed(Faction Faction, TreacheryCard? Card);
 public record FamilyAtomicsKilled(Faction Faction, int Forces, int SpecialForces);
 
 // Bene Gesserit advisors flipping to fighters because they are alone.
-public record BlueFlipped(Territory Territory);
+public record BeneGesseritFlipped(Territory Territory);

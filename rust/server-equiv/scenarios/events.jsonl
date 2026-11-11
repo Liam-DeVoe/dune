@@ -1,0 +1,53 @@
+{"scenario":"events","start":"2026-03-02T10:00:00+02:00"}
+{"op":"connect","conn":1}
+{"op":"call","conn":1,"method":"RequestCreateUser","args":["alice","hash-alice","alice@example.com","Alice"],"as":"a"}
+{"op":"connect","conn":2}
+{"op":"call","conn":2,"method":"RequestCreateUser","args":["bobby","hash-bobby","bob@example.com","Bobby"],"as":"b"}
+{"op":"connect","conn":3}
+{"op":"call","conn":3,"method":"RequestCreateUser","args":["carol","hash-carol",null,"Carol"],"as":"c"}
+{"op":"call","conn":1,"method":"RequestCreateGame","args":["Game","${a.Token}","","",""],"as":"g"}
+{"op":"call","conn":2,"method":"RequestJoinGame","args":["${b.Token}","${g.GameId}","",-1]}
+{"op":"call","conn":3,"method":"RequestObserveGame","args":["${c.Token}","${g.GameId}",""]}
+{"op":"call","conn":1,"method":"SubmitEvent","args":["nobody","${g.GameId}",{"$type":"EndPhase","Initiator":0}]}
+{"op":"call","conn":1,"method":"SubmitEvent","args":["${a.Token}","nope",{"$type":"EndPhase","Initiator":0}]}
+{"op":"call","conn":1,"method":"SubmitEvent","args":["${a.Token}","${g.GameId}",{"$type":"EndPhase","Initiator":0}],"note":"invalid in AwaitingPlayers"}
+{"op":"call","conn":2,"method":"SubmitEvent","args":["${b.Token}","${g.GameId}",{"$type":"EstablishPlayers","Settings":{"NumberOfPlayers":2,"MaximumTurns":10,"InitialRules":[80,35,603,1015,106,20,10,70,97,96,1010,85,25,65,212,109,110,45,113,30,700,60,108,15,105,107,50],"AllowedFactionsInPlay":[70,90,10,80,120,50,100,40,20,110,30],"AutoOpenEmptySeats":true,"AsyncPlay":false,"AsyncPlayMessageIntervalMinutes":0},"Seed":1275318553,"MaximumNumberOfPlayers":2,"MaximumTurns":10,"ApplicableRules":[80,35,603,1015,106,20,10,70,97,96,1010,85,25,65,212,109,110,45,113,30,700,60,108,15,105,107,50],"_players":"","_factionsInPlay":"Ixian,Choam,Fremen,Tleilaxu,Moritani,Guild,Richese,Emperor,Atreides,Ecaz,Harkonnen","Initiator":0,"Time":"2024-01-01T12:01:53+00:00"}],"note":"EstablishPlayers by a non-host"}
+{"op":"call","conn":1,"method":"SubmitEvent","args":["${a.Token}","${g.GameId}",{"$type":"EstablishPlayers","Settings":{"NumberOfPlayers":2,"MaximumTurns":10,"InitialRules":[80,35,603,1015,106,20,10,70,97,96,1010,85,25,65,212,109,110,45,113,30,700,60,108,15,105,107,50],"AllowedFactionsInPlay":[70,90,10,80,120,50,100,40,20,110,30],"AutoOpenEmptySeats":true,"AsyncPlay":false,"AsyncPlayMessageIntervalMinutes":0},"Seed":1275318553,"MaximumNumberOfPlayers":2,"MaximumTurns":10,"ApplicableRules":[80,35,603,1015,106,20,10,70,97,96,1010,85,25,65,212,109,110,45,113,30,700,60,108,15,105,107,50],"_players":"","_factionsInPlay":"Ixian,Choam,Fremen,Tleilaxu,Moritani,Guild,Richese,Emperor,Atreides,Ecaz,Harkonnen","Initiator":0,"Time":"2024-01-01T12:01:53+00:00"}],"note":"seats are reassigned (HandleAssignSeats)"}
+{"op":"call","conn":1,"method":"SubmitEvent","args":["${a.Token}","${g.GameId}",{"$type":"EstablishPlayers","Settings":{"NumberOfPlayers":2,"MaximumTurns":10,"InitialRules":[80,35,603,1015,106,20,10,70,97,96,1010,85,25,65,212,109,110,45,113,30,700,60,108,15,105,107,50],"AllowedFactionsInPlay":[70,90,10,80,120,50,100,40,20,110,30],"AutoOpenEmptySeats":true,"AsyncPlay":false,"AsyncPlayMessageIntervalMinutes":0},"Seed":1275318553,"MaximumNumberOfPlayers":2,"MaximumTurns":10,"ApplicableRules":[80,35,603,1015,106,20,10,70,97,96,1010,85,25,65,212,109,110,45,113,30,700,60,108,15,105,107,50],"_players":"","_factionsInPlay":"Ixian,Choam,Fremen,Tleilaxu,Moritani,Guild,Richese,Emperor,Atreides,Ecaz,Harkonnen","Initiator":0,"Time":"2024-01-01T12:01:53+00:00"}],"note":"twice"}
+{"op":"call","conn":1,"method":"SubmitEvent","args":["${a.Token}","${g.GameId}",{"$type":"EndPhase","Initiator":110,"Time":"2024-01-01T12:02:39+00:00"}]}
+{"op":"call","conn":1,"method":"SubmitEvent","args":["${a.Token}","${g.GameId}",{"$type":"TraitorsSelected","_traitorId":1021,"Initiator":110,"Time":"2024-01-01T12:03:00+00:00"}]}
+{"op":"call","conn":2,"method":"SubmitEvent","args":["${b.Token}","${g.GameId}",{"$type":"TraitorsSelected","_traitorId":1052,"Initiator":50,"Time":"2024-01-01T12:04:13+00:00"}]}
+{"op":"call","conn":2,"method":"SubmitEvent","args":["${b.Token}","${g.GameId}",{"$type":"TraitorsSelected","_traitorId":1052,"Initiator":50,"Time":"2024-01-01T12:04:13+00:00"}],"note":"the same event again"}
+{"op":"call","conn":2,"method":"SubmitEvent","args":["${b.Token}","${g.GameId}",{"$type":"EndPhase","Initiator":0}],"note":"host-only event from a player"}
+{"op":"advance","seconds":30}
+{"op":"call","conn":2,"method":"SubmitEvent","args":["${b.Token}","${g.GameId}",{"$type":"DealOffered","To":[],"Type":80,"DealParameter1":null,"DealParameter2":null,"Text":"tell which traitors I discarded","EndPhase":399000,"Price":7,"Benefit":0,"Cancel":false,"Initiator":50,"Time":"2024-01-01T12:05:23+00:00"}]}
+{"op":"advance","seconds":30}
+{"op":"call","conn":1,"method":"SubmitEvent","args":["${a.Token}","${g.GameId}",{"$type":"DealOffered","To":[],"Type":80,"DealParameter1":null,"DealParameter2":null,"Text":"tell which traitors I discarded","EndPhase":399000,"Price":6,"Benefit":0,"Cancel":false,"Initiator":110,"Time":"2024-01-01T12:07:15+00:00"}]}
+{"op":"advance","seconds":30}
+{"op":"call","conn":2,"method":"SubmitEvent","args":["${b.Token}","${g.GameId}",{"$type":"StormDialled","Amount":19,"Initiator":50,"Time":"2024-01-01T12:08:24+00:00"}]}
+{"op":"advance","seconds":30}
+{"op":"call","conn":1,"method":"SubmitEvent","args":["${a.Token}","${g.GameId}",{"$type":"StormDialled","Amount":11,"Initiator":110,"Time":"2024-01-01T14:26:26+00:00"}]}
+{"op":"advance","seconds":30}
+{"op":"call","conn":1,"method":"SubmitEvent","args":["${a.Token}","${g.GameId}",{"$type":"EndPhase","Initiator":50,"Time":"2024-01-01T14:26:56+00:00"}]}
+{"op":"advance","seconds":30}
+{"op":"call","conn":1,"method":"SubmitEvent","args":["${a.Token}","${g.GameId}",{"$type":"EndPhase","Initiator":110,"Time":"2024-01-01T14:27:11+00:00"}]}
+{"op":"advance","seconds":30}
+{"op":"call","conn":1,"method":"SubmitEvent","args":["${a.Token}","${g.GameId}",{"$type":"EndPhase","Initiator":110,"Time":"2024-01-01T14:28:09+00:00"}]}
+{"op":"advance","seconds":30}
+{"op":"call","conn":1,"method":"SubmitEvent","args":["${a.Token}","${g.GameId}",{"$type":"EndPhase","Initiator":50,"Time":"2024-01-01T14:28:20+00:00"}]}
+{"op":"call","conn":3,"method":"RequestGameState","args":["${c.Token}","${g.GameId}"]}
+{"op":"call","conn":2,"method":"SetTimer","args":["${b.Token}","${g.GameId}",30]}
+{"op":"call","conn":1,"method":"SetTimer","args":["nobody","${g.GameId}",30]}
+{"op":"call","conn":1,"method":"SetTimer","args":["${a.Token}","nope",30]}
+{"op":"call","conn":1,"method":"SetTimer","args":["${a.Token}","${g.GameId}",45]}
+{"op":"call","conn":2,"method":"RequestSetSkin","args":["${b.Token}","${g.GameId}","skin"]}
+{"op":"call","conn":1,"method":"RequestSetSkin","args":["${a.Token}","${g.GameId}","{\"Description\":\"x\"}"]}
+{"op":"advance","minutes":6}
+{"op":"call","conn":1,"method":"SubmitEvent","args":["${a.Token}","${g.GameId}",{"$type":"EndPhase","Initiator":50,"Time":"2024-01-01T14:28:43+00:00"}]}
+{"op":"call","conn":1,"method":"SubmitEvent","args":["${a.Token}","${g.GameId}",{"$type":"EndPhase","Initiator":110,"Time":"2024-01-01T14:28:50+00:00"}]}
+{"op":"call","conn":1,"method":"SubmitEvent","args":["${a.Token}","${g.GameId}",{"$type":"EndPhase","Initiator":50,"Time":"2024-01-01T14:29:45+00:00"}]}
+{"op":"call","conn":1,"method":"SubmitEvent","args":["${a.Token}","${g.GameId}",{"$type":"Bid","Amount":1,"AllyContributionAmount":0,"EmperorContributionAmount":0,"UsesEmperorSecretAlly":false,"KarmaBid":false,"_karmaCardId":-1,"Passed":false,"Initiator":110,"Time":"2024-01-01T14:29:48+00:00"}]}
+{"op":"call","conn":2,"method":"SubmitEvent","args":["${b.Token}","${g.GameId}",{"$type":"Bid","Amount":0,"AllyContributionAmount":0,"EmperorContributionAmount":0,"UsesEmperorSecretAlly":false,"KarmaBid":false,"_karmaCardId":-1,"Passed":true,"Initiator":50,"Time":"2024-01-01T14:30:16+00:00"}]}
+{"op":"call","conn":1,"method":"SubmitEvent","args":["${a.Token}","${g.GameId}",{"$type":"EndPhase","Initiator":110,"Time":"2024-01-01T14:30:17+00:00"}]}
+{"op":"call","conn":2,"method":"SubmitEvent","args":["${b.Token}","${g.GameId}",{"$type":"Bid","Amount":1,"AllyContributionAmount":0,"EmperorContributionAmount":0,"UsesEmperorSecretAlly":false,"KarmaBid":false,"_karmaCardId":-1,"Passed":false,"Initiator":50,"Time":"2024-01-01T14:31:44+00:00"}]}
+{"op":"call","conn":1,"method":"SubmitEvent","args":["${a.Token}","${g.GameId}",{"$type":"Bid","Amount":2,"AllyContributionAmount":0,"EmperorContributionAmount":0,"UsesEmperorSecretAlly":false,"KarmaBid":false,"_karmaCardId":-1,"Passed":false,"Initiator":110,"Time":"2024-01-01T14:32:30+00:00"}]}

@@ -136,7 +136,7 @@ public class Battle : GameEvent
             RegisterKnownCards(Game.AggressorPlan);
             RegisterKnownCards(Game.DefenderPlan);
 
-            PassPurpleTraitorAction();
+            PassTleilaxuTraitorAction();
 
             Game.Enter(Game.AggressorPlan.HasRockMelter || Game.DefenderPlan.HasRockMelter, Phase.MeltingRock, Phase.CallTraitorOrPass);
         }
@@ -148,14 +148,14 @@ public class Battle : GameEvent
         if (battle.Defense != null) Game.RegisterKnown(battle.Defense);
     }
 
-    private void PassPurpleTraitorAction()
+    private void PassTleilaxuTraitorAction()
     {
         if (Game.CurrentBattle is null) throw new Exception("Battle event executed when there is no current battle");
         
-        if (Game.CurrentBattle.Aggressor == Faction.Purple && (GetPlayer(Faction.Purple)?.Ally != Faction.Black || Game.Prevented(FactionAdvantage.BlackCallTraitorForAlly)))
-            Game.AggressorTraitorAction = new TreacheryCalled(Game, Faction.Purple) { TraitorCalled = false };
-        else if (Game.CurrentBattle.Defender == Faction.Purple && (GetPlayer(Faction.Purple)?.Ally != Faction.Black || Game.Prevented(FactionAdvantage.BlackCallTraitorForAlly))) 
-            Game.DefenderTraitorAction = new TreacheryCalled(Game, Faction.Purple) { TraitorCalled = false };
+        if (Game.CurrentBattle.Aggressor == Faction.Tleilaxu && (GetPlayer(Faction.Tleilaxu)?.Ally != Faction.Harkonnen || Game.Prevented(FactionAdvantage.HarkonnenCallTraitorForAlly)))
+            Game.AggressorTraitorAction = new TreacheryCalled(Game, Faction.Tleilaxu) { TraitorCalled = false };
+        else if (Game.CurrentBattle.Defender == Faction.Tleilaxu && (GetPlayer(Faction.Tleilaxu)?.Ally != Faction.Harkonnen || Game.Prevented(FactionAdvantage.HarkonnenCallTraitorForAlly))) 
+            Game.DefenderTraitorAction = new TreacheryCalled(Game, Faction.Tleilaxu) { TraitorCalled = false };
     }
 
     public override Message GetMessage()
@@ -251,12 +251,12 @@ public class Battle : GameEvent
     // The dial of a plan by p with these forces, without building the plan.
     public static float Dial(Game g, Player p, Faction opponent, int forces, int specialForces, int forcesAtHalfStrength, int specialForcesAtHalfStrength)
     {
-        var pinkBattleContribution = !g.Prevented(FactionAdvantage.PinkOccupation) && (p.Faction == Faction.Pink || p.Ally == Faction.Pink) ? g.CurrentPinkBattleContribution : 0;
+        var ecazBattleContribution = !g.Prevented(FactionAdvantage.EcazOccupation) && (p.Faction == Faction.Ecaz || p.Ally == Faction.Ecaz) ? g.CurrentEcazBattleContribution : 0;
 
-        if (g.CurrentPinkOrAllyFighter == Faction.None || p.Faction != Faction.Pink)
-            return ForceValue(g, p.Faction, opponent, forces, specialForces, forcesAtHalfStrength, specialForcesAtHalfStrength) + pinkBattleContribution;
+        if (g.CurrentEcazOrAllyFighter == Faction.None || p.Faction != Faction.Ecaz)
+            return ForceValue(g, p.Faction, opponent, forces, specialForces, forcesAtHalfStrength, specialForcesAtHalfStrength) + ecazBattleContribution;
 
-        return ForceValue(g, p.Ally, opponent, forces, specialForces, forcesAtHalfStrength, specialForcesAtHalfStrength) + pinkBattleContribution;
+        return ForceValue(g, p.Ally, opponent, forces, specialForces, forcesAtHalfStrength, specialForcesAtHalfStrength) + ecazBattleContribution;
     }
 
     public int Cost(Game g)
@@ -319,8 +319,8 @@ public class Battle : GameEvent
         var aggHeroContribution = result.AggHeroKilled || (game.Version < 145 && rockMelterUsed) ? 0 : result.AggHeroEffectiveStrength + result.AggHeroSkillBonus + result.AggMessiahContribution - (game.Version < 164 ? result.AggBattlePenalty : 0);
         var defHeroContribution = result.DefHeroKilled || (game.Version < 145 && rockMelterUsed) ? 0 : result.DefHeroEffectiveStrength + result.DefHeroSkillBonus + result.DefMessiahContribution - (game.Version < 164 ? result.DefBattlePenalty : 0);
 
-        var aggPinkKarmaContribution = agg.Initiator == Faction.Pink ? game.PinkKarmaBonus : 0;
-        var defPinkKarmaContribution = def.Initiator == Faction.Pink ? game.PinkKarmaBonus : 0;
+        var aggEcazKarmaContribution = agg.Initiator == Faction.Ecaz ? game.EcazKarmaBonus : 0;
+        var defEcazKarmaContribution = def.Initiator == Faction.Ecaz ? game.EcazKarmaBonus : 0;
 
         var aggForceSupplier = DetermineForceSupplier(game, result.Aggressor);
         result.AggUndialedForces = aggForceSupplier.AnyForcesIn(territory) - agg.TotalForces;
@@ -336,20 +336,20 @@ public class Battle : GameEvent
             result.AggHomeworldContribution = agg.Player.GetHomeworldBattleContributionAndLasgunShieldLimit(territory);
             result.DefHomeworldContribution = def.Player.GetHomeworldBattleContributionAndLasgunShieldLimit(territory);
 
-            result.AggTotal = agg.Dial(game, result.Defender.Faction) + aggHeroContribution + aggPinkKarmaContribution + result.AggHomeworldContribution + result.AggReinforcementsContribution - (game.Version >= 164 ? result.AggBattlePenalty : 0);
-            result.DefTotal = def.Dial(game, result.Aggressor.Faction) + defHeroContribution + defPinkKarmaContribution + result.DefHomeworldContribution + result.DefReinforcementsContribution - (game.Version >= 164 ? result.DefBattlePenalty : 0);
+            result.AggTotal = agg.Dial(game, result.Defender.Faction) + aggHeroContribution + aggEcazKarmaContribution + result.AggHomeworldContribution + result.AggReinforcementsContribution - (game.Version >= 164 ? result.AggBattlePenalty : 0);
+            result.DefTotal = def.Dial(game, result.Aggressor.Faction) + defHeroContribution + defEcazKarmaContribution + result.DefHomeworldContribution + result.DefReinforcementsContribution - (game.Version >= 164 ? result.DefBattlePenalty : 0);
         }
         else
         {
-            var pink = game.GetPlayer(Faction.Pink);
+            var ecaz = game.GetPlayer(Faction.Ecaz);
             
             result.AggTotal = result.AggUndialedForces;
-            if (result.Aggressor.Faction == game.CurrentPinkOrAllyFighter) 
-                result.AggTotal += (int)Math.Ceiling(0.5f * (pink?.AnyForcesIn(territory) ?? 0));
+            if (result.Aggressor.Faction == game.CurrentEcazOrAllyFighter) 
+                result.AggTotal += (int)Math.Ceiling(0.5f * (ecaz?.AnyForcesIn(territory) ?? 0));
 
             result.DefTotal = result.DefUndialedForces;
-            if (result.Defender.Faction == game.CurrentPinkOrAllyFighter) 
-                result.DefTotal += (int)Math.Ceiling(0.5f * (pink?.AnyForcesIn(territory) ?? 0));
+            if (result.Defender.Faction == game.CurrentEcazOrAllyFighter) 
+                result.DefTotal += (int)Math.Ceiling(0.5f * (ecaz?.AnyForcesIn(territory) ?? 0));
         }
 
         agg.DeactivateDynamicWeapons();
@@ -425,6 +425,11 @@ public class Battle : GameEvent
         if (BankerBonus > MaxBankerBoost(Game, Player, Hero)) return Message.Express("You cannot boost your leader this much");
         if (cost + BankerBonus > p.Resources + AllyContributionAmount) return Message.Express("You can't pay this ", LeaderSkill.Banker, " bonus");
 
+        var opponent = Game.CurrentBattle.OpponentOf(p)!.Faction;
+        foreach (var (aspect, seen) in Game.PrescienceSeenPlans)
+            if (seen.Initiator == Initiator && !Matches(seen, aspect, opponent))
+                return Message.Express("Your ", aspect, " was revealed by prescience and can't change");
+
         if (Hero != null &&
             AffectedByVoice(Game, Player, Game.CurrentVoice) &&
             Game.CurrentVoice is { Must: true } currentVoice &&
@@ -438,7 +443,7 @@ public class Battle : GameEvent
 
     public static Player DetermineForceSupplier(Game g, Player playerThatFights)
     {
-        if (playerThatFights.Is(Faction.Pink) && g.CurrentPinkOrAllyFighter != Faction.None && !g.Prevented(FactionAdvantage.PinkOccupation))
+        if (playerThatFights.Is(Faction.Ecaz) && g.CurrentEcazOrAllyFighter != Faction.None && !g.Prevented(FactionAdvantage.EcazOccupation))
             return playerThatFights.AlliedPlayer ?? playerThatFights;
 
         return playerThatFights;
@@ -446,13 +451,13 @@ public class Battle : GameEvent
 
     private static float ForceValue(Game g, Faction player, Faction opponent, int forces, int specialForces, int forcesAtHalfStrength, int specialForcesAtHalfStrength)
     {
-        var nrOfForcesToCountAsSpecialDueToRedCunning = g.CurrentRedCunning != null && g.CurrentRedCunning.Initiator == player ? Math.Min(5, forces) : 0;
-        var forcesAdjustedForCunning = forces - nrOfForcesToCountAsSpecialDueToRedCunning;
-        var specialForcesAdjustedForCunning = specialForces + nrOfForcesToCountAsSpecialDueToRedCunning;
+        var nrOfForcesToCountAsSpecialDueToEmperorCunning = g.CurrentEmperorCunning != null && g.CurrentEmperorCunning.Initiator == player ? Math.Min(5, forces) : 0;
+        var forcesAdjustedForCunning = forces - nrOfForcesToCountAsSpecialDueToEmperorCunning;
+        var specialForcesAdjustedForCunning = specialForces + nrOfForcesToCountAsSpecialDueToEmperorCunning;
 
-        var nrOfForcesAtHalfStrengthToCountAsSpecialDueToRedCunning = g.CurrentRedCunning != null && g.CurrentRedCunning.Initiator == player ? Math.Max(0, Math.Min(5, forcesAtHalfStrength) - nrOfForcesToCountAsSpecialDueToRedCunning) : 0;
-        var forcesAtHalfStrengthAdjustedForCunning = forcesAtHalfStrength - nrOfForcesAtHalfStrengthToCountAsSpecialDueToRedCunning;
-        var specialForcesAtHalfStrengthAdjustedForCunning = specialForcesAtHalfStrength + nrOfForcesAtHalfStrengthToCountAsSpecialDueToRedCunning;
+        var nrOfForcesAtHalfStrengthToCountAsSpecialDueToEmperorCunning = g.CurrentEmperorCunning != null && g.CurrentEmperorCunning.Initiator == player ? Math.Max(0, Math.Min(5, forcesAtHalfStrength) - nrOfForcesToCountAsSpecialDueToEmperorCunning) : 0;
+        var forcesAtHalfStrengthAdjustedForCunning = forcesAtHalfStrength - nrOfForcesAtHalfStrengthToCountAsSpecialDueToEmperorCunning;
+        var specialForcesAtHalfStrengthAdjustedForCunning = specialForcesAtHalfStrength + nrOfForcesAtHalfStrengthToCountAsSpecialDueToEmperorCunning;
 
         var specialForceStrength = DetermineSpecialForceStrength(g, player, opponent);
         var specialForceNoSpiceFactor = DetermineSpecialForceNoSpiceFactor(g, player);
@@ -466,6 +471,28 @@ public class Battle : GameEvent
             specialForceNoSpiceFactor * specialForceStrength * specialForcesAtHalfStrengthAdjustedForCunning;
     }
 
+    // The elements of this player's plan that the other side's prescience lets them see.
+    public static IEnumerable<PrescienceAspect> AspectsSeenByOpponent(Game g, Player p)
+    {
+        var battle = g.CurrentBattle!;
+        if (g.CurrentPrescience != null && battle.OpponentOf(g.CurrentPrescience.Initiator) == p)
+            yield return g.CurrentPrescience.Aspect;
+        if (g.CurrentNexusPrescience != null && battle.OpponentOf(g.CurrentNexusPrescience.Initiator) == p)
+            yield return g.CurrentNexusPrescience.AtreidesPrescienceAspect;
+        if (g.AtreidesKarma && battle.OpponentOf(Faction.Atreides) == p)
+            foreach (var aspect in new[] { PrescienceAspect.Leader, PrescienceAspect.Weapon, PrescienceAspect.Defense, PrescienceAspect.Dial })
+                yield return aspect;
+    }
+
+    private bool Matches(Battle seen, PrescienceAspect aspect, Faction opponent) => aspect switch
+    {
+        PrescienceAspect.Leader => Hero == seen.Hero,
+        PrescienceAspect.Weapon => Weapon == seen.Weapon,
+        PrescienceAspect.Defense => Defense == seen.Defense,
+        PrescienceAspect.Dial => Dial(Game, opponent) == seen.Dial(Game, opponent),
+        _ => true
+    };
+
     public static bool IsUsingPortableAntidote(Game g, Faction faction)
     {
         return g.CurrentPortableAntidoteUsed?.Initiator == faction;
@@ -473,13 +500,13 @@ public class Battle : GameEvent
 
     public static float DetermineSpecialForceStrength(Game g, Faction player, Faction opponent)
     {
-        if (player == Faction.Yellow && g.Prevented(FactionAdvantage.YellowSpecialForceBonus))
+        if (player == Faction.Fremen && g.Prevented(FactionAdvantage.FremenSpecialForceBonus))
             return 1;
-        if (player == Faction.Red && (g.Prevented(FactionAdvantage.RedSpecialForceBonus) || opponent == Faction.Yellow || g.OccupierOf(World.RedStar) != null))
+        if (player == Faction.Emperor && (g.Prevented(FactionAdvantage.EmperorSpecialForceBonus) || opponent == Faction.Fremen || g.OccupierOf(World.SalusaSecundus) != null))
             return 1;
-        if (player == Faction.Grey && g.Prevented(FactionAdvantage.GreySpecialForceBonus))
+        if (player == Faction.Ixian && g.Prevented(FactionAdvantage.IxianSpecialForceBonus))
             return 1;
-        if (player == Faction.Blue) 
+        if (player == Faction.BeneGesserit) 
             return 1;
 
         return 2;
@@ -487,30 +514,30 @@ public class Battle : GameEvent
 
     private static float DetermineSpecialForceNoSpiceFactor(Game g, Faction player)
     {
-        if (player == Faction.Red && g.HasHighThreshold(player, World.RedStar))
+        if (player == Faction.Emperor && g.HasHighThreshold(player, World.SalusaSecundus))
             return 1;
         return 0.5f;
     }
 
     public static float DetermineNormalForceStrength(Game g, Faction player)
     {
-        if (player == Faction.Grey && g.CurrentGreyCunning == null) return 0.5f;
+        if (player == Faction.Ixian && g.CurrentIxianCunning == null) return 0.5f;
 
         return 1;
     }
 
     private static float DetermineNormalForceNoSpiceFactor(Faction player)
     {
-        if (player == Faction.Grey) return 1;
+        if (player == Faction.Ixian) return 1;
 
         return 0.5f;
     }
 
     public static bool MustPayForAnyForcesInBattle(Game g, Player p)
     {
-        bool doesNotNeedToSupportForces = !g.Prevented(FactionAdvantage.YellowNotPayingForBattles) &&
-                                          (p.Faction is Faction.Yellow ||
-                                           g.Version >= 169 && p.Faction is Faction.Pink && p.Ally is Faction.Yellow);
+        bool doesNotNeedToSupportForces = !g.Prevented(FactionAdvantage.FremenNotPayingForBattles) &&
+                                          (p.Faction is Faction.Fremen ||
+                                           g.Version >= 169 && p.Faction is Faction.Ecaz && p.Ally is Faction.Fremen);
 
         return g.Applicable(Rule.AdvancedCombat) && !doesNotNeedToSupportForces;
     }
@@ -518,7 +545,7 @@ public class Battle : GameEvent
     public static bool MustPayForSpecialForcesInBattle(Game g, Player p)
     {
         return MustPayForAnyForcesInBattle(g,p) && 
-               !(p.Is(Faction.Red) && g.HasHighThreshold(Faction.Red, World.RedStar));
+               !(p.Is(Faction.Emperor) && g.HasHighThreshold(Faction.Emperor, World.SalusaSecundus));
     }
 
     public static bool MessiahMayBeUsedInBattle(Game g, Player p)
@@ -543,7 +570,7 @@ public class Battle : GameEvent
     {
         if (MustPayForAnyForcesInBattle(g, p))
         {
-            if (p.Faction == Faction.Grey)
+            if (p.Faction == Faction.Ixian)
                 return 0;
             return 1;
         }
@@ -553,7 +580,7 @@ public class Battle : GameEvent
 
     public static int SpecialForceCost(Game g, Player p)
     {
-        if (g.Version >= 165 && p.Is(Faction.Red) && p.HasHighThreshold(World.RedStar))
+        if (g.Version >= 165 && p.Is(Faction.Emperor) && p.HasHighThreshold(World.SalusaSecundus))
             return 0;
         
         if (MustPayForAnyForcesInBattle(g, p))
@@ -580,12 +607,12 @@ public class Battle : GameEvent
 
         if (!specialForces)
         {
-            if (forceSupplier.Faction == Faction.White && forceSupplier.SpecialForcesIn(g.CurrentBattle.Territory) > 0)
+            if (forceSupplier.Faction == Faction.Richese && forceSupplier.SpecialForcesIn(g.CurrentBattle.Territory) > 0)
                 return Math.Min(forceSupplier.ForcesInReserve, g.CurrentNoFieldValue) + forceSupplier.ForcesIn(g.CurrentBattle.Territory);
             return forceSupplier.ForcesIn(g.CurrentBattle.Territory);
         }
 
-        if (forceSupplier.Faction != Faction.White)
+        if (forceSupplier.Faction != Faction.Richese)
             return forceSupplier.SpecialForcesIn(g.CurrentBattle.Territory);
         return 0;
     }
@@ -595,7 +622,7 @@ public class Battle : GameEvent
         var result = new List<Fight>();
         
         var mayBattleUnderStorm = g.Applicable(Rule.BattlesUnderStorm);
-        var pink = g.GetPlayer(Faction.Pink);
+        var ecaz = g.GetPlayer(Faction.Ecaz);
 
         foreach (var occupiedLocation in player.OccupiedLocations.Where(l => (mayBattleUnderStorm || l.Sector != g.SectorInStorm) && l.Id != g.Map.PolarSink.Id))
         {
@@ -607,7 +634,7 @@ public class Battle : GameEvent
 
                 foreach (var faction in defenders.Select(b => b.Faction))
                 {
-                    if (g.Version >= 177 && pink != null && (faction is Faction.Pink && result.Any(f => f.Faction == pink.Ally) || faction == pink.Ally && result.Any(f => f.Faction is Faction.Pink)))
+                    if (g.Version >= 177 && ecaz != null && (faction is Faction.Ecaz && result.Any(f => f.Faction == ecaz.Ally) || faction == ecaz.Ally && result.Any(f => f.Faction is Faction.Ecaz)))
                         continue;
                     
                     result.Add(new Fight(occupiedLocation.Territory, faction));
@@ -752,7 +779,7 @@ public class Battle : GameEvent
     private static List<TreacheryCard> CardsPlayableAsWeapon(Game g, Player p, TreacheryCard? withDefense, Territory? territoryOfBattle, bool withPlanetologist)
     {
         var fightingOnOwnHomeworld = territoryOfBattle != null && p.IsNative(territoryOfBattle);
-        var forcesToRevealUnderNoField = territoryOfBattle != null && p.Is(Faction.White) && p.SpecialForcesIn(territoryOfBattle) != 0 ? Math.Min(p.ForcesInReserve, g.CurrentNoFieldValue) : 0;
+        var forcesToRevealUnderNoField = territoryOfBattle != null && p.Is(Faction.Richese) && p.SpecialForcesIn(territoryOfBattle) != 0 ? Math.Min(p.ForcesInReserve, g.CurrentNoFieldValue) : 0;
 
         return
         [
@@ -760,7 +787,7 @@ public class Battle : GameEvent
                 (c.Type != TreacheryCardType.Chemistry && (c.IsWeapon || c.Type == TreacheryCardType.Useless)) ||
                 (c.Type == TreacheryCardType.Chemistry && withDefense is { IsDefense: true } &&
                  withDefense.Type != TreacheryCardType.WeirdingWay) ||
-                (withPlanetologist && c.IsGreen) ||
+                (withPlanetologist && c.IsAtreides) ||
                 (c.Type == TreacheryCardType.Reinforcements &&
                  p.ForcesInReserve + p.SpecialForcesInReserve - forcesToRevealUnderNoField >= 3) ||
                 (!fightingOnOwnHomeworld && c.Type == TreacheryCardType.HarassAndWithdraw))
@@ -777,7 +804,7 @@ public class Battle : GameEvent
     private static IEnumerable<TreacheryCard> CardsPlayableAsDefense(Game g, Player p, TreacheryCard? withWeapon, Territory? territoryOfBattle)
     {
         var fightingOnOwnHomeworld = territoryOfBattle != null && p.IsNative(territoryOfBattle);
-        var forcesToRevealUnderNoField = territoryOfBattle != null && p.Is(Faction.White) && p.SpecialForcesIn(territoryOfBattle) != 0 ? Math.Min(p.ForcesInReserve, g.CurrentNoFieldValue) : 0;
+        var forcesToRevealUnderNoField = territoryOfBattle != null && p.Is(Faction.Richese) && p.SpecialForcesIn(territoryOfBattle) != 0 ? Math.Min(p.ForcesInReserve, g.CurrentNoFieldValue) : 0;
 
         return p.TreacheryCards.Where(c =>
             (c.Type != TreacheryCardType.WeirdingWay && (c.IsDefense || c.Type == TreacheryCardType.Useless)) ||
@@ -788,7 +815,7 @@ public class Battle : GameEvent
 
     public static bool MessiahAvailableForBattle(Game g, Player p)
     {
-        return p.MessiahAvailable && g.CanJoinCurrentBattle(LeaderManager.Messiah) && !g.Prevented(FactionAdvantage.GreenUseMessiah) && g.Applicable(Rule.GreenMessiah);
+        return p.MessiahAvailable && g.CanJoinCurrentBattle(LeaderManager.Messiah) && !g.Prevented(FactionAdvantage.AtreidesUseMessiah) && g.Applicable(Rule.AtreidesMessiah);
     }
 
     public static void DetermineForces(Game g, Player p, int forces, int specialForces, int resources, out int forcesFull, out int forcesHalf, out int specialForcesFull, out int specialForcesHalf)
@@ -885,7 +912,7 @@ public class Battle : GameEvent
             }
         }
 
-        if (weapon is { IsGreen: true })
+        if (weapon is { IsAtreides: true })
             if (hero != null && g.SkilledAs(hero, LeaderSkill.Planetologist))
             {
                 activatedSkill = LeaderSkill.Planetologist;

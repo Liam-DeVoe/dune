@@ -1,12 +1,12 @@
-"""Single-pick actions that moved from sidebar dropdowns onto the map: retreat, worm target, Blue accompanies."""
+"""Single-pick actions that moved from sidebar dropdowns onto the map: retreat, worm target, BeneGesserit accompanies."""
 
 AREA = "map-ux"
 
 CASES = [
     # name, fixture, faction, where to pin
-    ("retreat", "retreat", "black", "Habbanya Erg (West Sector)"),  # clear of the combat wheels
-    ("worm", "worm", "yellow", "Imperial Basin (Center Sector)"),
-    ("blue", "blue-accompanies", "blue", "Habbanya Sietch"),
+    ("retreat", "retreat", "harkonnen", "Habbanya Erg (West Sector)"),  # clear of the combat wheels
+    ("worm", "worm", "fremen", "Imperial Basin (Center Sector)"),
+    ("bene_gesserit", "bene-gesserit-accompanies", "bene_gesserit", "Habbanya Sietch"),
 ]
 
 

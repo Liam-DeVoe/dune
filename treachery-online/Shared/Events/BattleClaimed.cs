@@ -37,38 +37,38 @@ public class BattleClaimed : PassableGameEvent
     protected override void ExecuteConcreteEvent()
     {
         Log();
-        Game.CurrentPinkOrAllyFighter = Passed ? Game.GetAlly(Faction.Pink) : Faction.Pink;
+        Game.CurrentEcazOrAllyFighter = Passed ? Game.GetAlly(Faction.Ecaz) : Faction.Ecaz;
         Game.Enter(Phase.BattlePhase);
         Game.InitiateBattle();
-        DeterminePinkContribution();
+        DetermineEcazContribution();
     }
 
-    private void DeterminePinkContribution()
+    private void DetermineEcazContribution()
     {
-        var fighter = Game.GetPlayer(Game.CurrentPinkOrAllyFighter);
+        var fighter = Game.GetPlayer(Game.CurrentEcazOrAllyFighter);
 
-        if (fighter != null && Game.CurrentBattle != null && (fighter.Is(Faction.Pink) || fighter.Ally == Faction.Pink))
+        if (fighter != null && Game.CurrentBattle != null && (fighter.Is(Faction.Ecaz) || fighter.Ally == Faction.Ecaz))
         {
-            var pink = GetPlayer(Faction.Pink);
-            if (pink != null)
+            var ecaz = GetPlayer(Faction.Ecaz);
+            if (ecaz != null)
             {
                 if (Game.Version < 159)
-                    Game.CurrentPinkBattleContribution = (int)(0.5f * pink.AnyForcesIn(Game.CurrentBattle!.Territory!));
+                    Game.CurrentEcazBattleContribution = (int)(0.5f * ecaz.AnyForcesIn(Game.CurrentBattle!.Territory!));
                 else
-                    Game.CurrentPinkBattleContribution = (int)Math.Ceiling(0.5f * pink.AnyForcesIn(Game.CurrentBattle!.Territory!));
+                    Game.CurrentEcazBattleContribution = (int)Math.Ceiling(0.5f * ecaz.AnyForcesIn(Game.CurrentBattle!.Territory!));
             }
         }
         else
         {
-            Game.CurrentPinkBattleContribution = 0;
+            Game.CurrentEcazBattleContribution = 0;
         }
     }
 
     public override Message GetMessage()
     {
         if (!Passed)
-            return Message.Express(Faction.Pink, " will fight this battle");
-        return Message.Express(Faction.Pink, "'s ally will fight this battle");
+            return Message.Express(Faction.Ecaz, " will fight this battle");
+        return Message.Express(Faction.Ecaz, "'s ally will fight this battle");
     }
 
     #endregion Execution

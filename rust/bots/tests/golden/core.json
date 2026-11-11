@@ -1,0 +1,841 @@
+{
+  "logError": [
+    [
+      "plain",
+      "OK"
+    ],
+    [
+      "{",
+      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 1. Format item ends prematurely."
+    ],
+    [
+      "}",
+      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 1. Format item ends prematurely."
+    ],
+    [
+      "{{",
+      "OK"
+    ],
+    [
+      "}}",
+      "OK"
+    ],
+    [
+      "{0}",
+      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
+    ],
+    [
+      "a{x}b",
+      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 2. Expected an ASCII digit."
+    ],
+    [
+      "{ 0}",
+      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 1. Expected an ASCII digit."
+    ],
+    [
+      "{0 }",
+      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
+    ],
+    [
+      "{-1}",
+      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 1. Expected an ASCII digit."
+    ],
+    [
+      "{1,2}",
+      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
+    ],
+    [
+      "{0:x}",
+      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
+    ],
+    [
+      "x}y",
+      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 2. Unexpected closing brace without a corresponding opening brace."
+    ],
+    [
+      "{}",
+      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 1. Expected an ASCII digit."
+    ],
+    [
+      "{{}}",
+      "OK"
+    ],
+    [
+      "{a",
+      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 1. Expected an ASCII digit."
+    ],
+    [
+      "{0",
+      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 2. Format item ends prematurely."
+    ],
+    [
+      "abc{{def}}g",
+      "OK"
+    ],
+    [
+      "}}{{",
+      "OK"
+    ],
+    [
+      "{0,",
+      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 3. Format item ends prematurely."
+    ],
+    [
+      "{0,-",
+      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 4. Format item ends prematurely."
+    ],
+    [
+      "{0,a}",
+      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 3. Expected an ASCII digit."
+    ],
+    [
+      "{ }",
+      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 1. Expected an ASCII digit."
+    ],
+    [
+      "{0:}",
+      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
+    ],
+    [
+      "{0:{{}",
+      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 3. Format item ends prematurely."
+    ],
+    [
+      "{0:}}}",
+      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
+    ],
+    [
+      "}a",
+      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 1. Unexpected closing brace without a corresponding opening brace."
+    ],
+    [
+      "a{",
+      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 2. Format item ends prematurely."
+    ],
+    [
+      "{1000000}",
+      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
+    ],
+    [
+      "{9999999999}",
+      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 8. Format item ends prematurely."
+    ],
+    [
+      "{0,9999999}",
+      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
+    ],
+    [
+      "{0,1000000}",
+      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
+    ],
+    [
+      "x{ 0 , 5 : y}z",
+      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 2. Expected an ASCII digit."
+    ],
+    [
+      "{0 x}",
+      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 3. Format item ends prematurely."
+    ],
+    [
+      "{0:a{b}",
+      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 4. Format item ends prematurely."
+    ],
+    [
+      "\u00E9}x",
+      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 2. Unexpected closing brace without a corresponding opening brace."
+    ],
+    [
+      "\uD83D\uDE00}x",
+      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 3. Unexpected closing brace without a corresponding opening brace."
+    ],
+    [
+      "{0,5 x}",
+      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 5. Format item ends prematurely."
+    ],
+    [
+      "{0,  5}",
+      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
+    ],
+    [
+      "{0, -5}",
+      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
+    ],
+    [
+      "{0,- 5}",
+      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 4. Expected an ASCII digit."
+    ],
+    [
+      "{00}",
+      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
+    ],
+    [
+      "{0 ,1}",
+      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
+    ],
+    [
+      "{0,1 :x}",
+      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
+    ],
+    [
+      "{0  :x}",
+      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
+    ],
+    [
+      "{1000000 }",
+      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
+    ],
+    [
+      "{0,10000000}",
+      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 10. Format item ends prematurely."
+    ],
+    [
+      "{0:abc",
+      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 6. Format item ends prematurely."
+    ],
+    [
+      "",
+      "OK"
+    ],
+    [
+      "--error occured --\u003ESystem.Collections.Generic.KeyNotFoundException: The given key \u0027Location: {x}\u0027 was not present in the dictionary.",
+      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 94. Expected an ASCII digit."
+    ],
+    [
+      "--invalid decision (Treachery.Shared.Bid)--\u003E Atreides bid 3: You can\u0027t bid more than {0}",
+      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
+    ]
+  ],
+  "d": [
+    [
+      0,
+      0,
+      "0",
+      0
+    ],
+    [
+      0,
+      1,
+      "0",
+      0
+    ],
+    [
+      0,
+      2,
+      "0",
+      0
+    ],
+    [
+      0,
+      6,
+      "0",
+      0
+    ],
+    [
+      0,
+      10,
+      "0",
+      0
+    ],
+    [
+      0,
+      100,
+      "0",
+      0
+    ],
+    [
+      0,
+      -1,
+      "0",
+      0
+    ],
+    [
+      0,
+      -5,
+      "0",
+      0
+    ],
+    [
+      1,
+      0,
+      "0",
+      0
+    ],
+    [
+      1,
+      1,
+      "1",
+      1
+    ],
+    [
+      1,
+      2,
+      "1",
+      2
+    ],
+    [
+      1,
+      6,
+      "5",
+      3
+    ],
+    [
+      1,
+      10,
+      "6",
+      4
+    ],
+    [
+      1,
+      100,
+      "80",
+      5
+    ],
+    [
+      1,
+      -1,
+      "EX:System.ArgumentOutOfRangeException: maxValue (\u0027-1\u0027) must be a non-negative value. (Parameter \u0027maxValue\u0027)\nActual value was -1.",
+      6
+    ],
+    [
+      1,
+      -5,
+      "EX:System.ArgumentOutOfRangeException: maxValue (\u0027-5\u0027) must be a non-negative value. (Parameter \u0027maxValue\u0027)\nActual value was -5.",
+      7
+    ],
+    [
+      2,
+      0,
+      "0",
+      7
+    ],
+    [
+      2,
+      1,
+      "2",
+      9
+    ],
+    [
+      2,
+      2,
+      "3",
+      11
+    ],
+    [
+      2,
+      6,
+      "6",
+      13
+    ],
+    [
+      2,
+      10,
+      "7",
+      15
+    ],
+    [
+      2,
+      100,
+      "17",
+      17
+    ],
+    [
+      2,
+      -1,
+      "EX:System.ArgumentOutOfRangeException: maxValue (\u0027-1\u0027) must be a non-negative value. (Parameter \u0027maxValue\u0027)\nActual value was -1.",
+      18
+    ],
+    [
+      2,
+      -5,
+      "EX:System.ArgumentOutOfRangeException: maxValue (\u0027-5\u0027) must be a non-negative value. (Parameter \u0027maxValue\u0027)\nActual value was -5.",
+      19
+    ],
+    [
+      3,
+      0,
+      "0",
+      19
+    ],
+    [
+      3,
+      1,
+      "3",
+      22
+    ],
+    [
+      3,
+      2,
+      "4",
+      25
+    ],
+    [
+      3,
+      6,
+      "12",
+      28
+    ],
+    [
+      3,
+      10,
+      "21",
+      31
+    ],
+    [
+      3,
+      100,
+      "140",
+      34
+    ],
+    [
+      3,
+      -1,
+      "EX:System.ArgumentOutOfRangeException: maxValue (\u0027-1\u0027) must be a non-negative value. (Parameter \u0027maxValue\u0027)\nActual value was -1.",
+      35
+    ],
+    [
+      3,
+      -5,
+      "EX:System.ArgumentOutOfRangeException: maxValue (\u0027-5\u0027) must be a non-negative value. (Parameter \u0027maxValue\u0027)\nActual value was -5.",
+      36
+    ],
+    [
+      5,
+      0,
+      "0",
+      36
+    ],
+    [
+      5,
+      1,
+      "5",
+      41
+    ],
+    [
+      5,
+      2,
+      "6",
+      46
+    ],
+    [
+      5,
+      6,
+      "16",
+      51
+    ],
+    [
+      5,
+      10,
+      "27",
+      56
+    ],
+    [
+      5,
+      100,
+      "226",
+      61
+    ],
+    [
+      5,
+      -1,
+      "EX:System.ArgumentOutOfRangeException: maxValue (\u0027-1\u0027) must be a non-negative value. (Parameter \u0027maxValue\u0027)\nActual value was -1.",
+      62
+    ],
+    [
+      5,
+      -5,
+      "EX:System.ArgumentOutOfRangeException: maxValue (\u0027-5\u0027) must be a non-negative value. (Parameter \u0027maxValue\u0027)\nActual value was -5.",
+      63
+    ],
+    [
+      -1,
+      0,
+      "0",
+      63
+    ],
+    [
+      -1,
+      1,
+      "0",
+      63
+    ],
+    [
+      -1,
+      2,
+      "0",
+      63
+    ],
+    [
+      -1,
+      6,
+      "0",
+      63
+    ],
+    [
+      -1,
+      10,
+      "0",
+      63
+    ],
+    [
+      -1,
+      100,
+      "0",
+      63
+    ],
+    [
+      -1,
+      -1,
+      "0",
+      63
+    ],
+    [
+      -1,
+      -5,
+      "0",
+      63
+    ]
+  ],
+  "do": [
+    {
+      "name": "valid",
+      "result": "true",
+      "action": "EndPhase",
+      "sameAction": false,
+      "called": true
+    },
+    {
+      "name": "notAllowed",
+      "result": "false",
+      "action": null,
+      "sameAction": true,
+      "called": false
+    },
+    {
+      "name": "alreadyDecided",
+      "result": "false",
+      "action": "EndPhase",
+      "sameAction": true,
+      "called": false
+    },
+    {
+      "name": "returnsNull",
+      "result": "false",
+      "action": null,
+      "sameAction": true,
+      "called": true
+    },
+    {
+      "name": "throws",
+      "result": "false",
+      "action": null,
+      "sameAction": true,
+      "called": true
+    },
+    {
+      "name": "throwsWithBrace",
+      "result": "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 56. Expected an ASCII digit.",
+      "action": null,
+      "sameAction": true,
+      "called": true
+    },
+    {
+      "name": "invalid",
+      "result": "false",
+      "action": "Thought",
+      "sameAction": false,
+      "called": true
+    }
+  ],
+  "parameters": [
+    {
+      "faction": -10,
+      "Bidding_ResourcesToKeepWhenCardIsPerfect": "1",
+      "Bidding_ResourcesToKeepWhenCardIsntPerfect": "4",
+      "Bidding_PassingTreshold": "0",
+      "Karma_SaveCardToUseSpecialKarmaAbility": "true",
+      "Shipment_MinimumOtherPlayersITrustToPreventAWin": "4",
+      "Shipment_DialShortageToAccept": "6",
+      "Shipment_MinimumResourcesToKeepForBattle": "1",
+      "Shipment_MaxEnemyForceStrengthFightingForSpice": "4",
+      "Shipment_ExpectedStormMovesWhenUnknown": "2",
+      "Shipment_DialForExtraForcesToShip": "1",
+      "Battle_MaximumUnsupportedForces": "5",
+      "Battle_MimimumChanceToAssumeEnemyHeroSurvives": "0.6",
+      "Battle_MimimumChanceToAssumeMyLeaderSurvives": "0.4",
+      "Battle_DialShortageThresholdForThrowing": "3"
+    },
+    {
+      "faction": 0,
+      "Bidding_ResourcesToKeepWhenCardIsPerfect": "1",
+      "Bidding_ResourcesToKeepWhenCardIsntPerfect": "4",
+      "Bidding_PassingTreshold": "0",
+      "Karma_SaveCardToUseSpecialKarmaAbility": "true",
+      "Shipment_MinimumOtherPlayersITrustToPreventAWin": "4",
+      "Shipment_DialShortageToAccept": "6",
+      "Shipment_MinimumResourcesToKeepForBattle": "1",
+      "Shipment_MaxEnemyForceStrengthFightingForSpice": "4",
+      "Shipment_ExpectedStormMovesWhenUnknown": "2",
+      "Shipment_DialForExtraForcesToShip": "1",
+      "Battle_MaximumUnsupportedForces": "5",
+      "Battle_MimimumChanceToAssumeEnemyHeroSurvives": "0.6",
+      "Battle_MimimumChanceToAssumeMyLeaderSurvives": "0.4",
+      "Battle_DialShortageThresholdForThrowing": "3"
+    },
+    {
+      "faction": 10,
+      "Bidding_ResourcesToKeepWhenCardIsPerfect": "0",
+      "Bidding_ResourcesToKeepWhenCardIsntPerfect": "0",
+      "Bidding_PassingTreshold": "4",
+      "Karma_SaveCardToUseSpecialKarmaAbility": "false",
+      "Shipment_MinimumOtherPlayersITrustToPreventAWin": "2",
+      "Shipment_DialShortageToAccept": "4",
+      "Shipment_MinimumResourcesToKeepForBattle": "0",
+      "Shipment_MaxEnemyForceStrengthFightingForSpice": "8",
+      "Shipment_ExpectedStormMovesWhenUnknown": "0",
+      "Shipment_DialForExtraForcesToShip": "6",
+      "Battle_MaximumUnsupportedForces": "20",
+      "Battle_MimimumChanceToAssumeEnemyHeroSurvives": "0.4",
+      "Battle_MimimumChanceToAssumeMyLeaderSurvives": "0.5",
+      "Battle_DialShortageThresholdForThrowing": "4"
+    },
+    {
+      "faction": 20,
+      "Bidding_ResourcesToKeepWhenCardIsPerfect": "1",
+      "Bidding_ResourcesToKeepWhenCardIsntPerfect": "4",
+      "Bidding_PassingTreshold": "2",
+      "Karma_SaveCardToUseSpecialKarmaAbility": "false",
+      "Shipment_MinimumOtherPlayersITrustToPreventAWin": "3",
+      "Shipment_DialShortageToAccept": "2",
+      "Shipment_MinimumResourcesToKeepForBattle": "1",
+      "Shipment_MaxEnemyForceStrengthFightingForSpice": "2",
+      "Shipment_ExpectedStormMovesWhenUnknown": "3",
+      "Shipment_DialForExtraForcesToShip": "1",
+      "Battle_MaximumUnsupportedForces": "3",
+      "Battle_MimimumChanceToAssumeEnemyHeroSurvives": "0.5",
+      "Battle_MimimumChanceToAssumeMyLeaderSurvives": "0.5",
+      "Battle_DialShortageThresholdForThrowing": "3"
+    },
+    {
+      "faction": 30,
+      "Bidding_ResourcesToKeepWhenCardIsPerfect": "1",
+      "Bidding_ResourcesToKeepWhenCardIsntPerfect": "4",
+      "Bidding_PassingTreshold": "0",
+      "Karma_SaveCardToUseSpecialKarmaAbility": "true",
+      "Shipment_MinimumOtherPlayersITrustToPreventAWin": "4",
+      "Shipment_DialShortageToAccept": "6",
+      "Shipment_MinimumResourcesToKeepForBattle": "1",
+      "Shipment_MaxEnemyForceStrengthFightingForSpice": "4",
+      "Shipment_ExpectedStormMovesWhenUnknown": "2",
+      "Shipment_DialForExtraForcesToShip": "1",
+      "Battle_MaximumUnsupportedForces": "5",
+      "Battle_MimimumChanceToAssumeEnemyHeroSurvives": "0.6",
+      "Battle_MimimumChanceToAssumeMyLeaderSurvives": "0.4",
+      "Battle_DialShortageThresholdForThrowing": "3"
+    },
+    {
+      "faction": 40,
+      "Bidding_ResourcesToKeepWhenCardIsPerfect": "1",
+      "Bidding_ResourcesToKeepWhenCardIsntPerfect": "6",
+      "Bidding_PassingTreshold": "3",
+      "Karma_SaveCardToUseSpecialKarmaAbility": "true",
+      "Shipment_MinimumOtherPlayersITrustToPreventAWin": "4",
+      "Shipment_DialShortageToAccept": "3",
+      "Shipment_MinimumResourcesToKeepForBattle": "2",
+      "Shipment_MaxEnemyForceStrengthFightingForSpice": "0",
+      "Shipment_ExpectedStormMovesWhenUnknown": "6",
+      "Shipment_DialForExtraForcesToShip": "2",
+      "Battle_MaximumUnsupportedForces": "3",
+      "Battle_MimimumChanceToAssumeEnemyHeroSurvives": "0.4",
+      "Battle_MimimumChanceToAssumeMyLeaderSurvives": "0.6",
+      "Battle_DialShortageThresholdForThrowing": "3"
+    },
+    {
+      "faction": 50,
+      "Bidding_ResourcesToKeepWhenCardIsPerfect": "1",
+      "Bidding_ResourcesToKeepWhenCardIsntPerfect": "8",
+      "Bidding_PassingTreshold": "0",
+      "Karma_SaveCardToUseSpecialKarmaAbility": "true",
+      "Shipment_MinimumOtherPlayersITrustToPreventAWin": "2",
+      "Shipment_DialShortageToAccept": "0",
+      "Shipment_MinimumResourcesToKeepForBattle": "4",
+      "Shipment_MaxEnemyForceStrengthFightingForSpice": "0",
+      "Shipment_ExpectedStormMovesWhenUnknown": "6",
+      "Shipment_DialForExtraForcesToShip": "2",
+      "Battle_MaximumUnsupportedForces": "0",
+      "Battle_MimimumChanceToAssumeEnemyHeroSurvives": "0.4",
+      "Battle_MimimumChanceToAssumeMyLeaderSurvives": "0.6",
+      "Battle_DialShortageThresholdForThrowing": "6"
+    },
+    {
+      "faction": 60,
+      "Bidding_ResourcesToKeepWhenCardIsPerfect": "1",
+      "Bidding_ResourcesToKeepWhenCardIsntPerfect": "7",
+      "Bidding_PassingTreshold": "0",
+      "Karma_SaveCardToUseSpecialKarmaAbility": "false",
+      "Shipment_MinimumOtherPlayersITrustToPreventAWin": "2",
+      "Shipment_DialShortageToAccept": "4",
+      "Shipment_MinimumResourcesToKeepForBattle": "2",
+      "Shipment_MaxEnemyForceStrengthFightingForSpice": "4",
+      "Shipment_ExpectedStormMovesWhenUnknown": "6",
+      "Shipment_DialForExtraForcesToShip": "2",
+      "Battle_MaximumUnsupportedForces": "1",
+      "Battle_MimimumChanceToAssumeEnemyHeroSurvives": "0.4",
+      "Battle_MimimumChanceToAssumeMyLeaderSurvives": "0.55",
+      "Battle_DialShortageThresholdForThrowing": "6"
+    },
+    {
+      "faction": 70,
+      "Bidding_ResourcesToKeepWhenCardIsPerfect": "1",
+      "Bidding_ResourcesToKeepWhenCardIsntPerfect": "5",
+      "Bidding_PassingTreshold": "4",
+      "Karma_SaveCardToUseSpecialKarmaAbility": "false",
+      "Shipment_MinimumOtherPlayersITrustToPreventAWin": "3",
+      "Shipment_DialShortageToAccept": "4",
+      "Shipment_MinimumResourcesToKeepForBattle": "0",
+      "Shipment_MaxEnemyForceStrengthFightingForSpice": "4",
+      "Shipment_ExpectedStormMovesWhenUnknown": "5",
+      "Shipment_DialForExtraForcesToShip": "1",
+      "Battle_MaximumUnsupportedForces": "2",
+      "Battle_MimimumChanceToAssumeEnemyHeroSurvives": "0.6",
+      "Battle_MimimumChanceToAssumeMyLeaderSurvives": "0.4",
+      "Battle_DialShortageThresholdForThrowing": "4"
+    },
+    {
+      "faction": 80,
+      "Bidding_ResourcesToKeepWhenCardIsPerfect": "1",
+      "Bidding_ResourcesToKeepWhenCardIsntPerfect": "5",
+      "Bidding_PassingTreshold": "3",
+      "Karma_SaveCardToUseSpecialKarmaAbility": "false",
+      "Shipment_MinimumOtherPlayersITrustToPreventAWin": "2",
+      "Shipment_DialShortageToAccept": "8",
+      "Shipment_MinimumResourcesToKeepForBattle": "0",
+      "Shipment_MaxEnemyForceStrengthFightingForSpice": "6",
+      "Shipment_ExpectedStormMovesWhenUnknown": "0",
+      "Shipment_DialForExtraForcesToShip": "3",
+      "Battle_MaximumUnsupportedForces": "8",
+      "Battle_MimimumChanceToAssumeEnemyHeroSurvives": "0.3",
+      "Battle_MimimumChanceToAssumeMyLeaderSurvives": "0.6",
+      "Battle_DialShortageThresholdForThrowing": "6"
+    },
+    {
+      "faction": 90,
+      "Bidding_ResourcesToKeepWhenCardIsPerfect": "1",
+      "Bidding_ResourcesToKeepWhenCardIsntPerfect": "8",
+      "Bidding_PassingTreshold": "3",
+      "Karma_SaveCardToUseSpecialKarmaAbility": "true",
+      "Shipment_MinimumOtherPlayersITrustToPreventAWin": "2",
+      "Shipment_DialShortageToAccept": "4",
+      "Shipment_MinimumResourcesToKeepForBattle": "0",
+      "Shipment_MaxEnemyForceStrengthFightingForSpice": "0",
+      "Shipment_ExpectedStormMovesWhenUnknown": "4",
+      "Shipment_DialForExtraForcesToShip": "2",
+      "Battle_MaximumUnsupportedForces": "1",
+      "Battle_MimimumChanceToAssumeEnemyHeroSurvives": "0.4",
+      "Battle_MimimumChanceToAssumeMyLeaderSurvives": "0.55",
+      "Battle_DialShortageThresholdForThrowing": "3"
+    },
+    {
+      "faction": 100,
+      "Bidding_ResourcesToKeepWhenCardIsPerfect": "1",
+      "Bidding_ResourcesToKeepWhenCardIsntPerfect": "5",
+      "Bidding_PassingTreshold": "4",
+      "Karma_SaveCardToUseSpecialKarmaAbility": "false",
+      "Shipment_MinimumOtherPlayersITrustToPreventAWin": "4",
+      "Shipment_DialShortageToAccept": "4",
+      "Shipment_MinimumResourcesToKeepForBattle": "0",
+      "Shipment_MaxEnemyForceStrengthFightingForSpice": "4",
+      "Shipment_ExpectedStormMovesWhenUnknown": "4",
+      "Shipment_DialForExtraForcesToShip": "1",
+      "Battle_MaximumUnsupportedForces": "1",
+      "Battle_MimimumChanceToAssumeEnemyHeroSurvives": "0.4",
+      "Battle_MimimumChanceToAssumeMyLeaderSurvives": "0.5",
+      "Battle_DialShortageThresholdForThrowing": "6"
+    },
+    {
+      "faction": 110,
+      "Bidding_ResourcesToKeepWhenCardIsPerfect": "1",
+      "Bidding_ResourcesToKeepWhenCardIsntPerfect": "5",
+      "Bidding_PassingTreshold": "4",
+      "Karma_SaveCardToUseSpecialKarmaAbility": "false",
+      "Shipment_MinimumOtherPlayersITrustToPreventAWin": "2",
+      "Shipment_DialShortageToAccept": "2",
+      "Shipment_MinimumResourcesToKeepForBattle": "0",
+      "Shipment_MaxEnemyForceStrengthFightingForSpice": "0",
+      "Shipment_ExpectedStormMovesWhenUnknown": "4",
+      "Shipment_DialForExtraForcesToShip": "2",
+      "Battle_MaximumUnsupportedForces": "2",
+      "Battle_MimimumChanceToAssumeEnemyHeroSurvives": "0.5",
+      "Battle_MimimumChanceToAssumeMyLeaderSurvives": "0.5",
+      "Battle_DialShortageThresholdForThrowing": "3"
+    },
+    {
+      "faction": 120,
+      "Bidding_ResourcesToKeepWhenCardIsPerfect": "1",
+      "Bidding_ResourcesToKeepWhenCardIsntPerfect": "5",
+      "Bidding_PassingTreshold": "4",
+      "Karma_SaveCardToUseSpecialKarmaAbility": "false",
+      "Shipment_MinimumOtherPlayersITrustToPreventAWin": "4",
+      "Shipment_DialShortageToAccept": "4",
+      "Shipment_MinimumResourcesToKeepForBattle": "0",
+      "Shipment_MaxEnemyForceStrengthFightingForSpice": "5",
+      "Shipment_ExpectedStormMovesWhenUnknown": "4",
+      "Shipment_DialForExtraForcesToShip": "2",
+      "Battle_MaximumUnsupportedForces": "2",
+      "Battle_MimimumChanceToAssumeEnemyHeroSurvives": "0.4",
+      "Battle_MimimumChanceToAssumeMyLeaderSurvives": "0.5",
+      "Battle_DialShortageThresholdForThrowing": "4"
+    },
+    {
+      "faction": 130,
+      "Bidding_ResourcesToKeepWhenCardIsPerfect": "1",
+      "Bidding_ResourcesToKeepWhenCardIsntPerfect": "4",
+      "Bidding_PassingTreshold": "0",
+      "Karma_SaveCardToUseSpecialKarmaAbility": "true",
+      "Shipment_MinimumOtherPlayersITrustToPreventAWin": "4",
+      "Shipment_DialShortageToAccept": "6",
+      "Shipment_MinimumResourcesToKeepForBattle": "1",
+      "Shipment_MaxEnemyForceStrengthFightingForSpice": "4",
+      "Shipment_ExpectedStormMovesWhenUnknown": "2",
+      "Shipment_DialForExtraForcesToShip": "1",
+      "Battle_MaximumUnsupportedForces": "5",
+      "Battle_MimimumChanceToAssumeEnemyHeroSurvives": "0.6",
+      "Battle_MimimumChanceToAssumeMyLeaderSurvives": "0.4",
+      "Battle_DialShortageThresholdForThrowing": "3"
+    },
+    {
+      "faction": 140,
+      "Bidding_ResourcesToKeepWhenCardIsPerfect": "1",
+      "Bidding_ResourcesToKeepWhenCardIsntPerfect": "4",
+      "Bidding_PassingTreshold": "0",
+      "Karma_SaveCardToUseSpecialKarmaAbility": "true",
+      "Shipment_MinimumOtherPlayersITrustToPreventAWin": "4",
+      "Shipment_DialShortageToAccept": "6",
+      "Shipment_MinimumResourcesToKeepForBattle": "1",
+      "Shipment_MaxEnemyForceStrengthFightingForSpice": "4",
+      "Shipment_ExpectedStormMovesWhenUnknown": "2",
+      "Shipment_DialForExtraForcesToShip": "1",
+      "Battle_MaximumUnsupportedForces": "5",
+      "Battle_MimimumChanceToAssumeEnemyHeroSurvives": "0.6",
+      "Battle_MimimumChanceToAssumeMyLeaderSurvives": "0.4",
+      "Battle_DialShortageThresholdForThrowing": "3"
+    },
+    {
+      "faction": 13,
+      "Bidding_ResourcesToKeepWhenCardIsPerfect": "1",
+      "Bidding_ResourcesToKeepWhenCardIsntPerfect": "4",
+      "Bidding_PassingTreshold": "0",
+      "Karma_SaveCardToUseSpecialKarmaAbility": "true",
+      "Shipment_MinimumOtherPlayersITrustToPreventAWin": "4",
+      "Shipment_DialShortageToAccept": "6",
+      "Shipment_MinimumResourcesToKeepForBattle": "1",
+      "Shipment_MaxEnemyForceStrengthFightingForSpice": "4",
+      "Shipment_ExpectedStormMovesWhenUnknown": "2",
+      "Shipment_DialForExtraForcesToShip": "1",
+      "Battle_MaximumUnsupportedForces": "5",
+      "Battle_MimimumChanceToAssumeEnemyHeroSurvives": "0.6",
+      "Battle_MimimumChanceToAssumeMyLeaderSurvives": "0.4",
+      "Battle_DialShortageThresholdForThrowing": "3"
+    }
+  ],
+  "penaltyForAttackingBots": "6"
+}

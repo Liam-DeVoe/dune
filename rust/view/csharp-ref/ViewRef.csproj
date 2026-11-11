@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The C# side of the view's rich-text tests: renders every log message of the scene
+       fixtures as the C# client's ExpressionComponent draws it, with DefaultSkin.
+       See rust/docs/client-plan.md (package 3) and rust/view/tests/log_lines.rs. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <NoWarn>CS0612;CS0618</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Using Include="Treachery.Shared" />
+    <Using Include="System.Text.Json.Nodes" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../treachery-online/Shared/Treachery.Shared.csproj" />
+  </ItemGroup>
+</Project>

@@ -22,9 +22,9 @@
     var forceX = X + Client.CurrentSkin.BattleWheelForcesX;
     var forceY = Y + Client.CurrentSkin.BattleWheelForcesY;
 
-    if (ShowEntirePlan || Game.CurrentPrescience is { Aspect: PrescienceAspect.Dial } || Game.CurrentNexusPrescience is { GreenPrescienceAspect: PrescienceAspect.Dial })
+    if (ShowEntirePlan || Game.CurrentPrescience is { Aspect: PrescienceAspect.Dial } || Game.CurrentNexusPrescience is { AtreidesPrescienceAspect: PrescienceAspect.Dial })
     {
-        var dial = Support.RoundWithHalves(Plan.Dial(Game, IsAggressor ? Game.CurrentBattle.Defender : Game.CurrentBattle.Aggressor));
+        var dial = Support.Round(Plan.Dial(Game, IsAggressor ? Game.CurrentBattle.Defender : Game.CurrentBattle.Aggressor));
 
         <MapText ToShow="@dial"
                  X="@(forceX)"
@@ -33,21 +33,21 @@
                  BorderWidth="Client.CurrentSkin.WHEEL_FONT_BORDERWIDTH" BorderColor="@(IsAggressor ? Client.CurrentSkin.WHEEL_FONT_AGGRESSOR_BORDERCOLOR : Client.CurrentSkin.WHEEL_FONT_DEFENDER_BORDERCOLOR)"
                  Align="@TextAlignment.Center" />
         
-        @if (Game.CurrentPinkBattleContribution > 0 && (Plan.By(Faction.Pink) || Plan.ByAllyOf(Faction.Pink)))
+        @if (Game.CurrentEcazBattleContribution > 0 && (Plan.By(Faction.Ecaz) || Plan.ByAllyOf(Faction.Ecaz)))
         {
             <MapForce X="@(forceX - 3 * Client.CurrentSkin.FORCETOKEN_RADIUS)" 
                       Y="@(forceY - Client.CurrentSkin.FORCETOKEN_RADIUS)" 
                       Diameter="@(2 * Client.CurrentSkin.FORCETOKEN_RADIUS)" 
-                      Faction="Faction.Pink" 
+                      Faction="Faction.Ecaz" 
                       Special="false" 
-                      Amount="@Game.CurrentPinkBattleContribution" />
+                      Amount="@Game.CurrentEcazBattleContribution" />
         }
 
         var dialBonusX = forceX + 3 * Client.CurrentSkin.RESOURCETOKEN_RADIUS;
 
-        if (Plan.Initiator == Faction.Pink && Game.PinkKarmaBonus != 0)
+        if (Plan.Initiator == Faction.Ecaz && Game.EcazKarmaBonus != 0)
         {
-            var karmaBonusText = $"+{Game.PinkKarmaBonus}";
+            var karmaBonusText = $"+{Game.EcazKarmaBonus}";
             <MapText ToShow=@karmaBonusText
                      X=@dialBonusX 
                      Y=@forceY
@@ -120,7 +120,7 @@
         }
     }
 
-    if (ShowEntirePlan || Game.CurrentPrescience is { Aspect: PrescienceAspect.Leader } || Game.CurrentNexusPrescience is { GreenPrescienceAspect: PrescienceAspect.Leader })
+    if (ShowEntirePlan || Game.CurrentPrescience is { Aspect: PrescienceAspect.Leader } || Game.CurrentNexusPrescience is { AtreidesPrescienceAspect: PrescienceAspect.Leader })
     {
         if (Plan.Hero == null)
         {
@@ -236,7 +236,7 @@
                      Align="@TextAlignment.Center" />
         }
 
-        if (Plan is { Initiator: Faction.Green, Messiah: true })
+        if (Plan is { Initiator: Faction.Atreides, Messiah: true })
         {
             <MapImage X="@(X + Client.CurrentSkin.BattleScreenHeroX + Client.CurrentSkin.BattleWheelHeroWidth / 1.5f)" 
                       Y="@(Y + 0.8f * Client.CurrentSkin.BattleScreenHeroY)" 
@@ -250,7 +250,7 @@
         }
     }
 
-    if (ShowEntirePlan || Game.CurrentPrescience is { Aspect: PrescienceAspect.Defense } || Game.CurrentNexusPrescience is { GreenPrescienceAspect: PrescienceAspect.Defense })
+    if (ShowEntirePlan || Game.CurrentPrescience is { Aspect: PrescienceAspect.Defense } || Game.CurrentNexusPrescience is { AtreidesPrescienceAspect: PrescienceAspect.Defense })
     {
         var isUsingPortableAntidote = Battle.IsUsingPortableAntidote(Game, Plan.Initiator) && Plan.Player.Card(TreacheryCardType.PortableAntidote) != null;
         if ((Plan.Defense != null && (ShowEntirePlan || Plan.Defense.IsDefense)) || isUsingPortableAntidote)
@@ -273,7 +273,7 @@
         }
     }
 
-    if (ShowEntirePlan || (Game.CurrentPrescience != null && Game.CurrentPrescience.Aspect == PrescienceAspect.Weapon) || Game.CurrentNexusPrescience is { GreenPrescienceAspect: PrescienceAspect.Weapon })
+    if (ShowEntirePlan || (Game.CurrentPrescience != null && Game.CurrentPrescience.Aspect == PrescienceAspect.Weapon) || Game.CurrentNexusPrescience is { AtreidesPrescienceAspect: PrescienceAspect.Weapon })
     {
         if (Plan.Weapon != null && (ShowEntirePlan || Plan.Weapon.IsWeapon))
         {

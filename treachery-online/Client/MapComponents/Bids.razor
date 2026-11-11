@@ -44,7 +44,7 @@
 
     private string DetermineBidText(IBid bid)
     {
-        if (Game.CurrentAuctionType != AuctionType.BlackMarketSilent && Game.CurrentAuctionType != AuctionType.WhiteSilent)
+        if (Game.CurrentAuctionType != AuctionType.BlackMarketSilent && Game.CurrentAuctionType != AuctionType.RicheseSilent)
         {
             return bid.Passed ? "PASS" : string.Format("BID {0}", bid.TotalAmount);
         }

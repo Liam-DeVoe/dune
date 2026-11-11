@@ -20,9 +20,9 @@
     var message = Messages[i];
     switch (message.Log)
     {
-        case BlueFlipped flip:
+        case BeneGesseritFlipped flip:
             <div class="log-aside">
-                <FactionChip Faction="Faction.Blue" Game="@Game"/> are alone and flip to <ForceToken Faction="Faction.Blue" Size="20" Title="@Client.CurrentSkin.Describe(FactionForce.Blue)"/> in <PlaceChip Place="@flip.Territory"/>
+                <FactionChip Faction="Faction.BeneGesserit" Game="@Game"/> are alone and flip to <ForceToken Faction="Faction.BeneGesserit" Size="20" Title="@Client.CurrentSkin.Describe(FactionForce.BeneGesserit)"/> in <PlaceChip Place="@flip.Territory"/>
             </div>
             break;
 
@@ -75,8 +75,10 @@
     // Ring geometry, in the SVG's 200x200 viewBox.
     private const double Cx = 100, Cy = 100, Outer = 92, Inner = 57;
 
-    // Sectors lit by hovering a box or a sector.
+    // Sectors lit by hovering a box or a sector, and the box hovered, if any.
+    // A hovered box lights only itself, not other boxes in its sectors.
     private HashSet<int> _hot = [];
+    private Territory? _hotPlace;
 
     // One box per territory the storm hit: the locations hit, in order, and
     // each loss (StormKilled or StormDestroyedSpice) in the game's order.
@@ -117,9 +119,9 @@
             @foreach (var place in Places())
             {
                 var sectors = place.Sectors;
-                var hot = _hot.Overlaps(sectors) ? "hot" : "";
+                var hot = (_hotPlace != null ? _hotPlace == place.Territory : _hot.Overlaps(sectors)) ? "hot" : "";
                 <div class="log-box storm-place @hot" data-ref-locations="@string.Join(",", place.Locations.Select(l => l.Id))"
-                     @onmouseenter="@(() => Light(sectors))" @onmouseleave="@(() => Light([]))">
+                     @onmouseenter="@(() => Light(sectors, place.Territory))" @onmouseleave="@(() => Light([]))">
                     <PlaceChip Place="@(place.Locations.Count == 1 ? place.Locations[0] : place.Territory)"/>
                     <div class="lines">
                         @foreach (var loss in place.Losses)
@@ -199,7 +201,11 @@
         </svg>;
     }
 
-    private void Light(HashSet<int> sectors) => _hot = sectors;
+    private void Light(HashSet<int> sectors, Territory? place = null)
+    {
+        _hot = sectors;
+        _hotPlace = place;
+    }
 
     // Sector s spans angles (6 - s) to (5 - s) times 20 degrees, as on the map (SectorGeometry).
     private static double Angle(double sector) => 2 * Math.PI * (6 - sector) / Map.NumberOfSectors;

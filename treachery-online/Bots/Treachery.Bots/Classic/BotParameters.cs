@@ -31,7 +31,7 @@ public class BotParameters
     public float Battle_MimimumChanceToAssumeMyLeaderSurvives { get; set; }
     public float Battle_DialShortageThresholdForThrowing { get; set; }
 
-    public static readonly BotParameters BlackParameters = new()
+    public static readonly BotParameters HarkonnenParameters = new()
     {
         Bidding_ResourcesToKeepWhenCardIsPerfect = 1,
         Bidding_ResourcesToKeepWhenCardIsntPerfect = 4,
@@ -49,7 +49,7 @@ public class BotParameters
         Battle_DialShortageThresholdForThrowing = 3
     };
 
-    public static readonly BotParameters GreenParameters = new()
+    public static readonly BotParameters AtreidesParameters = new()
     {
         Bidding_ResourcesToKeepWhenCardIsPerfect = 1,
         Bidding_ResourcesToKeepWhenCardIsntPerfect = 4,
@@ -67,7 +67,7 @@ public class BotParameters
         Battle_DialShortageThresholdForThrowing = 3
     };
 
-    public static readonly BotParameters YellowParameters = new()
+    public static readonly BotParameters FremenParameters = new()
     {
         Bidding_ResourcesToKeepWhenCardIsPerfect = 0,
         Bidding_ResourcesToKeepWhenCardIsntPerfect = 0,
@@ -85,7 +85,7 @@ public class BotParameters
         Battle_DialShortageThresholdForThrowing = 4
     };
 
-    public static readonly BotParameters RedParameters = new()
+    public static readonly BotParameters EmperorParameters = new()
     {
         Bidding_ResourcesToKeepWhenCardIsPerfect = 1,
         Bidding_ResourcesToKeepWhenCardIsntPerfect = 6,
@@ -103,7 +103,7 @@ public class BotParameters
         Battle_DialShortageThresholdForThrowing = 3
     };
 
-    public static readonly BotParameters OrangeParameters = new()
+    public static readonly BotParameters GuildParameters = new()
     {
         Bidding_ResourcesToKeepWhenCardIsPerfect = 1,
         Bidding_ResourcesToKeepWhenCardIsntPerfect = 8,
@@ -121,7 +121,7 @@ public class BotParameters
         Battle_DialShortageThresholdForThrowing = 6
     };
 
-    public static readonly BotParameters BlueParameters = new()
+    public static readonly BotParameters BeneGesseritParameters = new()
     {
         Bidding_ResourcesToKeepWhenCardIsPerfect = 1,
         Bidding_ResourcesToKeepWhenCardIsntPerfect = 7,
@@ -139,7 +139,7 @@ public class BotParameters
         Battle_DialShortageThresholdForThrowing = 6
     };
 
-    public static readonly BotParameters GreyParameters = new()
+    public static readonly BotParameters IxianParameters = new()
     {
         Bidding_ResourcesToKeepWhenCardIsPerfect = 1,
         Bidding_ResourcesToKeepWhenCardIsntPerfect = 5,
@@ -157,7 +157,7 @@ public class BotParameters
         Battle_DialShortageThresholdForThrowing = 4
     };
 
-    public static readonly BotParameters PurpleParameters = new()
+    public static readonly BotParameters TleilaxuParameters = new()
     {
         Bidding_ResourcesToKeepWhenCardIsPerfect = 1,
         Bidding_ResourcesToKeepWhenCardIsntPerfect = 5,
@@ -175,7 +175,7 @@ public class BotParameters
         Battle_DialShortageThresholdForThrowing = 6
     };
 
-    private static readonly BotParameters BrownParameters = new()
+    private static readonly BotParameters ChoamParameters = new()
     {
         Bidding_ResourcesToKeepWhenCardIsPerfect = 1,
         Bidding_ResourcesToKeepWhenCardIsntPerfect = 8,
@@ -193,7 +193,7 @@ public class BotParameters
         Battle_DialShortageThresholdForThrowing = 3
     };
 
-    private static readonly BotParameters WhiteParameters = new()
+    private static readonly BotParameters RicheseParameters = new()
     {
         Bidding_ResourcesToKeepWhenCardIsPerfect = 1,
         Bidding_ResourcesToKeepWhenCardIsntPerfect = 5,
@@ -211,7 +211,7 @@ public class BotParameters
         Battle_DialShortageThresholdForThrowing = 6
     };
 
-    public static readonly BotParameters PinkParameters = new()
+    public static readonly BotParameters EcazParameters = new()
     {
         Bidding_ResourcesToKeepWhenCardIsPerfect = 1,
         Bidding_ResourcesToKeepWhenCardIsntPerfect = 5,
@@ -229,7 +229,7 @@ public class BotParameters
         Battle_DialShortageThresholdForThrowing = 3
     };
 
-    public static readonly BotParameters CyanParameters = new()
+    public static readonly BotParameters MoritaniParameters = new()
     {
         Bidding_ResourcesToKeepWhenCardIsPerfect = 1,
         Bidding_ResourcesToKeepWhenCardIsntPerfect = 5,
@@ -251,19 +251,19 @@ public class BotParameters
     {
         var result = f switch
         {
-            Faction.Black => BlackParameters.MemberwiseClone(),
-            Faction.Blue => BlueParameters.MemberwiseClone(),
-            Faction.Green => GreenParameters.MemberwiseClone(),
-            Faction.Yellow => YellowParameters.MemberwiseClone(),
-            Faction.Red => RedParameters.MemberwiseClone(),
-            Faction.Orange => OrangeParameters.MemberwiseClone(),
-            Faction.Grey => GreyParameters.MemberwiseClone(),
-            Faction.Purple => PurpleParameters.MemberwiseClone(),
-            Faction.Brown => BrownParameters.MemberwiseClone(),
-            Faction.White => WhiteParameters.MemberwiseClone(),
-            Faction.Pink => PinkParameters.MemberwiseClone(),
-            Faction.Cyan => CyanParameters.MemberwiseClone(),
-            _ => BlackParameters.MemberwiseClone()
+            Faction.Harkonnen => HarkonnenParameters.MemberwiseClone(),
+            Faction.BeneGesserit => BeneGesseritParameters.MemberwiseClone(),
+            Faction.Atreides => AtreidesParameters.MemberwiseClone(),
+            Faction.Fremen => FremenParameters.MemberwiseClone(),
+            Faction.Emperor => EmperorParameters.MemberwiseClone(),
+            Faction.Guild => GuildParameters.MemberwiseClone(),
+            Faction.Ixian => IxianParameters.MemberwiseClone(),
+            Faction.Tleilaxu => TleilaxuParameters.MemberwiseClone(),
+            Faction.Choam => ChoamParameters.MemberwiseClone(),
+            Faction.Richese => RicheseParameters.MemberwiseClone(),
+            Faction.Ecaz => EcazParameters.MemberwiseClone(),
+            Faction.Moritani => MoritaniParameters.MemberwiseClone(),
+            _ => HarkonnenParameters.MemberwiseClone()
         };
 
         return (BotParameters)result;

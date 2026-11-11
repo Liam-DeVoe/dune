@@ -27,7 +27,7 @@ public partial class GameHub
         
         await Clients.Group(gameId).HandleAssignSeats(participation.SeatedPlayers);
         
-        game.LastActivity = DateTimeOffset.Now;
+        game.LastActivity = TestHooks.Now();
         await PersistGameIfNeeded(game);
         return Success();
     }
@@ -39,26 +39,27 @@ public partial class GameHub
     public async Task<VoidResult> RequestFactionTradeOffered(string userToken, string gameId, FactionTradeOffered e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestPerformSetup(string userToken, string gameId, PerformSetup e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestCardsDetermined(string userToken, string gameId, CardsDetermined e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestPerformYellowSetup(string userToken, string gameId, PerformYellowSetup e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestBluePrediction(string userToken, string gameId, BluePrediction e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestPerformFremenSetup(string userToken, string gameId, PerformFremenSetup e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestBeneGesseritPrediction(string userToken, string gameId, BeneGesseritPrediction e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestCharityClaimed(string userToken, string gameId, CharityClaimed e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestPerformBluePlacement(string userToken, string gameId, PerformBluePlacement e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestPerformBeneGesseritPlacement(string userToken, string gameId, PerformBeneGesseritPlacement e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestTraitorsSelected(string userToken, string gameId, TraitorsSelected e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestStormSpellPlayed(string userToken, string gameId, StormSpellPlayed e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestTestingStationUsed(string userToken, string gameId, TestingStationUsed e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestTakeLosses(string userToken, string gameId, TakeLosses e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestMetheorPlayed(string userToken, string gameId, MetheorPlayed e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestYellowSentMonster(string userToken, string gameId, YellowSentMonster e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestYellowRidesMonster(string userToken, string gameId, YellowRidesMonster e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestFremenSentMonster(string userToken, string gameId, FremenSentMonster e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestFremenRidesMonster(string userToken, string gameId, FremenRidesMonster e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestAllianceOffered(string userToken, string gameId, AllianceOffered e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestAllianceBroken(string userToken, string gameId, AllianceBroken e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestAlliancePassed(string userToken, string gameId, AlliancePassed e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestBid(string userToken, string gameId, Bid e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestRevival(string userToken, string gameId, Revival e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestBlueBattleAnnouncement(string userToken, string gameId, BlueBattleAnnouncement e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestBeneGesseritBattleAnnouncement(string userToken, string gameId, BeneGesseritBattleAnnouncement e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestShipment(string userToken, string gameId, Shipment e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestOrangeDelay(string userToken, string gameId, OrangeDelay e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestBlueAccompanies(string userToken, string gameId, BlueAccompanies e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestBlueFlip(string userToken, string gameId, BlueFlip e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestGuildDelay(string userToken, string gameId, GuildDelay e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestBeneGesseritAccompanies(string userToken, string gameId, BeneGesseritAccompanies e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestBeneGesseritFlip(string userToken, string gameId, BeneGesseritFlip e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestMove(string userToken, string gameId, Move e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestCaravan(string userToken, string gameId, Caravan e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestBattleInitiated(string userToken, string gameId, BattleInitiated e) => await ProcessGameEvent(userToken, gameId, e);
@@ -76,7 +77,7 @@ public partial class GameHub
     public async Task<VoidResult> RequestKarmaHandSwapInitiated(string userToken, string gameId, KarmaHandSwapInitiated e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestKarmaHandSwap(string userToken, string gameId, KarmaHandSwap e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestKarmaMonster(string userToken, string gameId, KarmaMonster e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestKarmaWhiteBuy(string userToken, string gameId, KarmaWhiteBuy e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestKarmaRicheseBuy(string userToken, string gameId, KarmaRicheseBuy e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestAllyPermission(string userToken, string gameId, AllyPermission e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestMulliganPerformed(string userToken, string gameId, MulliganPerformed e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestFaceDancerRevealed(string userToken, string gameId, FaceDancerRevealed e) => await ProcessGameEvent(userToken, gameId, e);
@@ -84,15 +85,15 @@ public partial class GameHub
     public async Task<VoidResult> RequestFaceDancerReplaced(string userToken, string gameId, FaceDancerReplaced e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestSetIncreasedRevivalLimits(string userToken, string gameId, SetIncreasedRevivalLimits e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestSetShipmentPermission(string userToken, string gameId, SetShipmentPermission e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestRequestPurpleRevival(string userToken, string gameId, RequestPurpleRevival e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestAcceptOrCancelPurpleRevival(string userToken, string gameId, AcceptOrCancelPurpleRevival e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestRequestTleilaxuRevival(string userToken, string gameId, RequestTleilaxuRevival e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestAcceptOrCancelTleilaxuRevival(string userToken, string gameId, AcceptOrCancelTleilaxuRevival e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestPerformHmsPlacement(string userToken, string gameId, PerformHmsPlacement e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestPerformHmsMovement(string userToken, string gameId, PerformHmsMovement e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestKarmaHmsMovement(string userToken, string gameId, KarmaHmsMovement e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestAmalPlayed(string userToken, string gameId, AmalPlayed e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestGreyRemovedCardFromAuction(string userToken, string gameId, GreyRemovedCardFromAuction e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestGreySelectedStartingCard(string userToken, string gameId, GreySelectedStartingCard e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestGreySwappedCardOnBid(string userToken, string gameId, GreySwappedCardOnBid e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestIxianRemovedCardFromAuction(string userToken, string gameId, IxianRemovedCardFromAuction e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestIxianSelectedStartingCard(string userToken, string gameId, IxianSelectedStartingCard e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestIxianSwappedCardOnBid(string userToken, string gameId, IxianSwappedCardOnBid e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestHarvesterPlayed(string userToken, string gameId, HarvesterPlayed e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestPoisonToothCancelled(string userToken, string gameId, PoisonToothCancelled e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestReplacedCardWon(string userToken, string gameId, ReplacedCardWon e) => await ProcessGameEvent(userToken, gameId, e);
@@ -100,7 +101,7 @@ public partial class GameHub
     public async Task<VoidResult> RequestVoice(string userToken, string gameId, Voice e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestPrescience(string userToken, string gameId, Prescience e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestKarmaPrescience(string userToken, string gameId, KarmaPrescience e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestRedBidSupport(string userToken, string gameId, RedBidSupport e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestEmperorBidSupport(string userToken, string gameId, EmperorBidSupport e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestDealOffered(string userToken, string gameId, DealOffered e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestDealAccepted(string userToken, string gameId, DealAccepted e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestDealRejected(string userToken, string gameId, DealRejected e) => await ProcessGameEvent(userToken, gameId, e);
@@ -108,25 +109,25 @@ public partial class GameHub
     public async Task<VoidResult> RequestStormDialled(string userToken, string gameId, StormDialled e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestHideSecrets(string userToken, string gameId, HideSecrets e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestPlayerReplaced(string userToken, string gameId, PlayerReplaced e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestBrownDiscarded(string userToken, string gameId, BrownDiscarded e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestRedDiscarded(string userToken, string gameId, RedDiscarded e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestBrownEconomics(string userToken, string gameId, BrownEconomics e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestChoamDiscarded(string userToken, string gameId, ChoamDiscarded e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestEmperorDiscarded(string userToken, string gameId, EmperorDiscarded e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestChoamEconomics(string userToken, string gameId, ChoamEconomics e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestCardTraded(string userToken, string gameId, CardTraded e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestKarmaBrownDiscard(string userToken, string gameId, KarmaBrownDiscard e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestKarmaChoamDiscard(string userToken, string gameId, KarmaChoamDiscard e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestAuditCancelled(string userToken, string gameId, AuditCancelled e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestAudited(string userToken, string gameId, Audited e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestBrownMovePrevention(string userToken, string gameId, BrownMovePrevention e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestBrownKarmaPrevention(string userToken, string gameId, BrownKarmaPrevention e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestBrownExtraMove(string userToken, string gameId, BrownExtraMove e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestBrownFreeRevivalPrevention(string userToken, string gameId, BrownFreeRevivalPrevention e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestBrownRemoveForce(string userToken, string gameId, BrownRemoveForce e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestWhiteAnnouncesBlackMarket(string userToken, string gameId, WhiteAnnouncesBlackMarket e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestChoamMovePrevention(string userToken, string gameId, ChoamMovePrevention e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestChoamKarmaPrevention(string userToken, string gameId, ChoamKarmaPrevention e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestChoamExtraMove(string userToken, string gameId, ChoamExtraMove e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestChoamFreeRevivalPrevention(string userToken, string gameId, ChoamFreeRevivalPrevention e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestChoamRemoveForce(string userToken, string gameId, ChoamRemoveForce e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestRicheseAnnouncesBlackMarket(string userToken, string gameId, RicheseAnnouncesBlackMarket e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestBlackMarketBid(string userToken, string gameId, BlackMarketBid e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestWhiteAnnouncesAuction(string userToken, string gameId, WhiteAnnouncesAuction e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestWhiteSpecifiesAuction(string userToken, string gameId, WhiteSpecifiesAuction e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestWhiteKeepsUnsoldCard(string userToken, string gameId, WhiteKeepsUnsoldCard e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestWhiteRevealedNoField(string userToken, string gameId, WhiteRevealedNoField e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestWhiteGaveCard(string userToken, string gameId, WhiteGaveCard e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestRicheseAnnouncesAuction(string userToken, string gameId, RicheseAnnouncesAuction e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestRicheseSpecifiesAuction(string userToken, string gameId, RicheseSpecifiesAuction e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestRicheseKeepsUnsoldCard(string userToken, string gameId, RicheseKeepsUnsoldCard e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestRicheseRevealedNoField(string userToken, string gameId, RicheseRevealedNoField e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestRicheseGaveCard(string userToken, string gameId, RicheseGaveCard e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestCardGiven(string userToken, string gameId, CardGiven e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestRockWasMelted(string userToken, string gameId, RockWasMelted e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestResidualPlayed(string userToken, string gameId, ResidualPlayed e) => await ProcessGameEvent(userToken, gameId, e);
@@ -160,11 +161,11 @@ public partial class GameHub
     public async Task<VoidResult> RequestNexusVoted(string userToken, string gameId, NexusVoted e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestAllianceByAmbassador(string userToken, string gameId, AllianceByAmbassador e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestLoserConcluded(string userToken, string gameId, LoserConcluded e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestPerformCyanSetup(string userToken, string gameId, PerformCyanSetup e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestPerformMoritaniSetup(string userToken, string gameId, PerformMoritaniSetup e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestDivideResources(string userToken, string gameId, DivideResources e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestDivideResourcesAccepted(string userToken, string gameId, DivideResourcesAccepted e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestBattleClaimed(string userToken, string gameId, BattleClaimed e) => await ProcessGameEvent(userToken, gameId, e);
-    public async Task<VoidResult> RequestKarmaPinkDial(string userToken, string gameId, KarmaPinkDial e) => await ProcessGameEvent(userToken, gameId, e);
+    public async Task<VoidResult> RequestKarmaEcazDial(string userToken, string gameId, KarmaEcazDial e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestTraitorDiscarded(string userToken, string gameId, TraitorDiscarded e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestNexusPlayed(string userToken, string gameId, NexusPlayed e) => await ProcessGameEvent(userToken, gameId, e);
     public async Task<VoidResult> RequestResourcesAudited(string userToken, string gameId, ResourcesAudited e) => await ProcessGameEvent(userToken, gameId, e);
@@ -191,14 +192,20 @@ public partial class GameHub
         return await ValidateAndExecute(e, game, game.Game.IsHost(user!.Id));
     }
 
-    private async Task<VoidResult> ValidateAndExecute<TEvent>(TEvent e, ManagedGame game, bool isHost)
+    /// <param name="expectedEventCount">If given, the event is only executed while the game has this many events.
+    /// Used to continue a pause exactly once.</param>
+    private async Task<VoidResult> ValidateAndExecute<TEvent>(TEvent e, ManagedGame game, bool isHost, int? expectedEventCount = null)
         where TEvent : GameEvent
     {
-        return await game.ProcessEventAsync(async () =>
+        var executed = false;
+        var result = await game.ProcessEventAsync(async () =>
         {
+            if (expectedEventCount != null && game.Game.History.Count != expectedEventCount)
+                return Success();
+
             e.Initialize(game.Game);
             var validationResult = e.Execute(true, isHost);
-            e.Time = DateTimeOffset.Now;
+            e.Time = TestHooks.Now();
 
             if (validationResult != null)
             {
@@ -212,14 +219,20 @@ public partial class GameHub
                 game.StatisticsSent = true;
             }
 
-            game.LastActivity = DateTimeOffset.Now;
+            game.LastActivity = TestHooks.Now();
 
             await Clients.Group(game.GameId).HandleGameEvent(e, game.Game.History.Count);
             await SendAsyncPlayMessagesIfApplicable(game.GameId);
             await PersistGameIfNeeded(game);
             ScheduleBotEvent(game);
+            executed = true;
             return Success();
         });
+
+        if (executed)
+            await UpdatePause(game, e);
+
+        return result;
     }
 
     private async Task SendAsyncPlayMessagesIfApplicable(string gameId)
@@ -229,13 +242,16 @@ public partial class GameHub
         
         if (game.Game.Settings.AsyncPlay)
         {
-            var now = DateTimeOffset.Now;
+            var now = TestHooks.Now();
             var elapsedMinutes = (int)now.Subtract(game.LastAsyncPlayMessageSent).TotalMinutes;
             if (elapsedMinutes < game.Game.Settings.AsyncPlayMessageIntervalMinutes)
             {
                 int delayInSeconds = 1 + 60 * (game.Game.Settings.AsyncPlayMessageIntervalMinutes - elapsedMinutes);
-                _ = Task.Delay(delayInSeconds * 1000)
-                    .ContinueWith(_ => SendAsyncPlayMessagesIfApplicable(gameId));
+                if (TestHooks.Delay != null)
+                    TestHooks.Delay(delayInSeconds * 1000, "SendAsyncPlayMessagesIfApplicable " + gameId, () => SendAsyncPlayMessagesIfApplicable(gameId));
+                else
+                    _ = Task.Delay(delayInSeconds * 1000)
+                        .ContinueWith(_ => SendAsyncPlayMessagesIfApplicable(gameId));
                 
                 return;
             }
@@ -315,7 +331,10 @@ public partial class GameHub
         else
         {
             var delay = DetermineBotDelay(managedGame.Game.CurrentMainPhase, managedGame.Game.LatestEvent(), managedGame.Game.Participation.BotsSpeed);
-            _ = Task.Delay(delay).ContinueWith(_ => PerformBotEvent(managedGame));    
+            if (TestHooks.Delay != null)
+                TestHooks.Delay(delay, "PerformBotEvent " + managedGame.GameId, () => PerformBotEvent(managedGame));
+            else
+                _ = Task.Delay(delay).ContinueWith(_ => PerformBotEvent(managedGame));    
         }
     }
 
@@ -326,7 +345,15 @@ public partial class GameHub
         
         if (game.Participation.BotsSpeed > 0 && game.CurrentPhase > Phase.AwaitingPlayers)
         {
-            var bots = Deck<Player>.Randomize(game.Players.Where(p => p.IsBot));
+            List<Player> bots;
+            if (TestHooks.NewRandom != null)
+            {
+                var deck = new Deck<Player>(game.Players.Where(p => p.IsBot), TestHooks.NewRandom("BotOrder " + managedGame.GameId));
+                deck.Shuffle();
+                bots = deck.Items;
+            }
+            else
+                bots = Deck<Player>.Randomize(game.Players.Where(p => p.IsBot));
             var eventsPerBot = bots.ToDictionary(x => x.Seat, x => game.GetApplicableEvents(x, botsActAsHosts));
 
             foreach (var bot in bots)
@@ -374,6 +401,9 @@ public partial class GameHub
                     await ValidateAndExecute(evt, managedGame, true);
                     return;
                 }
+
+            if (bots.Any())
+                await UpdatePause(managedGame, change: pause => pause.BotsPassed = true);
         }
     }
 
@@ -385,7 +415,7 @@ public partial class GameHub
             return bot;
         }
         
-        bot = new ClassicBot(game.Game, player, BotParameters.GetDefaultParameters(player.Faction));
+        bot = new ClassicBot(game.Game, player, BotParameters.GetDefaultParameters(player.Faction), TestHooks.NewRandom?.Invoke($"Bot {game.GameId} {player.Faction}"));
         game.Bots.Add(player.Faction, bot);
         return bot;
     }

@@ -142,11 +142,13 @@
 }
 
 // The planet glyph on a place chip: a disc with the place's outline in gold.
-// The ring keeps a one-pixel stroke at any size.
+// The ring keeps the same stroke width at any size. Half of that stroke lies
+// outside the disc, past the edge of the viewBox, so overflow stays visible.
 .chip .wedge {
   width: 20px;
   height: 20px;
   flex: none;
+  overflow: visible;
 
   .disc {
     fill: var(--ink-4);
@@ -175,7 +177,9 @@
 
 // Chips inside the parchment prompt card take the on-parchment colours.
 .prompt-act .chip.place,
-.prompt-act .chip.faction {
+.prompt-act .chip.faction,
+.act-stack > .card:not(.battle-plan) .chip.place,
+.act-stack > .card:not(.battle-plan) .chip.faction {
   background: rgba(29, 12, 0, 0.08);
   border-color: rgba(29, 12, 0, 0.2);
   color: var(--ink-1);

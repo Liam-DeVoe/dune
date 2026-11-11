@@ -29,13 +29,13 @@ public class BlackMarketBid : PassableGameEvent, IBid
 
     public int AllyContributionAmount { get; set; }
 
-    public int RedContributionAmount { get; set; }
+    public int EmperorContributionAmount { get; set; }
 
     [JsonIgnore]
-    public bool UsesRedSecretAlly => false;
+    public bool UsesEmperorSecretAlly => false;
 
     [JsonIgnore]
-    public int TotalAmount => Amount + AllyContributionAmount + RedContributionAmount;
+    public int TotalAmount => Amount + AllyContributionAmount + EmperorContributionAmount;
 
     [JsonIgnore]
     public bool UsingKarmaToRemoveBidLimit => false;
@@ -57,7 +57,7 @@ public class BlackMarketBid : PassableGameEvent, IBid
         Game.Stone(Milestone.Bid);
         Game.Bids.Remove(Initiator);
         Game.Bids.Add(Initiator, this);
-        Game.CheckIfGreenOrGreenAllyPassedBid(this);
+        Game.CheckIfAtreidesOrAtreidesAllyPassedBid(this);
         
         if (!Passed) Game.CurrentBid = this;
 
@@ -89,19 +89,19 @@ public class BlackMarketBid : PassableGameEvent, IBid
                     winningBid,
                     winningBid.Amount,
                     winningBid.AllyContributionAmount,
-                    winningBid.RedContributionAmount,
-                    winningBid.Initiator != Faction.White ? Faction.White : Faction.Red,
+                    winningBid.EmperorContributionAmount,
+                    winningBid.Initiator != Faction.Richese ? Faction.Richese : Faction.Emperor,
                     Game.CardsOnAuction, false);
 
                 FinishBlackMarketBid(winningBid.Player, winningBid, card);
             }
             else if (winningBid == null && Game.Bids.Count >= Game.PlayersThatCanBid.Count())
             {
-                var white = GetPlayer(Faction.White);
+                var richese = GetPlayer(Faction.Richese);
                 var card = Game.CardsOnAuction?.Draw();
-                if (white != null && card != null) white.TreacheryCards.Add(card);
-                Log(Faction.White, " keep their card as no faction bid on it");
-                Game.EnterWhiteBidding();
+                if (richese != null && card != null) richese.TreacheryCards.Add(card);
+                Log(Faction.Richese, " keep their card as no faction bid on it");
+                Game.EnterRicheseBidding();
             }
         }
     }
@@ -110,7 +110,7 @@ public class BlackMarketBid : PassableGameEvent, IBid
     {
         var isLastBid = Game.Version < 140 ? Game.Players.Count(p => p.HasRoomForCards) == Game.Bids.Count :
             (Game.CurrentAuctionType == AuctionType.BlackMarketSilent && Game.Players.Count(p => p.HasRoomForCards) == Game.Bids.Count) ||
-            (Game.CurrentAuctionType == AuctionType.BlackMarketOnceAround && Initiator == Faction.White) || (GetPlayer(Faction.White)?.HasRoomForCards == false && Game.BidSequence!.HasPassedWhite);
+            (Game.CurrentAuctionType == AuctionType.BlackMarketOnceAround && Initiator == Faction.Richese) || (GetPlayer(Faction.Richese)?.HasRoomForCards == false && Game.BidSequence!.HasPassedRichese);
 
         if (isLastBid)
         {
@@ -126,19 +126,19 @@ public class BlackMarketBid : PassableGameEvent, IBid
                     highestBid,
                     highestBid.Amount,
                     highestBid.AllyContributionAmount,
-                    highestBid.RedContributionAmount,
-                    highestBid.Initiator != Faction.White ? Faction.White : Faction.Red,
+                    highestBid.EmperorContributionAmount,
+                    highestBid.Initiator != Faction.Richese ? Faction.Richese : Faction.Emperor,
                     Game.CardsOnAuction, false);
 
                 FinishBlackMarketBid(highestBid.Player, highestBid, card);
             }
             else
             {
-                var white = GetPlayer(Faction.White);
+                var richese = GetPlayer(Faction.Richese);
                 var card = Game.CardsOnAuction?.Draw();
-                if (white != null && card != null) white.TreacheryCards.Add(card);
-                Log(Faction.White, " keep their card as no faction bid on it");
-                Game.EnterWhiteBidding();
+                if (richese != null && card != null) richese.TreacheryCards.Add(card);
+                Log(Faction.Richese, " keep their card as no faction bid on it");
+                Game.EnterRicheseBidding();
             }
         }
     }
@@ -152,23 +152,23 @@ public class BlackMarketBid : PassableGameEvent, IBid
         Game.FactionThatMayReplaceBoughtCard = Faction.None;
 
         Game.Bids.Clear();
-        Game.LatestBidByGreenOrGreenAllyWasPassed = false;
+        Game.LatestBidByAtreidesOrAtreidesAllyWasPassed = false;
 
         var enterReplacingCardJustWon = Game.Version > 150 &&
                                         ((Game.Version < 164 && Game.Players.Any(p => p.Nexus != Faction.None)) ||
                                          (Game.Version >= 164 && winner.Nexus != Faction.None));
 
 
-        if (winner.Ally == Faction.Grey && Game.GreyAllowsReplacingCards)
+        if (winner.Ally == Faction.Ixian && Game.IxianAllowsReplacingCards)
         {
-            if (!Game.Prevented(FactionAdvantage.GreyAllyDiscardingCard))
+            if (!Game.Prevented(FactionAdvantage.IxianAllyDiscardingCard))
             {
                 Game.FactionThatMayReplaceBoughtCard = winner.Faction;
                 enterReplacingCardJustWon = true;
             }
             else
             {
-                if (!Game.Applicable(Rule.FullPhaseKarma)) Game.Allow(FactionAdvantage.GreyAllyDiscardingCard);
+                if (!Game.Applicable(Rule.FullPhaseKarma)) Game.Allow(FactionAdvantage.IxianAllyDiscardingCard);
 
                 if (Game.NexusAllowsReplacingBoughtCards(winner))
                 {
@@ -185,7 +185,7 @@ public class BlackMarketBid : PassableGameEvent, IBid
             Game.ReplacingBoughtCardUsingNexus = true;
         }
 
-        Game.Enter(enterReplacingCardJustWon, Phase.ReplacingCardJustWon, Game.EnterWhiteBidding);
+        Game.Enter(enterReplacingCardJustWon, Phase.ReplacingCardJustWon, Game.EnterRicheseBidding);
 
         if (Game.BiddingTriggeredBureaucracy != null)
         {
@@ -216,8 +216,8 @@ public class BlackMarketBid : PassableGameEvent, IBid
 
         if (AllyContributionAmount > ValidMaxAllyAmount(Game, Player)) return Message.Express("your ally won't pay that much");
 
-        var red = Game.GetPlayer(Faction.Red);
-        if (RedContributionAmount > 0 && RedContributionAmount > (red?.Resources ?? 0)) return Message.Express(Faction.Red, " won't pay that much");
+        var emperor = Game.GetPlayer(Faction.Emperor);
+        if (EmperorContributionAmount > 0 && EmperorContributionAmount > (emperor?.Resources ?? 0)) return Message.Express(Faction.Emperor, " won't pay that much");
 
         if (Game.Version >= 155)
         {

@@ -1,0 +1,155 @@
+//! Golden tests: fixed cases whose .NET 10 results are committed under
+//! `tests/golden/`. Regenerate with
+//! `cargo test -p dotnet-compat --test golden -- --ignored regenerate`
+//! (needs .NET 10 in $DOTNET_ROOT or ~/dotnet10).
+
+mod common;
+
+use common::*;
+use serde_json::{Value, json};
+use std::path::PathBuf;
+
+fn golden_path(name: &str) -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/golden").join(format!("{name}.json"))
+}
+
+/// (length, divisor): `quicksort_killer(length)` with every value divided by
+/// `divisor`, so divisor 2 gives each key twice. All of these reach heapsort.
+const KILLERS: [(usize, i32); 8] = [(100, 1), (100, 2), (300, 2), (1000, 1), (1000, 2), (2000, 2), (5000, 1), (5000, 2)];
+
+fn sort_cases() -> Vec<Value> {
+    let mut g = Gen::new(3);
+    let mut cases = Vec::new();
+    for len in 0..=300usize {
+        let keys = random_keys(&mut g, len);
+        cases.push(sort_case(keys, (len % 5) as i32));
+    }
+    for i in 0..8 {
+        let keys = random_keys(&mut g, 5000);
+        cases.push(sort_case(keys, i % 5));
+    }
+    for (n, div) in KILLERS {
+        let keys: Vec<i32> = quicksort_killer(n).into_iter().map(|v| v / div).collect();
+        for mode in 0..5 {
+            cases.push(sort_case(keys.clone(), mode));
+        }
+    }
+    // Comparers that are inconsistent (mode 5) or throw (mode 6).
+    for len in [0, 1, 2, 3, 5, 16, 17, 20, 40, 100, 300] {
+        for mode in [5, 6] {
+            let keys = random_keys(&mut g, len);
+            cases.push(sort_case(keys, mode));
+        }
+    }
+    cases
+}
+
+/// `new HashSet<T>(otherSet)` clones the slot array (holes included) or
+/// compacts it depending on the source's internal capacity, which depends on
+/// how the source was built. Walk the capacity boundaries systematically:
+/// build from a List / a lazy enumerable with `len` items and `distinct`
+/// distinct values, free a slot, copy, add, and look at the order.
+fn set_capacity_cases() -> Vec<Value> {
+    let mut cases = Vec::new();
+    for build in [5, 6] {
+        for len in 1..=40 {
+            for distinct in 1..=len.min(12) {
+                let xs: Vec<i32> = (0..len).map(|i| (i % distinct) as i32).collect();
+                for removed in [0, distinct as i32 / 2] {
+                    cases.push(json!({"t": "set", "ops": [
+                        [build, 0, xs],
+                        [1, removed, []],
+                        [4, 0, []],
+                        [0, 99, []],
+                        [0, 98, []],
+                    ]}));
+                }
+            }
+        }
+    }
+    cases
+}
+
+fn groups() -> Vec<(&'static str, Vec<Value>)> {
+    let mut g = Gen::new(1);
+    let mut random = Vec::new();
+    for &seed in EDGE_SEEDS {
+        random.push(random_case(&mut g, seed, 3000));
+    }
+    for seed in [0, i32::MIN, i32::MAX] {
+        random.push(random_case(&mut g, seed, 10000));
+    }
+    for _ in 0..100 {
+        let seed = g.i32();
+        random.push(random_case(&mut g, seed, 200));
+    }
+
+    let mut g = Gen::new(2);
+    let dict: Vec<Value> = (0..200).map(|_| dict_case(&mut g, 300)).collect();
+    let mut set: Vec<Value> = (0..200).map(|_| set_case(&mut g, 300)).collect();
+    set.extend(set_capacity_cases());
+    let mut g = Gen::new(4);
+    let linq: Vec<Value> = (0..2000).map(|_| linq_case(&mut g)).collect();
+    let mut g = Gen::new(5);
+    let math = math_cases(&mut g, 1500);
+    vec![("random", random), ("dict", dict), ("set", set), ("sort", sort_cases()), ("linq", linq), ("math", math)]
+}
+
+fn check(name: &str) {
+    let text = std::fs::read_to_string(golden_path(name)).expect("golden file missing; run the regenerate test");
+    let v: Value = serde_json::from_str(&text).unwrap();
+    let cases = v["cases"].as_array().unwrap();
+    let expected = v["expected"].as_array().unwrap();
+    let failures = compare(cases, expected);
+    assert!(failures.is_empty(), "{} {name} mismatches:\n{}", failures.len(), failures.join("\n"));
+}
+
+#[test]
+fn golden_random() {
+    check("random");
+}
+#[test]
+fn golden_dict() {
+    check("dict");
+}
+#[test]
+fn golden_set() {
+    check("set");
+}
+#[test]
+fn golden_sort() {
+    check("sort");
+}
+#[test]
+fn golden_linq() {
+    check("linq");
+}
+#[test]
+fn golden_math() {
+    check("math");
+}
+
+/// The killer inputs in the sort golden file must actually reach the heapsort
+/// fallback, or they test nothing.
+#[test]
+fn killer_inputs_reach_heapsort() {
+    use dotnet_compat::sort::{HEAPSORT_CALLS, list_sort_by};
+    use std::sync::atomic::Ordering;
+    for (n, div) in KILLERS {
+        let mut keys: Vec<i32> = quicksort_killer(n).into_iter().map(|v| v / div).collect();
+        let before = HEAPSORT_CALLS.load(Ordering::Relaxed);
+        list_sort_by(&mut keys, |a, b| a.cmp(b));
+        assert!(HEAPSORT_CALLS.load(Ordering::Relaxed) > before, "killer n={n} div={div} did not reach heapsort");
+    }
+}
+
+#[test]
+#[ignore]
+fn regenerate() {
+    for (name, cases) in groups() {
+        let expected = run_csharp(&cases);
+        let text = serde_json::to_string(&json!({"cases": cases, "expected": expected})).unwrap();
+        std::fs::write(golden_path(name), text).unwrap();
+        eprintln!("wrote {name}: {} cases", cases.len());
+    }
+}

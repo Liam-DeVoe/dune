@@ -207,7 +207,7 @@
         if (Messages.Count == 0 || Game.Reports.LastOrDefault()?.Messages.Contains(Messages[0]) != true) return true;
 
         return Game.CurrentPhase is not (Phase.Thumper or Phase.BlowA or Phase.BlowB or Phase.HarvesterA or Phase.HarvesterB
-            or Phase.YellowSendingMonsterA or Phase.YellowSendingMonsterB);
+            or Phase.FremenSendingMonsterA or Phase.FremenSendingMonsterB);
     }
 
     // The card as a card. Beside it the amount, then where, or that the storm took it.

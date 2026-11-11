@@ -1,0 +1,28 @@
+{
+  "name": "treachery-web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "React client for the Rust server. See rust/docs/client-plan.md.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b",
+    "preview": "vite preview",
+    "check:rich-text": "node tools/check-rich-text.ts",
+    "check:flash": "node tools/check-flash.ts"
+  },
+  "dependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router": "^7.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "typescript": "5.9",
+    "vite": "^7.3.7"
+  }
+}

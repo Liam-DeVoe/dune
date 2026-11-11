@@ -12,6 +12,7 @@
     stroke: #1d0c00;
     stroke-width: 2;
     transition: fill 0.1s;
+    cursor: pointer;
 
     &.start { fill: rgba(195, 50, 50, 0.22); }
     &.swept { fill: rgba(195, 50, 50, 0.55); }

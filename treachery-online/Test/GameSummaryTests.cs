@@ -27,10 +27,10 @@ public class GameSummaryTests
         {
             InitiatorPlayerName = harkonnen.Name,
             Seat = harkonnen.Seat,
-            Faction = Faction.Black
+            Faction = Faction.Harkonnen
         }.Execute(false, true);
 
-        new EndPhase(game, Faction.Black).Execute(false, true);
+        new EndPhase(game, Faction.Harkonnen).Execute(false, true);
 
         var replay = new Game(game.Version, game.Participation);
         foreach (var gameEvent in game.History)
@@ -40,9 +40,9 @@ public class GameSummaryTests
             replayEvent.Execute(false, true);
         }
 
-        Assert.AreEqual(1, replay.Players.Count(p => p.Faction == Faction.Black));
-        Assert.AreEqual(Faction.Black, replay.GetPlayerBySeat(0)?.Faction);
-        Assert.AreEqual(8, replay.GetPlayer(Faction.Black)?.MaximumNumberOfCards);
+        Assert.AreEqual(1, replay.Players.Count(p => p.Faction == Faction.Harkonnen));
+        Assert.AreEqual(Faction.Harkonnen, replay.GetPlayerBySeat(0)?.Faction);
+        Assert.AreEqual(8, replay.GetPlayer(Faction.Harkonnen)?.MaximumNumberOfCards);
         Assert.AreEqual(replay.Players.Count, replay.Players.Select(p => p.Faction).Distinct().Count());
     }
 
@@ -71,7 +71,7 @@ public class GameSummaryTests
                 NumberOfPlayers = 2,
                 MaximumTurns = 10,
                 InitialRules = [Rule.PlayersChooseFactions],
-                AllowedFactionsInPlay = [Faction.Black, Faction.Green]
+                AllowedFactionsInPlay = [Faction.Harkonnen, Faction.Atreides]
             }
         }.Execute(false, true);
 

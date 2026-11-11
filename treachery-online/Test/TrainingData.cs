@@ -209,10 +209,10 @@ public class PlayerKnowledge
 
     private void InitGeneralInfo()
     {
-        var atr = Game.GetPlayer(Faction.Green);
+        var atr = Game.GetPlayer(Faction.Atreides);
         Homeworlds = Game.Applicable(Rule.Homeworlds);
         AllyBlocksAdvisors = !Game.Applicable(Rule.AdvisorsDontConflictWithAlly);
-        LatestAtreidesOrAllyBidAmount = Game.Bids.Values.LastOrDefault(x=> !x.Passed && (x.Initiator == Faction.Green || x.Initiator == atr?.Ally))?.TotalAmount ?? -1;
+        LatestAtreidesOrAllyBidAmount = Game.Bids.Values.LastOrDefault(x=> !x.Passed && (x.Initiator == Faction.Atreides || x.Initiator == atr?.Ally))?.TotalAmount ?? -1;
         TreacheryCardOnBidId = Game.HasBiddingPrescience(Me) && !Game.CardsOnAuction.IsEmpty? Game.CardsOnAuction.Top.Id  : -1;
         MaximumTurns = Game.MaximumTurns;
         CurrentTurn = Game.CurrentTurn;
@@ -247,7 +247,7 @@ public class PlayerKnowledge
         for (var i = 1; i < MaxPlayers; i++)
             PlayerInfo[i] = i < NrOfPlayers ? DetermineKnownPlayerInfo(Player[i]) : Test.PlayerInfo.Empty;
         
-        //if (PlayerInfo.Count(x => x.Faction == Faction.Green) > 1)
+        //if (PlayerInfo.Count(x => x.Faction == Faction.Atreides) > 1)
             //Console.WriteLine("Hee!");
     }
 

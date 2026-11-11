@@ -1,0 +1,138 @@
+@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits GameComponent
+@inject MenuState Menu
+
+@*
+ A toast above the Deals icon (MenuComponent) for each deal offered to you.
+ It shows the game's own log line for the offer and goes after five seconds,
+ or stays while the mouse is over it. Clicking it opens Deals with the offer
+ marked; × closes it and leaves the offer waiting. Answering the offer
+ removes it. If the offer leaves the game unanswered, it says "Offer
+ withdrawn" for two seconds, then goes. Offers already there when the game
+ loads get no toast.
+*@
+
+@if (_toasts.Count > 0)
+{
+    <div class="deal-toasts">
+        @foreach (var t in _toasts)
+        {
+            var toast = t;
+            <div class="deal-toast @(toast.Withdrawn ? "gone" : "")" @key="toast.Offer"
+                 @onmouseenter="@(() => toast.Hovered = true)" @onmouseleave="@(() => toast.Hovered = false)"
+                 @onclick="@(() => Open(toast))">
+                <img class="sigil-lg" src="@Client.CurrentSkin.GetImageUrl(toast.Offer.Initiator)" alt="@Name(toast.Offer.Initiator)"/>
+                <div class="txt">
+                    <ExpressionComponent Game="Game" Expression="@toast.Message.Expression"/>
+                    @if (toast.Withdrawn)
+                    {
+                        <span class="withdrawn">Offer withdrawn</span>
+                    }
+                </div>
+                <button class="x" title="Close" @onclick:stopPropagation="true" @onclick="@(() => Remove(toast))">×</button>
+            </div>
+        }
+    </div>
+}
+
+@code {
+
+    private const int Lifetime = 5000;
+    private const int WithdrawnLifetime = 2000;
+    private const int Tick = 100;
+
+    private class Toast(DealOffered offer, Message message)
+    {
+        public DealOffered Offer { get; } = offer;
+        public Message Message { get; } = message;
+        public int Left { get; set; } = Lifetime;
+        public bool Hovered { get; set; }
+        public bool Withdrawn { get; set; }
+    }
+
+    private readonly List<Toast> _toasts = [];
+    private HashSet<DealOffered>? _seen;
+    private bool _ticking;
+
+    protected override void OnParametersSet() => Update();
+
+    protected override bool ShouldRender()
+    {
+        Update();
+        return true;
+    }
+
+    // Compares the offers made to you with the ones already seen.
+    private void Update()
+    {
+        if (Client.IsObserver || Client.Player is null || Client.Game is null) return;
+
+        var offers = DealAccepted.AcceptableDeals(Game, Player).ToList();
+        if (_seen == null)
+        {
+            _seen = [..offers];
+            return;
+        }
+
+        foreach (var offer in offers.Where(o => _seen.Add(o)))
+            _toasts.Add(new Toast(offer, offer.GetMessage()));
+
+        foreach (var t in _toasts.Where(t => !t.Withdrawn && !offers.Contains(t.Offer)).ToList())
+        {
+            if (!Game.DealOffers.Contains(t.Offer) && Game.DealResponse(t.Offer, Player.Faction) == null)
+            {
+                t.Withdrawn = true;
+                t.Left = WithdrawnLifetime;
+            }
+            else
+            {
+                _toasts.Remove(t);
+            }
+        }
+
+        // Three at most; the oldest makes room.
+        while (_toasts.Count > 3) _toasts.RemoveAt(0);
+
+        if (_toasts.Count > 0 && !_ticking) _ = Run();
+    }
+
+    private async Task Run()
+    {
+        _ticking = true;
+        while (_toasts.Count > 0)
+        {
+            await Task.Delay(Tick);
+            var changed = false;
+            foreach (var t in _toasts.ToList())
+            {
+                if (t.Hovered && !t.Withdrawn) continue;
+                t.Left -= Tick;
+                if (t.Left <= 0)
+                {
+                    _toasts.Remove(t);
+                    changed = true;
+                }
+            }
+            if (changed) await InvokeAsync(StateHasChanged);
+        }
+        _ticking = false;
+    }
+
+    private void Remove(Toast t) => _toasts.Remove(t);
+
+    private void Open(Toast t)
+    {
+        if (t.Withdrawn) return;
+        _toasts.Remove(t);
+        Menu.MarkedDeal = t.Offer;
+        Menu.Open(MenuPanel.Deals);
+        Client.Refresh(nameof(DealToasts));
+    }
+}

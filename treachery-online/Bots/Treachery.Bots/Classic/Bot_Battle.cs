@@ -15,13 +15,13 @@ public partial class ClassicBot
     {
         var territory = Game.BattleAboutToStart.Territory;
         var opponent = Game.GetPlayer(Game.BattleAboutToStart.Target);
-        var pink = Game.GetPlayer(Faction.Pink);
-        var pinkAlly = pink.AlliedPlayer;
-        var pinkIsStrongest = GetDialNeeded(pinkAlly, territory, opponent, false) > GetDialNeeded(pink, territory, opponent, false);
+        var ecaz = Game.GetPlayer(Faction.Ecaz);
+        var ecazAlly = ecaz.AlliedPlayer;
+        var ecazIsStrongest = GetDialNeeded(ecazAlly, territory, opponent, false) > GetDialNeeded(ecaz, territory, opponent, false);
 
-        return Faction == Faction.Pink 
-            ? new BattleClaimed(Game, Faction) { Passed = !pinkIsStrongest } 
-            : new BattleClaimed(Game, Faction) { Passed = pinkIsStrongest };
+        return Faction == Faction.Ecaz 
+            ? new BattleClaimed(Game, Faction) { Passed = !ecazIsStrongest } 
+            : new BattleClaimed(Game, Faction) { Passed = ecazIsStrongest };
     }
 
     private SwitchedSkilledLeader? DetermineSwitchedSkilledLeader()
@@ -86,7 +86,7 @@ public partial class ClassicBot
             if (myBattleplan.Weapon != null &&
                 Player.Has(myBattleplan.Weapon) &&
                 myBattleplan.Weapon.Type == TreacheryCardType.Useless &&
-                Faction != Faction.Brown &&
+                Faction != Faction.Choam &&
                 !Game.SkilledAs(Player, LeaderSkill.Warmaster) &&
                 !Game.OwnsStronghold(Faction, Game.Map.TueksSietch))
                 discarded.Add(myBattleplan.Weapon);
@@ -94,13 +94,13 @@ public partial class ClassicBot
             if (myBattleplan.Defense != null &&
                 Player.Has(myBattleplan.Defense) &&
                 myBattleplan.Defense.Type == TreacheryCardType.Useless &&
-                Faction != Faction.Brown &&
+                Faction != Faction.Choam &&
                 !Game.SkilledAs(Player, LeaderSkill.Warmaster) &&
                 !Game.OwnsStronghold(Faction, Game.Map.TueksSietch))
                 discarded.Add(myBattleplan.Defense);
         }
 
-        var kill = Game.BlackVictim != null && !Game.IsSkilled(Game.BlackVictim) && Game.BlackVictim.Value < 4;
+        var kill = Game.HarkonnenVictim != null && !Game.IsSkilled(Game.HarkonnenVictim) && Game.HarkonnenVictim.Value < 4;
 
         var replacedSpecialForces = BattleConcluded.ValidReplacementForceAmounts(Game, Player).Max();
 
@@ -188,7 +188,7 @@ public partial class ClassicBot
 
         LogInfo("AGAINST {0} in {1}, WITH {2} + {3} as WEAPON + {4} as DEF, I need a force dial of {5}", opponent.Faction, Game.CurrentBattle.Territory, hero, weapon, defense, dialNeeded);
 
-        var resourcesFromAlly = Ally == Faction.Brown ? Game.ResourcesYourAllyCanPay(Player) : 0;
+        var resourcesFromAlly = Ally == Faction.Choam ? Game.ResourcesYourAllyCanPay(Player) : 0;
         var resourcesForBattle = Resources + resourcesFromAlly;
 
         var dialShortage = DetermineDialShortageForBattle(
@@ -221,8 +221,8 @@ public partial class ClassicBot
 
         if (!minimizeSpendingInThisLostFight)
         {
-            if (weapon == null && !MayUseUselessAsKarma && Faction != Faction.Brown) weapon = UselessAsWeapon(Game, Player, defense);
-            if (defense == null && !MayUseUselessAsKarma && Faction != Faction.Brown) defense = UselessAsDefense(Game, Player, weapon);
+            if (weapon == null && !MayUseUselessAsKarma && Faction != Faction.Choam) weapon = UselessAsWeapon(Game, Player, defense);
+            if (defense == null && !MayUseUselessAsKarma && Faction != Faction.Choam) defense = UselessAsDefense(Game, Player, weapon);
 
             RemoveIllegalChoices(ref hero, ref weapon, ref defense, Game.CurrentBattle.Territory);
 
@@ -278,8 +278,8 @@ public partial class ClassicBot
         var lowestAvailableHero = Battle.ValidBattleHeroes(Game, Player).FirstOrDefault(h => h is TreacheryCard);
         if (lowestAvailableHero == null) SelectHeroForBattle(Game, Player, opponent, false, true, false, null, null, out lowestAvailableHero, out _, false);
 
-        var weapon = lowestAvailableHero == null || MayUseUselessAsKarma || Faction == Faction.Brown ? null : UselessAsWeapon(Game, Player, null);
-        var defense = lowestAvailableHero == null || MayUseUselessAsKarma || Faction == Faction.Brown ? null : UselessAsDefense(Game, Player, weapon);
+        var weapon = lowestAvailableHero == null || MayUseUselessAsKarma || Faction == Faction.Choam ? null : UselessAsWeapon(Game, Player, null);
+        var defense = lowestAvailableHero == null || MayUseUselessAsKarma || Faction == Faction.Choam ? null : UselessAsDefense(Game, Player, weapon);
 
         RemoveIllegalChoices(ref lowestAvailableHero, ref weapon, ref defense, territory);
 
@@ -427,7 +427,7 @@ public partial class ClassicBot
         var spiceLeft = resourcesAvailable + strongholdBonus;
         var costPerForce = Battle.NormalForceCost(Game, Player);
         var costPerSpecialForce = Battle.SpecialForceCost(Game, Player);
-        var numberOfForcesWithCunningBonus = Game.CurrentRedCunning != null && Game.CurrentRedCunning.Initiator == Faction ? 5 : 0;
+        var numberOfForcesWithCunningBonus = Game.CurrentEmperorCunning != null && Game.CurrentEmperorCunning.Initiator == Faction ? 5 : 0;
 
         LogInfo("DetermineValidForcesInBattle: {0} {1} {2} {3}", dialNeeded, spiceLeft, costPerSpecialForce, costPerForce);
 
@@ -845,16 +845,16 @@ public partial class ClassicBot
         var ally = player.Ally != Faction.None ? player.AlliedPlayer : null;
 
         var knownNonTraitorsByAlly = ally != null ? ally.Traitors.Union(ally.KnownNonTraitors) : [];
-        var revealedOrToldTraitorsByNonOpponents = game.Players.Where(x => x != opponent && (x.Ally != Faction.Black || x.Faction != opponent.Ally)).SelectMany(x => x.RevealedTraitors.Union(x.ToldTraitors));
-        var toldNonTraitorsByOpponent = opponent.Ally != Faction.Black ? opponent.ToldNonTraitors.AsEnumerable() : [];
+        var revealedOrToldTraitorsByNonOpponents = game.Players.Where(x => x != opponent && (x.Ally != Faction.Harkonnen || x.Faction != opponent.Ally)).SelectMany(x => x.RevealedTraitors.Union(x.ToldTraitors));
+        var toldNonTraitorsByOpponent = opponent.Ally != Faction.Harkonnen ? opponent.ToldNonTraitors.AsEnumerable() : [];
         var knownNonTraitors = player.Traitors.Union(player.KnownNonTraitors).Union(knownNonTraitorsByAlly).Union(revealedOrToldTraitorsByNonOpponents).Union(toldNonTraitorsByOpponent);
 
         var knownTraitorsForOpponentsInBattle = game.Players.
-            Where(x => x == opponent || (x.Faction == Faction.Black && x.Faction == opponent.Ally)).SelectMany(x => x.RevealedTraitors.Union(player.ToldTraitors))
+            Where(x => x == opponent || (x.Faction == Faction.Harkonnen && x.Faction == opponent.Ally)).SelectMany(x => x.RevealedTraitors.Union(player.ToldTraitors))
             .Union(player.Leaders.Where(l => game.Applicable(Rule.CapturedLeadersAreTraitorsToOwnFaction) && l.Faction == opponent.Faction)).ToArray();
 
         var hasUnknownTraitorsThatMightBeMine = game.Players.
-            Where(x => x != opponent && (x.Ally != Faction.Black || x.Faction != opponent.Ally)).
+            Where(x => x != opponent && (x.Ally != Faction.Harkonnen || x.Faction != opponent.Ally)).
             SelectMany(x => x.Traitors.Where(l => !knownNonTraitors.Contains(l))).Any();
 
         var highestOpponentLeader = HeroesForBattle(game, opponent, true).OrderByDescending(l => l.Value).FirstOrDefault();
@@ -882,7 +882,7 @@ public partial class ClassicBot
         }
 
         if (safeHero == null ||
-            (opponent.Faction != Faction.Black && !knownTraitorsForOpponentsInBattle.Contains(unsafeHero) && safeHero.ValueInCombatAgainst(highestOpponentLeader) < unsafeHero.ValueInCombatAgainst(highestOpponentLeader) - 2))
+            (opponent.Faction != Faction.Harkonnen && !knownTraitorsForOpponentsInBattle.Contains(unsafeHero) && safeHero.ValueInCombatAgainst(highestOpponentLeader) < unsafeHero.ValueInCombatAgainst(highestOpponentLeader) - 2))
             hero = unsafeHero;
         else
             hero = safeHero;
@@ -1053,8 +1053,8 @@ public partial class ClassicBot
         return p.Leaders.All(l =>
             (!p.MessiahAvailable && p.Traitors.Contains(l)) ||
             p.FaceDancers.Contains(l) ||
-            p is { MessiahAvailable: false, Ally: Faction.Black } && p.AlliedPlayer.Traitors.Contains(l) ||
-            p.Ally == Faction.Purple && p.AlliedPlayer.FaceDancers.Contains(l));
+            p is { MessiahAvailable: false, Ally: Faction.Harkonnen } && p.AlliedPlayer.Traitors.Contains(l) ||
+            p.Ally == Faction.Tleilaxu && p.AlliedPlayer.FaceDancers.Contains(l));
     }
 
 

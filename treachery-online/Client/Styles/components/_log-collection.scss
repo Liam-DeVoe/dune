@@ -1,11 +1,12 @@
 // Collection log design. See design/battle-log/log-matrix.html (Collection,
-// "By territory"): place, amount and faction in three aligned columns, with
+// "By territory"): faction, amount and place in three aligned columns, with
 // stronghold income under a brighter rule.
 
 .log-table.collection-table {
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: auto auto minmax(0, 1fr);
 
   > .cell.place {
+    padding-right: 0;
     flex-direction: column;
     align-items: flex-start;
     justify-content: center;
@@ -16,7 +17,6 @@
   }
 
   > .cell.faction {
-    padding-right: 0;
     justify-content: flex-start;
   }
 

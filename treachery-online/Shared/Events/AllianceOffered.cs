@@ -40,8 +40,13 @@ public class AllianceOffered : GameEvent
 
     public static IEnumerable<Faction> ValidTargets(Game g, Player p)
     {
-        return g.Players.Where(other => p != other && !p.HaveForcesOnEachOthersHomeWorlds(other))
+        return g.Players.Where(other => p != other && !p.HaveForcesOnEachOthersHomeWorlds(other) && !HasPassedInAlliancePhase(g, other))
             .Select(other => other.Faction);
+    }
+
+    private static bool HasPassedInAlliancePhase(Game g, Player p)
+    {
+        return g.Version >= 188 && g.CurrentPhase is Phase.AllianceA or Phase.AllianceB && g.HasActedOrPassed.Contains(p.Faction);
     }
 
     #endregion Validation
@@ -55,14 +60,21 @@ public class AllianceOffered : GameEvent
         {
             Game.MakeAlliance(Initiator, Target);
 
-            while (Game.CurrentAllianceOffers.FirstOrDefault(x => x.By(Initiator) || x.Initiator == Target) is { } invalidOffer) 
+            while (Game.CurrentAllianceOffers.FirstOrDefault(x => x.By(Initiator) || x.Initiator == Target) is { } invalidOffer)
                 Game.CurrentAllianceOffers.Remove(invalidOffer);
+
+            //Since v188 offers to the new allies lapse too; otherwise their makers would wait for an answer that never comes
+            if (Game.Version >= 188)
+                while (Game.CurrentAllianceOffers.FirstOrDefault(x => x.Target == Initiator || x.Target == Target) is { } lapsedOffer)
+                    Game.CurrentAllianceOffers.Remove(lapsedOffer);
 
             if (Game.Version > 150)
             {
                 Game.HasActedOrPassed.Add(Initiator);
                 Game.HasActedOrPassed.Add(Target);
             }
+
+            Game.EndNexusIfEveryoneIsDone();
         }
         else
         {

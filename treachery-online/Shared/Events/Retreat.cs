@@ -104,7 +104,7 @@ public class Retreat : GameEvent
 
         Log();
         Game.HandleLosses();
-        Game.FlipBlueAdvisorsWhenAlone();
+        Game.FlipBeneGesseritAdvisorsWhenAlone();
         Game.DetermineHowToProceedAfterRevealingBattlePlans();
     }
 

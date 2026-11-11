@@ -6,7 +6,7 @@ serves /fixtures/<name>.json from scripts/fixtures. Runs on a thread; stop()
 shuts it down.
 
     with StaticServer(Path("/tmp/treachery-client-after")) as server:
-        page.goto(server.url + "/scene?fixture=ship&faction=red")
+        page.goto(server.url + "/scene?fixture=ship&faction=emperor")
 """
 
 from __future__ import annotations

@@ -19,8 +19,8 @@ public partial class Game
     public ClairVoyanceQandA? LatestClairvoyanceQnA { get; internal set; }
     public BattleInitiated? LatestClairvoyanceBattle { get; internal set; }
     public int KarmaHmsMovesLeft { get; internal set; } = 2;
-    public bool GreenKarma { get; internal set; }
-    public int PinkKarmaBonus { get; internal set; }
+    public bool AtreidesKarma { get; internal set; }
+    public int EcazKarmaBonus { get; internal set; }
     public List<Faction> SecretsRemainHidden { get; private set; } = [];
     private List<FactionAdvantage> PreventedAdvantages { get; set; } = [];
     internal Phase PhaseBeforeSearchingDiscarded { get; set; }
@@ -29,17 +29,17 @@ public partial class Game
     internal Phase PhaseBeforeBureaucratWasActivated { get; set; }
     public Faction TargetOfBureaucracy { get; internal set; }
     public NexusPlayed? CurrentNexusPrescience { get; internal set; }
-    public NexusPlayed? CurrentYellowSecretAlly { get; internal set; }
-    public NexusPlayed? CurrentRedCunning { get; internal set; }
-    public NexusPlayed? CurrentOrangeCunning { get; internal set; }
-    public NexusPlayed? CurrentOrangeSecretAlly { get; internal set; }
-    public NexusPlayed? CurrentBlueCunning { get; internal set; }
-    public NexusPlayed? CurrentGreyCunning { get; internal set; }
+    public NexusPlayed? CurrentFremenSecretAlly { get; internal set; }
+    public NexusPlayed? CurrentEmperorCunning { get; internal set; }
+    public NexusPlayed? CurrentGuildCunning { get; internal set; }
+    public NexusPlayed? CurrentGuildSecretAlly { get; internal set; }
+    public NexusPlayed? CurrentBeneGesseritCunning { get; internal set; }
+    public NexusPlayed? CurrentIxianCunning { get; internal set; }
     internal Faction WasVictimOfBureaucracy { get; set; }
     private bool BankerWasUsedThisPhase { get; set; }
-    public BrownKarmaPrevention? CurrentKarmaPrevention { get; internal set; }
+    public ChoamKarmaPrevention? CurrentKarmaPrevention { get; internal set; }
     public Planetology? CurrentPlanetology { get; internal set; }
-    public bool BlackTraitorWasCancelled { get; internal set; }
+    public bool HarkonnenTraitorWasCancelled { get; internal set; }
     public bool FacedancerWasCancelled { get; internal set; }
 
     #endregion State
@@ -48,7 +48,7 @@ public partial class Game
 
     internal void RevealCurrentNoField(Player player, Location? inLocation = null)
     {
-        if (player.Faction != Faction.White) return;
+        if (player.Faction != Faction.Richese) return;
         
         var noFieldLocation = player.ForcesInLocations.FirstOrDefault(kvp => kvp.Value.AmountOfSpecialForces > 0).Key;
 
@@ -60,16 +60,16 @@ public partial class Game
         player.SpecialForcesToReserves(noFieldLocation, 1);
         var nrOfForces = Math.Min(player.ForcesInReserve, CurrentNoFieldValue);
         player.ShipForces(noFieldLocation, nrOfForces);
-        Log(player.Faction, " reveal ", nrOfForces, FactionForce.White, " under ", FactionSpecialForce.White, " in ", noFieldLocation);
+        Log(player.Faction, " reveal ", nrOfForces, FactionForce.Richese, " under ", FactionSpecialForce.Richese, " in ", noFieldLocation);
 
-        if (CurrentNoFieldValue == 0) FlipBlueAdvisorsWhenAlone();
+        if (CurrentNoFieldValue == 0) FlipBeneGesseritAdvisorsWhenAlone();
 
         CurrentNoFieldValue = -1;
     }
 
     internal void RevealCurrentNoField(Player player, Territory inTerritory)
     {
-        if (!player.Is(Faction.White)) return;
+        if (!player.Is(Faction.Richese)) return;
         foreach (var l in inTerritory.Locations) RevealCurrentNoField(player, l);
     }
 
@@ -79,7 +79,7 @@ public partial class Game
 
         if (BribesDuringMentat)
         {
-            if (from.Faction == Faction.Red && target.Faction == from.Ally)
+            if (from.Faction == Faction.Emperor && target.Faction == from.Ally)
                 target.Resources += amount;
             else
                 target.Bribes += amount;

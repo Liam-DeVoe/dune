@@ -9,17 +9,10 @@
 
 namespace Treachery.Client;
 
-// The variables Styles/components/_game-screen.scss sizes the map column
-// with, for the in-game row in Main.razor and Scene.razor.
+// The variable Styles/components/_game-screen.scss sizes the in-game row
+// with, for Main.razor and Scene.razor.
 public static class GameScreen
 {
-    // The menu bar under the board, as .menu-bar sets it.
-    private const int MenuBarHeight = 36;
-
-    // The undo timeline with its margins, shown between the board and the
-    // menu bar while the host has the undo panel open.
-    private const int UndoTimelineHeight = 116;
-
     // The height the turn banner's spacer adds above the row, as
     // $turn-banner-h in _turn-banner.scss sets it.
     private const int TurnBannerHeight = 40;
@@ -30,9 +23,7 @@ public static class GameScreen
 
     public static string Style(IGameService client)
     {
-        var map = client.CurrentSkin.MapDimensions;
-        var belowMap = MenuBarHeight + (client.UndoSession != null ? UndoTimelineHeight : 0);
         var banner = ShowsTurnBanner(client) ? TurnBannerHeight : 0;
-        return FormattableString.Invariant($"--map-ratio: {map.Y / map.X:0.#####}; --below-map: {belowMap}px; --turn-banner-h: {banner}px;");
+        return FormattableString.Invariant($"--turn-banner-h: {banner}px;");
     }
 }

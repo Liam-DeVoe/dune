@@ -11,7 +11,7 @@ namespace Treachery.Shared;
 
 public partial class Game
 {
-    #region BrownCardTrading
+    #region ChoamCardTrading
 
     public CardTraded? CurrentCardTradeOffer { get; internal set; }
     internal Phase? PhaseBeforeCardTrade { get; set; }
@@ -25,22 +25,22 @@ public partial class Game
     internal bool NexusHasOccured { get; set; }
 
     internal Dictionary<Faction, int> PermittedUseOfAllySpice { get; } = new();
-    internal Dictionary<Faction, int> PermittedUseOfRedSpice { get; set; } = new();
+    internal Dictionary<Faction, int> PermittedUseOfEmperorSpice { get; set; } = new();
     internal Dictionary<Faction, TreacheryCard> PermittedUseOfAllyKarma { get; } = new();
 
-    public bool GreenSharesPrescience { get; internal set; }
-    public bool YellowWillProtectFromMonster { get; internal set; }
-    public bool YellowAllowsThreeFreeRevivals { get; internal set; }
-    public bool YellowSharesPrescience { get; internal set; }
-    public bool YellowRefundsBattleDial { get; internal set; }
-    public int RedWillPayForExtraRevival { get; internal set; }
-    public bool OrangeAllowsShippingDiscount { get; internal set; }
-    public bool BlueAllowsUseOfVoice { get; internal set; }
-    public bool GreyAllowsReplacingCards { get; internal set; }
-    public bool PurpleAllowsRevivalDiscount { get; internal set; }
-    public bool WhiteAllowsUseOfNoField { get; internal set; }
-    public bool CyanAllowsKeepingCards { get; internal set; }
-    public bool PinkSharesAmbassadors { get; internal set; }
+    public bool AtreidesSharesPrescience { get; internal set; }
+    public bool FremenWillProtectFromMonster { get; internal set; }
+    public bool FremenAllowsThreeFreeRevivals { get; internal set; }
+    public bool FremenSharesPrescience { get; internal set; }
+    public bool FremenRefundsBattleDial { get; internal set; }
+    public int EmperorWillPayForExtraRevival { get; internal set; }
+    public bool GuildAllowsShippingDiscount { get; internal set; }
+    public bool BeneGesseritAllowsUseOfVoice { get; internal set; }
+    public bool IxianAllowsReplacingCards { get; internal set; }
+    public bool TleilaxuAllowsRevivalDiscount { get; internal set; }
+    public bool RicheseAllowsUseOfNoField { get; internal set; }
+    public bool MoritaniAllowsKeepingCards { get; internal set; }
+    public bool EcazSharesAmbassadors { get; internal set; }
 
     internal void MakeAlliance(Faction a, Faction b)
     {
@@ -82,14 +82,14 @@ public partial class Game
         
         if (Version <= 150)
         {
-            if (f == Faction.Orange || initiator.Ally == Faction.Orange) OrangeAllowsShippingDiscount = false;
+            if (f == Faction.Guild || initiator.Ally == Faction.Guild) GuildAllowsShippingDiscount = false;
 
-            if (f == Faction.Red || initiator.Ally == Faction.Red) RedWillPayForExtraRevival = 0;
+            if (f == Faction.Emperor || initiator.Ally == Faction.Emperor) EmperorWillPayForExtraRevival = 0;
 
-            if (f == Faction.Yellow || initiator.Ally == Faction.Yellow)
+            if (f == Faction.Fremen || initiator.Ally == Faction.Fremen)
             {
-                YellowWillProtectFromMonster = false;
-                YellowAllowsThreeFreeRevivals = false;
+                FremenWillProtectFromMonster = false;
+                FremenAllowsThreeFreeRevivals = false;
             }
         }
         else
@@ -120,21 +120,21 @@ public partial class Game
     {
         switch (f)
         {
-            case Faction.Green: GreenSharesPrescience = permission; break;
-            case Faction.Yellow:
-                YellowWillProtectFromMonster = permission;
-                YellowAllowsThreeFreeRevivals = permission;
-                YellowSharesPrescience = permission;
-                YellowRefundsBattleDial = permission;
+            case Faction.Atreides: AtreidesSharesPrescience = permission; break;
+            case Faction.Fremen:
+                FremenWillProtectFromMonster = permission;
+                FremenAllowsThreeFreeRevivals = permission;
+                FremenSharesPrescience = permission;
+                FremenRefundsBattleDial = permission;
                 break;
-            case Faction.Red: RedWillPayForExtraRevival = permission ? 3 : 0; break;
-            case Faction.Orange: OrangeAllowsShippingDiscount = permission; break;
-            case Faction.Blue: BlueAllowsUseOfVoice = permission; break;
-            case Faction.Grey: GreyAllowsReplacingCards = permission; break;
-            case Faction.Purple: PurpleAllowsRevivalDiscount = permission; break;
-            case Faction.White: WhiteAllowsUseOfNoField = permission; break;
-            case Faction.Cyan: CyanAllowsKeepingCards = permission; break;
-            case Faction.Pink: PinkSharesAmbassadors = permission; break;
+            case Faction.Emperor: EmperorWillPayForExtraRevival = permission ? 3 : 0; break;
+            case Faction.Guild: GuildAllowsShippingDiscount = permission; break;
+            case Faction.BeneGesserit: BeneGesseritAllowsUseOfVoice = permission; break;
+            case Faction.Ixian: IxianAllowsReplacingCards = permission; break;
+            case Faction.Tleilaxu: TleilaxuAllowsRevivalDiscount = permission; break;
+            case Faction.Richese: RicheseAllowsUseOfNoField = permission; break;
+            case Faction.Moritani: MoritaniAllowsKeepingCards = permission; break;
+            case Faction.Ecaz: EcazSharesAmbassadors = permission; break;
         }
     }
 
@@ -155,12 +155,12 @@ public partial class Game
 
     }
 
-    public int SpiceForBidsRedCanPay(Faction f)
+    public int SpiceForBidsEmperorCanPay(Faction f)
     {
-        if (!PermittedUseOfRedSpice.TryGetValue(f, out var value)) return 0;
+        if (!PermittedUseOfEmperorSpice.TryGetValue(f, out var value)) return 0;
         
-        var red = GetPlayer(Faction.Red);
-        return red == null ? 0 : Math.Min(value, red.Resources);
+        var emperor = GetPlayer(Faction.Emperor);
+        return emperor == null ? 0 : Math.Min(value, emperor.Resources);
     }
 
     public TreacheryCard? GetPermittedUseOfAllyKarma(Faction f)

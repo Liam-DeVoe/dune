@@ -92,30 +92,30 @@ public class EstablishPlayers : GameEvent
 
         if (Game.ExpansionLevel >= 0)
         {
-            result.Add(Faction.Green);
-            result.Add(Faction.Black);
-            result.Add(Faction.Yellow);
-            result.Add(Faction.Red);
-            result.Add(Faction.Orange);
-            result.Add(Faction.Blue);
+            result.Add(Faction.Atreides);
+            result.Add(Faction.Harkonnen);
+            result.Add(Faction.Fremen);
+            result.Add(Faction.Emperor);
+            result.Add(Faction.Guild);
+            result.Add(Faction.BeneGesserit);
         }
 
         if (Game.ExpansionLevel >= 1)
         {
-            result.Add(Faction.Grey);
-            result.Add(Faction.Purple);
+            result.Add(Faction.Ixian);
+            result.Add(Faction.Tleilaxu);
         }
 
         if (Game.ExpansionLevel >= 2)
         {
-            result.Add(Faction.Brown);
-            result.Add(Faction.White);
+            result.Add(Faction.Choam);
+            result.Add(Faction.Richese);
         }
 
         if (Game.ExpansionLevel >= 3)
         {
-            result.Add(Faction.Pink);
-            result.Add(Faction.Cyan);
+            result.Add(Faction.Ecaz);
+            result.Add(Faction.Moritani);
         }
 
         return result;
@@ -140,14 +140,14 @@ public class EstablishPlayers : GameEvent
 
         if (Game.ExpansionLevel >= 2)
         {
-            result.Add(RuleGroup.ExpansionBrownAndWhiteBasic);
-            result.Add(RuleGroup.ExpansionBrownAndWhiteAdvanced);
+            result.Add(RuleGroup.ExpansionChoamAndRicheseBasic);
+            result.Add(RuleGroup.ExpansionChoamAndRicheseAdvanced);
         }
 
         if (Game.ExpansionLevel >= 3)
         {
-            result.Add(RuleGroup.ExpansionPinkAndCyanBasic);
-            result.Add(RuleGroup.ExpansionPinkAndCyanAdvanced);
+            result.Add(RuleGroup.ExpansionEcazAndMoritaniBasic);
+            result.Add(RuleGroup.ExpansionEcazAndMoritaniAdvanced);
         }
 
         if (Game.ExpansionLevel >= 0) result.Add(RuleGroup.House);
@@ -249,21 +249,21 @@ public class EstablishPlayers : GameEvent
 
         CreateTerrorTokens();
         
-        Game.UnassignedAmbassadors = new Deck<Ambassador>(AvailableFactions().Where(f => f != Faction.Cyan).Select(Game.AmbassadorOf), Game.Random);
+        Game.UnassignedAmbassadors = new Deck<Ambassador>(AvailableFactions().Where(f => f != Faction.Moritani).Select(Game.AmbassadorOf), Game.Random);
 
         //Initial alliance settings
         
-        Game.OrangeAllowsShippingDiscount = true;
-        Game.PurpleAllowsRevivalDiscount = true;
-        Game.GreyAllowsReplacingCards = true;
-        Game.RedWillPayForExtraRevival = 0;
-        Game.YellowWillProtectFromMonster = true;
-        Game.YellowAllowsThreeFreeRevivals = true;
-        Game.YellowSharesPrescience = true;
-        Game.YellowRefundsBattleDial = true;
-        Game.GreenSharesPrescience = true;
-        Game.BlueAllowsUseOfVoice = true;
-        Game.WhiteAllowsUseOfNoField = true;
+        Game.GuildAllowsShippingDiscount = true;
+        Game.TleilaxuAllowsRevivalDiscount = true;
+        Game.IxianAllowsReplacingCards = true;
+        Game.EmperorWillPayForExtraRevival = 0;
+        Game.FremenWillProtectFromMonster = true;
+        Game.FremenAllowsThreeFreeRevivals = true;
+        Game.FremenSharesPrescience = true;
+        Game.FremenRefundsBattleDial = true;
+        Game.AtreidesSharesPrescience = true;
+        Game.BeneGesseritAllowsUseOfVoice = true;
+        Game.RicheseAllowsUseOfNoField = true;
 
         Game.FactionsInPlay = Game.Settings.AllowedFactionsInPlay;
 
@@ -337,34 +337,34 @@ public class EstablishPlayers : GameEvent
     {
         //Can be removed later, this was replaced by filling empty seats with bots.
         
-        if (Game.Applicable(Rule.OrangeBot)) Game.Players.Add(new Player(Game, Faction.Orange));
-        if (Game.Applicable(Rule.RedBot)) Game.Players.Add(new Player(Game, Faction.Red));
-        if (Game.Applicable(Rule.BlackBot)) Game.Players.Add(new Player(Game, Faction.Black));
-        if (Game.Applicable(Rule.PurpleBot)) Game.Players.Add(new Player(Game, Faction.Purple));
-        if (Game.Applicable(Rule.BlueBot)) Game.Players.Add(new Player(Game, Faction.Blue));
-        if (Game.Applicable(Rule.GreenBot)) Game.Players.Add(new Player(Game, Faction.Green));
-        if (Game.Applicable(Rule.YellowBot)) Game.Players.Add(new Player(Game, Faction.Yellow));
-        if (Game.Applicable(Rule.GreyBot)) Game.Players.Add(new Player(Game,  Faction.Grey));
+        if (Game.Applicable(Rule.GuildBot)) Game.Players.Add(new Player(Game, Faction.Guild));
+        if (Game.Applicable(Rule.EmperorBot)) Game.Players.Add(new Player(Game, Faction.Emperor));
+        if (Game.Applicable(Rule.HarkonnenBot)) Game.Players.Add(new Player(Game, Faction.Harkonnen));
+        if (Game.Applicable(Rule.TleilaxuBot)) Game.Players.Add(new Player(Game, Faction.Tleilaxu));
+        if (Game.Applicable(Rule.BeneGesseritBot)) Game.Players.Add(new Player(Game, Faction.BeneGesserit));
+        if (Game.Applicable(Rule.AtreidesBot)) Game.Players.Add(new Player(Game, Faction.Atreides));
+        if (Game.Applicable(Rule.FremenBot)) Game.Players.Add(new Player(Game, Faction.Fremen));
+        if (Game.Applicable(Rule.IxianBot)) Game.Players.Add(new Player(Game,  Faction.Ixian));
     }
 
     private void CreateDiscoveryTokens()
     {
-        Game.YellowDiscoveryTokens = new Deck<DiscoveryToken>(Game.Random!);
-        Game.OrangeDiscoveryTokens = new Deck<DiscoveryToken>(Game.Random!);
+        Game.FremenDiscoveryTokens = new Deck<DiscoveryToken>(Game.Random!);
+        Game.GuildDiscoveryTokens = new Deck<DiscoveryToken>(Game.Random!);
 
         if (Game.Applicable(Rule.DiscoveryTokens))
         {
-            Game.YellowDiscoveryTokens.Items.Add(DiscoveryToken.Jacurutu);
-            Game.YellowDiscoveryTokens.Items.Add(DiscoveryToken.Shrine);
-            Game.YellowDiscoveryTokens.Items.Add(DiscoveryToken.TestingStation);
-            Game.YellowDiscoveryTokens.Items.Add(DiscoveryToken.Cistern);
-            Game.YellowDiscoveryTokens.Shuffle();
+            Game.FremenDiscoveryTokens.Items.Add(DiscoveryToken.Jacurutu);
+            Game.FremenDiscoveryTokens.Items.Add(DiscoveryToken.Shrine);
+            Game.FremenDiscoveryTokens.Items.Add(DiscoveryToken.TestingStation);
+            Game.FremenDiscoveryTokens.Items.Add(DiscoveryToken.Cistern);
+            Game.FremenDiscoveryTokens.Shuffle();
 
-            Game.OrangeDiscoveryTokens.Items.Add(DiscoveryToken.ProcessingStation);
-            Game.OrangeDiscoveryTokens.Items.Add(DiscoveryToken.CardStash);
-            Game.OrangeDiscoveryTokens.Items.Add(DiscoveryToken.ResourceStash);
-            Game.OrangeDiscoveryTokens.Items.Add(DiscoveryToken.Flight);
-            Game.OrangeDiscoveryTokens.Shuffle();
+            Game.GuildDiscoveryTokens.Items.Add(DiscoveryToken.ProcessingStation);
+            Game.GuildDiscoveryTokens.Items.Add(DiscoveryToken.CardStash);
+            Game.GuildDiscoveryTokens.Items.Add(DiscoveryToken.ResourceStash);
+            Game.GuildDiscoveryTokens.Items.Add(DiscoveryToken.Flight);
+            Game.GuildDiscoveryTokens.Shuffle();
         }
     }
 
@@ -389,19 +389,19 @@ public class EstablishPlayers : GameEvent
                 {
                     var bot = available.Draw() switch
                     {
-                        Faction.Black => new Player(Game, Faction.Black),
-                        Faction.Blue => new Player(Game, Faction.Blue),
-                        Faction.Green => new Player(Game, Faction.Green),
-                        Faction.Yellow => new Player(Game, Faction.Yellow),
-                        Faction.Red => new Player(Game, Faction.Red),
-                        Faction.Orange => new Player(Game, Faction.Orange),
-                        Faction.Grey => new Player(Game, Faction.Grey),
-                        Faction.Purple => new Player(Game, Faction.Purple),
-                        Faction.Brown => new Player(Game, Faction.Brown),
-                        Faction.White => new Player(Game, Faction.White),
-                        Faction.Pink => new Player(Game, Faction.Pink),
-                        Faction.Cyan => new Player(Game, Faction.Cyan),
-                        _ => new Player(Game, Faction.Black)
+                        Faction.Harkonnen => new Player(Game, Faction.Harkonnen),
+                        Faction.BeneGesserit => new Player(Game, Faction.BeneGesserit),
+                        Faction.Atreides => new Player(Game, Faction.Atreides),
+                        Faction.Fremen => new Player(Game, Faction.Fremen),
+                        Faction.Emperor => new Player(Game, Faction.Emperor),
+                        Faction.Guild => new Player(Game, Faction.Guild),
+                        Faction.Ixian => new Player(Game, Faction.Ixian),
+                        Faction.Tleilaxu => new Player(Game, Faction.Tleilaxu),
+                        Faction.Choam => new Player(Game, Faction.Choam),
+                        Faction.Richese => new Player(Game, Faction.Richese),
+                        Faction.Ecaz => new Player(Game, Faction.Ecaz),
+                        Faction.Moritani => new Player(Game, Faction.Moritani),
+                        _ => new Player(Game, Faction.Harkonnen)
                     };
 
                     Game.Players.Add(bot);

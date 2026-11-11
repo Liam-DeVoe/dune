@@ -34,10 +34,10 @@ public class Tests
     // ReSharper disable UnusedParameter.Local
     private void SaveSpecialCases(Game g, GameEvent e)
     {
-        //if (g.Version > 160 && g.Applicable(Rule.DiscoveryTokens) && g.DiscoveriesOnPlanet.Values.Any(d => d.Token == DiscoveryToken.Jacurutu) && e is YellowRidesMonster ) WriteSaveGameIfApplicable(g, e.Player, "yellow rides");
+        //if (g.Version > 160 && g.Applicable(Rule.DiscoveryTokens) && g.DiscoveriesOnPlanet.Values.Any(d => d.Token == DiscoveryToken.Jacurutu) && e is FremenRidesMonster ) WriteSaveGameIfApplicable(g, e.Player, "fremen rides");
 
         /*
-        if (g.Version >= 164 && e is Shipment s && e.Initiator is Faction.Red
+        if (g.Version >= 164 && e is Shipment s && e.Initiator is Faction.Emperor
                             && s.Player.SpecialForcesInReserve > 0
                             && s.Player.ForcesInReserve > 0
                             && (Shipment.HomeworldsToShipFrom(s.Player, true).Count() > 1 || Shipment.HomeworldsToShipFrom(s.Player, false).Count() > 1))
@@ -76,14 +76,14 @@ public class Tests
             {
                 var allyOfBattleLoser = battleLoser.AlliedPlayer;
                 if (battleLoser.AnyForcesIn(g.CurrentBattle!.Territory) > 0 || 
-                    (allyOfBattleLoser != null && (!battleLoser.Is(Faction.Pink) || !allyOfBattleLoser.Is(Faction.Blue)) && allyOfBattleLoser.OccupyingForcesIn(g.CurrentBattle.Territory) > 0)) return "Loser of battle still has forces in the territory - " + g.History.Count;
+                    (allyOfBattleLoser != null && (!battleLoser.Is(Faction.Ecaz) || !allyOfBattleLoser.Is(Faction.BeneGesserit)) && allyOfBattleLoser.OccupyingForcesIn(g.CurrentBattle.Territory) > 0)) return "Loser of battle still has forces in the territory - " + g.History.Count;
             }
         }
 
         var player = g.Players.FirstOrDefault(x => x.ForcesInReserve < 0 || x.SpecialForcesInReserve < 0);
         if (player != null) return "Negative forces " + player.Faction + " after " + e.GetType().Name + " - " + g.History.Count;
 
-        player = g.Players.FirstOrDefault(x => x.Faction == Faction.White && (x.SpecialForcesInReserve != 0 || x.SpecialForcesKilled != 0));
+        player = g.Players.FirstOrDefault(x => x.Faction == Faction.Richese && (x.SpecialForcesInReserve != 0 || x.SpecialForcesKilled != 0));
         if (player != null) return "Invalid forces " + player.Faction + " after " + e.GetType().Name + " - " + g.History.Count;
 
         if (g.CurrentTurn > 1 || g.CurrentMainPhase > MainPhase.Storm)
@@ -104,14 +104,14 @@ public class Tests
         if (g.CurrentMainPhase is MainPhase.Resurrection && e is Revival r)
         {
             var totalForceRevivals = g.TotalRevivalsThisTurn.GetValueOrDefault(e.Initiator, 0);
-            if (totalForceRevivals > 8 && !g.IsPlaying(Faction.Purple) && g.CurrentRecruitsPlayed == null && e.Initiator is not Faction.Brown)
+            if (totalForceRevivals > 8 && !g.IsPlaying(Faction.Tleilaxu) && g.CurrentRecruitsPlayed == null && e.Initiator is not Faction.Choam)
                 return "More than 8 revivals by " + e.Initiator;
 
-            if (totalForceRevivals > 4 && (g.Version > 169 || e.Initiator is not Faction.Grey) && !g.IsPlaying(Faction.Purple) && 
-                g.CurrentRecruitsPlayed == null && e.Initiator is not Faction.Brown && !g.HasLowThreshold(e.Initiator) && g.GetPlayer(r.Initiator)!.Ally is not Faction.Red && !r.UsesRedSecretAlly && (e.Initiator is not Faction.Grey || r.AmountOfSpecialForces == 0 || g.HasLowThreshold(e.Initiator))) 
+            if (totalForceRevivals > 4 && (g.Version > 169 || e.Initiator is not Faction.Ixian) && !g.IsPlaying(Faction.Tleilaxu) && 
+                g.CurrentRecruitsPlayed == null && e.Initiator is not Faction.Choam && !g.HasLowThreshold(e.Initiator) && g.GetPlayer(r.Initiator)!.Ally is not Faction.Emperor && !r.UsesEmperorSecretAlly && (e.Initiator is not Faction.Ixian || r.AmountOfSpecialForces == 0 || g.HasLowThreshold(e.Initiator))) 
                 return "More than 4 revivals by " + e.Initiator;
 
-            if (g.Version is < 180 or >= 185 && e.Initiator is not Faction.Purple && e.Initiator is not Faction.Brown && e is Revival { Hero: not null } && g.LeaderRevivalsThisTurn.GetValueOrDefault(e.Initiator, 0) > 1)
+            if (g.Version is < 180 or >= 185 && e.Initiator is not Faction.Tleilaxu && e.Initiator is not Faction.Choam && e is Revival { Hero: not null } && g.LeaderRevivalsThisTurn.GetValueOrDefault(e.Initiator, 0) > 1)
                 return "Two leaders revived by " + e.Initiator;
         }
 
@@ -119,9 +119,9 @@ public class Tests
         {
             player = g.Players.FirstOrDefault(x =>
                 x.ForcesKilled + x.ForcesInLocations.Sum(b => b.Value.AmountOfForces) +
-                (x.Faction != Faction.White ? x.SpecialForcesKilled + x.ForcesInLocations.Sum(b => b.Value.AmountOfSpecialForces) : 0) != 20);
+                (x.Faction != Faction.Richese ? x.SpecialForcesKilled + x.ForcesInLocations.Sum(b => b.Value.AmountOfSpecialForces) : 0) != 20);
 
-            if (player != null && (g.Version >= 157 || !player.Is(Faction.Purple))) return "Illegal number of forces " + player.Faction + " - " + g.History.Count;
+            if (player != null && (g.Version >= 157 || !player.Is(Faction.Tleilaxu))) return "Illegal number of forces " + player.Faction + " - " + g.History.Count;
         }
 
         if (g.Players.Any(x => x.Leaders.Count(l => l.HeroType != HeroType.Vidal && g.IsInFrontOfShield(l)) > 1)) return "More than 1 leader in front of shield after " + e.GetType().Name + " - " + g.History.Count;
@@ -144,7 +144,7 @@ public class Tests
                 g.Players.Sum(p => p.TreacheryCards.Count)
                 + g.TreacheryDeck!.Items.Count
                 + g.TreacheryDiscardPile!.Items.Count
-                + g.WhiteCache.Count
+                + g.RicheseCache.Count
                 + (g.CardsOnAuction != null ? g.CardsOnAuction.Items.Count : 0)
                 + (g.Players.Any(p => g.GetCardSetAsideForBid(p) != null) ? 1 : 0)
                 + g.RemovedTreacheryCards.Count;
@@ -191,29 +191,29 @@ public class Tests
         player = g.Players.FirstOrDefault(p => p.TreacheryCards.Count > p.MaximumNumberOfCards);
         if (player != null && g.CurrentPhase != Phase.PerformingKarmaHandSwap && g.CurrentPhase != Phase.Discarding) return "Too many cards after " + e.GetType().Name + " - " + g.History.Count;
 
-        var blue = g.GetPlayer(Faction.Blue);
+        var bene_gesserit = g.GetPlayer(Faction.BeneGesserit);
         
-        if (blue != null &&
+        if (bene_gesserit != null &&
             (!g.Applicable(Rule.DisableNovaFlipping) || g.CurrentMainPhase <= MainPhase.ShipmentAndMove) &&
-            blue.ForcesInLocations.Any(bat => bat.Value.AmountOfSpecialForces > 0 && !g.Players.Any(x => x.Occupies(bat.Key.Territory))))
+            bene_gesserit.ForcesInLocations.Any(bat => bat.Value.AmountOfSpecialForces > 0 && !g.Players.Any(x => x.Occupies(bat.Key.Territory))))
             return "Lonely advisor - " + g.History.Count;
 
-        if (g.Version >= 148 && blue != null && g.Map.Territories(true).Any(t => blue.ForcesIn(t) > 0 && blue.SpecialForcesIn(t) > 0)) return "Advisor and fighter together - " + g.History.Count;
+        if (g.Version >= 148 && bene_gesserit != null && g.Map.Territories(true).Any(t => bene_gesserit.ForcesIn(t) > 0 && bene_gesserit.SpecialForcesIn(t) > 0)) return "Advisor and fighter together - " + g.History.Count;
 
-        if (g.Players.Any(x => x.Leaders.Any(l => l.HeroType != HeroType.Vidal && l.Faction != x.Faction && x.Faction != Faction.Purple && !g.CapturedLeaders.ContainsKey(l)))) return "Lost Leader - " + g.History.Count;
+        if (g.Players.Any(x => x.Leaders.Any(l => l.HeroType != HeroType.Vidal && l.Faction != x.Faction && x.Faction != Faction.Tleilaxu && !g.CapturedLeaders.ContainsKey(l)))) return "Lost Leader - " + g.History.Count;
 
         if (g.CurrentPhase == Phase.BeginningOfCollection)
         {
-            var terr = g.OccupyingForcesOnPlanet.Where(kvp => !kvp.Key.Equals(g.Map.PolarSink) && !g.IsInStorm(kvp.Key.Territory) && kvp.Value.Count(b => b.Faction != Faction.Pink) > 1).Select(kvp => kvp.Key).FirstOrDefault();
+            var terr = g.OccupyingForcesOnPlanet.Where(kvp => !kvp.Key.Equals(g.Map.PolarSink) && !g.IsInStorm(kvp.Key.Territory) && kvp.Value.Count(b => b.Faction != Faction.Ecaz) > 1).Select(kvp => kvp.Key).FirstOrDefault();
             if (terr != null) return "Territory occupied by more than one faction - " + g.History.Count;
         }
 
-        var pinkPlayer = g.GetPlayer(Faction.Pink);
+        var ecazPlayer = g.GetPlayer(Faction.Ecaz);
         if (g is { Version: > 170, CurrentMainPhase: not MainPhase.ShipmentAndMove })
         {
             foreach (var s in g.Map.Strongholds)
             {
-                if (pinkPlayer != null && pinkPlayer.AnyForcesIn(s) > 0)
+                if (ecazPlayer != null && ecazPlayer.AnyForcesIn(s) > 0)
                     continue; //ignore this check
                 
                 if (g.OccupyingForcesOnPlanet.GetValueOrDefault(s, []).Count > 2)
@@ -231,11 +231,11 @@ public class Tests
             if (aggressor.AlliedPlayer == defender) return "Battle between allies - " + g.History.Count;
         }
 
-        var pink = g.GetPlayer(Faction.Pink);
-        if (pink != null)
+        var ecaz = g.GetPlayer(Faction.Ecaz);
+        if (ecaz != null)
         {
-            var actualAmount = g.AmbassadorsOnPlanet.Count(kvp => kvp.Value != Ambassador.Blue) + g.UnassignedAmbassadors!.Items.Count(a => a != Ambassador.Blue) + g.AmbassadorsSetAside.Count(a => a != Ambassador.Blue) + pink.Ambassadors.Count(a => a != Ambassador.Blue);
-            var expectedAmount = EstablishPlayers.AvailableFactions().Count(f => f != Faction.Blue) - 1;
+            var actualAmount = g.AmbassadorsOnPlanet.Count(kvp => kvp.Value != Ambassador.BeneGesserit) + g.UnassignedAmbassadors!.Items.Count(a => a != Ambassador.BeneGesserit) + g.AmbassadorsSetAside.Count(a => a != Ambassador.BeneGesserit) + ecaz.Ambassadors.Count(a => a != Ambassador.BeneGesserit);
+            var expectedAmount = EstablishPlayers.AvailableFactions().Count(f => f != Faction.BeneGesserit) - 1;
 
             if (actualAmount != expectedAmount)
                 return $"Invalid number of ambassadors: {actualAmount} != {expectedAmount} - " + g.History.Count;
@@ -280,7 +280,7 @@ public class Tests
         //Expansion, advanced game:
         var rules = Game.RulesetDefinition[Ruleset.ExpansionAdvancedGame].ToList();
         rules.Add(Rule.FillWithBots);
-        var allFactions = new List<Faction> { Faction.White, Faction.Brown, Faction.Grey, Faction.Green, Faction.Orange, Faction.Red, Faction.Blue, Faction.Yellow, Faction.Purple, Faction.Black };
+        var allFactions = new List<Faction> { Faction.Richese, Faction.Choam, Faction.Ixian, Faction.Atreides, Faction.Guild, Faction.Emperor, Faction.BeneGesserit, Faction.Fremen, Faction.Tleilaxu, Faction.Harkonnen };
         var nrOfPlayers = 6;
         var nrOfTurns = 7;
         rules.Add(Rule.BotsCannotAlly);
@@ -909,7 +909,7 @@ public class Tests
             }
             else if (latest is Revival revive)
             {
-                statistics.ReviveSpiceUsed.Add(new Tuple<Faction, int, float>(revive.Initiator, game.CurrentTurn, Revival.DetermineCost(game, revive.Player, revive.Hero, revive.AmountOfForces, revive.AmountOfSpecialForces, revive.ExtraForcesPaidByRed, revive.ExtraSpecialForcesPaidByRed, revive.UsesRedSecretAlly).TotalCost));
+                statistics.ReviveSpiceUsed.Add(new Tuple<Faction, int, float>(revive.Initiator, game.CurrentTurn, Revival.DetermineCost(game, revive.Player, revive.Hero, revive.AmountOfForces, revive.AmountOfSpecialForces, revive.ExtraForcesPaidByEmperor, revive.ExtraSpecialForcesPaidByEmperor, revive.UsesEmperorSecretAlly).TotalCost));
             }
             
             if (game.WinningBid != null && game.WinningBid != previousWinningBid)
@@ -1014,10 +1014,10 @@ public class Tests
     }
 
     [DataTestMethod]
-    [DataRow(Faction.White, 3, 1)]
-    [DataRow(Faction.White, -1, 0)]
-    [DataRow(Faction.Black, 3, 0)]
-    [DataRow(Faction.Black, 5, 0)]
+    [DataRow(Faction.Richese, 3, 1)]
+    [DataRow(Faction.Richese, -1, 0)]
+    [DataRow(Faction.Harkonnen, 3, 0)]
+    [DataRow(Faction.Harkonnen, 5, 0)]
     public void NoFieldShipmentOnlyAddsSpecialForceForRichese(Faction faction, int noFieldValue, int expected)
     {
         Assert.AreEqual(expected, Shipment.DefaultNoFieldSpecialForceAmount(faction, noFieldValue));

@@ -59,10 +59,10 @@ public sealed class BlowLogTests
             Message.Express(from, " ", change, " ", to).WithLog(new NexusLog(Alliance: new NexusAlliance(change, from, to)));
         var messages = new List<Message>
         {
-            Change(NexusAllianceChange.Offered, Faction.Blue, Faction.Black),
-            Change(NexusAllianceChange.Offered, Faction.Yellow, Faction.Black),
-            Change(NexusAllianceChange.Made, Faction.Black, Faction.Yellow),
-            Change(NexusAllianceChange.Ended, Faction.Red, Faction.Orange),
+            Change(NexusAllianceChange.Offered, Faction.BeneGesserit, Faction.Harkonnen),
+            Change(NexusAllianceChange.Offered, Faction.Fremen, Faction.Harkonnen),
+            Change(NexusAllianceChange.Made, Faction.Harkonnen, Faction.Fremen),
+            Change(NexusAllianceChange.Ended, Faction.Emperor, Faction.Guild),
         };
         var component = test.RenderContext.Render<BlowLog>(p => p.Add(x => x.Messages, messages).Add(x => x.Line, _ => _ => { }));
 
@@ -71,9 +71,9 @@ public sealed class BlowLogTests
             .ToArray();
         CollectionAssert.AreEqual(new[]
         {
-            ("offer an alliance to", "Blue,Black"),
-            ("allied with", "Yellow,Black"),
-            ("ended their alliance with", "Red,Orange"),
+            ("offer an alliance to", "BeneGesserit,Harkonnen"),
+            ("allied with", "Fremen,Harkonnen"),
+            ("ended their alliance with", "Emperor,Guild"),
         }, rows);
     }
 

@@ -15,7 +15,7 @@ public partial class Game
 
     internal bool ExtortionToBeReturned { get; set; }
     public Dictionary<Location, Faction> StrongholdOwnership { get; private set; } = new();
-    public bool CyanHasPerformedTerror { get; internal set; }
+    public bool MoritaniHasPerformedTerror { get; internal set; }
     public List<Player> Winners { get; } = [];
     public WinMethod WinMethod { get; private set; }
 
@@ -31,7 +31,7 @@ public partial class Game
         AllowAllPreventedFactionAdvantages([]);
         HandleEconomics();
         if (Version >= 108) AddBribesToPlayerResources();
-        CyanHasPerformedTerror = false;
+        MoritaniHasPerformedTerror = false;
 
         foreach (var p in Players)
             if (p.BankedResources > 0)
@@ -48,22 +48,22 @@ public partial class Game
     {
         switch (EconomicsStatus)
         {
-            case BrownEconomicsStatus.Double:
-                EconomicsStatus = BrownEconomicsStatus.CancelFlipped;
-                Log(Faction.Brown, " The Economics Token flips to Cancel.");
+            case ChoamEconomicsStatus.Double:
+                EconomicsStatus = ChoamEconomicsStatus.CancelFlipped;
+                Log(Faction.Choam, " The Economics Token flips to Cancel.");
                 Stone(Milestone.Economics);
                 break;
 
-            case BrownEconomicsStatus.Cancel:
-                EconomicsStatus = BrownEconomicsStatus.DoubleFlipped;
-                Log(Faction.Brown, " The Economics Token flips to Double.");
+            case ChoamEconomicsStatus.Cancel:
+                EconomicsStatus = ChoamEconomicsStatus.DoubleFlipped;
+                Log(Faction.Choam, " The Economics Token flips to Double.");
                 Stone(Milestone.Economics);
                 break;
 
-            case BrownEconomicsStatus.DoubleFlipped:
-            case BrownEconomicsStatus.CancelFlipped:
-                EconomicsStatus = BrownEconomicsStatus.RemovedFromGame;
-                Log(Faction.Brown, " The Economics Token has been removed from the game.");
+            case ChoamEconomicsStatus.DoubleFlipped:
+            case ChoamEconomicsStatus.CancelFlipped:
+                EconomicsStatus = ChoamEconomicsStatus.RemovedFromGame;
+                Log(Faction.Choam, " The Economics Token has been removed from the game.");
                 Stone(Milestone.Economics);
                 break;
         }
@@ -71,31 +71,31 @@ public partial class Game
 
     private void EnterContemplatePause()
     {
-        DetermineIfCyanDrawsNewTraitor();
+        DetermineIfMoritaniDrawsNewTraitor();
         ExtortionToBeReturned = Players.Any(p => p.Extortion > 0);
         GainExtortions();
 
-        if (BlackTraitorWasCancelled)
+        if (HarkonnenTraitorWasCancelled)
         {
-            BlackTraitorWasCancelled = false;
-            GetPlayer(Faction.Black)?.Traitors.Add(TraitorDeck!.Draw());
-            Log(Faction.Black, " drew a new traitor after having been betrayed");
+            HarkonnenTraitorWasCancelled = false;
+            GetPlayer(Faction.Harkonnen)?.Traitors.Add(TraitorDeck!.Draw());
+            Log(Faction.Harkonnen, " drew a new traitor after having been betrayed");
         }
 
         Enter(ExtortionToBeReturned, Phase.Extortion, EndContemplatePause);
     }
 
-    private void DetermineIfCyanDrawsNewTraitor()
+    private void DetermineIfMoritaniDrawsNewTraitor()
     {
-        var cyan = GetPlayer(Faction.Cyan);
-        if (cyan == null) return;
+        var moritani = GetPlayer(Faction.Moritani);
+        if (moritani == null) return;
         
-        foreach (var l in Assassinated.Where(l => cyan.RevealedTraitors.Contains(l)).ToList())
+        foreach (var l in Assassinated.Where(l => moritani.RevealedTraitors.Contains(l)).ToList())
         {
-            Log(Faction.Cyan, " draw a new traitor to replace ", l);
-            cyan.Traitors.Remove(l);
-            cyan.RevealedTraitors.Remove(l);
-            cyan.Traitors.Add(TraitorDeck!.Draw());
+            Log(Faction.Moritani, " draw a new traitor to replace ", l);
+            moritani.Traitors.Remove(l);
+            moritani.RevealedTraitors.Remove(l);
+            moritani.Traitors.Add(TraitorDeck!.Draw());
         }
     }
 
@@ -103,7 +103,7 @@ public partial class Game
     {
         if (ExtortionToBeReturned)
         {
-            Log(Faction.Cyan, " regain their ", TerrorType.Extortion, " token");
+            Log(Faction.Moritani, " regain their ", TerrorType.Extortion, " token");
             UnplacedTerrorTokens.Add(TerrorType.Extortion);
         }
 
@@ -124,7 +124,7 @@ public partial class Game
     internal void ContinueContemplatePhase()
     {
         CheckNormalWin();
-        CheckBluePrediction();
+        CheckBeneGesseritPrediction();
         CheckFinalTurnWin();
 
         if (Winners.Count > 0 || CurrentTurn == MaximumTurns)
@@ -138,7 +138,7 @@ public partial class Game
         }
         else
         {
-            Enter(IsPlaying(Faction.Purple) && (Version < 113 || !Prevented(FactionAdvantage.PurpleReplacingFaceDancer)), Phase.ReplacingFaceDancer, Phase.TurnConcluded);
+            Enter(IsPlaying(Faction.Tleilaxu) && (Version < 113 || !Prevented(FactionAdvantage.TleilaxuReplacingFaceDancer)), Phase.ReplacingFaceDancer, Phase.TurnConcluded);
         }
 
         DetermineStrongholdOwnership();
@@ -214,18 +214,18 @@ public partial class Game
             return;
         
         CheckOtherWinConditions();
-        CheckBluePrediction();
+        CheckBeneGesseritPrediction();
     }
 
-    private void CheckBluePrediction()
+    private void CheckBeneGesseritPrediction()
     {
-        var blue = GetPlayer(Faction.Blue);
-        if (blue != null && blue.PredictedTurn == CurrentTurn && Winners.Any(w => w.Faction == blue.PredictedFaction))
+        var bene_gesserit = GetPlayer(Faction.BeneGesserit);
+        if (bene_gesserit != null && bene_gesserit.PredictedTurn == CurrentTurn && Winners.Any(w => w.Faction == bene_gesserit.PredictedFaction))
         {
-            LogWinReason(WinMethod.Prediction, Faction.Blue, " predicted ", blue.PredictedFaction, " victory in turn ", blue.PredictedTurn, "! They had everything planned...");
+            LogWinReason(WinMethod.Prediction, Faction.BeneGesserit, " predicted ", bene_gesserit.PredictedFaction, " victory in turn ", bene_gesserit.PredictedTurn, "! They had everything planned...");
             WinMethod = WinMethod.Prediction;
             Winners.Clear();
-            Winners.Add(blue);
+            Winners.Add(bene_gesserit);
         }
     }
 
@@ -280,8 +280,8 @@ public partial class Game
     public bool MeetsNormalVictoryCondition(Player p, bool contestedStrongholdsCountAsOccupied)
     {
         return
-            MeetsPinkVictoryCondition(p, contestedStrongholdsCountAsOccupied) ||
-            MeetsHighThresholdPinkVictoryCondition(p, contestedStrongholdsCountAsOccupied) ||
+            MeetsEcazVictoryCondition(p, contestedStrongholdsCountAsOccupied) ||
+            MeetsHighThresholdEcazVictoryCondition(p, contestedStrongholdsCountAsOccupied) ||
             NumberOfVictoryPoints(p, contestedStrongholdsCountAsOccupied) >= ThresholdForWin(p);
     }
 
@@ -299,18 +299,18 @@ public partial class Game
 
     private IEnumerable<Territory> Strongholds => Map.Territories(false).Where(t => t.IsStronghold || IsSpecialStronghold(t));
 
-    private bool MeetsPinkVictoryCondition(Player p, bool contestedStrongholdsCountAsOccupied)
+    private bool MeetsEcazVictoryCondition(Player p, bool contestedStrongholdsCountAsOccupied)
     {
-        return ((p.Is(Faction.Pink) && p.HasAlly) || p.Ally == Faction.Pink) &&
+        return ((p.Is(Faction.Ecaz) && p.HasAlly) || p.Ally == Faction.Ecaz) &&
                Strongholds.Count(t =>
                    p.Controls(this, t, contestedStrongholdsCountAsOccupied) &&
                    p.AlliedPlayer!.Controls(this, t, contestedStrongholdsCountAsOccupied)) >= 3;
     }
 
-    private bool MeetsHighThresholdPinkVictoryCondition(Player p, bool contestedStrongholdsCountAsOccupied)
+    private bool MeetsHighThresholdEcazVictoryCondition(Player p, bool contestedStrongholdsCountAsOccupied)
     {
-        return HasHighThreshold(Faction.Pink) &&
-               ((p.Is(Faction.Pink) && p.HasAlly) || p.Ally == Faction.Pink) &&
+        return HasHighThreshold(Faction.Ecaz) &&
+               ((p.Is(Faction.Ecaz) && p.HasAlly) || p.Ally == Faction.Ecaz) &&
                Strongholds.Any(t =>
                    p.Controls(this, t, contestedStrongholdsCountAsOccupied) &&
                    p.AlliedPlayer!.Controls(this, t, contestedStrongholdsCountAsOccupied)) &&
@@ -342,41 +342,41 @@ public partial class Game
 
     private void CheckSpecialWinConditions()
     {
-        var yellow = GetPlayer(Faction.Yellow);
-        var orange = GetPlayer(Faction.Orange);
+        var fremen = GetPlayer(Faction.Fremen);
+        var guild = GetPlayer(Faction.Guild);
 
-        if (yellow != null && YellowVictoryConditionMet)
+        if (fremen != null && FremenVictoryConditionMet)
         {
-            LogWinReason(WinMethod.YellowSpecial, Faction.Yellow, " special victory conditions are met!");
-            WinMethod = WinMethod.YellowSpecial;
-            Winners.Add(yellow);
-            if (yellow.HasAlly) Winners.Add(yellow.AlliedPlayer);
+            LogWinReason(WinMethod.FremenSpecial, Faction.Fremen, " special victory conditions are met!");
+            WinMethod = WinMethod.FremenSpecial;
+            Winners.Add(fremen);
+            if (fremen.HasAlly) Winners.Add(fremen.AlliedPlayer);
         }
-        else if (orange != null && !Applicable(Rule.DisableOrangeSpecialVictory))
+        else if (guild != null && !Applicable(Rule.DisableGuildSpecialVictory))
         {
-            LogWinReason(WinMethod.OrangeSpecial, Faction.Orange, " special victory conditions are met!");
-            WinMethod = WinMethod.OrangeSpecial;
-            Winners.Add(orange);
-            if (orange.HasAlly) Winners.Add(orange.AlliedPlayer);
+            LogWinReason(WinMethod.GuildSpecial, Faction.Guild, " special victory conditions are met!");
+            WinMethod = WinMethod.GuildSpecial;
+            Winners.Add(guild);
+            if (guild.HasAlly) Winners.Add(guild.AlliedPlayer);
         }
-        else if (yellow != null && !Applicable(Rule.DisableOrangeSpecialVictory))
+        else if (fremen != null && !Applicable(Rule.DisableGuildSpecialVictory))
         {
-            LogWinReason(WinMethod.OrangeSpecial, Faction.Yellow, " win because ", Faction.Orange, " are not playing and no one else won");
-            WinMethod = WinMethod.OrangeSpecial;
-            Winners.Add(yellow);
-            if (yellow.HasAlly) Winners.Add(yellow.AlliedPlayer);
+            LogWinReason(WinMethod.GuildSpecial, Faction.Fremen, " win because ", Faction.Guild, " are not playing and no one else won");
+            WinMethod = WinMethod.GuildSpecial;
+            Winners.Add(fremen);
+            if (fremen.HasAlly) Winners.Add(fremen.AlliedPlayer);
         }
     }
 
-    public bool YellowVictoryConditionMet
+    public bool FremenVictoryConditionMet
     {
         get
         {
-            var sietchTabrOccupiedByOtherThanYellow = Players.Any(p => p.Faction != Faction.Yellow && (p.Faction != Faction.Pink || p.Ally != Faction.Yellow) && p.Occupies(Map.SietchTabr));
-            var habbanyaSietchOccupiedByOtherThanYellow = Players.Any(p => p.Faction != Faction.Yellow && (p.Faction != Faction.Pink || p.Ally != Faction.Yellow) && p.Occupies(Map.HabbanyaSietch));
-            var tueksSietchOccupiedByGreenOrBlackOrRedOrWhite = Players.Any(p => (p.Is(Faction.Green) || p.Is(Faction.Black) || p.Is(Faction.Red) || p.Is(Faction.White)) && p.Occupies(Map.TueksSietch));
+            var sietchTabrOccupiedByOtherThanFremen = Players.Any(p => p.Faction != Faction.Fremen && (p.Faction != Faction.Ecaz || p.Ally != Faction.Fremen) && p.Occupies(Map.SietchTabr));
+            var habbanyaSietchOccupiedByOtherThanFremen = Players.Any(p => p.Faction != Faction.Fremen && (p.Faction != Faction.Ecaz || p.Ally != Faction.Fremen) && p.Occupies(Map.HabbanyaSietch));
+            var tueksSietchOccupiedByAtreidesOrHarkonnenOrEmperorOrRichese = Players.Any(p => (p.Is(Faction.Atreides) || p.Is(Faction.Harkonnen) || p.Is(Faction.Emperor) || p.Is(Faction.Richese)) && p.Occupies(Map.TueksSietch));
 
-            return CurrentTurn == MaximumTurns && !sietchTabrOccupiedByOtherThanYellow && !habbanyaSietchOccupiedByOtherThanYellow && !tueksSietchOccupiedByGreenOrBlackOrRedOrWhite;
+            return CurrentTurn == MaximumTurns && !sietchTabrOccupiedByOtherThanFremen && !habbanyaSietchOccupiedByOtherThanFremen && !tueksSietchOccupiedByAtreidesOrHarkonnenOrEmperorOrRichese;
         }
     }
 

@@ -6,14 +6,14 @@ ZOOM = (450, 350)
 
 def run(r):
     # The Emperor shipping from reserves. Carthag is a valid, expensive destination.
-    with r.game("ship", "red") as g:
+    with r.game("ship", "emperor") as g:
         g.shot("ship-1-start")
         if r.after:
             g.click("Carthag")
             g.shot("ship-2-pinned", zoom="Carthag", size=ZOOM)
 
     # The Guild, holding Habbanya Sietch and Sietch Tabr: site to site, then back to reserves.
-    with r.game("ship-guild", "orange") as g:
+    with r.game("ship-guild", "guild") as g:
         g.shot("ship-guild-1-start")
         if r.after:
             g.click("Habbanya Sietch")
@@ -30,7 +30,7 @@ def run(r):
             g.shot("ship-guild-4-reserves", zoom="Habbanya Sietch", size=ZOOM)
 
     # The Fremen bringing forces onto the planet for free.
-    with r.game("ship-fremen", "yellow") as g:
+    with r.game("ship-fremen", "fremen") as g:
         g.shot("ship-fremen-1-start")
         if r.after:
             g.click("The Great Flat")

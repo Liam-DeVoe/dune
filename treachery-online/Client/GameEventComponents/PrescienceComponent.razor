@@ -13,7 +13,7 @@
     <Header>Use Prescience</Header>
     <Body>
 
-        @if (Game.CurrentBattle.IsInvolved(Faction.Blue))
+        @if (Game.CurrentBattle.IsInvolved(Faction.BeneGesserit))
         {
             <div class="text-info small mb-2">Note: Voice should be used before Prescience.</div>
         }
@@ -30,7 +30,7 @@
 
 @code {
 
-    protected override Faction IsFactionSpecific => Faction.Green;
+    protected override Faction IsFactionSpecific => Faction.Atreides;
 
     private PrescienceAspect aspect;
 

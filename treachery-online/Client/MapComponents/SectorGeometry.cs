@@ -27,6 +27,32 @@ public static class SectorGeometry
                $"A {Utilities.Round(scaleX * r)} {Utilities.Round(scaleY * r)} {angle} 0 0 {Utilities.Round(scaleX * endX)},{Utilities.Round(scaleY * endY)} Z";
     }
 
+    // The parts of a sector's wedge outline drawn separately, so a hover
+    // shape can drop the radial side it shares with a lit neighbour in the
+    // same territory. "start" is the side shared with sector - 1, "end" the
+    // side shared with sector + 1.
+    public static (string Start, string End, string Arc) WedgeEdges(Skin skin, int sector)
+    {
+        var scaleX = ReferenceWidth / skin.MapDimensions.X;
+        var scaleY = ReferenceHeight / skin.MapDimensions.Y;
+        var angle = 360f / Map.NumberOfSectors;
+        var r = skin.PlanetRadius;
+        var cx = skin.PlanetCenter.X;
+        var cy = skin.PlanetCenter.Y;
+
+        var startX = Math.Cos(2f * Math.PI * (6 - sector) / Map.NumberOfSectors) * r + cx;
+        var startY = Math.Sin(2f * Math.PI * (6 - sector) / Map.NumberOfSectors) * r + cy;
+        var endX = Math.Cos(2f * Math.PI * (5 - sector) / Map.NumberOfSectors) * r + cx;
+        var endY = Math.Sin(2f * Math.PI * (5 - sector) / Map.NumberOfSectors) * r + cy;
+
+        var c = $"{Utilities.Round(scaleX * cx)},{Utilities.Round(scaleY * cy)}";
+        var s = $"{Utilities.Round(scaleX * startX)},{Utilities.Round(scaleY * startY)}";
+        var e = $"{Utilities.Round(scaleX * endX)},{Utilities.Round(scaleY * endY)}";
+
+        return ($"M {c} L {s}", $"M {c} L {e}",
+                $"M {s} A {Utilities.Round(scaleX * r)} {Utilities.Round(scaleY * r)} {angle} 0 0 {e}");
+    }
+
     // Whether the skin knows where to draw this location. Homeworlds are drawn
     // relative to the player's token and have no fixed centre.
     public static bool HasCenter(Skin skin, Location l) =>

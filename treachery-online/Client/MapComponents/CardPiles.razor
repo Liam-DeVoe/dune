@@ -18,6 +18,9 @@
 
     double cardspacing = 1f;
 
+    if (Which == Pile.Spice)
+    {
+
     //Resource cards
     @if (!Game.ResourceCardDeck.IsEmpty)
     {
@@ -73,7 +76,11 @@
             ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="2" ShadowY="2" ShadowBlur="1" Popover=@Client.CurrentSkin.GetPopup(Game.SandTrout) PopoverStyle=""/>
     }
 
+    }
+
     //Treachery cards
+    if (Which == Pile.Treachery)
+    {
     x = Client.CurrentSkin.TreacheryDeckLocation.X;
     y = 1.02f * Client.CurrentSkin.TreacheryDeckLocation.Y;
 
@@ -104,25 +111,34 @@
                  Align="@TextAlignment.Center" />
     }
 
-    if (Game.WhiteCache.Count > 0)
+    if (Game.RicheseCache.Count > 0)
     {
         x = Client.CurrentSkin.TreacheryDeckLocation.X - cardWidth - cardspacing;
 
         <MapImage X="@(x)" Y=@y Width=@(cardWidth) Height="@(cardHeight)" Src="@Client.CurrentSkin.CardBack_TreacheryCard_URL" 
                ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="2" ShadowY="2" ShadowBlur="1" 
-               Popover="@IntelOfWhiteCardPile()" PopoverStyle=""/>
+               Popover="@IntelOfRicheseCardPile()" PopoverStyle=""/>
 
-        <MapImage X="@(x + cardWidth / 3)" Y="@(y + cardHeight / 8)" Diameter="@(cardWidth / 3)" Src="@Client.CurrentSkin.GetImageUrl(Faction.White)" ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="1" ShadowY="1" ShadowBlur="0" />
+        <MapImage X="@(x + cardWidth / 3)" Y="@(y + cardHeight / 8)" Diameter="@(cardWidth / 3)" Src="@Client.CurrentSkin.GetImageUrl(Faction.Richese)" ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="1" ShadowY="1" ShadowBlur="0" />
 
-        <MapText ToShow="@Game.WhiteCache.Count.ToString()"
+        <MapText ToShow="@Game.RicheseCache.Count.ToString()"
                  X="@(x + cardWidth / 2)" Y="@(y + cardHeight / 1.5f)"
                  Font="@Client.CurrentSkin.CARDPILE_FONT" FontColor="@Client.CurrentSkin.CARDPILE_FONTCOLOR"
                  BorderWidth="@Client.CurrentSkin.CARDPILE_FONT_BORDERWIDTH" BorderColor="@Client.CurrentSkin.CARDPILE_FONT_BORDERCOLOR"
                  Align="@TextAlignment.Center" />
     }
+    }
 }
 
 @code {
+
+    // The two piles are drawn separately so the board can move them apart:
+    // the spice deck to the bottom-left edge, the treachery deck to the
+    // bottom-right (see .map-corner in _map.scss).
+    public enum Pile { Spice, Treachery }
+
+    [Parameter]
+    public Pile Which { get; set; }
 
     // The top card's own popover. With note-keeping on, every card in the
     // pile instead, newest first, with the ones this player hasn't seen face
@@ -150,12 +166,12 @@
 
     // Richese's cards are known only to Richese, who sees them as thumbnails.
     // Other players get no popover, as with the treachery deck.
-    private string? IntelOfWhiteCardPile()
+    private string? IntelOfRicheseCardPile()
     {
-        if (Client.Faction != Faction.White || Client.Game.WhiteCache.Count == 0) return null;
+        if (Client.Faction != Faction.Richese || Client.Game.RicheseCache.Count == 0) return null;
 
-        var heading = $"{Client.CurrentSkin.FactionChipHtml(Faction.White, Client.Faction == Faction.White)} cards · {Client.Game.WhiteCache.Count}";
-        return PileHtml(heading, Client.Game.WhiteCache.Select(c => $"<img src=\"{Client.CurrentSkin.GetImageUrl(c)}\"/>"));
+        var heading = $"{Client.CurrentSkin.FactionChipHtml(Faction.Richese, Client.Faction == Faction.Richese)} cards · {Client.Game.RicheseCache.Count}";
+        return PileHtml(heading, Client.Game.RicheseCache.Select(c => $"<img src=\"{Client.CurrentSkin.GetImageUrl(c)}\"/>"));
     }
 
     // The latest card's own popover. With note-keeping on, every card in the

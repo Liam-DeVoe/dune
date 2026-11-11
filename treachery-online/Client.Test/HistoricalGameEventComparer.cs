@@ -65,10 +65,10 @@ internal static class HistoricalGameEventComparer
         }
 
         if (gameEvent is AmbassadorActivated &&
-            (json["_brownCardIds"] is null ||
-             string.IsNullOrEmpty(json["_brownCardIds"]?.GetValue<string>())))
+            (json["_choamCardIds"] is null ||
+             string.IsNullOrEmpty(json["_choamCardIds"]?.GetValue<string>())))
         {
-            json.Remove("_brownCardIds");
+            json.Remove("_choamCardIds");
         }
 
         if (gameEvent is ClairVoyancePlayed clairvoyance)
@@ -95,7 +95,7 @@ internal static class HistoricalGameEventComparer
             json.Remove(nameof(Battle.SpecialForcesAtHalfStrength));
         }
 
-        if (gameEvent is BlueAccompanies &&
+        if (gameEvent is BeneGesseritAccompanies &&
             gameEvent.Game.Version < Game.LatestVersion)
         {
             json.Remove("_targetId");

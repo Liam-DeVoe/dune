@@ -50,6 +50,8 @@ public interface IGameService
     public bool AutoPass { get; set; }
     public bool KeepAutoPassSetting { get; set; }
     public int Timer { get; set; }
+
+    PhaseControlInfo PhaseControl { get; }
     public bool MuteGlobalChat { get; set; }
 
     public event Action RefreshHandler;
@@ -131,6 +133,10 @@ public interface IGameService
     
     //Game Events
     Task<string> SetTimer(int value);
+    Task<string> RequestPhaseDone();
+    Task<string> RequestPhaseHold();
+    Task<string> RequestPhaseRelease();
+    Task<string> RequestPhaseContinue();
     Task<string?> RequestGameEvent<T>(T e) where T : GameEvent;
     
     //Chat

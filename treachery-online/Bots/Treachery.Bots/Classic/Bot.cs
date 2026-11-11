@@ -41,7 +41,7 @@ public partial class ClassicBot(Game game, Player player, BotParameters param, L
 
         if (Do(DetermineNexusPlayed, ref action, events) ||
             Do(DetermineDealCancelled, ref action, events) ||
-            Do(DetermineAcceptOrCancelPurpleRevival, ref action, events) ||
+            Do(DetermineAcceptOrCancelTleilaxuRevival, ref action, events) ||
             Do(DetermineThoughtAnswered, ref action, events) ||
             Do(DetermineThought, ref action, events)) return action;
 
@@ -67,7 +67,7 @@ public partial class ClassicBot(Game game, Player player, BotParameters param, L
             Do(DetermineSetIncreasedRevivalLimits, ref action, events) ||
             Do(DetermineSetShipmentPermission, ref action, events) ||
             Do(DetermineDealAccepted, ref action, events) ||
-            Do(DetermineRequestPurpleRevival, ref action, events) ||
+            Do(DetermineRequestTleilaxuRevival, ref action, events) ||
             Do(DetermineDistransUsed, ref action, events) ||
             Do(DetermineJuicePlayed, ref action, events) ||
             Do(DeterminePortableAntidoteUsed, ref action, events) ||
@@ -99,6 +99,7 @@ public partial class ClassicBot(Game game, Player player, BotParameters param, L
             Do(DetermineHarvesterPlayed, ref action, events) ||
             Do(DetermineAllianceBroken, ref action, events) ||
             Do(DetermineAllianceOffered, ref action, events) ||
+            Do(DetermineAlliancePassed, ref action, events) ||
             Do(DetermineAlliancePermissions, ref action, events) ||
             Do(DetermineCharityClaimed, ref action, events) ||
             Do(DetermineBlackMarketBid, ref action, events) ||
@@ -142,60 +143,60 @@ public partial class ClassicBot(Game game, Player player, BotParameters param, L
             Do(DetermineDiscoveryEntered, ref action, events) ||
             Do(DetermineResourcesTransferred, ref action, events) ||
 
-            //Brown
-            Do(DetermineBrownEconomics, ref action, events) ||
-            Do(DetermineBrownRemoveForce, ref action, events) ||
+            //Choam
+            Do(DetermineChoamEconomics, ref action, events) ||
+            Do(DetermineChoamRemoveForce, ref action, events) ||
             Do(DetermineResourcesAudited, ref action, events) ||
 
-            //Black
+            //Harkonnen
             Do(DetermineCaptured, ref action, events) ||
             Do(DetermineKarmaHandSwapInitiated, ref action, events) ||
             Do(DetermineKarmaHandSwap, ref action, events) ||
 
-            //Blue
-            Do(DetermineBlueAccompanies, ref action, events) ||
-            Do(DetermineBluePrediction, ref action, events) ||
-            Do(DetermineBlueFlip, ref action, events) ||
-            Do(DetermineBlueBattleAnnouncement, ref action, events) ||
-            Do(DetermineBluePlacement, ref action, events) ||
+            //BeneGesserit
+            Do(DetermineBeneGesseritAccompanies, ref action, events) ||
+            Do(DetermineBeneGesseritPrediction, ref action, events) ||
+            Do(DetermineBeneGesseritFlip, ref action, events) ||
+            Do(DetermineBeneGesseritBattleAnnouncement, ref action, events) ||
+            Do(DetermineBeneGesseritPlacement, ref action, events) ||
 
-            //Yellow
-            Do(DetermineYellowRidesMonster, ref action, events) ||
-            Do(DetermineYellowSentMonster, ref action, events) ||
-            Do(DeterminePerformYellowSetup, ref action, events) ||
+            //Fremen
+            Do(DetermineFremenRidesMonster, ref action, events) ||
+            Do(DetermineFremenSentMonster, ref action, events) ||
+            Do(DeterminePerformFremenSetup, ref action, events) ||
             Do(DetermineTakeLosses, ref action, events) ||
 
-            //Grey
-            Do(DetermineGreyRemovedCardFromAuction, ref action, events) ||
-            Do(DetermineGreySelectedStartingCard, ref action, events) ||
-            Do(DetermineGreySwappedCardOnBid, ref action, events) ||
+            //Ixian
+            Do(DetermineIxianRemovedCardFromAuction, ref action, events) ||
+            Do(DetermineIxianSelectedStartingCard, ref action, events) ||
+            Do(DetermineIxianSwappedCardOnBid, ref action, events) ||
             Do(DeterminePerformHmsPlacement, ref action, events) ||
             Do(DeterminePerformHmsMovement, ref action, events) ||
 
-            //Red
+            //Emperor
             Do(DetermineKarmaFreeRevival, ref action, events) ||
-            Do(DetermineRedDiscarded, ref action, events) ||
+            Do(DetermineEmperorDiscarded, ref action, events) ||
 
-            //Cyan
+            //Moritani
             Do(DetermineTerrorPlanted, ref action, events) ||
             Do(DetermineTerrorRevealed, ref action, events) ||
-            Do(DeterminePerformCyanSetup, ref action, events) ||
+            Do(DeterminePerformMoritaniSetup, ref action, events) ||
 
-            //Pink
+            //Ecaz
             Do(DetermineAmbassadorPlaced, ref action, events) ||
             Do(DetermineAmbassadorActivated, ref action, events) ||
 
-            //Purple
+            //Tleilaxu
             Do(DetermineFaceDancerRevealed, ref action, events) ||
             Do(DetermineFaceDanced, ref action, events) ||
             Do(DetermineFaceDancerReplaced, ref action, events) ||
 
-            //White
-            Do(DetermineWhiteAnnouncesBlackMarket, ref action, events) ||
-            Do(DetermineWhiteAnnouncesAuction, ref action, events) ||
-            Do(DetermineWhiteSpecifiesAuction, ref action, events) ||
-            Do(DetermineWhiteKeepsUnsoldCard, ref action, events) ||
-            Do(DetermineWhiteRevealedNoField, ref action, events)) return action;
+            //Richese
+            Do(DetermineRicheseAnnouncesBlackMarket, ref action, events) ||
+            Do(DetermineRicheseAnnouncesAuction, ref action, events) ||
+            Do(DetermineRicheseSpecifiesAuction, ref action, events) ||
+            Do(DetermineRicheseKeepsUnsoldCard, ref action, events) ||
+            Do(DetermineRicheseRevealedNoField, ref action, events)) return action;
 
         return null;
     }

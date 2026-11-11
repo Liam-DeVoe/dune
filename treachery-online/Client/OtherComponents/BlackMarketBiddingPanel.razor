@@ -14,7 +14,7 @@
 
 @code {
 
-    protected override BlackMarketBid ConfirmedResult => new(Game, Faction) { Passed = false, Amount = Amount, AllyContributionAmount = AllyContributionAmount, RedContributionAmount = RedContributionAmount };
+    protected override BlackMarketBid ConfirmedResult => new(Game, Faction) { Passed = false, Amount = Amount, AllyContributionAmount = AllyContributionAmount, EmperorContributionAmount = EmperorContributionAmount };
 
     protected override BlackMarketBid PassedResult => new(Game, Faction) { Passed = true };
 
@@ -22,7 +22,7 @@
 
     protected override bool CanUseKarma => false;
 
-    protected override bool CanUseRedSecretAlly => false;
+    protected override bool CanUseEmperorSecretAlly => false;
 
     protected override int MaxAllyBidAmount => BlackMarketBid.ValidMaxAllyAmount(Game, Player);
 

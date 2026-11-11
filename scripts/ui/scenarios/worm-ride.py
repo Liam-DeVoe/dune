@@ -11,7 +11,7 @@ OPEN_SAND = (400, 330)  # between Polar Sink and Tuek's; a place to aim the curs
 
 def run(r):
     # The worm appeared in Red Chasm, where the Fremen hold 4 forces and a Fedaykin.
-    with r.game("worm-ride", "yellow") as g:
+    with r.game("worm-ride", "fremen") as g:
         g.shot("worm-ride-1-start")
         if r.after:
             g.click("Red Chasm")
@@ -34,7 +34,7 @@ def run(r):
             g.shot("worm-ride-4-confirmed")
 
     # The Great Maker appeared; the Fremen have 9 forces and a Fedaykin in reserve.
-    with r.game("worm-ride-reserves", "yellow") as g:
+    with r.game("worm-ride-reserves", "fremen") as g:
         g.shot("worm-ride-reserves-1-start")
         if r.after:
             g.click("Polar Sink")

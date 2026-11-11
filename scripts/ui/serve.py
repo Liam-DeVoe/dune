@@ -21,10 +21,10 @@ sys.path.insert(0, str(HERE))
 from server import StaticServer  # noqa: E402
 
 EXAMPLES = [
-    ("Fremen move, source selected", {"fixture": "move", "faction": "yellow", "steps": "click:False Wall South (East Sector)"}),
-    ("Fremen move, nothing selected", {"fixture": "move", "faction": "yellow"}),
-    ("Emperor shipment", {"fixture": "ship", "faction": "red"}),
-    ("Guild shipment, site to site", {"fixture": "ship-guild", "faction": "orange"}),
+    ("Fremen move, source selected", {"fixture": "move", "faction": "fremen", "steps": "click:False Wall South (East Sector)"}),
+    ("Fremen move, nothing selected", {"fixture": "move", "faction": "fremen"}),
+    ("Emperor shipment", {"fixture": "ship", "faction": "emperor"}),
+    ("Guild shipment, site to site", {"fixture": "ship-guild", "faction": "guild"}),
 ]
 
 

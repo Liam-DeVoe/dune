@@ -76,7 +76,7 @@ public class TerrorRevealed : PassableGameEvent, ILocationEvent
 
         if (Passed || AllianceOffered) return null;
         if (!GetTypes(Game).Contains(Type)) return Message.Express("You cannot use this token");
-        if (Initiator != Faction.Cyan) return Message.Express("Your faction can't reveal terror tokens");
+        if (Initiator != Faction.Moritani) return Message.Express("Your faction can't reveal terror tokens");
 
         if (Type == TerrorType.SneakAttack && SneakAttackTo == null && ForcesInSneakAttack > 0) return Message.Express("You cannot send forces there");
         if (Type == TerrorType.SneakAttack && SneakAttackTo != null && !ValidSneakAttackTargets(Game, Player).Contains(SneakAttackTo)) return Message.Express("Invalid location of sneak attack");
@@ -93,9 +93,9 @@ public class TerrorRevealed : PassableGameEvent, ILocationEvent
     public static bool MayOfferAlliance(Game g)
     {
         var victim = g.GetPlayer(GetVictim(g));
-        var cyan = g.GetPlayer(Faction.Cyan);
+        var moritani = g.GetPlayer(Faction.Moritani);
 
-        return !g.AllianceByTerrorWasOffered && !g.Prevented(FactionAdvantage.CyanEnemyOfEnemy) && !victim.Is(Faction.Pink) && !cyan.HaveForcesOnEachOthersHomeWorlds(victim);
+        return !g.AllianceByTerrorWasOffered && !g.Prevented(FactionAdvantage.MoritaniEnemyOfEnemy) && !victim.Is(Faction.Ecaz) && !moritani.HaveForcesOnEachOthersHomeWorlds(victim);
     }
 
     public static Territory GetTerritory(Game g)
@@ -129,8 +129,8 @@ public class TerrorRevealed : PassableGameEvent, ILocationEvent
                l.Sector != g.SectorInStorm &&
                (!p.HasAlly || 
                 p.AlliedPlayer.AnyForcesIn(l.Territory) == 0 || 
-                p.Ally is Faction.Pink ||
-                (p.Ally == Faction.Blue && g.Applicable(Rule.AdvisorsDontConflictWithAlly) && p.AlliedPlayer.ForcesIn(l.Territory) == 0));
+                p.Ally is Faction.Ecaz ||
+                (p.Ally == Faction.BeneGesserit && g.Applicable(Rule.AdvisorsDontConflictWithAlly) && p.AlliedPlayer.ForcesIn(l.Territory) == 0));
     }
 
     #endregion Validation

@@ -41,11 +41,11 @@
                          BorderWidth="@Client.CurrentSkin.PHASE_ACTIVE_FONT_BORDERWIDTH" BorderColor="@Client.CurrentSkin.PHASE_FONT_BORDERCOLOR"
                          Align="@TextAlignment.Right"/>
 
-                if (Game.EconomicsStatus != BrownEconomicsStatus.None && Game.EconomicsStatus != BrownEconomicsStatus.RemovedFromGame && phase == MainPhase.Charity)
+                if (Game.EconomicsStatus != ChoamEconomicsStatus.None && Game.EconomicsStatus != ChoamEconomicsStatus.RemovedFromGame && phase == MainPhase.Charity)
                 {
                     var diameter = 2 * Client.CurrentSkin.PlayerTokenRadius;
 
-                    <MapImage X="@(posX - diameter)" Y="@(posY - Client.CurrentSkin.PlayerTokenRadius)" Diameter=diameter Src="@Client.CurrentSkin.GetImageUrl(Faction.Brown)" ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="1" ShadowY="1" ShadowBlur="0" />
+                    <MapImage X="@(posX - diameter)" Y="@(posY - Client.CurrentSkin.PlayerTokenRadius)" Diameter=diameter Src="@Client.CurrentSkin.GetImageUrl(Faction.Choam)" ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="1" ShadowY="1" ShadowBlur="0" />
 
                     <MapText ToShow="@Client.CurrentSkin.Describe(Game.EconomicsStatus)"
                              X="@(posX - Client.CurrentSkin.PlayerTokenRadius)" Y="@(posY)"
@@ -66,9 +66,9 @@
                          BorderWidth="@Client.CurrentSkin.PHASE_FONT_BORDERWIDTH" BorderColor="@Client.CurrentSkin.PHASE_FONT_BORDERCOLOR"
                          Align="@TextAlignment.Right"/>
 
-                if (Game.EconomicsStatus != BrownEconomicsStatus.None && Game.EconomicsStatus != BrownEconomicsStatus.RemovedFromGame && phase == MainPhase.Charity)
+                if (Game.EconomicsStatus != ChoamEconomicsStatus.None && Game.EconomicsStatus != ChoamEconomicsStatus.RemovedFromGame && phase == MainPhase.Charity)
                 {
-                    <MapImage X="@(posX - Client.CurrentSkin.PlayerTokenRadius)" Y="@(posY - 0.5f * Client.CurrentSkin.PlayerTokenRadius)" Diameter=Client.CurrentSkin.PlayerTokenRadius Src="@Client.CurrentSkin.GetImageUrl(Faction.Brown)" ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="1" ShadowY="1" ShadowBlur="0" />
+                    <MapImage X="@(posX - Client.CurrentSkin.PlayerTokenRadius)" Y="@(posY - 0.5f * Client.CurrentSkin.PlayerTokenRadius)" Diameter=Client.CurrentSkin.PlayerTokenRadius Src="@Client.CurrentSkin.GetImageUrl(Faction.Choam)" ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="1" ShadowY="1" ShadowBlur="0" />
 
                     <MapText ToShow="@Client.CurrentSkin.Describe(Game.EconomicsStatus)"
                              X="@(posX - 0.5f * Client.CurrentSkin.PlayerTokenRadius)" Y="@(posY)"

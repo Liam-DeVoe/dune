@@ -1,0 +1,11 @@
+{"scenario":"smoke","start":"2026-03-02T10:00:00+02:00"}
+{"op":"connect","conn":1}
+{"op":"call","conn":1,"method":"Connect","args":[]}
+{"op":"call","conn":1,"method":"RequestCreateUser","args":["Alice ","hashA","alice@example.com","Alice Player"]}
+{"op":"call","conn":1,"method":"RequestCreateGame","args":["",  "TOKEN00000000001","",null,null]}
+{"op":"connect","conn":2}
+{"op":"call","conn":2,"method":"RequestCreateUser","args":["bobby","hashB",null,"Bob Player"]}
+{"op":"call","conn":2,"method":"RequestJoinGame","args":["TOKEN00000000003","00000000-0000-0000-0000-000000000002","",-1]}
+{"op":"call","conn":2,"method":"SendChatMessage","args":["TOKEN00000000003","00000000-0000-0000-0000-000000000002",{"TargetUserId":-1,"SourceUserId":2,"Body":"hi <all>"}]}
+{"op":"advance","minutes":6}
+{"op":"call","conn":1,"method":"RequestHeartbeat","args":["TOKEN00000000001",2]}

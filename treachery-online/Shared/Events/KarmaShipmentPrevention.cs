@@ -40,7 +40,7 @@ public class KarmaShipmentPrevention : GameEvent
 
     public static IEnumerable<Faction> GetValidTargets(Game g, Player p)
     {
-        return g.PlayersOtherThan(p).Where(f => f != Faction.Yellow);
+        return g.PlayersOtherThan(p).Where(f => f != Faction.Fremen);
     }
 
     #endregion Validation

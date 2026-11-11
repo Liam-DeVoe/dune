@@ -76,7 +76,7 @@ public class LoserConcluded : GameEvent
     {
         return p.Traitors.FirstOrDefault(l =>
             l is Leader && l != g.WinnerHero &&
-            (l.Faction == g.BattleWinner || (g.BattleWinner == Faction.Purple && g.IsGhola(l))) &&
+            (l.Faction == g.BattleWinner || (g.BattleWinner == Faction.Tleilaxu && g.IsGhola(l))) &&
             !p.RevealedTraitors.Contains(l)) as Leader;
     }
 
@@ -101,7 +101,7 @@ public class LoserConcluded : GameEvent
 
     public static bool MayUseKarmaToForceKeptCards(Game game, Player player)
     {
-        return player.Faction == Faction.Cyan &&
+        return player.Faction == Faction.Moritani &&
                !game.KarmaPrevented(player.Faction) &&
                !player.SpecialKarmaPowerUsed &&
                player.HasKarma(game) &&
@@ -199,7 +199,7 @@ public class LoserConcluded : GameEvent
 
         Game.LoserMayTryToAssassinate = false;
 
-        if (Game.BattleWasConcludedByWinner) Game.Enter(!IsPlaying(Faction.Purple) || Game.BattleWinner == Faction.Purple, Game.FinishBattle, Game.Version <= 150, Phase.Facedancing, Phase.RevealingFacedancer);
+        if (Game.BattleWasConcludedByWinner) Game.Enter(!IsPlaying(Faction.Tleilaxu) || Game.BattleWinner == Faction.Tleilaxu, Game.FinishBattle, Game.Version <= 150, Phase.Facedancing, Phase.RevealingFacedancer);
     }
 
     public override Message GetMessage()

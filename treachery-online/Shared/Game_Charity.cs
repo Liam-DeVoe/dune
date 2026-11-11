@@ -14,7 +14,7 @@ public partial class Game
     #region State
 
     internal bool ResourceTechTokenIncome { get; set; }
-    internal bool CharityIsCancelled => EconomicsStatus is BrownEconomicsStatus.Cancel or BrownEconomicsStatus.CancelFlipped;
+    internal bool CharityIsCancelled => EconomicsStatus is ChoamEconomicsStatus.Cancel or ChoamEconomicsStatus.CancelFlipped;
 
     #endregion State
 
@@ -35,9 +35,9 @@ public partial class Game
     {
         get
         {
-            if (EconomicsStatus is BrownEconomicsStatus.Double or BrownEconomicsStatus.DoubleFlipped)
+            if (EconomicsStatus is ChoamEconomicsStatus.Double or ChoamEconomicsStatus.DoubleFlipped)
                 return 2;
-            if (EconomicsStatus is BrownEconomicsStatus.Cancel or BrownEconomicsStatus.CancelFlipped)
+            if (EconomicsStatus is ChoamEconomicsStatus.Cancel or ChoamEconomicsStatus.CancelFlipped)
                 return 0;
             return 1;
         }
@@ -49,7 +49,7 @@ public partial class Game
 
         GiveCharity(player, (2 - player.Resources) * CurrentCharityMultiplier);
 
-        if (!player.Is(Faction.Blue)) ResourceTechTokenIncome = true;
+        if (!player.Is(Faction.BeneGesserit)) ResourceTechTokenIncome = true;
 
         Stone(Milestone.CharityClaimed);
     }
@@ -59,19 +59,19 @@ public partial class Game
         var homeworldBonus = 0;
         if (GetsExtraCharityAndFreeRevivalDueToLowThreshold(to)) homeworldBonus = 1;
 
-        var brown = GetPlayer(Faction.Brown);
+        var choam = GetPlayer(Faction.Choam);
 
         to.Resources += basicAmount + homeworldBonus;
-        if (brown != null && !Prevented(FactionAdvantage.BrownControllingCharity))
+        if (choam != null && !Prevented(FactionAdvantage.ChoamControllingCharity))
         {
-            if (brown.Resources >= basicAmount)
+            if (choam.Resources >= basicAmount)
             {
-                brown.Resources -= basicAmount;
-                Log(to.Faction, " get ", Payment.Of(basicAmount), " from ", Faction.Brown, MessagePart.ExpressIf(homeworldBonus > 0, " and ", Payment.Of(homeworldBonus), " from the bank"));
+                choam.Resources -= basicAmount;
+                Log(to.Faction, " get ", Payment.Of(basicAmount), " from ", Faction.Choam, MessagePart.ExpressIf(homeworldBonus > 0, " and ", Payment.Of(homeworldBonus), " from the bank"));
             }
             else
             {
-                Log(to.Faction, " are unable to claim ", Payment.Of(basicAmount), " from ", Faction.Brown, MessagePart.ExpressIf(homeworldBonus > 0, " but get ", Payment.Of(homeworldBonus), " from the bank"));
+                Log(to.Faction, " are unable to claim ", Payment.Of(basicAmount), " from ", Faction.Choam, MessagePart.ExpressIf(homeworldBonus > 0, " but get ", Payment.Of(homeworldBonus), " from the bank"));
             }
         }
         else

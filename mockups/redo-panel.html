@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Redo after undo: options</title>
+<style>
+@font-face { font-family: "Advokat"; src: url("../treachery-online/Client/wwwroot/Advokat.ttf"); }
+@font-face { font-family: "Copperplate Dune"; src: url("../treachery-online/Client/wwwroot/Copperplate.ttf"); }
+@font-face { font-family: "Alegreya Sans"; font-weight: 400; src: url("../treachery-online/Client/wwwroot/fonts/AlegreyaSans-400-latin.woff2"); }
+@font-face { font-family: "Alegreya Sans"; font-weight: 700; src: url("../treachery-online/Client/wwwroot/fonts/AlegreyaSans-700-latin.woff2"); }
+:root {
+  --ink-0: #120800; --ink-1: #1d0c00; --ink-2: #2a1607; --ink-3: #3b2310;
+  --parchment: #fcf9d1; --sand: #f3d987; --rock: #b3915f; --rock-2: #8c6b3e;
+  --gold: #e7bf3c; --gold-2: #e3a631; --gold-3: #b8841e; --storm: #c33232;
+  --text-2: #d9c79a; --text-3: #a68d63;
+  --hair: rgba(255,255,255,.09); --hair-strong: rgba(255,255,255,.16);
+  --f-guild: #c85b20; --f-atreides: #63842e;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: #0b0500; color: var(--parchment); font-family: "Alegreya Sans", Candara, sans-serif; font-size: 17px; line-height: 1.45; }
+main { max-width: 1500px; margin: 0 auto; padding: 32px 28px 100px; }
+.eyebrow { font-family: "Copperplate Dune", serif; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--gold-2); }
+h1 { font-family: "Advokat", serif; font-weight: 400; font-size: 44px; margin: 6px 0 8px; }
+h2 { font-family: "Advokat", serif; font-weight: 400; font-size: 28px; color: var(--gold); margin: 0 0 6px; }
+p { max-width: 80ch; color: var(--text-2); margin: 0 0 12px; }
+section { border-top: 1px solid var(--hair); padding-top: 24px; margin-top: 32px; }
+.opts { display: flex; gap: 28px; align-items: flex-start; flex-wrap: wrap; }
+figure { margin: 0; }
+figcaption { font-family: "Copperplate Dune", serif; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+figure > p { font-size: 14.5px; color: var(--text-3); max-width: 360px; margin-top: 10px; }
+ul.pc { font-size: 14.5px; color: var(--text-2); max-width: 360px; padding-left: 18px; margin: 8px 0 0; }
+ul.pc li { margin-bottom: 4px; }
+ul.pc li.con { color: var(--text-3); }
+ul.pc li::marker { content: "+  "; color: #79b34c; }
+ul.pc li.con::marker { content: "−  "; color: var(--storm); }
+
+/* the menu column the panel lives in */
+.col { width: 360px; background: var(--ink-1); border: 1px solid var(--hair-strong); border-radius: 4px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.col.wide { width: 720px; }
+.ghost { height: 54px; border-radius: 6px; background: var(--ink-2); border: 1px solid var(--hair); opacity: .5; }
+
+/* atoms */
+.sigil { width: 20px; height: 20px; border-radius: 50%; display: inline-grid; place-items: center; background: var(--fc); flex: none; vertical-align: -4px; }
+.sigil img { width: 68%; height: 68%; }
+.fac { display: inline-flex; gap: 5px; align-items: center; font-weight: 700; color: var(--parchment); vertical-align: -3px; }
+.btn { font-family: "Alegreya Sans", sans-serif; font-weight: 700; font-size: 15px; padding: 7px 14px; border-radius: 6px; border: 1px solid transparent; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; line-height: 1; }
+.btn-primary { background: var(--gold); color: var(--ink-0); }
+.btn-secondary { background: transparent; color: var(--sand); border-color: rgba(231,191,60,.45); }
+.btn-quiet { background: transparent; color: var(--text-2); font-weight: 500; }
+.btn-quiet:hover { color: var(--gold); background: rgba(231,191,60,.08); }
+.btn-sm { font-size: 14px; padding: 5px 10px; }
+.x { background: none; border: 0; color: var(--text-3); font-size: 18px; line-height: 1; cursor: pointer; padding: 2px 4px; }
+.kicker { font-family: "Copperplate Dune", serif; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--text-3); }
+.badge { font-family: "Advokat", serif; font-size: 13px; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; display: inline-grid; place-items: center; background: var(--gold); color: var(--ink-0); }
+
+.panel { background: var(--ink-2); border: 1px solid var(--hair); border-radius: 6px; box-shadow: 0 1px 2px rgba(18,8,0,.6); overflow: hidden; }
+.panel > header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--hair); }
+.panel > header h5 { margin: 0; font-family: "Advokat", serif; font-weight: 400; font-size: 18px; color: var(--sand); flex: 1; }
+.panel > .body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px; }
+.dest { font-family: "Advokat", serif; font-size: 18px; color: var(--parchment); }
+.hint { font-size: 14px; color: var(--text-3); }
+.actions { display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
+
+/* grouped list, same as the undo panel */
+.undone { display: flex; flex-direction: column; font-size: 15px; }
+.undone .group { font-family: "Copperplate Dune", serif; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-3); margin: 6px 0 2px; }
+.undone .group:first-child { margin-top: 0; }
+.undone .line { color: var(--text-2); padding: 2px 0; }
+.undone.struck .line { text-decoration: line-through; text-decoration-color: rgba(217,199,154,.45); }
+
+/* toast */
+.stage { position: relative; width: 720px; height: 230px; border-radius: 4px; border: 1px solid var(--hair-strong); overflow: hidden; background: var(--ink-1); }
+.stage .map { position: absolute; inset: 0 0 0 0; background: radial-gradient(ellipse at 50% 40%, #e9dca6 0, #d8c48a 45%, #b3915f 75%, var(--ink-1) 100%); opacity: .35; }
+.toast { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; gap: 14px; align-items: center; background: var(--ink-0); border: 1px solid var(--hair-strong); border-left: 4px solid var(--gold); border-radius: 6px; padding: 10px 10px 10px 14px; box-shadow: 0 18px 40px rgba(18,8,0,.6), 0 2px 6px rgba(18,8,0,.6); white-space: nowrap; }
+.toast .t { font-weight: 700; color: var(--parchment); font-size: 15px; }
+.toast .d { font-size: 13.5px; color: var(--text-3); }
+
+/* menu bar */
+.bar { display: flex; align-items: center; gap: 4px; background: var(--ink-0); border: 1px solid var(--hair); border-radius: 6px; padding: 5px 8px; }
+.bar .ib { position: relative; width: 34px; height: 30px; border-radius: 5px; display: grid; place-items: center; color: var(--text-2); font-size: 17px; }
+.bar .ib.on { background: rgba(231,191,60,.12); color: var(--gold); }
+.bar .ib .badge { position: absolute; top: -6px; right: -6px; min-width: 17px; height: 17px; font-size: 11px; padding: 0 4px; }
+.bar .sp { flex: 1; }
+.bar .lbl { font-family: "Advokat", serif; color: var(--sand); font-size: 15px; padding: 0 6px; }
+.pop { margin: 8px 0 0 auto; width: 300px; background: var(--ink-0); border: 1px solid var(--hair-strong); border-radius: 6px; box-shadow: 0 18px 40px rgba(18,8,0,.6); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; position: relative; }
+.pop::before { content: ""; position: absolute; top: -6px; right: 64px; width: 10px; height: 10px; background: var(--ink-0); border-left: 1px solid var(--hair-strong); border-top: 1px solid var(--hair-strong); transform: rotate(45deg); }
+
+/* timeline */
+.tl { position: relative; height: 46px; margin: 4px 4px 0; }
+.tl .track { position: absolute; left: 0; right: 0; top: 20px; height: 6px; border-radius: 3px; background: var(--ink-3); }
+.tl .done { position: absolute; left: 0; top: 20px; height: 6px; border-radius: 3px 0 0 3px; background: var(--rock); }
+.tl .ghostseg { position: absolute; top: 20px; height: 6px; background: repeating-linear-gradient(90deg, rgba(231,191,60,.55) 0 5px, transparent 5px 9px); }
+.tl .knob { position: absolute; top: 13px; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%; background: var(--parchment); box-shadow: 0 0 0 2px var(--ink-0), 0 0 0 4px var(--gold); }
+.tl .tick { position: absolute; top: 30px; font-family: "Copperplate Dune", serif; font-size: 10px; letter-spacing: .1em; color: var(--text-3); transform: translateX(-50%); white-space: nowrap; }
+.tl .flag { position: absolute; top: -4px; transform: translateX(-50%); font-size: 12px; color: var(--gold); white-space: nowrap; }
+
+.logline { display: grid; grid-template-columns: 22px 1fr; gap: 10px; padding: 8px 14px; font-size: 15px; background: rgba(231,191,60,.08); border-left: 3px solid var(--gold); color: var(--text-2); }
+.logline b { color: var(--parchment); }
+.icon-undo { font-size: 16px; color: var(--gold); }
+.strike-note { font-size: 13px; color: var(--text-3); font-style: italic; }
+</style>
+</head>
+<body>
+<main>
+<div class="eyebrow">Mockups · host menu</div>
+<h1>Redo after an undo</h1>
+<p>After the host undoes some events, a panel offers to put them back. Today it reads <i>Recently undone 2 event(s)</i>, lists two identical lines (<i>Phase ended by Guild</i>), and offers Restore or Dismiss. It doesn't say where the game now is, which phases the lines belong to, or that Dismiss throws the events away for good.</p>
+<p>Every option below assumes one behaviour change: <b style="color:var(--parchment)">the redo offer disappears as soon as anyone plays a new event.</b> Today it stays up, and Restore then silently wipes whatever was played since the undo. With that rule the offer only exists in the short gap right after an undo, which makes most of the wording problems smaller.</p>
+
+<!-- ============ BEFORE ============ -->
+<section>
+<h2>Today</h2>
+<div class="opts">
+<figure>
+<figcaption>Current panel</figcaption>
+<div class="col">
+  <div class="panel">
+    <header><h5>Recently undone 2 event(s)</h5></header>
+    <div class="body">
+      <div class="undone">
+        <div class="line">Phase ended by <span class="fac"><span class="sigil" style="--fc:var(--f-guild)"><img src="../treachery-online/Client/wwwroot/art/faction5.svg" alt=""></span>Guild</span></div>
+        <div class="line">Phase ended by <span class="fac"><span class="sigil" style="--fc:var(--f-guild)"><img src="../treachery-online/Client/wwwroot/art/faction5.svg" alt=""></span>Guild</span></div>
+      </div>
+      <div style="display:flex;gap:8px"><button class="btn" style="background:#79b34c;color:var(--ink-0)">Restore</button><button class="btn btn-secondary">Dismiss</button></div>
+    </div>
+  </div>
+  <div class="ghost"></div>
+</div>
+</figure>
+</div>
+</section>
+
+<!-- ============ A ============ -->
+<section>
+<h2>A · Same panel, fixed wording</h2>
+<p>The smallest change. It reuses the undo panel's layout: <i>Back to</i>, then the undone events grouped by turn and phase. Redo is a secondary button, not green, because keeping the undo is the normal outcome. The close button replaces Dismiss.</p>
+<div class="opts">
+<figure>
+<figcaption>Right after undo</figcaption>
+<div class="col">
+  <div class="panel">
+    <header><h5>Undone</h5><button class="x" title="Close: keep the undo">×</button></header>
+    <div class="body">
+      <div>
+        <div class="kicker">Game is back at</div>
+        <div class="dest">Turn 3 · Bidding</div>
+      </div>
+      <div>
+        <div class="kicker">2 events undone</div>
+        <div class="undone">
+          <div class="group">Turn 3 · Revival</div>
+          <div class="line">Phase ended by <span class="fac"><span class="sigil" style="--fc:var(--f-guild)"><img src="../treachery-online/Client/wwwroot/art/faction5.svg" alt=""></span>Guild</span></div>
+          <div class="group">Turn 3 · Bidding</div>
+          <div class="line">Phase ended by <span class="fac"><span class="sigil" style="--fc:var(--f-guild)"><img src="../treachery-online/Client/wwwroot/art/faction5.svg" alt=""></span>Guild</span></div>
+        </div>
+      </div>
+      <div class="hint">You can put these back until someone plays.</div>
+      <div class="actions"><button class="btn btn-secondary">Redo 2 events</button></div>
+    </div>
+  </div>
+  <div class="ghost"></div>
+</div>
+<ul class="pc">
+  <li>Smallest code change. Matches the undo panel the host just used.</li>
+  <li>The two identical lines are now told apart by their phase heading.</li>
+  <li class="con">Still a whole card in the menu for something most hosts ignore.</li>
+</ul>
+</figure>
+</div>
+</section>
+
+<!-- ============ B ============ -->
+<section>
+<h2>B · The undo panel stays open</h2>
+<p>No separate panel. After the host confirms, the undo panel switches to a done state: the same list, struck through, and the Undo button turns into Redo. Closing the panel keeps the undo.</p>
+<div class="opts">
+<figure>
+<figcaption>Before confirming (exists today)</figcaption>
+<div class="col">
+  <div class="panel">
+    <header><h5>Undo</h5><button class="x">×</button></header>
+    <div class="body">
+      <div><div class="kicker">Back to</div><div class="dest">Turn 3 · Bidding</div></div>
+      <div>
+        <div class="kicker">Undone</div>
+        <div class="undone">
+          <div class="group">Turn 3 · Revival</div>
+          <div class="line">Phase ended by <span class="fac"><span class="sigil" style="--fc:var(--f-guild)"><img src="../treachery-online/Client/wwwroot/art/faction5.svg" alt=""></span>Guild</span></div>
+          <div class="group">Turn 3 · Bidding</div>
+          <div class="line">Phase ended by <span class="fac"><span class="sigil" style="--fc:var(--f-guild)"><img src="../treachery-online/Client/wwwroot/art/faction5.svg" alt=""></span>Guild</span></div>
+        </div>
+      </div>
+      <div class="actions"><button class="btn btn-secondary">Cancel</button><button class="btn btn-primary">Undo 2 events</button></div>
+    </div>
+  </div>
+</div>
+</figure>
+<figure>
+<figcaption>After confirming</figcaption>
+<div class="col">
+  <div class="panel">
+    <header><h5>Undone</h5><button class="x" title="Close: keep the undo">×</button></header>
+    <div class="body">
+      <div><div class="kicker">Game is back at</div><div class="dest">Turn 3 · Bidding</div></div>
+      <div>
+        <div class="kicker">Undone</div>
+        <div class="undone struck">
+          <div class="group">Turn 3 · Revival</div>
+          <div class="line">Phase ended by <span class="fac"><span class="sigil" style="--fc:var(--f-guild)"><img src="../treachery-online/Client/wwwroot/art/faction5.svg" alt=""></span>Guild</span></div>
+          <div class="group">Turn 3 · Bidding</div>
+          <div class="line">Phase ended by <span class="fac"><span class="sigil" style="--fc:var(--f-guild)"><img src="../treachery-online/Client/wwwroot/art/faction5.svg" alt=""></span>Guild</span></div>
+        </div>
+      </div>
+      <div class="actions"><span class="hint" style="margin-right:auto">Until someone plays</span><button class="btn btn-secondary">Redo 2 events</button><button class="btn btn-primary">Done</button></div>
+    </div>
+  </div>
+</div>
+<ul class="pc">
+  <li>Undo and redo live in one place, with one list. Nothing new to learn.</li>
+  <li>"Done" makes keeping the undo the obvious default.</li>
+  <li class="con">If the host closes the panel, redo is gone unless it can be reopened (e.g. from the menu's undo button).</li>
+</ul>
+</figure>
+</div>
+</section>
+
+<!-- ============ C ============ -->
+<section>
+<h2>C · A toast instead of a panel</h2>
+<p>The familiar "Message deleted · Undo" pattern from mail apps, flipped around. A toast floats over the bottom of the map with one sentence and a Redo button. It disappears when anyone plays, or when the host closes it. The undone list isn't shown; the host just picked those events in the undo panel.</p>
+<div class="opts">
+<figure>
+<figcaption>Over the map, host only</figcaption>
+<div class="stage">
+  <div class="map"></div>
+  <div class="toast">
+    <span class="icon-undo">↶</span>
+    <div>
+      <div class="t">Undid 2 events</div>
+      <div class="d">Back at Turn 3 · Bidding</div>
+    </div>
+    <button class="btn btn-secondary btn-sm">Redo</button>
+    <button class="x" title="Close: keep the undo">×</button>
+  </div>
+</div>
+<ul class="pc">
+  <li>Takes no space in the menu column and appears exactly where the host is looking.</li>
+  <li>Everyone already knows this pattern.</li>
+  <li class="con">Doesn't list what will be redone. That's fine right after an undo, but not if the host stepped away.</li>
+</ul>
+</figure>
+</div>
+</section>
+
+<!-- ============ D ============ -->
+<section>
+<h2>D · Redo on the timeline</h2>
+<p>The undo panel already uses a timeline under the map. After an undo, the undone stretch stays on that timeline as a dashed gold segment past the knob, with a Redo flag at its end. Clicking the flag redoes it. Hovering the segment lists the events, grouped as in the undo panel.</p>
+<div class="opts">
+<figure>
+<figcaption>Timeline under the map</figcaption>
+<div class="col wide">
+  <div class="tl">
+    <div class="track"></div>
+    <div class="done" style="width:62%"></div>
+    <div class="ghostseg" style="left:62%;width:14%"></div>
+    <div class="knob" style="left:62%"></div>
+    <div class="flag" style="left:76%"><button class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:12px">Redo 2 ↷</button></div>
+    <div class="tick" style="left:20%">Turn 1</div>
+    <div class="tick" style="left:41%">Turn 2</div>
+    <div class="tick" style="left:62%">T3 · Bidding</div>
+    <div class="tick" style="left:76%;color:var(--gold-3)">T3 · Shipment</div>
+  </div>
+</div>
+<ul class="pc">
+  <li>Shows where the game is and how far redo would go, without any words.</li>
+  <li>Nothing in the menu column at all.</li>
+  <li class="con">Only works if the timeline is visible outside an undo session. Today it only appears while undoing.</li>
+  <li class="con">Most work of the four.</li>
+</ul>
+</figure>
+</div>
+</section>
+
+<!-- ============ E ============ -->
+<section>
+<h2>E · Redo button in the menu bar</h2>
+<p>Editor-style. A redo arrow sits next to the undo button, with a count badge, and lights up only while redo is possible. Clicking it opens a small popover that confirms what will come back.</p>
+<div class="opts">
+<figure>
+<figcaption>Menu bar and popover</figcaption>
+<div style="width:420px">
+  <div class="bar">
+    <span class="lbl">Turn 3 · Bidding</span>
+    <span class="sp"></span>
+    <span class="ib">↶</span>
+    <span class="ib on">↷<span class="badge">2</span></span>
+    <span class="ib">⚙</span>
+    <span class="ib">☰</span>
+  </div>
+  <div class="pop">
+    <div class="kicker">Redo 2 events</div>
+    <div class="undone">
+      <div class="group">Turn 3 · Revival</div>
+      <div class="line">Phase ended by <span class="fac"><span class="sigil" style="--fc:var(--f-guild)"><img src="../treachery-online/Client/wwwroot/art/faction5.svg" alt=""></span>Guild</span></div>
+      <div class="group">Turn 3 · Bidding</div>
+      <div class="line">Phase ended by <span class="fac"><span class="sigil" style="--fc:var(--f-guild)"><img src="../treachery-online/Client/wwwroot/art/faction5.svg" alt=""></span>Guild</span></div>
+    </div>
+    <div class="actions"><button class="btn btn-primary btn-sm">Redo</button></div>
+  </div>
+</div>
+<ul class="pc">
+  <li>Undo and redo sit side by side, which is how everyone expects them to work.</li>
+  <li>Nothing to dismiss; the button simply goes grey once someone plays.</li>
+  <li class="con">Easy to miss. A small badge is the only sign that redo is available.</li>
+</ul>
+</figure>
+</div>
+</section>
+
+<!-- ============ shared ============ -->
+<section>
+<h2>For everyone else</h2>
+<p>Separately from which option the host sees: today the other players get no sign that an undo happened. One gold-ruled line in the log would fix that, whichever option is picked.</p>
+<div class="opts">
+<figure>
+<figcaption>Log entry, all players</figcaption>
+<div class="col" style="padding:0">
+  <div class="logline"><span class="icon-undo">↶</span><span><b>The host</b> undid 2 events. The game is back at <b>Turn 3 · Bidding</b>.</span></div>
+</div>
+</figure>
+</div>
+</section>
+
+</main>
+</body>
+</html>

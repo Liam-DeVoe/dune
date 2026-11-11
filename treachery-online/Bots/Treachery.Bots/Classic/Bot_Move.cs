@@ -15,7 +15,7 @@ public partial class ClassicBot
     {
         LogInfo("DetermineMove()");
 
-        if (Game.InOrangeCunningShipment) return new Move(Game, Faction) { Passed = true };
+        if (Game.InGuildCunningShipment) return new Move(Game, Faction) { Passed = true };
 
         var moved = DetermineMovedBattalion(true);
 
@@ -26,7 +26,7 @@ public partial class ClassicBot
             { moved.From, moved.Battalion }
         };
 
-        var asAdvisors = Faction == Faction.Blue && Player.SpecialForcesIn(moved.To.Territory) > 0;
+        var asAdvisors = Faction == Faction.BeneGesserit && Player.SpecialForcesIn(moved.To.Territory) > 0;
         var result = new Move(Game, Faction) { Passed = false, To = moved.To, ForceLocations = forces, AsAdvisors = asAdvisors };
 
         var validationError = result.Validate();
@@ -54,7 +54,7 @@ public partial class ClassicBot
             { moved.From, moved.Battalion }
         };
 
-        var asAdvisors = Faction == Faction.Blue && Player.SpecialForcesIn(moved.To.Territory) > 0;
+        var asAdvisors = Faction == Faction.BeneGesserit && Player.SpecialForcesIn(moved.To.Territory) > 0;
         var result = new Caravan(Game, Faction) { Passed = false, To = moved.To, ForceLocations = forces, AsAdvisors = asAdvisors };
 
         DecidedShipmentAction = ShipmentDecision.None;
@@ -76,7 +76,7 @@ public partial class ClassicBot
         if (DecidedShipmentAction == ShipmentDecision.StrongholdNearResources && Player.ForcesInLocations.ContainsKey(DecidedShipment!.To))
         {
             LogInfo("Move to spice");
-            var toMove = Player.ForcesInLocations[DecidedShipment.To].Take(DecidedShipment.ForceAmount + DecidedShipment.SpecialForceAmount, Faction == Faction.Grey);
+            var toMove = Player.ForcesInLocations[DecidedShipment.To].Take(DecidedShipment.ForceAmount + DecidedShipment.SpecialForceAmount, Faction == Faction.Ixian);
 
             if (FinalDestination != null && WithinRange(DecidedShipment.To, FinalDestination, toMove))
             {
@@ -140,7 +140,7 @@ public partial class ClassicBot
             }
         }
 
-        if (Faction == Faction.Blue)
+        if (Faction == Faction.BeneGesserit)
         {
             //Move a stack of advisors from a stronghold to a nearby vacant stronghold
             var biggestStackOfAdvisorsInStrongholdNearVacantStronghold = BiggestMovableStackOfAdvisorsInStrongholdNearVacantStronghold;
@@ -189,7 +189,7 @@ public partial class ClassicBot
                 {
                     LogInfo("Move partly from unthreatened stronghold location with enough forces to nearby spice");
                     var forcesForCollection = Math.Max(2, Math.Min(DetermineForcesNeededForCollection(moveTo), bigUnthreatenedBattalionNearSpice.Battalion.TotalAmountOfForces / 2));
-                    var move = ConstructMove(moveTo, bigUnthreatenedBattalionNearSpice.Location, bigUnthreatenedBattalionNearSpice.Battalion.Take(forcesForCollection, Faction == Faction.Grey));
+                    var move = ConstructMove(moveTo, bigUnthreatenedBattalionNearSpice.Location, bigUnthreatenedBattalionNearSpice.Battalion.Take(forcesForCollection, Faction == Faction.Ixian));
                     if (move != null) return move;
                 }
             }
@@ -216,7 +216,7 @@ public partial class ClassicBot
 
     private  MovedBattalion? ConstructMove(Location to, Location from, Battalion battalion)
     {
-        if (Faction == Faction.White && Game.HasLowThreshold(Faction.White) && battalion.AmountOfSpecialForces != 0)
+        if (Faction == Faction.Richese && Game.HasLowThreshold(Faction.Richese) && battalion.AmountOfSpecialForces != 0)
             return null;
         return new MovedBattalion { To = to, From = from, Battalion = battalion };
     }

@@ -158,7 +158,7 @@ public static class Support
 
     // Special forces whose token differs from the faction's normal token only by a small star in the art:
     // Fedaykin, Sardaukar and cyborgs. These get a star badge so they can be told apart at map size.
-    public static bool HasStarredSpecialForce(Faction faction) => faction is Faction.Yellow or Faction.Red or Faction.Grey;
+    public static bool HasStarredSpecialForce(Faction faction) => faction is Faction.Fremen or Faction.Emperor or Faction.Ixian;
 
     // The markup ForceToken renders, for code that builds popover HTML as a string.
     public static string ForceTokenHtml(Skin skin, Faction faction, bool special, int size, string title = "")
@@ -200,18 +200,6 @@ public static class Support
     public static string Round(double x)
     {
         return Math.Round(x, 3).ToString(CultureInfo.InvariantCulture);
-    }
-
-    public static string RoundWithHalves(double x)
-    {
-        // ReSharper disable CompareOfFloatsByEqualityOperator
-        if (x == 0.5f)
-            return "½";
-        if (x == -0.5f)
-            return "-½";
-        if (x - 0.5f == (int)x)
-            return "" + (int)x + "½";
-        return Round(x);
     }
 
     public static string Px(double x)

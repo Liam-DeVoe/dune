@@ -26,8 +26,8 @@ public partial class Game
         var currentOwner = OwnerOf(h);
         var leaderToRemove = (Leader)h;
         currentOwner!.Leaders.Remove(leaderToRemove);
-        var pink = GetPlayer(Faction.Pink);
-        pink?.Leaders.Add(leaderToRemove);
+        var ecaz = GetPlayer(Faction.Ecaz);
+        ecaz?.Leaders.Add(leaderToRemove);
     }
 
     internal void Revive(Player initiator, IHero h)
@@ -36,7 +36,7 @@ public partial class Game
         LeaderState[h].CurrentTerritory = null;
 
         var currentOwner = OwnerOf(h);
-        if (currentOwner != null && h is Leader l && (Version >= 154 || (initiator.Faction == Faction.Purple && h.Faction != Faction.Purple)))
+        if (currentOwner != null && h is Leader l && (Version >= 154 || (initiator.Faction == Faction.Tleilaxu && h.Faction != Faction.Tleilaxu)))
         {
             currentOwner.Leaders.Remove(l);
             initiator.Leaders.Add(l);
@@ -45,10 +45,10 @@ public partial class Game
 
     private void DetermineIfKilledGholaReturnsToOriginalFaction(IHero l)
     {
-        var purple = GetPlayer(Faction.Purple);
-        if (purple != null && l is Leader leader && purple.Leaders.Contains(l) && l.Faction != Faction.Purple)
+        var tleilaxu = GetPlayer(Faction.Tleilaxu);
+        if (tleilaxu != null && l is Leader leader && tleilaxu.Leaders.Contains(l) && l.Faction != Faction.Tleilaxu)
         {
-            purple.Leaders.Remove(leader);
+            tleilaxu.Leaders.Remove(leader);
 
             GetPlayer(l.Faction)?.Leaders.Add(leader);
         }
@@ -155,7 +155,7 @@ public partial class Game
             }
 
             var ally = GetPlayer(player.Ally);
-            if (!player.Is(Faction.Purple) || ally == null || player.Ally == Faction.None) return false;
+            if (!player.Is(Faction.Tleilaxu) || ally == null || player.Ally == Faction.None) return false;
             player = ally;
         }
     }
@@ -165,7 +165,7 @@ public partial class Game
         var result = new List<IHero>();
         result.AddRange(p.Leaders.Where(l => !IsAlive(l)));
 
-        if (p.Is(Faction.Green) && !IsAlive(LeaderManager.Messiah)) result.Add(LeaderManager.Messiah);
+        if (p.Is(Faction.Atreides) && !IsAlive(LeaderManager.Messiah)) result.Add(LeaderManager.Messiah);
 
         return result;
     }

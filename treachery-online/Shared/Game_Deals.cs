@@ -63,7 +63,7 @@ public partial class Game
 
     public bool IsGhola(IHero l)
     {
-        var purple = GetPlayer(Faction.Purple);
-        return l.Faction != Faction.Purple && purple != null && purple.Leaders.Contains(l);
+        var tleilaxu = GetPlayer(Faction.Tleilaxu);
+        return l.Faction != Faction.Tleilaxu && tleilaxu != null && tleilaxu.Leaders.Contains(l);
     }
 }

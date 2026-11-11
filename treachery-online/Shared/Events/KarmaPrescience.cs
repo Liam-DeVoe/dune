@@ -39,7 +39,7 @@ public class KarmaPrescience : GameEvent
         Game.PlayKarma(Player, Karma.ValidKarmaCards(Game, Player).FirstOrDefault(), "see the entire enemy battle plan");
         Player.SpecialKarmaPowerUsed = true;
         Game.Stone(Milestone.Karma);
-        Game.GreenKarma = true;
+        Game.AtreidesKarma = true;
     }
 
     public override Message GetMessage()

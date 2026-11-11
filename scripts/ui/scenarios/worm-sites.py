@@ -16,7 +16,7 @@ WORM_IMAGES = """() => [...document.querySelectorAll("img[src*='monster.svg']")]
 
 
 def run(r):
-    with r.game("worm-ride-ssw", "yellow") as g:
+    with r.game("worm-ride-ssw", "fremen") as g:
         g.shot("game-full")
         seen = []
         for i in g.eval(WORM_IMAGES):

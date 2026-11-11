@@ -1,16 +1,19 @@
-﻿// The in-game screen on desktop (Bootstrap's lg and up) is exactly one
-// window tall and never scrolls. The map column is as wide as it can be while
-// the board, plus whatever sits under it, still fits the height. The side
-// columns share the rest of the width and each scroll on their own. Below lg
-// the columns stack and the page scrolls as before.
+// The in-game screen on desktop (Bootstrap's lg and up) is exactly one
+// window tall and never scrolls. It has two columns: the board, which takes
+// all the width the right column leaves, and the right column (your faction,
+// what you're asked to do, the log), which scrolls on its own. The board is
+// scaled to its area's height by SetPlanetMapScale in index.html, and the
+// menu bar sits in its bottom-left corner. Below lg the columns stack and
+// the page scrolls as before.
 //
 // Set on the row by Main.razor and Scene.razor:
-//   --map-ratio  the skin's map height over its width
-//   --below-map  the height under the board: the menu bar, plus the undo
-//                timeline while an undo session is open
 //   --turn-banner-h  the height the turn banner takes above the row, or 0
 .game-screen {
   overflow-y: hidden;
+
+  > #mapdiv > .board-area {
+    position: relative;
+  }
 }
 
 @media (min-width: 992px) {
@@ -18,24 +21,38 @@
     // .content above it has 0.75rem of padding, and the turn banner (when
     // it's the player's turn) takes --turn-banner-h more.
     --screen-h: calc(100dvh - 0.75rem - var(--turn-banner-h, 0px));
+    --side-w: clamp(340px, 26vw, 480px);
     height: var(--screen-h);
     min-height: 560px;
     flex-wrap: nowrap;
-    justify-content: center;
 
     > #mapdiv {
-      flex: 0 0 min(50%, calc((var(--screen-h) - var(--below-map)) / var(--map-ratio)));
+      flex: 1 1 0;
+      min-width: 0;
       width: auto;
       height: 100%;
       display: flex;
       flex-direction: column;
+
+      > .board-area {
+        flex: 1 1 0;
+        min-height: 0;
+        overflow: clip;
+
+        // The menu bar sits in the board's bottom-left corner.
+        > .menu-bar {
+          position: absolute;
+          left: 0;
+          bottom: 0;
+          z-index: 20;
+        }
+      }
     }
 
     > .side-column {
-      flex: 1 1 0;
-      width: auto;
+      flex: 0 0 var(--side-w);
+      width: var(--side-w);
       min-width: 0;
-      max-width: 640px;
       height: 100%;
       overflow-y: auto;
       // A column so the report panel can take the height left under the
@@ -49,11 +66,6 @@
       > * {
         flex-shrink: 0;
       }
-    }
-
-    // The menu bar sits at the bottom of the window, under the board.
-    > #mapdiv > .menu-bar {
-      margin-top: auto;
     }
   }
 }

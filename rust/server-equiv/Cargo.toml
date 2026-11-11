@@ -1,0 +1,16 @@
+[package]
+name = "server-equiv"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+description = "Runs server scenarios through the Rust hub and compares each step with the C# ServerOracle's transcript."
+
+[dependencies]
+treachery-server = { path = "../server" }
+treachery-engine = { path = "../engine" }
+dotnet-compat = { path = "../dotnet-compat" }
+serde_json = { version = "1", features = ["preserve_order", "raw_value"] }
+sha2 = "0.10"
+tokio = { version = "1", features = ["rt"] }
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "sqlite"] }
+tempfile = "3"

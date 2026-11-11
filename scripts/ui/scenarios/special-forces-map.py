@@ -10,20 +10,20 @@ MIDDLE = "False Wall West (Middle Sector)"
 
 def run(r):
     # Emperor with 1 + 1 in Tuek's Sietch, Fremen with 6 + 1 and 2 + 1 on the False Wall.
-    with r.game("battle", "red") as g:
+    with r.game("battle", "emperor") as g:
         g.zoom("sf-map-tueks", "Tuek's Sietch", **ZOOM)
         g.zoom("sf-map-false-wall", (EAST, MIDDLE), size=(360, 260), dy=0)
         intel_shot(g, "sf-map-intel-tueks", "Tuek's Sietch")
         intel_shot(g, "sf-map-intel-east", EAST)
 
     # Fremen staging forces and a Fedaykin during setup.
-    with r.game("setup", "yellow") as g:
+    with r.game("setup", "fremen") as g:
         g.click(EAST)
         g.click(EAST, shift=True)
         g.zoom("sf-map-staged", EAST, **ZOOM)
 
     # The Emperor's shipment panel, with its Sardaukar counter.
-    with r.game("ship", "red") as g:
+    with r.game("ship", "emperor") as g:
         g.click("Carthag")
         g.park()
         g.settle()

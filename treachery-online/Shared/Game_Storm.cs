@@ -51,18 +51,18 @@ public partial class Game
 
     internal void MoveHmsBeforeDiallingStorm()
     {
-        var grey = GetPlayer(Faction.Grey);
-        if (grey != null && grey.AnyForcesIn(Map.HiddenMobileStronghold) > 0)
+        var ixian = GetPlayer(Faction.Ixian);
+        if (ixian != null && ixian.AnyForcesIn(Map.HiddenMobileStronghold) > 0)
         {
-            if (Prevented(FactionAdvantage.GreyMovingHms))
+            if (Prevented(FactionAdvantage.IxianMovingHms))
             {
-                LogPreventionByKarma(FactionAdvantage.GreyMovingHms);
-                if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.GreyMovingHms);
+                LogPreventionByKarma(FactionAdvantage.IxianMovingHms);
+                if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.IxianMovingHms);
                 DetermineStorm();
             }
-            else if (HasLowThreshold(Faction.Grey))
+            else if (HasLowThreshold(Faction.Ixian))
             {
-                LogPreventionByLowThreshold(FactionAdvantage.GreyMovingHms);
+                LogPreventionByLowThreshold(FactionAdvantage.IxianMovingHms);
                 DetermineStorm();
             }
             else
@@ -149,9 +149,9 @@ public partial class Game
             var killCount = 0;
             var killedForces = 0;
             var killedSpecialForces = 0;
-            if (battalion.Is(Faction.Yellow) && Applicable(Rule.YellowStormLosses))
+            if (battalion.Is(Faction.Fremen) && Applicable(Rule.FremenStormLosses))
             {
-                if (!Prevented(FactionAdvantage.YellowProtectedFromStorm))
+                if (!Prevented(FactionAdvantage.FremenProtectedFromStorm))
                 {
                     StormLossesToTake.Add(new LossToTake { Location = l.Key, Amount = TakeLosses.HalfOf(battalion.AmountOfForces, battalion.AmountOfSpecialForces), Faction = battalion.Faction });
                 }
@@ -161,10 +161,10 @@ public partial class Game
                     killedForces += player.ForcesIn(l.Key);
                     killedSpecialForces += player.SpecialForcesIn(l.Key);
                     player.KillAllForces(l.Key, false);
-                    if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.YellowProtectedFromStorm);
+                    if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.FremenProtectedFromStorm);
                 }
             }
-            else if (battalion.Is(Faction.Brown) && (!Prevented(FactionAdvantage.BrownDiscarding) || Applicable(Rule.NexusCards)))
+            else if (battalion.Is(Faction.Choam) && (!Prevented(FactionAdvantage.ChoamDiscarding) || Applicable(Rule.NexusCards)))
             {
                 StormLossesToTake.Add(new LossToTake { Location = l.Key, Amount = battalion.TotalAmountOfForces, Faction = battalion.Faction });
             }
@@ -182,18 +182,18 @@ public partial class Game
                     .WithLog(new StormKilled(battalion.Faction, l.Key, killedForces, killedSpecialForces)));
         }
 
-        if (Version >= 163) FlipBlueAdvisorsWhenAlone();
+        if (Version >= 163) FlipBeneGesseritAdvisorsWhenAlone();
 
         foreach (var t in Strongholds.Where(s => s.Locations.Any(l => l.Sector == SectorInStorm && !IsProtectedFromStorm(l))))
         {
             var ambassador = AmbassadorIn(t);
             if (ambassador != Ambassador.None)
             {
-                var pink = GetPlayer(Faction.Pink);
-                if (pink is null) continue;
+                var ecaz = GetPlayer(Faction.Ecaz);
+                if (ecaz is null) continue;
                 AmbassadorsOnPlanet.Remove(t);
-                pink.Ambassadors.Add(ambassador);
-                Log("The ambassador in ", t, " returns to ", Faction.Pink);
+                ecaz.Ambassadors.Add(ambassador);
+                Log("The ambassador in ", t, " returns to ", Faction.Ecaz);
             }
         }
 
@@ -235,7 +235,7 @@ public partial class Game
 
     #region Information
 
-    internal bool UseStormDeck => Applicable(Rule.StormDeckWithoutYellow) || (IsPlaying(Faction.Yellow) && Applicable(Rule.YellowDeterminesStorm));
+    internal bool UseStormDeck => Applicable(Rule.StormDeckWithoutFremen) || (IsPlaying(Faction.Fremen) && Applicable(Rule.FremenDeterminesStorm));
 
     public bool IsProtectedFromStorm(Location l)
     {

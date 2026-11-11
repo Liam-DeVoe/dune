@@ -14,63 +14,63 @@
     <Body>
 
         @{
-            if (Player.Nexus == Faction.Red && NexusPlayed.CanUseSecretAlly(Game, Player))
+            if (Player.Nexus == Faction.Emperor && NexusPlayed.CanUseSecretAlly(Game, Player))
             {
-                <CheckboxComponent @bind-Value=@useRedSecretAlly>Use your Nexus card to get 3 additional free revivals beyond your revival limit?</CheckboxComponent>
+                <CheckboxComponent @bind-Value=@useEmperorSecretAlly>Use your Nexus card to get 3 additional free revivals beyond your revival limit?</CheckboxComponent>
             }
             else
             {
-                useRedSecretAlly = false;
+                useEmperorSecretAlly = false;
             }
 
-            if (Revival.ValidMaxRevivals(Game, Player, false, useRedSecretAlly) > 0)
+            if (Revival.ValidMaxRevivals(Game, Player, false, useEmperorSecretAlly) > 0)
             {
-                <SelectForcesComponent @bind-Value="amountOfForces" Min="0" Max="Revival.ValidMaxRevivals(Game, Player, false, useRedSecretAlly)" Faction="Faction" Special="false" />
+                <SelectForcesComponent @bind-Value="amountOfForces" Min="0" Max="Revival.ValidMaxRevivals(Game, Player, false, useEmperorSecretAlly)" Faction="Faction" Special="false" />
             }
             else
             {
                 amountOfForces = 0;
             }
 
-            if (Revival.ValidMaxRevivals(Game, Player, true, useRedSecretAlly) > 0)
+            if (Revival.ValidMaxRevivals(Game, Player, true, useEmperorSecretAlly) > 0)
             {
-                <SelectForcesComponent @bind-Value="amountOfSpecialForces" Min="0" Max="Revival.ValidMaxRevivals(Game, Player, true, useRedSecretAlly)" Faction="Faction" Special="true" />
+                <SelectForcesComponent @bind-Value="amountOfSpecialForces" Min="0" Max="Revival.ValidMaxRevivals(Game, Player, true, useEmperorSecretAlly)" Faction="Faction" Special="true" />
             }
             else
             {
                 amountOfSpecialForces = 0;
             }
 
-            if (Revival.ValidMaxRevivalsByRed(Game, Player) > 0)
+            if (Revival.ValidMaxRevivalsByEmperor(Game, Player) > 0)
             {
-                <div class="mt-2">You may select up to <SimpleNumberComponent>@Revival.ValidMaxRevivalsByRed(Game, Player)</SimpleNumberComponent> <ForceToken Faction=Faction Special="false" Size="20" Title="@Name(Player.Force)"/> to be revived by your ally:</div>
+                <div class="mt-2">You may select up to <SimpleNumberComponent>@Revival.ValidMaxRevivalsByEmperor(Game, Player)</SimpleNumberComponent> <ForceToken Faction=Faction Special="false" Size="20" Title="@Name(Player.Force)"/> to be revived by your ally:</div>
 
-                if (Revival.ValidMaxRevivals(Game, Player, false, useRedSecretAlly) > 0)
+                if (Revival.ValidMaxRevivals(Game, Player, false, useEmperorSecretAlly) > 0)
                 {
-                    <SelectForcesComponent @bind-Value="forcesPaidByRed" Min="0" Max="Revival.ValidMaxRevivalsByRed(Game, Player)" Faction="Faction" Special="false" />
+                    <SelectForcesComponent @bind-Value="forcesPaidByEmperor" Min="0" Max="Revival.ValidMaxRevivalsByEmperor(Game, Player)" Faction="Faction" Special="false" />
                 }
                 else
                 {
-                    forcesPaidByRed = 0;
+                    forcesPaidByEmperor = 0;
                 }
 
-                if (Revival.ValidMaxRevivals(Game, Player, true, useRedSecretAlly) > 0)
+                if (Revival.ValidMaxRevivals(Game, Player, true, useEmperorSecretAlly) > 0)
                 {
-                    <SelectForcesComponent @bind-Value="specialForcesPaidByRed" Min="0" Max="Revival.ValidMaxRevivalsByRed(Game, Player)" Faction="Faction" Special="true" />
+                    <SelectForcesComponent @bind-Value="specialForcesPaidByEmperor" Min="0" Max="Revival.ValidMaxRevivalsByEmperor(Game, Player)" Faction="Faction" Special="true" />
                 }
                 else
                 {
-                    specialForcesPaidByRed = 0;
+                    specialForcesPaidByEmperor = 0;
                 }
             }
             else
             {
-                forcesPaidByRed = 0;
-                specialForcesPaidByRed = 0;
+                forcesPaidByEmperor = 0;
+                specialForcesPaidByEmperor = 0;
             }
 
-            var maxForcesPlacedOnPlanet = Revival.ValidRevivedForceLocations(Game, Player).Any() ? Revival.NumberOfForcesThatMayBePlacedOnPlanet(Game, Player, useRedSecretAlly, amountOfForces + forcesPaidByRed) : 0;
-            var maxSpecialForcesPlacedOnPlanet = Revival.ValidRevivedForceLocations(Game, Player).Any() ? Revival.NumberOfSpecialForcesThatMayBePlacedOnPlanet(Player, amountOfSpecialForces + specialForcesPaidByRed) : 0;
+            var maxForcesPlacedOnPlanet = Revival.ValidRevivedForceLocations(Game, Player).Any() ? Revival.NumberOfForcesThatMayBePlacedOnPlanet(Game, Player, useEmperorSecretAlly, amountOfForces + forcesPaidByEmperor) : 0;
+            var maxSpecialForcesPlacedOnPlanet = Revival.ValidRevivedForceLocations(Game, Player).Any() ? Revival.NumberOfSpecialForcesThatMayBePlacedOnPlanet(Player, amountOfSpecialForces + specialForcesPaidByEmperor) : 0;
 
             if (maxForcesPlacedOnPlanet > 0)
             {
@@ -121,9 +121,9 @@
 
             <div class="mt-1 text-end">Revival cost for you: <SimpleNumberComponent>@(CostOfRevival.TotalCostForPlayer)</SimpleNumberComponent></div>
 
-            if (Player.Ally == Faction.Red)
+            if (Player.Ally == Faction.Emperor)
             {
-                <div class="mt-1 text-end">Revival cost for <FactionChip Faction=Faction.Red Game=Game/>: <SimpleNumberComponent>@(CostOfRevival.CostForEmperor)</SimpleNumberComponent></div>
+                <div class="mt-1 text-end">Revival cost for <FactionChip Faction=Faction.Emperor Game=Game/>: <SimpleNumberComponent>@(CostOfRevival.CostForEmperor)</SimpleNumberComponent></div>
             }
 
             <ButtonRowComponent Confirm="Confirm" ConfirmText="Revive" ConfirmError=@Validation />
@@ -136,11 +136,11 @@
 
     private int amountOfForces;
     private int amountOfSpecialForces;
-    private int forcesPaidByRed;
-    private int specialForcesPaidByRed;
+    private int forcesPaidByEmperor;
+    private int specialForcesPaidByEmperor;
     private IHero? hero;
     private bool assignSkill;
-    private bool useRedSecretAlly;
+    private bool useEmperorSecretAlly;
     private int amountOfForcesToLocation;
     private int amountOfSpecialForcesToLocation;
 
@@ -160,15 +160,15 @@
     {
         AmountOfForces = amountOfForces, 
         AmountOfSpecialForces = amountOfSpecialForces, 
-        ExtraForcesPaidByRed = forcesPaidByRed, 
-        ExtraSpecialForcesPaidByRed = specialForcesPaidByRed, 
+        ExtraForcesPaidByEmperor = forcesPaidByEmperor, 
+        ExtraSpecialForcesPaidByEmperor = specialForcesPaidByEmperor, 
         Hero = hero, 
         AssignSkill = assignSkill,
         NumberOfForcesInLocation = amountOfForcesToLocation,
         NumberOfSpecialForcesInLocation = amountOfSpecialForcesToLocation,
         Location = Target,
-        UsesRedSecretAlly = useRedSecretAlly
+        UsesEmperorSecretAlly = useEmperorSecretAlly
     };
 
-    private RevivalCost CostOfRevival => Revival.DetermineCost(Game, Player, hero, amountOfForces, amountOfSpecialForces, forcesPaidByRed, specialForcesPaidByRed, useRedSecretAlly);
+    private RevivalCost CostOfRevival => Revival.DetermineCost(Game, Player, hero, amountOfForces, amountOfSpecialForces, forcesPaidByEmperor, specialForcesPaidByEmperor, useEmperorSecretAlly);
 }

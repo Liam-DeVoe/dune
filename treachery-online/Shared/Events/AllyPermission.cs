@@ -27,34 +27,34 @@ public class AllyPermission : GameEvent
     #region Properties
 
     //Needed for versions < 155
-    public bool AllyMayShipAsOrange { get; set; }
+    public bool AllyMayShipAsGuild { get; set; }
 
-    public bool OrangeAllowsShippingDiscount
+    public bool GuildAllowsShippingDiscount
     {
-        get => AllyMayShipAsOrange;
-        set => AllyMayShipAsOrange = value;
+        get => AllyMayShipAsGuild;
+        set => AllyMayShipAsGuild = value;
     }
 
-    public int RedWillPayForExtraRevival { get; set; }
+    public int EmperorWillPayForExtraRevival { get; set; }
 
-    public bool YellowWillProtectFromMonster { get; set; }
+    public bool FremenWillProtectFromMonster { get; set; }
 
-    public bool YellowAllowsThreeFreeRevivals { get; set; }
+    public bool FremenAllowsThreeFreeRevivals { get; set; }
 
-    public bool YellowSharesPrescience { get; set; }
+    public bool FremenSharesPrescience { get; set; }
 
-    public bool YellowRefundsBattleDial { get; set; }
+    public bool FremenRefundsBattleDial { get; set; }
 
-    public bool PurpleAllowsRevivalDiscount
+    public bool TleilaxuAllowsRevivalDiscount
     {
-        get => AllyMayReviveAsPurple;
-        set => AllyMayReviveAsPurple = value;
+        get => AllyMayReviveAsTleilaxu;
+        set => AllyMayReviveAsTleilaxu = value;
     }
 
     //Needed for versions < 155
-    public bool AllyMayReviveAsPurple { get; set; }
+    public bool AllyMayReviveAsTleilaxu { get; set; }
 
-    public bool GreyAllowsReplacingCards
+    public bool IxianAllowsReplacingCards
     {
         get => AllyMayReplaceCards;
         set => AllyMayReplaceCards = value;
@@ -63,15 +63,15 @@ public class AllyPermission : GameEvent
     //Needed for versions < 155
     public bool AllyMayReplaceCards { get; set; }
 
-    public bool GreenSharesPrescience { get; set; }
+    public bool AtreidesSharesPrescience { get; set; }
 
-    public bool BlueAllowsUseOfVoice { get; set; }
+    public bool BeneGesseritAllowsUseOfVoice { get; set; }
 
-    public bool WhiteAllowsUseOfNoField { get; set; }
+    public bool RicheseAllowsUseOfNoField { get; set; }
 
-    public bool CyanAllowsKeepingCards { get; set; }
+    public bool MoritaniAllowsKeepingCards { get; set; }
 
-    public bool PinkSharesAmbassadors { get; set; }
+    public bool EcazSharesAmbassadors { get; set; }
 
     public int PermittedResources { get; set; }
 
@@ -103,47 +103,47 @@ public class AllyPermission : GameEvent
 
         switch (Initiator)
         {
-            case Faction.Orange:
-                Game.OrangeAllowsShippingDiscount = OrangeAllowsShippingDiscount;
+            case Faction.Guild:
+                Game.GuildAllowsShippingDiscount = GuildAllowsShippingDiscount;
                 break;
 
-            case Faction.Purple:
-                Game.PurpleAllowsRevivalDiscount = PurpleAllowsRevivalDiscount;
+            case Faction.Tleilaxu:
+                Game.TleilaxuAllowsRevivalDiscount = TleilaxuAllowsRevivalDiscount;
                 break;
 
-            case Faction.Grey:
-                Game.GreyAllowsReplacingCards = GreyAllowsReplacingCards;
+            case Faction.Ixian:
+                Game.IxianAllowsReplacingCards = IxianAllowsReplacingCards;
                 break;
 
-            case Faction.Red:
-                Game.RedWillPayForExtraRevival = RedWillPayForExtraRevival;
+            case Faction.Emperor:
+                Game.EmperorWillPayForExtraRevival = EmperorWillPayForExtraRevival;
                 break;
 
-            case Faction.Yellow:
-                Game.YellowWillProtectFromMonster = YellowWillProtectFromMonster;
-                Game.YellowAllowsThreeFreeRevivals = YellowAllowsThreeFreeRevivals;
-                Game.YellowSharesPrescience = YellowSharesPrescience;
-                Game.YellowRefundsBattleDial = YellowRefundsBattleDial;
+            case Faction.Fremen:
+                Game.FremenWillProtectFromMonster = FremenWillProtectFromMonster;
+                Game.FremenAllowsThreeFreeRevivals = FremenAllowsThreeFreeRevivals;
+                Game.FremenSharesPrescience = FremenSharesPrescience;
+                Game.FremenRefundsBattleDial = FremenRefundsBattleDial;
                 break;
 
-            case Faction.Green:
-                Game.GreenSharesPrescience = GreenSharesPrescience;
+            case Faction.Atreides:
+                Game.AtreidesSharesPrescience = AtreidesSharesPrescience;
                 break;
 
-            case Faction.Blue:
-                Game.BlueAllowsUseOfVoice = BlueAllowsUseOfVoice;
+            case Faction.BeneGesserit:
+                Game.BeneGesseritAllowsUseOfVoice = BeneGesseritAllowsUseOfVoice;
                 break;
 
-            case Faction.White:
-                Game.WhiteAllowsUseOfNoField = WhiteAllowsUseOfNoField;
+            case Faction.Richese:
+                Game.RicheseAllowsUseOfNoField = RicheseAllowsUseOfNoField;
                 break;
 
-            case Faction.Cyan:
-                Game.CyanAllowsKeepingCards = CyanAllowsKeepingCards;
+            case Faction.Moritani:
+                Game.MoritaniAllowsKeepingCards = MoritaniAllowsKeepingCards;
                 break;
 
-            case Faction.Pink:
-                Game.PinkSharesAmbassadors = PinkSharesAmbassadors;
+            case Faction.Ecaz:
+                Game.EcazSharesAmbassadors = EcazSharesAmbassadors;
                 break;
 
         }

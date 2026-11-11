@@ -63,7 +63,7 @@ public static class TreacheryCardManager
         Items.Add(new TreacheryCard(CardLalala, CardLalala, TreacheryCardType.Useless, Rule.BasicTreacheryCards));
         Items.Add(new TreacheryCard(CardTripToGamont, CardTripToGamont, TreacheryCardType.Useless, Rule.BasicTreacheryCards));
 
-        //Grey & Purple Expansion Treachery Cards
+        //Ixian & Tleilaxu Expansion Treachery Cards
         Items.Add(new TreacheryCard(33, 33, TreacheryCardType.ProjectileAndPoison, Rule.ExpansionTreacheryCardsPBandSs));
         Items.Add(new TreacheryCard(34, 34, TreacheryCardType.Projectile, Rule.ExpansionTreacheryCardsExceptPBandSSandAmal));
         Items.Add(new TreacheryCard(35, 35, TreacheryCardType.Poison, Rule.ExpansionTreacheryCardsExceptPBandSSandAmal));
@@ -81,17 +81,17 @@ public static class TreacheryCardManager
         Items.Add(new TreacheryCard(45, 43, TreacheryCardType.Amal, Rule.ExpansionTreacheryCardsAmal));
         Items.Add(new TreacheryCard(CardKullWahad, 44, TreacheryCardType.Useless, Rule.ExpansionTreacheryCardsExceptPBandSSandAmal));
 
-        //White Treachery Cards
-        Items.Add(new TreacheryCard(47, 45, TreacheryCardType.Distrans, Rule.WhiteTreacheryCards));
-        Items.Add(new TreacheryCard(48, 46, TreacheryCardType.Juice, Rule.WhiteTreacheryCards));
-        Items.Add(new TreacheryCard(49, 47, TreacheryCardType.MirrorWeapon, Rule.WhiteTreacheryCards));
-        Items.Add(new TreacheryCard(50, 48, TreacheryCardType.PortableAntidote, Rule.WhiteTreacheryCards));
-        Items.Add(new TreacheryCard(51, 49, TreacheryCardType.Flight, Rule.WhiteTreacheryCards));
-        Items.Add(new TreacheryCard(52, 50, TreacheryCardType.SearchDiscarded, Rule.WhiteTreacheryCards));
-        Items.Add(new TreacheryCard(53, 51, TreacheryCardType.TakeDiscarded, Rule.WhiteTreacheryCards));
-        Items.Add(new TreacheryCard(54, 52, TreacheryCardType.Residual, Rule.WhiteTreacheryCards));
-        Items.Add(new TreacheryCard(55, 53, TreacheryCardType.Rockmelter, Rule.WhiteTreacheryCards));
-        Items.Add(new TreacheryCard(56, 54, TreacheryCardType.Karma, Rule.WhiteTreacheryCards));
+        //Richese Treachery Cards
+        Items.Add(new TreacheryCard(47, 45, TreacheryCardType.Distrans, Rule.RicheseTreacheryCards));
+        Items.Add(new TreacheryCard(48, 46, TreacheryCardType.Juice, Rule.RicheseTreacheryCards));
+        Items.Add(new TreacheryCard(49, 47, TreacheryCardType.MirrorWeapon, Rule.RicheseTreacheryCards));
+        Items.Add(new TreacheryCard(50, 48, TreacheryCardType.PortableAntidote, Rule.RicheseTreacheryCards));
+        Items.Add(new TreacheryCard(51, 49, TreacheryCardType.Flight, Rule.RicheseTreacheryCards));
+        Items.Add(new TreacheryCard(52, 50, TreacheryCardType.SearchDiscarded, Rule.RicheseTreacheryCards));
+        Items.Add(new TreacheryCard(53, 51, TreacheryCardType.TakeDiscarded, Rule.RicheseTreacheryCards));
+        Items.Add(new TreacheryCard(54, 52, TreacheryCardType.Residual, Rule.RicheseTreacheryCards));
+        Items.Add(new TreacheryCard(55, 53, TreacheryCardType.Rockmelter, Rule.RicheseTreacheryCards));
+        Items.Add(new TreacheryCard(56, 54, TreacheryCardType.Karma, Rule.RicheseTreacheryCards));
 
         //Expansion 3 Treachery Cards
         Items.Add(new TreacheryCard(57, 55, TreacheryCardType.Recruits, Rule.Expansion3TreacheryCards));
@@ -109,9 +109,9 @@ public static class TreacheryCardManager
         return new Deck<TreacheryCard>(GetCardsInPlay(g), random);
     }
 
-    public static List<TreacheryCard> GetWhiteCards()
+    public static List<TreacheryCard> GetRicheseCards()
     {
-        return GetCardsInPlay(Rule.WhiteTreacheryCards).ToList();
+        return GetCardsInPlay(Rule.RicheseTreacheryCards).ToList();
     }
 
     public static IEnumerable<TreacheryCard> GetCardsInPlay(Game g)

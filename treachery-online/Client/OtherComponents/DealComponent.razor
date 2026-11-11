@@ -7,8 +7,9 @@
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
 @inherits GameComponent
+@inject MenuState Menu
 
-<div class="card mb-2" style="animation:fadeIn 1s;">
+<div class="card mb-2" style="@(InPopover ? "" : "animation:fadeIn 1s;")">
 
     @{
         var acceptableDeals = DealAccepted.AcceptableDeals(Game, Player).ToArray();
@@ -49,7 +50,7 @@
                                 var offerToShow = offer;
                                 var validity = offer.Acceptance(Faction).Validate();
 
-                                <tr class="table-dark">
+                                <tr class="table-dark @(Menu.MarkedDeal == offer ? "deal-marked" : "")">
                                     <td><FactionChip Faction=@offer.Initiator Game=Game/></td>
                                     <td><SpiceComponent Amount="@offer.Price.ToString()"/></td>
                                     <td class="text-break"><ExpressionComponent Expression=@(offer.GetDealDescription().Expression) Game=Game/></td>
@@ -125,6 +126,22 @@
 @code {
     
     private bool _collapsed = true;
+
+    // Opened up when shown in a popover from the menu bar (TradePopover).
+    [CascadingParameter(Name = "InPopover")]
+    public bool InPopover { get; set; }
+
+    private bool _openedInPopover;
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        if (InPopover && !_openedInPopover)
+        {
+            _openedInPopover = true;
+            _collapsed = false;
+        }
+    }
 
     private async Task Accept(DealOffered offered)
     {

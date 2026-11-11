@@ -37,7 +37,7 @@ public partial class GameHub
         }
 
         db.Add(new User
-            { Name = cleanedUsername, HashedPassword = hashedPassword, Email = trimmedEmail, PlayerName = trimmedPlayerName, LastLogin = DateTimeOffset.Now });
+            { Name = cleanedUsername, HashedPassword = hashedPassword, Email = trimmedEmail, PlayerName = trimmedPlayerName, LastLogin = TestHooks.Now() });
 
         await db.SaveChangesAsync();
         
@@ -102,7 +102,7 @@ public partial class GameHub
         if (user == null)
             return Error<LoginInfo>(ErrorType.InvalidUserNameOrPassword);
         
-        user.LastLogin = DateTimeOffset.Now;
+        user.LastLogin = TestHooks.Now();
         await db.SaveChangesAsync();
 
         var userToken = await LoginAndCreateToken(db, user);
@@ -127,11 +127,11 @@ public partial class GameHub
         if (string.IsNullOrWhiteSpace(mail))
             return Error(ErrorType.NoEmailAddressForUser);
 
-        if (users.Any(u => (DateTimeOffset.Now - u.PasswordResetTokenCreated).TotalMinutes < 5))
+        if (users.Any(u => (TestHooks.Now() - u.PasswordResetTokenCreated).TotalMinutes < 5))
             return Error(ErrorType.ResetRequestTooSoon);
 
         var token = GenerateToken();
-        var now = DateTimeOffset.Now;
+        var now = TestHooks.Now();
 
         foreach (var user in users)
         {
@@ -175,7 +175,7 @@ public partial class GameHub
         if (string.IsNullOrEmpty(user.PasswordResetToken) || user.PasswordResetToken.Trim() != passwordResetToken)
             return Error<LoginInfo>(ErrorType.InvalidResetToken);
         
-        if ((DateTime.Now - user.PasswordResetTokenCreated).TotalMinutes > 60)
+        if ((TestHooks.LocalNow() - user.PasswordResetTokenCreated).TotalMinutes > 60)
             return Error<LoginInfo>(ErrorType.ResetTokenExpired);
 
         user.HashedPassword = newHashedPassword;

@@ -69,12 +69,12 @@ public sealed class StormLogTests
         Message M(object log) => Message.Express("plain").WithLog(log);
         var messages = new List<Message>
         {
-            M(new BlueFlipped(sietch)),
-            M(new FamilyAtomicsUsed(Faction.Black, null)),
-            M(new FamilyAtomicsKilled(Faction.Yellow, 2, 1)),
+            M(new BeneGesseritFlipped(sietch)),
+            M(new FamilyAtomicsUsed(Faction.Harkonnen, null)),
+            M(new FamilyAtomicsKilled(Faction.Fremen, 2, 1)),
             M(new StormForecast(3)),
             M(new StormMoved(location.Sector - 1 + Map.NumberOfSectors, 1)),
-            M(new StormKilled(Faction.Yellow, location, 2, 1)),
+            M(new StormKilled(Faction.Fremen, location, 2, 1)),
             M(new StormDestroyedSpice(location, 6)),
             Message.Express("an ambassador line")
         };

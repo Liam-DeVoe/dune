@@ -1,0 +1,21 @@
+{"scenario":"chat","start":"2026-03-02T10:00:00+02:00"}
+{"op":"connect","conn":1}
+{"op":"call","conn":1,"method":"RequestCreateUser","args":["alice","hash-alice",null,"Alice"],"as":"a"}
+{"op":"connect","conn":2}
+{"op":"call","conn":2,"method":"RequestCreateUser","args":["bobby","hash-bobby",null,"Bobby"],"as":"b"}
+{"op":"connect","conn":3}
+{"op":"call","conn":3,"method":"RequestCreateUser","args":["carol","hash-carol",null,"Carol"],"as":"c"}
+{"op":"connect","conn":4}
+{"op":"call","conn":1,"method":"RequestCreateGame","args":["Chat","${a.Token}","","",""],"as":"g"}
+{"op":"call","conn":2,"method":"RequestJoinGame","args":["${b.Token}","${g.GameId}","",-1]}
+{"op":"call","conn":1,"method":"SendChatMessage","args":["nobody","${g.GameId}",{"TargetUserId":-1,"SourceUserId":1,"Body":"x"}]}
+{"op":"call","conn":1,"method":"SendChatMessage","args":["${a.Token}","nope",{"TargetUserId":-1,"SourceUserId":1,"Body":"x"}]}
+{"op":"call","conn":1,"method":"SendChatMessage","args":["${a.Token}","${g.GameId}",{"TargetUserId":-1,"SourceUserId":1,"Body":"Hello <b>all</b> & 'you' ümläut 😀"}]}
+{"op":"call","conn":2,"method":"SendChatMessage","args":["${b.Token}","${g.GameId}",{"TargetUserId":1,"SourceUserId":2,"Body":"only for alice, sent to everyone"}]}
+{"op":"call","conn":3,"method":"SendChatMessage","args":["${c.Token}","${g.GameId}",{"TargetUserId":-1,"SourceUserId":99,"Body":"from outside the game, any source"}]}
+{"op":"call","conn":1,"method":"SendChatMessage","args":["${a.Token}","${g.GameId}",{"TargetUserId":2,"SourceUserId":1}]}
+{"op":"call","conn":4,"method":"SendGlobalChatMessage","args":["nobody",{"SourceUserId":1,"Body":"x"}]}
+{"op":"call","conn":3,"method":"SendGlobalChatMessage","args":["${c.Token}",{"SourceUserId":3,"Body":"to every connection"}]}
+{"op":"disconnect","conn":2}
+{"op":"call","conn":1,"method":"SendChatMessage","args":["${a.Token}","${g.GameId}",{"TargetUserId":-1,"SourceUserId":1,"Body":"bob's socket closed"}]}
+{"op":"call","conn":1,"method":"SendGlobalChatMessage","args":["${a.Token}",{"SourceUserId":1,"Body":null}]}

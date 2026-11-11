@@ -8,6 +8,7 @@
 *@
 
 @inherits GameComponent
+@inject MenuState Menu
 
 @*
  A player's panel: spice and reserves in a bar, the leaders with the traitors
@@ -32,7 +33,7 @@
 
                 <div class="card-text h-100">
 
-                    @if (Client.CurrentPhase >= Phase.BlackMulligan)
+                    @if (Client.CurrentPhase >= Phase.HarkonnenMulligan)
                     {
                         <div class="pp-bar">
 
@@ -78,7 +79,7 @@
                                     }
                                 </span>
                             }
-                            else if (ShownPlayer.Traitors.Count > 0)
+                            else if (ShownPlayer.Traitors.Count > 0 && !StillPickingTraitor)
                             {
                                 <span class="pp-well" title="@(ShownPlayer.Traitors.Count == 1 ? "Your traitor" : "Your traitors")">
                                     @foreach (var v in ShownPlayer.Traitors)
@@ -97,14 +98,14 @@
                             <div>The next storm will move <SimpleNumberComponent>@(Client.Game.NextStormMoves)</SimpleNumberComponent> sectors.</div>
                         }
 
-                        @if (ShownPlayer.Faction == Faction.Blue && Client.CurrentPhase > Phase.BluePredicting)
+                        @if (ShownPlayer.Faction == Faction.BeneGesserit && Client.CurrentPhase > Phase.BeneGesseritPredicting)
                         {
                             <div>Prediction: <FactionChip Faction=@ShownPlayer.PredictedFaction Game=Client.Game/> <SimpleNumberComponent Size=30>@ShownPlayer.PredictedTurn</SimpleNumberComponent></div>
                         }
 
-                        @if (ShownPlayer.Faction == Faction.Green)
+                        @if (ShownPlayer.Faction == Faction.Atreides)
                         {
-                            if (Client.Game.Applicable(Rule.GreenMessiah))
+                            if (Client.Game.Applicable(Rule.AtreidesMessiah))
                             {
                                 <div>
                                     <img class="img-fluid m-0 p-0" width="32" height="32"
@@ -130,7 +131,7 @@
                             }
                         }
 
-                        @if (ShownPlayer.Faction == Faction.Pink && Client.CurrentPhase > Phase.BluePredicting)
+                        @if (ShownPlayer.Faction == Faction.Ecaz && Client.CurrentPhase > Phase.BeneGesseritPredicting)
                         {
                             <div>
                                 Ambassadors:
@@ -141,7 +142,7 @@
                             </div>
                         }
 
-                        @if (ShownPlayer.Faction == Faction.Cyan && Client.CurrentPhase > Phase.BluePredicting)
+                        @if (ShownPlayer.Faction == Faction.Moritani && Client.CurrentPhase > Phase.BeneGesseritPredicting)
                         {
                             var style = $"color:var(--parchment);{Support.TextBorder(1, "var(--f-moritani)")}";
 
@@ -158,23 +159,27 @@
 
                         </div>
 
-                        @* The hand, under a rule. *@
+                        @* The hand, under a rule. It keeps its height when empty. A card
+                           you can play now glows; clicking it opens its panel (CardPlayPopover). *@
                         <div class="pp-cards">
-                            @if (ShownPlayer.TreacheryCards.Count == 0 && Client.Game.GetCardSetAsideForBid(Player) == null)
+                            @foreach (var v in ShownPlayer.TreacheryCards)
                             {
-                                <span class="pp-none">You don't own any treachery cards.</span>
+                                var card = v;
+                                if (ShownPlayer == Client.Player && CardPlays.Playable(card, Client.Actions, Game, Player))
+                                {
+                                    <span class="pp-card playable @(Menu.CardPlay == card ? "open" : "")" @onclick="@(e => TogglePlay(card, e))">
+                                        <Image Shown=@card Width=48 NoShadow/>
+                                    </span>
+                                }
+                                else
+                                {
+                                    <Image Shown=@card Width=48 NoShadow/>
+                                }
                             }
-                            else
-                            {
-                                @foreach (var v in ShownPlayer.TreacheryCards)
-                                {
-                                    <Image Shown=@v Width=48 NoShadow/>
-                                }
 
-                                @if (Client.Game.GetCardSetAsideForBid(Player) is { } setAside)
-                                {
-                                    <Image Shown=@setAside Width=48 NoShadow/>
-                                }
+                            @if (Client.Game.GetCardSetAsideForBid(Player) is { } setAside)
+                            {
+                                <Image Shown=@setAside Width=48 NoShadow/>
                             }
                         </div>
 
@@ -205,6 +210,18 @@
     public bool ShowHeader { get; set; }
 
     private bool _collapsed = true;
+
+    private void TogglePlay(TreacheryCard card, MouseEventArgs e)
+    {
+        Menu.ToggleCardPlay(card, e.ClientY);
+        Client.Refresh(nameof(TogglePlay));
+    }
+
+    // While traitors are being picked, a player who picks still holds all the dealt candidates; show none until they've chosen.
+    private bool StillPickingTraitor =>
+        Client.Game.CurrentPhase == Phase.SelectingTraitors &&
+        ShownPlayer.Faction != Faction.Harkonnen && ShownPlayer.Faction != Faction.Tleilaxu &&
+        !Client.Game.HasActedOrPassed.Contains(ShownPlayer.Faction);
 
     private string ResourcesText
     {

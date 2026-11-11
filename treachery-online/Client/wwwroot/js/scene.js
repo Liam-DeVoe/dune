@@ -41,6 +41,11 @@
             return page.invokeMethodAsync('PressButton', label);
         },
 
+        // Another faction offers the seated one a deal, or withdraws its newest offer.
+        offerDeal(from, price, withdraw) {
+            return page.invokeMethodAsync('OfferDeal', from, price || 0, !!withdraw);
+        },
+
         // Clicks the first visible, enabled button whose text is the label.
         // Returns whether one was found.
         pressButton(label) {

@@ -26,7 +26,7 @@ public partial class Game
     public TreacheryCard? CardThatMustBeKeptOrGivenToAlly { get; internal set; }
     internal int NumberOfCardsOnAuction { get; set; }
     internal TriggeredBureaucracy? BiddingTriggeredBureaucracy { get; set; }
-    internal bool GreySwappedCardOnBid { get; set; }
+    internal bool IxianSwappedCardOnBid { get; set; }
 
     public Faction FactionThatMayReplaceBoughtCard { get; internal set; }
     public bool ReplacingBoughtCardUsingNexus { get; internal set; }
@@ -37,9 +37,9 @@ public partial class Game
 
     private AuctionType BlackMarketAuctionType { get; set; }
     public TreacheryCard? CardSoldOnBlackMarket { get; set; }
-    internal bool WhiteAuctionShouldStillHappen { get; set; }
-    public bool WhiteBiddingJustFinished { get; private set; }
-    public bool WhiteOccupierSpecifiedCard { get; internal set; }
+    internal bool RicheseAuctionShouldStillHappen { get; set; }
+    public bool RicheseBiddingJustFinished { get; private set; }
+    public bool RicheseOccupierSpecifiedCard { get; internal set; }
 
     #endregion
 
@@ -48,15 +48,15 @@ public partial class Game
     internal void EnterBiddingPhase()
     {
         MainPhaseStart(MainPhase.Bidding);
-        Allow(FactionAdvantage.BrownControllingCharity);
-        Allow(FactionAdvantage.BlueCharity);
+        Allow(FactionAdvantage.ChoamControllingCharity);
+        Allow(FactionAdvantage.BeneGesseritCharity);
         CardsOnAuction = new Deck<TreacheryCard>(Random ?? throw new Exception("Random generator is not initialized"));
-        GreySwappedCardOnBid = false;
+        IxianSwappedCardOnBid = false;
         CardSoldOnBlackMarket = null;
         BlackMarketAuctionType = AuctionType.None;
         RegularBiddingIsDone = false;
         BiddingRoundWasStarted = false;
-        WhiteAuctionShouldStillHappen = false;
+        RicheseAuctionShouldStillHappen = false;
         CurrentAuctionType = AuctionType.None;
         BiddingTriggeredBureaucracy = null;
         BidSequence = new PlayerSequence(this);
@@ -67,13 +67,13 @@ public partial class Game
 
     internal void StartBiddingPhase()
     {
-        var white = GetPlayer(Faction.White);
-        Enter(white != null && Applicable(Rule.WhiteBlackMarket) && !Prevented(FactionAdvantage.WhiteBlackMarket) && white.TreacheryCards.Count > 0,
+        var richese = GetPlayer(Faction.Richese);
+        Enter(richese != null && Applicable(Rule.RicheseBlackMarket) && !Prevented(FactionAdvantage.RicheseBlackMarket) && richese.TreacheryCards.Count > 0,
             Phase.BlackMarketAnnouncement,
-            EnterWhiteBidding);
+            EnterRicheseBidding);
     }
 
-    internal void EnterWhiteBidding()
+    internal void EnterRicheseBidding()
     {
         NumberOfCardsOnAuction = PlayersThatCanBid.Count();
 
@@ -88,7 +88,7 @@ public partial class Game
         }
         else
         {
-            Enter(IsPlaying(Faction.White) && WhiteCache.Count > 0 && !Prevented(FactionAdvantage.WhiteAuction), Phase.WhiteAnnouncingAuction, StartRegularBidding);
+            Enter(IsPlaying(Faction.Richese) && RicheseCache.Count > 0 && !Prevented(FactionAdvantage.RicheseAuction), Phase.RicheseAnnouncingAuction, StartRegularBidding);
         }
     }
 
@@ -102,9 +102,9 @@ public partial class Game
         var numberOfCardsToDraw = NumberOfCardsOnAuction;
 
         if (Version <= 150)
-            if (IsPlaying(Faction.White) && (Version < 150 || !WhiteAuctionShouldStillHappen || (WhiteAuctionShouldStillHappen && WhiteCache.Count > 0))) numberOfCardsToDraw--;
+            if (IsPlaying(Faction.Richese) && (Version < 150 || !RicheseAuctionShouldStillHappen || (RicheseAuctionShouldStillHappen && RicheseCache.Count > 0))) numberOfCardsToDraw--;
 
-        if (numberOfCardsToDraw > 0 && IsPlaying(Faction.Grey) && !Prevented(FactionAdvantage.GreySelectingCardsOnAuction)) numberOfCardsToDraw++;
+        if (numberOfCardsToDraw > 0 && IsPlaying(Faction.Ixian) && !Prevented(FactionAdvantage.IxianSelectingCardsOnAuction)) numberOfCardsToDraw++;
 
         Log(Message.Express(numberOfCardsToDraw, " cards were drawn for bidding").WithLog(new BiddingDrawn(numberOfCardsToDraw)));
 
@@ -116,7 +116,7 @@ public partial class Game
 
         StartBidSequenceAndAuctionType(AuctionType.Normal);
 
-        Enter(IsPlaying(Faction.Grey) && !Prevented(FactionAdvantage.GreySelectingCardsOnAuction), Phase.GreyRemovingCardFromBid, StartBiddingRound);
+        Enter(IsPlaying(Faction.Ixian) && !Prevented(FactionAdvantage.IxianSelectingCardsOnAuction), Phase.IxianRemovingCardFromBid, StartBiddingRound);
     }
 
     internal void StartBiddingRound()
@@ -143,7 +143,7 @@ public partial class Game
         SkipPlayersThatCantBid(BidSequence);
         Bids.Remove(bid.Initiator);
         Bids.Add(bid.Initiator, bid);
-        CheckIfGreenOrGreenAllyPassedBid(bid);
+        CheckIfAtreidesOrAtreidesAllyPassedBid(bid);
 
         switch (CurrentAuctionType)
         {
@@ -152,26 +152,26 @@ public partial class Game
                 bid.HandleNormalBid();
                 break;
 
-            case AuctionType.WhiteOnceAround:
-            case AuctionType.WhiteSilent:
+            case AuctionType.RicheseOnceAround:
+            case AuctionType.RicheseSilent:
 
-                bid.HandleWhiteBid();
+                bid.HandleRicheseBid();
                 break;
         }
     }
 
-    internal void CheckIfGreenOrGreenAllyPassedBid(IBid bid)
+    internal void CheckIfAtreidesOrAtreidesAllyPassedBid(IBid bid)
     {
-        var green = GetPlayer(Faction.Green);
-        if (green == null) return;
+        var atreides = GetPlayer(Faction.Atreides);
+        if (atreides == null) return;
 
-        if (bid.Initiator == green.Faction || bid.Initiator == green.Ally)
+        if (bid.Initiator == atreides.Faction || bid.Initiator == atreides.Ally)
         {
-            LatestBidByGreenOrGreenAllyWasPassed = bid.Passed;
+            LatestBidByAtreidesOrAtreidesAllyWasPassed = bid.Passed;
         }
     }
     
-    public bool LatestBidByGreenOrGreenAllyWasPassed { get; set; }
+    public bool LatestBidByAtreidesOrAtreidesAllyWasPassed { get; set; }
 
     internal void ReturnKarmaCardUsedForBid()
     {
@@ -180,14 +180,14 @@ public partial class Game
 
     // paidTo is the faction that received the spice, or Faction.None for the
     // bank. A card won for free (Secret Ally) carries no log record.
-    internal void LogBid(Player initiator, int bidAmount, int bidAllyContributionAmount, int bidRedContributionAmount, MessagePart receiverIncome, Faction paidTo, bool free = false)
+    internal void LogBid(Player initiator, int bidAmount, int bidAllyContributionAmount, int bidEmperorContributionAmount, MessagePart receiverIncome, Faction paidTo, bool free = false)
     {
-        var bidTotalAmount = bidAmount + bidAllyContributionAmount + bidRedContributionAmount;
+        var bidTotalAmount = bidAmount + bidAllyContributionAmount + bidEmperorContributionAmount;
         var cardNumber = MessagePart.ExpressIf(CurrentAuctionType == AuctionType.Normal, CardNumber);
 
         var shares = new List<BidShare>();
         if (bidAllyContributionAmount > 0) shares.Add(new BidShare(initiator.Ally, bidAllyContributionAmount));
-        if (bidRedContributionAmount > 0) shares.Add(new BidShare(Faction.Red, bidRedContributionAmount));
+        if (bidEmperorContributionAmount > 0) shares.Add(new BidShare(Faction.Emperor, bidEmperorContributionAmount));
 
         LogBidding(free ? null : new CardSold(CardNumber, initiator.Faction, bidTotalAmount, paidTo, shares, null),
             initiator.Faction,
@@ -196,8 +196,8 @@ public partial class Game
             " for ",
             Payment.Of(bidTotalAmount),
             MessagePart.ExpressIf(
-                bidAllyContributionAmount > 0 || bidRedContributionAmount > 0,
-                "(", Payment.Of(bidAllyContributionAmount, initiator.Ally), MessagePart.ExpressIf(bidRedContributionAmount > 0, " and ", Payment.Of(bidRedContributionAmount, Faction.Red)), ") "),
+                bidAllyContributionAmount > 0 || bidEmperorContributionAmount > 0,
+                "(", Payment.Of(bidAllyContributionAmount, initiator.Ally), MessagePart.ExpressIf(bidEmperorContributionAmount > 0, " and ", Payment.Of(bidEmperorContributionAmount, Faction.Emperor)), ") "),
             receiverIncome);
     }
 
@@ -217,14 +217,14 @@ public partial class Game
         CurrentReport.Express(message);
     }
 
-    internal TreacheryCard WinByHighestBid(Player winner, IBid bid, int bidAmount, int bidAllyContributionAmount, int bidRedContributionAmount, Faction paymentReceiver, Deck<TreacheryCard> toDrawFrom, bool usesRedSecretAlly)
+    internal TreacheryCard WinByHighestBid(Player winner, IBid bid, int bidAmount, int bidAllyContributionAmount, int bidEmperorContributionAmount, Faction paymentReceiver, Deck<TreacheryCard> toDrawFrom, bool usesEmperorSecretAlly)
     {
         var receiverIncomeMessage = MessagePart.Express();
 
-        if (!usesRedSecretAlly)
+        if (!usesEmperorSecretAlly)
         {
-            var paidTo = PayForCard(winner, bid, bidAmount, bidAllyContributionAmount, bidRedContributionAmount, paymentReceiver, ref receiverIncomeMessage);
-            LogBid(winner, bidAmount, bidAllyContributionAmount, bidRedContributionAmount, receiverIncomeMessage, paidTo);
+            var paidTo = PayForCard(winner, bid, bidAmount, bidAllyContributionAmount, bidEmperorContributionAmount, paymentReceiver, ref receiverIncomeMessage);
+            LogBid(winner, bidAmount, bidAllyContributionAmount, bidEmperorContributionAmount, receiverIncomeMessage, paidTo);
         }
         else
         {
@@ -256,7 +256,7 @@ public partial class Game
     }
 
     // Returns the faction that received the spice, or Faction.None when it went to the bank.
-    internal Faction PayForCard(Player initiator, IBid bid, int bidAmount, int bidAllyContributionAmount, int bidRedContributionAmount, Faction paymentReceiver, ref MessagePart message)
+    internal Faction PayForCard(Player initiator, IBid bid, int bidAmount, int bidAllyContributionAmount, int bidEmperorContributionAmount, Faction paymentReceiver, ref MessagePart message)
     {
         var paidTo = Faction.None;
         initiator.Resources -= bidAmount;
@@ -269,47 +269,47 @@ public partial class Game
             DecreasePermittedUseOfAllySpice(initiator.Faction, bidAllyContributionAmount);
         }
 
-        if (bidRedContributionAmount > 0) GetPlayer(Faction.Red)!.Resources -= bidRedContributionAmount;
+        if (bidEmperorContributionAmount > 0) GetPlayer(Faction.Emperor)!.Resources -= bidEmperorContributionAmount;
 
         var receiver = GetPlayer(paymentReceiver);
-        var receiverAndAllyAreWhite = initiator.Ally == Faction.White && paymentReceiver == Faction.White;
-        var totalAmount = bidAmount + (Version >= 139 && receiverAndAllyAreWhite ? 0 : bidAllyContributionAmount);
+        var receiverAndAllyAreRichese = initiator.Ally == Faction.Richese && paymentReceiver == Faction.Richese;
+        var totalAmount = bidAmount + (Version >= 139 && receiverAndAllyAreRichese ? 0 : bidAllyContributionAmount);
 
-        var red = GetPlayer(Faction.Red);
-        var totalAmountReceivedByRedInsteadOfWhite =
-            Version >= 165 && receiverAndAllyAreWhite && red != null && !Prevented(FactionAdvantage.RedReceiveBid) ? bidAllyContributionAmount : 0;
+        var emperor = GetPlayer(Faction.Emperor);
+        var totalAmountReceivedByEmperorInsteadOfRichese =
+            Version >= 165 && receiverAndAllyAreRichese && emperor != null && !Prevented(FactionAdvantage.EmperorReceiveBid) ? bidAllyContributionAmount : 0;
 
-        var redReceivedInsteadMessage = MessagePart.Express();
-        if (red != null && totalAmountReceivedByRedInsteadOfWhite > 0)
+        var emperorReceivedInsteadMessage = MessagePart.Express();
+        if (emperor != null && totalAmountReceivedByEmperorInsteadOfRichese > 0)
         {
-            ModifyIncomeBecauseOfLowThresholdOrOccupation(receiver!, ref totalAmountReceivedByRedInsteadOfWhite);
-            red.Resources += totalAmountReceivedByRedInsteadOfWhite;
-            redReceivedInsteadMessage = MessagePart.Express(" and ", Faction.Red, " get ", Payment.Of(totalAmountReceivedByRedInsteadOfWhite));
+            ModifyIncomeBecauseOfLowThresholdOrOccupation(receiver!, ref totalAmountReceivedByEmperorInsteadOfRichese);
+            emperor.Resources += totalAmountReceivedByEmperorInsteadOfRichese;
+            emperorReceivedInsteadMessage = MessagePart.Express(" and ", Faction.Emperor, " get ", Payment.Of(totalAmountReceivedByEmperorInsteadOfRichese));
 
-            if (totalAmountReceivedByRedInsteadOfWhite >= 5)
+            if (totalAmountReceivedByEmperorInsteadOfRichese >= 5)
                 //This should also take into account payments received by an occupier
-                BiddingTriggeredBureaucracy = new TriggeredBureaucracy { PaymentFrom = Faction.White, PaymentTo = Faction.Red };
+                BiddingTriggeredBureaucracy = new TriggeredBureaucracy { PaymentFrom = Faction.Richese, PaymentTo = Faction.Emperor };
 
             SetRecentPayment(receiverProfit, initiator.Faction, receiver!.Faction, (GameEvent)bid);
         }
         
         if (receiver != null && initiator.Faction != paymentReceiver)
         {
-            if (paymentReceiver == Faction.Red && Prevented(FactionAdvantage.RedReceiveBid))
+            if (paymentReceiver == Faction.Emperor && Prevented(FactionAdvantage.EmperorReceiveBid))
             {
                 message = MessagePart.Express(" → ", paymentReceiver, " do not receive ", Concept.Resource, " for this card");
-                if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.RedReceiveBid);
+                if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.EmperorReceiveBid);
             }
             else
             {
                 receiverProfit = totalAmount;
                 ModifyIncomeBecauseOfLowThresholdOrOccupation(receiver, ref receiverProfit);
                 receiver.Resources += receiverProfit;
-                receiver.ResourcesAfterBidding += bidRedContributionAmount;
+                receiver.ResourcesAfterBidding += bidEmperorContributionAmount;
                 paidTo = receiver.Faction;
                 message = MessagePart.Express(" → ", receiver.Faction, " get ", Payment.Of(receiverProfit),
-                    redReceivedInsteadMessage,
-                    MessagePart.ExpressIf(bidRedContributionAmount > 0, " immediately and ", Payment.Of(bidRedContributionAmount), " at the end of the bidding phase"));
+                    emperorReceivedInsteadMessage,
+                    MessagePart.ExpressIf(bidEmperorContributionAmount > 0, " immediately and ", Payment.Of(bidEmperorContributionAmount), " at the end of the bidding phase"));
 
                 if (receiverProfit >= 5)
                     //This should also take into account payments received by an occupier
@@ -318,48 +318,48 @@ public partial class Game
                 SetRecentPayment(receiverProfit, initiator.Faction, receiver.Faction, (GameEvent)bid);
             }
         }
-        else if (totalAmountReceivedByRedInsteadOfWhite > 0)
+        else if (totalAmountReceivedByEmperorInsteadOfRichese > 0)
         {
-            message = MessagePart.Express(" → ", Faction.Red, " get ", Payment.Of(totalAmountReceivedByRedInsteadOfWhite));
-            paidTo = Faction.Red;
+            message = MessagePart.Express(" → ", Faction.Emperor, " get ", Payment.Of(totalAmountReceivedByEmperorInsteadOfRichese));
+            paidTo = Faction.Emperor;
         }
 
-        if (totalAmount - receiverProfit - totalAmountReceivedByRedInsteadOfWhite >= 4) ActivateBanker(initiator);
+        if (totalAmount - receiverProfit - totalAmountReceivedByEmperorInsteadOfRichese >= 4) ActivateBanker(initiator);
 
         return paidTo;
     }
 
     internal void GivePlayerExtraCardIfApplicable(Player winner)
     {
-        if (winner.Is(Faction.Black))
+        if (winner.Is(Faction.Harkonnen))
         {
             var extraCardMustBeDecidedAbout = false;
             Player? receiver = null;
 
-            var occupierOfBlackHomeworld = OccupierOf(World.Black);
-            if (occupierOfBlackHomeworld != null)
+            var occupierOfHarkonnenHomeworld = OccupierOf(World.Harkonnen);
+            if (occupierOfHarkonnenHomeworld != null)
             {
-                if (occupierOfBlackHomeworld.HasRoomForCards)
+                if (occupierOfHarkonnenHomeworld.HasRoomForCards)
                 {
-                    receiver = occupierOfBlackHomeworld;
-                    extraCardMustBeDecidedAbout = occupierOfBlackHomeworld.HasAlly && occupierOfBlackHomeworld.AlliedPlayer.HasRoomForCards;
+                    receiver = occupierOfHarkonnenHomeworld;
+                    extraCardMustBeDecidedAbout = occupierOfHarkonnenHomeworld.HasAlly && occupierOfHarkonnenHomeworld.AlliedPlayer.HasRoomForCards;
 
                 }
-                else if (occupierOfBlackHomeworld.HasAlly && occupierOfBlackHomeworld.AlliedPlayer.HasRoomForCards)
+                else if (occupierOfHarkonnenHomeworld.HasAlly && occupierOfHarkonnenHomeworld.AlliedPlayer.HasRoomForCards)
                 {
-                    receiver = occupierOfBlackHomeworld.AlliedPlayer;
+                    receiver = occupierOfHarkonnenHomeworld.AlliedPlayer;
                 }
             }
             else if (winner.HasRoomForCards)
             {
-                if (!Prevented(FactionAdvantage.BlackFreeCard))
+                if (!Prevented(FactionAdvantage.HarkonnenFreeCard))
                 {
                     receiver = winner;
                 }
                 else
                 {
-                    LogPreventionByKarma(FactionAdvantage.BlackFreeCard);
-                    if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.BlackFreeCard);
+                    LogPreventionByKarma(FactionAdvantage.HarkonnenFreeCard);
+                    if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.HarkonnenFreeCard);
                 }
             }
 
@@ -408,27 +408,27 @@ public partial class Game
         CardSoldOnBlackMarket = null;
         CurrentBid = null;
         FactionThatMayReplaceBoughtCard = Faction.None;
-        LatestBidByGreenOrGreenAllyWasPassed = false;
+        LatestBidByAtreidesOrAtreidesAllyWasPassed = false;
         
         Bids.Clear();
 
-        if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.GreenBiddingPrescience);
+        if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.AtreidesBiddingPrescience);
 
         var enterReplacingCardJustWon = mightReplace && Version > 150 &&  
                                         ((Version < 159 && Players.Any(p => p.Nexus != Faction.None)) || (Version >= 159 && winner.Nexus != Faction.None));
 
         if (mightReplace)
         {
-            if (winner.Ally == Faction.Grey && GreyAllowsReplacingCards && !(Version >= 164 && (CurrentAuctionType is AuctionType.WhiteSilent or AuctionType.WhiteOnceAround)))
+            if (winner.Ally == Faction.Ixian && IxianAllowsReplacingCards && !(Version >= 164 && (CurrentAuctionType is AuctionType.RicheseSilent or AuctionType.RicheseOnceAround)))
             {
-                if (!Prevented(FactionAdvantage.GreyAllyDiscardingCard))
+                if (!Prevented(FactionAdvantage.IxianAllyDiscardingCard))
                 {
                     FactionThatMayReplaceBoughtCard = winner.Faction;
                     enterReplacingCardJustWon = true;
                 }
                 else
                 {
-                    if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.GreyAllyDiscardingCard);
+                    if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.IxianAllyDiscardingCard);
 
                     if (NexusAllowsReplacingBoughtCards(winner))
                     {
@@ -457,7 +457,7 @@ public partial class Game
 
     internal void DetermineNextStepAfterCardWasSold()
     {
-        WhiteBiddingJustFinished = CurrentAuctionType == AuctionType.WhiteOnceAround || CurrentAuctionType == AuctionType.WhiteSilent;
+        RicheseBiddingJustFinished = CurrentAuctionType == AuctionType.RicheseOnceAround || CurrentAuctionType == AuctionType.RicheseSilent;
 
         if (CardsOnAuction?.IsEmpty is not true)
         {
@@ -467,8 +467,8 @@ public partial class Game
         {
             if (RegularBiddingIsDone)
             {
-                if (WhiteAuctionShouldStillHappen)
-                    Enter(Phase.WhiteSpecifyingAuction);
+                if (RicheseAuctionShouldStillHappen)
+                    Enter(Phase.RicheseSpecifyingAuction);
                 else
                     EndBiddingPhase();
             }
@@ -484,43 +484,43 @@ public partial class Game
         CardNumber++;
         CardThatMustBeKeptOrGivenToAlly = null;
 
-        if (GreyMaySwapCardOnBid)
+        if (IxianMaySwapCardOnBid)
         {
-            if (Version < 113 || !Prevented(FactionAdvantage.GreySwappingCard))
+            if (Version < 113 || !Prevented(FactionAdvantage.IxianSwappingCard))
             {
-                Enter(Phase.GreySwappingCard);
+                Enter(Phase.IxianSwappingCard);
             }
             else
             {
-                LogPreventionByKarma(FactionAdvantage.GreySwappingCard);
-                if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.GreySwappingCard);
-                Enter(Version >= 107 || IsPlaying(Faction.Green), Phase.WaitingForNextBiddingRound, PutNextCardOnAuction);
+                LogPreventionByKarma(FactionAdvantage.IxianSwappingCard);
+                if (!Applicable(Rule.FullPhaseKarma)) Allow(FactionAdvantage.IxianSwappingCard);
+                Enter(Version >= 107 || IsPlaying(Faction.Atreides), Phase.WaitingForNextBiddingRound, PutNextCardOnAuction);
             }
         }
         else
         {
-            Enter(Version >= 107 || IsPlaying(Faction.Green), Phase.WaitingForNextBiddingRound, PutNextCardOnAuction);
+            Enter(Version >= 107 || IsPlaying(Faction.Atreides), Phase.WaitingForNextBiddingRound, PutNextCardOnAuction);
         }
     }
 
     internal void PutNextCardOnAuction()
     {
-        if (!WhiteBiddingJustFinished) BidSequence!.NextRound();
+        if (!RicheseBiddingJustFinished) BidSequence!.NextRound();
 
         SkipPlayersThatCantBid(BidSequence!);
         WinningBid = null;
         Enter(Phase.Bidding);
     }
 
-    internal void ContinueAfterGreyCardSwapDecision()
+    internal void ContinueAfterIxianCardSwapDecision()
     {
         if (!BiddingRoundWasStarted)
             StartBiddingRound();
         else
-            Enter(IsPlaying(Faction.Green), Phase.WaitingForNextBiddingRound, PutNextCardOnAuction);
+            Enter(IsPlaying(Faction.Atreides), Phase.WaitingForNextBiddingRound, PutNextCardOnAuction);
     }
 
-    internal void StartBidSequenceAndAuctionType(AuctionType auctionType, Player? whitePlayer = null, int direction = 1)
+    internal void StartBidSequenceAndAuctionType(AuctionType auctionType, Player? richesePlayer = null, int direction = 1)
     {
         switch (auctionType)
         {
@@ -531,7 +531,7 @@ public partial class Game
 
             case AuctionType.BlackMarketOnceAround:
                 BlackMarketAuctionType = AuctionType.BlackMarketOnceAround;
-                BidSequence = new PlayerSequence(this, true, direction, whitePlayer!, true);
+                BidSequence = new PlayerSequence(this, true, direction, richesePlayer!, true);
                 break;
 
             case AuctionType.BlackMarketSilent:
@@ -539,11 +539,11 @@ public partial class Game
                 BlackMarketAuctionType = AuctionType.BlackMarketSilent;
                 break;
 
-            case AuctionType.WhiteOnceAround:
-                BidSequence = new PlayerSequence(this, true, direction, whitePlayer!, true);
+            case AuctionType.RicheseOnceAround:
+                BidSequence = new PlayerSequence(this, true, direction, richesePlayer!, true);
                 break;
 
-            case AuctionType.WhiteSilent:
+            case AuctionType.RicheseSilent:
                 BidSequence = new PlayerSequence(this, true, 1);
                 break;
 
@@ -584,12 +584,12 @@ public partial class Game
     internal void EndBiddingPhase()
     {
         CardThatMustBeKeptOrGivenToAlly = null;
-        CurrentGreyCunning = null;
-        var red = GetPlayer(Faction.Red);
-        if (red != null)
+        CurrentIxianCunning = null;
+        var emperor = GetPlayer(Faction.Emperor);
+        if (emperor != null)
         {
-            red.Resources += red.ResourcesAfterBidding;
-            red.ResourcesAfterBidding = 0;
+            emperor.Resources += emperor.ResourcesAfterBidding;
+            emperor.ResourcesAfterBidding = 0;
         }
 
         MainPhaseEnd();
@@ -606,7 +606,7 @@ public partial class Game
 
     internal bool NexusAllowsReplacingBoughtCards(Player p)
     {
-        return (p.Nexus == Faction.Grey || (Version < 159 && p.Nexus == Faction.White)) &&
+        return (p.Nexus == Faction.Ixian || (Version < 159 && p.Nexus == Faction.Richese)) &&
                NexusPlayed.CanUseSecretAlly(this, p);
     }
 
@@ -617,7 +617,7 @@ public partial class Game
                 (CurrentBid.Initiator == p.Ally && CurrentBid.AllyContributionAmount > 0));
     }
 
-    internal bool GreyMaySwapCardOnBid => GetPlayer(Faction.Grey)?.TreacheryCards.Count > 0 && Applicable(Rule.GreySwappingCardOnBid) && !GreySwappedCardOnBid;
+    internal bool IxianMaySwapCardOnBid => GetPlayer(Faction.Ixian)?.TreacheryCards.Count > 0 && Applicable(Rule.IxianSwappingCardOnBid) && !IxianSwappedCardOnBid;
 
     public IEnumerable<TreacheryCard> CardsOwnedBy(Player p)
     {

@@ -1,7 +1,7 @@
 @inherits PhaseLogBase
 
 @*
- The Collection log: one table of where, how much and who. Spice collected from
+ The Collection log: one table of who, how much and where. Spice collected from
  the desert comes first; stronghold and homeworld income follows under a brighter
  rule. When two fields in one territory paid out, each row names its sector under
  the place. Other lines (thefts, shared spice, occupation) keep their place: those
@@ -49,6 +49,8 @@
 
     private RenderFragment Row(SpiceCollected c, bool first, bool showSector) =>
         @<text>
+            <div class="cell faction @(first ? "first" : "")"><FactionChip Faction="@c.Faction" Game="@Game"/></div>
+            <div class="cell amount @(first ? "first" : "")"><SpiceComponent Amount="@c.Amount.ToString()"/></div>
             <div class="cell place @(first ? "first" : "")">
                 <PlaceChip Place="@c.Territory"/>
                 @if (showSector && c.Field != null)
@@ -56,8 +58,6 @@
                     <div class="log-label sector">@SectorName(c.Field)</div>
                 }
             </div>
-            <div class="cell amount @(first ? "first" : "")"><SpiceComponent Amount="@c.Amount.ToString()"/></div>
-            <div class="cell faction @(first ? "first" : "")"><FactionChip Faction="@c.Faction" Game="@Game"/></div>
         </text>;
 
     private static string SectorName(Location l) =>

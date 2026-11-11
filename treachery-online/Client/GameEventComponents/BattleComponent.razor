@@ -17,8 +17,8 @@
     var dial = CurrentDial;
     var cost = CurrentCost;
     var mustPay = Battle.MustPayForAnyForcesInBattle(Game, Player);
-    var dialsAtCost = DialsAt(cost);
-    var costsAtDial = CostsAt(dial);
+    var allDials = AllDials;
+    var allCosts = AllCosts;
 
     var allyCap = AllyCap;
     var allyMin = Math.Max(0, cost - Player.Resources);
@@ -35,7 +35,7 @@
     var defenses = Defenses.ToList();
     if (Defense != null && !defenses.Contains(Defense)) Defense = null;
 
-    var messiahAvailable = Player.MessiahAvailable && !Game.Prevented(FactionAdvantage.GreenUseMessiah);
+    var messiahAvailable = Player.MessiahAvailable && !Game.Prevented(FactionAdvantage.AtreidesUseMessiah);
     if (!messiahAvailable) Messiah = false;
 
     var maxBankerBoost = Battle.MaxBankerBoost(Game, Player, Hero);
@@ -61,9 +61,9 @@
             @Side(Opponent, Client.CurrentSkin.Describe(Opponent.Faction), true, OpponentForceGroups())
         </div>
 
-        @if (Game.CurrentPinkBattleContribution > 0 && !(Player.Faction == Faction.Pink || Player.Ally == Faction.Pink))
+        @if (Game.CurrentEcazBattleContribution > 0 && !(Player.Faction == Faction.Ecaz || Player.Ally == Faction.Ecaz))
         {
-            <div class="bp-note good"><FactionChip Faction=Faction.Pink Game=Game/> forces contribute <strong>@Game.CurrentPinkBattleContribution</strong> to your opponent's dial.</div>
+            <div class="bp-note good"><FactionChip Faction=Faction.Ecaz Game=Game/> forces contribute <strong>@Game.CurrentEcazBattleContribution</strong> to your opponent's dial.</div>
         }
 
         @if (!Battle.ValidBattleHeroes(Game, Opponent).Any())
@@ -73,7 +73,7 @@
 
         @if (Game.CurrentVoice != null)
         {
-            @if (Faction == Faction.Blue || Player.Ally == Faction.Blue)
+            @if (Faction == Faction.BeneGesserit || Player.Ally == Faction.BeneGesserit)
             {
                 <div class="bp-note good">Your opponent @(Game.CurrentVoice.Must? "must use" : "may not use") @Client.CurrentSkin.Describe(Game.CurrentVoice.Type).</div>
             }
@@ -83,10 +83,10 @@
             }
         }
 
-        @if (Faction == Faction.Green || Player.Ally == Faction.Green)
+        @if (Faction == Faction.Atreides || Player.Ally == Faction.Atreides || UsedByMySide(Game.CurrentPrescience) || UsedByMySide(Game.CurrentNexusPrescience))
         {
             var opponentBattlePlan = Game.CurrentBattle.Aggressor == Faction ? Game.DefenderPlan : Game.AggressorPlan;
-            if (Game.GreenKarma)
+            if (Game.AtreidesKarma && (Faction == Faction.Atreides || Player.Ally == Faction.Atreides))
             {
                 if (opponentBattlePlan != null)
                 {
@@ -102,7 +102,7 @@
             }
             else
             {
-                if (Game.CurrentPrescience != null) 
+                if (UsedByMySide(Game.CurrentPrescience))
                 {
                     if (opponentBattlePlan != null)
                     {
@@ -114,23 +114,23 @@
                     }
                 }
 
-                if (Game.CurrentNexusPrescience != null)
+                if (UsedByMySide(Game.CurrentNexusPrescience))
                 {
                     if (opponentBattlePlan != null)
                     {
-                        @PrescienceNote(Game.CurrentNexusPrescience.GreenPrescienceAspect, opponentBattlePlan, false)
+                        @PrescienceNote(Game.CurrentNexusPrescience.AtreidesPrescienceAspect, opponentBattlePlan, false)
                     }
                     else
                     {
-                        <div class="bp-note good">Opponent @Name(Game.CurrentNexusPrescience.GreenPrescienceAspect).ToLowerInvariant() will be visible as soon as they confirm their battle plan.</div>
+                        <div class="bp-note good">Opponent @Name(Game.CurrentNexusPrescience.AtreidesPrescienceAspect).ToLowerInvariant() will be visible as soon as they confirm their battle plan.</div>
                     }
                 }
             }
         }
 
-        @if (Game.CurrentPinkBattleContribution > 0 && (Player.Faction == Faction.Pink || Player.Ally == Faction.Pink))
+        @if (Game.CurrentEcazBattleContribution > 0 && (Player.Faction == Faction.Ecaz || Player.Ally == Faction.Ecaz))
         {
-            <div class="bp-note good"><FactionChip Faction=Faction.Pink Game=Game/> forces contribute <strong>@Game.CurrentPinkBattleContribution</strong> to your dial.</div>
+            <div class="bp-note good"><FactionChip Faction=Faction.Ecaz Game=Game/> forces contribute <strong>@Game.CurrentEcazBattleContribution</strong> to your dial.</div>
         }
 
 
@@ -142,9 +142,9 @@
                 <div class="bp-ctl">
                     <span class="bp-what">Dial</span>
                     <div class="num">
-                        <button type="button" disabled="@(!dialsAtCost.Any(d => d < dial))" @onclick="() => StepDial(-1)">−</button>
+                        <button type="button" disabled="@(!allDials.Any(d => d < dial))" @onclick="() => StepDial(-1)">−</button>
                         <input value="@FormatStrength(dial)" title="The strength of your forces in this battle" @onchange="e => TypeDial(e.Value)" @onkeydown="e => StepByKey(e, true)"/>
-                        <button type="button" disabled="@(!dialsAtCost.Any(d => d > dial))" @onclick="() => StepDial(1)">+</button>
+                        <button type="button" disabled="@(!allDials.Any(d => d > dial))" @onclick="() => StepDial(1)">+</button>
                     </div>
                 </div>
 
@@ -154,9 +154,9 @@
                         <span class="bp-what">@Client.CurrentSkin.Describe(Concept.Resource)</span>
                         <div class="num">
                             <span class="ic"><img src="@Client.CurrentSkin.Harvester_URL" alt=""/></span>
-                            <button type="button" disabled="@(!costsAtDial.Any(c => c < cost))" @onclick="() => StepCost(-1)">−</button>
+                            <button type="button" disabled="@(!allCosts.Any(c => c < cost))" @onclick="() => StepCost(-1)">−</button>
                             <input value="@cost" title="@Client.CurrentSkin.Format("{0} used to support forces", Concept.Resource)" @onchange="e => TypeCost(e.Value)" @onkeydown="e => StepByKey(e, false)"/>
-                            <button type="button" disabled="@(!costsAtDial.Any(c => c > cost))" @onclick="() => StepCost(1)">+</button>
+                            <button type="button" disabled="@(!allCosts.Any(c => c > cost))" @onclick="() => StepCost(1)">+</button>
                         </div>
                     </div>
 
@@ -329,7 +329,7 @@
         : Battle.MustPayForAnyForcesInBattle(Game, Player) && Battle.NormalForceCost(Game, Player) > 0;
 
     // Only a CHOAM ally can help pay, as before the redesign.
-    private int AllyCap => Player.Ally == Faction.Brown ? Game.ResourcesYourAllyCanPay(Player) : 0;
+    private int AllyCap => Player.Ally == Faction.Choam ? Game.ResourcesYourAllyCanPay(Player) : 0;
 
     private int SpiceAvailable => Player.Resources + AllyCap;
 
@@ -375,6 +375,27 @@
     private List<float> DialsAt(int cost) => Mixes.Where(m => m.Cost == cost).Select(m => m.Dial).Distinct().Order().ToList();
 
     private List<int> CostsAt(float dial) => Mixes.Where(m => m.Dial == dial).Select(m => m.Cost).Distinct().Order().ToList();
+
+    private List<float> AllDials => Mixes.Select(m => m.Dial).Distinct().Order().ToList();
+
+    private List<int> AllCosts => Mixes.Select(m => m.Cost).Distinct().Order().ToList();
+
+    // Go to this dial, keeping the spice if some mix allows it, otherwise moving the spice as little as possible.
+    // Some dials need the spice to change: one troop at full strength can't be dialled without paying for it.
+    private void MoveToDial(float dial)
+    {
+        var cost = CurrentCost;
+        var costs = CostsAt(dial);
+        if (costs.Count > 0) MoveTo(dial, costs.Contains(cost) ? cost : costs.MinBy(c => Math.Abs(c - cost)));
+    }
+
+    // Go to this spice amount, keeping the dial if some mix allows it, otherwise moving the dial as little as possible.
+    private void MoveToCost(int cost)
+    {
+        var dial = CurrentDial;
+        var dials = DialsAt(cost);
+        if (dials.Count > 0) MoveTo(dials.Contains(dial) ? dial : dials.MinBy(d => Math.Abs(d - dial)), cost);
+    }
 
     // Reach a dial and cost by changing as few tokens as possible. Ties keep special forces out, then commit fewer forces.
     private void MoveTo(float dial, int cost)
@@ -425,17 +446,17 @@
     private void StepDial(int dir)
     {
         var dial = CurrentDial;
-        var options = DialsAt(CurrentCost);
+        var options = AllDials;
         var next = dir > 0 ? options.Where(d => d > dial).Cast<float?>().FirstOrDefault() : options.Where(d => d < dial).Cast<float?>().LastOrDefault();
-        if (next != null) MoveTo(next.Value, CurrentCost);
+        if (next != null) MoveToDial(next.Value);
     }
 
     private void StepCost(int dir)
     {
         var cost = CurrentCost;
-        var options = CostsAt(CurrentDial);
+        var options = AllCosts;
         var next = dir > 0 ? options.Where(c => c > cost).Cast<int?>().FirstOrDefault() : options.Where(c => c < cost).Cast<int?>().LastOrDefault();
-        if (next != null) MoveTo(CurrentDial, next.Value);
+        if (next != null) MoveToCost(next.Value);
     }
 
     private void StepByKey(KeyboardEventArgs e, bool isDial)
@@ -448,15 +469,15 @@
     private void TypeDial(object? value)
     {
         if (!TryParseStrength(value, out var wanted)) return;
-        var options = DialsAt(CurrentCost);
-        if (options.Count > 0) MoveTo(options.MinBy(d => Math.Abs(d - wanted)), CurrentCost);
+        var options = AllDials;
+        if (options.Count > 0) MoveToDial(options.MinBy(d => Math.Abs(d - wanted)));
     }
 
     private void TypeCost(object? value)
     {
         if (!TryParseStrength(value, out var wanted)) return;
-        var options = CostsAt(CurrentDial);
-        if (options.Count > 0) MoveTo(CurrentDial, options.MinBy(c => Math.Abs(c - wanted)));
+        var options = AllCosts;
+        if (options.Count > 0) MoveToCost(options.MinBy(c => Math.Abs(c - wanted)));
     }
 
     private static bool TryParseStrength(object? value, out float result)
@@ -483,10 +504,6 @@
 
     private static string FormatStrength(float value)
     {
-        var whole = (int)Math.Floor(value);
-        var rest = value - whole;
-        if (rest == 0) return whole.ToString(CultureInfo.InvariantCulture);
-        if (rest == 0.5f) return (whole == 0 ? "" : whole.ToString(CultureInfo.InvariantCulture)) + "½";
         return value.ToString("0.##", CultureInfo.InvariantCulture);
     }
 
@@ -532,7 +549,7 @@
             @if (specialForces > 0)
             {
                 <ForceToken Faction="p.Faction" Special="true" Size="20" Title="@Client.CurrentSkin.Describe(p.SpecialForce)"/>
-                @if (!(isOpponent && p.Faction == Faction.White))
+                @if (!(isOpponent && p.Faction == Faction.Richese))
                 {
                     <b>@specialForces</b>
                 }
@@ -598,6 +615,9 @@
         if (parts.messiah != 0) sum += $" + {Client.CurrentSkin.Describe(Concept.Messiah)} {parts.messiah}";
         return sum;
     }
+
+    // Prescience shows the other side's plan to whoever used it and their ally.
+    private bool UsedByMySide([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] GameEvent? e) => e != null && (e.Initiator == Faction || e.Initiator == Player.Ally);
 
     // What prescience shows of the opponent's plan: a card or leader (with its
     // popover), the dial, or "None".

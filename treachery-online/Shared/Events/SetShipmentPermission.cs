@@ -52,7 +52,7 @@ public class SetShipmentPermission : GameEvent
 
     public static bool IsApplicable(Game g, Player p)
     {
-        return g.CurrentMainPhase == MainPhase.ShipmentAndMove && p.Is(Faction.Orange) && p.HasHighThreshold();
+        return g.CurrentMainPhase == MainPhase.ShipmentAndMove && p.Is(Faction.Guild) && p.HasHighThreshold();
     }
 
     protected override void ExecuteConcreteEvent()
@@ -72,7 +72,7 @@ public class SetShipmentPermission : GameEvent
         return Message.Express(Initiator, " → ", Factions, ": ",
             "cross shipping: ", (Permission & ShipmentPermission.Cross) == ShipmentPermission.Cross ? "yes" : "no",
             ", to (own) world: ", (Permission & ShipmentPermission.ToHomeworld) == ShipmentPermission.ToHomeworld ? "yes" : "no",
-            ", discount: ", (Permission & ShipmentPermission.OrangeRate) == ShipmentPermission.OrangeRate ? "yes" : "no");
+            ", discount: ", (Permission & ShipmentPermission.GuildRate) == ShipmentPermission.GuildRate ? "yes" : "no");
     }
 
     #endregion Execution

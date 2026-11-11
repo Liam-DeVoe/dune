@@ -1,19 +1,12 @@
 // Ship & Move log design: one block per faction turn. See
 // design/battle-log/log-matrix.html (Ship & Move, "One block per turn").
 
-// A faction's turn, in a .log-box: its number and pill, then the rows.
+// A faction's turn, in a .log-box: its pill, then the rows.
 .shipmove-turn {
   .head {
     display: flex;
     align-items: center;
     gap: 8px;
-  }
-
-  .nr {
-    width: 12px;
-    font-family: var(--font-display);
-    font-size: 14px;
-    color: var(--text-3);
   }
 
   // Label column (SHIP, MOVE, +) and content column.

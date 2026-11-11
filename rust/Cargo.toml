@@ -1,0 +1,15 @@
+[workspace]
+resolver = "2"
+members = ["bots", "canon-derive", "differ", "dotnet-compat", "engine", "server", "server-equiv", "skin", "view"]
+
+[workspace.package]
+edition = "2024"
+license = "GPL-3.0-or-later"
+
+[profile.dev]
+opt-level = 1
+debug = "line-tables-only"
+incremental = false
+
+[profile.release]
+debug = false

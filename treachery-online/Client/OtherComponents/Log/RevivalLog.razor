@@ -64,9 +64,9 @@
                             paid by @Sigil(row.Payer)
                         </div>
                     }
-                    @if (row.PurpleIncome > 0)
+                    @if (row.TleilaxuIncome > 0)
                     {
-                        <div class="by">→ @Sigil(Faction.Purple) get <SpiceComponent Amount="@row.PurpleIncome.ToString()" Size="16"/></div>
+                        <div class="by">→ @Sigil(Faction.Tleilaxu) get <SpiceComponent Amount="@row.TleilaxuIncome.ToString()" Size="16"/></div>
                     }
                 </div>
             }

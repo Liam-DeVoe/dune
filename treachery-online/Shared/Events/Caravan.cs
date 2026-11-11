@@ -33,20 +33,20 @@ public class Caravan : PlacementEvent
         Game.StormLossesToTake.Clear();
       
         Game.Discard(Player, TreacheryCardType.Caravan);
-        Game.PerformMoveFromLocations(Player, ForceLocations, this, Initiator != Faction.Blue || AsAdvisors, true);
+        Game.PerformMoveFromLocations(Player, ForceLocations, this, Initiator != Faction.BeneGesserit || AsAdvisors, true);
 
         if (Game.ContainsConflictingAlly(Player, To)) Game.ChosenDestinationsWithAllies.Add(To.Territory);
 
         Game.CurrentFlightUsed = null;
         Game.CurrentFlightDiscoveryUsed = null;
 
-        if (!Game.Applicable(Rule.FullPhaseKarma)) Game.Allow(FactionAdvantage.YellowExtraMove);
-        if (!Game.Applicable(Rule.FullPhaseKarma)) Game.Allow(FactionAdvantage.GreyCyborgExtraMove);
+        if (!Game.Applicable(Rule.FullPhaseKarma)) Game.Allow(FactionAdvantage.FremenExtraMove);
+        if (!Game.Applicable(Rule.FullPhaseKarma)) Game.Allow(FactionAdvantage.IxianCyborgExtraMove);
 
         if (Game.CheckIntrusion(this))
         {
             Game.PhaseBeforeCaravanCausedIntrusion = Game.CurrentPhase;
-            Game.Enter(Game.LastBlueIntrusion != null, Phase.BlueIntrudedByCaravan, Game.LastTerrorTrigger != null, Phase.TerrorTriggeredByCaravan, Phase.AmbassadorTriggeredByCaravan);
+            Game.Enter(Game.LastBeneGesseritIntrusion != null, Phase.BeneGesseritIntrudedByCaravan, Game.LastTerrorTrigger != null, Phase.TerrorTriggeredByCaravan, Phase.AmbassadorTriggeredByCaravan);
         }
     }
 

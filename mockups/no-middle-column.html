@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>No middle column: open questions</title>
+<style>
+@font-face { font-family: "Advokat"; src: url("../treachery-online/Client/wwwroot/Advokat.ttf"); }
+@font-face { font-family: "Copperplate Dune"; src: url("../treachery-online/Client/wwwroot/Copperplate.ttf"); }
+@font-face { font-family: "Alegreya Sans"; font-weight: 400; src: url("../treachery-online/Client/wwwroot/fonts/AlegreyaSans-400-latin.woff2"); }
+@font-face { font-family: "Alegreya Sans"; font-weight: 700; src: url("../treachery-online/Client/wwwroot/fonts/AlegreyaSans-700-latin.woff2"); }
+:root {
+  --ink-0: #120800; --ink-2: #2a1607; --parchment: #fcf9d1; --sand: #f3d987; --gold: #e7bf3c; --gold-2: #e3a631;
+  --text-2: #d9c79a; --text-3: #a68d63; --hair: rgba(255,255,255,.09); --hair-strong: rgba(255,255,255,.16);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: #0b0500; color: var(--parchment); font-family: "Alegreya Sans", Candara, sans-serif; font-size: 17px; line-height: 1.45; }
+main { max-width: 1400px; margin: 0 auto; padding: 32px 28px 100px; }
+.eyebrow { font-family: "Copperplate Dune", serif; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--gold-2); }
+h1 { font-family: "Advokat", serif; font-weight: 400; font-size: 44px; margin: 6px 0 8px; }
+h2 { font-family: "Advokat", serif; font-weight: 400; font-size: 28px; color: var(--gold); margin: 0 0 6px; }
+p { max-width: 80ch; color: var(--text-2); margin: 0 0 12px; }
+section { border-top: 1px solid var(--hair); padding-top: 24px; margin-top: 32px; }
+.q { font-size: 19px; color: var(--sand); margin: 0 0 14px; }
+.opts { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+figure { margin: 0; }
+figcaption { font-family: "Copperplate Dune", serif; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-3); margin-bottom: 6px; }
+figcaption b { color: var(--sand); font-weight: 400; }
+img { display: block; border: 1px solid var(--hair-strong); border-radius: 4px; }
+.col, .panel { width: 300px; }
+.wide { width: 640px; }
+/* interactive toast mock */
+.how { color: var(--text-2); margin: 0 0 12px; padding-left: 20px; max-width: 80ch; }
+.how li { margin: 2px 0; }
+.t-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 14px 0 10px; }
+.t-controls button { font: 600 15px "Alegreya Sans", sans-serif; padding: 7px 13px; border-radius: 6px; border: 1px solid rgba(231,191,60,.45); background: transparent; color: var(--sand); cursor: pointer; }
+.t-controls button:hover { background: rgba(231,191,60,.1); border-color: var(--gold); }
+.t-controls button.quiet { border-color: transparent; color: var(--text-3); }
+.t-check { color: var(--text-2); font-size: 15px; display: inline-flex; gap: 6px; align-items: center; margin-left: 8px; }
+.t-frame { position: relative; width: 100%; max-width: 1344px; aspect-ratio: 1440 / 820; overflow: hidden; border: 1px solid var(--hair-strong); border-radius: 4px; }
+.t-stage { position: absolute; left: 0; top: 0; width: 1440px; height: 820px; transform-origin: 0 0; font-family: "Alegreya Sans", sans-serif; color: var(--parchment); }
+.t-bg { position: absolute; inset: 0; width: 1440px; height: 820px; border: 0; border-radius: 0; }
+.t-cover { position: absolute; left: 0; top: 774px; width: 230px; height: 46px; background: #1d0c00; }
+.t-bar { position: absolute; left: 12px; top: 778px; height: 36px; display: flex; align-items: center; gap: 2px; z-index: 3; }
+.t-bar button { width: 40px; height: 36px; border: 0; background: transparent; color: var(--text-2); border-radius: 3px; display: grid; place-items: center; position: relative; cursor: pointer; }
+.t-bar button:hover { background: rgba(231,191,60,.12); color: var(--gold); }
+.t-bar button.on { background: rgba(231,191,60,.18); color: var(--gold); }
+.t-bar svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.t-bar .sep { width: 1px; height: 18px; margin: 0 6px; background: rgba(255,255,255,.16); }
+.t-bar .count { position: absolute; top: 1px; right: 1px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; background: var(--gold); color: var(--ink-0); font: 11px/16px "Advokat", serif; display: none; transition: transform 200ms cubic-bezier(.2,.7,.2,1); }
+.t-bar .count.show { display: block; }
+.t-bar .count.bump { transform: scale(1.35); }
+
+.t-toasts { position: absolute; left: 16px; bottom: 50px; width: 380px; display: flex; flex-direction: column; gap: 8px; z-index: 4; }
+.t-toast { background: var(--ink-0); border: 1px solid rgba(255,255,255,.16); border-radius: 6px; box-shadow: 0 18px 40px rgba(18,8,0,.6), 0 2px 6px rgba(18,8,0,.6); padding: 10px 12px 12px; display: flex; gap: 10px; align-items: flex-start; font-size: 14.5px; color: var(--text-2); cursor: pointer; position: relative; overflow: hidden; }
+.t-toast.gone { cursor: default; }
+.t-toast.gone > .sigil, .t-toast.gone .txt > .chip, .t-toast.gone .txt { color: var(--text-3); }
+.t-toast.gone > .sigil, .t-toast.gone .txt > .chip, .t-toast.gone .spice-amt { opacity: .5; }
+.t-toast.gone .note { color: var(--parchment); }
+.t-toast .txt { flex: 1; line-height: 1.5; }
+.t-toast .x { background: transparent; border: 0; color: var(--text-3); font-size: 30px; line-height: 24px; width: 32px; height: 32px; margin: -6px -6px 0 0; border-radius: 3px; cursor: pointer; flex: none; }
+.t-toast .x:hover { background: rgba(231,191,60,.12); }
+.t-toast .x:hover { color: var(--gold); }
+.t-toast .note { display: block; margin-top: 2px; color: var(--parchment); font-weight: 700; }
+
+.sigil { width: 28px; height: 28px; border-radius: 50%; display: inline-grid; place-items: center; background: var(--fc); box-shadow: 0 0 0 1.5px var(--ink-0), 0 0 0 2.5px rgba(252,249,209,.25); flex: none; vertical-align: middle; }
+.sigil img { width: 66%; height: 66%; border: 0; border-radius: 0; display: inline; }
+.sigil.lg { width: 40px; height: 40px; }
+.chip { display: inline-flex; align-items: center; gap: 7px; padding: 2px 10px 2px 2px; border-radius: 999px; background: rgba(18,8,0,.55); border: 1px solid rgba(252,249,209,.12); font-weight: 700; color: var(--parchment); white-space: nowrap; vertical-align: middle; line-height: 1.2; }
+.chip .sigil { width: 22px; height: 22px; }
+.spice-amt { position: relative; display: inline-grid; place-items: center; width: 22px; height: 22px; vertical-align: middle; }
+.spice-amt img { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; border-radius: 0; }
+.spice-amt b { position: relative; font: 400 14px "Advokat", serif; color: var(--parchment); text-shadow: 0 0 1px #000, 0 0 1px #000, 0 0 3px #000; }
+
+.t-scrim { position: absolute; inset: 0; z-index: 5; display: none; }
+.t-pop { position: absolute; left: 12px; bottom: 50px; width: 540px; max-height: 700px; overflow-y: auto; z-index: 6; display: none; background: var(--ink-0); border: 1px solid rgba(255,255,255,.16); border-radius: 6px; box-shadow: 0 18px 40px rgba(18,8,0,.6), 0 2px 6px rgba(18,8,0,.6); }
+.t-pop.show, .t-scrim.show { display: block; }
+.t-tabs { display: flex; gap: 2px; padding: 6px 6px 0; border-bottom: 1px solid rgba(255,255,255,.09); }
+.t-tabs button { background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--text-2); padding: 7px 12px; font: 15px "Alegreya Sans", sans-serif; }
+.t-tabs button.on { color: var(--parchment); border-bottom-color: var(--gold); }
+.t-body { padding: 10px; }
+.t-card { background: var(--ink-2); border: 1px solid rgba(255,255,255,.09); border-radius: 6px; }
+.t-card-h { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,.09); font-weight: 700; font-size: 18px; display: flex; align-items: center; gap: 6px; }
+.t-card-h .chev { margin-left: auto; color: var(--text-3); font-size: 12px; }
+.t-badge { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; font: 13px "Advokat", serif; }
+.t-badge.offer { background: var(--spice, #e8762a); color: var(--parchment); }
+.t-badge.mine { background: rgba(252,249,209,.14); color: var(--text-2); }
+.t-badge.current { background: var(--gold); color: var(--ink-0); }
+.t-card-b { padding: 10px 14px 14px; }
+.t-card-b .lbl { color: var(--text-2); margin: 4px 0 6px; }
+.t-row { display: grid; grid-template-columns: auto auto 1fr auto; gap: 8px; align-items: start; padding: 8px 6px; border-bottom: 1px solid rgba(255,255,255,.07); font-size: 16px; color: var(--parchment); transition: background 400ms; }
+.t-row.hi { background: rgba(231,191,60,.10); box-shadow: inset 3px 0 0 var(--gold); }
+.t-row .acts { display: flex; flex-direction: column; gap: 6px; }
+.t-btn { font: 700 15px "Alegreya Sans", sans-serif; padding: 6px 12px; border-radius: 6px; border: 1px solid transparent; cursor: pointer; }
+.t-btn.primary { background: var(--gold); color: var(--ink-0); }
+.t-btn.secondary { background: transparent; color: var(--sand); border-color: rgba(231,191,60,.45); }
+.t-empty { color: var(--text-3); font-style: italic; padding: 4px 0; }
+.t-log { margin-top: 10px; font: 13px ui-monospace, Menlo, monospace; color: var(--text-3); max-height: 150px; overflow-y: auto; white-space: pre-wrap; }
+
+code { font-family: ui-monospace, Menlo, monospace; font-size: .85em; color: var(--sand); background: rgba(255,255,255,.06); padding: 1px 5px; border-radius: 3px; }
+/* bidding mockup: the staged BiddingPanel with .lot laid out beside the card */
+.bmock { width: 400px; zoom: .75; font-family: "Alegreya Sans", sans-serif; }
+.bmock > img { display: block; width: 400px; border: 0; border-radius: 0; }
+.bsec { margin: 0 24px 0 26px; width: 350px; background: var(--parchment); color: #1d0c00; border: 1px solid #b8841e; border-top: 0; border-radius: 0 0 6px 6px; padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 12px; }
+.lot { display: flex; gap: 14px; align-items: center; }
+.lot-card { width: 64px; height: auto; border: 1px solid rgba(0,0,0,.5); border-radius: 3px; box-shadow: 0 1px 2px rgba(18,8,0,.6); }
+.lot-text { display: flex; flex-direction: column; gap: 6px; }
+.lot-title { font-size: 17px; }
+.lot-bid { display: flex; gap: 6px; align-items: center; }
+.pchip { display: inline-flex; align-items: center; gap: 7px; padding: 2px 12px 2px 2px; border-radius: 999px; background: rgba(29,12,0,.07); border: 1px solid rgba(29,12,0,.2); font-weight: 700; font-size: 17px; }
+.pchip .sigil { width: 24px; height: 24px; }
+.bnum { display: inline-flex; align-self: flex-start; height: 32px; border: 1px solid rgba(29,12,0,.3); border-radius: 6px; overflow: hidden; background: rgba(255,255,255,.55); }
+.bnum .ic { width: 30px; display: grid; place-items: center; border-right: 1px solid rgba(29,12,0,.2); }
+.bnum .ic img { width: 18px; height: 18px; border: 0; border-radius: 0; }
+.bnum b { width: 30px; display: grid; place-items: center; font: 400 16px "Advokat", serif; }
+.bnum i { width: 44px; display: grid; place-items: center; font: normal 18px "Advokat", serif; border-left: 1px solid rgba(29,12,0,.2); border-right: 1px solid rgba(29,12,0,.2); }
+.bbtns { display: flex; gap: 8px; }
+.bbtns span { background: var(--gold); color: var(--ink-0); font-weight: 700; font-size: 16px; padding: 9px 14px; border-radius: 6px; }
+.bauto { display: inline-flex; gap: 8px; align-items: center; font-size: 16px; }
+.bauto i { width: 17px; height: 17px; border: 1px solid rgba(29,12,0,.35); border-radius: 3px; background: rgba(255,255,255,.6); }
+</style>
+</head>
+<body>
+<main>
+<div class="eyebrow">treachery.online · no middle column</div>
+<h1>What I still need from you</h1>
+<p>Everything else from the mockups is built. These two need a decision. In each one, the option marked "built" is what's in the build now.</p>
+
+<section>
+  <h2>1. Use Voice and Use Prescience</h2>
+  <p class="q">Should these stay parchment, joined to the status card above them, or go back to today's dark panels?</p>
+  <p>In the build, every action panel under the status card turns parchment, so the status and the action read as one card. The battle plan keeps its own card either way.</p>
+  <div class="opts">
+    <figure><figcaption><b>Built</b> · parchment, joined</figcaption><img class="col" src="../design/middle-column/open/build-voice.png"></figure>
+    <figure><figcaption><b>Built</b> · parchment, joined</figcaption><img class="col" src="../design/middle-column/open/build-prescience.png"></figure>
+    <figure><figcaption>Today's dark panels</figcaption><img class="panel" src="../design/middle-column/panels/mc-voice-emperor-panel-1.png" style="margin-bottom:10px"><img class="panel" src="../design/middle-column/panels/mc-prescience-atreides-panel-1.png"></figure>
+  </div>
+</section>
+
+
+
+<section>
+  <h2>2. The bidding card</h2>
+  <p class="q">Someone else is already changing this. Is that your work, and should I leave bidding to it?</p>
+  <p>A staged change to <code>BiddingPanel.razor</code>, from 01:06 today, shrinks the auctioned card to 64px and puts "Card 1 of 6" and the current bid in a <code>.lot</code> block. The bid is the bidder's faction chip and the spice amount. When there's no bid yet, it also adds new text: "No bids yet". No styles for <code>.lot</code> exist yet, so the title and the bid sit under the card instead of beside it. The left screenshot is the current tree, including that change. The right one is the same change with the title and bid beside the card, which is what <code>.lot</code> seems meant for. The controls and their order are unchanged.</p>
+  <div class="opts">
+    <figure><figcaption>Current tree · staged change, no styles yet</figcaption><img class="col" src="../design/middle-column/open/now-bidding.png"></figure>
+    <figure><figcaption>My build · today's panel</figcaption><img class="col" src="../design/middle-column/open/build-bidding.png"></figure>
+    <figure><figcaption>Mockup · the staged change, with the text beside the card</figcaption>
+      <div class="bmock">
+        <img src="../design/middle-column/open/bid-top.png" alt="">
+        <div class="bsec">
+          <div class="lot">
+            <img class="lot-card" src="../treachery-online/Client/wwwroot/art/Chaumas.gif" alt="">
+            <div class="lot-text">
+              <div class="lot-title">Card 1 of 6</div>
+              <div class="lot-bid"><span class="pchip"><span class="sigil" style="--fc:#d29422"><img src="../treachery-online/Client/wwwroot/art/faction3.svg" alt=""></span>Fremen</span><span class="spice-amt"><img src="../treachery-online/Client/wwwroot/art/ActiveSpice.svg" alt=""><b>1</b></span></div>
+            </div>
+          </div>
+          <div class="bnum"><span class="ic"><img src="../treachery-online/Client/wwwroot/art/ActiveSpice.svg" alt=""></span><b>−</b><i>2</i><b>+</b></div>
+          <div class="bbtns"><span>Pass</span><span>Bid 2</span></div>
+          <label class="bauto"><i></i>Auto-pass</label>
+        </div>
+        <img src="../design/middle-column/open/bid-bottom.png" alt="">
+      </div>
+    </figure>
+  </div>
+</section>
+
+
+</main>
+<script>
+(() => {
+  const ART = '../treachery-online/Client/wwwroot/art/';
+  const F = {
+    emperor: {n: 'Emperor', c: '#b33715', i: 4}, bene_gesserit: {n: 'Bene Gesserit', c: '#385884', i: 6},
+    atreides: {n: 'Atreides', c: '#63842e', i: 1}, fremen: {n: 'Fremen', c: '#d29422', i: 3},
+  };
+  const sig = (f, cls = '') => `<span class="sigil ${cls}" style="--fc:${F[f].c}"><img src="${ART}faction${F[f].i}.svg" alt=""></span>`;
+  const chip = f => `<span class="chip">${sig(f)}${F[f].n}</span>`;
+  const spice = n => `<span class="spice-amt"><img src="${ART}ActiveSpice.svg" alt=""><b>${n}</b></span>`;
+  // Deal descriptions as the Deals panel shows them today.
+  const OFFERS = {
+    emperor: [{price: 7, text: 'tell which traitors I discarded until End of turn'}, {price: 3, text: 'share storm prescience until End of turn'}],
+    bene_gesserit: [{price: 8, text: 'tell which traitors I discarded until End of turn'}, {price: 2, text: 'share prescience (1 card) until Next bidding round'}],
+  };
+  const LIFE = 5000;
+
+  const $ = id => document.getElementById(id);
+  const stage = $('t-stage'), frame = $('t-frame');
+  let offers = [], current = [], seq = 0, toasts = new Map(), popOpen = false, highlight = null;
+  const turnEmperor = {emperor: 0, bene_gesserit: 0};
+
+  function fit() { stage.style.transform = `scale(${frame.clientWidth / 1440})`; }
+  addEventListener('resize', fit); fit();
+
+  const t0 = performance.now();
+  function log(msg) { const el = $('t-log'); el.textContent = `${((performance.now() - t0) / 1000).toFixed(1).padStart(6)}s  ${msg}\n` + el.textContent; }
+  const slow = () => $('t-slow').checked ? 3 : 1;
+
+  function renderCount(bump) {
+    const c = $('t-count');
+    c.textContent = offers.length;
+    c.classList.toggle('show', offers.length > 0);
+    if (bump) { c.classList.add('bump'); setTimeout(() => c.classList.remove('bump'), 220); }
+  }
+
+  function renderPop() {
+    $('t-badges').innerHTML = (offers.length ? `<span class="t-badge offer" title="Deals offered to you">${offers.length}</span>` : '') +
+      (current.length ? ` <span class="t-badge current" title="Current deals">${current.length}</span>` : '');
+    let h = '<div class="lbl">Deal offers</div>';
+    h += offers.length ? offers.map(o => `<div class="t-row ${o.id === highlight ? 'hi' : ''}" data-id="${o.id}">${chip(o.from)}${spice(o.price)}<span>${o.text}</span>
+        <span class="acts"><button class="t-btn primary" data-accept="${o.id}">Accept</button><button class="t-btn secondary" data-decline="${o.id}">Decline</button></span></div>`).join('')
+      : '<div class="t-empty">No offers</div>';
+    if (current.length) h += '<div class="lbl" style="margin-top:14px">Current deals</div>' + current.map(o => `<div class="t-row" style="grid-template-columns:auto 1fr">${chip(o.from)}<span>${o.text}</span></div>`).join('');
+    $('t-deallist').innerHTML = h;
+  }
+
+  function openPop(id) {
+    highlight = id ?? null; popOpen = true; renderPop();
+    $('t-pop').classList.add('show'); $('t-scrim').classList.add('show'); $('t-deals').classList.add('on');
+    if (id != null) { $('t-pop').querySelector(`[data-id="${id}"]`)?.scrollIntoView({block: 'nearest'}); setTimeout(() => { highlight = null; if (popOpen) renderPop(); }, 2500); }
+    log(id != null ? 'Deals opened from the toast, offer marked' : 'Deals opened from the icon');
+  }
+  function closePop() { popOpen = false; $('t-pop').classList.remove('show'); $('t-scrim').classList.remove('show'); $('t-deals').classList.remove('on'); log('Deals closed'); }
+
+  // One toast: counts down LIFE ms, paused while hovered.
+  function toast(o) {
+    const el = document.createElement('div');
+    el.className = 't-toast';
+    el.innerHTML = `${sig(o.from, 'lg')}<div class="txt">${chip(o.from)} offer for ${spice(o.price)}: ${o.text}<span class="note"></span></div><button class="x" title="Close">×</button>`;
+    $('t-toasts').appendChild(el);
+    const t = {el, left: LIFE * slow(), total: LIFE * slow(), last: performance.now(), paused: false, raf: 0};
+    toasts.set(o.id, t);
+    const tick = now => {
+      if (!t.paused) t.left -= now - t.last;
+      t.last = now;
+      if (t.left <= 0) { dismiss(o.id, 'gone after 5s, offer still waiting in Deals'); return; }
+      t.raf = requestAnimationFrame(tick);
+    };
+    t.raf = requestAnimationFrame(tick);
+    el.addEventListener('mouseenter', () => { t.paused = true; log(`toast ${o.id}: paused (hover)`); });
+    el.addEventListener('mouseleave', () => { t.paused = false; log(`toast ${o.id}: resumed`); });
+    el.addEventListener('click', e => {
+      if (el.classList.contains('gone')) return;
+      if (e.target.closest('.x')) { dismiss(o.id, 'closed with ×, offer still waiting in Deals'); return; }
+      dismiss(o.id, 'clicked'); openPop(o.id);
+    });
+    log(`toast ${o.id}: shown (${F[o.from].n}, ${o.price} spice)`);
+  }
+
+  function dismiss(id, why) {
+    const t = toasts.get(id); if (!t) return;
+    cancelAnimationFrame(t.raf); toasts.delete(id);
+    t.el.remove();
+    log(`toast ${id}: ${why}`);
+  }
+
+  function send(from) {
+    const pool = OFFERS[from], d = pool[turnEmperor[from]++ % pool.length];
+    const o = {id: ++seq, from, ...d};
+    offers.push(o); renderCount(true); if (popOpen) renderPop(); toast(o);
+    if ($('t-toasts').children.length > 3) { const oldest = [...toasts.keys()][0]; dismiss(oldest, 'pushed out by a newer toast'); }
+  }
+
+  function withdraw() {
+    const o = offers.at(-1); if (!o) { log('nothing to withdraw'); return; }
+    offers = offers.filter(x => x !== o); renderCount(false); if (popOpen) renderPop();
+    const t = toasts.get(o.id);
+    if (t) {
+      cancelAnimationFrame(t.raf); toasts.delete(o.id);
+      t.el.classList.add('gone'); t.el.querySelector('.note').textContent = 'Offer withdrawn';
+      setTimeout(() => t.el.remove(), 2000 * slow());
+      log(`offer ${o.id} withdrawn while its toast was up: toast shows "Offer withdrawn", then goes`);
+    } else log(`offer ${o.id} withdrawn (no toast up)`);
+  }
+
+  document.querySelector('.t-controls').addEventListener('click', e => {
+    const a = e.target.closest('button')?.dataset.act; if (!a) return;
+    if (a === 'emperor') send('emperor');
+    if (a === 'bg') send('bene_gesserit');
+    if (a === 'two') { send('emperor'); setTimeout(() => send('bene_gesserit'), 400); }
+    if (a === 'withdraw') withdraw();
+    if (a === 'reset') { [...toasts.keys()].forEach(id => dismiss(id, 'reset')); offers = []; current = []; closePop(); renderCount(false); $('t-log').textContent = ''; }
+  });
+  $('t-deals').addEventListener('click', () => popOpen ? closePop() : openPop());
+  $('t-scrim').addEventListener('click', closePop);
+  $('t-deallist').addEventListener('click', e => {
+    const acc = e.target.dataset.accept, dec = e.target.dataset.decline;
+    if (acc) { const o = offers.find(x => x.id == acc); offers = offers.filter(x => x !== o); current.push(o); log(`offer ${o.id} accepted`); }
+    if (dec) { offers = offers.filter(x => x.id != dec); log(`offer ${dec} declined`); }
+    if (acc || dec) { dismiss(Number(acc || dec), 'answered in Deals'); renderCount(false); renderPop(); }
+  });
+  renderCount(false);
+})();
+
+</script>
+</body>
+</html>

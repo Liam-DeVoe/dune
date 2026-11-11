@@ -14,7 +14,7 @@ public partial class Game
     #region Version
 
     private const int LowestSupportedVersion = 100;
-    public const int LatestVersion = 187;
+    public const int LatestVersion = 188;
     
     #endregion Version
 
@@ -72,15 +72,15 @@ public partial class Game
     internal List<Payment> StoredRecentlyPaid { get; private set; } = [];
 
     public Deck<LeaderSkill>? SkillDeck { get; private set; }
-    public List<TreacheryCard> WhiteCache { get; internal set; } = [];
-    public BrownEconomicsStatus EconomicsStatus { get; internal set; } = BrownEconomicsStatus.None;
+    public List<TreacheryCard> RicheseCache { get; internal set; } = [];
+    public ChoamEconomicsStatus EconomicsStatus { get; internal set; } = ChoamEconomicsStatus.None;
 
     public Dictionary<TerrorType, Territory> TerrorOnPlanet { get; private set; } = new();
     public Deck<Ambassador>? UnassignedAmbassadors { get; internal set; }
     public Territory? AtomicsAftermath { get; internal set; }
     public List<Ambassador> AmbassadorsSetAside { get; } = [];
-    public Deck<DiscoveryToken>? YellowDiscoveryTokens { get; set; }
-    public Deck<DiscoveryToken>? OrangeDiscoveryTokens { get; set; }
+    public Deck<DiscoveryToken>? FremenDiscoveryTokens { get; set; }
+    public Deck<DiscoveryToken>? GuildDiscoveryTokens { get; set; }
     public Dictionary<Location, Discovery> DiscoveriesOnPlanet { get; } = new();
     public Dictionary<Territory, Ambassador> AmbassadorsOnPlanet { get; private set; } = new();
     public Deck<Faction>? NexusCardDeck { get; internal set; }
@@ -93,7 +93,7 @@ public partial class Game
     public List<Faction> FactionsInPlay { get; internal set; } = [];
     public List<TerrorType> UnplacedTerrorTokens { get; internal set; } = [];
     internal Deck<IHero>? TraitorDeck { get; private set; }
-    public Leader? PinkLoyalLeader { get; private set; }
+    public Leader? EcazLoyalLeader { get; private set; }
 
     public List<AutomationConfigured> AutomationRules { get; set; } = [];
 
@@ -132,7 +132,7 @@ public partial class Game
     {
         UpdateTimers(e);
 
-        if (e is AllyPermission or PlayerReplaced or NexusPlayed { IsBetrayal: true, Faction: Faction.White }) return;
+        if (e is AllyPermission or PlayerReplaced or NexusPlayed { IsBetrayal: true, Faction: Faction.Richese }) return;
         
         ClearRecentPayments();
 
@@ -264,10 +264,10 @@ public partial class Game
 
     private bool InTimedPhase =>
         CurrentPhase == Phase.Bidding ||
-        CurrentPhase == Phase.OrangeShip ||
-        CurrentPhase == Phase.OrangeMove ||
-        CurrentPhase == Phase.NonOrangeShip ||
-        CurrentPhase == Phase.NonOrangeMove ||
+        CurrentPhase == Phase.GuildShip ||
+        CurrentPhase == Phase.GuildMove ||
+        CurrentPhase == Phase.NonGuildShip ||
+        CurrentPhase == Phase.NonGuildMove ||
         CurrentPhase == Phase.BattlePhase;
 
 
@@ -325,9 +325,9 @@ public partial class Game
 
         List<FactionAdvantage> exceptionsToAllowing = new();
 
-        if (CurrentMainPhase == MainPhase.Bidding && Prevented(FactionAdvantage.PurpleIncreasingRevivalLimits)) exceptionsToAllowing.Add(FactionAdvantage.PurpleIncreasingRevivalLimits);
+        if (CurrentMainPhase == MainPhase.Bidding && Prevented(FactionAdvantage.TleilaxuIncreasingRevivalLimits)) exceptionsToAllowing.Add(FactionAdvantage.TleilaxuIncreasingRevivalLimits);
 
-        if (CurrentMainPhase == MainPhase.Resurrection && Prevented(FactionAdvantage.GreenSpiceBlowPrescience)) exceptionsToAllowing.Add(FactionAdvantage.GreenSpiceBlowPrescience);
+        if (CurrentMainPhase == MainPhase.Resurrection && Prevented(FactionAdvantage.AtreidesSpiceBlowPrescience)) exceptionsToAllowing.Add(FactionAdvantage.AtreidesSpiceBlowPrescience);
 
         WasVictimOfBureaucracy = Faction.None;
 
@@ -583,22 +583,22 @@ public partial class Game
 
     #region Support
 
-    internal void FlipBlueAdvisorsWhenAlone()
+    internal void FlipBeneGesseritAdvisorsWhenAlone()
     {
         if (CurrentMainPhase >= MainPhase.Battle && Applicable(Rule.DisableNovaFlipping))
             return;
         
-        var bg = GetPlayer(Faction.Blue);
+        var bg = GetPlayer(Faction.BeneGesserit);
         if (bg != null)
         {
-            var territoriesWhereAdvisorsAreInSinkOrAloneOrWithPink = Map.Territories(true).Where(t => bg.SpecialForcesIn(t) > 0 &&
+            var territoriesWhereAdvisorsAreInSinkOrAloneOrWithEcaz = Map.Territories(true).Where(t => bg.SpecialForcesIn(t) > 0 &&
                 (Version >= 160 && t == Map.PolarSink.Territory || 
-                 !Players.Any(p => p.Faction != Faction.Blue && p.AnyForcesIn(t) > 0)));
+                 !Players.Any(p => p.Faction != Faction.BeneGesserit && p.AnyForcesIn(t) > 0)));
             
-            foreach (var t in territoriesWhereAdvisorsAreInSinkOrAloneOrWithPink)
+            foreach (var t in territoriesWhereAdvisorsAreInSinkOrAloneOrWithEcaz)
             {
                 bg.FlipForces(t, false);
-                Log(Message.Express(Faction.Blue, " are alone and flip to ", FactionForce.Blue, " in ", t).WithLog(new BlueFlipped(t)));
+                Log(Message.Express(Faction.BeneGesserit, " are alone and flip to ", FactionForce.BeneGesserit, " in ", t).WithLog(new BeneGesseritFlipped(t)));
             }
         }
     }
@@ -611,7 +611,7 @@ public partial class Game
 
     private void DetermineOccupationAtStartOrEndOfTurn()
     {
-        var currentOccupierOfPinkHomeworld = OccupierOf(World.Pink);
+        var currentOccupierOfEcazHomeworld = OccupierOf(World.Ecaz);
         var updatedOccupation = new Dictionary<Homeworld, Faction>();
 
         foreach (var hw in Map.Homeworlds)
@@ -629,16 +629,16 @@ public partial class Game
         HomeworldOccupation = updatedOccupation;
 
         CheckIfShipmentPermissionsShouldBeRevoked();
-        CheckIfOccupierTakesVidal(currentOccupierOfPinkHomeworld);
+        CheckIfOccupierTakesVidal(currentOccupierOfEcazHomeworld);
         LetFactionsDiscardSurplusCards();
     }
 
     private void CheckIfShipmentPermissionsShouldBeRevoked()
     {
-        if (!HasHighThreshold(Faction.Orange) && ShipmentPermissions.Any())
+        if (!HasHighThreshold(Faction.Guild) && ShipmentPermissions.Any())
         {
             ShipmentPermissions.Clear();
-            Log("Only ", Faction.Orange, " can ship cross/from planet now");
+            Log("Only ", Faction.Guild, " can ship cross/from planet now");
         }
     }
 
@@ -653,20 +653,20 @@ public partial class Game
     }
     
     
-    private void CheckIfOccupierTakesVidal(Player? previousOccupierOfPinkHomeworld)
+    private void CheckIfOccupierTakesVidal(Player? previousOccupierOfEcazHomeworld)
     {
         if (Vidal is null)
             return;
        
-        var occupierOfPinkHomeworld = OccupierOf(World.Pink);
-        if (occupierOfPinkHomeworld != null)
+        var occupierOfEcazHomeworld = OccupierOf(World.Ecaz);
+        if (occupierOfEcazHomeworld != null)
         {
-            if (!occupierOfPinkHomeworld.Leaders.Contains(Vidal)) TakeVidal(occupierOfPinkHomeworld, VidalMoment.WhilePinkWorldIsOccupied);
+            if (!occupierOfEcazHomeworld.Leaders.Contains(Vidal)) TakeVidal(occupierOfEcazHomeworld, VidalMoment.WhileEcazWorldIsOccupied);
         }
-        else if (previousOccupierOfPinkHomeworld != null && previousOccupierOfPinkHomeworld.Leaders.Contains(Vidal))
+        else if (previousOccupierOfEcazHomeworld != null && previousOccupierOfEcazHomeworld.Leaders.Contains(Vidal))
         {
-            previousOccupierOfPinkHomeworld.Leaders.Remove(Vidal);
-            Log(previousOccupierOfPinkHomeworld.Faction, " lose ", Vidal);
+            previousOccupierOfEcazHomeworld.Leaders.Remove(Vidal);
+            Log(previousOccupierOfEcazHomeworld.Faction, " lose ", Vidal);
         }
     }
 
@@ -707,7 +707,7 @@ public partial class Game
     internal void Discard(Player player, TreacheryCardType cardType)
     {
         TreacheryCard card;
-        if (cardType == TreacheryCardType.Karma && player.Is(Faction.Blue))
+        if (cardType == TreacheryCardType.Karma && player.Is(Faction.BeneGesserit))
             card = player.TreacheryCards.First(x => x.Type == TreacheryCardType.Karma || x.Type == TreacheryCardType.Useless);
         else
             card = player.TreacheryCards.First(x => x.Type == cardType);
@@ -741,10 +741,10 @@ public partial class Game
             if (card.Type is not (TreacheryCardType.Poison or TreacheryCardType.ProjectileAndPoison
                 or TreacheryCardType.PoisonTooth)) return;
             
-            var pink = GetPlayer(Faction.Pink);
-            if (pink == null || !pink.HasHighThreshold()) return;
-            Log(Faction.Pink, " get ", Payment.Of(3), " from the discarded ", card);
-            pink.Resources += 3;
+            var ecaz = GetPlayer(Faction.Ecaz);
+            if (ecaz == null || !ecaz.HasHighThreshold()) return;
+            Log(Faction.Ecaz, " get ", Payment.Of(3), " from the discarded ", card);
+            ecaz.Resources += 3;
         }
     }
 
@@ -907,11 +907,11 @@ public partial class Game
 
     public bool ContainsConflictingAlly(Player initiator, Location to)
     {
-        if (!initiator.HasAlly || Map.PolarSink.Equals(to) || initiator.Faction == Faction.Pink || initiator.Ally == Faction.Pink) return false;
+        if (!initiator.HasAlly || Map.PolarSink.Equals(to) || initiator.Faction == Faction.Ecaz || initiator.Ally == Faction.Ecaz) return false;
 
         var ally = initiator.AlliedPlayer;
 
-        if (initiator.Ally == Faction.Blue && Applicable(Rule.AdvisorsDontConflictWithAlly))
+        if (initiator.Ally == Faction.BeneGesserit && Applicable(Rule.AdvisorsDontConflictWithAlly))
             return ally.ForcesIn(to.Territory) > 0;
         
         return ally.AnyForcesIn(to.Territory) > 0;
@@ -951,15 +951,15 @@ public partial class Game
     private int CountDifferentFactions(IEnumerable<Faction> factions, Faction toExclude)
     {
         var result = 0;
-        var pinkAlly = GetAlly(Faction.Pink);
-        var pinkOrPinkAllyCounted = false;
+        var ecazAlly = GetAlly(Faction.Ecaz);
+        var ecazOrEcazAllyCounted = false;
 
         foreach (var faction in factions.Distinct())
-            if (faction == Faction.Pink || faction == pinkAlly)
+            if (faction == Faction.Ecaz || faction == ecazAlly)
             {
-                if (!pinkOrPinkAllyCounted && toExclude != Faction.Pink && toExclude != pinkAlly) result++;
+                if (!ecazOrEcazAllyCounted && toExclude != Faction.Ecaz && toExclude != ecazAlly) result++;
 
-                pinkOrPinkAllyCounted = true;
+                ecazOrEcazAllyCounted = true;
             }
             else if (faction != toExclude)
             {
@@ -980,7 +980,7 @@ public partial class Game
 
     public int DetermineMaximumMoveDistance(Player p, IEnumerable<Battalion> moved)
     {
-        var brownExtraMoveBonus = p.Faction == Faction.Brown && BrownHasExtraMove ? 1 : 0;
+        var choamExtraMoveBonus = p.Faction == Faction.Choam && ChoamHasExtraMove ? 1 : 0;
 
         var planetologyBonus = CurrentPlanetology is { AddOneToMovement: true } && CurrentPlanetology.Initiator == p.Faction ? 1 : 0;
 
@@ -988,11 +988,11 @@ public partial class Game
 
         if (HasOrnithopters(p))
             result = 3;
-        else if (p.Is(Faction.Yellow) && !Prevented(FactionAdvantage.YellowExtraMove))
+        else if (p.Is(Faction.Fremen) && !Prevented(FactionAdvantage.FremenExtraMove))
             result = 2 + planetologyBonus;
-        else if (p.Is(Faction.Grey) && !Prevented(FactionAdvantage.GreyCyborgExtraMove) && moved.Any(b => b.AmountOfSpecialForces > 0)) result = 2 + planetologyBonus;
+        else if (p.Is(Faction.Ixian) && !Prevented(FactionAdvantage.IxianCyborgExtraMove) && moved.Any(b => b.AmountOfSpecialForces > 0)) result = 2 + planetologyBonus;
 
-        return result + brownExtraMoveBonus;
+        return result + choamExtraMoveBonus;
     }
 
     public IEnumerable<Location> LocationsWithAnyForcesNotInStorm(Player p)
@@ -1004,9 +1004,9 @@ public partial class Game
     {
         return
             !(l.Territory.IsStronghold || l.Territory.IsHomeworld) ||
-            (p.Is(Faction.Blue) && p.SpecialForcesIn(l) > 0) ||
-            (p.Is(Faction.Pink) && p.HasAlly && p.AlliedPlayer.OccupyingForcesIn(l.Territory) > 0) || //Looks at occupying forces since v171
-            (p is { HasAlly: true, Ally: Faction.Pink } && p.AlliedPlayer.OccupyingForcesIn(l.Territory) > 0) || //Looks at occupying forces since v171
+            (p.Is(Faction.BeneGesserit) && p.SpecialForcesIn(l) > 0) ||
+            (p.Is(Faction.Ecaz) && p.HasAlly && p.AlliedPlayer.OccupyingForcesIn(l.Territory) > 0) || //Looks at occupying forces since v171
+            (p is { HasAlly: true, Ally: Faction.Ecaz } && p.AlliedPlayer.OccupyingForcesIn(l.Territory) > 0) || //Looks at occupying forces since v171
             NrOfOccupantsExcludingFaction(l, p.Faction) < 2;
     }
 
@@ -1015,16 +1015,16 @@ public partial class Game
     public bool AssistedNoteKeepingEnabled(Player? p)
     {
         return p != null && (Applicable(Rule.AssistedNotekeeping) ||
-               (p.Is(Faction.Green) && Applicable(Rule.AssistedNotekeepingForGreen)));
+               (p.Is(Faction.Atreides) && Applicable(Rule.AssistedNotekeepingForAtreides)));
     }
 
     public bool HasStormPrescience(Player? p)
     {
         return
             p != null &&
-            Applicable(Rule.YellowDeterminesStorm) &&
-            !Prevented(FactionAdvantage.YellowStormPrescience) &&
-            (p.Faction == Faction.Yellow || (p.Ally == Faction.Yellow && YellowSharesPrescience) || HasDeal(p.Faction, DealType.ShareStormPrescience));
+            Applicable(Rule.FremenDeterminesStorm) &&
+            !Prevented(FactionAdvantage.FremenStormPrescience) &&
+            (p.Faction == Faction.Fremen || (p.Ally == Faction.Fremen && FremenSharesPrescience) || HasDeal(p.Faction, DealType.ShareStormPrescience));
     }
     
     public bool NextStormWillPassOver(Location l, int stormMoves)
@@ -1075,23 +1075,23 @@ public partial class Game
     {
         return
             p != null &&
-            !Prevented(FactionAdvantage.GreenSpiceBlowPrescience) &&
-            !HasLowThreshold(Faction.Green) &&
-            (p.Faction == Faction.Green || (p.Ally == Faction.Green && GreenSharesPrescience) || HasDeal(p.Faction, DealType.ShareResourceDeckPrescience));
+            !Prevented(FactionAdvantage.AtreidesSpiceBlowPrescience) &&
+            !HasLowThreshold(Faction.Atreides) &&
+            (p.Faction == Faction.Atreides || (p.Ally == Faction.Atreides && AtreidesSharesPrescience) || HasDeal(p.Faction, DealType.ShareResourceDeckPrescience));
     }
 
     public bool HasBiddingPrescience(Player p)
     {
-        var isPubliclyKnown = CurrentAuctionType == AuctionType.WhiteOnceAround || CurrentAuctionType == AuctionType.WhiteSilent;
+        var isPubliclyKnown = CurrentAuctionType == AuctionType.RicheseOnceAround || CurrentAuctionType == AuctionType.RicheseSilent;
 
         return
             isPubliclyKnown ||
 
-            Occupies(p.Faction, World.Green) ||
-            Occupies(p.Ally, World.Green) ||
+            Occupies(p.Faction, World.Atreides) ||
+            Occupies(p.Ally, World.Atreides) ||
 
-            (!Prevented(FactionAdvantage.GreenBiddingPrescience) &&
-             (p.Faction == Faction.Green || (p.Ally == Faction.Green && GreenSharesPrescience) || HasDeal(p.Faction, DealType.ShareBiddingPrescience)));
+            (!Prevented(FactionAdvantage.AtreidesBiddingPrescience) &&
+             (p.Faction == Faction.Atreides || (p.Ally == Faction.Atreides && AtreidesSharesPrescience) || HasDeal(p.Faction, DealType.ShareBiddingPrescience)));
     }
 
     public IEnumerable<IHero> TraitorsInPlay
@@ -1104,7 +1104,7 @@ public partial class Game
             result.AddRange(LeaderManager.Leaders.Where(l =>
                 factionsInPlay.Contains(l.Faction) &&
                 l.HeroType != HeroType.Vidal &&
-                (Version <= 140 || l.HeroType != HeroType.Auditor || Applicable(Rule.BrownAuditor))
+                (Version <= 140 || l.HeroType != HeroType.Auditor || Applicable(Rule.ChoamAuditor))
             ));
 
             if (Applicable(Rule.CheapHeroTraitor)) result.Add(TreacheryCardManager.GetCardsInPlay(this).First(c => c.Type == TreacheryCardType.Mercenary));

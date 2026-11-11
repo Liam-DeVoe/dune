@@ -11,5 +11,5 @@ public record RevivalRow(Faction Faction, int Forces, int SpecialForces, int Cos
     public int PaidByOther { get; init; }
     public Faction Payer { get; init; }
     public TreacheryCard? Card { get; init; }
-    public int PurpleIncome { get; init; }
+    public int TleilaxuIncome { get; init; }
 }

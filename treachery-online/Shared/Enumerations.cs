@@ -24,18 +24,18 @@ public static class Enumerations
 public enum Faction
 {
     None = 0,
-    Yellow = 10,
-    Green = 20,
-    Black = 30,
-    Red = 40,
-    Orange = 50,
-    Blue = 60,
-    Grey = 70,
-    Purple = 80,
-    Brown = 90,
-    White = 100,
-    Pink = 110,
-    Cyan = 120
+    Fremen = 10,
+    Atreides = 20,
+    Harkonnen = 30,
+    Emperor = 40,
+    Guild = 50,
+    BeneGesserit = 60,
+    Ixian = 70,
+    Tleilaxu = 80,
+    Choam = 90,
+    Richese = 100,
+    Ecaz = 110,
+    Moritani = 120
 }
 
 public static class EnumerationExtensions
@@ -43,36 +43,36 @@ public static class EnumerationExtensions
     public static Nexus ToNexus(this Faction faction) => faction switch
     {
         Faction.None => Nexus.None,
-        Faction.Yellow => Nexus.Yellow,
-        Faction.Green => Nexus.Green,
-        Faction.Black => Nexus.Black,
-        Faction.Red => Nexus.Red,
-        Faction.Orange => Nexus.Orange,
-        Faction.Blue => Nexus.Blue,
-        Faction.Grey => Nexus.Grey,
-        Faction.Purple => Nexus.Purple,
-        Faction.Brown => Nexus.Brown,
-        Faction.White => Nexus.White,
-        Faction.Pink => Nexus.Pink,
-        Faction.Cyan => Nexus.Cyan,
+        Faction.Fremen => Nexus.Fremen,
+        Faction.Atreides => Nexus.Atreides,
+        Faction.Harkonnen => Nexus.Harkonnen,
+        Faction.Emperor => Nexus.Emperor,
+        Faction.Guild => Nexus.Guild,
+        Faction.BeneGesserit => Nexus.BeneGesserit,
+        Faction.Ixian => Nexus.Ixian,
+        Faction.Tleilaxu => Nexus.Tleilaxu,
+        Faction.Choam => Nexus.Choam,
+        Faction.Richese => Nexus.Richese,
+        Faction.Ecaz => Nexus.Ecaz,
+        Faction.Moritani => Nexus.Moritani,
         _ => throw new ArgumentOutOfRangeException(nameof(faction), faction, null)
     };
     
     public static Faction ToFaction(this Nexus nexus) => nexus switch
     {
         Nexus.None => Faction.None,
-        Nexus.Yellow => Faction.Yellow,
-        Nexus.Green => Faction.Green,
-        Nexus.Black => Faction.Black,
-        Nexus.Red => Faction.Red,
-        Nexus.Orange => Faction.Orange,
-        Nexus.Blue => Faction.Blue,
-        Nexus.Grey => Faction.Grey,
-        Nexus.Purple => Faction.Purple,
-        Nexus.Brown => Faction.Brown,
-        Nexus.White => Faction.White,
-        Nexus.Pink => Faction.Pink,
-        Nexus.Cyan => Faction.Cyan,
+        Nexus.Fremen => Faction.Fremen,
+        Nexus.Atreides => Faction.Atreides,
+        Nexus.Harkonnen => Faction.Harkonnen,
+        Nexus.Emperor => Faction.Emperor,
+        Nexus.Guild => Faction.Guild,
+        Nexus.BeneGesserit => Faction.BeneGesserit,
+        Nexus.Ixian => Faction.Ixian,
+        Nexus.Tleilaxu => Faction.Tleilaxu,
+        Nexus.Choam => Faction.Choam,
+        Nexus.Richese => Faction.Richese,
+        Nexus.Ecaz => Faction.Ecaz,
+        Nexus.Moritani => Faction.Moritani,
         _ => throw new ArgumentOutOfRangeException(nameof(nexus), nexus, null)
     };
 } 
@@ -80,35 +80,35 @@ public static class EnumerationExtensions
 public enum Nexus
 {
     None = 0,
-    Yellow = 10,
-    Green = 20,
-    Black = 30,
-    Red = 40,
-    Orange = 50,
-    Blue = 60,
-    Grey = 70,
-    Purple = 80,
-    Brown = 90,
-    White = 100,
-    Pink = 110,
-    Cyan = 120
+    Fremen = 10,
+    Atreides = 20,
+    Harkonnen = 30,
+    Emperor = 40,
+    Guild = 50,
+    BeneGesserit = 60,
+    Ixian = 70,
+    Tleilaxu = 80,
+    Choam = 90,
+    Richese = 100,
+    Ecaz = 110,
+    Moritani = 120
 }
 
 public enum Ambassador
 {
     None = 0,
-    Yellow = 10,
-    Green = 20,
-    Black = 30,
-    Red = 40,
-    Orange = 50,
-    Blue = 60,
-    Grey = 70,
-    Purple = 80,
-    Brown = 90,
-    White = 100,
-    Pink = 110,
-    Cyan = 120
+    Fremen = 10,
+    Atreides = 20,
+    Harkonnen = 30,
+    Emperor = 40,
+    Guild = 50,
+    BeneGesserit = 60,
+    Ixian = 70,
+    Tleilaxu = 80,
+    Choam = 90,
+    Richese = 100,
+    Ecaz = 110,
+    Moritani = 120
 }
 
 public enum TechToken
@@ -144,7 +144,7 @@ public enum MainPhaseMoment
     End = 30
 }
 
-public enum BrownEconomicsStatus
+public enum ChoamEconomicsStatus
 {
     None = 0,
     Double = 10,
@@ -163,19 +163,19 @@ public enum Phase
     TradingFactions = 30000,
     CustomizingDecks = 31000,
 
-    BluePredicting = 50000,
+    BeneGesseritPredicting = 50000,
 
-    BlackMulligan = 60000,
+    HarkonnenMulligan = 60000,
 
     AssigningInitialSkills = 64000,
     SelectingTraitors = 65000,
     PerformCustomSetup = 66000,
 
-    YellowSettingUp = 70000,
+    FremenSettingUp = 70000,
 
-    BlueSettingUp = 90000,
+    BeneGesseritSettingUp = 90000,
 
-    CyanSettingUp = 91000,
+    MoritaniSettingUp = 91000,
 
     BeginningOfStorm = 93000,
 
@@ -194,16 +194,16 @@ public enum Phase
     BlowB = 130000,
     HarvesterB = 135000,
 
-    YellowSendingMonsterA = 140000,
+    FremenSendingMonsterA = 140000,
 
     VoteAllianceA = 149900,
     AllianceA = 150000,
-    YellowRidingMonsterA = 160000,
-    YellowSendingMonsterB = 170000,
+    FremenRidingMonsterA = 160000,
+    FremenSendingMonsterB = 170000,
     VoteAllianceB = 179900,
     AllianceB = 180000,
 
-    YellowRidingMonsterB = 190000,
+    FremenRidingMonsterB = 190000,
     NexusCards = 191000,
 
     BlowReport = 194000,
@@ -215,13 +215,13 @@ public enum Phase
     BeginningOfBidding = 195300,
     BlackMarketAnnouncement = 195500,
     BlackMarketBidding = 195600,
-    WhiteAnnouncingAuction = 195700,
-    WhiteSpecifyingAuction = 195800,
-    WhiteKeepingUnsoldCard = 195900,
+    RicheseAnnouncingAuction = 195700,
+    RicheseSpecifyingAuction = 195800,
+    RicheseKeepingUnsoldCard = 195900,
 
-    GreySelectingCard = 196000,
-    GreyRemovingCardFromBid = 197000,
-    GreySwappingCard = 198000,
+    IxianSelectingCard = 196000,
+    IxianRemovingCardFromBid = 197000,
+    IxianSwappingCard = 198000,
 
     Bidding = 200000,
     ReplacingCardJustWon = 201000,
@@ -230,49 +230,49 @@ public enum Phase
 
     BeginningOfResurrection = 209000,
     Resurrection = 210000,
-    BlueIntrudedByRevival = 211000,
+    BeneGesseritIntrudedByRevival = 211000,
     TerrorTriggeredByRevival = 211100,
     AmbassadorTriggeredByRevival = 211110,
     ResurrectionReport = 215000,
 
     BeginningOfShipAndMove = 219000,
 
-    NonOrangeShip = 220000,
+    NonGuildShip = 220000,
 
-    OrangeShip = 230000,
+    GuildShip = 230000,
 
-    BlueAccompaniesNonOrangeShip = 240000,
-    TerrorTriggeredByBlueAccompaniesNonOrangeShip = 241000,
-    AmbassadorTriggeredByBlueAccompaniesNonOrangeShip = 241010,
-    BlueAccompaniesOrangeShip = 250000,
-    TerrorTriggeredByBlueAccompaniesOrangeShip = 251000,
-    AmbassadorTriggeredByBlueAccompaniesOrangeShip = 251010,
-    BlueIntrudedByNonOrangeShip = 255000,
-    TerrorTriggeredByOrangeShip = 255100,
-    AmbassadorTriggeredByOrangeShip = 255110,
-    BlueIntrudedByOrangeShip = 256000,
-    TerrorTriggeredByNonOrangeShip = 256100,
-    AmbassadorTriggeredByNonOrangeShip = 256110,
+    BeneGesseritAccompaniesNonGuildShip = 240000,
+    TerrorTriggeredByBeneGesseritAccompaniesNonGuildShip = 241000,
+    AmbassadorTriggeredByBeneGesseritAccompaniesNonGuildShip = 241010,
+    BeneGesseritAccompaniesGuildShip = 250000,
+    TerrorTriggeredByBeneGesseritAccompaniesGuildShip = 251000,
+    AmbassadorTriggeredByBeneGesseritAccompaniesGuildShip = 251010,
+    BeneGesseritIntrudedByNonGuildShip = 255000,
+    TerrorTriggeredByGuildShip = 255100,
+    AmbassadorTriggeredByGuildShip = 255110,
+    BeneGesseritIntrudedByGuildShip = 256000,
+    TerrorTriggeredByNonGuildShip = 256100,
+    AmbassadorTriggeredByNonGuildShip = 256110,
 
-    NonOrangeMove = 260000,
+    NonGuildMove = 260000,
 
-    OrangeMove = 270000,
+    GuildMove = 270000,
 
-    BlueIntrudedByNonOrangeMove = 280000,
-    TerrorTriggeredByNonOrangeMove = 281000,
-    AmbassadorTriggeredByNonOrangeMove = 281010,
-    BlueIntrudedByOrangeMove = 290000,
-    TerrorTriggeredByOrangeMove = 291000,
-    AmbassadorTriggeredByOrangeMove = 291010,
-    BlueIntrudedByCaravan = 295000,
+    BeneGesseritIntrudedByNonGuildMove = 280000,
+    TerrorTriggeredByNonGuildMove = 281000,
+    AmbassadorTriggeredByNonGuildMove = 281010,
+    BeneGesseritIntrudedByGuildMove = 290000,
+    TerrorTriggeredByGuildMove = 291000,
+    AmbassadorTriggeredByGuildMove = 291010,
+    BeneGesseritIntrudedByCaravan = 295000,
     TerrorTriggeredByCaravan = 295100,
     AmbassadorTriggeredByCaravan = 295110,
-    BlueIntrudedByYellowRidingMonsterA = 296000,
-    TerrorTriggeredByYellowRidingMonsterA = 296100,
-    AmbassadorTriggeredByYellowRidingMonsterA = 296110,
-    BlueIntrudedByYellowRidingMonsterB = 297000,
-    TerrorTriggeredByYellowRidingMonsterB = 297100,
-    AmbassadorTriggeredByYellowRidingMonsterB = 297110,
+    BeneGesseritIntrudedByFremenRidingMonsterA = 296000,
+    TerrorTriggeredByFremenRidingMonsterA = 296100,
+    AmbassadorTriggeredByFremenRidingMonsterA = 296110,
+    BeneGesseritIntrudedByFremenRidingMonsterB = 297000,
+    TerrorTriggeredByFremenRidingMonsterB = 297100,
+    AmbassadorTriggeredByFremenRidingMonsterB = 297110,
 
     AllianceByTerror = 298000,
     AllianceByAmbassador = 298010,
@@ -382,104 +382,104 @@ public enum FactionAdvantage
 {
     None = 0,
 
-    GreenBiddingPrescience = 20,
-    GreenSpiceBlowPrescience = 30,
-    GreenBattlePlanPrescience = 35,
-    GreenUseMessiah = 38,
+    AtreidesBiddingPrescience = 20,
+    AtreidesSpiceBlowPrescience = 30,
+    AtreidesBattlePlanPrescience = 35,
+    AtreidesUseMessiah = 38,
 
-    BlackFreeCard = 40,
-    BlackCaptureLeader = 50,
-    BlackCallTraitorForAlly = 51,
+    HarkonnenFreeCard = 40,
+    HarkonnenCaptureLeader = 50,
+    HarkonnenCallTraitorForAlly = 51,
 
-    BlueAccompanies = 60,
-    BlueUsingVoice = 65,
-    BlueWorthlessAsKarma = 70,
-    BlueAnnouncesBattle = 71,
-    BlueIntrusion = 72,
-    BlueCharity = 73,
+    BeneGesseritAccompanies = 60,
+    BeneGesseritUsingVoice = 65,
+    BeneGesseritWorthlessAsKarma = 70,
+    BeneGesseritAnnouncesBattle = 71,
+    BeneGesseritIntrusion = 72,
+    BeneGesseritCharity = 73,
 
-    YellowControlsMonster = 80,
-    YellowRidesMonster = 81,
-    YellowNotPayingForBattles = 85,
-    YellowSpecialForceBonus = 90,
-    YellowExtraMove = 95,
-    YellowProtectedFromStorm = 96,
-    YellowProtectedFromMonster = 97,
-    YellowProtectedFromMonsterAlly = 98,
-    YellowStormPrescience = 99,
+    FremenControlsMonster = 80,
+    FremenRidesMonster = 81,
+    FremenNotPayingForBattles = 85,
+    FremenSpecialForceBonus = 90,
+    FremenExtraMove = 95,
+    FremenProtectedFromStorm = 96,
+    FremenProtectedFromMonster = 97,
+    FremenProtectedFromMonsterAlly = 98,
+    FremenStormPrescience = 99,
 
-    RedSpecialForceBonus = 100,
-    RedReceiveBid = 105,
-    RedGiveSpiceToAlly = 106,
-    RedLetAllyReviveExtraForces = 107,
+    EmperorSpecialForceBonus = 100,
+    EmperorReceiveBid = 105,
+    EmperorGiveSpiceToAlly = 106,
+    EmperorLetAllyReviveExtraForces = 107,
 
-    OrangeDetermineMoveMoment = 110,
-    OrangeSpecialShipments = 111,
-    OrangeShipmentsDiscount = 112,
-    OrangeShipmentsDiscountAlly = 113,
-    OrangeReceiveShipment = 114,
+    GuildDetermineMoveMoment = 110,
+    GuildSpecialShipments = 111,
+    GuildShipmentsDiscount = 112,
+    GuildShipmentsDiscountAlly = 113,
+    GuildReceiveShipment = 114,
 
-    PurpleRevivalDiscount = 120,
-    PurpleRevivalDiscountAlly = 121,
-    PurpleReplacingFaceDancer = 122,//*
-    PurpleIncreasingRevivalLimits = 123,//*
-    PurpleReceiveRevive = 124,
-    PurpleEarlyLeaderRevive = 125, //*
-    PurpleReviveGhola = 126, //*
+    TleilaxuRevivalDiscount = 120,
+    TleilaxuRevivalDiscountAlly = 121,
+    TleilaxuReplacingFaceDancer = 122,//*
+    TleilaxuIncreasingRevivalLimits = 123,//*
+    TleilaxuReceiveRevive = 124,
+    TleilaxuEarlyLeaderRevive = 125, //*
+    TleilaxuReviveGhola = 126, //*
 
-    GreyMovingHms = 130,
-    GreySpecialForceBonus = 131,
-    GreySelectingCardsOnAuction = 132,
-    GreyCyborgExtraMove = 133,
-    GreyReplacingSpecialForces = 134, //*
-    GreyAllyDiscardingCard = 135, //*
-    GreySwappingCard = 136, //*
+    IxianMovingHms = 130,
+    IxianSpecialForceBonus = 131,
+    IxianSelectingCardsOnAuction = 132,
+    IxianCyborgExtraMove = 133,
+    IxianReplacingSpecialForces = 134, //*
+    IxianAllyDiscardingCard = 135, //*
+    IxianSwappingCard = 136, //*
 
-    BrownControllingCharity = 140,
-    BrownDiscarding = 141,
-    BrownRevival = 142,
-    BrownEconomics = 143,
-    BrownReceiveForcePayment = 144,
-    BrownAudit = 145,
+    ChoamControllingCharity = 140,
+    ChoamDiscarding = 141,
+    ChoamRevival = 142,
+    ChoamEconomics = 143,
+    ChoamReceiveForcePayment = 144,
+    ChoamAudit = 145,
 
-    WhiteAuction = 150,
-    WhiteNofield = 151,
-    WhiteBlackMarket = 152,
+    RicheseAuction = 150,
+    RicheseNofield = 151,
+    RicheseBlackMarket = 152,
 
-    PinkAmbassadors = 160,
-    PinkOccupation = 161,
-    PinkCollection = 162,
+    EcazAmbassadors = 160,
+    EcazOccupation = 161,
+    EcazCollection = 162,
 
-    CyanPlantingTerror = 170,
-    CyanGainingVidal = 171,
-    CyanEnemyOfEnemy = 172
+    MoritaniPlantingTerror = 170,
+    MoritaniGainingVidal = 171,
+    MoritaniEnemyOfEnemy = 172
 }
 
 public enum FactionForce
 {
     None = 0,
-    Yellow = 10,
-    Green = 20,
-    Black = 30,
-    Red = 40,
-    Orange = 50,
-    Blue = 60,
-    Grey = 70,
-    Purple = 80,
-    Brown = 90,
-    White = 100,
-    Pink = 110,
-    Cyan = 120
+    Fremen = 10,
+    Atreides = 20,
+    Harkonnen = 30,
+    Emperor = 40,
+    Guild = 50,
+    BeneGesserit = 60,
+    Ixian = 70,
+    Tleilaxu = 80,
+    Choam = 90,
+    Richese = 100,
+    Ecaz = 110,
+    Moritani = 120
 }
 
 public enum FactionSpecialForce
 {
     None = 0,
-    Yellow = 10,
-    Red = 20,
-    Blue = 30,
-    Grey = 40,
-    White = 50
+    Fremen = 10,
+    Emperor = 20,
+    BeneGesserit = 30,
+    Ixian = 40,
+    Richese = 50
 }
 
 public enum Ruleset
@@ -522,8 +522,8 @@ public enum DiscoveryToken
 public enum DiscoveryTokenType
 {
     None = 0,
-    Yellow = 10,
-    Orange = 20
+    Fremen = 10,
+    Guild = 20
 }
 
 public enum Rule
@@ -543,30 +543,30 @@ public enum Rule
     IncreasedResourceFlow = 15,
     AdvancedKarama = 20,
 
-    YellowDeterminesStorm = 25,
-    YellowStormLosses = 30,
-    YellowSendingMonster = 35,
-    YellowSpecialForces = 40,
+    FremenDeterminesStorm = 25,
+    FremenStormLosses = 30,
+    FremenSendingMonster = 35,
+    FremenSpecialForces = 40,
 
-    GreenMessiah = 45,
+    AtreidesMessiah = 45,
 
-    BlackCapturesOrKillsLeaders = 50,
+    HarkonnenCapturesOrKillsLeaders = 50,
 
-    BlueFirstForceInAnyTerritory = 55, //needed for versions < 144
-    BlueAutoCharity = 60,
-    BlueWorthlessAsKarma = 65,
-    BlueAdvisors = 70,
-    BlueAccompaniesToShipmentLocation = 75,  //needed for versions < 144
+    BeneGesseritFirstForceInAnyTerritory = 55, //needed for versions < 144
+    BeneGesseritAutoCharity = 60,
+    BeneGesseritWorthlessAsKarma = 65,
+    BeneGesseritAdvisors = 70,
+    BeneGesseritAccompaniesToShipmentLocation = 75,  //needed for versions < 144
 
-    OrangeDetermineShipment = 80,
+    GuildDetermineShipment = 80,
 
-    RedSpecialForces = 85,
+    EmperorSpecialForces = 85,
 
     //Exceptions
     BribesAreImmediate = 90,
     ContestedStongholdsCountAsOccupied = 95,
     AdvisorsDontConflictWithAlly = 96,
-    OrangeShipmentContributionsFlowBack = 97,
+    GuildShipmentContributionsFlowBack = 97,
 
     //Expansion
     TechTokens = 200,
@@ -578,18 +578,18 @@ public enum Rule
     SandTrout = 230,
 
     //Expansion, Advanced Game
-    GreySwappingCardOnBid = 300,
-    PurpleGholas = 301,
+    IxianSwappingCardOnBid = 300,
+    TleilaxuGholas = 301,
 
     //Expansion 2
     LeaderSkills = 400,
     StrongholdBonus = 401,
-    WhiteTreacheryCards = 402,
+    RicheseTreacheryCards = 402,
     Expansion2TreacheryCards = 403,
 
     //Expansion 2, Advanced Game
-    BrownAuditor = 500,
-    WhiteBlackMarket = 501,
+    ChoamAuditor = 500,
+    RicheseBlackMarket = 501,
 
     //Expansion 3
     GreatMaker = 600,
@@ -599,41 +599,41 @@ public enum Rule
     Expansion3TreacheryCards = 604,
 
     //Expansion 3, Advanced Game
-    CyanAssassinate = 700,
-    PinkLoyalty = 701,
+    MoritaniAssassinate = 700,
+    EcazLoyalty = 701,
 
     //Bots
     FillWithBots = 998,
-    OrangeBot = 1000,
-    RedBot = 1001,
-    BlackBot = 1002,
-    PurpleBot = 1003,
-    BlueBot = 1004,
-    GreenBot = 1005,
-    YellowBot = 1006,
-    GreyBot = 1007,
+    GuildBot = 1000,
+    EmperorBot = 1001,
+    HarkonnenBot = 1002,
+    TleilaxuBot = 1003,
+    BeneGesseritBot = 1004,
+    AtreidesBot = 1005,
+    FremenBot = 1006,
+    IxianBot = 1007,
     BotsCannotAlly = 1008,
-    //BrownBot = 1009,
-    //WhiteBot = 1013,
+    //ChoamBot = 1009,
+    //RicheseBot = 1013,
 
     //House Rules
     CustomInitialForcesAndResources = 100,
     CustomDecks = 101,
-    HmSwithoutGrey = 104,
+    HmSwithoutIxian = 104,
     Ssw = 105,
-    BlackMulligan = 106,
+    HarkonnenMulligan = 106,
     FullPhaseKarma = 107,
-    YellowMayMoveIntoStorm = 108,
-    BlueVoiceMustNameSpecialCards = 109,
+    FremenMayMoveIntoStorm = 108,
+    BeneGesseritVoiceMustNameSpecialCards = 109,
     BattlesUnderStorm = 110,
     MovementBonusRequiresOccupationBeforeMovement = 111,
     AssistedNotekeeping = 112,
     ResourceBonusForStrongholds = 113,
-    DisableOrangeSpecialVictory = 114,
+    DisableGuildSpecialVictory = 114,
     DisableResourceTransfers = 115,
-    StormDeckWithoutYellow = 116,
-    AssistedNotekeepingForGreen = 117,
-    YellowAllyGetsDialedResourcesRefunded = 118,
+    StormDeckWithoutFremen = 116,
+    AssistedNotekeepingForAtreides = 117,
+    FremenAllyGetsDialedResourcesRefunded = 118,
     DisableNovaFlipping = 119,
     BreakAlliancesOnAlliancePhase = 120,
 
@@ -641,7 +641,7 @@ public enum Rule
 
     CardsCanBeTraded = 1010,
     PlayersChooseFactions = 1011,
-    RedSupportingNonAllyBids = 1012,
+    EmperorSupportingNonAllyBids = 1012,
     BattleWithoutLeader = 1013,
     CapturedLeadersAreTraitorsToOwnFaction = 1014,
     DisableEndOfGameReport = 1015
@@ -659,14 +659,14 @@ public enum RuleGroup
     ExpansionIxAndBtBasicExceptions = 201,
     ExpansionIxAndBtAdvanced = 210,
     ExpansionIxAndBtAdvancedExceptions = 211,
-    ExpansionBrownAndWhiteBasic = 300,
-    ExpansionBrownAndWhiteBasicExceptions = 301,
-    ExpansionBrownAndWhiteAdvanced = 310,
-    ExpansionBrownAndWhiteAdvancedExceptions = 311,
-    ExpansionPinkAndCyanBasic = 400,
-    ExpansionPinkAndCyanBasicExceptions = 401,
-    ExpansionPinkAndCyanAdvanced = 410,
-    ExpansionPinkAndCyanAdvancedExceptions = 411,
+    ExpansionChoamAndRicheseBasic = 300,
+    ExpansionChoamAndRicheseBasicExceptions = 301,
+    ExpansionChoamAndRicheseAdvanced = 310,
+    ExpansionChoamAndRicheseAdvancedExceptions = 311,
+    ExpansionEcazAndMoritaniBasic = 400,
+    ExpansionEcazAndMoritaniBasicExceptions = 401,
+    ExpansionEcazAndMoritaniAdvanced = 410,
+    ExpansionEcazAndMoritaniAdvancedExceptions = 411,
     House = 1000,
     Bots = 2000
 }
@@ -735,8 +735,8 @@ public enum WinMethod
     None = 0,
     Strongholds = 10,
     Prediction = 20,
-    YellowSpecial = 30,
-    OrangeSpecial = 40,
+    FremenSpecial = 30,
+    GuildSpecial = 40,
     Forfeit = 50,
     Timeout = 60
 }
@@ -759,8 +759,8 @@ public enum AuctionType
     BlackMarketNormal = 20,
     BlackMarketOnceAround = 30,
     BlackMarketSilent = 40,
-    WhiteOnceAround = 60,
-    WhiteSilent = 70
+    RicheseOnceAround = 60,
+    RicheseSilent = 70
 }
 
 public enum JuiceType
@@ -804,19 +804,19 @@ public enum StrongholdAdvantage
 public enum World
 {
     None = 0,
-    Yellow = 10,
-    Green = 20,
-    Black = 30,
-    Red = 40,
-    RedStar = 45,
-    Orange = 50,
-    Blue = 60,
-    Grey = 70,
-    Purple = 80,
-    Brown = 90,
-    White = 100,
-    Pink = 110,
-    Cyan = 120
+    Fremen = 10,
+    Atreides = 20,
+    Harkonnen = 30,
+    Emperor = 40,
+    SalusaSecundus = 45,
+    Guild = 50,
+    BeneGesserit = 60,
+    Ixian = 70,
+    Tleilaxu = 80,
+    Choam = 90,
+    Richese = 100,
+    Ecaz = 110,
+    Moritani = 120
 }
 
 
@@ -853,7 +853,7 @@ public enum TerrorType
 public enum IntrusionType
 {
     None = 0,
-    BlueIntrusion = 10,
+    BeneGesseritIntrusion = 10,
     Terror = 20,
     Ambassador = 30
 }
@@ -863,7 +863,7 @@ public enum VidalMoment
     None = 0,
     AfterUsedInBattle = 10,
     EndOfTurn = 20,
-    WhilePinkWorldIsOccupied = 30,
+    WhileEcazWorldIsOccupied = 30,
     Never = 40
 }
 
@@ -908,7 +908,7 @@ public enum ShipmentPermission
     None = 0,
     Cross = 1,
     ToHomeworld = 2,
-    OrangeRate = 4
+    GuildRate = 4
 }
 
 public enum UserStatus
@@ -944,7 +944,7 @@ public enum ShipmentType
     ShipmentNormal = 1,
     ShipmentSiteToSite = 2,
     ShipmentBack = 3,
-    ShipmentWhiteSecretAlly = 4
+    ShipmentRicheseSecretAlly = 4
 }
 
 public enum AutomationRuleType
@@ -953,13 +953,13 @@ public enum AutomationRuleType
     
     CharityAutoClaim = 201,
     
-    BiddingPassWhenGreenOrGreenAllyPassed = 301,
+    BiddingPassWhenAtreidesOrAtreidesAllyPassed = 301,
     BiddingPassAboveAmount = 302,
     BiddingPassWhenHighestBidByFaction = 303,
 
     RevivalAutoClaimFreeRevival = 401,
     
-    ShipmentOrangeAutoDelay = 502,
+    ShipmentGuildAutoDelay = 502,
 }
 
 public enum ItemAction

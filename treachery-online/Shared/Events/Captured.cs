@@ -40,8 +40,8 @@ public class Captured : PassableGameEvent
 
         if (!Passed)
         {
-            if (Game.Version > 125 && Game.Prevented(FactionAdvantage.BlackCaptureLeader))
-                Game.LogPreventionByKarma(FactionAdvantage.BlackCaptureLeader);
+            if (Game.Version > 125 && Game.Prevented(FactionAdvantage.HarkonnenCaptureLeader))
+                Game.LogPreventionByKarma(FactionAdvantage.HarkonnenCaptureLeader);
             else
                 Game.CaptureLeader();
         }

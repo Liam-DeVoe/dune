@@ -23,14 +23,14 @@ public class FaceDancerReplacedTests
     public void BotCanChooseReplacementWhenSavedAllyIsMissing()
     {
         var game = new Game();
-        var purple = new Player(game, Faction.Purple) { Ally = Faction.Green };
-        game.Players.Add(purple);
+        var tleilaxu = new Player(game, Faction.Tleilaxu) { Ally = Faction.Atreides };
+        game.Players.Add(tleilaxu);
 
-        var deadLeader = LeaderManager.Leaders.First(leader => leader.Faction == Faction.Green);
-        purple.FaceDancers.Add(deadLeader);
+        var deadLeader = LeaderManager.Leaders.First(leader => leader.Faction == Faction.Atreides);
+        tleilaxu.FaceDancers.Add(deadLeader);
         game.LeaderState[deadLeader].Kill(game);
 
-        var bot = new ClassicBot(game, purple, BotParameters.GetDefaultParameters(Faction.Purple));
+        var bot = new ClassicBot(game, tleilaxu, BotParameters.GetDefaultParameters(Faction.Tleilaxu));
         var action = bot.DetermineLowPriorityInPhaseAction(new List<System.Type> { typeof(FaceDancerReplaced) });
 
         Assert.IsInstanceOfType<FaceDancerReplaced>(action);

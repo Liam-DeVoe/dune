@@ -1,0 +1,149 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Automation icon options</title>
+<style>
+@font-face { font-family: "Advokat"; src: url("../treachery-online/Client/wwwroot/Advokat.ttf"); }
+@font-face { font-family: "Copperplate Dune"; src: url("../treachery-online/Client/wwwroot/Copperplate.ttf"); }
+:root {
+  --ink-0: #120800; --ink-1: #1d0c00; --ink-2: #2a1607; --ink-3: #3b2310;
+  --parchment: #fcf9d1; --sand: #f3d987; --gold: #e7bf3c; --gold-2: #e3a631; --spice: #e8762a;
+  --text-2: #d9c79a; --text-3: #a68d63;
+  --r-1: 3px; --r-2: 6px; --r-pill: 999px;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--ink-1); color: var(--parchment); font-family: "Alegreya Sans", Candara, Calibri, sans-serif; font-size: 16px; padding: 40px 56px 80px; }
+h1 { font-family: "Advokat", serif; font-weight: 400; font-size: 44px; margin: 0 0 8px; }
+.lede { color: var(--text-2); max-width: 70ch; margin: 0 0 32px; }
+.eyebrow { font-family: "Copperplate Dune", serif; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--gold-2); }
+
+/* faithful copy of .toolbar / .menu-bar from treachery.css */
+.toolbar { display: flex; gap: 2px; align-items: center; }
+.toolbar button { width: 40px; height: 36px; border: 0; background: transparent; color: var(--text-2); border-radius: var(--r-1); cursor: pointer; display: grid; place-items: center; position: relative; }
+.toolbar button:hover { background: rgba(231,191,60,.12); color: var(--gold); }
+.toolbar button.on { background: rgba(231,191,60,.18); color: var(--gold); }
+.toolbar svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.toolbar .sep { width: 1px; height: 18px; margin: 0 6px; background: rgba(255,255,255,.16); }
+.toolbar .count { position: absolute; top: 1px; right: 1px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: var(--r-pill); background: var(--gold); color: var(--ink-0); font-family: "Advokat", serif; font-size: 11px; line-height: 16px; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 16px; }
+.card { background: var(--ink-2); border: 1px solid rgba(255,255,255,.09); border-radius: var(--r-2); padding: 16px; display: grid; grid-template-columns: 96px 1fr; gap: 6px 16px; }
+.card.current { border-color: rgba(195,50,50,.5); }
+h2 { font-family: "Advokat", serif; font-weight: 400; font-size: 28px; color: var(--gold); margin: 32px 0 14px; }
+.big { grid-row: span 3; width: 96px; height: 96px; display: grid; place-items: center; background: var(--ink-1); border-radius: var(--r-1); color: var(--text-2); }
+.big svg { width: 72px; height: 72px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.name { font-family: "Advokat", serif; font-size: 22px; color: var(--sand); line-height: 1.1; display: flex; gap: 8px; align-items: baseline; }
+.name .k { font-family: "Copperplate Dune", serif; font-size: 13px; color: var(--text-3); }
+.why { font-size: 14px; color: var(--text-2); }
+.bar { background: var(--ink-0); border-radius: var(--r-1); padding: 4px 8px; }
+.card.pick { outline: 2px solid var(--gold); }
+</style>
+</head>
+<body>
+<div class="eyebrow">Menu bar · automation button</div>
+<h1>Automation icon options</h1>
+<p class="lede">Each card shows the icon large and in a copy of the real menu bar at actual size. The automation button sits highlighted in each bar; hover the others to compare. Click a card to outline it.</p>
+
+<h2>Round 3: robots</h2>
+<div class="grid" id="grid3"></div>
+<h2>Round 2: cog combinations and robots</h2>
+<div class="grid" id="grid2"></div>
+<h2>Round 1</h2>
+<div class="grid" id="grid"></div>
+
+<script>
+const ROUND3 = [
+  { k: "V1", name: "Visor", why: "A single horizontal visor instead of eyes. It reads as a machine more than a face, so it feels more like a tool than a character.", svg: '<rect x="4.5" y="7" width="15" height="12" rx="3"/><rect x="7.5" y="10.8" width="9" height="3" rx="1.5"/><path d="M12 4.5V7M3 11.5v3M21 11.5v3"/><circle cx="12" cy="3.6" r=".7" fill="currentColor"/>' },
+  { k: "V2", name: "Hollow eyes", why: "Round open eyes with a short mouth. The friendliest of the set, and it stays legible at 18px because the eyes are rings, not dots.", svg: '<rect x="5" y="7" width="14" height="12" rx="2.5"/><circle cx="9.3" cy="12.3" r="1.5"/><circle cx="14.7" cy="12.3" r="1.5"/><path d="M10 16.2h4M12 4.6V7M3 11.5v3M21 11.5v3"/><circle cx="12" cy="3.6" r=".7" fill="currentColor"/>' },
+  { k: "V3", name: "Dome", why: "A rounded head on a flat base. It has a softer silhouette than the boxes, and it is the most distinct from the square buttons in the bar.", svg: '<path d="M5 19v-5a7 7 0 0 1 14 0v5z"/><path d="M12 7V4.5M3.5 14v3M20.5 14v3"/><circle cx="12" cy="3.6" r=".7" fill="currentColor"/><circle cx="9.5" cy="13.5" r=".7" fill="currentColor"/><circle cx="14.5" cy="13.5" r=".7" fill="currentColor"/>' },
+  { k: "V4", name: "Bust", why: "Head and shoulders, the same structure as the Players icon beside it. It pairs well visually, but it may read as “a bot player”, which is the clash we want to avoid.", svg: '<rect x="7" y="3.5" width="10" height="8" rx="2"/><path d="M12 11.5V14M4.5 21v-2a4 4 0 0 1 4-4h7a4 4 0 0 1 4 4v2"/><circle cx="10" cy="7.5" r=".7" fill="currentColor"/><circle cx="14" cy="7.5" r=".7" fill="currentColor"/>' },
+  { k: "V5", name: "Two antennas", why: "Splayed antennas give it a bug-like, playful character. It is wider at the top, so it looks a little top-heavy in the bar.", svg: '<rect x="5" y="8.5" width="14" height="11" rx="2.5"/><path d="M8.5 8.5 7 5M15.5 8.5 17 5M9.5 16.5h5"/><circle cx="6.8" cy="4.4" r=".7" fill="currentColor"/><circle cx="17.2" cy="4.4" r=".7" fill="currentColor"/><circle cx="9.5" cy="13" r=".7" fill="currentColor"/><circle cx="14.5" cy="13" r=".7" fill="currentColor"/>' },
+  { k: "V6", name: "Square", why: "A near-square head with square eyes, following the design language’s “everything else is nearly square” rule. It is stern and blocky, and matches the hard edges of the UI.", svg: '<rect x="5" y="6.5" width="14" height="13" rx="1.5"/><rect x="8.2" y="10.5" width="2" height="2" fill="currentColor" stroke-width="1.2"/><rect x="13.8" y="10.5" width="2" height="2" fill="currentColor" stroke-width="1.2"/><path d="M9 16h6M12 3.5v3"/>' },
+  { k: "V7", name: "Cyclops", why: "One large lens. It reads as a probe or a watching machine, which suits rules that watch the bidding and act for you. It is the least like a bot player.", svg: '<rect x="4.5" y="7" width="15" height="12" rx="3"/><circle cx="12" cy="13" r="3"/><path d="M12 4.5V7M3 11.5v3M21 11.5v3"/><circle cx="12" cy="13" r=".7" fill="currentColor"/><circle cx="12" cy="3.6" r=".7" fill="currentColor"/>' }
+];
+const ROUND2 = [
+  { k: "R1", name: "Cog, play centre",
+    why: "The cog's hole becomes a play triangle: a machine that runs. Same outline as a cog, so it is the closest to settings of these, but the triangle is what you notice.",
+    svg: '<path d="M19.16 12.78 21.28 14.04 20.00 17.12 17.61 16.51 16.51 17.61 17.12 20.00 14.04 21.28 12.78 19.16 11.22 19.16 9.96 21.28 6.88 20.00 7.49 17.61 6.39 16.51 4.00 17.12 2.72 14.04 4.84 12.78 4.84 11.22 2.72 9.96 4.00 6.88 6.39 7.49 7.49 6.39 6.88 4.00 9.96 2.72 11.22 4.84 12.78 4.84 14.04 2.72 17.12 4.00 16.51 6.39 17.61 7.49 20.00 6.88 21.28 9.96 19.16 11.22Z"/><path d="M10.6 9.4v5.2l4.2-2.6z"/>' },
+  { k: "R2", name: "Cog + play",
+    why: "A smaller cog with a play mark beside it, read as “set it, then it plays”. Each half is clear on its own, and the pair is less like the stock settings icon.",
+    svg: '<path d="M14.67 10.06 16.34 11.00 15.40 13.27 13.55 12.76 12.76 13.55 13.27 15.40 11.00 16.34 10.06 14.67 8.94 14.67 8.00 16.34 5.73 15.40 6.24 13.55 5.45 12.76 3.60 13.27 2.66 11.00 4.33 10.06 4.33 8.94 2.66 8.00 3.60 5.73 5.45 6.24 6.24 5.45 5.73 3.60 8.00 2.66 8.94 4.33 10.06 4.33 11.00 2.66 13.27 3.60 12.76 5.45 13.55 6.24 15.40 5.73 16.34 8.00 14.67 8.94Z"/><circle cx="9.5" cy="9.5" r="2"/><path d="M15.5 14.5v7l6-3.5z"/>' },
+  { k: "R3", name: "Cog + bolt",
+    why: "A cog that fires on its own. The bolt carries the “automatic” meaning, and the cog stops it from reading as power or energy.",
+    svg: '<path d="M14.67 10.06 16.34 11.00 15.40 13.27 13.55 12.76 12.76 13.55 13.27 15.40 11.00 16.34 10.06 14.67 8.94 14.67 8.00 16.34 5.73 15.40 6.24 13.55 5.45 12.76 3.60 13.27 2.66 11.00 4.33 10.06 4.33 8.94 2.66 8.00 3.60 5.73 5.45 6.24 6.24 5.45 5.73 3.60 8.00 2.66 8.94 4.33 10.06 4.33 11.00 2.66 13.27 3.60 12.76 5.45 13.55 6.24 15.40 5.73 16.34 8.00 14.67 8.94Z"/><circle cx="9.5" cy="9.5" r="2"/><path d="M18.5 12.5 14.8 18h3.2l-.6 4 3.8-5.5H18z"/>' },
+  { k: "R4", name: "Cog in a loop",
+    why: "A cog wrapped in a cycling arrow: a process that keeps running. It has the strongest “automatic” reading, but it is busy, and the cog is small at 18px.",
+    svg: '<path d="M16.27 12.46 17.67 13.24 16.88 15.13 15.35 14.70 14.70 15.35 15.13 16.88 13.24 17.67 12.46 16.27 11.54 16.27 10.76 17.67 8.87 16.88 9.30 15.35 8.65 14.70 7.12 15.13 6.33 13.24 7.73 12.46 7.73 11.54 6.33 10.76 7.12 8.87 8.65 9.30 9.30 8.65 8.87 7.12 10.76 6.33 11.54 7.73 12.46 7.73 13.24 6.33 15.13 7.12 14.70 8.65 15.35 9.30 16.88 8.87 17.67 10.76 16.27 11.54Z"/><circle cx="12" cy="12" r="1.5"/><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M18.9 2.4v3.3h-3.3"/>' },
+  { k: "R5", name: "Robot arm",
+    why: "An industrial arm, the classic picture of factory automation. It shows automation without suggesting the AI players the way a robot head does.",
+    svg: '<path d="M4 21h10M9 21v-3"/><circle cx="9" cy="16.5" r="1.6"/><path d="M9.8 15 13 9"/><circle cx="13.8" cy="7.6" r="1.6"/><path d="M15.4 7.4 19 6.5"/><path d="M19 6.5l1.5-2.2M19 6.5l2.3 1.4"/>' },
+  { k: "R6", name: "Robot, no antenna",
+    why: "The robot head with the antenna removed, so it looks less like a toy bot. This only softens the clash with the AI players.",
+    svg: '<rect x="5" y="6" width="14" height="13" rx="3"/><circle cx="9.5" cy="12" r=".7" fill="currentColor"/><circle cx="14.5" cy="12" r=".7" fill="currentColor"/><path d="M9.5 15.5h5M3 11v3.5M21 11v3.5"/>' },
+];
+const ICONS = [
+  { k: "now", name: "Current", current: true,
+    why: "A circle with rays. It reads as a sun or a brightness control.",
+    svg: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>' },
+  { k: "A", name: "Auto-play",
+    why: "A play triangle inside a looping arrow, the usual autoplay mark. It says the action runs by itself without saying “settings”.",
+    svg: '<path d="M20.5 12a8.5 8.5 0 1 1-2.6-6.1"/><path d="M18.5 2.8v3.4h-3.4"/><path d="M10 8.6v6.8l5.4-3.4z"/>' },
+  { k: "B", name: "Circled A",
+    why: "The “auto” mark from camera mode dials. It is clear once known, but it is a letter, and the bar has no other letters.",
+    svg: '<circle cx="12" cy="12" r="9"/><path d="M8.6 16.4 12 7.6l3.4 8.8M9.8 13.4h4.4"/>' },
+  { k: "C", name: "Bolt",
+    why: "Instant, automatic. Simple and legible at 18px, but it can also read as power, energy or a quick action.",
+    svg: '<path d="M13.5 2.5 5 13.5h6.5l-1 8 8.5-11h-6.5z"/>' },
+  { k: "D", name: "Robot",
+    why: "A literal “bot does it for you”. It is friendly, but the game already has bots (AI players), and players may think this button controls them.",
+    svg: '<rect x="5" y="8" width="14" height="11" rx="2.5"/><path d="M12 5v3"/><circle cx="12" cy="4" r="1"/><circle cx="9.5" cy="13" r=".6" fill="currentColor"/><circle cx="14.5" cy="13" r=".6" fill="currentColor"/><path d="M9.5 16.2h5M3 12.5v3M21 12.5v3"/>' },
+  { k: "E", name: "Cog",
+    why: "What the current icon was trying to be, now with real teeth. It reads as settings, which is close but not quite right.",
+    svg: '<path d="M18.72 10.03 L21.35 10.33 L21.35 13.67 L18.72 13.97 L18.14 15.36 L19.79 17.43 L17.43 19.79 L15.36 18.14 L13.97 18.72 L13.67 21.35 L10.33 21.35 L10.03 18.72 L8.64 18.14 L6.57 19.79 L4.21 17.43 L5.86 15.36 L5.28 13.97 L2.65 13.67 L2.65 10.33 L5.28 10.03 L5.86 8.64 L4.21 6.57 L6.57 4.21 L8.64 5.86 L10.03 5.28 L10.33 2.65 L13.67 2.65 L13.97 5.28 L15.36 5.86 L17.43 4.21 L19.79 6.57 L18.14 8.64Z"/><circle cx="12" cy="12" r="2.8"/>' },
+  { k: "F", name: "Two cogs",
+    why: "Meshing gears: machinery, a process that runs. Less “settings” than a single cog, but busy at 18px.",
+    svg: '<path d="M13.80 7.60 L15.69 7.80 L15.69 10.20 L13.80 10.40 L13.39 11.40 L14.58 12.89 L12.89 14.58 L11.40 13.39 L10.40 13.80 L10.20 15.69 L7.80 15.69 L7.60 13.80 L6.60 13.39 L5.11 14.58 L3.42 12.89 L4.61 11.40 L4.20 10.40 L2.31 10.20 L2.31 7.80 L4.20 7.60 L4.61 6.60 L3.42 5.11 L5.11 3.42 L6.60 4.61 L7.60 4.20 L7.80 2.31 L10.20 2.31 L10.40 4.20 L11.40 4.61 L12.89 3.42 L14.58 5.11 L13.39 6.60Z"/><circle cx="9" cy="9" r="1.9"/><path d="M20.07 15.78 L21.47 15.93 L21.47 18.07 L20.07 18.22 L19.59 19.04 L20.17 20.34 L18.31 21.41 L17.47 20.27 L16.53 20.27 L15.69 21.41 L13.83 20.34 L14.41 19.04 L13.93 18.22 L12.53 18.07 L12.53 15.93 L13.93 15.78 L14.41 14.96 L13.83 13.66 L15.69 12.59 L16.53 13.73 L17.47 13.73 L18.31 12.59 L20.17 13.66 L19.59 14.96Z"/><circle cx="17" cy="17" r="1.2"/>' },
+  { k: "G", name: "Standing orders",
+    why: "A scroll with written lines: the rules you leave behind, like orders to a lieutenant. It fits the Dune setting, but it could be taken for the rules reference.",
+    svg: '<path d="M6 3h12a1.75 1.75 0 0 1 0 3.5H6A1.75 1.75 0 0 1 6 3z"/><path d="M6 17.5h12a1.75 1.75 0 0 1 0 3.5H6a1.75 1.75 0 0 1 0-3.5z"/><path d="M7 6.5v11M17 6.5v11M10 10h4M10 13.8h4"/>' },
+  { k: "H", name: "Checklist",
+    why: "A list of rules with checks. Honest about the panel's contents (a list of rules), but it doesn't say “automatic”.",
+    svg: '<path d="M4 6.5l1.5 1.5L8.5 5M4 12.5l1.5 1.5 3-3M4 18.5l1.5 1.5 3-3"/><path d="M12 6.5h8M12 12.5h8M12 18.5h8"/>' },
+  { k: "I", name: "Repeat",
+    why: "Two arrows in a loop: “do this every time”. Very clear in media players, but it could be taken for undo or redo.",
+    svg: '<path d="M17 3l3 3-3 3"/><path d="M20 6H9a5 5 0 0 0-5 5v.5"/><path d="M7 21l-3-3 3-3"/><path d="M4 18h11a5 5 0 0 0 5-5v-.5"/>' },
+  { k: "J", name: "Timer",
+    why: "A clock face with a play mark: something runs later, without you. This follows the idea of scheduled actions. The play mark in the corner is small at 18px.",
+    svg: '<path d="M20.5 12A8.5 8.5 0 1 0 12 20.5"/><path d="M12 7v5l3 2"/><path d="M16 15.5v6l5-3z"/>' },
+  { k: "K", name: "Sliders",
+    why: "Configure behaviour. It reads as settings or filters, but it is closer to “tune my rules” than a cog.",
+    svg: '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>' },
+];
+
+const others = {
+  players: '<circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-4 3-6 7-6s7 2 7 6"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c3 0 5 1.5 5 5"/>',
+  menu: '<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>',
+  deals: '<path d="M3 12l4-4 4 2 3-3 4 1 3 4-4 4"/><path d="M7 8l-4 4 5 5 2-1"/><path d="M11 13l2 2M13 11l3 3"/>',
+};
+const s = p => `<svg viewBox="0 0 24 24">${p}</svg>`;
+
+const render = list => list.map(i => `
+  <div class="card ${i.current ? "current" : ""}" onclick="this.classList.toggle('pick')">
+    <div class="big">${s(i.svg)}</div>
+    <div class="name">${i.name} <span class="k">${i.k}</span></div>
+    <div class="why">${i.why}</div>
+    <div class="bar"><div class="toolbar">
+      <button>${s(others.players)}</button>
+      <button class="on" title="Automation">${s(i.svg)}</button>
+      <button>${s(others.menu)}</button>
+      <span class="sep"></span>
+      <button>${s(others.deals)}</button>
+    </div></div>
+  </div>`).join("");
+document.getElementById("grid3").innerHTML = render([ICONS.find(i => i.k === "D"), ...ROUND3]);
+document.getElementById("grid2").innerHTML = render([ICONS.find(i => i.k === "now"), ICONS.find(i => i.k === "D"), ICONS.find(i => i.k === "F"), ...ROUND2]);
+document.getElementById("grid").innerHTML = render(ICONS);
+</script>
+</body>
+</html>

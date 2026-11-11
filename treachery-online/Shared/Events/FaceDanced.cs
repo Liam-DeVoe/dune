@@ -67,7 +67,7 @@ public class FaceDanced : PlacementEvent
         if (ally == null || g.BattleWinner == p.Ally || ally.AnyForcesIn(g.CurrentBattle!.Territory!) == 0)
         {
             var winner = g.GetPlayer(g.BattleWinner)!;
-            var coocupyingPlayer = g.BattleWinner == g.CurrentPinkOrAllyFighter ? winner.AlliedPlayer : null;
+            var coocupyingPlayer = g.BattleWinner == g.CurrentEcazOrAllyFighter ? winner.AlliedPlayer : null;
 
             var nrOfForces = winner.AnyForcesIn(g.CurrentBattle!.Territory!);
             if (coocupyingPlayer != null) nrOfForces += coocupyingPlayer.AnyForcesIn(g.CurrentBattle!.Territory);
@@ -85,7 +85,7 @@ public class FaceDanced : PlacementEvent
         if (g.CurrentBattle!.Territory!.IsHomeworld && !p.IsNative(g.CurrentBattle!.Territory)) return false;
         
         var winnerHero = g.WinnerHero;
-        if (winnerHero != null && g.BattleWinner != null && !g.IsOccupiedByFactionOrTheirAlly(World.Purple, g.BattleWinner.Value)) return p.FaceDancers.Any(t => t.IsFaceDancer(winnerHero) && !p.RevealedFaceDancers.Contains(t));
+        if (winnerHero != null && g.BattleWinner != null && !g.IsOccupiedByFactionOrTheirAlly(World.Tleilaxu, g.BattleWinner.Value)) return p.FaceDancers.Any(t => t.IsFaceDancer(winnerHero) && !p.RevealedFaceDancers.Contains(t));
 
         return false;
     }
@@ -126,7 +126,7 @@ public class FaceDanced : PlacementEvent
             if (!Player.UnrevealedFaceDancers.Any()) ReplaceFacedancers();
 
             ReplaceForces();
-            Game.FlipBlueAdvisorsWhenAlone();
+            Game.FlipBeneGesseritAdvisorsWhenAlone();
         }
         else
         {
@@ -143,7 +143,7 @@ public class FaceDanced : PlacementEvent
         var winner = GetPlayer(Game.BattleWinner);
         var nrOfRemovedForces = winner!.AnyForcesIn(Game.CurrentBattle.Territory);
 
-        var coOccupyingPlayer = Game.BattleWinner == Game.CurrentPinkOrAllyFighter ? winner.AlliedPlayer : null;
+        var coOccupyingPlayer = Game.BattleWinner == Game.CurrentEcazOrAllyFighter ? winner.AlliedPlayer : null;
         if (coOccupyingPlayer != null) nrOfRemovedForces += coOccupyingPlayer.AnyForcesIn(Game.CurrentBattle.Territory);
 
         if (nrOfRemovedForces > 0)

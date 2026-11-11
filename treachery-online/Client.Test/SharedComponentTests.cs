@@ -27,7 +27,7 @@ public sealed class SharedComponentTests
 
         Assert.IsNotNull(submitted);
         Assert.AreSame(test.Client.Game, submitted.Game);
-        Assert.AreEqual(Faction.Green, submitted.Initiator);
+        Assert.AreEqual(Faction.Atreides, submitted.Initiator);
     }
 
     [TestMethod]
@@ -75,7 +75,7 @@ public sealed class SharedComponentTests
 
         Assert.IsNotNull(submitted);
         Assert.AreEqual(expectedPassed, submitted.Passed);
-        Assert.AreEqual(Faction.Green, submitted.Initiator);
+        Assert.AreEqual(Faction.Atreides, submitted.Initiator);
     }
 
     [TestMethod]

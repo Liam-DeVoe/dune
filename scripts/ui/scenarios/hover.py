@@ -6,7 +6,7 @@ THIN = "False Wall West (Middle Sector)"
 
 
 def run(r):
-    with r.game("move", "yellow") as g:
+    with r.game("move", "fremen") as g:
         g.hover("Pasty Mesa (South Sector)")
         g.shot("hover-1-browse", park=False)
         if r.after:
@@ -19,6 +19,6 @@ def run(r):
         g.shot("hover-2-source", park=False)
 
     if r.after:
-        with r.game("ship", "red") as g:
+        with r.game("ship", "emperor") as g:
             g.hover((200, 230))  # plain sand in Hagga Basin (West), so the hover wash reads clearly
             g.shot("hover-3-ship", park=False)

@@ -10,10 +10,11 @@
 
 @*
  A saved game rendered as one faction, with no server, for screenshots.
- /scene?fixture=ship&faction=red&steps=click:Carthag|button:Confirm
+ /scene?fixture=ship&faction=emperor&steps=click:Carthag|button:Confirm
 
  fixture  name of a file under fixtures/ (without .json), or a URL
- faction  the colour or skin name of the faction to play as
+ faction  the enum or skin name of the faction to play as, or "observer"
+          to watch as a non-host observer
  steps    optional '|'-separated clicks to make after the first render:
           click:<location>, shift:<location>, ctrl:<location>,
           right:<location>, button:<label>. Locations are named as the
@@ -40,43 +41,7 @@ else
     <TurnBanner/>
     <div @ref="@_element" class="row game-screen" style="@GameScreen.Style(Client)">
 
-        <!--Map Column-->
-        <div id="mapdiv" class="col-sm-12 col-lg-6">
-            <GameBoard OnLocationClick="@Client.LocationClick" />
-            @if (Client.UndoSession != null)
-            {
-                <UndoTimeline/>
-            }
-            <MenuComponent/>
-        </div>
-
-        <!--Actions-->
-        <div class="col-sm-12 col-lg-3 side-column">
-            <GameStatusComponent CanEndPhase="@Client.Actions.Contains(typeof(EndPhase))" />
-            <ActionPanel/>
-        </div>
-
-        <!--Menu, player panel and report-->
-        <div class="col-sm-12 col-lg-3 cursor-hand side-column">
-            <MenuPanels/>
-            @if (Client.CurrentPhase > Phase.TradingFactions)
-            {
-                if (Client.Player.Faction is Faction.None)
-                {
-                    foreach (var p in Client.Game.Players)
-                    {
-                        <PlayerPanel ShownPlayer="p" ShowHeader="true" />
-                    }
-                }
-                else
-                {
-                    <PlayerPanel ShownPlayer="Client.Player" />
-                }
-            }
-            <ReportComponent/>
-        </div>
-
-        <ImageFlashComponent />
+        <GameColumns/>
 
     </div>
 }
@@ -111,8 +76,9 @@ else
                 ?? throw new InvalidOperationException("Open /scene with a full page load. The scene service is chosen when the app starts.");
             if (string.IsNullOrWhiteSpace(Fixture))
                 throw new ArgumentException("The fixture query parameter is required.");
-            var faction = SceneScript.ParseFaction(FactionName)
-                ?? throw new ArgumentException($"Unknown faction '{FactionName}'. Use a colour such as red, or a skin name such as Emperor.");
+            var observer = string.Equals(FactionName?.Trim(), "observer", StringComparison.OrdinalIgnoreCase);
+            Faction? faction = observer ? null : SceneScript.ParseFaction(FactionName)
+                ?? throw new ArgumentException($"Unknown faction '{FactionName}'. Use an enum name such as emperor or bene_gesserit, a skin name such as Bene Gesserit, or observer.");
             _steps = SceneStep.ParseAll(Steps);
 
             var url = Fixture.Contains('/') || Fixture.StartsWith("http", StringComparison.OrdinalIgnoreCase)
@@ -187,6 +153,21 @@ else
 
         await WaitForMapOwner();
         Client.LocationClick(new LocationEventArgs { Location = l, ShiftKey = shift, CtrlKey = ctrl, RightButton = right });
+        await Settle();
+    }
+
+    // Another faction offers the seated faction a deal, or withdraws its newest
+    // offer, as if it came from the server. For checking the deal toasts.
+    [JSInvokable]
+    public async Task OfferDeal(string from, int price, bool withdraw)
+    {
+        var game = _scene!.Game!;
+        var faction = SceneScript.ParseFaction(from) ?? throw new ArgumentException($"Unknown faction '{from}'.");
+        GameEvent e = withdraw
+            ? (game.DealOffers.LastOrDefault(o => o.Initiator == faction) ?? throw new InvalidOperationException($"{from} has no offer to withdraw.")).Cancellation()
+            : new DealOffered(game, faction) { Type = DealType.TellDiscardedTraitors, Price = price, To = [_scene.Faction!.Value], EndPhase = Phase.TurnConcluded };
+        var error = await _scene.RequestGameEvent(e);
+        if (error != null) throw new InvalidOperationException(error);
         await Settle();
     }
 

@@ -1,0 +1,1738 @@
+{
+  "eventNumber": 1069,
+  "version": 188,
+  "turn": 9,
+  "maximumTurns": 10,
+  "maximumPlayers": 6,
+  "mainPhase": "Blow",
+  "phase": "AllianceA",
+  "viewer": {
+    "faction": "BeneGesserit",
+    "isHost": true,
+    "isObserver": false
+  },
+  "players": [
+    {
+      "faction": "Emperor",
+      "seat": 0,
+      "name": "Bot",
+      "isBot": true,
+      "ally": "BeneGesserit",
+      "forcesInReserve": 14,
+      "specialForcesInReserve": 2,
+      "forcesKilled": 0,
+      "specialForcesKilled": 3,
+      "cardCount": 3,
+      "bribes": 0,
+      "resourcesAfterBidding": 0,
+      "extortion": 0,
+      "bankedResources": 0,
+      "techTokens": [],
+      "ambassadors": [],
+      "hasSpecialForces": true,
+      "hasRoomForCards": true,
+      "cardsOwned": 3,
+      "homeworlds": [
+        {
+          "world": "Emperor",
+          "location": 90,
+          "occupier": null,
+          "highThreshold": false,
+          "lowThreshold": false
+        },
+        {
+          "world": "SalusaSecundus",
+          "location": 91,
+          "occupier": null,
+          "highThreshold": false,
+          "lowThreshold": false
+        }
+      ],
+      "skilledLeaders": [],
+      "loyalLeader": null,
+      "latestRevealedNoField": null
+    },
+    {
+      "faction": "BeneGesserit",
+      "seat": 1,
+      "name": "Scene",
+      "isBot": false,
+      "ally": "Emperor",
+      "forcesInReserve": 6,
+      "specialForcesInReserve": 0,
+      "forcesKilled": 6,
+      "specialForcesKilled": 0,
+      "cardCount": 4,
+      "bribes": 0,
+      "resourcesAfterBidding": 0,
+      "extortion": 0,
+      "bankedResources": 0,
+      "techTokens": [],
+      "ambassadors": [],
+      "hasSpecialForces": false,
+      "hasRoomForCards": false,
+      "cardsOwned": 4,
+      "homeworlds": [
+        {
+          "world": "BeneGesserit",
+          "location": 93,
+          "occupier": null,
+          "highThreshold": false,
+          "lowThreshold": false
+        }
+      ],
+      "skilledLeaders": [],
+      "loyalLeader": null,
+      "latestRevealedNoField": null
+    },
+    {
+      "faction": "Guild",
+      "seat": 5,
+      "name": "Bot",
+      "isBot": true,
+      "ally": "Harkonnen",
+      "forcesInReserve": 9,
+      "specialForcesInReserve": 0,
+      "forcesKilled": 8,
+      "specialForcesKilled": 0,
+      "cardCount": 3,
+      "bribes": 0,
+      "resourcesAfterBidding": 0,
+      "extortion": 0,
+      "bankedResources": 0,
+      "techTokens": [],
+      "ambassadors": [],
+      "hasSpecialForces": false,
+      "hasRoomForCards": true,
+      "cardsOwned": 3,
+      "homeworlds": [
+        {
+          "world": "Guild",
+          "location": 92,
+          "occupier": null,
+          "highThreshold": false,
+          "lowThreshold": false
+        }
+      ],
+      "skilledLeaders": [],
+      "loyalLeader": null,
+      "latestRevealedNoField": null
+    },
+    {
+      "faction": "Harkonnen",
+      "seat": 4,
+      "name": "Bot",
+      "isBot": true,
+      "ally": "Guild",
+      "forcesInReserve": 5,
+      "specialForcesInReserve": 0,
+      "forcesKilled": 15,
+      "specialForcesKilled": 0,
+      "cardCount": 4,
+      "bribes": 0,
+      "resourcesAfterBidding": 0,
+      "extortion": 0,
+      "bankedResources": 0,
+      "techTokens": [],
+      "ambassadors": [],
+      "hasSpecialForces": false,
+      "hasRoomForCards": true,
+      "cardsOwned": 4,
+      "homeworlds": [
+        {
+          "world": "Harkonnen",
+          "location": 88,
+          "occupier": null,
+          "highThreshold": false,
+          "lowThreshold": false
+        }
+      ],
+      "skilledLeaders": [],
+      "loyalLeader": null,
+      "latestRevealedNoField": null
+    },
+    {
+      "faction": "Fremen",
+      "seat": 2,
+      "name": "Bot",
+      "isBot": true,
+      "ally": "Atreides",
+      "forcesInReserve": 2,
+      "specialForcesInReserve": 1,
+      "forcesKilled": 2,
+      "specialForcesKilled": 1,
+      "cardCount": 3,
+      "bribes": 0,
+      "resourcesAfterBidding": 0,
+      "extortion": 0,
+      "bankedResources": 0,
+      "techTokens": [],
+      "ambassadors": [],
+      "hasSpecialForces": true,
+      "hasRoomForCards": true,
+      "cardsOwned": 3,
+      "homeworlds": [
+        {
+          "world": "Fremen",
+          "location": 89,
+          "occupier": null,
+          "highThreshold": false,
+          "lowThreshold": false
+        }
+      ],
+      "skilledLeaders": [],
+      "loyalLeader": null,
+      "latestRevealedNoField": null
+    },
+    {
+      "faction": "Atreides",
+      "seat": 3,
+      "name": "Bot",
+      "isBot": true,
+      "ally": "Fremen",
+      "forcesInReserve": 9,
+      "specialForcesInReserve": 0,
+      "forcesKilled": 11,
+      "specialForcesKilled": 0,
+      "cardCount": 1,
+      "bribes": 0,
+      "resourcesAfterBidding": 0,
+      "extortion": 0,
+      "bankedResources": 0,
+      "techTokens": [],
+      "ambassadors": [],
+      "hasSpecialForces": false,
+      "hasRoomForCards": true,
+      "cardsOwned": 1,
+      "homeworlds": [
+        {
+          "world": "Atreides",
+          "location": 87,
+          "occupier": null,
+          "highThreshold": false,
+          "lowThreshold": false
+        }
+      ],
+      "skilledLeaders": [],
+      "loyalLeader": null,
+      "latestRevealedNoField": null
+    }
+  ],
+  "me": {
+    "faction": "BeneGesserit",
+    "resources": 2,
+    "hand": [
+      {
+        "id": 4,
+        "playableWith": []
+      },
+      {
+        "id": 10,
+        "playableWith": []
+      },
+      {
+        "id": 28,
+        "playableWith": []
+      },
+      {
+        "id": 17,
+        "playableWith": []
+      }
+    ],
+    "cardSetAside": null,
+    "leaders": [
+      {
+        "id": 1006,
+        "alive": true,
+        "skilled": false
+      },
+      {
+        "id": 1007,
+        "alive": true,
+        "skilled": false
+      },
+      {
+        "id": 1008,
+        "alive": true,
+        "skilled": false
+      },
+      {
+        "id": 1009,
+        "alive": true,
+        "skilled": false
+      },
+      {
+        "id": 1010,
+        "alive": true,
+        "skilled": false
+      }
+    ],
+    "traitors": [
+      {
+        "hero": {
+          "t": "leader",
+          "id": 1014
+        },
+        "revealed": false
+      }
+    ],
+    "faceDancers": [],
+    "predictedFaction": "Atreides",
+    "predictedTurn": 5,
+    "nexus": null,
+    "nextStormMoves": null,
+    "messiah": null,
+    "unplacedTerror": null,
+    "cardJustWon": null
+  },
+  "board": {
+    "sectorInStorm": 1,
+    "shieldWallDestroyed": true,
+    "forces": [
+      {
+        "location": 90,
+        "faction": "Emperor",
+        "forces": 14,
+        "specialForces": 0,
+        "threatened": false
+      },
+      {
+        "location": 91,
+        "faction": "Emperor",
+        "forces": 0,
+        "specialForces": 2,
+        "threatened": false
+      },
+      {
+        "location": 0,
+        "faction": "Emperor",
+        "forces": 1,
+        "specialForces": 0,
+        "threatened": false
+      },
+      {
+        "location": 0,
+        "faction": "BeneGesserit",
+        "forces": 8,
+        "specialForces": 0,
+        "threatened": false
+      },
+      {
+        "location": 93,
+        "faction": "BeneGesserit",
+        "forces": 6,
+        "specialForces": 0,
+        "threatened": false
+      },
+      {
+        "location": 92,
+        "faction": "Guild",
+        "forces": 9,
+        "specialForces": 0,
+        "threatened": false
+      },
+      {
+        "location": 6,
+        "faction": "Guild",
+        "forces": 3,
+        "specialForces": 0,
+        "threatened": false
+      },
+      {
+        "location": 88,
+        "faction": "Harkonnen",
+        "forces": 5,
+        "specialForces": 0,
+        "threatened": false
+      },
+      {
+        "location": 7,
+        "faction": "Fremen",
+        "forces": 13,
+        "specialForces": 1,
+        "threatened": false
+      },
+      {
+        "location": 89,
+        "faction": "Fremen",
+        "forces": 2,
+        "specialForces": 1,
+        "threatened": false
+      },
+      {
+        "location": 87,
+        "faction": "Atreides",
+        "forces": 9,
+        "specialForces": 0,
+        "threatened": false
+      }
+    ],
+    "spice": [
+      {
+        "location": 80,
+        "amount": 6
+      }
+    ],
+    "highlightedTerritories": [],
+    "strongholds": [],
+    "terror": [],
+    "ambassadors": [],
+    "discoveries": [],
+    "attached": [],
+    "leaders": [],
+    "monsters": [
+      {
+        "territory": 10,
+        "isGreatMonster": false
+      }
+    ],
+    "numberOfMonsters": 3,
+    "specialStrongholds": [],
+    "atomicsAftermath": null,
+    "protectedFromStorm": [
+      0,
+      6,
+      7,
+      8,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      34,
+      35,
+      36,
+      37,
+      43,
+      46,
+      47,
+      61,
+      62,
+      63,
+      77,
+      78,
+      79,
+      86,
+      100,
+      101,
+      102,
+      103,
+      104
+    ],
+    "noFieldValue": null,
+    "stormPrescienceMoves": null,
+    "recentMoves": []
+  },
+  "status": {
+    "message": [
+      {
+        "t": "text",
+        "v": "You may now make or break an alliance."
+      }
+    ],
+    "waitingForMe": true,
+    "waitingForHost": false,
+    "waitingFor": [
+      "Emperor",
+      "BeneGesserit",
+      "Guild",
+      "Harkonnen",
+      "Fremen",
+      "Atreides"
+    ],
+    "waitingInSequence": [],
+    "timedEventTime": null,
+    "flash": [
+      {
+        "toShow": {
+          "t": "resourceCard",
+          "id": 98,
+          "label": "Shai Hulud"
+        },
+        "message": [
+          {
+            "t": "enum",
+            "ty": "Concept",
+            "v": "Monster",
+            "label": "Shai Hulud"
+          },
+          {
+            "t": "text",
+            "v": " detected!"
+          }
+        ]
+      },
+      {
+        "toShow": {
+          "t": "resourceCard",
+          "id": 39,
+          "label": "Wind Pass North"
+        },
+        "message": [
+          {
+            "t": "enum",
+            "ty": "Concept",
+            "v": "Resource",
+            "label": "Spice"
+          },
+          {
+            "t": "text",
+            "v": " in "
+          },
+          {
+            "t": "resourceCard",
+            "id": 39,
+            "label": "Wind Pass North"
+          }
+        ]
+      }
+    ],
+    "toBid": []
+  },
+  "actions": [
+    {
+      "eventType": "AllianceBroken",
+      "options": {
+        "form": "Simple",
+        "title": [
+          {
+            "t": "text",
+            "v": "Break your current alliance?"
+          }
+        ],
+        "confirmLabel": "Break",
+        "alert": false
+      },
+      "validation": null
+    },
+    {
+      "eventType": "AlliancePassed",
+      "options": {
+        "form": "Simple",
+        "title": [
+          {
+            "t": "text",
+            "v": "Keep your alliance with "
+          },
+          {
+            "t": "faction",
+            "v": "Emperor",
+            "label": "Emperor"
+          },
+          {
+            "t": "text",
+            "v": "?"
+          }
+        ],
+        "confirmLabel": "Keep alliance",
+        "alert": true
+      },
+      "validation": null
+    },
+    {
+      "eventType": "AutomationConfigured",
+      "options": null,
+      "validation": null
+    },
+    {
+      "eventType": "AllyPermission",
+      "options": null,
+      "validation": null
+    },
+    {
+      "eventType": "Donated",
+      "options": null,
+      "validation": null
+    },
+    {
+      "eventType": "DealOffered",
+      "options": null,
+      "validation": null
+    },
+    {
+      "eventType": "DealAccepted",
+      "options": null,
+      "validation": null
+    },
+    {
+      "eventType": "DealRejected",
+      "options": null,
+      "validation": null
+    }
+  ],
+  "log": {
+    "reports": [
+      {
+        "index": 0,
+        "turn": 0,
+        "about": "Setup",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 1,
+        "turn": 1,
+        "about": "Storm",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 2,
+        "turn": 1,
+        "about": "Blow",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 3,
+        "turn": 1,
+        "about": "Charity",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 4,
+        "turn": 1,
+        "about": "Bidding",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 5,
+        "turn": 1,
+        "about": "Resurrection",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 6,
+        "turn": 1,
+        "about": "ShipmentAndMove",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 7,
+        "turn": 1,
+        "about": "Battle",
+        "isBattle": true,
+        "aggressor": "Guild",
+        "defender": "Emperor",
+        "territory": 4,
+        "battleDecided": true,
+        "battleWinner": "Guild"
+      },
+      {
+        "index": 8,
+        "turn": 1,
+        "about": "Collection",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 9,
+        "turn": 1,
+        "about": "Contemplate",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 10,
+        "turn": 2,
+        "about": "Storm",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 11,
+        "turn": 2,
+        "about": "Blow",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 12,
+        "turn": 2,
+        "about": "Charity",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 13,
+        "turn": 2,
+        "about": "Bidding",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 14,
+        "turn": 2,
+        "about": "Resurrection",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 15,
+        "turn": 2,
+        "about": "ShipmentAndMove",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 16,
+        "turn": 2,
+        "about": "Battle",
+        "isBattle": true,
+        "aggressor": "Guild",
+        "defender": "Harkonnen",
+        "territory": 6,
+        "battleDecided": true,
+        "battleWinner": "Harkonnen"
+      },
+      {
+        "index": 17,
+        "turn": 2,
+        "about": "Battle",
+        "isBattle": true,
+        "aggressor": "Guild",
+        "defender": "Atreides",
+        "territory": 4,
+        "battleDecided": true,
+        "battleWinner": "Atreides"
+      },
+      {
+        "index": 18,
+        "turn": 2,
+        "about": "Battle",
+        "isBattle": true,
+        "aggressor": "Emperor",
+        "defender": "Atreides",
+        "territory": 3,
+        "battleDecided": true,
+        "battleWinner": "Atreides"
+      },
+      {
+        "index": 19,
+        "turn": 2,
+        "about": "Battle",
+        "isBattle": true,
+        "aggressor": "Fremen",
+        "defender": "Harkonnen",
+        "territory": 2,
+        "battleDecided": true,
+        "battleWinner": "Harkonnen"
+      },
+      {
+        "index": 20,
+        "turn": 2,
+        "about": "Collection",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 21,
+        "turn": 2,
+        "about": "Contemplate",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 22,
+        "turn": 3,
+        "about": "Storm",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 23,
+        "turn": 3,
+        "about": "Blow",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 24,
+        "turn": 3,
+        "about": "Charity",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 25,
+        "turn": 3,
+        "about": "Bidding",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 26,
+        "turn": 3,
+        "about": "Resurrection",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 27,
+        "turn": 3,
+        "about": "ShipmentAndMove",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 28,
+        "turn": 3,
+        "about": "Battle",
+        "isBattle": true,
+        "aggressor": "Emperor",
+        "defender": "Atreides",
+        "territory": 4,
+        "battleDecided": true,
+        "battleWinner": "Emperor"
+      },
+      {
+        "index": 29,
+        "turn": 3,
+        "about": "Battle",
+        "isBattle": true,
+        "aggressor": "Atreides",
+        "defender": "Harkonnen",
+        "territory": 2,
+        "battleDecided": true,
+        "battleWinner": "Harkonnen"
+      },
+      {
+        "index": 30,
+        "turn": 3,
+        "about": "Collection",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 31,
+        "turn": 3,
+        "about": "Contemplate",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 32,
+        "turn": 4,
+        "about": "Storm",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 33,
+        "turn": 4,
+        "about": "Blow",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 34,
+        "turn": 4,
+        "about": "Charity",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 35,
+        "turn": 4,
+        "about": "Bidding",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 36,
+        "turn": 4,
+        "about": "Resurrection",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 37,
+        "turn": 4,
+        "about": "ShipmentAndMove",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 38,
+        "turn": 4,
+        "about": "Battle",
+        "isBattle": true,
+        "aggressor": "Emperor",
+        "defender": "Harkonnen",
+        "territory": 6,
+        "battleDecided": true,
+        "battleWinner": "Emperor"
+      },
+      {
+        "index": 39,
+        "turn": 4,
+        "about": "Battle",
+        "isBattle": true,
+        "aggressor": "Atreides",
+        "defender": "Guild",
+        "territory": 3,
+        "battleDecided": true,
+        "battleWinner": "Guild"
+      },
+      {
+        "index": 40,
+        "turn": 4,
+        "about": "Collection",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 41,
+        "turn": 4,
+        "about": "Contemplate",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 42,
+        "turn": 5,
+        "about": "Storm",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 43,
+        "turn": 5,
+        "about": "Blow",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 44,
+        "turn": 5,
+        "about": "Charity",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 45,
+        "turn": 5,
+        "about": "Bidding",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 46,
+        "turn": 5,
+        "about": "Resurrection",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 47,
+        "turn": 5,
+        "about": "ShipmentAndMove",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 48,
+        "turn": 5,
+        "about": "Battle",
+        "isBattle": true,
+        "aggressor": "Emperor",
+        "defender": "Fremen",
+        "territory": 3,
+        "battleDecided": true,
+        "battleWinner": "Fremen"
+      },
+      {
+        "index": 49,
+        "turn": 5,
+        "about": "Collection",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 50,
+        "turn": 5,
+        "about": "Contemplate",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 51,
+        "turn": 6,
+        "about": "Storm",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 52,
+        "turn": 6,
+        "about": "Blow",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 53,
+        "turn": 6,
+        "about": "Charity",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 54,
+        "turn": 6,
+        "about": "Bidding",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 55,
+        "turn": 6,
+        "about": "Resurrection",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 56,
+        "turn": 6,
+        "about": "ShipmentAndMove",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 57,
+        "turn": 6,
+        "about": "Battle",
+        "isBattle": true,
+        "aggressor": "Emperor",
+        "defender": "Atreides",
+        "territory": 4,
+        "battleDecided": true,
+        "battleWinner": "Emperor"
+      },
+      {
+        "index": 58,
+        "turn": 6,
+        "about": "Battle",
+        "isBattle": true,
+        "aggressor": "Emperor",
+        "defender": "Harkonnen",
+        "territory": 2,
+        "battleDecided": true,
+        "battleWinner": "Harkonnen"
+      },
+      {
+        "index": 59,
+        "turn": 6,
+        "about": "Battle",
+        "isBattle": true,
+        "aggressor": "BeneGesserit",
+        "defender": "Fremen",
+        "territory": 3,
+        "battleDecided": true,
+        "battleWinner": "Fremen"
+      },
+      {
+        "index": 60,
+        "turn": 6,
+        "about": "Battle",
+        "isBattle": true,
+        "aggressor": "Fremen",
+        "defender": "Guild",
+        "territory": 5,
+        "battleDecided": true,
+        "battleWinner": "Fremen"
+      },
+      {
+        "index": 61,
+        "turn": 6,
+        "about": "Collection",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 62,
+        "turn": 6,
+        "about": "Contemplate",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 63,
+        "turn": 7,
+        "about": "Storm",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 64,
+        "turn": 7,
+        "about": "Blow",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 65,
+        "turn": 7,
+        "about": "Charity",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 66,
+        "turn": 7,
+        "about": "Bidding",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 67,
+        "turn": 7,
+        "about": "Resurrection",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 68,
+        "turn": 7,
+        "about": "ShipmentAndMove",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 69,
+        "turn": 7,
+        "about": "Battle",
+        "isBattle": true,
+        "aggressor": "BeneGesserit",
+        "defender": "Harkonnen",
+        "territory": 6,
+        "battleDecided": true,
+        "battleWinner": "BeneGesserit"
+      },
+      {
+        "index": 70,
+        "turn": 7,
+        "about": "Battle",
+        "isBattle": true,
+        "aggressor": "Guild",
+        "defender": "Emperor",
+        "territory": 4,
+        "battleDecided": true,
+        "battleWinner": "Guild"
+      },
+      {
+        "index": 71,
+        "turn": 7,
+        "about": "Collection",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 72,
+        "turn": 7,
+        "about": "Contemplate",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 73,
+        "turn": 8,
+        "about": "Storm",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 74,
+        "turn": 8,
+        "about": "Blow",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 75,
+        "turn": 8,
+        "about": "Charity",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 76,
+        "turn": 8,
+        "about": "Bidding",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 77,
+        "turn": 8,
+        "about": "Resurrection",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 78,
+        "turn": 8,
+        "about": "ShipmentAndMove",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 79,
+        "turn": 8,
+        "about": "Battle",
+        "isBattle": true,
+        "aggressor": "Atreides",
+        "defender": "BeneGesserit",
+        "territory": 6,
+        "battleDecided": true,
+        "battleWinner": "BeneGesserit"
+      },
+      {
+        "index": 80,
+        "turn": 8,
+        "about": "Collection",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 81,
+        "turn": 8,
+        "about": "Contemplate",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 82,
+        "turn": 9,
+        "about": "Storm",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      },
+      {
+        "index": 83,
+        "turn": 9,
+        "about": "Blow",
+        "isBattle": false,
+        "aggressor": "None",
+        "defender": "None",
+        "territory": null,
+        "battleDecided": false,
+        "battleWinner": "None"
+      }
+    ],
+    "latest": [
+      {
+        "index": 83,
+        "lines": [
+          {
+            "text": [
+              {
+                "t": "enum",
+                "ty": "Concept",
+                "v": "Monster",
+                "label": "Shai Hulud"
+              },
+              {
+                "t": "text",
+                "v": " appears in "
+              },
+              {
+                "t": "territory",
+                "id": 10,
+                "label": "Cielago South"
+              }
+            ],
+            "private": false,
+            "heading": null,
+            "record": {
+              "type": "WormAppearedLog",
+              "territory": {
+                "t": "territory",
+                "id": 10,
+                "label": "Cielago South"
+              },
+              "nth": 1
+            },
+            "route": null,
+            "plans": null,
+            "fact": null
+          },
+          {
+            "text": [
+              {
+                "t": "payment",
+                "amount": 6,
+                "by": null
+              },
+              {
+                "t": "text",
+                "v": " detected in "
+              },
+              {
+                "t": "location",
+                "id": 80,
+                "label": "Wind Pass North (North Sector)"
+              }
+            ],
+            "private": false,
+            "heading": null,
+            "record": {
+              "type": "BlowCardLog",
+              "card": {
+                "t": "resourceCard",
+                "id": 39,
+                "label": "Wind Pass North"
+              },
+              "location": {
+                "t": "location",
+                "id": 80,
+                "label": "Wind Pass North (North Sector)"
+              },
+              "amount": 6,
+              "lost": false,
+              "doubled": false
+            },
+            "route": null,
+            "plans": null,
+            "fact": null
+          }
+        ]
+      }
+    ]
+  },
+  "ruleset": "AdvancedGame",
+  "rules": [
+    "BasicTreacheryCards",
+    "HasCharityPhase",
+    "FillWithBots",
+    "FremenSpecialForces",
+    "EmperorSpecialForces",
+    "BasicTreacheryCards",
+    "HasCharityPhase"
+  ],
+  "rulesForBots": [],
+  "economicsStatus": "None",
+  "piles": {
+    "treacheryDeckCount": 11,
+    "treacheryDiscardCount": 3,
+    "treacheryDiscardTop": 27,
+    "treacheryDiscard": null,
+    "resourceDeckCount": 9,
+    "resourceDeckTop": null,
+    "latestSpiceCardA": 39,
+    "latestSpiceCardB": null,
+    "resourceDiscardA": null,
+    "resourceDiscardB": null,
+    "sandTrout": null,
+    "richeseCacheCount": 0,
+    "richeseCache": null
+  },
+  "tanks": [
+    {
+      "faction": "Emperor",
+      "forcesKilled": 0,
+      "specialForcesKilled": 3,
+      "leaders": [
+        {
+          "id": 1011,
+          "faceDown": false
+        },
+        {
+          "id": 1012,
+          "faceDown": false
+        }
+      ],
+      "messiahDead": false
+    },
+    {
+      "faction": "BeneGesserit",
+      "forcesKilled": 6,
+      "specialForcesKilled": 0,
+      "leaders": [],
+      "messiahDead": false
+    },
+    {
+      "faction": "Guild",
+      "forcesKilled": 8,
+      "specialForcesKilled": 0,
+      "leaders": [
+        {
+          "id": 1023,
+          "faceDown": false
+        },
+        {
+          "id": 1025,
+          "faceDown": false
+        }
+      ],
+      "messiahDead": false
+    },
+    {
+      "faction": "Harkonnen",
+      "forcesKilled": 15,
+      "specialForcesKilled": 0,
+      "leaders": [
+        {
+          "id": 1029,
+          "faceDown": false
+        },
+        {
+          "id": 1026,
+          "faceDown": false
+        },
+        {
+          "id": 1027,
+          "faceDown": false
+        }
+      ],
+      "messiahDead": false
+    },
+    {
+      "faction": "Fremen",
+      "forcesKilled": 2,
+      "specialForcesKilled": 1,
+      "leaders": [],
+      "messiahDead": false
+    },
+    {
+      "faction": "Atreides",
+      "forcesKilled": 11,
+      "specialForcesKilled": 0,
+      "leaders": [
+        {
+          "id": 1003,
+          "faceDown": false
+        },
+        {
+          "id": 1005,
+          "faceDown": false
+        },
+        {
+          "id": 1001,
+          "faceDown": false
+        },
+        {
+          "id": null,
+          "faceDown": true
+        }
+      ],
+      "messiahDead": false
+    }
+  ],
+  "bidding": null,
+  "battle": null,
+  "notes": null,
+  "timing": {
+    "started": "2026-01-01T00:00:00+00:00",
+    "lastActivity": "2026-01-01T00:17:48+00:00",
+    "duration": 1068.0,
+    "timeSpent": [
+      {
+        "faction": "Emperor",
+        "bidding": 65.0,
+        "shipmentAndMove": 25.0,
+        "battle": 23.0
+      },
+      {
+        "faction": "BeneGesserit",
+        "bidding": 67.0,
+        "shipmentAndMove": 17.0,
+        "battle": 13.0
+      },
+      {
+        "faction": "Guild",
+        "bidding": 69.0,
+        "shipmentAndMove": 25.0,
+        "battle": 16.0
+      },
+      {
+        "faction": "Harkonnen",
+        "bidding": 88.0,
+        "shipmentAndMove": 21.0,
+        "battle": 13.0
+      },
+      {
+        "faction": "Fremen",
+        "bidding": 80.0,
+        "shipmentAndMove": 16.0,
+        "battle": 15.0
+      },
+      {
+        "faction": "Atreides",
+        "bidding": 93.0,
+        "shipmentAndMove": 25.0,
+        "battle": 33.0
+      }
+    ],
+    "timer": -1
+  }
+}

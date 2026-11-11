@@ -19,16 +19,16 @@ public partial class ClassicBot
 
         if (Game.CurrentPhase == Phase.ClaimingCharity && Player.TechTokens.Any(tt => tt == TechToken.Resources) && Resources <= 3 && !Game.HasBiddingPrescience(Player) && !(Ally != Faction.None && Game.HasBiddingPrescience(AlliedPlayer)))
         {
-            var greenPrescienceDeal = DealAccepted.AcceptableDeals(Game, Player).FirstOrDefault(d => d.Type == DealType.ShareBiddingPrescience && d.EndPhase == Phase.BiddingReport && d.Price <= Resources);
-            if (greenPrescienceDeal != null) return greenPrescienceDeal.Acceptance(Faction);
+            var atreidesPrescienceDeal = DealAccepted.AcceptableDeals(Game, Player).FirstOrDefault(d => d.Type == DealType.ShareBiddingPrescience && d.EndPhase == Phase.BiddingReport && d.Price <= Resources);
+            if (atreidesPrescienceDeal != null) return atreidesPrescienceDeal.Acceptance(Faction);
         }
 
         if (Game.CurrentPhase == Phase.Bidding)
             if (!Game.HasBiddingPrescience(Player) && !(Ally != Faction.None && Game.HasBiddingPrescience(AlliedPlayer)))
             {
                 var biddingPrescienceDeal = DealAccepted.AcceptableDeals(Game, Player).FirstOrDefault(d => d.Type == DealType.ShareBiddingPrescience && d.EndPhase == Phase.BiddingReport && d.Price <= Resources);
-                LogInfo("biddingPrescienceOfferEntirePhaseYellow: {0}", biddingPrescienceDeal);
-                if (biddingPrescienceDeal != null && Faction == Faction.Yellow && Game.CurrentTurn == 1 && Game.Applicable(Rule.TechTokens) && Game.CurrentPhase <= Phase.ClaimingCharity) return biddingPrescienceDeal.Acceptance(Faction);
+                LogInfo("biddingPrescienceOfferEntirePhaseFremen: {0}", biddingPrescienceDeal);
+                if (biddingPrescienceDeal != null && Faction == Faction.Fremen && Game.CurrentTurn == 1 && Game.Applicable(Rule.TechTokens) && Game.CurrentPhase <= Phase.ClaimingCharity) return biddingPrescienceDeal.Acceptance(Faction);
 
                 biddingPrescienceDeal = DealAccepted.AcceptableDeals(Game, Player).FirstOrDefault(d => d.Type == DealType.ShareBiddingPrescience && d.EndPhase == Phase.BiddingReport && d.Price <= Resources);
                 LogInfo("biddingPrescienceOfferEntirePhase: {0}", biddingPrescienceDeal);
@@ -37,9 +37,9 @@ public partial class ClassicBot
                 biddingPrescienceDeal = DealAccepted.AcceptableDeals(Game, Player).FirstOrDefault(d => d.Type == DealType.ShareBiddingPrescience && d.EndPhase == Phase.Bidding && d.Price <= Resources);
                 LogInfo("biddingPrescienceOfferOneCard: {0}", biddingPrescienceDeal);
                 var maxPriceToPay = 0;
-                if (Faction == Faction.Red && Player.HasRoomForCards && ResourcesIncludingAllyContribution > 24)
+                if (Faction == Faction.Emperor && Player.HasRoomForCards && ResourcesIncludingAllyContribution > 24)
                     maxPriceToPay = 1;
-                else if (((Faction == Faction.Red && ResourcesIncludingAllyContribution > 6) || ResourcesIncludingAllyContribution > 16) && Player.HasRoomForCards) maxPriceToPay = 1;
+                else if (((Faction == Faction.Emperor && ResourcesIncludingAllyContribution > 6) || ResourcesIncludingAllyContribution > 16) && Player.HasRoomForCards) maxPriceToPay = 1;
 
                 if (biddingPrescienceDeal != null && Game.CurrentMainPhase == MainPhase.Bidding && biddingPrescienceDeal.Price <= maxPriceToPay) return biddingPrescienceDeal.Acceptance(Faction);
             }
@@ -57,7 +57,7 @@ public partial class ClassicBot
         if (LastTurn || Game.CurrentMainPhase <= MainPhase.Setup ||
             Game.Applicable(Rule.DisableResourceTransfers)) return null;
 
-        return DetermineDealOffered_BiddingPrescienceEntirePhaseYellowTurn1()
+        return DetermineDealOffered_BiddingPrescienceEntirePhaseFremenTurn1()
                ?? DetermineDealOffered_BiddingPrescienceEntirePhase()
                ?? DetermineDealOffered_BiddingPrescienceOneCard()
                ?? DetermineDealOffered_StormPrescience()
@@ -80,13 +80,13 @@ public partial class ClassicBot
 
     private DealOffered? FindInvalidDealOffers()
     {
-        var green = Game.GetPlayer(Faction.Green);
-        if (green != null && Game.CurrentMainPhase == MainPhase.Bidding && !Game.HasBiddingPrescience(green)) return Game.DealOffers.FirstOrDefault(offer => offer.Initiator == Faction.Green && offer.Type == DealType.ShareBiddingPrescience);
+        var atreides = Game.GetPlayer(Faction.Atreides);
+        if (atreides != null && Game.CurrentMainPhase == MainPhase.Bidding && !Game.HasBiddingPrescience(atreides)) return Game.DealOffers.FirstOrDefault(offer => offer.Initiator == Faction.Atreides && offer.Type == DealType.ShareBiddingPrescience);
 
-        if (green != null && Game.CurrentMainPhase == MainPhase.ShipmentAndMove && !Game.HasResourceDeckPrescience(green)) return Game.DealOffers.FirstOrDefault(offer => offer.Initiator == Faction.Green && offer.Type == DealType.ShareResourceDeckPrescience);
+        if (atreides != null && Game.CurrentMainPhase == MainPhase.ShipmentAndMove && !Game.HasResourceDeckPrescience(atreides)) return Game.DealOffers.FirstOrDefault(offer => offer.Initiator == Faction.Atreides && offer.Type == DealType.ShareResourceDeckPrescience);
 
-        var yellow = Game.GetPlayer(Faction.Yellow);
-        if (yellow != null && !Game.HasStormPrescience(yellow)) return Game.DealOffers.FirstOrDefault(offer => offer.Initiator == Faction.Yellow && offer.Type == DealType.ShareStormPrescience);
+        var fremen = Game.GetPlayer(Faction.Fremen);
+        if (fremen != null && !Game.HasStormPrescience(fremen)) return Game.DealOffers.FirstOrDefault(offer => offer.Initiator == Faction.Fremen && offer.Type == DealType.ShareStormPrescience);
 
         return null;
     }
@@ -100,7 +100,7 @@ public partial class ClassicBot
 
     private DealOffered? DetermineDealOffered_TellDiscardedTraitors()
     {
-        if (Faction != Faction.Black && Faction != Faction.Purple &&
+        if (Faction != Faction.Harkonnen && Faction != Faction.Tleilaxu &&
             !Game.DealOffers.Any(deal => deal.Initiator == Faction && deal.Type == DealType.TellDiscardedTraitors))
             return new DealOffered(Game, Faction)
             {
@@ -116,7 +116,7 @@ public partial class ClassicBot
 
     private DealOffered? DetermineDealOffered_ResourceDeckPrescience()
     {
-        if (Faction == Faction.Green &&
+        if (Faction == Faction.Atreides &&
             Game.CurrentMainPhase is >= MainPhase.ShipmentAndMove and <= MainPhase.Battle &&
             Game.HasResourceDeckPrescience(Player) &&
             !Game.DealOffers.Any(deal => deal.Initiator == Faction && deal is { Type: DealType.ShareResourceDeckPrescience, EndPhase: Phase.TurnConcluded }))
@@ -134,7 +134,7 @@ public partial class ClassicBot
 
     private DealOffered? DetermineDealOffered_StormPrescience()
     {
-        if (Faction == Faction.Yellow &&
+        if (Faction == Faction.Fremen &&
             Game.CurrentMainPhase is > MainPhase.Storm and <= MainPhase.Battle &&
             Game.HasStormPrescience(Player) &&
             !Game.DealOffers.Any(deal => deal.Initiator == Faction && deal is { Type: DealType.ShareStormPrescience, EndPhase: Phase.TurnConcluded }))
@@ -150,12 +150,12 @@ public partial class ClassicBot
         return null;
     }
 
-    private DealOffered? DetermineDealOffered_BiddingPrescienceEntirePhaseYellowTurn1()
+    private DealOffered? DetermineDealOffered_BiddingPrescienceEntirePhaseFremenTurn1()
     {
-        if (Faction == Faction.Green &&
-            Game.IsPlaying(Faction.Yellow) &&
+        if (Faction == Faction.Atreides &&
+            Game.IsPlaying(Faction.Fremen) &&
             Game is { CurrentTurn: 1, CurrentMainPhase: MainPhase.Charity } &&
-            !Game.DealOffers.Any(deal => deal.Initiator == Faction && deal is { Type: DealType.ShareBiddingPrescience, EndPhase: Phase.BiddingReport } && deal.To.Length == 1 && deal.To[0] == Faction.Yellow))
+            !Game.DealOffers.Any(deal => deal.Initiator == Faction && deal is { Type: DealType.ShareBiddingPrescience, EndPhase: Phase.BiddingReport } && deal.To.Length == 1 && deal.To[0] == Faction.Fremen))
             return new DealOffered(Game, Faction)
             {
                 Cancel = false,
@@ -163,7 +163,7 @@ public partial class ClassicBot
                 EndPhase = Phase.BiddingReport,
                 Price = 3,
                 Text = "share prescience (phase)",
-                To = [Faction.Yellow]
+                To = [Faction.Fremen]
             };
 
         return null;
@@ -171,10 +171,10 @@ public partial class ClassicBot
 
     private DealOffered? DetermineDealOffered_BiddingPrescienceEntirePhase()
     {
-        if (Faction == Faction.Green &&
+        if (Faction == Faction.Atreides &&
             Game.CurrentMainPhase <= MainPhase.Bidding &&
             Game.HasBiddingPrescience(Player) &&
-            !Game.DealOffers.Any(deal => deal.Initiator == Faction && deal is { Type: DealType.ShareBiddingPrescience, EndPhase: Phase.BiddingReport } && !(deal.To.Length == 1 && deal.To[0] == Faction.Yellow)))
+            !Game.DealOffers.Any(deal => deal.Initiator == Faction && deal is { Type: DealType.ShareBiddingPrescience, EndPhase: Phase.BiddingReport } && !(deal.To.Length == 1 && deal.To[0] == Faction.Fremen)))
         {
             var nrOfCards = Game.Players.Count(p => p.TreacheryCards.Count() < p.MaximumNumberOfCards);
             return new DealOffered(Game, Faction)
@@ -192,7 +192,7 @@ public partial class ClassicBot
 
     private DealOffered? DetermineDealOffered_BiddingPrescienceOneCard()
     {
-        if (Faction == Faction.Green &&
+        if (Faction == Faction.Atreides &&
             Game is { CurrentMainPhase: MainPhase.Bidding, CurrentAuctionType: AuctionType.Normal } &&
             Game.HasBiddingPrescience(Player) &&
             !Game.DealOffers.Any(deal => deal.Initiator == Faction && deal is { Type: DealType.ShareBiddingPrescience, EndPhase: Phase.Bidding }))

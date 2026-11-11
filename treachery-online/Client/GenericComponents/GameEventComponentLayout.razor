@@ -7,9 +7,9 @@
  * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 *@
 
-<div class="card @Width @Border @Class mb-2" style="@BackgroundStyle ;animation:fadeIn 1s;">
+<div class="card @Width @Border @Class mb-2" style="@BackgroundStyle @(InPopover ? "" : ";animation:fadeIn 1s;")">
 
-    @if (Collapsible)
+    @if (Collapsible && Header != null)
     {
         <div class="card-header" style="@HeaderStyle;cursor:pointer;" @onclick=@(_ => CollapsedInternal = !CollapsedInternal)>
 
@@ -93,6 +93,10 @@
     [Parameter]
     public Type? CollapsedType { get; set; }
 
+    // Panels opened from a popover (TradePopover, CardPlayPopover) start open.
+    [CascadingParameter(Name = "InPopover")]
+    public bool InPopover { get; set; }
+
     [Parameter]
     public GameEvent? TimedEvent { get; set; }
 
@@ -114,7 +118,11 @@
         {
             _parametersSet = true;
 
-            if (Collapsed == CollapseState.None)
+            if (InPopover)
+            {
+                _collapsedInternal = false;
+            }
+            else if (Collapsed == CollapseState.None)
             {
                 if (CollapsedType != null && SavedCollapsedStateValues.TryGetValue(CollapsedType, out var storedValue))
                 {

@@ -33,7 +33,7 @@
 
         <p>Total losses: <SimpleNumberComponent>@(forceAmount + specialForceAmount)</SimpleNumberComponent></p>
 
-            @if (Faction == Faction.Brown && TakeLosses.CanPreventLosses(Game, Player))
+            @if (Faction == Faction.Choam && TakeLosses.CanPreventLosses(Game, Player))
         {
             <ButtonRowComponent Confirm="Confirm" ConfirmText="Confirm Losses" ConfirmError=@Validation Other="Other" OtherText="@(UseUselessLabel)" />
         }

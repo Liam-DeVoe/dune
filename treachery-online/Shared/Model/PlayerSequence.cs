@@ -139,7 +139,7 @@ public class PlayerSequence
         if (CurrentPlayer == FirstPlayer) _fullyCircled++;
     }
 
-    public bool HasPassedWhite
+    public bool HasPassedRichese
     {
         get
         {
@@ -150,7 +150,7 @@ public class PlayerSequence
             foreach (var p in PlayersInOrder)
                 if (p == current)
                     return false;
-                else if (p.Faction == Faction.White) return true;
+                else if (p.Faction == Faction.Richese) return true;
 
             return false;
         }

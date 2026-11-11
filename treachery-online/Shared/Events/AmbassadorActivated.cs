@@ -25,79 +25,79 @@ public class AmbassadorActivated : PassableGameEvent, ILocationEvent, IPlacement
 
     #region Properties
 
-    public Ambassador BlueSelectedAmbassador { get; set; }
+    public Ambassador BeneGesseritSelectedAmbassador { get; set; }
 
-    public string _brownCardIds = string.Empty;
+    public string _choamCardIds = string.Empty;
 
     [JsonIgnore]
-    public IEnumerable<TreacheryCard> BrownCards
+    public IEnumerable<TreacheryCard> ChoamCards
     {
-        get => IdStringToObjects(_brownCardIds, TreacheryCardManager.Lookup);
-        set => _brownCardIds = ObjectsToIdString(value, TreacheryCardManager.Lookup);
+        get => IdStringToObjects(_choamCardIds, TreacheryCardManager.Lookup);
+        set => _choamCardIds = ObjectsToIdString(value, TreacheryCardManager.Lookup);
     }
 
-    public bool PinkOfferAlliance { get; set; }
+    public bool EcazOfferAlliance { get; set; }
 
-    public bool PinkGiveVidalToAlly { get; set; }
+    public bool EcazGiveVidalToAlly { get; set; }
 
-    public bool PinkTakeVidal { get; set; }
+    public bool EcazTakeVidal { get; set; }
 
-    public int _yellowOrOrangeToId;
+    public int _fremenOrGuildToId;
 
     [JsonIgnore]
-    public Location? YellowOrOrangeTo
+    public Location? FremenOrGuildTo
     {
-        get => Game.Map.LocationLookup.Find(_yellowOrOrangeToId);
-        set => _yellowOrOrangeToId = Game.Map.LocationLookup.GetId(value);
+        get => Game.Map.LocationLookup.Find(_fremenOrGuildToId);
+        set => _fremenOrGuildToId = Game.Map.LocationLookup.GetId(value);
     }
 
     [JsonIgnore]
-    public Location? To => YellowOrOrangeTo;
+    public Location? To => FremenOrGuildTo;
 
-    public string _yellowForceLocations = "";
+    public string _fremenForceLocations = "";
 
     [JsonIgnore]
-    public Dictionary<Location, Battalion> YellowForceLocations
+    public Dictionary<Location, Battalion> FremenForceLocations
     {
-        get => PlacementEvent.ParseForceLocations(Game, Player.Faction, _yellowForceLocations);
-        set => _yellowForceLocations = PlacementEvent.ForceLocationsString(Game, value);
+        get => PlacementEvent.ParseForceLocations(Game, Player.Faction, _fremenForceLocations);
+        set => _fremenForceLocations = PlacementEvent.ForceLocationsString(Game, value);
     }
 
-    public int _greyCardId;
+    public int _ixianCardId;
 
     [JsonIgnore]
-    public TreacheryCard? GreyCard
+    public TreacheryCard? IxianCard
     {
-        get => TreacheryCardManager.Get(_greyCardId);
-        set => _greyCardId = TreacheryCardManager.GetId(value);
+        get => TreacheryCardManager.Get(_ixianCardId);
+        set => _ixianCardId = TreacheryCardManager.GetId(value);
     }
 
-    public int OrangeForceAmount { get; set; }
+    public int GuildForceAmount { get; set; }
 
-    public int PurpleAmountOfForces { get; set; }
+    public int TleilaxuAmountOfForces { get; set; }
 
-    public int _purpleHeroId = -1;
+    public int _tleilaxuHeroId = -1;
 
     [JsonIgnore]
-    public IHero? PurpleHero
+    public IHero? TleilaxuHero
     {
-        get => LeaderManager.HeroLookup.Find(_purpleHeroId);
-        set => _purpleHeroId = LeaderManager.HeroLookup.GetId(value);
+        get => LeaderManager.HeroLookup.Find(_tleilaxuHeroId);
+        set => _tleilaxuHeroId = LeaderManager.HeroLookup.GetId(value);
     }
 
-    public bool PurpleAssignSkill { get; set; }
+    public bool TleilaxuAssignSkill { get; set; }
 
     [JsonIgnore]
-    public int TotalAmountOfForcesAddedToLocation => YellowForceLocations.Values.Sum(b => b.TotalAmountOfForces);
+    public int TotalAmountOfForcesAddedToLocation => FremenForceLocations.Values.Sum(b => b.TotalAmountOfForces);
 
     [JsonIgnore]
-    public int ForcesAddedToLocation => YellowForceLocations.Values.Sum(b => b.AmountOfForces);
+    public int ForcesAddedToLocation => FremenForceLocations.Values.Sum(b => b.AmountOfForces);
 
     [JsonIgnore]
-    public int SpecialForcesAddedToLocation => YellowForceLocations.Values.Sum(b => b.AmountOfSpecialForces);
+    public int SpecialForcesAddedToLocation => FremenForceLocations.Values.Sum(b => b.AmountOfSpecialForces);
 
     [JsonIgnore]
-    public Dictionary<Location, Battalion> ForceLocations => YellowForceLocations;
+    public Dictionary<Location, Battalion> ForceLocations => FremenForceLocations;
 
     #endregion Properties
 
@@ -110,55 +110,55 @@ public class AmbassadorActivated : PassableGameEvent, ILocationEvent, IPlacement
             var player = Player;
             var ambassador = GetAmbassador(Game);
 
-            if (ambassador == Ambassador.Blue)
+            if (ambassador == Ambassador.BeneGesserit)
             {
-                if (!GetValidBlueAmbassadors(Game).Contains(BlueSelectedAmbassador)) return Message.Express("Invalid Ambassador selected");
-                ambassador = BlueSelectedAmbassador;
+                if (!GetValidBeneGesseritAmbassadors(Game).Contains(BeneGesseritSelectedAmbassador)) return Message.Express("Invalid Ambassador selected");
+                ambassador = BeneGesseritSelectedAmbassador;
             }
 
             switch (ambassador)
             {
-                case Ambassador.Brown:
-                    if (BrownCards.Any(c => !GetValidBrownCards(player).Contains(c))) return Message.Express("Invalid card selected");
+                case Ambassador.Choam:
+                    if (ChoamCards.Any(c => !GetValidChoamCards(player).Contains(c))) return Message.Express("Invalid card selected");
                     break;
 
-                case Ambassador.Pink:
-                    if (PinkOfferAlliance && !AllianceCanBeOffered(Game, player)) return Message.Express("You can't offer an alliance");
-                    if (PinkTakeVidal && !VidalCanBeTaken(Game, Player)) return Message.Express("You can't take ", Game.Vidal);
-                    if (PinkOfferAlliance && PinkGiveVidalToAlly && !VidalCanBeOfferedToNewAlly(Game, player)) return Message.Express("You can't offer ", Game.Vidal, " to your ally");
-                    if (Game.Version >= 167 && PinkTakeVidal && PinkGiveVidalToAlly) return Message.Express("You don't have ", Game.Vidal, " yet");
-                    if (Game.Version >= 176 && PinkTakeVidal && PinkOfferAlliance) return Message.Express("You can't both take ", Game.Vidal, " AND offer an alliance");
+                case Ambassador.Ecaz:
+                    if (EcazOfferAlliance && !AllianceCanBeOffered(Game, player)) return Message.Express("You can't offer an alliance");
+                    if (EcazTakeVidal && !VidalCanBeTaken(Game, Player)) return Message.Express("You can't take ", Game.Vidal);
+                    if (EcazOfferAlliance && EcazGiveVidalToAlly && !VidalCanBeOfferedToNewAlly(Game, player)) return Message.Express("You can't offer ", Game.Vidal, " to your ally");
+                    if (Game.Version >= 167 && EcazTakeVidal && EcazGiveVidalToAlly) return Message.Express("You don't have ", Game.Vidal, " yet");
+                    if (Game.Version >= 176 && EcazTakeVidal && EcazOfferAlliance) return Message.Express("You can't both take ", Game.Vidal, " AND offer an alliance");
                     break;
 
-                case Ambassador.Yellow:
-                    if (YellowForceLocations.Any(kvp => Game.IsInStorm(kvp.Key))) return Message.Express("Can't move from storm");
-                    if (YellowForceLocations.Any(kvp => player.ForcesIn(kvp.Key) < kvp.Value.AmountOfForces)) return Message.Express("Invalid amount of ", Player.Force);
-                    if (YellowForceLocations.Any(kvp => player.SpecialForcesIn(kvp.Key) < kvp.Value.AmountOfSpecialForces)) return Message.Express("Invalid amount of ", Player.SpecialForce);
-                    if (!ValidYellowTargets(Game, player).Contains(YellowOrOrangeTo)) return Message.Express("Invalid target location");
+                case Ambassador.Fremen:
+                    if (FremenForceLocations.Any(kvp => Game.IsInStorm(kvp.Key))) return Message.Express("Can't move from storm");
+                    if (FremenForceLocations.Any(kvp => player.ForcesIn(kvp.Key) < kvp.Value.AmountOfForces)) return Message.Express("Invalid amount of ", Player.Force);
+                    if (FremenForceLocations.Any(kvp => player.SpecialForcesIn(kvp.Key) < kvp.Value.AmountOfSpecialForces)) return Message.Express("Invalid amount of ", Player.SpecialForce);
+                    if (!ValidFremenTargets(Game, player).Contains(FremenOrGuildTo)) return Message.Express("Invalid target location");
                     break;
 
-                case Ambassador.Grey:
-                    if (!GetValidGreyCards(player).Any()) return Message.Express("You don't have a card to discard");
-                    if (GreyCard != null && !GetValidGreyCards(player).Contains(GreyCard)) return Message.Express("Invalid card selected");
+                case Ambassador.Ixian:
+                    if (!GetValidIxianCards(player).Any()) return Message.Express("You don't have a card to discard");
+                    if (IxianCard != null && !GetValidIxianCards(player).Contains(IxianCard)) return Message.Express("Invalid card selected");
                     break;
 
-                case Ambassador.White:
+                case Ambassador.Richese:
                     if (player.Resources < 3) return Message.Express("You don't have enough ", Concept.Resource, " to buy a card");
                     if (!player.HasRoomForCards) return Message.Express("You don't have room for an additional card");
                     break;
 
-                case Ambassador.Orange:
-                    if (!ValidOrangeTargets(Game, player).Contains(YellowOrOrangeTo)) return Message.Express("Invalid target location");
-                    if (OrangeForceAmount > ValidOrangeMaxForces(player)) return Message.Express("Invalid amount of forces");
+                case Ambassador.Guild:
+                    if (!ValidGuildTargets(Game, player).Contains(FremenOrGuildTo)) return Message.Express("Invalid target location");
+                    if (GuildForceAmount > ValidGuildMaxForces(player)) return Message.Express("Invalid amount of forces");
                     break;
 
-                case Ambassador.Purple:
-                    if (PurpleAmountOfForces < 0) return Message.Express("You can't revive a negative amount of forces");
-                    if (PurpleAmountOfForces > ValidPurpleMaxAmount(player)) return Message.Express("You can't revive that many");
-                    if (PurpleAmountOfForces > 0 && PurpleHero != null) return Message.Express("You can't revive both forces and a leader");
-                    if (PurpleHero != null && !ValidPurpleHeroes(Game, player).Contains(PurpleHero)) return Message.Express("Invalid leader");
-                    if (PurpleAssignSkill && PurpleHero == null) return Message.Express("Select a leader to assign a skill to");
-                    if (PurpleAssignSkill && !Revival.MayAssignSkill(Game, Player, PurpleHero)) return Message.Express("You can't assign a skill to this leader");
+                case Ambassador.Tleilaxu:
+                    if (TleilaxuAmountOfForces < 0) return Message.Express("You can't revive a negative amount of forces");
+                    if (TleilaxuAmountOfForces > ValidTleilaxuMaxAmount(player)) return Message.Express("You can't revive that many");
+                    if (TleilaxuAmountOfForces > 0 && TleilaxuHero != null) return Message.Express("You can't revive both forces and a leader");
+                    if (TleilaxuHero != null && !ValidTleilaxuHeroes(Game, player).Contains(TleilaxuHero)) return Message.Express("Invalid leader");
+                    if (TleilaxuAssignSkill && TleilaxuHero == null) return Message.Express("Select a leader to assign a skill to");
+                    if (TleilaxuAssignSkill && !Revival.MayAssignSkill(Game, Player, TleilaxuHero)) return Message.Express("You can't assign a skill to this leader");
                     break;
             }
         }
@@ -205,30 +205,30 @@ public class AmbassadorActivated : PassableGameEvent, ILocationEvent, IPlacement
     public static bool VidalCanBeTaken(Game g, Player p)
     {
         return (g.Version < 167 || 
-                g.Vidal != null && !p.Has(g.Vidal)) && g is { VidalIsAlive: true, VidalIsCapturedOrGhola: false } && g.OccupierOf(World.Pink) == null;
+                g.Vidal != null && !p.Has(g.Vidal)) && g is { VidalIsAlive: true, VidalIsCapturedOrGhola: false } && g.OccupierOf(World.Ecaz) == null;
     }
 
-    public static IEnumerable<Ambassador> GetValidBlueAmbassadors(Game g)
+    public static IEnumerable<Ambassador> GetValidBeneGesseritAmbassadors(Game g)
     {
         return g.UnassignedAmbassadors!.Items;
     }
 
-    public static IEnumerable<TreacheryCard> GetValidBrownCards(Player p)
+    public static IEnumerable<TreacheryCard> GetValidChoamCards(Player p)
     {
         return p.TreacheryCards;
     }
 
-    public static IEnumerable<TreacheryCard> GetValidGreyCards(Player p)
+    public static IEnumerable<TreacheryCard> GetValidIxianCards(Player p)
     {
         return p.TreacheryCards;
     }
 
-    public static IEnumerable<Territory> ValidYellowSources(Game g, Player p)
+    public static IEnumerable<Territory> ValidFremenSources(Game g, Player p)
     {
         return PlacementEvent.ValidMovementSources(g, p);
     }
 
-    public static IEnumerable<Location> ValidYellowTargets(Game g, Player p)
+    public static IEnumerable<Location> ValidFremenTargets(Game g, Player p)
     {
         return g.Map.Locations(false).Where(l =>
             l.Visible &&
@@ -236,35 +236,35 @@ public class AmbassadorActivated : PassableGameEvent, ILocationEvent, IPlacement
             g.IsNotFull(p, l));
     }
 
-    public static IEnumerable<Location> ValidOrangeTargets(Game g, Player p)
+    public static IEnumerable<Location> ValidGuildTargets(Game g, Player p)
     {
         return g.Map.Locations(g.Applicable(Rule.Homeworlds)).Where(l =>
             l.Sector != g.SectorInStorm &&
-            (!ReferenceEquals(l, g.Map.HiddenMobileStronghold) || p.Is(Faction.Grey)) &&
+            (!ReferenceEquals(l, g.Map.HiddenMobileStronghold) || p.Is(Faction.Ixian)) &&
             !g.ContainsConflictingAlly(p, l) &&
             Shipment.IsEitherValidHomeworldOrNoHomeworld(g, p, l, false) &&
             Shipment.IsEitherValidDiscoveryOrNoDiscovery(l) &&
             g.IsNotFull(p, l));
     }
 
-    public static int ValidOrangeMaxForces(Player p)
+    public static int ValidGuildMaxForces(Player p)
     {
         return Math.Min(p.ForcesInReserve, 4);
     }
 
-    public static int ValidPurpleMaxAmount(Player p)
+    public static int ValidTleilaxuMaxAmount(Player p)
     {
         return Math.Min(p.ForcesKilled, 4);
     }
 
-    public static IEnumerable<IHero> ValidPurpleHeroes(Game game, Player player)
+    public static IEnumerable<IHero> ValidTleilaxuHeroes(Game game, Player player)
     {
         return game.KilledHeroes(player);
     }
 
     public static bool MayPass(Player p)
     {
-        return p.Faction == Faction.Pink;
+        return p.Faction == Faction.Ecaz;
     }
 
     #endregion Validation
@@ -284,16 +284,16 @@ public class AmbassadorActivated : PassableGameEvent, ILocationEvent, IPlacement
             Game.AmbassadorsOnPlanet.Remove(territory);
             Game.Stone(Milestone.AmbassadorActivated);
 
-            var pink = GetPlayer(Faction.Pink)!;
+            var ecaz = GetPlayer(Faction.Ecaz)!;
 
-            if (ambassadorFaction == Ambassador.Blue)
+            if (ambassadorFaction == Ambassador.BeneGesserit)
             {
-                ambassadorFaction = BlueSelectedAmbassador;
-                Log("The ", Ambassador.Blue, " Ambassador is removed from the game");
+                ambassadorFaction = BeneGesseritSelectedAmbassador;
+                Log("The ", Ambassador.BeneGesserit, " Ambassador is removed from the game");
             }
-            else if (ambassadorFaction == Ambassador.Pink)
+            else if (ambassadorFaction == Ambassador.Ecaz)
             {
-                pink.Ambassadors.Add(ambassadorFaction);
+                ecaz.Ambassadors.Add(ambassadorFaction);
                 Log("The ", ambassadorFaction, " Ambassador returns to supply");
             }
             else
@@ -304,10 +304,10 @@ public class AmbassadorActivated : PassableGameEvent, ILocationEvent, IPlacement
 
             HandleAmbassador(ambassadorFaction, victim);
 
-            if (pink.Ambassadors.Union(Game.AmbassadorsOnPlanet.Values).All(f => f == Ambassador.Pink))
+            if (ecaz.Ambassadors.Union(Game.AmbassadorsOnPlanet.Values).All(f => f == Ambassador.Ecaz))
             {
-                Game.AssignRandomAmbassadors(pink);
-                Log(Faction.Pink, " draw 5 random Ambassadors");
+                Game.AssignRandomAmbassadors(ecaz);
+                Log(Faction.Ecaz, " draw 5 random Ambassadors");
             }
         }
         else
@@ -325,7 +325,7 @@ public class AmbassadorActivated : PassableGameEvent, ILocationEvent, IPlacement
 
         switch (ambassadorFaction)
         {
-            case Ambassador.Green:
+            case Ambassador.Atreides:
 
                 if (victimPlayer!.TreacheryCards.Any())
                 {
@@ -340,10 +340,10 @@ public class AmbassadorActivated : PassableGameEvent, ILocationEvent, IPlacement
                 Game.DetermineNextShipmentAndMoveSubPhase();
                 break;
 
-            case Ambassador.Brown:
+            case Ambassador.Choam:
 
                 var totalEarned = 0;
-                foreach (var c in BrownCards)
+                foreach (var c in ChoamCards)
                 {
                     totalEarned += 3;
                     Game.Discard(Player, c);
@@ -354,18 +354,18 @@ public class AmbassadorActivated : PassableGameEvent, ILocationEvent, IPlacement
                 Game.DetermineNextShipmentAndMoveSubPhase();
                 break;
 
-            case Ambassador.Pink:
+            case Ambassador.Ecaz:
 
-                if (PinkOfferAlliance)
+                if (EcazOfferAlliance)
                 {
                     Game.AllianceByAmbassadorOfferedTo = victim;
-                    Log(Initiator, " offer an alliance to ", victim, MessagePart.ExpressIf(PinkGiveVidalToAlly, " offering ", Game.Vidal, " if they accept"));
+                    Log(Initiator, " offer an alliance to ", victim, MessagePart.ExpressIf(EcazGiveVidalToAlly, " offering ", Game.Vidal, " if they accept"));
                     Game.PausedAmbassadorPhase = Game.CurrentPhase;
                     Game.Enter(Phase.AllianceByAmbassador);
                 }
                 else 
                 {
-                    if (Game.CurrentAmbassadorActivated!.PinkTakeVidal)
+                    if (Game.CurrentAmbassadorActivated!.EcazTakeVidal)
                     {
                         Game.TakeVidal(Player, Game.Version >= 167 ? VidalMoment.Never : VidalMoment.AfterUsedInBattle);
                     }
@@ -374,31 +374,31 @@ public class AmbassadorActivated : PassableGameEvent, ILocationEvent, IPlacement
                 }
                 break;
 
-            case Ambassador.Red:
+            case Ambassador.Emperor:
 
                 Player.Resources += 5;
                 Log(Initiator, " get ", Payment.Of(5));
                 Game.DetermineNextShipmentAndMoveSubPhase();
                 break;
 
-            case Ambassador.Yellow:
+            case Ambassador.Fremen:
 
-                Game.PerformMoveFromLocations(Player, YellowForceLocations, this, false, false);
+                Game.PerformMoveFromLocations(Player, FremenForceLocations, this, false, false);
                 Game.RecentMoves.Add(this);
                 Game.CheckIntrusion(this);
                 Game.DetermineNextShipmentAndMoveSubPhase();
                 break;
 
-            case Ambassador.Black:
+            case Ambassador.Harkonnen:
 
-                if (victim == Faction.Black)
-                    Log(Initiator, " see one of the ", Faction.Black, " traitors");
-                else if (victim == Faction.Purple)
-                    Log(Initiator, " see one of the ", Faction.Purple, " unrevealed Face Dancers");
+                if (victim == Faction.Harkonnen)
+                    Log(Initiator, " see one of the ", Faction.Harkonnen, " traitors");
+                else if (victim == Faction.Tleilaxu)
+                    Log(Initiator, " see one of the ", Faction.Tleilaxu, " unrevealed Face Dancers");
                 else
                     Log(Initiator, " see the ", victim, " traitor");
 
-                var toSelectFrom = victim == Faction.Purple 
+                var toSelectFrom = victim == Faction.Tleilaxu 
                     ? victimPlayer!.FaceDancers.Where(t => !victimPlayer.RevealedFaceDancers.Contains(t)) 
                     : victimPlayer!.Traitors;
                 
@@ -408,9 +408,9 @@ public class AmbassadorActivated : PassableGameEvent, ILocationEvent, IPlacement
                 Game.DetermineNextShipmentAndMoveSubPhase();
                 break;
 
-            case Ambassador.Grey:
+            case Ambassador.Ixian:
 
-                Game.Discard(Player, GreyCard);
+                Game.Discard(Player, IxianCard);
                 Log(Initiator, " draw a new card");
                 var drawn = Game.DrawTreacheryCard();
                 if (drawn != null)
@@ -418,7 +418,7 @@ public class AmbassadorActivated : PassableGameEvent, ILocationEvent, IPlacement
                 Game.DetermineNextShipmentAndMoveSubPhase();
                 break;
 
-            case Ambassador.White:
+            case Ambassador.Richese:
 
                 Log(Initiator, " buy a card for ", Payment.Of(3));
                 Player.Resources -= 3;
@@ -428,34 +428,34 @@ public class AmbassadorActivated : PassableGameEvent, ILocationEvent, IPlacement
                 Game.DetermineNextShipmentAndMoveSubPhase();
                 break;
 
-            case Ambassador.Orange:
+            case Ambassador.Guild:
 
-                Log(Initiator, " send ", OrangeForceAmount, Player.Force, " to ", YellowOrOrangeTo);
-                if (YellowOrOrangeTo != null)
-                    Player.ShipForces(YellowOrOrangeTo, OrangeForceAmount);
+                Log(Initiator, " send ", GuildForceAmount, Player.Force, " to ", FremenOrGuildTo);
+                if (FremenOrGuildTo != null)
+                    Player.ShipForces(FremenOrGuildTo, GuildForceAmount);
                 Game.LastShipmentOrMovement = this;
                 Game.CheckIntrusion(this);
                 Game.DetermineNextShipmentAndMoveSubPhase();
                 break;
 
-            case Ambassador.Purple:
+            case Ambassador.Tleilaxu:
 
                 Game.DetermineNextShipmentAndMoveSubPhase();
-                if (PurpleHero != null)
+                if (TleilaxuHero != null)
                 {
-                    if (!Game.IsFaceDownDead(PurpleHero))
-                        Log(Initiator, " revive ", PurpleHero);
+                    if (!Game.IsFaceDownDead(TleilaxuHero))
+                        Log(Initiator, " revive ", TleilaxuHero);
                     else
                         Log(Initiator, " revive a face down leader");
 
-                    Game.Revive(Player, PurpleHero);
+                    Game.Revive(Player, TleilaxuHero);
 
-                    if (PurpleAssignSkill) Game.PrepareSkillAssignmentToRevivedLeader(Player, PurpleHero as Leader);
+                    if (TleilaxuAssignSkill) Game.PrepareSkillAssignmentToRevivedLeader(Player, TleilaxuHero as Leader);
                 }
                 else
                 {
-                    Log(Initiator, " revive ", PurpleAmountOfForces, " ", Player.Force);
-                    Player.ReviveForces(PurpleAmountOfForces);
+                    Log(Initiator, " revive ", TleilaxuAmountOfForces, " ", Player.Force);
+                    Player.ReviveForces(TleilaxuAmountOfForces);
                 }
 
                 break;

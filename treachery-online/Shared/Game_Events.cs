@@ -39,7 +39,7 @@ public partial class Game
                 result.Add(typeof(PerformSetup));
                 break;
             case Phase.HmsPlacement:
-                if (!IsPlaying(Faction.Grey) && Applicable(Rule.HmSwithoutGrey)) result.Add(typeof(PerformHmsPlacement));
+                if (!IsPlaying(Faction.Ixian) && Applicable(Rule.HmSwithoutIxian)) result.Add(typeof(PerformHmsPlacement));
                 break;
             case Phase.SelectingFactions:
             case Phase.TradingFactions:
@@ -49,8 +49,8 @@ public partial class Game
             case Phase.Thumper:
             case Phase.HarvesterA:
             case Phase.HarvesterB:
-            case Phase.AllianceA:
-            case Phase.AllianceB:
+            case Phase.AllianceA when Version < 188:
+            case Phase.AllianceB when Version < 188:
             case Phase.BlowReport:
             case Phase.BeginningOfCharity:
             case Phase.ClaimingCharity:
@@ -115,35 +115,35 @@ public partial class Game
                 break;
             case Phase.PerformCustomSetup:
                 break;
-            case Phase.BluePredicting:
-                if (faction == Faction.Blue) result.Add(typeof(BluePrediction));
+            case Phase.BeneGesseritPredicting:
+                if (faction == Faction.BeneGesserit) result.Add(typeof(BeneGesseritPrediction));
                 break;
-            case Phase.YellowSettingUp:
-                if (faction == Faction.Yellow) result.Add(typeof(PerformYellowSetup));
+            case Phase.FremenSettingUp:
+                if (faction == Faction.Fremen) result.Add(typeof(PerformFremenSetup));
                 break;
-            case Phase.BlueSettingUp:
-                if (faction == Faction.Blue) result.Add(typeof(PerformBluePlacement));
+            case Phase.BeneGesseritSettingUp:
+                if (faction == Faction.BeneGesserit) result.Add(typeof(PerformBeneGesseritPlacement));
                 break;
-            case Phase.CyanSettingUp:
-                if (faction == Faction.Cyan) result.Add(typeof(PerformCyanSetup));
+            case Phase.MoritaniSettingUp:
+                if (faction == Faction.Moritani) result.Add(typeof(PerformMoritaniSetup));
                 break;
-            case Phase.BlackMulligan:
-                if (faction == Faction.Black) result.Add(typeof(MulliganPerformed));
+            case Phase.HarkonnenMulligan:
+                if (faction == Faction.Harkonnen) result.Add(typeof(MulliganPerformed));
                 break;
             case Phase.SelectingTraitors:
-                if (faction != Faction.Black && faction != Faction.Purple && !HasActedOrPassed.Contains(faction)) result.Add(typeof(TraitorsSelected));
+                if (faction != Faction.Harkonnen && faction != Faction.Tleilaxu && !HasActedOrPassed.Contains(faction)) result.Add(typeof(TraitorsSelected));
                 break;
-            case Phase.GreySelectingCard:
-                if (faction == Faction.Grey) result.Add(typeof(GreySelectedStartingCard));
+            case Phase.IxianSelectingCard:
+                if (faction == Faction.Ixian) result.Add(typeof(IxianSelectedStartingCard));
                 break;
             case Phase.HmsPlacement:
-                if (faction == Faction.Grey) result.Add(typeof(PerformHmsPlacement));
+                if (faction == Faction.Ixian) result.Add(typeof(PerformHmsPlacement));
                 break;
             case Phase.BeginningOfStorm:
                 if (DiscoveryEntered.ValidTargets(this, player).Any()) result.Add(typeof(DiscoveryEntered));
                 break;
             case Phase.HmsMovement:
-                if (faction == Faction.Grey) result.Add(typeof(PerformHmsMovement));
+                if (faction == Faction.Ixian) result.Add(typeof(PerformHmsMovement));
                 break;
             case Phase.MetheorAndStormSpell:
                 if (player.Has(TreacheryCardType.StormSpell) && CurrentTurn > 1) result.Add(typeof(StormSpellPlayed));
@@ -165,13 +165,13 @@ public partial class Game
             case Phase.StormLosses:
                 if (faction == TakeLosses.LossesToTake(this).Faction) result.Add(typeof(TakeLosses));
                 break;
-            case Phase.YellowSendingMonsterA:
-            case Phase.YellowSendingMonsterB:
-                if (faction == Faction.Yellow) result.Add(typeof(YellowSentMonster));
+            case Phase.FremenSendingMonsterA:
+            case Phase.FremenSendingMonsterB:
+                if (faction == Faction.Fremen) result.Add(typeof(FremenSentMonster));
                 break;
-            case Phase.YellowRidingMonsterA:
-            case Phase.YellowRidingMonsterB:
-                if (faction == Faction.Yellow) result.Add(typeof(YellowRidesMonster));
+            case Phase.FremenRidingMonsterA:
+            case Phase.FremenRidingMonsterB:
+                if (faction == Faction.Fremen) result.Add(typeof(FremenRidesMonster));
                 break;
             case Phase.AllianceA:
             case Phase.AllianceB:
@@ -179,6 +179,7 @@ public partial class Game
                 {
                     if (player.Ally == Faction.None && Players.Count > 1) result.Add(typeof(AllianceOffered));
                     if (player.Ally != Faction.None) result.Add(typeof(AllianceBroken));
+                    if (Version >= 188) result.Add(typeof(AlliancePassed));
                 }
                 break;
             case Phase.NexusCards:
@@ -187,43 +188,43 @@ public partial class Game
             case Phase.BlowReport:
                 break;
             case Phase.ClaimingCharity:
-                if (!isHost && faction == Faction.Green) result.Add(typeof(EndPhase));
+                if (!isHost && faction == Faction.Atreides) result.Add(typeof(EndPhase));
                 if (CharityClaimed.CanBePlayed(this, player)) result.Add(typeof(CharityClaimed));
                 if (Version < 103 && player.Has(TreacheryCardType.Amal) && (Version <= 82 || HasActedOrPassed.Count == 0)) result.Add(typeof(AmalPlayed));
                 break;
             case Phase.BlackMarketAnnouncement:
-                if (faction == Faction.White) result.Add(typeof(WhiteAnnouncesBlackMarket));
+                if (faction == Faction.Richese) result.Add(typeof(RicheseAnnouncesBlackMarket));
                 break;
             case Phase.BlackMarketBidding:
                 if (BlackMarketBid.MayBePlayed(this, player)) result.Add(typeof(BlackMarketBid));
-                if (faction == Faction.Red && Applicable(Rule.RedSupportingNonAllyBids)) result.Add(typeof(RedBidSupport));
+                if (faction == Faction.Emperor && Applicable(Rule.EmperorSupportingNonAllyBids)) result.Add(typeof(EmperorBidSupport));
                 break;
-            case Phase.WhiteAnnouncingAuction:
-                if (faction == Faction.White) result.Add(typeof(WhiteAnnouncesAuction));
+            case Phase.RicheseAnnouncingAuction:
+                if (faction == Faction.Richese) result.Add(typeof(RicheseAnnouncesAuction));
                 break;
-            case Phase.WhiteSpecifyingAuction:
+            case Phase.RicheseSpecifyingAuction:
             {
-                if (WhiteSpecifiesAuction.MaySpecifyCard(this, player) || WhiteSpecifiesAuction.MaySpecifyTypeOfAuction(this, player)) result.Add(typeof(WhiteSpecifiesAuction));
+                if (RicheseSpecifiesAuction.MaySpecifyCard(this, player) || RicheseSpecifiesAuction.MaySpecifyTypeOfAuction(this, player)) result.Add(typeof(RicheseSpecifiesAuction));
                 break;
             }
             case Phase.Bidding:
                 if (Bid.MayBePlayed(this, player)) result.Add(typeof(Bid));
                 if (Version < 103 && player.Has(TreacheryCardType.Amal) && CardNumber == 1 && !Bids.Any()) result.Add(typeof(AmalPlayed));
-                if (faction == Faction.Red && Applicable(Rule.RedSupportingNonAllyBids)) result.Add(typeof(RedBidSupport));
+                if (faction == Faction.Emperor && Applicable(Rule.EmperorSupportingNonAllyBids)) result.Add(typeof(EmperorBidSupport));
                 break;
-            case Phase.WhiteKeepingUnsoldCard:
-                if (faction == Faction.White) result.Add(typeof(WhiteKeepsUnsoldCard));
+            case Phase.RicheseKeepingUnsoldCard:
+                if (faction == Faction.Richese) result.Add(typeof(RicheseKeepsUnsoldCard));
                 break;
-            case Phase.GreyRemovingCardFromBid:
+            case Phase.IxianRemovingCardFromBid:
             {
-                var occupierOfGreyHomeworld = OccupierOf(World.Grey);
-                if ((occupierOfGreyHomeworld == null && faction == Faction.Grey) || occupierOfGreyHomeworld == player) result.Add(typeof(GreyRemovedCardFromAuction));
+                var occupierOfIxianHomeworld = OccupierOf(World.Ixian);
+                if ((occupierOfIxianHomeworld == null && faction == Faction.Ixian) || occupierOfIxianHomeworld == player) result.Add(typeof(IxianRemovedCardFromAuction));
                 if (Version < 103 && player.Has(TreacheryCardType.Amal) && CardNumber == 1 && !Bids.Any()) result.Add(typeof(AmalPlayed));
                 break;
             }
-            case Phase.GreySwappingCard:
+            case Phase.IxianSwappingCard:
             {
-                if (faction == Faction.Grey) result.Add(typeof(GreySwappedCardOnBid));
+                if (faction == Faction.Ixian) result.Add(typeof(IxianSwappedCardOnBid));
                 if (Version < 103 && player.Has(TreacheryCardType.Amal) && CardNumber == 1 && !Bids.Any()) result.Add(typeof(AmalPlayed));
                 break;
             }
@@ -231,47 +232,47 @@ public partial class Game
                 if (faction == FactionThatMayReplaceBoughtCard) result.Add(typeof(ReplacedCardWon));
                 break;
             case Phase.WaitingForNextBiddingRound:
-                if (!isHost && faction == Faction.Green) result.Add(typeof(EndPhase));
+                if (!isHost && faction == Faction.Atreides) result.Add(typeof(EndPhase));
                 break;
             case Phase.BiddingReport:
-                if (faction == Faction.Purple && Players.Count > 1 && (Version < 113 || !Prevented(FactionAdvantage.PurpleIncreasingRevivalLimits))) result.Add(typeof(SetIncreasedRevivalLimits));
-                if (faction == Faction.Red && player.HasHighThreshold() && player.Resources >= 2) result.Add(typeof(RedDiscarded));
+                if (faction == Faction.Tleilaxu && Players.Count > 1 && (Version < 113 || !Prevented(FactionAdvantage.TleilaxuIncreasingRevivalLimits))) result.Add(typeof(SetIncreasedRevivalLimits));
+                if (faction == Faction.Emperor && player.HasHighThreshold() && player.Resources >= 2) result.Add(typeof(EmperorDiscarded));
                 break;
 
             case Phase.BeginningOfResurrection:
-                if (faction == Faction.Purple && Players.Count > 1 && (Version < 113 || !Prevented(FactionAdvantage.PurpleIncreasingRevivalLimits))) result.Add(typeof(SetIncreasedRevivalLimits));
+                if (faction == Faction.Tleilaxu && Players.Count > 1 && (Version < 113 || !Prevented(FactionAdvantage.TleilaxuIncreasingRevivalLimits))) result.Add(typeof(SetIncreasedRevivalLimits));
                 if (RecruitsPlayed.IsApplicable(this, player)) result.Add(typeof(RecruitsPlayed));
                 break;
 
             case Phase.Resurrection:
-                if (IsPlaying(Faction.Purple) && faction != Faction.Purple &&
+                if (IsPlaying(Faction.Tleilaxu) && faction != Faction.Tleilaxu &&
                     KilledHeroes(player).Any() &&
-                    !Revival.NormallyRevivableHeroes(this, player).Any()) result.Add(typeof(RequestPurpleRevival));
+                    !Revival.NormallyRevivableHeroes(this, player).Any()) result.Add(typeof(RequestTleilaxuRevival));
 
-                if (faction == Faction.Purple && (CurrentRevivalRequests.Count != 0 || EarlyRevivalsOffers.Count != 0)) result.Add(typeof(AcceptOrCancelPurpleRevival));
+                if (faction == Faction.Tleilaxu && (CurrentRevivalRequests.Count != 0 || EarlyRevivalsOffers.Count != 0)) result.Add(typeof(AcceptOrCancelTleilaxuRevival));
                 if (HasSomethingToRevive(player) && !PreventedFromReviving(faction)) result.Add(typeof(Revival));
-                if (faction == Faction.Purple && Players.Count > 1 && (Version < 113 || !Prevented(FactionAdvantage.PurpleIncreasingRevivalLimits))) result.Add(typeof(SetIncreasedRevivalLimits));
+                if (faction == Faction.Tleilaxu && Players.Count > 1 && (Version < 113 || !Prevented(FactionAdvantage.TleilaxuIncreasingRevivalLimits))) result.Add(typeof(SetIncreasedRevivalLimits));
                 if (Version < 103 && player.Has(TreacheryCardType.Amal) && (Version <= 82 || HasActedOrPassed.Count == 0)) result.Add(typeof(AmalPlayed));
                 break;
 
             case Phase.ResurrectionReport:
-                if (faction == Faction.Pink && AmbassadorPlaced.IsApplicable(this, player)) result.Add(typeof(AmbassadorPlaced));
+                if (faction == Faction.Ecaz && AmbassadorPlaced.IsApplicable(this, player)) result.Add(typeof(AmbassadorPlaced));
                 break;
 
-            case Phase.OrangeShip:
-                if (faction == Faction.Orange)
+            case Phase.GuildShip:
+                if (faction == Faction.Guild)
                 {
-                    if (OrangeMayDelay) result.Add(typeof(OrangeDelay));
+                    if (GuildMayDelay) result.Add(typeof(GuildDelay));
                     result.Add(typeof(Shipment));
                     if (player.TreacheryCards.Any(c => c.Type == TreacheryCardType.Caravan) && PlacementEvent.ValidMovementSources(this, player).Any()) result.Add(typeof(Caravan));
                 }
                 if (Version < 103 && player.Has(TreacheryCardType.Amal) && BeginningOfShipmentAndMovePhase) result.Add(typeof(AmalPlayed));
                 break;
-            case Phase.BlueAccompaniesOrangeShip:
-            case Phase.BlueAccompaniesNonOrangeShip:
-                if (faction == Faction.Blue) result.Add(typeof(BlueAccompanies));
+            case Phase.BeneGesseritAccompaniesGuildShip:
+            case Phase.BeneGesseritAccompaniesNonGuildShip:
+                if (faction == Faction.BeneGesserit) result.Add(typeof(BeneGesseritAccompanies));
                 break;
-            case Phase.NonOrangeShip:
+            case Phase.NonGuildShip:
                 if (player == ShipmentAndMoveSequence?.CurrentPlayer)
                 {
                     result.Add(typeof(Shipment));
@@ -279,8 +280,8 @@ public partial class Game
                 }
                 if (Version < 103 && player.Has(TreacheryCardType.Amal) && BeginningOfShipmentAndMovePhase) result.Add(typeof(AmalPlayed));
                 break;
-            case Phase.OrangeMove:
-                if (faction == Faction.Orange)
+            case Phase.GuildMove:
+                if (faction == Faction.Guild)
                 {
                     if (player.TreacheryCards.Any(c => c.Type == TreacheryCardType.Caravan)) result.Add(typeof(Caravan));
                     result.Add(typeof(Move));
@@ -289,7 +290,7 @@ public partial class Game
                     if (Planetology.CanBePlayed(this, player)) result.Add(typeof(Planetology));
                 }
                 break;
-            case Phase.NonOrangeMove:
+            case Phase.NonGuildMove:
                 if (player == ShipmentAndMoveSequence?.CurrentPlayer)
                 {
                     if (player.TreacheryCards.Any(c => c.Type == TreacheryCardType.Caravan)) result.Add(typeof(Caravan));
@@ -300,41 +301,41 @@ public partial class Game
                 }
                 break;
 
-            case Phase.BlueIntrudedByOrangeShip:
-            case Phase.BlueIntrudedByNonOrangeShip:
-            case Phase.BlueIntrudedByOrangeMove:
-            case Phase.BlueIntrudedByNonOrangeMove:
-            case Phase.BlueIntrudedByYellowRidingMonsterA:
-            case Phase.BlueIntrudedByYellowRidingMonsterB:
-            case Phase.BlueIntrudedByCaravan:
-            case Phase.BlueIntrudedByRevival:
-                if (faction == Faction.Blue) result.Add(typeof(BlueFlip));
+            case Phase.BeneGesseritIntrudedByGuildShip:
+            case Phase.BeneGesseritIntrudedByNonGuildShip:
+            case Phase.BeneGesseritIntrudedByGuildMove:
+            case Phase.BeneGesseritIntrudedByNonGuildMove:
+            case Phase.BeneGesseritIntrudedByFremenRidingMonsterA:
+            case Phase.BeneGesseritIntrudedByFremenRidingMonsterB:
+            case Phase.BeneGesseritIntrudedByCaravan:
+            case Phase.BeneGesseritIntrudedByRevival:
+                if (faction == Faction.BeneGesserit) result.Add(typeof(BeneGesseritFlip));
                 break;
 
-            case Phase.TerrorTriggeredByOrangeShip:
-            case Phase.TerrorTriggeredByBlueAccompaniesOrangeShip:
-            case Phase.TerrorTriggeredByNonOrangeShip:
-            case Phase.TerrorTriggeredByBlueAccompaniesNonOrangeShip:
-            case Phase.TerrorTriggeredByOrangeMove:
-            case Phase.TerrorTriggeredByNonOrangeMove:
-            case Phase.TerrorTriggeredByYellowRidingMonsterA:
-            case Phase.TerrorTriggeredByYellowRidingMonsterB:
+            case Phase.TerrorTriggeredByGuildShip:
+            case Phase.TerrorTriggeredByBeneGesseritAccompaniesGuildShip:
+            case Phase.TerrorTriggeredByNonGuildShip:
+            case Phase.TerrorTriggeredByBeneGesseritAccompaniesNonGuildShip:
+            case Phase.TerrorTriggeredByGuildMove:
+            case Phase.TerrorTriggeredByNonGuildMove:
+            case Phase.TerrorTriggeredByFremenRidingMonsterA:
+            case Phase.TerrorTriggeredByFremenRidingMonsterB:
             case Phase.TerrorTriggeredByCaravan:
             case Phase.TerrorTriggeredByRevival:
-                if (faction == Faction.Cyan) result.Add(typeof(TerrorRevealed));
+                if (faction == Faction.Moritani) result.Add(typeof(TerrorRevealed));
                 break;
 
-            case Phase.AmbassadorTriggeredByOrangeShip:
-            case Phase.AmbassadorTriggeredByBlueAccompaniesOrangeShip:
-            case Phase.AmbassadorTriggeredByNonOrangeShip:
-            case Phase.AmbassadorTriggeredByBlueAccompaniesNonOrangeShip:
-            case Phase.AmbassadorTriggeredByOrangeMove:
-            case Phase.AmbassadorTriggeredByNonOrangeMove:
-            case Phase.AmbassadorTriggeredByYellowRidingMonsterA:
-            case Phase.AmbassadorTriggeredByYellowRidingMonsterB:
+            case Phase.AmbassadorTriggeredByGuildShip:
+            case Phase.AmbassadorTriggeredByBeneGesseritAccompaniesGuildShip:
+            case Phase.AmbassadorTriggeredByNonGuildShip:
+            case Phase.AmbassadorTriggeredByBeneGesseritAccompaniesNonGuildShip:
+            case Phase.AmbassadorTriggeredByGuildMove:
+            case Phase.AmbassadorTriggeredByNonGuildMove:
+            case Phase.AmbassadorTriggeredByFremenRidingMonsterA:
+            case Phase.AmbassadorTriggeredByFremenRidingMonsterB:
             case Phase.AmbassadorTriggeredByCaravan:
             case Phase.AmbassadorTriggeredByRevival:
-                if (faction == Faction.Pink || (player.Ally == Faction.Pink && PinkSharesAmbassadors)) result.Add(typeof(AmbassadorActivated));
+                if (faction == Faction.Ecaz || (player.Ally == Faction.Ecaz && EcazSharesAmbassadors)) result.Add(typeof(AmbassadorActivated));
                 break;
 
             case Phase.ShipmentAndMoveConcluded:
@@ -370,13 +371,13 @@ public partial class Game
                 break;
 
             case Phase.ClaimingBattle:
-                if (HasLowThreshold(Faction.Pink))
+                if (HasLowThreshold(Faction.Ecaz))
                 {
-                    if (BattleAboutToStart?.OpponentOf(Faction.Pink)?.Is(faction) is true) result.Add(typeof(BattleClaimed));
+                    if (BattleAboutToStart?.OpponentOf(Faction.Ecaz)?.Is(faction) is true) result.Add(typeof(BattleClaimed));
                 }
                 else
                 {
-                    if (faction == Faction.Pink) result.Add(typeof(BattleClaimed));
+                    if (faction == Faction.Ecaz) result.Add(typeof(BattleClaimed));
                 }
                 break;
 
@@ -385,15 +386,15 @@ public partial class Game
                 if (CurrentBattle != null && AggressorPlan != null && DefenderPlan != null &&
                     ((AggressorTraitorAction == null && faction == CurrentBattle.Aggressor) ||
                      (AggressorTraitorAction == null 
-                      && faction == Faction.Black 
-                      && GetPlayer(AggressorPlan.Initiator)?.Ally == Faction.Black 
+                      && faction == Faction.Harkonnen 
+                      && GetPlayer(AggressorPlan.Initiator)?.Ally == Faction.Harkonnen 
                       && DefenderPlan.Hero != null 
                       && player.Traitors.Contains(DefenderPlan.Hero)) ||
                      (DefenderTraitorAction == null 
                       && faction == CurrentBattle.Defender) ||
                      (DefenderTraitorAction == null 
-                      && faction == Faction.Black 
-                      && GetPlayer(DefenderPlan.Initiator)?.Ally == Faction.Black 
+                      && faction == Faction.Harkonnen 
+                      && GetPlayer(DefenderPlan.Initiator)?.Ally == Faction.Harkonnen 
                       && AggressorPlan.Hero != null 
                       && player.Traitors.Contains(AggressorPlan.Hero))))
                     result.Add(typeof(TreacheryCalled));
@@ -417,7 +418,7 @@ public partial class Game
                 break;
 
             case Phase.CaptureDecision:
-                if (faction == Faction.Black) result.Add(typeof(Captured));
+                if (faction == Faction.Harkonnen) result.Add(typeof(Captured));
                 break;
 
             case Phase.BattleConclusion:
@@ -430,15 +431,15 @@ public partial class Game
                 break;
 
             case Phase.Auditing:
-                if (faction == Faction.Brown) result.Add(typeof(Audited));
+                if (faction == Faction.Choam) result.Add(typeof(Audited));
                 break;
 
             case Phase.RevealingFacedancer:
-                if (faction == Faction.Purple) result.Add(typeof(FaceDancerRevealed));
+                if (faction == Faction.Tleilaxu) result.Add(typeof(FaceDancerRevealed));
                 break;
 
             case Phase.Facedancing:
-                if (faction == Faction.Purple) result.Add(typeof(FaceDanced));
+                if (faction == Faction.Tleilaxu) result.Add(typeof(FaceDanced));
                 break;
 
             case Phase.BattleReport:
@@ -454,7 +455,7 @@ public partial class Game
                 break;
 
             case Phase.ReplacingFaceDancer:
-                if (faction == Faction.Purple) result.Add(typeof(FaceDancerReplaced));
+                if (faction == Faction.Tleilaxu) result.Add(typeof(FaceDancerReplaced));
                 break;
 
             case Phase.Extortion:
@@ -462,17 +463,17 @@ public partial class Game
                 break;
             
             case Phase.BeginningOfCollection or Phase.CollectionReport:
-                if (faction == Faction.Cyan && TerrorPlanted.IsApplicable(this, player)) result.Add(typeof(TerrorPlanted));
+                if (faction == Faction.Moritani && TerrorPlanted.IsApplicable(this, player)) result.Add(typeof(TerrorPlanted));
                 break;
             
             case Phase.Contemplate:
                 if (Version < 103 && player.Has(TreacheryCardType.Amal)) result.Add(typeof(AmalPlayed));
-                if (faction == Faction.Brown && !Prevented(FactionAdvantage.BrownEconomics) && EconomicsStatus == BrownEconomicsStatus.None) result.Add(typeof(BrownEconomics));
-                if (faction == Faction.Cyan && TerrorPlanted.IsApplicable(this, player)) result.Add(typeof(TerrorPlanted));
+                if (faction == Faction.Choam && !Prevented(FactionAdvantage.ChoamEconomics) && EconomicsStatus == ChoamEconomicsStatus.None) result.Add(typeof(ChoamEconomics));
+                if (faction == Faction.Moritani && TerrorPlanted.IsApplicable(this, player)) result.Add(typeof(TerrorPlanted));
                 break;
 
             case Phase.PerformingKarmaHandSwap:
-                if (faction == Faction.Black && !KarmaPrevented(faction)) result.Add(typeof(KarmaHandSwap));
+                if (faction == Faction.Harkonnen && !KarmaPrevented(faction)) result.Add(typeof(KarmaHandSwap));
                 break;
 
             case Phase.TradingCards:
@@ -494,7 +495,7 @@ public partial class Game
         
         if (CurrentPhase > Phase.TradingFactions) result.Add(typeof(AutomationConfigured));
 
-        if (CurrentMainPhase > MainPhase.Setup && faction == Faction.Brown && player.HasLowThreshold() && !IsOccupied(World.Brown) && ResourcesAudited.ValidFactions(this, player).Any()) result.Add(typeof(ResourcesAudited));
+        if (CurrentMainPhase > MainPhase.Setup && faction == Faction.Choam && player.HasLowThreshold() && !IsOccupied(World.Choam) && ResourcesAudited.ValidFactions(this, player).Any()) result.Add(typeof(ResourcesAudited));
 
         if (CurrentMainPhase == MainPhase.ShipmentAndMove && SetShipmentPermission.IsApplicable(this, player)) result.Add(typeof(SetShipmentPermission));
 
@@ -513,7 +514,7 @@ public partial class Game
 
         if (CardGiven.IsApplicable(this, player)) result.Add(typeof(CardGiven));
 
-        if (faction == Faction.Pink &&
+        if (faction == Faction.Ecaz &&
             CurrentPhase == Phase.CallTraitorOrPass &&
             CurrentBattle != null &&
             CurrentBattle.IsAggressorOrDefender(player) &&
@@ -522,15 +523,15 @@ public partial class Game
             player.HasKarma(this) &&
             Applicable(Rule.AdvancedKarama))
         {
-            var planOfPink = CurrentBattle.PlanOf(Faction.Pink);
-            if (planOfPink is { Defense: null, Weapon: null }) result.Add(typeof(KarmaPinkDial));
+            var planOfEcaz = CurrentBattle.PlanOf(Faction.Ecaz);
+            if (planOfEcaz is { Defense: null, Weapon: null }) result.Add(typeof(KarmaEcazDial));
         }
 
         if (isAfterSetup && (Version < 100 || !hasFinalizedBattlePlanWaitingToBeResolved) && !CurrentPhaseCannotBeInterrupted)
         {
-            if (CurrentMainPhase < MainPhase.Battle && player.NoFieldIsActive) result.Add(typeof(WhiteRevealedNoField));
+            if (CurrentMainPhase < MainPhase.Battle && player.NoFieldIsActive) result.Add(typeof(RicheseRevealedNoField));
 
-            if (faction == Faction.Brown && !Prevented(FactionAdvantage.BrownDiscarding) && ConsiderAsEndOfPhase && BrownDiscarded.ValidCards(player).Any()) result.Add(typeof(BrownDiscarded));
+            if (faction == Faction.Choam && !Prevented(FactionAdvantage.ChoamDiscarding) && ConsiderAsEndOfPhase && ChoamDiscarded.ValidCards(player).Any()) result.Add(typeof(ChoamDiscarded));
 
             if (!result.Contains(typeof(AmalPlayed)) && player.Has(TreacheryCardType.Amal) && ConsiderAsStartOfPhase) result.Add(typeof(AmalPlayed));
 
@@ -538,18 +539,18 @@ public partial class Game
 
             if (CurrentPhase != Phase.SearchingDiscarded && DiscardedSearchedAnnounced.CanBePlayed(this, player)) result.Add(typeof(DiscardedSearchedAnnounced));
 
-            if (CurrentMainPhase == MainPhase.ShipmentAndMove && BrownMovePrevention.CanBePlayedBy(this, player)) result.Add(typeof(BrownMovePrevention));
+            if (CurrentMainPhase == MainPhase.ShipmentAndMove && ChoamMovePrevention.CanBePlayedBy(this, player)) result.Add(typeof(ChoamMovePrevention));
 
-            if (BrownKarmaPrevention.CanBePlayedBy(this, player)) result.Add(typeof(BrownKarmaPrevention));
+            if (ChoamKarmaPrevention.CanBePlayedBy(this, player)) result.Add(typeof(ChoamKarmaPrevention));
 
-            if (CurrentMainPhase == MainPhase.ShipmentAndMove && BrownExtraMove.CanBePlayedBy(this, player)) result.Add(typeof(BrownExtraMove));
+            if (CurrentMainPhase == MainPhase.ShipmentAndMove && ChoamExtraMove.CanBePlayedBy(this, player)) result.Add(typeof(ChoamExtraMove));
 
-            if (CurrentMainPhase == MainPhase.Resurrection && BrownFreeRevivalPrevention.CanBePlayedBy(this, player)) result.Add(typeof(BrownFreeRevivalPrevention));
+            if (CurrentMainPhase == MainPhase.Resurrection && ChoamFreeRevivalPrevention.CanBePlayedBy(this, player)) result.Add(typeof(ChoamFreeRevivalPrevention));
 
-            if (CurrentMainPhase == MainPhase.Contemplate && BrownRemoveForce.CanBePlayedBy(this, player)) result.Add(typeof(BrownRemoveForce));
+            if (CurrentMainPhase == MainPhase.Contemplate && ChoamRemoveForce.CanBePlayedBy(this, player)) result.Add(typeof(ChoamRemoveForce));
 
             if (
-                ((faction == Faction.Brown && player.HasAlly) || player.Ally == Faction.Brown) &&
+                ((faction == Faction.Choam && player.HasAlly) || player.Ally == Faction.Choam) &&
                 ConsiderAsEndOfPhase &&
                 player.AlliedPlayer!.TreacheryCards.Count > 0 &&
                 player.TreacheryCards.Count > 0 &&
@@ -563,7 +564,7 @@ public partial class Game
             if (!KarmaPrevented(faction) && player.HasKarma(this)) result.Add(typeof(Karma));
 
             if (Players.Count > 1 &&
-                faction == Faction.Black &&
+                faction == Faction.Harkonnen &&
                 !KarmaPrevented(faction) &&
                 !player.SpecialKarmaPowerUsed &&
                 player.HasKarma(this) &&
@@ -571,7 +572,7 @@ public partial class Game
                 Applicable(Rule.AdvancedKarama))
                 result.Add(typeof(KarmaHandSwapInitiated));
 
-            if (faction == Faction.Orange &&
+            if (faction == Faction.Guild &&
                 !KarmaPrevented(faction) &&
                 !player.SpecialKarmaPowerUsed &&
                 player.HasKarma(this) &&
@@ -579,7 +580,7 @@ public partial class Game
                 Applicable(Rule.AdvancedKarama))
                 result.Add(typeof(KarmaShipmentPrevention));
 
-            if (faction == Faction.Purple &&
+            if (faction == Faction.Tleilaxu &&
                 !KarmaPrevented(faction) &&
                 !player.SpecialKarmaPowerUsed &&
                 player.HasKarma(this) &&
@@ -588,22 +589,22 @@ public partial class Game
                 result.Add(typeof(KarmaRevivalPrevention));
 
 
-            if (faction == Faction.Brown &&
+            if (faction == Faction.Choam &&
                 !KarmaPrevented(faction) &&
                 !player.SpecialKarmaPowerUsed &&
                 player.HasKarma(this) &&
                 Applicable(Rule.AdvancedKarama))
-                result.Add(typeof(KarmaBrownDiscard));
+                result.Add(typeof(KarmaChoamDiscard));
 
-            if (faction == Faction.White &&
+            if (faction == Faction.Richese &&
                 !KarmaPrevented(faction) &&
                 !player.SpecialKarmaPowerUsed &&
                 player.HasKarma(this) &&
                 Applicable(Rule.AdvancedKarama) &&
                 (Version <= 150 || !HasBidToPay(player)))
-                result.Add(typeof(KarmaWhiteBuy));
+                result.Add(typeof(KarmaRicheseBuy));
 
-            if (faction == Faction.Red &&
+            if (faction == Faction.Emperor &&
                 !KarmaPrevented(faction) &&
                 !player.SpecialKarmaPowerUsed &&
                 player.HasKarma(this) &&
@@ -611,7 +612,7 @@ public partial class Game
                 Applicable(Rule.AdvancedKarama))
                 result.Add(typeof(KarmaFreeRevival));
 
-            if (faction == Faction.Grey &&
+            if (faction == Faction.Ixian &&
                 ((!KarmaPrevented(faction) && !player.SpecialKarmaPowerUsed && player.HasKarma(this)) || KarmaHmsMovesLeft == 1) &&
                 CurrentMainPhase == MainPhase.ShipmentAndMove &&
                 player == ShipmentAndMoveSequence!.CurrentPlayer &&
@@ -619,14 +620,14 @@ public partial class Game
                 Applicable(Rule.AdvancedKarama))
                 result.Add(typeof(KarmaHmsMovement));
 
-            if (faction == Faction.Yellow && CurrentMainPhase == MainPhase.Blow && CurrentTurn > 1 &&
+            if (faction == Faction.Fremen && CurrentMainPhase == MainPhase.Blow && CurrentTurn > 1 &&
                 !KarmaPrevented(faction) &&
                 !player.SpecialKarmaPowerUsed &&
                 player.HasKarma(this) &&
                 Applicable(Rule.AdvancedKarama))
                 result.Add(typeof(KarmaMonster));
 
-            if (faction == Faction.Green && CurrentMainPhase == MainPhase.Battle &&
+            if (faction == Faction.Atreides && CurrentMainPhase == MainPhase.Battle &&
                 CurrentBattle != null &&
                 CurrentBattle.IsInvolved(player) &&
                 !KarmaPrevented(faction) &&
@@ -635,10 +636,10 @@ public partial class Game
                 Applicable(Rule.AdvancedKarama))
                 result.Add(typeof(KarmaPrescience));
 
-            if (faction == Faction.Blue && CurrentPhase > Phase.AllianceB &&
-                ((Version <= 150 && CurrentPhase < Phase.NonOrangeShip) || CurrentMainPhase < MainPhase.ShipmentAndMove || (player.Initiated(CurrentBlueCunning) && CurrentMainPhase == MainPhase.ShipmentAndMove)) &&
-                BlueBattleAnnouncement.ValidTerritories(this, player).Any())
-                result.Add(typeof(BlueBattleAnnouncement));
+            if (faction == Faction.BeneGesserit && CurrentPhase > Phase.AllianceB &&
+                ((Version <= 150 && CurrentPhase < Phase.NonGuildShip) || CurrentMainPhase < MainPhase.ShipmentAndMove || (player.Initiated(CurrentBeneGesseritCunning) && CurrentMainPhase == MainPhase.ShipmentAndMove)) &&
+                BeneGesseritBattleAnnouncement.ValidTerritories(this, player).Any())
+                result.Add(typeof(BeneGesseritBattleAnnouncement));
 
             if (ResourcesTransferred.CanBePlayed(this, player)) result.Add(typeof(ResourcesTransferred));
 
@@ -650,14 +651,14 @@ public partial class Game
                 (DefenderPlan == null || faction != DefenderPlan.Initiator))
                 result.Add(typeof(Donated));
 
-            if (faction == Faction.White &&
+            if (faction == Faction.Richese &&
                 CurrentPhase != Phase.BlackMarketBidding &&
                 CurrentPhase != Phase.Bidding &&
                 !hasFinalizedBattlePlanWaitingToBeResolved &&
                 player.HasAlly &&
-                WhiteGaveCard.ValidCards(player).Any() &&
+                RicheseGaveCard.ValidCards(player).Any() &&
                 player.AlliedPlayer.HasRoomForCards)
-                result.Add(typeof(WhiteGaveCard));
+                result.Add(typeof(RicheseGaveCard));
 
             if (CurrentPhase != Phase.BlackMarketBidding &&
                 (CurrentPhase != Phase.Bidding || CurrentBid == null) &&

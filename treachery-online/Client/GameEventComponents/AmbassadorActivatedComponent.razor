@@ -17,9 +17,9 @@
             var ambassador = AmbassadorActivated.GetAmbassador(Game);
             var victim = AmbassadorActivated.GetVictim(Game);
 
-            if (ambassador == Ambassador.Blue)
+            if (ambassador == Ambassador.BeneGesserit)
             {
-                <SelectFromImageComponent @bind-Value=_actualAmbassador Values=@AmbassadorActivated.GetValidBlueAmbassadors(Game)>
+                <SelectFromImageComponent @bind-Value=_actualAmbassador Values=@AmbassadorActivated.GetValidBeneGesseritAmbassadors(Game)>
                     <Label>Activate the effect of which ambassador?</Label>
                 </SelectFromImageComponent>
                 <br/>
@@ -31,60 +31,60 @@
 
             switch (_actualAmbassador)
             {
-                case Ambassador.Green:
+                case Ambassador.Atreides:
 
                     <div>See the <FactionChip Faction=@victim Game=Game/> hand?</div>
                     break;
 
-                case Ambassador.Brown:
+                case Ambassador.Choam:
 
                     <div>Discard cards from your hand for <SpiceComponent Amount="3"/> each?</div>
-                    <SelectFromImageComponent Selected="_brownCards" Values=@AmbassadorActivated.GetValidBrownCards(Player) T=TreacheryCard OnChanged=StateHasChanged ImageWidth="80">
+                    <SelectFromImageComponent Selected="_choamCards" Values=@AmbassadorActivated.GetValidChoamCards(Player) T=TreacheryCard OnChanged=StateHasChanged ImageWidth="80">
                         <Label>Select the cards you wish to discard for <SpiceComponent Amount="3"/> each</Label>
                     </SelectFromImageComponent>
                     break;
 
-                case Ambassador.Pink:
+                case Ambassador.Ecaz:
                 
                     if (AmbassadorActivated.VidalCanBeTaken(Game, Player)) {
 
-                        <CheckboxComponent @bind-Value="_pinkTakeVidal">Take <RichText Shown=@Game.Vidal Game=Game/></CheckboxComponent>
+                        <CheckboxComponent @bind-Value="_ecazTakeVidal">Take <RichText Shown=@Game.Vidal Game=Game/></CheckboxComponent>
                     }
                     else
                     {
-                        _pinkTakeVidal = false;
+                        _ecazTakeVidal = false;
                     }
                     
-                    if (!_pinkTakeVidal && AmbassadorActivated.AllianceCanBeOffered(Game, Player))
+                    if (!_ecazTakeVidal && AmbassadorActivated.AllianceCanBeOffered(Game, Player))
                     {
-                        <CheckboxComponent @bind-Value="_pinkOfferAlliance">Offer an alliance to <FactionChip Faction=@victim Game=Game/></CheckboxComponent>
+                        <CheckboxComponent @bind-Value="_ecazOfferAlliance">Offer an alliance to <FactionChip Faction=@victim Game=Game/></CheckboxComponent>
                         
-                        if (_pinkOfferAlliance && AmbassadorActivated.VidalCanBeOfferedToNewAlly(Game, Player))
+                        if (_ecazOfferAlliance && AmbassadorActivated.VidalCanBeOfferedToNewAlly(Game, Player))
                         {
-                            <CheckboxComponent @bind-Value="_pinkGiveVidal">Give <RichText Shown=@Game.Vidal Game=Game/> to <FactionChip Faction=@victim Game=Game/> if they agree to ally</CheckboxComponent>
+                            <CheckboxComponent @bind-Value="_ecazGiveVidal">Give <RichText Shown=@Game.Vidal Game=Game/> to <FactionChip Faction=@victim Game=Game/> if they agree to ally</CheckboxComponent>
                         }
                         else
                         {
-                            _pinkGiveVidal = false;
+                            _ecazGiveVidal = false;
                         }
                     }
                     else
                     {
-                        _pinkOfferAlliance = false;
-                        _pinkGiveVidal = false;
+                        _ecazOfferAlliance = false;
+                        _ecazGiveVidal = false;
                     }
                     break;
 
-                case Ambassador.Red:
+                case Ambassador.Emperor:
 
                     <div>Receive <SpiceComponent Amount="5"/>?</div>
                     break;
 
-                case Ambassador.Yellow:
+                case Ambassador.Fremen:
 
                     <div>Move a group of your forces?</div>
 
-                    if (YellowSources.Any())
+                    if (FremenSources.Any())
                     {
                         <div class="small">Use the map to move forces: click the sector to move from, then where to move to.</div>
                     }
@@ -94,13 +94,13 @@
                     }
                     break;
 
-                case Ambassador.Black:
+                case Ambassador.Harkonnen:
                     
-                    if (victim == Faction.Black)
+                    if (victim == Faction.Harkonnen)
                     {
                         <div>See one of the <FactionChip Faction=@victim Game=Game/> traitors?</div>
                     }
-                    else if (victim == Faction.Purple)
+                    else if (victim == Faction.Tleilaxu)
                     {
                         <div>See one of the <FactionChip Faction=@victim Game=Game/> unrevealed Face Dancers?</div>
                     }
@@ -110,58 +110,58 @@
                     }
                     break;
 
-                case Ambassador.Grey:
+                case Ambassador.Ixian:
 
                     <div>Discard a card from your hand to draw a new one?</div>
-                    <SelectFromImageComponent @bind-Value=@_greyCard Values=@AmbassadorActivated.GetValidGreyCards(Player) ImageWidth="80">
+                    <SelectFromImageComponent @bind-Value=@_ixianCard Values=@AmbassadorActivated.GetValidIxianCards(Player) ImageWidth="80">
                         <Label>Select the card you wish to discard</Label>
                     </SelectFromImageComponent>
                     break;
 
-                case Ambassador.White:
+                case Ambassador.Richese:
 
                     <div>Buy a treachery card for <SpiceComponent Amount="3"/>?</div>
                     break;
 
-                case Ambassador.Orange:
+                case Ambassador.Guild:
 
                     <div>Send up to 4 <ForceToken Faction=@Faction Size="20"/> to any location?</div>
 
-                    if (AmbassadorActivated.ValidOrangeTargets(Game, Player).Any())
+                    if (AmbassadorActivated.ValidGuildTargets(Game, Player).Any())
                     {
                         <div class="small">Use the map to choose a location.</div>
                     }
                     else
                     {
-                        _orangeForceAmount = 0;
+                        _guildForceAmount = 0;
 
                         <div>There are no valid locations to ship to.</div>
                     }
                     break;
 
-                case Ambassador.Purple:
+                case Ambassador.Tleilaxu:
 
                     <div>Revive one of your leaders or up to 4 <ForceToken Faction=@Faction Size="20"/> for free?</div>
-                    @if (AmbassadorActivated.ValidPurpleMaxAmount(Player) > 0)
+                    @if (AmbassadorActivated.ValidTleilaxuMaxAmount(Player) > 0)
                     {
-                        <SelectForcesComponent @bind-Value="_purpleAmountOfForces" Min="0" Max=@AmbassadorActivated.ValidPurpleMaxAmount(Player) Faction="Faction" Special="false" />
+                        <SelectForcesComponent @bind-Value="_tleilaxuAmountOfForces" Min="0" Max=@AmbassadorActivated.ValidTleilaxuMaxAmount(Player) Faction="Faction" Special="false" />
                     }
                     else
                     {
-                        _purpleAmountOfForces = 0;
+                        _tleilaxuAmountOfForces = 0;
                     }
 
-                    <SelectFromImageComponent Game="Game" @bind-Value=@_purpleHero Values="AmbassadorActivated.ValidPurpleHeroes(Game, Player)" Required="false" ImageWidth="80"/>
+                    <SelectFromImageComponent Game="Game" @bind-Value=@_tleilaxuHero Values="AmbassadorActivated.ValidTleilaxuHeroes(Game, Player)" Required="false" ImageWidth="80"/>
 
-                    @if (_purpleHero != null && Revival.MayAssignSkill(Game, Player, _purpleHero))
+                    @if (_tleilaxuHero != null && Revival.MayAssignSkill(Game, Player, _tleilaxuHero))
                     {
-                        <RadioComponent @bind-Value=_purpleAssignSkill Values="@(new[] {false,true})" ValueLabels="@(new[] {"No","Yes"})">
+                        <RadioComponent @bind-Value=_tleilaxuAssignSkill Values="@(new[] {false,true})" ValueLabels="@(new[] {"No","Yes"})">
                             <Label>Do you wish to assign a skill to this leader?</Label>
                         </RadioComponent>
                     }
                     else
                     {
-                        _purpleAssignSkill = false;
+                        _tleilaxuAssignSkill = false;
                     }
 
                     break;
@@ -184,65 +184,65 @@
 @code {
 
     protected override bool IsUrgent => true;
-    protected override Faction IsFactionSpecific => Faction.Pink;
+    protected override Faction IsFactionSpecific => Faction.Ecaz;
 
     private Ambassador _actualAmbassador;
-    private List<TreacheryCard> _brownCards = new();
-    private bool _pinkOfferAlliance;
-    private bool _pinkTakeVidal;
-    private bool _pinkGiveVidal;
-    private Dictionary<Location, Battalion> _yellowForces = new();
-    private TreacheryCard? _greyCard;
-    private int _orangeForceAmount;
-    private int _purpleAmountOfForces;
-    private IHero? _purpleHero;
-    private bool _purpleAssignSkill;
+    private List<TreacheryCard> _choamCards = new();
+    private bool _ecazOfferAlliance;
+    private bool _ecazTakeVidal;
+    private bool _ecazGiveVidal;
+    private Dictionary<Location, Battalion> _fremenForces = new();
+    private TreacheryCard? _ixianCard;
+    private int _guildForceAmount;
+    private int _tleilaxuAmountOfForces;
+    private IHero? _tleilaxuHero;
+    private bool _tleilaxuAssignSkill;
 
-    // The Yellow ambassador moves forces like a regular move: sources first,
-    // then the destination. The Orange one ships from reserves: destination only.
-    private bool MovesForces => _actualAmbassador == Ambassador.Yellow;
+    // The Fremen ambassador moves forces like a regular move: sources first,
+    // then the destination. The Guild one ships from reserves: destination only.
+    private bool MovesForces => _actualAmbassador == Ambassador.Fremen;
 
-    private bool ShipsForces => _actualAmbassador == Ambassador.Orange;
+    private bool ShipsForces => _actualAmbassador == Ambassador.Guild;
 
-    private IEnumerable<Location> YellowSources =>
-        AmbassadorActivated.ValidYellowSources(Game, Player).SelectMany(t => t.Locations).Where(l => Player.AnyForcesIn(l) > 0 && !Game.IsInStorm(l));
+    private IEnumerable<Location> FremenSources =>
+        AmbassadorActivated.ValidFremenSources(Game, Player).SelectMany(t => t.Locations).Where(l => Player.AnyForcesIn(l) > 0 && !Game.IsInStorm(l));
 
-    protected override bool PickEnabled => (MovesForces && YellowSources.Any()) || (ShipsForces && AmbassadorActivated.ValidOrangeTargets(Game, Player).Any());
+    protected override bool PickEnabled => (MovesForces && FremenSources.Any()) || (ShipsForces && AmbassadorActivated.ValidGuildTargets(Game, Player).Any());
 
-    protected override IEnumerable<Location> PickSources => MovesForces ? YellowSources : [];
+    protected override IEnumerable<Location> PickSources => MovesForces ? FremenSources : [];
 
     protected override IEnumerable<Location> PickTargets =>
-        MovesForces ? (SelectedSources.Count > 0 ? AmbassadorActivated.ValidYellowTargets(Game, Player) : []) :
-        ShipsForces ? AmbassadorActivated.ValidOrangeTargets(Game, Player) : [];
+        MovesForces ? (SelectedSources.Count > 0 ? AmbassadorActivated.ValidFremenTargets(Game, Player) : []) :
+        ShipsForces ? AmbassadorActivated.ValidGuildTargets(Game, Player) : [];
 
     protected override void OnGameChanged()
     {
-        _yellowForces.Clear();
-        _orangeForceAmount = 0;
+        _fremenForces.Clear();
+        _guildForceAmount = 0;
     }
 
     // Moving starts with everything in the clicked sectors; shipping starts with one force.
     protected override void OnPickChanged()
     {
-        foreach (var l in _yellowForces.Keys.Where(l => !SelectedSources.Contains(l)).ToList()) _yellowForces.Remove(l);
-        foreach (var l in SelectedSources.Where(l => !_yellowForces.ContainsKey(l)))
+        foreach (var l in _fremenForces.Keys.Where(l => !SelectedSources.Contains(l)).ToList()) _fremenForces.Remove(l);
+        foreach (var l in SelectedSources.Where(l => !_fremenForces.ContainsKey(l)))
         {
-            _yellowForces[l] = new Battalion(Faction, Player.ForcesIn(l), Player.SpecialForcesIn(l), l);
+            _fremenForces[l] = new Battalion(Faction, Player.ForcesIn(l), Player.SpecialForcesIn(l), l);
         }
-        if (ShipsForces && Target != null && _orangeForceAmount == 0) _orangeForceAmount = Math.Min(1, AmbassadorActivated.ValidOrangeMaxForces(Player));
+        if (ShipsForces && Target != null && _guildForceAmount == 0) _guildForceAmount = Math.Min(1, AmbassadorActivated.ValidGuildMaxForces(Player));
     }
 
-    private void SetYellowAmount(Location l, int amount, bool special)
+    private void SetFremenAmount(Location l, int amount, bool special)
     {
-        if (!_yellowForces.TryGetValue(l, out var battalion)) return;
+        if (!_fremenForces.TryGetValue(l, out var battalion)) return;
         if (special) battalion.AmountOfSpecialForces = amount;
         else battalion.AmountOfForces = amount;
         RefreshPin();
     }
 
-    private void SetOrangeAmount(int amount)
+    private void SetGuildAmount(int amount)
     {
-        _orangeForceAmount = amount;
+        _guildForceAmount = amount;
         RefreshPin();
     }
 
@@ -251,22 +251,22 @@
         <div class="pin-body">
             @if (MovesForces)
             {
-                foreach (var kvp in _yellowForces)
+                foreach (var kvp in _fremenForces)
                 {
                     var l = kvp.Key;
                     var b = kvp.Value;
                     <div class="pin-row">
-                        @if (_yellowForces.Count > 1)
+                        @if (_fremenForces.Count > 1)
                         {
                             <span class="pin-from"><PlaceChip Place=@l/></span>
                         }
                         @if (Player.ForcesIn(l) > 0)
                         {
-                            <MapForceStepper Value="@b.AmountOfForces" ValueChanged="@(v => SetYellowAmount(l, v, false))" Min="0" Max="@Player.ForcesIn(l)" Faction="Faction" Special="false"/>
+                            <MapForceStepper Value="@b.AmountOfForces" ValueChanged="@(v => SetFremenAmount(l, v, false))" Min="0" Max="@Player.ForcesIn(l)" Faction="Faction" Special="false"/>
                         }
                         @if (Player.SpecialForcesIn(l) > 0)
                         {
-                            <MapForceStepper Value="@b.AmountOfSpecialForces" ValueChanged="@(v => SetYellowAmount(l, v, true))" Min="0" Max="@Player.SpecialForcesIn(l)" Faction="Faction" Special="true"/>
+                            <MapForceStepper Value="@b.AmountOfSpecialForces" ValueChanged="@(v => SetFremenAmount(l, v, true))" Min="0" Max="@Player.SpecialForcesIn(l)" Faction="Faction" Special="true"/>
                         }
                     </div>
                 }
@@ -275,7 +275,7 @@
             else
             {
                 <div class="pin-row">
-                    <MapForceStepper Value="@_orangeForceAmount" ValueChanged="@SetOrangeAmount" Min="0" Max="@AmbassadorActivated.ValidOrangeMaxForces(Player)" Faction="Faction" Special="false"/>
+                    <MapForceStepper Value="@_guildForceAmount" ValueChanged="@SetGuildAmount" Min="0" Max="@AmbassadorActivated.ValidGuildMaxForces(Player)" Faction="Faction" Special="false"/>
                 </div>
                 @PinActions("Send")
             }
@@ -283,14 +283,14 @@
     };
 
     protected override AmbassadorActivated ConfirmedResult => new(Game, Faction) { 
-        BlueSelectedAmbassador = _actualAmbassador,  
-        BrownCards = _brownCards,
-        PinkOfferAlliance = _pinkOfferAlliance, PinkGiveVidalToAlly = _pinkGiveVidal, PinkTakeVidal = _pinkTakeVidal,
-        YellowOrOrangeTo = Target, 
-        YellowForceLocations = _yellowForces,
-        OrangeForceAmount = _orangeForceAmount,
-        GreyCard = _greyCard,
-        PurpleAmountOfForces = _purpleAmountOfForces, PurpleHero = _purpleHero, PurpleAssignSkill = _purpleAssignSkill
+        BeneGesseritSelectedAmbassador = _actualAmbassador,  
+        ChoamCards = _choamCards,
+        EcazOfferAlliance = _ecazOfferAlliance, EcazGiveVidalToAlly = _ecazGiveVidal, EcazTakeVidal = _ecazTakeVidal,
+        FremenOrGuildTo = Target, 
+        FremenForceLocations = _fremenForces,
+        GuildForceAmount = _guildForceAmount,
+        IxianCard = _ixianCard,
+        TleilaxuAmountOfForces = _tleilaxuAmountOfForces, TleilaxuHero = _tleilaxuHero, TleilaxuAssignSkill = _tleilaxuAssignSkill
 
     };
 

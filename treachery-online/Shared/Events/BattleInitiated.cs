@@ -38,17 +38,17 @@ public class BattleInitiated : GameEvent
     public Faction Target { get; set; }
 
     [JsonIgnore]
-    public Faction ActualInitiator => Game.CurrentPinkOrAllyFighter != null 
-                                      && Game.CurrentPinkOrAllyFighter.Value != Faction.None 
-                                      && Initiator == Game.GetAlly(Game.CurrentPinkOrAllyFighter.Value) 
-        ? Game.CurrentPinkOrAllyFighter.Value 
+    public Faction ActualInitiator => Game.CurrentEcazOrAllyFighter != null 
+                                      && Game.CurrentEcazOrAllyFighter.Value != Faction.None 
+                                      && Initiator == Game.GetAlly(Game.CurrentEcazOrAllyFighter.Value) 
+        ? Game.CurrentEcazOrAllyFighter.Value 
         : Initiator;
 
     [JsonIgnore]
-    public Faction ActualTarget => Game.CurrentPinkOrAllyFighter != null 
-                                   && Game.CurrentPinkOrAllyFighter.Value != Faction.None 
-                                   && Target == Game.GetAlly(Game.CurrentPinkOrAllyFighter.Value) 
-        ? Game.CurrentPinkOrAllyFighter.Value 
+    public Faction ActualTarget => Game.CurrentEcazOrAllyFighter != null 
+                                   && Game.CurrentEcazOrAllyFighter.Value != Faction.None 
+                                   && Target == Game.GetAlly(Game.CurrentEcazOrAllyFighter.Value) 
+        ? Game.CurrentEcazOrAllyFighter.Value 
         : Target;
 
     [JsonIgnore]
@@ -223,12 +223,12 @@ public class BattleInitiated : GameEvent
         report.Territory = Territory;
         Game.BattleAboutToStart = this;
 
-        var pink = GetPlayer(Faction.Pink);
-        Game.Enter(pink != null && IsInvolved(Faction.Pink) 
+        var ecaz = GetPlayer(Faction.Ecaz);
+        Game.Enter(ecaz != null && IsInvolved(Faction.Ecaz) 
                                 && Territory != null
-                                && pink.Occupies(Territory) 
-                                && pink.HasAlly 
-                                && pink.AlliedPlayer.Occupies(Territory), Phase.ClaimingBattle, Game.InitiateBattle);
+                                && ecaz.Occupies(Territory) 
+                                && ecaz.HasAlly 
+                                && ecaz.AlliedPlayer.Occupies(Territory), Phase.ClaimingBattle, Game.InitiateBattle);
     }
 
     public override Message GetMessage()

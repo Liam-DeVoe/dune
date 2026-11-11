@@ -47,10 +47,10 @@ public sealed class CollectionLogTests
 
         var messages = new List<Message>
         {
-            Message.Express(Faction.Yellow, " collect ", Payment.Of(4), " from ", territory).WithLog(new SpiceCollected(Faction.Yellow, territory, 4, west, false)),
+            Message.Express(Faction.Fremen, " collect ", Payment.Of(4), " from ", territory).WithLog(new SpiceCollected(Faction.Fremen, territory, 4, west, false)),
             Message.Express("an aside"),
-            Message.Express(Faction.Yellow, " collect ", Payment.Of(2), " from ", territory).WithLog(new SpiceCollected(Faction.Yellow, territory, 2, east, false)),
-            Message.Express(Faction.Green, " collect ", Payment.Of(2), " from ", arrakeen.Territory).WithLog(new SpiceCollected(Faction.Green, arrakeen.Territory, 2, null, true)),
+            Message.Express(Faction.Fremen, " collect ", Payment.Of(2), " from ", territory).WithLog(new SpiceCollected(Faction.Fremen, territory, 2, east, false)),
+            Message.Express(Faction.Atreides, " collect ", Payment.Of(2), " from ", arrakeen.Territory).WithLog(new SpiceCollected(Faction.Atreides, arrakeen.Territory, 2, null, true)),
         };
         RenderFragment<Message> line = m => b => b.AddMarkupContent(0, $"<div class=\"plain\">{m}</div>");
         var component = test.RenderContext.Render<CollectionLog>(p => p

@@ -1,0 +1,61 @@
+{"scenario":"lobby","start":"2026-03-02T10:00:00+02:00"}
+{"op":"connect","conn":1}
+{"op":"call","conn":1,"method":"Connect","args":[]}
+{"op":"connect","conn":1}
+{"op":"call","conn":1,"method":"RequestCreateUser","args":["alice","hash-alice",null,"Alice"],"as":"a"}
+{"op":"connect","conn":2}
+{"op":"call","conn":2,"method":"RequestCreateUser","args":["bobby","hash-bobby",null,"Bobby"],"as":"b"}
+{"op":"connect","conn":3}
+{"op":"call","conn":3,"method":"RequestCreateUser","args":["carol","hash-carol",null,"Carol"],"as":"c"}
+{"op":"call","conn":1,"method":"RequestHeartbeat","args":["${a.Token}",2]}
+{"op":"call","conn":1,"method":"RequestCreateGame","args":[null,"${a.Token}",null,null,null],"as":"g1"}
+{"op":"call","conn":1,"method":"RequestCreateGame","args":["With password","${a.Token}","pw-hash","","my-skin"],"as":"g2"}
+{"op":"call","conn":2,"method":"RequestCreateGame","args":["x","nobody","","",""]}
+{"op":"call","conn":1,"method":"RequestHeartbeat","args":["${a.Token}",3],"note":"the status cache is less than 6 s old"}
+{"op":"advance","seconds":7}
+{"op":"call","conn":1,"method":"RequestHeartbeat","args":["${a.Token}",3]}
+{"op":"call","conn":2,"method":"RequestHeartbeat","args":["${b.Token}",2]}
+{"op":"call","conn":3,"method":"RequestHeartbeat","args":["${c.Token}",1]}
+{"op":"call","conn":3,"method":"RequestHeartbeat","args":["nobody",2]}
+{"op":"call","conn":2,"method":"RequestScheduleGame","args":["${b.Token}","2026-03-05T20:00:00+02:00",null,5,8,[10,20,30,40,50],false],"as":"s1"}
+{"op":"call","conn":2,"method":"RequestScheduleGame","args":["${b.Token}","2026-03-06T20:00:00+01:00",10,4,6,[],true]}
+{"op":"call","conn":2,"method":"RequestScheduleGame","args":["${b.Token}","2026-03-07T20:00:00+02:00",20,6,10,[60],false]}
+{"op":"call","conn":2,"method":"RequestScheduleGame","args":["${b.Token}","2026-03-08T20:00:00+02:00",null,6,10,[],false],"note":"a fourth"}
+{"op":"call","conn":2,"method":"RequestScheduleGame","args":["nobody","2026-03-08T20:00:00+02:00",null,6,10,[],false]}
+{"op":"call","conn":3,"method":"RequestSubscribeGame","args":["${c.Token}",null,30]}
+{"op":"call","conn":3,"method":"RequestSubscribeGame","args":["nobody","${s1.ScheduledGames.0.ScheduledGameId}",30]}
+{"op":"call","conn":3,"method":"RequestSubscribeGame","args":["${c.Token}","nope",30]}
+{"op":"call","conn":3,"method":"RequestSubscribeGame","args":["${c.Token}","${s1.ScheduledGames.0.ScheduledGameId}",30]}
+{"op":"call","conn":1,"method":"RequestSubscribeGame","args":["${a.Token}","${s1.ScheduledGames.0.ScheduledGameId}",20]}
+{"op":"call","conn":3,"method":"RequestSubscribeGame","args":["${c.Token}","${s1.ScheduledGames.0.ScheduledGameId}",10]}
+{"op":"call","conn":1,"method":"RequestCancelGame","args":["${a.Token}","${s1.ScheduledGames.0.ScheduledGameId}"]}
+{"op":"call","conn":1,"method":"RequestCancelGame","args":["nobody","${s1.ScheduledGames.0.ScheduledGameId}"]}
+{"op":"call","conn":2,"method":"RequestCancelGame","args":["${b.Token}","nope"]}
+{"op":"call","conn":2,"method":"RequestCancelGame","args":["${b.Token}","${s1.ScheduledGames.0.ScheduledGameId}"]}
+{"op":"call","conn":1,"method":"RequestGameState","args":["${a.Token}","${g1.GameId}"]}
+{"op":"call","conn":3,"method":"RequestGameState","args":["${c.Token}","${g1.GameId}"]}
+{"op":"call","conn":3,"method":"RequestGameState","args":["nobody","${g1.GameId}"]}
+{"op":"call","conn":1,"method":"RequestGameState","args":["${a.Token}","nope"]}
+{"op":"call","conn":2,"method":"RequestCloseGame","args":["${b.Token}","${g1.GameId}"]}
+{"op":"call","conn":1,"method":"RequestCloseGame","args":["nobody","${g1.GameId}"]}
+{"op":"call","conn":1,"method":"RequestCloseGame","args":["${a.Token}","nope"]}
+{"op":"call","conn":2,"method":"RequestJoinGame","args":["${b.Token}","${g2.GameId}","pw-hash",-1]}
+{"op":"call","conn":1,"method":"RequestCloseGame","args":["${a.Token}","${g2.GameId}"],"note":"removes every participant, erases the game"}
+{"op":"call","conn":1,"method":"RequestCreateGame","args":["Game 0","${a.Token}","","",""]}
+{"op":"call","conn":1,"method":"RequestCreateGame","args":["Game 1","${a.Token}","","",""]}
+{"op":"call","conn":1,"method":"RequestCreateGame","args":["Game 2","${a.Token}","","",""]}
+{"op":"call","conn":1,"method":"RequestCreateGame","args":["Game 3","${a.Token}","","",""]}
+{"op":"call","conn":1,"method":"RequestCreateGame","args":["Game 4","${a.Token}","","",""]}
+{"op":"call","conn":1,"method":"RequestCreateGame","args":["Game 5","${a.Token}","","",""]}
+{"op":"call","conn":1,"method":"RequestCreateGame","args":["Game 6","${a.Token}","","",""]}
+{"op":"call","conn":1,"method":"RequestCreateGame","args":["Game 7","${a.Token}","","",""]}
+{"op":"call","conn":1,"method":"RequestCreateGame","args":["Game 8","${a.Token}","","",""]}
+{"op":"call","conn":1,"method":"RequestCreateGame","args":["One too many","${a.Token}","","",""]}
+{"op":"call","conn":2,"method":"RequestCreateGame","args":["Bob's","${b.Token}","","",""],"as":"g3"}
+{"op":"call","conn":3,"method":"RequestObserveGame","args":["${c.Token}","${g3.GameId}",""]}
+{"op":"advance","minutes":125}
+{"op":"call","conn":2,"method":"RequestHeartbeat","args":["${b.Token}",2],"note":"games without activity for 2 h are left out, except your own"}
+{"op":"call","conn":3,"method":"RequestHeartbeat","args":["${c.Token}",2]}
+{"op":"call","conn":3,"method":"RequestSetUserStatus","args":["${c.Token}",40]}
+{"op":"call","conn":3,"method":"RequestHeartbeat","args":["${c.Token}",3]}
+{"op":"call","conn":1,"method":"RequestCreateGame","args":["Bad savegame","${b.Token}","","not json",""]}

@@ -46,11 +46,11 @@ public class Prescience : GameEvent
 
     public static bool MayUsePrescience(Game g, Player p)
     {
-        if (g.CurrentBattle != null && g.CurrentPrescience == null && !g.Prevented(FactionAdvantage.GreenBattlePlanPrescience))
+        if (g.CurrentBattle != null && g.CurrentPrescience == null && !g.Prevented(FactionAdvantage.AtreidesBattlePlanPrescience))
         {
-            if (p.Faction == Faction.Green)
+            if (p.Faction == Faction.Atreides)
                 return g.CurrentBattle.IsInvolved(p);
-            if (p.Ally == Faction.Green && g.GreenSharesPrescience) return g.CurrentBattle.IsAggressorOrDefender(p);
+            if (p.Ally == Faction.Atreides && g.AtreidesSharesPrescience) return g.CurrentBattle.IsAggressorOrDefender(p);
         }
 
         return false;

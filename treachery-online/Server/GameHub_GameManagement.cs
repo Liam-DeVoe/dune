@@ -25,11 +25,11 @@ public partial class GameHub
                 return Error<GameInitInfo>(ErrorType.InvalidGameEvent, errorMessage?.ToString() ?? "Unknown error");
         }
 
-        var gameId = Guid.NewGuid().ToString();
+        var gameId = TestHooks.NewGuidString();
         var managedGame = new ManagedGame
         {
-            CreationDate = DateTimeOffset.Now,
-            LastActivity = DateTimeOffset.Now,
+            CreationDate = TestHooks.Now(),
+            LastActivity = TestHooks.Now(),
             CreatorUserId = user.Id,
             GameId = gameId,
             Game = game,
@@ -67,7 +67,7 @@ public partial class GameHub
         if (ScheduledGamesByGameId.Values.Count(g => g.CreatorUserId == user.Id) >= 3)
             return Error<ServerStatus>(ErrorType.TooManyScheduledGames);
 
-        var gameId = Guid.NewGuid().ToString();
+        var gameId = TestHooks.NewGuidString();
         var scheduledGame = new ScheduledGame
         {
             ScheduledGameId = gameId,
@@ -134,6 +134,7 @@ public partial class GameHub
             GameName = game.Name,
             Participation = game.Game.Participation
         });
+        await UpdatePause(game, suspend: true);
 
         if (!string.IsNullOrEmpty(skin))
             await Clients.Group(gameId).HandleSetSkin(skin);
@@ -209,7 +210,8 @@ public partial class GameHub
             GameId = gameId, 
             GameState = GameState.GetStateAsString(game.Game), 
             GameName = game.Name,
-            Participation = game.Game.Participation
+            Participation = game.Game.Participation,
+            PhaseControl = CurrentPhaseControl(gameId)
         });
     }
     
@@ -348,6 +350,7 @@ public partial class GameHub
         }
 
         RunningGamesByGameId.Remove(gameId, out _);
+        PausesByGameId.Remove(gameId, out _);
         
         await EraseGame(game);
         
@@ -406,7 +409,8 @@ public partial class GameHub
             GameId = gameId,
             GameState = GameState.GetStateAsString(game.Game),
             GameName = game.Name,
-            Participation = game.Game.Participation
+            Participation = game.Game.Participation,
+            PhaseControl = CurrentPhaseControl(gameId)
         });
     }
 
@@ -426,7 +430,8 @@ public partial class GameHub
         {
             GameId = gameId, 
             GameState = GameState.GetStateAsString(game.Game),
-            Participation = game.Game.Participation
+            Participation = game.Game.Participation,
+            PhaseControl = CurrentPhaseControl(gameId)
         } );
     }
     
@@ -443,7 +448,8 @@ public partial class GameHub
             GameId = gameId, 
             GameState = GameState.GetStateAsString(game.Game), 
             GameName = game.Name,
-            Participation = game.Game.Participation
+            Participation = game.Game.Participation,
+            PhaseControl = CurrentPhaseControl(gameId)
         }));
     }
 
@@ -470,8 +476,9 @@ public partial class GameHub
 
         game.Game = game.Game.Undo(untilEventNr);
         await Clients.Group(gameId).HandleUndo(untilEventNr);
+        await UpdatePause(game, suspend: true);
 
-        game.LastActivity = DateTimeOffset.Now;
+        game.LastActivity = TestHooks.Now();
         await PersistGameIfNeeded(game);
         ScheduleBotEvent(game);
         return Success();
@@ -487,8 +494,9 @@ public partial class GameHub
 
         game.Game = game.Game.RestoreRecentlyUndone();
         await Clients.Group(gameId).HandleRestoreRecentlyUndone();
+        await UpdatePause(game, suspend: true);
 
-        game.LastActivity = DateTimeOffset.Now;
+        game.LastActivity = TestHooks.Now();
         await PersistGameIfNeeded(game);
         ScheduleBotEvent(game);
         return Success();
@@ -504,8 +512,9 @@ public partial class GameHub
 
         game.Game = game.Game.DismissRecentlyUndone();
         await Clients.Group(gameId).HandleDismissRecentlyUndone();
+        await UpdatePause(game, suspend: true);
 
-        game.LastActivity = DateTimeOffset.Now;
+        game.LastActivity = TestHooks.Now();
         await PersistGameIfNeeded(game);
         ScheduleBotEvent(game);
         return Success();
@@ -537,7 +546,7 @@ public partial class GameHub
 
         await RunTasksIfNeeded();
 
-        loggedInUser.LastSeenDateTime = DateTime.Now;
+        loggedInUser.LastSeenDateTime = TestHooks.LocalNow();
 
         return Success(FilteredServerStatus(scope, loggedInUser.Id));
     }
@@ -548,7 +557,7 @@ public partial class GameHub
         {
             case GameListScope.Active:
             {
-                var lastActiveGameThreshold = DateTimeOffset.Now.AddMinutes(-ActiveGameThresholdMinutes);
+                var lastActiveGameThreshold = TestHooks.Now().AddMinutes(-ActiveGameThresholdMinutes);
                 var filteredServerStatus = new ServerStatus
                 {
                     RunningGames = RunningGames.Where(mg => mg.LastActivity >= lastActiveGameThreshold || mg.YouAreIn(userId)).ToArray(),
@@ -601,7 +610,7 @@ public partial class GameHub
 
     private static void UpdateServerStatusIfNeeded(bool forceUpdate = false)
     {
-        var now = DateTimeOffset.Now;
+        var now = TestHooks.Now();
         
         if (!forceUpdate && LastUpdatedServerStatus.AddMilliseconds(ServerStatusFrequencyMs) > now)
             return;
@@ -621,7 +630,7 @@ public partial class GameHub
             })
             .ToArray();
         
-        LastUpdatedServerStatus = DateTimeOffset.Now;
+        LastUpdatedServerStatus = TestHooks.Now();
     }
 
     private static ScheduledGameInfo ExtractScheduledGameInfo(ScheduledGame g) => new()
@@ -651,7 +660,7 @@ public partial class GameHub
             return;
         
         var subject = $"{info.Name} ({info.NrOfPlayers} Players, {info.NrOfBots} Bots, Turn {info.Turn} - {info.Ruleset})";
-        var saveGameToAttach = new Attachment(GenerateStreamFromString(state), "savegame" + DateTime.Now.ToString("yyyyMMdd.HHmm") + ".json");
+        var saveGameToAttach = new Attachment(GenerateStreamFromString(state), "savegame" + TestHooks.LocalNow().ToString("yyyyMMdd.HHmm") + ".json");
 
         var sb = new StringBuilder();
         sb.AppendLine("<h1>Player table in HTML format</h1>");

@@ -26,8 +26,8 @@
 
         foreach (var terr in Game.TerrorIn(stronghold.Territory))
         {
-            var known = Player?.Faction == Faction.Cyan;
-            <MapImage X=x Y=y Filter="hue-rotate(180deg);" Diameter=@Client.CurrentSkin.PlayerTokenRadius Src=@Client.CurrentSkin.GetFactionTableImageUrl(Faction.Cyan)
+            var known = Player?.Faction == Faction.Moritani;
+            <MapImage X=x Y=y Filter="hue-rotate(180deg);" Diameter=@Client.CurrentSkin.PlayerTokenRadius Src=@Client.CurrentSkin.GetFactionTableImageUrl(Faction.Moritani)
                 ShadowColor="@Client.CurrentSkin.SHADOW" ShadowX="1" ShadowY="1" ShadowBlur="0"
                 Popover=@(known ? Client.CurrentSkin.GetPopup(terr) : "Terror") PopoverAsTooltip=@(!known) PopoverStyle=@(known ? "" : PopoverStyle)/>
 
@@ -98,7 +98,7 @@
         }
         else if (Game.DiscoveriesOnPlanet.TryGetValue(location, out var discovery))
         {
-            var known = (Player?.Faction == Faction.Yellow && discovery.TokenType == DiscoveryTokenType.Yellow) || (Player?.Faction == Faction.Orange && discovery.TokenType == DiscoveryTokenType.Orange);
+            var known = (Player?.Faction == Faction.Fremen && discovery.TokenType == DiscoveryTokenType.Fremen) || (Player?.Faction == Faction.Guild && discovery.TokenType == DiscoveryTokenType.Guild);
             var popoverToShow = known ? Client.CurrentSkin.GetPopup(discovery.Token) : Client.CurrentSkin.Describe(discovery.TokenType);
 
             <MapImage X=@(pos.X - 1.25f * Client.CurrentSkin.FORCETOKEN_RADIUS) Y=@(pos.Y - 1.25f * Client.CurrentSkin.FORCETOKEN_RADIUS) Diameter=@(2.5f * Client.CurrentSkin.FORCETOKEN_RADIUS)

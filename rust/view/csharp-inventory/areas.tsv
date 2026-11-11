@@ -1,0 +1,29 @@
+# Screen area of each client file. Regex over the path relative to treachery-online/Client, tab, area name.
+# First match wins. Areas follow GameColumns.razor and Main.razor.
+GameEventComponents/(EstablishPlayers|PerformSetup)Component\.razor	Lobby and game setup
+OtherComponents/(Login|RunningGames|OwnGames|AwaitingGame|SeatPlayers|Subscribe|UserStatus|UserList|Credit)Component\.razor	Lobby and game setup
+GenericComponents/(JoinedPlayersPanel|DateTimePicker)\.razor	Lobby and game setup
+Pages/Admin\.razor	Admin
+GameEventComponents/(Battle|BattleInitiated|BattleConcluded|LoserConcluded|TreacheryCalled|FaceDanced|Voice|Prescience|Retreat|TakeLosses|Diplomacy|Thought|ThoughtAnswered|ClairVoyancePlayed|ClairVoyanceAnswered|SwitchedSkilledLeader|AuditedComponent|AuditCancelled|Audited|RockWasMelted|ResidualPlayed|PoisonToothCancelled|PortableAntidoteUsed|HMSAdvantageChosen|BeneGesseritBattleAnnouncement|FaceDancerReplaced|FaceDancerRevealed|Planetology|JuicePlayed|CardsDetermined)Component\.razor	Action panel: battle
+GameEventComponents/(Shipment|Move|Caravan|BeneGesseritAccompanies|BeneGesseritFlip|FremenRide|FremenSentMonster|KarmaHmsMovement|PerformHmsMovement|PerformHmsPlacement|Placement|FlightUsed|DiscoveryEntered|ChoamMovePrevention|KarmaShipmentPrevention|TerrorPlanted|TerrorRevealed|AmbassadorPlaced|AmbassadorActivated|SetShipmentPermission|TestingStationUsed|Intrusion|PerformBeneGesseritPlacement|PerformFremenSetup|PerformMoritaniSetup|DiscoveryRevealed|ChoamRemoveForce)Component\.razor	Action panel: ship and move
+GameEventComponents/(Revival|RaiseDead|RequestTleilaxuRevival|AcceptOrCancelTleilaxuRevival|KarmaFreeRevival|ChoamFreeRevivalPrevention|KarmaRevivalPrevention|SetIncreasedRevivalLimits)Component\.razor	Action panel: revival
+GameEventComponents/(Bid|BlackMarketBid|RicheseAnnouncesAuction|RicheseSpecifiesAuction|RicheseAnnouncesBlackMarket|RicheseKeepsUnsoldCard|KarmaRicheseBuy|IxianSelectedStartingCard|IxianRemovedCardFromAuction|IxianSwappedCardOnBid|EmperorBidSupport|ReplacedCardWon|CardsDetermined|ChoamEconomics|Karma|KarmaHandSwap|KarmaHandSwapInitiated|KarmaMonster|KarmaChoamDiscard|KarmaPrescience|StormSpellPlayed|StormDialled|MulliganPerformed|TraitorsSelected|TraitorDiscarded|FactionSelected|FactionTradeOffered|BeneGesseritPrediction|SkillAssigned|NexusCardDrawn|NexusPlayed|DiscardedSearched|DiscardedTaken|Discarded|ChoamDiscarded|EmperorDiscarded|ChoamKarmaPrevention|DistransUsed|RicheseGaveCard|CardTraded|ResourcesAudited|DivideResources|Donated|ResourcesTransferred|AllianceOffered|AllyPermission|DealOffered|PlayerReplaced|AutomationConfigured|YesNoAction|SimpleAction)Component\.razor	Action panel: other events
+OtherComponents/(BiddingPanel|NormalBiddingPanel|BlackMarketBiddingPanel)\.razor	Action panel: bidding
+OtherComponents/ActionPanel\.razor	Action panel: frame
+GenericComponents/(GameEventComponent|GameEventComponentLayout)\.razor	Action panel: frame
+GenericComponents/.*\.razor	Generic widgets
+GameEventComponents/StagedPlacementComponent\.cs	Action panel: ship and move
+OtherComponents/GameStatusComponent\.razor	Prompt (GameStatus)
+OtherComponents/(PlayerPanel|NoteComponent|CardPlayPopover|CardPickerComponent)\.razor	Your faction panel
+OtherComponents/(DealComponent|DealToasts|TradePopover)\.razor	Deals and trade
+OtherComponents/(ReportComponent|Log/.*|MentatComponent|StoryComponent|StoryBattleComponent|StoryPlayerInfoComponent|WinnerPanel)\.razor	Log, report and story
+OtherComponents/Log/.*\.cs	Log, report and story
+OtherComponents/(MenuComponent|MenuPanels|TrackerComponent|UndoComponent|UndoTimeline|RedoComponent|MusicComponent|ChatComponent|ImageFlashComponent|TurnBanner|GameColumns)\.razor	Menu, chat, undo, chrome
+MapComponents/.*	Board
+(MapInteraction|MapPicker|LocationEventArgs)\.cs	Board
+(Client|IGameService|Browser|LocalStorage|RetryPolicy|Program|UndoSession|TurnClock|MenuState|Situation|GameScreen|Dimensions)\.cs	Client state and services
+(Support|CardPlays|AtreidesIntelligence)\.cs	Client helpers
+Scene/.*	Scene (test page)
+Pages/Scene\.razor	Scene (test page)
+Pages/.*	Pages
+.*	Other

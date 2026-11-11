@@ -19,68 +19,68 @@ namespace Treachery.Test;
 public class KarmaTests
 {
     [TestMethod]
-    public void PlayingLastCardDuringGreySwapContinuesBidding()
+    public void PlayingLastCardDuringIxianSwapContinuesBidding()
     {
-        var game = CreateGameInGreySwapPhase();
-        var grey = game.GetPlayer(Faction.Grey)!;
+        var game = CreateGameInIxianSwapPhase();
+        var ixian = game.GetPlayer(Faction.Ixian)!;
         var karama = TreacheryCardManager.Get(23)!;
-        grey.TreacheryCards.Add(karama);
+        ixian.TreacheryCards.Add(karama);
 
-        new Karma(game, Faction.Grey)
+        new Karma(game, Faction.Ixian)
         {
             Card = karama,
-            Prevented = FactionAdvantage.RedReceiveBid
+            Prevented = FactionAdvantage.EmperorReceiveBid
         }.Execute(false, true);
 
         Assert.AreEqual(Phase.Bidding, game.CurrentPhase);
-        Assert.IsFalse(grey.TreacheryCards.Contains(karama));
+        Assert.IsFalse(ixian.TreacheryCards.Contains(karama));
         Assert.IsTrue(game.TreacheryDiscardPile!.Items.Contains(karama));
     }
 
     [TestMethod]
-    public void PlayingKarmaDuringGreySwapKeepsDecisionWhenAnotherCardRemains()
+    public void PlayingKarmaDuringIxianSwapKeepsDecisionWhenAnotherCardRemains()
     {
-        var game = CreateGameInGreySwapPhase();
-        var grey = game.GetPlayer(Faction.Grey)!;
+        var game = CreateGameInIxianSwapPhase();
+        var ixian = game.GetPlayer(Faction.Ixian)!;
         var karama = TreacheryCardManager.Get(23)!;
-        grey.TreacheryCards.Add(karama);
-        grey.TreacheryCards.Add(TreacheryCardManager.Get(1)!);
+        ixian.TreacheryCards.Add(karama);
+        ixian.TreacheryCards.Add(TreacheryCardManager.Get(1)!);
 
-        new Karma(game, Faction.Grey)
+        new Karma(game, Faction.Ixian)
         {
             Card = karama,
-            Prevented = FactionAdvantage.RedReceiveBid
+            Prevented = FactionAdvantage.EmperorReceiveBid
         }.Execute(false, true);
 
-        Assert.AreEqual(Phase.GreySwappingCard, game.CurrentPhase);
+        Assert.AreEqual(Phase.IxianSwappingCard, game.CurrentPhase);
     }
 
     [TestMethod]
     public void PlayingKarmaLogsOneAside()
     {
-        var game = CreateGameInGreySwapPhase();
-        var grey = game.GetPlayer(Faction.Grey)!;
+        var game = CreateGameInIxianSwapPhase();
+        var ixian = game.GetPlayer(Faction.Ixian)!;
         var karama = TreacheryCardManager.Get(23)!;
-        grey.TreacheryCards.Add(karama);
+        ixian.TreacheryCards.Add(karama);
         var before = game.CurrentReport.Messages.Count;
 
-        new Karma(game, Faction.Grey)
+        new Karma(game, Faction.Ixian)
         {
             Card = karama,
-            Prevented = FactionAdvantage.RedReceiveBid
+            Prevented = FactionAdvantage.EmperorReceiveBid
         }.Execute(false, true);
 
         var logged = game.CurrentReport.Messages.Skip(before).ToList();
         Assert.AreEqual(1, logged.Count(m => m.Log is AsideLog));
         var aside = logged.Single(m => m.Log is AsideLog).Expression.Elements;
-        Assert.AreEqual(Faction.Grey, aside[0]);
+        Assert.AreEqual(Faction.Ixian, aside[0]);
         Assert.AreEqual(" play ", aside[1]);
         Assert.AreEqual(karama, aside[2]);
         Assert.IsFalse(logged.Any(m => m.Expression.Elements.Contains(" discard ")));
         Assert.IsFalse(logged.Any(m => m.Expression.Elements.Contains(" prevent ")));
     }
 
-    private static Game CreateGameInGreySwapPhase()
+    private static Game CreateGameInIxianSwapPhase()
     {
         var game = new Game(Game.LatestVersion, new Participation());
         new EstablishPlayers(game, Faction.None)
@@ -90,14 +90,14 @@ public class KarmaTests
             {
                 NumberOfPlayers = 2,
                 MaximumTurns = 10,
-                InitialRules = [Rule.GreySwappingCardOnBid],
-                AllowedFactionsInPlay = [Faction.Grey, Faction.Red]
+                InitialRules = [Rule.IxianSwappingCardOnBid],
+                AllowedFactionsInPlay = [Faction.Ixian, Faction.Emperor]
             }
         }.Execute(false, true);
 
         SetProperty(game, nameof(Game.BidSequence), new PlayerSequence(game));
         SetProperty(game, "BiddingRoundWasStarted", true);
-        SetProperty(game, nameof(Game.CurrentPhase), Phase.GreySwappingCard);
+        SetProperty(game, nameof(Game.CurrentPhase), Phase.IxianSwappingCard);
         return game;
     }
 

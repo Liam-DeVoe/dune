@@ -18,7 +18,7 @@ public class Messiah : IHero
         return Value;
     }
 
-    public Faction Faction => Faction.Green;
+    public Faction Faction => Faction.Atreides;
 
     public HeroType HeroType => HeroType.Messiah;
 

@@ -1,0 +1,60 @@
+Enumerations.cs:21:defaultValue	object Enum.Equals	T
+Events/AmbassadorActivated.cs:333:victimPlayer.TreacheryCards	object GameEvent.LogTo	System.Collections.Generic.List<Treachery.Shared.TreacheryCard>
+Events/AuditCancelled.cs:89:Game.AuditedCards	object GameEvent.LogTo	System.Collections.Generic.List<Treachery.Shared.TreacheryCard>
+Events/BeneGesseritAccompanies.cs:70:[]	record Message.WithRoute	System.Collections.Generic.IEnumerable<Treachery.Shared.Location>
+Events/Bid.cs:222:[]	record new CardSold	System.Collections.Generic.IReadOnlyList<Treachery.Shared.BidShare>
+Events/Bid.cs:296:Game.Bids.Select(b => MessagePart.Express(b.Key, Payment.Of(b.Value.TotalAmount), " ")).ToList()	object GameEvent.Log	System.Collections.Generic.List<Treachery.Shared.MessagePart>
+Events/BlackMarketBid.cs:117:Game.Bids.Select(b => MessagePart.Express(b.Key, Payment.Of(b.Value.TotalAmount), " ")).ToList()	object GameEvent.Log	System.Collections.Generic.List<Treachery.Shared.MessagePart>
+Events/CardsDetermined.cs:80:RicheseCards	object Message.Express	System.Collections.Generic.IEnumerable<Treachery.Shared.TreacheryCard>
+Events/CardsDetermined.cs:80:TreacheryCards	object Message.Express	System.Collections.Generic.IEnumerable<Treachery.Shared.TreacheryCard>
+Events/CardsDetermined.cs:81:TreacheryCards	object Message.Express	System.Collections.Generic.IEnumerable<Treachery.Shared.TreacheryCard>
+Events/DealAccepted.cs:152:offer.Player.DiscardedTraitors	object GameEvent.LogTo	System.Collections.Generic.HashSet<Treachery.Shared.IHero>
+Events/DealOffered.cs:184:To	object MessagePart.ExpressIf	Treachery.Shared.Faction[]
+Events/EmperorBidSupport.cs:52:Amounts.Where(kvp => kvp.Value > 0).Select(f => MessagePart.Express(f.Key, ":", Payment.Of(f.Value), " "))	object Message.Express	System.Collections.Generic.IEnumerable<Treachery.Shared.MessagePart>
+Events/EstablishPlayers.cs:222:customRules	object GameEvent.LogIf	System.Collections.Generic.List<Treachery.Shared.Rule>
+Events/FaceDanced.cs:191:ForceLocations.Where(fl => fl.Value.TotalAmountOfForces > 0).Select(fl => MessagePart.Express(", ", fl.Value.AmountOfForces, " from ", fl.Key))	object MessagePart.ExpressIf	System.Collections.Generic.IEnumerable<Treachery.Shared.MessagePart>
+Events/FremenRidesMonster.cs:159:[from]	record Message.WithRoute	System.Collections.Generic.IEnumerable<Treachery.Shared.Location>
+Events/FremenRidesMonster.cs:173:[]	record Message.WithRoute	System.Collections.Generic.IEnumerable<Treachery.Shared.Location>
+Events/FremenRidesMonster.cs:194:ForceLocations.Keys	record Message.WithRoute	System.Collections.Generic.IEnumerable<Treachery.Shared.Location>
+Events/GameEvent.cs:319:expression	params-array Game.Log	object?[]
+Events/GameEvent.cs:324:expression	params-array Game.LogIf	object?[]
+Events/GameEvent.cs:329:expression	params-array Game.LogTo	object?[]
+Events/Karma.cs:251:Prevented is FactionAdvantage.None ? [] : ["prevent ", Prevented]	params-array Game.KarmaPlayed	object?[]
+Events/KarmaChoamDiscard.cs:68:Cards.Select(c => MessagePart.Express(" ", c, " "))	object Game.PlayKarma	System.Collections.Generic.IEnumerable<Treachery.Shared.MessagePart>
+Events/KarmaChoamDiscard.cs:78:Cards.Select(c => MessagePart.Express(" ", c, " "))	object Message.Express	System.Collections.Generic.IEnumerable<Treachery.Shared.MessagePart>
+Events/SetIncreasedRevivalLimits.cs:59:Factions	object Message.Express	Treachery.Shared.Faction[]
+Events/SetShipmentPermission.cs:71:Factions	object Message.Express	Treachery.Shared.Faction[]
+Events/SetShipmentPermission.cs:72:Factions	object Message.Express	Treachery.Shared.Faction[]
+Events/Shipment.cs:669:Sources	record Message.WithRoute	System.Collections.Generic.IEnumerable<Treachery.Shared.Location>
+Events/Shipment.cs:670:Sources	record Message.WithRoute	System.Collections.Generic.IEnumerable<Treachery.Shared.Location>
+Events/Shipment.cs:689:Sources	record Message.WithRoute	System.Collections.Generic.IEnumerable<Treachery.Shared.Location>
+Events/Shipment.cs:691:Sources	record Message.WithRoute	System.Collections.Generic.IEnumerable<Treachery.Shared.Location>
+Events/Shipment.cs:694:Sources	record Message.WithRoute	System.Collections.Generic.IEnumerable<Treachery.Shared.Location>
+Events/Shipment.cs:696:Sources	record Message.WithRoute	System.Collections.Generic.IEnumerable<Treachery.Shared.Location>
+Game.cs:693:effect	params-array Game.KarmaPlayed	object?[]
+Game.cs:703:effect	params-array MessagePart.Express	object?[]
+Game.cs:787:expression	params-array Report.Express	object?[]
+Game.cs:792:expression	params-array Report.Express	object?[]
+Game.cs:797:expression	params-array Report.ExpressTo	object?[]
+Game_Bidding.cs:192:shares	record new CardSold	System.Collections.Generic.IReadOnlyList<Treachery.Shared.BidShare>
+Game_Bidding.cs:207:expression	params-array Message.Express	object?[]
+Game_Bidding.cs:215:expression	params-array Message.ExpressTo	object?[]
+Game_Contemplate.cs:135:Winners.Select(w => w.Faction).ToList()	record new GameEnded	System.Collections.Generic.IReadOnlyList<Treachery.Shared.Faction>
+Game_Contemplate.cs:277:expression	params-array Message.Express	object?[]
+Game_Move.cs:195:fromLocations	record Message.WithRoute	System.Collections.Generic.IEnumerable<Treachery.Shared.Location>
+Game_Other.cs:166:messageElements	params-array MessagePart.Express	object[]
+Model/DiscoveryStronghold.cs:16:UNANALYZED	Roslyn crashed on this member	
+Model/Expression.cs:18:list	params-array new Expression	object[]
+Model/GameStatus.cs:820:toShow	object FlashInfo.ToShow	T?
+Model/GameStatus.cs:870:elements	params-array Message.Express	object?[]
+Model/HiddenMobileStronghold.cs:14:UNANALYZED	Roslyn crashed on this member	
+Model/Homeworld.cs:30:UNANALYZED	Roslyn crashed on this member	
+Model/Message.cs:101:list	params-array new Expression	object?[]
+Model/Message.cs:106:list	params-array new Expression	object?[]
+Model/Message.cs:121:list	params-array new Expression	object[]
+Model/Message.cs:127:list	params-array new Expression	object?[]
+Model/Message.cs:143:Expression.Elements	params-array String.Join	object?[]
+Model/Message.cs:41:from.ToList()	record new Route	System.Collections.Generic.List<Treachery.Shared.Location>
+Model/Message.cs:89:Expression.Elements	params-array String.Join	object?[]
+Model/Report.cs:36:list	params-array Message.Express	object?[]
+Model/Report.cs:41:list	params-array Message.ExpressTo	object?[]

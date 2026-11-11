@@ -194,6 +194,13 @@
         stroke: var(--c, #fff);
       }
     }
+
+    // A radial side shared with another lit sector of the same territory.
+    // The hover script sets these, so the lit area gets one outline.
+    &.joined-start .radial.start,
+    &.joined-end .radial.end {
+      display: none;
+    }
   }
 
   .fill {
@@ -464,4 +471,22 @@
   height: 18px;
   vertical-align: middle;
   filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.7));
+}
+
+// The board's corner pieces: tanks (top left), turn and phases (top right),
+// the spice deck (bottom left) and the treachery deck (bottom right). Each
+// is drawn in map units inside a zero-size wrapper that SetPlanetMapScale
+// (index.html) shifts out to the edge of the board's area. The spice deck
+// also moves up past the menu bar in that corner.
+.map-corner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+
+  &.tl { transform: translate(var(--map-dx-l, 0px), var(--map-dy-t, 0px)); }
+  &.tr { transform: translate(var(--map-dx-r, 0px), var(--map-dy-t, 0px)); }
+  &.bl { transform: translate(var(--map-dx-l, 0px), calc(var(--map-dy-b, 0px) - var(--map-bar, 0px))); }
+  &.br { transform: translate(var(--map-dx-r, 0px), var(--map-dy-b, 0px)); }
 }

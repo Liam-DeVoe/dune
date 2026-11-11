@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Generates the Rust engine skeleton (state types, events, signatures) from Treachery.Shared
+       using Roslyn (syntax, semantics) and reflection (exact field lists). See rust/docs/engine-conventions.md. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <NoWarn>CS8600;CS8602;CS8603;CS8604;CS8618;CS8625</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
+    <ProjectReference Include="../../../treachery-online/Shared/Treachery.Shared.csproj" />
+  </ItemGroup>
+</Project>

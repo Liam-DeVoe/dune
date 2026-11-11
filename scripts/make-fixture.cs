@@ -15,7 +15,7 @@
 //
 // A saved game is its event log, replayed on load (see Shared/Model/GameState.cs). So a fixture
 // can only hold a state that legal events reach, and this tool gets there by letting six bots play
-// the basic game (plus YellowSpecialForces and RedSpecialForces, ten turns) from a seed until the
+// the basic game (plus FremenSpecialForces and EmperorSpecialForces, ten turns) from a seed until the
 // situation in the spec comes up. Bot randomness is seeded too, so the same spec and seed give the
 // same file. Seeds are tried from the spec's seed upward; when the spec has no seed, the one that
 // worked is written into it. Fixtures written before bot randomness was seeded cannot be
@@ -24,14 +24,19 @@
 // fixture-specs.json is an object keyed by fixture name. A spec is the situation, the rules the
 // case adds, and the seed:
 //
-//   "blue": {
-//     "rules": ["BlueAdvisors"],
+//   "bene_gesserit": {
+//     "rules": ["BeneGesseritAdvisors"],
 //     "seed": 1,
-//     "situation": { "phase": "NonOrangeMove", "event": "Move", "faction": "Blue", "can": "advisors-to-fighters" }
+//     "situation": { "phase": "NonGuildMove", "event": "Move", "faction": "BeneGesserit", "can": "advisors-to-fighters" }
 //   }
 //
 // Other keys, for when a case needs them: "factions", "players", "max_turns", "max_attempts" (seeds
-// to try, default 200), "place" (below), "handmade" (true: never regenerate; describe only).
+// to try, default 200), "place" (below), "deck" (below), "handmade" (true: never regenerate; describe only),
+// "ally" (two faction names that offer each other an alliance whenever they may, so they end up allied).
+//
+// "deck" is a list of treachery card types, e.g. ["Thumper", "Karma"]. The host customises the
+// deck (rule CustomDecks, added automatically) to every copy of those types, filled up with basic
+// cards to the minimum size, so a situation that needs a rare card comes up within a few seeds.
 //
 // The situation is checked after every bot event, for each player in seat order. The first player
 // that satisfies every condition becomes the actor: the seat to take after loading. Conditions:
@@ -54,6 +59,10 @@
 //                                 "move-to-ally"          can move into a territory held by its ally
 //                                 "ship-site-to-site"     may ship from one map location to another
 //                                 "face-down-leader"      has a leader lying face down in the tanks
+//                                 "atreides-secret-ally"     holds the Atreides Nexus card as a secret ally and may play it now
+//                                 "nexus-ecaz-betrayal"      may play the Ecaz Nexus card as betrayal (picks a territory on the map)
+//                                 "nexus-moritani-betrayal"  may play the Moritani Nexus card as betrayal (picks a stronghold on the map)
+//                                 "nexus-tleilaxu-location"  may play the Tleilaxu Nexus card as secret ally and place a revived special force on the planet
 //   accompany_targets_min       Bene Gesserit may accompany a shipment to at least this many places
 //   ride_sources_min            the worm can be ridden from at least this many locations
 //   ride_source_with_both_types true: some ride source holds both normal and special forces
@@ -70,10 +79,10 @@
 //
 //   "placed-ship": {
 //     "place": {
-//       "Red":    { "spice": 12, "forces": { "Carthag": [0, 2], "Rim Wall West": [4, 0] } },   // [forces, special forces]
-//       "Yellow": { "spice": 3,  "forces": { "Sietch Tabr": [6, 2], "False Wall West (Middle Sector)": [4, 1] } }
+//       "Emperor":    { "spice": 12, "forces": { "Carthag": [0, 2], "Rim Wall West": [4, 0] } },   // [forces, special forces]
+//       "Fremen": { "spice": 3,  "forces": { "Sietch Tabr": [6, 2], "False Wall West (Middle Sector)": [4, 1] } }
 //     },
-//     "situation": { "phase": "NonOrangeShip", "event": "Shipment", "faction": "Red" }
+//     "situation": { "phase": "NonGuildShip", "event": "Shipment", "faction": "Emperor" }
 //   }
 
 using System.Text.Json;
@@ -161,9 +170,10 @@ void Run(string name)
 static (Game game, Player actor, int seed) Generate(Spec spec, int firstSeed)
 {
     var rules = Game.RulesetDefinition[Ruleset.BasicGame].ToList();
-    rules.AddRange([Rule.FillWithBots, Rule.YellowSpecialForces, Rule.RedSpecialForces]);
+    rules.AddRange([Rule.FillWithBots, Rule.FremenSpecialForces, Rule.EmperorSpecialForces]);
     rules.AddRange(spec.Rules.Select(r => Enum.Parse<Rule>(r, true)));
     if (spec.Place != null && !rules.Contains(Rule.CustomInitialForcesAndResources)) rules.Add(Rule.CustomInitialForcesAndResources);
+    if (spec.Deck != null && !rules.Contains(Rule.CustomDecks)) rules.Add(Rule.CustomDecks);
     var factions = spec.Factions.Select(ParseFaction).ToList();
 
     for (var seed = firstSeed; seed < firstSeed + spec.MaxAttempts; seed++)
@@ -195,8 +205,17 @@ static (Game game, Player actor, int seed) Generate(Spec spec, int firstSeed)
                 PlaceNextFaction(game, spec);
                 continue;
             }
+            if (game.CurrentPhase == Phase.CustomizingDecks)
+            {
+                DetermineDeck(game, spec);
+                continue;
+            }
+            if (spec.Ally != null && OfferAlliance(game, spec.Ally)) continue;
             if (NextBotEvent(game, bots) == null) throw new Exception($"seed {seed}: bots got stuck in {game.CurrentPhase}");
         }
+        // The loop stops when the game ends, so a situation at the end is checked here.
+        var atEnd = Find(game, spec.Situation);
+        if (atEnd != null) return (game, atEnd, seed);
         Console.WriteLine($"seed {seed}: not reached");
     }
     throw new Exception($"situation not reached in {spec.MaxAttempts} seeds from {firstSeed}");
@@ -224,18 +243,37 @@ static void PlaceNextFaction(Game game, Spec spec)
     if (error != null) throw new Exception($"place.{faction}: {error.ToString(DefaultSkin.Default)}");
 }
 
+// The host's custom deck (rule CustomDecks): every copy of the card types in
+// "deck", then the basic cards in play, until the deck has the one card more
+// than the players' hand limits combined that the game asks for. A small deck
+// full of the cards a situation needs makes the seed search short.
+static void DetermineDeck(Game game, Spec spec)
+{
+    var wanted = spec.Deck!.Select(t => Enum.Parse<TreacheryCardType>(t, true)).ToHashSet();
+    var cards = TreacheryCardManager.GetCardsInAndOutsidePlay().Where(c => wanted.Contains(c.Type)).ToList();
+    var needed = game.Players.Sum(p => p.MaximumNumberOfCards) + 1;
+    foreach (var c in TreacheryCardManager.GetCardsInPlay(game))
+    {
+        if (cards.Count >= needed) break;
+        if (!cards.Contains(c)) cards.Add(c);
+    }
+    var evt = new CardsDetermined(game, Faction.None) { TreacheryCards = cards, RicheseCards = [], Time = EventTime(game) };
+    var error = evt.Execute(true, true);
+    if (error != null) throw new Exception($"deck: {error.ToString(DefaultSkin.Default)}");
+}
+
 // What the game itself would place, from Game_Setup.cs. The Fremen normally choose; here they get Sietch Tabr.
 static Placement DefaultPlacement(Game game, Faction faction)
 {
     var skin = DefaultSkin.Default;
     return faction switch
     {
-        Faction.Green => new Placement { Spice = 10, Forces = { [skin.Describe(game.Map.Arrakeen)] = [10, 0] } },
-        Faction.Black => new Placement { Spice = 10, Forces = { [skin.Describe(game.Map.Carthag)] = [10, 0] } },
-        Faction.Red => new Placement { Spice = 10 },
-        Faction.Orange => new Placement { Spice = 5, Forces = { [skin.Describe(game.Map.TueksSietch)] = [5, 0] } },
-        Faction.Yellow => new Placement { Spice = 3, Forces = { [skin.Describe(game.Map.SietchTabr)] = [10, 0] } },
-        Faction.Blue => new Placement { Spice = 5, Forces = { [skin.Describe(game.Map.PolarSink)] = [1, 0] } },
+        Faction.Atreides => new Placement { Spice = 10, Forces = { [skin.Describe(game.Map.Arrakeen)] = [10, 0] } },
+        Faction.Harkonnen => new Placement { Spice = 10, Forces = { [skin.Describe(game.Map.Carthag)] = [10, 0] } },
+        Faction.Emperor => new Placement { Spice = 10 },
+        Faction.Guild => new Placement { Spice = 5, Forces = { [skin.Describe(game.Map.TueksSietch)] = [5, 0] } },
+        Faction.Fremen => new Placement { Spice = 3, Forces = { [skin.Describe(game.Map.SietchTabr)] = [10, 0] } },
+        Faction.BeneGesserit => new Placement { Spice = 5, Forces = { [skin.Describe(game.Map.PolarSink)] = [1, 0] } },
         _ => throw new Exception($"no default placement for {faction}; list it under place"),
     };
 }
@@ -310,10 +348,10 @@ static bool Matches(Game game, Player p, Situation s)
     if (s.SpecialForcesOnPlanet == true && !p.ForcesOnPlanet.Any(kvp => kvp.Value.AmountOfSpecialForces > 0)) return false;
     if (s.HasAlly == true && !p.HasAlly) return false;
     if (s.Can != null && !Names(s.Can).All(c => Can(game, p, c))) return false;
-    if (s.AccompanyTargetsMin is int accompany && BlueAccompanies.ValidTargets(game, p).Count() < accompany) return false;
-    if (s.RideSourcesMin is int rideSources && YellowRidesMonster.ValidSources(game).Count() < rideSources) return false;
-    if (s.RideSourceWithBothTypes == true && !YellowRidesMonster.ValidSources(game).Any(l => p.ForcesIn(l) > 0 && p.SpecialForcesIn(l) > 0)) return false;
-    if (s.GreatMaker == true && !(YellowRidesMonster.ToRide(game)?.IsGreatMonster ?? false)) return false;
+    if (s.AccompanyTargetsMin is int accompany && BeneGesseritAccompanies.ValidTargets(game, p).Count() < accompany) return false;
+    if (s.RideSourcesMin is int rideSources && FremenRidesMonster.ValidSources(game).Count() < rideSources) return false;
+    if (s.RideSourceWithBothTypes == true && !FremenRidesMonster.ValidSources(game).Any(l => p.ForcesIn(l) > 0 && p.SpecialForcesIn(l) > 0)) return false;
+    if (s.GreatMaker == true && !(FremenRidesMonster.ToRide(game)?.IsGreatMonster ?? false)) return false;
     if (s.SpiceBlowOnMap == true && !(game.LatestSpiceCardA?.Location is { } blown && game.ResourcesOnPlanet.ContainsKey(blown))) return false;
     if (s.OlderSpicePilesMin is int piles && game.ResourcesOnPlanet.Count(kvp => kvp.Key != game.LatestSpiceCardA?.Location) < piles) return false;
     if (s.AnyOf != null && !s.AnyOf.Any(alternative => Matches(game, p, alternative))) return false;
@@ -327,6 +365,11 @@ static bool Can(Game game, Player p, string check) => check switch
     "move-to-ally" => AllyMoves(game, p).Any(),
     "ship-site-to-site" => Shipment.MayShipCrossPlanet(game, p),
     "face-down-leader" => p.Leaders.Any(game.IsFaceDownDead),
+    "atreides-secret-ally" => p.Nexus == Faction.Atreides && p.Faction != Faction.Atreides && NexusPlayed.IsApplicable(game, p),
+    "nexus-ecaz-betrayal" => p.Nexus == Faction.Ecaz && NexusPlayed.CanUseBetrayal(game, p) && NexusPlayed.IsApplicable(game, p),
+    "nexus-moritani-betrayal" => p.Nexus == Faction.Moritani && NexusPlayed.CanUseBetrayal(game, p) && NexusPlayed.IsApplicable(game, p),
+    "nexus-tleilaxu-location" => p.Nexus == Faction.Tleilaxu && NexusPlayed.CanUseSecretAlly(game, p) && NexusPlayed.IsApplicable(game, p) &&
+        NexusPlayed.MaySelectLocationForRevivedForces(game, p, NexusPlayed.ValidTleilaxuMaxAmount(game, p, true)),
     _ => throw new Exception($"unknown check '{check}' under can"),
 };
 
@@ -382,25 +425,25 @@ static IEnumerable<string> Hints(Game game, Player actor, Situation situation)
         foreach (var to in Retreat.ValidTargets(game, actor))
             yield return $"retreat to {skin.Describe(to)} {Center(game, to)}";
     }
-    if (asPlayer.Contains(typeof(PerformYellowSetup)))
+    if (asPlayer.Contains(typeof(PerformFremenSetup)))
         foreach (var l in new[] { game.Map.SietchTabr }.Concat(game.Map.FalseWallSouth.Locations).Concat(game.Map.FalseWallWest.Locations))
             yield return $"place in {skin.Describe(l)} {Center(game, l)}";
     if (asHost.Contains(typeof(PerformSetup)) && game.NextFactionToPerformCustomSetup == actor.Faction)
         yield return $"the host places {actor.Faction}: {Forces(actor.ForcesInReserve, actor.SpecialForcesInReserve)} in reserve";
-    if (asPlayer.Contains(typeof(YellowSentMonster)))
-        foreach (var t in YellowSentMonster.ValidTargets(game).Take(8))
+    if (asPlayer.Contains(typeof(FremenSentMonster)))
+        foreach (var t in FremenSentMonster.ValidTargets(game).Take(8))
             yield return $"worm in {skin.Describe(t)} {Center(game, t.MiddleLocation)}";
-    if (asPlayer.Contains(typeof(YellowRidesMonster)))
+    if (asPlayer.Contains(typeof(FremenRidesMonster)))
     {
-        var toRide = YellowRidesMonster.ToRide(game);
+        var toRide = FremenRidesMonster.ToRide(game);
         yield return $"{(toRide.IsGreatMonster ? "great maker" : "worm")} in {skin.Describe(toRide.Territory)}";
-        foreach (var from in YellowRidesMonster.ValidSources(game))
+        foreach (var from in FremenRidesMonster.ValidSources(game))
             yield return $"ride from {skin.Describe(from)} {Center(game, from)}: {Forces(actor.ForcesIn(from), actor.SpecialForcesIn(from))}";
-        foreach (var to in YellowRidesMonster.ValidTargets(game, actor).OrderByDescending(l => l.IsStronghold).Take(8))
+        foreach (var to in FremenRidesMonster.ValidTargets(game, actor).OrderByDescending(l => l.IsStronghold).Take(8))
             yield return $"ride to {skin.Describe(to)} {Center(game, to)}";
     }
-    if (asPlayer.Contains(typeof(BlueAccompanies)))
-        foreach (var to in BlueAccompanies.ValidTargets(game, actor))
+    if (asPlayer.Contains(typeof(BeneGesseritAccompanies)))
+        foreach (var to in BeneGesseritAccompanies.ValidTargets(game, actor))
             yield return $"accompany to {skin.Describe(to)} {Center(game, to)}";
     if (game.CurrentPhase == Phase.BlowReport && game.LatestSpiceCardA?.Location is { } blown)
         yield return $"latest blow in {skin.Describe(blown)} {Center(game, blown)}: {game.ResourcesOnPlanet.GetValueOrDefault(blown)} spice; the other piles are older";
@@ -456,14 +499,14 @@ static List<string> Names(JsonElement? e) => e switch
 
 static string ScriptPath([System.Runtime.CompilerServices.CallerFilePath] string path = "") => path;
 
-// Moves of advisors into a territory where Blue may choose to arrive as fighters or advisors.
+// Moves of advisors into a territory where BeneGesserit may choose to arrive as fighters or advisors.
 static IEnumerable<(Location from, Location to)> AdvisorMoves(Game game, Player p)
 {
     foreach (var from in p.ForcesOnPlanet.Keys.Where(l => !game.IsInStorm(l) && p.SpecialForcesIn(l) > 0))
     {
         var moved = new Battalion(p.Faction, 0, p.SpecialForcesIn(from), from);
         foreach (var to in PlacementEvent.ValidTargets(game, p, from, moved))
-            if (PlacementEvent.MayMoveAsAdvisors(game, p, to.Territory, true) && PlacementEvent.MayMoveAsBlueFighters(p, to.Territory))
+            if (PlacementEvent.MayMoveAsAdvisors(game, p, to.Territory, true) && PlacementEvent.MayMoveAsBeneGesseritFighters(p, to.Territory))
                 yield return (from, to);
     }
 }
@@ -490,6 +533,25 @@ static IEnumerable<(Location from, Location to)> ReinforceMoves(Game game, Playe
             if (to.Territory != from.Territory && p.AnyForcesIn(to) > 0 && !game.IsInStorm(to))
                 yield return (from, to);
     }
+}
+
+// "ally": the two factions offer each other an alliance whenever they may and aren't allied yet,
+// before the bots decide. Returns whether an offer was made.
+static bool OfferAlliance(Game game, List<string> pair)
+{
+    var (a, b) = (game.GetPlayer(ParseFaction(pair[0])), game.GetPlayer(ParseFaction(pair[1])));
+    if (a == null || b == null || a.Ally == b.Faction) return false;
+    foreach (var (from, to) in new[] { (a, b), (b, a) })
+    {
+        if (!game.GetApplicableEvents(from, false).Contains(typeof(AllianceOffered))) continue;
+        if (game.CurrentAllianceOffers.Any(o => o.Initiator == from.Faction && o.Target == to.Faction)) continue;
+        var offer = new AllianceOffered(game, from.Faction) { Target = to.Faction, Time = EventTime(game) };
+        if (offer.Validate() != null) continue;
+        var error = offer.Execute(false, true);
+        if (error != null) throw new Exception($"AllianceOffered: {error}");
+        return true;
+    }
+    return false;
 }
 
 static GameEvent? NextBotEvent(Game game, Dictionary<Faction, IBot> bots)
@@ -520,14 +582,16 @@ static GameEvent? NextBotEvent(Game game, Dictionary<Faction, IBot> bots)
 class Spec
 {
     public List<string> Rules { get; set; } = [];
-    public List<string> Factions { get; set; } = ["Green", "Black", "Red", "Orange", "Yellow", "Blue"];
+    public List<string> Factions { get; set; } = ["Atreides", "Harkonnen", "Emperor", "Guild", "Fremen", "BeneGesserit"];
     public int Players { get; set; } = 6;
     public int MaxTurns { get; set; } = 10;
     public int? Seed { get; set; }
     public int MaxAttempts { get; set; } = 200;
     public Situation Situation { get; set; } = new();
     public Dictionary<string, Placement>? Place { get; set; }
+    public List<string>? Deck { get; set; }
     public bool Handmade { get; set; }
+    public List<string>? Ally { get; set; }
 
     static readonly JsonSerializerOptions Options = new()
     {

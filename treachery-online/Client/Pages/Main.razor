@@ -90,71 +90,7 @@ else
     <TurnBanner/>
     <div @ref="@_element" class="row game-screen" style="@GameScreenStyle">
 
-        @if (!Client.IsObserver)
-        {
-            <!--Map Column-->
-            <div id="mapdiv" class="col-sm-12 col-lg-6">
-                <GameBoard OnLocationClick="@Client.LocationClick" />
-                @if (Client.UndoSession != null)
-                {
-                    <UndoTimeline/>
-                }
-                <MenuComponent/>
-            </div>
-
-            <!--Actions-->
-            <div class="col-sm-12 col-lg-3 side-column">
-                <GameStatusComponent CanEndPhase="@Client.Actions.Contains(typeof(EndPhase))" />
-                <ActionPanel/>
-            </div>
-            
-            <!--Menu, player panel and report-->
-            <div class="col-sm-12 col-lg-3 cursor-hand side-column">
-                <MenuPanels/>
-                @if (Client.CurrentPhase > Phase.TradingFactions)
-                {
-                    if (Client.Player.Faction is Faction.None)
-                    {
-                        foreach (var p in Client.Game.Players)
-                        {
-                            <PlayerPanel ShownPlayer="p" ShowHeader="true" />
-                        }    
-                    }
-                    else
-                    {
-                        <PlayerPanel ShownPlayer="Client.Player" />                        
-                    }
-                }
-                <ReportComponent/>
-            </div>
-        }
-        else
-        {
-            <div class="col-sm-12 col-lg-1"></div>
-            
-            <!--Map Column-->
-            <div id="mapdiv" class="col-sm-12 col-lg-6">
-                <GameBoard OnLocationClick="@Client.LocationClick" />
-                @if (Client.UndoSession != null)
-                {
-                    <UndoTimeline/>
-                }
-                <MenuComponent/>
-            </div>
-
-            <!--Actions-->
-            <div class="col-sm-12 col-lg-4 cursor-hand side-column">
-                <MenuPanels/>
-                <GameStatusComponent/>
-                <ActionPanel/>
-                <ReportComponent/>
-            </div>
-            
-            <!--Menu-->
-            <div class="col-sm-12 col-lg-1"></div>
-        }
-
-        <ImageFlashComponent  />
+        <GameColumns/>
 
     </div>
 }

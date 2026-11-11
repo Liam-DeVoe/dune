@@ -37,7 +37,12 @@ public class BattleRevision : GameEvent
     protected override void ExecuteConcreteEvent()
     {
         if (Game.CurrentBattle is null) throw new Exception("BattleRevision event executed when there is no current battle");
-        
+
+        var withdrawn = Game.CurrentBattle.PlanOf(Player);
+        if (Game.Version >= 188 && withdrawn != null)
+            foreach (var aspect in Battle.AspectsSeenByOpponent(Game, Player))
+                Game.PrescienceSeenPlans[aspect] = withdrawn;
+
         if (By(Game.CurrentBattle.Aggressor))
         {
             Game.PreviousAggressorPlan = Game.AggressorPlan;

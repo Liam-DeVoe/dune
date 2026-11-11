@@ -21,13 +21,13 @@ public class AmbassadorActivatedTests
     public void FremenAmbassadorOnlyAllowsVisibleAttachedLocations()
     {
         var game = new Game();
-        var player = new Player(game, Faction.Pink);
+        var player = new Player(game, Faction.Ecaz);
         game.Players.Add(player);
 
         var undiscoveredStronghold = game.Map.Jacurutu;
         var hiddenMobileStronghold = game.Map.HiddenMobileStronghold;
 
-        var targetsBeforeDiscovery = AmbassadorActivated.ValidYellowTargets(game, player).ToArray();
+        var targetsBeforeDiscovery = AmbassadorActivated.ValidFremenTargets(game, player).ToArray();
 
         Assert.IsFalse(targetsBeforeDiscovery.Contains(undiscoveredStronghold));
         Assert.IsFalse(targetsBeforeDiscovery.Contains(hiddenMobileStronghold));
@@ -35,7 +35,7 @@ public class AmbassadorActivatedTests
         undiscoveredStronghold.PointAt(game, game.Map.TheGreatFlat);
         hiddenMobileStronghold.PointAt(game, game.Map.Arrakeen);
 
-        var targetsAfterDiscovery = AmbassadorActivated.ValidYellowTargets(game, player).ToArray();
+        var targetsAfterDiscovery = AmbassadorActivated.ValidFremenTargets(game, player).ToArray();
 
         Assert.IsTrue(targetsAfterDiscovery.Contains(undiscoveredStronghold));
         Assert.IsTrue(targetsAfterDiscovery.Contains(hiddenMobileStronghold));

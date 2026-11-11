@@ -1,0 +1,88 @@
+@*
+ * Copyright (C) 2020-2025 Ronald Ossendrijver (admin@treachery.online)
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This
+ * program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have
+ * received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+*@
+@inherits GameComponent
+
+@*
+ After the host undoes, a toast at the bottom of the map offers to redo. Redo
+ puts the undone events back; × makes the undo permanent.
+
+ The toast goes as soon as anyone plays. The game itself still allows a redo
+ then, and a redo would throw away whatever was played since the undo, so the
+ offer must not outlive the moment right after the undo. Each undo makes a new
+ Game object, while playing adds to the History of the same one. So the toast
+ remembers the first Game it saw with undone events and that game's History
+ length, and shows only while both are unchanged.
+*@
+
+@if (Visible)
+{
+    <div class="redo-toast" role="status">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>
+        <div class="txt">
+            <div class="t">Undid @Game.RecentlyUndoneEventCount @(Game.RecentlyUndoneEventCount == 1 ? "event" : "events")</div>
+            <div class="d">Back at Turn @Game.CurrentTurn · @Client.CurrentSkin.Describe(Game.CurrentMainPhase)</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" disabled="@_busy" @onclick="Redo">Redo</button>
+        <button class="x" title="Keep the undo" disabled="@_busy" @onclick="Dismiss">×</button>
+    </div>
+}
+
+@code {
+
+    private Game? _undoneGame;
+    private int _historyCount = -1;
+    private bool _started;
+    private bool _busy;
+
+    private bool Visible
+    {
+        get
+        {
+            // Runs on every render. ShouldRender would miss games: Blazor skips it
+            // when a render is already queued, as when the undo panel closes and
+            // the undo lands in the same click.
+            Update();
+            if (!Client.IsHost || Client.UndoSession != null || Client.Game is not { } game) return false;
+            return game == _undoneGame && game.RecentlyUndoneEventCount > 0 && game.History.Count == _historyCount;
+        }
+    }
+
+    private void Update()
+    {
+        if (Client.Game is not { } game) return;
+
+        // The game already there when the page loads never gets a toast: if it has
+        // undone events, someone may have played since.
+        if (!_started)
+        {
+            _started = true;
+            _undoneGame = game;
+            return;
+        }
+
+        if (game == _undoneGame || game.RecentlyUndoneEventCount == 0) return;
+
+        _undoneGame = game;
+        _historyCount = game.History.Count;
+    }
+
+    private async Task Redo()
+    {
+        _busy = true;
+        await Client.RequestRestoreRecentlyUndone();
+        _busy = false;
+    }
+
+    private async Task Dismiss()
+    {
+        _busy = true;
+        await Client.RequestDismissRecentlyUndone();
+        _busy = false;
+    }
+}

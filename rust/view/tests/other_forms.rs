@@ -1,8 +1,8 @@
-//! The "other events" forms (client-plan.md package 7e, `src/actions/other.rs`).
+//! The "other events" forms (`src/actions/other.rs`).
 //!
 //! For every fixture state and every state of the sample bot and fuzz traces, for every player
-//! with one of these forms applicable, the form's options must equal the engine helpers the C#
-//! component calls (the inventory's "Action forms" table), its `draft` must be an event of the
+//! with one of these forms applicable, the form's options must equal the engine's helpers, its
+//! `draft` must be an event of the
 //! form's type, and the validation must be that draft's. In the fixture states, querying the
 //! form's own draft must return the same options and validation.
 
@@ -147,9 +147,6 @@ fn check(game: &Game, p: PlayerIndex, v: &ResolvedViewer, o: &ActionOptions, at:
             if let Some(f) = &o.ecaz_factions {
                 assert_eq!(targets(f), factions(NexusPlayed::valid_ecaz_factions(game)), "{at}");
             }
-        }
-        ActionOptions::PlayerReplaced(o) => {
-            assert_eq!(o.targets.iter().map(|t| t.faction.clone()).collect::<Vec<_>>(), factions(PlayerReplaced::valid_targets(game)), "{at}")
         }
         ActionOptions::ReplacedCardWon(_) | ActionOptions::StormSpellPlayed(_) | ActionOptions::RicheseAnnouncesAuction(_) | ActionOptions::RicheseKeepsUnsoldCard(_) => {}
         ActionOptions::ResourcesAudited(o) => assert_eq!(targets(&o.targets), factions(ResourcesAudited::valid_factions(game, p)), "{at}"),
@@ -400,7 +397,7 @@ fn dependent_inputs() {
     let view = r.view(fremen);
     let a = view.actions.iter().find(|a| a.event_type == "KarmaMonster").expect("KarmaMonster applicable");
     let Some(ActionOptions::KarmaMonster(o)) = &a.options else { panic!("KarmaMonster options") };
-    // C# parity: KarmaMonster.Validate accepts anything, even no territory.
+    // KarmaMonster's validation accepts anything, even no territory.
     assert_eq!(a.validation, None);
     let mut draft = o.draft.clone();
     draft["_territoryId"] = serde_json::json!(o.territories[0]);

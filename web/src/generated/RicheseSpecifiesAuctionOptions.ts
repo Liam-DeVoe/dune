@@ -2,7 +2,7 @@
 import type { EnumOption } from "./EnumOption";
 
 /**
- * `RicheseSpecifiesAuctionComponent`.
+ * The `RicheseSpecifiesAuction` form.
  */
 export type RicheseSpecifiesAuctionOptions = { 
 /**
@@ -18,6 +18,6 @@ maySpecifyType: boolean,
  */
 cards: Array<number>, 
 /**
- * Once Around and Silent, with the component's labels.
+ * Once Around and Silent, with the form's labels.
  */
 auctionTypes: Array<EnumOption>, draft: Record<string, unknown>, };

@@ -2,10 +2,10 @@
 import type { RevealableDiscovery } from "./RevealableDiscovery";
 
 /**
- * `DiscoveryRevealedComponent`.
+ * The `DiscoveryRevealed` form.
  */
 export type DiscoveryRevealedOptions = { locations: Array<RevealableDiscovery>, 
 /**
- * The draft with the inputs as the component shows them (see the module docs).
+ * The draft with the inputs as the form shows them (see the module docs).
  */
 draft: Record<string, unknown>, };

@@ -2,6 +2,6 @@
 import type { NotesPlayer } from "./NotesPlayer";
 
 /**
- * `NoteComponent.razor`: per other player, what notekeeping tracks.
+ * The notekeeping panel: per other player, what notekeeping tracks.
  */
 export type NotesView = { players: Array<NotesPlayer>, };

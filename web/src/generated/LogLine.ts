@@ -6,7 +6,7 @@ import type { Part } from "./Part";
 import type { Route } from "./Route";
 
 /**
- * A C# `Message` as the log shows it.
+ * A message as the log shows it.
  */
 export type LogLine = { 
 /**
@@ -22,8 +22,8 @@ private: boolean,
  */
 heading: string | null, 
 /**
- * `Message.Log`: the structured record a phase's log design draws from
- * (`Shared/Model/Log/`). Built in `log.rs`.
+ * The structured record a phase's log design draws from (`treachery_engine::log`). Built
+ * in `log.rs`.
  */
 record: LogRecord | null, 
 /**

@@ -3,14 +3,6 @@ import type { FaceDancedSource } from "./FaceDancedSource";
 
 export type FaceDancedOptions = { 
 /**
- * Always true: the form only places forces (the reveal is a separate `FaceDancerRevealed`).
- */
-placeOnly: boolean, 
-/**
- * `FaceDanced.MayCallFaceDancer(Game, Player)`.
- */
-mayCall: boolean, 
-/**
  * `FaceDanced.MaximumNumberOfForces(Game, Player)`.
  */
 maximumForces: number, forcesInReserve: number, 

@@ -3,12 +3,12 @@ import type { ForcesAt } from "./ForcesAt";
 import type { Part } from "./Part";
 
 /**
- * `PlacementComponent` and its subclasses `MoveComponent`, `CaravanComponent` and
- * `FremenRideComponent`, for the draft's forces and destination.
+ * The placement forms (`Move`, `Caravan` and `FremenRidesMonster`), for the draft's forces and
+ * destination.
  */
 export type PlacementOptions = { 
 /**
- * `FremenRideComponent.TitleMessage`; Move and Caravan have plain text headers.
+ * The heading of the `FremenRidesMonster` form; Move and Caravan have plain text headers.
  */
 title: Array<Part> | null, 
 /**
@@ -33,8 +33,8 @@ informAboutCaravan: boolean,
  */
 fromReserves: boolean, maxFromReserves: number, maxSpecialFromReserves: number, 
 /**
- * Bene Gesserit choose between fighters and advisors at the draft's destination
- * (`showAdvisorChoice`); when they can't, `asAdvisors` is the value the component forces.
+ * Bene Gesserit choose between fighters and advisors at the draft's destination; when they
+ * can't, `asAdvisors` is the value the form forces.
  */
 advisorChoice: boolean, asAdvisors: boolean, 
 /**
@@ -42,6 +42,6 @@ advisorChoice: boolean, asAdvisors: boolean,
  */
 conflictingAlly: boolean, 
 /**
- * The draft with the inputs as the component shows them (see the module docs).
+ * The draft with the inputs as the form shows them (see the module docs).
  */
 draft: Record<string, unknown>, };

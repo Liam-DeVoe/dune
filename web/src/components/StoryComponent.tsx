@@ -207,9 +207,9 @@ function PlayerInfo({ table: t }: { table: StoryTable }) {
                     : p.nexus !== null && <><img className="img-fluid p-1" width={60} src={tableImage(skin, p.nexus)} /><strong>*</strong></>}
                 </td>
               )}
-              {t.showCards && <td>{p.secret ? <h2>?</h2> : p.cards.map((c, i) => <CardImage key={i} id={c} width={80} />)}</td>}
+              {t.showCards && <td>{p.cards.map((c, i) => <CardImage key={i} id={c} width={80} />)}</td>}
               {t.showTraitors && (
-                <td>{p.secret ? <h2>?</h2> : p.traitors.map((x, i) => <HeroImage key={i} hero={x.hero} width={60} className="img-fluid p-1" greyedOut={x.discarded} />)}</td>
+                <td>{p.traitors.map((x, i) => <HeroImage key={i} hero={x.hero} width={60} className="img-fluid p-1" greyedOut={x.discarded} />)}</td>
               )}
               {t.showTechTokens && (
                 <td>

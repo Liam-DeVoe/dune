@@ -1,9 +1,7 @@
-//! Action forms of the battle area (client-plan.md, package 7b): the 25 components the
-//! inventory lists under "Action panel: battle". Each builder holds the results of the helpers
-//! its C# component calls (the "Action forms" table of client-inventory.md), and each default
-//! draft is the component's field initializers after its widgets have adjusted them: a required
-//! picker (`SelectFromImageComponent`, `RadioComponent`, `SelectComponent`) takes the first value
-//! when its value isn't one of the choices, and a number picker clamps into its range.
+//! Action forms of the battle area. Each builder holds the results of the engine helpers its form
+//! needs, and each default draft is the form's starting inputs after its widgets have adjusted
+//! them: a required picker (image choice, radio, select) takes the first value when its value
+//! isn't one of the choices, and a number picker clamps into its range.
 //!
 //! Option values that go into the event (enum members, ids) are sent as the numbers of the
 //! savegame format, with the member name for images and the skin's label for text, so the client
@@ -18,6 +16,7 @@ use crate::describe::Describer;
 use crate::expr;
 use crate::schema::*;
 use crate::shield::hero_ref;
+use super::widgets::draft_json;
 
 // ------------------------------------------------------------------------------------------
 // Dispatch.
@@ -205,8 +204,8 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Faction, t: GameE
             event(e)
         }
         GameEventType::TreacheryCalled => {
-            // ConfirmedResult: call. TreacheryCalledComponent is drawn only when the player may
-            // call; otherwise it passes for them.
+            // The form calls the traitor. It is shown only when the player may call; otherwise
+            // the client passes for them.
             let mut e = TreacheryCalled::new(game, faction);
             e.traitor_called = true;
             event(e)
@@ -222,8 +221,8 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Faction, t: GameE
 }
 
 /// The form's options for `draft` and the validation of the draft the form would send, or None
-/// when the draft is not one of this module's events. A battle plan draft is first adjusted as
-/// the C# form adjusts its inputs on every render (an invalid leader or card is dropped).
+/// when the draft is not one of this module's events. A battle plan draft is first adjusted the
+/// way the form adjusts its inputs (an invalid leader or card is dropped).
 pub fn options_and_validation(game: &Game, v: &ResolvedViewer, draft: &GameEvent, d: &dyn Describer) -> Option<(Option<ActionOptions>, Option<RichText>)> {
     if !TYPES.contains(&draft.event_type()) {
         return None;
@@ -308,11 +307,6 @@ pub fn options_and_validation(game: &Game, v: &ResolvedViewer, draft: &GameEvent
 // Helpers.
 // ------------------------------------------------------------------------------------------
 
-/// The event as savegame JSON, for the options' `draft`.
-fn draft_json(e: &GameEvent) -> serde_json::Value {
-    serde_json::from_str(&treachery_engine::json::serialize(e)).expect("the engine writes valid JSON")
-}
-
 fn d_none<'a>() -> Option<&'a dyn Describer> {
     None
 }
@@ -356,8 +350,8 @@ fn ordinal(a: &str, b: &str) -> std::cmp::Ordering {
     a.encode_utf16().cmp(b.encode_utf16())
 }
 
-/// `RetreatComponent.OnGameChanged`: everything that may retreat, trimmed to the total allowed,
-/// special forces first.
+/// The retreat form's starting inputs: everything that may retreat, trimmed to the total
+/// allowed, special forces first.
 fn retreat_defaults(game: &Game, p: PlayerIndex) -> (i32, i32) {
     let mut forces = Retreat::max_forces(game, p);
     let mut special = Retreat::max_special_forces(game, p);
@@ -376,8 +370,6 @@ fn face_danced_options(game: &Game, p: PlayerIndex, draft: serde_json::Value) ->
     let pl = game.player(p);
     let at = |l: Location| FaceDancedSource { location: l.id(), forces: pl.forces_in(Some(l)), special_forces: pl.special_forces_in(Some(l)) };
     FaceDancedOptions {
-        place_only: true,
-        may_call: FaceDanced::may_call_face_dancer(game, p),
         maximum_forces: FaceDanced::maximum_number_of_forces(game, p),
         forces_in_reserve: pl.forces_in_reserve(),
         territory: game.current_battle.as_ref().and_then(|b| b.territory(game)).map_or(-1, |t| t.id()),
@@ -406,7 +398,7 @@ fn loser_concluded_options(game: &Game, p: PlayerIndex, draft: serde_json::Value
     }
 }
 
-/// `BattleConcludedComponent.MyBattleAction`.
+/// The faction's own plan in the current battle.
 fn my_plan(game: &Game, faction: Faction) -> Option<Rc<Battle>> {
     let agg = game.aggressor_plan.as_ref()?;
     if agg.initiator() == faction {
@@ -449,9 +441,8 @@ fn battle_concluded_options(game: &Game, p: PlayerIndex, d: &dyn Describer, draf
     }
 }
 
-/// The parameters a `ClairVoyancePlayed` question may take (the `SelectComponent` values of
-/// `ClairVoyancePlayedComponent`), and the default ones for a question: each select takes its
-/// first value.
+/// The parameters a `ClairVoyancePlayed` question may take (the form's select values), and the
+/// default ones for a question: each select takes its first value.
 fn clairvoyance_lists(game: &Game, d: &dyn Describer) -> (Vec<BattleFormParam>, Vec<BattleFormParam>, Vec<BattleFormParam>, Vec<BattleFormParam>, Vec<BattleFormParam>) {
     let card_types = Voice::valid_types(game).into_iter().map(|t| BattleFormParam { value: t.to_string(), label: d.describe(&t.into()) }).collect();
     // Values: TraitorsInPlay ordered by name; labels: the names ordered (the same order).
@@ -519,12 +510,11 @@ fn clairvoyance_options(game: &Game, p: PlayerIndex, target: Faction, d: &dyn De
 }
 
 // ------------------------------------------------------------------------------------------
-// The battle plan (BattleComponent).
+// The battle plan.
 // ------------------------------------------------------------------------------------------
 
-/// `BattleComponent.OnInitialized` and the adjustments at the top of its render: the previous
-/// plan when one is valid and no plan is in yet, the token rows trimmed to the forces there, the
-/// first leader when one is required.
+/// The battle plan form's starting inputs: the previous plan when one is valid and no plan is in
+/// yet, the token rows trimmed to the forces there, the first leader when one is required.
 fn battle_default(game: &Game, p: PlayerIndex, faction: Faction) -> GameEvent {
     // ConfirmedResult sets every member; a fresh event's ids are 0, which are real objects.
     let mut e = Battle::new(game, faction);
@@ -561,7 +551,7 @@ fn battle_default(game: &Game, p: PlayerIndex, faction: Faction) -> GameEvent {
     event(e)
 }
 
-/// The adjustments `BattleComponent` makes to its inputs on every render, in its order.
+/// The adjustments the battle plan form makes to its inputs, in order.
 fn normalize_battle(game: &Game, p: PlayerIndex, e: &mut Battle) {
     let pl = game.player(p);
     let territory = game.current_battle.as_ref().and_then(|b| b.territory(game));
@@ -592,7 +582,7 @@ fn normalize_battle(game: &Game, p: PlayerIndex, e: &mut Battle) {
         e.messiah = false;
     }
     let max_banker = Battle::max_banker_boost(game, p, e.hero());
-    // SelectResourcesComponent clamps into [0, max] when it is drawn.
+    // The spice picker clamps into [0, max] when it is drawn.
     e.banker_bonus = if max_banker <= 0 { 0 } else { e.banker_bonus.clamp(0, max_banker) };
 }
 
@@ -600,7 +590,7 @@ fn messiah_available(game: &Game, p: PlayerIndex) -> bool {
     game.player(p).messiah_available(game) && !game.prevented(FactionAdvantage::AtreidesUseMessiah)
 }
 
-/// `BattleComponent.AllyCap`: only a CHOAM ally helps pay.
+/// How much the ally may pay: only a CHOAM ally helps pay.
 fn ally_cap(game: &Game, p: PlayerIndex) -> i32 {
     if game.player(p).ally == Faction::Choam {
         game.resources_your_ally_can_pay(p)
@@ -609,7 +599,8 @@ fn ally_cap(game: &Game, p: PlayerIndex) -> i32 {
     }
 }
 
-/// `BattleComponent.HalfAllowed`.
+/// Whether forces may be committed at half strength, which only applies when they must be paid
+/// for.
 fn half_allowed(game: &Game, p: PlayerIndex, special: bool) -> bool {
     if special {
         Battle::must_pay_for_special_forces_in_battle(game, p) && Battle::special_force_cost(game, p) > 0
@@ -618,7 +609,7 @@ fn half_allowed(game: &Game, p: PlayerIndex, special: bool) -> bool {
     }
 }
 
-/// `BattleComponent.Mixes`: every affordable way to commit the tokens.
+/// Every affordable way to commit the tokens.
 fn mixes(game: &Game, p: PlayerIndex, opponent: Faction, normal: i32, special: i32) -> Vec<(i32, i32, i32, i32, f32, i32)> {
     let half_s = half_allowed(game, p, true);
     let half_n = half_allowed(game, p, false);
@@ -661,7 +652,7 @@ fn side(game: &Game, p: PlayerIndex, aggressor: Faction, groups: Vec<BattleForce
     }
 }
 
-/// `BattleComponent.PrescienceNote`.
+/// The note on the battle plan form saying what of `plan` prescience shows.
 fn seen_note(game: &Game, faction: Faction, aspect: PrescienceAspect, plan: &Battle, show_everything: bool, d: &dyn Describer) -> BattleNote {
     let shown: Option<ExpressionElement> = match aspect {
         PrescienceAspect::Defense => plan.defense().filter(|c| show_everything || c.is_defense()).map(Into::into),

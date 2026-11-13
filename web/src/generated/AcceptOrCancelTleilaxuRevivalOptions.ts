@@ -3,7 +3,7 @@ import type { EarlyRevivalOffer } from "./EarlyRevivalOffer";
 import type { HeroOption } from "./HeroOption";
 
 /**
- * `AcceptOrCancelTleilaxuRevivalComponent`.
+ * The `AcceptOrCancelTleilaxuRevival` form.
  */
 export type AcceptOrCancelTleilaxuRevivalOptions = { 
 /**

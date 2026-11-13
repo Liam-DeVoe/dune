@@ -1,5 +1,5 @@
 //! `factionSheets`, `ruleLabels` and `recentMilestones` (view/src/skin_texts.rs): equal to what
-//! the skin and the engine give for the C# client's popovers and sounds, and the same for every
+//! the skin and the engine give for the client's popovers and sounds, and the same for every
 //! viewer.
 
 mod common;

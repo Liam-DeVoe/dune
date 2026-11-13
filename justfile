@@ -27,10 +27,6 @@ fixture *args:
 shots *args:
     uv run scripts/ui/shots.py {{args}}
 
-# Compare the web client with the C# client on every fixture and seat: `just compare`, `just compare alliance/Emperor`, `just compare --require side-column`. Writes design/compare/gallery.html.
-compare *args:
-    uv run scripts/ui/compare.py {{args}}
-
 # Serve the published client with the fixtures on http://127.0.0.1:8765 and print scene URLs to open by hand.
 serve *args:
     uv run scripts/ui/serve.py {{args}}

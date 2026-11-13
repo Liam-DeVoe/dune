@@ -1,15 +1,15 @@
 //! The data the web client's lobby and setup screens need outside any game view
-//! (`web/public/static/lobby.json`, package 8 of client-plan.md).
+//! (`web/public/static/lobby.json`).
 //!
-//! The lobby protocol mirrors the C# hub, so it carries enums as numbers (protocol.md,
-//! Encoding), while the skin and the view name them. This file gives the client, per enum it
-//! meets in the lobby, every member's name, number and `DefaultSkin` description. It also has
-//! the static tables the C# lobby screens call: `EstablishPlayers.AvailableFactions`,
+//! The lobby protocol carries enums as numbers (protocol.md, Encoding), while the skin and the
+//! view name them. This file gives the client, per enum it meets in the lobby, every member's
+//! name, number and `DefaultSkin` description. It also has the static tables the lobby screens
+//! need: `EstablishPlayers.AvailableFactions`,
 //! `GetMaximumNumberOfPlayers`, `GetMaximumNumberOfTurns`, `AvailableRuleGroups`,
 //! `Game.GetAvailableRulesets`, `Game.RulesetDefinition`, `Game.GetRulesInGroup` and
 //! `Game.LatestVersion`.
 //!
-//! Texts come from `DefaultSkin`, as the C# lobby shows them when no custom skin is stored.
+//! Texts come from `DefaultSkin`, which the lobby shows when no custom skin is stored.
 
 use std::collections::BTreeMap;
 
@@ -24,7 +24,7 @@ use ts_rs::TS;
 /// One enum member.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 pub struct EnumMember {
-    /// The C# member name, as the view and the skin JSON use it.
+    /// The member name, as the view and the skin JSON use it.
     pub name: String,
     /// The number the lobby protocol uses.
     pub value: i32,

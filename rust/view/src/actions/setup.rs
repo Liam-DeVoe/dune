@@ -1,6 +1,5 @@
-//! The setup forms (client-plan.md, package 8): `EstablishPlayersComponent` and
-//! `PerformSetupComponent`. Both are host actions (`Game.AddHostActions`), so a host without a
-//! seat acts as `Faction.None`, as the C# client's host does before factions exist.
+//! The setup forms, `EstablishPlayers` and `PerformSetup`. Both are host actions, so a host
+//! without a seat acts as `Faction::None`, as every host does before factions exist.
 
 use treachery_engine::events::GameEventType;
 use treachery_engine::prelude::*;
@@ -17,8 +16,8 @@ pub fn seatless_host_may_act(v: &ResolvedViewer, t: GameEventType) -> bool {
     v.is_host && t == GameEventType::EstablishPlayers
 }
 
-/// `EstablishPlayersComponent.Settings`'s initializer: six players, ten turns, every faction, the
-/// basic rules.
+/// The game settings the form starts from: six players, ten turns, every faction, the basic
+/// rules.
 fn initial_settings() -> GameSettings {
     let mut s = GameSettings::default();
     s.initial_rules = Some(Game::ruleset_definition().iter().find(|(r, _)| **r == Ruleset::BasicGame).map(|(_, rules)| rules.clone()).unwrap_or_default());
@@ -33,7 +32,7 @@ pub fn default_draft(game: &Game, faction: Faction, t: GameEventType) -> Option<
             e.settings = Some(Shared::new(initial_settings()));
             event(e)
         }
-        // PerformSetupComponent: no forces staged, `resources = 0`.
+        // No forces staged, no spice.
         GameEventType::PerformSetup => event(PerformSetup::new(game, faction)),
         _ => return None,
     })

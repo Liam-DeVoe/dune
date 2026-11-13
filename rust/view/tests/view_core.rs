@@ -1,7 +1,6 @@
-//! Package 1 of client-plan.md: the view fields that are not panels, field by field, on the
-//! savegame fixtures of `scripts/fixtures` and on states of the sample bot games (for the
-//! expansions the fixtures don't use). Each test names the C# component the field stands for and
-//! checks the field against the engine and against the C# component's gate.
+//! The view fields that are not panels, field by field, on the savegame fixtures of
+//! `scripts/fixtures` and on states of the sample bot games (for the expansions the fixtures
+//! don't use). Each test checks the field against the engine and against who may see it.
 
 mod common;
 
@@ -39,7 +38,7 @@ fn name<T: ToString>(v: T) -> String {
     v.to_string()
 }
 
-// ---- CardPiles.razor ----
+// ---- Card piles ----
 
 /// Deck counts, the discard pile's top, the latest spice cards and Richese's cache count are the
 /// same for everyone; the resource deck's top only under prescience during ship and move; Richese's
@@ -72,8 +71,8 @@ fn piles() {
     assert!(saw_latest);
 }
 
-/// `CardPiles.razor` and `PlayerPanel.razor:155`: Atreides (resource prescience) sees the top of the
-/// resource deck during ship and move, and nobody else does.
+/// Atreides (resource prescience) sees the top of the resource deck during ship and move, and
+/// nobody else does.
 #[test]
 fn resource_deck_top_under_prescience() {
     let mut r = load("ship", 0);
@@ -90,7 +89,7 @@ fn resource_deck_top_under_prescience() {
 
 /// `Rule.AssistedNotekeeping`: the discard pile shows every card, face down where the viewer
 /// doesn't know it (`Game.KnownCards`, which includes the ally's); the spice discard piles are
-/// shown whole; `NoteComponent` lists every other player's cards, known ones by id (the viewer's
+/// shown whole; the notes list every other player's cards, known ones by id (the viewer's
 /// own `Player.KnownCards` only), spice and victory points. Observers get none of it.
 #[test]
 fn notekeeping_shows_discard_piles_and_notes() {
@@ -136,7 +135,7 @@ fn notekeeping_shows_discard_piles_and_notes() {
     assert!(known_somewhere > 0 && unknown_somewhere > 0, "the fixture has known and unknown cards in hands");
 }
 
-// ---- Tanks.razor ----
+// ---- Tanks ----
 
 /// Forces killed, dead leaders in order of death, and the Messiah. A face-down leader is shown
 /// to its owner and to Tleilaxu; everyone else gets `null`.
@@ -181,7 +180,7 @@ fn tanks() {
     assert!(face_down > 0, "a fixture has a face-down leader in the tanks");
 }
 
-// ---- Players.razor (the ring) ----
+// ---- The ring of players ----
 
 #[test]
 fn ring() {
@@ -242,10 +241,10 @@ fn ring_homeworld_thresholds() {
     assert!(view.players.iter().any(|p| p.homeworlds.iter().any(|h| h.low_threshold && !h.high_threshold)));
 }
 
-// ---- PlayerPanel.razor ----
+// ---- The faction panel ----
 
-/// `CardPlays.Playable`: a card glows when an applicable action plays it, and opens every such
-/// action. Karma plays several actions.
+/// A card glows when an applicable action plays it, and opens every such action. Karma plays
+/// several actions.
 #[test]
 fn hand_cards_name_the_actions_that_play_them() {
     let mut r = load("karma-prescience-base", 0);
@@ -344,7 +343,7 @@ fn faction_panel_extras() {
     assert!(knowers >= 1);
 }
 
-// ---- GameStatusComponent.razor and ImageFlashComponent.razor ----
+// ---- The prompt and the card flash ----
 
 /// `Bid.PlayersToBid` with whose turn it is, in the bidding main phase only.
 #[test]
@@ -393,11 +392,11 @@ fn prompt_continue() {
     let host = r.game.players.iter().find(|p| p.seat == 0).unwrap().faction;
     let view = r.view(viewer_of(&r, host));
     let end = view.actions.iter().find(|a| a.event_type == "EndPhase").expect("the host may end the blow report");
-    assert_eq!(end.options, Some(ActionOptions::Simple { title: None, confirm_label: "Continue".into(), alert: false, dismiss_label: None, allow_auto_confirm: false }));
+    assert_eq!(end.options, Some(ActionOptions::Simple { title: None, confirm_label: "Continue".into(), alert: false, allow_auto_confirm: false }));
     assert_eq!(end.validation, None);
 }
 
-// ---- Bids.razor ----
+// ---- Bids ----
 
 #[test]
 fn bids_on_the_ring() {
@@ -428,7 +427,7 @@ fn silent_bids_are_ready() {
     }
 }
 
-// ---- BattlePlans.razor and BattlePlan.razor ----
+// ---- Battle plans ----
 
 /// Both plans in: everyone sees both, whole.
 #[test]
@@ -506,7 +505,7 @@ fn no_plans_outside_the_battle() {
     }
 }
 
-// ---- MapComponent, ForcesOnPlanet, ForcesInLocation, Planet, Monsters, RecentMoves ----
+// ---- The planet: forces, tokens, leaders, worms, recent moves ----
 
 #[test]
 fn board_basics() {
@@ -544,7 +543,7 @@ fn board_basics() {
     assert!(leaders > 0 && monsters > 0);
 }
 
-/// `RecentMoves.razor`: during ship and move, an arrow from each origin of each recent move to
+/// During ship and move, an arrow from each origin of each recent move to
 /// its destination, or along the path when it crosses the Polar Sink.
 #[test]
 fn recent_moves() {
@@ -630,7 +629,7 @@ fn expansion_tokens() {
     }
 }
 
-// ---- Phases.razor and the prompt's timer ----
+// ---- Times and the prompt's timer ----
 
 #[test]
 fn timing() {

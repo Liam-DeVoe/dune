@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "React client for the Rust server. See rust/docs/client-plan.md.",
+  "description": "React client for the Rust server. See rust/docs/client.md.",
   "scripts": {
     "dev": "npm run build:css && vite",
     "build": "npm run build:css && tsc -b && vite build",

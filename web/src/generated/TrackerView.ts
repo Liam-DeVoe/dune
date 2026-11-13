@@ -3,8 +3,8 @@ import type { HeroRef } from "./HeroRef";
 import type { TrackerPlayer } from "./TrackerPlayer";
 
 /**
- * `TrackerComponent.razor` and `AtreidesIntelligence.cs`: what Atreides's card tracker needs from
- * the game. The notes themselves stay in the browser (local storage), as in C#.
+ * What Atreides's card tracker needs from the game. The notes themselves stay in the browser
+ * (local storage).
  */
 export type TrackerView = { 
 /**

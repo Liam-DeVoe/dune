@@ -1,7 +1,6 @@
-//! Package 5 of client-plan.md, the side column's own view fields: `deals`, `tracker`,
-//! `botsSpeed`, `mentat`, the leaders' `skill`, the undo list's `listed`/`turn`/`phase` and the
-//! undo preview. Each test checks the field against the engine and the C# component's condition,
-//! and that no viewer gets what they may not see.
+//! The side column's own view fields: `deals`, `tracker`, `botsSpeed`, `mentat`, the leaders'
+//! `skill`, the undo list's `listed`/`turn`/`phase` and the undo preview. Each test checks the
+//! field against the engine, and that no viewer gets what they may not see.
 
 mod common;
 
@@ -55,7 +54,7 @@ fn offer_at(game: &Game, id: i32) -> Rc<treachery_engine::events::DealOffered> {
     }
 }
 
-// ---- DealComponent.razor, MenuComponent.razor (deal count), DealToasts.razor ----
+// ---- Deals (the panel, the menu's deal count, the toasts) ----
 
 /// Over every state of four fixtures with many offers: observers get no deals; a player gets
 /// exactly `AcceptableDeals` (offers addressed to them) and `CancellableDeals` (their own),
@@ -127,7 +126,7 @@ fn deals() {
     assert!(acceptable > 0 && refused > 0 && own > 0 && answered > 0 && current > 0, "{seen:?}");
 }
 
-// ---- TrackerComponent.razor (TradePopover.razor's condition) ----
+// ---- Atreides's card tracker ----
 
 /// Only Atreides gets the tracker, from `Phase.SelectingTraitors` on. Its contents are the
 /// engine's; the resource deck is a sorted set, so its order is not given away.
@@ -171,7 +170,7 @@ fn tracker() {
     assert!(shown > 0);
 }
 
-// ---- MenuComponent.razor: bot speed ----
+// ---- Bot speed ----
 
 /// `Participation.BotsSpeed`, the same for everyone, following the participation.
 #[test]
@@ -186,7 +185,7 @@ fn bots_speed() {
     }
 }
 
-// ---- MentatComponent.razor ("List of Cards") ----
+// ---- The menu's "List of Cards" ----
 
 /// The cards in play, from the engine, the same for every viewer; Richese's cards only when
 /// Richese plays.
@@ -211,7 +210,7 @@ fn mentat() {
     let _ = saw_richese;
 }
 
-// ---- PlayerPanel.razor: leader skills (popovers) ----
+// ---- Leader skills (popovers) ----
 
 /// `OwnLeader.skill` and the traitors' and face dancers' `skill` are `Game.Skill` of the leader.
 /// A skill is public once assigned (`SkillAssigned` logs it to everyone), so traitors may show
@@ -252,10 +251,10 @@ fn leader_skills() {
     let _ = traitors;
 }
 
-// ---- UndoComponent.razor, UndoTimeline.razor (RequestUndoList) ----
+// ---- The undo list (RequestUndoList) ----
 
-/// One entry per event, numbered by its place in the history, with `GetShortMessage`;
-/// `UndoSession.IsListed`; and `UndoSession.MomentOf(n)` = `Moments[n - 1]`.
+/// One entry per event, numbered by its place in the history, with its short message, whether
+/// the undo panel lists it, and the turn and phase from `moments[n - 1]`.
 #[test]
 fn undo_list() {
     for fx in ["blow", "retreat", "mc-ended"] {
@@ -286,7 +285,7 @@ fn undo_list() {
     }
 }
 
-// ---- UndoSession.Preview (RequestUndoPreview) ----
+// ---- The undo preview (RequestUndoPreview) ----
 
 fn without_actions(mut v: GameView) -> GameView {
     v.actions.clear();

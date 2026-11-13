@@ -4,7 +4,7 @@
 //!     UPDATE_TS_BINDINGS=1 cargo test -p treachery-view --test ts_bindings
 //!
 //! Struct and union types come from ts-rs. The engine's enums are open `i32` newtypes, so their
-//! TypeScript string unions (`enums.ts`) are written here from the C# member lists, and every
+//! TypeScript string unions (`enums.ts`) are written here from the engine's member lists, and every
 //! generated file gets an import of the enum names it uses.
 
 use std::collections::BTreeMap;
@@ -18,16 +18,15 @@ use ts_rs::{Config, TS};
 
 fn union<T: NetEnum>() -> String {
     let names: Vec<String> = T::INFO.declared.iter().map(|(n, _)| format!("\"{n}\"")).collect();
-    format!("/** C# `{}` members. */\nexport type {} = {};\n", T::INFO.name, T::INFO.name, names.join(" | "))
+    format!("/** `{}` members. */\nexport type {} = {};\n", T::INFO.name, T::INFO.name, names.join(" | "))
 }
 
 /// The numeric values of an enum's members: for events in savegame format (enums as numbers),
-/// and for the C# client's comparisons such as
-/// `CurrentPhase >= Phase.TradingFactions`.
+/// and for ordered comparisons such as `PhaseValue[view.phase] >= PhaseValue.TradingFactions`.
 fn values<T: NetEnum>() -> String {
     let entries: Vec<String> = T::INFO.declared.iter().map(|(n, v)| format!("  {n}: {v},")).collect();
     format!(
-        "/** C# `{}` member values. */\nexport const {}Value: Record<{}, number> = {{\n{}\n}};\n",
+        "/** `{}` member values. */\nexport const {}Value: Record<{}, number> = {{\n{}\n}};\n",
         T::INFO.name,
         T::INFO.name,
         T::INFO.name,
@@ -64,7 +63,7 @@ fn enums() -> (Vec<&'static str>, String) {
         ("NexusAllianceChange", union::<NexusAllianceChange>()),
         ("WinMethod", union::<WinMethod>()),
         ("BattleFactKind", union::<treachery_engine::messages::message::BattleFactKind>()),
-        // The ship-and-move forms (package 7c) put these in their drafts as numbers.
+        // The ship-and-move forms put these in their drafts as numbers.
         ("ShipmentType", union::<ShipmentType>() + &values::<ShipmentType>()),
         ("ShipmentPermission", union::<ShipmentPermission>() + &values::<ShipmentPermission>()),
     ];
@@ -83,7 +82,7 @@ fn generate() -> BTreeMap<String, String> {
     GameView::export_all(&cfg).unwrap();
     DraftResult::export_all(&cfg).unwrap();
     StaticData::export_all(&cfg).unwrap();
-    // The lobby's data (package 8), which web/src/lobby imports.
+    // The lobby's data, which web/src/lobby imports.
     treachery_view::lobby::LobbyData::export_all(&cfg).unwrap();
     let (names, enums_ts) = enums();
     let mut files = BTreeMap::new();

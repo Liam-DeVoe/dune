@@ -1,9 +1,8 @@
-// Routes. /scene/:fixture/:faction mirrors the C# client's /scene page: one game in a fixed state,
+// Routes. /scene/:fixture/:faction is one game in a fixed state,
 // seen by one faction. With the Rust server running with DevScene on, it opens that game on the
 // server (POST /dev/scene) and plays it over the WebSocket; without one, it renders the saved view
 // (web/public/views, written by rust/view/examples/scene_views.rs). /:userToken/:gameId reconnects
-// to a game on the server, as the C# client's second route. scene.ts gives the comparison harness
-// the same hooks as the C# scene page.
+// to a game on the server. scene.ts gives Playwright scripts hooks into the scene page.
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useParams } from "react-router";
@@ -81,8 +80,7 @@ function ServerGame() {
 }
 
 // The connection code, for scripts that set up games before opening them (the end-to-end test
-// web/tools/e2e-server.mjs logs in, creates and seats a game with it). The lobby screens are
-// client-plan.md package 8.
+// scripts/ui/e2e_server.py logs in, creates and seats a game with it).
 declare global {
   interface Window { treacheryClient?: { Connection: typeof Connection; login: typeof login; hashPassword: typeof hashPassword } }
 }

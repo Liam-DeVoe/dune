@@ -2,7 +2,7 @@
 import type { HeroOption } from "./HeroOption";
 
 /**
- * What a bot ally tells its human ally (`AllyPermissionComponent`, when `AlliedPlayer.IsBot`).
+ * What a bot ally tells its human ally, in the `AllyPermission` form.
  */
 export type BotAllyClaims = { ownsWeapon: boolean, ownsDefense: boolean, 
 /**

@@ -5,7 +5,7 @@ import type { Part } from "./Part";
 import type { SequenceEntry } from "./SequenceEntry";
 
 /**
- * The prompt card (`GameStatusComponent`): what is happening, who is expected to act.
+ * The prompt card: what is happening, who is expected to act.
  */
 export type StatusView = { 
 /**
@@ -26,12 +26,12 @@ waitingInSequence: Array<SequenceEntry>,
  */
 timedEventTime: string | null, 
 /**
- * `GameStatus.FlashInfo`: the images flashed after this event (`ImageFlashComponent`).
+ * `GameStatus.FlashInfo`: the images flashed after this event.
  */
 flash: Array<FlashView>, 
 /**
  * During the bidding main phase, `Bid.PlayersToBid` (or `BlackMarketBid.PlayersToBid` in
  * the black market phases): the bidders the prompt shows with their card counts
- * (`GameStatusComponent.razor:28-50`). Empty otherwise.
+ *. Empty otherwise.
  */
 toBid: Array<SequenceEntry>, };

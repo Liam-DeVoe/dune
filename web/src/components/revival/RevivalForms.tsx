@@ -1,6 +1,6 @@
-// The revival forms (client-plan.md package 7d), one per C# component in
-// Client/GameEventComponents. The options come from rust/view/src/actions/revival.rs; each form
-// keeps the server's adjusted draft (options.draft) and sends a draft query after every change.
+// The revival forms, one per event type. The options come from rust/view/src/actions/revival.rs;
+// each form keeps the server's adjusted draft (options.draft) and sends a draft query after every
+// change.
 import { useEffect, type MouseEvent } from "react";
 import type { ActionView } from "../../generated/ActionView";
 import type { Faction } from "../../generated/enums";

@@ -97,6 +97,8 @@ Step 4 of the plan changes behavior on purpose, for example a new random number 
    ```
 
    Patterns match the whole text with `*` as a wildcard. To accept a reworded message, list the old and the new text. View paths look like `/status/message` or `/actions/*/validation`, where `*` matches one segment. View rules apply once the game is recorded again with full views, which `live` does by itself for every failing game.
+
+   View rules don't scale to a change that shows up in every game. Recording a whole long game with full views takes more than the default 640 MB per game (2 GB wasn't enough for seed 1 bots game 3), so the reference ends with `memoryLimit` and the game fails. For a removed or renamed view field, build a temporary `observe` from the working tree with the old field put back, and run `live` with no allow file instead. The view cleanup of step 3b did that for `Simple.dismissLabel`, which every game's `EndPhase` form has.
 3. Once the change is accepted, freeze the new behavior: update the frozen copy (`~/treachery-native-ref/rust`, or a git tag) to include it, rebuild the reference, and run the full 200 + 200 games to confirm a clean pass. Keep the old `source.tar.gz` if you might need to go back. An allow file is only for the review, so drop it after the rebuild.
 
 ## Trace format

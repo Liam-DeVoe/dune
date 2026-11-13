@@ -1,4 +1,4 @@
-//! The setup forms (package 8): `EstablishPlayers` for a host without a seat, and the custom
+//! The setup forms: `EstablishPlayers` for a host without a seat, and the custom
 //! setup's `PerformSetup`.
 
 mod common;

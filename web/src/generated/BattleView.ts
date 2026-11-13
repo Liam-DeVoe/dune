@@ -8,6 +8,6 @@ import type { PlanView } from "./PlanView";
 export type BattleView = { territory: number | null, aggressor: Faction, defender: Faction, 
 /**
  * The aggressor's plan as this viewer may see it; null when hidden or not made yet, and
- * outside the battle main phase and during the battle report (`BattlePlans.razor:11`).
+ * outside the battle main phase and during the battle report.
  */
 aggressorPlan: PlanView | null, defenderPlan: PlanView | null, };

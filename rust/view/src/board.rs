@@ -1,7 +1,6 @@
-//! What the map shows (`MapComponents/*`): the planet, the ring of players, the card piles, the
-//! tanks, the bids and the battle plans. Each function names the razor component it stands for.
-//! A field that the C# client shows only to some viewers is filled only for them
-//! (protocol.md, Visibility).
+//! What the map shows: the planet, the ring of players, the card piles, the tanks, the bids and
+//! the battle plans. A field that only some viewers may see is filled only for them (protocol.md,
+//! Visibility).
 
 use treachery_engine::game::{FlashInfo, GameStatus};
 use treachery_engine::heroes::hero::Hero;
@@ -27,13 +26,12 @@ fn viewer_faction(v: &ResolvedViewer) -> Option<Faction> {
     v.player.and(v.faction)
 }
 
-/// `MapComponents/*` except the piles, tanks, bids and plans.
+/// The planet: everything on the map except the piles, tanks, bids and plans.
 pub fn board(game: &Game, status: &GameStatus, v: &ResolvedViewer) -> BoardView {
     let me = viewer_faction(v);
     let mut forces = Vec::new();
     for (location, battalions) in game.forces_on_planet_excluding_empty_locations(true).iter() {
         for b in battalions {
-            // ForcesInLocation.razor:22
             let threatened = game.get_player(Some(b.faction)).is_some_and(|p| game.threatened_by_ally_presence(p, location.territory()));
             forces.push(ForcesInLocation {
                 location: location.id(),
@@ -52,7 +50,7 @@ pub fn board(game: &Game, status: &GameStatus, v: &ResolvedViewer) -> BoardView 
         .filter_map(|a| a.attached_to_location(map).map(|to| AttachedLocationView { location: a.location().id(), attached_to: to.id(), sector: a.location().sector(map) }))
         .collect();
 
-    // ForcesInLocation.razor:44: every IHero with a state that is alive and stands somewhere.
+    // Every hero with a state that is alive and stands somewhere.
     let leaders = game
         .leader_state
         .iter()
@@ -60,7 +58,7 @@ pub fn board(game: &Game, status: &GameStatus, v: &ResolvedViewer) -> BoardView 
         .filter_map(|(h, s)| s.current_territory.map(|t| LeaderOnPlanet { hero: hero_ref(*h), territory: t.id() }))
         .collect();
 
-    // RecentMoves.razor: only during ship and move, and not for moves to a homeworld.
+    // Only during ship and move, and not for moves to a homeworld.
     let mut recent_moves = Vec::new();
     if game.current_main_phase == MainPhase::ShipmentAndMove {
         for m in &game.recent_moves {
@@ -127,14 +125,14 @@ pub fn board(game: &Game, status: &GameStatus, v: &ResolvedViewer) -> BoardView 
         special_strongholds: map.territories(true).filter(|t| game.is_special_stronghold(*t)).map(|t| t.id()).collect(),
         atomics_aftermath: game.atomics_aftermath.map(|t| t.id()),
         protected_from_storm: map.locations(false).filter(|l| game.is_protected_from_storm(*l)).map(|l| l.id()).collect(),
-        // MapComponent.razor:219: the value for Richese, "?" for everyone else.
+        // The value for Richese, "?" for everyone else.
         no_field_value: (me == Some(Faction::Richese)).then_some(game.current_no_field_value),
         storm_prescience_moves: game.has_storm_prescience(v.player).then_some(game.next_storm_moves),
         recent_moves,
     }
 }
 
-/// `Players.razor`: what the ring shows of each player beyond `build::public_player`.
+/// What the ring shows of each player beyond `build::public_player`.
 pub fn ring_extras(game: &Game, p: PlayerIndex, out: &mut PublicPlayer) {
     let pl = game.player(p);
     out.has_special_forces = pl.has_special_forces(game);
@@ -163,7 +161,7 @@ pub fn ring_extras(game: &Game, p: PlayerIndex, out: &mut PublicPlayer) {
     out.latest_revealed_no_field = (pl.faction == Faction::Richese && game.latest_revealed_no_field_value >= 0).then_some(game.latest_revealed_no_field_value);
 }
 
-/// `CardPiles.razor`.
+/// The card piles beside the map.
 pub fn piles(game: &Game, v: &ResolvedViewer) -> PilesView {
     let me = v.player;
     let notekeeping = game.assisted_note_keeping_enabled(me);
@@ -187,12 +185,12 @@ pub fn piles(game: &Game, v: &ResolvedViewer) -> PilesView {
         resource_discard_b: notekeeping.then(|| pile(&game.resource_card_discard_pile_b)),
         sand_trout: game.sand_trout_occured().then_some(game.sand_trout).flatten().map(|c| c.skin_id()),
         richese_cache_count: game.richese_cache.len() as i32,
-        // CardPiles.IntelOfRicheseCardPile: Client.Faction == Richese.
+        // Only Richese sees the cards of its cache.
         richese_cache: (viewer_faction(v) == Some(Faction::Richese)).then(|| game.richese_cache.iter().map(|c| c.id()).collect()),
     }
 }
 
-/// `Tanks.razor`.
+/// The tanks.
 pub fn tanks(game: &Game, v: &ResolvedViewer) -> Vec<TanksEntry> {
     let me = viewer_faction(v);
     // Tanks.MayIdentify: a face-down leader is known to its owner and to Tleilaxu.
@@ -225,7 +223,7 @@ pub fn tanks(game: &Game, v: &ResolvedViewer) -> Vec<TanksEntry> {
         .collect()
 }
 
-/// `Bids.razor`, during the bidding main phase, and the bidding panel's lot
+/// The bids on the map during the bidding main phase, and the bidding panel's lot
 /// (`actions/bidding.rs`).
 pub fn bidding(game: &Game, v: &ResolvedViewer) -> Option<BiddingView> {
     if game.current_main_phase != MainPhase::Bidding {
@@ -252,7 +250,7 @@ pub fn bidding(game: &Game, v: &ResolvedViewer) -> Option<BiddingView> {
     })
 }
 
-/// `BattlePlans.razor` and `BattlePlan.razor`.
+/// The current battle and the plans this viewer may see.
 pub fn battle(game: &Game, v: &ResolvedViewer) -> Option<BattleView> {
     let current = game.current_battle.clone()?;
     let aggressor = current.aggressor(game);
@@ -274,8 +272,8 @@ pub fn battle(game: &Game, v: &ResolvedViewer) -> Option<BattleView> {
     let sees_atreides_karma = game.atreides_karma && (me == Some(Faction::Atreides) || my_ally == Some(Faction::Atreides));
     let atreides_opponent = current.opponent_of_faction(game, Faction::Atreides);
     let both_in = game.aggressor_plan.is_some() && game.defender_plan.is_some();
-    // Partial prescience: C# draws it for every viewer (BattlePlans.razor:19-25). The view gives
-    // it to the prescience user and their ally only (protocol.md, Visibility, deviation 1).
+    // What prescience revealed goes to the prescience user and their ally only (protocol.md,
+    // Visibility).
     let on_side_of = |f: Faction| me == Some(f) || (my_ally == Some(f) && f != Faction::None);
     let affected_by_partial = |plan: &Battle| {
         let by = |initiator: Faction| current.opponent_of_faction(game, initiator) == Some(plan.player()) && on_side_of(initiator);
@@ -299,7 +297,7 @@ pub fn battle(game: &Game, v: &ResolvedViewer) -> Option<BattleView> {
     Some(view)
 }
 
-/// `BattlePlan.razor` for one plan.
+/// One plan as this viewer may see it.
 #[allow(clippy::too_many_arguments)]
 fn plan_view(
     game: &Game,
@@ -349,7 +347,7 @@ fn plan_view(
                 })
             }
             Some(Hero::TreacheryCard(c)) => Some(PlanHero::TreacheryCard { id: c.id() }),
-            // C# draws neither a leader nor a card for any other IHero.
+            // Any other hero is drawn as neither a leader nor a card.
             _ => None,
         }
     } else {
@@ -407,7 +405,7 @@ fn passive_skill_is_relevant_for_battle_plan(skill: LeaderSkill) -> bool {
     )
 }
 
-/// `GameStatusComponent.ToBid`: the bidders the prompt shows during the bidding main phase.
+/// The bidders the prompt shows during the bidding main phase.
 pub fn to_bid(game: &Game) -> Vec<SequenceEntry> {
     if game.current_main_phase != MainPhase::Bidding {
         return vec![];
@@ -433,7 +431,7 @@ pub fn flash(flashes: &[FlashInfo], d: &dyn Describer) -> Vec<FlashView> {
         .collect()
 }
 
-/// `Phases.razor`'s turn popover and the prompt's bidding timer.
+/// The times the turn popover shows, and the prompt's bidding timer.
 pub fn timing(game: &Game, timer: i32) -> TimingView {
     TimingView {
         started: game.started().to_json_string(),

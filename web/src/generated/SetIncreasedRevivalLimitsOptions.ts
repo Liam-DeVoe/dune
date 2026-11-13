@@ -2,7 +2,7 @@
 import type { FactionOption } from "./FactionOption";
 
 /**
- * `SetIncreasedRevivalLimitsComponent`.
+ * The `SetIncreasedRevivalLimits` form.
  */
 export type SetIncreasedRevivalLimitsOptions = { 
 /**

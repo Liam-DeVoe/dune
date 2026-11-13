@@ -1,12 +1,11 @@
 //! The log: report headers, report lines, and the structured records attached to messages.
 //!
-//! A C# message can carry, besides its expression, the data the report's designs draw from:
-//! `Message.Log` (a record of `Shared/Model/Log/`), `Route`, `Plans` and `Fact`. [`LogLine`]
-//! carries each as JSON in the shape of the C# record: C# property names in camelCase, enum
-//! values by member name, and game objects (locations, territories, heroes, cards, and the
-//! `object` fields) as rich-text [`Part`]s, so the client can draw them as `ExpressionComponent`
-//! would and knows their names. The C# reference serialises the same records by reflection
-//! (`rust/view/csharp-ref/LogLines.cs`), and `tests/log_lines.rs` compares the two.
+//! A message can carry, besides its expression, the data the report's designs draw from: its
+//! log record (`treachery_engine::log`), route, battle plans and battle fact. [`LogLine`]
+//! carries each as JSON: field names in camelCase, enum values by member name, and game objects
+//! (locations, territories, heroes, cards, and untyped fields) as rich-text [`Part`]s, so the
+//! client can draw them like any other rich text and knows their names. `tests/log_lines.rs`
+//! keeps snapshots of the lines.
 
 use serde::{Deserialize, Serialize};
 use treachery_engine::messages::expression::ExpressionElement;
@@ -26,10 +25,10 @@ fn name<T: ToString>(v: T) -> String {
     v.to_string()
 }
 
-/// `ReportComponent.razor`: every report header, and the lines of the latest phase, filtered by
-/// `m.Target == Faction.None || m.Target == Client.Faction`. `d` should hold the game
+/// The log: every report header, and the lines of the latest phase that the viewer may read
+/// (public ones and those sent to the viewer's faction). `d` should hold the game
 /// ([`crate::describe::InGame`]): old messages show the game's current contents of the
-/// collections they hold, as in the C# client.
+/// collections they hold.
 pub fn log_view(game: &Game, v: &ResolvedViewer, d: &dyn Describer) -> LogView {
     let reports = game.reports();
     let headers: Vec<ReportHeader> = reports
@@ -82,19 +81,18 @@ pub fn log_line(m: &Message, d: &dyn Describer) -> LogLine {
 // Records
 // ---------------------------------------------------------------------------------------------
 
-/// `Message.Log`: one record of `Shared/Model/Log/`, tagged by its C# type name. The comments
-/// are the C# ones, shortened; the C# files say more.
+/// A message's log record (`treachery_engine::log`), tagged by its type name.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(tag = "type", rename_all_fields = "camelCase")]
 pub enum LogRecord {
-    // AsideLog.cs
+    // Asides.
     /// A message that can happen in any phase, drawn as an aside.
     AsideLog {
         #[ts(type = "AsideKind")]
         kind: String,
     },
 
-    // BiddingLog.cs
+    // Bidding.
     /// "N cards were drawn for bidding".
     BiddingDrawn { count: i32 },
     /// The treachery discard pile shuffled into a new deck.
@@ -125,7 +123,7 @@ pub enum LogRecord {
     /// Everyone passed on `cardNumber`; bidding ends.
     BiddingPassedByAll { card_number: i32 },
 
-    // BlowLog.cs
+    // Spice blow.
     /// The heading over one spice deck's lines ("A" or "B").
     BlowDeckLog { deck: String },
     /// A spice card came up: `amount` spice in `location`, or lost to the storm.
@@ -161,7 +159,7 @@ pub enum LogRecord {
     /// A line of the Nexus that follows a worm.
     NexusLog { ride: Option<NexusRide>, alliance: Option<NexusAlliance> },
 
-    // CharityLog.cs
+    // Charity.
     /// A faction claiming CHOAM Charity.
     CharityClaim {
         #[ts(type = "Faction")]
@@ -169,7 +167,7 @@ pub enum LogRecord {
         amount: i32,
     },
 
-    // CollectionLog.cs
+    // Spice collection.
     /// A faction collecting spice. `field` is null for a divided collection.
     SpiceCollected {
         #[ts(type = "Faction")]
@@ -180,7 +178,7 @@ pub enum LogRecord {
         income: bool,
     },
 
-    // MentatLog.cs
+    // Mentat.
     /// A faction moving the bribes it received into its reserves.
     BribesCollected {
         #[ts(type = "Faction")]
@@ -203,7 +201,7 @@ pub enum LogRecord {
         faction: String,
     },
 
-    // RevivalLog.cs
+    // Revival.
     /// One faction reviving: what came back and what it cost.
     RevivalRow {
         #[ts(type = "Faction")]
@@ -220,7 +218,7 @@ pub enum LogRecord {
         tleilaxu_income: i32,
     },
 
-    // ShipMoveLog.cs
+    // Ship and move.
     /// A faction's shipment, or its pass.
     ShipLogged {
         #[ts(type = "Faction")]
@@ -259,8 +257,8 @@ pub enum LogRecord {
         #[ts(type = "Faction")]
         faction: String,
     },
-    /// The Bene Gesserit answering another faction's shipment or move. `place` is the C#
-    /// `object` (a location or a territory).
+    /// The Bene Gesserit answering another faction's shipment or move. `place` is a location or
+    /// a territory.
     BeneGesseritReaction {
         #[ts(type = "BeneGesseritReactionKind")]
         kind: String,
@@ -279,7 +277,7 @@ pub enum LogRecord {
     /// The Guild delayed their turn.
     GuildDelayed {},
 
-    // StormLog.cs
+    // Storm.
     /// The two storm dials, in the order they were logged.
     StormDials {
         #[ts(type = "Faction")]
@@ -327,55 +325,6 @@ pub enum LogRecord {
     /// Bene Gesserit advisors flipping to fighters because they are alone.
     BeneGesseritFlipped { territory: Part },
 }
-
-/// The C# type names [`LogRecord`] covers. `tests/log_lines.rs` checks this against the
-/// records declared in `Shared/Model/Log/`.
-pub const RECORD_TYPES: &[&str] = &[
-    "AsideLog",
-    "BiddingDrawn",
-    "TreacheryReshuffled",
-    "BiddingSkipped",
-    "CardSold",
-    "CardWonShown",
-    "ExtraCardReceived",
-    "ExtraCardShown",
-    "BiddingPassedByAll",
-    "BlowDeckLog",
-    "BlowCardLog",
-    "WormAppearedLog",
-    "WormSentLog",
-    "WormDevouredForcesLog",
-    "WormSurvivedLog",
-    "WormDevouredSpiceLog",
-    "WormIgnoredLog",
-    "BlowReshuffleLog",
-    "NexusLog",
-    "CharityClaim",
-    "SpiceCollected",
-    "BribesCollected",
-    "WinReason",
-    "GameEnded",
-    "GameWinner",
-    "RevivalRow",
-    "ShipLogged",
-    "MoveLogged",
-    "MovePassed",
-    "BeneGesseritReaction",
-    "ShipMoveLoss",
-    "GuildDelayed",
-    "StormDials",
-    "StormPlaced",
-    "StormForecast",
-    "StormMoved",
-    "StormKilled",
-    "StormDestroyedSpice",
-    "FamilyAtomicsUsed",
-    "FamilyAtomicsKilled",
-    "BeneGesseritFlipped",
-];
-
-/// The records that only occur inside other records.
-pub const NESTED_RECORD_TYPES: &[&str] = &["BidShare", "NexusAlliance", "NexusRide"];
 
 /// Part of a card's price paid by someone other than the winner.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
@@ -449,7 +398,7 @@ pub struct PlanSummary {
 }
 
 /// `Message.Fact`: one fact of a battle's outcome. Only the fields its kind describes are set
-/// (see `BattleFactKind` in `Shared/Model/Message.cs`).
+/// (see `BattleFactKind`).
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct BattleFact {
@@ -459,7 +408,7 @@ pub struct BattleFact {
     pub faction: String,
     pub strength: f32,
     pub hero: Option<Part>,
-    /// The C# `object` field: what killed the hero (a card, or the text "Treachery").
+    /// What killed the hero (a card, or the text "Treachery").
     pub cause: Option<RichText>,
     pub value: i32,
     pub forces: i32,
@@ -484,7 +433,7 @@ fn card(v: TreacheryCard, d: &dyn Describer) -> Part {
     hero(Hero::TreacheryCard(v), d)
 }
 
-/// A C# `object` field: null, or the element as `ExpressionComponent` draws it.
+/// An untyped field: null, or the element as rich text.
 fn object(v: &ExpressionElement, d: &dyn Describer) -> Option<RichText> {
     if matches!(v, ExpressionElement::Null) {
         return None;

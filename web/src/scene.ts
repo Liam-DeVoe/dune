@@ -1,5 +1,4 @@
-// The hooks the comparison harness (scripts/ui/compare.py) drives the /scene route with. They are
-// the same as the C# client's wwwroot/js/scene.js, so one harness drives both clients:
+// Hooks for Playwright scripts that drive the /scene route (scripts/ui/e2e_server.py, screenshots):
 //
 //   <html data-scene="loading|ready|error">   ready once the scene has rendered
 //   <html class="scene-still">                 transitions and animations off (the C# _scene.scss rule)
@@ -70,7 +69,7 @@ if (onScene) {
   window.treacheryScene = {
     error: null,
     locations: {},
-    click: () => Promise.reject(new Error("the web client has no board yet (client-plan.md package 4)")),
+    click: () => Promise.reject(new Error("the web client has no board yet (client.md package 4)")),
     async button(label) {
       if (!pressButton(label)) throw new Error(`No visible button labelled '${label}'.`);
       await settled();

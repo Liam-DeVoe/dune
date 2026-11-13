@@ -1,8 +1,7 @@
-//! Package 7a: the bidding panel (`BiddingPanel.razor`, `NormalBiddingPanel`,
-//! `BlackMarketBiddingPanel`). Over every state of every fixture and sample bot game where a
-//! player may bid, the `Bid` and `BlackMarketBid` options equal the engine's helpers (the ports
-//! of the C# helpers the panels call), the default draft is the panel's starting input, and the
-//! lot (`bidding.panel`) shows the card exactly to the players the C# panel shows it to.
+//! The bidding panel. Over every state of every fixture and sample bot game where a player may
+//! bid, the `Bid` and `BlackMarketBid` options equal the engine's helpers, the default draft is
+//! the panel's starting input, and the lot (`bidding.panel`) shows the card exactly to the
+//! players who may see it.
 
 mod common;
 
@@ -28,8 +27,8 @@ fn silent(game: &Game) -> bool {
     matches!(game.current_auction_type, AuctionType::BlackMarketSilent | AuctionType::RicheseSilent)
 }
 
-/// `BiddingPanel.OnParametersSetAsync`, then the pickers' clamps, written out from the razor
-/// file independently of `actions/bidding.rs`.
+/// The panel's starting amounts, then the pickers' clamps, written out independently of
+/// `actions/bidding.rs`.
 fn expected_defaults(game: &Game, p: PlayerIndex, max_amount: i32, max_ally: i32) -> (i32, i32) {
     let pl = game.player(p);
     let (mut amount, mut ally) = (0, 0);
@@ -57,7 +56,7 @@ struct Seen {
     emperor_pays: usize,
     visible_cards: usize,
     hidden_cards: usize,
-    /// Observer lots checked (deviation 5).
+    /// Observer lots checked.
     observer_panels: usize,
 }
 
@@ -144,8 +143,7 @@ fn check_state(game: &mut Game, d: &dyn treachery_view::describe::Describer, see
     for viewer in players.iter().map(|p| Some(*p)).chain([None]) {
         let v = resolved(game, viewer);
         let panel = actions::bidding::panel(game, &v);
-        // Observers get the panel of a player without prescience (deviation 5; the C# one throws
-        // for them).
+        // Observers get the panel of a player without prescience.
         assert_eq!(panel.is_some(), in_panel, "{at}");
         let Some(panel) = panel else { continue };
         assert_eq!(panel.black_market, game.current_phase == Phase::BlackMarketBidding);
@@ -237,9 +235,8 @@ fn bid_fixture_view() {
         }
     }
     assert_eq!(bidders, 1, "one bidder at a time in a normal auction");
-    // The C# panel throws for observers (HasBiddingPrescience(null)). They get the lot of a
-    // player without prescience instead (deviation 5): the card back, "card n of m", the bid, and
-    // no Bid action.
+    // Observers get the lot of a player without prescience: the card back, "card n of m", the
+    // bid, and no Bid action.
     let view = r.view(OBSERVER);
     let panel = view.bidding.unwrap().panel.expect("observer's bidding panel");
     assert_eq!(panel.card, None);

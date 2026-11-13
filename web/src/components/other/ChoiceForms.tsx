@@ -196,22 +196,6 @@ export function FactionTradeOfferedForm(p: FormProps) {
   );
 }
 
-// PlayerReplacedComponent (host only), collapsed at first.
-export function PlayerReplacedForm({ action, inPopover = false }: FormProps) {
-  const { skin } = useGame();
-  const { options: o, draft, validation, update, submit, error } = useOtherDraft(action, "PlayerReplaced");
-  if (!o) return null;
-  const value = num(draft.ToReplace);
-  const isBot = o.targets.find((t) => t.value === value)?.isBot ?? false;
-  return (
-    <Layout type="PlayerReplaced" header="Replace a player with a Bot (or vice versa)" startCollapsed inPopover={inPopover}>
-      <SelectFromImage values={factionChoices(skin, o.targets)} value={value} onChange={(v) => update({ ToReplace: v ?? 0 })} imageWidth={40} />
-      <ButtonRow confirm={() => submit()} confirmText={isBot ? "Replace by a human" : "Replace by a bot"} confirmError={validation} />
-      <SubmitError error={error} />
-    </Layout>
-  );
-}
-
 // DistransUsedComponent: a faction and a card.
 export function DistransUsedForm({ action, inPopover = false }: FormProps) {
   const { skin } = useGame();

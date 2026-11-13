@@ -11,7 +11,6 @@ so design work can be reviewed from screenshots and reproduced later.
 | `ui/shots.py` | Serves a published client, drives the scenarios in `ui/scenarios/` in parallel, writes PNGs under `design/` |
 | `ui/gallery.py` | Writes `design/<area>/gallery.html` pairing every before and after shot by name |
 | `ui/serve.py` | Serves a published client with the fixtures on a fixed port, for looking at a scene by hand |
-| `ui/compare.py` | Compares the new web client (`web/`) with this client on every fixture and seat, and writes `design/compare/gallery.html` (`just compare`; see [Comparing with the web client](#comparing-with-the-web-client)) |
 
 No game server is involved. The client has a `/scene` page that loads a
 fixture over HTTP, seats one faction and renders the in-game screen, with
@@ -156,123 +155,6 @@ by hand from `worm-ride.json` by adding rule 105 and has no generator.
 Every fixture is at the latest game version; the engine loads no other. The
 reskin screenshots in `design/before` and `design/after` were also taken
 by hand, not by a scenario.
-
-## Comparing with the web client
-
-The React client in `web/` must look like this one (`rust/docs/client-plan.md`, "Comparing
-with the C# client"). `just compare` checks that, scene by scene:
-
-```sh
-just compare                          # every fixture, each faction in it plus an observer; about 40 minutes
-just compare alliance mc-ended        # the scenes of two fixtures
-just compare alliance/Emperor             # one scene
-just compare --no-build alliance/Emperor  # skip the three builds below
-just compare --require side-column    # exit 1 unless every scene matches in that region
-just compare --list
-```
-
-It first builds both clients and the views, in parallel, into a new directory
-`/tmp/treachery-compare/builds/<time>-<pid>`: it publishes this client to `csharp/`, builds
-`web/` to `web/` (without the type check, so a type error elsewhere does not stop a
-comparison), and runs `rust/view/examples/scene_views.rs`, which writes the view of every
-scene to `views/` with a manifest. When all three succeed, `/tmp/treachery-compare/current`
-points to the new build. `--no-build` uses the build `current` points to, so if the view crate
-does not build because someone is in the middle of a change, `--no-build` compares the
-previous build.
-
-A run keeps using the build it started with, even when another agent's build replaces
-`current` in the meantime, so agents can compare at the same time without a private work
-directory. A build is deleted once it is neither `current` nor used by a running comparison.
-
-For each scene and for two viewports, desktop (1440×820) and phone (390×844), it opens this
-client's `/scene?fixture=alliance&faction=emperor` and the web client's `/scene/alliance/Emperor`. The
-web client renders the view of that scene. The scene page takes `faction=observer` for a
-non-host observer. Both pages are shot in full, and these regions are compared:
-
-| Region | Selector |
-|---|---|
-| page | the whole document |
-| turn-banner | `.turn-banner` |
-| board | `#mapdiv` |
-| side-column | `.side-column` |
-| player-panel | `.side-column .card:has(.player-panel)` |
-| prompt | `.side-column .act-stack` |
-| log | `.side-column .report` |
-| card-play | `.card-play-pop` (the panel a playable card in the hand opens) |
-
-A region matches when its DOM digests are equal and at most 0.05% of its pixels differ by
-more than 24 in a channel. The DOM digest lists every visible element with its tag, classes,
-image source, title and own text, so its diff names a missing chip or a wrong label. A region
-neither client shows counts as a match. `--self-check` compares this client with itself,
-which must match everywhere. It tests the harness and the masks.
-
-Both pages see the same fixed time (1 January 2027), so the clocks agree, and animated GIFs
-are served as their first frame. Animations and transitions are off.
-
-Four differences are expected (`rust/docs/protocol.md`, "Visibility"). In three, this client
-shows hidden information that the web client leaves out. In the fourth, this client's bidding
-panel crashes for an observer and Blazor's error bar covers the bottom of the page, where the
-web client shows no bidding panel. They are masked: painted magenta in both shots, and the
-elements inside a mask are left out of both digests without a trace. The masks are `MASKS` in `compare.py`,
-and `scene_views.rs` decides which apply to each scene.
-
-Each run writes its results to its own directory, `design/compare/runs/<time>-<pid>`, so
-agents comparing at the same time don't overwrite each other. `--out DIR` (or `COMPARE_OUT`)
-picks another directory. The run prints its directory when it starts. When it ends, it prints a
-table of matches per region and then every comparison that did not match, with the
-regions that differ per viewport and the path of the scene's page:
-
-```
-2 of 5 comparisons do not match:
-  move/Fremen                          desktop: board differs (1.20% px, DOM), page differs (0.40% px); phone: board only in C#
-                                       design/compare/runs/20261110-202233-46455/move/Fremen/index.html
-```
-
-`--require` checks only the current run's results.
-
-In the run's directory, `gallery.html` has one matrix per region and viewport, with a square
-per scene. Each square links to the scene's page, which shows both shots, the differing pixels
-and the DOM diff. `results.json` holds the same data for scripts.
-
-`design/compare/gallery.html` and `results.json` are shared. They hold the latest result of
-every scene across all runs and link into the run directories. A run of every scene replaces
-them, and a partial run replaces only the scenes it compared. Runs merge into them one at a time
-under a lock, and the files are replaced by rename, so a reader never sees half a file. Only
-runs under `design/compare/runs` are merged in. A run with `--out` elsewhere or with
-`--self-check` is not.
-
-The newest 20 run directories are kept. An older one is deleted once the shared gallery no
-longer links to it, which is when later runs have compared all of its scenes again. A run still
-in progress is never deleted. Directories named `design/compare/<fixture>` are from before run
-directories existed, and the shared gallery links to them until those scenes are compared again.
-
-Scripted comparisons in `ui/comparisons/` drive both clients through the same clicks, for
-screens that need input to reach:
-
-```python
-"""Passing on alliances."""
-
-def run(c):
-    with c.scene("alliance", "Emperor") as s:   # viewport="phone" for the phone
-        s.shot("start")
-        s.button("Pass")
-        s.shot("passed")
-```
-
-`s.click(location)`, `s.button(label, within=None)` and `s.click_on(selector)` (a Playwright
-selector that holds in both clients) act on both pages. `s.shot(name)`
-compares them and becomes `<file>:<name>` in the gallery. Map clicks fail in the web client
-until it has a board.
-
-The saved views can't answer a draft query or take an event, so a web page on them can't
-change a form that asks the server (a battle plan's leader, Clairvoyance's question) or advance
-after a confirm. `c.scene(fixture, faction, server=True)` opens the web side on the Rust server
-instead (`ui/scene_server.py`: `treachery-server` with `DevScene` on, serving the web build), where
-the same `/scene/<fixture>/<Faction>` route plays the scene over the WebSocket, as the C# scene
-page plays it in the browser. `comparisons/battle-plan.py` and `battle-clairvoyance.py` work this
-way. `just compare --server ...` does the same for every scene. That matters for forms that
-submit by themselves when they appear, as C# does: in `mc-treachery/Emperor` the Emperor, who can't
-call treachery, passes at once in C#, and only a server lets the web client do the same.
 
 ## Troubleshooting
 

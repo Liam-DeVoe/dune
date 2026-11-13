@@ -3,7 +3,7 @@
 export type DeadLeader = { 
 /**
  * The leader, or null for a face-down leader the viewer may not identify (only its owner
- * and Tleilaxu may: `Tanks.razor`, `MayIdentify`).
+ * and Tleilaxu may).
  */
 id: number | null, 
 /**

@@ -2,7 +2,7 @@
 import type { FactionOption } from "./FactionOption";
 
 /**
- * `KarmaRevivalPreventionComponent`.
+ * The `KarmaRevivalPrevention` form.
  */
 export type KarmaRevivalPreventionOptions = { 
 /**

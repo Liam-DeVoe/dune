@@ -152,7 +152,7 @@ Many agents build the same workspace, so one agent's half-finished edit blocks e
 
 - Build and test with `--release` only (`check.sh` does). A debug build doubles `rust/target` and disk is tight.
 - `HEAVY_SLOTS=4` (slots 3–4) is for single-game repros and runs of a few seconds to a minute only. Screenshot comparisons over more than one fixture go through the normal two slots.
-- Screenshot comparisons (`compare.py`, `just compare`) are heavy runs too: run them through `rust/tools/heavy.sh`, with `--workers 2` at most. Each worker drives two browsers, and memory is the limit.
+- Screenshot runs over many fixtures (`just shots`) are heavy runs too: run them through `rust/tools/heavy.sh`, with `--workers 2` at most. Memory is the limit.
 
 ## Bot porting runs (2026-11-11)
 

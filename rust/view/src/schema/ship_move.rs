@@ -1,10 +1,10 @@
-//! Payloads of the ship-and-move forms (client-plan.md package 7c), the `ActionOptions`
-//! variants built in `actions/ship_move.rs`. Location and territory ids are the engine's; a
-//! territory pick lists every sector of each territory, as `MapPickComponent.SectorsOf` does.
+//! Payloads of the ship-and-move forms, the `ActionOptions` variants built in
+//! `actions/ship_move.rs`. Location and territory ids are the engine's; a territory pick lists
+//! every sector of each territory.
 //!
-//! As in packages 7b, 7d and 7e, every form carries `draft`: the event the form sends with its
-//! current inputs, in savegame JSON, after the server has adjusted the inputs the way the C#
-//! component does while it renders (a No-Field, smuggled force, Karama card or ally payment that
+//! As in the other areas, every form carries `draft`: the event the form sends with its current
+//! inputs, in savegame JSON, after the server has adjusted the inputs the way the form does (a
+//! No-Field, smuggled force, Karama card or ally payment that
 //! no longer applies is dropped, the Bene Gesserit advisor flag follows the destination, a
 //! required choice falls back to its first value). The validation next to the options is that
 //! draft's. The client shows these values and sends its next draft from them.
@@ -49,7 +49,7 @@ pub struct KarmaChoice {
     pub own: bool,
 }
 
-/// `ShipmentComponent`, for the draft's shipment type, source, destination and No-Field.
+/// The `Shipment` form, for the draft's shipment type, source, destination and No-Field.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct ShipmentOptions {
@@ -57,15 +57,14 @@ pub struct ShipmentOptions {
     pub may_ship_cross_planet: bool,
     /// `Shipment.MayShipToReserves(Game, Player)`.
     pub may_ship_to_reserves: bool,
-    /// The component's `PreventedFromShipping`: Karama stops this (non-Fremen) faction, and it
-    /// may not ship cross-planet.
+    /// Karama stops this (non-Fremen) faction from shipping, and it may not ship cross-planet.
     pub prevented_from_shipping: bool,
     /// `Shipment.ValidSourceLocations` when site-to-site or back-to-reserves shipping is allowed.
     pub sources: Vec<ForcesAt>,
     /// `Shipment.ValidShipmentLocations` for the draft's type (none for back to reserves).
     pub targets: Vec<i32>,
-    /// `ValidShipmentForces` and `ValidShipmentSpecialForces` of the component: the
-    /// `ValidMax*ShipmentForces` helper for the draft's type, No-Field and source.
+    /// The `Shipment::valid_max_*_shipment_forces` helper for the draft's type, No-Field and
+    /// source.
     pub max_forces: i32,
     pub max_special_forces: i32,
     /// `MayShipHereFromReserves`: the draft's site-to-site source is a valid normal destination.
@@ -86,8 +85,8 @@ pub struct ShipmentOptions {
     pub homeworlds: Vec<ShipmentWorld>,
     /// `Shipment.MaySmuggle(Game, Player, To)` for the draft's destination.
     pub may_smuggle: bool,
-    /// The component's `mayKarma`: `CanKarma`, not Fremen unless site-to-site, and no
-    /// cross-planet shipping.
+    /// Karama may pay for the shipment: `Shipment::can_karma`, not Fremen unless site-to-site,
+    /// and no cross-planet shipping.
     pub may_karma: bool,
     pub karma_cards: Vec<KarmaChoice>,
     /// `Shipment.DetermineCost(Game, Player, draft)`.
@@ -100,17 +99,17 @@ pub struct ShipmentOptions {
     pub great_flat: i32,
     /// `Skin.Describe(TreacheryCardType.Karma)`.
     pub karma_name: String,
-    /// The draft with the inputs as the component shows them (see the module docs).
+    /// The draft with the inputs as the form shows them (see the module docs).
     #[ts(type = "Record<string, unknown>")]
     pub draft: serde_json::Value,
 }
 
-/// `PlacementComponent` and its subclasses `MoveComponent`, `CaravanComponent` and
-/// `FremenRideComponent`, for the draft's forces and destination.
+/// The placement forms (`Move`, `Caravan` and `FremenRidesMonster`), for the draft's forces and
+/// destination.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct PlacementOptions {
-    /// `FremenRideComponent.TitleMessage`; Move and Caravan have plain text headers.
+    /// The heading of the `FremenRidesMonster` form; Move and Caravan have plain text headers.
     pub title: Option<RichText>,
     /// The sectors that may be clicked as a source (`SelectableSources`), with the player's
     /// forces in each.
@@ -125,18 +124,18 @@ pub struct PlacementOptions {
     pub from_reserves: bool,
     pub max_from_reserves: i32,
     pub max_special_from_reserves: i32,
-    /// Bene Gesserit choose between fighters and advisors at the draft's destination
-    /// (`showAdvisorChoice`); when they can't, `asAdvisors` is the value the component forces.
+    /// Bene Gesserit choose between fighters and advisors at the draft's destination; when they
+    /// can't, `asAdvisors` is the value the form forces.
     pub advisor_choice: bool,
     pub as_advisors: bool,
     /// `Game.ContainsConflictingAlly(Player, To)`.
     pub conflicting_ally: bool,
-    /// The draft with the inputs as the component shows them (see the module docs).
+    /// The draft with the inputs as the form shows them (see the module docs).
     #[ts(type = "Record<string, unknown>")]
     pub draft: serde_json::Value,
 }
 
-/// `PerformFremenSetupComponent` (a `StagedPlacementComponent`).
+/// The `PerformFremenSetup` form, which stages forces location by location.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct StagedPlacementOptions {
@@ -150,12 +149,12 @@ pub struct StagedPlacementOptions {
     pub special_forces_in_reserve: i32,
     /// `Game.Map.SietchTabr`, `FalseWallSouth`, `FalseWallWest` for the header.
     pub places: Vec<RichText>,
-    /// The draft with the inputs as the component shows them (see the module docs).
+    /// The draft with the inputs as the form shows them (see the module docs).
     #[ts(type = "Record<string, unknown>")]
     pub draft: serde_json::Value,
 }
 
-/// `DiscoveryEnteredComponent`.
+/// The `DiscoveryEntered` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct DiscoveryEnteredOptions {
@@ -163,12 +162,12 @@ pub struct DiscoveryEnteredOptions {
     pub targets: Vec<i32>,
     /// `DiscoveryEntered.ValidSources(Player, To)` for the draft's destination.
     pub sources: Vec<ForcesAt>,
-    /// The draft with the inputs as the component shows them (see the module docs).
+    /// The draft with the inputs as the form shows them (see the module docs).
     #[ts(type = "Record<string, unknown>")]
     pub draft: serde_json::Value,
 }
 
-/// `AmbassadorActivatedComponent`.
+/// The `AmbassadorActivated` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct AmbassadorActivatedOptions {
@@ -196,12 +195,12 @@ pub struct AmbassadorActivatedOptions {
     /// `Revival.MayAssignSkill(Game, Player, TleilaxuHero)` for the draft's hero.
     pub may_assign_skill: bool,
     pub may_pass: bool,
-    /// The draft with the inputs as the component shows them (see the module docs).
+    /// The draft with the inputs as the form shows them (see the module docs).
     #[ts(type = "Record<string, unknown>")]
     pub draft: serde_json::Value,
 }
 
-/// `AmbassadorPlacedComponent`.
+/// The `AmbassadorPlaced` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct AmbassadorPlacedOptions {
@@ -211,19 +210,19 @@ pub struct AmbassadorPlacedOptions {
     pub targets: Vec<i32>,
     /// `Game.AmbassadorsPlacedThisTurn + 1`.
     pub cost: i32,
-    /// The draft with the inputs as the component shows them (see the module docs).
+    /// The draft with the inputs as the form shows them (see the module docs).
     #[ts(type = "Record<string, unknown>")]
     pub draft: serde_json::Value,
 }
 
-/// `BeneGesseritAccompaniesComponent`.
+/// The `BeneGesseritAccompanies` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct BeneGesseritAccompaniesOptions {
     pub targets: Vec<i32>,
     /// `BeneGesseritAccompanies.MaySendExtraAdvisor(Game, Player, Location)` for the draft's location.
     pub may_send_extra_advisor: bool,
-    /// The draft with the inputs as the component shows them (see the module docs).
+    /// The draft with the inputs as the form shows them (see the module docs).
     #[ts(type = "Record<string, unknown>")]
     pub draft: serde_json::Value,
 }
@@ -234,24 +233,24 @@ pub struct BeneGesseritAccompaniesOptions {
 pub struct LocationPickOptions {
     /// The locations that may be clicked; for a territory pick, every sector of each territory.
     pub targets: Vec<i32>,
-    /// The draft with the inputs as the component shows them (see the module docs).
+    /// The draft with the inputs as the form shows them (see the module docs).
     #[ts(type = "Record<string, unknown>")]
     pub draft: serde_json::Value,
 }
 
-/// `PerformHmsMovementComponent`, `KarmaHmsMovementComponent`.
+/// The `PerformHmsMovement` and `KarmaHmsMovement` forms.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct HmsMovementOptions {
     pub targets: Vec<i32>,
     /// `Game.HmsMovesLeft` or `Game.KarmaHmsMovesLeft`.
     pub moves_left: i32,
-    /// The draft with the inputs as the component shows them (see the module docs).
+    /// The draft with the inputs as the form shows them (see the module docs).
     #[ts(type = "Record<string, unknown>")]
     pub draft: serde_json::Value,
 }
 
-/// `ChoamMovePreventionComponent`.
+/// The `ChoamMovePrevention` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct ChoamMovePreventionOptions {
@@ -259,7 +258,7 @@ pub struct ChoamMovePreventionOptions {
     pub card: Option<i32>,
     /// The sectors of `ChoamMovePrevention.ValidTerritories(Player)`.
     pub targets: Vec<i32>,
-    /// The draft with the inputs as the component shows them (see the module docs).
+    /// The draft with the inputs as the form shows them (see the module docs).
     #[ts(type = "Record<string, unknown>")]
     pub draft: serde_json::Value,
 }
@@ -273,7 +272,7 @@ pub struct ChoamRemoveForceFaction {
     pub special_choices: Vec<bool>,
 }
 
-/// `ChoamRemoveForceComponent`.
+/// The `ChoamRemoveForce` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct ChoamRemoveForceOptions {
@@ -283,7 +282,7 @@ pub struct ChoamRemoveForceOptions {
     /// `ChoamRemoveForce.ValidFactions(Game, Player, Location)` for the draft's location, each with
     /// its force choices there.
     pub factions: Vec<ChoamRemoveForceFaction>,
-    /// The draft with the inputs as the component shows them (see the module docs).
+    /// The draft with the inputs as the form shows them (see the module docs).
     #[ts(type = "Record<string, unknown>")]
     pub draft: serde_json::Value,
 }
@@ -298,23 +297,23 @@ pub struct RevealableDiscovery {
     pub token: String,
 }
 
-/// `DiscoveryRevealedComponent`.
+/// The `DiscoveryRevealed` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct DiscoveryRevealedOptions {
     pub locations: Vec<RevealableDiscovery>,
-    /// The draft with the inputs as the component shows them (see the module docs).
+    /// The draft with the inputs as the form shows them (see the module docs).
     #[ts(type = "Record<string, unknown>")]
     pub draft: serde_json::Value,
 }
 
-/// `KarmaShipmentPreventionComponent`, `SetShipmentPermissionComponent`'s targets.
+/// The `KarmaShipmentPrevention` form, and the targets of the `SetShipmentPermission` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct FactionTargetsOptions {
     #[ts(type = "Array<Faction>")]
     pub targets: Vec<String>,
-    /// The draft with the inputs as the component shows them (see the module docs).
+    /// The draft with the inputs as the form shows them (see the module docs).
     #[ts(type = "Record<string, unknown>")]
     pub draft: serde_json::Value,
 }
@@ -330,7 +329,7 @@ pub struct ShipmentPermissionRow {
     pub guild_rate: bool,
 }
 
-/// `SetShipmentPermissionComponent`.
+/// The `SetShipmentPermission` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct SetShipmentPermissionOptions {
@@ -338,12 +337,12 @@ pub struct SetShipmentPermissionOptions {
     /// `SetShipmentPermission.ValidTargets(Game, Player)`.
     #[ts(type = "Array<Faction>")]
     pub targets: Vec<String>,
-    /// The draft with the inputs as the component shows them (see the module docs).
+    /// The draft with the inputs as the form shows them (see the module docs).
     #[ts(type = "Record<string, unknown>")]
     pub draft: serde_json::Value,
 }
 
-/// `TerrorPlantedComponent`.
+/// The `TerrorPlanted` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct TerrorPlantedOptions {
@@ -359,12 +358,12 @@ pub struct TerrorPlantedOptions {
     pub unplaced: Vec<String>,
     /// The sectors of `TerrorPlanted.ValidStrongholds`.
     pub targets: Vec<i32>,
-    /// The draft with the inputs as the component shows them (see the module docs).
+    /// The draft with the inputs as the form shows them (see the module docs).
     #[ts(type = "Record<string, unknown>")]
     pub draft: serde_json::Value,
 }
 
-/// `TerrorRevealedComponent`.
+/// The `TerrorRevealed` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct TerrorRevealedOptions {
@@ -379,28 +378,28 @@ pub struct TerrorRevealedOptions {
     pub max_sneak_attack_forces: i32,
     /// `Player.TreacheryCards`, to give in a sabotage.
     pub cards: Vec<i32>,
-    /// The draft with the inputs as the component shows them (see the module docs).
+    /// The draft with the inputs as the form shows them (see the module docs).
     #[ts(type = "Record<string, unknown>")]
     pub draft: serde_json::Value,
 }
 
-/// `BeneGesseritFlipComponent`.
+/// The `BeneGesseritFlip` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct BeneGesseritFlipOptions {
     /// `BeneGesseritFlip.GetTerritory(Game)`.
     pub territory: i32,
-    /// The draft with the inputs as the component shows them (see the module docs).
+    /// The draft with the inputs as the form shows them (see the module docs).
     #[ts(type = "Record<string, unknown>")]
     pub draft: serde_json::Value,
 }
 
-/// Forms whose choices are fixed in the component (`FlightUsed`, `TestingStationUsed`): only the
+/// Forms whose choices are fixed in the form (`FlightUsed`, `TestingStationUsed`): only the
 /// validation varies.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct NoOptions {
-    /// The draft with the inputs as the component shows them (see the module docs).
+    /// The draft with the inputs as the form shows them (see the module docs).
     #[ts(type = "Record<string, unknown>")]
     pub draft: serde_json::Value,
 }

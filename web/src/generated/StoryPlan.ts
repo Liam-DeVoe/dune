@@ -4,7 +4,7 @@ import type { HeroRef } from "./HeroRef";
 
 export type StoryPlan = { faction: Faction, winner: boolean, hero: HeroRef | null, messiah: boolean, weapon: number | null, defense: number | null, 
 /**
- * `Battle.Dial(Game, opponent)` as C# prints the float.
+ * The plan's dial against the opponent, printed as a decimal number.
  */
 dial: string, 
 /**

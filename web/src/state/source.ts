@@ -1,5 +1,5 @@
 // Where views come from. The game screen renders whatever the current source holds and never
-// computes game rules itself (rust/docs/client-plan.md, State).
+// computes game rules itself (rust/docs/client.md, State).
 //
 // - StaticSource: a view saved as JSON (web/public/views), for the skeleton and component tests.
 // - WebSocketSource: a game on the Rust server. It gets a view after every event and every

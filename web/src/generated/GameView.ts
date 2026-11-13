@@ -51,37 +51,37 @@ rules: Array<Rule>,
  */
 rulesForBots: Array<Rule>, 
 /**
- * `Game.EconomicsStatus`, drawn by the Charity phase name (`Phases.razor`).
+ * `Game.EconomicsStatus`, drawn by the Charity phase name.
  */
 economicsStatus: ChoamEconomicsStatus, 
 /**
- * The card piles beside the map (`CardPiles.razor`).
+ * The card piles beside the map.
  */
 piles: PilesView, 
 /**
- * The tanks (`Tanks.razor`), one entry per player in `Game.Players` order.
+ * The tanks, one entry per player in `Game.Players` order.
  */
 tanks: Array<TanksEntry>, 
 /**
- * During the bidding main phase: what the map shows of the auction (`Bids.razor`).
+ * During the bidding main phase: what the map shows of the auction.
  */
 bidding: BiddingView | null, 
 /**
  * While there is a current battle: its sides and the battle plans this viewer may see
- * (`BattlePlans.razor`, `BattlePlan.razor`).
+ *.
  */
 battle: BattleView | null, 
 /**
  * With assisted notekeeping (`Game.AssistedNoteKeepingEnabled(Player)`): what the viewer
- * could have noted of every other player (`NoteComponent.razor`).
+ * could have noted of every other player.
  */
 notes: NotesView | null, 
 /**
- * Game start, durations and the bidding timer (`Phases.razor`, `GameStatusComponent`).
+ * Game start, durations and the bidding timer.
  */
 timing: TimingView, 
 /**
- * The viewer's deals (`DealComponent.razor`); null for observers.
+ * The viewer's deals; null for observers.
  */
 deals: DealsView | null, 
 /**
@@ -89,29 +89,28 @@ deals: DealsView | null,
  */
 botsSpeed: number, 
 /**
- * Atreides's card tracker (`TrackerComponent.razor`); null for everyone else.
+ * Atreides's card tracker; null for everyone else.
  */
 tracker: TrackerView | null, 
 /**
- * The cards of the menu's "List of Cards" (`MentatComponent.razor`). The same for everyone.
+ * The cards of the menu's "List of Cards". The same for everyone.
  */
 mentat: MentatView, 
 /**
- * After `GameEnded`: the winners and the story (`WinnerPanel`, `Story*`), with the
- * secrets of factions that chose `HideSecrets` left out. Built in `ending.rs`.
+ * After `GameEnded`: the winners and the story of the game. Built in `ending.rs`.
  */
 ending: EndingView | null, 
 /**
  * The rules sheets of the factions in the game, in player order, for the faction popover on
- * the map (`Support.FactionPopupHtml`). The same for everyone. Built in `skin_texts.rs`.
+ * the map. The same for everyone. Built in `skin_texts.rs`.
  */
 factionSheets: Array<FactionSheetView>, 
 /**
- * The ruleset and rules as the turn popover names them (`Phases.razor` `TurnPopover`).
+ * The ruleset and rules as the turn popover names them.
  */
 ruleLabels: RuleLabels, 
 /**
- * `Game.RecentMilestones`: the milestones of the latest event, whose sounds the client
- * plays (`Client.PlaySoundsForMilestones`). The same for everyone.
+ * The milestones of the latest event, whose sounds the client plays. The same for
+ * everyone.
  */
 recentMilestones: Array<Milestone>, };

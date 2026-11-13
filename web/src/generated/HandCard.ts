@@ -5,10 +5,9 @@
  */
 export type HandCard = { id: number, 
 /**
- * The applicable event types that play this card (`CardPlays.PlaysCard` over
- * `Client.Actions`). Empty when the card can't be played now. A non-empty list makes the
- * card glow, and clicking it opens these actions' forms (`CardPlayPopover`). An action
- * that appears here for some card is left out of the action column
- * (`CardPlays.PlayedFromHand`).
+ * The applicable event types that play this card (`shield::playable_with`). Empty when the
+ * card can't be played now. A non-empty list makes the card glow, and clicking it opens
+ * these actions' forms (`CardPlayPopover`). An action that appears here for some card is
+ * left out of the action column.
  */
 playableWith: Array<string>, };

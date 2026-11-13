@@ -2,7 +2,7 @@
 import type { FactionOption } from "./FactionOption";
 
 /**
- * `EmperorBidSupportComponent`: one picker per non-allied opponent, from 0 to `max`.
+ * The `EmperorBidSupport` form: one picker per non-allied opponent, from 0 to `max`.
  */
 export type EmperorBidSupportOptions = { targets: Array<FactionOption>, 
 /**

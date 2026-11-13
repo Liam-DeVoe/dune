@@ -1,9 +1,6 @@
-//! Renders engine messages to [`RichText`]: what `ExpressionComponent.razor` draws, as data.
-//!
-//! Each element becomes the part the component's `switch` picks for it, in the same order of
-//! cases, so the client only has to draw parts (`web/src/components/RichText.tsx`). Labels are
-//! `Skin.Describe` of the element. The C# reference is `rust/view/csharp-ref` (LogLines.cs),
-//! and `tests/log_lines.rs` compares every log line of the fixtures with it.
+//! Renders engine messages to [`RichText`]: one part per element, so the client only has to
+//! draw parts (`web/src/components/RichText.tsx`). Labels are the skin's description of the
+//! element. `tests/log_lines.rs` keeps snapshots of every log line of the fixtures.
 
 use treachery_engine::messages::expression::{EnumValue, Expression, ExpressionElement};
 use treachery_engine::heroes::hero::Hero;
@@ -14,16 +11,13 @@ use treachery_engine::prelude::*;
 use crate::describe::Describer;
 use crate::schema::{Part, RichText};
 
-/// The name of an enum value as C# `ToString()` writes it for a single member, or the number
-/// for a value that is not a declared member.
+/// The member name of an enum value, or the number for a value that is not a declared member.
 pub fn enum_name(v: &EnumValue) -> String {
     v.ty.declared.iter().find(|(_, value)| *value == v.value).map(|(n, _)| n.to_string()).unwrap_or_else(|| v.value.to_string())
 }
 
-/// `Support.Round` of the client (`Math.Round(x, 3)`, to even), which `ExpressionComponent`
-/// applies to `float` and `double` before `SimpleNumberComponent` prints them. The client prints
-/// the result as JavaScript's shortest round-trip form, which is .NET's `double.ToString()` for
-/// the magnitudes a game produces.
+/// A `float` or `double` rounded to three decimals, to even, before it becomes a number part.
+/// The client prints the result in JavaScript's shortest round-trip form.
 pub fn support_round(x: f64) -> f64 {
     dotnet_compat::math::round_f64_digits(x, 3)
 }
@@ -40,10 +34,9 @@ pub fn expression(e: &Expression, d: &dyn Describer) -> RichText {
     out
 }
 
-/// A message, with whether `ExpressionComponent` draws each part with its `TextBorder`. The
-/// component passes the border on to the items of a list but not to a nested `Message` or
-/// `MessagePart`, whose parts it draws without one. The view flattens nesting, so a caller that
-/// draws a border (`ImageFlashComponent`) needs these marks.
+/// A message, with whether each part is drawn with a text border. Items of a list keep the
+/// border, the parts of a nested `Message` or `MessagePart` don't. The view flattens nesting,
+/// so a caller that draws a border (the card flash) needs these marks.
 pub fn message_with_borders(m: &Message, d: &dyn Describer) -> (RichText, Vec<bool>) {
     let mut out = Vec::new();
     let mut borders = Vec::new();
@@ -53,8 +46,8 @@ pub fn message_with_borders(m: &Message, d: &dyn Describer) -> (RichText, Vec<bo
     (out, borders)
 }
 
-/// `ExpressionComponent.ShowWithSeparator`: list items are separated by ", " unless the first
-/// item is a faction, a message part, a force token or a leader.
+/// List items are separated by ", " unless the first item is a faction, a message part, a force
+/// token or a leader.
 fn shows_with_separator(first: &ExpressionElement) -> bool {
     match first {
         ExpressionElement::MessagePart(_) => false,
@@ -90,8 +83,8 @@ fn element_marked(el: &ExpressionElement, d: &dyn Describer, out: &mut RichText,
         // `case null`: a bold "none".
         ExpressionElement::Null => out.push(Part::None),
         ExpressionElement::String(s) => out.push(Part::Text { v: s.clone() }),
-        // `case IEnumerable`: the items, with separators (DetermineElements). A collection the
-        // game still holds is enumerated now, as the C# component did when it rendered.
+        // The items, with separators. A collection the game still holds is read now, so it
+        // shows the game's current contents.
         ExpressionElement::List { items, live, .. } => {
             let current = match (live, d.game()) {
                 (Some(source), Some(g)) => source.read(g),
@@ -133,9 +126,8 @@ fn element_marked(el: &ExpressionElement, d: &dyn Describer, out: &mut RichText,
         // image and bold cases of the switch, or plain text).
         ExpressionElement::Enum(v) => out.push(Part::Enum { ty: v.ty.name.to_string(), v: enum_name(v), label: d.describe(el) }),
         ExpressionElement::Bool(b) => out.push(Part::Bool { v: *b, label: d.describe(el) }),
-        // `default`: `Describe(part)` as text. A `long` lands here, not in `case int`; so do the
-        // "Game Error" exception (C# appends a stack trace the engine doesn't have) and a
-        // `Player` (its type name).
+        // The description as plain text: a `long` (not a number part), the "Game Error"
+        // exception and a `Player` (its type name).
         ExpressionElement::Long(_) | ExpressionElement::Error(_) | ExpressionElement::Player(_) => {
             out.push(Part::Text { v: d.describe(el) })
         }

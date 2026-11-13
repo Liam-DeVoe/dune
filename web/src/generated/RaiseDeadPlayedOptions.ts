@@ -2,7 +2,7 @@
 import type { HeroOption } from "./HeroOption";
 
 /**
- * `RaiseDeadComponent`.
+ * The `RaiseDeadPlayed` form.
  */
 export type RaiseDeadPlayedOptions = { 
 /**

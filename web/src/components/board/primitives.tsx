@@ -1,6 +1,6 @@
 // The map's drawing primitives: MapComponents/MapImage, MapText, Circle, Rectangle,
 // MapPopoverArea, MapForce and MapLeader. Each keeps the element and inline style of its razor
-// file, since the look comes from the C# stylesheet and the comparison harness checks the DOM.
+// file, since the look comes from the C# stylesheet.
 import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactNode } from "react";
 import type { Faction } from "../../generated/enums";
 import { f, px, useBoard } from "./geometry";

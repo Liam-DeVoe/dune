@@ -2,6 +2,6 @@
 import type { Part } from "./Part";
 
 /**
- * `YesNoActionComponent`, with the arguments `ActionPanel.razor` gives it.
+ * A form with a Yes and a No button.
  */
 export type YesNoOptions = { title: Array<Part>, alert: boolean, draft: Record<string, unknown>, };

@@ -2,7 +2,7 @@
 import type { Part } from "./Part";
 
 /**
- * `PerformFremenSetupComponent` (a `StagedPlacementComponent`).
+ * The `PerformFremenSetup` form, which stages forces location by location.
  */
 export type StagedPlacementOptions = { 
 /**
@@ -22,6 +22,6 @@ mayStageSpecial: boolean, forcesInReserve: number, specialForcesInReserve: numbe
  */
 places: Array<Array<Part>>, 
 /**
- * The draft with the inputs as the component shows them (see the module docs).
+ * The draft with the inputs as the form shows them (see the module docs).
  */
 draft: Record<string, unknown>, };

@@ -1,4 +1,4 @@
-// Vite config for the React client. See rust/docs/client-plan.md.
+// Vite config for the React client. See rust/docs/client.md.
 //
 // assets/ holds the art, fonts, scripts, PDFs and stylesheets. They are served at the site's root
 // (/art, /css, ...) but are not part of the build. In dev and preview the middleware below serves

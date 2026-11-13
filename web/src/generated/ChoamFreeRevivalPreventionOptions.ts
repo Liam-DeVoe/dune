@@ -3,7 +3,7 @@ import type { FactionOption } from "./FactionOption";
 import type { Part } from "./Part";
 
 /**
- * `ChoamFreeRevivalPreventionComponent`.
+ * The `ChoamFreeRevivalPrevention` form.
  */
 export type ChoamFreeRevivalPreventionOptions = { 
 /**

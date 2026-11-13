@@ -1,18 +1,14 @@
 //! The view replica: a second copy of a game that only the view code touches.
 //!
-//! It plays the part of the C# client's own `Game`. It executes each event the way
-//! `Client.HandleGameEvent` does (`Execute(false, false)`, no validation), and after each event
-//! every view is built from it, which runs `DetermineStatus` and `GetApplicableEvents` as
-//! `Client.PerformPostEventTasks` did. The state those calls write (the battle sequence, the
-//! neighbour cache) therefore evolves as in a C# client, and never reaches the server's
-//! authoritative game, whose state must stay equal to the C# server's.
+//! It executes each event the server accepted (`execute(false, false)`, no validation), and
+//! after each event every view is built from it, which runs `determine_status` and
+//! `get_applicable_events`. The state those calls write (the battle sequence, the neighbour
+//! cache) stays in the replica and never reaches the server's authoritative game.
 //!
-//! One replica serves every viewer of a game. In C# each client had its own copy and called
-//! the two functions once per event; here they run once per viewer per event. That is
-//! equivalent because the only write they make that changes a later result is
-//! `NextPlayerToBattle` advancing the battle sequence to the next player with a battle, after
-//! which further reads return the same player without advancing (client-plan.md, The view
-//! replica).
+//! One replica serves every viewer of a game, so those calls run once per viewer per event.
+//! The views don't depend on the order, because the only write that changes a later result is
+//! `next_player_to_battle` advancing the battle sequence to the next player with a battle, after
+//! which further reads return the same player without advancing (client.md, The view replica).
 
 use std::collections::BTreeMap;
 
@@ -37,14 +33,14 @@ pub struct ViewReplica {
     /// The game's skin, for the text of log lines and prompts: `DefaultSkin.Default` until the
     /// server replaces it with the host's skin (`RequestSetSkin`).
     pub describer: Box<dyn Describer>,
-    /// The bidding time limit in seconds, or -1: `Client.Timer`, which the C# hub's `SetTimer`
-    /// sets for every client of the game. Server state, carried into `timing.timer`.
+    /// The bidding time limit in seconds, or -1, which the host sets with `SetTimer`. Server
+    /// state, carried into `timing.timer`.
     pub timer: i32,
 }
 
 impl ViewReplica {
-    /// Replays a savegame. `participation` is shared with the server's game, as in C#, where
-    /// participation changes reach every copy through the hub callbacks.
+    /// Replays a savegame. `participation` is shared with the server's game, so participation
+    /// changes reach the replica without a call.
     pub fn load(savegame: &str, participation: &Shared<Participation>) -> Result<ViewReplica, String> {
         let state: GameState = GameState::load(savegame).map_err(|e| e.message)?;
         Game::check_version(state.version)?;
@@ -64,10 +60,9 @@ impl ViewReplica {
         ViewReplica { game: Game::new_int32_participation(version, participation), actions: BTreeMap::new(), describer: default_describer(), timer: -1 }
     }
 
-    /// The game of the C# `/scene` page (`SceneGameService.Load`): a savegame replayed with
-    /// one user, id 1 and named "Scene", seated as `faction` and made host. The other seats
-    /// have no user, so they count as bots. The Playwright harness uses this on both sides
-    /// (client-plan.md, Comparing with the C# client).
+    /// The game of the web client's `/scene` route: a savegame replayed with one user, id 1 and
+    /// named "Scene", seated as `faction` and made host. The other seats have no user, so they
+    /// count as bots.
     pub fn scene(savegame: &str, faction: Faction) -> Result<(ViewReplica, Viewer), String> {
         const SCENE_USER_ID: i32 = 1;
         let participation = Shared::new(Participation::default());
@@ -82,7 +77,7 @@ impl ViewReplica {
         Ok((replica, Viewer { user_id: SCENE_USER_ID }))
     }
 
-    /// Executes an event that the server has accepted, as `Client.HandleGameEvent` does.
+    /// Executes an event that the server has accepted, without validating it again.
     pub fn apply(&mut self, event_json: &str) -> Result<(), String> {
         let e: GameEvent = json::deserialize(event_json).map_err(|e| format!("{e:?}"))?;
         e.initialize_game(&self.game);
@@ -126,8 +121,8 @@ impl ViewReplica {
         Some(build::report_lines(index, r, &v, &crate::describe::InGame::new(self.describer.as_ref(), &self.game)))
     }
 
-    /// `RequestUndoList`: `GetShortMessage` of every event, as `UndoComponent.razor` lists them.
-    /// The number of an entry is its index in `History`, the `untilEventNr` of `RequestUndo`.
+    /// `RequestUndoList`: the short message of every event, for the undo panel. The number of an
+    /// entry is its index in the history, the `untilEventNr` of `RequestUndo`.
     pub fn undo_list(&self) -> Vec<UndoEntry> {
         let d = crate::describe::InGame::new(self.describer.as_ref(), &self.game);
         self.game
@@ -135,12 +130,11 @@ impl ViewReplica {
             .iter()
             .enumerate()
             .map(|(i, e)| {
-                // UndoSession.MomentOf(n) = Moments[n - 1]: the turn and phase event n happened in.
+                // Moment n - 1 holds the turn and phase event n happened in.
                 let moment = i.checked_sub(1).and_then(|m| self.game.moments.get(m));
                 UndoEntry {
                     event_number: i as i32,
                     text: crate::expr::message(&e.get_short_message(&self.game), &d),
-                    // UndoSession.IsListed.
                     listed: !matches!(e, GameEvent::AllyPermission(_) | GameEvent::BattleRevision(_) | GameEvent::AutomationConfigured(_)),
                     turn: moment.map_or(0, |m| m.turn),
                     phase: moment.map_or_else(|| "None".to_string(), |m| m.phase.to_string()),
@@ -150,11 +144,9 @@ impl ViewReplica {
     }
 
     /// `RequestUndoPreview`: the view `viewer` had at gap `gap`, the moment just before event
-    /// `gap` (`UndoSession.MoveTo`). The gap is clamped to `1..=History.Count`, as in C#. The
-    /// game is replayed from this replica's history into a new game with the same
-    /// participation, so this replica is not touched. As in the C# client, which showed the
-    /// preview with no actions (`IGameService.Actions` is empty while previewing), the view has
-    /// no actions and no card plays.
+    /// `gap`. The gap is clamped to `1..=` the number of events. The game is replayed from this
+    /// replica's history into a new game with the same participation, so this replica is not
+    /// touched. A preview can't be acted on, so the view has no actions and no card plays.
     pub fn preview(&self, viewer: Viewer, gap: i32) -> Result<GameView, String> {
         let count = self.game.history.len() as i32;
         let gap = gap.clamp(1.min(count), count) as usize;
@@ -177,9 +169,8 @@ impl ViewReplica {
         Ok(view)
     }
 
-    /// `RequestSetSkin` and a skin given with a created or loaded game: the skin the C# client
-    /// switched to (`Skin.Load(skin, DefaultSkin.Default)`). A skin that doesn't load leaves the
-    /// current one, as the C# client kept its skin when loading threw.
+    /// `RequestSetSkin` and a skin given with a created or loaded game: the skin loaded over the
+    /// default skin. A skin that doesn't load leaves the current one.
     pub fn set_skin(&mut self, skin_json: &str) -> Result<(), String> {
         let skin = treachery_skin::Skin::load(skin_json, treachery_skin::default_skin()).map_err(|e| e.to_string())?;
         self.describer = Box::new(skin);
@@ -197,11 +188,10 @@ impl ViewReplica {
 pub struct UndoEntry {
     pub event_number: i32,
     pub text: RichText,
-    /// `UndoSession.IsListed`: the undo panel leaves out ally permissions, battle revisions and
-    /// automation settings.
+    /// Whether the undo panel lists the event: it leaves out ally permissions, battle revisions
+    /// and automation settings.
     pub listed: bool,
-    /// `UndoSession.MomentOf(eventNumber)`: the turn and main phase the event happened in (0 and
-    /// "None" for event 0).
+    /// The turn and main phase the event happened in (0 and "None" for event 0).
     pub turn: i32,
     pub phase: String,
 }

@@ -1,4 +1,4 @@
-//! Payloads of the battle action forms (client-plan.md, package 7b), built in
+//! Payloads of the battle action forms, built in
 //! `actions/battle.rs`. Option values that go into the event (enum members, ids) are the numbers
 //! of the savegame format, with the member name for images and the skin's label for text.
 
@@ -66,8 +66,8 @@ pub struct BattleInitiatedFight {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct BattleInitiatedOptions {
-    /// `Battle.BattlesToBeFought(Game, Player)`. With one fight, the C# form confirms it after
-    /// half a second.
+    /// `Battle::battles_to_be_fought`. With one fight, the client confirms it after half a
+    /// second.
     pub fights: Vec<BattleInitiatedFight>,
     /// The event the form sends with its current inputs, in savegame JSON: the default draft in
     /// a view, the adjusted draft in a query answer.
@@ -162,10 +162,6 @@ pub struct FaceDancedSource {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct FaceDancedOptions {
-    /// Always true: the form only places forces (the reveal is a separate `FaceDancerRevealed`).
-    pub place_only: bool,
-    /// `FaceDanced.MayCallFaceDancer(Game, Player)`.
-    pub may_call: bool,
     /// `FaceDanced.MaximumNumberOfForces(Game, Player)`.
     pub maximum_forces: i32,
     pub forces_in_reserve: i32,
@@ -361,7 +357,7 @@ pub struct BattleForceGroup {
     pub hide_special_count: bool,
 }
 
-/// A note above the battle plan, in the C# order.
+/// A note above the battle plan, in the order the form shows them.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(tag = "t", rename_all = "camelCase")]
 pub enum BattleNote {
@@ -443,7 +439,7 @@ pub struct BattleOptions {
     pub draft: serde_json::Value,
 }
 
-/// A form with buttons only (`PlanetologyComponent`, `RockWasMeltedComponent`).
+/// A form with buttons only (`Planetology`, `RockWasMelted`).
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct BattleButtonsOptions {

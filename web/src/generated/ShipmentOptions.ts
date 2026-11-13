@@ -4,7 +4,7 @@ import type { KarmaChoice } from "./KarmaChoice";
 import type { ShipmentWorld } from "./ShipmentWorld";
 
 /**
- * `ShipmentComponent`, for the draft's shipment type, source, destination and No-Field.
+ * The `Shipment` form, for the draft's shipment type, source, destination and No-Field.
  */
 export type ShipmentOptions = { 
 /**
@@ -16,8 +16,7 @@ mayShipCrossPlanet: boolean,
  */
 mayShipToReserves: boolean, 
 /**
- * The component's `PreventedFromShipping`: Karama stops this (non-Fremen) faction, and it
- * may not ship cross-planet.
+ * Karama stops this (non-Fremen) faction from shipping, and it may not ship cross-planet.
  */
 preventedFromShipping: boolean, 
 /**
@@ -29,8 +28,8 @@ sources: Array<ForcesAt>,
  */
 targets: Array<number>, 
 /**
- * `ValidShipmentForces` and `ValidShipmentSpecialForces` of the component: the
- * `ValidMax*ShipmentForces` helper for the draft's type, No-Field and source.
+ * The `Shipment::valid_max_*_shipment_forces` helper for the draft's type, No-Field and
+ * source.
  */
 maxForces: number, maxSpecialForces: number, 
 /**
@@ -66,8 +65,8 @@ homeworlds: Array<ShipmentWorld>,
  */
 maySmuggle: boolean, 
 /**
- * The component's `mayKarma`: `CanKarma`, not Fremen unless site-to-site, and no
- * cross-planet shipping.
+ * Karama may pay for the shipment: `Shipment::can_karma`, not Fremen unless site-to-site,
+ * and no cross-planet shipping.
  */
 mayKarma: boolean, karmaCards: Array<KarmaChoice>, 
 /**
@@ -91,6 +90,6 @@ greatFlat: number,
  */
 karmaName: string, 
 /**
- * The draft with the inputs as the component shows them (see the module docs).
+ * The draft with the inputs as the form shows them (see the module docs).
  */
 draft: Record<string, unknown>, };

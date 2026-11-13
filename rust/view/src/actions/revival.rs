@@ -1,30 +1,16 @@
-//! The revival forms (client-plan.md package 7d): the components of the inventory's "Action
-//! panel: revival" area.
+//! The revival forms: `Revival`, `RaiseDeadPlayed`, `KarmaFreeRevival`,
+//! `KarmaRevivalPrevention`, `ChoamFreeRevivalPrevention`, `RequestTleilaxuRevival`,
+//! `AcceptOrCancelTleilaxuRevival` and `SetIncreasedRevivalLimits`.
 //!
-//! | Event | C# component |
-//! |---|---|
-//! | `Revival` | `RevivalComponent` |
-//! | `RaiseDeadPlayed` | `RaiseDeadComponent` |
-//! | `KarmaFreeRevival` | `KarmaFreeRevivalComponent` |
-//! | `KarmaRevivalPrevention` | `KarmaRevivalPreventionComponent` |
-//! | `ChoamFreeRevivalPrevention` | `ChoamFreeRevivalPreventionComponent` |
-//! | `RequestTleilaxuRevival` | `RequestTleilaxuRevivalComponent` |
-//! | `AcceptOrCancelTleilaxuRevival` | `AcceptOrCancelTleilaxuRevivalComponent` |
-//! | `SetIncreasedRevivalLimits` | `SetIncreasedRevivalLimitsComponent` |
-//!
-//! Each component keeps its inputs in fields and adjusts them while it renders: a widget that
-//! is not drawn sets its field to 0 or false (`else amountOfForces = 0;`), a number picker clamps
-//! its value into `[Min, Max]` (`NumberPickerComponent.OnParametersSetAsync`), a required image
-//! choice falls back to its first value (`SelectFromImageComponent`), and the map pick is dropped
-//! while it is disabled or no longer a target (`MapPicker.Sync`). Blazor re-renders until nothing
-//! changes. [`normalize`] does the same to a draft, so the validation next to the options is the
-//! one the C# form showed for the same clicks, and the options carry the adjusted draft back to
-//! the client.
+//! A form adjusts its inputs: a widget that is not drawn sets its field to 0 or false, a number
+//! picker clamps its value into its range, a required image choice falls back to its first
+//! value, and the map pick is dropped while it is disabled or no longer a target. [`normalize`]
+//! does the same to a draft, so the validation next to the options is that of the inputs the
+//! form shows, and the options carry the adjusted draft back to the client.
 
 use treachery_engine::events::GameEventType;
 use treachery_engine::messages::expression::ExpressionElement;
 use treachery_engine::json;
-use treachery_engine::compat::net_enum::NetEnum;
 use treachery_engine::prelude::*;
 
 use crate::build::{event, validate, ResolvedViewer};
@@ -32,6 +18,7 @@ use crate::describe::Describer;
 use crate::expr;
 use crate::schema::*;
 use crate::shield::hero_ref;
+use super::widgets::{picker, required, faction_options, hero_options, draft_json, describe};
 
 /// The event types this module builds forms for.
 pub const TYPES: [GameEventType; 8] = [
@@ -45,46 +32,9 @@ pub const TYPES: [GameEventType; 8] = [
     GameEventType::SetIncreasedRevivalLimits,
 ];
 
-/// `NumberPickerComponent.OnParametersSetAsync`: below `Min` becomes `Min`, else above `Max`
-/// becomes `Max`.
-fn picker(value: i32, min: i32, max: i32) -> i32 {
-    if value < min {
-        min
-    } else if value > max {
-        max
-    } else {
-        value
-    }
-}
-
-/// A `SelectForcesComponent` drawn only while its maximum is positive, with the field set to 0
-/// otherwise.
+/// A force picker drawn only while its maximum is positive, with the field set to 0 otherwise.
 fn forces(value: i32, max: i32) -> i32 {
     if max > 0 { picker(value, 0, max) } else { 0 }
-}
-
-/// `SelectFromImageComponent` with `Required`: a value not among the values becomes the first
-/// one (`Values.FirstOrDefault()`).
-fn required<T: PartialEq + Copy>(value: T, values: &[T], default: T) -> T {
-    if values.contains(&value) { value } else { values.first().copied().unwrap_or(default) }
-}
-
-fn hero_options(heroes: impl IntoIterator<Item = Hero>) -> Vec<HeroOption> {
-    heroes.into_iter().map(|h| HeroOption { id: h.id(), hero: hero_ref(h) }).collect()
-}
-
-fn faction_options(factions: impl IntoIterator<Item = Faction>) -> Vec<FactionOption> {
-    factions.into_iter().map(|f| FactionOption { faction: f.to_string(), value: f.value() }).collect()
-}
-
-/// The draft as savegame JSON, for the options' `draft`.
-fn draft_json(e: &GameEvent) -> serde_json::Value {
-    serde_json::from_str(&json::serialize(e)).expect("the engine writes valid JSON")
-}
-
-/// `Skin.Describe(value)` without a game, as `Client.CurrentSkin.Describe` in a component.
-fn describe(d: &dyn Describer, el: impl Into<ExpressionElement>) -> String {
-    d.describe_in(&el.into(), None)
 }
 
 /// `Skin.Format(m, args)`: `string.Format` over the described arguments; `m` itself when that
@@ -95,8 +45,8 @@ fn format(d: &dyn Describer, m: &str, args: &[ExpressionElement]) -> String {
     dotnet_compat::fmt::string_format(m, &refs).unwrap_or_else(|_| m.to_string())
 }
 
-/// The first form of the event, before the player touches it: the component's field
-/// initializers, adjusted as on its first render. `None` for event types of other modules.
+/// The first draft of the form, before the player touches it: its starting inputs, adjusted.
+/// `None` for event types of other modules.
 pub fn default_draft(game: &Game, faction: Faction, t: GameEventType) -> Option<GameEvent> {
     let p = game.get_player(Some(faction))?;
     let draft = match t {
@@ -139,7 +89,7 @@ pub fn default_draft(game: &Game, faction: Faction, t: GameEventType) -> Option<
     Some(normalize(game, p, &draft))
 }
 
-/// The draft after one render of its component and its widgets, repeated until it is stable
+/// The draft after one round of the form's adjustments, repeated until it is stable
 /// (each step can only lower an amount or clear a choice, so this ends quickly).
 pub fn normalize(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
     let mut current = draft.clone();
@@ -193,8 +143,7 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
             e.amount_of_special_forces = forces(e.amount_of_special_forces, RaiseDeadPlayed::valid_max_amount(game, p, true));
             let special_on_planet = raise_dead_on_planet(game, p, &e);
             e.number_of_special_forces_in_location = forces(e.number_of_special_forces_in_location, special_on_planet);
-            // C# parity: unlike RevivalComponent, the hero is kept when there are no heroes to
-            // revive (the picker has no else branch).
+            // Unlike the `Revival` form, the hero is kept when there are no heroes to revive.
             if !e.hero().is_some_and(|h| Revival::may_assign_skill(game, p, Some(h))) {
                 e.assign_skill = false;
             }
@@ -250,7 +199,7 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
     }
 }
 
-/// `RevivalComponent`: how many revived forces and special forces may go to the planet.
+/// For the `Revival` form: how many revived forces and special forces may go to the planet.
 fn revival_on_planet(game: &Game, p: PlayerIndex, e: &Revival) -> (i32, i32) {
     if Revival::valid_revived_force_locations(game, p).next().is_none() {
         return (0, 0);
@@ -261,7 +210,7 @@ fn revival_on_planet(game: &Game, p: PlayerIndex, e: &Revival) -> (i32, i32) {
     )
 }
 
-/// `RaiseDeadComponent`: how many revived special forces may go to the planet.
+/// For the `RaiseDeadPlayed` form: how many revived special forces may go to the planet.
 fn raise_dead_on_planet(game: &Game, p: PlayerIndex, e: &RaiseDeadPlayed) -> i32 {
     if Revival::valid_revived_force_locations(game, p).next().is_none() {
         return 0;
@@ -274,7 +223,7 @@ fn request_heroes(game: &Game) -> Vec<Hero> {
 }
 
 /// The options and validation of a revival form for `draft`, or `None` for other event types.
-/// The draft is first adjusted as the component would ([`normalize`]).
+/// The draft is first adjusted as the form would ([`normalize`]).
 pub fn options_and_validation(game: &Game, v: &ResolvedViewer, draft: &GameEvent, d: &dyn Describer) -> Option<(Option<ActionOptions>, Option<RichText>)> {
     if !TYPES.contains(&draft.event_type()) {
         return None;

@@ -9,19 +9,15 @@ import type { StoryTraitor } from "./StoryTraitor";
  */
 export type StoryRow = { faction: Faction, name: string, ally: Faction | null, 
 /**
- * The Nexus card held, when there is no ally; null for a faction that hid its secrets.
+ * The Nexus card held, when there is no ally.
  */
-nexus: Faction | null, 
-/**
- * The faction hid its secrets: cards and traitors read "?".
- */
-secret: boolean, cards: Array<number>, 
+nexus: Faction | null, cards: Array<number>, 
 /**
  * Traitors, then discarded traitors (greyed), then face dancers.
  */
 traitors: Array<StoryTraitor>, techTokens: Array<TechToken>, 
 /**
- * `Player.Resources`; null for a faction that hid its secrets.
+ * `Player.Resources`, when the table shows spice.
  */
 resources: number | null, forces: Array<StoryForces>, 
 /**

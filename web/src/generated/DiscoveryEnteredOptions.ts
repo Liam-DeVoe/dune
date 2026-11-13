@@ -2,7 +2,7 @@
 import type { ForcesAt } from "./ForcesAt";
 
 /**
- * `DiscoveryEnteredComponent`.
+ * The `DiscoveryEntered` form.
  */
 export type DiscoveryEnteredOptions = { 
 /**
@@ -14,6 +14,6 @@ targets: Array<number>,
  */
 sources: Array<ForcesAt>, 
 /**
- * The draft with the inputs as the component shows them (see the module docs).
+ * The draft with the inputs as the form shows them (see the module docs).
  */
 draft: Record<string, unknown>, };

@@ -1,6 +1,6 @@
 //! The first vertical slice: views of the alliance and storm phases from real savegames
-//! (`scripts/fixtures`, the ones the C# /scene page screenshots), checked against the engine
-//! helpers the C# components call, plus the visibility rules every view must keep.
+//! (`scripts/fixtures`), checked against the engine's helpers, plus the visibility rules every
+//! view must keep.
 
 mod common;
 
@@ -23,7 +23,7 @@ fn text(s: &str) -> RichText {
     vec![Part::Text { v: s.to_string() }]
 }
 
-/// `AllianceOfferedComponent`: the targets are `AllianceOffered.ValidTargets(Game, Player)`, and
+/// The `AllianceOffered` form: the targets are `AllianceOffered::valid_targets`, and
 /// the form's default (no faction picked) fails validation, which disables "Offer Alliance".
 #[test]
 fn alliance_offer_targets_are_the_engines() {
@@ -36,14 +36,14 @@ fn alliance_offer_targets_are_the_engines() {
         let offer = action(&view, "AllianceOffered").expect("AllianceOffered applicable");
         assert_eq!(offer.options, Some(ActionOptions::AllianceOffered { targets: expected.clone() }));
         assert!(!expected.contains(&f.to_string()), "a faction can't ally with itself");
-        // SelectFromImageComponent with Required sets its value to the first target, so the
-        // default offer goes to that faction and is valid.
+        // The required image choice sets its value to the first target, so the default offer
+        // goes to that faction and is valid.
         assert_eq!(offer.validation, None);
-        // ActionPanel.razor: without an ally, AlliancePassed asks "Done making alliances?".
+        // Without an ally, AlliancePassed asks "Done making alliances?".
         let pass = action(&view, "AlliancePassed").expect("AlliancePassed applicable");
         assert_eq!(
             pass.options,
-            Some(ActionOptions::Simple { title: Some(text("Done making alliances?")), confirm_label: "Pass".into(), alert: true, dismiss_label: None, allow_auto_confirm: false })
+            Some(ActionOptions::Simple { title: Some(text("Done making alliances?")), confirm_label: "Pass".into(), alert: true, allow_auto_confirm: false })
         );
         assert_eq!(pass.validation, None);
         assert!(action(&view, "AllianceBroken").is_none());
@@ -70,7 +70,6 @@ fn allied_players_may_break_or_keep() {
                 ]),
                 confirm_label: "Keep alliance".into(),
                 alert: true,
-                dismiss_label: None,
                 allow_auto_confirm: false
             })
         );
@@ -166,7 +165,7 @@ fn private_log_lines_reach_only_their_target() {
     assert!(private_total > 0, "the fixtures have private lines to check");
 }
 
-/// `StormDialledComponent`: a number between `StormDialled.ValidMinAmount` and `ValidMaxAmount`,
+/// The `StormDialled` form: a number between `StormDialled::valid_min_amount` and `valid_max_amount`,
 /// starting at the minimum (the number picker clamps its initial 0).
 #[test]
 fn storm_dial_range() {
@@ -235,7 +234,7 @@ fn replica_follows_events() {
     assert!(action(&emperor_view, "AllianceOffered").is_none());
 }
 
-/// `ViewReplica::scene` seats one user like the C# `/scene` page: host, named "Scene", and every
+/// `ViewReplica::scene` seats one user for the `/scene` route: host, named "Scene", and every
 /// other seat without a user (a bot).
 #[test]
 fn scene_matches_the_csharp_scene_page() {
@@ -252,8 +251,8 @@ fn scene_matches_the_csharp_scene_page() {
     assert!(treachery_view::replica::ViewReplica::scene(&common::fixture("alliance"), Faction::Ecaz).is_err());
 }
 
-/// One replica serves every viewer, where each C# client had its own copy (client-plan.md, The
-/// view replica). Views must not depend on the order in which viewers' views are built.
+/// One replica serves every viewer (client.md, The view replica), so views must not depend on
+/// the order in which viewers' views are built.
 #[test]
 fn views_do_not_depend_on_build_order() {
     for fixture in ["battle", "mc-voice", "retreat", "mc-concluded", "alliance", "bid", "move"] {

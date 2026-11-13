@@ -2,14 +2,10 @@
 //!
 //! These types are the wire format of the Game view section of `rust/docs/protocol.md`. They
 //! serialize to camelCase JSON, and `tests/ts_bindings.rs` generates the TypeScript types in
-//! `web/src/generated/` from them. Enum values are the C# member names (`"Atreides"`, `"Bidding"`),
-//! the keys the skin JSON uses. Ids of static game objects (locations, territories, leaders,
-//! treachery cards, resource cards) are the C# `Id`s; the client gets names, images and map
-//! positions from the skin and the static data file, never from the view.
-//!
-//! The fields that are not panels are complete (client-plan.md, package 1). The `bidding` and
-//! `battle` fields hold what the map draws; packages 7a and 7b add what their forms need, and
-//! the action options are added form by form (package 7). protocol.md lists what is planned.
+//! `web/src/generated/` from them. Enum values are member names (`"Atreides"`, `"Bidding"`),
+//! the keys the skin JSON uses. Static game objects (locations, territories, leaders, treachery
+//! cards, resource cards) are sent by id; the client gets names, images and map positions from
+//! the skin and the static data file, never from the view.
 
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -25,8 +21,8 @@ pub use battle::*;
 mod setup;
 pub use setup::*;
 
-/// One rendered piece of a log line or prompt: the server's rendering of a C# `Expression`
-/// element. The client draws each kind as `ExpressionComponent.razor` does. `label` is the
+/// One rendered piece of a log line or prompt: the server's rendering of one element of a
+/// message (`expr.rs`). The client draws each kind in `RichText.tsx`. `label` is the
 /// skin's description of the element (`Skin.Describe`), rendered on the server with the game's
 /// skin; ids and member names are there for images, colours and popovers.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
@@ -34,11 +30,10 @@ pub use setup::*;
 pub enum Part {
     /// Plain text.
     Text { v: String },
-    /// C# `null`: drawn as a bold "none".
+    /// No value: drawn as a bold "none".
     None,
-    /// An `int`, `float` or `double`, drawn as a number token (`SimpleNumberComponent`). Floats
-    /// and doubles are already rounded like `Support.Round` (three decimals, to even). A `long`
-    /// is not a number token in C# (`case int` doesn't match it); it arrives as `text`.
+    /// An `int`, `float` or `double`, drawn as a number token. Floats and doubles are already
+    /// rounded to three decimals, to even. A `long` is not a number token; it arrives as `text`.
     Num { v: f64 },
     /// A `bool`, drawn as its label ("Yes", "No").
     Bool { v: bool, label: String },
@@ -54,7 +49,7 @@ pub enum Part {
         v: String,
         label: String,
     },
-    /// Any other enum value: `ty` is the C# enum type name, `v` the member name. The client picks
+    /// Any other enum value: `ty` is the enum type name, `v` the member name. The client picks
     /// the drawing by type (bold for `TreacheryCardType`, a force token for `FactionForce`, the
     /// worm icon for `Concept.Monster`, ...).
     Enum { ty: String, v: String, label: String },
@@ -74,11 +69,11 @@ pub enum Part {
     ResourceCard { id: i32, label: String },
 }
 
-/// A message or prompt, rendered to parts. Nested messages and lists are flattened, with the
-/// ", " separators `ExpressionComponent.DetermineElements` adds.
+/// A message or prompt, rendered to parts. Nested messages and lists are flattened, with ", "
+/// separators between list items.
 pub type RichText = Vec<Part>;
 
-/// A C# `Message` as the log shows it.
+/// A message as the log shows it.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct LogLine {
@@ -89,8 +84,8 @@ pub struct LogLine {
     /// `Message.Heading`: the concept whose icon heads a section of the log.
     #[ts(type = "string | null")]
     pub heading: Option<String>,
-    /// `Message.Log`: the structured record a phase's log design draws from
-    /// (`Shared/Model/Log/`). Built in `log.rs`.
+    /// The structured record a phase's log design draws from (`treachery_engine::log`). Built
+    /// in `log.rs`.
     pub record: Option<crate::log::LogRecord>,
     /// `Message.Route`: where the forces of a shipment or move went.
     pub route: Option<crate::log::Route>,
@@ -137,11 +132,11 @@ pub struct ReportLines {
     pub lines: Vec<LogLine>,
 }
 
-/// Who is looking. Derived from `Participation` the way `Client.cs` does it.
+/// Who is looking, derived from the game's participation.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct ViewerInfo {
-    /// The viewer's faction when they hold a seat (`Client.Faction`).
+    /// The viewer's faction when they hold a seat.
     #[ts(type = "Faction | null")]
     pub faction: Option<String>,
     pub is_host: bool,
@@ -172,7 +167,7 @@ pub struct PublicPlayer {
     pub banked_resources: i32,
     #[ts(type = "Array<TechToken>")]
     pub tech_tokens: Vec<String>,
-    /// Ecaz's ambassadors not yet placed, drawn on the ring (`Players.razor`).
+    /// Ecaz's ambassadors not yet placed, drawn on the ring.
     #[ts(type = "Array<Ambassador>")]
     pub ambassadors: Vec<String>,
     /// `Player.HasSpecialForces`: whether the reserves show a special force token.
@@ -181,7 +176,7 @@ pub struct PublicPlayer {
     pub has_room_for_cards: bool,
     /// `Game.CardsOwnedBy(p).Count()`: the hand plus a Karma card set aside for a bid.
     pub cards_owned: i32,
-    /// `Player.HomeWorlds`, drawn on the ring (`Players.razor:47-121`). The forces on them are
+    /// `Player.HomeWorlds`, drawn on the ring. The forces on them are
     /// in `board.forces`.
     pub homeworlds: Vec<HomeworldView>,
     /// `Game.GetSkilledLeaders(p).Where(IsInFrontOfShield)`, with `Game.Skill(l)`.
@@ -192,7 +187,7 @@ pub struct PublicPlayer {
     pub latest_revealed_no_field: Option<i32>,
 }
 
-/// One homeworld of a player (`Players.razor`).
+/// One homeworld of a player.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct HomeworldView {
@@ -223,11 +218,10 @@ pub struct SkilledLeader {
 #[serde(rename_all = "camelCase")]
 pub struct HandCard {
     pub id: i32,
-    /// The applicable event types that play this card (`CardPlays.PlaysCard` over
-    /// `Client.Actions`). Empty when the card can't be played now. A non-empty list makes the
-    /// card glow, and clicking it opens these actions' forms (`CardPlayPopover`). An action
-    /// that appears here for some card is left out of the action column
-    /// (`CardPlays.PlayedFromHand`).
+    /// The applicable event types that play this card (`shield::playable_with`). Empty when the
+    /// card can't be played now. A non-empty list makes the card glow, and clicking it opens
+    /// these actions' forms (`CardPlayPopover`). An action that appears here for some card is
+    /// left out of the action column.
     pub playable_with: Vec<String>,
 }
 
@@ -287,13 +281,13 @@ pub struct PrivatePlayer {
     pub nexus: Option<String>,
     /// `Game.NextStormMoves` while `HasStormPrescience(Player)` and the storm is dialled.
     pub next_storm_moves: Option<i32>,
-    /// Atreides only, with `Rule.AtreidesMessiah`: the Messiah's state (`PlayerPanel.razor:106-133`).
+    /// Atreides only, with `Rule.AtreidesMessiah`: the Messiah's state.
     pub messiah: Option<MessiahState>,
     /// Moritani only: `Game.UnplacedTerrorTokens`.
     #[ts(type = "Array<TerrorType> | null")]
     pub unplaced_terror: Option<Vec<String>>,
     /// `Game.CardJustWon` when the viewer knows it (`Game.KnownCards(Player)`); the Atreides
-    /// tracker's card picker marks it (`CardPickerComponent.razor:41`).
+    /// tracker's card picker marks it.
     pub card_just_won: Option<i32>,
 }
 
@@ -324,23 +318,23 @@ pub struct BoardView {
     /// (the advantage is in the static data).
     pub strongholds: Vec<StrongholdOwner>,
     /// `Game.TerrorIn(territory)`: one entry per placed token. The token's identity is sent to
-    /// Moritani only (`ForcesOnPlanet.razor:27`); others see a token.
+    /// Moritani only; others see a token.
     pub terror: Vec<TerrorOnPlanet>,
     /// `Game.AmbassadorIn(territory)` for every territory with one.
     pub ambassadors: Vec<AmbassadorOnPlanet>,
     /// `Game.DiscoveriesOnPlanet`: unrevealed discovery tokens. The token is sent to Fremen for
-    /// the Fremen type and to the Guild for the Guild type (`ForcesOnPlanet.razor:101`).
+    /// the Fremen type and to the Guild for the Guild type.
     pub discoveries: Vec<DiscoveryOnPlanet>,
     /// The Hidden Mobile Stronghold and the discovered strongholds that are on the map
     /// (`Location.Visible`), with the location each is attached to. The skin places them
     /// relative to it (`Skin.GetCenter`).
     pub attached: Vec<AttachedLocationView>,
     /// Living leaders and the Messiah standing in a territory (`LeaderState.CurrentTerritory`),
-    /// drawn with the forces (`ForcesInLocation.razor:41-49`).
+    /// drawn with the forces.
     pub leaders: Vec<LeaderOnPlanet>,
     /// `Game.Monsters`: worms on the planet now.
     pub monsters: Vec<MonsterView>,
-    /// `Game.NumberOfMonsters`: worm tokens on the Shield Wall under `Rule.Ssw` (`SSW.razor`).
+    /// `Game.NumberOfMonsters`: worm tokens on the Shield Wall under `Rule.Ssw`.
     pub number_of_monsters: i32,
     /// Territories for which `Game.IsSpecialStronghold` holds (the Shield Wall under SSW).
     pub special_strongholds: Vec<i32>,
@@ -349,14 +343,13 @@ pub struct BoardView {
     /// Locations for which `Game.IsProtectedFromStorm(l)` holds (the territory tooltip).
     pub protected_from_storm: Vec<i32>,
     /// Richese only: `Game.CurrentNoFieldValue`, the value of the No-Field token on the planet.
-    /// Others see "?" (`MapComponent.razor:219`).
+    /// Others see "?".
     pub no_field_value: Option<i32>,
     /// `Game.NextStormMoves` when `Game.HasStormPrescience(Player)`: the sectors the next storm
-    /// passes over are tinted (`Planet.razor:107`). Unlike `me.nextStormMoves` this has no phase
-    /// gate, as in C#.
+    /// passes over are tinted. Unlike `me.nextStormMoves` this has no phase gate.
     pub storm_prescience_moves: Option<i32>,
     /// During ship and move, an arrow per origin of each of `Game.RecentMoves`, following
-    /// `Map.FindFirstShortestPath` through the Polar Sink (`RecentMoves.razor`).
+    /// `Map.FindFirstShortestPath` through the Polar Sink.
     pub recent_moves: Vec<MoveArrow>,
 }
 
@@ -432,7 +425,7 @@ pub struct MonsterView {
     pub is_great_monster: bool,
 }
 
-/// One arrow of `RecentMoves.razor`.
+/// One arrow of a recent move on the map.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct MoveArrow {
@@ -449,7 +442,7 @@ pub struct SpiceInLocation {
     pub amount: i32,
 }
 
-/// The prompt card (`GameStatusComponent`): what is happening, who is expected to act.
+/// The prompt card: what is happening, who is expected to act.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct StatusView {
@@ -465,11 +458,11 @@ pub struct StatusView {
     pub waiting_in_sequence: Vec<SequenceEntry>,
     /// The event the phase timer counts from (`TimedEvent.Time`), as ISO 8601.
     pub timed_event_time: Option<String>,
-    /// `GameStatus.FlashInfo`: the images flashed after this event (`ImageFlashComponent`).
+    /// `GameStatus.FlashInfo`: the images flashed after this event.
     pub flash: Vec<FlashView>,
     /// During the bidding main phase, `Bid.PlayersToBid` (or `BlackMarketBid.PlayersToBid` in
     /// the black market phases): the bidders the prompt shows with their card counts
-    /// (`GameStatusComponent.razor:28-50`). Empty otherwise.
+    ///. Empty otherwise.
     pub to_bid: Vec<SequenceEntry>,
 }
 
@@ -481,8 +474,8 @@ pub struct FlashView {
     /// whose kind picks the image.
     pub to_show: Part,
     pub message: RichText,
-    /// For each part of `message`, whether `ImageFlashComponent` draws it with the text border:
-    /// `ExpressionComponent` leaves the border off the parts of a nested message.
+    /// For each part of `message`, whether the flash draws it with the text border: the parts of
+    /// a nested message have none.
     pub bordered: Vec<bool>,
 }
 
@@ -498,7 +491,7 @@ pub struct SequenceEntry {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct ActionView {
-    /// The C# event class name, which is also the `$type` of the event to submit.
+    /// The event type name, which is also the `$type` of the event to submit.
     pub event_type: String,
     /// The choices the form offers, for the form's default inputs. `None` for event types whose
     /// option builder is not written yet: the client then shows only the event's name.
@@ -513,33 +506,28 @@ pub struct ActionView {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(tag = "form")]
 pub enum ActionOptions {
-    /// A form with only a confirm button (`SimpleActionComponent`), such as `AllianceBroken` or
-    /// `AlliancePassed`. The server sends the heading and button label that `ActionPanel.razor`
-    /// passes the component, because many of them name a faction, card or territory.
+    /// A form with only a confirm button, such as `AllianceBroken` or
+    /// `AlliancePassed`. The server sends the heading and button label, because many of them
+    /// name a faction, card or territory.
     #[serde(rename_all = "camelCase")]
     Simple {
         title: Option<RichText>,
         confirm_label: String,
         /// `Alert`: the form is urgent (drawn as the act card's alert state).
         alert: bool,
-        /// `Dismissable`: a second button with this label hides the form until the next view
-        /// (`HideSecrets`: "No").
-        #[serde(default)]
-        dismiss_label: Option<String>,
         /// `AllowAutoConfirm` (`GuildDelay`): the "Next time, auto ... after 3 seconds" box.
         #[serde(default)]
         allow_auto_confirm: bool,
     },
-    /// `AllianceOfferedComponent`: pick a faction to offer an alliance to.
+    /// Pick a faction to offer an alliance to.
     AllianceOffered {
         /// `AllianceOffered.ValidTargets(Game, Player)`.
         #[ts(type = "Array<Faction>")]
         targets: Vec<String>,
     },
-    /// `StormDialledComponent`: dial a number between `min` and `max`.
+    /// Dial a number between `min` and `max`.
     StormDialled { min: i32, max: i32 },
-    // Ship and move forms (package 7c): payloads in schema/ship_move.rs, built in
-    // actions/ship_move.rs.
+    // Ship and move forms: payloads in schema/ship_move.rs, built in actions/ship_move.rs.
     Shipment(ShipmentOptions),
     Move(PlacementOptions),
     Caravan(PlacementOptions),
@@ -565,7 +553,7 @@ pub enum ActionOptions {
     SetShipmentPermission(SetShipmentPermissionOptions),
     TerrorPlanted(TerrorPlantedOptions),
     TerrorRevealed(TerrorRevealedOptions),
-    // Revival forms (package 7d): payloads in schema/revival.rs.
+    // Revival forms: payloads in schema/revival.rs.
     Revival(RevivalOptions),
     RaiseDeadPlayed(RaiseDeadPlayedOptions),
     KarmaFreeRevival(KarmaFreeRevivalOptions),
@@ -574,7 +562,7 @@ pub enum ActionOptions {
     RequestTleilaxuRevival(RequestTleilaxuRevivalOptions),
     AcceptOrCancelTleilaxuRevival(AcceptOrCancelTleilaxuRevivalOptions),
     SetIncreasedRevivalLimits(SetIncreasedRevivalLimitsOptions),
-    /// `NormalBiddingPanel` (`BiddingPanel.razor`), the bidder's part of the bidding panel
+    /// `NormalBiddingPanel`, the bidder's part of the bidding panel
     /// during `Phase.Bidding`. The panel's lot (card, current bid) is `GameView.bidding.panel`.
     /// Built in `actions/bidding.rs`.
     #[serde(rename_all = "camelCase")]
@@ -597,7 +585,7 @@ pub enum ActionOptions {
         default_amount: i32,
         default_ally_amount: i32,
     },
-    /// `BlackMarketBiddingPanel` (`BiddingPanel.razor`), during `Phase.BlackMarketBidding`.
+    /// `BlackMarketBiddingPanel`, during `Phase.BlackMarketBidding`.
     /// No Karma and no Nexus card.
     #[serde(rename_all = "camelCase")]
     BlackMarketBid {
@@ -610,7 +598,7 @@ pub enum ActionOptions {
         default_amount: i32,
         default_ally_amount: i32,
     },
-    // Other events (package 7e): payloads in schema/other.rs, built in actions/other.rs.
+    // Other events: payloads in schema/other.rs, built in actions/other.rs.
     YesNo(YesNoOptions),
     AllyPermission(AllyPermissionOptions),
     AutomationConfigured(AutomationConfiguredOptions),
@@ -642,7 +630,6 @@ pub enum ActionOptions {
     MulliganPerformed(MayOptions),
     NexusCardDrawn(MayOptions),
     NexusPlayed(NexusPlayedOptions),
-    PlayerReplaced(PlayerReplacedOptions),
     ReplacedCardWon(DraftOptions),
     ResourcesAudited(FactionChoiceOptions),
     ResourcesTransferred(ResourcesTransferredOptions),
@@ -655,7 +642,7 @@ pub enum ActionOptions {
     RicheseGaveCard(CardChoiceOptions),
     RicheseKeepsUnsoldCard(DraftOptions),
     RicheseSpecifiesAuction(RicheseSpecifiesAuctionOptions),
-    // Battle forms (package 7b): payloads in schema/battle.rs, built in actions/battle.rs.
+    // Battle forms: payloads in schema/battle.rs, built in actions/battle.rs.
     AuditCancelled(AuditCancelledOptions),
     Audited(AuditedOptions),
     Battle(BattleOptions),
@@ -681,7 +668,7 @@ pub enum ActionOptions {
     Thought(BattleCardsOptions),
     TreacheryCalled(BattleMayCallOptions),
     Voice(VoiceOptions),
-    // Setup forms (package 8): payloads in schema/setup.rs, built in actions/setup.rs.
+    // Setup forms: payloads in schema/setup.rs, built in actions/setup.rs.
     EstablishPlayers(EstablishPlayersOptions),
     PerformSetup(PerformSetupOptions),
 }
@@ -730,46 +717,45 @@ pub struct GameView {
     /// `Game.RulesForBots`.
     #[ts(type = "Array<Rule>")]
     pub rules_for_bots: Vec<String>,
-    /// `Game.EconomicsStatus`, drawn by the Charity phase name (`Phases.razor`).
+    /// `Game.EconomicsStatus`, drawn by the Charity phase name.
     #[ts(type = "ChoamEconomicsStatus")]
     pub economics_status: String,
-    /// The card piles beside the map (`CardPiles.razor`).
+    /// The card piles beside the map.
     pub piles: PilesView,
-    /// The tanks (`Tanks.razor`), one entry per player in `Game.Players` order.
+    /// The tanks, one entry per player in `Game.Players` order.
     pub tanks: Vec<TanksEntry>,
-    /// During the bidding main phase: what the map shows of the auction (`Bids.razor`).
+    /// During the bidding main phase: what the map shows of the auction.
     pub bidding: Option<BiddingView>,
     /// While there is a current battle: its sides and the battle plans this viewer may see
-    /// (`BattlePlans.razor`, `BattlePlan.razor`).
+    ///.
     pub battle: Option<BattleView>,
     /// With assisted notekeeping (`Game.AssistedNoteKeepingEnabled(Player)`): what the viewer
-    /// could have noted of every other player (`NoteComponent.razor`).
+    /// could have noted of every other player.
     pub notes: Option<NotesView>,
-    /// Game start, durations and the bidding timer (`Phases.razor`, `GameStatusComponent`).
+    /// Game start, durations and the bidding timer.
     pub timing: TimingView,
-    /// The viewer's deals (`DealComponent.razor`); null for observers.
+    /// The viewer's deals; null for observers.
     pub deals: Option<DealsView>,
     /// `Participation.BotsSpeed`: 0 paused, 1, 2 or 4 (the host's menu).
     pub bots_speed: i32,
-    /// Atreides's card tracker (`TrackerComponent.razor`); null for everyone else.
+    /// Atreides's card tracker; null for everyone else.
     pub tracker: Option<TrackerView>,
-    /// The cards of the menu's "List of Cards" (`MentatComponent.razor`). The same for everyone.
+    /// The cards of the menu's "List of Cards". The same for everyone.
     pub mentat: MentatView,
-    /// After `GameEnded`: the winners and the story (`WinnerPanel`, `Story*`), with the
-    /// secrets of factions that chose `HideSecrets` left out. Built in `ending.rs`.
+    /// After `GameEnded`: the winners and the story of the game. Built in `ending.rs`.
     pub ending: Option<crate::ending::EndingView>,
     /// The rules sheets of the factions in the game, in player order, for the faction popover on
-    /// the map (`Support.FactionPopupHtml`). The same for everyone. Built in `skin_texts.rs`.
+    /// the map. The same for everyone. Built in `skin_texts.rs`.
     pub faction_sheets: Vec<crate::skin_texts::FactionSheetView>,
-    /// The ruleset and rules as the turn popover names them (`Phases.razor` `TurnPopover`).
+    /// The ruleset and rules as the turn popover names them.
     pub rule_labels: crate::skin_texts::RuleLabels,
-    /// `Game.RecentMilestones`: the milestones of the latest event, whose sounds the client
-    /// plays (`Client.PlaySoundsForMilestones`). The same for everyone.
+    /// The milestones of the latest event, whose sounds the client plays. The same for
+    /// everyone.
     #[ts(type = "Array<Milestone>")]
     pub recent_milestones: Vec<String>,
 }
 
-/// `CardPiles.razor`. Treachery cards by id, resource cards by `SkinId`.
+/// The card piles beside the map. Treachery cards by id, resource cards by skin id.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct PilesView {
@@ -785,7 +771,7 @@ pub struct PilesView {
     /// `ResourceCardDeck.Items.Count`.
     pub resource_deck_count: i32,
     /// `ResourceCardDeck.Top` during ship and move under `HasResourceDeckPrescience(Player)`;
-    /// shown on the deck and in the faction panel (`PlayerPanel.razor:155`).
+    /// shown on the deck and in the faction panel.
     pub resource_deck_top: Option<i32>,
     /// `Game.LatestSpiceCardA` and `B`.
     pub latest_spice_card_a: Option<i32>,
@@ -819,7 +805,7 @@ pub struct TanksEntry {
 #[serde(rename_all = "camelCase")]
 pub struct DeadLeader {
     /// The leader, or null for a face-down leader the viewer may not identify (only its owner
-    /// and Tleilaxu may: `Tanks.razor`, `MayIdentify`).
+    /// and Tleilaxu may).
     pub id: Option<i32>,
     /// `LeaderState.IsFaceDownDead`.
     pub face_down: bool,
@@ -831,19 +817,17 @@ pub struct DeadLeader {
 pub struct BiddingView {
     #[ts(type = "AuctionType")]
     pub auction_type: String,
-    /// `Game.Bids`, as `Bids.razor` labels them.
+    /// The bids, as the map labels them.
     pub bids: Vec<MapBid>,
-    /// During `Phase.Bidding` and `Phase.BlackMarketBidding`: the bidding panel's lot, which
-    /// `ActionPanel.razor` shows to every player, bidding or not. Observers get the lot a player
-    /// without prescience sees (the C# panel throws for them: `HasBiddingPrescience(null)`;
-    /// protocol.md, deviation 5).
+    /// During `Phase::Bidding` and `Phase::BlackMarketBidding`: the bidding panel's lot, shown
+    /// to every player, bidding or not. Observers get the lot a player without prescience sees.
     pub panel: Option<BiddingPanelView>,
-    /// `Game.RecentMilestones.Contains(Milestone.AuctionWon)`: the client turns auto-pass off
-    /// (`Client.ResetAutoPassThreshold`, after every event in the bidding main phase).
+    /// The latest event won an auction (`Milestone::AuctionWon`): the client turns auto-pass
+    /// off.
     pub auction_won: bool,
 }
 
-/// `BiddingPanel.razor` without the bidder's inputs (those are the `Bid` and `BlackMarketBid`
+/// The bidding panel without the bidder's inputs (those are the `Bid` and `BlackMarketBid`
 /// action options).
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -885,8 +869,8 @@ pub struct MapBid {
     pub bid: BidShown,
 }
 
-/// A bid as the ring shows it. In silent auctions every bid is "ready": the C# client also
-/// colours a pass differently, which reveals it; the view doesn't (protocol.md, Visibility).
+/// A bid as the ring shows it. In silent auctions every bid is "ready", so a pass stays hidden
+/// (protocol.md, Visibility).
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(tag = "t", rename_all = "camelCase")]
 pub enum BidShown {
@@ -905,15 +889,15 @@ pub struct BattleView {
     #[ts(type = "Faction")]
     pub defender: String,
     /// The aggressor's plan as this viewer may see it; null when hidden or not made yet, and
-    /// outside the battle main phase and during the battle report (`BattlePlans.razor:11`).
+    /// outside the battle main phase and during the battle report.
     pub aggressor_plan: Option<PlanView>,
     pub defender_plan: Option<PlanView>,
 }
 
-/// A battle plan on the map (`BattlePlan.razor`). `full` is `ShowEntirePlan`: the viewer's own
+/// A battle plan on the map. `full` is `ShowEntirePlan`: the viewer's own
 /// plan, both plans once both are in, and the opponent's plan under Atreides Karama. Otherwise only
 /// the aspect revealed by prescience is set (`*Shown`), and only for the prescience user and
-/// their ally (C# shows it to everyone; protocol.md, Visibility).
+/// their ally (protocol.md, Visibility).
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct PlanView {
@@ -993,7 +977,7 @@ pub struct SkillPenalty {
     pub skill: String,
 }
 
-/// `NoteComponent.razor`: per other player, what notekeeping tracks.
+/// The notekeeping panel: per other player, what notekeeping tracks.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct NotesView {
@@ -1009,7 +993,7 @@ pub struct NotesPlayer {
     pub bribes: i32,
     pub resources_after_bidding: i32,
     /// `Game.CardsOwnedBy(p)`: a card, or null for one not in the viewer's own
-    /// `Player.KnownCards` (`NoteComponent.razor:196`).
+    /// `Player.KnownCards`.
     pub cards: Vec<Option<i32>>,
     pub revealed_traitors: Vec<HeroRef>,
     pub revealed_face_dancers: Vec<HeroRef>,
@@ -1031,8 +1015,8 @@ pub struct TimingView {
     pub duration: f64,
     /// `Game.TimeSpent(faction, phase)` per player, in seconds.
     pub time_spent: Vec<TimeSpent>,
-    /// The bidding time limit in seconds, or -1 (`Client.Timer`, set by `SetTimer`; server
-    /// state, not game state).
+    /// The bidding time limit in seconds, or -1 (set by `SetTimer`; server state, not game
+    /// state).
     pub timer: i32,
 }
 
@@ -1046,7 +1030,7 @@ pub struct TimeSpent {
     pub battle: f64,
 }
 
-/// `DealComponent.razor`: the deals of a seated viewer (package 5, `side.rs`).
+/// The deals of a seated viewer (`side.rs`).
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct DealsView {
@@ -1070,7 +1054,7 @@ pub struct DealOfferView {
     pub price: i32,
     /// `GetDealDescription()`.
     pub description: RichText,
-    /// `GetMessage()`, for the toast announcing the offer (`DealToasts.razor`).
+    /// `GetMessage()`, for the toast announcing the offer.
     pub message: RichText,
     /// `Acceptance(Faction).Validate()`: Accept is disabled while it is set.
     pub accept_error: Option<RichText>,
@@ -1108,7 +1092,7 @@ pub struct CurrentDeal {
     pub description: RichText,
 }
 
-/// `MentatComponent.razor`, the menu's "List of Cards": the cards this game's rules put in play.
+/// The menu's "List of Cards": the cards this game's rules put in play.
 /// The other sections of the list follow from `rules` and the players' factions.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -1121,8 +1105,8 @@ pub struct MentatView {
     pub resource_cards: Vec<i32>,
 }
 
-/// `TrackerComponent.razor` and `AtreidesIntelligence.cs`: what Atreides's card tracker needs from
-/// the game. The notes themselves stay in the browser (local storage), as in C#.
+/// What Atreides's card tracker needs from the game. The notes themselves stay in the browser
+/// (local storage).
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct TrackerView {

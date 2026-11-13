@@ -6,8 +6,8 @@ import type { Part } from "./Part";
 import type { TleilaxuNexusOptions } from "./TleilaxuNexusOptions";
 
 /**
- * `NexusPlayedComponent`. `text` is the line the component's switch draws for the card,
- * the phase and the kind of use; the inputs below are set only for the cases that show them.
+ * The `NexusPlayed` form. `text` is the line the form shows for the card, the phase and the
+ * kind of use; the inputs below are set only for the cases that show them.
  */
 export type NexusPlayedOptions = { nexus: Faction, 
 /**

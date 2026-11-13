@@ -1,8 +1,7 @@
 //! Builds a [`GameView`] for one viewer from the view replica (see `replica.rs`).
 //!
-//! Every field says which C# client code it stands for. The rule for hidden information is in
-//! `rust/docs/protocol.md` (Game view, Visibility): a field is filled only for the viewers the
-//! C# client shows it to, and never for a viewer the game rules hide it from.
+//! The rule for hidden information is in `rust/docs/protocol.md` (Game view, Visibility): a
+//! field is filled only for the viewers who may see it under the game rules.
 
 use std::rc::Rc;
 
@@ -18,7 +17,7 @@ pub use crate::log::report_lines;
 use crate::schema::*;
 
 /// Who a view is for, as the server knows them: a user id, resolved against the game's
-/// participation the way `Client.cs` does (`Player`, `IsObserver`, `IsHost`).
+/// participation (their player, and whether they are an observer or a host).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Viewer {
     pub user_id: i32,
@@ -49,10 +48,10 @@ fn name<T: ToString>(v: T) -> String {
     v.to_string()
 }
 
-/// Builds the view. Takes `&mut Game` because `GameStatus.DetermineStatus` and
-/// `GetApplicableEvents` write battle-sequence state (hazards 4.3), as they do in each C#
-/// client's own copy of the game. Call it on the view replica, never on the server's game.
-/// `timer` is the bidding time limit the host set (`Client.Timer`, -1 for none).
+/// Builds the view. Takes `&mut Game` because `GameStatus::determine_status` and
+/// `get_applicable_events` write battle-sequence state (hazards 4.3). Call it on the view
+/// replica, never on the server's game. `timer` is the bidding time limit the host set (-1 for
+/// none).
 pub fn build_view(game: &mut Game, viewer: Viewer, d: &dyn Describer, timer: i32) -> GameView {
     let v = viewer.resolve(game);
     build_view_resolved(game, &v, d, timer)
@@ -61,12 +60,12 @@ pub fn build_view(game: &mut Game, viewer: Viewer, d: &dyn Describer, timer: i32
 /// [`build_view`] for a viewer already resolved against the game's participation. Tests use it
 /// to look at games without seated users (the bot-game corpus).
 pub fn build_view_resolved(game: &mut Game, v: &ResolvedViewer, d: &dyn Describer, timer: i32) -> GameView {
-    // Client.PerformPostEventTasks: Status, then Actions.
+    // Both calls can write battle-sequence state, so keep this order: status, then actions.
     let status = GameStatus::determine_status(game, v.player, !v.is_observer);
     let action_types = game.get_applicable_events(v.player, v.is_host);
 
     let game: &Game = game;
-    // ExpressionComponent's `Game` parameter: live collections and leader skills.
+    // Rich text reads live collections and leader skills from the game.
     let in_game = crate::describe::InGame::new(d, game);
     let d: &dyn Describer = &in_game;
     let me = v.player.filter(|_| !v.is_observer);
@@ -119,14 +118,13 @@ fn public_player(game: &Game, p: PlayerIndex) -> PublicPlayer {
         forces_killed: pl.forces_killed,
         special_forces_killed: pl.special_forces_killed,
         card_count: pl.treachery_cards.len() as i32,
-        // Players.razor:195-234 draws these on the map ring for everyone.
+        // Public: the map ring shows these for everyone.
         bribes: pl.bribes,
         resources_after_bidding: pl.resources_after_bidding,
         extortion: pl.extortion,
         banked_resources: pl.banked_resources,
         tech_tokens: pl.tech_tokens.iter().map(|t| name(*t)).collect(),
-        // Players.razor:160-176 draws Ecaz's unplaced ambassadors for everyone. Kept, as C#
-        // (client-plan.md, coordinator answer 2).
+        // Ecaz's unplaced ambassadors are on the map ring for everyone.
         ambassadors: pl.ambassadors.iter().map(|a| name(*a)).collect(),
         has_special_forces: false,
         has_room_for_cards: false,
@@ -163,8 +161,7 @@ fn status_view(game: &Game, status: &GameStatus, v: &ResolvedViewer, d: &dyn Des
     }
 }
 
-/// The validation message of a form's draft, or "Validation failed" when the validator panics:
-/// validators are written for complete events, and a draft is a form still being filled in.
+/// The event's validation message, rendered, with "Validation failed" when validating panics.
 pub fn validate(game: &Game, event: GameEvent, d: &dyn Describer) -> Option<RichText> {
     match draft_check(|| event.validate(game)) {
         Some(m) => m.map(|m| expr::message(&m, d)),

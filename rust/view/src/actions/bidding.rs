@@ -1,9 +1,8 @@
-//! The bidding panel (package 7a): `OtherComponents/BiddingPanel.razor` and its two subclasses,
-//! `NormalBiddingPanel` (`Bid`, in `Phase.Bidding`) and `BlackMarketBiddingPanel`
-//! (`BlackMarketBid`, in `Phase.BlackMarketBidding`).
+//! The bidding panel: `Bid` in `Phase::Bidding`, `BlackMarketBid` in
+//! `Phase::BlackMarketBidding`.
 //!
-//! `ActionPanel.razor` draws the panel by phase, not by action: every viewer sees the lot (the
-//! card or its back, the auction's title, the current bid), and the bidder also gets the inputs.
+//! The client draws the panel by phase, not by action: every viewer sees the lot (the card or
+//! its back, the auction's title, the current bid), and the bidder also gets the inputs.
 //! The lot is [`panel`], part of `GameView.bidding`; the inputs are the `Bid` and
 //! `BlackMarketBid` action options. Normal, Richese once-around and Richese silent auctions all
 //! use `Bid`; black-market auctions (normal, once-around, silent) use `BlackMarketBid`.
@@ -13,6 +12,7 @@ use treachery_engine::prelude::*;
 
 use crate::build::{event, ResolvedViewer};
 use crate::schema::*;
+use super::widgets::{picker};
 
 fn name<T: ToString>(v: T) -> String {
     v.to_string()
@@ -26,18 +26,6 @@ fn is_silent(game: &Game) -> bool {
 /// `BiddingPanel.IsRicheseBidding`.
 fn is_richese_bidding(game: &Game) -> bool {
     game.current_auction_type == AuctionType::RicheseOnceAround || game.current_auction_type == AuctionType::RicheseSilent
-}
-
-/// `NumberPickerComponent.OnParametersSetAsync`: a value below `Min` becomes `Min`, else a value
-/// above `Max` becomes `Max` (so `Min` wins when `Max < Min`).
-fn picker(value: i32, min: i32, max: i32) -> i32 {
-    if value < min {
-        min
-    } else if value > max {
-        max
-    } else {
-        value
-    }
 }
 
 /// The amounts the panel starts with, before the pickers clamp them:
@@ -57,7 +45,7 @@ fn starting_amounts(game: &Game, p: PlayerIndex) -> (i32, i32) {
     (amount, ally)
 }
 
-/// What the pickers do to the starting amounts (`BiddingPanel.razor:65-81`): the player's
+/// What the pickers do to the starting amounts: the player's
 /// picker clamps `Amount` into [0, MaxBidAmount]; the ally's picker, shown only when the player
 /// has an ally and `MaxAllyBidAmount > 0`, clamps `AllyContributionAmount`, which is 0 without
 /// it. Emperor's contribution starts at 0, inside its picker's range.
@@ -127,20 +115,17 @@ pub fn options(game: &Game, v: &ResolvedViewer, draft: &GameEvent) -> Option<Act
     }
 }
 
-/// The lot of the bidding panel, which `ActionPanel.razor` draws in `Phase.Bidding` and
-/// `Phase.BlackMarketBidding` for every player, bidding or not.
+/// The lot of the bidding panel, shown in `Phase::Bidding` and `Phase::BlackMarketBidding` to
+/// every player, bidding or not.
 pub fn panel(game: &Game, v: &ResolvedViewer) -> Option<BiddingPanelView> {
     let black_market = match game.current_phase {
         Phase::Bidding => false,
         Phase::BlackMarketBidding => true,
         _ => return None,
     };
-    // Deviation (protocol.md, deviation 5): BiddingPanel.CardIsVisible calls
-    // HasBiddingPrescience(Client.Player), which throws for an observer (no player), and Blazor
-    // then stops rendering the client ("An unhandled error has occurred"). Observers get the panel
-    // a seated player without prescience sees instead: the card only in Richese's auctions, where
-    // it is public, and no inputs (they have no Bid action). So does an unseated host, for whom
-    // C# throws the same way.
+    // Observers, and a host without a seat, get the panel a seated player without prescience
+    // sees: the card only in Richese's auctions, where it is public, and no inputs (they have no
+    // Bid action).
     let prescience = v.player.filter(|_| !v.is_observer).is_some_and(|p| game.has_bidding_prescience(p));
     let top = game.cards_on_auction.as_ref().and_then(|d| d.top());
     // CardIsVisible: (HasBiddingPrescience(Player) || IsRicheseBidding) && Top != null.

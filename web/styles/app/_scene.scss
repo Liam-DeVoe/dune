@@ -1,6 +1,5 @@
-// The /scene page (Pages/Scene.razor) is rendered for screenshots, which
-// must not catch a fade half way. wwwroot/js/scene.js puts this class on
-// <html> there.
+// The /scene page is rendered for screenshots, which must not catch a fade
+// half way. src/scene.ts puts this class on <html> there.
 html.scene-still {
   *,
   *::before,

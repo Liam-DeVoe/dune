@@ -517,6 +517,8 @@ impl ClassicBot {
 
         let valid_targets: Vec<Faction> = KarmaShipmentPrevention::get_valid_targets(game, self.player).collect();
         let reserves = |pl: &Player| pl.forces_in_reserve() + pl.special_forces_in_reserve();
+        // The spice an opponent can ship with: their own and their ally's.
+        let resources = |pl: &Player| pl.resources + pl.allied_resources(game);
 
         let winning_opponent_that_can_ship_most = self
             .opponents_to_ship_and_move(game)
@@ -524,15 +526,11 @@ impl ClassicBot {
             .filter(|p| valid_targets.contains(&game.player(*p).faction))
             .filter(|p| {
                 let pl = game.player(*p);
-                // Only opponents with an ally count.
-                self.is_winning_opponent(game, *p)
-                    && reserves(pl) > 2
-                    && pl.allied_player(game).is_some_and(|a| pl.resources + game.player(a).resources > 2)
+                self.is_winning_opponent(game, *p) && reserves(pl) > 2 && resources(pl) > 2
             })
             .min_by_key(|p| {
                 let pl = game.player(*p);
-                let resources = pl.resources + if pl.allied_player(game).is_some() { pl.allied_resources(game) } else { 0 };
-                Reverse(std::cmp::min(reserves(pl), resources))
+                Reverse(std::cmp::min(reserves(pl), resources(pl)))
             });
 
         let w = winning_opponent_that_can_ship_most?;

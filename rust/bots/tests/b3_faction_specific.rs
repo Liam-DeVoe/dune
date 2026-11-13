@@ -17,6 +17,10 @@
 //! The probes run whatever the phase, so they also reach states the differ in bots mode never
 //! does: decisions outside their phase (and the exceptions they throw there), ResourcesAudited and
 //! ChoamRemoveForce (rare in bot games), BestVoice and BestPrescience against every player.
+//!
+//! Methods in `CHANGED_ON_PURPOSE` no longer match C# (behavior-changes.md, step 4 of
+//! native-plan.md). A difference in one of them is counted, not failed, and that bot's later
+//! probes are skipped like after any difference, since its draws no longer line up.
 
 use std::collections::BTreeMap;
 use std::io::{BufRead, BufReader};
@@ -26,6 +30,11 @@ use serde_json::Value;
 use treachery_bots::bot::EventKind;
 use treachery_bots::prelude::*;
 use treachery_engine::game::Participation;
+
+/// Methods whose result differs from C# by design, with the behavior change that explains it.
+const CHANGED_ON_PURPOSE: &[(&str, &str)] = &[
+    ("DetermineBeneGesseritPrediction", "no coin flip between two identical choices (harmless bot oddities)"),
+];
 
 fn ev<T: EventKind>(e: Rc<T>) -> String {
     treachery_engine::json::serialize(&T::into_event(e))
@@ -153,6 +162,7 @@ fn run(name: &str) {
     let mut count = 0;
     let mut by_method: BTreeMap<String, (usize, usize)> = BTreeMap::new();
     let mut failures: Vec<String> = Vec::new();
+    let mut changed: BTreeMap<&str, usize> = BTreeMap::new();
 
     for o in lines(&format!("knowledge-{name}.jsonl.gz")) {
         match o["k"].as_str().unwrap() {
@@ -206,11 +216,15 @@ fn run(name: &str) {
                         entry.1 += 1;
                     }
                     if actual != expected || draws != expected_draws {
+                        skip = Some(pi);
+                        if let Some((method, _)) = CHANGED_ON_PURPOSE.iter().find(|(method, _)| *method == m) {
+                            *changed.entry(method).or_default() += 1;
+                            continue;
+                        }
                         failures.push(format!(
                             "step {n} player {pi} {m}({}): C# {expected} ({expected_draws} draws), Rust {actual} ({draws} draws)",
                             a.join(", ")
                         ));
-                        skip = Some(pi);
                     }
                 }
             }
@@ -222,6 +236,9 @@ fn run(name: &str) {
     eprintln!("{name}: {count} probes (method: calls, non-null results)");
     for (m, (c, nn)) in &by_method {
         eprintln!("  {m}: {c}, {nn}");
+    }
+    for (m, k) in &changed {
+        eprintln!("{name}: {k} probes of {m} differ from C# on purpose");
     }
     if !failures.is_empty() {
         panic!("{name}: {} of {count} probes differ:\n{}", failures.len(), failures.iter().take(40).cloned().collect::<Vec<_>>().join("\n"));

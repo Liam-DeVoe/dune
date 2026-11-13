@@ -225,6 +225,7 @@ impl ClassicBot {
         let DialEstimate { dial_needed, mut weapon, mut defense, hero, messiah, is_traitor, lasgun_shield, stone_burner, banker_boost } =
             self.get_dial_needed_for_battle(
                 game,
+                self.player,
                 self.i_will_be_aggressor_against(game, opponent),
                 opponent.or_null(),
                 territory.or_null(),
@@ -877,9 +878,11 @@ impl ClassicBot {
                     self.chance_of_an_unknown_opponent_card_saving_his_leader(game, player, &unknown_opponent_cards, opponent_plan.weapon(), opponent);
                 return choice(1.0 - saved, Some(weapon), enemy_can_defend_poison_tooth);
             }
+
+            // A Mirror Weapon without knowing the opponent's weapon: its effect is a guess.
+            return choice(0.5, Some(weapon), enemy_can_defend_poison_tooth);
         }
 
-        // C# parity: a MirrorWeapon chosen above is drawn again here (hazards 18.5).
         let weapon = useful_weapons.iter().copied().filter(|w| !Self::is_known_to(game, opponent, *w)).random_or_default(&self.random);
 
         if weapon.is_some() {
@@ -950,8 +953,7 @@ impl ClassicBot {
         for x in game.player_indices() {
             let xp = game.player(x);
             if x == opponent || (xp.faction == Faction::Harkonnen && xp.faction == o.ally) {
-                // C# parity: the player's told traitors, not x's.
-                known_traitors_for_opponents_in_battle.extend(xp.revealed_traitors.iter().chain(p.told_traitors.iter()).copied());
+                known_traitors_for_opponents_in_battle.extend(xp.revealed_traitors.iter().chain(xp.told_traitors.iter()).copied());
             }
         }
         known_traitors_for_opponents_in_battle.extend(
@@ -1040,10 +1042,10 @@ impl ClassicBot {
             PrescienceAspect::None
         };
 
-        // C# parity: computes for Player, not p (hazards 18.5).
         self.get_dial_needed_for_battle(
             game,
-            self.i_will_be_aggressor_against(game, Some(opponent)),
+            p,
+            Self::will_be_aggressor(game, p, Some(opponent)),
             opponent,
             territory,
             voice_plan.as_ref(),
@@ -1061,9 +1063,8 @@ impl ClassicBot {
         self.get_dial_needed(game, self.player, territory, opponent, take_reinforcements_into_account)
     }
 
-    /// The dial I need to beat `opponent` in `territory`, with the leader and cards I'd use.
-    fn get_dial_needed_for_battle(&self, game: &Game, i_am_aggressor: bool, opponent: PlayerIndex, territory: Territory, voice: Option<&VoicePlan>, prescience: PrescienceAspect, take_reinforcements_into_account: bool, include_in_front_of_shield: bool) -> DialEstimate {
-        let player = self.player;
+    /// The dial `player` needs to beat `opponent` in `territory`, with the leader and cards they'd use.
+    fn get_dial_needed_for_battle(&self, game: &Game, player: PlayerIndex, i_am_aggressor: bool, opponent: PlayerIndex, territory: Territory, voice: Option<&VoicePlan>, prescience: PrescienceAspect, take_reinforcements_into_account: bool, include_in_front_of_shield: bool) -> DialEstimate {
         let param = &self.param;
         let enemy = self.chance_of_enemy_leader_dying(game, player, opponent, voice, Some(prescience));
         let mut weapon = enemy.weapon;
@@ -1227,13 +1228,14 @@ impl ClassicBot {
             || (enemy_weapon.is_some_and(|w| w.is_laser()) && my_defense.is_some_and(|d| d.is_shield()))
     }
 
-    /// Not pure: working out the battle outcome on the live plans changes the game
-    /// (bots-plan.md, "Bots are not pure").
-    pub fn determine_rock_was_melted(&self, game: &mut Game) -> Rc<RockWasMelted> {
-        let agg = game.aggressor_plan.clone();
-        let def = game.defender_plan.clone();
+    /// Kills with the Rock Melter if I would win the battle. The outcome is predicted on copies of
+    /// the plans, so deciding leaves the game as it was.
+    pub fn determine_rock_was_melted(&self, game: &Game) -> Rc<RockWasMelted> {
+        let copy = |plan: &Option<Rc<Battle>>| Rc::new(Battle::clone(plan.as_ref().nre()));
+        let agg = copy(&game.aggressor_plan);
+        let def = copy(&game.defender_plan);
         let territory = game.current_battle.as_ref().nre().territory(game).or_null();
-        let outcome = Battle::determine_battle_outcome(agg.as_ref().nre(), def.as_ref().nre(), territory, game);
+        let outcome = Battle::predict_battle_outcome(&agg, &def, territory, game);
         // Building the message can throw, which cancels the decision.
         let _ = outcome.get_message(game);
         let mut result = RockWasMelted::new(game, self.faction(game));
@@ -1357,5 +1359,32 @@ impl ClassicBot {
         result.set_kept_card(to_keep);
         result.assassinate = LoserConcluded::can_assassinate(game, self.player);
         Rc::new(result)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use treachery_engine::game::{GameState, Participation};
+
+    /// A Mirror Weapon picked without knowing the opponent's weapon is kept, with an even chance.
+    /// It used to be drawn again from the weapons the opponent doesn't know about, which left the
+    /// bot without a weapon when the opponent knew of its only one.
+    #[test]
+    fn a_mirror_weapon_pick_is_kept() {
+        let path = format!("{}/../../scripts/fixtures/battle.json", env!("CARGO_MANIFEST_DIR"));
+        let state = GameState::load(&std::fs::read_to_string(path).unwrap()).unwrap();
+        let mut game = Game::load(&state, &Shared::new(Participation::default()), false, false).unwrap();
+        let battle = game.current_battle.clone().unwrap();
+        let me = game.get_player(Some(battle.aggressor(&game))).unwrap();
+        let opponent = game.get_player(Some(battle.defender(&game))).unwrap();
+        let mirror = TreacheryCardManager::items().iter().copied().find(|c| c.type_() == TreacheryCardType::MirrorWeapon).unwrap();
+        game.player_mut(me).treachery_cards = vec![mirror];
+        game.player_mut(opponent).known_cards.add(mirror);
+
+        let bot = ClassicBot::new(me, BotParameters::for_faction(game.player(me).faction), SharedRandom::from_seed(1));
+        let choice = bot.chance_of_enemy_leader_dying(&game, me, opponent, None, None);
+        assert_eq!(choice.weapon, Some(mirror));
+        assert_eq!(choice.kill_chance, 0.5);
     }
 }

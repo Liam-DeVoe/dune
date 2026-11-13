@@ -741,19 +741,15 @@ impl ClassicBot {
             let needed = with_no_field.forces + with_no_field.special_forces;
             let mut big_enough_no_fields: Vec<i32> = no_field_values.iter().copied().filter(|v| *v >= needed).collect();
             let mut cunning_no_field_value = -1;
-            if Shipment::may_use_cunning_no_field(game, me) && !no_field_values.is_empty() && big_enough_no_fields.is_empty() {
-                // Throws when there is no cunning value (hazards 16.2).
-                let biggest_cunning_no_field = Shipment::valid_cunning_no_field_values(game, me, max_forces_with_no_field).into_iter().cs_max();
+            if Shipment::may_use_cunning_no_field(game, me) && !no_field_values.is_empty() && big_enough_no_fields.is_empty()
+                && let Some(biggest_cunning_no_field) = Shipment::valid_cunning_no_field_values(game, me, max_forces_with_no_field).into_iter().max()
+            {
                 big_enough_no_fields = no_field_values.iter().copied().filter(|v| v + biggest_cunning_no_field >= needed).collect();
                 cunning_no_field_value = if !big_enough_no_fields.is_empty() { biggest_cunning_no_field } else { -1 };
             }
 
-            // C# parity: with no big enough value this is Max() of an empty array, which throws.
-            let no_field_value = if !big_enough_no_fields.is_empty() {
-                big_enough_no_fields.iter().copied().cs_min()
-            } else {
-                big_enough_no_fields.iter().copied().cs_max()
-            };
+            // The smallest No-Field that covers the forces, else the biggest one there is.
+            let no_field_value = big_enough_no_fields.iter().copied().min().unwrap_or(max_forces_with_no_field);
             let special_forces_shipped = std::cmp::min(special_forces_no_field, no_field_value);
             let forces_shipped = std::cmp::min(forces_no_field, no_field_value - special_forces_shipped);
             return ShipmentSize {
@@ -1147,8 +1143,7 @@ impl ForceSizing<'_> {
             }
         }
 
-        // C# parity: this loop adds forces but prices `specialForces + 1` (hazards 18).
-        while dial_needed > 0.0 && forces_available >= 1 && affordable(forces, special_forces + 1, cost_of_battle) {
+        while dial_needed > 0.0 && forces_available >= 1 && affordable(forces + 1, special_forces, cost_of_battle) {
             forces += 1;
             forces_available -= 1;
             cost_of_battle += self.cost_per_force_in_battle;

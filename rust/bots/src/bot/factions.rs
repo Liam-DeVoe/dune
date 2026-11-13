@@ -122,8 +122,7 @@ impl OpponentCards {
                 }
             })
         } else if weapon.is_poison_weapon() {
-            // C# parity: `d.IsProjectileDefense && !d.IsProjectileDefense` is never true (hazards 18).
-            self.known_defense(|d| d.is_projectile_defense() && !d.is_projectile_defense()).map(must_use).or_else(|| {
+            self.known_defense(|d| d.is_projectile_defense() && !d.is_poison_defense()).map(must_use).or_else(|| {
                 if !names_special_cards() && self.might_have(|c| c.is_poison_defense()) {
                     Some(VoiceCommand::may_not_use(T::PoisonDefense))
                 } else if self.might_have(|c| c.type_() == T::ShieldAndAntidote) {
@@ -665,10 +664,9 @@ impl ClassicBot {
     }
 
     pub fn determine_bene_gesserit_prediction(&self, game: &Game) -> Rc<BeneGesseritPrediction> {
-        let humans = || self.others(game).into_iter().filter(|p| !game.is_bot(*p));
-        let predicted = (if self.d(1, 2) == 1 { humans().random_or_default(&self.random) } else { None })
-            .or_else(|| humans().random_or_default(&self.random))
-            .or_else(|| self.others(game).into_iter().random_or_default(&self.random));
+        // A random human player if there is one, else any other player.
+        let humans = self.others(game).into_iter().filter(|p| !game.is_bot(*p));
+        let predicted = humans.random_or_default(&self.random).or_else(|| self.others(game).into_iter().random_or_default(&self.random));
 
         let predicted = game.player(predicted.nre());
         let maximum_turns = game.maximum_turns();
@@ -726,10 +724,10 @@ impl ClassicBot {
             opponent_hero_will_certainly_be_zero: win_predicted,
         };
 
-        let opponent_cards = OpponentCards::new(game, self.player, opponent);
-        let known_cards = game.known_cards(self.player);
+        let opponent_cards = OpponentCards::new(game, p, opponent);
+        let known_cards = game.known_cards(p);
 
-        let weapons: Vec<TreacheryCard> = ClassicBot::weapons(game, self.player, None, None, None)
+        let weapons: Vec<TreacheryCard> = ClassicBot::weapons(game, p, None, None, None)
             .into_iter()
             .filter(|w| w.type_() != T::Useless && w.type_() != T::ArtilleryStrike && w.type_() != T::PoisonTooth)
             .collect();
@@ -754,7 +752,7 @@ impl ClassicBot {
             let opponent_might_have_weapons = opponent_cards.known_weapons.is_empty() || opponent_cards.unknown_count != 0;
 
             let mut defense: Option<TreacheryCard> = None;
-            self.determine_best_defense(game, self.player, opponent, None, &mut defense);
+            self.determine_best_defense(game, p, opponent, None, &mut defense);
             result.defense_to_use = defense.and_then(|d| d.opt());
 
             if opponent_might_have_weapons {

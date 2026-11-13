@@ -12,7 +12,7 @@
 
 use std::collections::BTreeMap;
 
-use treachery_engine::compat::cs::Shared;
+use treachery_engine::shared::Shared;
 use treachery_engine::events::GameEventType;
 use treachery_engine::game::GameState;
 use treachery_engine::json;
@@ -70,9 +70,9 @@ impl ViewReplica {
         let player = replica.game.get_player(Some(faction)).ok_or_else(|| format!("{faction} is not in this game"))?;
         {
             let mut p = participation.borrow_mut();
-            p.seated_players.add(SCENE_USER_ID, replica.game.player(player).seat);
-            p.player_names.add(SCENE_USER_ID, "Scene".to_string());
-            p.hosts.add(SCENE_USER_ID);
+            p.seated_players.insert_new(SCENE_USER_ID, replica.game.player(player).seat);
+            p.player_names.insert_new(SCENE_USER_ID, "Scene".to_string());
+            p.hosts.insert(SCENE_USER_ID);
         }
         Ok((replica, Viewer { user_id: SCENE_USER_ID }))
     }

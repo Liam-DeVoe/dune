@@ -47,7 +47,7 @@ fn static_data_matches_the_engine() {
     let ids: std::collections::BTreeSet<i32> = data.treachery_cards.iter().map(|c| c.id).collect();
     assert_eq!(ids.len(), cards.len(), "treachery card ids are unique");
 
-    let game = Game::new_int32_participation(Game::LATEST_VERSION, &treachery_engine::compat::cs::Shared::new(Default::default()));
+    let game = Game::new_int32_participation(Game::LATEST_VERSION, &treachery_engine::shared::Shared::new(Default::default()));
     for t in game.map.territories(true) {
         let info = data.territories.iter().find(|i| i.id == t.id()).expect("every territory");
         assert_eq!(

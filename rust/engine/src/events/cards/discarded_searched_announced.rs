@@ -38,7 +38,7 @@ impl DiscardedSearchedAnnounced {
         game.phase_before_searching_discarded = game.current_phase;
         let me = self.player();
         let p = game.player_mut(me);
-        p.resources = p.resources.wrapping_sub(2);
+        p.resources -= 2;
         game.enter(Phase::SearchingDiscarded, true);
         game.stone(Milestone::CardWonSwapped);
         Ok(())

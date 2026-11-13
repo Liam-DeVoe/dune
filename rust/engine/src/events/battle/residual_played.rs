@@ -31,7 +31,7 @@ impl ResidualPlayed {
     }
 
     pub fn may_play(g: &Game, p: PlayerIndex) -> bool {
-        g.current_battle.as_ref().nre().is_aggressor_or_defender(g, p)
+        g.current_battle.as_ref().expect("current battle").is_aggressor_or_defender(g, p)
             && g.player(p).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Residual)
     }
 

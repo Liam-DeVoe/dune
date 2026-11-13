@@ -1,7 +1,7 @@
 //! Rust-only checks of API behavior that the golden/differential tests don't
 //! exercise (serde, trait impls, panics that model .NET exceptions).
 
-use dotnet_compat::{NetDictionary, NetHashSet, linq, math};
+use dotnet_compat::{NetDictionary, NetHashSet, math};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
 /// The .NET exception a panic stands for.
@@ -91,34 +91,6 @@ fn dictionary_index_missing_throws() {
         let _ = d[&1];
     });
     assert_eq!(e.to_string(), "KeyNotFoundException: The given key '1' was not present in the dictionary.");
-}
-
-#[test]
-fn max_by_returns_first_extreme() {
-    let xs = [(1, 'a'), (3, 'b'), (3, 'c'), (0, 'd'), (0, 'e')];
-    assert_eq!(linq::max_by_key_first(xs, |x| x.0).unwrap().1, 'b');
-    assert_eq!(linq::min_by_key_first(xs, |x| x.0).unwrap().1, 'd');
-    // The std trap this exists for:
-    assert_eq!(xs.iter().max_by_key(|x| x.0).unwrap().1, 'c');
-}
-
-#[test]
-fn order_by_descending_is_stable() {
-    let xs = [(1, 'a'), (2, 'b'), (1, 'c'), (2, 'd')];
-    let got: Vec<char> = linq::order_by_descending(xs, |x| x.0).into_iter().map(|x| x.1).collect();
-    assert_eq!(got, vec!['b', 'd', 'a', 'c']);
-}
-
-#[test]
-fn single_or_default_throws_on_two() {
-    let e = thrown(|| {
-        linq::single_or_default([1, 2]);
-    });
-    assert_eq!(e.message, "Sequence contains more than one element");
-    let e = thrown(|| {
-        linq::single_or_default_where([1, 2, 4], |x| x % 2 == 0);
-    });
-    assert_eq!(e.message, "Sequence contains more than one matching element");
 }
 
 #[test]

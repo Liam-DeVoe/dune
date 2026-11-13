@@ -30,7 +30,6 @@ impl PerformBeneGesseritPlacement {
     }
 
     pub fn set_target(&mut self, game: &Game, value: Option<Location>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.target_id = game.map.location_lookup().get_id(value);
     }
 
@@ -60,14 +59,14 @@ impl PerformBeneGesseritPlacement {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         // A null Target (only without validation) is passed on as in C#: IsOccupied(null)
         // is false, ShipForces(null, 1) finds no homeworld to ship from, and `Target.Territory` throws.
-        let condition = game.is_occupied_territory(self.target(game).or_null().territory());
+        let condition = game.is_occupied_territory(self.target(game).required("target")?.territory());
         if condition {
             // Player is read before Target, as in C#.
             let me = self.player();
-            Player::ship_advisors(game, me, self.target(game).or_null(), 1);
+            Player::ship_advisors(game, me, self.target(game).required("target")?, 1);
         } else {
             let me = self.player();
-            Player::ship_forces(game, me, self.target(game).or_null(), 1);
+            Player::ship_forces(game, me, self.target(game).required("target")?, 1);
         }
 
         self.log(game);

@@ -30,7 +30,6 @@ impl RicheseGaveCard {
     }
 
     pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.card_id = TreacheryCardManager::lookup().get_id(value);
     }
 
@@ -52,7 +51,7 @@ impl RicheseGaveCard {
         Game::register_known_player_treachery_card(game, me, card);
         // C# adds a null card to the ally's hand when the card id is unknown.
         let target = target.required("target")?;
-        game.player_mut(target).treachery_cards.push(card.or_null());
+        game.player_mut(target).treachery_cards.push(card.required("card")?);
 
         let others: Vec<PlayerIndex> = game.player_indices().filter(|p| *p != me && *p != target).collect();
         for p in others {

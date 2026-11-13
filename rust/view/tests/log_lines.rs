@@ -25,7 +25,7 @@ use std::io::{BufRead, Write};
 use std::path::PathBuf;
 
 use serde_json::{json, Value};
-use treachery_engine::compat::cs::Shared;
+use treachery_engine::shared::Shared;
 use treachery_engine::game::Participation;
 use treachery_engine::messages::message::Message;
 use treachery_view::describe::InGame;

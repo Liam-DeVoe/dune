@@ -2,7 +2,6 @@ use crate::prelude::*;
 
 impl Game {
     pub fn reveal_current_no_field(&mut self, player: PlayerIndex, in_location: Option<Location>) {
-        let in_location = in_location.and_then(crate::compat::cs::CsNull::opt);
         if self.player(player).faction != Faction::Richese {
             return;
         }
@@ -58,20 +57,20 @@ impl Game {
     pub fn exchange_resources_in_bribe(&mut self, from: PlayerIndex, target: PlayerIndex, amount: i32) {
         {
             let p = self.player_mut(from);
-            p.resources = p.resources.wrapping_sub(amount);
+            p.resources -= amount;
         }
 
         if self.bribes_during_mentat() {
             if self.player(from).faction == Faction::Emperor && self.player(target).faction == self.player(from).ally {
                 let t = self.player_mut(target);
-                t.resources = t.resources.wrapping_add(amount);
+                t.resources += amount;
             } else {
                 let t = self.player_mut(target);
-                t.bribes = t.bribes.wrapping_add(amount);
+                t.bribes += amount;
             }
         } else {
             let t = self.player_mut(target);
-            t.resources = t.resources.wrapping_add(amount);
+            t.resources += amount;
         }
     }
 
@@ -143,7 +142,7 @@ impl Game {
                         MainPhase::Collection.into(),
                     ]);
                     let b = self.player_mut(banker);
-                    b.banked_resources = b.banked_resources.wrapping_add(1);
+                    b.banked_resources += 1;
                 }
             }
         }

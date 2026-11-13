@@ -59,14 +59,14 @@ impl StormDialled {
 
         if game.has_battle_wheel.iter().all(|f| game.has_acted_or_passed.contains(f)) {
             // Arguments are evaluated left to right; a one-player game throws at Dials[1] (hazards 1.4).
-            let d0 = *cs::index(&game.dials, 0);
-            let f0 = *cs::index(&game.has_acted_or_passed, 0);
-            let d1 = *cs::index(&game.dials, 1);
-            let f1 = *cs::index(&game.has_acted_or_passed, 1);
-            let msg = express!("Storm dial: ", d0, f0, " + ", d1, f1, " = ", d0.wrapping_add(d1))
+            let d0 = game.dials[0];
+            let f0 = game.has_acted_or_passed[0];
+            let d1 = game.dials[1];
+            let f1 = game.has_acted_or_passed[1];
+            let msg = express!("Storm dial: ", d0, f0, " + ", d1, f1, " = ", d0 + d1)
                 .with_log(StormDials::new(f0, d0, f1, d1));
             self.log_objects(game, elems![msg]);
-            game.next_storm_moves = dotnet_compat::linq::sum_i32(game.dials.iter().copied());
+            game.next_storm_moves = game.dials.iter().copied().sum::<i32>();
 
             if game.current_turn == 1 {
                 self.position_first_storm(game);
@@ -78,7 +78,7 @@ impl StormDialled {
     }
 
     pub fn position_first_storm(&self, game: &mut Game) {
-        game.sector_in_storm = cs::rem(game.next_storm_moves, Map::NUMBER_OF_SECTORS);
+        game.sector_in_storm = game.next_storm_moves % Map::NUMBER_OF_SECTORS;
         let msg = express!("The first storm moves ", game.sector_in_storm, " sectors").with_log(StormPlaced::new(game.sector_in_storm));
         self.log_objects(game, elems![msg]);
         game.perform_storm();
@@ -129,7 +129,7 @@ impl StormDialled {
         let mut tech_token_sequence = PlayerSequence::new_game(game);
 
         while !remaining_tech_tokens.is_empty() && game.players.iter().any(|p| p.tech_tokens.is_empty()) {
-            let current = tech_token_sequence.current_player(game).nre();
+            let current = tech_token_sequence.current_player(game).expect("current player");
             if game.player(current).tech_tokens.is_empty() {
                 let token = remaining_tech_tokens.draw();
                 // CurrentPlayer is re-read in C#; nothing in between changes the sequence.

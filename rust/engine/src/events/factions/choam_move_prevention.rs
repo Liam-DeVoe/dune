@@ -30,13 +30,12 @@ impl ChoamMovePrevention {
     }
 
     pub fn set_territory(&mut self, game: &Game, value: Option<Territory>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.territory_id = game.map.territory_lookup().get_id(value);
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
         let territory = self.territory(game);
-        if !ChoamMovePrevention::valid_territories(game, self.player()).any(|v| v == territory.or_null()) {
+        if !ChoamMovePrevention::valid_territories(game, self.player()).any(|v| Some(v) == territory) {
             return Some(express!("Invalid territory"));
         }
         None
@@ -73,7 +72,7 @@ impl ChoamMovePrevention {
         }
 
         // `Territory!` does not throw: a null territory (only without validation) is stored.
-        game.current_blocked_territories.push(self.territory(game).or_null());
+        game.current_blocked_territories.push(self.territory(game).required("territory")?);
         game.stone(Milestone::SpecialUselessPlayed);
         Ok(())
     }

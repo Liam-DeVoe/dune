@@ -32,12 +32,11 @@ impl KarmaHmsMovement {
     }
 
     pub fn set_target(&mut self, game: &Game, value: Option<Location>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.target_id = game.map.location_lookup().get_id(value);
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if !KarmaHmsMovement::valid_locations(game).any(|v| v == self.target(game).or_null()) {
+        if !KarmaHmsMovement::valid_locations(game).any(|v| Some(v) == self.target(game)) {
             return Some(express!("Invalid location"));
         }
 
@@ -47,7 +46,7 @@ impl KarmaHmsMovement {
     /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
     pub fn valid_locations(g: &Game) -> impl Iterator<Item = Location> {
         // AttachedToLocation is null only when the HMS was never placed; FindNeighboursForHmsMovement then throws.
-        let start = g.map.hidden_mobile_stronghold().attached_to_location(&g.map).nre();
+        let start = g.map.hidden_mobile_stronghold().attached_to_location(&g.map).expect("attached to location");
         g.map
             .find_neighbours_for_hms_movement(start, 1, false, g.sector_in_storm)
             .into_iter()
@@ -57,7 +56,7 @@ impl KarmaHmsMovement {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let me = self.player();
         let hms = game.map.hidden_mobile_stronghold();
-        let collection_rate = game.player(me).any_forces_in(Some(hms.location())).wrapping_mul(2);
+        let collection_rate = game.player(me).any_forces_in(Some(hms.location())) * 2;
         if !game.player(me).special_karma_power_used {
             let card = Karma::valid_karma_cards(game, me).into_iter().next();
             if self.passed {
@@ -72,17 +71,14 @@ impl KarmaHmsMovement {
             self.log(game);
         }
 
-        // A null AttachedToLocation throws ArgumentNullException in CollectSpiceFrom (TryGetValue(null)).
-        let current_location = hms.attached_to_location(&game.map).or_null();
+        let current_location = hms.attached_to_location(&game.map).required("the location of the HMS")?;
         game.collect_spice_from(self.initiator(), current_location, collection_rate);
 
         if !self.passed {
-            // A null Target (only without validation): PointAt removes the HMS from its old
-            // host's neighbours, then throws NullReferenceException on `newLocation.Neighbours`: the event fails there.
-            let target = self.target(game).or_null();
-            hms.point_at(&mut game.map, target)?;
+            let target = self.target(game).required("target")?;
+            hms.point_at(&mut game.map, target);
             game.collect_spice_from(self.initiator(), target, collection_rate);
-            game.karma_hms_moves_left = game.karma_hms_moves_left.wrapping_sub(1);
+            game.karma_hms_moves_left -= 1;
             game.stone(Milestone::HmsMovement);
         }
 

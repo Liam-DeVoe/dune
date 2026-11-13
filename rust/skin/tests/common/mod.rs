@@ -6,7 +6,7 @@ use std::io::{BufRead, BufReader, Read};
 use std::path::Path;
 
 use serde_json::Value;
-use treachery_engine::compat::cs::{self, CsException};
+use treachery_engine::error::catch_panic;
 use treachery_engine::enumerations::*;
 use treachery_engine::messages::expression::{EnumValue, ExpressionElement};
 use treachery_engine::identity::IFetcher;
@@ -34,11 +34,17 @@ pub fn golden(name: &str) -> std::path::PathBuf {
 /// The result of a call as the probe writes it: the text, or `!Type: message` for an exception.
 /// A panic that doesn't name a .NET exception is `!panic: message`.
 pub fn outcome(f: impl FnOnce() -> String) -> String {
-    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| cs::catch_panic(f))) {
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| catch_panic(f))) {
         Ok(Ok(s)) => s,
-        Ok(Err(CsException { type_name, message })) => format!("!{type_name}: {message}"),
-        Err(p) => format!("!panic: {}", cs::panic_message(p.as_ref())),
+        Ok(Err(message)) if is_dotnet_exception(&message) => format!("!{message}"),
+        Ok(Err(message)) => format!("!panic: {message}"),
+        Err(p) => format!("!panic: {}", treachery_engine::error::panic_message(p.as_ref())),
     }
+}
+
+/// Whether a panic message names a .NET exception, as the skin's own .NET-style errors do.
+fn is_dotnet_exception(message: &str) -> bool {
+    message.split_once(": ").is_some_and(|(t, _)| t.ends_with("Exception") && t.chars().all(|c| c.is_ascii_alphabetic()))
 }
 
 macro_rules! enum_by_name {
@@ -88,7 +94,7 @@ pub fn element(tok: &Value) -> ExpressionElement {
 }
 
 /// The enum value of a token, as `T`.
-pub fn enum_arg<T: treachery_engine::compat::net_enum::NetEnum>(tok: &Value) -> T {
+pub fn enum_arg<T: treachery_engine::enum_type::GameEnum>(tok: &Value) -> T {
     match element(tok) {
         ExpressionElement::Enum(e) => e.get::<T>().unwrap_or_else(|| panic!("{tok} is not a {}", T::INFO.name)),
         _ => panic!("{tok} is not an enum"),

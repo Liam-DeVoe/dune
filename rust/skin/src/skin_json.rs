@@ -12,9 +12,9 @@
 //! messages are not .NET's; only the exception type is.
 
 use serde_json::Value;
-use treachery_engine::compat::cs::CsException;
+use dotnet_compat::exception::CsException;
 use treachery_engine::json::write_escaped;
-use treachery_engine::compat::net_enum::NetEnum;
+use treachery_engine::enum_type::GameEnum;
 use treachery_engine::map::point::PointD;
 
 use crate::skin::{Skin, SkinDictionary, SkinKey};
@@ -31,7 +31,7 @@ pub(crate) fn parse_int_key(text: &str) -> Option<i32> {
 
 /// Reads an enum dictionary key the way System.Text.Json does: a member name (case-sensitive)
 /// in any case, or a number.
-pub(crate) fn parse_enum_key<T: NetEnum>(text: &str) -> Option<T> {
+pub(crate) fn parse_enum_key<T: GameEnum>(text: &str) -> Option<T> {
     if let Some((_, v)) = T::INFO.declared.iter().find(|(n, _)| *n == text) {
         return Some(T::from_value(*v));
     }
@@ -378,7 +378,7 @@ fn fix(to_fix: &mut Skin, donor: &Skin, states: &[(&str, ReadState)]) -> Result<
                 if *state == ReadState::Null && !d_keys.is_empty() {
                     return Err(CsException {
                         type_name: "NullReferenceException",
-                        message: treachery_engine::compat::cs::NULL_REFERENCE_MESSAGE.into(),
+                        message: "Object reference not set to an instance of an object.".into(),
                     });
                 }
                 if d_keys.iter().any(|k| !t_keys.contains(k)) {

@@ -3,7 +3,7 @@
 //! phase, and each case draws one line and possibly inputs.
 
 use treachery_engine::express;
-use treachery_engine::compat::net_enum::NetEnum;
+use treachery_engine::enum_type::GameEnum;
 use treachery_engine::prelude::*;
 
 use crate::build::event;

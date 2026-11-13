@@ -30,7 +30,6 @@ impl EmperorDiscarded {
     }
 
     pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.card_id = TreacheryCardManager::get_id(value);
     }
 
@@ -50,7 +49,7 @@ impl EmperorDiscarded {
         let me = self.player();
         {
             let p = game.player_mut(me);
-            p.resources = p.resources.wrapping_sub(2);
+            p.resources -= 2;
         }
         game.discard_player_treachery_card_boolean(Some(me), self.card(), true);
         Ok(())

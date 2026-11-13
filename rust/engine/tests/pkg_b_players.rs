@@ -2,7 +2,7 @@
 //! follow the C# code in Model/Player.cs, Model/PlayerSequence.cs, Model/Battalion.cs and
 //! Game_Rules.cs; the comments say which C# behaviour each test pins down.
 
-use treachery_engine::compat::cs;
+use treachery_engine::error::catch_panic;
 use treachery_engine::prelude::*;
 
 fn game_with(factions: &[Faction]) -> Game {
@@ -24,9 +24,9 @@ fn homeworld(g: &Game, w: World) -> Homeworld {
 }
 
 fn exception_text<R>(f: impl FnOnce() -> R) -> String {
-    match cs::catch_panic(f) {
+    match catch_panic(f) {
         Ok(_) => "no exception".to_string(),
-        Err(e) => format!("{}: {}", e.type_name, e.message),
+        Err(e) => e,
     }
 }
 
@@ -188,7 +188,7 @@ fn determine_first_player_skips_empty_seats_and_panics() {
     assert_eq!(PlayerSequence::determine_first_player(&g), g.player_at(1));
 
     g.settings.as_ref().unwrap().borrow_mut().number_of_players = 0;
-    assert_eq!(exception_text(|| PlayerSequence::determine_first_player(&g)), "DivideByZeroException: Attempted to divide by zero.");
+    assert_eq!(exception_text(|| PlayerSequence::determine_first_player(&g)), "attempt to calculate the remainder with a divisor of zero");
 
     let g = game_with(&[]);
     g.settings.as_ref().unwrap().borrow_mut().number_of_players = 3;
@@ -236,7 +236,7 @@ fn is_after_uses_first_player() {
 #[test]
 fn ruleset_definition_keeps_duplicate_rule() {
     let d = Game::ruleset_definition();
-    let e2 = d.index_with(&Ruleset::Expansion2AdvancedGame, |_| String::new());
+    let e2 = &d[&Ruleset::Expansion2AdvancedGame];
     assert_eq!(e2.iter().filter(|r| **r == Rule::StrongholdBonus).count(), 2);
     assert_eq!(e2.len(), 24);
     assert_eq!(d.len(), 11);

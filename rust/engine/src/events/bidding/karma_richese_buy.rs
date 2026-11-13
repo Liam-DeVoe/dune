@@ -30,7 +30,6 @@ impl KarmaRicheseBuy {
     }
 
     pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.card_id = TreacheryCardManager::get_id(value);
     }
 
@@ -51,10 +50,10 @@ impl KarmaRicheseBuy {
         game.play_karma(me, karma_card, vec!["buy a card from their cache for ".into(), Payment::of(3).into()]);
         // C# adds a null card when executed without validation.
         let card = self.card();
-        game.player_mut(me).treachery_cards.push(card.or_null());
+        game.player_mut(me).treachery_cards.push(card.required("card")?);
         crate::game::remove_card(&mut game.richese_cache, card);
         let p = game.player_mut(me);
-        p.resources = p.resources.wrapping_sub(3);
+        p.resources -= 3;
         p.special_karma_power_used = true;
         Ok(())
     }

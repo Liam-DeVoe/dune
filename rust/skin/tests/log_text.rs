@@ -3,7 +3,7 @@
 
 use std::rc::Rc;
 
-use treachery_engine::compat::cs::Shared;
+use treachery_engine::shared::Shared;
 use treachery_engine::enumerations::{AutomationRuleType, Faction, FactionAdvantage, ItemAction, TreacheryCardType};
 use treachery_engine::events::game_event::GameEventMethods;
 use treachery_engine::events::{AutomationConfigured, GameEvent, KarmaChoamDiscard, Shipment, Voice};

@@ -10,9 +10,7 @@ pub mod exception;
 pub mod random;
 pub mod dictionary;
 pub mod hashset;
-pub mod sort;
 pub mod math;
-pub mod linq;
 pub mod parse;
 pub mod fmt;
 

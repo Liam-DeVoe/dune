@@ -33,7 +33,7 @@ impl SetIncreasedRevivalLimits {
         let factions = self.factions.as_ref().required("factions")?;
         // ValidTargets is re-run lazily per faction; `p.Faction` is only read when there are players.
         let p = self.player_opt();
-        if factions.iter().any(|f| !game.players.iter().any(|x| x.faction != game.player(p.nre()).faction && x.faction == *f)) {
+        if factions.iter().any(|f| !game.players.iter().any(|x| x.faction != game.player(p.expect("player")).faction && x.faction == *f)) {
             return Ok(Some(express!("Invalid faction")));
         }
 

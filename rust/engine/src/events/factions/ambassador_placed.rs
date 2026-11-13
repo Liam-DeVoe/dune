@@ -32,7 +32,6 @@ impl AmbassadorPlaced {
     }
 
     pub fn set_stronghold(&mut self, game: &Game, value: Option<Territory>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.stronghold_id = game.map.territory_lookup().get_id(value);
     }
 
@@ -74,11 +73,11 @@ impl AmbassadorPlaced {
             game_error!("Stronghold is null");
         };
 
-        game.ambassadors_placed_this_turn = game.ambassadors_placed_this_turn.wrapping_add(1);
+        game.ambassadors_placed_this_turn += 1;
         let me = self.player();
         let placed = game.ambassadors_placed_this_turn;
         let p = game.player_mut(me);
-        p.resources = p.resources.wrapping_sub(placed);
+        p.resources -= placed;
         self.log_objects(
             game,
             vec![
@@ -94,7 +93,7 @@ impl AmbassadorPlaced {
         if game.ambassadors_on_planet.contains_key(&stronghold) {
             game_error!("There already is an ambassador in {}", ExpressionElement::from(stronghold).to_cs_string());
         }
-        game.ambassadors_on_planet.add_with(stronghold, self.ambassador, |k| ExpressionElement::from(*k).to_cs_string());
+        game.ambassadors_on_planet.insert_new(stronghold, self.ambassador);
         // List.Remove: the first equal element
         let ambassadors = &mut game.player_mut(me).ambassadors;
         if let Some(pos) = ambassadors.iter().position(|a| *a == self.ambassador) {

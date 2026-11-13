@@ -34,7 +34,6 @@ impl ChoamRemoveForce {
     }
 
     pub fn set_location(&mut self, game: &Game, value: Option<Location>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.location_id = game.map.location_lookup().get_id(value);
     }
 
@@ -67,16 +66,13 @@ impl ChoamRemoveForce {
     /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
     pub fn valid_factions(g: &Game, p: Option<PlayerIndex>, l: Option<Location>) -> impl Iterator<Item = Faction> {
         use either::Either;
-        let p = p.and_then(crate::compat::cs::CsNull::opt);
-        let l = l.and_then(crate::compat::cs::CsNull::opt);
         if let Some(l) = l {
             return Either::Left(g.players.iter().filter(move |x| x.any_forces_in(Some(l)) > 0).map(|x| x.faction));
         }
-        Either::Right(g.players_other_than(p.nre()))
+        Either::Right(g.players_other_than(p.expect("player")))
     }
 
     pub fn valid_special_force_choices(g: &Game, l: Option<Location>, f: Faction) -> Vec<bool> {
-        let l = l.and_then(crate::compat::cs::CsNull::opt);
         let mut result = Vec::new();
         let player_to_check = g.get_player(Some(f));
 
@@ -124,8 +120,6 @@ impl ChoamRemoveForce {
 
         let target = self.get_player(game, Some(self.target));
 
-        // A null Location (only without validation): C# adds the force to the reserves, then
-        // ChangeForces throws ArgumentNullException on the null key. The event fails there.
         let target = target.required("target")?;
         let location = self.location(game);
         if self.special_force {

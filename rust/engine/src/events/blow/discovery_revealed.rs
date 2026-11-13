@@ -38,7 +38,6 @@ impl DiscoveryRevealed {
     }
 
     pub fn set_location(&mut self, game: &Game, value: Option<Location>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.location_id = game.map.location_lookup().get_id(value);
     }
 
@@ -68,7 +67,7 @@ impl DiscoveryRevealed {
         let Some(location) = self.location(game) else {
             game_error!("Value cannot be null. (Parameter 'key')")
         };
-        let discovery = game.discoveries_on_planet.index(&location).clone();
+        let discovery = game.discoveries_on_planet[&location].clone();
         if let Some(i) = game.pending_discoveries.iter().position(|t| *t == discovery.token) {
             game.pending_discoveries.remove(i);
         }
@@ -86,7 +85,7 @@ impl DiscoveryRevealed {
                 | DiscoveryToken::Cistern
                 | DiscoveryToken::ProcessingStation => {
                     let sh = game.map.get_discovery_stronghold(discovery.token);
-                    sh.point_at(&mut game.map, discovery.location)?;
+                    sh.point_at(&mut game.map, discovery.location);
                     game.just_revealed_discovery_strongholds.push(sh);
                 }
 
@@ -94,7 +93,7 @@ impl DiscoveryRevealed {
                     let card = game.draw_treachery_card();
                     let me = self.player();
                     // C# adds card! even when it is null.
-                    game.player_mut(me).treachery_cards.push(card.or_null());
+                    game.player_mut(me).treachery_cards.push(card.required("card")?);
                     self.log_objects(game, elems![self.initiator(), " draw a treachery card"]);
                     if game.player(me).hand_size_exceeded(game) {
                         game.let_factions_discard_surplus_cards();
@@ -104,7 +103,7 @@ impl DiscoveryRevealed {
                 DiscoveryToken::ResourceStash => {
                     let me = self.player();
                     let r = &mut game.player_mut(me).resources;
-                    *r = r.wrapping_add(7);
+                    *r += 7;
                     self.log_objects(game, elems![self.initiator(), " get ", Payment::of(7)]);
                 }
 

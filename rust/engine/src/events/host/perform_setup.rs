@@ -38,13 +38,13 @@ impl PerformSetup {
         let faction = game.next_faction_to_perform_custom_setup();
         let p = game.get_player(Some(faction));
         let number_of_special_forces =
-            dotnet_compat::linq::sum_i32(self.force_locations(game).values().map(|b| b.amount_of_special_forces));
+            self.force_locations(game).values().map(|b| b.amount_of_special_forces).sum::<i32>();
         let Some(p) = p else { return Some(express!("No faction is setting up")) };
         if number_of_special_forces > game.player(p).special_forces_in_reserve() {
             return Some(express!("Too many ", game.player(p).special_force()));
         }
 
-        let number_of_forces = dotnet_compat::linq::sum_i32(self.force_locations(game).values().map(|b| b.amount_of_forces));
+        let number_of_forces = self.force_locations(game).values().map(|b| b.amount_of_forces).sum::<i32>();
         if number_of_forces > game.player(p).forces_in_reserve() {
             return Some(express!("Too many ", game.player(p).force()));
         }
@@ -173,7 +173,7 @@ impl crate::events::placement::IPlacement for PerformSetup {
         GameEventMethods::initiator(self)
     }
 
-    fn force_locations(&self, game: &Game) -> NetDictionary<Location, Battalion> {
+    fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         <Self as PlacementEventMethods>::force_locations(self, game)
     }
 

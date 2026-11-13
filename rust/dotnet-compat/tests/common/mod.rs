@@ -7,11 +7,9 @@
 
 #![allow(dead_code)]
 
-use dotnet_compat::linq;
 use dotnet_compat::math::{self, MidpointRounding};
 use dotnet_compat::parse;
 use dotnet_compat::CsException;
-use dotnet_compat::sort::{list_sort, list_sort_by};
 use dotnet_compat::{NetDictionary, NetHashSet, NetRandom};
 use serde_json::{Value, json};
 use std::cmp::Ordering;
@@ -168,129 +166,10 @@ pub fn set_case(g: &mut Gen, n_ops: usize) -> Value {
     json!({"t": "set", "ops": ops})
 }
 
-pub fn sort_case(keys: Vec<i32>, mode: i32) -> Value {
-    json!({"t": "sort", "mode": mode, "keys": keys})
-}
-
-pub fn random_keys(g: &mut Gen, len: usize) -> Vec<i32> {
-    let range = g.pick(&[1u64, 2, 3, 5, 10, 30, 1000, 1 << 31]);
-    let pattern = g.below(8);
-    let mut v: Vec<i32> = (0..len).map(|_| g.below(range) as i32).collect();
-    match pattern {
-        0 => v.sort(),
-        1 => {
-            v.sort();
-            v.reverse()
-        }
-        2 => {
-            // organ pipe
-            v.sort();
-            let mut w: Vec<i32> = v.iter().step_by(2).copied().collect();
-            let mut back: Vec<i32> = v.iter().skip(1).step_by(2).copied().collect();
-            back.reverse();
-            w.extend(back);
-            v = w;
-        }
-        3 => {
-            // mostly sorted with a few swaps
-            v.sort();
-            for _ in 0..(len / 10 + 1) {
-                if len > 1 {
-                    let a = g.below(len as u64) as usize;
-                    let b = g.below(len as u64) as usize;
-                    v.swap(a, b);
-                }
-            }
-        }
-        _ => {}
-    }
-    v
-}
-
-/// McIlroy's "A Killer Adversary for Quicksort" run against our own port of
-/// the .NET introsort: returns an input that drives quicksort to its depth
-/// limit, so the heapsort fallback runs. Values are a permutation of 0..n.
-pub fn quicksort_killer(n: usize) -> Vec<i32> {
-    use std::cell::RefCell;
-    let gas = n as i32;
-    let val = RefCell::new(vec![gas; n]);
-    let nsolid = RefCell::new(0i32);
-    let candidate = RefCell::new(0usize);
-    let mut idx: Vec<usize> = (0..n).collect();
-    list_sort_by(&mut idx, |&x, &y| {
-        let mut val = val.borrow_mut();
-        let mut nsolid = nsolid.borrow_mut();
-        let mut candidate = candidate.borrow_mut();
-        if val[x] == gas && val[y] == gas {
-            if x == *candidate {
-                val[x] = *nsolid;
-                *nsolid += 1;
-            } else {
-                val[y] = *nsolid;
-                *nsolid += 1;
-            }
-        }
-        if val[x] == gas {
-            *candidate = x;
-        } else if val[y] == gas {
-            *candidate = y;
-        }
-        val[x].cmp(&val[y])
-    });
-    let mut val = val.into_inner();
-    let mut next = nsolid.into_inner();
-    for v in val.iter_mut() {
-        if *v == gas {
-            *v = next;
-            next += 1;
-        }
-    }
-    val
-}
-
-const LINQ_INT_OPS: &[&str] = &[
-    "orderby", "orderbydesc", "orderbytake", "orderbydesctake", "orderbythenbydesc", "orderbyfirstpred",
-    "orderbydescfirstpred", "orderbylast", "orderbyrandom", "maxby", "minby", "max", "min", "maxsel", "maxnullable",
-    "minnullable", "maxicomparable", "sum", "sumsel", "average", "distinct", "union", "intersect", "except", "groupby",
-    "single", "singleordefault", "singlepred", "reverse", "aggregate", "first", "firstpred", "lastpred", "singlepred2",
-    "elementat", "elementatlist", "todict",
-];
-const LINQ_FLOAT_OPS: &[&str] = &["sumf", "averagef", "maxf", "minf", "maxd", "mind", "orderbyf", "orderbydescf"];
-
 pub const INTERESTING_F32: &[f32] = &[
     0.0, -0.0, 1.0, -1.0, 0.5, -0.5, 1.5, 2.5, 3.0, 100.25, f32::NAN, f32::INFINITY, f32::NEG_INFINITY, f32::MAX,
     f32::MIN, f32::MIN_POSITIVE, 1e-45, 16777216.0, 16777217.0, 0.1, 0.2, 0.3,
 ];
-
-pub fn linq_case(g: &mut Gen) -> Value {
-    let float = g.chance(0.25);
-    let op = if float { g.pick(LINQ_FLOAT_OPS) } else { g.pick(LINQ_INT_OPS) };
-    let len = match g.below(4) {
-        0 => g.below(3) as usize,
-        _ => g.below(30) as usize,
-    };
-    let gen_int = |g: &mut Gen| -> i32 {
-        match g.below(10) {
-            0 => g.pick(&[i32::MAX, i32::MIN, i32::MAX - 1, 1 << 30]),
-            1 => g.i32(),
-            _ => g.range(-3, 8) as i32,
-        }
-    };
-    // int[].Sum() is vectorized for >= 16 elements on arm64 (32 with AVX2),
-    // which changes where overflow is detected; sum_i32 models the scalar
-    // path, so keep plain sums short.
-    let len = if op == "sum" { len.min(15) } else { len };
-    // int[].Sum() is vectorized for >= 16 elements on arm64 (32 with AVX2),
-    // which changes where overflow is detected; sum_i32 models the scalar
-    // path, so keep plain sums short.
-    let len = if op == "sum" { len.min(15) } else { len };
-    let xs: Vec<i32> = (0..len)
-        .map(|_| if float { g.pick(INTERESTING_F32).to_bits() as i32 } else { gen_int(g) })
-        .collect();
-    let ys: Vec<i32> = (0..g.below(12)).map(|_| gen_int(g)).collect();
-    let k = g.range(-2, 12) as i32;
-    json!({"t": "linq", "op": op, "xs": xs, "ys": ys, "k": k})
-}
 
 pub const INTERESTING_F64: &[f64] = &[
     0.0, -0.0, 0.5, -0.5, 1.5, -1.5, 2.5, -2.5, 0.49999999999999994, -0.49999999999999994, 0.5000000000000001,
@@ -451,8 +330,6 @@ pub fn run_rust(case: &Value) -> Value {
         "random" => rust_random(case),
         "dict" => rust_dict(case),
         "set" => rust_set(case),
-        "sort" => rust_sort(case),
-        "linq" => rust_linq(case),
         "math" => rust_math(case),
         t => panic!("unknown case {t}"),
     }
@@ -566,113 +443,8 @@ impl Ord for Item {
     }
 }
 
-fn rust_sort(case: &Value) -> Value {
-    let keys = ints(&case["keys"]);
-    let mode = case["mode"].as_i64().unwrap();
-    let mut items: Vec<Item> = keys.iter().enumerate().map(|(i, &k)| Item { key: k, id: i as i32 }).collect();
-    match mode {
-        0 | 1 | 3 => list_sort_by(&mut items, |a, b| a.key.cmp(&b.key)),
-        2 => list_sort(&mut items),
-        5 | 6 => {
-            let r = catching(|| {
-                if mode == 5 {
-                    list_sort_by(&mut items, |_, _| Ordering::Less);
-                } else {
-                    list_sort_by(&mut items, |a, b| {
-                        if a.key == 7 || b.key == 7 {
-                            dotnet_compat::throw!(InvalidOperationException, "seven");
-                        }
-                        a.key.cmp(&b.key)
-                    });
-                }
-                Value::Null
-            });
-            if !r.is_null() {
-                let mut v = vec![r];
-                v.extend(items.iter().map(|x| json!(x.id)));
-                return Value::Array(v);
-            }
-        }
-        _ => list_sort_by(&mut items, |a, b| b.key.cmp(&a.key)),
-    }
-    Value::Array(items.iter().map(|x| json!(x.id)).collect())
-}
-
 fn ints_v(xs: impl IntoIterator<Item = i32>) -> Value {
     Value::Array(xs.into_iter().map(|x| json!(x)).collect())
-}
-
-fn rust_linq(case: &Value) -> Value {
-    let op = case["op"].as_str().unwrap();
-    let xs = ints(&case["xs"]);
-    let ys = ints(&case["ys"]);
-    let k = case["k"].as_i64().unwrap() as i32;
-    let idx = || 0..xs.len() as i32;
-    let x = |i: &i32| xs[*i as usize];
-    let fx = |i: &i32| f32::from_bits(xs[*i as usize] as u32);
-    let fs = || xs.iter().map(|&b| f32::from_bits(b as u32));
-    match op {
-        "orderby" => ints_v(linq::order_by(idx(), x)),
-        "orderbydesc" => ints_v(linq::order_by_descending(idx(), x)),
-        "orderbytake" => ints_v(linq::take(linq::order_by(idx(), x), k)),
-        "orderbydesctake" => ints_v(linq::take(linq::order_by_descending(idx(), x), k)),
-        "orderbythenbydesc" => {
-            ints_v(linq::order_by_cmp(idx(), |a, b| (x(a) % 3).cmp(&(x(b) % 3)).then_with(|| x(b).cmp(&x(a)))))
-        }
-        "orderbyfirstpred" => json!(linq::order_by(idx(), x).into_iter().find(|i| i % 3 == 0).unwrap_or(-1)),
-        "orderbydescfirstpred" => {
-            json!(linq::order_by_descending(idx(), x).into_iter().find(|i| i % 3 == 0).unwrap_or(-1))
-        }
-        "orderbylast" => catching(|| json!(linq::last(linq::order_by(idx(), x)))),
-        "orderbyrandom" => {
-            let mut r = NetRandom::new(k);
-            ints_v(linq::take(linq::order_by(idx(), |_| r.next_max(5)), xs.len() as i32 / 2))
-        }
-        "maxby" => catching(|| json!(linq::or_no_elements(linq::max_by_key_first(idx(), x)))),
-        "minby" => catching(|| json!(linq::or_no_elements(linq::min_by_key_first(idx(), x)))),
-        "max" => catching(|| json!(linq::max(xs.iter().copied()))),
-        "min" => catching(|| json!(linq::min(xs.iter().copied()))),
-        "maxsel" => catching(|| json!(linq::max(idx().map(|i| x(&i))))),
-        "maxnullable" => json!(linq::max_nullable(xs.iter().map(|&v| if v < 0 { None } else { Some(v) }))),
-        "minnullable" => json!(linq::min_nullable(xs.iter().map(|&v| if v < 0 { None } else { Some(v) }))),
-        "maxicomparable" => json!(linq::max_nullable(idx().map(|i| Some(x(&i))))),
-        "sum" => catching(|| json!(linq::sum_i32(xs.iter().copied()))),
-        "sumsel" => catching(|| json!(linq::sum_i32(idx().map(|i| x(&i))))),
-        "average" => catching(|| bd(linq::average_i32(xs.iter().copied()))),
-        "sumf" => bf(linq::sum_f32(fs())),
-        "averagef" => catching(|| bf(linq::average_f32(fs()))),
-        "maxf" => catching(|| bf(linq::max_f32(fs()))),
-        "minf" => catching(|| bf(linq::min_f32(fs()))),
-        "maxd" => catching(|| bd(linq::max_f64(fs().map(|v| v as f64)))),
-        "mind" => catching(|| bd(linq::min_f64(fs().map(|v| v as f64)))),
-        "orderbyf" => ints_v(linq::order_by_f64(idx(), |i| fx(i) as f64)),
-        "orderbydescf" => ints_v(linq::order_by_descending_f64(idx(), |i| fx(i) as f64)),
-        "distinct" => ints_v(linq::distinct(xs.iter().copied())),
-        "union" => ints_v(linq::union(xs.iter().copied(), ys.iter().copied())),
-        "intersect" => ints_v(linq::intersect(xs.iter().copied(), ys.iter().copied())),
-        "except" => ints_v(linq::except(xs.iter().copied(), ys.iter().copied())),
-        "groupby" => Value::Array(
-            linq::group_by(idx(), x)
-                .into_iter()
-                .map(|(key, items)| ints_v(std::iter::once(key).chain(items)))
-                .collect(),
-        ),
-        "single" => catching(|| json!(linq::single(xs.iter().copied()))),
-        "singleordefault" => catching(|| json!(linq::single_or_default(xs.iter().copied()).unwrap_or(-1))),
-        "singlepred" => {
-            catching(|| json!(linq::single_or_default_where(xs.iter().copied(), |v| v % 2 == 0).unwrap_or(-1)))
-        }
-        "reverse" => ints_v(linq::reverse(xs.iter().copied())),
-        "first" => catching(|| json!(linq::first(xs.iter().copied()))),
-        "firstpred" => catching(|| json!(linq::first_where(xs.iter().copied(), |v| v % 2 == 0))),
-        "lastpred" => catching(|| json!(linq::last_where(xs.iter().copied(), |v| v % 2 == 0))),
-        "singlepred2" => catching(|| json!(linq::single_where(xs.iter().copied(), |v| v % 2 == 0))),
-        "elementat" => catching(|| json!(linq::element_at(xs.iter().copied(), k))),
-        "elementatlist" => catching(|| json!(*linq::element_at_list(&xs, k))),
-        "todict" => catching(|| ints_v(linq::to_dictionary(xs.iter().copied(), |v| *v, |v| v).keys().copied())),
-        "aggregate" => catching(|| json!(linq::aggregate(xs.iter().copied(), |a, b| a.wrapping_mul(31).wrapping_add(b)))),
-        _ => panic!("unknown linq op {op}"),
-    }
 }
 
 const MODES: [MidpointRounding; 5] = [

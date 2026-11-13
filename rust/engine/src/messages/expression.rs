@@ -18,7 +18,7 @@ use crate::heroes::hero::Hero;
 use crate::heroes::leader::Leader;
 use crate::map::location::Location;
 use crate::messages::message::{Message, MessagePart};
-use crate::compat::net_enum::{EnumTypeInfo, NetEnum};
+use crate::enum_type::{EnumTypeInfo, GameEnum};
 use crate::messages::payment::Payment;
 use crate::cards::resource_card::ResourceCard;
 use crate::map::territory::Territory;
@@ -32,12 +32,12 @@ pub struct EnumValue {
 }
 
 impl EnumValue {
-    pub fn of<T: NetEnum>(v: T) -> Self {
+    pub fn of<T: GameEnum>(v: T) -> Self {
         EnumValue { ty: T::INFO, value: v.value() }
     }
 
     /// Returns the value if it is of enum type `T`.
-    pub fn get<T: NetEnum>(&self) -> Option<T> {
+    pub fn get<T: GameEnum>(&self) -> Option<T> {
         if std::ptr::eq(self.ty, T::INFO) || self.ty.name == T::INFO.name { Some(T::from_value(self.value)) } else { None }
     }
 }
@@ -272,8 +272,8 @@ impl PartialEq for ExpressionElement {
             (E::Bool(a), E::Bool(b)) => a == b,
             (E::Int(a), E::Int(b)) => a == b,
             (E::Long(a), E::Long(b)) => a == b,
-            (E::Float(a), E::Float(b)) => dotnet_compat::math::equals_f32(*a, *b),
-            (E::Double(a), E::Double(b)) => dotnet_compat::math::equals_f64(*a, *b),
+            (E::Float(a), E::Float(b)) => a == b,
+            (E::Double(a), E::Double(b)) => a == b,
             (E::Enum(a), E::Enum(b)) => a == b,
             (E::Location(a), E::Location(b)) => a == b,
             (E::Territory(a), E::Territory(b)) => a == b,
@@ -332,9 +332,6 @@ impl From<f64> for ExpressionElement {
 }
 impl From<Location> for ExpressionElement {
     fn from(v: Location) -> Self {
-        if crate::compat::cs::CsNull::is_null(v) {
-            return ExpressionElement::Null;
-        }
         ExpressionElement::Location(v)
     }
 }
@@ -355,17 +352,11 @@ impl From<crate::map::hidden_mobile_stronghold::HiddenMobileStronghold> for Expr
 }
 impl From<Territory> for ExpressionElement {
     fn from(v: Territory) -> Self {
-        if crate::compat::cs::CsNull::is_null(v) {
-            return ExpressionElement::Null;
-        }
         ExpressionElement::Territory(v)
     }
 }
 impl From<Hero> for ExpressionElement {
     fn from(v: Hero) -> Self {
-        if crate::compat::cs::CsNull::is_null(v) {
-            return ExpressionElement::Null;
-        }
         ExpressionElement::Hero(v)
     }
 }
@@ -381,17 +372,11 @@ impl From<TreacheryCard> for ExpressionElement {
 }
 impl From<ResourceCard> for ExpressionElement {
     fn from(v: ResourceCard) -> Self {
-        if crate::compat::cs::CsNull::is_null(v) {
-            return ExpressionElement::Null;
-        }
         ExpressionElement::ResourceCard(v)
     }
 }
 impl From<crate::game::PlayerIndex> for ExpressionElement {
     fn from(v: crate::game::PlayerIndex) -> Self {
-        if crate::compat::cs::CsNull::is_null(v) {
-            return ExpressionElement::Null;
-        }
         ExpressionElement::Player(v)
     }
 }

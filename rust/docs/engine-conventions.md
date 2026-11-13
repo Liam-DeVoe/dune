@@ -7,7 +7,7 @@ How C# constructs in `Shared` map to Rust in `rust/engine`. Read [PORTING.md](..
 - Modules are organized by concern; [engine.md](engine.md) describes the layout. (Until 2026-11-12 there was one module per C# file, named after it.)
 - Members keep their C# names in snake_case and their C# order. Properties become methods: `card.IsWeapon` is `card.is_weapon()`.
 - A name that is a Rust keyword gets a trailing underscore: `card.Type` is `card.type_()`.
-- Support modules have no C# counterpart. `compat/cs.rs` holds exceptions, the throwing LINQ operators, `Shared<T>` and `RcKey<T>`. `compat/net_enum.rs` defines how enums work. `compat/date_time_offset.rs` is `DateTimeOffset`/`TimeSpan`, `json/mod.rs` and `json/members.rs` are the event JSON, and `prelude.rs` is the common import.
+- Support modules have no C# counterpart. `shared.rs` holds `Shared<T>` and `RcKey<T>`, `enum_type.rs` defines how enums work, `iter.rs` the iterator and map helpers std lacks, `compat/date_time_offset.rs` is `DateTimeOffset`/`TimeSpan`, `compat/random_ext.rs` the random selection helpers, `json/mod.rs` and `json/members.rs` are the event JSON, and `prelude.rs` is the common import.
 - Generated files say so at the top. `map/data.rs` comes from `tools/gen_map_data.py` and `enumerations.rs` from `tools/gen_enumerations.py` (which also emits the enums declared in `Model/Log` and `Model/Result.cs`). Edit the generator, not the output. The engine skeleton came from `csharp-gen`, which is retired; see [The skeleton generator](#the-skeleton-generator).
 - Mark deliberate copies of C# bugs with `// C# parity: <why>`.
 
@@ -35,7 +35,7 @@ get_values_except_default(Faction::None); // Enumerations.GetValuesExceptDefault
 - `ALL` is in `Enum.GetValues` order, which is sorted by value. `Rule` and `Ruleset` are declared out of order, so never rebuild that list from declaration order.
 - `Display` is `Enum.ToString()`. That includes `[Flags]` combinations such as `"Cross, ToHomeworld"` for `ShipmentPermission`. Use it for exception messages and `$"{x}"` interpolation.
 - serde (de)serializes the number.
-- To port an enum declared outside `Enumerations.cs`, use the `net_enum!` macro (see `BattleFactKind` in `message.rs`). Give `get_values` in value order.
+- To declare an enum outside `enumerations.rs`, use the `game_enum!` macro (`enum_type.rs`) (see `BattleFactKind` in `message.rs`). Give `get_values` in value order.
 
 ## Static game data: handles
 
@@ -90,37 +90,23 @@ let hero = LeaderManager::hero_lookup().find(self.hero_id);  // Option<Hero>
 let card = TreacheryCardManager::lookup().find(self.card_id);
 ```
 
-### Null handles
+### Absent values
 
-C# can store `null` in any collection of game objects: `Player.TreacheryCards.Add(Card!)` with an unknown card id puts null in the hand, and `Winners.Add(AlliedPlayer)` can add a null player. Code then passes such elements along until a member access throws. So every handle has a null value: `TreacheryCard::NULL`, `Leader::NULL`, `Hero::NULL`, `Location::NULL`, `Territory::NULL`, `ResourceCard::NULL` and `PlayerIndex::NULL`. The trait `cs::CsNull` gives them `is_null()`, `opt()` and `nn()`.
+A handle (`TreacheryCard`, `Leader`, `Hero`, `Location`, `Territory`, `ResourceCard`, `PlayerIndex`) always names a real object. Where a value can be absent, the type is `Option<Handle>`; collections never hold an absent value. (Until native-plan.md step 3c every handle had a null value that imitated a C# null reference; [unreachable.md](unreachable.md) lists what changed for events executed without validation.)
 
-The null handle behaves like a C# null reference:
+What to do when a value is missing:
 
-- It fits in any `Vec`, `NetHashSet` or `Deck`, and `==` is true only against another null. `Hero::Leader(Leader::NULL)` is the same null as `Hero::NULL`.
-- Every member (`id()`, `type_()`, `territory()`, `data()`, ...) throws NullReferenceException. `Game::player(PlayerIndex::NULL)` does too.
-- As a `NetDictionary` key, every method throws ArgumentNullException "Value cannot be null. (Parameter 'key')". `cs::install_null_key_check` registers this with dotnet-compat. `Map::new` calls it.
-- It dumps as `null`, becomes `ExpressionElement::Null` in messages, and `IFetcher::get_id` gives `-1` for it.
-- `as_leader()`, `as_treachery_card()` and `is_messiah()` are false for it, like C# `is`.
-
-The rule for choosing between the two forms of null:
-
-- **Fields, parameters and returns that C# declares nullable stay `Option<Handle>`**, as the skeleton generated them. `None` is null.
-- **Collection elements are plain handles**, and the null handle is null there. So is a non-nullable parameter that C# passes possibly-null values to (`MoveForces(from, To)`, `KillAllForcesIn(territory)`).
-- **Crossing between the two:** to store an `Option` in a collection or pass it to a handle parameter, use `opt.or_null()`, never `opt.nre()`. `x!` in C# does not throw. Only the member access after it does. To make an `Option` from a handle that may be null, use `h.opt()`. Never write `Some(h)` for such a handle. `Some(Handle::NULL)` would not compare equal to `None`, and functions that test `x is null` would treat it as non-null. `draw_treachery_card` and `kill_all_forces_in` show the pattern.
-- **`Some(NULL)` is still handled, in two places.** Every function with an `Option<Handle>` parameter starts with `let x = x.and_then(crate::cs::CsNull::opt);`, so a null handle that arrives as `Some` takes the `None` path. `tests/null_option_params.rs` scans the sources and fails for any function without that line. The "OrDefault" helpers (`random_or_default` and the `highest`/`lowest` family built on it, `cs_single_or_default`, and the bots' `cs_first_or_default_where`, `cs_last_or_default_where` and `last_or_default_where_list`) return `None` for a null element, through `cs::null_to_none`. So `if let Some(card) = hand.random_or_default(..)` skips a null card the way C#'s `if (card != null)` does. Code that takes an element from a collection some other way (`hand[0]`, `.first()`, `.next()`) and wraps it in `Some` must call `.opt()`. The engine's `FirstOrDefault(p)` is plain `.find(p)`: a null element only gets into a collection through a forged id, which is out of scope (PORTING.md).
+- Absence is part of the rules (no ally, no current battle, an event field the client left out): keep the `Option` and handle `None`.
+- An executed event needs the value (it passed validation, so it should be there): `.required("what")?`, which fails the event with a Game Error before it changes anything more.
+- Anywhere else a valid game always has the value: `.expect("what")`. Reaching it is a bug, and the panic says what was missing.
+- A C# method that took a possibly null argument and threw only on some paths keeps that shape where callers rely on it: `Voice::may_use_voice_opt` and `Prescience::may_use_prescience_opt` take an `Option<PlayerIndex>` and panic only where the answer depends on the player.
 
 ```rust
-// Player.TreacheryCards.Add(Card!);      Card may be null
-game.player_mut(me).treachery_cards.push(self.card().or_null());
-// Player.TreacheryCards.Remove(Card);    List.Remove(null) removes the first null
-cs::list_remove(&mut game.player_mut(me).treachery_cards, self.card());
-// Game.KillAllForcesIn(territory, false);  territory may be null; AnyForcesIn(null) is 0
-game.kill_all_forces_in(territory.or_null(), false);
-// x.Where(...) / x.Sum() / x.ToList() on a possibly null x
-let amounts = cs::linq_source(self.amounts.as_ref());   // ArgumentNullException (Parameter 'source')
+// Player.TreacheryCards.Add(Card)
+let card = self.card().required("card")?;
+game.player_mut(me).treachery_cards.push(card);
+crate::iter::remove_first(&mut game.player_mut(other).treachery_cards, &card);
 ```
-
-Use `x.nre()` only where C# accesses a member of `x` right away (`x.Foo`, `x!.Foo`). Where C# stores or passes `x` on, keep it as a possibly null value. The throw comes later, from the member access, the dictionary or the LINQ operator that C# throws in. Statements in between can change state, as in `MoveForces`, which removes forces from `from` before `ChangeForces(null)` throws ArgumentNullException.
 
 ### Map state
 
@@ -159,32 +145,32 @@ game.map.find_neighbours_for_hms_movement(start, 1, false, game.sector_in_storm)
 
 - Plain ownership is the default. `Player`, `LeaderState`, `Battalion` and the like are fields of `Game`.
 - Events stored in game state are `Rc<Event>`, shared with `History` (see [Events](#events)). The few event fields that C# writes after the event is stored are `Cell`s.
-- When C# keeps two references to one mutable object that is not an event and mutates through either, use `cs::Shared<T>`, an `Rc<RefCell<T>>` whose `==` is reference equality. The skeleton uses it for the lists that `EstablishPlayers` shares with the game (hazards §5.1):
+- When C# keeps two references to one mutable object that is not an event and mutates through either, use `shared::Shared<T>`, an `Rc<RefCell<T>>` whose `==` is reference equality. The skeleton uses it for the lists that `EstablishPlayers` shares with the game (hazards §5.1):
   - `Game.settings: Shared<GameSettings>` and `EstablishPlayers.settings: Option<Shared<GameSettings>>`;
   - `Game.factions_in_play: Shared<Vec<Faction>>` and `GameSettings.allowed_factions_in_play: Option<Shared<Vec<Faction>>>`.
 
   ```rust
   // Game.Settings = Settings;  Game.FactionsInPlay = Game.Settings.AllowedFactionsInPlay;
-  game.settings = self.settings.clone().nre();
-  game.factions_in_play = game.settings.borrow().allowed_factions_in_play.clone().nre();
+  game.settings = self.settings.clone().expect("settings");
+  game.factions_in_play = game.settings.borrow().allowed_factions_in_play.clone().expect("allowed factions in play");
   game.factions_in_play.borrow_mut().retain(|f| *f != faction);   // also changes the event's settings
   ```
 
   `AllRules`/`InitialRules`, `PermittedUseOfEmperorSpice`/`Amounts` and `FactionsWithIncreasedRevivalLimits`/`Factions` are also aliased in C#, but nothing mutates them afterwards, so they are plain copies.
 
   `Game.participation` is a `Shared<Participation>` too. `new Game(version, participation)` keeps the caller's object, and the games that `Undo`, `RestoreRecentlyUndone` and `DismissRecentlyUndone` make share it, so `Game::new_int32_participation` takes a `&Shared<Participation>`.
-- When C# uses an object as an identity token, key by a stable handle: `PlayerIndex` for players (`LegacyNames`), `cs::RcKey<Event>` for events (`DealResponses` is keyed by `RcKey<DealOffered>`). Don't compare structurally.
+- When C# uses an object as an identity token, key by a stable handle: `PlayerIndex` for players (`LegacyNames`), `shared::RcKey<Event>` for events (`DealResponses` is keyed by `RcKey<DealOffered>`). Don't compare structurally.
 - `LoggedRandom` is shared between `Game.Random` and every deck built from it. That is `logged_random::SharedRandom`, a `Shared<LoggedRandom>`.
 - C# objects that hold their owning game (`Player.Game`, `PlayerSequence._game`, `GameEvent.Game`) don't keep it in Rust. Their methods take the game as a parameter. The state dump writes the C# field as `{"$ref":"Game"}` (`#[canon(game_field)]`, and `GameEventBase.initialized` for events, which are null until initialized).
 
 ## Players
 
-A C# `Player` is a reference into some game's `Players`. In Rust a player is addressed by `PlayerIndex { game, index }`: the id of the game the player object belongs to, and its position in that game's `players`. Players are only ever appended, so the index never changes, and `==` on `PlayerIndex` is C# reference equality, also between games. Every `Player` in a C# signature or field is a `PlayerIndex` in Rust, except `Game.players: Vec<Player>` itself.
+A C# `Player` is a reference into some game's `Players`. In Rust a player is addressed by `PlayerIndex { index }`, its position in the game's `players`. Players are only ever appended, so the index never changes, and `==` on `PlayerIndex` is C# reference equality. Every `Player` in a C# signature or field is a `PlayerIndex` in Rust, except `Game.players: Vec<Player>` itself.
 
-Make one with `game.player_at(i)`, or iterate with `game.player_indices()`. Never build one from a bare position: it would point into whichever game you name.
+Make one with `game.player_at(i)`, or iterate with `game.player_indices()`.
 
 ```rust
-let p: PlayerIndex = game.get_player(Some(Faction::Emperor)).nre();   // Player p = Game.GetPlayer(Faction.Emperor)!  (C# takes Faction?)
+let p: PlayerIndex = game.get_player(Some(Faction::Emperor)).expect("Emperor");
 game.player(p).resources                                      // p.Resources
 game.player_mut(p).resources -= 3;                            // p.Resources -= 3
 ```
@@ -212,7 +198,7 @@ Inside a `&self` method that needs its own index (C# `this` passed to the game, 
 Other objects that live inside `Game` and are mutated with the game in hand use the same idea. `PlayerSequence` methods are `fn next_player(&mut self, game: &Game)`; call them by taking the sequence out of the game and putting it back:
 
 ```rust
-let mut seq = game.battle_sequence.take().nre();
+let mut seq = game.battle_sequence.take().expect("battle sequence");
 seq.next_player(game);
 game.battle_sequence = Some(seq);
 ```
@@ -274,7 +260,7 @@ Setters of other fields take `&mut self`: call them before wrapping the event in
 When the event to call is itself stored in the game, clone the `Rc` first so the game is free to borrow mutably:
 
 ```rust
-let plan = game.aggressor_plan.clone().nre();
+let plan = game.aggressor_plan.clone().expect("aggressor plan");
 plan.activate_dynamic_weapons(game, hero, weapon, defense);
 ```
 
@@ -284,8 +270,8 @@ The generator derived every signature from the C# declaration and a whole-progra
 
 - **`&self` or `&mut self`.** A `Game` method is `&mut self` when it, or anything it calls, writes game state. Reads that write (`NextPlayerToBattle`, hazards §4.3) count, so `next_player_to_battle(&mut self)` and `get_applicable_events(&mut self, ...)` are `&mut`. Writes to `Map`'s neighbour cache and draws from `Game.Random` do not count, because those have interior mutability in Rust.
 - **Explicit `Game` parameters** become `&Game` or `&mut Game` by the same analysis. A method with a `Player` parameter and no other way to reach the game gets a `game: &Game` parameter, because a `PlayerIndex` is useless without it.
-- **Nullability** follows the C# annotations: `Leader?` is `Option<Leader>`, `Leader` is `Leader`. A non-nullable `Leader` can still hold `Leader::NULL` (see [Null handles](#null-handles)). Exceptions: event fields of reference type are always `Option` (JSON can hold null); event members returning a handle, an event or a player are `Option` (they resolve ids that may not exist); and a method that contains `return null` returns `Option` whatever its annotation says.
-- **Collections** are `Vec`, `NetHashSet` and `NetDictionary`, both for fields and for `IEnumerable` returns. The generator could not tell lazy returns apart; those are now `impl Iterator` (see [IEnumerable and laziness](#ienumerable-and-laziness)). Parameters are borrowed: `&[T]`, `&NetHashSet<T>`, `&NetDictionary<K, V>`, `&str`. `params T[]` is `Vec<T>`. `ref`/`out` parameters are `&mut T`. C# default parameter values are not represented; pass them explicitly.
+- **Nullability** follows the C# annotations: `Leader?` is `Option<Leader>`, `Leader` is `Leader`. (Handles have no null value any more; see [Absent values](#absent-values).) Exceptions: event fields of reference type are always `Option` (JSON can hold null); event members returning a handle, an event or a player are `Option` (they resolve ids that may not exist); and a method that contains `return null` returns `Option` whatever its annotation says.
+- **Collections** were `Vec`, `NetHashSet` and `NetDictionary`, both for fields and for `IEnumerable` returns (see [Collections](#collections) for what they are now). The generator could not tell lazy returns apart; those are now `impl Iterator` (see [IEnumerable and laziness](#ienumerable-and-laziness)). Parameters are borrowed: `&[T]`, `&NetHashSet<T>`, `&NetDictionary<K, V>`, `&str`. `params T[]` is `Vec<T>`. `ref`/`out` parameters are `&mut T`. C# default parameter values are not represented; pass them explicitly.
 - **Returned objects** of a model class (`Battalion`, `LeaderState`, `Report`, ...) are owned values. Where C# returns a live object that the caller mutates (`Game.CurrentReport`, `Player.GetAndCreateIfNeeded`, hazards §5.4), the porter of that method changes the return type to `&T`/`&mut T` (or adds a `_mut` variant) and fixes the callers.
 - **Delegates.** `Action` is `fn(&mut Game)`, `Func<A, R>` is `&dyn Fn(A) -> R`, `object` is `ExpressionElement`.
 - **Overloads.** The first overload keeps the name; later ones get the snake_case parameter types appended: `By(Faction)` is `by`, `By(Player)` is `by_player`. Every method's doc comment quotes the C# signature and `file:line`. C# `Clone()` is `cs_clone()`, so it never shadows `Clone::clone`.
@@ -357,9 +343,9 @@ if self.intrusions.is_empty() {
 }
 ```
 
-Inside a function that returns `GameResult`, a value that must be there is `.required("what")?`, not `.nre()`.
+Inside a function that returns `GameResult`, a value that must be there is `.required("what")?`.
 
-Everything else that can't happen in a valid game panics. The helpers from the C# port (`nre()`, `nn()`, `cs_first`, `cs::index`, `NetDictionary::index`, ...) still panic with the .NET exception's type and message (`"NullReferenceException: ..."`), and other invariants use `panic!` or `expect`. Nothing in the engine catches a panic. The crash barriers are outside it:
+Everything else that can't happen in a valid game panics, with `expect("what")`, `panic!` or `assert!`. Nothing in the engine catches a panic. The crash barriers are outside it:
 
 - the server catches a call or timer that panics, reports it and keeps the game (`server/src/server/mod.rs`), and builds each view inside `catch_unwind` (`server/src/views.rs`);
 - a bot decision that panics counts as no decision (`ClassicBot::try_decide` in `bots/src/bot/mod.rs`), as C#'s `Bot.Do` catches every exception. The clairvoyance answer does the same for the question it can't work out (`determine_clair_voyance_answered`), as `Bot_Other.cs` does;
@@ -367,7 +353,7 @@ Everything else that can't happen in a valid game panics. The helpers from the C
 
 Savegames that can't be read are errors too: `GameState::load` returns `Result<GameState, JsonError>` and `Game::load` returns `Result<Game, Message>`.
 
-Tests that check a .NET-style panic use `cs::catch_panic`, which returns the exception named by the panic message.
+Tests that check a panic use `error::catch_panic`, which returns the panic message without printing it.
 
 ## IEnumerable and laziness
 
@@ -376,9 +362,9 @@ Rust iterator adapters are lazy and pull one element at a time, like LINQ. `filt
 - Methods returning `IEnumerable<T>` over static data return `impl Iterator<Item = T> + Clone + 'static` (see `Map::locations`).
 - Methods returning a lazy query over game state return `impl Iterator<Item = T>` too, built from the same adapters with `move` closures. Callers stop where C# stops: `Any()` is `.next().is_some()`, `Contains(x)` is `.any(|v| v == x)`, `FirstOrDefault()` is `.next()` and `FirstOrDefault(p)` is `.find(p)`. A `Vec` would run the predicate on elements that C# never reaches, and those can throw (a null card after the match). What C# evaluates at the call (the receiver of the first operator) goes before the iterator; what it evaluates inside a lambda (`p.Faction` of a possibly null `p`) goes inside the closure. [lazy-queries.md](lazy-queries.md) has the full rule and every site with its class; `tests/lazy_queries.rs` fails for an unclassified site or a short-circuited producer that returns a collection.
 - Where C# enumerates the query later, after a mutation, or more than once (hazards §4), the Rust code must re-run the query at that point. Write a comment saying so.
-- `ToList()` is `collect::<Vec<_>>()`. `Distinct()` is `cs_distinct()`, which keeps the first occurrence and uses `==`.
-- `OrderBy`/`ThenBy` are stable sorts that compute each key once, in element order, before sorting. Use `sort_by_cached_key`, or compute the keys first, when a key has side effects such as random draws. `List.Sort` is not stable; use `dotnet_compat::sort::list_sort_by`.
-- `Dictionary` and `HashSet` are `dotnet_compat::NetDictionary` and `NetHashSet`. `std::collections::HashMap` and `HashSet` are banned. A small lookup-only collection can be a `Vec` scan, as `Map`'s neighbour cache is.
+- `ToList()` is `collect::<Vec<_>>()`. `Distinct()` is `distinct()` (`iter::IterExt`), which keeps the first occurrence and uses `==`.
+- `OrderBy`/`ThenBy` are stable sorts that compute each key once, in element order, before sorting. Use `sort_by_cached_key`, or compute the keys first, when a key has side effects such as random draws. Shared and Bots never called `List.Sort`, so no unstable sort is needed.
+- Collections: see [Collections](#collections).
 - C# returns `default` for "OrDefault" operators: null for classes, but 0 or `false` for value types. Rust returns `Option`, so write `.unwrap_or_default()` at value-type call sites.
 
 ## Randomness
@@ -394,7 +380,7 @@ let card = deck.draw();                              // throws on an empty deck
 
 // player.TreacheryCards.RandomOrDefault(Game.Random!)
 use crate::extension_methods::RandomExt;
-let c = player.treachery_cards.iter().copied().random_or_default(game.random.as_ref().nre());
+let c = player.treachery_cards.iter().copied().random_or_default(game.random.as_ref().expect("random"));
 ```
 
 `RandomOrDefault` only draws when there are two or more items. The bots' overloads that use C#'s unseeded static `Random` are the `*_unseeded` methods. They need `set_static_random_seed` and a matching C# hook before bot traces can be compared.
@@ -469,89 +455,22 @@ cd .. && python3 tools/gen_enumerations.py && python3 tools/gen_map_data.py
 
 When you port something static, add it to both sides of this test.
 
-## dotnet-compat helpers
+## Collections
 
-The compat crate is finished; [compat.md](compat.md) has the full API. The points that are easiest to get wrong:
+Iteration order is observable in many places: the log, the views (spice, strongholds, forces, form options), the event a bot builds, and random draws over a collection. So:
 
-- `NetDictionary::index` and `add` panic like .NET throws (`KeyNotFoundException`, duplicate key with `Key: …`). Ignore older advice to check with `get` first. Key types need a `CsToString` impl, or use `index_with`/`add_with`.
-- `MaxBy`/`MinBy` are `linq::max_by_key_first`/`min_by_key_first`. Never use `Iterator::max_by_key`, which returns the last maximum. Wrap in `linq::or_no_elements(...)` when the C# source element is a value type, because .NET throws there.
-- `First(pred)`, `Last(pred)`, `Single(pred)`, `SingleOrDefault(pred)` are the `_where` variants. `filter` followed by `first` gives a different exception message.
-- `ElementAt` is `element_at` on a lazy source and `element_at_list` on a List or array.
-- `new Dictionary(d)` and `ToDictionary` are `from_dictionary`. `NetDictionary::clone()` keeps freed slots, which a C# copy does not.
-- `new HashSet(x)` is `from_set`, `from_collection` or `from_enumerable`, depending on the C# type of `x`. The same goes for the `intersect_with_*` and `symmetric_except_with*` variants.
-- Floats: `math::cmp_f32`/`cmp_f64` for comparisons and sort keys, `math::math_max_f32`/`math_min_f32` for `Math.Max`/`Math.Min`, `math::equals_f32` for `Equals`, `fmt::f32_to_string`/`f64_to_string` for `ToString()`. Where hazards.md says `max_f32`, `min_f32`, `f32_compare` or `float_equals`, it means these.
-- Parsing (`int.Parse`, `Convert.ToInt32`, `float.Parse`, `Enum.Parse`) is in `dotnet_compat::parse`.
+- Maps and sets are `IndexMap` and `IndexSet` (insertion order). `std::collections::HashMap` and `HashSet` are only for lookups whose order can't leak. Remove with `shift_remove`, which keeps the order of the rest. `iter::MapExt::insert_new` inserts a key that must be new.
+- .NET's `Dictionary` and `HashSet` reuse the slot of a removed entry for the next new key, so after a removal their order differs from insertion order. Thirteen game fields have removals and an order players see, and keep `dotnet_compat::NetDictionary`/`NetHashSet` so that order stays the same: `Player.forces_in_locations`, `known_cards`, `revealed_traitors`, and `Game.resources_on_planet`, `terror_on_planet`, `homeworld_occupation`, `bids`, `stronghold_ownership`, `shipment_permissions`, `discoveries_on_planet`, `ambassadors_on_planet`, `recently_discarded`, `early_revivals_offers`. Changing any of them to `IndexMap` changes behavior (the harness found `ambassadors_on_planet` in the board view); do it as a deliberate change (native-plan.md step 4), with a sorted or insertion order chosen on purpose.
+- `NetDictionary` and `NetHashSet` have `insert`, `remove`, `get`, `contains_key`, `iter` and indexing like std's maps, plus `MapExt::insert_new`.
 
-## Helpers added after the foundation review
+## What is left of .NET
 
-The [foundation review](reviews/foundation.md) found differences in the support code. Its fixes added these helpers. [escapes.md](escapes.md) explains each bug and the test that now guards it.
-
-### Exceptions and indexing
-
-```rust
-cs::argument_out_of_range_actual("faction", &f.to_string()); // new ArgumentOutOfRangeException(nameof(f), f, null)
-cs::with_parameter("bad", "x");                         // message of new ArgumentException("bad", "x")
-let x = *cs::index_array(&parts, 1);                    // array[1]: IndexOutOfRangeException
-*cs::index_mut(&mut list, i) = v;                       // list[i] = v
-*cs::index_array_mut(&mut array, i) = v;                // array[i] = v
-```
-
-`cs::index` is for `List<T>` only. Arrays, including `string.Split` results, throw a different exception.
-
-### LINQ predicate overloads
-
-A predicate overload has its own exception text ("no matching element", "more than one matching element"). Never port `Single(p)` as `filter(p).cs_single()`.
-
-| C# | Rust |
-|---|---|
-| `First(p)` / `FirstOrDefault(p)` | `cs_first_where(p)` / `find(p)` |
-| `Single(p)` / `SingleOrDefault(p)` | `cs_single_where(p)` / `cs_single_or_default_where(p)` |
-| `Last()` | `cs_last()` |
-| `Last(p)` / `LastOrDefault(p)` on a lazy sequence | `cs_last_where(p)` / `cs_last_or_default_where(p)` |
-| `Last(p)` / `LastOrDefault(p)` on a `List<T>` or array | `cs::last_where_list(&list, p)` / `cs::last_or_default_where_list(&list, p)` |
-| `ElementAt(i)` on a lazy sequence | `cs_element_at(i)` |
-| `ElementAt(i)` on a `List<T>` or array | `cs::element_at_list(&list, i)` |
-
-.NET walks a list backwards for `Last(p)`, so the predicate runs fewer times than on a lazy sequence. That matters when the predicate has side effects.
-
-### Keys of the `HighestOrDefault` family
-
-Selectors return any `cs::CsComparable` key: `i32`, `i64`, `bool`, every enum, `f32`, `f64`, `String` and `&str`. It carries both halves of the C# behaviour. Ordering is `Comparer.Default`, where NaN is lowest and strings compare by culture. Ties are `Equals`, where NaN equals NaN and strings compare ordinally.
-
-`cs::compare_invariant` is the culture comparison. It handles ASCII only and panics on anything else. Each helper calls the selector exactly as often as the C# query does.
-
-`take_random_n` returns a lazy iterator. It draws nothing until iterated, and draws again for each clone that is iterated.
-
-### Messages
-
-- A collection element records its C# runtime type for `ToString()`:
-  - `Vec<T>` and `&[T]` become `List<T>` (``System.Collections.Generic.List`1[T]``).
-  - `[T; N]` becomes an array (`T[]`).
-  - `ExpressionElement::collection(type_name, items)` covers anything else, such as a LINQ iterator.
-  - Element types implement `expression::CsType`.
-- A single reference-type array passed to `Message.Express` (`object[]`, `string[]`, `Location[]`) is the element list itself. Port it as `express!(@params array)`. `express_to!` and `express_part!` take `@params` too. A value-type array or a `List<T>` stays one element.
-- Numbers print through `dotnet_compat::fmt` under the invariant culture. Exceptions print as `Exception.ToString()` without a stack trace (`cs::exception_to_string`).
-- Record equality follows C#. `PlanSummary` and `BattleFact` treat NaN as equal to NaN. `Route.from` is a `Shared` list, compared by reference.
-- `TreacheryCard::countered_by` takes `Option<TreacheryCard>` for the defense and throws only on the branches that read it.
-
-### Golden tests that grow with the port
-
-One `csharp-ref` run writes every golden file next to `static_data.json`:
-
-```sh
-cd rust/engine/csharp-ref && dotnet run -c Release -- ../tests/golden/static_data.json
-```
-
-| Golden file | Test | Checks |
-|---|---|---|
-| `boundary.json` | `tests/boundary.rs` | Every public member of every type in `tests/coverage/ported_types.txt`, called with boundary inputs |
-| `random_helpers.json` | `tests/random_helpers.rs` | Results, selector calls and draws of every random helper |
-| `linq.json` | `tests/linq_table.rs` | Every `cs.rs` helper against the .NET operator, plus exception default texts |
-| `messages.json` | `tests/message_corpus.rs` | `Message.ToString()` of every element kind, and `params` spreading |
-
-When you port a C# type, add it to `ported_types.txt` and regenerate. `boundary.rs` then lists every member that needs an entry in its table, or a line in `tests/coverage/not_ported.txt`. A `Covered("test name")` entry is accepted only for members that never throw on the generated inputs.
-
-The tests loop over the C# entries. A new enum, operator or helper on the C# side fails the Rust test until it is handled there.
+- `dotnet_compat::NetRandom` and the selection helpers in `compat/random_ext.rs` (with `CsComparable` for their keys): the game's random draws. They go when the RNG is replaced (native-plan.md step 4).
+- `NetDictionary`/`NetHashSet` for the fields above.
+- `dotnet_compat::fmt` (float `ToString()`), `fmt::string_format` and `parse`: log texts and the parsing of the strings events carry (force locations, Clairvoyance parameters).
+- `compat/date_time_offset.rs`: the `Time` of events in the JSON.
+- `enum_type.rs`: open enums that print like .NET's `Enum.ToString()`.
+- The state dump (`canon.rs`, `#[derive(Canon)]`): the engine tests that compare with C# goldens and rust/differ use it.
 
 ## When the C# changes
 

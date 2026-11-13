@@ -47,15 +47,15 @@ impl FaceDanced {
         e
     }
 
-    pub fn target_force_locations(&self, game: &Game) -> NetDictionary<Location, Battalion> {
+    pub fn target_force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         // ParseForceLocations(Game, Player.Faction, _targetForceLocations): Player is dereferenced
         // first; a null string throws at `.Length`.
         let faction = game.player(self.player()).faction;
-        let s = self.target_force_locations.as_deref().nre();
+        let s = self.target_force_locations.as_deref().expect("target force locations");
         PlacementEvent::parse_force_locations(game, faction, s)
     }
 
-    pub fn set_target_force_locations(&mut self, game: &Game, value: &NetDictionary<Location, Battalion>) {
+    pub fn set_target_force_locations(&mut self, game: &Game, value: &IndexMap<Location, Battalion>) {
         self.target_force_locations = Some(PlacementEvent::force_locations_string(game, value));
     }
 
@@ -65,23 +65,22 @@ impl FaceDanced {
             return Some(express!("You can't reveal a Face Dancer"));
         }
 
-        let p = p.nre();
+        let p = p.expect("player");
         let maximum_forces = Self::maximum_number_of_forces(game, p);
         let amount_of_placed_forces =
-            dotnet_compat::linq::sum_i32(self.target_force_locations(game).values().map(|b| b.total_amount_of_forces()));
+            self.target_force_locations(game).values().map(|b| b.total_amount_of_forces()).sum::<i32>();
         if amount_of_placed_forces > maximum_forces {
             return Some(express!("Place ", maximum_forces, " or less forces"));
         }
 
         let amount_of_forces = self
-            .forces_from_reserve
-            .wrapping_add(dotnet_compat::linq::sum_i32(self.force_locations(game).values().map(|b| b.total_amount_of_forces())));
+            .forces_from_reserve + self.force_locations(game).values().map(|b| b.total_amount_of_forces()).sum::<i32>();
         if amount_of_forces != amount_of_placed_forces {
             return Some(express!(
                 "The amount of forces you selected from the planet and from reserves (",
                 amount_of_forces,
                 ") should equal the amount you wish to put in ",
-                game.current_battle.as_ref().nre().territory(game),
+                game.current_battle.as_ref().expect("current battle").territory(game),
                 " (",
                 amount_of_placed_forces,
                 ")"
@@ -93,7 +92,7 @@ impl FaceDanced {
 
     pub fn maximum_number_of_forces(g: &Game, p: PlayerIndex) -> i32 {
         let ally = g.player(p).allied_player(g);
-        let territory = || g.current_battle.as_ref().nre().territory(g);
+        let territory = || g.current_battle.as_ref().expect("current battle").territory(g);
         let condition = match ally {
             None => true,
             Some(ally) => g.battle_winner == Some(g.player(p).ally) || g.player(ally).any_forces_in_territory(territory()) == 0,
@@ -101,13 +100,13 @@ impl FaceDanced {
         if condition {
             let winner = g.get_player(g.battle_winner);
             let coocupying_player = if g.battle_winner == g.current_ecaz_or_ally_fighter {
-                g.player(winner.nre()).allied_player(g)
+                g.player(winner.expect("winner")).allied_player(g)
             } else {
                 None
             };
-            let mut nr_of_forces = g.player(winner.nre()).any_forces_in_territory(territory());
+            let mut nr_of_forces = g.player(winner.expect("winner")).any_forces_in_territory(territory());
             if let Some(co) = coocupying_player {
-                nr_of_forces = nr_of_forces.wrapping_add(g.player(co).any_forces_in_territory(territory()));
+                nr_of_forces += g.player(co).any_forces_in_territory(territory());
             }
             return nr_of_forces;
         }
@@ -122,22 +121,21 @@ impl FaceDanced {
     /// `MayCallFaceDancer` with a possibly null `p` (`Validate` passes `Player`, hazards 1.8):
     /// `p` is only dereferenced where it is needed, so a null `p` throws only there.
     pub(crate) fn may_call_face_dancer_opt(g: &Game, p: Option<PlayerIndex>) -> bool {
-        let p = p.and_then(crate::compat::cs::CsNull::opt);
         // `BattleWinner == Faction.None` is false while BattleWinner is null (hazards 10.1).
         if g.battle_winner == Some(Faction::None) {
             return false;
         }
         let Some(battle) = g.current_battle.as_ref() else { return false };
 
-        let territory = battle.territory(g).nre();
-        if territory.is_homeworld() && !g.player(p.nre()).is_native(territory) {
+        let territory = battle.territory(g).expect("territory");
+        if territory.is_homeworld() && !g.player(p.expect("player")).is_native(territory) {
             return false;
         }
 
         let winner_hero = g.winner_hero();
         if let (Some(winner_hero), Some(battle_winner)) = (winner_hero, g.battle_winner) {
             if !g.is_occupied_by_faction_or_their_ally_world_faction(World::Tleilaxu, battle_winner) {
-                let player = g.player(p.nre());
+                let player = g.player(p.expect("player"));
                 return player
                     .face_dancers
                     .iter()
@@ -155,7 +153,7 @@ impl FaceDanced {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
     pub fn valid_target_locations(g: &Game) -> impl Iterator<Item = Location> {
-        let territory = g.current_battle.as_ref().nre().territory(g).nre();
+        let territory = g.current_battle.as_ref().expect("current battle").territory(g).expect("territory");
         territory
             .locations()
             .iter()
@@ -181,10 +179,10 @@ impl FaceDanced {
         }
 
         for i in 0..game.players.len() {
-            game.players[i].known_non_traitors.add(facedancer);
+            game.players[i].known_non_traitors.insert(facedancer);
         }
 
-        game.player_mut(self.player()).revealed_face_dancers.add(facedancer);
+        game.player_mut(self.player()).revealed_face_dancers.insert(facedancer);
 
         if game.player(self.player()).unrevealed_face_dancers().next().is_none() {
             self.replace_facedancers(game);
@@ -201,23 +199,23 @@ impl FaceDanced {
         let Some(battle) = game.current_battle.clone() else { return };
 
         let winner = self.get_player(game, game.battle_winner);
-        let mut nr_of_removed_forces = game.player(winner.nre()).any_forces_in_territory(battle.territory(game));
-        let winner = winner.nre();
+        let mut nr_of_removed_forces = game.player(winner.expect("winner")).any_forces_in_territory(battle.territory(game));
+        let winner = winner.expect("winner");
         let co_occupying_player = if game.battle_winner == game.current_ecaz_or_ally_fighter {
             game.player(winner).allied_player(game)
         } else {
             None
         };
         if let Some(co) = co_occupying_player {
-            nr_of_removed_forces = nr_of_removed_forces.wrapping_add(game.player(co).any_forces_in_territory(battle.territory(game)));
+            nr_of_removed_forces += game.player(co).any_forces_in_territory(battle.territory(game));
         }
 
         if nr_of_removed_forces > 0 {
-            Player::forces_to_reserves_territory(game, winner, battle.territory(game).nre());
+            Player::forces_to_reserves_territory(game, winner, battle.territory(game).expect("territory"));
             if let Some(co) = co_occupying_player {
-                Player::forces_to_reserves_territory(game, co, battle.territory(game).nre());
+                Player::forces_to_reserves_territory(game, co, battle.territory(game).expect("territory"));
             }
-            Player::add_forces_to_reserves(game, self.player(), self.forces_from_reserve.wrapping_neg());
+            Player::add_forces_to_reserves(game, self.player(), -self.forces_from_reserve);
 
             for (location, battalion) in self.force_locations(game).iter() {
                 let location = *location;
@@ -234,7 +232,7 @@ impl FaceDanced {
             let winner_faction = game.player(winner).faction;
             let co_faction = co_occupying_player.map(|co| game.player(co).faction);
             let replaced_by =
-                dotnet_compat::linq::sum_i32(self.target_force_locations(game).iter().map(|(_, b)| b.total_amount_of_forces()));
+                self.target_force_locations(game).iter().map(|(_, b)| b.total_amount_of_forces()).sum::<i32>();
             let force = game.player(self.player()).force();
             let source_locations = self.determine_source_locations(game);
             game.log(elems![
@@ -257,13 +255,13 @@ impl FaceDanced {
     pub fn replace_facedancers(&self, game: &mut Game) {
         let me = self.player();
         let face_dancers = game.player(me).face_dancers.clone();
-        game.traitor_deck.as_mut().nre().items.extend(face_dancers);
+        game.traitor_deck.as_mut().expect("traitor deck").items.extend(face_dancers);
         game.player_mut(me).face_dancers.clear();
         game.player_mut(me).revealed_face_dancers.clear();
-        game.traitor_deck.as_mut().nre().shuffle();
+        game.traitor_deck.as_mut().expect("traitor deck").shuffle();
         game.stone(Milestone::Shuffled);
         for _ in 0..3 {
-            let drawn = game.traitor_deck.as_mut().nre().draw();
+            let drawn = game.traitor_deck.as_mut().expect("traitor deck").draw();
             game.player_mut(me).face_dancers.push(drawn);
         }
         game.log(elems![self.initiator(), " draw 3 new Face Dancers."]);
@@ -373,7 +371,7 @@ impl crate::events::placement::IPlacement for FaceDanced {
         GameEventMethods::initiator(self)
     }
 
-    fn force_locations(&self, game: &Game) -> NetDictionary<Location, Battalion> {
+    fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         <Self as PlacementEventMethods>::force_locations(self, game)
     }
 

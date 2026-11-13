@@ -7,6 +7,7 @@ description = "Replays C# oracle traces through the Rust engine and reports the 
 
 [dependencies]
 treachery-engine = { path = "../engine" }
+dotnet-compat = { path = "../dotnet-compat" }
 treachery-bots = { path = "../bots" }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order", "raw_value"] }

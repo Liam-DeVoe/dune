@@ -2,7 +2,7 @@
 //! the setup events; the comments say which C# behaviour each test pins down.
 
 use std::rc::Rc;
-use treachery_engine::compat::cs;
+use treachery_engine::error::catch_panic;
 use treachery_engine::prelude::*;
 
 fn game_with(factions: &[Faction]) -> Game {
@@ -20,9 +20,9 @@ fn idx(g: &Game, f: Faction) -> PlayerIndex {
 }
 
 fn exception_text<R>(f: impl FnOnce() -> R) -> String {
-    match cs::catch_panic(f) {
+    match catch_panic(f) {
         Ok(_) => "no exception".to_string(),
-        Err(e) => format!("{}: {}", e.type_name, e.message),
+        Err(e) => e,
     }
 }
 
@@ -170,7 +170,7 @@ fn establish_players_null_initial_rules() {
     ev.settings = Some(s);
     let ev = Rc::new(ev);
     let text = exception_text(|| ev.execute(&mut g, false, true));
-    assert_eq!(text, "ArgumentNullException: Value cannot be null. (Parameter 'source')");
+    assert_eq!(text, "rules");
 }
 
 /// Same seed, same setup: the whole setup is deterministic and every player gets a seat.

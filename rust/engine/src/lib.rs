@@ -3,7 +3,10 @@
 
 pub mod prelude;
 
+pub use indexmap;
+
 pub mod error;
+pub mod shared;
 
 // Game state and rules
 pub mod events;
@@ -12,6 +15,7 @@ pub mod log;
 
 // Static game data
 pub mod cards;
+pub mod enum_type;
 pub mod enumerations;
 pub mod heroes;
 pub mod identity;

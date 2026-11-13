@@ -11,7 +11,7 @@ use std::cell::Cell;
 use std::sync::OnceLock;
 
 use serde_json::{json, Value};
-use treachery_engine::compat::cs;
+use treachery_engine::error::catch_panic;
 use treachery_engine::cards::deck::Deck;
 use treachery_engine::enumerations::*;
 use treachery_engine::compat::random_ext::RandomExt;
@@ -22,7 +22,7 @@ use treachery_engine::map::location::Location;
 use treachery_engine::random::SharedRandom;
 use treachery_engine::map::{Map, MapGame};
 use treachery_engine::messages::message::BattleFactKind;
-use treachery_engine::compat::net_enum::{EnumTypeInfo, NetEnum};
+use treachery_engine::enum_type::{EnumTypeInfo, GameEnum};
 use treachery_engine::cards::resource_card::ResourceCard;
 use treachery_engine::map::territory::Territory;
 use treachery_engine::cards::treachery_card::TreacheryCard;
@@ -123,7 +123,7 @@ impl MapGame for StubGame {
 
 // ---------------------------------------------------------------- enums
 
-fn dump_enum<T: NetEnum>(info: &EnumTypeInfo) -> Value {
+fn dump_enum<T: GameEnum>(info: &EnumTypeInfo) -> Value {
     let to_string: Vec<Value> =
         [-1i64, 1, 3, 5, 7, 11, 999999].iter().map(|v| json!(format!("{v}={}", info.format(*v as i32)))).collect();
     json!({
@@ -143,7 +143,7 @@ fn dump_enum<T: NetEnum>(info: &EnumTypeInfo) -> Value {
 #[test]
 fn enums() {
     macro_rules! all {
-        ($($t:ident),*) => { vec![$((stringify!($t), dump_enum::<$t>(<$t as NetEnum>::INFO))),*] };
+        ($($t:ident),*) => { vec![$((stringify!($t), dump_enum::<$t>(<$t as GameEnum>::INFO))),*] };
     }
     let rust = all!(
         Faction, Nexus, Ambassador, TechToken, MainPhase, MainPhaseMoment, ChoamEconomicsStatus, Phase, Milestone,
@@ -173,7 +173,7 @@ fn enum_ordering_and_serde() {
     assert_eq!(serde_json::from_str::<Faction>("13").unwrap(), Faction(13));
     assert_eq!(format!("{:?}", Faction::Atreides), "Faction::Atreides");
     assert_eq!(Faction::Moritani.to_nexus(), Nexus::Moritani);
-    assert_eq!(cs::catch_panic(|| Faction(13).to_nexus()).unwrap_err().type_name, "ArgumentOutOfRangeException");
+    assert!(catch_panic(|| Faction(13).to_nexus()).is_err());
 }
 
 // ---------------------------------------------------------------- map
@@ -328,7 +328,7 @@ fn map_attached() {
             ("hms->carthag again", m.hidden_mobile_stronghold().location(), m.carthag()),
         ];
         for (name, which, to) in steps {
-            which.as_attached_location().unwrap().point_at(&mut m, to).unwrap();
+            which.as_attached_location().unwrap().point_at(&mut m, to);
             let snapshot = dump_map(&m);
             let mut neighbours = Vec::new();
             for l in m.locations(true) {

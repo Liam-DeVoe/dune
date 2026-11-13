@@ -25,7 +25,7 @@ fn trace_participation() -> Participation {
 }
 
 fn run(events: &[&str]) -> Game {
-    let mut g = Game::new_int32_participation(Game::LATEST_VERSION, &treachery_engine::compat::cs::Shared::new(trace_participation()));
+    let mut g = Game::new_int32_participation(Game::LATEST_VERSION, &treachery_engine::shared::Shared::new(trace_participation()));
     for text in events {
         let e: GameEvent = json::deserialize(text).expect("event json");
         e.initialize_game(&g);

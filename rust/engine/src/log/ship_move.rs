@@ -45,10 +45,6 @@ impl Default for ShipLogged {
 
 impl ShipLogged {
     pub fn new(faction: Faction, kind: ShipKind, forces: i32, special_forces: i32, from: Option<Location>, to: Option<Location>, cost: i32, ally_share: i32, ally: Faction, guild_paid: bool, karama: Option<TreacheryCard>, blocked: bool, blocked_by: Option<TreacheryCard>, plain: bool) -> Self {
-        let from = from.and_then(crate::compat::cs::CsNull::opt);
-        let to = to.and_then(crate::compat::cs::CsNull::opt);
-        let karama = karama.and_then(crate::compat::cs::CsNull::opt);
-        let blocked_by = blocked_by.and_then(crate::compat::cs::CsNull::opt);
         ShipLogged { faction, kind, forces, special_forces, from, to, cost, ally_share, ally, guild_paid, karama, blocked, blocked_by, plain }
     }
 
@@ -130,7 +126,6 @@ impl Default for ShipMoveLoss {
 
 impl ShipMoveLoss {
     pub fn new(faction: Faction, storm: bool, travelling: bool, forces: i32, territory: Option<Territory>) -> Self {
-        let territory = territory.and_then(crate::compat::cs::CsNull::opt);
         ShipMoveLoss { faction, storm, travelling, forces, territory }
     }
 

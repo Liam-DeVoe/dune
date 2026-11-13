@@ -37,7 +37,7 @@ impl BlackMarketBid {
 
     pub fn total_amount(&self) -> i32 {
         // C# int addition wraps (hazards 1.6).
-        self.amount.wrapping_add(self.ally_contribution_amount).wrapping_add(self.emperor_contribution_amount)
+        (self.amount + self.ally_contribution_amount) + self.emperor_contribution_amount
     }
 
     pub fn using_karma_to_remove_bid_limit(&self) -> bool {
@@ -60,7 +60,7 @@ impl BlackMarketBid {
         game.stone(Milestone::Bid);
         let initiator = self.initiator();
         game.bids.remove(&initiator);
-        game.bids.add_with(initiator, self.clone().into_event(), |k| k.to_string());
+        game.bids.insert_new(initiator, self.clone().into_event());
         let as_event = self.clone().into_event();
         game.check_if_atreides_or_atreides_ally_passed_bid(&as_event);
 
@@ -79,7 +79,7 @@ impl BlackMarketBid {
         if self.passed {
             let winning_bid = game.current_bid.clone();
 
-            if let Some(winning_bid) = winning_bid.as_ref().filter(|wb| game.bid_sequence.as_ref().nre().current_faction(game) == wb.i_bid_initiator()) {
+            if let Some(winning_bid) = winning_bid.as_ref().filter(|wb| game.bid_sequence.as_ref().expect("bid sequence").current_faction(game) == wb.i_bid_initiator()) {
                 if game.cards_on_auction.is_none() {
                     return Ok(());
                 }

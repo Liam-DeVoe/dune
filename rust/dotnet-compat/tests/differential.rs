@@ -34,22 +34,6 @@ fn batch(seed: u64) -> Vec<Value> {
         let n = g.range(1, 600) as usize;
         cases.push(set_case(&mut g, n));
     }
-    for _ in 0..1000 {
-        let len = if g.chance(0.01) { 5000 } else { g.range(0, 300) as usize };
-        let keys = random_keys(&mut g, len);
-        let mode = if g.chance(0.03) { g.range(5, 6) as i32 } else { g.range(0, 4) as i32 };
-        cases.push(sort_case(keys, mode));
-    }
-    for _ in 0..10 {
-        let n = g.range(17, 3000) as usize;
-        let div = g.range(1, 2) as i32;
-        let keys: Vec<i32> = quicksort_killer(n).into_iter().map(|v| v / div).collect();
-        let mode = g.range(0, 4) as i32;
-        cases.push(sort_case(keys, mode));
-    }
-    for _ in 0..3000 {
-        cases.push(linq_case(&mut g));
-    }
     cases.extend(math_cases(&mut g, 5000));
     cases
 }

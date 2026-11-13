@@ -15,14 +15,14 @@ pub struct Player {
     pub known_cards: NetHashSet<TreacheryCard>,
     pub traitors: Vec<Hero>,
     pub revealed_traitors: NetHashSet<Hero>,
-    pub told_traitors: NetHashSet<Hero>,
-    pub told_non_traitors: NetHashSet<Hero>,
-    pub known_non_traitors: NetHashSet<Hero>,
-    pub discarded_traitors: NetHashSet<Hero>,
+    pub told_traitors: IndexSet<Hero>,
+    pub told_non_traitors: IndexSet<Hero>,
+    pub known_non_traitors: IndexSet<Hero>,
+    pub discarded_traitors: IndexSet<Hero>,
     pub face_dancers: Vec<Hero>,
-    pub revealed_face_dancers: NetHashSet<Hero>,
-    pub told_face_dancers: NetHashSet<Hero>,
-    pub told_non_face_dancers: NetHashSet<Hero>,
+    pub revealed_face_dancers: IndexSet<Hero>,
+    pub told_face_dancers: IndexSet<Hero>,
+    pub told_non_face_dancers: IndexSet<Hero>,
     pub leaders: Vec<Leader>,
     pub forces_in_locations: NetDictionary<Location, Battalion>,
     pub ambassadors: Vec<Ambassador>,
@@ -56,14 +56,14 @@ impl Player {
             known_cards: NetHashSet::new(),
             traitors: Vec::new(),
             revealed_traitors: NetHashSet::new(),
-            told_traitors: NetHashSet::new(),
-            told_non_traitors: NetHashSet::new(),
-            known_non_traitors: NetHashSet::new(),
-            discarded_traitors: NetHashSet::new(),
+            told_traitors: IndexSet::new(),
+            told_non_traitors: IndexSet::new(),
+            known_non_traitors: IndexSet::new(),
+            discarded_traitors: IndexSet::new(),
             face_dancers: Vec::new(),
-            revealed_face_dancers: NetHashSet::new(),
-            told_face_dancers: NetHashSet::new(),
-            told_non_face_dancers: NetHashSet::new(),
+            revealed_face_dancers: IndexSet::new(),
+            told_face_dancers: IndexSet::new(),
+            told_non_face_dancers: IndexSet::new(),
             leaders: Vec::new(),
             forces_in_locations: NetDictionary::new(),
             ambassadors: Vec::new(),
@@ -85,29 +85,25 @@ impl Player {
 
     pub fn name(&self, game: &Game) -> String {
         // Game.GetPlayerName(this): `self` is always one of game.players.
-        game.get_player_name_player(game.index_of(self).nre())
+        game.get_player_name_player(game.index_of(self).expect("a player of this game"))
     }
 
     pub fn forces_in_reserve(&self) -> i32 {
-                dotnet_compat::linq::sum_i32(self.home_worlds.iter().map(|hw| self.forces_in(Some(hw.location()))))
+                self.home_worlds.iter().map(|hw| self.forces_in(Some(hw.location()))).sum::<i32>()
     }
 
     pub fn special_forces_in_reserve(&self) -> i32 {
-                dotnet_compat::linq::sum_i32(self.home_worlds.iter().map(|hw| self.special_forces_in(Some(hw.location()))))
+                self.home_worlds.iter().map(|hw| self.special_forces_in(Some(hw.location()))).sum::<i32>()
     }
 
     pub fn any_forces_in_reserves(&self) -> i32 {
-                self.forces_in_reserve().wrapping_add(self.special_forces_in_reserve())
+                self.forces_in_reserve() + self.special_forces_in_reserve()
     }
 
-    pub fn forces_on_planet(&self) -> NetDictionary<Location, Battalion> {
+    pub fn forces_on_planet(&self) -> IndexMap<Location, Battalion> {
                 // C# shares the live Battalion objects with ForcesInLocations; no caller mutates them,
         // so copies are equivalent.
-        NetDictionary::to_dictionary(
-            self.forces_in_locations.iter().filter(|(k, _)| k.as_homeworld().is_none()),
-            |(k, _)| **k,
-            |(_, v)| (*v).clone(),
-        )
+        self.forces_in_locations.iter().filter(|(k, _)| k.as_homeworld().is_none()).map(|(k, v)| (*k, v.clone())).collect()
     }
 
     pub fn no_field_is_active(&self) -> bool {
@@ -118,17 +114,18 @@ impl Player {
                 *self
             .home_worlds
             .iter()
-            .cs_first_where(|hw| if special_forces { hw.is_home_of_special_forces() } else { hw.is_home_of_normal_forces() })
+            .find(|hw| if special_forces { hw.is_home_of_special_forces() } else { hw.is_home_of_normal_forces() })
+            .expect("a homeworld for these forces")
     }
 
     /// Returns the live battalion, not a copy.
     pub fn get_and_create_if_needed(&mut self, location: Location) -> &mut Battalion {
                 if !self.forces_in_locations.contains_key(&location) {
             let result = Battalion::new(self.faction, 0, 0, location);
-            self.forces_in_locations.add(location, result);
+            self.forces_in_locations.insert_new(location, result);
         }
 
-        self.forces_in_locations.index_mut(&location)
+        &mut self.forces_in_locations[&location]
     }
 
     pub fn change_forces(game: &mut Game, me: PlayerIndex, location: Location, nr_of_forces: i32) {
@@ -208,16 +205,15 @@ impl Player {
     }
 
     pub fn remove_forces(game: &mut Game, me: PlayerIndex, location: Location, nr_of_forces: i32) {
-        Player::change_forces(game, me, location, nr_of_forces.wrapping_neg());
+        Player::change_forces(game, me, location, -nr_of_forces);
     }
 
     pub fn remove_special_forces(game: &mut Game, me: PlayerIndex, location: Location, nr_of_forces: i32) {
-        Player::change_special_forces(game, me, location, nr_of_forces.wrapping_neg());
+        Player::change_special_forces(game, me, location, -nr_of_forces);
     }
 
     pub fn forces_in(&self, location: Option<Location>) -> i32 {
-        let location = location.and_then(crate::compat::cs::CsNull::opt);
-                if let Some(location) = location.and_then(CsNull::opt) {
+                if let Some(location) = location {
             if let Some(battalion) = self.forces_in_locations.get(&location) {
                 return battalion.amount_of_forces;
             }
@@ -227,8 +223,7 @@ impl Player {
     }
 
     pub fn special_forces_in(&self, location: Option<Location>) -> i32 {
-        let location = location.and_then(crate::compat::cs::CsNull::opt);
-                if let Some(location) = location.and_then(CsNull::opt) {
+                if let Some(location) = location {
             if let Some(battalion) = self.forces_in_locations.get(&location) {
                 return battalion.amount_of_special_forces;
             }
@@ -238,8 +233,7 @@ impl Player {
     }
 
     pub fn any_forces_in(&self, location: Option<Location>) -> i32 {
-        let location = location.and_then(crate::compat::cs::CsNull::opt);
-                if let Some(location) = location.and_then(CsNull::opt) {
+                if let Some(location) = location {
             if let Some(battalion) = self.forces_in_locations.get(&location) {
                 return battalion.total_amount_of_forces();
             }
@@ -249,34 +243,30 @@ impl Player {
     }
 
     pub fn occupying_forces_in(&self, t: Option<Territory>) -> i32 {
-        let t = t.and_then(crate::compat::cs::CsNull::opt);
                 match t {
             None => 0,
-            Some(t) => dotnet_compat::linq::sum_i32(t.locations().iter().map(|l| self.occupying_forces_in_location(*l))),
+            Some(t) => t.locations().iter().map(|l| self.occupying_forces_in_location(*l)).sum::<i32>(),
         }
     }
 
     pub fn forces_in_territory(&self, t: Option<Territory>) -> i32 {
-        let t = t.and_then(crate::compat::cs::CsNull::opt);
                 match t {
             None => 0,
-            Some(t) => dotnet_compat::linq::sum_i32(t.locations().iter().map(|l| self.forces_in(Some(*l)))),
+            Some(t) => t.locations().iter().map(|l| self.forces_in(Some(*l))).sum::<i32>(),
         }
     }
 
     pub fn special_forces_in_territory(&self, t: Option<Territory>) -> i32 {
-        let t = t.and_then(crate::compat::cs::CsNull::opt);
                 match t {
             None => 0,
-            Some(t) => dotnet_compat::linq::sum_i32(t.locations().iter().map(|l| self.special_forces_in(Some(*l)))),
+            Some(t) => t.locations().iter().map(|l| self.special_forces_in(Some(*l))).sum::<i32>(),
         }
     }
 
     pub fn any_forces_in_territory(&self, t: Option<Territory>) -> i32 {
-        let t = t.and_then(crate::compat::cs::CsNull::opt);
                 match t {
             None => 0,
-            Some(t) => dotnet_compat::linq::sum_i32(t.locations().iter().map(|l| self.any_forces_in(Some(*l)))),
+            Some(t) => t.locations().iter().map(|l| self.any_forces_in(Some(*l))).sum::<i32>(),
         }
     }
 
@@ -285,7 +275,7 @@ impl Player {
         // AddForcesToReserves. That object stays in the dictionary in between (adding a
         // non-negative amount never empties a battalion), so reading the dictionary again is
         // the same; a missing entry would mean a detached, emptied battalion, hence the 0.
-        let amount_of_forces = game.player(me).forces_in_locations.index(&location).amount_of_forces;
+        let amount_of_forces = game.player(me).forces_in_locations[&location].amount_of_forces;
 
         Player::add_forces_to_reserves(game, me, amount_of_forces);
 
@@ -305,7 +295,7 @@ impl Player {
 
     pub fn forces_to_reserves_location_int32(game: &mut Game, me: PlayerIndex, location: Location, amount: i32) {
         Player::add_forces_to_reserves(game, me, amount);
-        Player::change_forces(game, me, location, amount.wrapping_neg());
+        Player::change_forces(game, me, location, -amount);
     }
 
     pub fn special_forces_to_reserves(game: &mut Game, me: PlayerIndex, location: Location, amount: i32) {
@@ -316,7 +306,7 @@ impl Player {
             Player::add_special_forces_to_reserves(game, me, amount);
         }
 
-        Player::change_special_forces(game, me, location, amount.wrapping_neg());
+        Player::change_special_forces(game, me, location, -amount);
     }
 
     pub fn forces_to_reserves_territory_int32_boolean(game: &mut Game, me: PlayerIndex, t: Territory, amount: i32, special: bool) {
@@ -341,12 +331,12 @@ impl Player {
                     }
 
                     if special {
-                        Player::change_special_forces(game, me, l, to_remove_in_total.wrapping_neg());
+                        Player::change_special_forces(game, me, l, -to_remove_in_total);
                     } else {
-                        Player::change_forces(game, me, l, to_remove_in_total.wrapping_neg());
+                        Player::change_forces(game, me, l, -to_remove_in_total);
                     }
 
-                    to_remove_in_total = to_remove_in_total.wrapping_sub(to_remove_in_this_location);
+                    to_remove_in_total -= to_remove_in_this_location;
                 }
 
                 if to_remove_in_total == 0 {
@@ -373,12 +363,12 @@ impl Player {
             let faction = p.faction;
 
             let p = game.player_mut(me);
-            p.forces_killed = p.forces_killed.wrapping_add(kill_count);
+            p.forces_killed += kill_count;
 
             if faction == Faction::BeneGesserit {
-                p.forces_killed = p.forces_killed.wrapping_add(special_kill_count);
+                p.forces_killed += special_kill_count;
             } else {
-                p.special_forces_killed = p.special_forces_killed.wrapping_add(special_kill_count);
+                p.special_forces_killed += special_kill_count;
             }
 
             p.forces_in_locations.remove(&location);
@@ -386,10 +376,10 @@ impl Player {
 
             if in_battle {
                 let p = game.player_mut(me);
-                p.total_forces_killed_in_battle = p.total_forces_killed_in_battle.wrapping_add(kill_count.wrapping_add(special_kill_count));
+                p.total_forces_killed_in_battle += kill_count + special_kill_count;
             }
 
-            return kill_count.wrapping_add(special_kill_count);
+            return kill_count + special_kill_count;
         }
 
         0
@@ -405,23 +395,23 @@ impl Player {
     }
 
     pub fn kill_forces(game: &mut Game, me: PlayerIndex, location: Location, amount_of_forces: i32, amount_of_special_forces: i32, in_battle: bool) -> i32 {
-        Player::change_forces(game, me, location, amount_of_forces.wrapping_neg());
-        Player::change_special_forces(game, me, location, amount_of_special_forces.wrapping_neg());
+        Player::change_forces(game, me, location, -amount_of_forces);
+        Player::change_special_forces(game, me, location, -amount_of_special_forces);
 
         let p = game.player_mut(me);
-        p.forces_killed = p.forces_killed.wrapping_add(amount_of_forces);
+        p.forces_killed += amount_of_forces;
 
         if p.faction == Faction::BeneGesserit {
-            p.forces_killed = p.forces_killed.wrapping_add(amount_of_special_forces);
+            p.forces_killed += amount_of_special_forces;
         } else {
-            p.special_forces_killed = p.special_forces_killed.wrapping_add(amount_of_special_forces);
+            p.special_forces_killed += amount_of_special_forces;
         }
 
         if in_battle {
-            p.total_forces_killed_in_battle = p.total_forces_killed_in_battle.wrapping_add(amount_of_forces.wrapping_add(amount_of_special_forces));
+            p.total_forces_killed_in_battle += amount_of_forces + amount_of_special_forces;
         }
 
-        amount_of_forces.wrapping_add(amount_of_special_forces)
+        amount_of_forces + amount_of_special_forces
     }
 
     pub fn kill_forces_territory_int32_boolean_boolean(game: &mut Game, me: PlayerIndex, t: Territory, amount: i32, special: bool, in_battle: bool) {
@@ -438,7 +428,7 @@ impl Player {
                 } else {
                     Player::kill_forces(game, me, l, to_be_killed, 0, in_battle);
                 }
-                to_kill = to_kill.wrapping_sub(to_be_killed);
+                to_kill -= to_be_killed;
             }
 
             if to_kill == 0 {
@@ -449,13 +439,13 @@ impl Player {
 
     pub fn revive_forces(game: &mut Game, me: PlayerIndex, amount: i32) {
         let p = game.player_mut(me);
-        p.forces_killed = p.forces_killed.wrapping_sub(amount);
+        p.forces_killed -= amount;
         Player::add_forces_to_reserves(game, me, amount);
     }
 
     pub fn revive_special_forces(game: &mut Game, me: PlayerIndex, amount: i32) {
         let p = game.player_mut(me);
-        p.special_forces_killed = p.special_forces_killed.wrapping_sub(amount);
+        p.special_forces_killed -= amount;
         Player::add_special_forces_to_reserves(game, me, amount);
     }
 
@@ -484,17 +474,17 @@ impl Player {
     }
 
     pub fn ship_advisors(game: &mut Game, me: PlayerIndex, l: Location, amount: i32) {
-        Player::add_forces_to_reserves(game, me, amount.wrapping_neg());
+        Player::add_forces_to_reserves(game, me, -amount);
         Player::change_special_forces(game, me, l, amount);
     }
 
     pub fn move_forces(game: &mut Game, me: PlayerIndex, from: Location, to: Location, amount: i32) {
-        Player::change_forces(game, me, from, amount.wrapping_neg());
+        Player::change_forces(game, me, from, -amount);
         Player::change_forces(game, me, to, amount);
     }
 
     pub fn move_special_forces(game: &mut Game, me: PlayerIndex, from: Location, to: Location, amount: i32) {
-        Player::change_special_forces(game, me, from, amount.wrapping_neg());
+        Player::change_special_forces(game, me, from, -amount);
         Player::change_special_forces(game, me, to, amount);
     }
 
@@ -502,12 +492,12 @@ impl Player {
         if game.player(me).faction == Faction::BeneGesserit {
             if as_advisors {
                 let number_of_forces = game.player(me).forces_in(Some(l));
-                Player::change_forces(game, me, l, number_of_forces.wrapping_neg());
+                Player::change_forces(game, me, l, -number_of_forces);
                 Player::change_special_forces(game, me, l, number_of_forces);
             } else {
                 let number_of_special_forces = game.player(me).special_forces_in(Some(l));
                 Player::change_forces(game, me, l, number_of_special_forces);
-                Player::change_special_forces(game, me, l, number_of_special_forces.wrapping_neg());
+                Player::change_special_forces(game, me, l, -number_of_special_forces);
             }
         }
     }
@@ -521,11 +511,10 @@ impl Player {
     }
 
     pub fn occupying_forces_in_location(&self, l: Location) -> i32 {
-                self.forces_in(Some(l)).wrapping_add(if self.faction == Faction::BeneGesserit { 0 } else { self.special_forces_in(Some(l)) })
+                self.forces_in(Some(l)) + (if self.faction == Faction::BeneGesserit { 0 } else { self.special_forces_in(Some(l)) })
     }
 
     pub fn occupies(&self, game: &Game, l: Option<Location>) -> bool {
-        let l = l.and_then(crate::compat::cs::CsNull::opt);
         match l {
             None => false,
             Some(l) => {
@@ -539,7 +528,6 @@ impl Player {
     }
 
     pub fn occupies_territory(&self, game: &Game, t: Option<Territory>) -> bool {
-        let t = t.and_then(crate::compat::cs::CsNull::opt);
         match t {
             None => false,
             Some(t) => t.locations().iter().any(|l| self.occupies(game, Some(*l))),
@@ -633,7 +621,6 @@ impl Player {
     }
 
     pub fn has(&self, card: Option<TreacheryCard>) -> bool {
-        let card = card.and_then(crate::compat::cs::CsNull::opt);
                 match card {
             None => false,
             Some(card) => self.treachery_cards.contains(&card),
@@ -694,11 +681,11 @@ impl Player {
                 if self.faction == Faction::Tleilaxu { 3 } else { 0 }
     }
 
-    pub fn battalions_in(&self, territory: Territory) -> NetDictionary<Location, Battalion> {
+    pub fn battalions_in(&self, territory: Territory) -> IndexMap<Location, Battalion> {
                 // C# shares the live Battalion objects; no caller mutates them, so copies are equivalent.
-        let mut result = NetDictionary::new();
+        let mut result = IndexMap::new();
         for (k, v) in self.forces_in_locations.iter().filter(|(k, _)| k.territory() == territory) {
-            result.add(*k, v.clone());
+            result.insert_new(*k, v.clone());
         }
         result
     }
@@ -758,22 +745,21 @@ impl Player {
 
     pub fn is_bot(&self, game: &Game) -> bool {
         // Game.IsBot(this): `self` is always one of game.players.
-        game.is_bot(game.index_of(self).nre())
+        game.is_bot(game.index_of(self).expect("a player of this game"))
     }
 
     pub fn ally_is_bot(&self, game: &Game) -> bool {
-        // Game.IsBot(null) throws NullReferenceException.
-        self.has_ally() && game.is_bot(self.allied_player(game).nre())
+        self.has_ally() && game.is_bot(self.allied_player(game).expect("allied player"))
     }
 
     pub fn primary_homeworld(&self) -> Homeworld {
-                *self.home_worlds.iter().cs_first()
+                *self.home_worlds.first().expect("a homeworld")
     }
 
     pub fn has_karma(&self, g: &Game) -> bool {
         // Karma.ValidKarmaCards(g, this): `self` is always one of g.players.
         // Any() stops at the first match.
-        crate::events::Karma::valid_karma_cards(g, g.index_of(self).nre()).next().is_some()
+        crate::events::Karma::valid_karma_cards(g, g.index_of(self).expect("a player of this game")).next().is_some()
     }
 
     pub fn initialize_homeworld(game: &mut Game, me: PlayerIndex, world: Homeworld, initial_normal_forces: i32, initial_special_forces: i32) {
@@ -864,7 +850,7 @@ impl Player {
             return 0;
         }
 
-        let homeworld = where_battle_happens.locations().iter().copied().cs_first().as_homeworld();
+        let homeworld = where_battle_happens.locations().first().copied().expect("a location").as_homeworld();
 
         let Some(homeworld) = homeworld else {
             return 0;
@@ -877,16 +863,6 @@ impl Player {
         }
     }
 
-    /// Only `Game.Clone` calls this, and that is not ported. This is a deep copy: the sets
-    /// (`KnownCards`, `RevealedTraitors`, ...) and `SkillsToChooseFrom`/`HomeWorlds` are copied,
-    /// not shared with the original.
-    pub fn cs_clone(&self) -> Player {
-                let mut result = self.clone();
-        // Utilities.CloneObjectDictionary uses ToDictionary, which compacts the slots.
-        result.forces_in_locations = NetDictionary::to_dictionary(self.forces_in_locations.iter(), |(k, _)| **k, |(_, v)| v.cs_clone());
-        result
-    }
-
 }
 
 /// A player of a game: its index in `Game.players`. Players are only ever appended,
@@ -897,13 +873,3 @@ pub struct PlayerIndex {
     pub index: usize,
 }
 
-/// `PlayerIndex::NULL` is a null player stored in a collection (such as
-/// `Game.Winners`); `Game::player` throws NullReferenceException for it.
-impl crate::compat::cs::CsNull for PlayerIndex {
-    const NULL: PlayerIndex = PlayerIndex::NULL;
-}
-
-impl PlayerIndex {
-    /// No player.
-    pub const NULL: PlayerIndex = PlayerIndex { index: usize::MAX };
-}

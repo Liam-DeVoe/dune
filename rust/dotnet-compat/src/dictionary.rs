@@ -14,30 +14,8 @@
 //! use [`NetDictionary::from_dictionary`] for those.
 
 use crate::exception::{CsToString, throw};
-use std::any::Any;
 use std::collections::HashMap;
 use std::hash::Hash;
-use std::sync::OnceLock;
-
-static NULL_KEY: OnceLock<fn(&dyn Any) -> bool> = OnceLock::new();
-
-/// Registers the test for C# null keys. The engine's static-data handles have
-/// a null value that this crate doesn't know about; every key-taking method
-/// asks this function and throws ArgumentNullException "Value cannot be null.
-/// (Parameter 'key')" for a null key, as .NET does. The first registration
-/// wins.
-pub fn set_null_key_check(f: fn(&dyn Any) -> bool) {
-    let _ = NULL_KEY.set(f);
-}
-
-#[track_caller]
-fn check_key<K: 'static>(key: &K) {
-    if let Some(f) = NULL_KEY.get() {
-        if f(key) {
-            throw("ArgumentNullException", "Value cannot be null. (Parameter 'key')".to_string());
-        }
-    }
-}
 
 #[derive(Clone, Debug)]
 pub struct NetDictionary<K, V> {
@@ -64,7 +42,7 @@ impl<K: Eq + Hash + Clone + 'static, V> NetDictionary<K, V> {
         NetDictionary { entries: Vec::with_capacity(capacity), free: Vec::new(), index: HashMap::with_capacity(capacity) }
     }
 
-    fn insert_new(&mut self, key: K, value: V) {
+    fn insert_new_slot(&mut self, key: K, value: V) {
         let slot = match self.free.pop() {
             Some(slot) => {
                 self.entries[slot] = Some((key.clone(), value));
@@ -81,10 +59,9 @@ impl<K: Eq + Hash + Clone + 'static, V> NetDictionary<K, V> {
     /// `dict[key] = value` (overwrites in place, keeps slot)
     #[track_caller]
     pub fn insert(&mut self, key: K, value: V) {
-        check_key(&key);
         match self.index.get(&key) {
             Some(&slot) => self.entries[slot].as_mut().unwrap().1 = value,
-            None => self.insert_new(key, value),
+            None => self.insert_new_slot(key, value),
         }
     }
 
@@ -92,24 +69,21 @@ impl<K: Eq + Hash + Clone + 'static, V> NetDictionary<K, V> {
     /// `dict.TryAdd(key, value)`
     #[track_caller]
     pub fn try_add(&mut self, key: K, value: V) -> bool {
-        check_key(&key);
         if self.index.contains_key(&key) {
             return false;
         }
-        self.insert_new(key, value);
+        self.insert_new_slot(key, value);
         true
     }
 
     /// `dict.TryGetValue(key, out v)`
     #[track_caller]
     pub fn get(&self, key: &K) -> Option<&V> {
-        check_key(key);
         self.index.get(key).map(|&slot| &self.entries[slot].as_ref().unwrap().1)
     }
 
     #[track_caller]
     pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
-        check_key(key);
         match self.index.get(key) {
             Some(&slot) => Some(&mut self.entries[slot].as_mut().unwrap().1),
             None => None,
@@ -119,7 +93,6 @@ impl<K: Eq + Hash + Clone + 'static, V> NetDictionary<K, V> {
 
     #[track_caller]
     pub fn contains_key(&self, key: &K) -> bool {
-        check_key(key);
         self.index.contains_key(key)
     }
 
@@ -134,7 +107,6 @@ impl<K: Eq + Hash + Clone + 'static, V> NetDictionary<K, V> {
     /// `dict.Remove(key)` / `dict.Remove(key, out value)`. Frees the slot.
     #[track_caller]
     pub fn remove(&mut self, key: &K) -> Option<V> {
-        check_key(key);
         let slot = self.index.remove(key)?;
         let (_, v) = self.entries[slot].take().unwrap();
         self.free.push(slot);
@@ -210,7 +182,7 @@ impl<K: Eq + Hash + Clone + 'static, V> NetDictionary<K, V> {
     {
         let mut d = Self::with_capacity(other.len());
         for (k, v) in other.iter() {
-            d.insert_new(k.clone(), v.clone());
+            d.insert_new_slot(k.clone(), v.clone());
         }
         d
     }
@@ -220,14 +192,13 @@ impl<K: Eq + Hash + Clone + 'static, V> NetDictionary<K, V> {
     /// caller, for key types without a [`CsToString`] impl.
     #[track_caller]
     pub fn add_with(&mut self, key: K, value: V, key_text: impl FnOnce(&K) -> String) {
-        check_key(&key);
         if self.index.contains_key(&key) {
             throw(
                 "ArgumentException",
                 format!("An item with the same key has already been added. Key: {}", key_text(&key)),
             );
         }
-        self.insert_new(key, value);
+        self.insert_new_slot(key, value);
     }
 
     /// `dict[key]` read with the key's C# `ToString()` supplied by the caller.
@@ -297,6 +268,13 @@ impl<K: Eq + Hash + Clone + CsToString + 'static, V> std::ops::Index<&K> for Net
     type Output = V;
     fn index(&self, key: &K) -> &V {
         NetDictionary::index(self, key)
+    }
+}
+
+impl<K: Eq + Hash + Clone + CsToString + 'static, V> std::ops::IndexMut<&K> for NetDictionary<K, V> {
+    #[track_caller]
+    fn index_mut(&mut self, key: &K) -> &mut V {
+        self.get_mut(key).expect("key not in the dictionary")
     }
 }
 

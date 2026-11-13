@@ -34,7 +34,6 @@ impl Diplomacy {
     }
 
     pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.card_id = TreacheryCardManager::get_id(value);
     }
 
@@ -44,7 +43,7 @@ impl Diplomacy {
 
     pub fn valid_cards(g: &Game, p: PlayerIndex) -> Vec<TreacheryCard> {
         let mut result = Vec::new();
-        let plan = g.current_battle.as_ref().nre().plan_of(g, Some(p)).nre();
+        let plan = g.current_battle.as_ref().expect("current battle").plan_of(g, Some(p)).expect("plan of");
         if let Some(weapon) = plan.weapon() {
             if weapon.is_useless() && plan.defense().is_none() {
                 result.push(weapon);
@@ -60,15 +59,15 @@ impl Diplomacy {
 
     pub fn can_be_played(g: &Game, p: PlayerIndex) -> bool {
         if g.skilled_as_player_leader_skill(p, LeaderSkill::Diplomat) && g.current_diplomacy.is_none() {
-            let plan = g.current_battle.as_ref().nre().plan_of(g, Some(p));
-            let plan_of_opponent = g.current_battle.as_ref().nre().plan_of_opponent(g, Some(p));
+            let plan = g.current_battle.as_ref().expect("current battle").plan_of(g, Some(p));
+            let plan_of_opponent = g.current_battle.as_ref().expect("current battle").plan_of_opponent(g, Some(p));
             let Some(plan) = plan else { return false };
             // plan.Defense is not { IsDefense: true }
             if plan.defense().is_some_and(|d| d.is_defense()) {
                 return false;
             }
             // planOfOpponent.Defense is { IsDefense: true } (planOfOpponent! may be null)
-            if !plan_of_opponent.nre().defense().is_some_and(|d| d.is_defense()) {
+            if !plan_of_opponent.expect("plan of opponent").defense().is_some_and(|d| d.is_defense()) {
                 return false;
             }
             return !Self::valid_cards(g, p).is_empty();

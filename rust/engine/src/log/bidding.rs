@@ -101,7 +101,6 @@ impl Default for CardSold {
 
 impl CardSold {
     pub fn new(card_number: i32, winner: Faction, price: i32, paid_to: Faction, shares: Vec<BidShare>, karama_card: Option<TreacheryCard>) -> Self {
-        let karama_card = karama_card.and_then(crate::compat::cs::CsNull::opt);
         CardSold { card_number, winner, price, paid_to, shares, karama_card }
     }
 

@@ -63,16 +63,16 @@ pub fn from_json(text: &str) -> Result<Participation, String> {
                 }
             }
             "Observers" => set(v)?.into_iter().for_each(|i| {
-                p.observers.add(i);
+                p.observers.insert(i);
             }),
             "Hosts" => set(v)?.into_iter().for_each(|i| {
-                p.hosts.add(i);
+                p.hosts.insert(i);
             }),
             "AvailableSeats" => set(v)?.into_iter().for_each(|i| {
-                p.available_seats.add(i);
+                p.available_seats.insert(i);
             }),
             "Kicked" => set(v)?.into_iter().for_each(|i| {
-                p.kicked.add(i);
+                p.kicked.insert(i);
             }),
             "BotsSpeed" => p.bots_speed = int(v)?,
             _ => {}

@@ -35,14 +35,14 @@ impl PerformFremenSetup {
     pub fn validate(&self, game: &Game) -> Option<Message> {
         let p = self.player_opt();
         let number_of_special_forces =
-            dotnet_compat::linq::sum_i32(self.force_locations(game).values().map(|b| b.amount_of_special_forces));
-        let p = p.nre();
+            self.force_locations(game).values().map(|b| b.amount_of_special_forces).sum::<i32>();
+        let p = p.expect("player");
         if number_of_special_forces > game.player(p).special_forces_in_reserve() {
             return Some(express!("You only have ", game.player(p).special_forces_in_reserve(), " ", FactionSpecialForce::Fremen));
         }
 
-        let number_of_forces = dotnet_compat::linq::sum_i32(self.force_locations(game).values().map(|b| b.amount_of_forces));
-        if number_of_forces.wrapping_add(number_of_special_forces) != 10 {
+        let number_of_forces = self.force_locations(game).values().map(|b| b.amount_of_forces).sum::<i32>();
+        if (number_of_forces + number_of_special_forces) != 10 {
             return Some(express!("Distribute 10 forces"));
         }
 
@@ -161,7 +161,7 @@ impl crate::events::placement::IPlacement for PerformFremenSetup {
         GameEventMethods::initiator(self)
     }
 
-    fn force_locations(&self, game: &Game) -> NetDictionary<Location, Battalion> {
+    fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         <Self as PlacementEventMethods>::force_locations(self, game)
     }
 

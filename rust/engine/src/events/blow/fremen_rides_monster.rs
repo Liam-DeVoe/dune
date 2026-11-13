@@ -45,9 +45,8 @@ impl FremenRidesMonster {
 
     pub fn total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {
         // base.TotalAmountOfForcesAddedToLocation is ForcesAddedToLocation + SpecialForcesAddedToLocation.
-        let base = <Self as PlacementEventMethods>::forces_added_to_location(self, game)
-            .wrapping_add(<Self as PlacementEventMethods>::special_forces_added_to_location(self, game));
-        base.wrapping_add(self.forces_from_reserves).wrapping_add(self.special_forces_from_reserves)
+        let base = <Self as PlacementEventMethods>::forces_added_to_location(self, game) + (<Self as PlacementEventMethods>::special_forces_added_to_location(self, game));
+        (base + self.forces_from_reserves) + self.special_forces_from_reserves
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
@@ -61,7 +60,7 @@ impl FremenRidesMonster {
         if self.to(game).is_none() {
             return Some(express!("Target location not selected"));
         }
-        if !Self::valid_targets(game, self.player()).any(|v| v == self.to(game).nre()) {
+        if !Self::valid_targets(game, self.player()).any(|v| v == self.to(game).expect("destination")) {
             return Some(express!("Invalid target location"));
         }
 
@@ -141,7 +140,7 @@ impl FremenRidesMonster {
         let fremen = g.get_player(Some(Faction::Fremen));
         if let Some(fremen) = fremen {
             let to_ride = Self::to_ride(g);
-            let to_ride = to_ride.nre();
+            let to_ride = to_ride.expect("to ride");
             if !to_ride.is_great_monster {
                 return Self::locations_with_forces_that_can_ride(g, fremen, to_ride.territory);
             }
@@ -152,7 +151,7 @@ impl FremenRidesMonster {
 
     pub fn max_forces_from_reserves(g: &Game, p: PlayerIndex, special: bool) -> i32 {
         let ride_from = Self::to_ride(g);
-        if ride_from.is_some() && Self::to_ride(g).nre().is_great_monster {
+        if ride_from.is_some() && Self::to_ride(g).expect("to ride").is_great_monster {
             return if special { g.player(p).special_forces_in_reserve() } else { g.player(p).forces_in_reserve() };
         }
 
@@ -178,7 +177,7 @@ impl FremenRidesMonster {
                         },
                     })
                     && (!l.territory().is_stronghold() || g.nr_of_occupants_excluding_faction(*l, g.player(p).faction) < 2)
-                    && (!g.player(p).has_ally() || *l == g.map.polar_sink() || !g.player(g.player(p).allied_player(g).nre()).occupies(g, Some(*l)))
+                    && (!g.player(p).has_ally() || *l == g.map.polar_sink() || !g.player(g.player(p).allied_player(g).expect("allied player")).occupies(g, Some(*l)))
             })
     }
 
@@ -201,7 +200,7 @@ impl FremenRidesMonster {
         }
 
         if !self.passed {
-            if self.force_locations(game).keys().any(|l| l.territory() != to_ride.as_ref().nre().territory) {
+            if self.force_locations(game).keys().any(|l| l.territory() != to_ride.as_ref().expect("to ride").territory) {
                 let me = self.player();
                 game.play_nexus_card(me, elems!["ride from any territory on the planet"]);
             }
@@ -210,12 +209,10 @@ impl FremenRidesMonster {
             game.last_shipment_or_movement = Some(self.clone().into_event());
             for (from, value) in self.force_locations(game).iter() {
                 let from = *from;
-                // C# passes To (possibly null) into MoveForces, which removes the forces from
-                // `from` and then throws ArgumentNullException on the null key.
                 let ini = initiator.required("initiator")?;
-                let to = self.to(game).or_null();
+                let to = self.to(game).required("to")?;
                 Player::move_forces(game, ini, from, to, value.amount_of_forces);
-                let to = self.to(game).or_null();
+                let to = self.to(game).required("to")?;
                 Player::move_special_forces(game, ini, from, to, value.amount_of_special_forces);
                 let msg = express!(
                     self.initiator(),
@@ -229,7 +226,7 @@ impl FremenRidesMonster {
                 )
                 .with_route(self.initiator(), [from], self.to(game))
                 .with_log(NexusLog::new(
-                    Some(NexusRide::new(self.initiator(), value.amount_of_forces, value.amount_of_special_forces, Some(from), self.to(game).or_null())),
+                    Some(NexusRide::new(self.initiator(), value.amount_of_forces, value.amount_of_special_forces, Some(from), self.to(game).required("to")?)),
                     None,
                 ));
                 self.log_objects(game, elems![msg]);
@@ -238,12 +235,12 @@ impl FremenRidesMonster {
             if self.forces_from_reserves > 0 || self.special_forces_from_reserves > 0 {
                 if self.forces_from_reserves > 0 {
                     let ini = initiator.required("initiator")?;
-                    let to = self.to(game).or_null();
+                    let to = self.to(game).required("to")?;
                     Player::ship_forces(game, ini, to, self.forces_from_reserves);
                 }
                 if self.special_forces_from_reserves > 0 {
                     let ini = initiator.required("initiator")?;
-                    let to = self.to(game).or_null();
+                    let to = self.to(game).required("to")?;
                     Player::ship_special_forces(game, ini, to, self.special_forces_from_reserves);
                 }
                 let ini = initiator.required("initiator")?;
@@ -257,7 +254,7 @@ impl FremenRidesMonster {
                 )
                 .with_route(self.initiator(), [], self.to(game))
                 .with_log(NexusLog::new(
-                    Some(NexusRide::new(self.initiator(), self.forces_from_reserves, self.special_forces_from_reserves, None, self.to(game).or_null())),
+                    Some(NexusRide::new(self.initiator(), self.forces_from_reserves, self.special_forces_from_reserves, None, self.to(game).required("to")?)),
                     None,
                 ));
                 self.log_objects(game, elems![msg]);
@@ -374,7 +371,7 @@ impl crate::events::placement::IPlacement for FremenRidesMonster {
         GameEventMethods::initiator(self)
     }
 
-    fn force_locations(&self, game: &Game) -> NetDictionary<Location, Battalion> {
+    fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         <Self as PlacementEventMethods>::force_locations(self, game)
     }
 

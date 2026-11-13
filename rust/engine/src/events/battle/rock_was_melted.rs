@@ -29,7 +29,7 @@ impl RockWasMelted {
     }
 
     pub fn can_be_played(g: &Game, p: PlayerIndex) -> bool {
-        let plan = g.current_battle.as_ref().nre().plan_of(g, Some(p));
+        let plan = g.current_battle.as_ref().expect("current battle").plan_of(g, Some(p));
         match plan {
             Some(plan) => match plan.weapon() {
                 Some(weapon) => weapon.is_rock_melter(),

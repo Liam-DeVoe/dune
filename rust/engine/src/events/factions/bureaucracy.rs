@@ -38,7 +38,7 @@ impl Bureaucracy {
             game.bureaucrat_was_used_this_phase = true;
             let victim = game.get_player(Some(game.target_of_bureaucracy)).required("get player")?;
             let v = game.player_mut(victim);
-            v.resources = v.resources.wrapping_sub(2);
+            v.resources -= 2;
             game.was_victim_of_bureaucracy = game.target_of_bureaucracy;
         }
 

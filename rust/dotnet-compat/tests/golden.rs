@@ -13,37 +13,6 @@ fn golden_path(name: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/golden").join(format!("{name}.json"))
 }
 
-/// (length, divisor): `quicksort_killer(length)` with every value divided by
-/// `divisor`, so divisor 2 gives each key twice. All of these reach heapsort.
-const KILLERS: [(usize, i32); 8] = [(100, 1), (100, 2), (300, 2), (1000, 1), (1000, 2), (2000, 2), (5000, 1), (5000, 2)];
-
-fn sort_cases() -> Vec<Value> {
-    let mut g = Gen::new(3);
-    let mut cases = Vec::new();
-    for len in 0..=300usize {
-        let keys = random_keys(&mut g, len);
-        cases.push(sort_case(keys, (len % 5) as i32));
-    }
-    for i in 0..8 {
-        let keys = random_keys(&mut g, 5000);
-        cases.push(sort_case(keys, i % 5));
-    }
-    for (n, div) in KILLERS {
-        let keys: Vec<i32> = quicksort_killer(n).into_iter().map(|v| v / div).collect();
-        for mode in 0..5 {
-            cases.push(sort_case(keys.clone(), mode));
-        }
-    }
-    // Comparers that are inconsistent (mode 5) or throw (mode 6).
-    for len in [0, 1, 2, 3, 5, 16, 17, 20, 40, 100, 300] {
-        for mode in [5, 6] {
-            let keys = random_keys(&mut g, len);
-            cases.push(sort_case(keys, mode));
-        }
-    }
-    cases
-}
-
 /// `new HashSet<T>(otherSet)` clones the slot array (holes included) or
 /// compacts it depending on the source's internal capacity, which depends on
 /// how the source was built. Walk the capacity boundaries systematically:
@@ -88,11 +57,9 @@ fn groups() -> Vec<(&'static str, Vec<Value>)> {
     let dict: Vec<Value> = (0..200).map(|_| dict_case(&mut g, 300)).collect();
     let mut set: Vec<Value> = (0..200).map(|_| set_case(&mut g, 300)).collect();
     set.extend(set_capacity_cases());
-    let mut g = Gen::new(4);
-    let linq: Vec<Value> = (0..2000).map(|_| linq_case(&mut g)).collect();
     let mut g = Gen::new(5);
     let math = math_cases(&mut g, 1500);
-    vec![("random", random), ("dict", dict), ("set", set), ("sort", sort_cases()), ("linq", linq), ("math", math)]
+    vec![("random", random), ("dict", dict), ("set", set), ("math", math)]
 }
 
 fn check(name: &str) {
@@ -116,31 +83,10 @@ fn golden_dict() {
 fn golden_set() {
     check("set");
 }
-#[test]
-fn golden_sort() {
-    check("sort");
-}
-#[test]
-fn golden_linq() {
-    check("linq");
-}
+
 #[test]
 fn golden_math() {
     check("math");
-}
-
-/// The killer inputs in the sort golden file must actually reach the heapsort
-/// fallback, or they test nothing.
-#[test]
-fn killer_inputs_reach_heapsort() {
-    use dotnet_compat::sort::{HEAPSORT_CALLS, list_sort_by};
-    use std::sync::atomic::Ordering;
-    for (n, div) in KILLERS {
-        let mut keys: Vec<i32> = quicksort_killer(n).into_iter().map(|v| v / div).collect();
-        let before = HEAPSORT_CALLS.load(Ordering::Relaxed);
-        list_sort_by(&mut keys, |a, b| a.cmp(b));
-        assert!(HEAPSORT_CALLS.load(Ordering::Relaxed) > before, "killer n={n} div={div} did not reach heapsort");
-    }
 }
 
 #[test]

@@ -30,7 +30,6 @@ impl BeneGesseritBattleAnnouncement {
     }
 
     pub fn set_territory(&mut self, game: &Game, value: Option<Territory>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.territory_id = game.map.territory_lookup().get_id(value);
     }
 
@@ -61,7 +60,7 @@ impl BeneGesseritBattleAnnouncement {
             .territories(g.applicable(Rule::Homeworlds))
             .filter(move |t| {
                 let t = *t;
-                (!player.has_ally() || g.player(player.allied_player(g).nre()).any_forces_in_territory(Some(t)) == 0)
+                (!player.has_ally() || g.player(player.allied_player(g).expect("allied player")).any_forces_in_territory(Some(t)) == 0)
                     && player.special_forces_in_territory(Some(t)) > 0
                     && (!t.is_stronghold() || g.nr_of_occupants_excluding_faction_territory_faction(t, player.faction) <= 1)
                     && !t.locations().iter().any(|l| l.sector(&g.map) == g.sector_in_storm && player.special_forces_in(Some(*l)) > 0)

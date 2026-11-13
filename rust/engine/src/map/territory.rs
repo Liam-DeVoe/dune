@@ -6,7 +6,6 @@
 
 use std::fmt;
 
-use crate::compat::cs::CsNull;
 use crate::enumerations::StrongholdAdvantage;
 use crate::identity::IIdentifiable;
 use crate::map::location::Location;
@@ -14,17 +13,10 @@ use crate::map::{Map, TerritoryData};
 use crate::map::data::{TERRITORIES, TERRITORY_COUNT};
 
 /// Handle to a territory of the map. Equality is by id.
-/// `Territory::NULL` is the null handle (see `cs::CsNull`).
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Territory(u8);
 
-impl CsNull for Territory {
-    const NULL: Territory = Territory::NULL;
-}
-
 impl Territory {
-    /// The null handle. Every member throws NullReferenceException.
-    pub const NULL: Territory = Territory(u8::MAX);
 
     pub(crate) const fn from_index(i: usize) -> Territory {
         Territory(i as u8)
@@ -38,7 +30,7 @@ impl Territory {
     /// The static part of this territory.
     #[track_caller]
     pub fn data(self) -> &'static TerritoryData {
-        &TERRITORIES[self.nn().0 as usize]
+        &TERRITORIES[self.0 as usize]
     }
 
     pub fn id(self) -> i32 {
@@ -120,18 +112,12 @@ impl IIdentifiable for Territory {
 
 impl fmt::Debug for Territory {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.is_null() {
-            return f.write_str("Territory(null)");
-        }
         write!(f, "Territory({})", self.0)
     }
 }
 
 impl serde::Serialize for Territory {
     fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        if self.is_null() {
-            return s.serialize_none();
-        }
         s.serialize_i32(self.id())
     }
 }

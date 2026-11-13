@@ -82,7 +82,6 @@ impl AllyPermission {
     }
 
     pub fn set_permitted_karma_card(&mut self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.permitted_karma_card_id = TreacheryCardManager::get_id(value);
     }
 

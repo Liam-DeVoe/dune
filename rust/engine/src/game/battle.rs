@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use dotnet_compat::math::f64_to_i32;
 
 /// `vec![ExpressionElement::from(a), ...]`: the `params object?[]` of `Log(...)`.
 macro_rules! le {
@@ -18,7 +17,7 @@ impl Game {
 
         self.chosen_hms_advantage = Some(StrongholdAdvantage::None);
         self.battle_outcome = None;
-        self.nr_of_battles_fought = self.nr_of_battles_fought.wrapping_add(1);
+        self.nr_of_battles_fought += 1;
 
         let aggressive_player = current_battle.aggressive_player(self);
         self.announce_hero_availability(aggressive_player);
@@ -42,8 +41,6 @@ impl Game {
     }
 
     pub fn assign_battle_wheels(&mut self, player1: Option<PlayerIndex>, player2: Option<PlayerIndex>) {
-        let player1 = player1.and_then(crate::compat::cs::CsNull::opt);
-        let player2 = player2.and_then(crate::compat::cs::CsNull::opt);
         self.has_battle_wheel.clear();
         if let Some(player1) = player1 {
             let f = self.player(player1).faction;
@@ -56,7 +53,6 @@ impl Game {
     }
 
     pub fn announce_hero_availability(&mut self, p: Option<PlayerIndex>) {
-        let p = p.and_then(crate::compat::cs::CsNull::opt);
         let Some(p) = p else { return };
         if Battle::valid_battle_heroes(self, p).is_empty() {
             let f = self.player(p).faction;
@@ -214,15 +210,15 @@ impl Game {
         if plan.has_reinforcements() {
             let p = plan.player();
             let forces_to_remove = std::cmp::min(3, self.player(p).forces_in_reserve());
-            Player::add_forces_to_reserves(self, p, forces_to_remove.wrapping_neg());
+            Player::add_forces_to_reserves(self, p, -forces_to_remove);
             let pl = self.player_mut(p);
-            pl.forces_killed = pl.forces_killed.wrapping_add(forces_to_remove);
+            pl.forces_killed += forces_to_remove;
 
             let special_forces_to_remove = 3 - forces_to_remove;
             if special_forces_to_remove > 0 {
                 Player::add_special_forces_to_reserves(self, p, -special_forces_to_remove);
                 let pl = self.player_mut(p);
-                pl.special_forces_killed = pl.special_forces_killed.wrapping_add(special_forces_to_remove);
+                pl.special_forces_killed += special_forces_to_remove;
             }
 
             let force = self.player(p).force();
@@ -246,12 +242,12 @@ impl Game {
         let def_hero_survives = !aggressor_treachery.succeeded(self) && (defender_treachery.succeeded(self) || (!lasgun_shield && !outcome.def_hero_killed));
 
         if agg_hero_survives && aggressor_plan.hero().is_some() {
-            let territory = current_battle.territory(self).nre();
+            let territory = current_battle.territory(self).expect("territory");
             self.activate_smuggler_if_applicable(aggressor_plan.player(), aggressor_plan.hero(), defender_plan.hero(), territory);
         }
 
         if def_hero_survives && defender_plan.hero().is_some() {
-            let territory = current_battle.territory(self).nre();
+            let territory = current_battle.territory(self).expect("territory");
             self.activate_smuggler_if_applicable(defender_plan.player(), defender_plan.hero(), aggressor_plan.hero(), territory);
         }
     }
@@ -307,35 +303,33 @@ impl Game {
             return;
         };
 
-        let territory = current_battle.territory(self).nre();
+        let territory = current_battle.territory(self).expect("territory");
         let location_with_resources = territory.locations().iter().copied().find(|l| self.resources_on_planet.contains_key(l));
 
         if location_with_resources.is_some()
             && plan.hero().is_some()
-            && self.skilled_as(plan.hero().nre(), LeaderSkill::Sandmaster)
+            && self.skilled_as(plan.hero().expect("hero"), LeaderSkill::Sandmaster)
             && self.player(plan.player()).any_forces_in_territory(current_battle.territory(self)) > 0
         {
             let territory = current_battle.territory(self);
             self.log(le![LeaderSkill::Sandmaster, " adds ", Payment::of(3), " to ", territory]);
-            self.change_resources_on_planet(location_with_resources.nre(), 3);
+            self.change_resources_on_planet(location_with_resources.expect("location with resources"), 3);
         }
     }
 
     pub fn activate_smuggler_if_applicable(&mut self, player: PlayerIndex, hero: Option<Hero>, opponent_hero: Option<Hero>, territory: Territory) {
-        let hero = hero.and_then(crate::compat::cs::CsNull::opt);
-        let opponent_hero = opponent_hero.and_then(crate::compat::cs::CsNull::opt);
         let Some(hero) = hero else { return };
 
         if self.skilled_as(hero, LeaderSkill::Smuggler) {
             let location_with_resources = territory.locations().iter().copied().find(|l| self.resources_on_planet.contains_key(l));
             if let Some(location_with_resources) = location_with_resources {
-                let collected = std::cmp::min(*self.resources_on_planet.index(&location_with_resources), hero.value_in_combat_against(opponent_hero));
+                let collected = std::cmp::min(self.resources_on_planet[&location_with_resources], hero.value_in_combat_against(opponent_hero));
                 if collected > 0 {
                     let f = self.player(player).faction;
                     self.log(le![f, LeaderSkill::Smuggler, " collects ", Payment::of(collected), " from ", territory]);
                     self.change_resources_on_planet(location_with_resources, -collected);
                     let pl = self.player_mut(player);
-                    pl.resources = pl.resources.wrapping_add(collected);
+                    pl.resources += collected;
                 }
             }
         }
@@ -343,17 +337,17 @@ impl Game {
 
     pub fn activate_decipherer_if_applicable(&mut self, plan: &Battle) {
         let player_is_skilled = self.skilled_as_player_leader_skill(plan.player(), LeaderSkill::Decipherer);
-        let leader_is_skilled = plan.hero().is_some() && self.skilled_as(plan.hero().nre(), LeaderSkill::Decipherer);
+        let leader_is_skilled = plan.hero().is_some() && self.skilled_as(plan.hero().expect("hero"), LeaderSkill::Decipherer);
 
         if player_is_skilled || leader_is_skilled {
             let p = plan.player();
-            let traitor = self.traitor_deck.as_mut().nre().draw();
+            let traitor = self.traitor_deck.as_mut().expect("traitor deck").draw();
             self.traitors_decipherer_can_look_at.push(traitor);
-            self.player_mut(p).known_non_traitors.add(traitor);
+            self.player_mut(p).known_non_traitors.insert(traitor);
 
-            let traitor = self.traitor_deck.as_mut().nre().draw();
+            let traitor = self.traitor_deck.as_mut().expect("traitor deck").draw();
             self.traitors_decipherer_can_look_at.push(traitor);
-            self.player_mut(p).known_non_traitors.add(traitor);
+            self.player_mut(p).known_non_traitors.insert(traitor);
 
             self.decipherer_may_replace_traitor = leader_is_skilled && !BattleConcluded::valid_traitors_to_replace(self, p).next().is_none();
         }
@@ -363,10 +357,10 @@ impl Game {
         if self.traitors_decipherer_can_look_at.len() > 0 {
             let items = self.traitors_decipherer_can_look_at.clone();
             for item in items {
-                self.traitor_deck.as_mut().nre().put_on_top(item);
+                self.traitor_deck.as_mut().expect("traitor deck").put_on_top(item);
             }
 
-            self.traitor_deck.as_mut().nre().shuffle();
+            self.traitor_deck.as_mut().expect("traitor deck").shuffle();
             self.stone(Milestone::Shuffled);
             self.traitors_decipherer_can_look_at.clear();
         }
@@ -377,7 +371,7 @@ impl Game {
             return;
         };
 
-        let territory = current_battle.territory(self).nre();
+        let territory = current_battle.territory(self).expect("territory");
         if self.has_stronghold_advantage(player_plan.initiator(), StrongholdAdvantage::CollectResourcesForUseless, territory) {
             self.collect_tueks_sietch_bonus(player_plan.player(), player_plan.weapon());
             self.collect_tueks_sietch_bonus(player_plan.player(), player_plan.defense());
@@ -385,13 +379,12 @@ impl Game {
     }
 
     pub fn collect_tueks_sietch_bonus(&mut self, player: PlayerIndex, card: Option<TreacheryCard>) {
-        let card = card.and_then(crate::compat::cs::CsNull::opt);
         if let Some(card) = card.filter(|c| c.type_() == TreacheryCardType::Useless) {
             let f = self.player(player).faction;
             let tueks = self.map.tueks_sietch();
             self.log(le![tueks, " stronghold advantage: ", f, " collect ", Payment::of(2), " for playing ", card]);
             let pl = self.player_mut(player);
-            pl.resources = pl.resources.wrapping_add(2);
+            pl.resources += 2;
         }
     }
 
@@ -400,13 +393,13 @@ impl Game {
             return;
         };
 
-        let territory = current_battle.territory(self).nre();
+        let territory = current_battle.territory(self).expect("territory");
         if !self.has_stronghold_advantage(winner_plan.initiator(), StrongholdAdvantage::CollectResourcesForDial, territory) {
             return;
         }
 
         // (int)Math.Floor(float): the float widens to double.
-        let collected = f64_to_i32((opponent_plan.dial(self, winner_plan.initiator()) as f64).floor());
+        let collected = (opponent_plan.dial(self, winner_plan.initiator()) as f64).floor() as i32;
         if collected <= 0 {
             return;
         }
@@ -414,7 +407,7 @@ impl Game {
         let tabr = self.map.sietch_tabr();
         self.log(le![tabr, " stronghold advantage: ", winner_plan.initiator(), " collect ", Payment::of(collected), " from enemy force dial"]);
         let pl = self.player_mut(winner_plan.player());
-        pl.resources = pl.resources.wrapping_add(collected);
+        pl.resources += collected;
     }
 
     pub fn resolve_effect_of_occupied_jacurutu(&mut self, winner_plan: &Battle, opponent_undialed_forces: i32) {
@@ -429,7 +422,7 @@ impl Game {
 
         self.log(le![winner_plan.initiator(), " get ", Payment::of(opponent_undialed_forces), " from winning a fight in ", jacurutu]);
         let pl = self.player_mut(winner_plan.player());
-        pl.resources = pl.resources.wrapping_add(opponent_undialed_forces);
+        pl.resources += opponent_undialed_forces;
     }
 
     pub fn determine_how_to_proceed_after_revealing_battle_plans(&mut self) -> GameResult {
@@ -535,13 +528,13 @@ impl Game {
 
     pub fn return_captured_leader(&mut self, current_owner: PlayerIndex, to_return: Leader) {
         if let Some(value) = self.captured_leaders.get(&to_return).copied() {
-            let original_player = self.get_player(Some(value)).nre();
+            let original_player = self.get_player(Some(value)).expect("player");
             self.player_mut(original_player).leaders.push(to_return);
             let leaders = &mut self.player_mut(current_owner).leaders;
             if let Some(pos) = leaders.iter().position(|l| *l == to_return) {
                 leaders.remove(pos);
             }
-            self.captured_leaders.remove(&to_return);
+            self.captured_leaders.shift_remove(&to_return);
 
             if !self.is_alive(Hero::Leader(to_return)) {
                 return;
@@ -677,22 +670,18 @@ impl Game {
         }
 
         let force_supplier = Battle::determine_force_supplier(self, plan.player());
-        let battle_territory = current_battle.territory(self).nre();
+        let battle_territory = current_battle.territory(self).expect("territory");
         let undialed_normal_forces = self
             .player(force_supplier)
-            .forces_in_territory(Some(battle_territory))
-            .wrapping_sub(plan.forces)
-            .wrapping_sub(plan.forces_at_half_strength);
-        let battle_territory = current_battle.territory(self).nre();
+            .forces_in_territory(Some(battle_territory)) - plan.forces - plan.forces_at_half_strength;
+        let battle_territory = current_battle.territory(self).expect("territory");
         let undialed_special_forces = self
             .player(force_supplier)
-            .special_forces_in_territory(Some(battle_territory))
-            .wrapping_sub(plan.special_forces)
-            .wrapping_sub(plan.special_forces_at_half_strength);
+            .special_forces_in_territory(Some(battle_territory)) - plan.special_forces - plan.special_forces_at_half_strength;
         Player::forces_to_reserves_territory_int32_boolean(self, force_supplier, territory, undialed_normal_forces, false);
         Player::forces_to_reserves_territory_int32_boolean(self, force_supplier, territory, undialed_special_forces, true);
 
-        if undialed_normal_forces.wrapping_add(undialed_special_forces) > 0 {
+        if (undialed_normal_forces + undialed_special_forces) > 0 {
             let force = self.player(force_supplier).force();
             let special_force = self.player(force_supplier).special_force();
             self.log(le![
@@ -788,44 +777,44 @@ impl Game {
             self.log(le![arrakeen, " stronghold advantage supports ", Payment::of(paid_by_arrakeen)]);
         }
 
-        if cost.wrapping_add(paid_by_arrakeen) > 0 {
-            let cost_for_player = cost.wrapping_sub(plan.ally_contribution_amount);
+        if (cost + paid_by_arrakeen) > 0 {
+            let cost_for_player = cost - plan.ally_contribution_amount;
             let mut refunded_resources = 0;
 
             if cost_for_player > 0 {
                 let pl = self.player_mut(p);
-                pl.resources = pl.resources.wrapping_sub(cost_for_player);
+                pl.resources -= cost_for_player;
 
                 if self.dialled_resources_are_refunded(p) {
                     self.log(le![Payment::of(cost_for_player), " dialled in battle will be refunded in the ", MainPhase::Contemplate, " phase"]);
                     refunded_resources = cost_for_player;
                     let pl = self.player_mut(p);
-                    pl.bribes = pl.bribes.wrapping_add(cost_for_player);
+                    pl.bribes += cost_for_player;
                 }
             }
 
             if plan.ally_contribution_amount > 0 {
                 if let Some(allied_player) = self.player(p).allied_player(self) {
                     let ap = self.player_mut(allied_player);
-                    ap.resources = ap.resources.wrapping_sub(plan.ally_contribution_amount);
+                    ap.resources -= plan.ally_contribution_amount;
                     let f = self.player(p).faction;
                     self.decrease_permitted_use_of_ally_spice(f, plan.ally_contribution_amount);
                 }
             }
 
             let dialled_resources_relevant_for_choam =
-                cost.wrapping_sub(cost_to_choam).wrapping_sub(refunded_resources).wrapping_add(paid_by_arrakeen);
+                (cost - cost_to_choam - refunded_resources) + paid_by_arrakeen;
 
             let receiver_profit = self.handle_choam_income(p, dialled_resources_relevant_for_choam, traitor_was_revealed);
 
-            if cost.wrapping_sub(receiver_profit) >= 4 {
+            if (cost - receiver_profit) >= 4 {
                 self.activate_banker(p);
             }
         }
 
         if plan.banker_bonus > 0 {
             let pl = self.player_mut(p);
-            pl.resources = pl.resources.wrapping_sub(plan.banker_bonus);
+            pl.resources -= plan.banker_bonus;
             let f = self.player(p).faction;
             self.log(le![f, " paid ", Payment::of(plan.banker_bonus), " as ", LeaderSkill::Banker]);
         }
@@ -838,12 +827,12 @@ impl Game {
         if let Some(choam) = choam {
             if self.player(paid_by).faction != Faction::Choam && !traitor_was_revealed {
                 // (int)Math.Floor(0.5f * int): float multiply, then widened to double.
-                result = f64_to_i32(((0.5f32 * costs_excluding_payment_by_choam_ally as f32) as f64).floor());
+                result = ((0.5f32 * costs_excluding_payment_by_choam_ally as f32) as f64).floor() as i32;
 
                 if result > 0 {
                     if !self.prevented(FactionAdvantage::ChoamReceiveForcePayment) {
                         let b = self.player_mut(choam);
-                        b.resources = b.resources.wrapping_add(result);
+                        b.resources += result;
                         self.log(le![Faction::Choam, " get ", Payment::of(result), " from supported forces"]);
 
                         if result >= 5 {
@@ -872,8 +861,8 @@ impl Game {
         let force_supplier = Battle::determine_force_supplier(self, winner);
         self.process_ecaz_occupation_winner_losses(territory, winner);
 
-        let special_forces_to_lose = plan.special_forces.wrapping_add(plan.special_forces_at_half_strength);
-        let forces_to_lose = plan.forces.wrapping_add(plan.forces_at_half_strength);
+        let special_forces_to_lose = plan.special_forces + plan.special_forces_at_half_strength;
+        let forces_to_lose = plan.forces + plan.forces_at_half_strength;
 
         let mut special_forces_to_save_to_reserves = 0;
         let mut forces_to_save_to_reserves = 0;
@@ -882,29 +871,25 @@ impl Game {
 
         let nr_of_special_force_losses_that_can_be_replaced_by_remaining_normal_forces = std::cmp::min(
             special_forces_to_lose,
-            self.player(force_supplier)
-                .forces_in_territory(Some(territory))
-                .wrapping_sub(plan.forces)
-                .wrapping_sub(plan.forces_at_half_strength),
+            (self.player(force_supplier)
+                .forces_in_territory(Some(territory)) - plan.forces) - plan.forces_at_half_strength,
         );
 
         if !self.may_substitute_force_losses(force_supplier) || nr_of_special_force_losses_that_can_be_replaced_by_remaining_normal_forces == 0 {
-            if plan.hero().is_some() && self.skilled_as(plan.hero().nre(), LeaderSkill::Graduate) {
+            if plan.hero().is_some() && self.skilled_as(plan.hero().expect("hero"), LeaderSkill::Graduate) {
                 special_forces_to_save_in_territory = std::cmp::min(special_forces_to_lose, 1);
                 forces_to_save_in_territory = std::cmp::max(0, std::cmp::min(forces_to_lose, 1 - special_forces_to_save_in_territory));
 
                 special_forces_to_save_to_reserves = std::cmp::max(
                     0,
                     std::cmp::min(
-                        special_forces_to_lose
-                            .wrapping_sub(special_forces_to_save_in_territory)
-                            .wrapping_sub(forces_to_save_in_territory),
+                        (special_forces_to_lose - special_forces_to_save_in_territory) - forces_to_save_in_territory,
                         2,
                     ),
                 );
                 forces_to_save_to_reserves = std::cmp::max(
                     0,
-                    std::cmp::min(forces_to_lose.wrapping_sub(forces_to_save_in_territory), 2 - special_forces_to_save_to_reserves),
+                    std::cmp::min(forces_to_lose - forces_to_save_in_territory, 2 - special_forces_to_save_to_reserves),
                 );
             } else if self.skilled_as_player_leader_skill(winner, LeaderSkill::Graduate) {
                 special_forces_to_save_to_reserves = std::cmp::min(special_forces_to_lose, 1);
@@ -937,21 +922,15 @@ impl Game {
         }
 
         if !self.may_substitute_force_losses(force_supplier)
-            || special_forces_to_lose
-                .wrapping_sub(special_forces_to_save_to_reserves)
-                .wrapping_sub(special_forces_to_save_in_territory)
+            || (special_forces_to_lose - special_forces_to_save_to_reserves - special_forces_to_save_in_territory)
                 == 0
-            || self.player(force_supplier).forces_in_territory(Some(territory)) <= plan.forces.wrapping_add(plan.forces_at_half_strength)
+            || self.player(force_supplier).forces_in_territory(Some(territory)) <= (plan.forces + plan.forces_at_half_strength)
         {
-            let winner_forces_lost = forces_to_lose.wrapping_sub(forces_to_save_to_reserves).wrapping_sub(forces_to_save_in_territory);
-            let winner_special_forces_lost = special_forces_to_lose
-                .wrapping_sub(special_forces_to_save_to_reserves)
-                .wrapping_sub(special_forces_to_save_in_territory);
+            let winner_forces_lost = forces_to_lose - forces_to_save_to_reserves - forces_to_save_in_territory;
+            let winner_special_forces_lost = special_forces_to_lose - special_forces_to_save_to_reserves - special_forces_to_save_in_territory;
             self.handle_force_losses(territory, force_supplier, winner_forces_lost, winner_special_forces_lost);
         } else {
-            self.ixian_special_force_losses_to_take = special_forces_to_lose
-                .wrapping_sub(special_forces_to_save_to_reserves)
-                .wrapping_sub(special_forces_to_save_in_territory);
+            self.ixian_special_force_losses_to_take = special_forces_to_lose - special_forces_to_save_to_reserves - special_forces_to_save_in_territory;
         }
     }
 
@@ -984,7 +963,7 @@ impl Game {
             self.kill_hero(killed_hero);
         }
         let pl = self.player_mut(winner);
-        pl.resources = pl.resources.wrapping_add(hero_value);
+        pl.resources += hero_value;
     }
 
     pub fn log_all_forces_lost(&mut self, player: PlayerIndex, territory: Territory) {
@@ -1035,17 +1014,15 @@ impl Game {
 
     pub fn set_hero_locations(&mut self, b: &Battle, territory: Territory) {
         if let Some(hero) = b.hero().filter(|h| h.as_leader().is_some()) {
-            self.leader_state.index_mut(&hero).current_territory = Some(territory);
+            self.leader_state[&hero].current_territory = Some(territory);
         }
 
         if b.messiah {
-            self.leader_state.index_mut(&LeaderManager::messiah()).current_territory = Some(territory);
+            self.leader_state[&LeaderManager::messiah()].current_territory = Some(territory);
         }
     }
 
     pub fn traitor_called(&mut self, b: &BattleInitiated, agg: &Rc<Battle>, def: &Rc<Battle>, defender_treachery: &TreacheryCalled, agg_leader: Option<Hero>, def_leader: Option<Hero>) -> GameResult {
-        let agg_leader = agg_leader.and_then(crate::compat::cs::CsNull::opt);
-        let def_leader = def_leader.and_then(crate::compat::cs::CsNull::opt);
         let aggressor_traitor_action = self.aggressor_traitor_action.clone();
         if aggressor_traitor_action.as_ref().is_some_and(|a| a.succeeded(self)) && defender_treachery.succeeded(self) {
             let (Some(agg_leader), Some(def_leader)) = (agg_leader, def_leader) else {
@@ -1107,7 +1084,7 @@ impl Game {
             self.log(le![message]);
             self.kill_hero(traitor);
             let pl = self.player_mut(winner);
-            pl.resources = pl.resources.wrapping_add(traitor_value);
+            pl.resources += traitor_value;
         }
 
         self.battle_winner = Some(self.player(winner).faction);
@@ -1175,8 +1152,6 @@ impl Game {
     }
 
     pub fn lasgun_shield_explosion(&mut self, agg: &Battle, def: &Battle, aggressor: PlayerIndex, defender: PlayerIndex, territory: Territory, agg_leader: Option<Hero>, def_leader: Option<Hero>) -> GameResult {
-        let agg_leader = agg_leader.and_then(crate::compat::cs::CsNull::opt);
-        let def_leader = def_leader.and_then(crate::compat::cs::CsNull::opt);
         let had_messiah_before_losses = self.player(aggressor).messiah_available(self) || self.player(defender).messiah_available(self);
 
         self.log(le!["A ", TreacheryCardType::Laser, "/", TreacheryCardType::Shield, " explosion occurs!"]);
@@ -1222,7 +1197,7 @@ impl Game {
         while i < self.players.len() {
             let p = self.player_at(i);
             // `territory` may be null: AnyForcesIn(null) is 0.
-            if self.player(p).any_forces_in_territory(territory.opt()) > 0 {
+            if self.player(p).any_forces_in_territory(Some(territory)) > 0 {
                 self.reveal_current_no_field_player_territory(p, territory);
 
                 let homeworld_kill_limit = if in_battle {
@@ -1238,7 +1213,7 @@ impl Game {
                     let normal_forces_to_kill = std::cmp::min(self.player(p).forces_in_territory(Some(territory)), homeworld_kill_limit);
                     let special_forces_to_kill = std::cmp::min(
                         self.player(p).special_forces_in_territory(Some(territory)),
-                        homeworld_kill_limit.wrapping_sub(normal_forces_to_kill),
+                        homeworld_kill_limit - normal_forces_to_kill,
                     );
 
                     if normal_forces_to_kill > 0 {
@@ -1275,7 +1250,7 @@ impl Game {
             .iter()
             .copied()
             .filter(|l| {
-                l.hero_type() != HeroType::Auditor && self.leader_state.index(&Hero::Leader(*l)).alive() && self.can_join_current_battle(Hero::Leader(*l))
+                l.hero_type() != HeroType::Auditor && self.leader_state[&Hero::Leader(*l)].alive() && self.can_join_current_battle(Hero::Leader(*l))
             })
             .collect();
         let mut available_leaders: Deck<Leader> = Deck::new(leaders, self.random.clone());
@@ -1325,7 +1300,7 @@ impl Game {
         }
 
         self.return_skilled_leaders_in_front_of_shield_after_battle();
-        let territory = current_battle.territory(self).nre();
+        let territory = current_battle.territory(self).expect("territory");
         self.determine_occupation(territory);
         if !self.applicable(Rule::FullPhaseKarma) {
             self.allow_prevented_battle_faction_advantages();
@@ -1353,7 +1328,6 @@ impl Game {
 
     /// C# parity: a different occupation rule from `DetermineOccupationAtStartOrEndOfTurn` (hazards 18.2).
     pub fn determine_occupation_location(&mut self, location: Option<Location>) {
-        let location = location.and_then(crate::compat::cs::CsNull::opt);
         let Some(hw) = location.and_then(|l| l.as_homeworld()) else {
             return;
         };
@@ -1362,7 +1336,7 @@ impl Game {
         let battalions = self.battalions_in(hw.into());
         let sole_player_on_planet = if battalions.len() == 1 {
             let battalions = self.battalions_in(hw.into());
-            let first = battalions.into_iter().cs_first();
+            let first = battalions.into_iter().next().expect("a battalion");
             self.get_player(Some(first.faction))
         } else {
             None
@@ -1373,7 +1347,7 @@ impl Game {
 
             if !self.player(sole_player_on_planet).is_native_homeworld(hw) {
                 let f = self.player(sole_player_on_planet).faction;
-                self.homeworld_occupation.add_with(hw, f, |k| ExpressionElement::from(*k).to_cs_string());
+                self.homeworld_occupation.insert_new(hw, f);
                 self.log(le![f, " now occupy ", hw]);
             } else if let Some(previous_occupier) = previous_occupier {
                 let f = self.player(previous_occupier).faction;
@@ -1399,7 +1373,7 @@ impl Game {
         let keys: Vec<Hero> = self.leader_state.keys().copied().collect();
         for key in keys {
             let Some(leader) = key.as_leader() else { continue };
-            if !(self.is_skilled(Some(key)) && !self.leader_state.index(&key).in_front_of_shield) {
+            if !(self.is_skilled(Some(key)) && !self.leader_state[&key].in_front_of_shield) {
                 continue;
             }
 
@@ -1477,13 +1451,13 @@ impl Game {
 
         let mut i = 0;
         while i < self.players.len() {
-            let player_to_check = self.battle_sequence.as_ref().nre().current_player(self);
+            let player_to_check = self.battle_sequence.as_ref().expect("battle sequence").current_player(self);
             // BattlesToBeFought dereferences the player before anything else that has effects.
-            if !Battle::battles_to_be_fought(self, player_to_check.nre(), false).is_empty() {
+            if !Battle::battles_to_be_fought(self, player_to_check.expect("player to check"), false).is_empty() {
                 return player_to_check;
             }
 
-            let mut seq = self.battle_sequence.take().nre();
+            let mut seq = self.battle_sequence.take().expect("battle sequence");
             seq.next_player(self);
             self.battle_sequence = Some(seq);
             i += 1;
@@ -1540,7 +1514,7 @@ impl Game {
     }
 
     pub fn can_join_current_battle(&self, hero: Hero) -> bool {
-        let current_territory = self.leader_state.index(&hero).current_territory;
+        let current_territory = self.leader_state[&hero].current_territory;
         current_territory.is_none() || current_territory == self.current_battle.as_ref().and_then(|b| b.territory(self))
     }
 }
@@ -1553,7 +1527,7 @@ pub struct Fight {
 
 impl Fight {
     pub fn id(&self) -> i32 {
-        self.territory.id().wrapping_add(1000i32.wrapping_mul(self.faction.0))
+        self.territory.id() + (1000i32 * self.faction.0)
     }
 
     pub fn new(territory: Territory, faction: Faction) -> Self {

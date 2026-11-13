@@ -11,6 +11,7 @@ use std::cell::Cell;
 
 use serde_json::Value;
 use treachery_bots::prelude::*;
+use treachery_engine::error::catch_panic;
 
 fn golden() -> Value {
     let path = format!("{}/tests/golden/core.json", env!("CARGO_MANIFEST_DIR"));
@@ -18,7 +19,7 @@ fn golden() -> Value {
 }
 
 fn outcome<R>(f: impl FnOnce() -> R) -> Result<R, String> {
-    cs::catch_panic(f).map_err(|e| format!("EX:{}: {}", cs::full_type_name(e.type_name), e.message))
+    catch_panic(f).map_err(|e| format!("EX:System.{e}"))
 }
 
 /// A game without players and a bot whose player is never read.
@@ -96,8 +97,8 @@ fn try_decide_matches_csharp() {
             "valid" => bot.try_decide(&mut game, &end_phase, |_, g| { called.set(true); Some(Rc::new(EndPhase::new(g, Faction::Atreides))) }),
             "notAllowed" => bot.try_decide(&mut game, &thought, |_, g| { called.set(true); Some(Rc::new(EndPhase::new(g, Faction::Atreides))) }),
             "returnsNull" => bot.try_decide(&mut game, &thought, |_, _| -> Option<Rc<Thought>> { called.set(true); None }),
-            "throws" => bot.try_decide(&mut game, &end_phase, |_, _| -> Option<Rc<EndPhase>> { called.set(true); treachery_engine::compat::cs::throw("InvalidOperationException", "boom".to_string()) }),
-            "throwsWithBrace" => bot.try_decide(&mut game, &end_phase, |_, _| -> Option<Rc<EndPhase>> { called.set(true); treachery_engine::compat::cs::throw("InvalidOperationException", "bo{om".to_string()) }),
+            "throws" => bot.try_decide(&mut game, &end_phase, |_, _| -> Option<Rc<EndPhase>> { called.set(true); panic!("InvalidOperationException: boom") }),
+            "throwsWithBrace" => bot.try_decide(&mut game, &end_phase, |_, _| -> Option<Rc<EndPhase>> { called.set(true); panic!("{}", "InvalidOperationException: bo{om") }),
             "invalid" => bot.try_decide(&mut game, &thought, |_, g| { called.set(true); Some(Rc::new(Thought::new(g, Faction::Atreides))) }),
             other => panic!("unknown scenario {other}"),
         };

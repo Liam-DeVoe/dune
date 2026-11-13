@@ -30,7 +30,6 @@ impl TraitorDiscarded {
     }
 
     pub fn set_traitor(&mut self, value: Option<Hero>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.traitor_id = LeaderManager::hero_lookup().get_id(value);
     }
 
@@ -53,10 +52,11 @@ impl TraitorDiscarded {
         // C# parity: the message says the traitor is shuffled into the deck, but the deck is not shuffled.
         // A null Traitor (only reachable without validation) is added to the deck as null.
         let traitor = self.traitor();
-        game.traitor_deck.as_mut().required("traitor deck")?.items.push(traitor.or_null());
+        let traitor = traitor.required("traitor")?;
+        game.traitor_deck.as_mut().required("traitor deck")?.items.push(traitor);
         let me = self.player();
-        cs::list_remove(&mut game.player_mut(me).traitors, traitor);
-        game.number_of_traitors_to_discard = game.number_of_traitors_to_discard.wrapping_sub(1);
+        crate::iter::remove_first(&mut game.player_mut(me).traitors, &traitor);
+        game.number_of_traitors_to_discard -= 1;
         if game.number_of_traitors_to_discard == 0 {
             let phase = game.phase_before_discarding_traitor;
             game.enter(phase, true);

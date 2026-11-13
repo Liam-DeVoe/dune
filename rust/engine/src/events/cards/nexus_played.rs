@@ -61,7 +61,6 @@ impl NexusPlayed {
     }
 
     pub fn set_tleilaxu_hero(&mut self, value: Option<Hero>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.tleilaxu_hero_id = LeaderManager::hero_lookup().get_id(value);
     }
 
@@ -70,7 +69,6 @@ impl NexusPlayed {
     }
 
     pub fn set_choam_card(&mut self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.choam_card_id = TreacheryCardManager::get_id(value);
     }
 
@@ -79,7 +77,6 @@ impl NexusPlayed {
     }
 
     pub fn set_ecaz_territory(&mut self, game: &Game, value: Option<Territory>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.ecaz_territory_id = game.map.territory_lookup().get_id(value);
     }
 
@@ -88,7 +85,6 @@ impl NexusPlayed {
     }
 
     pub fn set_moritani_territory(&mut self, game: &Game, value: Option<Territory>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.moritani_territory_id = game.map.territory_lookup().get_id(value);
     }
 
@@ -97,7 +93,6 @@ impl NexusPlayed {
     }
 
     pub fn set_tleilaxu_location(&mut self, game: &Game, value: Option<Location>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.tleilaxu_location_id = game.map.location_lookup().get_id(value);
     }
 
@@ -143,7 +138,7 @@ impl NexusPlayed {
                 if self.is_secret_ally(game) {
                     let me = self.player();
                     if self.tleilaxu_hero().is_some()
-                        && !NexusPlayed::valid_tleilaxu_heroes(game, me).contains(&self.tleilaxu_hero().nre())
+                        && !NexusPlayed::valid_tleilaxu_heroes(game, me).contains(&self.tleilaxu_hero().expect("tleilaxu hero"))
                     {
                         return Some(express!("Invalid leader"));
                     }
@@ -156,7 +151,7 @@ impl NexusPlayed {
                     if self.determine_tleilaxu_cost() > game.player(me).resources {
                         return Some(express!("You can't pay that much"));
                     }
-                    if self.tleilaxu_forces.wrapping_add(self.tleilaxu_special_forces) > 5 {
+                    if (self.tleilaxu_forces + self.tleilaxu_special_forces) > 5 {
                         return Some(express!("You can't revive that many forces"));
                     }
                     if self.tleilaxu_assign_skill && self.tleilaxu_hero().is_none() {
@@ -188,7 +183,7 @@ impl NexusPlayed {
                         return Some(express!("Select a ", TreacheryCardType::Useless, " card to discard"));
                     }
                     if self.choam_card().is_some()
-                        && !NexusPlayed::valid_choam_cards(game, self.player()).any(|v| v == self.choam_card().nre())
+                        && !NexusPlayed::valid_choam_cards(game, self.player()).any(|v| v == self.choam_card().expect("choam card"))
                     {
                         return Some(express!("Invalid card"));
                     }
@@ -213,7 +208,7 @@ impl NexusPlayed {
             Faction::Moritani => {
                 if self.is_betrayal(game)
                     && (self.moritani_territory(game).is_none()
-                        || !NexusPlayed::valid_moritani_territories(game).any(|v| v == self.moritani_territory(game).nre()))
+                        || !NexusPlayed::valid_moritani_territories(game).any(|v| v == self.moritani_territory(game).expect("moritani territory")))
                 {
                     return Some(express!("This territory contains no terror token"));
                 }
@@ -251,10 +246,10 @@ impl NexusPlayed {
 
         let game_is_in_battle = g.current_phase == Phase::BattlePhase && g.current_battle.is_some();
         let is_currently_formulating_battle_plan = game_is_in_battle
-            && g.current_battle.as_ref().nre().is_aggressor_or_defender(g, p)
+            && g.current_battle.as_ref().expect("current battle").is_aggressor_or_defender(g, p)
             && (g.defender_plan.is_none() || g.aggressor_plan.is_none());
 
-        let battle = || g.current_battle.as_ref().nre();
+        let battle = || g.current_battle.as_ref().expect("current battle");
 
         match g.player(p).nexus {
             Faction::Atreides if betrayal => game_is_in_battle && battle().is_aggressor_or_defender_faction(g, Faction::Atreides),
@@ -356,7 +351,7 @@ impl NexusPlayed {
             if g.player(ecaz).has_ally() {
                 return Either::Left(g.map.territories(false).filter(move |t| {
                     g.player(ecaz).any_forces_in_territory(Some(*t)) > 0
-                        && g.player(g.player(ecaz).allied_player(g).nre()).any_forces_in_territory(Some(*t)) > 0
+                        && g.player(g.player(ecaz).allied_player(g).expect("allied player")).any_forces_in_territory(Some(*t)) > 0
                 }));
             }
         }
@@ -389,7 +384,7 @@ impl NexusPlayed {
     }
 
     pub fn determine_tleilaxu_cost_int32_int32(forces: i32, special_forces: i32) -> i32 {
-        forces.wrapping_add(special_forces)
+        forces + special_forces
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
@@ -471,12 +466,12 @@ impl NexusPlayed {
                         let get_from = self.get_player(game, Some(p.to));
                         if let Some(get_from) = get_from {
                             let gf = game.player_mut(get_from);
-                            gf.resources = gf.resources.wrapping_sub(p.amount);
+                            gf.resources -= p.amount;
                         }
                     }
 
                     let me = game.player_mut(actor);
-                    me.resources = me.resources.wrapping_add(p.amount);
+                    me.resources += p.amount;
                 }
 
                 if game.target_of_bureaucracy == Faction::Guild {
@@ -532,15 +527,14 @@ impl NexusPlayed {
                 let richese = self.get_player(game, Some(Faction::Richese));
                 if let Some(payment_to_richese) = payment_to_richese {
                     let amount_received = payment_to_richese
-                        .amount
-                        .wrapping_sub(if game.was_victim_of_bureaucracy == Faction::Richese { 2 } else { 0 });
+                        .amount - (if game.was_victim_of_bureaucracy == Faction::Richese { 2 } else { 0 });
                     game.play_nexus_card(
                         actor,
                         elems!["let ", Faction::Richese, " return the payment of ", Payment::of(amount_received), " they just received"],
                     );
                     if let Some(richese) = richese {
                         let w = game.player_mut(richese);
-                        w.resources = w.resources.wrapping_sub(amount_received);
+                        w.resources -= amount_received;
                     }
                 } else if richese.is_some() && game.card_just_won.is_some() && game.player(richese.required("richese")?).has(game.card_just_won) {
                     let richese = richese.required("richese")?;
@@ -554,19 +548,19 @@ impl NexusPlayed {
                     if let Some(winning_bid) = winning_bid {
                         if !winning_bid.i_bid_karma_bid() && winning_bid.i_bid_initiator() == Faction::Richese {
                             let w = game.player_mut(richese);
-                            w.resources = w.resources.wrapping_add(winning_bid.i_bid_amount());
+                            w.resources += winning_bid.i_bid_amount();
                             let richese_ally = game.player(richese).allied_player(game);
                             if let Some(richese_ally) = richese_ally {
                                 if winning_bid.i_bid_ally_contribution_amount() > 0 {
                                     let a = game.player_mut(richese_ally);
-                                    a.resources = a.resources.wrapping_add(winning_bid.i_bid_ally_contribution_amount());
+                                    a.resources += winning_bid.i_bid_ally_contribution_amount();
                                 }
                             }
                             if let Some(richese_ally) = richese_ally {
                                 if winning_bid.i_bid_emperor_contribution_amount() > 0 {
                                     // C# parity: Emperor's contribution is refunded to Richese's ally (hazards 18).
                                     let a = game.player_mut(richese_ally);
-                                    a.resources = a.resources.wrapping_add(winning_bid.i_bid_emperor_contribution_amount());
+                                    a.resources += winning_bid.i_bid_emperor_contribution_amount();
                                 }
                             }
                         }
@@ -629,7 +623,7 @@ impl NexusPlayed {
                 game.faction_that_must_discard_traitor = self.initiator();
                 game.number_of_traitors_to_discard = 1;
                 game.play_nexus_card(actor, elems!["draw a new traitor"]);
-                let t = game.traitor_deck.as_mut().nre().draw();
+                let t = game.traitor_deck.as_mut().expect("traitor deck").draw();
                 game.player_mut(actor).traitors.push(t);
                 game.enter(Phase::DiscardingTraitor, true);
             }
@@ -671,14 +665,14 @@ impl NexusPlayed {
                 if game.player(tleilaxu).revealed_face_dancers.len() > 0 {
                     let mut i = 0;
                     while i < game.player(tleilaxu).revealed_face_dancers.len() {
-                        let d = game.traitor_deck.as_mut().nre().draw();
+                        let d = game.traitor_deck.as_mut().expect("traitor deck").draw();
                         game.player_mut(tleilaxu).face_dancers.push(d);
                         i += 1;
                     }
 
                     // HashSet iteration order (hazards 3)
                     let revealed: Vec<Hero> = game.player(tleilaxu).revealed_face_dancers.iter().copied().collect();
-                    let traitor_deck = game.traitor_deck.as_mut().nre();
+                    let traitor_deck = game.traitor_deck.as_mut().expect("traitor deck");
                     traitor_deck.items.extend(revealed.iter().copied());
                     traitor_deck.shuffle();
 
@@ -695,8 +689,8 @@ impl NexusPlayed {
             }
 
             Faction::Ecaz => {
-                if game.vidal().is_some() && !game.is_alive(Hero::Leader(game.vidal().nre())) {
-                    let vidal = game.vidal().nre();
+                if game.vidal().is_some() && !game.is_alive(Hero::Leader(game.vidal().expect("vidal"))) {
+                    let vidal = game.vidal().expect("vidal");
                     game.revive(actor, Hero::Leader(vidal));
 
                     if self.tleilaxu_assign_skill {
@@ -730,9 +724,9 @@ impl NexusPlayed {
                 game.faction_that_must_discard_traitor = self.initiator();
                 game.number_of_traitors_to_discard = 2;
                 game.play_nexus_card(actor, elems!["draw two new traitors"]);
-                let t = game.traitor_deck.as_mut().nre().draw();
+                let t = game.traitor_deck.as_mut().expect("traitor deck").draw();
                 game.player_mut(actor).traitors.push(t);
-                let t = game.traitor_deck.as_mut().nre().draw();
+                let t = game.traitor_deck.as_mut().expect("traitor deck").draw();
                 game.player_mut(actor).traitors.push(t);
                 game.enter(Phase::DiscardingTraitor, true);
             }
@@ -769,13 +763,13 @@ impl NexusPlayed {
                     game.revive(actor, tleilaxu_hero);
 
                     if self.tleilaxu_assign_skill {
-                        if let Some(revived_leader) = self.tleilaxu_hero().nre().as_leader() {
+                        if let Some(revived_leader) = self.tleilaxu_hero().expect("tleilaxu hero").as_leader() {
                             game.prepare_skill_assignment_to_revived_leader(player, Some(revived_leader));
                         }
                     }
                 }
 
-                let total = self.tleilaxu_forces.wrapping_add(self.tleilaxu_special_forces);
+                let total = self.tleilaxu_forces + self.tleilaxu_special_forces;
                 let force = game.player(player).force();
                 let special_force = game.player(player).special_force();
                 game.play_nexus_card(
@@ -812,7 +806,7 @@ impl NexusPlayed {
                     // C# parity: the card is not validated here (hazards 18).
                     game.discard_player_treachery_card_boolean(Some(actor), Some(choam_card), true);
                     let me = game.player_mut(actor);
-                    me.resources = me.resources.wrapping_add(2);
+                    me.resources += 2;
                 } else if game.current_phase == Phase::BattleConclusion {
                     let Some(current_battle) = game.current_battle.clone() else { return };
 
@@ -836,7 +830,7 @@ impl NexusPlayed {
                     );
 
                     if !auditable_cards.is_empty() {
-                        let audited_card = auditable_cards.iter().copied().random_or_default(game.random.as_ref().nre());
+                        let audited_card = auditable_cards.iter().copied().random_or_default(game.random.as_ref().expect("random"));
                         if let Some(audited_card) = audited_card {
                             Game::register_known_player_treachery_card(game, actor, Some(audited_card));
                             self.log_to(game, self.initiator(), elems!["You see: ", audited_card]);

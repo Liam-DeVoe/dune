@@ -55,7 +55,7 @@ impl Game {
     }
 
     pub fn determine_later_storm_with_storm_deck(&self) -> i32 {
-        self.random.as_ref().nre().next(6) + 1
+        self.random.as_ref().expect("random").next(6) + 1
     }
 
     pub fn determine_storm(&mut self) {
@@ -80,10 +80,10 @@ impl Game {
         let Some(value) = self.resources_on_planet.get(&l).copied() else { return };
 
         let collected = value.min(maximum_amount);
-        self.change_resources_on_planet(l, collected.wrapping_neg());
+        self.change_resources_on_planet(l, -collected);
         let Some(collector) = self.get_player(Some(faction)) else { return };
         let r = &mut self.player_mut(collector).resources;
-        *r = r.wrapping_add(collected);
+        *r += collected;
         self.log(elems![faction, " collect ", Payment::of(collected), " from ", l]);
     }
 
@@ -93,7 +93,7 @@ impl Game {
         }
 
         for _ in 0..amount.max(0) {
-            self.sector_in_storm = cs::rem(self.sector_in_storm.wrapping_add(1), Map::NUMBER_OF_SECTORS);
+            self.sector_in_storm = (self.sector_in_storm + 1) % Map::NUMBER_OF_SECTORS;
             self.perform_storm();
         }
 

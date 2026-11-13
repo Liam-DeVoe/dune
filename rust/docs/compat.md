@@ -1,12 +1,12 @@
 # dotnet-compat
 
-`rust/dotnet-compat` reimplements the .NET 10 behavior that the engine depends on: `System.Random`, `Dictionary`, `HashSet`, `List.Sort`, the LINQ operators that are easy to get wrong, and number rounding, formatting and parsing. Engine code must use these wherever the C# uses the .NET equivalent.
+`rust/dotnet-compat` reimplements the .NET 10 behavior that the engine still depends on: `System.Random`, `Dictionary` and `HashSet` (for the game fields whose .NET order players see), and number rounding, formatting and parsing. Since native-plan.md step 3c the engine uses std and `indexmap` everywhere else; [engine-conventions.md](engine-conventions.md#what-is-left-of-net) says what still needs this crate and why. `List.Sort` and the LINQ operators were removed then, because nothing used them any more.
 
 Everything here is checked against real .NET 10 output (see [Verification](#verification)).
 
 ## Exceptions
 
-Where .NET throws, the compat API panics with the exception's type name and exact .NET 10 message, for example `ArgumentException: An item with the same key has already been added. Key: 5`. Calling it so that .NET would throw is a bug in the caller. `dotnet_compat::throw!(Type, "format", args)` raises such a panic. The parsing functions are the exception: their `try_` variants return the exception as a `CsException { type_name, message }` value, because their input comes from outside. Tests turn a panic back into the exception with the engine's `cs::catch_panic`.
+Where .NET throws, the compat API panics with the exception's type name and exact .NET 10 message, for example `ArgumentException: An item with the same key has already been added. Key: 5`. Calling it so that .NET would throw is a bug in the caller. `dotnet_compat::throw!(Type, "format", args)` raises such a panic. The parsing functions are the exception: their `try_` variants return the exception as a `CsException { type_name, message }` value, because their input comes from outside. The engine itself no longer panics with .NET exception texts; only this crate's panics carry one.
 
 Messages that embed a value use the `CsToString` trait for its C# `ToString()`. It is implemented for the primitive types and `String`; implement it for every dictionary key type. `NetDictionary::add_with` and `index_with` take the key text as a closure instead.
 
@@ -34,7 +34,7 @@ This is .NET's `Net5CompatSeedImpl` (Knuth's subtractive generator), which seede
 | `add(k, v)`, `add_with(k, v, key_text)` | `d.Add(k, v)`. Throws ArgumentException on a duplicate key. |
 | `try_add(k, v)` | `d.TryAdd(k, v)` |
 | `get(&k)`, `get_mut(&k)` | `d.TryGetValue(k, out v)` |
-| `index(&k)`, `d[&k]`, `index_mut(&k)`, `index_with(&k, key_text)` | `d[k]` read. Throws KeyNotFoundException if missing. |
+| `index(&k)`, `d[&k]`, `index_mut(&k)`, `&mut d[&k]`, `index_with(&k, key_text)` | `d[k]` read. Throws KeyNotFoundException if missing. |
 | `get_value_or_default(&k)`, `get_value_or(&k, v)` | `d.GetValueOrDefault(k)`, `d.GetValueOrDefault(k, v)` |
 | `contains_key`, `contains_value` | `ContainsKey`, `ContainsValue` |
 | `remove(&k)` | `d.Remove(k)` / `d.Remove(k, out v)` |
@@ -56,7 +56,7 @@ Slots work the same as in `NetDictionary`. The set operations also follow .NET's
 
 | Rust | C# |
 |---|---|
-| `add`, `remove`, `contains`, `clear`, `len`, `iter` | `Add`, `Remove`, `Contains`, `Clear`, `Count`, `foreach` |
+| `add` (also `insert`), `remove`, `contains`, `clear`, `len`, `iter` | `Add`, `Remove`, `Contains`, `Clear`, `Count`, `foreach` |
 | `NetHashSet::new()`, `with_capacity(n)` | `new HashSet<T>()`, `new HashSet<T>(n)` |
 | `NetHashSet::from_set(&s)` | `new HashSet<T>(otherHashSet)` |
 | `NetHashSet::from_collection(&list)` | `new HashSet<T>(list)` where the source is an `ICollection<T>` such as a List, array or `Keys` |
@@ -78,60 +78,6 @@ Pick the variant that matches the static type of the C# argument. `IntersectWith
 **Copying.** Unlike Dictionary, `new HashSet<T>(otherSet)` sometimes copies the slot array exactly, free list included. It does so when the source isn't oversized compared to its count. Otherwise it compacts. "Oversized" depends on .NET's internal capacity, which `NetHashSet` tracks with .NET's prime table. That is why `from_collection` and `from_enumerable` are separate: they leave different capacities. A List source is presized to its length, and a lazy source grows as it goes. The capacity only matters if the set is later copied with `from_set`.
 
 Serde writes a JSON array in enumeration order and reads one with `Add` semantics.
-
-## Sorting: `sort`
-
-| Rust | C# |
-|---|---|
-| `sort::list_sort_by(&mut slice, cmp)` | `List<T>.Sort(Comparison<T>)`, `List<T>.Sort(IComparer<T>)`, `Array.Sort(arr, comparison)` |
-| `sort::list_sort_by_int(&mut slice, cmp)` | the same with a C#-style `int` comparison |
-| `sort::list_sort(&mut slice)` | `List<T>.Sort()` for `T : IComparable<T>` |
-| `sort::order_by(&mut vec, cmp)` | a stable sort, for LINQ ordering |
-
-`List.Sort` is unstable. Elements that compare equal end up in an order that depends on every detail of .NET's introsort (`ArraySortHelper<T>`), so `list_sort_by` ports it line by line. It uses a depth limit of `2 * (floor(log2 n) + 1)`, insertion sort for partitions of 16 or fewer, fixed compare-and-swap sequences for sizes 2 and 3, a median-of-three pivot parked at `hi - 1`, and heapsort when the depth limit runs out.
-
-`List<T>.Sort()` with no arguments goes through `GenericArraySortHelper<T>`, which runs the same algorithm through `CompareTo`. `list_sort` gives the same order for any consistent `Ord`. Two exceptions don't matter in practice:
-
-- For `float`/`double` elements, .NET first moves NaNs to the front by swapping, which can reorder `-0.0` and `0.0`.
-- For primitive types, equal elements are indistinguishable, so their order can't be observed.
-
-Exceptions match .NET, and in both cases the slice is left partially sorted, exactly as .NET leaves it:
-
-- An inconsistent comparer can make the partition loop run off the array. That throws ArgumentException "Unable to sort because the IComparer.Compare() method returns inconsistent results. ...". The message ends with ``IComparer: 'System.Comparison`1[T]'``. The port fills in the last segment of the Rust type name, so the message only matches when the Rust and C# type names agree.
-- A C# exception from the comparer is wrapped in InvalidOperationException "Failed to compare two elements in the array." The inner exception isn't kept.
-
-Shared and Bots don't currently call `List.Sort` or `Array.Sort`; they only use LINQ ordering.
-
-## LINQ: `linq`
-
-Use plain iterator adapters where the semantics already match: `Where` is `filter`, `Select` is `map`, and `Any`, `All`, `Count`, `Concat`, `SelectMany` and `Contains` map directly. Use `linq` helpers for everything below.
-
-| Rust | C# | Trap |
-|---|---|---|
-| `max_by_key_first`, `min_by_key_first`, `max_by_first`, `min_by_first` | `MaxBy`, `MinBy` | .NET returns the **first** extreme element. `Iterator::max_by_key` returns the last maximum. These return `None` when empty, which is what .NET does for reference types. For value types .NET throws: wrap the call in `or_no_elements(...)`. |
-| `max`, `min` | `Max()`/`Min()` on `int`, enums, `Max(selector)` returning `int` | Throws on empty |
-| `max_nullable`, `min_nullable` | `Max()` on `int?`, or `Max(selector)` returning a reference type such as `IComparable` | Skips nulls, returns `None` instead of throwing |
-| `max_f64`, `min_f64`, `max_f32`, `min_f32` | `Max()`/`Min()` on `double`/`float` | `Max` skips NaN unless every element is NaN. `Min` returns NaN as soon as it sees one. |
-| `sum_i32`, `sum_i64` | `Sum()` on ints | Checked: overflow throws OverflowException |
-| `sum_f32`, `average_f32` | `Sum()`/`Average()` on floats | Accumulates in `double`, converts to `float` at the end |
-| `average_i32` | `Average()` on ints | Returns `f64`; throws on empty |
-| `average_f64`, `sum_f64` | the same on doubles | |
-| `aggregate`, `aggregate_seed` | `Aggregate(func)`, `Aggregate(seed, func)` | Unseeded form throws on empty |
-| `order_by`, `order_by_descending`, `order_by_cmp`, `order_by_f64`, `order_by_descending_f64` | `OrderBy`, `OrderByDescending`, `ThenBy` chains | All stable. Descending is **not** ascending reversed: ties keep source order. The key selector runs once per element, in source order, before sorting. That matters for `OrderBy(_ => random.Next())`. |
-| `reverse` | `Reverse()` | |
-| `distinct`, `distinct_by`, `union`, `intersect`, `except` | same | Results are in first-occurrence order. `Intersect` and `Except` return distinct elements of the first sequence. |
-| `group_by` | `GroupBy` | Groups in order of each key's first appearance |
-| `first`, `last`, `single`, `single_or_default` | `First()`, `Last()`, `Single()`, `SingleOrDefault()` | `SingleOrDefault` throws on more than one element. |
-| `first_where`, `last_where`, `single_where`, `single_or_default_where` | the predicate overloads | Use these rather than `filter` + `first`: the messages differ ("no matching element", "more than one matching element"). |
-| `element_at(iter, i)`, `element_at_list(&slice, i)` | `ElementAt(i)` on a lazy sequence / on a List or array | The two throw different ArgumentOutOfRangeException messages. Which one applies depends on the runtime type of the source; for example, `Where` over an empty array returns an empty array, which counts as a list. |
-| `take`, `skip` | `Take(n)`, `Skip(n)` | A negative count means 0 |
-| `sequence_equal`, `to_dictionary`, `to_hash_set` | same | |
-
-For `ThenBy`, build one comparison with `Ordering::then_with`, for example `order_by_cmp(xs, |a, b| a.x.cmp(&b.x).then_with(|| b.y.cmp(&a.y)))` for `OrderBy(x).ThenByDescending(y)`.
-
-For float keys, compare with `math::cmp_f32`/`cmp_f64`, never `partial_cmp` or `total_cmp`. .NET's `CompareTo` puts NaN first and treats `-0.0` as equal to `0.0`.
-
-`OrderBy(...).First()` and `OrderBy(...).FirstOrDefault(pred)` give the same element as sorting and then searching. .NET computes it with a linear scan instead, which only matters if the key selector or predicate has side effects.
 
 ## Numbers: `math`, `fmt`, `parse`
 
@@ -191,15 +137,13 @@ Some .NET grammar that Rust's `from_str` doesn't accept or gets wrong:
 
 ## Verification
 
-`rust/dotnet-compat/csharp-ref` is a .NET 10 console program. It reads a JSON array of cases on stdin and prints one result per case. A case is a random seed plus a draw sequence, a dictionary or set operation script, a sort input, a LINQ call, or a batch of numbers or strings. Floats travel as bit patterns, so formatting never gets in the way. `tests/common/mod.rs` runs the same cases through the Rust code and compares the JSON. Exceptions are compared as `"Type: message"` strings, so every exception type and message above is checked too.
+`rust/dotnet-compat/csharp-ref` is a .NET 10 console program. It reads a JSON array of cases on stdin and prints one result per case. A case is a random seed plus a draw sequence, a dictionary or set operation script, or a batch of numbers or strings. (The C# program still knows sort and LINQ cases, which the Rust side no longer sends.) Floats travel as bit patterns, so formatting never gets in the way. `tests/common/mod.rs` runs the same cases through the Rust code and compares the JSON. Exceptions are compared as `"Type: message"` strings, so every exception type and message above is checked too.
 
 There are three test layers:
 
 - **Golden tests** (`tests/golden.rs`, run by `cargo test`) compare against committed .NET output in `tests/golden/*.json`. They cover:
   - Random: 18 edge seeds with 3000 mixed draws each, 3 seeds with 10,000 draws, and 100 random seeds.
   - Dictionary and HashSet: 200 scripts each of 300 interleaved add/set/remove/clear/copy operations, including every set operation. Separately, about 1600 HashSet cases walk the capacity boundaries that decide whether a copy keeps free slots.
-  - Sort: every length from 0 to 300 and eight inputs of length 5000, with heavy key duplication and sorted, reversed, organ-pipe and nearly sorted patterns. Plus McIlroy "killer" inputs, with and without duplicate keys, that drive the introsort into its heapsort fallback. A test asserts that they really reach it. Each input runs through one of the C# entry points (`List.Sort` with a `Comparison`, an `IComparer` or `IComparable`, and `Array.Sort`) or a descending comparison. Short and long inputs also run through a comparer that is inconsistent and one that throws, checking the exception and the partially sorted result.
-  - LINQ: 2000 operator calls with duplicates, empty inputs, overflow and NaN.
   - Numbers: about 1500 doubles, floats and strings each through rounding, casts, comparison, formatting and parsing.
 
   Regenerate the golden files with `cargo test -p dotnet-compat --test golden -- --ignored regenerate`.
@@ -208,8 +152,6 @@ There are three test layers:
 
 To check that the golden tests have teeth, each of these deliberate bugs was tried, and each made a golden test fail:
 
-- an insertion-sort threshold of 15
-- a different pivot index
 - a FIFO free list
 - an off-by-one in the HashSet copy threshold
 - a different shrink threshold after construction

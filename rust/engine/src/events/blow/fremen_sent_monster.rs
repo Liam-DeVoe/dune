@@ -32,7 +32,6 @@ impl FremenSentMonster {
     }
 
     pub fn set_territory(&mut self, game: &Game, value: Option<Territory>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.territory_id = game.map.territory_lookup().get_id(value);
     }
 
@@ -40,7 +39,7 @@ impl FremenSentMonster {
         if self.territory(game).is_none() {
             return Some(express!("No territory selected"));
         }
-        if self.territory(game).nre().is_protected_from_worm() {
+        if self.territory(game).expect("territory").is_protected_from_worm() {
             return Some(express!("Selected territory is protected"));
         }
 
@@ -56,7 +55,7 @@ impl FremenSentMonster {
         // A null Territory (only without validation) is stored in WormSentLog and the
         // MonsterAppearence; PerformMonster then throws on `m.Territory.Locations`.
         let msg = self.get_message(game);
-        let territory = self.territory(game).or_null();
+        let territory = self.territory(game).required("territory")?;
         let msg = msg.with_log(WormSentLog::new(self.initiator(), territory));
         self.log_objects(game, vec![ExpressionElement::from(msg)]);
         let monster = MonsterAppearence::new(territory, false);

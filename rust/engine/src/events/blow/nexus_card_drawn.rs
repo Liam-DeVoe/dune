@@ -68,18 +68,18 @@ impl NexusCardDrawn {
         let me = self.player();
         game.discard_nexus_card(me);
 
-        if game.nexus_card_deck.as_ref().nre().is_empty() {
+        if game.nexus_card_deck.as_ref().expect("nexus card deck").is_empty() {
             let pile = game.nexus_discard_pile.clone();
-            game.nexus_card_deck.as_mut().nre().items.extend(pile);
+            game.nexus_card_deck.as_mut().expect("nexus card deck").items.extend(pile);
             game.nexus_discard_pile.clear();
-            game.nexus_card_deck.as_mut().nre().shuffle();
+            game.nexus_card_deck.as_mut().expect("nexus card deck").shuffle();
             game.stone(Milestone::Shuffled);
             self.log_objects(game, elems!["The Nexus Card discard pile was shuffled into a new Nexus Card deck"]);
         }
 
         let faction = game.player(self.player()).faction;
         self.log_objects(game, elems![faction, " draw a Nexus Card"]);
-        let card = game.nexus_card_deck.as_mut().nre().draw();
+        let card = game.nexus_card_deck.as_mut().expect("nexus card deck").draw();
         game.player_mut(self.player()).nexus = card;
     }
 

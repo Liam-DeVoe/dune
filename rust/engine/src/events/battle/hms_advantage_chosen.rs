@@ -32,8 +32,8 @@ impl HMSAdvantageChosen {
         let hms = g.map.hidden_mobile_stronghold();
         g.chosen_hms_advantage == Some(StrongholdAdvantage::None)
             && g.current_battle.is_some()
-            && g.current_battle.as_ref().nre().is_aggressor_or_defender(g, p)
-            && g.current_battle.as_ref().nre().territory(g) == Some(hms.location().territory())
+            && g.current_battle.as_ref().expect("current battle").is_aggressor_or_defender(g, p)
+            && g.current_battle.as_ref().expect("current battle").territory(g) == Some(hms.location().territory())
             && g.owns_stronghold(g.player(p).faction, hms.location())
             && !HMSAdvantageChosen::valid_advantages(g, p).is_empty()
     }

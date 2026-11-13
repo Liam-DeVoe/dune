@@ -7,7 +7,7 @@ use std::cell::{Cell, RefCell};
 use std::panic;
 use std::sync::Once;
 
-use treachery_engine::compat::cs::CsException;
+use crate::cs::CsException;
 
 /// The last panic on this thread.
 #[derive(Clone, Debug, Default)]
@@ -36,7 +36,7 @@ pub fn install() {
             let payload = info.payload();
             let cs = crate::replay::as_exception(payload);
             let message = if let Some(e) = &cs {
-                format!("{}: {}", treachery_engine::compat::cs::full_type_name(e.type_name), e.message)
+                format!("{}: {}", crate::cs::full_type_name(e.type_name), e.message)
             } else if let Some(s) = payload.downcast_ref::<&str>() {
                 s.to_string()
             } else if let Some(s) = payload.downcast_ref::<String>() {

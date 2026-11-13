@@ -59,23 +59,6 @@ pub fn panic_message(payload: &(dyn std::any::Any + Send)) -> String {
     }
 }
 
-// Messages shared by several APIs (exact .NET 10 texts).
-pub const NO_ELEMENTS: &str = "Sequence contains no elements";
-pub const NO_MATCH: &str = "Sequence contains no matching element";
-pub const MORE_THAN_ONE_ELEMENT: &str = "Sequence contains more than one element";
-pub const MORE_THAN_ONE_MATCH: &str = "Sequence contains more than one matching element";
-pub const ARITHMETIC_OVERFLOW: &str = "Arithmetic operation resulted in an overflow.";
-
-#[track_caller]
-pub(crate) fn invalid_operation(message: &str) -> ! {
-    throw("InvalidOperationException", message.to_string())
-}
-
-#[track_caller]
-pub(crate) fn overflow() -> ! {
-    throw("OverflowException", ARITHMETIC_OVERFLOW.to_string())
-}
-
 /// C# `ToString()` of a value, for exception messages that embed it (such as
 /// `Dictionary.Add`'s "Key: X"). Implement it for every dictionary key type.
 pub trait CsToString {

@@ -5,10 +5,10 @@ impl Game {
         let key = RcKey(offer.clone());
         if !self.deal_responses.contains_key(&key) {
             // Never a duplicate: the key was just checked.
-            self.deal_responses.add_with(key.clone(), NetDictionary::new(), |_| "Treachery.Shared.DealOffered".to_string());
+            self.deal_responses.insert_new(key.clone(), IndexMap::new());
         }
 
-        self.deal_responses.get_mut(&key).nre().insert(faction, accepted);
+        self.deal_responses.get_mut(&key).expect("responses to this offer").insert(faction, accepted);
     }
 
     pub fn deal_response(&self, offer: &Rc<DealOffered>, faction: Faction) -> Option<bool> {
@@ -31,7 +31,7 @@ impl Game {
             .filter(move |p| {
                 // offer.To is an array; a null To throws on .Length.
                 p.faction != initiator && p.ally != initiator && {
-                    let to = offer.to.as_ref().nre();
+                    let to = offer.to.as_ref().expect("destination");
                     to.len() == 0 || to.contains(&p.faction)
                 }
             })
@@ -58,7 +58,7 @@ impl Game {
             && tleilaxu.is_some()
             && match l.as_leader() {
                 // Leaders.Contains(IHero): reference equality, so only a Leader can match.
-                Some(leader) => self.player(tleilaxu.nre()).leaders.contains(&leader),
+                Some(leader) => self.player(tleilaxu.expect("tleilaxu")).leaders.contains(&leader),
                 None => false,
             }
     }
@@ -142,7 +142,7 @@ impl Deal {
         if !is_null_or_white_space {
             return express!(
                 express_part_if!(benefit > 0; "Receive ", Payment::of(benefit), " and "),
-                text.nre().to_string(),
+                text.expect("text").to_string(),
                 " until ",
                 end
             );

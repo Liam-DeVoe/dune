@@ -21,7 +21,7 @@ use std::rc::Rc;
 
 use dotnet_compat::{NetDictionary, NetHashSet};
 
-use crate::compat::cs::{RcKey, Shared};
+use crate::shared::{RcKey, Shared};
 use crate::error::GameError;
 use crate::compat::date_time_offset::{DateTimeOffset, TimeSpan};
 use crate::enumerations::DiscoveryToken;
@@ -480,7 +480,7 @@ impl CanonShape for TimeSpan {
     }
 }
 
-/// Enum values: `"<Enum.ToString()>(<number>)"`. Used by `net_enum!`.
+/// Enum values: `"<Enum.ToString()>(<number>)"`. Used by `game_enum!`.
 pub fn write_enum(w: &mut CanonWriter, text: &str, value: i32) {
     w.string(&format!("{text}({value})"));
 }
@@ -652,15 +652,47 @@ impl<K: CanonShape + Eq + Hash + Clone, V: CanonShape> CanonShape for NetDiction
     }
 }
 
+impl<T: Canon + Eq + Hash> Canon for indexmap::IndexSet<T> {
+    fn canon(&self, w: &mut CanonWriter) {
+        write_seq(w, self.iter())
+    }
+}
+impl<T: CanonShape + Eq + Hash> CanonShape for indexmap::IndexSet<T> {
+    fn canon_shape(reg: &mut Registry) -> Shape {
+        Shape::list(T::canon_shape(reg))
+    }
+}
+
+impl<K: Canon + Eq + Hash, V: Canon> Canon for indexmap::IndexMap<K, V> {
+    fn canon(&self, w: &mut CanonWriter) {
+        w.arr_start();
+        for (i, (k, v)) in self.iter().enumerate() {
+            if i > 0 {
+                w.comma();
+            }
+            w.arr_start();
+            k.canon(w);
+            w.comma();
+            v.canon(w);
+            w.arr_end();
+        }
+        w.arr_end();
+    }
+}
+impl<K: CanonShape + Eq + Hash, V: CanonShape> CanonShape for indexmap::IndexMap<K, V> {
+    fn canon_shape(reg: &mut Registry) -> Shape {
+        let k = K::canon_shape(reg);
+        let v = V::canon_shape(reg);
+        Shape::list(Shape::list(k.union(v)))
+    }
+}
+
 // ---------------------------------------------------------------------------
 // References
 // ---------------------------------------------------------------------------
 
 impl Canon for PlayerIndex {
     fn canon(&self, w: &mut CanonWriter) {
-        if crate::compat::cs::CsNull::is_null(*self) {
-            return w.null();
-        }
         w.obj_start();
         w.key("$ref");
         w.string("Player");
@@ -692,9 +724,6 @@ macro_rules! location_ref {
         impl Canon for $t {
             fn canon(&self, w: &mut CanonWriter) {
                 let l: Location = (*self).into();
-                if crate::compat::cs::CsNull::is_null(l) {
-                    return w.null();
-                }
                 w.map_ref("Location", l.id())
             }
         }
@@ -713,9 +742,6 @@ location_ref!(
 
 impl Canon for Territory {
     fn canon(&self, w: &mut CanonWriter) {
-        if crate::compat::cs::CsNull::is_null(*self) {
-            return w.null();
-        }
         w.map_ref("Territory", self.id())
     }
 }
@@ -727,9 +753,6 @@ impl CanonShape for Territory {
 
 impl Canon for Leader {
     fn canon(&self, w: &mut CanonWriter) {
-        if crate::compat::cs::CsNull::is_null(*self) {
-            return w.null();
-        }
         w.entity_ref("Leader", self.id())
     }
 }
@@ -741,9 +764,6 @@ impl CanonShape for Leader {
 
 impl Canon for TreacheryCard {
     fn canon(&self, w: &mut CanonWriter) {
-        if crate::compat::cs::CsNull::is_null(*self) {
-            return w.null();
-        }
         w.entity_ref("TreacheryCard", self.id())
     }
 }
@@ -772,9 +792,6 @@ impl CanonShape for Hero {
 impl Canon for ResourceCard {
     fn canon(&self, w: &mut CanonWriter) {
         let c = *self;
-        if crate::compat::cs::CsNull::is_null(c) {
-            return w.null();
-        }
         w.object(
             "ResourceCard",
             vec![

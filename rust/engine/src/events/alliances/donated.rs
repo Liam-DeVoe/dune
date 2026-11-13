@@ -36,7 +36,6 @@ impl Donated {
     }
 
     pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.card_id = TreacheryCardManager::lookup().get_id(value);
     }
 
@@ -79,7 +78,7 @@ impl Donated {
         }
 
         let target_player = game.get_player(Some(self.target));
-        if self.card().is_some() && !game.player(target_player.nre()).has_room_for_cards(game) {
+        if self.card().is_some() && !game.player(target_player.expect("target player")).has_room_for_cards(game) {
             return Some(express!("Target faction's hand is full"));
         }
 
@@ -125,7 +124,7 @@ impl Donated {
                     // ExchangeResourcesInBribe(Player, null, Resources): the payer pays first.
                     let me = self.player();
                     let from = game.player_mut(me);
-                    from.resources = from.resources.wrapping_sub(self.resources);
+                    from.resources -= self.resources;
                     let _ = game.bribes_during_mentat();
                     game_error!("A required value is missing");
                 }
@@ -159,7 +158,7 @@ impl Donated {
             self.log_objects(game, vec![m.into()]);
             game.stone(Milestone::Bribe);
         } else if self.resources < 0 {
-            let abs = dotnet_compat::math::abs_i32(self.resources);
+            let abs = self.resources.abs();
             let resources_to_take = abs.min(game.player(target.required("target")?).resources);
             let target = target.required("target")?;
             self.log_objects(
@@ -175,7 +174,7 @@ impl Donated {
                 ],
             );
             let t = game.player_mut(target);
-            t.resources = t.resources.wrapping_sub(resources_to_take);
+            t.resources -= resources_to_take;
         } else {
             self.log_objects(
                 game,
@@ -189,7 +188,7 @@ impl Donated {
                 ],
             );
             let t = game.player_mut(target.required("target")?);
-            t.resources = t.resources.wrapping_add(self.resources);
+            t.resources += self.resources;
         }
         Ok(())
     }

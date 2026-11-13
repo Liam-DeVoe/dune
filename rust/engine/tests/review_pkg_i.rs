@@ -12,7 +12,7 @@
 
 use serde_json::Value;
 use treachery_engine::canon::{self, Canon};
-use treachery_engine::compat::cs::{self, Shared};
+use treachery_engine::shared::Shared;
 use treachery_engine::enumerations::Faction;
 use treachery_engine::events::GameEvent;
 use treachery_engine::game::Game;
@@ -37,7 +37,7 @@ fn applicable(g: &mut Game) {
 
 /// Runs `f`, catching any panic: the result, or the panic message.
 fn catch<R>(f: impl FnOnce() -> R) -> Result<R, String> {
-    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).map_err(|p| cs::panic_message(p.as_ref()))
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).map_err(|p| treachery_engine::error::panic_message(p.as_ref()))
 }
 
 fn exec(g: &mut Game, text: &str, validate: bool, host: bool) -> String {
@@ -64,12 +64,8 @@ fn hook(g: &mut Game, what: &str) {
     } else if what == "fd_others_revealed" {
         let tleilaxu = g.get_player(Some(Faction::Tleilaxu)).unwrap();
         let (a, b) = (g.player(tleilaxu).face_dancers[1], g.player(tleilaxu).face_dancers[2]);
-        g.player_mut(tleilaxu).revealed_face_dancers.add(a);
-        g.player_mut(tleilaxu).revealed_face_dancers.add(b);
-    } else if let Some(rest) = what.strip_prefix("givenull:") {
-        let f = Faction(rest.parse().unwrap());
-        let p = g.get_player(Some(f)).unwrap();
-        g.player_mut(p).treachery_cards.push(treachery_engine::cards::treachery_card::TreacheryCard::NULL);
+        g.player_mut(tleilaxu).revealed_face_dancers.insert(a);
+        g.player_mut(tleilaxu).revealed_face_dancers.insert(b);
     } else if let Some(rest) = what.strip_prefix("rule:") {
         g.rules.push(treachery_engine::enumerations::Rule(rest.parse().unwrap()));
     } else if let Some(rest) = what.strip_prefix("faction:") {
@@ -91,8 +87,8 @@ fn hook(g: &mut Game, what: &str) {
 
 fn prefix(last: i64) -> Game {
     let mut p = Participation::default();
-    p.player_names.add(100, "Human100".to_string());
-    p.seated_players.add(100, 0);
+    p.player_names.insert(100, "Human100".to_string());
+    p.seated_players.insert(100, 0);
     let mut g = Game::new_int32_participation(Game::LATEST_VERSION, &Shared::new(p));
     for s in steps() {
         if s["n"].as_i64().unwrap() > last {

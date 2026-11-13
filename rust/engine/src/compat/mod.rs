@@ -1,8 +1,7 @@
-//! .NET runtime behavior the engine still imitates: exceptions and throwing LINQ operators (`cs`),
-//! integer-backed enums, `DateTimeOffset`, and random selection helpers.
-//! Later cleanup steps replace these with plain Rust.
+//! .NET behavior the engine still needs: `DateTimeOffset`/`TimeSpan`, whose text format is part
+//! of the event JSON, and the random selection helpers, which draw from .NET's `Random` the way
+//! C#'s did. The random helpers go when the random number generator is replaced (native-plan.md
+//! step 4).
 
-pub mod cs;
 pub mod date_time_offset;
-pub mod net_enum;
 pub mod random_ext;

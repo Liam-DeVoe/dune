@@ -44,7 +44,7 @@ impl EstablishPlayers {
         if players == Some("") {
             return Vec::new();
         }
-        players.nre().split('>').map(|s| s.to_string()).collect()
+        players.expect("players").split('>').map(|s| s.to_string()).collect()
     }
 
     pub fn set_players(&mut self, value: &[String]) {
@@ -69,11 +69,11 @@ impl EstablishPlayers {
         if game.current_phase != Phase::AwaitingPlayers {
             return Some(express!("Invalid game phase"));
         }
-        let settings = self.settings.as_ref().nre().borrow();
+        let settings = self.settings.as_ref().expect("settings").borrow();
         if settings.number_of_players < 2 {
             return Some(express!("At least two players required"));
         }
-        if settings.number_of_players > settings.allowed_factions_in_play.as_ref().nre().borrow().len() as i32 {
+        if settings.number_of_players > settings.allowed_factions_in_play.as_ref().expect("allowed factions in play").borrow().len() as i32 {
             return Some(express!("More factions required"));
         }
         if game.participation.borrow().seated_players.len() as i32 > settings.number_of_players {
@@ -82,7 +82,7 @@ impl EstablishPlayers {
         if settings
             .allowed_factions_in_play
             .as_ref()
-            .nre()
+            .expect("allowed factions in play")
             .borrow()
             .iter()
             .any(|f| !Self::available_factions().contains(f))
@@ -200,9 +200,9 @@ impl EstablishPlayers {
         // throws ArgumentNullException.
         game.all_rules = game.settings.as_ref().required("settings")?.borrow().initial_rules.clone();
 
-        game.rules = cs::linq_source(game.all_rules.as_ref()).iter().copied().filter(|r| Game::get_rule_group(*r) != RuleGroup::Bots).collect();
+        game.rules = game.all_rules.as_ref().expect("rules").iter().copied().filter(|r| Game::get_rule_group(*r) != RuleGroup::Bots).collect();
         game.rules_for_bots =
-            cs::linq_source(game.all_rules.as_ref()).iter().copied().filter(|r| Game::get_rule_group(*r) == RuleGroup::Bots).collect();
+            game.all_rules.as_ref().expect("rules").iter().copied().filter(|r| Game::get_rule_group(*r) == RuleGroup::Bots).collect();
         let core_basic = Game::get_rules_in_group(RuleGroup::CoreBasic, Game::EXPANSION_LEVEL);
         game.rules.extend(core_basic);
 
@@ -293,14 +293,14 @@ impl EstablishPlayers {
 
     pub fn create_nexus_deck(&self, game: &mut Game) {
         game.nexus_card_deck = Some(Deck::new(Self::available_factions(), game.random.clone()));
-        game.nexus_card_deck.as_mut().nre().shuffle();
+        game.nexus_card_deck.as_mut().expect("nexus card deck").shuffle();
     }
 
     pub fn remove_claimed_factions(&self, game: &mut Game) {
         // The body only changes the factions list, not Players, so collecting first is equivalent.
         let claimed: Vec<Faction> = game.players.iter().filter(|p| !p.is(Faction::None)).map(|p| p.faction).collect();
         for f in claimed {
-            let list = game.settings.as_ref().nre().borrow().allowed_factions_in_play.clone().nre();
+            let list = game.settings.as_ref().expect("settings").borrow().allowed_factions_in_play.clone().expect("allowed factions in play");
             let mut list = list.borrow_mut();
             if let Some(i) = list.iter().position(|x| *x == f) {
                 list.remove(i);
@@ -325,14 +325,14 @@ impl EstablishPlayers {
         game.guild_discovery_tokens = Some(Deck::empty(game.random.clone()));
 
         if game.applicable(Rule::DiscoveryTokens) {
-            let fremen = game.fremen_discovery_tokens.as_mut().nre();
+            let fremen = game.fremen_discovery_tokens.as_mut().expect("fremen discovery tokens");
             fremen.items.push(DiscoveryToken::Jacurutu);
             fremen.items.push(DiscoveryToken::Shrine);
             fremen.items.push(DiscoveryToken::TestingStation);
             fremen.items.push(DiscoveryToken::Cistern);
             fremen.shuffle();
 
-            let guild = game.guild_discovery_tokens.as_mut().nre();
+            let guild = game.guild_discovery_tokens.as_mut().expect("guild discovery tokens");
             guild.items.push(DiscoveryToken::ProcessingStation);
             guild.items.push(DiscoveryToken::CardStash);
             guild.items.push(DiscoveryToken::ResourceStash);
@@ -342,7 +342,7 @@ impl EstablishPlayers {
     }
 
     pub fn fill_seats(&self, game: &mut Game) {
-        while (game.players.len() as i32) < game.settings.as_ref().nre().borrow().number_of_players {
+        while (game.players.len() as i32) < game.settings.as_ref().expect("settings").borrow().number_of_players {
             let player = Player::new(Faction::None);
             game.players.push(player);
         }

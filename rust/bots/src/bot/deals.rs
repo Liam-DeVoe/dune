@@ -4,7 +4,7 @@ use crate::prelude::*;
 
 /// An offer made to the Fremen alone.
 fn is_only_to_fremen(deal: &DealOffered) -> bool {
-    deal.to.as_deref().nre() == [Faction::Fremen]
+    deal.to.as_deref().expect("destination") == [Faction::Fremen]
 }
 
 impl ClassicBot {
@@ -22,7 +22,7 @@ impl ClassicBot {
         }
 
         let we_have_prescience = || {
-            game.has_bidding_prescience(me) || (self.ally(game) != Faction::None && game.has_bidding_prescience(self.allied_player(game).or_null()))
+            game.has_bidding_prescience(me) || (self.ally(game) != Faction::None && game.has_bidding_prescience(self.allied_player(game).expect("allied player")))
         };
 
         if game.current_phase == Phase::ClaimingCharity
@@ -50,7 +50,7 @@ impl ClassicBot {
             }
             if game.current_main_phase == MainPhase::Bidding
                 && game.card_number == 1
-                && (d.price as f32) < 1.4 * game.cards_on_auction.as_ref().nre().items.len() as f32
+                && (d.price as f32) < 1.4 * game.cards_on_auction.as_ref().expect("cards on auction").items.len() as f32
                 && self.resources_including_ally_contribution(game) - d.price > 16
             {
                 return d.acceptance(game, self.faction(game));

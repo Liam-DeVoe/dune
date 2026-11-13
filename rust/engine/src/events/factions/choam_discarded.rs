@@ -30,7 +30,6 @@ impl ChoamDiscarded {
     }
 
     pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.card_id = TreacheryCardManager::get_id(value);
     }
 
@@ -67,9 +66,9 @@ impl ChoamDiscarded {
 
         let p = game.player_mut(self.player());
         if card.type_() == TreacheryCardType::Useless {
-            p.resources = p.resources.wrapping_add(2);
+            p.resources += 2;
         } else {
-            p.resources = p.resources.wrapping_add(3);
+            p.resources += 3;
         }
 
         game.stone(Milestone::ResourcesReceived);

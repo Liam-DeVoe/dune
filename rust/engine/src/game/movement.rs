@@ -12,13 +12,13 @@ impl Game {
             None => false,
         };
         if current_is_guild && self.guild_may_ship_out_of_turn_order() {
-            let mut seq = self.shipment_and_move_sequence.take().nre();
+            let mut seq = self.shipment_and_move_sequence.take().expect("shipment and move sequence");
             seq.next_player(self);
             self.shipment_and_move_sequence = Some(seq);
         }
 
         // Every argument is evaluated before Enter runs, including the call that may log (hazards 4.2).
-        let condition1 = self.juice_forces_first_player() && self.current_juice.clone().nre().initiator() != Faction::Guild;
+        let condition1 = self.juice_forces_first_player() && self.current_juice.clone().expect("current juice").initiator() != Faction::Guild;
         let condition2 = self.check_if_guild_acts_or_auto_delays();
         self.enter_boolean_phase_boolean_phase_phase(condition1, Phase::NonGuildShip, condition2, Phase::GuildShip, Phase::NonGuildShip);
     }
@@ -41,7 +41,7 @@ impl Game {
         guild_has_to_act && !(guild_is_on_auto_delay && guild_may_delay)
     }
 
-    pub fn perform_move_from_locations(&mut self, initiator: PlayerIndex, force_locations: &NetDictionary<Location, Battalion>, evt: &GameEvent, as_advisors: bool, by_caravan: bool) {
+    pub fn perform_move_from_locations(&mut self, initiator: PlayerIndex, force_locations: &IndexMap<Location, Battalion>, evt: &GameEvent, as_advisors: bool, by_caravan: bool) {
         let Some(to) = evt.to_location(self) else { return };
 
         self.last_shipment_or_movement = Some(evt.clone());
@@ -49,13 +49,13 @@ impl Game {
         let values: Vec<Battalion> = force_locations.values().cloned().collect();
         let dist = self.determine_maximum_move_distance(initiator, &values);
         let move_number = if matches!(evt, GameEvent::Move(_) | GameEvent::Caravan(_)) {
-            self.moves_logged = self.moves_logged.wrapping_add(1);
+            self.moves_logged += 1;
             Some(self.moves_logged)
         } else {
             None
         };
 
-        let from_territories = force_locations.keys().map(|l| l.territory()).cs_distinct();
+        let from_territories = force_locations.keys().map(|l| l.territory()).distinct();
         for from_territory in from_territories {
             let mut total_number_of_forces = 0;
             let mut total_number_of_special_forces = 0;
@@ -100,7 +100,7 @@ impl Game {
             let mut most_spice = 0;
             let mut path_with_most_spice: Option<Vec<Location>> = None;
             for p in paths {
-                let amount_of_spice_locations = p.iter().filter(|l| self.resources_on_planet.contains_key(*l)).cs_distinct().len() as i32;
+                let amount_of_spice_locations = p.iter().filter(|l| self.resources_on_planet.contains_key(*l)).distinct().len() as i32;
                 if amount_of_spice_locations > most_spice {
                     most_spice = amount_of_spice_locations;
                     path_with_most_spice = Some(p);
@@ -116,7 +116,7 @@ impl Game {
                     }
 
                     let pl = self.player_mut(initiator);
-                    pl.resources = pl.resources.wrapping_add(most_spice);
+                    pl.resources += most_spice;
                     let f = self.player(initiator).faction;
                     self.log(elems![f, " ", LeaderSkill::Sandmaster, " collects ", Payment::of(most_spice), " along the way"]);
                 }
@@ -135,7 +135,7 @@ impl Game {
                 let amount = TakeLosses::half_of(battalion.amount_of_forces, battalion.amount_of_special_forces);
                 self.storm_losses_to_take.push(LossToTake { location: Some(to), amount, faction: battalion.faction });
             } else {
-                kill_count = battalion.amount_of_forces.wrapping_add(battalion.amount_of_special_forces);
+                kill_count = battalion.amount_of_forces + battalion.amount_of_special_forces;
                 Player::kill_forces(self, initiator, from, battalion.amount_of_forces, battalion.amount_of_special_forces, false);
             }
 
@@ -150,8 +150,8 @@ impl Game {
             Player::move_special_forces(self, initiator, from, to, battalion.amount_of_special_forces);
         }
 
-        *total_number_of_forces = total_number_of_forces.wrapping_add(battalion.amount_of_forces);
-        *total_number_of_special_forces = total_number_of_special_forces.wrapping_add(battalion.amount_of_special_forces);
+        *total_number_of_forces += battalion.amount_of_forces;
+        *total_number_of_special_forces += battalion.amount_of_special_forces;
     }
 
     pub fn must_move_through_storm(&self, initiator: PlayerIndex, from: Location, to: Location, moved: &Battalion) -> bool {
@@ -209,7 +209,7 @@ impl Game {
                 self.log(elems![f, " lose ", vidal]);
             }
 
-            self.captured_leaders.remove(&vidal);
+            self.captured_leaders.shift_remove(&vidal);
         }
 
         self.player_mut(p).leaders.push(vidal);
@@ -233,7 +233,7 @@ impl Game {
         if ambassador != Ambassador::None {
             let ecaz = self.get_player(Some(Faction::Ecaz));
             self.ambassadors_on_planet.remove(&territory);
-            self.player_mut(ecaz.nre()).ambassadors.push(ambassador);
+            self.player_mut(ecaz.expect("ecaz")).ambassadors.push(ambassador);
             self.log(elems!["The ambassador in ", territory, " returns to ", Faction::Ecaz]);
         }
     }
@@ -573,7 +573,7 @@ impl Game {
                 let to_kill: Vec<Territory> = player_territories
                     .iter()
                     .copied()
-                    .cs_distinct()
+                    .distinct()
                     .into_iter()
                     .filter(|t| ally_territories.contains(t))
                     .filter(|x| *x != polar_sink)
@@ -663,8 +663,8 @@ impl Game {
         let nr_of_battles_in_strongholds = Battle::battles_to_be_fought(self, moritani, false)
             .iter()
             .map(|b| b.territory)
-            .filter(|t| (ecaz.is_none() || self.player(ecaz.nre()).any_forces_in_territory(Some(*t)) == 0) && (t.is_stronghold() || self.is_special_stronghold(*t)))
-            .cs_distinct()
+            .filter(|t| (ecaz.is_none() || self.player(ecaz.expect("ecaz")).any_forces_in_territory(Some(*t)) == 0) && (t.is_stronghold() || self.is_special_stronghold(*t)))
+            .distinct()
             .len();
 
         if nr_of_battles_in_strongholds >= 2 && !self.vidal_is_captured_or_ghola() && self.occupier_of(World::Ecaz).is_none() {
@@ -678,7 +678,7 @@ impl Game {
             if let Some(owner) = tech_token_owner {
                 let amount = self.player(owner).tech_tokens.len() as i32;
                 let pl = self.player_mut(owner);
-                pl.resources = pl.resources.wrapping_add(amount);
+                pl.resources += amount;
                 let f = self.player(owner).faction;
                 self.log(elems![f, " receive ", Payment::of(amount), " from ", TechToken::Ships]);
             }
@@ -723,8 +723,8 @@ impl Game {
             if (initiator != Faction::BeneGesserit || e.i_location_event_forces_added_to_location(self) > 0)
                 && initiator != Faction::Ecaz
                 && initiator != self.player(ecaz).ally
-                && self.ambassador_in(e.to_location(self).nre().territory()) != Ambassador::None
-                && self.ambassador_in(e.to_location(self).nre().territory()) != Game::ambassador_of(initiator)
+                && self.ambassador_in(e.to_location(self).expect("to location").territory()) != Ambassador::None
+                && self.ambassador_in(e.to_location(self).expect("to location").territory()) != Game::ambassador_of(initiator)
             {
                 self.queue_intrusion(e, IntrusionType::Ambassador);
             }
@@ -739,7 +739,7 @@ impl Game {
                 && initiator != Faction::Moritani
                 && initiator != self.player(moritani).ally
                 && !self.is_occupied_by_faction_or_their_ally_world_faction(World::Moritani, initiator)
-                && !self.terror_in(e.to_location(self).nre().territory()).next().is_none()
+                && !self.terror_in(e.to_location(self).expect("to location").territory()).next().is_none()
             {
                 self.queue_intrusion(e, IntrusionType::Terror);
             }
@@ -826,8 +826,8 @@ impl Game {
 
     pub fn guild_may_delay(&self) -> bool {
         self.guild_may_ship_out_of_turn_order()
-            && (self.players.len() as i32).wrapping_sub(self.has_acted_or_passed.len() as i32)
-                > (if self.juice_forces_last_player() && !self.has_acted_or_passed.contains(&self.current_juice.as_ref().nre().initiator()) { 2 } else { 1 })
+            && ((self.players.len() as i32) - (self.has_acted_or_passed.len() as i32))
+                > (if self.juice_forces_last_player() && !self.has_acted_or_passed.contains(&self.current_juice.as_ref().expect("current juice").initiator()) { 2 } else { 1 })
     }
 
     pub fn guild_may_ship_out_of_turn_order(&self) -> bool {
@@ -844,7 +844,7 @@ pub struct Intrusion {
 impl Intrusion {
     /// Takes the game because `TriggeringEvent.To` resolves an id through it.
     pub fn territory(&self, game: &Game) -> Territory {
-        self.triggering_event.to_location(game).nre().territory()
+        self.triggering_event.to_location(game).expect("to location").territory()
     }
 
     pub fn initiator(&self) -> Faction {

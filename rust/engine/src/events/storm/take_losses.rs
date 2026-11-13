@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use dotnet_compat::math::f64_to_i32;
 
 #[derive(Clone, Debug, Canon)]
 pub struct TakeLosses {
@@ -38,7 +37,7 @@ impl TakeLosses {
         }
 
         let value_to_be_killed = TakeLosses::losses_to_take(game).amount;
-        if self.force_amount.wrapping_add(self.special_force_amount) < value_to_be_killed {
+        if (self.force_amount + self.special_force_amount) < value_to_be_killed {
             return Some(express!("Select a total value of at least ", value_to_be_killed, " to be killed"));
         }
 
@@ -84,7 +83,7 @@ impl TakeLosses {
 
     pub fn half_of(amount_of_forces: i32, amount_of_special_forces: i32) -> i32 {
         // double arithmetic; the int addition wraps first (hazards 15).
-        f64_to_i32((0.5f64 * amount_of_forces.wrapping_add(amount_of_special_forces) as f64).ceil())
+        (0.5f64 * (amount_of_forces + amount_of_special_forces) as f64).ceil() as i32
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
@@ -94,17 +93,14 @@ impl TakeLosses {
         if self.use_useless_card {
             let card = TakeLosses::valid_useless_card_to_prevent_losses(game, self.player());
             if card.is_none() && NexusPlayed::can_use_cunning(game, player.required("player")?) {
-                let location = cs::index(&game.storm_losses_to_take, 0).location;
+                let location = game.storm_losses_to_take[0].location;
                 game.play_nexus_card(player.required("player")?, vec!["prevent losing forces in ".into(), location.into()]);
                 must_discard = true;
             } else {
                 game.discard_player_treachery_card_boolean(Some(self.player()), card, true);
-                let location = cs::index(&game.storm_losses_to_take, 0).location;
+                let location = game.storm_losses_to_take[0].location;
                 self.log_objects(game, vec![self.initiator().into(), " prevent losing forces in ".into(), location.into()]);
             }
-
-            // List.RemoveAt(0): ArgumentOutOfRangeException on an empty list
-            let _ = cs::index(&game.storm_losses_to_take, 0);
             game.storm_losses_to_take.remove(0);
             game.stone(Milestone::SpecialUselessPlayed);
         } else {
@@ -115,7 +111,6 @@ impl TakeLosses {
                 game_error!("Value cannot be null. (Parameter 'key')");
             };
             Player::kill_forces(game, player, kill_location, self.force_amount, self.special_force_amount, false);
-            let _ = cs::index(&game.storm_losses_to_take, 0);
             game.storm_losses_to_take.remove(0);
             let message = self.get_message(game).with_log(StormKilled::new(self.initiator(), kill_location, self.force_amount, self.special_force_amount));
             game.log(vec![message.into()]);

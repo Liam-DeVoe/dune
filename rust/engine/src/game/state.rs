@@ -25,7 +25,7 @@ impl GameState {
 
     pub fn events(&self) -> Vec<GameEvent> {
         // get => _events (enumerating a null array throws at the caller)
-        self.events.clone().nre()
+        self.events.clone().expect("events")
     }
 
     pub fn set_events(&mut self, value: &[GameEvent]) {

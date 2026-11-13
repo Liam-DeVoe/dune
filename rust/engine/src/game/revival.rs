@@ -2,18 +2,16 @@ use crate::prelude::*;
 
 impl Game {
     pub fn prepare_skill_assignment_to_revived_leader(&mut self, player: PlayerIndex, leader: Option<Leader>) {
-        let leader = leader.and_then(crate::compat::cs::CsNull::opt);
         if self.current_phase != Phase::AssigningSkill && leader.is_some() {
             self.phase_before_skill_assignment = self.current_phase;
         }
 
         self.player_mut(player).most_recently_revived_leader = leader;
-        // SkillDeck!.Shuffle(): the `!` does not throw, the call does (NullReferenceException).
-        self.skill_deck.as_mut().nre().shuffle();
+        self.skill_deck.as_mut().expect("skill deck").shuffle();
         self.stone(Milestone::Shuffled);
-        let skill = self.skill_deck.as_mut().nre().draw();
+        let skill = self.skill_deck.as_mut().expect("skill deck").draw();
         self.player_mut(player).skills_to_choose_from.push(skill);
-        let skill = self.skill_deck.as_mut().nre().draw();
+        let skill = self.skill_deck.as_mut().expect("skill deck").draw();
         self.player_mut(player).skills_to_choose_from.push(skill);
         self.enter(Phase::AssigningSkill, true);
     }
@@ -62,7 +60,7 @@ impl Game {
         }
 
         std::cmp::max(
-            nr_of_free_revivals.wrapping_sub(self.free_revivals_this_turn.get_value_or(&p.faction, 0)),
+            nr_of_free_revivals - self.free_revivals_this_turn.get(&p.faction).copied().unwrap_or(0),
             0,
         )
     }
@@ -83,19 +81,19 @@ impl Game {
 
         let emperor_secret_ally: i32 = if emperor_secret_ally_used { 3 } else { 0 };
         let low_threshold: i32 = if g.has_low_threshold(pl.faction) { 1 } else { 0 };
-        let already_revived = g.total_revivals_this_turn.get_value_or(&pl.faction, 0);
+        let already_revived = g.total_revivals_this_turn.get(&pl.faction).copied().unwrap_or(0);
 
         if self.current_recruits_played.is_some() {
-            return std::cmp::max((7 + emperor_secret_ally + low_threshold).wrapping_sub(already_revived), 0);
+            return std::cmp::max(7 + emperor_secret_ally + low_threshold - already_revived, 0);
         }
 
         // C# parity: C# 14 binds `Faction[].Contains` to MemoryExtensions.Contains on a
         // span, so a null array is empty and doesn't throw (docs/span-binding.md).
         if self.factions_with_increased_revival_limits.as_deref().unwrap_or(&[]).contains(&pl.faction) {
-            return std::cmp::max((5 + low_threshold + emperor_secret_ally).wrapping_sub(already_revived), 0);
+            return std::cmp::max(5 + low_threshold + emperor_secret_ally - already_revived, 0);
         }
 
-        std::cmp::max((3 + low_threshold + emperor_secret_ally).wrapping_sub(already_revived), 0)
+        std::cmp::max(3 + low_threshold + emperor_secret_ally - already_revived, 0)
     }
 
     pub fn free_revival_prevented(&self, f: Faction) -> bool {
@@ -107,7 +105,7 @@ impl Game {
     }
 
     pub fn ambassador_in(&self, t: Territory) -> Ambassador {
-        self.ambassadors_on_planet.get_value_or(&t, Ambassador::None)
+        self.ambassadors_on_planet.get(&t).copied().unwrap_or(Ambassador::None)
     }
 
     pub fn claim_free_revival(&mut self, player: PlayerIndex) {
@@ -160,21 +158,17 @@ impl Game {
 
             if tleilaxu_receives_income {
                 let r = &mut self.player_mut(tleilaxu).resources;
-                *r = r.wrapping_add(1);
+                *r += 1;
             }
         }
 
         let v = self
             .free_revivals_this_turn
-            .get_value_or(&faction, 0)
-            .wrapping_add(free_revived_normal_forces)
-            .wrapping_add(free_revived_special_forces);
+            .get(&faction).copied().unwrap_or(0) + free_revived_normal_forces + free_revived_special_forces;
         self.free_revivals_this_turn.insert(faction, v);
         let v = self
             .total_revivals_this_turn
-            .get_value_or(&faction, 0)
-            .wrapping_add(free_revived_normal_forces)
-            .wrapping_add(free_revived_special_forces);
+            .get(&faction).copied().unwrap_or(0) + free_revived_normal_forces + free_revived_special_forces;
         self.total_revivals_this_turn.insert(faction, v);
 
         let p = self.player(player);
@@ -224,15 +218,15 @@ impl RevivalCost {
     }
 
     pub fn total_cost(&self) -> i32 {
-        self.total_cost_for_player().wrapping_add(self.cost_for_emperor)
+        self.total_cost_for_player() + self.cost_for_emperor
     }
 
     pub fn total_cost_for_player(&self) -> i32 {
-        self.cost_for_force_revival_for_player.wrapping_add(self.cost_to_revive_hero)
+        self.cost_for_force_revival_for_player + self.cost_to_revive_hero
     }
 
     pub fn total_cost_for_force_revival(&self) -> i32 {
-        self.cost_for_force_revival_for_player.wrapping_add(self.cost_for_emperor)
+        self.cost_for_force_revival_for_player + self.cost_for_emperor
     }
 
 }

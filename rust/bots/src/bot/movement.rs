@@ -157,17 +157,15 @@ impl ClassicBot {
         }
 
         // Towards the Shield Wall, to blow it up with Family Atomics
-        // C# parity: `!LastTurn` is tested twice.
-        if !self.last_turn(game) && !winning {
-            if !self.last_turn(game)
-                && (0..=8).contains(&game.sector_in_storm)
-                && game.player(me).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Metheor)
-                && !MetheorPlayed::has_forces_at_or_near_shield_wall(game, me)
-                && let Some(m) = self.battalion_that_will_destroy_shield_wall(game)
-                && let Some(mv) = self.construct_move(game, m.to, m.from, &m.battalion)
-            {
-                return Some(mv);
-            }
+        if !self.last_turn(game)
+            && !winning
+            && (0..=8).contains(&game.sector_in_storm)
+            && game.player(me).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Metheor)
+            && !MetheorPlayed::has_forces_at_or_near_shield_wall(game, me)
+            && let Some(m) = self.battalion_that_will_destroy_shield_wall(game)
+            && let Some(mv) = self.construct_move(game, m.to, m.from, &m.battalion)
+        {
+            return Some(mv);
         }
 
         self.decided_shipment_action = ShipmentDecision::None;

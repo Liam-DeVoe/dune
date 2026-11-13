@@ -673,8 +673,8 @@ impl ClassicBot {
             let Some(opponent) = self.occupying_opponent_in(game, self.player, to.territory()) else {
                 continue;
             };
+            let dial_needed = self.dial_needed_against(game, to.territory(), Some(opponent), true);
             let opponent = game.player(opponent).faction;
-            let dial_needed = self.dial_needed_against(game, to.territory(), self.get_opponent_that_occupies(game, to), true);
 
             if self.win_was_predicted_by_me_this_turn(game, opponent)
                 || self.determine_dial_shortage_for_battle(
@@ -759,13 +759,18 @@ impl ClassicBot {
 
     /// Whether I come before `opponent` in this turn's player order.
     pub fn i_will_be_aggressor_against(&self, game: &Game, opponent: Option<PlayerIndex>) -> bool {
+        Self::will_be_aggressor(game, self.player, opponent)
+    }
+
+    /// Whether `player` comes before `opponent` in this turn's player order.
+    pub fn will_be_aggressor(game: &Game, player: PlayerIndex, opponent: Option<PlayerIndex>) -> bool {
         let Some(opponent) = opponent else {
             return false;
         };
         let first_player_position = game.player(PlayerSequence::determine_first_player(game)).seat;
         for i in 0..game.maximum_players() {
             let position = (first_player_position + i) % game.maximum_players();
-            if position == game.player(self.player).seat {
+            if position == game.player(player).seat {
                 return true;
             }
             if position == game.player(opponent).seat {
@@ -795,9 +800,8 @@ impl ClassicBot {
         let opponent_resources = o.resources + o.allied_resources(game);
 
         let opponent_may_use_worthless_as_karma = o.faction == Faction::BeneGesserit && game.applicable(Rule::BeneGesseritWorthlessAsKarma);
-        // C# parity: Karma is tested twice; worthless cards never count.
         let has_karma = Self::known_cards_held_by_other_player(game, player, opponent).into_iter().any(|c| {
-            c.type_() == TreacheryCardType::Karma || (opponent_may_use_worthless_as_karma && c.type_() == TreacheryCardType::Karma)
+            c.type_() == TreacheryCardType::Karma || (opponent_may_use_worthless_as_karma && c.type_() == TreacheryCardType::Useless)
         });
 
         let cost = |n: i32, s: i32| {

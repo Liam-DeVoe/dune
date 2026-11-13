@@ -109,10 +109,11 @@ impl AllyPermission {
             _ => {}
         }
 
-        // C# parity: with no ally this writes the Faction.None entry (an indexer set, so no throw).
-        game.permitted_use_of_ally_spice.insert(ally, self.permitted_resources);
-        if let Some(card) = self.permitted_karma_card() {
-            game.permitted_use_of_ally_karma.insert(ally, card);
+        if ally != Faction::None {
+            game.permitted_use_of_ally_spice.insert(ally, self.permitted_resources);
+            if let Some(card) = self.permitted_karma_card() {
+                game.permitted_use_of_ally_karma.insert(ally, card);
+            }
         }
         Ok(())
     }

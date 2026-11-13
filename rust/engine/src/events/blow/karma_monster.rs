@@ -31,7 +31,16 @@ impl KarmaMonster {
         self.territory_id = game.map.territory_lookup().get_id(value);
     }
 
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
+    pub fn validate(&self, game: &Game) -> Option<Message> {
+        let Some(territory) = self.territory(game) else {
+            return Some(express!("No territory selected"));
+        };
+        if territory.is_protected_from_worm() {
+            return Some(express!("Selected territory is protected"));
+        }
+        if !KarmaMonster::valid_targets(game).any(|t| t == territory) {
+            return Some(express!("Invalid territory"));
+        }
         None
     }
 

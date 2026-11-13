@@ -22,6 +22,13 @@ pub struct Battle {
     pub base: GameEventBase,
 }
 
+/// What swapping in a plan's dynamic weapons changed that the game records.
+struct DynamicWeaponSwap {
+    mirror_weapon_used: bool,
+    /// The defense a Diplomat replaced, if the plan's player used one.
+    card_used_by_diplomat: Option<Option<TreacheryCard>>,
+}
+
 impl Default for Battle {
     fn default() -> Self {
         Battle {
@@ -254,16 +261,29 @@ impl Battle {
     }
 
     pub fn activate_dynamic_weapons(&self, game: &mut Game, opponent_weapon: Option<TreacheryCard>, opponent_defense: Option<TreacheryCard>) {
+        let swap = self.swap_in_dynamic_weapons(game, opponent_weapon, opponent_defense);
+        if swap.mirror_weapon_used {
+            self.log_objects(game, le![self.original_weapon.get(), " becomes a ", self.weapon()]);
+        }
+        if let Some(card) = swap.card_used_by_diplomat {
+            game.card_used_by_diplomat = card;
+        }
+    }
+
+    /// Puts the cards a Mirror Weapon, a Diplomat or a Portable Antidote stand for into this
+    /// plan, without changing the game. `activate_dynamic_weapons` also records them in the game.
+    fn swap_in_dynamic_weapons(&self, game: &Game, opponent_weapon: Option<TreacheryCard>, opponent_defense: Option<TreacheryCard>) -> DynamicWeaponSwap {
+        let mut swap = DynamicWeaponSwap { mirror_weapon_used: false, card_used_by_diplomat: None };
         if self.weapon().is_some_and(|w| w.type_() == TreacheryCardType::MirrorWeapon) {
             self.original_weapon.set(self.weapon());
             self.set_weapon(opponent_weapon);
-            self.log_objects(game, le![self.original_weapon.get(), " becomes a ", self.weapon()]);
+            swap.mirror_weapon_used = true;
         }
 
         if game.current_diplomacy.as_ref().is_some_and(|d| d.by(self.initiator())) {
             self.original_defense.set(self.defense());
             self.set_defense(opponent_defense);
-            game.card_used_by_diplomat = self.original_defense.get();
+            swap.card_used_by_diplomat = Some(self.original_defense.get());
         }
 
         if Battle::is_using_portable_antidote(game, self.initiator()) {
@@ -271,6 +291,7 @@ impl Battle {
             let antidote = game.treachery_discard_pile.as_ref().expect("treachery discard pile").items.iter().copied().find(|c| c.is_portable_antidote());
             self.set_defense(antidote);
         }
+        swap
     }
 
     pub fn deactivate_dynamic_weapons(&self) {
@@ -324,16 +345,30 @@ impl Battle {
     }
 
     pub fn determine_battle_outcome(agg: &Rc<Battle>, def: &Rc<Battle>, territory: Territory, game: &mut Game) -> BattleOutcome {
-        let mut result = BattleOutcome::new(agg.player(), def.player());
-
-        //Determine result
-
         if agg.hero().is_some() {
             agg.activate_dynamic_weapons(game, def.weapon(), def.defense());
         }
         if def.hero().is_some() {
             def.activate_dynamic_weapons(game, agg.weapon(), agg.defense());
         }
+        Battle::outcome_with_dynamic_weapons_active(agg, def, territory, game)
+    }
+
+    /// The outcome `determine_battle_outcome` would give, without changing the game: the Mirror
+    /// Weapon message and the Diplomat's card aren't recorded. The plans' cards are swapped while
+    /// it runs and swapped back at the end, as in `determine_battle_outcome`.
+    pub fn predict_battle_outcome(agg: &Rc<Battle>, def: &Rc<Battle>, territory: Territory, game: &Game) -> BattleOutcome {
+        if agg.hero().is_some() {
+            agg.swap_in_dynamic_weapons(game, def.weapon(), def.defense());
+        }
+        if def.hero().is_some() {
+            def.swap_in_dynamic_weapons(game, agg.weapon(), agg.defense());
+        }
+        Battle::outcome_with_dynamic_weapons_active(agg, def, territory, game)
+    }
+
+    fn outcome_with_dynamic_weapons_active(agg: &Rc<Battle>, def: &Rc<Battle>, territory: Territory, game: &Game) -> BattleOutcome {
+        let mut result = BattleOutcome::new(agg.player(), def.player());
 
         let poison_tooth_used = !game.poison_tooth_cancelled && (agg.has_poison_tooth() || def.has_poison_tooth());
         let artillery_used = agg.has_artillery() || def.has_artillery();

@@ -249,6 +249,20 @@ impl Shipment {
             return Some(express!("Target location not selected"));
         };
 
+        // A shipment back to reserves has negative amounts: the forces leave `to`.
+        if self.is_back_to_reserves() {
+            let pl = game.player(p());
+            if self.force_amount > 0 || self.special_force_amount > 0 {
+                return Some(express!("Can't ship forces from reserves when shipping back to reserves"));
+            }
+            if -(self.force_amount as i64) > pl.forces_in(Some(to)) as i64 {
+                return Some(express!("Not enough ", pl.force(), " to ship back to reserves"));
+            }
+            if -(self.special_force_amount as i64) > pl.special_forces_in(Some(to)) as i64 {
+                return Some(express!("Not enough ", pl.special_force(), " to ship back to reserves"));
+            }
+        }
+
         let cost = Shipment::determine_cost(game, p(), self);
         if cost > (game.player(p()).resources + self.ally_contribution_amount) {
             return Some(express!("You can't pay that much"));
@@ -770,8 +784,9 @@ impl Shipment {
                         Some(hw) => hw,
                         None => game.player(me).home_worlds[0],
                     };
-                    // C# parity: only ForceAmount is moved, although special forces are charged for.
-                    Player::ship_forces_location_homeworld_int32(game, me, source, target, self.force_amount);
+                    // The amounts are negative, so the forces move from `source` to `target`.
+                    Player::move_forces(game, me, source, target.location(), -self.force_amount);
+                    Player::special_forces_back_to_reserves(game, me, source, target, -self.special_force_amount);
                 }
             } else if self.is_no_field() && self.initiator() == Faction::Richese && self.to(game).is_some() {
                 let to = self.to(game).required("to")?;

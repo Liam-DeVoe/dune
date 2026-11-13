@@ -205,7 +205,7 @@ impl<T: EventKind> IntoDecision for Option<Rc<T>> {
 #[derive(Clone, Debug)]
 pub enum Decision {
     Valid(GameEvent),
-    /// The game rejects it, so the bot submits nothing this round.
+    /// The game rejects it, so the bot tries its next decision method.
     Invalid(GameEvent),
 }
 
@@ -218,13 +218,13 @@ impl Decision {
     }
 }
 
-/// Asks each decision method in turn. The first one that comes up with an event ends the round:
-/// its event is submitted if it is valid, and nothing is submitted otherwise.
+/// Asks each decision method in turn. The first one that comes up with a valid event ends the
+/// round. A method whose event the game rejects is passed over like one that came up with nothing.
 macro_rules! first_decision {
     ($bot:ident, $game:ident, $allowed:ident; $($method:ident),* $(,)?) => {{
         $(
-            if let Some(decision) = $bot.try_decide($game, $allowed, |b, g| b.$method(g)) {
-                return decision.valid();
+            if let Some(Decision::Valid(event)) = $bot.try_decide($game, $allowed, |b, g| b.$method(g)) {
+                return Some(event);
             }
         )*
         None
@@ -269,8 +269,8 @@ impl ClassicBot {
     }
 
     /// The event the bot wants to submit in this round, if any. `allowed` lists the event types
-    /// the player may submit now. Deciding may change the game (bots-plan.md, "Bots are not pure").
-    pub fn decide(&mut self, game: &mut Game, priority: Priority, allowed: &[GameEventType]) -> Option<GameEvent> {
+    /// the player may submit now. Deciding changes the bot's own plans, never the game.
+    pub fn decide(&mut self, game: &Game, priority: Priority, allowed: &[GameEventType]) -> Option<GameEvent> {
         match priority {
             Priority::Highest => first_decision!(self, game, allowed;
                 determine_nexus_played,
@@ -412,12 +412,12 @@ impl ClassicBot {
 
     /// Runs `decide` if the player may submit its event type, and checks the event it comes up
     /// with. `None` if the type isn't allowed, or `decide` came up with nothing or panicked.
-    /// Random draws and changes to the bot or game made before a panic stay.
+    /// Random draws and changes to the bot made before a panic stay.
     pub fn try_decide<R: IntoDecision>(
         &mut self,
-        game: &mut Game,
+        game: &Game,
         allowed: &[GameEventType],
-        decide: impl FnOnce(&mut ClassicBot, &mut Game) -> R,
+        decide: impl FnOnce(&mut ClassicBot, &Game) -> R,
     ) -> Option<Decision> {
         if !allowed.contains(&<R::Event as EventKind>::TYPE) {
             return None;
@@ -428,7 +428,6 @@ impl ClassicBot {
         let event = guarded(|| decide(self, game)).ok()?.into_option()?;
         let event = <R::Event as EventKind>::into_event(event);
 
-        let game: &Game = game;
         let error = event.validate(game);
         // Building the event's message can throw, which ends the bot's round with that exception.
         let _ = event.get_message(game);
@@ -448,4 +447,34 @@ impl ClassicBot {
 /// Runs a bot decision, turning a panic into its message.
 pub(crate) fn guarded<R>(f: impl FnOnce() -> R) -> Result<R, String> {
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).map_err(|p| treachery_engine::error::panic_message(p.as_ref()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    impl ClassicBot {
+        /// A Thought without a card, which the game rejects.
+        fn invalid_thought(&self, game: &Game) -> Rc<Thought> {
+            Rc::new(Thought::new(game, Faction::Atreides))
+        }
+
+        fn end_phase(&self, game: &Game) -> Rc<EndPhase> {
+            Rc::new(EndPhase::new(game, Faction::Atreides))
+        }
+
+        fn invalid_then_valid(&mut self, game: &Game, allowed: &[GameEventType]) -> Option<GameEvent> {
+            first_decision!(self, game, allowed; invalid_thought, end_phase)
+        }
+    }
+
+    /// A decision the game rejects no longer ends the round: the next method gets its turn.
+    #[test]
+    fn an_invalid_decision_falls_through_to_the_next_method() {
+        let game = Game::new();
+        let mut bot = ClassicBot::new(game.player_at(0), BotParameters::for_faction(Faction::Atreides), SharedRandom::from_seed(1));
+        let allowed = [GameEventType::Thought, GameEventType::EndPhase];
+        assert!(matches!(bot.try_decide(&game, &allowed, |b, g| b.invalid_thought(g)), Some(Decision::Invalid(_))));
+        assert!(matches!(bot.invalid_then_valid(&game, &allowed), Some(GameEvent::EndPhase(_))));
+    }
 }

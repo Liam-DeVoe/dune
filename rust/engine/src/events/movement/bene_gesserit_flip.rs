@@ -43,7 +43,7 @@ impl BeneGesseritFlip {
         let m = self.get_dynamic_message(game).with_log(self.log_record(game));
         self.log_objects(game, vec![m.into()]);
 
-        let territory = game.last_shipment_or_movement.as_ref().required("last shipment or movement")?.to_location(game).required("to location")?.territory();
+        let territory = BeneGesseritFlip::get_territory(game);
         Player::flip_forces_territory_boolean(game, self.player(), territory, self.as_advisors);
 
         game.flip_bene_gesserit_advisors_when_alone();

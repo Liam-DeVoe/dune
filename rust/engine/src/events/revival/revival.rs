@@ -601,7 +601,7 @@ impl Revival {
             self.amount_of_special_forces + self.extra_special_forces_paid_by_emperor,
         );
 
-        if self.amount_of_special_forces > 0 {
+        if self.amount_of_special_forces + self.extra_special_forces_paid_by_emperor > 0 {
             game.factions_that_revived_special_forces_this_turn.push(initiator);
         }
 

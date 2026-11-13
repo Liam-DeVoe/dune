@@ -18,7 +18,7 @@ fn golden() -> Value {
 }
 
 fn outcome<R>(f: impl FnOnce() -> R) -> Result<R, String> {
-    cs::catch(f).map_err(|e| format!("EX:{}: {}", cs::full_type_name(e.type_name), e.message))
+    cs::catch_panic(f).map_err(|e| format!("EX:{}: {}", cs::full_type_name(e.type_name), e.message))
 }
 
 /// A game without players and a bot whose player is never read.
@@ -96,8 +96,8 @@ fn try_decide_matches_csharp() {
             "valid" => bot.try_decide(&mut game, &end_phase, |_, g| { called.set(true); Some(Rc::new(EndPhase::new(g, Faction::Atreides))) }),
             "notAllowed" => bot.try_decide(&mut game, &thought, |_, g| { called.set(true); Some(Rc::new(EndPhase::new(g, Faction::Atreides))) }),
             "returnsNull" => bot.try_decide(&mut game, &thought, |_, _| -> Option<Rc<Thought>> { called.set(true); None }),
-            "throws" => bot.try_decide(&mut game, &end_phase, |_, _| -> Option<Rc<EndPhase>> { called.set(true); throw!(InvalidOperationException, "boom") }),
-            "throwsWithBrace" => bot.try_decide(&mut game, &end_phase, |_, _| -> Option<Rc<EndPhase>> { called.set(true); throw!(InvalidOperationException, "bo{{om") }),
+            "throws" => bot.try_decide(&mut game, &end_phase, |_, _| -> Option<Rc<EndPhase>> { called.set(true); treachery_engine::compat::cs::throw("InvalidOperationException", "boom".to_string()) }),
+            "throwsWithBrace" => bot.try_decide(&mut game, &end_phase, |_, _| -> Option<Rc<EndPhase>> { called.set(true); treachery_engine::compat::cs::throw("InvalidOperationException", "bo{om".to_string()) }),
             "invalid" => bot.try_decide(&mut game, &thought, |_, g| { called.set(true); Some(Rc::new(Thought::new(g, Faction::Atreides))) }),
             other => panic!("unknown scenario {other}"),
         };
@@ -122,17 +122,16 @@ fn invalid_decision_is_not_submitted() {
     assert!(decision.unwrap().valid().is_none());
 }
 
-/// Only game exceptions are caught. A Rust panic must never become "chose nothing".
+/// `try_decide` catches any panic in the decision, including a plain Rust panic such as a
+/// `todo!`. The panic counts as no decision.
 #[test]
-fn try_decide_does_not_swallow_rust_panics() {
+fn a_panicking_decision_counts_as_no_decision() {
     let (mut game, mut bot) = bot(1);
-    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        bot.try_decide(&mut game, &[GameEventType::EndPhase], |_, _| -> Option<Rc<EndPhase>> { todo!("somewhere") })
-    }));
-    assert!(result.is_err());
+    let decision = bot.try_decide(&mut game, &[GameEventType::EndPhase], |_, _| -> Option<Rc<EndPhase>> { todo!("somewhere") });
+    assert!(decision.is_none());
 }
 
-/// Draws made before a game exception stay.
+/// Draws made before a decision panics stay.
 #[test]
 fn draws_before_an_exception_stay() {
     let (mut game, mut bot) = bot(1);

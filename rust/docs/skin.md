@@ -31,7 +31,7 @@ Overloads of one C# name get the parameter type appended, as in the engine: `Des
 
 **Live collections.** A C# message holds some game collections by reference (hazards.md 4.5), so it renders their contents at render time. The `_in` variants (`describe_in`, `format_in`, `message_to_string_in`) take the game to read them from. Without a game they print the snapshot the engine took when the message was built, which is the same thing for a message rendered right after it was made (everything the server renders).
 
-**Exceptions.** `Describe` throws where C# throws (a resource card without a location, a skin missing a label that an indexer reads): a `CsException` panic, as in the engine. `Format` catches everything, in `Describe` and in `string.Format`, and returns the template unchanged. `Skin::load` returns the exception instead of panicking.
+**Exceptions.** `Describe` panics where C# throws (a resource card without a location, a skin missing a label that an indexer reads). Neither happens with the default skin in a valid game, so `Format` doesn't catch these panics. It still returns the template unchanged when `string.Format` fails. `Skin::load` returns an error instead of panicking.
 
 ## Known differences
 

@@ -110,7 +110,7 @@ impl ChoamRemoveForce {
         game.player(p).treachery_cards.iter().copied().find(|c| c.id() == TreacheryCardManager::CARD_TRIP_TO_GAMONT)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
 
         let me = self.player();
@@ -119,36 +119,57 @@ impl ChoamRemoveForce {
             game.play_nexus_card(me, vec!["Cunning".into(), "send a force back to reserves".into()]);
             game.let_player_discard_treachery_card_of_choice(self.initiator());
         } else {
-            game.discard_treachery_card_boolean(card, true);
+            game.discard_treachery_card_boolean(card, true)?;
         }
 
         let target = self.get_player(game, Some(self.target));
 
-        // `target!` throws NullReferenceException; `Location!` does not: a null Location
-        // (only without validation) changes the reserves, then ChangeForces throws
-        // ArgumentNullException on the null key.
+        // A null Location (only without validation): C# adds the force to the reserves, then
+        // ChangeForces throws ArgumentNullException on the null key. The event fails there.
+        let target = target.required("target")?;
+        let location = self.location(game);
         if self.special_force {
-            let target = target.nre();
-            let location = self.location(game).or_null();
-            Player::special_forces_to_reserves(game, target, location, 1);
+            match location {
+                Some(location) => Player::special_forces_to_reserves(game, target, location, 1),
+                None => {
+                    // The reserves part of `Player::special_forces_to_reserves`.
+                    let faction = game.player(target).faction;
+                    if faction == Faction::BeneGesserit {
+                        Player::add_forces_to_reserves(game, target, 1);
+                    } else if faction != Faction::Richese {
+                        Player::add_special_forces_to_reserves(game, target, 1);
+                    }
+                    game_error!("No location to remove a force from");
+                }
+            }
         } else {
-            let target = target.nre();
-            let location = self.location(game).or_null();
-            Player::forces_to_reserves_location_int32(game, target, location, 1);
+            match location {
+                Some(location) => Player::forces_to_reserves_location_int32(game, target, location, 1),
+                None => {
+                    // The reserves part of `Player::forces_to_reserves_location_int32`.
+                    Player::add_forces_to_reserves(game, target, 1);
+                    game_error!("No location to remove a force from");
+                }
+            }
         }
 
         game.flip_bene_gesserit_advisors_when_alone();
         game.stone(Milestone::SpecialUselessPlayed);
+        Ok(())
+    }
+
+    pub fn try_get_message(&self, game: &Game) -> GameResult<Message> {
+        let target_player = game.get_player(Some(self.target)).required("target player")?;
+        let force: ExpressionElement = if self.special_force {
+            game.player(target_player).special_force().into()
+        } else {
+            game.player(target_player).force().into()
+        };
+        Ok(express!(self.initiator(), " remove ", 1, force, " from ", self.location(game)))
     }
 
     pub fn get_message(&self, game: &Game) -> Message {
-        let target_player = game.get_player(Some(self.target));
-        let force: ExpressionElement = if self.special_force {
-            game.player(target_player.nre()).special_force().into()
-        } else {
-            game.player(target_player.nre()).force().into()
-        };
-        express!(self.initiator(), " remove ", 1, force, " from ", self.location(game))
+        self.try_get_message(game).expect("the message of an applicable ChoamRemoveForce event")
     }
 
 }
@@ -170,12 +191,16 @@ impl GameEventMethods for ChoamRemoveForce {
         ChoamRemoveForce::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         ChoamRemoveForce::execute_concrete_event(self, game)
     }
 
     fn get_message(&self, game: &Game) -> Message {
         ChoamRemoveForce::get_message(self, game)
+    }
+
+    fn try_get_message(&self, game: &Game) -> GameResult<Message> {
+        ChoamRemoveForce::try_get_message(self, game)
     }
 
 }

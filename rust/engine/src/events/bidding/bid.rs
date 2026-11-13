@@ -186,8 +186,8 @@ impl Bid {
         game.current_auction_type == AuctionType::Normal && game.player(player.nre()).nexus == Faction::Emperor && NexusPlayed::can_use_secret_ally(game, player.nre())
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
-        game.execute_bid(self);
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+        game.execute_bid(self)?;
 
         // Each player passes automatically at most once per bid. Once a card is won, no rule
         // applies again until someone really bids, so a second automatic pass by the same player
@@ -202,9 +202,10 @@ impl Bid {
             let faction = game.player(p).faction;
             let mut auto_bid = Bid::new(game, faction);
             auto_bid.passed = true;
-            game.execute_bid(&Rc::new(auto_bid));
+            game.execute_bid(&Rc::new(auto_bid))?;
             player_to_bid_with_pass_normal_bid = Bid::first_auto_passing_player(game);
         }
+        Ok(())
     }
 
     /// The first player whose automation rule passes for them now. Only during `Phase::Bidding`,
@@ -221,11 +222,11 @@ impl Bid {
             .find(|p| Bid::may_be_played(game, Some(*p)) && game.is_auto_passed_bid(game.player(*p).faction))
     }
 
-    pub fn handle_normal_bid(self: &Rc<Self>, game: &mut Game) {
+    pub fn handle_normal_bid(self: &Rc<Self>, game: &mut Game) -> GameResult {
         if self.passed || self.karma_bid {
             if self.karma_bid {
                 //Immediate Karma
-                let card = self.win_with_karma(game, self);
+                let card = self.win_with_karma(game, self)?;
                 let this = self.clone().into_event();
                 game.finish_bid(self.player_opt(), Some(&this), card, true);
             } else if let Some(GameEvent::Bid(winning_bid)) = game.current_bid.clone().filter(|cb| {
@@ -234,25 +235,25 @@ impl Bid {
                 if winning_bid.using_karma_to_remove_bid_limit() {
                     //Karma was used to bid any amount
                     game.return_karma_card_used_for_bid();
-                    let card = self.win_with_karma(game, &winning_bid);
+                    let card = self.win_with_karma(game, &winning_bid)?;
                     let wb = winning_bid.clone().into_event();
                     game.finish_bid(winning_bid.player_opt(), Some(&wb), card, true);
                 } else {
                     if game.cards_on_auction.is_none() {
-                        return;
+                        return Ok(());
                     }
 
                     let receiver = Faction::Emperor;
                     let wb = winning_bid.clone().into_event();
                     let card = game.win_by_highest_bid(
-                        winning_bid.player_opt().nre(),
+                        winning_bid.player_opt().required("player")?,
                         &wb,
                         winning_bid.amount,
                         winning_bid.ally_contribution_amount,
                         winning_bid.emperor_contribution_amount,
                         receiver,
                         winning_bid.uses_emperor_secret_ally,
-                    );
+                    )?;
 
                     game.finish_bid(winning_bid.player_opt(), Some(&wb), card, true);
                 }
@@ -261,25 +262,26 @@ impl Bid {
             }
         } else if game.bid_sequence.as_ref().map(|s| s.current_faction(game)) == Some(self.initiator()) {
             if game.cards_on_auction.is_none() || game.current_bid.is_none() {
-                return;
+                return Ok(());
             }
 
-            let card = self.bid_won_by_only_player(game, self, Faction::Emperor);
+            let card = self.bid_won_by_only_player(game, self, Faction::Emperor)?;
             let this = self.clone().into_event();
-            let current_bid_player = game.current_bid.as_ref().nre().i_bid_player();
+            let current_bid_player = game.current_bid.as_ref().required("current bid")?.i_bid_player();
             game.finish_bid(current_bid_player, Some(&this), card, true);
         }
+        Ok(())
     }
 
-    pub fn win_with_karma(&self, game: &mut Game, bid: &Bid) -> TreacheryCard {
+    pub fn win_with_karma(&self, game: &mut Game, bid: &Bid) -> GameResult<TreacheryCard> {
         let winner = self.get_player(game, Some(bid.initiator()));
         if winner.is_none() || bid.karma_card().is_none() || game.cards_on_auction.is_none() {
-            throw!(InvalidOperationException, "Cannot resolve karma bid winner or auction deck");
+            game_error!("Cannot resolve karma bid winner or auction deck");
         }
-        let winner = winner.nre();
-        let karma_card = bid.karma_card().nre();
+        let winner = winner.required("winner")?;
+        let karma_card = bid.karma_card().required("karma card")?;
 
-        game.discard_treachery_card_boolean(Some(karma_card), true);
+        game.discard_treachery_card_boolean(Some(karma_card), true)?;
 
         let sold = CardSold::new(game.card_number, bid.initiator(), 0, Faction::None, vec![], Some(karma_card));
         if karma_card.type_() == TreacheryCardType::Karma {
@@ -307,13 +309,13 @@ impl Bid {
         game.stone(Milestone::AuctionWon);
         game.stone(Milestone::Karma);
 
-        let card = game.cards_on_auction.as_mut().nre().draw();
+        let card = game.cards_on_auction.as_mut().required("cards on auction")?.try_draw()?;
         game.player_mut(winner).treachery_cards.push(card);
         game.register_won_card_as_known(card);
         let winner_faction = game.player(winner).faction;
         game.log_bidding_to(winner_faction, Rc::new(CardWonShown::new(card)), vec!["You won: ".into(), card.into()]);
         game.give_player_extra_card_if_applicable(winner);
-        card
+        Ok(card)
     }
 
     pub fn everyone_passed_bid(&self, game: &mut Game) {
@@ -336,11 +338,11 @@ impl Bid {
     }
 
     /// The only caller passes `Game.CardsOnAuction` as `toDrawFrom`, so this draws from it.
-    pub fn bid_won_by_only_player(&self, game: &mut Game, bid: &Rc<Bid>, payment_receiver: Faction) -> TreacheryCard {
+    pub fn bid_won_by_only_player(&self, game: &mut Game, bid: &Rc<Bid>, payment_receiver: Faction) -> GameResult<TreacheryCard> {
         game.current_bid = Some(bid.clone().into_event());
         let winner = self.get_player(game, Some(bid.initiator()));
         let Some(winner) = winner else {
-            throw!(InvalidOperationException, "Cannot resolve winner for single-player bid");
+            game_error!("Cannot resolve winner for single-player bid");
         };
         let mut receiver_income_message = express_part!();
 
@@ -354,7 +356,7 @@ impl Bid {
                 bid.emperor_contribution_amount,
                 payment_receiver,
                 &mut receiver_income_message,
-            );
+            )?;
             game.log_bid(winner, bid.amount, bid.ally_contribution_amount, bid.emperor_contribution_amount, &receiver_income_message, paid_to, false);
         } else {
             game.play_nexus_card(winner, vec!["Secret Ally".into(), "get this card for free".into()]);
@@ -362,16 +364,16 @@ impl Bid {
         }
 
         game.stone(Milestone::AuctionWon);
-        let card = game.cards_on_auction.as_mut().nre().draw();
+        let card = game.cards_on_auction.as_mut().required("cards on auction")?.try_draw()?;
         game.register_won_card_as_known(card);
         game.player_mut(winner).treachery_cards.push(card);
         let winner_faction = game.player(winner).faction;
         game.log_bidding_to(winner_faction, Rc::new(CardWonShown::new(card)), vec!["You won: ".into(), card.into()]);
         game.give_player_extra_card_if_applicable(winner);
-        card
+        Ok(card)
     }
 
-    pub fn handle_richese_bid(&self, game: &mut Game) {
+    pub fn handle_richese_bid(&self, game: &mut Game) -> GameResult {
         let bid_sequence_has_passed_richese = game.bid_sequence.as_ref().map(|s| s.has_passed_richese(game)) == Some(true);
         let richese_has_no_room = self.get_player(game, Some(Faction::Richese)).map(|w| game.player(w).has_room_for_cards(game)) == Some(false);
 
@@ -390,18 +392,18 @@ impl Bid {
             match highest_bid {
                 Some(winning_bid) if winning_bid.i_bid_total_amount() > 0 => {
                     if game.cards_on_auction.is_none() {
-                        return;
+                        return Ok(());
                     }
 
                     let card = game.win_by_highest_bid(
-                        winning_bid.i_bid_player().nre(),
+                        winning_bid.i_bid_player().required("i bid player")?,
                         &winning_bid,
                         winning_bid.i_bid_amount(),
                         winning_bid.i_bid_ally_contribution_amount(),
                         winning_bid.i_bid_emperor_contribution_amount(),
                         if winning_bid.i_bid_initiator() != Faction::Richese { Faction::Richese } else { Faction::Emperor },
                         false,
-                    );
+                    )?;
 
                     game.finish_bid(winning_bid.i_bid_player(), Some(&winning_bid), card, true);
                 }
@@ -412,9 +414,9 @@ impl Bid {
                         game.enter(Phase::RicheseKeepingUnsoldCard, true);
                     } else {
                         if game.cards_on_auction.is_none() {
-                            return;
+                            return Ok(());
                         }
-                        let card = game.cards_on_auction.as_mut().nre().draw();
+                        let card = game.cards_on_auction.as_mut().required("cards on auction")?.try_draw()?;
                         game.removed_treachery_cards.push(card);
                         game.register_won_card_as_known(card);
                         self.log_objects(game, vec![card.into(), " was removed from the game".into()]);
@@ -423,6 +425,7 @@ impl Bid {
                 }
             }
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -455,7 +458,7 @@ impl GameEventMethods for Bid {
         Bid::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         Bid::execute_concrete_event(self, game)
     }
 

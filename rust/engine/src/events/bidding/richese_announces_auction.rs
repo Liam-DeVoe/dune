@@ -28,7 +28,7 @@ impl RicheseAnnouncesAuction {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.richese_occupier_specified_card = false;
         self.log(game);
 
@@ -44,6 +44,7 @@ impl RicheseAnnouncesAuction {
 
         let condition = self.first || game.number_of_cards_on_auction == 0;
         game.enter_boolean_phase_action(condition, Phase::RicheseSpecifyingAuction, Game::start_regular_bidding);
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -69,7 +70,7 @@ impl GameEventMethods for RicheseAnnouncesAuction {
         RicheseAnnouncesAuction::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         RicheseAnnouncesAuction::execute_concrete_event(self, game)
     }
 

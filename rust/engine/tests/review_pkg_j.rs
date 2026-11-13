@@ -73,13 +73,13 @@ fn karma_valid_cards_stop_at_first_match() {
     let p = g.player_at(0);
     g.players[0].treachery_cards = vec![card(KARAMA), TreacheryCard::NULL];
 
-    let can = cs::catch(|| Karma::can_karma(&g, p));
+    let can = cs::catch_panic(|| Karma::can_karma(&g, p));
     assert_eq!(ok(can, "C# CanKarma returns True"), true);
 
-    let first = cs::catch(|| Karma::valid_karma_cards(&g, p).into_iter().next().map(|c| c.id()));
+    let first = cs::catch_panic(|| Karma::valid_karma_cards(&g, p).into_iter().next().map(|c| c.id()));
     assert_eq!(ok(first, "C# FirstOrDefault returns card 23"), Some(KARAMA));
 
-    let has = cs::catch(|| g.player(p).has_karma(&g));
+    let has = cs::catch_panic(|| g.player(p).has_karma(&g));
     assert_eq!(ok(has, "C# HasKarma returns True"), true);
 }
 
@@ -96,10 +96,10 @@ fn choam_valid_cards_stop_at_first_match() {
     let choam = g.player_at(b);
     g.players[b].treachery_cards = vec![card(USELESS), TreacheryCard::NULL];
 
-    let contains = cs::catch(|| ChoamDiscarded::valid_cards(&g, choam).any(|c| c == card(USELESS)));
+    let contains = cs::catch_panic(|| ChoamDiscarded::valid_cards(&g, choam).any(|c| c == card(USELESS)));
     assert_eq!(ok(contains, "C# returns True"), true);
 
-    let any = cs::catch(|| NexusPlayed::valid_choam_cards(&g, choam).next().is_some());
+    let any = cs::catch_panic(|| NexusPlayed::valid_choam_cards(&g, choam).next().is_some());
     assert_eq!(ok(any, "C# returns True"), true);
 }
 

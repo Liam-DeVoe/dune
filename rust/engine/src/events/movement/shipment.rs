@@ -723,7 +723,7 @@ impl Shipment {
             .filter(move |x| !x.is_homeworld() || Shipment::may_ship_cross_planet(g, p) || g.has_shipment_permission(p, ShipmentPermission::Cross))
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.beginning_of_shipment_and_move_phase = false;
         game.current_blocked_territories.clear();
         game.storm_losses_to_take.clear();
@@ -738,14 +738,14 @@ impl Shipment {
                 Some(c) => game.owner_of_treachery_card(c),
                 None => None,
             };
-            total_cost = self.pay_for_shipment(game);
+            total_cost = self.pay_for_shipment(game)?;
 
             if self.is_no_field() && self.to(game).is_some() {
-                let richese = self.get_player(game, Some(Faction::Richese)).nre();
+                let richese = self.get_player(game, Some(Faction::Richese)).required("get player")?;
 
                 if self.cunning_no_field_value() >= 0 {
                     game.reveal_current_no_field(richese, None);
-                    Player::ship_special_forces(game, richese, self.to(game).nre(), 1);
+                    Player::ship_special_forces(game, richese, self.to(game).required("to")?, 1);
                     game.current_no_field_value = self.cunning_no_field_value();
                     let me = self.player();
                     game.play_nexus_card(me, elems!["Cunning", "ship and reveal a second ", FactionSpecialForce::Richese]);
@@ -788,7 +788,7 @@ impl Shipment {
                     Player::ship_forces_location_homeworld_int32(game, me, source, target, self.force_amount);
                 }
             } else if self.is_no_field() && self.initiator() == Faction::Richese && self.to(game).is_some() {
-                let to = self.to(game).nre();
+                let to = self.to(game).required("to")?;
                 self.perform_normal_shipment(game, self.player(), to, self.force_amount.wrapping_add(self.smuggled_amount), 1);
             } else if let Some(to) = self.to(game) {
                 self.perform_normal_shipment(
@@ -813,10 +813,10 @@ impl Shipment {
             }
 
             if !self.is_back_to_reserves() {
-                game.check_intrusion(&self.clone().into_event());
+                game.check_intrusion(&self.clone().into_event())?;
             }
 
-            game.determine_next_shipment_and_move_sub_phase();
+            game.determine_next_shipment_and_move_sub_phase()?;
 
             let received_payment = self.handle_received_shipment_payment(game, &mut received_payment_message);
             let m = self
@@ -834,11 +834,12 @@ impl Shipment {
         } else {
             let m = self.get_verbose_message(game, total_cost, &received_payment_message, None).with_log(self.log_record(game, 0, 0));
             self.log_objects(game, elems![m]);
-            game.determine_next_shipment_and_move_sub_phase();
+            game.determine_next_shipment_and_move_sub_phase()?;
         }
+        Ok(())
     }
 
-    pub fn pay_for_shipment(&self, game: &mut Game) -> i32 {
+    pub fn pay_for_shipment(&self, game: &mut Game) -> GameResult<i32> {
         let cost_to_initiator = self.determine_cost_to_initiator(game);
         let me = self.player();
         let pl = game.player_mut(me);
@@ -846,7 +847,7 @@ impl Shipment {
 
         if self.is_using_karma() {
             let karma_card = self.karma_card();
-            game.discard_treachery_card_boolean(karma_card, true);
+            game.discard_treachery_card_boolean(karma_card, true)?;
             game.stone(Milestone::Karma);
         }
 
@@ -859,7 +860,7 @@ impl Shipment {
             game.decrease_permitted_use_of_ally_spice(self.initiator(), self.ally_contribution_amount);
         }
 
-        cost_to_initiator.wrapping_add(self.ally_contribution_amount)
+        Ok(cost_to_initiator.wrapping_add(self.ally_contribution_amount))
     }
 
     pub fn handle_received_shipment_payment(self: &Rc<Self>, game: &mut Game, profit_message: &mut MessagePart) -> i32 {
@@ -1153,7 +1154,7 @@ impl GameEventMethods for Shipment {
         Shipment::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         Shipment::execute_concrete_event(self, game)
     }
 

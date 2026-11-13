@@ -54,7 +54,7 @@ fn run(g: &mut Game, events: &[&str]) {
     for text in events {
         let e: GameEvent = json::deserialize(text).expect("event json");
         e.initialize_game(g);
-        let _ = cs::catch(|| e.execute(g, true, true));
+        let _ = cs::catch_panic(|| e.execute(g, true, true));
     }
 }
 
@@ -146,7 +146,7 @@ fn two_undos_restore_in_order() {
 fn undo_that_throws_keeps_the_game() {
     let mut g = base();
     let before = dump(&g);
-    let e = cs::catch(|| g.undo(-1)).expect_err("throws");
+    let e = cs::catch_panic(|| g.undo(-1)).expect_err("throws");
     assert_eq!(format!("{}: {}", e.type_name, e.message), golden("undo_throws.exception"));
     same_dump("undo -1", &dump(&g), &before);
     same_dump("undo -1 (C#)", &dump(&g), &golden("undo_throws.dump"));

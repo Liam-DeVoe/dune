@@ -26,7 +26,7 @@ fn as_player<E: GameEventMethods>(e: E, g: &Game, f: Faction) -> E {
 }
 
 fn outcome<R>(f: impl FnOnce() -> R) -> Result<R, String> {
-    cs::catch(f).map_err(|e| format!("{}: {}", e.type_name, e.message))
+    cs::catch_panic(f).map_err(|e| format!("{}: {}", e.type_name, e.message))
 }
 
 fn text(m: Option<Message>) -> Option<String> {
@@ -215,7 +215,7 @@ fn automatic_passes_stop_when_bidding_ends() {
         let mut pass = Bid::default();
         pass.passed = true;
         let pass = Rc::new(as_player(pass, &g, g.player(first).faction));
-        Bid::execute_concrete_event(&pass, &mut g);
+        Bid::execute_concrete_event(&pass, &mut g).unwrap();
 
         let everyone_passed =
             g.current_report().messages.iter().filter(|m| m.to_cs_string() == "Bidding ends because everyone passed").count();
@@ -268,7 +268,7 @@ fn automatic_passes_stop_when_the_high_bidder_cant_be_reached() {
         let mut pass = Bid::default();
         pass.passed = true;
         let pass = Rc::new(as_player(pass, &g, g.player(first).faction));
-        Bid::execute_concrete_event(&pass, &mut g);
+        Bid::execute_concrete_event(&pass, &mut g).unwrap();
         tx.send(g.current_phase).unwrap();
     });
     // Before the fix the thread never finished.

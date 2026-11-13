@@ -189,17 +189,9 @@ pub struct Server {
     next_generation: u64,
 }
 
-/// The text of a panic: an engine exception or a bug.
+/// The text of a panic (a bug in the engine or the server).
 pub fn panic_text(payload: &(dyn std::any::Any + Send)) -> String {
-    if let Some(e) = payload.downcast_ref::<treachery_engine::compat::cs::CsException>() {
-        e.to_string()
-    } else if let Some(s) = payload.downcast_ref::<String>() {
-        s.clone()
-    } else if let Some(s) = payload.downcast_ref::<&str>() {
-        (*s).to_string()
-    } else {
-        "panic".to_string()
-    }
+    treachery_engine::compat::cs::panic_message(payload)
 }
 
 impl Server {

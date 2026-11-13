@@ -77,7 +77,7 @@ impl Diplomacy {
         false
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         // Game.CurrentBattle?.PlanOfOpponent(Player)?.Defense
         let opponent_defense = game
             .current_battle
@@ -86,6 +86,7 @@ impl Diplomacy {
             .and_then(|plan| plan.defense());
         game.log(elems![self.initiator(), " use Diplomacy to turn ", self.card(), " into a ", opponent_defense]);
         game.current_diplomacy = Some(self.clone());
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -110,7 +111,7 @@ impl GameEventMethods for Diplomacy {
         Diplomacy::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         Diplomacy::execute_concrete_event(self, game)
     }
 

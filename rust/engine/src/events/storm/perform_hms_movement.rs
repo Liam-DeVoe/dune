@@ -57,7 +57,7 @@ impl PerformHmsMovement {
             .filter(move |l| !l.is_stronghold())
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let me = self.player();
         let hms = game.map.hidden_mobile_stronghold();
         let collection_rate = game.player(me).any_forces_in(Some(hms.location())).wrapping_mul(2);
@@ -69,9 +69,9 @@ impl PerformHmsMovement {
 
         if !self.passed {
             // A null Target (only without validation): PointAt removes the HMS from its old
-            // host's neighbours, then throws NullReferenceException on `newLocation.Neighbours`.
+            // host's neighbours, then throws NullReferenceException on `newLocation.Neighbours`: the event fails there.
             let target = self.target(game).or_null();
-            hms.point_at(&mut game.map, target);
+            hms.point_at(&mut game.map, target)?;
             game.collect_spice_from(self.initiator(), target, collection_rate);
             game.hms_moves_left = game.hms_moves_left.wrapping_sub(1);
             game.stone(Milestone::HmsMovement);
@@ -80,6 +80,7 @@ impl PerformHmsMovement {
         if self.passed || game.hms_moves_left == 0 {
             game.determine_storm();
         }
+        Ok(())
     }
 
     pub fn get_message(&self, game: &Game) -> Message {
@@ -109,7 +110,7 @@ impl GameEventMethods for PerformHmsMovement {
         PerformHmsMovement::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         PerformHmsMovement::execute_concrete_event(self, game)
     }
 

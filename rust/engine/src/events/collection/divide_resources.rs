@@ -70,7 +70,7 @@ impl DivideResources {
         }
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.current_division_proposal = Some(self.clone());
 
         if self.passed {
@@ -80,13 +80,14 @@ impl DivideResources {
         } else {
             let to_be_divided = Self::get_resources_to_be_divided(game);
             let gained_by_other_faction = Self::gained_by_other_faction(to_be_divided.as_ref(), true, self.portion_to_first_player);
-            let other = to_be_divided.nre().other_faction;
+            let other = to_be_divided.required("to be divided")?.other_faction;
             self.log_objects(
                 game,
                 elems![self.initiator(), " propose that they take ", Payment::of(self.portion_to_first_player), " and ", other, " take ", Payment::of(gained_by_other_faction)],
             );
             game.enter(Phase::AcceptingResourceDivision, true);
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -112,7 +113,7 @@ impl GameEventMethods for DivideResources {
         DivideResources::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         DivideResources::execute_concrete_event(self, game)
     }
 

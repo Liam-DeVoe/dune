@@ -62,6 +62,13 @@ pub trait GameEventMethods {
 
     fn validate(&self, game: &Game) -> Option<Message>;
 
+    /// The validation of [`try_execute`](GameEventMethods::try_execute): the refusal, or why the
+    /// event can't even be validated (a submitted event can lack values its validation needs).
+    /// Events with such values override this; their `validate` reports the failure as a refusal.
+    fn try_validate(&self, game: &Game) -> GameResult<Option<Message>> {
+        Ok(self.validate(game))
+    }
+
     fn is_valid(&self, game: &Game) -> bool {
         self.validate(game).is_none()
     }
@@ -87,45 +94,49 @@ pub trait GameEventMethods {
         self.initialize(game, self.initiator())
     }
 
+    /// Validates (when asked) and executes the event. Returns why it was refused: the validation
+    /// message, or a "Game Error" when an accepted event failed partway (see [`GameError`]).
     fn execute(self: &Rc<Self>, game: &mut Game, perform_validation: bool, is_host: bool) -> Option<Message> {
-        // `if (Game == null) throw new ArgumentException(...)` is outside the try in C#;
-        // here the game is always passed in.
-        let result = cs::catch(|| {
-            let moment_just_before_event = game.current_moment;
-
-            let mut result: Option<Message> = None;
-
-            if perform_validation {
-                if !self.is_applicable(game, is_host) {
-                    return Some(express!("Event '", self.get_message(game), "' is not applicable"));
-                }
-
-                result = self.validate(game);
-            }
-
-            if result.is_none() {
-                let this: GameEvent = self.clone().into_event();
-                game.recent_milestones.clear();
-                game.perform_pre_event_tasks(&this);
-                self.execute_concrete_event(game);
-                let just_entered_start_of_phase =
-                    moment_just_before_event != MainPhaseMoment::Start && game.current_moment == MainPhaseMoment::Start;
-                game.perform_post_event_tasks(&this, just_entered_start_of_phase);
-            }
-
-            result
-        });
-
-        match result {
+        match self.try_execute(game, perform_validation, is_host) {
             Ok(r) => r,
-            Err(e) => Some(express!("Game Error: ", e.message.clone(), ". Technical description: ", e, ".")),
+            Err(e) => Some(express!("Game Error: ", e, ".")),
         }
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game);
+    /// [`execute`](GameEventMethods::execute) with the failure of an accepted event as `Err`.
+    fn try_execute(self: &Rc<Self>, game: &mut Game, perform_validation: bool, is_host: bool) -> GameResult<Option<Message>> {
+        let moment_just_before_event = game.current_moment;
+
+        if perform_validation {
+            if !self.is_applicable(game, is_host) {
+                return Ok(Some(express!("Event '", self.try_get_message(game)?, "' is not applicable")));
+            }
+
+            if let Some(refusal) = self.try_validate(game)? {
+                return Ok(Some(refusal));
+            }
+        }
+
+        let this: GameEvent = self.clone().into_event();
+        game.recent_milestones.clear();
+        game.perform_pre_event_tasks(&this);
+        self.execute_concrete_event(game)?;
+        let just_entered_start_of_phase = moment_just_before_event != MainPhaseMoment::Start && game.current_moment == MainPhaseMoment::Start;
+        game.perform_post_event_tasks(&this, just_entered_start_of_phase);
+        Ok(None)
+    }
+
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult;
 
     fn get_message(&self, _game: &Game) -> Message {
         express!(self.event_type().name(), " by ", self.initiator())
+    }
+
+    /// The message, or why it can't be built: some events can be submitted without values their
+    /// message needs (a faction that isn't playing, no card). The refusal of an event that isn't
+    /// applicable quotes its message through this.
+    fn try_get_message(&self, game: &Game) -> GameResult<Message> {
+        Ok(self.get_message(game))
     }
 
     fn get_short_message(&self, game: &Game) -> Message {

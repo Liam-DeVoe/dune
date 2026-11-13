@@ -87,15 +87,15 @@ impl TakeLosses {
         f64_to_i32((0.5f64 * amount_of_forces.wrapping_add(amount_of_special_forces) as f64).ceil())
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let player = self.get_player(game, Some(self.initiator()));
         let mut must_discard = false;
 
         if self.use_useless_card {
             let card = TakeLosses::valid_useless_card_to_prevent_losses(game, self.player());
-            if card.is_none() && NexusPlayed::can_use_cunning(game, player.nre()) {
+            if card.is_none() && NexusPlayed::can_use_cunning(game, player.required("player")?) {
                 let location = cs::index(&game.storm_losses_to_take, 0).location;
-                game.play_nexus_card(player.nre(), vec!["Cunning".into(), " prevent losing forces in ".into(), location.into()]);
+                game.play_nexus_card(player.required("player")?, vec!["Cunning".into(), " prevent losing forces in ".into(), location.into()]);
                 must_discard = true;
             } else {
                 game.discard_player_treachery_card_boolean(Some(self.player()), card, true);
@@ -109,10 +109,10 @@ impl TakeLosses {
             game.stone(Milestone::SpecialUselessPlayed);
         } else {
             let location = TakeLosses::losses_to_take(game).location;
-            let player = player.nre();
+            let player = player.required("player")?;
             // KillForces(null, ...): GetAndCreateIfNeeded looks up a null key.
             let Some(kill_location) = location else {
-                throw!(ArgumentNullException, "Value cannot be null. (Parameter 'key')");
+                game_error!("Value cannot be null. (Parameter 'key')");
             };
             Player::kill_forces(game, player, kill_location, self.force_amount, self.special_force_amount, false);
             let _ = cs::index(&game.storm_losses_to_take, 0);
@@ -127,24 +127,29 @@ impl TakeLosses {
         } else {
             let phase = game.phase_before_storm_loss;
             game.enter(phase, true);
-            game.determine_next_shipment_and_move_sub_phase();
+            game.determine_next_shipment_and_move_sub_phase()?;
         }
 
         if must_discard {
             game.let_player_discard_treachery_card_of_choice(self.initiator());
         }
+        Ok(())
     }
 
-    pub fn get_message(&self, game: &Game) -> Message {
-        let p = self.player();
+    pub fn try_get_message(&self, game: &Game) -> GameResult<Message> {
+        let p = self.player_opt().required("player")?;
         let force = game.player(p).force();
         let special_force = game.player(p).special_force();
-        express!(
+        Ok(express!(
             "The storm kills ",
             express_part_if!(self.force_amount > 0; self.force_amount, force),
             express_part_if!(self.force_amount > 0 && self.special_force_amount > 0; " and "),
             express_part_if!(self.special_force_amount > 0; self.special_force_amount, special_force)
-        )
+        ))
+    }
+
+    pub fn get_message(&self, game: &Game) -> Message {
+        self.try_get_message(game).expect("the message of an applicable TakeLosses event")
     }
 
 }
@@ -166,12 +171,16 @@ impl GameEventMethods for TakeLosses {
         TakeLosses::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         TakeLosses::execute_concrete_event(self, game)
     }
 
     fn get_message(&self, game: &Game) -> Message {
         TakeLosses::get_message(self, game)
+    }
+
+    fn try_get_message(&self, game: &Game) -> GameResult<Message> {
+        TakeLosses::try_get_message(self, game)
     }
 
 }

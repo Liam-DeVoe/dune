@@ -54,7 +54,7 @@ impl FaceDancerReplaced {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         if !self.passed {
             if let Some(selected_dancer) = self.selected_dancer() {
                 let player = self.player();
@@ -62,10 +62,10 @@ impl FaceDancerReplaced {
                 if let Some(i) = game.player(player).face_dancers.iter().position(|d| *d == selected_dancer) {
                     game.player_mut(player).face_dancers.remove(i);
                 }
-                game.traitor_deck.as_mut().nre().put_on_top(selected_dancer);
-                game.traitor_deck.as_mut().nre().shuffle();
+                game.traitor_deck.as_mut().required("traitor deck")?.put_on_top(selected_dancer);
+                game.traitor_deck.as_mut().required("traitor deck")?.shuffle();
                 game.stone(Milestone::Shuffled);
-                let leader = game.traitor_deck.as_mut().nre().draw();
+                let leader = game.traitor_deck.as_mut().required("traitor deck")?.try_draw()?;
                 game.player_mut(player).face_dancers.push(leader);
                 game.player_mut(player).known_non_traitors.add(leader);
             }
@@ -73,6 +73,7 @@ impl FaceDancerReplaced {
 
         self.log(game);
         game.enter(Phase::TurnConcluded, true);
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -102,7 +103,7 @@ impl GameEventMethods for FaceDancerReplaced {
         FaceDancerReplaced::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         FaceDancerReplaced::execute_concrete_event(self, game)
     }
 

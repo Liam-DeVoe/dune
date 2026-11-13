@@ -132,7 +132,7 @@ fn rust_lines() -> Vec<String> {
                 let n = r.below(9) as i32 - 2;
                 let m = r.below(9) as i32 - 2;
                 let bb = r.bool();
-                let res = match cs::catch(|| {
+                let res = match catch(|| {
                     let g = &mut g;
                     let mut ret: Option<i32> = None;
                     match op {
@@ -170,7 +170,7 @@ fn rust_lines() -> Vec<String> {
                 }) {
                     Ok(Some(v)) => v.to_string(),
                     Ok(None) => "-".to_string(),
-                    Err(e) => format!("exception:{}:{}", e.type_name, e.message),
+                    Err(()) => "exception".to_string(),
                 };
                 out.push(format!("{} {} {} op{} {} {}", version, seed, step, op, res, state(&g, me)));
             }
@@ -190,9 +190,9 @@ fn rust_lines() -> Vec<String> {
                 g.players.push(p);
             }
             g.sector_in_storm = sector;
-            let res = match cs::catch(|| PlayerSequence::determine_first_player(&g)) {
+            let res = match catch(|| PlayerSequence::determine_first_player(&g)) {
                 Ok(fp) => g.player(fp).seat.to_string(),
-                Err(e) => format!("exception:{}:{}", e.type_name, e.message),
+                Err(()) => "exception".to_string(),
             };
             out.push(format!("first {} {} {}", players, sector, res));
         }
@@ -200,8 +200,27 @@ fn rust_lines() -> Vec<String> {
     out
 }
 
+/// The golden lines write a C# exception as `exception:<Type>:<Message>`; the Rust lines write
+/// any panic as `exception`. The exception's type and message aren't compared: everything from
+/// `exception:` to the next state field (` fp=`) becomes `exception`.
+fn without_exception_text(line: &str) -> String {
+    match line.find("exception:") {
+        Some(i) => {
+            let rest = &line[i..];
+            let end = rest.find(" fp=").unwrap_or(rest.len());
+            format!("{}exception{}", &line[..i], &rest[end..])
+        }
+        None => line.to_string(),
+    }
+}
+
+/// Runs `f`, catching any panic.
+fn catch<R>(f: impl FnOnce() -> R) -> Result<R, ()> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| cs::catch_panic(f))).ok().and_then(Result::ok).ok_or(())
+}
+
 fn compare(prefix_filter: impl Fn(&str) -> bool) {
-    let expected: Vec<&str> = GOLDEN.lines().filter(|l| prefix_filter(l)).collect();
+    let expected: Vec<String> = GOLDEN.lines().filter(|l| prefix_filter(l)).map(without_exception_text).collect();
     let actual: Vec<String> = rust_lines().into_iter().filter(|l| prefix_filter(l)).collect();
     for (i, (e, a)) in expected.iter().zip(actual.iter()).enumerate() {
         assert_eq!(e, a, "first difference at filtered line {i}");
@@ -227,10 +246,7 @@ fn seat(g: &Game, p: Option<PlayerIndex>) -> String {
 }
 
 fn try_s(f: impl FnOnce() -> String) -> String {
-    match cs::catch(f) {
-        Ok(s) => s,
-        Err(e) => format!("exception:{}:{}", e.type_name, e.message),
-    }
+    catch(f).unwrap_or_else(|()| "exception".to_string())
 }
 
 fn tf(x: bool) -> String {
@@ -351,7 +367,7 @@ fn sequence_lines() -> Vec<String> {
 
 #[test]
 fn player_sequence_matches_csharp() {
-    let expected: Vec<&str> = GOLDEN.lines().filter(|l| l.starts_with("seq ")).collect();
+    let expected: Vec<String> = GOLDEN.lines().filter(|l| l.starts_with("seq ")).map(without_exception_text).collect();
     let actual = sequence_lines();
     for (i, (e, a)) in expected.iter().zip(actual.iter()).enumerate() {
         assert_eq!(e, a, "first difference at sequence line {i}");

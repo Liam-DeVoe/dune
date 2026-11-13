@@ -38,20 +38,20 @@ impl Caravan {
         self.validate_move(game, self.as_advisors)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.recent_moves.push(self.clone().into_event());
 
         game.storm_losses_to_take.clear();
 
         let me = self.player();
-        game.discard(me, TreacheryCardType::Caravan);
+        game.discard(me, TreacheryCardType::Caravan)?;
         let force_locations = PlacementEventMethods::force_locations(&**self, game);
         let as_advisors = self.initiator() != Faction::BeneGesserit || self.as_advisors;
         game.perform_move_from_locations(me, &force_locations, &self.clone().into_event(), as_advisors, true);
 
         let to = PlacementEventMethods::to(&**self, game);
-        if crate::events::contains_conflicting_ally_opt(game, me, to) {
-            game.chosen_destinations_with_allies.push(to.nre().territory());
+        if crate::events::contains_conflicting_ally_opt(game, me, to)? {
+            game.chosen_destinations_with_allies.push(to.required("to")?.territory());
         }
 
         game.current_flight_used = None;
@@ -64,12 +64,13 @@ impl Caravan {
             game.allow(FactionAdvantage::IxianCyborgExtraMove);
         }
 
-        if game.check_intrusion(&self.clone().into_event()) {
+        if game.check_intrusion(&self.clone().into_event())? {
             game.phase_before_caravan_caused_intrusion = game.current_phase;
             let bene_gesserit = game.last_bene_gesserit_intrusion().is_some();
             let terror = game.last_terror_trigger().is_some();
             game.enter_boolean_phase_boolean_phase_phase(bene_gesserit, Phase::BeneGesseritIntrudedByCaravan, terror, Phase::TerrorTriggeredByCaravan, Phase::AmbassadorTriggeredByCaravan);
         }
+        Ok(())
     }
 
     pub fn get_message(&self, game: &Game) -> Message {
@@ -98,7 +99,7 @@ impl GameEventMethods for Caravan {
         Caravan::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         Caravan::execute_concrete_event(self, game)
     }
 

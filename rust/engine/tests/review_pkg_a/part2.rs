@@ -10,7 +10,7 @@ use treachery_engine::game::GameState;
 use treachery_engine::json::utilities::Utilities;
 
 fn outcome<R: ToString>(f: impl FnOnce() -> R) -> String {
-    match cs::catch(f) {
+    match cs::catch_panic(f) {
         Ok(r) => r.to_string(),
         Err(e) => format!("exception:{}:{}", e.type_name, e.message),
     }
@@ -52,25 +52,25 @@ fn parse_force_locations_edge_cases_match_dotnet() {
     }
 }
 
-/// Exception types from `GameState.Load` (messages are a known gap in json.rs).
+/// Which savegames `GameState.Load` accepts (where .NET threw, loading fails).
 #[test]
 fn game_state_load_matches_dotnet() {
     let ty = |s: &str| -> String {
-        match cs::catch(|| GameState::load(s)) {
+        match GameState::load(s) {
             Ok(st) => format!("ok:{}:{}", st.version, st.events.as_ref().map(|e| e.len() as i64).unwrap_or(-1)),
-            Err(e) => format!("exception:{}", e.type_name),
+            Err(_) => "exception".to_string(),
         }
     };
     let pad = " ".repeat(130);
     let cases: Vec<(String, &str)> = vec![
-        ("null".into(), "exception:InvalidOperationException"),
+        ("null".into(), "exception"),
         ("{}".into(), "ok:0:0"),
         (r#"{"_events":null}"#.into(), "ok:0:-1"),
-        (r#"{"_events":[{}]}"#.into(), "exception:NotSupportedException"),
-        (r#"{"_events":[{"$type":"Nope"}]}"#.into(), "exception:JsonException"),
+        (r#"{"_events":[{}]}"#.into(), "exception"),
+        (r#"{"_events":[{"$type":"Nope"}]}"#.into(), "exception"),
         (
             format!(r#"{{"$type":"Treachery.Shared.GameState, Treachery.Shared","_events":{{"$type":"x","$values":[{{"$type":"Treachery.Shared.Nope, Treachery.Shared"}}]}}}}{pad}"#),
-            "exception:NotSupportedException",
+            "exception",
         ),
         (format!(r#"{{"$values":[],"x":"Treachery.Shared.GameState"}}{pad}"#), "ok:0:0"),
         (format!(r#"{{"$type":"Treachery.Shared.GameState","$values":[]}}{pad}"#), "ok:0:0"),
@@ -99,25 +99,23 @@ fn utilities_formatting_matches_dotnet() {
 #[test]
 fn dollar_members_in_non_polymorphic_objects_are_ignored() {
     use treachery_engine::events::GameEvent;
-    let r = cs::catch(|| {
-        let e = Utilities::deserialize::<GameEvent>(r#"{"$type":"EstablishPlayers","Settings":{"$foo":1,"MaximumTurns":4}}"#).unwrap();
-        match e {
+    let r = Utilities::deserialize::<GameEvent>(r#"{"$type":"EstablishPlayers","Settings":{"$foo":1,"MaximumTurns":4}}"#)
+        .map(|e| match e.unwrap() {
             GameEvent::EstablishPlayers(ep) => ep.settings.as_ref().unwrap().borrow().maximum_turns,
             _ => -1,
-        }
-    })
-    .map_err(|e| format!("{}: {}", e.type_name, e.message));
+        })
+        .map_err(|e| format!("{}: {}", e.kind, e.message));
     // .NET: 4
     assert_eq!(r, Ok(4));
 
     for (input, version) in [(r#"{"$foo":1,"Version":3}"#, 3), (r#"{"$ref":"1","Version":3}"#, 3), (r#"{"$type":"x","Version":3}"#, 3)] {
-        let r = cs::catch(|| GameState::load(input).version).map_err(|e| format!("{}: {}", e.type_name, e.message));
+        let r = GameState::load(input).map(|s| s.version).map_err(|e| format!("{}: {}", e.kind, e.message));
         assert_eq!(r, Ok(version), "input {input}");
     }
 
     // Events are polymorphic: .NET rejects these with JsonException too.
     for input in [r#"{"$type":"EndPhase","$foo":1,"Initiator":3}"#, r#"{"$type":"EndPhase","$id":"1","Initiator":3}"#] {
-        let r = cs::catch(|| Utilities::deserialize::<GameEvent>(input).is_some()).map_err(|e| e.type_name.to_string());
+        let r = Utilities::deserialize::<GameEvent>(input).map(|e| e.is_some()).map_err(|e| e.kind.to_string());
         assert_eq!(r, Err("JsonException".to_string()), "input {input}");
     }
 }

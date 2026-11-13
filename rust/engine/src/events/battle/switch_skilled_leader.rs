@@ -47,13 +47,12 @@ impl SwitchedSkilledLeader {
             && Self::switchable_leader(game, player).is_some()
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let leader = Self::switchable_leader(game, self.player());
         let value = !game.is_in_front_of_shield(leader.map(Hero::Leader));
         let leader = match leader {
             Some(l) => l,
-            // SetInFrontOfShield(null, ...): LeaderState.TryGetValue(null)
-            None => crate::compat::cs::throw("ArgumentNullException", crate::compat::cs::with_parameter("Value cannot be null.", "key")),
+            None => game_error!("There is no skilled leader to switch"),
         };
         game.set_in_front_of_shield(leader, value);
         let hero = Some(Hero::Leader(leader));
@@ -71,6 +70,7 @@ impl SwitchedSkilledLeader {
                 " their shield".into(),
             ],
         );
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -96,7 +96,7 @@ impl GameEventMethods for SwitchedSkilledLeader {
         SwitchedSkilledLeader::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         SwitchedSkilledLeader::execute_concrete_event(self, game)
     }
 

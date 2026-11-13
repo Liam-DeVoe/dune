@@ -52,7 +52,7 @@ impl BlackMarketBid {
         false
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.with_bid_sequence(|seq, g| {
             seq.next_player(g);
             g.skip_players_that_cant_bid(seq);
@@ -71,34 +71,35 @@ impl BlackMarketBid {
         match game.current_auction_type {
             AuctionType::BlackMarketNormal => self.handle_black_market_normal_bid(game),
             AuctionType::BlackMarketOnceAround | AuctionType::BlackMarketSilent => self.handle_black_market_special_bid(game),
-            _ => {}
+            _ => Ok(()),
         }
     }
 
-    pub fn handle_black_market_normal_bid(&self, game: &mut Game) {
+    pub fn handle_black_market_normal_bid(&self, game: &mut Game) -> GameResult {
         if self.passed {
             let winning_bid = game.current_bid.clone();
 
             if let Some(winning_bid) = winning_bid.as_ref().filter(|wb| game.bid_sequence.as_ref().nre().current_faction(game) == wb.i_bid_initiator()) {
                 if game.cards_on_auction.is_none() {
-                    return;
+                    return Ok(());
                 }
 
                 let card = game.win_by_highest_bid(
-                    winning_bid.i_bid_player().nre(),
+                    winning_bid.i_bid_player().required("i bid player")?,
                     winning_bid,
                     winning_bid.i_bid_amount(),
                     winning_bid.i_bid_ally_contribution_amount(),
                     winning_bid.i_bid_emperor_contribution_amount(),
                     if winning_bid.i_bid_initiator() != Faction::Richese { Faction::Richese } else { Faction::Emperor },
                     false,
-                );
+                )?;
 
-                self.finish_black_market_bid(game, winning_bid.i_bid_player().nre(), winning_bid, card);
+                self.finish_black_market_bid(game, winning_bid.i_bid_player().required("i bid player")?, winning_bid, card);
             } else if winning_bid.is_none() && game.bids.len() as i32 >= game.players_that_can_bid().len() as i32 {
                 self.richese_keeps_card(game);
             }
         }
+        Ok(())
     }
 
     /// The shared "no faction bid" branch of both handlers.
@@ -112,12 +113,12 @@ impl BlackMarketBid {
         game.enter_richese_bidding();
     }
 
-    pub fn handle_black_market_special_bid(&self, game: &mut Game) {
+    pub fn handle_black_market_special_bid(&self, game: &mut Game) -> GameResult {
         let players_with_room = || game.players.iter().filter(|p| p.has_room_for_cards(game)).count() as i32;
         let is_last_bid = (game.current_auction_type == AuctionType::BlackMarketSilent && players_with_room() == game.bids.len() as i32)
             || (game.current_auction_type == AuctionType::BlackMarketOnceAround && self.initiator() == Faction::Richese)
             || (self.get_player(game, Some(Faction::Richese)).map(|w| game.player(w).has_room_for_cards(game)) == Some(false)
-                && game.bid_sequence.as_ref().nre().has_passed_richese(game));
+                && game.bid_sequence.as_ref().required("bid sequence")?.has_passed_richese(game));
 
         if is_last_bid {
             if game.current_auction_type == AuctionType::BlackMarketSilent {
@@ -130,26 +131,27 @@ impl BlackMarketBid {
             match highest_bid {
                 Some(highest_bid) if highest_bid.i_bid_total_amount() > 0 => {
                     if game.cards_on_auction.is_none() {
-                        return;
+                        return Ok(());
                     }
 
                     let card = game.win_by_highest_bid(
-                        highest_bid.i_bid_player().nre(),
+                        highest_bid.i_bid_player().required("i bid player")?,
                         &highest_bid,
                         highest_bid.i_bid_amount(),
                         highest_bid.i_bid_ally_contribution_amount(),
                         highest_bid.i_bid_emperor_contribution_amount(),
                         if highest_bid.i_bid_initiator() != Faction::Richese { Faction::Richese } else { Faction::Emperor },
                         false,
-                    );
+                    )?;
 
-                    self.finish_black_market_bid(game, highest_bid.i_bid_player().nre(), &highest_bid, card);
+                    self.finish_black_market_bid(game, highest_bid.i_bid_player().required("i bid player")?, &highest_bid, card);
                 }
                 _ => {
                     self.richese_keeps_card(game);
                 }
             }
         }
+        Ok(())
     }
 
     pub fn finish_black_market_bid(&self, game: &mut Game, winner: PlayerIndex, winning_bid: &GameEvent, card: TreacheryCard) {
@@ -283,7 +285,7 @@ impl GameEventMethods for BlackMarketBid {
         BlackMarketBid::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         BlackMarketBid::execute_concrete_event(self, game)
     }
 

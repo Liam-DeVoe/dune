@@ -36,9 +36,10 @@ impl Planetology {
         g.skilled_as_player_leader_skill(p, LeaderSkill::Planetologist) && g.current_planetology.is_none()
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
         game.current_planetology = Some(self.clone());
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -66,7 +67,7 @@ impl GameEventMethods for Planetology {
         Planetology::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         Planetology::execute_concrete_event(self, game)
     }
 

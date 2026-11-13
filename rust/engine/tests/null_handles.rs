@@ -13,7 +13,7 @@ use treachery_engine::prelude::*;
 use treachery_engine::game::PlayerIndex;
 
 fn err(f: impl FnOnce()) -> String {
-    match cs::catch(f) {
+    match cs::catch_panic(f) {
         Ok(()) => "ok".into(),
         Err(e) => format!("{}: {}", e.type_name, e.message),
     }
@@ -122,7 +122,7 @@ fn null_linq_sources_throw_argument_null() {
 }
 
 #[test]
-fn null_player_throws_on_access() {
+fn null_player_panics_on_access() {
     let g = Game::new();
-    assert_eq!(err(|| { g.player(PlayerIndex::NULL); }), NRE);
+    assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| { g.player(PlayerIndex::NULL); })).is_err());
 }

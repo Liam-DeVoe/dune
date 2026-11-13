@@ -61,7 +61,7 @@ impl MetheorPlayed {
         false
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let me = self.player();
         let card = game.player(me).card(TreacheryCardType::Metheor);
         game.stone(Milestone::MetheorUsed);
@@ -102,6 +102,7 @@ impl MetheorPlayed {
                 self.log_objects(game, vec![m.into()]);
             }
         }
+        Ok(())
     }
 
     pub fn get_message(&self, game: &Game) -> Message {
@@ -126,7 +127,7 @@ impl GameEventMethods for MetheorPlayed {
         MetheorPlayed::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         MetheorPlayed::execute_concrete_event(self, game)
     }
 

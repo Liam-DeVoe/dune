@@ -37,8 +37,9 @@ impl CharityClaimed {
             && !game.charity_is_cancelled()
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.claim_charity(self.player());
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -64,7 +65,7 @@ impl GameEventMethods for CharityClaimed {
         CharityClaimed::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         CharityClaimed::execute_concrete_event(self, game)
     }
 

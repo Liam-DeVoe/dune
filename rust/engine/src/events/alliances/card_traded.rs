@@ -86,20 +86,20 @@ impl CardTraded {
         game.player(p).treachery_cards.clone()
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         if game.current_card_trade_offer.is_none() {
             self.log(game);
             game.current_card_trade_offer = Some(self.clone());
             game.phase_before_card_trade = Some(game.current_phase);
             game.enter(Phase::TradingCards, true);
         } else {
-            let offer = game.current_card_trade_offer.clone().nre();
+            let offer = game.current_card_trade_offer.clone().required("current card trade offer")?;
             self.log_objects(game, vec![self.initiator().into(), " and ".into(), offer.initiator().into(), " exchange a card".into()]);
             let other_player = offer.player_opt();
 
-            let other_count = game.player(other_player.nre()).treachery_cards.len();
+            let other_count = game.player(other_player.required("other player")?).treachery_cards.len();
             if other_count > 1 || game.player(self.player()).treachery_cards.len() > 1 {
-                let other_player = other_player.nre();
+                let other_player = other_player.required("other player")?;
                 let me = self.player();
                 for i in 0..game.players.len() {
                     let p = game.player_at(i);
@@ -112,7 +112,7 @@ impl CardTraded {
                 }
             }
 
-            let other_player = other_player.nre();
+            let other_player = other_player.required("other player")?;
             let me = self.player();
             // C# adds `Card!` even when it is null (only reachable without validation).
             let card = self.card();
@@ -128,6 +128,7 @@ impl CardTraded {
                 game.enter(phase, true);
             }
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -153,7 +154,7 @@ impl GameEventMethods for CardTraded {
         CardTraded::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         CardTraded::execute_concrete_event(self, game)
     }
 

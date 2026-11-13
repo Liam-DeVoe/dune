@@ -58,10 +58,11 @@ impl Prescience {
         false
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.current_prescience = Some(self.clone());
         self.log(game);
         game.stone(Milestone::Prescience);
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -86,7 +87,7 @@ impl GameEventMethods for Prescience {
         Prescience::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         Prescience::execute_concrete_event(self, game)
     }
 

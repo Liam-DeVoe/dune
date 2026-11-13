@@ -33,12 +33,12 @@ impl AllianceByAmbassador {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let paused = game.paused_ambassador_phase;
         game.enter(paused, true);
 
         if !self.passed {
-            let activated = game.current_ambassador_activated.clone().nre();
+            let activated = game.current_ambassador_activated.clone().required("current ambassador activated")?;
             game.make_alliance(self.initiator(), activated.initiator());
 
             if activated.ecaz_give_vidal_to_ally {
@@ -52,14 +52,15 @@ impl AllianceByAmbassador {
             }
             game.flip_bene_gesserit_advisors_when_alone();
         } else {
-            let activated = game.current_ambassador_activated.clone().nre();
+            let activated = game.current_ambassador_activated.clone().required("current ambassador activated")?;
             self.log_objects(game, elems![self.initiator(), " don't ally with ", activated.initiator()]);
             if activated.ecaz_take_vidal {
                 game.take_vidal(activated.player(), VidalMoment::AfterUsedInBattle);
             }
         }
 
-        game.determine_next_shipment_and_move_sub_phase();
+        game.determine_next_shipment_and_move_sub_phase()?;
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -84,7 +85,7 @@ impl GameEventMethods for AllianceByAmbassador {
         AllianceByAmbassador::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         AllianceByAmbassador::execute_concrete_event(self, game)
     }
 

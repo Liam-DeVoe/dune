@@ -42,7 +42,7 @@ fn unboxing_casts_match_dotnet() {
     for case in cases {
         let (kind, cast, expected) = (case[0].as_str().unwrap(), case[1].as_str().unwrap(), case[2].as_str().unwrap());
         let o = value(&game, kind);
-        let actual = cs::catch(|| match cast {
+        let actual = cs::catch_panic(|| match cast {
             "TreacheryCardType" => format!("enum:{}", unbox_enum::<TreacheryCardType>(&o).0),
             "Faction" => format!("enum:{}", unbox_enum::<Faction>(&o).0),
             "int" => format!("int:{}", unbox_int(&o)),

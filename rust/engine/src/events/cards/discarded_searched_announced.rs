@@ -33,7 +33,7 @@ impl DiscardedSearchedAnnounced {
             && DiscardedSearched::valid_cards(g).len() > 0
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
         game.phase_before_searching_discarded = game.current_phase;
         let me = self.player();
@@ -41,6 +41,7 @@ impl DiscardedSearchedAnnounced {
         p.resources = p.resources.wrapping_sub(2);
         game.enter(Phase::SearchingDiscarded, true);
         game.stone(Milestone::CardWonSwapped);
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -73,7 +74,7 @@ impl GameEventMethods for DiscardedSearchedAnnounced {
         DiscardedSearchedAnnounced::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         DiscardedSearchedAnnounced::execute_concrete_event(self, game)
     }
 

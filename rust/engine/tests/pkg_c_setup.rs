@@ -20,7 +20,7 @@ fn idx(g: &Game, f: Faction) -> PlayerIndex {
 }
 
 fn exception_text<R>(f: impl FnOnce() -> R) -> String {
-    match cs::catch(f) {
+    match cs::catch_panic(f) {
         Ok(_) => "no exception".to_string(),
         Err(e) => format!("{}: {}", e.type_name, e.message),
     }
@@ -56,14 +56,17 @@ fn treachery_cards_before_traitors_needs_leader_skills() {
     assert!(g.treachery_cards_before_traitors());
 }
 
-/// An empty starting deck throws the Deck.Draw message, after earlier players got their card.
+/// Running out of starting cards panics (the deck always holds enough in a valid game), after
+/// earlier players got their card.
 #[test]
-fn deal_remaining_starting_cards_throws_on_empty_deck_after_partial_deal() {
+fn deal_remaining_starting_cards_panics_on_empty_deck_after_partial_deal() {
     let mut g = game_with(&[Faction::Atreides, Faction::Ixian, Faction::Emperor]);
     let card = TreacheryCardManager::items()[0];
     g.starting_treachery_cards = Some(Deck::new(vec![card], None));
-    let text = exception_text(|| g.deal_remaining_starting_treachery_cards_to_non_ixian());
-    assert_eq!(text, "InvalidOperationException: Cannot draw from an empty deck");
+    let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| g.deal_remaining_starting_treachery_cards_to_non_ixian()));
+    assert!(r.is_err());
+    assert_eq!(g.players[0].treachery_cards, vec![card]);
+    assert!(g.players[2].treachery_cards.is_empty());
 }
 
 // ---------------------------------------------------------------- MulliganPerformed
@@ -105,7 +108,7 @@ fn remove_invalid_trade_offers_by_identity() {
 
 // ---------------------------------------------------------------- AutomationConfigured
 
-/// Create numbers rules max+1; Delete with an unknown id throws First's message.
+/// Create numbers rules max+1; Delete with an unknown id fails the event.
 #[test]
 fn automation_rules_create_and_delete() {
     let mut g = game_with(&[Faction::Atreides]);
@@ -116,20 +119,20 @@ fn automation_rules_create_and_delete() {
         Rc::new(e)
     };
     let r1 = mk(&g, ItemAction::Create, -1);
-    r1.execute_concrete_event(&mut g);
+    r1.execute_concrete_event(&mut g).unwrap();
     let r2 = mk(&g, ItemAction::Create, -1);
-    r2.execute_concrete_event(&mut g);
+    r2.execute_concrete_event(&mut g).unwrap();
     assert_eq!(r1.automation_rule_id.get(), 0);
     assert_eq!(r2.automation_rule_id.get(), 1);
 
-    mk(&g, ItemAction::Delete, 0).execute_concrete_event(&mut g);
+    mk(&g, ItemAction::Delete, 0).execute_concrete_event(&mut g).unwrap();
     assert_eq!(g.automation_rules.len(), 1);
     let r3 = mk(&g, ItemAction::Create, -1);
-    r3.execute_concrete_event(&mut g);
+    r3.execute_concrete_event(&mut g).unwrap();
     assert_eq!(r3.automation_rule_id.get(), 2);
 
-    let text = exception_text(|| mk(&g, ItemAction::Delete, 7).execute_concrete_event(&mut g));
-    assert_eq!(text, "InvalidOperationException: Sequence contains no matching element");
+    assert!(mk(&g, ItemAction::Delete, 7).execute_concrete_event(&mut g).is_err());
+    assert_eq!(g.automation_rules.len(), 2);
 }
 
 // ---------------------------------------------------------------- EstablishPlayers

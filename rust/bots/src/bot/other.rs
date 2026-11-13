@@ -137,7 +137,7 @@ impl ClassicBot {
 
     pub fn determine_discarded(&self, game: &Game) -> Rc<Discarded> {
         let Some(worst_card) = game.player(self.player).treachery_cards.iter().copied().min_by_key(|c| self.card_quality(game, *c, None)) else {
-            treachery_engine::throw!(InvalidOperationException, "Sequence contains no elements")
+            cs::throw("InvalidOperationException", "Sequence contains no elements".to_string())
         };
         let mut e = Discarded::new(game, self.faction(game));
         e.set_card(Some(worst_card));
@@ -731,7 +731,7 @@ impl ClassicBot {
         let attacks_with = |plan: &Battle| plan.weapon().is_some() && ClairVoyanceAnswered::is_questioned_by(true, plan.weapon().nre().type_(), card_type());
 
         // A question I fail to work out gets an unknown answer.
-        let answer = cs::catch(|| {
+        let answer = super::guarded(|| {
             let me = game.player(self.player);
             match question {
                 ClairvoyanceQuestion::CardTypeAsDefenseInBattle if in_battle() => yes_no(defends_with(&my_plan())),
@@ -1245,7 +1245,7 @@ impl ClassicBot {
         let i = self.d(1, items.len() as i32) - 1;
         match usize::try_from(i).ok().and_then(|i| items.get(i)) {
             Some(item) => item.clone(),
-            None => treachery_engine::throw!(IndexOutOfRangeException),
+            None => cs::throw("IndexOutOfRangeException", cs::default_message("IndexOutOfRangeException")),
         }
     }
 

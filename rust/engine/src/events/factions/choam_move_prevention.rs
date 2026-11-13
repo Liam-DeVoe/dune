@@ -59,7 +59,7 @@ impl ChoamMovePrevention {
         game.player(p).treachery_cards.iter().copied().find(|c| c.id() == TreacheryCardManager::CARD_BALISET)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
 
         let me = self.player();
@@ -69,12 +69,13 @@ impl ChoamMovePrevention {
             game.let_player_discard_treachery_card_of_choice(self.initiator());
         } else {
             let card = ChoamMovePrevention::card_to_use(game, me);
-            game.discard_treachery_card_boolean(card, true);
+            game.discard_treachery_card_boolean(card, true)?;
         }
 
         // `Territory!` does not throw: a null territory (only without validation) is stored.
         game.current_blocked_territories.push(self.territory(game).or_null());
         game.stone(Milestone::SpecialUselessPlayed);
+        Ok(())
     }
 
     pub fn get_message(&self, game: &Game) -> Message {
@@ -100,7 +101,7 @@ impl GameEventMethods for ChoamMovePrevention {
         ChoamMovePrevention::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         ChoamMovePrevention::execute_concrete_event(self, game)
     }
 

@@ -32,21 +32,26 @@ impl BeneGesseritFlip {
         None
     }
 
+    /// The territory of the latest Bene Gesserit intrusion. Panics when there is none.
     pub fn get_territory(g: &Game) -> Territory {
-        g.last_bene_gesserit_intrusion().nre().territory(g)
+        g.last_bene_gesserit_intrusion().expect("a Bene Gesserit intrusion").territory(g)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+        if game.last_bene_gesserit_intrusion().is_none() {
+            game_error!("There is no Bene Gesserit intrusion");
+        }
         let m = self.get_dynamic_message(game).with_log(self.log_record(game));
         self.log_objects(game, vec![m.into()]);
 
-        let territory = game.last_shipment_or_movement.as_ref().nre().to_location(game).nre().territory();
+        let territory = game.last_shipment_or_movement.as_ref().required("last shipment or movement")?.to_location(game).required("to location")?.territory();
         Player::flip_forces_territory_boolean(game, self.player(), territory, self.as_advisors);
 
         game.flip_bene_gesserit_advisors_when_alone();
 
-        game.dequeue_intrusion(IntrusionType::BeneGesseritIntrusion);
-        game.determine_next_shipment_and_move_sub_phase();
+        game.dequeue_intrusion(IntrusionType::BeneGesseritIntrusion)?;
+        game.determine_next_shipment_and_move_sub_phase()?;
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -100,7 +105,7 @@ impl GameEventMethods for BeneGesseritFlip {
         BeneGesseritFlip::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         BeneGesseritFlip::execute_concrete_event(self, game)
     }
 

@@ -30,10 +30,11 @@ impl FlightDiscoveryUsed {
         g.owner_of_flight_discovery == Some(g.player(p).faction)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
         game.owner_of_flight_discovery = Some(Faction::None);
         game.current_flight_discovery_used = Some(self.clone());
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -60,7 +61,7 @@ impl GameEventMethods for FlightDiscoveryUsed {
         FlightDiscoveryUsed::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         FlightDiscoveryUsed::execute_concrete_event(self, game)
     }
 

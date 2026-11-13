@@ -43,7 +43,7 @@ impl FactionSelected {
         factions.into_iter().filter(move |f| g.players.iter().all(|p| p.faction != *f))
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let initiator = game.get_player_by_seat(self.seat);
 
         if let Some(initiator) = initiator {
@@ -51,6 +51,7 @@ impl FactionSelected {
 
             self.log(game);
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -76,7 +77,7 @@ impl GameEventMethods for FactionSelected {
         FactionSelected::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         FactionSelected::execute_concrete_event(self, game)
     }
 

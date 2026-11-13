@@ -81,39 +81,40 @@ impl TreacheryCalled {
             || (h.is_some() && g.applicable(Rule::CapturedLeadersAreTraitorsToOwnFaction) && h.nre().faction() == pl.faction)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
-        let aggressor_plan = game.aggressor_plan.clone().nre();
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+        let aggressor_plan = game.aggressor_plan.clone().required("aggressor plan")?;
         if aggressor_plan.by(self.initiator()) || (self.by(Faction::Harkonnen) && game.are_allies(aggressor_plan.initiator(), Faction::Harkonnen)) {
             game.aggressor_traitor_action = Some(self.clone());
             if self.traitor_called {
                 self.log(game);
                 game.stone(Milestone::TreacheryCalled);
-                let hero = game.defender_plan.as_ref().nre().hero();
+                let hero = game.defender_plan.as_ref().required("defender plan")?.hero();
                 // C# adds the defender's hero, which can be null.
                 game.player_mut(self.player()).revealed_traitors.add(hero.or_null());
             }
         }
 
-        let defender_plan = game.defender_plan.clone().nre();
+        let defender_plan = game.defender_plan.clone().required("defender plan")?;
         if defender_plan.by(self.initiator()) || (self.by(Faction::Harkonnen) && game.are_allies(defender_plan.initiator(), Faction::Harkonnen)) {
             game.defender_traitor_action = Some(self.clone());
             if self.traitor_called {
                 self.log(game);
                 game.stone(Milestone::TreacheryCalled);
-                let hero = game.aggressor_plan.as_ref().nre().hero();
+                let hero = game.aggressor_plan.as_ref().required("aggressor plan")?.hero();
                 game.player_mut(self.player()).revealed_traitors.add(hero.or_null());
             }
         }
 
         if game.aggressor_traitor_action.is_some() && game.defender_traitor_action.is_some() {
-            let treachery = game.current_battle.clone().nre().treachery_of_faction(game, Faction::Harkonnen);
+            let treachery = game.current_battle.clone().required("current battle")?.treachery_of_faction(game, Faction::Harkonnen);
 
             if game.applicable(Rule::NexusCards) && treachery.as_ref().is_some_and(|t| t.initiator() == Faction::Harkonnen && t.traitor_called) {
                 game.enter(Phase::CancellingTraitor, true);
             } else {
-                game.handle_revealed_battle_plans();
+                game.handle_revealed_battle_plans()?;
             }
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -142,7 +143,7 @@ impl GameEventMethods for TreacheryCalled {
         TreacheryCalled::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         TreacheryCalled::execute_concrete_event(self, game)
     }
 

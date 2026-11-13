@@ -38,13 +38,14 @@ impl KarmaRevivalPrevention {
         g.players_other_than(p)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.current_karma_revival_prevention = Some(self.clone());
         let me = self.player();
         let card = Karma::valid_karma_cards(game, me).into_iter().next();
         game.play_karma(me, card, vec!["prevent revival by ".into(), self.target.into()]);
         game.player_mut(me).special_karma_power_used = true;
         game.stone(Milestone::Karma);
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -70,7 +71,7 @@ impl GameEventMethods for KarmaRevivalPrevention {
         KarmaRevivalPrevention::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         KarmaRevivalPrevention::execute_concrete_event(self, game)
     }
 

@@ -163,14 +163,18 @@ impl FaceDanced {
             .filter(move |l| g.applicable(Rule::BattlesUnderStorm) || l.sector(&g.map) != g.sector_in_storm)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let me = self.player();
+        // C#: FaceDancers.First(f => WinnerHero.IsFaceDancer(f)) throws when no face dancer
+        // matches the winner (or there is no winner).
+        let winner = game.winner_hero();
         let facedancer = game
             .player(me)
             .face_dancers
             .iter()
             .copied()
-            .cs_first_where(|f| game.winner_hero().nre().is_face_dancer(*f));
+            .find(|f| winner.is_some_and(|w| w.is_face_dancer(*f)))
+            .required("The face dancer of the winner")?;
 
         if matches!(facedancer, Hero::Leader(_)) && game.is_alive(facedancer) {
             game.kill_hero(facedancer);
@@ -189,7 +193,8 @@ impl FaceDanced {
         self.replace_forces(game);
         game.flip_bene_gesserit_advisors_when_alone();
 
-        game.finish_battle();
+        game.finish_battle()?;
+        Ok(())
     }
 
     pub fn replace_forces(&self, game: &mut Game) {
@@ -304,7 +309,7 @@ impl GameEventMethods for FaceDanced {
         FaceDanced::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         FaceDanced::execute_concrete_event(self, game)
     }
 

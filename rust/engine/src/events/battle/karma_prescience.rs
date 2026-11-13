@@ -26,13 +26,14 @@ impl KarmaPrescience {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let me = self.player();
         let card = Karma::valid_karma_cards(game, me).into_iter().next();
         game.play_karma(me, card, vec!["see the entire enemy battle plan".into()]);
         game.player_mut(me).special_karma_power_used = true;
         game.stone(Milestone::Karma);
         game.atreides_karma = true;
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -57,7 +58,7 @@ impl GameEventMethods for KarmaPrescience {
         KarmaPrescience::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         KarmaPrescience::execute_concrete_event(self, game)
     }
 

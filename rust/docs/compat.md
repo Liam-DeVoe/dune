@@ -6,7 +6,7 @@ Everything here is checked against real .NET 10 output (see [Verification](#veri
 
 ## Exceptions
 
-Where .NET throws, the compat API panics with a `CsException { type_name, message }` payload (`dotnet_compat::exception`) carrying the exception's type name and exact .NET 10 message, for example `ArgumentException: An item with the same key has already been added. Key: 5`. The engine re-exports this type as `cs::CsException`, and its `cs::catch` turns these panics back into values. `dotnet_compat::throw!(Type, "format", args)` raises one.
+Where .NET throws, the compat API panics with the exception's type name and exact .NET 10 message, for example `ArgumentException: An item with the same key has already been added. Key: 5`. Calling it so that .NET would throw is a bug in the caller. `dotnet_compat::throw!(Type, "format", args)` raises such a panic. The parsing functions are the exception: their `try_` variants return the exception as a `CsException { type_name, message }` value, because their input comes from outside. Tests turn a panic back into the exception with the engine's `cs::catch_panic`.
 
 Messages that embed a value use the `CsToString` trait for its C# `ToString()`. It is implemented for the primitive types and `String`; implement it for every dictionary key type. `NetDictionary::add_with` and `index_with` take the key text as a closure instead.
 

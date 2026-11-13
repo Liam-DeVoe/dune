@@ -46,11 +46,11 @@ impl ResourcesAudited {
             .map(move |p| game.player(p).faction)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.resource_audited_factions.push(self.target);
         let target = self.get_player(game, Some(self.target));
         self.log(game);
-        let t = game.player(target.nre());
+        let t = game.player(target.required("target")?);
         let resources = t.resources;
         let weapons = t.treachery_cards.iter().filter(|tc| tc.is_weapon()).count() as i32;
         let defenses = t.treachery_cards.iter().filter(|tc| tc.is_defense()).count() as i32;
@@ -68,6 +68,7 @@ impl ResourcesAudited {
                 " defenses".into(),
             ],
         );
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -98,7 +99,7 @@ impl GameEventMethods for ResourcesAudited {
         ResourcesAudited::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         ResourcesAudited::execute_concrete_event(self, game)
     }
 

@@ -3,6 +3,8 @@
 
 pub mod prelude;
 
+pub mod error;
+
 // Game state and rules
 pub mod events;
 pub mod game;

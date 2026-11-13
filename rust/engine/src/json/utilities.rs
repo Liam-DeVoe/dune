@@ -1,3 +1,4 @@
+use crate::json::JsonError;
 use crate::prelude::*;
 use crate::json::{self, FromJson, JsonValue, ToJson};
 
@@ -41,9 +42,8 @@ impl Utilities {
         "Treachery.Shared.GameState".to_string()
     }
 
-    /// JSON `null` gives `None`; malformed input throws the reader's exception
-    /// (`JsonException` and friends; most messages are not .NET's, see json.rs).
-    pub fn deserialize<T: FromJson>(serialized_value: &str) -> Option<T> {
+    /// JSON `null` gives `Ok(None)`; malformed input gives the reader's error.
+    pub fn deserialize<T: FromJson>(serialized_value: &str) -> Result<Option<T>, JsonError> {
         // serializedValue.Length < 128 || !serializedValue[..128].Contains(NewtonsoftIndicator)
         // (lengths in UTF-16 code units)
         let utf16_len: usize = serialized_value.chars().map(|c| c.len_utf16()).sum();
@@ -63,71 +63,51 @@ impl Utilities {
             return Utilities::json_deserialize(serialized_value);
         }
 
-        let converted_value = Utilities::convert_newtonsoft_json_to_plain_json(serialized_value);
+        let converted_value = Utilities::convert_newtonsoft_json_to_plain_json(serialized_value)?;
         let res = Utilities::json_deserialize(&converted_value);
         res
     }
 
-    /// `JsonSerializer.Deserialize<T>(text, Options)`: `null` for a JSON null, throws on bad input.
-    fn json_deserialize<T: FromJson>(text: &str) -> Option<T> {
-        let v: JsonValue = match serde_json::from_str(text) {
-            Ok(v) => v,
-            Err(e) => cs::throw("JsonException", e.to_string()),
-        };
+    /// `None` for a JSON null.
+    fn json_deserialize<T: FromJson>(text: &str) -> Result<Option<T>, JsonError> {
+        let v: JsonValue = serde_json::from_str(text).map_err(|e| JsonError::new("JsonException", e.to_string()))?;
         if v.is_null() {
-            return None;
+            return Ok(None);
         }
-        match T::from_json(&v) {
-            Ok(t) => Some(t),
-            Err(e) => {
-                let e = json::locate(text, e);
-                cs::throw(e.kind, e.message)
-            }
-        }
+        T::from_json(&v).map(Some).map_err(|e| json::locate(text, e))
     }
 
     /// Known difference: `JsonNode.Parse` throws ArgumentException on a duplicate key
     /// when the object is first accessed; serde_json keeps the last value.
-    pub fn convert_newtonsoft_json_to_plain_json(value: &str) -> String {
-        let json_node: JsonValue = match serde_json::from_str(value) {
-            Ok(v) => v,
-            Err(e) => cs::throw("JsonException", e.to_string()),
-        };
+    pub fn convert_newtonsoft_json_to_plain_json(value: &str) -> Result<String, JsonError> {
+        let json_node: JsonValue = serde_json::from_str(value).map_err(|e| JsonError::new("JsonException", e.to_string()))?;
         if json_node.is_null() {
-            return String::new();
+            return Ok(String::new());
         }
 
         let mut json_node = json_node;
-        Utilities::replace_type_metadata_and_nested_arrays(&mut json_node);
-        serde_json::to_string(&json_node).unwrap_or_default()
+        Utilities::replace_type_metadata_and_nested_arrays(&mut json_node)?;
+        Ok(serde_json::to_string(&json_node).unwrap_or_default())
     }
 
     /// Takes the root node (which has no parent).
-    pub fn replace_type_metadata_and_nested_arrays(node: &mut JsonValue) {
+    pub fn replace_type_metadata_and_nested_arrays(node: &mut JsonValue) -> Result<(), JsonError> {
         // A root wrapper's ReplaceWith has no parent and does nothing.
-        let _ = Utilities::replace_in(node, ParentKind::None);
+        Utilities::replace_in(node, ParentKind::None).map(|_| ())
     }
 
     /// One call of `ReplaceTypeMetadataAndNestedArrays`. Returns the array the node
     /// replaced itself with (`obj.ReplaceWith(newArray)`); the caller, as the parent,
     /// performs the replacement. With no parent `ReplaceWith` does nothing.
-    fn replace_in(node: &mut JsonValue, parent: ParentKind) -> Option<JsonValue> {
+    fn replace_in(node: &mut JsonValue, parent: ParentKind) -> Result<Option<JsonValue>, JsonError> {
         match node {
             JsonValue::Object(obj) => {
                 if obj.contains_key("$type") {
                     // obj["$type"]!.GetValue<string>()
                     let type_name = match obj.get("$type") {
                         Some(JsonValue::String(s)) => s.clone(),
-                        Some(JsonValue::Null) | None => cs::throw("NullReferenceException", cs::NULL_REFERENCE_MESSAGE.to_string()),
-                        Some(JsonValue::Number(_)) => cs::throw(
-                            "InvalidOperationException",
-                            "An element of type 'Number' cannot be converted to a 'System.String'.".to_string(),
-                        ),
-                        Some(JsonValue::Bool(b)) => cs::throw(
-                            "InvalidOperationException",
-                            format!("An element of type '{}' cannot be converted to a 'System.String'.", if *b { "True" } else { "False" }),
-                        ),
-                        Some(_) => cs::throw("InvalidOperationException", "The node must be of type 'JsonValue'.".to_string()),
+                        Some(JsonValue::Null) | None => return Err(JsonError::new("JsonException", "$type is null")),
+                        Some(_) => return Err(JsonError::new("JsonException", "$type is not a string")),
                     };
                     let event_type = Utilities::determine_game_event(&type_name);
                     match event_type {
@@ -148,43 +128,40 @@ impl Utilities {
                     for item in values_array.iter().filter(|i| !i.is_null()) {
                         let mut clone = item.clone();
                         // The clone has no parent yet, so a wrapper inside it is not replaced.
-                        let _ = Utilities::replace_in(&mut clone, ParentKind::None);
+                        Utilities::replace_in(&mut clone, ParentKind::None)?;
                         new_array.push(clone);
                     }
                     if parent == ParentKind::None {
-                        return None;
+                        return Ok(None);
                     }
-                    return Some(JsonValue::Array(new_array));
+                    return Ok(Some(JsonValue::Array(new_array)));
                 } else {
                     let keys: Vec<String> = obj.keys().cloned().collect();
                     for key in keys {
-                        let child_node = obj.get_mut(&key).nre();
+                        let child_node = obj.get_mut(&key).expect("a key of this object");
                         if !child_node.is_null() {
                             // Replacing the value of an existing key does not invalidate the key enumeration.
-                            if let Some(replacement) = Utilities::replace_in(child_node, ParentKind::Object) {
-                                *obj.get_mut(&key).nre() = replacement;
+                            if let Some(replacement) = Utilities::replace_in(child_node, ParentKind::Object)? {
+                                *child_node = replacement;
                             }
                         }
                     }
                 }
-                None
+                Ok(None)
             }
             JsonValue::Array(array) => {
                 for i in 0..array.len() {
                     if !array[i].is_null() {
-                        if let Some(replacement) = Utilities::replace_in(&mut array[i], ParentKind::Array) {
-                            // JsonArray.SetItem changes the list's version: the foreach throws at its next MoveNext.
+                        if let Some(replacement) = Utilities::replace_in(&mut array[i], ParentKind::Array)? {
+                            // The old Newtonsoft conversion failed on an array holding a wrapped array.
                             array[i] = replacement;
-                            cs::throw(
-                                "InvalidOperationException",
-                                "Collection was modified; enumeration operation may not execute.".to_string(),
-                            );
+                            return Err(JsonError::new("JsonException", "An array holds a wrapped array"));
                         }
                     }
                 }
-                None
+                Ok(None)
             }
-            _ => None,
+            _ => Ok(None),
         }
     }
 

@@ -43,7 +43,7 @@ impl TestingStationUsed {
             && !g.current_testing_station_used
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.stone(Milestone::WeatherControlled);
         game.current_testing_station_used = true;
         game.next_storm_moves = game.next_storm_moves.wrapping_add(self.value_added);
@@ -52,6 +52,7 @@ impl TestingStationUsed {
             game,
             elems![self.initiator(), " use ", DiscoveryToken::TestingStation, ": storm ", if self.value_added > 0 { "increases" } else { "weakens" }, " to ", next],
         );
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -77,7 +78,7 @@ impl GameEventMethods for TestingStationUsed {
         TestingStationUsed::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         TestingStationUsed::execute_concrete_event(self, game)
     }
 

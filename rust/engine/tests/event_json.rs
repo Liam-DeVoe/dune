@@ -71,12 +71,12 @@ fn unknown_event_types_fail_like_dotnet() {
         let case: ErrorCase = serde_json::from_str(line).unwrap();
         count += 1;
         // The paths the C# server and Rust engine read savegames and events through.
-        let caught = treachery_engine::compat::cs::catch(|| match case.kind.as_str() {
-            "state" => drop(GameState::load(&case.json)),
-            "event" => drop(Utilities::deserialize::<GameEvent>(&case.json)),
+        let result = match case.kind.as_str() {
+            "state" => GameState::load(&case.json).map(drop),
+            "event" => Utilities::deserialize::<GameEvent>(&case.json).map(drop),
             k => panic!("unknown kind {k}"),
-        });
-        let error = caught.err().map(|e| format!("{}: {}", e.type_name, e.message)).unwrap_or_default();
+        };
+        let error = result.err().map(|e| format!("{}: {}", e.kind, e.message)).unwrap_or_default();
         assert_eq!(error, case.error, "input: {}", case.json);
         // json::deserialize reports the same error.
         let result = match case.kind.as_str() {

@@ -118,8 +118,8 @@ impl BattleConcluded {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
-        let Some(current_battle) = game.current_battle.clone() else { return };
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+        let Some(current_battle) = game.current_battle.clone() else { return Ok(()) };
 
         game.battle_was_concluded_by_winner = true;
 
@@ -142,7 +142,7 @@ impl BattleConcluded {
             if let Some(pos) = cards.iter().position(|x| *x == c) {
                 cards.remove(pos);
             }
-            game.treachery_discard_pile.as_mut().nre().put_on_top(c);
+            game.treachery_discard_pile.as_mut().required("treachery discard pile")?.put_on_top(c);
         }
 
         if game.traitors_decipherer_can_look_at.len() > 0 {
@@ -162,11 +162,12 @@ impl BattleConcluded {
         if !LoserConcluded::is_applicable(game, loser) {
             let condition1 = !game.is_playing(Faction::Tleilaxu) || game.battle_winner == Some(Faction::Tleilaxu);
             if condition1 {
-                Game::finish_battle(game);
+                Game::finish_battle(game)?;
             } else {
                 game.enter(Phase::RevealingFacedancer, true);
             }
         }
+        Ok(())
     }
 
     pub fn decipherer_replaces_traitors(&self, game: &mut Game) {
@@ -399,7 +400,7 @@ impl BattleConcluded {
         // Enumerable.Range(0, count) checks count when called.
         let count = 1i32.wrapping_add(std::cmp::min(replacement_forces_left, g.ixian_special_force_losses_to_take));
         if count < 0 {
-            throw!(ArgumentOutOfRangeException, "Specified argument was out of the range of valid values. (Parameter 'count')");
+            panic!("Specified argument was out of the range of valid values. (Parameter 'count')");
         }
         (0..count).collect()
     }
@@ -482,7 +483,7 @@ impl GameEventMethods for BattleConcluded {
         BattleConcluded::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         BattleConcluded::execute_concrete_event(self, game)
     }
 

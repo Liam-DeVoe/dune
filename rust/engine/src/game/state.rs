@@ -1,3 +1,4 @@
+use crate::json::JsonError;
 use crate::json::utilities::Utilities;
 use crate::prelude::*;
 
@@ -31,12 +32,10 @@ impl GameState {
         self.events = Some(value.to_vec());
     }
 
-    pub fn load(data: &str) -> GameState {
+    /// Reads a savegame.
+    pub fn load(data: &str) -> Result<GameState, JsonError> {
         let fixed_state_data = GameState::fix_game_state_string(data);
-        match Utilities::deserialize::<GameState>(&fixed_state_data) {
-            Some(state) => state,
-            None => throw!(InvalidOperationException, "Cannot load game state"),
-        }
+        Utilities::deserialize::<GameState>(&fixed_state_data)?.ok_or_else(|| JsonError::new("JsonException", "Cannot load game state"))
     }
 
     pub fn get_state_as_string(g: &Game) -> String {

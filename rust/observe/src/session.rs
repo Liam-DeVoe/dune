@@ -13,7 +13,7 @@ use std::panic::{self, AssertUnwindSafe};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use treachery_bots::{BotParameters, ClassicBot, Priority};
-use treachery_engine::compat::cs::{self, CsException};
+use treachery_engine::compat::cs;
 use treachery_engine::events::{GameEvent, GameEventType};
 use treachery_engine::messages::expression::ExpressionElement;
 use treachery_engine::game::Game;
@@ -43,28 +43,16 @@ pub struct Session {
     pub full_views: bool,
 }
 
-/// A panic that is not a C# exception: the engine or a bot failed in a way the trace can't
-/// describe further. The game ends there.
+/// A call that failed in a way the trace can't describe further: the game ends there. The
+/// reference records one when its engine panics outside a C#-style exception.
 pub struct Panicked(pub String);
 
-fn panic_text(p: Box<dyn std::any::Any + Send>) -> String {
-    if let Some(e) = p.downcast_ref::<CsException>() {
-        e.to_string()
-    } else if let Some(s) = p.downcast_ref::<String>() {
-        s.clone()
-    } else if let Some(s) = p.downcast_ref::<&str>() {
-        (*s).to_string()
-    } else {
-        "panic".to_string()
-    }
-}
-
-/// Runs `f`, turning a C# exception into `Ok(Err(..))` and any other panic into `Err(Panicked)`.
+/// Runs `f`. A panic is an error of the call, with the panic's message: the server catches a
+/// call that panics, reports it, and the game goes on.
 fn guarded<R>(f: impl FnOnce() -> R) -> Result<Result<R, String>, Panicked> {
-    match panic::catch_unwind(AssertUnwindSafe(|| cs::catch(AssertUnwindSafe(f)))) {
-        Ok(Ok(r)) => Ok(Ok(r)),
-        Ok(Err(e)) => Ok(Err(e.to_string())),
-        Err(p) => Err(Panicked(panic_text(p))),
+    match panic::catch_unwind(AssertUnwindSafe(f)) {
+        Ok(r) => Ok(Ok(r)),
+        Err(p) => Ok(Err(cs::panic_message(p.as_ref()))),
     }
 }
 
@@ -89,7 +77,7 @@ fn short_hash(bytes: &[u8]) -> String {
 }
 
 fn find_exception(m: &Message) -> bool {
-    m.expression.elements.iter().any(|e| matches!(e, ExpressionElement::Exception(_)))
+    m.expression.elements.iter().any(|e| matches!(e, ExpressionElement::Error(_)))
 }
 
 impl Session {

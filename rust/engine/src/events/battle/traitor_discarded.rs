@@ -48,12 +48,12 @@ impl TraitorDiscarded {
         game.player(p).traitors.clone()
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
         // C# parity: the message says the traitor is shuffled into the deck, but the deck is not shuffled.
         // A null Traitor (only reachable without validation) is added to the deck as null.
         let traitor = self.traitor();
-        game.traitor_deck.as_mut().nre().items.push(traitor.or_null());
+        game.traitor_deck.as_mut().required("traitor deck")?.items.push(traitor.or_null());
         let me = self.player();
         cs::list_remove(&mut game.player_mut(me).traitors, traitor);
         game.number_of_traitors_to_discard = game.number_of_traitors_to_discard.wrapping_sub(1);
@@ -61,6 +61,7 @@ impl TraitorDiscarded {
             let phase = game.phase_before_discarding_traitor;
             game.enter(phase, true);
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -85,7 +86,7 @@ impl GameEventMethods for TraitorDiscarded {
         TraitorDiscarded::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         TraitorDiscarded::execute_concrete_event(self, game)
     }
 

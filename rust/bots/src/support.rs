@@ -39,7 +39,7 @@ pub fn boxed_type_name(o: &ExpressionElement) -> String {
         ExpressionElement::Payment(_) => "Treachery.Shared.Payment".to_string(),
         ExpressionElement::Message(_) => "Treachery.Shared.Message".to_string(),
         ExpressionElement::MessagePart(_) => "Treachery.Shared.MessagePart".to_string(),
-        ExpressionElement::Exception(e) => format!("System.{}", e.type_name),
+        ExpressionElement::Error(_) => "Treachery.Shared.GameError".to_string(),
         ExpressionElement::Player(_) => "Treachery.Shared.Player".to_string(),
         ExpressionElement::List { type_name, .. } => type_name.clone(),
     }

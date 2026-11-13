@@ -138,7 +138,7 @@ impl RaiseDeadPlayed {
             && Revival::valid_revived_force_locations(game, player).next().is_some()
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.stone(Milestone::RaiseDead);
         // The revival log draws this as a row with the card in the cost column. A face-down
         // leader keeps the plain line so the table doesn't name them.
@@ -147,7 +147,7 @@ impl RaiseDeadPlayed {
         let hero = self.hero();
         let card = game.player(me).treachery_cards.iter().copied().find(|c| c.type_() == TreacheryCardType::RaiseDead);
         let mut message = self.get_message(game);
-        if hero.is_none() || !game.is_face_down_dead(hero.nre()) {
+        if hero.is_none() || !game.is_face_down_dead(hero.required("hero")?) {
             let mut row = RevivalRow::new(
                 initiator,
                 if hero.is_none() { self.amount_of_forces } else { 0 },
@@ -160,7 +160,7 @@ impl RaiseDeadPlayed {
             message = message.with_log(row);
         }
         game.current_report_mut().express_message(message);
-        game.discard(me, TreacheryCardType::RaiseDead);
+        game.discard(me, TreacheryCardType::RaiseDead)?;
 
         let tleilaxu = self.get_player(game, Some(Faction::Tleilaxu));
         if let Some(tleilaxu) = tleilaxu {
@@ -195,7 +195,7 @@ impl RaiseDeadPlayed {
         }
 
         if self.location(game).is_some() && initiator == Faction::Fremen {
-            let to = self.location(game).nre();
+            let to = self.location(game).required("location")?;
             Player::ship_special_forces(game, me, to, 1);
             let location = self.location(game);
             self.log_objects(
@@ -203,18 +203,22 @@ impl RaiseDeadPlayed {
                 vec![initiator.into(), " place ".into(), FactionSpecialForce::Fremen.into(), " in ".into(), location.into()],
             );
         }
+        Ok(())
     }
 
-    pub fn get_message(&self, game: &Game) -> Message {
+    pub fn try_get_message(&self, game: &Game) -> GameResult<Message> {
         if let Some(hero) = self.hero() {
-            if !game.is_face_down_dead(hero) {
-                return express!("Using ", TreacheryCardType::RaiseDead, ", ", self.initiator(), " revive ", hero);
+            if !game.leader_state.contains_key(&hero) {
+                game_error!("{} is not in this game", ExpressionElement::from(hero).to_cs_string());
             }
-            return express!("Using ", TreacheryCardType::RaiseDead, ", ", self.initiator(), " revive a face down leader");
+            if !game.is_face_down_dead(hero) {
+                return Ok(express!("Using ", TreacheryCardType::RaiseDead, ", ", self.initiator(), " revive ", hero));
+            }
+            return Ok(express!("Using ", TreacheryCardType::RaiseDead, ", ", self.initiator(), " revive a face down leader"));
         }
 
-        let pl = game.player(self.player());
-        express!(
+        let pl = game.player(self.player_opt().required("player")?);
+        Ok(express!(
             "Using ",
             TreacheryCardType::RaiseDead,
             ", ",
@@ -223,7 +227,11 @@ impl RaiseDeadPlayed {
             express_part_if!(self.amount_of_forces > 0; self.amount_of_forces, " ", pl.force()),
             express_part_if!(self.amount_of_forces > 0 && self.amount_of_special_forces > 0; " and "),
             express_part_if!(self.amount_of_special_forces > 0; self.amount_of_special_forces, " ", pl.special_force())
-        )
+        ))
+    }
+
+    pub fn get_message(&self, game: &Game) -> Message {
+        self.try_get_message(game).expect("the message of an applicable RaiseDeadPlayed event")
     }
 
     pub fn valid_max_amount(g: &Game, p: PlayerIndex, special_forces: bool) -> i32 {
@@ -261,12 +269,16 @@ impl GameEventMethods for RaiseDeadPlayed {
         RaiseDeadPlayed::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         RaiseDeadPlayed::execute_concrete_event(self, game)
     }
 
     fn get_message(&self, game: &Game) -> Message {
         RaiseDeadPlayed::get_message(self, game)
+    }
+
+    fn try_get_message(&self, game: &Game) -> GameResult<Message> {
+        RaiseDeadPlayed::try_get_message(self, game)
     }
 
 }

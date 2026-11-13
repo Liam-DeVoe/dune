@@ -126,7 +126,7 @@ impl DealAccepted {
             .cloned()
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let m = self.get_message(game).with_log(AsideLog::aside());
         self.log_objects(game, vec![m.into()]);
         // Saved games from before acceptances were recorded replay without
@@ -171,7 +171,7 @@ impl DealAccepted {
                             let from = game.player_mut(offer_initiator);
                             from.resources = from.resources.wrapping_sub(self.benefit);
                             let _ = game.bribes_during_mentat();
-                            throw!(NullReferenceException);
+                            game_error!("A required value is missing");
                         }
                     }
                     game.stone(Milestone::Bribe);
@@ -182,6 +182,7 @@ impl DealAccepted {
                 self.handle_accepted_bot_deal(game, &offer);
             }
         }
+        Ok(())
     }
 
     pub fn handle_accepted_bot_deal(&self, game: &mut Game, offer: &Rc<DealOffered>) {
@@ -247,7 +248,7 @@ impl GameEventMethods for DealAccepted {
         DealAccepted::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         DealAccepted::execute_concrete_event(self, game)
     }
 

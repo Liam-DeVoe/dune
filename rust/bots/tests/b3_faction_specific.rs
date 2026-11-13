@@ -166,7 +166,7 @@ fn run(name: &str) {
                 e.initialize_game(game);
                 game.map.mark_neighbour_cache_stale();
                 let (validate, is_host) = (o["validate"].as_bool().unwrap(), o["isHost"].as_bool().unwrap());
-                let _ = cs::catch(|| e.execute(game, validate, is_host));
+                e.execute(game, validate, is_host);
 
                 let n = o["n"].as_i64().unwrap();
                 let Some(list) = probes.get(&n) else { continue };
@@ -190,16 +190,19 @@ fn run(name: &str) {
                     let b = &mut bot.as_mut().unwrap().1;
                     let m = p["m"].as_str().unwrap();
                     let a: Vec<String> = p["a"].as_array().unwrap().iter().map(|v| v.as_str().unwrap().to_string()).collect();
-                    let actual = match cs::catch(|| call(game, b, m, &a)) {
+                    // A probe that throws in C# must panic in Rust. The exception type and message
+                    // aren't compared.
+                    let actual = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| call(game, b, m, &a))) {
                         Ok(r) => r,
-                        Err(e) => format!("EX:{}: {}", cs::full_type_name(e.type_name), e.message),
+                        Err(_) => "EX".to_string(),
                     };
                     let draws = b.random.get_count() as i64;
                     let (expected, expected_draws) = (p["r"].as_str().unwrap(), p["d"].as_i64().unwrap());
+                    let expected = if expected.starts_with("EX:") { "EX" } else { expected };
                     count += 1;
                     let entry = by_method.entry(m.to_string()).or_default();
                     entry.0 += 1;
-                    if !expected.starts_with("EX:") && expected != "null" {
+                    if expected != "EX" && expected != "null" {
                         entry.1 += 1;
                     }
                     if actual != expected || draws != expected_draws {

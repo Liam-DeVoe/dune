@@ -225,7 +225,7 @@ fn run(name: &str) {
                 e.initialize_game(game);
                 game.map.mark_neighbour_cache_stale();
                 let (validate, is_host) = (o["validate"].as_bool().unwrap(), o["isHost"].as_bool().unwrap());
-                let _ = cs::catch(|| e.execute(game, validate, is_host));
+                e.execute(game, validate, is_host);
 
                 let n = o["n"].as_i64().unwrap();
                 let Some(list) = probes.get(&n) else { continue };
@@ -242,23 +242,25 @@ fn run(name: &str) {
 
                     let saved = setup(game, player, m, &a);
                     let g: &Game = game;
-                    let outcome = catch_unwind(AssertUnwindSafe(|| cs::catch(|| call(g, &mut bot, m, &a))));
+                    let outcome = catch_unwind(AssertUnwindSafe(|| call(g, &mut bot, m, &a)));
                     undo(game, player, saved);
 
+                    // A probe that throws in C# must panic in Rust. The exception type and message
+                    // aren't compared.
                     let actual = match outcome {
-                        Ok(Ok(r)) => r,
-                        Ok(Err(e)) => format!("EX:{}: {}", cs::full_type_name(e.type_name), e.message),
+                        Ok(r) => r,
                         Err(payload) => {
                             let text = panic_text(&*payload);
                             if text.contains("not yet implemented") {
                                 *skipped.entry(text).or_default() += 1;
                                 continue;
                             }
-                            panic!("step {n} player {pi} {m}({}): Rust panicked: {text}", a.join(", "));
+                            "EX".to_string()
                         }
                     };
                     let draws = bot.random.get_count() as i64;
                     let (expected, expected_draws) = (p["r"].as_str().unwrap(), p["d"].as_i64().unwrap());
+                    let expected = if expected.starts_with("EX:") { "EX" } else { expected };
                     count += 1;
                     if actual != expected || draws != expected_draws {
                         failures.push(format!(

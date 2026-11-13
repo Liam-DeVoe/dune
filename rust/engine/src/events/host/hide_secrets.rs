@@ -26,8 +26,9 @@ impl HideSecrets {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.secrets_remain_hidden.push(self.initiator());
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -53,7 +54,7 @@ impl GameEventMethods for HideSecrets {
         HideSecrets::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         HideSecrets::execute_concrete_event(self, game)
     }
 

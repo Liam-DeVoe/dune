@@ -58,9 +58,10 @@ impl HMSAdvantageChosen {
         result
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
         game.chosen_hms_advantage = Some(self.advantage);
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -86,7 +87,7 @@ impl GameEventMethods for HMSAdvantageChosen {
         HMSAdvantageChosen::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         HMSAdvantageChosen::execute_concrete_event(self, game)
     }
 

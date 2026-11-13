@@ -52,24 +52,25 @@ impl DiscardedSearched {
         game.player(p).has_treachery_card_type(TreacheryCardType::SearchDiscarded)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
 
         for i in 0..game.players.len() {
-            let items = game.treachery_discard_pile.as_ref().nre().items.clone();
+            let items = game.treachery_discard_pile.as_ref().required("treachery discard pile")?.items.clone();
             Game::unregister_known_player_i_enumerable_treachery_card(game, game.player_at(i), &items);
         }
 
         let card = self.card();
-        cs::list_remove(&mut game.treachery_discard_pile.as_mut().nre().items, card);
+        cs::list_remove(&mut game.treachery_discard_pile.as_mut().required("treachery discard pile")?.items, card);
         let me = self.player();
         // C# adds `Card!` even when it is null (only reachable without validation).
         game.player_mut(me).treachery_cards.push(card.or_null());
-        game.treachery_discard_pile.as_mut().nre().shuffle();
-        game.discard(me, TreacheryCardType::SearchDiscarded);
+        game.treachery_discard_pile.as_mut().required("treachery discard pile")?.shuffle();
+        game.discard(me, TreacheryCardType::SearchDiscarded)?;
         let phase = game.phase_before_searching_discarded;
         game.enter(phase, true);
         game.stone(Milestone::Shuffled);
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -95,7 +96,7 @@ impl GameEventMethods for DiscardedSearched {
         DiscardedSearched::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         DiscardedSearched::execute_concrete_event(self, game)
     }
 

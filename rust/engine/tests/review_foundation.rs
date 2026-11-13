@@ -14,7 +14,7 @@ use treachery_engine::random::SharedRandom;
 use treachery_engine::messages::message::{PlanSummary, Route};
 
 fn exception_text<R>(f: impl FnOnce() -> R) -> String {
-    match cs::catch(f) {
+    match cs::catch_panic(f) {
         Ok(_) => "no exception".to_string(),
         Err(e) => format!("{}: {}", e.type_name, e.message),
     }
@@ -214,12 +214,11 @@ fn float_to_cs_string_infinity() {
     assert_eq!(ExpressionElement::Float(f32::INFINITY).to_cs_string(), "Infinity");
 }
 
-/// Probe `msg_exception`. Exception.ToString uses the full type name, and
-/// KeyNotFoundException lives in System.Collections.Generic.
+/// A game error prints as its message.
 #[test]
-fn exception_to_cs_string_namespace() {
-    let e = cs::CsException { type_name: "KeyNotFoundException", message: "k".to_string() };
-    assert_eq!(ExpressionElement::Exception(e).to_cs_string(), "System.Collections.Generic.KeyNotFoundException: k");
+fn game_error_to_cs_string() {
+    let e = treachery_engine::error::GameError::new("Cannot draw from an empty deck");
+    assert_eq!(ExpressionElement::Error(e).to_cs_string(), "Cannot draw from an empty deck");
 }
 
 /// Probe `msg_list`. Known and documented in expression.rs; listed for completeness.

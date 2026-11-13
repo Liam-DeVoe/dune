@@ -154,7 +154,7 @@ impl LoserConcluded {
         result
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         if let Some(kept_card) = self.kept_card() {
             if game.secret_ally_allows_keeping_cards_after_losing_battle {
                 game.secret_ally_allows_keeping_cards_after_losing_battle = false;
@@ -169,7 +169,7 @@ impl LoserConcluded {
         let to_discard: Vec<TreacheryCard> =
             game.cards_to_be_discarded_by_loser_after_battle.iter().copied().filter(|c| Some(*c) != kept_card).collect();
         for c in to_discard {
-            game.discard_treachery_card_boolean(Some(c), true);
+            game.discard_treachery_card_boolean(Some(c), true)?;
         }
 
         game.cards_to_be_discarded_by_loser_after_battle.clear();
@@ -182,12 +182,12 @@ impl LoserConcluded {
             || self.karma_forced_kept_card_decision == LoserConcluded::KARMA_KEEP
         {
             game.battle_winner_may_choose_to_discard = false;
-            game.discard(self.player(), TreacheryCardType::Karma);
+            game.discard(self.player(), TreacheryCardType::Karma)?;
             game.stone(Milestone::Karma);
 
             for c in self.forced_kept_or_discarded_cards() {
                 if self.karma_forced_kept_card_decision == LoserConcluded::KARMA_DISCARD {
-                    let winner_faction = game.player(winner.nre()).faction;
+                    let winner_faction = game.player(winner.required("winner")?).faction;
                     self.log_objects(
                         game,
                         vec![
@@ -201,11 +201,11 @@ impl LoserConcluded {
                             c.into(),
                         ],
                     );
-                    if game.player(winner.nre()).has(Some(c)) {
-                        game.discard_treachery_card_boolean(Some(c), true);
+                    if game.player(winner.required("winner")?).has(Some(c)) {
+                        game.discard_treachery_card_boolean(Some(c), true)?;
                     }
                 } else if self.karma_forced_kept_card_decision == LoserConcluded::KARMA_KEEP {
-                    let winner_faction = game.player(winner.nre()).faction;
+                    let winner_faction = game.player(winner.required("winner")?).faction;
                     self.log_objects(
                         game,
                         vec![
@@ -219,12 +219,12 @@ impl LoserConcluded {
                             c.into(),
                         ],
                     );
-                    let pile = game.treachery_discard_pile.as_mut().nre();
+                    let pile = game.treachery_discard_pile.as_mut().required("treachery discard pile")?;
                     if pile.items.contains(&c) {
                         if let Some(pos) = pile.items.iter().position(|x| *x == c) {
                             pile.items.remove(pos);
                         }
-                        game.player_mut(winner.nre()).treachery_cards.push(c);
+                        game.player_mut(winner.required("winner")?).treachery_cards.push(c);
                     }
                 }
             }
@@ -278,11 +278,12 @@ impl LoserConcluded {
         if game.battle_was_concluded_by_winner {
             let condition1 = !self.is_playing(game, Faction::Tleilaxu) || game.battle_winner == Some(Faction::Tleilaxu);
             if condition1 {
-                Game::finish_battle(game);
+                Game::finish_battle(game)?;
             } else {
                 game.enter(Phase::RevealingFacedancer, true);
             }
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -308,7 +309,7 @@ impl GameEventMethods for LoserConcluded {
         LoserConcluded::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         LoserConcluded::execute_concrete_event(self, game)
     }
 

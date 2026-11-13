@@ -32,7 +32,7 @@ fn fremen_with_dangling_ally() -> (Game, PlayerIndex) {
 fn rides_valid_targets_contains_is_lazy() {
     let (g, y) = fremen_with_dangling_ally();
     let polar_sink = g.map.polar_sink();
-    let r = cs::catch(|| FremenRidesMonster::valid_targets(&g, y).any(|v| v == polar_sink));
+    let r = cs::catch_panic(|| FremenRidesMonster::valid_targets(&g, y).any(|v| v == polar_sink));
     assert_eq!(r.map_err(|e| format!("{}:{}", e.type_name, e.message)), Ok(true));
 }
 
@@ -42,7 +42,7 @@ fn rides_valid_targets_contains_is_lazy() {
 fn rides_valid_targets_later_location_throws_in_both() {
     let (g, y) = fremen_with_dangling_ally();
     let arrakeen = g.map.arrakeen();
-    let r = cs::catch(|| FremenRidesMonster::valid_targets(&g, y).any(|v| v == arrakeen));
+    let r = cs::catch_panic(|| FremenRidesMonster::valid_targets(&g, y).any(|v| v == arrakeen));
     assert_eq!(r.err().map(|e| e.type_name), Some("NullReferenceException"));
 }
 

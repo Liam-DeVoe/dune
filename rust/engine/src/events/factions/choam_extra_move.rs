@@ -26,7 +26,7 @@ impl ChoamExtraMove {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
 
         let me = self.player();
@@ -36,11 +36,12 @@ impl ChoamExtraMove {
             game.let_player_discard_treachery_card_of_choice(self.initiator());
         } else {
             let card = ChoamExtraMove::card_to_use(game, me);
-            game.discard_treachery_card_boolean(card, true);
+            game.discard_treachery_card_boolean(card, true)?;
         }
 
         game.choam_has_extra_move = true;
         game.stone(Milestone::SpecialUselessPlayed);
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -77,7 +78,7 @@ impl GameEventMethods for ChoamExtraMove {
         ChoamExtraMove::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         ChoamExtraMove::execute_concrete_event(self, game)
     }
 

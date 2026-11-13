@@ -45,7 +45,7 @@ impl Discarded {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let initiator = self.initiator();
         if let Some(i) = game.factions_that_must_discard.iter().position(|f| *f == initiator) {
             game.factions_that_must_discard.remove(i);
@@ -61,6 +61,7 @@ impl Discarded {
             let phase = game.phase_before_discarding;
             game.enter(phase, true);
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -86,7 +87,7 @@ impl GameEventMethods for Discarded {
         Discarded::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         Discarded::execute_concrete_event(self, game)
     }
 

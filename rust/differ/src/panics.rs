@@ -30,13 +30,11 @@ thread_local! {
 pub fn install() {
     static ONCE: Once = Once::new();
     ONCE.call_once(|| {
-        // Let the engine install its own hook first, so ours runs outermost.
-        let _ = treachery_engine::compat::cs::catch(|| ());
         let print = std::env::var_os("DIFFER_PRINT_PANICS").is_some();
         let previous = panic::take_hook();
         panic::set_hook(Box::new(move |info| {
             let payload = info.payload();
-            let cs = payload.downcast_ref::<CsException>().cloned();
+            let cs = crate::replay::as_exception(payload);
             let message = if let Some(e) = &cs {
                 format!("{}: {}", treachery_engine::compat::cs::full_type_name(e.type_name), e.message)
             } else if let Some(s) = payload.downcast_ref::<&str>() {

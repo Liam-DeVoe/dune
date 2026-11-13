@@ -83,7 +83,7 @@ fn shipment_determine_cost_abs_overflows() {
     let mut s = Shipment::default();
     s.to_id = g.map.the_great_flat().id();
     s.force_amount = i32::MIN;
-    let r = cs::catch(|| Shipment::determine_cost(&g, emperor, &s));
+    let r = cs::catch_panic(|| Shipment::determine_cost(&g, emperor, &s));
     assert_eq!(r.unwrap_err().type_name, "OverflowException");
 }
 
@@ -126,11 +126,11 @@ fn shipment_parse_force_locations() {
     assert_eq!(Shipment::parse_force_locations(&g, Faction::Emperor, None).len(), 0);
     assert_eq!(Shipment::parse_force_locations(&g, Faction::Emperor, Some("")).len(), 0);
 
-    let e = cs::catch(|| Shipment::parse_force_locations(&g, Faction::Emperor, Some("5"))).unwrap_err();
+    let e = cs::catch_panic(|| Shipment::parse_force_locations(&g, Faction::Emperor, Some("5"))).unwrap_err();
     assert_eq!(e.type_name, "IndexOutOfRangeException");
-    let e = cs::catch(|| Shipment::parse_force_locations(&g, Faction::Emperor, Some("x:1|1"))).unwrap_err();
+    let e = cs::catch_panic(|| Shipment::parse_force_locations(&g, Faction::Emperor, Some("x:1|1"))).unwrap_err();
     assert_eq!(e.type_name, "FormatException");
-    let e = cs::catch(|| Shipment::parse_force_locations(&g, Faction::Emperor, Some("5:1|1,5:2|2"))).unwrap_err();
+    let e = cs::catch_panic(|| Shipment::parse_force_locations(&g, Faction::Emperor, Some("5:1|1,5:2|2"))).unwrap_err();
     assert_eq!(e.type_name, "ArgumentException");
     // A missing location is skipped before its amounts are parsed.
     assert_eq!(Shipment::parse_force_locations(&g, Faction::Emperor, Some("-1:x")).len(), 0);
@@ -156,9 +156,9 @@ fn set_shipment_permission_messages_and_duplicates() {
     let mut e = SetShipmentPermission::default();
     e.base.initiator.set(Faction::Guild);
     e.base.player.set(Some(idx(&g, Faction::Guild)));
+    // No factions at all is refused (C# threw ArgumentNullException from `Any`).
     e.factions = None;
-    let r = cs::catch(|| e.validate(&g)).unwrap_err();
-    assert_eq!(r.type_name, "ArgumentNullException");
+    assert!(e.validate(&g).is_some());
     e.factions = Some(vec![]);
     assert!(e.validate(&g).is_some());
     e.factions = Some(vec![Faction::Guild]);

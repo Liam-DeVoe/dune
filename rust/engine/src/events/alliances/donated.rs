@@ -45,12 +45,13 @@ impl Donated {
             return None;
         }
 
-        // MayDonate(Game, Player) only dereferences a null Player inside HasBidToPay.
+        // MayDonate(Game, Player) only dereferences a null Player inside HasBidToPay, where C#
+        // threw NullReferenceException.
         let may_donate = match self.player_opt() {
             Some(p) => Donated::may_donate(game, p),
             None => {
                 if game.current_phase == Phase::Bidding && game.current_bid.is_some() {
-                    throw!(NullReferenceException);
+                    return Some(express!("You are not playing"));
                 }
                 true
             }
@@ -113,7 +114,7 @@ impl Donated {
         game.player(p).resources
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         // `GetPlayer(Target)!` does not throw; a null target throws where it is dereferenced.
         let target = self.get_player(game, Some(self.target));
 
@@ -126,10 +127,10 @@ impl Donated {
                     let from = game.player_mut(me);
                     from.resources = from.resources.wrapping_sub(self.resources);
                     let _ = game.bribes_during_mentat();
-                    throw!(NullReferenceException);
+                    game_error!("A required value is missing");
                 }
             }
-            let target = target.nre();
+            let target = target.required("target")?;
 
             if let Some(card) = self.card() {
                 let me = self.player();
@@ -159,8 +160,8 @@ impl Donated {
             game.stone(Milestone::Bribe);
         } else if self.resources < 0 {
             let abs = dotnet_compat::math::abs_i32(self.resources);
-            let resources_to_take = abs.min(game.player(target.nre()).resources);
-            let target = target.nre();
+            let resources_to_take = abs.min(game.player(target.required("target")?).resources);
+            let target = target.required("target")?;
             self.log_objects(
                 game,
                 vec![
@@ -187,9 +188,10 @@ impl Donated {
                     " Bank".into(),
                 ],
             );
-            let t = game.player_mut(target.nre());
+            let t = game.player_mut(target.required("target")?);
             t.resources = t.resources.wrapping_add(self.resources);
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -222,7 +224,7 @@ impl GameEventMethods for Donated {
         Donated::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         Donated::execute_concrete_event(self, game)
     }
 

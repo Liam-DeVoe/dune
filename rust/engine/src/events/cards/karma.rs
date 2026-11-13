@@ -289,8 +289,8 @@ impl Karma {
         Karma::valid_karma_cards(g, p).next().is_some()
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
-        game.discard_treachery_card_boolean(self.card(), false);
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+        game.discard_treachery_card_boolean(self.card(), false)?;
         let effect: Vec<ExpressionElement> = if self.prevented == FactionAdvantage::None {
             vec![]
         } else {
@@ -325,8 +325,9 @@ impl Karma {
         if self.prevented == FactionAdvantage::FremenRidesMonster
             && matches!(game.current_phase, Phase::FremenRidingMonsterA | Phase::FremenRidingMonsterB)
         {
-            game.determine_next_shipment_and_move_sub_phase();
+            game.determine_next_shipment_and_move_sub_phase()?;
         }
+        Ok(())
     }
 
     pub fn revoke_battle_plans_if_needed(&self, game: &mut Game) {
@@ -351,17 +352,21 @@ impl Karma {
         }
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    pub fn try_get_message(&self, _game: &Game) -> GameResult<Message> {
         // C# parity: the doubled space in "play  a" (hazards 11.x) comes from the empty ExpressIf part.
-        let card = self.card();
-        express!(
+        let card = self.card().required("card")?;
+        Ok(express!(
             self.initiator(),
             " play ",
-            express_part_if!(card.nre().type_() != TreacheryCardType::Karma; card, " as "),
+            express_part_if!(card.type_() != TreacheryCardType::Karma; card, " as "),
             " a ",
             TreacheryCardType::Karma,
             " card"
-        )
+        ))
+    }
+
+    pub fn get_message(&self, game: &Game) -> Message {
+        self.try_get_message(game).expect("the message of an applicable Karma event")
     }
 }
 
@@ -382,12 +387,16 @@ impl GameEventMethods for Karma {
         Karma::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         Karma::execute_concrete_event(self, game)
     }
 
     fn get_message(&self, game: &Game) -> Message {
         Karma::get_message(self, game)
+    }
+
+    fn try_get_message(&self, game: &Game) -> GameResult<Message> {
+        Karma::try_get_message(self, game)
     }
 
 }

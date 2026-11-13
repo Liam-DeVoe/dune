@@ -29,7 +29,7 @@ impl Game {
         // (Leader)h: only a Leader has HeroType Vidal, so this cast never fails in practice.
         let leader_to_remove = match h.as_leader() {
             Some(l) => l,
-            None => throw!(InvalidCastException, "Unable to cast object of type 'Treachery.Shared.Messiah' to type 'Treachery.Shared.Leader'."),
+            None => panic!("Unable to cast object of type 'Treachery.Shared.Messiah' to type 'Treachery.Shared.Leader'."),
         };
         list_remove(&mut self.player_mut(current_owner.nre()).leaders, &leader_to_remove);
         let ecaz = self.get_player(Some(Faction::Ecaz));

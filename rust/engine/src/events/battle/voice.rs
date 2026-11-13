@@ -104,7 +104,7 @@ impl Voice {
                         Some(opponent) => g.is_occupied_by_faction_or_their_ally(World::BeneGesserit, opponent),
                         None => {
                             if g.occupier_of(World::BeneGesserit).is_some() {
-                                crate::throw!(NullReferenceException)
+                                panic!("A required value is missing")
                             }
                             false
                         }
@@ -167,7 +167,7 @@ impl Voice {
         false
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.current_voice = Some(self.clone());
 
         if !self.is_playing(game, Faction::BeneGesserit) {
@@ -185,6 +185,7 @@ impl Voice {
 
         self.log(game);
         game.stone(Milestone::Voice);
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -212,7 +213,7 @@ impl GameEventMethods for Voice {
         Voice::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         Voice::execute_concrete_event(self, game)
     }
 

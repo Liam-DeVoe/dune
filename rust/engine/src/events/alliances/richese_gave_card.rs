@@ -43,7 +43,7 @@ impl RicheseGaveCard {
         game.player(p).treachery_cards.iter().copied().filter(move |c| c.rules().contains(&Rule::RicheseTreacheryCards))
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let me = self.player();
         let target = game.player(me).allied_player(game);
 
@@ -51,7 +51,7 @@ impl RicheseGaveCard {
         crate::game::remove_card(&mut game.player_mut(me).treachery_cards, card);
         Game::register_known_player_treachery_card(game, me, card);
         // C# adds a null card to the ally's hand when the card id is unknown.
-        let target = target.nre();
+        let target = target.required("target")?;
         game.player_mut(target).treachery_cards.push(card.or_null());
 
         let others: Vec<PlayerIndex> = game.player_indices().filter(|p| *p != me && *p != target).collect();
@@ -63,6 +63,7 @@ impl RicheseGaveCard {
         }
 
         self.log(game);
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -88,7 +89,7 @@ impl GameEventMethods for RicheseGaveCard {
         RicheseGaveCard::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         RicheseGaveCard::execute_concrete_event(self, game)
     }
 

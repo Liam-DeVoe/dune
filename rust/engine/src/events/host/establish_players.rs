@@ -164,25 +164,21 @@ impl EstablishPlayers {
 
     /// Overrides `GameEvent.Execute` (hazards 1.2): no try/catch, no applicability check,
     /// `RecentMilestones` is not cleared.
-    pub fn execute(self: &Rc<Self>, game: &mut Game, perform_validation: bool, _is_host: bool) -> Option<Message> {
-        let ev = self.clone().into_event();
+    pub fn try_execute(self: &Rc<Self>, game: &mut Game, perform_validation: bool, _is_host: bool) -> GameResult<Option<Message>> {
         if perform_validation {
-            let result = self.validate(game);
-            if result.is_none() {
-                game.perform_pre_event_tasks(&ev);
-                self.execute_concrete_event(game);
-                game.perform_post_event_tasks(&ev, true);
+            if let Some(refusal) = self.validate(game) {
+                return Ok(Some(refusal));
             }
-            return result;
         }
 
+        let ev = self.clone().into_event();
         game.perform_pre_event_tasks(&ev);
-        self.execute_concrete_event(game);
+        self.execute_concrete_event(game)?;
         game.perform_post_event_tasks(&ev, true);
-        None
+        Ok(None)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.start_report(MainPhase::Setup);
         self.log_objects(game, vec!["Game started!".into()]);
         game.stone(Milestone::GameStarted);
@@ -202,7 +198,7 @@ impl EstablishPlayers {
         // AllRules shares Settings.InitialRules; nothing mutates either afterwards, so a copy
         // is equivalent (engine-conventions.md). A null InitialRules is stored; the Where below
         // throws ArgumentNullException.
-        game.all_rules = game.settings.as_ref().nre().borrow().initial_rules.clone();
+        game.all_rules = game.settings.as_ref().required("settings")?.borrow().initial_rules.clone();
 
         game.rules = cs::linq_source(game.all_rules.as_ref()).iter().copied().filter(|r| Game::get_rule_group(*r) != RuleGroup::Bots).collect();
         game.rules_for_bots =
@@ -210,7 +206,7 @@ impl EstablishPlayers {
         let core_basic = Game::get_rules_in_group(RuleGroup::CoreBasic, Game::EXPANSION_LEVEL);
         game.rules.extend(core_basic);
 
-        let allowed = game.settings.as_ref().nre().borrow().allowed_factions_in_play.clone().nre();
+        let allowed = game.settings.as_ref().required("settings")?.borrow().allowed_factions_in_play.clone().required("allowed factions in play")?;
         game.ruleset = Game::determine_approximate_ruleset(&allowed.borrow(), &game.rules, Game::EXPANSION_LEVEL);
         let ruleset = game.ruleset;
         self.log_objects(game, vec!["Ruleset: ".into(), ruleset.into()]);
@@ -237,7 +233,7 @@ impl EstablishPlayers {
         self.create_discovery_tokens(game);
 
         if !game.applicable(Rule::CustomDecks) {
-            game.treachery_deck.as_mut().nre().shuffle();
+            game.treachery_deck.as_mut().required("treachery deck")?.shuffle();
             game.stone(Milestone::Shuffled);
         }
 
@@ -272,7 +268,7 @@ impl EstablishPlayers {
 
         // The same list object as Settings.AllowedFactionsInPlay (hazards 5.1). It cannot be
         // null here: DetermineApproximateRuleset above would have thrown.
-        game.factions_in_play = game.settings.as_ref().nre().borrow().allowed_factions_in_play.clone().nre();
+        game.factions_in_play = game.settings.as_ref().required("settings")?.borrow().allowed_factions_in_play.clone().required("allowed factions in play")?;
 
         self.fill_seats(game);
         self.remove_claimed_factions(game);
@@ -281,6 +277,7 @@ impl EstablishPlayers {
 
         let condition = game.applicable(Rule::PlayersChooseFactions);
         game.enter_boolean_phase_action(condition, Phase::SelectingFactions, Game::assign_factions_and_enter_faction_trade);
+        Ok(())
     }
 
     pub fn create_terror_tokens(&self, game: &mut Game) {
@@ -369,11 +366,11 @@ impl GameEventMethods for EstablishPlayers {
         EstablishPlayers::validate(self, game)
     }
 
-    fn execute(self: &Rc<Self>, game: &mut Game, perform_validation: bool, is_host: bool) -> Option<Message> {
-        EstablishPlayers::execute(self, game, perform_validation, is_host)
+    fn try_execute(self: &Rc<Self>, game: &mut Game, perform_validation: bool, is_host: bool) -> GameResult<Option<Message>> {
+        EstablishPlayers::try_execute(self, game, perform_validation, is_host)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         EstablishPlayers::execute_concrete_event(self, game)
     }
 

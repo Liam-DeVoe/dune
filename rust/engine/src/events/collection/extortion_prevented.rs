@@ -32,14 +32,15 @@ impl ExtortionPrevented {
             && g.extortion_to_be_returned
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
         game.extortion_to_be_returned = false;
         let p = game.player_mut(self.player());
         p.resources = p.resources.wrapping_sub(3);
-        let moritani = self.get_player(game, Some(Faction::Moritani)).nre();
+        let moritani = self.get_player(game, Some(Faction::Moritani)).required("get player")?;
         let c = game.player_mut(moritani);
         c.resources = c.resources.wrapping_add(3);
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -72,7 +73,7 @@ impl GameEventMethods for ExtortionPrevented {
         ExtortionPrevented::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         ExtortionPrevented::execute_concrete_event(self, game)
     }
 

@@ -1,9 +1,8 @@
+use crate::error::{GameError, GameResult};
 use crate::random::SharedRandom;
-use crate::throw;
 
-/// `Deck<T>`. `random` is `None` for a deck created from `Game.Random`
-/// before `EstablishPlayers` sets it; shuffling such a deck throws
-/// NullReferenceException.
+/// A deck of cards, tokens or leaders. `random` is `None` for a deck created before
+/// `EstablishPlayers` seeds the game; such a deck can't be shuffled.
 #[derive(Clone, Debug, canon_derive::Canon)]
 pub struct Deck<T> {
     pub items: Vec<T>,
@@ -38,12 +37,18 @@ impl<T: Clone> Deck<T> {
         self.items.push(item);
     }
 
-    /// `Draw()`; throws InvalidOperationException on an empty deck.
+    /// Takes the top item. Panics on an empty deck: use [`Deck::try_draw`] where the deck can
+    /// run out.
     pub fn draw(&mut self) -> T {
-        if !self.items.is_empty() {
-            return self.items.remove(0);
+        self.try_draw().expect("drawing from an empty deck")
+    }
+
+    /// Takes the top item, or fails the event on an empty deck.
+    pub fn try_draw(&mut self) -> GameResult<T> {
+        if self.items.is_empty() {
+            return Err(GameError::new("Cannot draw from an empty deck"));
         }
-        throw!(InvalidOperationException, "Cannot draw from an empty deck")
+        Ok(self.items.remove(0))
     }
 
     /// `Shuffle()`
@@ -53,7 +58,7 @@ impl<T: Clone> Deck<T> {
             None => {
                 // C# parity: with no items or one item, Shuffle never touches Random.
                 if self.items.len() > 1 {
-                    throw!(NullReferenceException, "{}", crate::compat::cs::NULL_REFERENCE_MESSAGE)
+                    panic!("shuffling a deck without a random generator")
                 }
             }
         }

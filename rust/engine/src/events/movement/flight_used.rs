@@ -36,10 +36,11 @@ impl FlightUsed {
         game.player(p).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Flight)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
-        game.discard(self.player(), TreacheryCardType::Flight);
+        game.discard(self.player(), TreacheryCardType::Flight)?;
         game.current_flight_used = Some(self.clone());
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -72,7 +73,7 @@ impl GameEventMethods for FlightUsed {
         FlightUsed::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         FlightUsed::execute_concrete_event(self, game)
     }
 

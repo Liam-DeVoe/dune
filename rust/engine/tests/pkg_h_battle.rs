@@ -1,7 +1,6 @@
 //! Focused tests for package H (battle plans and resolution). They build small
 //! game states by hand and check rules whose C# behaviour is easy to get wrong.
 
-use treachery_engine::compat::cs;
 use treachery_engine::prelude::*;
 
 fn game_with(factions: &[Faction]) -> Game {
@@ -112,18 +111,17 @@ fn battle_revision_moves_the_plan_aside() {
     let p = plan(&g, Faction::Atreides);
     g.defender_plan = Some(p.clone());
     let rev = Rc::new(BattleRevision::new(&g, Faction::Atreides));
-    rev.execute_concrete_event(&mut g);
+    rev.execute_concrete_event(&mut g).unwrap();
     assert!(g.defender_plan.is_none());
     assert!(Rc::ptr_eq(g.previous_defender_plan.as_ref().unwrap(), &p));
 }
 
 #[test]
-fn battle_revision_without_battle_throws() {
+fn battle_revision_without_battle_fails() {
     let mut g = game_with(&[Faction::Emperor]);
     let rev = Rc::new(BattleRevision::new(&g, Faction::Emperor));
-    let e = cs::catch(std::panic::AssertUnwindSafe(|| rev.execute_concrete_event(&mut g))).unwrap_err();
-    assert_eq!(e.type_name, "Exception");
-    assert_eq!(e.message, "BattleRevision event executed when there is no current battle");
+    let e = rev.execute_concrete_event(&mut g).unwrap_err();
+    assert_eq!(e.message(), "BattleRevision event executed when there is no current battle");
 }
 
 #[test]
@@ -185,7 +183,7 @@ fn lose_cards_skips_cards_the_player_no_longer_has() {
     p.set_weapon(Some(card));
     // _defenseCardId defaults to 0, which Lookup.Find resolves to card 0 (Battle.cs:63).
     p.set_defense(None);
-    g.lose_cards(&p, true);
+    g.lose_cards(&p, true).unwrap();
     assert!(g.cards_to_be_discarded_by_loser_after_battle.is_empty());
 }
 

@@ -154,11 +154,19 @@ fn deck() {
         let r = SharedRandom::from_seed(seed);
         let mut d = Deck::new(0..size, Some(r.clone()));
         d.shuffle();
-        let drawn: Vec<Value> = (0..=size).map(|_| try_enc(|| d.draw())).collect();
+        // Drawing from the empty deck at the end fails. C# threw an exception there, Rust returns
+        // a GameError: both are encoded as "x:error", without the exception type or message.
+        let drawn: Vec<Value> = (0..=size).map(|_| d.try_draw().map_or_else(|_| json!("x:error"), |v| v.enc())).collect();
+        let expected_drawn: Vec<Value> = e["drawn"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| if v.as_str().is_some_and(|s| s.starts_with("x:")) { json!("x:error") } else { v.clone() })
+            .collect();
         // Deck<int>.Top of an empty deck is default(int).
         let top = try_enc(|| d.top().unwrap_or_default());
         let actual = json!({ "drawn": drawn, "top": top, "count": r.get_count(), "next": r.next(1000) });
-        let expected = json!({ "drawn": e["drawn"], "top": e["top"], "count": e["count"], "next": e["next"] });
+        let expected = json!({ "drawn": expected_drawn, "top": e["top"], "count": e["count"], "next": e["next"] });
         failures.check(|| format!("{e}"), &expected, &actual);
     }
     failures.finish("Deck");

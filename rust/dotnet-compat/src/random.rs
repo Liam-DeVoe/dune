@@ -97,7 +97,7 @@ impl NetRandom {
         self.internal_sample()
     }
 
-    /// `Random.Next(maxValue)`; throws (as a [`crate::exception::CsException`] panic) if max < 0.
+    /// `Random.Next(maxValue)`; panics if max < 0, as .NET throws.
     /// `Next(0)` returns 0 but still consumes one sample, as in .NET.
     pub fn next_max(&mut self, max_value: i32) -> i32 {
         if max_value < 0 {

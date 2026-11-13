@@ -238,8 +238,8 @@ impl Game {
         }
     }
 
-    pub fn determine_next_shipment_and_move_sub_phase(&mut self) {
-        self.cleanup_obsolete_intrusions();
+    pub fn determine_next_shipment_and_move_sub_phase(&mut self) -> GameResult {
+        self.cleanup_obsolete_intrusions()?;
 
         if self.bene_gesserit_may_accompany {
             if self.prevented(FactionAdvantage::BeneGesseritAccompanies) {
@@ -258,33 +258,34 @@ impl Game {
             self.enter(Phase::StormLosses, true);
         } else if !self.intrusions.is_empty() {
             match self.intrusions[0].type_ {
-                IntrusionType::BeneGesseritIntrusion => self.determine_next_shipment_and_move_sub_phase_on_bene_gesserit_intruded(),
-                IntrusionType::Terror => self.determine_next_shipment_and_move_sub_phase_on_terror_triggered(),
-                IntrusionType::Ambassador => self.determine_next_shipment_and_move_sub_phase_on_ambassador_triggered(),
+                IntrusionType::BeneGesseritIntrusion => self.determine_next_shipment_and_move_sub_phase_on_bene_gesserit_intruded()?,
+                IntrusionType::Terror => self.determine_next_shipment_and_move_sub_phase_on_terror_triggered()?,
+                IntrusionType::Ambassador => self.determine_next_shipment_and_move_sub_phase_on_ambassador_triggered()?,
                 _ => {}
             }
         } else {
             self.determine_next_shipment_and_move_sub_phase_on_no_intrusion();
         }
 
-        self.skip_move_if_nothing_to_move();
+        self.skip_move_if_nothing_to_move()?;
+        Ok(())
     }
 
-    pub fn skip_move_if_nothing_to_move(&mut self) {
+    pub fn skip_move_if_nothing_to_move(&mut self) -> GameResult {
         if !matches!(self.current_phase, Phase::GuildMove | Phase::NonGuildMove) {
-            return;
+            return Ok(());
         }
 
         let player = if self.current_phase == Phase::GuildMove {
             self.get_player(Some(Faction::Guild))
         } else {
-            self.shipment_and_move_sequence.as_ref().nre().current_player(self)
+            self.shipment_and_move_sequence.as_ref().required("shipment and move sequence")?.current_player(self)
         };
 
-        let Some(player) = player else { return };
+        let Some(player) = player else { return Ok(()) };
 
         if !PlacementEvent::valid_movement_sources(self, player).is_empty() {
-            return;
+            return Ok(());
         }
 
         self.storm_losses_to_take.clear();
@@ -292,12 +293,12 @@ impl Game {
         self.has_acted_or_passed.push(pf);
 
         if self.current_phase == Phase::NonGuildMove {
-            let mut seq = self.shipment_and_move_sequence.take().nre();
+            let mut seq = self.shipment_and_move_sequence.take().required("shipment and move sequence")?;
             seq.next_player(self);
             self.shipment_and_move_sequence = Some(seq);
-            let current_is_guild = self.shipment_and_move_sequence.as_ref().nre().current_faction(self) == Faction::Guild;
+            let current_is_guild = self.shipment_and_move_sequence.as_ref().required("shipment and move sequence")?.current_faction(self) == Faction::Guild;
             if current_is_guild && self.guild_may_ship_out_of_turn_order() {
-                let mut seq = self.shipment_and_move_sequence.take().nre();
+                let mut seq = self.shipment_and_move_sequence.take().required("shipment and move sequence")?;
                 seq.next_player(self);
                 self.shipment_and_move_sequence = Some(seq);
             }
@@ -311,7 +312,7 @@ impl Game {
         let m = express!(pf, " pass movement").with_log(MovePassed::new(pf));
         self.log(elems![m]);
 
-        self.determine_next_shipment_and_move_sub_phase();
+        self.determine_next_shipment_and_move_sub_phase()?;
         self.check_if_forces_should_be_destroyed_by_ally_presence(player);
         self.flip_bene_gesserit_advisors_when_alone();
 
@@ -325,31 +326,38 @@ impl Game {
         self.current_flight_used = None;
         self.current_flight_discovery_used = None;
         self.current_planetology = None;
+        Ok(())
     }
 
-    pub fn cleanup_obsolete_intrusions(&mut self) {
+    pub fn cleanup_obsolete_intrusions(&mut self) -> GameResult {
         if !self.intrusions.is_empty() {
             let mut i = 0;
             let mut search = true;
             while search {
                 i += 1;
                 if i > 100 {
-                    throw!(Exception, "Stuck");
+                    game_error!("Stuck");
                 }
 
-                if let Some(_bene_gesserit_intrusion) = self.last_bene_gesserit_intrusion()
-                    .filter(|bi| self.player(self.get_player(Some(Faction::BeneGesserit)).nre()).forces_in_territory(Some(bi.territory(self))) == 0)
-                {
-                    self.dequeue_intrusion(IntrusionType::BeneGesseritIntrusion);
+                let bene_gesserit_intrusion_is_obsolete = match self.last_bene_gesserit_intrusion() {
+                    Some(bi) => {
+                        let bene_gesserit = self.get_player(Some(Faction::BeneGesserit)).required("The Bene Gesserit player")?;
+                        self.player(bene_gesserit).forces_in_territory(Some(bi.territory(self))) == 0
+                    }
+                    None => false,
+                };
+                if bene_gesserit_intrusion_is_obsolete {
+                    self.dequeue_intrusion(IntrusionType::BeneGesseritIntrusion)?;
                 } else if self.last_terror_trigger().filter(|tt| self.terror_in(tt.territory(self)).next().is_none()).is_some() {
-                    self.dequeue_intrusion(IntrusionType::Terror);
+                    self.dequeue_intrusion(IntrusionType::Terror)?;
                 } else if self.last_ambassador_trigger().filter(|at| self.ambassador_in(at.territory(self)) == Ambassador::None).is_some() {
-                    self.dequeue_intrusion(IntrusionType::Ambassador);
+                    self.dequeue_intrusion(IntrusionType::Ambassador)?;
                 } else {
                     search = false;
                 }
             }
         }
+        Ok(())
     }
 
     pub fn determine_next_shipment_and_move_sub_phase_on_no_intrusion(&mut self) {
@@ -417,7 +425,7 @@ impl Game {
         }
     }
 
-    pub fn determine_next_shipment_and_move_sub_phase_on_bene_gesserit_intruded(&mut self) {
+    pub fn determine_next_shipment_and_move_sub_phase_on_bene_gesserit_intruded(&mut self) -> GameResult {
         let next = match self.current_phase {
             Phase::FremenRidingMonsterA
             | Phase::BeneGesseritIntrudedByFremenRidingMonsterA
@@ -451,12 +459,13 @@ impl Game {
 
             Phase::BeneGesseritIntrudedByRevival | Phase::TerrorTriggeredByRevival | Phase::AmbassadorTriggeredByRevival => Phase::BeneGesseritIntrudedByRevival,
 
-            _ => throw!(Exception, "BeneGesserit intrusion triggered during undefined phase: {}", self.current_phase),
+            _ => game_error!("BeneGesserit intrusion triggered during undefined phase: {}", self.current_phase),
         };
         self.enter(next, true);
+        Ok(())
     }
 
-    pub fn determine_next_shipment_and_move_sub_phase_on_terror_triggered(&mut self) {
+    pub fn determine_next_shipment_and_move_sub_phase_on_terror_triggered(&mut self) -> GameResult {
         let next = match self.current_phase {
             Phase::FremenRidingMonsterA
             | Phase::BeneGesseritIntrudedByFremenRidingMonsterA
@@ -485,12 +494,13 @@ impl Game {
 
             Phase::BeneGesseritIntrudedByRevival | Phase::TerrorTriggeredByRevival | Phase::AmbassadorTriggeredByRevival => Phase::TerrorTriggeredByRevival,
 
-            _ => throw!(Exception, "Terror triggered during undefined phase: {}", self.current_phase),
+            _ => game_error!("Terror triggered during undefined phase: {}", self.current_phase),
         };
         self.enter(next, true);
+        Ok(())
     }
 
-    pub fn determine_next_shipment_and_move_sub_phase_on_ambassador_triggered(&mut self) {
+    pub fn determine_next_shipment_and_move_sub_phase_on_ambassador_triggered(&mut self) -> GameResult {
         let next = match self.current_phase {
             Phase::FremenRidingMonsterA
             | Phase::BeneGesseritIntrudedByFremenRidingMonsterA
@@ -518,9 +528,10 @@ impl Game {
 
             Phase::BeneGesseritIntrudedByRevival | Phase::TerrorTriggeredByRevival | Phase::AmbassadorTriggeredByRevival => Phase::AmbassadorTriggeredByRevival,
 
-            _ => throw!(Exception, "Ambassador triggered during undefined phase: {}", self.current_phase),
+            _ => game_error!("Ambassador triggered during undefined phase: {}", self.current_phase),
         };
         self.enter(next, true);
+        Ok(())
     }
 
     pub fn check_if_forces_should_be_destroyed_by_ally_presence(&mut self, p: PlayerIndex) {
@@ -674,13 +685,13 @@ impl Game {
         }
     }
 
-    pub fn check_intrusion(&mut self, e: &GameEvent) -> bool {
+    pub fn check_intrusion(&mut self, e: &GameEvent) -> GameResult<bool> {
         let initiator = e.i_location_event_initiator();
-        let territory = e.to_location(self).nre().territory();
+        let territory = e.to_location(self).required("destination")?.territory();
         self.check_bene_gesserit_intrusion(e, initiator, territory);
         self.check_ambassador_triggered(e);
         self.check_terror_triggered(e);
-        !self.intrusions.is_empty()
+        Ok(!self.intrusions.is_empty())
     }
 
     pub fn check_bene_gesserit_intrusion(&mut self, e: &GameEvent, initiator: Faction, territory: Territory) {
@@ -739,15 +750,16 @@ impl Game {
         self.intrusions.push(Intrusion::new(e, type_));
     }
 
-    pub fn dequeue_intrusion(&mut self, type_: IntrusionType) {
+    pub fn dequeue_intrusion(&mut self, type_: IntrusionType) -> GameResult {
         if self.intrusions.is_empty() {
-            throw!(ArgumentException, "No intrusions to dequeue");
+            game_error!("No intrusions to dequeue");
         }
         if self.intrusions[0].type_ != type_ {
-            throw!(ArgumentException, "Wrong intrusion type: actual:{} vs expected:{}", type_, self.intrusions[0].type_);
+            game_error!("Wrong intrusion type: actual:{} vs expected:{}", type_, self.intrusions[0].type_);
         }
 
         self.intrusions.remove(0);
+        Ok(())
     }
 
     pub fn vidal(&self) -> Option<Leader> {

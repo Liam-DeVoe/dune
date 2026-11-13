@@ -26,8 +26,8 @@ impl AmalPlayed {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
-        game.discard(self.player(), TreacheryCardType::Amal);
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+        game.discard(self.player(), TreacheryCardType::Amal)?;
         self.log(game);
 
         for i in 0..game.players.len() {
@@ -41,6 +41,7 @@ impl AmalPlayed {
         }
 
         game.stone(Milestone::Amal);
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -65,7 +66,7 @@ impl GameEventMethods for AmalPlayed {
         AmalPlayed::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         AmalPlayed::execute_concrete_event(self, game)
     }
 

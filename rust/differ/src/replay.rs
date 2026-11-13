@@ -303,7 +303,7 @@ fn replay_with_progress(reader: Box<dyn BufRead>, opts: &Options, progress: Opti
 
 fn failure_from_panic(payload: Box<dyn std::any::Any + Send>, during: &str) -> Failure {
     let info = panics::take_last().unwrap_or_default();
-    if let Some(e) = payload.downcast_ref::<CsException>() {
+    if let Some(e) = as_exception(payload.as_ref()) {
         return Failure::Uncaught {
             during: during.to_string(),
             exception: format!("{}: {}", cs::full_type_name(e.type_name), e.message),
@@ -577,8 +577,13 @@ impl Replayer {
         };
         if line.kind == "step" {
             check("result", line.result.clone().unwrap_or_default(), produced.result.clone());
-            check("validation", raw_text(&line.validation), produced.validation.clone());
-            check("exception", raw_text(&line.exception), produced.exception.clone());
+            // An event that failed partway fails on both sides. C# records the exception's type and
+            // message; the engine reports its own GameError, so the texts aren't compared.
+            let both_failed = line.result.as_deref() == Some("error") && produced.result == "error";
+            if !both_failed {
+                check("validation", raw_text(&line.validation), produced.validation.clone());
+                check("exception", raw_text(&line.exception), produced.exception.clone());
+            }
             let expected_after = line.event_after.as_ref().or(line.event.as_ref()).map(|r| r.get().to_string()).unwrap_or_default();
             check("eventAfter", expected_after, produced.event_after.clone());
         }
@@ -676,7 +681,7 @@ impl Replayer {
         if overrides {
             panics::capture_backtraces(true);
         }
-        let result = cs::catch(|| ev.execute(game, validate, is_host));
+        let result = catch(|| ev.execute(game, validate, is_host));
         panics::capture_backtraces(false);
         let escaped_bt = panics::take_last().and_then(|p| p.backtrace);
 
@@ -717,7 +722,7 @@ impl Replayer {
             Some(e) => exception_json(phase.unwrap(), escaped.is_some(), e),
         };
         self.during = "serializing the event after execution".into();
-        produced.event_after = match cs::catch(|| treachery_engine::json::serialize(&ev)) {
+        produced.event_after = match catch(|| treachery_engine::json::serialize(&ev)) {
             Ok(s) => s,
             Err(_) => event_text.to_string(),
         };
@@ -730,7 +735,7 @@ impl Replayer {
     fn query(&mut self, line: &Line, text: &str, index: usize, player: Option<usize>, is_host: bool, expected: Option<&RawValue>) -> Result<(), Failure> {
         let game = self.game.as_mut().expect("header read");
         let p = player.map(|i| game.player_at(i));
-        let actual = match cs::catch(std::panic::AssertUnwindSafe(|| game.get_applicable_events(p, is_host))) {
+        let actual = match catch(std::panic::AssertUnwindSafe(|| game.get_applicable_events(p, is_host))) {
             Ok(types) => {
                 if let Some(i) = player {
                     if self.queried.len() <= i {
@@ -740,7 +745,7 @@ impl Replayer {
                 }
                 None
             }
-            Err(e) => Some(String::from_utf8(canon::dump_detached(&e, None)).unwrap()),
+            Err(e) => Some(exception_dump(&e)),
         };
         let expected = expected.map(|e| e.get());
         if actual.as_deref() == expected {
@@ -783,9 +788,9 @@ impl Replayer {
         self.during = format!("GameStatus.DetermineStatus (query {index} of line {})", self.at.as_deref().unwrap_or("?"));
         let game = self.game.as_mut().expect("header read");
         let p = player.map(|i| game.player_at(i));
-        let actual = match cs::catch(|| GameStatus::determine_status(game, p, is_player)) {
+        let actual = match catch(|| GameStatus::determine_status(game, p, is_player)) {
             Ok(status) => canon::dump_detached(&status as &dyn Canon, Some(game)),
-            Err(e) => canon::dump_detached(&e, Some(game)),
+            Err(e) => exception_dump(&e).into_bytes(),
         };
         if actual == expected.get().as_bytes() {
             return Ok(());
@@ -837,7 +842,7 @@ impl Replayer {
         let levels = if entry.end { &BOT_LEVELS[..] } else { &BOT_LEVELS[..4] };
         let bots = &mut self.bots;
         let queried = &self.queried;
-        let result = cs::catch(AssertUnwindSafe(|| -> Result<Option<(usize, &'static str, GameEvent)>, String> {
+        let result = catch(AssertUnwindSafe(|| -> Result<Option<(usize, &'static str, GameEvent)>, String> {
             for &level in levels {
                 for &i in &entry.order {
                     if i >= game.players.len() {
@@ -880,7 +885,7 @@ impl Replayer {
         let actual = match &result {
             Ok(Ok(Some((i, level, ev)))) => {
                 rust_label = Some(format!("{} at {level}", ev.event_type().name()));
-                let json = match cs::catch(AssertUnwindSafe(|| treachery_engine::json::serialize(ev))) {
+                let json = match catch(AssertUnwindSafe(|| treachery_engine::json::serialize(ev))) {
                     Ok(s) => s,
                     Err(e) => format!("{{\"$serializationError\":\"{}\"}}", cs::full_type_name(e.type_name)),
                 };
@@ -888,7 +893,7 @@ impl Replayer {
             }
             Ok(Ok(None)) => "no event".to_string(),
             Ok(Err(message)) => message.clone(),
-            Err(e) => format!("exception {}", String::from_utf8(canon::dump_detached(e, None)).unwrap()),
+            Err(e) => format!("exception {}", exception_dump(e)),
         };
         // What C# decided. Together with the level it names the Determine* method the difference is in.
         let label = if let Some(e) = &entry.exception {
@@ -938,7 +943,7 @@ impl Replayer {
         for i in 0..=count {
             let p = if i < count { Some(game.player_at(i)) } else { None };
             for host in [false, true] {
-                let r = cs::catch(|| game.get_applicable_events(p, host));
+                let r = catch(|| game.get_applicable_events(p, host));
                 out.push(match r {
                     Ok(types) => {
                         let mut w = CanonWriter::new(None);
@@ -952,7 +957,7 @@ impl Replayer {
                         w.arr_end();
                         String::from_utf8(w.out).unwrap()
                     }
-                    Err(e) => String::from_utf8(canon::dump_detached(&e, None)).unwrap(),
+                    Err(e) => exception_dump(&e),
                 });
             }
         }
@@ -1031,10 +1036,28 @@ fn event_type_of(event_json: &str) -> Option<String> {
     v.get("$type")?.as_str().map(|s| s.to_string())
 }
 
+/// Runs `f`; a panic whose message names a .NET exception (`"NullReferenceException: ..."`, as the
+/// engine's .NET helpers panic) becomes that exception, which the oracle's traces record. Any other
+/// panic continues.
+fn catch<R>(f: impl FnOnce() -> R) -> Result<R, CsException> {
+    match panic::catch_unwind(AssertUnwindSafe(f)) {
+        Ok(r) => Ok(r),
+        Err(payload) => match as_exception(payload.as_ref()) {
+            Some(e) => Err(e),
+            None => panic::resume_unwind(payload),
+        },
+    }
+}
+
+/// The .NET exception a panic payload names.
+pub fn as_exception(payload: &(dyn std::any::Any + Send)) -> Option<CsException> {
+    cs::exception_of(payload)
+}
+
 /// The first exception element of a "Game Error" message (`StepExecutor.FindException`).
 fn find_exception(m: &Message) -> Option<CsException> {
     m.expression.elements.iter().find_map(|e| match e {
-        ExpressionElement::Exception(ex) => Some(ex.clone()),
+        ExpressionElement::Error(ex) => Some(CsException { type_name: "Exception", message: ex.message().to_string() }),
         _ => None,
     })
 }
@@ -1055,6 +1078,22 @@ fn stack_phase(backtrace: Option<&str>) -> &'static str {
         }
     }
     "execute"
+}
+
+/// An exception as the oracle dumps it: `{"$type":"$Exception","message":...,"type":<full name>}`.
+fn exception_dump(e: &CsException) -> String {
+    let mut w = CanonWriter::new(None);
+    w.obj_start();
+    w.key("$type");
+    w.string("$Exception");
+    w.comma();
+    w.key("message");
+    w.string(&e.message);
+    w.comma();
+    w.key("type");
+    w.string(&cs::full_type_name(e.type_name));
+    w.obj_end();
+    String::from_utf8(w.out).unwrap()
 }
 
 fn exception_json(phase: &str, escaped: bool, e: &CsException) -> String {

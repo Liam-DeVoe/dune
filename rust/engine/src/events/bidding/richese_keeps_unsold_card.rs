@@ -29,9 +29,9 @@ impl RicheseKeepsUnsoldCard {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
-        let card = game.cards_on_auction.as_mut().nre().draw();
+        let card = game.cards_on_auction.as_mut().required("cards on auction")?.try_draw()?;
         game.register_won_card_as_known(card);
 
         if !self.passed {
@@ -43,6 +43,7 @@ impl RicheseKeepsUnsoldCard {
             game.removed_treachery_cards.push(card);
             game.finish_bid(None, None, card, false);
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -71,7 +72,7 @@ impl GameEventMethods for RicheseKeepsUnsoldCard {
         RicheseKeepsUnsoldCard::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         RicheseKeepsUnsoldCard::execute_concrete_event(self, game)
     }
 

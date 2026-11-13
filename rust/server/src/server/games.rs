@@ -1,7 +1,7 @@
 //! Creating, loading and closing games; joining, observing and leaving them; seats, hosts and
 //! the host's other controls.
 
-use treachery_engine::compat::cs::{self, Shared};
+use treachery_engine::compat::cs::Shared;
 use treachery_engine::enumerations::{ErrorType, GameListScope};
 use treachery_engine::game::Game;
 use treachery_engine::game::GameSettings;
@@ -16,20 +16,8 @@ use crate::wire::GameInitInfo;
 
 /// Loads a savegame into a game with the given participation, or says why it can't.
 pub fn load_savegame(savegame: &str, participation: &Shared<Participation>, restoring: bool) -> Result<Game, String> {
-    let outcome = cs::catch(|| {
-        let state = GameState::load(savegame);
-        let mut game = None;
-        let refused = Game::try_load(&state, participation, false, restoring, &mut game);
-        match (refused, game) {
-            (None, Some(game)) => Ok(game),
-            (Some(m), _) => Err(crate::render::message_to_string(&m)),
-            (None, None) => Err("the savegame has no game".to_string()),
-        }
-    });
-    match outcome {
-        Ok(r) => r,
-        Err(e) => Err(e.to_string()),
-    }
+    let state = GameState::load(savegame).map_err(|e| e.message)?;
+    Game::load(&state, participation, false, restoring).map_err(|m| crate::render::message_to_string(&m))
 }
 
 fn refuse_savegame(reason: String) -> CallError {

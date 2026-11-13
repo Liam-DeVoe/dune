@@ -38,28 +38,39 @@ impl ClairVoyancePlayed {
     }
 
     /// The boxed value as a message element: an enum, an `IHero`, a `Territory`, a float, or null.
+    /// Panics like .NET's parse when the parameter doesn't fit the question.
     pub fn parameter1(&self, game: &Game) -> ExpressionElement {
+        self.parse_parameter1(game).unwrap_or_else(|e| cs::throw(e.type_name, e.message))
+    }
+
+    /// [`parameter1`](Self::parameter1), failing the event when the parameter doesn't fit the question.
+    pub fn try_parameter1(&self, game: &Game) -> GameResult<ExpressionElement> {
+        self.parse_parameter1(game).map_err(|e| GameError::new(e.message))
+    }
+
+    fn parse_parameter1(&self, game: &Game) -> Result<ExpressionElement, cs::CsException> {
+        use dotnet_compat::parse::{try_enum_parse, try_float_parse_invariant, try_int_parse};
         let Some(p1) = self.question_parameter1.as_deref() else {
-            return ExpressionElement::Null;
+            return Ok(ExpressionElement::Null);
         };
 
-        match self.question {
+        Ok(match self.question {
             ClairvoyanceQuestion::CardTypeInBattle
             | ClairvoyanceQuestion::CardTypeAsDefenseInBattle
             | ClairvoyanceQuestion::CardTypeAsWeaponInBattle
             | ClairvoyanceQuestion::HasCardTypeInHand => {
-                TreacheryCardType(dotnet_compat::parse::enum_parse(Some(p1), TreacheryCardType::INFO.declared)).into()
+                TreacheryCardType(try_enum_parse(Some(p1), TreacheryCardType::INFO.declared)?).into()
             }
             ClairvoyanceQuestion::LeaderAsFacedancer
             | ClairvoyanceQuestion::LeaderAsTraitor
             | ClairvoyanceQuestion::LeaderInBattle => {
-                LeaderManager::hero_lookup().find(dotnet_compat::parse::int_parse(Some(p1))).into()
+                LeaderManager::hero_lookup().find(try_int_parse(Some(p1))?).into()
             }
-            ClairvoyanceQuestion::Prediction => Faction(dotnet_compat::parse::enum_parse(Some(p1), Faction::INFO.declared)).into(),
-            ClairvoyanceQuestion::WillAttackX => game.map.territory_lookup().find(dotnet_compat::parse::int_parse(Some(p1))).into(),
-            ClairvoyanceQuestion::DialOfMoreThanXInBattle => dotnet_compat::parse::float_parse_invariant(Some(p1)).into(),
+            ClairvoyanceQuestion::Prediction => Faction(try_enum_parse(Some(p1), Faction::INFO.declared)?).into(),
+            ClairvoyanceQuestion::WillAttackX => game.map.territory_lookup().find(try_int_parse(Some(p1))?).into(),
+            ClairvoyanceQuestion::DialOfMoreThanXInBattle => try_float_parse_invariant(Some(p1))?.into(),
             _ => ExpressionElement::Null,
-        }
+        })
     }
 
     pub fn set_parameter1(&mut self, value: ExpressionElement) {
@@ -70,11 +81,8 @@ impl ClairVoyancePlayed {
                 ClairvoyanceQuestion::DialOfMoreThanXInBattle => match value {
                     // ((float)value).ToString(CultureInfo.InvariantCulture)
                     ExpressionElement::Float(f) => dotnet_compat::fmt::f32_to_string(f),
-                    other => throw!(
-                        InvalidCastException,
-                        "Unable to cast object of type '{}' to type 'System.Single'.",
-                        ClairVoyancePlayed::boxed_type_name(&other)
-                    ),
+                    other => panic!("Unable to cast object of type '{}' to type 'System.Single'.",
+                        ClairVoyancePlayed::boxed_type_name(&other)),
                 },
                 _ => value.to_cs_string(),
             });
@@ -95,15 +103,25 @@ impl ClairVoyancePlayed {
         }
     }
 
+    /// Panics like .NET's parse when the parameter isn't a number.
     pub fn parameter2(&self) -> ExpressionElement {
-        match self.question {
+        self.parse_parameter2().unwrap_or_else(|e| cs::throw(e.type_name, e.message))
+    }
+
+    /// [`parameter2`](Self::parameter2), failing the event when the parameter isn't a number.
+    pub fn try_parameter2(&self) -> GameResult<ExpressionElement> {
+        self.parse_parameter2().map_err(|e| GameError::new(e.message))
+    }
+
+    fn parse_parameter2(&self) -> Result<ExpressionElement, cs::CsException> {
+        Ok(match self.question {
             ClairvoyanceQuestion::Prediction
                 if !self.question_parameter2.as_deref().map_or(true, |s| s.is_empty()) =>
             {
-                dotnet_compat::parse::int_parse(self.question_parameter2.as_deref()).into()
+                dotnet_compat::parse::try_int_parse(self.question_parameter2.as_deref())?.into()
             }
             _ => ExpressionElement::Null,
-        }
+        })
     }
 
     pub fn set_parameter2(&mut self, value: ExpressionElement) {
@@ -120,6 +138,14 @@ impl ClairVoyancePlayed {
         }
 
         ClairVoyancePlayed::express(self.question, self.parameter1(game), self.parameter2())
+    }
+
+    pub fn try_get_question(&self, game: &Game) -> GameResult<Message> {
+        if self.question == ClairvoyanceQuestion::None {
+            return Ok(express!(""));
+        }
+
+        Ok(ClairVoyancePlayed::express(self.question, self.try_parameter1(game)?, self.try_parameter2()?))
     }
 
     pub fn validate(&self, _game: &Game) -> Option<Message> {
@@ -210,12 +236,13 @@ impl ClairVoyancePlayed {
         false
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let card = self.card(game);
         if let Some(card) = card {
             // The question names the card, so it's not logged as a separate discard.
-            game.discard_treachery_card_boolean(Some(card), false);
-            let m = self.asked(game, card.into()).with_log(AsideLog::aside());
+            game.discard_treachery_card_boolean(Some(card), false)?;
+            // A parameter that doesn't fit the question fails the event after the discard.
+            let m = self.try_asked(game, card.into())?.with_log(AsideLog::aside());
             self.log_objects(game, vec![m.into()]);
             game.stone(Milestone::Clairvoyance);
         }
@@ -227,6 +254,7 @@ impl ClairVoyancePlayed {
             game.phase_paused_by_clairvoyance = game.current_phase;
             game.enter(Phase::Clairvoyance, true);
         }
+        Ok(())
     }
 
     pub fn card(&self, game: &Game) -> Option<TreacheryCard> {
@@ -252,6 +280,10 @@ impl ClairVoyancePlayed {
         self.asked(game, TreacheryCardType::Clairvoyance.into())
     }
 
+    pub fn try_get_message(&self, game: &Game) -> GameResult<Message> {
+        self.try_asked(game, TreacheryCardType::Clairvoyance.into())
+    }
+
     pub fn asked(&self, game: &Game, card: ExpressionElement) -> Message {
         if self.target == Faction::None {
             return express!(self.initiator(), " perform ", card);
@@ -262,6 +294,13 @@ impl ClairVoyancePlayed {
         }
 
         express!("By ", card, ", ", self.initiator(), " ask ", self.target, ": \"", self.get_question(game), "\"")
+    }
+
+    pub fn try_asked(&self, game: &Game, card: ExpressionElement) -> GameResult<Message> {
+        if self.target != Faction::None && self.question != ClairvoyanceQuestion::None {
+            self.try_get_question(game)?;
+        }
+        Ok(self.asked(game, card))
     }
 
     pub fn get_short_message(&self, _game: &Game) -> Message {
@@ -286,12 +325,16 @@ impl GameEventMethods for ClairVoyancePlayed {
         ClairVoyancePlayed::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         ClairVoyancePlayed::execute_concrete_event(self, game)
     }
 
     fn get_message(&self, game: &Game) -> Message {
         ClairVoyancePlayed::get_message(self, game)
+    }
+
+    fn try_get_message(&self, game: &Game) -> GameResult<Message> {
+        ClairVoyancePlayed::try_get_message(self, game)
     }
 
     fn get_short_message(&self, game: &Game) -> Message {

@@ -93,10 +93,10 @@ impl Retreat {
         special_forces_in.wrapping_sub(plan.special_forces).wrapping_sub(plan.special_forces_at_half_strength)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let me = self.player();
         let mut forces_to_move = self.forces;
-        let territory = game.current_battle.as_ref().nre().territory(game).nre();
+        let territory = game.current_battle.as_ref().required("current battle")?.territory(game).required("territory")?;
         let sources: Vec<Location> = territory.locations().iter().copied().filter(|l| game.player(me).forces_in(Some(*l)) > 0).collect();
         for l in sources {
             if forces_to_move == 0 {
@@ -111,7 +111,7 @@ impl Retreat {
         }
 
         let mut special_forces_to_move = self.special_forces;
-        let territory = game.current_battle.as_ref().nre().territory(game).nre();
+        let territory = game.current_battle.as_ref().required("current battle")?.territory(game).required("territory")?;
         let sources: Vec<Location> =
             territory.locations().iter().copied().filter(|l| game.player(me).special_forces_in(Some(*l)) > 0).collect();
         for l in sources {
@@ -125,9 +125,10 @@ impl Retreat {
         }
 
         self.log(game);
-        game.handle_losses();
+        game.handle_losses()?;
         game.flip_bene_gesserit_advisors_when_alone();
-        game.determine_how_to_proceed_after_revealing_battle_plans();
+        game.determine_how_to_proceed_after_revealing_battle_plans()?;
+        Ok(())
     }
 
     pub fn get_message(&self, game: &Game) -> Message {
@@ -165,7 +166,7 @@ impl GameEventMethods for Retreat {
         Retreat::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         Retreat::execute_concrete_event(self, game)
     }
 

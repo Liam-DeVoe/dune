@@ -136,7 +136,7 @@ fn element_marked(el: &ExpressionElement, d: &dyn Describer, out: &mut RichText,
         // `default`: `Describe(part)` as text. A `long` lands here, not in `case int`; so do the
         // "Game Error" exception (C# appends a stack trace the engine doesn't have) and a
         // `Player` (its type name).
-        ExpressionElement::Long(_) | ExpressionElement::Exception(_) | ExpressionElement::Player(_) => {
+        ExpressionElement::Long(_) | ExpressionElement::Error(_) | ExpressionElement::Player(_) => {
             out.push(Part::Text { v: d.describe(el) })
         }
     }

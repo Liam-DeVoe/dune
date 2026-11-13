@@ -412,8 +412,8 @@ impl ClassicBot {
     }
 
     /// Runs `decide` if the player may submit its event type, and checks the event it comes up
-    /// with. `None` if the type isn't allowed, or `decide` came up with nothing or threw a game
-    /// exception. Random draws and changes to the bot or game made before a throw stay.
+    /// with. `None` if the type isn't allowed, or `decide` came up with nothing or panicked.
+    /// Random draws and changes to the bot or game made before a panic stay.
     pub fn try_decide<R: IntoDecision>(
         &mut self,
         game: &mut Game,
@@ -424,9 +424,9 @@ impl ClassicBot {
             return None;
         }
 
-        // Only game exceptions are caught: any other panic (a Rust bug) propagates, so a broken
-        // decision is never mistaken for "chose nothing".
-        let event = cs::catch(|| decide(self, game)).ok()?.into_option()?;
+        // The bots aren't written to avoid every state they can't handle (a card the game doesn't
+        // have, for example), so a decision that panics counts as no decision.
+        let event = guarded(|| decide(self, game)).ok()?.into_option()?;
         let event = <R::Event as EventKind>::into_event(event);
 
         let game: &Game = game;
@@ -446,3 +446,7 @@ impl ClassicBot {
     }
 }
 
+/// Runs a bot decision, turning a panic into its message.
+pub(crate) fn guarded<R>(f: impl FnOnce() -> R) -> Result<R, String> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).map_err(|p| cs::panic_message(p.as_ref()))
+}

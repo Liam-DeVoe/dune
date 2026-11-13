@@ -142,7 +142,7 @@ fn run(name: &str) {
                 e.initialize_game(game);
                 game.map.mark_neighbour_cache_stale();
                 let (validate, is_host) = (o["validate"].as_bool().unwrap(), o["isHost"].as_bool().unwrap());
-                let _ = cs::catch(|| e.execute(game, validate, is_host));
+                let _ = cs::catch_panic(|| e.execute(game, validate, is_host));
 
                 let n = o["n"].as_i64().unwrap();
                 let Some(list) = probes.get(&n) else { continue };
@@ -155,7 +155,7 @@ fn run(name: &str) {
                     let b = ClassicBot::new(player, BotParameters::for_faction(faction), SharedRandom::from_seed(seed));
                     let m = p["m"].as_str().unwrap();
                     let a: Vec<String> = p["a"].as_array().unwrap().iter().map(|v| v.as_str().unwrap().to_string()).collect();
-                    let result = catch_unwind(AssertUnwindSafe(|| cs::catch(|| call(game, &b, m, &a))));
+                    let result = catch_unwind(AssertUnwindSafe(|| cs::catch_panic(|| call(game, &b, m, &a))));
                     let actual = match result {
                         Ok(Ok(r)) => r,
                         Ok(Err(e)) => format!("EX:{}: {}", cs::full_type_name(e.type_name), e.message),

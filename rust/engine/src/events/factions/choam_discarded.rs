@@ -57,12 +57,12 @@ impl ChoamDiscarded {
             })
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let Some(card) = self.card() else {
-            throw!(InvalidOperationException, "Card is null");
+            game_error!("Card is null");
         };
 
-        game.discard_treachery_card_boolean(Some(card), true);
+        game.discard_treachery_card_boolean(Some(card), true)?;
         self.log(game);
 
         let p = game.player_mut(self.player());
@@ -73,6 +73,7 @@ impl ChoamDiscarded {
         }
 
         game.stone(Milestone::ResourcesReceived);
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -101,7 +102,7 @@ impl GameEventMethods for ChoamDiscarded {
         ChoamDiscarded::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         ChoamDiscarded::execute_concrete_event(self, game)
     }
 

@@ -36,7 +36,7 @@ fn run(events: &[String]) -> Game {
 }
 
 fn try_str(f: impl FnOnce() -> Option<String>) -> String {
-    match cs::catch(f) {
+    match cs::catch_panic(f) {
         Ok(Some(s)) => s,
         Ok(None) => "null".to_string(),
         Err(e) => format!("exception:{}:{}", e.type_name, e.message.replace('\n', "\\n")),
@@ -135,16 +135,20 @@ fn static_helpers_and_obsolete_getters_match_csharp() {
 
 const EXPECTED_VALIDATE_OFF: &str = include_str!("golden/review_c_validate_off.txt");
 
-/// "accepted", "rejected:<message>" or "error:<type>:<message>", like ReviewC.Exec.
+/// "accepted", "rejected:<message>" or "error", like ReviewC.Exec. The C# golden writes a
+/// Game Error as "error:<type>:<message>"; the engine's GameError is compared as "error" (see
+/// `validate_off_matches_csharp`). A panic out of `execute` is "escaped:<type>:<message>", which
+/// never matches the golden.
 fn exec(g: &mut Game, text: &str, validate: bool) -> String {
     let e: GameEvent = json::deserialize(text).expect("event json");
     e.initialize_game(g);
-    match cs::catch(|| e.execute(g, validate, true)) {
+    match cs::catch_panic(|| e.execute(g, validate, true)) {
         Ok(None) => "accepted".to_string(),
         Ok(Some(m)) => {
             for el in &m.expression.elements {
-                if let ExpressionElement::Exception(x) = el {
-                    return format!("error:{}:{}", x.type_name, x.message);
+                if let ExpressionElement::Error(_) = el {
+                    // The C# golden names the exception; the engine reports a GameError.
+                    return "error".to_string();
                 }
             }
             format!("rejected:{}", m.to_cs_string())
@@ -181,12 +185,19 @@ fn validate_off_matches_csharp() {
         ));
     }
 
-    let expected: Vec<&str> = EXPECTED_VALIDATE_OFF.lines().collect();
+    // The exception type and message of a Game Error aren't compared.
+    let expected: Vec<String> = EXPECTED_VALIDATE_OFF
+        .lines()
+        .map(|l| match l.split_once(" = error:") {
+            Some((name, _)) => format!("{name} = error"),
+            None => l.to_string(),
+        })
+        .collect();
     let mut failures = Vec::new();
     for (i, line) in out.iter().enumerate() {
         match expected.get(i) {
             Some(e) if e == line => {}
-            e => failures.push(format!("C#:   {}\nRust: {line}", e.unwrap_or(&"<missing>"))),
+            e => failures.push(format!("C#:   {}\nRust: {line}", e.map_or("<missing>", String::as_str))),
         }
     }
     assert!(failures.is_empty(), "{} differences:\n{}", failures.len(), failures.join("\n"));

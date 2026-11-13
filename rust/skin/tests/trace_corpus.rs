@@ -61,14 +61,19 @@ impl Renderer<'_> {
     }
 }
 
+/// Runs `f`, catching any panic: the result, or the panic message.
+fn catch_any<R>(f: impl FnOnce() -> R) -> Result<R, String> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).map_err(|p| cs::panic_message(p.as_ref()))
+}
+
 fn applicable_calls(game: &mut Game) {
     for i in 0..game.players.len() {
         let p = game.player_at(i);
-        let _ = cs::catch(std::panic::AssertUnwindSafe(|| game.get_applicable_events(Some(p), false)));
-        let _ = cs::catch(std::panic::AssertUnwindSafe(|| game.get_applicable_events(Some(p), true)));
+        let _ = catch_any(|| game.get_applicable_events(Some(p), false));
+        let _ = catch_any(|| game.get_applicable_events(Some(p), true));
     }
-    let _ = cs::catch(std::panic::AssertUnwindSafe(|| game.get_applicable_events(None, false)));
-    let _ = cs::catch(std::panic::AssertUnwindSafe(|| game.get_applicable_events(None, true)));
+    let _ = catch_any(|| game.get_applicable_events(None, false));
+    let _ = catch_any(|| game.get_applicable_events(None, true));
 }
 
 /// Replays one trace and renders what the C# probe renders.
@@ -94,8 +99,8 @@ fn render_trace(path: &Path, skin: &Skin) -> Vec<(i64, String, String)> {
             if q[0].as_str() == Some("status") {
                 let p = q[1].as_u64().map(|i| g.player_at(i as usize));
                 let is_player = q[2].as_bool().unwrap();
-                match cs::catch(std::panic::AssertUnwindSafe(|| GameStatus::determine_status(g, p, is_player))) {
-                    Err(e) => r.emit("status", || format!("!{}: {}", e.type_name, e.message)),
+                match catch_any(|| GameStatus::determine_status(g, p, is_player)) {
+                    Err(e) => r.emit("status", || format!("!panic: {e}")),
                     Ok(status) => {
                         let gr: &Game = g;
                         r.emit("status awaited", || skin.message_to_string_in(&status.description_when_awaited, Some(gr)));
@@ -109,7 +114,7 @@ fn render_trace(path: &Path, skin: &Skin) -> Vec<(i64, String, String)> {
             }
             let p = q[0].as_u64().map(|i| g.player_at(i as usize));
             let is_host = q[1].as_bool().unwrap();
-            let _ = cs::catch(std::panic::AssertUnwindSafe(|| g.get_applicable_events(p, is_host)));
+            let _ = catch_any(|| g.get_applicable_events(p, is_host));
         }
 
         match kind {
@@ -121,9 +126,9 @@ fn render_trace(path: &Path, skin: &Skin) -> Vec<(i64, String, String)> {
                 if !overrides {
                     g.recent_milestones.push(SENTINEL);
                 }
-                let result = cs::catch(std::panic::AssertUnwindSafe(|| {
+                let result = catch_any(|| {
                     ev.execute(g, line["validate"].as_bool().unwrap(), line["isHost"].as_bool().unwrap())
-                }));
+                });
                 if !overrides {
                     if let Some(i) = g.recent_milestones.iter().rposition(|m| *m == SENTINEL) {
                         g.recent_milestones.remove(i);
@@ -133,7 +138,7 @@ fn render_trace(path: &Path, skin: &Skin) -> Vec<(i64, String, String)> {
                 match result {
                     Ok(Some(m)) => r.emit("result", || skin.message_to_string_in(&m, Some(gr))),
                     Ok(None) => {}
-                    Err(e) => r.emit("escaped", || format!("{}: {}", e.type_name, e.message)),
+                    Err(e) => r.emit("escaped", || e),
                 }
                 r.emit("GetMessage", || skin.message_to_string_in(&ev.get_message(gr), Some(gr)));
                 r.emit("GetShortMessage", || skin.message_to_string_in(&ev.get_short_message(gr), Some(gr)));
@@ -190,6 +195,22 @@ fn end(r: &mut Renderer, game: &Game) {
     r.emit("popup messiah", || skin.get_popup_hero_game(Some(Hero::Messiah), game));
 }
 
+/// The text of a rendering, without the details of a failure. C# renders a failed event as
+/// "Game Error: <message>. Technical description: <exception>." and a call that throws as
+/// "!<Type>: <message>". The engine's Game Errors and panics have their own messages, so only
+/// the kind of failure is compared.
+fn without_error_text(out: &str) -> &str {
+    if out.starts_with("Game Error: ") {
+        return "Game Error";
+    }
+    if let Some((name, _)) = out.strip_prefix('!').and_then(|rest| rest.split_once(": ")) {
+        if name == "panic" || name.ends_with("Exception") {
+            return "!exception";
+        }
+    }
+    out
+}
+
 /// Traces that differ from C# on purpose, with the first line (`n`) that differs. Each is a C# bug
 /// fixed in Rust (rust/docs/escapes.md, "Automatic bid passes that never stop" for 00009 and "A
 /// card trade offered to a faction that isn't the ally" for 00045).
@@ -228,7 +249,7 @@ fn check_corpus(traces: &Path, rendered: &Path) {
                 diffs.check(&format!("{stem} entry {i}"), &key(e), &key(a));
                 break;
             }
-            diffs.check(&format!("{stem} {}", key(e)), &e.unwrap().2, &a.unwrap().2);
+            diffs.check(&format!("{stem} {}", key(e)), without_error_text(&e.unwrap().2), without_error_text(&a.unwrap().2));
         }
     }
     assert!(files > 0, "no rendered traces in {}", rendered.display());

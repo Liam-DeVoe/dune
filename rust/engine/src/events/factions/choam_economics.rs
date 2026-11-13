@@ -28,10 +28,11 @@ impl ChoamEconomics {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.economics_status = self.status;
         game.stone(Milestone::Economics);
         self.log(game);
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -56,7 +57,7 @@ impl GameEventMethods for ChoamEconomics {
         ChoamEconomics::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         ChoamEconomics::execute_concrete_event(self, game)
     }
 

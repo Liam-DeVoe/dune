@@ -143,9 +143,9 @@ impl Battle {
         self.weapon().is_some_and(|w| w.is_useless()) || self.defense().is_some_and(|d| d.is_useless())
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let Some(current_battle) = game.current_battle.clone() else {
-            throw!(Exception, "Battle event executed when there is no current battle");
+            game_error!("Battle event executed when there is no current battle");
         };
 
         if self.initiator() == current_battle.aggressor(game) {
@@ -164,7 +164,7 @@ impl Battle {
                 game.reveal_current_no_field_player_territory(supplier, battle_territory);
             }
 
-            let m = express!(aggressor_plan.get_battle_plan_message(game), "; ", defender_plan.get_battle_plan_message(game))
+            let m = express!(aggressor_plan.try_get_battle_plan_message(game)?, "; ", defender_plan.try_get_battle_plan_message(game)?)
                 .with_plans(aggressor_plan.get_plan_summary(game), defender_plan.get_plan_summary(game));
             self.log_objects(game, le![m]);
 
@@ -176,6 +176,7 @@ impl Battle {
             let melting = aggressor_plan.has_rock_melter() || defender_plan.has_rock_melter();
             game.enter_boolean_phase_phase(melting, Phase::MeltingRock, Phase::CallTraitorOrPass);
         }
+        Ok(())
     }
 
     pub fn register_known_cards(&self, game: &mut Game, battle: &Battle) {
@@ -189,7 +190,7 @@ impl Battle {
 
     pub fn pass_tleilaxu_traitor_action(&self, game: &mut Game) {
         let Some(current_battle) = game.current_battle.clone() else {
-            throw!(Exception, "Battle event executed when there is no current battle");
+            panic!("Battle event executed when there is no current battle");
         };
 
         // `GetPlayer(Faction.Tleilaxu)?.Ally != Faction.Harkonnen` is true when Tleilaxu is not playing.
@@ -215,9 +216,17 @@ impl Battle {
         express!(self.initiator(), " finalize their battle plan")
     }
 
+    /// The plan as the log shows it. Panics outside the plan's battle; see
+    /// [`Battle::try_get_battle_plan_message`].
     pub fn get_battle_plan_message(&self, game: &Game) -> Message {
-        let opponent = game.current_battle.as_ref().nre().opponent_of_faction(game, self.initiator()).nre();
-        express!(
+        self.try_get_battle_plan_message(game).expect("a battle plan message during its battle")
+    }
+
+    /// The plan as the log shows it, or why it can't be shown: the game has no battle against an
+    /// opponent (an undo replays the plan into a game whose battle is over).
+    pub fn try_get_battle_plan_message(&self, game: &Game) -> GameResult<Message> {
+        let opponent = game.current_battle.as_ref().required("current battle")?.opponent_of_faction(game, self.initiator()).required("opponent")?;
+        Ok(express!(
             self.initiator(),
             " Plan → leader: ",
             self.hero(),
@@ -229,7 +238,7 @@ impl Battle {
             self.weapon(),
             ", defense: ",
             self.defense()
-        )
+        ))
     }
 
     pub fn get_plan_summary(&self, game: &Game) -> PlanSummary {
@@ -1247,7 +1256,7 @@ impl GameEventMethods for Battle {
         Battle::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         Battle::execute_concrete_event(self, game)
     }
 

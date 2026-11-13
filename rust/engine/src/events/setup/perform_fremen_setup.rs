@@ -49,7 +49,7 @@ impl PerformFremenSetup {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         for (location, battalion) in self.force_locations(game).iter() {
             let location = *location;
             Player::ship_forces(game, self.player(), location, battalion.amount_of_forces);
@@ -71,6 +71,7 @@ impl PerformFremenSetup {
             Game::enter_storm_phase,
             Game::deal_starting_treachery_cards,
         );
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -96,7 +97,7 @@ impl GameEventMethods for PerformFremenSetup {
         PerformFremenSetup::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         PerformFremenSetup::execute_concrete_event(self, game)
     }
 

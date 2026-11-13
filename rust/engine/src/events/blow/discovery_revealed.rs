@@ -63,10 +63,10 @@ impl DiscoveryRevealed {
             .map(move |(k, _)| *k)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         // Location!: a null key would be ArgumentNullException; Validate guarantees a valid location.
         let Some(location) = self.location(game) else {
-            throw!(ArgumentNullException, "Value cannot be null. (Parameter 'key')")
+            game_error!("Value cannot be null. (Parameter 'key')")
         };
         let discovery = game.discoveries_on_planet.index(&location).clone();
         if let Some(i) = game.pending_discoveries.iter().position(|t| *t == discovery.token) {
@@ -86,7 +86,7 @@ impl DiscoveryRevealed {
                 | DiscoveryToken::Cistern
                 | DiscoveryToken::ProcessingStation => {
                     let sh = game.map.get_discovery_stronghold(discovery.token);
-                    sh.point_at(&mut game.map, discovery.location);
+                    sh.point_at(&mut game.map, discovery.location)?;
                     game.just_revealed_discovery_strongholds.push(sh);
                 }
 
@@ -116,14 +116,19 @@ impl DiscoveryRevealed {
                 _ => {}
             }
         }
+        Ok(())
+    }
+
+    pub fn try_get_message(&self, game: &Game) -> GameResult<Message> {
+        Ok(if self.passed {
+            express!(self.initiator(), " don't reveal a discovery")
+        } else {
+            express!(self.initiator(), " reveal a discovery in ", self.location(game).required("location")?.territory())
+        })
     }
 
     pub fn get_message(&self, game: &Game) -> Message {
-        if self.passed {
-            express!(self.initiator(), " don't reveal a discovery")
-        } else {
-            express!(self.initiator(), " reveal a discovery in ", self.location(game).nre().territory())
-        }
+        self.try_get_message(game).expect("the message of an applicable DiscoveryRevealed event")
     }
 
 }
@@ -145,12 +150,16 @@ impl GameEventMethods for DiscoveryRevealed {
         DiscoveryRevealed::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         DiscoveryRevealed::execute_concrete_event(self, game)
     }
 
     fn get_message(&self, game: &Game) -> Message {
         DiscoveryRevealed::get_message(self, game)
+    }
+
+    fn try_get_message(&self, game: &Game) -> GameResult<Message> {
+        DiscoveryRevealed::try_get_message(self, game)
     }
 
 }

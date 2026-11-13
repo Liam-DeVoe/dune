@@ -29,14 +29,14 @@ impl ReplacedCardWon {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         if !self.passed {
             let card_just_won = game.card_just_won;
-            game.discard_treachery_card_boolean(card_just_won, true);
+            game.discard_treachery_card_boolean(card_just_won, true)?;
             let initiator = self.get_player(game, Some(self.initiator()));
             let new_card = game.draw_treachery_card();
             // C# adds a null card when both treachery deck and discard pile are empty.
-            let initiator = initiator.nre();
+            let initiator = initiator.required("initiator")?;
             game.player_mut(initiator).treachery_cards.push(new_card.or_null());
             game.stone(Milestone::CardWonSwapped);
 
@@ -57,6 +57,7 @@ impl ReplacedCardWon {
         } else {
             game.determine_next_step_after_card_was_sold();
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -85,7 +86,7 @@ impl GameEventMethods for ReplacedCardWon {
         ReplacedCardWon::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         ReplacedCardWon::execute_concrete_event(self, game)
     }
 

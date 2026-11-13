@@ -30,12 +30,13 @@ impl BattleClaimed {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
         game.current_ecaz_or_ally_fighter = if self.passed { game.get_ally(Some(Faction::Ecaz)) } else { Some(Faction::Ecaz) };
         game.enter(Phase::BattlePhase, true);
         game.initiate_battle();
         self.determine_ecaz_contribution(game);
+        Ok(())
     }
 
     pub fn determine_ecaz_contribution(&self, game: &mut Game) {
@@ -83,7 +84,7 @@ impl GameEventMethods for BattleClaimed {
         BattleClaimed::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         BattleClaimed::execute_concrete_event(self, game)
     }
 

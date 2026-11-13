@@ -26,8 +26,9 @@ impl RicheseRevealedNoField {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.reveal_current_no_field(self.player(), None);
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -52,7 +53,7 @@ impl GameEventMethods for RicheseRevealedNoField {
         RicheseRevealedNoField::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         RicheseRevealedNoField::execute_concrete_event(self, game)
     }
 

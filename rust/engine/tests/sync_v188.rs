@@ -38,7 +38,7 @@ impl Lines {
 
     /// C# `Try`: the value, or "exception <Type>: <message>".
     fn try_(&mut self, name: &str, f: impl FnOnce() -> String) {
-        match cs::catch(f) {
+        match cs::catch_panic(f) {
             Ok(v) => self.p(name, v),
             Err(e) => self.p(name, format!("exception {}: {}", e.type_name, e.message)),
         }
@@ -99,14 +99,14 @@ fn state(l: &mut Lines, g: &mut Game, at: &str) {
 
 fn exec(l: &mut Lines, g: &mut Game, at: &str, e: GameEvent) {
     e.initialize_game(g);
-    let applicable = cs::catch(|| e.is_applicable(g, false));
+    let applicable = cs::catch_panic(|| e.is_applicable(g, false));
     match applicable {
         Ok(b) => l.p(&format!("{at}.applicable"), if b { "True" } else { "False" }),
         Err(x) => l.p(&format!("{at}.applicable"), format!("exception {}: {}", x.type_name, x.message)),
     }
     l.try_(&format!("{at}.validate"), || message(e.validate(g), "valid"));
     l.try_(&format!("{at}.message"), || e.get_message(g).to_cs_string());
-    let r = cs::catch(|| message(e.execute(g, false, true), "ok"));
+    let r = cs::catch_panic(|| message(e.execute(g, false, true), "ok"));
     match r {
         Ok(v) => l.p(&format!("{at}.execute"), v),
         Err(x) => l.p(&format!("{at}.execute"), format!("exception {}: {}", x.type_name, x.message)),

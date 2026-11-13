@@ -30,9 +30,14 @@ fn applicable(g: &mut Game) {
     for i in 0..=count {
         let p = if i < count { Some(g.player_at(i)) } else { None };
         for host in [false, true] {
-            let _ = cs::catch(|| g.get_applicable_events(p, host));
+            let _ = catch(|| g.get_applicable_events(p, host));
         }
     }
+}
+
+/// Runs `f`, catching any panic: the result, or the panic message.
+fn catch<R>(f: impl FnOnce() -> R) -> Result<R, String> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).map_err(|p| cs::panic_message(p.as_ref()))
 }
 
 fn exec(g: &mut Game, text: &str, validate: bool, host: bool) -> String {
@@ -43,10 +48,10 @@ fn exec(g: &mut Game, text: &str, validate: bool, host: bool) -> String {
     let ev: GameEvent = json::deserialize(text).expect("event json");
     ev.initialize_game(g);
     g.map.mark_neighbour_cache_stale();
-    match cs::catch(|| ev.execute(g, validate, host)) {
+    match catch(|| ev.execute(g, validate, host)) {
         Ok(None) => "null".into(),
         Ok(Some(m)) => String::from_utf8(canon::dump_detached(&m as &dyn Canon, Some(g))).unwrap(),
-        Err(e) => format!("ESCAPED {}: {}", e.type_name, e.message),
+        Err(e) => format!("ESCAPED {e}"),
     }
 }
 
@@ -96,7 +101,7 @@ fn prefix(last: i64) -> Game {
         for q in s["queries"].as_array().unwrap() {
             let p = q[0].as_u64().map(|i| g.player_at(i as usize));
             let host = q[1].as_bool().unwrap();
-            let _ = cs::catch(|| g.get_applicable_events(p, host));
+            let _ = catch(|| g.get_applicable_events(p, host));
         }
         let text = serde_json::to_string(&s["event"]).unwrap();
         exec(&mut g, &text, s["validate"].as_bool().unwrap(), s["isHost"].as_bool().unwrap());
@@ -115,7 +120,7 @@ fn continue_trace(g: &mut Game, after: i64) -> String {
         for q in s["queries"].as_array().unwrap() {
             let p = q[0].as_u64().map(|i| g.player_at(i as usize));
             let host = q[1].as_bool().unwrap();
-            let _ = cs::catch(|| g.get_applicable_events(p, host));
+            let _ = catch(|| g.get_applicable_events(p, host));
         }
         let before = g.history.len();
         let text = serde_json::to_string(&s["event"]).unwrap();
@@ -140,27 +145,27 @@ fn probe(after: i64, events: &[(&str, bool, bool)], name: &str) -> (String, Stri
             continue;
         }
         if *text == "CALL:audit" {
-            results.push(match cs::catch(|| treachery_engine::events::AuditCancelled::get_number_of_cards_that_may_be_audited(&g)) {
+            results.push(match catch(|| treachery_engine::events::AuditCancelled::get_number_of_cards_that_may_be_audited(&g)) {
                 Ok(n) => format!("audit {n}"),
-                Err(e) => format!("THROWS {}: {}", e.type_name, e.message),
+                Err(_) => "THROWS".to_string(),
             });
             continue;
         }
         if let Some(f) = text.strip_prefix("CALL:applicable:") {
             let who = g.get_player(Some(Faction(f.parse().unwrap())));
-            results.push(match cs::catch(|| g.get_applicable_events(who, false)) {
+            results.push(match catch(|| g.get_applicable_events(who, false)) {
                 Ok(v) => format!("applicable {}", v.iter().map(|t| t.name()).collect::<Vec<_>>().join(",")),
-                Err(e) => format!("THROWS {}: {}", e.type_name, e.message),
+                Err(_) => "THROWS".to_string(),
             });
             continue;
         }
         if let Some(json_text) = text.strip_prefix("VALIDATE:") {
             let ev: GameEvent = json::deserialize(json_text).expect("event json");
             ev.initialize_game(&g);
-            results.push(match cs::catch(|| ev.validate(&g)) {
+            results.push(match catch(|| ev.validate(&g)) {
                 Ok(None) => "null".into(),
                 Ok(Some(m)) => String::from_utf8(canon::dump_detached(&m as &dyn Canon, Some(&g))).unwrap(),
-                Err(e) => format!("THROWS {}: {}", e.type_name, e.message),
+                Err(_) => "THROWS".to_string(),
             });
             continue;
         }
@@ -174,8 +179,21 @@ fn probe(after: i64, events: &[(&str, bool, bool)], name: &str) -> (String, Stri
     (sha256_hex(&dump), results.join(" | "))
 }
 
+/// Replaces each Game Error message in `results` (" | "-separated) by "GAME ERROR" and each
+/// "THROWS <type>: <message>" by "THROWS". The C# results name the .NET exception; the engine
+/// reports a GameError with its own message, or panics, so only the kind of failure is compared.
+fn without_error_text(results: &str) -> String {
+    const GAME_ERROR: &str = r#"{"$type":"Message","Expression":{"$type":"Expression","Elements":["Game Error: ""#;
+    results
+        .split(" | ")
+        .map(|r| if r.starts_with(GAME_ERROR) { "GAME ERROR" } else if r.starts_with("THROWS") { "THROWS" } else { r })
+        .collect::<Vec<_>>()
+        .join(" | ")
+}
+
 fn check(name: &str, after: i64, events: &[(&str, bool, bool)], hash: &str, results: &str) {
     let (h, r) = probe(after, events, name);
+    let (r, results) = (without_error_text(&r), without_error_text(results));
     let mut errors = Vec::new();
     if r != results {
         errors.push(format!("results differ\n  C#:   {results}\n  Rust: {r}"));

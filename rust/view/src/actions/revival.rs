@@ -143,7 +143,9 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
             e.amount_of_special_forces = forces(e.amount_of_special_forces, RaiseDeadPlayed::valid_max_amount(game, p, true));
             let special_on_planet = raise_dead_on_planet(game, p, &e);
             e.number_of_special_forces_in_location = forces(e.number_of_special_forces_in_location, special_on_planet);
-            // Unlike the `Revival` form, the hero is kept when there are no heroes to revive.
+            if !e.hero().is_some_and(|h| RaiseDeadPlayed::valid_heroes(game, p).contains(&h)) {
+                e.set_hero(None);
+            }
             if !e.hero().is_some_and(|h| Revival::may_assign_skill(game, p, Some(h))) {
                 e.assign_skill = false;
             }

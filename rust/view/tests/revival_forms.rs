@@ -279,6 +279,27 @@ fn fixture_forms_match_the_engine() {
     assert!(seen.contains("Revival"), "the revival fixture offers Revival: {seen:?}");
 }
 
+/// The `revival-planet` fixture: Emperor holds Raise Dead and has no leader in the tanks. A
+/// leader left in the draft (picked earlier, when one could be revived) is dropped, since the
+/// form has nothing to show for it. The form used to keep it, and validation refused it.
+#[test]
+fn raise_dead_drops_a_leader_that_cant_be_revived() {
+    let mut r = load("revival-planet", 0);
+    let viewer = viewer_of(&r, Faction::Emperor);
+    let view = r.view(viewer);
+    let a = view.actions.iter().find(|a| a.event_type == "RaiseDeadPlayed").expect("RaiseDeadPlayed applicable");
+    let Some(ActionOptions::RaiseDeadPlayed(o)) = &a.options else { panic!("RaiseDeadPlayed options") };
+    assert!(o.heroes.is_empty(), "no leader to revive");
+    let emperor = r.game.get_player(Some(Faction::Emperor)).unwrap();
+    let living = r.game.player(emperor).leaders[0];
+    let mut draft = o.draft.clone();
+    draft["_heroId"] = Hero::from(living).id().into();
+    let q = r.query(viewer, &draft.to_string()).unwrap();
+    let Some(ActionOptions::RaiseDeadPlayed(q_options)) = q.options else { panic!("RaiseDeadPlayed options") };
+    assert_eq!(int(&q_options.draft, "_heroId"), -1, "the leader is dropped");
+    assert_eq!(q.validation, a.validation, "the same as the untouched form");
+}
+
 /// The `revival` fixture: Revival's dependent options follow the draft. More forces revived
 /// cost more, and asking for more than the maximum is clamped to it.
 #[test]

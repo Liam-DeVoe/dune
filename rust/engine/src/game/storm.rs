@@ -200,12 +200,11 @@ impl Game {
         self.main_phase_end();
 
         if !self.storm_losses_to_take.is_empty() {
-            // C# parity: resumes in BlowA and skips the storm report (hazards 18.2).
+            // BlowA marks losses taken in the storm phase: once they are taken, TakeLosses calls
+            // this again, which ends the phase (again) and enters the storm report.
             self.phase_before_storm_loss = Phase::BlowA;
             self.enter(Phase::StormLosses, true);
         } else {
-            // C# parity: MainPhaseEnd() is called a second time (hazards 18.2).
-            self.main_phase_end();
             self.enter(Phase::StormReport, true);
         }
     }

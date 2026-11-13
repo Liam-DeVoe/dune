@@ -309,6 +309,26 @@ impl Player {
         Player::change_special_forces(game, me, location, -amount);
     }
 
+    /// Special forces shipped from `location` back to the reserves on `homeworld`. Bene Gesserit
+    /// advisors return as fighters, as in [`Player::special_forces_to_reserves`]. Richese's
+    /// special force is its No-Field token: it leaves the planet unrevealed.
+    pub fn special_forces_back_to_reserves(game: &mut Game, me: PlayerIndex, location: Location, homeworld: Homeworld, amount: i32) {
+        if amount <= 0 {
+            return;
+        }
+        match game.player(me).faction {
+            Faction::BeneGesserit => {
+                Player::change_special_forces(game, me, location, -amount);
+                Player::change_forces(game, me, homeworld.location(), amount);
+            }
+            Faction::Richese => {
+                Player::change_special_forces(game, me, location, -amount);
+                game.current_no_field_value = -1;
+            }
+            _ => Player::move_special_forces(game, me, location, homeworld.location(), amount),
+        }
+    }
+
     pub fn forces_to_reserves_territory_int32_boolean(game: &mut Game, me: PlayerIndex, t: Territory, amount: i32, special: bool) {
         if amount > 0 {
             let mut to_remove_in_total = amount;

@@ -72,6 +72,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - When: Karama against Guild income; CHOAM's Karama discard.
 - Where: rust/engine/src/events/movement/shipment.rs:995, karma_choam_discard.rs:113
 - Note: Text only.
+- Done (bfef920): "from receiving 5" and "CHOAM using Karama". Test: skin/tests/log_text.rs.
 
 ## Setting an automation rule is described as "change ally permissions"
 
@@ -81,6 +82,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - When: Shows wherever event descriptions appear (history, undo list).
 - Where: rust/engine/src/events/host/automation_configured.rs:90
 - Note: Rarely seen; fix if touching the file.
+- Done (bfef920): "X add an automation rule: <the rule's description>", "X remove an automation rule", "X change an automation rule". A refused event's message quotes this text too. Test: skin/tests/log_text.rs.
 
 ## Other small text quirks without comments
 
@@ -89,6 +91,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - Intended: Clean text.
 - Where: rust/docs/hazards.md §11.8
 - Note: Fix opportunistically.
+- Done (bfef920): Nexus card plays no longer start their text with a space or repeat the card type. C# passed "Secret Ally" or "Cunning" as the first word, so the log read "Nexus Secret Ally to Secret Allyget this card for free" and "Nexus Cunning to cunningto ride from any territory on the planet". Now it reads "Nexus Secret Ally to get this card for free". The other §11.8 quirks have their own `// C# parity:` comments and aren't part of this entry. CHOAM's " The Economics Token flips ..." (Game_Contemplate) isn't a Nexus text and is unchanged. Test: skin/tests/log_text.rs.
 
 ## Bot speed changes are sent to every connected client
 
@@ -98,6 +101,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - When: Any bot speed change.
 - Where: rust/server/src/hub/game_management.rs:708
 - Note: Cheap; avoids a cross-game leak of state.
+- Done (6b4368b): sent only to the connections following the game. Test: `bots_take_the_empty_seats` in server/tests/play.rs.
 
 ## Starting a game with invalid settings reports success
 
@@ -107,6 +111,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - When: The web client's form validation normally prevents it.
 - Where: rust/server/src/hub/game_events.rs:63
 - Note: Silent failure; easy to return the result.
+- Done in the server rewrite (step 3, see server.md): a refused `EstablishPlayers` returns its validation message and leaves the seats alone. 6b4368b adds a test, `starting_with_invalid_settings_is_refused` in server/tests/play.rs.
 
 ## Deleted users stay logged in
 
@@ -116,6 +121,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - When: Account deletion.
 - Where: rust/server/src/hub/other.rs:471
 - Note: A deleted account should not keep working.
+- Done (6b4368b): the server rewrite already ended the user's sessions. Now they also leave every game they joined, as with `RequestLeaveGame`, and their connections stop following those games. Test: `users_delete_themselves` in server/tests/admin.rs.
 
 ## A special force revived with Emperor's money doesn't count toward the one-per-turn limit
 

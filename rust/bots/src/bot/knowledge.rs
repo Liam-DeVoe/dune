@@ -142,11 +142,7 @@ impl ClassicBot {
         let (Some(cv), Some(qna)) = (&game.latest_clairvoyance, &game.latest_clairvoyance_qn_a) else {
             return None;
         };
-        let same_battle = match (&game.latest_clairvoyance_battle, &game.current_battle) {
-            (None, None) => true,
-            (Some(a), Some(b)) => Rc::ptr_eq(a, b),
-            _ => false,
-        };
+        let same_battle = super::battle::is_current_battle(game, game.latest_clairvoyance_battle.as_ref());
         let p = game.player(player);
         let asked_by_us = cv.initiator() == p.faction || cv.initiator() == p.ally;
         let about_this = cv.question == question || cv.question == ClairvoyanceQuestion::CardTypeInBattle;

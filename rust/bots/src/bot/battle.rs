@@ -6,7 +6,7 @@ use dotnet_compat::math::cmp_f32;
 
 /// Whether `battle` is the battle being fought now (the same object). No battle matches no
 /// current battle.
-fn is_current_battle(game: &Game, battle: Option<&Rc<BattleInitiated>>) -> bool {
+pub(crate) fn is_current_battle(game: &Game, battle: Option<&Rc<BattleInitiated>>) -> bool {
     match (battle, game.current_battle.as_ref()) {
         (None, None) => true,
         (Some(a), Some(b)) => Rc::ptr_eq(a, b),

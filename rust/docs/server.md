@@ -62,6 +62,7 @@ The server was first a line-by-line port of the C# `GameHub`. These differences 
 - Leaving a game or being kicked stops every connection of that user from following it, not only the last one.
 - Changes are saved within seconds and on shutdown, not every five minutes.
 - The admin's `AdminRestoreState` loads the saved games that aren't running and leaves running games alone. `AdminCloseGame` also deletes the game from the database.
-- Deleting a user ends their sessions.
+- Deleting a user ends their sessions, and they leave every game they joined, as if they had left it themselves.
 - A mail to an address that doesn't parse is skipped with a log line. The call that sends it still succeeds.
 - The lobby is computed for each request instead of from a copy refreshed every 6 seconds.
+- A bot speed change is sent to the game's members only, not to every connection on the server.

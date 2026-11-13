@@ -59,7 +59,8 @@ impl Server {
         message("Scheduled game cancelled".into())
     }
 
-    /// Users may delete themselves; the admin anyone. The games they created close.
+    /// Users may delete themselves; the admin anyone. The games they created close, they leave
+    /// the others, and all their sessions end.
     pub(super) async fn delete_user(&mut self, token: &str, user: i32) -> Reply {
         let caller = self.session_user(token).map_err(|_| refuse(ErrorType::InvalidUserNameOrPassword))?;
         if caller != user && !self.is_admin(token) {
@@ -68,6 +69,10 @@ impl Server {
         let games: Vec<String> = self.games.values().filter(|g| g.creator == user).map(|g| g.id.clone()).collect();
         for game in games {
             self.end_game(&game).await?;
+        }
+        let joined: Vec<String> = self.games.values().filter(|g| g.game.is_participant(user)).map(|g| g.id.clone()).collect();
+        for game in joined {
+            self.remove_from_game(&game, user);
         }
         self.services.db.delete_user(user).await?;
         self.users.remove(&user);

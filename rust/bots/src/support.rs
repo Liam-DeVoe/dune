@@ -16,7 +16,6 @@
 //!   "Unable to cast object of type 'X' to type 'Y'.".
 
 use crate::prelude::*;
-use treachery_engine::compat::cs;
 use treachery_engine::compat::net_enum::NetEnum;
 
 /// The runtime type name of a boxed value (`o.GetType().FullName`).
@@ -46,14 +45,11 @@ pub fn boxed_type_name(o: &ExpressionElement) -> String {
 }
 
 fn invalid_cast(o: &ExpressionElement, to: &str) -> ! {
-    cs::throw(
-        "InvalidCastException",
-        format!("Unable to cast object of type '{}' to type '{}'.", boxed_type_name(o), to),
-    )
+    panic!("Unable to cast object of type '{}' to type '{}'.", boxed_type_name(o), to)
 }
 
 fn null_reference() -> ! {
-    cs::throw("NullReferenceException", cs::default_message("NullReferenceException").to_string())
+    panic!("Object reference not set to an instance of an object.")
 }
 
 /// `(E)o` for an enum type `E`.
@@ -89,7 +85,7 @@ pub fn unbox_float(o: &ExpressionElement) -> f32 {
 pub fn cast_hero(o: &ExpressionElement) -> Option<Hero> {
     match o {
         ExpressionElement::Null => None,
-        ExpressionElement::Hero(h) => h.opt(),
+        ExpressionElement::Hero(h) => Some(*h),
         other => invalid_cast(other, "Treachery.Shared.IHero"),
     }
 }

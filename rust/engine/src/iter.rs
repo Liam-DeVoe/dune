@@ -15,6 +15,17 @@ pub fn unique<T: PartialEq + Clone>(source: impl Iterator<Item = T>) -> impl Ite
     })
 }
 
+/// Removes the first element equal to `item`. Returns whether there was one.
+pub fn remove_first<T: PartialEq>(list: &mut Vec<T>, item: &T) -> bool {
+    match list.iter().position(|x| x == item) {
+        Some(i) => {
+            list.remove(i);
+            true
+        }
+        None => false,
+    }
+}
+
 /// Extension methods on iterators.
 pub trait IterExt: Iterator + Sized {
     /// The first occurrence of each element, in order, compared with `==`.

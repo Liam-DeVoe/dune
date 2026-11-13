@@ -198,7 +198,7 @@ impl Utilities {
 
         for font_definition_part in fontsize_lower.split(' ') {
             if font_definition_part.contains("px") {
-                let number_part = &font_definition_part[..font_definition_part.find("px").nre()];
+                let number_part = &font_definition_part[..font_definition_part.find("px").expect("find")];
                 if let Ok(fontsize_number) = dotnet_compat::parse::try_float_parse_invariant(Some(number_part)) {
                     result += " ";
                     result += &Utilities::px((scale * fontsize_number) as f64);

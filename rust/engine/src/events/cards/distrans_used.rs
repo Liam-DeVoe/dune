@@ -32,7 +32,6 @@ impl DistransUsed {
     }
 
     pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.card_id = TreacheryCardManager::lookup().get_id(value);
     }
 
@@ -76,7 +75,7 @@ impl DistransUsed {
         crate::game::remove_card(&mut game.player_mut(me).treachery_cards, card);
         Game::register_known_player_treachery_card(game, me, card);
         // C# adds a null card when executed without validation.
-        game.player_mut(target).treachery_cards.push(card.or_null());
+        game.player_mut(target).treachery_cards.push(card.required("card")?);
 
         if !game.player(me).treachery_cards.is_empty() {
             let initiator = self.initiator();

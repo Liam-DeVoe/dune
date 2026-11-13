@@ -13,7 +13,6 @@ use std::panic::{self, AssertUnwindSafe};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use treachery_bots::{BotParameters, ClassicBot, Priority};
-use treachery_engine::compat::cs;
 use treachery_engine::events::{GameEvent, GameEventType};
 use treachery_engine::messages::expression::ExpressionElement;
 use treachery_engine::game::Game;
@@ -52,7 +51,7 @@ pub struct Panicked(pub String);
 fn guarded<R>(f: impl FnOnce() -> R) -> Result<Result<R, String>, Panicked> {
     match panic::catch_unwind(AssertUnwindSafe(f)) {
         Ok(r) => Ok(Ok(r)),
-        Err(p) => Ok(Err(cs::panic_message(p.as_ref()))),
+        Err(p) => Ok(Err(treachery_engine::error::panic_message(p.as_ref()))),
     }
 }
 

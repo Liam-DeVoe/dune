@@ -39,7 +39,7 @@ impl DivideResources {
 
         let to_be_divided = Self::get_resources_to_be_divided(game);
         let Some(to_be_divided) = to_be_divided else { return Some(express!("No collections to be divided")) };
-        if self.portion_to_first_player > Self::get_resources_to_be_divided(game).nre().amount {
+        if self.portion_to_first_player > Self::get_resources_to_be_divided(game).expect("resources to be divided").amount {
             return Some(express!("Too much assigned to ", to_be_divided.first_faction));
         }
 
@@ -52,12 +52,12 @@ impl DivideResources {
 
     pub fn is_applicable(g: &Game, p: PlayerIndex) -> bool {
         g.current_phase == Phase::DividingCollectedResources
-            && Self::get_resources_to_be_divided(g).nre().first_faction == g.player(p).faction
+            && Self::get_resources_to_be_divided(g).expect("resources to be divided").first_faction == g.player(p).faction
     }
 
     pub fn gained_by_other_faction(tbd: Option<&ResourcesToBeDivided>, agreed: bool, portion_to_first_player: i32) -> i32 {
         // tbd.Amount is read before GainedByFirstFaction runs.
-        let amount = tbd.nre().amount;
+        let amount = tbd.expect("resources to be divided").amount;
         amount - Self::gained_by_first_faction(tbd, agreed, portion_to_first_player)
     }
 
@@ -66,7 +66,7 @@ impl DivideResources {
             portion_to_first_player
         } else {
             // (int)(0.5f * tbd.Amount): float multiply, then truncation toward zero.
-            (0.5f32 * tbd.nre().amount as f32) as i32
+            (0.5f32 * tbd.expect("resources to be divided").amount as f32) as i32
         }
     }
 

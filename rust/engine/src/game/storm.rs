@@ -55,7 +55,7 @@ impl Game {
     }
 
     pub fn determine_later_storm_with_storm_deck(&self) -> i32 {
-        self.random.as_ref().nre().next(6) + 1
+        self.random.as_ref().expect("random").next(6) + 1
     }
 
     pub fn determine_storm(&mut self) {

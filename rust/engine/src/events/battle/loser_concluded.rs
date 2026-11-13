@@ -51,7 +51,6 @@ impl LoserConcluded {
     }
 
     pub fn set_kept_card(&mut self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.kept_card_id = TreacheryCardManager::get_id(value);
     }
 
@@ -100,8 +99,7 @@ impl LoserConcluded {
 
     /// `winner` can be null; it is only dereferenced when `target` is alive.
     pub fn assassination_reward(game: &Game, winner: Option<PlayerIndex>, target: Leader) -> Option<i32> {
-        let winner = winner.and_then(crate::compat::cs::CsNull::opt);
-        if !game.is_alive(Hero::Leader(target)) || !game.player(winner.nre()).leaders.contains(&target) {
+        if !game.is_alive(Hero::Leader(target)) || !game.player(winner.expect("winner")).leaders.contains(&target) {
             return None;
         }
         if target.hero_type() == HeroType::VariableValue {
@@ -116,7 +114,6 @@ impl LoserConcluded {
     }
 
     pub fn is_applicable(g: &Game, p: Option<PlayerIndex>) -> bool {
-        let p = p.and_then(crate::compat::cs::CsNull::opt);
         let Some(p) = p else { return false };
         Some(g.player(p).faction) == g.battle_loser
             && (!g.cards_to_be_discarded_by_loser_after_battle.is_empty() || g.loser_may_try_to_assassinate)
@@ -139,7 +136,7 @@ impl LoserConcluded {
         };
 
         let mut result: Vec<TreacheryCard> = Vec::new();
-        let winner_plan = current_battle.plan_of_faction(game, battle_winner).nre();
+        let winner_plan = current_battle.plan_of_faction(game, battle_winner).expect("plan of faction");
 
         if let Some(weapon) = winner_plan.weapon() {
             result.push(weapon);
@@ -235,9 +232,7 @@ impl LoserConcluded {
 
             let assassinated = LoserConcluded::target_of_assassination(game, self.player());
 
-            // C# adds a null target to Assassinated and RevealedTraitors (only without
-            // validation) and then throws ArgumentNullException in IsAlive.
-            let assassinated = assassinated.or_null();
+            let assassinated = assassinated.required("a target of the assassination")?;
             game.assassinated.push(assassinated);
             game.player_mut(self.player()).revealed_traitors.insert(Hero::from(assassinated));
 

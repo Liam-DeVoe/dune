@@ -124,8 +124,7 @@ impl IFetcher<Leader> for LeaderFetcher {
     }
 
     fn get_id(&self, obj: Option<Leader>) -> i32 {
-        let obj = obj.and_then(crate::compat::cs::CsNull::opt);
-        obj.and_then(crate::compat::cs::CsNull::opt).map_or(-1, |l| l.id())
+        obj.map_or(-1, |l| l.id())
     }
 }
 
@@ -152,7 +151,6 @@ impl IFetcher<Hero> for HeroFetcher {
     }
 
     fn get_id(&self, obj: Option<Hero>) -> i32 {
-        let obj = obj.and_then(crate::compat::cs::CsNull::opt);
-        obj.and_then(crate::compat::cs::CsNull::opt).map_or(-1, |h| h.id())
+        obj.map_or(-1, |h| h.id())
     }
 }

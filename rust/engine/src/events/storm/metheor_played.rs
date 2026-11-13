@@ -66,9 +66,10 @@ impl MetheorPlayed {
         let card = game.player(me).card(TreacheryCardType::Metheor);
         game.stone(Milestone::MetheorUsed);
         game.shield_wall_destroyed = true;
-        cs::list_remove(&mut game.player_mut(me).treachery_cards, card);
-        // C# adds the card even when it is null (no Metheor in hand, only without validation).
-        game.removed_treachery_cards.push(card.or_null());
+        if let Some(card) = card {
+            crate::iter::remove_first(&mut game.player_mut(me).treachery_cards, &card);
+        }
+        game.removed_treachery_cards.push(card.required("a Metheor card")?);
         let m = self.get_message(game).with_log(FamilyAtomicsUsed { faction: self.initiator(), card });
         self.log_objects(game, vec![m.into()]);
 

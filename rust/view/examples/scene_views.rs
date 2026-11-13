@@ -16,7 +16,7 @@
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};
-use treachery_engine::compat::cs::Shared;
+use treachery_engine::shared::Shared;
 use treachery_engine::enumerations::Faction;
 use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;

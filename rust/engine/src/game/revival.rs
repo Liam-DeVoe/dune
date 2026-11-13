@@ -2,18 +2,17 @@ use crate::prelude::*;
 
 impl Game {
     pub fn prepare_skill_assignment_to_revived_leader(&mut self, player: PlayerIndex, leader: Option<Leader>) {
-        let leader = leader.and_then(crate::compat::cs::CsNull::opt);
         if self.current_phase != Phase::AssigningSkill && leader.is_some() {
             self.phase_before_skill_assignment = self.current_phase;
         }
 
         self.player_mut(player).most_recently_revived_leader = leader;
         // SkillDeck!.Shuffle(): the `!` does not throw, the call does (NullReferenceException).
-        self.skill_deck.as_mut().nre().shuffle();
+        self.skill_deck.as_mut().expect("skill deck").shuffle();
         self.stone(Milestone::Shuffled);
-        let skill = self.skill_deck.as_mut().nre().draw();
+        let skill = self.skill_deck.as_mut().expect("skill deck").draw();
         self.player_mut(player).skills_to_choose_from.push(skill);
-        let skill = self.skill_deck.as_mut().nre().draw();
+        let skill = self.skill_deck.as_mut().expect("skill deck").draw();
         self.player_mut(player).skills_to_choose_from.push(skill);
         self.enter(Phase::AssigningSkill, true);
     }

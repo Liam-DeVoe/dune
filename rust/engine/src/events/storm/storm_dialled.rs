@@ -129,7 +129,7 @@ impl StormDialled {
         let mut tech_token_sequence = PlayerSequence::new_game(game);
 
         while !remaining_tech_tokens.is_empty() && game.players.iter().any(|p| p.tech_tokens.is_empty()) {
-            let current = tech_token_sequence.current_player(game).nre();
+            let current = tech_token_sequence.current_player(game).expect("current player");
             if game.player(current).tech_tokens.is_empty() {
                 let token = remaining_tech_tokens.draw();
                 // CurrentPlayer is re-read in C#; nothing in between changes the sequence.

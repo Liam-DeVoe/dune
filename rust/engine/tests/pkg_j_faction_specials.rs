@@ -3,14 +3,14 @@
 //! easy to get wrong in a port.
 
 use treachery_engine::canon;
-use treachery_engine::compat::cs;
+use treachery_engine::error::catch_panic;
 use treachery_engine::events::GameEventMethods;
 use treachery_engine::game::Intrusion;
 use treachery_engine::random::SharedRandom;
 use treachery_engine::prelude::*;
 
 fn outcome<R>(f: impl FnOnce() -> R) -> Result<R, String> {
-    cs::catch_panic(f).map_err(|e| format!("{}: {}", e.type_name, e.message))
+    catch_panic(f)
 }
 
 fn game_with(factions: &[Faction]) -> Game {

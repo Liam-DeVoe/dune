@@ -27,7 +27,7 @@ use std::fmt::Write as _;
 
 use indexmap::IndexMap;
 
-use crate::compat::cs::Shared;
+use crate::shared::Shared;
 use crate::compat::date_time_offset::DateTimeOffset;
 use crate::events::{GameEvent, GameEventType};
 use crate::compat::net_enum::NetEnum;

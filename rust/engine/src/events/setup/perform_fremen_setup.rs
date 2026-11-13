@@ -36,7 +36,7 @@ impl PerformFremenSetup {
         let p = self.player_opt();
         let number_of_special_forces =
             self.force_locations(game).values().map(|b| b.amount_of_special_forces).sum::<i32>();
-        let p = p.nre();
+        let p = p.expect("player");
         if number_of_special_forces > game.player(p).special_forces_in_reserve() {
             return Some(express!("You only have ", game.player(p).special_forces_in_reserve(), " ", FactionSpecialForce::Fremen));
         }

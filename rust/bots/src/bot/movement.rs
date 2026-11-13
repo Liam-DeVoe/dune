@@ -65,8 +65,8 @@ impl ClassicBot {
         // Finish a shipment to a stronghold near spice by moving on to the spice.
         if self.decided_shipment_action == ShipmentDecision::StrongholdNearResources {
             // The shipment's location ids are the same as those of `game`.
-            let decided = self.decided_shipment.clone().nre();
-            let decided_to = decided.to(game).or_null();
+            let decided = self.decided_shipment.clone().expect("decided shipment");
+            let decided_to = decided.to(game).expect("to");
             if game.player(me).forces_in_locations.contains_key(&decided_to) {
                 let to_move = game
                     .player(me)
@@ -186,9 +186,9 @@ impl ClassicBot {
     /// Arrakeen and Carthag in that order.
     fn battalion_that_will_destroy_shield_wall(&self, game: &Game) -> Option<MovedBattalion> {
         let map = &game.map;
-        let false_wall_east = |sector: i32| map.false_wall_east().locations().iter().copied().cs_first_where(|l| l.sector(map) == sector);
+        let false_wall_east = |sector: i32| map.false_wall_east().locations().iter().copied().find(|l| l.sector(map) == sector).expect("a location in that sector");
         let false_wall_east_target = || if game.sector_in_storm != 8 { false_wall_east(8) } else { false_wall_east(7) };
-        let pasty_mesa_target = || map.pasty_mesa().locations().iter().copied().cs_first_where(|l| l.sector(map) == 7);
+        let pasty_mesa_target = || map.pasty_mesa().locations().iter().copied().find(|l| l.sector(map) == 7).expect("a location in sector 7");
 
         let attempts: [(Location, &dyn Fn() -> Location); 4] = [
             (map.polar_sink(), &false_wall_east_target),

@@ -3,7 +3,7 @@
 
 use std::rc::Rc;
 
-use treachery_engine::compat::cs;
+use treachery_engine::error::catch_panic;
 use treachery_engine::prelude::*;
 
 fn game_with(factions: &[Faction]) -> Game {
@@ -65,8 +65,8 @@ fn raise_dead_negative_amount_checked_before_player_dereference() {
     assert!(e.validate(&g).is_some());
 
     e.amount_of_forces = 0;
-    let r = cs::catch_panic(|| e.validate(&g));
-    assert_eq!(r.unwrap_err().type_name, "NullReferenceException");
+    let r = catch_panic(|| e.validate(&g));
+    assert!(r.is_err());
 }
 
 #[test]

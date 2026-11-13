@@ -30,7 +30,6 @@ impl TraitorsSelected {
     }
 
     pub fn set_selected_traitor(&mut self, value: Option<Hero>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.traitor_id = LeaderManager::hero_lookup().get_id(value);
     }
 

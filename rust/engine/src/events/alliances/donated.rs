@@ -36,7 +36,6 @@ impl Donated {
     }
 
     pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.card_id = TreacheryCardManager::lookup().get_id(value);
     }
 
@@ -79,7 +78,7 @@ impl Donated {
         }
 
         let target_player = game.get_player(Some(self.target));
-        if self.card().is_some() && !game.player(target_player.nre()).has_room_for_cards(game) {
+        if self.card().is_some() && !game.player(target_player.expect("target player")).has_room_for_cards(game) {
             return Some(express!("Target faction's hand is full"));
         }
 

@@ -72,7 +72,6 @@ impl AmbassadorActivated {
     }
 
     pub fn set_fremen_or_guild_to(&mut self, game: &Game, value: Option<Location>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.fremen_or_guild_to_id = game.map.location_lookup().get_id(value);
     }
 
@@ -83,7 +82,7 @@ impl AmbassadorActivated {
     /// Re-parsed on every read.
     pub fn fremen_force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         let faction = game.player(self.player()).faction;
-        PlacementEvent::parse_force_locations(game, faction, self.fremen_force_locations.as_deref().nre())
+        PlacementEvent::parse_force_locations(game, faction, self.fremen_force_locations.as_deref().expect("fremen force locations"))
     }
 
     pub fn set_fremen_force_locations(&mut self, game: &Game, value: &IndexMap<Location, Battalion>) {
@@ -95,7 +94,6 @@ impl AmbassadorActivated {
     }
 
     pub fn set_ixian_card(&mut self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.ixian_card_id = TreacheryCardManager::get_id(value);
     }
 
@@ -104,7 +102,6 @@ impl AmbassadorActivated {
     }
 
     pub fn set_tleilaxu_hero(&mut self, value: Option<Hero>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.tleilaxu_hero_id = LeaderManager::hero_lookup().get_id(value);
     }
 
@@ -198,7 +195,7 @@ impl AmbassadorActivated {
                         return Some(express!("You don't have a card to discard"));
                     }
                     if self.ixian_card().is_some()
-                        && !AmbassadorActivated::get_valid_ixian_cards(game, player()).contains(&self.ixian_card().nre())
+                        && !AmbassadorActivated::get_valid_ixian_cards(game, player()).contains(&self.ixian_card().expect("ixian card"))
                     {
                         return Some(express!("Invalid card selected"));
                     }
@@ -234,7 +231,7 @@ impl AmbassadorActivated {
                         return Some(express!("You can't revive both forces and a leader"));
                     }
                     if self.tleilaxu_hero().is_some()
-                        && !AmbassadorActivated::valid_tleilaxu_heroes(game, player()).contains(&self.tleilaxu_hero().nre())
+                        && !AmbassadorActivated::valid_tleilaxu_heroes(game, player()).contains(&self.tleilaxu_hero().expect("tleilaxu hero"))
                     {
                         return Some(express!("Invalid leader"));
                     }
@@ -288,14 +285,14 @@ impl AmbassadorActivated {
     }
 
     pub fn vidal_can_be_taken(g: &Game, p: PlayerIndex) -> bool {
-        (g.vidal().is_some() && !g.player(p).has_leader(g.vidal().nre()))
+        (g.vidal().is_some() && !g.player(p).has_leader(g.vidal().expect("vidal")))
             && g.vidal_is_alive()
             && !g.vidal_is_captured_or_ghola()
             && g.occupier_of(World::Ecaz).is_none()
     }
 
     pub fn get_valid_bene_gesserit_ambassadors(g: &Game) -> Vec<Ambassador> {
-        g.unassigned_ambassadors.as_ref().nre().items.clone()
+        g.unassigned_ambassadors.as_ref().expect("unassigned ambassadors").items.clone()
     }
 
     pub fn get_valid_choam_cards(game: &Game, p: PlayerIndex) -> Vec<TreacheryCard> {

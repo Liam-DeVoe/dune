@@ -34,7 +34,6 @@ impl BeneGesseritAccompanies {
     }
 
     pub fn set_location(&mut self, game: &Game, value: Option<Location>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.target_id = game.map.location_lookup().get_id(value);
     }
 
@@ -99,7 +98,7 @@ impl BeneGesseritAccompanies {
                 return Some(express!("You don't have forces in reserve"));
             }
             let location = self.location(game);
-            if !BeneGesseritAccompanies::valid_targets(game, self.player()).contains(&location.or_null()) {
+            if !location.is_some_and(|l| BeneGesseritAccompanies::valid_targets(game, self.player()).contains(&l)) {
                 return Some(express!("You can't accompany there"));
             }
             if self.initiator() != Faction::BeneGesserit {

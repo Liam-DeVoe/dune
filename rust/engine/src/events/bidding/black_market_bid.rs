@@ -79,7 +79,7 @@ impl BlackMarketBid {
         if self.passed {
             let winning_bid = game.current_bid.clone();
 
-            if let Some(winning_bid) = winning_bid.as_ref().filter(|wb| game.bid_sequence.as_ref().nre().current_faction(game) == wb.i_bid_initiator()) {
+            if let Some(winning_bid) = winning_bid.as_ref().filter(|wb| game.bid_sequence.as_ref().expect("bid sequence").current_faction(game) == wb.i_bid_initiator()) {
                 if game.cards_on_auction.is_none() {
                     return Ok(());
                 }

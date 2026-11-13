@@ -40,7 +40,7 @@ impl ClairVoyancePlayed {
     /// The boxed value as a message element: an enum, an `IHero`, a `Territory`, a float, or null.
     /// Panics like .NET's parse when the parameter doesn't fit the question.
     pub fn parameter1(&self, game: &Game) -> ExpressionElement {
-        self.parse_parameter1(game).unwrap_or_else(|e| cs::throw(e.type_name, e.message))
+        self.parse_parameter1(game).unwrap_or_else(|e| panic!("{}: {}", e.type_name, e.message))
     }
 
     /// [`parameter1`](Self::parameter1), failing the event when the parameter doesn't fit the question.
@@ -48,7 +48,7 @@ impl ClairVoyancePlayed {
         self.parse_parameter1(game).map_err(|e| GameError::new(e.message))
     }
 
-    fn parse_parameter1(&self, game: &Game) -> Result<ExpressionElement, cs::CsException> {
+    fn parse_parameter1(&self, game: &Game) -> Result<ExpressionElement, dotnet_compat::exception::CsException> {
         use dotnet_compat::parse::{try_enum_parse, try_float_parse_invariant, try_int_parse};
         let Some(p1) = self.question_parameter1.as_deref() else {
             return Ok(ExpressionElement::Null);
@@ -105,7 +105,7 @@ impl ClairVoyancePlayed {
 
     /// Panics like .NET's parse when the parameter isn't a number.
     pub fn parameter2(&self) -> ExpressionElement {
-        self.parse_parameter2().unwrap_or_else(|e| cs::throw(e.type_name, e.message))
+        self.parse_parameter2().unwrap_or_else(|e| panic!("{}: {}", e.type_name, e.message))
     }
 
     /// [`parameter2`](Self::parameter2), failing the event when the parameter isn't a number.
@@ -113,7 +113,7 @@ impl ClairVoyancePlayed {
         self.parse_parameter2().map_err(|e| GameError::new(e.message))
     }
 
-    fn parse_parameter2(&self) -> Result<ExpressionElement, cs::CsException> {
+    fn parse_parameter2(&self) -> Result<ExpressionElement, dotnet_compat::exception::CsException> {
         Ok(match self.question {
             ClairvoyanceQuestion::Prediction
                 if !self.question_parameter2.as_deref().map_or(true, |s| s.is_empty()) =>

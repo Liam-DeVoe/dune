@@ -2,10 +2,9 @@ use crate::prelude::*;
 
 impl Game {
     pub fn get_applicable_events(&mut self, player: Option<PlayerIndex>, is_host: bool) -> Vec<GameEventType> {
-        let player = player.and_then(crate::compat::cs::CsNull::opt);
         let mut result: Vec<GameEventType> = Vec::new();
 
-        if self.current_phase == Phase::SelectingFactions && (player.is_none() || self.player(player.nre()).faction == Faction::None) {
+        if self.current_phase == Phase::SelectingFactions && (player.is_none() || self.player(player.expect("player")).faction == Faction::None) {
             result.push(GameEventType::FactionSelected);
         } else if let Some(p) = player {
             if self.player(p).faction != Faction::None {
@@ -491,13 +490,13 @@ impl Game {
                             && faction == Faction::Harkonnen
                             && ally_of(ap.initiator()) == Some(Faction::Harkonnen)
                             && dp.hero().is_some()
-                            && traitors.contains(&dp.hero().nre()))
+                            && traitors.contains(&dp.hero().expect("hero")))
                         || (self.defender_traitor_action.is_none() && faction == cb.defender(self))
                         || (self.defender_traitor_action.is_none()
                             && faction == Faction::Harkonnen
                             && ally_of(dp.initiator()) == Some(Faction::Harkonnen)
                             && ap.hero().is_some()
-                            && traitors.contains(&ap.hero().nre()))
+                            && traitors.contains(&ap.hero().expect("hero")))
                     {
                         result.push(GameEventType::TreacheryCalled);
                     }
@@ -650,7 +649,7 @@ impl Game {
                 // `CurrentBattle?.OpponentOf(CurrentThought!.Initiator)`: the argument (and its
                 // NullReferenceException) is only evaluated when CurrentBattle is not null.
                 let opponent = match &self.current_battle {
-                    Some(cb) => cb.opponent_of_faction(self, self.current_thought.as_ref().nre().initiator()),
+                    Some(cb) => cb.opponent_of_faction(self, self.current_thought.as_ref().expect("current thought").initiator()),
                     None => None,
                 };
                 if Some(player) == opponent {
@@ -713,13 +712,13 @@ impl Game {
         if faction == Faction::Ecaz
             && self.current_phase == Phase::CallTraitorOrPass
             && self.current_battle.is_some()
-            && self.current_battle.as_ref().nre().is_aggressor_or_defender(self, player)
+            && self.current_battle.as_ref().expect("current battle").is_aggressor_or_defender(self, player)
             && !self.karma_prevented(faction)
             && !self.player(player).special_karma_power_used
             && self.player(player).has_karma(self)
             && self.applicable(Rule::AdvancedKarama)
         {
-            let plan_of_ecaz = self.current_battle.as_ref().nre().plan_of_faction(self, Faction::Ecaz);
+            let plan_of_ecaz = self.current_battle.as_ref().expect("current battle").plan_of_faction(self, Faction::Ecaz);
             if plan_of_ecaz.is_some_and(|p| p.defense().is_none() && p.weapon().is_none()) {
                 result.push(GameEventType::KarmaEcazDial);
             }
@@ -774,7 +773,7 @@ impl Game {
 
             if ((faction == Faction::Choam && p.has_ally()) || p.ally == Faction::Choam)
                 && self.consider_as_end_of_phase()
-                && !self.player(p.allied_player(self).nre()).treachery_cards.is_empty()
+                && !self.player(p.allied_player(self).expect("allied player")).treachery_cards.is_empty()
                 && !p.treachery_cards.is_empty()
                 && self.last_turn_card_was_traded < self.current_turn
             {
@@ -858,7 +857,7 @@ impl Game {
             if faction == Faction::Ixian
                 && ((!self.karma_prevented(faction) && !p.special_karma_power_used && p.has_karma(self)) || self.karma_hms_moves_left == 1)
                 && self.current_main_phase == MainPhase::ShipmentAndMove
-                && Some(player) == self.shipment_and_move_sequence.as_ref().nre().current_player(self)
+                && Some(player) == self.shipment_and_move_sequence.as_ref().expect("shipment and move sequence").current_player(self)
                 && p.any_forces_in(Some(self.map.hidden_mobile_stronghold().location())) > 0
                 && self.applicable(Rule::AdvancedKarama)
             {
@@ -879,7 +878,7 @@ impl Game {
             if faction == Faction::Atreides
                 && self.current_main_phase == MainPhase::Battle
                 && self.current_battle.is_some()
-                && self.current_battle.as_ref().nre().is_involved(self, player)
+                && self.current_battle.as_ref().expect("current battle").is_involved(self, player)
                 && !self.karma_prevented(faction)
                 && !p.special_karma_power_used
                 && p.has_karma(self)
@@ -918,7 +917,7 @@ impl Game {
                 && !has_finalized_battle_plan_waiting_to_be_resolved
                 && p.has_ally()
                 && !RicheseGaveCard::valid_cards(self, player).next().is_none()
-                && self.player(p.allied_player(self).nre()).has_room_for_cards(self)
+                && self.player(p.allied_player(self).expect("allied player")).has_room_for_cards(self)
             {
                 result.push(GameEventType::RicheseGaveCard);
             }

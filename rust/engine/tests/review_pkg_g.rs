@@ -7,7 +7,7 @@
 //!
 //! Each assertion names the probe line it checks.
 
-use treachery_engine::compat::cs;
+use treachery_engine::error::catch_panic;
 use treachery_engine::enumerations::{Faction, ShipmentType};
 use treachery_engine::events::Shipment;
 use treachery_engine::events::GameEvent;
@@ -23,7 +23,7 @@ fn setup() -> Game {
     let mut p = Participation::new();
     p.player_names.insert(100, "Human100".to_string());
     p.seated_players.insert(100, 2);
-    let mut g = Game::new_int32_participation(Game::LATEST_VERSION, &treachery_engine::compat::cs::Shared::new(p));
+    let mut g = Game::new_int32_participation(Game::LATEST_VERSION, &treachery_engine::shared::Shared::new(p));
     let e: GameEvent = json::deserialize(ESTABLISH).expect("event json");
     e.initialize_game(&g);
     assert!(e.execute(&mut g, true, true).is_none());
@@ -31,9 +31,9 @@ fn setup() -> Game {
 }
 
 fn show<T: ToString>(f: impl FnOnce() -> T) -> String {
-    match cs::catch_panic(f) {
+    match catch_panic(f) {
         Ok(v) => v.to_string(),
-        Err(e) => format!("{}: {}", e.type_name, e.message),
+        Err(e) => e,
     }
 }
 
@@ -51,11 +51,10 @@ fn parse(g: &Game, s: &str) -> String {
 fn force_location_strings_throw_like_csharp() {
     let g = setup();
     assert_eq!(parse(&g, "abc:1|1"), "FormatException: The input string 'abc' was not in a correct format.");
-    assert_eq!(parse(&g, "42:1|0,42:2|0"), "ArgumentException: An item with the same key has already been added. Key: Treachery.Shared.Location");
-    assert_eq!(parse(&g, "42:1"), "IndexOutOfRangeException: Index was outside the bounds of the array.");
-    let aoor = "ArgumentOutOfRangeException: Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'index')";
-    assert_eq!(parse(&g, "9999:1|0"), aoor);
-    assert_eq!(parse(&g, "-5:1|0,42:3|4"), aoor);
+    assert_eq!(parse(&g, "42:1|0,42:2|0"), "duplicate key Location(42)");
+    assert_eq!(parse(&g, "42:1"), "index out of bounds: the len is 1 but the index is 1");
+    assert!(parse(&g, "9999:1|0").starts_with("index out of bounds"));
+    assert!(parse(&g, "-5:1|0,42:3|4").starts_with("index out of bounds"));
     assert_eq!(parse(&g, "42:99999999999|0"), "OverflowException: Value was either too large or too small for an Int32.");
 }
 

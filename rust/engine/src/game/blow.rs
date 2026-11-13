@@ -37,8 +37,8 @@ impl Game {
             }
 
             if drawn.is_some_and(|d| d.is_shai_hulud() || d.is_great_maker()) && self.current_turn == 1 {
-                self.log_ignored_monster(drawn.nre().is_great_maker());
-                let c = self.current_discard_pile_mut().nre().draw();
+                self.log_ignored_monster(drawn.expect("drawn").is_great_maker());
+                let c = self.current_discard_pile_mut().expect("current discard pile").draw();
                 self.ignored_monsters.push(c);
             } else if self.thumper_called_shai_hulud
                 || drawn.is_some_and(|d| d.is_shai_hulud())
@@ -61,8 +61,8 @@ impl Game {
                 } else {
                     //Sandtrout triggers
                     if self.sand_trout.is_some() {
-                        let sand_trout = self.sand_trout.nre();
-                        let pile = self.current_discard_pile_mut().nre();
+                        let sand_trout = self.sand_trout.expect("sand trout");
+                        let pile = self.current_discard_pile_mut().expect("current discard pile");
                         if let Some(d) = drawn {
                             if let Some(i) = pile.items.iter().position(|c| *c == d) {
                                 pile.items.remove(i);
@@ -79,19 +79,19 @@ impl Game {
                     self.log(elems![Concept::Monster, " is ignored due to ", Concept::BabyMonster]);
                 }
             } else if drawn.is_some_and(|d| d.is_sand_trout()) {
-                let d = drawn.nre();
+                let d = drawn.expect("drawn");
                 if self.current_turn > 1 {
                     self.stone(Milestone::BabyMonster);
                     self.log(elems![Concept::BabyMonster, " detected! All alliances are cancelled."]);
                     self.cancel_all_alliances();
-                    let pile = self.current_discard_pile_mut().nre();
+                    let pile = self.current_discard_pile_mut().expect("current discard pile");
                     if let Some(i) = pile.items.iter().position(|c| *c == d) {
                         pile.items.remove(i);
                     }
                     self.sand_trout = Some(d);
                 } else {
                     self.log(elems![Concept::BabyMonster, " on turn 1 was ignored"]);
-                    self.ignored_sandtrout = Some(self.current_discard_pile_mut().nre().draw());
+                    self.ignored_sandtrout = Some(self.current_discard_pile_mut().expect("current discard pile").draw());
                 }
             }
 
@@ -137,31 +137,31 @@ impl Game {
     /// Discards to the current discard pile; `discard_pile_a` says which pile that is
     /// (`ResourceCardDiscardPileA` when true). Nothing in the body changes the phase.
     pub fn draw_and_discard_resource_card(&mut self, discard_pile_a: bool) -> ResourceCard {
-        if self.resource_card_deck.as_ref().nre().is_empty() {
+        if self.resource_card_deck.as_ref().expect("resource card deck").is_empty() {
             self.reshuffle_resource_deck();
         }
 
-        let drawn = self.resource_card_deck.as_mut().nre().draw();
+        let drawn = self.resource_card_deck.as_mut().expect("resource card deck").draw();
         let pile = if discard_pile_a { &mut self.resource_card_discard_pile_a } else { &mut self.resource_card_discard_pile_b };
-        pile.as_mut().nre().put_on_top(drawn);
+        pile.as_mut().expect("pile").put_on_top(drawn);
         drawn
     }
 
     pub fn reshuffle_resource_deck(&mut self) {
         if self.applicable(Rule::IncreasedResourceFlow) {
-            let count_a = self.resource_card_discard_pile_a.as_ref().nre().items.len() as i32;
-            let count_b = self.resource_card_discard_pile_b.as_ref().nre().items.len() as i32;
+            let count_a = self.resource_card_discard_pile_a.as_ref().expect("resource card discard pile a").items.len() as i32;
+            let count_b = self.resource_card_discard_pile_b.as_ref().expect("resource card discard pile b").items.len() as i32;
             // C# parity: "A en B" typo.
             self.log(elems![count_a + count_b, " cards were shuffled from ", Concept::Resource, " discard piles A en B into a new deck."]);
         } else {
-            let count_a = self.resource_card_discard_pile_a.as_ref().nre().items.len() as i32;
+            let count_a = self.resource_card_discard_pile_a.as_ref().expect("resource card discard pile a").items.len() as i32;
             let msg = express!(count_a, " cards were shuffled from the ", Concept::Resource, " discard pile into a new deck")
                 .with_log(BlowReshuffleLog::new(count_a));
             self.log(elems![msg]);
         }
 
-        if self.resource_card_discard_pile_a.as_ref().nre().items.iter().any(|c| c.is_discovery())
-            || self.resource_card_discard_pile_b.as_ref().nre().items.iter().any(|c| c.is_discovery())
+        if self.resource_card_discard_pile_a.as_ref().expect("resource card discard pile a").items.iter().any(|c| c.is_discovery())
+            || self.resource_card_discard_pile_b.as_ref().expect("resource card discard pile b").items.iter().any(|c| c.is_discovery())
         {
             // C# parity: "Discovery were removed" grammar.
             self.log(elems!["Discovery were removed from the game"]);
@@ -169,29 +169,29 @@ impl Game {
 
         // foreach over a lazy Where: the predicate runs on each card just before its Add, so a
         // card that throws leaves the earlier ones added (docs/lazy-queries.md).
-        let count = self.resource_card_discard_pile_a.as_ref().nre().items.len();
+        let count = self.resource_card_discard_pile_a.as_ref().expect("resource card discard pile a").items.len();
         for idx in 0..count {
-            let i = self.resource_card_discard_pile_a.as_ref().nre().items[idx];
+            let i = self.resource_card_discard_pile_a.as_ref().expect("resource card discard pile a").items[idx];
             if !i.is_discovery() {
-                self.resource_card_deck.as_mut().nre().items.push(i);
+                self.resource_card_deck.as_mut().expect("resource card deck").items.push(i);
             }
         }
 
-        self.resource_card_discard_pile_a.as_mut().nre().clear();
+        self.resource_card_discard_pile_a.as_mut().expect("resource card discard pile a").clear();
 
         // foreach over a lazy Where: the predicate runs on each card just before its Add, so a
         // card that throws leaves the earlier ones added (docs/lazy-queries.md).
-        let count = self.resource_card_discard_pile_b.as_ref().nre().items.len();
+        let count = self.resource_card_discard_pile_b.as_ref().expect("resource card discard pile b").items.len();
         for idx in 0..count {
-            let i = self.resource_card_discard_pile_b.as_ref().nre().items[idx];
+            let i = self.resource_card_discard_pile_b.as_ref().expect("resource card discard pile b").items[idx];
             if !i.is_discovery() {
-                self.resource_card_deck.as_mut().nre().items.push(i);
+                self.resource_card_deck.as_mut().expect("resource card deck").items.push(i);
             }
         }
 
-        self.resource_card_discard_pile_b.as_mut().nre().clear();
+        self.resource_card_discard_pile_b.as_mut().expect("resource card discard pile b").clear();
 
-        self.resource_card_deck.as_mut().nre().shuffle();
+        self.resource_card_deck.as_mut().expect("resource card deck").shuffle();
         self.stone(Milestone::Shuffled);
     }
 
@@ -199,7 +199,7 @@ impl Game {
         self.stone(Milestone::Resource);
 
         if blow_card.is_discovery() {
-            let territory = blow_card.territory().nre();
+            let territory = blow_card.territory().expect("territory");
             if self.any_forces_in(territory) {
                 self.kill_all_forces_in(territory, false);
             }
@@ -208,17 +208,17 @@ impl Game {
             self.log_if(devoured_resources > 0, elems![Payment::of(devoured_resources), " in ", territory, " is destroyed"]);
 
             let mut drawn_token = DiscoveryToken::None;
-            let discovery_location = blow_card.discovery_location().nre();
+            let discovery_location = blow_card.discovery_location().expect("discovery location");
             if discovery_location.discovery_token_type() == DiscoveryTokenType::Guild {
-                if !self.guild_discovery_tokens.as_ref().nre().is_empty() {
-                    drawn_token = self.guild_discovery_tokens.as_mut().nre().draw();
+                if !self.guild_discovery_tokens.as_ref().expect("guild discovery tokens").is_empty() {
+                    drawn_token = self.guild_discovery_tokens.as_mut().expect("guild discovery tokens").draw();
                     self.discoveries_on_planet.insert_new(discovery_location, Discovery::new(drawn_token, DiscoveryTokenType::Guild, discovery_location));
                 } else {
                     self.log(elems!["There are no more ", DiscoveryTokenType::Guild, " discoveries left"]);
                 }
             } else if discovery_location.discovery_token_type() == DiscoveryTokenType::Fremen {
-                if !self.fremen_discovery_tokens.as_ref().nre().is_empty() {
-                    drawn_token = self.fremen_discovery_tokens.as_mut().nre().draw();
+                if !self.fremen_discovery_tokens.as_ref().expect("fremen discovery tokens").is_empty() {
+                    drawn_token = self.fremen_discovery_tokens.as_mut().expect("fremen discovery tokens").draw();
                     self.discoveries_on_planet.insert_new(discovery_location, Discovery::new(drawn_token, DiscoveryTokenType::Fremen, discovery_location));
                 } else {
                     self.log(elems!["There are no more ", DiscoveryTokenType::Fremen, " discoveries left"]);
@@ -232,7 +232,7 @@ impl Game {
         }
 
         let spice_factor = if self.sand_trout_doubles_resources { 2 } else { 1 };
-        let location = blow_card.location().nre();
+        let location = blow_card.location().expect("location");
         let spice_amount = spice_factor * location.spice_blow_amount();
 
         if location.sector(&self.map) != self.sector_in_storm {
@@ -284,7 +284,6 @@ impl Game {
     }
 
     pub fn let_monster_appear(&mut self, t: Option<Territory>, is_great_monster: bool) {
-        let t = t.and_then(crate::compat::cs::CsNull::opt);
         match t {
             Some(t) if self.current_turn != 1 => {
                 let m = MonsterAppearence::new(t, is_great_monster);
@@ -501,16 +500,16 @@ impl Game {
                 ]);
                 let ignored = self.ignored_monsters.clone();
                 for c in ignored {
-                    self.resource_card_deck.as_mut().nre().items.push(c);
+                    self.resource_card_deck.as_mut().expect("resource card deck").items.push(c);
                 }
             }
 
             if let Some(sandtrout) = self.ignored_sandtrout {
                 self.log(elems![Concept::BabyMonster, " card was shuffled back into the ", Concept::Resource, " deck"]);
-                self.resource_card_deck.as_mut().nre().items.push(sandtrout);
+                self.resource_card_deck.as_mut().expect("resource card deck").items.push(sandtrout);
             }
 
-            self.resource_card_deck.as_mut().nre().shuffle();
+            self.resource_card_deck.as_mut().expect("resource card deck").shuffle();
             self.stone(Milestone::Shuffled);
         }
     }
@@ -550,7 +549,6 @@ impl Game {
     }
 
     pub fn set_previous_blow_card(&mut self, value: Option<ResourceCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         if self.current_phase == Phase::BlowA {
             self.latest_spice_card_a = value;
         } else {

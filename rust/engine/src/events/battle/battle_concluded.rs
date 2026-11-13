@@ -60,7 +60,6 @@ impl BattleConcluded {
     }
 
     pub fn set_traitor_to_replace(&mut self, value: Option<Hero>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.traitor_to_replace_id = LeaderManager::hero_lookup().get_id(value);
     }
 
@@ -69,7 +68,6 @@ impl BattleConcluded {
     }
 
     pub fn set_new_traitor(&mut self, value: Option<Hero>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.new_traitor_id = LeaderManager::hero_lookup().get_id(value);
     }
 
@@ -211,7 +209,7 @@ impl BattleConcluded {
         traitor_deck.put_on_top(traitor_to_replace);
 
         game.stone(Milestone::Shuffled);
-        game.traitor_deck.as_mut().nre().shuffle();
+        game.traitor_deck.as_mut().expect("traitor deck").shuffle();
     }
 
     pub fn decide_fate_of_captured_leader(&self, game: &mut Game) {
@@ -285,7 +283,7 @@ impl BattleConcluded {
             let mut special_forces_to_save_in_territory = 0;
             let mut forces_to_save_in_territory = 0;
 
-            if plan.hero().is_some() && game.skilled_as(plan.hero().nre(), LeaderSkill::Graduate) {
+            if plan.hero().is_some() && game.skilled_as(plan.hero().expect("hero"), LeaderSkill::Graduate) {
                 special_forces_to_save_in_territory = std::cmp::min(special_forces_to_lose, 1);
                 forces_to_save_in_territory = std::cmp::max(0, std::cmp::min(forces_to_lose, 1 - special_forces_to_save_in_territory));
 
@@ -419,7 +417,6 @@ impl BattleConcluded {
     }
 
     pub fn may_capture_or_kill(g: &Game, p: Option<PlayerIndex>) -> bool {
-        let p = p.and_then(crate::compat::cs::CsNull::opt);
         let Some(p) = p else { return false };
         g.player(p).faction == Faction::Harkonnen
             && g.battle_winner == Some(Faction::Harkonnen)

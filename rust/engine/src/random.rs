@@ -7,7 +7,7 @@ use std::cell::RefMut;
 
 use dotnet_compat::NetRandom;
 
-use crate::compat::cs::Shared;
+use crate::shared::Shared;
 
 #[derive(Clone, Debug, canon_derive::Canon)]
 #[canon(manual)]

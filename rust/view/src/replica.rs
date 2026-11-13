@@ -12,7 +12,7 @@
 
 use std::collections::BTreeMap;
 
-use treachery_engine::compat::cs::Shared;
+use treachery_engine::shared::Shared;
 use treachery_engine::events::GameEventType;
 use treachery_engine::game::GameState;
 use treachery_engine::json;

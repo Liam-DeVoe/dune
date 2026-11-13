@@ -34,7 +34,6 @@ impl Retreat {
     }
 
     pub fn set_location(&mut self, game: &Game, value: Option<Location>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.target_id = game.map.location_lookup().get_id(value);
     }
 
@@ -42,7 +41,7 @@ impl Retreat {
         let p = self.player();
         let mut valid_targets = Retreat::valid_targets(game, p);
         let location = self.location(game);
-        if !valid_targets.any(|v| v == location.or_null()) {
+        if !valid_targets.any(|v| Some(v) == location) {
             return Some(express!("Invalid location"));
         }
         if self.forces > Retreat::max_forces(game, p) {
@@ -59,7 +58,7 @@ impl Retreat {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
     pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
-        let territory = g.current_battle.as_ref().nre().territory(g).nre();
+        let territory = g.current_battle.as_ref().expect("current battle").territory(g).expect("territory");
         let battalions = g.player(p).battalions_in(territory);
         PlacementEvent::valid_targets_game_player_dictionary_location_battalion(g, p, &battalions)
             .into_iter()
@@ -67,29 +66,29 @@ impl Retreat {
     }
 
     pub fn max_total_forces(g: &Game, p: PlayerIndex) -> i32 {
-        let current_battle = g.current_battle.as_ref().nre();
+        let current_battle = g.current_battle.as_ref().expect("current battle");
         let plan = current_battle.plan_of(g, Some(p));
         let opponent_plan = current_battle.plan_of_opponent(g, Some(p));
         // plan.Hero.ValueInCombatAgainst(opponentPlan.Hero): NullReferenceException when
         // either plan or the hero is null (hazards 1.4).
-        let hero = plan.nre().hero();
-        let opponent_hero = opponent_plan.nre().hero();
-        hero.nre().value_in_combat_against(opponent_hero)
+        let hero = plan.expect("plan").hero();
+        let opponent_hero = opponent_plan.expect("opponent plan").hero();
+        hero.expect("hero").value_in_combat_against(opponent_hero)
     }
 
     pub fn max_forces(g: &Game, p: PlayerIndex) -> i32 {
-        let current_battle = g.current_battle.as_ref().nre();
+        let current_battle = g.current_battle.as_ref().expect("current battle");
         let plan = current_battle.plan_of(g, Some(p));
         let forces_in = g.player(p).forces_in_territory(current_battle.territory(g));
-        let plan = plan.nre();
+        let plan = plan.expect("plan");
         (forces_in - plan.forces) - plan.forces_at_half_strength
     }
 
     pub fn max_special_forces(g: &Game, p: PlayerIndex) -> i32 {
-        let current_battle = g.current_battle.as_ref().nre();
+        let current_battle = g.current_battle.as_ref().expect("current battle");
         let plan = current_battle.plan_of(g, Some(p));
         let special_forces_in = g.player(p).special_forces_in_territory(current_battle.territory(g));
-        let plan = plan.nre();
+        let plan = plan.expect("plan");
         (special_forces_in - plan.special_forces) - plan.special_forces_at_half_strength
     }
 
@@ -105,7 +104,7 @@ impl Retreat {
             let to_move_from_here = std::cmp::min(forces_to_move, game.player(me).forces_in(Some(l)));
             // A null Location (only without validation): MoveForces empties `l`, then throws
             // ArgumentNullException on the null key.
-            let to = self.location(game).or_null();
+            let to = self.location(game).required("location")?;
             Player::move_forces(game, me, l, to, to_move_from_here);
             forces_to_move -= to_move_from_here;
         }
@@ -119,7 +118,7 @@ impl Retreat {
                 break;
             }
             let to_move_from_here = std::cmp::min(special_forces_to_move, game.player(me).special_forces_in(Some(l)));
-            let to = self.location(game).or_null();
+            let to = self.location(game).required("location")?;
             Player::move_special_forces(game, me, l, to, to_move_from_here);
             special_forces_to_move -= to_move_from_here;
         }

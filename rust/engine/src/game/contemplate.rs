@@ -70,7 +70,7 @@ impl Game {
             self.harkonnen_traitor_was_cancelled = false;
             // `?.` skips the draw when Harkonnen is not playing (hazards 10.3).
             if let Some(harkonnen) = self.get_player(Some(Faction::Harkonnen)) {
-                let traitor = self.traitor_deck.as_mut().nre().draw();
+                let traitor = self.traitor_deck.as_mut().expect("traitor deck").draw();
                 self.player_mut(harkonnen).traitors.push(traitor);
             }
             self.log(vec![Faction::Harkonnen.into(), " drew a new traitor after having been betrayed".into()]);
@@ -100,7 +100,7 @@ impl Game {
                 }
             }
             self.player_mut(moritani).revealed_traitors.remove(&hero);
-            let traitor = self.traitor_deck.as_mut().nre().draw();
+            let traitor = self.traitor_deck.as_mut().expect("traitor deck").draw();
             self.player_mut(moritani).traitors.push(traitor);
         }
     }
@@ -282,7 +282,7 @@ impl Game {
 
             let contested = self.applicable(Rule::ContestedStongholdsCountAsOccupied);
             // A null CurrentPlayer throws a NullReferenceException inside MeetsNormalVictoryCondition.
-            let p = p.nre();
+            let p = p.expect("player");
             if self.meets_normal_victory_condition(p, contested) {
                 self.win_method = WinMethod::Strongholds;
 
@@ -305,7 +305,6 @@ impl Game {
     }
 
     pub fn log_normal_win(&mut self, player: PlayerIndex, ally: Option<PlayerIndex>) {
-        let ally = ally.and_then(crate::compat::cs::CsNull::opt);
         let faction = self.player(player).faction;
         let player_ally = self.player(player).ally;
         let others_meet_condition = self.player_indices().any(|p| {
@@ -373,7 +372,7 @@ impl Game {
                 .filter(|t| {
                     pl.controls_game_territory_boolean(self, *t, contested_strongholds_count_as_occupied)
                         && self
-                            .player(pl.allied_player(self).nre())
+                            .player(pl.allied_player(self).expect("allied player"))
                             .controls_game_territory_boolean(self, *t, contested_strongholds_count_as_occupied)
                 })
                 .count()
@@ -387,7 +386,7 @@ impl Game {
             && self.strongholds().any(|t| {
                 pl.controls_game_territory_boolean(self, t, contested_strongholds_count_as_occupied)
                     && self
-                        .player(pl.allied_player(self).nre())
+                        .player(pl.allied_player(self).expect("allied player"))
                         .controls_game_territory_boolean(self, t, contested_strongholds_count_as_occupied)
             })
             && self.homeworld_occupation.values().filter(|f| **f == pl.faction || **f == pl.ally).count() >= 2
@@ -428,26 +427,28 @@ impl Game {
         let guild = self.get_player(Some(Faction::Guild));
 
         if fremen.is_some() && self.fremen_victory_condition_met() {
-            let fremen = fremen.nre();
+            let fremen = fremen.expect("fremen");
             self.log_win_reason(WinMethod::FremenSpecial, vec![Faction::Fremen.into(), " special victory conditions are met!".into()]);
             self.win_method = WinMethod::FremenSpecial;
             self.winners.push(fremen);
             if self.player(fremen).has_ally() {
-                // C# adds AlliedPlayer, which is null when the ally faction isn't playing.
-                let ally = self.player(fremen).allied_player(self).or_null();
-                self.winners.push(ally);
+                // The ally faction may not be playing (C# then adds a null winner).
+                if let Some(ally) = self.player(fremen).allied_player(self) {
+                    self.winners.push(ally);
+                }
             }
         } else if guild.is_some() && !self.applicable(Rule::DisableGuildSpecialVictory) {
-            let guild = guild.nre();
+            let guild = guild.expect("guild");
             self.log_win_reason(WinMethod::GuildSpecial, vec![Faction::Guild.into(), " special victory conditions are met!".into()]);
             self.win_method = WinMethod::GuildSpecial;
             self.winners.push(guild);
             if self.player(guild).has_ally() {
-                let ally = self.player(guild).allied_player(self).or_null();
-                self.winners.push(ally);
+                if let Some(ally) = self.player(guild).allied_player(self) {
+                    self.winners.push(ally);
+                }
             }
         } else if fremen.is_some() && !self.applicable(Rule::DisableGuildSpecialVictory) {
-            let fremen = fremen.nre();
+            let fremen = fremen.expect("fremen");
             self.log_win_reason(
                 WinMethod::GuildSpecial,
                 vec![
@@ -460,8 +461,9 @@ impl Game {
             self.win_method = WinMethod::GuildSpecial;
             self.winners.push(fremen);
             if self.player(fremen).has_ally() {
-                let ally = self.player(fremen).allied_player(self).or_null();
-                self.winners.push(ally);
+                if let Some(ally) = self.player(fremen).allied_player(self) {
+                    self.winners.push(ally);
+                }
             }
         }
     }
@@ -498,7 +500,7 @@ impl Game {
 
         for _ in 0..self.players.len() {
             // A null CurrentPlayer throws inside NumberOfVictoryPoints.
-            let p = check_win_sequence.current_player(self).nre();
+            let p = check_win_sequence.current_player(self).expect("current player");
 
             let points_of_player = self.number_of_victory_points(p, self.applicable(Rule::ContestedStongholdsCountAsOccupied));
             if points_of_player > highest_number_of_points {
@@ -519,8 +521,9 @@ impl Game {
             );
 
             if self.player(with_most_points).has_ally() {
-                let ally = self.player(with_most_points).allied_player(self).or_null();
-                self.winners.push(ally);
+                if let Some(ally) = self.player(with_most_points).allied_player(self) {
+                    self.winners.push(ally);
+                }
             }
         }
     }

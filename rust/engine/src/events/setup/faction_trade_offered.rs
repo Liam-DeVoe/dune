@@ -26,7 +26,7 @@ impl FactionTradeOffered {
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
         // `p.Faction` is read inside the lazy predicate, so a null Player throws only once the union has an element.
-        if !Self::valid_targets(game, self.player_opt().unwrap_or(PlayerIndex::NULL)).any(|v| v == self.target) {
+        if !Self::valid_targets(game, self.player()).any(|v| v == self.target) {
             return Some(express!("Invalid target"));
         }
 

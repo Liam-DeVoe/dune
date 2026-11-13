@@ -43,14 +43,8 @@ impl BeneGesseritPrediction {
     }
 
     pub fn valid_turns(g: &Game) -> Vec<i32> {
-        // Enumerable.Range(1, count) throws for a negative count.
         let count = g.maximum_turns();
-        // ThrowHelper.ThrowArgumentOutOfRangeException(ExceptionArgument.count): no actual value
-        // in the message (probed on .NET 10).
-        if count < 0 {
-            panic!("{}",
-                cs::with_parameter("Specified argument was out of the range of valid values.", "count"));
-        }
+        assert!(count >= 0, "negative number of turns: {count}");
         (0..count).map(|i| 1i32 + i).collect()
     }
 

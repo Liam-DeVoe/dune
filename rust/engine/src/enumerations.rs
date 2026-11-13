@@ -971,7 +971,7 @@ pub fn get_values_except_default<T: NetEnum>(default_value: T) -> impl Iterator<
 // EnumerationExtensions
 
 impl Faction {
-    /// `faction.ToNexus()`; throws ArgumentOutOfRangeException for undefined values.
+    /// `faction.ToNexus()`; panics for undefined values.
     pub fn to_nexus(self) -> Nexus {
         match self {
             Faction::None => Nexus::None,
@@ -987,13 +987,13 @@ impl Faction {
             Faction::Richese => Nexus::Richese,
             Faction::Ecaz => Nexus::Ecaz,
             Faction::Moritani => Nexus::Moritani,
-            _ => crate::compat::cs::argument_out_of_range_actual("faction", &self.to_string()),
+            _ => panic!("faction out of range: {self}"),
         }
     }
 }
 
 impl Nexus {
-    /// `nexus.ToFaction()`; throws ArgumentOutOfRangeException for undefined values.
+    /// `nexus.ToFaction()`; panics for undefined values.
     pub fn to_faction(self) -> Faction {
         match self {
             Nexus::None => Faction::None,
@@ -1009,7 +1009,7 @@ impl Nexus {
             Nexus::Richese => Faction::Richese,
             Nexus::Ecaz => Faction::Ecaz,
             Nexus::Moritani => Faction::Moritani,
-            _ => crate::compat::cs::argument_out_of_range_actual("nexus", &self.to_string()),
+            _ => panic!("nexus out of range: {self}"),
         }
     }
 }

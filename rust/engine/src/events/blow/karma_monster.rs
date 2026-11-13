@@ -30,7 +30,6 @@ impl KarmaMonster {
     }
 
     pub fn set_territory(&mut self, game: &Game, value: Option<Territory>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.territory_id = game.map.territory_lookup().get_id(value);
     }
 

@@ -26,7 +26,7 @@ impl AllianceOffered {
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
         // ValidTargets dereferences a null Player only inside its lazy predicate, per element.
-        if !AllianceOffered::valid_targets(game, self.player_opt().unwrap_or(PlayerIndex::NULL)).any(|v| v == self.target) {
+        if !AllianceOffered::valid_targets(game, self.player()).any(|v| v == self.target) {
             return Some(express!("Invalid faction"));
         }
 

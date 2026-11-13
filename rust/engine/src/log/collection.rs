@@ -11,7 +11,6 @@ pub struct SpiceCollected {
 
 impl SpiceCollected {
     pub fn new(faction: Faction, territory: Territory, amount: i32, field: Option<Location>, income: bool) -> Self {
-        let field = field.and_then(crate::compat::cs::CsNull::opt);
         SpiceCollected { faction, territory, amount, field, income }
     }
 

@@ -49,7 +49,6 @@ impl TerrorRevealed {
     }
 
     pub fn set_sneak_attack_to(&mut self, game: &Game, value: Option<Location>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.sneak_attack_to = game.map.location_lookup().get_id(value);
     }
 
@@ -58,7 +57,6 @@ impl TerrorRevealed {
     }
 
     pub fn set_card_to_give_in_sabotage(&mut self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.card_to_give_in_sabotage_id = TreacheryCardManager::get_id(value);
     }
 
@@ -101,7 +99,7 @@ impl TerrorRevealed {
         }
         if self.type_ == TerrorType::SneakAttack
             && self.sneak_attack_to(game).is_some()
-            && !TerrorRevealed::valid_sneak_attack_targets(game, self.player()).any(|v| v == self.sneak_attack_to(game).nre())
+            && !TerrorRevealed::valid_sneak_attack_targets(game, self.player()).any(|v| v == self.sneak_attack_to(game).expect("sneak attack to"))
         {
             return Some(express!("Invalid location of sneak attack"));
         }
@@ -145,7 +143,6 @@ impl TerrorRevealed {
     fn terror_in(g: &Game, t: Option<Territory>) -> impl Iterator<Item = TerrorType> {
         use either::Either;
         use std::iter::empty;
-        let t = t.and_then(crate::compat::cs::CsNull::opt);
         match t {
             Some(t) => Either::Left(g.terror_in(t)),
             None => Either::Right(empty()),
@@ -170,7 +167,7 @@ impl TerrorRevealed {
     /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
     pub fn valid_sneak_attack_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
         TerrorRevealed::get_territory(g)
-            .nre()
+            .expect("territory")
             .locations()
             .iter()
             .copied()
@@ -182,11 +179,11 @@ impl TerrorRevealed {
         g.is_not_full(p, l)
             && l.sector(&g.map) != g.sector_in_storm
             && (!pl.has_ally()
-                || g.player(pl.allied_player(g).nre()).any_forces_in_territory(Some(l.territory())) == 0
+                || g.player(pl.allied_player(g).expect("allied player")).any_forces_in_territory(Some(l.territory())) == 0
                 || pl.ally == Faction::Ecaz
                 || (pl.ally == Faction::BeneGesserit
                     && g.applicable(Rule::AdvisorsDontConflictWithAlly)
-                    && g.player(pl.allied_player(g).nre()).forces_in_territory(Some(l.territory())) == 0))
+                    && g.player(pl.allied_player(g).expect("allied player")).forces_in_territory(Some(l.territory())) == 0))
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
@@ -251,8 +248,8 @@ impl TerrorRevealed {
                 TerrorType::Atomics => {
                     // A null territory (no LastTerrorTrigger): KillAllForcesIn finds no forces,
                     // then KillAmbassadorIn throws ArgumentNullException (GetValueOrDefault(null)).
-                    game.kill_all_forces_in(territory.or_null(), false);
-                    game.kill_ambassador_in(territory.or_null());
+                    game.kill_all_forces_in(territory.required("territory")?, false);
+                    game.kill_ambassador_in(territory.required("territory")?);
                     game.atomics_aftermath = territory;
 
                     while game.player(self.player()).hand_size_exceeded(game) {
@@ -287,7 +284,7 @@ impl TerrorRevealed {
                     if self.robbery_takes_card {
                         let card = game.draw_treachery_card();
                         // C# adds the result even when it is null (both decks empty).
-                        game.player_mut(self.player()).treachery_cards.push(card.or_null());
+                        game.player_mut(self.player()).treachery_cards.push(card.required("card")?);
                         self.log_objects(game, elems![self.initiator(), " draw a Treachery Card"]);
                     } else {
                         let victim_player = victim_player.required("victim player")?;

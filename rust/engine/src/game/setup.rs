@@ -38,7 +38,7 @@ impl Game {
     pub fn determine_positions_at_table(&mut self) {
         let mut seats: Deck<i32> = Deck::empty(self.random.clone());
         let mut i = 0;
-        while i < self.settings.as_ref().nre().borrow().number_of_players {
+        while i < self.settings.as_ref().expect("settings").borrow().number_of_players {
             seats.put_on_top(i);
             i += 1;
         }
@@ -82,7 +82,7 @@ impl Game {
 
             if self.applicable(Rule::EcazLoyalty) {
                 let leaders = self.player(ecaz).leaders.clone();
-                self.ecaz_loyal_leader = leaders.into_iter().random_or_default(self.random.as_ref().nre());
+                self.ecaz_loyal_leader = leaders.into_iter().random_or_default(self.random.as_ref().expect("random"));
                 let pll = self.ecaz_loyal_leader;
                 self.log(vec![pll.into(), " is forever loyal to ".into(), Faction::Ecaz.into()]);
             }
@@ -111,7 +111,7 @@ impl Game {
             for _i in 1..=4 {
                 for p in 0..self.players.len() {
                     if self.players[p].faction != Faction::Tleilaxu {
-                        let traitor = self.traitor_deck.as_mut().nre().draw();
+                        let traitor = self.traitor_deck.as_mut().expect("traitor deck").draw();
                         self.players[p].traitors.push(traitor);
                     }
                 }
@@ -152,7 +152,7 @@ impl Game {
             return;
         };
         for _i in 1..=4 {
-            let traitor = self.traitor_deck.as_mut().nre().draw();
+            let traitor = self.traitor_deck.as_mut().expect("traitor deck").draw();
             self.player_mut(harkonnen).traitors.push(traitor);
         }
     }
@@ -175,9 +175,9 @@ impl Game {
     pub fn assign_face_dancers(&mut self) {
         let tleilaxu = self.get_player(Some(Faction::Tleilaxu));
         if let Some(tleilaxu) = tleilaxu {
-            self.traitor_deck.as_mut().nre().shuffle();
+            self.traitor_deck.as_mut().expect("traitor deck").shuffle();
             for _i in 0..3 {
-                let leader = self.traitor_deck.as_mut().nre().draw();
+                let leader = self.traitor_deck.as_mut().expect("traitor deck").draw();
                 self.player_mut(tleilaxu).face_dancers.push(leader);
                 self.player_mut(tleilaxu).known_non_traitors.insert(leader);
             }
@@ -194,13 +194,13 @@ impl Game {
     pub fn assign_leader_skills(&mut self) {
         if self.applicable(Rule::LeaderSkills) {
             self.skill_deck = Some(Deck::new(get_values_except_default(LeaderSkill::None), self.random.clone()));
-            self.skill_deck.as_mut().nre().shuffle();
+            self.skill_deck.as_mut().expect("skill deck").shuffle();
             self.stone(Milestone::Shuffled);
 
             let nr_of_skills_to_assign = if self.players.len() <= 7 { 2 } else { 1 };
             for _i in 0..nr_of_skills_to_assign {
                 for p in 0..self.players.len() {
-                    let skill = self.skill_deck.as_mut().nre().draw();
+                    let skill = self.skill_deck.as_mut().expect("skill deck").draw();
                     self.players[p].skills_to_choose_from.push(skill);
                 }
             }
@@ -370,7 +370,7 @@ impl Game {
 
     pub fn assign_initial_ambassadors(&mut self, p: PlayerIndex) {
         self.player_mut(p).ambassadors.push(Ambassador::Ecaz);
-        let items = &mut self.unassigned_ambassadors.as_mut().nre().items;
+        let items = &mut self.unassigned_ambassadors.as_mut().expect("unassigned ambassadors").items;
         if let Some(i) = items.iter().position(|a| *a == Ambassador::Ecaz) {
             items.remove(i);
         }
@@ -382,16 +382,16 @@ impl Game {
     pub fn assign_random_ambassadors(&mut self, p: PlayerIndex) {
         let set_aside = self.ambassadors_set_aside.clone();
         for item in set_aside {
-            self.unassigned_ambassadors.as_mut().nre().items.push(item);
+            self.unassigned_ambassadors.as_mut().expect("unassigned ambassadors").items.push(item);
         }
         self.ambassadors_set_aside.clear();
 
-        self.unassigned_ambassadors.as_mut().nre().shuffle();
+        self.unassigned_ambassadors.as_mut().expect("unassigned ambassadors").shuffle();
         self.stone(Milestone::Shuffled);
         let faction = self.player(p).faction;
         self.log(vec![faction.into(), " get 5 random Ambassadors".into()]);
         for _i in 0..5 {
-            let ambassador = self.unassigned_ambassadors.as_mut().nre().draw();
+            let ambassador = self.unassigned_ambassadors.as_mut().expect("unassigned ambassadors").draw();
             self.player_mut(p).ambassadors.push(ambassador);
         }
     }
@@ -399,11 +399,11 @@ impl Game {
     pub fn deal_starting_treachery_cards(&mut self) {
         self.starting_treachery_cards = Some(Deck::empty(self.random.clone()));
         for p in 0..self.players.len() {
-            let card = self.treachery_deck.as_mut().nre().draw();
-            self.starting_treachery_cards.as_mut().nre().items.push(card);
+            let card = self.treachery_deck.as_mut().expect("treachery deck").draw();
+            self.starting_treachery_cards.as_mut().expect("starting treachery cards").items.push(card);
 
             if self.players[p].is(Faction::Harkonnen) {
-                self.extra_starting_card_for_harkonnen = Some(self.treachery_deck.as_mut().nre().draw());
+                self.extra_starting_card_for_harkonnen = Some(self.treachery_deck.as_mut().expect("treachery deck").draw());
             }
         }
 
@@ -421,7 +421,7 @@ impl Game {
                 continue;
             }
             let p = self.player_at(i);
-            let card = self.starting_treachery_cards.as_mut().nre().draw();
+            let card = self.starting_treachery_cards.as_mut().expect("starting treachery cards").draw();
             self.player_mut(p).treachery_cards.push(card);
             let faction = self.player(p).faction;
             self.log_to(faction, vec!["Your starting treachery card is: ".into(), card.into()]);

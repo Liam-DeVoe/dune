@@ -4,7 +4,7 @@
 //! pins down.
 
 use std::rc::Rc;
-use treachery_engine::compat::cs;
+use treachery_engine::error::catch_panic;
 use treachery_engine::prelude::*;
 
 fn game_with(factions: &[Faction]) -> Game {
@@ -22,9 +22,9 @@ fn idx(g: &Game, f: Faction) -> PlayerIndex {
 }
 
 fn exception_text<R>(f: impl FnOnce() -> R) -> String {
-    match cs::catch_panic(f) {
+    match catch_panic(f) {
         Ok(_) => "no exception".to_string(),
-        Err(e) => format!("{}: {}", e.type_name, e.message),
+        Err(e) => e,
     }
 }
 
@@ -86,7 +86,7 @@ fn permitted_use_of_ally_karma_single_or_default_throws() {
     g.player_mut(b).ally = Faction::Atreides;
     assert_eq!(
         exception_text(|| g.get_permitted_use_of_ally_karma(Faction::Atreides)),
-        "InvalidOperationException: Sequence contains more than one matching element"
+        "more than one player allied to Atreides"
     );
 }
 
@@ -271,7 +271,7 @@ fn status_ambassador_without_ecaz_throws() {
     let mut g = game_with(&[Faction::Atreides]);
     g.current_phase = Phase::AmbassadorTriggeredByGuildShip;
     let text = exception_text(|| GameStatus::determine_status(&mut g, None, false));
-    assert!(text.starts_with("NullReferenceException"), "{text}");
+    assert_eq!(text, "player");
 }
 
 #[test]

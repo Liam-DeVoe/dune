@@ -196,7 +196,6 @@ pub struct NexusRide {
 
 impl NexusRide {
     pub fn new(faction: Faction, forces: i32, special_forces: i32, from: Option<Location>, to: Location) -> Self {
-        let from = from.and_then(crate::compat::cs::CsNull::opt);
         NexusRide { faction, forces, special_forces, from, to }
     }
 

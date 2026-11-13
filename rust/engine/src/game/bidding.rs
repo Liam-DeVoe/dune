@@ -2,11 +2,9 @@ use crate::messages::message::LogRecord;
 use crate::prelude::*;
 use crate::game::TriggeredBureaucracy;
 
-/// `list.Remove(item)` on a `List<TreacheryCard>`: removes the first occurrence, if any.
-/// `None` is null, which removes the first null card.
+/// Removes the first occurrence of `card` from `list`, if any.
 pub(crate) fn remove_card(list: &mut Vec<TreacheryCard>, card: Option<TreacheryCard>) -> bool {
-    let card = card.and_then(crate::compat::cs::CsNull::opt);
-    cs::list_remove(list, card)
+    card.is_some_and(|card| crate::iter::remove_first(list, &card))
 }
 
 impl Game {
@@ -47,7 +45,7 @@ impl Game {
         let condition = richese.is_some()
             && self.applicable(Rule::RicheseBlackMarket)
             && !self.prevented(FactionAdvantage::RicheseBlackMarket)
-            && self.player(richese.nre()).treachery_cards.len() > 0;
+            && self.player(richese.expect("richese")).treachery_cards.len() > 0;
         self.enter_boolean_phase_action(condition, Phase::BlackMarketAnnouncement, Game::enter_richese_bidding);
     }
 
@@ -154,9 +152,9 @@ impl Game {
     pub fn return_karma_card_used_for_bid(&mut self) {
         if let Some(current_bid) = self.current_bid.clone() {
             if current_bid.i_bid_using_karma_to_remove_bid_limit() {
-                let p = current_bid.i_bid_player().nre();
+                let p = current_bid.i_bid_player().expect("i bid player");
                 // UsingKarmaToRemoveBidLimit implies KarmaCard != null.
-                let card = current_bid.i_bid_karma_card().nre();
+                let card = current_bid.i_bid_karma_card().expect("i bid karma card");
                 self.player_mut(p).treachery_cards.push(card);
             }
         }
@@ -252,7 +250,7 @@ impl Game {
     pub fn skip_players_that_cant_bid(&self, sequence: &mut PlayerSequence) {
         let mut i = 0;
         while i < self.players.len() {
-            if self.player(sequence.current_player(self).nre()).has_room_for_cards(self) {
+            if self.player(sequence.current_player(self).expect("current player")).has_room_for_cards(self) {
                 break;
             }
             sequence.next_player(self);
@@ -299,7 +297,7 @@ impl Game {
 
         let mut emperor_received_instead_message = express_part!();
         if emperor.is_some() && total_amount_received_by_emperor_instead_of_richese > 0 {
-            let emperor = emperor.nre();
+            let emperor = emperor.expect("emperor");
             // C# parity: Richese's homeworld threshold and occupier are applied to Emperor's income (hazards 18.2).
             self.modify_income_because_of_low_threshold_or_occupation(receiver.required("The payment receiver")?, &mut total_amount_received_by_emperor_instead_of_richese);
             {
@@ -320,7 +318,7 @@ impl Game {
         }
 
         if receiver.is_some() && self.player(initiator).faction != payment_receiver {
-            let receiver = receiver.nre();
+            let receiver = receiver.expect("receiver");
             if payment_receiver == Faction::Emperor && self.prevented(FactionAdvantage::EmperorReceiveBid) {
                 *message = express_part!(" → ", payment_receiver, " do not receive ", Concept::Resource, " for this card");
                 if !self.applicable(Rule::FullPhaseKarma) {
@@ -376,8 +374,8 @@ impl Game {
                 if self.player(occupier).has_room_for_cards(self) {
                     receiver = Some(occupier);
                     extra_card_must_be_decided_about = self.player(occupier).has_ally()
-                        && self.player(self.player(occupier).allied_player(self).nre()).has_room_for_cards(self);
-                } else if self.player(occupier).has_ally() && self.player(self.player(occupier).allied_player(self).nre()).has_room_for_cards(self) {
+                        && self.player(self.player(occupier).allied_player(self).expect("allied player")).has_room_for_cards(self);
+                } else if self.player(occupier).has_ally() && self.player(self.player(occupier).allied_player(self).expect("allied player")).has_room_for_cards(self) {
                     receiver = self.player(occupier).allied_player(self);
                 }
             } else if self.player(winner).has_room_for_cards(self) {
@@ -410,33 +408,32 @@ impl Game {
 
     pub fn draw_treachery_card(&mut self) -> Option<TreacheryCard> {
         if self.treachery_deck.as_ref().map(|d| d.is_empty()) == Some(true) {
-            let count = self.treachery_discard_pile.as_ref().nre().items.len() as i32;
+            let count = self.treachery_discard_pile.as_ref().expect("treachery discard pile").items.len() as i32;
             self.log(vec![express!("Shuffled ", count, " cards from the treachery discard pile into a new deck")
                 .with_log(TreacheryReshuffled::new(count))
                 .into()]);
 
-            let discarded: Vec<TreacheryCard> = self.treachery_discard_pile.as_ref().nre().items.clone();
+            let discarded: Vec<TreacheryCard> = self.treachery_discard_pile.as_ref().expect("treachery discard pile").items.clone();
             for i in discarded {
-                self.treachery_deck.as_mut().nre().items.push(i);
+                self.treachery_deck.as_mut().expect("treachery deck").items.push(i);
                 self.unregister_known(i);
             }
 
-            self.treachery_discard_pile.as_mut().nre().clear();
-            self.treachery_deck.as_mut().nre().shuffle();
+            self.treachery_discard_pile.as_mut().expect("treachery discard pile").clear();
+            self.treachery_deck.as_mut().expect("treachery deck").shuffle();
             self.stone(Milestone::Shuffled);
         }
 
         // `TreacheryDeck?.Items.Count > 0`: null > 0 is false.
         if self.treachery_deck.as_ref().map_or(false, |d| d.items.len() > 0) {
             // A null card in the deck comes back as None (engine-conventions.md, "Null handles").
-            self.treachery_deck.as_mut().nre().draw().opt()
+            Some(self.treachery_deck.as_mut().expect("treachery deck").draw())
         } else {
             None
         }
     }
 
     pub fn finish_bid(&mut self, winner: Option<PlayerIndex>, winning_bid: Option<&GameEvent>, card: TreacheryCard, might_replace: bool) {
-        let winner = winner.and_then(crate::compat::cs::CsNull::opt);
         self.card_just_won = Some(card);
         self.winning_bid = winning_bid.cloned();
         self.card_sold_on_black_market = None;
@@ -450,10 +447,10 @@ impl Game {
             self.allow(FactionAdvantage::AtreidesBiddingPrescience);
         }
 
-        let mut enter_replacing_card_just_won = might_replace && self.player(winner.nre()).nexus != Faction::None;
+        let mut enter_replacing_card_just_won = might_replace && self.player(winner.expect("winner")).nexus != Faction::None;
 
         if might_replace {
-            let winner = winner.nre();
+            let winner = winner.expect("winner");
             if self.player(winner).ally == Faction::Ixian
                 && self.ixian_allows_replacing_cards
                 && !matches!(self.current_auction_type, AuctionType::RicheseSilent | AuctionType::RicheseOnceAround)
@@ -544,7 +541,6 @@ impl Game {
     }
 
     pub fn start_bid_sequence_and_auction_type(&mut self, auction_type: AuctionType, richese_player: Option<PlayerIndex>, direction: i32) {
-        let richese_player = richese_player.and_then(crate::compat::cs::CsNull::opt);
         match auction_type {
             AuctionType::BlackMarketNormal => {
                 self.black_market_auction_type = AuctionType::BlackMarketNormal;
@@ -612,7 +608,7 @@ impl Game {
     }
 
     pub fn number_of_cards_on_regular_auction(&self) -> i32 {
-        (self.card_number + (self.cards_on_auction.as_ref().nre().items.len() as i32)) - 1
+        (self.card_number + (self.cards_on_auction.as_ref().expect("cards on auction").items.len() as i32)) - 1
     }
 
     pub fn players_that_can_bid(&self) -> Vec<PlayerIndex> {

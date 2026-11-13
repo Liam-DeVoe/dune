@@ -41,7 +41,6 @@ impl RaiseDeadPlayed {
     }
 
     pub fn set_hero(&mut self, value: Option<Hero>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.hero_id = LeaderManager::hero_lookup().get_id(value);
     }
 
@@ -50,7 +49,6 @@ impl RaiseDeadPlayed {
     }
 
     pub fn set_location(&mut self, game: &Game, value: Option<Location>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.location_id = game.map.location_lookup().get_id(value);
     }
 
@@ -76,7 +74,7 @@ impl RaiseDeadPlayed {
         if self.amount_of_forces < 0 || self.amount_of_special_forces < 0 {
             return Some(express!("You can't revive a negative amount of forces"));
         }
-        let p = p_opt.nre();
+        let p = p_opt.expect("player");
         let pl = game.player(p);
         if self.amount_of_forces > pl.forces_killed {
             return Some(express!("You can't revive that many"));
@@ -99,7 +97,7 @@ impl RaiseDeadPlayed {
         if (self.amount_of_forces + self.amount_of_special_forces) > 0 && self.hero().is_some() {
             return Some(express!("You can't revive both forces and a leader"));
         }
-        if self.hero().is_some() && !Self::valid_heroes(game, p).contains(&self.hero().nre()) {
+        if self.hero().is_some() && !Self::valid_heroes(game, p).contains(&self.hero().expect("hero")) {
             return Some(express!("Invalid leader"));
         }
 

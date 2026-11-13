@@ -10,7 +10,7 @@ mod common;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-use treachery_engine::compat::cs::Shared;
+use treachery_engine::shared::Shared;
 use treachery_engine::events::GameEventType;
 use treachery_engine::json;
 use treachery_engine::compat::net_enum::NetEnum;
@@ -431,7 +431,7 @@ fn hms_battle_state() -> ViewReplica {
     let g = &mut r.game;
     let flat = g.map.the_great_flat();
     let hms = g.map.hidden_mobile_stronghold();
-    hms.point_at(&mut g.map, flat).unwrap();
+    hms.point_at(&mut g.map, flat);
     let (a, b) = (g.player_at(0), g.player_at(1));
     let (fa, fb) = (g.player(a).faction, g.player(b).faction);
     Player::add_forces(g, a, hms.location(), 3, false);

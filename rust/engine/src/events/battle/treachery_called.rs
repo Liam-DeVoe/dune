@@ -42,7 +42,7 @@ impl TreacheryCalled {
 
     pub fn may_call_treachery(g: &Game, p: PlayerIndex) -> bool {
         if let (Some(aggressor_plan), Some(defender_plan)) = (&g.aggressor_plan, &g.defender_plan) {
-            let territory = g.current_battle.as_ref().nre().territory(g).nre();
+            let territory = g.current_battle.as_ref().expect("current battle").territory(g).expect("territory");
             let pl = g.player(p);
             if !territory.is_homeworld() || pl.is_native(territory) {
                 if !defender_plan.messiah {
@@ -75,10 +75,9 @@ impl TreacheryCalled {
     /// `h` is the opponent's hero, which can be null. Every `IsTraitor` implementation
     /// returns false for null.
     pub fn has_traitor(g: &Game, p: PlayerIndex, h: Option<Hero>) -> bool {
-        let h = h.and_then(crate::compat::cs::CsNull::opt);
         let pl = g.player(p);
         pl.traitors.iter().any(|t| h.is_some_and(|h| t.is_traitor(h)))
-            || (h.is_some() && g.applicable(Rule::CapturedLeadersAreTraitorsToOwnFaction) && h.nre().faction() == pl.faction)
+            || (h.is_some() && g.applicable(Rule::CapturedLeadersAreTraitorsToOwnFaction) && h.expect("hero").faction() == pl.faction)
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
@@ -90,7 +89,7 @@ impl TreacheryCalled {
                 game.stone(Milestone::TreacheryCalled);
                 let hero = game.defender_plan.as_ref().required("defender plan")?.hero();
                 // C# adds the defender's hero, which can be null.
-                game.player_mut(self.player()).revealed_traitors.insert(hero.or_null());
+                game.player_mut(self.player()).revealed_traitors.insert(hero.required("hero")?);
             }
         }
 
@@ -101,7 +100,7 @@ impl TreacheryCalled {
                 self.log(game);
                 game.stone(Milestone::TreacheryCalled);
                 let hero = game.aggressor_plan.as_ref().required("aggressor plan")?.hero();
-                game.player_mut(self.player()).revealed_traitors.insert(hero.or_null());
+                game.player_mut(self.player()).revealed_traitors.insert(hero.required("hero")?);
             }
         }
 

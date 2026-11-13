@@ -11,7 +11,7 @@ use std::cell::Cell;
 use std::sync::OnceLock;
 
 use serde_json::{json, Value};
-use treachery_engine::compat::cs;
+use treachery_engine::error::catch_panic;
 use treachery_engine::cards::deck::Deck;
 use treachery_engine::enumerations::*;
 use treachery_engine::compat::random_ext::RandomExt;
@@ -173,7 +173,7 @@ fn enum_ordering_and_serde() {
     assert_eq!(serde_json::from_str::<Faction>("13").unwrap(), Faction(13));
     assert_eq!(format!("{:?}", Faction::Atreides), "Faction::Atreides");
     assert_eq!(Faction::Moritani.to_nexus(), Nexus::Moritani);
-    assert_eq!(cs::catch_panic(|| Faction(13).to_nexus()).unwrap_err().type_name, "ArgumentOutOfRangeException");
+    assert!(catch_panic(|| Faction(13).to_nexus()).is_err());
 }
 
 // ---------------------------------------------------------------- map
@@ -328,7 +328,7 @@ fn map_attached() {
             ("hms->carthag again", m.hidden_mobile_stronghold().location(), m.carthag()),
         ];
         for (name, which, to) in steps {
-            which.as_attached_location().unwrap().point_at(&mut m, to).unwrap();
+            which.as_attached_location().unwrap().point_at(&mut m, to);
             let snapshot = dump_map(&m);
             let mut neighbours = Vec::new();
             for l in m.locations(true) {

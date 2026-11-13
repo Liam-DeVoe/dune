@@ -15,7 +15,6 @@ pub use shipment::*;
 use std::collections::HashMap;
 
 use crate::prelude::*;
-use treachery_engine::compat::cs;
 
 /// The bot of one player. One bot per faction lives for the whole game, and its fields carry
 /// plans from one decision to the next. The game itself is passed to every method.
@@ -448,5 +447,5 @@ impl ClassicBot {
 
 /// Runs a bot decision, turning a panic into its message.
 pub(crate) fn guarded<R>(f: impl FnOnce() -> R) -> Result<R, String> {
-    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).map_err(|p| cs::panic_message(p.as_ref()))
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).map_err(|p| treachery_engine::error::panic_message(p.as_ref()))
 }

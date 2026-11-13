@@ -17,7 +17,7 @@ use std::path::Path;
 
 use common::*;
 use serde_json::Value;
-use treachery_engine::compat::cs::{self, Shared};
+use treachery_engine::shared::Shared;
 use treachery_engine::enumerations::*;
 use treachery_engine::events::GameEvent;
 use treachery_engine::events::GameEventType;
@@ -63,7 +63,7 @@ impl Renderer<'_> {
 
 /// Runs `f`, catching any panic: the result, or the panic message.
 fn catch_any<R>(f: impl FnOnce() -> R) -> Result<R, String> {
-    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).map_err(|p| cs::panic_message(p.as_ref()))
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).map_err(|p| treachery_engine::error::panic_message(p.as_ref()))
 }
 
 fn applicable_calls(game: &mut Game) {

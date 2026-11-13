@@ -380,11 +380,11 @@ impl Game {
     pub const LATEST_VERSION: i32 = 188;
 
     pub fn maximum_turns(&self) -> i32 {
-        self.settings.as_ref().nre().borrow().maximum_turns
+        self.settings.as_ref().expect("settings").borrow().maximum_turns
     }
 
     pub fn maximum_players(&self) -> i32 {
-        self.settings.as_ref().nre().borrow().number_of_players
+        self.settings.as_ref().expect("settings").borrow().number_of_players
     }
 
     pub fn reports(&self) -> &[Report] {
@@ -818,7 +818,7 @@ impl Game {
             }
 
             let phase = self.current_main_phase;
-            self.timers.get_mut(&initiator).nre().add(phase, elapsed_time);
+            self.timers.get_mut(&initiator).expect("a timer for this faction").add(phase, elapsed_time);
         }
     }
 
@@ -1019,7 +1019,7 @@ impl Game {
         result.extend(player.known_cards.iter().copied());
 
         if player.has_ally() {
-            let ally = self.player(player.allied_player(self).nre());
+            let ally = self.player(player.allied_player(self).expect("allied player"));
             result.extend(ally.treachery_cards.iter().copied());
             result.extend(ally.known_cards.iter().copied());
         }
@@ -1034,8 +1034,7 @@ impl Game {
     }
 
     pub fn register_known_player_treachery_card(game: &mut Game, p: PlayerIndex, c: Option<TreacheryCard>) {
-        let c = c.and_then(crate::compat::cs::CsNull::opt);
-        if let Some(c) = c.and_then(CsNull::opt) {
+        if let Some(c) = c {
             game.player_mut(p).known_cards.insert(c);
         }
     }
@@ -1085,7 +1084,7 @@ impl Game {
             for (key, value) in forces.iter() {
                 match result.get_mut(key) {
                     Some(list) => list.push(value.clone()),
-                    None => cs::key_not_found(&location_text(*key)),
+                    None => panic!("{key:?} is not a location of the map"),
                 }
             }
         }
@@ -1106,7 +1105,7 @@ impl Game {
 
                 match result.get_mut(key) {
                     Some(list) => list.push(value.clone()),
-                    None => cs::key_not_found(&location_text(*key)),
+                    None => panic!("{key:?} is not a location of the map"),
                 }
             }
         }
@@ -1151,7 +1150,7 @@ impl Game {
 
                 match result.get_mut(key) {
                     Some(list) => list.push(value.clone()),
-                    None => cs::key_not_found(&location_text(*key)),
+                    None => panic!("{key:?} is not a location of the map"),
                 }
             }
         }
@@ -1278,21 +1277,20 @@ impl Game {
     }
 
     pub fn check_if_occupier_takes_vidal(&mut self, previous_occupier_of_ecaz_homeworld: Option<PlayerIndex>) {
-        let previous_occupier_of_ecaz_homeworld = previous_occupier_of_ecaz_homeworld.and_then(crate::compat::cs::CsNull::opt);
         if self.vidal().is_none() {
             return;
         }
 
         let occupier_of_ecaz_homeworld = self.occupier_of(World::Ecaz);
         if let Some(occupier) = occupier_of_ecaz_homeworld {
-            let vidal = self.vidal().nre();
+            let vidal = self.vidal().expect("vidal");
             if !self.player(occupier).leaders.contains(&vidal) {
                 self.take_vidal(occupier, VidalMoment::WhileEcazWorldIsOccupied);
             }
         } else if let Some(previous) = previous_occupier_of_ecaz_homeworld {
             let vidal = self.vidal();
             if vidal.map_or(false, |v| self.player(previous).leaders.contains(&v)) {
-                let vidal = self.vidal().nre();
+                let vidal = self.vidal().expect("vidal");
                 // List.Remove: the first equal element
                 let leaders = &mut self.player_mut(previous).leaders;
                 if let Some(pos) = leaders.iter().position(|l| *l == vidal) {
@@ -1310,8 +1308,8 @@ impl Game {
             return;
         }
 
-        let vidal = self.vidal().nre();
-        let p = self.player_to_set_aside_vidal.nre();
+        let vidal = self.vidal().expect("vidal");
+        let p = self.player_to_set_aside_vidal.expect("player to set aside vidal");
         if self.is_alive(Hero::Leader(vidal)) && self.player(p).leaders.contains(&vidal) {
             let leaders = &mut self.player_mut(p).leaders;
             if let Some(pos) = leaders.iter().position(|l| *l == vidal) {
@@ -1329,7 +1327,6 @@ impl Game {
     /// "X play [Karama]: <effect>". A card played as Karama that isn't one says
     /// so: "X play [Baliset] as a Karama card: <effect>".
     pub fn play_karma(&mut self, player: PlayerIndex, card: Option<TreacheryCard>, effect: Vec<ExpressionElement>) {
-        let card = card.and_then(crate::compat::cs::CsNull::opt);
         self.discard_player_treachery_card_boolean(Some(player), card, false);
         let faction = self.player(player).faction;
         let m = Game::karma_played(faction, card, effect);
@@ -1337,7 +1334,6 @@ impl Game {
     }
 
     pub fn karma_played(initiator: Faction, card: Option<TreacheryCard>, effect: Vec<ExpressionElement>) -> Message {
-        let card = card.and_then(crate::compat::cs::CsNull::opt);
         let card_or_karma: ExpressionElement = match card {
             Some(c) => c.into(),
             None => TreacheryCardType::Karma.into(),
@@ -1347,7 +1343,7 @@ impl Game {
             initiator,
             " play ",
             card_or_karma,
-            express_part_if!(card.is_some() && card.nre().type_() != TreacheryCardType::Karma; " as a ", TreacheryCardType::Karma, " card"),
+            express_part_if!(card.is_some() && card.expect("card").type_() != TreacheryCardType::Karma; " as a ", TreacheryCardType::Karma, " card"),
             express_part_if!(has_effect; ": ", MessagePart::express(effect))
         )
         .with_log(AsideLog::aside())
@@ -1372,7 +1368,6 @@ impl Game {
     /// `log` is false when the caller logs the card's play itself, such as PlayKarma.
     /// Discards `card` from the hand that holds it. Fails if more than one hand holds it.
     pub fn discard_treachery_card_boolean(&mut self, card: Option<TreacheryCard>, log: bool) -> GameResult {
-        let card = card.and_then(crate::compat::cs::CsNull::opt);
         let Some(c) = card else { return Ok(()) };
 
         let mut holders = self.player_indices().filter(|p| self.player(*p).has(Some(c)));
@@ -1386,8 +1381,6 @@ impl Game {
     }
 
     pub fn discard_player_treachery_card_boolean(&mut self, player: Option<PlayerIndex>, card: Option<TreacheryCard>, log: bool) {
-        let player = player.and_then(crate::compat::cs::CsNull::opt);
-        let card = card.and_then(crate::compat::cs::CsNull::opt);
         if let (Some(player), Some(card)) = (player, card) {
             let faction = self.player(player).faction;
             if log {
@@ -1400,7 +1393,7 @@ impl Game {
             if let Some(pos) = cards.iter().position(|c| *c == card) {
                 cards.remove(pos);
             }
-            self.treachery_discard_pile.as_mut().nre().put_on_top(card);
+            self.treachery_discard_pile.as_mut().expect("treachery discard pile").put_on_top(card);
             self.register_known(card);
             self.recently_discarded.insert_new(card, faction);
             self.stone(Milestone::Discard);
@@ -1569,10 +1562,10 @@ impl Game {
         let ally = ini.allied_player(self);
 
         if ini.ally == Faction::BeneGesserit && self.applicable(Rule::AdvisorsDontConflictWithAlly) {
-            return self.player(ally.nre()).forces_in_territory(Some(to.territory())) > 0;
+            return self.player(ally.expect("ally")).forces_in_territory(Some(to.territory())) > 0;
         }
 
-        self.player(ally.nre()).any_forces_in_territory(Some(to.territory())) > 0
+        self.player(ally.expect("ally")).any_forces_in_territory(Some(to.territory())) > 0
     }
 
     pub fn owner_of(&self, hero: Hero) -> Option<PlayerIndex> {
@@ -1635,8 +1628,8 @@ impl Game {
         } else {
             self.occupies_arrakeen_or_carthag(p)
         }) || (self.current_flight_used.as_ref().map_or(false, |f| f.move_three_territories)
-            && self.current_flight_used.as_ref().nre().player_opt() == Some(p))
-            || (self.current_flight_discovery_used.is_some() && self.current_flight_discovery_used.as_ref().nre().player_opt() == Some(p))
+            && self.current_flight_used.as_ref().expect("current flight used").player_opt() == Some(p))
+            || (self.current_flight_discovery_used.is_some() && self.current_flight_discovery_used.as_ref().expect("current flight discovery used").player_opt() == Some(p))
     }
 
     pub fn determine_maximum_move_distance(&self, p: PlayerIndex, moved: &[Battalion]) -> i32 {
@@ -1644,7 +1637,7 @@ impl Game {
         let choam_extra_move_bonus = if player.faction == Faction::Choam && self.choam_has_extra_move { 1 } else { 0 };
 
         let planetology_bonus = if self.current_planetology.as_ref().map_or(false, |pl| pl.add_one_to_movement)
-            && self.current_planetology.as_ref().nre().initiator() == player.faction
+            && self.current_planetology.as_ref().expect("current planetology").initiator() == player.faction
         {
             1
         } else {
@@ -1686,11 +1679,11 @@ impl Game {
             //Looks at occupying forces
             || (player.is(Faction::Ecaz)
                 && player.has_ally()
-                && self.player(player.allied_player(self).nre()).occupying_forces_in(Some(l.territory())) > 0)
+                && self.player(player.allied_player(self).expect("allied player")).occupying_forces_in(Some(l.territory())) > 0)
             //Looks at occupying forces
             || (player.has_ally()
                 && player.ally == Faction::Ecaz
-                && self.player(player.allied_player(self).nre()).occupying_forces_in(Some(l.territory())) > 0)
+                && self.player(player.allied_player(self).expect("allied player")).occupying_forces_in(Some(l.territory())) > 0)
             || self.nr_of_occupants_excluding_faction(l, player.faction) < 2
     }
 
@@ -1699,7 +1692,6 @@ impl Game {
     }
 
     pub fn assisted_note_keeping_enabled(&self, p: Option<PlayerIndex>) -> bool {
-        let p = p.and_then(crate::compat::cs::CsNull::opt);
         match p {
             Some(p) => {
                 self.applicable(Rule::AssistedNotekeeping)
@@ -1710,7 +1702,6 @@ impl Game {
     }
 
     pub fn has_storm_prescience(&self, p: Option<PlayerIndex>) -> bool {
-        let p = p.and_then(crate::compat::cs::CsNull::opt);
         let Some(p) = p else { return false };
         let player = self.player(p);
         self.applicable(Rule::FremenDeterminesStorm)
@@ -1758,7 +1749,6 @@ impl Game {
     }
 
     pub fn has_resource_deck_prescience(&self, p: Option<PlayerIndex>) -> bool {
-        let p = p.and_then(crate::compat::cs::CsNull::opt);
         let Some(p) = p else { return false };
         let player = self.player(p);
         !self.prevented(FactionAdvantage::AtreidesSpiceBlowPrescience)
@@ -1827,11 +1817,6 @@ impl Game {
     }
 }
 
-/// `Location.ToString()` (dictionary key text in exception messages).
-fn location_text(l: Location) -> String {
-    ExpressionElement::from(l).to_cs_string()
-}
-
 impl Game {
     /// The player at position `index` of `Players`.
     pub fn player_at(&self, index: usize) -> PlayerIndex {
@@ -1843,19 +1828,13 @@ impl Game {
         (0..self.players.len()).map(|index| PlayerIndex { index })
     }
 
-    /// The player `p` refers to. NullReferenceException for `PlayerIndex::NULL`.
+    /// The player `p` refers to.
     pub fn player(&self, p: PlayerIndex) -> &Player {
-        if p == PlayerIndex::NULL {
-            crate::compat::cs::null_reference();
-        }
         &self.players[p.index]
     }
 
     /// `p`, for mutation.
     pub fn player_mut(&mut self, p: PlayerIndex) -> &mut Player {
-        if p == PlayerIndex::NULL {
-            crate::compat::cs::null_reference();
-        }
         &mut self.players[p.index]
     }
 

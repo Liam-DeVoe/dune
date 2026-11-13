@@ -49,13 +49,13 @@ impl DiscoveryEntered {
         g.just_revealed_discovery_strongholds
             .iter()
             .copied()
-            .filter(move |ds| g.player(p).any_forces_in_territory(Some(ds.attached_to_location(&g.map).nre().territory())) > 0)
+            .filter(move |ds| g.player(p).any_forces_in_territory(Some(ds.attached_to_location(&g.map).expect("attached to location").territory())) > 0)
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
     pub fn valid_sources(game: &Game, p: PlayerIndex, ds: DiscoveredLocation) -> impl Iterator<Item = Location> {
         ds.attached_to_location(&game.map)
-            .nre()
+            .expect("attached to location")
             .territory()
             .locations()
             .iter()
@@ -85,7 +85,7 @@ impl DiscoveryEntered {
                 for (key, value) in self.force_locations(game).iter().filter(|(k, _)| k.territory() == from_territory) {
                     if value.total_amount_of_forces() > 0 {
                         let me = self.player();
-                        let to = self.to(game).or_null();
+                        let to = self.to(game).required("to")?;
                         game.perform_move_from_location(me, *key, value, to, &mut total_number_of_forces, &mut total_number_of_special_forces, true);
                     }
                 }
@@ -98,7 +98,7 @@ impl DiscoveryEntered {
                         .map(|(k, _)| *k)
                         .collect();
                     let me = self.player();
-                    let to = self.to(game).or_null();
+                    let to = self.to(game).required("to")?;
                     game.log_move(me, from_territory, &from_locations, to, total_number_of_forces, total_number_of_special_forces, false, false, None);
                     game.flip_bene_gesserit_advisors_when_alone();
                 }

@@ -9,7 +9,6 @@
 use std::fmt;
 use std::sync::OnceLock;
 
-use crate::compat::cs::CsNull;
 use crate::map::location::Location;
 use crate::map::Map;
 use crate::map::territory::Territory;
@@ -24,13 +23,8 @@ pub struct ResourceCardData {
     pub discovery_location: Option<Location>,
 }
 
-/// `ResourceCard::NULL` is the null handle (see `cs::CsNull`).
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ResourceCard(u8);
-
-impl CsNull for ResourceCard {
-    const NULL: ResourceCard = ResourceCard::NULL;
-}
 
 static CARDS: OnceLock<(Vec<ResourceCardData>, Vec<ResourceCard>)> = OnceLock::new();
 
@@ -76,8 +70,6 @@ fn get_resource_cards_in_and_outside_play(m: &Map) -> Vec<ResourceCardData> {
 }
 
 impl ResourceCard {
-    /// The null handle. Every member throws NullReferenceException.
-    pub const NULL: ResourceCard = ResourceCard(u8::MAX);
 
     /// Every card of `GetResourceCardsInAndOutsidePlay`, in order.
     pub fn get_resource_cards_in_and_outside_play() -> &'static [ResourceCard] {
@@ -86,13 +78,13 @@ impl ResourceCard {
 
     #[track_caller]
     pub fn data(self) -> &'static ResourceCardData {
-        &cards().0[self.nn().0 as usize]
+        &cards().0[self.0 as usize]
     }
 
     /// Position in `GetResourceCardsInAndOutsidePlay`; this is the card's identity.
     #[track_caller]
     pub fn index(self) -> usize {
-        self.nn().0 as usize
+        self.0 as usize
     }
 
     pub fn is_sand_trout(self) -> bool {
@@ -134,9 +126,6 @@ impl ResourceCard {
 
 impl fmt::Debug for ResourceCard {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.is_null() {
-            return f.write_str("ResourceCard(null)");
-        }
         write!(f, "ResourceCard(#{} skin {})", self.0, self.skin_id())
     }
 }

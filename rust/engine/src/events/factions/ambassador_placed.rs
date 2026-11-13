@@ -32,7 +32,6 @@ impl AmbassadorPlaced {
     }
 
     pub fn set_stronghold(&mut self, game: &Game, value: Option<Territory>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.stronghold_id = game.map.territory_lookup().get_id(value);
     }
 

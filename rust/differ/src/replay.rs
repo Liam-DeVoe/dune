@@ -12,7 +12,7 @@ use serde_json::value::RawValue;
 use serde_json::Value;
 use treachery_engine::iter::MapExt;
 use treachery_engine::canon::{self, Canon, CanonWriter};
-use treachery_engine::compat::cs::{self, CsException};
+use crate::cs::{self, CsException};
 use treachery_engine::enumerations::Milestone;
 use treachery_engine::events::{GameEvent, GameEventType};
 use treachery_engine::messages::expression::ExpressionElement;
@@ -461,7 +461,7 @@ impl Replayer {
         let participation = participation(line.participation.as_ref())?;
         self.bots_active = self.opts.check_bots && bots_checkable(line);
         self.during = "new Game(version, participation)".into();
-        self.game = Some(Game::new_int32_participation(version, &treachery_engine::compat::cs::Shared::new(participation)));
+        self.game = Some(Game::new_int32_participation(version, &treachery_engine::shared::Shared::new(participation)));
         Ok(())
     }
 

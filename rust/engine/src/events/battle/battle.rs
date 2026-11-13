@@ -65,7 +65,6 @@ impl Battle {
     }
 
     pub fn set_hero(&mut self, value: Option<Hero>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.hero_id = LeaderManager::hero_lookup().get_id(value);
     }
 
@@ -74,7 +73,6 @@ impl Battle {
     }
 
     pub fn set_weapon(&self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.weapon_card_id.set(TreacheryCardManager::lookup().get_id(value));
     }
 
@@ -83,7 +81,6 @@ impl Battle {
     }
 
     pub fn set_defense(&self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.defense_card_id.set(TreacheryCardManager::lookup().get_id(value));
     }
 
@@ -242,7 +239,7 @@ impl Battle {
         let faction = self.initiator();
         let leader = self.hero();
         let messiah = self.messiah;
-        let opponent = game.current_battle.as_ref().nre().opponent_of_faction(game, self.initiator()).nre();
+        let opponent = game.current_battle.as_ref().expect("current battle").opponent_of_faction(game, self.initiator()).expect("opponent of faction");
         let dial = self.dial(game, game.player(opponent).faction);
         let spice = if game.applicable(Rule::AdvancedCombat) { Some(self.cost(game)) } else { None };
         let ally_contribution = self.ally_contribution_amount;
@@ -261,8 +258,6 @@ impl Battle {
     }
 
     pub fn activate_dynamic_weapons(&self, game: &mut Game, opponent_weapon: Option<TreacheryCard>, opponent_defense: Option<TreacheryCard>) {
-        let opponent_weapon = opponent_weapon.and_then(crate::compat::cs::CsNull::opt);
-        let opponent_defense = opponent_defense.and_then(crate::compat::cs::CsNull::opt);
         if self.weapon().is_some_and(|w| w.type_() == TreacheryCardType::MirrorWeapon) {
             self.original_weapon.set(self.weapon());
             self.set_weapon(opponent_weapon);
@@ -277,7 +272,7 @@ impl Battle {
 
         if Battle::is_using_portable_antidote(game, self.initiator()) {
             self.original_defense.set(self.defense());
-            let antidote = game.treachery_discard_pile.as_ref().nre().items.iter().copied().find(|c| c.is_portable_antidote());
+            let antidote = game.treachery_discard_pile.as_ref().expect("treachery discard pile").items.iter().copied().find(|c| c.is_portable_antidote());
             self.set_defense(antidote);
         }
     }
@@ -500,7 +495,6 @@ impl Battle {
     }
 
     pub fn determine_cause_of_death(player_plan: &Battle, opponent_plan: &Battle, the_hero: Option<Hero>, poison_tooth_used: bool, artillery_used: bool, rock_melter_was_used_to_kill: bool, is_protected_by_carthag_advantage: bool, hero_dies: &mut bool, cause_of_death: &mut TreacheryCardType, saved_by_carthag: &mut bool) {
-        let the_hero = the_hero.and_then(crate::compat::cs::CsNull::opt);
         *hero_dies = false;
         *cause_of_death = TreacheryCardType::None;
         *saved_by_carthag = is_protected_by_carthag_advantage && opponent_plan.has_poison() && !player_plan.has_antidote();
@@ -514,7 +508,6 @@ impl Battle {
     }
 
     pub fn determine_death_by(hero: Option<Hero>, by_weapon: TreacheryCardType, weapon_has_effect: bool, hero_is_killed: &mut bool, cause_of_death: &mut TreacheryCardType) {
-        let hero = hero.and_then(crate::compat::cs::CsNull::opt);
         if !*hero_is_killed && hero.is_some() && weapon_has_effect {
             *hero_is_killed = true;
             *cause_of_death = by_weapon;
@@ -562,7 +555,7 @@ impl Battle {
             return Some(express!("Can't use treachery cards without a leader"));
         }
         if let Some(hero @ Hero::Leader(_)) = self.hero() {
-            if let Some(t) = game.current_battle.as_ref().nre().territory(game) {
+            if let Some(t) = game.current_battle.as_ref().expect("current battle").territory(game) {
                 if !game.can_fight_in(hero, t) {
                     return Some(express!("Selected leader already fought in another territory"));
                 }
@@ -580,11 +573,11 @@ impl Battle {
         if self.defense().is_none() && self.weapon().is_some_and(|w| w.type_() == TreacheryCardType::Chemistry) {
             return Some(express!("You can't use ", TreacheryCardType::Chemistry, " as weapon without using a defense"));
         }
-        let battle_territory = game.current_battle.as_ref().nre().territory(game);
+        let battle_territory = game.current_battle.as_ref().expect("current battle").territory(game);
         if !Battle::valid_weapons(game, p, self.defense(), self.hero(), battle_territory, true).contains(&self.weapon()) {
             return Some(express!("Invalid weapon"));
         }
-        let battle_territory = game.current_battle.as_ref().nre().territory(game);
+        let battle_territory = game.current_battle.as_ref().expect("current battle").territory(game);
         if !Battle::valid_defenses(game, p, self.weapon(), battle_territory, true).contains(&self.defense()) {
             return Some(express!("Invalid defense"));
         }
@@ -604,7 +597,7 @@ impl Battle {
         }
 
         // var opponent = Game.CurrentBattle.OpponentOf(p)!.Faction;  evaluated even with no seen plans.
-        let opponent = game.player(game.current_battle.as_ref().nre().opponent_of(game, p).nre()).faction;
+        let opponent = game.player(game.current_battle.as_ref().expect("current battle").opponent_of(game, p).expect("opponent of")).faction;
         for (aspect, seen) in game.prescience_seen_plans.iter() {
             if seen.initiator() == self.initiator() && !self.matches(game, seen, *aspect, opponent) {
                 return Some(express!("Your ", *aspect, " was revealed by prescience and can't change"));
@@ -670,7 +663,7 @@ impl Battle {
     /// caller (`BattleRevision`) enumerates once, and its loop body writes only `PrescienceSeenPlans`, which
     /// this query does not read. Nothing in here throws once `CurrentBattle` is set.
     pub fn aspects_seen_by_opponent(g: &Game, p: PlayerIndex) -> Vec<PrescienceAspect> {
-        let battle = g.current_battle.as_ref().nre();
+        let battle = g.current_battle.as_ref().expect("current battle");
         let mut result = Vec::new();
         if let Some(prescience) = g.current_prescience.as_ref() {
             if battle.opponent_of_faction(g, prescience.initiator()) == Some(p) {
@@ -912,9 +905,6 @@ impl Battle {
     }
 
     pub fn valid_weapons(g: &Game, p: PlayerIndex, selected_defense: Option<TreacheryCard>, selected_hero: Option<Hero>, territory_of_battle: Option<Territory>, including_none: bool) -> Vec<Option<TreacheryCard>> {
-        let selected_defense = selected_defense.and_then(crate::compat::cs::CsNull::opt);
-        let selected_hero = selected_hero.and_then(crate::compat::cs::CsNull::opt);
-        let territory_of_battle = territory_of_battle.and_then(crate::compat::cs::CsNull::opt);
         let mut result: Vec<Option<TreacheryCard>> = Vec::new();
 
         if Battle::valid_battle_heroes(g, p).is_empty() {
@@ -930,7 +920,7 @@ impl Battle {
         let mut resolved_by_voice_rule = false;
 
         if Battle::affected_by_voice(g, p, g.current_voice.as_ref()) {
-            let voice = g.current_voice.as_ref().nre();
+            let voice = g.current_voice.as_ref().expect("current voice");
             if voice.must {
                 let vt = voice.type_;
                 if selected_defense.is_some_and(|d| d.type_() == vt) {
@@ -964,8 +954,6 @@ impl Battle {
     }
 
     pub fn valid_defenses(g: &Game, p: PlayerIndex, selected_weapon: Option<TreacheryCard>, territory_of_battle: Option<Territory>, including_none: bool) -> Vec<Option<TreacheryCard>> {
-        let selected_weapon = selected_weapon.and_then(crate::compat::cs::CsNull::opt);
-        let territory_of_battle = territory_of_battle.and_then(crate::compat::cs::CsNull::opt);
         let mut result: Vec<Option<TreacheryCard>> = Vec::new();
 
         if Battle::valid_battle_heroes(g, p).is_empty() {
@@ -980,7 +968,7 @@ impl Battle {
         let mut resolved_by_voice_rule = false;
 
         if Battle::affected_by_voice(g, p, g.current_voice.as_ref()) {
-            let voice = g.current_voice.as_ref().nre();
+            let voice = g.current_voice.as_ref().expect("current voice");
             if voice.must {
                 let vt = voice.type_;
                 if selected_weapon.is_some_and(|w| w.type_() == vt) {
@@ -1019,8 +1007,6 @@ impl Battle {
     }
 
     pub fn cards_playable_as_weapon(g: &Game, p: PlayerIndex, with_defense: Option<TreacheryCard>, territory_of_battle: Option<Territory>, with_planetologist: bool) -> Vec<TreacheryCard> {
-        let with_defense = with_defense.and_then(crate::compat::cs::CsNull::opt);
-        let territory_of_battle = territory_of_battle.and_then(crate::compat::cs::CsNull::opt);
         let pl = g.player(p);
         let fighting_on_own_homeworld = territory_of_battle.is_some_and(|t| pl.is_native(t));
         let forces_to_reveal_under_no_field =
@@ -1037,7 +1023,7 @@ impl Battle {
                 (c.type_() != TreacheryCardType::Chemistry && (c.is_weapon() || c.type_() == TreacheryCardType::Useless))
                     || (c.type_() == TreacheryCardType::Chemistry
                         && with_defense.is_some_and(|d| d.is_defense())
-                        && with_defense.nre().type_() != TreacheryCardType::WeirdingWay)
+                        && with_defense.expect("with defense").type_() != TreacheryCardType::WeirdingWay)
                     || (with_planetologist && c.is_atreides())
                     || (c.type_() == TreacheryCardType::Reinforcements
                         && (pl.forces_in_reserve() + pl.special_forces_in_reserve() - forces_to_reveal_under_no_field) >= 3)
@@ -1047,7 +1033,6 @@ impl Battle {
     }
 
     pub fn max_banker_boost(g: &Game, p: PlayerIndex, hero: Option<Hero>) -> i32 {
-        let hero = hero.and_then(crate::compat::cs::CsNull::opt);
         if hero.is_some_and(|h| g.skilled_as(h, LeaderSkill::Banker)) {
             g.player(p).resources.min(3)
         } else {
@@ -1056,8 +1041,6 @@ impl Battle {
     }
 
     pub fn cards_playable_as_defense(g: &Game, p: PlayerIndex, with_weapon: Option<TreacheryCard>, territory_of_battle: Option<Territory>) -> Vec<TreacheryCard> {
-        let with_weapon = with_weapon.and_then(crate::compat::cs::CsNull::opt);
-        let territory_of_battle = territory_of_battle.and_then(crate::compat::cs::CsNull::opt);
         let pl = g.player(p);
         let fighting_on_own_homeworld = territory_of_battle.is_some_and(|t| pl.is_native(t));
         let forces_to_reveal_under_no_field =
@@ -1074,7 +1057,7 @@ impl Battle {
                 (c.type_() != TreacheryCardType::WeirdingWay && (c.is_defense() || c.type_() == TreacheryCardType::Useless))
                     || (c.type_() == TreacheryCardType::WeirdingWay
                         && with_weapon.is_some_and(|w| w.is_weapon())
-                        && with_weapon.nre().type_() != TreacheryCardType::Chemistry)
+                        && with_weapon.expect("with weapon").type_() != TreacheryCardType::Chemistry)
                     || (c.type_() == TreacheryCardType::Reinforcements
                         && (pl.forces_in_reserve() + pl.special_forces_in_reserve() - forces_to_reveal_under_no_field) >= 3)
                     || (!fighting_on_own_homeworld && c.type_() == TreacheryCardType::HarassAndWithdraw)
@@ -1125,9 +1108,6 @@ impl Battle {
     }
 
     pub fn determine_skill_bonus_game_player_i_hero_treachery_card_treachery_card_int32_leader_skill(g: &Game, player: PlayerIndex, hero: Option<Hero>, weapon: Option<TreacheryCard>, defense: Option<TreacheryCard>, banker_bonus: i32, activated_skill: &mut LeaderSkill) -> i32 {
-        let hero = hero.and_then(crate::compat::cs::CsNull::opt);
-        let weapon = weapon.and_then(crate::compat::cs::CsNull::opt);
-        let defense = defense.and_then(crate::compat::cs::CsNull::opt);
         let hero_skilled = |skill: LeaderSkill| hero.is_some_and(|h| g.skilled_as(h, skill));
 
         if hero_skilled(LeaderSkill::Thinker) {
@@ -1218,7 +1198,6 @@ impl Battle {
     }
 
     pub fn determine_skill_penalty_game_i_hero_player_leader_skill(g: &Game, hero: Option<Hero>, opponent: PlayerIndex, activated_skill: &mut LeaderSkill) -> i32 {
-        let hero = hero.and_then(crate::compat::cs::CsNull::opt);
         if hero.is_some_and(|h| g.skilled_as(h, LeaderSkill::Bureaucrat)) {
             *activated_skill = LeaderSkill::Bureaucrat;
             let o = g.player(opponent);

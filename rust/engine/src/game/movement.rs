@@ -12,13 +12,13 @@ impl Game {
             None => false,
         };
         if current_is_guild && self.guild_may_ship_out_of_turn_order() {
-            let mut seq = self.shipment_and_move_sequence.take().nre();
+            let mut seq = self.shipment_and_move_sequence.take().expect("shipment and move sequence");
             seq.next_player(self);
             self.shipment_and_move_sequence = Some(seq);
         }
 
         // Every argument is evaluated before Enter runs, including the call that may log (hazards 4.2).
-        let condition1 = self.juice_forces_first_player() && self.current_juice.clone().nre().initiator() != Faction::Guild;
+        let condition1 = self.juice_forces_first_player() && self.current_juice.clone().expect("current juice").initiator() != Faction::Guild;
         let condition2 = self.check_if_guild_acts_or_auto_delays();
         self.enter_boolean_phase_boolean_phase_phase(condition1, Phase::NonGuildShip, condition2, Phase::GuildShip, Phase::NonGuildShip);
     }
@@ -233,7 +233,7 @@ impl Game {
         if ambassador != Ambassador::None {
             let ecaz = self.get_player(Some(Faction::Ecaz));
             self.ambassadors_on_planet.remove(&territory);
-            self.player_mut(ecaz.nre()).ambassadors.push(ambassador);
+            self.player_mut(ecaz.expect("ecaz")).ambassadors.push(ambassador);
             self.log(elems!["The ambassador in ", territory, " returns to ", Faction::Ecaz]);
         }
     }
@@ -663,7 +663,7 @@ impl Game {
         let nr_of_battles_in_strongholds = Battle::battles_to_be_fought(self, moritani, false)
             .iter()
             .map(|b| b.territory)
-            .filter(|t| (ecaz.is_none() || self.player(ecaz.nre()).any_forces_in_territory(Some(*t)) == 0) && (t.is_stronghold() || self.is_special_stronghold(*t)))
+            .filter(|t| (ecaz.is_none() || self.player(ecaz.expect("ecaz")).any_forces_in_territory(Some(*t)) == 0) && (t.is_stronghold() || self.is_special_stronghold(*t)))
             .distinct()
             .len();
 
@@ -723,8 +723,8 @@ impl Game {
             if (initiator != Faction::BeneGesserit || e.i_location_event_forces_added_to_location(self) > 0)
                 && initiator != Faction::Ecaz
                 && initiator != self.player(ecaz).ally
-                && self.ambassador_in(e.to_location(self).nre().territory()) != Ambassador::None
-                && self.ambassador_in(e.to_location(self).nre().territory()) != Game::ambassador_of(initiator)
+                && self.ambassador_in(e.to_location(self).expect("to location").territory()) != Ambassador::None
+                && self.ambassador_in(e.to_location(self).expect("to location").territory()) != Game::ambassador_of(initiator)
             {
                 self.queue_intrusion(e, IntrusionType::Ambassador);
             }
@@ -739,7 +739,7 @@ impl Game {
                 && initiator != Faction::Moritani
                 && initiator != self.player(moritani).ally
                 && !self.is_occupied_by_faction_or_their_ally_world_faction(World::Moritani, initiator)
-                && !self.terror_in(e.to_location(self).nre().territory()).next().is_none()
+                && !self.terror_in(e.to_location(self).expect("to location").territory()).next().is_none()
             {
                 self.queue_intrusion(e, IntrusionType::Terror);
             }
@@ -827,7 +827,7 @@ impl Game {
     pub fn guild_may_delay(&self) -> bool {
         self.guild_may_ship_out_of_turn_order()
             && ((self.players.len() as i32) - (self.has_acted_or_passed.len() as i32))
-                > (if self.juice_forces_last_player() && !self.has_acted_or_passed.contains(&self.current_juice.as_ref().nre().initiator()) { 2 } else { 1 })
+                > (if self.juice_forces_last_player() && !self.has_acted_or_passed.contains(&self.current_juice.as_ref().expect("current juice").initiator()) { 2 } else { 1 })
     }
 
     pub fn guild_may_ship_out_of_turn_order(&self) -> bool {
@@ -844,7 +844,7 @@ pub struct Intrusion {
 impl Intrusion {
     /// Takes the game because `TriggeringEvent.To` resolves an id through it.
     pub fn territory(&self, game: &Game) -> Territory {
-        self.triggering_event.to_location(game).nre().territory()
+        self.triggering_event.to_location(game).expect("to location").territory()
     }
 
     pub fn initiator(&self) -> Faction {

@@ -13,7 +13,6 @@
 //! The faction rules sheets (`#region FactionManual`) are in [`crate::faction_manual`], and
 //! `Load`/`SkinToString` (`#region LoadingAndSaving`) in [`crate::skin_json`].
 
-use treachery_engine::compat::cs::{self, CsNull, NullRef};
 use treachery_engine::enumerations::*;
 use treachery_engine::messages::expression::ExpressionElement;
 use treachery_engine::game::Game;
@@ -104,7 +103,7 @@ impl<K: SkinKey, V> SkinDictionary<K, V> {
     pub fn index(&self, key: K) -> &V {
         match self.get(key) {
             Some(v) => v,
-            None => cs::key_not_found(&key.key_text()),
+            None => panic!("KeyNotFoundException: The given key '{}' was not present in the dictionary.", key.key_text()),
         }
     }
 
@@ -475,13 +474,11 @@ impl Skin {
                     value.to_cs_string()
                 }
             }
-            E::ResourceCard(rc) => self.describe_resource_card(rc.opt()),
-            E::Hero(Hero::TreacheryCard(tc)) if !tc.is_null() => self.describe_treachery_card(*tc),
-            E::Territory(t) if !t.is_null() => self.describe_territory(*t),
-            E::Location(l) if !l.is_null() => self.describe_location(*l),
-            E::Hero(h) if !h.is_null() => self.describe_hero(Some(*h)),
-            // A null handle is a C# null.
-            E::Hero(_) | E::Territory(_) | E::Location(_) => String::new(),
+            E::ResourceCard(rc) => self.describe_resource_card(Some(*rc)),
+            E::Hero(Hero::TreacheryCard(tc)) => self.describe_treachery_card(*tc),
+            E::Territory(t) => self.describe_territory(*t),
+            E::Location(l) => self.describe_location(*l),
+            E::Hero(h) => self.describe_hero(Some(*h)),
             E::List { items, live, .. } => {
                 // C# enumerates the collection now; a live one shows the game's current contents.
                 let current = match (live, game) {
@@ -507,7 +504,6 @@ impl Skin {
 
     /// `Describe(IHero? hero)`
     pub fn describe_hero(&self, hero: Option<Hero>) -> String {
-        let hero = hero.and_then(CsNull::opt);
         match hero {
             None => "?".to_string(),
             Some(Hero::Leader(l)) => get_label(&self.person_name_str, l.skin_id()),
@@ -541,7 +537,6 @@ impl Skin {
 
     /// `Describe(ResourceCard? c)`
     pub fn describe_resource_card(&self, c: Option<ResourceCard>) -> String {
-        let c = c.and_then(CsNull::opt);
         let Some(c) = c else { return "?".to_string() };
         if c.is_shai_hulud() {
             return self.describe_concept(Concept::Monster);
@@ -552,7 +547,7 @@ impl Skin {
         if c.is_sand_trout() {
             return self.describe_concept(Concept::BabyMonster);
         }
-        self.describe_territory(c.location().nre().territory())
+        self.describe_territory(c.location().expect("location").territory())
     }
 
     /// `Describe(TreacheryCard c)`
@@ -674,7 +669,6 @@ impl Skin {
 
     /// `GetPopup(TreacheryCard? c)`
     pub fn get_popup_treachery_card(&self, c: Option<TreacheryCard>) -> String {
-        let c = c.and_then(CsNull::opt);
         let Some(c) = c else { return String::new() };
         let (category, type_) = get_treachery_card_category(c);
         format!(
@@ -716,7 +710,7 @@ impl Skin {
         if let Some(l) = h.as_leader() {
             return self.get_leader_popup(l);
         }
-        get_image_hover_html(&self.get_image_url_hero(h.opt()))
+        get_image_hover_html(&self.get_image_url_hero(Some(h)))
     }
 
     /// `private string GetLeaderPopup(Leader l)`
@@ -748,7 +742,6 @@ impl Skin {
 
     /// `GetPopup(IHero? h, Game g)`
     pub fn get_popup_hero_game(&self, h: Option<Hero>, g: &Game) -> String {
-        let h = h.and_then(CsNull::opt);
         let Some(h) = h else { return String::new() };
         if let Some(tc) = h.as_treachery_card() {
             return self.get_popup_treachery_card(Some(tc));
@@ -765,7 +758,6 @@ impl Skin {
 
     /// `GetPopup(Leader? l, LeaderSkill s)`
     pub fn get_popup_leader_leader_skill(&self, l: Option<Leader>, s: LeaderSkill) -> String {
-        let l = l.and_then(CsNull::opt);
         match l {
             None => String::new(),
             Some(l) => format!(
@@ -794,9 +786,9 @@ impl Skin {
     pub fn get_image_url(&self, obj: &ExpressionElement) -> String {
         use ExpressionElement as E;
         match obj {
-            E::Hero(Hero::TreacheryCard(tc)) if !tc.is_null() => self.get_image_url_treachery_card(Some(*tc)),
-            E::ResourceCard(rc) if !rc.is_null() => self.get_image_url_resource_card(Some(*rc)),
-            E::Hero(h) if !h.is_null() => self.get_image_url_hero(Some(*h)),
+            E::Hero(Hero::TreacheryCard(tc)) => self.get_image_url_treachery_card(Some(*tc)),
+            E::ResourceCard(rc) => self.get_image_url_resource_card(Some(*rc)),
+            E::Hero(h) => self.get_image_url_hero(Some(*h)),
             E::Enum(e) => {
                 if let Some(v) = e.get::<LeaderSkill>() {
                     self.get_image_url_leader_skill(v)
@@ -1266,7 +1258,7 @@ impl Skin {
 
     /// `GetTerritoryBorder(Territory? t)`
     pub fn get_territory_border(&self, t: Option<Territory>) -> String {
-        match t.and_then(CsNull::opt) {
+        match t {
             Some(t) => get_label(&self.territory_border_svg, t.skin_id()),
             None => String::new(),
         }
@@ -1274,7 +1266,7 @@ impl Skin {
 
     /// `GetImageUrl(TreacheryCard? c)`
     pub fn get_image_url_treachery_card(&self, c: Option<TreacheryCard>) -> String {
-        match c.and_then(CsNull::opt) {
+        match c {
             Some(c) => get_label(&self.treachery_card_image_url, c.skin_id()),
             None => String::new(),
         }
@@ -1292,7 +1284,7 @@ impl Skin {
 
     /// `GetImageUrl(ResourceCard? c)`
     pub fn get_image_url_resource_card(&self, c: Option<ResourceCard>) -> String {
-        match c.and_then(CsNull::opt) {
+        match c {
             Some(c) => get_label(&self.resource_card_image_url, c.skin_id()),
             None => String::new(),
         }
@@ -1305,7 +1297,7 @@ impl Skin {
 
     /// `private string GetTreacheryCardDescription(TreacheryCard? c)`
     pub fn get_treachery_card_description(&self, c: Option<TreacheryCard>) -> String {
-        match c.and_then(CsNull::opt) {
+        match c {
             Some(c) => get_label(&self.treachery_card_description_str, c.skin_id()),
             None => String::new(),
         }
@@ -1313,7 +1305,7 @@ impl Skin {
 
     /// `GetImageUrl(IHero? h)`
     pub fn get_image_url_hero(&self, h: Option<Hero>) -> String {
-        let Some(h) = h.and_then(CsNull::opt) else { return String::new() };
+        let Some(h) = h else { return String::new() };
         match h {
             Hero::TreacheryCard(_) => get_label(&self.treachery_card_image_url, h.skin_id()),
             Hero::Messiah => self.messiah_url.clone(),

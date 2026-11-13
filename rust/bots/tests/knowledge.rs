@@ -22,6 +22,7 @@ use std::io::{BufRead, BufReader};
 use flate2::read::GzDecoder;
 use serde_json::Value;
 use treachery_bots::prelude::*;
+use treachery_engine::error::catch_panic;
 use treachery_engine::game::Participation;
 
 /// The C# `Fmt` of csharp-ref/Program.cs.
@@ -51,29 +52,27 @@ impl Fmt for Faction {
 }
 impl Fmt for PlayerIndex {
     fn fmt(&self) -> String {
-        if self.is_null() { "null".into() } else { format!("P{}", self.index) }
+        format!("P{}", self.index)
     }
 }
 impl Fmt for Location {
     fn fmt(&self) -> String {
-        if self.is_null() { "null".into() } else { format!("L{}", self.id()) }
+        format!("L{}", self.id())
     }
 }
 impl Fmt for Territory {
     fn fmt(&self) -> String {
-        if self.is_null() { "null".into() } else { format!("T{}", self.id()) }
+        format!("T{}", self.id())
     }
 }
 impl Fmt for TreacheryCard {
     fn fmt(&self) -> String {
-        if self.is_null() { "null".into() } else { format!("C{}", self.id()) }
+        format!("C{}", self.id())
     }
 }
 impl Fmt for Hero {
     fn fmt(&self) -> String {
-        if self.is_null() {
-            "null".into()
-        } else if let Some(c) = self.as_treachery_card() {
+        if let Some(c) = self.as_treachery_card() {
             c.fmt()
         } else {
             format!("H{}", self.id())
@@ -356,7 +355,7 @@ fn run(golden: &str) {
                 ev.initialize_game(game);
                 game.map.mark_neighbour_cache_stale();
                 let (validate, is_host) = (o["validate"].as_bool().unwrap(), o["isHost"].as_bool().unwrap());
-                let _ = cs::catch_panic(|| ev.execute(game, validate, is_host));
+                let _ = catch_panic(|| ev.execute(game, validate, is_host));
             }
             "probe" => {
                 let game = game.as_ref().unwrap();
@@ -376,12 +375,14 @@ fn run(golden: &str) {
                 let m = o["m"].as_str().unwrap();
                 let a: Vec<String> = o["a"].as_array().unwrap().iter().map(|v| v.as_str().unwrap().to_string()).collect();
                 let args = Args { game, bot: b, a: a.clone() };
-                let actual = match cs::catch_panic(|| call(m, &args)) {
+                let actual = match catch_panic(|| call(m, &args)) {
                     Ok(r) => r,
-                    Err(e) => format!("EX:{}: {}", cs::full_type_name(e.type_name), e.message),
+                    Err(_) => "EX".to_string(),
                 };
                 let draws = b.random.get_count() as i64;
                 let (expected, expected_draws) = (o["r"].as_str().unwrap(), o["d"].as_i64().unwrap());
+                // A probe that throws in C# must panic in Rust; the texts aren't compared.
+                let expected = if expected.starts_with("EX:") { "EX" } else { expected };
                 probes += 1;
                 if actual != expected || draws != expected_draws {
                     failures.push(format!(

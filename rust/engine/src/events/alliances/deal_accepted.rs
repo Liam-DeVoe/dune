@@ -71,16 +71,15 @@ impl DealAccepted {
     }
 
     pub fn may_deal(g: &Game, p: Option<PlayerIndex>, price: i32) -> bool {
-        let p = p.and_then(crate::compat::cs::CsNull::opt);
         g.current_phase != Phase::Bidding
             || price <= 0
             || g.current_bid.is_none()
             || {
                 // p.Faction dereferences a null player only here.
-                let bid = g.current_bid.as_ref().nre();
-                let p_faction = g.player(p.nre()).faction;
+                let bid = g.current_bid.as_ref().expect("current bid");
+                let p_faction = g.player(p.expect("player")).faction;
                 bid.initiator() != p_faction
-                    && (bid.i_bid_ally_contribution_amount() == 0 || g.player(bid.player_opt().nre()).ally != p_faction)
+                    && (bid.i_bid_ally_contribution_amount() == 0 || g.player(bid.player_opt().expect("player")).ally != p_faction)
             }
     }
 
@@ -88,7 +87,6 @@ impl DealAccepted {
     pub fn acceptable_deals(g: &Game, p: Option<PlayerIndex>) -> impl Iterator<Item = Rc<DealOffered>> {
         use either::Either;
         use std::iter::empty;
-        let p = p.and_then(crate::compat::cs::CsNull::opt);
         let Some(p) = p else { return Either::Left(empty()) };
         Either::Right(g.deal_offers.iter().filter(move |offer| DealAccepted::is_acceptable_deal(g, p, offer)).cloned())
     }
@@ -99,7 +97,7 @@ impl DealAccepted {
         offer.initiator() != pl.faction
             && offer.initiator() != pl.ally
             && {
-                let to = offer.to.as_ref().nre();
+                let to = offer.to.as_ref().expect("destination");
                 to.len() == 0 || to.contains(&pl.faction)
             }
             && !g.has_responded_to_deal(offer, pl.faction)
@@ -110,7 +108,6 @@ impl DealAccepted {
     pub fn cancellable_deals(g: &Game, p: Option<PlayerIndex>) -> impl Iterator<Item = Rc<DealOffered>> {
         use either::Either;
         use std::iter::empty;
-        let p = p.and_then(crate::compat::cs::CsNull::opt);
         let Some(p) = p else { return Either::Left(empty()) };
         Either::Right(g.deal_offers.iter().filter(move |offer| offer.initiator() == g.player(p).faction).cloned())
     }

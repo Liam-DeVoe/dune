@@ -71,7 +71,6 @@ impl Shipment {
     }
 
     pub fn set_to(&mut self, game: &Game, value: Option<Location>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.to_id = game.map.location_lookup().get_id(value);
     }
 
@@ -84,7 +83,6 @@ impl Shipment {
     }
 
     pub fn set_from(&mut self, game: &Game, value: Option<Location>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.from_id = game.map.location_lookup().get_id(value);
     }
 
@@ -113,7 +111,6 @@ impl Shipment {
     }
 
     pub fn set_karma_card(&mut self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.karma_card_id = TreacheryCardManager::get_id(value);
     }
 
@@ -214,7 +211,7 @@ impl Shipment {
 
         // `var p = Player;` may be null (hazards 1.8): it throws only where C# dereferences it.
         let p_opt = self.player_opt();
-        let p = || p_opt.nre();
+        let p = || p_opt.expect("player");
 
         if !self.is_site_to_site(game) && game.prevented_from_shipping(self.initiator()) {
             return Some(express!(TreacheryCardType::Karma, " prevents you from shipping"));
@@ -226,7 +223,7 @@ impl Shipment {
         if self.is_back_to_reserves() {
             let source = self.source_location_for_shipment_to_reserves(game);
             let mut valid = Shipment::valid_source_locations(game, p());
-            if !valid.any(|v| v == source.or_null()) {
+            if !valid.any(|v| Some(v) == source) {
                 return Some(express!("You can't ship back to reserves from there"));
             }
         }
@@ -245,7 +242,7 @@ impl Shipment {
         if self.is_site_to_site(game) {
             let from = self.from(game);
             let mut valid = Shipment::valid_source_locations(game, p());
-            if !valid.any(|v| v == from.or_null()) {
+            if !valid.any(|v| Some(v) == from) {
                 return Some(express!("You can't ship site-to-site from there"));
             }
         }
@@ -520,7 +517,6 @@ impl Shipment {
     }
 
     pub fn valid_max_shipment_back_forces(game: &Game, p: PlayerIndex, special_forces: bool, source: Option<Location>) -> i32 {
-        let source = source.and_then(crate::compat::cs::CsNull::opt);
         if source.is_none() {
             return 0;
         }
@@ -529,7 +525,6 @@ impl Shipment {
     }
 
     pub fn valid_max_shipment_site_to_site_forces(game: &Game, p: PlayerIndex, special_forces: bool, source: Option<Location>) -> i32 {
-        let source = source.and_then(crate::compat::cs::CsNull::opt);
         if source.is_none() {
             return 0;
         }
@@ -589,7 +584,7 @@ impl Shipment {
             && g.players.iter().any(|native| native.is_native_homeworld(hw))
             && (!pl.has_ally() || {
                 // p.AlliedPlayer may be null when the ally is not in the game: NullReferenceException.
-                let ally = g.player(pl.allied_player(g).nre());
+                let ally = g.player(pl.allied_player(g).expect("allied player"));
                 !ally.is_native_homeworld(hw) && ally.any_forces_in(Some(hw.location())) == 0
             })
     }
@@ -664,7 +659,6 @@ impl Shipment {
     }
 
     pub fn may_smuggle(g: &Game, p: PlayerIndex, l: Option<Location>) -> bool {
-        let l = l.and_then(crate::compat::cs::CsNull::opt);
         match l {
             None => false,
             Some(l) => {
@@ -1011,7 +1005,6 @@ impl Shipment {
     }
 
     pub fn get_verbose_message(&self, game: &Game, cost: i32, guild_income: &MessagePart, owner_of_karma: Option<PlayerIndex>) -> Message {
-        let owner_of_karma = owner_of_karma.and_then(crate::compat::cs::CsNull::opt);
         if self.passed {
             return express!(self.initiator(), " pass shipment");
         }
@@ -1124,7 +1117,6 @@ impl Shipment {
     }
 
     pub fn karama_message(&self, _game: &Game, owner_of_karma: Option<PlayerIndex>) -> MessagePart {
-        let owner_of_karma = owner_of_karma.and_then(crate::compat::cs::CsNull::opt);
         let karma_card = self.karma_card();
         express_part_if!(
             karma_card.is_some();

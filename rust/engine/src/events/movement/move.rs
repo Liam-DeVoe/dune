@@ -121,7 +121,6 @@ impl Move {
 /// `to` is only dereferenced after the early returns, so a null
 /// `To` gives `false` there and fails the event after them (C#: NullReferenceException).
 pub(crate) fn contains_conflicting_ally_opt(game: &Game, initiator: PlayerIndex, to: Option<Location>) -> GameResult<bool> {
-    let to = to.and_then(crate::compat::cs::CsNull::opt);
     match to {
         Some(to) => Ok(game.contains_conflicting_ally(initiator, to)),
         None => {

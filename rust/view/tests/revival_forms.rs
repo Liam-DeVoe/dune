@@ -6,7 +6,7 @@
 mod common;
 
 use common::{load, read_trace, sample_bot_traces, viewer_of};
-use treachery_engine::compat::cs::Shared;
+use treachery_engine::shared::Shared;
 use treachery_engine::events::GameEventType;
 use treachery_engine::json;
 use treachery_engine::compat::net_enum::NetEnum;

@@ -24,7 +24,6 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
     }
 
     fn set_to(&mut self, game: &Game, value: Option<Location>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         *self.field_to_id_mut() = game.map.location_lookup().get_id(value);
     }
 
@@ -32,7 +31,7 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
         // ParseForceLocations(Game, Player.Faction, _forceLocations): Player is dereferenced
         // first; a null string throws at `.Length`.
         let faction = game.player(self.player()).faction;
-        let s = self.field_force_locations().as_deref().nre();
+        let s = self.field_force_locations().as_deref().expect("field force locations");
         PlacementEvent::parse_force_locations(game, faction, s)
     }
 
@@ -62,7 +61,7 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
 
         // var p = Player (may be null; dereferenced only where C# does)
         let p = self.player_opt();
-        let pl = || game.player(p.nre());
+        let pl = || game.player(p.expect("player"));
 
         // ForceLocations is re-parsed on every read in C#; parsing has no side effects,
         // and an exception would come from the first read, so one parse per read site is
@@ -88,8 +87,8 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
         if self.to(game).is_none() {
             return Some(express!("To not selected"));
         }
-        let valid_targets = PlacementEvent::valid_targets_game_player_dictionary_location_battalion(game, p.nre(), &force_locations);
-        if !valid_targets.contains(&self.to(game).nre()) {
+        let valid_targets = PlacementEvent::valid_targets_game_player_dictionary_location_battalion(game, p.expect("player"), &force_locations);
+        if !valid_targets.contains(&self.to(game).expect("destination")) {
             return Some(express!("Invalid To location"));
         }
         if as_advisors && !(pl().is(Faction::BeneGesserit) && game.applicable(Rule::BeneGesseritAdvisors)) {
@@ -97,17 +96,17 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
         }
 
         if self.initiator() == Faction::BeneGesserit {
-            if as_advisors && !PlacementEvent::may_move_as_advisors(game, p.nre(), self.to(game).nre().territory(), special_force_amount > 0) {
+            if as_advisors && !PlacementEvent::may_move_as_advisors(game, p.expect("player"), self.to(game).expect("destination").territory(), special_force_amount > 0) {
                 return Some(express!("You can't be advisors there"));
             }
-            if !as_advisors && !PlacementEvent::may_move_as_bene_gesserit_fighters(game, p.nre(), self.to(game).nre().territory()) {
+            if !as_advisors && !PlacementEvent::may_move_as_bene_gesserit_fighters(game, p.expect("player"), self.to(game).expect("destination").territory()) {
                 return Some(express!("You can't be fighters there"));
             }
         }
 
         let can_move_from_two_territories = game.current_planetology.is_some()
-            && game.current_planetology.as_ref().nre().move_from_two_territories()
-            && game.current_planetology.as_ref().nre().initiator() == self.initiator();
+            && game.current_planetology.as_ref().expect("current planetology").move_from_two_territories()
+            && game.current_planetology.as_ref().expect("current planetology").initiator() == self.initiator();
         let number_of_selected_territories = force_locations
             .iter()
             .filter(|kvp| kvp.1.total_amount_of_forces() > 0)
@@ -209,7 +208,7 @@ impl PlacementEvent {
     pub fn valid_move_to_targets(g: &Game, p: PlayerIndex, from: Location, moved: &[Battalion]) -> Vec<Location> {
         let player = g.player(p);
         if player.is(Faction::Emperor) && from.as_homeworld().is_some() && g.applicable(Rule::EmperorSpecialForces) {
-            let hw = from.as_homeworld().nre();
+            let hw = from.as_homeworld().expect("as homeworld");
             if hw.world() == World::Emperor {
                 let salusa_secundus = g.map.get_home_world(World::SalusaSecundus);
                 if let Some(salusa_secundus) = salusa_secundus {

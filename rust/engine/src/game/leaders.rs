@@ -31,7 +31,7 @@ impl Game {
             Some(l) => l,
             None => panic!("Unable to cast object of type 'Treachery.Shared.Messiah' to type 'Treachery.Shared.Leader'."),
         };
-        list_remove(&mut self.player_mut(current_owner.nre()).leaders, &leader_to_remove);
+        list_remove(&mut self.player_mut(current_owner.expect("current owner")).leaders, &leader_to_remove);
         let ecaz = self.get_player(Some(Faction::Ecaz));
         if let Some(ecaz) = ecaz {
             self.player_mut(ecaz).leaders.push(leader_to_remove);
@@ -99,7 +99,6 @@ impl Game {
     }
 
     pub fn is_skilled(&self, l: Option<Hero>) -> bool {
-        let l = l.and_then(crate::compat::cs::CsNull::opt);
         l.is_some() && self.skill(l) != LeaderSkill::None
     }
 
@@ -125,7 +124,6 @@ impl Game {
     }
 
     pub fn skill(&self, l: Option<Hero>) -> LeaderSkill {
-        let l = l.and_then(crate::compat::cs::CsNull::opt);
         let Some(l) = l else { return LeaderSkill::None };
 
         match self.leader_state.get(&l) {
@@ -145,7 +143,6 @@ impl Game {
     }
 
     pub fn is_in_front_of_shield(&self, l: Option<Hero>) -> bool {
-        let l = l.and_then(crate::compat::cs::CsNull::opt);
         let Some(l) = l else { return false };
         self.leader_state.contains_key(&l) && self.leader_state[&l].in_front_of_shield
     }
@@ -228,7 +225,7 @@ impl LeaderState {
     /// `g.LeaderState` and Rust can't borrow both.
     pub fn kill(&mut self, skill_deck: &mut Option<Deck<LeaderSkill>>) {
         if self.skill != LeaderSkill::None {
-            skill_deck.as_mut().nre().put_on_top(self.skill);
+            skill_deck.as_mut().expect("skill deck").put_on_top(self.skill);
             self.skill = LeaderSkill::None;
             self.in_front_of_shield = false;
         }

@@ -65,7 +65,7 @@ impl MulliganPerformed {
             for p in 0..game.players.len() {
                 let f = game.players[p].faction;
                 if f != Faction::Harkonnen && f != Faction::Tleilaxu {
-                    let traitor = game.traitor_deck.as_mut().nre().draw();
+                    let traitor = game.traitor_deck.as_mut().expect("traitor deck").draw();
                     game.players[p].traitors.push(traitor);
                 }
             }

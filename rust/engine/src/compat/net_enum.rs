@@ -141,7 +141,7 @@ macro_rules! net_enum {
         }
 
         /// `Comparer.Default` on a boxed enum compares the underlying values.
-        impl $crate::compat::cs::CsComparable for $name {
+        impl $crate::compat::random_ext::CsComparable for $name {
             fn cs_compare(&self, other: &Self) -> ::std::cmp::Ordering { self.0.cmp(&other.0) }
             fn cs_equals(&self, other: &Self) -> bool { self.0 == other.0 }
         }

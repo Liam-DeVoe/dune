@@ -143,7 +143,6 @@ impl Map {
     pub const NUMBER_OF_SECTORS: i32 = 18;
 
     pub fn new() -> Map {
-        crate::compat::cs::install_null_key_check();
         let mut map = Map {
             neighbours: vec![Vec::new(); LOCATION_COUNT],
             attached_to: vec![None; LOCATION_COUNT],
@@ -184,9 +183,8 @@ impl Map {
         }
     }
 
-    /// `AttachedLocation.PointAt`. A null `new_location` fails after the location was taken
-    /// from its old host, where C# threw NullReferenceException.
-    pub(crate) fn point_at(&mut self, attached: Location, new_location: Location) -> crate::error::GameResult {
+    /// Attaches `attached` to `new_location`, taking it from its old host.
+    pub(crate) fn point_at(&mut self, attached: Location, new_location: Location) {
         // AttachedToLocation?.Neighbours.Remove(this): List.Remove removes the
         // first element that Equals `this`. If the host is itself attached its
         // Neighbours getter returns a temporary list, so nothing happens.
@@ -199,10 +197,6 @@ impl Map {
             }
         }
 
-        if new_location == Location::NULL {
-            crate::game_error!("There is no location to attach to");
-        }
-
         if new_location.as_attached_location().is_none() {
             self.neighbours[new_location.index()].push(attached);
         }
@@ -210,7 +204,6 @@ impl Map {
         self.neighbours[attached.index()] = vec![new_location];
 
         self.attached_to_game[attached.index()] = true;
-        Ok(())
     }
 
     // ---- queries ----
@@ -383,7 +376,6 @@ impl Map {
         sector_in_storm: i32,
         force_obstacles: &[Location],
     ) {
-        let previous = previous.and_then(crate::compat::cs::CsNull::opt);
         if !found.contains(&current) {
             found.push(current);
         }
@@ -451,7 +443,6 @@ impl Map {
         sector_in_storm: i32,
         obstacles: &[Location],
     ) {
-        let previous = previous.and_then(crate::compat::cs::CsNull::opt);
         current_path.push(current);
 
         if current == destination {
@@ -527,7 +518,6 @@ impl Map {
         sector_in_storm: i32,
         obstacles: &[Location],
     ) -> Option<Vec<Location>> {
-        let previous = previous.and_then(crate::compat::cs::CsNull::opt);
         current_route.push(current);
 
         if current == destination {
@@ -595,7 +585,6 @@ impl Map {
         ignore_storm: bool,
         sector_in_storm: i32,
     ) {
-        let previous = previous.and_then(crate::compat::cs::CsNull::opt);
         if !found.contains(&current) {
             found.push(current);
         }
@@ -636,7 +625,6 @@ impl Map {
         ignore_storm: bool,
         sector_in_storm: i32,
     ) {
-        let previous = previous.and_then(crate::compat::cs::CsNull::opt);
         if !found.contains(&current) {
             found.push(current);
         }
@@ -682,8 +670,7 @@ impl IFetcher<Territory> for TerritoryFetcher {
     }
 
     fn get_id(&self, obj: Option<Territory>) -> i32 {
-        let obj = obj.and_then(crate::compat::cs::CsNull::opt);
-        obj.and_then(crate::compat::cs::CsNull::opt).map_or(-1, |t| t.id())
+        obj.map_or(-1, |t| t.id())
     }
 }
 
@@ -701,7 +688,6 @@ impl IFetcher<Location> for LocationFetcher {
     }
 
     fn get_id(&self, obj: Option<Location>) -> i32 {
-        let obj = obj.and_then(crate::compat::cs::CsNull::opt);
-        obj.and_then(crate::compat::cs::CsNull::opt).map_or(-1, |l| l.id())
+        obj.map_or(-1, |l| l.id())
     }
 }

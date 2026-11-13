@@ -191,7 +191,7 @@ pub struct Server {
 
 /// The text of a panic (a bug in the engine or the server).
 pub fn panic_text(payload: &(dyn std::any::Any + Send)) -> String {
-    treachery_engine::compat::cs::panic_message(payload)
+    treachery_engine::error::panic_message(payload)
 }
 
 impl Server {

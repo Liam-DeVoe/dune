@@ -35,7 +35,6 @@ impl SkillAssigned {
     }
 
     pub fn set_leader(&mut self, value: Option<Leader>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.leader_id = LeaderManager::leader_lookup().get_id(value);
     }
 

@@ -42,7 +42,6 @@ impl KarmaChoamDiscard {
     }
 
     pub fn set_card_to_use(&mut self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.card_to_use = TreacheryCardManager::lookup().get_id(value);
     }
 

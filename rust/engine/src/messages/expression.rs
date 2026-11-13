@@ -332,9 +332,6 @@ impl From<f64> for ExpressionElement {
 }
 impl From<Location> for ExpressionElement {
     fn from(v: Location) -> Self {
-        if crate::compat::cs::CsNull::is_null(v) {
-            return ExpressionElement::Null;
-        }
         ExpressionElement::Location(v)
     }
 }
@@ -355,17 +352,11 @@ impl From<crate::map::hidden_mobile_stronghold::HiddenMobileStronghold> for Expr
 }
 impl From<Territory> for ExpressionElement {
     fn from(v: Territory) -> Self {
-        if crate::compat::cs::CsNull::is_null(v) {
-            return ExpressionElement::Null;
-        }
         ExpressionElement::Territory(v)
     }
 }
 impl From<Hero> for ExpressionElement {
     fn from(v: Hero) -> Self {
-        if crate::compat::cs::CsNull::is_null(v) {
-            return ExpressionElement::Null;
-        }
         ExpressionElement::Hero(v)
     }
 }
@@ -381,17 +372,11 @@ impl From<TreacheryCard> for ExpressionElement {
 }
 impl From<ResourceCard> for ExpressionElement {
     fn from(v: ResourceCard) -> Self {
-        if crate::compat::cs::CsNull::is_null(v) {
-            return ExpressionElement::Null;
-        }
         ExpressionElement::ResourceCard(v)
     }
 }
 impl From<crate::game::PlayerIndex> for ExpressionElement {
     fn from(v: crate::game::PlayerIndex) -> Self {
-        if crate::compat::cs::CsNull::is_null(v) {
-            return ExpressionElement::Null;
-        }
         ExpressionElement::Player(v)
     }
 }

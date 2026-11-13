@@ -79,7 +79,7 @@ impl ClassicBot {
     }
 
     pub fn win_was_predicted_by_me_this_turn(&self, game: &Game, opponent_faction: Faction) -> bool {
-        let ally = game.player(game.get_player(Some(opponent_faction)).nre()).ally;
+        let ally = game.player(game.get_player(Some(opponent_faction)).expect("player")).ally;
         let me = game.player(self.player);
         self.faction(game) == Faction::BeneGesserit
             && game.current_turn == me.predicted_turn
@@ -120,7 +120,7 @@ impl ClassicBot {
 
     pub fn is_winning_faction(&self, game: &Game, f: Faction) -> bool {
         // An unseated faction throws in meets_normal_victory_condition.
-        game.meets_normal_victory_condition(game.get_player(Some(f)).or_null(), true)
+        game.meets_normal_victory_condition(game.get_player(Some(f)).expect("player"), true)
     }
 
     /// The prescience in the current battle, if I or my ally used it.
@@ -192,7 +192,6 @@ impl ClassicBot {
     /// How much I (or `for_whom`, as far as I know their hand) want `card`, from 0 to 5.
     pub fn card_quality(&self, game: &Game, card: TreacheryCard, for_whom: Option<PlayerIndex>) -> i32 {
         use TreacheryCardType as T;
-        let for_whom = for_whom.and_then(CsNull::opt);
         let me = game.player(self.player);
         let mut other_cards: Vec<TreacheryCard> = match for_whom {
             Some(p) if p != self.player => Self::known_opponent_cards(game, self.player, p),
@@ -345,11 +344,11 @@ impl ClassicBot {
         ally == Faction::None
             || ally == Faction::Ecaz
             || faction == Faction::Ecaz
-            || game.player(self.allied_player(game).or_null()).any_forces_in_territory(Some(t)) == 0
+            || game.player(self.allied_player(game).expect("allied player")).any_forces_in_territory(Some(t)) == 0
             || (faction == Faction::BeneGesserit && advisors_dont_conflict && game.player(self.player).special_forces_in_territory(Some(t)) > 0)
             || (ally == Faction::BeneGesserit
                 && advisors_dont_conflict
-                && game.player(self.allied_player(game).or_null()).special_forces_in_territory(Some(t)) > 0)
+                && game.player(self.allied_player(game).expect("allied player")).special_forces_in_territory(Some(t)) > 0)
     }
 
     pub fn within_range(&self, game: &Game, from: Location, to: Location, b: &Battalion) -> bool {
@@ -370,10 +369,10 @@ impl ClassicBot {
         game.current_turn == game.maximum_turns()
             || game.protected_from_monster(self.player)
             // Throws when there is no spice card yet, or it has no location.
-            || t != game.latest_spice_card_a.nre().location().nre().territory()
+            || t != game.latest_spice_card_a.expect("latest spice card a").location().expect("location").territory()
             || game.sand_trout_occured()
             || !game.has_resource_deck_prescience(Some(self.player))
-            || game.resource_card_deck.as_ref().nre().top().and_then(CsNull::opt).is_some_and(|c| !c.is_shai_hulud())
+            || game.resource_card_deck.as_ref().expect("resource card deck").top().is_some_and(|c| !c.is_shai_hulud())
     }
 
     /// Of the opponents of `player` that occupy `t`, the one with the highest dial.
@@ -612,7 +611,7 @@ impl ClassicBot {
     }
 
     pub fn is_winning_opponent_faction(&self, game: &Game, f: Faction) -> bool {
-        self.is_winning_opponent(game, game.get_player(Some(f)).or_null())
+        self.is_winning_opponent(game, game.get_player(Some(f)).expect("player"))
     }
 
     /// An opponent one victory point short of winning, who can still ship forces or holds two
@@ -623,7 +622,7 @@ impl ClassicBot {
             && Some(opponent) != self.allied_player(game)
             && game.number_of_victory_points(opponent, true) + 1 >= game.threshold_for_win(opponent)
             && (Self::can_ship(game, opponent)
-                || (o.has_ally() && Self::can_ship(game, o.allied_player(game).or_null()))
+                || (o.has_ally() && Self::can_ship(game, o.allied_player(game).expect("allied player")))
                 || o.tech_tokens.len() >= 2)
     }
 
@@ -701,7 +700,6 @@ impl ClassicBot {
 
     /// The strength `player` can put into a battle in `t` against `opponent` (Harkonnen if none).
     pub fn max_dial(game: &Game, player: PlayerIndex, t: Territory, opponent: Option<PlayerIndex>, ignore_spice_dialing: bool) -> f32 {
-        let opponent = opponent.and_then(CsNull::opt);
         let p = game.player(player);
         let mut count_forces_for_richese = 0;
         if p.faction == Faction::Richese && p.special_forces_in_territory(Some(t)) > 0 {
@@ -731,7 +729,7 @@ impl ClassicBot {
             resources,
             battalion.amount_of_forces,
             battalion.amount_of_special_forces,
-            game.get_player(Some(battalion.faction)).or_null(),
+            game.get_player(Some(battalion.faction)).expect("player"),
             opponent,
         )
     }
@@ -761,7 +759,7 @@ impl ClassicBot {
 
     /// Whether I come before `opponent` in this turn's player order.
     pub fn i_will_be_aggressor_against(&self, game: &Game, opponent: Option<PlayerIndex>) -> bool {
-        let Some(opponent) = opponent.and_then(CsNull::opt) else {
+        let Some(opponent) = opponent else {
             return false;
         };
         let first_player_position = game.player(PlayerSequence::determine_first_player(game)).seat;
@@ -836,7 +834,7 @@ impl ClassicBot {
         let mut leaders: Vec<Hero> = me.traitors.iter().chain(me.known_non_traitors.iter()).copied().collect();
         if me.has_ally() {
             // Throws when my ally isn't seated.
-            let ally = game.player(self.allied_player(game).nre());
+            let ally = game.player(self.allied_player(game).expect("allied player"));
             leaders.extend(ally.traitors.iter().chain(ally.known_non_traitors.iter()));
         }
         for p in game.player_indices() {
@@ -861,16 +859,11 @@ impl ClassicBot {
     }
 
     pub fn defenses(game: &Game, player: PlayerIndex, using_this_weapon: Option<TreacheryCard>, territory: Option<Territory>) -> Vec<TreacheryCard> {
-        let using_this_weapon = using_this_weapon.and_then(CsNull::opt);
-        let territory = territory.and_then(CsNull::opt);
-        Battle::valid_defenses(game, player, using_this_weapon, territory, false).into_iter().map(OrNull::or_null).collect()
+        Battle::valid_defenses(game, player, using_this_weapon, territory, false).into_iter().flatten().collect()
     }
 
     pub fn weapons(game: &Game, player: PlayerIndex, using_this_defense: Option<TreacheryCard>, using_this_hero: Option<Hero>, territory: Option<Territory>) -> Vec<TreacheryCard> {
-        let using_this_defense = using_this_defense.and_then(CsNull::opt);
-        let using_this_hero = using_this_hero.and_then(CsNull::opt);
-        let territory = territory.and_then(CsNull::opt);
-        Battle::valid_weapons(game, player, using_this_defense, using_this_hero, territory, false).into_iter().map(OrNull::or_null).collect()
+        Battle::valid_weapons(game, player, using_this_defense, using_this_hero, territory, false).into_iter().flatten().collect()
     }
 
     /// The first useless card `player` can play as a weapon.
@@ -884,13 +877,11 @@ impl ClassicBot {
     }
 
     pub fn may_play_no_weapon(game: &Game, player: PlayerIndex, using_this_defense: Option<TreacheryCard>) -> bool {
-        let using_this_defense = using_this_defense.and_then(CsNull::opt);
-        Battle::valid_weapons(game, player, using_this_defense, None, None, true).iter().any(|c| c.and_then(CsNull::opt).is_none())
+        Battle::valid_weapons(game, player, using_this_defense, None, None, true).iter().any(|c| c.is_none())
     }
 
     pub fn may_play_no_defense(game: &Game, player: PlayerIndex, using_this_weapon: Option<TreacheryCard>) -> bool {
-        let using_this_weapon = using_this_weapon.and_then(CsNull::opt);
-        Battle::valid_defenses(game, player, using_this_weapon, None, true).iter().any(|c| c.and_then(CsNull::opt).is_none())
+        Battle::valid_defenses(game, player, using_this_weapon, None, true).iter().any(|c| c.is_none())
     }
 
     /// How many kinds of weapon `cards` hold: projectile, poison, both, lasgun, artillery, poison tooth.

@@ -13,14 +13,14 @@ impl ClassicBot {
 
         let current_bid = game.current_bid.as_ref().map(|b| b.i_bid_total_amount()).unwrap_or(0);
         let current_bid_is_from_ally = game.current_bid.as_ref().is_some_and(|b| b.initiator() == self.ally(game));
-        let top = game.cards_on_auction.as_ref().nre().top().or_null();
+        let top = game.cards_on_auction.as_ref().expect("cards on auction").top();
         let is_known_card = game.has_bidding_prescience(me)
-            || (game.player(me).has_ally() && game.has_bidding_prescience(self.allied_player(game).or_null()))
-            || game.known_cards(me).contains(&top);
+            || (game.player(me).has_ally() && game.has_bidding_prescience(self.allied_player(game).expect("allied player")))
+            || top.is_some_and(|top| game.known_cards(me).contains(&top));
 
-        let this_card_is_useless = is_known_card && !self.may_use_useless_as_karma(game) && top.type_() == TreacheryCardType::Useless;
-        let this_card_is_crappy = is_known_card && !self.wanna_have(game, top);
-        let this_card_is_perfect = is_known_card && self.card_quality(game, top, Some(me)) == 5;
+        let this_card_is_useless = is_known_card && !self.may_use_useless_as_karma(game) && top.expect("a card on auction").type_() == TreacheryCardType::Useless;
+        let this_card_is_crappy = is_known_card && !self.wanna_have(game, top.expect("a card on auction"));
+        let this_card_is_perfect = is_known_card && self.card_quality(game, top.expect("a card on auction"), Some(me)) == 5;
 
         let resources_to_keep = if this_card_is_perfect {
             self.param.bidding_resources_to_keep_when_card_is_perfect
@@ -122,7 +122,6 @@ impl ClassicBot {
     }
 
     pub fn create_bid_using_ally_and_emperor_spice(&self, game: &Game, amount: i32, karma_card: Option<TreacheryCard>) -> Rc<Bid> {
-        let karma_card = karma_card.and_then(CsNull::opt);
         if let Some(karma_card) = karma_card {
             let mut bid = Bid::new(game, self.faction(game));
             bid.amount = amount;

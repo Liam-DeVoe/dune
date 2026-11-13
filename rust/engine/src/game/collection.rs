@@ -24,7 +24,7 @@ impl Game {
         let gained_by_other_faction =
             DivideResources::gained_by_other_faction(to_be_divided.as_ref(), division_was_agreed, proposal.portion_to_first_player);
 
-        let to_be_divided = to_be_divided.nre();
+        let to_be_divided = to_be_divided.expect("to be divided");
         self.gain_collected_resources(to_be_divided.first_faction, to_be_divided.territory, gained_by_first_faction, None, false);
         self.gain_collected_resources(to_be_divided.other_faction, to_be_divided.territory, gained_by_other_faction, None, false);
 
@@ -37,7 +37,6 @@ impl Game {
     // field: the location collected from, when spice was taken from the desert.
     // income: spice paid by a stronghold or an occupied homeworld.
     pub fn gain_collected_resources(&mut self, faction: Faction, from: Territory, amount: i32, field: Option<Location>, income: bool) {
-        let field = field.and_then(crate::compat::cs::CsNull::opt);
         let msg = express!(faction, " collect ", Payment::of(amount), " from ", from)
             .with_log(SpiceCollected::new(faction, from, amount, field, income));
         self.log(elems![msg]);
@@ -107,7 +106,7 @@ impl Game {
             && !(p.is(Faction::Ecaz)
                 && self.prevented(FactionAdvantage::EcazCollection)
                 && p.has_ally()
-                && !self.player(p.allied_player(self).nre()).controls(self, stronghold, self.applicable(Rule::ContestedStongholdsCountAsOccupied)))
+                && !self.player(p.allied_player(self).expect("allied player")).controls(self, stronghold, self.applicable(Rule::ContestedStongholdsCountAsOccupied)))
         {
             let faction = p.faction;
             self.gain_collected_resources(faction, stronghold.territory(), amount, None, true);

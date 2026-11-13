@@ -131,7 +131,7 @@ impl DealOffered {
             && benefit == self.benefit
             && end == self.end_phase
             && {
-                let to = self.to.as_ref().nre();
+                let to = self.to.as_ref().expect("destination");
                 to.len() == 0 || to.contains(&by)
             }
     }
@@ -190,7 +190,7 @@ impl DealOffered {
 
     pub fn get_message(&self, game: &Game) -> Message {
         if !self.cancel {
-            let to = self.to.as_ref().nre();
+            let to = self.to.as_ref().expect("destination");
             express!(
                 self.initiator(),
                 " offer ",

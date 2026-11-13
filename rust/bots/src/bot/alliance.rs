@@ -92,7 +92,7 @@ impl ClassicBot {
     fn accepts_forced_alliance_with(&self, game: &Game, faction: Faction) -> bool {
         let offering = game.get_player(Some(faction));
         !game.player(self.player).has_ally()
-            || self.player_standing(game, offering.nre()) as f32 > 0.75 * self.player_standing(game, self.allied_player(game).nre()) as f32
+            || self.player_standing(game, offering.expect("offering")) as f32 > 0.75 * self.player_standing(game, self.allied_player(game).expect("allied player")) as f32
     }
 
     pub fn determine_nexus_voted(&self, game: &Game) -> Rc<NexusVoted> {
@@ -123,7 +123,7 @@ impl ClassicBot {
         let my_offer_is_open = game
             .current_alliance_offers
             .iter()
-            .any(|o| o.initiator() == faction && game.player(game.get_player(Some(o.target)).nre()).ally == Faction::None);
+            .any(|o| o.initiator() == faction && game.player(game.get_player(Some(o.target)).expect("player")).ally == Faction::None);
         if nr_of_players <= 2
             || game.applicable(Rule::BotsCannotAlly)
             || (nr_of_unallied_humans != 0 && nr_of_unallied_humans >= nr_of_unallied_bots - 1)
@@ -187,7 +187,7 @@ impl ClassicBot {
             .highest_or_default(&self.random, |offer| self.player_standing(game, offer.player()))?;
 
         let better_than_my_ally = game.player(self.player).has_ally()
-            && self.player_standing(game, offer.player()) > self.player_standing(game, self.allied_player(game).nre());
+            && self.player_standing(game, offer.player()) > self.player_standing(game, self.allied_player(game).expect("allied player"));
         better_than_my_ally.then(|| Rc::new(AllianceBroken::new(game, faction)))
     }
 

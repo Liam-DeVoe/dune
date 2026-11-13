@@ -21,7 +21,7 @@ use std::rc::Rc;
 
 use dotnet_compat::{NetDictionary, NetHashSet};
 
-use crate::compat::cs::{RcKey, Shared};
+use crate::shared::{RcKey, Shared};
 use crate::error::GameError;
 use crate::compat::date_time_offset::{DateTimeOffset, TimeSpan};
 use crate::enumerations::DiscoveryToken;
@@ -693,9 +693,6 @@ impl<K: CanonShape + Eq + Hash, V: CanonShape> CanonShape for indexmap::IndexMap
 
 impl Canon for PlayerIndex {
     fn canon(&self, w: &mut CanonWriter) {
-        if crate::compat::cs::CsNull::is_null(*self) {
-            return w.null();
-        }
         w.obj_start();
         w.key("$ref");
         w.string("Player");
@@ -727,9 +724,6 @@ macro_rules! location_ref {
         impl Canon for $t {
             fn canon(&self, w: &mut CanonWriter) {
                 let l: Location = (*self).into();
-                if crate::compat::cs::CsNull::is_null(l) {
-                    return w.null();
-                }
                 w.map_ref("Location", l.id())
             }
         }
@@ -748,9 +742,6 @@ location_ref!(
 
 impl Canon for Territory {
     fn canon(&self, w: &mut CanonWriter) {
-        if crate::compat::cs::CsNull::is_null(*self) {
-            return w.null();
-        }
         w.map_ref("Territory", self.id())
     }
 }
@@ -762,9 +753,6 @@ impl CanonShape for Territory {
 
 impl Canon for Leader {
     fn canon(&self, w: &mut CanonWriter) {
-        if crate::compat::cs::CsNull::is_null(*self) {
-            return w.null();
-        }
         w.entity_ref("Leader", self.id())
     }
 }
@@ -776,9 +764,6 @@ impl CanonShape for Leader {
 
 impl Canon for TreacheryCard {
     fn canon(&self, w: &mut CanonWriter) {
-        if crate::compat::cs::CsNull::is_null(*self) {
-            return w.null();
-        }
         w.entity_ref("TreacheryCard", self.id())
     }
 }
@@ -807,9 +792,6 @@ impl CanonShape for Hero {
 impl Canon for ResourceCard {
     fn canon(&self, w: &mut CanonWriter) {
         let c = *self;
-        if crate::compat::cs::CsNull::is_null(c) {
-            return w.null();
-        }
         w.object(
             "ResourceCard",
             vec![

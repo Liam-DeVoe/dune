@@ -43,7 +43,6 @@ impl Bid {
     }
 
     pub fn set_karma_card(&mut self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.karma_card_id = TreacheryCardManager::get_id(value);
     }
 
@@ -101,7 +100,7 @@ impl Bid {
             return Some(express!("You can't pay ", Payment::of(self.amount)));
         }
         if let Some(karma_card) = self.karma_card() {
-            if p.is_none() || !Karma::valid_karma_cards(game, p.nre()).any(|v| v == karma_card) {
+            if p.is_none() || !Karma::valid_karma_cards(game, p.expect("player")).any(|v| v == karma_card) {
                 return Some(express!("Invalid ", TreacheryCardType::Karma, " card"));
             }
         }
@@ -126,7 +125,6 @@ impl Bid {
     }
 
     pub fn valid_max_ally_amount(g: &Game, p: Option<PlayerIndex>) -> i32 {
-        let p = p.and_then(crate::compat::cs::CsNull::opt);
         match p {
             None => 0,
             Some(p) => g.resources_your_ally_can_pay(p),
@@ -154,7 +152,6 @@ impl Bid {
     pub fn valid_karma_cards(g: &Game, p: Option<PlayerIndex>) -> impl Iterator<Item = TreacheryCard> {
         use either::Either;
         use std::iter::empty;
-        let p = p.and_then(crate::compat::cs::CsNull::opt);
         let Some(p) = p else { return Either::Left(empty()) };
         if g.current_auction_type == AuctionType::Normal {
             return Either::Right(Karma::valid_karma_cards(g, p));
@@ -163,13 +160,11 @@ impl Bid {
     }
 
     pub fn can_karma(g: &Game, p: Option<PlayerIndex>) -> bool {
-        let p = p.and_then(crate::compat::cs::CsNull::opt);
         // Any() stops at the first match.
         Bid::valid_karma_cards(g, p).next().is_some()
     }
 
     pub fn may_be_played(game: &Game, player: Option<PlayerIndex>) -> bool {
-        let player = player.and_then(crate::compat::cs::CsNull::opt);
         let Some(player) = player else { return false };
         (game.current_auction_type == AuctionType::RicheseSilent && !game.bids.contains_key(&game.player(player).faction) && game.player(player).has_room_for_cards(game))
             || (game.current_auction_type != AuctionType::RicheseSilent && game.bid_sequence.as_ref().map(|s| s.current_player(game)) == Some(Some(player)))
@@ -182,8 +177,7 @@ impl Bid {
     /// `MayUseEmperorSecretAlly` with a possibly null player: the NullReferenceException
     /// happens only after the auction type check.
     pub(crate) fn may_use_emperor_secret_ally_opt(game: &Game, player: Option<PlayerIndex>) -> bool {
-        let player = player.and_then(crate::compat::cs::CsNull::opt);
-        game.current_auction_type == AuctionType::Normal && game.player(player.nre()).nexus == Faction::Emperor && NexusPlayed::can_use_secret_ally(game, player.nre())
+        game.current_auction_type == AuctionType::Normal && game.player(player.expect("player")).nexus == Faction::Emperor && NexusPlayed::can_use_secret_ally(game, player.expect("player"))
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
@@ -327,11 +321,11 @@ impl Bid {
             return;
         }
 
-        while !game.cards_on_auction.as_ref().nre().is_empty() {
-            game.cards_on_auction.as_mut().nre().shuffle();
+        while !game.cards_on_auction.as_ref().expect("cards on auction").is_empty() {
+            game.cards_on_auction.as_mut().expect("cards on auction").shuffle();
 
-            let card = game.cards_on_auction.as_mut().nre().draw();
-            game.treachery_deck.as_mut().nre().put_on_top(card);
+            let card = game.cards_on_auction.as_mut().expect("cards on auction").draw();
+            game.treachery_deck.as_mut().expect("treachery deck").put_on_top(card);
         }
 
         game.end_bidding_phase();

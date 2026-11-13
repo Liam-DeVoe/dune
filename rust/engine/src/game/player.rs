@@ -85,7 +85,7 @@ impl Player {
 
     pub fn name(&self, game: &Game) -> String {
         // Game.GetPlayerName(this): `self` is always one of game.players.
-        game.get_player_name_player(game.index_of(self).nre())
+        game.get_player_name_player(game.index_of(self).expect("a player of this game"))
     }
 
     pub fn forces_in_reserve(&self) -> i32 {
@@ -213,8 +213,7 @@ impl Player {
     }
 
     pub fn forces_in(&self, location: Option<Location>) -> i32 {
-        let location = location.and_then(crate::compat::cs::CsNull::opt);
-                if let Some(location) = location.and_then(CsNull::opt) {
+                if let Some(location) = location {
             if let Some(battalion) = self.forces_in_locations.get(&location) {
                 return battalion.amount_of_forces;
             }
@@ -224,8 +223,7 @@ impl Player {
     }
 
     pub fn special_forces_in(&self, location: Option<Location>) -> i32 {
-        let location = location.and_then(crate::compat::cs::CsNull::opt);
-                if let Some(location) = location.and_then(CsNull::opt) {
+                if let Some(location) = location {
             if let Some(battalion) = self.forces_in_locations.get(&location) {
                 return battalion.amount_of_special_forces;
             }
@@ -235,8 +233,7 @@ impl Player {
     }
 
     pub fn any_forces_in(&self, location: Option<Location>) -> i32 {
-        let location = location.and_then(crate::compat::cs::CsNull::opt);
-                if let Some(location) = location.and_then(CsNull::opt) {
+                if let Some(location) = location {
             if let Some(battalion) = self.forces_in_locations.get(&location) {
                 return battalion.total_amount_of_forces();
             }
@@ -246,7 +243,6 @@ impl Player {
     }
 
     pub fn occupying_forces_in(&self, t: Option<Territory>) -> i32 {
-        let t = t.and_then(crate::compat::cs::CsNull::opt);
                 match t {
             None => 0,
             Some(t) => t.locations().iter().map(|l| self.occupying_forces_in_location(*l)).sum::<i32>(),
@@ -254,7 +250,6 @@ impl Player {
     }
 
     pub fn forces_in_territory(&self, t: Option<Territory>) -> i32 {
-        let t = t.and_then(crate::compat::cs::CsNull::opt);
                 match t {
             None => 0,
             Some(t) => t.locations().iter().map(|l| self.forces_in(Some(*l))).sum::<i32>(),
@@ -262,7 +257,6 @@ impl Player {
     }
 
     pub fn special_forces_in_territory(&self, t: Option<Territory>) -> i32 {
-        let t = t.and_then(crate::compat::cs::CsNull::opt);
                 match t {
             None => 0,
             Some(t) => t.locations().iter().map(|l| self.special_forces_in(Some(*l))).sum::<i32>(),
@@ -270,7 +264,6 @@ impl Player {
     }
 
     pub fn any_forces_in_territory(&self, t: Option<Territory>) -> i32 {
-        let t = t.and_then(crate::compat::cs::CsNull::opt);
                 match t {
             None => 0,
             Some(t) => t.locations().iter().map(|l| self.any_forces_in(Some(*l))).sum::<i32>(),
@@ -522,7 +515,6 @@ impl Player {
     }
 
     pub fn occupies(&self, game: &Game, l: Option<Location>) -> bool {
-        let l = l.and_then(crate::compat::cs::CsNull::opt);
         match l {
             None => false,
             Some(l) => {
@@ -536,7 +528,6 @@ impl Player {
     }
 
     pub fn occupies_territory(&self, game: &Game, t: Option<Territory>) -> bool {
-        let t = t.and_then(crate::compat::cs::CsNull::opt);
         match t {
             None => false,
             Some(t) => t.locations().iter().any(|l| self.occupies(game, Some(*l))),
@@ -630,7 +621,6 @@ impl Player {
     }
 
     pub fn has(&self, card: Option<TreacheryCard>) -> bool {
-        let card = card.and_then(crate::compat::cs::CsNull::opt);
                 match card {
             None => false,
             Some(card) => self.treachery_cards.contains(&card),
@@ -755,12 +745,12 @@ impl Player {
 
     pub fn is_bot(&self, game: &Game) -> bool {
         // Game.IsBot(this): `self` is always one of game.players.
-        game.is_bot(game.index_of(self).nre())
+        game.is_bot(game.index_of(self).expect("a player of this game"))
     }
 
     pub fn ally_is_bot(&self, game: &Game) -> bool {
         // Game.IsBot(null) throws NullReferenceException.
-        self.has_ally() && game.is_bot(self.allied_player(game).nre())
+        self.has_ally() && game.is_bot(self.allied_player(game).expect("allied player"))
     }
 
     pub fn primary_homeworld(&self) -> Homeworld {
@@ -770,7 +760,7 @@ impl Player {
     pub fn has_karma(&self, g: &Game) -> bool {
         // Karma.ValidKarmaCards(g, this): `self` is always one of g.players.
         // Any() stops at the first match.
-        crate::events::Karma::valid_karma_cards(g, g.index_of(self).nre()).next().is_some()
+        crate::events::Karma::valid_karma_cards(g, g.index_of(self).expect("a player of this game")).next().is_some()
     }
 
     pub fn initialize_homeworld(game: &mut Game, me: PlayerIndex, world: Homeworld, initial_normal_forces: i32, initial_special_forces: i32) {
@@ -884,13 +874,3 @@ pub struct PlayerIndex {
     pub index: usize,
 }
 
-/// `PlayerIndex::NULL` is a null player stored in a collection (such as
-/// `Game.Winners`); `Game::player` throws NullReferenceException for it.
-impl crate::compat::cs::CsNull for PlayerIndex {
-    const NULL: PlayerIndex = PlayerIndex::NULL;
-}
-
-impl PlayerIndex {
-    /// No player.
-    pub const NULL: PlayerIndex = PlayerIndex { index: usize::MAX };
-}

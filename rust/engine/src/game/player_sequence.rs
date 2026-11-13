@@ -25,7 +25,6 @@ pub struct PlayerSequence {
 
 impl PlayerSequence {
     pub fn new(game: &Game, skip_players_that_cant_bid_on_cards: bool, direction: i32, to_start_with: Option<PlayerIndex>, begin_next_to_that_player: bool) -> Self {
-        let to_start_with = to_start_with.and_then(crate::compat::cs::CsNull::opt);
         // Players = [.. _game.Players.OrderBy(p => direction * p.Seat)]  (stable)
         let mut players: Vec<PlayerIndex> = game.player_indices().collect();
         players.sort_by_cached_key(|p| direction * game.player(*p).seat);
@@ -81,8 +80,7 @@ impl PlayerSequence {
 
     /// `MayGetTurn(p)` where `p` may be null: `p.HasRoomForCards` throws NullReferenceException.
     fn may_get_turn_opt(&self, game: &Game, p: Option<PlayerIndex>) -> bool {
-        let p = p.and_then(crate::compat::cs::CsNull::opt);
-        !self.skip_players_that_cant_bid_on_cards || game.player(p.nre()).has_room_for_cards(game)
+        !self.skip_players_that_cant_bid_on_cards || game.player(p.expect("player")).has_room_for_cards(game)
     }
 
     pub fn juice_forces_last(&self, game: &Game, p: PlayerIndex) -> bool {
@@ -91,7 +89,6 @@ impl PlayerSequence {
 
     /// `JuiceForcesLast(p)` where `p` may be null.
     fn juice_forces_last_opt(&self, game: &Game, p: Option<PlayerIndex>) -> bool {
-        let p = p.and_then(crate::compat::cs::CsNull::opt);
         match &game.current_juice {
             Some(juice) if juice.type_ == JuiceType::GoLast => juice.player_opt() == p,
             _ => false,
@@ -108,7 +105,6 @@ impl PlayerSequence {
 
     /// `current_player` may be null; it then matches no player.
     pub fn player_after(&self, game: &Game, current_player: Option<PlayerIndex>, include_players_that_cant_bid: bool) -> PlayerIndex {
-        let current_player = current_player.and_then(crate::compat::cs::CsNull::opt);
         let mut current_player_found = false;
 
         let mut first_found: Option<PlayerIndex> = None;
@@ -129,14 +125,14 @@ impl PlayerSequence {
         match first_found {
             Some(p) => p,
             None => {
-                let faction = game.player(current_player.nre()).faction;
+                let faction = game.player(current_player.expect("current player")).faction;
                 panic!("Could not find a player after {}", faction)
             }
         }
     }
 
     pub fn current_faction(&self, game: &Game) -> Faction {
-        game.player(self.current_player(game).nre()).faction
+        game.player(self.current_player(game).expect("current player")).faction
     }
 
     /// Can be null only when `PlayersInOrder` contains a null (see `players_in_order`).
@@ -187,7 +183,7 @@ impl PlayerSequence {
         for p in self.players_in_order(game) {
             if p == current {
                 return false;
-            } else if game.player(p.nre()).faction == Faction::Richese {
+            } else if game.player(p.expect("player")).faction == Faction::Richese {
                 return true;
             }
         }
@@ -223,7 +219,7 @@ impl PlayerSequence {
         }
 
         if player_with_juice.is_some() {
-            let juice = game.current_juice.as_ref().nre();
+            let juice = game.current_juice.as_ref().expect("current juice");
             if juice.type_ == JuiceType::GoFirst {
                 result.insert(0, player_with_juice);
             } else if juice.type_ == JuiceType::GoLast {

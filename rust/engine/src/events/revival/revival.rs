@@ -49,7 +49,6 @@ impl Revival {
     }
 
     pub fn set_location(&mut self, game: &Game, value: Option<Location>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.location_id = game.map.location_lookup().get_id(value);
     }
 
@@ -62,7 +61,6 @@ impl Revival {
     }
 
     pub fn set_hero(&mut self, value: Option<Hero>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.hero_id = LeaderManager::hero_lookup().get_id(value);
     }
 
@@ -89,7 +87,7 @@ impl Revival {
             return Some(express!("Select forces or a leader to revive"));
         }
 
-        let p = p_opt.nre();
+        let p = p_opt.expect("player");
         let pl = game.player(p);
         if forces > pl.forces_killed {
             return Some(express!("You can't revive that many ", pl.force()));
@@ -187,14 +185,13 @@ impl Revival {
     }
 
     pub fn determine_cost(g: &Game, initiator: PlayerIndex, hero: Option<Hero>, amount_of_forces: i32, amount_of_special_forces: i32, extra_forces_paid_by_emperor: i32, extra_special_forces_paid_by_emperor: i32, uses_emperor_secret_ally: bool) -> RevivalCost {
-        let hero = hero.and_then(crate::compat::cs::CsNull::opt);
         let mut result = RevivalCost::new();
         let ip = g.player(initiator);
 
         result.cost_for_emperor = if ip.ally == Faction::Emperor {
             Self::determine_cost_of_forces_for_emperor(
                 g,
-                ip.allied_player(g).nre(),
+                ip.allied_player(g).expect("allied player"),
                 ip.faction,
                 extra_forces_paid_by_emperor,
                 extra_special_forces_paid_by_emperor,
@@ -408,7 +405,6 @@ impl Revival {
     }
 
     pub fn may_assign_skill(g: &Game, p: PlayerIndex, h: Option<Hero>) -> bool {
-        let h = h.and_then(crate::compat::cs::CsNull::opt);
         let Some(h) = h else { return false };
 
         let harkonnen = g.get_player(Some(Faction::Harkonnen));
@@ -438,7 +434,6 @@ impl Revival {
     }
 
     pub fn get_price_of_hero_revival(g: &Game, initiator: PlayerIndex, hero: Option<Hero>) -> i32 {
-        let hero = hero.and_then(crate::compat::cs::CsNull::opt);
         let tleilaxu_discount_prevented = g.prevented(FactionAdvantage::TleilaxuRevivalDiscount);
 
         let Some(hero) = hero else { return 0 };
@@ -494,7 +489,7 @@ impl Revival {
         // Counting loops kept as loops, with wrapping arithmetic (hazards 1.9).
         let mut special_forces_paid_by_emperor: i32 = 0;
         while ((special_forces_paid_by_emperor + 1) * price_of_special_forces)
-            <= g.player(emperor.nre()).resources
+            <= g.player(emperor.expect("emperor")).resources
             && (special_forces_paid_by_emperor + 1) <= potential_maximum
         {
             special_forces_paid_by_emperor += 1;
@@ -502,7 +497,7 @@ impl Revival {
 
         let mut forces_paid_by_emperor: i32 = 0;
         while ((special_forces_paid_by_emperor * price_of_special_forces) + ((forces_paid_by_emperor + 1) * 2))
-            <= g.player(emperor.nre()).resources
+            <= g.player(emperor.expect("emperor")).resources
             && (special_forces_paid_by_emperor + forces_paid_by_emperor + 1) <= potential_maximum
         {
             forces_paid_by_emperor += 1;
@@ -543,7 +538,7 @@ impl Revival {
                 && l.visible(&g.map)
                 && (!pl.has_ally()
                     || *l == g.map.polar_sink()
-                    || !g.player(pl.allied_player(g).nre()).occupies(g, Some(*l)))
+                    || !g.player(pl.allied_player(g).expect("allied player")).occupies(g, Some(*l)))
                 && (pl.faction == Faction::Tleilaxu
                     || (pl.faction == Faction::Fremen && pl.any_forces_in_territory(Some(l.territory())) >= 1))
         })

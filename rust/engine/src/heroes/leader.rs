@@ -4,7 +4,6 @@
 
 use std::fmt;
 
-use crate::compat::cs::CsNull;
 use crate::enumerations::{Faction, HeroType};
 use crate::heroes::hero::Hero;
 use crate::identity::IIdentifiable;
@@ -19,18 +18,11 @@ pub struct LeaderData {
     pub hero_type: HeroType,
 }
 
-/// A leader, or the null leader (`Leader::NULL`, the null handle, which can
-/// appear in a collection; see `cs::CsNull`).
+/// A leader: an index into `LeaderManager`'s table.
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Leader(u8);
 
-impl CsNull for Leader {
-    const NULL: Leader = Leader::NULL;
-}
-
 impl Leader {
-    /// The null handle. Every member throws NullReferenceException.
-    pub const NULL: Leader = Leader(u8::MAX);
 
     pub(crate) const fn from_index(i: usize) -> Leader {
         Leader(i as u8)
@@ -38,7 +30,7 @@ impl Leader {
 
     #[track_caller]
     pub fn data(self) -> &'static LeaderData {
-        &LEADERS[self.nn().0 as usize]
+        &LEADERS[self.0 as usize]
     }
 
     pub fn id(self) -> i32 {
@@ -64,7 +56,6 @@ impl Leader {
 
     /// `ValueInCombatAgainst(opposingHero)`
     pub fn value_in_combat_against(self, opposing_hero: Option<Hero>) -> i32 {
-        let opposing_hero = opposing_hero.and_then(crate::compat::cs::CsNull::opt);
         if self.hero_type() == HeroType::VariableValue {
             return match opposing_hero {
                 None => 0,
@@ -92,14 +83,12 @@ impl Leader {
     /// `IsTraitor(hero) => hero == this` (reference equality)
     #[track_caller]
     pub fn is_traitor(self, hero: Hero) -> bool {
-        self.nn();
         hero == Hero::Leader(self)
     }
 
     /// `IsFaceDancer(hero) => hero == this` (reference equality)
     #[track_caller]
     pub fn is_face_dancer(self, hero: Hero) -> bool {
-        self.nn();
         hero == Hero::Leader(self)
     }
 }
@@ -112,18 +101,12 @@ impl IIdentifiable for Leader {
 
 impl fmt::Debug for Leader {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.is_null() {
-            return f.write_str("Leader(null)");
-        }
         write!(f, "Leader({})", self.id())
     }
 }
 
 impl serde::Serialize for Leader {
     fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        if self.is_null() {
-            return s.serialize_none();
-        }
         s.serialize_i32(self.id())
     }
 }

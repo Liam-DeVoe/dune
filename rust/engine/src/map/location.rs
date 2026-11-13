@@ -7,7 +7,6 @@
 use std::fmt;
 
 use crate::map::attached_location::AttachedLocation;
-use crate::compat::cs::CsNull;
 use crate::map::discovery::DiscoveredLocation;
 use crate::enumerations::{DiscoveryTokenType, StrongholdAdvantage};
 use crate::map::hidden_mobile_stronghold::HiddenMobileStronghold;
@@ -18,13 +17,8 @@ use crate::map::data::{LOCATIONS, LOCATION_COUNT};
 use crate::map::territory::Territory;
 
 /// Handle to a location of the map. Equality is by id.
-/// `Location::NULL` is the null handle (see `cs::CsNull`).
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Location(u8);
-
-impl CsNull for Location {
-    const NULL: Location = Location::NULL;
-}
 
 static ALL_LOCATIONS: [Location; LOCATION_COUNT] = {
     let mut a = [Location(0); LOCATION_COUNT];
@@ -37,8 +31,6 @@ static ALL_LOCATIONS: [Location; LOCATION_COUNT] = {
 };
 
 impl Location {
-    /// The null handle. Every member throws NullReferenceException.
-    pub const NULL: Location = Location(u8::MAX);
 
     pub(crate) const fn from_index(i: usize) -> Location {
         Location(i as u8)
@@ -56,7 +48,7 @@ impl Location {
 
     #[track_caller]
     pub(crate) fn index(self) -> usize {
-        self.nn().0 as usize
+        self.0 as usize
     }
 
     /// The location with this id, if it exists. (`Map.LocationLookup.Find`
@@ -68,7 +60,7 @@ impl Location {
     /// The static part of this location.
     #[track_caller]
     pub fn data(self) -> &'static LocationData {
-        &LOCATIONS[self.nn().0 as usize]
+        &LOCATIONS[self.0 as usize]
     }
 
     pub fn id(self) -> i32 {
@@ -195,9 +187,6 @@ impl IIdentifiable for Location {
 
 impl fmt::Debug for Location {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.is_null() {
-            return f.write_str("Location(null)");
-        }
         write!(f, "Location({})", self.0)
     }
 }
@@ -205,9 +194,6 @@ impl fmt::Debug for Location {
 /// Serialized as its id, which is how JSON refers to locations.
 impl serde::Serialize for Location {
     fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        if self.is_null() {
-            return s.serialize_none();
-        }
         s.serialize_i32(self.id())
     }
 }

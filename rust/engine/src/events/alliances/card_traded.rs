@@ -35,7 +35,6 @@ impl CardTraded {
     }
 
     pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.card_id = TreacheryCardManager::get_id(value);
     }
 
@@ -44,17 +43,16 @@ impl CardTraded {
     }
 
     pub fn set_requested_card(&mut self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.requested_card_id = TreacheryCardManager::get_id(value);
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
         // List.Contains(null) is true when the list holds a null card.
         let valid_cards = CardTraded::valid_cards(game, self.player());
-        if !valid_cards.contains(&self.card().or_null()) {
+        if !self.card().is_some_and(|x| valid_cards.contains(&x)) {
             return Some(express!("Invalid card"));
         }
-        let ally = game.player(self.player()).allied_player(game).nre();
+        let ally = game.player(self.player()).allied_player(game).expect("allied player");
         if !game.player(ally).treachery_cards.iter().any(|_| true) {
             // C# parity: the message is built but never returned, so this check has no effect.
             let _ = express!("Your ally does not have cards to trade");
@@ -70,7 +68,7 @@ impl CardTraded {
             return Some(express!("You can only trade cards with your ally"));
         }
 
-        if self.requested_card().is_some() && !game.is_bot(game.player(self.player()).allied_player(game).nre()) {
+        if self.requested_card().is_some() && !game.is_bot(game.player(self.player()).allied_player(game).expect("allied player")) {
             return Some(express!("You can only select a card from a Bot ally"));
         }
         if let Some(requested) = self.requested_card() {
@@ -115,12 +113,12 @@ impl CardTraded {
             let other_player = other_player.required("other player")?;
             let me = self.player();
             // C# adds `Card!` even when it is null (only reachable without validation).
-            let card = self.card();
-            game.player_mut(other_player).treachery_cards.push(card.or_null());
-            cs::list_remove(&mut game.player_mut(me).treachery_cards, card);
-            let offered_card = offer.card();
-            game.player_mut(me).treachery_cards.push(offered_card.or_null());
-            cs::list_remove(&mut game.player_mut(other_player).treachery_cards, offered_card);
+            let card = self.card().required("card")?;
+            game.player_mut(other_player).treachery_cards.push(card);
+            crate::iter::remove_first(&mut game.player_mut(me).treachery_cards, &card);
+            let offered_card = offer.card().required("offered card")?;
+            game.player_mut(me).treachery_cards.push(offered_card);
+            crate::iter::remove_first(&mut game.player_mut(other_player).treachery_cards, &offered_card);
             game.current_card_trade_offer = None;
             game.stone(Milestone::CardTraded);
             game.last_turn_card_was_traded = game.current_turn;

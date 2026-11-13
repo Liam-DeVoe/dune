@@ -157,8 +157,7 @@ impl TreacheryCardManager {
 
     /// `GetId(value)`
     pub fn get_id(value: Option<TreacheryCard>) -> i32 {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
-        value.and_then(crate::compat::cs::CsNull::opt).map_or(-1, |c| c.id())
+        value.map_or(-1, |c| c.id())
     }
 }
 
@@ -175,7 +174,6 @@ impl IFetcher<TreacheryCard> for TreacheryCardFetcher {
     }
 
     fn get_id(&self, obj: Option<TreacheryCard>) -> i32 {
-        let obj = obj.and_then(crate::compat::cs::CsNull::opt);
-        obj.and_then(crate::compat::cs::CsNull::opt).map_or(-1, |c| c.id())
+        obj.map_or(-1, |c| c.id())
     }
 }

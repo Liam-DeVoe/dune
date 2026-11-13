@@ -2,7 +2,6 @@ use crate::prelude::*;
 
 impl Game {
     pub fn reveal_current_no_field(&mut self, player: PlayerIndex, in_location: Option<Location>) {
-        let in_location = in_location.and_then(crate::compat::cs::CsNull::opt);
         if self.player(player).faction != Faction::Richese {
             return;
         }

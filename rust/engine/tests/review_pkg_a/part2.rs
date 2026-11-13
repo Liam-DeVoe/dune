@@ -2,7 +2,7 @@
 //! small model types. Expected values come from `csharp-ref` mode `review-a-part2`
 //! (csharp-ref/ReviewA2.cs), run on .NET 10.
 
-use treachery_engine::compat::cs;
+use treachery_engine::error::catch_panic;
 use treachery_engine::enumerations::*;
 use treachery_engine::events::PlacementEvent;
 use treachery_engine::game::Game;
@@ -10,9 +10,9 @@ use treachery_engine::game::GameState;
 use treachery_engine::json::utilities::Utilities;
 
 fn outcome<R: ToString>(f: impl FnOnce() -> R) -> String {
-    match cs::catch_panic(f) {
+    match catch_panic(f) {
         Ok(r) => r.to_string(),
-        Err(e) => format!("exception:{}:{}", e.type_name, e.message),
+        Err(e) => format!("exception:{}", e.replacen(": ", ":", 1)),
     }
 }
 
@@ -30,21 +30,21 @@ fn parse(g: &Game, s: &str) -> String {
 fn parse_force_locations_edge_cases_match_dotnet() {
     let g = Game::new();
     let cases: &[(&str, &str)] = &[
-        ("90:1|0,90:2|0", "exception:ArgumentException:An item with the same key has already been added. Key: Homeworld"),
+        ("90:1|0,90:2|0", "exception:duplicate key Location(90)"),
         (
             "103:1|0,103:2|0",
-            "exception:ArgumentException:An item with the same key has already been added. Key: Treachery.Shared.DiscoveredLocation",
+            "exception:duplicate key Location(103)",
         ),
         (
             "86:1|0,86:2|0",
-            "exception:ArgumentException:An item with the same key has already been added. Key: Treachery.Shared.HiddenMobileStronghold",
+            "exception:duplicate key Location(86)",
         ),
         ("5:1|2,", "exception:FormatException:The input string '' was not in a correct format."),
         ("+5:+1|-0", "5=1/0"),
         ("5:2147483648|0", "exception:OverflowException:Value was either too large or too small for an Int32."),
         (
             "-2:1|0",
-            "exception:ArgumentOutOfRangeException:Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'index')",
+            "exception:index out of bounds:the len is 105 but the index is 18446744073709551614",
         ),
     ];
     for (input, expected) in cases {

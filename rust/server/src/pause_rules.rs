@@ -227,7 +227,7 @@ fn tleilaxu_limits(g: &Game) -> Option<PlayerIndex> {
     let p = g.get_player(Some(Faction::Tleilaxu))?;
     (g.players.len() > 1
         && !g.prevented(FactionAdvantage::TleilaxuIncreasingRevivalLimits)
-        && g.factions_with_increased_revival_limits.as_ref().nre().is_empty())
+        && g.factions_with_increased_revival_limits.as_ref().expect("factions with increased revival limits").is_empty())
     .then_some(p)
 }
 

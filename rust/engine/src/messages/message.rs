@@ -18,7 +18,7 @@ use std::rc::Rc;
 
 use dotnet_compat::math::equals_f32;
 
-use crate::compat::cs::Shared;
+use crate::shared::Shared;
 use crate::enumerations::{Concept, Faction};
 use crate::messages::expression::{Expression, ExpressionElement};
 use crate::heroes::hero::Hero;
@@ -93,7 +93,6 @@ impl Message {
 
     /// `WithRoute(faction, from, to)`
     pub fn with_route(mut self, faction: Faction, from: impl IntoIterator<Item = Location>, to: Option<Location>) -> Message {
-        let to = to.and_then(crate::compat::cs::CsNull::opt);
         self.route = Some(Route { faction, from: Shared::new(from.into_iter().collect()), to });
         self
     }

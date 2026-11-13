@@ -9,7 +9,8 @@
 
 use serde_json::Value;
 use treachery_engine::canon;
-use treachery_engine::compat::cs::{self, Shared};
+use treachery_engine::error::catch_panic;
+use treachery_engine::shared::Shared;
 use treachery_engine::events::GameEvent;
 use treachery_engine::game::{Game, Participation};
 use treachery_engine::json;
@@ -54,7 +55,7 @@ fn run(g: &mut Game, events: &[&str]) {
     for text in events {
         let e: GameEvent = json::deserialize(text).expect("event json");
         e.initialize_game(g);
-        let _ = cs::catch_panic(|| e.execute(g, true, true));
+        let _ = catch_panic(|| e.execute(g, true, true));
     }
 }
 
@@ -141,13 +142,12 @@ fn two_undos_restore_in_order() {
     same_dump("second restore", &dump(&g), &at_two);
 }
 
-/// A negative event number throws, as in C#, and leaves the game as it was.
+/// A negative event number panics and leaves the game as it was.
 #[test]
 fn undo_that_throws_keeps_the_game() {
     let mut g = base();
     let before = dump(&g);
-    let e = cs::catch_panic(|| g.undo(-1)).expect_err("throws");
-    assert_eq!(format!("{}: {}", e.type_name, e.message), golden("undo_throws.exception"));
+    catch_panic(|| g.undo(-1)).expect_err("panics");
     same_dump("undo -1", &dump(&g), &before);
     same_dump("undo -1 (C#)", &dump(&g), &golden("undo_throws.dump"));
 }

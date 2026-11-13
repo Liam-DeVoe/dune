@@ -36,13 +36,12 @@ impl KarmaFreeRevival {
     }
 
     pub fn set_hero(&mut self, value: Option<Hero>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.hero_id = LeaderManager::hero_lookup().get_id(value);
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
         let p = self.player_opt();
-        let pl = game.player(p.nre());
+        let pl = game.player(p.expect("player"));
 
         if self.amount_of_forces > pl.forces_killed {
             return Some(express!("You can't revive that many"));

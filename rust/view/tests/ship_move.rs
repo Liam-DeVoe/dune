@@ -12,7 +12,7 @@
 mod common;
 
 use common::{load, viewer_of};
-use treachery_engine::compat::cs::Shared;
+use treachery_engine::shared::Shared;
 use treachery_engine::events::GameEventType;
 use treachery_engine::messages::expression::ExpressionElement;
 use treachery_engine::json;

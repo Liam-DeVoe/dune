@@ -234,7 +234,7 @@ impl ClassicBot {
 
         if self.card_quality(game, worst_card, None) <= 1 {
             let mut e = EmperorDiscarded::new(game, self.faction(game));
-            e.set_card(worst_card.opt());
+            e.set_card(Some(worst_card));
             Some(Rc::new(e))
         } else {
             None
@@ -254,7 +254,7 @@ impl ClassicBot {
         use TreacheryCardType as T;
         let me = game.player(self.player);
         let p = Some(self.player);
-        let items = || game.cards_on_auction.as_ref().nre().items.iter().copied();
+        let items = || game.cards_on_auction.as_ref().expect("cards on auction").items.iter().copied();
         let i_have = |f: fn(&TreacheryCard) -> bool| me.treachery_cards.iter().any(f);
 
         // (whether to look, which card to take off the auction): take away what would counter my
@@ -278,13 +278,13 @@ impl ClassicBot {
                     items().lowest_or_default(&self.random, |c| self.card_quality(game, *c, p))
                 }
             })
-            .unwrap_or_else(|| items().cs_first());
+            .unwrap_or_else(|| items().next().expect("an element"));
 
         let quality = self.card_quality(game, to_be_removed, p);
         let put_on_top = (quality <= 2 && self.ally(game) == Faction::None) || (quality >= 4 && self.ally(game) != Faction::None);
 
         let mut e = IxianRemovedCardFromAuction::new(game, self.faction(game));
-        e.set_card(to_be_removed.opt());
+        e.set_card(Some(to_be_removed));
         e.put_on_top = put_on_top;
         Rc::new(e)
     }
@@ -309,7 +309,7 @@ impl ClassicBot {
 
     pub fn determine_ixian_selected_starting_card(&self, game: &Game) -> Rc<IxianSelectedStartingCard> {
         use TreacheryCardType as T;
-        let cards = || game.starting_treachery_cards.as_ref().nre().items.iter().copied();
+        let cards = || game.starting_treachery_cards.as_ref().expect("starting treachery cards").items.iter().copied();
         let any = |f: fn(&TreacheryCard) -> bool| cards().any(|c| f(&c));
 
         // (whether to look, which card to pick), in order of preference.
@@ -331,7 +331,7 @@ impl ClassicBot {
         let card = rules
             .iter()
             .find_map(|(applies, wanted)| if *applies { cards().find(wanted) } else { None })
-            .or_else(|| cards().next().and_then(|c| c.opt()));
+            .or_else(|| cards().next());
 
         let mut e = IxianSelectedStartingCard::new(game, self.faction(game));
         e.set_card(card);
@@ -359,7 +359,7 @@ impl ClassicBot {
         }
 
         let reachable_from_current_location =
-            game.map.find_neighbours(current_location.or_null(), game.hms_moves_left, false, faction, game, false);
+            game.map.find_neighbours(current_location.expect("location"), game.hms_moves_left, false, faction, game, false);
 
         let richest_reachable_spice_location = reachable_from_current_location
             .iter()
@@ -392,16 +392,16 @@ impl ClassicBot {
     pub fn determine_perform_hms_placement(&self, game: &Game) -> Rc<PerformHmsPlacement> {
         let faction = self.faction(game);
         let target = if faction != Faction::Ixian {
-            game.map.shield_wall().locations().iter().copied().cs_first()
+            game.map.shield_wall().locations().iter().copied().next().expect("an element")
         } else if arrakeen_or_carthag_is_empty(game) {
             let imperial_basin = game.map.imperial_basin();
-            PerformHmsPlacement::valid_locations(game, self.player).cs_first_where(|l| l.territory() == imperial_basin)
+            PerformHmsPlacement::valid_locations(game, self.player).find(|l| l.territory() == imperial_basin).expect("a location in the Imperial Basin")
         } else {
             game.map.polar_sink()
         };
 
         let mut e = PerformHmsPlacement::new(game, faction);
-        e.set_target(game, target.opt());
+        e.set_target(game, Some(target));
         Rc::new(e)
     }
 
@@ -470,7 +470,7 @@ impl ClassicBot {
         // `add` throws if a source is listed twice.
         let mut battalions_to_move: IndexMap<Location, Battalion> = IndexMap::new();
         for l in FremenRidesMonster::valid_sources(game) {
-            battalions_to_move.insert_new(l, me.battalion_in_location(l).nre());
+            battalions_to_move.insert_new(l, me.battalion_in_location(l).expect("battalion in location"));
         }
         let forces_from_reserves = std::cmp::min(FremenRidesMonster::max_forces_from_reserves(game, self.player, false), 4);
         let special_forces_from_reserves = std::cmp::min(FremenRidesMonster::max_forces_from_reserves(game, self.player, true), 2);
@@ -670,7 +670,7 @@ impl ClassicBot {
             .or_else(|| humans().random_or_default(&self.random))
             .or_else(|| self.others(game).into_iter().random_or_default(&self.random));
 
-        let predicted = game.player(predicted.nre());
+        let predicted = game.player(predicted.expect("predicted"));
         let maximum_turns = game.maximum_turns();
         // In `self.d(1, sides)` with a drawn `sides`, the draw for `sides` comes first.
         // A negative `sides` throws after its draw.
@@ -696,10 +696,10 @@ impl ClassicBot {
     pub fn determine_voice(&mut self, game: &Game) -> Option<Rc<Voice>> {
         self.voice_plan = None;
 
-        let battle = game.current_battle.clone().nre();
+        let battle = game.current_battle.clone().expect("current battle");
         if battle.is_aggressor_or_defender(game, self.player) {
             let opponent = battle.opponent_of_faction(game, self.faction(game));
-            let plan = self.best_voice(game, game.current_battle.clone(), self.player, opponent.or_null());
+            let plan = self.best_voice(game, game.current_battle.clone(), self.player, opponent.expect("opponent"));
             let voice = plan.voice.clone();
             self.voice_plan = Some(plan);
             return Some(voice);
@@ -755,7 +755,7 @@ impl ClassicBot {
 
             let mut defense: Option<TreacheryCard> = None;
             self.determine_best_defense(game, self.player, opponent, None, &mut defense);
-            result.defense_to_use = defense.and_then(|d| d.opt());
+            result.defense_to_use = defense;
 
             if opponent_might_have_weapons {
                 if let Some((against_weapons, hero_survives)) =
@@ -800,10 +800,10 @@ impl ClassicBot {
     // ---- Atreides ----
 
     pub fn determine_prescience(&self, game: &Game) -> Option<Rc<Prescience>> {
-        let battle = game.current_battle.clone().nre();
+        let battle = game.current_battle.clone().expect("current battle");
         let opponent = battle.opponent_of_faction(game, self.faction(game));
 
-        if Voice::may_use_voice(game, opponent.or_null()) && game.current_voice.is_none() && battle.plan_of(game, opponent).is_none() {
+        if Voice::may_use_voice_opt(game, opponent) && game.current_voice.is_none() && battle.plan_of(game, opponent).is_none() {
             // Wait for voice or a finalized battle plan.
             return None;
         }
@@ -814,9 +814,9 @@ impl ClassicBot {
 
         let existing_aspect = game.current_prescience.as_ref().map_or(PrescienceAspect::None, |p| p.aspect);
         let mut e = Prescience::new(game, self.faction(game));
-        let territory = battle.territory(game).or_null();
+        let territory = battle.territory(game).expect("territory");
         let max_dial = ClassicBot::max_dial(game, self.player, territory, opponent, false);
-        e.aspect = self.best_prescience(game, self.player, opponent.or_null(), max_dial, existing_aspect, territory);
+        e.aspect = self.best_prescience(game, self.player, opponent.expect("opponent"), max_dial, existing_aspect, territory);
         Some(Rc::new(e))
     }
 
@@ -868,7 +868,7 @@ impl ClassicBot {
 
     pub fn determine_set_increased_revival_limits(&self, game: &Game) -> Option<Rc<SetIncreasedRevivalLimits>> {
         let targets: Vec<Faction> = SetIncreasedRevivalLimits::valid_targets(game, self.player).collect();
-        if game.factions_with_increased_revival_limits.as_ref().nre().len() != targets.len() {
+        if game.factions_with_increased_revival_limits.as_ref().expect("factions with increased revival limits").len() != targets.len() {
             let mut e = SetIncreasedRevivalLimits::new(game, self.faction(game));
             e.factions = Some(targets);
             return Some(Rc::new(e));
@@ -884,7 +884,7 @@ impl ClassicBot {
         if FaceDanced::may_call_face_dancer(game, self.player) {
             // The winning hero is looked up (and may throw) once per face dancer.
             let face_dancer =
-                game.player(self.player).face_dancers.iter().copied().find(|f| game.winner_hero().nre().is_face_dancer(*f));
+                game.player(self.player).face_dancers.iter().copied().find(|f| game.winner_hero().expect("winner hero").is_face_dancer(*f));
             let face_danced_hero_is_living_leader = face_dancer.is_some_and(|f| f.as_leader().is_some() && game.is_alive(f));
 
             if (FaceDanced::maximum_number_of_forces(game, self.player) > 0 || face_danced_hero_is_living_leader)
@@ -918,7 +918,7 @@ impl ClassicBot {
 
         let target_location = FaceDanced::valid_target_locations(game)
             .find(|l| game.resources_on_planet.contains_key(l))
-            .or_else(|| FaceDanced::valid_target_locations(game).next().and_then(|l| l.opt()));
+            .or_else(|| FaceDanced::valid_target_locations(game).next());
 
         let Some(target_location) = target_location else {
             return passed();
@@ -997,7 +997,7 @@ impl ClassicBot {
 
     pub fn determine_accept_or_cancel_tleilaxu_revival(&mut self, game: &Game) -> Option<Rc<AcceptOrCancelTleilaxuRevival>> {
         let request_to_handle = game.current_revival_requests.first().cloned()?;
-        let hero = request_to_handle.hero().or_null();
+        let hero = request_to_handle.hero().expect("hero");
 
         let price = if request_to_handle.initiator() == self.ally(game) {
             0
@@ -1007,7 +1007,7 @@ impl ClassicBot {
             let me = game.player(self.player);
             let hero_is_ours = (me.face_dancers.contains(&hero) && !me.revealed_face_dancers.contains(&hero))
                 || (me.has_ally() && {
-                    let ally = game.player(self.allied_player(game).nre());
+                    let ally = game.player(self.allied_player(game).expect("allied player"));
                     ally.traitors.contains(&hero) && !ally.revealed_traitors.contains(&hero)
                 });
             let price = if hero_is_ours { 1 + self.d(1, hero.value()) } else { 2 + self.d(2, hero.value()) };
@@ -1016,7 +1016,7 @@ impl ClassicBot {
         };
 
         let mut e = AcceptOrCancelTleilaxuRevival::new(game, self.faction(game));
-        e.set_hero(hero.opt());
+        e.set_hero(Some(hero));
         e.price = price;
         e.cancel = false;
         Some(Rc::new(e))
@@ -1030,7 +1030,7 @@ impl ClassicBot {
             _ => return None,
         };
 
-        let opponent = game.player(battle.opponent_of(game, self.player).nre());
+        let opponent = game.player(battle.opponent_of(game, self.player).expect("opponent of"));
         let me = game.player(self.player);
 
         if opponent.treachery_cards.iter().any(|tc| !me.known_cards.contains(tc))
@@ -1086,7 +1086,7 @@ impl ClassicBot {
             let opponent_with_one_force_in_stronghold = opponents
                 .iter()
                 .copied()
-                .find(|opp| game.player(*opp).battalion_in_location(stronghold).nre().total_amount_of_forces() == 1);
+                .find(|opp| game.player(*opp).battalion_in_location(stronghold).expect("battalion in location").total_amount_of_forces() == 1);
 
             if let Some(opp) = opponent_with_one_force_in_stronghold {
                 let mut e = ChoamRemoveForce::new(game, self.faction(game));
@@ -1125,10 +1125,10 @@ impl ClassicBot {
         let target = preferred
             .into_iter()
             .find(|l| valid().any(|v| v == *l))
-            .unwrap_or_else(|| valid().cs_first_where(|l| l.is_protected_from_storm()));
+            .unwrap_or_else(|| valid().find(|l| l.is_protected_from_storm()).expect("a location protected from the storm"));
 
         let mut e = PerformMoritaniSetup::new(game, self.faction(game));
-        e.set_target(game, target.opt());
+        e.set_target(game, Some(target));
         Rc::new(e)
     }
 
@@ -1174,7 +1174,7 @@ impl ClassicBot {
         };
 
         if stronghold.is_none() && game.player(self.player).has_ally() {
-            stronghold = strongholds().highest_or_default(&self.random, |t| t.forces_of(game, self.allied_player(game).nre()) > 0);
+            stronghold = strongholds().highest_or_default(&self.random, |t| t.forces_of(game, self.allied_player(game).expect("allied player")) > 0);
         }
 
         let stronghold = stronghold.or_else(|| strongholds().random_or_default(&self.random));
@@ -1211,7 +1211,7 @@ impl ClassicBot {
         let victim = game.get_player(Some(TerrorRevealed::get_victim(game)));
 
         let offer_alliance = TerrorRevealed::may_offer_alliance(game)
-            && self.player_standing(game, victim.or_null()) as f32 > 1.5f32 * self.player_standing(game, self.player) as f32;
+            && self.player_standing(game, victim.expect("victim")) as f32 > 1.5f32 * self.player_standing(game, self.player) as f32;
 
         if offer_alliance {
             e.alliance_offered = true;
@@ -1221,7 +1221,7 @@ impl ClassicBot {
         e.robbery_takes_card = false;
         e.set_card_to_give_in_sabotage(card_in_sabotage);
         e.forces_in_sneak_attack = TerrorRevealed::max_amount_of_forces_in_sneak_attack(game, self.player);
-        e.set_sneak_attack_to(game, TerrorRevealed::valid_sneak_attack_targets(game, self.player).next().and_then(|l| l.opt()));
+        e.set_sneak_attack_to(game, TerrorRevealed::valid_sneak_attack_targets(game, self.player).next());
         Rc::new(e)
     }
 
@@ -1237,7 +1237,7 @@ impl ClassicBot {
         let valid = || AmbassadorPlaced::valid_strongholds(game, self.player);
         let mut stronghold = valid().filter(|s| s.forces_of(game, self.player) > 0).random_or_default(&self.random);
         if stronghold.is_none() && me.has_ally() {
-            stronghold = valid().filter(|s| s.forces_of(game, self.allied_player(game).nre()) > 0).random_or_default(&self.random);
+            stronghold = valid().filter(|s| s.forces_of(game, self.allied_player(game).expect("allied player")) > 0).random_or_default(&self.random);
         }
 
         // In a stronghold where my side already has forces, an ambassador that keeps others out helps.
@@ -1328,12 +1328,12 @@ impl ClassicBot {
 
             Ambassador::Ecaz => {
                 let offer_alliance = AmbassadorActivated::alliance_can_be_offered(game, self.player)
-                    && self.player_standing(game, victim_player.or_null()) as f64 > 0.33 * self.player_standing(game, self.player) as f64;
+                    && self.player_standing(game, victim_player.expect("victim player")) as f64 > 0.33 * self.player_standing(game, self.player) as f64;
                 let take_vidal = !offer_alliance && AmbassadorActivated::vidal_can_be_taken(game, self.player);
                 let offer_vidal = offer_alliance
                     && AmbassadorActivated::vidal_can_be_offered_to_new_ally(game, self.player)
                     && ClassicBot::heroes_for_battle(game, self.player, true).len() >= 3
-                    && ClassicBot::heroes_for_battle(game, victim_player.or_null(), true).len() < 3;
+                    && ClassicBot::heroes_for_battle(game, victim_player.expect("victim player"), true).len() < 3;
 
                 if offer_alliance || take_vidal {
                     let mut e = new_event();
@@ -1499,7 +1499,7 @@ impl ClassicBot {
         to_auction.shuffle();
         let mut e = RicheseSpecifiesAuction::new(game, self.faction(game));
         let card = if !to_auction.is_empty() { Some(to_auction.draw()) } else { None };
-        e.set_card(card.and_then(|c| c.opt()));
+        e.set_card(card);
         e.auction_type = if self.d(1, 2) > 1 { AuctionType::RicheseSilent } else { AuctionType::RicheseOnceAround };
         e.direction = if self.d(1, 2) > 1 { 1 } else { -1 };
         Rc::new(e)

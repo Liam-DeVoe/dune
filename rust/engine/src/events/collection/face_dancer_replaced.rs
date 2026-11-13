@@ -33,7 +33,6 @@ impl FaceDancerReplaced {
     }
 
     pub fn set_selected_dancer(&mut self, value: Option<Hero>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.dancer_id = LeaderManager::hero_lookup().get_id(value);
     }
 

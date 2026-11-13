@@ -1,7 +1,7 @@
 //! Creating, loading and closing games; joining, observing and leaving them; seats, hosts and
 //! the host's other controls.
 
-use treachery_engine::compat::cs::Shared;
+use treachery_engine::shared::Shared;
 use treachery_engine::enumerations::{ErrorType, GameListScope};
 use treachery_engine::game::Game;
 use treachery_engine::game::GameSettings;

@@ -227,6 +227,8 @@ The event objects are shared between the games (`Rc`), and each replay initializ
 
 C# undo differs here. Its new game shares the event objects with the old one, and each event remembers the game it was last initialized against. After a restore, events that the restored game holds (`CurrentBattle`, `AggressorPlan`, deal offers) belong to the game made by the undo, and their members read that game. The Rust port imitated this until native-plan.md step 3. Snapshots drop it: a restore returns to the state before the undo, with nothing read from the discarded game. The C# differ stops comparing state hashes at a trace's first undo, because C#'s dump writes those references (`{"$ref":"OtherGame"}`) and Rust has none.
 
+The native harness sees the change in fuzz games that restore. In 200 fuzz games (seed 1), 4 differ from the reference, each after an undo that was restored. In game 18, for example, Ixian wins a Black Market card after the restore: the reference logs the win but puts the card in the hand of the discarded game's Ixian, so the live game's Ixian never gets it. The harness builds views from a separate replica, so such differences first show in a later query or bot decision.
+
 ## Events
 
 ### Representation

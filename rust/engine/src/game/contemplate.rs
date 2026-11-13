@@ -206,7 +206,7 @@ impl Game {
     }
 
     pub fn determine_stronghold_ownership_location(&mut self, location: Location) {
-        let current_owner = self.stronghold_ownership.get_value_or(&location, Faction::None);
+        let current_owner = self.stronghold_ownership.get(&location).copied().unwrap_or(Faction::None);
         let contested = self.applicable(Rule::ContestedStongholdsCountAsOccupied);
         let new_owning_player = self.players.iter().find(|p| p.controls(self, location, contested));
         let new_owner = new_owning_player.map_or(Faction::None, |p| p.faction);
@@ -214,7 +214,7 @@ impl Game {
         if current_owner != new_owner {
             if current_owner != Faction::None && new_owner != Faction::None {
                 self.stronghold_ownership.remove(&location);
-                self.stronghold_ownership.add_with(location, new_owner, |k| ExpressionElement::from(*k).to_cs_string());
+                self.stronghold_ownership.insert_new(location, new_owner);
                 self.log(vec![
                     new_owner.into(),
                     " take control over ".into(),
@@ -226,7 +226,7 @@ impl Game {
                 self.stronghold_ownership.remove(&location);
                 self.log(vec![current_owner.into(), " lose control over ".into(), location.into()]);
             } else if new_owner != Faction::None {
-                self.stronghold_ownership.add_with(location, new_owner, |k| ExpressionElement::from(*k).to_cs_string());
+                self.stronghold_ownership.insert_new(location, new_owner);
                 self.log(vec![new_owner.into(), " take control over ".into(), location.into()]);
             }
         }

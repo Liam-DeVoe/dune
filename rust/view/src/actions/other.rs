@@ -196,7 +196,7 @@ pub fn default_draft(game: &Game, faction: Faction, t: GameEventType) -> Option<
         }
         GameEventType::EmperorBidSupport => {
             let mut e = EmperorBidSupport::new(game, faction);
-            let mut amounts = dotnet_compat::NetDictionary::new();
+            let mut amounts = IndexMap::new();
             for f in opponents_but_ally(game, p) {
                 amounts.insert(f, game.spice_for_bids_emperor_can_pay(f));
             }

@@ -121,7 +121,7 @@ impl Revival {
         }
 
         if initiator != Faction::Tleilaxu
-            && game.leader_revivals_this_turn.get_value_or(&initiator, 0) > 0
+            && game.leader_revivals_this_turn.get(&initiator).copied().unwrap_or(0) > 0
         {
             return Some(express!("You cannot revive more leaders this turn"));
         }
@@ -621,7 +621,7 @@ impl Revival {
         );
 
         if nr_of_free_revivals > 0 {
-            let free_revivals_this_turn = game.free_revivals_this_turn.get_value_or(&initiator, 0);
+            let free_revivals_this_turn = game.free_revivals_this_turn.get(&initiator).copied().unwrap_or(0);
             first_free_revival_this_turn = free_revivals_this_turn == 0;
             game.free_revivals_this_turn.insert(initiator, free_revivals_this_turn + nr_of_free_revivals);
         }
@@ -669,7 +669,7 @@ impl Revival {
         //Hero revival
         let mut as_ghola = false;
         if let Some(hero) = self.hero() {
-            let v = game.leader_revivals_this_turn.get_value_or(&initiator, 0) + 1;
+            let v = game.leader_revivals_this_turn.get(&initiator).copied().unwrap_or(0) + 1;
             game.leader_revivals_this_turn.insert(initiator, v);
             let leader = hero.as_leader();
 
@@ -752,7 +752,7 @@ impl Revival {
         let total_amount_of_forces = self
             .amount_of_forces + self.extra_forces_paid_by_emperor + self.amount_of_special_forces + self.extra_special_forces_paid_by_emperor + high_threshold_extra_suboids;
 
-        let v = game.total_revivals_this_turn.get_value_or(&initiator, 0) + total_amount_of_forces;
+        let v = game.total_revivals_this_turn.get(&initiator).copied().unwrap_or(0) + total_amount_of_forces;
         game.total_revivals_this_turn.insert(initiator, v);
 
         // Each kind of force counted once; Ixian's free extra suboids have their own part.

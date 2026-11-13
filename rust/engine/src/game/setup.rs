@@ -132,14 +132,14 @@ impl Game {
                 result.items.remove(i);
             }
             for p in self.players.iter_mut() {
-                p.known_non_traitors.add(hero);
+                p.known_non_traitors.insert(hero);
             }
         }
 
         if let Some(vidal) = self.vidal() {
             let hero = Hero::Leader(vidal);
             for p in self.players.iter_mut() {
-                p.known_non_traitors.add(hero);
+                p.known_non_traitors.insert(hero);
             }
         }
 
@@ -179,7 +179,7 @@ impl Game {
             for _i in 0..3 {
                 let leader = self.traitor_deck.as_mut().nre().draw();
                 self.player_mut(tleilaxu).face_dancers.push(leader);
-                self.player_mut(tleilaxu).known_non_traitors.add(leader);
+                self.player_mut(tleilaxu).known_non_traitors.insert(leader);
             }
         }
 

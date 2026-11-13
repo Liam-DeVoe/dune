@@ -64,7 +64,7 @@ impl<K: Eq + Hash + Clone + 'static, V> NetDictionary<K, V> {
         NetDictionary { entries: Vec::with_capacity(capacity), free: Vec::new(), index: HashMap::with_capacity(capacity) }
     }
 
-    fn insert_new(&mut self, key: K, value: V) {
+    fn insert_new_slot(&mut self, key: K, value: V) {
         let slot = match self.free.pop() {
             Some(slot) => {
                 self.entries[slot] = Some((key.clone(), value));
@@ -84,7 +84,7 @@ impl<K: Eq + Hash + Clone + 'static, V> NetDictionary<K, V> {
         check_key(&key);
         match self.index.get(&key) {
             Some(&slot) => self.entries[slot].as_mut().unwrap().1 = value,
-            None => self.insert_new(key, value),
+            None => self.insert_new_slot(key, value),
         }
     }
 
@@ -96,7 +96,7 @@ impl<K: Eq + Hash + Clone + 'static, V> NetDictionary<K, V> {
         if self.index.contains_key(&key) {
             return false;
         }
-        self.insert_new(key, value);
+        self.insert_new_slot(key, value);
         true
     }
 
@@ -210,7 +210,7 @@ impl<K: Eq + Hash + Clone + 'static, V> NetDictionary<K, V> {
     {
         let mut d = Self::with_capacity(other.len());
         for (k, v) in other.iter() {
-            d.insert_new(k.clone(), v.clone());
+            d.insert_new_slot(k.clone(), v.clone());
         }
         d
     }
@@ -227,7 +227,7 @@ impl<K: Eq + Hash + Clone + 'static, V> NetDictionary<K, V> {
                 format!("An item with the same key has already been added. Key: {}", key_text(&key)),
             );
         }
-        self.insert_new(key, value);
+        self.insert_new_slot(key, value);
     }
 
     /// `dict[key]` read with the key's C# `ToString()` supplied by the caller.
@@ -297,6 +297,13 @@ impl<K: Eq + Hash + Clone + CsToString + 'static, V> std::ops::Index<&K> for Net
     type Output = V;
     fn index(&self, key: &K) -> &V {
         NetDictionary::index(self, key)
+    }
+}
+
+impl<K: Eq + Hash + Clone + CsToString + 'static, V> std::ops::IndexMut<&K> for NetDictionary<K, V> {
+    #[track_caller]
+    fn index_mut(&mut self, key: &K) -> &mut V {
+        self.get_mut(key).expect("key not in the dictionary")
     }
 }
 

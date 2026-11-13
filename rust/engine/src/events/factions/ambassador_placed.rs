@@ -94,7 +94,7 @@ impl AmbassadorPlaced {
         if game.ambassadors_on_planet.contains_key(&stronghold) {
             game_error!("There already is an ambassador in {}", ExpressionElement::from(stronghold).to_cs_string());
         }
-        game.ambassadors_on_planet.add_with(stronghold, self.ambassador, |k| ExpressionElement::from(*k).to_cs_string());
+        game.ambassadors_on_planet.insert_new(stronghold, self.ambassador);
         // List.Remove: the first equal element
         let ambassadors = &mut game.player_mut(me).ambassadors;
         if let Some(pos) = ambassadors.iter().position(|a| *a == self.ambassador) {

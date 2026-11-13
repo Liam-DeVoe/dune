@@ -130,9 +130,9 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Faction, t: GameE
             let sources: Vec<Location> = if shows_pickers { FaceDanced::valid_source_locations(game, p).collect() } else { vec![] };
             let targets: Vec<Location> = if shows_pickers { FaceDanced::valid_target_locations(game).collect() } else { vec![] };
             let zero = |ls: &[Location]| {
-                let mut d: NetDictionary<Location, Battalion> = NetDictionary::new();
+                let mut d: IndexMap<Location, Battalion> = IndexMap::new();
                 for l in ls {
-                    d.add_with(*l, Battalion::new(faction, 0, 0, *l), |k| ExpressionElement::from(*k).to_cs_string());
+                    d.insert_new(*l, Battalion::new(faction, 0, 0, *l));
                 }
                 d
             };

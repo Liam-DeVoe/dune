@@ -236,7 +236,7 @@ fn is_after_uses_first_player() {
 #[test]
 fn ruleset_definition_keeps_duplicate_rule() {
     let d = Game::ruleset_definition();
-    let e2 = d.index_with(&Ruleset::Expansion2AdvancedGame, |_| String::new());
+    let e2 = &d[&Ruleset::Expansion2AdvancedGame];
     assert_eq!(e2.iter().filter(|r| **r == Rule::StrongholdBonus).count(), 2);
     assert_eq!(e2.len(), 24);
     assert_eq!(d.len(), 11);

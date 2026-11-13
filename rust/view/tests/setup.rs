@@ -29,10 +29,10 @@ fn awaiting() -> ViewReplica {
     {
         let mut p = participation.borrow_mut();
         for (user, name) in [(1, "Host"), (2, "Guest")] {
-            p.seated_players.add(user, -1);
-            p.player_names.add(user, name.to_string());
+            p.seated_players.insert(user, -1);
+            p.player_names.insert(user, name.to_string());
         }
-        p.hosts.add(1);
+        p.hosts.insert(1);
     }
     ViewReplica::new(Game::LATEST_VERSION, &participation)
 }

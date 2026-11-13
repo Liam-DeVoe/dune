@@ -158,7 +158,7 @@ fn undo_that_throws_keeps_the_game() {
 fn participation_is_shared() {
     let part = Shared::new(Participation::new());
     let g = Game::new_int32_participation(Game::LATEST_VERSION, &part);
-    part.borrow_mut().hosts.add(7);
+    part.borrow_mut().hosts.insert(7);
     assert!(g.is_host(Some(7)));
     let mut g = g;
     g.undo(0);

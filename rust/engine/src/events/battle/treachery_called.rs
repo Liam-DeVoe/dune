@@ -90,7 +90,7 @@ impl TreacheryCalled {
                 game.stone(Milestone::TreacheryCalled);
                 let hero = game.defender_plan.as_ref().required("defender plan")?.hero();
                 // C# adds the defender's hero, which can be null.
-                game.player_mut(self.player()).revealed_traitors.add(hero.or_null());
+                game.player_mut(self.player()).revealed_traitors.insert(hero.or_null());
             }
         }
 
@@ -101,7 +101,7 @@ impl TreacheryCalled {
                 self.log(game);
                 game.stone(Milestone::TreacheryCalled);
                 let hero = game.aggressor_plan.as_ref().required("aggressor plan")?.hero();
-                game.player_mut(self.player()).revealed_traitors.add(hero.or_null());
+                game.player_mut(self.player()).revealed_traitors.insert(hero.or_null());
             }
         }
 

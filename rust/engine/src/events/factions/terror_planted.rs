@@ -138,14 +138,14 @@ impl TerrorPlanted {
                     }
 
                     if game.unplaced_terror_tokens.contains(&self.type_) {
-                        game.terror_on_planet.add_with(self.type_, stronghold, |k| ExpressionElement::from(*k).to_cs_string());
+                        game.terror_on_planet.insert_new(self.type_, stronghold);
                         // List.Remove: the first equal element
                         if let Some(pos) = game.unplaced_terror_tokens.iter().position(|t| *t == self.type_) {
                             game.unplaced_terror_tokens.remove(pos);
                         }
                     } else {
                         game.terror_on_planet.remove(&self.type_);
-                        game.terror_on_planet.add_with(self.type_, stronghold, |k| ExpressionElement::from(*k).to_cs_string());
+                        game.terror_on_planet.insert_new(self.type_, stronghold);
                     }
                 }
             }

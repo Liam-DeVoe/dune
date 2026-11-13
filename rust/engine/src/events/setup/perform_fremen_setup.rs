@@ -161,7 +161,7 @@ impl crate::events::placement::IPlacement for PerformFremenSetup {
         GameEventMethods::initiator(self)
     }
 
-    fn force_locations(&self, game: &Game) -> NetDictionary<Location, Battalion> {
+    fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         <Self as PlacementEventMethods>::force_locations(self, game)
     }
 

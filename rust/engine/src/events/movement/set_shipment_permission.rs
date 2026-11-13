@@ -65,7 +65,7 @@ impl SetShipmentPermission {
         if self.permission != ShipmentPermission::None {
             for f in factions {
                 // Dictionary.Add: ArgumentException on a faction listed twice (hazards 1.4).
-                game.shipment_permissions.add_with(*f, self.permission, |k| k.to_string());
+                game.shipment_permissions.insert_new(*f, self.permission);
             }
         }
         Ok(())

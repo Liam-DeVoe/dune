@@ -19,7 +19,7 @@ fn as_player<E: GameEventMethods>(e: E, g: &Game, f: Faction) -> E {
 #[test]
 fn emperor_bid_support_message_renders_lazy_query_type() {
     let g = Game::new();
-    let mut amounts = NetDictionary::new();
+    let mut amounts = IndexMap::new();
     amounts.insert(Faction::Atreides, 3);
     amounts.insert(Faction::Harkonnen, 0);
     amounts.insert(Faction::Fremen, 2);
@@ -31,7 +31,7 @@ fn emperor_bid_support_message_renders_lazy_query_type() {
         "Emperor supports System.Linq.Enumerable+IEnumerableWhereSelectIterator`2[System.Collections.Generic.KeyValuePair`2[Treachery.Shared.Faction,System.Int32],Treachery.Shared.MessagePart]"
     );
 
-    let mut none = NetDictionary::new();
+    let mut none = IndexMap::new();
     none.insert(Faction::Atreides, 0);
     let mut e = EmperorBidSupport::default();
     e.amounts = Some(none);

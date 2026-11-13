@@ -44,9 +44,9 @@ impl ClassicBot {
         let to = DiscoveryEntered::valid_targets(game, self.player).next();
         // Fails right away when there is no target.
         let me = game.player(self.player);
-        let mut battalions_to_move: NetDictionary<Location, Battalion> = NetDictionary::new();
+        let mut battalions_to_move: IndexMap<Location, Battalion> = IndexMap::new();
         for l in DiscoveryEntered::valid_sources(game, self.player, to.nre()) {
-            battalions_to_move.add(l, me.battalion_in_location(l).nre());
+            battalions_to_move.insert_new(l, me.battalion_in_location(l).nre());
         }
         let mut e = DiscoveryEntered::new(game, self.faction(game));
         e.set_force_locations(game, &battalions_to_move);

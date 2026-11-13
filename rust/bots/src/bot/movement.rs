@@ -45,9 +45,9 @@ impl ClassicBot {
 
     /// The forces to move, keyed by where they come from, and whether Bene Gesserit forces
     /// arrive as advisors (they must where advisors already are).
-    fn move_details(&self, game: &Game, moved: &MovedBattalion) -> (NetDictionary<Location, Battalion>, bool) {
-        let mut forces: NetDictionary<Location, Battalion> = NetDictionary::new();
-        forces.add_with(moved.from, moved.battalion.clone(), |k| ExpressionElement::from(*k).to_cs_string());
+    fn move_details(&self, game: &Game, moved: &MovedBattalion) -> (IndexMap<Location, Battalion>, bool) {
+        let mut forces: IndexMap<Location, Battalion> = IndexMap::new();
+        forces.insert_new(moved.from, moved.battalion.clone());
 
         let as_advisors =
             self.faction(game) == Faction::BeneGesserit && game.player(self.player).special_forces_in_territory(Some(moved.to.territory())) > 0;

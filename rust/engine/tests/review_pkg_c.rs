@@ -109,8 +109,8 @@ fn static_helpers_and_obsolete_getters_match_csharp() {
     let mut gi = GameInfo::default();
     gi.phase = Phase::AwaitingPlayers;
     gi.max_players = 2;
-    gi.seated_players.add(1, 0);
-    gi.seated_players.add(2, 1);
+    gi.seated_players.insert(1, 0);
+    gi.seated_players.insert(2, 1);
     p("gameinfo.canBeJoined.full".into(), if gi.can_be_joined() { "True" } else { "False" }.into());
     p("gameinfo.seat".into(), format!("{},{}", gi.your_current_seat(2), gi.your_current_seat(9)));
 

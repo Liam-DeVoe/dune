@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug, Canon)]
 pub struct EmperorBidSupport {
-    pub amounts: Option<NetDictionary<Faction, i32>>,
+    pub amounts: Option<IndexMap<Faction, i32>>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     #[canon(flatten)]
     pub base: GameEventBase,

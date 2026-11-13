@@ -47,7 +47,7 @@ impl FaceDanced {
         e
     }
 
-    pub fn target_force_locations(&self, game: &Game) -> NetDictionary<Location, Battalion> {
+    pub fn target_force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         // ParseForceLocations(Game, Player.Faction, _targetForceLocations): Player is dereferenced
         // first; a null string throws at `.Length`.
         let faction = game.player(self.player()).faction;
@@ -55,7 +55,7 @@ impl FaceDanced {
         PlacementEvent::parse_force_locations(game, faction, s)
     }
 
-    pub fn set_target_force_locations(&mut self, game: &Game, value: &NetDictionary<Location, Battalion>) {
+    pub fn set_target_force_locations(&mut self, game: &Game, value: &IndexMap<Location, Battalion>) {
         self.target_force_locations = Some(PlacementEvent::force_locations_string(game, value));
     }
 
@@ -180,10 +180,10 @@ impl FaceDanced {
         }
 
         for i in 0..game.players.len() {
-            game.players[i].known_non_traitors.add(facedancer);
+            game.players[i].known_non_traitors.insert(facedancer);
         }
 
-        game.player_mut(self.player()).revealed_face_dancers.add(facedancer);
+        game.player_mut(self.player()).revealed_face_dancers.insert(facedancer);
 
         if game.player(self.player()).unrevealed_face_dancers().next().is_none() {
             self.replace_facedancers(game);
@@ -372,7 +372,7 @@ impl crate::events::placement::IPlacement for FaceDanced {
         GameEventMethods::initiator(self)
     }
 
-    fn force_locations(&self, game: &Game) -> NetDictionary<Location, Battalion> {
+    fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         <Self as PlacementEventMethods>::force_locations(self, game)
     }
 

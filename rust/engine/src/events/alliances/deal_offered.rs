@@ -180,7 +180,7 @@ impl DealOffered {
                 if let Some(i) = game.deal_offers.iter().position(|o| Rc::ptr_eq(o, &same_offer)) {
                     game.deal_offers.remove(i);
                 }
-                game.deal_responses.remove(&RcKey(same_offer));
+                game.deal_responses.shift_remove(&RcKey(same_offer));
             }
         } else {
             game.deal_offers.push(self.clone());

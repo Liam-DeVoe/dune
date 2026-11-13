@@ -18,7 +18,7 @@ pub struct GameInfo {
     pub factions_in_play: Vec<Faction>,
     pub ruleset: Ruleset,
     pub last_activity: Option<DateTimeOffset>,
-    pub seated_players: NetDictionary<i32, i32>,
+    pub seated_players: IndexMap<i32, i32>,
     pub available_seats: Vec<() /* C#: Treachery.Shared.AvailableSeatInfo */>,
 }
 
@@ -57,7 +57,7 @@ impl GameInfo {
     }
 
     pub fn your_current_seat(&self, user_id: i32) -> i32 {
-        self.seated_players.get_value_or(&user_id, -1)
+        self.seated_players.get(&user_id).copied().unwrap_or(-1)
     }
 
     pub fn you_are_in(&self, user_id: i32) -> bool {

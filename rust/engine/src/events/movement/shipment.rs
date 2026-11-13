@@ -148,13 +148,13 @@ impl Shipment {
         if self.use_richese_secret_ally { 0 } else { self.special_force_amount + self.smuggled_special_amount }
     }
 
-    pub fn force_locations(&self, game: &Game) -> NetDictionary<Location, Battalion> {
+    pub fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         // Player.Faction: NullReferenceException when Player is null, before the string is parsed.
         let f = game.player(self.player()).faction;
         Shipment::parse_force_locations(game, f, self.force_locations.as_deref())
     }
 
-    pub fn set_force_locations(&mut self, game: &Game, value: &NetDictionary<Location, Battalion>) {
+    pub fn set_force_locations(&mut self, game: &Game, value: &IndexMap<Location, Battalion>) {
         self.force_locations = Some(Shipment::force_locations_string(game, value));
     }
 
@@ -175,7 +175,7 @@ impl Shipment {
         Shipment::determine_cost(g, self.player(), self) - self.ally_contribution_amount
     }
 
-    pub fn force_locations_string(g: &Game, force_locations: &NetDictionary<Location, Battalion>) -> String {
+    pub fn force_locations_string(g: &Game, force_locations: &IndexMap<Location, Battalion>) -> String {
         force_locations
             .iter()
             .map(|(k, v)| format!("{}:{}|{}", g.map.location_lookup().get_id(Some(*k)), v.amount_of_forces, v.amount_of_special_forces))
@@ -183,8 +183,8 @@ impl Shipment {
             .join(",")
     }
 
-    pub fn parse_force_locations(g: &Game, f: Faction, force_locations: Option<&str>) -> NetDictionary<Location, Battalion> {
-        let mut result = NetDictionary::new();
+    pub fn parse_force_locations(g: &Game, f: Faction, force_locations: Option<&str>) -> IndexMap<Location, Battalion> {
+        let mut result = IndexMap::new();
         if let Some(s) = force_locations {
             if !s.is_empty() {
                 for location_amount_pair in s.split(',') {
@@ -199,7 +199,7 @@ impl Shipment {
                     let amounts: Vec<&str> = location_and_amounts[1].split('|').collect();
                     let amount_of_normal_forces = dotnet_compat::parse::convert_to_int32(Some(amounts[0]));
                     let amount_of_normal_special_forces = dotnet_compat::parse::convert_to_int32(Some(amounts[1]));
-                    result.add(location, Battalion::new(f, amount_of_normal_forces, amount_of_normal_special_forces, location));
+                    result.insert_new(location, Battalion::new(f, amount_of_normal_forces, amount_of_normal_special_forces, location));
                 }
             }
         }

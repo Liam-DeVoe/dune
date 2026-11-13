@@ -652,6 +652,41 @@ impl<K: CanonShape + Eq + Hash + Clone, V: CanonShape> CanonShape for NetDiction
     }
 }
 
+impl<T: Canon + Eq + Hash> Canon for indexmap::IndexSet<T> {
+    fn canon(&self, w: &mut CanonWriter) {
+        write_seq(w, self.iter())
+    }
+}
+impl<T: CanonShape + Eq + Hash> CanonShape for indexmap::IndexSet<T> {
+    fn canon_shape(reg: &mut Registry) -> Shape {
+        Shape::list(T::canon_shape(reg))
+    }
+}
+
+impl<K: Canon + Eq + Hash, V: Canon> Canon for indexmap::IndexMap<K, V> {
+    fn canon(&self, w: &mut CanonWriter) {
+        w.arr_start();
+        for (i, (k, v)) in self.iter().enumerate() {
+            if i > 0 {
+                w.comma();
+            }
+            w.arr_start();
+            k.canon(w);
+            w.comma();
+            v.canon(w);
+            w.arr_end();
+        }
+        w.arr_end();
+    }
+}
+impl<K: CanonShape + Eq + Hash, V: CanonShape> CanonShape for indexmap::IndexMap<K, V> {
+    fn canon_shape(reg: &mut Registry) -> Shape {
+        let k = K::canon_shape(reg);
+        let v = V::canon_shape(reg);
+        Shape::list(Shape::list(k.union(v)))
+    }
+}
+
 // ---------------------------------------------------------------------------
 // References
 // ---------------------------------------------------------------------------

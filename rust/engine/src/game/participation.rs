@@ -2,12 +2,12 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug, Canon)]
 pub struct Participation {
-    pub player_names: NetDictionary<i32, String>,
-    pub seated_players: NetDictionary<i32, i32>,
-    pub observers: NetHashSet<i32>,
-    pub hosts: NetHashSet<i32>,
-    pub available_seats: NetHashSet<i32>,
-    pub kicked: NetHashSet<i32>,
+    pub player_names: IndexMap<i32, String>,
+    pub seated_players: IndexMap<i32, i32>,
+    pub observers: IndexSet<i32>,
+    pub hosts: IndexSet<i32>,
+    pub available_seats: IndexSet<i32>,
+    pub kicked: IndexSet<i32>,
     pub bots_speed: i32,
 }
 
@@ -63,14 +63,14 @@ impl Game {
     }
 
     pub fn get_player_name(&self, user_id: i32) -> String {
-        self.participation.borrow().player_names.get_value_or(&user_id, "?".to_string())
+        self.participation.borrow().player_names.get(&user_id).cloned().unwrap_or_else(|| "?".to_string())
     }
 
     pub fn get_player_name_player(&self, player: PlayerIndex) -> String {
         if self.player(player).is_bot(self) {
             "Bot".to_string()
         } else {
-            self.participation.borrow().player_names.get_value_or(&self.user_id_in_seat(self.player(player).seat), "?".to_string())
+            self.participation.borrow().player_names.get(&self.user_id_in_seat(self.player(player).seat)).cloned().unwrap_or_else(|| "?".to_string())
         }
     }
 
@@ -106,7 +106,7 @@ impl Game {
     }
 
     pub fn seat_of(&self, user_id: i32) -> i32 {
-        self.participation.borrow().seated_players.get_value_or(&user_id, -1)
+        self.participation.borrow().seated_players.get(&user_id).copied().unwrap_or(-1)
     }
 
     pub fn is_open(&self, seat: i32) -> bool {
@@ -116,7 +116,7 @@ impl Game {
     }
 
     pub fn is_bot(&self, p: PlayerIndex) -> bool {
-        !self.participation.borrow().seated_players.contains_value(&self.player(p).seat)
+        !self.participation.borrow().seated_players.values().any(|s| *s == self.player(p).seat)
     }
 
     pub fn seat_is_available(&self, seat: i32) -> bool {
@@ -199,13 +199,13 @@ impl Game {
 
         self.participation.borrow_mut().seated_players.insert(user_id, seat);
         self.participation.borrow_mut().player_names.insert(user_id, player_name.to_string());
-        self.participation.borrow_mut().available_seats.remove(&seat);
-        self.participation.borrow_mut().observers.remove(&user_id);
+        self.participation.borrow_mut().available_seats.shift_remove(&seat);
+        self.participation.borrow_mut().observers.shift_remove(&user_id);
     }
 
     pub fn add_observer(&mut self, user_id: i32, observer_name: &str) {
         self.log(vec![observer_name.into(), " is now observing".into()]);
-        self.participation.borrow_mut().observers.add(user_id);
+        self.participation.borrow_mut().observers.insert(user_id);
         self.participation.borrow_mut().player_names.insert(user_id, observer_name.to_string());
     }
 
@@ -213,29 +213,29 @@ impl Game {
         let name = self.get_player_name(user_id);
         self.log(vec![name.into(), (if kick { " was kicked from" } else { " left" }).into(), " the game".into()]);
 
-        self.participation.borrow_mut().seated_players.remove(&user_id);
-        self.participation.borrow_mut().observers.remove(&user_id);
-        self.participation.borrow_mut().player_names.remove(&user_id);
-        self.participation.borrow_mut().hosts.remove(&user_id);
+        self.participation.borrow_mut().seated_players.shift_remove(&user_id);
+        self.participation.borrow_mut().observers.shift_remove(&user_id);
+        self.participation.borrow_mut().player_names.shift_remove(&user_id);
+        self.participation.borrow_mut().hosts.shift_remove(&user_id);
 
         if kick {
-            self.participation.borrow_mut().kicked.add(user_id);
+            self.participation.borrow_mut().kicked.insert(user_id);
         }
     }
 
     pub fn open_or_close_seat(&mut self, seat: i32) {
         if self.seat_is_available(seat) {
-            self.participation.borrow_mut().available_seats.remove(&seat);
+            self.participation.borrow_mut().available_seats.shift_remove(&seat);
         } else {
-            self.participation.borrow_mut().available_seats.add(seat);
+            self.participation.borrow_mut().available_seats.insert(seat);
         }
     }
 
     pub fn set_or_unset_host(&mut self, user_id: i32) {
         if self.is_host(Some(user_id)) {
-            self.participation.borrow_mut().hosts.remove(&user_id);
+            self.participation.borrow_mut().hosts.shift_remove(&user_id);
         } else {
-            self.participation.borrow_mut().hosts.add(user_id);
+            self.participation.borrow_mut().hosts.insert(user_id);
         }
     }
 

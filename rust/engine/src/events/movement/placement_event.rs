@@ -28,7 +28,7 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
         *self.field_to_id_mut() = game.map.location_lookup().get_id(value);
     }
 
-    fn force_locations(&self, game: &Game) -> NetDictionary<Location, Battalion> {
+    fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         // ParseForceLocations(Game, Player.Faction, _forceLocations): Player is dereferenced
         // first; a null string throws at `.Length`.
         let faction = game.player(self.player()).faction;
@@ -36,7 +36,7 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
         PlacementEvent::parse_force_locations(game, faction, s)
     }
 
-    fn set_force_locations(&mut self, game: &Game, value: &NetDictionary<Location, Battalion>) {
+    fn set_force_locations(&mut self, game: &Game, value: &IndexMap<Location, Battalion>) {
         *self.field_force_locations_mut() = Some(PlacementEvent::force_locations_string(game, value));
     }
 
@@ -138,7 +138,7 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
 }
 
 impl PlacementEvent {
-    pub fn force_locations_string(g: &Game, force_locations: &NetDictionary<Location, Battalion>) -> String {
+    pub fn force_locations_string(g: &Game, force_locations: &IndexMap<Location, Battalion>) -> String {
         force_locations
             .iter()
             .map(|(k, v)| format!("{}:{}|{}", g.map.location_lookup().get_id(Some(*k)), v.amount_of_forces, v.amount_of_special_forces))
@@ -146,8 +146,8 @@ impl PlacementEvent {
             .join(",")
     }
 
-    pub fn parse_force_locations(g: &Game, f: Faction, force_locations: &str) -> NetDictionary<Location, Battalion> {
-        let mut result: NetDictionary<Location, Battalion> = NetDictionary::new();
+    pub fn parse_force_locations(g: &Game, f: Faction, force_locations: &str) -> IndexMap<Location, Battalion> {
+        let mut result: IndexMap<Location, Battalion> = IndexMap::new();
         // forceLocations.Length <= 0 (null is handled by the caller, which throws there)
         if force_locations.len() == 0 {
             return result;
@@ -159,11 +159,7 @@ impl PlacementEvent {
             let amounts: Vec<&str> = location_and_amounts[1].split('|').collect();
             let amount_of_normal_forces = dotnet_compat::parse::convert_to_int32(Some(amounts[0]));
             let amount_of_normal_special_forces = dotnet_compat::parse::convert_to_int32(Some(amounts[1]));
-            result.add_with(
-                location,
-                Battalion::new(f, amount_of_normal_forces, amount_of_normal_special_forces, location),
-                |k| ExpressionElement::from(*k).to_cs_string(),
-            );
+            result.insert_new(location, Battalion::new(f, amount_of_normal_forces, amount_of_normal_special_forces, location));
         }
 
         result
@@ -183,13 +179,13 @@ impl PlacementEvent {
     }
 
     pub fn valid_targets(g: &Game, p: PlayerIndex, location: Location, battalion: &Battalion) -> Vec<Location> {
-        let mut dict: NetDictionary<Location, Battalion> = NetDictionary::new();
-        dict.add_with(location, battalion.clone(), |k| ExpressionElement::from(*k).to_cs_string());
+        let mut dict: IndexMap<Location, Battalion> = IndexMap::new();
+        dict.insert_new(location, battalion.clone());
 
         PlacementEvent::valid_targets_game_player_dictionary_location_battalion(g, p, &dict)
     }
 
-    pub fn valid_targets_game_player_dictionary_location_battalion(g: &Game, p: PlayerIndex, forces: &NetDictionary<Location, Battalion>) -> Vec<Location> {
+    pub fn valid_targets_game_player_dictionary_location_battalion(g: &Game, p: PlayerIndex, forces: &IndexMap<Location, Battalion>) -> Vec<Location> {
         let mut result: Option<Vec<Location>> = None;
 
         // The targets are computed in the loop; the Intersect chain is lazy, but it

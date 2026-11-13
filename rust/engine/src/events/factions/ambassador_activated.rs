@@ -81,12 +81,12 @@ impl AmbassadorActivated {
     }
 
     /// Re-parsed on every read.
-    pub fn fremen_force_locations(&self, game: &Game) -> NetDictionary<Location, Battalion> {
+    pub fn fremen_force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         let faction = game.player(self.player()).faction;
         PlacementEvent::parse_force_locations(game, faction, self.fremen_force_locations.as_deref().nre())
     }
 
-    pub fn set_fremen_force_locations(&mut self, game: &Game, value: &NetDictionary<Location, Battalion>) {
+    pub fn set_fremen_force_locations(&mut self, game: &Game, value: &IndexMap<Location, Battalion>) {
         self.fremen_force_locations = Some(PlacementEvent::force_locations_string(game, value));
     }
 
@@ -120,7 +120,7 @@ impl AmbassadorActivated {
         self.fremen_force_locations(game).values().map(|b| b.amount_of_special_forces).sum::<i32>()
     }
 
-    pub fn force_locations(&self, game: &Game) -> NetDictionary<Location, Battalion> {
+    pub fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         self.fremen_force_locations(game)
     }
 
@@ -616,7 +616,7 @@ impl crate::events::placement::IPlacement for AmbassadorActivated {
         GameEventMethods::initiator(self)
     }
 
-    fn force_locations(&self, game: &Game) -> NetDictionary<Location, Battalion> {
+    fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         AmbassadorActivated::force_locations(self, game)
     }
 

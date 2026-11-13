@@ -132,7 +132,7 @@ fn bid_with_null_player_and_karma_card_is_invalid_not_a_crash() {
 fn emperor_bid_support_message_sum_is_checked() {
     let g = game_with(&[Faction::Emperor]);
     let mut e = EmperorBidSupport::default();
-    let mut amounts = NetDictionary::new();
+    let mut amounts = IndexMap::new();
     amounts.insert(Faction::Atreides, i32::MAX);
     amounts.insert(Faction::Harkonnen, 1);
     e.amounts = Some(amounts);

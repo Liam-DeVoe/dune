@@ -62,7 +62,7 @@ impl Game {
         }
 
         std::cmp::max(
-            nr_of_free_revivals - self.free_revivals_this_turn.get_value_or(&p.faction, 0),
+            nr_of_free_revivals - self.free_revivals_this_turn.get(&p.faction).copied().unwrap_or(0),
             0,
         )
     }
@@ -83,7 +83,7 @@ impl Game {
 
         let emperor_secret_ally: i32 = if emperor_secret_ally_used { 3 } else { 0 };
         let low_threshold: i32 = if g.has_low_threshold(pl.faction) { 1 } else { 0 };
-        let already_revived = g.total_revivals_this_turn.get_value_or(&pl.faction, 0);
+        let already_revived = g.total_revivals_this_turn.get(&pl.faction).copied().unwrap_or(0);
 
         if self.current_recruits_played.is_some() {
             return std::cmp::max(7 + emperor_secret_ally + low_threshold - already_revived, 0);
@@ -107,7 +107,7 @@ impl Game {
     }
 
     pub fn ambassador_in(&self, t: Territory) -> Ambassador {
-        self.ambassadors_on_planet.get_value_or(&t, Ambassador::None)
+        self.ambassadors_on_planet.get(&t).copied().unwrap_or(Ambassador::None)
     }
 
     pub fn claim_free_revival(&mut self, player: PlayerIndex) {
@@ -166,11 +166,11 @@ impl Game {
 
         let v = self
             .free_revivals_this_turn
-            .get_value_or(&faction, 0) + free_revived_normal_forces + free_revived_special_forces;
+            .get(&faction).copied().unwrap_or(0) + free_revived_normal_forces + free_revived_special_forces;
         self.free_revivals_this_turn.insert(faction, v);
         let v = self
             .total_revivals_this_turn
-            .get_value_or(&faction, 0) + free_revived_normal_forces + free_revived_special_forces;
+            .get(&faction).copied().unwrap_or(0) + free_revived_normal_forces + free_revived_special_forces;
         self.total_revivals_this_turn.insert(faction, v);
 
         let p = self.player(player);

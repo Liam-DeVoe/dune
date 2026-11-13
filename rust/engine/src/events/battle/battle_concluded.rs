@@ -352,7 +352,7 @@ impl BattleConcluded {
             }
             game.set_in_front_of_shield(victim, false);
             let target_faction = game.player(target).faction;
-            game.captured_leaders.add_with(victim, target_faction, |k| ExpressionElement::from(*k).to_cs_string());
+            game.captured_leaders.insert_new(victim, target_faction);
         } else if self.decision_to_capture() == CaptureDecision::Kill {
             self.log_objects(game, vec![Faction::Harkonnen.into(), " kill a leader for ".into(), Payment::of(2).into()]);
             if let Some(victim) = game.harkonnen_victim {

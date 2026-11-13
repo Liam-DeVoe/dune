@@ -83,17 +83,17 @@ impl ClairVoyanceAnswered {
         } else if latest.question == ClairvoyanceQuestion::LeaderAsTraitor {
             if let ExpressionElement::Hero(hero) = latest.parameter1(game) {
                 if self.is_yes() {
-                    game.player_mut(self.player()).told_traitors.add(hero);
+                    game.player_mut(self.player()).told_traitors.insert(hero);
                 } else if self.is_no() {
-                    game.player_mut(self.player()).told_non_traitors.add(hero);
+                    game.player_mut(self.player()).told_non_traitors.insert(hero);
                 }
             }
         } else if latest.question == ClairvoyanceQuestion::LeaderAsFacedancer {
             if let ExpressionElement::Hero(hero) = latest.parameter1(game) {
                 if self.is_yes() {
-                    game.player_mut(self.player()).told_face_dancers.add(hero);
+                    game.player_mut(self.player()).told_face_dancers.insert(hero);
                 } else if self.is_no() {
-                    game.player_mut(self.player()).told_non_face_dancers.add(hero);
+                    game.player_mut(self.player()).told_non_face_dancers.insert(hero);
                 }
             }
         }

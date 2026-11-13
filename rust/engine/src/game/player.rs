@@ -15,14 +15,14 @@ pub struct Player {
     pub known_cards: NetHashSet<TreacheryCard>,
     pub traitors: Vec<Hero>,
     pub revealed_traitors: NetHashSet<Hero>,
-    pub told_traitors: NetHashSet<Hero>,
-    pub told_non_traitors: NetHashSet<Hero>,
-    pub known_non_traitors: NetHashSet<Hero>,
-    pub discarded_traitors: NetHashSet<Hero>,
+    pub told_traitors: IndexSet<Hero>,
+    pub told_non_traitors: IndexSet<Hero>,
+    pub known_non_traitors: IndexSet<Hero>,
+    pub discarded_traitors: IndexSet<Hero>,
     pub face_dancers: Vec<Hero>,
-    pub revealed_face_dancers: NetHashSet<Hero>,
-    pub told_face_dancers: NetHashSet<Hero>,
-    pub told_non_face_dancers: NetHashSet<Hero>,
+    pub revealed_face_dancers: IndexSet<Hero>,
+    pub told_face_dancers: IndexSet<Hero>,
+    pub told_non_face_dancers: IndexSet<Hero>,
     pub leaders: Vec<Leader>,
     pub forces_in_locations: NetDictionary<Location, Battalion>,
     pub ambassadors: Vec<Ambassador>,
@@ -56,14 +56,14 @@ impl Player {
             known_cards: NetHashSet::new(),
             traitors: Vec::new(),
             revealed_traitors: NetHashSet::new(),
-            told_traitors: NetHashSet::new(),
-            told_non_traitors: NetHashSet::new(),
-            known_non_traitors: NetHashSet::new(),
-            discarded_traitors: NetHashSet::new(),
+            told_traitors: IndexSet::new(),
+            told_non_traitors: IndexSet::new(),
+            known_non_traitors: IndexSet::new(),
+            discarded_traitors: IndexSet::new(),
             face_dancers: Vec::new(),
-            revealed_face_dancers: NetHashSet::new(),
-            told_face_dancers: NetHashSet::new(),
-            told_non_face_dancers: NetHashSet::new(),
+            revealed_face_dancers: IndexSet::new(),
+            told_face_dancers: IndexSet::new(),
+            told_non_face_dancers: IndexSet::new(),
             leaders: Vec::new(),
             forces_in_locations: NetDictionary::new(),
             ambassadors: Vec::new(),
@@ -100,14 +100,10 @@ impl Player {
                 self.forces_in_reserve() + self.special_forces_in_reserve()
     }
 
-    pub fn forces_on_planet(&self) -> NetDictionary<Location, Battalion> {
+    pub fn forces_on_planet(&self) -> IndexMap<Location, Battalion> {
                 // C# shares the live Battalion objects with ForcesInLocations; no caller mutates them,
         // so copies are equivalent.
-        NetDictionary::to_dictionary(
-            self.forces_in_locations.iter().filter(|(k, _)| k.as_homeworld().is_none()),
-            |(k, _)| **k,
-            |(_, v)| (*v).clone(),
-        )
+        self.forces_in_locations.iter().filter(|(k, _)| k.as_homeworld().is_none()).map(|(k, v)| (*k, v.clone())).collect()
     }
 
     pub fn no_field_is_active(&self) -> bool {
@@ -126,10 +122,10 @@ impl Player {
     pub fn get_and_create_if_needed(&mut self, location: Location) -> &mut Battalion {
                 if !self.forces_in_locations.contains_key(&location) {
             let result = Battalion::new(self.faction, 0, 0, location);
-            self.forces_in_locations.add(location, result);
+            self.forces_in_locations.insert_new(location, result);
         }
 
-        self.forces_in_locations.index_mut(&location)
+        &mut self.forces_in_locations[&location]
     }
 
     pub fn change_forces(game: &mut Game, me: PlayerIndex, location: Location, nr_of_forces: i32) {
@@ -286,7 +282,7 @@ impl Player {
         // AddForcesToReserves. That object stays in the dictionary in between (adding a
         // non-negative amount never empties a battalion), so reading the dictionary again is
         // the same; a missing entry would mean a detached, emptied battalion, hence the 0.
-        let amount_of_forces = game.player(me).forces_in_locations.index(&location).amount_of_forces;
+        let amount_of_forces = game.player(me).forces_in_locations[&location].amount_of_forces;
 
         Player::add_forces_to_reserves(game, me, amount_of_forces);
 
@@ -695,11 +691,11 @@ impl Player {
                 if self.faction == Faction::Tleilaxu { 3 } else { 0 }
     }
 
-    pub fn battalions_in(&self, territory: Territory) -> NetDictionary<Location, Battalion> {
+    pub fn battalions_in(&self, territory: Territory) -> IndexMap<Location, Battalion> {
                 // C# shares the live Battalion objects; no caller mutates them, so copies are equivalent.
-        let mut result = NetDictionary::new();
+        let mut result = IndexMap::new();
         for (k, v) in self.forces_in_locations.iter().filter(|(k, _)| k.territory() == territory) {
-            result.add(*k, v.clone());
+            result.insert_new(*k, v.clone());
         }
         result
     }
@@ -876,16 +872,6 @@ impl Player {
         } else {
             homeworld.battle_bonus_and_lasgun_shield_limit_at_low_threshold()
         }
-    }
-
-    /// Only `Game.Clone` calls this, and that is not ported. This is a deep copy: the sets
-    /// (`KnownCards`, `RevealedTraitors`, ...) and `SkillsToChooseFrom`/`HomeWorlds` are copied,
-    /// not shared with the original.
-    pub fn cs_clone(&self) -> Player {
-                let mut result = self.clone();
-        // Utilities.CloneObjectDictionary uses ToDictionary, which compacts the slots.
-        result.forces_in_locations = NetDictionary::to_dictionary(self.forces_in_locations.iter(), |(k, _)| **k, |(_, v)| v.cs_clone());
-        result
     }
 
 }

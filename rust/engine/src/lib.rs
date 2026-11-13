@@ -3,6 +3,8 @@
 
 pub mod prelude;
 
+pub use indexmap;
+
 pub mod error;
 
 // Game state and rules

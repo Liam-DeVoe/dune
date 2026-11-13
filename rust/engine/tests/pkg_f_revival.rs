@@ -94,7 +94,7 @@ fn tleilaxu_revival_targets_union_killed_and_gholas() {
     g.player_mut(tleilaxu).leaders.push(ghola);
 
     // A dead emperor leader.
-    g.leader_state.index_mut(&Hero::Leader(emperor_leaders[1])).kill(&mut None);
+    g.leader_state[&Hero::Leader(emperor_leaders[1])].kill(&mut None);
 
     let targets = RequestTleilaxuRevival::valid_targets(&g, emperor).collect::<Vec<_>>();
     assert_eq!(targets, vec![Hero::Leader(emperor_leaders[1]), Hero::Leader(ghola)]);
@@ -115,7 +115,7 @@ fn deny_all_requests_adds_max_offers() {
     let deny = Rc::new(as_player(deny, &g, Faction::Tleilaxu));
     assert!(!deny.is_denial());
     deny.execute_concrete_event(&mut g).unwrap();
-    assert_eq!(*g.early_revivals_offers.index(&Hero::Leader(emperor_leaders[0])), i32::MAX);
+    assert_eq!(g.early_revivals_offers[&Hero::Leader(emperor_leaders[0])], i32::MAX);
     assert!(g.current_revival_requests.is_empty());
 }
 
@@ -124,12 +124,12 @@ fn offer_for_hero_with_existing_denial_replaces_it() {
     let mut g = game_with(&[Faction::Emperor, Faction::Tleilaxu]);
     let emperor_leaders: Vec<Leader> = LeaderManager::get_leaders(Faction::Emperor).collect();
     let hero = Hero::Leader(emperor_leaders[0]);
-    g.early_revivals_offers.add(hero, i32::MAX);
+    g.early_revivals_offers.insert(hero, i32::MAX);
 
     let mut offer = AcceptOrCancelTleilaxuRevival::default();
     offer.set_hero(Some(hero));
     offer.price = 3;
     let offer = Rc::new(as_player(offer, &g, Faction::Tleilaxu));
     offer.execute_concrete_event(&mut g).unwrap();
-    assert_eq!(*g.early_revivals_offers.index(&hero), 3);
+    assert_eq!(g.early_revivals_offers[&hero], 3);
 }

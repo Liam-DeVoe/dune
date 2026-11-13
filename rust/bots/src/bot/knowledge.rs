@@ -57,7 +57,7 @@ impl ClassicBot {
         self.faction(game) == Faction::BeneGesserit && game.applicable(Rule::BeneGesseritAdvisors)
     }
 
-    pub fn forces_on_planet(&self, game: &Game) -> NetDictionary<Location, Battalion> {
+    pub fn forces_on_planet(&self, game: &Game) -> IndexMap<Location, Battalion> {
         game.player(self.player).forces_on_planet()
     }
 

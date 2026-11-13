@@ -5,7 +5,7 @@ impl Game {
         let key = RcKey(offer.clone());
         if !self.deal_responses.contains_key(&key) {
             // Never a duplicate: the key was just checked.
-            self.deal_responses.add_with(key.clone(), NetDictionary::new(), |_| "Treachery.Shared.DealOffered".to_string());
+            self.deal_responses.insert_new(key.clone(), IndexMap::new());
         }
 
         self.deal_responses.get_mut(&key).nre().insert(faction, accepted);

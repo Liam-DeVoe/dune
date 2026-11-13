@@ -94,7 +94,7 @@ pub struct Game {
     pub next_storm_moves: i32,
     pub shield_wall_destroyed: bool,
     pub resources_on_planet: NetDictionary<Location, i32>,
-    pub timers: NetDictionary<Faction, Timer<MainPhase>>,
+    pub timers: IndexMap<Faction, Timer<MainPhase>>,
     pub recently_discarded: NetDictionary<TreacheryCard, Faction>,
     pub phase_before_discarding: Phase,
     pub factions_that_must_discard: Vec<Faction>,
@@ -130,10 +130,10 @@ pub struct Game {
     pub last_turn_card_was_traded: i32,
     pub current_alliance_offers: Vec<Rc<AllianceOffered>>,
     pub nexus_has_occured: bool,
-    pub permitted_use_of_ally_spice: NetDictionary<Faction, i32>,
+    pub permitted_use_of_ally_spice: IndexMap<Faction, i32>,
     /// `Option` because `EmperorBidSupport` assigns its `Amounts`, which JSON can leave null.
-    pub permitted_use_of_emperor_spice: Option<NetDictionary<Faction, i32>>,
-    pub permitted_use_of_ally_karma: NetDictionary<Faction, TreacheryCard>,
+    pub permitted_use_of_emperor_spice: Option<IndexMap<Faction, i32>>,
+    pub permitted_use_of_ally_karma: IndexMap<Faction, TreacheryCard>,
     pub atreides_shares_prescience: bool,
     pub fremen_will_protect_from_monster: bool,
     pub fremen_allows_three_free_revivals: bool,
@@ -168,7 +168,7 @@ pub struct Game {
     pub current_voice: Option<Rc<Voice>>,
     pub current_prescience: Option<Rc<Prescience>>,
     /// The values are the live plan events, shared with `History` and the plan fields.
-    pub prescience_seen_plans: NetDictionary<PrescienceAspect, Rc<Battle>>,
+    pub prescience_seen_plans: IndexMap<PrescienceAspect, Rc<Battle>>,
     pub current_thought: Option<Rc<Thought>>,
     pub chosen_hms_advantage: Option<StrongholdAdvantage>,
     pub current_portable_antidote_used: Option<Rc<PortableAntidoteUsed>>,
@@ -190,7 +190,7 @@ pub struct Game {
     pub harkonnen_do_not_have_to_return_used_captured_leader: bool,
     pub battle_was_concluded_by_winner: bool,
     pub assassinated: Vec<Leader>,
-    pub captured_leaders: NetDictionary<Leader, Faction>,
+    pub captured_leaders: IndexMap<Leader, Faction>,
 
     // ---- Bidding ----
 
@@ -261,11 +261,11 @@ pub struct Game {
 
     pub deal_offers: Vec<Rc<DealOffered>>,
     pub deals: Vec<Deal>,
-    pub deal_responses: NetDictionary<RcKey<DealOffered>, NetDictionary<Faction, bool>>,
+    pub deal_responses: IndexMap<RcKey<DealOffered>, IndexMap<Faction, bool>>,
 
     // ---- Leaders ----
 
-    pub leader_state: NetDictionary<Hero, LeaderState>,
+    pub leader_state: IndexMap<Hero, LeaderState>,
 
     // ---- Shipment and movement ----
 
@@ -334,7 +334,7 @@ pub struct Game {
     // ---- Participation ----
 
     pub players: Vec<Player>,
-    pub legacy_names: NetDictionary<PlayerIndex, String>,
+    pub legacy_names: IndexMap<PlayerIndex, String>,
     /// Shared with the caller of `new Game` and with every game `Undo`,
     /// `RestoreRecentlyUndone` and `DismissRecentlyUndone` make from this one.
     pub participation: Shared<Participation>,
@@ -342,10 +342,10 @@ pub struct Game {
     // ---- Revival ----
 
     pub revival_tech_token_income: bool,
-    pub total_revivals_this_turn: NetDictionary<Faction, i32>,
-    pub free_revivals_this_turn: NetDictionary<Faction, i32>,
+    pub total_revivals_this_turn: IndexMap<Faction, i32>,
+    pub free_revivals_this_turn: IndexMap<Faction, i32>,
     pub factions_that_revived_special_forces_this_turn: Vec<Faction>,
-    pub leader_revivals_this_turn: NetDictionary<Faction, i32>,
+    pub leader_revivals_this_turn: IndexMap<Faction, i32>,
     pub tleilaxu_started_revival_with_low_threshold: bool,
     pub current_recruits_played: Option<Rc<RecruitsPlayed>>,
     /// Null after `SetIncreasedRevivalLimits` with `"Factions":null` executed without validation.
@@ -498,7 +498,7 @@ impl Game {
             current_alliance_offers: Vec::new(),
             nexus_has_occured: Default::default(),
             permitted_use_of_ally_spice: Default::default(),
-            permitted_use_of_emperor_spice: Some(NetDictionary::new()),
+            permitted_use_of_emperor_spice: Some(IndexMap::new()),
             permitted_use_of_ally_karma: Default::default(),
             atreides_shares_prescience: Default::default(),
             fremen_will_protect_from_monster: Default::default(),
@@ -530,7 +530,7 @@ impl Game {
             current_ecaz_battle_contribution: Default::default(),
             current_voice: None,
             current_prescience: None,
-            prescience_seen_plans: NetDictionary::new(),
+            prescience_seen_plans: IndexMap::new(),
             current_thought: None,
             chosen_hms_advantage: None,
             current_portable_antidote_used: None,
@@ -701,18 +701,10 @@ impl Game {
 
     pub fn initialize_leader_state(&mut self) {
         for l in LeaderManager::leaders() {
-            self.leader_state.add_with(
-                Hero::Leader(*l),
-                LeaderState { death_counter: 0, current_territory: None, skill: LeaderSkill::None, in_front_of_shield: false, ..Default::default() },
-                |h| ExpressionElement::from(*h).to_cs_string(),
-            );
+            self.leader_state.insert_new(Hero::Leader(*l), LeaderState { death_counter: 0, current_territory: None, skill: LeaderSkill::None, in_front_of_shield: false, ..Default::default() });
         }
 
-        self.leader_state.add_with(
-            LeaderManager::messiah(),
-            LeaderState { death_counter: 0, current_territory: None, ..Default::default() },
-            |h| ExpressionElement::from(*h).to_cs_string(),
-        );
+        self.leader_state.insert_new(LeaderManager::messiah(), LeaderState { death_counter: 0, current_territory: None, ..Default::default() });
     }
 
     pub fn perform_pre_event_tasks(&mut self, e: &GameEvent) {
@@ -822,7 +814,7 @@ impl Game {
             let initiator = e.initiator();
             if self.timers.get(&initiator).is_none() {
                 let timer = Timer::<MainPhase>::new();
-                self.timers.add_with(initiator, timer, |f| f.to_string());
+                self.timers.insert_new(initiator, timer);
             }
 
             let phase = self.current_main_phase;
@@ -1044,7 +1036,7 @@ impl Game {
     pub fn register_known_player_treachery_card(game: &mut Game, p: PlayerIndex, c: Option<TreacheryCard>) {
         let c = c.and_then(crate::compat::cs::CsNull::opt);
         if let Some(c) = c.and_then(CsNull::opt) {
-            game.player_mut(p).known_cards.add(c);
+            game.player_mut(p).known_cards.insert(c);
         }
     }
 
@@ -1072,11 +1064,11 @@ impl Game {
     }
 
     /// The lists hold copies of the players' battalions (hazards 5.4). No caller mutates them.
-    pub fn forces(&self, include_homeworlds: bool) -> NetDictionary<Location, Vec<Battalion>> {
-        let mut result: NetDictionary<Location, Vec<Battalion>> = NetDictionary::new();
+    pub fn forces(&self, include_homeworlds: bool) -> IndexMap<Location, Vec<Battalion>> {
+        let mut result: IndexMap<Location, Vec<Battalion>> = IndexMap::new();
 
         for l in self.map.locations(include_homeworlds) {
-            result.add_with(l, Vec::new(), |k| location_text(*k));
+            result.insert_new(l, Vec::new());
         }
 
         for p in &self.players {
@@ -1084,11 +1076,11 @@ impl Game {
                 // C# parity: Map.Locations(true) already holds every homeworld, so this
                 // Add throws ArgumentException for the first homeworld (no caller passes true).
                 for w in &p.home_worlds {
-                    result.add_with(w.location(), Vec::new(), |k| location_text(*k));
+                    result.insert_new(w.location(), Vec::new());
                 }
             }
 
-            let forces = if include_homeworlds { p.forces_in_locations.clone() } else { p.forces_on_planet() };
+            let forces = if include_homeworlds { p.forces_in_locations.iter().map(|(k, v)| (*k, v.clone())).collect() } else { p.forces_on_planet() };
 
             for (key, value) in forces.iter() {
                 match result.get_mut(key) {
@@ -1101,15 +1093,15 @@ impl Game {
         result
     }
 
-    pub fn forces_on_planet_excluding_empty_locations(&self, include_homeworlds: bool) -> NetDictionary<Location, Vec<Battalion>> {
-        let mut result: NetDictionary<Location, Vec<Battalion>> = NetDictionary::new();
+    pub fn forces_on_planet_excluding_empty_locations(&self, include_homeworlds: bool) -> IndexMap<Location, Vec<Battalion>> {
+        let mut result: IndexMap<Location, Vec<Battalion>> = IndexMap::new();
 
         for p in &self.players {
-            let forces = if include_homeworlds { p.forces_in_locations.clone() } else { p.forces_on_planet() };
+            let forces = if include_homeworlds { p.forces_in_locations.iter().map(|(k, v)| (*k, v.clone())).collect() } else { p.forces_on_planet() };
 
             for (key, value) in forces.iter() {
                 if !result.contains_key(key) {
-                    result.add_with(*key, Vec::new(), |k| location_text(*k));
+                    result.insert_new(*key, Vec::new());
                 }
 
                 match result.get_mut(key) {
@@ -1148,13 +1140,13 @@ impl Game {
         result
     }
 
-    pub fn occupying_forces_on_planet(&self) -> NetDictionary<Location, Vec<Battalion>> {
-        let mut result: NetDictionary<Location, Vec<Battalion>> = NetDictionary::new();
+    pub fn occupying_forces_on_planet(&self) -> IndexMap<Location, Vec<Battalion>> {
+        let mut result: IndexMap<Location, Vec<Battalion>> = IndexMap::new();
 
         for p in &self.players {
             for (key, value) in p.forces_in_locations.iter().filter(|kvp| p.occupies(self, Some(*kvp.0))) {
                 if !result.contains_key(key) {
-                    result.add_with(*key, Vec::new(), |k| location_text(*k));
+                    result.insert_new(*key, Vec::new());
                 }
 
                 match result.get_mut(key) {
@@ -1168,26 +1160,26 @@ impl Game {
     }
 
     pub fn resources_in(&self, l: Location) -> i32 {
-        self.resources_on_planet.get_value_or(&l, 0)
+        self.resources_on_planet.get(&l).copied().unwrap_or(0)
     }
 
     pub fn change_resources_on_planet(&mut self, location: Location, amount: i32) {
         if self.resources_on_planet.contains_key(&location) {
-            let current = *self.resources_on_planet.index_with(&location, |k| location_text(*k));
+            let current = self.resources_on_planet[&location];
             if (current + amount) == 0 {
                 self.resources_on_planet.remove(&location);
             } else {
                 self.resources_on_planet.insert(location, current + amount);
             }
         } else if amount != 0 {
-            self.resources_on_planet.add_with(location, amount, |k| location_text(*k));
+            self.resources_on_planet.insert_new(location, amount);
         }
     }
 
     pub fn remove_resources(&mut self, location: Location) -> i32 {
         let mut result = 0;
         if self.resources_on_planet.contains_key(&location) {
-            result = *self.resources_on_planet.index_with(&location, |k| location_text(*k));
+            result = self.resources_on_planet[&location];
             self.resources_on_planet.remove(&location);
         }
 
@@ -1245,7 +1237,7 @@ impl Game {
                 let player = self.player(self.player_at(i));
                 let faction = player.faction;
                 if player.controls(self, hw.location(), false) && !player.is_native_homeworld(hw) {
-                    updated_occupation.add_with(hw, faction, |k| location_text(k.location()));
+                    updated_occupation.insert_new(hw, faction);
 
                     if !self.occupies(faction, hw.world()) {
                         self.log(vec![faction.into(), " now occupy ".into(), hw.location().into()]);
@@ -1410,7 +1402,7 @@ impl Game {
             }
             self.treachery_discard_pile.as_mut().nre().put_on_top(card);
             self.register_known(card);
-            self.recently_discarded.add_with(card, faction, |k| ExpressionElement::from(*k).to_cs_string());
+            self.recently_discarded.insert_new(card, faction);
             self.stone(Milestone::Discard);
 
             if !matches!(
@@ -1517,7 +1509,7 @@ impl Game {
         if f != Faction::None {
             let hw_occupation = self.homeworld_occupation.keys().find(|hw| hw.world() == w).copied();
             if let Some(hw) = hw_occupation {
-                return *self.homeworld_occupation.index_with(&hw, |k| location_text(k.location())) == f;
+                return self.homeworld_occupation.get(&hw) == Some(&f);
             }
         }
 
@@ -1527,7 +1519,7 @@ impl Game {
     pub fn occupier_of(&self, w: World) -> Option<PlayerIndex> {
         let hw_occupation = self.homeworld_occupation.keys().find(|hw| hw.world() == w).copied();
         match hw_occupation {
-            Some(hw) => self.get_player(Some(*self.homeworld_occupation.index_with(&hw, |k| location_text(k.location())))),
+            Some(hw) => self.get_player(self.homeworld_occupation.get(&hw).copied()),
             None => None,
         }
     }

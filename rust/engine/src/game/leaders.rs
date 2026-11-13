@@ -17,7 +17,7 @@ impl Game {
             return;
         }
 
-        self.leader_state.index_mut(&h).kill(&mut self.skill_deck);
+        self.leader_state[&h].kill(&mut self.skill_deck);
         self.stone(Milestone::LeaderKilled);
         self.determine_if_captured_leaders_must_be_released();
         self.determine_if_killed_ghola_returns_to_original_faction(h);
@@ -39,8 +39,8 @@ impl Game {
     }
 
     pub fn revive(&mut self, initiator: PlayerIndex, h: Hero) {
-        self.leader_state.index_mut(&h).revive();
-        self.leader_state.index_mut(&h).current_territory = None;
+        self.leader_state[&h].revive();
+        self.leader_state[&h].current_territory = None;
 
         let current_owner = self.owner_of(h);
         if let (Some(current_owner), Hero::Leader(l)) = (current_owner, h) {
@@ -63,7 +63,7 @@ impl Game {
     }
 
     pub fn assassinate_leader(&mut self, l: Leader) {
-        self.leader_state.index_mut(&Hero::Leader(l)).assassinate(&mut self.skill_deck);
+        self.leader_state[&Hero::Leader(l)].assassinate(&mut self.skill_deck);
         self.stone(Milestone::LeaderKilled);
 
         self.determine_if_captured_leaders_must_be_released();
@@ -71,19 +71,19 @@ impl Game {
     }
 
     pub fn is_alive(&self, l: Hero) -> bool {
-        self.leader_state.index(&l).alive()
+        self.leader_state[&l].alive()
     }
 
     pub fn is_face_down_dead(&self, l: Hero) -> bool {
-        self.leader_state.index(&l).is_face_down_dead()
+        self.leader_state[&l].is_face_down_dead()
     }
 
     pub fn death_count(&self, h: Hero) -> i32 {
-        self.leader_state.index(&h).death_counter
+        self.leader_state[&h].death_counter
     }
 
     pub fn can_fight_in(&self, h: Hero, t: Territory) -> bool {
-        let territory = self.leader_state.index(&h).current_territory;
+        let territory = self.leader_state[&h].current_territory;
         territory.is_none() || territory == Some(t)
     }
 
@@ -135,7 +135,7 @@ impl Game {
     }
 
     pub fn set_skill(&mut self, l: Leader, skill: LeaderSkill) {
-        self.leader_state.index_mut(&Hero::Leader(l)).skill = skill;
+        self.leader_state[&Hero::Leader(l)].skill = skill;
     }
 
     pub fn set_in_front_of_shield(&mut self, l: Leader, value: bool) {
@@ -147,7 +147,7 @@ impl Game {
     pub fn is_in_front_of_shield(&self, l: Option<Hero>) -> bool {
         let l = l.and_then(crate::compat::cs::CsNull::opt);
         let Some(l) = l else { return false };
-        self.leader_state.contains_key(&l) && self.leader_state.index(&l).in_front_of_shield
+        self.leader_state.contains_key(&l) && self.leader_state[&l].in_front_of_shield
     }
 
     pub fn messiah_is_alive(&self) -> bool {

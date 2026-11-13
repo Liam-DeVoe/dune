@@ -25,7 +25,7 @@ pub mod utilities;
 use std::cell::{Cell, RefCell};
 use std::fmt::Write as _;
 
-use dotnet_compat::NetDictionary;
+use indexmap::IndexMap;
 
 use crate::compat::cs::Shared;
 use crate::compat::date_time_offset::DateTimeOffset;
@@ -556,7 +556,7 @@ impl<T: FromJson> FromJson for Shared<T> {
 
 /// `Dictionary<TEnum, V>`: keys are written as enum names (`ToString()`), and
 /// read leniently: trimmed, case-insensitive names or integers (hazards.md 12.2).
-impl<K: NetEnum, V: ToJson> ToJson for NetDictionary<K, V> {
+impl<K: NetEnum, V: ToJson> ToJson for IndexMap<K, V> {
     fn write_json(&self, w: &mut JsonWriter) {
         w.object_value();
         for (k, v) in self.iter() {
@@ -567,9 +567,9 @@ impl<K: NetEnum, V: ToJson> ToJson for NetDictionary<K, V> {
     }
 }
 
-impl<K: NetEnum, V: FromJson> FromJson for NetDictionary<K, V> {
+impl<K: NetEnum, V: FromJson> FromJson for IndexMap<K, V> {
     fn from_json(v: &JsonValue) -> Result<Self, JsonError> {
-        let mut result = NetDictionary::new();
+        let mut result = IndexMap::new();
         for (key, value) in object_members(v)? {
             let k = parse_enum_key::<K>(&key).ok_or_else(|| JsonError::new("JsonException", format!("invalid dictionary key {key}")))?;
             // Duplicate keys throw in .NET (Dictionary.Add); serde_json already merged them.

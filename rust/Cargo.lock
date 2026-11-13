@@ -1672,6 +1672,7 @@ dependencies = [
  "canon-derive",
  "dotnet-compat",
  "either",
+ "indexmap",
  "serde",
  "serde_json",
  "sha2",

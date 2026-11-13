@@ -68,7 +68,7 @@ impl DiscoveryRevealed {
         let Some(location) = self.location(game) else {
             game_error!("Value cannot be null. (Parameter 'key')")
         };
-        let discovery = game.discoveries_on_planet.index(&location).clone();
+        let discovery = game.discoveries_on_planet[&location].clone();
         if let Some(i) = game.pending_discoveries.iter().position(|t| *t == discovery.token) {
             game.pending_discoveries.remove(i);
         }

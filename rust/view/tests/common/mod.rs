@@ -126,11 +126,11 @@ pub fn first_bot_state(what: &str, pred: impl Fn(&Game) -> bool) -> ViewReplica 
 fn seat_everyone(replica: &ViewReplica, participation: &Shared<Participation>, host_seat: i32) {
     let mut p = participation.borrow_mut();
     for pl in &replica.game.players {
-        p.seated_players.add(user_of_seat(pl.seat), pl.seat);
-        p.player_names.add(user_of_seat(pl.seat), format!("Player {}", pl.seat));
+        p.seated_players.insert(user_of_seat(pl.seat), pl.seat);
+        p.player_names.insert(user_of_seat(pl.seat), format!("Player {}", pl.seat));
     }
-    p.hosts.add(user_of_seat(host_seat));
-    p.observers.add(OBSERVER.user_id);
+    p.hosts.insert(user_of_seat(host_seat));
+    p.observers.insert(OBSERVER.user_id);
 }
 
 /// A fixture with extra rules in its `EstablishPlayers` settings (rule numbers).

@@ -10,10 +10,6 @@ macro_rules! elems {
     ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
 }
 
-/// `Location.ToString()` with no describer set: the location type's full name.
-fn location_key_text(l: &Location) -> String {
-    format!("Treachery.Shared.{}", l.type_name())
-}
 
 impl Game {
     pub fn enter_spice_blow_phase(&mut self) {
@@ -216,22 +212,14 @@ impl Game {
             if discovery_location.discovery_token_type() == DiscoveryTokenType::Guild {
                 if !self.guild_discovery_tokens.as_ref().nre().is_empty() {
                     drawn_token = self.guild_discovery_tokens.as_mut().nre().draw();
-                    self.discoveries_on_planet.add_with(
-                        discovery_location,
-                        Discovery::new(drawn_token, DiscoveryTokenType::Guild, discovery_location),
-                        location_key_text,
-                    );
+                    self.discoveries_on_planet.insert_new(discovery_location, Discovery::new(drawn_token, DiscoveryTokenType::Guild, discovery_location));
                 } else {
                     self.log(elems!["There are no more ", DiscoveryTokenType::Guild, " discoveries left"]);
                 }
             } else if discovery_location.discovery_token_type() == DiscoveryTokenType::Fremen {
                 if !self.fremen_discovery_tokens.as_ref().nre().is_empty() {
                     drawn_token = self.fremen_discovery_tokens.as_mut().nre().draw();
-                    self.discoveries_on_planet.add_with(
-                        discovery_location,
-                        Discovery::new(drawn_token, DiscoveryTokenType::Fremen, discovery_location),
-                        location_key_text,
-                    );
+                    self.discoveries_on_planet.insert_new(discovery_location, Discovery::new(drawn_token, DiscoveryTokenType::Fremen, discovery_location));
                 } else {
                     self.log(elems!["There are no more ", DiscoveryTokenType::Fremen, " discoveries left"]);
                 }

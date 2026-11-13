@@ -5,7 +5,7 @@ use crate::prelude::*;
 pub trait IPlacement {
     fn initiator(&self) -> Faction;
 
-    fn force_locations(&self, game: &Game) -> NetDictionary<Location, Battalion>;
+    fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion>;
 
     fn to(&self, game: &Game) -> Option<Location>;
 

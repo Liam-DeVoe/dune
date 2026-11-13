@@ -124,7 +124,7 @@ fn may_call_face_dancer_distinguishes_null_and_none_winner() {
     g.player_mut(tleilaxu).face_dancers.push(Hero::Leader(emperor_leader));
     assert!(FaceDanced::may_call_face_dancer(&g, tleilaxu));
     // A revealed face dancer can't be called again.
-    g.player_mut(tleilaxu).revealed_face_dancers.add(Hero::Leader(emperor_leader));
+    g.player_mut(tleilaxu).revealed_face_dancers.insert(Hero::Leader(emperor_leader));
     assert!(!FaceDanced::may_call_face_dancer(&g, tleilaxu));
 }
 

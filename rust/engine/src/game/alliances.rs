@@ -59,10 +59,10 @@ impl Game {
         let ally = self.player(initiator).ally;
         self.set_permissions(ally, false);
 
-        self.permitted_use_of_ally_spice.remove(&f);
-        self.permitted_use_of_ally_spice.remove(&ally);
-        self.permitted_use_of_ally_karma.remove(&f);
-        self.permitted_use_of_ally_karma.remove(&ally);
+        self.permitted_use_of_ally_spice.shift_remove(&f);
+        self.permitted_use_of_ally_spice.shift_remove(&ally);
+        self.permitted_use_of_ally_karma.shift_remove(&f);
+        self.permitted_use_of_ally_karma.shift_remove(&ally);
 
         self.player_mut(initiator).ally = Faction::None;
         self.player_mut(current_ally).ally = Faction::None;
@@ -70,7 +70,7 @@ impl Game {
 
     pub fn decrease_permitted_use_of_ally_spice(&mut self, f: Faction, amount: i32) {
         if self.permitted_use_of_ally_spice.contains_key(&f) {
-            let new_value = self.permitted_use_of_ally_spice.index(&f) - amount;
+            let new_value = self.permitted_use_of_ally_spice[&f] - amount;
             self.permitted_use_of_ally_spice.insert(f, 0.max(new_value));
         }
     }

@@ -127,6 +127,11 @@ impl<T: Eq + Hash + Clone> NetHashSet<T> {
     }
 
     /// `set.Add(x)`
+    /// The same as [`add`](Self::add), under the std name.
+    pub fn insert(&mut self, item: T) -> bool {
+        self.add(item)
+    }
+
     pub fn add(&mut self, item: T) -> bool {
         self.add_or_get_location(item).1
     }

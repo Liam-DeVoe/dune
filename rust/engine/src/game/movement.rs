@@ -41,7 +41,7 @@ impl Game {
         guild_has_to_act && !(guild_is_on_auto_delay && guild_may_delay)
     }
 
-    pub fn perform_move_from_locations(&mut self, initiator: PlayerIndex, force_locations: &NetDictionary<Location, Battalion>, evt: &GameEvent, as_advisors: bool, by_caravan: bool) {
+    pub fn perform_move_from_locations(&mut self, initiator: PlayerIndex, force_locations: &IndexMap<Location, Battalion>, evt: &GameEvent, as_advisors: bool, by_caravan: bool) {
         let Some(to) = evt.to_location(self) else { return };
 
         self.last_shipment_or_movement = Some(evt.clone());
@@ -209,7 +209,7 @@ impl Game {
                 self.log(elems![f, " lose ", vidal]);
             }
 
-            self.captured_leaders.remove(&vidal);
+            self.captured_leaders.shift_remove(&vidal);
         }
 
         self.player_mut(p).leaders.push(vidal);

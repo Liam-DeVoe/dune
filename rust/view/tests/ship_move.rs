@@ -376,8 +376,8 @@ fn check_placement(game: &Game, p: PlayerIndex, o: &PlacementOptions, t: GameEve
     assert_eq!(o.may_move_from_two_territories, planetology.is_some_and(|x| x.move_from_two_territories() && x.initiator() == f));
     let d = default_describer();
     for l in sources {
-        let mut forces: NetDictionary<Location, Battalion> = NetDictionary::new();
-        forces.add(l, Battalion::new(f, pl.forces_in(Some(l)), pl.special_forces_in(Some(l)), l));
+        let mut forces: IndexMap<Location, Battalion> = IndexMap::new();
+        forces.insert(l, Battalion::new(f, pl.forces_in(Some(l)), pl.special_forces_in(Some(l)), l));
         let expected = ids(PlacementEvent::valid_targets_game_player_dictionary_location_battalion(game, p, &forces));
         let draft = placement_draft(game, f, t, &forces, None);
         let o = placement_options(opts(game, p, &draft, &*d));
@@ -408,7 +408,7 @@ fn placement_options(o: ActionOptions) -> PlacementOptions {
     }
 }
 
-fn placement_draft(game: &Game, f: Faction, t: GameEventType, forces: &NetDictionary<Location, Battalion>, to: Option<Location>) -> GameEvent {
+fn placement_draft(game: &Game, f: Faction, t: GameEventType, forces: &IndexMap<Location, Battalion>, to: Option<Location>) -> GameEvent {
     match t {
         GameEventType::Move => {
             let mut e = Move::new(game, f);
@@ -445,8 +445,8 @@ fn check_ride(game: &Game, p: PlayerIndex, o: &PlacementOptions, d: &dyn Describ
     assert_eq!(o.targets, if from_reserves { valid_targets.clone() } else { vec![] });
     assert!(o.title.is_some());
     for l in sources {
-        let mut forces: NetDictionary<Location, Battalion> = NetDictionary::new();
-        forces.add(l, Battalion::new(pl.faction, pl.forces_in(Some(l)), pl.special_forces_in(Some(l)), l));
+        let mut forces: IndexMap<Location, Battalion> = IndexMap::new();
+        forces.insert(l, Battalion::new(pl.faction, pl.forces_in(Some(l)), pl.special_forces_in(Some(l)), l));
         let o = placement_options(opts(game, p, &placement_draft(game, pl.faction, GameEventType::FremenRidesMonster, &forces, None), d));
         assert_eq!(o.targets, valid_targets);
     }
@@ -571,8 +571,8 @@ fn check_adjustments(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Des
                 .take(3)
                 .collect();
             for l in sources {
-                let mut forces: NetDictionary<Location, Battalion> = NetDictionary::new();
-                forces.add(l, Battalion::new(f, pl.forces_in(Some(l)), pl.special_forces_in(Some(l)), l));
+                let mut forces: IndexMap<Location, Battalion> = IndexMap::new();
+                forces.insert(l, Battalion::new(f, pl.forces_in(Some(l)), pl.special_forces_in(Some(l)), l));
                 let targets: Vec<Location> = PlacementEvent::valid_targets_game_player_dictionary_location_battalion(game, p, &forces);
                 for to in targets.into_iter().take(4) {
                     for start in [false, true] {
@@ -610,8 +610,8 @@ fn check_adjustments(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Des
                 }
                 // SetAmount: a lowered amount stays.
                 if let Some(l) = sources.first() {
-                    let mut forces: NetDictionary<Location, Battalion> = NetDictionary::new();
-                    forces.add(*l, Battalion::new(f, 0, 0, *l));
+                    let mut forces: IndexMap<Location, Battalion> = IndexMap::new();
+                    forces.insert(*l, Battalion::new(f, 0, 0, *l));
                     e.set_force_locations(game, &forces);
                     let GameEvent::DiscoveryEntered(a) = adjusted(game, p, &event(e), d) else { panic!() };
                     assert_eq!(a.force_locations(game).get(l).map(|b| b.amount_of_forces), Some(0));
@@ -835,8 +835,8 @@ fn check_shipment_adjustments(game: &Game, p: PlayerIndex, d: &dyn Describer) {
         s.set_karma_card(any_karma);
         s.ally_contribution_amount = 2;
         if let Some(w) = worlds.first() {
-            let mut origins: NetDictionary<Location, Battalion> = NetDictionary::new();
-            origins.add(w.location(), Battalion::new(f, 1, 0, w.location()));
+            let mut origins: IndexMap<Location, Battalion> = IndexMap::new();
+            origins.insert(w.location(), Battalion::new(f, 1, 0, w.location()));
             s.set_force_locations(game, &origins);
         }
         let GameEvent::Shipment(a) = adjusted(game, p, &event(s.clone()), d) else { panic!() };
@@ -848,7 +848,7 @@ fn check_shipment_adjustments(game: &Game, p: PlayerIndex, d: &dyn Describer) {
             let from_reserves = matches!(ty, ShipmentType::ShipmentNormal | ShipmentType::ShipmentRicheseSecretAlly);
             let choose = from_reserves && (Shipment::homeworlds_to_ship_from(game, p, false).len() > 1 || Shipment::homeworlds_to_ship_from(game, p, true).len() > 1);
             if !choose {
-                e.set_force_locations(game, &NetDictionary::new());
+                e.set_force_locations(game, &IndexMap::new());
             }
             if !Shipment::may_use_no_field(game, p) {
                 e.set_no_field_value(-1);

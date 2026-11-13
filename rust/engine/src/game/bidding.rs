@@ -123,7 +123,7 @@ impl Game {
         });
         let initiator = GameEventMethods::initiator(&**bid);
         self.bids.remove(&initiator);
-        self.bids.add_with(initiator, bid.clone().into_event(), |k| k.to_string());
+        self.bids.insert_new(initiator, bid.clone().into_event());
         let as_event = bid.clone().into_event();
         self.check_if_atreides_or_atreides_ally_passed_bid(&as_event);
 
@@ -587,7 +587,7 @@ impl Game {
             let f = determine_bid_winner_sequence.current_faction(self);
             if let Some(value) = bids.get(&f) {
                 if value.i_bid_total_amount() == highest_bid_value {
-                    return Some(bids.index_with(&f, |k| k.to_string()).clone());
+                    return Some(bids[&f].clone());
                 }
             }
 

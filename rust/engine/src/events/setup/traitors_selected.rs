@@ -54,8 +54,8 @@ impl TraitorsSelected {
             if let Some(i) = traitors.iter().position(|t| *t == l) {
                 traitors.remove(i);
             }
-            game.player_mut(me).discarded_traitors.add(l);
-            game.player_mut(me).known_non_traitors.add(l);
+            game.player_mut(me).discarded_traitors.insert(l);
+            game.player_mut(me).known_non_traitors.insert(l);
         }
 
         game.has_acted_or_passed.push(self.initiator());

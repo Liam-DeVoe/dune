@@ -86,8 +86,8 @@ impl Session {
         {
             let mut p = participation.borrow_mut();
             for (user, seat, name) in seated {
-                p.player_names.add(*user, name.clone());
-                p.seated_players.add(*user, *seat);
+                p.player_names.insert(*user, name.clone());
+                p.seated_players.insert(*user, *seat);
             }
         }
         let game = Game::new_int32_participation(version, &participation);

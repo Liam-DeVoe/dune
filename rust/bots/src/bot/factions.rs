@@ -420,18 +420,18 @@ impl ClassicBot {
     pub fn determine_perform_fremen_setup(&self, game: &Game) -> Rc<PerformFremenSetup> {
         let faction = self.faction(game);
         let special_forces_in_reserve = game.player(self.player).special_forces_in_reserve();
-        let mut force_locations: NetDictionary<Location, Battalion> = NetDictionary::new();
+        let mut force_locations: IndexMap<Location, Battalion> = IndexMap::new();
 
         let south = game.map.false_wall_south().middle_location();
         let forces = 3 + self.d(1, 4);
         let special = if special_forces_in_reserve > 0 { 1 } else { 0 };
-        force_locations.add(south, Battalion::new(faction, forces, special, south));
+        force_locations.insert_new(south, Battalion::new(faction, forces, special, south));
 
         let forces_left = 10 - (forces + special);
         if forces_left > 0 {
             let special = if special_forces_in_reserve > 1 { 1 } else { 0 };
             let west = game.map.false_wall_west().middle_location();
-            force_locations.add(west, Battalion::new(faction, forces_left - special, special, west));
+            force_locations.insert_new(west, Battalion::new(faction, forces_left - special, special, west));
         }
 
         let mut e = PerformFremenSetup::new(game, faction);
@@ -468,9 +468,9 @@ impl ClassicBot {
         let me = game.player(self.player);
         let valid_locations: Vec<Location> = FremenRidesMonster::valid_targets(game, self.player).collect();
         // `add` throws if a source is listed twice.
-        let mut battalions_to_move: NetDictionary<Location, Battalion> = NetDictionary::new();
+        let mut battalions_to_move: IndexMap<Location, Battalion> = IndexMap::new();
         for l in FremenRidesMonster::valid_sources(game) {
-            battalions_to_move.add(l, me.battalion_in_location(l).nre());
+            battalions_to_move.insert_new(l, me.battalion_in_location(l).nre());
         }
         let forces_from_reserves = std::cmp::min(FremenRidesMonster::max_forces_from_reserves(game, self.player, false), 4);
         let special_forces_from_reserves = std::cmp::min(FremenRidesMonster::max_forces_from_reserves(game, self.player, true), 2);
@@ -503,7 +503,7 @@ impl ClassicBot {
         let mut e = FremenRidesMonster::new(game, self.faction(game));
         if total_forces > 0 {
             e.passed = false;
-            e.set_force_locations(game, &NetDictionary::from_dictionary(&battalions_to_move));
+            e.set_force_locations(game, &battalions_to_move.clone());
             e.set_to(game, Some(target));
             e.forces_from_reserves = forces_from_reserves;
             e.special_forces_from_reserves = special_forces_from_reserves;
@@ -924,13 +924,10 @@ impl ClassicBot {
             return passed();
         };
 
-        let mut target_locations: NetDictionary<Location, Battalion> = NetDictionary::new();
-        target_locations.add(
-            target_location,
-            Battalion::new(faction, to_take.amount_of_forces + from_reserves, to_take.amount_of_special_forces, target_location),
-        );
-        let mut forces_from_planet: NetDictionary<Location, Battalion> = NetDictionary::new();
-        forces_from_planet.add(biggest.location, to_take);
+        let mut target_locations: IndexMap<Location, Battalion> = IndexMap::new();
+        target_locations.insert_new(target_location, Battalion::new(faction, to_take.amount_of_forces + from_reserves, to_take.amount_of_special_forces, target_location));
+        let mut forces_from_planet: IndexMap<Location, Battalion> = IndexMap::new();
+        forces_from_planet.insert_new(biggest.location, to_take);
 
         let mut result = FaceDanced::new(game, faction);
         result.set_force_locations(game, &forces_from_planet);
@@ -1354,8 +1351,8 @@ impl ClassicBot {
                 if target.is_some() {
                     if let Some(to_move) = self.determine_moved_battalion(game, true) {
                         if AmbassadorActivated::valid_fremen_sources(game, self.player).contains(&to_move.from.territory()) {
-                            let mut forces_to_move: NetDictionary<Location, Battalion> = NetDictionary::new();
-                            forces_to_move.add(to_move.from, to_move.battalion.clone());
+                            let mut forces_to_move: IndexMap<Location, Battalion> = IndexMap::new();
+                            forces_to_move.insert_new(to_move.from, to_move.battalion.clone());
 
                             let mut e = new_event();
                             e.set_fremen_or_guild_to(game, target);

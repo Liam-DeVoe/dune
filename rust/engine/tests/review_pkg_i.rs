@@ -64,8 +64,8 @@ fn hook(g: &mut Game, what: &str) {
     } else if what == "fd_others_revealed" {
         let tleilaxu = g.get_player(Some(Faction::Tleilaxu)).unwrap();
         let (a, b) = (g.player(tleilaxu).face_dancers[1], g.player(tleilaxu).face_dancers[2]);
-        g.player_mut(tleilaxu).revealed_face_dancers.add(a);
-        g.player_mut(tleilaxu).revealed_face_dancers.add(b);
+        g.player_mut(tleilaxu).revealed_face_dancers.insert(a);
+        g.player_mut(tleilaxu).revealed_face_dancers.insert(b);
     } else if let Some(rest) = what.strip_prefix("givenull:") {
         let f = Faction(rest.parse().unwrap());
         let p = g.get_player(Some(f)).unwrap();
@@ -91,8 +91,8 @@ fn hook(g: &mut Game, what: &str) {
 
 fn prefix(last: i64) -> Game {
     let mut p = Participation::default();
-    p.player_names.add(100, "Human100".to_string());
-    p.seated_players.add(100, 0);
+    p.player_names.insert(100, "Human100".to_string());
+    p.seated_players.insert(100, 0);
     let mut g = Game::new_int32_participation(Game::LATEST_VERSION, &Shared::new(p));
     for s in steps() {
         if s["n"].as_i64().unwrap() > last {

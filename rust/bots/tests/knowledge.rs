@@ -123,6 +123,11 @@ impl Fmt for NetDictionary<Location, Battalion> {
         format!("[{}]", self.iter().map(|(l, b)| format!("{}={}", l.fmt(), b.fmt())).collect::<Vec<_>>().join(","))
     }
 }
+impl Fmt for IndexMap<Location, Battalion> {
+    fn fmt(&self) -> String {
+        format!("[{}]", self.iter().map(|(l, b)| format!("{}={}", l.fmt(), b.fmt())).collect::<Vec<_>>().join(","))
+    }
+}
 
 struct Args<'a> {
     game: &'a Game,
@@ -307,10 +312,10 @@ fn participation(o: &Value) -> Participation {
     let int = |v: &Value| v.as_i64().unwrap() as i32;
     let mut p = Participation { bots_speed: int(&o["BotsSpeed"]), ..Default::default() };
     for kv in o["PlayerNames"].as_array().unwrap() {
-        p.player_names.add(int(&kv[0]), kv[1].as_str().unwrap().to_string());
+        p.player_names.insert(int(&kv[0]), kv[1].as_str().unwrap().to_string());
     }
     for kv in o["SeatedPlayers"].as_array().unwrap() {
-        p.seated_players.add(int(&kv[0]), int(&kv[1]));
+        p.seated_players.insert(int(&kv[0]), int(&kv[1]));
     }
     for (key, set) in [
         ("Observers", &mut p.observers),
@@ -319,7 +324,7 @@ fn participation(o: &Value) -> Participation {
         ("Kicked", &mut p.kicked),
     ] {
         for v in o[key].as_array().unwrap() {
-            set.add(int(v));
+            set.insert(int(v));
         }
     }
     p

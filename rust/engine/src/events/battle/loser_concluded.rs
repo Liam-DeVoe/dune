@@ -239,7 +239,7 @@ impl LoserConcluded {
             // validation) and then throws ArgumentNullException in IsAlive.
             let assassinated = assassinated.or_null();
             game.assassinated.push(assassinated);
-            game.player_mut(self.player()).revealed_traitors.add(Hero::from(assassinated));
+            game.player_mut(self.player()).revealed_traitors.insert(Hero::from(assassinated));
 
             let reward = LoserConcluded::assassination_reward(game, winner, assassinated);
             match reward {

@@ -73,10 +73,4 @@ impl Battalion {
         }
     }
 
-    /// Returns the memberwise clone as a `Battalion` rather than `object`; only `Game.Clone`
-    /// (via `Utilities.CloneObjectDictionary`) calls it, and that is not ported.
-    pub fn cs_clone(&self) -> Battalion {
-        self.clone()
-    }
-
 }

@@ -329,7 +329,7 @@ impl Game {
         if self.skilled_as(hero, LeaderSkill::Smuggler) {
             let location_with_resources = territory.locations().iter().copied().find(|l| self.resources_on_planet.contains_key(l));
             if let Some(location_with_resources) = location_with_resources {
-                let collected = std::cmp::min(*self.resources_on_planet.index(&location_with_resources), hero.value_in_combat_against(opponent_hero));
+                let collected = std::cmp::min(self.resources_on_planet[&location_with_resources], hero.value_in_combat_against(opponent_hero));
                 if collected > 0 {
                     let f = self.player(player).faction;
                     self.log(le![f, LeaderSkill::Smuggler, " collects ", Payment::of(collected), " from ", territory]);
@@ -349,11 +349,11 @@ impl Game {
             let p = plan.player();
             let traitor = self.traitor_deck.as_mut().nre().draw();
             self.traitors_decipherer_can_look_at.push(traitor);
-            self.player_mut(p).known_non_traitors.add(traitor);
+            self.player_mut(p).known_non_traitors.insert(traitor);
 
             let traitor = self.traitor_deck.as_mut().nre().draw();
             self.traitors_decipherer_can_look_at.push(traitor);
-            self.player_mut(p).known_non_traitors.add(traitor);
+            self.player_mut(p).known_non_traitors.insert(traitor);
 
             self.decipherer_may_replace_traitor = leader_is_skilled && !BattleConcluded::valid_traitors_to_replace(self, p).next().is_none();
         }
@@ -541,7 +541,7 @@ impl Game {
             if let Some(pos) = leaders.iter().position(|l| *l == to_return) {
                 leaders.remove(pos);
             }
-            self.captured_leaders.remove(&to_return);
+            self.captured_leaders.shift_remove(&to_return);
 
             if !self.is_alive(Hero::Leader(to_return)) {
                 return;
@@ -1021,11 +1021,11 @@ impl Game {
 
     pub fn set_hero_locations(&mut self, b: &Battle, territory: Territory) {
         if let Some(hero) = b.hero().filter(|h| h.as_leader().is_some()) {
-            self.leader_state.index_mut(&hero).current_territory = Some(territory);
+            self.leader_state[&hero].current_territory = Some(territory);
         }
 
         if b.messiah {
-            self.leader_state.index_mut(&LeaderManager::messiah()).current_territory = Some(territory);
+            self.leader_state[&LeaderManager::messiah()].current_territory = Some(territory);
         }
     }
 
@@ -1261,7 +1261,7 @@ impl Game {
             .iter()
             .copied()
             .filter(|l| {
-                l.hero_type() != HeroType::Auditor && self.leader_state.index(&Hero::Leader(*l)).alive() && self.can_join_current_battle(Hero::Leader(*l))
+                l.hero_type() != HeroType::Auditor && self.leader_state[&Hero::Leader(*l)].alive() && self.can_join_current_battle(Hero::Leader(*l))
             })
             .collect();
         let mut available_leaders: Deck<Leader> = Deck::new(leaders, self.random.clone());
@@ -1359,7 +1359,7 @@ impl Game {
 
             if !self.player(sole_player_on_planet).is_native_homeworld(hw) {
                 let f = self.player(sole_player_on_planet).faction;
-                self.homeworld_occupation.add_with(hw, f, |k| ExpressionElement::from(*k).to_cs_string());
+                self.homeworld_occupation.insert_new(hw, f);
                 self.log(le![f, " now occupy ", hw]);
             } else if let Some(previous_occupier) = previous_occupier {
                 let f = self.player(previous_occupier).faction;
@@ -1385,7 +1385,7 @@ impl Game {
         let keys: Vec<Hero> = self.leader_state.keys().copied().collect();
         for key in keys {
             let Some(leader) = key.as_leader() else { continue };
-            if !(self.is_skilled(Some(key)) && !self.leader_state.index(&key).in_front_of_shield) {
+            if !(self.is_skilled(Some(key)) && !self.leader_state[&key].in_front_of_shield) {
                 continue;
             }
 
@@ -1526,7 +1526,7 @@ impl Game {
     }
 
     pub fn can_join_current_battle(&self, hero: Hero) -> bool {
-        let current_territory = self.leader_state.index(&hero).current_territory;
+        let current_territory = self.leader_state[&hero].current_territory;
         current_territory.is_none() || current_territory == self.current_battle.as_ref().and_then(|b| b.territory(self))
     }
 }

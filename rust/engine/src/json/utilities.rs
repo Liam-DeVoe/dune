@@ -19,16 +19,16 @@ impl Utilities {
     }
 
     /// `ToDictionary`: a compact copy in enumeration order (keys are unique).
-    pub fn clone_object_dictionary<TX: Clone + Eq + std::hash::Hash + 'static, TY: Clone>(to_clone: &NetDictionary<TX, TY>) -> NetDictionary<TX, TY> {
-        let mut result = NetDictionary::new();
+    pub fn clone_object_dictionary<TX: Clone + Eq + std::hash::Hash + 'static, TY: Clone>(to_clone: &IndexMap<TX, TY>) -> IndexMap<TX, TY> {
+        let mut result = IndexMap::new();
         for (k, v) in to_clone.iter() {
             result.insert(k.clone(), v.clone());
         }
         result
     }
 
-    pub fn clone_enum_dictionary<TX: Clone + Eq + std::hash::Hash + 'static, TY: Copy>(to_clone: &NetDictionary<TX, TY>) -> NetDictionary<TX, TY> {
-        let mut result = NetDictionary::new();
+    pub fn clone_enum_dictionary<TX: Clone + Eq + std::hash::Hash + 'static, TY: Copy>(to_clone: &IndexMap<TX, TY>) -> IndexMap<TX, TY> {
+        let mut result = IndexMap::new();
         for (k, v) in to_clone.iter() {
             result.insert(k.clone(), *v);
         }

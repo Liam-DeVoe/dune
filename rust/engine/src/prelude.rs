@@ -3,7 +3,7 @@
 pub use std::cell::{Cell, RefCell};
 pub use std::rc::Rc;
 
-pub use dotnet_compat::{NetDictionary, NetHashSet, NetRandom};
+pub use dotnet_compat::{NetDictionary, NetHashSet};
 pub use indexmap::{IndexMap, IndexSet};
 
 pub use crate::iter::{IterExt, MapExt};
@@ -16,7 +16,7 @@ pub use crate::identity::IFetcher;
 pub use crate::heroes::hero::Hero;
 pub use crate::identity::IIdentifiable;
 pub use crate::heroes::leader_manager::LeaderManager;
-pub use crate::random::{LoggedRandom, SharedRandom};
+pub use crate::random::{RandomPick, SharedRandom};
 pub use crate::map::Map;
 pub use crate::messages::message::{BattleFact, BattleFactKind, BattlePlans, Message, MessagePart, PlanSummary, Route};
 pub use crate::messages::payment::Payment;

@@ -161,8 +161,7 @@ fn moritani_betrayal_picks_from_dictionary_slot_order() {
     // Same seed, same draw: the pick is an index into the slot order above.
     let expected = {
         let r = SharedRandom::from_seed(11);
-        let i = r.next(2);
-        [TerrorType::Sabotage, TerrorType::Robbery][i as usize]
+        [TerrorType::Sabotage, TerrorType::Robbery].into_iter().random_item(&r).unwrap()
     };
     g.random = Some(SharedRandom::from_seed(11));
     let mut e = NexusPlayed::new(&g, Faction::Atreides);

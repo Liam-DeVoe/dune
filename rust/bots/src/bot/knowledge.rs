@@ -379,7 +379,7 @@ impl ClassicBot {
     pub fn occupying_opponent_in(&self, game: &Game, player: PlayerIndex, t: Territory) -> Option<PlayerIndex> {
         Self::occupying_opponents_in(game, player, t)
             .into_iter()
-            .highest_or_default(&self.random, |p| Self::max_dial(game, *p, t, Some(player), false))
+            .random_highest(&self.random, |p| Self::max_dial(game, *p, t, Some(player), false))
     }
 
     pub fn occupying_opponents_in(game: &Game, player: PlayerIndex, place: impl Place) -> Vec<PlayerIndex> {
@@ -409,7 +409,7 @@ impl ClassicBot {
 
     /// The battalion with the most forces (a random one of those on a tie).
     fn biggest(&self, battalions: Vec<BattalionInLocation>) -> Option<BattalionInLocation> {
-        battalions.into_iter().highest_or_default(&self.random, |x| x.battalion.total_amount_of_forces())
+        battalions.into_iter().random_highest(&self.random, |x| x.battalion.total_amount_of_forces())
     }
 
     /// A battalion that shares a territory with my ally: the biggest if my ally has already
@@ -423,7 +423,7 @@ impl ClassicBot {
         if game.has_acted_or_passed.contains(&self.ally(game)) {
             self.biggest(candidates)
         } else {
-            candidates.into_iter().lowest_or_default(&self.random, |x| x.battalion.total_amount_of_forces())
+            candidates.into_iter().random_lowest(&self.random, |x| x.battalion.total_amount_of_forces())
         }
     }
 
@@ -506,7 +506,7 @@ impl ClassicBot {
             .iter()
             .filter(|(l, _)| self.is_safe_and_nearby(game, location, **l, b, may_fight))
             .map(|(l, amount)| (*l, *amount))
-            .highest_or_default(&self.random, |r| r.1)
+            .random_highest(&self.random, |r| r.1)
             .map(|r| r.0)
     }
 
@@ -603,7 +603,7 @@ impl ClassicBot {
                     && self.ally_doesnt_block(game, *to)
                     && opponents().into_iter().any(|opponent| game.player(opponent).occupies(game, Some(*to)))
             })
-            .lowest_or_default(&self.random, |l| self.total_max_dial_of_opponents(game, l.territory()))
+            .random_lowest(&self.random, |l| self.total_max_dial_of_opponents(game, l.territory()))
     }
 
     pub fn is_winning_opponent(&self, game: &Game, p: PlayerIndex) -> bool {

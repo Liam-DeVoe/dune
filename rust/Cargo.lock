@@ -1651,6 +1651,8 @@ dependencies = [
  "dotnet-compat",
  "either",
  "indexmap",
+ "rand",
+ "rand_chacha",
  "serde",
  "serde_json",
  "sha2",

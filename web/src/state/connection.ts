@@ -39,7 +39,7 @@ export interface GameInitInfo {
 export const ErrorType = { None: 0, UserNameExists: 7, InvalidGameEvent: 23 } as const;
 
 /** `Game.LatestVersion`, which `RequestLogin` must name. */
-export const LATEST_VERSION = 188;
+export const LATEST_VERSION = 189;
 
 /** `GameListScope.None`, for heartbeats that need no game list. */
 export const GameListScopeNone = 1;

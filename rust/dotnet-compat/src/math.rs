@@ -114,16 +114,6 @@ pub fn cmp_f32(a: f32, b: f32) -> Ordering {
     cmp_f64(a as f64, b as f64)
 }
 
-/// `double.Equals(double)` (and `object.Equals` on boxed doubles): like `==`
-/// except NaN equals NaN.
-pub fn equals_f64(a: f64, b: f64) -> bool {
-    a == b || (a.is_nan() && b.is_nan())
-}
-/// `float.Equals(float)`; see [`equals_f64`].
-pub fn equals_f32(a: f32, b: f32) -> bool {
-    a == b || (a.is_nan() && b.is_nan())
-}
-
 /// `Math.Max(double, double)`: NaN if either is NaN; max(-0.0, 0.0) = 0.0.
 /// (Rust's `f64::max` ignores NaN.) NaN payloads are not modeled: on arm64
 /// .NET returns a quieted NaN when given a signaling one; this returns the

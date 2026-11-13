@@ -10,7 +10,7 @@ use serde_json::{json, Value};
 use treachery_engine::error::catch_panic;
 use treachery_engine::cards::deck::Deck;
 use treachery_engine::enumerations::*;
-use treachery_engine::compat::random_ext::RandomExt;
+use treachery_engine::random::RandomPick;
 use treachery_engine::identity::IFetcher;
 use treachery_engine::heroes::hero::Hero;
 use treachery_engine::heroes::leader_manager::LeaderManager;
@@ -569,9 +569,11 @@ fn cards() {
 
 // ---------------------------------------------------------------- randomness
 
-/// Needs `dotnet_compat::NetRandom`.
+/// Pins the game generator's stream. A shuffle or pick that changes for a seed means old games
+/// would replay differently (a new rand or rand_chacha version can do that), which needs a new
+/// game version.
 #[test]
-fn deck_shuffle_and_random_or_default() {
+fn deck_shuffle_and_random_item() {
     let mut shuffles = Vec::new();
     for seed in [0, 1, 42, 123456, i32::MAX] {
         for n in [0, 1, 2, 5, 33] {
@@ -579,13 +581,12 @@ fn deck_shuffle_and_random_or_default() {
             let mut deck = Deck::new(0..n, Some(random.clone()));
             deck.shuffle();
             deck.shuffle();
-            let pick = (0..n).random_or_default(&random).unwrap_or_default();
+            let pick = (0..n).random_item(&random).unwrap_or_default();
             shuffles.push(json!({
                 "seed": seed,
                 "n": n,
                 "items": deck.items,
-                "random_or_default": pick,
-                "count": random.get_count(),
+                "random_item": pick,
             }));
         }
     }

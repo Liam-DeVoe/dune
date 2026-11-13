@@ -15,6 +15,7 @@ pub use shipment::*;
 use std::collections::HashMap;
 
 use crate::prelude::*;
+use treachery_engine::random::Rng;
 
 /// The bot of one player. One bot per faction lives for the whole game, and its fields carry
 /// plans from one decision to the next. The game itself is passed to every method.
@@ -439,8 +440,7 @@ impl ClassicBot {
         if amount == 0 || sides == 0 {
             return 0;
         }
-        // A negative `sides` throws after the draw is counted.
-        (0..amount).map(|_| self.random.next(sides) + 1).sum()
+        (0..amount).map(|_| self.random.lock().random_range(1..=sides)).sum()
     }
 }
 

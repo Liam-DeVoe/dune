@@ -4,6 +4,7 @@
 //! (`bot/mod.rs`, `bot/battle.rs`), since the methods involved are private.
 
 use treachery_bots::prelude::*;
+use treachery_engine::random::Rng;
 use treachery_engine::game::{GameState, Participation};
 
 use TreacheryCardType as T;
@@ -26,11 +27,12 @@ fn player_of(game: &Game, faction: Faction) -> PlayerIndex {
     game.get_player(Some(faction)).unwrap()
 }
 
-/// A card of `type_` nobody holds yet. Cards are taken out of the decks only as far as hands go,
-/// which is all these tests look at.
+/// A card of `type_` nobody holds yet, or one somebody holds if every one is held. Cards are taken
+/// out of the decks only as far as hands go, which is all these tests look at.
 fn card(game: &Game, type_: TreacheryCardType) -> TreacheryCard {
     let held: Vec<TreacheryCard> = game.player_indices().flat_map(|p| game.player(p).treachery_cards.clone()).collect();
-    TreacheryCardManager::items().iter().copied().find(|c| c.type_() == type_ && !held.contains(c)).expect("a card of that type")
+    let of_type = || TreacheryCardManager::items().iter().copied().filter(|c| c.type_() == type_);
+    of_type().find(|c| !held.contains(c)).or_else(|| of_type().next()).expect("a card of that type")
 }
 
 /// What a bot could change in a game, one item per line: the saved history, every log message,
@@ -39,7 +41,7 @@ fn card(game: &Game, type_: TreacheryCardType) -> TreacheryCard {
 fn fingerprint(game: &Game) -> String {
     let mut lines = vec![
         format!("history: {}", GameState::get_state_as_string(game)),
-        format!("draws: {:?}", game.random.as_ref().map(|r| r.get_count())),
+        format!("stream position: {:?}", game.random.as_ref().map(|r| r.state().get_word_pos())),
         format!("phase: {} {} {} turn {} milestones {:?}", game.current_phase, game.current_main_phase, game.current_moment, game.current_turn, game.recent_milestones),
         format!("battle: {:?}", game.current_battle),
         format!("aggressor plan: {:?}", game.aggressor_plan),
@@ -303,9 +305,26 @@ fn bene_gesserit_prediction_draws_no_coin() {
     for seed in 1..20 {
         let b = ClassicBot::new(bg, BotParameters::for_faction(Faction::BeneGesserit), SharedRandom::from_seed(seed));
         let e = b.determine_bene_gesserit_prediction(&game);
-        // The turn takes two draws for every faction but Tleilaxu (one), who isn't in this game.
-        assert_ne!(e.to_win, Faction::Tleilaxu);
-        assert_eq!(b.random.get_count(), 3, "seed {seed}: predicted {:?}", e.to_win);
+        // The same draws from a fresh generator: the pick, then the coin and the die of the turn
+        // (Tleilaxu, which draws once, isn't in this game).
+        let r = SharedRandom::from_seed(seed);
+        let predicted = b.others(&game).into_iter().random_item(&r).unwrap();
+        let faction = game.player(predicted).faction;
+        assert_ne!(faction, Faction::Tleilaxu);
+        let max = game.maximum_turns();
+        let d = |sides: i32| r.lock().random_range(1..=sides);
+        let turn = if faction == Faction::Harkonnen {
+            let sides = if d(2) == 1 { std::cmp::min(3, max) } else { max };
+            d(sides)
+        } else if faction == Faction::Atreides || faction == Faction::Ixian {
+            if d(2) == 1 { d(max) } else { 2 + d(max - 2) }
+        } else if d(2) == 1 {
+            1 + d(max - 1)
+        } else {
+            2 + d(max - 2)
+        };
+        assert_eq!((e.to_win, e.turn), (faction, turn), "seed {seed}");
+        assert_eq!(b.random.state(), r.state(), "seed {seed}: the bot made other draws");
     }
 }
 

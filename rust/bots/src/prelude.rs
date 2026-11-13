@@ -5,7 +5,7 @@ pub use treachery_engine::events::GameEventType;
 pub use treachery_engine::game::Game;
 pub use treachery_engine::game::{Player, PlayerIndex};
 pub use treachery_engine::game::ObjectCounter;
-pub use treachery_engine::compat::random_ext::RandomExt;
+pub use treachery_engine::random::RandomPick;
 
 pub use crate::bot::{ClassicBot, Decision, Priority};
 pub use crate::parameters::BotParameters;

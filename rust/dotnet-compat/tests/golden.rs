@@ -1,11 +1,10 @@
-//! Golden tests: fixed cases for `NetRandom`, `NetDictionary`, `NetHashSet` and the number
-//! functions, with their results under `tests/golden/`.
+//! Golden tests: fixed cases for `NetDictionary`, `NetHashSet` and the number functions, with
+//! their results under `tests/golden/`.
 //!
-//! The expected results were recorded from .NET 10 when the crate was written. They pin the
-//! random sequence of each seed and the slot order of dictionaries and sets, which savegames
-//! depend on: a savegame is replayed from its events, so a different draw or iteration order
-//! turns it into a different game. Change them only together with a deliberate change to the
-//! game's randomness or ordering. Then rewrite the results from the Rust code (the cases stay)
+//! The expected results were recorded from .NET 10 when the crate was written. They pin the slot
+//! order of dictionaries and sets, which players see, and the number formatting and parsing of
+//! log texts and event strings. Change them only together with a deliberate change to that
+//! ordering or formatting. Then rewrite the results from the Rust code (the cases stay)
 //! and review the diff:
 //!
 //!     UPDATE_GOLDENS=1 cargo test --release -p dotnet-compat --test golden
@@ -35,11 +34,6 @@ fn check(name: &str) {
     let expected = v["expected"].as_array().unwrap();
     let failures = compare(cases, expected);
     assert!(failures.is_empty(), "{} {name} mismatches:\n{}", failures.len(), failures.join("\n"));
-}
-
-#[test]
-fn golden_random() {
-    check("random");
 }
 
 #[test]

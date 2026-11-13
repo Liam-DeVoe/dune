@@ -1,6 +1,5 @@
 use crate::prelude::*;
 
-use crate::compat::random_ext::RandomExt;
 
 impl Game {
     pub fn make_alliance(&mut self, a: Faction, b: Faction) {
@@ -20,12 +19,12 @@ impl Game {
         self.set_permissions(b, true);
 
         while self.player(player_a).hand_size_exceeded(self) {
-            let card = self.player(player_a).treachery_cards.iter().copied().random_or_default(self.random.as_ref().expect("random"));
+            let card = self.player(player_a).treachery_cards.iter().copied().random_item(self.random.as_ref().expect("random"));
             self.discard_player_treachery_card_boolean(Some(player_a), card, true);
         }
 
         while self.player(player_b).hand_size_exceeded(self) {
-            let card = self.player(player_b).treachery_cards.iter().copied().random_or_default(self.random.as_ref().expect("random"));
+            let card = self.player(player_b).treachery_cards.iter().copied().random_item(self.random.as_ref().expect("random"));
             self.discard_player_treachery_card_boolean(Some(player_b), card, true);
         }
     }

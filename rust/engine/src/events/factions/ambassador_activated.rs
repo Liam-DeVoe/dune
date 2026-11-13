@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use crate::compat::random_ext::RandomExt;
 
 #[derive(Clone, Debug)]
 pub struct AmbassadorActivated {
@@ -474,7 +473,7 @@ impl AmbassadorActivated {
                     vp.traitors.clone()
                 };
 
-                let revealed = to_select_from.into_iter().random_or_default(game.random.as_ref().required("random")?);
+                let revealed = to_select_from.into_iter().random_item(game.random.as_ref().required("random")?);
                 self.log_to(game, self.initiator(), elems![victim, " reveal ", revealed]);
                 self.log_to(game, victim, elems![self.initiator(), " get to see ", revealed]);
                 game.determine_next_shipment_and_move_sub_phase()?;

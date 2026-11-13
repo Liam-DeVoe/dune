@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use crate::compat::random_ext::RandomExt;
 
 #[derive(Clone, Debug)]
 pub struct TerrorRevealed {
@@ -223,7 +222,7 @@ impl TerrorRevealed {
                         .iter()
                         .copied()
                         .filter(|l| game.is_alive(Hero::Leader(*l)))
-                        .random_or_default(game.random.as_ref().required("random")?);
+                        .random_item(game.random.as_ref().required("random")?);
                     if let Some(random_leader) = random_leader {
                         let price = if random_leader.hero_type() == HeroType::VariableValue {
                             3
@@ -248,7 +247,7 @@ impl TerrorRevealed {
                     game.atomics_aftermath = territory;
 
                     while game.player(self.player()).hand_size_exceeded(game) {
-                        let card = game.player(self.player()).treachery_cards.iter().copied().random_or_default(game.random.as_ref().required("random")?);
+                        let card = game.player(self.player()).treachery_cards.iter().copied().random_item(game.random.as_ref().required("random")?);
                         game.discard_player_treachery_card_boolean(Some(self.player()), card, true);
                     }
 
@@ -256,7 +255,7 @@ impl TerrorRevealed {
                         while game.player(game.player(self.player()).allied_player(game).required("allied player")?).hand_size_exceeded(game) {
                             let ally = game.player(self.player()).allied_player(game).required("allied player")?;
                             let ally2 = game.player(self.player()).allied_player(game).required("allied player")?;
-                            let card = game.player(ally2).treachery_cards.iter().copied().random_or_default(game.random.as_ref().required("random")?);
+                            let card = game.player(ally2).treachery_cards.iter().copied().random_item(game.random.as_ref().required("random")?);
                             game.discard_player_treachery_card_boolean(Some(ally), card, true);
                         }
                     }
@@ -307,7 +306,7 @@ impl TerrorRevealed {
                             .treachery_cards
                             .iter()
                             .copied()
-                            .random_or_default(game.random.as_ref().required("random")?);
+                            .random_item(game.random.as_ref().required("random")?);
                         game.discard_treachery_card_boolean(card, true)?;
                     } else {
                         self.log_objects(game, elems![victim_faction, " have no treachery cards to discard"]);

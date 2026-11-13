@@ -272,9 +272,9 @@ impl ClassicBot {
             .find_map(|(applies, wanted)| if *applies { items().find(wanted) } else { None })
             .or_else(|| {
                 if me.treachery_cards.len() >= 3 || self.resources_including_ally_and_emperor_contribution(game) < 5 {
-                    items().highest_or_default(&self.random, |c| self.card_quality(game, *c, p))
+                    items().random_highest(&self.random, |c| self.card_quality(game, *c, p))
                 } else {
-                    items().lowest_or_default(&self.random, |c| self.card_quality(game, *c, p))
+                    items().random_lowest(&self.random, |c| self.card_quality(game, *c, p))
                 }
             })
             .unwrap_or_else(|| items().next().expect("an element"));
@@ -295,7 +295,7 @@ impl ClassicBot {
             .treachery_cards
             .iter()
             .copied()
-            .lowest_or_default(&self.random, |c| self.card_quality(game, *c, p))
+            .random_lowest(&self.random, |c| self.card_quality(game, *c, p))
             .filter(|c| self.card_quality(game, *c, p) <= 2);
 
         let mut e = IxianSwappedCardOnBid::new(game, self.faction(game));
@@ -352,7 +352,7 @@ impl ClassicBot {
 
         let richest_adjacent_spice_location = PerformHmsMovement::valid_locations(game)
             .filter(|l| current_location != Some(*l) && self.resources_in(game, *l) > 0)
-            .highest_or_default(&self.random, |l| self.resources_in(game, *l));
+            .random_highest(&self.random, |l| self.resources_in(game, *l));
         if let Some(l) = richest_adjacent_spice_location {
             return target_event(Some(l));
         }
@@ -364,7 +364,7 @@ impl ClassicBot {
             .iter()
             .copied()
             .filter(|l| current_location != Some(*l) && self.resources_in(game, *l) > 0)
-            .highest_or_default(&self.random, |l| self.resources_in(game, *l));
+            .random_highest(&self.random, |l| self.resources_in(game, *l));
         if let Some(richest) = richest_reachable_spice_location {
             return target_event(step_towards(richest, 1).or_else(|| step_towards(richest, 2)));
         }
@@ -439,7 +439,7 @@ impl ClassicBot {
     }
 
     pub fn determine_fremen_sent_monster(&self, game: &Game) -> Rc<FremenSentMonster> {
-        let target = FremenSentMonster::valid_targets(game).highest_or_default(&self.random, |t| {
+        let target = FremenSentMonster::valid_targets(game).random_highest(&self.random, |t| {
             self.total_max_dial_of_opponents(game, *t) + (2 * t.forces_of(game, self.player)) as f32
         });
         let mut e = FremenSentMonster::new(game, self.faction(game));
@@ -458,7 +458,7 @@ impl ClassicBot {
                 .iter()
                 .map(|(l, amount)| (*l, *amount))
                 .filter(|(l, _)| usable(*l))
-                .highest_or_default(&self.random, |(_, amount)| *amount)
+                .random_highest(&self.random, |(_, amount)| *amount)
                 .map(|(l, _)| l)
         })
     }
@@ -484,13 +484,13 @@ impl ClassicBot {
                 .iter()
                 .copied()
                 .filter(|l| game.resources_on_planet.contains_key(l) && can_take(l))
-                .highest_or_default(&self.random, |l| *game.resources_on_planet.index(l))
+                .random_highest(&self.random, |l| *game.resources_on_planet.index(l))
                 .or_else(|| {
                     valid_locations
                         .iter()
                         .copied()
                         .filter(|l| *l != game.map.sietch_tabr() && l.is_stronghold() && can_take(l))
-                        .lowest_or_default(&self.random, |l| self.total_max_dial_of_opponents(game, l.territory()))
+                        .random_lowest(&self.random, |l| self.total_max_dial_of_opponents(game, l.territory()))
                 })
         });
         let target = target.unwrap_or(game.map.polar_sink());
@@ -581,11 +581,11 @@ impl ClassicBot {
         if game.current_main_phase > MainPhase::Bidding
             && self.nr_of_battles_to_fight(game) <= Battle::valid_battle_heroes(game, self.player).len() as i32
         {
-            // The filter (which can draw) runs over every territory first, then the selector runs
-            // twice per remaining territory.
+            // The filter (which can draw) runs over every territory first, then the selector once
+            // per remaining territory.
             let territory = BeneGesseritBattleAnnouncement::valid_territories(game, self.player)
                 .filter(|t| self.i_want_to_announce_battle_in(game, *t))
-                .lowest_or_default(&self.random, |t| {
+                .random_lowest(&self.random, |t| {
                     self.dial_needed_against(game, *t, self.get_opponent_that_occupies(game, *t), false)
                 });
 
@@ -666,12 +666,12 @@ impl ClassicBot {
     pub fn determine_bene_gesserit_prediction(&self, game: &Game) -> Rc<BeneGesseritPrediction> {
         // A random human player if there is one, else any other player.
         let humans = self.others(game).into_iter().filter(|p| !game.is_bot(*p));
-        let predicted = humans.random_or_default(&self.random).or_else(|| self.others(game).into_iter().random_or_default(&self.random));
+        let predicted = humans.random_item(&self.random).or_else(|| self.others(game).into_iter().random_item(&self.random));
 
         let predicted = game.player(predicted.expect("predicted"));
         let maximum_turns = game.maximum_turns();
         // In `self.d(1, sides)` with a drawn `sides`, the draw for `sides` comes first.
-        // A negative `sides` throws after its draw.
+        // A `sides` below 0 panics.
         let turn = if predicted.is(Faction::Harkonnen) {
             let sides = if self.d(1, 2) == 1 { std::cmp::min(3, maximum_turns) } else { maximum_turns };
             self.d(1, sides)
@@ -969,7 +969,7 @@ impl ClassicBot {
         }
 
         let most_valuable = |filter: &dyn Fn(&Hero) -> bool| {
-            RequestTleilaxuRevival::valid_targets(game, self.player).filter(filter).highest_or_default(&self.random, |l| l.value())
+            RequestTleilaxuRevival::valid_targets(game, self.player).filter(filter).random_highest(&self.random, |l| l.value())
         };
 
         // The safe leaders are computed on the first target, and only if there is one (it can throw).
@@ -1161,21 +1161,21 @@ impl ClassicBot {
         } else if can_place(TerrorType::Extortion) && self.resources(game) < 5 {
             TerrorType::Extortion
         } else {
-            available_to_place.iter().copied().random_or_default(&self.random).unwrap_or_default()
+            available_to_place.iter().copied().random_item(&self.random).unwrap_or_default()
         };
 
         let strongholds = || valid_strongholds.iter().copied();
         let mut stronghold = if type_ == TerrorType::Atomics {
-            strongholds().highest_or_default(&self.random, |t| t.forces_of_all(game, &opponents))
+            strongholds().random_highest(&self.random, |t| t.forces_of_all(game, &opponents))
         } else {
-            strongholds().highest_or_default(&self.random, |t| t.forces_of(game, self.player))
+            strongholds().random_highest(&self.random, |t| t.forces_of(game, self.player))
         };
 
         if stronghold.is_none() && game.player(self.player).has_ally() {
-            stronghold = strongholds().highest_or_default(&self.random, |t| t.forces_of(game, self.allied_player(game).expect("allied player")) > 0);
+            stronghold = strongholds().random_highest(&self.random, |t| t.forces_of(game, self.allied_player(game).expect("allied player")) > 0);
         }
 
-        let stronghold = stronghold.or_else(|| strongholds().random_or_default(&self.random));
+        let stronghold = stronghold.or_else(|| strongholds().random_item(&self.random));
 
         if let Some(stronghold) = stronghold {
             e.type_ = type_;
@@ -1204,7 +1204,7 @@ impl ClassicBot {
             return Rc::new(e);
         }
 
-        let type_ = TerrorRevealed::get_types(game).filter(token_is_valid).random_or_default(&self.random).unwrap_or_default();
+        let type_ = TerrorRevealed::get_types(game).filter(token_is_valid).random_item(&self.random).unwrap_or_default();
         let card_in_sabotage = game.player(self.player).treachery_cards.iter().copied().find(|c| c.is_useless());
         let victim = game.get_player(Some(TerrorRevealed::get_victim(game)));
 
@@ -1233,17 +1233,17 @@ impl ClassicBot {
 
         let me = game.player(self.player);
         let valid = || AmbassadorPlaced::valid_strongholds(game, self.player);
-        let mut stronghold = valid().filter(|s| s.forces_of(game, self.player) > 0).random_or_default(&self.random);
+        let mut stronghold = valid().filter(|s| s.forces_of(game, self.player) > 0).random_item(&self.random);
         if stronghold.is_none() && me.has_ally() {
-            stronghold = valid().filter(|s| s.forces_of(game, self.allied_player(game).expect("allied player")) > 0).random_or_default(&self.random);
+            stronghold = valid().filter(|s| s.forces_of(game, self.allied_player(game).expect("allied player")) > 0).random_item(&self.random);
         }
 
         // In a stronghold where my side already has forces, an ambassador that keeps others out helps.
         let avoid_entering = stronghold.is_some();
 
         let stronghold = stronghold
-            .or_else(|| valid().filter(|s| self.vacant(game, *s)).random_or_default(&self.random))
-            .or_else(|| valid().random_or_default(&self.random));
+            .or_else(|| valid().filter(|s| self.vacant(game, *s)).random_item(&self.random))
+            .or_else(|| valid().random_item(&self.random));
 
         let available = AmbassadorPlaced::valid_ambassadors(game, self.player);
         let can_place = |a: Ambassador| available.contains(&a);
@@ -1275,7 +1275,7 @@ impl ClassicBot {
         } else if can_place(Ambassador::Ecaz) && !me.has_ally() {
             Ambassador::Ecaz
         } else if game.ambassadors_placed_this_turn == 0 {
-            AmbassadorPlaced::valid_ambassadors(game, self.player).into_iter().random_or_default(&self.random).unwrap_or_default()
+            AmbassadorPlaced::valid_ambassadors(game, self.player).into_iter().random_item(&self.random).unwrap_or_default()
         } else {
             Ambassador::None
         };
@@ -1298,7 +1298,7 @@ impl ClassicBot {
             // For now this is random.
             bene_gesserit_selected_ambassador = AmbassadorActivated::get_valid_bene_gesserit_ambassadors(game)
                 .into_iter()
-                .random_or_default(&self.random)
+                .random_item(&self.random)
                 .unwrap_or_default();
             ambassador = bene_gesserit_selected_ambassador;
         }
@@ -1382,8 +1382,8 @@ impl ClassicBot {
                     self.opponents(game).into_iter().filter(|o| self.is_almost_winning_opponent(game, *o)).collect();
 
                 // Each target goes through every step below, including the draws in
-                // `construct_attack`, before the next target starts. `lowest_or_default` collects
-                // the attacks first, then runs its selector twice per attack.
+                // `construct_attack`, before the next target starts. `random_lowest` collects
+                // the attacks first, then runs its selector once per attack.
                 let attack = AmbassadorActivated::valid_guild_targets(game, self.player)
                     .filter(|l| l.is_stronghold())
                     .filter(|l| dangerous_opponents.is_empty() || dangerous_opponents.iter().any(|o| game.player(*o).occupies(game, Some(*l))))
@@ -1401,7 +1401,7 @@ impl ClassicBot {
                         _ => false,
                     })
                     .filter(|s| s.has_forces() && s.shortage_for_shipment == 0.0)
-                    .lowest_or_default(&self.random, |s| s.dial_needed + ClassicBot::determine_penalty(game, s.opponent));
+                    .random_lowest(&self.random, |s| s.dial_needed + ClassicBot::determine_penalty(game, s.opponent));
 
                 if let Some(attack) = attack {
                     let mut e = new_event();
@@ -1416,7 +1416,7 @@ impl ClassicBot {
                     AmbassadorActivated::valid_tleilaxu_heroes(game, self.player)
                         .into_iter()
                         .filter(filter)
-                        .highest_or_default(&self.random, |l| l.value())
+                        .random_highest(&self.random, |l| l.value())
                 };
                 let safe: OnceCell<Vec<Hero>> = OnceCell::new();
                 let hero_to_revive = most_valuable(&|l| safe.get_or_init(|| self.safe_or_known_traitor_leaders(game)).contains(l))

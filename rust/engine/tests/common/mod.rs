@@ -1,5 +1,5 @@
 //! Shared helpers for the snapshot tests: tests that compare what the engine computes with values
-//! recorded in `tests/golden/` (event_json.rs, message_corpus.rs, random_helpers.rs,
+//! recorded in `tests/golden/` (event_json.rs, message_corpus.rs,
 //! static_data.rs, review_pkg_c.rs, sync_v188.rs).
 //!
 //! The recorded values pin behavior that savegames, players and bots depend on, so a difference

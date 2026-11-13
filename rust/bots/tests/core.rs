@@ -1,6 +1,6 @@
 //! The bot's dice, decision dispatch and parameters.
 //!
-//! `golden/core.json` holds the expected dice results (with the draw count after each roll) and
+//! `golden/core.json` holds the expected dice results (with the stream position after each roll) and
 //! every faction's parameters, as snapshots of the current behavior. After a deliberate change,
 //! rewrite it with `UPDATE_GOLDENS=1 cargo test --release -p treachery-bots --test core` and
 //! review the diff.
@@ -11,6 +11,7 @@ use std::cell::Cell;
 
 use serde_json::{json, Value};
 use treachery_bots::prelude::*;
+use treachery_engine::random::Rng;
 use treachery_engine::error::catch_panic;
 
 use common::{read_json, updating, write_json};
@@ -42,14 +43,14 @@ fn dice() {
     for case in g["d"].as_array().unwrap() {
         let (amount, sides) = (case[0].as_i64().unwrap() as i32, case[1].as_i64().unwrap() as i32);
         let result = catch_panic(|| bot.d(amount, sides)).map_or_else(|e| format!("EX:{e}"), |r| r.to_string());
-        actual.push(json!([amount, sides, result, bot.random.get_count()]));
+        actual.push(json!([amount, sides, result, bot.random.state().get_word_pos().to_string()]));
     }
     if updating() {
         update("d", json!(actual));
         return;
     }
     for (case, actual) in g["d"].as_array().unwrap().iter().zip(&actual) {
-        assert_eq!(actual, case, "D({}, {}): [amount, sides, result, draws after]", case[0], case[1]);
+        assert_eq!(actual, case, "D({}, {}): [amount, sides, result, stream position after]", case[0], case[1]);
     }
 }
 
@@ -156,5 +157,10 @@ fn draws_before_an_exception_stay() {
         None
     });
     assert!(r.is_none());
-    assert_eq!(bot.random.get_count(), 3);
+    // The two dice of `d(2, 6)` were drawn; `d(1, -1)` panicked without drawing.
+    let expected = SharedRandom::from_seed(1);
+    for _ in 0..2 {
+        expected.lock().random_range(1..=6);
+    }
+    assert_eq!(bot.random.state(), expected.state());
 }

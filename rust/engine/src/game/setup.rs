@@ -1,4 +1,3 @@
-use crate::compat::random_ext::RandomExt;
 use crate::prelude::*;
 
 impl Game {
@@ -77,7 +76,7 @@ impl Game {
 
             if self.applicable(Rule::EcazLoyalty) {
                 let leaders = self.player(ecaz).leaders.clone();
-                self.ecaz_loyal_leader = leaders.into_iter().random_or_default(self.random.as_ref().expect("random"));
+                self.ecaz_loyal_leader = leaders.into_iter().random_item(self.random.as_ref().expect("random"));
                 let pll = self.ecaz_loyal_leader;
                 self.log(vec![pll.into(), " is forever loyal to ".into(), Faction::Ecaz.into()]);
             }

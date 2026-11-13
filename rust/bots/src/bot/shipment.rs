@@ -247,7 +247,7 @@ impl ClassicBot {
             .iter()
             .map(|(k, v)| (*k, *v))
             .filter(|(k, _)| self.suitable_for_guild_shipment(game, *k) && self.nearby_battalions_outside_strongholds(game, *k).is_empty())
-            .highest_or_default(&self.random, |kvp| kvp.1)
+            .random_highest(&self.random, |kvp| kvp.1)
             .map(|kvp| kvp.0);
 
         if let Some(best_location) = best_location {
@@ -340,7 +340,7 @@ impl ClassicBot {
             .iter()
             .map(|(k, v)| (*k, *v))
             .filter(|(k, _)| suitable(*k))
-            .highest_or_default(&self.random, |kvp| kvp.1)
+            .random_highest(&self.random, |kvp| kvp.1)
             .map(|kvp| kvp.0);
 
         if let Some(best_location) = best_location {
@@ -433,7 +433,7 @@ impl ClassicBot {
             .map(|s| (s, self.max_potential_force_shortage(game, take_reinforcements_into_account, s)))
             .collect();
 
-        let (location, difference) = my_weak_strongholds.into_iter().filter(|s| s.1 > 0.0).highest_or_default(&self.random, |s| s.1)?;
+        let (location, difference) = my_weak_strongholds.into_iter().filter(|s| s.1 > 0.0).random_highest(&self.random, |s| s.1)?;
 
         let opponent = self.opponents(game).into_iter().find(|o| game.player(*o).any_forces_in(Some(location)) > 0);
         let dial_needed = self.make_even_if_efficient_for_shipping(game, difference + extra_forces as f32);
@@ -497,7 +497,7 @@ impl ClassicBot {
                 (*l == game.map.arrakeen() && self.ally_doesnt_block(game, game.map.arrakeen()))
                     || (*l == game.map.carthag() && self.ally_doesnt_block(game, game.map.carthag()))
             })
-            .lowest_or_default(&self.random, |l| self.total_max_dial_of_opponents(game, l.territory()))?;
+            .random_lowest(&self.random, |l| self.total_max_dial_of_opponents(game, l.territory()))?;
 
         let opponent = self.occupying_opponent_in(game, me, target.territory());
         let needed = match opponent {
@@ -565,7 +565,7 @@ impl ClassicBot {
         let target = self
             .valid_shipment_locations(game, false, false)
             .filter(|l| l.is_homeworld() && !game.any_forces_in(l.territory()))
-            .random_or_default(&self.random)?;
+            .random_item(&self.random)?;
 
         let size = self.shipment_size_from_reserves(game, 1.0, false, target, None, min_resources_to_keep, max_unsupported_forces, true);
         if size.shortage <= 0.0 {
@@ -621,7 +621,7 @@ impl ClassicBot {
         let attack = attacks
             .into_iter()
             .filter(|a| a.has_forces() && a.shortage_for_shipment <= risk_appetite)
-            .lowest_or_default(&self.random, |a| a.dial_needed)?;
+            .random_lowest(&self.random, |a| a.dial_needed)?;
 
         self.plan_attack(game, ShipmentDecision::PreventNormalWin, &attack)
     }
@@ -650,7 +650,7 @@ impl ClassicBot {
                 None => false,
             })
             .filter(|s| s.has_forces() && s.shortage_for_shipment - self.unlocked_forces_in_polar_sink(game, s.location) as f32 <= extra_forces as f32)
-            .lowest_or_default(&self.random, |s| s.dial_needed + Self::determine_penalty(game, s.opponent))?;
+            .random_lowest(&self.random, |s| s.dial_needed + Self::determine_penalty(game, s.opponent))?;
 
         self.plan_attack(game, ShipmentDecision::AttackWeakStronghold, &attack)
     }
@@ -882,7 +882,7 @@ impl ClassicBot {
                     && !self.storm_will_probably_hit(game, k)
                     && self.probably_safe_from_monster(game, k.territory())
             })
-            .highest_or_default(&self.random, |kvp| kvp.1)
+            .random_highest(&self.random, |kvp| kvp.1)
             .map(|kvp| kvp.0)
     }
 
@@ -969,7 +969,7 @@ impl ClassicBot {
             let most_dangerous_opponent = opponents
                 .iter()
                 .copied()
-                .highest_or_default(&self.random, |opp| Self::max_reinforced_dial_to(game, me, *opp, s.territory()));
+                .random_highest(&self.random, |opp| Self::max_reinforced_dial_to(game, me, *opp, s.territory()));
 
             if let Some(most_dangerous_opponent) = most_dangerous_opponent {
                 max_reinforced_dial = Self::max_reinforced_dial_to(game, me, most_dangerous_opponent, s.territory());

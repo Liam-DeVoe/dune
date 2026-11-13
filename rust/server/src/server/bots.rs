@@ -3,10 +3,9 @@
 use std::time::Duration;
 
 use treachery_bots::{BotParameters, ClassicBot, Priority};
-use treachery_engine::cards::deck::Deck;
 use treachery_engine::enumerations::{ErrorType, MainPhase, Phase};
 use treachery_engine::events::GameEvent;
-use treachery_engine::random::SharedRandom;
+use treachery_engine::random::{self, SharedRandom, SliceRandom};
 use treachery_engine::game::PlayerIndex;
 
 use super::{done, CallError, Reply, RunningGame, Server};
@@ -79,7 +78,7 @@ impl Server {
         }
         let bots_act_as_hosts = no_host && g.game.number_of_observers() > 0;
         let mut bots: Vec<PlayerIndex> = g.game.player_indices().filter(|&p| g.game.is_bot(p)).collect();
-        Deck::shuffle_list(&mut bots, &SharedRandom::from_seed(ids::new_seed()));
+        bots.shuffle(&mut random::new_rng(ids::new_seed()));
         let options: Vec<_> = bots.iter().map(|&p| g.game.get_applicable_events(Some(p), bots_act_as_hosts)).collect();
 
         let levels = if bots_act_as_hosts { 5 } else { 4 };

@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use treachery_engine::random::IndexedRandom;
 use crate::support::{cast_hero, unbox_enum, unbox_float, unbox_int};
 use std::cmp::Reverse;
 use treachery_engine::events::PlacementEventMethods;
@@ -147,7 +148,7 @@ impl ClassicBot {
     pub fn determine_traitor_discarded(&self, game: &Game) -> Rc<TraitorDiscarded> {
         let worst_traitor = self
             .determine_worst_traitor(game)
-            .or_else(|| game.player(self.player).traitors.iter().copied().lowest_or_default(&self.random, |t| t.value()));
+            .or_else(|| game.player(self.player).traitors.iter().copied().random_lowest(&self.random, |t| t.value()));
         let mut e = TraitorDiscarded::new(game, self.faction(game));
         e.set_traitor(worst_traitor);
         Rc::new(e)
@@ -160,16 +161,16 @@ impl ClassicBot {
 
         traitors()
             .filter(|t| me.revealed_traitors.contains(t))
-            .highest_or_default(&self.random, |t| t.value())
+            .random_highest(&self.random, |t| t.value())
             .or_else(|| {
                 if self.ally(game) == Faction::Tleilaxu || !game.is_playing(Faction::Tleilaxu) {
-                    traitors().filter(|t| t.faction() == faction).lowest_or_default(&self.random, |t| t.value())
+                    traitors().filter(|t| t.faction() == faction).random_lowest(&self.random, |t| t.value())
                 } else {
                     None
                 }
             })
-            .or_else(|| traitors().filter(|t| t.as_leader().is_some() && !game.is_alive(*t)).lowest_or_default(&self.random, |t| t.value()))
-            .or_else(|| traitors().filter(|t| t.as_leader().is_some()).lowest_or_default(&self.random, |t| t.value()))
+            .or_else(|| traitors().filter(|t| t.as_leader().is_some() && !game.is_alive(*t)).random_lowest(&self.random, |t| t.value()))
+            .or_else(|| traitors().filter(|t| t.as_leader().is_some()).random_lowest(&self.random, |t| t.value()))
     }
 
     pub fn determine_nexus_played(&mut self, game: &Game) -> Option<Rc<NexusPlayed>> {
@@ -294,10 +295,10 @@ impl ClassicBot {
 
         let mut result = None;
         if candidates.len() >= 2 {
-            result = candidates.iter().copied().highest_or_default(&self.random, forces);
+            result = candidates.iter().copied().random_highest(&self.random, forces);
         }
 
-        result.or_else(|| candidates.iter().copied().filter(|t| forces(t) > 7).highest_or_default(&self.random, forces))
+        result.or_else(|| candidates.iter().copied().filter(|t| forces(t) > 7).random_highest(&self.random, forces))
     }
 
     pub fn is_winning_or_is_opponent_in_battle(&self, game: &Game, faction: Faction) -> bool {
@@ -459,7 +460,7 @@ impl ClassicBot {
             forces += 1;
         }
 
-        let hero = NexusPlayed::valid_tleilaxu_heroes(game, self.player).into_iter().highest_or_default(&self.random, |l| l.value());
+        let hero = NexusPlayed::valid_tleilaxu_heroes(game, self.player).into_iter().random_highest(&self.random, |l| l.value());
         if !((hero.is_some() && forces + special_forces > 2) || forces + special_forces >= 5) {
             return false;
         }
@@ -563,7 +564,7 @@ impl ClassicBot {
         };
 
         // Swap with an opponent holding 2 or more good cards that I know of.
-        let most_good_cards = self.opponents(game).into_iter().highest_or_default(&self.random, |o| known_cards_with(*o, true));
+        let most_good_cards = self.opponents(game).into_iter().random_highest(&self.random, |o| known_cards_with(*o, true));
         if let Some(o) = most_good_cards.filter(|o| known_cards_with(*o, true) >= 2) {
             return swap_with(o);
         }
@@ -625,12 +626,12 @@ impl ClassicBot {
                 .iter()
                 .map(|l| Hero::Leader(*l))
                 .filter(|l| game.is_alive(*l) && !safe.get_or_insert_with(|| self.safe_or_known_traitor_leaders(game)).contains(l))
-                .highest_or_default(&self.random, |l| l.value());
+                .random_highest(&self.random, |l| l.value());
             let best_player_to_ask = self
                 .opponents(game)
                 .into_iter()
                 .filter(|o| !best_leader_to_ask_about.is_some_and(|l| game.player(*o).told_non_traitors.contains(&l)))
-                .highest_or_default(&self.random, |p| {
+                .random_highest(&self.random, |p| {
                     let pl = game.player(*p);
                     pl.traitors.len() as i32 - pl.revealed_traitors.len() as i32
                 });
@@ -789,8 +790,8 @@ impl ClassicBot {
         candidates()
             .into_iter()
             .filter(|l| safe.get_or_insert_with(|| self.safe_or_known_traitor_leaders(game)).contains(l) && acceptable(*l))
-            .highest_or_default(&self.random, score)
-            .or_else(|| candidates().into_iter().filter(|l| acceptable(*l)).highest_or_default(&self.random, score))
+            .random_highest(&self.random, score)
+            .or_else(|| candidates().into_iter().filter(|l| acceptable(*l)).random_highest(&self.random, score))
     }
 
     pub fn determine_raise_dead_played(&self, game: &Game) -> Option<Rc<RaiseDeadPlayed>> {
@@ -883,8 +884,8 @@ impl ClassicBot {
     pub fn determine_traitors_selected(&self, game: &Game) -> Rc<TraitorsSelected> {
         let me = game.player(self.player);
         let faction = self.faction(game);
-        let traitor = me.traitors.iter().copied().filter(|l| l.faction() != faction).highest_or_default(&self.random, |l| l.value()).or_else(|| {
-            me.traitors.iter().copied().highest_or_default(&self.random, |l| {
+        let traitor = me.traitors.iter().copied().filter(|l| l.faction() != faction).random_highest(&self.random, |l| l.value()).or_else(|| {
+            me.traitors.iter().copied().random_highest(&self.random, |l| {
                 l.value() - if l.faction() == Faction::Atreides && game.applicable(Rule::AtreidesMessiah) { 2 } else { 0 }
             })
         });
@@ -923,7 +924,7 @@ impl ClassicBot {
             options.push(StormKills { moves, mine, enemy });
         }
 
-        let best = options.into_iter().highest_or_default(&self.random, |k| k.enemy - k.mine).expect("there are always 11 options");
+        let best = options.into_iter().random_highest(&self.random, |k| k.enemy - k.mine).expect("there are always 11 options");
 
         if best.enemy - best.mine >= 10 - (game.current_turn + if game.player(self.player).has_room_for_cards(game) { 0 } else { 4 }) {
             let mut storm_spell = StormSpellPlayed::new(game, faction);
@@ -939,7 +940,7 @@ impl ClassicBot {
             return None;
         }
 
-        let worst_card = DistransUsed::valid_cards(game, self.player).lowest_or_default(&self.random, |c| self.card_quality(game, *c, Some(self.player)))?;
+        let worst_card = DistransUsed::valid_cards(game, self.player).random_lowest(&self.random, |c| self.card_quality(game, *c, Some(self.player)))?;
         if self.card_quality(game, worst_card, Some(self.player)) > 1 {
             return None;
         }
@@ -948,7 +949,7 @@ impl ClassicBot {
         let target = DistransUsed::valid_targets(game, self.player)
             .filter(|f| *f != ally && (!game.applicable(Rule::BeneGesseritWorthlessAsKarma) || *f != Faction::BeneGesserit))
             .map(|f| game.get_player(Some(f)).expect("player"))
-            .highest_or_default(&self.random, |p| game.number_of_victory_points(*p, true))?;
+            .random_highest(&self.random, |p| game.number_of_victory_points(*p, true))?;
 
         let mut e = DistransUsed::new(game, self.faction(game));
         e.set_card(Some(worst_card));
@@ -1137,13 +1138,13 @@ impl ClassicBot {
         }
 
         let card_to_search =
-            DiscardedSearched::valid_cards(game).into_iter().highest_or_default(&self.random, |c| self.card_quality(game, *c, Some(self.player)))?;
+            DiscardedSearched::valid_cards(game).into_iter().random_highest(&self.random, |c| self.card_quality(game, *c, Some(self.player)))?;
         (self.card_quality(game, card_to_search, Some(self.player)) >= 4).then(|| Rc::new(DiscardedSearchedAnnounced::new(game, self.faction(game))))
     }
 
     pub fn determine_discarded_searched(&self, game: &Game) -> Rc<DiscardedSearched> {
         let card_to_search =
-            DiscardedSearched::valid_cards(game).into_iter().highest_or_default(&self.random, |c| self.card_quality(game, *c, Some(self.player)));
+            DiscardedSearched::valid_cards(game).into_iter().random_highest(&self.random, |c| self.card_quality(game, *c, Some(self.player)));
         let mut e = DiscardedSearched::new(game, self.faction(game));
         e.set_card(card_to_search);
         Rc::new(e)
@@ -1151,7 +1152,7 @@ impl ClassicBot {
 
     pub fn determine_discarded_taken(&self, game: &Game) -> Option<Rc<DiscardedTaken>> {
         let card_to_take =
-            DiscardedTaken::valid_cards(game, self.player).highest_or_default(&self.random, |c| self.card_quality(game, *c, Some(self.player)))?;
+            DiscardedTaken::valid_cards(game, self.player).random_highest(&self.random, |c| self.card_quality(game, *c, Some(self.player)))?;
         if self.card_quality(game, card_to_take, Some(self.player)) < 4 {
             return None;
         }
@@ -1242,12 +1243,7 @@ impl ClassicBot {
     }
 
     pub fn random_item_from<T: Clone>(&self, items: &[T]) -> T {
-        // An empty list rolls 0, which fails here.
-        let i = self.d(1, items.len() as i32) - 1;
-        match usize::try_from(i).ok().and_then(|i| items.get(i)) {
-            Some(item) => item.clone(),
-            None => panic!("index out of range"),
-        }
+        items.choose(&mut *self.random.lock()).expect("an item to choose from").clone()
     }
 
     pub fn determine_planetology(&self, game: &Game) -> Rc<Planetology> {

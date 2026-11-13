@@ -654,7 +654,7 @@ impl ClassicBot {
 
         let unknown_cards = Self::cards_unknown_to_player(game, player);
 
-        let best_defense_against_unknown_cards = available_defenses.iter().copied().lowest_or_default(&self.random, |def| {
+        let best_defense_against_unknown_cards = available_defenses.iter().copied().random_lowest(&self.random, |def| {
             Self::number_of_unknown_weapons_that_could_kill_me_with_player_defense(&unknown_cards, Some(*def), chosen_weapon)
         });
 
@@ -860,7 +860,7 @@ impl ClassicBot {
             .iter()
             .copied()
             .filter(|w| !known_enemy_defenses.iter().any(|defense| w.countered_by(Some(*defense), None)))
-            .random_or_default(&self.random);
+            .random_item(&self.random);
 
         if let Some(weapon) = weapon {
             if !weapon.is_mirror_weapon() {
@@ -878,7 +878,7 @@ impl ClassicBot {
             return choice(0.5, Some(weapon), enemy_can_defend_poison_tooth);
         }
 
-        let weapon = useful_weapons.iter().copied().filter(|w| !Self::is_known_to(game, opponent, *w)).random_or_default(&self.random);
+        let weapon = useful_weapons.iter().copied().filter(|w| !Self::is_known_to(game, opponent, *w)).random_item(&self.random);
 
         if weapon.is_some() {
             return choice(0.5, weapon, enemy_can_defend_poison_tooth);
@@ -985,14 +985,14 @@ impl ClassicBot {
             unsafe_hero = heroes()
                 .into_iter()
                 .filter(|l| !safe.contains(l))
-                .lowest_or_default(&self.random, value_auditor_10)
-                .or_else(|| heroes().into_iter().lowest_or_default(&self.random, value_auditor_10));
+                .random_lowest(&self.random, value_auditor_10)
+                .or_else(|| heroes().into_iter().random_lowest(&self.random, value_auditor_10));
         } else if highest {
-            safe_hero = safe_leaders().into_iter().highest_or_default(&self.random, value);
-            unsafe_hero = heroes().into_iter().highest_or_default(&self.random, value_auditor_10);
+            safe_hero = safe_leaders().into_iter().random_highest(&self.random, value);
+            unsafe_hero = heroes().into_iter().random_highest(&self.random, value_auditor_10);
         } else {
-            safe_hero = safe_leaders().into_iter().lowest_or_default(&self.random, value_auditor_10);
-            unsafe_hero = heroes().into_iter().one_of_lowest_n_or_default(&self.random, value_auditor_10, 2);
+            safe_hero = safe_leaders().into_iter().random_lowest(&self.random, value_auditor_10);
+            unsafe_hero = heroes().into_iter().random_of_lowest_n(&self.random, value_auditor_10, 2);
         }
 
         let hero = if safe_hero.is_none()
@@ -1282,7 +1282,7 @@ impl ClassicBot {
         let mut result = ThoughtAnswered::new(game, self.faction(game));
         let card = ThoughtAnswered::valid_cards(game, self.player)
             .into_iter()
-            .lowest_or_default(&self.random, |c| self.card_quality(game, *c, Some(self.player)));
+            .random_lowest(&self.random, |c| self.card_quality(game, *c, Some(self.player)));
         result.set_card(card);
         Rc::new(result)
     }
@@ -1326,7 +1326,7 @@ impl ClassicBot {
 
         let to = Retreat::valid_targets(game, self.player)
             .filter(|l| self.resources_in(game, *l) > 0)
-            .highest_or_default(&self.random, |l| self.resources_in(game, *l))
+            .random_highest(&self.random, |l| self.resources_in(game, *l))
             .or_else(|| Retreat::valid_targets(game, self.player).find(|l| l.is_protected_from_storm()))
             .or_else(|| Retreat::valid_targets(game, self.player).next());
 

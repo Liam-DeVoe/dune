@@ -108,7 +108,7 @@ impl ClassicBot {
                 .iter()
                 .filter(|offer| offer.target == faction && !(from_humans_only && game.is_bot(offer.player())))
                 .cloned()
-                .highest_or_default(&self.random, |offer| self.player_standing(game, offer.player()))
+                .random_highest(&self.random, |offer| self.player_standing(game, offer.player()))
         };
         // Accept the best offer from a human, else the best from a bot.
         if let Some(offer) = best_offer_to_me(true).or_else(|| best_offer_to_me(false)) {
@@ -141,7 +141,7 @@ impl ClassicBot {
                     && !game.player(p).has_ally()
                     && AllianceOffered::valid_targets(game, me).any(|f| f == game.player(p).faction)
             })
-            .highest_or_default(&self.random, |&p| self.player_standing(game, p))?;
+            .random_highest(&self.random, |&p| self.player_standing(game, p))?;
 
         let mut result = AllianceOffered::new(game, faction);
         result.target = game.player(most_interesting_bot_without_ally).faction;
@@ -184,7 +184,7 @@ impl ClassicBot {
             .iter()
             .filter(|offer| offer.target == faction && !game.is_bot(offer.player()))
             .cloned()
-            .highest_or_default(&self.random, |offer| self.player_standing(game, offer.player()))?;
+            .random_highest(&self.random, |offer| self.player_standing(game, offer.player()))?;
 
         let better_than_my_ally = game.player(self.player).has_ally()
             && self.player_standing(game, offer.player()) > self.player_standing(game, self.allied_player(game).expect("allied player"));

@@ -5,7 +5,7 @@
 //!
 //! Games are compared by a fingerprint of what players and later events can see: the saved
 //! history, the log, the phase, every player's resources, cards, leaders and forces, the events
-//! each player may submit, and how many random draws the game made.
+//! each player may submit, and how far the game's random stream has advanced.
 
 use treachery_engine::error::catch_panic;
 use treachery_engine::shared::Shared;
@@ -22,7 +22,7 @@ fn dump(g: &mut Game) -> String {
     let mut lines = vec![
         format!("history: {}", GameState::get_state_as_string(g)),
         format!("phase: {} turn {}", g.current_phase, g.current_turn),
-        format!("draws: {:?}", g.random.as_ref().map(|r| r.get_count())),
+        format!("stream position: {:?}", g.random.as_ref().map(|r| r.state().get_word_pos())),
     ];
     for (i, report) in std::iter::once(&g.pre_game_report).chain(g.report_list.iter()).enumerate() {
         for m in &report.messages {

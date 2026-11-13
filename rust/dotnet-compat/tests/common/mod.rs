@@ -9,7 +9,7 @@
 use dotnet_compat::math::{self, MidpointRounding};
 use dotnet_compat::parse;
 use dotnet_compat::CsException;
-use dotnet_compat::{NetDictionary, NetHashSet, NetRandom};
+use dotnet_compat::{NetDictionary, NetHashSet};
 use serde_json::{Value, json};
 use std::cmp::Ordering;
 use std::panic::{AssertUnwindSafe, catch_unwind};
@@ -45,28 +45,11 @@ fn catching(f: impl FnOnce() -> Value) -> Value {
 
 pub fn run_rust(case: &Value) -> Value {
     match case["t"].as_str().unwrap() {
-        "random" => rust_random(case),
         "dict" => rust_dict(case),
         "set" => rust_set(case),
         "math" => rust_math(case),
         t => panic!("unknown case {t}"),
     }
-}
-
-fn rust_random(case: &Value) -> Value {
-    let mut r = NetRandom::new(case["seed"].as_i64().unwrap() as i32);
-    let mut out = Vec::new();
-    for op in case["ops"].as_array().unwrap() {
-        let o = ints(op);
-        let v = match o[0] {
-            0 => json!(r.next()),
-            1 => catching(|| json!(r.next_max(o[1]))),
-            2 => catching(|| json!(r.next_range(o[1], o[2]))),
-            _ => bd(r.next_double()),
-        };
-        out.push(v);
-    }
-    Value::Array(out)
 }
 
 fn snap_dict(d: &NetDictionary<i32, i32>) -> Value {
@@ -250,7 +233,6 @@ fn rust_math(case: &Value) -> Value {
                         Ordering::Equal => 0,
                         Ordering::Greater => 1,
                     },
-                    math::equals_f64(a, b),
                     bd(math::math_max_f64(a, b)),
                     bd(math::math_min_f64(a, b)),
                     bf(math::math_max_f32(a as f32, b as f32)),

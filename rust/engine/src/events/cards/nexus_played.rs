@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use crate::compat::random_ext::RandomExt;
 
 #[derive(Clone, Debug)]
 pub struct NexusPlayed {
@@ -507,7 +506,7 @@ impl NexusPlayed {
                         .treachery_cards
                         .iter()
                         .copied()
-                        .random_or_default(game.random.as_ref().required("random")?);
+                        .random_item(game.random.as_ref().required("random")?);
                     if let Some(card) = card {
                         game.discard_treachery_card_boolean(Some(card), true)?;
                     }
@@ -583,7 +582,7 @@ impl NexusPlayed {
                     let terror_to_remove = game
                         .terror_in(moritani_territory)
                         .into_iter()
-                        .random_or_default(game.random.as_ref().required("random")?)
+                        .random_item(game.random.as_ref().required("random")?)
                         .unwrap_or_default();
                     game.terror_on_planet.remove(&terror_to_remove);
                     game.unplaced_terror_tokens.push(terror_to_remove);
@@ -824,7 +823,7 @@ impl NexusPlayed {
                     );
 
                     if !auditable_cards.is_empty() {
-                        let audited_card = auditable_cards.iter().copied().random_or_default(game.random.as_ref().expect("random"));
+                        let audited_card = auditable_cards.iter().copied().random_item(game.random.as_ref().expect("random"));
                         if let Some(audited_card) = audited_card {
                             Game::register_known_player_treachery_card(game, actor, Some(audited_card));
                             self.log_to(game, self.initiator(), elems!["You see: ", audited_card]);

@@ -1,5 +1,5 @@
 use crate::error::{GameError, GameResult};
-use crate::random::SharedRandom;
+use crate::random::{SharedRandom, SliceRandom};
 
 /// A deck of cards, tokens or leaders. `random` is `None` for a deck created before
 /// `EstablishPlayers` seeds the game; such a deck can't be shuffled.
@@ -51,31 +51,18 @@ impl<T: Clone> Deck<T> {
         Ok(self.items.remove(0))
     }
 
-    /// `Shuffle()`
+    /// Shuffles the deck. A deck without a generator can only "shuffle" when it has fewer than
+    /// two items.
     pub fn shuffle(&mut self) {
         match &self.random {
-            Some(random) => Self::shuffle_list(&mut self.items, random),
+            Some(random) => self.items.shuffle(&mut *random.lock()),
             None => {
-                // C# parity: with no items or one item, Shuffle never touches Random.
                 if self.items.len() > 1 {
                     panic!("shuffling a deck without a random generator")
                 }
             }
         }
     }
-
-    /// `Deck<T>.Shuffle(items, random)` (static)
-    pub fn shuffle_list(items: &mut [T], random: &SharedRandom) {
-        let mut n = items.len();
-        while n > 1 {
-            n -= 1;
-            let k = random.next(n as i32 + 1) as usize;
-            items.swap(n, k);
-        }
-    }
-
-    // `Deck<T>.Randomize` uses an unseeded `new LoggedRandom()` and nothing
-    // calls it, so it is not ported.
 
     /// `IsEmpty`
     pub fn is_empty(&self) -> bool {

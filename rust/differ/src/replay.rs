@@ -21,7 +21,7 @@ use treachery_engine::messages::message::Message;
 use treachery_engine::game::Participation;
 use treachery_engine::enumerations::Faction;
 use treachery_engine::random::SharedRandom;
-use treachery_bots::{BotParameters, ClassicBot, IBot};
+use treachery_bots::{BotParameters, ClassicBot, Priority};
 
 
 use crate::diff;
@@ -327,6 +327,11 @@ struct Replayer {
     csharp_hung: Option<String>,
     /// Whether this replay runs the Rust bots (`Options::check_bots` and a `bots`-mode trace).
     bots_active: bool,
+    /// Set at the first undo, restore or dismiss. C#'s undo keeps references from the new
+    /// game to the old one, which its state dump writes (`OtherGame`, players of the old
+    /// game). Rust undo is a snapshot with no such references (engine-conventions.md,
+    /// "Undo"), so from then on state hashes aren't compared; everything else still is.
+    after_undo: bool,
     /// The bots, one per faction, in creation order, as the oracle's `_bots`. They outlive undo.
     bots: Vec<RegisteredBot>,
     /// The result of the latest `GetApplicableEvents` query of each player on the current line:
@@ -388,6 +393,7 @@ impl Replayer {
             progress: None,
             csharp_hung: None,
             bots_active: false,
+            after_undo: false,
             bots: Vec::new(),
             queried: Vec::new(),
             deliberation: None,
@@ -482,6 +488,7 @@ impl Replayer {
                 event_type = Some(ev.event_type().name().to_string());
             }
             "undo" | "restoreRecentlyUndone" | "dismissRecentlyUndone" => {
+                self.after_undo = true;
                 self.during = line.kind.clone();
                 let until = line.until_event_nr;
                 let game = self.game();
@@ -547,6 +554,7 @@ impl Replayer {
                 }
                 return Ok(());
             }
+            "end" if self.after_undo => return Ok(()),
             "end" => {
                 self.during = "the final dump".into();
                 let (hash, dump) = self.dump();
@@ -603,7 +611,7 @@ impl Replayer {
         }
 
         let mut hash_failure = None;
-        if line.hash.is_some() {
+        if line.hash.is_some() && !self.after_undo {
             let (hash, dump) = self.dump();
             if let Err(f) = self.compare_hash(line, text, event_type.clone(), hash, dump) {
                 hash_failure = Some(f);
@@ -825,7 +833,7 @@ impl Replayer {
                 return Err(Failure::BadTrace(format!("bots entry: no player {player}")));
             }
             let p = game.player_at(*player);
-            let bot = ClassicBot::new(game, p, BotParameters::get_default_parameters(faction), Some(SharedRandom::from_seed(*seed)));
+            let bot = ClassicBot::new(p, BotParameters::for_faction(faction), SharedRandom::from_seed(*seed));
             self.bots.push(RegisteredBot { faction, label: label.clone(), bot });
         }
 
@@ -848,14 +856,15 @@ impl Replayer {
                         return Err(format!("harness: no GetApplicableEvents result for player {i} before the bots entry"));
                     };
                     let p = game.player_at(i);
-                    IBot::set_game_and_player(&mut b.bot, game, p);
-                    let chosen = match level {
-                        "Highest" => b.bot.determine_highest_priority_in_phase_action(game, events),
-                        "High" => b.bot.determine_high_priority_in_phase_action(game, events),
-                        "Middle" => b.bot.determine_middle_priority_in_phase_action(game, events),
-                        "Low" => b.bot.determine_low_priority_in_phase_action(game, events),
-                        _ => b.bot.determine_end_phase_action(game, events),
+                    b.bot.set_player(p);
+                    let priority = match level {
+                        "Highest" => Priority::Highest,
+                        "High" => Priority::High,
+                        "Middle" => Priority::Middle,
+                        "Low" => Priority::Low,
+                        _ => Priority::End,
                     };
+                    let chosen = b.bot.decide(game, priority, events);
                     if let Some(ev) = chosen {
                         return Ok(Some((i, level, ev)));
                     }

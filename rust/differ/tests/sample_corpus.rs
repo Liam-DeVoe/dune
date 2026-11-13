@@ -32,9 +32,23 @@ fn sample_corpus_report() {
     assert!(bad.is_empty(), "unreadable traces:\n{}", bad.join("\n"));
 }
 
+/// Traces that differ from C# on purpose, with the line (`n`) of their first difference. Each is a
+/// C# bug fixed in Rust (rust/docs/escapes.md).
+const DELIBERATE: &[(&str, &str, &str)] = &[
+    // A Bid ran automatic passes after bidding ended, which broke a later event that C#'s undo
+    // replays, so C# stopped replaying one event earlier ("Automatic bid passes that never stop").
+    ("fuzz-2026-00009.jsonl.gz", "600", "automatic bid passes stop with the bidding phase"),
+    // CardTraded must name the ally ("A card trade offered to a faction that isn't the ally").
+    ("fuzz-2026-00045.jsonl.gz", "855", "card trade offers must name the ally"),
+];
+
 #[test]
 fn sample_corpus_passes() {
     let results = run();
     let summary = report::summary(&results);
-    assert!(results.iter().all(|r| r.outcome.passed()), "{summary}");
+    let deliberate = |r: &report::TraceResult| {
+        let name = r.path.file_name().and_then(|n| n.to_str()).unwrap_or_default();
+        DELIBERATE.iter().any(|(file, n, _)| *file == name && r.outcome.at.as_deref() == Some(*n))
+    };
+    assert!(results.iter().all(|r| r.outcome.passed() || deliberate(r)), "{summary}");
 }

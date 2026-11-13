@@ -180,7 +180,8 @@ impl<'a> Replayer<'a> {
             Line::End { reason, pending, .. } => {
                 if let Some(p) = pending {
                     // The reference never returned from this call. Neither must the working tree:
-                    // the watcher sees the call still running and counts it as a match.
+                    // the watcher sees the call still running. That agrees with the reference, but
+                    // `replay` still fails the game as a runaway.
                     let _ = self.tx.send(Msg::Text(format!("expect-hang {reason}")));
                     let _ = self.tx.send(Msg::Begin((**p).clone()));
                     let r = self.call(p);
@@ -272,10 +273,18 @@ pub fn replay(reader: Box<dyn BufRead + Send>, allow: Arc<Allow>, budgets: &Budg
     );
     match ending {
         Ending::Finished => result.lock().unwrap().take().unwrap_or_else(|| Outcome::Bad("the replay thread stopped without a result".into())),
-        Ending::Hung(pending) | Ending::MemoryLimit(pending) if expect_hang.is_some() => {
-            let _ = pending;
-            Outcome::Pass { lines: last_line, end: expect_hang.unwrap() }
-        }
+        // The reference ran away at the same call. That agrees, but no real game may end like this
+        // (on the server it freezes every game), so it fails the game (escapes.md, "Automatic bid
+        // passes that never stop").
+        Ending::Hung(pending) | Ending::MemoryLimit(pending) if expect_hang.is_some() => Outcome::Fail(Mismatch {
+            line: last_line + 1,
+            key: "runaway".into(),
+            context: pending.as_ref().map(context).unwrap_or_default(),
+            expected: "the call returns".into(),
+            actual: format!("{} in both the reference and the working tree", expect_hang.unwrap()),
+            viewer: None,
+            view_diff: vec![],
+        }),
         Ending::Hung(pending) => Outcome::Fail(Mismatch {
             line: last_line + 1,
             key: "hang".into(),

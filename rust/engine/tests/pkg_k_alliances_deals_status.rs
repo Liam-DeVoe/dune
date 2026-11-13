@@ -10,7 +10,7 @@ use treachery_engine::prelude::*;
 fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();
     for (seat, f) in factions.iter().enumerate() {
-        let mut p = Player::new(&g, *f);
+        let mut p = Player::new(*f);
         p.seat = seat as i32;
         g.players.push(p);
     }
@@ -285,4 +285,30 @@ fn status_highlights_fremen_setup() {
     assert_eq!(s.highlighted_territories.len(), 3);
     assert_eq!(s.highlighted_territories[1], Some(g.map.false_wall_south()));
     assert_eq!(s.waiting_for_players, vec![Some(idx(&g, Faction::Fremen))]);
+}
+
+/// A card trade offer must name the offerer's ally. C# accepted any faction as `Target`. The game
+/// then waited in TradingCards for the target's answer, and a target without an ally could never
+/// answer, because `Validate` dereferences its ally (fuzz seed 1 game 31, rust/docs/escapes.md).
+#[test]
+fn card_trade_offer_must_name_the_ally() {
+    let mut g = game_with(&[Faction::Choam, Faction::Atreides, Faction::Guild]);
+    ally(&mut g, Faction::Choam, Faction::Atreides);
+    let cards: Vec<TreacheryCard> = TreacheryCardManager::items().iter().copied().take(3).collect();
+    for (f, c) in [(Faction::Choam, cards[0]), (Faction::Atreides, cards[1]), (Faction::Guild, cards[2])] {
+        let p = idx(&g, f);
+        g.player_mut(p).treachery_cards = vec![c];
+    }
+
+    let offer = |target: Faction| {
+        let mut e = CardTraded::default();
+        e.base().initiator.set(Faction::Choam);
+        e.base().player.set(g.get_player(Some(Faction::Choam)));
+        e.target = target;
+        e.set_card(Some(cards[0]));
+        e.set_requested_card(None);
+        e.validate(&g).map(|m| m.to_cs_string())
+    };
+    assert_eq!(offer(Faction::Atreides), None);
+    assert_eq!(offer(Faction::Guild).as_deref(), Some("You can only trade cards with your ally"));
 }

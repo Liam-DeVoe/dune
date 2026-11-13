@@ -64,24 +64,26 @@ fn call(game: &Game, b: &mut ClassicBot, m: &str, a: &[String]) -> String {
     let t = |k: usize| a[k] == "true";
     if m.starts_with("DetermineShipment_") {
         reset(b);
-        match m {
-            "DetermineShipment_PreventNormalWin" => b.determine_shipment_prevent_normal_win(game, i(0), i(1), f(2), i(3), i(4)),
-            "DetermineShipment_ShipDirectlyToSpiceOrDiscoveryAsFremen" => b.determine_shipment_ship_directly_to_spice_or_discovery_as_fremen(game),
-            "DetermineShipment_PreventFremenWin" => b.determine_shipment_prevent_fremen_win(game),
-            "DetermineShipment_StrengthenWeakestStronghold" => b.determine_shipment_strengthen_weakest_stronghold(game, t(0), i(1), f(2), t(3)),
-            "DetermineShipment_ShipToStrongholdNearSpice" => b.determine_shipment_ship_to_stronghold_near_spice(game),
-            "DetermineShipment_TakeVacantStronghold" => b.determine_shipment_take_vacant_stronghold(game, i(0), i(1), i(2)),
-            "DetermineShipment_AttackEmptyHomeworld" => b.determine_shipment_attack_empty_homeworld(game, i(0), i(1)),
-            "DetermineShipment_AttackWeakHMS" => b.determine_shipment_attack_weak_hms(game, i(0), f(1), i(2), i(3)),
-            "DetermineShipment_AttackWeakStronghold" => b.determine_shipment_attack_weak_stronghold(game, i(0), i(1), i(2)),
-            "DetermineShipment_ShipDirectlyToSpiceOrDiscoveryAsGuildOrGuildAlly" => {
-                b.determine_shipment_ship_directly_to_spice_or_discovery_as_guild_or_guild_ally(game)
-            }
-            "DetermineShipment_UnlockMoveBonus" => b.determine_shipment_unlock_move_bonus(game, i(0)),
-            "DetermineShipment_BackToReserves" => b.determine_shipment_back_to_reserves(game),
-            "DetermineShipment_DummyAttack" => b.determine_shipment_dummy_attack(game, i(0)),
-            "DetermineShipment_PolarSinkAsFremen" => b.determine_shipment_polar_sink_as_fremen(game),
+        let plan = match m {
+            "DetermineShipment_PreventNormalWin" => b.plan_prevent_normal_win(game, i(0), i(1), f(2), i(3), i(4)),
+            "DetermineShipment_ShipDirectlyToSpiceOrDiscoveryAsFremen" => b.plan_fremen_to_spice_or_discovery(game),
+            "DetermineShipment_PreventFremenWin" => b.plan_prevent_fremen_win(game),
+            "DetermineShipment_StrengthenWeakestStronghold" => b.plan_strengthen_weakest_stronghold(game, t(0), i(1), f(2), t(3)),
+            "DetermineShipment_ShipToStrongholdNearSpice" => b.plan_stronghold_near_spice(game),
+            "DetermineShipment_TakeVacantStronghold" => b.plan_take_vacant_stronghold(game, i(0), i(1), i(2)),
+            "DetermineShipment_AttackEmptyHomeworld" => b.plan_attack_empty_homeworld(game, i(0), i(1)),
+            // The C# method takes an unused risk appetite as its second argument.
+            "DetermineShipment_AttackWeakHMS" => b.plan_attack_weak_hms(game, i(0), i(2), i(3)),
+            "DetermineShipment_AttackWeakStronghold" => b.plan_attack_weak_stronghold(game, i(0), i(1), i(2)),
+            "DetermineShipment_ShipDirectlyToSpiceOrDiscoveryAsGuildOrGuildAlly" => b.plan_discounted_to_spice_or_discovery(game),
+            "DetermineShipment_UnlockMoveBonus" => b.plan_unlock_move_bonus(game, i(0)),
+            "DetermineShipment_BackToReserves" => b.plan_back_to_reserves(game),
+            "DetermineShipment_DummyAttack" => b.plan_dummy_attack(game, i(0)),
+            "DetermineShipment_PolarSinkAsFremen" => b.plan_fremen_to_polar_sink(game),
             _ => panic!("no Rust call for {m}"),
+        };
+        if let Some(plan) = plan {
+            b.adopt_shipment(plan);
         }
         return state(b);
     }
@@ -103,15 +105,15 @@ fn call(game: &Game, b: &mut ClassicBot, m: &str, a: &[String]) -> String {
         "DetermineShortageForShipment" => {
             let p = game.player(b.player);
             let (fr, sfr) = (p.forces_in_reserve(), p.special_forces_in_reserve());
-            let (mut o0, mut o1, mut o2, mut o3) = (0, 0, 0, 0);
-            let r = b.determine_shortage_for_shipment(game, 5.5, true, loc(game, &a[0]), None, fr, sfr, &mut o0, &mut o1, &mut o2, &mut o3, 1, 5, t(1));
-            format!("{} {o0} {o1} {o2} {o3}", dotnet_compat::fmt::f32_to_string(r))
+            let s = b.shipment_size(game, 5.5, true, loc(game, &a[0]), None, fr, sfr, 1, 5, t(1));
+            let shortage = dotnet_compat::fmt::f32_to_string(s.shortage);
+            format!("{shortage} {} {} {} {}", s.forces, s.special_forces, s.no_field_value, s.cunning_no_field_value)
         }
         "MaxPotentialForceShortage" => dotnet_compat::fmt::f32_to_string(b.max_potential_force_shortage(game, t(0), loc(game, &a[1]))),
         "DetermineMostSuitableNearbyLocation" => {
             let from = loc(game, &a[0]);
             let battalion = game.player(b.player).forces_on_planet().index(&from).clone();
-            l(b.determine_most_suitable_nearby_location_location_battalion_bool_bool(game, from, &battalion, true, true))
+            l(b.most_suitable_nearby_location(game, from, &battalion, true, true))
         }
         _ => panic!("no Rust call for {m}"),
     }
@@ -186,7 +188,7 @@ fn run(name: &str) {
                         let player = game.player_at(pi as usize);
                         let faction = game.player(player).faction;
                         let seed = p["seed"].as_i64().unwrap() as i32;
-                        let b = ClassicBot::new(game, player, BotParameters::get_default_parameters(faction), Some(SharedRandom::from_seed(seed)));
+                        let b = ClassicBot::new(player, BotParameters::for_faction(faction), SharedRandom::from_seed(seed));
                         bot = Some((pi, b));
                     }
                     let b = &mut bot.as_mut().unwrap().1;

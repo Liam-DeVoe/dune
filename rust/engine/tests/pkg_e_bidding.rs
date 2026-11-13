@@ -9,7 +9,7 @@ use treachery_engine::prelude::*;
 fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();
     for f in factions {
-        let p = Player::new(&g, *f);
+        let p = Player::new(*f);
         g.players.push(p);
     }
     g
@@ -175,4 +175,103 @@ fn distrans_targets_exclude_self_and_full_hands() {
     let cards: Vec<TreacheryCard> = TreacheryCardManager::items().iter().copied().filter(|c| c.type_() != TreacheryCardType::Distrans).take(4).collect();
     g.player_mut(emperor).treachery_cards = cards;
     assert_eq!(DistransUsed::valid_targets(&g, atreides).collect::<Vec<_>>(), vec![Faction::Harkonnen]);
+}
+
+/// Fuzz seed 1 game 2 (rust/docs/escapes.md): everyone passes on a card while the next bidder has a
+/// "pass when Atreides or their ally passed" automation rule. The last pass ends the bidding phase,
+/// but `Bid` kept passing for the rule's owner. Each automatic pass ended the phase again and logged
+/// "everyone passed" again, without end. Now automatic passes stop with the bidding phase.
+#[test]
+fn automatic_passes_stop_when_bidding_ends() {
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let mut g = game_with(&[Faction::Atreides, Faction::BeneGesserit, Faction::Harkonnen]);
+        for (seat, f) in [Faction::Atreides, Faction::BeneGesserit, Faction::Harkonnen].into_iter().enumerate() {
+            let p = idx(&g, f);
+            g.player_mut(p).seat = seat as i32;
+        }
+        let atreides = idx(&g, Faction::Atreides);
+        let bene_gesserit = idx(&g, Faction::BeneGesserit);
+        g.player_mut(atreides).ally = Faction::BeneGesserit;
+        g.player_mut(bene_gesserit).ally = Faction::Atreides;
+        // Atreides has a full hand, so only Bene Gesserit and Harkonnen bid.
+        g.player_mut(atreides).treachery_cards = TreacheryCardManager::items().iter().copied().take(4).collect();
+        for f in [Faction::BeneGesserit, Faction::Harkonnen] {
+            let mut rule = AutomationConfigured::default();
+            rule.rule_type = AutomationRuleType::BiddingPassWhenAtreidesOrAtreidesAllyPassed;
+            let rule = as_player(rule, &g, f);
+            g.automation_rules.push(Rc::new(rule));
+        }
+        g.current_main_phase = MainPhase::Bidding;
+        g.current_phase = Phase::Bidding;
+        g.cards_on_auction = Some(Deck::empty(None));
+        g.start_bid_sequence_and_auction_type(AuctionType::Normal, None, 1);
+        let mut seq = g.bid_sequence.take().unwrap();
+        g.skip_players_that_cant_bid(&mut seq);
+        g.bid_sequence = Some(seq);
+
+        let first = g.bid_sequence.as_ref().unwrap().current_player(&g).unwrap();
+        assert_ne!(first, atreides);
+        let mut pass = Bid::default();
+        pass.passed = true;
+        let pass = Rc::new(as_player(pass, &g, g.player(first).faction));
+        Bid::execute_concrete_event(&pass, &mut g).unwrap();
+
+        let everyone_passed =
+            g.current_report().messages.iter().filter(|m| m.to_cs_string() == "Bidding ends because everyone passed").count();
+        tx.send((g.current_phase, everyone_passed)).unwrap();
+    });
+    // Before the fix the thread never finished and its memory grew without end.
+    let (phase, everyone_passed) = rx.recv_timeout(std::time::Duration::from_secs(20)).expect("Bid did not finish");
+    assert_eq!(phase, Phase::BiddingReport);
+    assert_eq!(everyone_passed, 1);
+}
+
+/// Fuzz seed 1 game 176 (rust/docs/escapes.md): the high bidder's hand filled up during the
+/// auction, so the bid sequence skipped them and never came back to them to win. The other
+/// bidders all passed by automation rule, around and around without end. Now each player passes
+/// automatically at most once per bid, and the auction waits for a real pass.
+#[test]
+fn automatic_passes_stop_when_the_high_bidder_cant_be_reached() {
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let factions = [Faction::Richese, Faction::Harkonnen, Faction::Emperor, Faction::Guild];
+        let mut g = game_with(&factions);
+        for (seat, f) in factions.into_iter().enumerate() {
+            let p = idx(&g, f);
+            g.player_mut(p).seat = seat as i32;
+        }
+        for f in [Faction::Harkonnen, Faction::Emperor, Faction::Guild] {
+            let mut rule = AutomationConfigured::default();
+            rule.rule_type = AutomationRuleType::BiddingPassAboveAmount;
+            rule.bidding_above_amount = 10;
+            let rule = as_player(rule, &g, f);
+            g.automation_rules.push(Rc::new(rule));
+        }
+        g.current_main_phase = MainPhase::Bidding;
+        g.current_phase = Phase::Bidding;
+        g.cards_on_auction = Some(Deck::empty(None));
+        g.start_bid_sequence_and_auction_type(AuctionType::Normal, None, 1);
+        let mut high = Bid::default();
+        high.amount = 15;
+        let high = as_player(high, &g, Faction::Richese);
+        g.current_bid = Some(Rc::new(high).into_event());
+        // Richese's hand filled up after the bid, so the sequence skips Richese from now on.
+        let richese = idx(&g, Faction::Richese);
+        g.player_mut(richese).treachery_cards = TreacheryCardManager::items().iter().copied().take(5).collect();
+        let mut seq = g.bid_sequence.take().unwrap();
+        g.skip_players_that_cant_bid(&mut seq);
+        g.bid_sequence = Some(seq);
+
+        let first = g.bid_sequence.as_ref().unwrap().current_player(&g).unwrap();
+        assert_ne!(first, richese);
+        let mut pass = Bid::default();
+        pass.passed = true;
+        let pass = Rc::new(as_player(pass, &g, g.player(first).faction));
+        Bid::execute_concrete_event(&pass, &mut g).unwrap();
+        tx.send(g.current_phase).unwrap();
+    });
+    // Before the fix the thread never finished.
+    let phase = rx.recv_timeout(std::time::Duration::from_secs(20)).expect("Bid did not finish");
+    assert_eq!(phase, Phase::Bidding);
 }

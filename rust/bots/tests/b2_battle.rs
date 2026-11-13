@@ -74,7 +74,7 @@ fn call(game: &mut Game, b: &ClassicBot, m: &str, a: &[String]) -> String {
         "GetDialNeeded" => {
             let t = game.map.territory_lookup().find(n(0)).unwrap();
             let o = if a[1] == "N" { None } else { Some(p(game, 1)) };
-            f32s(b.get_dial_needed_territory_player_bool(game, t, o, a[2] == "true"))
+            f32s(b.dial_needed_against(game, t, o, a[2] == "true"))
         }
         "DetermineDialShortageForBattle" => {
             let dial: f32 = a[0].parse().unwrap();
@@ -152,7 +152,7 @@ fn run(name: &str) {
                     let player = game.player_at(pi as usize);
                     let faction = game.player(player).faction;
                     let seed = p["seed"].as_i64().unwrap() as i32;
-                    let b = ClassicBot::new(game, player, BotParameters::get_default_parameters(faction), Some(SharedRandom::from_seed(seed)));
+                    let b = ClassicBot::new(player, BotParameters::for_faction(faction), SharedRandom::from_seed(seed));
                     let m = p["m"].as_str().unwrap();
                     let a: Vec<String> = p["a"].as_array().unwrap().iter().map(|v| v.as_str().unwrap().to_string()).collect();
                     let result = catch_unwind(AssertUnwindSafe(|| cs::catch_panic(|| call(game, &b, m, &a))));

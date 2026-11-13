@@ -1021,11 +1021,8 @@ impl GameStatus {
         flashes.push(FlashInfo { message, to_show: to_show.into() });
     }
 
-    /// Reads the event's own game (`e.Game`): after an undo, another game than the one the status is for.
     pub fn flash_i_list_flash_info_game_event(game: &Game, flashes: &mut Vec<FlashInfo>, e: Option<&GameEvent>) {
         let Some(e) = e else { return };
-        let own = game.enter_own_game(e.base().game.get()); // e.Game
-        let game: &Game = &own;
 
         match e {
             GameEvent::TreacheryCalled(t) => {
@@ -1064,8 +1061,6 @@ impl GameStatus {
     }
 
     pub fn flash_i_list_flash_info_game_event_treachery_card_type(game: &Game, flashes: &mut Vec<FlashInfo>, e: &GameEvent, t: TreacheryCardType) {
-        let own = game.enter_own_game(e.base().game.get()); // e.Game
-        let game: &Game = &own;
         let pile = game.treachery_discard_pile.as_ref().nre();
         if pile.top().nre().type_() == t || (t == TreacheryCardType::Karma && pile.top().nre().type_() == TreacheryCardType::Useless) {
             let msg = e.get_message(game);
@@ -1078,8 +1073,6 @@ impl GameStatus {
     }
 
     pub fn flash_i_list_flash_info_game_event_leader_skill(game: &Game, flashes: &mut Vec<FlashInfo>, e: &GameEvent, s: LeaderSkill) {
-        let own = game.enter_own_game(e.base().game.get()); // e.Game (through GetMessage)
-        let game: &Game = &own;
         let msg = if s == LeaderSkill::Decipherer { express!(e.initiator(), " use their ", s, " skill") } else { e.get_message(game) };
         Self::flash(flashes, msg, s)
     }

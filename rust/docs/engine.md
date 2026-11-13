@@ -15,11 +15,12 @@ How `rust/engine` and `rust/bots` are organized. Most engine code starts with `u
 | `messages/` | `Message`, `Expression`, `Payment` and `Report`: the text of log entries and validation errors. |
 | `enumerations.rs` | Factions, phases, rules, card types and the other enums. |
 | `identity.rs` | The `IIdentifiable` and `IFetcher` traits for looking objects up by id. |
+| `iter.rs` | Iterator helpers std lacks (`unique`). |
 | `random.rs` | `LoggedRandom`, the game's random number generator. |
 | `json/` | Reading and writing events and savegames, byte for byte in the established JSON format. |
 | `canon.rs` | The canonical state dump the differ compares. |
 | `error.rs` | `GameError`: an accepted event that failed partway (see engine-conventions.md, "Errors"). |
-| `compat/` | .NET behavior the engine still imitates: null references and collection operators that panic like .NET throws (`cs`), lazy queries, integer-backed enums, `DateTimeOffset`, random selection helpers. Later cleanup steps shrink it. |
+| `compat/` | .NET behavior the engine still imitates: null references and collection operators that panic like .NET throws (`cs`), integer-backed enums, `DateTimeOffset`, random selection helpers. Later cleanup steps shrink it. |
 
 Inside `game/` and `events/`, the submodules are private and their items are re-exported, so a type is reached as `treachery_engine::game::Player` or `treachery_engine::events::Shipment`, wherever its file is. Three traits are the exception: `events::bid_trait::IBid`, `events::location_event::ILocationEvent` and `events::placement::IPlacement`. Their method names clash with the `GameEventMethods` ones, so they are not glob-exported, and `GameEvent` has a dispatching method for each of their members.
 
@@ -27,7 +28,6 @@ Inside `game/` and `events/`, the submodules are private and their items are re-
 
 | Module | What it holds |
 |---|---|
-| `bot/` | `ClassicBot` (`mod.rs`) and its decisions, one file per topic: `alliance`, `battle`, `bidding`, `deals`, `factions` (faction-specific powers), `knowledge` (what the bot knows about the board and its opponents), `movement`, `shipment`, `other`. |
+| `bot/` | `ClassicBot` (`mod.rs`) and its decisions. `ClassicBot::decide(game, priority, allowed)` is what the server, differ and observe harness call: it asks the decision methods of that priority round in order and returns the first valid event. One file per topic: `alliance`, `battle`, `bidding`, `deals`, `factions` (faction-specific powers), `knowledge` (what the bot knows about the board and its opponents, and the `Place` trait for questions asked about a location or a territory), `movement`, `shipment`, `other`. |
 | `parameters.rs` | `BotParameters`, the tuning values of a bot. |
-| `interface.rs` | The `IBot` trait the server, differ and observe harness call. |
 | `support.rs` | The casts the bots apply to the untyped parameters of a Clairvoyance question. |

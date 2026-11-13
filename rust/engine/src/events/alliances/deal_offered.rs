@@ -52,8 +52,8 @@ impl DealOffered {
     }
 
     pub fn acceptance(&self, game: &Game, by: Faction) -> Option<Rc<DealAccepted>> {
-        // new DealAccepted(Game, by): the offer's own game, another one after Undo.
-        let mut result = DealAccepted::new(game.own_game(self.game_ref()), by);
+        // new DealAccepted(Game, by)
+        let mut result = DealAccepted::new(game, by);
         result.bound_faction = self.initiator();
         result.price = self.price;
         result.type_ = self.type_;
@@ -80,8 +80,8 @@ impl DealOffered {
     }
 
     pub fn rejection(&self, game: &Game, by: Faction) -> Option<Rc<DealRejected>> {
-        // new DealRejected(Game, by): the offer's own game, another one after Undo.
-        let mut result = DealRejected::new(game.own_game(self.game_ref()), by);
+        // new DealRejected(Game, by)
+        let mut result = DealRejected::new(game, by);
         result.bound_faction = self.initiator();
         result.price = self.price;
         result.type_ = self.type_;
@@ -174,7 +174,7 @@ impl DealOffered {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         if self.cancel {
-            let same_offer = game.deal_offers.iter().cs_first_or_default_where(|o| o.same(self)).cloned();
+            let same_offer = game.deal_offers.iter().find(|o| o.same(self)).cloned();
             if let Some(same_offer) = same_offer {
                 // List.Remove: reference equality, first occurrence.
                 if let Some(i) = game.deal_offers.iter().position(|o| Rc::ptr_eq(o, &same_offer)) {

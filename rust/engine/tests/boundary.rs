@@ -732,7 +732,7 @@ mod lazy {
                 let ds = g.map.location_lookup().find(int(&d[0])).unwrap().as_discovered_location().unwrap();
                 if !d[1].is_null() {
                     let target = g.map.location_lookup().find(int(&d[1])).unwrap();
-                    ds.point_at(&mut g.map, target);
+                    ds.point_at(&mut g.map, target).unwrap();
                 }
                 g.just_revealed_discovery_strongholds.push(ds);
             }

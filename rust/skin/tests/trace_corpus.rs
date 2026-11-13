@@ -69,11 +69,11 @@ fn catch_any<R>(f: impl FnOnce() -> R) -> Result<R, String> {
 fn applicable_calls(game: &mut Game) {
     for i in 0..game.players.len() {
         let p = game.player_at(i);
-        let _ = catch_any((|| game.get_applicable_events(Some(p), false)));
-        let _ = catch_any((|| game.get_applicable_events(Some(p), true)));
+        let _ = catch_any(|| game.get_applicable_events(Some(p), false));
+        let _ = catch_any(|| game.get_applicable_events(Some(p), true));
     }
-    let _ = catch_any((|| game.get_applicable_events(None, false)));
-    let _ = catch_any((|| game.get_applicable_events(None, true)));
+    let _ = catch_any(|| game.get_applicable_events(None, false));
+    let _ = catch_any(|| game.get_applicable_events(None, true));
 }
 
 /// Replays one trace and renders what the C# probe renders.
@@ -99,7 +99,7 @@ fn render_trace(path: &Path, skin: &Skin) -> Vec<(i64, String, String)> {
             if q[0].as_str() == Some("status") {
                 let p = q[1].as_u64().map(|i| g.player_at(i as usize));
                 let is_player = q[2].as_bool().unwrap();
-                match catch_any((|| GameStatus::determine_status(g, p, is_player))) {
+                match catch_any(|| GameStatus::determine_status(g, p, is_player)) {
                     Err(e) => r.emit("status", || format!("!panic: {e}")),
                     Ok(status) => {
                         let gr: &Game = g;
@@ -114,7 +114,7 @@ fn render_trace(path: &Path, skin: &Skin) -> Vec<(i64, String, String)> {
             }
             let p = q[0].as_u64().map(|i| g.player_at(i as usize));
             let is_host = q[1].as_bool().unwrap();
-            let _ = catch_any((|| g.get_applicable_events(p, is_host)));
+            let _ = catch_any(|| g.get_applicable_events(p, is_host));
         }
 
         match kind {
@@ -126,9 +126,9 @@ fn render_trace(path: &Path, skin: &Skin) -> Vec<(i64, String, String)> {
                 if !overrides {
                     g.recent_milestones.push(SENTINEL);
                 }
-                let result = catch_any((|| {
+                let result = catch_any(|| {
                     ev.execute(g, line["validate"].as_bool().unwrap(), line["isHost"].as_bool().unwrap())
-                }));
+                });
                 if !overrides {
                     if let Some(i) = g.recent_milestones.iter().rposition(|m| *m == SENTINEL) {
                         g.recent_milestones.remove(i);
@@ -211,6 +211,11 @@ fn without_error_text(out: &str) -> &str {
     out
 }
 
+/// Traces that differ from C# on purpose, with the first line (`n`) that differs. Each is a C# bug
+/// fixed in Rust (rust/docs/escapes.md, "Automatic bid passes that never stop" for 00009 and "A
+/// card trade offered to a faction that isn't the ally" for 00045).
+const DELIBERATE: &[(&str, i64)] = &[("fuzz-2026-00009", 602), ("fuzz-2026-00045", 857)];
+
 /// Compares the probe's renderings for every trace in `traces` that has a file in `rendered`.
 fn check_corpus(traces: &Path, rendered: &Path) {
     let skin = default_skin();
@@ -224,14 +229,18 @@ fn check_corpus(traces: &Path, rendered: &Path) {
         let trace = [format!("{stem}.jsonl.gz"), format!("{stem}.jsonl")].into_iter().map(|t| traces.join(t)).find(|p| p.exists());
         let Some(trace) = trace else { panic!("no trace for {name} in {}", traces.display()) };
         files += 1;
+        // A trace that differs from C# on purpose is compared up to the line where it starts to differ.
+        let stop = DELIBERATE.iter().find(|(s, _)| *s == stem).map_or(i64::MAX, |(_, n)| *n);
         let expected: Vec<(i64, String, String)> = read_lines(&golden_file)
             .iter()
             .map(|l| {
                 let v: Value = serde_json::from_str(l).unwrap();
                 (v["n"].as_i64().unwrap(), v["what"].as_str().unwrap().to_string(), v["out"].as_str().unwrap().to_string())
             })
+            .filter(|(n, _, _)| *n < stop)
             .collect();
-        let actual = render_trace(&trace, skin);
+        let mut actual = render_trace(&trace, skin);
+        actual.retain(|(n, _, _)| *n < stop);
         let len = expected.len().max(actual.len());
         for i in 0..len {
             let key = |x: Option<&(i64, String, String)>| x.map(|(n, w, _)| format!("line {n} {w}")).unwrap_or("(missing)".into());

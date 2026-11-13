@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use crate::compat::lazy::LazyQuery;
 
 #[derive(Clone, Debug, Canon)]
 pub struct KarmaRevivalPrevention {
@@ -27,7 +26,7 @@ impl KarmaRevivalPrevention {
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
         // PlayersOtherThan(null) only dereferences the player once there is a player to compare.
-        if !Self::get_valid_targets(game, self.player_opt().unwrap_or(PlayerIndex::NULL)).cs_contains(&self.target) {
+        if !Self::get_valid_targets(game, self.player_opt().unwrap_or(PlayerIndex::NULL)).any(|v| v == self.target) {
             return Some(express!("Invalid target"));
         }
 

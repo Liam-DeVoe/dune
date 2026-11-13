@@ -343,7 +343,7 @@ impl EstablishPlayers {
 
     pub fn fill_seats(&self, game: &mut Game) {
         while (game.players.len() as i32) < game.settings.as_ref().nre().borrow().number_of_players {
-            let player = Player::new(game, Faction::None);
+            let player = Player::new(Faction::None);
             game.players.push(player);
         }
     }

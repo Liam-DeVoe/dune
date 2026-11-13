@@ -259,29 +259,29 @@ fn call(m: &str, x: &Args) -> String {
         ("HasResources", 1) => bot.has_resources(g, x.l(0)).fmt(),
         ("IsStronghold", 1) => bot.is_stronghold(g, x.l(0)).fmt(),
         ("NotOccupiedByOthers", 1) if x.kind(0) == 'L' => bot.not_occupied_by_others(g, x.l(0)).fmt(),
-        ("NotOccupiedByOthers", 1) => bot.not_occupied_by_others_territory(g, x.t(0)).fmt(),
-        ("NotOccupied", 1) if x.kind(0) == 'L' => bot.not_occupied_location(g, x.l(0)).fmt(),
+        ("NotOccupiedByOthers", 1) => bot.not_occupied_by_others(g, x.t(0)).fmt(),
+        ("NotOccupied", 1) if x.kind(0) == 'L' => bot.not_occupied(g, x.l(0)).fmt(),
         ("NotOccupied", 1) => bot.not_occupied(g, x.t(0)).fmt(),
         ("Vacant", 1) if x.kind(0) == 'L' => bot.vacant(g, x.l(0)).fmt(),
-        ("Vacant", 1) => bot.vacant_territory(g, x.t(0)).fmt(),
-        ("OccupiedByOpponent", 1) if x.kind(0) == 'L' => bot.occupied_by_opponent_location(g, x.l(0)).fmt(),
+        ("Vacant", 1) => bot.vacant(g, x.t(0)).fmt(),
+        ("OccupiedByOpponent", 1) if x.kind(0) == 'L' => bot.occupied_by_opponent(g, x.l(0)).fmt(),
         ("OccupiedByOpponent", 1) => bot.occupied_by_opponent(g, x.t(0)).fmt(),
         ("GetOpponentThatOccupies", 1) if x.kind(0) == 'L' => bot.get_opponent_that_occupies(g, x.l(0)).fmt(),
-        ("GetOpponentThatOccupies", 1) => bot.get_opponent_that_occupies_territory(g, x.t(0)).fmt(),
+        ("GetOpponentThatOccupies", 1) => bot.get_opponent_that_occupies(g, x.t(0)).fmt(),
         ("StormWillProbablyHit", 1) => bot.storm_will_probably_hit(g, x.l(0)).fmt(),
         ("VacantAndSafeFromStorm", 1) => bot.vacant_and_safe_from_storm(g, x.l(0)).fmt(),
         ("IDontHaveAdvisorsIn", 1) => bot.i_dont_have_advisors_in(g, x.l(0)).fmt(),
-        ("AllyDoesntBlock", 1) if x.kind(0) == 'L' => bot.ally_doesnt_block_location(g, x.l(0)).fmt(),
+        ("AllyDoesntBlock", 1) if x.kind(0) == 'L' => bot.ally_doesnt_block(g, x.l(0)).fmt(),
         ("AllyDoesntBlock", 1) => bot.ally_doesnt_block(g, x.t(0)).fmt(),
         ("InStorm", 1) => bot.in_storm(g, x.l(0)).fmt(),
         ("MayFleeOutOf", 1) => bot.may_flee_out_of(g, x.l(0)).fmt(),
         ("WithinDistance", 3) => bot.within_distance(g, x.l(0), x.l(1), x.n(2)).fmt(),
         ("ProbablySafeFromMonster", 1) => bot.probably_safe_from_monster(g, x.t(0)).fmt(),
         ("OccupyingOpponentIn", 3) => bot.occupying_opponent_in(g, x.p(1), x.t(2)).fmt(),
-        ("OccupyingOpponentsIn", 3) if x.kind(2) == 'L' => ClassicBot::occupying_opponents_in_game_player_location(g, x.p(1), x.l(2)).fmt(),
+        ("OccupyingOpponentsIn", 3) if x.kind(2) == 'L' => ClassicBot::occupying_opponents_in(g, x.p(1), x.l(2)).fmt(),
         ("OccupyingOpponentsIn", 3) => ClassicBot::occupying_opponents_in(g, x.p(1), x.t(2)).fmt(),
         ("MaxDial", 5) => ClassicBot::max_dial(g, x.p(1), x.t(2), x.opt_p(3), x.b(4)).fmt(),
-        ("MaxDial", 4) => ClassicBot::max_dial_game_int32_battalion_faction(g, x.n(1), &x.bat(2), x.f(3)).fmt(),
+        ("MaxDial", 4) => ClassicBot::max_dial_of_battalion(g, x.n(1), &x.bat(2), x.f(3)).fmt(),
         ("TotalMaxDialOfOpponents", 1) => bot.total_max_dial_of_opponents(g, x.t(0)).fmt(),
 
         ("ValidMovementLocations", 2) => bot.valid_movement_locations(g, x.l(0), &x.bat(1)).fmt(),
@@ -364,7 +364,7 @@ fn run(golden: &str) {
                     let player = game.player_at(p as usize);
                     let faction = game.player(player).faction;
                     let seed = o["seed"].as_i64().unwrap() as i32;
-                    let b = ClassicBot::new(game, player, BotParameters::get_default_parameters(faction), Some(SharedRandom::from_seed(seed)));
+                    let b = ClassicBot::new(player, BotParameters::for_faction(faction), SharedRandom::from_seed(seed));
                     bot = Some((n, p, b));
                 }
                 let b = &bot.as_ref().unwrap().2;

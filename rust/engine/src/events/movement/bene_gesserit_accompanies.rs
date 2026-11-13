@@ -131,9 +131,7 @@ impl BeneGesseritAccompanies {
         };
 
         let mut result = Vec::new();
-        // ReferenceEquals: To is read through the event's own game, so after an undo it
-        // can be another map's Polar Sink.
-        if !last_to.is_same_object(g.map.polar_sink())
+        if last_to != g.map.polar_sink()
             && last_to.as_homeworld().is_none()
             && Some(last_to.territory()) != g.atomics_aftermath
             && !g.player(p).occupies_territory(g, Some(last_to.territory()))

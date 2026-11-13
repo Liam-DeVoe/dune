@@ -8,7 +8,7 @@ use treachery_engine::prelude::*;
 fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();
     for (seat, f) in factions.iter().enumerate() {
-        let mut p = Player::new(&g, *f);
+        let mut p = Player::new(*f);
         p.seat = seat as i32;
         g.players.push(p);
     }

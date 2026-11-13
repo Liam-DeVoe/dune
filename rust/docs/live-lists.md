@@ -25,7 +25,7 @@ Roslyn fails on three constructors of `Location` subclasses. The tool lists them
 ## Classes
 
 - **copy**: the collection is fresh, or nothing changes it after the message is built. A Rust copy is equivalent.
-- **live**: the collection belongs to game state and changes later. Rust stores the element with an `expression::LiveList` source, and the state dump reads the game's current contents (see [engine-conventions.md](engine-conventions.md#messages)).
+- **live**: the collection belongs to game state and changes later. Rust stores the element with an `expression::LiveList` source. The state dump, the log in the player views (`view/src/expr.rs`) and the skin's text (`skin/src/skin.rs`) all read the game's current contents, as the C# client did when it rendered the log. Players see this, so it is kept (see [engine-conventions.md](engine-conventions.md#messages)).
 - **lazy**: a LINQ query that the dump runs again each time. Rust stores its result once. That is equivalent when nothing the query reads changes, and the query has no side effects and can't throw. The row says why that holds. Its runtime type name only matters for `ToString()`, and each one was checked against .NET 10.
 - **forward**: a `params` array passed on to another `params` method. The array that ends up in the message is created by the outermost caller, which is covered by its own row or is a list of separate arguments.
 - **none**: nothing stores the collection in a message.

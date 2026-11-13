@@ -126,14 +126,10 @@ impl LiveList {
     }
 
     /// The collection's contents now, in enumeration order, or `None` if
-    /// `game` can't reach that player. A player of an earlier game (after
-    /// `Undo`) is read from `game.other_games`.
+    /// `game` has no such player.
     pub fn read(self, game: &crate::game::Game) -> Option<Vec<ExpressionElement>> {
         let cards = |c: &[TreacheryCard]| c.iter().map(|c| ExpressionElement::Hero(Hero::TreacheryCard(*c))).collect();
-        let player = |p: crate::game::PlayerIndex| {
-            let owner = if p.game == game.id { Some(game) } else { game.other_games.iter().find(|g| g.id == p.game) };
-            owner.and_then(|g| g.players.get(p.index))
-        };
+        let player = |p: crate::game::PlayerIndex| game.players.get(p.index);
         match self {
             LiveList::PlayerTreacheryCards(p) => player(p).map(|p| cards(&p.treachery_cards)),
             LiveList::GameAuditedCards => Some(cards(&game.audited_cards)),
@@ -141,19 +137,6 @@ impl LiveList {
                 player(p).map(|p| p.discarded_traitors.iter().map(|h| ExpressionElement::Hero(*h)).collect())
             }
         }
-    }
-
-    /// Every live list `game` can reach, so the state dump can read them all up front.
-    pub fn all(game: &crate::game::Game) -> Vec<LiveList> {
-        let mut all = vec![LiveList::GameAuditedCards];
-        for g in std::iter::once(game).chain(game.other_games.iter()) {
-            for i in 0..g.players.len() {
-                let p = g.player_at(i);
-                all.push(LiveList::PlayerTreacheryCards(p));
-                all.push(LiveList::PlayerDiscardedTraitors(p));
-            }
-        }
-        all
     }
 }
 

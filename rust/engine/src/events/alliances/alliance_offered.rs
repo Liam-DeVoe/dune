@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use crate::compat::lazy::LazyQuery;
 
 #[derive(Clone, Debug, Canon)]
 pub struct AllianceOffered {
@@ -27,7 +26,7 @@ impl AllianceOffered {
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
         // ValidTargets dereferences a null Player only inside its lazy predicate, per element.
-        if !AllianceOffered::valid_targets(game, self.player_opt().unwrap_or(PlayerIndex::NULL)).cs_contains(&self.target) {
+        if !AllianceOffered::valid_targets(game, self.player_opt().unwrap_or(PlayerIndex::NULL)).any(|v| v == self.target) {
             return Some(express!("Invalid faction"));
         }
 
@@ -51,7 +50,7 @@ impl AllianceOffered {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let initiator = self.initiator();
         let matching_offer =
-            game.current_alliance_offers.iter().cs_first_or_default_where(|x| x.initiator() == self.target && x.target == initiator).cloned();
+            game.current_alliance_offers.iter().find(|x| x.initiator() == self.target && x.target == initiator).cloned();
         if matching_offer.is_some() {
             game.make_alliance(initiator, self.target);
 

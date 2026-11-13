@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use crate::compat::lazy::LazyQuery;
 
 #[derive(Clone, Debug, Canon)]
 pub struct KarmaShipmentPrevention {
@@ -26,7 +25,7 @@ impl KarmaShipmentPrevention {
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if !KarmaShipmentPrevention::get_valid_targets(game, self.player()).cs_contains(&self.target) {
+        if !KarmaShipmentPrevention::get_valid_targets(game, self.player()).any(|v| v == self.target) {
             return Some(express!("Invalid target"));
         }
 

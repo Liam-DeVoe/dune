@@ -7,6 +7,7 @@ license.workspace = true
 [dependencies]
 dotnet-compat = { path = "../dotnet-compat" }
 canon-derive = { path = "../canon-derive" }
+either = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 

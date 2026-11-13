@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use crate::compat::lazy::LazyQuery;
 
 #[derive(Clone, Debug, Canon)]
 pub struct PerformHmsMovement {
@@ -40,7 +39,7 @@ impl PerformHmsMovement {
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
         if !self.passed {
-            if !PerformHmsMovement::valid_locations(game).cs_contains(&self.target(game).or_null()) {
+            if !PerformHmsMovement::valid_locations(game).any(|v| v == self.target(game).or_null()) {
                 return Some(express!("Invalid location"));
             }
         }

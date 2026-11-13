@@ -165,3 +165,11 @@ Five bot packages share the same done check, the differ in bots mode. To keep th
 ## Deploying (2026-11-11)
 
 Production (https://treachery.exe.xyz/) runs the Rust server, and `just deploy` ships the working tree, including other agents' unfinished edits. Agents never deploy unless their brief says so, and then only after `rust/tools/check.sh` passes on the whole workspace.
+
+## Harness runs with many agents (2026-11-12)
+
+With several agents sharing the two heavy slots, a 50-game `observe live` run queues for up to half an hour. While iterating, run 20 games (`--games 20`), or `observe first` for one game, and run 200 games once, at the end. Don't queue more than one run at a time per agent.
+
+## The harness reference (2026-11-13)
+
+`~/treachery-native-ref/observe` and the frozen source in `~/treachery-native-ref/rust` are shared by every worktree and must always match main. Only the coordinator replaces them, when merging a branch that changes behavior on purpose. An agent whose branch changes behavior builds its own reference into a separate path and passes it with `--reference`.

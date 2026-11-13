@@ -256,13 +256,14 @@ impl Revival {
     /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
     /// Only the early-revival branch is lazy; the others are computed in full.
     pub fn valid_revival_heroes(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Hero> {
-        use crate::compat::lazy::{Either, empty};
+        use either::Either;
+        use std::iter::empty;
         let mut result: Vec<Hero> = Vec::new();
         let pl = g.player(p);
 
         if pl.faction != Faction::Tleilaxu {
             if g.leader_revivals_this_turn.contains_key(&pl.faction) {
-                return Either::A(Either::A(empty()));
+                return Either::Left(Either::Left(empty()));
             }
 
             result.extend(Self::normally_revivable_heroes(g, p));
@@ -275,12 +276,12 @@ impl Revival {
             // The gholas Where reads p.Faction per element; KilledHeroes builds its list now;
             // the Union and the outer Where run as the caller pulls.
             let gholas = match tleilaxu {
-                Some(tleilaxu) => Either::A(g.player(tleilaxu).leaders.iter().filter(move |l| l.faction() == g.player(p).faction).map(|l| Hero::Leader(*l))),
-                None => Either::B(empty()),
+                Some(tleilaxu) => Either::Left(g.player(tleilaxu).leaders.iter().filter(move |l| l.faction() == g.player(p).faction).map(|l| Hero::Leader(*l))),
+                None => Either::Right(empty()),
             };
             let killed = g.killed_heroes(p);
-            return Either::A(Either::B(
-                crate::compat::lazy::union(killed.into_iter(), gholas).filter(move |h| Self::is_allowed_early_revival(g, *h)),
+            return Either::Left(Either::Right(
+                crate::iter::unique(killed.into_iter().chain(gholas)).filter(move |h| Self::is_allowed_early_revival(g, *h)),
             ));
         }
 
@@ -311,7 +312,7 @@ impl Revival {
             );
         }
 
-        Either::B(result.into_iter())
+        Either::Right(result.into_iter())
     }
 
     pub fn is_allowed_early_revival(g: &Game, h: Hero) -> bool {

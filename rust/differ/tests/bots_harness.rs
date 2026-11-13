@@ -192,18 +192,14 @@ fn wide_and_format_1_traces_are_not_checked() {
 
 /// Fuzz seed 109 game 40 (known-issues.md, "Rock Melter bot logs a message during deliberation"):
 /// at line 1139 the Tleilaxu bot's `DetermineRockWasMelted` logs a message on the live game while
-/// deliberating, and the fuzzer submits a rejected `DealAccepted`. Without the bots the replay can't
-/// produce the message; with them, every line matches. The golden is the trace cut after line 1140.
+/// deliberating, and the fuzzer submits a rejected `DealAccepted`. With the bots, every line
+/// matches. The golden is the trace cut after line 1140. (Without the bots only the state hash
+/// showed the message, and the replay no longer compares state hashes after the trace's first
+/// undo at line 119; see `after_undo` in replay.rs.)
 #[test]
 fn a_bot_that_changes_the_game_is_reproduced_in_fuzz() {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/golden/fuzz-109-00040-rockmelter.jsonl.gz");
     let opts = Options { stop_after: Some(1140), ..Options::default() };
-
-    let (outcome, _) = replay::replay_file(&path, &opts);
-    match &outcome.failure {
-        Some(Failure::Mismatch(m)) => assert!(m.key == "hash" && m.n == "1139", "expected the Rock Melter hash difference at 1139, got {} at {}", m.key, m.n),
-        other => panic!("expected a hash difference without the bots, got {:?}", other.as_ref().map(|f| f.group())),
-    }
 
     let (outcome, _) = replay::replay_file(&path, &Options { check_bots: true, ..opts });
     assert!(outcome.failure.is_none(), "{:?}", outcome.failure.as_ref().map(|f| f.group()));

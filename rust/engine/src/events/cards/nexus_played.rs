@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use crate::compat::lazy::LazyQuery;
 use crate::compat::random_ext::RandomExt;
 
 #[derive(Clone, Debug, Canon)]
@@ -170,7 +169,7 @@ impl NexusPlayed {
                     }
 
                     if let Some(tleilaxu_location) = self.tleilaxu_location(game) {
-                        if !Revival::valid_revived_force_locations(game, me).cs_contains(&tleilaxu_location) {
+                        if !Revival::valid_revived_force_locations(game, me).any(|v| v == tleilaxu_location) {
                             return Some(express!("You can't place revived forces there"));
                         }
 
@@ -189,7 +188,7 @@ impl NexusPlayed {
                         return Some(express!("Select a ", TreacheryCardType::Useless, " card to discard"));
                     }
                     if self.choam_card().is_some()
-                        && !NexusPlayed::valid_choam_cards(game, self.player()).cs_contains(&self.choam_card().nre())
+                        && !NexusPlayed::valid_choam_cards(game, self.player()).any(|v| v == self.choam_card().nre())
                     {
                         return Some(express!("Invalid card"));
                     }
@@ -201,11 +200,11 @@ impl NexusPlayed {
                     let Some(ecaz_territory) = self.ecaz_territory(game) else {
                         return Some(express!("Select a territory"));
                     };
-                    if !NexusPlayed::valid_ecaz_territories(game).cs_contains(&ecaz_territory) {
+                    if !NexusPlayed::valid_ecaz_territories(game).any(|v| v == ecaz_territory) {
                         return Some(express!("Invalid territory"));
                     }
                 } else if self.is_secret_ally(game) {
-                    if !NexusPlayed::valid_ecaz_factions(game).cs_contains(&self.ecaz_faction) {
+                    if !NexusPlayed::valid_ecaz_factions(game).any(|v| v == self.ecaz_faction) {
                         return Some(express!("Invalid faction"));
                     }
                 }
@@ -214,7 +213,7 @@ impl NexusPlayed {
             Faction::Moritani => {
                 if self.is_betrayal(game)
                     && (self.moritani_territory(game).is_none()
-                        || !NexusPlayed::valid_moritani_territories(game).cs_contains(&self.moritani_territory(game).nre()))
+                        || !NexusPlayed::valid_moritani_territories(game).any(|v| v == self.moritani_territory(game).nre()))
                 {
                     return Some(express!("This territory contains no terror token"));
                 }
@@ -349,19 +348,20 @@ impl NexusPlayed {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
     pub fn valid_ecaz_territories(g: &Game) -> impl Iterator<Item = Territory> {
-        use crate::compat::lazy::{Either, empty};
+        use either::Either;
+        use std::iter::empty;
         let ecaz = g.get_player(Some(Faction::Ecaz));
 
         if let Some(ecaz) = ecaz {
             if g.player(ecaz).has_ally() {
-                return Either::A(g.map.territories(false).filter(move |t| {
+                return Either::Left(g.map.territories(false).filter(move |t| {
                     g.player(ecaz).any_forces_in_territory(Some(*t)) > 0
                         && g.player(g.player(ecaz).allied_player(g).nre()).any_forces_in_territory(Some(*t)) > 0
                 }));
             }
         }
 
-        Either::B(empty())
+        Either::Right(empty())
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
@@ -374,7 +374,7 @@ impl NexusPlayed {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
     pub fn valid_moritani_territories(g: &Game) -> impl Iterator<Item = Territory> {
-        crate::compat::lazy::distinct(g.terror_on_planet.values().copied())
+        crate::iter::unique(g.terror_on_planet.values().copied())
     }
 
     pub fn may_select_location_for_revived_forces(game: &Game, player: PlayerIndex, special_forces: i32) -> bool {

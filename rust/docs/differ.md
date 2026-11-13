@@ -69,7 +69,7 @@ In a fuzz game the oracle's bots deliberate before most steps, but the fuzzer of
 At each `bots` query entry (trace-format.md section 3, "Bot deliberations") the differ:
 
 1. creates the bots the entry lists in `created`, with the recorded seeds, and keeps them for the rest of the trace (one per faction, in creation order, across undo, as the oracle does);
-2. runs the oracle's loop on the live replay game: levels `Highest` to `Low`, then `End` if `end` is true, players in `order`, `set_game_and_player` before each ask, and stops at the first event. Each bot gets the result of its player's `GetApplicableEvents` query just before the entry. The game isn't cloned: bots can change it, and Rust must make the same changes;
+2. runs the oracle's loop on the live replay game: levels `Highest` to `Low`, then `End` if `end` is true, players in `order`, `set_player` before each ask, and stops at the first event. Each bot gets the result of its player's `GetApplicableEvents` query just before the entry. The game isn't cloned: bots can change it, and Rust must make the same changes;
 3. compares the outcome with the recorded one: same player, same level and the same event JSON, byte for byte (`json::serialize` against `choice.event`), or the same exception, or no event on both sides. A difference is key `bot`.
 
 On every line it also compares `botRandom`, the draw count of each bot, with the Rust bots' counts (key `botRandom`). This often finds a divergence before any decision differs.
@@ -170,10 +170,10 @@ The dump is the Rust side of `Oracle/Canon/StateDumper.cs`. It lives in `engine/
   ```
 
 - Value kinds: every value in the sample traces' dumps must be something the Rust field can write. For example, a reference must stay a reference and a list must stay a list.
-- Reference forms: for every field whose C# type the dumper writes as a reference (`Game`, `Player`, `Location`, `Territory`), the Rust field must be able to write every form the dumper can, including the ones only another game produces (`OtherGame`, a full `Player`, `"foreign":true`). This needs no trace.
+- Reference forms: for every field whose C# type the dumper writes as a reference (`Game`, `Player`, `Location`, `Territory`), the Rust field must be able to write the dumper's reference form. This needs no trace.
 - The map: a fresh Rust `Map` dumps to exactly the map in a sample trace.
 - The header's `Participation` dumps back to the same bytes.
 
 ### Games after undo
 
-After `Undo`, `RestoreRecentlyUndone` or `DismissRecentlyUndone`, some C# events and players still belong to the other game. C# writes that game as `{"$ref":"OtherGame"}`, such a player as a full `Player` object, and the locations inside that player with `"foreign":true`. Rust writes the same, from `Game.other_games` ([engine-conventions.md](engine-conventions.md#game-identity-and-undo)).
+After `Undo`, `RestoreRecentlyUndone` or `DismissRecentlyUndone`, some C# events and players still belong to the other game. C# writes that game as `{"$ref":"OtherGame"}`, such a player as a full `Player` object, and the locations inside that player with `"foreign":true`. Rust undo keeps no references to another game ([engine-conventions.md](engine-conventions.md#undo)), so the replay stops comparing state hashes at a trace's first undo line. Results, validation messages, applicable events and bot decisions are still compared. The value-kinds check skips these forms in the sample traces.

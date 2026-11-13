@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use crate::compat::lazy::LazyQuery;
 
 #[derive(Clone, Debug, Canon)]
 pub struct ChoamRemoveForce {
@@ -44,11 +43,11 @@ impl ChoamRemoveForce {
         let Some(l) = location else {
             return Some(express!("Invalid location"));
         };
-        if !ChoamRemoveForce::valid_locations(game).cs_contains(&l) {
+        if !ChoamRemoveForce::valid_locations(game).any(|v| v == l) {
             return Some(express!("Invalid location"));
         }
         // Location is not null here, so ValidFactions never reads Player.
-        if !ChoamRemoveForce::valid_factions(game, self.player_opt(), location).cs_contains(&self.target) {
+        if !ChoamRemoveForce::valid_factions(game, self.player_opt(), location).any(|v| v == self.target) {
             return Some(express!("Invalid faction"));
         }
         if !ChoamRemoveForce::valid_special_force_choices(game, location, self.target).contains(&self.special_force) {
@@ -62,18 +61,18 @@ impl ChoamRemoveForce {
     pub fn valid_locations(g: &Game) -> impl Iterator<Item = Location> {
         // The dictionary is built at the call, as in C#; Where and Distinct run as the caller pulls.
         let keys: Vec<Location> = g.forces_on_planet_excluding_empty_locations(false).keys().copied().collect();
-        crate::compat::lazy::distinct(keys.into_iter().filter(move |l| !g.is_in_storm(*l)))
+        crate::iter::unique(keys.into_iter().filter(move |l| !g.is_in_storm(*l)))
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
     pub fn valid_factions(g: &Game, p: Option<PlayerIndex>, l: Option<Location>) -> impl Iterator<Item = Faction> {
-        use crate::compat::lazy::Either;
+        use either::Either;
         let p = p.and_then(crate::compat::cs::CsNull::opt);
         let l = l.and_then(crate::compat::cs::CsNull::opt);
         if let Some(l) = l {
-            return Either::A(g.players.iter().filter(move |x| x.any_forces_in(Some(l)) > 0).map(|x| x.faction));
+            return Either::Left(g.players.iter().filter(move |x| x.any_forces_in(Some(l)) > 0).map(|x| x.faction));
         }
-        Either::B(g.players_other_than(p.nre()))
+        Either::Right(g.players_other_than(p.nre()))
     }
 
     pub fn valid_special_force_choices(g: &Game, l: Option<Location>, f: Faction) -> Vec<bool> {

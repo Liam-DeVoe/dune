@@ -12,7 +12,7 @@ A C# member that returns a lazy query returns `impl Iterator` in Rust, built fro
 |---|---|
 | `q.Any()` | `q.next().is_some()` |
 | `!q.Any()` | `q.next().is_none()` |
-| `q.Contains(x)` | `q.cs_contains(&x)` (`use crate::lazy::LazyQuery`) |
+| `q.Contains(x)` | `q.any(|v| v == x)` |
 | `q.First()` / `q.FirstOrDefault()` | `q.cs_first()` / `q.next()` |
 | `q.Count()`, `q.ToList()` | `q.count()`, `q.collect()` |
 | `foreach (var x in q)` with a body that changes game state | an index loop that tests the predicate right before each body (hazards 4.1) |
@@ -22,13 +22,11 @@ What runs at the call and what runs per element must match C#:
 - The receiver of the first operator is evaluated at the call. `p.TreacheryCards.Where(...)` dereferences `p` at the call, so `g.player(p)` goes before the iterator.
 - Anything inside a lambda is evaluated per element. `Players.Where(x => x.Faction != p.Faction)` dereferences `p` only when there is an element to test, so a null `p` with no players doesn't throw. Read `g.player(p)` inside the closure in that case, and pass a null player as `PlayerIndex::NULL` rather than throwing up front.
 - An iterator method (`yield return`) runs none of its body until the first `MoveNext`.
-- A member that returns different queries on different branches returns `lazy::Either` (or a `Box<dyn Iterator>` for three or more), with `lazy::empty()` for `[]`.
-- `Distinct` and `Union` are `lazy::distinct` and `lazy::union`, which yield as they go. `dotnet_compat::linq::distinct` and `union` collect.
+- A member that returns different queries on different branches returns `either::Either` (or a `Box<dyn Iterator>` for three or more), with `std::iter::empty()` for `[]`.
+- `Distinct` is `crate::iter::unique`, and `a.Union(b)` is `unique(a.chain(b))`. Both yield as they go. `dotnet_compat::linq::distinct` and `union` collect.
 - A lazy query held in a local and enumerated twice runs twice. Clone the iterator and run it again (`Game.TraitorsInPlay`).
 
 A member whose every Shared caller enumerates the whole query once, with nothing in between (`ToList`, `Count`, a `List` constructor), may return a `Vec`. Its row in the table below says so.
-
-`src/compat/lazy.rs` has `Either`, `empty`, `distinct`, `union` and the `LazyQuery::cs_contains` method.
 
 ## How the sites are found
 
@@ -77,7 +75,7 @@ Producers:
 
 Sites:
 
-- **short**: the consumer stops early. The producer is `iter`, and the Rust caller uses `next`, `any`, `find` or `cs_contains`.
+- **short**: the consumer stops early. The producer is `iter`, and the Rust caller uses `next`, `any` or `find`.
 - **full**: enumerated once, completely, with nothing in between.
 - **foreach**: a loop whose body runs between predicate calls. The row says why the Rust loop matches: either it tests the predicate right before each body, or the predicate reads nothing the body changes and can't throw.
 - **forward**: the query is returned or passed on, and another row covers the consumer.

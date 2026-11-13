@@ -100,8 +100,7 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
             bot.best_revival_location(game, &all).map_or_else(|| "null".to_string(), |l| format!("L{}", l.id()))
         }
         "DetermineOptimalUseOfEmperorRevivals" => {
-            let (mut f, mut s) = (0, 0);
-            ClassicBot::determine_optimal_use_of_emperor_revivals(game, me, &mut f, &mut s, a[0] == "true");
+            let (f, s) = ClassicBot::determine_optimal_use_of_emperor_revivals(game, me, a[0] == "true");
             format!("{f},{s}")
         }
         "DetermineNexusPlayed_Betrayal" | "DetermineNexusPlayed_Cunning" | "DetermineNexusPlayed_SecretAlly" => {
@@ -239,7 +238,7 @@ fn run(name: &str) {
                     game.map.mark_neighbour_cache_stale();
                     let faction = game.player(player).faction;
                     let seed = p["seed"].as_i64().unwrap() as i32;
-                    let mut bot = ClassicBot::new(game, player, BotParameters::get_default_parameters(faction), Some(SharedRandom::from_seed(seed)));
+                    let mut bot = ClassicBot::new(player, BotParameters::for_faction(faction), SharedRandom::from_seed(seed));
 
                     let saved = setup(game, player, m, &a);
                     let g: &Game = game;

@@ -46,7 +46,7 @@ impl FaceDancerRevealed {
                 None
             } else {
                 let winner = game.winner_hero().required("battle winner")?;
-                face_dancers.iter().copied().cs_first_or_default_where(|f| winner.is_face_dancer(*f))
+                face_dancers.iter().copied().find(|f| winner.is_face_dancer(*f))
             };
             game.log(elems![self.initiator(), " reveal ", facedancer, " as one of their Face Dancers!"]);
             game.stone(Milestone::FaceDanced);

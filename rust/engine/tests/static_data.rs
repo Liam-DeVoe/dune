@@ -328,7 +328,7 @@ fn map_attached() {
             ("hms->carthag again", m.hidden_mobile_stronghold().location(), m.carthag()),
         ];
         for (name, which, to) in steps {
-            which.as_attached_location().unwrap().point_at(&mut m, to);
+            which.as_attached_location().unwrap().point_at(&mut m, to).unwrap();
             let snapshot = dump_map(&m);
             let mut neighbours = Vec::new();
             for l in m.locations(true) {

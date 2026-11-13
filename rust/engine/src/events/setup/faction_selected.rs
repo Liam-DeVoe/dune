@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use crate::compat::lazy::LazyQuery;
 
 #[derive(Clone, Debug, Canon)]
 pub struct FactionSelected {
@@ -30,7 +29,7 @@ impl FactionSelected {
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if self.faction != Faction::None && !Self::valid_factions(game).cs_contains(&self.faction) {
+        if self.faction != Faction::None && !Self::valid_factions(game).any(|v| v == self.faction) {
             return Some(express!("Faction not available"));
         }
 

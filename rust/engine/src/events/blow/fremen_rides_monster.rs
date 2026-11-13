@@ -1,7 +1,6 @@
 use crate::log::blow::{NexusLog, NexusRide};
 use crate::game::MonsterAppearence;
 use crate::prelude::*;
-use crate::compat::lazy::LazyQuery;
 
 /// `params object?[]` element list for `Log(...)`.
 macro_rules! elems {
@@ -62,7 +61,7 @@ impl FremenRidesMonster {
         if self.to(game).is_none() {
             return Some(express!("Target location not selected"));
         }
-        if !Self::valid_targets(game, self.player()).cs_contains(&self.to(game).nre()) {
+        if !Self::valid_targets(game, self.player()).any(|v| v == self.to(game).nre()) {
             return Some(express!("Invalid target location"));
         }
 

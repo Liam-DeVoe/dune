@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use crate::compat::lazy::LazyQuery;
 
 #[derive(Clone, Debug, Canon)]
 pub struct ChoamMovePrevention {
@@ -37,7 +36,7 @@ impl ChoamMovePrevention {
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
         let territory = self.territory(game);
-        if !ChoamMovePrevention::valid_territories(game, self.player()).cs_contains(&territory.or_null()) {
+        if !ChoamMovePrevention::valid_territories(game, self.player()).any(|v| v == territory.or_null()) {
             return Some(express!("Invalid territory"));
         }
         None

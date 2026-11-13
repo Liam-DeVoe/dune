@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use crate::compat::lazy::LazyQuery;
 
 #[derive(Clone, Debug, Canon)]
 pub struct ResourcesAudited {
@@ -26,7 +25,7 @@ impl ResourcesAudited {
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if !ResourcesAudited::valid_factions(game, self.player()).cs_contains(&self.target) {
+        if !ResourcesAudited::valid_factions(game, self.player()).any(|v| v == self.target) {
             return Some(express!("Invalid faction"));
         }
 

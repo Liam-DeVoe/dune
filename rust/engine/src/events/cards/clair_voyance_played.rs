@@ -67,13 +67,7 @@ impl ClairVoyancePlayed {
                 LeaderManager::hero_lookup().find(try_int_parse(Some(p1))?).into()
             }
             ClairvoyanceQuestion::Prediction => Faction(try_enum_parse(Some(p1), Faction::INFO.declared)?).into(),
-            ClairvoyanceQuestion::WillAttackX => {
-                // Game.Map: after Undo, the map of another game, whose territories are its own objects.
-                let own = game.own_game(self.game_ref());
-                let t = own.map.territory_lookup().find(try_int_parse(Some(p1))?);
-                let t = if own.id == game.id { t } else { t.map(|t| t.of_game_map(own.id)) };
-                t.into()
-            }
+            ClairvoyanceQuestion::WillAttackX => game.map.territory_lookup().find(try_int_parse(Some(p1))?).into(),
             ClairvoyanceQuestion::DialOfMoreThanXInBattle => try_float_parse_invariant(Some(p1))?.into(),
             _ => ExpressionElement::Null,
         })
@@ -165,14 +159,14 @@ impl ClairVoyancePlayed {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
     pub fn valid_questions(g: &Game, target: Faction) -> impl Iterator<Item = ClairvoyanceQuestion> {
-        use crate::compat::lazy::Either;
+        use either::Either;
         let all_values: Vec<ClairvoyanceQuestion> = ClairvoyanceQuestion::ALL.iter().copied().collect();
         let target_player = g.get_player(Some(target));
         let Some(target_player) = target_player.filter(|tp| g.is_bot(*tp)) else {
-            return Either::A(all_values.into_iter());
+            return Either::Left(all_values.into_iter());
         };
 
-        Either::B(all_values.into_iter().filter(move |v| ClairVoyancePlayed::applies_to_bot(*v, g, target_player)))
+        Either::Right(all_values.into_iter().filter(move |v| ClairVoyancePlayed::applies_to_bot(*v, g, target_player)))
     }
 
     pub fn applies_to_bot(q: ClairvoyanceQuestion, g: &Game, p: PlayerIndex) -> bool {

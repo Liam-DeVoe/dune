@@ -62,6 +62,13 @@ impl CardTraded {
 
         let target_player = game.get_player(Some(self.target));
         let Some(target_player) = target_player else { return Some(express!("Invalid target player")) };
+        // Not in C#, which accepted an offer to any faction. The client always names the ally, but an
+        // offer to another faction put the game in TradingCards waiting for a player whose answer
+        // can't be validated without an ally, so the game stopped there (fuzz seed 1 game 31,
+        // rust/docs/escapes.md).
+        if self.target != game.player(self.player()).ally {
+            return Some(express!("You can only trade cards with your ally"));
+        }
 
         if self.requested_card().is_some() && !game.is_bot(game.player(self.player()).allied_player(game).nre()) {
             return Some(express!("You can only select a card from a Bot ally"));

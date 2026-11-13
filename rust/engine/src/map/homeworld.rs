@@ -18,15 +18,6 @@ impl Homeworld {
         self.0
     }
 
-    pub(crate) fn retag(&mut self, from: u64, to: u64) {
-        self.0.retag(from, to)
-    }
-
-    /// This homeworld as an object of the map of game `game` (see `Location`).
-    pub fn of_game_map(self, game: crate::game::GameId) -> Homeworld {
-        Homeworld(self.0.of_game_map(game))
-    }
-
     fn hw(self) -> &'static HomeworldData {
         match &self.0.data().kind {
             LocationKind::Homeworld(hw) => hw,

@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use crate::compat::lazy::LazyQuery;
 
 #[derive(Clone, Debug, Canon)]
 pub struct FactionTradeOffered {
@@ -27,7 +26,7 @@ impl FactionTradeOffered {
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
         // `p.Faction` is read inside the lazy predicate, so a null Player throws only once the union has an element.
-        if !Self::valid_targets(game, self.player_opt().unwrap_or(PlayerIndex::NULL)).cs_contains(&self.target) {
+        if !Self::valid_targets(game, self.player_opt().unwrap_or(PlayerIndex::NULL)).any(|v| v == self.target) {
             return Some(express!("Invalid target"));
         }
 
@@ -38,7 +37,7 @@ impl FactionTradeOffered {
     pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Faction> {
         let factions: Vec<Faction> = g.factions_in_play.borrow().clone();
         // `p.Faction` is read inside the predicate, per element, as in C#.
-        crate::compat::lazy::union(factions.into_iter(), g.players.iter().map(|p| p.faction)).filter(move |f| *f != g.player(p).faction)
+        crate::iter::unique(factions.into_iter().chain(g.players.iter().map(|p| p.faction))).filter(move |f| *f != g.player(p).faction)
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {

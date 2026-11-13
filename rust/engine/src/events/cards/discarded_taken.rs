@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use crate::compat::lazy::LazyQuery;
 
 #[derive(Clone, Debug, Canon)]
 pub struct DiscardedTaken {
@@ -38,7 +37,7 @@ impl DiscardedTaken {
     pub fn validate(&self, game: &Game) -> Option<Message> {
         // ValidCards(Game, Player) is lazy: a null Player and a null discard pile are
         // dereferenced inside the predicate, per element, up to the first match.
-        if !DiscardedTaken::valid_cards(game, self.player_opt().unwrap_or(PlayerIndex::NULL)).cs_contains(&self.card().or_null()) {
+        if !DiscardedTaken::valid_cards(game, self.player_opt().unwrap_or(PlayerIndex::NULL)).any(|v| v == self.card().or_null()) {
             return Some(express!("Invalid card"));
         }
 

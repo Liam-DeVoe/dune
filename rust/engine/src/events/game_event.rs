@@ -9,9 +9,10 @@ pub struct GameEventBase {
     /// Interior mutability: the server sets this member after `Execute`, when the event is already in
     /// `History`.
     pub time: Cell<DateTimeOffset>,
-    /// Interior mutability: written after the event is stored in game state.
-    /// After `Undo`, it can be another game than the one holding the event.
-    pub game: Cell<GameRef>,
+    /// Whether the event was initialized against a game (C#'s `Game` field is set). Only
+    /// the state dump reads it.
+    #[canon(name = "Game", with = "crate::canon::game_link")]
+    pub initialized: Cell<bool>,
     /// Interior mutability: written after the event is stored in game state.
     pub player: Cell<Option<PlayerIndex>>,
 }
@@ -21,7 +22,7 @@ impl Default for GameEventBase {
         GameEventBase {
             initiator: Cell::new(Default::default()),
             time: Cell::new(Default::default()),
-            game: Cell::new(GameRef::NULL),
+            initialized: Cell::new(false),
             player: Cell::new(Default::default()),
         }
     }
@@ -49,15 +50,7 @@ pub trait GameEventMethods {
         self.base().time.get()
     }
 
-    /// `Game`: the game this event was last initialized against (null if never).
-    /// Event methods take the current game as a parameter; to read the own game of
-    /// an event the game holds, resolve it with `game.game_of(e.game_ref())`.
-    fn game_ref(&self) -> GameRef {
-        self.base().game.get()
-    }
-
     /// `Player`, dereferenced: NullReferenceException when it was never set (hazards.md 1.8).
-    /// It can be a player of another game (engine-conventions.md, "Game identity and undo").
     fn player(&self) -> PlayerIndex {
         self.base().player.get().nre()
     }
@@ -88,7 +81,7 @@ pub trait GameEventMethods {
     }
 
     fn initialize(&self, game: &Game, initiator: Faction) {
-        self.base().game.set(game.reference());
+        self.base().initialized.set(true);
         self.base().initiator.set(initiator);
 
         let player = game.get_player(Some(initiator));
@@ -199,15 +192,10 @@ pub trait GameEventMethods {
 }
 
 impl GameEvent {
-    /// `((ILocationEvent)e).To`, read through the event's own `Game.Map`.
-    /// After an undo that is another game, and the location is that game's map object
-    /// (engine-conventions.md, "Game identity and undo"). Use this instead of
-    /// `i_location_event_to` for events the game holds (`LastShipmentOrMovement`,
+    /// `((ILocationEvent)e).To` of an event the game holds (`LastShipmentOrMovement`,
     /// `Intrusion.TriggeringEvent`).
     pub fn to_location(&self, game: &Game) -> Option<Location> {
-        let own = game.own_game(self.base().game.get());
-        let to = self.i_location_event_to(own);
-        if own.id == game.id { to } else { to.map(|l| l.of_game_map(own.id)) }
+        self.i_location_event_to(game)
     }
 }
 

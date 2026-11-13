@@ -20,6 +20,9 @@ pub mod map;
 // Messages
 pub mod messages;
 
+// Iterator helpers
+pub mod iter;
+
 // Randomness, serialization and the state dump
 pub mod canon;
 pub mod json;

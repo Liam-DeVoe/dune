@@ -44,7 +44,7 @@ fn new_game(version: i32) -> Game {
     g.rules.push(Rule::EmperorSpecialForces);
     g.rules.push(Rule::FremenSpecialForces);
     for (i, f) in FACTIONS.iter().enumerate() {
-        let mut p = Player::new(&g, *f);
+        let mut p = Player::new(*f);
         p.seat = i as i32;
         g.players.push(p);
     }
@@ -185,7 +185,7 @@ fn rust_lines() -> Vec<String> {
                 if i % 3 == 1 {
                     continue;
                 }
-                let mut p = Player::new(&g, FACTIONS[(i as usize) % FACTIONS.len()]);
+                let mut p = Player::new(FACTIONS[(i as usize) % FACTIONS.len()]);
                 p.seat = i;
                 g.players.push(p);
             }
@@ -283,7 +283,7 @@ fn sequence_lines() -> Vec<String> {
             g.settings.as_ref().unwrap().borrow_mut().number_of_players = np;
             let factions = [Faction::Atreides, Faction::Richese, Faction::Harkonnen, Faction::Emperor, Faction::Choam, Faction::BeneGesserit, Faction::Tleilaxu];
             for i in 0..count {
-                let mut p = Player::new(&g, factions[(i + seed as usize) % factions.len()]);
+                let mut p = Player::new(factions[(i + seed as usize) % factions.len()]);
                 p.seat = if r.below(4) == 0 { r.below(count + 1) as i32 } else { i as i32 };
                 let full = if r.below(3) == 0 { 8 } else { r.below(5) };
                 for c in 0..full {

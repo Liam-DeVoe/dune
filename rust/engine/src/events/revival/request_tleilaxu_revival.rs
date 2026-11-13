@@ -44,21 +44,22 @@ impl RequestTleilaxuRevival {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
     pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Hero> {
-        use crate::compat::lazy::{Either, empty};
+        use either::Either;
+        use std::iter::empty;
         let tleilaxu = g.get_player(Some(Faction::Tleilaxu));
         // The gholas query is built first and runs lazily; its predicate reads p.Faction per element.
         let gholas = match tleilaxu {
-            Some(tleilaxu) => Either::A(g.player(tleilaxu).leaders.iter().filter(move |l| l.faction() == g.player(p).faction).map(|l| Hero::Leader(*l))),
-            None => Either::B(empty()),
+            Some(tleilaxu) => Either::Left(g.player(tleilaxu).leaders.iter().filter(move |l| l.faction() == g.player(p).faction).map(|l| Hero::Leader(*l))),
+            None => Either::Right(empty()),
         };
         // KilledHeroes builds its list at the call; the Union is lazy.
         let killed = g.killed_heroes(p);
-        crate::compat::lazy::union(killed.into_iter(), gholas)
+        crate::iter::unique(killed.into_iter().chain(gholas))
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let hero = self.hero();
-        let existing_request = game.current_revival_requests.iter().cs_first_or_default_where(|r| r.hero() == hero).cloned();
+        let existing_request = game.current_revival_requests.iter().find(|r| r.hero() == hero).cloned();
         if let Some(existing_request) = existing_request {
             // List.Remove: events compare by reference.
             if let Some(i) = game.current_revival_requests.iter().position(|r| Rc::ptr_eq(r, &existing_request)) {

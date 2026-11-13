@@ -6,7 +6,6 @@ use crate::prelude::*;
 
 impl ClassicBot {
     pub fn determine_move(&mut self, game: &Game) -> Option<Rc<Move>> {
-        Self::log_info("DetermineMove()", vec![]);
 
         if game.in_guild_cunning_shipment {
             let mut m = Move::new(game, self.faction(game));
@@ -44,7 +43,6 @@ impl ClassicBot {
     }
 
     pub fn determine_caravan(&mut self, game: &Game) -> Option<Rc<Caravan>> {
-        Self::log_info("DetermineCaravan()", vec![]);
 
         if self.forces_on_planet(game).keys().filter(|l| !l.is_stronghold()).count() <= 1 {
             return None;
@@ -80,7 +78,6 @@ impl ClassicBot {
         let winning = self.i_am_winning(game);
         // LogInfo("DetermineMove(). AllIn: {0}, Winning: {1}.", LastTurn, winning): LastTurn is pure.
         let _ = self.last_turn(game);
-        Self::log_info("DetermineMove(). AllIn: {0}, Winning: {1}.", vec![]);
 
         let me = self.player;
         let faction = self.faction(game);
@@ -90,7 +87,6 @@ impl ClassicBot {
             let decided = self.decided_shipment.clone().nre();
             let decided_to = decided.to(game).or_null();
             if game.player(me).forces_in_locations.contains_key(&decided_to) {
-                Self::log_info("Move to spice", vec![]);
                 let to_move = game
                     .player(me)
                     .forces_in_locations
@@ -113,7 +109,6 @@ impl ClassicBot {
         if let Some(b) = battalion_threatened_by_ally_presence {
             let move_to = self.determine_most_suitable_nearby_location(game, &b, true, true);
             if let Some(move_to) = move_to {
-                Self::log_info("Move biggest battalion threatened by ally presence", vec![]);
                 let mv = self.construct_move(game, move_to, b.location, &b.battalion);
                 if mv.is_some() {
                     return mv;
@@ -127,7 +122,6 @@ impl ClassicBot {
             if let Some(b) = biggest_battalion_threatened_by_storm {
                 let move_to = self.determine_most_suitable_nearby_location(game, &b, true, false);
                 if let Some(move_to) = move_to {
-                    Self::log_info("Move biggest battalion threatened by storm", vec![]);
                     let mv = self.construct_move(game, move_to, b.location, &b.battalion);
                     if mv.is_some() {
                         return mv;
@@ -141,7 +135,6 @@ impl ClassicBot {
         if let Some(b) = biggest_battalion_in_spiceless_non_stronghold {
             let move_to = self.determine_most_suitable_nearby_location(game, &b, false, false);
             if let Some(move_to) = move_to {
-                Self::log_info("Move from spiceless non-stronghold location (if not needed for atomics) to safe stronghold or spice or rock", vec![]);
                 let mv = self.construct_move(game, move_to, b.location, &b.battalion);
                 if mv.is_some() {
                     return mv;
@@ -155,7 +148,6 @@ impl ClassicBot {
         if let Some(b) = biggest_battalion_in_spiceless_non_stronghold_not_near_stronghold {
             let move_to = self.determine_most_suitable_nearby_location(game, &b, true, false);
             if let Some(move_to) = move_to {
-                Self::log_info("Move from useless non-stronghold location (if not needed for atomics) to safe stronghold or spice or rock", vec![]);
                 let mv = self.construct_move(game, move_to, b.location, &b.battalion);
                 if mv.is_some() {
                     return mv;
@@ -170,7 +162,6 @@ impl ClassicBot {
             if let Some(b) = biggest_stack_of_advisors_in_stronghold_near_vacant_stronghold {
                 let move_to = self.vacant_and_safe_nearby_stronghold(game, b.location, &b.battalion);
                 if let Some(move_to) = move_to {
-                    Self::log_info("Move partly from unthreatened stronghold location with enough forces to nearby vacant stronghold", vec![]);
                     let mv = self.construct_move(game, move_to, b.location, &b.battalion);
                     if mv.is_some() {
                         return mv;
@@ -190,7 +181,6 @@ impl ClassicBot {
             if let Some(b) = big_unthreatened_battalion_near_vacant_stronghold {
                 let move_to = self.vacant_and_safe_nearby_stronghold(game, b.location, &b.battalion);
                 if let Some(move_to) = move_to {
-                    Self::log_info("Move partly from unthreatened stronghold location with enough forces to nearby vacant stronghold", vec![]);
                     let mv = self.construct_move(game, move_to, b.location, &b.battalion.take_half());
                     if mv.is_some() {
                         return mv;
@@ -208,7 +198,6 @@ impl ClassicBot {
                     .or_else(|| self.best_safe_and_nearby_resources(game, b.location, &b.battalion, true));
 
                 if let Some(move_to) = move_to {
-                    Self::log_info("Move partly from unthreatened stronghold location with enough forces to nearby spice", vec![]);
                     let forces_for_collection = std::cmp::max(
                         2,
                         std::cmp::min(self.determine_forces_needed_for_collection(game, move_to), b.battalion.total_amount_of_forces() / 2),
@@ -236,7 +225,6 @@ impl ClassicBot {
                 if let Some(troop) = troop_that_will_blow_shield_wall
                     && let Some(to) = to
                 {
-                    Self::log_info("Move towards shield wall to detonate family atomics if needed", vec![]);
                     let mv = self.construct_move(game, to, from, &troop);
                     if mv.is_some() {
                         return mv;
@@ -245,7 +233,6 @@ impl ClassicBot {
             }
         }
 
-        Self::log_info("I'm deciding not to move", vec![]);
         self.decided_shipment_action = ShipmentDecision::None;
         None
     }
@@ -288,7 +275,6 @@ impl ClassicBot {
     }
 
     pub fn determine_flight_used(&self, game: &Game) -> Option<Rc<FlightUsed>> {
-        Self::log_info("DetermineFlightUsed()", vec![]);
 
         if self.forces_on_planet(game).keys().filter(|l| !l.is_stronghold()).count() > 1
             && dotnet_compat::linq::sum_i32(
@@ -304,7 +290,6 @@ impl ClassicBot {
     }
 
     pub fn determine_flight_discovery_used(&self, game: &Game) -> Option<Rc<FlightDiscoveryUsed>> {
-        Self::log_info("DetermineFlightDiscoveryUsed()", vec![]);
 
         if !game.has_ornithopters(self.player)
             && (self.biggest_battalion_in_spiceless_non_stronghold_location_in_sand_or_not_near_stronghold(game).is_some()
@@ -319,7 +304,7 @@ impl ClassicBot {
     }
 
     pub fn determine_most_suitable_nearby_location(&self, game: &Game, battalion_at_location: &BattalionInLocation, include_second_best_locations: bool, must_move: bool) -> Option<Location> {
-        self.determine_most_suitable_nearby_location_location_battalion_bool_bool(
+        self.most_suitable_nearby_location(
             game,
             battalion_at_location.location,
             &battalion_at_location.battalion,
@@ -334,7 +319,7 @@ impl ClassicBot {
         return_value
     }
 
-    pub fn determine_most_suitable_nearby_location_location_battalion_bool_bool(&self, game: &Game, location: Location, battalion: &Battalion, include_second_best_locations: bool, must_move: bool) -> Option<Location> {
+    pub fn most_suitable_nearby_location(&self, game: &Game, location: Location, battalion: &Battalion, include_second_best_locations: bool, must_move: bool) -> Option<Location> {
         let mut result = self.nearby_stronghold_of_winning_opponent(game, location, battalion, false);
         if result.is_some() {
             return self.log(game, "Suitable NearbyStrongholdOfWinningOpponent excluding bots", result);
@@ -407,7 +392,7 @@ impl ClassicBot {
                     let l = *l;
                     game.is_protected_from_storm(l)
                         && self.within_range(game, location, l, battalion)
-                        && self.not_occupied_by_others_territory(game, l.territory())
+                        && self.not_occupied_by_others(game, l.territory())
                         && l.territory() != location.territory()
                 });
                 if result.is_some() {
@@ -423,7 +408,6 @@ impl ClassicBot {
         result = PlacementEvent::valid_targets(game, self.player, location, battalion)
             .into_iter()
             .cs_first_or_default_where(|l| self.ally_doesnt_block(game, l.territory()) && *l != location);
-        Self::log_info("Suitable - any location without my ally: {0}", vec![]);
 
         result
     }

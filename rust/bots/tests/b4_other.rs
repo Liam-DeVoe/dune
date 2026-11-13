@@ -239,7 +239,7 @@ fn run(name: &str) {
                     game.map.mark_neighbour_cache_stale();
                     let faction = game.player(player).faction;
                     let seed = p["seed"].as_i64().unwrap() as i32;
-                    let mut bot = ClassicBot::new(game, player, BotParameters::get_default_parameters(faction), Some(SharedRandom::from_seed(seed)));
+                    let mut bot = ClassicBot::new(player, BotParameters::for_faction(faction), SharedRandom::from_seed(seed));
 
                     let saved = setup(game, player, m, &a);
                     let g: &Game = game;

@@ -7,7 +7,7 @@ pub use treachery_engine::game::{Player, PlayerIndex};
 pub use treachery_engine::game::ObjectCounter;
 pub use treachery_engine::compat::random_ext::RandomExt;
 
-pub use crate::bot::ClassicBot;
+pub use crate::bot::{ClassicBot, Decision, Priority};
 pub use crate::parameters::BotParameters;
 pub use crate::bot::VoicePlan;
 pub use crate::bot::BattalionInLocation;

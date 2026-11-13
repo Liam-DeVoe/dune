@@ -100,7 +100,7 @@ impl ClassicBot {
         let enemy_forces_killed_in_sector_plus1 = enemy_killed(&locations_in_sector_plus1);
 
         let enemy_strongholds =
-            |locs: &[Location]| locs.iter().filter(|l| l.is_stronghold() && self.occupied_by_opponent_location(game, **l)).count() as i32;
+            |locs: &[Location]| locs.iter().filter(|l| l.is_stronghold() && self.occupied_by_opponent(game, **l)).count() as i32;
         let enemy_strongholds_in_sector = enemy_strongholds(&locations_in_sector);
         let enemy_strongholds_in_sector_minus1 = enemy_strongholds(&locations_in_sector_minus1);
         let enemy_strongholds_in_sector_plus1 = enemy_strongholds(&locations_in_sector_plus1);
@@ -722,7 +722,6 @@ impl ClassicBot {
 
         let mut best_opponent_to_swap_with = self.opponents(game).into_iter().highest_or_default(&self.random, |o| good_cards(*o));
         // `"..." + player`: Player has no ToString override, so this can't throw.
-        Self::log_info("opponent with most known good cards: ", vec![]);
 
         if let Some(b) = best_opponent_to_swap_with {
             if good_cards(b) >= 2 {
@@ -736,7 +735,6 @@ impl ClassicBot {
         }
 
         best_opponent_to_swap_with = self.opponents(game).into_iter().find(|o| game.player(*o).treachery_cards.len() == 4);
-        Self::log_info("opponent with 4 cards: ", vec![]);
 
         if let Some(b) = best_opponent_to_swap_with {
             if bad_cards(b) <= 2 {
@@ -797,7 +795,6 @@ impl ClassicBot {
 
             if Self::nr_of_unknown_opponent_cards(game, self.player, opponent) > 0 {
                 // `"..." + opponent`: Player has no ToString override.
-                Self::log_info("Start using Clairvoyance against ", vec![]);
 
                 let territory = battle.territory(game);
                 let my_weapons: Vec<TreacheryCard> =
@@ -905,7 +902,6 @@ impl ClassicBot {
     pub fn determine_clair_voyance_answered(&self, game: &Game) -> Rc<ClairVoyanceAnswered> {
         // Outside the try: a null LatestClairvoyance escapes to Do.
         let _ = game.latest_clairvoyance.as_ref().nre().question;
-        Self::log_info("DetermineClairVoyanceAnswered() {0}", vec![]);
 
         let mut answer = ClairVoyanceAnswer::Unknown;
 
@@ -1147,7 +1143,7 @@ impl ClassicBot {
         let min = StormDialled::valid_min_amount(game);
         let max = StormDialled::valid_max_amount(game);
         let mut e = StormDialled::new(game, self.faction(game));
-        e.amount = min.wrapping_add(self.d(game, 1, 1i32.wrapping_add(max).wrapping_sub(min))).wrapping_sub(1);
+        e.amount = min.wrapping_add(self.d(1, 1i32.wrapping_add(max).wrapping_sub(min))).wrapping_sub(1);
         Rc::new(e)
     }
 
@@ -1616,7 +1612,7 @@ impl ClassicBot {
             skill = skills.iter().copied().cs_first();
         }
 
-        let leader = self.random_item_from(game, &SkillAssigned::valid_leaders(game, self.player));
+        let leader = self.random_item_from(&SkillAssigned::valid_leaders(game, self.player));
         let mut e = SkillAssigned::new(game, self.faction(game));
         e.passed = false;
         e.set_leader(leader);
@@ -1624,8 +1620,8 @@ impl ClassicBot {
         Rc::new(e)
     }
 
-    pub fn random_item_from<T: Clone>(&self, game: &Game, items: &[T]) -> T {
-        cs::index_array(items, self.d(game, 1, items.len() as i32) - 1).clone()
+    pub fn random_item_from<T: Clone>(&self, items: &[T]) -> T {
+        cs::index_array(items, self.d(1, items.len() as i32) - 1).clone()
     }
 
     pub fn determine_planetology(&self, game: &Game) -> Rc<Planetology> {

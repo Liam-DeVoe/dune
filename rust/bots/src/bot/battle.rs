@@ -70,13 +70,11 @@ impl ClassicBot {
         let switchable_leader_must_be_used = Battle::valid_battle_heroes(game, self.player).len() <= 1
             || self.determine_battle_plan_if_not_waiting_for_prescience(game, true).and_then(|b| b.hero()) == switchable_leader;
 
-        Self::log_info("Checking if {switchableLeader} should be switched...", vec![]);
 
         if switchable_leader_is_behind_shield ^ switchable_leader_must_be_used {
             return Some(Rc::new(SwitchedSkilledLeader::new(game, self.faction(game))));
         }
 
-        Self::log_info("Switch not necessary.", vec![]);
 
         None
     }
@@ -216,13 +214,11 @@ impl ClassicBot {
     }
 
     pub fn determine_battle_plan(&self, game: &Game, include_leader_in_front_of_shield: bool) -> Rc<Battle> {
-        Self::log_info("DetermineBattle()", vec![]);
 
         let current_battle = game.current_battle.as_ref().nre();
         let opponent = current_battle.opponent_of(game, self.player);
 
         if self.decided_shipment_action == ShipmentDecision::DummyShipment {
-            Self::log_info("I'm spending as little as possible on this fight because this is a dummy shipment", vec![]);
             return self.construct_lost_battle_minimizing_losses(game, opponent.or_null(), current_battle.territory(game).or_null());
         }
 
@@ -278,7 +274,7 @@ impl ClassicBot {
         let mut forces_at_half_strength = 0;
         let mut special_forces_at_full_strength = 0;
         let mut special_forces_at_half_strength = 0;
-        let mut dial_shortage = self.determine_dial_shortage_for_battle_single_faction_int32_int32_int32_territory_int32_int32_int32_int32(
+        let mut dial_shortage = self.dial_shortage_for_battle_in_detail(
             game,
             if lasgun_shield { 0.5 } else { dial_needed },
             game.player(opponent.or_null()).faction,
@@ -331,7 +327,6 @@ impl ClassicBot {
 
             self.avoid_lasgun_shield_explosion(game, &mut weapon, &mut defense);
 
-            Self::log_info("Leader: {0}, Weapon: {1}, Defense: {2}, ...", vec![]);
 
             let mut paid_by_arrakeen = 0;
             let cost = Battle::cost_game_player_int32_int32_int32(
@@ -360,15 +355,14 @@ impl ClassicBot {
             return Rc::new(result);
         }
 
-        Self::log_info("I'm spending as little as possible on this fight: ...", vec![]);
 
         self.construct_lost_battle_minimizing_losses(game, opponent.or_null(), current_battle.territory(game).or_null())
     }
 
     pub fn use_destructive_weapon_if_applicable(game: &Game, player: PlayerIndex, param: &BotParameters, enemy_can_defend_poison_tooth: bool, my_hero_surviving: &mut f32, enemy_hero_surviving: &mut f32, defense: &mut Option<TreacheryCard>, weapon: &mut Option<TreacheryCard>) {
         if weapon.is_some()
-            || !(*my_hero_surviving < param.battle_mimimum_chance_to_assume_my_leader_survives)
-            || !(*enemy_hero_surviving >= param.battle_mimimum_chance_to_assume_enemy_hero_survives)
+            || !(*my_hero_surviving < param.battle_minimum_chance_to_assume_my_leader_survives)
+            || !(*enemy_hero_surviving >= param.battle_minimum_chance_to_assume_enemy_hero_survives)
         {
             return;
         }
@@ -485,29 +479,25 @@ impl ClassicBot {
 
     pub fn remove_illegal_choices(&self, game: &Game, hero: &mut Option<Hero>, weapon: &mut Option<TreacheryCard>, defense: &mut Option<TreacheryCard>, territory: Option<Territory>) {
         let territory = territory.and_then(CsNull::opt);
-        Self::log_info("Removing Illegal Choices...", vec![]);
 
         for _check in 0..3 {
             if hero.is_none() {
                 *defense = None;
                 *weapon = None;
-                Self::log_info("Removed weapon and defense because no leader available", vec![]);
             }
 
-            let weapon_clairvoyance = self.ruling_weapon_clairvoyance_for_player_battle(game);
+            let weapon_clairvoyance = self.ruling_weapon_clairvoyance(game);
             if weapon_clairvoyance.is_some() && !self.is_allowed_with_clairvoyance(game, weapon_clairvoyance.as_ref(), *weapon, true) {
                 *weapon = Self::weapons(game, self.player, *defense, *hero, territory)
                     .into_iter()
                     .cs_first_or_default_where(|c| self.is_allowed_with_clairvoyance(game, weapon_clairvoyance.as_ref(), Some(*c), true));
-                Self::log_info("Replaced weapon by: {weapon}", vec![]);
             }
 
-            let def_clairvoyance = self.ruling_defense_clairvoyance_for_player_battle(game);
+            let def_clairvoyance = self.ruling_defense_clairvoyance(game);
             if def_clairvoyance.is_some() && !self.is_allowed_with_clairvoyance(game, def_clairvoyance.as_ref(), *defense, false) {
                 *defense = Self::defenses(game, self.player, *weapon, territory)
                     .into_iter()
                     .cs_first_or_default_where(|c| self.is_allowed_with_clairvoyance(game, def_clairvoyance.as_ref(), Some(*c), false));
-                Self::log_info("Replaced defense by: {defense}", vec![]);
             }
 
             if let Some(w) = *weapon {
@@ -538,14 +528,12 @@ impl ClassicBot {
                 *weapon = Self::weapons(game, self.player, *defense, *hero, territory)
                     .into_iter()
                     .cs_first_or_default_where(|w| w.type_() != TreacheryCardType::Chemistry);
-                Self::log_info("Replaced weapon by: {weapon}", vec![]);
             }
 
             if !Battle::valid_defenses(game, self.player, *weapon, territory, true).contains(defense) {
                 *defense = Self::defenses(game, self.player, *weapon, territory)
                     .into_iter()
                     .cs_first_or_default_where(|w| w.type_() != TreacheryCardType::WeirdingWay);
-                Self::log_info("Replaced defense by: {defense}", vec![]);
             }
         }
     }
@@ -564,7 +552,7 @@ impl ClassicBot {
 
     pub fn determine_dial_shortage_for_battle(&self, game: &Game, dial_needed: f32, opponent: Faction, territory: Territory, forces_available: i32, special_forces_available: i32, resources_available: i32) -> f32 {
         let (mut a, mut b, mut c, mut d) = (0, 0, 0, 0);
-        self.determine_dial_shortage_for_battle_single_faction_int32_int32_int32_territory_int32_int32_int32_int32(
+        self.dial_shortage_for_battle_in_detail(
             game,
             dial_needed,
             opponent,
@@ -579,7 +567,7 @@ impl ClassicBot {
         )
     }
 
-    pub fn determine_dial_shortage_for_battle_single_faction_int32_int32_int32_territory_int32_int32_int32_int32(&self, game: &Game, dial_needed: f32, opponent: Faction, forces_available: i32, special_forces_available: i32, resources_available: i32, territory: Territory, forces_at_full_strength: &mut i32, forces_at_half_strength: &mut i32, special_forces_at_full_strength: &mut i32, special_forces_at_half_strength: &mut i32) -> f32 {
+    pub fn dial_shortage_for_battle_in_detail(&self, game: &Game, dial_needed: f32, opponent: Faction, forces_available: i32, special_forces_available: i32, resources_available: i32, territory: Territory, forces_at_full_strength: &mut i32, forces_at_half_strength: &mut i32, special_forces_at_full_strength: &mut i32, special_forces_at_half_strength: &mut i32) -> f32 {
         let mut dial_needed = dial_needed;
         let mut forces_available = forces_available;
         let mut special_forces_available = special_forces_available;
@@ -596,7 +584,6 @@ impl ClassicBot {
             _ => 0,
         };
 
-        Self::log_info("DetermineValidForcesInBattle: {0} {1} {2} {3}", vec![]);
 
         if Battle::must_pay_for_any_forces_in_battle(game, self.player) {
             *special_forces_at_full_strength = 0;
@@ -680,7 +667,6 @@ impl ClassicBot {
     pub fn chance_of_my_leader_surviving(&self, game: &Game, player: PlayerIndex, opponent: PlayerIndex, voice_plan: Option<&VoicePlan>, prescience: Option<PrescienceAspect>, most_effective_defense: &mut Option<TreacheryCard>, chosen_weapon: Option<TreacheryCard>) -> f32 {
         let chosen_weapon = chosen_weapon.and_then(CsNull::opt);
         if Self::heroes_for_battle(game, opponent, true).is_empty() {
-            Self::log_info("Opponent has no leaders", vec![]);
             *most_effective_defense = None;
             return 1.0;
         }
@@ -741,7 +727,6 @@ impl ClassicBot {
 
         let my_clairvoyance = Self::player_clairvoyance_about_enemy_weapon_in_current_battle(game, player);
         if let Some(my_clairvoyance) = my_clairvoyance {
-            Self::log_info("Clairvoyance detected!", vec![]);
 
             let question = my_clairvoyance.question.as_ref().nre();
             if question.is_about(game, TreacheryCardType::Projectile) {
@@ -818,7 +803,6 @@ impl ClassicBot {
 
             for known_weapon in known_enemy_weapons.iter().copied() {
                 if known_weapon.countered_by(Some(def), chosen_weapon) {
-                    Self::log_info("potentialWeapon is countered by", vec![]);
                     defense_quality.count2(def);
                 }
             }
@@ -883,7 +867,7 @@ impl ClassicBot {
     }
 
     /// The shared condition of the two properties below; they differ only in the question.
-    fn ruling_clairvoyance_for_player_battle(&self, game: &Game, question: ClairvoyanceQuestion) -> Option<ClairVoyanceQandA> {
+    fn ruling_clairvoyance(&self, game: &Game, question: ClairvoyanceQuestion) -> Option<ClairVoyanceQandA> {
         let (Some(_), Some(qna)) = (&game.latest_clairvoyance, &game.latest_clairvoyance_qn_a) else {
             return None;
         };
@@ -901,19 +885,18 @@ impl ClassicBot {
         }
     }
 
-    pub fn ruling_weapon_clairvoyance_for_player_battle(&self, game: &Game) -> Option<ClairVoyanceQandA> {
-        self.ruling_clairvoyance_for_player_battle(game, ClairvoyanceQuestion::CardTypeAsWeaponInBattle)
+    pub fn ruling_weapon_clairvoyance(&self, game: &Game) -> Option<ClairVoyanceQandA> {
+        self.ruling_clairvoyance(game, ClairvoyanceQuestion::CardTypeAsWeaponInBattle)
     }
 
-    pub fn ruling_defense_clairvoyance_for_player_battle(&self, game: &Game) -> Option<ClairVoyanceQandA> {
-        self.ruling_clairvoyance_for_player_battle(game, ClairvoyanceQuestion::CardTypeAsDefenseInBattle)
+    pub fn ruling_defense_clairvoyance(&self, game: &Game) -> Option<ClairVoyanceQandA> {
+        self.ruling_clairvoyance(game, ClairvoyanceQuestion::CardTypeAsDefenseInBattle)
     }
 
     pub fn chance_of_enemy_leader_dying(&self, game: &Game, player: PlayerIndex, opponent: PlayerIndex, voice: Option<&VoicePlan>, prescience: Option<PrescienceAspect>, most_effective_weapon: &mut Option<TreacheryCard>, enemy_can_defend_poison_tooth: &mut bool) -> f32 {
         *enemy_can_defend_poison_tooth = false;
 
         if Self::heroes_for_battle(game, opponent, true).is_empty() {
-            Self::log_info("Opponent has no leaders", vec![]);
             *most_effective_weapon = None;
             return 0.0;
         }
@@ -1229,7 +1212,7 @@ impl ClassicBot {
         )
     }
 
-    pub fn get_dial_needed_territory_player_bool(&self, game: &Game, territory: Territory, opponent: Option<PlayerIndex>, take_reinforcements_into_account: bool) -> f32 {
+    pub fn dial_needed_against(&self, game: &Game, territory: Territory, opponent: Option<PlayerIndex>, take_reinforcements_into_account: bool) -> f32 {
         let Some(opponent) = opponent.and_then(CsNull::opt) else {
             return 0.0;
         };
@@ -1242,7 +1225,6 @@ impl ClassicBot {
         let mut chance_of_enemy_hero_surviving =
             1.0 - self.chance_of_enemy_leader_dying(game, player, opponent, voice, Some(prescience), best_weapon, &mut enemy_can_defend_poison_tooth);
 
-        Self::log_info("Chance of enemy hero surviving: {0} with {1}", vec![]);
 
         let mut chance_of_my_hero_surviving =
             self.chance_of_my_leader_surviving(game, player, opponent, voice, Some(prescience), best_defense, *best_weapon);
@@ -1258,9 +1240,9 @@ impl ClassicBot {
             best_weapon,
         );
 
-        let mut i_assume_my_leader_will_die = chance_of_my_hero_surviving < param.battle_mimimum_chance_to_assume_my_leader_survives;
+        let mut i_assume_my_leader_will_die = chance_of_my_hero_surviving < param.battle_minimum_chance_to_assume_my_leader_survives;
         let mut i_assume_enemy_leader_will_die =
-            chance_of_enemy_hero_surviving < param.battle_mimimum_chance_to_assume_enemy_hero_survives;
+            chance_of_enemy_hero_surviving < param.battle_minimum_chance_to_assume_enemy_hero_survives;
 
         let opponent_plan = game.current_battle.as_ref().and_then(|b| b.plan_of(game, Some(opponent)));
         *lasgun_shield_detected = Self::has_lasgun_shield(
@@ -1307,21 +1289,18 @@ impl ClassicBot {
         }
 
         if Self::can_only_use_traitors_or_facedancers(game, opponent) {
-            Self::log_info("Opponent leader only has traitors or facedancers to use!", vec![]);
             *best_weapon = None;
             *best_defense = None;
             return 0.5;
         }
 
         if *is_traitor {
-            Self::log_info("My leader is a traitor: chanceOfMyHeroSurviving = 0", vec![]);
             *best_weapon = None;
             *best_defense = None;
             return 99.0;
         }
 
         if *lasgun_shield_detected {
-            Self::log_info("Lasgun/Shield detected!", vec![]);
             if best_weapon.is_some_and(|w| !w.is_laser()) && Self::may_play_no_weapon(game, player, *best_defense) {
                 *best_weapon = None;
             }
@@ -1339,7 +1318,6 @@ impl ClassicBot {
             *best_defense = None;
         }
 
-        Self::log_info("Chance of my hero surviving: {0} with {1} (my weapon: {2})", vec![]);
 
         let my_hero_to_fight_against = *hero;
         let opponent_leader = if prescience == PrescienceAspect::Leader && opponent_plan.is_some() {
@@ -1396,7 +1374,6 @@ impl ClassicBot {
 
         // LogInfo arguments are evaluated: opponent.Faction.
         let _ = game.player(opponent).faction;
-        Self::log_info("{13}/{14}: opponentDial ({0}) + ...", vec![]);
 
         result
     }
@@ -1427,7 +1404,6 @@ impl ClassicBot {
         let territory = game.current_battle.as_ref().nre().territory(game).or_null();
         let outcome = Battle::determine_battle_outcome(agg.as_ref().nre(), def.as_ref().nre(), territory, game);
         let _ = outcome.get_message(game);
-        Self::log_info("outcome", vec![]);
         let mut result = RockWasMelted::new(game, self.faction(game));
         result.kill = outcome.winner == Some(self.player);
         Rc::new(result)

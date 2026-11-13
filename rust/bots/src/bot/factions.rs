@@ -322,7 +322,7 @@ impl ClassicBot {
         let faction = self.faction(game);
         let mut force_locations: NetDictionary<Location, Battalion> = NetDictionary::new();
         let south = game.map.false_wall_south().middle_location();
-        let forces = 3i32.wrapping_add(self.d(game, 1, 4));
+        let forces = 3i32.wrapping_add(self.d(1, 4));
         let special = if game.player(self.player).special_forces_in_reserve() > 0 { 1 } else { 0 };
         force_locations.add(south, Battalion::new(faction, forces, special, south));
 
@@ -496,13 +496,13 @@ impl ClassicBot {
             return true;
         }
 
-        let Some(opponent) = self.get_opponent_that_occupies_territory(game, territory) else {
+        let Some(opponent) = self.get_opponent_that_occupies(game, territory) else {
             return false;
         };
 
         let amount_i_can_reinforce = ClassicBot::max_reinforced_dial_to(game, self.player, opponent, territory);
         let max_dial = ClassicBot::max_dial(game, self.player, territory, Some(opponent), false);
-        let dial_needed = self.get_dial_needed_territory_player_bool(game, territory, Some(opponent), false);
+        let dial_needed = self.dial_needed_against(game, territory, Some(opponent), false);
 
         (!game.player(opponent).is(Faction::Harkonnen) && self.win_was_predicted_by_me_this_turn(game, game.player(opponent).faction))
             || dial_needed <= max_dial
@@ -518,7 +518,7 @@ impl ClassicBot {
             let territory = BeneGesseritBattleAnnouncement::valid_territories(game, self.player)
                 .filter(|t| self.i_want_to_announce_battle_in(game, *t))
                 .lowest_or_default(&self.random, |t| {
-                    self.get_dial_needed_territory_player_bool(game, *t, self.get_opponent_that_occupies_territory(game, *t), false)
+                    self.dial_needed_against(game, *t, self.get_opponent_that_occupies(game, *t), false)
                 });
 
             if let Some(territory) = territory {
@@ -532,11 +532,11 @@ impl ClassicBot {
     }
 
     pub fn i_want_to_announce_battle_in(&self, game: &Game, territory: Territory) -> bool {
-        let Some(opponent) = self.get_opponent_that_occupies_territory(game, territory) else {
+        let Some(opponent) = self.get_opponent_that_occupies(game, territory) else {
             return false;
         };
 
-        let dial_needed = self.get_dial_needed_territory_player_bool(game, territory, Some(opponent), false);
+        let dial_needed = self.dial_needed_against(game, territory, Some(opponent), false);
 
         let last_turn_confidence_bonus = if self.last_turn(game) { 3 } else { 0 };
 
@@ -603,7 +603,7 @@ impl ClassicBot {
 
     pub fn determine_bene_gesserit_prediction(&self, game: &Game) -> Rc<BeneGesseritPrediction> {
         let humans = || self.others(game).into_iter().filter(|p| !game.is_bot(*p));
-        let mut predicted = if self.d(game, 1, 2) == 1 { humans().random_or_default(&self.random) } else { None };
+        let mut predicted = if self.d(1, 2) == 1 { humans().random_or_default(&self.random) } else { None };
         if predicted.is_none() {
             predicted = humans().random_or_default(&self.random);
         }
@@ -615,20 +615,20 @@ impl ClassicBot {
         let maximum_turns = game.maximum_turns();
         // Nested D: the inner draw comes first (hazards 16.5). A negative `sides` throws after the draw.
         let turn = if predicted.is(Faction::Harkonnen) {
-            let sides = if self.d(game, 1, 2) == 1 { std::cmp::min(3, maximum_turns) } else { maximum_turns };
-            self.d(game, 1, sides)
+            let sides = if self.d(1, 2) == 1 { std::cmp::min(3, maximum_turns) } else { maximum_turns };
+            self.d(1, sides)
         } else if predicted.is(Faction::Atreides) || predicted.is(Faction::Ixian) {
-            if self.d(game, 1, 2) == 1 {
-                self.d(game, 1, maximum_turns)
+            if self.d(1, 2) == 1 {
+                self.d(1, maximum_turns)
             } else {
-                2i32.wrapping_add(self.d(game, 1, maximum_turns.wrapping_sub(2)))
+                2i32.wrapping_add(self.d(1, maximum_turns.wrapping_sub(2)))
             }
         } else if predicted.is(Faction::Tleilaxu) {
-            3i32.wrapping_add(self.d(game, 1, maximum_turns.wrapping_sub(3)))
-        } else if self.d(game, 1, 2) == 1 {
-            1i32.wrapping_add(self.d(game, 1, maximum_turns.wrapping_sub(1)))
+            3i32.wrapping_add(self.d(1, maximum_turns.wrapping_sub(3)))
+        } else if self.d(1, 2) == 1 {
+            1i32.wrapping_add(self.d(1, maximum_turns.wrapping_sub(1)))
         } else {
-            2i32.wrapping_add(self.d(game, 1, maximum_turns.wrapping_sub(2)))
+            2i32.wrapping_add(self.d(1, maximum_turns.wrapping_sub(2)))
         };
 
         let mut e = BeneGesseritPrediction::new(game, self.faction(game));
@@ -638,7 +638,6 @@ impl ClassicBot {
     }
 
     pub fn determine_voice(&mut self, game: &Game) -> Option<Rc<Voice>> {
-        Self::log_info("DetermineVoice()", vec![]);
 
         self.voice_plan = None;
 
@@ -907,7 +906,7 @@ impl ClassicBot {
 
         if type_ == TreacheryCardType::None {
             must = false;
-            if self.d(game, 1, 2) > 1 {
+            if self.d(1, 2) > 1 {
                 type_ = if might_have(&|c| c.is_projectile_weapon()) { TreacheryCardType::Projectile } else { TreacheryCardType::Poison };
             } else {
                 type_ = if might_have(&|c| c.is_poison_weapon()) { TreacheryCardType::Poison } else { TreacheryCardType::Projectile };
@@ -1188,12 +1187,12 @@ impl ClassicBot {
                         a.traitors.contains(&hero) && !a.revealed_traitors.contains(&hero)
                     });
                 if condition {
-                    price = 1i32.wrapping_add(self.d(game, 1, hero.value()));
+                    price = 1i32.wrapping_add(self.d(1, hero.value()));
                 } else {
-                    price = 2i32.wrapping_add(self.d(game, 2, hero.value()));
+                    price = 2i32.wrapping_add(self.d(2, hero.value()));
                 }
 
-                self.price_set_earlier.add(hero, price);
+                self.price_set_earlier.insert(hero, price);
             }
 
             let mut e = AcceptOrCancelTleilaxuRevival::new(game, self.faction(game));
@@ -1287,7 +1286,7 @@ impl ClassicBot {
     // ---- Moritani ----
 
     pub fn determine_extortion_prevented(&self, game: &Game) -> Option<Rc<ExtortionPrevented>> {
-        if game.player(self.player).ally != Faction::Moritani && self.resources(game) > 12 && self.d(game, 1, 6) >= 3 {
+        if game.player(self.player).ally != Faction::Moritani && self.resources(game) > 12 && self.d(1, 6) >= 3 {
             return Some(Rc::new(ExtortionPrevented::new(game, self.faction(game))));
         }
 
@@ -1452,7 +1451,7 @@ impl ClassicBot {
         let avoid_entering = stronghold.is_some();
 
         if stronghold.is_none() {
-            stronghold = valid().filter(|s| self.vacant_territory(game, *s)).random_or_default(&self.random);
+            stronghold = valid().filter(|s| self.vacant(game, *s)).random_or_default(&self.random);
         }
         if stronghold.is_none() {
             stronghold = valid().random_or_default(&self.random);
@@ -1746,8 +1745,8 @@ impl ClassicBot {
             e.set_card(card);
             // Initializers run in source order: AuctionType draws before Direction.
             e.auction_type =
-                if self.d(game, 1, 2) > 1 { AuctionType::BlackMarketSilent } else { AuctionType::BlackMarketOnceAround };
-            e.direction = if self.d(game, 1, 2) > 1 { 1 } else { -1 };
+                if self.d(1, 2) > 1 { AuctionType::BlackMarketSilent } else { AuctionType::BlackMarketOnceAround };
+            e.direction = if self.d(1, 2) > 1 { 1 } else { -1 };
             return Rc::new(e);
         }
         e.passed = true;
@@ -1773,7 +1772,7 @@ impl ClassicBot {
 
     pub fn determine_richese_announces_auction(&self, game: &Game) -> Rc<RicheseAnnouncesAuction> {
         let mut e = RicheseAnnouncesAuction::new(game, self.faction(game));
-        e.first = self.d(game, 1, 2) > 1;
+        e.first = self.d(1, 2) > 1;
         Rc::new(e)
     }
 
@@ -1784,8 +1783,8 @@ impl ClassicBot {
         let mut e = RicheseSpecifiesAuction::new(game, self.faction(game));
         let card = if !to_auction.is_empty() { Some(to_auction.draw()) } else { None };
         e.set_card(card.and_then(|c| c.opt()));
-        e.auction_type = if self.d(game, 1, 2) > 1 { AuctionType::RicheseSilent } else { AuctionType::RicheseOnceAround };
-        e.direction = if self.d(game, 1, 2) > 1 { 1 } else { -1 };
+        e.auction_type = if self.d(1, 2) > 1 { AuctionType::RicheseSilent } else { AuctionType::RicheseOnceAround };
+        e.direction = if self.d(1, 2) > 1 { 1 } else { -1 };
         Rc::new(e)
     }
 

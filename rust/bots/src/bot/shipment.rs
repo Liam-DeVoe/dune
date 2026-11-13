@@ -12,7 +12,6 @@ use treachery_engine::compat::lazy::LazyQuery;
 
 impl ClassicBot {
     pub fn determine_shipment(&mut self, game: &Game) -> Rc<Shipment> {
-        Self::log_info("DetermineShipment()", vec![]);
 
         self.decided_shipment_action = ShipmentDecision::None;
         self.decided_shipment = None;
@@ -36,7 +35,7 @@ impl ClassicBot {
             let extra_forces = if self.last_turn(game) || (faction == Faction::BeneGesserit && game.applicable(Rule::BeneGesseritAdvisors)) {
                 1
             } else {
-                self.d(game, 1, self.param.shipment_dial_for_extra_forces_to_ship)
+                self.d(1, self.param.shipment_dial_for_extra_forces_to_ship)
             };
             let min_resources_to_keep =
                 if game.applicable(Rule::AdvancedCombat) { self.param.shipment_minimum_resources_to_keep_for_battle } else { 0 };
@@ -44,7 +43,7 @@ impl ClassicBot {
                 && self.resources_including_ally_contribution(game) <= 2;
             // The draw happens only for a non-Emperor (short-circuit).
             let still_needs_resources = faction != Faction::Emperor
-                && self.resources_including_ally_contribution(game) < 15i32.wrapping_add(self.d(game, 1, 20));
+                && self.resources_including_ally_contribution(game) < 15i32.wrapping_add(self.d(1, 20));
             let has_weapons = game.player(me).treachery_cards.iter().any(|c| c.is_weapon());
             let has_cards = !game.player(me).treachery_cards.is_empty();
             let feeling_confident = self.resources(game) >= 20
@@ -186,7 +185,6 @@ impl ClassicBot {
     }
 
     pub fn determine_shipment_ship_directly_to_spice_or_discovery_as_guild_or_guild_ally(&mut self, game: &Game) {
-        Self::log_info("DetermineShipment_ShipDirectlyToSpiceOrDiscoveryAsGuildOrGuildAlly()", vec![]);
 
         let me = self.player;
         let best_location = game
@@ -265,7 +263,6 @@ impl ClassicBot {
     }
 
     pub fn determine_shipment_back_to_reserves(&mut self, game: &Game) {
-        Self::log_info("DetermineShipment_BackToReserves()", vec![]);
 
         let battalion_to_evacuate = self.biggest_battalion_in_spiceless_non_stronghold_location_not_near_stronghold_and_spice(game);
         if let Some(b) = battalion_to_evacuate {
@@ -284,21 +281,19 @@ impl ClassicBot {
     }
 
     pub fn determine_shipment_attack_weak_hms(&mut self, game: &Game, extra_forces: i32, _risk_appetite: f32, min_resources_to_keep: i32, max_unsupported_forces: i32) {
-        Self::log_info("DetermineShipment_AttackWeakHMS()", vec![]);
 
         let hms = game.map.hidden_mobile_stronghold().location();
-        let opponent = self.get_opponent_that_occupies_territory(game, hms.territory());
+        let opponent = self.get_opponent_that_occupies(game, hms.territory());
 
         if opponent.is_some() && self.valid_shipment_locations(game, false, false).cs_contains(&hms) && self.i_dont_have_advisors_in(game, hms) {
             let attack = self.construct_attack(game, hms, extra_forces, min_resources_to_keep, max_unsupported_forces);
             if attack.has_forces() {
-                self.do_shipment_shipment_decision_attack_bool_bool(game, ShipmentDecision::AttackWeakStronghold, &attack, true, true);
+                self.do_attack_shipment(game, ShipmentDecision::AttackWeakStronghold, &attack, true, true);
             }
         }
     }
 
     pub fn determine_shipment_polar_sink_as_fremen(&mut self, game: &Game) {
-        Self::log_info("DetermineShipment_PolarSinkAsFremen()", vec![]);
 
         let p = game.player(self.player);
         let nr_of_forces;
@@ -316,7 +311,6 @@ impl ClassicBot {
     }
 
     pub fn determine_shipment_ship_directly_to_spice_or_discovery_as_fremen(&mut self, game: &Game) {
-        Self::log_info("DetermineShipment_ShipDirectlyToSpiceOrDiscoveryAsFremen()", vec![]);
 
         let me = self.player;
         let suitable = |l: Location| {
@@ -395,7 +389,6 @@ impl ClassicBot {
     }
 
     pub fn determine_shipment_ship_to_stronghold_near_spice(&mut self, game: &Game) {
-        Self::log_info("DetermineShipment_ShipToStrongholdNearSpice()", vec![]);
 
         if self.battalion_that_should_be_moved_due_to_ally_presence(game).is_some() {
             return;
@@ -445,7 +438,7 @@ impl ClassicBot {
                     faction == Faction::Ixian,
                 );
 
-                self.do_shipment_shipment_decision_location_int32_int32_int32_int32_location_bool_bool(
+                self.do_shipment_and_move(
                     game,
                     ShipmentDecision::StrongholdNearResources,
                     location_to_ship_to,
@@ -462,7 +455,6 @@ impl ClassicBot {
     }
 
     pub fn determine_shipment_strengthen_weakest_stronghold(&mut self, game: &Game, only_if_threatened: bool, extra_forces: i32, shortage_to_accept: f32, take_reinforcements_into_account: bool) {
-        Self::log_info("DetermineShipment_StrengthenWeakStronghold()", vec![]);
 
         let me = self.player;
         // Lazy chain (hazards 16.4): OccupyingOpponentIn in the filter and MaxPotentialForceShortage
@@ -482,10 +474,8 @@ impl ClassicBot {
             .collect();
 
         // "MyWeakStrongholds:" + string.Join(",", myWeakStrongholds): pure formatting.
-        Self::log_info("MyWeakStrongholds:", vec![]);
 
         let weakest_stronghold = my_weak_strongholds.into_iter().filter(|s| s.1 > 0.0).highest_or_default(&self.random, |s| s.1);
-        Self::log_info("WeakestStronghold:", vec![]);
 
         if let Some((location, difference)) = weakest_stronghold {
             let opponent = self.opponents(game).into_iter().cs_first_or_default_where(|o| game.player(*o).any_forces_in(Some(location)) > 0);
@@ -508,14 +498,12 @@ impl ClassicBot {
                 true,
             ) <= shortage_to_accept
             {
-                Self::log_info("Shipping to weakest stronghold: ", vec![]);
                 self.do_shipment(game, ShipmentDecision::StrengthenWeakStronghold, nr_of_forces, nr_of_special_forces, no_field_value, cunning_no_field_value, location, true, true);
             }
         }
     }
 
     pub fn determine_shipment_dummy_attack(&mut self, game: &Game, min_resources_to_keep: i32) {
-        Self::log_info("DetermineShipment_DummyAttack()", vec![]);
 
         let me = self.player;
         let mut target_of_dummy_attack = self.valid_shipment_locations(game, false, false).cs_first_or_default_where(|l| {
@@ -527,7 +515,6 @@ impl ClassicBot {
                 && self.opponent_is_suitable_for_traitor_lure(game, self.occupying_opponent_in(game, me, l.territory()))
         });
 
-        Self::log_info("OpponentIsSuitableForTraitorLure: ", vec![]);
 
         if target_of_dummy_attack.is_none()
             && !self.may_use_useless_as_karma(game)
@@ -542,7 +529,6 @@ impl ClassicBot {
                     && l.territory().is_stronghold()
                     && self.opponent_is_suitable_for_useless_card_dump_attack(game, self.occupying_opponent_in(game, me, l.territory()))
             });
-            Self::log_info("OpponentIsSuitableForDummyAttack: ", vec![]);
         }
 
         if let Some(target) = target_of_dummy_attack {
@@ -577,14 +563,13 @@ impl ClassicBot {
     pub fn determine_shipment_unlock_move_bonus(&mut self, game: &Game, min_resources_to_keep: i32) {
         let me = self.player;
         if !game.has_ornithopters(me) && game.player(me).any_forces_in(Some(game.map.polar_sink())) > 0 {
-            Self::log_info("DetermineShipment_UnlockMoveBonus()", vec![]);
 
             let target = self
                 .valid_shipment_locations(game, false, false)
                 .filter(|l| self.i_dont_have_advisors_in(game, *l))
                 .filter(|l| {
-                    (*l == game.map.arrakeen() && self.ally_doesnt_block_location(game, game.map.arrakeen()))
-                        || (*l == game.map.carthag() && self.ally_doesnt_block_location(game, game.map.carthag()))
+                    (*l == game.map.arrakeen() && self.ally_doesnt_block(game, game.map.arrakeen()))
+                        || (*l == game.map.carthag() && self.ally_doesnt_block(game, game.map.carthag()))
                 })
                 .lowest_or_default(&self.random, |l| self.total_max_dial_of_opponents(game, l.territory()));
 
@@ -625,7 +610,6 @@ impl ClassicBot {
     }
 
     pub fn determine_shipment_take_vacant_stronghold(&mut self, game: &Game, force_strength: i32, min_resources_to_keep: i32, max_unsupported_forces: i32) {
-        Self::log_info("DetermineShipment_TakeVacantStronghold()", vec![]);
 
         let me = self.player;
         let map = &game.map;
@@ -692,7 +676,6 @@ impl ClassicBot {
     }
 
     pub fn determine_shipment_attack_empty_homeworld(&mut self, game: &Game, min_resources_to_keep: i32, max_unsupported_forces: i32) {
-        Self::log_info("DetermineShipment_AttackHomeworld()", vec![]);
 
         let me = self.player;
         let target = self
@@ -720,7 +703,6 @@ impl ClassicBot {
             ) <= 0.0
             {
                 // $"Shipping to: {target.Id} {target.Territory.Id} {target} {target.Territory}": pure formatting.
-                Self::log_info("Shipping to: ", vec![]);
                 self.do_shipment(game, ShipmentDecision::Homeworld, nr_of_forces, nr_of_special_forces, no_field_value, cunning_no_field_value, target, true, true);
             }
         }
@@ -732,7 +714,6 @@ impl ClassicBot {
     }
 
     pub fn determine_shipment_prevent_fremen_win(&mut self, game: &Game) {
-        Self::log_info("DetermineShipment_PreventFremenWin()", vec![]);
 
         if game.is_playing(Faction::Fremen) && game.fremen_victory_condition_met() {
             let me = self.player;
@@ -774,7 +755,6 @@ impl ClassicBot {
     }
 
     pub fn determine_shipment_prevent_normal_win(&mut self, game: &Game, maximum_challenged_strongholds: i32, extra_forces: i32, risk_appetite: f32, min_resources_to_keep: i32, max_unsupported_forces: i32) {
-        Self::log_info("DetermineShipment_PreventNormalWin()", vec![]);
 
         let mut potential_winning_opponents = self.winning_opponents_i_wish_to_attack(game, maximum_challenged_strongholds, false);
 
@@ -782,7 +762,6 @@ impl ClassicBot {
             potential_winning_opponents = self.winning_opponents_i_wish_to_attack(game, maximum_challenged_strongholds, true);
         }
 
-        Self::log_info("potentialWinningOpponents with too many unchallenged strongholds:", vec![]);
 
         // Lazy chain (hazards 16.4): ConstructAttack draws, element by element.
         let shippable_strongholds_of_winning_opponents: Vec<Attack> = self
@@ -798,17 +777,15 @@ impl ClassicBot {
             .map(|s| self.construct_attack(game, s, extra_forces, min_resources_to_keep, max_unsupported_forces))
             .collect();
 
-        Self::log_info("shippableStrongholdsOfWinningOpponents:", vec![]);
 
         let attack = shippable_strongholds_of_winning_opponents
             .into_iter()
             .filter(|a| a.has_forces() && a.shortage_for_shipment <= risk_appetite)
             .lowest_or_default(&self.random, |a| a.dial_needed);
 
-        Self::log_info("weakestShippableLocationOfWinningOpponent:", vec![]);
 
         if let Some(attack) = attack {
-            self.do_shipment_shipment_decision_attack_bool_bool(game, ShipmentDecision::PreventNormalWin, &attack, true, true);
+            self.do_attack_shipment(game, ShipmentDecision::PreventNormalWin, &attack, true, true);
         }
     }
 
@@ -816,7 +793,6 @@ impl ClassicBot {
         let dangerous_opponents: Vec<PlayerIndex> =
             self.opponents(game).into_iter().filter(|o| self.is_almost_winning_opponent(game, *o)).collect();
 
-        Self::log_info("DetermineShipment_AttackWeakStronghold()", vec![]);
 
         let me = self.player;
         // One lazy chain (hazards 16.4), enumerated once by LowestOrDefault's ToArray.
@@ -842,10 +818,9 @@ impl ClassicBot {
             .filter(|s| s.has_forces() && s.shortage_for_shipment - self.unlocked_forces_in_polar_sink(game, s.location) as f32 <= extra_forces as f32)
             .lowest_or_default(&self.random, |s| s.dial_needed + Self::determine_penalty(game, s.opponent));
 
-        Self::log_info("WeakestEnemyStronghold:", vec![]);
 
         if let Some(attack) = attack {
-            self.do_shipment_shipment_decision_attack_bool_bool(game, ShipmentDecision::AttackWeakStronghold, &attack, true, true);
+            self.do_attack_shipment(game, ShipmentDecision::AttackWeakStronghold, &attack, true, true);
         }
     }
 
@@ -1011,7 +986,6 @@ impl ClassicBot {
             }
         }
 
-        Self::log_info("dialNeeded: {0}, specialForces: {1}, forces: {2}, shipCost: {3}, costOfBattle: {4}", vec![]);
 
         // C# parity: this loop adds forces but prices `specialForces + 1` (hazards 18).
         while dial_needed > 0.0
@@ -1054,10 +1028,10 @@ impl ClassicBot {
         let me = self.player;
         if game.player(me).forces_in_locations.contains_key(&from)
             && from.sector(&game.map) != game.sector_in_storm
-            && self.not_occupied_by_others_territory(game, from.territory())
+            && self.not_occupied_by_others(game, from.territory())
         {
             let bat = game.player(me).forces_in_locations.index(&from).clone();
-            if self.not_occupied_by_others_territory(game, from.territory()) && bat.total_amount_of_forces() > 1 {
+            if self.not_occupied_by_others(game, from.territory()) && bat.total_amount_of_forces() > 1 {
                 let one_of_them = bat.take(1, true);
                 if PlacementEvent::valid_targets(game, me, from, &one_of_them).contains(&to) {
                     return Some(one_of_them);
@@ -1069,7 +1043,7 @@ impl ClassicBot {
     }
 
     pub fn do_shipment(&mut self, game: &Game, decision: ShipmentDecision, nr_of_forces: i32, nr_of_special_forces: i32, no_field_value: i32, cunning_no_field_value: i32, destination: Location, use_karma: bool, use_ally_resources: bool) {
-        self.do_shipment_shipment_decision_location_int32_int32_int32_int32_location_bool_bool(
+        self.do_shipment_and_move(
             game,
             decision,
             destination,
@@ -1083,8 +1057,8 @@ impl ClassicBot {
         );
     }
 
-    pub fn do_shipment_shipment_decision_attack_bool_bool(&mut self, game: &Game, decision: ShipmentDecision, attack: &Attack, use_karma: bool, use_ally_resources: bool) {
-        self.do_shipment_shipment_decision_location_int32_int32_int32_int32_location_bool_bool(
+    pub fn do_attack_shipment(&mut self, game: &Game, decision: ShipmentDecision, attack: &Attack, use_karma: bool, use_ally_resources: bool) {
+        self.do_shipment_and_move(
             game,
             decision,
             attack.location,
@@ -1098,7 +1072,7 @@ impl ClassicBot {
         );
     }
 
-    pub fn do_shipment_shipment_decision_location_int32_int32_int32_int32_location_bool_bool(&mut self, game: &Game, decision: ShipmentDecision, destination: Location, nr_of_forces: i32, nr_of_special_forces: i32, no_field_value: i32, cunning_no_field_value: i32, destination_for_move: Option<Location>, use_karma: bool, use_ally_resources: bool) {
+    pub fn do_shipment_and_move(&mut self, game: &Game, decision: ShipmentDecision, destination: Location, nr_of_forces: i32, nr_of_special_forces: i32, no_field_value: i32, cunning_no_field_value: i32, destination_for_move: Option<Location>, use_karma: bool, use_ally_resources: bool) {
         let destination_for_move = destination_for_move.and_then(CsNull::opt);
         if !self.will_leave_my_home_defenseless(game, nr_of_forces, nr_of_special_forces) {
             let shipment = self.construct_shipment(game, nr_of_forces, nr_of_special_forces, no_field_value, cunning_no_field_value, destination, use_karma, use_ally_resources);
@@ -1236,7 +1210,7 @@ impl ClassicBot {
         let opponent = self.occupying_opponent_in(game, me, location.territory());
 
         if let Some(opponent) = opponent {
-            let dial_needed = self.get_dial_needed_territory_player_bool(game, location.territory(), Some(opponent), true);
+            let dial_needed = self.dial_needed_against(game, location.territory(), Some(opponent), true);
             let (mut forces_to_ship, mut special_forces_to_ship, mut no_field_value, mut cunning_no_field_value) = (0, 0, 0, 0);
             let shortage_for_shipment = self.determine_shortage_for_shipment(
                 game,

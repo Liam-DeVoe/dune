@@ -111,7 +111,7 @@ fn call(game: &Game, b: &mut ClassicBot, m: &str, a: &[String]) -> String {
         "DetermineMostSuitableNearbyLocation" => {
             let from = loc(game, &a[0]);
             let battalion = game.player(b.player).forces_on_planet().index(&from).clone();
-            l(b.determine_most_suitable_nearby_location_location_battalion_bool_bool(game, from, &battalion, true, true))
+            l(b.most_suitable_nearby_location(game, from, &battalion, true, true))
         }
         _ => panic!("no Rust call for {m}"),
     }
@@ -186,7 +186,7 @@ fn run(name: &str) {
                         let player = game.player_at(pi as usize);
                         let faction = game.player(player).faction;
                         let seed = p["seed"].as_i64().unwrap() as i32;
-                        let b = ClassicBot::new(game, player, BotParameters::get_default_parameters(faction), Some(SharedRandom::from_seed(seed)));
+                        let b = ClassicBot::new(player, BotParameters::for_faction(faction), SharedRandom::from_seed(seed));
                         bot = Some((pi, b));
                     }
                     let b = &mut bot.as_mut().unwrap().1;

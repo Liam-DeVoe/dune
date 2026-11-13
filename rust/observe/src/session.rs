@@ -12,7 +12,7 @@ use std::panic::{self, AssertUnwindSafe};
 
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use treachery_bots::{BotParameters, ClassicBot};
+use treachery_bots::{BotParameters, ClassicBot, Priority};
 use treachery_engine::compat::cs::{self, CsException};
 use treachery_engine::events::{GameEvent, GameEventType};
 use treachery_engine::messages::expression::ExpressionElement;
@@ -148,12 +148,12 @@ impl Session {
                     let faction = self.game.player(p).faction;
                     let index = match self.bots.iter().position(|(f, _)| *f == faction) {
                         Some(index) => {
-                            self.bots[index].1.set_game_and_player(&self.game, p);
+                            self.bots[index].1.set_player(p);
                             index
                         }
                         None => {
                             let seed = seed_for(faction).ok_or_else(|| format!("harness: no seed for a new {faction} bot"))?;
-                            let bot = ClassicBot::new(&self.game, p, BotParameters::get_default_parameters(faction), Some(SharedRandom::from_seed(seed)));
+                            let bot = ClassicBot::new(p, BotParameters::for_faction(faction), SharedRandom::from_seed(seed));
                             self.bots.push((faction, bot));
                             created.push((faction_name(faction), seed));
                             self.bots.len() - 1
@@ -162,13 +162,7 @@ impl Session {
                     let events = self.last_query.get(i).cloned().flatten().ok_or_else(|| format!("harness: player {i} was not queried before the bots"))?;
                     let bot = &mut self.bots[index].1;
                     let g = &mut self.game;
-                    let evt = match level {
-                        0 => bot.determine_highest_priority_in_phase_action(g, &events),
-                        1 => bot.determine_high_priority_in_phase_action(g, &events),
-                        2 => bot.determine_middle_priority_in_phase_action(g, &events),
-                        3 => bot.determine_low_priority_in_phase_action(g, &events),
-                        _ => bot.determine_end_phase_action(g, &events),
-                    };
+                    let evt = bot.decide(g, Priority::ALL[level], &events);
                     if let Some(e) = evt {
                         return Ok(Some((i, level, e)));
                     }

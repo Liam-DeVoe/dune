@@ -21,7 +21,7 @@ use treachery_engine::messages::message::Message;
 use treachery_engine::game::Participation;
 use treachery_engine::enumerations::Faction;
 use treachery_engine::random::SharedRandom;
-use treachery_bots::{BotParameters, ClassicBot, IBot};
+use treachery_bots::{BotParameters, ClassicBot, Priority};
 
 
 use crate::diff;
@@ -820,7 +820,7 @@ impl Replayer {
                 return Err(Failure::BadTrace(format!("bots entry: no player {player}")));
             }
             let p = game.player_at(*player);
-            let bot = ClassicBot::new(game, p, BotParameters::get_default_parameters(faction), Some(SharedRandom::from_seed(*seed)));
+            let bot = ClassicBot::new(p, BotParameters::for_faction(faction), SharedRandom::from_seed(*seed));
             self.bots.push(RegisteredBot { faction, label: label.clone(), bot });
         }
 
@@ -843,14 +843,15 @@ impl Replayer {
                         return Err(format!("harness: no GetApplicableEvents result for player {i} before the bots entry"));
                     };
                     let p = game.player_at(i);
-                    IBot::set_game_and_player(&mut b.bot, game, p);
-                    let chosen = match level {
-                        "Highest" => b.bot.determine_highest_priority_in_phase_action(game, events),
-                        "High" => b.bot.determine_high_priority_in_phase_action(game, events),
-                        "Middle" => b.bot.determine_middle_priority_in_phase_action(game, events),
-                        "Low" => b.bot.determine_low_priority_in_phase_action(game, events),
-                        _ => b.bot.determine_end_phase_action(game, events),
+                    b.bot.set_player(p);
+                    let priority = match level {
+                        "Highest" => Priority::Highest,
+                        "High" => Priority::High,
+                        "Middle" => Priority::Middle,
+                        "Low" => Priority::Low,
+                        _ => Priority::End,
                     };
+                    let chosen = b.bot.decide(game, priority, events);
                     if let Some(ev) = chosen {
                         return Ok(Some((i, level, ev)));
                     }

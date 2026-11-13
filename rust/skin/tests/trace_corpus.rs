@@ -190,6 +190,11 @@ fn end(r: &mut Renderer, game: &Game) {
     r.emit("popup messiah", || skin.get_popup_hero_game(Some(Hero::Messiah), game));
 }
 
+/// Traces that differ from C# on purpose, with the first line (`n`) that differs. Each is a C# bug
+/// fixed in Rust (rust/docs/escapes.md, "Automatic bid passes that never stop" for 00009 and "A
+/// card trade offered to a faction that isn't the ally" for 00045).
+const DELIBERATE: &[(&str, i64)] = &[("fuzz-2026-00009", 602), ("fuzz-2026-00045", 857)];
+
 /// Compares the probe's renderings for every trace in `traces` that has a file in `rendered`.
 fn check_corpus(traces: &Path, rendered: &Path) {
     let skin = default_skin();
@@ -203,14 +208,18 @@ fn check_corpus(traces: &Path, rendered: &Path) {
         let trace = [format!("{stem}.jsonl.gz"), format!("{stem}.jsonl")].into_iter().map(|t| traces.join(t)).find(|p| p.exists());
         let Some(trace) = trace else { panic!("no trace for {name} in {}", traces.display()) };
         files += 1;
+        // A trace that differs from C# on purpose is compared up to the line where it starts to differ.
+        let stop = DELIBERATE.iter().find(|(s, _)| *s == stem).map_or(i64::MAX, |(_, n)| *n);
         let expected: Vec<(i64, String, String)> = read_lines(&golden_file)
             .iter()
             .map(|l| {
                 let v: Value = serde_json::from_str(l).unwrap();
                 (v["n"].as_i64().unwrap(), v["what"].as_str().unwrap().to_string(), v["out"].as_str().unwrap().to_string())
             })
+            .filter(|(n, _, _)| *n < stop)
             .collect();
-        let actual = render_trace(&trace, skin);
+        let mut actual = render_trace(&trace, skin);
+        actual.retain(|(n, _, _)| *n < stop);
         let len = expected.len().max(actual.len());
         for i in 0..len {
             let key = |x: Option<&(i64, String, String)>| x.map(|(n, w, _)| format!("line {n} {w}")).unwrap_or("(missing)".into());

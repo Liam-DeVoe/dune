@@ -47,7 +47,7 @@ fuzz-1-00017: first difference at trace line 304, event Bid (bot)
     /status/message/0/v: "Choam is bidding" -> "Choam bids"
 ```
 
-`live` ends with the `first` command for the first failing game. Other options: `--hang-seconds` (default 60; a call that runs longer counts as hung, and if the reference hung at the same call, that's a match), `--memory-mb` (default 640 per game), and `--reference BIN`. The default was 2048 until a fuzz game (seed 1, game 2) reached a state where a bot's `Bid` pass makes the engine allocate without end. With 4 jobs in one `live` process, that game at 2 GB plus the other three went over heavy.sh's 3 GB cap and the whole run was killed. Normal fuzz games stay well under 640 MB: all 200 games of seed 1 pass with it, and only the two runaway games end with `memoryLimit`.
+`live` ends with the `first` command for the first failing game. Other options: `--hang-seconds` (default 60; a call that runs longer counts as hung), `--memory-mb` (default 640 per game), and `--reference BIN`. A game whose call hangs or goes over the memory budget fails, as `runaway` when the reference ran away at the same call too, since no real game may end like that (on the server it freezes every game). The memory default was 2048 until fuzz seed 1 games 2 and 176 reached states where a `Bid` pass made the engine allocate without end (fixed since, escapes.md "Automatic bid passes that never stop"). With 4 jobs in one `live` process, one such game at 2 GB plus the other three went over heavy.sh's 3 GB cap and the whole run was killed. Normal fuzz games stay well under 640 MB. `first` is the exception: its recording keeps every full view, and a long game goes over the budget in the reference (fuzz seed 1 game 2 did at trace line 17,000 even with `--memory-mb 3000`). Check such a game with `live --start I --games 1` instead.
 
 See "Timing" below for how long 200 games take.
 
@@ -55,7 +55,7 @@ See "Timing" below for how long 200 games take.
 
 `rust/reference/observe` (not in git) is the `observe` binary built from a frozen copy of the engine, bots and view crates. A copy sits in `~/treachery-native-ref/observe`, which `observe` uses when `rust/reference/observe` doesn't exist, as in a git worktree. `$OBSERVE_REFERENCE` or `--reference BIN` override both. `observe live` and `first` run it as `observe record --mode M --seed S --game I` and read the trace from its stdout.
 
-The current reference is built from `~/treachery-native-ref/rust`. That's a copy of `rust/` taken on 2026-11-11, before step 2 (dropping old versions) started editing the engine, with `rust/observe` copied in. It was last rebuilt on 2026-11-12 with rustc 1.100.0, after the steered fuzz generator was copied in; `rust/reference/SOURCE` records the compiler. If `~/treachery-native-ref` is lost, unpack `rust/reference/source.tar.gz` into `~/treachery-native-ref` (it holds `rust/<crate>/Cargo.toml` and `src` for every crate the binary needs). To build the binary again:
+The current reference is built from `~/treachery-native-ref/rust`. That's a copy of `rust/` taken on 2026-11-11, before step 2 (dropping old versions) started editing the engine, with `rust/observe` copied in. It was last rebuilt on 2026-11-13 with rustc 1.100.0, after the runaway and card trade fixes were applied to it (see "Changes to the recorder so far" below); `rust/reference/SOURCE` records the compiler. If `~/treachery-native-ref` is lost, unpack `rust/reference/source.tar.gz` into `~/treachery-native-ref` (it holds `rust/<crate>/Cargo.toml` and `src` for every crate the binary needs). To build the binary again:
 
 ```sh
 rust/tools/build-native-ref.sh --source ~/treachery-native-ref/rust
@@ -74,6 +74,10 @@ The fuzz generator reads the shadow game through the view (`actions::action_view
 Changes to the recorder so far:
 
 - 2026-11-12: steered fuzz generator and `observe reach` (see "How games are made" and "Reach"). The reference before this change is kept as `~/treachery-native-ref/observe-before-fuzz-reach` with its sources in `source-before-fuzz-reach.tar.gz`.
+
+Deliberate behavior changes frozen into the reference (the frozen engine edited the same way as the working tree, then rebuilt):
+
+- 2026-11-13: automatic bid passes stop with the bidding phase and happen at most once per player per bid (`events/bid.rs` in the frozen copy), and `CardTraded` must name the ally (`events/card_traded.rs`). See escapes.md, "Automatic bid passes that never stop" and "A card trade offered to a faction that isn't the ally". The reference before this change is kept as `~/treachery-native-ref/observe-before-runaway-fixes` with its sources in `source-before-runaway-fixes.tar.gz` and `SOURCE-before-runaway-fixes`.
 
 ## Deliberate behavior changes
 
@@ -154,7 +158,7 @@ What is left:
 - C# executed `ChoamRemoveForce` once in 200 games; the Rust generator offered it in 11 games but never got it accepted. `Diplomacy` and `KarmaMonster` were offered (in 2 and 1 games) and never accepted.
 - Deal events take about 7% of all events (20,555 `DealAccepted`/`DealRejected`, mostly fuzz), against 2,072 in C#. The fuzzer offers a deal and then answers it.
 - Rust executes 7 types C# didn't (`EmperorBidSupport`, `Discarded`, `KarmaFreeRevival`, `KarmaHmsMovement`, `KarmaRevivalPrevention`, `FlightDiscoveryUsed`, `TestingStationUsed`).
-- Fuzz games stop at 3000 events, and 70 of 200 hit that cap. Two ended in a bot exception (`NullReferenceException`), one hung, and one went over the memory limit inside a bot's `Bid` pass (with the 640 MB budget, the hung game also ends with `memoryLimit`). These end the same way in the reference and the working tree, so they don't fail the harness, but they may be real engine or bot bugs reachable from the client.
+- Fuzz games stop at 3000 events, and 70 of 200 hit that cap. Two ended in a bot exception (`NullReferenceException`; games 31 and 58), and two ran away inside a `Bid` (games 2 and 176). All four were engine bugs, fixed on 2026-11-13 (escapes.md, "Automatic bid passes that never stop" and "A card trade offered to a faction that isn't the ally"). Those games now run on and take longer.
 
 ## Tests
 

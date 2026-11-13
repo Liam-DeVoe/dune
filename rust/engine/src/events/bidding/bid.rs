@@ -188,8 +188,15 @@ impl Bid {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
         game.execute_bid(self);
 
+        // Each player passes automatically at most once per bid. Once a card is won, no rule
+        // applies again until someone really bids, so a second automatic pass by the same player
+        // means the auction went around without reaching the high bidder. That happened when
+        // the high bidder's hand filled up during the auction, so the sequence skipped them
+        // forever (fuzz seed 1 game 176, rust/docs/escapes.md). C# has no such limit.
+        let mut auto_passed: Vec<PlayerIndex> = Vec::new();
         let mut player_to_bid_with_pass_normal_bid = Bid::first_auto_passing_player(game);
-        while let Some(p) = player_to_bid_with_pass_normal_bid {
+        while let Some(p) = player_to_bid_with_pass_normal_bid.filter(|p| !auto_passed.contains(p)) {
+            auto_passed.push(p);
             // C# parity: executed through Game.ExecuteBid, not Execute, so no pre/post-event tasks and no History entry (hazards 5.5).
             let faction = game.player(p).faction;
             let mut auto_bid = Bid::new(game, faction);
@@ -199,8 +206,15 @@ impl Bid {
         }
     }
 
-    /// `Game.Players.FirstOrDefault(p => MayBePlayed(Game, p) && Game.IsAutoPassedBid(p.Faction))`
+    /// The first player whose automation rule passes for them now. Only during `Phase::Bidding`,
+    /// the only phase that offers `Bid`. The C# loop checked just `MayBePlayed`, which
+    /// stays true after bidding ends. When everyone passed on a card while the next bidder's rule
+    /// was active, every automatic pass ended the bidding phase again, so the loop never
+    /// stopped (fuzz seed 1 game 2, rust/docs/escapes.md).
     fn first_auto_passing_player(game: &Game) -> Option<PlayerIndex> {
+        if game.current_phase != Phase::Bidding {
+            return None;
+        }
         (0..game.players.len())
             .map(|i| game.player_at(i))
             .find(|p| Bid::may_be_played(game, Some(*p)) && game.is_auto_passed_bid(game.player(*p).faction))

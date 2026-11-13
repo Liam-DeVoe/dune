@@ -8,8 +8,8 @@
 use std::future::IntoFuture;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
-use std::time::Duration;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use axum::body::Body;
 use axum::extract::State;
@@ -72,6 +72,60 @@ impl Timers for TokioTimers {
     }
 }
 
+/// How long one command may keep the game thread before the watchdog stops the process.
+const COMMAND_LIMIT: Duration = Duration::from_secs(120);
+
+/// Watches the game thread. Every game runs on that one thread, so an engine call that never
+/// returns (fuzz seed 1 game 2 looped in `Bid` and allocated without end) freezes every game and
+/// grows until the machine runs out of memory. Past [`COMMAND_LIMIT`] the watchdog prints what
+/// was running and aborts; systemd restarts the server from the last saved state.
+struct Watchdog {
+    started: Instant,
+    /// Milliseconds since `started` at which the running command began, or `u64::MAX` when idle.
+    busy_since: AtomicU64,
+    running: Mutex<String>,
+}
+
+impl Watchdog {
+    fn start() -> Arc<Watchdog> {
+        let watchdog = Arc::new(Watchdog { started: Instant::now(), busy_since: AtomicU64::new(u64::MAX), running: Mutex::new(String::new()) });
+        let w = watchdog.clone();
+        let _ = std::thread::Builder::new().name("watchdog".into()).spawn(move || loop {
+            std::thread::sleep(Duration::from_secs(5));
+            let since = w.busy_since.load(Ordering::Relaxed);
+            if since != u64::MAX && w.started.elapsed().as_millis() as u64 > since + COMMAND_LIMIT.as_millis() as u64 {
+                let running = w.running.lock().map(|r| r.clone()).unwrap_or_default();
+                eprintln!("watchdog: the game thread has been busy for over {} s with {running}; aborting", COMMAND_LIMIT.as_secs());
+                std::process::abort();
+            }
+        });
+        watchdog
+    }
+
+    /// Marks `command` as running. Saving on shutdown isn't watched (systemd limits it).
+    fn begin(&self, command: &Command) {
+        let running = match command {
+            // Only the method: the arguments hold login tokens and password hashes.
+            Command::Received { connection, text } => {
+                let call: serde_json::Value = serde_json::from_str(text).unwrap_or_default();
+                format!("call {} from connection {connection}", call.get("method").and_then(|m| m.as_str()).unwrap_or("?"))
+            }
+            Command::Timer(timer) => format!("{timer:?}"),
+            Command::Scene { fixture, .. } => format!("scene {fixture}"),
+            Command::Connected { .. } | Command::Disconnected { .. } => String::new(),
+            Command::Shutdown(_) => return self.end(),
+        };
+        if let Ok(mut r) = self.running.lock() {
+            *r = running;
+        }
+        self.busy_since.store(self.started.elapsed().as_millis() as u64, Ordering::Relaxed);
+    }
+
+    fn end(&self) {
+        self.busy_since.store(u64::MAX, Ordering::Relaxed);
+    }
+}
+
 async fn game_thread(settings: Settings, commands: mpsc::UnboundedSender<Command>, mut rx: mpsc::UnboundedReceiver<Command>, ready: oneshot::Sender<Result<(), String>>) {
     let clock: Rc<dyn Clock> = match settings.dev_scene.as_ref().and_then(|d| d.clock) {
         Some(t) => Rc::new(ManualClock::new(t)),
@@ -97,7 +151,9 @@ async fn game_thread(settings: Settings, commands: mpsc::UnboundedSender<Command
         }
     };
     let _ = ready.send(Ok(()));
+    let watchdog = Watchdog::start();
     while let Some(command) = rx.recv().await {
+        watchdog.begin(&command);
         match command {
             Command::Connected { connection, outgoing } => server.connect(connection, outgoing),
             Command::Received { connection, text } => server.receive(connection, &text).await,
@@ -112,6 +168,7 @@ async fn game_thread(settings: Settings, commands: mpsc::UnboundedSender<Command
                 return;
             }
         }
+        watchdog.end();
     }
 }
 

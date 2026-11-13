@@ -103,5 +103,8 @@ mv "$out/source.tar.gz.new" "$out/source.tar.gz"
 echo "rustc:  $(rustc --version)" >> "$out/SOURCE"
 # A copy outside the repo, for git worktrees (observe looks there when rust/reference is missing).
 mkdir -p "$HOME/treachery-native-ref"
-cp "$out/observe" "$out/SOURCE" "$HOME/treachery-native-ref/"
+# A new file, then a rename: macOS kills a signed binary that was overwritten in place ("Killed: 9").
+cp "$out/observe" "$HOME/treachery-native-ref/observe.new"
+mv "$HOME/treachery-native-ref/observe.new" "$HOME/treachery-native-ref/observe"
+cp "$out/SOURCE" "$HOME/treachery-native-ref/"
 cat "$out/SOURCE"

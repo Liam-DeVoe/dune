@@ -55,7 +55,7 @@ See "Timing" below for how long 200 games take.
 
 `rust/reference/observe` (not in git) is the `observe` binary built from a frozen copy of the engine, bots and view crates. A copy sits in `~/treachery-native-ref/observe`, which `observe` uses when `rust/reference/observe` doesn't exist, as in a git worktree. `$OBSERVE_REFERENCE` or `--reference BIN` override both. `observe live` and `first` run it as `observe record --mode M --seed S --game I` and read the trace from its stdout.
 
-The current reference is built from `~/treachery-native-ref/rust`. That's a copy of `rust/` taken on 2026-11-11, before step 2 (dropping old versions) started editing the engine, with `rust/observe` copied in. It was last rebuilt on 2026-11-13 with rustc 1.100.0, after the runaway and card trade fixes were applied to it (see "Changes to the recorder so far" below); `rust/reference/SOURCE` records the compiler. If `~/treachery-native-ref` is lost, unpack `rust/reference/source.tar.gz` into `~/treachery-native-ref` (it holds `rust/<crate>/Cargo.toml` and `src` for every crate the binary needs). To build the binary again:
+The current reference is built from `~/treachery-native-ref/rust`. That's a copy of `rust/` taken on 2026-11-11, before step 2 (dropping old versions) started editing the engine, with `rust/observe` copied in. It was last rebuilt on 2026-11-12 with rustc 1.100.0, after the steered fuzz generator was copied in (a rebuild with the runaway and card trade fixes waits for promotion, see "Changes to the recorder so far" below); `rust/reference/SOURCE` records the compiler. If `~/treachery-native-ref` is lost, unpack `rust/reference/source.tar.gz` into `~/treachery-native-ref` (it holds `rust/<crate>/Cargo.toml` and `src` for every crate the binary needs). To build the binary again:
 
 ```sh
 rust/tools/build-native-ref.sh --source ~/treachery-native-ref/rust
@@ -77,7 +77,7 @@ Changes to the recorder so far:
 
 Deliberate behavior changes frozen into the reference (the frozen engine edited the same way as the working tree, then rebuilt):
 
-- 2026-11-13: automatic bid passes stop with the bidding phase and happen at most once per player per bid (`events/bid.rs` in the frozen copy), and `CardTraded` must name the ally (`events/card_traded.rs`). See escapes.md, "Automatic bid passes that never stop" and "A card trade offered to a faction that isn't the ally". The reference before this change is kept as `~/treachery-native-ref/observe-before-runaway-fixes` with its sources in `source-before-runaway-fixes.tar.gz` and `SOURCE-before-runaway-fixes`.
+- 2026-11-13: automatic bid passes stop with the bidding phase and happen at most once per player per bid, and `CardTraded` must name the ally. See escapes.md, "Automatic bid passes that never stop" and "A card trade offered to a faction that isn't the ally". The frozen files changed are `engine/src/events/bid.rs` and `engine/src/events/card_traded.rs`. Until the branch is merged and the reference promoted, the changed frozen copy is `~/treachery-native-ref/rust-runaway-fixes` and its binary `~/treachery-native-ref/observe-runaway-fixes` (pass it with `--reference`). The reference before this change is kept as `~/treachery-native-ref/observe-before-runaway-fixes`, with its sources in `source-before-runaway-fixes.tar.gz`.
 
 ## Deliberate behavior changes
 

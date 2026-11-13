@@ -8,7 +8,6 @@
 
 use crate::prelude::*;
 use dotnet_compat::math::{f64_to_i32, math_max_f32, math_min_f32};
-use treachery_engine::compat::lazy::LazyQuery;
 
 impl ClassicBot {
     pub fn determine_shipment(&mut self, game: &Game) -> Rc<Shipment> {
@@ -177,7 +176,7 @@ impl ClassicBot {
     /// The filter of `DetermineShipment_ShipDirectlyToSpiceOrDiscoveryAsGuildOrGuildAlly` (both queries).
     /// The order of the `&&` conditions is kept deliberately.
     fn suitable_for_guild_shipment(&self, game: &Game, l: Location) -> bool {
-        self.valid_shipment_locations(game, false, false).cs_contains(&l)
+        self.valid_shipment_locations(game, false, false).any(|v| v == l)
             && self.i_dont_have_advisors_in(game, l)
             && self.total_max_dial_of_opponents(game, l.territory()) <= self.param.shipment_max_enemy_force_strength_fighting_for_spice
             && self.ally_doesnt_block(game, l.territory())
@@ -289,7 +288,7 @@ impl ClassicBot {
         let hms = game.map.hidden_mobile_stronghold().location();
         let opponent = self.get_opponent_that_occupies_territory(game, hms.territory());
 
-        if opponent.is_some() && self.valid_shipment_locations(game, false, false).cs_contains(&hms) && self.i_dont_have_advisors_in(game, hms) {
+        if opponent.is_some() && self.valid_shipment_locations(game, false, false).any(|v| v == hms) && self.i_dont_have_advisors_in(game, hms) {
             let attack = self.construct_attack(game, hms, extra_forces, min_resources_to_keep, max_unsupported_forces);
             if attack.has_forces() {
                 self.do_shipment_shipment_decision_attack_bool_bool(game, ShipmentDecision::AttackWeakStronghold, &attack, true, true);
@@ -320,7 +319,7 @@ impl ClassicBot {
 
         let me = self.player;
         let suitable = |l: Location| {
-            self.valid_shipment_locations(game, false, false).cs_contains(&l)
+            self.valid_shipment_locations(game, false, false).any(|v| v == l)
                 && game.player(me).any_forces_in(Some(l)) == 0
                 && self.total_max_dial_of_opponents(game, l.territory()) <= self.param.shipment_max_enemy_force_strength_fighting_for_spice
                 && self.ally_doesnt_block(game, l.territory())
@@ -728,7 +727,7 @@ impl ClassicBot {
 
     pub fn vacant_and_valid(&self, game: &Game, location: Location) -> bool {
         self.vacant_and_safe_from_storm(game, location)
-            && self.valid_shipment_locations(game, false, false).filter(|l| l.is_stronghold()).cs_contains(&location)
+            && self.valid_shipment_locations(game, false, false).filter(|l| l.is_stronghold()).any(|v| v == location)
     }
 
     pub fn determine_shipment_prevent_fremen_win(&mut self, game: &Game) {
@@ -739,7 +738,7 @@ impl ClassicBot {
             let valid_unblocked = |target: Location| {
                 self.valid_shipment_locations(game, false, false)
                     .filter(|l| self.ally_doesnt_block(game, l.territory()) && self.i_dont_have_advisors_in(game, *l))
-                    .cs_contains(&target)
+                    .any(|v| v == target)
             };
 
             let target = if valid_unblocked(game.map.habbanya_sietch()) {

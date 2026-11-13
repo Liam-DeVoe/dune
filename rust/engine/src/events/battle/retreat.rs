@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use crate::compat::lazy::LazyQuery;
 
 #[derive(Clone, Debug, Canon)]
 pub struct Retreat {
@@ -41,9 +40,9 @@ impl Retreat {
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
         let p = self.player();
-        let valid_targets = Retreat::valid_targets(game, p);
+        let mut valid_targets = Retreat::valid_targets(game, p);
         let location = self.location(game);
-        if !valid_targets.cs_contains(&location.or_null()) {
+        if !valid_targets.any(|v| v == location.or_null()) {
             return Some(express!("Invalid location"));
         }
         if self.forces > Retreat::max_forces(game, p) {

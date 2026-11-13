@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use crate::compat::lazy::LazyQuery;
 
 #[derive(Clone, Debug, Canon)]
 pub struct Shipment {
@@ -226,8 +225,8 @@ impl Shipment {
         }
         if self.is_back_to_reserves() {
             let source = self.source_location_for_shipment_to_reserves(game);
-            let valid = Shipment::valid_source_locations(game, p());
-            if !valid.cs_contains(&source.or_null()) {
+            let mut valid = Shipment::valid_source_locations(game, p());
+            if !valid.any(|v| v == source.or_null()) {
                 return Some(express!("You can't ship back to reserves from there"));
             }
         }
@@ -245,8 +244,8 @@ impl Shipment {
         }
         if self.is_site_to_site(game) {
             let from = self.from(game);
-            let valid = Shipment::valid_source_locations(game, p());
-            if !valid.cs_contains(&from.or_null()) {
+            let mut valid = Shipment::valid_source_locations(game, p());
+            if !valid.any(|v| v == from.or_null()) {
                 return Some(express!("You can't ship site-to-site from there"));
             }
         }
@@ -269,7 +268,7 @@ impl Shipment {
             return Some(express!("Your ally is paying more than needed"));
         }
         let cross_planet = self.is_back_to_reserves() || (self.is_site_to_site(game) && !self.from(game).is_some_and(|f| f.as_homeworld().is_some()));
-        if !Shipment::valid_shipment_locations(game, p(), cross_planet, self.use_richese_secret_ally).cs_contains(&to) {
+        if !Shipment::valid_shipment_locations(game, p(), cross_planet, self.use_richese_secret_ally).any(|v| v == to) {
             return Some(express!("Cannot ship there"));
         }
 
@@ -541,9 +540,9 @@ impl Shipment {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
     pub fn valid_shipment_locations(g: &Game, p: PlayerIndex, cross_planet: bool, richese_secret_ally: bool) -> impl Iterator<Item = Location> {
-        use crate::compat::lazy::Either;
+        use either::Either;
         if !g.player(p).is(Faction::Fremen) || richese_secret_ally {
-            return Either::A(Shipment::regular_shipment_locations(g, p, cross_planet));
+            return Either::Left(Shipment::regular_shipment_locations(g, p, cross_planet));
         }
 
         if Shipment::may_ship_cross_planet(g, p) {
@@ -552,9 +551,9 @@ impl Shipment {
             // Distinct after the Union passes everything through.
             let spawn = Shipment::fremen_spawn_locations(g, p);
             let regular = Shipment::regular_shipment_locations(g, p, cross_planet);
-            Either::B(Either::A(crate::compat::lazy::distinct(crate::compat::lazy::union(spawn.into_iter(), regular))))
+            Either::Right(Either::Left(crate::iter::unique(spawn.into_iter().chain(regular))))
         } else {
-            Either::B(Either::B(Shipment::fremen_spawn_locations(g, p).into_iter()))
+            Either::Right(Either::Right(Shipment::fremen_spawn_locations(g, p).into_iter()))
         }
     }
 

@@ -47,7 +47,7 @@ impl FaceDancerRevealed {
                 .face_dancers
                 .iter()
                 .copied()
-                .cs_first_or_default_where(|f| game.winner_hero().nre().is_face_dancer(*f));
+                .find(|f| game.winner_hero().nre().is_face_dancer(*f));
             game.log(elems![self.initiator(), " reveal ", facedancer, " as one of their Face Dancers!"]);
             game.stone(Milestone::FaceDanced);
             game.enter(Phase::Facedancing, true);

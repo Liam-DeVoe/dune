@@ -145,7 +145,7 @@ impl RaiseDeadPlayed {
         let me = self.player();
         let initiator = self.initiator();
         let hero = self.hero();
-        let card = game.player(me).treachery_cards.iter().copied().cs_first_or_default_where(|c| c.type_() == TreacheryCardType::RaiseDead);
+        let card = game.player(me).treachery_cards.iter().copied().find(|c| c.type_() == TreacheryCardType::RaiseDead);
         let mut message = self.get_message(game);
         if hero.is_none() || !game.is_face_down_dead(hero.nre()) {
             let mut row = RevivalRow::new(

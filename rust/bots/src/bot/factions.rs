@@ -1,7 +1,6 @@
 use crate::prelude::*;
 use dotnet_compat::linq::sum_i32;
 use std::cell::OnceCell;
-use treachery_engine::compat::lazy::LazyQuery;
 
 /// `Player.AnyForcesIn(Territory)`.
 fn any_forces_in_t(game: &Game, p: PlayerIndex, t: Territory) -> i32 {
@@ -1152,7 +1151,7 @@ impl ClassicBot {
             let opponents = self.opponents(game);
             let known_opponent_traitors = || opponents.iter().flat_map(|p| game.player(*p).revealed_traitors.iter().copied());
             to_revive = RequestTleilaxuRevival::valid_targets(game, self.player)
-                .filter(|l| !known_opponent_traitors().cs_contains(l))
+                .filter(|l| !known_opponent_traitors().any(|v| v == *l))
                 .highest_or_default(&self.random, |l| l.value());
         }
 
@@ -1218,7 +1217,7 @@ impl ClassicBot {
         let me = game.player(self.player);
 
         if opponent.treachery_cards.iter().any(|tc| !me.known_cards.contains(tc))
-            && ResourcesAudited::valid_factions(game, self.player).cs_contains(&opponent.faction)
+            && ResourcesAudited::valid_factions(game, self.player).any(|v| v == opponent.faction)
         {
             let mut e = ResourcesAudited::new(game, self.faction(game));
             e.target = opponent.faction;
@@ -1298,17 +1297,17 @@ impl ClassicBot {
         let map = &game.map;
         let valid = || PerformMoritaniSetup::valid_locations(game);
 
-        let target = if valid().cs_contains(&map.carthag()) {
+        let target = if valid().any(|v| v == map.carthag()) {
             map.carthag()
-        } else if valid().cs_contains(&map.arrakeen()) {
+        } else if valid().any(|v| v == map.arrakeen()) {
             map.arrakeen()
-        } else if valid().cs_contains(&map.tueks_sietch()) {
+        } else if valid().any(|v| v == map.tueks_sietch()) {
             map.tueks_sietch()
-        } else if valid().cs_contains(&map.habbanya_sietch()) {
+        } else if valid().any(|v| v == map.habbanya_sietch()) {
             map.habbanya_sietch()
-        } else if valid().cs_contains(&map.imperial_basin().middle_location()) {
+        } else if valid().any(|v| v == map.imperial_basin().middle_location()) {
             map.imperial_basin().middle_location()
-        } else if valid().cs_contains(&map.polar_sink()) {
+        } else if valid().any(|v| v == map.polar_sink()) {
             map.polar_sink()
         } else {
             valid().cs_first_where(|l| l.is_protected_from_storm())

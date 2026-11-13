@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use crate::compat::lazy::LazyQuery;
 
 #[derive(Clone, Debug, Canon)]
 pub struct SetShipmentPermission {
@@ -36,7 +35,7 @@ impl SetShipmentPermission {
             return Some(express!("Select one or more factions"));
         }
         // ValidTargets is re-evaluated for every faction, as in C#.
-        if factions.iter().any(|f| !SetShipmentPermission::valid_targets(game, self.player()).cs_contains(f)) {
+        if factions.iter().any(|f| !SetShipmentPermission::valid_targets(game, self.player()).any(|v| v == *f)) {
             return Some(express!("Invalid faction"));
         }
 

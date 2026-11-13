@@ -101,7 +101,7 @@ impl Bid {
             return Some(express!("You can't pay ", Payment::of(self.amount)));
         }
         if let Some(karma_card) = self.karma_card() {
-            if p.is_none() || !crate::compat::lazy::contains(Karma::valid_karma_cards(game, p.nre()), &karma_card) {
+            if p.is_none() || !Karma::valid_karma_cards(game, p.nre()).any(|v| v == karma_card) {
                 return Some(express!("Invalid ", TreacheryCardType::Karma, " card"));
             }
         }
@@ -136,8 +136,8 @@ impl Bid {
     pub fn players_to_bid(g: &Game) -> Vec<SequenceElement> {
         // GetPlayersInSequence runs now (PlayersInOrder); its selector runs only in the arms that return it.
         let sequence_players = match &g.bid_sequence {
-            Some(s) => crate::compat::lazy::Either::A(s.get_players_in_sequence(g)),
-            None => crate::compat::lazy::Either::B(crate::compat::lazy::empty()),
+            Some(s) => either::Either::Left(s.get_players_in_sequence(g)),
+            None => either::Either::Right(std::iter::empty()),
         };
         match g.current_auction_type {
             AuctionType::Normal | AuctionType::RicheseOnceAround => sequence_players.collect(),
@@ -152,13 +152,14 @@ impl Bid {
     }
 
     pub fn valid_karma_cards(g: &Game, p: Option<PlayerIndex>) -> impl Iterator<Item = TreacheryCard> {
-        use crate::compat::lazy::{Either, empty};
+        use either::Either;
+        use std::iter::empty;
         let p = p.and_then(crate::compat::cs::CsNull::opt);
-        let Some(p) = p else { return Either::A(empty()) };
+        let Some(p) = p else { return Either::Left(empty()) };
         if g.current_auction_type == AuctionType::Normal {
-            return Either::B(Karma::valid_karma_cards(g, p));
+            return Either::Right(Karma::valid_karma_cards(g, p));
         }
-        Either::A(empty())
+        Either::Left(empty())
     }
 
     pub fn can_karma(g: &Game, p: Option<PlayerIndex>) -> bool {

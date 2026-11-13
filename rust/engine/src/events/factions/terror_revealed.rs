@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use crate::compat::lazy::LazyQuery;
 use crate::compat::random_ext::RandomExt;
 
 #[derive(Clone, Debug, Canon)]
@@ -90,7 +89,7 @@ impl TerrorRevealed {
         if self.passed || self.alliance_offered {
             return None;
         }
-        if !TerrorRevealed::get_types(game).cs_contains(&self.type_) {
+        if !TerrorRevealed::get_types(game).any(|v| v == self.type_) {
             return Some(express!("You cannot use this token"));
         }
         if self.initiator() != Faction::Moritani {
@@ -102,7 +101,7 @@ impl TerrorRevealed {
         }
         if self.type_ == TerrorType::SneakAttack
             && self.sneak_attack_to(game).is_some()
-            && !TerrorRevealed::valid_sneak_attack_targets(game, self.player()).cs_contains(&self.sneak_attack_to(game).nre())
+            && !TerrorRevealed::valid_sneak_attack_targets(game, self.player()).any(|v| v == self.sneak_attack_to(game).nre())
         {
             return Some(express!("Invalid location of sneak attack"));
         }
@@ -142,21 +141,23 @@ impl TerrorRevealed {
 
     /// `Game.TerrorIn(t)` where `t` may be null: no token is ever in a null territory.
     fn terror_in(g: &Game, t: Option<Territory>) -> impl Iterator<Item = TerrorType> {
-        use crate::compat::lazy::{Either, empty};
+        use either::Either;
+        use std::iter::empty;
         let t = t.and_then(crate::compat::cs::CsNull::opt);
         match t {
-            Some(t) => Either::A(g.terror_in(t)),
-            None => Either::B(empty()),
+            Some(t) => Either::Left(g.terror_in(t)),
+            None => Either::Right(empty()),
         }
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
     pub fn get_types(g: &Game) -> impl Iterator<Item = TerrorType> {
-        use crate::compat::lazy::{Either, empty};
+        use either::Either;
+        use std::iter::empty;
         if g.last_terror_trigger().is_some() {
-            Either::A(TerrorRevealed::terror_in(g, TerrorRevealed::get_territory(g)))
+            Either::Left(TerrorRevealed::terror_in(g, TerrorRevealed::get_territory(g)))
         } else {
-            Either::B(empty())
+            Either::Right(empty())
         }
     }
 

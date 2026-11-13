@@ -45,11 +45,11 @@ impl PerformHmsPlacement {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
     pub fn valid_locations(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
-        use crate::compat::lazy::Either;
+        use either::Either;
         if g.player(p).faction != Faction::Ixian {
-            return Either::A(g.map.locations(false).filter(|l| !l.territory().is_stronghold()));
+            return Either::Left(g.map.locations(false).filter(|l| !l.territory().is_stronghold()));
         }
-        Either::B(g.map.locations(false).filter(move |l| !l.territory().is_stronghold() && l.sector(&g.map) != g.sector_in_storm))
+        Either::Right(g.map.locations(false).filter(move |l| !l.territory().is_stronghold() && l.sector(&g.map) != g.sector_in_storm))
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {

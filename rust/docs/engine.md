@@ -15,10 +15,11 @@ How `rust/engine` and `rust/bots` are organized. Most engine code starts with `u
 | `messages/` | `Message`, `Expression`, `Payment` and `Report`: the text of log entries and validation errors. |
 | `enumerations.rs` | Factions, phases, rules, card types and the other enums. |
 | `identity.rs` | The `IIdentifiable` and `IFetcher` traits for looking objects up by id. |
+| `iter.rs` | Iterator helpers std lacks (`unique`). |
 | `random.rs` | `LoggedRandom`, the game's random number generator. |
 | `json/` | Reading and writing events and savegames, byte for byte in the established JSON format. |
 | `canon.rs` | The canonical state dump the differ compares. |
-| `compat/` | .NET behavior the engine still imitates: exceptions and throwing collection operators (`cs`), lazy queries, integer-backed enums, `DateTimeOffset`, random selection helpers. Later cleanup steps shrink it. |
+| `compat/` | .NET behavior the engine still imitates: exceptions and throwing collection operators (`cs`), integer-backed enums, `DateTimeOffset`, random selection helpers. Later cleanup steps shrink it. |
 
 Inside `game/` and `events/`, the submodules are private and their items are re-exported, so a type is reached as `treachery_engine::game::Player` or `treachery_engine::events::Shipment`, wherever its file is. Three traits are the exception: `events::bid_trait::IBid`, `events::location_event::ILocationEvent` and `events::placement::IPlacement`. Their method names clash with the `GameEventMethods` ones, so they are not glob-exported, and `GameEvent` has a dispatching method for each of their members.
 

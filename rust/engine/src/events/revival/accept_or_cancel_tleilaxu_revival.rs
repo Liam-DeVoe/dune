@@ -70,7 +70,7 @@ impl AcceptOrCancelTleilaxuRevival {
                 }
 
                 let request_to_remove =
-                    game.current_revival_requests.iter().cs_first_or_default_where(|r| r.hero() == Some(hero)).cloned();
+                    game.current_revival_requests.iter().find(|r| r.hero() == Some(hero)).cloned();
                 if let Some(request_to_remove) = request_to_remove {
                     // List.Remove: events compare by reference.
                     if let Some(i) = game.current_revival_requests.iter().position(|r| Rc::ptr_eq(r, &request_to_remove)) {

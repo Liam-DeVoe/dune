@@ -245,8 +245,8 @@ impl BlackMarketBid {
     pub fn players_to_bid(g: &Game) -> Vec<SequenceElement> {
         // GetPlayersInSequence runs now (PlayersInOrder); its selector runs only in the arms that return it.
         let players_in_sequence = match &g.bid_sequence {
-            Some(s) => crate::compat::lazy::Either::A(s.get_players_in_sequence(g)),
-            None => crate::compat::lazy::Either::B(crate::compat::lazy::empty()),
+            Some(s) => either::Either::Left(s.get_players_in_sequence(g)),
+            None => either::Either::Right(std::iter::empty()),
         };
         match g.current_auction_type {
             AuctionType::BlackMarketNormal | AuctionType::BlackMarketOnceAround => players_in_sequence.collect(),

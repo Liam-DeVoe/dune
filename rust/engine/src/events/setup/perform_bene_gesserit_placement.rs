@@ -49,12 +49,12 @@ impl PerformBeneGesseritPlacement {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
     pub fn valid_locations(g: &Game) -> impl Iterator<Item = Location> {
-        use crate::compat::lazy::Either;
+        use either::Either;
         if Self::bene_gesserit_may_place_first_force_in_any_territory(g) {
             let hms = g.map.hidden_mobile_stronghold().location();
-            return Either::A(g.map.locations(false).filter(move |l| *l != hms));
+            return Either::Left(g.map.locations(false).filter(move |l| *l != hms));
         }
-        Either::B(std::iter::once(g.map.polar_sink()))
+        Either::Right(std::iter::once(g.map.polar_sink()))
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {

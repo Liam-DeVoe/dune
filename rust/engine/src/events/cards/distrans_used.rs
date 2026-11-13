@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use crate::compat::lazy::LazyQuery;
 
 #[derive(Clone, Debug, Canon)]
 pub struct DistransUsed {
@@ -41,7 +40,7 @@ impl DistransUsed {
         if !DistransUsed::valid_cards(game, self.player()).any(|c| Some(c) == self.card()) {
             return Some(express!("Invalid card"));
         }
-        if !DistransUsed::valid_targets(game, self.player()).cs_contains(&self.target) {
+        if !DistransUsed::valid_targets(game, self.player()).any(|v| v == self.target) {
             return Some(express!("Invalid target"));
         }
         None

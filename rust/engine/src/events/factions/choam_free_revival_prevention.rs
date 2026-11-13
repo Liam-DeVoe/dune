@@ -36,7 +36,7 @@ impl ChoamFreeRevivalPrevention {
     }
 
     pub fn card_to_use(game: &Game, p: PlayerIndex) -> Option<TreacheryCard> {
-        game.player(p).treachery_cards.iter().copied().cs_first_or_default_where(|c| c.id() == TreacheryCardManager::CARD_LALALA)
+        game.player(p).treachery_cards.iter().copied().find(|c| c.id() == TreacheryCardManager::CARD_LALALA)
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {

@@ -174,7 +174,7 @@ impl DealOffered {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
         if self.cancel {
-            let same_offer = game.deal_offers.iter().cs_first_or_default_where(|o| o.same(self)).cloned();
+            let same_offer = game.deal_offers.iter().find(|o| o.same(self)).cloned();
             if let Some(same_offer) = same_offer {
                 // List.Remove: reference equality, first occurrence.
                 if let Some(i) = game.deal_offers.iter().position(|o| Rc::ptr_eq(o, &same_offer)) {

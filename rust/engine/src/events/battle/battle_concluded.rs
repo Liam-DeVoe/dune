@@ -443,12 +443,12 @@ impl BattleConcluded {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
     pub fn valid_traitors_to_replace(game: &Game, p: PlayerIndex) -> impl Iterator<Item = Hero> {
-        use crate::compat::lazy::Either;
+        use either::Either;
         let pl = game.player(p);
         if pl.faction == Faction::Tleilaxu {
-            return Either::A(pl.face_dancers.iter().copied().filter(move |h| !pl.revealed_face_dancers.contains(h)));
+            return Either::Left(pl.face_dancers.iter().copied().filter(move |h| !pl.revealed_face_dancers.contains(h)));
         }
-        Either::B(pl.traitors.iter().copied().filter(move |h| !pl.revealed_traitors.contains(h)))
+        Either::Right(pl.traitors.iter().copied().filter(move |h| !pl.revealed_traitors.contains(h)))
     }
 
     pub fn may_choose_to_discard_cards(g: &Game) -> bool {

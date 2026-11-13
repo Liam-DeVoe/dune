@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use crate::compat::lazy::LazyQuery;
 
 #[derive(Clone, Debug, Canon)]
 pub struct TerrorPlanted {
@@ -52,10 +51,10 @@ impl TerrorPlanted {
                 }
             }
             Some(stronghold) => {
-                if !TerrorPlanted::valid_strongholds(game, self.player()).cs_contains(&stronghold) {
+                if !TerrorPlanted::valid_strongholds(game, self.player()).any(|v| v == stronghold) {
                     return Some(express!("Invalid Stronghold"));
                 }
-                if !TerrorPlanted::valid_terror_types(game, false).cs_contains(&self.type_) {
+                if !TerrorPlanted::valid_terror_types(game, false).any(|v| v == self.type_) {
                     return Some(express!(self.type_, " not available"));
                 }
             }
@@ -66,13 +65,14 @@ impl TerrorPlanted {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
     pub fn valid_strongholds(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Territory> {
-        use crate::compat::lazy::{Either, empty};
+        use either::Either;
+        use std::iter::empty;
         if g.current_main_phase != MainPhase::Contemplate {
-            return Either::A(empty());
+            return Either::Left(empty());
         }
 
         let hms_territory = g.map.hidden_mobile_stronghold().territory();
-        Either::B(g.map.territories(false).filter(move |t| {
+        Either::Right(g.map.territories(false).filter(move |t| {
             t.is_visible(&g.map)
                 && t.is_stronghold()
                 && *t != hms_territory
@@ -94,13 +94,13 @@ impl TerrorPlanted {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
     pub fn valid_terror_types(g: &Game, to_remove: bool) -> impl Iterator<Item = TerrorType> {
-        use crate::compat::lazy::Either;
+        use either::Either;
         if to_remove {
             // The live KeyCollection: no callbacks, so iterating it is the same as Contains/Any on it.
-            return Either::A(g.terror_on_planet.keys().copied());
+            return Either::Left(g.terror_on_planet.keys().copied());
         }
 
-        Either::B(crate::compat::lazy::union(g.unplaced_terror_tokens.iter().copied(), g.terror_on_planet.keys().copied()))
+        Either::Right(crate::iter::unique(g.unplaced_terror_tokens.iter().copied().chain(g.terror_on_planet.keys().copied())))
     }
 
     pub fn is_applicable(g: &Game, p: PlayerIndex) -> bool {

@@ -144,7 +144,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - When: Clicking confirm too early in the web client (rust/view/tests/other_forms.rs:403 shows the form accepts it).
 - Where: rust/engine/src/events/blow/karma_monster.rs:51
 - Note: A player can waste their Karama by accident.
-- Done (579e70d): `KarmaMonster` is refused without a territory ("No territory selected"), in a territory protected from the worm ("Selected territory is protected", as for `FremenSentMonster`) or elsewhere outside `valid_targets` ("Invalid territory"). The form starts with no territory (it used to start with territory 0, the Polar Sink) and shows the first message until one is picked. Tests: `karama_worm_needs_a_territory` in engine/tests/rule_fixes.rs, `dependent_inputs` in view/tests/other_forms.rs.
+- Done (579e70d, 2ecf60f): `KarmaMonster` is refused without a territory ("No territory selected"), in a territory protected from the worm ("Selected territory is protected", as for `FremenSentMonster`) or elsewhere outside `valid_targets` ("Invalid territory"). The form starts with no territory (it used to start with territory 0, the Polar Sink) and shows the first message until one is picked. Tests: `karama_worm_needs_a_territory` in engine/tests/rule_fixes.rs, `dependent_inputs` in view/tests/other_forms.rs.
 
 ## Karama shipment-prevention bot ignores opponents without an ally
 

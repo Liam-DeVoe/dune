@@ -231,9 +231,11 @@ impl TreacheryCard {
         let combined_with_weapon = combined_with_weapon.and_then(crate::compat::cs::CsNull::opt);
         let t = self.type_();
         if t == TreacheryCardType::MirrorWeapon {
+            // A Mirror Weapon copies the other weapon. Against another Mirror Weapon neither copies
+            // a real weapon, so it counts as countered (asking that weapon would never return).
             return match combined_with_weapon {
-                None => true,
-                Some(w) => w.countered_by(defense, combined_with_weapon),
+                Some(w) if w.type_() != TreacheryCardType::MirrorWeapon => w.countered_by(defense, combined_with_weapon),
+                _ => true,
             };
         }
 

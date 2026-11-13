@@ -84,6 +84,18 @@ fn rock_melter_decision_with_a_mirror_weapon_leaves_the_game_alone() {
     assert_eq!(decision.kill, outcome.winner == Some(def.player()));
 }
 
+/// The bot asks whether an opponent's Mirror Weapon, copying the weapon the bot plans to use, is
+/// stopped by the bot's defense. With a Mirror Weapon on both sides that question used to never
+/// return; the bot now keeps a Mirror Weapon pick, which reached it in fuzz seed 1 game 145.
+#[test]
+fn a_mirror_weapon_against_a_mirror_weapon_is_countered() {
+    let game = load("battle");
+    let mirror = card(&game, T::MirrorWeapon);
+    let shield = card(&game, T::Shield);
+    assert!(mirror.countered_by(Some(shield), Some(mirror)));
+    assert!(mirror.countered_by(None, Some(mirror)));
+}
+
 /// Shipping into a sand territory costs 2 per force, half that with Karama. A Bene Gesserit
 /// known to hold a Worthless card can use it as Karama under BeneGesseritWorthlessAsKarma, so the
 /// bot now expects them to ship as many forces as with a real Karama card.

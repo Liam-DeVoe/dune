@@ -32,10 +32,12 @@ pub fn golden(name: &str) -> std::path::PathBuf {
 }
 
 /// The result of a call as the probe writes it: the text, or `!Type: message` for an exception.
+/// A panic that doesn't name a .NET exception is `!panic: message`.
 pub fn outcome(f: impl FnOnce() -> String) -> String {
-    match cs::catch(f) {
-        Ok(s) => s,
-        Err(CsException { type_name, message }) => format!("!{type_name}: {message}"),
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| cs::catch_panic(f))) {
+        Ok(Ok(s)) => s,
+        Ok(Err(CsException { type_name, message })) => format!("!{type_name}: {message}"),
+        Err(p) => format!("!panic: {}", cs::panic_message(p.as_ref())),
     }
 }
 

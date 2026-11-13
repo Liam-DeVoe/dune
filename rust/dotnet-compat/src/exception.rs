@@ -1,13 +1,11 @@
-//! C# exceptions as Rust panics.
+//! .NET exceptions.
 //!
-//! A .NET API that throws is modeled as a panic whose payload is a
-//! [`CsException`] carrying the exception's type name and exact .NET 10
-//! message. The engine's replayer (`treachery_engine::cs::catch`) turns such a
-//! panic back into a value. Every throwing API in this crate panics this way.
+//! The parsing functions return a [`CsException`] as their error. Every other API
+//! that throws in .NET panics here instead, with the message
+//! `"<type name>: <.NET message>"`: calling it so that .NET would throw is a bug in
+//! the caller.
 
-use std::panic;
-
-/// A C# exception: its type name (`"InvalidOperationException"`) and message.
+/// A .NET exception as a value: its type name (`"FormatException"`) and message.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CsException {
     pub type_name: &'static str,
@@ -20,16 +18,16 @@ impl std::fmt::Display for CsException {
     }
 }
 
-/// Raises a C# exception. Prefer the [`throw!`](crate::throw) macro.
+/// Panics with the exception .NET would throw here.
 #[track_caller]
 pub fn throw(type_name: &'static str, message: String) -> ! {
-    panic::panic_any(CsException { type_name, message })
+    panic!("{type_name}: {message}")
 }
 
-/// Raises `e`.
+/// Panics with `e`.
 #[track_caller]
 pub fn throw_exception(e: CsException) -> ! {
-    panic::panic_any(e)
+    panic!("{e}")
 }
 
 /// `throw new X(message)`:
@@ -50,9 +48,15 @@ macro_rules! throw {
     };
 }
 
-/// If `payload` (from `catch_unwind`) is a C# exception, returns it.
-pub fn as_cs_exception(payload: &(dyn std::any::Any + Send)) -> Option<&CsException> {
-    payload.downcast_ref::<CsException>()
+/// The text of a panic payload (from `catch_unwind`), for tests and crash reports.
+pub fn panic_message(payload: &(dyn std::any::Any + Send)) -> String {
+    if let Some(s) = payload.downcast_ref::<String>() {
+        s.clone()
+    } else if let Some(s) = payload.downcast_ref::<&str>() {
+        (*s).to_string()
+    } else {
+        "panic".to_string()
+    }
 }
 
 // Messages shared by several APIs (exact .NET 10 texts).

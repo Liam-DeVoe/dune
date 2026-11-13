@@ -29,7 +29,7 @@ impl Captured {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
 
         if !self.passed {
@@ -41,6 +41,7 @@ impl Captured {
         }
 
         game.enter(Phase::BattleConclusion, true);
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -69,7 +70,7 @@ impl GameEventMethods for Captured {
         Captured::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         Captured::execute_concrete_event(self, game)
     }
 

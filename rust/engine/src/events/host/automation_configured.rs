@@ -37,14 +37,14 @@ impl AutomationConfigured {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         match self.action {
             ItemAction::Create => {
                 let id = if game.automation_rules.is_empty() {
                     0
                 } else {
                     // Non-empty, so Max cannot throw.
-                    game.automation_rules.iter().map(|x| x.automation_rule_id.get()).max().nre().wrapping_add(1)
+                    game.automation_rules.iter().map(|x| x.automation_rule_id.get()).max().required("max")?.wrapping_add(1)
                 };
                 self.automation_rule_id.set(id);
 
@@ -52,12 +52,13 @@ impl AutomationConfigured {
             }
 
             ItemAction::Delete => {
-                // C# parity (hazards 1.4, 18.2): First throws for an unknown id, and ownership is not checked.
+                // C# parity (hazards 1.4, 18.2): an unknown id fails the event (C#'s First throws),
+                // and ownership is not checked.
                 let id = self.automation_rule_id.get();
-                let rule = game.automation_rules.iter().cs_first_where(|x| x.automation_rule_id.get() == id).clone();
-                if let Some(i) = game.automation_rules.iter().position(|x| Rc::ptr_eq(x, &rule)) {
-                    game.automation_rules.remove(i);
-                }
+                let Some(i) = game.automation_rules.iter().position(|x| x.automation_rule_id.get() == id) else {
+                    game_error!("There is no automation rule {id}");
+                };
+                game.automation_rules.remove(i);
             }
 
             ItemAction::Update => {
@@ -66,6 +67,7 @@ impl AutomationConfigured {
 
             _ => {}
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -157,7 +159,7 @@ impl GameEventMethods for AutomationConfigured {
         AutomationConfigured::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         AutomationConfigured::execute_concrete_event(self, game)
     }
 

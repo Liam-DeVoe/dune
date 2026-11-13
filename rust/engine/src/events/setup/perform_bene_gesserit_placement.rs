@@ -57,7 +57,7 @@ impl PerformBeneGesseritPlacement {
         Either::B(std::iter::once(g.map.polar_sink()))
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         // A null Target (only without validation) is passed on as in C#: IsOccupied(null)
         // is false, ShipForces(null, 1) finds no homeworld to ship from, and `Target.Territory` throws.
         let condition = game.is_occupied_territory(self.target(game).or_null().territory());
@@ -80,6 +80,7 @@ impl PerformBeneGesseritPlacement {
             Game::enter_storm_phase,
             Game::deal_starting_treachery_cards,
         );
+        Ok(())
     }
 
     pub fn get_message(&self, game: &Game) -> Message {
@@ -105,7 +106,7 @@ impl GameEventMethods for PerformBeneGesseritPlacement {
         PerformBeneGesseritPlacement::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         PerformBeneGesseritPlacement::execute_concrete_event(self, game)
     }
 

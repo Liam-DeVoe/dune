@@ -54,12 +54,12 @@ impl BeneGesseritAccompanies {
         (if self.accompanies { 1 } else { 0 }) + (if self.extra_advisor { 1 } else { 0 })
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.bene_gesserit_may_accompany = false;
 
         if self.accompanies {
             let me = self.player();
-            let location = self.location(game).nre();
+            let location = self.location(game).required("location")?;
             let amount = self.special_forces_added_to_location(game);
             if game.player(me).occupies_territory(game, Some(location.territory()))
                 || !game.is_occupied_territory(location.territory())
@@ -75,14 +75,15 @@ impl BeneGesseritAccompanies {
                 .with_log(BeneGesseritReaction::new(BeneGesseritReactionKind::Accompany, location.into(), false));
             self.log_objects(game, vec![m.into()]);
             game.last_shipment_or_movement = Some(self.clone().into_event());
-            game.check_intrusion(&self.clone().into_event());
+            game.check_intrusion(&self.clone().into_event())?;
         } else {
             let m = express!(self.initiator(), " don't accompany")
                 .with_log(BeneGesseritReaction::new(BeneGesseritReactionKind::DontAccompany, Option::<Location>::None.into(), false));
             self.log_objects(game, vec![m.into()]);
         }
 
-        game.determine_next_shipment_and_move_sub_phase();
+        game.determine_next_shipment_and_move_sub_phase()?;
+        Ok(())
     }
 
     pub fn get_message(&self, game: &Game) -> Message {
@@ -126,7 +127,7 @@ impl BeneGesseritAccompanies {
     pub fn valid_targets(g: &Game, p: PlayerIndex) -> Vec<Location> {
         let last_to = g.last_shipment_or_movement.as_ref().and_then(|e| e.to_location(g));
         let Some(last_to) = last_to else {
-            throw!(Exception, "LastShipmentOrMovement is null");
+            panic!("LastShipmentOrMovement is null");
         };
 
         let mut result = Vec::new();
@@ -182,7 +183,7 @@ impl GameEventMethods for BeneGesseritAccompanies {
         BeneGesseritAccompanies::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         BeneGesseritAccompanies::execute_concrete_event(self, game)
     }
 

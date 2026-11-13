@@ -52,7 +52,7 @@ impl FremenSentMonster {
         g.map.territories(false).filter(move |t| !t.is_protected_from_worm())
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         // A null Territory (only without validation) is stored in WormSentLog and the
         // MonsterAppearence; PerformMonster then throws on `m.Territory.Locations`.
         let msg = self.get_message(game);
@@ -66,6 +66,7 @@ impl FremenSentMonster {
         game.enter_boolean_phase_phase(condition, Phase::BlowA, Phase::BlowB);
         game.draw_resource_card();
         game.let_factions_discard_surplus_cards();
+        Ok(())
     }
 
     pub fn get_message(&self, game: &Game) -> Message {
@@ -91,7 +92,7 @@ impl GameEventMethods for FremenSentMonster {
         FremenSentMonster::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         FremenSentMonster::execute_concrete_event(self, game)
     }
 

@@ -63,8 +63,8 @@ impl DiscoveryEntered {
             .filter(move |l| game.player(p).any_forces_in(Some(*l)) > 0)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
-        let Some(discovered_location) = self.to(game).and_then(|l| l.as_discovered_location()) else { return };
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+        let Some(discovered_location) = self.to(game).and_then(|l| l.as_discovered_location()) else { return Ok(()) };
 
         if let Some(i) = game.just_revealed_discovery_strongholds.iter().position(|d| d.location() == discovered_location.location()) {
             game.just_revealed_discovery_strongholds.remove(i);
@@ -104,6 +104,7 @@ impl DiscoveryEntered {
                 }
             }
         }
+        Ok(())
     }
 
     pub fn get_message(&self, game: &Game) -> Message {
@@ -132,7 +133,7 @@ impl GameEventMethods for DiscoveryEntered {
         DiscoveryEntered::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         DiscoveryEntered::execute_concrete_event(self, game)
     }
 

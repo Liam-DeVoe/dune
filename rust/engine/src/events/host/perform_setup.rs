@@ -39,7 +39,7 @@ impl PerformSetup {
         let p = game.get_player(Some(faction));
         let number_of_special_forces =
             dotnet_compat::linq::sum_i32(self.force_locations(game).values().map(|b| b.amount_of_special_forces));
-        let p = p.nre();
+        let Some(p) = p else { return Some(express!("No faction is setting up")) };
         if number_of_special_forces > game.player(p).special_forces_in_reserve() {
             return Some(express!("Too many ", game.player(p).special_force()));
         }
@@ -52,17 +52,17 @@ impl PerformSetup {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let faction = game.next_faction_to_perform_custom_setup();
         let player = self.get_player(game, Some(faction));
 
         for (location, battalion) in self.force_locations(game).iter() {
             let location = *location;
-            Player::ship_forces(game, player.nre(), location, battalion.amount_of_forces);
-            Player::ship_special_forces(game, player.nre(), location, battalion.amount_of_special_forces);
+            Player::ship_forces(game, player.required("player")?, location, battalion.amount_of_forces);
+            Player::ship_special_forces(game, player.required("player")?, location, battalion.amount_of_special_forces);
         }
 
-        game.player_mut(player.nre()).resources = self.resources;
+        game.player_mut(player.required("player")?).resources = self.resources;
 
         self.log_objects(
             game,
@@ -78,6 +78,7 @@ impl PerformSetup {
                 game.deal_starting_treachery_cards();
             }
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -103,7 +104,7 @@ impl GameEventMethods for PerformSetup {
         PerformSetup::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         PerformSetup::execute_concrete_event(self, game)
     }
 

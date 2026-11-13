@@ -36,7 +36,8 @@ fn golden() -> &'static Value {
     })
 }
 
-/// Panics with the path of the first difference.
+/// Panics with the path of the first difference. A C# exception (`"exception:<Type>:<Message>"`)
+/// matches any panic (`"exception"`).
 fn assert_same(path: &str, expected: &Value, actual: &Value) {
     match (expected, actual) {
         (Value::Object(e), Value::Object(a)) => {
@@ -56,18 +57,19 @@ fn assert_same(path: &str, expected: &Value, actual: &Value) {
             }
             assert_eq!(e.len(), a.len(), "{path}: length differs");
         }
+        (Value::String(e), _) if e.starts_with("exception:") => assert_eq!(actual, "exception", "{path}: differs (C#: {e})"),
         _ => assert_eq!(expected, actual, "{path}: differs"),
     }
 }
 
-/// The C# dumper's `Try`: the value, `"null"` for null, or
-/// `"exception:<Type>:<Message>"`. The message is part of the comparison, so
-/// every lookup in this file also checks the exact exception text.
+/// The C# dumper's `Try`: the value, `"null"` for null, or `"exception"` when the lookup
+/// panics. The golden holds `"exception:<Type>:<Message>"` where C# threw; [`assert_same`]
+/// compares that as `"exception"`, since the engine no longer matches .NET exception text.
 fn try_value(f: impl FnOnce() -> Option<i32>) -> Value {
-    match cs::catch(f) {
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
         Ok(Some(v)) => json!(v),
         Ok(None) => json!("null"),
-        Err(e) => json!(format!("exception:{}:{}", e.type_name, e.message)),
+        Err(_) => json!("exception"),
     }
 }
 
@@ -171,7 +173,7 @@ fn enum_ordering_and_serde() {
     assert_eq!(serde_json::from_str::<Faction>("13").unwrap(), Faction(13));
     assert_eq!(format!("{:?}", Faction::Atreides), "Faction::Atreides");
     assert_eq!(Faction::Moritani.to_nexus(), Nexus::Moritani);
-    assert_eq!(cs::catch(|| Faction(13).to_nexus()).unwrap_err().type_name, "ArgumentOutOfRangeException");
+    assert_eq!(cs::catch_panic(|| Faction(13).to_nexus()).unwrap_err().type_name, "ArgumentOutOfRangeException");
 }
 
 // ---------------------------------------------------------------- map
@@ -618,12 +620,12 @@ fn deck_basics() {
     deck.put_on_bottom(9);
     assert_eq!(deck.draw(), 8);
     assert_eq!(deck.top(), Some(7));
-    let e = cs::catch(|| deck.clone().shuffle()).unwrap_err();
-    assert_eq!(e.type_name, "NullReferenceException");
+    // Shuffling more than one item without a random generator panics.
+    let mut copy = deck.clone();
+    assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| copy.shuffle())).is_err());
     deck.clear();
     assert!(deck.is_empty());
-    let e = cs::catch(|| Deck::<i32>::empty(None).draw()).unwrap_err();
-    assert_eq!(e, cs::CsException { type_name: "InvalidOperationException", message: "Cannot draw from an empty deck".into() });
+    assert_eq!(Deck::<i32>::empty(None).try_draw().unwrap_err().message(), "Cannot draw from an empty deck");
 }
 
 // ---------------------------------------------------------------- messages

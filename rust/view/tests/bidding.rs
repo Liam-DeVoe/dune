@@ -189,7 +189,7 @@ fn bidding_options_equal_the_helpers_in_every_state() {
     let d = default_describer();
     let mut seen = Seen::default();
     for path in fixtures() {
-        let state = GameState::load(&std::fs::read_to_string(&path).unwrap());
+        let state = GameState::load(&std::fs::read_to_string(&path).unwrap()).expect("savegame");
         let participation = Shared::new(Participation::default());
         let mut game = Game::new_int32_participation(state.version, &participation);
         let name = path.file_stem().unwrap().to_string_lossy().to_string();

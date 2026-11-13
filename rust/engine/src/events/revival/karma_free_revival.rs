@@ -73,13 +73,13 @@ impl KarmaFreeRevival {
         std::cmp::min(3, game.player(p).forces_killed)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.stone(Milestone::Revival);
         let card = Karma::valid_karma_cards(game, self.player()).into_iter().next();
 
         // A face down leader stays a plain line, so the log doesn't name them.
         let hero = self.hero();
-        if hero.is_some() && game.is_face_down_dead(hero.nre()) {
+        if hero.is_some() && game.is_face_down_dead(hero.required("hero")?) {
             self.log(game);
         } else {
             let mut row = RevivalRow::new(
@@ -112,19 +112,23 @@ impl KarmaFreeRevival {
                 game.factions_that_revived_special_forces_this_turn.push(self.initiator());
             }
         }
+        Ok(())
     }
 
-    pub fn get_message(&self, game: &Game) -> Message {
+    pub fn try_get_message(&self, game: &Game) -> GameResult<Message> {
         let p = self.player_opt();
         if let Some(hero) = self.hero() {
-            if !game.is_face_down_dead(hero) {
-                return express!("Using ", TreacheryCardType::Karma, ", ", self.initiator(), " revive ", hero);
+            if !game.leader_state.contains_key(&hero) {
+                game_error!("{} is not in this game", ExpressionElement::from(hero).to_cs_string());
             }
-            return express!("Using ", TreacheryCardType::Karma, ", ", self.initiator(), " revive a face down leader");
+            if !game.is_face_down_dead(hero) {
+                return Ok(express!("Using ", TreacheryCardType::Karma, ", ", self.initiator(), " revive ", hero));
+            }
+            return Ok(express!("Using ", TreacheryCardType::Karma, ", ", self.initiator(), " revive a face down leader"));
         }
 
-        let pl = game.player(p.nre());
-        express!(
+        let pl = game.player(p.required("player")?);
+        Ok(express!(
             "Using ",
             TreacheryCardType::Karma,
             ", ",
@@ -133,7 +137,11 @@ impl KarmaFreeRevival {
             express_part_if!(self.amount_of_forces > 0; self.amount_of_forces, pl.force()),
             express_part_if!(self.amount_of_forces > 0 && self.amount_of_special_forces > 0; " and "),
             express_part_if!(self.amount_of_special_forces > 0; self.amount_of_special_forces, pl.special_force())
-        )
+        ))
+    }
+
+    pub fn get_message(&self, game: &Game) -> Message {
+        self.try_get_message(game).expect("the message of an applicable KarmaFreeRevival event")
     }
 
 }
@@ -155,12 +163,16 @@ impl GameEventMethods for KarmaFreeRevival {
         KarmaFreeRevival::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         KarmaFreeRevival::execute_concrete_event(self, game)
     }
 
     fn get_message(&self, game: &Game) -> Message {
         KarmaFreeRevival::get_message(self, game)
+    }
+
+    fn try_get_message(&self, game: &Game) -> GameResult<Message> {
+        KarmaFreeRevival::try_get_message(self, game)
     }
 
 }

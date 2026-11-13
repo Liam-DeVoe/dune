@@ -18,7 +18,7 @@ fn golden() -> Value {
 }
 
 fn outcome<R>(f: impl FnOnce() -> R) -> Result<R, String> {
-    cs::catch(f).map_err(|e| format!("EX:{}: {}", cs::full_type_name(e.type_name), e.message))
+    cs::catch_panic(f).map_err(|e| format!("EX:{}: {}", cs::full_type_name(e.type_name), e.message))
 }
 
 /// A game without players and a bot whose player is never read (C#: `new Player(game, Atreides)`).
@@ -109,8 +109,8 @@ fn do_matches_csharp() {
             "notAllowed" => bot.do_(&mut game, |_, g| { called.set(true); Some(Rc::new(EndPhase::new(g, Faction::Atreides))) }, &mut action, &thought),
             "alreadyDecided" => bot.do_(&mut game, |_, g| { called.set(true); Some(Rc::new(EndPhase::new(g, Faction::Atreides))) }, &mut action, &end_phase),
             "returnsNull" => bot.do_(&mut game, |_, _| -> Option<Rc<Thought>> { called.set(true); None }, &mut action, &thought),
-            "throws" => bot.do_(&mut game, |_, _| -> Option<Rc<EndPhase>> { called.set(true); throw!(InvalidOperationException, "boom") }, &mut action, &end_phase),
-            "throwsWithBrace" => bot.do_(&mut game, |_, _| -> Option<Rc<EndPhase>> { called.set(true); throw!(InvalidOperationException, "bo{{om") }, &mut action, &end_phase),
+            "throws" => bot.do_(&mut game, |_, _| -> Option<Rc<EndPhase>> { called.set(true); treachery_engine::compat::cs::throw("InvalidOperationException", "boom".to_string()) }, &mut action, &end_phase),
+            "throwsWithBrace" => bot.do_(&mut game, |_, _| -> Option<Rc<EndPhase>> { called.set(true); treachery_engine::compat::cs::throw("InvalidOperationException", "bo{om".to_string()) }, &mut action, &end_phase),
             "invalid" => bot.do_(&mut game, |_, g| { called.set(true); Some(Rc::new(Thought::new(g, Faction::Atreides))) }, &mut action, &thought),
             other => panic!("unknown scenario {other}"),
         });
@@ -154,18 +154,19 @@ fn invalid_decision_blocks_the_tier() {
     assert!(!first && !second && !later.get());
 }
 
-/// `Do` catches C# exceptions only. A Rust panic (an unported `todo!`) must never become "chose nothing".
+/// `Do` catches any panic in the decision, including a plain Rust panic such as an unported
+/// `todo!`. The panic is logged and counts as no decision: `Do` returns false and leaves the
+/// action empty.
 #[test]
-fn do_does_not_swallow_rust_panics() {
+fn a_panicking_decision_counts_as_no_decision() {
     let (mut game, mut bot) = bot(1);
     let mut action = None;
-    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        bot.do_(&mut game, |_, _| -> Option<Rc<EndPhase>> { todo!("port: somewhere") }, &mut action, &[GameEventType::EndPhase])
-    }));
-    assert!(result.is_err());
+    let decided = bot.do_(&mut game, |_, _| -> Option<Rc<EndPhase>> { todo!("port: somewhere") }, &mut action, &[GameEventType::EndPhase]);
+    assert!(!decided);
+    assert!(action.is_none());
 }
 
-/// Draws made before a C# exception stay (hazards 16.2).
+/// Draws made before a decision panics stay (hazards 16.2).
 #[test]
 fn draws_before_an_exception_stay() {
     let (mut game, mut bot) = bot(1);

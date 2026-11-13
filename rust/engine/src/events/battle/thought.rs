@@ -62,13 +62,14 @@ impl Thought {
             && game.current_battle.as_ref().nre().is_aggressor_or_defender(game, player)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.current_thought = Some(self.clone());
-        let battle = game.current_battle.clone().nre();
-        let opponent = game.player(battle.opponent_of_faction(game, self.initiator()).nre()).faction;
+        let battle = game.current_battle.clone().required("current battle")?;
+        let opponent = game.player(battle.opponent_of_faction(game, self.initiator()).required("opponent of faction")?).faction;
         game.log(elems![self.initiator(), " use their ", LeaderSkill::Thinker, " skill to ask ", opponent, " if they have a ", self.card()]);
         game.stone(Milestone::Prescience);
         game.enter(Phase::Thought, true);
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -93,7 +94,7 @@ impl GameEventMethods for Thought {
         Thought::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         Thought::execute_concrete_event(self, game)
     }
 

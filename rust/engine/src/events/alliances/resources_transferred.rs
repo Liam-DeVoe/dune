@@ -48,7 +48,7 @@ impl ResourcesTransferred {
         pl.transferable_resources.min(pl.resources)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
         let me = self.player();
         {
@@ -56,9 +56,10 @@ impl ResourcesTransferred {
             p.resources = p.resources.wrapping_sub(self.resources);
             p.transferable_resources = p.transferable_resources.wrapping_sub(self.resources);
         }
-        let ally = game.player(me).allied_player(game).nre();
+        let ally = game.player(me).allied_player(game).required("allied player")?;
         let a = game.player_mut(ally);
         a.resources = a.resources.wrapping_add(self.resources);
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -84,7 +85,7 @@ impl GameEventMethods for ResourcesTransferred {
         ResourcesTransferred::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         ResourcesTransferred::execute_concrete_event(self, game)
     }
 

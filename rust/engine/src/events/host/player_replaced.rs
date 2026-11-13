@@ -33,13 +33,14 @@ impl PlayerReplaced {
         g.players.iter().map(move |p| p.faction)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let player = self.get_player(game, Some(self.to_replace));
         // IsBot(null) reads p.Seat: NullReferenceException.
-        let is_bot = game.is_bot(player.nre());
+        let is_bot = game.is_bot(player.required("player")?);
         let message = express!(self.to_replace, " will now be played by a ", if is_bot { "Bot" } else { "Human" })
             .with_log(AsideLog::aside());
         self.log_objects(game, vec![message.into()]);
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -65,7 +66,7 @@ impl GameEventMethods for PlayerReplaced {
         PlayerReplaced::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         PlayerReplaced::execute_concrete_event(self, game)
     }
 

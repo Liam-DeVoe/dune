@@ -132,7 +132,7 @@ impl PlayerSequence {
             Some(p) => p,
             None => {
                 let faction = game.player(current_player.nre()).faction;
-                throw!(Exception, "Could not find a player after {}", faction)
+                panic!("Could not find a player after {}", faction)
             }
         }
     }
@@ -161,7 +161,7 @@ impl PlayerSequence {
 
         match self.players_in_order(game).first().copied().flatten() {
             Some(p) => Some(p),
-            None => throw!(Exception, "Could not determine the current player."),
+            None => panic!("Could not determine the current player."),
         }
     }
 
@@ -265,7 +265,7 @@ impl PlayerSequence {
 
         match result {
             Some(r) => r,
-            None => throw!(Exception, "Could not determine the first player."),
+            None => panic!("Could not determine the first player."),
         }
     }
 

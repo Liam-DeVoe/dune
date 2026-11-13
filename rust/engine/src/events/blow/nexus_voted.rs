@@ -29,7 +29,7 @@ impl NexusVoted {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
         game.nexus_votes.push(self.clone());
         if game.nexus_votes.len() == game.players.len() {
@@ -45,6 +45,7 @@ impl NexusVoted {
                 game.enter_alliance_phase(condition);
             }
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -70,7 +71,7 @@ impl GameEventMethods for NexusVoted {
         NexusVoted::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         NexusVoted::execute_concrete_event(self, game)
     }
 

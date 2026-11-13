@@ -221,7 +221,8 @@ impl<'a> Replayer<'a> {
                     return Err(self.fail(line, "views", format!("{} viewers", ev.len()), format!("{} viewers ({})", av.len(), labels.join(", "))));
                 }
                 for i in 0..ev.len() {
-                    if ev[i] == av[i] {
+                    // A view that failed to build is compared as failed, not by its error text.
+                    if ev[i] == av[i] || (ev[i].starts_with("error: ") && av[i].starts_with("error: ")) {
                         continue;
                     }
                     let label = labels.get(i).cloned().unwrap_or_default();

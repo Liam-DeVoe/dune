@@ -48,7 +48,7 @@ impl AllianceOffered {
         matches!(g.current_phase, Phase::AllianceA | Phase::AllianceB) && g.has_acted_or_passed.contains(&g.player(p).faction)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let initiator = self.initiator();
         let matching_offer =
             game.current_alliance_offers.iter().cs_first_or_default_where(|x| x.initiator() == self.target && x.target == initiator).cloned();
@@ -81,6 +81,7 @@ impl AllianceOffered {
             self.log_objects(game, vec![m.into()]);
             game.current_alliance_offers.push(self.clone());
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -106,7 +107,7 @@ impl GameEventMethods for AllianceOffered {
         AllianceOffered::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         AllianceOffered::execute_concrete_event(self, game)
     }
 

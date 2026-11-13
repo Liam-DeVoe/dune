@@ -38,15 +38,15 @@ impl MulliganPerformed {
         game.player(p).traitors.iter().filter(|l| l.is(faction)).count() >= 2
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         if !self.passed {
             let me = self.player();
             // TraitorDeck is dereferenced before Player.Traitors is read.
-            game.traitor_deck.as_ref().nre();
+            game.traitor_deck.as_ref().required("traitor deck")?;
             let traitors = game.player(me).traitors.clone();
-            game.traitor_deck.as_mut().nre().items.extend(traitors);
+            game.traitor_deck.as_mut().required("traitor deck")?.items.extend(traitors);
             game.player_mut(me).traitors.clear();
-            game.traitor_deck.as_mut().nre().shuffle();
+            game.traitor_deck.as_mut().required("traitor deck")?.shuffle();
             game.stone(Milestone::Shuffled);
             game.deal_harkonnen_traitor_cards();
             game.enter(Phase::HarkonnenMulligan, true);
@@ -56,6 +56,7 @@ impl MulliganPerformed {
         }
 
         self.log(game);
+        Ok(())
     }
 
     pub fn deal_non_harkonnen_traitor_cards(&self, game: &mut Game) {
@@ -94,7 +95,7 @@ impl GameEventMethods for MulliganPerformed {
         MulliganPerformed::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         MulliganPerformed::execute_concrete_event(self, game)
     }
 

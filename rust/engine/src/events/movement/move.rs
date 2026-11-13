@@ -42,7 +42,7 @@ impl Move {
         self.validate_move(game, self.as_advisors)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.storm_losses_to_take.clear();
 
         game.current_player_may_perform_extra_move = match &game.current_flight_used {
@@ -54,13 +54,13 @@ impl Move {
             game.has_acted_or_passed.push(self.initiator());
 
             if game.current_phase == Phase::NonGuildMove {
-                let mut seq = game.shipment_and_move_sequence.take().nre();
+                let mut seq = game.shipment_and_move_sequence.take().required("shipment and move sequence")?;
                 seq.next_player(game);
                 game.shipment_and_move_sequence = Some(seq);
 
-                let current_is_guild = game.shipment_and_move_sequence.as_ref().nre().current_faction(game) == Faction::Guild;
+                let current_is_guild = game.shipment_and_move_sequence.as_ref().required("shipment and move sequence")?.current_faction(game) == Faction::Guild;
                 if current_is_guild && game.guild_may_ship_out_of_turn_order() {
-                    let mut seq = game.shipment_and_move_sequence.take().nre();
+                    let mut seq = game.shipment_and_move_sequence.take().required("shipment and move sequence")?;
                     seq.next_player(game);
                     game.shipment_and_move_sequence = Some(seq);
                 }
@@ -77,20 +77,20 @@ impl Move {
 
             let me = self.player();
             let to = PlacementEventMethods::to(&**self, game);
-            if contains_conflicting_ally_opt(game, me, to) {
-                game.chosen_destinations_with_allies.push(to.nre().territory());
+            if contains_conflicting_ally_opt(game, me, to)? {
+                game.chosen_destinations_with_allies.push(to.required("to")?.territory());
             }
 
             let force_locations = PlacementEventMethods::force_locations(&**self, game);
             let as_advisors = self.initiator() != Faction::BeneGesserit || self.as_advisors;
             game.perform_move_from_locations(me, &force_locations, &self.clone().into_event(), as_advisors, false);
-            game.check_intrusion(&self.clone().into_event());
+            game.check_intrusion(&self.clone().into_event())?;
         } else {
             let m = express!(self.initiator(), " pass movement").with_log(MovePassed { faction: self.initiator() });
             self.log_objects(game, vec![m.into()]);
         }
 
-        game.determine_next_shipment_and_move_sub_phase();
+        game.determine_next_shipment_and_move_sub_phase()?;
         game.check_if_forces_should_be_destroyed_by_ally_presence(self.player());
         game.flip_bene_gesserit_advisors_when_alone();
 
@@ -104,6 +104,7 @@ impl Move {
         game.current_flight_used = None;
         game.current_flight_discovery_used = None;
         game.current_planetology = None;
+        Ok(())
     }
 
     pub fn get_message(&self, game: &Game) -> Message {
@@ -118,17 +119,17 @@ impl Move {
 /// `Game.ContainsConflictingAlly(Player, To)` where `To` may be null.
 ///
 /// `to` is only dereferenced after the early returns, so a null
-/// `To` gives `false` there and a NullReferenceException after them.
-pub(crate) fn contains_conflicting_ally_opt(game: &Game, initiator: PlayerIndex, to: Option<Location>) -> bool {
+/// `To` gives `false` there and fails the event after them (C#: NullReferenceException).
+pub(crate) fn contains_conflicting_ally_opt(game: &Game, initiator: PlayerIndex, to: Option<Location>) -> GameResult<bool> {
     let to = to.and_then(crate::compat::cs::CsNull::opt);
     match to {
-        Some(to) => game.contains_conflicting_ally(initiator, to),
+        Some(to) => Ok(game.contains_conflicting_ally(initiator, to)),
         None => {
             let ini = game.player(initiator);
             if !ini.has_ally() || ini.faction == Faction::Ecaz || ini.ally == Faction::Ecaz {
-                return false;
+                return Ok(false);
             }
-            throw!(NullReferenceException)
+            game_error!("There is no destination")
         }
     }
 }
@@ -150,7 +151,7 @@ impl GameEventMethods for Move {
         Move::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         Move::execute_concrete_event(self, game)
     }
 

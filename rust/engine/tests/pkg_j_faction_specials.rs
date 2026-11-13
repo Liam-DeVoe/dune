@@ -10,7 +10,7 @@ use treachery_engine::random::SharedRandom;
 use treachery_engine::prelude::*;
 
 fn outcome<R>(f: impl FnOnce() -> R) -> Result<R, String> {
-    cs::catch(f).map_err(|e| format!("{}: {}", e.type_name, e.message))
+    cs::catch_panic(f).map_err(|e| format!("{}: {}", e.type_name, e.message))
 }
 
 fn game_with(factions: &[Faction]) -> Game {
@@ -104,7 +104,7 @@ fn karma_choam_discard_plays_first_karma_card_not_the_selected_one() {
     assert!(bad.validate(&g).is_some());
 
     let e = Rc::new(e);
-    e.execute_concrete_event(&mut g);
+    e.execute_concrete_event(&mut g).unwrap();
     // C# parity: k1 (the first valid card) is played, k2 stays in hand.
     let hand = &g.player(choam).treachery_cards;
     assert!(!hand.contains(&k1));
@@ -133,7 +133,7 @@ fn moritani_betrayal_without_a_token_removes_and_returns_default_terror() {
     assert!(e.is_betrayal(&g));
     // Validation rejects it, but the execution path is still defined.
     assert!(e.validate(&g).is_some());
-    e.execute_concrete_event(&mut g);
+    e.execute_concrete_event(&mut g).unwrap();
     // C# parity: RandomOrDefault of an empty sequence is TerrorType.None, which is added (v169+).
     assert_eq!(g.unplaced_terror_tokens.last().copied(), Some(TerrorType::None));
 }
@@ -165,7 +165,7 @@ fn moritani_betrayal_picks_from_dictionary_slot_order() {
     e.faction = Faction::Moritani;
     e.moritani_territory_id = t.id();
     assert!(e.validate(&g).is_none());
-    Rc::new(e).execute_concrete_event(&mut g);
+    Rc::new(e).execute_concrete_event(&mut g).unwrap();
     assert!(!g.terror_on_planet.contains_key(&expected));
     assert_eq!(g.terror_on_planet.len(), 2);
     assert_eq!(g.unplaced_terror_tokens.last().copied(), Some(expected));
@@ -252,7 +252,7 @@ fn terror_planted_valid_types_is_an_ordered_union() {
 // ---------------------------------------------------------------------------
 
 #[test]
-fn ambassador_placed_twice_in_a_stronghold_throws_after_paying() {
+fn ambassador_placed_twice_in_a_stronghold_fails_after_paying() {
     let mut g = game_with(&[Faction::Ecaz]);
     let ecaz = idx(&g, Faction::Ecaz);
     g.player_mut(ecaz).resources = 10;
@@ -262,31 +262,28 @@ fn ambassador_placed_twice_in_a_stronghold_throws_after_paying() {
     let mut first = AmbassadorPlaced::new(&g, Faction::Ecaz);
     first.ambassador = Ambassador::Emperor;
     first.set_stronghold(&g, Some(t));
-    Rc::new(first).execute_concrete_event(&mut g);
+    Rc::new(first).execute_concrete_event(&mut g).unwrap();
 
     let mut second = AmbassadorPlaced::new(&g, Faction::Ecaz);
     second.ambassador = Ambassador::BeneGesserit;
     second.set_stronghold(&g, Some(t));
     let second = Rc::new(second);
     assert!(second.validate(&g).is_some());
-    let r = outcome(|| second.execute_concrete_event(&mut g));
-    assert_eq!(
-        r.unwrap_err(),
-        "ArgumentException: An item with the same key has already been added. Key: Treachery.Shared.Territory"
-    );
-    // Paid 1, then 2, before the throw; the BeneGesserit ambassador stays in supply.
+    let e = second.execute_concrete_event(&mut g).unwrap_err();
+    assert_eq!(e.message(), "There already is an ambassador in Treachery.Shared.Territory");
+    // Paid 1, then 2, before the failure; the BeneGesserit ambassador stays in supply.
     assert_eq!(g.player(ecaz).resources, 7);
     assert_eq!(g.ambassadors_placed_this_turn, 2);
     assert_eq!(g.player(ecaz).ambassadors, vec![Ambassador::BeneGesserit]);
 }
 
 #[test]
-fn ambassador_placed_without_stronghold_throws() {
+fn ambassador_placed_without_stronghold_fails() {
     let mut g = game_with(&[Faction::Ecaz]);
     let mut e = AmbassadorPlaced::new(&g, Faction::Ecaz);
     e.set_stronghold(&g, None);
     let e = Rc::new(e);
-    assert_eq!(outcome(|| e.execute_concrete_event(&mut g)).unwrap_err(), "Exception: Stronghold is null");
+    assert_eq!(e.execute_concrete_event(&mut g).unwrap_err().message(), "Stronghold is null");
     assert_eq!(g.ambassadors_placed_this_turn, 0);
 }
 
@@ -356,12 +353,12 @@ fn clairvoyance_parameters_parse_like_dotnet() {
 }
 
 #[test]
-fn clairvoyance_answer_without_question_stores_qna_then_throws() {
+fn clairvoyance_answer_without_question_stores_qna_then_fails() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
     let e = Rc::new(ClairVoyanceAnswered::new(&g, Faction::Emperor));
     let reports_before = g.current_report().messages.len();
-    let r = outcome(|| e.execute_concrete_event(&mut g));
-    assert!(r.unwrap_err().starts_with("NullReferenceException"));
+    // No clairvoyance was played, so there is no question to answer.
+    assert!(e.execute_concrete_event(&mut g).is_err());
     // C#: `new ClairVoyanceQandA(Game.LatestClairvoyance!, this)` and the log run first.
     let qna = g.latest_clairvoyance_qn_a.as_ref().unwrap();
     assert!(qna.question.is_none());
@@ -377,11 +374,9 @@ fn bene_gesserit_prediction_valid_turns() {
     let g = game_with(&[Faction::BeneGesserit, Faction::Emperor]);
     g.settings.as_ref().unwrap().borrow_mut().maximum_turns = 3;
     assert_eq!(BeneGesseritPrediction::valid_turns(&g), vec![1, 2, 3]);
+    // A negative turn limit panics (C# threw ArgumentOutOfRangeException from Enumerable.Range).
     g.settings.as_ref().unwrap().borrow_mut().maximum_turns = -1;
-    assert_eq!(
-        outcome(|| BeneGesseritPrediction::valid_turns(&g)).unwrap_err(),
-        "ArgumentOutOfRangeException: Specified argument was out of the range of valid values. (Parameter 'count')"
-    );
+    assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| BeneGesseritPrediction::valid_turns(&g))).is_err());
 }
 
 #[test]
@@ -393,7 +388,7 @@ fn amal_rounds_up_in_double() {
     g.player_mut(atreides).resources = 16_777_217;
     g.player_mut(emperor).resources = -3;
     let e = Rc::new(AmalPlayed::new(&g, Faction::Atreides));
-    e.execute_concrete_event(&mut g);
+    e.execute_concrete_event(&mut g).unwrap();
     // ceil(8388608.5) = 8388609 in double; ceil(-1.5) = -1.
     assert_eq!(g.player(atreides).resources, 16_777_217 - 8_388_609);
     assert_eq!(g.player(emperor).resources, -2);

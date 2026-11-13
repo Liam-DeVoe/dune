@@ -48,16 +48,13 @@ impl BeneGesseritPrediction {
         // ThrowHelper.ThrowArgumentOutOfRangeException(ExceptionArgument.count): no actual value
         // in the message (probed on .NET 10).
         if count < 0 {
-            throw!(
-                ArgumentOutOfRangeException,
-                "{}",
-                cs::with_parameter("Specified argument was out of the range of valid values.", "count")
-            );
+            panic!("{}",
+                cs::with_parameter("Specified argument was out of the range of valid values.", "count"));
         }
         (0..count).map(|i| 1i32.wrapping_add(i)).collect()
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let me = self.player();
         game.player_mut(me).predicted_faction = self.to_win;
         game.player_mut(me).predicted_turn = self.turn;
@@ -69,6 +66,7 @@ impl BeneGesseritPrediction {
             |g: &mut Game| g.deal_starting_treachery_cards(),
             |g: &mut Game| g.deal_traitors(),
         );
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -93,7 +91,7 @@ impl GameEventMethods for BeneGesseritPrediction {
         BeneGesseritPrediction::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         BeneGesseritPrediction::execute_concrete_event(self, game)
     }
 

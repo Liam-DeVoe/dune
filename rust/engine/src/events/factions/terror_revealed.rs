@@ -123,10 +123,12 @@ impl TerrorRevealed {
         let victim = g.get_player(Some(TerrorRevealed::get_victim(g)));
         let moritani = g.get_player(Some(Faction::Moritani));
 
+        // Without a victim or a Moritani player there is nobody to ally with.
+        let (Some(victim), Some(moritani)) = (victim, moritani) else { return false };
         !g.alliance_by_terror_was_offered
             && !g.prevented(FactionAdvantage::MoritaniEnemyOfEnemy)
-            && !g.player(victim.nre()).is(Faction::Ecaz)
-            && !g.player(moritani.nre()).have_forces_on_each_others_home_worlds(g, victim.nre())
+            && !g.player(victim).is(Faction::Ecaz)
+            && !g.player(moritani).have_forces_on_each_others_home_worlds(g, victim)
     }
 
     pub fn get_territory(g: &Game) -> Option<Territory> {
@@ -186,7 +188,7 @@ impl TerrorRevealed {
                     && g.player(pl.allied_player(g).nre()).forces_in_territory(Some(l.territory())) == 0))
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let territory = TerrorRevealed::get_territory(game);
         let victim = TerrorRevealed::get_victim(game);
         let victim_player = self.get_player(game, Some(victim));
@@ -194,8 +196,8 @@ impl TerrorRevealed {
         if self.passed {
             self.log_objects(game, elems![self.initiator(), " don't terrorize ", territory]);
             game.alliance_by_terror_was_offered = false;
-            game.dequeue_intrusion(IntrusionType::Terror);
-            game.determine_next_shipment_and_move_sub_phase();
+            game.dequeue_intrusion(IntrusionType::Terror)?;
+            game.determine_next_shipment_and_move_sub_phase()?;
         } else if self.alliance_offered {
             self.log_objects(
                 game,
@@ -212,21 +214,21 @@ impl TerrorRevealed {
 
             // C# parity: Passed is always false here.
             if self.passed || TerrorRevealed::terror_in(game, territory).next().is_none() {
-                game.dequeue_intrusion(IntrusionType::Terror);
+                game.dequeue_intrusion(IntrusionType::Terror)?;
             }
 
             game.alliance_by_terror_was_offered = false;
 
             match self.type_ {
                 TerrorType::Assassination => {
-                    let victim_player = victim_player.nre();
+                    let victim_player = victim_player.required("victim player")?;
                     let random_leader = game
                         .player(victim_player)
                         .leaders
                         .iter()
                         .copied()
                         .filter(|l| game.is_alive(Hero::Leader(*l)))
-                        .random_or_default(game.random.as_ref().nre());
+                        .random_or_default(game.random.as_ref().required("random")?);
                     if let Some(random_leader) = random_leader {
                         let price = if random_leader.hero_type() == HeroType::VariableValue {
                             3
@@ -253,15 +255,15 @@ impl TerrorRevealed {
                     game.atomics_aftermath = territory;
 
                     while game.player(self.player()).hand_size_exceeded(game) {
-                        let card = game.player(self.player()).treachery_cards.iter().copied().random_or_default(game.random.as_ref().nre());
+                        let card = game.player(self.player()).treachery_cards.iter().copied().random_or_default(game.random.as_ref().required("random")?);
                         game.discard_player_treachery_card_boolean(Some(self.player()), card, true);
                     }
 
                     if game.player(self.player()).has_ally() {
-                        while game.player(game.player(self.player()).allied_player(game).nre()).hand_size_exceeded(game) {
-                            let ally = game.player(self.player()).allied_player(game).nre();
-                            let ally2 = game.player(self.player()).allied_player(game).nre();
-                            let card = game.player(ally2).treachery_cards.iter().copied().random_or_default(game.random.as_ref().nre());
+                        while game.player(game.player(self.player()).allied_player(game).required("allied player")?).hand_size_exceeded(game) {
+                            let ally = game.player(self.player()).allied_player(game).required("allied player")?;
+                            let ally2 = game.player(self.player()).allied_player(game).required("allied player")?;
+                            let card = game.player(ally2).treachery_cards.iter().copied().random_or_default(game.random.as_ref().required("random")?);
                             game.discard_player_treachery_card_boolean(Some(ally), card, true);
                         }
                     }
@@ -287,7 +289,7 @@ impl TerrorRevealed {
                         game.player_mut(self.player()).treachery_cards.push(card.or_null());
                         self.log_objects(game, elems![self.initiator(), " draw a Treachery Card"]);
                     } else {
-                        let victim_player = victim_player.nre();
+                        let victim_player = victim_player.required("victim player")?;
                         // (int)Math.Ceiling(0.5f * resources): the product is a float (hazards 9).
                         let amount_stolen = ((0.5f32 * game.player(victim_player).resources as f32) as f64).ceil() as i32;
                         let p = game.player_mut(self.player());
@@ -302,7 +304,7 @@ impl TerrorRevealed {
                 }
 
                 TerrorType::Sabotage => {
-                    let victim_player = victim_player.nre();
+                    let victim_player = victim_player.required("victim player")?;
                     let victim_faction = game.player(victim_player).faction;
                     self.log_objects(game, elems![self.initiator(), " sabotage ", victim_faction]);
 
@@ -312,8 +314,8 @@ impl TerrorRevealed {
                             .treachery_cards
                             .iter()
                             .copied()
-                            .random_or_default(game.random.as_ref().nre());
-                        game.discard_treachery_card_boolean(card, true);
+                            .random_or_default(game.random.as_ref().required("random")?);
+                        game.discard_treachery_card_boolean(card, true)?;
                     } else {
                         self.log_objects(game, elems![victim_faction, " have no treachery cards to discard"]);
                     }
@@ -338,14 +340,14 @@ impl TerrorRevealed {
                             elems![self.initiator(), " sneak attack ", territory, " with ", self.forces_in_sneak_attack, force],
                         );
                         Player::ship_forces(game, self.player(), sneak_attack_to, self.forces_in_sneak_attack);
-                        game.check_intrusion(&self.clone().into_event());
+                        game.check_intrusion(&self.clone().into_event())?;
                     }
                 }
 
                 _ => {}
             }
 
-            game.determine_next_shipment_and_move_sub_phase();
+            game.determine_next_shipment_and_move_sub_phase()?;
         }
 
         // C# parity: also runs when an alliance was offered (Passed is false then).
@@ -355,6 +357,7 @@ impl TerrorRevealed {
                 game.let_player_discard_treachery_card_of_choice(self.initiator());
             }
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -385,7 +388,7 @@ impl GameEventMethods for TerrorRevealed {
         TerrorRevealed::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         TerrorRevealed::execute_concrete_event(self, game)
     }
 

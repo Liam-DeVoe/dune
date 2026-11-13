@@ -63,13 +63,12 @@ impl SkillAssigned {
         vec![g.player(p).most_recently_revived_leader]
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         // C# parity (hazards 18.2): Passed is ignored.
         self.log(game);
         let leader = match self.leader() {
             Some(l) => l,
-            // LeaderState[null]
-            None => crate::compat::cs::throw("ArgumentNullException", crate::compat::cs::with_parameter("Value cannot be null.", "key")),
+            None => game_error!("No leader was chosen for the skill"),
         };
         game.set_skill(leader, self.skill);
         let me = self.player();
@@ -79,19 +78,20 @@ impl SkillAssigned {
         }
         game.set_in_front_of_shield(leader, true);
         // SkillDeck is dereferenced before Player.SkillsToChooseFrom is read.
-        game.skill_deck.as_ref().nre();
+        game.skill_deck.as_ref().required("skill deck")?;
         // PutOnTop(IEnumerable) reverses its input (hazards 2.3).
         let remaining = game.player(me).skills_to_choose_from.clone();
-        game.skill_deck.as_mut().nre().put_on_top_all(remaining);
+        game.skill_deck.as_mut().required("skill deck")?.put_on_top_all(remaining);
         game.player_mut(me).skills_to_choose_from.clear();
 
         if !Self::players_must_choose_leader_skills(game) {
-            game.skill_deck.as_mut().nre().shuffle();
+            game.skill_deck.as_mut().required("skill deck")?.shuffle();
             let c1 = game.current_phase != Phase::AssigningInitialSkills;
             let phase = game.phase_before_skill_assignment;
             let c2 = game.treachery_cards_before_traitors();
             game.enter_boolean_phase_boolean_action_action(c1, phase, c2, Game::deal_traitors, Game::setup_spice_and_forces);
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -117,7 +117,7 @@ impl GameEventMethods for SkillAssigned {
         SkillAssigned::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         SkillAssigned::execute_concrete_event(self, game)
     }
 

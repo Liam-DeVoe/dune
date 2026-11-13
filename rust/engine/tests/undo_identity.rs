@@ -69,7 +69,7 @@ fn run(g: &mut Game, events: &[(&str, bool)]) {
     for (text, is_host) in events {
         let e: GameEvent = json::deserialize(text).expect("event json");
         e.initialize_game(g);
-        let _ = cs::catch(|| e.execute(g, true, *is_host));
+        let _ = cs::catch_panic(|| e.execute(g, true, *is_host));
     }
 }
 
@@ -341,7 +341,7 @@ fn status_reads_the_last_movement_through_its_own_game() {
 #[test]
 fn undo_that_throws_keeps_the_old_game() {
     let mut g = base();
-    let e = cs::catch(|| g.undo(-1)).expect_err("C# throws");
+    let e = cs::catch_panic(|| g.undo(-1)).expect_err("C# throws");
     check("undo_throws.exception", format!("{}: {}", e.type_name, e.message));
     check_dump("undo_throws.dump", &g);
 }

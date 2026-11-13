@@ -392,18 +392,19 @@ impl NexusPlayed {
         forces.wrapping_add(special_forces)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         if self.is_cunning() {
             self.handle_cunning(game);
         } else if self.is_secret_ally(game) {
             self.handle_secret_ally(game);
         } else {
-            self.handle_betrayal(game);
+            self.handle_betrayal(game)?;
         }
+        Ok(())
     }
 
-    pub fn handle_betrayal(&self, game: &mut Game) {
-        let Some(actor) = self.player_opt() else { return };
+    pub fn handle_betrayal(&self, game: &mut Game) -> GameResult {
+        let Some(actor) = self.player_opt() else { return Ok(()) };
 
         match self.faction {
             Faction::Atreides => {
@@ -413,26 +414,26 @@ impl NexusPlayed {
             }
 
             Faction::Harkonnen => {
-                let Some(current_battle) = game.current_battle.clone() else { return };
+                let Some(current_battle) = game.current_battle.clone() else { return Ok(()) };
                 if game.traitor_deck.is_none() {
-                    return;
+                    return Ok(());
                 }
                 let harkonnen = self.get_player(game, Some(Faction::Harkonnen));
-                let traitor = current_battle.plan_of_opponent_faction(game, Faction::Harkonnen).nre().hero();
+                let traitor = current_battle.plan_of_opponent_faction(game, Faction::Harkonnen).required("plan of opponent faction")?.hero();
                 if let (Some(harkonnen), Some(traitor)) = (harkonnen, traitor) {
                     // List.Remove: the first equal element
                     let traitors = &mut game.player_mut(harkonnen).traitors;
                     if let Some(pos) = traitors.iter().position(|t| *t == traitor) {
                         traitors.remove(pos);
                     }
-                    let traitor_deck = game.traitor_deck.as_mut().nre();
+                    let traitor_deck = game.traitor_deck.as_mut().required("traitor deck")?;
                     traitor_deck.items.push(traitor);
                     traitor_deck.shuffle();
                     game.stone(Milestone::Shuffled);
                     game.harkonnen_traitor_was_cancelled = true;
                     game.play_nexus_card(actor, elems!["cancel the ", Faction::Harkonnen, " traitor call"]);
                     game.enter(Phase::CallTraitorOrPass, true);
-                    game.handle_revealed_battle_plans();
+                    game.handle_revealed_battle_plans()?;
                 }
             }
 
@@ -441,7 +442,7 @@ impl NexusPlayed {
                 if game.current_main_phase == MainPhase::Blow {
                     game.prevent(self.initiator(), FactionAdvantage::FremenRidesMonster, true);
                     if matches!(game.current_phase, Phase::FremenRidingMonsterA | Phase::FremenRidingMonsterB) {
-                        game.determine_next_shipment_and_move_sub_phase();
+                        game.determine_next_shipment_and_move_sub_phase()?;
                     }
                 } else if game.current_main_phase == MainPhase::ShipmentAndMove {
                     game.prevent(self.initiator(), FactionAdvantage::FremenExtraMove, true);
@@ -501,7 +502,7 @@ impl NexusPlayed {
             Faction::Tleilaxu => {
                 game.facedancer_was_cancelled = true;
                 game.play_nexus_card(actor, elems!["cancel the ", Faction::Tleilaxu, " face dancer reveal"]);
-                game.finish_battle();
+                game.finish_battle()?;
             }
 
             Faction::Choam => {
@@ -511,15 +512,15 @@ impl NexusPlayed {
                 );
                 let victim_player = self.get_player(game, Some(Faction::Choam));
                 if victim_player.map(|v| !game.player(v).treachery_cards.is_empty()) == Some(true) {
-                    let victim_player = victim_player.nre();
+                    let victim_player = victim_player.required("victim player")?;
                     let card = game
                         .player(victim_player)
                         .treachery_cards
                         .iter()
                         .copied()
-                        .random_or_default(game.random.as_ref().nre());
+                        .random_or_default(game.random.as_ref().required("random")?);
                     if let Some(card) = card {
-                        game.discard_treachery_card_boolean(Some(card), true);
+                        game.discard_treachery_card_boolean(Some(card), true)?;
                     }
                 } else {
                     self.log_objects(game, elems![Faction::Choam, " have no treachery cards to discard"]);
@@ -541,8 +542,8 @@ impl NexusPlayed {
                         let w = game.player_mut(richese);
                         w.resources = w.resources.wrapping_sub(amount_received);
                     }
-                } else if richese.is_some() && game.card_just_won.is_some() && game.player(richese.nre()).has(game.card_just_won) {
-                    let richese = richese.nre();
+                } else if richese.is_some() && game.card_just_won.is_some() && game.player(richese.required("richese")?).has(game.card_just_won) {
+                    let richese = richese.required("richese")?;
                     game.play_nexus_card(
                         actor,
                         elems!["force ", Faction::Richese, " to discard the card they just won, refunding payment"],
@@ -594,7 +595,7 @@ impl NexusPlayed {
                     let terror_to_remove = game
                         .terror_in(moritani_territory)
                         .into_iter()
-                        .random_or_default(game.random.as_ref().nre())
+                        .random_or_default(game.random.as_ref().required("random")?)
                         .unwrap_or_default();
                     game.terror_on_planet.remove(&terror_to_remove);
                     game.unplaced_terror_tokens.push(terror_to_remove);
@@ -608,6 +609,7 @@ impl NexusPlayed {
 
             _ => {}
         }
+        Ok(())
     }
 
     pub fn handle_cunning(self: &Rc<Self>, game: &mut Game) {
@@ -911,7 +913,7 @@ impl GameEventMethods for NexusPlayed {
         NexusPlayed::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         NexusPlayed::execute_concrete_event(self, game)
     }
 

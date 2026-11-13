@@ -28,19 +28,21 @@ impl SetShipmentPermission {
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        // Enumerable.Any on a null array: ArgumentNullException.
-        let Some(factions) = &self.factions else {
-            throw!(ArgumentNullException, "Value cannot be null. (Parameter 'source')");
-        };
+        self.try_validate(game).unwrap_or_else(|e| Some(express!(e.to_string())))
+    }
+
+    /// Fails without factions (C#: ArgumentNullException from Enumerable.Any on a null array).
+    pub fn try_validate(&self, game: &Game) -> GameResult<Option<Message>> {
+        let factions = self.factions.as_ref().required("factions")?;
         if factions.is_empty() {
-            return Some(express!("Select one or more factions"));
+            return Ok(Some(express!("Select one or more factions")));
         }
         // ValidTargets is re-evaluated for every faction, as in C#.
         if factions.iter().any(|f| !SetShipmentPermission::valid_targets(game, self.player()).cs_contains(f)) {
-            return Some(express!("Invalid faction"));
+            return Ok(Some(express!("Invalid faction")));
         }
 
-        None
+        Ok(None)
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
@@ -53,10 +55,10 @@ impl SetShipmentPermission {
         g.current_main_phase == MainPhase::ShipmentAndMove && g.player(p).is(Faction::Guild) && g.player(p).has_high_threshold_0(g)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
 
-        let factions = self.factions.as_ref().nre();
+        let factions = self.factions.as_ref().required("factions")?;
         for f in factions {
             game.shipment_permissions.remove(f);
         }
@@ -67,6 +69,7 @@ impl SetShipmentPermission {
                 game.shipment_permissions.add_with(*f, self.permission, |k| k.to_string());
             }
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -112,7 +115,11 @@ impl GameEventMethods for SetShipmentPermission {
         SetShipmentPermission::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn try_validate(&self, game: &Game) -> GameResult<Option<Message>> {
+        SetShipmentPermission::try_validate(self, game)
+    }
+
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         SetShipmentPermission::execute_concrete_event(self, game)
     }
 

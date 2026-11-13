@@ -45,7 +45,7 @@ impl NexusCardDrawn {
         g.factions_that_may_draw_nexus_card.contains(&g.player(p).faction)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         if !self.passed {
             self.deal_nexus_card(game);
             game.factions_that_drew_nexus_card.push(self.initiator());
@@ -61,6 +61,7 @@ impl NexusCardDrawn {
         if game.factions_that_may_draw_nexus_card.is_empty() {
             game.end_blow_phase();
         }
+        Ok(())
     }
 
     pub fn deal_nexus_card(&self, game: &mut Game) {
@@ -105,7 +106,7 @@ impl GameEventMethods for NexusCardDrawn {
         NexusCardDrawn::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         NexusCardDrawn::execute_concrete_event(self, game)
     }
 

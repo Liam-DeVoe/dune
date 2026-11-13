@@ -123,6 +123,19 @@ impl Deal {
         )
     }
 
+    /// [`deal_contents_description_game_deal_type_string_int32_phase_string`](Self::deal_contents_description_game_deal_type_string_int32_phase_string),
+    /// failing when the description needs a territory and `parameter1` isn't a number (where
+    /// that one panics like .NET's `int.Parse`).
+    pub fn try_deal_contents_description(g: &Game, type_: DealType, text: Option<&str>, benefit: i32, end: Phase, parameter1: Option<&str>) -> GameResult<Message> {
+        let uses_parameter = text.map_or(true, |t| t.chars().all(char::is_whitespace));
+        if uses_parameter && type_ == DealType::DontShipOrMoveTo {
+            if let Err(e) = dotnet_compat::parse::try_int_parse(Some(parameter1.unwrap_or("?"))) {
+                return Err(GameError::new(e.message));
+            }
+        }
+        Ok(Deal::deal_contents_description_game_deal_type_string_int32_phase_string(g, type_, text, benefit, end, parameter1))
+    }
+
     pub fn deal_contents_description_game_deal_type_string_int32_phase_string(g: &Game, type_: DealType, text: Option<&str>, benefit: i32, end: Phase, parameter1: Option<&str>) -> Message {
         // string.IsNullOrWhiteSpace: char.IsWhiteSpace and Rust's char::is_whitespace agree.
         let is_null_or_white_space = text.map_or(true, |t| t.chars().all(char::is_whitespace));

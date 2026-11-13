@@ -348,12 +348,12 @@ impl AmbassadorActivated {
         game.player(p).faction == Faction::Ecaz
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.current_ambassador_activated = Some(self.clone());
         let mut ambassador_faction = AmbassadorActivated::get_ambassador(game);
         let territory = AmbassadorActivated::get_territory(game);
         let victim = AmbassadorActivated::get_victim(game);
-        game.dequeue_intrusion(IntrusionType::Ambassador);
+        game.dequeue_intrusion(IntrusionType::Ambassador)?;
 
         if let (false, Some(territory)) = (self.passed, territory) {
             game.ambassadors_on_planet.remove(&territory);
@@ -365,16 +365,16 @@ impl AmbassadorActivated {
                 ambassador_faction = self.bene_gesserit_selected_ambassador;
                 self.log_objects(game, elems!["The ", Ambassador::BeneGesserit, " Ambassador is removed from the game"]);
             } else if ambassador_faction == Ambassador::Ecaz {
-                game.player_mut(ecaz.nre()).ambassadors.push(ambassador_faction);
+                game.player_mut(ecaz.required("ecaz")?).ambassadors.push(ambassador_faction);
                 self.log_objects(game, elems!["The ", ambassador_faction, " Ambassador returns to supply"]);
             } else {
                 game.ambassadors_set_aside.push(ambassador_faction);
                 self.log_objects(game, elems!["The ", ambassador_faction, " Ambassador is set aside"]);
             }
 
-            self.handle_ambassador(game, ambassador_faction, victim);
+            self.handle_ambassador(game, ambassador_faction, victim)?;
 
-            let ecaz = ecaz.nre();
+            let ecaz = ecaz.required("ecaz")?;
             let all_ecaz = game
                 .player(ecaz)
                 .ambassadors
@@ -387,27 +387,28 @@ impl AmbassadorActivated {
             }
         } else {
             self.log_objects(game, elems![self.initiator(), " don't activate an Ambassador"]);
-            game.determine_next_shipment_and_move_sub_phase();
+            game.determine_next_shipment_and_move_sub_phase()?;
         }
+        Ok(())
     }
 
-    pub fn handle_ambassador(self: &Rc<Self>, game: &mut Game, ambassador_faction: Ambassador, victim: Faction) {
+    pub fn handle_ambassador(self: &Rc<Self>, game: &mut Game, ambassador_faction: Ambassador, victim: Faction) -> GameResult {
         let victim_player = game.get_player(Some(victim));
 
         self.log_objects(game, elems![self.initiator(), " activate the ", ambassador_faction, " ambassador"]);
 
         match ambassador_faction {
             Ambassador::Atreides => {
-                if !game.player(victim_player.nre()).treachery_cards.is_empty() {
+                if !game.player(victim_player.required("victim player")?).treachery_cards.is_empty() {
                     self.log_objects(game, elems![self.initiator(), " see all treachery cards owned by ", victim]);
                     // C# logs the live hand (hazards 4.5): the state dump shows its current contents.
-                    let cards = ExpressionElement::live_player_treachery_cards(game, victim_player.nre());
+                    let cards = ExpressionElement::live_player_treachery_cards(game, victim_player.required("victim player")?);
                     self.log_to(game, self.initiator(), elems![victim, " own: ", cards]);
                 } else {
                     self.log_objects(game, elems![victim, " don't own any cards"]);
                 }
 
-                game.determine_next_shipment_and_move_sub_phase();
+                game.determine_next_shipment_and_move_sub_phase()?;
             }
 
             Ambassador::Choam => {
@@ -420,7 +421,7 @@ impl AmbassadorActivated {
                 self.log_objects(game, elems![self.initiator(), " get ", Payment::of(total_earned)]);
                 let p = game.player_mut(self.player());
                 p.resources = p.resources.wrapping_add(total_earned);
-                game.determine_next_shipment_and_move_sub_phase();
+                game.determine_next_shipment_and_move_sub_phase()?;
             }
 
             Ambassador::Ecaz => {
@@ -439,11 +440,11 @@ impl AmbassadorActivated {
                     game.paused_ambassador_phase = game.current_phase;
                     game.enter(Phase::AllianceByAmbassador, true);
                 } else {
-                    if game.current_ambassador_activated.as_ref().nre().ecaz_take_vidal {
+                    if game.current_ambassador_activated.as_ref().required("current ambassador activated")?.ecaz_take_vidal {
                         game.take_vidal(self.player(), VidalMoment::Never);
                     }
 
-                    game.determine_next_shipment_and_move_sub_phase();
+                    game.determine_next_shipment_and_move_sub_phase()?;
                 }
             }
 
@@ -451,7 +452,7 @@ impl AmbassadorActivated {
                 let p = game.player_mut(self.player());
                 p.resources = p.resources.wrapping_add(5);
                 self.log_objects(game, elems![self.initiator(), " get ", Payment::of(5)]);
-                game.determine_next_shipment_and_move_sub_phase();
+                game.determine_next_shipment_and_move_sub_phase()?;
             }
 
             Ambassador::Fremen => {
@@ -459,8 +460,8 @@ impl AmbassadorActivated {
                 let this = self.clone().into_event();
                 game.perform_move_from_locations(self.player(), &force_locations, &this, false, false);
                 game.recent_moves.push(this.clone());
-                game.check_intrusion(&this);
-                game.determine_next_shipment_and_move_sub_phase();
+                game.check_intrusion(&this)?;
+                game.determine_next_shipment_and_move_sub_phase()?;
             }
 
             Ambassador::Harkonnen => {
@@ -475,17 +476,17 @@ impl AmbassadorActivated {
                     self.log_objects(game, elems![self.initiator(), " see the ", victim, " traitor"]);
                 }
 
-                let vp = game.player(victim_player.nre());
+                let vp = game.player(victim_player.required("victim player")?);
                 let to_select_from: Vec<Hero> = if victim == Faction::Tleilaxu {
                     vp.face_dancers.iter().copied().filter(|t| !vp.revealed_face_dancers.contains(t)).collect()
                 } else {
                     vp.traitors.clone()
                 };
 
-                let revealed = to_select_from.into_iter().random_or_default(game.random.as_ref().nre());
+                let revealed = to_select_from.into_iter().random_or_default(game.random.as_ref().required("random")?);
                 self.log_to(game, self.initiator(), elems![victim, " reveal ", revealed]);
                 self.log_to(game, victim, elems![self.initiator(), " get to see ", revealed]);
-                game.determine_next_shipment_and_move_sub_phase();
+                game.determine_next_shipment_and_move_sub_phase()?;
             }
 
             Ambassador::Ixian => {
@@ -495,7 +496,7 @@ impl AmbassadorActivated {
                 if let Some(drawn) = drawn {
                     game.player_mut(self.player()).treachery_cards.push(drawn);
                 }
-                game.determine_next_shipment_and_move_sub_phase();
+                game.determine_next_shipment_and_move_sub_phase()?;
             }
 
             Ambassador::Richese => {
@@ -506,7 +507,7 @@ impl AmbassadorActivated {
                 if let Some(drawn_card) = drawn_card {
                     game.player_mut(self.player()).treachery_cards.push(drawn_card);
                 }
-                game.determine_next_shipment_and_move_sub_phase();
+                game.determine_next_shipment_and_move_sub_phase()?;
             }
 
             Ambassador::Guild => {
@@ -518,12 +519,12 @@ impl AmbassadorActivated {
                 }
                 let this = self.clone().into_event();
                 game.last_shipment_or_movement = Some(this.clone());
-                game.check_intrusion(&this);
-                game.determine_next_shipment_and_move_sub_phase();
+                game.check_intrusion(&this)?;
+                game.determine_next_shipment_and_move_sub_phase()?;
             }
 
             Ambassador::Tleilaxu => {
-                game.determine_next_shipment_and_move_sub_phase();
+                game.determine_next_shipment_and_move_sub_phase()?;
                 if let Some(tleilaxu_hero) = self.tleilaxu_hero() {
                     if !game.is_face_down_dead(tleilaxu_hero) {
                         self.log_objects(game, elems![self.initiator(), " revive ", tleilaxu_hero]);
@@ -545,6 +546,7 @@ impl AmbassadorActivated {
 
             _ => {}
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -569,7 +571,7 @@ impl GameEventMethods for AmbassadorActivated {
         AmbassadorActivated::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         AmbassadorActivated::execute_concrete_event(self, game)
     }
 

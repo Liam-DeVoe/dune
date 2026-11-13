@@ -79,10 +79,8 @@ pub enum ExpressionElement {
     Payment(Payment),
     Message(Box<Message>),
     MessagePart(Box<MessagePart>),
-    /// An `Exception` object (the "Game Error" message of `GameEvent.Execute`).
-    /// Its text form includes a stack trace, which cannot be reproduced;
-    /// compare type and message only.
-    Exception(crate::compat::cs::CsException),
+    /// Why an accepted event failed (the "Game Error" message of `GameEventMethods::execute`).
+    Error(crate::error::GameError),
     /// A `Player` object (only the Nexus card play logs one). It prints as its
     /// type name.
     Player(crate::game::PlayerIndex),
@@ -275,7 +273,7 @@ impl ExpressionElement {
             ExpressionElement::Payment(_) => "Treachery.Shared.Payment".to_string(),
             ExpressionElement::Message(m) => m.to_cs_string(),
             ExpressionElement::MessagePart(m) => m.to_cs_string(),
-            ExpressionElement::Exception(e) => crate::compat::cs::exception_to_string(e),
+            ExpressionElement::Error(e) => e.to_string(),
             ExpressionElement::Player(_) => "Treachery.Shared.Player".to_string(),
             ExpressionElement::List { type_name, .. } => type_name.clone(),
         }
@@ -301,7 +299,7 @@ impl PartialEq for ExpressionElement {
             (E::Payment(a), E::Payment(b)) => a == b,
             (E::Message(a), E::Message(b)) => a == b,
             (E::MessagePart(a), E::MessagePart(b)) => a == b,
-            (E::Exception(a), E::Exception(b)) => a == b,
+            (E::Error(a), E::Error(b)) => a == b,
             (E::Player(a), E::Player(b)) => a == b,
             (E::List { type_name: ta, items: a, live: la }, E::List { type_name: tb, items: b, live: lb }) => ta == tb && a == b && la == lb,
             _ => false,
@@ -419,9 +417,9 @@ impl From<Payment> for ExpressionElement {
         ExpressionElement::Payment(v)
     }
 }
-impl From<crate::compat::cs::CsException> for ExpressionElement {
-    fn from(v: crate::compat::cs::CsException) -> Self {
-        ExpressionElement::Exception(v)
+impl From<crate::error::GameError> for ExpressionElement {
+    fn from(v: crate::error::GameError) -> Self {
+        ExpressionElement::Error(v)
     }
 }
 impl From<Message> for ExpressionElement {

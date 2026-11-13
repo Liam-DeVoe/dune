@@ -46,7 +46,8 @@ impl ViewReplica {
     /// Replays a savegame. `participation` is shared with the server's game, as in C#, where
     /// participation changes reach every copy through the hub callbacks.
     pub fn load(savegame: &str, participation: &Shared<Participation>) -> Result<ViewReplica, String> {
-        let state: GameState = GameState::load(savegame);
+        let state: GameState = GameState::load(savegame).map_err(|e| e.message)?;
+        Game::check_version(state.version)?;
         let mut game = Game::new_int32_participation(state.version, participation);
         for (nr, e) in state.events.as_ref().ok_or("savegame without events")?.iter().enumerate() {
             e.initialize_game(&game);

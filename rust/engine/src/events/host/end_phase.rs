@@ -26,7 +26,7 @@ impl EndPhase {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         match game.current_phase {
             Phase::SelectingFactions => game.assign_factions_and_enter_faction_trade(),
 
@@ -86,7 +86,7 @@ impl EndPhase {
 
             Phase::CancellingTraitor => {
                 game.enter(Phase::CallTraitorOrPass, true);
-                game.handle_revealed_battle_plans();
+                game.handle_revealed_battle_plans()?;
             }
 
             Phase::BattleReport => {
@@ -110,6 +110,7 @@ impl EndPhase {
 
             _ => {}
         }
+        Ok(())
     }
 
     pub fn continue_to_revivals(&self, game: &mut Game) {
@@ -348,7 +349,7 @@ impl GameEventMethods for EndPhase {
         EndPhase::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         EndPhase::execute_concrete_event(self, game)
     }
 

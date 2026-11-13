@@ -35,10 +35,10 @@ impl ResidualPlayed {
             && g.player(p).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Residual)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
-        game.discard(self.player(), TreacheryCardType::Residual);
-        let battle = game.current_battle.clone().nre();
-        let opponent = battle.opponent_of_faction(game, self.initiator()).nre();
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+        game.discard(self.player(), TreacheryCardType::Residual)?;
+        let battle = game.current_battle.clone().required("current battle")?;
+        let opponent = battle.opponent_of_faction(game, self.initiator()).required("opponent of faction")?;
         let candidates: Vec<Hero> = game
             .player(opponent)
             .leaders
@@ -63,6 +63,7 @@ impl ResidualPlayed {
             let faction = game.player(opponent).faction;
             game.log(elems![faction, " have no available leaders to kill"]);
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -87,7 +88,7 @@ impl GameEventMethods for ResidualPlayed {
         ResidualPlayed::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         ResidualPlayed::execute_concrete_event(self, game)
     }
 

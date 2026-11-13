@@ -28,7 +28,7 @@ impl HiddenMobileStronghold {
     }
 
     /// `PointAt(game, newLocation)`; see [`AttachedLocation::point_at`].
-    pub fn point_at(self, map: &mut Map, new_location: Location) {
+    pub fn point_at(self, map: &mut Map, new_location: Location) -> crate::error::GameResult {
         self.attached().point_at(map, new_location)
     }
 }

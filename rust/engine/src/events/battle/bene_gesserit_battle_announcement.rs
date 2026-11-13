@@ -68,12 +68,13 @@ impl BeneGesseritBattleAnnouncement {
             })
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let initiator = self.get_player(game, Some(self.initiator()));
-        let Some(initiator) = initiator else { return };
-        let Some(territory) = self.territory(game) else { return };
+        let Some(initiator) = initiator else { return Ok(()) };
+        let Some(territory) = self.territory(game) else { return Ok(()) };
         Player::flip_forces_territory_boolean(game, initiator, territory, false);
         self.log(game);
+        Ok(())
     }
 
     pub fn get_message(&self, game: &Game) -> Message {
@@ -98,7 +99,7 @@ impl GameEventMethods for BeneGesseritBattleAnnouncement {
         BeneGesseritBattleAnnouncement::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         BeneGesseritBattleAnnouncement::execute_concrete_event(self, game)
     }
 

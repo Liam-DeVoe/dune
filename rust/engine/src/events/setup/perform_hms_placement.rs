@@ -52,15 +52,16 @@ impl PerformHmsPlacement {
         Either::B(g.map.locations(false).filter(move |l| !l.territory().is_stronghold() && l.sector(&g.map) != g.sector_in_storm))
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         // A null Target (only without validation): PointAt removes the HMS from its old host,
-        // then throws NullReferenceException on `newLocation.Neighbours`.
+        // then throws NullReferenceException on `newLocation.Neighbours`: the event fails there.
         let target = self.target(game).or_null();
         let hms = game.map.hidden_mobile_stronghold();
-        hms.point_at(&mut game.map, target);
+        hms.point_at(&mut game.map, target)?;
         self.log(game);
         game.end_storm_phase();
         game.stone(Milestone::HmsMovement);
+        Ok(())
     }
 
     pub fn get_message(&self, game: &Game) -> Message {
@@ -86,7 +87,7 @@ impl GameEventMethods for PerformHmsPlacement {
         PerformHmsPlacement::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         PerformHmsPlacement::execute_concrete_event(self, game)
     }
 

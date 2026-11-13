@@ -33,7 +33,7 @@ impl AllianceByTerror {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let paused = game.paused_terror_phase;
         game.enter(paused, true);
 
@@ -59,7 +59,7 @@ impl AllianceByTerror {
                 game.check_if_forces_should_be_destroyed_by_ally_presence(self.player());
             }
 
-            let territory = game.last_terror_trigger().nre().territory(game);
+            let territory = game.last_terror_trigger().required("last terror trigger")?.territory(game);
             self.log_objects(game, elems!["Terror in ", territory, " is returned to supplies"]);
             // ToList(): a snapshot before the dictionary changes
             for t in game.terror_in(territory).collect::<Vec<_>>() {
@@ -68,13 +68,14 @@ impl AllianceByTerror {
             }
 
             game.alliance_by_terror_was_offered = false;
-            game.dequeue_intrusion(IntrusionType::Terror);
-            game.determine_next_shipment_and_move_sub_phase();
+            game.dequeue_intrusion(IntrusionType::Terror)?;
+            game.determine_next_shipment_and_move_sub_phase()?;
         } else {
             self.log_objects(game, elems![self.initiator(), " don't ally with ", Faction::Moritani]);
         }
 
         game.let_factions_discard_surplus_cards();
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -99,7 +100,7 @@ impl GameEventMethods for AllianceByTerror {
         AllianceByTerror::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         AllianceByTerror::execute_concrete_event(self, game)
     }
 

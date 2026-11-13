@@ -71,7 +71,7 @@ impl KarmaChoamDiscard {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let me = self.player();
         // C# parity: plays the first valid Karama card, not the validated CardToUse (hazards 18).
         let card = Karma::valid_karma_cards(game, me).into_iter().next();
@@ -88,6 +88,7 @@ impl KarmaChoamDiscard {
         let p = game.player_mut(me);
         p.resources = p.resources.wrapping_add(gain);
         p.special_karma_power_used = true;
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -124,7 +125,7 @@ impl GameEventMethods for KarmaChoamDiscard {
         KarmaChoamDiscard::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         KarmaChoamDiscard::execute_concrete_event(self, game)
     }
 

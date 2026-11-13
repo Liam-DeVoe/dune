@@ -13,7 +13,6 @@ use std::collections::BTreeMap;
 use std::panic::{self, AssertUnwindSafe};
 
 use serde_json::{Map, Value};
-use treachery_engine::compat::cs;
 use treachery_engine::events::{GameEvent, GameEventType};
 use treachery_engine::game::Game;
 use treachery_engine::json;
@@ -59,7 +58,7 @@ impl Shadow {
 }
 
 fn quiet<R>(f: impl FnOnce() -> R) -> Option<R> {
-    panic::catch_unwind(AssertUnwindSafe(|| cs::catch(AssertUnwindSafe(f)).ok())).ok().flatten()
+    panic::catch_unwind(AssertUnwindSafe(f)).ok()
 }
 
 /// Values of the game a client could put into an event.

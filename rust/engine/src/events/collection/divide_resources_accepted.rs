@@ -38,10 +38,11 @@ impl DivideResourcesAccepted {
         g.collected_resources_to_be_divided.first().cloned()
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.divide_resources_from_collection(!self.passed);
         let any = !game.collected_resources_to_be_divided.is_empty();
         game.enter_boolean_phase_action(any, Phase::DividingCollectedResources, Game::end_collection_main_phase);
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -67,7 +68,7 @@ impl GameEventMethods for DivideResourcesAccepted {
         DivideResourcesAccepted::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         DivideResourcesAccepted::execute_concrete_event(self, game)
     }
 

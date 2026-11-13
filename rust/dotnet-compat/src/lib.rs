@@ -1,8 +1,8 @@
 //! Exact reimplementations of .NET behavior that the game engine depends on.
 //!
 //! Every type here must match .NET 10 bit for bit, including iteration order
-//! and the sequence of random numbers. APIs that throw in .NET panic with a
-//! [`CsException`] payload carrying the exact .NET type name and message. See ../../docs/hazards.md.
+//! and the sequence of random numbers. APIs that throw in .NET panic with the
+//! .NET type name and message (see `exception`). See ../../docs/hazards.md.
 //! Existing signatures are fixed (other crates code against them). See
 //! ../../docs/compat.md for what each item maps to in C#.
 

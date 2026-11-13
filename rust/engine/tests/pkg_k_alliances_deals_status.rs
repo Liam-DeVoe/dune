@@ -22,7 +22,7 @@ fn idx(g: &Game, f: Faction) -> PlayerIndex {
 }
 
 fn exception_text<R>(f: impl FnOnce() -> R) -> String {
-    match cs::catch(f) {
+    match cs::catch_panic(f) {
         Ok(_) => "no exception".to_string(),
         Err(e) => format!("{}: {}", e.type_name, e.message),
     }
@@ -156,12 +156,12 @@ fn deal_same_with_null_to_matches_empty_to() {
 fn deal_cancellation_removes_matching_offer() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
     let a = offer(&g, Faction::Atreides, vec![], 2);
-    a.execute_concrete_event(&mut g);
+    a.execute_concrete_event(&mut g).unwrap();
     g.record_deal_response(&a, Faction::Emperor, false);
     assert_eq!(g.deal_offers.len(), 1);
     let c = a.cancellation().unwrap();
     assert!(c.cancel);
-    c.execute_concrete_event(&mut g);
+    c.execute_concrete_event(&mut g).unwrap();
     assert!(g.deal_offers.is_empty());
     assert!(g.deal_responses.is_empty());
 }

@@ -26,7 +26,7 @@ impl AlliancePassed {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
 
         let initiator = self.initiator();
@@ -39,15 +39,20 @@ impl AlliancePassed {
 
         game.has_acted_or_passed.push(initiator);
         game.end_nexus_if_everyone_is_done();
+        Ok(())
     }
 
-    pub fn get_message(&self, game: &Game) -> Message {
-        let player = game.player(self.player());
-        if player.has_ally() {
+    pub fn try_get_message(&self, game: &Game) -> GameResult<Message> {
+        let player = game.player(self.player_opt().required("player")?);
+        Ok(if player.has_ally() {
             express!(self.initiator(), " keep their alliance with ", player.ally)
         } else {
             express!(self.initiator(), " will not make an alliance")
-        }
+        })
+    }
+
+    pub fn get_message(&self, game: &Game) -> Message {
+        self.try_get_message(game).expect("the message of an applicable AlliancePassed event")
     }
 }
 
@@ -68,11 +73,15 @@ impl GameEventMethods for AlliancePassed {
         AlliancePassed::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         AlliancePassed::execute_concrete_event(self, game)
     }
 
     fn get_message(&self, game: &Game) -> Message {
         AlliancePassed::get_message(self, game)
+    }
+
+    fn try_get_message(&self, game: &Game) -> GameResult<Message> {
+        AlliancePassed::try_get_message(self, game)
     }
 }

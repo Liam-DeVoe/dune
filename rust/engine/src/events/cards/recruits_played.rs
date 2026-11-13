@@ -30,10 +30,11 @@ impl RecruitsPlayed {
         g.current_phase == Phase::BeginningOfResurrection && g.player(p).has_treachery_card_type(TreacheryCardType::Recruits)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
         game.current_recruits_played = Some(self.clone());
-        game.discard(self.player(), TreacheryCardType::Recruits);
+        game.discard(self.player(), TreacheryCardType::Recruits)?;
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -59,7 +60,7 @@ impl GameEventMethods for RecruitsPlayed {
         RecruitsPlayed::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         RecruitsPlayed::execute_concrete_event(self, game)
     }
 

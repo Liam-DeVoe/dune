@@ -26,12 +26,13 @@ impl ThumperPlayed {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
-        game.discard(self.player(), TreacheryCardType::Thumper);
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+        game.discard(self.player(), TreacheryCardType::Thumper)?;
         self.log(game);
         game.stone(Milestone::Thumper);
         game.thumper_called_shai_hulud = game.current_turn > 1;
         game.enter_blow_a();
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -57,7 +58,7 @@ impl GameEventMethods for ThumperPlayed {
         ThumperPlayed::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         ThumperPlayed::execute_concrete_event(self, game)
     }
 

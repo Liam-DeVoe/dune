@@ -17,7 +17,7 @@
 //! heapsort `d`), this port keeps the element in place and swaps instead; the
 //! sequence of comparisons and resulting permutation are identical.
 
-use crate::exception::{CsException, throw};
+use crate::exception::throw;
 use std::cmp::Ordering;
 
 const INTROSORT_SIZE_THRESHOLD: usize = 16;
@@ -39,9 +39,6 @@ pub static HEAPSORT_CALLS: std::sync::atomic::AtomicUsize = std::sync::atomic::A
 ///   message ends with the comparer's type name, which C# prints as
 ///   ``System.Comparison`1[T]``; this uses the last segment of the Rust type
 ///   name for `T`, so it only matches when the names agree.
-/// - A C# exception thrown by the comparer is wrapped in
-///   InvalidOperationException "Failed to compare two elements in the array."
-///   (the inner exception is not kept).
 pub fn list_sort_by<T>(items: &mut [T], mut cmp: impl FnMut(&T, &T) -> Ordering) {
     let n = items.len();
     if n > 1 {
@@ -61,9 +58,6 @@ pub fn list_sort_by<T>(items: &mut [T], mut cmp: impl FnMut(&T, &T) -> Ordering)
                          value yields different results. IComparer: 'System.Comparison`1[{short}]'."
                     ),
                 );
-            }
-            if payload.downcast_ref::<CsException>().is_some() {
-                throw("InvalidOperationException", "Failed to compare two elements in the array.".to_string());
             }
             std::panic::resume_unwind(payload);
         }

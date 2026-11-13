@@ -1,12 +1,26 @@
 //! Rust-only checks of API behavior that the golden/differential tests don't
 //! exercise (serde, trait impls, panics that model .NET exceptions).
 
-use dotnet_compat::{CsException, NetDictionary, NetHashSet, linq, math};
+use dotnet_compat::{NetDictionary, NetHashSet, linq, math};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
-fn thrown(f: impl FnOnce()) -> CsException {
-    let payload = catch_unwind(AssertUnwindSafe(f)).expect_err("expected a C# exception");
-    payload.downcast_ref::<CsException>().expect("panic payload is not a CsException").clone()
+/// The .NET exception a panic stands for.
+struct Thrown {
+    type_name: String,
+    message: String,
+}
+
+impl std::fmt::Display for Thrown {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {}", self.type_name, self.message)
+    }
+}
+
+fn thrown(f: impl FnOnce()) -> Thrown {
+    let payload = catch_unwind(AssertUnwindSafe(f)).expect_err("expected a .NET exception");
+    let text = dotnet_compat::exception::panic_message(payload.as_ref());
+    let (type_name, message) = text.split_once(": ").expect("panic message is \"Type: message\"");
+    Thrown { type_name: type_name.to_string(), message: message.to_string() }
 }
 
 #[test]

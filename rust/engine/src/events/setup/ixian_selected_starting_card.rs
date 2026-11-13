@@ -38,17 +38,18 @@ impl IxianSelectedStartingCard {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
-        let me = self.get_player(game, Some(self.initiator())).nre();
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+        let me = self.get_player(game, Some(self.initiator())).required("get player")?;
         let card = self.card();
         // C# parity: Validate accepts any id. With an unknown id C# adds null to the hand
         // (`Card!` does not throw), and `Items.Remove(null)` removes nothing.
         game.player_mut(me).treachery_cards.push(card.or_null());
-        cs::list_remove(&mut game.starting_treachery_cards.as_mut().nre().items, card);
+        cs::list_remove(&mut game.starting_treachery_cards.as_mut().required("starting treachery cards")?.items, card);
         self.log(game);
-        game.starting_treachery_cards.as_mut().nre().shuffle();
+        game.starting_treachery_cards.as_mut().required("starting treachery cards")?.shuffle();
         game.stone(Milestone::Shuffled);
         game.deal_remaining_starting_treachery_cards_to_non_ixian();
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -74,7 +75,7 @@ impl GameEventMethods for IxianSelectedStartingCard {
         IxianSelectedStartingCard::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         IxianSelectedStartingCard::execute_concrete_event(self, game)
     }
 

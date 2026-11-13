@@ -31,7 +31,6 @@ use crate::map::location::Location;
 use crate::map::data::{INITIAL_NEIGHBOURS, LOCATION_COUNT};
 use crate::cards::resource_card::ResourceCard;
 use crate::map::territory::Territory;
-use crate::throw;
 
 /// The static properties of a territory (`new Territory(id) { ... }` in
 /// `InitializeLocations`).
@@ -185,8 +184,9 @@ impl Map {
         }
     }
 
-    /// `AttachedLocation.PointAt`
-    pub(crate) fn point_at(&mut self, attached: Location, new_location: Location) {
+    /// `AttachedLocation.PointAt`. A null `new_location` fails after the location was taken
+    /// from its old host, where C# threw NullReferenceException.
+    pub(crate) fn point_at(&mut self, attached: Location, new_location: Location) -> crate::error::GameResult {
         // AttachedToLocation?.Neighbours.Remove(this): List.Remove removes the
         // first element that Equals `this`. If the host is itself attached its
         // Neighbours getter returns a temporary list, so nothing happens.
@@ -199,6 +199,10 @@ impl Map {
             }
         }
 
+        if new_location == Location::NULL {
+            crate::game_error!("There is no location to attach to");
+        }
+
         if new_location.as_attached_location().is_none() {
             self.neighbours[new_location.index()].push(attached);
         }
@@ -206,6 +210,7 @@ impl Map {
         self.neighbours[attached.index()] = vec![new_location];
 
         self.attached_to_game[attached.index()] = true;
+        Ok(())
     }
 
     // ---- queries ----
@@ -216,7 +221,7 @@ impl Map {
             .find_map(|l| l.as_discovered_location().filter(|ds| ds.discovery() == discovery))
         {
             Some(ds) => ds,
-            None => throw!(Exception, "Discovery stronghold for {} not found", discovery),
+            None => panic!("Discovery stronghold for {} not found", discovery),
         }
     }
 

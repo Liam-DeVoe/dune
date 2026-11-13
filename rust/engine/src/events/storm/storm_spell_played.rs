@@ -33,13 +33,14 @@ impl StormSpellPlayed {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let card = game.player(self.player()).card(TreacheryCardType::StormSpell);
-        game.discard(self.player(), TreacheryCardType::StormSpell);
+        game.discard(self.player(), TreacheryCardType::StormSpell)?;
         let msg = self.get_message(game).with_log(StormMoved::new(game.sector_in_storm, self.move_amount, self.initiator(), card));
         self.log_objects(game, vec![ExpressionElement::from(msg)]);
         game.move_storm_and_determine_next(self.move_amount);
         game.end_storm_phase();
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -65,7 +66,7 @@ impl GameEventMethods for StormSpellPlayed {
         StormSpellPlayed::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         StormSpellPlayed::execute_concrete_event(self, game)
     }
 

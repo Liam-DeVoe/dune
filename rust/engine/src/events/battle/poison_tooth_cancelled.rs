@@ -26,9 +26,10 @@ impl PoisonToothCancelled {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.poison_tooth_cancelled = true;
         self.log(game);
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -53,7 +54,7 @@ impl GameEventMethods for PoisonToothCancelled {
         PoisonToothCancelled::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         PoisonToothCancelled::execute_concrete_event(self, game)
     }
 

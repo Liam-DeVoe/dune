@@ -67,22 +67,23 @@ impl ThoughtAnswered {
         g.player(p).treachery_cards.clone()
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         match self.card() {
             None => {
                 game.log(elems![self.initiator(), " don't own any cards"]);
             }
             Some(card) => {
-                let thought_initiator = game.current_thought.as_ref().nre().initiator();
+                let thought_initiator = game.current_thought.as_ref().required("current thought")?.initiator();
                 game.log_to(thought_initiator, elems!["In response, ", self.initiator(), " show you: ", card]);
-                let thought_initiator = game.current_thought.as_ref().nre().initiator();
+                let thought_initiator = game.current_thought.as_ref().required("current thought")?.initiator();
                 game.log(elems!["In response, ", self.initiator(), " show ", thought_initiator, " a card"]);
-                let thought_initiator = game.current_thought.as_ref().nre().initiator();
+                let thought_initiator = game.current_thought.as_ref().required("current thought")?.initiator();
                 game.register_known_faction_treachery_card(thought_initiator, card);
             }
         }
 
         game.enter(Phase::BattlePhase, true);
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -110,7 +111,7 @@ impl GameEventMethods for ThoughtAnswered {
         ThoughtAnswered::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         ThoughtAnswered::execute_concrete_event(self, game)
     }
 

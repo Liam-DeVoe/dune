@@ -1,88 +1,55 @@
-//! C# runtime behavior the engine relies on: exceptions and the LINQ
-//! operators that throw. Support module (no C# counterpart).
+//! .NET runtime behavior the engine still imitates: null references, throwing LINQ operators
+//! and list indexers, `Shared<T>`. Support module (no C# counterpart).
 //!
-//! A C# exception becomes a Rust panic whose payload is a [`CsException`].
-//! The replayer runs each event inside [`catch`], which turns that panic back
-//! into a value, so partially applied state changes stay visible exactly as
-//! they do in C# when an exception escapes halfway through a handler.
-//!
-//! Any other panic (a Rust `unwrap`, an index out of bounds) is a porting bug
-//! and is not caught.
+//! Where .NET would throw, these helpers panic with the .NET exception's type and message
+//! (`"NullReferenceException: ..."`): reaching one is a bug. Operations that can fail in a
+//! game return a [`GameError`](crate::error::GameError) instead.
 
-use std::cell::{Cell, Ref, RefCell, RefMut};
-use std::panic::{self, AssertUnwindSafe};
+use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
-use std::sync::Once;
 
-/// `CsException` and `throw` live in dotnet-compat so that its throwing APIs
-/// (`NetDictionary::add`, `linq::first`, ...) raise the same payload.
-pub use dotnet_compat::exception::{CsException, throw};
-
-/// `throw new X(message)`:
-///
-/// ```should_panic
-/// treachery_engine::throw!(InvalidOperationException, "Cannot draw from an empty deck");
-/// ```
-///
-/// The first argument is the C# exception type name; the rest is `format!`
-/// arguments for the message (C# `$"..."` interpolation). With no message,
-/// the exception gets the .NET default text of its parameterless constructor
-/// (`throw new NullReferenceException()` says "Object reference not set to an
-/// instance of an object."). Format numbers in messages with
-/// `dotnet_compat::fmt`, never with Rust's `{}` for floats.
-#[macro_export]
-macro_rules! throw {
-    ($ty:ident) => {
-        $crate::compat::cs::throw(stringify!($ty), $crate::compat::cs::default_message(stringify!($ty)).to_string())
-    };
-    ($ty:ident, $($arg:tt)+) => {
-        $crate::compat::cs::throw(stringify!($ty), format!($($arg)+))
-    };
-}
+pub use dotnet_compat::exception::{panic_message, CsException, throw};
 
 thread_local! {
-    static CATCH_DEPTH: Cell<u32> = const { Cell::new(0) };
+    static QUIET: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
 }
 
-/// Wraps the panic hook so that C# exceptions thrown inside [`catch`] print
-/// nothing, and uncaught ones print their type and message.
-fn install_panic_hook() {
-    static HOOK: Once = Once::new();
+/// For tests of code that should panic the way .NET throws: runs `f` and returns the .NET
+/// exception named by its panic message (`"NullReferenceException: ..."`). Such panics print
+/// nothing. Other panics continue.
+pub fn catch_panic<R>(f: impl FnOnce() -> R) -> Result<R, CsException> {
+    static HOOK: std::sync::Once = std::sync::Once::new();
     HOOK.call_once(|| {
-        let previous = panic::take_hook();
-        panic::set_hook(Box::new(move |info| {
-            if let Some(e) = info.payload().downcast_ref::<CsException>() {
-                // Debugging aid: the Rust call stack of every C# exception.
-                if std::env::var_os("CS_EXCEPTION_BACKTRACE").is_some() {
-                    eprintln!("C# exception {}: {}\n{}", e.type_name, e.message, std::backtrace::Backtrace::force_capture());
-                }
-                if CATCH_DEPTH.with(|d| d.get()) > 0 {
-                    return;
-                }
-                let at = info.location().map(|l| l.to_string()).unwrap_or_default();
-                eprintln!("uncaught C# exception {}: {} at {}", e.type_name, e.message, at);
-                return;
+        let previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            if QUIET.with(|q| q.get()) == 0 {
+                previous(info)
             }
-            previous(info)
         }));
     });
-}
-
-/// Runs `f`, returning `Err` if it threw a C# exception. Panics that are not
-/// C# exceptions are propagated.
-pub fn catch<R>(f: impl FnOnce() -> R) -> Result<R, CsException> {
-    install_panic_hook();
-    install_null_key_check();
-    CATCH_DEPTH.with(|d| d.set(d.get() + 1));
-    let result = panic::catch_unwind(AssertUnwindSafe(f));
-    CATCH_DEPTH.with(|d| d.set(d.get() - 1));
+    QUIET.with(|q| q.set(q.get() + 1));
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f));
+    QUIET.with(|q| q.set(q.get() - 1));
     match result {
         Ok(r) => Ok(r),
-        Err(payload) => match payload.downcast::<CsException>() {
-            Ok(e) => Err(*e),
-            Err(other) => panic::resume_unwind(other),
+        Err(payload) => match exception_of(payload.as_ref()) {
+            Some(e) => Err(e),
+            None => std::panic::resume_unwind(payload),
         },
     }
+}
+
+/// The .NET exception a panic payload names, if it names one.
+pub fn exception_of(payload: &(dyn std::any::Any + Send)) -> Option<CsException> {
+    const TYPES: &[&str] = &[
+        "Exception", "InvalidOperationException", "ArgumentException", "ArgumentOutOfRangeException", "ArgumentNullException",
+        "NullReferenceException", "KeyNotFoundException", "IndexOutOfRangeException", "DivideByZeroException", "OverflowException",
+        "FormatException", "InvalidCastException", "NotSupportedException", "NotImplementedException", "JsonException",
+    ];
+    let text = panic_message(payload);
+    let (type_name, message) = text.split_once(": ")?;
+    let type_name = TYPES.iter().copied().find(|t| *t == type_name)?;
+    Some(CsException { type_name, message: message.to_string() })
 }
 
 pub const NULL_REFERENCE_MESSAGE: &str = "Object reference not set to an instance of an object.";
@@ -214,8 +181,8 @@ impl<T: CsNull> OrNull<T> for Option<T> {
 }
 
 /// Makes `NetDictionary` throw ArgumentNullException for a null handle key,
-/// as .NET does for a null key. Called by `catch` and `Map::new`, so it is in
-/// place before any game exists.
+/// as .NET does for a null key. Called by `Map::new`, so it is in place before
+/// any game exists.
 pub fn install_null_key_check() {
     fn is_null_key(k: &dyn std::any::Any) -> bool {
         use crate::prelude::{Hero, Leader, Location, ResourceCard, Territory, TreacheryCard};

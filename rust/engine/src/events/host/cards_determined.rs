@@ -54,15 +54,16 @@ impl CardsDetermined {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.treachery_deck = Some(Deck::new(self.treachery_cards(), game.random.clone()));
-        game.treachery_deck.as_mut().nre().shuffle();
+        game.treachery_deck.as_mut().required("treachery deck")?.shuffle();
         game.stone(Milestone::Shuffled);
         game.richese_cache = self.richese_cards();
         let message = self.get_verbose_message();
         self.log_objects(game, vec![message.into()]);
         // Game.Enter(bool, Action, Action) is static in C#; inlined here.
         game.enter_setup_phase();
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -95,7 +96,7 @@ impl GameEventMethods for CardsDetermined {
         CardsDetermined::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         CardsDetermined::execute_concrete_event(self, game)
     }
 

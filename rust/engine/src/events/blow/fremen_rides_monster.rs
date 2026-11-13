@@ -191,7 +191,7 @@ impl FremenRidesMonster {
         }
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let to_ride_index = Self::to_ride_index(game);
         let to_ride = to_ride_index.map(|i| game.monsters[i].clone());
 
@@ -213,7 +213,7 @@ impl FremenRidesMonster {
                 let from = *from;
                 // C# passes To (possibly null) into MoveForces, which removes the forces from
                 // `from` and then throws ArgumentNullException on the null key.
-                let ini = initiator.nre();
+                let ini = initiator.required("initiator")?;
                 let to = self.to(game).or_null();
                 Player::move_forces(game, ini, from, to, value.amount_of_forces);
                 let to = self.to(game).or_null();
@@ -238,16 +238,16 @@ impl FremenRidesMonster {
 
             if self.forces_from_reserves > 0 || self.special_forces_from_reserves > 0 {
                 if self.forces_from_reserves > 0 {
-                    let ini = initiator.nre();
+                    let ini = initiator.required("initiator")?;
                     let to = self.to(game).or_null();
                     Player::ship_forces(game, ini, to, self.forces_from_reserves);
                 }
                 if self.special_forces_from_reserves > 0 {
-                    let ini = initiator.nre();
+                    let ini = initiator.required("initiator")?;
                     let to = self.to(game).or_null();
                     Player::ship_special_forces(game, ini, to, self.special_forces_from_reserves);
                 }
-                let ini = initiator.nre();
+                let ini = initiator.required("initiator")?;
                 let msg = express!(
                     self.initiator(),
                     " ride ",
@@ -265,13 +265,14 @@ impl FremenRidesMonster {
             }
 
             game.flip_bene_gesserit_advisors_when_alone();
-            game.check_intrusion(&self.clone().into_event());
+            game.check_intrusion(&self.clone().into_event())?;
         } else {
             let msg = express!(self.initiator(), " pass a ride on ", Concept::Monster).with_log(NexusLog::new(None, None));
             self.log_objects(game, elems![msg]);
         }
 
-        game.determine_next_shipment_and_move_sub_phase();
+        game.determine_next_shipment_and_move_sub_phase()?;
+        Ok(())
     }
 
     pub fn get_message(&self, game: &Game) -> Message {
@@ -306,7 +307,7 @@ impl GameEventMethods for FremenRidesMonster {
         FremenRidesMonster::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         FremenRidesMonster::execute_concrete_event(self, game)
     }
 

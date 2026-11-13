@@ -39,22 +39,23 @@ impl FaceDancerRevealed {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         if !self.passed {
-            // Game.WinnerHero.IsFaceDancer(f): read per element; null throws on the first one.
-            let facedancer = game
-                .player(self.player())
-                .face_dancers
-                .iter()
-                .copied()
-                .cs_first_or_default_where(|f| game.winner_hero().nre().is_face_dancer(*f));
+            let face_dancers = &game.player(self.player()).face_dancers;
+            let facedancer = if face_dancers.is_empty() {
+                None
+            } else {
+                let winner = game.winner_hero().required("battle winner")?;
+                face_dancers.iter().copied().cs_first_or_default_where(|f| winner.is_face_dancer(*f))
+            };
             game.log(elems![self.initiator(), " reveal ", facedancer, " as one of their Face Dancers!"]);
             game.stone(Milestone::FaceDanced);
             game.enter(Phase::Facedancing, true);
         } else {
             game.log(elems![self.initiator(), " don't reveal a Face Dancer"]);
-            game.finish_battle();
+            game.finish_battle()?;
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -82,7 +83,7 @@ impl GameEventMethods for FaceDancerRevealed {
         FaceDancerRevealed::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         FaceDancerRevealed::execute_concrete_event(self, game)
     }
 

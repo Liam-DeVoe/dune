@@ -172,7 +172,7 @@ impl DealOffered {
         )
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         if self.cancel {
             let same_offer = game.deal_offers.iter().cs_first_or_default_where(|o| o.same(self)).cloned();
             if let Some(same_offer) = same_offer {
@@ -185,6 +185,7 @@ impl DealOffered {
         } else {
             game.deal_offers.push(self.clone());
         }
+        Ok(())
     }
 
     pub fn get_message(&self, game: &Game) -> Message {
@@ -237,7 +238,7 @@ impl GameEventMethods for DealOffered {
         DealOffered::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         DealOffered::execute_concrete_event(self, game)
     }
 

@@ -922,7 +922,7 @@ impl ClassicBot {
         };
         let in_battle = || game.current_battle.as_ref().is_some_and(|b| b.is_aggressor_or_defender(game, self.player));
 
-        let attempt = cs::catch(|| {
+        let attempt = super::decide(|| {
             let me = game.player(self.player);
             match game.latest_clairvoyance.as_ref().nre().question {
                 ClairvoyanceQuestion::CardTypeAsDefenseInBattle => {
@@ -1006,7 +1006,7 @@ impl ClassicBot {
             }
         });
         if let Err(e) = attempt {
-            Self::log_info(&cs::exception_to_string(&e), vec![]);
+            Self::log_info(&e, vec![]);
         }
 
         let mut e = ClairVoyanceAnswered::new(game, self.faction(game));

@@ -67,12 +67,12 @@ impl DistransUsed {
             && !DistransUsed::valid_targets(game, player).next().is_none()
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let target = self.get_player(game, Some(self.target));
-        let target_had_room_for_cards = game.player(target.nre()).has_room_for_cards(game);
-        let target = target.nre();
+        let target_had_room_for_cards = game.player(target.required("target")?).has_room_for_cards(game);
+        let target = target.required("target")?;
         let me = self.player();
-        game.discard(me, TreacheryCardType::Distrans);
+        game.discard(me, TreacheryCardType::Distrans)?;
         let card = self.card();
         crate::game::remove_card(&mut game.player_mut(me).treachery_cards, card);
         Game::register_known_player_treachery_card(game, me, card);
@@ -92,6 +92,7 @@ impl DistransUsed {
 
         self.log(game);
         self.check_if_bidding_for_player_should_be_skipped(game, target, target_had_room_for_cards);
+        Ok(())
     }
 
     pub fn check_if_bidding_for_player_should_be_skipped(&self, game: &mut Game, player: PlayerIndex, had_room_for_cards: bool) {
@@ -131,7 +132,7 @@ impl GameEventMethods for DistransUsed {
         DistransUsed::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         DistransUsed::execute_concrete_event(self, game)
     }
 

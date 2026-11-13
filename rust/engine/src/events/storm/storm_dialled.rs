@@ -53,7 +53,7 @@ impl StormDialled {
         3
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.dials.push(self.amount);
         game.has_acted_or_passed.push(self.initiator());
 
@@ -74,6 +74,7 @@ impl StormDialled {
                 game.reveal_storm();
             }
         }
+        Ok(())
     }
 
     pub fn position_first_storm(&self, game: &mut Game) {
@@ -164,7 +165,7 @@ impl GameEventMethods for StormDialled {
         StormDialled::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         StormDialled::execute_concrete_event(self, game)
     }
 

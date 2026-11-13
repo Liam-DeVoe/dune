@@ -427,19 +427,22 @@ impl Game {
         Self::new_int32_participation(Self::LATEST_VERSION, &Shared::new(Participation::new()))
     }
 
+    /// Only `LATEST_VERSION` games can be played, so savegames and event logs of older versions
+    /// fail to load instead of replaying.
+    pub fn check_version(version: i32) -> Result<(), String> {
+        if version != Self::LATEST_VERSION {
+            return Err(format!("Game version {} is not supported. Only version {} is supported.", version, Self::LATEST_VERSION));
+        }
+        Ok(())
+    }
+
     /// The game keeps the caller's `Participation` object: changes made
     /// through either are seen by both.
     ///
-    /// Only `LATEST_VERSION` is supported: any other version throws, so savegames
-    /// and event logs of older versions fail to load instead of replaying.
+    /// Only `LATEST_VERSION` is supported (see [`Game::check_version`]); other versions panic.
     pub fn new_int32_participation(version: i32, participation: &Shared<Participation>) -> Self {
-        if version != Self::LATEST_VERSION {
-            throw!(
-                ArgumentException,
-                "Game version {} is not supported. Only version {} is supported.",
-                version,
-                Self::LATEST_VERSION
-            );
+        if let Err(e) = Self::check_version(version) {
+            panic!("{e}");
         }
 
         let mut game = Game {
@@ -1509,30 +1512,36 @@ impl Game {
         .with_log(AsideLog::aside())
     }
 
-    pub fn discard(&mut self, player: PlayerIndex, card_type: TreacheryCardType) {
-        let card: TreacheryCard;
-        if card_type == TreacheryCardType::Karma && self.player(player).is(Faction::BeneGesserit) {
-            card = self
-                .player(player)
-                .treachery_cards
-                .iter()
-                .copied()
-                .cs_first_where(|x| x.type_() == TreacheryCardType::Karma || x.type_() == TreacheryCardType::Useless);
-        } else {
-            card = self.player(player).treachery_cards.iter().copied().cs_first_where(|x| x.type_() == card_type);
-        }
+    /// Discards the first card of `card_type` in the player's hand (for Bene Gesserit, a Useless
+    /// card can stand in for Karma). Fails if they have none.
+    pub fn discard(&mut self, player: PlayerIndex, card_type: TreacheryCardType) -> GameResult {
+        let bene_gesserit_karma = card_type == TreacheryCardType::Karma && self.player(player).is(Faction::BeneGesserit);
+        let card = self
+            .player(player)
+            .treachery_cards
+            .iter()
+            .copied()
+            .find(|x| if bene_gesserit_karma { x.type_() == TreacheryCardType::Karma || x.type_() == TreacheryCardType::Useless } else { x.type_() == card_type })
+            .ok_or_else(|| GameError::new(format!("{} have no {} card to discard", self.player(player).faction, card_type)))?;
 
         self.discard_player_treachery_card_boolean(Some(player), Some(card), true);
+        Ok(())
     }
 
     /// `log` is false when the caller logs the card's play itself, such as PlayKarma.
-    pub fn discard_treachery_card_boolean(&mut self, card: Option<TreacheryCard>, log: bool) {
+    /// Discards `card` from the hand that holds it. Fails if more than one hand holds it.
+    pub fn discard_treachery_card_boolean(&mut self, card: Option<TreacheryCard>, log: bool) -> GameResult {
         let card = card.and_then(crate::compat::cs::CsNull::opt);
-        let Some(c) = card else { return };
+        let Some(c) = card else { return Ok(()) };
 
-        let player = self.player_indices().cs_single_or_default_where(|p| self.player(*p).has(Some(c)));
+        let mut holders = self.player_indices().filter(|p| self.player(*p).has(Some(c)));
+        let player = holders.next();
+        if holders.next().is_some() {
+            game_error!("Card {} is in more than one hand", c.id());
+        }
         self.discard_player_treachery_card_boolean(player, Some(c), log);
         self.register_known(c);
+        Ok(())
     }
 
     pub fn discard_player_treachery_card_boolean(&mut self, player: Option<PlayerIndex>, card: Option<TreacheryCard>, log: bool) {
@@ -1579,36 +1588,18 @@ impl Game {
         }
     }
 
-    pub fn try_load(state: &GameState, participation: &Shared<Participation>, perform_validation: bool, is_host: bool, result: &mut Option<Game>) -> Option<Message> {
-        // The game under construction lives outside the closure, so the state reached
-        // before an exception is kept until `result = null` (as in C#).
-        let outcome = cs::catch(|| {
-            *result = Some(Game::new_int32_participation(state.version, participation));
-            let game = result.as_mut().nre();
-
-            let mut nr: i32 = 0;
-            // foreach over state.Events: NullReferenceException when _events is null
-            let events = state.events.as_ref().nre();
-            for e in events {
-                e.initialize_game(game);
-
-                let message = e.execute(game, perform_validation, is_host);
-                if let Some(message) = message {
-                    return Some(express!(e.event_type().name(), "(", nr, "):", message));
-                }
-                nr = nr.wrapping_add(1);
-            }
-
-            None
-        });
-
-        match outcome {
-            Ok(m) => m,
-            Err(e) => {
-                *result = None;
-                Some(express!(e.message.clone()))
+    /// Replays a savegame's events into a new game, or says why it can't.
+    pub fn load(state: &GameState, participation: &Shared<Participation>, perform_validation: bool, is_host: bool) -> Result<Game, Message> {
+        Game::check_version(state.version).map_err(|e| express!(e))?;
+        let mut game = Game::new_int32_participation(state.version, participation);
+        let events = state.events.as_ref().ok_or_else(|| express!("The savegame has no events"))?;
+        for (nr, e) in events.iter().enumerate() {
+            e.initialize_game(&game);
+            if let Some(message) = e.execute(&mut game, perform_validation, is_host) {
+                return Err(express!(e.event_type().name(), "(", nr as i32, "):", message));
             }
         }
+        Ok(game)
     }
 
     pub fn log(&mut self, expression: Vec<ExpressionElement>) {
@@ -2169,7 +2160,7 @@ impl Game {
             &self.players[p.index]
         } else {
             if p == PlayerIndex::NULL {
-                throw!(NullReferenceException);
+                panic!("A required value is missing");
             }
             &self.other_game(p.game).players[p.index]
         }
@@ -2181,7 +2172,7 @@ impl Game {
             &mut self.players[p.index]
         } else {
             if p == PlayerIndex::NULL {
-                throw!(NullReferenceException);
+                panic!("A required value is missing");
             }
             &mut self.other_game_mut(p.game).players[p.index]
         }

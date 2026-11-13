@@ -43,7 +43,7 @@ impl KarmaMonster {
         g.map.territories(false).filter(move |t| !t.is_protected_from_worm())
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         // Arguments in C# order: Player, the karma card, then the effect (which reads Territory).
         let me = self.player();
         let card = Karma::valid_karma_cards(game, me).next();
@@ -58,6 +58,7 @@ impl KarmaMonster {
         if game.current_phase == Phase::BlowReport {
             game.enter_alliance_phase(false);
         }
+        Ok(())
     }
 
     pub fn get_message(&self, game: &Game) -> Message {
@@ -83,7 +84,7 @@ impl GameEventMethods for KarmaMonster {
         KarmaMonster::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         KarmaMonster::execute_concrete_event(self, game)
     }
 

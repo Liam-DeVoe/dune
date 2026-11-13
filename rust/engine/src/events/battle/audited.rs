@@ -26,7 +26,7 @@ impl Audited {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
         game.stone(Milestone::Audited);
         // RegisterKnown only adds to the player's KnownCards, so the list does not change.
@@ -36,13 +36,13 @@ impl Audited {
         }
         let winner_is_none = game.battle_winner == Some(Faction::None);
         let harkonnen_must_decide = game.harkonnen_must_decide_to_capture();
-        game.enter_boolean_action_boolean_phase_phase(
-            winner_is_none,
-            Game::finish_battle,
-            harkonnen_must_decide,
-            Phase::CaptureDecision,
-            Phase::BattleConclusion,
-        );
+        // Enter(condition, FinishBattle, ...), with FinishBattle's failure passed on.
+        if winner_is_none {
+            game.finish_battle()?;
+        } else {
+            game.enter_boolean_phase_phase(harkonnen_must_decide, Phase::CaptureDecision, Phase::BattleConclusion);
+        }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -67,7 +67,7 @@ impl GameEventMethods for Audited {
         Audited::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         Audited::execute_concrete_event(self, game)
     }
 

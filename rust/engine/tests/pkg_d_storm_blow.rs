@@ -55,7 +55,7 @@ fn unagreed_division_truncates_half_as_float() {
 #[test]
 fn agreed_division_of_nothing_reads_tbd_only_for_the_other_faction() {
     assert_eq!(DivideResources::gained_by_first_faction(None, true, 5), 5);
-    let e = cs::catch(|| DivideResources::gained_by_other_faction(None, true, 5)).unwrap_err();
+    let e = cs::catch_panic(|| DivideResources::gained_by_other_faction(None, true, 5)).unwrap_err();
     assert_eq!(e.type_name, "NullReferenceException");
 }
 
@@ -106,7 +106,7 @@ fn divide_resources_is_applicable_throws_without_pending_division() {
     let emperor = idx(&g, Faction::Emperor);
     assert!(!DivideResources::is_applicable(&g, emperor));
     g.current_phase = Phase::DividingCollectedResources;
-    let e = cs::catch(|| DivideResources::is_applicable(&g, emperor)).unwrap_err();
+    let e = cs::catch_panic(|| DivideResources::is_applicable(&g, emperor)).unwrap_err();
     assert_eq!(e.type_name, "NullReferenceException");
 }
 

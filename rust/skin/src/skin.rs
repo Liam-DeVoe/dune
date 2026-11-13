@@ -335,14 +335,9 @@ impl Skin {
         if list.is_empty() {
             return m.to_string();
         }
-        let described = cs::catch(|| self.describe_array(list, game));
-        match described {
-            Ok(args) => {
-                let args: Vec<Option<&str>> = args.iter().map(|a| Some(a.as_str())).collect();
-                dotnet_compat::fmt::string_format(m, &args).unwrap_or_else(|_| m.to_string())
-            }
-            Err(_) => m.to_string(),
-        }
+        let args = self.describe_array(list, game);
+        let args: Vec<Option<&str>> = args.iter().map(|a| Some(a.as_str())).collect();
+        dotnet_compat::fmt::string_format(m, &args).unwrap_or_else(|_| m.to_string())
     }
 
     /// `Join<T>(IEnumerable<T>? items)`: the described items joined with `", "`, or `"-"` when
@@ -496,7 +491,7 @@ impl Skin {
                 self.join_in(Some(current.as_deref().unwrap_or(items)), game)
             }
             // `value.ToString()`: numbers (invariant culture), exceptions, `Player`.
-            E::Int(_) | E::Long(_) | E::Float(_) | E::Double(_) | E::Exception(_) | E::Player(_) => value.to_cs_string(),
+            E::Int(_) | E::Long(_) | E::Float(_) | E::Double(_) | E::Error(_) | E::Player(_) => value.to_cs_string(),
         }
     }
 

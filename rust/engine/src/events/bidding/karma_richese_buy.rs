@@ -45,7 +45,7 @@ impl KarmaRicheseBuy {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let me = self.player();
         let karma_card = Karma::valid_karma_cards(game, me).into_iter().next();
         game.play_karma(me, karma_card, vec!["buy a card from their cache for ".into(), Payment::of(3).into()]);
@@ -56,6 +56,7 @@ impl KarmaRicheseBuy {
         let p = game.player_mut(me);
         p.resources = p.resources.wrapping_sub(3);
         p.special_karma_power_used = true;
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -81,7 +82,7 @@ impl GameEventMethods for KarmaRicheseBuy {
         KarmaRicheseBuy::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         KarmaRicheseBuy::execute_concrete_event(self, game)
     }
 

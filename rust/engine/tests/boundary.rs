@@ -502,10 +502,7 @@ fn every_member_matches_csharp() {
                 };
                 for c in cases {
                     let (recv, args, expected) = (&c[0], c[1].as_array().unwrap(), &c[2]);
-                    let actual = match cs::catch(|| run(recv, args)) {
-                        Ok(v) => v,
-                        Err(e) => exception(&e),
-                    };
+                    let actual = catch_any(|| run(recv, args)).unwrap_or_else(|e| e);
                     failures.check(|| format!("{sig} recv={recv} args={}", Value::Array(args.clone())), expected, &actual);
                     compared += 1;
                 }
@@ -551,10 +548,7 @@ fn null_receivers_throw_null_reference() {
         }
         for c in cases {
             let args = c[1].as_array().unwrap();
-            let actual = match cs::catch(|| run(&Value::Null, args)) {
-                Ok(v) => v,
-                Err(e) => exception(&e),
-            };
+            let actual = catch_any(|| run(&Value::Null, args)).unwrap_or_else(|e| e);
             failures.check(|| format!("{sig} on null, args={}", Value::Array(args.clone())), &expected, &actual);
             compared += 1;
         }
@@ -773,10 +767,10 @@ mod lazy {
                 g.get_player(Some(Faction(int(who)))).expect("player of the case")
             };
             let mut items = Vec::new();
-            let r = cs::catch(|| table[name](g, p, &mut |v| items.push(v)));
-            let got = json!([items, r.err().map(|e| exception(&e))]);
+            let r = catch_any(|| table[name](g, p, &mut |v| items.push(v)));
+            let got = json!([items, r.err()]);
             let want = json!([case[3], case[4]]);
-            if got != want {
+            if got[0] != want[0] || !same(&want[1], &got[1]) {
                 failures.push(format!("{scenario} {name} player {who}:\n  C#:   {want}\n  Rust: {got}"));
             }
         }

@@ -39,7 +39,7 @@ impl ChoamFreeRevivalPrevention {
         game.player(p).treachery_cards.iter().copied().cs_first_or_default_where(|c| c.id() == TreacheryCardManager::CARD_LALALA)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
 
         let me = self.player();
@@ -49,11 +49,12 @@ impl ChoamFreeRevivalPrevention {
             game.let_player_discard_treachery_card_of_choice(self.initiator());
         } else {
             let card = Self::card_to_use(game, me);
-            game.discard_treachery_card_boolean(card, true);
+            game.discard_treachery_card_boolean(card, true)?;
         }
 
         game.current_free_revival_prevention = Some(self.clone());
         game.stone(Milestone::SpecialUselessPlayed);
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -79,7 +80,7 @@ impl GameEventMethods for ChoamFreeRevivalPrevention {
         ChoamFreeRevivalPrevention::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         ChoamFreeRevivalPrevention::execute_concrete_event(self, game)
     }
 

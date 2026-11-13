@@ -7,7 +7,7 @@ use treachery_engine::events::GameEventMethods;
 use treachery_engine::prelude::*;
 
 fn outcome<R>(f: impl FnOnce() -> R) -> Result<R, String> {
-    cs::catch(f).map_err(|e| format!("{}: {}", e.type_name, e.message))
+    cs::catch_panic(f).map_err(|e| format!("{}: {}", e.type_name, e.message))
 }
 
 fn game_with(factions: &[Faction]) -> Game {
@@ -189,7 +189,7 @@ fn traitor_discarded_appends_without_shuffling() {
     e.set_traitor(Some(leaders[2]));
     assert!(e.validate(&g).is_none());
     let e = Rc::new(e);
-    e.execute_concrete_event(&mut g);
+    e.execute_concrete_event(&mut g).unwrap();
     assert_eq!(g.traitor_deck.as_ref().unwrap().items, vec![leaders[0], leaders[2]]);
     assert_eq!(g.player(harkonnen).traitors, vec![leaders[1]]);
     assert_eq!(g.number_of_traitors_to_discard, 0);
@@ -237,7 +237,7 @@ fn audit_cancelled_logs_audited_cards_as_a_live_list() {
     let mut ev = AuditCancelled::new(&g, Faction::Emperor);
     ev.cancelled = false;
     let ev = Rc::new(ev);
-    outcome(|| ev.execute_concrete_event(&mut g)).unwrap();
+    outcome(|| ev.execute_concrete_event(&mut g)).unwrap().unwrap();
 
     let msg = g.current_report().messages.last().cloned().unwrap();
     assert_eq!(msg.target, Faction::Emperor);

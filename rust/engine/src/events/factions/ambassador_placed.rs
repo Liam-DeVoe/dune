@@ -69,9 +69,9 @@ impl AmbassadorPlaced {
             && !AmbassadorPlaced::valid_strongholds(g, p).next().is_none()
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let Some(stronghold) = self.stronghold(game) else {
-            throw!(Exception, "Stronghold is null");
+            game_error!("Stronghold is null");
         };
 
         game.ambassadors_placed_this_turn = game.ambassadors_placed_this_turn.wrapping_add(1);
@@ -91,6 +91,9 @@ impl AmbassadorPlaced {
                 Payment::of(placed).into(),
             ],
         );
+        if game.ambassadors_on_planet.contains_key(&stronghold) {
+            game_error!("There already is an ambassador in {}", ExpressionElement::from(stronghold).to_cs_string());
+        }
         game.ambassadors_on_planet.add_with(stronghold, self.ambassador, |k| ExpressionElement::from(*k).to_cs_string());
         // List.Remove: the first equal element
         let ambassadors = &mut game.player_mut(me).ambassadors;
@@ -98,6 +101,7 @@ impl AmbassadorPlaced {
             ambassadors.remove(pos);
         }
         game.stone(Milestone::AmbassadorPlaced);
+        Ok(())
     }
 
     pub fn get_message(&self, game: &Game) -> Message {
@@ -122,7 +126,7 @@ impl GameEventMethods for AmbassadorPlaced {
         AmbassadorPlaced::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         AmbassadorPlaced::execute_concrete_event(self, game)
     }
 

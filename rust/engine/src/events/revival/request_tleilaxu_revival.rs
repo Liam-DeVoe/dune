@@ -56,7 +56,7 @@ impl RequestTleilaxuRevival {
         crate::compat::lazy::union(killed.into_iter(), gholas)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let hero = self.hero();
         let existing_request = game.current_revival_requests.iter().cs_first_or_default_where(|r| r.hero() == hero).cloned();
         if let Some(existing_request) = existing_request {
@@ -68,6 +68,7 @@ impl RequestTleilaxuRevival {
 
         self.log(game);
         game.current_revival_requests.push(self.clone());
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -93,7 +94,7 @@ impl GameEventMethods for RequestTleilaxuRevival {
         RequestTleilaxuRevival::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         RequestTleilaxuRevival::execute_concrete_event(self, game)
     }
 

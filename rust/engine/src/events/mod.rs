@@ -1990,7 +1990,7 @@ impl GameEvent {
         dispatch!(self, e => GameEventMethods::execute(e, game, perform_validation, is_host))
     }
 
-    pub fn execute_concrete_event(&self, game: &mut Game) {
+    pub fn execute_concrete_event(&self, game: &mut Game) -> GameResult {
         dispatch!(self, e => GameEventMethods::execute_concrete_event(e, game))
     }
 
@@ -2047,7 +2047,7 @@ impl GameEvent {
         match self {
             GameEvent::Bid(e) => <Bid as bid_trait::IBid>::total_amount(&**e),
             GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::IBid>::total_amount(&**e),
-            _ => crate::throw!(InvalidCastException, "Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
+            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
         }
     }
 
@@ -2056,7 +2056,7 @@ impl GameEvent {
         match self {
             GameEvent::Bid(e) => <Bid as bid_trait::IBid>::amount(&**e),
             GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::IBid>::amount(&**e),
-            _ => crate::throw!(InvalidCastException, "Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
+            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
         }
     }
 
@@ -2065,7 +2065,7 @@ impl GameEvent {
         match self {
             GameEvent::Bid(e) => <Bid as bid_trait::IBid>::ally_contribution_amount(&**e),
             GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::IBid>::ally_contribution_amount(&**e),
-            _ => crate::throw!(InvalidCastException, "Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
+            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
         }
     }
 
@@ -2074,7 +2074,7 @@ impl GameEvent {
         match self {
             GameEvent::Bid(e) => <Bid as bid_trait::IBid>::emperor_contribution_amount(&**e),
             GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::IBid>::emperor_contribution_amount(&**e),
-            _ => crate::throw!(InvalidCastException, "Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
+            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
         }
     }
 
@@ -2083,7 +2083,7 @@ impl GameEvent {
         match self {
             GameEvent::Bid(e) => <Bid as bid_trait::IBid>::uses_emperor_secret_ally(&**e),
             GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::IBid>::uses_emperor_secret_ally(&**e),
-            _ => crate::throw!(InvalidCastException, "Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
+            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
         }
     }
 
@@ -2092,7 +2092,7 @@ impl GameEvent {
         match self {
             GameEvent::Bid(e) => <Bid as bid_trait::IBid>::initiator(&**e),
             GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::IBid>::initiator(&**e),
-            _ => crate::throw!(InvalidCastException, "Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
+            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
         }
     }
 
@@ -2101,7 +2101,7 @@ impl GameEvent {
         match self {
             GameEvent::Bid(e) => <Bid as bid_trait::IBid>::player(&**e),
             GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::IBid>::player(&**e),
-            _ => crate::throw!(InvalidCastException, "Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
+            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
         }
     }
 
@@ -2110,7 +2110,7 @@ impl GameEvent {
         match self {
             GameEvent::Bid(e) => <Bid as bid_trait::IBid>::passed(&**e),
             GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::IBid>::passed(&**e),
-            _ => crate::throw!(InvalidCastException, "Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
+            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
         }
     }
 
@@ -2119,7 +2119,7 @@ impl GameEvent {
         match self {
             GameEvent::Bid(e) => <Bid as bid_trait::IBid>::using_karma_to_remove_bid_limit(&**e),
             GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::IBid>::using_karma_to_remove_bid_limit(&**e),
-            _ => crate::throw!(InvalidCastException, "Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
+            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
         }
     }
 
@@ -2128,7 +2128,7 @@ impl GameEvent {
         match self {
             GameEvent::Bid(e) => <Bid as bid_trait::IBid>::karma_card(&**e),
             GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::IBid>::karma_card(&**e),
-            _ => crate::throw!(InvalidCastException, "Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
+            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
         }
     }
 
@@ -2137,7 +2137,7 @@ impl GameEvent {
         match self {
             GameEvent::Bid(e) => <Bid as bid_trait::IBid>::get_message(&**e, game),
             GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::IBid>::get_message(&**e, game),
-            _ => crate::throw!(InvalidCastException, "Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
+            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
         }
     }
 
@@ -2146,7 +2146,7 @@ impl GameEvent {
         match self {
             GameEvent::Bid(e) => <Bid as bid_trait::IBid>::karma_bid(&**e),
             GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::IBid>::karma_bid(&**e),
-            _ => crate::throw!(InvalidCastException, "Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
+            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
         }
     }
 
@@ -2172,7 +2172,7 @@ impl GameEvent {
             GameEvent::Revival(e) => <Revival as location_event::ILocationEvent>::initiator(&**e),
             GameEvent::Shipment(e) => <Shipment as location_event::ILocationEvent>::initiator(&**e),
             GameEvent::TerrorRevealed(e) => <TerrorRevealed as location_event::ILocationEvent>::initiator(&**e),
-            _ => crate::throw!(InvalidCastException, "Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.ILocationEvent'.", self.event_type().name()),
+            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.ILocationEvent'.", self.event_type().name()),
         }
     }
 
@@ -2193,7 +2193,7 @@ impl GameEvent {
             GameEvent::Revival(e) => <Revival as location_event::ILocationEvent>::to(&**e, game),
             GameEvent::Shipment(e) => <Shipment as location_event::ILocationEvent>::to(&**e, game),
             GameEvent::TerrorRevealed(e) => <TerrorRevealed as location_event::ILocationEvent>::to(&**e, game),
-            _ => crate::throw!(InvalidCastException, "Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.ILocationEvent'.", self.event_type().name()),
+            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.ILocationEvent'.", self.event_type().name()),
         }
     }
 
@@ -2214,7 +2214,7 @@ impl GameEvent {
             GameEvent::Revival(e) => <Revival as location_event::ILocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
             GameEvent::Shipment(e) => <Shipment as location_event::ILocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
             GameEvent::TerrorRevealed(e) => <TerrorRevealed as location_event::ILocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            _ => crate::throw!(InvalidCastException, "Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.ILocationEvent'.", self.event_type().name()),
+            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.ILocationEvent'.", self.event_type().name()),
         }
     }
 
@@ -2235,7 +2235,7 @@ impl GameEvent {
             GameEvent::Revival(e) => <Revival as location_event::ILocationEvent>::forces_added_to_location(&**e, game),
             GameEvent::Shipment(e) => <Shipment as location_event::ILocationEvent>::forces_added_to_location(&**e, game),
             GameEvent::TerrorRevealed(e) => <TerrorRevealed as location_event::ILocationEvent>::forces_added_to_location(&**e, game),
-            _ => crate::throw!(InvalidCastException, "Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.ILocationEvent'.", self.event_type().name()),
+            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.ILocationEvent'.", self.event_type().name()),
         }
     }
 
@@ -2256,7 +2256,7 @@ impl GameEvent {
             GameEvent::Revival(e) => <Revival as location_event::ILocationEvent>::special_forces_added_to_location(&**e, game),
             GameEvent::Shipment(e) => <Shipment as location_event::ILocationEvent>::special_forces_added_to_location(&**e, game),
             GameEvent::TerrorRevealed(e) => <TerrorRevealed as location_event::ILocationEvent>::special_forces_added_to_location(&**e, game),
-            _ => crate::throw!(InvalidCastException, "Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.ILocationEvent'.", self.event_type().name()),
+            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.ILocationEvent'.", self.event_type().name()),
         }
     }
 
@@ -2276,7 +2276,7 @@ impl GameEvent {
             GameEvent::Move(e) => <Move as placement::IPlacement>::initiator(&**e),
             GameEvent::PerformFremenSetup(e) => <PerformFremenSetup as placement::IPlacement>::initiator(&**e),
             GameEvent::PerformSetup(e) => <PerformSetup as placement::IPlacement>::initiator(&**e),
-            _ => crate::throw!(InvalidCastException, "Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IPlacement'.", self.event_type().name()),
+            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IPlacement'.", self.event_type().name()),
         }
     }
 
@@ -2291,7 +2291,7 @@ impl GameEvent {
             GameEvent::Move(e) => <Move as placement::IPlacement>::force_locations(&**e, game),
             GameEvent::PerformFremenSetup(e) => <PerformFremenSetup as placement::IPlacement>::force_locations(&**e, game),
             GameEvent::PerformSetup(e) => <PerformSetup as placement::IPlacement>::force_locations(&**e, game),
-            _ => crate::throw!(InvalidCastException, "Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IPlacement'.", self.event_type().name()),
+            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IPlacement'.", self.event_type().name()),
         }
     }
 
@@ -2306,7 +2306,7 @@ impl GameEvent {
             GameEvent::Move(e) => <Move as placement::IPlacement>::to(&**e, game),
             GameEvent::PerformFremenSetup(e) => <PerformFremenSetup as placement::IPlacement>::to(&**e, game),
             GameEvent::PerformSetup(e) => <PerformSetup as placement::IPlacement>::to(&**e, game),
-            _ => crate::throw!(InvalidCastException, "Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IPlacement'.", self.event_type().name()),
+            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IPlacement'.", self.event_type().name()),
         }
     }
 

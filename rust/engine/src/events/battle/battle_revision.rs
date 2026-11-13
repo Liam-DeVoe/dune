@@ -26,9 +26,9 @@ impl BattleRevision {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let Some(current_battle) = game.current_battle.clone() else {
-            throw!(Exception, "BattleRevision event executed when there is no current battle");
+            game_error!("BattleRevision event executed when there is no current battle");
         };
 
         let withdrawn = current_battle.plan_of(game, self.player_opt());
@@ -43,6 +43,7 @@ impl BattleRevision {
         } else if self.by(current_battle.defender(game)) {
             game.previous_defender_plan = game.defender_plan.take();
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -68,7 +69,7 @@ impl GameEventMethods for BattleRevision {
         BattleRevision::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         BattleRevision::execute_concrete_event(self, game)
     }
 

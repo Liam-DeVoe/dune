@@ -59,23 +59,24 @@ impl DiscardedTaken {
             && DiscardedTaken::valid_cards(g, p).next().is_some()
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
         // Dictionary.Remove(null) throws.
         let Some(card) = self.card() else {
-            throw!(ArgumentNullException, "Value cannot be null. (Parameter 'key')")
+            game_error!("Value cannot be null. (Parameter 'key')")
         };
         game.recently_discarded.remove(&card);
         {
-            let items = &mut game.treachery_discard_pile.as_mut().nre().items;
+            let items = &mut game.treachery_discard_pile.as_mut().required("treachery discard pile")?.items;
             if let Some(i) = items.iter().position(|c| *c == card) {
                 items.remove(i);
             }
         }
         let me = self.player();
         game.player_mut(me).treachery_cards.push(card);
-        game.discard(me, TreacheryCardType::TakeDiscarded);
+        game.discard(me, TreacheryCardType::TakeDiscarded)?;
         game.stone(Milestone::CardWonSwapped);
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -101,7 +102,7 @@ impl GameEventMethods for DiscardedTaken {
         DiscardedTaken::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         DiscardedTaken::execute_concrete_event(self, game)
     }
 

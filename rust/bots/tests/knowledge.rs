@@ -351,7 +351,7 @@ fn run(golden: &str) {
                 ev.initialize_game(game);
                 game.map.mark_neighbour_cache_stale();
                 let (validate, is_host) = (o["validate"].as_bool().unwrap(), o["isHost"].as_bool().unwrap());
-                let _ = cs::catch(|| ev.execute(game, validate, is_host));
+                let _ = cs::catch_panic(|| ev.execute(game, validate, is_host));
             }
             "probe" => {
                 let game = game.as_ref().unwrap();
@@ -371,7 +371,7 @@ fn run(golden: &str) {
                 let m = o["m"].as_str().unwrap();
                 let a: Vec<String> = o["a"].as_array().unwrap().iter().map(|v| v.as_str().unwrap().to_string()).collect();
                 let args = Args { game, bot: b, a: a.clone() };
-                let actual = match cs::catch(|| call(m, &args)) {
+                let actual = match cs::catch_panic(|| call(m, &args)) {
                     Ok(r) => r,
                     Err(e) => format!("EX:{}: {}", cs::full_type_name(e.type_name), e.message),
                 };

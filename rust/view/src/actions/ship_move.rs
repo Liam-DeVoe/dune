@@ -18,7 +18,6 @@
 //! (a new map pick, `InitializeAmounts`).
 
 use serde_json::Value;
-use treachery_engine::compat::cs;
 use treachery_engine::events::GameEventType;
 use treachery_engine::json;
 use treachery_engine::messages::expression::ExpressionElement;
@@ -226,7 +225,7 @@ pub fn options_and_validation(game: &Game, p: PlayerIndex, draft: &GameEvent, d:
         return None;
     }
     let draft = normalized(game, p, draft);
-    let options = cs::catch(|| build(game, p, &draft, d)).ok().map(|mut o| {
+    let options = crate::build::draft_check(|| build(game, p, &draft, d)).map(|mut o| {
         set_draft(&mut o, draft_json(&draft));
         o
     });
@@ -264,10 +263,10 @@ fn set_draft(o: &mut ActionOptions, draft: Value) {
     *slot = draft;
 }
 
-/// [`normalize`], or the draft itself when a helper it calls throws (the options builder then
-/// reports the failure).
+/// [`normalize`], or the draft itself when a helper it calls panics on the draft (the options
+/// builder then reports the failure).
 fn normalized(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
-    cs::catch(|| normalize(game, p, draft)).unwrap_or_else(|_| draft.clone())
+    crate::build::draft_check(|| normalize(game, p, draft)).unwrap_or_else(|| draft.clone())
 }
 
 /// The draft after one render of its component, repeated until it stops changing (each step

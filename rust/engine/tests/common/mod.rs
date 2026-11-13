@@ -69,9 +69,20 @@ pub fn exception(e: &CsException) -> Value {
     json!(format!("x:{}:{}", e.type_name, e.message))
 }
 
+/// Runs `f`: its result, or the panic encoded as a value. A panic that names a .NET exception
+/// (`"NullReferenceException: ..."`) is encoded as that exception (`"x:Type:Message"`), any
+/// other panic as `"x:panic:<panic message>"`.
+pub fn catch_any<R>(f: impl FnOnce() -> R) -> Result<R, Value> {
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| cs::catch_panic(f))) {
+        Ok(Ok(v)) => Ok(v),
+        Ok(Err(e)) => Err(exception(&e)),
+        Err(p) => Err(json!(format!("x:panic:{}", cs::panic_message(p.as_ref())))),
+    }
+}
+
 /// Runs `f`; its encoded result, or the encoded C# exception.
 pub fn try_enc<R: Enc>(f: impl FnOnce() -> R) -> Value {
-    match cs::catch(f) {
+    match cs::catch_panic(f) {
         Ok(v) => v.enc(),
         Err(e) => exception(&e),
     }
@@ -376,9 +387,14 @@ pub fn point(v: &Value) -> PointD {
 }
 
 /// Compares two encoded values; floats compare by their .NET text, so this is
-/// plain JSON equality.
+/// plain JSON equality. The one exception: where the engine now panics with a plain message
+/// (`"x:panic:..."`, see [`catch_any`]), any C# exception matches, whatever its type and message.
+/// A panic that names a .NET exception must still match C#'s exactly.
 pub fn same(expected: &Value, actual: &Value) -> bool {
-    expected == actual
+    match (expected.as_str(), actual.as_str()) {
+        (Some(e), Some(a)) if e.starts_with("x:") && a.starts_with("x:panic:") => true,
+        _ => expected == actual,
+    }
 }
 
 /// Collects failures and reports them all at once (up to a limit), so one

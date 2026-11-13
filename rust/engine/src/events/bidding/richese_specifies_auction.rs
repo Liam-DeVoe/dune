@@ -66,12 +66,12 @@ impl RicheseSpecifiesAuction {
             || (occupier_of_richese_homeworld.is_some() && g.richese_occupier_specified_card && g.player(p).faction == Faction::Richese)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         if !game.richese_occupier_specified_card {
             game.richese_auction_should_still_happen = false;
             // C# puts a null card on the deck when executed without validation.
             let card = self.card().or_null();
-            game.cards_on_auction.as_mut().nre().put_on_top(card);
+            game.cards_on_auction.as_mut().required("cards on auction")?.put_on_top(card);
             crate::game::remove_card(&mut game.richese_cache, Some(card));
             game.register_known(card);
 
@@ -100,6 +100,7 @@ impl RicheseSpecifiesAuction {
             game.start_bid_sequence_and_auction_type(self.auction_type, self.player_opt(), self.direction);
             game.start_bidding_round();
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -134,7 +135,7 @@ impl GameEventMethods for RicheseSpecifiesAuction {
         RicheseSpecifiesAuction::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         RicheseSpecifiesAuction::execute_concrete_event(self, game)
     }
 

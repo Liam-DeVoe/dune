@@ -29,14 +29,14 @@ impl Bureaucracy {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let m = self.get_dynamic_message(game);
         self.log_objects(game, vec![m.into()]);
 
         if !self.passed {
             game.stone(Milestone::Bureaucracy);
             game.bureaucrat_was_used_this_phase = true;
-            let victim = game.get_player(Some(game.target_of_bureaucracy)).nre();
+            let victim = game.get_player(Some(game.target_of_bureaucracy)).required("get player")?;
             let v = game.player_mut(victim);
             v.resources = v.resources.wrapping_sub(2);
             game.was_victim_of_bureaucracy = game.target_of_bureaucracy;
@@ -45,6 +45,7 @@ impl Bureaucracy {
         let phase = game.phase_before_bureaucrat_was_activated;
         game.enter(phase, true);
         game.target_of_bureaucracy = Faction::None;
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -80,7 +81,7 @@ impl GameEventMethods for Bureaucracy {
         Bureaucracy::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         Bureaucracy::execute_concrete_event(self, game)
     }
 

@@ -139,10 +139,10 @@ fn exception_messages() {
                 cs::with_parameter(&cs::default_message("ArgumentOutOfRangeException"), "faction"),
             ),
             "ArgumentOutOfRangeException(param, Faction 13, null)" => {
-                cs::catch(|| cs::argument_out_of_range_actual("faction", &Faction(13).to_string())).unwrap_err()
+                cs::catch_panic(|| cs::argument_out_of_range_actual("faction", &Faction(13).to_string())).unwrap_err()
             }
             "ArgumentOutOfRangeException(param, Faction.Atreides, null)" => {
-                cs::catch(|| cs::argument_out_of_range_actual("faction", &Faction::Atreides.to_string())).unwrap_err()
+                cs::catch_panic(|| cs::argument_out_of_range_actual("faction", &Faction::Atreides.to_string())).unwrap_err()
             }
             "ArgumentOutOfRangeException(param, int -5, msg)" => {
                 thrown("ArgumentOutOfRangeException", format!("{}\nActual value was -5.", cs::with_parameter("must be positive", "n")))
@@ -154,20 +154,20 @@ fn exception_messages() {
                 thrown("ArgumentNullException", cs::with_parameter(&cs::default_message("ArgumentNullException"), "source"))
             }
             "ArgumentException(msg, param)" => thrown("ArgumentException", cs::with_parameter("bad", "x")),
-            "ArgumentException(msg)" => cs::catch(|| treachery_engine::throw!(ArgumentException, "bad")).unwrap_err(),
+            "ArgumentException(msg)" => cs::catch_panic(|| cs::throw("ArgumentException", "bad".to_string())).unwrap_err(),
             "Exception(\"\")" => thrown("Exception", String::new()),
             parameterless => {
                 // `throw new T()`, through the throw! macro.
                 let type_name = parameterless.strip_suffix("()").unwrap_or_else(|| {
                     panic!("linq.json has exception {parameterless:?}, which this test does not know")
                 });
-                let e = cs::catch(|| cs::throw(leak(type_name), cs::default_message(type_name))).unwrap_err();
+                let e = cs::catch_panic(|| cs::throw(leak(type_name), cs::default_message(type_name))).unwrap_err();
                 assert_eq!(
-                    cs::catch(|| match type_name {
-                        "NullReferenceException" => treachery_engine::throw!(NullReferenceException),
-                        "InvalidOperationException" => treachery_engine::throw!(InvalidOperationException),
-                        "ArgumentException" => treachery_engine::throw!(ArgumentException),
-                        "Exception" => treachery_engine::throw!(Exception),
+                    cs::catch_panic(|| match type_name {
+                        "NullReferenceException" => cs::throw("NullReferenceException", cs::default_message("NullReferenceException")),
+                        "InvalidOperationException" => cs::throw("InvalidOperationException", cs::default_message("InvalidOperationException")),
+                        "ArgumentException" => cs::throw("ArgumentException", cs::default_message("ArgumentException")),
+                        "Exception" => cs::throw("Exception", cs::default_message("Exception")),
                         _ => cs::throw(leak(type_name), cs::default_message(type_name)),
                     })
                     .unwrap_err(),

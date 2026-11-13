@@ -13,7 +13,7 @@ use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
 use treachery_engine::json::utilities::Utilities;
 
 fn outcome<R>(f: impl FnOnce() -> R) -> Result<R, String> {
-    cs::catch(f).map_err(|e| format!("{}: {}", e.type_name, e.message))
+    cs::catch_panic(f).map_err(|e| format!("{}: {}", e.type_name, e.message))
 }
 
 #[test]
@@ -58,9 +58,10 @@ fn legacy_newtonsoft_conversion_matches_dotnet() {
         ("null", Ok("")),
     ];
 
+    // Where .NET threw, the conversion fails; the error text is the engine's own.
     for (input, expected) in cases {
-        let actual = outcome(|| Utilities::convert_newtonsoft_json_to_plain_json(input));
-        let expected = expected.map(|s| s.to_string()).map_err(|s| s.to_string());
+        let actual = Utilities::convert_newtonsoft_json_to_plain_json(input).map_err(|_| ());
+        let expected = expected.map(|s| s.to_string()).map_err(|_| ());
         assert_eq!(actual, expected, "input {input}");
     }
 }
@@ -125,19 +126,23 @@ fn id_strings() {
     assert_eq!(r, Err("FormatException: The input string '' was not in a correct format.".to_string()));
 }
 
+/// Only the latest version is supported. `check_version` reports any other as an error with
+/// the old .NET message, and constructing a game of that version panics.
 #[test]
 fn game_version_check() {
-    let r = outcome(|| {
-        Game::new_int32_participation(Game::LATEST_VERSION - 1, &Default::default());
-    });
+    assert_eq!(Game::check_version(Game::LATEST_VERSION), Ok(()));
     assert_eq!(
-        r,
+        Game::check_version(Game::LATEST_VERSION - 1),
         Err(format!(
-            "ArgumentException: Game version {} is not supported. Only version {} is supported.",
+            "Game version {} is not supported. Only version {} is supported.",
             Game::LATEST_VERSION - 1,
             Game::LATEST_VERSION
         ))
     );
+    let r = std::panic::catch_unwind(|| {
+        Game::new_int32_participation(Game::LATEST_VERSION - 1, &Default::default());
+    });
+    assert!(r.is_err());
 }
 
 /// Needs a constructed `Game`, which needs package C's `EnterPhaseAwaitingPlayers`

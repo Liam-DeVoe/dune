@@ -38,13 +38,14 @@ impl KarmaShipmentPrevention {
         g.players_other_than(p).filter(|f| *f != Faction::Fremen)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.current_karma_shipment_prevention = Some(self.clone());
         let me = self.player();
         let card = Karma::valid_karma_cards(game, me).into_iter().next();
         game.play_karma(me, card, vec!["prevent shipment by ".into(), self.target.into()]);
         game.player_mut(me).special_karma_power_used = true;
         game.stone(Milestone::Karma);
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -70,7 +71,7 @@ impl GameEventMethods for KarmaShipmentPrevention {
         KarmaShipmentPrevention::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         KarmaShipmentPrevention::execute_concrete_event(self, game)
     }
 

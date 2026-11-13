@@ -58,14 +58,16 @@ impl DealRejected {
             .cloned()
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
-        let m = self.get_message(game).with_log(AsideLog::aside());
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+        // A deal parameter that isn't a territory id fails the event before anything changes.
+        let m = self.try_get_message(game)?.with_log(AsideLog::aside());
         self.log_objects(game, vec![m.into()]);
 
         let offer = self.open_offer(game);
         if let Some(offer) = offer {
             game.record_deal_response(&offer, self.initiator(), false);
         }
+        Ok(())
     }
 
     pub fn get_message(&self, game: &Game) -> Message {
@@ -85,6 +87,11 @@ impl DealRejected {
                 self.deal_parameter1.as_deref(),
             )
         )
+    }
+
+    pub fn try_get_message(&self, game: &Game) -> GameResult<Message> {
+        Deal::try_deal_contents_description(game, self.type_, self.text.as_deref(), self.benefit, self.end, self.deal_parameter1.as_deref())?;
+        Ok(self.get_message(game))
     }
 
     pub fn get_short_message(&self, _game: &Game) -> Message {
@@ -110,12 +117,16 @@ impl GameEventMethods for DealRejected {
         DealRejected::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         DealRejected::execute_concrete_event(self, game)
     }
 
     fn get_message(&self, game: &Game) -> Message {
         DealRejected::get_message(self, game)
+    }
+
+    fn try_get_message(&self, game: &Game) -> GameResult<Message> {
+        DealRejected::try_get_message(self, game)
     }
 
     fn get_short_message(&self, game: &Game) -> Message {

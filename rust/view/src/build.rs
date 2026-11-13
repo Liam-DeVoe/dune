@@ -6,7 +6,6 @@
 
 use std::rc::Rc;
 
-use treachery_engine::compat::cs;
 use treachery_engine::game::GameStatus;
 use treachery_engine::prelude::*;
 
@@ -164,13 +163,19 @@ fn status_view(game: &Game, status: &GameStatus, v: &ResolvedViewer, d: &dyn Des
     }
 }
 
-/// `GameEventComponent.Validation`: `ConfirmedResult.Validate()`, with "Validation failed" when
-/// it throws.
+/// The validation message of a form's draft, or "Validation failed" when the validator panics:
+/// validators are written for complete events, and a draft is a form still being filled in.
 pub fn validate(game: &Game, event: GameEvent, d: &dyn Describer) -> Option<RichText> {
-    match cs::catch(|| event.validate(game)) {
-        Ok(m) => m.map(|m| expr::message(&m, d)),
-        Err(_) => Some(vec![Part::Text { v: "Validation failed".to_string() }]),
+    match draft_check(|| event.validate(game)) {
+        Some(m) => m.map(|m| expr::message(&m, d)),
+        None => Some(vec![Part::Text { v: "Validation failed".to_string() }]),
     }
+}
+
+/// Runs engine code on a form's draft, which may be missing values the code expects. `None` if
+/// the code panicked.
+pub fn draft_check<R>(f: impl FnOnce() -> R) -> Option<R> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).ok()
 }
 
 /// Wraps a freshly built event for [`validate`].

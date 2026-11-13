@@ -90,7 +90,7 @@ impl AllyPermission {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let ally = game.player(self.player()).ally;
 
         match self.initiator() {
@@ -117,6 +117,7 @@ impl AllyPermission {
         if let Some(card) = self.permitted_karma_card() {
             game.permitted_use_of_ally_karma.insert(ally, card);
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -142,7 +143,7 @@ impl GameEventMethods for AllyPermission {
         AllyPermission::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         AllyPermission::execute_concrete_event(self, game)
     }
 

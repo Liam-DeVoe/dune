@@ -435,17 +435,14 @@ fn bf(x: f32) -> Value {
 fn catching(f: impl FnOnce() -> Value) -> Value {
     match catch_unwind(AssertUnwindSafe(f)) {
         Ok(v) => v,
-        Err(e) => match e.downcast_ref::<CsException>() {
-            Some(cs) => json!(cs.to_string()),
-            None => {
-                let msg = e
-                    .downcast_ref::<String>()
-                    .cloned()
-                    .or_else(|| e.downcast_ref::<&str>().map(|s| s.to_string()))
-                    .unwrap_or_default();
-                json!(format!("RUST PANIC: {msg}"))
+        Err(e) => {
+            let msg = dotnet_compat::exception::panic_message(e.as_ref());
+            // .NET exceptions panic with "SomeException: message".
+            match msg.split_once(": ") {
+                Some((ty, _)) if ty.ends_with("Exception") => json!(msg),
+                _ => json!(format!("RUST PANIC: {msg}")),
             }
-        },
+        }
     }
 }
 

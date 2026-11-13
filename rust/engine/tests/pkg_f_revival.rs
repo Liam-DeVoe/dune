@@ -65,7 +65,7 @@ fn raise_dead_negative_amount_checked_before_player_dereference() {
     assert!(e.validate(&g).is_some());
 
     e.amount_of_forces = 0;
-    let r = cs::catch(|| e.validate(&g));
+    let r = cs::catch_panic(|| e.validate(&g));
     assert_eq!(r.unwrap_err().type_name, "NullReferenceException");
 }
 
@@ -114,7 +114,7 @@ fn deny_all_requests_adds_max_offers() {
     deny.set_hero(None);
     let deny = Rc::new(as_player(deny, &g, Faction::Tleilaxu));
     assert!(!deny.is_denial());
-    deny.execute_concrete_event(&mut g);
+    deny.execute_concrete_event(&mut g).unwrap();
     assert_eq!(*g.early_revivals_offers.index(&Hero::Leader(emperor_leaders[0])), i32::MAX);
     assert!(g.current_revival_requests.is_empty());
 }
@@ -130,6 +130,6 @@ fn offer_for_hero_with_existing_denial_replaces_it() {
     offer.set_hero(Some(hero));
     offer.price = 3;
     let offer = Rc::new(as_player(offer, &g, Faction::Tleilaxu));
-    offer.execute_concrete_event(&mut g);
+    offer.execute_concrete_event(&mut g).unwrap();
     assert_eq!(*g.early_revivals_offers.index(&hero), 3);
 }

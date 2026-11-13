@@ -555,7 +555,7 @@ impl Revival {
         })
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let initiator = self.initiator();
         let me = self.player();
 
@@ -578,7 +578,7 @@ impl Revival {
             self.uses_emperor_secret_ally,
         );
         if cost.cost_for_emperor > 0 {
-            let emperor = game.get_player(Some(Faction::Emperor)).nre();
+            let emperor = game.get_player(Some(Faction::Emperor)).required("get player")?;
             let r = &mut game.player_mut(emperor).resources;
             *r = r.wrapping_sub(cost.cost_for_emperor);
         }
@@ -683,14 +683,14 @@ impl Revival {
 
             if initiator != hero.faction() && leader.is_some() {
                 as_ghola = true;
-                game.revive(me, Hero::Leader(leader.nre()));
+                game.revive(me, Hero::Leader(leader.required("leader")?));
             } else if tleilaxu.is_some_and(|tleilaxu| game.player(tleilaxu).leaders.iter().any(|l| Hero::Leader(*l) == hero))
                 && game.is_alive(hero)
                 && leader.is_some()
             {
                 //Transfer of ghola
-                let leader = leader.nre();
-                let tleilaxu = tleilaxu.nre();
+                let leader = leader.required("leader")?;
+                let tleilaxu = tleilaxu.required("tleilaxu")?;
                 let leaders = &mut game.player_mut(tleilaxu).leaders;
                 if let Some(i) = leaders.iter().position(|l| *l == leader) {
                     leaders.remove(i);
@@ -738,7 +738,7 @@ impl Revival {
                 game.last_shipment_or_movement = Some(self.clone().into_event());
             }
 
-            if game.check_intrusion(&self.clone().into_event()) {
+            if game.check_intrusion(&self.clone().into_event())? {
                 game.phase_before_revival_caused_intrusion = game.current_phase;
                 let bene_gesserit = game.last_bene_gesserit_intrusion().is_some();
                 let terror = game.last_terror_trigger().is_some();
@@ -751,6 +751,7 @@ impl Revival {
                 );
             }
         }
+        Ok(())
     }
 
     pub fn register_and_log_revival(&self, game: &mut Game, cost: &RevivalCost, tleilaxu_received_resources: i32, as_ghola: bool, high_threshold_extra_suboids: i32) {
@@ -824,7 +825,7 @@ impl GameEventMethods for Revival {
         Revival::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         Revival::execute_concrete_event(self, game)
     }
 

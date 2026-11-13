@@ -168,7 +168,7 @@ fn run(name: &str) {
                 e.initialize_game(game);
                 game.map.mark_neighbour_cache_stale();
                 let (validate, is_host) = (o["validate"].as_bool().unwrap(), o["isHost"].as_bool().unwrap());
-                let _ = cs::catch(|| e.execute(game, validate, is_host));
+                let _ = cs::catch_panic(|| e.execute(game, validate, is_host));
 
                 let n = o["n"].as_i64().unwrap();
                 let Some(list) = probes.get(&n) else { continue };
@@ -192,7 +192,7 @@ fn run(name: &str) {
                     let b = &mut bot.as_mut().unwrap().1;
                     let m = p["m"].as_str().unwrap();
                     let a: Vec<String> = p["a"].as_array().unwrap().iter().map(|v| v.as_str().unwrap().to_string()).collect();
-                    let actual = match cs::catch(|| call(game, b, m, &a)) {
+                    let actual = match cs::catch_panic(|| call(game, b, m, &a)) {
                         Ok(r) => r,
                         Err(e) => format!("EX:{}: {}", cs::full_type_name(e.type_name), e.message),
                     };

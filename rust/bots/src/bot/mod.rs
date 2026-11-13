@@ -13,7 +13,7 @@ mod shipment;
 pub use shipment::*;
 
 use crate::prelude::*;
-use treachery_engine::compat::cs::{self, CsException};
+use treachery_engine::compat::cs;
 
 /// The fields of every partial file, in file order. One bot per faction lives for the whole game (hazards.md 16.8).
 pub struct ClassicBot {
@@ -400,12 +400,12 @@ impl ClassicBot {
         allowed_actions: &[GameEventType],
     ) -> bool {
         if action.is_none() && allowed_actions.contains(&T::TYPE) {
-            // Only C# exceptions are caught: cs::catch re-raises any other panic (todo!, a Rust bug),
-            // so an unported or broken decision is never mistaken for "chose nothing".
-            // Random draws and bot or game state changes made before the throw stay, as in C#.
-            match cs::catch(|| method(self, game)) {
+            // A decision that panics (it reads a card the game doesn't have, for example) is logged
+            // and counts as no decision. Random draws and bot or game state changes made before the
+            // panic stay.
+            match decide(|| method(self, game)) {
                 Ok(result) => *action = result.map(T::into_event),
-                Err(e) => Self::log_error(&format!("--error occured -->{}", exception_to_string_with_trace(&e)), vec![]),
+                Err(e) => Self::log_error(&format!("--error occured -->{e}"), vec![]),
             }
 
             if let Some(a) = action.clone() {
@@ -489,11 +489,10 @@ fn event_type_full_name(e: &GameEvent) -> String {
     format!("Treachery.Shared.{}", e.event_type().name())
 }
 
-/// `"..." + e` in a catch block: `Exception.ToString()` without the stack trace, which can't be
-/// reproduced. Only the braces in this text matter (it goes to `LogError`), and stack trace lines
-/// contain none, so the type and message are enough.
-fn exception_to_string_with_trace(e: &CsException) -> String {
-    cs::exception_to_string(e)
+/// Runs a bot decision, turning a panic into its message. The bots aren't written to avoid every
+/// state they can't handle, so a failed decision is isolated instead of ending the game.
+pub(crate) fn decide<R>(f: impl FnOnce() -> R) -> Result<R, String> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).map_err(|p| dotnet_compat::exception::panic_message(p.as_ref()))
 }
 
 /// The parse that .NET's `string.Format(format, args)` does (`StringBuilder.AppendFormatHelper`),

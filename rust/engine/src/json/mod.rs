@@ -608,7 +608,7 @@ impl ToJson for GameEvent {
     fn write_json(&self, w: &mut JsonWriter) {
         let t = self.event_type();
         let Some(discriminator) = t.json_discriminator() else {
-            crate::throw!(NotSupportedException, "Runtime type '{}' is not supported by polymorphic type 'Treachery.Shared.GameEvent'.", t.name());
+            panic!("Runtime type '{}' is not supported by polymorphic type 'Treachery.Shared.GameEvent'.", t.name());
         };
         w.object_value();
         w.member("$type", discriminator);

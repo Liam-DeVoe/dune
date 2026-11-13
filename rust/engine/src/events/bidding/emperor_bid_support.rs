@@ -28,10 +28,21 @@ impl EmperorBidSupport {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         // C# assigns the event's own dictionary (aliased, hazards 5.3); nothing mutates it afterwards, so a copy is equivalent.
+        // Without amounts (only without validation) the message can't be built: the event fails
+        // before it is logged (C#: Log() throws ArgumentNullException in GetMessage).
         game.permitted_use_of_emperor_spice = self.amounts.clone();
-        self.log(game);
+        let message = self.try_get_message(game)?;
+        game.current_report_mut().express_event(message);
+        Ok(())
+    }
+
+    pub fn try_get_message(&self, game: &Game) -> GameResult<Message> {
+        if self.amounts.is_none() {
+            game_error!("Emperor bid support has no amounts");
+        }
+        Ok(self.get_message(game))
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -67,12 +78,16 @@ impl GameEventMethods for EmperorBidSupport {
         EmperorBidSupport::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         EmperorBidSupport::execute_concrete_event(self, game)
     }
 
     fn get_message(&self, game: &Game) -> Message {
         EmperorBidSupport::get_message(self, game)
+    }
+
+    fn try_get_message(&self, game: &Game) -> GameResult<Message> {
+        EmperorBidSupport::try_get_message(self, game)
     }
 
 }

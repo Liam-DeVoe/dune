@@ -172,7 +172,7 @@ fn opt<T: CsNull>(null: bool) -> Option<T> {
 #[rustfmt::skip]
 fn calls() -> Vec<(&'static str, Call)> {
     vec![
-        ("Game.Discard(TreacheryCard?)", |g, n| { g.discard_treachery_card_boolean(opt(n), true); String::new() }),
+        ("Game.Discard(TreacheryCard?)", |g, n| { g.discard_treachery_card_boolean(opt(n), true).unwrap(); String::new() }),
         ("Game.Discard(Player?, TreacheryCard?)", |g, n| { let p = g.player_at(0); g.discard_player_treachery_card_boolean(Some(p), opt(n), true); String::new() }),
         ("Game.Discard(null Player, card)", |g, n| { let c = TreacheryCardManager::get(28); g.discard_player_treachery_card_boolean(opt(n), c, true); String::new() }),
         ("Game.RegisterKnown(Player, TreacheryCard?)", |g, n| { let p = g.player_at(1); Game::register_known_player_treachery_card(g, p, opt(n)); String::new() }),
@@ -207,7 +207,7 @@ fn calls() -> Vec<(&'static str, Call)> {
 
 fn run(call: Call, null: bool) -> (String, Vec<u8>) {
     let mut g = new_game();
-    let r = match cs::catch(std::panic::AssertUnwindSafe(|| call(&mut g, null))) {
+    let r = match cs::catch_panic(std::panic::AssertUnwindSafe(|| call(&mut g, null))) {
         Ok(v) => format!("ok:{v}"),
         Err(e) => format!("{}: {}", e.type_name, e.message),
     };

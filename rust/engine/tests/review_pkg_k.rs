@@ -66,7 +66,7 @@ fn card_traded_null_card_in_hand_is_valid() {
         &g,
         r#"{"$type":"CardTraded","Target":20,"_cardId":-1,"_requestedCardId":-1,"Initiator":90,"Time":"2024-01-01T12:02:40+00:00"}"#,
     );
-    let r = cs::catch(|| e.validate(&g).map(|m| format!("{m:?}")));
+    let r = cs::catch_panic(|| e.validate(&g).map(|m| format!("{m:?}")));
     assert_eq!(r.as_ref().ok(), Some(&None), "C# Validate returns null (valid); Rust: {r:?}");
 }
 
@@ -83,7 +83,7 @@ fn discarded_searched_null_card_in_pile_is_valid() {
     g.treachery_discard_pile.as_mut().unwrap().items = vec![TreacheryCard::NULL];
 
     let e = ev(&g, r#"{"$type":"DiscardedSearched","_cardId":-1,"Initiator":90,"Time":"2024-01-01T12:02:40+00:00"}"#);
-    let r = cs::catch(|| e.validate(&g).map(|m| format!("{m:?}")));
+    let r = cs::catch_panic(|| e.validate(&g).map(|m| format!("{m:?}")));
     assert_eq!(r.as_ref().ok(), Some(&None), "C# Validate returns null (valid); Rust: {r:?}");
 }
 

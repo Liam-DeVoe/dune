@@ -46,17 +46,14 @@ impl AcceptOrCancelTleilaxuRevival {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
 
         match self.hero() {
             None => {
                 let requests = game.current_revival_requests.clone();
                 for r in requests.iter() {
-                    // Dictionary.Add(null, ...) throws ArgumentNullException.
-                    let Some(h) = r.hero() else {
-                        crate::compat::cs::throw("ArgumentNullException", crate::compat::cs::with_parameter("Value cannot be null.", "key"))
-                    };
+                    let Some(h) = r.hero() else { game_error!("A revival request has no leader") };
                     game.early_revivals_offers.add(h, i32::MAX);
                 }
 
@@ -79,6 +76,7 @@ impl AcceptOrCancelTleilaxuRevival {
                 }
             }
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -115,7 +113,7 @@ impl GameEventMethods for AcceptOrCancelTleilaxuRevival {
         AcceptOrCancelTleilaxuRevival::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         AcceptOrCancelTleilaxuRevival::execute_concrete_event(self, game)
     }
 

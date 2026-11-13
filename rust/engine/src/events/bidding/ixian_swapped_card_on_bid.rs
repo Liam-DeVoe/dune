@@ -41,13 +41,13 @@ impl IxianSwappedCardOnBid {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         if !self.passed && self.card().is_some() {
-            let card = self.card().nre();
+            let card = self.card().required("card")?;
             game.ixian_swapped_card_on_bid = true;
             let me = self.player();
             crate::game::remove_card(&mut game.player_mut(me).treachery_cards, Some(card));
-            let drawn = game.cards_on_auction.as_mut().nre().draw();
+            let drawn = game.cards_on_auction.as_mut().required("cards on auction")?.try_draw()?;
             game.player_mut(me).treachery_cards.push(drawn);
 
             // The lazy Where re-runs HasBiddingPrescience per player; UnregisterKnown does not change it.
@@ -57,13 +57,14 @@ impl IxianSwappedCardOnBid {
                 Game::unregister_known_player_i_enumerable_treachery_card(game, p, &my_cards);
             }
 
-            game.cards_on_auction.as_mut().nre().put_on_top(card);
+            game.cards_on_auction.as_mut().required("cards on auction")?.put_on_top(card);
             game.register_known_faction_treachery_card(Faction::Ixian, card);
             game.stone(Milestone::CardOnBidSwapped);
             self.log(game);
         }
 
         game.continue_after_ixian_card_swap_decision();
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -92,7 +93,7 @@ impl GameEventMethods for IxianSwappedCardOnBid {
         IxianSwappedCardOnBid::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         IxianSwappedCardOnBid::execute_concrete_event(self, game)
     }
 

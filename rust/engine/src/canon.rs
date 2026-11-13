@@ -21,7 +21,8 @@ use std::rc::Rc;
 
 use dotnet_compat::{NetDictionary, NetHashSet};
 
-use crate::compat::cs::{CsException, RcKey, Shared};
+use crate::compat::cs::{RcKey, Shared};
+use crate::error::GameError;
 use crate::compat::date_time_offset::{DateTimeOffset, TimeSpan};
 use crate::enumerations::DiscoveryToken;
 use crate::events::GameEvent;
@@ -909,22 +910,22 @@ impl CanonShape for SharedRandom {
     }
 }
 
-/// Exceptions: `{"$type":"$Exception","message":...,"type":<full name>}`.
-impl Canon for CsException {
+/// Game errors: `{"$type":"$Exception","message":...,"type":"GameError"}`.
+impl Canon for GameError {
     fn canon(&self, w: &mut CanonWriter) {
         w.obj_start();
         w.key("$type");
         w.string("$Exception");
         w.comma();
         w.key("message");
-        w.string(&self.message);
+        w.string(self.message());
         w.comma();
         w.key("type");
-        w.string(&crate::compat::cs::full_type_name(self.type_name));
+        w.string("GameError");
         w.obj_end();
     }
 }
-impl CanonShape for CsException {
+impl CanonShape for GameError {
     fn canon_shape(reg: &mut Registry) -> Shape {
         reg.manual("$Exception", |_| vec![("message", Shape::kind("str")), ("type", Shape::kind("str"))])
     }
@@ -982,7 +983,7 @@ impl Canon for ExpressionElement {
             E::Payment(p) => p.canon(w),
             E::Message(m) => m.canon(w),
             E::MessagePart(m) => m.canon(w),
-            E::Exception(e) => e.canon(w),
+            E::Error(e) => e.canon(w),
             E::Player(p) => p.canon(w),
             E::List { items, live, .. } => {
                 // A live list shows the game's contents now. Without a game
@@ -1005,7 +1006,7 @@ impl CanonShape for ExpressionElement {
         s = s.union(<crate::messages::payment::Payment as CanonShape>::canon_shape(reg));
         s = s.union(<crate::messages::message::Message as CanonShape>::canon_shape(reg));
         s = s.union(<crate::messages::message::MessagePart as CanonShape>::canon_shape(reg));
-        s = s.union(CsException::canon_shape(reg));
+        s = s.union(GameError::canon_shape(reg));
         s = s.with("ref:Player");
         // A list holds elements again; one level is enough for the test.
         let mut inner = Shape::kind("null").with("str").with("bool").with("num");

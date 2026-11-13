@@ -62,12 +62,12 @@ impl JuicePlayed {
         applicable_phase && g.player(player).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Juice)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
 
         let aggressor_before_juice_is_played = game.current_battle.clone().and_then(|b| b.aggressive_player(game));
         game.current_juice = Some(self.clone());
-        game.discard(self.player(), TreacheryCardType::Juice);
+        game.discard(self.player(), TreacheryCardType::Juice)?;
 
         if let Some(battle) = game.current_battle.clone() {
             if self.type_ == JuiceType::Aggressor && battle.aggressive_player(game) != aggressor_before_juice_is_played {
@@ -75,6 +75,7 @@ impl JuicePlayed {
                 std::mem::swap(&mut game.defender_traitor_action, &mut game.aggressor_traitor_action);
             }
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -99,7 +100,7 @@ impl GameEventMethods for JuicePlayed {
         JuicePlayed::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         JuicePlayed::execute_concrete_event(self, game)
     }
 

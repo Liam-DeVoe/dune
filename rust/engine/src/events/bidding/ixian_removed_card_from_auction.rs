@@ -40,20 +40,20 @@ impl IxianRemovedCardFromAuction {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let card = self.card();
-        crate::game::remove_card(&mut game.cards_on_auction.as_mut().nre().items, card);
+        crate::game::remove_card(&mut game.cards_on_auction.as_mut().required("cards on auction")?.items, card);
         // C# puts a null card on the deck when the card id is unknown.
         let card = card.or_null();
 
         if self.put_on_top {
-            game.treachery_deck.as_mut().nre().put_on_top(card);
+            game.treachery_deck.as_mut().required("treachery deck")?.put_on_top(card);
         } else {
-            game.treachery_deck.as_mut().nre().put_on_bottom(card);
+            game.treachery_deck.as_mut().required("treachery deck")?.put_on_bottom(card);
         }
 
         game.register_known_faction_treachery_card(Faction::Ixian, card);
-        game.cards_on_auction.as_mut().nre().shuffle();
+        game.cards_on_auction.as_mut().required("cards on auction")?.shuffle();
         game.stone(Milestone::Shuffled);
         self.log(game);
 
@@ -70,6 +70,7 @@ impl IxianRemovedCardFromAuction {
         } else {
             game.start_bidding_round();
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -98,7 +99,7 @@ impl GameEventMethods for IxianRemovedCardFromAuction {
         IxianRemovedCardFromAuction::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         IxianRemovedCardFromAuction::execute_concrete_event(self, game)
     }
 

@@ -41,7 +41,7 @@ impl FactionTradeOffered {
         crate::compat::lazy::union(factions.into_iter(), g.players.iter().map(|p| p.faction)).filter(move |f| *f != g.player(p).faction)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         if !self.is_playing(game, self.target) {
             self.log_objects(game, vec![self.initiator().into(), " switch to ".into(), self.target.into()]);
 
@@ -63,7 +63,7 @@ impl FactionTradeOffered {
                 // (target.Faction, Player.Faction) = (Player.Faction, target.Faction);
                 let me = self.player();
                 let my_faction = game.player(me).faction;
-                let target = target.nre();
+                let target = target.required("target")?;
                 let target_faction = game.player(target).faction;
                 game.player_mut(target).faction = my_faction;
                 game.player_mut(me).faction = target_faction;
@@ -76,6 +76,7 @@ impl FactionTradeOffered {
                 }
             }
         }
+        Ok(())
     }
 
     pub fn remove_invalid_trade_offers(&self, game: &mut Game) {
@@ -118,7 +119,7 @@ impl GameEventMethods for FactionTradeOffered {
         FactionTradeOffered::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         FactionTradeOffered::execute_concrete_event(self, game)
     }
 

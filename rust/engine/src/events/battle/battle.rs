@@ -143,9 +143,9 @@ impl Battle {
         self.weapon().is_some_and(|w| w.is_useless()) || self.defense().is_some_and(|d| d.is_useless())
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let Some(current_battle) = game.current_battle.clone() else {
-            throw!(Exception, "Battle event executed when there is no current battle");
+            game_error!("Battle event executed when there is no current battle");
         };
 
         if self.initiator() == current_battle.aggressor(game) {
@@ -176,6 +176,7 @@ impl Battle {
             let melting = aggressor_plan.has_rock_melter() || defender_plan.has_rock_melter();
             game.enter_boolean_phase_phase(melting, Phase::MeltingRock, Phase::CallTraitorOrPass);
         }
+        Ok(())
     }
 
     pub fn register_known_cards(&self, game: &mut Game, battle: &Battle) {
@@ -189,7 +190,7 @@ impl Battle {
 
     pub fn pass_tleilaxu_traitor_action(&self, game: &mut Game) {
         let Some(current_battle) = game.current_battle.clone() else {
-            throw!(Exception, "Battle event executed when there is no current battle");
+            panic!("Battle event executed when there is no current battle");
         };
 
         // `GetPlayer(Faction.Tleilaxu)?.Ally != Faction.Harkonnen` is true when Tleilaxu is not playing.
@@ -1255,7 +1256,7 @@ impl GameEventMethods for Battle {
         Battle::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         Battle::execute_concrete_event(self, game)
     }
 

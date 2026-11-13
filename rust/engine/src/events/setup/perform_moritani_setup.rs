@@ -49,7 +49,7 @@ impl PerformMoritaniSetup {
         g.map.locations(false).filter(move |l| *l != hms && !g.any_forces_in(l.territory()))
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         // Player is read before Target, as in C#.
         let me = self.player();
         // `Target` may be null without validation: ShipForces passes it on.
@@ -62,6 +62,7 @@ impl PerformMoritaniSetup {
         } else {
             game.deal_starting_treachery_cards();
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -87,7 +88,7 @@ impl GameEventMethods for PerformMoritaniSetup {
         PerformMoritaniSetup::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         PerformMoritaniSetup::execute_concrete_event(self, game)
     }
 

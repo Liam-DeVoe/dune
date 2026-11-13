@@ -112,7 +112,7 @@ impl TerrorPlanted {
                 && !g.prevented(FactionAdvantage::MoritaniPlantingTerror))
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let m = self.get_verbose_message(game);
         self.log_objects(game, vec![m.into()]);
 
@@ -150,6 +150,7 @@ impl TerrorPlanted {
                 }
             }
         }
+        Ok(())
     }
 
     pub fn get_verbose_message(&self, game: &Game) -> Message {
@@ -195,7 +196,7 @@ impl GameEventMethods for TerrorPlanted {
         TerrorPlanted::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         TerrorPlanted::execute_concrete_event(self, game)
     }
 

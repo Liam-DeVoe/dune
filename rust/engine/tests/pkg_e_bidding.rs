@@ -26,7 +26,7 @@ fn as_player<E: GameEventMethods>(e: E, g: &Game, f: Faction) -> E {
 }
 
 fn outcome<R>(f: impl FnOnce() -> R) -> Result<R, String> {
-    cs::catch(f).map_err(|e| format!("{}: {}", e.type_name, e.message))
+    cs::catch_panic(f).map_err(|e| format!("{}: {}", e.type_name, e.message))
 }
 
 fn text(m: Option<Message>) -> Option<String> {

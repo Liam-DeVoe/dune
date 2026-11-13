@@ -16,7 +16,7 @@ mod common;
 
 use common::*;
 use serde_json::{json, Value};
-use treachery_engine::compat::cs::{self, CsException};
+use treachery_engine::compat::cs;
 use treachery_engine::enumerations::Faction;
 use treachery_engine::messages::expression::{EnumValue, ExpressionElement as E};
 use treachery_engine::heroes::hero::Hero;
@@ -72,9 +72,14 @@ fn element(v: &Value) -> E {
         Value::Array(a) => E::list(a.iter().map(element).collect::<Vec<E>>()),
         Value::Object(o) if o.contains_key("list") => collection(v),
         Value::Object(o) if o.contains_key("exception") => {
-            let type_name: &'static str = Box::leak(o["exception"].as_str().unwrap().to_string().into_boxed_str());
+            // The corpus holds C# exception objects, which render as `Exception.ToString()`:
+            // "System.X: message", or just "System.X" when the message is empty. A GameError
+            // holding that text renders the same.
+            let type_name = o["exception"].as_str().unwrap();
             let message = o["message"].as_str().map_or_else(|| cs::default_message(type_name), str::to_string);
-            E::Exception(CsException { type_name, message })
+            let full_type_name = cs::full_type_name(type_name);
+            let text = if message.is_empty() { full_type_name.to_string() } else { format!("{full_type_name}: {message}") };
+            E::Error(treachery_engine::error::GameError::new(text))
         }
         Value::Object(o) if o.contains_key("message") => {
             E::from(Message::express(o["message"].as_array().unwrap().iter().map(element).collect()))
@@ -138,7 +143,7 @@ fn enc_element(e: &E) -> Value {
         E::Payment(_) => json!("?:Payment"),
         E::Message(m) => m.enc(),
         E::MessagePart(m) => m.enc(),
-        E::Exception(x) => json!(format!("?:{}", x.type_name)),
+        E::Error(x) => json!(format!("?:{}", x.message().split(':').next().unwrap_or("").trim_start_matches("System.").rsplit('.').next().unwrap_or(""))),
         E::Player(_) => json!("?:Player"),
         E::List { type_name, items, .. } if type_name.ends_with("[]") => json!({
             "list": type_name.rsplit('.').next().unwrap(),

@@ -39,10 +39,11 @@ impl RockWasMelted {
         }
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
         game.current_rock_was_melted = Some(self.clone());
         game.enter(Phase::CallTraitorOrPass, true);
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -70,7 +71,7 @@ impl GameEventMethods for RockWasMelted {
         RockWasMelted::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         RockWasMelted::execute_concrete_event(self, game)
     }
 

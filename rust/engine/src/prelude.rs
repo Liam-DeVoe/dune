@@ -6,7 +6,7 @@ pub use std::rc::Rc;
 pub use canon_derive::Canon;
 pub use dotnet_compat::{NetDictionary, NetHashSet, NetRandom};
 
-pub use crate::compat::cs::{self, CsException, CsIterExt, CsNull, NullRef, OrNull, RcKey, Shared};
+pub use crate::compat::cs::{self, CsIterExt, CsNull, NullRef, OrNull, RcKey, Shared};
 pub use crate::compat::date_time_offset::{DateTimeOffset, TimeSpan};
 pub use crate::cards::deck::Deck;
 pub use crate::enumerations::*;
@@ -22,7 +22,8 @@ pub use crate::messages::payment::Payment;
 pub use crate::map::point::PointD;
 pub use crate::messages::report::Report;
 pub use crate::cards::treachery_card_manager::TreacheryCardManager;
-pub use crate::{express, express_part, express_part_if, express_to, throw};
+pub use crate::{express, express_part, express_part_if, express_to, game_error};
+pub use crate::error::{GameError, GameResult, Required};
 
 pub use crate::map::attached_location::AttachedLocation;
 pub use crate::map::discovery::DiscoveredLocation;

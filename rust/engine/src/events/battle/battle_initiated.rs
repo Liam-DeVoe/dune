@@ -296,7 +296,7 @@ impl BattleInitiated {
         None
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         // Not logged: the report panel shows who attacks whom where in the battle's heading.
         // Aggressor, Defender and Territory only read state that StartReport doesn't touch.
         let aggressor = self.aggressor(game);
@@ -315,11 +315,12 @@ impl BattleInitiated {
                     && territory.is_some()
                     && game.player(ecaz).occupies_territory(game, territory)
                     && game.player(ecaz).has_ally()
-                    && game.player(game.player(ecaz).allied_player(game).nre()).occupies_territory(game, territory)
+                    && game.player(game.player(ecaz).allied_player(game).required("allied player")?).occupies_territory(game, territory)
             }
             None => false,
         };
         game.enter_boolean_phase_action(condition, Phase::ClaimingBattle, Game::initiate_battle);
+        Ok(())
     }
 
     pub fn get_message(&self, game: &Game) -> Message {
@@ -352,7 +353,7 @@ impl GameEventMethods for BattleInitiated {
         BattleInitiated::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         BattleInitiated::execute_concrete_event(self, game)
     }
 

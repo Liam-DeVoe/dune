@@ -60,7 +60,7 @@ impl RicheseAnnouncesBlackMarket {
         game.player(p).treachery_cards.clone()
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
 
         if !self.passed {
@@ -70,7 +70,7 @@ impl RicheseAnnouncesBlackMarket {
             crate::game::remove_card(&mut game.player_mut(me).treachery_cards, card);
             // C# puts a null card on the deck when executed without validation.
             let card = card.or_null();
-            game.cards_on_auction.as_mut().nre().put_on_top(card);
+            game.cards_on_auction.as_mut().required("cards on auction")?.put_on_top(card);
             game.register_known_faction_treachery_card(self.initiator(), card);
             game.bids.clear();
             game.current_bid = None;
@@ -78,6 +78,7 @@ impl RicheseAnnouncesBlackMarket {
         } else {
             game.enter_richese_bidding();
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
@@ -115,7 +116,7 @@ impl GameEventMethods for RicheseAnnouncesBlackMarket {
         RicheseAnnouncesBlackMarket::validate(self, game)
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         RicheseAnnouncesBlackMarket::execute_concrete_event(self, game)
     }
 

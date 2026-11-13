@@ -207,6 +207,37 @@ fn traitors_told_by_the_opponent_count_as_known_traitors() {
     assert_eq!(with, 99.0);
 }
 
+/// Harkonnen, with 3 forces in Carthag and no spice, looks at Arrakeen, which holds one Emperor
+/// force and fifteen Guild forces. Emperor comes first among Harkonnen's opponents, so the bot
+/// used to estimate the battle against Emperor and found Arrakeen easy to win. It now estimates
+/// against the opponent it picked to fight there, Guild, the strongest.
+#[test]
+fn a_weak_stronghold_is_judged_against_the_opponent_picked_to_fight() {
+    let mut game = load("move");
+    let me = player_of(&game, Faction::Harkonnen);
+    let (weak, strong) = (player_of(&game, Faction::Emperor), player_of(&game, Faction::Guild));
+    let (arrakeen, carthag) = (game.map.arrakeen(), game.map.carthag());
+    for p in game.player_indices().collect::<Vec<_>>() {
+        for l in [arrakeen, carthag] {
+            let (n, s) = (game.player(p).forces_in(Some(l)), game.player(p).special_forces_in(Some(l)));
+            Player::remove_forces(&mut game, p, l, n);
+            Player::remove_special_forces(&mut game, p, l, s);
+        }
+    }
+    Player::add_forces(&mut game, me, carthag, 3, false);
+    Player::add_forces(&mut game, weak, arrakeen, 1, false);
+    game.player_mut(me).resources = 0;
+    // Both opponents have shipped this turn, so neither can reinforce.
+    game.has_acted_or_passed.extend([Faction::Emperor, Faction::Guild]);
+    let b = bot(&game, me);
+    let battalion = Battalion::new(Faction::Harkonnen, 3, 0, carthag);
+    assert_eq!(b.winnable_nearby_stronghold(&game, carthag, &battalion), Some(arrakeen), "Emperor alone is beatable");
+
+    Player::add_forces(&mut game, strong, arrakeen, 15, false);
+    let b = bot(&game, me);
+    assert_eq!(b.winnable_nearby_stronghold(&game, carthag, &battalion), None);
+}
+
 /// Without a human to pick, Bene Gesserit predicts a random other player with one draw, then
 /// draws the turn. The coin flip that came first is gone.
 #[test]

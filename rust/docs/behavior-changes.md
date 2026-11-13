@@ -37,6 +37,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - When: Whenever a bot produces an invalid event (hazards.md §16.1).
 - Where: rust/server/src/hub/game_events.rs:396
 - Note: Makes bots less likely to stall or pass where they had a valid move.
+- Done (0e82687): the dispatch in rust/bots/src/bot/mod.rs (`first_decision!`) passes over a rejected decision and asks the next method. The server code it pointed at is gone; `Server::bot_turn` (rust/server/src/server/bots.rs) only sees valid events now. Test: `an_invalid_decision_falls_through_to_the_next_method` (bot/mod.rs).
 
 ## Bots don't count Bene Gesserit Worthless cards as Karama
 
@@ -46,6 +47,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - When: Bots against Bene Gesserit with the Worthless-as-Karama rule.
 - Where: rust/bots/src/bot/knowledge.rs, `max_reinforced_dial_to`
 - Note: Bot quality; one condition.
+- Done (0e82687): `max_reinforced_dial_to` counts a known Worthless card as Karama for Bene Gesserit under the rule. Test: `worthless_cards_count_as_karama_for_bene_gesserit` (bots/tests/behavior_changes.rs).
 
 ## Smaller bot reasoning slips
 
@@ -55,6 +57,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - When: Various bot decisions.
 - Where: rust/bots/src/bot/battle.rs, `get_dial_needed` and `select_hero_for_battle`
 - Note: Low priority; small effect on bot play.
+- Done (0e82687): `get_dial_needed` estimates for `p` (its aggressor check, leader, cards and `best_voice` all use `p`); `select_hero_for_battle` takes known traitors from the opponent's own told traitors; `winnable_nearby_stronghold` estimates against the opponent it picked. Tests: `dial_needed_for_another_player_is_theirs`, `traitors_told_by_the_opponent_count_as_known_traitors`, `a_weak_stronghold_is_judged_against_the_opponent_picked_to_fight` (bots/tests/behavior_changes.rs).
 
 ## Harmless bot oddities
 
@@ -63,6 +66,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - Intended: Same.
 - Where: rust/bots/src/
 - Note: No meaningful effect on play.
+- Done (0e82687): a Mirror Weapon pick is kept, with an even chance of killing (test: `a_mirror_weapon_pick_is_kept`, bot/battle.rs); the No-Field sizing falls back to the biggest No-Field instead of the maximum of an empty list (that branch can't be reached: the forces are capped at the biggest No-Field, so a big enough one always exists); the duplicate conditions are gone (the one in `determine_shipment` was already gone); the prediction no longer flips a coin first (test: `bene_gesserit_prediction_draws_no_coin`). The coin flip changes Bene Gesserit's draws from the first turn, so every game with a Bene Gesserit bot plays differently from then on.
 
 ## Missing spaces: "receiving5" and "ChoamUsing"
 
@@ -142,6 +146,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - Intended: Count the opponent's own spice when there is no ally.
 - When: Bots holding Karama.
 - Where: rust/bots/src/bot/other.rs, `determine_karma_shipment_prevention`
+- Done (0e82687): the opponent's spice plus their ally's, if any. Test: `karama_shipment_prevention_blocks_a_winning_opponent_without_ally` (bots/tests/behavior_changes.rs).
 
 ## Ally permissions without an ally are stored under "no faction"
 
@@ -154,6 +159,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - Intended: Price one more normal force.
 - When: Every bot shipment that adds normal forces.
 - Where: rust/bots/src/bot/shipment.rs, `ForceSizing::fill`
+- Done (0e82687): prices one more normal force. No game changes: a shipment's cost depends only on the total number of forces, so both prices are the same. Test: `shipment_sizing_prices_the_normal_forces_it_adds` (bots/tests/behavior_changes.rs).
 
 ## Bene Gesserit bot never voices a useless defense against poison
 
@@ -162,8 +168,15 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - Intended: Probably "is a projectile defense and not a poison defense".
 - When: Bene Gesserit bot with a poison weapon.
 - Where: rust/bots/src/bot/factions.rs, `voice_against_defenses`
+- Done (0e82687): a known projectile defense that isn't a poison defense is forced. Test: `bene_gesserit_voices_a_useless_defense_against_poison` (bots/tests/behavior_changes.rs).
 
 ## For the step 3 cleanup (no visible effect, simplify if the behavior check stays clean)
 
 - Setup briefly enters deck customizing or faction trading before the real next phase (rust/engine/src/game/setup.rs:73 before step 2).
 - End of storm runs its cleanup twice when storm losses are taken first; the comment saying it skips the storm report is wrong (rust/engine/src/game/storm.rs:219, :223 before step 2).
+
+## Bots change the game while deciding
+
+- Area: Bots (native-plan.md step 4, not part of the review)
+- What happened: the Rock Melter decision worked out the battle on the live plans, which logged "<Mirror Weapon> becomes a <card>" and set the Diplomat's card (known-issues.md).
+- Done (0e82687): `ClassicBot::decide` takes `&Game`, so no decision can change the game. The Rock Melter decision uses `Battle::predict_battle_outcome` on copies of the plans. Engine change: rust/engine/src/events/battle/battle.rs splits `determine_battle_outcome` into the card swap, the recording of the Mirror Weapon and Diplomat (`activate_dynamic_weapons`), and a pure part shared with `predict_battle_outcome`. Tests: `deciding_never_changes_the_game` (every fixture, player and priority), `rock_melter_decision_with_a_mirror_weapon_leaves_the_game_alone` (bots/tests/behavior_changes.rs).

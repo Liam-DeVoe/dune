@@ -26,9 +26,9 @@ This file is the shared plan. Every agent working on the port reads it first.
    `std::collections::HashMap`/`HashSet` are banned in engine code because their
    iteration order differs. See `rust/docs/hazards.md` for the full list of
    ways C# and Rust differ.
-5. **Mirror the C# structure.** One Rust module per C# file, same names in
-   snake_case, same field names, same method order. A reviewer should be able
-   to read the two side by side.
+5. **Mirror the C# structure.** Same names in snake_case, same field names,
+   same method order. (Modules no longer follow the C# files since native-plan.md
+   step 3; `rust/docs/engine.md` describes the layout.)
 6. **Every escaped bug is a testing bug.** When a difference between C# and
    Rust is found by anything other than the automated differential tests (or is
    found late), fix it, then write an entry in `rust/docs/escapes.md`: what the

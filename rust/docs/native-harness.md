@@ -10,7 +10,9 @@ The reference binary records bot and fuzz games at `Game::LATEST_VERSION`. Each 
 - the event types each queried player may submit (the bots' and fuzzer's `GetApplicableEvents` calls);
 - each bot round's decision: which player's bot acted, and the event JSON it built.
 
-It doesn't compare state shape, random draw counts, bot priority levels or internal ids that players never see. An event that makes the engine throw counts as "not accepted", and the text of its "Game Error" message isn't compared, so turning a C#-style exception into a `Result` or a proper validation message is not a difference. Card, leader, location and territory ids are compared where they appear in views and event JSON, because clients see and send them.
+It doesn't compare state shape, random draw counts, bot priority levels or internal ids that players never see. An event that makes the engine throw counts as "not accepted", and the text of its "Game Error" message isn't compared, so turning a C#-style exception into a `Result` or a proper validation message is not a difference.
+
+Since step 3b the engine no longer catches its own panics. The working tree's replay (`session.rs`, `guarded`) treats a call that panics as the server does: the call failed, with the panic message as its error, and the game goes on. So a former C# exception that is now a panic compares like the exception did. A view that fails to build is compared as failed: the reference records `error: <exception>` as the view's hash, and the error text isn't compared. Card, leader, location and territory ids are compared where they appear in views and event JSON, because clients see and send them.
 
 ## Running it
 

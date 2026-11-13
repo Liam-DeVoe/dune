@@ -98,7 +98,7 @@ The null handle behaves like a C# null reference:
 
 - It fits in any `Vec`, `NetHashSet` or `Deck`, and `==` is true only against another null. `Hero::Leader(Leader::NULL)` is the same null as `Hero::NULL`.
 - Every member (`id()`, `type_()`, `territory()`, `data()`, ...) throws NullReferenceException. `Game::player(PlayerIndex::NULL)` does too.
-- As a `NetDictionary` key, every method throws ArgumentNullException "Value cannot be null. (Parameter 'key')". `cs::install_null_key_check` registers this with dotnet-compat. `Map::new` and `cs::catch` call it.
+- As a `NetDictionary` key, every method throws ArgumentNullException "Value cannot be null. (Parameter 'key')". `cs::install_null_key_check` registers this with dotnet-compat. `Map::new` calls it.
 - It dumps as `null`, becomes `ExpressionElement::Null` in messages, and `IFetcher::get_id` gives `-1` for it.
 - `as_leader()`, `as_treachery_card()` and `is_messiah()` are false for it, like C# `is`.
 
@@ -344,7 +344,7 @@ What converts:
 - `&str`, `String`, `bool`, `i32`, `i64`, `f32`, `f64`.
 - Every enum.
 - `Location` and its subtypes, `Territory`, `Leader`, `Hero`, `TreacheryCard`, `ResourceCard`.
-- `Payment`, `Message`, `MessagePart` and `CsException`.
+- `Payment`, `Message`, `MessagePart` and `GameError`.
 - `Option<T>`, where `None` is null.
 - `Vec<T>`, `&[T]` and `[T; N]`, which become a list element.
 
@@ -363,39 +363,34 @@ The macro evaluates its arguments left to right before it creates the message, s
 
 `Validate()` returns `Option<Message>`, where `None` means valid.
 
-## Exceptions
+## Errors
 
-A C# exception is a Rust panic whose payload is `cs::CsException { type_name, message }`. The replayer runs each event inside `cs::catch`, which turns that panic back into a value. Hazards §1 requires that a port stop at the same statement, with the same exception type and message, and keep every state change made before the throw. A panic at the C# throw site gives all three without touching any signature.
+Validation doesn't rule out every event the rules can't handle, so an accepted event can fail partway through executing. Such a failure is a `GameError` (`error.rs`), and the code on the way to it returns `GameResult<T>`:
 
-The alternative was `Result` plus `?` everywhere. Nearly every member access can throw a NullReferenceException, and many throws happen inside LINQ lambdas. With `Result`, most getters and closures would become fallible, and ports would stop reading like the C#.
+- `execute_concrete_event` returns `GameResult`, and so do the game methods it calls that can fail: drawing from a deck that can run out (`Deck::try_draw`), discarding a card the player doesn't hold (`Game::discard`), moving on from a phase the intrusion queue doesn't expect (`determine_next_shipment_and_move_sub_phase`), and the bid and battle resolution around them.
+- `GameEventMethods::execute` turns an `Err` into the "Game Error: ..." message the server shows the player. The state changes made before the failure stay, and the event isn't added to the history. `try_execute` returns the `GameResult` itself.
+- An event's message can't always be built for an event that is about to be refused (a faction that isn't playing, no card). Those events implement `try_get_message`, which the "not applicable" refusal uses.
+- A few events can't even be validated without a value the client left out. They implement `try_validate`, which `try_execute` calls, so such an event fails with a Game Error. Their `validate` turns the failure into a refusal for bots and views.
 
 ```rust
-use crate::throw;
-use crate::cs::{self, NullRef, CsIterExt};
-
-throw!(InvalidOperationException, "Cannot draw from an empty deck");   // throw new ...
-throw!(Exception, "Could not find a player after {}", faction);        // $"... {faction}"
-
-let ally = player.allied_player().nre();         // Player.AlliedPlayer!.X  -> NullReferenceException
-let x = *cs::index(&dials, 1);                   // Dials[1]                -> ArgumentOutOfRangeException
-let first = items.iter().cs_first();             // .First()
-let m = items.iter().cs_first_where(|c| c.is_weapon());   // .First(pred) -> "no matching element"
-let one = items.iter().cs_single_or_default();   // .SingleOrDefault()
-let q = cs::div(total, players);                 // int / int               -> DivideByZeroException
-let r = cs::rem(i, n);                           // int % int
-
-// try { ... } catch (Exception) { ... }   (bots, Skin.Format)
-match cs::catch(|| risky(game)) { Ok(v) => v, Err(_e) => fallback() }
+let card = game.cards_on_auction.as_mut().required("cards on auction")?.try_draw()?;
+let bene_gesserit = self.get_player(Some(Faction::BeneGesserit)).required("The Bene Gesserit player")?;
+if self.intrusions.is_empty() {
+    game_error!("No intrusions to dequeue");
+}
 ```
 
-Rules:
+Inside a function that returns `GameResult`, a value that must be there is `.required("what")?`, not `.nre()`.
 
-- Wherever C# can throw, implicitly or explicitly, call the helper that throws the same .NET exception at the same point. Never `unwrap()`, `expect()` or index a slice where C# could throw. Those produce a plain Rust panic, which the replayer treats as a porting bug and does not catch.
-- `x!` does not throw in C#. Only a member access does. Port `list.Add(x!)` and `f(x!)` with `x.or_null()`, not `x.nre()` (see [Null handles](#null-handles)).
-- Keep the statement order. The mutations before the throw are the specified behaviour.
-- Exception messages are the exact .NET texts. `cs.rs` has the common ones. Hazards §1.4 and §1.5 list the reachable sites with their messages.
-- The "Game Error" message of `GameEvent.Execute` puts the exception object in the message. That is `ExpressionElement::Exception`. Compare type and message only.
-- `Dictionary` indexer misses must throw `KeyNotFoundException` (`cs::key_not_found`). Until `NetDictionary::index` throws a `CsException` itself, check with `get` and call `cs::key_not_found(&key_text)`.
+Everything else that can't happen in a valid game panics. The helpers from the C# port (`nre()`, `nn()`, `cs_first`, `cs::index`, `NetDictionary::index`, ...) still panic with the .NET exception's type and message (`"NullReferenceException: ..."`), and other invariants use `panic!` or `expect`. Nothing in the engine catches a panic. The crash barriers are outside it:
+
+- the server catches a call or timer that panics, reports it and keeps the game (`server/src/server/mod.rs`), and builds each view inside `catch_unwind` (`server/src/views.rs`);
+- a bot decision that panics is logged and counts as no decision (`ClassicBot::do_` in `bots/src/bot/mod.rs`);
+- the view validates and builds forms for drafts, which may be missing values the engine expects, inside `treachery_view::build::draft_check` ("Validation failed").
+
+Savegames that can't be read are errors too: `GameState::load` returns `Result<GameState, JsonError>` and `Game::load` returns `Result<Game, Message>`.
+
+Tests that check a .NET-style panic use `cs::catch_panic`, which returns the exception named by the panic message.
 
 ## IEnumerable and laziness
 
@@ -500,7 +495,7 @@ When you port something static, add it to both sides of this test.
 
 The compat crate is finished; [compat.md](compat.md) has the full API. The points that are easiest to get wrong:
 
-- `NetDictionary::index` and `add` now throw `CsException` themselves (`KeyNotFoundException`, duplicate key with `Key: …`). Ignore older advice to check with `get` first. Key types need a `CsToString` impl, or use `index_with`/`add_with`.
+- `NetDictionary::index` and `add` panic like .NET throws (`KeyNotFoundException`, duplicate key with `Key: …`). Ignore older advice to check with `get` first. Key types need a `CsToString` impl, or use `index_with`/`add_with`.
 - `MaxBy`/`MinBy` are `linq::max_by_key_first`/`min_by_key_first`. Never use `Iterator::max_by_key`, which returns the last maximum. Wrap in `linq::or_no_elements(...)` when the C# source element is a value type, because .NET throws there.
 - `First(pred)`, `Last(pred)`, `Single(pred)`, `SingleOrDefault(pred)` are the `_where` variants. `filter` followed by `first` gives a different exception message.
 - `ElementAt` is `element_at` on a lazy source and `element_at_list` on a List or array.
@@ -516,7 +511,6 @@ The [foundation review](reviews/foundation.md) found differences in the support 
 ### Exceptions and indexing
 
 ```rust
-throw!(NullReferenceException);                         // throw new NullReferenceException(): .NET default message
 cs::argument_out_of_range_actual("faction", &f.to_string()); // new ArgumentOutOfRangeException(nameof(f), f, null)
 cs::with_parameter("bad", "x");                         // message of new ArgumentException("bad", "x")
 let x = *cs::index_array(&parts, 1);                    // array[1]: IndexOutOfRangeException

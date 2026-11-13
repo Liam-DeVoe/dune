@@ -226,7 +226,7 @@ impl Game {
             let paid_to = self.pay_for_card(winner, bid, bid_amount, bid_ally_contribution_amount, bid_emperor_contribution_amount, payment_receiver, &mut receiver_income_message)?;
             self.log_bid(winner, bid_amount, bid_ally_contribution_amount, bid_emperor_contribution_amount, &receiver_income_message, paid_to, false);
         } else {
-            self.play_nexus_card(winner, vec!["Secret Ally".into(), "get this card for free".into()]);
+            self.play_nexus_card(winner, vec!["get this card for free".into()]);
             self.log_bid(winner, 0, 0, 0, &receiver_income_message, Faction::None, true);
         }
 

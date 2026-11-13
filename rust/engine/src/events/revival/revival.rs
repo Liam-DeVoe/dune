@@ -563,7 +563,7 @@ impl Revival {
         if self.uses_emperor_secret_ally {
             game.play_nexus_card(
                 me,
-                vec![" revive ".into(), 3.into(), " additional forces beyond revival limits for free".into()],
+                vec!["revive ".into(), 3.into(), " additional forces beyond revival limits for free".into()],
             );
         }
 

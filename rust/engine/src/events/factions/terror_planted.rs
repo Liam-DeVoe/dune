@@ -133,7 +133,7 @@ impl TerrorPlanted {
                     if !game.terror_in(stronghold).next().is_none() && !game.player(me).has_high_threshold(game, World::Moritani) {
                         game.play_nexus_card(
                             me,
-                            vec!["Cunning".into(), "to plant additional Terror in ".into(), stronghold.into()],
+                            vec!["plant additional Terror in ".into(), stronghold.into()],
                         );
                     }
 

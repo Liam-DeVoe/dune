@@ -216,6 +216,25 @@ fn without_error_text(out: &str) -> &str {
 /// card trade offered to a faction that isn't the ally" for 00045).
 const DELIBERATE: &[(&str, i64)] = &[("fuzz-2026-00009", 602), ("fuzz-2026-00045", 857)];
 
+/// The C# text with the text fixes of rust/docs/behavior-changes.md applied ("Missing spaces",
+/// "Setting an automation rule", "Other small text quirks"), so the rest of each text is still
+/// compared. `actual` is needed for the automation rule descriptions, which C# doesn't have.
+fn with_text_fixes(expected: &str, actual: &str) -> String {
+    if expected.contains(" change ally permissions") && actual.contains(" an automation rule") {
+        return actual.to_string();
+    }
+    let mut e = expected.replace("from receiving", "from receiving ").replace("CHOAMUsing Karama", "CHOAM using Karama");
+    // Nexus card plays named the card type twice ("Nexus Cunning to Cunning prevent ...") or
+    // started their text with a space.
+    for t in ["Secret Ally", "Cunning", "Betrayal"] {
+        let fixed = format!("Nexus {t} to ");
+        for prefix in ["Secret Ally to ", "Secret Allyto ", "Secret Ally", "Cunningto ", "Cunning ", "Cunning", "cunningto ", " "] {
+            e = e.replace(&format!("{fixed}{prefix}"), &fixed);
+        }
+    }
+    e
+}
+
 /// Compares the probe's renderings for every trace in `traces` that has a file in `rendered`.
 fn check_corpus(traces: &Path, rendered: &Path) {
     let skin = default_skin();
@@ -249,7 +268,8 @@ fn check_corpus(traces: &Path, rendered: &Path) {
                 diffs.check(&format!("{stem} entry {i}"), &key(e), &key(a));
                 break;
             }
-            diffs.check(&format!("{stem} {}", key(e)), without_error_text(&e.unwrap().2), without_error_text(&a.unwrap().2));
+            let actual = without_error_text(&a.unwrap().2);
+            diffs.check(&format!("{stem} {}", key(e)), &with_text_fixes(without_error_text(&e.unwrap().2), actual), actual);
         }
     }
     assert!(files > 0, "no rendered traces in {}", rendered.display());

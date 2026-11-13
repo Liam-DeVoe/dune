@@ -92,11 +92,10 @@ impl KarmaChoamDiscard {
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
-        // C# parity: no space before "Using", so the log reads "ChoamUsing".
         let cards = self.cards();
         express!(
             self.initiator(),
-            "Using ",
+            " using ",
             TreacheryCardType::Karma,
             ", ",
             self.initiator(),

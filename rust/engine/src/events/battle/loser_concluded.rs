@@ -158,7 +158,7 @@ impl LoserConcluded {
         if let Some(kept_card) = self.kept_card() {
             if game.secret_ally_allows_keeping_cards_after_losing_battle {
                 game.secret_ally_allows_keeping_cards_after_losing_battle = false;
-                game.play_nexus_card(self.player(), vec!["Secret Ally".into(), " to keep ".into(), kept_card.into()]);
+                game.play_nexus_card(self.player(), vec!["keep ".into(), kept_card.into()]);
             } else {
                 self.log_objects(game, vec![self.initiator().into(), " keep ".into(), kept_card.into()]);
             }

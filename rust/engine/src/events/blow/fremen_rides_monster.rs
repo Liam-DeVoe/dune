@@ -203,7 +203,7 @@ impl FremenRidesMonster {
         if !self.passed {
             if self.force_locations(game).keys().any(|l| l.territory() != to_ride.as_ref().nre().territory) {
                 let me = self.player();
-                game.play_nexus_card(me, elems!["cunning", "to ride from any territory on the planet"]);
+                game.play_nexus_card(me, elems!["ride from any territory on the planet"]);
             }
 
             let initiator = self.get_player(game, Some(self.initiator()));

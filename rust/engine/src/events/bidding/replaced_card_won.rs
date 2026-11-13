@@ -41,7 +41,7 @@ impl ReplacedCardWon {
             game.stone(Milestone::CardWonSwapped);
 
             if game.replacing_bought_card_using_nexus {
-                game.play_nexus_card(self.player(), vec!["Secret Ally".into(), "to replace the card they just bought".into()]);
+                game.play_nexus_card(self.player(), vec!["replace the card they just bought".into()]);
                 game.replacing_bought_card_using_nexus = false;
             } else {
                 self.log(game);

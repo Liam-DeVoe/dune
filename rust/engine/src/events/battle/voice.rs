@@ -171,7 +171,7 @@ impl Voice {
         game.current_voice = Some(self.clone());
 
         if !self.is_playing(game, Faction::BeneGesserit) {
-            game.play_nexus_card(self.player(), elems!["Secret Ally", " to use Voice"]);
+            game.play_nexus_card(self.player(), elems!["use Voice"]);
         }
 
         if let Some(battle) = game.current_battle.clone() {

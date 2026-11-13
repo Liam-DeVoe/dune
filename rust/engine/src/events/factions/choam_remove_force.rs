@@ -116,7 +116,7 @@ impl ChoamRemoveForce {
         let me = self.player();
         let card = ChoamRemoveForce::card_to_use(game, me);
         if card.is_none() && NexusPlayed::can_use_cunning(game, me) {
-            game.play_nexus_card(me, vec!["Cunning".into(), "send a force back to reserves".into()]);
+            game.play_nexus_card(me, vec!["send a force back to reserves".into()]);
             game.let_player_discard_treachery_card_of_choice(self.initiator());
         } else {
             game.discard_treachery_card_boolean(card, true)?;

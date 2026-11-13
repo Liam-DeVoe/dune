@@ -70,9 +70,19 @@ impl AutomationConfigured {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        // C# parity (hazards 18.2): message copied from AllyPermission.
-        express!(self.initiator(), " change ally permissions")
+    pub fn get_message(&self, game: &Game) -> Message {
+        match self.action {
+            ItemAction::Create => {
+                // The description reads the initiator's player, which a seatless host doesn't have.
+                let description = game.get_player(Some(self.initiator())).and_then(|_| self.get_description(game));
+                match description {
+                    Some(d) => express!(self.initiator(), " add an automation rule: ", d),
+                    None => express!(self.initiator(), " add an automation rule"),
+                }
+            }
+            ItemAction::Delete => express!(self.initiator(), " remove an automation rule"),
+            _ => express!(self.initiator(), " change an automation rule"),
+        }
     }
 
     pub fn get_available_rule_types(g: &Game, p: PlayerIndex) -> Vec<AutomationRuleType> {

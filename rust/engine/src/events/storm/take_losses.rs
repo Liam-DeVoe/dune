@@ -95,7 +95,7 @@ impl TakeLosses {
             let card = TakeLosses::valid_useless_card_to_prevent_losses(game, self.player());
             if card.is_none() && NexusPlayed::can_use_cunning(game, player.required("player")?) {
                 let location = cs::index(&game.storm_losses_to_take, 0).location;
-                game.play_nexus_card(player.required("player")?, vec!["Cunning".into(), " prevent losing forces in ".into(), location.into()]);
+                game.play_nexus_card(player.required("player")?, vec!["prevent losing forces in ".into(), location.into()]);
                 must_discard = true;
             } else {
                 game.discard_player_treachery_card_boolean(Some(self.player()), card, true);

@@ -748,7 +748,7 @@ impl Shipment {
                     Player::ship_special_forces(game, richese, self.to(game).required("to")?, 1);
                     game.current_no_field_value = self.cunning_no_field_value();
                     let me = self.player();
-                    game.play_nexus_card(me, elems!["Cunning", "ship and reveal a second ", FactionSpecialForce::Richese]);
+                    game.play_nexus_card(me, elems!["ship and reveal a second ", FactionSpecialForce::Richese]);
                 }
 
                 game.reveal_current_no_field(richese, None);
@@ -887,9 +887,8 @@ impl Shipment {
                             }
                         }
                     } else {
-                        // C# parity: no space before the payment (hazards 11).
                         *profit_message =
-                            express_part!(" → ", TreacheryCardType::Karma, " prevents ", Faction::Guild, " from receiving", Payment::of(receiver_profit));
+                            express_part!(" → ", TreacheryCardType::Karma, " prevents ", Faction::Guild, " from receiving ", Payment::of(receiver_profit));
                         self.guild_income_prevented.set(true);
                         if !game.applicable(Rule::FullPhaseKarma) {
                             game.allow(FactionAdvantage::GuildReceiveShipment);

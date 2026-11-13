@@ -359,7 +359,7 @@ impl Bid {
             )?;
             game.log_bid(winner, bid.amount, bid.ally_contribution_amount, bid.emperor_contribution_amount, &receiver_income_message, paid_to, false);
         } else {
-            game.play_nexus_card(winner, vec!["Secret Ally".into(), "get this card for free".into()]);
+            game.play_nexus_card(winner, vec!["get this card for free".into()]);
             game.log_bid(winner, 0, 0, 0, &receiver_income_message, Faction::None, true);
         }
 

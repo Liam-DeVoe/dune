@@ -64,8 +64,8 @@ impl Notification {
         use Notification::*;
         match self {
             LoadGame(_) => ViewEffect::Rebuild,
-            JoinGame { .. } | RemoveUser { .. } | AssignSeats(_) | SetOrUnsetHost(_) | OpenOrCloseSeats(_) | SetSkin(_) | SetTimer(_) => ViewEffect::Update,
-            ChatMessage(_) | GlobalChatMessage(_) | PhaseControl(_) | UpdateSettings(_) | ObserveGame { .. } | BotSpeed(_) => ViewEffect::None,
+            JoinGame { .. } | RemoveUser { .. } | AssignSeats(_) | SetOrUnsetHost(_) | OpenOrCloseSeats(_) | SetSkin(_) | SetTimer(_) | BotSpeed(_) => ViewEffect::Update,
+            ChatMessage(_) | GlobalChatMessage(_) | PhaseControl(_) | UpdateSettings(_) | ObserveGame { .. } => ViewEffect::None,
         }
     }
 }

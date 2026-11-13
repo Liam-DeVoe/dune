@@ -18,7 +18,7 @@ How the skeleton maps C# (the rules are in the header of `engine/csharp-gen/Bots
 - `game: &mut Game` appears only on `DetermineRockWasMelted` and the dispatch (`Do` and the five `Determine*Action` methods). See "Bots are not pure" below.
 - `Do<T>` came out as `&dyn Fn() -> T`, which is a placeholder. Package B1 gives it its real shape (see below).
 - Overloads follow the engine rule (the parameter types are appended), so a few names are long. Rename them freely.
-- `IBot` (Shared, left out of the engine) is the `IBot` trait in `i_bot.rs`.
+- `IBot` (Shared, left out of the engine) is the `IBot` trait in `interface.rs`.
 
 ## Randomness today
 
@@ -126,8 +126,8 @@ Sizes are C# lines. Members means `todo!` bodies in the skeleton. Each package o
 
 Order:
 
-1. Start B0 and B1 together. B1 lands `bot.rs` and `bot_parameters.rs` first. The dispatch is what the differ calls.
-2. Start B2 to B6 once `bot.rs` is in. Only B1 edits `bot_knowledge.rs`. Others tell B1 which Knowledge helpers block them, and B1 ports in that order.
+1. Start B0 and B1 together. B1 lands `bot.rs` and `parameters.rs` first. The dispatch is what the differ calls.
+2. Start B2 to B6 once `bot.rs` is in. Only B1 edits `bot/knowledge.rs`. Others tell B1 which Knowledge helpers block them, and B1 ports in that order.
 3. Each package works through its "bot decision differs" groups in `differ live --mode bots`. An engine bug found this way goes to the engine fixers with a `differ first` reproduction.
 
 Every package follows PORTING.md's disk, CPU and memory rules. Bot-decision runs go through `rust/tools/heavy.sh` like any other `differ live` run.
@@ -149,7 +149,7 @@ Engine bugs or missing engine functions that bot porters found. One line each: w
 
 ## B1 core ready (2026-11-11)
 
-`bot.rs`, `bot_parameters.rs` and `bot_knowledge.rs` are ported. No `todo!` is left in them. B2 to B6 can start.
+`bot.rs`, `parameters.rs` and `bot/knowledge.rs` are ported. No `todo!` is left in them. B2 to B6 can start.
 
 ### Dispatch and `Do` (bot.rs)
 
@@ -172,7 +172,7 @@ Engine bugs or missing engine functions that bot porters found. One line each: w
 
 `self.faction(game)`, `self.ally(game)`, `self.allied_player(game) -> Option<PlayerIndex>`, `self.resources(game)`, `self.player` (field), `self.param` (field, `Copy`).
 
-### Knowledge helpers (bot_knowledge.rs)
+### Knowledge helpers (bot/knowledge.rs)
 
 All of them keep the skeleton's names and signatures. The overloads are:
 
@@ -219,7 +219,7 @@ None found. Everything B1 needs was already `pub` in the engine, and B1 made no 
 
 ## B6 ready (2026-11-11)
 
-`bot_bidding.rs`, `bot_deals.rs` and `bot_alliance.rs` are ported, with no `todo!` left. B6 made no engine edits and found no engine gaps.
+`bot/bidding.rs`, `bot/deals.rs` and `bot/alliance.rs` are ported, with no `todo!` left. B6 made no engine edits and found no engine gaps.
 
 ### What to know about these files
 
@@ -236,7 +236,7 @@ None found. Everything B1 needs was already `pub` in the engine, and B1 made no 
 - `(float)o` accepts only a boxed `float`.
 - Anything else throws InvalidCastException "Unable to cast object of type 'X' to type 'Y'.".
 
-B2 (`bot_battle.rs`, `unbox_treachery_card_type`) wrote its own helper before `support.rs` existed (B4's `mod unbox` is gone; `bot_other.rs` uses `support.rs` now). Theirs throw InvalidCastException where .NET converts between enum types or between an enum and `int`, and their messages differ. I don't think any bot reaches those cases, because each cast matches the type that its clairvoyance question stores. Switching to `support.rs` would remove the doubt.
+B2 (`bot/battle.rs`, `unbox_treachery_card_type`) wrote its own helper before `support.rs` existed (B4's `mod unbox` is gone; `bot/other.rs` uses `support.rs` now). Theirs throw InvalidCastException where .NET converts between enum types or between an enum and `int`, and their messages differ. I don't think any bot reaches those cases, because each cast matches the type that its clairvoyance question stores. Switching to `support.rs` would remove the doubt.
 
 ### B6 tests
 
@@ -247,7 +247,7 @@ B2 (`bot_battle.rs`, `unbox_treachery_card_type`) wrote its own helper before `s
 
 ## B2 ready (2026-11-11)
 
-`bot_battle.rs` is ported, with no `todo!` left. B2 made no engine edits and found no engine gaps.
+`bot/battle.rs` is ported, with no `todo!` left. B2 made no engine edits and found no engine gaps.
 
 ### What to know about this file
 

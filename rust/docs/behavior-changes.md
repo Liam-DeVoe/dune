@@ -44,22 +44,22 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - What happens: When estimating whether an opponent can Karama a shipment, the bot checks for Karama twice instead of Karama or Worthless (for Bene Gesserit).
 - Intended: Include Worthless for Bene Gesserit.
 - When: Bots against Bene Gesserit with the Worthless-as-Karama rule.
-- Where: rust/bots/src/bot_knowledge.rs:1021
+- Where: rust/bots/src/bot/knowledge.rs:1021
 - Note: Bot quality; one condition.
 
 ## Smaller bot reasoning slips
 
 - Area: Bots
-- What happens: Dial estimates for an ally are computed for the bot itself (bot_battle.rs:1243). Known traitors of an opponent use the bot's own told traitors (bot_battle.rs:1147). Moving towards weak strongholds uses the first occupying opponent (hazards.md §18.5).
+- What happens: Dial estimates for an ally are computed for the bot itself (bot/battle.rs:1243). Known traitors of an opponent use the bot's own told traitors (bot/battle.rs:1147). Moving towards weak strongholds uses the first occupying opponent (hazards.md §18.5).
 - Intended: Use the right player.
 - When: Various bot decisions.
-- Where: rust/bots/src/bot_battle.rs:1243, :1147
+- Where: rust/bots/src/bot/battle.rs:1243, :1147
 - Note: Low priority; small effect on bot play.
 
 ## Harmless bot oddities
 
 - Area: Bots
-- What happens: A Mirror Weapon pick is re-drawn at random (bot_battle.rs:1067). A No-Field choice could take the maximum of an empty list and throw, which only skips that decision (bot_shipment.rs:981). Duplicate conditions (bot_move.rs:230, bot_shipment.rs:96). Bene Gesserit's prediction flips a coin between two identical choices (bot_faction_specific.rs:625).
+- What happens: A Mirror Weapon pick is re-drawn at random (bot/battle.rs:1067). A No-Field choice could take the maximum of an empty list and throw, which only skips that decision (bot/shipment.rs:981). Duplicate conditions (bot/movement.rs:230, bot/shipment.rs:96). Bene Gesserit's prediction flips a coin between two identical choices (bot/factions.rs:625).
 - Intended: Same.
 - Where: rust/bots/src/
 - Note: No meaningful effect on play.
@@ -141,7 +141,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - What happens: The bot only blocks shipments of a winning opponent whose spice plus ally's spice exceeds 2; with no ally the sum is treated as false.
 - Intended: Count the opponent's own spice when there is no ally.
 - When: Bots holding Karama.
-- Where: rust/bots/src/bot_other.rs:684
+- Where: rust/bots/src/bot/other.rs:684
 
 ## Ally permissions without an ally are stored under "no faction"
 
@@ -153,7 +153,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - What happens: When adding normal forces to a planned shipment, the bot checks the cost of one more special force instead, so it can ship too few or too many.
 - Intended: Price one more normal force.
 - When: Every bot shipment that adds normal forces.
-- Where: rust/bots/src/bot_shipment.rs:1037
+- Where: rust/bots/src/bot/shipment.rs:1037
 
 ## Bene Gesserit bot never voices a useless defense against poison
 
@@ -161,7 +161,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - What happens: The condition for finding a projectile defense that won't stop poison is "is a projectile defense and is not a projectile defense", so that voice is never chosen.
 - Intended: Probably "is a projectile defense and not a poison defense".
 - When: Bene Gesserit bot with a poison weapon.
-- Where: rust/bots/src/bot_faction_specific.rs:784
+- Where: rust/bots/src/bot/factions.rs:784
 
 ## For the step 3 cleanup (no visible effect, simplify if the behavior check stays clean)
 

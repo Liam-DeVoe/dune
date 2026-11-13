@@ -80,7 +80,7 @@ The summary groups bot failures by what C# decided, which names the `Determine*`
 
 ```
 bot deliberations: 5120 matched; 23 traces stopped at a bot difference
-       12  not ported yet: not yet implemented: port: Bot_Battle.cs:417 (at bots/src/bot_battle.rs:88)
+       12  not ported yet: not yet implemented: port: Bot_Battle.cs:417 (at bots/src/bot/battle.rs:88)
         7  bot decision differs: C# Battle at Middle
         4  bot random draws differ: C# Shipment at Low
 ```

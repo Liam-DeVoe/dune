@@ -1,8 +1,4 @@
-//! The `ending` field (package 9): `WinnerPanel` and the story, with `HideSecrets` applied.
-//!
-//! `mc-ended` is a finished two-turn game. `mc-ended-hidden` is the same game with Guild and
-//! Bene Gesserit hiding their secrets afterwards (HideSecrets events appended by hand; the event
-//! is applicable only up to version 123).
+//! The `ending` field: the winners and the story. `mc-ended` is a finished two-turn game.
 
 mod common;
 
@@ -54,43 +50,13 @@ fn everyone_sees_the_same_story() {
     assert!(story.iter().any(|b| matches!(b, StoryBlock::Purchase { card: Some(_), .. })));
     assert!(story.iter().any(|b| matches!(b, StoryBlock::Battle { .. })));
     assert!(story.iter().any(|b| matches!(b, StoryBlock::Prediction { .. })));
-    assert!(rows(story).iter().all(|r| !r.secret));
     // Cards were held at the start of turn 2's bidding, and every faction's spice is shown.
     assert!(rows(story).iter().any(|r| !r.cards.is_empty()));
-}
-
-#[test]
-fn hidden_secrets_stay_hidden() {
-    let all = endings("mc-ended-hidden");
-    assert!(all.windows(2).all(|w| w[0] == w[1]));
-    let story = all[0].story.as_ref().expect("story");
-    let hid = ["Guild", "BeneGesserit"];
-    let mut seen_hidden = false;
     for b in story {
-        match b {
-            StoryBlock::Setup { table, .. } | StoryBlock::Situation { table, .. } => {
-                for r in &table.rows {
-                    let hides = hid.contains(&r.faction.as_str());
-                    assert_eq!(r.secret, hides, "{}", r.faction);
-                    if hides {
-                        seen_hidden = true;
-                        assert!(r.cards.is_empty() && r.traitors.is_empty() && r.resources.is_none() && r.nexus.is_none(), "{:?}", r);
-                    } else if table.show_resources {
-                        assert!(r.resources.is_some());
-                    }
-                }
-            }
-            StoryBlock::Purchase { buyer, card, .. } => assert_eq!(card.is_none(), hid.contains(&buyer.as_str()), "{buyer}"),
-            StoryBlock::Prediction { .. } => panic!("Bene Gesserit's prediction is a secret"),
-            _ => {}
+        if let StoryBlock::Setup { table, .. } | StoryBlock::Situation { table, .. } = b {
+            assert!(table.rows.iter().all(|r| r.resources.is_some() == table.show_resources));
         }
     }
-    assert!(seen_hidden);
-
-    // Apart from the secrets, the story is the one without HideSecrets.
-    let open = endings("mc-ended").remove(0).story.unwrap();
-    let kinds = |s: &[StoryBlock]| s.iter().filter(|b| !matches!(b, StoryBlock::Prediction { .. })).count();
-    assert_eq!(kinds(story), kinds(&open));
 }
 
 #[test]

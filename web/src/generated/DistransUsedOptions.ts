@@ -2,7 +2,7 @@
 import type { FactionOption } from "./FactionOption";
 
 /**
- * `DistransUsedComponent`.
+ * The `DistransUsed` form.
  */
 export type DistransUsedOptions = { 
 /**

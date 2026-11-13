@@ -1,22 +1,17 @@
-//! Writes the view of every comparison scene, and a manifest of them, for the Playwright harness
-//! that compares the web client with the C# client (`scripts/ui/compare.py`,
-//! client-plan.md "Comparing with the C# client").
+//! Writes the view of every scene, and a manifest of them, for the web client's
+//! `/scene/:fixture/:faction` route (design work and screenshots without a server).
 //!
 //!     cargo run --release -p treachery-view --example scene_views -- OUT_DIR [FIXTURE...]
 //!
 //! For each fixture in `scripts/fixtures` (or the ones named), and for each faction in that game
 //! plus an observer, it writes `OUT_DIR/<fixture>-<Faction>.json` (`-Observer.json` for the
-//! observer): the view the web client's `/scene/:fixture/:faction` route renders. The scene is
-//! the C# `/scene` page's: the savegame replayed, user 1 named "Scene" seated as that faction
-//! and made host ([`ViewReplica::scene`]); the observer is user 1 named "Scene" as a non-host
-//! observer, which is what `/scene?faction=observer` does in C#.
+//! observer). A scene is the savegame replayed with user 1, named "Scene", seated as that
+//! faction and made host ([`ViewReplica::scene`]); the observer is user 1 as a non-host
+//! observer. `<fixture>-<Faction>.reports.json` holds the lines of every report, for the log's
+//! history.
 //!
-//! `OUT_DIR/manifest.json` lists the scenes with the facts the harness needs to decide which
-//! expected differences (protocol.md, "Where the C# client shows more than the rules allow")
-//! apply to a scene. A fixture the engine cannot replay is listed with its error and no scenes.
-//!
-//! When the Rust server's dev scene endpoint exists, the harness can ask the server for the
-//! scene instead and this example is only needed for the manifest.
+//! `OUT_DIR/manifest.json` lists the scenes. A fixture the engine cannot replay is listed with
+//! its error and no scenes.
 
 use std::path::{Path, PathBuf};
 
@@ -79,7 +74,7 @@ fn main() {
 /// Writes the views of one fixture and returns its manifest entry.
 fn fixture(name: &str, savegame: &str, out: &Path) -> Result<Value, String> {
     // One replay to read the game's factions and facts; each scene then replays its own copy,
-    // because building a view writes state (client-plan.md, The view replica).
+    // because building a view writes state (client.md, The view replica).
     let probe = ViewReplica::load(savegame, &Shared::new(Participation::default()))?;
     let game = &probe.game;
     let factions: Vec<Faction> = game.players.iter().map(|p| p.faction).collect();
@@ -102,7 +97,7 @@ fn fixture(name: &str, savegame: &str, out: &Path) -> Result<Value, String> {
         let reports: Vec<_> = (0..replica.game.reports().len()).filter_map(|i| replica.report(v, i)).collect();
         let reports_file = format!("{name}-{label}.reports.json");
         std::fs::write(out.join(&reports_file), serde_json::to_string(&reports).unwrap()).map_err(|e| format!("{reports_file}: {e}"))?;
-        scenes.push(json!({"faction": label, "view": file, "leaks": leaks(game, viewer)}));
+        scenes.push(json!({"faction": label, "view": file}));
     }
     Ok(json!({
         "fixture": name,
@@ -114,10 +109,9 @@ fn fixture(name: &str, savegame: &str, out: &Path) -> Result<Value, String> {
     }))
 }
 
-/// What the C# client submits by itself once the scene is on screen, which the C# scene page then
-/// executes: `TreacheryCalledComponent` passes for a player who cannot call treachery. With saved
-/// views the web client's own pass (the TreacheryCalled form) can't reach a server, so the scene
-/// is written after it. Returns whether an event was applied.
+/// What the web client submits by itself once the scene is on screen: the TreacheryCalled form
+/// passes for a player who cannot call treachery. With saved views that pass can't reach a
+/// server, so the scene is written after it. Returns whether an event was applied.
 fn client_auto_pass(replica: &mut ViewReplica, viewer: Option<Faction>, view: &treachery_view::schema::GameView) -> Result<bool, String> {
     let Some(f) = viewer else { return Ok(false) };
     if !view.actions.iter().any(|a| a.event_type == "TreacheryCalled") {
@@ -135,7 +129,7 @@ fn client_auto_pass(replica: &mut ViewReplica, viewer: Option<Faction>, view: &t
     Ok(true)
 }
 
-/// The C# `/scene` page with `faction=observer`: user 1, named "Scene", observing, not host.
+/// The observer scene: user 1, named "Scene", observing, not host.
 fn observer_scene(savegame: &str) -> Result<(ViewReplica, Viewer), String> {
     let participation = Shared::new(Participation::default());
     let replica = ViewReplica::load(savegame, &participation)?;
@@ -145,41 +139,4 @@ fn observer_scene(savegame: &str) -> Result<(ViewReplica, Viewer), String> {
         p.player_names.add(SCENE_USER_ID, "Scene".to_string());
     }
     Ok((replica, Viewer { user_id: SCENE_USER_ID }))
-}
-
-/// Which expected differences (protocol.md, Visibility) the C# client shows to this viewer in
-/// this state, so the harness masks them: three hidden-information leaks and one C# crash.
-fn leaks(game: &Game, viewer: Option<Faction>) -> Vec<&'static str> {
-    let mut leaks = Vec::new();
-
-    // 1. BattlePlans.razor:19-25 draws what prescience revealed of a plan for every viewer. The
-    //    view gives it to the prescience user's side only.
-    if game.current_main_phase == MainPhase::Battle && game.current_phase != Phase::BattleReport {
-        let users = game.current_prescience.as_ref().map(|p| p.initiator()).into_iter().chain(game.current_nexus_prescience.as_ref().map(|p| p.initiator()));
-        let sees = |user: Faction| Some(user) == viewer || game.get_player(Some(user)).is_some_and(|p| Some(game.player(p).ally) == viewer);
-        let users: Vec<Faction> = users.collect();
-        if !users.is_empty() && !users.iter().any(|&u| sees(u)) {
-            leaks.push("partial-prescience");
-        }
-    }
-
-    // 2. The story at game end ignores HideSecrets. The view leaves those factions' secrets out.
-    if game.current_main_phase == MainPhase::Ended && !game.secrets_remain_hidden.is_empty() {
-        leaks.push("story-hide-secrets");
-    }
-
-    // 3. Bids.razor:25 colours a silent-auction bid by Passed. The view sends "ready" only.
-    if matches!(game.current_phase, Phase::Bidding | Phase::BlackMarketBidding)
-        && matches!(game.current_auction_type, AuctionType::BlackMarketSilent | AuctionType::RicheseSilent)
-    {
-        leaks.push("silent-auction-pass");
-    }
-
-    // 4. Not a leak: for an observer, the C# bidding panel throws (BiddingPanel.razor reads
-    //    Player, which is null) and Blazor shows its error bar. The view gives observers the
-    //    panel of a player without prescience (protocol.md, deviation 5).
-    if viewer.is_none() && matches!(game.current_phase, Phase::Bidding | Phase::BlackMarketBidding) {
-        leaks.push("observer-bidding-error");
-    }
-    leaks
 }

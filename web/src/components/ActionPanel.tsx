@@ -21,7 +21,7 @@ function shows(view: GameView, a: ActionView): boolean {
 }
 
 // `filter` (ActionPanel.Filter) draws only the actions it accepts, opened from a popover
-// (CardPlayPopover); the winner, bidding and PlayerReplaced panels are then left out.
+// (CardPlayPopover); the winner and bidding panels are then left out.
 export function ActionPanel({ filter, inPopover = false }: { filter?: (a: ActionView) => boolean; inPopover?: boolean } = {}) {
   const { view } = useGame();
   useAutoPassReset();
@@ -34,7 +34,7 @@ export function ActionPanel({ filter, inPopover = false }: { filter?: (a: Action
       {/* Phase.GameEnded: the winners and the story (package 9). */}
       {view.ending && <WinnerPanel ending={view.ending} />}
       {view.bidding?.panel && <BiddingPanel panel={view.bidding.panel} />}
-      {view.actions.filter((a) => shows(view, a) && a.eventType !== "PlayerReplaced").map((a) => {
+      {view.actions.filter((a) => shows(view, a)).map((a) => {
         switch (a.options?.form) {
           // Drawn by the bidding panel above.
           case "Bid": case "BlackMarketBid": return null;
@@ -46,8 +46,6 @@ export function ActionPanel({ filter, inPopover = false }: { filter?: (a: Action
           default: return battleForm(a) ?? revivalForm(a) ?? shipMoveForm(a) ?? otherForm(a);
         }
       })}
-      {/* PlayerReplaced comes after the loop, until the game has ended. */}
-      {view.mainPhase !== "Ended" && view.actions.filter((a) => a.eventType === "PlayerReplaced").map((a) => otherForm(a))}
     </>
   );
 }

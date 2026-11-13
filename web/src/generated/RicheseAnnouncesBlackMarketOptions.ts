@@ -2,7 +2,7 @@
 import type { EnumOption } from "./EnumOption";
 
 /**
- * `RicheseAnnouncesBlackMarketComponent`.
+ * The `RicheseAnnouncesBlackMarket` form.
  */
 export type RicheseAnnouncesBlackMarketOptions = { 
 /**
@@ -10,6 +10,6 @@ export type RicheseAnnouncesBlackMarketOptions = {
  */
 cards: Array<number>, 
 /**
- * Normal, Once Around and Silent, with the component's labels.
+ * Normal, Once Around and Silent, with the form's labels.
  */
 auctionTypes: Array<EnumOption>, draft: Record<string, unknown>, };

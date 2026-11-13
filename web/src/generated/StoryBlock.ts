@@ -8,7 +8,7 @@ import type { StoryStronghold } from "./StoryStronghold";
 import type { StoryTable } from "./StoryTable";
 
 /**
- * One thing `StoryComponent` draws, in the order it draws them.
+ * One block of the story, in the order the story shows them.
  */
 export type StoryBlock = { "kind": "setup", 
 /**
@@ -24,7 +24,7 @@ customRules: string | null,
  */
 started: string, table: StoryTable, } | { "kind": "prediction", toWin: Faction, turn: number, } | { "kind": "purchase", buyer: Faction, 
 /**
- * `CardJustWon`; null when the buyer hid their secrets (drawn as "?").
+ * `CardJustWon`.
  */
 card: StoryCard | null, amount: number, karmaCard: StoryCard | null, 
 /**

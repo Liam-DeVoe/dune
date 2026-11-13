@@ -1,11 +1,8 @@
 # Client/server protocol
 
-The Rust server and the React client talk JSON over one WebSocket. The server is authoritative: it holds the only copy of each game, runs the engine, and sends each player and observer their own view of it. Clients never see hidden information and never replay events (see "Decisions for phases 3 and 4" in [PORTING.md](../../PORTING.md)).
+The Rust server and the React client talk JSON over one WebSocket. The server is authoritative: it holds the only copy of each game, runs the engine, and sends each player and observer their own view of it. Clients never see hidden information and never replay events.
 
-This document has two owners:
-
-- **Everything except "Game view"** (connection, envelope, accounts, lobby, seating, chat, admin, notifications) belongs to the server, [server.md](server.md). The method and member names still follow the C# hub the protocol started from, so the web client didn't have to change when the server was rewritten.
-- **[Game view](#game-view)** (what each participant sees, the actions they can take and their valid choices, and the queries the client makes while filling in an action) is owned by the client-architecture agent.
+Everything except the [Game view](#game-view) section (connection, envelope, accounts, lobby, seating, chat, admin, notifications) is the server's, described further in [server.md](server.md). Those payloads use PascalCase member names and enums as numbers, the savegame format. The game view is built by `rust/view` ([client.md](client.md)) and uses camelCase and enum names.
 
 ## Connection
 
@@ -16,7 +13,7 @@ This document has two owners:
 - Creating, joining, observing or reconnecting to a game makes the *current connection* follow that game (the game's group), as the user who called. After a new WebSocket is opened, the client calls `RequestReconnectGame` again.
 - When a WebSocket closes, the connection stops following every game. Nothing else changes: the user stays logged in and stays seated.
 - A frame that is not a JSON object with a known `type`, or a call without a non-negative integer `id`, closes the connection. A call with an unknown method or arguments that don't decode gets an `error` reply.
-- The same origin serves the web client's files (`TREACHERY_WEB_ROOT`, by default `web/dist`) and the shared assets (`TREACHERY_ASSETS_ROOT`, for `/art`, `/css`, `/fonts`, `/js`, `/docs`), and `index.html` for any other path without a file extension. Development only, with `TREACHERY_DEV_SCENE=true`: `POST /dev/scene {"fixture","faction"}` (client-plan.md, Comparing with the C# client) answers `{"userToken","gameId","userId"}`.
+- The same origin serves the web client's files (`TREACHERY_WEB_ROOT`, by default `web/dist`) and the shared assets (`TREACHERY_ASSETS_ROOT`, for `/art`, `/css`, `/fonts`, `/js`, `/docs`), and `index.html` for any other path without a file extension. Development only, with `TREACHERY_DEV_SCENE=true`: `POST /dev/scene {"fixture","faction"}` (the web client's `/scene` route, [client.md](client.md#the-web-app)) answers `{"userToken","gameId","userId"}`.
 
 ## Envelope
 
@@ -233,20 +230,18 @@ The server plays every seat without a user (`rust/server/src/server/bots.rs`; th
 
 ## Game view
 
-*Owned by the client-architecture agent. Design and reasons: [client-plan.md](client-plan.md). Wire types: `rust/view/src/schema.rs`, generated to TypeScript in `web/src/generated/`. What the C# client reads, per screen area: [client-inventory.md](client-inventory.md).*
+Built by `rust/view` ([client.md](client.md)). Wire types: `rust/view/src/schema.rs` and `schema/`, which document every member, generated to TypeScript in `web/src/generated/`.
 
-The server sends each participant a `GameView` notification: what that user may see of the game, plus the actions they can take now and the valid choices for each. The client renders only views. It never replays events and holds no engine. While a player fills in an action, the client asks the server about the inputs chosen so far (a draft query), and submits the finished event with `SubmitEvent`.
+The server sends each participant a `GameView` notification: what that user may see of the game, plus the actions they can take now and the valid choices for each. The client renders only views. While a player fills in an action, the client asks the server about the inputs chosen so far (a draft query), and submits the finished event with `SubmitEvent`.
 
 ### Encoding
 
-The view is new code, not a mirror of a C# type, so it uses its own JSON conventions, chosen for the TypeScript client:
-
 - Member names in camelCase.
-- Enum values as the C# member name (`"Atreides"`, `"ShipmentAndMove"`), the keys the skin JSON uses. The TypeScript unions are in `web/src/generated/enums.ts`.
-- Static game objects by their C# `Id`: locations, territories, leaders, treachery cards, and resource cards (by `SkinId`). Names, images and map positions come from the skin and from the static data file (`rust/view/examples/static_data.rs`), never from the view.
-- Text that the game writes (log lines, prompts, validation messages, form headings) arrives rendered to [parts](#rich-text).
+- Enum values by member name (`"Atreides"`, `"ShipmentAndMove"`), the keys the skin JSON uses. The TypeScript unions are in `web/src/generated/enums.ts`, with `PhaseValue`, `MainPhaseValue` and a few more holding the numbers, for ordered comparisons and for events.
+- Static game objects by id: locations, territories, leaders, treachery cards, and resource cards (by skin id). Names, images and map positions come from the skin and the static data (`web/public/static/data.json`), never from the view.
+- Text the game writes (log lines, prompts, validation messages, form headings) arrives rendered to [rich text](#rich-text).
 
-Events stay in the savegame format of [Encoding](#encoding) (PascalCase, enums as numbers), both in draft queries and in `SubmitEvent`, because the engine reads and validates exactly that format.
+Events stay in the savegame format of [Encoding](#encoding) (PascalCase, enums as numbers), both in draft queries and in `SubmitEvent`, because the engine reads and validates that format.
 
 ### When views are sent
 
@@ -257,11 +252,9 @@ Events stay in the savegame format of [Encoding](#encoding) (PascalCase, enums a
 | a successful `RequestCreateGame`, `RequestObserveGame`, `RequestReconnectGame`, `RequestJoinGame`, `RequestGameState` | the caller (and, for a join, every member, through `JoinGame`) |
 | `SetSkin` | every member, because labels are rendered with the game's skin |
 | `SetTimer` | every member: the timer is `timing.timer` |
-| `UpdateSettings` | nobody: settings only matter before the game starts, and the lobby sections cover that |
+| `UpdateSettings` | nobody: settings only matter before the game starts |
 
-Each view is complete; there are no diffs. A view of the alliance phase of a 6-player game is about 22 KB of JSON (`web/public/views/`). If size becomes a problem, the log moves out first (it is the largest part); see [client-plan.md](client-plan.md#open-questions).
-
-### Notification
+Each view is complete; there are no diffs. A view of the alliance phase of a 6-player game is about 22 KB of JSON, most of it the log.
 
 ```json
 {"type":"notify","name":"GameView","args":[{"eventNumber":612,"version":188,"turn":6, "...": "..."}]}
@@ -271,165 +264,130 @@ Each view is complete; there are no diffs. A view of the alliance phase of a 6-p
 
 | Method | Args | Result |
 |---|---|---|
-| `QueryDraft` | userToken, gameId, eventNumber, draft (a `GameEvent` in savegame format) | `DraftResult`, or `InvalidGameEvent` when the draft is not one of the caller's actions in view `eventNumber` (`ErrorDetails` says why) |
+| `QueryDraft` | userToken, gameId, eventNumber, draft (a `GameEvent` in savegame format) | `DraftResult`, or `InvalidGameEvent` when the draft is not one of the caller's actions in their latest view (`ErrorDetails` says why) |
 | `RequestReport` | userToken, gameId, index (an entry of `log.reports`) | `ReportLines` of that report, filtered for the caller as in the view; `InvalidGameEvent` for an index that has no report |
-| `RequestUndoList` | userToken, gameId | host only (`NoHost` otherwise): `[{eventNumber, text: RichText, listed, turn, phase}]`, the short message of every event (`GameEvent.GetShortMessage`), whether the undo panel lists it (`UndoSession.IsListed`), and the turn and main phase it happened in (`UndoSession.MomentOf`), for the undo panel and timeline. `eventNumber` is the event's index in the history, the `untilEventNr` of `RequestUndo` |
-| `RequestUndoPreview` | userToken, gameId, gap | host only (`NoHost` otherwise): the caller's `GameView` at gap `gap`, the moment just before event `gap` (the game after `RequestUndo(gap)`), with no actions and no `playableWith`, as the C# client showed `UndoSession.Preview` (`IGameService.Actions` was empty while previewing). The gap is clamped to 1..`History.Count`. Sends no notification; the live game and its views are untouched |
-| `RequestSaveGame` | userToken, gameId | hosts and the admin (`CanSave` of `MenuComponent`; `NoHost` otherwise): the server's game as a savegame string (`GameState.GetStateAsString`), which the C# client built from its own copy. Always the live game, also while the host previews an undo |
+| `RequestUndoList` | userToken, gameId | host only (`NoHost` otherwise): `[{eventNumber, text: RichText, listed, turn, phase}]`, the short message of every event, whether the undo panel lists it (ally permissions, battle revisions and automation settings are left out), and the turn and main phase it happened in. `eventNumber` is the event's index in the history, the `untilEventNr` of `RequestUndo` |
+| `RequestUndoPreview` | userToken, gameId, gap | host only: the caller's `GameView` at gap `gap`, the moment just before event `gap` (the game after `RequestUndo(gap)`), with no actions and no `playableWith`. The gap is clamped to 1..number of events. Sends no notification; the live game and its views are untouched |
+| `RequestSaveGame` | userToken, gameId | hosts and the admin (`NoHost` otherwise): the server's game as a savegame string. Always the live game, also while the host previews an undo |
 
-These five use the same `Result` envelope as the other calls, with `Contents` in the view's camelCase encoding. A token or game the server doesn't know gives the same errors as the other calls (`UserNotFound`, `GameNotFound`).
+These use the same `Result` envelope as the other calls, with `Contents` in the view's camelCase encoding. A token or game the server doesn't know gives the same errors as the other calls (`UserNotFound`, `GameNotFound`).
 
-`QueryDraft` replaces the C# components' habit of calling `Validate()` and the `Valid*`/`Max*` helpers on every render. The server sets the draft's `Initiator` to the caller's faction, so a client can't ask about another faction. A draft for an older view (`eventNumber` is not the current `History.Count`) is answered against the current game; the client discards answers for views it has replaced.
-
-`SubmitEvent` (in [Playing](#playing)) is unchanged: the same event, with all inputs filled in.
+The server sets a draft's `Initiator` to the caller's faction, so a client can't ask about another faction. A draft made from an older view is answered against the current game; the client discards answers for views it has replaced.
 
 ### GameView
 
-Fields marked *planned* are specified here and added to `schema.rs` by the packages in [client-plan.md](client-plan.md#packages). The rest exist and are tested (`rust/view/tests/slice.rs`, `view_core.rs`, `corpus.rs`). `schema.rs` documents every member.
-
-| Field | Type | Source (C#) |
+| Field | Type | What |
 |---|---|---|
-| `eventNumber` | int | `Game.History.Count` |
-| `version`, `turn`, `maximumTurns` | int | `Game.Version`, `CurrentTurn`, `MaximumTurns` |
-| `mainPhase`, `phase` | enum names | `CurrentMainPhase`, `CurrentPhase` |
-| `viewer` | `{faction, isHost, isObserver}` | `Client.Faction`, `IsHost`, `IsObserver`, resolved from `Participation` |
-| `players` | `PublicPlayer[]`, seat order | see [Visibility](#visibility) for what each holds |
-| `me` | `PrivatePlayer` or null | the viewer's own shield (`PlayerPanel.razor`) |
-| `board` | `BoardView` | the map (`MapComponents/*`) |
-| `status` | `StatusView` | `GameStatus.DetermineStatus(Game, Player, !IsObserver)` |
-| `actions` | `ActionView[]` | `Game.GetApplicableEvents(Player, IsHost)`, in that order |
-| `log` | `LogView` | `Game.Reports` |
-| `ruleset`, `rules`, `rulesForBots` | enum names | `Game.Ruleset`, `Rules`, `RulesForBots`. `Game.Applicable(r)` is true for a rule in either list |
-| `economicsStatus` | enum name | `Game.EconomicsStatus` (`Phases.razor`) |
-| `piles` | treachery deck count, discard pile (top card; with notekeeping every card, `null` where unknown), resource deck count and the top card under resource prescience during ship and move, latest spice cards A/B and, with notekeeping, their discard piles, Sand Trout, Richese's cache (count; the cards for Richese) | `CardPiles.razor`, `PlayerPanel.razor:155` |
-| `tanks` | per faction: forces and special forces killed, dead leaders (face-down ones as `null` unless the viewer may identify them), Messiah | `Tanks.razor` |
-| `bidding` | during the bidding main phase: auction type, the bids as the map shows them (`pass`, `bid` with amount, or `ready` in silent auctions), `auctionWon` (`RecentMilestones` has `AuctionWon`; the client turns auto-pass off), and in `Bidding`/`BlackMarketBidding` the bidding panel's lot for players (`panel`: black market or not, the card on auction when visible, "card n of m" in normal auctions, silent, current bid outside silent auctions). Observers get the `panel` of a player without prescience (deviation 5) | `BiddingPanel`, `NormalBiddingPanel`, `BlackMarketBiddingPanel`, `Bids.razor` |
-| `battle` | while there is a current battle: territory, aggressor and defender, and each plan as `BattlePlan.razor` draws it: whole for its owner, for everyone once both are in, and under Atreides Karama; the aspect prescience revealed for the prescience user and their ally. *Planned* (7b): voice, battle outcome, what the battle forms need | `BattlePlans.razor`, `BattlePlan.razor`, `BattleComponent` |
-| `deals` | seated viewers only: offers the viewer may accept (`AcceptableDeals`, with `Acceptance(...).Validate()` and the Accept and Decline events in savegame JSON), the viewer's own offers (`CancellableDeals`, with each recipient's answer and the Withdraw event), every deal in force (`CurrentDeals`). An offer's `id` is its event number | `DealComponent`, `DealToasts`, `MenuComponent` (the count on the Deals icon) |
-| `botsSpeed` | `Participation.BotsSpeed` | `MenuComponent` (host's bot controls) |
-| `notes` | with notekeeping (`AssistedNoteKeepingEnabled(Player)`): per other player, spice texts, reserves, cards owned (a card, or `null` for one the viewer doesn't know), revealed traitors and face dancers, victory points, Messiah state | `NoteComponent.razor` |
-| `tracker` | Atreides from `SelectingTraitors` on: cards in play (with Richese's when Richese plays), `TraitorsInPlay`, per-player card, traitor and face dancer counts, resource discard piles, remaining resource cards as a sorted set. The client keys its local notes by `timing.started` instead of `Game.Seed` | `TrackerComponent`, `AtreidesIntelligence.cs` |
-| `mentat` | the same for everyone: `TreacheryCardManager.GetCardsInPlay`, `GetRicheseCards` when Richese plays, `Map.GetResourceCardsInPlay` (by `SkinId`). The list's other sections follow from `rules` and the players' factions | `MentatComponent` (the menu's "List of Cards") |
-| `timing` | game start, last activity, duration, time spent per player in bidding, ship and move, and battle (seconds), and the bidding timer (`Client.Timer`, which the server sets on the replica) | `Phases.razor`, `TurnBanner`, `GameStatusComponent` |
-| `ending` | in `Phase.GameEnded` only: `winners` (`[{faction, name}]`) and `story`, null under `Rule.DisableEndOfGameReport`. The story is a list of blocks in the order `StoryComponent` draws them (`setup`, `prediction`, `purchase`, `turn`, `situation` with a `StoryPlayerInfoComponent` table, `battleFor`, `milestone`, `battle`, `strongholds`, `winner`, `ended`), built by replaying the history in a fresh game (`ending.rs`). The same for every viewer; secrets of factions in `SecretsRemainHidden` are left out (deviation 2) | `WinnerPanel`, `Story*` |
-| `factionSheets` | the same for everyone: per player with a rules sheet, in player order, `Skin.GetFactionSheet` (`atStart` as parts: text, or a `location`/`territory` id for a place chip, with the sheet's placeholders filled as `FactionPopupHtml` does; `freeRevival`, `theme`, `advantages`, `advancedAdvantages`) and `html` = `GetFactionInfo_HTML(game, faction, "")`. Public: the sheets read only the game's rules and which factions play (`skin_texts.rs`) | `Support.FactionPopupHtml` (the faction popover on a seat) |
-| `ruleLabels` | the same for everyone: `ruleset` = `Describe(Game.Ruleset)`, and `groups` (`[{group, rules}]`, described): the groups of `Game.Rules` other than CoreBasic, Bots and None, in order of their first rule | `Phases.razor` `TurnPopover` |
-| `recentMilestones` | the same for everyone: `Game.RecentMilestones`, the milestones of the latest event (`Milestone` names). They mark public outcomes; C# played their sounds for every client | `Client.PlaySoundsForMilestones` |
+| `eventNumber` | int | the number of events so far; draft queries and submissions name the view they were made from with it |
+| `version`, `turn`, `maximumTurns`, `maximumPlayers` | int | the game version, current and last turn, and the seats around the map |
+| `mainPhase`, `phase` | enum names | |
+| `viewer` | `{faction, isHost, isObserver}` | the viewer, resolved from the game's participation |
+| `players` | `PublicPlayer[]`, seat order | what everyone sees of each player |
+| `me` | `PrivatePlayer` or null | the viewer's own faction panel |
+| `board` | `BoardView` | the map |
+| `status` | `StatusView` | the prompt: who is awaited and why |
+| `actions` | `ActionView[]` | the event types the viewer may submit now, in the engine's order |
+| `log` | `LogView` | report headers and the latest phase's lines |
+| `ruleset`, `rules`, `rulesForBots` | enum names | a rule applies when it is in either list |
+| `economicsStatus` | enum name | CHOAM's charity status |
+| `piles` | | treachery deck count and discard pile (the top card; with notekeeping every card, `null` where unknown), resource deck count and, under resource prescience during ship and move, its top card, the latest spice cards A and B and, with notekeeping, their discard piles, Sand Trout, Richese's cache (a count; the cards for Richese) |
+| `tanks` | | per faction: forces and special forces killed, dead leaders (face-down ones as `null` unless the viewer may identify them), the Messiah |
+| `bidding` | | in the bidding main phase: auction type, the bids as the map shows them (`pass`, `bid` with amount, or `ready` in silent auctions), `auctionWon`, and in the bidding phases the lot (`panel`: black market or not, the card on auction when visible, "card n of m" in normal auctions, silent, the current bid outside silent auctions). Observers get the lot of a player without bidding prescience and no bid action |
+| `battle` | | while there is a current battle: territory, aggressor and defender, and each plan as far as the viewer may see it: whole for its owner, for everyone once both are in, and for Atreides and their ally under Atreides Karama; the aspect prescience revealed, for the prescience user and their ally |
+| `deals` | | seated viewers only: offers the viewer may accept (with their validation and the accept and decline events in savegame JSON), the viewer's own offers (each recipient's answer and the withdraw event), and every deal in force. An offer's `id` is its event number |
+| `botsSpeed` | int | 0 paused, 1, 2 or 4 |
+| `notes` | | with assisted notekeeping: per other player, spice texts, reserves, cards owned (a card, or `null` for one the viewer doesn't know), revealed traitors and face dancers, victory points, Messiah state |
+| `tracker` | | Atreides from traitor selection on: cards in play, traitors in play, per-player card, traitor and face dancer counts, resource discard piles, remaining resource cards. The client keys its local notes by `timing.started` |
+| `mentat` | | the same for everyone: the treachery cards in play (with Richese's when Richese plays) and the resource cards in play |
+| `timing` | | game start, last activity, duration, time spent per player in bidding, ship and move, and battle (seconds), and the host's bidding timer |
+| `ending` | | at game end: `winners` (`[{faction, name}]`) and `story`, null when the rules disable the end-of-game report. The story is a list of blocks (`setup`, `prediction`, `purchase`, `turn`, `situation` with a table of players, `battleFor`, `milestone`, `battle`, `strongholds`, `winner`, `ended`), built by replaying the history in a fresh game (`ending.rs`). The same for every viewer |
+| `factionSheets` | | the same for everyone: per player, the faction's rules sheet from the skin (`atStart` as parts, with places as location or territory ids for place chips; `freeRevival`, `theme`, `advantages`, `advancedAdvantages`) and its HTML |
+| `ruleLabels` | | the same for everyone: the ruleset and the rule groups in play, described by the skin, for the turn popover |
+| `recentMilestones` | `Milestone[]` | the same for everyone: the milestones of the latest event, whose sounds the client plays |
 
-`PublicPlayer`: `faction`, `seat`, `name`, `isBot`, `ally`, `forcesInReserve`, `specialForcesInReserve`, `forcesKilled`, `specialForcesKilled`, `cardCount`, `bribes`, `resourcesAfterBidding`, `extortion`, `bankedResources`, `techTokens`, `ambassadors`, `hasSpecialForces`, `hasRoomForCards`, `cardsOwned` (`CardsOwnedBy`, which counts a Karma card set aside for a bid), `homeworlds` (`[{world, location, occupier, highThreshold, lowThreshold}]`), `skilledLeaders` in front of the shield (`[{id, skill}]`), `loyalLeader` (Ecaz), `latestRevealedNoField` (Richese). Whether a player is highlighted on the ring (`PlayerShouldBeHighlighted`) is `status.waitingFor`.
+`PublicPlayer`: `faction`, `seat`, `name`, `isBot`, `ally`, `forcesInReserve`, `specialForcesInReserve`, `forcesKilled`, `specialForcesKilled`, `cardCount`, `bribes`, `resourcesAfterBidding`, `extortion`, `bankedResources`, `techTokens`, `ambassadors` (Ecaz's unplaced ones), `hasSpecialForces`, `hasRoomForCards`, `cardsOwned` (the hand plus a Karma card set aside for a bid), `homeworlds` (`[{world, location, occupier, highThreshold, lowThreshold}]`), `skilledLeaders` in front of the shield (`[{id, skill}]`), `loyalLeader` (Ecaz), `latestRevealedNoField` (Richese). Whether a player is highlighted on the ring is `status.waitingFor`.
 
-`PrivatePlayer`: `faction`, `resources`, `hand` (`[{id, playableWith}]`; `playableWith` lists the applicable event types that play the card from the faction panel, `CardPlays.PlaysCard`; an event type listed for some card is left out of the action column, `CardPlays.PlayedFromHand`), `cardSetAside`, `leaders` (`[{id, alive, skilled, skill}]`), `traitors` (empty while the player is still picking, `PlayerPanel.StillPickingTraitor`) and `faceDancers` (`[{hero, revealed, skill}]`; `skill` is `Game.Skill`, for the popover), `predictedFaction`/`predictedTurn` (Bene Gesserit, after predicting), `nexus`, `nextStormMoves` (under storm prescience, after the dial), `messiah` (Atreides with `AtreidesMessiah`: `{forcesKilledInBattle, available}`), `unplacedTerror` (Moritani), `cardJustWon` (when the viewer knows it). Ecaz's unplaced ambassadors are `PublicPlayer.ambassadors`; the resource deck's top is `piles.resourceDeckTop`.
+`PrivatePlayer`: `faction`, `resources`, `hand` (`[{id, playableWith}]`: the applicable event types that play the card from the faction panel; those event types are left out of the action column), `cardSetAside`, `leaders` (`[{id, alive, skilled, skill}]`), `traitors` (empty while the player is still picking), `faceDancers` (`[{hero, revealed, skill}]`), `predictedFaction`/`predictedTurn` (Bene Gesserit, after predicting), `nexus`, `nextStormMoves` (under storm prescience, after the dial), `messiah` (Atreides: `{forcesKilledInBattle, available}`), `unplacedTerror` (Moritani), `cardJustWon` (when the viewer knows it).
 
-`BoardView`: `sectorInStorm`, `shieldWallDestroyed`, `forces` (`[{location, faction, forces, specialForces, threatened}]`, `ForcesOnPlanetExcludingEmptyLocations(true)`, homeworlds included), `spice` (`[{location, amount}]`), `highlightedTerritories`, `strongholds` (owners; the advantage is static), `terror` (one entry per token, the token for Moritani, `null` for others), `ambassadors`, `discoveries` (type for everyone, the token for the faction of its type), `attached` (the Hidden Mobile Stronghold and discovered strongholds on the map, with the location each is attached to), `leaders` (heroes standing in a territory), `monsters`, `numberOfMonsters`, `specialStrongholds`, `atomicsAftermath`, `protectedFromStorm`, `noFieldValue` (Richese; others draw `?`), `stormPrescienceMoves` (`NextStormMoves` under storm prescience, with no phase gate, as `Planet.razor`), `recentMoves` (arrows during ship and move). The sectors where spice blew this turn (`RecentBlows.razor`) follow from `piles.latestSpiceCardA`/`B` and the static data.
+`BoardView`: `sectorInStorm`, `shieldWallDestroyed`, `forces` (`[{location, faction, forces, specialForces, threatened}]`, homeworlds included), `spice` (`[{location, amount}]`), `highlightedTerritories`, `strongholds` (owners), `terror` (one entry per token: the token for Moritani, `null` for others), `ambassadors`, `discoveries` (the type for everyone, the token for the faction of its type), `attached` (the Hidden Mobile Stronghold and discovered strongholds, with the location each is attached to), `leaders` (heroes standing in a territory), `monsters`, `numberOfMonsters`, `specialStrongholds`, `atomicsAftermath`, `protectedFromStorm`, `noFieldValue` (Richese; others draw `?`), `stormPrescienceMoves`, `recentMoves` (arrows during ship and move). The sectors where spice blew this turn follow from `piles.latestSpiceCardA`/`B` and the static data.
 
-`StatusView`: `message` (`GameStatus.GetMessage(Player, IsHost)`; observers get the waiting text), `waitingForMe`, `waitingForHost`, `waitingFor` (factions), `waitingInSequence` (`[{faction, hasTurn}]`), `timedEventTime`, `flash` (`[{toShow, message}]`: `FlashInfo`, `toShow` as a rich text part), `toBid` (`Bid.PlayersToBid` or `BlackMarketBid.PlayersToBid` in the bidding main phase). The prompt's "Continue" is the `EndPhase` action.
-
-The static data the client needs beside the skin (locations with territory, sector and kind; territory flags; leaders' factions; card types; resource cards; homeworlds; each faction's force types; rule groups; the places `Map` names) is `web/public/static/data.json`, written by `rust/view/examples/static_data.rs` from `src/static_data.rs` and typed by the generated `StaticData`. `enums.ts` also has `PhaseValue` and `MainPhaseValue`, for the C# client's phase comparisons (`CurrentPhase >= Phase.TradingFactions`).
+`StatusView`: `message` (observers get the waiting text), `waitingForMe`, `waitingForHost`, `waitingFor` (factions), `waitingInSequence` (`[{faction, hasTurn}]`), `timedEventTime`, `flash` (`[{toShow, message, bordered}]`, the cards and leaders to flash; the client flashes them when the game page opens and whenever a view with a higher `eventNumber` brings some), `toBid` (the players still to bid). The prompt's "Continue" is the `EndPhase` action.
 
 ### Rich text
 
-`RichText` is an array of parts, the server's rendering of a C# `Message` or `Expression` (`rust/view/src/expr.rs`, which follows the cases of `ExpressionComponent`'s `switch` in order). Nested messages and lists are flattened, with the ", " separators `ExpressionComponent.DetermineElements` adds. Collections the game still holds (hazards 4.5) are read from the game when the view is built, as the C# client enumerated them when it rendered. Every part that names something carries `label`, `Skin.Describe` of it rendered on the server with the game's skin (`rust/skin`). The client draws parts with `web/src/components/RichText.tsx`, with `size` and `logStyle` as the C# component's `Size` and `LogStyle`.
+`RichText` is an array of parts, the server's rendering of a message (`rust/view/src/expr.rs`). Nested messages and lists are flattened, with ", " separators. Collections a message holds are read from the game when the view is built. Every part that names something carries `label`, the skin's description of it, rendered with the game's skin. The client draws parts with `web/src/components/RichText.tsx`.
 
-| `t` | Members | Drawn as (`ExpressionComponent.razor`) |
+| `t` | Members | Drawn as |
 |---|---|---|
-| `text` | `v` | text. Also a `long`, an exception and a `Player`, which C# draws through `Describe` |
+| `text` | `v` | text |
 | `none` | | bold "none" |
-| `num` | `v` | a number token (`SimpleNumberComponent`). An `int`, or a `float`/`double` already rounded like the client's `Support.Round` |
+| `num` | `v` | a number token. Fractions are already rounded to three decimals |
 | `bool` | `v`, `label` | text ("Yes", "No") |
 | `payment` | `amount`, `by` (faction or null) | the spice icon, then " by " and a faction chip |
 | `faction` | `v`, `label` | a faction chip |
-| `enum` | `ty` (the C# enum type), `v`, `label` | by type: a name with a popover for `LeaderSkill`, `TechToken`, `DiscoveryToken`, `TerrorType`; the worm icon for `Concept.Monster`; a token image for `FactionForce`, `FactionSpecialForce` (tooltip) and `Ambassador` (popover); bold with spice icons for `AuctionType`, `BrownEconomicsStatus`, `TreacheryCardType`, `StrongholdAdvantage`, `FactionAdvantage`, `Ruleset`, `Rule`; plain text otherwise |
-| `location`, `territory` | `id`, `label` | a place chip (`Support.PlaceChipHtml`); `label` is its title |
-| `leader` | `id`, `label`, `skill` (`Game.Skill`, or null) | in the log, the leader disc; elsewhere the name; with a popover that shows the skill card when there is a skill |
+| `enum` | `ty` (the enum type), `v`, `label` | by type: a name with a popover for `LeaderSkill`, `TechToken`, `DiscoveryToken`, `TerrorType`; the worm icon for `Concept.Monster`; a token image for `FactionForce`, `FactionSpecialForce` (tooltip) and `Ambassador` (popover); bold with spice icons for `AuctionType`, `BrownEconomicsStatus`, `TreacheryCardType`, `StrongholdAdvantage`, `FactionAdvantage`, `Ruleset`, `Rule`; plain text otherwise |
+| `location`, `territory` | `id`, `label` | a place chip; `label` is its title |
+| `leader` | `id`, `label`, `skill` (or null) | in the log, the leader disc; elsewhere the name; with a popover that shows the skill card when there is a skill |
 | `messiah` | `label` | the name, with the Messiah's image as popover |
 | `treacheryCard` | `id`, `label` | in the log, a card chip with its art; elsewhere the name; with the card popover |
-| `resourceCard` | `id` (`SkinId`), `label` | the name, with the spice card popover |
+| `resourceCard` | `id` (skin id), `label` | the name, with the spice card popover |
 
-Popovers are the HTML that `Skin.GetPopup` and the client's `Support.GetPopup(ResourceCard)` build, ported to `web/src/popups.ts` and shown by the C# client's Bootstrap bundle (`web/src/popover.ts`).
+Popovers are HTML built by `web/src/popups.ts` from the skin JSON.
 
-A log line (`LogLine`) is `{text, private, heading, record, route, plans, fact}`: `private` when `Message.Target` is the viewer (drawn in italics), `heading` the `Message.Heading` concept, and the other four the data the report's designs draw from: `Message.Log` (`record`, one of the records in `Shared/Model/Log/`, tagged by `type` with its C# name), `Message.Route`, `Message.Plans` and `Message.Fact`. Each is JSON in the shape of the C# record: property names in camelCase, enum values by name, and game objects (locations, territories, heroes, cards) as parts, so the client can draw them as rich text. C# `object` fields (`BeneGesseritReaction.Place`, `BattleFact.Cause`) are `RichText`. The types are in `rust/view/src/log.rs`.
-
-How this is checked: `rust/view/csharp-ref` renders every log message of the scene fixtures, plus a sample of bot-game messages, with the C# engine and `DefaultSkin`, as `ExpressionComponent` draws it and with the records serialised by reflection. `rust/view/tests/log_lines.rs` compares the view's `LogLine`s with that, and `npm run check:rich-text` in `web/` compares the text the React component shows with the text the C# component shows.
+A log line (`LogLine`) is `{text, private, heading, record, route, plans, fact}`: `private` when the message was sent to the viewer alone (drawn in italics), `heading` the concept whose icon heads a section of the log, and the other four the data the phase logs draw from: the message's log record (tagged by `type`), the route of a shipment or move, both revealed battle plans, and one fact of a battle's outcome. Game objects in them are parts, so the client can draw them as rich text. The types are in `rust/view/src/log.rs`. `rust/view/tests/log_lines.rs` keeps snapshots of the lines, and `npm run check:rich-text` checks the text React shows for each.
 
 ### Actions
 
 `ActionView` is `{eventType, options, validation}`:
 
-- `eventType`: the C# event class, also the `$type` to submit.
-- `options`: the form's choices, `ActionOptions`, tagged by `form`. `null` while the event's option builder isn't written; the client then shows nothing for it.
-- `validation`: `Validate()` of the event the form would send with its default inputs, as `RichText`, or null. The confirm button shows it and is disabled while it is set, as `ButtonRowComponent` does. A `Validate()` that throws gives "Validation failed", as in `GameEventComponent.Validation`.
+- `eventType`: the event's type name, also the `$type` to submit.
+- `options`: the form's choices, `ActionOptions`, tagged by `form`.
+- `validation`: the validation message of the event the form would send with its default inputs, as `RichText`, or null. The confirm button shows it and is disabled while it is set. A validation that fails inside the engine gives "Validation failed".
 
-The default inputs are the C# component's field initializers after its widgets have adjusted them (a number picker clamps its initial value into its range).
+The default inputs are the form's starting values after its widgets have adjusted them (a number picker clamps its value into its range, a required choice falls back to the first value). Forms whose payload holds a `draft` send that draft back adjusted; the validation is the adjusted draft's.
 
-`ActionOptions` has one variant per form. The ones that exist:
-
-| `form` | Members | C# component |
-|---|---|---|
-| `Simple` | `title` (RichText), `confirmLabel`, `alert` | `SimpleActionComponent` with the arguments `ActionPanel.razor` gives it (`AllianceBroken`, `AlliancePassed`, ...). `YesNoActionComponent` will get its own variant with a second button |
-| `AllianceOffered` | `targets` (factions) | `AllianceOfferedComponent`: `AllianceOffered.ValidTargets(Game, Player)` |
-| `StormDialled` | `min`, `max` | `StormDialledComponent`: `StormDialled.ValidMinAmount(Game)`, `ValidMaxAmount(Game)` |
-| `Revival`, `RaiseDeadPlayed`, `KarmaFreeRevival`, `KarmaRevivalPrevention`, `ChoamFreeRevivalPrevention`, `RequestTleilaxuRevival`, `AcceptOrCancelTleilaxuRevival`, `SetIncreasedRevivalLimits` | the helpers each component calls (`schema/revival.rs` documents every member), plus `draft`: the event with the inputs as the component shows them after its widgets have adjusted them (clamped amounts, hidden pickers at 0, a required choice falling back to the first value, the map pick dropped while no forces go to the planet). The validation is that draft's | the eight revival components (package 7d) |
-| `Bid` | `maxAmount` (depends on the draft's Karma card), `maxAllyAmount`, `maxEmperorAmount`, `karmaCards`, `mayUseEmperorSecretAlly`, `defaultAmount`, `defaultAllyAmount` | `NormalBiddingPanel`: `Bid.ValidMaxAmount(Player, KarmaCard != null)`, `ValidMaxAllyAmount`, `ValidKarmaCards` when `CanKarma`, `MayUseEmperorSecretAlly`, `Game.SpiceForBidsEmperorCanPay`; the defaults are `BiddingPanel.OnParametersSetAsync` after the pickers clamp them |
-| `BlackMarketBid` | `maxAmount`, `maxAllyAmount`, `maxEmperorAmount`, `defaultAmount`, `defaultAllyAmount` | `BlackMarketBiddingPanel`: `BlackMarketBid.ValidMaxAmount(Player)`, `ValidMaxAllyAmount(Game, Player)` |
-| Battle forms (package 7b) | one variant per event class of the inventory's "Action panel: battle", payloads in `rust/view/src/schema/battle.rs`; each carries `draft`, the event with the form's inputs as the component shows them | `AuditCancelled` … `Voice`. `Battle` adds `mixes` (every affordable `[fullSpecial, halfSpecial, fullNormal, halfNormal, Battle.Dial, Battle.Cost]`, the C# component's `Mixes`), the weapons and defenses for the draft's leader and cards, and the leader's strength for the draft |
-
-Every other event type gets a variant named after its component's event class, holding the results of the helpers that component calls. The "Action forms" table of [client-inventory.md](client-inventory.md#action-forms) lists those helpers per component; it is the checklist.
+`ActionOptions` has one variant per form, named after the event type, except `Simple` (a confirm button with `title`, `confirmLabel`, `alert` and `allowAutoConfirm`, used by about twenty event types and by `EndPhase`, the prompt's "Continue") and `YesNo` (two buttons). The payloads are in `schema.rs` and `schema/{battle,ship_move,revival,other,setup}.rs`, which say what each member holds.
 
 #### Dependent inputs
 
-A helper that takes more than the game and the acting player depends on another input of the same form. The inventory marks these **dep**. Examples: `Battle.ValidWeapons(g, p, selectedDefense, selectedHero, territory)`, `Battle.MaxForces(g, p, specialForces)`, `Shipment.ValidMaxShipmentSiteToSiteForces(p, special, source)`, `ChoamRemoveForce.ValidFactions(g, p, location)`, `ClairVoyancePlayed.ValidQuestions(g, target)`. For these the client sends the draft with `QueryDraft` and gets a `DraftResult`, `{eventType, options, validation}`, with options computed from the draft's inputs: the valid weapons for the chosen defense and leader, the maximum forces from the chosen source. The client sends a query after each input change, drops answers older than its latest query, and keeps the previous options on screen until the answer arrives.
+Some choices depend on another input of the same form: the weapons for the chosen leader and defense, the maximum forces from the chosen source, the questions for the chosen target. For these the client sends the draft with `QueryDraft` and gets a `DraftResult`, `{eventType, options, validation}`, with options computed from the draft's inputs. The client sends a query after each input change, drops answers older than its latest query, and keeps the previous options on screen until the answer arrives. A form with no dependent inputs still queries, for the validation next to its confirm button.
 
-Map clicks are inputs too. Valid locations and territories are part of the options (for example the destinations of a move for the forces selected so far), and the map highlights them.
-
-Choices that depend only on the game and the player are in the view's options already, so a form with no dependent inputs needs no query except for validation. The client may skip validation queries for such forms and rely on the server's answer to `SubmitEvent`, but then its confirm button would no longer show the validation message; the C# client always showed it, so the client queries.
+Map clicks are inputs too. Valid locations and territories are part of the options, and the map highlights them.
 
 ### Visibility
 
-The view holds what the C# client shows that user, and nothing the game rules hide from them. Every rule below is the C# client's own gate, found by reading the component (audit in [client-plan.md](client-plan.md#visibility-audit)).
+The view holds what the game rules let that user see, and nothing more.
 
-| Data | Who sees it | C# gate |
-|---|---|---|
-| Hand, traitors, face dancers (revealed ones marked), leaders' state | the owner | `PlayerPanel` renders only `Client.Player` |
-| Card count | everyone | `TreacheryCards.Count` |
-| Spice behind the shield (`Resources`) | the owner; others only through notekeeping (`notes`) and the bot ally's `AllyPermission` form | `PlayerPanel`, `NoteComponent`, `AllyPermissionComponent` |
-| `ResourcesAfterBidding`, bribes, extortion, banked spice | everyone | `Players.razor:195-234`, no gate |
-| Bene Gesserit prediction | Bene Gesserit, after predicting | `PlayerPanel:101` |
-| Nexus card held | the owner | `PlayerPanel:186` |
-| Card identities in other hands | with notekeeping, the cards in the viewer's own `Player.KnownCards` (not the ally's) | `NoteComponent:196` |
-| Treachery discard pile | the top card to everyone; with notekeeping every card, face up when in `Game.KnownCards(Player)` (which includes the ally's) | `CardPiles:97-155` |
-| Resource deck top | under resource prescience, during ship and move | `HasResourceDeckPrescience(Player)` |
-| Card on auction | under bidding prescience, or for everyone in Richese's auctions | `BiddingPanel:12` |
-| Silent-auction bids | "ready" only | `Bids.razor` |
-| Richese's cache contents | Richese | `CardPiles:171` |
-| Battle plans | the submitter until both are in; both once revealed; the full opposing plan to Atreides and Atreides's ally under Atreides Karama | `BattlePlans.razor:13-17` |
-| Face-down dead leaders | the owner and Tleilaxu | `Tanks.razor`, `MayIdentify` |
-| Placed terror tokens | identity to Moritani, a count to others | `ForcesOnPlanet:27`, `MapComponent:225` |
-| Discovery tokens | identity to Fremen (Fremen type) or Guild (Guild type), type to others | `ForcesOnPlanet:101` |
-| No-Field value | Richese; `?` to others | `MapComponent:219` |
-| Storm prescience (`nextStormMoves`) | `HasStormPrescience(Player)` | `PlayerPanel:96` |
-| The card just won (`me.cardJustWon`) | the viewer, when it is in `Game.KnownCards(Player)` | `CardPickerComponent:41` (Atreides's tracker) |
-| Victory points, other players' spice and cards (`notes`) | with notekeeping; cards by id only when in the viewer's own `Player.KnownCards` | `NoteComponent` |
-| Log lines | `Target == None` or the viewer's faction | `ReportComponent:190` |
-| Deals | offers to the viewer, the viewer's own offers, accepted deals to everyone | `DealComponent` |
-| Undo list | hosts | `UndoComponent` |
-| Everything at game end (story) | everyone, after `GameEnded`, unless the rules disable the report | `WinnerPanel:20` |
+| Data | Who sees it |
+|---|---|
+| Hand, traitors, face dancers (revealed ones marked), leaders' state | the owner |
+| Card count | everyone |
+| Spice behind the shield | the owner; others only through notekeeping (`notes`) and the bot ally's `AllyPermission` form |
+| Spice after bidding, bribes, extortion, banked spice | everyone |
+| Bene Gesserit prediction | Bene Gesserit, after predicting |
+| Nexus card held | the owner |
+| Card identities in other hands | with notekeeping, the cards the viewer has seen (not those only their ally has seen) |
+| Treachery discard pile | the top card to everyone; with notekeeping every card, face up when the viewer or their ally knows it |
+| Resource deck top | under resource prescience, during ship and move |
+| Card on auction | under bidding prescience, or for everyone in Richese's auctions |
+| Silent-auction bids | "ready" only, not whether a bid passed |
+| Richese's cache contents | Richese |
+| Battle plans | the submitter until both are in; both once revealed; the full opposing plan to Atreides and their ally under Atreides Karama; the aspect prescience revealed to the prescience user and their ally |
+| Face-down dead leaders | the owner and Tleilaxu |
+| Placed terror tokens | identity to Moritani, a count to others |
+| Discovery tokens | identity to Fremen (Fremen type) or Guild (Guild type), type to others |
+| No-Field value | Richese; `?` to others |
+| Storm prescience (`nextStormMoves`) | the player with storm prescience |
+| The card just won (`me.cardJustWon`) | the viewer, when they know it |
+| Log lines | public lines, and those sent to the viewer's faction |
+| Deals | offers to the viewer, the viewer's own offers, deals in force to everyone |
+| Undo list | hosts |
+| The story | everyone, after the game ends, unless the rules disable the report |
 
-**Where the C# client shows more than the rules allow**, the view follows the rules, not the C# client, until the coordinator decides otherwise ([client-plan.md](client-plan.md#open-questions)). The Playwright comparison lists these as expected differences:
+Ecaz's unplaced ambassadors and spice after bidding, bribes, extortion and banked spice are shown to everyone; they may be public under the rules.
 
-1. Partial prescience: `BattlePlans.razor:19-25` draws the element prescience revealed of the opponent's plan for every viewer, observers included. The view gives it to the prescience user and their side only.
-2. Story at game end: `StoryComponent` asks `YieldsSecrets` of the game replayed up to each point, and a faction hides its secrets after the game, so the C# story shows everything: the cards held and bought, traitors and face dancers, spice, Nexus card and prediction of factions that chose `HideSecrets`. The view asks the finished game and leaves all of those out for such factions (their cards and traitors read "?", as C# draws them when `YieldsSecrets` is false; their spice reads "?" too). For everyone else, the whole story is shown, as in C#.
-3. Silent auctions: `Bids.razor:25` colours a bid by `Passed`, which reveals a pass. The view sends "ready" only.
-4. Not a leak, but compared the same way: an observer in `Bidding` or `BlackMarketBidding`. The C# bidding panel reads `Player`, which is null for an observer, so it throws and Blazor shows "An unhandled error has occurred" over the bottom of the page. The web client shows no error (see 5 for what it shows instead).
-
-Deliberate changes from the C# client, approved by the user (2026-11-11). The comparison masks them too:
-
-5. Observers (and a host without a seat, for whom C# throws the same way) in `Bidding` and `BlackMarketBidding` get the bidding panel a seated player without bidding prescience sees (`bidding.panel`): the card back, or the card in Richese's auctions where it is public; "Card n of m" in normal auctions; the current bid outside silent auctions. They get no bid inputs (no `Bid` or `BlackMarketBid` action) and no auto-pass. Mask `observer-bidding-error` hides the web panel and the C# error bar.
-6. Card flash after every event. `ImageFlashComponent` sets the flash's time only on its first render, so C# flashes only when the game page opens with a flash current, though its `afterEventId` shows the intent to flash after each event. The web client flashes on opening as C# does, and also whenever a view with a higher `eventNumber` than the last one has a non-empty `status.flash`, for 5000 + 1000 per item ms. A click hides it; a newer flash replaces it. A view with the same or a lower `eventNumber` (a reconnect, a seating change, an undo) starts no flash, and neither does leaving an undo preview. Mask `flash-after-event` hides such a flash (marked `data-flash="event"`).
-
-Two more are shown to everyone by C# and kept for now, because they may be public under the rules: Ecaz's unplaced ambassadors on the map ring, and `ResourcesAfterBidding`/bribes/extortion/banked spice.
-
-The view never contains `Game.Seed`, the order of any deck, or another player's `KnownCards`.
+The view never contains the game's seed, the order of any deck, or another player's known cards.
 
 ### Log and history
 
-`log.reports` lists every report (`{index, turn, about, isBattle, aggressor, defender, territory, battleDecided, battleWinner}`), and `log.latest` holds the lines of the reports of the latest phase, which the report panel shows by default. When the player steps back to an earlier phase, the client calls `RequestReport` for each report of that phase, and caches the answers: a report's lines never change once its phase is over, except the latest one.
+`log.reports` lists every report (`{index, turn, about, isBattle, aggressor, defender, territory, battleDecided, battleWinner}`), and `log.latest` holds the lines of the reports of the latest phase, which the report panel shows by default. When the player steps back to an earlier phase, the client calls `RequestReport` for each report of that phase and caches the answers: a report's lines never change once its phase is over, except the latest one.

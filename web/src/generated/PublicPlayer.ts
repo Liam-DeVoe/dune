@@ -16,7 +16,7 @@ name: string, isBot: boolean, ally: Faction, forcesInReserve: number, specialFor
  */
 cardCount: number, bribes: number, resourcesAfterBidding: number, extortion: number, bankedResources: number, techTokens: Array<TechToken>, 
 /**
- * Ecaz's ambassadors not yet placed, drawn on the ring (`Players.razor`).
+ * Ecaz's ambassadors not yet placed, drawn on the ring.
  */
 ambassadors: Array<Ambassador>, 
 /**
@@ -32,7 +32,7 @@ hasRoomForCards: boolean,
  */
 cardsOwned: number, 
 /**
- * `Player.HomeWorlds`, drawn on the ring (`Players.razor:47-121`). The forces on them are
+ * `Player.HomeWorlds`, drawn on the ring. The forces on them are
  * in `board.forces`.
  */
 homeworlds: Array<HomeworldView>, 

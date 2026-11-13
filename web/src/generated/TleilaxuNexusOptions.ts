@@ -2,7 +2,7 @@
 import type { HeroOption } from "./HeroOption";
 
 /**
- * The Tleilaxu Secret Ally part of `NexusPlayedComponent`.
+ * The Tleilaxu Secret Ally part of the `NexusPlayed` form.
  */
 export type TleilaxuNexusOptions = { 
 /**

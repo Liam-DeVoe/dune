@@ -9,7 +9,7 @@ export type LocationInfo = { id: number, territory: number, orientation: string,
  */
 sector: number, spiceBlowAmount: number, discoveryTokenType: DiscoveryTokenType, 
 /**
- * `normal`, `homeworld`, `hiddenMobileStronghold` or `discovered` (the C# runtime type).
+ * `normal`, `homeworld`, `hiddenMobileStronghold` or `discovered`.
  */
 kind: string, 
 /**

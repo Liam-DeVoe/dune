@@ -2,7 +2,7 @@
 import type { EnumOption } from "./EnumOption";
 
 /**
- * A deal type of `DealOfferedComponent`'s select.
+ * A deal type of the `DealOffered` form's select.
  */
 export type DealTypeOption = { value: number, 
 /**

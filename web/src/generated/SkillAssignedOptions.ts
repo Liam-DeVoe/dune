@@ -3,7 +3,7 @@ import type { EnumOption } from "./EnumOption";
 import type { HeroOption } from "./HeroOption";
 
 /**
- * `SkillAssignedComponent`.
+ * The `SkillAssigned` form.
  */
 export type SkillAssignedOptions = { 
 /**

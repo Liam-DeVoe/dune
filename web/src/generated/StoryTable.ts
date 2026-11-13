@@ -2,7 +2,7 @@
 import type { StoryRow } from "./StoryRow";
 
 /**
- * `StoryPlayerInfoComponent`: which columns are shown, and one row per player.
+ * A table of players: which columns are shown, and one row per player.
  */
 export type StoryTable = { showName: boolean, showAlly: boolean, 
 /**

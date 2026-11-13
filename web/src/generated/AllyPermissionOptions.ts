@@ -3,8 +3,8 @@ import type { Faction } from "./enums";
 import type { BotAllyClaims } from "./BotAllyClaims";
 
 /**
- * `AllyPermissionComponent`. The draft starts from the permissions in force (the component's
- * `OnParametersSet` while not edited); `current` repeats them for the "(currently: ...)" texts.
+ * The `AllyPermission` form. The draft starts from the permissions in force; `current` repeats
+ * them for the "(currently: ...)" texts.
  */
 export type AllyPermissionOptions = { ally: Faction, botClaims: BotAllyClaims | null, 
 /**

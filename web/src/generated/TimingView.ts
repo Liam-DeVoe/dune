@@ -22,7 +22,7 @@ duration: number,
  */
 timeSpent: Array<TimeSpent>, 
 /**
- * The bidding time limit in seconds, or -1 (`Client.Timer`, set by `SetTimer`; server
- * state, not game state).
+ * The bidding time limit in seconds, or -1 (set by `SetTimer`; server state, not game
+ * state).
  */
 timer: number, };

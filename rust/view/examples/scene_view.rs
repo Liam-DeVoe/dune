@@ -1,5 +1,5 @@
-//! Prints the view of a scene as JSON: a fixture from `scripts/fixtures`, seen by one faction,
-//! as the C# `/scene` page would show it. The web skeleton's sample views come from this:
+//! Prints the view of a scene as JSON: a fixture from `scripts/fixtures`, seen by one faction
+//! (see `scene_views.rs`). The web client's sample views come from this:
 //!
 //!     cargo run -p treachery-view --example scene_view -- alliance Emperor > web/public/views/alliance-Emperor.json
 

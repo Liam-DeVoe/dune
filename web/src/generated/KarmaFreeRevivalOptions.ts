@@ -2,7 +2,7 @@
 import type { HeroOption } from "./HeroOption";
 
 /**
- * `KarmaFreeRevivalComponent`.
+ * The `KarmaFreeRevival` form.
  */
 export type KarmaFreeRevivalOptions = { 
 /**

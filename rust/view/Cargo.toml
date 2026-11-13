@@ -3,7 +3,7 @@ name = "treachery-view"
 version = "0.1.0"
 edition.workspace = true
 license.workspace = true
-description = "Per-player game views and action options built from the engine, for the server and the React client. See rust/docs/client-plan.md."
+description = "Per-player game views and action options built from the engine, for the server and the React client. See rust/docs/client.md."
 
 [dependencies]
 treachery-engine = { path = "../engine" }

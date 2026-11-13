@@ -1,12 +1,12 @@
-// Checks that the React RichText shows the same text as the C# ExpressionComponent for every log
-// line of the scene fixtures and of the bot-game sample. It renders each line's parts (the C#
-// reference's `text`, which rust/view/tests/log_lines.rs checks the view produces) and compares
-// the text content with the reference's `dom`, the text the C# component shows in the log.
+// Checks that the React RichText shows the expected text for every log line of the scene
+// fixtures and of the bot-game sample. It renders each line's parts (`text`, which
+// rust/view/tests/log_lines.rs checks the view still produces) and compares the text content with
+// the line's `dom`, the text the log must show.
 //
 //   npm run check:rich-text
 //
-// The golden files are rust/view/tests/golden/log_lines*.jsonl.gz, written by
-// rust/view/csharp-ref. Exits 1 on any difference.
+// The snapshot files are rust/view/tests/golden/log_lines*.jsonl.gz (see log_lines.rs for how to
+// rewrite them). Exits 1 on any difference.
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { resolve } from "node:path";
@@ -38,9 +38,9 @@ try {
   const rendered: { text: string; html: string }[] = mod.render(lines.map((l) => l.text), skin, statics);
   const failures: string[] = [];
   lines.forEach((l, i) => {
-    if (rendered[i].text !== l.dom) failures.push(`${l.where}\n  c#    ${JSON.stringify(l.dom)}\n  react ${JSON.stringify(rendered[i].text)}`);
+    if (rendered[i].text !== l.dom) failures.push(`${l.where}\n  expected ${JSON.stringify(l.dom)}\n  react    ${JSON.stringify(rendered[i].text)}`);
   });
-  console.log(`${lines.length - failures.length} of ${lines.length} log lines show the same text as C#.`);
+  console.log(`${lines.length - failures.length} of ${lines.length} log lines show the expected text.`);
   if (failures.length > 0) {
     console.log(failures.slice(0, 20).join("\n"));
     process.exitCode = 1;

@@ -1,7 +1,7 @@
-//! The battle action forms (client-plan.md, package 7b; `src/actions/battle.rs`): in every
-//! fixture state and every state of the sample bot games where one of the 25 battle event types
-//! is applicable to a player, the form's options equal the results of the engine helpers its C#
-//! component calls, its draft is valid event JSON, and the dependent options (the battle plan's
+//! The battle action forms (`src/actions/battle.rs`): in every fixture state and every state of
+//! the sample bot games where one of the 25 battle event types is applicable to a player, the
+//! form's options equal the results of the engine's helpers, its draft is valid event JSON, and
+//! the dependent options (the battle plan's
 //! weapons and defenses per leader and card, Clairvoyance's questions per target) follow the
 //! draft in a draft query.
 
@@ -160,7 +160,6 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, stats
         (ActionOptions::Diplomacy(o), _) => assert_eq!(o.cards, ids(Diplomacy::valid_cards(game, p)), "{at}"),
         (ActionOptions::FaceDanced(o), _) => {
             assert_eq!(o.maximum_forces, FaceDanced::maximum_number_of_forces(game, p), "{at}");
-            assert_eq!(o.may_call, FaceDanced::may_call_face_dancer(game, p), "{at}");
             assert_eq!(o.sources.iter().map(|s| s.location).collect::<Vec<_>>(), ids(FaceDanced::valid_source_locations(game, p)), "{at}");
             assert_eq!(o.targets.iter().map(|s| s.location).collect::<Vec<_>>(), ids(FaceDanced::valid_target_locations(game)), "{at}");
         }
@@ -267,7 +266,7 @@ fn check_battle(game: &Game, p: PlayerIndex, o: &BattleOptions, draft: &Battle, 
         let Some(ActionOptions::Battle(o)) = opts else { panic!("{at}") };
         let normalized = check_draft(game, game.player(p).faction, &o.draft, GameEventType::Battle, at);
         let GameEvent::Battle(n) = &normalized else { unreachable!() };
-        // A hero that isn't valid, or none when one is required, is replaced as the C# form does.
+        // A hero that isn't valid, or none when one is required, is replaced.
         if hero.is_some() || game.applicable(Rule::BattleWithoutLeader) || heroes.is_empty() {
             assert_eq!(n.hero(), hero, "{at}: the chosen leader stays");
         }

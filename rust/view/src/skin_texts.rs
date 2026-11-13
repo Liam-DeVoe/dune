@@ -1,11 +1,11 @@
 //! Skin texts that need the game and more of the skin than `Describe`: the faction sheets of the
-//! map's faction popover (`Support.FactionPopupHtml`) and the rule names of the turn popover
-//! (`Phases.razor` `TurnPopover`). Both read only public data: the game's rules and which
+//! map's faction popover and the rule names of the turn popover. Both read only public data:
+//! the game's rules and which
 //! factions play. The client builds the popover markup from these, because the place chips in a
 //! sheet need its map geometry.
 //!
-//! Also the milestones of the latest event (`Game.RecentMilestones`), for the sounds the C#
-//! client plays after each event (`Client.PlaySoundsForMilestones`).
+//! Also the milestones of the latest event (`Game::recent_milestones`), for the sounds the
+//! client plays after each event.
 
 use serde::{Deserialize, Serialize};
 use treachery_engine::messages::expression::ExpressionElement;
@@ -143,8 +143,8 @@ pub fn rule_labels(game: &Game, d: &dyn Describer) -> RuleLabels {
     }
 }
 
-/// `Game.RecentMilestones`: what the latest event achieved. Every client played these sounds in
-/// C#, observers included; they mark public outcomes (an auction won, a shuffle, a Karama card).
+/// What the latest event achieved. Every viewer gets them, observers included: they mark public
+/// outcomes (an auction won, a shuffle, a Karama card).
 pub fn recent_milestones(game: &Game) -> Vec<String> {
     game.recent_milestones.iter().map(|m| m.to_string()).collect()
 }

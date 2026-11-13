@@ -1,14 +1,13 @@
-//! The ship-and-move forms (client-plan.md package 7c): for every fixture state and every state
-//! of the sample bot games where one of the 25 event types is applicable, the form's options
-//! equal what the C# component gets from the engine helpers, for the default draft and for the
+//! The ship-and-move forms: for every fixture state and every state of the sample bot games
+//! where one of the 25 event types is applicable, the form's options equal the engine's
+//! helpers, for the default draft and for the
 //! drafts a player makes on the way (a source picked, a destination pinned, a shipment type or
 //! No-Field chosen). The draft query path (JSON in, options out) is checked on the fixtures.
 //!
-//! The options carry the draft after the C# component's render-time adjustments
-//! (`check_adjustments`): drafts with inputs that no longer apply come back with those inputs
-//! dropped exactly as the component's markup drops them, and the validation is the adjusted
-//! draft's. The expected adjustments are written out here from the razor files, not by calling
-//! the view's `normalize`.
+//! The options carry the draft after the form's adjustments (`check_adjustments`): drafts with
+//! inputs that no longer apply come back with those inputs dropped, and the validation is the
+//! adjusted draft's. The expected adjustments are written out here, not by calling the view's
+//! `normalize`.
 
 mod common;
 
@@ -246,7 +245,7 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, seen:
     }
 }
 
-/// The C# `ValidShipmentForces`/`ValidShipmentSpecialForces` for a draft.
+/// The maximum forces and special forces a draft may ship.
 fn shipment_max(game: &Game, p: PlayerIndex, s: &Shipment, special: bool) -> i32 {
     match s.shipment_type {
         ShipmentType::ShipmentNormal => Shipment::valid_max_normal_shipment_forces(game, p, special, s.no_field_value()),
@@ -362,7 +361,7 @@ fn check_shipment(game: &Game, p: PlayerIndex, s: &Shipment, o: &ShipmentOptions
     }
 }
 
-/// `PlacementComponent`: sources, then each source with all its forces selected.
+/// The placement forms: sources, then each source with all its forces selected.
 fn check_placement(game: &Game, p: PlayerIndex, o: &PlacementOptions, t: GameEventType) {
     let pl = game.player(p);
     let f = pl.faction;
@@ -557,8 +556,7 @@ fn adjusted(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) -
     e
 }
 
-/// Sends drafts whose inputs the C# component would change while rendering, and checks the
-/// adjusted draft against the component's markup.
+/// Sends drafts whose inputs the form would change, and checks the adjusted drafts.
 fn check_adjustments(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) {
     let pl = game.player(p);
     let f = pl.faction;
@@ -643,7 +641,7 @@ fn check_adjustments(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Des
                     e.tleilaxu_assign_skill = true;
                     e.set_ixian_card(None);
                     let GameEvent::AmbassadorActivated(a) = adjusted(game, p, &event(e), d) else { panic!() };
-                    // BeneGesserit: the required SelectFromImageComponent; otherwise the shown one.
+                    // BeneGesserit: the required image choice; otherwise the shown one.
                     let valid_bg = AmbassadorActivated::get_valid_bene_gesserit_ambassadors(game);
                     let expected_actual = if ambassador != Ambassador::BeneGesserit {
                         ambassador
@@ -807,7 +805,7 @@ fn as_advisors_of(e: &GameEvent) -> bool {
     }
 }
 
-/// `ShipmentComponent.PinContent`: a draft with every optional input set comes back with the
+/// The shipment's pinned panel: a draft with every optional input set comes back with the
 /// inputs the panel would not offer dropped.
 fn check_shipment_adjustments(game: &Game, p: PlayerIndex, d: &dyn Describer) {
     let pl = game.player(p);

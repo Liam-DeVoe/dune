@@ -2,7 +2,7 @@
 import type { ChoamRemoveForceFaction } from "./ChoamRemoveForceFaction";
 
 /**
- * `ChoamRemoveForceComponent`.
+ * The `ChoamRemoveForce` form.
  */
 export type ChoamRemoveForceOptions = { card: number | null, 
 /**
@@ -15,6 +15,6 @@ targets: Array<number>,
  */
 factions: Array<ChoamRemoveForceFaction>, 
 /**
- * The draft with the inputs as the component shows them (see the module docs).
+ * The draft with the inputs as the form shows them (see the module docs).
  */
 draft: Record<string, unknown>, };

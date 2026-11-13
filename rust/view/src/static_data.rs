@@ -51,7 +51,7 @@ pub struct LocationInfo {
     pub spice_blow_amount: i32,
     #[ts(type = "DiscoveryTokenType")]
     pub discovery_token_type: String,
-    /// `normal`, `homeworld`, `hiddenMobileStronghold` or `discovered` (the C# runtime type).
+    /// `normal`, `homeworld`, `hiddenMobileStronghold` or `discovered`.
     pub kind: String,
     /// For a discovered stronghold, the discovery token that reveals it.
     #[ts(type = "DiscoveryToken | null")]

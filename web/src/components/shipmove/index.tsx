@@ -1,5 +1,5 @@
-// The ship-and-move forms (client-plan.md package 7c), by event type, for ActionPanel.razor's
-// switch. ActionPanel leaves out the ones played from a card in the faction panel.
+// The ship-and-move forms, by event type, for ActionPanel's switch. ActionPanel leaves out the
+// ones played from a card in the faction panel.
 import type { ReactNode } from "react";
 import type { ActionView } from "../../generated/ActionView";
 import { AmbassadorActivatedForm, BeneGesseritFlipForm, DiscoveryRevealedForm, FlightUsedForm, KarmaShipmentPreventionForm, PerformFremenSetupForm, SetShipmentPermissionForm, TestingStationUsedForm } from "./OtherForms";

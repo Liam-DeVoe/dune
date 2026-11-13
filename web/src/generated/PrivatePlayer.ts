@@ -26,7 +26,7 @@ nexus: Faction | null,
  */
 nextStormMoves: number | null, 
 /**
- * Atreides only, with `Rule.AtreidesMessiah`: the Messiah's state (`PlayerPanel.razor:106-133`).
+ * Atreides only, with `Rule.AtreidesMessiah`: the Messiah's state.
  */
 messiah: MessiahState | null, 
 /**
@@ -35,6 +35,6 @@ messiah: MessiahState | null,
 unplacedTerror: Array<TerrorType> | null, 
 /**
  * `Game.CardJustWon` when the viewer knows it (`Game.KnownCards(Player)`); the Atreides
- * tracker's card picker marks it (`CardPickerComponent.razor:41`).
+ * tracker's card picker marks it.
  */
 cardJustWon: number | null, };

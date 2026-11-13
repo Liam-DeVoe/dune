@@ -1,21 +1,20 @@
 //! How a view names things: the skin's `Describe`.
 //!
-//! The text of every log line and prompt is rendered on the server, with the game's skin, as the
-//! C# client rendered it with `Client.CurrentSkin`. The skin is the shared crate `rust/skin`
-//! (coordinator decision, server-plan.md "Coordinator answers" 1); a custom skin is a
-//! `treachery_skin::Skin` loaded with `Skin::load`, which the server puts in the replica.
+//! The text of every log line and prompt is rendered on the server, with the game's skin
+//! (`rust/skin`). A custom skin is a `treachery_skin::Skin` loaded with `Skin::load`, which the
+//! server puts in the replica.
 
 use treachery_engine::messages::expression::ExpressionElement;
 use treachery_engine::game::Game;
 use treachery_skin::Skin;
 
 pub trait Describer {
-    /// `Skin.Describe(object)`. Live game collections inside the value (hazards 4.5) are read
-    /// from `game` when one is given, as the C# client enumerated them at render time.
+    /// The skin's description of a value. Live game collections inside the value (hazards 4.5)
+    /// are read from `game` when one is given, so they show the game's current contents.
     fn describe_in(&self, el: &ExpressionElement, game: Option<&Game>) -> String;
 
-    /// The game the C# component had in its `Game` parameter: live collections inside messages
-    /// are read from it, and a leader's popover shows the skill it has in it (`Game.Skill`).
+    /// The game text is rendered for: live collections inside messages are read from it, and a
+    /// leader's popover shows the skill it has in it (`Game::skill`).
     fn game(&self) -> Option<&Game> {
         None
     }
@@ -58,8 +57,8 @@ pub fn default_describer() -> Box<dyn Describer> {
     Box::new(treachery_skin::default_skin())
 }
 
-/// A skin together with the game it renders for: what an `ExpressionComponent` has when its
-/// `Game` parameter is set, which is everywhere in the game screen.
+/// A skin together with the game it renders for, which is what all text in the game screen
+/// uses.
 pub struct InGame<'a> {
     pub skin: &'a dyn Describer,
     pub game: &'a Game,

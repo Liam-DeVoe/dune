@@ -1,9 +1,8 @@
-//! Options of the revival forms (client-plan.md package 7d): the eight components of the
-//! inventory's "Action panel: revival" area. Each struct is the payload of one
-//! [`ActionOptions`](super::ActionOptions) variant, named after the event class.
+//! Options of the eight revival forms (`actions/revival.rs`). Each struct is the payload of one
+//! [`ActionOptions`](super::ActionOptions) variant, named after the event type.
 //!
 //! Every form carries `draft`: the event the form sends with its current inputs, in savegame
-//! JSON, after the server has adjusted the inputs the way the C# component does while it renders
+//! JSON, after the server has adjusted the inputs the way the form does
 //! (a number picker clamps its value into its range, a hidden picker resets to 0, a required
 //! image choice falls back to the first value, the map pick is dropped while no forces go to the
 //! planet). The validation next to the options is that draft's. The client shows these values and
@@ -31,7 +30,7 @@ pub struct FactionOption {
     pub value: i32,
 }
 
-/// `RevivalComponent`.
+/// The `Revival` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct RevivalOptions {
@@ -63,7 +62,7 @@ pub struct RevivalOptions {
     pub draft: serde_json::Value,
 }
 
-/// `RaiseDeadComponent`.
+/// The `RaiseDeadPlayed` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct RaiseDeadPlayedOptions {
@@ -86,7 +85,7 @@ pub struct RaiseDeadPlayedOptions {
     pub draft: serde_json::Value,
 }
 
-/// `KarmaFreeRevivalComponent`.
+/// The `KarmaFreeRevival` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct KarmaFreeRevivalOptions {
@@ -104,7 +103,7 @@ pub struct KarmaFreeRevivalOptions {
     pub draft: serde_json::Value,
 }
 
-/// `KarmaRevivalPreventionComponent`.
+/// The `KarmaRevivalPrevention` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct KarmaRevivalPreventionOptions {
@@ -116,7 +115,7 @@ pub struct KarmaRevivalPreventionOptions {
     pub draft: serde_json::Value,
 }
 
-/// `ChoamFreeRevivalPreventionComponent`.
+/// The `ChoamFreeRevivalPrevention` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct ChoamFreeRevivalPreventionOptions {
@@ -129,7 +128,7 @@ pub struct ChoamFreeRevivalPreventionOptions {
     pub draft: serde_json::Value,
 }
 
-/// `RequestTleilaxuRevivalComponent`.
+/// The `RequestTleilaxuRevival` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct RequestTleilaxuRevivalOptions {
@@ -148,7 +147,7 @@ pub struct EarlyRevivalOffer {
     pub price: Option<i32>,
 }
 
-/// `AcceptOrCancelTleilaxuRevivalComponent`.
+/// The `AcceptOrCancelTleilaxuRevival` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct AcceptOrCancelTleilaxuRevivalOptions {
@@ -166,7 +165,7 @@ pub struct AcceptOrCancelTleilaxuRevivalOptions {
     pub draft: serde_json::Value,
 }
 
-/// `SetIncreasedRevivalLimitsComponent`.
+/// The `SetIncreasedRevivalLimits` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct SetIncreasedRevivalLimitsOptions {

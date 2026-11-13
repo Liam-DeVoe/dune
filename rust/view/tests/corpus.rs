@@ -1,7 +1,7 @@
 //! Views over the bot-game corpus (`rust/traces/sample/bots-*.jsonl.gz` and `tests/data`): after every accepted
 //! event of every game, the view of every player and of an observer.
 //!
-//! - One replica serves all viewers of a game (client-plan.md, The view replica). Views built in
+//! - One replica serves all viewers of a game (client.md, The view replica). Views built in
 //!   one order must equal views built in another order on a second replica that follows the same
 //!   events, at every step. A difference would mean that building a view changes what a later
 //!   view shows, and the fallback (one replica per viewer) would be needed.

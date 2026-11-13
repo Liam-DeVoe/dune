@@ -10,7 +10,7 @@ Starts rust/target/release/treachery-server on a fresh database with the web bui
    database, so this is the case where a seat that was never saved got lost.
 1. Two users log in (accounts are created on first use) in two browser contexts, through the
    web client's own connection code (window.treacheryClient). The lobby screens don't exist yet
-   (client-plan.md, package 8), so this is the only step not done by clicking.
+   (client.md, package 8), so this is the only step not done by clicking.
 2. Alice creates a game from the alliance fixture, takes the Emperor's seat and opens the
    Atreides seat; Bob joins it.
 3. Both open the game screen (/<token>/<gameId>). Alice offers an alliance to the Atreides by

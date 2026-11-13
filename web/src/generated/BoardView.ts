@@ -34,7 +34,7 @@ highlightedTerritories: Array<number>,
 strongholds: Array<StrongholdOwner>, 
 /**
  * `Game.TerrorIn(territory)`: one entry per placed token. The token's identity is sent to
- * Moritani only (`ForcesOnPlanet.razor:27`); others see a token.
+ * Moritani only; others see a token.
  */
 terror: Array<TerrorOnPlanet>, 
 /**
@@ -43,7 +43,7 @@ terror: Array<TerrorOnPlanet>,
 ambassadors: Array<AmbassadorOnPlanet>, 
 /**
  * `Game.DiscoveriesOnPlanet`: unrevealed discovery tokens. The token is sent to Fremen for
- * the Fremen type and to the Guild for the Guild type (`ForcesOnPlanet.razor:101`).
+ * the Fremen type and to the Guild for the Guild type.
  */
 discoveries: Array<DiscoveryOnPlanet>, 
 /**
@@ -54,7 +54,7 @@ discoveries: Array<DiscoveryOnPlanet>,
 attached: Array<AttachedLocationView>, 
 /**
  * Living leaders and the Messiah standing in a territory (`LeaderState.CurrentTerritory`),
- * drawn with the forces (`ForcesInLocation.razor:41-49`).
+ * drawn with the forces.
  */
 leaders: Array<LeaderOnPlanet>, 
 /**
@@ -62,7 +62,7 @@ leaders: Array<LeaderOnPlanet>,
  */
 monsters: Array<MonsterView>, 
 /**
- * `Game.NumberOfMonsters`: worm tokens on the Shield Wall under `Rule.Ssw` (`SSW.razor`).
+ * `Game.NumberOfMonsters`: worm tokens on the Shield Wall under `Rule.Ssw`.
  */
 numberOfMonsters: number, 
 /**
@@ -79,17 +79,16 @@ atomicsAftermath: number | null,
 protectedFromStorm: Array<number>, 
 /**
  * Richese only: `Game.CurrentNoFieldValue`, the value of the No-Field token on the planet.
- * Others see "?" (`MapComponent.razor:219`).
+ * Others see "?".
  */
 noFieldValue: number | null, 
 /**
  * `Game.NextStormMoves` when `Game.HasStormPrescience(Player)`: the sectors the next storm
- * passes over are tinted (`Planet.razor:107`). Unlike `me.nextStormMoves` this has no phase
- * gate, as in C#.
+ * passes over are tinted. Unlike `me.nextStormMoves` this has no phase gate.
  */
 stormPrescienceMoves: number | null, 
 /**
  * During ship and move, an arrow per origin of each of `Game.RecentMoves`, following
- * `Map.FindFirstShortestPath` through the Polar Sink (`RecentMoves.razor`).
+ * `Map.FindFirstShortestPath` through the Polar Sink.
  */
 recentMoves: Array<MoveArrow>, };

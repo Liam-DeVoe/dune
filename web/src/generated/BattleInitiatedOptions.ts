@@ -3,8 +3,8 @@ import type { BattleInitiatedFight } from "./BattleInitiatedFight";
 
 export type BattleInitiatedOptions = { 
 /**
- * `Battle.BattlesToBeFought(Game, Player)`. With one fight, the C# form confirms it after
- * half a second.
+ * `Battle::battles_to_be_fought`. With one fight, the client confirms it after half a
+ * second.
  */
 fights: Array<BattleInitiatedFight>, 
 /**

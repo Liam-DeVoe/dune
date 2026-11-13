@@ -6,7 +6,7 @@ import type { MessiahState } from "./MessiahState";
 export type NotesPlayer = { faction: Faction, resources: number, bribes: number, resourcesAfterBidding: number, 
 /**
  * `Game.CardsOwnedBy(p)`: a card, or null for one not in the viewer's own
- * `Player.KnownCards` (`NoteComponent.razor:196`).
+ * `Player.KnownCards`.
  */
 cards: Array<number | null>, revealedTraitors: Array<HeroRef>, revealedFaceDancers: Array<HeroRef>, 
 /**

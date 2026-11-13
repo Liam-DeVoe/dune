@@ -2,7 +2,7 @@
 import type { FactionOption } from "./FactionOption";
 
 /**
- * `DonatedComponent` (opened from the trade menu). Targets and range follow the draft's
+ * The `Donated` form (opened from the trade menu). Targets and range follow the draft's
  * `FromBank` (host only).
  */
 export type DonatedOptions = { 
@@ -19,6 +19,6 @@ min: number, max: number,
  */
 cards: Array<number> | null, 
 /**
- * `Client.IsHost`: the "from bank" box.
+ * The viewer is a host: the "from bank" box.
  */
 isHost: boolean, draft: Record<string, unknown>, };

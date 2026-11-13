@@ -9,6 +9,6 @@ export type LocationPickOptions = {
  */
 targets: Array<number>, 
 /**
- * The draft with the inputs as the component shows them (see the module docs).
+ * The draft with the inputs as the form shows them (see the module docs).
  */
 draft: Record<string, unknown>, };

@@ -1,5 +1,5 @@
-// The battle area's action forms (client-plan.md, package 7b): one React component per C#
-// component in the inventory's "Action panel: battle", each named after it. Options and
+// The battle area's action forms: one React component per event type, each named after the
+// C# component it replaced. Options and
 // validation come from rust/view/src/actions/battle.rs; every form starts from the server's
 // `draft` and sends its next draft from it.
 import { useEffect, useRef } from "react";
@@ -350,39 +350,20 @@ function FaceDancedComponent({ action, inPopover }: Props) {
       </div>
       {o.sources.length > 0 && (
         <>
-          {o.placeOnly ? <div className="mt-2 mb-0">From somewhere on the planet:</div> : <label className="mt-2 mb-0">From somewhere on the planet:</label>}
+          <div className="mt-2 mb-0">From somewhere on the planet:</div>
           <ForceSelection faction={faction} locations={o.sources} value={sources} onChange={(m) => void update({ _forceLocations: placementString(m) })} />
         </>
       )}
-      {o.placeOnly ? <div className="mt-2 mb-0">Select where to put your replacements:</div> : <label className="mt-2 mb-0">Select where to put your replacements:</label>}
+      <div className="mt-2 mb-0">Select where to put your replacements:</div>
       <ForceSelection faction={faction} locations={o.targets} value={targets} fixedMax={o.maximumForces}
                       onChange={(m) => void update({ _targetForceLocations: placementString(m) })} />
     </>
   );
-  const intro = (prefix: string) => (
-    <div className="mb-2">{prefix}<strong>{o.maximumForces}</strong> <ForceToken faction={faction} size={20} /> in <PlaceChip place={{ territory: o.territory }} /> from your reserves and/or from anywhere on the planet.</div>
-  );
-  if (o.placeOnly) {
-    return (
-      <Layout type={action.eventType} urgent inPopover={inPopover} header="Choose which forces to replace by your own">
-        {intro("You may place up to ")}
-        {o.maximumForces > 0 && pickers}
-        <ButtonRow confirm={() => submit()} confirmError={validation} />
-        <SubmitError error={error} />
-      </Layout>
-    );
-  }
   return (
-    <Layout type={action.eventType} urgent inPopover={inPopover} header="Reveal a Face Dancer?">
-      {o.mayCall
-        ? (
-          <>
-            {intro("If you decide to reveal, you may place up to ")}
-            {pickers}
-            <ButtonRow confirm={() => submit()} confirmText="Reveal & Place Forces" confirmError={validation} pass={() => submit({ FaceDancerCalled: false })} passText="Pass" />
-          </>
-        )
-        : <ButtonRow pass={() => submit({ FaceDancerCalled: false })} passText="Pass" />}
+    <Layout type={action.eventType} urgent inPopover={inPopover} header="Choose which forces to replace by your own">
+      <div className="mb-2">You may place up to <strong>{o.maximumForces}</strong> <ForceToken faction={faction} size={20} /> in <PlaceChip place={{ territory: o.territory }} /> from your reserves and/or from anywhere on the planet.</div>
+      {o.maximumForces > 0 && pickers}
+      <ButtonRow confirm={() => submit()} confirmError={validation} />
       <SubmitError error={error} />
     </Layout>
   );

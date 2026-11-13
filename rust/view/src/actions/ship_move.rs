@@ -1,21 +1,16 @@
-//! Option builders for the ship-and-move forms (client-plan.md package 7c): the 25 event types
-//! of the inventory's "Action panel: ship and move" area.
+//! Option builders for the ship-and-move forms. Each returns the results of the engine helpers
+//! the form needs (`Shipment::*`, the placement helpers and others) for the inputs in the draft.
+//! Inputs that other choices depend on (the forces selected for a move, the shipment's
+//! destination and type, the hero picked for a Tleilaxu ambassador) are read from the draft, so
+//! a draft query (protocol.md, Dependent inputs) returns the dependent options.
 //!
-//! Each builder stands for one C# component in `Client/GameEventComponents` and returns what that
-//! component computes from `Game` and `Player`: the results of the `Shipment.*`,
-//! `PlacementEvent.*` and other helpers it calls, for the inputs in the draft. Inputs that other
-//! choices depend on (the forces selected for a move, the shipment's destination and type, the
-//! hero picked for a Tleilaxu ambassador) are read from the draft, so a draft query
-//! (protocol.md, Dependent inputs) returns the dependent options.
-//!
-//! The C# components also changed their own fields while rendering: an input that stops
-//! applying is dropped (a No-Field value, smuggled forces, a Karama card or an ally payment the
-//! shipment no longer allows), the Bene Gesserit advisor flag follows the destination, and a
-//! required choice falls back to its first value. [`normalize`] makes those changes to a draft,
-//! as revival.rs does for package 7d, so the options and validation are those of the adjusted
-//! draft, and the options carry it back to the client (`draft`). What the client still does
-//! itself: which sectors it can draw (`SectorGeometry.HasCenter`), and the changes a click makes
-//! (a new map pick, `InitializeAmounts`).
+//! A form also adjusts its inputs: an input that stops applying is dropped (a No-Field value,
+//! smuggled forces, a Karama card or an ally payment the shipment no longer allows), the Bene
+//! Gesserit advisor flag follows the destination, and a required choice falls back to its first
+//! value. [`normalize`] makes those changes to a draft, as `revival.rs` does, so the options and
+//! validation are those of the adjusted draft, and the options carry it back to the client
+//! (`draft`). What the client still does itself: which sectors it can draw, and the changes a
+//! click makes (a new map pick, the amounts it starts with).
 
 use serde_json::Value;
 use treachery_engine::compat::cs;
@@ -30,6 +25,7 @@ use crate::describe::Describer;
 use crate::expr::message;
 use crate::schema::*;
 use crate::shield::hero_ref;
+use super::widgets::{draft_json, required};
 
 fn name<T: ToString>(v: T) -> String {
     v.to_string()
@@ -39,7 +35,7 @@ fn ids(ls: impl IntoIterator<Item = Location>) -> Vec<i32> {
     ls.into_iter().map(|l| l.id()).collect()
 }
 
-/// `SectorsOf(territories)` (`MapPickComponent`): every sector of the territories.
+/// `SectorsOf(territories)`: every sector of the territories.
 fn sectors_of(ts: impl IntoIterator<Item = Territory>) -> Vec<i32> {
     ts.into_iter().flat_map(|t| t.locations().iter().map(|l| l.id())).collect()
 }
@@ -49,14 +45,14 @@ fn forces_at(game: &Game, p: PlayerIndex, l: Location) -> ForcesAt {
     ForcesAt { location: l.id(), forces: pl.forces_in(Some(l)), special_forces: pl.special_forces_in(Some(l)) }
 }
 
-/// The draft a form sends before the player touches it: the component's field initializers, after
-/// its widgets adjusted them (a required `SelectFromImageComponent` picks the first value).
+/// The draft a form sends before the player touches it: its starting inputs, after its widgets
+/// adjusted them (a required image choice picks the first value).
 pub fn default_draft(game: &Game, p: PlayerIndex, faction: Faction, t: GameEventType) -> Option<GameEvent> {
     let draft = initial_draft(game, p, faction, t)?;
     Some(normalized(game, p, &draft))
 }
 
-/// The component's field initializers, before its first render.
+/// The form's starting inputs, before any adjustment.
 fn initial_draft(game: &Game, p: PlayerIndex, faction: Faction, t: GameEventType) -> Option<GameEvent> {
     Some(match t {
         GameEventType::Shipment => {
@@ -93,7 +89,7 @@ fn initial_draft(game: &Game, p: PlayerIndex, faction: Faction, t: GameEventType
         GameEventType::AmbassadorActivated => {
             let mut e = AmbassadorActivated::new(game, faction);
             let ambassador = AmbassadorActivated::get_ambassador(game);
-            // BeneGesserit: SelectFromImageComponent (required) picks the first ambassador.
+            // BeneGesserit: the required image choice picks the first ambassador.
             let actual = if ambassador == Ambassador::BeneGesserit {
                 AmbassadorActivated::get_valid_bene_gesserit_ambassadors(game).first().copied().unwrap_or(Ambassador::None)
             } else {
@@ -182,7 +178,7 @@ fn initial_draft(game: &Game, p: PlayerIndex, faction: Faction, t: GameEventType
         }
         GameEventType::TerrorPlanted => {
             let mut e = TerrorPlanted::new(game, faction);
-            // Removing: SelectComponent (required) picks the first type. Placing: the type is
+            // Removing: the required select picks the first type. Placing: the type is
             // chosen in the pinned panel, which only shows once a stronghold is picked.
             if TerrorPlanted::may_remove_tokens(game, p) {
                 e.type_ = TerrorPlanted::valid_terror_types(game, true).next().unwrap_or(TerrorType::None);
@@ -199,7 +195,7 @@ fn initial_draft(game: &Game, p: PlayerIndex, faction: Faction, t: GameEventType
         }
         GameEventType::TestingStationUsed => {
             let mut e = TestingStationUsed::new(game, faction);
-            // RadioComponent over [-1, 1] (required) replaces the initial 0 with -1.
+            // The required radio over [-1, 1] replaces the initial 0 with -1.
             e.value_added = -1;
             event(e)
         }
@@ -213,8 +209,7 @@ fn initial_draft(game: &Game, p: PlayerIndex, faction: Faction, t: GameEventType
 }
 
 /// The options of the form for `draft`, or `None` when the draft is not one of this module's
-/// event types. A helper that throws for the draft (C# would show the component's error
-/// boundary) leaves the form without options.
+/// event types. A helper that panics for the draft leaves the form without options.
 pub fn options(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) -> Option<Option<ActionOptions>> {
     options_and_validation(game, p, draft, d).map(|(o, _)| o)
 }
@@ -231,11 +226,6 @@ pub fn options_and_validation(game: &Game, p: PlayerIndex, draft: &GameEvent, d:
         o
     });
     Some((options, validate(game, draft, d)))
-}
-
-/// The draft as savegame JSON, for the options' `draft`.
-fn draft_json(e: &GameEvent) -> Value {
-    serde_json::from_str(&json::serialize(e)).expect("the engine writes valid JSON")
 }
 
 fn set_draft(o: &mut ActionOptions, draft: Value) {
@@ -270,8 +260,8 @@ fn normalized(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
     cs::catch(|| normalize(game, p, draft)).unwrap_or_else(|_| draft.clone())
 }
 
-/// The draft after one render of its component, repeated until it stops changing (each step
-/// only clears an input or picks a valid value, so this ends at once).
+/// The draft after one round of the form's adjustments, repeated until it stops changing (each
+/// step only clears an input or picks a valid value, so this ends at once).
 pub fn normalize(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
     let mut current = draft.clone();
     for _ in 0..8 {
@@ -284,18 +274,12 @@ pub fn normalize(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
     current
 }
 
-/// `SelectComponent` and `SelectFromImageComponent` with `Required`: a value not among the values
-/// becomes the first one, or the type's default when there are none.
-fn required<T: PartialEq + Copy>(value: T, values: &[T], default: T) -> T {
-    if values.contains(&value) { value } else { values.first().copied().unwrap_or(default) }
-}
-
 fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
     let pl = game.player(p);
     let faction = pl.faction;
     match draft {
-        // ShipmentComponent.PinContent, drawn while the shipment has a destination or goes back
-        // to reserves (and Karama does not stop it).
+        // The pinned panel, drawn while the shipment has a destination or goes back to reserves
+        // (and Karama does not stop it).
         GameEvent::Shipment(s) => {
             let mut s = (**s).clone();
             let cross = Shipment::may_ship_cross_planet(game, p);
@@ -333,7 +317,7 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
             }
             event(s)
         }
-        // PlacementComponent.PinContent, drawn while there is a destination.
+        // The pinned panel, drawn while there is a destination.
         GameEvent::Move(e) => {
             let mut e = (**e).clone();
             if let Some(to) = e.to(game) {
@@ -435,7 +419,7 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
             }
             event(e)
         }
-        // `_selectedLocation` falls back to the first location (and SelectComponent agrees).
+        // The selected location falls back to the first location.
         GameEvent::DiscoveryRevealed(e) => {
             let mut e = (**e).clone();
             let locations: Vec<Location> = DiscoveryRevealed::get_locations(game, p).collect();
@@ -450,8 +434,8 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
             e.target = required(e.target, &targets, Faction::None);
             event(e)
         }
-        // Removing: the required SelectComponent. Placing: PinContent, drawn while a stronghold
-        // is pinned.
+        // Removing: the required select. Placing: the pinned panel, drawn while a stronghold is
+        // pinned.
         GameEvent::TerrorPlanted(e) => {
             let mut e = (**e).clone();
             if TerrorPlanted::may_remove_tokens(game, p) {
@@ -478,7 +462,7 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
             }
             event(e)
         }
-        // RadioComponent over [-1, 1] (required).
+        // The required radio over [-1, 1].
         GameEvent::TestingStationUsed(e) => {
             let mut e = (**e).clone();
             e.value_added = required(e.value_added, &[-1, 1], 0);
@@ -488,7 +472,7 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
     }
 }
 
-/// `PlacementComponent.PinContent`: Bene Gesserit move as advisors where they can't choose and
+/// The placement form's pinned panel: Bene Gesserit move as advisors where they can't choose and
 /// may; everyone else never does.
 fn as_advisors(game: &Game, p: PlayerIndex, forces: &NetDictionary<Location, Battalion>, to: Location, current: bool) -> bool {
     if game.player(p).faction != Faction::BeneGesserit {
@@ -715,7 +699,7 @@ fn shipment(game: &Game, p: PlayerIndex, s: &Shipment, d: &dyn Describer) -> Shi
 
     let may_karma = Shipment::can_karma(game, p) && (faction != Faction::Fremen || ty == ShipmentType::ShipmentSiteToSite) && !cross;
     let cost = Shipment::determine_cost(game, p, s);
-    // C#: Destination is To, except for a shipment back to reserves.
+    // The destination is `to`, except for a shipment back to reserves.
     let destination = if ty == ShipmentType::ShipmentBack { None } else { to };
 
     ShipmentOptions { draft: Value::Null,
@@ -746,8 +730,8 @@ fn shipment(game: &Game, p: PlayerIndex, s: &Shipment, d: &dyn Describer) -> Shi
     }
 }
 
-/// `PlacementComponent` for a regular move or a Caravan: sources are the sectors of
-/// `ValidMovementSources` that hold forces and are out of the storm.
+/// The placement form for a regular move or a Caravan: sources are the sectors of
+/// `valid_movement_sources` that hold forces and are out of the storm.
 fn placement(game: &Game, p: PlayerIndex, forces: &NetDictionary<Location, Battalion>, to: Option<Location>, valid_sources: Vec<Territory>) -> PlacementOptions {
     let pl = game.player(p);
     let sources = valid_sources
@@ -776,7 +760,7 @@ fn placement(game: &Game, p: PlayerIndex, forces: &NetDictionary<Location, Batta
     o
 }
 
-/// `PlacementComponent.PinContent`'s inputs for the pinned destination.
+/// The pinned panel's inputs for the pinned destination.
 fn destination_options(game: &Game, p: PlayerIndex, forces: &NetDictionary<Location, Battalion>, to: Option<Location>, o: &mut PlacementOptions) {
     let Some(to) = to else { return };
     if game.player(p).faction == Faction::BeneGesserit {

@@ -11,7 +11,7 @@ export type FlashView = {
  */
 toShow: Part, message: Array<Part>, 
 /**
- * For each part of `message`, whether `ImageFlashComponent` draws it with the text border:
- * `ExpressionComponent` leaves the border off the parts of a nested message.
+ * For each part of `message`, whether the flash draws it with the text border: the parts of
+ * a nested message have none.
  */
 bordered: Array<boolean>, };

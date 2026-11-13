@@ -2,6 +2,6 @@
 import type { EnumOption } from "./EnumOption";
 
 /**
- * `ChoamEconomicsComponent`: Double or Cancel.
+ * The `ChoamEconomics` form: Double or Cancel.
  */
 export type ChoamEconomicsOptions = { statuses: Array<EnumOption>, draft: Record<string, unknown>, };

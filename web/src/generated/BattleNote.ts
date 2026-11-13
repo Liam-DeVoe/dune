@@ -2,6 +2,6 @@
 import type { Part } from "./Part";
 
 /**
- * A note above the battle plan, in the C# order.
+ * A note above the battle plan, in the order the form shows them.
  */
 export type BattleNote = { "t": "ecazOpponent", amount: number, } | { "t": "opponentNoLeaders" } | { "t": "voice", mine: boolean, must: boolean, cardType: string, } | { "t": "seen", aspect: string, dial: string | null, shown: Array<Part> | null, } | { "t": "later", aspect: string | null, } | { "t": "ecazMine", amount: number, };

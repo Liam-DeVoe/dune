@@ -5,7 +5,7 @@
  */
 export type EnumMember = { 
 /**
- * The C# member name, as the view and the skin JSON use it.
+ * The member name, as the view and the skin JSON use it.
  */
 name: string, 
 /**

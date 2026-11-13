@@ -3,7 +3,7 @@ import type { Faction } from "./enums";
 import type { FactionOption } from "./FactionOption";
 
 /**
- * `FactionTradeOfferedComponent`.
+ * The `FactionTradeOffered` form.
  */
 export type FactionTradeOfferedOptions = { 
 /**

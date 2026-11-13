@@ -3,7 +3,7 @@ import type { Faction } from "./enums";
 import type { ShipmentPermissionRow } from "./ShipmentPermissionRow";
 
 /**
- * `SetShipmentPermissionComponent`.
+ * The `SetShipmentPermission` form.
  */
 export type SetShipmentPermissionOptions = { permissions: Array<ShipmentPermissionRow>, 
 /**
@@ -11,6 +11,6 @@ export type SetShipmentPermissionOptions = { permissions: Array<ShipmentPermissi
  */
 targets: Array<Faction>, 
 /**
- * The draft with the inputs as the component shows them (see the module docs).
+ * The draft with the inputs as the form shows them (see the module docs).
  */
 draft: Record<string, unknown>, };

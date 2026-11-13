@@ -16,7 +16,7 @@ id: number, initiator: Faction, price: number,
  */
 description: Array<Part>, 
 /**
- * `GetMessage()`, for the toast announcing the offer (`DealToasts.razor`).
+ * `GetMessage()`, for the toast announcing the offer.
  */
 message: Array<Part>, 
 /**

@@ -2,7 +2,7 @@
 import type { EnumOption } from "./EnumOption";
 
 /**
- * `KarmaComponent`.
+ * The `Karma` form.
  */
 export type KarmaOptions = { 
 /**

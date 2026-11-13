@@ -4,7 +4,7 @@ import type { EnumOption } from "./EnumOption";
 import type { FactionOption } from "./FactionOption";
 
 /**
- * `AutomationConfiguredComponent` (opened from the menu bar under the map).
+ * The `AutomationConfigured` form (opened from the menu bar under the map).
  */
 export type AutomationConfiguredOptions = { 
 /**

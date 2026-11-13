@@ -32,7 +32,7 @@ fn lobby_data_matches_the_engine_and_skin() {
     assert_eq!(d.maximum_players, 12);
     assert_eq!(d.maximum_turns, 20);
 
-    // Numbers are the C# enum values the lobby protocol carries.
+    // Numbers are the enum values the lobby protocol carries.
     let faction = |n: &str| d.enums["Faction"].iter().find(|m| m.name == n).unwrap().clone();
     assert_eq!(faction("Atreides").value, Faction::Atreides.value());
     assert_eq!(faction("BeneGesserit").label, "Bene Gesserit");

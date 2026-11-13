@@ -4,7 +4,7 @@ import type { ForcesAt } from "./ForcesAt";
 import type { HeroOption } from "./HeroOption";
 
 /**
- * `AmbassadorActivatedComponent`.
+ * The `AmbassadorActivated` form.
  */
 export type AmbassadorActivatedOptions = { 
 /**
@@ -24,6 +24,6 @@ fremenSources: Array<ForcesAt>, fremenTargets: Array<number>, guildTargets: Arra
  */
 mayAssignSkill: boolean, mayPass: boolean, 
 /**
- * The draft with the inputs as the component shows them (see the module docs).
+ * The draft with the inputs as the form shows them (see the module docs).
  */
 draft: Record<string, unknown>, };

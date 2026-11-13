@@ -3,7 +3,7 @@ import type { DealTypeOption } from "./DealTypeOption";
 import type { FactionOption } from "./FactionOption";
 
 /**
- * `DealOfferedComponent` (opened from the trade menu). The factions the offer goes to are the
+ * The `DealOffered` form (opened from the trade menu). The factions the offer goes to are the
  * form's own state: every target starts picked, and the event's `To` is empty when all are.
  */
 export type DealOfferedOptions = { 

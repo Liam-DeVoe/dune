@@ -3,7 +3,7 @@ import type { CurrentDeal } from "./CurrentDeal";
 import type { DealOfferView } from "./DealOfferView";
 
 /**
- * `DealComponent.razor`: the deals of a seated viewer (package 5, `side.rs`).
+ * The deals of a seated viewer (`side.rs`).
  */
 export type DealsView = { 
 /**

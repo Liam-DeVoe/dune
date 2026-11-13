@@ -2,7 +2,7 @@
 import type { HeroOption } from "./HeroOption";
 
 /**
- * `RevivalComponent`.
+ * The `Revival` form.
  */
 export type RevivalOptions = { 
 /**

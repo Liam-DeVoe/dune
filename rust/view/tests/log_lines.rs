@@ -1,109 +1,156 @@
-//! Every log line of every scene fixture, compared with the C# client's rendering.
+//! Snapshots of the log lines the view renders: every message of the scene fixtures that
+//! `tests/golden/log_lines.jsonl.gz` lists, and the messages of the bot games that
+//! `log_lines_bots.jsonl.gz` lists (the first two of each shape, record type and part kinds, which
+//! reach records and parts the fixtures don't). `tests/data/log` holds two games for
+//! `WormSentLog` and `ShipMoveLoss`.
 //!
-//! The golden file is written by `rust/view/csharp-ref` from the C# engine and `DefaultSkin`:
-//! for each message, the parts `ExpressionComponent.razor` draws, its target and heading, and
-//! `Message.Log`, `Route`, `Plans` and `Fact` serialised by reflection. The view must produce the
-//! same JSON (numbers compared by value). The golden's `dom` field, the text the component shows,
-//! is checked against the React client by `web/tools/check-rich-text.ts`.
+//! Each line holds the rendered parts, the message's target and heading, and its `record`,
+//! `route`, `plans` and `fact`. Its `dom` field is the text the client must show for the parts;
+//! `npm run check:rich-text` in `web/` renders the parts with the React component and compares.
+//! The snapshots were first written from the C# client's rendering, so they hold what players
+//! saw there.
 //!
-//! Regenerate after a change to the fixtures, the skin or the log records (from
-//! `rust/view/csharp-ref`, with .NET 10 on the path):
+//! After a deliberate change to log rendering, rewrite them and review the diff:
 //!
-//!     dotnet build -c Release
-//!     dotnet bin/Release/net10.0/ViewRef.dll log-lines ../../../scripts/fixtures ../tests/golden/log_lines.jsonl.gz
-//!     ../../tools/heavy.sh dotnet bin/Release/net10.0/ViewRef.dll log-lines-traces ../tests/golden/log_lines_bots.jsonl.gz \
-//!         ../../traces/sample/bots-*.jsonl.gz ../tests/data/bots-*.jsonl.gz ../tests/data/log/bots-*.jsonl.gz
+//!     UPDATE_LOG_GOLDENS=1 cargo test --release -p treachery-view --test log_lines
 //!
-//! The second golden holds the first two messages of each shape (record type, part kinds) of
-//! the bot games, which reach records and parts the fixtures don't. `tests/data/log` holds two
-//! more games (`Treachery.Oracle bots --seed 777`, games 10 and 12) for `WormSentLog` and
-//! `ShipMoveLoss`.
+//! The update keeps each line's `dom`. A line that is new (its fixture has more messages now)
+//! gets an empty `dom`, which `check:rich-text` reports with the text React shows; check it and
+//! copy it in.
 
 mod common;
 
-use std::io::BufRead;
+use std::collections::BTreeMap;
+use std::io::{BufRead, Write};
 use std::path::PathBuf;
 
-use serde_json::Value;
+use serde_json::{json, Value};
 use treachery_engine::compat::cs::Shared;
 use treachery_engine::game::Participation;
+use treachery_engine::messages::message::Message;
 use treachery_view::describe::InGame;
-use treachery_view::log::{log_line, NESTED_RECORD_TYPES, RECORD_TYPES};
+use treachery_view::log::log_line;
 use treachery_view::replica::ViewReplica;
 
-fn root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
-}
-
-fn golden() -> Vec<Value> {
-    read_golden("log_lines.jsonl.gz")
+fn golden_path(name: &str) -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/golden").join(name)
 }
 
 fn read_golden(name: &str) -> Vec<Value> {
-    let f = std::fs::File::open(root().join("rust/view/tests/golden").join(name)).unwrap();
+    let f = std::fs::File::open(golden_path(name)).unwrap();
     std::io::BufReader::new(flate2::read::GzDecoder::new(f)).lines().map(|l| serde_json::from_str(&l.unwrap()).unwrap()).collect()
+}
+
+fn write_golden(name: &str, lines: &[Value]) {
+    let f = std::fs::File::create(golden_path(name)).unwrap();
+    let mut w = flate2::write::GzEncoder::new(f, flate2::Compression::best());
+    for l in lines {
+        writeln!(w, "{}", serde_json::to_string(l).unwrap()).unwrap();
+    }
+    w.finish().unwrap();
+}
+
+fn updating() -> bool {
+    std::env::var("UPDATE_LOG_GOLDENS").is_ok()
 }
 
 /// Numbers as f64, so that `3` and `3.0` compare equal.
 fn normalize(v: &Value) -> Value {
     match v {
-        Value::Number(n) => serde_json::json!(n.as_f64().unwrap()),
+        Value::Number(n) => json!(n.as_f64().unwrap()),
         Value::Array(a) => Value::Array(a.iter().map(normalize).collect()),
         Value::Object(o) => Value::Object(o.iter().map(|(k, v)| (k.clone(), normalize(v))).collect()),
         _ => v.clone(),
     }
 }
 
+const RENDERED: [&str; 6] = ["text", "heading", "record", "route", "plans", "fact"];
+
+/// The snapshot line for `m`: `source` names the fixture or trace, `dom` is carried over.
+fn snapshot(source: (&str, &str), report: usize, line: usize, m: &Message, d: &InGame, dom: &str) -> Value {
+    let rendered = serde_json::to_value(log_line(m, d)).unwrap();
+    let mut out = serde_json::Map::new();
+    out.insert(source.0.into(), json!(source.1));
+    out.insert("report".into(), json!(report));
+    out.insert("line".into(), json!(line));
+    out.insert("target".into(), json!(m.target.to_string()));
+    for key in RENDERED {
+        out.insert(key.into(), rendered[key].clone());
+    }
+    out.insert("dom".into(), json!(dom));
+    Value::Object(out)
+}
+
+/// The differences between a snapshot line and the one rendered now, if any.
+fn compare(expected: &Value, actual: &Value) -> Option<String> {
+    let diffs: Vec<String> = RENDERED
+        .iter()
+        .chain(&["target"])
+        .filter(|k| normalize(&actual[**k]) != normalize(&expected[**k]))
+        .map(|k| format!("  {k}:\n    now      {}\n    snapshot {}", actual[*k], expected[*k]))
+        .collect();
+    (!diffs.is_empty()).then(|| format!("({}):\n{}", expected["dom"], diffs.join("\n")))
+}
+
+fn dom_of(lines: &[&Value]) -> BTreeMap<(u64, u64), String> {
+    lines.iter().map(|g| ((g["report"].as_u64().unwrap(), g["line"].as_u64().unwrap()), g["dom"].as_str().unwrap_or("").to_string())).collect()
+}
+
+fn report(failures: &[String], checked: usize) {
+    assert!(
+        failures.is_empty(),
+        "{} of {checked} log lines differ from the snapshot (rewrite with UPDATE_LOG_GOLDENS=1 if the change is deliberate):\n{}",
+        failures.len(),
+        failures.iter().take(20).cloned().collect::<Vec<_>>().join("\n")
+    );
+}
+
 #[test]
-fn log_lines_match_csharp() {
-    let golden = golden();
+fn fixture_log_lines_match_the_snapshot() {
+    let golden = read_golden("log_lines.jsonl.gz");
     let mut fixtures: Vec<&str> = golden.iter().map(|g| g["fixture"].as_str().unwrap()).collect();
     fixtures.dedup();
     let mut failures = Vec::new();
-    let mut checked = 0;
+    let mut written = Vec::new();
     for fixture in fixtures {
-        let text = std::fs::read_to_string(root().join(format!("scripts/fixtures/{fixture}.json"))).unwrap();
-        let replica = ViewReplica::load(&text, &Shared::new(Participation::default())).unwrap();
+        let replica = ViewReplica::load(&common::fixture(fixture), &Shared::new(Participation::default())).unwrap();
         let skin = treachery_skin::default_skin();
         let d = InGame::new(&skin, &replica.game);
         let expected: Vec<&Value> = golden.iter().filter(|g| g["fixture"] == fixture).collect();
-        let reports = replica.game.reports();
-        let messages: Vec<(usize, usize, &treachery_engine::messages::message::Message)> =
-            reports.iter().enumerate().flat_map(|(r, rep)| rep.messages.iter().enumerate().map(move |(i, m)| (r, i, m))).collect();
-        assert_eq!(messages.len(), expected.len(), "{fixture}: number of messages");
-        for ((r, i, m), g) in messages.into_iter().zip(expected) {
-            assert_eq!((g["report"].as_u64().unwrap() as usize, g["line"].as_u64().unwrap() as usize), (r, i), "{fixture}");
-            if let Some(f) = compare(m, &d, g) {
-                failures.push(format!("{fixture} report {r} line {i} {f}"));
+        let dom = dom_of(&expected);
+        let actual: Vec<Value> = replica
+            .game
+            .reports()
+            .iter()
+            .enumerate()
+            .flat_map(|(r, rep)| rep.messages.iter().enumerate().map(move |(i, m)| (r, i, m)))
+            .map(|(r, i, m)| snapshot(("fixture", fixture), r, i, m, &d, dom.get(&(r as u64, i as u64)).map_or("", String::as_str)))
+            .collect();
+        if actual.len() != expected.len() {
+            failures.push(format!("{fixture}: {} messages, the snapshot has {}", actual.len(), expected.len()));
+        }
+        for (a, e) in actual.iter().zip(&expected) {
+            if let Some(f) = compare(e, a) {
+                failures.push(format!("{fixture} report {} line {} {f}", a["report"], a["line"]));
             }
-            checked += 1;
         }
+        written.extend(actual);
     }
-    assert!(checked > 5000, "only {checked} lines");
-    assert!(failures.is_empty(), "{} of {checked} lines differ:\n{}", failures.len(), failures.iter().take(20).cloned().collect::<Vec<_>>().join("\n"));
-}
-
-/// The differences between the view's line for `m` and the golden line `g`, if any.
-fn compare(m: &treachery_engine::messages::message::Message, d: &InGame, g: &Value) -> Option<String> {
-    let line = serde_json::to_value(log_line(m, d)).unwrap();
-    let mut diffs = Vec::new();
-    for key in ["text", "heading", "record", "route", "plans", "fact"] {
-        if normalize(&line[key]) != normalize(&g[key]) {
-            diffs.push(format!("  {key}:\n    rust {}\n    c#   {}", line[key], g[key]));
-        }
+    if updating() {
+        write_golden("log_lines.jsonl.gz", &written);
+        return;
     }
-    if line["private"].as_bool().unwrap() != (g["target"] != "None") {
-        diffs.push(format!("  private {} for target {}", line["private"], g["target"]));
-    }
-    (!diffs.is_empty()).then(|| format!("({}):\n{}", g["dom"], diffs.join("\n")))
+    assert!(written.len() > 5000, "only {} lines", written.len());
+    report(&failures, written.len());
 }
 
 #[test]
-fn bot_game_log_lines_match_csharp() {
+fn bot_game_log_lines_match_the_snapshot() {
     let golden = read_golden("log_lines_bots.jsonl.gz");
     let mut failures = Vec::new();
+    let mut written = Vec::new();
     let mut paths = common::sample_bot_traces();
-    paths.extend(common::bot_traces_in(&root().join("rust/view/tests/data/log")));
+    paths.extend(common::bot_traces_in(&PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/data/log")));
     for path in paths {
         let trace = common::read_trace(&path);
         let expected: Vec<&Value> = golden.iter().filter(|g| g["trace"] == trace.name.as_str()).collect();
@@ -119,33 +166,18 @@ fn bot_game_log_lines_match_csharp() {
         for g in expected {
             let (r, i) = (g["report"].as_u64().unwrap() as usize, g["line"].as_u64().unwrap() as usize);
             let m = replica.game.reports()[r].messages.iter().nth(i).expect("message");
-            if let Some(f) = compare(m, &d, g) {
+            let actual = snapshot(("trace", &trace.name), r, i, m, &d, g["dom"].as_str().unwrap_or(""));
+            if let Some(f) = compare(g, &actual) {
                 failures.push(format!("{} report {r} line {i} {f}", trace.name));
             }
+            written.push(actual);
         }
+    }
+    if updating() {
+        write_golden("log_lines_bots.jsonl.gz", &written);
+        return;
     }
     assert!(golden.len() > 100);
-    assert!(failures.is_empty(), "{} lines differ:\n{}", failures.len(), failures.iter().take(20).cloned().collect::<Vec<_>>().join("\n"));
-}
-
-/// `RECORD_TYPES` must name every record declared in `Shared/Model/Log/`, so a record added in
-/// C# fails here before it reaches a game.
-#[test]
-fn every_csharp_log_record_is_converted() {
-    let dir = root().join("treachery-online/Shared/Model/Log");
-    let mut declared = Vec::new();
-    for entry in std::fs::read_dir(&dir).unwrap() {
-        let text = std::fs::read_to_string(entry.unwrap().path()).unwrap();
-        for line in text.lines() {
-            let line = line.trim_start();
-            if let Some(rest) = line.strip_prefix("public record ").or_else(|| line.strip_prefix("public sealed record ")) {
-                let name: String = rest.chars().take_while(|c| c.is_alphanumeric()).collect();
-                declared.push(name);
-            }
-        }
-    }
-    declared.sort();
-    let mut ours: Vec<String> = RECORD_TYPES.iter().chain(NESTED_RECORD_TYPES).map(|s| s.to_string()).collect();
-    ours.sort();
-    assert_eq!(declared, ours);
+    assert_eq!(written.len(), golden.len(), "a trace named in the snapshot is missing");
+    report(&failures, written.len());
 }

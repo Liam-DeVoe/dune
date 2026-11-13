@@ -4,10 +4,10 @@ import type { HomeworldBonus } from "./HomeworldBonus";
 import type { PlanHero } from "./PlanHero";
 
 /**
- * A battle plan on the map (`BattlePlan.razor`). `full` is `ShowEntirePlan`: the viewer's own
+ * A battle plan on the map. `full` is `ShowEntirePlan`: the viewer's own
  * plan, both plans once both are in, and the opponent's plan under Atreides Karama. Otherwise only
  * the aspect revealed by prescience is set (`*Shown`), and only for the prescience user and
- * their ally (C# shows it to everyone; protocol.md, Visibility).
+ * their ally (protocol.md, Visibility).
  */
 export type PlanView = { faction: Faction, isAggressor: boolean, full: boolean, 
 /**

@@ -2,7 +2,7 @@
 import type { FactionOption } from "./FactionOption";
 
 /**
- * `BeneGesseritPredictionComponent`.
+ * The `BeneGesseritPrediction` form.
  */
 export type BeneGesseritPredictionOptions = { 
 /**

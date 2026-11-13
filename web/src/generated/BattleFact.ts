@@ -4,10 +4,10 @@ import type { Part } from "./Part";
 
 /**
  * `Message.Fact`: one fact of a battle's outcome. Only the fields its kind describes are set
- * (see `BattleFactKind` in `Shared/Model/Message.cs`).
+ * (see `BattleFactKind`).
  */
 export type BattleFact = { kind: BattleFactKind, faction: Faction, strength: number, hero: Part | null, 
 /**
- * The C# `object` field: what killed the hero (a card, or the text "Treachery").
+ * What killed the hero (a card, or the text "Treachery").
  */
 cause: Array<Part> | null, value: number, forces: number, specialForces: number, all: boolean, card: Part | null, };

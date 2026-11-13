@@ -3,8 +3,7 @@ import type { StoryBlock } from "./StoryBlock";
 import type { StoryWinner } from "./StoryWinner";
 
 /**
- * After `GameEnded` (`ActionPanel.razor`: `CurrentPhase is Phase.GameEnded`): the winners, and
- * the story unless the rules disable the report.
+ * In `Phase::GameEnded`: the winners, and the story unless the rules disable the report.
  */
 export type EndingView = { 
 /**
@@ -12,6 +11,6 @@ export type EndingView = {
  */
 winners: Array<StoryWinner>, 
 /**
- * The story (`StoryComponent`), or null under `Rule.DisableEndOfGameReport`.
+ * The story, or null under `Rule.DisableEndOfGameReport`.
  */
 story: Array<StoryBlock> | null, };

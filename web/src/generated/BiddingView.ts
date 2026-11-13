@@ -8,18 +8,16 @@ import type { MapBid } from "./MapBid";
  */
 export type BiddingView = { auctionType: AuctionType, 
 /**
- * `Game.Bids`, as `Bids.razor` labels them.
+ * The bids, as the map labels them.
  */
 bids: Array<MapBid>, 
 /**
- * During `Phase.Bidding` and `Phase.BlackMarketBidding`: the bidding panel's lot, which
- * `ActionPanel.razor` shows to every player, bidding or not. Observers get the lot a player
- * without prescience sees (the C# panel throws for them: `HasBiddingPrescience(null)`;
- * protocol.md, deviation 5).
+ * During `Phase::Bidding` and `Phase::BlackMarketBidding`: the bidding panel's lot, shown
+ * to every player, bidding or not. Observers get the lot a player without prescience sees.
  */
 panel: BiddingPanelView | null, 
 /**
- * `Game.RecentMilestones.Contains(Milestone.AuctionWon)`: the client turns auto-pass off
- * (`Client.ResetAutoPassThreshold`, after every event in the bidding main phase).
+ * The latest event won an auction (`Milestone::AuctionWon`): the client turns auto-pass
+ * off.
  */
 auctionWon: boolean, };

@@ -1,6 +1,6 @@
-//! The revival forms (package 7d, `src/actions/revival.rs`): for every fixture state and every
-//! bot-game state where one of the eight revival events is applicable, the form's options are
-//! the engine helpers the C# component calls, the validation is the engine's for the adjusted
+//! The revival forms (`src/actions/revival.rs`): for every fixture state and every bot-game
+//! state where one of the eight revival events is applicable, the form's options equal the
+//! engine's helpers, the validation is the engine's for the adjusted
 //! draft, and draft queries recompute the dependent options.
 
 mod common;
@@ -256,7 +256,7 @@ fn fixture_forms_match_the_engine() {
     names.sort();
     let mut seen = std::collections::BTreeSet::new();
     for name in names {
-        // Fixtures at versions the engine refuses are the harness's business (client-plan.md).
+        // Skip a fixture the engine can't load.
         let Ok(mut r) = std::panic::catch_unwind(|| load(&name, 0)) else { continue };
         let fs: Vec<Faction> = r.game.players.iter().map(|p| p.faction).collect();
         for f in fs {

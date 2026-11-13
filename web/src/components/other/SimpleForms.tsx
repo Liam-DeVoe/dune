@@ -23,11 +23,9 @@ const autoConfirm = new Map<string, boolean>();
 
 export function SimpleForm({ action, inPopover = false }: FormProps) {
   const { source } = useGame();
-  const [dismissed, setDismissed] = useState(false);
   const [auto, setAuto] = useState(() => autoConfirm.get(action.eventType) ?? false);
   const [error, setError] = useState<string | null>(null);
-  // A new view clears a refusal. Dismissed stays dismissed while the form is on screen, as the C#
-  // field does (formDraft.ts).
+  // A new view clears a refusal.
   useViewChanges(() => setError(null));
   const o = action.options?.form === "Simple" ? action.options : null;
   const confirm = async () => setError(await source.submit({ $type: action.eventType }));
@@ -41,12 +39,10 @@ export function SimpleForm({ action, inPopover = false }: FormProps) {
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  if (!o || dismissed) return null;
+  if (!o) return null;
   return (
     <Layout type={`Simple:${action.eventType}`} header={o.title ? <Title parts={o.title} /> : null} urgent={o.alert} inPopover={inPopover}>
-      {o.dismissLabel != null
-        ? <ButtonRow confirm={confirm} confirmText={o.confirmLabel} confirmError={action.validation} other={() => setDismissed(true)} otherText={o.dismissLabel} />
-        : <ButtonRow confirm={confirm} confirmText={o.confirmLabel} confirmError={action.validation} />}
+      <ButtonRow confirm={confirm} confirmText={o.confirmLabel} confirmError={action.validation} />
       {o.allowAutoConfirm && (
         <div className="mt-0 float-end">
           <Checkbox value={auto} onChange={(v) => { setAuto(v); autoConfirm.set(action.eventType, v); }}>

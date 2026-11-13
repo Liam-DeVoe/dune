@@ -1,6 +1,6 @@
-//! `NexusPlayedComponent`: playing the Nexus card the player holds, as Betrayal, Cunning or
-//! Secret Ally. The component's switch picks one case by the card's faction, the uses allowed
-//! now and the phase; [`case`] is that switch, and each case draws one line and possibly inputs.
+//! The `NexusPlayed` form: playing the Nexus card the player holds, as Betrayal, Cunning or
+//! Secret Ally. [`case`] picks one case by the card's faction, the uses allowed now and the
+//! phase, and each case draws one line and possibly inputs.
 
 use treachery_engine::express;
 use treachery_engine::compat::net_enum::NetEnum;
@@ -11,9 +11,10 @@ use crate::describe::Describer;
 use crate::expr::message;
 use crate::schema::*;
 
-use super::other::{card_ids, describe, enum_option, faction_options, hero_options, picker, required};
+use super::other::enum_option;
+use super::widgets::{card_ids, describe, faction_options, hero_options, picker, required};
 
-/// The branch of the component's `switch (Player.Nexus)` that applies, in the switch's order.
+/// The case of the form that applies, chosen by the Nexus card the player holds.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Case {
     AtreidesBetrayal,
@@ -130,8 +131,8 @@ pub(super) fn default_draft(game: &Game, faction: Faction) -> GameEvent {
     event(e)
 }
 
-/// The draft as the component holds it after rendering: the inputs of the drawn case adjusted,
-/// the map pick dropped unless it is enabled and a target (`MapPicker.Sync`).
+/// The draft as the form holds it: the inputs of the case shown adjusted, the map pick dropped
+/// unless it is enabled and a target.
 pub(super) fn normalize(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
     let GameEvent::NexusPlayed(e) = draft else { return draft.clone() };
     let mut m = (**e).clone();

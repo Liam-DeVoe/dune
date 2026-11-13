@@ -2,7 +2,7 @@
 import type { HeroOption } from "./HeroOption";
 
 /**
- * `RequestTleilaxuRevivalComponent`.
+ * The `RequestTleilaxuRevival` form.
  */
 export type RequestTleilaxuRevivalOptions = { 
 /**

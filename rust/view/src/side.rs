@@ -1,6 +1,5 @@
-//! The side column's own data (client-plan.md package 5): the deals the menu bar counts and the
-//! trade popover lists (`MenuComponent.razor`, `DealComponent.razor`, `DealToasts.razor`), and the
-//! host's bot speed (`MenuComponent.razor`).
+//! The side column's own data: the deals the menu bar counts and the trade popover lists, the
+//! host's bot speed, Atreides's card tracker and the list of cards in play.
 
 use std::rc::Rc;
 
@@ -22,7 +21,7 @@ fn event_json(e: GameEvent) -> serde_json::Value {
     serde_json::from_str(&treachery_engine::json::serialize(&e)).expect("events serialize to JSON")
 }
 
-/// `DealComponent.razor` for a seated player (the trade icons are not shown to observers):
+/// The deals panel of a seated player (observers have no trade icons):
 /// offers to the viewer with their acceptance, the viewer's own offers with each recipient's
 /// answer, and every deal in force. `DealAccepted.AcceptableDeals`, `CancellableDeals` and
 /// `CurrentDeals`.
@@ -86,8 +85,7 @@ pub fn bots_speed(game: &Game) -> i32 {
     game.participation.borrow().bots_speed
 }
 
-/// `TrackerComponent.razor`, shown to Atreides from `Phase.SelectingTraitors` on
-/// (`TradePopover.razor`).
+/// Atreides's card tracker, shown from `Phase::SelectingTraitors` on.
 pub fn tracker(game: &Game, v: &ResolvedViewer) -> Option<TrackerView> {
     use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
     let p = v.player.filter(|_| !v.is_observer)?;
@@ -126,7 +124,7 @@ pub fn tracker(game: &Game, v: &ResolvedViewer) -> Option<TrackerView> {
     })
 }
 
-/// `MentatComponent.razor`: the cards in play, the same for every viewer.
+/// The menu's list of cards in play, the same for every viewer.
 pub fn mentat(game: &Game) -> MentatView {
     use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
     MentatView {

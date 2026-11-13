@@ -1,11 +1,10 @@
 //! Action options: for each applicable event type, the choices its form offers and the
 //! validation of the event the form would send.
 //!
-//! Each builder mirrors one C# action component (`ActionPanel.razor` picks the component by
-//! event type). The checklist of helpers per component is the "Action forms" table of
-//! `rust/docs/client-inventory.md`. A builder gets the draft event (the form's current inputs):
-//! the default draft for the view, or the client's draft for a query (protocol.md, Dependent
-//! inputs). Choices that depend on other inputs are computed from the draft.
+//! The builders are split by area into the submodules. A builder gets the draft event (the
+//! form's current inputs): the default draft for the view, or the client's draft for a query
+//! (protocol.md, Dependent inputs). Choices that depend on other inputs are computed from the
+//! draft.
 
 use treachery_engine::events::GameEventType;
 use treachery_engine::json;
@@ -24,6 +23,7 @@ pub mod bidding;
 pub mod battle;
 pub mod other;
 mod other_nexus;
+mod widgets;
 pub mod setup;
 
 fn name<T: ToString>(v: T) -> String {
@@ -35,7 +35,7 @@ fn text(s: &str) -> RichText {
 }
 
 fn simple(title: RichText, confirm_label: &str, alert: bool) -> ActionOptions {
-    ActionOptions::Simple { title: Some(title), confirm_label: confirm_label.to_string(), alert, dismiss_label: None, allow_auto_confirm: false }
+    ActionOptions::Simple { title: Some(title), confirm_label: confirm_label.to_string(), alert, allow_auto_confirm: false }
 }
 
 /// The entry of `GameView.actions` for one applicable event type, with the form's defaults.
@@ -52,8 +52,8 @@ pub fn action_view(game: &Game, v: &ResolvedViewer, t: GameEventType, d: &dyn De
     }
 }
 
-/// The event a form sends before the player touches it: the component's field initializers,
-/// after its widgets have clamped them (a number picker clamps its value into [Min, Max]).
+/// The event a form sends before the player touches it: the form's starting inputs,
+/// after its widgets have clamped them (a number picker clamps its value into its range).
 /// Public for the observable-behavior harness (`rust/observe`), which fuzzes from these drafts.
 pub fn default_draft(game: &Game, _v: &ResolvedViewer, faction: Faction, t: GameEventType) -> Option<GameEvent> {
     if revival::TYPES.contains(&t) { return revival::default_draft(game, faction, t); }
@@ -63,7 +63,7 @@ pub fn default_draft(game: &Game, _v: &ResolvedViewer, faction: Faction, t: Game
     if let Some(e) = other::default_draft(game, faction, t) { return Some(e); }
     Some(match t {
         GameEventType::AllianceOffered => {
-            // AllianceOfferedComponent: a required image choice starts at the first target.
+            // A required image choice starts at the first target.
             let mut e = AllianceOffered::new(game, faction);
             if let Some(p) = _v.player {
                 e.target = AllianceOffered::valid_targets(game, p).next().unwrap_or(Faction::None);
@@ -95,7 +95,7 @@ fn options_and_validation(game: &Game, v: &ResolvedViewer, draft: &GameEvent, d:
             let me = v.player.expect("an applicable event has a player");
             Some(ActionOptions::AllianceOffered { targets: AllianceOffered::valid_targets(game, me).map(name).collect() })
         }
-        // ActionPanel.razor: AlliancePassed asks to keep the alliance when there is one.
+        // AlliancePassed asks to keep the alliance when there is one.
         GameEvent::AlliancePassed(_) => {
             let me = v.player.expect("an applicable event has a player");
             let ally = game.player(me).ally;
@@ -106,9 +106,9 @@ fn options_and_validation(game: &Game, v: &ResolvedViewer, draft: &GameEvent, d:
             })
         }
         GameEvent::AllianceBroken(_) => Some(simple(text("Break your current alliance?"), "Break", false)),
-        // GameColumns.razor:48: the prompt (GameStatusComponent) holds EndPhase's "Continue"
-        // button, with the event's validation, when EndPhase is applicable.
-        GameEvent::EndPhase(_) => Some(ActionOptions::Simple { title: None, confirm_label: "Continue".to_string(), alert: false, dismiss_label: None, allow_auto_confirm: false }),
+        // The prompt holds EndPhase's "Continue" button, with the event's validation, when
+        // EndPhase is applicable.
+        GameEvent::EndPhase(_) => Some(ActionOptions::Simple { title: None, confirm_label: "Continue".to_string(), alert: false, allow_auto_confirm: false }),
         GameEvent::StormDialled(_) => Some(ActionOptions::StormDialled {
             min: StormDialled::valid_min_amount(game),
             max: StormDialled::valid_max_amount(game),

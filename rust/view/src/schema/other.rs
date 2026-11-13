@@ -1,11 +1,11 @@
-//! Options of the "other events" forms (client-plan.md package 7e): the components of the
-//! inventory's "Action panel: other events" area. Each struct is the payload of one or more
-//! [`ActionOptions`](super::ActionOptions) variants; the variant is named after the event class.
+//! Options of the "other events" forms (`actions/other.rs`). Each struct is the payload of one
+//! or more [`ActionOptions`](super::ActionOptions) variants; the variant is named after the
+//! event type.
 //!
 //! As in `schema/revival.rs`, every form carries `draft`: the event the form sends with its
-//! current inputs, in savegame JSON, after the server has adjusted them the way the C# component
-//! does while it renders (a required image choice or select falls back to its first value, a
-//! number picker clamps into its range). The validation next to the options is that draft's.
+//! current inputs, in savegame JSON, after the server has adjusted them the way the form does (a
+//! required image choice or select falls back to its first value, a number picker clamps into
+//! its range). The validation next to the options is that draft's.
 //! Forms with a second button (`Pass`, `Other`) send the draft with the field that button sets.
 
 use serde::{Deserialize, Serialize};
@@ -32,8 +32,8 @@ pub struct DraftOptions {
     pub draft: serde_json::Value,
 }
 
-/// `MulliganPerformedComponent` (`MulliganPerformed.MayMulligan(Player)`) and
-/// `NexusCardDrawnComponent` (`NexusCardDrawn.MayDraw(Game, Player)`): without it only "No".
+/// The `MulliganPerformed` form (`MulliganPerformed.MayMulligan(Player)`) and
+/// The `NexusCardDrawn` form (`NexusCardDrawn.MayDraw(Game, Player)`): without it only "No".
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct MayOptions {
@@ -70,7 +70,7 @@ pub struct HeroChoiceOptions {
     pub draft: serde_json::Value,
 }
 
-/// `YesNoActionComponent`, with the arguments `ActionPanel.razor` gives it.
+/// A form with a Yes and a No button.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct YesNoOptions {
@@ -80,7 +80,7 @@ pub struct YesNoOptions {
     pub draft: serde_json::Value,
 }
 
-/// What a bot ally tells its human ally (`AllyPermissionComponent`, when `AlliedPlayer.IsBot`).
+/// What a bot ally tells its human ally, in the `AllyPermission` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct BotAllyClaims {
@@ -91,8 +91,8 @@ pub struct BotAllyClaims {
     pub resources: i32,
 }
 
-/// `AllyPermissionComponent`. The draft starts from the permissions in force (the component's
-/// `OnParametersSet` while not edited); `current` repeats them for the "(currently: ...)" texts.
+/// The `AllyPermission` form. The draft starts from the permissions in force; `current` repeats
+/// them for the "(currently: ...)" texts.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct AllyPermissionOptions {
@@ -128,7 +128,7 @@ pub struct AutomationRule {
     pub description: RichText,
 }
 
-/// `AutomationConfiguredComponent` (opened from the menu bar under the map).
+/// The `AutomationConfigured` form (opened from the menu bar under the map).
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct AutomationConfiguredOptions {
@@ -141,7 +141,7 @@ pub struct AutomationConfiguredOptions {
     pub draft: serde_json::Value,
 }
 
-/// `BeneGesseritPredictionComponent`.
+/// The `BeneGesseritPrediction` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct BeneGesseritPredictionOptions {
@@ -153,7 +153,7 @@ pub struct BeneGesseritPredictionOptions {
     pub draft: serde_json::Value,
 }
 
-/// `CardTradedComponent`.
+/// The `CardTraded` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct CardTradedOptions {
@@ -166,7 +166,7 @@ pub struct CardTradedOptions {
     pub draft: serde_json::Value,
 }
 
-/// `ChoamEconomicsComponent`: Double or Cancel.
+/// The `ChoamEconomics` form: Double or Cancel.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct ChoamEconomicsOptions {
@@ -175,7 +175,7 @@ pub struct ChoamEconomicsOptions {
     pub draft: serde_json::Value,
 }
 
-/// `ChoamKarmaPreventionComponent`.
+/// The `ChoamKarmaPrevention` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct ChoamKarmaPreventionOptions {
@@ -188,7 +188,7 @@ pub struct ChoamKarmaPreventionOptions {
     pub draft: serde_json::Value,
 }
 
-/// A deal type of `DealOfferedComponent`'s select.
+/// A deal type of the `DealOffered` form's select.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct DealTypeOption {
@@ -199,7 +199,7 @@ pub struct DealTypeOption {
     pub end_phases: Vec<EnumOption>,
 }
 
-/// `DealOfferedComponent` (opened from the trade menu). The factions the offer goes to are the
+/// The `DealOffered` form (opened from the trade menu). The factions the offer goes to are the
 /// form's own state: every target starts picked, and the event's `To` is empty when all are.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -212,7 +212,7 @@ pub struct DealOfferedOptions {
     pub draft: serde_json::Value,
 }
 
-/// `DivideResourcesComponent`: `DivideResources.GetResourcesToBeDivided(Game)` and what each
+/// The `DivideResources` form: `DivideResources.GetResourcesToBeDivided(Game)` and what each
 /// side gets when the player passes, for the draft's portion.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -229,7 +229,7 @@ pub struct DivideResourcesOptions {
     pub draft: serde_json::Value,
 }
 
-/// `DonatedComponent` (opened from the trade menu). Targets and range follow the draft's
+/// The `Donated` form (opened from the trade menu). Targets and range follow the draft's
 /// `FromBank` (host only).
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -241,13 +241,13 @@ pub struct DonatedOptions {
     pub max: i32,
     /// `Game.Applicable(Rule.CardsCanBeTraded)`: the hand, to give one card (not required).
     pub cards: Option<Vec<i32>>,
-    /// `Client.IsHost`: the "from bank" box.
+    /// The viewer is a host: the "from bank" box.
     pub is_host: bool,
     #[ts(type = "Record<string, unknown>")]
     pub draft: serde_json::Value,
 }
 
-/// `EmperorBidSupportComponent`: one picker per non-allied opponent, from 0 to `max`.
+/// The `EmperorBidSupport` form: one picker per non-allied opponent, from 0 to `max`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct EmperorBidSupportOptions {
@@ -258,7 +258,7 @@ pub struct EmperorBidSupportOptions {
     pub draft: serde_json::Value,
 }
 
-/// `FactionTradeOfferedComponent`.
+/// The `FactionTradeOffered` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct FactionTradeOfferedOptions {
@@ -272,7 +272,7 @@ pub struct FactionTradeOfferedOptions {
     pub draft: serde_json::Value,
 }
 
-/// `KarmaComponent`.
+/// The `Karma` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct KarmaOptions {
@@ -284,7 +284,7 @@ pub struct KarmaOptions {
     pub draft: serde_json::Value,
 }
 
-/// `KarmaChoamDiscardComponent`: the Karma card picker is shown when there is more than one.
+/// The `KarmaChoamDiscard` form: the Karma card picker is shown when there is more than one.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct KarmaChoamDiscardOptions {
@@ -296,7 +296,7 @@ pub struct KarmaChoamDiscardOptions {
     pub draft: serde_json::Value,
 }
 
-/// `KarmaHandSwapComponent`: return `number` cards to `target`.
+/// The `KarmaHandSwap` form: return `number` cards to `target`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct KarmaHandSwapOptions {
@@ -319,27 +319,7 @@ pub struct TerritoryChoiceOptions {
     pub draft: serde_json::Value,
 }
 
-/// A player `PlayerReplacedComponent` may replace.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
-pub struct ReplaceableFaction {
-    #[ts(type = "Faction")]
-    pub faction: String,
-    pub value: i32,
-    pub is_bot: bool,
-}
-
-/// `PlayerReplacedComponent` (host only).
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
-pub struct PlayerReplacedOptions {
-    /// `PlayerReplaced.ValidTargets(Game)`.
-    pub targets: Vec<ReplaceableFaction>,
-    #[ts(type = "Record<string, unknown>")]
-    pub draft: serde_json::Value,
-}
-
-/// `ResourcesTransferredComponent`.
+/// The `ResourcesTransferred` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct ResourcesTransferredOptions {
@@ -349,7 +329,7 @@ pub struct ResourcesTransferredOptions {
     pub draft: serde_json::Value,
 }
 
-/// `SkillAssignedComponent`.
+/// The `SkillAssigned` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct SkillAssignedOptions {
@@ -361,7 +341,7 @@ pub struct SkillAssignedOptions {
     pub draft: serde_json::Value,
 }
 
-/// `DistransUsedComponent`.
+/// The `DistransUsed` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct DistransUsedOptions {
@@ -373,19 +353,19 @@ pub struct DistransUsedOptions {
     pub draft: serde_json::Value,
 }
 
-/// `RicheseAnnouncesBlackMarketComponent`.
+/// The `RicheseAnnouncesBlackMarket` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct RicheseAnnouncesBlackMarketOptions {
     /// `RicheseAnnouncesBlackMarket.ValidCards(Player)`.
     pub cards: Vec<i32>,
-    /// Normal, Once Around and Silent, with the component's labels.
+    /// Normal, Once Around and Silent, with the form's labels.
     pub auction_types: Vec<EnumOption>,
     #[ts(type = "Record<string, unknown>")]
     pub draft: serde_json::Value,
 }
 
-/// `RicheseSpecifiesAuctionComponent`.
+/// The `RicheseSpecifiesAuction` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct RicheseSpecifiesAuctionOptions {
@@ -395,13 +375,13 @@ pub struct RicheseSpecifiesAuctionOptions {
     pub may_specify_type: bool,
     /// `RicheseSpecifiesAuction.ValidCards(Game)`.
     pub cards: Vec<i32>,
-    /// Once Around and Silent, with the component's labels.
+    /// Once Around and Silent, with the form's labels.
     pub auction_types: Vec<EnumOption>,
     #[ts(type = "Record<string, unknown>")]
     pub draft: serde_json::Value,
 }
 
-/// The Tleilaxu Secret Ally part of `NexusPlayedComponent`.
+/// The Tleilaxu Secret Ally part of the `NexusPlayed` form.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct TleilaxuNexusOptions {
@@ -421,8 +401,8 @@ pub struct TleilaxuNexusOptions {
     pub cost: i32,
 }
 
-/// `NexusPlayedComponent`. `text` is the line the component's switch draws for the card,
-/// the phase and the kind of use; the inputs below are set only for the cases that show them.
+/// The `NexusPlayed` form. `text` is the line the form shows for the card, the phase and the
+/// kind of use; the inputs below are set only for the cases that show them.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct NexusPlayedOptions {

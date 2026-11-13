@@ -1,14 +1,7 @@
-//! The end of the game: `WinnerPanel.razor` and the story it opens (`StoryComponent.razor`,
-//! `StoryPlayerInfoComponent.razor`, `StoryBattleComponent.razor`), as the `ending` view field.
+//! The end of the game: the winners and the story of the game, as the `ending` view field.
 //!
-//! The story replays the whole history in a fresh game, as `StoryComponent` does, and records
-//! after each event what the component would draw. The client draws the blocks in order.
-//!
-//! `HideSecrets`: the C# story asks `YieldsSecrets` of the replayed game at each point, but a
-//! faction hides its secrets at the end of the game, so the replayed game never has the faction
-//! in `SecretsRemainHidden` and everything shows (protocol.md, Visibility, deviation 2). The
-//! view asks the finished game instead, and leaves out the cards (held and bought), traitors
-//! and face dancers, spice, Nexus card and prediction of every faction that hid its secrets.
+//! The story replays the whole history in a fresh game and records after each event what the
+//! story shows. The client draws the blocks in order (`web/src/components/StoryComponent.tsx`).
 
 use serde::{Deserialize, Serialize};
 use treachery_engine::events::GameEvent;
@@ -26,14 +19,13 @@ fn name<T: ToString>(v: T) -> String {
     v.to_string()
 }
 
-/// After `GameEnded` (`ActionPanel.razor`: `CurrentPhase is Phase.GameEnded`): the winners, and
-/// the story unless the rules disable the report.
+/// In `Phase::GameEnded`: the winners, and the story unless the rules disable the report.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct EndingView {
     /// `Game.Winners`, each with `Player.Name`.
     pub winners: Vec<StoryWinner>,
-    /// The story (`StoryComponent`), or null under `Rule.DisableEndOfGameReport`.
+    /// The story, or null under `Rule.DisableEndOfGameReport`.
     pub story: Option<Vec<StoryBlock>>,
 }
 
@@ -45,7 +37,7 @@ pub struct StoryWinner {
     pub name: String,
 }
 
-/// One thing `StoryComponent` draws, in the order it draws them.
+/// One block of the story, in the order the story shows them.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum StoryBlock {
@@ -72,7 +64,7 @@ pub enum StoryBlock {
     Purchase {
         #[ts(type = "Faction")]
         buyer: String,
-        /// `CardJustWon`; null when the buyer hid their secrets (drawn as "?").
+        /// `CardJustWon`.
         card: Option<StoryCard>,
         amount: i32,
         karma_card: Option<StoryCard>,
@@ -81,7 +73,7 @@ pub enum StoryBlock {
     },
     /// "Turn N", when bidding starts.
     Turn { turn: i32 },
-    /// A "Situation at ..." heading with its table (`StoryPlayerInfoComponent`). `turn` is
+    /// A "Situation at ..." heading with its table. `turn` is
     /// the current turn, which the end-of-turn heading names.
     Situation { when: SituationWhen, turn: i32, table: StoryTable },
     /// "Battle for <territory>".
@@ -93,7 +85,7 @@ pub enum StoryBlock {
         faction: String,
         text: RichText,
     },
-    /// The battle plans of a battle report (`StoryBattleComponent`).
+    /// The battle plans of a battle report.
     #[serde(rename_all = "camelCase")]
     Battle { aggressor: StoryPlan, defender: StoryPlan, advanced_combat: bool },
     /// At the end of a turn, after its situation: the strongholds table.
@@ -129,7 +121,7 @@ pub struct StoryCard {
     pub label: String,
 }
 
-/// `StoryPlayerInfoComponent`: which columns are shown, and one row per player.
+/// A table of players: which columns are shown, and one row per player.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct StoryTable {
@@ -157,17 +149,15 @@ pub struct StoryRow {
     pub name: String,
     #[ts(type = "Faction | null")]
     pub ally: Option<String>,
-    /// The Nexus card held, when there is no ally; null for a faction that hid its secrets.
+    /// The Nexus card held, when there is no ally.
     #[ts(type = "Faction | null")]
     pub nexus: Option<String>,
-    /// The faction hid its secrets: cards and traitors read "?".
-    pub secret: bool,
     pub cards: Vec<i32>,
     /// Traitors, then discarded traitors (greyed), then face dancers.
     pub traitors: Vec<StoryTraitor>,
     #[ts(type = "Array<TechToken>")]
     pub tech_tokens: Vec<String>,
-    /// `Player.Resources`; null for a faction that hid its secrets.
+    /// `Player.Resources`, when the table shows spice.
     pub resources: Option<i32>,
     pub forces: Vec<StoryForces>,
     /// Living leaders.
@@ -210,7 +200,7 @@ pub struct StoryPlan {
     pub messiah: bool,
     pub weapon: Option<i32>,
     pub defense: Option<i32>,
-    /// `Battle.Dial(Game, opponent)` as C# prints the float.
+    /// The plan's dial against the opponent, printed as a decimal number.
     pub dial: String,
     /// `Battle.Cost(Game)` under advanced combat.
     pub cost: Option<i32>,
@@ -272,7 +262,7 @@ fn describe_detailed(t: AuctionType, d: &dyn Describer) -> String {
     }
 }
 
-/// `StoryComponent.IsMilestone`.
+/// The events the story shows as milestones.
 fn is_milestone(e: &GameEvent) -> bool {
     use GameEvent as E;
     match e {
@@ -306,11 +296,8 @@ fn is_milestone(e: &GameEvent) -> bool {
     }
 }
 
-/// The story: `StoryComponent`'s loop over the history, replayed in a fresh game.
+/// The story: the history, replayed in a fresh game.
 fn story(game: &Game, d: &dyn Describer) -> Vec<StoryBlock> {
-    // Asked of the finished game, not of the replay (module comment).
-    let hidden = |f: Faction| game.secrets_remain_hidden.contains(&f);
-
     let mut out = Vec::new();
     let mut previous_phase = Phase::AwaitingPlayers;
     let mut previous_main_phase = MainPhase::Started;
@@ -334,14 +321,12 @@ fn story(game: &Game, d: &dyn Describer) -> Vec<StoryBlock> {
                 custom_rules: (!custom.is_empty())
                     .then(|| custom.iter().map(|rule| rd.describe(&ExpressionElement::from(*rule))).collect::<Vec<_>>().join(", ")),
                 started: utc(evt.time()),
-                table: table(r, game, &hidden, StoryTable { show_name: true, ..Default::default() }),
+                table: table(r, game, StoryTable { show_name: true, ..Default::default() }),
             });
         }
 
         if let GameEvent::BeneGesseritPrediction(bp) = &evt {
-            if r.yields_secrets_faction(evt.initiator()) && !hidden(evt.initiator()) {
-                out.push(StoryBlock::Prediction { to_win: name(bp.to_win), turn: bp.turn });
-            }
+            out.push(StoryBlock::Prediction { to_win: name(bp.to_win), turn: bp.turn });
         }
 
         if matches!(evt, GameEvent::Bid(_) | GameEvent::BlackMarketBid(_)) {
@@ -350,7 +335,7 @@ fn story(game: &Game, d: &dyn Describer) -> Vec<StoryBlock> {
                     let buyer = wb.initiator();
                     out.push(StoryBlock::Purchase {
                         buyer: name(buyer),
-                        card: if hidden(buyer) { None } else { r.card_just_won.map(|c| card(c, rd)) },
+                        card: r.card_just_won.map(|c| card(c, rd)),
                         amount: wb.i_bid_total_amount(),
                         karma_card: match wb {
                             GameEvent::Bid(b) => b.karma_card().map(|c| card(c, rd)),
@@ -376,17 +361,17 @@ fn story(game: &Game, d: &dyn Describer) -> Vec<StoryBlock> {
                 show_tech_tokens: r.applicable(Rule::TechTokens),
                 ..Default::default()
             };
-            out.push(StoryBlock::Situation { when: SituationWhen::StartOfBidding, turn: r.current_turn, table: table(r, game, &hidden, columns) });
+            out.push(StoryBlock::Situation { when: SituationWhen::StartOfBidding, turn: r.current_turn, table: table(r, game, columns) });
         }
 
         if main_phase_started(MainPhase::Resurrection) {
             let columns = StoryTable { show_cards: true, show_resources: true, ..Default::default() };
-            out.push(StoryBlock::Situation { when: SituationWhen::EndOfBidding, turn: r.current_turn, table: table(r, game, &hidden, columns) });
+            out.push(StoryBlock::Situation { when: SituationWhen::EndOfBidding, turn: r.current_turn, table: table(r, game, columns) });
         }
 
         if main_phase_started(MainPhase::Battle) {
             let columns = StoryTable { show_ally, show_resources: true, show_forces: true, show_leaders: true, show_points: true, ..Default::default() };
-            out.push(StoryBlock::Situation { when: SituationWhen::EndOfShipmentAndMove, turn: r.current_turn, table: table(r, game, &hidden, columns) });
+            out.push(StoryBlock::Situation { when: SituationWhen::EndOfShipmentAndMove, turn: r.current_turn, table: table(r, game, columns) });
         }
 
         if matches!(evt, GameEvent::BattleInitiated(_)) {
@@ -396,8 +381,8 @@ fn story(game: &Game, d: &dyn Describer) -> Vec<StoryBlock> {
         }
 
         if is_milestone(&evt) {
-            // ExpressionComponent is a child component, so it renders after the loop: the live
-            // collections in the message are read at the end of the game.
+            // Rendered with the finished game, so the live collections in the message show their
+            // contents at the end of the game.
             out.push(StoryBlock::Milestone { faction: name(evt.initiator()), text: crate::expr::message(&evt.get_message(r), d) });
         }
 
@@ -422,7 +407,7 @@ fn story(game: &Game, d: &dyn Describer) -> Vec<StoryBlock> {
                 show_points: true,
                 ..Default::default()
             };
-            out.push(StoryBlock::Situation { when: SituationWhen::EndOfTurn, turn: r.current_turn, table: table(r, game, &hidden, columns) });
+            out.push(StoryBlock::Situation { when: SituationWhen::EndOfTurn, turn: r.current_turn, table: table(r, game, columns) });
             out.push(strongholds(r));
         }
 
@@ -443,35 +428,31 @@ fn story(game: &Game, d: &dyn Describer) -> Vec<StoryBlock> {
     out
 }
 
-/// `StoryPlayerInfoComponent` with the columns set in `columns`.
-/// `finished` is the game at its end. `StoryComponent` hands each table a clone of the replayed
-/// game (`Game.Clone`), and the table renders after the whole loop has run. `Player.Clone` copies
-/// most collections but not `DiscardedTraitors`, which the clone shares with the replay, so every
-/// table shows the discarded traitors of the end of the game.
-fn table(g: &Game, finished: &Game, hidden: &dyn Fn(Faction) -> bool, mut columns: StoryTable) -> StoryTable {
+/// A table of players with the columns set in `columns`. `finished` is the game at its end:
+/// every table shows the discarded traitors of the end of the game, not of the moment the table
+/// stands for.
+fn table(g: &Game, finished: &Game, mut columns: StoryTable) -> StoryTable {
     columns.nexus_column = columns.show_ally && g.applicable(Rule::NexusCards);
     let c = &columns;
     let rows = g
         .player_indices()
         .map(|pi| {
             let p = g.player(pi);
-            // The C# component asks the replayed game; the view also asks the finished one.
-            let secret = !g.yields_secrets(pi) || hidden(p.faction);
-            let mut row = StoryRow { faction: name(p.faction), secret, ..Default::default() };
+            let mut row = StoryRow { faction: name(p.faction), ..Default::default() };
             if c.show_name {
                 row.name = g.get_player_name_player(pi);
             }
             if c.show_ally {
                 if p.ally != Faction::None {
                     row.ally = Some(name(p.ally));
-                } else if p.nexus != Faction::None && !hidden(p.faction) {
+                } else if p.nexus != Faction::None {
                     row.nexus = Some(name(p.nexus));
                 }
             }
-            if c.show_cards && !secret {
+            if c.show_cards {
                 row.cards = p.treachery_cards.iter().map(|c| c.id()).collect();
             }
-            if c.show_traitors && !secret {
+            if c.show_traitors {
                 let t = p.traitors.iter().map(|h| StoryTraitor { hero: hero_ref(*h), discarded: false });
                 let discarded = finished.get_player(Some(p.faction)).map(|f| &finished.player(f).discarded_traitors);
                 let dt = discarded.into_iter().flatten().map(|h| StoryTraitor { hero: hero_ref(*h), discarded: true });
@@ -481,7 +462,7 @@ fn table(g: &Game, finished: &Game, hidden: &dyn Fn(Faction) -> bool, mut column
             if c.show_tech_tokens {
                 row.tech_tokens = p.tech_tokens.iter().map(|t| name(*t)).collect();
             }
-            if c.show_resources && !hidden(p.faction) {
+            if c.show_resources {
                 row.resources = Some(p.resources);
             }
             if c.show_forces {
@@ -523,7 +504,7 @@ fn table(g: &Game, finished: &Game, hidden: &dyn Fn(Faction) -> bool, mut column
     StoryTable { rows, ..columns }
 }
 
-/// One row of `StoryBattleComponent`.
+/// One side of a battle in the story.
 fn plan(g: &Game, b: &treachery_engine::events::Battle, opponent: Faction, advanced: bool) -> StoryPlan {
     StoryPlan {
         faction: name(b.initiator()),

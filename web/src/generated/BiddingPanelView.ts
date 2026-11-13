@@ -3,7 +3,7 @@ import type { CardOf } from "./CardOf";
 import type { CurrentBid } from "./CurrentBid";
 
 /**
- * `BiddingPanel.razor` without the bidder's inputs (those are the `Bid` and `BlackMarketBid`
+ * The bidding panel without the bidder's inputs (those are the `Bid` and `BlackMarketBid`
  * action options).
  */
 export type BiddingPanelView = { 

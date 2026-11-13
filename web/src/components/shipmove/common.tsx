@@ -1,4 +1,4 @@
-// Shared pieces of the ship-and-move forms (client-plan.md package 7c): the event panel
+// Shared pieces of the ship-and-move forms: the event panel
 // (GenericComponents/GameEventComponentLayout.razor with its CollapseButton), the draft and its
 // queries (GameEventComponent's ConfirmedResult and Validation), the pinned map panel's parts
 // (MapPickComponent.PinActions, MapForceStepper) and the savegame encodings drafts use.

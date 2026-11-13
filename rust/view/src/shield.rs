@@ -1,5 +1,5 @@
-//! The viewer's own faction panel (`PlayerPanel.razor`), the notekeeping panel
-//! (`NoteComponent.razor`) and which hand cards can be played now (`CardPlays.cs`).
+//! The viewer's own faction panel, the notekeeping panel and which hand cards can be played
+//! now.
 
 use treachery_engine::events::GameEventType;
 use treachery_engine::heroes::hero::Hero;
@@ -29,8 +29,7 @@ fn hero_card(game: &Game, h: Hero, revealed: bool) -> HeroCard {
     HeroCard { hero: hero_ref(h), revealed, skill: skill_of(game, h) }
 }
 
-/// `CardPlays.Plays`: the actions that play a treachery card from the faction panel, and the
-/// card type each plays.
+/// The actions that play a treachery card from the faction panel, and the card type each plays.
 fn card_type_played_by(t: GameEventType) -> Option<TreacheryCardType> {
     use GameEventType as E;
     Some(match t {
@@ -63,7 +62,7 @@ fn card_type_played_by(t: GameEventType) -> Option<TreacheryCardType> {
     })
 }
 
-/// `CardPlays.CardsFor(action, game, player)`: the cards in hand that play this action.
+/// The cards in hand that play this action.
 pub fn cards_for(game: &Game, p: PlayerIndex, action: GameEventType) -> Vec<TreacheryCard> {
     match card_type_played_by(action) {
         None => vec![],
@@ -72,7 +71,7 @@ pub fn cards_for(game: &Game, p: PlayerIndex, action: GameEventType) -> Vec<Trea
     }
 }
 
-/// `CardPlays.PlaysCard` for every applicable action: the actions that play `card`.
+/// The applicable actions that play `card`.
 pub fn playable_with(game: &Game, p: PlayerIndex, card: TreacheryCard, actions: &[GameEventType]) -> Vec<String> {
     actions.iter().filter(|a| cards_for(game, p, **a).contains(&card)).map(|a| a.name().to_string()).collect()
 }
@@ -83,8 +82,7 @@ fn messiah_state(game: &Game, p: PlayerIndex) -> Option<MessiahState> {
         .then(|| MessiahState { forces_killed_in_battle: pl.total_forces_killed_in_battle, available: pl.messiah_available(game) })
 }
 
-/// `PlayerPanel.razor` for the viewer's own seat. `actions` are the viewer's applicable events
-/// (`Client.Actions`).
+/// The faction panel of the viewer's own seat. `actions` are the viewer's applicable events.
 pub fn private_player(game: &Game, p: PlayerIndex, actions: &[GameEventType]) -> PrivatePlayer {
     let pl = game.player(p);
     let after_bene_gesserit_prediction = game.current_phase > Phase::BeneGesseritPredicting;
@@ -116,7 +114,7 @@ pub fn private_player(game: &Game, p: PlayerIndex, actions: &[GameEventType]) ->
         predicted_faction: (pl.faction == Faction::BeneGesserit && after_bene_gesserit_prediction).then(|| name(pl.predicted_faction)),
         predicted_turn: (pl.faction == Faction::BeneGesserit && after_bene_gesserit_prediction).then_some(pl.predicted_turn),
         nexus: (pl.nexus != Faction::None).then(|| name(pl.nexus)),
-        // PlayerPanel.razor:96: after the storm is dialled, with storm prescience.
+        // After the storm is dialled, with storm prescience.
         next_storm_moves: (game.current_phase > Phase::DiallingStorm && game.has_storm_prescience(Some(p))).then_some(game.next_storm_moves),
         messiah: messiah_state(game, p),
         unplaced_terror: (pl.faction == Faction::Moritani).then(|| game.unplaced_terror_tokens.iter().map(|t| name(*t)).collect()),
@@ -124,9 +122,8 @@ pub fn private_player(game: &Game, p: PlayerIndex, actions: &[GameEventType]) ->
     }
 }
 
-/// `NoteComponent.razor`, shown when `Game.AssistedNoteKeepingEnabled(Player)`: every other
-/// player, in seat order (the C# panel sorts them by the skin's faction names, which the client
-/// does).
+/// The notekeeping panel, shown when `Game::assisted_note_keeping_enabled`: every other player,
+/// in seat order (the client sorts them by the skin's faction names).
 pub fn notes(game: &Game, me: PlayerIndex) -> Option<NotesView> {
     if !game.assisted_note_keeping_enabled(Some(me)) {
         return None;

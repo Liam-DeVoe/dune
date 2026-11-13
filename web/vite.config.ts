@@ -1,4 +1,4 @@
-// Vite config for the React client. See rust/docs/client-plan.md.
+// Vite config for the React client. See rust/docs/client.md.
 //
 // The look must match the C# client, so the app uses the C# client's own compiled CSS and art
 // from treachery-online/Client/wwwroot, unchanged. They are served from there, not copied: in dev

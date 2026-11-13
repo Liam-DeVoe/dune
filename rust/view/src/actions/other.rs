@@ -1,15 +1,13 @@
-//! The "other events" forms (client-plan.md package 7e): the components of the inventory's
-//! "Action panel: other events" area, and every event `ActionPanel.razor` draws with
-//! `SimpleActionComponent` or `YesNoActionComponent`.
+//! The forms of the events outside bidding, ship and move, battle, revival and setup, and every
+//! event drawn as a simple confirm form or a yes/no form.
 //!
 //! `AllianceOffered`, `AlliancePassed`, `AllianceBroken` and `StormDialled` are built in
 //! `actions.rs`, which had them first. `NexusPlayed` is in `other_nexus.rs`.
 //!
-//! As in `revival.rs`, each component keeps its inputs in fields and adjusts them while it
-//! renders: a required image choice or select falls back to its first value, a number picker
-//! clamps into its range, a widget that is not drawn resets its field. [`normalize`] does the same
-//! to a draft, so the validation next to the options is the one the C# form showed for the same
-//! inputs, and the options carry the adjusted draft back to the client.
+//! As in `revival.rs`, a form adjusts its inputs: a required image choice or select falls back
+//! to its first value, a number picker clamps into its range, a widget that is not drawn resets
+//! its field. [`normalize`] does that to a draft, so the validation next to the options is that
+//! of the inputs the form shows, and the options carry the adjusted draft back to the client.
 
 use treachery_engine::events::GameEventType;
 use treachery_engine::messages::expression::ExpressionElement;
@@ -22,12 +20,12 @@ use crate::build::{event, validate, ResolvedViewer};
 use crate::describe::Describer;
 use crate::expr::message;
 use crate::schema::*;
-use crate::shield::hero_ref;
 
 use super::other_nexus;
+use super::widgets::{picker, required, faction_options, hero_options, card_ids, draft_json, describe};
 
-/// `SimpleActionComponent`'s event types, with the arguments `ActionPanel.razor` gives it.
-pub const SIMPLE: [GameEventType; 20] = [
+/// The event types drawn as a simple confirm form (`ActionOptions::Simple`).
+pub const SIMPLE: [GameEventType; 19] = [
     GameEventType::MetheorPlayed,
     GameEventType::CharityClaimed,
     GameEventType::GuildDelay,
@@ -39,7 +37,6 @@ pub const SIMPLE: [GameEventType; 20] = [
     GameEventType::HarvesterPlayed,
     GameEventType::PoisonToothCancelled,
     GameEventType::ThumperPlayed,
-    GameEventType::HideSecrets,
     GameEventType::ExtortionPrevented,
     GameEventType::ChoamExtraMove,
     GameEventType::RicheseRevealedNoField,
@@ -50,7 +47,7 @@ pub const SIMPLE: [GameEventType; 20] = [
     GameEventType::SwitchedSkilledLeader,
 ];
 
-/// `YesNoActionComponent`'s event types.
+/// The event types drawn as a yes/no form (`ActionOptions::YesNo`).
 pub const YES_NO: [GameEventType; 8] = [
     GameEventType::NexusVoted,
     GameEventType::AllianceByTerror,
@@ -62,8 +59,8 @@ pub const YES_NO: [GameEventType; 8] = [
     GameEventType::Captured,
 ];
 
-/// The event types with a component of their own in this module.
-pub const FORMS: [GameEventType; 43] = [
+/// The event types with a form of their own in this module.
+pub const FORMS: [GameEventType; 42] = [
     GameEventType::AllyPermission,
     GameEventType::AutomationConfigured,
     GameEventType::BeneGesseritPrediction,
@@ -94,7 +91,6 @@ pub const FORMS: [GameEventType; 43] = [
     GameEventType::MulliganPerformed,
     GameEventType::NexusCardDrawn,
     GameEventType::NexusPlayed,
-    GameEventType::PlayerReplaced,
     GameEventType::ReplacedCardWon,
     GameEventType::ResourcesAudited,
     GameEventType::ResourcesTransferred,
@@ -115,53 +111,6 @@ fn handles(t: GameEventType) -> bool {
 
 // ---------------------------------------------------------------------------------------------
 // Widget rules and helpers shared with other_nexus.rs.
-
-/// `NumberPickerComponent.OnParametersSetAsync`: below `Min` becomes `Min`, else above `Max`
-/// becomes `Max`.
-pub(super) fn picker(value: i32, min: i32, max: i32) -> i32 {
-    if value < min {
-        min
-    } else if value > max {
-        max
-    } else {
-        value
-    }
-}
-
-/// `SelectFromImageComponent`, `SelectComponent`, `RadioComponent` and `SegmentedComponent` with
-/// `Required`: a value not among the values becomes the first one (`FirstOrDefault()`).
-pub(super) fn required<T: PartialEq + Copy>(value: T, values: &[T], default: T) -> T {
-    if values.contains(&value) { value } else { values.first().copied().unwrap_or(default) }
-}
-
-/// The same widgets without `Required`: a value not among the values becomes the default
-/// (`RadioComponent`/`SelectComponent`); `SelectFromImageComponent` keeps it.
-fn optional_card(value: i32, values: &[i32]) -> i32 {
-    let _ = values;
-    value
-}
-
-pub(super) fn faction_options(factions: impl IntoIterator<Item = Faction>) -> Vec<FactionOption> {
-    factions.into_iter().map(|f| FactionOption { faction: f.to_string(), value: f.value() }).collect()
-}
-
-pub(super) fn hero_options(heroes: impl IntoIterator<Item = Hero>) -> Vec<HeroOption> {
-    heroes.into_iter().map(|h| HeroOption { id: h.id(), hero: hero_ref(h) }).collect()
-}
-
-pub(super) fn card_ids(cards: impl IntoIterator<Item = TreacheryCard>) -> Vec<i32> {
-    cards.into_iter().map(|c| c.id()).collect()
-}
-
-/// The draft as savegame JSON, for the options' `draft`.
-pub(super) fn draft_json(e: &GameEvent) -> serde_json::Value {
-    serde_json::from_str(&json::serialize(e)).expect("the engine writes valid JSON")
-}
-
-/// `Skin.Describe(value)` without a game, as `Client.CurrentSkin.Describe` in a component.
-pub(super) fn describe(d: &dyn Describer, el: impl Into<ExpressionElement>) -> String {
-    d.describe_in(&el.into(), None)
-}
 
 /// `Skin.Format(m, args)`: `string.Format` over the described arguments; `m` itself when that
 /// fails.
@@ -201,8 +150,6 @@ fn plain(rt: &RichText) -> String {
             | Part::TreacheryCard { label, .. }
             | Part::ResourceCard { label, .. } => label.clone(),
             Part::Payment { amount, .. } => amount.to_string(),
-            #[allow(unreachable_patterns)]
-            _ => String::new(),
         })
         .collect()
 }
@@ -210,9 +157,8 @@ fn plain(rt: &RichText) -> String {
 // ---------------------------------------------------------------------------------------------
 // Default drafts.
 
-/// The first draft of the form, before the player touches it: the component's field
-/// initializers (adjusted by [`normalize`] when the options are built). `None` for event types
-/// of other modules.
+/// The first draft of the form, before the player touches it: its starting inputs (adjusted by
+/// [`normalize`] when the options are built). `None` for event types of other modules.
 pub fn default_draft(game: &Game, faction: Faction, t: GameEventType) -> Option<GameEvent> {
     if !handles(t) {
         return None;
@@ -251,14 +197,14 @@ pub fn default_draft(game: &Game, faction: Faction, t: GameEventType) -> Option<
         GameEventType::EmperorBidSupport => {
             let mut e = EmperorBidSupport::new(game, faction);
             let mut amounts = dotnet_compat::NetDictionary::new();
-            for f in emperor_support_targets(game, p) {
+            for f in opponents_but_ally(game, p) {
                 amounts.insert(f, game.spice_for_bids_emperor_can_pay(f));
             }
             e.amounts = Some(amounts);
             event(e)
         }
         GameEventType::FactionSelected => {
-            // `new(Game) { InitiatorPlayerName = Client.PlayerName, Seat = Player.Seat }`.
+            // Named and seated as the player.
             let mut e = FactionSelected::new(game);
             e.initiator_player_name = Some(game.get_player_name_player(p));
             e.seat = pl.seat;
@@ -283,7 +229,7 @@ pub fn default_draft(game: &Game, faction: Faction, t: GameEventType) -> Option<
             event(e)
         }
         _ => {
-            // `new GameEventType()` then `Initialize(Game, Faction)`, as Simple/YesNoActionComponent.
+            // A fresh event of the type, initialized for the faction.
             let disc = t.json_discriminator().unwrap_or(t.name());
             let e: GameEvent = json::deserialize(&format!(r#"{{"$type":"{disc}"}}"#)).ok()?;
             e.initialize(game, faction);
@@ -292,7 +238,7 @@ pub fn default_draft(game: &Game, faction: Faction, t: GameEventType) -> Option<
     })
 }
 
-/// `AllyPermissionComponent.OnParametersSet` while not edited.
+/// The permissions in force, which the ally permission form starts from.
 fn current_permissions(game: &Game, faction: Faction, e: &mut AllyPermission) {
     let ally = game.player(game.get_player(Some(faction)).expect("player")).ally;
     e.permitted_resources = game.get_permitted_use_of_ally_resources(ally);
@@ -317,19 +263,14 @@ fn current_permissions(game: &Game, faction: Faction, e: &mut AllyPermission) {
     }
 }
 
-/// `EmperorBidSupportComponent.ValidTargets`: opponents other than the ally.
-fn emperor_support_targets(game: &Game, p: PlayerIndex) -> Vec<Faction> {
+/// The opponents other than the ally: who Emperor may support in bidding, and who a deal may be
+/// offered to.
+fn opponents_but_ally(game: &Game, p: PlayerIndex) -> Vec<Faction> {
     let ally = game.player(p).ally;
     game.players_other_than(p).filter(|f| *f != ally).collect()
 }
 
-/// `DealOfferedComponent.Targets`: opponents other than the ally.
-fn deal_targets(game: &Game, p: PlayerIndex) -> Vec<Faction> {
-    let ally = game.player(p).ally;
-    game.players_other_than(p).filter(|f| *f != ally).collect()
-}
-
-/// `DealOfferedComponent.ApplicableEndPhases`.
+/// The phases a deal offer may last until.
 fn deal_end_phases(t: DealType) -> Vec<Phase> {
     match t {
         DealType::ShareStormPrescience => vec![Phase::TurnConcluded],
@@ -340,9 +281,9 @@ fn deal_end_phases(t: DealType) -> Vec<Phase> {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Adjusting a draft as the component does while it renders.
+// Adjusting a draft as the form does.
 
-/// The draft as the component holds it after rendering with these inputs.
+/// The draft as the form holds it after adjusting these inputs.
 pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, draft: &GameEvent) -> GameEvent {
     let pl = game.player(p);
     let hand: Vec<i32> = card_ids(pl.treachery_cards.iter().copied());
@@ -387,10 +328,8 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, draft: &GameEv
             let cards = card_ids(CardTraded::valid_cards(game, p));
             m.card_id = required(m.card_id, &cards, none_card);
             match pl.allied_player(game) {
-                Some(a) if game.is_bot(a) => {
-                    let theirs = card_ids(CardTraded::valid_cards(game, a));
-                    m.requested_card_id = optional_card(m.requested_card_id, &theirs);
-                }
+                // An optional image choice keeps whatever card was asked for.
+                Some(a) if game.is_bot(a) => {}
                 _ => m.requested_card_id = none_card,
             }
         }),
@@ -500,10 +439,6 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, draft: &GameEv
             m.passed = false;
         }),
         GameEvent::NexusPlayed(_) => other_nexus::normalize(game, p, draft),
-        GameEvent::PlayerReplaced(e) => adjust!(e, |m| {
-            let targets: Vec<Faction> = PlayerReplaced::valid_targets(game).collect();
-            m.to_replace = required(m.to_replace, &targets, Faction::None);
-        }),
         GameEvent::ReplacedCardWon(e) => adjust!(e, |m| {
             m.passed = false;
         }),
@@ -565,7 +500,7 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, draft: &GameEv
     }
 }
 
-/// `DonatedComponent.Targets`, `MinAmount` and `MaxAmount`.
+/// Who may receive a donation, and its minimum and maximum amount.
 fn donation_range(game: &Game, p: PlayerIndex, from_bank: bool) -> (Vec<Faction>, i32, i32) {
     if from_bank {
         (game.players.iter().map(|pl| pl.faction).collect(), -99, 99)
@@ -578,7 +513,7 @@ fn donation_range(game: &Game, p: PlayerIndex, from_bank: bool) -> (Vec<Faction>
 // Options.
 
 /// The options and validation of a form of this module for `draft`, or `None` for other event
-/// types. The draft is first adjusted as the component would ([`normalize`]).
+/// types. The draft is first adjusted as the form would ([`normalize`]).
 pub fn options_and_validation(game: &Game, v: &ResolvedViewer, draft: &GameEvent, d: &dyn Describer) -> Option<(Option<ActionOptions>, Option<RichText>)> {
     let t = draft.event_type();
     if !handles(t) {
@@ -587,8 +522,8 @@ pub fn options_and_validation(game: &Game, v: &ResolvedViewer, draft: &GameEvent
     let p = v.player?;
     let draft = normalize(game, p, v, draft);
     let options = options(game, p, v, &draft, d);
-    // DealOfferedComponent.OfferError: the form's own check comes first, but the draft's `To`
-    // already says "everyone" when all are picked; picking none is the client's check.
+    // The draft's `To` already says "everyone" when all are picked; picking none is the
+    // client's check.
     Some((options, validate(game, draft, d)))
 }
 
@@ -643,7 +578,7 @@ fn options(game: &Game, p: PlayerIndex, v: &ResolvedViewer, draft: &GameEvent, d
             draft: json.clone(),
         }),
         GameEvent::DealOffered(_) => ActionOptions::DealOffered(DealOfferedOptions {
-            targets: faction_options(deal_targets(game, p)),
+            targets: faction_options(opponents_but_ally(game, p)),
             deal_types: DealOffered::get_standard_deal_types(game, p)
                 .into_iter()
                 .map(|t| DealTypeOption {
@@ -685,7 +620,7 @@ fn options(game: &Game, p: PlayerIndex, v: &ResolvedViewer, draft: &GameEvent, d
             })
         }
         GameEvent::EmperorBidSupport(_) => ActionOptions::EmperorBidSupport(EmperorBidSupportOptions {
-            targets: faction_options(emperor_support_targets(game, p)),
+            targets: faction_options(opponents_but_ally(game, p)),
             max: pl.resources,
             draft: json.clone(),
         }),
@@ -735,12 +670,6 @@ fn options(game: &Game, p: PlayerIndex, v: &ResolvedViewer, draft: &GameEvent, d
         GameEvent::MulliganPerformed(_) => ActionOptions::MulliganPerformed(MayOptions { may: MulliganPerformed::may_mulligan(game, p), draft: json.clone() }),
         GameEvent::NexusCardDrawn(_) => ActionOptions::NexusCardDrawn(MayOptions { may: NexusCardDrawn::may_draw(game, p), draft: json.clone() }),
         GameEvent::NexusPlayed(e) => ActionOptions::NexusPlayed(other_nexus::options(game, p, e, d, json.clone())),
-        GameEvent::PlayerReplaced(_) => ActionOptions::PlayerReplaced(PlayerReplacedOptions {
-            targets: PlayerReplaced::valid_targets(game)
-                .map(|f| ReplaceableFaction { faction: f.to_string(), value: f.value(), is_bot: game.get_player(Some(f)).is_some_and(|x| game.is_bot(x)) })
-                .collect(),
-            draft: json.clone(),
-        }),
         GameEvent::ReplacedCardWon(_) => ActionOptions::ReplacedCardWon(draft_only()),
         GameEvent::ResourcesAudited(_) => ActionOptions::ResourcesAudited(factions(ResourcesAudited::valid_factions(game, p).collect())),
         GameEvent::ResourcesTransferred(_) => ActionOptions::ResourcesTransferred(ResourcesTransferredOptions {
@@ -823,13 +752,13 @@ fn ally_permission(game: &Game, p: PlayerIndex, d: &dyn Describer, draft: serde_
 }
 
 // ---------------------------------------------------------------------------------------------
-// SimpleActionComponent and YesNoActionComponent, as ActionPanel.razor calls them.
+// The simple confirm forms and the yes/no forms.
 
 fn simple(title: RichText, confirm_label: impl Into<String>, alert: bool) -> ActionOptions {
-    ActionOptions::Simple { title: Some(title), confirm_label: confirm_label.into(), alert, dismiss_label: None, allow_auto_confirm: false }
+    ActionOptions::Simple { title: Some(title), confirm_label: confirm_label.into(), alert, allow_auto_confirm: false }
 }
 
-/// `GameComponent.DescribeCard(t)`: `Skin.Format("Use {0}?", t)`.
+/// "Use <card type>?", with the skin's name of the card type.
 fn describe_card(d: &dyn Describer, t: TreacheryCardType) -> RichText {
     text(format(d, "Use {0}?", &[t.into()]))
 }
@@ -849,7 +778,6 @@ fn simple_options(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describ
             title: Some(text("Delay your turn?")),
             confirm_label: "Delay".into(),
             alert: true,
-            dismiss_label: None,
             allow_auto_confirm: true,
         },
         GameEventType::BattleRevision => simple(text("Change your battle plan?"), "Change Plan", false),
@@ -862,13 +790,6 @@ fn simple_options(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describ
         GameEventType::HarvesterPlayed => simple(describe_card(d, C::Harvester), use_card(d, "Use", C::Harvester), false),
         GameEventType::PoisonToothCancelled => simple(text("Cancel Poison Tooth?"), "Cancel", false),
         GameEventType::ThumperPlayed => simple(describe_card(d, C::Thumper), use_card(d, "Use", C::Thumper), false),
-        GameEventType::HideSecrets => ActionOptions::Simple {
-            title: Some(text("Hide your secret info (like cards and traitors) from other players at the end of the game?")),
-            confirm_label: "Yes".into(),
-            alert: true,
-            dismiss_label: Some("No".into()),
-            allow_auto_confirm: false,
-        },
         GameEventType::ExtortionPrevented => simple(
             m(express!("Pay ", Payment::of(3), " to prevent ", Faction::Moritani, " regaining their ", TerrorType::Extortion, " token?")),
             "Yes",

@@ -88,10 +88,7 @@ impl Battle {
     }
 
     pub fn total_forces(&self) -> i32 {
-        self.forces
-            .wrapping_add(self.forces_at_half_strength)
-            .wrapping_add(self.special_forces)
-            .wrapping_add(self.special_forces_at_half_strength)
+        (self.forces + self.forces_at_half_strength + self.special_forces) + self.special_forces_at_half_strength
     }
 
     pub fn has_poison(&self) -> bool {
@@ -417,28 +414,24 @@ impl Battle {
         let agg_hero_contribution = if result.agg_hero_killed {
             0
         } else {
-            result
-                .agg_hero_effective_strength
-                .wrapping_add(result.agg_hero_skill_bonus)
-                .wrapping_add(result.agg_messiah_contribution)
+            (result
+                .agg_hero_effective_strength + result.agg_hero_skill_bonus) + result.agg_messiah_contribution
         };
         let def_hero_contribution = if result.def_hero_killed {
             0
         } else {
-            result
-                .def_hero_effective_strength
-                .wrapping_add(result.def_hero_skill_bonus)
-                .wrapping_add(result.def_messiah_contribution)
+            (result
+                .def_hero_effective_strength + result.def_hero_skill_bonus) + result.def_messiah_contribution
         };
 
         let agg_ecaz_karma_contribution = if agg.initiator() == Faction::Ecaz { game.ecaz_karma_bonus } else { 0 };
         let def_ecaz_karma_contribution = if def.initiator() == Faction::Ecaz { game.ecaz_karma_bonus } else { 0 };
 
         let agg_force_supplier = Battle::determine_force_supplier(game, result.aggressor);
-        result.agg_undialed_forces = game.player(agg_force_supplier).any_forces_in_territory(Some(territory)).wrapping_sub(agg.total_forces());
+        result.agg_undialed_forces = game.player(agg_force_supplier).any_forces_in_territory(Some(territory)) - agg.total_forces();
 
         let def_force_supplier = Battle::determine_force_supplier(game, result.defender);
-        result.def_undialed_forces = game.player(def_force_supplier).any_forces_in_territory(Some(territory)).wrapping_sub(def.total_forces());
+        result.def_undialed_forces = game.player(def_force_supplier).any_forces_in_territory(Some(territory)) - def.total_forces();
 
         if !rock_melter_used {
             result.agg_reinforcements_contribution = if agg.has_reinforcements() { 2 } else { 0 };
@@ -531,10 +524,10 @@ impl Battle {
     pub fn validate(&self, game: &Game) -> Option<Message> {
         let p = self.player();
         let pl = game.player(p);
-        if self.forces.wrapping_add(self.forces_at_half_strength) > Battle::max_forces(game, p, false) {
+        if (self.forces + self.forces_at_half_strength) > Battle::max_forces(game, p, false) {
             return Some(express!("Too many ", pl.force(), " selected"));
         }
-        if self.special_forces.wrapping_add(self.special_forces_at_half_strength) > Battle::max_forces(game, p, true) {
+        if (self.special_forces + self.special_forces_at_half_strength) > Battle::max_forces(game, p, true) {
             return Some(express!("Too many ", pl.special_force(), " selected"));
         }
         let mut _paid = 0;
@@ -545,12 +538,12 @@ impl Battle {
         if self.ally_contribution_amount > Battle::max_ally_resources(game, p, self.forces, self.special_forces) {
             return Some(express!("Your ally won't pay that much"));
         }
-        if cost > pl.resources.wrapping_add(self.ally_contribution_amount) {
+        if cost > (pl.resources + self.ally_contribution_amount) {
             return Some(express!(
                 "You can't pay ",
                 Payment::of(cost),
                 " to fight with ",
-                self.forces.wrapping_add(self.special_forces),
+                self.forces + self.special_forces,
                 " forces at full strength"
             ));
         }
@@ -606,7 +599,7 @@ impl Battle {
         if self.banker_bonus > Battle::max_banker_boost(game, self.player(), self.hero()) {
             return Some(express!("You cannot boost your leader this much"));
         }
-        if cost.wrapping_add(self.banker_bonus) > pl.resources.wrapping_add(self.ally_contribution_amount) {
+        if (cost + self.banker_bonus) > (pl.resources + self.ally_contribution_amount) {
             return Some(express!("You can't pay this ", LeaderSkill::Banker, " bonus"));
         }
 
@@ -650,17 +643,17 @@ impl Battle {
         let emperor_cunning = g.current_emperor_cunning.as_ref().is_some_and(|c| c.initiator() == player);
 
         let nr_of_forces_to_count_as_special_due_to_emperor_cunning = if emperor_cunning { 5.min(forces) } else { 0 };
-        let forces_adjusted_for_cunning = forces.wrapping_sub(nr_of_forces_to_count_as_special_due_to_emperor_cunning);
-        let special_forces_adjusted_for_cunning = special_forces.wrapping_add(nr_of_forces_to_count_as_special_due_to_emperor_cunning);
+        let forces_adjusted_for_cunning = forces - nr_of_forces_to_count_as_special_due_to_emperor_cunning;
+        let special_forces_adjusted_for_cunning = special_forces + nr_of_forces_to_count_as_special_due_to_emperor_cunning;
 
         let nr_of_forces_at_half_strength_to_count_as_special_due_to_emperor_cunning = if g.current_emperor_cunning.as_ref().is_some_and(|c| c.initiator() == player) {
-            0.max(5.min(forces_at_half_strength).wrapping_sub(nr_of_forces_to_count_as_special_due_to_emperor_cunning))
+            0.max(5.min(forces_at_half_strength) - nr_of_forces_to_count_as_special_due_to_emperor_cunning)
         } else {
             0
         };
-        let forces_at_half_strength_adjusted_for_cunning = forces_at_half_strength.wrapping_sub(nr_of_forces_at_half_strength_to_count_as_special_due_to_emperor_cunning);
+        let forces_at_half_strength_adjusted_for_cunning = forces_at_half_strength - nr_of_forces_at_half_strength_to_count_as_special_due_to_emperor_cunning;
         let special_forces_at_half_strength_adjusted_for_cunning =
-            special_forces_at_half_strength.wrapping_add(nr_of_forces_at_half_strength_to_count_as_special_due_to_emperor_cunning);
+            special_forces_at_half_strength + nr_of_forces_at_half_strength_to_count_as_special_due_to_emperor_cunning;
 
         let special_force_strength = Battle::determine_special_force_strength(g, player, opponent);
         let special_force_no_spice_factor = Battle::determine_special_force_no_spice_factor(g, player);
@@ -770,11 +763,9 @@ impl Battle {
     }
 
     pub fn cost_game_player_int32_int32_int32(g: &Game, p: PlayerIndex, amount_of_forces_at_full_strength: i32, amount_of_special_forces_at_full_strength: i32, paid_by_arrakeen: &mut i32) -> i32 {
-        let cost = amount_of_forces_at_full_strength
-            .wrapping_mul(Battle::normal_force_cost(g, p))
-            .wrapping_add(amount_of_special_forces_at_full_strength.wrapping_mul(Battle::special_force_cost(g, p)));
+        let cost = (amount_of_forces_at_full_strength * Battle::normal_force_cost(g, p)) + (amount_of_special_forces_at_full_strength * Battle::special_force_cost(g, p));
         *paid_by_arrakeen = Battle::cost_reduction(g, p).min(cost);
-        cost.wrapping_sub(*paid_by_arrakeen)
+        cost - (*paid_by_arrakeen)
     }
 
     pub fn cost_reduction(g: &Game, p: PlayerIndex) -> i32 {
@@ -808,11 +799,11 @@ impl Battle {
     }
 
     pub fn max_resources(g: &Game, p: PlayerIndex, forces: i32, special_forces: i32) -> i32 {
-        g.player(p).resources.min(0.max(forces.wrapping_add(special_forces).wrapping_sub(Battle::cost_reduction(g, p))))
+        g.player(p).resources.min(0.max(forces + special_forces - Battle::cost_reduction(g, p)))
     }
 
     pub fn max_ally_resources(g: &Game, p: PlayerIndex, forces: i32, special_forces: i32) -> i32 {
-        g.resources_your_ally_can_pay(p).min(0.max(forces.wrapping_add(special_forces).wrapping_sub(Battle::cost_reduction(g, p))))
+        g.resources_your_ally_can_pay(p).min(0.max(forces + special_forces - Battle::cost_reduction(g, p)))
     }
 
     pub fn max_forces(g: &Game, p: PlayerIndex, special_forces: bool) -> i32 {
@@ -825,7 +816,7 @@ impl Battle {
 
         if !special_forces {
             if fs.faction == Faction::Richese && fs.special_forces_in_territory(Some(territory)) > 0 {
-                return fs.forces_in_reserve().min(g.current_no_field_value).wrapping_add(fs.forces_in_territory(Some(territory)));
+                return fs.forces_in_reserve().min(g.current_no_field_value) + fs.forces_in_territory(Some(territory));
             }
             return fs.forces_in_territory(Some(territory));
         }
@@ -1049,7 +1040,7 @@ impl Battle {
                         && with_defense.nre().type_() != TreacheryCardType::WeirdingWay)
                     || (with_planetologist && c.is_atreides())
                     || (c.type_() == TreacheryCardType::Reinforcements
-                        && pl.forces_in_reserve().wrapping_add(pl.special_forces_in_reserve()).wrapping_sub(forces_to_reveal_under_no_field) >= 3)
+                        && (pl.forces_in_reserve() + pl.special_forces_in_reserve() - forces_to_reveal_under_no_field) >= 3)
                     || (!fighting_on_own_homeworld && c.type_() == TreacheryCardType::HarassAndWithdraw)
             })
             .collect()
@@ -1085,7 +1076,7 @@ impl Battle {
                         && with_weapon.is_some_and(|w| w.is_weapon())
                         && with_weapon.nre().type_() != TreacheryCardType::Chemistry)
                     || (c.type_() == TreacheryCardType::Reinforcements
-                        && pl.forces_in_reserve().wrapping_add(pl.special_forces_in_reserve()).wrapping_sub(forces_to_reveal_under_no_field) >= 3)
+                        && (pl.forces_in_reserve() + pl.special_forces_in_reserve() - forces_to_reveal_under_no_field) >= 3)
                     || (!fighting_on_own_homeworld && c.type_() == TreacheryCardType::HarassAndWithdraw)
             })
             .collect()
@@ -1100,18 +1091,18 @@ impl Battle {
 
     pub fn determine_forces(g: &Game, p: PlayerIndex, forces: i32, special_forces: i32, resources: i32, forces_full: &mut i32, forces_half: &mut i32, special_forces_full: &mut i32, special_forces_half: &mut i32) {
         if Battle::must_pay_for_any_forces_in_battle(g, p) {
-            let effective_resources = Battle::cost_reduction(g, p).wrapping_add(resources);
+            let effective_resources = Battle::cost_reduction(g, p) + resources;
 
             if Battle::must_pay_for_special_forces_in_battle(g, p) {
                 *special_forces_full = special_forces.min(effective_resources);
-                *special_forces_half = special_forces.wrapping_sub(*special_forces_full);
-                *forces_full = forces.min(effective_resources.wrapping_sub(*special_forces_full));
-                *forces_half = forces.wrapping_sub(*forces_full);
+                *special_forces_half = special_forces - (*special_forces_full);
+                *forces_full = forces.min(effective_resources - (*special_forces_full));
+                *forces_half = forces - (*forces_full);
             } else {
                 *special_forces_full = special_forces;
                 *special_forces_half = 0;
                 *forces_full = forces.min(effective_resources);
-                *forces_half = forces.wrapping_sub(*forces_full);
+                *forces_half = forces - (*forces_full);
             }
         } else {
             *special_forces_full = special_forces;

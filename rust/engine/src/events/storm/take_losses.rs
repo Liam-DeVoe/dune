@@ -38,7 +38,7 @@ impl TakeLosses {
         }
 
         let value_to_be_killed = TakeLosses::losses_to_take(game).amount;
-        if self.force_amount.wrapping_add(self.special_force_amount) < value_to_be_killed {
+        if (self.force_amount + self.special_force_amount) < value_to_be_killed {
             return Some(express!("Select a total value of at least ", value_to_be_killed, " to be killed"));
         }
 
@@ -84,7 +84,7 @@ impl TakeLosses {
 
     pub fn half_of(amount_of_forces: i32, amount_of_special_forces: i32) -> i32 {
         // double arithmetic; the int addition wraps first (hazards 15).
-        f64_to_i32((0.5f64 * amount_of_forces.wrapping_add(amount_of_special_forces) as f64).ceil())
+        f64_to_i32((0.5f64 * (amount_of_forces + amount_of_special_forces) as f64).ceil())
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {

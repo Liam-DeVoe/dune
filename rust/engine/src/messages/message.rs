@@ -64,7 +64,7 @@ impl Message {
     fn with_expression(target: Faction, e: Expression) -> Message {
         let nr = COUNTER.with(|c| {
             let v = c.get();
-            c.set(v.wrapping_add(1));
+            c.set(v + 1);
             v
         });
         Message { nr, target, expression: e, route: None, heading: None, plans: None, log: None, fact: None }

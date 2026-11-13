@@ -1175,10 +1175,10 @@ impl Game {
     pub fn change_resources_on_planet(&mut self, location: Location, amount: i32) {
         if self.resources_on_planet.contains_key(&location) {
             let current = *self.resources_on_planet.index_with(&location, |k| location_text(*k));
-            if current.wrapping_add(amount) == 0 {
+            if (current + amount) == 0 {
                 self.resources_on_planet.remove(&location);
             } else {
-                self.resources_on_planet.insert(location, current.wrapping_add(amount));
+                self.resources_on_planet.insert(location, current + amount);
             }
         } else if amount != 0 {
             self.resources_on_planet.add_with(location, amount, |k| location_text(*k));
@@ -1198,7 +1198,7 @@ impl Game {
     pub fn remove_resources_territory(&mut self, territory: Territory) -> i32 {
         let mut result: i32 = 0;
         for l in territory.locations() {
-            result = result.wrapping_add(self.remove_resources(*l));
+            result += self.remove_resources(*l);
         }
 
         result
@@ -1434,7 +1434,7 @@ impl Game {
                 card.into(),
             ]);
             let p = self.player_mut(ecaz);
-            p.resources = p.resources.wrapping_add(3);
+            p.resources += 3;
         }
     }
 
@@ -1732,7 +1732,7 @@ impl Game {
     pub fn next_storm_will_pass_over(&self, l: Location, storm_moves: i32) -> bool {
         let mut i = 1;
         while i <= storm_moves {
-            if (self.sector_in_storm.wrapping_add(i)) % Map::NUMBER_OF_SECTORS == l.sector(&self.map) {
+            if (self.sector_in_storm + i) % Map::NUMBER_OF_SECTORS == l.sector(&self.map) {
                 return true;
             }
             i += 1;
@@ -1743,7 +1743,7 @@ impl Game {
 
     pub fn distance_from_storm(&self, l: Location) -> i32 {
         for i in 1..=Map::NUMBER_OF_SECTORS {
-            if (self.sector_in_storm.wrapping_add(i)) % Map::NUMBER_OF_SECTORS == l.sector(&self.map) {
+            if (self.sector_in_storm + i) % Map::NUMBER_OF_SECTORS == l.sector(&self.map) {
                 return i;
             }
         }

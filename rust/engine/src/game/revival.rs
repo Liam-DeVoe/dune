@@ -62,7 +62,7 @@ impl Game {
         }
 
         std::cmp::max(
-            nr_of_free_revivals.wrapping_sub(self.free_revivals_this_turn.get_value_or(&p.faction, 0)),
+            nr_of_free_revivals - self.free_revivals_this_turn.get_value_or(&p.faction, 0),
             0,
         )
     }
@@ -86,16 +86,16 @@ impl Game {
         let already_revived = g.total_revivals_this_turn.get_value_or(&pl.faction, 0);
 
         if self.current_recruits_played.is_some() {
-            return std::cmp::max((7 + emperor_secret_ally + low_threshold).wrapping_sub(already_revived), 0);
+            return std::cmp::max(7 + emperor_secret_ally + low_threshold - already_revived, 0);
         }
 
         // C# parity: C# 14 binds `Faction[].Contains` to MemoryExtensions.Contains on a
         // span, so a null array is empty and doesn't throw (docs/span-binding.md).
         if self.factions_with_increased_revival_limits.as_deref().unwrap_or(&[]).contains(&pl.faction) {
-            return std::cmp::max((5 + low_threshold + emperor_secret_ally).wrapping_sub(already_revived), 0);
+            return std::cmp::max(5 + low_threshold + emperor_secret_ally - already_revived, 0);
         }
 
-        std::cmp::max((3 + low_threshold + emperor_secret_ally).wrapping_sub(already_revived), 0)
+        std::cmp::max(3 + low_threshold + emperor_secret_ally - already_revived, 0)
     }
 
     pub fn free_revival_prevented(&self, f: Faction) -> bool {
@@ -160,21 +160,17 @@ impl Game {
 
             if tleilaxu_receives_income {
                 let r = &mut self.player_mut(tleilaxu).resources;
-                *r = r.wrapping_add(1);
+                *r += 1;
             }
         }
 
         let v = self
             .free_revivals_this_turn
-            .get_value_or(&faction, 0)
-            .wrapping_add(free_revived_normal_forces)
-            .wrapping_add(free_revived_special_forces);
+            .get_value_or(&faction, 0) + free_revived_normal_forces + free_revived_special_forces;
         self.free_revivals_this_turn.insert(faction, v);
         let v = self
             .total_revivals_this_turn
-            .get_value_or(&faction, 0)
-            .wrapping_add(free_revived_normal_forces)
-            .wrapping_add(free_revived_special_forces);
+            .get_value_or(&faction, 0) + free_revived_normal_forces + free_revived_special_forces;
         self.total_revivals_this_turn.insert(faction, v);
 
         let p = self.player(player);
@@ -224,15 +220,15 @@ impl RevivalCost {
     }
 
     pub fn total_cost(&self) -> i32 {
-        self.total_cost_for_player().wrapping_add(self.cost_for_emperor)
+        self.total_cost_for_player() + self.cost_for_emperor
     }
 
     pub fn total_cost_for_player(&self) -> i32 {
-        self.cost_for_force_revival_for_player.wrapping_add(self.cost_to_revive_hero)
+        self.cost_for_force_revival_for_player + self.cost_to_revive_hero
     }
 
     pub fn total_cost_for_force_revival(&self) -> i32 {
-        self.cost_for_force_revival_for_player.wrapping_add(self.cost_for_emperor)
+        self.cost_for_force_revival_for_player + self.cost_for_emperor
     }
 
 }

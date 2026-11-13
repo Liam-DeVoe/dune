@@ -156,7 +156,7 @@ impl NexusPlayed {
                     if self.determine_tleilaxu_cost() > game.player(me).resources {
                         return Some(express!("You can't pay that much"));
                     }
-                    if self.tleilaxu_forces.wrapping_add(self.tleilaxu_special_forces) > 5 {
+                    if (self.tleilaxu_forces + self.tleilaxu_special_forces) > 5 {
                         return Some(express!("You can't revive that many forces"));
                     }
                     if self.tleilaxu_assign_skill && self.tleilaxu_hero().is_none() {
@@ -389,7 +389,7 @@ impl NexusPlayed {
     }
 
     pub fn determine_tleilaxu_cost_int32_int32(forces: i32, special_forces: i32) -> i32 {
-        forces.wrapping_add(special_forces)
+        forces + special_forces
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
@@ -471,12 +471,12 @@ impl NexusPlayed {
                         let get_from = self.get_player(game, Some(p.to));
                         if let Some(get_from) = get_from {
                             let gf = game.player_mut(get_from);
-                            gf.resources = gf.resources.wrapping_sub(p.amount);
+                            gf.resources -= p.amount;
                         }
                     }
 
                     let me = game.player_mut(actor);
-                    me.resources = me.resources.wrapping_add(p.amount);
+                    me.resources += p.amount;
                 }
 
                 if game.target_of_bureaucracy == Faction::Guild {
@@ -532,15 +532,14 @@ impl NexusPlayed {
                 let richese = self.get_player(game, Some(Faction::Richese));
                 if let Some(payment_to_richese) = payment_to_richese {
                     let amount_received = payment_to_richese
-                        .amount
-                        .wrapping_sub(if game.was_victim_of_bureaucracy == Faction::Richese { 2 } else { 0 });
+                        .amount - (if game.was_victim_of_bureaucracy == Faction::Richese { 2 } else { 0 });
                     game.play_nexus_card(
                         actor,
                         elems!["let ", Faction::Richese, " return the payment of ", Payment::of(amount_received), " they just received"],
                     );
                     if let Some(richese) = richese {
                         let w = game.player_mut(richese);
-                        w.resources = w.resources.wrapping_sub(amount_received);
+                        w.resources -= amount_received;
                     }
                 } else if richese.is_some() && game.card_just_won.is_some() && game.player(richese.required("richese")?).has(game.card_just_won) {
                     let richese = richese.required("richese")?;
@@ -554,19 +553,19 @@ impl NexusPlayed {
                     if let Some(winning_bid) = winning_bid {
                         if !winning_bid.i_bid_karma_bid() && winning_bid.i_bid_initiator() == Faction::Richese {
                             let w = game.player_mut(richese);
-                            w.resources = w.resources.wrapping_add(winning_bid.i_bid_amount());
+                            w.resources += winning_bid.i_bid_amount();
                             let richese_ally = game.player(richese).allied_player(game);
                             if let Some(richese_ally) = richese_ally {
                                 if winning_bid.i_bid_ally_contribution_amount() > 0 {
                                     let a = game.player_mut(richese_ally);
-                                    a.resources = a.resources.wrapping_add(winning_bid.i_bid_ally_contribution_amount());
+                                    a.resources += winning_bid.i_bid_ally_contribution_amount();
                                 }
                             }
                             if let Some(richese_ally) = richese_ally {
                                 if winning_bid.i_bid_emperor_contribution_amount() > 0 {
                                     // C# parity: Emperor's contribution is refunded to Richese's ally (hazards 18).
                                     let a = game.player_mut(richese_ally);
-                                    a.resources = a.resources.wrapping_add(winning_bid.i_bid_emperor_contribution_amount());
+                                    a.resources += winning_bid.i_bid_emperor_contribution_amount();
                                 }
                             }
                         }
@@ -775,7 +774,7 @@ impl NexusPlayed {
                     }
                 }
 
-                let total = self.tleilaxu_forces.wrapping_add(self.tleilaxu_special_forces);
+                let total = self.tleilaxu_forces + self.tleilaxu_special_forces;
                 let force = game.player(player).force();
                 let special_force = game.player(player).special_force();
                 game.play_nexus_card(
@@ -812,7 +811,7 @@ impl NexusPlayed {
                     // C# parity: the card is not validated here (hazards 18).
                     game.discard_player_treachery_card_boolean(Some(actor), Some(choam_card), true);
                     let me = game.player_mut(actor);
-                    me.resources = me.resources.wrapping_add(2);
+                    me.resources += 2;
                 } else if game.current_phase == Phase::BattleConclusion {
                     let Some(current_battle) = game.current_battle.clone() else { return };
 

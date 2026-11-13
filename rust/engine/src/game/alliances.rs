@@ -70,7 +70,7 @@ impl Game {
 
     pub fn decrease_permitted_use_of_ally_spice(&mut self, f: Faction, amount: i32) {
         if self.permitted_use_of_ally_spice.contains_key(&f) {
-            let new_value = self.permitted_use_of_ally_spice.index(&f).wrapping_sub(amount);
+            let new_value = self.permitted_use_of_ally_spice.index(&f) - amount;
             self.permitted_use_of_ally_spice.insert(f, 0.max(new_value));
         }
     }

@@ -51,7 +51,7 @@ impl Retreat {
         if self.special_forces > Retreat::max_special_forces(game, p) {
             return Some(express!("You selected too many ", game.player(p).special_force()));
         }
-        if self.forces.wrapping_add(self.special_forces) > Retreat::max_total_forces(game, p) {
+        if (self.forces + self.special_forces) > Retreat::max_total_forces(game, p) {
             return Some(express!("You selected too many forces"));
         }
         None
@@ -82,7 +82,7 @@ impl Retreat {
         let plan = current_battle.plan_of(g, Some(p));
         let forces_in = g.player(p).forces_in_territory(current_battle.territory(g));
         let plan = plan.nre();
-        forces_in.wrapping_sub(plan.forces).wrapping_sub(plan.forces_at_half_strength)
+        (forces_in - plan.forces) - plan.forces_at_half_strength
     }
 
     pub fn max_special_forces(g: &Game, p: PlayerIndex) -> i32 {
@@ -90,7 +90,7 @@ impl Retreat {
         let plan = current_battle.plan_of(g, Some(p));
         let special_forces_in = g.player(p).special_forces_in_territory(current_battle.territory(g));
         let plan = plan.nre();
-        special_forces_in.wrapping_sub(plan.special_forces).wrapping_sub(plan.special_forces_at_half_strength)
+        (special_forces_in - plan.special_forces) - plan.special_forces_at_half_strength
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
@@ -107,7 +107,7 @@ impl Retreat {
             // ArgumentNullException on the null key.
             let to = self.location(game).or_null();
             Player::move_forces(game, me, l, to, to_move_from_here);
-            forces_to_move = forces_to_move.wrapping_sub(to_move_from_here);
+            forces_to_move -= to_move_from_here;
         }
 
         let mut special_forces_to_move = self.special_forces;
@@ -121,7 +121,7 @@ impl Retreat {
             let to_move_from_here = std::cmp::min(special_forces_to_move, game.player(me).special_forces_in(Some(l)));
             let to = self.location(game).or_null();
             Player::move_special_forces(game, me, l, to, to_move_from_here);
-            special_forces_to_move = special_forces_to_move.wrapping_sub(to_move_from_here);
+            special_forces_to_move -= to_move_from_here;
         }
 
         self.log(game);

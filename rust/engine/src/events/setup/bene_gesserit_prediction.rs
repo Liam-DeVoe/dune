@@ -51,7 +51,7 @@ impl BeneGesseritPrediction {
             panic!("{}",
                 cs::with_parameter("Specified argument was out of the range of valid values.", "count"));
         }
-        (0..count).map(|i| 1i32.wrapping_add(i)).collect()
+        (0..count).map(|i| 1i32 + i).collect()
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {

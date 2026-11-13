@@ -44,7 +44,7 @@ impl AutomationConfigured {
                     0
                 } else {
                     // Non-empty, so Max cannot throw.
-                    game.automation_rules.iter().map(|x| x.automation_rule_id.get()).max().required("max")?.wrapping_add(1)
+                    game.automation_rules.iter().map(|x| x.automation_rule_id.get()).max().required("max")? + 1
                 };
                 self.automation_rule_id.set(id);
 

@@ -60,7 +60,7 @@ impl PerformHmsMovement {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let me = self.player();
         let hms = game.map.hidden_mobile_stronghold();
-        let collection_rate = game.player(me).any_forces_in(Some(hms.location())).wrapping_mul(2);
+        let collection_rate = game.player(me).any_forces_in(Some(hms.location())) * 2;
         self.log(game);
 
         // A null AttachedToLocation throws ArgumentNullException in CollectSpiceFrom (TryGetValue(null)).
@@ -73,7 +73,7 @@ impl PerformHmsMovement {
             let target = self.target(game).or_null();
             hms.point_at(&mut game.map, target)?;
             game.collect_spice_from(self.initiator(), target, collection_rate);
-            game.hms_moves_left = game.hms_moves_left.wrapping_sub(1);
+            game.hms_moves_left -= 1;
             game.stone(Milestone::HmsMovement);
         }
 

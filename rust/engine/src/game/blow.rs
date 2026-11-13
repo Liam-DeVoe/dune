@@ -54,7 +54,7 @@ impl Game {
 
                 if !self.sand_trout_occured() {
                     self.sand_trout_doubles_resources = false;
-                    self.number_of_monsters = self.number_of_monsters.wrapping_add(1);
+                    self.number_of_monsters += 1;
                     let t = self.previous_monster_territory();
                     let is_great = !self.thumper_called_shai_hulud && drawn.is_some_and(|d| d.is_great_maker());
                     self.let_monster_appear(t, is_great);
@@ -156,7 +156,7 @@ impl Game {
             let count_a = self.resource_card_discard_pile_a.as_ref().nre().items.len() as i32;
             let count_b = self.resource_card_discard_pile_b.as_ref().nre().items.len() as i32;
             // C# parity: "A en B" typo.
-            self.log(elems![count_a.wrapping_add(count_b), " cards were shuffled from ", Concept::Resource, " discard piles A en B into a new deck."]);
+            self.log(elems![count_a + count_b, " cards were shuffled from ", Concept::Resource, " discard piles A en B into a new deck."]);
         } else {
             let count_a = self.resource_card_discard_pile_a.as_ref().nre().items.len() as i32;
             let msg = express!(count_a, " cards were shuffled from the ", Concept::Resource, " discard pile into a new deck")
@@ -301,14 +301,14 @@ impl Game {
             Some(t) if self.current_turn != 1 => {
                 let m = MonsterAppearence::new(t, is_great_monster);
 
-                let appeared = WormAppearedLog::new(m.territory, (self.monsters.len() as i32).wrapping_add(1));
+                let appeared = WormAppearedLog::new(m.territory, (self.monsters.len() as i32) + 1);
                 if m.is_great_monster {
                     self.log(elems![Concept::GreatMonster, " appears in ", m.territory]);
                 } else if !self.monsters.is_empty() {
                     let msg = express!(
                         Concept::Monster,
                         " appears a ",
-                        Game::natural((self.monsters.len() as i32).wrapping_add(1)),
+                        Game::natural((self.monsters.len() as i32) + 1),
                         " time during this ",
                         MainPhase::Blow
                     )

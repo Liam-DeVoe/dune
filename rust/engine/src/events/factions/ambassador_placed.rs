@@ -74,11 +74,11 @@ impl AmbassadorPlaced {
             game_error!("Stronghold is null");
         };
 
-        game.ambassadors_placed_this_turn = game.ambassadors_placed_this_turn.wrapping_add(1);
+        game.ambassadors_placed_this_turn += 1;
         let me = self.player();
         let placed = game.ambassadors_placed_this_turn;
         let p = game.player_mut(me);
-        p.resources = p.resources.wrapping_sub(placed);
+        p.resources -= placed;
         self.log_objects(
             game,
             vec![

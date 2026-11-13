@@ -67,7 +67,7 @@ impl Revival {
     }
 
     pub fn total_amount_of_forces_added_to_location(&self, _game: &Game) -> i32 {
-        self.number_of_forces_in_location.wrapping_add(self.number_of_special_forces_in_location)
+        self.number_of_forces_in_location + self.number_of_special_forces_in_location
     }
 
     pub fn forces_added_to_location(&self, _game: &Game) -> i32 {
@@ -82,8 +82,8 @@ impl Revival {
         // `var p = Player;` does not throw; the first dereference (line 84) does.
         let p_opt = self.player_opt();
         let initiator = self.initiator();
-        let forces = self.amount_of_forces.wrapping_add(self.extra_forces_paid_by_emperor);
-        let special_forces = self.amount_of_special_forces.wrapping_add(self.extra_special_forces_paid_by_emperor);
+        let forces = self.amount_of_forces + self.extra_forces_paid_by_emperor;
+        let special_forces = self.amount_of_special_forces + self.extra_special_forces_paid_by_emperor;
 
         if forces <= 0 && special_forces <= 0 && self.hero().is_none() {
             return Some(express!("Select forces or a leader to revive"));
@@ -109,12 +109,12 @@ impl Revival {
         }
 
         let limit = game.get_max_revivals(game, p, self.uses_emperor_secret_ally);
-        if self.amount_of_forces.wrapping_add(self.amount_of_special_forces) > limit {
+        if (self.amount_of_forces + self.amount_of_special_forces) > limit {
             return Some(express!("You can't revive more than ", limit));
         }
 
         let ally_limit = Self::valid_max_revivals_by_emperor(game, p);
-        if self.extra_forces_paid_by_emperor.wrapping_add(self.extra_special_forces_paid_by_emperor)
+        if (self.extra_forces_paid_by_emperor + self.extra_special_forces_paid_by_emperor)
             > Self::valid_max_revivals_by_emperor(game, p)
         {
             return Some(express!("Your ally won't revive more than ", ally_limit));
@@ -163,13 +163,13 @@ impl Revival {
                     game,
                     p,
                     self.uses_emperor_secret_ally,
-                    self.amount_of_forces.wrapping_add(self.extra_forces_paid_by_emperor),
+                    self.amount_of_forces + self.extra_forces_paid_by_emperor,
                 )
                 || self.number_of_special_forces_in_location
                     > Self::number_of_special_forces_that_may_be_placed_on_planet(
                         game,
                         p,
-                        self.amount_of_special_forces.wrapping_add(self.extra_special_forces_paid_by_emperor),
+                        self.amount_of_special_forces + self.extra_special_forces_paid_by_emperor,
                     )
             {
                 return Some(express!("You can't place that many forces directly on the planet"));
@@ -228,23 +228,18 @@ impl Revival {
         *nr_of_paid_special_forces = if ip.is(Faction::Emperor) && ip.has_low_threshold(g, World::SalusaSecundus) {
             amount_of_special_forces
         } else {
-            std::cmp::max(0, amount_of_special_forces.wrapping_sub(nr_of_free_revivals))
+            std::cmp::max(0, amount_of_special_forces - nr_of_free_revivals)
         };
 
         let nr_of_free_revivals_left =
-            nr_of_free_revivals.wrapping_sub(amount_of_special_forces.wrapping_sub(*nr_of_paid_special_forces));
-        let nr_of_paid_normal_forces = std::cmp::max(0, amount_of_forces.wrapping_sub(nr_of_free_revivals_left));
-        *number_of_forces_revived_for_free = amount_of_forces
-            .wrapping_add(amount_of_special_forces)
-            .wrapping_sub(*nr_of_paid_special_forces)
-            .wrapping_sub(nr_of_paid_normal_forces);
+            nr_of_free_revivals - (amount_of_special_forces - (*nr_of_paid_special_forces));
+        let nr_of_paid_normal_forces = std::cmp::max(0, amount_of_forces - nr_of_free_revivals_left);
+        *number_of_forces_revived_for_free = amount_of_forces + amount_of_special_forces - (*nr_of_paid_special_forces) - nr_of_paid_normal_forces;
 
         let price_of_special_forces: i32 = if ip.is(Faction::Ixian) { 3 } else { 2 };
         let price_of_normal_forces: i32 =
             if ip.is(Faction::Choam) && !g.prevented(FactionAdvantage::ChoamRevival) { 1 } else { 2 };
-        let mut cost = nr_of_paid_special_forces
-            .wrapping_mul(price_of_special_forces)
-            .wrapping_add(nr_of_paid_normal_forces.wrapping_mul(price_of_normal_forces));
+        let mut cost = (*nr_of_paid_special_forces * price_of_special_forces) + (nr_of_paid_normal_forces * price_of_normal_forces);
 
         if Self::may_revive_with_discount(g, initiator) {
             cost = (0.5 * cost as f64).ceil() as i32;
@@ -498,24 +493,22 @@ impl Revival {
 
         // Counting loops kept as loops, with wrapping arithmetic (hazards 1.9).
         let mut special_forces_paid_by_emperor: i32 = 0;
-        while special_forces_paid_by_emperor.wrapping_add(1).wrapping_mul(price_of_special_forces)
+        while ((special_forces_paid_by_emperor + 1) * price_of_special_forces)
             <= g.player(emperor.nre()).resources
-            && special_forces_paid_by_emperor.wrapping_add(1) <= potential_maximum
+            && (special_forces_paid_by_emperor + 1) <= potential_maximum
         {
-            special_forces_paid_by_emperor = special_forces_paid_by_emperor.wrapping_add(1);
+            special_forces_paid_by_emperor += 1;
         }
 
         let mut forces_paid_by_emperor: i32 = 0;
-        while special_forces_paid_by_emperor
-            .wrapping_mul(price_of_special_forces)
-            .wrapping_add(forces_paid_by_emperor.wrapping_add(1).wrapping_mul(2))
+        while ((special_forces_paid_by_emperor * price_of_special_forces) + ((forces_paid_by_emperor + 1) * 2))
             <= g.player(emperor.nre()).resources
-            && special_forces_paid_by_emperor.wrapping_add(forces_paid_by_emperor).wrapping_add(1) <= potential_maximum
+            && (special_forces_paid_by_emperor + forces_paid_by_emperor + 1) <= potential_maximum
         {
-            forces_paid_by_emperor = forces_paid_by_emperor.wrapping_add(1);
+            forces_paid_by_emperor += 1;
         }
 
-        special_forces_paid_by_emperor.wrapping_add(forces_paid_by_emperor)
+        special_forces_paid_by_emperor + forces_paid_by_emperor
     }
 
     pub fn may_use_emperor_secret_ally(game: &Game, player: PlayerIndex) -> bool {
@@ -581,11 +574,11 @@ impl Revival {
         if cost.cost_for_emperor > 0 {
             let emperor = game.get_player(Some(Faction::Emperor)).required("get player")?;
             let r = &mut game.player_mut(emperor).resources;
-            *r = r.wrapping_sub(cost.cost_for_emperor);
+            *r -= cost.cost_for_emperor;
         }
         {
             let r = &mut game.player_mut(me).resources;
-            *r = r.wrapping_sub(cost.total_cost_for_player());
+            *r -= cost.total_cost_for_player();
         }
 
         let high_threshold_extra_suboids = if initiator == Faction::Ixian
@@ -596,10 +589,8 @@ impl Revival {
                 0,
                 std::cmp::min(
                     2,
-                    game.player(me)
-                        .forces_killed
-                        .wrapping_sub(self.amount_of_forces)
-                        .wrapping_sub(self.extra_forces_paid_by_emperor),
+                    (game.player(me)
+                        .forces_killed - self.amount_of_forces) - self.extra_forces_paid_by_emperor,
                 ),
             )
         } else {
@@ -610,12 +601,12 @@ impl Revival {
         Player::revive_forces(
             game,
             me,
-            self.amount_of_forces.wrapping_add(self.extra_forces_paid_by_emperor).wrapping_add(high_threshold_extra_suboids),
+            (self.amount_of_forces + self.extra_forces_paid_by_emperor) + high_threshold_extra_suboids,
         );
         Player::revive_special_forces(
             game,
             me,
-            self.amount_of_special_forces.wrapping_add(self.extra_special_forces_paid_by_emperor),
+            self.amount_of_special_forces + self.extra_special_forces_paid_by_emperor,
         );
 
         if self.amount_of_special_forces > 0 {
@@ -626,13 +617,13 @@ impl Revival {
         let mut first_free_revival_this_turn = false;
         let nr_of_free_revivals = std::cmp::min(
             game.free_revivals(me, self.uses_emperor_secret_ally),
-            self.amount_of_forces.wrapping_add(self.amount_of_special_forces),
+            self.amount_of_forces + self.amount_of_special_forces,
         );
 
         if nr_of_free_revivals > 0 {
             let free_revivals_this_turn = game.free_revivals_this_turn.get_value_or(&initiator, 0);
             first_free_revival_this_turn = free_revivals_this_turn == 0;
-            game.free_revivals_this_turn.insert(initiator, free_revivals_this_turn.wrapping_add(nr_of_free_revivals));
+            game.free_revivals_this_turn.insert(initiator, free_revivals_this_turn + nr_of_free_revivals);
         }
 
         //Tech token activated?
@@ -649,8 +640,8 @@ impl Revival {
             }
 
             if initiator != Faction::Tleilaxu {
-                total_profits_for_tleilaxu = total_profits_for_tleilaxu.wrapping_add(cost.total_cost_for_force_revival());
-                total_profits_for_tleilaxu = total_profits_for_tleilaxu.wrapping_add(cost.cost_to_revive_hero);
+                total_profits_for_tleilaxu += cost.total_cost_for_force_revival();
+                total_profits_for_tleilaxu += cost.cost_to_revive_hero;
             }
 
             if total_profits_for_tleilaxu > 0 && game.prevented(FactionAdvantage::TleilaxuReceiveRevive) {
@@ -663,7 +654,7 @@ impl Revival {
 
             {
                 let r = &mut game.player_mut(tleilaxu).resources;
-                *r = r.wrapping_add(total_profits_for_tleilaxu);
+                *r += total_profits_for_tleilaxu;
             }
 
             if total_profits_for_tleilaxu >= 5 {
@@ -671,14 +662,14 @@ impl Revival {
             }
         }
 
-        if cost.total_cost().wrapping_sub(total_profits_for_tleilaxu) >= 4 {
+        if (cost.total_cost() - total_profits_for_tleilaxu) >= 4 {
             game.activate_banker(me);
         }
 
         //Hero revival
         let mut as_ghola = false;
         if let Some(hero) = self.hero() {
-            let v = game.leader_revivals_this_turn.get_value_or(&initiator, 0).wrapping_add(1);
+            let v = game.leader_revivals_this_turn.get_value_or(&initiator, 0) + 1;
             game.leader_revivals_this_turn.insert(initiator, v);
             let leader = hero.as_leader();
 
@@ -759,19 +750,15 @@ impl Revival {
         let initiator = self.initiator();
         let me = self.player();
         let total_amount_of_forces = self
-            .amount_of_forces
-            .wrapping_add(self.extra_forces_paid_by_emperor)
-            .wrapping_add(self.amount_of_special_forces)
-            .wrapping_add(self.extra_special_forces_paid_by_emperor)
-            .wrapping_add(high_threshold_extra_suboids);
+            .amount_of_forces + self.extra_forces_paid_by_emperor + self.amount_of_special_forces + self.extra_special_forces_paid_by_emperor + high_threshold_extra_suboids;
 
-        let v = game.total_revivals_this_turn.get_value_or(&initiator, 0).wrapping_add(total_amount_of_forces);
+        let v = game.total_revivals_this_turn.get_value_or(&initiator, 0) + total_amount_of_forces;
         game.total_revivals_this_turn.insert(initiator, v);
 
         // Each kind of force counted once; Ixian's free extra suboids have their own part.
-        let forces = self.amount_of_forces.wrapping_add(self.extra_forces_paid_by_emperor);
-        let special_forces = self.amount_of_special_forces.wrapping_add(self.extra_special_forces_paid_by_emperor);
-        let total_cost = cost.total_cost_for_player().wrapping_add(cost.cost_for_emperor);
+        let forces = self.amount_of_forces + self.extra_forces_paid_by_emperor;
+        let special_forces = self.amount_of_special_forces + self.extra_special_forces_paid_by_emperor;
+        let total_cost = cost.total_cost_for_player() + cost.cost_for_emperor;
         let paid_by_emperor = self.extra_forces_paid_by_emperor > 0 || self.extra_special_forces_paid_by_emperor > 0;
 
         let pl = game.player(me);
@@ -780,7 +767,7 @@ impl Revival {
             " revive ",
             express_part_if!(self.hero().is_some(); self.hero()),
             express_part_if!(as_ghola; " as Ghola"),
-            express_part_if!(self.hero().is_some() && forces.wrapping_add(special_forces) > 0; " and "),
+            express_part_if!(self.hero().is_some() && (forces + special_forces) > 0; " and "),
             express_part_if!(forces > 0; forces, pl.force()),
             express_part_if!(special_forces > 0; special_forces, pl.special_force()),
             " for ",
@@ -791,7 +778,7 @@ impl Revival {
         );
         let mut row = RevivalRow::new(
             initiator,
-            forces.wrapping_add(high_threshold_extra_suboids),
+            forces + high_threshold_extra_suboids,
             special_forces,
             total_cost,
         );

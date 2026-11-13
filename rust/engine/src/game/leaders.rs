@@ -233,10 +233,10 @@ impl LeaderState {
             self.in_front_of_shield = false;
         }
 
-        self.death_counter = self.death_counter.wrapping_add(1);
+        self.death_counter += 1;
         self.time_of_death = LEADER_STATE_MOMENT.with(|m| {
             let v = m.get();
-            m.set(v.wrapping_add(1));
+            m.set(v + 1);
             v
         });
     }
@@ -250,7 +250,7 @@ impl LeaderState {
     }
 
     pub fn revive(&mut self) {
-        self.death_counter = self.death_counter.wrapping_add(1);
+        self.death_counter += 1;
     }
 
     pub fn cs_clone(&self) -> LeaderState {

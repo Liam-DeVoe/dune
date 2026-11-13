@@ -267,7 +267,7 @@ impl LoserConcluded {
                         ],
                     );
                     let pl = game.player_mut(self.player());
-                    pl.resources = pl.resources.wrapping_add(reward);
+                    pl.resources += reward;
                     game.kill_hero(Hero::Leader(assassinated));
                 }
             }

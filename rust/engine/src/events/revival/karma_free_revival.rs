@@ -50,7 +50,7 @@ impl KarmaFreeRevival {
         if self.amount_of_special_forces > pl.special_forces_killed {
             return Some(express!("You can't revive that many"));
         }
-        if self.amount_of_forces.wrapping_add(self.amount_of_special_forces) > 3 {
+        if (self.amount_of_forces + self.amount_of_special_forces) > 3 {
             return Some(express!("You can't revive that many"));
         }
         if self.amount_of_special_forces > 1 {
@@ -59,7 +59,7 @@ impl KarmaFreeRevival {
         if self.amount_of_special_forces > 0 && game.factions_that_revived_special_forces_this_turn.contains(&self.initiator()) {
             return Some(express!("You already revived one ", pl.special_force(), " this turn."));
         }
-        if self.amount_of_forces.wrapping_add(self.amount_of_special_forces) > 0 && self.hero().is_some() {
+        if (self.amount_of_forces + self.amount_of_special_forces) > 0 && self.hero().is_some() {
             return Some(express!("You can't revive both forces and a leader"));
         }
 

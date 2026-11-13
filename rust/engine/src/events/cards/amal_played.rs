@@ -35,7 +35,7 @@ impl AmalPlayed {
             // (int)Math.Ceiling(0.5 * p.Resources): double arithmetic (hazards 9).
             let resources_paid = (0.5f64 * game.player(p).resources as f64).ceil() as i32;
             let pl = game.player_mut(p);
-            pl.resources = pl.resources.wrapping_sub(resources_paid);
+            pl.resources -= resources_paid;
             let faction = game.player(p).faction;
             self.log_objects(game, vec![faction.into(), " lose ".into(), Payment::of(resources_paid).into()]);
         }

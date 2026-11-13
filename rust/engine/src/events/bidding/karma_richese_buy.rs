@@ -54,7 +54,7 @@ impl KarmaRicheseBuy {
         game.player_mut(me).treachery_cards.push(card.or_null());
         crate::game::remove_card(&mut game.richese_cache, card);
         let p = game.player_mut(me);
-        p.resources = p.resources.wrapping_sub(3);
+        p.resources -= 3;
         p.special_karma_power_used = true;
         Ok(())
     }

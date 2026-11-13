@@ -414,13 +414,13 @@ impl AmbassadorActivated {
             Ambassador::Choam => {
                 let mut total_earned = 0i32;
                 for c in self.choam_cards() {
-                    total_earned = total_earned.wrapping_add(3);
+                    total_earned += 3;
                     game.discard_player_treachery_card_boolean(Some(self.player()), Some(c), true);
                 }
 
                 self.log_objects(game, elems![self.initiator(), " get ", Payment::of(total_earned)]);
                 let p = game.player_mut(self.player());
-                p.resources = p.resources.wrapping_add(total_earned);
+                p.resources += total_earned;
                 game.determine_next_shipment_and_move_sub_phase()?;
             }
 
@@ -450,7 +450,7 @@ impl AmbassadorActivated {
 
             Ambassador::Emperor => {
                 let p = game.player_mut(self.player());
-                p.resources = p.resources.wrapping_add(5);
+                p.resources += 5;
                 self.log_objects(game, elems![self.initiator(), " get ", Payment::of(5)]);
                 game.determine_next_shipment_and_move_sub_phase()?;
             }
@@ -502,7 +502,7 @@ impl AmbassadorActivated {
             Ambassador::Richese => {
                 self.log_objects(game, elems![self.initiator(), " buy a card for ", Payment::of(3)]);
                 let p = game.player_mut(self.player());
-                p.resources = p.resources.wrapping_sub(3);
+                p.resources -= 3;
                 let drawn_card = game.draw_treachery_card();
                 if let Some(drawn_card) = drawn_card {
                     game.player_mut(self.player()).treachery_cards.push(drawn_card);

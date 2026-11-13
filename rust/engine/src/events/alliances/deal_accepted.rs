@@ -169,7 +169,7 @@ impl DealAccepted {
                             // ExchangeResourcesInBribe(offerInitiator, null, Benefit): `from` pays,
                             // then dereferencing the null target throws.
                             let from = game.player_mut(offer_initiator);
-                            from.resources = from.resources.wrapping_sub(self.benefit);
+                            from.resources -= self.benefit;
                             let _ = game.bribes_during_mentat();
                             game_error!("A required value is missing");
                         }

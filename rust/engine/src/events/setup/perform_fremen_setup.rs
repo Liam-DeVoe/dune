@@ -42,7 +42,7 @@ impl PerformFremenSetup {
         }
 
         let number_of_forces = dotnet_compat::linq::sum_i32(self.force_locations(game).values().map(|b| b.amount_of_forces));
-        if number_of_forces.wrapping_add(number_of_special_forces) != 10 {
+        if (number_of_forces + number_of_special_forces) != 10 {
             return Some(express!("Distribute 10 forces"));
         }
 

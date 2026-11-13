@@ -37,7 +37,7 @@ impl BlackMarketBid {
 
     pub fn total_amount(&self) -> i32 {
         // C# int addition wraps (hazards 1.6).
-        self.amount.wrapping_add(self.ally_contribution_amount).wrapping_add(self.emperor_contribution_amount)
+        (self.amount + self.ally_contribution_amount) + self.emperor_contribution_amount
     }
 
     pub fn using_karma_to_remove_bid_limit(&self) -> bool {

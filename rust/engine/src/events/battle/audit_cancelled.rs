@@ -77,11 +77,11 @@ impl AuditCancelled {
         if self.cancelled {
             let me = self.player();
             let cost = self.cost(game);
-            game.player_mut(me).resources = game.player(me).resources.wrapping_sub(cost);
+            game.player_mut(me).resources = game.player(me).resources - cost;
             let choam = self.get_player(game, Some(Faction::Choam));
             if let Some(choam) = choam {
                 let cost = self.cost(game);
-                game.player_mut(choam).resources = game.player(choam).resources.wrapping_add(cost);
+                game.player_mut(choam).resources = game.player(choam).resources + cost;
             }
         }
 

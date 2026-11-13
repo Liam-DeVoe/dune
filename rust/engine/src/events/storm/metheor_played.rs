@@ -83,17 +83,17 @@ impl MetheorPlayed {
                 }
 
                 game.reveal_current_no_field(p, Some(location));
-                forces = forces.wrapping_add(game.player(p).forces_in(Some(location)));
-                special_forces = special_forces.wrapping_add(game.player(p).special_forces_in(Some(location)));
+                forces += game.player(p).forces_in(Some(location));
+                special_forces += game.player(p).special_forces_in(Some(location));
                 Player::kill_all_forces(game, p, location, false);
             }
 
-            if forces.wrapping_add(special_forces) > 0 {
+            if (forces + special_forces) > 0 {
                 let faction = game.player(p).faction;
                 let m = express!(
                     TreacheryCardType::Metheor,
                     " kills ",
-                    forces.wrapping_add(special_forces),
+                    forces + special_forces,
                     faction,
                     " forces on the ",
                     game.map.shield_wall()

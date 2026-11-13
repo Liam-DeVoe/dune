@@ -97,7 +97,7 @@ impl Player {
     }
 
     pub fn any_forces_in_reserves(&self) -> i32 {
-                self.forces_in_reserve().wrapping_add(self.special_forces_in_reserve())
+                self.forces_in_reserve() + self.special_forces_in_reserve()
     }
 
     pub fn forces_on_planet(&self) -> NetDictionary<Location, Battalion> {
@@ -208,11 +208,11 @@ impl Player {
     }
 
     pub fn remove_forces(game: &mut Game, me: PlayerIndex, location: Location, nr_of_forces: i32) {
-        Player::change_forces(game, me, location, nr_of_forces.wrapping_neg());
+        Player::change_forces(game, me, location, -nr_of_forces);
     }
 
     pub fn remove_special_forces(game: &mut Game, me: PlayerIndex, location: Location, nr_of_forces: i32) {
-        Player::change_special_forces(game, me, location, nr_of_forces.wrapping_neg());
+        Player::change_special_forces(game, me, location, -nr_of_forces);
     }
 
     pub fn forces_in(&self, location: Option<Location>) -> i32 {
@@ -305,7 +305,7 @@ impl Player {
 
     pub fn forces_to_reserves_location_int32(game: &mut Game, me: PlayerIndex, location: Location, amount: i32) {
         Player::add_forces_to_reserves(game, me, amount);
-        Player::change_forces(game, me, location, amount.wrapping_neg());
+        Player::change_forces(game, me, location, -amount);
     }
 
     pub fn special_forces_to_reserves(game: &mut Game, me: PlayerIndex, location: Location, amount: i32) {
@@ -316,7 +316,7 @@ impl Player {
             Player::add_special_forces_to_reserves(game, me, amount);
         }
 
-        Player::change_special_forces(game, me, location, amount.wrapping_neg());
+        Player::change_special_forces(game, me, location, -amount);
     }
 
     pub fn forces_to_reserves_territory_int32_boolean(game: &mut Game, me: PlayerIndex, t: Territory, amount: i32, special: bool) {
@@ -341,12 +341,12 @@ impl Player {
                     }
 
                     if special {
-                        Player::change_special_forces(game, me, l, to_remove_in_total.wrapping_neg());
+                        Player::change_special_forces(game, me, l, -to_remove_in_total);
                     } else {
-                        Player::change_forces(game, me, l, to_remove_in_total.wrapping_neg());
+                        Player::change_forces(game, me, l, -to_remove_in_total);
                     }
 
-                    to_remove_in_total = to_remove_in_total.wrapping_sub(to_remove_in_this_location);
+                    to_remove_in_total -= to_remove_in_this_location;
                 }
 
                 if to_remove_in_total == 0 {
@@ -373,12 +373,12 @@ impl Player {
             let faction = p.faction;
 
             let p = game.player_mut(me);
-            p.forces_killed = p.forces_killed.wrapping_add(kill_count);
+            p.forces_killed += kill_count;
 
             if faction == Faction::BeneGesserit {
-                p.forces_killed = p.forces_killed.wrapping_add(special_kill_count);
+                p.forces_killed += special_kill_count;
             } else {
-                p.special_forces_killed = p.special_forces_killed.wrapping_add(special_kill_count);
+                p.special_forces_killed += special_kill_count;
             }
 
             p.forces_in_locations.remove(&location);
@@ -386,10 +386,10 @@ impl Player {
 
             if in_battle {
                 let p = game.player_mut(me);
-                p.total_forces_killed_in_battle = p.total_forces_killed_in_battle.wrapping_add(kill_count.wrapping_add(special_kill_count));
+                p.total_forces_killed_in_battle += kill_count + special_kill_count;
             }
 
-            return kill_count.wrapping_add(special_kill_count);
+            return kill_count + special_kill_count;
         }
 
         0
@@ -405,23 +405,23 @@ impl Player {
     }
 
     pub fn kill_forces(game: &mut Game, me: PlayerIndex, location: Location, amount_of_forces: i32, amount_of_special_forces: i32, in_battle: bool) -> i32 {
-        Player::change_forces(game, me, location, amount_of_forces.wrapping_neg());
-        Player::change_special_forces(game, me, location, amount_of_special_forces.wrapping_neg());
+        Player::change_forces(game, me, location, -amount_of_forces);
+        Player::change_special_forces(game, me, location, -amount_of_special_forces);
 
         let p = game.player_mut(me);
-        p.forces_killed = p.forces_killed.wrapping_add(amount_of_forces);
+        p.forces_killed += amount_of_forces;
 
         if p.faction == Faction::BeneGesserit {
-            p.forces_killed = p.forces_killed.wrapping_add(amount_of_special_forces);
+            p.forces_killed += amount_of_special_forces;
         } else {
-            p.special_forces_killed = p.special_forces_killed.wrapping_add(amount_of_special_forces);
+            p.special_forces_killed += amount_of_special_forces;
         }
 
         if in_battle {
-            p.total_forces_killed_in_battle = p.total_forces_killed_in_battle.wrapping_add(amount_of_forces.wrapping_add(amount_of_special_forces));
+            p.total_forces_killed_in_battle += amount_of_forces + amount_of_special_forces;
         }
 
-        amount_of_forces.wrapping_add(amount_of_special_forces)
+        amount_of_forces + amount_of_special_forces
     }
 
     pub fn kill_forces_territory_int32_boolean_boolean(game: &mut Game, me: PlayerIndex, t: Territory, amount: i32, special: bool, in_battle: bool) {
@@ -438,7 +438,7 @@ impl Player {
                 } else {
                     Player::kill_forces(game, me, l, to_be_killed, 0, in_battle);
                 }
-                to_kill = to_kill.wrapping_sub(to_be_killed);
+                to_kill -= to_be_killed;
             }
 
             if to_kill == 0 {
@@ -449,13 +449,13 @@ impl Player {
 
     pub fn revive_forces(game: &mut Game, me: PlayerIndex, amount: i32) {
         let p = game.player_mut(me);
-        p.forces_killed = p.forces_killed.wrapping_sub(amount);
+        p.forces_killed -= amount;
         Player::add_forces_to_reserves(game, me, amount);
     }
 
     pub fn revive_special_forces(game: &mut Game, me: PlayerIndex, amount: i32) {
         let p = game.player_mut(me);
-        p.special_forces_killed = p.special_forces_killed.wrapping_sub(amount);
+        p.special_forces_killed -= amount;
         Player::add_special_forces_to_reserves(game, me, amount);
     }
 
@@ -484,17 +484,17 @@ impl Player {
     }
 
     pub fn ship_advisors(game: &mut Game, me: PlayerIndex, l: Location, amount: i32) {
-        Player::add_forces_to_reserves(game, me, amount.wrapping_neg());
+        Player::add_forces_to_reserves(game, me, -amount);
         Player::change_special_forces(game, me, l, amount);
     }
 
     pub fn move_forces(game: &mut Game, me: PlayerIndex, from: Location, to: Location, amount: i32) {
-        Player::change_forces(game, me, from, amount.wrapping_neg());
+        Player::change_forces(game, me, from, -amount);
         Player::change_forces(game, me, to, amount);
     }
 
     pub fn move_special_forces(game: &mut Game, me: PlayerIndex, from: Location, to: Location, amount: i32) {
-        Player::change_special_forces(game, me, from, amount.wrapping_neg());
+        Player::change_special_forces(game, me, from, -amount);
         Player::change_special_forces(game, me, to, amount);
     }
 
@@ -502,12 +502,12 @@ impl Player {
         if game.player(me).faction == Faction::BeneGesserit {
             if as_advisors {
                 let number_of_forces = game.player(me).forces_in(Some(l));
-                Player::change_forces(game, me, l, number_of_forces.wrapping_neg());
+                Player::change_forces(game, me, l, -number_of_forces);
                 Player::change_special_forces(game, me, l, number_of_forces);
             } else {
                 let number_of_special_forces = game.player(me).special_forces_in(Some(l));
                 Player::change_forces(game, me, l, number_of_special_forces);
-                Player::change_special_forces(game, me, l, number_of_special_forces.wrapping_neg());
+                Player::change_special_forces(game, me, l, -number_of_special_forces);
             }
         }
     }
@@ -521,7 +521,7 @@ impl Player {
     }
 
     pub fn occupying_forces_in_location(&self, l: Location) -> i32 {
-                self.forces_in(Some(l)).wrapping_add(if self.faction == Faction::BeneGesserit { 0 } else { self.special_forces_in(Some(l)) })
+                self.forces_in(Some(l)) + (if self.faction == Faction::BeneGesserit { 0 } else { self.special_forces_in(Some(l)) })
     }
 
     pub fn occupies(&self, game: &Game, l: Option<Location>) -> bool {

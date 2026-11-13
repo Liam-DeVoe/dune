@@ -58,7 +58,7 @@ impl DivideResources {
     pub fn gained_by_other_faction(tbd: Option<&ResourcesToBeDivided>, agreed: bool, portion_to_first_player: i32) -> i32 {
         // tbd.Amount is read before GainedByFirstFaction runs.
         let amount = tbd.nre().amount;
-        amount.wrapping_sub(Self::gained_by_first_faction(tbd, agreed, portion_to_first_player))
+        amount - Self::gained_by_first_faction(tbd, agreed, portion_to_first_player)
     }
 
     pub fn gained_by_first_faction(tbd: Option<&ResourcesToBeDivided>, agreed: bool, portion_to_first_player: i32) -> i32 {

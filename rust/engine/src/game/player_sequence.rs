@@ -28,7 +28,7 @@ impl PlayerSequence {
         let to_start_with = to_start_with.and_then(crate::compat::cs::CsNull::opt);
         // Players = [.. _game.Players.OrderBy(p => direction * p.Seat)]  (stable)
         let mut players: Vec<PlayerIndex> = game.player_indices().collect();
-        players.sort_by_cached_key(|p| direction.wrapping_mul(game.player(*p).seat));
+        players.sort_by_cached_key(|p| direction * game.player(*p).seat);
 
         let mut result = PlayerSequence {
             players,
@@ -173,7 +173,7 @@ impl PlayerSequence {
         }
 
         if self.current_player(game) == self.first_player {
-            self.fully_circled = self.fully_circled.wrapping_add(1);
+            self.fully_circled += 1;
         }
     }
 
@@ -200,7 +200,7 @@ impl PlayerSequence {
 
         self.played.clear();
 
-        self.round = self.round.wrapping_add(1);
+        self.round += 1;
     }
 
     /// Elements are `Option` because a null `FirstPlayer` can be added to the list.
@@ -250,14 +250,14 @@ impl PlayerSequence {
 
         let mut result: Option<PlayerIndex> = None;
 
-        let mut position = cs::rem(g.maximum_players().wrapping_add(start_looking_in_sector), g.maximum_players());
+        let mut position = cs::rem(g.maximum_players() + start_looking_in_sector, g.maximum_players());
         let mut i = 0;
         while i < g.maximum_players() {
             result = g.players.iter().position(|p| p.seat == position).map(|i| g.player_at(i));
             if let Some(r) = result {
                 return r;
             }
-            position = PlayerSequence::mod_(g.maximum_players().wrapping_add(position).wrapping_add(1), g.maximum_players());
+            position = PlayerSequence::mod_(g.maximum_players() + position + 1, g.maximum_players());
             i += 1;
         }
 
@@ -268,7 +268,7 @@ impl PlayerSequence {
     }
 
     pub fn mod_(x: i32, m: i32) -> i32 {
-        cs::rem(cs::rem(x, m).wrapping_add(m), m)
+        cs::rem(cs::rem(x, m) + m, m)
     }
 
     pub fn is_after(g: &Game, a: PlayerIndex, b: PlayerIndex) -> bool {
@@ -276,7 +276,7 @@ impl PlayerSequence {
 
         let mut i = 0;
         while i < g.maximum_players() {
-            let position_to_check = cs::rem(g.player(first_player).seat.wrapping_add(i), g.maximum_players());
+            let position_to_check = cs::rem(g.player(first_player).seat + i, g.maximum_players());
 
             if position_to_check == g.player(b).seat {
                 return true;

@@ -86,7 +86,7 @@ impl KarmaChoamDiscard {
 
         let gain = self.cards().len() as i32 * 3;
         let p = game.player_mut(me);
-        p.resources = p.resources.wrapping_add(gain);
+        p.resources += gain;
         p.special_karma_power_used = true;
         Ok(())
     }

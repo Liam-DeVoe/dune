@@ -163,7 +163,7 @@ impl Game {
     }
 
     pub fn log_bid(&mut self, initiator: PlayerIndex, bid_amount: i32, bid_ally_contribution_amount: i32, bid_emperor_contribution_amount: i32, receiver_income: &MessagePart, paid_to: Faction, free: bool) {
-        let bid_total_amount = bid_amount.wrapping_add(bid_ally_contribution_amount).wrapping_add(bid_emperor_contribution_amount);
+        let bid_total_amount = bid_amount + bid_ally_contribution_amount + bid_emperor_contribution_amount;
         let card_number = express_part_if!(self.current_auction_type == AuctionType::Normal; self.card_number);
 
         let initiator_ally = self.player(initiator).ally;
@@ -264,7 +264,7 @@ impl Game {
         let mut paid_to = Faction::None;
         {
             let p = self.player_mut(initiator);
-            p.resources = p.resources.wrapping_sub(bid_amount);
+            p.resources -= bid_amount;
         }
 
         let mut receiver_profit = 0;
@@ -273,7 +273,7 @@ impl Game {
             let ally = self.player(initiator).allied_player(self).required("The ally")?;
             {
                 let a = self.player_mut(ally);
-                a.resources = a.resources.wrapping_sub(bid_ally_contribution_amount);
+                a.resources -= bid_ally_contribution_amount;
             }
             let initiator_faction = self.player(initiator).faction;
             self.decrease_permitted_use_of_ally_spice(initiator_faction, bid_ally_contribution_amount);
@@ -282,12 +282,12 @@ impl Game {
         if bid_emperor_contribution_amount > 0 {
             let emperor = self.get_player(Some(Faction::Emperor)).required("The Emperor player")?;
             let r = self.player_mut(emperor);
-            r.resources = r.resources.wrapping_sub(bid_emperor_contribution_amount);
+            r.resources -= bid_emperor_contribution_amount;
         }
 
         let receiver = self.get_player(Some(payment_receiver));
         let receiver_and_ally_are_richese = self.player(initiator).ally == Faction::Richese && payment_receiver == Faction::Richese;
-        let total_amount = bid_amount.wrapping_add(if receiver_and_ally_are_richese { 0 } else { bid_ally_contribution_amount });
+        let total_amount = bid_amount + if receiver_and_ally_are_richese { 0 } else { bid_ally_contribution_amount };
 
         let emperor = self.get_player(Some(Faction::Emperor));
         let mut total_amount_received_by_emperor_instead_of_richese =
@@ -304,7 +304,7 @@ impl Game {
             self.modify_income_because_of_low_threshold_or_occupation(receiver.required("The payment receiver")?, &mut total_amount_received_by_emperor_instead_of_richese);
             {
                 let r = self.player_mut(emperor);
-                r.resources = r.resources.wrapping_add(total_amount_received_by_emperor_instead_of_richese);
+                r.resources += total_amount_received_by_emperor_instead_of_richese;
             }
             emperor_received_instead_message = express_part!(" and ", Faction::Emperor, " get ", Payment::of(total_amount_received_by_emperor_instead_of_richese));
 
@@ -331,8 +331,8 @@ impl Game {
                 self.modify_income_because_of_low_threshold_or_occupation(receiver, &mut receiver_profit);
                 {
                     let r = self.player_mut(receiver);
-                    r.resources = r.resources.wrapping_add(receiver_profit);
-                    r.resources_after_bidding = r.resources_after_bidding.wrapping_add(bid_emperor_contribution_amount);
+                    r.resources += receiver_profit;
+                    r.resources_after_bidding += bid_emperor_contribution_amount;
                 }
                 let receiver_faction = self.player(receiver).faction;
                 paid_to = receiver_faction;
@@ -359,7 +359,7 @@ impl Game {
             paid_to = Faction::Emperor;
         }
 
-        if total_amount.wrapping_sub(receiver_profit).wrapping_sub(total_amount_received_by_emperor_instead_of_richese) >= 4 {
+        if (total_amount - receiver_profit - total_amount_received_by_emperor_instead_of_richese) >= 4 {
             self.activate_banker(initiator);
         }
 
@@ -603,7 +603,7 @@ impl Game {
         self.current_ixian_cunning = None;
         if let Some(emperor) = self.get_player(Some(Faction::Emperor)) {
             let r = self.player_mut(emperor);
-            r.resources = r.resources.wrapping_add(r.resources_after_bidding);
+            r.resources += r.resources_after_bidding;
             r.resources_after_bidding = 0;
         }
 
@@ -612,7 +612,7 @@ impl Game {
     }
 
     pub fn number_of_cards_on_regular_auction(&self) -> i32 {
-        self.card_number.wrapping_add(self.cards_on_auction.as_ref().nre().items.len() as i32).wrapping_sub(1)
+        (self.card_number + (self.cards_on_auction.as_ref().nre().items.len() as i32)) - 1
     }
 
     pub fn players_that_can_bid(&self) -> Vec<PlayerIndex> {

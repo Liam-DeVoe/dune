@@ -22,21 +22,21 @@ impl<T: Clone + Eq + std::hash::Hash + 'static> ObjectCounter<T> {
     pub fn count(&mut self, obj: T) {
         if !self.counters.try_add(obj.clone(), 1) {
             let c = self.counters.get_mut(&obj).nre();
-            *c = c.wrapping_add(1);
+            *c += 1;
         }
     }
 
     pub fn count2(&mut self, obj: T) {
         if !self.counters.try_add(obj.clone(), 2) {
             let c = self.counters.get_mut(&obj).nre();
-            *c = c.wrapping_add(2);
+            *c += 2;
         }
     }
 
     pub fn count_n(&mut self, obj: T, n: i32) {
         if !self.counters.try_add(obj.clone(), n) {
             let c = self.counters.get_mut(&obj).nre();
-            *c = c.wrapping_add(n);
+            *c += n;
         }
     }
 

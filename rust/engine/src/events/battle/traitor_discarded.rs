@@ -56,7 +56,7 @@ impl TraitorDiscarded {
         game.traitor_deck.as_mut().required("traitor deck")?.items.push(traitor.or_null());
         let me = self.player();
         cs::list_remove(&mut game.player_mut(me).traitors, traitor);
-        game.number_of_traitors_to_discard = game.number_of_traitors_to_discard.wrapping_sub(1);
+        game.number_of_traitors_to_discard -= 1;
         if game.number_of_traitors_to_discard == 0 {
             let phase = game.phase_before_discarding_traitor;
             game.enter(phase, true);

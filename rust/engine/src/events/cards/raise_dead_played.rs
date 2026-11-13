@@ -84,7 +84,7 @@ impl RaiseDeadPlayed {
         if self.amount_of_special_forces > pl.special_forces_killed {
             return Some(express!("You can't revive that many"));
         }
-        if self.amount_of_forces.wrapping_add(self.amount_of_special_forces) > 5 {
+        if (self.amount_of_forces + self.amount_of_special_forces) > 5 {
             return Some(express!("You can't revive that many"));
         }
         if initiator != Faction::Ixian && self.amount_of_special_forces > 1 {
@@ -96,7 +96,7 @@ impl RaiseDeadPlayed {
         {
             return Some(express!("You already revived one ", pl.special_force(), " this turn"));
         }
-        if self.amount_of_forces.wrapping_add(self.amount_of_special_forces) > 0 && self.hero().is_some() {
+        if (self.amount_of_forces + self.amount_of_special_forces) > 0 && self.hero().is_some() {
             return Some(express!("You can't revive both forces and a leader"));
         }
         if self.hero().is_some() && !Self::valid_heroes(game, p).contains(&self.hero().nre()) {
@@ -165,7 +165,7 @@ impl RaiseDeadPlayed {
         let tleilaxu = self.get_player(game, Some(Faction::Tleilaxu));
         if let Some(tleilaxu) = tleilaxu {
             let r = &mut game.player_mut(tleilaxu).resources;
-            *r = r.wrapping_add(1);
+            *r += 1;
             self.log_objects(
                 game,
                 vec![

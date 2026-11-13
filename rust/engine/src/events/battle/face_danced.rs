@@ -74,8 +74,7 @@ impl FaceDanced {
         }
 
         let amount_of_forces = self
-            .forces_from_reserve
-            .wrapping_add(dotnet_compat::linq::sum_i32(self.force_locations(game).values().map(|b| b.total_amount_of_forces())));
+            .forces_from_reserve + dotnet_compat::linq::sum_i32(self.force_locations(game).values().map(|b| b.total_amount_of_forces()));
         if amount_of_forces != amount_of_placed_forces {
             return Some(express!(
                 "The amount of forces you selected from the planet and from reserves (",
@@ -107,7 +106,7 @@ impl FaceDanced {
             };
             let mut nr_of_forces = g.player(winner.nre()).any_forces_in_territory(territory());
             if let Some(co) = coocupying_player {
-                nr_of_forces = nr_of_forces.wrapping_add(g.player(co).any_forces_in_territory(territory()));
+                nr_of_forces += g.player(co).any_forces_in_territory(territory());
             }
             return nr_of_forces;
         }
@@ -209,7 +208,7 @@ impl FaceDanced {
             None
         };
         if let Some(co) = co_occupying_player {
-            nr_of_removed_forces = nr_of_removed_forces.wrapping_add(game.player(co).any_forces_in_territory(battle.territory(game)));
+            nr_of_removed_forces += game.player(co).any_forces_in_territory(battle.territory(game));
         }
 
         if nr_of_removed_forces > 0 {
@@ -217,7 +216,7 @@ impl FaceDanced {
             if let Some(co) = co_occupying_player {
                 Player::forces_to_reserves_territory(game, co, battle.territory(game).nre());
             }
-            Player::add_forces_to_reserves(game, self.player(), self.forces_from_reserve.wrapping_neg());
+            Player::add_forces_to_reserves(game, self.player(), -self.forces_from_reserve);
 
             for (location, battalion) in self.force_locations(game).iter() {
                 let location = *location;

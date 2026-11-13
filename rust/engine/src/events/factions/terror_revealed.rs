@@ -241,7 +241,7 @@ impl TerrorRevealed {
                             elems![self.initiator(), " gain ", Payment::of(price), " from assassinating ", random_leader, " in ", territory],
                         );
                         let p = game.player_mut(self.player());
-                        p.resources = p.resources.wrapping_add(price);
+                        p.resources += price;
                         game.kill_hero(Hero::Leader(random_leader));
                     } else {
                         self.log_objects(game, elems![self.initiator(), " fail to assassinate a leader in ", territory]);
@@ -280,7 +280,7 @@ impl TerrorRevealed {
                         elems![self.initiator(), " will get ", Payment::of(5), " from ", self.type_, " during ", MainPhase::Contemplate],
                     );
                     let p = game.player_mut(self.player());
-                    p.extortion = p.extortion.wrapping_add(5);
+                    p.extortion += 5;
                 }
 
                 TerrorType::Robbery => {
@@ -294,9 +294,9 @@ impl TerrorRevealed {
                         // (int)Math.Ceiling(0.5f * resources): the product is a float (hazards 9).
                         let amount_stolen = ((0.5f32 * game.player(victim_player).resources as f32) as f64).ceil() as i32;
                         let p = game.player_mut(self.player());
-                        p.resources = p.resources.wrapping_add(amount_stolen);
+                        p.resources += amount_stolen;
                         let v = game.player_mut(victim_player);
-                        v.resources = v.resources.wrapping_sub(amount_stolen);
+                        v.resources -= amount_stolen;
                         self.log_objects(
                             game,
                             elems![self.initiator(), " steal ", Payment::of(amount_stolen), " by ", self.type_, " in ", territory],

@@ -36,7 +36,7 @@ impl KarmaEcazDial {
         let opponent_leader = battle.plan_of_opponent(game, Some(me)).required("plan of opponent")?.hero();
         if let (Some(my_leader), Some(opponent_leader)) = (my_leader, opponent_leader) {
             game.ecaz_karma_bonus =
-                dotnet_compat::math::abs_i32(my_leader.value().wrapping_sub(opponent_leader.value_in_combat_against(Some(my_leader))));
+                dotnet_compat::math::abs_i32(my_leader.value() - opponent_leader.value_in_combat_against(Some(my_leader)));
         }
         let bonus = game.ecaz_karma_bonus;
         game.play_karma(me, karama, vec!["add ".into(), bonus.into(), " to their dial".into()]);

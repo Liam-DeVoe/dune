@@ -18,7 +18,7 @@ impl Game {
                 let banked = self.player(p).banked_resources;
                 {
                     let pl = self.player_mut(p);
-                    pl.resources = pl.resources.wrapping_add(banked);
+                    pl.resources += banked;
                 }
                 let faction = self.player(p).faction;
                 let banked = self.player(p).banked_resources;
@@ -122,7 +122,7 @@ impl Game {
             let extortion = self.player(p).extortion;
             {
                 let pl = self.player_mut(p);
-                pl.resources = pl.resources.wrapping_add(extortion);
+                pl.resources += extortion;
             }
             let faction = self.player(p).faction;
             let extortion = self.player(p).extortion;
@@ -176,7 +176,7 @@ impl Game {
                 let bribes = self.player(p).bribes;
                 {
                     let pl = self.player_mut(p);
-                    pl.resources = pl.resources.wrapping_add(bribes);
+                    pl.resources += bribes;
                 }
                 let faction = self.player(p).faction;
                 let bribes = self.player(p).bribes;
@@ -350,7 +350,7 @@ impl Game {
     }
 
     pub fn count_challenged_victory_points(&self, p: PlayerIndex) -> i32 {
-        self.number_of_victory_points(p, true).wrapping_sub(self.number_of_victory_points(p, false))
+        self.number_of_victory_points(p, true) - self.number_of_victory_points(p, false)
     }
 
     pub fn threshold_for_win(&self, p: PlayerIndex) -> i32 {

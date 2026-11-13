@@ -57,7 +57,7 @@ impl KarmaHmsMovement {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let me = self.player();
         let hms = game.map.hidden_mobile_stronghold();
-        let collection_rate = game.player(me).any_forces_in(Some(hms.location())).wrapping_mul(2);
+        let collection_rate = game.player(me).any_forces_in(Some(hms.location())) * 2;
         if !game.player(me).special_karma_power_used {
             let card = Karma::valid_karma_cards(game, me).into_iter().next();
             if self.passed {
@@ -82,7 +82,7 @@ impl KarmaHmsMovement {
             let target = self.target(game).or_null();
             hms.point_at(&mut game.map, target)?;
             game.collect_spice_from(self.initiator(), target, collection_rate);
-            game.karma_hms_moves_left = game.karma_hms_moves_left.wrapping_sub(1);
+            game.karma_hms_moves_left -= 1;
             game.stone(Milestone::HmsMovement);
         }
 

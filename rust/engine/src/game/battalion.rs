@@ -22,18 +22,18 @@ impl Battalion {
     }
 
     pub fn total_amount_of_forces(&self) -> i32 {
-        self.amount_of_forces.wrapping_add(self.amount_of_special_forces)
+        self.amount_of_forces + self.amount_of_special_forces
     }
 
     pub fn change_forces(&mut self, amount: i32) {
-        if self.amount_of_forces.wrapping_add(amount) >= 0 {
-            self.amount_of_forces = self.amount_of_forces.wrapping_add(amount);
+        if (self.amount_of_forces + amount) >= 0 {
+            self.amount_of_forces += amount;
         }
     }
 
     pub fn change_special_forces(&mut self, amount: i32) {
-        if self.amount_of_special_forces.wrapping_add(amount) >= 0 {
-            self.amount_of_special_forces = self.amount_of_special_forces.wrapping_add(amount);
+        if (self.amount_of_special_forces + amount) >= 0 {
+            self.amount_of_special_forces += amount;
         }
     }
 
@@ -61,13 +61,13 @@ impl Battalion {
         if prefer_special {
             let mut to_take = amount;
             let special_amount_to_take = std::cmp::min(self.amount_of_special_forces, to_take);
-            to_take = to_take.wrapping_sub(special_amount_to_take);
+            to_take -= special_amount_to_take;
             let normal_amount_to_take = std::cmp::min(self.amount_of_forces, to_take);
             Battalion::new(self.faction, normal_amount_to_take, special_amount_to_take, self.location)
         } else {
             let mut to_take = amount;
             let normal_amount_to_take = std::cmp::min(self.amount_of_forces, to_take);
-            to_take = to_take.wrapping_sub(normal_amount_to_take);
+            to_take -= normal_amount_to_take;
             let special_amount_to_take = std::cmp::min(self.amount_of_special_forces, to_take);
             Battalion::new(self.faction, normal_amount_to_take, special_amount_to_take, self.location)
         }

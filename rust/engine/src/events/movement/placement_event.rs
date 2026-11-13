@@ -41,7 +41,7 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
     }
 
     fn total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {
-        self.forces_added_to_location(game).wrapping_add(self.special_forces_added_to_location(game))
+        self.forces_added_to_location(game) + self.special_forces_added_to_location(game)
     }
 
     fn forces_added_to_location(&self, game: &Game) -> i32 {
@@ -195,7 +195,7 @@ impl PlacementEvent {
         // The targets are computed in the loop; the Intersect chain is lazy, but it
         // only reads lists that nothing changes afterwards.
         let moved: Vec<Battalion> = forces.values().cloned().collect();
-        for (key, _) in forces.iter().filter(|b| b.1.amount_of_forces.wrapping_add(b.1.amount_of_special_forces) > 0) {
+        for (key, _) in forces.iter().filter(|b| (b.1.amount_of_forces + b.1.amount_of_special_forces) > 0) {
             let target = PlacementEvent::valid_move_to_targets(g, p, *key, &moved);
 
             result = Some(match result {

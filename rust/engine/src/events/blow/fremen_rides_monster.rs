@@ -45,9 +45,8 @@ impl FremenRidesMonster {
 
     pub fn total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {
         // base.TotalAmountOfForcesAddedToLocation is ForcesAddedToLocation + SpecialForcesAddedToLocation.
-        let base = <Self as PlacementEventMethods>::forces_added_to_location(self, game)
-            .wrapping_add(<Self as PlacementEventMethods>::special_forces_added_to_location(self, game));
-        base.wrapping_add(self.forces_from_reserves).wrapping_add(self.special_forces_from_reserves)
+        let base = <Self as PlacementEventMethods>::forces_added_to_location(self, game) + (<Self as PlacementEventMethods>::special_forces_added_to_location(self, game));
+        (base + self.forces_from_reserves) + self.special_forces_from_reserves
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {

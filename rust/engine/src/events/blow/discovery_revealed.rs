@@ -104,7 +104,7 @@ impl DiscoveryRevealed {
                 DiscoveryToken::ResourceStash => {
                     let me = self.player();
                     let r = &mut game.player_mut(me).resources;
-                    *r = r.wrapping_add(7);
+                    *r += 7;
                     self.log_objects(game, elems![self.initiator(), " get ", Payment::of(7)]);
                 }
 

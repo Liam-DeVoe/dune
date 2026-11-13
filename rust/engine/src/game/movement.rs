@@ -49,7 +49,7 @@ impl Game {
         let values: Vec<Battalion> = force_locations.values().cloned().collect();
         let dist = self.determine_maximum_move_distance(initiator, &values);
         let move_number = if matches!(evt, GameEvent::Move(_) | GameEvent::Caravan(_)) {
-            self.moves_logged = self.moves_logged.wrapping_add(1);
+            self.moves_logged += 1;
             Some(self.moves_logged)
         } else {
             None
@@ -116,7 +116,7 @@ impl Game {
                     }
 
                     let pl = self.player_mut(initiator);
-                    pl.resources = pl.resources.wrapping_add(most_spice);
+                    pl.resources += most_spice;
                     let f = self.player(initiator).faction;
                     self.log(elems![f, " ", LeaderSkill::Sandmaster, " collects ", Payment::of(most_spice), " along the way"]);
                 }
@@ -135,7 +135,7 @@ impl Game {
                 let amount = TakeLosses::half_of(battalion.amount_of_forces, battalion.amount_of_special_forces);
                 self.storm_losses_to_take.push(LossToTake { location: Some(to), amount, faction: battalion.faction });
             } else {
-                kill_count = battalion.amount_of_forces.wrapping_add(battalion.amount_of_special_forces);
+                kill_count = battalion.amount_of_forces + battalion.amount_of_special_forces;
                 Player::kill_forces(self, initiator, from, battalion.amount_of_forces, battalion.amount_of_special_forces, false);
             }
 
@@ -150,8 +150,8 @@ impl Game {
             Player::move_special_forces(self, initiator, from, to, battalion.amount_of_special_forces);
         }
 
-        *total_number_of_forces = total_number_of_forces.wrapping_add(battalion.amount_of_forces);
-        *total_number_of_special_forces = total_number_of_special_forces.wrapping_add(battalion.amount_of_special_forces);
+        *total_number_of_forces += battalion.amount_of_forces;
+        *total_number_of_special_forces += battalion.amount_of_special_forces;
     }
 
     pub fn must_move_through_storm(&self, initiator: PlayerIndex, from: Location, to: Location, moved: &Battalion) -> bool {
@@ -678,7 +678,7 @@ impl Game {
             if let Some(owner) = tech_token_owner {
                 let amount = self.player(owner).tech_tokens.len() as i32;
                 let pl = self.player_mut(owner);
-                pl.resources = pl.resources.wrapping_add(amount);
+                pl.resources += amount;
                 let f = self.player(owner).faction;
                 self.log(elems![f, " receive ", Payment::of(amount), " from ", TechToken::Ships]);
             }
@@ -826,7 +826,7 @@ impl Game {
 
     pub fn guild_may_delay(&self) -> bool {
         self.guild_may_ship_out_of_turn_order()
-            && (self.players.len() as i32).wrapping_sub(self.has_acted_or_passed.len() as i32)
+            && ((self.players.len() as i32) - (self.has_acted_or_passed.len() as i32))
                 > (if self.juice_forces_last_player() && !self.has_acted_or_passed.contains(&self.current_juice.as_ref().nre().initiator()) { 2 } else { 1 })
     }
 

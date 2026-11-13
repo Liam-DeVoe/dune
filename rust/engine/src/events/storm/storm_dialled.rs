@@ -63,7 +63,7 @@ impl StormDialled {
             let f0 = *cs::index(&game.has_acted_or_passed, 0);
             let d1 = *cs::index(&game.dials, 1);
             let f1 = *cs::index(&game.has_acted_or_passed, 1);
-            let msg = express!("Storm dial: ", d0, f0, " + ", d1, f1, " = ", d0.wrapping_add(d1))
+            let msg = express!("Storm dial: ", d0, f0, " + ", d1, f1, " = ", d0 + d1)
                 .with_log(StormDials::new(f0, d0, f1, d1));
             self.log_objects(game, elems![msg]);
             game.next_storm_moves = dotnet_compat::linq::sum_i32(game.dials.iter().copied());

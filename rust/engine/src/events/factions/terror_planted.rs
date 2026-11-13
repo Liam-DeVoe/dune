@@ -126,7 +126,7 @@ impl TerrorPlanted {
                     game.terror_on_planet.remove(&self.type_);
                     game.unplaced_terror_tokens.push(self.type_);
                     let me = game.player_mut(self.player());
-                    me.resources = me.resources.wrapping_add(4);
+                    me.resources += 4;
                 }
                 Some(stronghold) => {
                     let me = self.player();

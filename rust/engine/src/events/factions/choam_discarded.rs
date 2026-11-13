@@ -67,9 +67,9 @@ impl ChoamDiscarded {
 
         let p = game.player_mut(self.player());
         if card.type_() == TreacheryCardType::Useless {
-            p.resources = p.resources.wrapping_add(2);
+            p.resources += 2;
         } else {
-            p.resources = p.resources.wrapping_add(3);
+            p.resources += 3;
         }
 
         game.stone(Milestone::ResourcesReceived);

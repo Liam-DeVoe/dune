@@ -158,7 +158,7 @@ impl Donated {
             self.log_objects(game, vec![m.into()]);
             game.stone(Milestone::Bribe);
         } else if self.resources < 0 {
-            let abs = dotnet_compat::math::abs_i32(self.resources);
+            let abs = self.resources.abs();
             let resources_to_take = abs.min(game.player(target.required("target")?).resources);
             let target = target.required("target")?;
             self.log_objects(

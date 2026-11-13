@@ -195,7 +195,7 @@ impl PlacementEvent {
 
             result = Some(match result {
                 None => target,
-                Some(r) => dotnet_compat::linq::intersect(r, target),
+                Some(r) => crate::iter::unique(r.into_iter().filter(|l| target.contains(l))).collect(),
             });
         }
 

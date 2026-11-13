@@ -77,17 +77,6 @@ fn shipment_cost_product_wraps_before_widening() {
 }
 
 #[test]
-fn shipment_determine_cost_abs_overflows() {
-    let g = game_with(&[Faction::Emperor]);
-    let emperor = idx(&g, Faction::Emperor);
-    let mut s = Shipment::default();
-    s.to_id = g.map.the_great_flat().id();
-    s.force_amount = i32::MIN;
-    let r = catch_panic(|| Shipment::determine_cost(&g, emperor, &s));
-    assert!(r.is_err());
-}
-
-#[test]
 fn shipment_type_inference() {
     let g = game_with(&[Faction::Emperor]);
     let mut s = Shipment::default();

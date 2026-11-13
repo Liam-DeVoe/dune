@@ -16,14 +16,13 @@ use std::cell::Cell;
 use std::fmt;
 use std::rc::Rc;
 
-use dotnet_compat::math::equals_f32;
 
 use crate::shared::Shared;
 use crate::enumerations::{Concept, Faction};
 use crate::messages::expression::{Expression, ExpressionElement};
 use crate::heroes::hero::Hero;
 use crate::map::location::Location;
-use crate::compat::net_enum::net_enum;
+use crate::enum_type::game_enum;
 use crate::cards::treachery_card::TreacheryCard;
 
 thread_local! {
@@ -291,7 +290,7 @@ impl PartialEq for PlanSummary {
         self.faction == other.faction
             && self.leader == other.leader
             && self.messiah == other.messiah
-            && equals_f32(self.dial, other.dial)
+            && self.dial == other.dial
             && self.spice == other.spice
             && self.ally_contribution == other.ally_contribution
             && self.ally == other.ally
@@ -300,7 +299,7 @@ impl PartialEq for PlanSummary {
     }
 }
 
-net_enum! {
+game_enum! {
     /// What a [`BattleFact`] records.
     BattleFactKind {
         Strength = 0,
@@ -335,7 +334,7 @@ impl PartialEq for BattleFact {
     fn eq(&self, other: &Self) -> bool {
         self.kind == other.kind
             && self.faction == other.faction
-            && equals_f32(self.strength, other.strength)
+            && self.strength == other.strength
             && self.hero == other.hero
             && self.cause == other.cause
             && self.value == other.value

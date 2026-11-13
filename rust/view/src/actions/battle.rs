@@ -9,7 +9,7 @@
 
 use treachery_engine::events::GameEventType;
 use treachery_engine::prelude::*;
-use treachery_engine::compat::net_enum::NetEnum;
+use treachery_engine::enum_type::GameEnum;
 
 use crate::build::{event, validate, ResolvedViewer};
 use crate::describe::Describer;
@@ -311,7 +311,7 @@ fn d_none<'a>() -> Option<&'a dyn Describer> {
     None
 }
 
-fn enum_choice<T: NetEnum + Into<ExpressionElement>>(v: T, d: &dyn Describer) -> BattleFormEnum {
+fn enum_choice<T: GameEnum + Into<ExpressionElement>>(v: T, d: &dyn Describer) -> BattleFormEnum {
     BattleFormEnum { value: v.value(), name: T::INFO.format(v.value()), label: d.describe(&v.into()) }
 }
 

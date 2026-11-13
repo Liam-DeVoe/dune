@@ -480,7 +480,7 @@ impl CanonShape for TimeSpan {
     }
 }
 
-/// Enum values: `"<Enum.ToString()>(<number>)"`. Used by `net_enum!`.
+/// Enum values: `"<Enum.ToString()>(<number>)"`. Used by `game_enum!`.
 pub fn write_enum(w: &mut CanonWriter, text: &str, value: i32) {
     w.string(&format!("{text}({value})"));
 }

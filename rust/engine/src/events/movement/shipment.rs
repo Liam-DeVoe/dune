@@ -433,8 +433,8 @@ impl Shipment {
         match s.to(g) {
             None => 0,
             Some(to) => {
-                let forces = dotnet_compat::math::abs_i32(s.force_amount);
-                let special_forces = dotnet_compat::math::abs_i32(s.special_force_amount);
+                let forces = s.force_amount.abs();
+                let special_forces = s.special_force_amount.abs();
                 Shipment::determine_cost_game_player_int32_int32_location_boolean_boolean_boolean_boolean_boolean(
                     g,
                     p,
@@ -471,7 +471,7 @@ impl Shipment {
 
         // (int)Math.Ceiling(0.5f * totalForces): float product, widened to double for Math.Ceiling.
         if back_to_reserves {
-            return dotnet_compat::math::f64_to_i32(((0.5f32 * total_forces as f32) as f64).ceil());
+            return ((0.5f32 * total_forces as f32) as f64).ceil() as i32;
         }
 
         if !site_to_site
@@ -484,13 +484,13 @@ impl Shipment {
 
         // The int product can wrap before it is widened to double (hazards 15).
         let mut cost_of_shipment: f64 =
-            (dotnet_compat::math::abs_i32(total_forces) * if to.territory().has_reduced_shipping_cost() { 1 } else { 2 }) as f64;
+            (total_forces.abs() * if to.territory().has_reduced_shipping_cost() { 1 } else { 2 }) as f64;
 
         if Shipment::may_ship_with_discount(g, p) || karama_shipment || (site_to_site && g.has_shipment_permission(p, ShipmentPermission::GuildRate)) {
             cost_of_shipment /= 2.0;
         }
 
-        dotnet_compat::math::f64_to_i32(cost_of_shipment.ceil())
+        cost_of_shipment.ceil() as i32
     }
 
     pub fn valid_max_normal_shipment_forces(game: &Game, p: PlayerIndex, special_forces: bool, used_no_field: i32) -> i32 {

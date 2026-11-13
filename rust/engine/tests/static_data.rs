@@ -22,7 +22,7 @@ use treachery_engine::map::location::Location;
 use treachery_engine::random::SharedRandom;
 use treachery_engine::map::{Map, MapGame};
 use treachery_engine::messages::message::BattleFactKind;
-use treachery_engine::compat::net_enum::{EnumTypeInfo, NetEnum};
+use treachery_engine::enum_type::{EnumTypeInfo, GameEnum};
 use treachery_engine::cards::resource_card::ResourceCard;
 use treachery_engine::map::territory::Territory;
 use treachery_engine::cards::treachery_card::TreacheryCard;
@@ -123,7 +123,7 @@ impl MapGame for StubGame {
 
 // ---------------------------------------------------------------- enums
 
-fn dump_enum<T: NetEnum>(info: &EnumTypeInfo) -> Value {
+fn dump_enum<T: GameEnum>(info: &EnumTypeInfo) -> Value {
     let to_string: Vec<Value> =
         [-1i64, 1, 3, 5, 7, 11, 999999].iter().map(|v| json!(format!("{v}={}", info.format(*v as i32)))).collect();
     json!({
@@ -143,7 +143,7 @@ fn dump_enum<T: NetEnum>(info: &EnumTypeInfo) -> Value {
 #[test]
 fn enums() {
     macro_rules! all {
-        ($($t:ident),*) => { vec![$((stringify!($t), dump_enum::<$t>(<$t as NetEnum>::INFO))),*] };
+        ($($t:ident),*) => { vec![$((stringify!($t), dump_enum::<$t>(<$t as GameEnum>::INFO))),*] };
     }
     let rust = all!(
         Faction, Nexus, Ambassador, TechToken, MainPhase, MainPhaseMoment, ChoamEconomicsStatus, Phase, Milestone,

@@ -30,7 +30,7 @@ use indexmap::IndexMap;
 use crate::shared::Shared;
 use crate::compat::date_time_offset::DateTimeOffset;
 use crate::events::{GameEvent, GameEventType};
-use crate::compat::net_enum::NetEnum;
+use crate::enum_type::GameEnum;
 
 pub type JsonValue = serde_json::Value;
 
@@ -458,13 +458,13 @@ impl FromJson for String {
     }
 }
 
-impl<T: NetEnum> ToJson for T {
+impl<T: GameEnum> ToJson for T {
     fn write_json(&self, w: &mut JsonWriter) {
         w.int(self.value() as i64)
     }
 }
 
-impl<T: NetEnum> FromJson for T {
+impl<T: GameEnum> FromJson for T {
     fn from_json(v: &JsonValue) -> Result<Self, JsonError> {
         i32::from_json(v).map(T::from_value)
     }
@@ -556,7 +556,7 @@ impl<T: FromJson> FromJson for Shared<T> {
 
 /// `Dictionary<TEnum, V>`: keys are written as enum names (`ToString()`), and
 /// read leniently: trimmed, case-insensitive names or integers (hazards.md 12.2).
-impl<K: NetEnum, V: ToJson> ToJson for IndexMap<K, V> {
+impl<K: GameEnum, V: ToJson> ToJson for IndexMap<K, V> {
     fn write_json(&self, w: &mut JsonWriter) {
         w.object_value();
         for (k, v) in self.iter() {
@@ -567,7 +567,7 @@ impl<K: NetEnum, V: ToJson> ToJson for IndexMap<K, V> {
     }
 }
 
-impl<K: NetEnum, V: FromJson> FromJson for IndexMap<K, V> {
+impl<K: GameEnum, V: FromJson> FromJson for IndexMap<K, V> {
     fn from_json(v: &JsonValue) -> Result<Self, JsonError> {
         let mut result = IndexMap::new();
         for (key, value) in object_members(v)? {
@@ -579,7 +579,7 @@ impl<K: NetEnum, V: FromJson> FromJson for IndexMap<K, V> {
     }
 }
 
-fn parse_enum_key<K: NetEnum>(s: &str) -> Option<K> {
+fn parse_enum_key<K: GameEnum>(s: &str) -> Option<K> {
     let t = s.trim();
     if let Ok(i) = t.parse::<i32>() {
         return Some(K::from_value(i));

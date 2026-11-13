@@ -13,7 +13,7 @@ use std::path::PathBuf;
 use treachery_engine::shared::Shared;
 use treachery_engine::events::GameEventType;
 use treachery_engine::json;
-use treachery_engine::compat::net_enum::NetEnum;
+use treachery_engine::enum_type::GameEnum;
 use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
 use treachery_view::actions::{self, battle};
@@ -34,7 +34,7 @@ fn ids<T: IIdentifiable>(xs: impl IntoIterator<Item = T>) -> Vec<i32> {
     xs.into_iter().map(|x| x.id()).collect()
 }
 
-fn values<T: NetEnum>(xs: impl IntoIterator<Item = T>) -> Vec<i32> {
+fn values<T: GameEnum>(xs: impl IntoIterator<Item = T>) -> Vec<i32> {
     xs.into_iter().map(|x| x.value()).collect()
 }
 

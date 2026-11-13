@@ -16,7 +16,7 @@
 //!   "Unable to cast object of type 'X' to type 'Y'.".
 
 use crate::prelude::*;
-use treachery_engine::compat::net_enum::NetEnum;
+use treachery_engine::enum_type::GameEnum;
 
 /// The runtime type name of a boxed value (`o.GetType().FullName`).
 pub fn boxed_type_name(o: &ExpressionElement) -> String {
@@ -53,7 +53,7 @@ fn null_reference() -> ! {
 }
 
 /// `(E)o` for an enum type `E`.
-pub fn unbox_enum<E: NetEnum>(o: &ExpressionElement) -> E {
+pub fn unbox_enum<E: GameEnum>(o: &ExpressionElement) -> E {
     match o {
         ExpressionElement::Null => null_reference(),
         ExpressionElement::Enum(v) => E::from_value(v.value),

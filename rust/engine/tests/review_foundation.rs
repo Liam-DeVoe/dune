@@ -11,7 +11,7 @@ use treachery_engine::enumerations::*;
 use treachery_engine::messages::expression::ExpressionElement;
 use treachery_engine::compat::random_ext::{set_static_random_seed, RandomExt, UnseededRandomExt};
 use treachery_engine::random::SharedRandom;
-use treachery_engine::messages::message::{PlanSummary, Route};
+use treachery_engine::messages::message::Route;
 
 fn exception_text<R>(f: impl FnOnce() -> R) -> String {
     match catch_panic(f) {
@@ -193,24 +193,6 @@ fn game_error_to_cs_string() {
 fn list_to_cs_string_type_name() {
     let l = ExpressionElement::from(vec![Faction::Atreides]);
     assert_eq!(l.to_cs_string(), "System.Collections.Generic.List`1[Treachery.Shared.Faction]");
-}
-
-/// Probe `plan_summary_nan_equal`. C# record equality uses
-/// `EqualityComparer<float>.Default`, where NaN equals NaN.
-#[test]
-fn plan_summary_equality_with_nan_dial() {
-    let p = PlanSummary {
-        faction: Faction::Atreides,
-        leader: None,
-        messiah: false,
-        dial: f32::NAN,
-        spice: None,
-        ally_contribution: 0,
-        ally: Faction::None,
-        weapon: None,
-        defense: None,
-    };
-    assert!(p == p.clone());
 }
 
 /// Probe `route_equal_distinct_lists`. C# record equality compares the

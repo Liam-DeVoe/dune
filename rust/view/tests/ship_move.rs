@@ -16,7 +16,7 @@ use treachery_engine::shared::Shared;
 use treachery_engine::events::GameEventType;
 use treachery_engine::messages::expression::ExpressionElement;
 use treachery_engine::json;
-use treachery_engine::compat::net_enum::NetEnum;
+use treachery_engine::enum_type::GameEnum;
 use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
 use treachery_view::actions::ship_move::{default_draft, options, options_and_validation};

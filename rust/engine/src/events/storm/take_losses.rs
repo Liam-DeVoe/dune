@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use dotnet_compat::math::f64_to_i32;
 
 #[derive(Clone, Debug, Canon)]
 pub struct TakeLosses {
@@ -84,7 +83,7 @@ impl TakeLosses {
 
     pub fn half_of(amount_of_forces: i32, amount_of_special_forces: i32) -> i32 {
         // double arithmetic; the int addition wraps first (hazards 15).
-        f64_to_i32((0.5f64 * (amount_of_forces + amount_of_special_forces) as f64).ceil())
+        (0.5f64 * (amount_of_forces + amount_of_special_forces) as f64).ceil() as i32
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {

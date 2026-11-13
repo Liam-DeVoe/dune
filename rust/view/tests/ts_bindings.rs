@@ -11,19 +11,19 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use treachery_engine::enumerations::*;
-use treachery_engine::compat::net_enum::NetEnum;
+use treachery_engine::enum_type::GameEnum;
 use treachery_view::schema::{DraftResult, GameView};
 use treachery_view::static_data::StaticData;
 use ts_rs::{Config, TS};
 
-fn union<T: NetEnum>() -> String {
+fn union<T: GameEnum>() -> String {
     let names: Vec<String> = T::INFO.declared.iter().map(|(n, _)| format!("\"{n}\"")).collect();
     format!("/** `{}` members. */\nexport type {} = {};\n", T::INFO.name, T::INFO.name, names.join(" | "))
 }
 
 /// The numeric values of an enum's members: for events in savegame format (enums as numbers),
 /// and for ordered comparisons such as `PhaseValue[view.phase] >= PhaseValue.TradingFactions`.
-fn values<T: NetEnum>() -> String {
+fn values<T: GameEnum>() -> String {
     let entries: Vec<String> = T::INFO.declared.iter().map(|(n, v)| format!("  {n}: {v},")).collect();
     format!(
         "/** `{}` member values. */\nexport const {}Value: Record<{}, number> = {{\n{}\n}};\n",

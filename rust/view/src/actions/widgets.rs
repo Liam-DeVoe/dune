@@ -1,7 +1,7 @@
 //! Helpers the form builders share: how a form's widgets adjust its inputs, and how choices and
 //! drafts are written into the options.
 
-use treachery_engine::compat::net_enum::NetEnum;
+use treachery_engine::enum_type::GameEnum;
 use treachery_engine::json;
 use treachery_engine::messages::expression::ExpressionElement;
 use treachery_engine::prelude::*;

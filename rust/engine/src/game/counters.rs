@@ -44,8 +44,10 @@ impl<T: Clone + Eq + std::hash::Hash + 'static> ObjectCounter<T> {
     }
 
     pub fn get_highest(&self, amount_of_items: i32) -> Vec<T> {
-        // C# returns a lazy query over the live dictionary; every caller enumerates it right away.
-        dotnet_compat::linq::order_by_descending(self.counters.iter(), |c| *c.1)
+        // Most counted first; a stable sort keeps equal counts in counting order.
+        let mut counters: Vec<(&T, &i32)> = self.counters.iter().collect();
+        counters.sort_by(|a, b| b.1.cmp(a.1));
+        counters
             .into_iter()
             .take(if amount_of_items < 0 { 0 } else { amount_of_items as usize })
             .map(|c| c.0.clone())

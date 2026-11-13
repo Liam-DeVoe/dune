@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 use treachery_engine::enumerations::*;
 use treachery_engine::messages::expression::{EnumValue, ExpressionElement};
 use treachery_engine::game::Game;
-use treachery_engine::compat::net_enum::NetEnum;
+use treachery_engine::enum_type::GameEnum;
 use treachery_engine::prelude::EstablishPlayers;
 use ts_rs::TS;
 
@@ -65,21 +65,21 @@ pub struct LobbyData {
     pub rule_group: BTreeMap<String, String>,
 }
 
-fn label<T: NetEnum>(v: T) -> String {
+fn label<T: GameEnum>(v: T) -> String {
     treachery_skin::default_skin().describe(&ExpressionElement::Enum(EnumValue::of(v)))
 }
 
-fn members<T: NetEnum>() -> Vec<EnumMember> {
+fn members<T: GameEnum>() -> Vec<EnumMember> {
     members_with(label::<T>)
 }
 
-fn members_with<T: NetEnum>(label: impl Fn(T) -> String) -> Vec<EnumMember> {
+fn members_with<T: GameEnum>(label: impl Fn(T) -> String) -> Vec<EnumMember> {
     get_values::<T>()
         .map(|v| EnumMember { name: T::INFO.name_of(v.value()).unwrap_or_default().to_string(), value: v.value(), label: label(v) })
         .collect()
 }
 
-fn name<T: NetEnum>(v: T) -> String {
+fn name<T: GameEnum>(v: T) -> String {
     T::INFO.name_of(v.value()).unwrap_or_default().to_string()
 }
 

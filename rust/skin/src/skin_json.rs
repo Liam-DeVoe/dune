@@ -14,7 +14,7 @@
 use serde_json::Value;
 use dotnet_compat::exception::CsException;
 use treachery_engine::json::write_escaped;
-use treachery_engine::compat::net_enum::NetEnum;
+use treachery_engine::enum_type::GameEnum;
 use treachery_engine::map::point::PointD;
 
 use crate::skin::{Skin, SkinDictionary, SkinKey};
@@ -31,7 +31,7 @@ pub(crate) fn parse_int_key(text: &str) -> Option<i32> {
 
 /// Reads an enum dictionary key the way System.Text.Json does: a member name (case-sensitive)
 /// in any case, or a number.
-pub(crate) fn parse_enum_key<T: NetEnum>(text: &str) -> Option<T> {
+pub(crate) fn parse_enum_key<T: GameEnum>(text: &str) -> Option<T> {
     if let Some((_, v)) = T::INFO.declared.iter().find(|(n, _)| *n == text) {
         return Some(T::from_value(*v));
     }

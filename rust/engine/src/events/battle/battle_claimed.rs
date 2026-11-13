@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use dotnet_compat::math::f64_to_i32;
 
 #[derive(Clone, Debug, Canon)]
 pub struct BattleClaimed {
@@ -51,7 +50,7 @@ impl BattleClaimed {
                 let territory = game.current_battle.as_ref().expect("current battle").territory(game).expect("territory");
                 let forces = game.player(ecaz).any_forces_in_territory(Some(territory));
                 // (int)Math.Ceiling(0.5f * n): the float widens to double
-                game.current_ecaz_battle_contribution = f64_to_i32(((0.5f32 * forces as f32) as f64).ceil());
+                game.current_ecaz_battle_contribution = ((0.5f32 * forces as f32) as f64).ceil() as i32;
             }
         } else {
             game.current_ecaz_battle_contribution = 0;

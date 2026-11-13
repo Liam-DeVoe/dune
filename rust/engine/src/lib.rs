@@ -15,6 +15,7 @@ pub mod log;
 
 // Static game data
 pub mod cards;
+pub mod enum_type;
 pub mod enumerations;
 pub mod heroes;
 pub mod identity;

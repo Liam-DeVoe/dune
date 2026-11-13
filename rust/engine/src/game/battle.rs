@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use dotnet_compat::math::f64_to_i32;
 
 /// `vec![ExpressionElement::from(a), ...]`: the `params object?[]` of `Log(...)`.
 macro_rules! le {
@@ -400,7 +399,7 @@ impl Game {
         }
 
         // (int)Math.Floor(float): the float widens to double.
-        let collected = f64_to_i32((opponent_plan.dial(self, winner_plan.initiator()) as f64).floor());
+        let collected = (opponent_plan.dial(self, winner_plan.initiator()) as f64).floor() as i32;
         if collected <= 0 {
             return;
         }
@@ -828,7 +827,7 @@ impl Game {
         if let Some(choam) = choam {
             if self.player(paid_by).faction != Faction::Choam && !traitor_was_revealed {
                 // (int)Math.Floor(0.5f * int): float multiply, then widened to double.
-                result = f64_to_i32(((0.5f32 * costs_excluding_payment_by_choam_ally as f32) as f64).floor());
+                result = ((0.5f32 * costs_excluding_payment_by_choam_ally as f32) as f64).floor() as i32;
 
                 if result > 0 {
                     if !self.prevented(FactionAdvantage::ChoamReceiveForcePayment) {

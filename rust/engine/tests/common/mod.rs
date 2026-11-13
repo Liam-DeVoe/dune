@@ -32,7 +32,7 @@ use treachery_engine::heroes::leader_manager::LeaderManager;
 use treachery_engine::map::location::Location;
 use treachery_engine::map::Map;
 use treachery_engine::messages::message::{BattleFactKind, Message, MessagePart};
-use treachery_engine::compat::net_enum::NetEnum;
+use treachery_engine::enum_type::GameEnum;
 use treachery_engine::map::point::PointD;
 use treachery_engine::cards::resource_card::ResourceCard;
 use treachery_engine::map::territory::Territory;
@@ -237,7 +237,7 @@ impl<T: Enc + ?Sized> Enc for &T {
 }
 
 /// An enum value: `"e:Faction:20"`.
-pub fn enc_enum<T: NetEnum>(v: T) -> Value {
+pub fn enc_enum<T: GameEnum>(v: T) -> Value {
     json!(format!("e:{}:{}", T::INFO.name, v.value()))
 }
 
@@ -296,7 +296,7 @@ pub fn string(v: &Value) -> String {
 }
 
 /// `"e:Faction:20"` as a `T`. Panics if the type name differs.
-pub fn en<T: NetEnum>(v: &Value) -> T {
+pub fn en<T: GameEnum>(v: &Value) -> T {
     let s = tagged(v, "e:");
     let (name, value) = s.rsplit_once(':').unwrap();
     assert_eq!(name, T::INFO.name, "enum type of {v}");
@@ -397,9 +397,9 @@ impl Failures {
 /// Every ported C# enum, by C# name. Tests that iterate golden data look
 /// enums up here and fail on a name that is missing, so add each newly
 /// ported enum.
-pub fn enum_info(name: &str) -> Option<&'static treachery_engine::compat::net_enum::EnumTypeInfo> {
+pub fn enum_info(name: &str) -> Option<&'static treachery_engine::enum_type::EnumTypeInfo> {
     macro_rules! all {
-        ($($t:ident),*) => { [$((stringify!($t), <$t as NetEnum>::INFO)),*] };
+        ($($t:ident),*) => { [$((stringify!($t), <$t as GameEnum>::INFO)),*] };
     }
     let all = all!(
         Faction, Nexus, Ambassador, TechToken, MainPhase, MainPhaseMoment, ChoamEconomicsStatus, Phase, Milestone,

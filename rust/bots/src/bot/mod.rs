@@ -450,8 +450,3 @@ impl ClassicBot {
     }
 }
 
-// Temporary: the remaining call sites go in the per-file cleanup.
-impl ClassicBot {
-    pub(crate) fn log_info(_msg: &str, _pars: Vec<ExpressionElement>) {}
-    pub(crate) fn log_info_message(_message: Option<&Message>) {}
-}

@@ -69,7 +69,7 @@ In a fuzz game the oracle's bots deliberate before most steps, but the fuzzer of
 At each `bots` query entry (trace-format.md section 3, "Bot deliberations") the differ:
 
 1. creates the bots the entry lists in `created`, with the recorded seeds, and keeps them for the rest of the trace (one per faction, in creation order, across undo, as the oracle does);
-2. runs the oracle's loop on the live replay game: levels `Highest` to `Low`, then `End` if `end` is true, players in `order`, `set_game_and_player` before each ask, and stops at the first event. Each bot gets the result of its player's `GetApplicableEvents` query just before the entry. The game isn't cloned: bots can change it, and Rust must make the same changes;
+2. runs the oracle's loop on the live replay game: levels `Highest` to `Low`, then `End` if `end` is true, players in `order`, `set_player` before each ask, and stops at the first event. Each bot gets the result of its player's `GetApplicableEvents` query just before the entry. The game isn't cloned: bots can change it, and Rust must make the same changes;
 3. compares the outcome with the recorded one: same player, same level and the same event JSON, byte for byte (`json::serialize` against `choice.event`), or the same exception, or no event on both sides. A difference is key `bot`.
 
 On every line it also compares `botRandom`, the draw count of each bot, with the Rust bots' counts (key `botRandom`). This often finds a divergence before any decision differs.

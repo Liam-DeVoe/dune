@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use treachery_bots::{BotParameters, ClassicBot};
+use treachery_bots::{BotParameters, ClassicBot, Priority};
 use treachery_engine::cards::deck::Deck;
 use treachery_engine::enumerations::{ErrorType, MainPhase, Phase};
 use treachery_engine::events::GameEvent;
@@ -30,12 +30,12 @@ fn bot_for(g: &mut RunningGame, player: PlayerIndex) -> usize {
     let faction = g.game.player(player).faction;
     let index = match g.bots.iter().position(|(f, _)| *f == faction) {
         Some(i) => {
-            g.bots[i].1.set_game_and_player(&g.game, player);
+            g.bots[i].1.set_player(player);
             i
         }
         None => {
             let random = SharedRandom::from_seed(ids::new_seed());
-            g.bots.push((faction, ClassicBot::new(&g.game, player, BotParameters::get_default_parameters(faction), Some(random))));
+            g.bots.push((faction, ClassicBot::new(player, BotParameters::for_faction(faction), random)));
             g.bots.len() - 1
         }
     };
@@ -90,13 +90,7 @@ impl Server {
                 let index = bot_for(g, player);
                 let RunningGame { bots, game: state, .. } = g;
                 let bot = &mut bots[index].1;
-                let event = match level {
-                    0 => bot.determine_highest_priority_in_phase_action(state, options),
-                    1 => bot.determine_high_priority_in_phase_action(state, options),
-                    2 => bot.determine_middle_priority_in_phase_action(state, options),
-                    3 => bot.determine_low_priority_in_phase_action(state, options),
-                    _ => bot.determine_end_phase_action(state, options),
-                };
+                let event = bot.decide(state, Priority::ALL[level], options);
                 if let Some(event) = event {
                     return match Box::pin(self.execute(game, event, level == 4, None, true)).await {
                         Err(CallError::Refused(ErrorType::InvalidGameEvent, _)) => Ok(()),

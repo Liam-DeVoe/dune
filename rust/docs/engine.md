@@ -27,7 +27,6 @@ Inside `game/` and `events/`, the submodules are private and their items are re-
 
 | Module | What it holds |
 |---|---|
-| `bot/` | `ClassicBot` (`mod.rs`) and its decisions, one file per topic: `alliance`, `battle`, `bidding`, `deals`, `factions` (faction-specific powers), `knowledge` (what the bot knows about the board and its opponents), `movement`, `shipment`, `other`. |
+| `bot/` | `ClassicBot` (`mod.rs`) and its decisions. `ClassicBot::decide(game, priority, allowed)` is what the server, differ and observe harness call: it asks the decision methods of that priority round in order and returns the first valid event. One file per topic: `alliance`, `battle`, `bidding`, `deals`, `factions` (faction-specific powers), `knowledge` (what the bot knows about the board and its opponents, and the `Place` trait for questions asked about a location or a territory), `movement`, `shipment`, `other`. |
 | `parameters.rs` | `BotParameters`, the tuning values of a bot. |
-| `interface.rs` | The `IBot` trait the server, differ and observe harness call. |
 | `support.rs` | The casts the bots apply to the untyped parameters of a Clairvoyance question. |

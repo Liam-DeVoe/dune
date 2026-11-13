@@ -15,7 +15,8 @@
 # (native-harness.md, "Deliberate behavior changes"). Rebuilding from a working tree that has an
 # unreviewed change makes that change invisible to the harness.
 #
-# Output, in rust/reference/ (not in git):
+# Output, in rust/reference/ (not in git), with a copy of the binary and SOURCE in
+# ~/treachery-native-ref/ for git worktrees:
 #   observe          the reference binary
 #   source.tar.gz    the sources it was built from (rebuild with --archive)
 #   SOURCE           where the sources came from, when, and the binary's sha256
@@ -99,4 +100,8 @@ mv "$out/source.tar.gz.new" "$out/source.tar.gz"
   echo "from:   $origin"
   echo "sha256: $(shasum -a 256 "$out/observe" | cut -d' ' -f1)"
 } > "$out/SOURCE"
+echo "rustc:  $(rustc --version)" >> "$out/SOURCE"
+# A copy outside the repo, for git worktrees (observe looks there when rust/reference is missing).
+mkdir -p "$HOME/treachery-native-ref"
+cp "$out/observe" "$out/SOURCE" "$HOME/treachery-native-ref/"
 cat "$out/SOURCE"

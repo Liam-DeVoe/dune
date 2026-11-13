@@ -323,7 +323,12 @@ impl<'a> Recorder<'a> {
             }
         }
 
-        let cap = 400 + self.cfg.turns as usize * self.sess.player_count().max(2) * 80;
+        let mut cap = 400 + self.cfg.turns as usize * self.sess.player_count().max(2) * 80;
+        // Fuzz games that reach the oracle's cap are mostly going round in circles; past 3000
+        // events they cost a lot of time and add little.
+        if self.fuzz.is_some() {
+            cap = cap.min(3000);
+        }
         let mut rejected_in_a_row = 0;
         while self.sess.game.current_phase != Phase::GameEnded {
             if self.events >= cap {

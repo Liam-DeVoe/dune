@@ -50,7 +50,7 @@ See "Timing" below for how long 200 games take.
 
 ## The reference binary
 
-`rust/reference/observe` (not in git) is the `observe` binary built from a frozen copy of the engine, bots and view crates. `observe live` and `first` run it as `observe record --mode M --seed S --game I` and read the trace from its stdout.
+`rust/reference/observe` (not in git) is the `observe` binary built from a frozen copy of the engine, bots and view crates. A copy sits in `~/treachery-native-ref/observe`, which `observe` uses when `rust/reference/observe` doesn't exist, as in a git worktree. `$OBSERVE_REFERENCE` or `--reference BIN` override both. `observe live` and `first` run it as `observe record --mode M --seed S --game I` and read the trace from its stdout.
 
 The current reference is built from `~/treachery-native-ref/rust`. That's a copy of `rust/` taken on 2026-11-11, before step 2 (dropping old versions) started editing the engine, with `rust/observe` copied in. It was last rebuilt on 2026-11-12 with rustc 1.100.0, after the toolchain was reinstalled; `rust/reference/SOURCE` records the compiler. If `~/treachery-native-ref` is lost, unpack `rust/reference/source.tar.gz` into `~/treachery-native-ref` (it holds `rust/<crate>/Cargo.toml` and `src` for every crate the binary needs). To build the binary again:
 
@@ -104,6 +104,17 @@ Observations are `log` (new messages as `[target, text]`), `logCut` (the log shr
 Fuzz games (`fuzz.rs`) add, per round: random events of a type applicable to a random player (12%), changed copies of the bot's event (10%), events of types rarely executed in the current phase (30% of bot rounds), and undo, restore and dismiss. Events start from the draft the client's form would send (`treachery_view::actions::default_draft`). Then up to three fields get real values of the game: the player's cards, leaders and force locations, other locations and territories, factions in play, and small amounts. Candidates that pass validation are preferred, but invalid ones are sent now and then and must be rejected the same way. The generator reads a separate shadow copy of the game, so it can't change state that the replay wouldn't change. It is coarser than the C# oracle's steered fuzzer. It doesn't build battle-specific actions such as Voice or Prescience on purpose, and it doesn't vary enum-valued fields.
 
 Randomness comes from SplitMix64 seeded by mode, seed and game index (`rng.rs`). The engine's seed is in the `EstablishPlayers` event and each bot's seed is in the `bots` line, so a game depends only on its mode, seed and index.
+
+## Timing
+
+Measured on 2026-11-12, `--jobs 4` through `heavy.sh`, with another agent's runs on the machine (load average 7 to 25):
+
+| Run | Wall time | CPU time |
+|---|---|---|
+| 200 bots games (seed 1) | 11 min | 37 min |
+| 200 fuzz games (seed 1) | 15 min | 47 min |
+
+The C# oracle took about 23 minutes per 200 fuzz games. The harness is faster per game, but its games are longer: every game is at the latest version, and fuzz games run up to 3000 events (the recorder's cap; before the cap, 200 fuzz games took 28 minutes). Each game is computed twice, once by the reference and once by the working tree, and most of the time goes into building 3 to 13 views after every accepted event. For a quick check while working, run 30 to 50 games.
 
 ## Tests
 

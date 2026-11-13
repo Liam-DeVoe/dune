@@ -35,7 +35,7 @@ Usage:
 
 Common options: --hang-seconds S (default 120): a call that runs longer counts as hung;
 --memory-mb M (default 2048): the memory one game may use (0 = no limit).
---reference defaults to $OBSERVE_REFERENCE, else rust/reference/observe (see native-harness.md).
+--reference defaults to $OBSERVE_REFERENCE, else rust/reference/observe, else ~/treachery-native-ref/observe.
 --jobs defaults to 4 at most. live waits for a heavy slot (rust/tools/heavy.sh) unless it already
 runs inside heavy.sh.
 Exit code: 0 if every game matched, 1 otherwise, 2 on usage errors.

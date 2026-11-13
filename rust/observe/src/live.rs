@@ -16,7 +16,13 @@ pub fn default_reference() -> PathBuf {
     if let Some(p) = std::env::var_os("OBSERVE_REFERENCE") {
         return PathBuf::from(p);
     }
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("reference").join("observe")
+    let here = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("reference").join("observe");
+    // Git worktrees have no rust/reference; build-native-ref.sh also puts a copy in the home dir.
+    let home = std::env::var_os("HOME").map(|h| PathBuf::from(h).join("treachery-native-ref").join("observe"));
+    match home {
+        Some(h) if !here.exists() && h.exists() => h,
+        _ => here,
+    }
 }
 
 #[derive(Clone)]

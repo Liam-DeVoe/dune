@@ -397,8 +397,8 @@ fn dependent_inputs() {
     let view = r.view(fremen);
     let a = view.actions.iter().find(|a| a.event_type == "KarmaMonster").expect("KarmaMonster applicable");
     let Some(ActionOptions::KarmaMonster(o)) = &a.options else { panic!("KarmaMonster options") };
-    // KarmaMonster's validation accepts anything, even no territory.
-    assert_eq!(a.validation, None);
+    // Confirming before a territory is picked would spend the Karama card and send no worm.
+    assert!(a.validation.is_some(), "no territory picked yet");
     let mut draft = o.draft.clone();
     draft["_territoryId"] = serde_json::json!(o.territories[0]);
     let answer = r.query(fremen, &draft.to_string()).unwrap();

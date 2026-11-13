@@ -57,11 +57,6 @@ impl Game {
     }
 
     pub fn enter_setup_phase(&mut self) {
-        // C# parity: this Enter is overwritten by the Enter at the end of this method, but
-        // its side effects (deal cleanup, or EnterPhaseTradingFactions) still happen.
-        let condition = self.applicable(Rule::CustomDecks);
-        self.enter_boolean_phase_action(condition, Phase::CustomizingDecks, Game::enter_phase_trading_factions);
-
         self.current_trade_offers.clear();
 
         // Players.OrderBy(p => p.Seat) is a stable sort.

@@ -1,18 +1,21 @@
-//! The unboxing casts of `bots/src/support.rs` against .NET.
+//! The casts `bots/src/support.rs` applies to the untyped parameters of a Clairvoyance question,
+//! for every kind of value a parameter can hold.
 //!
-//! `golden/b6-unbox.json` comes from `bots/csharp-ref` (see B6.cs, `Unbox`):
-//!
-//! ```sh
-//! export DOTNET_ROOT="$HOME/dotnet10" PATH="$HOME/dotnet10:$PATH"
-//! cd rust/bots/csharp-ref && dotnet run -c Release -- b6unbox ../tests/golden/b6-unbox.json
-//! ```
+//! `golden/b6-unbox.json` lists `[value, cast, expected result]`; a cast that panics has the
+//! result `EX:<panic message>`. The results are snapshots of the current behavior. After a
+//! deliberate change, rewrite them with
+//! `UPDATE_GOLDENS=1 cargo test --release -p treachery-bots --test b6_unbox` and review the diff.
 
-use serde_json::Value;
+mod common;
+
+use serde_json::json;
 use treachery_bots::prelude::*;
 use treachery_engine::error::catch_panic;
 use treachery_bots::support::{cast_hero, unbox_enum, unbox_float, unbox_int};
 use treachery_engine::messages::expression::EnumValue;
 use treachery_engine::identity::IFetcher;
+
+use common::{read_json, updating, write_json};
 
 fn value(game: &Game, kind: &str) -> ExpressionElement {
     let (k, v) = kind.split_once(':').unwrap_or((kind, ""));
@@ -34,11 +37,11 @@ fn value(game: &Game, kind: &str) -> ExpressionElement {
 }
 
 #[test]
-fn unboxing_casts_match_dotnet() {
-    let path = format!("{}/tests/golden/b6-unbox.json", env!("CARGO_MANIFEST_DIR"));
-    let golden: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+fn unboxing_casts() {
+    let golden = read_json("b6-unbox.json");
     let game = Game::new();
     let mut failures = Vec::new();
+    let mut updated = Vec::new();
     let cases = golden.as_array().unwrap();
     for case in cases {
         let (kind, cast, expected) = (case[0].as_str().unwrap(), case[1].as_str().unwrap(), case[2].as_str().unwrap());
@@ -52,15 +55,15 @@ fn unboxing_casts_match_dotnet() {
             _ => panic!("unknown cast {cast}"),
         })
         .unwrap_or_else(|e| format!("EX:{e}"));
-        // The panic message is the .NET exception message, without the exception type.
-        let expected = match expected.strip_prefix("EX:") {
-            Some(ex) => format!("EX:{}", ex.split_once(": ").map_or(ex, |(_, m)| m)),
-            None => expected.to_string(),
-        };
         if actual != expected {
-            failures.push(format!("({cast}){kind}: C# {expected}, Rust {actual}"));
+            failures.push(format!("({cast}){kind}: expected {expected}, actual {actual}"));
         }
+        updated.push(json!([kind, cast, actual]));
     }
     assert!(cases.len() >= 50);
+    if updating() {
+        write_json("b6-unbox.json", &json!(updated));
+        return;
+    }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }

@@ -1,33 +1,23 @@
-//! Package B5 (Bot_Shipment, Bot_Move) against C#: the decisions, every shipment sub-strategy
-//! (called directly, with the decided-shipment state cleared first), `DetermineShortageForShipment`,
-//! `MaxPotentialForceShortage` and `DetermineMostSuitableNearbyLocation`, with the bot's shipment
-//! state and draw count after each call. Calls on one bot run in order, so the shipment state that
-//! `DetermineShipment` leaves is what `DetermineMove` and `DetermineCaravan` read.
+//! Shipment and movement (`bot/shipment.rs`, `bot/movement.rs`): the decisions, every shipment
+//! sub-strategy (called directly, with the decided-shipment state cleared first),
+//! `determine_shortage_for_shipment`, `max_potential_force_shortage` and
+//! `determine_most_suitable_nearby_location`, with the bot's shipment state and draw count after
+//! each call. Calls on one bot run in order, so the shipment state that `determine_shipment`
+//! leaves is what `determine_move` and `determine_caravan` read.
 //!
-//! The events come from the knowledge goldens; `golden/b5-*.jsonl.gz` holds only the probes, from
-//! `bots/csharp-ref` (see B5.cs):
+//! The games are in `golden/knowledge-*.jsonl.gz`; `golden/b5-*.jsonl.gz` holds the probes and
+//! their expected results. The probes reach the sub-strategies whatever the phase and faction.
 //!
-//! ```sh
-//! export DOTNET_ROOT="$HOME/dotnet10" PATH="$HOME/dotnet10:$PATH"
-//! cd rust/bots/csharp-ref
-//! dotnet run -c Release -- b5 ../tests/golden/knowledge-00008.jsonl.gz ../tests/golden/b5-00008.jsonl.gz 2
-//! dotnet run -c Release -- b5 ../tests/golden/knowledge-77-00001.jsonl.gz ../tests/golden/b5-77-00001.jsonl.gz 2
-//! dotnet run -c Release -- b5 ../tests/golden/knowledge-77-00002.jsonl.gz ../tests/golden/b5-77-00002.jsonl.gz 3
-//! dotnet run -c Release -- b5 ../tests/golden/knowledge-77-00004.jsonl.gz ../tests/golden/b5-77-00004.jsonl.gz 3
-//! ```
-//!
-//! The differ in bots mode checks the decisions where bots really make them; these probes reach
-//! the sub-strategies whatever the phase and faction.
+//! The expected results are snapshots of the current behavior. After a deliberate change, rewrite
+//! them with `UPDATE_GOLDENS=1 cargo test --release -p treachery-bots` and review the diff
+//! (see `common/mod.rs`).
 
-use std::collections::BTreeMap;
-use std::io::{BufRead, BufReader};
+mod common;
 
-use flate2::read::GzDecoder;
-use serde_json::Value;
 use treachery_bots::bot::EventKind;
 use treachery_bots::prelude::*;
-use treachery_engine::error::catch_panic;
-use treachery_engine::game::Participation;
+
+use common::{run_probes, Bots};
 
 fn l(x: Option<Location>) -> String {
     match x {
@@ -73,7 +63,7 @@ fn call(game: &Game, b: &mut ClassicBot, m: &str, a: &[String]) -> String {
             "DetermineShipment_ShipToStrongholdNearSpice" => b.plan_stronghold_near_spice(game),
             "DetermineShipment_TakeVacantStronghold" => b.plan_take_vacant_stronghold(game, i(0), i(1), i(2)),
             "DetermineShipment_AttackEmptyHomeworld" => b.plan_attack_empty_homeworld(game, i(0), i(1)),
-            // The C# method takes an unused risk appetite as its second argument.
+            // The probe's second argument (a risk appetite) is unused.
             "DetermineShipment_AttackWeakHMS" => b.plan_attack_weak_hms(game, i(0), i(2), i(3)),
             "DetermineShipment_AttackWeakStronghold" => b.plan_attack_weak_stronghold(game, i(0), i(1), i(2)),
             "DetermineShipment_ShipDirectlyToSpiceOrDiscoveryAsGuildOrGuildAlly" => b.plan_discounted_to_spice_or_discovery(game),
@@ -81,7 +71,7 @@ fn call(game: &Game, b: &mut ClassicBot, m: &str, a: &[String]) -> String {
             "DetermineShipment_BackToReserves" => b.plan_back_to_reserves(game),
             "DetermineShipment_DummyAttack" => b.plan_dummy_attack(game, i(0)),
             "DetermineShipment_PolarSinkAsFremen" => b.plan_fremen_to_polar_sink(game),
-            _ => panic!("no Rust call for {m}"),
+            _ => panic!("unknown probe method {m}"),
         };
         if let Some(plan) = plan {
             b.adopt_shipment(plan);
@@ -116,111 +106,12 @@ fn call(game: &Game, b: &mut ClassicBot, m: &str, a: &[String]) -> String {
             let battalion = game.player(b.player).forces_on_planet()[&from].clone();
             l(b.most_suitable_nearby_location(game, from, &battalion, true, true))
         }
-        _ => panic!("no Rust call for {m}"),
+        _ => panic!("unknown probe method {m}"),
     }
-}
-
-/// As differ's `replay::participation` (and the oracle's Verifier).
-fn participation(o: &Value) -> Participation {
-    let int = |v: &Value| v.as_i64().unwrap() as i32;
-    let mut p = Participation { bots_speed: int(&o["BotsSpeed"]), ..Default::default() };
-    for kv in o["PlayerNames"].as_array().unwrap() {
-        p.player_names.insert(int(&kv[0]), kv[1].as_str().unwrap().to_string());
-    }
-    for kv in o["SeatedPlayers"].as_array().unwrap() {
-        p.seated_players.insert(int(&kv[0]), int(&kv[1]));
-    }
-    for (key, set) in [
-        ("Observers", &mut p.observers),
-        ("Hosts", &mut p.hosts),
-        ("AvailableSeats", &mut p.available_seats),
-        ("Kicked", &mut p.kicked),
-    ] {
-        for v in o[key].as_array().unwrap() {
-            set.insert(int(v));
-        }
-    }
-    p
-}
-
-fn lines(name: &str) -> impl Iterator<Item = Value> {
-    let path = format!("{}/tests/golden/{name}", env!("CARGO_MANIFEST_DIR"));
-    let file = std::fs::File::open(&path).unwrap_or_else(|e| panic!("{path}: {e}"));
-    BufReader::new(GzDecoder::new(file)).lines().map(|l| serde_json::from_str(&l.unwrap()).unwrap())
 }
 
 fn run(name: &str) {
-    let mut probes: BTreeMap<i64, Vec<Value>> = BTreeMap::new();
-    for o in lines(&format!("b5-{name}.jsonl.gz")) {
-        probes.entry(o["n"].as_i64().unwrap()).or_default().push(o);
-    }
-
-    let mut game: Option<Game> = None;
-    let mut count = 0;
-    let mut failures: Vec<String> = Vec::new();
-
-    for o in lines(&format!("knowledge-{name}.jsonl.gz")) {
-        match o["k"].as_str().unwrap() {
-            "header" => {
-                let participation = participation(&o["participation"]);
-                game = Some(Game::new_int32_participation(o["version"].as_i64().unwrap() as i32, &Shared::new(participation)));
-            }
-            "step" => {
-                let game = game.as_mut().unwrap();
-                let e: GameEvent = treachery_engine::json::deserialize(o["event"].as_str().unwrap()).unwrap();
-                e.initialize_game(game);
-                game.map.mark_neighbour_cache_stale();
-                let (validate, is_host) = (o["validate"].as_bool().unwrap(), o["isHost"].as_bool().unwrap());
-                let _ = catch_panic(|| e.execute(game, validate, is_host));
-
-                let n = o["n"].as_i64().unwrap();
-                let Some(list) = probes.get(&n) else { continue };
-                let game: &Game = game;
-                let mut bot: Option<(i64, ClassicBot)> = None;
-                // After a difference, the later probes of that bot depend on its draws: skip them.
-                let mut skip: Option<i64> = None;
-                for p in list {
-                    let pi = p["p"].as_i64().unwrap();
-                    if skip == Some(pi) {
-                        continue;
-                    }
-                    if !matches!(&bot, Some((bp, _)) if *bp == pi) {
-                        game.map.mark_neighbour_cache_stale();
-                        let player = game.player_at(pi as usize);
-                        let faction = game.player(player).faction;
-                        let seed = p["seed"].as_i64().unwrap() as i32;
-                        let b = ClassicBot::new(player, BotParameters::for_faction(faction), SharedRandom::from_seed(seed));
-                        bot = Some((pi, b));
-                    }
-                    let b = &mut bot.as_mut().unwrap().1;
-                    let m = p["m"].as_str().unwrap();
-                    let a: Vec<String> = p["a"].as_array().unwrap().iter().map(|v| v.as_str().unwrap().to_string()).collect();
-                    let actual = match catch_panic(|| call(game, b, m, &a)) {
-                        Ok(r) => r,
-                        Err(_) => "EX".to_string(),
-                    };
-                    let draws = b.random.get_count() as i64;
-                    let (expected, expected_draws) = (p["r"].as_str().unwrap(), p["d"].as_i64().unwrap());
-                    // A probe that throws in C# must panic in Rust; the texts aren't compared.
-                    let expected = if expected.starts_with("EX:") { "EX" } else { expected };
-                    count += 1;
-                    if actual != expected || draws != expected_draws {
-                        failures.push(format!(
-                            "step {n} player {pi} {m}({}): C# {expected} ({expected_draws} draws), Rust {actual} ({draws} draws)",
-                            a.join(", ")
-                        ));
-                        skip = Some(pi);
-                    }
-                }
-            }
-            _ => {}
-        }
-    }
-
-    assert!(count > 0, "{name}: no probes");
-    if !failures.is_empty() {
-        panic!("{name}: {} of {count} probes differ:\n{}", failures.len(), failures.iter().take(40).cloned().collect::<Vec<_>>().join("\n"));
-    }
+    run_probes("b5", name, Bots::Shared, |game, b, m, a| call(game, b, m, a));
 }
 
 #[test]

@@ -1,31 +1,23 @@
-//! Bot_Knowledge against C#: results, exceptions and draw counts of every Knowledge member.
+//! What the bot knows (`bot/knowledge.rs`): the result and draw count of every knowledge member,
+//! at the states of four recorded bot games.
 //!
-//! `golden/knowledge-*.jsonl.gz` comes from `bots/csharp-ref` (see its Program.cs):
+//! Each `golden/knowledge-*.jsonl.gz` holds the events of a game and, every few steps, probes:
+//! a member to call on a fresh bot of a player (with a known seed), its arguments and the expected
+//! result. Consecutive probes of a player after a step share the bot. The game `00008` is a
+//! 5-player expansion game; the `77-*` games were picked because they have alliances, Voice,
+//! Prescience and Clairvoyance. The other bot tests replay the same games.
 //!
-//! ```sh
-//! export DOTNET_ROOT="$HOME/dotnet10" PATH="$HOME/dotnet10:$PATH"
-//! cd rust/bots/csharp-ref
-//! dotnet run -c Release -- knowledge ../../traces/sample/bots-2026-00008.jsonl.gz ../tests/golden/knowledge-00008.jsonl.gz 20
-//! ```
-//!
-//! The `77-*` files come from `Oracle bots --seed 77 --games 6` (games 1, 2 and 4, every 20, 35
-//! and 35 steps), picked because they have alliances, Voice, Prescience and Clairvoyance. The
-//! source traces aren't kept: the golden files hold the events themselves.
-//!
-//! The file holds the events of a bot game and, every few steps, one fresh bot per player with a
-//! known seed and the members C# called on it. This test replays the events and makes the same
-//! calls. Members that reach Bot_Battle (`WinnableNearbyStronghold`, `IsSafeAndNearby` with
-//! `mayFight`) are left out until B2 lands.
+//! The expected results are snapshots of the current behavior. After a deliberate change, rewrite
+//! them with `UPDATE_GOLDENS=1 cargo test --release -p treachery-bots` and review the diff
+//! (see `common/mod.rs`).
 
-use std::io::{BufRead, BufReader};
+mod common;
 
-use flate2::read::GzDecoder;
-use serde_json::Value;
 use treachery_bots::prelude::*;
-use treachery_engine::error::catch_panic;
-use treachery_engine::game::Participation;
 
-/// The C# `Fmt` of csharp-ref/Program.cs.
+use common::{run_probes, Bots};
+
+/// How a result is written in the snapshot.
 trait Fmt {
     fn fmt(&self) -> String;
 }
@@ -175,7 +167,7 @@ impl Args<'_> {
     }
 }
 
-/// Calls the member C# called. Panics on a member or overload this table doesn't know.
+/// Calls the member the probe names. Panics on a member or overload this table doesn't know.
 fn call(m: &str, x: &Args) -> String {
     let (g, bot) = (x.game, x.bot);
     let len = x.a.len();
@@ -302,123 +294,30 @@ fn call(m: &str, x: &Args) -> String {
         ("WithinRange", 3) => bot.within_range(g, x.l(0), x.l(1), &x.bat(2)).fmt(),
         ("IsSafeAndNearby", 4) => bot.is_safe_and_nearby(g, x.l(0), x.l(1), &x.bat(2), x.b(3)).fmt(),
 
-        _ => panic!("no Rust call for {m} with {len} arguments"),
+        _ => panic!("unknown probe method {m} with {len} arguments"),
     }
 }
 
-/// As differ's `replay::participation` (and the oracle's Verifier).
-fn participation(o: &Value) -> Participation {
-    let int = |v: &Value| v.as_i64().unwrap() as i32;
-    let mut p = Participation { bots_speed: int(&o["BotsSpeed"]), ..Default::default() };
-    for kv in o["PlayerNames"].as_array().unwrap() {
-        p.player_names.insert(int(&kv[0]), kv[1].as_str().unwrap().to_string());
-    }
-    for kv in o["SeatedPlayers"].as_array().unwrap() {
-        p.seated_players.insert(int(&kv[0]), int(&kv[1]));
-    }
-    for (key, set) in [
-        ("Observers", &mut p.observers),
-        ("Hosts", &mut p.hosts),
-        ("AvailableSeats", &mut p.available_seats),
-        ("Kicked", &mut p.kicked),
-    ] {
-        for v in o[key].as_array().unwrap() {
-            set.insert(int(v));
-        }
-    }
-    p
-}
-
-fn run(golden: &str) {
-    let path = format!("{}/tests/golden/{golden}", env!("CARGO_MANIFEST_DIR"));
-    let file = std::fs::File::open(&path).unwrap_or_else(|e| panic!("{path}: {e}"));
-    let reader = BufReader::new(GzDecoder::new(file));
-
-    let mut game: Option<Game> = None;
-    let mut bot: Option<(i64, i64, ClassicBot)> = None;
-    // After a difference, the later probes of that bot depend on its draws: skip them.
-    let mut skip: Option<(i64, i64)> = None;
-    let mut probes = 0;
-    let mut failures: Vec<String> = Vec::new();
-
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let o: Value = serde_json::from_str(&line).unwrap();
-        match o["k"].as_str().unwrap() {
-            "header" => {
-                let participation = participation(&o["participation"]);
-                game = Some(Game::new_int32_participation(o["version"].as_i64().unwrap() as i32, &Shared::new(participation)));
-            }
-            "step" => {
-                let game = game.as_mut().unwrap();
-                let ev: GameEvent = treachery_engine::json::deserialize(o["event"].as_str().unwrap()).unwrap();
-                ev.initialize_game(game);
-                game.map.mark_neighbour_cache_stale();
-                let (validate, is_host) = (o["validate"].as_bool().unwrap(), o["isHost"].as_bool().unwrap());
-                let _ = catch_panic(|| ev.execute(game, validate, is_host));
-            }
-            "probe" => {
-                let game = game.as_ref().unwrap();
-                let (n, p) = (o["n"].as_i64().unwrap(), o["p"].as_i64().unwrap());
-                if skip == Some((n, p)) {
-                    continue;
-                }
-                if !matches!(&bot, Some((bn, bp, _)) if *bn == n && *bp == p) {
-                    game.map.mark_neighbour_cache_stale();
-                    let player = game.player_at(p as usize);
-                    let faction = game.player(player).faction;
-                    let seed = o["seed"].as_i64().unwrap() as i32;
-                    let b = ClassicBot::new(player, BotParameters::for_faction(faction), SharedRandom::from_seed(seed));
-                    bot = Some((n, p, b));
-                }
-                let b = &bot.as_ref().unwrap().2;
-                let m = o["m"].as_str().unwrap();
-                let a: Vec<String> = o["a"].as_array().unwrap().iter().map(|v| v.as_str().unwrap().to_string()).collect();
-                let args = Args { game, bot: b, a: a.clone() };
-                let actual = match catch_panic(|| call(m, &args)) {
-                    Ok(r) => r,
-                    Err(_) => "EX".to_string(),
-                };
-                let draws = b.random.get_count() as i64;
-                let (expected, expected_draws) = (o["r"].as_str().unwrap(), o["d"].as_i64().unwrap());
-                // A probe that throws in C# must panic in Rust; the texts aren't compared.
-                let expected = if expected.starts_with("EX:") { "EX" } else { expected };
-                probes += 1;
-                if actual != expected || draws != expected_draws {
-                    failures.push(format!(
-                        "step {n} player {p} {m}({}): C# {expected} ({expected_draws} draws), Rust {actual} ({draws} draws)",
-                        a.join(", ")
-                    ));
-                    skip = Some((n, p));
-                }
-            }
-            k => panic!("unknown line kind {k}"),
-        }
-    }
-
-    assert!(probes > 0, "{golden}: no probes");
-    if !failures.is_empty() {
-        let shown: Vec<&String> = failures.iter().take(40).collect();
-        panic!("{golden}: {} of {probes} probes differ:\n{}", failures.len(), shown.iter().map(|s| s.as_str()).collect::<Vec<_>>().join("\n"));
-    }
+fn run(name: &str) {
+    run_probes("knowledge", name, Bots::Shared, |game, bot, m, a| call(m, &Args { game, bot, a: a.to_vec() }));
 }
 
 #[test]
 fn knowledge_00008() {
-    run("knowledge-00008.jsonl.gz");
+    run("00008");
 }
 
 #[test]
 fn knowledge_77_00001() {
-    run("knowledge-77-00001.jsonl.gz");
+    run("77-00001");
 }
 
 #[test]
 fn knowledge_77_00002() {
-    run("knowledge-77-00002.jsonl.gz");
+    run("77-00002");
 }
 
 #[test]
 fn knowledge_77_00004() {
-    run("knowledge-77-00004.jsonl.gz");
+    run("77-00004");
 }

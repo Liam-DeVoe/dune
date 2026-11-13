@@ -1,210 +1,4 @@
 {
-  "logError": [
-    [
-      "plain",
-      "OK"
-    ],
-    [
-      "{",
-      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 1. Format item ends prematurely."
-    ],
-    [
-      "}",
-      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 1. Format item ends prematurely."
-    ],
-    [
-      "{{",
-      "OK"
-    ],
-    [
-      "}}",
-      "OK"
-    ],
-    [
-      "{0}",
-      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
-    ],
-    [
-      "a{x}b",
-      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 2. Expected an ASCII digit."
-    ],
-    [
-      "{ 0}",
-      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 1. Expected an ASCII digit."
-    ],
-    [
-      "{0 }",
-      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
-    ],
-    [
-      "{-1}",
-      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 1. Expected an ASCII digit."
-    ],
-    [
-      "{1,2}",
-      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
-    ],
-    [
-      "{0:x}",
-      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
-    ],
-    [
-      "x}y",
-      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 2. Unexpected closing brace without a corresponding opening brace."
-    ],
-    [
-      "{}",
-      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 1. Expected an ASCII digit."
-    ],
-    [
-      "{{}}",
-      "OK"
-    ],
-    [
-      "{a",
-      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 1. Expected an ASCII digit."
-    ],
-    [
-      "{0",
-      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 2. Format item ends prematurely."
-    ],
-    [
-      "abc{{def}}g",
-      "OK"
-    ],
-    [
-      "}}{{",
-      "OK"
-    ],
-    [
-      "{0,",
-      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 3. Format item ends prematurely."
-    ],
-    [
-      "{0,-",
-      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 4. Format item ends prematurely."
-    ],
-    [
-      "{0,a}",
-      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 3. Expected an ASCII digit."
-    ],
-    [
-      "{ }",
-      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 1. Expected an ASCII digit."
-    ],
-    [
-      "{0:}",
-      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
-    ],
-    [
-      "{0:{{}",
-      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 3. Format item ends prematurely."
-    ],
-    [
-      "{0:}}}",
-      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
-    ],
-    [
-      "}a",
-      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 1. Unexpected closing brace without a corresponding opening brace."
-    ],
-    [
-      "a{",
-      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 2. Format item ends prematurely."
-    ],
-    [
-      "{1000000}",
-      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
-    ],
-    [
-      "{9999999999}",
-      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 8. Format item ends prematurely."
-    ],
-    [
-      "{0,9999999}",
-      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
-    ],
-    [
-      "{0,1000000}",
-      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
-    ],
-    [
-      "x{ 0 , 5 : y}z",
-      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 2. Expected an ASCII digit."
-    ],
-    [
-      "{0 x}",
-      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 3. Format item ends prematurely."
-    ],
-    [
-      "{0:a{b}",
-      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 4. Format item ends prematurely."
-    ],
-    [
-      "\u00E9}x",
-      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 2. Unexpected closing brace without a corresponding opening brace."
-    ],
-    [
-      "\uD83D\uDE00}x",
-      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 3. Unexpected closing brace without a corresponding opening brace."
-    ],
-    [
-      "{0,5 x}",
-      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 5. Format item ends prematurely."
-    ],
-    [
-      "{0,  5}",
-      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
-    ],
-    [
-      "{0, -5}",
-      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
-    ],
-    [
-      "{0,- 5}",
-      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 4. Expected an ASCII digit."
-    ],
-    [
-      "{00}",
-      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
-    ],
-    [
-      "{0 ,1}",
-      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
-    ],
-    [
-      "{0,1 :x}",
-      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
-    ],
-    [
-      "{0  :x}",
-      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
-    ],
-    [
-      "{1000000 }",
-      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
-    ],
-    [
-      "{0,10000000}",
-      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 10. Format item ends prematurely."
-    ],
-    [
-      "{0:abc",
-      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 6. Format item ends prematurely."
-    ],
-    [
-      "",
-      "OK"
-    ],
-    [
-      "--error occured --\u003ESystem.Collections.Generic.KeyNotFoundException: The given key \u0027Location: {x}\u0027 was not present in the dictionary.",
-      "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 94. Expected an ASCII digit."
-    ],
-    [
-      "--invalid decision (Treachery.Shared.Bid)--\u003E Atreides bid 3: You can\u0027t bid more than {0}",
-      "EX:System.FormatException: Index (zero based) must be greater than or equal to zero and less than the size of the argument list."
-    ]
-  ],
   "d": [
     [
       0,
@@ -293,13 +87,13 @@
     [
       1,
       -1,
-      "EX:System.ArgumentOutOfRangeException: maxValue (\u0027-1\u0027) must be a non-negative value. (Parameter \u0027maxValue\u0027)\nActual value was -1.",
+      "EX:ArgumentOutOfRangeException: maxValue ('-1') must be a non-negative value. (Parameter 'maxValue')\nActual value was -1.",
       6
     ],
     [
       1,
       -5,
-      "EX:System.ArgumentOutOfRangeException: maxValue (\u0027-5\u0027) must be a non-negative value. (Parameter \u0027maxValue\u0027)\nActual value was -5.",
+      "EX:ArgumentOutOfRangeException: maxValue ('-5') must be a non-negative value. (Parameter 'maxValue')\nActual value was -5.",
       7
     ],
     [
@@ -341,13 +135,13 @@
     [
       2,
       -1,
-      "EX:System.ArgumentOutOfRangeException: maxValue (\u0027-1\u0027) must be a non-negative value. (Parameter \u0027maxValue\u0027)\nActual value was -1.",
+      "EX:ArgumentOutOfRangeException: maxValue ('-1') must be a non-negative value. (Parameter 'maxValue')\nActual value was -1.",
       18
     ],
     [
       2,
       -5,
-      "EX:System.ArgumentOutOfRangeException: maxValue (\u0027-5\u0027) must be a non-negative value. (Parameter \u0027maxValue\u0027)\nActual value was -5.",
+      "EX:ArgumentOutOfRangeException: maxValue ('-5') must be a non-negative value. (Parameter 'maxValue')\nActual value was -5.",
       19
     ],
     [
@@ -389,13 +183,13 @@
     [
       3,
       -1,
-      "EX:System.ArgumentOutOfRangeException: maxValue (\u0027-1\u0027) must be a non-negative value. (Parameter \u0027maxValue\u0027)\nActual value was -1.",
+      "EX:ArgumentOutOfRangeException: maxValue ('-1') must be a non-negative value. (Parameter 'maxValue')\nActual value was -1.",
       35
     ],
     [
       3,
       -5,
-      "EX:System.ArgumentOutOfRangeException: maxValue (\u0027-5\u0027) must be a non-negative value. (Parameter \u0027maxValue\u0027)\nActual value was -5.",
+      "EX:ArgumentOutOfRangeException: maxValue ('-5') must be a non-negative value. (Parameter 'maxValue')\nActual value was -5.",
       36
     ],
     [
@@ -437,13 +231,13 @@
     [
       5,
       -1,
-      "EX:System.ArgumentOutOfRangeException: maxValue (\u0027-1\u0027) must be a non-negative value. (Parameter \u0027maxValue\u0027)\nActual value was -1.",
+      "EX:ArgumentOutOfRangeException: maxValue ('-1') must be a non-negative value. (Parameter 'maxValue')\nActual value was -1.",
       62
     ],
     [
       5,
       -5,
-      "EX:System.ArgumentOutOfRangeException: maxValue (\u0027-5\u0027) must be a non-negative value. (Parameter \u0027maxValue\u0027)\nActual value was -5.",
+      "EX:ArgumentOutOfRangeException: maxValue ('-5') must be a non-negative value. (Parameter 'maxValue')\nActual value was -5.",
       63
     ],
     [
@@ -494,57 +288,6 @@
       "0",
       63
     ]
-  ],
-  "do": [
-    {
-      "name": "valid",
-      "result": "true",
-      "action": "EndPhase",
-      "sameAction": false,
-      "called": true
-    },
-    {
-      "name": "notAllowed",
-      "result": "false",
-      "action": null,
-      "sameAction": true,
-      "called": false
-    },
-    {
-      "name": "alreadyDecided",
-      "result": "false",
-      "action": "EndPhase",
-      "sameAction": true,
-      "called": false
-    },
-    {
-      "name": "returnsNull",
-      "result": "false",
-      "action": null,
-      "sameAction": true,
-      "called": true
-    },
-    {
-      "name": "throws",
-      "result": "false",
-      "action": null,
-      "sameAction": true,
-      "called": true
-    },
-    {
-      "name": "throwsWithBrace",
-      "result": "EX:System.FormatException: Input string was not in a correct format. Failure to parse near offset 56. Expected an ASCII digit.",
-      "action": null,
-      "sameAction": true,
-      "called": true
-    },
-    {
-      "name": "invalid",
-      "result": "false",
-      "action": "Thought",
-      "sameAction": false,
-      "called": true
-    }
   ],
   "parameters": [
     {

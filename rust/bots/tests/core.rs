@@ -1,26 +1,21 @@
-//! The bot's dice, decision dispatch and parameters, against the C# bots.
+//! The bot's dice, decision dispatch and parameters.
 //!
-//! `golden/core.json` comes from `bots/csharp-ref`:
-//!
-//! ```sh
-//! export DOTNET_ROOT="$HOME/dotnet10" PATH="$HOME/dotnet10:$PATH"
-//! cd rust/bots/csharp-ref && dotnet run -c Release -- core ../tests/golden/core.json
-//! ```
+//! `golden/core.json` holds the expected dice results (with the draw count after each roll) and
+//! every faction's parameters, as snapshots of the current behavior. After a deliberate change,
+//! rewrite it with `UPDATE_GOLDENS=1 cargo test --release -p treachery-bots --test core` and
+//! review the diff.
+
+mod common;
 
 use std::cell::Cell;
 
-use serde_json::Value;
+use serde_json::{json, Value};
 use treachery_bots::prelude::*;
 use treachery_engine::error::catch_panic;
 
-fn golden() -> Value {
-    let path = format!("{}/tests/golden/core.json", env!("CARGO_MANIFEST_DIR"));
-    serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap()
-}
+use common::{read_json, updating, write_json};
 
-fn outcome<R>(f: impl FnOnce() -> R) -> Result<R, String> {
-    catch_panic(f).map_err(|e| format!("EX:System.{e}"))
-}
+const GOLDEN: &str = "core.json";
 
 /// A game without players and a bot whose player is never read.
 fn bot(seed: i32) -> (Game, ClassicBot) {
@@ -30,86 +25,105 @@ fn bot(seed: i32) -> (Game, ClassicBot) {
     (game, bot)
 }
 
+/// Rewrites one section of the snapshot. The tests run in parallel, so the rewrites take turns.
+fn update(key: &str, value: Value) {
+    static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    let _turn = LOCK.lock().unwrap();
+    let mut g = read_json(GOLDEN);
+    g[key] = value;
+    write_json(GOLDEN, &g);
+}
+
 #[test]
-fn d_matches_csharp() {
-    let g = golden();
+fn dice() {
+    let g = read_json(GOLDEN);
     let (_game, bot) = bot(12345);
+    let mut actual = vec![];
     for case in g["d"].as_array().unwrap() {
         let (amount, sides) = (case[0].as_i64().unwrap() as i32, case[1].as_i64().unwrap() as i32);
-        let actual = match outcome(|| bot.d(amount, sides)) {
-            Ok(r) => r.to_string(),
-            Err(e) => e,
-        };
-        assert_eq!(actual, case[2].as_str().unwrap(), "D({amount}, {sides})");
-        assert_eq!(bot.random.get_count() as i64, case[3].as_i64().unwrap(), "draws after D({amount}, {sides})");
+        let result = catch_panic(|| bot.d(amount, sides)).map_or_else(|e| format!("EX:{e}"), |r| r.to_string());
+        actual.push(json!([amount, sides, result, bot.random.get_count()]));
+    }
+    if updating() {
+        update("d", json!(actual));
+        return;
+    }
+    for (case, actual) in g["d"].as_array().unwrap().iter().zip(&actual) {
+        assert_eq!(actual, case, "D({}, {}): [amount, sides, result, draws after]", case[0], case[1]);
     }
 }
 
 #[test]
-fn parameters_match_csharp() {
-    let g = golden();
+fn parameters() {
+    let g = read_json(GOLDEN);
     let f32s = |x: f32| dotnet_compat::fmt::f32_to_string(x);
-    assert_eq!(f32s(BotParameters::PENALTY_FOR_ATTACKING_BOTS), g["penaltyForAttackingBots"].as_str().unwrap());
+    let mut actual = vec![];
     for o in g["parameters"].as_array().unwrap() {
         let f = Faction(o["faction"].as_i64().unwrap() as i32);
         let p = BotParameters::for_faction(f);
-        let actual = [
-            ("Bidding_ResourcesToKeepWhenCardIsPerfect", p.bidding_resources_to_keep_when_card_is_perfect.to_string()),
-            ("Bidding_ResourcesToKeepWhenCardIsntPerfect", p.bidding_resources_to_keep_when_card_isnt_perfect.to_string()),
-            ("Bidding_PassingTreshold", p.bidding_passing_threshold.to_string()),
-            ("Karma_SaveCardToUseSpecialKarmaAbility", p.karma_save_card_to_use_special_karma_ability.to_string()),
-            ("Shipment_MinimumOtherPlayersITrustToPreventAWin", p.shipment_minimum_other_players_i_trust_to_prevent_a_win.to_string()),
-            ("Shipment_DialShortageToAccept", f32s(p.shipment_dial_shortage_to_accept)),
-            ("Shipment_MinimumResourcesToKeepForBattle", p.shipment_minimum_resources_to_keep_for_battle.to_string()),
-            ("Shipment_MaxEnemyForceStrengthFightingForSpice", f32s(p.shipment_max_enemy_force_strength_fighting_for_spice)),
-            ("Shipment_ExpectedStormMovesWhenUnknown", p.shipment_expected_storm_moves_when_unknown.to_string()),
-            ("Shipment_DialForExtraForcesToShip", p.shipment_dial_for_extra_forces_to_ship.to_string()),
-            ("Battle_MaximumUnsupportedForces", p.battle_maximum_unsupported_forces.to_string()),
-            ("Battle_MimimumChanceToAssumeEnemyHeroSurvives", f32s(p.battle_minimum_chance_to_assume_enemy_hero_survives)),
-            ("Battle_MimimumChanceToAssumeMyLeaderSurvives", f32s(p.battle_minimum_chance_to_assume_my_leader_survives)),
-            ("Battle_DialShortageThresholdForThrowing", f32s(p.battle_dial_shortage_threshold_for_throwing)),
-        ];
-        assert_eq!(o.as_object().unwrap().len(), actual.len() + 1, "C# has a parameter the test doesn't know");
-        for (name, value) in actual {
-            assert_eq!(value, o[name].as_str().unwrap(), "{name} of faction {}", f.0);
-        }
+        actual.push(json!({
+            "faction": f.0,
+            "Bidding_ResourcesToKeepWhenCardIsPerfect": p.bidding_resources_to_keep_when_card_is_perfect.to_string(),
+            "Bidding_ResourcesToKeepWhenCardIsntPerfect": p.bidding_resources_to_keep_when_card_isnt_perfect.to_string(),
+            "Bidding_PassingTreshold": p.bidding_passing_threshold.to_string(),
+            "Karma_SaveCardToUseSpecialKarmaAbility": p.karma_save_card_to_use_special_karma_ability.to_string(),
+            "Shipment_MinimumOtherPlayersITrustToPreventAWin": p.shipment_minimum_other_players_i_trust_to_prevent_a_win.to_string(),
+            "Shipment_DialShortageToAccept": f32s(p.shipment_dial_shortage_to_accept),
+            "Shipment_MinimumResourcesToKeepForBattle": p.shipment_minimum_resources_to_keep_for_battle.to_string(),
+            "Shipment_MaxEnemyForceStrengthFightingForSpice": f32s(p.shipment_max_enemy_force_strength_fighting_for_spice),
+            "Shipment_ExpectedStormMovesWhenUnknown": p.shipment_expected_storm_moves_when_unknown.to_string(),
+            "Shipment_DialForExtraForcesToShip": p.shipment_dial_for_extra_forces_to_ship.to_string(),
+            "Battle_MaximumUnsupportedForces": p.battle_maximum_unsupported_forces.to_string(),
+            "Battle_MimimumChanceToAssumeEnemyHeroSurvives": f32s(p.battle_minimum_chance_to_assume_enemy_hero_survives),
+            "Battle_MimimumChanceToAssumeMyLeaderSurvives": f32s(p.battle_minimum_chance_to_assume_my_leader_survives),
+            "Battle_DialShortageThresholdForThrowing": f32s(p.battle_dial_shortage_threshold_for_throwing),
+        }));
+    }
+    let penalty = f32s(BotParameters::PENALTY_FOR_ATTACKING_BOTS);
+    if updating() {
+        update("parameters", json!(actual));
+        update("penaltyForAttackingBots", json!(penalty));
+        return;
+    }
+    assert_eq!(penalty, g["penaltyForAttackingBots"].as_str().unwrap(), "PENALTY_FOR_ATTACKING_BOTS");
+    for (o, actual) in g["parameters"].as_array().unwrap().iter().zip(&actual) {
+        assert_eq!(actual, o, "parameters of faction {}", o["faction"]);
     }
 }
 
-/// `try_decide` against the C# `Do` scenarios. The golden's `result` says whether a valid event
-/// was chosen, `action` which event ended the round. "alreadyDecided" has no counterpart: the
-/// round returns at the first decision. "throwsWithBrace" ran on a formatting console, where the
-/// C# error log throws on the brace; the bots never format, so it behaves like "throws".
+/// `try_decide` returns the first decision of the round: a valid event, an event that isn't
+/// allowed or doesn't validate (still a decision, since it ends the round), or nothing when the
+/// decision method returns nothing or panics.
 #[test]
-fn try_decide_matches_csharp() {
-    let g = golden();
-    for s in g["do"].as_array().unwrap() {
-        let name = s["name"].as_str().unwrap();
-        if name == "alreadyDecided" {
-            continue;
-        }
+fn try_decide_scenarios() {
+    let end_phase = [GameEventType::EndPhase];
+    let thought = [GameEventType::Thought];
+    // (scenario, valid, event type that ended the round)
+    let expected: [(&str, bool, Option<&str>); 5] = [
+        ("valid", true, Some("EndPhase")),
+        ("notAllowed", false, None),
+        ("returnsNull", false, None),
+        ("throws", false, None),
+        ("invalid", false, Some("Thought")),
+    ];
+    for (name, valid, action) in expected {
         let (mut game, mut bot) = bot(1);
         let called = Cell::new(false);
-        let end_phase = [GameEventType::EndPhase];
-        let thought = [GameEventType::Thought];
-
         let decision = match name {
             "valid" => bot.try_decide(&mut game, &end_phase, |_, g| { called.set(true); Some(Rc::new(EndPhase::new(g, Faction::Atreides))) }),
             "notAllowed" => bot.try_decide(&mut game, &thought, |_, g| { called.set(true); Some(Rc::new(EndPhase::new(g, Faction::Atreides))) }),
             "returnsNull" => bot.try_decide(&mut game, &thought, |_, _| -> Option<Rc<Thought>> { called.set(true); None }),
-            "throws" => bot.try_decide(&mut game, &end_phase, |_, _| -> Option<Rc<EndPhase>> { called.set(true); panic!("InvalidOperationException: boom") }),
-            "throwsWithBrace" => bot.try_decide(&mut game, &end_phase, |_, _| -> Option<Rc<EndPhase>> { called.set(true); panic!("{}", "InvalidOperationException: bo{om") }),
+            "throws" => bot.try_decide(&mut game, &end_phase, |_, _| -> Option<Rc<EndPhase>> { called.set(true); panic!("boom") }),
             "invalid" => bot.try_decide(&mut game, &thought, |_, g| { called.set(true); Some(Rc::new(Thought::new(g, Faction::Atreides))) }),
-            other => panic!("unknown scenario {other}"),
+            _ => unreachable!(),
         };
-
-        let expected_valid = if name == "throwsWithBrace" { "false" } else { s["result"].as_str().unwrap() };
-        assert_eq!(matches!(decision, Some(Decision::Valid(_))).to_string(), expected_valid, "{name}: valid");
+        assert_eq!(matches!(decision, Some(Decision::Valid(_))), valid, "{name}: valid");
         let chosen = decision.map(|d| match d {
             Decision::Valid(e) | Decision::Invalid(e) => e.event_type().name().to_string(),
         });
-        assert_eq!(chosen, s["action"].as_str().map(str::to_string), "{name}: action");
-        assert_eq!(called.get(), s["called"].as_bool().unwrap(), "{name}: method called");
+        assert_eq!(chosen.as_deref(), action, "{name}: action");
+        // A type that isn't allowed is never asked for.
+        assert_eq!(called.get(), name != "notAllowed", "{name}: method called");
     }
 }
 

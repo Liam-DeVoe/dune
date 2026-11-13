@@ -247,16 +247,27 @@ fn ring_homeworld_thresholds() {
 /// several actions.
 #[test]
 fn hand_cards_name_the_actions_that_play_them() {
-    let mut r = load("karma-prescience-base", 0);
-    let atreides = r.view(viewer_of(&r, Faction::Atreides));
-    let me = atreides.me.as_ref().unwrap();
-    let card = me.hand.iter().find(|c| c.id == 23).expect("Atreides holds Karma (23)");
-    assert_eq!(card.playable_with, vec!["Karma".to_string(), "KarmaPrescience".to_string()]);
-
-    let mut r = load("mc-harvester", 0);
-    let emperor = r.view(viewer_of(&r, Faction::Emperor));
-    let harvester = emperor.me.as_ref().unwrap().hand.iter().find(|c| c.id == 43).unwrap();
-    assert_eq!(harvester.playable_with, vec!["HarvesterPlayed".to_string()]);
+    // Which player holds which card depends on the fixture's draws, so look for them.
+    let playable_somewhere = |want: &[&str]| {
+        FIXTURES.iter().any(|f| {
+            let mut r = load(f, 0);
+            all_views(&mut r).into_iter().any(|(_, v)| v.me.is_some_and(|me| me.hand.iter().any(|c| c.playable_with == want)))
+        })
+    };
+    let karma_prescience = |r: &mut ViewReplica| all_views(r).into_iter().any(|(_, v)| v.me.is_some_and(|me| me.hand.iter().any(|c| c.playable_with == ["Karma", "KarmaPrescience"])));
+    let mut r = first_bot_state("Karma Prescience", |g| {
+        // When KarmaPrescience is applicable (engine/src/game/applicable_events.rs).
+        g.get_player(Some(Faction::Atreides)).is_some_and(|p| {
+            g.current_main_phase == MainPhase::Battle
+                && g.current_battle.as_ref().is_some_and(|b| b.is_involved(g, p))
+                && !g.karma_prevented(Faction::Atreides)
+                && !g.player(p).special_karma_power_used
+                && g.player(p).has_karma(g)
+                && g.applicable(Rule::AdvancedKarama)
+        })
+    });
+    assert!(playable_somewhere(&["Karma", "KarmaPrescience"]) || karma_prescience(&mut r), "a Karma card plays Karma and KarmaPrescience");
+    assert!(playable_somewhere(&["HarvesterPlayed"]), "a Harvester plays HarvesterPlayed");
 
     // Everywhere: only applicable actions, each playing a card of the right type.
     let mut playable = 0;

@@ -257,7 +257,8 @@ fn leader_skills() {
 /// the undo panel lists it, and the turn and phase from `moments[n - 1]`.
 #[test]
 fn undo_list() {
-    for fx in ["blow", "retreat", "mc-ended"] {
+    let mut unlisted_total = 0;
+    for fx in ["blow", "retreat", "mc-ended", "ally", "alliance-allied"] {
         let r = load(fx, 0);
         let list = r.undo_list();
         let g = &r.game;
@@ -279,10 +280,9 @@ fn undo_list() {
         // Turns never go back, and the last entries are in the current turn.
         assert!(list.windows(2).all(|w| w[0].turn <= w[1].turn), "{fx}");
         assert!(list.last().unwrap().turn <= g.current_turn);
-        if fx == "blow" {
-            assert!(unlisted > 0, "blow has ally permissions");
-        }
+        unlisted_total += unlisted;
     }
+    assert!(unlisted_total > 0, "the fixtures have ally permissions");
 }
 
 // ---- The undo preview (RequestUndoPreview) ----

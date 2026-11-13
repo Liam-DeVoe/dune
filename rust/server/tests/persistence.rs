@@ -19,12 +19,13 @@ fn games_survive_a_restart() {
         let bobby = s.user("bobby").await;
         let carol = s.user("carol").await;
         let game = s.fixture_game(&alice, "alliance").await;
+        let (emperor, atreides) = alliance_seats();
         s.advance(std::time::Duration::from_secs(1)).await;
-        s.ok(alice.conn, "RequestAssignSeats", json!([alice.token, game, [[alice.id, 0]]])).await;
+        s.ok(alice.conn, "RequestAssignSeats", json!([alice.token, game, [[alice.id, emperor]]])).await;
         s.advance(std::time::Duration::from_secs(1)).await;
-        s.ok(alice.conn, "RequestOpenOrCloseSeat", json!([alice.token, game, 3])).await;
+        s.ok(alice.conn, "RequestOpenOrCloseSeat", json!([alice.token, game, atreides])).await;
         s.advance(std::time::Duration::from_secs(1)).await;
-        s.ok(bobby.conn, "RequestJoinGame", json!([bobby.token, game, "", 3])).await;
+        s.ok(bobby.conn, "RequestJoinGame", json!([bobby.token, game, "", atreides])).await;
         s.advance(std::time::Duration::from_secs(1)).await;
         s.ok(carol.conn, "RequestObserveGame", json!([carol.token, game, ""])).await;
         s.advance(std::time::Duration::from_secs(1)).await;
@@ -43,8 +44,8 @@ fn games_survive_a_restart() {
         let info = &reply["result"]["Contents"];
         assert_eq!(reply["result"]["Success"], true, "{reply}");
         let participation = &info["Participation"];
-        assert!(participation["SeatedPlayers"].as_array().unwrap().contains(&json!([alice.id, 0])));
-        assert!(participation["SeatedPlayers"].as_array().unwrap().contains(&json!([bobby.id, 3])));
+        assert!(participation["SeatedPlayers"].as_array().unwrap().contains(&json!([alice.id, emperor])));
+        assert!(participation["SeatedPlayers"].as_array().unwrap().contains(&json!([bobby.id, atreides])));
         assert_eq!(participation["Observers"], json!([carol.id]));
         assert_eq!(participation["Hosts"], json!([alice.id]));
         assert_eq!(participation["BotsSpeed"], 2);
@@ -81,9 +82,10 @@ fn changes_right_before_a_restart_are_kept() {
         let alice = s.user("alice").await;
         let bobby = s.user("bobby").await;
         let game = s.fixture_game(&alice, "alliance").await;
-        s.ok(alice.conn, "RequestAssignSeats", json!([alice.token, game, [[alice.id, 0]]])).await;
-        s.ok(alice.conn, "RequestOpenOrCloseSeat", json!([alice.token, game, 3])).await;
-        s.ok(bobby.conn, "RequestJoinGame", json!([bobby.token, game, "", 3])).await;
+        let (emperor, atreides) = alliance_seats();
+        s.ok(alice.conn, "RequestAssignSeats", json!([alice.token, game, [[alice.id, emperor]]])).await;
+        s.ok(alice.conn, "RequestOpenOrCloseSeat", json!([alice.token, game, atreides])).await;
+        s.ok(bobby.conn, "RequestJoinGame", json!([bobby.token, game, "", atreides])).await;
         // Several changes within a few seconds, the last one just before the restart.
         for target in [faction::ATREIDES] {
             s.ok(alice.conn, "SubmitEvent", json!([alice.token, game, {"$type": "AllianceOffered", "Target": target, "Initiator": faction::EMPEROR}])).await;
@@ -121,7 +123,8 @@ fn opens_a_database_written_by_the_csharp_server() {
     rt().block_on(async {
         let dir = tempfile::tempdir().unwrap();
         let path = csharp_database(dir.path());
-        let participation = r#"{"PlayerNames":{"7":"Alice Player"},"SeatedPlayers":{"7":0},"Observers":[],"Hosts":[7],"AvailableSeats":[3],"Kicked":[],"BotsSpeed":1}"#;
+        let (emperor, atreides) = alliance_seats();
+        let participation = format!(r#"{{"PlayerNames":{{"7":"Alice Player"}},"SeatedPlayers":{{"7":{emperor}}},"Observers":[],"Hosts":[7],"AvailableSeats":[{atreides}],"Kicked":[],"BotsSpeed":1}}"#);
         execute(
             &path,
             &[
@@ -142,6 +145,12 @@ fn opens_a_database_written_by_the_csharp_server() {
                 (
                     r#"INSERT INTO "PersistedGames" ("CreationDate","CreatorUserId","GameId","GameName","GameParticipation","GameState","HashedPassword","LastAction","LastAsyncPlayMessageSent","ObserversRequirePassword","StatisticsSent") VALUES ('2026-11-01 10:00:00+01:00',7,'99999999-2222-3333-4444-555555555555','Broken game',?,'{"Version":170,"_events":[{"$type":"NoLongerAnEvent"}]}',NULL,'2026-11-08 11:00:00+00:00','0001-01-01 00:00:00+00:00',0,0)"#,
                     vec![participation.to_string()],
+                ),
+                // A game saved before version 189, whose random draws would come out differently
+                // now (behavior-changes.md, "Random number generator"): it no longer loads.
+                (
+                    r#"INSERT INTO "PersistedGames" ("CreationDate","CreatorUserId","GameId","GameName","GameParticipation","GameState","HashedPassword","LastAction","LastAsyncPlayMessageSent","ObserversRequirePassword","StatisticsSent") VALUES ('2026-11-01 10:00:00+01:00',7,'88888888-2222-3333-4444-555555555555','Game of version 188',?,?,NULL,'2026-11-08 11:00:00+00:00','0001-01-01 00:00:00+00:00',0,0)"#,
+                    vec![participation.to_string(), fixture_text("alliance").replacen(r#""Version":189"#, r#""Version":188"#, 1)],
                 ),
                 (
                     r#"INSERT INTO "ScheduledGames" ("AllowedFactionsInPlay","AsyncPlay","CreatorPlayerName","CreatorUserId","DateTime","GameId","MaximumTurns","NumberOfPlayers","Ruleset","SubscribedUsers") VALUES ('[20,10]',0,'Alice Player',7,'2026-11-20 20:00:00+01:00','sched-1',10,6,NULL,'{"7":50,"9":30}')"#,
@@ -164,7 +173,7 @@ fn opens_a_database_written_by_the_csharp_server() {
         let info = s.ok(c, "RequestLogin", json!([VERSION, "alice", ALICE_PW])).await;
         assert_eq!(info["Email"], "alice@example.com");
 
-        // The running game is back, without the one that no longer loads.
+        // The running game is back, without the two that no longer load.
         let alice = User { conn: c, token: "AliceToken123456".into(), id: 7, name: "alice".into() };
         let lobby = s.lobby(&alice, 3).await;
         let games = lobby["RunningGames"].as_array().unwrap();
@@ -178,7 +187,7 @@ fn opens_a_database_written_by_the_csharp_server() {
         assert_eq!(reply["result"]["Success"], true, "{reply}");
         assert_eq!(views(&received).pop().unwrap()["me"]["faction"], "Emperor");
         // The open seat is still open.
-        s.ok(bobby.conn, "RequestJoinGame", json!([bobby.token, "11111111-2222-3333-4444-555555555555", "", 3])).await;
+        s.ok(bobby.conn, "RequestJoinGame", json!([bobby.token, "11111111-2222-3333-4444-555555555555", "", atreides])).await;
         assert_eq!(s.latest_view(bobby.conn).unwrap()["me"]["faction"], "Atreides");
 
         // New accounts get ids after the old ones, and everything survives another restart.

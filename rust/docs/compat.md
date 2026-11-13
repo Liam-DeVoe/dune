@@ -1,6 +1,6 @@
 # dotnet-compat
 
-`rust/dotnet-compat` reimplements the .NET 10 behavior that the engine still depends on: `System.Random`, `Dictionary` and `HashSet` (for the game fields whose .NET order players see), and number rounding, formatting and parsing. Since native-plan.md step 3c the engine uses std and `indexmap` everywhere else; [engine-conventions.md](engine-conventions.md#what-is-left-of-net) says what still needs this crate and why. `List.Sort` and the LINQ operators were removed then, because nothing used them any more.
+`rust/dotnet-compat` reimplements the .NET 10 behavior that the engine still depends on: `Dictionary` and `HashSet` (for the thirteen game fields whose .NET order players see), and number rounding, formatting and parsing (log texts and the strings events carry). Since native-plan.md step 3c the engine uses std and `indexmap` everywhere else; [engine-conventions.md](engine-conventions.md#what-is-left-of-net) says what still needs this crate and why. `List.Sort` and the LINQ operators were removed then, because nothing used them any more. `System.Random` went in game version 189, when the game moved to a Rust generator ([engine-conventions.md](engine-conventions.md#randomness)).
 
 Everything here is checked against .NET 10 output recorded in snapshot files (see [Verification](#verification)).
 
@@ -11,18 +11,6 @@ Where .NET throws, the compat API panics with the exception's type name and exac
 Messages that embed a value use the `CsToString` trait for its C# `ToString()`. It is implemented for the primitive types and `String`; implement it for every dictionary key type. `NetDictionary::add_with` and `index_with` take the key text as a closure instead.
 
 Some messages depend on the static type of the C# receiver. The table entries below say which variant to use.
-
-## Random: `NetRandom`
-
-| Rust | C# |
-|---|---|
-| `NetRandom::new(seed)` | `new Random(seed)` |
-| `next()` | `Next()` |
-| `next_max(max)` | `Next(max)`. Throws ArgumentOutOfRangeException if `max < 0`. |
-| `next_range(min, max)` | `Next(min, max)`. Throws ArgumentOutOfRangeException if `min > max`. |
-| `next_double()` | `NextDouble()` |
-
-This is .NET's `Net5CompatSeedImpl` (Knuth's subtractive generator), which seeded `Random` still uses in .NET 10. Every edge seed works, including `int.MinValue`, `int.MaxValue`, 0 and negative seeds. `Next(0)` and `Next(x, x)` return without randomness but still consume a draw, as in .NET. Ranges wider than `int.MaxValue` use .NET's two-draw large-range path.
 
 ## Dictionary: `NetDictionary<K, V>`
 
@@ -90,7 +78,6 @@ Serde writes a JSON array in enumeration order and reads one with `Add` semantic
 | `abs_i32(x)` | `Math.Abs(int)`: throws OverflowException on `int.MinValue` |
 | `f64_to_i32`, `f32_to_i32` | `(int)x`: truncates, NaN gives 0, saturates out of range. Same as Rust `as`. |
 | `cmp_f64`, `cmp_f32` | `double.CompareTo`, `Comparer<double>.Default`: NaN first, `-0.0 == 0.0` |
-| `equals_f64`, `equals_f32` | `double.Equals`, `object.Equals` on boxed floats: NaN equals NaN |
 | `math_max_f64`, `math_min_f64`, `math_max_f32`, `math_min_f32` | `Math.Max`/`Math.Min` on floats: NaN propagates, `Max(-0, 0) = 0`, `Min(0, -0) = -0` |
 | `NET_NAN_F64`, `NET_NAN_F32` | `double.NaN`/`float.NaN`, which have the sign bit set, unlike Rust's `f64::NAN` |
 
@@ -133,13 +120,12 @@ Some .NET grammar that Rust's `from_str` doesn't accept or gets wrong:
 
 ## Verification
 
-`tests/golden/{random,dict,set,math}.json` hold fixed cases whose expected results were recorded from .NET 10:
+`tests/golden/{dict,set,math}.json` hold fixed cases whose expected results were recorded from .NET 10:
 
-- Random: 18 edge seeds with 3000 mixed draws each, 3 seeds with 10,000 draws, and 100 random seeds.
 - Dictionary and HashSet: 200 scripts each of 300 interleaved add/set/remove/clear/copy operations, including every set operation. Separately, about 1600 HashSet cases walk the capacity boundaries that decide whether a copy keeps free slots.
 - Numbers: about 1500 doubles, floats and strings each through rounding, casts, comparison, formatting and parsing.
 
-They pin the random sequence of each seed and the dictionary and set slot order, which replaying a savegame depends on. `cargo test -p dotnet-compat --test golden` runs the cases through the Rust code (`tests/common/mod.rs`) and compares. Floats travel as bit patterns, and exceptions compare as `"Type: message"` strings, so every exception type and message above is checked too. Rewrite the expected values with `UPDATE_GOLDENS=1` only together with a deliberate change to randomness or ordering, and review the diff.
+They pin the dictionary and set slot order, which players see and replaying a savegame depends on. `cargo test -p dotnet-compat --test golden` runs the cases through the Rust code (`tests/common/mod.rs`) and compares. Floats travel as bit patterns, and exceptions compare as `"Type: message"` strings, so every exception type and message above is checked too. Rewrite the expected values with `UPDATE_GOLDENS=1` only together with a deliberate change to ordering or formatting, and review the diff.
 
 `tests/api.rs` covers what the cases don't: serde, `Clone` versus the copy constructor, and the panics that stand for .NET exceptions.
 

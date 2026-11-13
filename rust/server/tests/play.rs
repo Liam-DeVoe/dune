@@ -28,9 +28,10 @@ async fn alliance_game(s: &mut TestServer) -> (User, User, String) {
     let alice = s.user("alice").await;
     let bobby = s.user("bobby").await;
     let game = s.fixture_game(&alice, "alliance").await;
-    s.ok(alice.conn, "RequestAssignSeats", json!([alice.token, game, [[alice.id, 0]]])).await;
-    s.ok(alice.conn, "RequestOpenOrCloseSeat", json!([alice.token, game, 3])).await;
-    s.ok(bobby.conn, "RequestJoinGame", json!([bobby.token, game, "", 3])).await;
+    let (emperor, atreides) = alliance_seats();
+    s.ok(alice.conn, "RequestAssignSeats", json!([alice.token, game, [[alice.id, emperor]]])).await;
+    s.ok(alice.conn, "RequestOpenOrCloseSeat", json!([alice.token, game, atreides])).await;
+    s.ok(bobby.conn, "RequestJoinGame", json!([bobby.token, game, "", atreides])).await;
     (alice, bobby, game)
 }
 
@@ -365,7 +366,8 @@ fn async_play_mails_the_players() {
         assert_eq!(mail.to, vec!["alice@example.com"]);
         assert_eq!(mail.subject, "Update for Dune");
         assert!(mail.body.contains(&format!("/{}/{game}", alice.token)), "a link to the game: {}", mail.body);
-        assert!(mail.body.contains("Waiting for: Alice Player, Bobby Player"), "{}", mail.body);
+        // Who is waited for depends on the factions the game dealt.
+        assert!(mail.body.contains("Waiting for: ") && mail.body.contains("Bobby Player"), "{}", mail.body);
     });
 }
 

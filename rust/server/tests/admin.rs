@@ -137,7 +137,7 @@ fn reloading_keeps_running_games_as_they_are() {
         let admin = s.user("admin").await;
         let alice = s.user("alice").await;
         let game = s.fixture_game(&alice, "alliance").await;
-        s.ok(alice.conn, "RequestAssignSeats", json!([alice.token, game, [[alice.id, 0]]])).await;
+        s.ok(alice.conn, "RequestAssignSeats", json!([alice.token, game, [[alice.id, alliance_seats().0]]])).await;
         s.ok(alice.conn, "SubmitEvent", json!([alice.token, game, {"$type": "AllianceOffered", "Target": faction::ATREIDES, "Initiator": faction::EMPEROR}])).await;
         let before = s.latest_view(alice.conn).unwrap()["eventNumber"].clone();
 

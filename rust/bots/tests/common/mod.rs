@@ -128,6 +128,8 @@ pub struct Probes {
     by_step: BTreeMap<i64, Vec<usize>>,
     count: usize,
     failures: Vec<String>,
+    /// Each probe's result as the file had it, for `relocate`.
+    before: Vec<(usize, String)>,
 }
 
 impl Probes {
@@ -139,7 +141,8 @@ impl Probes {
                 by_step.entry(o["n"].as_i64().unwrap()).or_default().push(i);
             }
         }
-        Probes { file: file.to_string(), lines, by_step, count: 0, failures: vec![] }
+        let before = lines.iter().enumerate().filter(|(_, o)| o.get("m").is_some()).map(|(i, o)| (i, o["r"].as_str().unwrap_or("").to_string())).collect();
+        Probes { file: file.to_string(), lines, by_step, count: 0, failures: vec![], before }
     }
 
     /// The indices of the probes made after step `n`, in file order.
@@ -238,7 +241,7 @@ pub fn run_probes(prefix: &str, name: &str, bots: Bots, mut call: impl FnMut(&mu
             let b = &mut bot.as_mut().unwrap().1;
             let (m, a) = (p["m"].as_str().unwrap(), args(&p));
             let actual = result_of(|| call(game, b, m, &a));
-            let draws = b.random.get_count() as i64;
+            let draws = b.random.state().get_word_pos() as i64;
             if !probes.check(i, &actual, draws) && bots == Bots::Shared {
                 skip = Some(pi);
             }
@@ -247,5 +250,50 @@ pub fn run_probes(prefix: &str, name: &str, bots: Bots, mut call: impl FnMut(&mu
             }
         }
     });
+    if updating() && std::env::var("RELOCATE_PROBES").is_ok() {
+        relocate(&mut probes, name, &mut call);
+    }
     probes.finish();
+}
+
+/// Steps a probe may move, at most, when it is relocated.
+const RELOCATE_WINDOW: i64 = 400;
+
+/// `RELOCATE_PROBES=1 UPDATE_GOLDENS=1`: moves probes to a step where their arguments make sense
+/// again. The probes name players, locations, battalions and battles of the game at their step,
+/// so after the recorded game changes (a new random number generator, `observe refit`) many of
+/// them panic where they returned a result before. Each probe whose result before the update
+/// wasn't `EX`, and is `EX` now, moves to the nearest later step (then the nearest earlier one)
+/// within `RELOCATE_WINDOW` where a fresh bot answers it without panicking. Run the update once
+/// more afterwards without `RELOCATE_PROBES`, so the results are those of a normal run.
+fn relocate(probes: &mut Probes, name: &str, call: &mut impl FnMut(&mut Game, &mut ClassicBot, &str, &[String]) -> String) {
+    let mut seeking: Vec<usize> = probes
+        .before
+        .iter()
+        .filter(|(i, r)| r.as_str() != "EX" && probes.lines[*i]["r"] == "EX")
+        .map(|(i, _)| *i)
+        .collect();
+    let total = seeking.len();
+    for forward in [true, false] {
+        let origin: BTreeMap<usize, i64> = seeking.iter().map(|&i| (i, probes.lines[i]["n"].as_i64().unwrap())).collect();
+        replay(name, |game, n| {
+            seeking.retain(|&i| {
+                let o = origin[&i];
+                let inside = if forward { n > o && n <= o + RELOCATE_WINDOW } else { n < o && n >= o - RELOCATE_WINDOW };
+                if !inside {
+                    return true;
+                }
+                let p = probes.lines[i].clone();
+                let mut bot = bot_for(game, &p);
+                let (m, a) = (p["m"].as_str().unwrap(), args(&p));
+                let actual = result_of(|| call(game, &mut bot, m, &a));
+                if actual == "EX" {
+                    return true;
+                }
+                probes.lines[i]["n"] = json!(n);
+                false
+            });
+        });
+    }
+    eprintln!("{}: relocated {} of {} probes that panic now", probes.file, total - seeking.len(), total);
 }

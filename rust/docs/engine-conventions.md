@@ -7,7 +7,7 @@ How `rust/engine` represents the game: enums, static data, players, events, mess
 - Modules are organized by concern; [engine.md](engine.md) describes the layout. (Until 2026-11-12 there was one module per C# file, named after it.)
 - Members keep their C# names in snake_case and their C# order. Properties become methods: `card.IsWeapon` is `card.is_weapon()`.
 - A name that is a Rust keyword gets a trailing underscore: `card.Type` is `card.type_()`.
-- Support modules have no C# counterpart. `shared.rs` holds `Shared<T>` and `RcKey<T>`, `enum_type.rs` defines how enums work, `iter.rs` the iterator and map helpers std lacks, `compat/date_time_offset.rs` is `DateTimeOffset`/`TimeSpan`, `compat/random_ext.rs` the random selection helpers, `json/mod.rs` and `json/members.rs` are the event JSON, and `prelude.rs` is the common import.
+- Support modules have no C# counterpart. `shared.rs` holds `Shared<T>` and `RcKey<T>`, `enum_type.rs` defines how enums work, `iter.rs` the iterator and map helpers std lacks, `compat/date_time_offset.rs` is `DateTimeOffset`/`TimeSpan`, `random.rs` the random number generator and selection helpers, `json/mod.rs` and `json/members.rs` are the event JSON, and `prelude.rs` is the common import.
 - `map/data.rs` and the enum declarations in `enumerations.rs` were generated from the C# source once and are edited by hand now. `tests/static_data.rs` checks them against a snapshot.
 - Mark deliberate copies of C# bugs with `// C# parity: <why>`.
 
@@ -160,7 +160,7 @@ game.map.find_neighbours_for_hms_movement(start, 1, false, game.sector_in_storm)
 
   `Game.participation` is a `Shared<Participation>` too. `new Game(version, participation)` keeps the caller's object, and the games that `Undo`, `RestoreRecentlyUndone` and `DismissRecentlyUndone` make share it, so `Game::new_int32_participation` takes a `&Shared<Participation>`.
 - When C# uses an object as an identity token, key by a stable handle: `PlayerIndex` for players (`LegacyNames`), `shared::RcKey<Event>` for events (`DealResponses` is keyed by `RcKey<DealOffered>`). Don't compare structurally.
-- `LoggedRandom` is shared between `Game.Random` and every deck built from it. That is `logged_random::SharedRandom`, a `Shared<LoggedRandom>`.
+- The game's random number generator is shared between `Game.random` and every deck built from it. That is `random::SharedRandom`, a `Shared<GameRng>`.
 - C# objects that hold their owning game (`Player.Game`, `PlayerSequence._game`, `GameEvent.Game`) don't keep it in Rust. Their methods take the game as a parameter.
 
 ## Players
@@ -343,27 +343,37 @@ Rust iterator adapters are lazy and pull one element at a time, like LINQ. `filt
 - Methods returning a lazy query over game state return `impl Iterator<Item = T>` too, built from the same adapters with `move` closures. Callers stop where C# stops: `Any()` is `.next().is_some()`, `Contains(x)` is `.any(|v| v == x)`, `FirstOrDefault()` is `.next()` and `FirstOrDefault(p)` is `.find(p)`. A `Vec` would run the predicate on elements that C# never reaches, and those can throw (a null card after the match). What C# evaluates at the call (the receiver of the first operator) goes before the iterator; what it evaluates inside a lambda (`p.Faction` of a possibly null `p`) goes inside the closure.
 - Where C# enumerates the query later, after a mutation, or more than once, the Rust code must re-run the query at that point. Write a comment saying so.
 - `ToList()` is `collect::<Vec<_>>()`. `Distinct()` is `distinct()` (`iter::IterExt`), which keeps the first occurrence and uses `==`.
-- `OrderBy`/`ThenBy` are stable sorts that compute each key once, in element order, before sorting. Use `sort_by_cached_key`, or compute the keys first, when a key has side effects such as random draws. Shared and Bots never called `List.Sort`, so no unstable sort is needed.
+- `OrderBy`/`ThenBy` are stable sorts that compute each key once, in element order, before sorting. Use `sort_by_cached_key`, or compute the keys first, when a key has side effects such as random draws.
 - Collections: see [Collections](#collections).
 - C# returns `default` for "OrDefault" operators: null for classes, but 0 or `false` for value types. Rust returns `Option`, so write `.unwrap_or_default()` at value-type call sites.
 
 ## Randomness
 
+Every random draw of a game comes from one generator, a ChaCha8 stream (`rand_chacha::ChaCha8Rng`, `random::GameRng`) seeded with the `Seed` of `EstablishPlayers`. A game is its seed plus its events, so replaying the events gives the same game. Each bot has its own generator of the same kind, seeded when the bot is created (the server draws the seed from the operating system; the harness records it in the trace).
+
 ```rust
-// Game.Random = new LoggedRandom(Seed);
-game.random = Some(SharedRandom::from_seed(seed));
+// EstablishPlayers
+game.random = Some(SharedRandom::from_seed(self.seed));
 
-// new Deck<TreacheryCard>(cards, Game.Random)  (Random may still be null in C#)
+// A deck shares the game's generator
 let mut deck = Deck::new(cards, game.random.clone());
-deck.shuffle();                                      // same draws as Deck<T>.Shuffle
-let card = deck.draw();                              // throws on an empty deck
+deck.shuffle();                                      // SliceRandom::shuffle
+let card = deck.draw();                              // panics on an empty deck; try_draw fails the event
 
-// player.TreacheryCards.RandomOrDefault(Game.Random!)
-use crate::extension_methods::RandomExt;
-let c = player.treachery_cards.iter().copied().random_or_default(game.random.as_ref().expect("random"));
+// rand's sampling on the generator
+use crate::random::Rng;
+let roll = game.random.as_ref().expect("random").lock().random_range(1..=6);
+
+// A random item, or a random one of the best (prelude: RandomPick)
+let card = player.treachery_cards.iter().copied().random_item(game.random.as_ref().expect("random"));
+let hero = heroes.into_iter().random_highest(&self.random, |h| h.value());
 ```
 
-`RandomOrDefault` only draws when there are two or more items. The bots' overloads that use a process-wide random are the `*_unseeded` methods, seeded with `set_static_random_seed`.
+`RandomPick` (`random.rs`) has `random_item`, `random_highest`, `random_lowest` and `random_of_lowest_n`. Each collects the items and computes every key once before it draws, so a key function may draw from the same generator, and `random_item` draws only when there are two or more items. Keys implement `RankKey`: integers, `bool`, the game enums, and floats (by `total_cmp`, with -0 equal to 0). Don't hold `SharedRandom::lock()` across a call that may draw from the same generator: the `RefCell` panics.
+
+Why ChaCha8 and not `rand::rngs::StdRng`: rand may change `StdRng`'s algorithm in any release, and a different stream turns every saved game into a different game. `rand_chacha` promises the same stream for a seed on every platform and version, and rand promises the same results from `random_range`, `shuffle` and `choose` within a minor version (0.9). A new minor version of rand, or turning on rand's `unbiased` feature anywhere in the workspace, can change the draws. `deck_shuffle_and_random_item` in tests/static_data.rs pins a few streams and catches that; such a change needs a new game version (`Game::LATEST_VERSION`), like the move to this generator in version 189 ([behavior-changes.md](behavior-changes.md#random-number-generator)).
+
+Nothing counts draws any more. Tests that check how far a generator has drawn compare `SharedRandom::state()` with a generator that made the expected draws, or read its `get_word_pos()`.
 
 ## Process-wide state
 
@@ -393,7 +403,7 @@ Known gaps, all on malformed input: a duplicate `$type` is not detected, nesting
 
 ## Snapshot tests
 
-Several engine tests compare what the engine computes with values recorded in `tests/golden/`: the static data and pathfinding (`static_data.rs`), event JSON (`event_json.rs`), message texts (`message_corpus.rs`), the random helpers' draws (`random_helpers.rs`), and a few rule walkthroughs (`sync_v188.rs`, `review_pkg_b.rs`, `review_pkg_c.rs`). The values were first recorded from the C# engine and have matched the Rust output since. A difference is a change in behavior. After a deliberate one, rewrite the snapshots and review the diff:
+Several engine tests compare what the engine computes with values recorded in `tests/golden/`: the static data and pathfinding (`static_data.rs`), event JSON (`event_json.rs`), message texts (`message_corpus.rs`), the generator's streams (in `static_data.rs`), and a few rule walkthroughs (`sync_v188.rs`, `review_pkg_b.rs`, `review_pkg_c.rs`). The values were first recorded from the C# engine and have matched the Rust output since. A difference is a change in behavior. After a deliberate one, rewrite the snapshots and review the diff:
 
 ```sh
 UPDATE_GOLDENS=1 cargo test --release -p treachery-engine
@@ -411,7 +421,6 @@ Iteration order is observable in many places: the log, the views (spice, strongh
 
 ## What is left of .NET
 
-- `dotnet_compat::NetRandom` and the selection helpers in `compat/random_ext.rs` (with `CsComparable` for their keys): the game's random draws. They go when the RNG is replaced (native-plan.md step 4).
 - `NetDictionary`/`NetHashSet` for the fields above.
 - `dotnet_compat::fmt` (float `ToString()`), `fmt::string_format` and `parse`: log texts and the parsing of the strings events carry (force locations, Clairvoyance parameters).
 - `compat/date_time_offset.rs`: the `Time` of events in the JSON.

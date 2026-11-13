@@ -18,10 +18,10 @@ How `rust/engine` and `rust/bots` are organized. Most engine code starts with `u
 | `iter.rs` | Iterator and map helpers std lacks (`unique`, `distinct`, `remove_first`, `MapExt::insert_new`). |
 | `enum_type.rs` | How the enums are made (`game_enum!`, `GameEnum`): open `i32` newtypes that print like .NET's `Enum.ToString()`. |
 | `shared.rs` | `Shared<T>` (the settings an event shares with the game) and `RcKey<T>` (an event as a map key). |
-| `random.rs` | `LoggedRandom`, the game's random number generator. |
+| `random.rs` | The game's random number generator (`GameRng`, a ChaCha8 stream, shared as `SharedRandom`) and the selection helpers (`RandomPick`: `random_item`, `random_highest`, ...). |
 | `json/` | Reading and writing events and savegames, byte for byte in the established JSON format. |
 | `error.rs` | `GameError`: an accepted event that failed partway (see engine-conventions.md, "Errors"). |
-| `compat/` | .NET behavior the engine still needs: `DateTimeOffset`/`TimeSpan` (event JSON) and the random selection helpers that draw from .NET's `Random` (until the RNG changes, native-plan.md step 4). |
+| `compat/` | .NET behavior the engine still needs: `DateTimeOffset`/`TimeSpan`, whose text is part of the event JSON. |
 
 Inside `game/` and `events/`, the submodules are private and their items are re-exported, so a type is reached as `treachery_engine::game::Player` or `treachery_engine::events::Shipment`, wherever its file is. Three traits are the exception: `events::bid_trait::IBid`, `events::location_event::ILocationEvent` and `events::placement::IPlacement`. Their method names clash with the `GameEventMethods` ones, so they are not glob-exported, and `GameEvent` has a dispatching method for each of their members.
 

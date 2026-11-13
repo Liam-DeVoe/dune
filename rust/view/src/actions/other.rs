@@ -194,6 +194,12 @@ pub fn default_draft(game: &Game, faction: Faction, t: GameEventType) -> Option<
             e.text = Some(String::new());
             event(e)
         }
+        GameEventType::KarmaMonster => {
+            // Nothing picked on the map yet.
+            let mut e = KarmaMonster::new(game, faction);
+            e.set_territory(game, None);
+            event(e)
+        }
         GameEventType::EmperorBidSupport => {
             let mut e = EmperorBidSupport::new(game, faction);
             let mut amounts = IndexMap::new();

@@ -19,16 +19,16 @@ impl Utilities {
     }
 
     /// `ToDictionary`: a compact copy in enumeration order (keys are unique).
-    pub fn clone_object_dictionary<TX: Clone + Eq + std::hash::Hash + 'static, TY: Clone>(to_clone: &NetDictionary<TX, TY>) -> NetDictionary<TX, TY> {
-        let mut result = NetDictionary::new();
+    pub fn clone_object_dictionary<TX: Clone + Eq + std::hash::Hash + 'static, TY: Clone>(to_clone: &IndexMap<TX, TY>) -> IndexMap<TX, TY> {
+        let mut result = IndexMap::new();
         for (k, v) in to_clone.iter() {
             result.insert(k.clone(), v.clone());
         }
         result
     }
 
-    pub fn clone_enum_dictionary<TX: Clone + Eq + std::hash::Hash + 'static, TY: Copy>(to_clone: &NetDictionary<TX, TY>) -> NetDictionary<TX, TY> {
-        let mut result = NetDictionary::new();
+    pub fn clone_enum_dictionary<TX: Clone + Eq + std::hash::Hash + 'static, TY: Copy>(to_clone: &IndexMap<TX, TY>) -> IndexMap<TX, TY> {
+        let mut result = IndexMap::new();
         for (k, v) in to_clone.iter() {
             result.insert(k.clone(), *v);
         }
@@ -198,7 +198,7 @@ impl Utilities {
 
         for font_definition_part in fontsize_lower.split(' ') {
             if font_definition_part.contains("px") {
-                let number_part = &font_definition_part[..font_definition_part.find("px").nre()];
+                let number_part = &font_definition_part[..font_definition_part.find("px").expect("find")];
                 if let Ok(fontsize_number) = dotnet_compat::parse::try_float_parse_invariant(Some(number_part)) {
                     result += " ";
                     result += &Utilities::px((scale * fontsize_number) as f64);

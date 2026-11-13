@@ -34,7 +34,6 @@ impl Thought {
     }
 
     pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.card_id = TreacheryCardManager::get_id(value);
     }
 
@@ -59,7 +58,7 @@ impl Thought {
         game.skilled_as_player_leader_skill(player, LeaderSkill::Thinker)
             && game.current_battle.is_some()
             && game.current_thought.is_none()
-            && game.current_battle.as_ref().nre().is_aggressor_or_defender(game, player)
+            && game.current_battle.as_ref().expect("current battle").is_aggressor_or_defender(game, player)
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {

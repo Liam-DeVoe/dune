@@ -30,7 +30,6 @@ impl KarmaMonster {
     }
 
     pub fn set_territory(&mut self, game: &Game, value: Option<Territory>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.territory_id = game.map.territory_lookup().get_id(value);
     }
 
@@ -51,7 +50,7 @@ impl KarmaMonster {
         game.play_karma(me, card, effect);
         game.player_mut(me).special_karma_power_used = true;
         game.stone(Milestone::Karma);
-        game.number_of_monsters = game.number_of_monsters.wrapping_add(1);
+        game.number_of_monsters += 1;
         let territory = self.territory(game);
         game.let_monster_appear(territory, false);
 

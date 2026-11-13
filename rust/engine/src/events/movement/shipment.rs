@@ -71,7 +71,6 @@ impl Shipment {
     }
 
     pub fn set_to(&mut self, game: &Game, value: Option<Location>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.to_id = game.map.location_lookup().get_id(value);
     }
 
@@ -84,7 +83,6 @@ impl Shipment {
     }
 
     pub fn set_from(&mut self, game: &Game, value: Option<Location>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.from_id = game.map.location_lookup().get_id(value);
     }
 
@@ -93,19 +91,19 @@ impl Shipment {
     }
 
     pub fn no_field_value(&self) -> i32 {
-        self.no_field_value.wrapping_sub(1)
+        self.no_field_value - 1
     }
 
     pub fn set_no_field_value(&mut self, value: i32) {
-        self.no_field_value = value.wrapping_add(1);
+        self.no_field_value = value + 1;
     }
 
     pub fn cunning_no_field_value(&self) -> i32 {
-        self.cunning_no_field_value.wrapping_sub(1)
+        self.cunning_no_field_value - 1
     }
 
     pub fn set_cunning_no_field_value(&mut self, value: i32) {
-        self.cunning_no_field_value = value.wrapping_add(1);
+        self.cunning_no_field_value = value + 1;
     }
 
     pub fn karma_card(&self) -> Option<TreacheryCard> {
@@ -113,7 +111,6 @@ impl Shipment {
     }
 
     pub fn set_karma_card(&mut self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.karma_card_id = TreacheryCardManager::get_id(value);
     }
 
@@ -124,7 +121,7 @@ impl Shipment {
     pub fn is_back_to_reserves(&self) -> bool {
         // ForceAmount + SpecialForceAmount is an unchecked int addition (hazards 1.3).
         self.shipment_type == ShipmentType::ShipmentBack
-            || (self.shipment_type == ShipmentType::Unknown && self.force_amount.wrapping_add(self.special_force_amount) < 0)
+            || (self.shipment_type == ShipmentType::Unknown && (self.force_amount + self.special_force_amount) < 0)
     }
 
     pub fn is_site_to_site(&self, game: &Game) -> bool {
@@ -137,24 +134,24 @@ impl Shipment {
     }
 
     pub fn total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {
-        self.forces_added_to_location(game).wrapping_add(self.special_forces_added_to_location(game))
+        self.forces_added_to_location(game) + self.special_forces_added_to_location(game)
     }
 
     pub fn forces_added_to_location(&self, _game: &Game) -> i32 {
-        if self.use_richese_secret_ally { 1 } else { self.force_amount.wrapping_add(self.smuggled_amount) }
+        if self.use_richese_secret_ally { 1 } else { self.force_amount + self.smuggled_amount }
     }
 
     pub fn special_forces_added_to_location(&self, _game: &Game) -> i32 {
-        if self.use_richese_secret_ally { 0 } else { self.special_force_amount.wrapping_add(self.smuggled_special_amount) }
+        if self.use_richese_secret_ally { 0 } else { self.special_force_amount + self.smuggled_special_amount }
     }
 
-    pub fn force_locations(&self, game: &Game) -> NetDictionary<Location, Battalion> {
+    pub fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         // Player.Faction: NullReferenceException when Player is null, before the string is parsed.
         let f = game.player(self.player()).faction;
         Shipment::parse_force_locations(game, f, self.force_locations.as_deref())
     }
 
-    pub fn set_force_locations(&mut self, game: &Game, value: &NetDictionary<Location, Battalion>) {
+    pub fn set_force_locations(&mut self, game: &Game, value: &IndexMap<Location, Battalion>) {
         self.force_locations = Some(Shipment::force_locations_string(game, value));
     }
 
@@ -166,16 +163,16 @@ impl Shipment {
         } else {
             0
         };
-        cost.wrapping_add(extra)
+        cost + extra
     }
 
     pub fn determine_cost_to_initiator(&self, g: &Game) -> i32 {
         let Some(_to) = self.to(g) else { return 0 };
 
-        Shipment::determine_cost(g, self.player(), self).wrapping_sub(self.ally_contribution_amount)
+        Shipment::determine_cost(g, self.player(), self) - self.ally_contribution_amount
     }
 
-    pub fn force_locations_string(g: &Game, force_locations: &NetDictionary<Location, Battalion>) -> String {
+    pub fn force_locations_string(g: &Game, force_locations: &IndexMap<Location, Battalion>) -> String {
         force_locations
             .iter()
             .map(|(k, v)| format!("{}:{}|{}", g.map.location_lookup().get_id(Some(*k)), v.amount_of_forces, v.amount_of_special_forces))
@@ -183,8 +180,8 @@ impl Shipment {
             .join(",")
     }
 
-    pub fn parse_force_locations(g: &Game, f: Faction, force_locations: Option<&str>) -> NetDictionary<Location, Battalion> {
-        let mut result = NetDictionary::new();
+    pub fn parse_force_locations(g: &Game, f: Faction, force_locations: Option<&str>) -> IndexMap<Location, Battalion> {
+        let mut result = IndexMap::new();
         if let Some(s) = force_locations {
             if !s.is_empty() {
                 for location_amount_pair in s.split(',') {
@@ -192,14 +189,14 @@ impl Shipment {
                     let location = g
                         .map
                         .location_lookup()
-                        .find(dotnet_compat::parse::convert_to_int32(Some(*cs::index_array(&location_and_amounts, 0))));
+                        .find(dotnet_compat::parse::convert_to_int32(Some(location_and_amounts[0])));
 
                     let Some(location) = location else { continue };
 
-                    let amounts: Vec<&str> = cs::index_array(&location_and_amounts, 1).split('|').collect();
-                    let amount_of_normal_forces = dotnet_compat::parse::convert_to_int32(Some(*cs::index_array(&amounts, 0)));
-                    let amount_of_normal_special_forces = dotnet_compat::parse::convert_to_int32(Some(*cs::index_array(&amounts, 1)));
-                    result.add(location, Battalion::new(f, amount_of_normal_forces, amount_of_normal_special_forces, location));
+                    let amounts: Vec<&str> = location_and_amounts[1].split('|').collect();
+                    let amount_of_normal_forces = dotnet_compat::parse::convert_to_int32(Some(amounts[0]));
+                    let amount_of_normal_special_forces = dotnet_compat::parse::convert_to_int32(Some(amounts[1]));
+                    result.insert_new(location, Battalion::new(f, amount_of_normal_forces, amount_of_normal_special_forces, location));
                 }
             }
         }
@@ -214,7 +211,7 @@ impl Shipment {
 
         // `var p = Player;` may be null (hazards 1.8): it throws only where C# dereferences it.
         let p_opt = self.player_opt();
-        let p = || p_opt.nre();
+        let p = || p_opt.expect("player");
 
         if !self.is_site_to_site(game) && game.prevented_from_shipping(self.initiator()) {
             return Some(express!(TreacheryCardType::Karma, " prevents you from shipping"));
@@ -226,7 +223,7 @@ impl Shipment {
         if self.is_back_to_reserves() {
             let source = self.source_location_for_shipment_to_reserves(game);
             let mut valid = Shipment::valid_source_locations(game, p());
-            if !valid.any(|v| v == source.or_null()) {
+            if !valid.any(|v| Some(v) == source) {
                 return Some(express!("You can't ship back to reserves from there"));
             }
         }
@@ -245,7 +242,7 @@ impl Shipment {
         if self.is_site_to_site(game) {
             let from = self.from(game);
             let mut valid = Shipment::valid_source_locations(game, p());
-            if !valid.any(|v| v == from.or_null()) {
+            if !valid.any(|v| Some(v) == from) {
                 return Some(express!("You can't ship site-to-site from there"));
             }
         }
@@ -261,7 +258,7 @@ impl Shipment {
         };
 
         let cost = Shipment::determine_cost(game, p(), self);
-        if cost > game.player(p()).resources.wrapping_add(self.ally_contribution_amount) {
+        if cost > (game.player(p()).resources + self.ally_contribution_amount) {
             return Some(express!("You can't pay that much"));
         }
         if cost < self.ally_contribution_amount {
@@ -308,12 +305,12 @@ impl Shipment {
         }
 
         // C# parity: the sums wrap (hazards 1.3), so int.MaxValue + 1 passes the check.
-        if !self.is_site_to_site(game) && self.force_amount.wrapping_add(self.smuggled_amount) > game.player(p()).forces_in_reserve() {
+        if !self.is_site_to_site(game) && (self.force_amount + self.smuggled_amount) > game.player(p()).forces_in_reserve() {
             return Some(express!("Not enough ", game.player(p()).force(), " in reserve"));
         }
         if !self.is_site_to_site(game)
             && !is_richese_no_field_shipment
-            && self.special_force_amount.wrapping_add(self.smuggled_special_amount) > game.player(p()).special_forces_in_reserve()
+            && (self.special_force_amount + self.smuggled_special_amount) > game.player(p()).special_forces_in_reserve()
         {
             return Some(express!("Not enough ", game.player(p()).special_force(), " in reserve"));
         }
@@ -325,7 +322,7 @@ impl Shipment {
         if is_smuggling && (!is_shipping_from_off_planet || !Shipment::may_smuggle(game, p(), Some(to))) {
             return Some(express!("You can't smuggle forces here"));
         }
-        if self.smuggled_amount.wrapping_add(self.smuggled_special_amount) > 1 {
+        if (self.smuggled_amount + self.smuggled_special_amount) > 1 {
             return Some(express!("You can't smuggle more than 1 force"));
         }
 
@@ -338,8 +335,8 @@ impl Shipment {
 
         if self.is_no_field() && game.player(p()).faction != Faction::Richese {
             let pl = game.player(p());
-            let forces_to_ship = std::cmp::min(self.no_field_value(), pl.forces_in_reserve().wrapping_add(pl.special_forces_in_reserve()));
-            if self.force_amount.wrapping_add(self.special_force_amount) != forces_to_ship {
+            let forces_to_ship = std::cmp::min(self.no_field_value(), pl.forces_in_reserve() + pl.special_forces_in_reserve());
+            if (self.force_amount + self.special_force_amount) != forces_to_ship {
                 return Some(express!("Using a No-Field of ", self.no_field_value(), ", you must select ", forces_to_ship, " forces to ship"));
             }
         }
@@ -353,12 +350,12 @@ impl Shipment {
         if self.use_richese_secret_ally && !Shipment::may_use_richese_secret_ally(game, p()) {
             return Some(express!(Faction::Richese, " are not your secret ally"));
         }
-        if self.use_richese_secret_ally && self.force_amount.wrapping_add(self.special_force_amount) > 5 {
+        if self.use_richese_secret_ally && (self.force_amount + self.special_force_amount) > 5 {
             return Some(express!("You can't ship that much using ", Faction::Richese, " as your secret ally"));
         }
 
         // Sum is checked: OverflowException (hazards 1.3).
-        let number_of_forces_selected = dotnet_compat::linq::sum_i32(self.force_locations(game).values().map(|b| b.amount_of_forces));
+        let number_of_forces_selected = self.force_locations(game).values().map(|b| b.amount_of_forces).sum::<i32>();
         if self.forces_added_to_location(game) > 0
             && Shipment::homeworlds_to_ship_from(game, p(), false).len() > 1
             && number_of_forces_selected <= 0
@@ -370,7 +367,7 @@ impl Shipment {
         }
 
         let number_of_special_forces_selected =
-            dotnet_compat::linq::sum_i32(self.force_locations(game).values().map(|b| b.amount_of_special_forces));
+            self.force_locations(game).values().map(|b| b.amount_of_special_forces).sum::<i32>();
         if self.special_forces_added_to_location(game) > 0
             && Shipment::homeworlds_to_ship_from(game, p(), true).len() > 1
             && number_of_special_forces_selected <= 0
@@ -436,8 +433,8 @@ impl Shipment {
         match s.to(g) {
             None => 0,
             Some(to) => {
-                let forces = dotnet_compat::math::abs_i32(s.force_amount);
-                let special_forces = dotnet_compat::math::abs_i32(s.special_force_amount);
+                let forces = s.force_amount.abs();
+                let special_forces = s.special_force_amount.abs();
                 Shipment::determine_cost_game_player_int32_int32_location_boolean_boolean_boolean_boolean_boolean(
                     g,
                     p,
@@ -463,18 +460,18 @@ impl Shipment {
     }
 
     pub fn determine_cost_game_player_int32_int32_location_boolean_boolean_boolean_boolean_boolean(g: &Game, p: PlayerIndex, forces: i32, special_forces: i32, to: Location, karama_shipment: bool, back_to_reserves: bool, site_to_site: bool, no_field_by_richese: bool, no_field_by_non_richese: bool) -> i32 {
-        let mut total_forces = forces.wrapping_add(special_forces);
+        let mut total_forces = forces + special_forces;
         let no_field_or_secret_ally = no_field_by_richese || no_field_by_non_richese;
 
         if no_field_by_non_richese {
-            total_forces = std::cmp::min(forces.wrapping_add(special_forces), 1);
+            total_forces = std::cmp::min(forces + special_forces, 1);
         } else if no_field_by_richese {
             total_forces = std::cmp::max(forces, 1);
         }
 
         // (int)Math.Ceiling(0.5f * totalForces): float product, widened to double for Math.Ceiling.
         if back_to_reserves {
-            return dotnet_compat::math::f64_to_i32(((0.5f32 * total_forces as f32) as f64).ceil());
+            return ((0.5f32 * total_forces as f32) as f64).ceil() as i32;
         }
 
         if !site_to_site
@@ -487,13 +484,13 @@ impl Shipment {
 
         // The int product can wrap before it is widened to double (hazards 15).
         let mut cost_of_shipment: f64 =
-            dotnet_compat::math::abs_i32(total_forces).wrapping_mul(if to.territory().has_reduced_shipping_cost() { 1 } else { 2 }) as f64;
+            (total_forces.abs() * if to.territory().has_reduced_shipping_cost() { 1 } else { 2 }) as f64;
 
         if Shipment::may_ship_with_discount(g, p) || karama_shipment || (site_to_site && g.has_shipment_permission(p, ShipmentPermission::GuildRate)) {
             cost_of_shipment /= 2.0;
         }
 
-        dotnet_compat::math::f64_to_i32(cost_of_shipment.ceil())
+        cost_of_shipment.ceil() as i32
     }
 
     pub fn valid_max_normal_shipment_forces(game: &Game, p: PlayerIndex, special_forces: bool, used_no_field: i32) -> i32 {
@@ -520,7 +517,6 @@ impl Shipment {
     }
 
     pub fn valid_max_shipment_back_forces(game: &Game, p: PlayerIndex, special_forces: bool, source: Option<Location>) -> i32 {
-        let source = source.and_then(crate::compat::cs::CsNull::opt);
         if source.is_none() {
             return 0;
         }
@@ -529,7 +525,6 @@ impl Shipment {
     }
 
     pub fn valid_max_shipment_site_to_site_forces(game: &Game, p: PlayerIndex, special_forces: bool, source: Option<Location>) -> i32 {
-        let source = source.and_then(crate::compat::cs::CsNull::opt);
         if source.is_none() {
             return 0;
         }
@@ -589,7 +584,7 @@ impl Shipment {
             && g.players.iter().any(|native| native.is_native_homeworld(hw))
             && (!pl.has_ally() || {
                 // p.AlliedPlayer may be null when the ally is not in the game: NullReferenceException.
-                let ally = g.player(pl.allied_player(g).nre());
+                let ally = g.player(pl.allied_player(g).expect("allied player"));
                 !ally.is_native_homeworld(hw) && ally.any_forces_in(Some(hw.location())) == 0
             })
     }
@@ -664,7 +659,6 @@ impl Shipment {
     }
 
     pub fn may_smuggle(g: &Game, p: PlayerIndex, l: Option<Location>) -> bool {
-        let l = l.and_then(crate::compat::cs::CsNull::opt);
         match l {
             None => false,
             Some(l) => {
@@ -748,7 +742,7 @@ impl Shipment {
                     Player::ship_special_forces(game, richese, self.to(game).required("to")?, 1);
                     game.current_no_field_value = self.cunning_no_field_value();
                     let me = self.player();
-                    game.play_nexus_card(me, elems!["Cunning", "ship and reveal a second ", FactionSpecialForce::Richese]);
+                    game.play_nexus_card(me, elems!["ship and reveal a second ", FactionSpecialForce::Richese]);
                 }
 
                 game.reveal_current_no_field(richese, None);
@@ -782,21 +776,21 @@ impl Shipment {
                     let me = self.player();
                     let target = match self.target_world_for_shipment_to_reserves(game) {
                         Some(hw) => hw,
-                        None => *cs::index(&game.player(me).home_worlds, 0),
+                        None => game.player(me).home_worlds[0],
                     };
                     // C# parity: only ForceAmount is moved, although special forces are charged for (hazards 18).
                     Player::ship_forces_location_homeworld_int32(game, me, source, target, self.force_amount);
                 }
             } else if self.is_no_field() && self.initiator() == Faction::Richese && self.to(game).is_some() {
                 let to = self.to(game).required("to")?;
-                self.perform_normal_shipment(game, self.player(), to, self.force_amount.wrapping_add(self.smuggled_amount), 1);
+                self.perform_normal_shipment(game, self.player(), to, self.force_amount + self.smuggled_amount, 1);
             } else if let Some(to) = self.to(game) {
                 self.perform_normal_shipment(
                     game,
                     self.player(),
                     to,
-                    self.force_amount.wrapping_add(self.smuggled_amount),
-                    self.special_force_amount.wrapping_add(self.smuggled_special_amount),
+                    self.force_amount + self.smuggled_amount,
+                    self.special_force_amount + self.smuggled_special_amount,
                 );
             }
 
@@ -824,7 +818,7 @@ impl Shipment {
                 .with_log(self.log_record(game, total_cost, received_payment));
             self.log_objects(game, elems![m]);
 
-            if total_cost.wrapping_sub(received_payment) >= 4 {
+            if (total_cost - received_payment) >= 4 {
                 game.activate_banker(self.player());
             }
 
@@ -843,7 +837,7 @@ impl Shipment {
         let cost_to_initiator = self.determine_cost_to_initiator(game);
         let me = self.player();
         let pl = game.player_mut(me);
-        pl.resources = pl.resources.wrapping_sub(cost_to_initiator);
+        pl.resources -= cost_to_initiator;
 
         if self.is_using_karma() {
             let karma_card = self.karma_card();
@@ -855,12 +849,12 @@ impl Shipment {
             let ally = game.player(self.player()).ally;
             if let Some(a) = game.get_player(Some(ally)) {
                 let ap = game.player_mut(a);
-                ap.resources = ap.resources.wrapping_sub(self.ally_contribution_amount);
+                ap.resources -= self.ally_contribution_amount;
             }
             game.decrease_permitted_use_of_ally_spice(self.initiator(), self.ally_contribution_amount);
         }
 
-        Ok(cost_to_initiator.wrapping_add(self.ally_contribution_amount))
+        Ok(cost_to_initiator + self.ally_contribution_amount)
     }
 
     pub fn handle_received_shipment_payment(self: &Rc<Self>, game: &mut Game, profit_message: &mut MessagePart) -> i32 {
@@ -877,7 +871,7 @@ impl Shipment {
                     if !game.prevented(FactionAdvantage::GuildReceiveShipment) {
                         game.modify_income_because_of_low_threshold_or_occupation(guild, &mut receiver_profit);
                         let op = game.player_mut(guild);
-                        op.resources = op.resources.wrapping_add(receiver_profit);
+                        op.resources += receiver_profit;
 
                         if receiver_profit > 0 {
                             *profit_message = express_part!(" → ", Faction::Guild, " get ", Payment::of(receiver_profit));
@@ -887,9 +881,8 @@ impl Shipment {
                             }
                         }
                     } else {
-                        // C# parity: no space before the payment (hazards 11).
                         *profit_message =
-                            express_part!(" → ", TreacheryCardType::Karma, " prevents ", Faction::Guild, " from receiving", Payment::of(receiver_profit));
+                            express_part!(" → ", TreacheryCardType::Karma, " prevents ", Faction::Guild, " from receiving ", Payment::of(receiver_profit));
                         self.guild_income_prevented.set(true);
                         if !game.applicable(Rule::FullPhaseKarma) {
                             game.allow(FactionAdvantage::GuildReceiveShipment);
@@ -901,7 +894,7 @@ impl Shipment {
 
         let ev = self.clone().into_event();
         game.set_recent_payment(receiver_profit, self.initiator(), Faction::Guild, &ev);
-        game.set_recent_payment_int32_faction_game_event(total_cost.wrapping_sub(receiver_profit), self.initiator(), &ev);
+        game.set_recent_payment_int32_faction_game_event(total_cost - receiver_profit, self.initiator(), &ev);
 
         receiver_profit
     }
@@ -1011,7 +1004,6 @@ impl Shipment {
     }
 
     pub fn get_verbose_message(&self, game: &Game, cost: i32, guild_income: &MessagePart, owner_of_karma: Option<PlayerIndex>) -> Message {
-        let owner_of_karma = owner_of_karma.and_then(crate::compat::cs::CsNull::opt);
         if self.passed {
             return express!(self.initiator(), " pass shipment");
         }
@@ -1124,7 +1116,6 @@ impl Shipment {
     }
 
     pub fn karama_message(&self, _game: &Game, owner_of_karma: Option<PlayerIndex>) -> MessagePart {
-        let owner_of_karma = owner_of_karma.and_then(crate::compat::cs::CsNull::opt);
         let karma_card = self.karma_card();
         express_part_if!(
             karma_card.is_some();

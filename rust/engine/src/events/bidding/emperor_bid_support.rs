@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug, Canon)]
 pub struct EmperorBidSupport {
-    pub amounts: Option<NetDictionary<Faction, i32>>,
+    pub amounts: Option<IndexMap<Faction, i32>>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     #[canon(flatten)]
     pub base: GameEventBase,
@@ -47,8 +47,8 @@ impl EmperorBidSupport {
 
     pub fn get_message(&self, _game: &Game) -> Message {
         // `Amounts.Sum(...)` on a null Amounts: ArgumentNullException (Parameter 'source').
-        let amounts = cs::linq_source(self.amounts.as_ref());
-        if dotnet_compat::linq::sum_i32(amounts.iter().map(|(_, v)| *v)) > 0 {
+        let amounts = self.amounts.as_ref().expect("amounts");
+        if amounts.iter().map(|(_, v)| *v).sum::<i32>() > 0 {
             // One element: the lazy Where/Select query, whose runtime type .NET 10 prints as below.
             let parts = ExpressionElement::collection(
                 "System.Linq.Enumerable+IEnumerableWhereSelectIterator`2[System.Collections.Generic.KeyValuePair`2[Treachery.Shared.Faction,System.Int32],Treachery.Shared.MessagePart]",

@@ -41,7 +41,7 @@ impl CardGiven {
             let me = self.player();
             crate::game::remove_card(&mut game.player_mut(me).treachery_cards, card);
             let ally = game.player(me).allied_player(game).required("allied player")?;
-            game.player_mut(ally).treachery_cards.push(card.or_null());
+            game.player_mut(ally).treachery_cards.push(card.required("card")?);
         }
 
         game.card_that_must_be_kept_or_given_to_ally = None;

@@ -10,8 +10,9 @@ use std::path::Path;
 
 use serde_json::value::RawValue;
 use serde_json::Value;
+use treachery_engine::iter::MapExt;
 use treachery_engine::canon::{self, Canon, CanonWriter};
-use treachery_engine::compat::cs::{self, CsException};
+use crate::cs::{self, CsException};
 use treachery_engine::enumerations::Milestone;
 use treachery_engine::events::{GameEvent, GameEventType};
 use treachery_engine::messages::expression::ExpressionElement;
@@ -460,7 +461,7 @@ impl Replayer {
         let participation = participation(line.participation.as_ref())?;
         self.bots_active = self.opts.check_bots && bots_checkable(line);
         self.during = "new Game(version, participation)".into();
-        self.game = Some(Game::new_int32_participation(version, &treachery_engine::compat::cs::Shared::new(participation)));
+        self.game = Some(Game::new_int32_participation(version, &treachery_engine::shared::Shared::new(participation)));
         Ok(())
     }
 
@@ -1151,12 +1152,12 @@ pub fn participation(v: Option<&Value>) -> Result<Participation, Failure> {
     for kv in arr("PlayerNames")? {
         let k = kv[0].as_i64().ok_or_else(|| bad("PlayerNames key"))? as i32;
         let v = kv[1].as_str().ok_or_else(|| bad("PlayerNames value"))?.to_string();
-        p.player_names.add(k, v);
+        p.player_names.insert_new(k, v);
     }
     for kv in arr("SeatedPlayers")? {
         let k = kv[0].as_i64().ok_or_else(|| bad("SeatedPlayers key"))? as i32;
         let v = kv[1].as_i64().ok_or_else(|| bad("SeatedPlayers value"))? as i32;
-        p.seated_players.add(k, v);
+        p.seated_players.insert_new(k, v);
     }
     for (key, set) in [
         ("Observers", &mut p.observers),
@@ -1165,7 +1166,7 @@ pub fn participation(v: Option<&Value>) -> Result<Participation, Failure> {
         ("Kicked", &mut p.kicked),
     ] {
         for v in arr(key)? {
-            set.add(v.as_i64().ok_or_else(|| bad(key))? as i32);
+            set.insert(v.as_i64().ok_or_else(|| bad(key))? as i32);
         }
     }
     Ok(p)

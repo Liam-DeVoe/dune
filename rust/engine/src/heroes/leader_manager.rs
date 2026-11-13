@@ -1,4 +1,3 @@
-use crate::compat::cs::CsIterExt;
 use crate::enumerations::{Faction, HeroType};
 use crate::identity::IFetcher;
 use crate::heroes::hero::Hero;
@@ -121,12 +120,11 @@ impl IFetcher<Leader> for LeaderFetcher {
         if id == -1 {
             return None;
         }
-        LeaderManager::leaders().iter().copied().cs_single_or_default_where(|t| t.id() == id)
+        LeaderManager::leaders().iter().copied().find(|t| t.id() == id)
     }
 
     fn get_id(&self, obj: Option<Leader>) -> i32 {
-        let obj = obj.and_then(crate::compat::cs::CsNull::opt);
-        obj.and_then(crate::compat::cs::CsNull::opt).map_or(-1, |l| l.id())
+        obj.map_or(-1, |l| l.id())
     }
 }
 
@@ -146,14 +144,13 @@ impl IFetcher<Hero> for HeroFetcher {
             return LeaderManager::leaders()
                 .iter()
                 .copied()
-                .cs_single_or_default_where(|t| t.id() == id)
+                .find(|t| t.id() == id)
                 .map(Hero::Leader);
         }
         TreacheryCardManager::lookup().find(id).map(Hero::TreacheryCard)
     }
 
     fn get_id(&self, obj: Option<Hero>) -> i32 {
-        let obj = obj.and_then(crate::compat::cs::CsNull::opt);
-        obj.and_then(crate::compat::cs::CsNull::opt).map_or(-1, |h| h.id())
+        obj.map_or(-1, |h| h.id())
     }
 }

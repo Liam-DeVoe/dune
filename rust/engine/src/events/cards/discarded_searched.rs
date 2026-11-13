@@ -30,14 +30,13 @@ impl DiscardedSearched {
     }
 
     pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.card_id = TreacheryCardManager::get_id(value);
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
         // List.Contains(null) is false.
         let valid_cards = DiscardedSearched::valid_cards(game);
-        if !valid_cards.contains(&self.card().or_null()) {
+        if !self.card().is_some_and(|x| valid_cards.contains(&x)) {
             return Some(express!("Invalid card"));
         }
 
@@ -45,7 +44,7 @@ impl DiscardedSearched {
     }
 
     pub fn valid_cards(g: &Game) -> Vec<TreacheryCard> {
-        g.treachery_discard_pile.as_ref().nre().items.clone()
+        g.treachery_discard_pile.as_ref().expect("treachery discard pile").items.clone()
     }
 
     pub fn can_be_played(game: &Game, p: PlayerIndex) -> bool {
@@ -60,11 +59,10 @@ impl DiscardedSearched {
             Game::unregister_known_player_i_enumerable_treachery_card(game, game.player_at(i), &items);
         }
 
-        let card = self.card();
-        cs::list_remove(&mut game.treachery_discard_pile.as_mut().required("treachery discard pile")?.items, card);
+        let card = self.card().required("card")?;
+        crate::iter::remove_first(&mut game.treachery_discard_pile.as_mut().required("treachery discard pile")?.items, &card);
         let me = self.player();
-        // C# adds `Card!` even when it is null (only reachable without validation).
-        game.player_mut(me).treachery_cards.push(card.or_null());
+        game.player_mut(me).treachery_cards.push(card);
         game.treachery_discard_pile.as_mut().required("treachery discard pile")?.shuffle();
         game.discard(me, TreacheryCardType::SearchDiscarded)?;
         let phase = game.phase_before_searching_discarded;

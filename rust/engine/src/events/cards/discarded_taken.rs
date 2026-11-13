@@ -30,14 +30,13 @@ impl DiscardedTaken {
     }
 
     pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.card_id = TreacheryCardManager::get_id(value);
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
         // ValidCards(Game, Player) is lazy: a null Player and a null discard pile are
         // dereferenced inside the predicate, per element, up to the first match.
-        if !DiscardedTaken::valid_cards(game, self.player_opt().unwrap_or(PlayerIndex::NULL)).any(|v| v == self.card().or_null()) {
+        if !DiscardedTaken::valid_cards(game, self.player()).any(|v| Some(v) == self.card()) {
             return Some(express!("Invalid card"));
         }
 
@@ -48,7 +47,7 @@ impl DiscardedTaken {
     pub fn valid_cards(g: &Game, p: PlayerIndex) -> impl Iterator<Item = TreacheryCard> {
         g.recently_discarded
             .iter()
-            .filter(move |(k, v)| **v != g.player(p).faction && g.treachery_discard_pile.as_ref().nre().items.contains(*k))
+            .filter(move |(k, v)| **v != g.player(p).faction && g.treachery_discard_pile.as_ref().expect("treachery discard pile").items.contains(*k))
             .map(move |(k, _)| *k)
     }
 

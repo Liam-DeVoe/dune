@@ -7,7 +7,7 @@
 //! the view's (`tests/ts_bindings.rs`).
 
 use serde::{Deserialize, Serialize};
-use treachery_engine::compat::cs::Shared;
+use treachery_engine::shared::Shared;
 use treachery_engine::identity::IIdentifiable;
 use treachery_engine::heroes::leader_manager::LeaderManager;
 use treachery_engine::map::LocationKind;

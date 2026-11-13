@@ -3,7 +3,7 @@
 //!
 //!   cd rust/engine/csharp-ref && dotnet run -c Release -- review-d
 
-use treachery_engine::compat::cs;
+use treachery_engine::error::catch_panic;
 use treachery_engine::prelude::*;
 
 fn game_with(factions: &[Faction]) -> Game {
@@ -32,8 +32,8 @@ fn fremen_with_dangling_ally() -> (Game, PlayerIndex) {
 fn rides_valid_targets_contains_is_lazy() {
     let (g, y) = fremen_with_dangling_ally();
     let polar_sink = g.map.polar_sink();
-    let r = cs::catch_panic(|| FremenRidesMonster::valid_targets(&g, y).any(|v| v == polar_sink));
-    assert_eq!(r.map_err(|e| format!("{}:{}", e.type_name, e.message)), Ok(true));
+    let r = catch_panic(|| FremenRidesMonster::valid_targets(&g, y).any(|v| v == polar_sink));
+    assert_eq!(r, Ok(true));
 }
 
 /// Guard: a location after the first one the predicate rejects throws in both engines
@@ -42,8 +42,8 @@ fn rides_valid_targets_contains_is_lazy() {
 fn rides_valid_targets_later_location_throws_in_both() {
     let (g, y) = fremen_with_dangling_ally();
     let arrakeen = g.map.arrakeen();
-    let r = cs::catch_panic(|| FremenRidesMonster::valid_targets(&g, y).any(|v| v == arrakeen));
-    assert_eq!(r.err().map(|e| e.type_name), Some("NullReferenceException"));
+    let r = catch_panic(|| FremenRidesMonster::valid_targets(&g, y).any(|v| v == arrakeen));
+    assert!(r.is_err());
 }
 
 /// Guard: without the dangling ally, 82 targets (review-d: `ridesValidTargets.noAlly.count = 82`).

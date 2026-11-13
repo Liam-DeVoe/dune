@@ -109,7 +109,7 @@ impl Game {
     }
 
     /// A constant table, rebuilt on each call (hazards.md section 6.2).
-    pub fn ruleset_definition() -> NetDictionary<Ruleset, Vec<Rule>> {
+    pub fn ruleset_definition() -> IndexMap<Ruleset, Vec<Rule>> {
                 // A constant table: nothing in Shared writes RulesetDefinition, so a fresh copy per call
         // is equivalent. Insertion order is the C# initializer order.
         const EXPANSION_LEVEL: i32 = Game::EXPANSION_LEVEL;
@@ -134,7 +134,7 @@ impl Game {
         }
         let empty: &[Rule] = &[];
 
-        let mut d = NetDictionary::new();
+        let mut d = IndexMap::new();
         d.insert(Ruleset::BasicGame, vec![Rule::BasicTreacheryCards, Rule::HasCharityPhase]);
 
         d.insert(

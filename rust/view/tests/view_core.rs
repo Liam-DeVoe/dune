@@ -161,7 +161,7 @@ fn tanks() {
                             continue;
                         }
                     };
-                    let s = g.leader_state.index(&Hero::Leader(l));
+                    let s = &g.leader_state[&Hero::Leader(l)];
                     assert_eq!(shown.face_down, s.is_face_down_dead());
                     times.push(s.time_of_death);
                     if shown.face_down {

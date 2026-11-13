@@ -215,7 +215,7 @@ fn csharp_field_types() -> BTreeMap<String, BTreeMap<String, String>> {
 #[test]
 fn reference_types_write_every_form_they_claim() {
     use treachery_engine::canon::{Canon, CanonShape};
-    use treachery_engine::compat::cs::Shared;
+    use treachery_engine::shared::Shared;
     use treachery_engine::enumerations::Faction;
     use treachery_engine::game::Game;
     use treachery_engine::map::location::Location;
@@ -244,9 +244,9 @@ fn reference_types_write_every_form_they_claim() {
     let l = Location::from_id(1).unwrap();
     let t = Territory::from_id(1).unwrap();
     let cases: Vec<(&str, BTreeSet<String>, BTreeSet<String>)> = vec![
-        ("PlayerIndex", claimed::<PlayerIndex>(), written(&game, vec![&own_player, &PlayerIndex::NULL])),
-        ("Location", claimed::<Location>(), written(&game, vec![&l, &Location::NULL])),
-        ("Territory", claimed::<Territory>(), written(&game, vec![&t, &Territory::NULL])),
+        ("PlayerIndex", claimed::<PlayerIndex>(), written(&game, vec![&own_player])),
+        ("Location", claimed::<Location>(), written(&game, vec![&l])),
+        ("Territory", claimed::<Territory>(), written(&game, vec![&t])),
     ];
     let mut problems = Vec::new();
     for (name, claimed, written) in cases {

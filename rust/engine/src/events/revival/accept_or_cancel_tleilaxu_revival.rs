@@ -34,7 +34,6 @@ impl AcceptOrCancelTleilaxuRevival {
     }
 
     pub fn set_hero(&mut self, value: Option<Hero>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.hero_id = LeaderManager::hero_lookup().get_id(value);
     }
 
@@ -54,7 +53,7 @@ impl AcceptOrCancelTleilaxuRevival {
                 let requests = game.current_revival_requests.clone();
                 for r in requests.iter() {
                     let Some(h) = r.hero() else { game_error!("A revival request has no leader") };
-                    game.early_revivals_offers.add(h, i32::MAX);
+                    game.early_revivals_offers.insert_new(h, i32::MAX);
                 }
 
                 game.current_revival_requests.clear();
@@ -63,7 +62,7 @@ impl AcceptOrCancelTleilaxuRevival {
                 game.early_revivals_offers.remove(&hero);
 
                 if !self.cancel {
-                    game.early_revivals_offers.add(hero, self.price);
+                    game.early_revivals_offers.insert_new(hero, self.price);
                 }
 
                 let request_to_remove =

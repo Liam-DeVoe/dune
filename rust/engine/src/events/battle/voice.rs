@@ -86,13 +86,13 @@ impl Voice {
         Self::may_use_voice_opt(g, Some(p))
     }
 
-    /// `MayUseVoice` with a possibly null `p` (`Validate` passes `Player`, hazards 1.8):
-    /// a null player throws NullReferenceException at the first dereference, `IsInvolved(p)`.
-    fn may_use_voice_opt(g: &Game, p: Option<PlayerIndex>) -> bool {
-        let p = p.and_then(crate::compat::cs::CsNull::opt);
+    /// [`may_use_voice`](Self::may_use_voice) for a player that may be missing (a bot asks about
+    /// its opponent in a battle it may not fight). A missing player panics where the answer
+    /// depends on it, after the checks that don't.
+    pub fn may_use_voice_opt(g: &Game, p: Option<PlayerIndex>) -> bool {
         if g.current_voice.is_none() {
             if let Some(battle) = g.current_battle.as_ref() {
-                let p = p.nre();
+                let p = p.expect("player");
                 if battle.is_involved(g, p) {
                     if g.player(p).nexus == Faction::BeneGesserit && NexusPlayed::can_use_secret_ally(g, p) {
                         return battle.is_aggressor_or_defender(g, p);
@@ -171,7 +171,7 @@ impl Voice {
         game.current_voice = Some(self.clone());
 
         if !self.is_playing(game, Faction::BeneGesserit) {
-            game.play_nexus_card(self.player(), elems!["Secret Ally", " to use Voice"]);
+            game.play_nexus_card(self.player(), elems!["use Voice"]);
         }
 
         if let Some(battle) = game.current_battle.clone() {

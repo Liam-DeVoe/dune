@@ -1,6 +1,7 @@
 //! The differential testing harness: replays C# oracle traces through the
 //! Rust engine and reports the first difference. See `rust/docs/differ.md`.
 
+pub mod cs;
 pub mod diff;
 pub mod live;
 pub mod memory;

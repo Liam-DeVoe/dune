@@ -30,7 +30,6 @@ impl PerformMoritaniSetup {
     }
 
     pub fn set_target(&mut self, game: &Game, value: Option<Location>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.target_id = game.map.location_lookup().get_id(value);
     }
 
@@ -53,7 +52,7 @@ impl PerformMoritaniSetup {
         // Player is read before Target, as in C#.
         let me = self.player();
         // `Target` may be null without validation: ShipForces passes it on.
-        let target = self.target(game).or_null();
+        let target = self.target(game).required("target")?;
         Player::ship_forces(game, me, target, 6);
         self.log(game);
         // Game.Enter(bool, Action, Action) is static in C#; inlined here.

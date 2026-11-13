@@ -2281,7 +2281,7 @@ impl GameEvent {
     }
 
     /// `((IPlacement)this).ForceLocations`; InvalidCastException for events that do not implement `IPlacement`.
-    pub fn i_placement_force_locations(&self, game: &Game) -> NetDictionary<Location, Battalion> {
+    pub fn i_placement_force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         match self {
             GameEvent::AmbassadorActivated(e) => <AmbassadorActivated as placement::IPlacement>::force_locations(&**e, game),
             GameEvent::Caravan(e) => <Caravan as placement::IPlacement>::force_locations(&**e, game),

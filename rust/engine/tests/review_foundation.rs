@@ -6,30 +6,28 @@
 //! Each test failed until its difference was fixed (see rust/docs/escapes.md),
 //! except the ones marked as guards. See rust/docs/reviews/foundation.md.
 
-use treachery_engine::compat::cs::{self, CsIterExt};
+use treachery_engine::error::catch_panic;
 use treachery_engine::enumerations::*;
 use treachery_engine::messages::expression::ExpressionElement;
 use treachery_engine::compat::random_ext::{set_static_random_seed, RandomExt, UnseededRandomExt};
 use treachery_engine::random::SharedRandom;
-use treachery_engine::messages::message::{PlanSummary, Route};
+use treachery_engine::messages::message::Route;
 
 fn exception_text<R>(f: impl FnOnce() -> R) -> String {
-    match cs::catch_panic(f) {
+    match catch_panic(f) {
         Ok(_) => "no exception".to_string(),
-        Err(e) => format!("{}: {}", e.type_name, e.message),
+        Err(e) => e,
     }
 }
 
 // ---------------------------------------------------------------- enumerations.rs
 
-/// Probe `to_nexus_13`. C# `throw new ArgumentOutOfRangeException(nameof(faction), faction, null)`
-/// produces the default message with the parameter and actual value; Rust uses
-/// the parameter name as the whole message.
+/// Probe `to_nexus_13`: an undefined faction panics.
 #[test]
 fn to_nexus_undefined_message() {
     assert_eq!(
         exception_text(|| Faction(13).to_nexus()),
-        "ArgumentOutOfRangeException: Specified argument was out of the range of valid values. (Parameter 'faction')\nActual value was 13."
+        "faction out of range: 13"
     );
 }
 
@@ -38,7 +36,7 @@ fn to_nexus_undefined_message() {
 fn to_faction_undefined_message() {
     assert_eq!(
         exception_text(|| Nexus(13).to_faction()),
-        "ArgumentOutOfRangeException: Specified argument was out of the range of valid values. (Parameter 'nexus')\nActual value was 13."
+        "nexus out of range: 13"
     );
 }
 
@@ -152,37 +150,6 @@ fn highest_or_default_calls_selector_twice_per_element() {
     assert_eq!(calls.get(), 10);
 }
 
-// ---------------------------------------------------------------- cs.rs
-
-/// Probe `single_or_default_pred_two`. `SingleOrDefault(predicate)` says
-/// "matching element". The foundation first ported it as
-/// `filter(..).cs_single_or_default()`, which gives the message of the
-/// predicate-less overload; the predicate overload fixes that.
-#[test]
-fn single_or_default_with_predicate_message() {
-    assert_eq!(
-        exception_text(|| [1, 1].iter().cs_single_or_default_where(|x| **x == 1)),
-        "InvalidOperationException: Sequence contains more than one matching element"
-    );
-}
-
-/// Probe `single_pred_none`: `Single(predicate)` with no match.
-#[test]
-fn single_with_predicate_no_match_message() {
-    assert_eq!(
-        exception_text(|| [1].iter().cs_single_where(|x| **x == 2)),
-        "InvalidOperationException: Sequence contains no matching element"
-    );
-}
-
-/// Probe `single_pred_two`: `Single(predicate)` with two matches.
-#[test]
-fn single_with_predicate_two_matches_message() {
-    assert_eq!(
-        exception_text(|| [1, 1].iter().cs_single_where(|x| **x == 1)),
-        "InvalidOperationException: Sequence contains more than one matching element"
-    );
-}
 
 // ---------------------------------------------------------------- expression.rs / message.rs
 
@@ -228,31 +195,13 @@ fn list_to_cs_string_type_name() {
     assert_eq!(l.to_cs_string(), "System.Collections.Generic.List`1[Treachery.Shared.Faction]");
 }
 
-/// Probe `plan_summary_nan_equal`. C# record equality uses
-/// `EqualityComparer<float>.Default`, where NaN equals NaN.
-#[test]
-fn plan_summary_equality_with_nan_dial() {
-    let p = PlanSummary {
-        faction: Faction::Atreides,
-        leader: None,
-        messiah: false,
-        dial: f32::NAN,
-        spice: None,
-        ally_contribution: 0,
-        ally: Faction::None,
-        weapon: None,
-        defense: None,
-    };
-    assert!(p == p.clone());
-}
-
 /// Probe `route_equal_distinct_lists`. C# record equality compares the
 /// `List<Location> From` by reference, so two routes with separate empty
 /// lists are not equal.
 #[test]
 fn route_equality_compares_list_by_reference() {
-    let a = Route { faction: Faction::Atreides, from: cs::Shared::new(Vec::new()), to: None };
-    let b = Route { faction: Faction::Atreides, from: cs::Shared::new(Vec::new()), to: None };
+    let a = Route { faction: Faction::Atreides, from: treachery_engine::shared::Shared::new(Vec::new()), to: None };
+    let b = Route { faction: Faction::Atreides, from: treachery_engine::shared::Shared::new(Vec::new()), to: None };
     assert!(a != b);
     assert!(a == a.clone());
 }

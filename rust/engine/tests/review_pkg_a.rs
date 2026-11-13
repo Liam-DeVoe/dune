@@ -9,7 +9,7 @@
 //! difference is fixed.
 
 use treachery_engine::game::Game;
-use treachery_engine::compat::cs::Shared;
+use treachery_engine::shared::Shared;
 use treachery_engine::game::Participation;
 
 /// `Participation` is one shared object in C#: the game built by `Undo` and the
@@ -39,7 +39,7 @@ fn participation_is_shared_across_undo_and_restore() {
 fn participation_passed_to_constructor_is_aliased() {
     let part = Shared::new(Participation::new());
     let g = Game::new_int32_participation(Game::LATEST_VERSION, &part);
-    part.borrow_mut().hosts.add(7);
+    part.borrow_mut().hosts.insert(7);
     assert!(g.is_host(Some(7)), "C#: the game reads the caller's Participation object");
 }
 

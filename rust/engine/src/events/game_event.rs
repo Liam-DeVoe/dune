@@ -52,7 +52,7 @@ pub trait GameEventMethods {
 
     /// `Player`, dereferenced: NullReferenceException when it was never set (hazards.md 1.8).
     fn player(&self) -> PlayerIndex {
-        self.base().player.get().nre()
+        self.base().player.get().expect("the event has a player")
     }
 
     /// `Player`, possibly null.

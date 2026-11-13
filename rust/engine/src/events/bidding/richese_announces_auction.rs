@@ -32,7 +32,7 @@ impl RicheseAnnouncesAuction {
         game.richese_occupier_specified_card = false;
         self.log(game);
 
-        game.number_of_cards_on_auction = game.number_of_cards_on_auction.wrapping_sub(1);
+        game.number_of_cards_on_auction -= 1;
 
         if !self.first && game.number_of_cards_on_auction > 0 {
             game.richese_auction_should_still_happen = true;

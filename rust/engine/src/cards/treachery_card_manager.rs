@@ -1,4 +1,3 @@
-use crate::compat::cs::CsIterExt;
 use crate::cards::deck::Deck;
 use crate::enumerations::{Rule, TreacheryCardType};
 use crate::identity::IFetcher;
@@ -153,13 +152,12 @@ impl TreacheryCardManager {
 
     /// `Get(id)`
     pub fn get(id: i32) -> Option<TreacheryCard> {
-        Self::items().iter().copied().cs_single_or_default_where(|i| i.id() == id)
+        Self::items().iter().copied().find(|i| i.id() == id)
     }
 
     /// `GetId(value)`
     pub fn get_id(value: Option<TreacheryCard>) -> i32 {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
-        value.and_then(crate::compat::cs::CsNull::opt).map_or(-1, |c| c.id())
+        value.map_or(-1, |c| c.id())
     }
 }
 
@@ -172,11 +170,10 @@ impl IFetcher<TreacheryCard> for TreacheryCardFetcher {
         if id < -1 {
             return None;
         }
-        TreacheryCardManager::items().iter().copied().cs_single_or_default_where(|t| t.id() == id)
+        TreacheryCardManager::items().iter().copied().find(|t| t.id() == id)
     }
 
     fn get_id(&self, obj: Option<TreacheryCard>) -> i32 {
-        let obj = obj.and_then(crate::compat::cs::CsNull::opt);
-        obj.and_then(crate::compat::cs::CsNull::opt).map_or(-1, |c| c.id())
+        obj.map_or(-1, |c| c.id())
     }
 }

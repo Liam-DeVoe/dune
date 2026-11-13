@@ -30,7 +30,6 @@ impl TraitorsSelected {
     }
 
     pub fn set_selected_traitor(&mut self, value: Option<Hero>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.traitor_id = LeaderManager::hero_lookup().get_id(value);
     }
 
@@ -54,8 +53,8 @@ impl TraitorsSelected {
             if let Some(i) = traitors.iter().position(|t| *t == l) {
                 traitors.remove(i);
             }
-            game.player_mut(me).discarded_traitors.add(l);
-            game.player_mut(me).known_non_traitors.add(l);
+            game.player_mut(me).discarded_traitors.insert(l);
+            game.player_mut(me).known_non_traitors.insert(l);
         }
 
         game.has_acted_or_passed.push(self.initiator());

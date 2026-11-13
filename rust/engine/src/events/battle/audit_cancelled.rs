@@ -49,7 +49,7 @@ impl AuditCancelled {
 
     pub fn get_cards_that_may_be_audited(g: &Game) -> Vec<TreacheryCard> {
         let Some(auditee) = g.auditee() else { return Vec::new() };
-        let recent_battle_plan = g.current_battle.as_ref().nre().plan_of(g, Some(auditee));
+        let recent_battle_plan = g.current_battle.as_ref().expect("current battle").plan_of(g, Some(auditee));
         if let Some(plan) = recent_battle_plan {
             let (weapon, defense, hero) = (plan.weapon(), plan.defense(), plan.hero());
             return g
@@ -77,11 +77,11 @@ impl AuditCancelled {
         if self.cancelled {
             let me = self.player();
             let cost = self.cost(game);
-            game.player_mut(me).resources = game.player(me).resources.wrapping_sub(cost);
+            game.player_mut(me).resources = game.player(me).resources - cost;
             let choam = self.get_player(game, Some(Faction::Choam));
             if let Some(choam) = choam {
                 let cost = self.cost(game);
-                game.player_mut(choam).resources = game.player(choam).resources.wrapping_add(cost);
+                game.player_mut(choam).resources = game.player(choam).resources + cost;
             }
         }
 

@@ -24,7 +24,7 @@ impl Game {
         let gained_by_other_faction =
             DivideResources::gained_by_other_faction(to_be_divided.as_ref(), division_was_agreed, proposal.portion_to_first_player);
 
-        let to_be_divided = to_be_divided.nre();
+        let to_be_divided = to_be_divided.expect("to be divided");
         self.gain_collected_resources(to_be_divided.first_faction, to_be_divided.territory, gained_by_first_faction, None, false);
         self.gain_collected_resources(to_be_divided.other_faction, to_be_divided.territory, gained_by_other_faction, None, false);
 
@@ -37,20 +37,19 @@ impl Game {
     // field: the location collected from, when spice was taken from the desert.
     // income: spice paid by a stronghold or an occupied homeworld.
     pub fn gain_collected_resources(&mut self, faction: Faction, from: Territory, amount: i32, field: Option<Location>, income: bool) {
-        let field = field.and_then(crate::compat::cs::CsNull::opt);
         let msg = express!(faction, " collect ", Payment::of(amount), " from ", from)
             .with_log(SpiceCollected::new(faction, from, amount, field, income));
         self.log(elems![msg]);
         if let Some(player) = self.get_player(Some(faction)) {
             let r = &mut self.player_mut(player).resources;
-            *r = r.wrapping_add(amount);
+            *r += amount;
         }
         if faction == Faction::Fremen {
-            self.resources_collected_by_fremen = self.resources_collected_by_fremen.wrapping_add(amount);
+            self.resources_collected_by_fremen += amount;
         }
         if faction == Faction::Harkonnen && !from.is_stronghold() && !from.is_protected_from_worm() {
             self.resources_collected_by_harkonnen_from_desert_or_homeworld =
-                self.resources_collected_by_harkonnen_from_desert_or_homeworld.wrapping_add(amount);
+                self.resources_collected_by_harkonnen_from_desert_or_homeworld + amount;
         }
     }
 
@@ -65,12 +64,12 @@ impl Game {
 
             let amount_lost = if half_is_lost { (0.5f32 * *received_amount as f32) as i32 } else { 0 };
 
-            *received_amount = received_amount.wrapping_sub(amount_lost);
+            *received_amount -= amount_lost;
 
             let Some(occupier) = occupier else { return };
 
             let r = &mut self.player_mut(occupier).resources;
-            *r = r.wrapping_add(amount_lost);
+            *r += amount_lost;
             // C# parity: logs "0 ... goes to occupier" whenever there is an occupier (hazards 18.2).
             let from_faction = self.player(from).faction;
             let occupier_faction = self.player(occupier).faction;
@@ -95,7 +94,7 @@ impl Game {
                 let faction = self.player(occupier).faction;
                 self.gain_collected_resources(faction, homeworld.territory(), homeworld.resource_amount(), None, true);
                 let r = &mut self.player_mut(occupier).transferable_resources;
-                *r = r.wrapping_add(homeworld.resource_amount());
+                *r += homeworld.resource_amount();
             }
         }
     }
@@ -107,7 +106,7 @@ impl Game {
             && !(p.is(Faction::Ecaz)
                 && self.prevented(FactionAdvantage::EcazCollection)
                 && p.has_ally()
-                && !self.player(p.allied_player(self).nre()).controls(self, stronghold, self.applicable(Rule::ContestedStongholdsCountAsOccupied)))
+                && !self.player(p.allied_player(self).expect("allied player")).controls(self, stronghold, self.applicable(Rule::ContestedStongholdsCountAsOccupied)))
         {
             let faction = p.faction;
             self.gain_collected_resources(faction, stronghold.territory(), amount, None, true);
@@ -134,18 +133,16 @@ impl Game {
                 let forces_collecting_default_amount_of_spice =
                     if pl.faction != Faction::Ixian { pl.occupying_forces_in_location(key) } else { pl.forces_in(Some(key)) };
                 let forces_collecting3_spice = if pl.is(Faction::Ixian) { pl.special_forces_in(Some(key)) } else { 0 };
-                let maximum_spice_that_can_be_collected = forces_collecting_default_amount_of_spice
-                    .wrapping_mul(collection_rate)
-                    .wrapping_add(forces_collecting3_spice.wrapping_mul(3));
+                let maximum_spice_that_can_be_collected = (forces_collecting_default_amount_of_spice * collection_rate) + (forces_collecting3_spice * 3);
                 let mut collected_amount_by_this_player = spice_left.min(maximum_spice_that_can_be_collected);
-                self.change_resources_on_planet(key, collected_amount_by_this_player.wrapping_neg());
-                spice_left = spice_left.wrapping_sub(collected_amount_by_this_player);
+                self.change_resources_on_planet(key, -collected_amount_by_this_player);
+                spice_left -= collected_amount_by_this_player;
 
                 if let Some(t) = thief {
                     if collected_amount_by_this_player > 0 && p != t {
                         collected_amount_by_this_player -= 1;
                         let r = &mut self.player_mut(t).resources;
-                        *r = r.wrapping_add(1);
+                        *r += 1;
                         let thief_faction = self.player(t).faction;
                         let p_faction = self.player(p).faction;
                         self.log(elems![
@@ -167,7 +164,7 @@ impl Game {
                     let p_faction = self.player(p).faction;
                     self.gain_collected_resources(p_faction, key.territory(), collected_amount_by_this_player, Some(key), false);
                 } else {
-                    total_collected_amount = total_collected_amount.wrapping_add(collected_amount_by_this_player);
+                    total_collected_amount += collected_amount_by_this_player;
                 }
 
                 if spice_left <= 0 {
@@ -177,7 +174,7 @@ impl Game {
 
             if players_to_collect.len() > 1 {
                 let (first_faction, other_faction) = if players_to_collect.iter().any(|p| self.player(*p).is(Faction::Ecaz)) {
-                    let other = players_to_collect.iter().copied().cs_first_where(|p| !self.player(*p).is(Faction::Ecaz));
+                    let other = players_to_collect.iter().copied().find(|p| !self.player(*p).is(Faction::Ecaz)).expect("a player other than Ecaz");
                     (Faction::Ecaz, self.player(other).faction)
                 } else {
                     (self.player(players_to_collect[0]).faction, self.player(players_to_collect[1]).faction)
@@ -209,16 +206,16 @@ impl Game {
             let mut received_amount_by_fremen_after_taking_into_account_occupation = self.resources_collected_by_fremen;
             self.modify_income_because_of_low_threshold_or_occupation(fremen, &mut received_amount_by_fremen_after_taking_into_account_occupation);
 
-            let lost = self.resources_collected_by_fremen.wrapping_sub(received_amount_by_fremen_after_taking_into_account_occupation);
+            let lost = self.resources_collected_by_fremen - received_amount_by_fremen_after_taking_into_account_occupation;
             let r = &mut self.player_mut(fremen).resources;
-            *r = r.wrapping_sub(lost);
+            *r -= lost;
         }
 
         let harkonnen = self.get_player(Some(Faction::Harkonnen));
         if self.resources_collected_by_harkonnen_from_desert_or_homeworld != 0 {
             if let Some(harkonnen) = harkonnen.filter(|b| self.player(*b).has_high_threshold_0(self)) {
                 let r = &mut self.player_mut(harkonnen).resources;
-                *r = r.wrapping_add(2);
+                *r += 2;
                 self.log(elems![Faction::Harkonnen, " get ", Payment::of(2), " extra as they collected from desert or homeworld"]);
             }
         }

@@ -9,6 +9,7 @@
 
 use serde_json::Value;
 use treachery_bots::prelude::*;
+use treachery_engine::error::catch_panic;
 use treachery_bots::support::{cast_hero, unbox_enum, unbox_float, unbox_int};
 use treachery_engine::messages::expression::EnumValue;
 use treachery_engine::identity::IFetcher;
@@ -42,7 +43,7 @@ fn unboxing_casts_match_dotnet() {
     for case in cases {
         let (kind, cast, expected) = (case[0].as_str().unwrap(), case[1].as_str().unwrap(), case[2].as_str().unwrap());
         let o = value(&game, kind);
-        let actual = cs::catch_panic(|| match cast {
+        let actual = catch_panic(|| match cast {
             "TreacheryCardType" => format!("enum:{}", unbox_enum::<TreacheryCardType>(&o).0),
             "Faction" => format!("enum:{}", unbox_enum::<Faction>(&o).0),
             "int" => format!("int:{}", unbox_int(&o)),
@@ -50,7 +51,12 @@ fn unboxing_casts_match_dotnet() {
             "IHero" => cast_hero(&o).map_or("null".to_string(), |h| format!("hero:{}", h.id())),
             _ => panic!("unknown cast {cast}"),
         })
-        .unwrap_or_else(|e| format!("EX:{}: {}", cs::full_type_name(e.type_name), e.message));
+        .unwrap_or_else(|e| format!("EX:{e}"));
+        // The panic message is the .NET exception message, without the exception type.
+        let expected = match expected.strip_prefix("EX:") {
+            Some(ex) => format!("EX:{}", ex.split_once(": ").map_or(ex, |(_, m)| m)),
+            None => expected.to_string(),
+        };
         if actual != expected {
             failures.push(format!("({cast}){kind}: C# {expected}, Rust {actual}"));
         }

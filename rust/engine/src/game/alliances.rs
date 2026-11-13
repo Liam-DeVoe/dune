@@ -6,10 +6,10 @@ impl Game {
     pub fn make_alliance(&mut self, a: Faction, b: Faction) {
         let player_a = self.get_player(Some(a));
         let player_b = self.get_player(Some(b));
-        self.player_mut(player_a.nre()).ally = b;
-        self.player_mut(player_b.nre()).ally = a;
-        let player_a = player_a.nre();
-        let player_b = player_b.nre();
+        self.player_mut(player_a.expect("player a")).ally = b;
+        self.player_mut(player_b.expect("player b")).ally = a;
+        let player_a = player_a.expect("player a");
+        let player_b = player_b.expect("player b");
         self.discard_nexus_card(player_a);
         self.discard_nexus_card(player_b);
         self.log(vec![express!(a, " and ", b, " are now allies")
@@ -20,12 +20,12 @@ impl Game {
         self.set_permissions(b, true);
 
         while self.player(player_a).hand_size_exceeded(self) {
-            let card = self.player(player_a).treachery_cards.iter().copied().random_or_default(self.random.as_ref().nre());
+            let card = self.player(player_a).treachery_cards.iter().copied().random_or_default(self.random.as_ref().expect("random"));
             self.discard_player_treachery_card_boolean(Some(player_a), card, true);
         }
 
         while self.player(player_b).hand_size_exceeded(self) {
-            let card = self.player(player_b).treachery_cards.iter().copied().random_or_default(self.random.as_ref().nre());
+            let card = self.player(player_b).treachery_cards.iter().copied().random_or_default(self.random.as_ref().expect("random"));
             self.discard_player_treachery_card_boolean(Some(player_b), card, true);
         }
     }
@@ -59,10 +59,10 @@ impl Game {
         let ally = self.player(initiator).ally;
         self.set_permissions(ally, false);
 
-        self.permitted_use_of_ally_spice.remove(&f);
-        self.permitted_use_of_ally_spice.remove(&ally);
-        self.permitted_use_of_ally_karma.remove(&f);
-        self.permitted_use_of_ally_karma.remove(&ally);
+        self.permitted_use_of_ally_spice.shift_remove(&f);
+        self.permitted_use_of_ally_spice.shift_remove(&ally);
+        self.permitted_use_of_ally_karma.shift_remove(&f);
+        self.permitted_use_of_ally_karma.shift_remove(&ally);
 
         self.player_mut(initiator).ally = Faction::None;
         self.player_mut(current_ally).ally = Faction::None;
@@ -70,7 +70,7 @@ impl Game {
 
     pub fn decrease_permitted_use_of_ally_spice(&mut self, f: Faction, amount: i32) {
         if self.permitted_use_of_ally_spice.contains_key(&f) {
-            let new_value = self.permitted_use_of_ally_spice.index(&f).wrapping_sub(amount);
+            let new_value = self.permitted_use_of_ally_spice[&f] - amount;
             self.permitted_use_of_ally_spice.insert(f, 0.max(new_value));
         }
     }
@@ -114,7 +114,7 @@ impl Game {
     }
 
     pub fn spice_for_bids_emperor_can_pay(&self, f: Faction) -> i32 {
-        let Some(value) = self.permitted_use_of_emperor_spice.as_ref().nre().get(&f).copied() else { return 0 };
+        let Some(value) = self.permitted_use_of_emperor_spice.as_ref().expect("permitted use of emperor spice").get(&f).copied() else { return 0 };
 
         let emperor = self.get_player(Some(Faction::Emperor));
         match emperor {
@@ -124,17 +124,15 @@ impl Game {
     }
 
     pub fn get_permitted_use_of_ally_karma(&self, f: Faction) -> Option<TreacheryCard> {
-        let ally = self.player_indices().cs_single_or_default_where(|p| self.player(*p).ally == f);
+        let mut allies = self.player_indices().filter(|p| self.player(*p).ally == f);
+        let ally = allies.next();
+        // With f == Faction::None this matches every unallied player; two of them is an error the
+        // ally permission form and the bots rely on (their view or decision fails).
+        assert!(allies.next().is_none(), "more than one player allied to {f}");
 
-        if let Some(ally) = ally {
-            if let Some(value) = self.permitted_use_of_ally_karma.get(&f).copied() {
-                if self.player(ally).has(Some(value)) {
-                    return Some(*self.permitted_use_of_ally_karma.index(&f));
-                }
-            }
-        }
-
-        None
+        let ally = ally?;
+        let value = self.permitted_use_of_ally_karma.get(&f).copied()?;
+        self.player(ally).has(Some(value)).then_some(value)
     }
 
     pub fn get_permitted_use_of_ally_resources(&self, f: Faction) -> i32 {

@@ -1,7 +1,7 @@
 //! Creating, loading and closing games; joining, observing and leaving them; seats, hosts and
 //! the host's other controls.
 
-use treachery_engine::compat::cs::Shared;
+use treachery_engine::shared::Shared;
 use treachery_engine::enumerations::{ErrorType, GameListScope};
 use treachery_engine::game::Game;
 use treachery_engine::game::GameSettings;
@@ -204,10 +204,17 @@ impl Server {
         contents(&self.init_info(&game))
     }
 
-    /// When the last host leaves, every other seated player becomes a host.
     pub(super) fn leave_game(&mut self, token: &str, game: &str) -> Reply {
         let (user, game) = self.user_in_game(token, game)?;
-        let g = self.games.get_mut(&game).expect("checked");
+        self.remove_from_game(&game, user);
+        contents(&self.lobby_status(GameListScope::Active, user))
+    }
+
+    /// Takes a user out of a running game. When the last host leaves, every other seated
+    /// player becomes a host.
+    pub(super) fn remove_from_game(&mut self, game: &str, user: i32) {
+        let game = game.to_string();
+        let g = self.games.get_mut(&game).expect("running game");
         if g.game.is_host(Some(user)) && g.game.number_of_hosts() == 1 {
             let others: Vec<i32> = g.game.participation.borrow().seated_players.keys().copied().filter(|u| *u != user).collect();
             for other in others {
@@ -221,7 +228,6 @@ impl Server {
         self.connections.unfollow_user(&game, user);
         self.changed(&game);
         self.schedule_bots(&game);
-        contents(&self.lobby_status(GameListScope::Active, user))
     }
 
     pub(super) fn kick(&mut self, token: &str, game: &str, user: i32) -> Reply {
@@ -304,11 +310,11 @@ impl Server {
         done()
     }
 
-    /// Every connection hears of the new speed.
+    /// The game's members hear of the new speed.
     pub(super) fn set_bot_speed(&mut self, token: &str, game: &str, speed: i32) -> Reply {
         let (_, game) = self.host_of(token, game)?;
         self.games[&game].game.participation.borrow_mut().bots_speed = speed;
-        self.connections.notify_all(Notification::BotSpeed(speed));
+        self.connections.notify(&game, Notification::BotSpeed(speed));
         self.changed(&game);
         self.schedule_bots(&game);
         done()

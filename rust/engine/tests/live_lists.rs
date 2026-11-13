@@ -106,7 +106,7 @@ fn discarded_traitors_in_a_message_dump_the_current_set() {
     let harkonnen = g.get_player(Some(Faction::Harkonnen)).unwrap();
     let mut leaders = LeaderManager::get_leaders(Faction::Emperor).map(Hero::Leader);
     let (first, second) = (leaders.next().unwrap(), leaders.next().unwrap());
-    g.player_mut(harkonnen).discarded_traitors.add(first);
+    g.player_mut(harkonnen).discarded_traitors.insert(first);
 
     let live = ExpressionElement::live(&g, LiveList::PlayerDiscardedTraitors(harkonnen));
     assert_eq!(live.to_cs_string(), "System.Collections.Generic.HashSet`1[Treachery.Shared.IHero]");
@@ -114,7 +114,7 @@ fn discarded_traitors_in_a_message_dump_the_current_set() {
     let before = dump(&g);
     assert_eq!(before, String::from_utf8(canon::dump_detached(&ExpressionElement::collection("x", vec![first]), Some(&g))).unwrap());
 
-    g.player_mut(harkonnen).discarded_traitors.add(second);
+    g.player_mut(harkonnen).discarded_traitors.insert(second);
     assert_eq!(dump(&g), String::from_utf8(canon::dump_detached(&ExpressionElement::collection("x", vec![first, second]), Some(&g))).unwrap());
     // Without a game the snapshot taken at log time is written.
     assert_eq!(String::from_utf8(canon::dump_detached(&live, None)).unwrap(), before);

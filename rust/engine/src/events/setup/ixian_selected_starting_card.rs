@@ -30,7 +30,6 @@ impl IxianSelectedStartingCard {
     }
 
     pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.card_id = TreacheryCardManager::get_id(value);
     }
 
@@ -40,11 +39,10 @@ impl IxianSelectedStartingCard {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let me = self.get_player(game, Some(self.initiator())).required("get player")?;
-        let card = self.card();
-        // C# parity: Validate accepts any id. With an unknown id C# adds null to the hand
-        // (`Card!` does not throw), and `Items.Remove(null)` removes nothing.
-        game.player_mut(me).treachery_cards.push(card.or_null());
-        cs::list_remove(&mut game.starting_treachery_cards.as_mut().required("starting treachery cards")?.items, card);
+        // C# parity: Validate accepts the id of any card, not only one of the starting cards.
+        let card = self.card().required("card")?;
+        game.player_mut(me).treachery_cards.push(card);
+        crate::iter::remove_first(&mut game.starting_treachery_cards.as_mut().required("starting treachery cards")?.items, &card);
         self.log(game);
         game.starting_treachery_cards.as_mut().required("starting treachery cards")?.shuffle();
         game.stone(Milestone::Shuffled);

@@ -381,7 +381,7 @@ impl ClassicBot {
             .find(|&sh| {
                 (!game.player(me).has_ally()
                     || self.ally(game) == Faction::Ecaz
-                    || game.player(self.allied_player(game).nre()).any_forces_in(Some(sh)) == 0
+                    || game.player(self.allied_player(game).expect("allied player")).any_forces_in(Some(sh)) == 0
                     || faction != Faction::Richese
                     || !game.has_low_threshold(Faction::Richese))
                     && !self.in_storm(game, sh)
@@ -691,7 +691,6 @@ impl ClassicBot {
     /// worth of strength there with the spice I can spend. The result's `shortage` is the dial
     /// still missing.
     pub fn shipment_size(&self, game: &Game, dial_needed: f32, dialling_for_battle: bool, location: Location, opponent_to_check: Option<PlayerIndex>, forces_available: i32, special_forces_available: i32, min_resources_to_keep: i32, max_unsupported_forces: i32, prefer_special_forces: bool) -> ShipmentSize {
-        let opponent_to_check = opponent_to_check.and_then(CsNull::opt);
         let me = self.player;
         let opponent = opponent_to_check
             .or_else(|| self.opponents(game).into_iter().find(|o| game.player(*o).any_forces_in_territory(Some(location.territory())) > 0));
@@ -790,7 +789,6 @@ impl ClassicBot {
 
     /// Builds the shipment and returns it as a plan if it leaves my homeworld defended and is valid.
     fn planned(&self, game: &Game, action: ShipmentDecision, to: Location, size: &ShipmentSize, then_move_to: Option<Location>, funding: Funding) -> Option<PlannedShipment> {
-        let then_move_to = then_move_to.and_then(CsNull::opt);
         if self.will_leave_my_home_defenseless(game, size.forces, size.special_forces) {
             return None;
         }
@@ -904,7 +902,7 @@ impl ClassicBot {
             && Shipment::determine_cost(game, me, shipment) > 7
         {
             let card = Karma::valid_karma_cards(game, me).next();
-            shipment.set_karma_card(card.and_then(CsNull::opt));
+            shipment.set_karma_card(card);
         }
     }
 
@@ -975,7 +973,7 @@ impl ClassicBot {
             }
         }
 
-        max_dial_of_opponents + max_reinforced_dial - Self::max_dial(game, me, s.territory(), opponents.first().copied().and_then(CsNull::opt), false)
+        max_dial_of_opponents + max_reinforced_dial - Self::max_dial(game, me, s.territory(), opponents.first().copied(), false)
     }
 
     pub fn emperor_versus_fremen(&self, game: &Game, opponent: PlayerIndex) -> bool {
@@ -993,12 +991,11 @@ impl ClassicBot {
 
     /// The extra cost the bot assigns to attacking a bot that has no human ally.
     pub fn determine_penalty(game: &Game, opponent: Option<PlayerIndex>) -> f32 {
-        let opponent = opponent.and_then(CsNull::opt);
         match opponent {
             Some(o)
                 if game.player(o).is_bot(game)
                     // Throws when the ally is not in the game.
-                    && (!game.player(o).has_ally() || game.player(game.player(o).allied_player(game).nre()).is_bot(game)) =>
+                    && (!game.player(o).has_ally() || game.player(game.player(o).allied_player(game).expect("allied player")).is_bot(game)) =>
             {
                 BotParameters::PENALTY_FOR_ATTACKING_BOTS
             }
@@ -1016,7 +1013,7 @@ impl ClassicBot {
         shipment.set_karma_card(None);
         shipment.shipment_type = ShipmentType::ShipmentNormal;
         shipment.set_no_field_value(0);
-        shipment.set_to(game, location.opt());
+        shipment.set_to(game, Some(location));
 
         shipment.is_valid(game).then_some(PlannedShipment { action, shipment, then_move_to: None })
     }
@@ -1024,7 +1021,6 @@ impl ClassicBot {
     /// An opponent with a living leader who is my traitor or face dancer, and no weapon I know of
     /// (unless I hold a Mercenary).
     pub fn opponent_is_suitable_for_traitor_lure(&self, game: &Game, opponent: Option<PlayerIndex>) -> bool {
-        let opponent = opponent.and_then(CsNull::opt);
         let Some(opponent) = opponent else { return false };
 
         let me = game.player(self.player);
@@ -1036,7 +1032,6 @@ impl ClassicBot {
 
     /// An opponent I can lose a battle to without losing a leader, so I can discard a Useless card.
     pub fn opponent_is_suitable_for_useless_card_dump_attack(&self, game: &Game, opponent: Option<PlayerIndex>) -> bool {
-        let opponent = opponent.and_then(CsNull::opt);
         let Some(opponent) = opponent else { return false };
 
         !(game.applicable(Rule::HarkonnenCapturesOrKillsLeaders) && game.player(opponent).faction == Faction::Harkonnen)

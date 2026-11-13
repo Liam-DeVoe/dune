@@ -45,7 +45,7 @@ impl TimeSpan {
     pub fn add(self, other: TimeSpan) -> TimeSpan {
         match self.ticks.checked_add(other.ticks) {
             Some(ticks) => TimeSpan { ticks },
-            None => crate::compat::cs::throw("OverflowException", "TimeSpan overflowed because the duration is too long.".to_string()),
+            None => panic!("TimeSpan overflowed because the duration is too long."),
         }
     }
 }

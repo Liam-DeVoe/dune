@@ -87,7 +87,6 @@ impl Default for StormMoved {
 
 impl StormMoved {
     pub fn new(from: i32, distance: i32, by: Faction, card: Option<TreacheryCard>) -> Self {
-        let card = card.and_then(crate::compat::cs::CsNull::opt);
         StormMoved { from, distance, by, card }
     }
 
@@ -138,7 +137,6 @@ impl Default for FamilyAtomicsUsed {
 
 impl FamilyAtomicsUsed {
     pub fn new(faction: Faction, card: Option<TreacheryCard>) -> Self {
-        let card = card.and_then(crate::compat::cs::CsNull::opt);
         FamilyAtomicsUsed { faction, card }
     }
 

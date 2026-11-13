@@ -16,14 +16,13 @@ use std::cell::Cell;
 use std::fmt;
 use std::rc::Rc;
 
-use dotnet_compat::math::equals_f32;
 
-use crate::compat::cs::Shared;
+use crate::shared::Shared;
 use crate::enumerations::{Concept, Faction};
 use crate::messages::expression::{Expression, ExpressionElement};
 use crate::heroes::hero::Hero;
 use crate::map::location::Location;
-use crate::compat::net_enum::net_enum;
+use crate::enum_type::game_enum;
 use crate::cards::treachery_card::TreacheryCard;
 
 thread_local! {
@@ -64,7 +63,7 @@ impl Message {
     fn with_expression(target: Faction, e: Expression) -> Message {
         let nr = COUNTER.with(|c| {
             let v = c.get();
-            c.set(v.wrapping_add(1));
+            c.set(v + 1);
             v
         });
         Message { nr, target, expression: e, route: None, heading: None, plans: None, log: None, fact: None }
@@ -93,7 +92,6 @@ impl Message {
 
     /// `WithRoute(faction, from, to)`
     pub fn with_route(mut self, faction: Faction, from: impl IntoIterator<Item = Location>, to: Option<Location>) -> Message {
-        let to = to.and_then(crate::compat::cs::CsNull::opt);
         self.route = Some(Route { faction, from: Shared::new(from.into_iter().collect()), to });
         self
     }
@@ -292,7 +290,7 @@ impl PartialEq for PlanSummary {
         self.faction == other.faction
             && self.leader == other.leader
             && self.messiah == other.messiah
-            && equals_f32(self.dial, other.dial)
+            && self.dial == other.dial
             && self.spice == other.spice
             && self.ally_contribution == other.ally_contribution
             && self.ally == other.ally
@@ -301,7 +299,7 @@ impl PartialEq for PlanSummary {
     }
 }
 
-net_enum! {
+game_enum! {
     /// What a [`BattleFact`] records.
     BattleFactKind {
         Strength = 0,
@@ -336,7 +334,7 @@ impl PartialEq for BattleFact {
     fn eq(&self, other: &Self) -> bool {
         self.kind == other.kind
             && self.faction == other.faction
-            && equals_f32(self.strength, other.strength)
+            && self.strength == other.strength
             && self.hero == other.hero
             && self.cause == other.cause
             && self.value == other.value

@@ -32,7 +32,6 @@ impl BattleInitiated {
     }
 
     pub fn set_territory(&mut self, game: &Game, value: Option<Territory>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.territory_id = game.map.territory_lookup().get_id(value);
     }
 
@@ -95,11 +94,10 @@ impl BattleInitiated {
 
     /// `IsInitiatorByJuice` with a possibly null `initiator` (as `Aggressor` passes `Player`).
     fn is_initiator_by_juice_opt(g: &Game, initiator: Option<PlayerIndex>, target: PlayerIndex) -> bool {
-        let initiator = initiator.and_then(crate::compat::cs::CsNull::opt);
         g.current_juice.as_ref().is_some_and(|j| {
             j.type_ == JuiceType::GoFirst
                 && j.player_opt() == initiator
-                && PlayerSequence::is_after(g, initiator.nre(), target)
+                && PlayerSequence::is_after(g, initiator.expect("initiator"), target)
         })
     }
 
@@ -111,11 +109,10 @@ impl BattleInitiated {
     ///
     /// C# parity: the same predicate as IsInitiatorByJuice apart from the Juice type (hazards 18.2).
     fn is_target_by_juice_opt(g: &Game, initiator: Option<PlayerIndex>, target: PlayerIndex) -> bool {
-        let initiator = initiator.and_then(crate::compat::cs::CsNull::opt);
         g.current_juice.as_ref().is_some_and(|j| {
             j.type_ == JuiceType::GoLast
                 && j.player_opt() == initiator
-                && PlayerSequence::is_after(g, initiator.nre(), target)
+                && PlayerSequence::is_after(g, initiator.expect("initiator"), target)
         })
     }
 
@@ -162,7 +159,6 @@ impl BattleInitiated {
     }
 
     pub fn plan_of(&self, game: &Game, p: Option<PlayerIndex>) -> Option<Rc<Battle>> {
-        let p = p.and_then(crate::compat::cs::CsNull::opt);
         let Some(p) = p else { return None };
         let f = game.player(p).faction;
 
@@ -173,7 +169,6 @@ impl BattleInitiated {
     }
 
     pub fn plan_of_opponent(&self, game: &Game, p: Option<PlayerIndex>) -> Option<Rc<Battle>> {
-        let p = p.and_then(crate::compat::cs::CsNull::opt);
         match p {
             None => None,
             Some(p) => self.plan_of(game, self.opponent_of(game, p)),
@@ -205,7 +200,6 @@ impl BattleInitiated {
     }
 
     pub fn treachery_of(&self, game: &Game, p: Option<PlayerIndex>) -> Option<Rc<TreacheryCalled>> {
-        let p = p.and_then(crate::compat::cs::CsNull::opt);
         let Some(p) = p else { return None };
         let pl = game.player(p);
 

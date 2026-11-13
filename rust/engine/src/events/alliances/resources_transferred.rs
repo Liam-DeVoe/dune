@@ -53,12 +53,12 @@ impl ResourcesTransferred {
         let me = self.player();
         {
             let p = game.player_mut(me);
-            p.resources = p.resources.wrapping_sub(self.resources);
-            p.transferable_resources = p.transferable_resources.wrapping_sub(self.resources);
+            p.resources -= self.resources;
+            p.transferable_resources -= self.resources;
         }
         let ally = game.player(me).allied_player(game).required("allied player")?;
         let a = game.player_mut(ally);
-        a.resources = a.resources.wrapping_add(self.resources);
+        a.resources += self.resources;
         Ok(())
     }
 

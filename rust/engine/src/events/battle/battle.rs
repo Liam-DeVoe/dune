@@ -72,7 +72,6 @@ impl Battle {
     }
 
     pub fn set_hero(&mut self, value: Option<Hero>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.hero_id = LeaderManager::hero_lookup().get_id(value);
     }
 
@@ -81,7 +80,6 @@ impl Battle {
     }
 
     pub fn set_weapon(&self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.weapon_card_id.set(TreacheryCardManager::lookup().get_id(value));
     }
 
@@ -90,15 +88,11 @@ impl Battle {
     }
 
     pub fn set_defense(&self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.defense_card_id.set(TreacheryCardManager::lookup().get_id(value));
     }
 
     pub fn total_forces(&self) -> i32 {
-        self.forces
-            .wrapping_add(self.forces_at_half_strength)
-            .wrapping_add(self.special_forces)
-            .wrapping_add(self.special_forces_at_half_strength)
+        (self.forces + self.forces_at_half_strength + self.special_forces) + self.special_forces_at_half_strength
     }
 
     pub fn has_poison(&self) -> bool {
@@ -252,7 +246,7 @@ impl Battle {
         let faction = self.initiator();
         let leader = self.hero();
         let messiah = self.messiah;
-        let opponent = game.current_battle.as_ref().nre().opponent_of_faction(game, self.initiator()).nre();
+        let opponent = game.current_battle.as_ref().expect("current battle").opponent_of_faction(game, self.initiator()).expect("opponent of faction");
         let dial = self.dial(game, game.player(opponent).faction);
         let spice = if game.applicable(Rule::AdvancedCombat) { Some(self.cost(game)) } else { None };
         let ally_contribution = self.ally_contribution_amount;
@@ -271,8 +265,6 @@ impl Battle {
     }
 
     pub fn activate_dynamic_weapons(&self, game: &mut Game, opponent_weapon: Option<TreacheryCard>, opponent_defense: Option<TreacheryCard>) {
-        let opponent_weapon = opponent_weapon.and_then(crate::compat::cs::CsNull::opt);
-        let opponent_defense = opponent_defense.and_then(crate::compat::cs::CsNull::opt);
         let swap = self.swap_in_dynamic_weapons(game, opponent_weapon, opponent_defense);
         if swap.mirror_weapon_used {
             self.log_objects(game, le![self.original_weapon.get(), " becomes a ", self.weapon()]);
@@ -285,8 +277,6 @@ impl Battle {
     /// Puts the cards a Mirror Weapon, a Diplomat or a Portable Antidote stand for into this
     /// plan, without changing the game. `activate_dynamic_weapons` also records them in the game.
     fn swap_in_dynamic_weapons(&self, game: &Game, opponent_weapon: Option<TreacheryCard>, opponent_defense: Option<TreacheryCard>) -> DynamicWeaponSwap {
-        let opponent_weapon = opponent_weapon.and_then(crate::compat::cs::CsNull::opt);
-        let opponent_defense = opponent_defense.and_then(crate::compat::cs::CsNull::opt);
         let mut swap = DynamicWeaponSwap { mirror_weapon_used: false, card_used_by_diplomat: None };
         if self.weapon().is_some_and(|w| w.type_() == TreacheryCardType::MirrorWeapon) {
             self.original_weapon.set(self.weapon());
@@ -302,7 +292,7 @@ impl Battle {
 
         if Battle::is_using_portable_antidote(game, self.initiator()) {
             self.original_defense.set(self.defense());
-            let antidote = game.treachery_discard_pile.as_ref().nre().items.iter().copied().find(|c| c.is_portable_antidote());
+            let antidote = game.treachery_discard_pile.as_ref().expect("treachery discard pile").items.iter().copied().find(|c| c.is_portable_antidote());
             self.set_defense(antidote);
         }
         swap
@@ -454,28 +444,24 @@ impl Battle {
         let agg_hero_contribution = if result.agg_hero_killed {
             0
         } else {
-            result
-                .agg_hero_effective_strength
-                .wrapping_add(result.agg_hero_skill_bonus)
-                .wrapping_add(result.agg_messiah_contribution)
+            (result
+                .agg_hero_effective_strength + result.agg_hero_skill_bonus) + result.agg_messiah_contribution
         };
         let def_hero_contribution = if result.def_hero_killed {
             0
         } else {
-            result
-                .def_hero_effective_strength
-                .wrapping_add(result.def_hero_skill_bonus)
-                .wrapping_add(result.def_messiah_contribution)
+            (result
+                .def_hero_effective_strength + result.def_hero_skill_bonus) + result.def_messiah_contribution
         };
 
         let agg_ecaz_karma_contribution = if agg.initiator() == Faction::Ecaz { game.ecaz_karma_bonus } else { 0 };
         let def_ecaz_karma_contribution = if def.initiator() == Faction::Ecaz { game.ecaz_karma_bonus } else { 0 };
 
         let agg_force_supplier = Battle::determine_force_supplier(game, result.aggressor);
-        result.agg_undialed_forces = game.player(agg_force_supplier).any_forces_in_territory(Some(territory)).wrapping_sub(agg.total_forces());
+        result.agg_undialed_forces = game.player(agg_force_supplier).any_forces_in_territory(Some(territory)) - agg.total_forces();
 
         let def_force_supplier = Battle::determine_force_supplier(game, result.defender);
-        result.def_undialed_forces = game.player(def_force_supplier).any_forces_in_territory(Some(territory)).wrapping_sub(def.total_forces());
+        result.def_undialed_forces = game.player(def_force_supplier).any_forces_in_territory(Some(territory)) - def.total_forces();
 
         if !rock_melter_used {
             result.agg_reinforcements_contribution = if agg.has_reinforcements() { 2 } else { 0 };
@@ -544,7 +530,6 @@ impl Battle {
     }
 
     pub fn determine_cause_of_death(player_plan: &Battle, opponent_plan: &Battle, the_hero: Option<Hero>, poison_tooth_used: bool, artillery_used: bool, rock_melter_was_used_to_kill: bool, is_protected_by_carthag_advantage: bool, hero_dies: &mut bool, cause_of_death: &mut TreacheryCardType, saved_by_carthag: &mut bool) {
-        let the_hero = the_hero.and_then(crate::compat::cs::CsNull::opt);
         *hero_dies = false;
         *cause_of_death = TreacheryCardType::None;
         *saved_by_carthag = is_protected_by_carthag_advantage && opponent_plan.has_poison() && !player_plan.has_antidote();
@@ -558,7 +543,6 @@ impl Battle {
     }
 
     pub fn determine_death_by(hero: Option<Hero>, by_weapon: TreacheryCardType, weapon_has_effect: bool, hero_is_killed: &mut bool, cause_of_death: &mut TreacheryCardType) {
-        let hero = hero.and_then(crate::compat::cs::CsNull::opt);
         if !*hero_is_killed && hero.is_some() && weapon_has_effect {
             *hero_is_killed = true;
             *cause_of_death = by_weapon;
@@ -568,10 +552,10 @@ impl Battle {
     pub fn validate(&self, game: &Game) -> Option<Message> {
         let p = self.player();
         let pl = game.player(p);
-        if self.forces.wrapping_add(self.forces_at_half_strength) > Battle::max_forces(game, p, false) {
+        if (self.forces + self.forces_at_half_strength) > Battle::max_forces(game, p, false) {
             return Some(express!("Too many ", pl.force(), " selected"));
         }
-        if self.special_forces.wrapping_add(self.special_forces_at_half_strength) > Battle::max_forces(game, p, true) {
+        if (self.special_forces + self.special_forces_at_half_strength) > Battle::max_forces(game, p, true) {
             return Some(express!("Too many ", pl.special_force(), " selected"));
         }
         let mut _paid = 0;
@@ -582,12 +566,12 @@ impl Battle {
         if self.ally_contribution_amount > Battle::max_ally_resources(game, p, self.forces, self.special_forces) {
             return Some(express!("Your ally won't pay that much"));
         }
-        if cost > pl.resources.wrapping_add(self.ally_contribution_amount) {
+        if cost > (pl.resources + self.ally_contribution_amount) {
             return Some(express!(
                 "You can't pay ",
                 Payment::of(cost),
                 " to fight with ",
-                self.forces.wrapping_add(self.special_forces),
+                self.forces + self.special_forces,
                 " forces at full strength"
             ));
         }
@@ -606,7 +590,7 @@ impl Battle {
             return Some(express!("Can't use treachery cards without a leader"));
         }
         if let Some(hero @ Hero::Leader(_)) = self.hero() {
-            if let Some(t) = game.current_battle.as_ref().nre().territory(game) {
+            if let Some(t) = game.current_battle.as_ref().expect("current battle").territory(game) {
                 if !game.can_fight_in(hero, t) {
                     return Some(express!("Selected leader already fought in another territory"));
                 }
@@ -624,11 +608,11 @@ impl Battle {
         if self.defense().is_none() && self.weapon().is_some_and(|w| w.type_() == TreacheryCardType::Chemistry) {
             return Some(express!("You can't use ", TreacheryCardType::Chemistry, " as weapon without using a defense"));
         }
-        let battle_territory = game.current_battle.as_ref().nre().territory(game);
+        let battle_territory = game.current_battle.as_ref().expect("current battle").territory(game);
         if !Battle::valid_weapons(game, p, self.defense(), self.hero(), battle_territory, true).contains(&self.weapon()) {
             return Some(express!("Invalid weapon"));
         }
-        let battle_territory = game.current_battle.as_ref().nre().territory(game);
+        let battle_territory = game.current_battle.as_ref().expect("current battle").territory(game);
         if !Battle::valid_defenses(game, p, self.weapon(), battle_territory, true).contains(&self.defense()) {
             return Some(express!("Invalid defense"));
         }
@@ -643,12 +627,12 @@ impl Battle {
         if self.banker_bonus > Battle::max_banker_boost(game, self.player(), self.hero()) {
             return Some(express!("You cannot boost your leader this much"));
         }
-        if cost.wrapping_add(self.banker_bonus) > pl.resources.wrapping_add(self.ally_contribution_amount) {
+        if (cost + self.banker_bonus) > (pl.resources + self.ally_contribution_amount) {
             return Some(express!("You can't pay this ", LeaderSkill::Banker, " bonus"));
         }
 
         // var opponent = Game.CurrentBattle.OpponentOf(p)!.Faction;  evaluated even with no seen plans.
-        let opponent = game.player(game.current_battle.as_ref().nre().opponent_of(game, p).nre()).faction;
+        let opponent = game.player(game.current_battle.as_ref().expect("current battle").opponent_of(game, p).expect("opponent of")).faction;
         for (aspect, seen) in game.prescience_seen_plans.iter() {
             if seen.initiator() == self.initiator() && !self.matches(game, seen, *aspect, opponent) {
                 return Some(express!("Your ", *aspect, " was revealed by prescience and can't change"));
@@ -687,17 +671,17 @@ impl Battle {
         let emperor_cunning = g.current_emperor_cunning.as_ref().is_some_and(|c| c.initiator() == player);
 
         let nr_of_forces_to_count_as_special_due_to_emperor_cunning = if emperor_cunning { 5.min(forces) } else { 0 };
-        let forces_adjusted_for_cunning = forces.wrapping_sub(nr_of_forces_to_count_as_special_due_to_emperor_cunning);
-        let special_forces_adjusted_for_cunning = special_forces.wrapping_add(nr_of_forces_to_count_as_special_due_to_emperor_cunning);
+        let forces_adjusted_for_cunning = forces - nr_of_forces_to_count_as_special_due_to_emperor_cunning;
+        let special_forces_adjusted_for_cunning = special_forces + nr_of_forces_to_count_as_special_due_to_emperor_cunning;
 
         let nr_of_forces_at_half_strength_to_count_as_special_due_to_emperor_cunning = if g.current_emperor_cunning.as_ref().is_some_and(|c| c.initiator() == player) {
-            0.max(5.min(forces_at_half_strength).wrapping_sub(nr_of_forces_to_count_as_special_due_to_emperor_cunning))
+            0.max(5.min(forces_at_half_strength) - nr_of_forces_to_count_as_special_due_to_emperor_cunning)
         } else {
             0
         };
-        let forces_at_half_strength_adjusted_for_cunning = forces_at_half_strength.wrapping_sub(nr_of_forces_at_half_strength_to_count_as_special_due_to_emperor_cunning);
+        let forces_at_half_strength_adjusted_for_cunning = forces_at_half_strength - nr_of_forces_at_half_strength_to_count_as_special_due_to_emperor_cunning;
         let special_forces_at_half_strength_adjusted_for_cunning =
-            special_forces_at_half_strength.wrapping_add(nr_of_forces_at_half_strength_to_count_as_special_due_to_emperor_cunning);
+            special_forces_at_half_strength + nr_of_forces_at_half_strength_to_count_as_special_due_to_emperor_cunning;
 
         let special_force_strength = Battle::determine_special_force_strength(g, player, opponent);
         let special_force_no_spice_factor = Battle::determine_special_force_no_spice_factor(g, player);
@@ -714,7 +698,7 @@ impl Battle {
     /// caller (`BattleRevision`) enumerates once, and its loop body writes only `PrescienceSeenPlans`, which
     /// this query does not read. Nothing in here throws once `CurrentBattle` is set.
     pub fn aspects_seen_by_opponent(g: &Game, p: PlayerIndex) -> Vec<PrescienceAspect> {
-        let battle = g.current_battle.as_ref().nre();
+        let battle = g.current_battle.as_ref().expect("current battle");
         let mut result = Vec::new();
         if let Some(prescience) = g.current_prescience.as_ref() {
             if battle.opponent_of_faction(g, prescience.initiator()) == Some(p) {
@@ -807,11 +791,9 @@ impl Battle {
     }
 
     pub fn cost_game_player_int32_int32_int32(g: &Game, p: PlayerIndex, amount_of_forces_at_full_strength: i32, amount_of_special_forces_at_full_strength: i32, paid_by_arrakeen: &mut i32) -> i32 {
-        let cost = amount_of_forces_at_full_strength
-            .wrapping_mul(Battle::normal_force_cost(g, p))
-            .wrapping_add(amount_of_special_forces_at_full_strength.wrapping_mul(Battle::special_force_cost(g, p)));
+        let cost = (amount_of_forces_at_full_strength * Battle::normal_force_cost(g, p)) + (amount_of_special_forces_at_full_strength * Battle::special_force_cost(g, p));
         *paid_by_arrakeen = Battle::cost_reduction(g, p).min(cost);
-        cost.wrapping_sub(*paid_by_arrakeen)
+        cost - (*paid_by_arrakeen)
     }
 
     pub fn cost_reduction(g: &Game, p: PlayerIndex) -> i32 {
@@ -845,11 +827,11 @@ impl Battle {
     }
 
     pub fn max_resources(g: &Game, p: PlayerIndex, forces: i32, special_forces: i32) -> i32 {
-        g.player(p).resources.min(0.max(forces.wrapping_add(special_forces).wrapping_sub(Battle::cost_reduction(g, p))))
+        g.player(p).resources.min(0.max(forces + special_forces - Battle::cost_reduction(g, p)))
     }
 
     pub fn max_ally_resources(g: &Game, p: PlayerIndex, forces: i32, special_forces: i32) -> i32 {
-        g.resources_your_ally_can_pay(p).min(0.max(forces.wrapping_add(special_forces).wrapping_sub(Battle::cost_reduction(g, p))))
+        g.resources_your_ally_can_pay(p).min(0.max(forces + special_forces - Battle::cost_reduction(g, p)))
     }
 
     pub fn max_forces(g: &Game, p: PlayerIndex, special_forces: bool) -> i32 {
@@ -862,7 +844,7 @@ impl Battle {
 
         if !special_forces {
             if fs.faction == Faction::Richese && fs.special_forces_in_territory(Some(territory)) > 0 {
-                return fs.forces_in_reserve().min(g.current_no_field_value).wrapping_add(fs.forces_in_territory(Some(territory)));
+                return fs.forces_in_reserve().min(g.current_no_field_value) + fs.forces_in_territory(Some(territory));
             }
             return fs.forces_in_territory(Some(territory));
         }
@@ -958,9 +940,6 @@ impl Battle {
     }
 
     pub fn valid_weapons(g: &Game, p: PlayerIndex, selected_defense: Option<TreacheryCard>, selected_hero: Option<Hero>, territory_of_battle: Option<Territory>, including_none: bool) -> Vec<Option<TreacheryCard>> {
-        let selected_defense = selected_defense.and_then(crate::compat::cs::CsNull::opt);
-        let selected_hero = selected_hero.and_then(crate::compat::cs::CsNull::opt);
-        let territory_of_battle = territory_of_battle.and_then(crate::compat::cs::CsNull::opt);
         let mut result: Vec<Option<TreacheryCard>> = Vec::new();
 
         if Battle::valid_battle_heroes(g, p).is_empty() {
@@ -976,7 +955,7 @@ impl Battle {
         let mut resolved_by_voice_rule = false;
 
         if Battle::affected_by_voice(g, p, g.current_voice.as_ref()) {
-            let voice = g.current_voice.as_ref().nre();
+            let voice = g.current_voice.as_ref().expect("current voice");
             if voice.must {
                 let vt = voice.type_;
                 if selected_defense.is_some_and(|d| d.type_() == vt) {
@@ -1010,8 +989,6 @@ impl Battle {
     }
 
     pub fn valid_defenses(g: &Game, p: PlayerIndex, selected_weapon: Option<TreacheryCard>, territory_of_battle: Option<Territory>, including_none: bool) -> Vec<Option<TreacheryCard>> {
-        let selected_weapon = selected_weapon.and_then(crate::compat::cs::CsNull::opt);
-        let territory_of_battle = territory_of_battle.and_then(crate::compat::cs::CsNull::opt);
         let mut result: Vec<Option<TreacheryCard>> = Vec::new();
 
         if Battle::valid_battle_heroes(g, p).is_empty() {
@@ -1026,7 +1003,7 @@ impl Battle {
         let mut resolved_by_voice_rule = false;
 
         if Battle::affected_by_voice(g, p, g.current_voice.as_ref()) {
-            let voice = g.current_voice.as_ref().nre();
+            let voice = g.current_voice.as_ref().expect("current voice");
             if voice.must {
                 let vt = voice.type_;
                 if selected_weapon.is_some_and(|w| w.type_() == vt) {
@@ -1065,8 +1042,6 @@ impl Battle {
     }
 
     pub fn cards_playable_as_weapon(g: &Game, p: PlayerIndex, with_defense: Option<TreacheryCard>, territory_of_battle: Option<Territory>, with_planetologist: bool) -> Vec<TreacheryCard> {
-        let with_defense = with_defense.and_then(crate::compat::cs::CsNull::opt);
-        let territory_of_battle = territory_of_battle.and_then(crate::compat::cs::CsNull::opt);
         let pl = g.player(p);
         let fighting_on_own_homeworld = territory_of_battle.is_some_and(|t| pl.is_native(t));
         let forces_to_reveal_under_no_field =
@@ -1083,17 +1058,16 @@ impl Battle {
                 (c.type_() != TreacheryCardType::Chemistry && (c.is_weapon() || c.type_() == TreacheryCardType::Useless))
                     || (c.type_() == TreacheryCardType::Chemistry
                         && with_defense.is_some_and(|d| d.is_defense())
-                        && with_defense.nre().type_() != TreacheryCardType::WeirdingWay)
+                        && with_defense.expect("with defense").type_() != TreacheryCardType::WeirdingWay)
                     || (with_planetologist && c.is_atreides())
                     || (c.type_() == TreacheryCardType::Reinforcements
-                        && pl.forces_in_reserve().wrapping_add(pl.special_forces_in_reserve()).wrapping_sub(forces_to_reveal_under_no_field) >= 3)
+                        && (pl.forces_in_reserve() + pl.special_forces_in_reserve() - forces_to_reveal_under_no_field) >= 3)
                     || (!fighting_on_own_homeworld && c.type_() == TreacheryCardType::HarassAndWithdraw)
             })
             .collect()
     }
 
     pub fn max_banker_boost(g: &Game, p: PlayerIndex, hero: Option<Hero>) -> i32 {
-        let hero = hero.and_then(crate::compat::cs::CsNull::opt);
         if hero.is_some_and(|h| g.skilled_as(h, LeaderSkill::Banker)) {
             g.player(p).resources.min(3)
         } else {
@@ -1102,8 +1076,6 @@ impl Battle {
     }
 
     pub fn cards_playable_as_defense(g: &Game, p: PlayerIndex, with_weapon: Option<TreacheryCard>, territory_of_battle: Option<Territory>) -> Vec<TreacheryCard> {
-        let with_weapon = with_weapon.and_then(crate::compat::cs::CsNull::opt);
-        let territory_of_battle = territory_of_battle.and_then(crate::compat::cs::CsNull::opt);
         let pl = g.player(p);
         let fighting_on_own_homeworld = territory_of_battle.is_some_and(|t| pl.is_native(t));
         let forces_to_reveal_under_no_field =
@@ -1120,9 +1092,9 @@ impl Battle {
                 (c.type_() != TreacheryCardType::WeirdingWay && (c.is_defense() || c.type_() == TreacheryCardType::Useless))
                     || (c.type_() == TreacheryCardType::WeirdingWay
                         && with_weapon.is_some_and(|w| w.is_weapon())
-                        && with_weapon.nre().type_() != TreacheryCardType::Chemistry)
+                        && with_weapon.expect("with weapon").type_() != TreacheryCardType::Chemistry)
                     || (c.type_() == TreacheryCardType::Reinforcements
-                        && pl.forces_in_reserve().wrapping_add(pl.special_forces_in_reserve()).wrapping_sub(forces_to_reveal_under_no_field) >= 3)
+                        && (pl.forces_in_reserve() + pl.special_forces_in_reserve() - forces_to_reveal_under_no_field) >= 3)
                     || (!fighting_on_own_homeworld && c.type_() == TreacheryCardType::HarassAndWithdraw)
             })
             .collect()
@@ -1137,18 +1109,18 @@ impl Battle {
 
     pub fn determine_forces(g: &Game, p: PlayerIndex, forces: i32, special_forces: i32, resources: i32, forces_full: &mut i32, forces_half: &mut i32, special_forces_full: &mut i32, special_forces_half: &mut i32) {
         if Battle::must_pay_for_any_forces_in_battle(g, p) {
-            let effective_resources = Battle::cost_reduction(g, p).wrapping_add(resources);
+            let effective_resources = Battle::cost_reduction(g, p) + resources;
 
             if Battle::must_pay_for_special_forces_in_battle(g, p) {
                 *special_forces_full = special_forces.min(effective_resources);
-                *special_forces_half = special_forces.wrapping_sub(*special_forces_full);
-                *forces_full = forces.min(effective_resources.wrapping_sub(*special_forces_full));
-                *forces_half = forces.wrapping_sub(*forces_full);
+                *special_forces_half = special_forces - (*special_forces_full);
+                *forces_full = forces.min(effective_resources - (*special_forces_full));
+                *forces_half = forces - (*forces_full);
             } else {
                 *special_forces_full = special_forces;
                 *special_forces_half = 0;
                 *forces_full = forces.min(effective_resources);
-                *forces_half = forces.wrapping_sub(*forces_full);
+                *forces_half = forces - (*forces_full);
             }
         } else {
             *special_forces_full = special_forces;
@@ -1171,9 +1143,6 @@ impl Battle {
     }
 
     pub fn determine_skill_bonus_game_player_i_hero_treachery_card_treachery_card_int32_leader_skill(g: &Game, player: PlayerIndex, hero: Option<Hero>, weapon: Option<TreacheryCard>, defense: Option<TreacheryCard>, banker_bonus: i32, activated_skill: &mut LeaderSkill) -> i32 {
-        let hero = hero.and_then(crate::compat::cs::CsNull::opt);
-        let weapon = weapon.and_then(crate::compat::cs::CsNull::opt);
-        let defense = defense.and_then(crate::compat::cs::CsNull::opt);
         let hero_skilled = |skill: LeaderSkill| hero.is_some_and(|h| g.skilled_as(h, skill));
 
         if hero_skilled(LeaderSkill::Thinker) {
@@ -1264,7 +1233,6 @@ impl Battle {
     }
 
     pub fn determine_skill_penalty_game_i_hero_player_leader_skill(g: &Game, hero: Option<Hero>, opponent: PlayerIndex, activated_skill: &mut LeaderSkill) -> i32 {
-        let hero = hero.and_then(crate::compat::cs::CsNull::opt);
         if hero.is_some_and(|h| g.skilled_as(h, LeaderSkill::Bureaucrat)) {
             *activated_skill = LeaderSkill::Bureaucrat;
             let o = g.player(opponent);

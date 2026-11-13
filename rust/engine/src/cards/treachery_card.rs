@@ -5,7 +5,6 @@
 
 use std::fmt;
 
-use crate::compat::cs::{CsNull, NullRef};
 use crate::enumerations::{Faction, HeroType, Rule, TreacheryCardType};
 use crate::heroes::hero::Hero;
 use crate::identity::IIdentifiable;
@@ -20,20 +19,13 @@ pub struct TreacheryCardData {
     pub rules: &'static [Rule],
 }
 
-/// A card, or the null card (`TreacheryCard::NULL`, the null handle, which can
-/// appear in a collection; see `cs::CsNull`).
+/// A treachery card: an index into the card table.
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct TreacheryCard(u8);
-
-impl CsNull for TreacheryCard {
-    const NULL: TreacheryCard = TreacheryCard::NULL;
-}
 
 impl TreacheryCard {
     pub const NONE: i32 = -2;
     pub const UNKNOWN: i32 = -1;
-    /// The null handle. Every member throws NullReferenceException.
-    pub const NULL: TreacheryCard = TreacheryCard(u8::MAX);
 
     pub(crate) const fn from_index(i: usize) -> TreacheryCard {
         TreacheryCard(i as u8)
@@ -41,7 +33,7 @@ impl TreacheryCard {
 
     #[track_caller]
     pub fn data(self) -> &'static TreacheryCardData {
-        &ITEMS[self.nn().0 as usize]
+        &ITEMS[self.0 as usize]
     }
 
     #[track_caller]
@@ -56,46 +48,38 @@ impl TreacheryCard {
 
     #[track_caller]
     pub fn value(self) -> i32 {
-        self.nn();
         0
     }
 
     #[track_caller]
     pub fn is(self, _f: Faction) -> bool {
-        self.nn();
         false
     }
 
     #[track_caller]
     pub fn value_in_combat_against(self, _opposing_hero: Option<Hero>) -> i32 {
-        let _opposing_hero = _opposing_hero.and_then(crate::compat::cs::CsNull::opt);
-        self.nn();
         0
     }
 
     #[track_caller]
     pub fn faction(self) -> Faction {
-        self.nn();
         Faction::None
     }
 
     #[track_caller]
     pub fn cost_to_revive(self) -> i32 {
-        self.nn();
         0
     }
 
     /// `IsTraitor(hero) => hero is TreacheryCard`
     #[track_caller]
     pub fn is_traitor(self, hero: Hero) -> bool {
-        self.nn();
         hero.as_treachery_card().is_some()
     }
 
     /// `IsFaceDancer(hero) => hero is TreacheryCard`
     #[track_caller]
     pub fn is_face_dancer(self, hero: Hero) -> bool {
-        self.nn();
         hero.as_treachery_card().is_some()
     }
 
@@ -112,7 +96,6 @@ impl TreacheryCard {
 
     #[track_caller]
     pub fn hero_type(self) -> HeroType {
-        self.nn();
         HeroType::Mercenary
     }
 
@@ -213,22 +196,18 @@ impl TreacheryCard {
         !(self.is_weapon() || self.is_defense() || self.is_useless() || self.is_mercenary())
     }
 
-    /// `CounteredBy(defense, combinedWithWeapon)`. Callers may pass null for
-    /// either (the bot passes a plan's `Defense`, which can be null).
+    /// Whether `defense` counters this weapon. Callers may pass `None` for either
+    /// (the bot passes a plan's defense, which can be missing).
     ///
-    /// C# parity: a null `defense` throws NullReferenceException only on the
-    /// branches that read it. Each clause tests `Type` first, so only a weapon
-    /// of type PoisonTooth, Poison, Chemistry, Projectile, WeirdingWay or
-    /// ProjectileAndPoison dereferences it; any other type returns false (a
-    /// mirror weapon with no combined weapon returns true). Checked against
-    /// .NET in tests/boundary.rs.
+    /// C# parity: a missing `defense` panics only on the branches that read it. Each
+    /// clause tests the type first, so only a weapon of type PoisonTooth, Poison,
+    /// Chemistry, Projectile, WeirdingWay or ProjectileAndPoison reads it; any other
+    /// type returns false (a mirror weapon with no combined weapon returns true).
     ///
     /// C# parity: a mirror weapon combined with a mirror weapon recurses
     /// forever and overflows the stack, which kills the process.
     #[track_caller]
     pub fn countered_by(self, defense: Option<TreacheryCard>, combined_with_weapon: Option<TreacheryCard>) -> bool {
-        let defense = defense.and_then(crate::compat::cs::CsNull::opt);
-        let combined_with_weapon = combined_with_weapon.and_then(crate::compat::cs::CsNull::opt);
         let t = self.type_();
         if t == TreacheryCardType::MirrorWeapon {
             // A Mirror Weapon copies the other weapon. Against another Mirror Weapon neither copies
@@ -239,12 +218,12 @@ impl TreacheryCard {
             };
         }
 
-        (t == TreacheryCardType::PoisonTooth && defense.nre().is_non_antidote_poison_defense())
-            || (t == TreacheryCardType::Poison && defense.nre().is_poison_defense())
-            || (t == TreacheryCardType::Chemistry && defense.nre().is_poison_defense())
-            || (t == TreacheryCardType::Projectile && defense.nre().is_projectile_defense())
-            || (t == TreacheryCardType::WeirdingWay && defense.nre().is_projectile_defense())
-            || (t == TreacheryCardType::ProjectileAndPoison && defense.nre().type_() == TreacheryCardType::ShieldAndAntidote)
+        (t == TreacheryCardType::PoisonTooth && defense.expect("defense").is_non_antidote_poison_defense())
+            || (t == TreacheryCardType::Poison && defense.expect("defense").is_poison_defense())
+            || (t == TreacheryCardType::Chemistry && defense.expect("defense").is_poison_defense())
+            || (t == TreacheryCardType::Projectile && defense.expect("defense").is_projectile_defense())
+            || (t == TreacheryCardType::WeirdingWay && defense.expect("defense").is_projectile_defense())
+            || (t == TreacheryCardType::ProjectileAndPoison && defense.expect("defense").type_() == TreacheryCardType::ShieldAndAntidote)
     }
 }
 
@@ -256,18 +235,12 @@ impl IIdentifiable for TreacheryCard {
 
 impl fmt::Debug for TreacheryCard {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.is_null() {
-            return f.write_str("TreacheryCard(null)");
-        }
         write!(f, "TreacheryCard({})", self.id())
     }
 }
 
 impl serde::Serialize for TreacheryCard {
     fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        if self.is_null() {
-            return s.serialize_none();
-        }
         s.serialize_i32(self.id())
     }
 }

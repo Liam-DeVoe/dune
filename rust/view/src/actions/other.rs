@@ -12,7 +12,7 @@
 use treachery_engine::events::GameEventType;
 use treachery_engine::messages::expression::ExpressionElement;
 use treachery_engine::json;
-use treachery_engine::compat::net_enum::NetEnum;
+use treachery_engine::enum_type::GameEnum;
 use treachery_engine::prelude::*;
 use treachery_engine::express;
 
@@ -120,11 +120,11 @@ pub(super) fn format(d: &dyn Describer, m: &str, args: &[ExpressionElement]) -> 
     dotnet_compat::fmt::string_format(m, &refs).unwrap_or_else(|_| m.to_string())
 }
 
-pub(super) fn enum_option<T: NetEnum + Into<ExpressionElement> + Copy + ToString>(d: &dyn Describer, v: T) -> EnumOption {
+pub(super) fn enum_option<T: GameEnum + Into<ExpressionElement> + Copy + ToString>(d: &dyn Describer, v: T) -> EnumOption {
     EnumOption { name: v.to_string(), value: v.value(), label: describe(d, v) }
 }
 
-fn labelled<T: NetEnum + Copy + ToString>(v: T, label: &str) -> EnumOption {
+fn labelled<T: GameEnum + Copy + ToString>(v: T, label: &str) -> EnumOption {
     EnumOption { name: v.to_string(), value: v.value(), label: label.to_string() }
 }
 
@@ -196,7 +196,7 @@ pub fn default_draft(game: &Game, faction: Faction, t: GameEventType) -> Option<
         }
         GameEventType::EmperorBidSupport => {
             let mut e = EmperorBidSupport::new(game, faction);
-            let mut amounts = dotnet_compat::NetDictionary::new();
+            let mut amounts = IndexMap::new();
             for f in opponents_but_ally(game, p) {
                 amounts.insert(f, game.spice_for_bids_emperor_can_pay(f));
             }

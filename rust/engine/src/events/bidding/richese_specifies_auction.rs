@@ -34,7 +34,6 @@ impl RicheseSpecifiesAuction {
     }
 
     pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.card_id = TreacheryCardManager::get_id(value);
     }
 
@@ -57,7 +56,7 @@ impl RicheseSpecifiesAuction {
     pub fn may_specify_card(g: &Game, p: PlayerIndex) -> bool {
         let occupier_of_richese_homeworld = g.occupier_of(World::Richese);
         (occupier_of_richese_homeworld.is_none() && g.player(p).faction == Faction::Richese)
-            || (occupier_of_richese_homeworld.is_some() && !g.richese_occupier_specified_card && g.player(occupier_of_richese_homeworld.nre()).is(g.player(p).faction))
+            || (occupier_of_richese_homeworld.is_some() && !g.richese_occupier_specified_card && g.player(occupier_of_richese_homeworld.expect("occupier of richese homeworld")).is(g.player(p).faction))
     }
 
     pub fn may_specify_type_of_auction(g: &Game, p: PlayerIndex) -> bool {
@@ -70,7 +69,7 @@ impl RicheseSpecifiesAuction {
         if !game.richese_occupier_specified_card {
             game.richese_auction_should_still_happen = false;
             // C# puts a null card on the deck when executed without validation.
-            let card = self.card().or_null();
+            let card = self.card().required("card")?;
             game.cards_on_auction.as_mut().required("cards on auction")?.put_on_top(card);
             crate::game::remove_card(&mut game.richese_cache, Some(card));
             game.register_known(card);

@@ -3,9 +3,10 @@
 mod common;
 
 use common::*;
-use serde_json::json;
+use serde_json::{json, Value};
 
 mod error {
+    pub const USER_NOT_FOUND: i64 = 1;
     pub const GAME_NOT_FOUND: i64 = 2;
     pub const INVALID_USER_NAME_OR_PASSWORD: i64 = 14;
     pub const NOT_ADMIN: i64 = 15;
@@ -100,12 +101,22 @@ fn users_delete_themselves() {
         let other = s.new_game(&bobby, "", "").await;
         s.ok(alice.conn, "RequestJoinGame", json!([alice.token, other, "", -1])).await;
 
+        s.received(bobby.conn);
         s.ok(alice.conn, "DeleteUser", json!([alice.token, alice.id])).await;
         let c = s.connect();
         assert_eq!(s.err(c, "RequestLogin", json!([VERSION, "alice", "alice-pw"])).await, error::INVALID_USER_NAME_OR_PASSWORD);
+        // Their session ends.
+        assert_eq!(s.err(alice.conn, "RequestGameState", json!([alice.token, other])).await, error::USER_NOT_FOUND);
         // Games they created are closed.
         assert_eq!(s.err(bobby.conn, "RequestObserveGame", json!([bobby.token, own, ""])).await, error::GAME_NOT_FOUND);
-        s.ok(bobby.conn, "RequestGameState", json!([bobby.token, other])).await;
+        // They leave the games they joined.
+        let removed: Vec<Value> = s.received(bobby.conn).into_iter().filter(|m| m["name"] == "RemoveUser").map(|m| m["args"].clone()).collect();
+        assert!(removed.contains(&json!([alice.id, false])), "{removed:?}");
+        let state = s.ok(bobby.conn, "RequestGameState", json!([bobby.token, other])).await;
+        assert!(!state.to_string().contains("Alice Player"), "{state}");
+        s.received(alice.conn);
+        s.ok(bobby.conn, "SendChatMessage", json!([bobby.token, other, {"TargetUserId": -1, "SourceUserId": bobby.id, "Body": "still there?"}])).await;
+        assert!(s.received(alice.conn).is_empty(), "the deleted user's connection no longer follows the game");
         // The name is free again.
         s.ok(c, "RequestCreateUser", json!(["alice", "new-pw", "", "New Alice"])).await;
 

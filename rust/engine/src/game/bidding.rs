@@ -2,11 +2,9 @@ use crate::messages::message::LogRecord;
 use crate::prelude::*;
 use crate::game::TriggeredBureaucracy;
 
-/// `list.Remove(item)` on a `List<TreacheryCard>`: removes the first occurrence, if any.
-/// `None` is null, which removes the first null card.
+/// Removes the first occurrence of `card` from `list`, if any.
 pub(crate) fn remove_card(list: &mut Vec<TreacheryCard>, card: Option<TreacheryCard>) -> bool {
-    let card = card.and_then(crate::compat::cs::CsNull::opt);
-    cs::list_remove(list, card)
+    card.is_some_and(|card| crate::iter::remove_first(list, &card))
 }
 
 impl Game {
@@ -47,7 +45,7 @@ impl Game {
         let condition = richese.is_some()
             && self.applicable(Rule::RicheseBlackMarket)
             && !self.prevented(FactionAdvantage::RicheseBlackMarket)
-            && self.player(richese.nre()).treachery_cards.len() > 0;
+            && self.player(richese.expect("richese")).treachery_cards.len() > 0;
         self.enter_boolean_phase_action(condition, Phase::BlackMarketAnnouncement, Game::enter_richese_bidding);
     }
 
@@ -123,7 +121,7 @@ impl Game {
         });
         let initiator = GameEventMethods::initiator(&**bid);
         self.bids.remove(&initiator);
-        self.bids.add_with(initiator, bid.clone().into_event(), |k| k.to_string());
+        self.bids.insert_new(initiator, bid.clone().into_event());
         let as_event = bid.clone().into_event();
         self.check_if_atreides_or_atreides_ally_passed_bid(&as_event);
 
@@ -154,16 +152,16 @@ impl Game {
     pub fn return_karma_card_used_for_bid(&mut self) {
         if let Some(current_bid) = self.current_bid.clone() {
             if current_bid.i_bid_using_karma_to_remove_bid_limit() {
-                let p = current_bid.i_bid_player().nre();
+                let p = current_bid.i_bid_player().expect("i bid player");
                 // UsingKarmaToRemoveBidLimit implies KarmaCard != null.
-                let card = current_bid.i_bid_karma_card().nre();
+                let card = current_bid.i_bid_karma_card().expect("i bid karma card");
                 self.player_mut(p).treachery_cards.push(card);
             }
         }
     }
 
     pub fn log_bid(&mut self, initiator: PlayerIndex, bid_amount: i32, bid_ally_contribution_amount: i32, bid_emperor_contribution_amount: i32, receiver_income: &MessagePart, paid_to: Faction, free: bool) {
-        let bid_total_amount = bid_amount.wrapping_add(bid_ally_contribution_amount).wrapping_add(bid_emperor_contribution_amount);
+        let bid_total_amount = bid_amount + bid_ally_contribution_amount + bid_emperor_contribution_amount;
         let card_number = express_part_if!(self.current_auction_type == AuctionType::Normal; self.card_number);
 
         let initiator_ally = self.player(initiator).ally;
@@ -226,7 +224,7 @@ impl Game {
             let paid_to = self.pay_for_card(winner, bid, bid_amount, bid_ally_contribution_amount, bid_emperor_contribution_amount, payment_receiver, &mut receiver_income_message)?;
             self.log_bid(winner, bid_amount, bid_ally_contribution_amount, bid_emperor_contribution_amount, &receiver_income_message, paid_to, false);
         } else {
-            self.play_nexus_card(winner, vec!["Secret Ally".into(), "get this card for free".into()]);
+            self.play_nexus_card(winner, vec!["get this card for free".into()]);
             self.log_bid(winner, 0, 0, 0, &receiver_income_message, Faction::None, true);
         }
 
@@ -252,7 +250,7 @@ impl Game {
     pub fn skip_players_that_cant_bid(&self, sequence: &mut PlayerSequence) {
         let mut i = 0;
         while i < self.players.len() {
-            if self.player(sequence.current_player(self).nre()).has_room_for_cards(self) {
+            if self.player(sequence.current_player(self).expect("current player")).has_room_for_cards(self) {
                 break;
             }
             sequence.next_player(self);
@@ -264,7 +262,7 @@ impl Game {
         let mut paid_to = Faction::None;
         {
             let p = self.player_mut(initiator);
-            p.resources = p.resources.wrapping_sub(bid_amount);
+            p.resources -= bid_amount;
         }
 
         let mut receiver_profit = 0;
@@ -273,7 +271,7 @@ impl Game {
             let ally = self.player(initiator).allied_player(self).required("The ally")?;
             {
                 let a = self.player_mut(ally);
-                a.resources = a.resources.wrapping_sub(bid_ally_contribution_amount);
+                a.resources -= bid_ally_contribution_amount;
             }
             let initiator_faction = self.player(initiator).faction;
             self.decrease_permitted_use_of_ally_spice(initiator_faction, bid_ally_contribution_amount);
@@ -282,12 +280,12 @@ impl Game {
         if bid_emperor_contribution_amount > 0 {
             let emperor = self.get_player(Some(Faction::Emperor)).required("The Emperor player")?;
             let r = self.player_mut(emperor);
-            r.resources = r.resources.wrapping_sub(bid_emperor_contribution_amount);
+            r.resources -= bid_emperor_contribution_amount;
         }
 
         let receiver = self.get_player(Some(payment_receiver));
         let receiver_and_ally_are_richese = self.player(initiator).ally == Faction::Richese && payment_receiver == Faction::Richese;
-        let total_amount = bid_amount.wrapping_add(if receiver_and_ally_are_richese { 0 } else { bid_ally_contribution_amount });
+        let total_amount = bid_amount + if receiver_and_ally_are_richese { 0 } else { bid_ally_contribution_amount };
 
         let emperor = self.get_player(Some(Faction::Emperor));
         let mut total_amount_received_by_emperor_instead_of_richese =
@@ -299,12 +297,12 @@ impl Game {
 
         let mut emperor_received_instead_message = express_part!();
         if emperor.is_some() && total_amount_received_by_emperor_instead_of_richese > 0 {
-            let emperor = emperor.nre();
+            let emperor = emperor.expect("emperor");
             // C# parity: Richese's homeworld threshold and occupier are applied to Emperor's income (hazards 18.2).
             self.modify_income_because_of_low_threshold_or_occupation(receiver.required("The payment receiver")?, &mut total_amount_received_by_emperor_instead_of_richese);
             {
                 let r = self.player_mut(emperor);
-                r.resources = r.resources.wrapping_add(total_amount_received_by_emperor_instead_of_richese);
+                r.resources += total_amount_received_by_emperor_instead_of_richese;
             }
             emperor_received_instead_message = express_part!(" and ", Faction::Emperor, " get ", Payment::of(total_amount_received_by_emperor_instead_of_richese));
 
@@ -320,7 +318,7 @@ impl Game {
         }
 
         if receiver.is_some() && self.player(initiator).faction != payment_receiver {
-            let receiver = receiver.nre();
+            let receiver = receiver.expect("receiver");
             if payment_receiver == Faction::Emperor && self.prevented(FactionAdvantage::EmperorReceiveBid) {
                 *message = express_part!(" → ", payment_receiver, " do not receive ", Concept::Resource, " for this card");
                 if !self.applicable(Rule::FullPhaseKarma) {
@@ -331,8 +329,8 @@ impl Game {
                 self.modify_income_because_of_low_threshold_or_occupation(receiver, &mut receiver_profit);
                 {
                     let r = self.player_mut(receiver);
-                    r.resources = r.resources.wrapping_add(receiver_profit);
-                    r.resources_after_bidding = r.resources_after_bidding.wrapping_add(bid_emperor_contribution_amount);
+                    r.resources += receiver_profit;
+                    r.resources_after_bidding += bid_emperor_contribution_amount;
                 }
                 let receiver_faction = self.player(receiver).faction;
                 paid_to = receiver_faction;
@@ -359,7 +357,7 @@ impl Game {
             paid_to = Faction::Emperor;
         }
 
-        if total_amount.wrapping_sub(receiver_profit).wrapping_sub(total_amount_received_by_emperor_instead_of_richese) >= 4 {
+        if (total_amount - receiver_profit - total_amount_received_by_emperor_instead_of_richese) >= 4 {
             self.activate_banker(initiator);
         }
 
@@ -376,8 +374,8 @@ impl Game {
                 if self.player(occupier).has_room_for_cards(self) {
                     receiver = Some(occupier);
                     extra_card_must_be_decided_about = self.player(occupier).has_ally()
-                        && self.player(self.player(occupier).allied_player(self).nre()).has_room_for_cards(self);
-                } else if self.player(occupier).has_ally() && self.player(self.player(occupier).allied_player(self).nre()).has_room_for_cards(self) {
+                        && self.player(self.player(occupier).allied_player(self).expect("allied player")).has_room_for_cards(self);
+                } else if self.player(occupier).has_ally() && self.player(self.player(occupier).allied_player(self).expect("allied player")).has_room_for_cards(self) {
                     receiver = self.player(occupier).allied_player(self);
                 }
             } else if self.player(winner).has_room_for_cards(self) {
@@ -410,33 +408,32 @@ impl Game {
 
     pub fn draw_treachery_card(&mut self) -> Option<TreacheryCard> {
         if self.treachery_deck.as_ref().map(|d| d.is_empty()) == Some(true) {
-            let count = self.treachery_discard_pile.as_ref().nre().items.len() as i32;
+            let count = self.treachery_discard_pile.as_ref().expect("treachery discard pile").items.len() as i32;
             self.log(vec![express!("Shuffled ", count, " cards from the treachery discard pile into a new deck")
                 .with_log(TreacheryReshuffled::new(count))
                 .into()]);
 
-            let discarded: Vec<TreacheryCard> = self.treachery_discard_pile.as_ref().nre().items.clone();
+            let discarded: Vec<TreacheryCard> = self.treachery_discard_pile.as_ref().expect("treachery discard pile").items.clone();
             for i in discarded {
-                self.treachery_deck.as_mut().nre().items.push(i);
+                self.treachery_deck.as_mut().expect("treachery deck").items.push(i);
                 self.unregister_known(i);
             }
 
-            self.treachery_discard_pile.as_mut().nre().clear();
-            self.treachery_deck.as_mut().nre().shuffle();
+            self.treachery_discard_pile.as_mut().expect("treachery discard pile").clear();
+            self.treachery_deck.as_mut().expect("treachery deck").shuffle();
             self.stone(Milestone::Shuffled);
         }
 
         // `TreacheryDeck?.Items.Count > 0`: null > 0 is false.
         if self.treachery_deck.as_ref().map_or(false, |d| d.items.len() > 0) {
             // A null card in the deck comes back as None (engine-conventions.md, "Null handles").
-            self.treachery_deck.as_mut().nre().draw().opt()
+            Some(self.treachery_deck.as_mut().expect("treachery deck").draw())
         } else {
             None
         }
     }
 
     pub fn finish_bid(&mut self, winner: Option<PlayerIndex>, winning_bid: Option<&GameEvent>, card: TreacheryCard, might_replace: bool) {
-        let winner = winner.and_then(crate::compat::cs::CsNull::opt);
         self.card_just_won = Some(card);
         self.winning_bid = winning_bid.cloned();
         self.card_sold_on_black_market = None;
@@ -450,10 +447,10 @@ impl Game {
             self.allow(FactionAdvantage::AtreidesBiddingPrescience);
         }
 
-        let mut enter_replacing_card_just_won = might_replace && self.player(winner.nre()).nexus != Faction::None;
+        let mut enter_replacing_card_just_won = might_replace && self.player(winner.expect("winner")).nexus != Faction::None;
 
         if might_replace {
-            let winner = winner.nre();
+            let winner = winner.expect("winner");
             if self.player(winner).ally == Faction::Ixian
                 && self.ixian_allows_replacing_cards
                 && !matches!(self.current_auction_type, AuctionType::RicheseSilent | AuctionType::RicheseOnceAround)
@@ -544,7 +541,6 @@ impl Game {
     }
 
     pub fn start_bid_sequence_and_auction_type(&mut self, auction_type: AuctionType, richese_player: Option<PlayerIndex>, direction: i32) {
-        let richese_player = richese_player.and_then(crate::compat::cs::CsNull::opt);
         match auction_type {
             AuctionType::BlackMarketNormal => {
                 self.black_market_auction_type = AuctionType::BlackMarketNormal;
@@ -579,7 +575,7 @@ impl Game {
     }
 
     pub fn determine_highest_bid(&self, bids: &NetDictionary<Faction, GameEvent>) -> Option<GameEvent> {
-        let highest_bid_value = dotnet_compat::linq::max(bids.values().map(|b| b.i_bid_total_amount()));
+        let highest_bid_value = bids.values().map(|b| b.i_bid_total_amount()).max().expect("a bid");
         let mut determine_bid_winner_sequence = PlayerSequence::new_game_boolean_int32(self, false, 1);
 
         let mut i = 0;
@@ -587,7 +583,7 @@ impl Game {
             let f = determine_bid_winner_sequence.current_faction(self);
             if let Some(value) = bids.get(&f) {
                 if value.i_bid_total_amount() == highest_bid_value {
-                    return Some(bids.index_with(&f, |k| k.to_string()).clone());
+                    return Some(bids[&f].clone());
                 }
             }
 
@@ -603,7 +599,7 @@ impl Game {
         self.current_ixian_cunning = None;
         if let Some(emperor) = self.get_player(Some(Faction::Emperor)) {
             let r = self.player_mut(emperor);
-            r.resources = r.resources.wrapping_add(r.resources_after_bidding);
+            r.resources += r.resources_after_bidding;
             r.resources_after_bidding = 0;
         }
 
@@ -612,7 +608,7 @@ impl Game {
     }
 
     pub fn number_of_cards_on_regular_auction(&self) -> i32 {
-        self.card_number.wrapping_add(self.cards_on_auction.as_ref().nre().items.len() as i32).wrapping_sub(1)
+        (self.card_number + (self.cards_on_auction.as_ref().expect("cards on auction").items.len() as i32)) - 1
     }
 
     pub fn players_that_can_bid(&self) -> Vec<PlayerIndex> {

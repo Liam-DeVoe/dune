@@ -1,22 +1,23 @@
-//! How a C# enum is represented in Rust. Support module (no C# counterpart).
+//! The game's enums: open newtypes over `i32` with named constants.
 //!
-//! A C# enum is an `int` with names attached. Any `int` is a valid value: JSON
-//! deserialization accepts `13` for a `Faction`, casts like `(Faction)x` never
-//! fail, and `ToString()` of an undefined value prints the number. The fuzzer
-//! sends such values, so a closed Rust `enum` would reject inputs that C#
-//! accepts. Each C# enum therefore becomes an open newtype over `i32`:
+//! Any `i32` is a value of every enum: event JSON may hold `13` for a `Faction`, and an
+//! undefined value prints as its number. Savegames and clients rely on this, so the enums are
+//! not closed Rust `enum`s:
 //!
 //! ```
 //! use treachery_engine::enumerations::Faction;
-//! let f = Faction::Fremen;              // associated const, same name as in C#
+//! let f = Faction::Fremen;
 //! assert_eq!(f.0, 10);
-//! assert!(Faction::Atreides > Faction::Fremen); // ordered by value, like C#
+//! assert!(Faction::Atreides > Faction::Fremen); // ordered by value
 //! assert_eq!(Faction(13).to_string(), "13"); // undefined values are allowed
 //! match f {
 //!     Faction::Fremen => {}
 //!     _ => unreachable!(),             // a `_` arm is always required
 //! }
 //! ```
+//!
+//! `Display` prints the member name, or the number, or a `[Flags]` combination
+//! (`"Cross, ToHomeworld"`), as the log texts always have.
 
 use std::fmt;
 
@@ -69,8 +70,8 @@ impl EnumTypeInfo {
     }
 }
 
-/// Implemented by every type generated with [`net_enum!`].
-pub trait NetEnum: Copy + Eq + Ord + std::hash::Hash + fmt::Debug + 'static {
+/// Implemented by every type generated with [`game_enum!`].
+pub trait GameEnum: Copy + Eq + Ord + std::hash::Hash + fmt::Debug + 'static {
     const INFO: &'static EnumTypeInfo;
     /// `Enum.GetValues<T>()` order (sorted by unsigned value).
     const ALL: &'static [Self];
@@ -82,18 +83,18 @@ pub trait NetEnum: Copy + Eq + Ord + std::hash::Hash + fmt::Debug + 'static {
 /// `enumerations.rs`; use it by hand for enums declared in other C# files.
 ///
 /// ```ignore
-/// net_enum! {
+/// game_enum! {
 ///     /// C# `BattleFactKind`
 ///     BattleFactKind { Strength = 0, Winner = 1, }
 ///     get_values [Strength, Winner]
 /// }
 /// ```
-macro_rules! net_enum {
+macro_rules! game_enum {
     ($(#[$m:meta])* flags $name:ident { $($var:ident = $val:expr,)* } get_values [$($gv:ident),* $(,)?]) => {
-        $crate::compat::net_enum::net_enum!(@impl true, $(#[$m])* $name { $($var = $val,)* } [$($gv),*]);
+        $crate::enum_type::game_enum!(@impl true, $(#[$m])* $name { $($var = $val,)* } [$($gv),*]);
     };
     ($(#[$m:meta])* $name:ident { $($var:ident = $val:expr,)* } get_values [$($gv:ident),* $(,)?]) => {
-        $crate::compat::net_enum::net_enum!(@impl false, $(#[$m])* $name { $($var = $val,)* } [$($gv),*]);
+        $crate::enum_type::game_enum!(@impl false, $(#[$m])* $name { $($var = $val,)* } [$($gv),*]);
     };
     (@impl $flags:expr, $(#[$m:meta])* $name:ident { $($var:ident = $val:expr,)* } [$($gv:ident),*]) => {
         $(#[$m])*
@@ -108,7 +109,7 @@ macro_rules! net_enum {
             /// `Enum.GetValues` order.
             pub const ALL: &'static [$name] = &[$($name::$gv),*];
 
-            pub const INFO: $crate::compat::net_enum::EnumTypeInfo = $crate::compat::net_enum::EnumTypeInfo {
+            pub const INFO: $crate::enum_type::EnumTypeInfo = $crate::enum_type::EnumTypeInfo {
                 name: stringify!($name),
                 is_flags: $flags,
                 declared: &[$((stringify!($var), $val)),*],
@@ -120,8 +121,8 @@ macro_rules! net_enum {
             }
         }
 
-        impl $crate::compat::net_enum::NetEnum for $name {
-            const INFO: &'static $crate::compat::net_enum::EnumTypeInfo = &$name::INFO;
+        impl $crate::enum_type::GameEnum for $name {
+            const INFO: &'static $crate::enum_type::EnumTypeInfo = &$name::INFO;
             const ALL: &'static [Self] = $name::ALL;
             fn value(self) -> i32 { self.0 }
             fn from_value(value: i32) -> Self { $name(value) }
@@ -130,7 +131,7 @@ macro_rules! net_enum {
         /// `ToString()` with .NET semantics.
         impl ::std::fmt::Display for $name {
             fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-                f.write_str(&<$name as $crate::compat::net_enum::NetEnum>::INFO.format(self.0))
+                f.write_str(&<$name as $crate::enum_type::GameEnum>::INFO.format(self.0))
             }
         }
 
@@ -141,7 +142,7 @@ macro_rules! net_enum {
         }
 
         /// `Comparer.Default` on a boxed enum compares the underlying values.
-        impl $crate::compat::cs::CsComparable for $name {
+        impl $crate::compat::random_ext::CsComparable for $name {
             fn cs_compare(&self, other: &Self) -> ::std::cmp::Ordering { self.0.cmp(&other.0) }
             fn cs_equals(&self, other: &Self) -> bool { self.0 == other.0 }
         }
@@ -161,7 +162,7 @@ macro_rules! net_enum {
         /// State dump: `"<ToString()>(<number>)"` (trace-format.md 7.3).
         impl $crate::canon::Canon for $name {
             fn canon(&self, w: &mut $crate::canon::CanonWriter) {
-                $crate::canon::write_enum(w, &<$name as $crate::compat::net_enum::NetEnum>::INFO.format(self.0), self.0)
+                $crate::canon::write_enum(w, &<$name as $crate::enum_type::GameEnum>::INFO.format(self.0), self.0)
             }
         }
 
@@ -178,4 +179,4 @@ macro_rules! net_enum {
         }
     };
 }
-pub(crate) use net_enum;
+pub(crate) use game_enum;

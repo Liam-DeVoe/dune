@@ -24,35 +24,34 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
     }
 
     fn set_to(&mut self, game: &Game, value: Option<Location>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         *self.field_to_id_mut() = game.map.location_lookup().get_id(value);
     }
 
-    fn force_locations(&self, game: &Game) -> NetDictionary<Location, Battalion> {
+    fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         // ParseForceLocations(Game, Player.Faction, _forceLocations): Player is dereferenced
         // first; a null string throws at `.Length`.
         let faction = game.player(self.player()).faction;
-        let s = self.field_force_locations().as_deref().nre();
+        let s = self.field_force_locations().as_deref().expect("field force locations");
         PlacementEvent::parse_force_locations(game, faction, s)
     }
 
-    fn set_force_locations(&mut self, game: &Game, value: &NetDictionary<Location, Battalion>) {
+    fn set_force_locations(&mut self, game: &Game, value: &IndexMap<Location, Battalion>) {
         *self.field_force_locations_mut() = Some(PlacementEvent::force_locations_string(game, value));
     }
 
     fn total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {
-        self.forces_added_to_location(game).wrapping_add(self.special_forces_added_to_location(game))
+        self.forces_added_to_location(game) + self.special_forces_added_to_location(game)
     }
 
     fn forces_added_to_location(&self, game: &Game) -> i32 {
         // ForceLocations != null ? ... : 0 (the dictionary is never null; parsed twice as in C#)
         let _ = self.force_locations(game);
-        dotnet_compat::linq::sum_i32(self.force_locations(game).values().map(|b| b.amount_of_forces))
+        self.force_locations(game).values().map(|b| b.amount_of_forces).sum::<i32>()
     }
 
     fn special_forces_added_to_location(&self, game: &Game) -> i32 {
         let _ = self.force_locations(game);
-        dotnet_compat::linq::sum_i32(self.force_locations(game).values().map(|b| b.amount_of_special_forces))
+        self.force_locations(game).values().map(|b| b.amount_of_special_forces).sum::<i32>()
     }
 
     fn validate_move(&self, game: &Game, as_advisors: bool) -> Option<Message> {
@@ -62,20 +61,20 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
 
         // var p = Player (may be null; dereferenced only where C# does)
         let p = self.player_opt();
-        let pl = || game.player(p.nre());
+        let pl = || game.player(p.expect("player"));
 
         // ForceLocations is re-parsed on every read in C#; parsing has no side effects,
         // and an exception would come from the first read, so one parse per read site is
         // kept only where the first read happens.
         let force_locations = self.force_locations(game);
 
-        let force_amount = dotnet_compat::linq::sum_i32(force_locations.values().map(|b| b.amount_of_forces));
+        let force_amount = force_locations.values().map(|b| b.amount_of_forces).sum::<i32>();
         let too_many_forces = force_locations.iter().any(|(l, b)| b.amount_of_forces > pl().forces_in(Some(*l)));
         if too_many_forces {
             return Some(express!("Invalid number of ", pl().force()));
         }
 
-        let special_force_amount = dotnet_compat::linq::sum_i32(force_locations.values().map(|b| b.amount_of_special_forces));
+        let special_force_amount = force_locations.values().map(|b| b.amount_of_special_forces).sum::<i32>();
         let too_many_special_forces = force_locations.iter().any(|(l, b)| b.amount_of_special_forces > pl().special_forces_in(Some(*l)));
         if too_many_special_forces {
             return Some(express!("Invalid number of ", pl().special_force()));
@@ -88,8 +87,8 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
         if self.to(game).is_none() {
             return Some(express!("To not selected"));
         }
-        let valid_targets = PlacementEvent::valid_targets_game_player_dictionary_location_battalion(game, p.nre(), &force_locations);
-        if !valid_targets.contains(&self.to(game).nre()) {
+        let valid_targets = PlacementEvent::valid_targets_game_player_dictionary_location_battalion(game, p.expect("player"), &force_locations);
+        if !valid_targets.contains(&self.to(game).expect("destination")) {
             return Some(express!("Invalid To location"));
         }
         if as_advisors && !(pl().is(Faction::BeneGesserit) && game.applicable(Rule::BeneGesseritAdvisors)) {
@@ -97,22 +96,22 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
         }
 
         if self.initiator() == Faction::BeneGesserit {
-            if as_advisors && !PlacementEvent::may_move_as_advisors(game, p.nre(), self.to(game).nre().territory(), special_force_amount > 0) {
+            if as_advisors && !PlacementEvent::may_move_as_advisors(game, p.expect("player"), self.to(game).expect("destination").territory(), special_force_amount > 0) {
                 return Some(express!("You can't be advisors there"));
             }
-            if !as_advisors && !PlacementEvent::may_move_as_bene_gesserit_fighters(game, p.nre(), self.to(game).nre().territory()) {
+            if !as_advisors && !PlacementEvent::may_move_as_bene_gesserit_fighters(game, p.expect("player"), self.to(game).expect("destination").territory()) {
                 return Some(express!("You can't be fighters there"));
             }
         }
 
         let can_move_from_two_territories = game.current_planetology.is_some()
-            && game.current_planetology.as_ref().nre().move_from_two_territories()
-            && game.current_planetology.as_ref().nre().initiator() == self.initiator();
+            && game.current_planetology.as_ref().expect("current planetology").move_from_two_territories()
+            && game.current_planetology.as_ref().expect("current planetology").initiator() == self.initiator();
         let number_of_selected_territories = force_locations
             .iter()
             .filter(|kvp| kvp.1.total_amount_of_forces() > 0)
             .map(|fl| fl.0.territory())
-            .cs_distinct()
+            .distinct()
             .len();
         if number_of_selected_territories > 1 && !can_move_from_two_territories {
             return Some(express!("You can't move from two territories at the same time"));
@@ -138,7 +137,7 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
 }
 
 impl PlacementEvent {
-    pub fn force_locations_string(g: &Game, force_locations: &NetDictionary<Location, Battalion>) -> String {
+    pub fn force_locations_string(g: &Game, force_locations: &IndexMap<Location, Battalion>) -> String {
         force_locations
             .iter()
             .map(|(k, v)| format!("{}:{}|{}", g.map.location_lookup().get_id(Some(*k)), v.amount_of_forces, v.amount_of_special_forces))
@@ -146,24 +145,20 @@ impl PlacementEvent {
             .join(",")
     }
 
-    pub fn parse_force_locations(g: &Game, f: Faction, force_locations: &str) -> NetDictionary<Location, Battalion> {
-        let mut result: NetDictionary<Location, Battalion> = NetDictionary::new();
+    pub fn parse_force_locations(g: &Game, f: Faction, force_locations: &str) -> IndexMap<Location, Battalion> {
+        let mut result: IndexMap<Location, Battalion> = IndexMap::new();
         // forceLocations.Length <= 0 (null is handled by the caller, which throws there)
         if force_locations.len() == 0 {
             return result;
         }
         for location_amount_pair in force_locations.split(',') {
             let location_and_amounts: Vec<&str> = location_amount_pair.split(':').collect();
-            let location = g.map.location_lookup().find(dotnet_compat::parse::convert_to_int32(Some(*cs::index_array(&location_and_amounts, 0))));
+            let location = g.map.location_lookup().find(dotnet_compat::parse::convert_to_int32(Some(location_and_amounts[0])));
             let Some(location) = location else { continue };
-            let amounts: Vec<&str> = cs::index_array(&location_and_amounts, 1).split('|').collect();
-            let amount_of_normal_forces = dotnet_compat::parse::convert_to_int32(Some(*cs::index_array(&amounts, 0)));
-            let amount_of_normal_special_forces = dotnet_compat::parse::convert_to_int32(Some(*cs::index_array(&amounts, 1)));
-            result.add_with(
-                location,
-                Battalion::new(f, amount_of_normal_forces, amount_of_normal_special_forces, location),
-                |k| ExpressionElement::from(*k).to_cs_string(),
-            );
+            let amounts: Vec<&str> = location_and_amounts[1].split('|').collect();
+            let amount_of_normal_forces = dotnet_compat::parse::convert_to_int32(Some(amounts[0]));
+            let amount_of_normal_special_forces = dotnet_compat::parse::convert_to_int32(Some(amounts[1]));
+            result.insert_new(location, Battalion::new(f, amount_of_normal_forces, amount_of_normal_special_forces, location));
         }
 
         result
@@ -183,24 +178,24 @@ impl PlacementEvent {
     }
 
     pub fn valid_targets(g: &Game, p: PlayerIndex, location: Location, battalion: &Battalion) -> Vec<Location> {
-        let mut dict: NetDictionary<Location, Battalion> = NetDictionary::new();
-        dict.add_with(location, battalion.clone(), |k| ExpressionElement::from(*k).to_cs_string());
+        let mut dict: IndexMap<Location, Battalion> = IndexMap::new();
+        dict.insert_new(location, battalion.clone());
 
         PlacementEvent::valid_targets_game_player_dictionary_location_battalion(g, p, &dict)
     }
 
-    pub fn valid_targets_game_player_dictionary_location_battalion(g: &Game, p: PlayerIndex, forces: &NetDictionary<Location, Battalion>) -> Vec<Location> {
+    pub fn valid_targets_game_player_dictionary_location_battalion(g: &Game, p: PlayerIndex, forces: &IndexMap<Location, Battalion>) -> Vec<Location> {
         let mut result: Option<Vec<Location>> = None;
 
         // The targets are computed in the loop; the Intersect chain is lazy, but it
         // only reads lists that nothing changes afterwards.
         let moved: Vec<Battalion> = forces.values().cloned().collect();
-        for (key, _) in forces.iter().filter(|b| b.1.amount_of_forces.wrapping_add(b.1.amount_of_special_forces) > 0) {
+        for (key, _) in forces.iter().filter(|b| (b.1.amount_of_forces + b.1.amount_of_special_forces) > 0) {
             let target = PlacementEvent::valid_move_to_targets(g, p, *key, &moved);
 
             result = Some(match result {
                 None => target,
-                Some(r) => dotnet_compat::linq::intersect(r, target),
+                Some(r) => crate::iter::unique(r.into_iter().filter(|l| target.contains(l))).collect(),
             });
         }
 
@@ -213,7 +208,7 @@ impl PlacementEvent {
     pub fn valid_move_to_targets(g: &Game, p: PlayerIndex, from: Location, moved: &[Battalion]) -> Vec<Location> {
         let player = g.player(p);
         if player.is(Faction::Emperor) && from.as_homeworld().is_some() && g.applicable(Rule::EmperorSpecialForces) {
-            let hw = from.as_homeworld().nre();
+            let hw = from.as_homeworld().expect("as homeworld");
             if hw.world() == World::Emperor {
                 let salusa_secundus = g.map.get_home_world(World::SalusaSecundus);
                 if let Some(salusa_secundus) = salusa_secundus {

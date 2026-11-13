@@ -46,7 +46,7 @@ impl TestingStationUsed {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.stone(Milestone::WeatherControlled);
         game.current_testing_station_used = true;
-        game.next_storm_moves = game.next_storm_moves.wrapping_add(self.value_added);
+        game.next_storm_moves += self.value_added;
         let next = game.next_storm_moves;
         self.log_objects(
             game,

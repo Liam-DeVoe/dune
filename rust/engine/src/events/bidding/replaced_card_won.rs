@@ -37,11 +37,11 @@ impl ReplacedCardWon {
             let new_card = game.draw_treachery_card();
             // C# adds a null card when both treachery deck and discard pile are empty.
             let initiator = initiator.required("initiator")?;
-            game.player_mut(initiator).treachery_cards.push(new_card.or_null());
+            game.player_mut(initiator).treachery_cards.push(new_card.required("new_card")?);
             game.stone(Milestone::CardWonSwapped);
 
             if game.replacing_bought_card_using_nexus {
-                game.play_nexus_card(self.player(), vec!["Secret Ally".into(), "to replace the card they just bought".into()]);
+                game.play_nexus_card(self.player(), vec!["replace the card they just bought".into()]);
                 game.replacing_bought_card_using_nexus = false;
             } else {
                 self.log(game);

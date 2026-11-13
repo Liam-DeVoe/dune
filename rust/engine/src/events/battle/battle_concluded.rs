@@ -60,7 +60,6 @@ impl BattleConcluded {
     }
 
     pub fn set_traitor_to_replace(&mut self, value: Option<Hero>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.traitor_to_replace_id = LeaderManager::hero_lookup().get_id(value);
     }
 
@@ -69,7 +68,6 @@ impl BattleConcluded {
     }
 
     pub fn set_new_traitor(&mut self, value: Option<Hero>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.new_traitor_id = LeaderManager::hero_lookup().get_id(value);
     }
 
@@ -211,7 +209,7 @@ impl BattleConcluded {
         traitor_deck.put_on_top(traitor_to_replace);
 
         game.stone(Milestone::Shuffled);
-        game.traitor_deck.as_mut().nre().shuffle();
+        game.traitor_deck.as_mut().expect("traitor deck").shuffle();
     }
 
     pub fn decide_fate_of_captured_leader(&self, game: &mut Game) {
@@ -258,13 +256,9 @@ impl BattleConcluded {
 
             let Some(winner_gambit) = game.winner_battle_action() else { return };
             let forces_to_lose = winner_gambit
-                .forces
-                .wrapping_add(winner_gambit.forces_at_half_strength)
-                .wrapping_add(self.special_force_losses_replaced);
+                .forces + winner_gambit.forces_at_half_strength + self.special_force_losses_replaced;
             let special_forces_to_lose = winner_gambit
-                .special_forces
-                .wrapping_add(winner_gambit.special_forces_at_half_strength)
-                .wrapping_sub(self.special_force_losses_replaced);
+                .special_forces + winner_gambit.special_forces_at_half_strength - self.special_force_losses_replaced;
 
             let force_supplier_of_winner = Battle::determine_force_supplier(game, self.player());
 
@@ -289,22 +283,20 @@ impl BattleConcluded {
             let mut special_forces_to_save_in_territory = 0;
             let mut forces_to_save_in_territory = 0;
 
-            if plan.hero().is_some() && game.skilled_as(plan.hero().nre(), LeaderSkill::Graduate) {
+            if plan.hero().is_some() && game.skilled_as(plan.hero().expect("hero"), LeaderSkill::Graduate) {
                 special_forces_to_save_in_territory = std::cmp::min(special_forces_to_lose, 1);
                 forces_to_save_in_territory = std::cmp::max(0, std::cmp::min(forces_to_lose, 1 - special_forces_to_save_in_territory));
 
                 special_forces_to_save_to_reserves = std::cmp::max(
                     0,
                     std::cmp::min(
-                        special_forces_to_lose
-                            .wrapping_sub(special_forces_to_save_in_territory)
-                            .wrapping_sub(forces_to_save_in_territory),
+                        (special_forces_to_lose - special_forces_to_save_in_territory) - forces_to_save_in_territory,
                         2,
                     ),
                 );
                 forces_to_save_to_reserves = std::cmp::max(
                     0,
-                    std::cmp::min(forces_to_lose.wrapping_sub(forces_to_save_in_territory), 2 - special_forces_to_save_to_reserves),
+                    std::cmp::min(forces_to_lose - forces_to_save_in_territory, 2 - special_forces_to_save_to_reserves),
                 );
             } else if game.skilled_as_player_leader_skill(self.player(), LeaderSkill::Graduate) {
                 special_forces_to_save_to_reserves = std::cmp::min(special_forces_to_lose, 1);
@@ -341,10 +333,8 @@ impl BattleConcluded {
             game.handle_force_losses(
                 territory,
                 force_supplier_of_winner,
-                forces_to_lose.wrapping_sub(forces_to_save_to_reserves).wrapping_sub(forces_to_save_in_territory),
-                special_forces_to_lose
-                    .wrapping_sub(special_forces_to_save_to_reserves)
-                    .wrapping_sub(special_forces_to_save_in_territory),
+                (forces_to_lose - forces_to_save_to_reserves) - forces_to_save_in_territory,
+                (special_forces_to_lose - special_forces_to_save_to_reserves) - special_forces_to_save_in_territory,
             );
         }
     }
@@ -360,14 +350,14 @@ impl BattleConcluded {
             }
             game.set_in_front_of_shield(victim, false);
             let target_faction = game.player(target).faction;
-            game.captured_leaders.add_with(victim, target_faction, |k| ExpressionElement::from(*k).to_cs_string());
+            game.captured_leaders.insert_new(victim, target_faction);
         } else if self.decision_to_capture() == CaptureDecision::Kill {
             self.log_objects(game, vec![Faction::Harkonnen.into(), " kill a leader for ".into(), Payment::of(2).into()]);
             if let Some(victim) = game.harkonnen_victim {
                 game.assassinate_leader(victim);
             }
             let pl = game.player_mut(harkonnen);
-            pl.resources = pl.resources.wrapping_add(2);
+            pl.resources += 2;
         } else if self.decision_to_capture() == CaptureDecision::DontCapture {
             self.log_objects(game, vec![Faction::Harkonnen.into(), " decide not to capture or kill a leader".into()]);
         }
@@ -390,15 +380,14 @@ impl BattleConcluded {
 
         let replacement_forces_left = g
             .player(p)
-            .forces_in_territory(Some(territory))
-            .wrapping_sub(winner_battle_action.forces.wrapping_add(winner_battle_action.forces_at_half_strength));
+            .forces_in_territory(Some(territory)) - (winner_battle_action.forces + winner_battle_action.forces_at_half_strength);
 
         if replacement_forces_left <= 0 {
             return vec![0];
         }
 
         // Enumerable.Range(0, count) checks count when called.
-        let count = 1i32.wrapping_add(std::cmp::min(replacement_forces_left, g.ixian_special_force_losses_to_take));
+        let count = 1i32 + std::cmp::min(replacement_forces_left, g.ixian_special_force_losses_to_take);
         if count < 0 {
             panic!("Specified argument was out of the range of valid values. (Parameter 'count')");
         }
@@ -418,8 +407,7 @@ impl BattleConcluded {
 
         let replacement_forces_left = g
             .player(p)
-            .forces_in_territory(Some(territory))
-            .wrapping_sub(winner_battle_action.forces.wrapping_add(winner_battle_action.forces_at_half_strength));
+            .forces_in_territory(Some(territory)) - (winner_battle_action.forces + winner_battle_action.forces_at_half_strength);
 
         if replacement_forces_left <= 0 {
             return 0;
@@ -429,7 +417,6 @@ impl BattleConcluded {
     }
 
     pub fn may_capture_or_kill(g: &Game, p: Option<PlayerIndex>) -> bool {
-        let p = p.and_then(crate::compat::cs::CsNull::opt);
         let Some(p) = p else { return false };
         g.player(p).faction == Faction::Harkonnen
             && g.battle_winner == Some(Faction::Harkonnen)

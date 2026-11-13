@@ -1,6 +1,5 @@
 //! The lobby: who is around, the running and scheduled games, and chat.
 
-use treachery_engine::compat::cs::NullRef;
 use treachery_engine::enumerations::{ErrorType, Faction, GameListScope, Phase, SubscriptionType, UserStatus};
 use treachery_engine::game::Game;
 
@@ -97,7 +96,7 @@ impl Server {
                 let settings = settings.borrow();
                 let allowed: Vec<Faction> = settings.allowed_factions_in_play.as_ref().map(|f| f.borrow().clone()).unwrap_or_default();
                 let (factions, ruleset) = if before_start {
-                    let rules = settings.initial_rules.as_ref().nre();
+                    let rules = settings.initial_rules.as_ref().expect("initial rules");
                     (allowed.clone(), Game::determine_approximate_ruleset(&allowed, rules, Game::EXPANSION_LEVEL))
                 } else {
                     let all: Vec<Faction> = game.players.iter().map(|p| p.faction).collect();

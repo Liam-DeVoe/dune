@@ -16,7 +16,7 @@
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};
-use treachery_engine::compat::cs::Shared;
+use treachery_engine::shared::Shared;
 use treachery_engine::enumerations::Faction;
 use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
@@ -135,8 +135,8 @@ fn observer_scene(savegame: &str) -> Result<(ViewReplica, Viewer), String> {
     let replica = ViewReplica::load(savegame, &participation)?;
     {
         let mut p = participation.borrow_mut();
-        p.observers.add(SCENE_USER_ID);
-        p.player_names.add(SCENE_USER_ID, "Scene".to_string());
+        p.observers.insert(SCENE_USER_ID);
+        p.player_names.insert(SCENE_USER_ID, "Scene".to_string());
     }
     Ok((replica, Viewer { user_id: SCENE_USER_ID }))
 }

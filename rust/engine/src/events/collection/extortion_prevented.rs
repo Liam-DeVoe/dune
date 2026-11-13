@@ -36,10 +36,10 @@ impl ExtortionPrevented {
         self.log(game);
         game.extortion_to_be_returned = false;
         let p = game.player_mut(self.player());
-        p.resources = p.resources.wrapping_sub(3);
+        p.resources -= 3;
         let moritani = self.get_player(game, Some(Faction::Moritani)).required("get player")?;
         let c = game.player_mut(moritani);
-        c.resources = c.resources.wrapping_add(3);
+        c.resources += 3;
         Ok(())
     }
 

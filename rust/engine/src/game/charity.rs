@@ -16,7 +16,7 @@ impl Game {
         if let Some(owner) = tech_token_owner {
             let amount = self.player(owner).tech_tokens.len() as i32;
             let r = &mut self.player_mut(owner).resources;
-            *r = r.wrapping_add(amount);
+            *r += amount;
             let faction = self.player(owner).faction;
             self.log(elems![faction, " receive ", Payment::of(amount), " from ", token]);
         }
@@ -36,7 +36,7 @@ impl Game {
         let faction = self.player(player).faction;
         self.has_acted_or_passed.push(faction);
 
-        let basic_amount = 2i32.wrapping_sub(self.player(player).resources).wrapping_mul(self.current_charity_multiplier());
+        let basic_amount = (2i32 - self.player(player).resources) * self.current_charity_multiplier();
         self.give_charity(player, basic_amount);
 
         if !self.player(player).is(Faction::BeneGesserit) {
@@ -56,12 +56,12 @@ impl Game {
 
         let to_faction = self.player(to).faction;
         let r = &mut self.player_mut(to).resources;
-        *r = r.wrapping_add(basic_amount.wrapping_add(homeworld_bonus));
+        *r += basic_amount + homeworld_bonus;
         match choam {
             Some(choam) if !self.prevented(FactionAdvantage::ChoamControllingCharity) => {
                 if self.player(choam).resources >= basic_amount {
                     let r = &mut self.player_mut(choam).resources;
-                    *r = r.wrapping_sub(basic_amount);
+                    *r -= basic_amount;
                     self.log(elems![
                         to_faction,
                         " get ",
@@ -83,7 +83,7 @@ impl Game {
                 }
             }
             _ => {
-                let amount = basic_amount.wrapping_add(homeworld_bonus);
+                let amount = basic_amount + homeworld_bonus;
                 let msg = express!(to_faction, " claim ", Payment::of(amount)).with_log(CharityClaim::new(to_faction, amount));
                 self.log(elems![msg]);
             }

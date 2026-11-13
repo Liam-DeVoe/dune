@@ -23,7 +23,7 @@
 use std::sync::OnceLock;
 
 use serde_json::{json, Value};
-use treachery_engine::compat::cs::{self, CsException};
+use treachery_engine::error::catch_panic;
 use treachery_engine::enumerations::*;
 use treachery_engine::identity::IFetcher;
 use treachery_engine::heroes::hero::Hero;
@@ -32,7 +32,7 @@ use treachery_engine::heroes::leader_manager::LeaderManager;
 use treachery_engine::map::location::Location;
 use treachery_engine::map::Map;
 use treachery_engine::messages::message::{BattleFactKind, Message, MessagePart};
-use treachery_engine::compat::net_enum::NetEnum;
+use treachery_engine::enum_type::GameEnum;
 use treachery_engine::map::point::PointD;
 use treachery_engine::cards::resource_card::ResourceCard;
 use treachery_engine::map::territory::Territory;
@@ -65,24 +65,29 @@ pub fn coverage_list(name: &str) -> Vec<String> {
         .collect()
 }
 
-pub fn exception(e: &CsException) -> Value {
-    json!(format!("x:{}:{}", e.type_name, e.message))
+/// A panic message as an encoded exception: `"x:Type:Message"` when it names a .NET exception
+/// (dotnet-compat's parsing and dictionaries still panic that way), `"x:panic:<message>"` otherwise.
+pub fn exception(message: &str) -> Value {
+    match message.split_once(": ") {
+        Some((t, m)) if t.ends_with("Exception") && t.chars().all(|c| c.is_ascii_alphabetic()) => json!(format!("x:{t}:{m}")),
+        _ => json!(format!("x:panic:{message}")),
+    }
 }
 
 /// Runs `f`: its result, or the panic encoded as a value. A panic that names a .NET exception
 /// (`"NullReferenceException: ..."`) is encoded as that exception (`"x:Type:Message"`), any
 /// other panic as `"x:panic:<panic message>"`.
 pub fn catch_any<R>(f: impl FnOnce() -> R) -> Result<R, Value> {
-    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| cs::catch_panic(f))) {
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| catch_panic(f))) {
         Ok(Ok(v)) => Ok(v),
         Ok(Err(e)) => Err(exception(&e)),
-        Err(p) => Err(json!(format!("x:panic:{}", cs::panic_message(p.as_ref())))),
+        Err(p) => Err(json!(format!("x:panic:{}", treachery_engine::error::panic_message(p.as_ref())))),
     }
 }
 
 /// Runs `f`; its encoded result, or the encoded C# exception.
 pub fn try_enc<R: Enc>(f: impl FnOnce() -> R) -> Value {
-    match cs::catch_panic(f) {
+    match catch_panic(f) {
         Ok(v) => v.enc(),
         Err(e) => exception(&e),
     }
@@ -141,9 +146,6 @@ impl Enc for String {
 }
 impl Enc for Location {
     fn enc(&self) -> Value {
-        if cs::CsNull::is_null(*self) {
-            return Value::Null;
-        }
         json!(format!("o:{}#{}", self.type_name(), self.id()))
     }
 }
@@ -164,25 +166,16 @@ impl Enc for treachery_engine::map::hidden_mobile_stronghold::HiddenMobileStrong
 }
 impl Enc for Territory {
     fn enc(&self) -> Value {
-        if cs::CsNull::is_null(*self) {
-            return Value::Null;
-        }
         json!(format!("o:Territory#{}", self.id()))
     }
 }
 impl Enc for Leader {
     fn enc(&self) -> Value {
-        if cs::CsNull::is_null(*self) {
-            return Value::Null;
-        }
         json!(format!("o:Leader#{}", self.id()))
     }
 }
 impl Enc for TreacheryCard {
     fn enc(&self) -> Value {
-        if cs::CsNull::is_null(*self) {
-            return Value::Null;
-        }
         json!(format!("o:TreacheryCard#{}", self.id()))
     }
 }
@@ -197,9 +190,6 @@ impl Enc for Hero {
 }
 impl Enc for ResourceCard {
     fn enc(&self) -> Value {
-        if cs::CsNull::is_null(*self) {
-            return Value::Null;
-        }
         json!(format!("rc:{}", self.index()))
     }
 }
@@ -247,7 +237,7 @@ impl<T: Enc + ?Sized> Enc for &T {
 }
 
 /// An enum value: `"e:Faction:20"`.
-pub fn enc_enum<T: NetEnum>(v: T) -> Value {
+pub fn enc_enum<T: GameEnum>(v: T) -> Value {
     json!(format!("e:{}:{}", T::INFO.name, v.value()))
 }
 
@@ -306,7 +296,7 @@ pub fn string(v: &Value) -> String {
 }
 
 /// `"e:Faction:20"` as a `T`. Panics if the type name differs.
-pub fn en<T: NetEnum>(v: &Value) -> T {
+pub fn en<T: GameEnum>(v: &Value) -> T {
     let s = tagged(v, "e:");
     let (name, value) = s.rsplit_once(':').unwrap();
     assert_eq!(name, T::INFO.name, "enum type of {v}");
@@ -321,10 +311,6 @@ pub fn object(v: &Value) -> (&str, i32) {
 }
 
 pub fn location(v: &Value) -> Location {
-    // null: the null handle (engine-conventions.md, "Null handles").
-    if v.is_null() {
-        return Location::NULL;
-    }
     let (_, id) = object(v);
     Map::new().location_lookup().find(id).unwrap()
 }
@@ -334,48 +320,29 @@ pub fn opt<T>(v: &Value, f: impl FnOnce(&Value) -> T) -> Option<T> {
 }
 
 pub fn territory(v: &Value) -> Territory {
-    // null: the null handle (engine-conventions.md, "Null handles").
-    if v.is_null() {
-        return Territory::NULL;
-    }
     let (t, id) = object(v);
     assert_eq!(t, "Territory");
     Map::new().territory_lookup().find(id).unwrap()
 }
 
 pub fn leader(v: &Value) -> Leader {
-    // null: the null handle (engine-conventions.md, "Null handles").
-    if v.is_null() {
-        return Leader::NULL;
-    }
     let (t, id) = object(v);
     assert_eq!(t, "Leader");
     LeaderManager::leader_lookup().find(id).unwrap()
 }
 
 pub fn card(v: &Value) -> TreacheryCard {
-    // null: the null handle (engine-conventions.md, "Null handles").
-    if v.is_null() {
-        return TreacheryCard::NULL;
-    }
     let (t, id) = object(v);
     assert_eq!(t, "TreacheryCard");
     TreacheryCardManager::get(id).unwrap()
 }
 
 pub fn hero(v: &Value) -> Hero {
-    // null: the null handle (engine-conventions.md, "Null handles").
-    if v.is_null() {
-        return Hero::NULL;
-    }
     let (_, id) = object(v);
     LeaderManager::hero_lookup().find(id).unwrap()
 }
 
 pub fn resource_card(v: &Value) -> ResourceCard {
-    if v.is_null() {
-        return ResourceCard::NULL;
-    }
     let i: usize = tagged(v, "rc:").parse().unwrap();
     ResourceCard::get_resource_cards_in_and_outside_play()[i]
 }
@@ -430,9 +397,9 @@ impl Failures {
 /// Every ported C# enum, by C# name. Tests that iterate golden data look
 /// enums up here and fail on a name that is missing, so add each newly
 /// ported enum.
-pub fn enum_info(name: &str) -> Option<&'static treachery_engine::compat::net_enum::EnumTypeInfo> {
+pub fn enum_info(name: &str) -> Option<&'static treachery_engine::enum_type::EnumTypeInfo> {
     macro_rules! all {
-        ($($t:ident),*) => { [$((stringify!($t), <$t as NetEnum>::INFO)),*] };
+        ($($t:ident),*) => { [$((stringify!($t), <$t as GameEnum>::INFO)),*] };
     }
     let all = all!(
         Faction, Nexus, Ambassador, TechToken, MainPhase, MainPhaseMoment, ChoamEconomicsStatus, Phase, Milestone,

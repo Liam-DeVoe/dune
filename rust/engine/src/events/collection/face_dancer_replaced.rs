@@ -33,7 +33,6 @@ impl FaceDancerReplaced {
     }
 
     pub fn set_selected_dancer(&mut self, value: Option<Hero>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.dancer_id = LeaderManager::hero_lookup().get_id(value);
     }
 
@@ -67,7 +66,7 @@ impl FaceDancerReplaced {
                 game.stone(Milestone::Shuffled);
                 let leader = game.traitor_deck.as_mut().required("traitor deck")?.try_draw()?;
                 game.player_mut(player).face_dancers.push(leader);
-                game.player_mut(player).known_non_traitors.add(leader);
+                game.player_mut(player).known_non_traitors.insert(leader);
             }
         }
 

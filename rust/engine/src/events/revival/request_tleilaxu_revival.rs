@@ -30,7 +30,6 @@ impl RequestTleilaxuRevival {
     }
 
     pub fn set_hero(&mut self, value: Option<Hero>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.hero_id = LeaderManager::hero_lookup().get_id(value);
     }
 

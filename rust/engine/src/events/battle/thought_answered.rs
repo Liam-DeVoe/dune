@@ -34,7 +34,6 @@ impl ThoughtAnswered {
     }
 
     pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.card_id = TreacheryCardManager::get_id(value);
     }
 
@@ -57,11 +56,10 @@ impl ThoughtAnswered {
 
     /// `ValidCards` with a possibly null `p`: `g.CurrentThought.Card` is read before `p.Has`.
     fn valid_cards_opt(g: &Game, p: Option<PlayerIndex>) -> Vec<TreacheryCard> {
-        let p = p.and_then(crate::compat::cs::CsNull::opt);
-        let card = g.current_thought.as_ref().nre().card();
-        let p = p.nre();
+        let card = g.current_thought.as_ref().expect("current thought").card();
+        let p = p.expect("player");
         if g.player(p).has(card) {
-            return vec![card.nre()];
+            return vec![card.expect("card")];
         }
 
         g.player(p).treachery_cards.clone()

@@ -5,70 +5,20 @@
 
 use std::fmt;
 
-use crate::compat::cs::CsNull;
 use crate::enumerations::{Faction, HeroType};
 use crate::identity::IIdentifiable;
 use crate::heroes::leader::Leader;
 use crate::heroes::messiah::Messiah;
 use crate::cards::treachery_card::TreacheryCard;
 
-/// `Hero::NULL` is the null handle (see `cs::CsNull`). It is the null card
-/// wrapped as a hero, and `From<Leader>`/`From<TreacheryCard>` map a null
-/// leader or card to it, so every null hero is the same value. `as_leader`,
-/// `as_treachery_card` and `is_messiah` are false for it.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Hero {
     Leader(Leader),
     Messiah,
     TreacheryCard(TreacheryCard),
 }
 
-impl CsNull for Hero {
-    const NULL: Hero = Hero::NULL;
-
-    fn is_null(self) -> bool {
-        match self {
-            Hero::Leader(l) => l.is_null(),
-            Hero::Messiah => false,
-            Hero::TreacheryCard(c) => c.is_null(),
-        }
-    }
-}
-
-/// Reference equality, where `Hero::Leader(Leader::NULL)` is the same null as
-/// `Hero::NULL`.
-impl PartialEq for Hero {
-    fn eq(&self, other: &Hero) -> bool {
-        match (self.normalized(), other.normalized()) {
-            (Hero::Leader(a), Hero::Leader(b)) => a == b,
-            (Hero::Messiah, Hero::Messiah) => true,
-            (Hero::TreacheryCard(a), Hero::TreacheryCard(b)) => a == b,
-            _ => false,
-        }
-    }
-}
-
-impl Eq for Hero {}
-
-impl std::hash::Hash for Hero {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        match self.normalized() {
-            Hero::Leader(l) => (0u8, l).hash(state),
-            Hero::Messiah => 1u8.hash(state),
-            Hero::TreacheryCard(c) => (2u8, c).hash(state),
-        }
-    }
-}
-
 impl Hero {
-    /// The null handle. Every member throws NullReferenceException.
-    pub const NULL: Hero = Hero::TreacheryCard(TreacheryCard::NULL);
-
-    /// Every null hero as `Hero::NULL`.
-    fn normalized(self) -> Hero {
-        if self.is_null() { Hero::NULL } else { self }
-    }
-
     pub fn id(self) -> i32 {
         match self {
             Hero::Leader(l) => l.id(),
@@ -86,7 +36,6 @@ impl Hero {
     }
 
     pub fn value_in_combat_against(self, opposing_hero: Option<Hero>) -> i32 {
-        let opposing_hero = opposing_hero.and_then(crate::compat::cs::CsNull::opt);
         match self {
             Hero::Leader(l) => l.value_in_combat_against(opposing_hero),
             Hero::Messiah => Messiah::value_in_combat_against(opposing_hero),
@@ -153,7 +102,7 @@ impl Hero {
     /// `hero as Leader`
     pub fn as_leader(self) -> Option<Leader> {
         match self {
-            Hero::Leader(l) => l.opt(),
+            Hero::Leader(l) => Some(l),
             _ => None,
         }
     }
@@ -161,7 +110,7 @@ impl Hero {
     /// `hero as TreacheryCard`
     pub fn as_treachery_card(self) -> Option<TreacheryCard> {
         match self {
-            Hero::TreacheryCard(c) => c.opt(),
+            Hero::TreacheryCard(c) => Some(c),
             _ => None,
         }
     }
@@ -174,9 +123,6 @@ impl Hero {
 
 impl From<Leader> for Hero {
     fn from(l: Leader) -> Hero {
-        if l.is_null() {
-            return Hero::NULL;
-        }
         Hero::Leader(l)
     }
 }
@@ -205,9 +151,6 @@ impl fmt::Debug for Hero {
 
 impl serde::Serialize for Hero {
     fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        if self.is_null() {
-            return s.serialize_none();
-        }
         s.serialize_i32(self.id())
     }
 }
@@ -218,7 +161,6 @@ impl serde::Serialize for Hero {
 impl dotnet_compat::exception::CsToString for Hero {
     fn cs_to_string(&self) -> String {
         match self {
-            h if h.is_null() => crate::compat::cs::null_reference(),
             Hero::Leader(_) => "Treachery.Shared.Leader".to_string(),
             Hero::Messiah => "Treachery.Shared.Messiah".to_string(),
             Hero::TreacheryCard(_) => "Treachery.Shared.TreacheryCard".to_string(),

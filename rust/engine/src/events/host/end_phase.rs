@@ -158,9 +158,9 @@ impl EndPhase {
         if !game.prevented(FactionAdvantage::ChoamControllingCharity) {
             let choam = self.get_player(game, Some(Faction::Choam));
             if let Some(choam) = choam {
-                let to_collect = (game.players.len() as i32).wrapping_mul(2).wrapping_mul(game.current_charity_multiplier());
+                let to_collect = (game.players.len() as i32) * 2 * game.current_charity_multiplier();
                 let b = game.player_mut(choam);
-                b.resources = b.resources.wrapping_add(to_collect);
+                b.resources += to_collect;
                 self.log_objects(game, vec![Faction::Choam.into(), " collect ".into(), Payment::of(to_collect).into()]);
             }
         } else {
@@ -173,7 +173,7 @@ impl EndPhase {
                 if !game.charity_is_cancelled() {
                     if !game.prevented(FactionAdvantage::BeneGesseritCharity) {
                         game.has_acted_or_passed.push(Faction::BeneGesserit);
-                        let amount = 2i32.wrapping_mul(game.current_charity_multiplier());
+                        let amount = 2i32 * game.current_charity_multiplier();
                         game.give_charity(bene_gesserit, amount);
                         game.stone(Milestone::CharityClaimed);
                     } else {

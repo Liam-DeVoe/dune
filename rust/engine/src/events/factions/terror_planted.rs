@@ -35,7 +35,6 @@ impl TerrorPlanted {
     }
 
     pub fn set_stronghold(&mut self, game: &Game, value: Option<Territory>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.territory_id = game.map.territory_lookup().get_id(value);
     }
 
@@ -126,26 +125,26 @@ impl TerrorPlanted {
                     game.terror_on_planet.remove(&self.type_);
                     game.unplaced_terror_tokens.push(self.type_);
                     let me = game.player_mut(self.player());
-                    me.resources = me.resources.wrapping_add(4);
+                    me.resources += 4;
                 }
                 Some(stronghold) => {
                     let me = self.player();
                     if !game.terror_in(stronghold).next().is_none() && !game.player(me).has_high_threshold(game, World::Moritani) {
                         game.play_nexus_card(
                             me,
-                            vec!["Cunning".into(), "to plant additional Terror in ".into(), stronghold.into()],
+                            vec!["plant additional Terror in ".into(), stronghold.into()],
                         );
                     }
 
                     if game.unplaced_terror_tokens.contains(&self.type_) {
-                        game.terror_on_planet.add_with(self.type_, stronghold, |k| ExpressionElement::from(*k).to_cs_string());
+                        game.terror_on_planet.insert_new(self.type_, stronghold);
                         // List.Remove: the first equal element
                         if let Some(pos) = game.unplaced_terror_tokens.iter().position(|t| *t == self.type_) {
                             game.unplaced_terror_tokens.remove(pos);
                         }
                     } else {
                         game.terror_on_planet.remove(&self.type_);
-                        game.terror_on_planet.add_with(self.type_, stronghold, |k| ExpressionElement::from(*k).to_cs_string());
+                        game.terror_on_planet.insert_new(self.type_, stronghold);
                     }
                 }
             }

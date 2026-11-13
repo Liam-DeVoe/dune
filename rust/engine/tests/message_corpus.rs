@@ -16,7 +16,6 @@ mod common;
 
 use common::*;
 use serde_json::{json, Value};
-use treachery_engine::compat::cs;
 use treachery_engine::enumerations::Faction;
 use treachery_engine::messages::expression::{EnumValue, ExpressionElement as E};
 use treachery_engine::heroes::hero::Hero;
@@ -76,8 +75,8 @@ fn element(v: &Value) -> E {
             // "System.X: message", or just "System.X" when the message is empty. A GameError
             // holding that text renders the same.
             let type_name = o["exception"].as_str().unwrap();
-            let message = o["message"].as_str().map_or_else(|| cs::default_message(type_name), str::to_string);
-            let full_type_name = cs::full_type_name(type_name);
+            let message = o["message"].as_str().map_or_else(|| default_message(type_name), str::to_string);
+            let full_type_name = full_type_name(type_name);
             let text = if message.is_empty() { full_type_name.to_string() } else { format!("{full_type_name}: {message}") };
             E::Error(treachery_engine::error::GameError::new(text))
         }
@@ -194,3 +193,28 @@ fn params_spreading() {
 
 #[allow(dead_code)]
 fn _types(_: Hero, _: Leader, _: Location, _: Territory, _: TreacheryCard) {}
+
+/// The message of `new T()` for a .NET exception type, as the C# corpus records it.
+fn default_message(type_name: &str) -> String {
+    match type_name {
+        "InvalidOperationException" => "Operation is not valid due to the current state of the object.".into(),
+        "ArgumentException" => "Value does not fall within the expected range.".into(),
+        "ArgumentOutOfRangeException" => "Specified argument was out of the range of valid values.".into(),
+        "ArgumentNullException" => "Value cannot be null.".into(),
+        "NullReferenceException" => "Object reference not set to an instance of an object.".into(),
+        "KeyNotFoundException" => "The given key was not present in the dictionary.".into(),
+        "IndexOutOfRangeException" => "Index was outside the bounds of the array.".into(),
+        "DivideByZeroException" => "Attempted to divide by zero.".into(),
+        "OverflowException" => "Arithmetic operation resulted in an overflow.".into(),
+        "FormatException" => "One of the identified items was in an invalid format.".into(),
+        "NotImplementedException" => "The method or operation is not implemented.".into(),
+        "NotSupportedException" => "Specified method is not supported.".into(),
+        _ => format!("Exception of type '{}' was thrown.", full_type_name(type_name)),
+    }
+}
+fn full_type_name(type_name: &str) -> String {
+    match type_name {
+        "KeyNotFoundException" => "System.Collections.Generic.KeyNotFoundException".into(),
+        t => format!("System.{t}"),
+    }
+}

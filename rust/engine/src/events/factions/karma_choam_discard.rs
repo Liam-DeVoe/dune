@@ -42,7 +42,6 @@ impl KarmaChoamDiscard {
     }
 
     pub fn set_card_to_use(&mut self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.card_to_use = TreacheryCardManager::lookup().get_id(value);
     }
 
@@ -86,17 +85,16 @@ impl KarmaChoamDiscard {
 
         let gain = self.cards().len() as i32 * 3;
         let p = game.player_mut(me);
-        p.resources = p.resources.wrapping_add(gain);
+        p.resources += gain;
         p.special_karma_power_used = true;
         Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
-        // C# parity: no space before "Using", so the log reads "ChoamUsing".
         let cards = self.cards();
         express!(
             self.initiator(),
-            "Using ",
+            " using ",
             TreacheryCardType::Karma,
             ", ",
             self.initiator(),

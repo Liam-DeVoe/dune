@@ -212,7 +212,7 @@ fn traitors_told_by_the_opponent_count_as_known_traitors() {
     }
     let without = bot(&game, me).get_dial_needed(&game, me, territory, opponent, false);
     for l in game.player(me).leaders.clone() {
-        game.player_mut(opponent).told_traitors.add(Hero::Leader(l));
+        game.player_mut(opponent).told_traitors.insert(Hero::Leader(l));
     }
     let with = bot(&game, me).get_dial_needed(&game, me, territory, opponent, false);
     assert_ne!(without, 99.0);

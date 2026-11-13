@@ -1,6 +1,6 @@
 //! Loading the server's state from the database, and saving games.
 
-use treachery_engine::compat::cs::Shared;
+use treachery_engine::shared::Shared;
 use treachery_engine::game::Game;
 use treachery_engine::game::GameState;
 

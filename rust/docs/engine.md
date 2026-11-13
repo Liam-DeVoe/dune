@@ -15,12 +15,14 @@ How `rust/engine` and `rust/bots` are organized. Most engine code starts with `u
 | `messages/` | `Message`, `Expression`, `Payment` and `Report`: the text of log entries and validation errors. |
 | `enumerations.rs` | Factions, phases, rules, card types and the other enums. |
 | `identity.rs` | The `IIdentifiable` and `IFetcher` traits for looking objects up by id. |
-| `iter.rs` | Iterator helpers std lacks (`unique`). |
+| `iter.rs` | Iterator and map helpers std lacks (`unique`, `distinct`, `remove_first`, `MapExt::insert_new`). |
+| `enum_type.rs` | How the enums are made (`game_enum!`, `GameEnum`): open `i32` newtypes that print like .NET's `Enum.ToString()`. |
+| `shared.rs` | `Shared<T>` (the settings an event shares with the game) and `RcKey<T>` (an event as a map key). |
 | `random.rs` | `LoggedRandom`, the game's random number generator. |
 | `json/` | Reading and writing events and savegames, byte for byte in the established JSON format. |
-| `canon.rs` | The canonical state dump the differ compares. |
+| `canon.rs` | The canonical state dump, in the C# oracle's format. rust/differ and the engine tests that compare with C# goldens (review_pkg_*, sync_v188, undo) use it; nothing in the game does. |
 | `error.rs` | `GameError`: an accepted event that failed partway (see engine-conventions.md, "Errors"). |
-| `compat/` | .NET behavior the engine still imitates: null references and collection operators that panic like .NET throws (`cs`), integer-backed enums, `DateTimeOffset`, random selection helpers. Later cleanup steps shrink it. |
+| `compat/` | .NET behavior the engine still needs: `DateTimeOffset`/`TimeSpan` (event JSON) and the random selection helpers that draw from .NET's `Random` (until the RNG changes, native-plan.md step 4). |
 
 Inside `game/` and `events/`, the submodules are private and their items are re-exported, so a type is reached as `treachery_engine::game::Player` or `treachery_engine::events::Shipment`, wherever its file is. Three traits are the exception: `events::bid_trait::IBid`, `events::location_event::ILocationEvent` and `events::placement::IPlacement`. Their method names clash with the `GameEventMethods` ones, so they are not glob-exported, and `GameEvent` has a dispatching method for each of their members.
 

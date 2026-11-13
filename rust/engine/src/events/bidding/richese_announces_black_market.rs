@@ -37,7 +37,6 @@ impl RicheseAnnouncesBlackMarket {
     }
 
     pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        let value = value.and_then(crate::compat::cs::CsNull::opt);
         self.card_id = TreacheryCardManager::get_id(value);
     }
 
@@ -69,7 +68,7 @@ impl RicheseAnnouncesBlackMarket {
             let card = self.card();
             crate::game::remove_card(&mut game.player_mut(me).treachery_cards, card);
             // C# puts a null card on the deck when executed without validation.
-            let card = card.or_null();
+            let card = card.required("card")?;
             game.cards_on_auction.as_mut().required("cards on auction")?.put_on_top(card);
             game.register_known_faction_treachery_card(self.initiator(), card);
             game.bids.clear();

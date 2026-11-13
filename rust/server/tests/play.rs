@@ -242,6 +242,30 @@ fn starting_a_game_seats_the_players() {
 }
 
 #[test]
+fn starting_with_invalid_settings_is_refused() {
+    rt().block_on(async {
+        let mut s = TestServer::start().await;
+        let alice = s.user("alice").await;
+        let bobby = s.user("bobby").await;
+        let game = s.new_game(&alice, "Dune", "").await;
+        s.ok(bobby.conn, "RequestJoinGame", json!([bobby.token, game, "", -1])).await;
+        s.received(bobby.conn);
+
+        // One seat for two players: the start is refused with the reason, and nothing changes.
+        let r = s.call(alice.conn, "SubmitEvent", json!([alice.token, game, establish_players(1, &[], false, 0)])).await;
+        assert_eq!(r["Error"], error::INVALID_GAME_EVENT, "{r}");
+        assert!(r.to_string().contains("At least two players required"), "{r}");
+        let received = s.received(bobby.conn);
+        assert!(find(&received, "AssignSeats").is_none(), "{received:?}");
+        assert!(views(&received).is_empty(), "the game didn't change");
+
+        // A valid start still works.
+        s.ok(alice.conn, "SubmitEvent", json!([alice.token, game, establish_players(2, &[], false, 0)])).await;
+        assert!(find(&s.received(bobby.conn), "AssignSeats").is_some());
+    });
+}
+
+#[test]
 fn pauses_continue_when_every_player_is_done() {
     rt().block_on(async {
         let mut s = TestServer::start().await;
@@ -290,9 +314,11 @@ fn bots_take_the_empty_seats() {
         let lobby = s.lobby(&alice, 2).await;
         assert_eq!(lobby["RunningGames"][0]["NrOfBots"], 2);
 
-        // Speed 0 stops the bots; every connection hears of a speed change.
+        // Speed 0 stops the bots; the game's members hear of a speed change, other connections don't.
+        s.received(alice.conn);
         s.ok(alice.conn, "RequestSetBotSpeed", json!([alice.token, game, 0])).await;
-        assert_eq!(find(&s.received(watcher), "BotSpeed").expect("BotSpeed")["args"], json!([0]));
+        assert_eq!(find(&s.received(alice.conn), "BotSpeed").expect("BotSpeed")["args"], json!([0]));
+        assert!(find(&s.received(watcher), "BotSpeed").is_none(), "a connection outside the game");
         s.ok(alice.conn, "RequestPhaseDone", json!([alice.token, game])).await;
         s.advance(Duration::from_secs(60)).await;
         let stopped = event_number(&s.latest_view(alice.conn).unwrap());

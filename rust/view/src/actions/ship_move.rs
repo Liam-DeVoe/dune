@@ -16,7 +16,7 @@ use serde_json::Value;
 use treachery_engine::events::GameEventType;
 use treachery_engine::json;
 use treachery_engine::messages::expression::ExpressionElement;
-use treachery_engine::compat::net_enum::NetEnum;
+use treachery_engine::enum_type::GameEnum;
 use treachery_engine::prelude::*;
 
 use crate::build::{event, validate};
@@ -102,7 +102,7 @@ fn initial_draft(game: &Game, p: PlayerIndex, faction: Faction, t: GameEventType
                 e.set_ixian_card(None);
             }
             e.set_fremen_or_guild_to(game, None);
-            e.set_fremen_force_locations(game, &NetDictionary::new());
+            e.set_fremen_force_locations(game, &IndexMap::new());
             e.set_tleilaxu_hero(None);
             event(e)
         }
@@ -294,7 +294,7 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
                     (0, 0)
                 };
                 if normal_worlds <= 1 && special_worlds <= 1 {
-                    s.set_force_locations(game, &NetDictionary::new());
+                    s.set_force_locations(game, &IndexMap::new());
                 }
                 if !Shipment::may_use_no_field(game, p) {
                     s.set_no_field_value(-1);
@@ -336,11 +336,11 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
         GameEvent::DiscoveryEntered(e) => {
             let mut e = (**e).clone();
             let current = e.force_locations(game);
-            let mut forces = NetDictionary::new();
+            let mut forces = IndexMap::new();
             if let Some(ds) = e.to(game).and_then(|l| l.as_discovered_location()) {
                 for l in DiscoveryEntered::valid_sources(game, p, ds) {
                     let b = current.get(&l).cloned().unwrap_or_else(|| Battalion::new(faction, pl.forces_in(Some(l)), pl.special_forces_in(Some(l)), l));
-                    forces.add(l, b);
+                    forces.insert_new(l, b);
                 }
             }
             e.set_force_locations(game, &forces);
@@ -473,7 +473,7 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
 
 /// The placement form's pinned panel: Bene Gesserit move as advisors where they can't choose and
 /// may; everyone else never does.
-fn as_advisors(game: &Game, p: PlayerIndex, forces: &NetDictionary<Location, Battalion>, to: Location, current: bool) -> bool {
+fn as_advisors(game: &Game, p: PlayerIndex, forces: &IndexMap<Location, Battalion>, to: Location, current: bool) -> bool {
     if game.player(p).faction != Faction::BeneGesserit {
         return false;
     }
@@ -731,7 +731,7 @@ fn shipment(game: &Game, p: PlayerIndex, s: &Shipment, d: &dyn Describer) -> Shi
 
 /// The placement form for a regular move or a Caravan: sources are the sectors of
 /// `valid_movement_sources` that hold forces and are out of the storm.
-fn placement(game: &Game, p: PlayerIndex, forces: &NetDictionary<Location, Battalion>, to: Option<Location>, valid_sources: Vec<Territory>) -> PlacementOptions {
+fn placement(game: &Game, p: PlayerIndex, forces: &IndexMap<Location, Battalion>, to: Option<Location>, valid_sources: Vec<Territory>) -> PlacementOptions {
     let pl = game.player(p);
     let sources = valid_sources
         .iter()
@@ -760,7 +760,7 @@ fn placement(game: &Game, p: PlayerIndex, forces: &NetDictionary<Location, Batta
 }
 
 /// The pinned panel's inputs for the pinned destination.
-fn destination_options(game: &Game, p: PlayerIndex, forces: &NetDictionary<Location, Battalion>, to: Option<Location>, o: &mut PlacementOptions) {
+fn destination_options(game: &Game, p: PlayerIndex, forces: &IndexMap<Location, Battalion>, to: Option<Location>, o: &mut PlacementOptions) {
     let Some(to) = to else { return };
     if game.player(p).faction == Faction::BeneGesserit {
         let advisors = forces.values().any(|b| b.amount_of_special_forces > 0);

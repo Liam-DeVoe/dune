@@ -203,7 +203,7 @@ pub fn tanks(game: &Game, v: &ResolvedViewer) -> Vec<TanksEntry> {
                 .iter()
                 .filter(|l| !game.is_alive(Hero::Leader(**l)))
                 .map(|l| {
-                    let s = game.leader_state.index(&Hero::Leader(*l));
+                    let s = &game.leader_state[&Hero::Leader(*l)];
                     (*l, s.time_of_death, s.is_face_down_dead())
                 })
                 .collect();

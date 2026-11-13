@@ -26,10 +26,11 @@ use flate2::read::GzDecoder;
 use serde_json::Value;
 use treachery_bots::bot::EventKind;
 use treachery_bots::prelude::*;
+use treachery_engine::error::catch_panic;
 use treachery_engine::game::Participation;
 
 fn l(x: Option<Location>) -> String {
-    match x.and_then(CsNull::opt) {
+    match x {
         None => "null".into(),
         Some(l) => format!("L{}", l.id()),
     }
@@ -112,7 +113,7 @@ fn call(game: &Game, b: &mut ClassicBot, m: &str, a: &[String]) -> String {
         "MaxPotentialForceShortage" => dotnet_compat::fmt::f32_to_string(b.max_potential_force_shortage(game, t(0), loc(game, &a[1]))),
         "DetermineMostSuitableNearbyLocation" => {
             let from = loc(game, &a[0]);
-            let battalion = game.player(b.player).forces_on_planet().index(&from).clone();
+            let battalion = game.player(b.player).forces_on_planet()[&from].clone();
             l(b.most_suitable_nearby_location(game, from, &battalion, true, true))
         }
         _ => panic!("no Rust call for {m}"),
@@ -124,10 +125,10 @@ fn participation(o: &Value) -> Participation {
     let int = |v: &Value| v.as_i64().unwrap() as i32;
     let mut p = Participation { bots_speed: int(&o["BotsSpeed"]), ..Default::default() };
     for kv in o["PlayerNames"].as_array().unwrap() {
-        p.player_names.add(int(&kv[0]), kv[1].as_str().unwrap().to_string());
+        p.player_names.insert(int(&kv[0]), kv[1].as_str().unwrap().to_string());
     }
     for kv in o["SeatedPlayers"].as_array().unwrap() {
-        p.seated_players.add(int(&kv[0]), int(&kv[1]));
+        p.seated_players.insert(int(&kv[0]), int(&kv[1]));
     }
     for (key, set) in [
         ("Observers", &mut p.observers),
@@ -136,7 +137,7 @@ fn participation(o: &Value) -> Participation {
         ("Kicked", &mut p.kicked),
     ] {
         for v in o[key].as_array().unwrap() {
-            set.add(int(v));
+            set.insert(int(v));
         }
     }
     p
@@ -170,7 +171,7 @@ fn run(name: &str) {
                 e.initialize_game(game);
                 game.map.mark_neighbour_cache_stale();
                 let (validate, is_host) = (o["validate"].as_bool().unwrap(), o["isHost"].as_bool().unwrap());
-                let _ = cs::catch_panic(|| e.execute(game, validate, is_host));
+                let _ = catch_panic(|| e.execute(game, validate, is_host));
 
                 let n = o["n"].as_i64().unwrap();
                 let Some(list) = probes.get(&n) else { continue };
@@ -194,12 +195,14 @@ fn run(name: &str) {
                     let b = &mut bot.as_mut().unwrap().1;
                     let m = p["m"].as_str().unwrap();
                     let a: Vec<String> = p["a"].as_array().unwrap().iter().map(|v| v.as_str().unwrap().to_string()).collect();
-                    let actual = match cs::catch_panic(|| call(game, b, m, &a)) {
+                    let actual = match catch_panic(|| call(game, b, m, &a)) {
                         Ok(r) => r,
-                        Err(e) => format!("EX:{}: {}", cs::full_type_name(e.type_name), e.message),
+                        Err(_) => "EX".to_string(),
                     };
                     let draws = b.random.get_count() as i64;
                     let (expected, expected_draws) = (p["r"].as_str().unwrap(), p["d"].as_i64().unwrap());
+                    // A probe that throws in C# must panic in Rust; the texts aren't compared.
+                    let expected = if expected.starts_with("EX:") { "EX" } else { expected };
                     count += 1;
                     if actual != expected || draws != expected_draws {
                         failures.push(format!(

@@ -109,8 +109,8 @@ fn fill_placeholders(skin: &Skin, text: &str, parameters: &[ExpressionElement]) 
         push_text(&mut out, &rest[..open]);
         let index: usize = after[..digits].parse().unwrap_or(usize::MAX);
         match parameters.get(index) {
-            Some(ExpressionElement::Location(l)) if !l.is_null() => out.push(SheetPart::Location { id: l.id() }),
-            Some(ExpressionElement::Territory(t)) if !t.is_null() => out.push(SheetPart::Territory { id: t.id() }),
+            Some(ExpressionElement::Location(l)) => out.push(SheetPart::Location { id: l.id() }),
+            Some(ExpressionElement::Territory(t)) => out.push(SheetPart::Territory { id: t.id() }),
             Some(el) => push_text(&mut out, &skin.describe_in(el, None)),
             None => {}
         }

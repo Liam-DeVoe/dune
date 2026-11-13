@@ -1,6 +1,6 @@
 #!/bin/bash
 # Runs the whole Rust test suite and prints one line per test file.
-# Every agent runs this before reporting a change as done (PORTING.md, "Before you report done").
+# Every agent runs this before reporting a change as done (DEVELOPMENT.md, "Checking a change").
 #
 #   rust/tools/check.sh            # all workspace tests, release profile
 #   rust/tools/check.sh -p observe # extra arguments go to cargo test

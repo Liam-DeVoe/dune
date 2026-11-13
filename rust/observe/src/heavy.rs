@@ -1,10 +1,10 @@
-//! The machine-wide heavy-run slots of `rust/tools/heavy.sh` (PORTING.md, "CPU").
+//! The machine-wide heavy-run slots of `rust/tools/heavy.sh` (DEVELOPMENT.md, "Shared machine limits").
 
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
 
-/// A machine-wide slot for a CPU-heavy run, shared with `rust/tools/heavy.sh` (PORTING.md, "CPU").
+/// A machine-wide slot for a CPU-heavy run, shared with `rust/tools/heavy.sh` (DEVELOPMENT.md, "Shared machine limits").
 /// The slot is the directory `/tmp/treachery-heavy-slots/slotN` holding the owner's pid; it is
 /// removed when the guard is dropped, and a slot whose owner has died is reclaimed.
 pub struct HeavySlot(Option<PathBuf>);
@@ -42,7 +42,7 @@ pub fn acquire_heavy_slot() -> HeavySlot {
             }
         }
         if !announced {
-            eprintln!("observe live: waiting for a free heavy slot (rust/tools/heavy.sh, PORTING.md \"CPU\")");
+            eprintln!("observe live: waiting for a free heavy slot (rust/tools/heavy.sh, DEVELOPMENT.md \"Shared machine limits\")");
             announced = true;
         }
         std::thread::sleep(std::time::Duration::from_secs(10));

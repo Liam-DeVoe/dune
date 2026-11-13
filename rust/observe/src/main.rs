@@ -171,7 +171,7 @@ fn reference(args: &Args) -> Result<PathBuf, String> {
 }
 
 fn cmd_live(args: &Args) -> Result<bool, String> {
-    // PORTING.md, "CPU": at most 4 jobs, and one of the machine-wide heavy slots.
+    // DEVELOPMENT.md, "Shared machine limits": at most 4 jobs, and one of the machine-wide heavy slots.
     let cpus = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
     let o = LiveOptions {
         mode: args.mode()?,

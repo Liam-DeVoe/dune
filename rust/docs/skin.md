@@ -1,6 +1,6 @@
 # The skin crate
 
-`rust/skin` (`treachery-skin`) is the port of `Shared/Model/Skin.cs` and `Shared/DefaultSkin.cs`: how messages, game objects and enums become text, plus the skin's art references, HTML popups, faction rules sheets and its JSON form. The server (`server/src/render.rs`: error texts and mails) and the view layer (log and status text) use it. Read [PORTING.md](../../PORTING.md) and [engine-conventions.md](engine-conventions.md) first.
+`rust/skin` (`treachery-skin`) is the port of `Shared/Model/Skin.cs` and `Shared/DefaultSkin.cs`: how messages, game objects and enums become text, plus the skin's art references, HTML popups, faction rules sheets and its JSON form. The server (`server/src/render.rs`: error texts and mails) and the view layer (log and status text) use it. Read [DEVELOPMENT.md](../../DEVELOPMENT.md) and [engine-conventions.md](engine-conventions.md) first.
 
 ## Layout
 

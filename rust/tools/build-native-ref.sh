@@ -45,7 +45,7 @@ esac
 
 avail_kb=$(df -k "${TMPDIR:-/tmp}" | awk 'NR==2 {print $4}')
 if [ "$avail_kb" -lt 3000000 ]; then
-  echo "build-native-ref.sh: less than 3 GB free on the temp disk; not building (PORTING.md, Disk space)" >&2
+  echo "build-native-ref.sh: less than 3 GB free on the temp disk; not building (DEVELOPMENT.md)" >&2
   exit 1
 fi
 

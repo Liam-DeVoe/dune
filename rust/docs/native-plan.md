@@ -64,3 +64,4 @@ This harness has to exist before any cleanup starts (step 1).
 ## How step 3 runs (2026-11-12)
 
 Each step 3 agent works in its own git worktree and branch with its own target dir (PORTING.md, "Disk space"); the coordinator merges. To keep merges small, changes that touch every file run first and alone: the module layout (files by concern, no generated skeleton comments, no blanket `#![allow]`). After that merges, the rest splits by concern across agents: Result instead of panics, Option instead of null handles, snapshot undo, iterators and LiveList, collections, bots, view. Every branch must pass the native harness (docs/native-harness.md) and check.sh before merging.
+- Step 5, PORTING.md: replaced by DEVELOPMENT.md (2026-11-13), which describes the code base as it is.

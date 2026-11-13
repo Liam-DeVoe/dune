@@ -8,7 +8,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - What happens: A player shipping Fedaykin, Sardaukar or other special forces back to reserves (with the Guild's permission or the Guild Secret Ally) pays for them, but only the normal forces move. The special forces stay where they were.
 - Intended: Move both kinds of forces back.
 - When: The shipment form offers special forces for shipping back. Needs Guild as ally or the Guild Secret Ally Nexus card.
-- Where: rust/engine/src/events/shipment.rs:891
+- Where: rust/engine/src/events/movement/shipment.rs:891
 - Note: Players lose spice for nothing in a normal alliance.
 
 ## Bene Gesserit flip asks about one territory and flips another
@@ -17,7 +17,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - What happens: The flip prompt and log name the territory of the pending intrusion, but the forces flipped are those in the territory of the most recent shipment or move.
 - Intended: Flip in the intruded territory.
 - When: The two only differ if another move happens while an older intrusion is still waiting.
-- Where: rust/engine/src/events/bene_gesserit_flip.rs:58
+- Where: rust/engine/src/events/movement/bene_gesserit_flip.rs:58
 - Note: Cheap: use the same territory in both places.
 
 ## Revival form keeps a chosen leader after none can be revived
@@ -44,22 +44,22 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - What happens: When estimating whether an opponent can Karama a shipment, the bot checks for Karama twice instead of Karama or Worthless (for Bene Gesserit).
 - Intended: Include Worthless for Bene Gesserit.
 - When: Bots against Bene Gesserit with the Worthless-as-Karama rule.
-- Where: rust/bots/src/bot_knowledge.rs:1021
+- Where: rust/bots/src/bot/knowledge.rs:1021
 - Note: Bot quality; one condition.
 
 ## Smaller bot reasoning slips
 
 - Area: Bots
-- What happens: Dial estimates for an ally are computed for the bot itself (bot_battle.rs:1243). Known traitors of an opponent use the bot's own told traitors (bot_battle.rs:1147). Moving towards weak strongholds uses the first occupying opponent (hazards.md §18.5).
+- What happens: Dial estimates for an ally are computed for the bot itself (bot/battle.rs:1243). Known traitors of an opponent use the bot's own told traitors (bot/battle.rs:1147). Moving towards weak strongholds uses the first occupying opponent (hazards.md §18.5).
 - Intended: Use the right player.
 - When: Various bot decisions.
-- Where: rust/bots/src/bot_battle.rs:1243, :1147
+- Where: rust/bots/src/bot/battle.rs:1243, :1147
 - Note: Low priority; small effect on bot play.
 
 ## Harmless bot oddities
 
 - Area: Bots
-- What happens: A Mirror Weapon pick is re-drawn at random (bot_battle.rs:1067). A No-Field choice could take the maximum of an empty list and throw, which only skips that decision (bot_shipment.rs:981). Duplicate conditions (bot_move.rs:230, bot_shipment.rs:96). Bene Gesserit's prediction flips a coin between two identical choices (bot_faction_specific.rs:625).
+- What happens: A Mirror Weapon pick is re-drawn at random (bot/battle.rs:1067). A No-Field choice could take the maximum of an empty list and throw, which only skips that decision (bot/shipment.rs:981). Duplicate conditions (bot/movement.rs:230, bot/shipment.rs:96). Bene Gesserit's prediction flips a coin between two identical choices (bot/factions.rs:625).
 - Intended: Same.
 - Where: rust/bots/src/
 - Note: No meaningful effect on play.
@@ -70,7 +70,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - What happens: "Karama prevents Guild from receiving5" after a Karama-blocked shipment payment, and "ChoamUsing Karama" in CHOAM's discard message.
 - Intended: Spaces.
 - When: Karama against Guild income; CHOAM's Karama discard.
-- Where: rust/engine/src/events/shipment.rs:995, karma_choam_discard.rs:113
+- Where: rust/engine/src/events/movement/shipment.rs:995, karma_choam_discard.rs:113
 - Note: Text only.
 
 ## Setting an automation rule is described as "change ally permissions"
@@ -79,7 +79,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - What happens: The event's description says "X change ally permissions". It is not written to the game log.
 - Intended: Describe the automation rule.
 - When: Shows wherever event descriptions appear (history, undo list).
-- Where: rust/engine/src/events/automation_configured.rs:90
+- Where: rust/engine/src/events/host/automation_configured.rs:90
 - Note: Rarely seen; fix if touching the file.
 
 ## Other small text quirks without comments
@@ -123,7 +123,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - What happens: If a player's only special force revival this turn is paid by Emperor, the game doesn't note that they revived a special force, so they can revive another one later in the turn.
 - Intended: Count special forces paid by Emperor too.
 - When: Emperor's ally with special forces (Fremen, for example) reviving in two steps.
-- Where: rust/engine/src/events/revival.rs:671
+- Where: rust/engine/src/events/revival/revival.rs:671
 - Note: Breaks a revival limit. One condition to extend.
 
 ## Fremen can spend Karama to send a worm without choosing a territory
@@ -132,7 +132,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - What happens: The Karama worm form reports no error before a territory is picked. Confirming then spends the Karama card and Fremen's special Karama power, and no worm appears. A hand-made request could also send the worm to a protected territory.
 - Intended: Require a territory the worm can reach.
 - When: Clicking confirm too early in the web client (rust/view/tests/other_forms.rs:403 shows the form accepts it).
-- Where: rust/engine/src/events/karma_monster.rs:51
+- Where: rust/engine/src/events/blow/karma_monster.rs:51
 - Note: A player can waste their Karama by accident.
 
 ## Karama shipment-prevention bot ignores opponents without an ally
@@ -141,11 +141,11 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - What happens: The bot only blocks shipments of a winning opponent whose spice plus ally's spice exceeds 2; with no ally the sum is treated as false.
 - Intended: Count the opponent's own spice when there is no ally.
 - When: Bots holding Karama.
-- Where: rust/bots/src/bot_other.rs:684
+- Where: rust/bots/src/bot/other.rs:684
 
 ## Ally permissions without an ally are stored under "no faction"
 
-- No visible effect; the entry is never read. Drop it in the step 3 cleanup (rust/engine/src/events/ally_permission.rs:150 before step 2).
+- No visible effect; the entry is never read. Drop it in the step 3 cleanup (rust/engine/src/events/alliances/ally_permission.rs:150 before step 2).
 
 ## Bot shipment sizing prices normal forces as special forces
 
@@ -153,7 +153,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - What happens: When adding normal forces to a planned shipment, the bot checks the cost of one more special force instead, so it can ship too few or too many.
 - Intended: Price one more normal force.
 - When: Every bot shipment that adds normal forces.
-- Where: rust/bots/src/bot_shipment.rs:1037
+- Where: rust/bots/src/bot/shipment.rs:1037
 
 ## Bene Gesserit bot never voices a useless defense against poison
 
@@ -161,9 +161,9 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - What happens: The condition for finding a projectile defense that won't stop poison is "is a projectile defense and is not a projectile defense", so that voice is never chosen.
 - Intended: Probably "is a projectile defense and not a poison defense".
 - When: Bene Gesserit bot with a poison weapon.
-- Where: rust/bots/src/bot_faction_specific.rs:784
+- Where: rust/bots/src/bot/factions.rs:784
 
 ## For the step 3 cleanup (no visible effect, simplify if the behavior check stays clean)
 
-- Setup briefly enters deck customizing or faction trading before the real next phase (rust/engine/src/game_setup.rs:73 before step 2).
-- End of storm runs its cleanup twice when storm losses are taken first; the comment saying it skips the storm report is wrong (rust/engine/src/game_storm.rs:219, :223 before step 2).
+- Setup briefly enters deck customizing or faction trading before the real next phase (rust/engine/src/game/setup.rs:73 before step 2).
+- End of storm runs its cleanup twice when storm losses are taken first; the comment saying it skips the storm report is wrong (rust/engine/src/game/storm.rs:219, :223 before step 2).

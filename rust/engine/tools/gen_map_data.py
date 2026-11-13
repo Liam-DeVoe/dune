@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generates rust/engine/src/map_data.rs from treachery-online/Shared/Map.cs.
+"""Generates rust/engine/src/map/data.rs from treachery-online/Shared/Map.cs.
 
 The output mirrors Map.InitializeLocations and Map.InitializeLocationNeighbours
 as static tables. tests/static_data.rs checks the result against the C# dump.
@@ -12,7 +12,7 @@ from pathlib import Path
 
 ENGINE = Path(__file__).resolve().parent.parent
 MAP_CS = ENGINE.parent.parent / "treachery-online" / "Shared" / "Map.cs"
-OUT = ENGINE / "src" / "map_data.rs"
+OUT = ENGINE / "src" / "map" / "data.rs"
 
 src = MAP_CS.read_text(encoding="utf-8-sig")
 init = src[src.index("private void InitializeLocations()"):src.index("private void AddHomeworld(")]

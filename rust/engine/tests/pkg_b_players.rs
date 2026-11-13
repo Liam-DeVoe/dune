@@ -2,7 +2,7 @@
 //! follow the C# code in Model/Player.cs, Model/PlayerSequence.cs, Model/Battalion.cs and
 //! Game_Rules.cs; the comments say which C# behaviour each test pins down.
 
-use treachery_engine::cs;
+use treachery_engine::compat::cs;
 use treachery_engine::prelude::*;
 
 fn game_with(factions: &[Faction]) -> Game {
@@ -190,7 +190,7 @@ fn determine_first_player_skips_empty_seats_and_throws() {
     g.settings.as_ref().unwrap().borrow_mut().number_of_players = 0;
     assert_eq!(exception_text(|| PlayerSequence::determine_first_player(&g)), "DivideByZeroException: Attempted to divide by zero.");
 
-    let mut g = game_with(&[]);
+    let g = game_with(&[]);
     g.settings.as_ref().unwrap().borrow_mut().number_of_players = 3;
     assert_eq!(exception_text(|| PlayerSequence::determine_first_player(&g)), "Exception: Could not determine the first player.");
 }

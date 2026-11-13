@@ -21,22 +21,22 @@ use std::rc::Rc;
 
 use dotnet_compat::{NetDictionary, NetHashSet};
 
-use crate::cs::{CsException, RcKey, Shared};
-use crate::date_time_offset::{DateTimeOffset, TimeSpan};
+use crate::compat::cs::{CsException, RcKey, Shared};
+use crate::compat::date_time_offset::{DateTimeOffset, TimeSpan};
 use crate::enumerations::DiscoveryToken;
 use crate::events::GameEvent;
-use crate::expression::ExpressionElement;
+use crate::messages::expression::ExpressionElement;
 use crate::game::{Game, GameRef};
-use crate::i_hero::Hero;
-use crate::leader::Leader;
-use crate::location::Location;
-use crate::logged_random::{LoggedRandom, SharedRandom};
+use crate::heroes::hero::Hero;
+use crate::heroes::leader::Leader;
+use crate::map::location::Location;
+use crate::random::{LoggedRandom, SharedRandom};
 use crate::map::{LocationKind, Map};
-use crate::message::LogRecord;
-use crate::player::PlayerIndex;
-use crate::resource_card::ResourceCard;
-use crate::territory::Territory;
-use crate::treachery_card::TreacheryCard;
+use crate::messages::message::LogRecord;
+use crate::game::PlayerIndex;
+use crate::cards::resource_card::ResourceCard;
+use crate::map::territory::Territory;
+use crate::cards::treachery_card::TreacheryCard;
 
 // ---------------------------------------------------------------------------
 // Writer
@@ -59,7 +59,7 @@ pub struct CanonWriter<'g> {
     game_random: Option<SharedRandom>,
     /// The current contents of every game collection that C# messages keep
     /// by reference (`expression::LiveList`, hazards 4.5, docs/live-lists.md).
-    live_lists: Vec<(crate::expression::LiveList, Vec<ExpressionElement>)>,
+    live_lists: Vec<(crate::messages::expression::LiveList, Vec<ExpressionElement>)>,
 }
 
 impl<'g> CanonWriter<'g> {
@@ -72,7 +72,7 @@ impl<'g> CanonWriter<'g> {
     pub fn for_game(game: &'g Game) -> Self {
         let mut w = CanonWriter::new(game.random.clone());
         w.root = Some(game);
-        w.live_lists = crate::expression::LiveList::all(game)
+        w.live_lists = crate::messages::expression::LiveList::all(game)
             .into_iter()
             .filter_map(|l| l.read(game).map(|items| (l, items)))
             .collect();
@@ -357,7 +357,7 @@ impl Registry {
         <Game as CanonShape>::canon_shape(&mut reg);
         <GameEvent as CanonShape>::canon_shape(&mut reg);
         <dyn LogRecord as CanonShapeUnsized>::canon_shape(&mut reg);
-        <crate::message::Message as CanonShape>::canon_shape(&mut reg);
+        <crate::messages::message::Message as CanonShape>::canon_shape(&mut reg);
         reg
     }
 }
@@ -697,7 +697,7 @@ impl<K: CanonShape + Eq + Hash + Clone, V: CanonShape> CanonShape for NetDiction
 
 impl Canon for PlayerIndex {
     fn canon(&self, w: &mut CanonWriter) {
-        if crate::cs::CsNull::is_null(*self) {
+        if crate::compat::cs::CsNull::is_null(*self) {
             return w.null();
         }
         if let Some(found) = &mut w.collect {
@@ -725,7 +725,7 @@ impl Canon for PlayerIndex {
 }
 impl CanonShape for PlayerIndex {
     fn canon_shape(reg: &mut Registry) -> Shape {
-        Shape::kind("ref:Player").union(<crate::player::Player as CanonShape>::canon_shape(reg))
+        Shape::kind("ref:Player").union(<crate::game::Player as CanonShape>::canon_shape(reg))
     }
 }
 
@@ -756,7 +756,7 @@ macro_rules! location_ref {
         impl Canon for $t {
             fn canon(&self, w: &mut CanonWriter) {
                 let l: Location = (*self).into();
-                if crate::cs::CsNull::is_null(l) {
+                if crate::compat::cs::CsNull::is_null(l) {
                     return w.null();
                 }
                 w.map_ref("Location", l.id(), l.map_game())
@@ -769,15 +769,15 @@ macro_rules! location_ref {
 }
 location_ref!(
     Location,
-    crate::homeworld::Homeworld,
-    crate::discovery_stronghold::DiscoveredLocation,
-    crate::hidden_mobile_stronghold::HiddenMobileStronghold,
-    crate::attached_location::AttachedLocation
+    crate::map::homeworld::Homeworld,
+    crate::map::discovery::DiscoveredLocation,
+    crate::map::hidden_mobile_stronghold::HiddenMobileStronghold,
+    crate::map::attached_location::AttachedLocation
 );
 
 impl Canon for Territory {
     fn canon(&self, w: &mut CanonWriter) {
-        if crate::cs::CsNull::is_null(*self) {
+        if crate::compat::cs::CsNull::is_null(*self) {
             return w.null();
         }
         w.map_ref("Territory", self.id(), self.map_game())
@@ -791,7 +791,7 @@ impl CanonShape for Territory {
 
 impl Canon for Leader {
     fn canon(&self, w: &mut CanonWriter) {
-        if crate::cs::CsNull::is_null(*self) {
+        if crate::compat::cs::CsNull::is_null(*self) {
             return w.null();
         }
         w.entity_ref("Leader", self.id())
@@ -805,7 +805,7 @@ impl CanonShape for Leader {
 
 impl Canon for TreacheryCard {
     fn canon(&self, w: &mut CanonWriter) {
-        if crate::cs::CsNull::is_null(*self) {
+        if crate::compat::cs::CsNull::is_null(*self) {
             return w.null();
         }
         w.entity_ref("TreacheryCard", self.id())
@@ -821,7 +821,7 @@ impl Canon for Hero {
     fn canon(&self, w: &mut CanonWriter) {
         match self {
             Hero::Leader(l) => l.canon(w),
-            Hero::Messiah => w.entity_ref("Messiah", crate::messiah::Messiah::ID),
+            Hero::Messiah => w.entity_ref("Messiah", crate::heroes::messiah::Messiah::ID),
             Hero::TreacheryCard(c) => c.canon(w),
         }
     }
@@ -836,7 +836,7 @@ impl CanonShape for Hero {
 impl Canon for ResourceCard {
     fn canon(&self, w: &mut CanonWriter) {
         let c = *self;
-        if crate::cs::CsNull::is_null(c) {
+        if crate::compat::cs::CsNull::is_null(c) {
             return w.null();
         }
         w.object(
@@ -920,7 +920,7 @@ impl Canon for CsException {
         w.string(&self.message);
         w.comma();
         w.key("type");
-        w.string(&crate::cs::full_type_name(self.type_name));
+        w.string(&crate::compat::cs::full_type_name(self.type_name));
         w.obj_end();
     }
 }
@@ -1002,9 +1002,9 @@ impl CanonShape for ExpressionElement {
         s = s.union(Hero::canon_shape(reg));
         s = s.with("ref:Location").with("ref:Territory");
         s = s.union(ResourceCard::canon_shape(reg));
-        s = s.union(<crate::payment::Payment as CanonShape>::canon_shape(reg));
-        s = s.union(<crate::message::Message as CanonShape>::canon_shape(reg));
-        s = s.union(<crate::message::MessagePart as CanonShape>::canon_shape(reg));
+        s = s.union(<crate::messages::payment::Payment as CanonShape>::canon_shape(reg));
+        s = s.union(<crate::messages::message::Message as CanonShape>::canon_shape(reg));
+        s = s.union(<crate::messages::message::MessagePart as CanonShape>::canon_shape(reg));
         s = s.union(CsException::canon_shape(reg));
         s = s.with("ref:Player");
         // A list holds elements again; one level is enough for the test.

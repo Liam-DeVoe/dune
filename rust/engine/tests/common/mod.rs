@@ -23,21 +23,21 @@
 use std::sync::OnceLock;
 
 use serde_json::{json, Value};
-use treachery_engine::cs::{self, CsException};
+use treachery_engine::compat::cs::{self, CsException};
 use treachery_engine::enumerations::*;
-use treachery_engine::i_fetcher::IFetcher;
-use treachery_engine::i_hero::Hero;
-use treachery_engine::leader::Leader;
-use treachery_engine::leader_manager::LeaderManager;
-use treachery_engine::location::Location;
+use treachery_engine::identity::IFetcher;
+use treachery_engine::heroes::hero::Hero;
+use treachery_engine::heroes::leader::Leader;
+use treachery_engine::heroes::leader_manager::LeaderManager;
+use treachery_engine::map::location::Location;
 use treachery_engine::map::Map;
-use treachery_engine::message::{BattleFactKind, Message, MessagePart};
-use treachery_engine::net_enum::NetEnum;
-use treachery_engine::point::PointD;
-use treachery_engine::resource_card::ResourceCard;
-use treachery_engine::territory::Territory;
-use treachery_engine::treachery_card::TreacheryCard;
-use treachery_engine::treachery_card_manager::TreacheryCardManager;
+use treachery_engine::messages::message::{BattleFactKind, Message, MessagePart};
+use treachery_engine::compat::net_enum::NetEnum;
+use treachery_engine::map::point::PointD;
+use treachery_engine::cards::resource_card::ResourceCard;
+use treachery_engine::map::territory::Territory;
+use treachery_engine::cards::treachery_card::TreacheryCard;
+use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
 
 /// Loads `tests/golden/<name>` once per test binary.
 pub fn golden(name: &'static str) -> &'static Value {
@@ -136,17 +136,17 @@ impl Enc for Location {
         json!(format!("o:{}#{}", self.type_name(), self.id()))
     }
 }
-impl Enc for treachery_engine::homeworld::Homeworld {
+impl Enc for treachery_engine::map::homeworld::Homeworld {
     fn enc(&self) -> Value {
         self.location().enc()
     }
 }
-impl Enc for treachery_engine::discovery_stronghold::DiscoveredLocation {
+impl Enc for treachery_engine::map::discovery::DiscoveredLocation {
     fn enc(&self) -> Value {
         self.location().enc()
     }
 }
-impl Enc for treachery_engine::hidden_mobile_stronghold::HiddenMobileStronghold {
+impl Enc for treachery_engine::map::hidden_mobile_stronghold::HiddenMobileStronghold {
     fn enc(&self) -> Value {
         self.location().enc()
     }
@@ -414,7 +414,7 @@ impl Failures {
 /// Every ported C# enum, by C# name. Tests that iterate golden data look
 /// enums up here and fail on a name that is missing, so add each newly
 /// ported enum.
-pub fn enum_info(name: &str) -> Option<&'static treachery_engine::net_enum::EnumTypeInfo> {
+pub fn enum_info(name: &str) -> Option<&'static treachery_engine::compat::net_enum::EnumTypeInfo> {
     macro_rules! all {
         ($($t:ident),*) => { [$((stringify!($t), <$t as NetEnum>::INFO)),*] };
     }

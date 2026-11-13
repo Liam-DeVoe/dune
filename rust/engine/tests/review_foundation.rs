@@ -6,12 +6,12 @@
 //! Each test failed until its difference was fixed (see rust/docs/escapes.md),
 //! except the ones marked as guards. See rust/docs/reviews/foundation.md.
 
-use treachery_engine::cs::{self, CsIterExt};
+use treachery_engine::compat::cs::{self, CsIterExt};
 use treachery_engine::enumerations::*;
-use treachery_engine::expression::ExpressionElement;
-use treachery_engine::extension_methods::{set_static_random_seed, RandomExt, UnseededRandomExt};
-use treachery_engine::logged_random::SharedRandom;
-use treachery_engine::message::{PlanSummary, Route};
+use treachery_engine::messages::expression::ExpressionElement;
+use treachery_engine::compat::random_ext::{set_static_random_seed, RandomExt, UnseededRandomExt};
+use treachery_engine::random::SharedRandom;
+use treachery_engine::messages::message::{PlanSummary, Route};
 
 fn exception_text<R>(f: impl FnOnce() -> R) -> String {
     match cs::catch(f) {

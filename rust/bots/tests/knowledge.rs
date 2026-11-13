@@ -22,7 +22,7 @@ use std::io::{BufRead, BufReader};
 use flate2::read::GzDecoder;
 use serde_json::Value;
 use treachery_bots::prelude::*;
-use treachery_engine::participation::Participation;
+use treachery_engine::game::Participation;
 
 /// The C# `Fmt` of csharp-ref/Program.cs.
 trait Fmt {

@@ -31,7 +31,7 @@
 //! - `#[canon(type_name = "X")]`: the C# type name, when it differs from the
 //!   Rust struct name.
 //!
-//! Generic parameters must implement `crate::expression::CsType`, which gives
+//! Generic parameters must implement `crate::messages::expression::CsType`, which gives
 //! the C# type argument names (`Deck<TreacheryCard>`, `Timer<MainPhase>`).
 
 use proc_macro::TokenStream;
@@ -205,7 +205,7 @@ fn expand(input: &DeriveInput) -> syn::Result<TokenStream2> {
         if input.generics.type_params().next().is_some() {
             for p in input.generics.type_params() {
                 let t = &p.ident;
-                where_clause.predicates.push(syn::parse_quote! { #t: crate::expression::CsType });
+                where_clause.predicates.push(syn::parse_quote! { #t: crate::messages::expression::CsType });
             }
             for ty in &field_types {
                 where_clause.predicates.push(syn::parse_quote! {
@@ -224,7 +224,7 @@ fn expand(input: &DeriveInput) -> syn::Result<TokenStream2> {
         quote! {
             {
                 let args: ::std::vec::Vec<::std::string::String> = ::std::vec![
-                    #(crate::canon::short_cs_type_name(&<#type_params as crate::expression::CsType>::cs_type_name())),*
+                    #(crate::canon::short_cs_type_name(&<#type_params as crate::messages::expression::CsType>::cs_type_name())),*
                 ];
                 ::std::format!("{}<{}>", #base_name, args.join(","))
             }

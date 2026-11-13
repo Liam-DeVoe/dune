@@ -8,7 +8,7 @@
 //! client plays after each event (`Client.PlaySoundsForMilestones`).
 
 use serde::{Deserialize, Serialize};
-use treachery_engine::expression::ExpressionElement;
+use treachery_engine::messages::expression::ExpressionElement;
 use treachery_engine::prelude::*;
 use treachery_skin::Skin;
 use ts_rs::TS;

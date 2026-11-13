@@ -1,4 +1,4 @@
-//! The .NET behaviour that src/cs.rs stands in for, against
+//! The .NET behaviour that src/compat/cs.rs stands in for, against
 //! tests/golden/linq.json (csharp-ref/LinqTable.cs).
 //!
 //! Each LINQ operator with a cs.rs helper runs on small inputs from a
@@ -15,7 +15,7 @@ use std::cell::Cell;
 
 use common::*;
 use serde_json::{json, Value};
-use treachery_engine::cs::{self, CsException, CsIterExt};
+use treachery_engine::compat::cs::{self, CsException, CsIterExt};
 use treachery_engine::enumerations::Faction;
 
 /// Runs one operator on `input` with the predicate `x == 1`; (result, calls).

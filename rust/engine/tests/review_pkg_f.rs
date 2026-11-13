@@ -12,8 +12,7 @@ use treachery_engine::canon;
 use treachery_engine::events::GameEvent;
 use treachery_engine::game::Game;
 use treachery_engine::json;
-use treachery_engine::participation::Participation;
-use treachery_engine::player::PlayerIndex;
+use treachery_engine::game::Participation;
 
 // Step 1 of rust/traces/sample/fuzz-2026-00018.jsonl.gz (same text as ReviewA.cs).
 const ESTABLISH: &str = r#"{"$type":"EstablishPlayers","Settings":{"NumberOfPlayers":3,"MaximumTurns":8,"InitialRules":[301,300,65,60,20,1013,15,700,105,80,85,604,90,998,30,701,40,107,10,70,50,25,209,999,112],"AllowedFactionsInPlay":[50,10,120,60,40,100,20,90,70,80,30,110],"AutoOpenEmptySeats":true,"AsyncPlay":false,"AsyncPlayMessageIntervalMinutes":0},"Seed":1073548723,"MaximumNumberOfPlayers":3,"MaximumTurns":8,"ApplicableRules":[301,300,65,60,20,1013,15,700,105,80,85,604,90,998,30,701,40,107,10,70,50,25,209,999,112],"_players":"","_factionsInPlay":"Guild,Fremen,Moritani,BeneGesserit,Emperor,Richese,Atreides,Choam,Ixian,Tleilaxu,Harkonnen,Ecaz","Initiator":0,"Time":"2024-01-01T12:02:17+00:00"}"#;
@@ -26,7 +25,7 @@ fn trace_participation() -> Participation {
 }
 
 fn run(events: &[&str]) -> Game {
-    let mut g = Game::new_int32_participation(Game::LATEST_VERSION, &treachery_engine::cs::Shared::new(trace_participation()));
+    let mut g = Game::new_int32_participation(Game::LATEST_VERSION, &treachery_engine::compat::cs::Shared::new(trace_participation()));
     for text in events {
         let e: GameEvent = json::deserialize(text).expect("event json");
         e.initialize_game(&g);

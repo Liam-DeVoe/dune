@@ -7,7 +7,7 @@
 use serde_json::{json, Value};
 use treachery_engine::enumerations::{ErrorType, GameListScope, SubscriptionType, UserStatus};
 use treachery_engine::events::GameEvent;
-use treachery_engine::game_settings::GameSettings;
+use treachery_engine::game::GameSettings;
 use treachery_engine::json::FromJson;
 
 use super::time::{self, Time};

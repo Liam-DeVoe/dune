@@ -2,7 +2,7 @@
 //! the setup events; the comments say which C# behaviour each test pins down.
 
 use std::rc::Rc;
-use treachery_engine::cs;
+use treachery_engine::compat::cs;
 use treachery_engine::prelude::*;
 
 fn game_with(factions: &[Faction]) -> Game {

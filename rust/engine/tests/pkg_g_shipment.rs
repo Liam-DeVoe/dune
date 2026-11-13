@@ -1,7 +1,7 @@
 //! Focused tests for package G (shipment and movement). They build small game
 //! states by hand and check rules whose C# behaviour is easy to get wrong.
 
-use treachery_engine::cs;
+use treachery_engine::compat::cs;
 use treachery_engine::prelude::*;
 
 fn game_with(factions: &[Faction]) -> Game {

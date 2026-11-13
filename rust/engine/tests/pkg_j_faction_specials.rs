@@ -3,10 +3,10 @@
 //! easy to get wrong in a port.
 
 use treachery_engine::canon;
-use treachery_engine::cs;
+use treachery_engine::compat::cs;
 use treachery_engine::events::GameEventMethods;
-use treachery_engine::intrusion::Intrusion;
-use treachery_engine::logged_random::SharedRandom;
+use treachery_engine::game::Intrusion;
+use treachery_engine::random::SharedRandom;
 use treachery_engine::prelude::*;
 
 fn outcome<R>(f: impl FnOnce() -> R) -> Result<R, String> {

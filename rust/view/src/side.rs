@@ -4,8 +4,8 @@
 
 use std::rc::Rc;
 
-use treachery_engine::events::deal_accepted::DealAccepted;
-use treachery_engine::events::deal_offered::DealOffered;
+use treachery_engine::events::DealAccepted;
+use treachery_engine::events::DealOffered;
 use treachery_engine::prelude::*;
 
 use crate::build::{validate, ResolvedViewer};
@@ -89,7 +89,7 @@ pub fn bots_speed(game: &Game) -> i32 {
 /// `TrackerComponent.razor`, shown to Atreides from `Phase.SelectingTraitors` on
 /// (`TradePopover.razor`).
 pub fn tracker(game: &Game, v: &ResolvedViewer) -> Option<TrackerView> {
-    use treachery_engine::treachery_card_manager::TreacheryCardManager;
+    use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
     let p = v.player.filter(|_| !v.is_observer)?;
     if game.player(p).faction != Faction::Atreides || game.current_phase < Phase::SelectingTraitors {
         return None;
@@ -128,7 +128,7 @@ pub fn tracker(game: &Game, v: &ResolvedViewer) -> Option<TrackerView> {
 
 /// `MentatComponent.razor`: the cards in play, the same for every viewer.
 pub fn mentat(game: &Game) -> MentatView {
-    use treachery_engine::treachery_card_manager::TreacheryCardManager;
+    use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
     MentatView {
         treachery_cards: TreacheryCardManager::get_cards_in_play(game).map(|c| c.id()).collect(),
         richese_cards: if game.is_playing(Faction::Richese) { TreacheryCardManager::get_richese_cards().iter().map(|c| c.id()).collect() } else { vec![] },

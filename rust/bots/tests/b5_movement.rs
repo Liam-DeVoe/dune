@@ -26,7 +26,7 @@ use flate2::read::GzDecoder;
 use serde_json::Value;
 use treachery_bots::bot::EventKind;
 use treachery_bots::prelude::*;
-use treachery_engine::participation::Participation;
+use treachery_engine::game::Participation;
 
 fn l(x: Option<Location>) -> String {
     match x.and_then(CsNull::opt) {

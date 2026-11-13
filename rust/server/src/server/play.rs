@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use treachery_engine::enumerations::{ErrorType, MainPhase};
 use treachery_engine::events::GameEvent;
-use treachery_engine::game_status::GameStatus;
+use treachery_engine::game::GameStatus;
 
 use super::{done, CallError, Reply, Server};
 use crate::connections::Notification;

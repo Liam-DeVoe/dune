@@ -23,20 +23,20 @@ use std::collections::HashMap;
 
 use common::*;
 use serde_json::{json, Value};
-use treachery_engine::cs;
+use treachery_engine::compat::cs;
 use treachery_engine::enumerations::*;
-use treachery_engine::expression::ExpressionElement;
-use treachery_engine::i_fetcher::IFetcher;
-use treachery_engine::i_hero::Hero;
-use treachery_engine::leader_manager::LeaderManager;
-use treachery_engine::location::Location;
-use treachery_engine::logged_random::LoggedRandom;
+use treachery_engine::messages::expression::ExpressionElement;
+use treachery_engine::identity::IFetcher;
+use treachery_engine::heroes::hero::Hero;
+use treachery_engine::heroes::leader_manager::LeaderManager;
+use treachery_engine::map::location::Location;
+use treachery_engine::random::LoggedRandom;
 use treachery_engine::map::Map;
-use treachery_engine::message::{Message, MessagePart};
-use treachery_engine::point::PointD;
-use treachery_engine::report::Report;
-use treachery_engine::treachery_card::TreacheryCard;
-use treachery_engine::treachery_card_manager::TreacheryCardManager;
+use treachery_engine::messages::message::{Message, MessagePart};
+use treachery_engine::map::point::PointD;
+use treachery_engine::messages::report::Report;
+use treachery_engine::cards::treachery_card::TreacheryCard;
+use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
 use treachery_engine::{express, express_part};
 
 type Run = fn(&Value, &[Value]) -> Value;
@@ -582,9 +582,9 @@ mod lazy {
     use treachery_engine::events::*;
     use treachery_engine::game::Game;
     use treachery_engine::json;
-    use treachery_engine::participation::Participation;
-    use treachery_engine::player::{Player, PlayerIndex};
-    use treachery_engine::resource_card::ResourceCard;
+    use treachery_engine::game::Participation;
+    use treachery_engine::game::{Player, PlayerIndex};
+    use treachery_engine::cards::resource_card::ResourceCard;
 
     type Sink<'a> = &'a mut dyn FnMut(Value);
     type Producer = fn(&Game, PlayerIndex, Sink);

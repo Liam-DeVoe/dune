@@ -1,12 +1,12 @@
 //! Creating, loading and closing games; joining, observing and leaving them; seats, hosts and
 //! the host's other controls.
 
-use treachery_engine::cs::{self, Shared};
+use treachery_engine::compat::cs::{self, Shared};
 use treachery_engine::enumerations::{ErrorType, GameListScope};
 use treachery_engine::game::Game;
-use treachery_engine::game_settings::GameSettings;
-use treachery_engine::game_state::GameState;
-use treachery_engine::participation::Participation;
+use treachery_engine::game::GameSettings;
+use treachery_engine::game::GameState;
+use treachery_engine::game::Participation;
 
 use super::{contents, done, refuse, CallError, Reply, RunningGame, Server, MAX_GAMES_PER_USER};
 use crate::connections::{ConnectionId, Notification};

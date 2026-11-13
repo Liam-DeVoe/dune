@@ -11,22 +11,22 @@ use std::cell::Cell;
 use std::sync::OnceLock;
 
 use serde_json::{json, Value};
-use treachery_engine::cs;
-use treachery_engine::deck::Deck;
+use treachery_engine::compat::cs;
+use treachery_engine::cards::deck::Deck;
 use treachery_engine::enumerations::*;
-use treachery_engine::extension_methods::RandomExt;
-use treachery_engine::i_fetcher::IFetcher;
-use treachery_engine::i_hero::Hero;
-use treachery_engine::leader_manager::LeaderManager;
-use treachery_engine::location::Location;
-use treachery_engine::logged_random::SharedRandom;
+use treachery_engine::compat::random_ext::RandomExt;
+use treachery_engine::identity::IFetcher;
+use treachery_engine::heroes::hero::Hero;
+use treachery_engine::heroes::leader_manager::LeaderManager;
+use treachery_engine::map::location::Location;
+use treachery_engine::random::SharedRandom;
 use treachery_engine::map::{Map, MapGame};
-use treachery_engine::message::BattleFactKind;
-use treachery_engine::net_enum::{EnumTypeInfo, NetEnum};
-use treachery_engine::resource_card::ResourceCard;
-use treachery_engine::territory::Territory;
-use treachery_engine::treachery_card::TreacheryCard;
-use treachery_engine::treachery_card_manager::TreacheryCardManager;
+use treachery_engine::messages::message::BattleFactKind;
+use treachery_engine::compat::net_enum::{EnumTypeInfo, NetEnum};
+use treachery_engine::cards::resource_card::ResourceCard;
+use treachery_engine::map::territory::Territory;
+use treachery_engine::cards::treachery_card::TreacheryCard;
+use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
 
 fn golden() -> &'static Value {
     static G: OnceLock<Value> = OnceLock::new();
@@ -631,11 +631,11 @@ fn deck_basics() {
 #[test]
 fn messages() {
     use treachery_engine::{express, express_part, express_part_if, express_to};
-    use treachery_engine::expression::ExpressionElement as E;
-    use treachery_engine::payment::Payment;
+    use treachery_engine::messages::expression::ExpressionElement as E;
+    use treachery_engine::messages::payment::Payment;
 
     let m = Map::new();
-    let start = treachery_engine::message::Message::counter();
+    let start = treachery_engine::messages::message::Message::counter();
     let part = express_part_if!(false; "never");
     let msg = express!(
         Faction::Atreides,

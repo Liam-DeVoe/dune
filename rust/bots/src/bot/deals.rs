@@ -1,0 +1,307 @@
+use crate::prelude::*;
+use treachery_engine::compat::cs;
+
+/// `deal.To.Length == 1 && deal.To[0] == Faction.Fremen` (`To` is never null for a real offer).
+fn is_only_to_fremen(deal: &DealOffered) -> bool {
+    let to = deal.to.as_ref().nre();
+    to.len() == 1 && *cs::index_array(to, 0) == Faction::Fremen
+}
+
+impl ClassicBot {
+    pub fn determine_deal_accepted(&self, game: &Game) -> Option<Rc<DealAccepted>> {
+        let me = self.player;
+        if !DealAccepted::may_deal(game, Some(me), 1) || game.applicable(Rule::DisableResourceTransfers) {
+            return None;
+        }
+
+        let result: Option<Rc<DealAccepted>> = None;
+
+        if game.current_phase == Phase::ClaimingCharity
+            && game.player(me).tech_tokens.iter().any(|&tt| tt == TechToken::Resources)
+            && self.resources(game) <= 3
+            && !game.has_bidding_prescience(me)
+            && !(self.ally(game) != Faction::None && game.has_bidding_prescience(self.allied_player(game).or_null()))
+        {
+            let atreides_prescience_deal = DealAccepted::acceptable_deals(game, Some(me)).find(|d| {
+                d.type_ == DealType::ShareBiddingPrescience && d.end_phase == Phase::BiddingReport && d.price <= self.resources(game)
+            });
+            if let Some(d) = atreides_prescience_deal {
+                return d.acceptance(game, self.faction(game));
+            }
+        }
+
+        if game.current_phase == Phase::Bidding
+            && !game.has_bidding_prescience(me)
+            && !(self.ally(game) != Faction::None && game.has_bidding_prescience(self.allied_player(game).or_null()))
+        {
+            let mut bidding_prescience_deal = DealAccepted::acceptable_deals(game, Some(me)).find(|d| {
+                d.type_ == DealType::ShareBiddingPrescience && d.end_phase == Phase::BiddingReport && d.price <= self.resources(game)
+            });
+            Self::log_info("biddingPrescienceOfferEntirePhaseFremen: {0}", vec![]);
+            if bidding_prescience_deal.is_some()
+                && self.faction(game) == Faction::Fremen
+                && game.current_turn == 1
+                && game.applicable(Rule::TechTokens)
+                && game.current_phase <= Phase::ClaimingCharity
+            {
+                return bidding_prescience_deal.nre().acceptance(game, self.faction(game));
+            }
+
+            bidding_prescience_deal = DealAccepted::acceptable_deals(game, Some(me)).find(|d| {
+                d.type_ == DealType::ShareBiddingPrescience && d.end_phase == Phase::BiddingReport && d.price <= self.resources(game)
+            });
+            Self::log_info("biddingPrescienceOfferEntirePhase: {0}", vec![]);
+            if let Some(d) = &bidding_prescience_deal {
+                if game.current_main_phase == MainPhase::Bidding
+                    && game.card_number == 1
+                    && (d.price as f32) < 1.4f32 * (game.cards_on_auction.as_ref().nre().items.len() as i32 as f32)
+                    && self.resources_including_ally_contribution(game).wrapping_sub(d.price) > 16
+                {
+                    return d.acceptance(game, self.faction(game));
+                }
+            }
+
+            bidding_prescience_deal = DealAccepted::acceptable_deals(game, Some(me)).find(|d| {
+                d.type_ == DealType::ShareBiddingPrescience && d.end_phase == Phase::Bidding && d.price <= self.resources(game)
+            });
+            Self::log_info("biddingPrescienceOfferOneCard: {0}", vec![]);
+            let mut max_price_to_pay = 0;
+            if self.faction(game) == Faction::Emperor
+                && game.player(me).has_room_for_cards(game)
+                && self.resources_including_ally_contribution(game) > 24
+            {
+                max_price_to_pay = 1;
+            } else if ((self.faction(game) == Faction::Emperor && self.resources_including_ally_contribution(game) > 6)
+                || self.resources_including_ally_contribution(game) > 16)
+                && game.player(me).has_room_for_cards(game)
+            {
+                max_price_to_pay = 1;
+            }
+
+            if let Some(d) = &bidding_prescience_deal {
+                if game.current_main_phase == MainPhase::Bidding && d.price <= max_price_to_pay {
+                    return d.acceptance(game, self.faction(game));
+                }
+            }
+        }
+
+        result
+    }
+
+    pub fn determine_deal_cancelled(&self, game: &Game) -> Option<Rc<DealOffered>> {
+        self.determine_outdated_deal_offers(game)
+    }
+
+    pub fn determine_deal_offered(&self, game: &Game) -> Option<Rc<DealOffered>> {
+        if self.last_turn(game) || game.current_main_phase <= MainPhase::Setup || game.applicable(Rule::DisableResourceTransfers) {
+            return None;
+        }
+
+        // `??` chain: each later method runs (and may draw) only when the earlier ones gave null.
+        self.determine_deal_offered_bidding_prescience_entire_phase_fremen_turn1(game)
+            .or_else(|| self.determine_deal_offered_bidding_prescience_entire_phase(game))
+            .or_else(|| self.determine_deal_offered_bidding_prescience_one_card(game))
+            .or_else(|| self.determine_deal_offered_storm_prescience(game))
+            .or_else(|| self.determine_deal_offered_resource_deck_prescience(game))
+            .or_else(|| self.determine_deal_offered_tell_discarded_traitors(game))
+    }
+
+    pub fn determine_outdated_deal_offers(&self, game: &Game) -> Option<Rc<DealOffered>> {
+        let mut outdated = self
+            .find_invalid_deal_offers(game)
+            .or_else(|| self.find_outdated_deal_offer(game, MainPhase::Bidding, DealType::ShareBiddingPrescience))
+            .or_else(|| self.find_outdated_deal_offer(game, MainPhase::Battle, DealType::ShareResourceDeckPrescience))
+            .or_else(|| self.find_outdated_deal_offer(game, MainPhase::Battle, DealType::ShareStormPrescience));
+
+        if outdated.is_none() && self.last_turn(game) {
+            outdated = game.deal_offers.first().cloned();
+        }
+
+        outdated.and_then(|o| o.cancellation())
+    }
+
+    pub fn find_invalid_deal_offers(&self, game: &Game) -> Option<Rc<DealOffered>> {
+        let atreides = game.get_player(Some(Faction::Atreides));
+        if let Some(atreides) = atreides {
+            if game.current_main_phase == MainPhase::Bidding && !game.has_bidding_prescience(atreides) {
+                return game
+                    .deal_offers
+                    .iter()
+                    .find(|offer| offer.initiator() == Faction::Atreides && offer.type_ == DealType::ShareBiddingPrescience)
+                    .cloned();
+            }
+        }
+
+        if atreides.is_some() && game.current_main_phase == MainPhase::ShipmentAndMove && !game.has_resource_deck_prescience(atreides) {
+            return game
+                .deal_offers
+                .iter()
+                .find(|offer| offer.initiator() == Faction::Atreides && offer.type_ == DealType::ShareResourceDeckPrescience)
+                .cloned();
+        }
+
+        let fremen = game.get_player(Some(Faction::Fremen));
+        if fremen.is_some() && !game.has_storm_prescience(fremen) {
+            return game
+                .deal_offers
+                .iter()
+                .find(|offer| offer.initiator() == Faction::Fremen && offer.type_ == DealType::ShareStormPrescience)
+                .cloned();
+        }
+
+        None
+    }
+
+    pub fn find_outdated_deal_offer(&self, game: &Game, after: MainPhase, type_: DealType) -> Option<Rc<DealOffered>> {
+        if game.current_main_phase > after {
+            return game
+                .deal_offers
+                .iter()
+                .find(|offer| offer.initiator() == self.faction(game) && offer.type_ == type_)
+                .cloned();
+        }
+
+        None
+    }
+
+    pub fn determine_deal_offered_tell_discarded_traitors(&self, game: &Game) -> Option<Rc<DealOffered>> {
+        let faction = self.faction(game);
+        if faction != Faction::Harkonnen
+            && faction != Faction::Tleilaxu
+            && !game.deal_offers.iter().any(|deal| deal.initiator() == faction && deal.type_ == DealType::TellDiscardedTraitors)
+        {
+            let mut offer = DealOffered::new(game, faction);
+            offer.cancel = false;
+            offer.type_ = DealType::TellDiscardedTraitors;
+            offer.end_phase = Phase::TurnConcluded;
+            offer.price = self.d(game, 3, 3);
+            offer.text = Some("tell which traitors I discarded".to_string());
+            return Some(Rc::new(offer));
+        }
+
+        None
+    }
+
+    pub fn determine_deal_offered_resource_deck_prescience(&self, game: &Game) -> Option<Rc<DealOffered>> {
+        let faction = self.faction(game);
+        if faction == Faction::Atreides
+            && (game.current_main_phase >= MainPhase::ShipmentAndMove && game.current_main_phase <= MainPhase::Battle)
+            && game.has_resource_deck_prescience(Some(self.player))
+            && !game.deal_offers.iter().any(|deal| {
+                deal.initiator() == faction && deal.type_ == DealType::ShareResourceDeckPrescience && deal.end_phase == Phase::TurnConcluded
+            })
+        {
+            let mut offer = DealOffered::new(game, faction);
+            offer.cancel = false;
+            offer.type_ = DealType::ShareResourceDeckPrescience;
+            offer.end_phase = Phase::TurnConcluded;
+            offer.price = self.d(game, 1, 2);
+            offer.text = Some("share spice card prescience Player turn".to_string());
+            return Some(Rc::new(offer));
+        }
+
+        None
+    }
+
+    pub fn determine_deal_offered_storm_prescience(&self, game: &Game) -> Option<Rc<DealOffered>> {
+        let faction = self.faction(game);
+        if faction == Faction::Fremen
+            && (game.current_main_phase > MainPhase::Storm && game.current_main_phase <= MainPhase::Battle)
+            && game.has_storm_prescience(Some(self.player))
+            && !game.deal_offers.iter().any(|deal| {
+                deal.initiator() == faction && deal.type_ == DealType::ShareStormPrescience && deal.end_phase == Phase::TurnConcluded
+            })
+        {
+            let mut offer = DealOffered::new(game, faction);
+            offer.cancel = false;
+            offer.type_ = DealType::ShareStormPrescience;
+            offer.end_phase = Phase::TurnConcluded;
+            offer.price = self.d(game, 1, 2);
+            offer.text = Some("share storm prescience Player turn".to_string());
+            return Some(Rc::new(offer));
+        }
+
+        None
+    }
+
+    pub fn determine_deal_offered_bidding_prescience_entire_phase_fremen_turn1(&self, game: &Game) -> Option<Rc<DealOffered>> {
+        let faction = self.faction(game);
+        if faction == Faction::Atreides
+            && game.is_playing(Faction::Fremen)
+            && game.current_turn == 1
+            && game.current_main_phase == MainPhase::Charity
+            && !game.deal_offers.iter().any(|deal| {
+                deal.initiator() == faction
+                    && deal.type_ == DealType::ShareBiddingPrescience
+                    && deal.end_phase == Phase::BiddingReport
+                    && is_only_to_fremen(deal)
+            })
+        {
+            let mut offer = DealOffered::new(game, faction);
+            offer.cancel = false;
+            offer.type_ = DealType::ShareBiddingPrescience;
+            offer.end_phase = Phase::BiddingReport;
+            offer.price = 3;
+            offer.text = Some("share prescience (phase)".to_string());
+            offer.to = Some(vec![Faction::Fremen]);
+            return Some(Rc::new(offer));
+        }
+
+        None
+    }
+
+    pub fn determine_deal_offered_bidding_prescience_entire_phase(&self, game: &Game) -> Option<Rc<DealOffered>> {
+        let faction = self.faction(game);
+        if faction == Faction::Atreides
+            && game.current_main_phase <= MainPhase::Bidding
+            && game.has_bidding_prescience(self.player)
+            && !game.deal_offers.iter().any(|deal| {
+                deal.initiator() == faction
+                    && deal.type_ == DealType::ShareBiddingPrescience
+                    && deal.end_phase == Phase::BiddingReport
+                    && !is_only_to_fremen(deal)
+            })
+        {
+            let nr_of_cards = game
+                .player_indices()
+                .filter(|&p| (game.player(p).treachery_cards.len() as i32) < game.player(p).maximum_number_of_cards(game))
+                .count() as i32;
+            let factor: f32 = if self.ally(game) == Faction::None { 1.0 } else { 1.5 };
+            let mut offer = DealOffered::new(game, faction);
+            offer.cancel = false;
+            offer.type_ = DealType::ShareBiddingPrescience;
+            offer.end_phase = Phase::BiddingReport;
+            // (int)(float * int) + (int)Math.Floor(0.1 * int): float, then double.
+            offer.price = ((factor * nr_of_cards as f32) as i32)
+                .wrapping_add((0.1f64 * self.resources_including_ally_contribution(game) as f64).floor() as i32);
+            offer.text = Some("share prescience (phase)".to_string());
+            return Some(Rc::new(offer));
+        }
+
+        None
+    }
+
+    pub fn determine_deal_offered_bidding_prescience_one_card(&self, game: &Game) -> Option<Rc<DealOffered>> {
+        let faction = self.faction(game);
+        if faction == Faction::Atreides
+            && game.current_main_phase == MainPhase::Bidding
+            && game.current_auction_type == AuctionType::Normal
+            && game.has_bidding_prescience(self.player)
+            && !game.deal_offers.iter().any(|deal| {
+                deal.initiator() == faction && deal.type_ == DealType::ShareBiddingPrescience && deal.end_phase == Phase::Bidding
+            })
+        {
+            let mut offer = DealOffered::new(game, faction);
+            offer.cancel = false;
+            offer.type_ = DealType::ShareBiddingPrescience;
+            offer.end_phase = Phase::Bidding;
+            offer.price = 1i32
+                .wrapping_add((0.05f64 * self.resources_including_ally_contribution(game) as f64).floor() as i32)
+                .wrapping_add(if self.ally(game) == Faction::None { 0 } else { 1 });
+            offer.text = Some("share prescience (1 card)".to_string());
+            return Some(Rc::new(offer));
+        }
+
+        None
+    }
+}

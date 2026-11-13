@@ -13,12 +13,12 @@
 mod common;
 
 use common::{load, viewer_of};
-use treachery_engine::cs::Shared;
+use treachery_engine::compat::cs::Shared;
 use treachery_engine::events::GameEventType;
-use treachery_engine::expression::ExpressionElement;
+use treachery_engine::messages::expression::ExpressionElement;
 use treachery_engine::json;
-use treachery_engine::net_enum::NetEnum;
-use treachery_engine::participation::Participation;
+use treachery_engine::compat::net_enum::NetEnum;
+use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
 use treachery_view::actions::ship_move::{default_draft, options, options_and_validation};
 use treachery_view::build::{event, validate};

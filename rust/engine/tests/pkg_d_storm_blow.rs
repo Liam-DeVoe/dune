@@ -1,9 +1,9 @@
 //! Focused tests for package D (storm, spice blow, collection, charity). They build
 //! small game states by hand and check rules whose C# behaviour is easy to get wrong.
 
-use treachery_engine::cs;
+use treachery_engine::compat::cs;
 use treachery_engine::prelude::*;
-use treachery_engine::resources_to_be_divided::ResourcesToBeDivided;
+use treachery_engine::game::ResourcesToBeDivided;
 
 fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();

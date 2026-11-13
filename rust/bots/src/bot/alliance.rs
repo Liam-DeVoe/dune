@@ -1,0 +1,359 @@
+use crate::prelude::*;
+
+impl ClassicBot {
+    pub fn determine_alliance_by_terror(&self, game: &Game) -> Rc<AllianceByTerror> {
+        let moritani = game.get_player(Some(Faction::Moritani));
+        // int > float * int: compared as float.
+        let accept = !game.player(self.player).has_ally()
+            || (self.player_standing(game, moritani.or_null()) as f32)
+                > 0.75f32 * self.player_standing(game, self.allied_player(game).or_null()) as f32;
+        let mut result = AllianceByTerror::new(game, self.faction(game));
+        result.passed = !accept;
+        Rc::new(result)
+    }
+
+    pub fn determine_alliance_by_ambassador(&self, game: &Game) -> Rc<AllianceByAmbassador> {
+        let ecaz = game.get_player(Some(Faction::Ecaz));
+        let accept = !game.player(self.player).has_ally()
+            || (self.player_standing(game, ecaz.or_null()) as f32)
+                > 0.75f32 * self.player_standing(game, self.allied_player(game).or_null()) as f32;
+        let mut result = AllianceByAmbassador::new(game, self.faction(game));
+        result.passed = !accept;
+        Rc::new(result)
+    }
+
+    pub fn determine_nexus_voted(&self, game: &Game) -> Rc<NexusVoted> {
+        let mut result = NexusVoted::new(game, self.faction(game));
+        result.passed = false;
+        Rc::new(result)
+    }
+
+    pub fn determine_alliance_offered(&self, game: &Game) -> Option<Rc<AllianceOffered>> {
+        let faction = self.faction(game);
+        let nr_of_players = game.players.len() as i32;
+        let nr_of_un_allied_bots = game.player_indices().filter(|&p| game.is_bot(p) && !game.player(p).has_ally()).count() as i32;
+        let nr_of_unallied_humans = game.player_indices().filter(|&p| !game.is_bot(p) && !game.player(p).has_ally()).count() as i32;
+        // `??`: the second query (and its draw) runs only when the first gave null.
+        let offer = game
+            .current_alliance_offers
+            .iter()
+            .filter(|offer| offer.target == faction && !game.is_bot(offer.player()))
+            .cloned()
+            .highest_or_default(&self.random, |offer| self.player_standing(game, offer.player()))
+            .or_else(|| {
+                game.current_alliance_offers
+                    .iter()
+                    .filter(|alliance_offered| alliance_offered.target == faction)
+                    .cloned()
+                    .highest_or_default(&self.random, |alliance_offered| self.player_standing(game, alliance_offered.player()))
+            });
+
+        if let Some(offer) = offer {
+            let mut result = AllianceOffered::new(game, faction);
+            result.target = offer.initiator();
+            return Some(Rc::new(result));
+        }
+
+        if nr_of_players <= 2
+            || game.applicable(Rule::BotsCannotAlly)
+            || (nr_of_unallied_humans != 0 && nr_of_unallied_humans >= nr_of_un_allied_bots.wrapping_sub(1))
+            || game
+                .current_alliance_offers
+                .iter()
+                .any(|o| o.initiator() == faction && game.player(game.get_player(Some(o.target)).or_null()).ally == Faction::None)
+        {
+            return None;
+        }
+        {
+            let me = self.player;
+            let most_interesting_opponent_bot_without_ally = game
+                .player_indices()
+                .filter(|&p| {
+                    p != me
+                        && game.is_bot(p)
+                        && !game.player(p).has_ally()
+                        && AllianceOffered::valid_targets(game, me).any(|f| f == game.player(p).faction)
+                })
+                .highest_or_default(&self.random, |&p| self.player_standing(game, p));
+
+            if let Some(p) = most_interesting_opponent_bot_without_ally {
+                let mut result = AllianceOffered::new(game, faction);
+                result.target = game.player(p).faction;
+                return Some(Rc::new(result));
+            }
+        }
+
+        None
+    }
+
+    pub fn determine_alliance_passed(&self, game: &Game) -> Option<Rc<AlliancePassed>> {
+        let faction = self.faction(game);
+
+        //Keep waiting while one of our offers is still open; it is withdrawn when the other faction passes
+        if game.current_alliance_offers.iter().any(|o| o.initiator() == faction) {
+            return None;
+        }
+
+        //Humans may still offer us an alliance until they are done
+        if game.player_indices().any(|p| !game.is_bot(p) && !game.has_acted_or_passed.contains(&game.player(p).faction)) {
+            return None;
+        }
+
+        Some(Rc::new(AlliancePassed::new(game, faction)))
+    }
+
+    pub fn player_standing(&self, game: &Game, p: PlayerIndex) -> i32 {
+        let p = game.player(p);
+        2i32.wrapping_mul(p.treachery_cards.len() as i32)
+            .wrapping_add(p.resources)
+            .wrapping_add(6i32.wrapping_mul(p.locations_with_any_forces().iter().filter(|l| l.territory().is_stronghold()).count() as i32))
+            .wrapping_add(dotnet_compat::linq::sum_i32(p.forces_on_planet().values().map(|b| b.total_amount_of_forces())))
+            .wrapping_add(p.forces_in_reserve())
+            .wrapping_add(2i32.wrapping_mul(p.special_forces_in_reserve()))
+            .wrapping_add(2i32.wrapping_mul(p.leaders.iter().filter(|&&l| game.is_alive(Hero::Leader(l))).count() as i32))
+    }
+
+    pub fn determine_alliance_broken(&self, game: &Game) -> Option<Rc<AllianceBroken>> {
+        let faction = self.faction(game);
+        let offer = game
+            .current_alliance_offers
+            .iter()
+            .filter(|offer| offer.target == faction && !game.is_bot(offer.player()))
+            .cloned()
+            .highest_or_default(&self.random, |offer| self.player_standing(game, offer.player()));
+
+        if let Some(offer) = offer {
+            if game.player(self.player).has_ally()
+                && self.player_standing(game, offer.player()) > self.player_standing(game, self.allied_player(game).or_null())
+            {
+                return Some(Rc::new(AllianceBroken::new(game, faction)));
+            }
+        }
+
+        None
+    }
+
+    pub fn determine_nexus_card_drawn(&self, game: &Game) -> Rc<NexusCardDrawn> {
+        let faction = self.faction(game);
+        let nexus = game.player(self.player).nexus;
+        if NexusCardDrawn::may_draw(game, self.player)
+            && (nexus == Faction::None
+                || (faction == Faction::Emperor && nexus == Faction::Emperor && !game.applicable(Rule::EmperorSpecialForces))
+                || (faction == Faction::BeneGesserit && nexus == Faction::BeneGesserit && !game.applicable(Rule::BeneGesseritAdvisors))
+                || (faction == Faction::Ixian && nexus == Faction::Ixian && !game.applicable(Rule::AdvancedCombat)))
+        {
+            let mut result = NexusCardDrawn::new(game, faction);
+            result.passed = false;
+            return Rc::new(result);
+        }
+
+        let mut result = NexusCardDrawn::new(game, faction);
+        result.passed = true;
+        Rc::new(result)
+    }
+
+    pub fn determine_alliance_permissions(&self, game: &Game) -> Option<Rc<AllyPermission>> {
+        let ally = self.ally(game);
+        if ally == Faction::None {
+            return None;
+        }
+
+        if matches!(
+            game.current_main_phase,
+            MainPhase::Blow | MainPhase::Bidding | MainPhase::ShipmentAndMove | MainPhase::Battle
+        ) {
+            let allowed_resources = self.determine_allowed_resources(game);
+            let allowed_karma_card =
+                game.player(self.player).treachery_cards.iter().copied().find(|c| c.type_() == TreacheryCardType::Karma);
+            let mut permission = AllyPermission::new(game, self.faction(game));
+            permission.permitted_resources = allowed_resources;
+            permission.set_permitted_karma_card(allowed_karma_card);
+            let bool_permissions_need_update = self.bool_permissions_need_update(game, &mut permission);
+            let special_permissions_need_update = self.special_permissions_need_update(game, &mut permission);
+
+            if bool_permissions_need_update
+                || special_permissions_need_update
+                || game.get_permitted_use_of_ally_resources(ally) != allowed_resources
+                || game.get_permitted_use_of_ally_karma(ally) != allowed_karma_card
+            {
+                Self::log_info("Updating permissions, allowing use of {0} spice and Karama: {1}", vec![]);
+                return Some(Rc::new(permission));
+            }
+        }
+
+        None
+    }
+
+    pub fn special_permissions_need_update(&self, game: &Game, permission: &mut AllyPermission) -> bool {
+        let mut result = false;
+
+        if self.faction(game) == Faction::Emperor {
+            permission.emperor_will_pay_for_extra_revival = 3;
+            if game.emperor_will_pay_for_extra_revival != 3 {
+                result = true;
+            }
+        }
+
+        result
+    }
+
+    pub fn determine_allowed_resources(&self, game: &Game) -> i32 {
+        let faction = self.faction(game);
+        let resources = self.resources(game);
+        let phase = game.current_main_phase;
+        let acted = || game.has_acted_or_passed.contains(&faction);
+        match faction {
+            Faction::Atreides
+            | Faction::BeneGesserit
+            | Faction::Richese
+            | Faction::Harkonnen
+            | Faction::Ecaz
+            | Faction::Moritani
+            | Faction::Ixian => {
+                if phase == MainPhase::ShipmentAndMove && acted() {
+                    return resources.wrapping_sub(5).max(0);
+                }
+                resources.wrapping_sub(10).max(0)
+            }
+
+            Faction::Choam => {
+                if phase == MainPhase::Battle {
+                    return resources;
+                }
+                if phase == MainPhase::ShipmentAndMove && acted() {
+                    return resources.wrapping_sub(5).max(0);
+                }
+                resources.wrapping_sub(10).max(0)
+            }
+
+            Faction::Guild => {
+                if phase == MainPhase::ShipmentAndMove {
+                    return resources;
+                }
+                resources.wrapping_sub(10).max(0)
+            }
+
+            Faction::Fremen => {
+                if phase == MainPhase::ShipmentAndMove || game.player(self.player).treachery_cards.len() == 4 {
+                    return resources;
+                }
+                resources.wrapping_sub(10).max(0)
+            }
+
+            Faction::Emperor => {
+                if phase == MainPhase::Bidding {
+                    return resources;
+                }
+                if phase == MainPhase::ShipmentAndMove && acted() {
+                    return resources.wrapping_sub(5).max(0);
+                }
+                resources.wrapping_sub(10).max(0)
+            }
+
+            Faction::Tleilaxu => {
+                if phase == MainPhase::Resurrection {
+                    return resources;
+                }
+                if phase == MainPhase::ShipmentAndMove && acted() {
+                    return resources.wrapping_sub(5).max(0);
+                }
+                resources.wrapping_sub(10).max(0)
+            }
+
+            _ => 0,
+        }
+    }
+
+    /// Sets and reads the permissions by property name. Every name is a `bool` property on both
+    /// `AllyPermission` and `Game`.
+    pub fn bool_permissions_need_update(&self, game: &Game, permission: &mut AllyPermission) -> bool {
+        let mut result = false;
+
+        for p in self.get_permission_properties(game) {
+            // typeof(AllyPermission).GetProperty(p)?.SetValue(permission, true);
+            match p {
+                "AtreidesSharesPrescience" => permission.atreides_shares_prescience = true,
+                "FremenSharesPrescience" => permission.fremen_shares_prescience = true,
+                "FremenWillProtectFromMonster" => permission.fremen_will_protect_from_monster = true,
+                "FremenAllowsThreeFreeRevivals" => permission.fremen_allows_three_free_revivals = true,
+                "FremenRefundsBattleDial" => permission.fremen_refunds_battle_dial = true,
+                "GuildAllowsShippingDiscount" => permission.set_guild_allows_shipping_discount(true),
+                "BeneGesseritAllowsUseOfVoice" => permission.bene_gesserit_allows_use_of_voice = true,
+                "IxianAllowsReplacingCards" => permission.set_ixian_allows_replacing_cards(true),
+                "TleilaxuAllowsRevivalDiscount" => permission.set_tleilaxu_allows_revival_discount(true),
+                "RicheseAllowsUseOfNoField" => permission.richese_allows_use_of_no_field = true,
+                "MoritaniAllowsKeepingCards" => permission.moritani_allows_keeping_cards = true,
+                "EcazSharesAmbassadors" => permission.ecaz_shares_ambassadors = true,
+                _ => unreachable!("not a property name in GetPermissionProperties: {p}"),
+            }
+
+            if !result {
+                // var curValue = typeof(Game).GetProperty(p)?.GetValue(Game); if (!Equals(curValue, true)) ...
+                let cur_value = match p {
+                    "AtreidesSharesPrescience" => game.atreides_shares_prescience,
+                    "FremenSharesPrescience" => game.fremen_shares_prescience,
+                    "FremenWillProtectFromMonster" => game.fremen_will_protect_from_monster,
+                    "FremenAllowsThreeFreeRevivals" => game.fremen_allows_three_free_revivals,
+                    "FremenRefundsBattleDial" => game.fremen_refunds_battle_dial,
+                    "GuildAllowsShippingDiscount" => game.guild_allows_shipping_discount,
+                    "BeneGesseritAllowsUseOfVoice" => game.bene_gesserit_allows_use_of_voice,
+                    "IxianAllowsReplacingCards" => game.ixian_allows_replacing_cards,
+                    "TleilaxuAllowsRevivalDiscount" => game.tleilaxu_allows_revival_discount,
+                    "RicheseAllowsUseOfNoField" => game.richese_allows_use_of_no_field,
+                    "MoritaniAllowsKeepingCards" => game.moritani_allows_keeping_cards,
+                    "EcazSharesAmbassadors" => game.ecaz_shares_ambassadors,
+                    _ => unreachable!("not a property name in GetPermissionProperties: {p}"),
+                };
+                if !cur_value {
+                    result = true;
+                }
+            }
+        }
+
+        result
+    }
+
+    pub fn get_permission_properties(&self, game: &Game) -> Vec<&'static str> {
+        match self.faction(game) {
+            Faction::Atreides => vec!["AtreidesSharesPrescience"],
+            Faction::Fremen => vec![
+                "FremenSharesPrescience",
+                "FremenWillProtectFromMonster",
+                "FremenAllowsThreeFreeRevivals",
+                "FremenRefundsBattleDial",
+            ],
+            Faction::Guild => vec!["GuildAllowsShippingDiscount"],
+            Faction::BeneGesserit => vec!["BeneGesseritAllowsUseOfVoice"],
+            Faction::Ixian => vec!["IxianAllowsReplacingCards"],
+            Faction::Tleilaxu => vec!["TleilaxuAllowsRevivalDiscount"],
+            Faction::Richese => vec!["RicheseAllowsUseOfNoField"],
+            Faction::Moritani => vec!["MoritaniAllowsKeepingCards"],
+            Faction::Ecaz => vec!["EcazSharesAmbassadors"],
+            _ => vec![],
+        }
+    }
+
+    pub fn determine_card_traded(&self, game: &Game) -> Option<Rc<CardTraded>> {
+        let offer = game.current_card_trade_offer.as_ref()?;
+
+        let mut result = CardTraded::new(game, self.faction(game));
+        result.target = offer.initiator();
+        if offer.requested_card().is_some() {
+            result.set_card(offer.requested_card());
+        } else {
+            // OrderBy(c => CardQuality(c, Player)).FirstOrDefault(): each key once, in order; the
+            // first card with the lowest key wins (stable).
+            let cards = &game.player(self.player).treachery_cards;
+            let mut best: Option<(i32, TreacheryCard)> = None;
+            for &c in cards {
+                let key = self.card_quality(game, c, Some(self.player));
+                if best.is_none_or(|(k, _)| key < k) {
+                    best = Some((key, c));
+                }
+            }
+            result.set_card(best.map(|(_, c)| c));
+        }
+        result.set_requested_card(None);
+        Some(Rc::new(result))
+    }
+}

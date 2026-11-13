@@ -1,6 +1,6 @@
 //! The lobby: who is around, the running and scheduled games, and chat.
 
-use treachery_engine::cs::NullRef;
+use treachery_engine::compat::cs::NullRef;
 use treachery_engine::enumerations::{ErrorType, Faction, GameListScope, Phase, SubscriptionType, UserStatus};
 use treachery_engine::game::Game;
 

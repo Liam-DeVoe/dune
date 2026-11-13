@@ -16,12 +16,12 @@
 
 use std::collections::BTreeMap;
 
-use treachery_engine::cs::Shared;
+use treachery_engine::compat::cs::Shared;
 use treachery_engine::events::GameEventType;
-use treachery_engine::game_state::GameState;
+use treachery_engine::game::GameState;
 use treachery_engine::json;
-use treachery_engine::message::Message;
-use treachery_engine::participation::Participation;
+use treachery_engine::messages::message::Message;
+use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
 
 use crate::actions::QueryError;

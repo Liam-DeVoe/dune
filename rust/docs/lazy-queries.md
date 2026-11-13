@@ -28,7 +28,7 @@ What runs at the call and what runs per element must match C#:
 
 A member whose every Shared caller enumerates the whole query once, with nothing in between (`ToList`, `Count`, a `List` constructor), may return a `Vec`. Its row in the table below says so.
 
-`src/lazy.rs` has `Either`, `empty`, `distinct`, `union` and the `LazyQuery::cs_contains` method.
+`src/compat/lazy.rs` has `Either`, `empty`, `distinct`, `union` and the `LazyQuery::cs_contains` method.
 
 ## How the sites are found
 
@@ -88,106 +88,106 @@ Sites:
 | Producer | Class | Rust and why |
 |---|---|---|
 | `Enumerations.cs:20:Enumerations.GetValuesExceptDefault` | iter | `src/enumerations.rs::get_values_except_default` |
-| `Events/AllianceOffered.cs:41:AllianceOffered.ValidTargets` | iter | `src/events/alliance_offered.rs::valid_targets` |
-| `Events/AmbassadorActivated.cs:231:AmbassadorActivated.ValidFremenTargets` | iter | `src/events/ambassador_activated.rs::valid_fremen_targets` |
-| `Events/AmbassadorActivated.cs:239:AmbassadorActivated.ValidGuildTargets` | iter | `src/events/ambassador_activated.rs::valid_guild_targets` |
-| `Events/AmbassadorPlaced.cs:52:AmbassadorPlaced.ValidStrongholds` | iter | `src/events/ambassador_placed.rs::valid_strongholds` |
-| `Events/AuditCancelled.cs:57:AuditCancelled.GetCardsThatMayBeAudited` | vec | `src/events/audit_cancelled.rs::get_cards_that_may_be_audited`. Its Shared callers enumerate it fully once: `Count()` and the `Deck` constructor's `new List(items)`. |
-| `Events/Battle.cs:475:Battle.AspectsSeenByOpponent` | vec | `src/events/battle.rs::aspects_seen_by_opponent`. An iterator in C#. Its only caller, the `foreach` in `BattleRevision`, enumerates it fully. The loop body writes only `PrescienceSeenPlans`, which the iterator doesn't read, and nothing in it throws once `CurrentBattle` is set (see the comment on the Rust fn). |
-| `Events/Battle.cs:774:Battle.CheapHeroes` | iter | `src/events/battle.rs::cheap_heroes` |
-| `Events/Battle.cs:804:Battle.CardsPlayableAsDefense` | vec | `src/events/battle.rs::cards_playable_as_defense`. The only caller calls `ToArray()`. |
-| `Events/BattleConcluded.cs:336:BattleConcluded.ValidTraitorsToReplace` | iter | `src/events/battle_concluded.rs::valid_traitors_to_replace` |
-| `Events/Bid.cs:109:Bid.PlayersToBid` | vec | `src/events/bid.rs::players_to_bid`. The callers (`GameStatus`) call `ToList()`. The `GetPlayersInSequence` query inside is lazy, so its selector runs only in the arms that return it. |
-| `Events/Bid.cs:120:Bid.ValidKarmaCards` | iter | `src/events/bid.rs::valid_karma_cards` |
-| `Events/BlackMarketBid.cs:240:BlackMarketBid.PlayersToBid` | vec | `src/events/black_market_bid.rs::players_to_bid`. As `Bid.PlayersToBid`. |
-| `Events/BeneGesseritBattleAnnouncement.cs:53:BeneGesseritBattleAnnouncement.ValidTerritories` | iter | `src/events/bene_gesserit_battle_announcement.rs::valid_territories` |
-| `Events/BeneGesseritPrediction.cs:44:BeneGesseritPrediction.ValidTargets` | iter | `src/events/bene_gesserit_prediction.rs::valid_targets` |
-| `Events/ChoamDiscarded.cs:49:ChoamDiscarded.ValidCards` | iter | `src/events/choam_discarded.rs::valid_cards` |
-| `Events/ChoamMovePrevention.cs:48:ChoamMovePrevention.ValidTerritories` | iter | `src/events/choam_move_prevention.rs::valid_territories` |
-| `Events/ChoamRemoveForce.cs:55:ChoamRemoveForce.ValidLocations` | iter | `src/events/choam_remove_force.rs::valid_locations` |
-| `Events/ChoamRemoveForce.cs:60:ChoamRemoveForce.ValidFactions` | iter | `src/events/choam_remove_force.rs::valid_factions` |
-| `Events/ClairVoyancePlayed.cs:122:ClairVoyancePlayed.ValidTargets` | iter | `src/events/clair_voyance_played.rs::valid_targets` |
-| `Events/ClairVoyancePlayed.cs:127:ClairVoyancePlayed.ValidQuestions` | iter | `src/events/clair_voyance_played.rs::valid_questions` |
-| `Events/DealAccepted.cs:74:DealAccepted.AcceptableDeals` | iter | `src/events/deal_accepted.rs::acceptable_deals` |
-| `Events/DealAccepted.cs:86:DealAccepted.CancellableDeals` | iter | `src/events/deal_accepted.rs::cancellable_deals` |
-| `Events/DiscardedTaken.cs:49:DiscardedTaken.ValidCards` | iter | `src/events/discarded_taken.rs::valid_cards` |
-| `Events/DiscoveryEntered.cs:36:DiscoveryEntered.ValidTargets` | iter | `src/events/discovery_entered.rs::valid_targets` |
-| `Events/DiscoveryEntered.cs:41:DiscoveryEntered.ValidSources` | iter | `src/events/discovery_entered.rs::valid_sources` |
-| `Events/DiscoveryRevealed.cs:54:DiscoveryRevealed.GetLocations` | iter | `src/events/discovery_revealed.rs::get_locations` |
-| `Events/DistransUsed.cs:52:DistransUsed.ValidCards` | iter | `src/events/distrans_used.rs::valid_cards` |
-| `Events/DistransUsed.cs:57:DistransUsed.ValidTargets` | iter | `src/events/distrans_used.rs::valid_targets` |
-| `Events/Donated.cs:64:Donated.ValidTargets` | iter | `src/events/donated.rs::valid_targets` |
-| `Events/FaceDanced.cs:93:FaceDanced.ValidSourceLocations` | iter | `src/events/face_danced.rs::valid_source_locations` |
-| `Events/FaceDanced.cs:98:FaceDanced.ValidTargetLocations` | iter | `src/events/face_danced.rs::valid_target_locations` |
-| `Events/FaceDancerReplaced.cs:68:FaceDancerReplaced.ValidFaceDancers` | iter | `src/events/face_dancer_replaced.rs::valid_face_dancers` |
-| `Events/FactionSelected.cs:45:FactionSelected.ValidFactions` | iter | `src/events/faction_selected.rs::valid_factions` |
-| `Events/FactionTradeOffered.cs:49:FactionTradeOffered.ValidTargets` | iter | `src/events/faction_trade_offered.rs::valid_targets` |
-| `Events/Karma.cs:231:Karma.ValidKarmaCards` | iter | `src/events/karma.rs::valid_karma_cards` |
-| `Events/KarmaHmsMovement.cs:51:KarmaHmsMovement.ValidLocations` | iter | `src/events/karma_hms_movement.rs::valid_locations` |
-| `Events/KarmaMonster.cs:47:KarmaMonster.ValidTargets` | iter | `src/events/karma_monster.rs::valid_targets` |
-| `Events/KarmaRevivalPrevention.cs:41:KarmaRevivalPrevention.GetValidTargets` | iter | `src/events/karma_revival_prevention.rs::get_valid_targets` |
-| `Events/KarmaShipmentPrevention.cs:41:KarmaShipmentPrevention.GetValidTargets` | iter | `src/events/karma_shipment_prevention.rs::get_valid_targets` |
-| `Events/NexusPlayed.cs:270:NexusPlayed.ValidChoamCards` | iter | `src/events/nexus_played.rs::valid_choam_cards` |
-| `Events/NexusPlayed.cs:275:NexusPlayed.ValidEcazTerritories` | iter | `src/events/nexus_played.rs::valid_ecaz_territories` |
-| `Events/NexusPlayed.cs:284:NexusPlayed.ValidEcazFactions` | iter | `src/events/nexus_played.rs::valid_ecaz_factions` |
-| `Events/NexusPlayed.cs:289:NexusPlayed.ValidMoritaniTerritories` | iter | `src/events/nexus_played.rs::valid_moritani_territories` |
-| `Events/PerformBeneGesseritPlacement.cs:54:PerformBeneGesseritPlacement.ValidLocations` | iter | `src/events/perform_bene_gesserit_placement.rs::valid_locations` |
-| `Events/PerformMoritaniSetup.cs:49:PerformMoritaniSetup.ValidLocations` | iter | `src/events/perform_moritani_setup.rs::valid_locations` |
-| `Events/PerformHmsMovement.cs:50:PerformHmsMovement.ValidLocations` | iter | `src/events/perform_hms_movement.rs::valid_locations` |
-| `Events/PerformHmsPlacement.cs:49:PerformHmsPlacement.ValidLocations` | iter | `src/events/perform_hms_placement.rs::valid_locations` |
-| `Events/PlayerReplaced.cs:39:PlayerReplaced.ValidTargets` | iter | `src/events/player_replaced.rs::valid_targets` |
-| `Events/RequestTleilaxuRevival.cs:50:RequestTleilaxuRevival.ValidTargets` | iter | `src/events/request_tleilaxu_revival.rs::valid_targets` |
-| `Events/ResourcesAudited.cs:40:ResourcesAudited.ValidFactions` | iter | `src/events/resources_audited.rs::valid_factions` |
-| `Events/Retreat.cs:56:Retreat.ValidTargets` | iter | `src/events/retreat.rs::valid_targets` |
-| `Events/Revival.cs:204:Revival.ValidRevivalHeroes` | iter | `src/events/revival.rs::valid_revival_heroes` |
-| `Events/Revival.cs:449:Revival.ValidRevivedForceLocations` | iter | `src/events/revival.rs::valid_revived_force_locations` |
-| `Events/SetIncreasedRevivalLimits.cs:41:SetIncreasedRevivalLimits.ValidTargets` | iter | `src/events/set_increased_revival_limits.rs::valid_targets` |
-| `Events/SetShipmentPermission.cs:48:SetShipmentPermission.ValidTargets` | iter | `src/events/set_shipment_permission.rs::valid_targets` |
-| `Events/Shipment.cs:257:Shipment.HomeworldsToShipFrom` | vec | `src/events/shipment.rs::homeworlds_to_ship_from`. Only `Count()` callers. |
-| `Events/Shipment.cs:334:Shipment.ValidShipmentLocations` | iter | `src/events/shipment.rs::valid_shipment_locations` |
-| `Events/Shipment.cs:343:Shipment.RegularShipmentLocations` | iter | `src/events/shipment.rs::regular_shipment_locations` |
-| `Events/Shipment.cs:402:Shipment.ValidOwnKarmaCards` | vec | `src/events/shipment.rs::valid_own_karma_cards`. Only caller is `ValidKarmaCards`, which calls `ToList()` right away. |
-| `Events/Shipment.cs:446:Shipment.ValidSourceLocations` | iter | `src/events/shipment.rs::valid_source_locations` |
-| `Events/SkillAssigned.cs:58:SkillAssigned.ValidLeaders` | vec | `src/events/skill_assigned.rs::valid_leaders`. No caller in Shared. Returns a one-element array on one branch; the lazy branch reads only the player's leader list. |
-| `Events/TerrorPlanted.cs:61:TerrorPlanted.ValidStrongholds` | iter | `src/events/terror_planted.rs::valid_strongholds` |
-| `Events/TerrorPlanted.cs:83:TerrorPlanted.ValidTerrorTypes` | iter | `src/events/terror_planted.rs::valid_terror_types` |
-| `Events/TerrorRevealed.cs:111:TerrorRevealed.GetTypes` | iter | `src/events/terror_revealed.rs::get_types` |
-| `Events/TerrorRevealed.cs:121:TerrorRevealed.ValidSneakAttackTargets` | iter | `src/events/terror_revealed.rs::valid_sneak_attack_targets` |
-| `Events/Thought.cs:49:Thought.ValidCards` | iter | `src/events/thought.rs::valid_cards` |
-| `Events/RicheseGaveCard.cs:47:RicheseGaveCard.ValidCards` | iter | `src/events/richese_gave_card.rs::valid_cards` |
-| `Events/FremenRidesMonster.cs:111:FremenRidesMonster.ValidTargets` | iter | `src/events/fremen_rides_monster.rs::valid_targets` |
-| `Events/FremenRidesMonster.cs:75:FremenRidesMonster.LocationsWithForcesThatCanRide` | iter | `src/events/fremen_rides_monster.rs::locations_with_forces_that_can_ride` |
-| `Events/FremenRidesMonster.cs:91:FremenRidesMonster.ValidSources` | iter | `src/events/fremen_rides_monster.rs::valid_sources` |
-| `Events/FremenSentMonster.cs:50:FremenSentMonster.ValidTargets` | iter | `src/events/fremen_sent_monster.rs::valid_targets` |
-| `ExtensionMethods.cs:150:ExtensionMethods.TakeRandomN` | iter | `src/extension_methods.rs::take_random_n` |
-| `Game.cs:998:Game.LocationsWithAnyForcesNotInStorm` | iter | `src/game.rs::locations_with_any_forces_not_in_storm` |
-| `Game_Bidding.cs:605:Game.PlayersThatCanBid` | vec | `src/game_bidding.rs::players_that_can_bid`. Only `Count()` callers. |
-| `Game_Contemplate.cs:300:Game.Strongholds` | iter | `src/game_contemplate.rs::strongholds` |
-| `Game_Contemplate.cs:434:Game.TerrorIn` | iter | `src/game_contemplate.rs::terror_in` |
-| `Game_Deals.cs:41:Game.DealRecipients` | iter | `src/game_deals.rs::deal_recipients` |
-| `Game_LeaderState.cs:110:Game.GetSkilledLeaders` | iter | `src/game_leader_state.rs::get_skilled_leaders` |
-| `Game_Participation.cs:30:Game.PlayersOtherThan` | iter | `src/game_participation.rs::players_other_than` |
-| `Game_Participation.cs:75:Game.PlayerNames` | vec | `src/game_participation.rs::player_names`. No caller in Shared (server and UI). |
-| `Game_Participation.cs:80:Game.ObserverNames` | vec | `src/game_participation.rs::observer_names`. No caller in Shared (server and UI). |
-| `Game_Rules.cs:16:Game.GetCustomRules` | vec | `src/game_rules.rs::get_custom_rules`. Only caller calls `ToList()`. |
-| `Game_Rules.cs:305:Game.GetRulesInGroup` | vec | `src/game_rules.rs::get_rules_in_group`. Only caller is `List.AddRange`, which enumerates it fully. |
-| `Game_Rules.cs:311:Game.GetAvailableRulesets` | vec | `src/game_rules.rs::get_available_rulesets`. No caller in Shared. Static data: the enum values. |
-| `LeaderManager.cs:105:LeaderManager.GetLeaders` | iter | `src/leader_manager.rs::get_leaders` |
-| `Map.cs:106:Map.Locations` | iter | `src/map.rs::locations` |
-| `Map.cs:111:Map.Homeworlds` | iter | `src/map.rs::homeworlds` |
-| `Map.cs:113:Map.Territories` | iter | `src/map.rs::territories` |
-| `Map.cs:118:Map.Strongholds` | iter | `src/map.rs::strongholds` |
-| `Map.cs:145:Map.GetResourceCardsInPlay` | iter | `src/map.rs::get_resource_cards_in_play` |
-| `Model/ObjectCounter.cs:55:ObjectCounter.GetHighest` | vec | `src/object_counter.rs::get_highest`. No caller in Shared. `OrderByDescending` sorts the whole dictionary on the first pull anyway. |
-| `Model/Player.cs:471:Player.OccupiedLocations` | vec | `src/player.rs::occupied_locations`. Only caller is the `foreach` in `Battle.BattlesToBeFought`, a pure function that only builds its result list. |
-| `Model/Player.cs:473:Player.OccupiedTerritories` | vec | `src/player.rs::occupied_territories`. Only callers are `Intersect` (which reads all of its second argument) and `ToList()` in `Game_Move`. |
-| `Model/Player.cs:489:Player.TerritoriesWithForces` | iter | `src/player.rs::territories_with_forces` |
-| `Model/Player.cs:493:Player.LocationsWithAnyForcesInTerritory` | iter | `src/player.rs::locations_with_any_forces_in_territory` |
-| `Model/Player.cs:634:Player.UnrevealedTraitors` | iter | `src/player.rs::unrevealed_traitors` |
-| `Model/Player.cs:636:Player.UnrevealedFaceDancers` | iter | `src/player.rs::unrevealed_face_dancers` |
-| `Model/PlayerSequence.cs:199:PlayerSequence.GetPlayersInSequence` | iter | `src/player_sequence.rs::get_players_in_sequence` |
-| `TreacheryCardManager.cs:117:TreacheryCardManager.GetCardsInPlay` | iter | `src/treachery_card_manager.rs::get_cards_in_play` |
-| `TreacheryCardManager.cs:127:TreacheryCardManager.GetCardsInPlay` | iter | `src/treachery_card_manager.rs::get_cards_in_play_by_rule` |
+| `Events/AllianceOffered.cs:41:AllianceOffered.ValidTargets` | iter | `src/events/alliances/alliance_offered.rs::valid_targets` |
+| `Events/AmbassadorActivated.cs:231:AmbassadorActivated.ValidFremenTargets` | iter | `src/events/factions/ambassador_activated.rs::valid_fremen_targets` |
+| `Events/AmbassadorActivated.cs:239:AmbassadorActivated.ValidGuildTargets` | iter | `src/events/factions/ambassador_activated.rs::valid_guild_targets` |
+| `Events/AmbassadorPlaced.cs:52:AmbassadorPlaced.ValidStrongholds` | iter | `src/events/factions/ambassador_placed.rs::valid_strongholds` |
+| `Events/AuditCancelled.cs:57:AuditCancelled.GetCardsThatMayBeAudited` | vec | `src/events/battle/audit_cancelled.rs::get_cards_that_may_be_audited`. Its Shared callers enumerate it fully once: `Count()` and the `Deck` constructor's `new List(items)`. |
+| `Events/Battle.cs:475:Battle.AspectsSeenByOpponent` | vec | `src/events/battle/battle.rs::aspects_seen_by_opponent`. An iterator in C#. Its only caller, the `foreach` in `BattleRevision`, enumerates it fully. The loop body writes only `PrescienceSeenPlans`, which the iterator doesn't read, and nothing in it throws once `CurrentBattle` is set (see the comment on the Rust fn). |
+| `Events/Battle.cs:774:Battle.CheapHeroes` | iter | `src/events/battle/battle.rs::cheap_heroes` |
+| `Events/Battle.cs:804:Battle.CardsPlayableAsDefense` | vec | `src/events/battle/battle.rs::cards_playable_as_defense`. The only caller calls `ToArray()`. |
+| `Events/BattleConcluded.cs:336:BattleConcluded.ValidTraitorsToReplace` | iter | `src/events/battle/battle_concluded.rs::valid_traitors_to_replace` |
+| `Events/Bid.cs:109:Bid.PlayersToBid` | vec | `src/events/bidding/bid.rs::players_to_bid`. The callers (`GameStatus`) call `ToList()`. The `GetPlayersInSequence` query inside is lazy, so its selector runs only in the arms that return it. |
+| `Events/Bid.cs:120:Bid.ValidKarmaCards` | iter | `src/events/bidding/bid.rs::valid_karma_cards` |
+| `Events/BlackMarketBid.cs:240:BlackMarketBid.PlayersToBid` | vec | `src/events/bidding/black_market_bid.rs::players_to_bid`. As `Bid.PlayersToBid`. |
+| `Events/BeneGesseritBattleAnnouncement.cs:53:BeneGesseritBattleAnnouncement.ValidTerritories` | iter | `src/events/battle/bene_gesserit_battle_announcement.rs::valid_territories` |
+| `Events/BeneGesseritPrediction.cs:44:BeneGesseritPrediction.ValidTargets` | iter | `src/events/setup/bene_gesserit_prediction.rs::valid_targets` |
+| `Events/ChoamDiscarded.cs:49:ChoamDiscarded.ValidCards` | iter | `src/events/factions/choam_discarded.rs::valid_cards` |
+| `Events/ChoamMovePrevention.cs:48:ChoamMovePrevention.ValidTerritories` | iter | `src/events/factions/choam_move_prevention.rs::valid_territories` |
+| `Events/ChoamRemoveForce.cs:55:ChoamRemoveForce.ValidLocations` | iter | `src/events/factions/choam_remove_force.rs::valid_locations` |
+| `Events/ChoamRemoveForce.cs:60:ChoamRemoveForce.ValidFactions` | iter | `src/events/factions/choam_remove_force.rs::valid_factions` |
+| `Events/ClairVoyancePlayed.cs:122:ClairVoyancePlayed.ValidTargets` | iter | `src/events/cards/clair_voyance_played.rs::valid_targets` |
+| `Events/ClairVoyancePlayed.cs:127:ClairVoyancePlayed.ValidQuestions` | iter | `src/events/cards/clair_voyance_played.rs::valid_questions` |
+| `Events/DealAccepted.cs:74:DealAccepted.AcceptableDeals` | iter | `src/events/alliances/deal_accepted.rs::acceptable_deals` |
+| `Events/DealAccepted.cs:86:DealAccepted.CancellableDeals` | iter | `src/events/alliances/deal_accepted.rs::cancellable_deals` |
+| `Events/DiscardedTaken.cs:49:DiscardedTaken.ValidCards` | iter | `src/events/cards/discarded_taken.rs::valid_cards` |
+| `Events/DiscoveryEntered.cs:36:DiscoveryEntered.ValidTargets` | iter | `src/events/blow/discovery_entered.rs::valid_targets` |
+| `Events/DiscoveryEntered.cs:41:DiscoveryEntered.ValidSources` | iter | `src/events/blow/discovery_entered.rs::valid_sources` |
+| `Events/DiscoveryRevealed.cs:54:DiscoveryRevealed.GetLocations` | iter | `src/events/blow/discovery_revealed.rs::get_locations` |
+| `Events/DistransUsed.cs:52:DistransUsed.ValidCards` | iter | `src/events/cards/distrans_used.rs::valid_cards` |
+| `Events/DistransUsed.cs:57:DistransUsed.ValidTargets` | iter | `src/events/cards/distrans_used.rs::valid_targets` |
+| `Events/Donated.cs:64:Donated.ValidTargets` | iter | `src/events/alliances/donated.rs::valid_targets` |
+| `Events/FaceDanced.cs:93:FaceDanced.ValidSourceLocations` | iter | `src/events/battle/face_danced.rs::valid_source_locations` |
+| `Events/FaceDanced.cs:98:FaceDanced.ValidTargetLocations` | iter | `src/events/battle/face_danced.rs::valid_target_locations` |
+| `Events/FaceDancerReplaced.cs:68:FaceDancerReplaced.ValidFaceDancers` | iter | `src/events/collection/face_dancer_replaced.rs::valid_face_dancers` |
+| `Events/FactionSelected.cs:45:FactionSelected.ValidFactions` | iter | `src/events/setup/faction_selected.rs::valid_factions` |
+| `Events/FactionTradeOffered.cs:49:FactionTradeOffered.ValidTargets` | iter | `src/events/setup/faction_trade_offered.rs::valid_targets` |
+| `Events/Karma.cs:231:Karma.ValidKarmaCards` | iter | `src/events/cards/karma.rs::valid_karma_cards` |
+| `Events/KarmaHmsMovement.cs:51:KarmaHmsMovement.ValidLocations` | iter | `src/events/storm/karma_hms_movement.rs::valid_locations` |
+| `Events/KarmaMonster.cs:47:KarmaMonster.ValidTargets` | iter | `src/events/blow/karma_monster.rs::valid_targets` |
+| `Events/KarmaRevivalPrevention.cs:41:KarmaRevivalPrevention.GetValidTargets` | iter | `src/events/revival/karma_revival_prevention.rs::get_valid_targets` |
+| `Events/KarmaShipmentPrevention.cs:41:KarmaShipmentPrevention.GetValidTargets` | iter | `src/events/movement/karma_shipment_prevention.rs::get_valid_targets` |
+| `Events/NexusPlayed.cs:270:NexusPlayed.ValidChoamCards` | iter | `src/events/cards/nexus_played.rs::valid_choam_cards` |
+| `Events/NexusPlayed.cs:275:NexusPlayed.ValidEcazTerritories` | iter | `src/events/cards/nexus_played.rs::valid_ecaz_territories` |
+| `Events/NexusPlayed.cs:284:NexusPlayed.ValidEcazFactions` | iter | `src/events/cards/nexus_played.rs::valid_ecaz_factions` |
+| `Events/NexusPlayed.cs:289:NexusPlayed.ValidMoritaniTerritories` | iter | `src/events/cards/nexus_played.rs::valid_moritani_territories` |
+| `Events/PerformBeneGesseritPlacement.cs:54:PerformBeneGesseritPlacement.ValidLocations` | iter | `src/events/setup/perform_bene_gesserit_placement.rs::valid_locations` |
+| `Events/PerformMoritaniSetup.cs:49:PerformMoritaniSetup.ValidLocations` | iter | `src/events/setup/perform_moritani_setup.rs::valid_locations` |
+| `Events/PerformHmsMovement.cs:50:PerformHmsMovement.ValidLocations` | iter | `src/events/storm/perform_hms_movement.rs::valid_locations` |
+| `Events/PerformHmsPlacement.cs:49:PerformHmsPlacement.ValidLocations` | iter | `src/events/setup/perform_hms_placement.rs::valid_locations` |
+| `Events/PlayerReplaced.cs:39:PlayerReplaced.ValidTargets` | iter | `src/events/host/player_replaced.rs::valid_targets` |
+| `Events/RequestTleilaxuRevival.cs:50:RequestTleilaxuRevival.ValidTargets` | iter | `src/events/revival/request_tleilaxu_revival.rs::valid_targets` |
+| `Events/ResourcesAudited.cs:40:ResourcesAudited.ValidFactions` | iter | `src/events/factions/resources_audited.rs::valid_factions` |
+| `Events/Retreat.cs:56:Retreat.ValidTargets` | iter | `src/events/battle/retreat.rs::valid_targets` |
+| `Events/Revival.cs:204:Revival.ValidRevivalHeroes` | iter | `src/events/revival/revival.rs::valid_revival_heroes` |
+| `Events/Revival.cs:449:Revival.ValidRevivedForceLocations` | iter | `src/events/revival/revival.rs::valid_revived_force_locations` |
+| `Events/SetIncreasedRevivalLimits.cs:41:SetIncreasedRevivalLimits.ValidTargets` | iter | `src/events/revival/set_increased_revival_limits.rs::valid_targets` |
+| `Events/SetShipmentPermission.cs:48:SetShipmentPermission.ValidTargets` | iter | `src/events/movement/set_shipment_permission.rs::valid_targets` |
+| `Events/Shipment.cs:257:Shipment.HomeworldsToShipFrom` | vec | `src/events/movement/shipment.rs::homeworlds_to_ship_from`. Only `Count()` callers. |
+| `Events/Shipment.cs:334:Shipment.ValidShipmentLocations` | iter | `src/events/movement/shipment.rs::valid_shipment_locations` |
+| `Events/Shipment.cs:343:Shipment.RegularShipmentLocations` | iter | `src/events/movement/shipment.rs::regular_shipment_locations` |
+| `Events/Shipment.cs:402:Shipment.ValidOwnKarmaCards` | vec | `src/events/movement/shipment.rs::valid_own_karma_cards`. Only caller is `ValidKarmaCards`, which calls `ToList()` right away. |
+| `Events/Shipment.cs:446:Shipment.ValidSourceLocations` | iter | `src/events/movement/shipment.rs::valid_source_locations` |
+| `Events/SkillAssigned.cs:58:SkillAssigned.ValidLeaders` | vec | `src/events/setup/skill_assigned.rs::valid_leaders`. No caller in Shared. Returns a one-element array on one branch; the lazy branch reads only the player's leader list. |
+| `Events/TerrorPlanted.cs:61:TerrorPlanted.ValidStrongholds` | iter | `src/events/factions/terror_planted.rs::valid_strongholds` |
+| `Events/TerrorPlanted.cs:83:TerrorPlanted.ValidTerrorTypes` | iter | `src/events/factions/terror_planted.rs::valid_terror_types` |
+| `Events/TerrorRevealed.cs:111:TerrorRevealed.GetTypes` | iter | `src/events/factions/terror_revealed.rs::get_types` |
+| `Events/TerrorRevealed.cs:121:TerrorRevealed.ValidSneakAttackTargets` | iter | `src/events/factions/terror_revealed.rs::valid_sneak_attack_targets` |
+| `Events/Thought.cs:49:Thought.ValidCards` | iter | `src/events/battle/thought.rs::valid_cards` |
+| `Events/RicheseGaveCard.cs:47:RicheseGaveCard.ValidCards` | iter | `src/events/alliances/richese_gave_card.rs::valid_cards` |
+| `Events/FremenRidesMonster.cs:111:FremenRidesMonster.ValidTargets` | iter | `src/events/blow/fremen_rides_monster.rs::valid_targets` |
+| `Events/FremenRidesMonster.cs:75:FremenRidesMonster.LocationsWithForcesThatCanRide` | iter | `src/events/blow/fremen_rides_monster.rs::locations_with_forces_that_can_ride` |
+| `Events/FremenRidesMonster.cs:91:FremenRidesMonster.ValidSources` | iter | `src/events/blow/fremen_rides_monster.rs::valid_sources` |
+| `Events/FremenSentMonster.cs:50:FremenSentMonster.ValidTargets` | iter | `src/events/blow/fremen_sent_monster.rs::valid_targets` |
+| `ExtensionMethods.cs:150:ExtensionMethods.TakeRandomN` | iter | `src/compat/random_ext.rs::take_random_n` |
+| `Game.cs:998:Game.LocationsWithAnyForcesNotInStorm` | iter | `src/game/mod.rs::locations_with_any_forces_not_in_storm` |
+| `Game_Bidding.cs:605:Game.PlayersThatCanBid` | vec | `src/game/bidding.rs::players_that_can_bid`. Only `Count()` callers. |
+| `Game_Contemplate.cs:300:Game.Strongholds` | iter | `src/game/contemplate.rs::strongholds` |
+| `Game_Contemplate.cs:434:Game.TerrorIn` | iter | `src/game/contemplate.rs::terror_in` |
+| `Game_Deals.cs:41:Game.DealRecipients` | iter | `src/game/deals.rs::deal_recipients` |
+| `Game_LeaderState.cs:110:Game.GetSkilledLeaders` | iter | `src/game/leaders.rs::get_skilled_leaders` |
+| `Game_Participation.cs:30:Game.PlayersOtherThan` | iter | `src/game/participation.rs::players_other_than` |
+| `Game_Participation.cs:75:Game.PlayerNames` | vec | `src/game/participation.rs::player_names`. No caller in Shared (server and UI). |
+| `Game_Participation.cs:80:Game.ObserverNames` | vec | `src/game/participation.rs::observer_names`. No caller in Shared (server and UI). |
+| `Game_Rules.cs:16:Game.GetCustomRules` | vec | `src/game/rules.rs::get_custom_rules`. Only caller calls `ToList()`. |
+| `Game_Rules.cs:305:Game.GetRulesInGroup` | vec | `src/game/rules.rs::get_rules_in_group`. Only caller is `List.AddRange`, which enumerates it fully. |
+| `Game_Rules.cs:311:Game.GetAvailableRulesets` | vec | `src/game/rules.rs::get_available_rulesets`. No caller in Shared. Static data: the enum values. |
+| `LeaderManager.cs:105:LeaderManager.GetLeaders` | iter | `src/heroes/leader_manager.rs::get_leaders` |
+| `Map.cs:106:Map.Locations` | iter | `src/map/mod.rs::locations` |
+| `Map.cs:111:Map.Homeworlds` | iter | `src/map/mod.rs::homeworlds` |
+| `Map.cs:113:Map.Territories` | iter | `src/map/mod.rs::territories` |
+| `Map.cs:118:Map.Strongholds` | iter | `src/map/mod.rs::strongholds` |
+| `Map.cs:145:Map.GetResourceCardsInPlay` | iter | `src/map/mod.rs::get_resource_cards_in_play` |
+| `Model/ObjectCounter.cs:55:ObjectCounter.GetHighest` | vec | `src/game/counters.rs::get_highest`. No caller in Shared. `OrderByDescending` sorts the whole dictionary on the first pull anyway. |
+| `Model/Player.cs:471:Player.OccupiedLocations` | vec | `src/game/player.rs::occupied_locations`. Only caller is the `foreach` in `Battle.BattlesToBeFought`, a pure function that only builds its result list. |
+| `Model/Player.cs:473:Player.OccupiedTerritories` | vec | `src/game/player.rs::occupied_territories`. Only callers are `Intersect` (which reads all of its second argument) and `ToList()` in `Game_Move`. |
+| `Model/Player.cs:489:Player.TerritoriesWithForces` | iter | `src/game/player.rs::territories_with_forces` |
+| `Model/Player.cs:493:Player.LocationsWithAnyForcesInTerritory` | iter | `src/game/player.rs::locations_with_any_forces_in_territory` |
+| `Model/Player.cs:634:Player.UnrevealedTraitors` | iter | `src/game/player.rs::unrevealed_traitors` |
+| `Model/Player.cs:636:Player.UnrevealedFaceDancers` | iter | `src/game/player.rs::unrevealed_face_dancers` |
+| `Model/PlayerSequence.cs:199:PlayerSequence.GetPlayersInSequence` | iter | `src/game/player_sequence.rs::get_players_in_sequence` |
+| `TreacheryCardManager.cs:117:TreacheryCardManager.GetCardsInPlay` | iter | `src/cards/treachery_card_manager.rs::get_cards_in_play` |
+| `TreacheryCardManager.cs:127:TreacheryCardManager.GetCardsInPlay` | iter | `src/cards/treachery_card_manager.rs::get_cards_in_play_by_rule` |
 
 ## Sites
 

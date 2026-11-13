@@ -2,12 +2,12 @@
 //! small model types. Expected values come from `csharp-ref` mode `review-a-part2`
 //! (csharp-ref/ReviewA2.cs), run on .NET 10.
 
-use treachery_engine::cs;
+use treachery_engine::compat::cs;
 use treachery_engine::enumerations::*;
 use treachery_engine::events::PlacementEvent;
 use treachery_engine::game::Game;
-use treachery_engine::game_state::GameState;
-use treachery_engine::utilities::Utilities;
+use treachery_engine::game::GameState;
+use treachery_engine::json::utilities::Utilities;
 
 fn outcome<R: ToString>(f: impl FnOnce() -> R) -> String {
     match cs::catch(f) {

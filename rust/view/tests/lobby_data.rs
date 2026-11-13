@@ -7,7 +7,7 @@ use std::path::PathBuf;
 
 use treachery_engine::enumerations::*;
 use treachery_engine::game::Game;
-use treachery_engine::net_enum::NetEnum;
+use treachery_engine::compat::net_enum::NetEnum;
 use treachery_view::lobby::lobby_data;
 
 fn path() -> PathBuf {

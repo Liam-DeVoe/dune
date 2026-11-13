@@ -1,0 +1,33 @@
+//! Events of the bidding phase: bids, Richese and Ixian auctions, card swaps and Karama powers used while bidding.
+
+mod bid;
+pub use bid::*;
+pub mod bid_trait;
+mod black_market_bid;
+pub use black_market_bid::*;
+mod card_given;
+pub use card_given::*;
+mod emperor_bid_support;
+pub use emperor_bid_support::*;
+mod emperor_discarded;
+pub use emperor_discarded::*;
+mod ixian_removed_card_from_auction;
+pub use ixian_removed_card_from_auction::*;
+mod ixian_swapped_card_on_bid;
+pub use ixian_swapped_card_on_bid::*;
+mod karma_hand_swap;
+pub use karma_hand_swap::*;
+mod karma_hand_swap_initiated;
+pub use karma_hand_swap_initiated::*;
+mod karma_richese_buy;
+pub use karma_richese_buy::*;
+mod replaced_card_won;
+pub use replaced_card_won::*;
+mod richese_announces_auction;
+pub use richese_announces_auction::*;
+mod richese_announces_black_market;
+pub use richese_announces_black_market::*;
+mod richese_keeps_unsold_card;
+pub use richese_keeps_unsold_card::*;
+mod richese_specifies_auction;
+pub use richese_specifies_auction::*;

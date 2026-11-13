@@ -3,9 +3,9 @@
 //!
 //!   cd rust/engine/csharp-ref && dotnet run -c Release -- review-d
 
-use treachery_engine::cs;
+use treachery_engine::compat::cs;
 use treachery_engine::prelude::*;
-use treachery_engine::lazy::LazyQuery;
+use treachery_engine::compat::lazy::LazyQuery;
 
 fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();

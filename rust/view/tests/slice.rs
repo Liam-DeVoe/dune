@@ -6,7 +6,7 @@ mod common;
 
 use common::{load, load_text, truncated, viewer_of, Viewer, OBSERVER};
 use treachery_engine::events::GameEventType;
-use treachery_engine::i_identifiable::IIdentifiable;
+use treachery_engine::identity::IIdentifiable;
 use treachery_engine::prelude::*;
 use treachery_view::actions::QueryError;
 use treachery_view::schema::*;

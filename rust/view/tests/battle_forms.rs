@@ -10,11 +10,11 @@ mod common;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-use treachery_engine::cs::Shared;
+use treachery_engine::compat::cs::Shared;
 use treachery_engine::events::GameEventType;
 use treachery_engine::json;
-use treachery_engine::net_enum::NetEnum;
-use treachery_engine::participation::Participation;
+use treachery_engine::compat::net_enum::NetEnum;
+use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
 use treachery_view::actions::{self, battle};
 use treachery_view::build::{event, ResolvedViewer};

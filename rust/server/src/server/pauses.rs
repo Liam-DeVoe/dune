@@ -11,7 +11,7 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use treachery_engine::enumerations::{ErrorType, Faction, Phase};
-use treachery_engine::events::end_phase::EndPhase;
+use treachery_engine::events::EndPhase;
 use treachery_engine::events::GameEvent;
 
 use super::{done, CallError, Reply, Server};

@@ -4,11 +4,11 @@ How C# constructs in `Shared` map to Rust in `rust/engine`. Read [PORTING.md](..
 
 ## Modules and names
 
-- One module per C# file, snake_case: `Model/TreacheryCard.cs` becomes `src/treachery_card.rs`, `IHero.cs` becomes `i_hero.rs`. `Events/X.cs` goes in `src/events/`, `Model/Log/X.cs` in `src/log/`, everything else in `src/`. The `Game` partials are `game.rs`, `game_battle.rs` and so on, each with its own `impl Game` block; the `Game` struct with all its fields is in `game.rs`, grouped by the partial that declares them.
+- Modules are organized by concern; [engine.md](engine.md) describes the layout. (Until 2026-11-12 there was one module per C# file, named after it.)
 - Members keep their C# names in snake_case and their C# order. Properties become methods: `card.IsWeapon` is `card.is_weapon()`.
 - A name that is a Rust keyword gets a trailing underscore: `card.Type` is `card.type_()`.
-- Support modules have no C# counterpart. `cs.rs` holds exceptions, the throwing LINQ operators, `Shared<T>` and `RcKey<T>`. `net_enum.rs` defines how enums work. `date_time_offset.rs` is `DateTimeOffset`/`TimeSpan`, `json.rs` and `json_members.rs` are the event JSON, and `prelude.rs` is the common import.
-- Generated files say so at the top. `map_data.rs` comes from `tools/gen_map_data.py` and `enumerations.rs` from `tools/gen_enumerations.py` (which also emits the enums declared in `Model/Log` and `Model/Result.cs`). Edit the generator, not the output. The engine skeleton came from `csharp-gen`; see [The skeleton generator](#the-skeleton-generator).
+- Support modules have no C# counterpart. `compat/cs.rs` holds exceptions, the throwing LINQ operators, `Shared<T>` and `RcKey<T>`. `compat/net_enum.rs` defines how enums work. `compat/date_time_offset.rs` is `DateTimeOffset`/`TimeSpan`, `json/mod.rs` and `json/members.rs` are the event JSON, and `prelude.rs` is the common import.
+- Generated files say so at the top. `map/data.rs` comes from `tools/gen_map_data.py` and `enumerations.rs` from `tools/gen_enumerations.py` (which also emits the enums declared in `Model/Log` and `Model/Result.cs`). Edit the generator, not the output. The engine skeleton came from `csharp-gen`, which is retired; see [The skeleton generator](#the-skeleton-generator).
 - Mark deliberate copies of C# bugs with `// C# parity: <why>`.
 
 ## Enums
@@ -440,9 +440,9 @@ export DOTNET_ROOT="$HOME/dotnet10" PATH="$HOME/dotnet10:$PATH"
 cd rust/engine/csharp-gen && dotnet run -- --glue
 ```
 
-It never overwrites an existing module, because porters own those files now. `--glue` rewrites only the files nobody edits by hand: `events/mod.rs` (the `GameEvent` enum and dispatch), `log/mod.rs`, `prelude.rs` and `json_members.rs`. Run it after changing an event's fields. `--force` overwrites everything and must not be used any more. `out/` gets the warnings, the mutation reasons (`why.txt`: why a method was judged mutating) and the list of `Cell` fields.
+The generator is retired (2026-11-12): the module layout no longer matches its output, so don't run it. Edit `events/mod.rs`, `log/mod.rs`, `prelude.rs` and `json/members.rs` by hand.
 
-Every generated module starts with `use crate::prelude::*;`, which brings in the enums, handles, collections, `Game`, `Player`, `PlayerIndex`, all events and all model types.
+Most modules start with `use crate::prelude::*;`, which brings in the enums, handles, collections, `Game`, `Player`, `PlayerIndex`, all events and all model types.
 
 ## JSON
 

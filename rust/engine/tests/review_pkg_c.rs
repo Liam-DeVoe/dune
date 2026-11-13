@@ -7,11 +7,11 @@
 //!
 //! The test rebuilds every "name = value" line from Rust and compares them all.
 
-use treachery_engine::cs::{self, Shared};
+use treachery_engine::compat::cs::{self, Shared};
 use treachery_engine::events::*;
 use treachery_engine::game::Game;
 use treachery_engine::json;
-use treachery_engine::participation::Participation;
+use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
 
 const EXPECTED: &str = include_str!("golden/review_c.txt");

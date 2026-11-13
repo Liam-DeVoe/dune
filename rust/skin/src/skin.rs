@@ -13,27 +13,27 @@
 //! The faction rules sheets (`#region FactionManual`) are in [`crate::faction_manual`], and
 //! `Load`/`SkinToString` (`#region LoadingAndSaving`) in [`crate::skin_json`].
 
-use treachery_engine::cs::{self, CsNull, NullRef};
+use treachery_engine::compat::cs::{self, CsNull, NullRef};
 use treachery_engine::enumerations::*;
-use treachery_engine::expression::ExpressionElement;
+use treachery_engine::messages::expression::ExpressionElement;
 use treachery_engine::game::Game;
-use treachery_engine::homeworld::Homeworld;
-use treachery_engine::i_hero::Hero;
-use treachery_engine::leader::Leader;
-use treachery_engine::location::Location;
+use treachery_engine::map::homeworld::Homeworld;
+use treachery_engine::heroes::hero::Hero;
+use treachery_engine::heroes::leader::Leader;
+use treachery_engine::map::location::Location;
 use treachery_engine::map::Map;
-use treachery_engine::message::{Message, MessagePart};
-use treachery_engine::point::PointD;
-use treachery_engine::resource_card::ResourceCard;
-use treachery_engine::territory::Territory;
-use treachery_engine::treachery_card::TreacheryCard;
+use treachery_engine::messages::message::{Message, MessagePart};
+use treachery_engine::map::point::PointD;
+use treachery_engine::cards::resource_card::ResourceCard;
+use treachery_engine::map::territory::Territory;
+use treachery_engine::cards::treachery_card::TreacheryCard;
 
 /// The `Format` argument list: each argument converts with `ExpressionElement::from`, the way
 /// C# boxes it into `params object[]`.
 #[macro_export]
 macro_rules! args {
     ($($a:expr),* $(,)?) => {
-        vec![$(::treachery_engine::expression::ExpressionElement::from($a)),*]
+        vec![$(::treachery_engine::messages::expression::ExpressionElement::from($a)),*]
     };
 }
 

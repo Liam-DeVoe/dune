@@ -1,0 +1,182 @@
+use crate::prelude::*;
+use crate::compat::lazy::LazyQuery;
+
+#[derive(Clone, Debug, Canon)]
+pub struct ChoamRemoveForce {
+    pub target: Faction,
+    pub special_force: bool,
+    #[canon(name = "_locationId")]
+    pub location_id: i32,
+    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    #[canon(flatten)]
+    pub base: GameEventBase,
+}
+
+impl Default for ChoamRemoveForce {
+    fn default() -> Self {
+        ChoamRemoveForce {
+            target: Default::default(),
+            special_force: Default::default(),
+            location_id: Default::default(),
+            base: Default::default(),
+        }
+    }
+}
+
+impl ChoamRemoveForce {
+    pub fn new(game: &Game, initiator: Faction) -> Self {
+        let e = Self::default();
+        e.initialize(game, initiator);
+        e
+    }
+
+    pub fn location(&self, game: &Game) -> Option<Location> {
+        game.map.location_lookup().find(self.location_id)
+    }
+
+    pub fn set_location(&mut self, game: &Game, value: Option<Location>) {
+        let value = value.and_then(crate::compat::cs::CsNull::opt);
+        self.location_id = game.map.location_lookup().get_id(value);
+    }
+
+    pub fn validate(&self, game: &Game) -> Option<Message> {
+        let location = self.location(game);
+        let Some(l) = location else {
+            return Some(express!("Invalid location"));
+        };
+        if !ChoamRemoveForce::valid_locations(game).cs_contains(&l) {
+            return Some(express!("Invalid location"));
+        }
+        // Location is not null here, so ValidFactions never reads Player.
+        if !ChoamRemoveForce::valid_factions(game, self.player_opt(), location).cs_contains(&self.target) {
+            return Some(express!("Invalid faction"));
+        }
+        if !ChoamRemoveForce::valid_special_force_choices(game, location, self.target).contains(&self.special_force) {
+            return Some(express!("Invalid type of forces"));
+        }
+
+        None
+    }
+
+    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    pub fn valid_locations(g: &Game) -> impl Iterator<Item = Location> {
+        // The dictionary is built at the call, as in C#; Where and Distinct run as the caller pulls.
+        let keys: Vec<Location> = g.forces_on_planet_excluding_empty_locations(false).keys().copied().collect();
+        crate::compat::lazy::distinct(keys.into_iter().filter(move |l| !g.is_in_storm(*l)))
+    }
+
+    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    pub fn valid_factions(g: &Game, p: Option<PlayerIndex>, l: Option<Location>) -> impl Iterator<Item = Faction> {
+        use crate::compat::lazy::Either;
+        let p = p.and_then(crate::compat::cs::CsNull::opt);
+        let l = l.and_then(crate::compat::cs::CsNull::opt);
+        if let Some(l) = l {
+            return Either::A(g.players.iter().filter(move |x| x.any_forces_in(Some(l)) > 0).map(|x| x.faction));
+        }
+        Either::B(g.players_other_than(p.nre()))
+    }
+
+    pub fn valid_special_force_choices(g: &Game, l: Option<Location>, f: Faction) -> Vec<bool> {
+        let l = l.and_then(crate::compat::cs::CsNull::opt);
+        let mut result = Vec::new();
+        let player_to_check = g.get_player(Some(f));
+
+        match (l, player_to_check) {
+            (Some(l), Some(pc)) => {
+                if g.player(pc).forces_in(Some(l)) > 0 {
+                    result.push(false);
+                }
+
+                if g.player(pc).special_forces_in(Some(l)) > 0 {
+                    result.push(true);
+                }
+            }
+            _ => {
+                result.push(false);
+                result.push(true);
+            }
+        }
+
+        result
+    }
+
+    pub fn can_be_played_by(g: &Game, p: PlayerIndex) -> bool {
+        let pl = g.player(p);
+        pl.faction == Faction::Choam
+            && ((!g.prevented(FactionAdvantage::ChoamDiscarding) && ChoamRemoveForce::card_to_use(g, p).is_some())
+                || (NexusPlayed::can_use_cunning(g, p) && !pl.treachery_cards.is_empty()))
+    }
+
+    pub fn card_to_use(game: &Game, p: PlayerIndex) -> Option<TreacheryCard> {
+        game.player(p).treachery_cards.iter().copied().find(|c| c.id() == TreacheryCardManager::CARD_TRIP_TO_GAMONT)
+    }
+
+    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+        self.log(game);
+
+        let me = self.player();
+        let card = ChoamRemoveForce::card_to_use(game, me);
+        if card.is_none() && NexusPlayed::can_use_cunning(game, me) {
+            game.play_nexus_card(me, vec!["Cunning".into(), "send a force back to reserves".into()]);
+            game.let_player_discard_treachery_card_of_choice(self.initiator());
+        } else {
+            game.discard_treachery_card_boolean(card, true);
+        }
+
+        let target = self.get_player(game, Some(self.target));
+
+        // `target!` throws NullReferenceException; `Location!` does not: a null Location
+        // (only without validation) changes the reserves, then ChangeForces throws
+        // ArgumentNullException on the null key.
+        if self.special_force {
+            let target = target.nre();
+            let location = self.location(game).or_null();
+            Player::special_forces_to_reserves(game, target, location, 1);
+        } else {
+            let target = target.nre();
+            let location = self.location(game).or_null();
+            Player::forces_to_reserves_location_int32(game, target, location, 1);
+        }
+
+        game.flip_bene_gesserit_advisors_when_alone();
+        game.stone(Milestone::SpecialUselessPlayed);
+    }
+
+    pub fn get_message(&self, game: &Game) -> Message {
+        let target_player = game.get_player(Some(self.target));
+        let force: ExpressionElement = if self.special_force {
+            game.player(target_player.nre()).special_force().into()
+        } else {
+            game.player(target_player.nre()).force().into()
+        };
+        express!(self.initiator(), " remove ", 1, force, " from ", self.location(game))
+    }
+
+}
+
+impl GameEventMethods for ChoamRemoveForce {
+    fn base(&self) -> &GameEventBase {
+        &self.base
+    }
+
+    fn event_type(&self) -> GameEventType {
+        GameEventType::ChoamRemoveForce
+    }
+
+    fn into_event(self: Rc<Self>) -> GameEvent {
+        GameEvent::ChoamRemoveForce(self)
+    }
+
+    fn validate(&self, game: &Game) -> Option<Message> {
+        ChoamRemoveForce::validate(self, game)
+    }
+
+    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
+        ChoamRemoveForce::execute_concrete_event(self, game)
+    }
+
+    fn get_message(&self, game: &Game) -> Message {
+        ChoamRemoveForce::get_message(self, game)
+    }
+
+}

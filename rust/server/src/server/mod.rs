@@ -191,7 +191,7 @@ pub struct Server {
 
 /// The text of a panic: an engine exception or a bug.
 pub fn panic_text(payload: &(dyn std::any::Any + Send)) -> String {
-    if let Some(e) = payload.downcast_ref::<treachery_engine::cs::CsException>() {
+    if let Some(e) = payload.downcast_ref::<treachery_engine::compat::cs::CsException>() {
         e.to_string()
     } else if let Some(s) = payload.downcast_ref::<String>() {
         s.clone()

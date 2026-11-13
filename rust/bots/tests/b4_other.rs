@@ -27,7 +27,7 @@ use flate2::read::GzDecoder;
 use serde_json::Value;
 use treachery_bots::bot::EventKind;
 use treachery_bots::prelude::*;
-use treachery_engine::participation::Participation;
+use treachery_engine::game::Participation;
 
 fn ev<T: EventKind>(e: Rc<T>) -> String {
     treachery_engine::json::serialize(&T::into_event(e))

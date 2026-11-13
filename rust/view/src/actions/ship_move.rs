@@ -18,11 +18,11 @@
 //! (a new map pick, `InitializeAmounts`).
 
 use serde_json::Value;
-use treachery_engine::cs;
+use treachery_engine::compat::cs;
 use treachery_engine::events::GameEventType;
 use treachery_engine::json;
-use treachery_engine::expression::ExpressionElement;
-use treachery_engine::net_enum::NetEnum;
+use treachery_engine::messages::expression::ExpressionElement;
+use treachery_engine::compat::net_enum::NetEnum;
 use treachery_engine::prelude::*;
 
 use crate::build::{event, validate};

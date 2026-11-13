@@ -2,15 +2,15 @@
 //! the small model types). Expected values marked "(.NET)" were produced by running
 //! the C# code (Shared) on .NET 10.
 
-use treachery_engine::cs;
-use treachery_engine::date_time_offset::TimeSpan;
+use treachery_engine::compat::cs;
+use treachery_engine::compat::date_time_offset::TimeSpan;
 use treachery_engine::enumerations::*;
 use treachery_engine::events::{GameEvent, GameEventType, PlacementEvent};
 use treachery_engine::game::Game;
-use treachery_engine::object_counter::ObjectCounter;
-use treachery_engine::timer::Timer;
-use treachery_engine::treachery_card_manager::TreacheryCardManager;
-use treachery_engine::utilities::Utilities;
+use treachery_engine::game::ObjectCounter;
+use treachery_engine::game::Timer;
+use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
+use treachery_engine::json::utilities::Utilities;
 
 fn outcome<R>(f: impl FnOnce() -> R) -> Result<R, String> {
     cs::catch(f).map_err(|e| format!("{}: {}", e.type_name, e.message))

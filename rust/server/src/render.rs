@@ -1,7 +1,7 @@
 //! Text the server writes (refusal messages, mail) with the default skin.
 
 use treachery_engine::enumerations::{Faction, Phase};
-use treachery_engine::message::Message;
+use treachery_engine::messages::message::Message;
 use treachery_skin::default_skin;
 
 pub fn message_to_string(message: &Message) -> String {

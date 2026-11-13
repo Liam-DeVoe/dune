@@ -1,0 +1,18 @@
+use crate::prelude::*;
+
+#[derive(Clone, Debug, PartialEq, Canon)]
+pub struct SpiceCollected {
+    pub faction: Faction,
+    pub territory: Territory,
+    pub amount: i32,
+    pub field: Option<Location>,
+    pub income: bool,
+}
+
+impl SpiceCollected {
+    pub fn new(faction: Faction, territory: Territory, amount: i32, field: Option<Location>, income: bool) -> Self {
+        let field = field.and_then(crate::compat::cs::CsNull::opt);
+        SpiceCollected { faction, territory, amount, field, income }
+    }
+
+}

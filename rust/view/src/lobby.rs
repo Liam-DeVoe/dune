@@ -15,9 +15,9 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 use treachery_engine::enumerations::*;
-use treachery_engine::expression::{EnumValue, ExpressionElement};
+use treachery_engine::messages::expression::{EnumValue, ExpressionElement};
 use treachery_engine::game::Game;
-use treachery_engine::net_enum::NetEnum;
+use treachery_engine::compat::net_enum::NetEnum;
 use treachery_engine::prelude::EstablishPlayers;
 use ts_rs::TS;
 

@@ -3,7 +3,7 @@
 //! database with them as objects (`{"7": 0}`), the form older databases hold.
 
 use serde_json::{json, Map, Value};
-use treachery_engine::participation::Participation;
+use treachery_engine::game::Participation;
 
 fn ids<'a>(set: impl IntoIterator<Item = &'a i32>) -> Value {
     Value::Array(set.into_iter().map(|i| json!(i)).collect())

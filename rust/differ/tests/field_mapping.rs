@@ -211,13 +211,13 @@ fn csharp_field_types() -> BTreeMap<String, BTreeMap<String, String>> {
 #[test]
 fn reference_types_write_every_form_they_claim() {
     use treachery_engine::canon::{Canon, CanonShape};
-    use treachery_engine::cs::{CsNull, Shared};
+    use treachery_engine::compat::cs::Shared;
     use treachery_engine::enumerations::Faction;
     use treachery_engine::game::{Game, GameRef};
-    use treachery_engine::location::Location;
-    use treachery_engine::participation::Participation;
-    use treachery_engine::player::{Player, PlayerIndex};
-    use treachery_engine::territory::Territory;
+    use treachery_engine::map::location::Location;
+    use treachery_engine::game::Participation;
+    use treachery_engine::game::{Player, PlayerIndex};
+    use treachery_engine::map::territory::Territory;
 
     // `old` becomes another game of `game`, as after `Undo`.
     let mut old = Game::new_int32_participation(Game::LATEST_VERSION, &Shared::new(Participation::new()));

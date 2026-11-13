@@ -8,11 +8,11 @@ mod common;
 use std::rc::Rc;
 
 use common::{fixture, load, load_text, truncated, viewer_of, OBSERVER};
-use treachery_engine::events::deal_accepted::DealAccepted;
-use treachery_engine::i_hero::Hero;
-use treachery_engine::i_identifiable::IIdentifiable;
+use treachery_engine::events::DealAccepted;
+use treachery_engine::heroes::hero::Hero;
+use treachery_engine::identity::IIdentifiable;
 use treachery_engine::prelude::*;
-use treachery_engine::treachery_card_manager::TreacheryCardManager;
+use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
 use treachery_view::replica::ViewReplica;
 use treachery_view::schema::*;
 
@@ -48,7 +48,7 @@ fn parse_event(v: &serde_json::Value) -> GameEvent {
 }
 
 /// The offer an id names: the `DealOffered` at that place in the history.
-fn offer_at(game: &Game, id: i32) -> Rc<treachery_engine::events::deal_offered::DealOffered> {
+fn offer_at(game: &Game, id: i32) -> Rc<treachery_engine::events::DealOffered> {
     match &game.history[id as usize] {
         GameEvent::DealOffered(o) => o.clone(),
         e => panic!("deal id {id} is a {}", e.event_type().name()),
@@ -231,7 +231,7 @@ fn leader_skills() {
             };
             let g = &r.game;
             for l in &me.leaders {
-                let leader = treachery_engine::leader_manager::LeaderManager::leaders().iter().copied().find(|x| x.id() == l.id).unwrap();
+                let leader = treachery_engine::heroes::leader_manager::LeaderManager::leaders().iter().copied().find(|x| x.id() == l.id).unwrap();
                 let skill = g.skill(Some(Hero::Leader(leader)));
                 assert_eq!(l.skill, (skill != LeaderSkill::None).then(|| name(skill)), "{f:?} at {step}");
                 own += l.skill.is_some() as usize;
@@ -241,7 +241,7 @@ fn leader_skills() {
                     assert!(c.skill.is_none());
                     continue;
                 };
-                let leader = treachery_engine::leader_manager::LeaderManager::leaders().iter().copied().find(|x| x.id() == id).unwrap();
+                let leader = treachery_engine::heroes::leader_manager::LeaderManager::leaders().iter().copied().find(|x| x.id() == id).unwrap();
                 let skill = g.skill(Some(Hero::Leader(leader)));
                 assert_eq!(c.skill, (skill != LeaderSkill::None).then(|| name(skill)), "{f:?} at {step}");
                 traitors += c.skill.is_some() as usize;

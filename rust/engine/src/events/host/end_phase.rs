@@ -359,7 +359,7 @@ impl GameEventMethods for EndPhase {
 }
 
 /// `EnterSpiceCollectionPhase`. A free function so it can be passed to `Game.Enter` as
-/// the `Action` delegate (the C# method only touches `Game`).
+/// the action (it only touches `Game`).
 fn enter_spice_collection_phase(game: &mut Game) {
     game.main_phase_start(MainPhase::Collection, true);
     game.resources_collected_by_fremen = 0;

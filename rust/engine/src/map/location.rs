@@ -1,6 +1,6 @@
-//! In C#, a `Location` is an object owned by the game's `Map`; `Equals` and
-//! `GetHashCode` use `Id`. In Rust it is a `Copy` handle holding the id. Its
-//! static properties come from the table in `map_data.rs`; the properties that
+//! A `Location` is a `Copy` handle holding the location's id; equality and
+//! hashing use the id. Its
+//! static properties come from the table in `data.rs`; the properties that
 //! change during a game (`Sector` and `Visible` of attached locations, every
 //! `Neighbours` list) live in [`Map`] and take it as an argument.
 
@@ -17,10 +17,10 @@ use crate::map::{LocationData, LocationKind, Map};
 use crate::map::data::{LOCATIONS, LOCATION_COUNT};
 use crate::map::territory::Territory;
 
-/// Handle to a location of the map. Equality is by id, like C# `Location.Equals`.
-/// `Location::NULL` is a C# null reference (see `cs::CsNull`).
+/// Handle to a location of the map. Equality is by id.
+/// `Location::NULL` is the null handle (see `cs::CsNull`).
 ///
-/// The second field says which game's map the C# object belongs to: 0 for the map of
+/// The second field says which game's map the location belongs to: 0 for the map of
 /// the game that holds the handle, otherwise the id of another game (a location passed
 /// to a player of another game after an undo; engine-conventions.md, "Game identity
 /// and undo"). Only the state dump reads it (`"foreign":true`); equality ignores it.
@@ -56,7 +56,7 @@ static ALL_LOCATIONS: [Location; LOCATION_COUNT] = {
 };
 
 impl Location {
-    /// C# null. Every member throws NullReferenceException.
+    /// The null handle. Every member throws NullReferenceException.
     pub const NULL: Location = Location(u8::MAX, 0);
 
     pub(crate) const fn from_index(i: usize) -> Location {
@@ -113,8 +113,8 @@ impl Location {
         }
     }
 
-    /// C# `ReferenceEquals` on two locations: the same id on the same map. (`==` is
-    /// C# `Equals`, which compares ids only.)
+    /// Whether both handles refer to the same object: the same id on the same
+    /// game's map. (`==` compares ids only.)
     pub fn is_same_object(self, other: Location) -> bool {
         if self.0 != other.0 {
             return false;
@@ -149,8 +149,8 @@ impl Location {
         }
     }
 
-    /// `Neighbours`. For attached locations C# builds a fresh list holding the
-    /// host (or nothing); `Map` keeps that list up to date.
+    /// `Neighbours`. For attached locations this is the host (or nothing);
+    /// `Map` keeps that list up to date.
     pub fn neighbours(self, map: &Map) -> &[Location] {
         map.neighbours_of(self)
     }
@@ -217,7 +217,7 @@ impl Location {
         }
     }
 
-    /// C# `GetType().Name`.
+    /// The name of the location's runtime type (`Location`, `Homeworld`, ...).
     pub fn type_name(self) -> &'static str {
         match self.data().kind {
             LocationKind::Normal => "Location",
@@ -228,9 +228,9 @@ impl Location {
     }
 }
 
-/// C# `ToString()` with `Message.DefaultDescriber` null (the engine never sets it):
-/// `Homeworld` overrides it to return "Homeworld"; every other location falls back to
-/// `object.ToString()`, the full type name. Used in dictionary exception messages.
+/// The text a location prints as when no describer is set (the engine never sets
+/// one): "Homeworld" for a homeworld, the full .NET type name for every other
+/// location. Used in dictionary exception messages.
 impl dotnet_compat::exception::CsToString for Location {
     fn cs_to_string(&self) -> String {
         match self.data().kind {
@@ -255,7 +255,7 @@ impl fmt::Debug for Location {
     }
 }
 
-/// Serialized as its id, which is how C# refers to locations in JSON.
+/// Serialized as its id, which is how JSON refers to locations.
 impl serde::Serialize for Location {
     fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         if self.is_null() {

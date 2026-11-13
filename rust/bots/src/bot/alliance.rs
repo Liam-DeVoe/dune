@@ -264,8 +264,8 @@ impl ClassicBot {
         }
     }
 
-    /// C# sets and reads the properties by name through reflection. Every name exists as a `bool`
-    /// property on both `AllyPermission` and `Game`, so `GetProperty` never returns null here.
+    /// Sets and reads the permissions by property name. Every name is a `bool` property on both
+    /// `AllyPermission` and `Game`.
     pub fn bool_permissions_need_update(&self, game: &Game, permission: &mut AllyPermission) -> bool {
         let mut result = false;
 

@@ -1,13 +1,13 @@
 use crate::prelude::*;
 
-/// The fields of the C# base class `GameEvent`, embedded as `base` in every event struct.
+/// The fields shared by all events, embedded as `base` in every event struct.
 /// The polymorphic `GameEvent` itself is the enum in `events/mod.rs`.
 #[derive(Clone, Debug, Canon)]
 pub struct GameEventBase {
     /// Interior mutability: written after the event is stored in game state.
     pub initiator: Cell<Faction>,
     /// Interior mutability: the server sets this member after `Execute`, when the event is already in
-    /// `History` (`ValidateAndExecute`, Server/GameHub_GameEvents.cs).
+    /// `History`.
     pub time: Cell<DateTimeOffset>,
     /// Interior mutability: written after the event is stored in game state.
     /// After `Undo`, it can be another game than the one holding the event.
@@ -27,8 +27,8 @@ impl Default for GameEventBase {
     }
 }
 
-/// The instance members of the C# class `GameEvent`. Every event deriving from it implements this trait
-/// (generated in its module); overridden virtual members are delegated to the event's inherent method.
+/// The instance members shared by all events. Every event implements this trait
+/// (generated in its module); members an event overrides are delegated to its inherent method.
 pub trait GameEventMethods {
     /// The `GameEvent` fields of this event.
     fn base(&self) -> &GameEventBase;
@@ -49,9 +49,9 @@ pub trait GameEventMethods {
         self.base().time.get()
     }
 
-    /// `Game`: the game this event was last initialized against (C# null if never).
-    /// Event methods take the current game as a parameter; where C# reads `Game`
-    /// from an event the game holds, resolve it with `game.game_of(e.game_ref())`.
+    /// `Game`: the game this event was last initialized against (null if never).
+    /// Event methods take the current game as a parameter; to read the own game of
+    /// an event the game holds, resolve it with `game.game_of(e.game_ref())`.
     fn game_ref(&self) -> GameRef {
         self.base().game.get()
     }
@@ -188,7 +188,7 @@ pub trait GameEventMethods {
 }
 
 impl GameEvent {
-    /// `((ILocationEvent)e).To`, read as C# does: through the event's own `Game.Map`.
+    /// `((ILocationEvent)e).To`, read through the event's own `Game.Map`.
     /// After an undo that is another game, and the location is that game's map object
     /// (engine-conventions.md, "Game identity and undo"). Use this instead of
     /// `i_location_event_to` for events the game holds (`LastShipmentOrMovement`,
@@ -200,7 +200,7 @@ impl GameEvent {
     }
 }
 
-/// The static members of the C# `GameEvent` class.
+/// Associated items shared by all events.
 impl GameEvent {
     pub const ID_STRING_SEPARATOR: char = ';';
 

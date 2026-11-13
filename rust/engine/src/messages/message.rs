@@ -1,14 +1,13 @@
 //! `Message`, `MessagePart`, and the records the client uses to draw messages
 //! (`Route`, `BattlePlans`, `PlanSummary`, `BattleFact`).
 //!
-//! Build messages with the macros, which mirror the C# static methods:
+//! Build messages with the macros:
 //!
-//! | C#                                       | Rust                                    |
-//! |------------------------------------------|-----------------------------------------|
-//! | `Message.Express(a, b, c)`               | `express!(a, b, c)`                     |
-//! | `Message.ExpressTo(f, a, b)`             | `express_to!(f; a, b)`                  |
-//! | `MessagePart.Express(a, b)`              | `express_part!(a, b)`                   |
-//! | `MessagePart.ExpressIf(cond, a, b)`      | `express_part_if!(cond; a, b)`          |
+//! - `express!(a, b, c)` builds a `Message` for everyone.
+//! - `express_to!(f; a, b)` builds a `Message` addressed to faction `f`.
+//! - `express_part!(a, b)` builds a `MessagePart`.
+//! - `express_part_if!(cond; a, b)` builds a `MessagePart` that is empty
+//!   unless `cond` holds.
 //!
 //! Every argument goes through `ExpressionElement::from`, see expression.rs.
 
@@ -28,7 +27,7 @@ use crate::compat::net_enum::net_enum;
 use crate::cards::treachery_card::TreacheryCard;
 
 thread_local! {
-    /// `Message.Counter` (a private static in C#). Thread-local so that tests
+    /// `Message.Counter`. Thread-local so that tests
     /// running in parallel do not disturb each other; see [`Message::reset_counter`].
     static COUNTER: Cell<i32> = const { Cell::new(0) };
 }
@@ -56,7 +55,7 @@ pub struct Message {
     pub route: Option<Route>,
     pub heading: Option<Concept>,
     pub plans: Option<BattlePlans>,
-    /// `Log` (`object?` in C#). Shared, like the C# reference.
+    /// `Log`: any log record, or none. Clones of the message share it.
     pub log: Option<Rc<dyn LogRecord>>,
     pub fact: Option<BattleFact>,
 }
@@ -81,8 +80,8 @@ impl Message {
         Self::with_expression(to, Expression::new(list))
     }
 
-    /// Sets `Message.Counter`. The C# counter is never reset, so a replay
-    /// must start from the value the C# process had.
+    /// Sets `Message.Counter`. The counter is never reset during a game, so
+    /// a replay must start from the value it had when the game was recorded.
     pub fn reset_counter(value: i32) {
         COUNTER.with(|c| c.set(value));
     }
@@ -175,7 +174,7 @@ impl MessagePart {
     }
 
     /// `MessagePart.ExpressIf(condition, params object?[] list)`. The
-    /// arguments are evaluated either way, as in C#.
+    /// arguments are evaluated either way.
     pub fn express_if(condition: bool, list: Vec<ExpressionElement>) -> MessagePart {
         if condition {
             MessagePart { expression: Expression::new(list) }
@@ -203,7 +202,7 @@ impl MessagePart {
 //     Message.Express(objects, "x")   express!(objects, "x")    (the array is one element)
 
 /// `Message.Express(...)`: `express!(Faction::Atreides, " pays ", amount)`, or
-/// `express!(@params array)` when C# passes one reference-type array.
+/// `express!(@params items)` to spread one iterable into separate elements.
 #[macro_export]
 macro_rules! express {
     (@params $arr:expr) => {
@@ -303,7 +302,7 @@ impl PartialEq for PlanSummary {
 }
 
 net_enum! {
-    /// C# `BattleFactKind` (declared in Message.cs)
+    /// What a [`BattleFact`] records.
     BattleFactKind {
         Strength = 0,
         Winner = 1,

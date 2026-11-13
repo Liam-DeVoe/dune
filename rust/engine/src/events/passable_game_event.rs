@@ -4,8 +4,8 @@ use crate::prelude::*;
 /// its instance members are the default methods of [`PassableGameEventMethods`].
 pub struct PassableGameEvent;
 
-/// The instance members of the C# class `PassableGameEvent`. Every event deriving from it implements this trait
-/// (generated in its module); overridden virtual members are delegated to the event's inherent method.
+/// The instance members of passable events. Every passable event implements this trait
+/// (generated in its module); members an event overrides are delegated to its inherent method.
 pub trait PassableGameEventMethods: GameEventMethods {
     /// The inherited field `Passed` (`self.passed` on the event struct).
     fn field_passed(&self) -> &bool;

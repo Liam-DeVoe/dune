@@ -20,8 +20,8 @@ pub struct TreacheryCardData {
     pub rules: &'static [Rule],
 }
 
-/// A card, or the null card (`TreacheryCard::NULL`, a C# null reference in a
-/// collection; see `cs::CsNull`).
+/// A card, or the null card (`TreacheryCard::NULL`, the null handle, which can
+/// appear in a collection; see `cs::CsNull`).
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct TreacheryCard(u8);
 
@@ -32,7 +32,7 @@ impl CsNull for TreacheryCard {
 impl TreacheryCard {
     pub const NONE: i32 = -2;
     pub const UNKNOWN: i32 = -1;
-    /// C# null. Every member throws NullReferenceException.
+    /// The null handle. Every member throws NullReferenceException.
     pub const NULL: TreacheryCard = TreacheryCard(u8::MAX);
 
     pub(crate) const fn from_index(i: usize) -> TreacheryCard {
@@ -213,10 +213,8 @@ impl TreacheryCard {
         !(self.is_weapon() || self.is_defense() || self.is_useless() || self.is_mercenary())
     }
 
-    /// `CounteredBy(defense, combinedWithWeapon)`. Both parameters are
-    /// non-nullable in the C# signature, but callers pass null for either
-    /// (`Bots/.../Bot_Other.cs:1053` passes a plan's `Defense`, which can be
-    /// null).
+    /// `CounteredBy(defense, combinedWithWeapon)`. Callers may pass null for
+    /// either (the bot passes a plan's `Defense`, which can be null).
     ///
     /// C# parity: a null `defense` throws NullReferenceException only on the
     /// branches that read it. Each clause tests `Type` first, so only a weapon
@@ -226,8 +224,7 @@ impl TreacheryCard {
     /// .NET in tests/boundary.rs.
     ///
     /// C# parity: a mirror weapon combined with a mirror weapon recurses
-    /// forever (StackOverflow, which kills the C# process). Rust overflows
-    /// its stack the same way.
+    /// forever and overflows the stack, which kills the process.
     #[track_caller]
     pub fn countered_by(self, defense: Option<TreacheryCard>, combined_with_weapon: Option<TreacheryCard>) -> bool {
         let defense = defense.and_then(crate::compat::cs::CsNull::opt);

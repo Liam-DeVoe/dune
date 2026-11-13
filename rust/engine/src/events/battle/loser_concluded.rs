@@ -98,7 +98,7 @@ impl LoserConcluded {
             .and_then(|l| l.as_leader())
     }
 
-    /// `winner` can be null in C#; it is only dereferenced when `target` is alive.
+    /// `winner` can be null; it is only dereferenced when `target` is alive.
     pub fn assassination_reward(game: &Game, winner: Option<PlayerIndex>, target: Leader) -> Option<i32> {
         let winner = winner.and_then(crate::compat::cs::CsNull::opt);
         if !game.is_alive(Hero::Leader(target)) || !game.player(winner.nre()).leaders.contains(&target) {

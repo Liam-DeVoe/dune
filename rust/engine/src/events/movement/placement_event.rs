@@ -4,8 +4,8 @@ use crate::prelude::*;
 /// its instance members are the default methods of [`PlacementEventMethods`].
 pub struct PlacementEvent;
 
-/// The instance members of the C# class `PlacementEvent`. Every event deriving from it implements this trait
-/// (generated in its module); overridden virtual members are delegated to the event's inherent method.
+/// The instance members of placement events. Every placement event implements this trait
+/// (generated in its module); members an event overrides are delegated to its inherent method.
 pub trait PlacementEventMethods: PassableGameEventMethods {
     /// The inherited field `_toId` (`self.to_id` on the event struct).
     fn field_to_id(&self) -> &i32;

@@ -254,7 +254,7 @@ impl Revival {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
-    /// Only the early-revival branch is lazy in C#; the others return `[]` or a List.
+    /// Only the early-revival branch is lazy; the others are computed in full.
     pub fn valid_revival_heroes(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Hero> {
         use crate::compat::lazy::{Either, empty};
         let mut result: Vec<Hero> = Vec::new();
@@ -540,7 +540,7 @@ impl Revival {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
-    /// The predicate can throw (`AlliedPlayer` null), and C# stops enumerating at the first match.
+    /// The predicate can throw (`AlliedPlayer` null), and callers stop enumerating at the first match.
     pub fn valid_revived_force_locations(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
         g.map.locations(false).filter(move |l| {
             let pl = g.player(p);

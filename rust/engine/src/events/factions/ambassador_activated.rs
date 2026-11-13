@@ -80,7 +80,7 @@ impl AmbassadorActivated {
         self.fremen_or_guild_to(game)
     }
 
-    /// Re-parsed on every read, like C#.
+    /// Re-parsed on every read.
     pub fn fremen_force_locations(&self, game: &Game) -> NetDictionary<Location, Battalion> {
         let faction = game.player(self.player()).faction;
         PlacementEvent::parse_force_locations(game, faction, self.fremen_force_locations.as_deref().nre())

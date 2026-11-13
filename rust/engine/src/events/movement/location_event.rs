@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-/// Implemented by the events that implement the C# interface. Not in the prelude, to avoid
+/// Implemented by the events that have these members. Not in the prelude, to avoid
 /// ambiguity with the base-class traits; `GameEvent` has a dispatching method for each member.
 pub trait ILocationEvent {
     fn initiator(&self) -> Faction;

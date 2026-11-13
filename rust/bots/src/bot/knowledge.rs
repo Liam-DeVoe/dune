@@ -3,9 +3,9 @@ use dotnet_compat::linq::sum_f32;
 use dotnet_compat::math::cmp_f32;
 use treachery_engine::game::PlayerSequence;
 
-/// `game.KnownCards(player).Contains(c)` inside a LINQ lambda. C# calls `KnownCards` again for
-/// every element that reaches the lambda. It is pure, so it is computed once, but only when the
-/// first element reaches it: an empty source never calls it (and so never throws from it).
+/// `game.KnownCards(player).Contains(c)` inside a lazy query's filter. `KnownCards` is pure, so it
+/// is computed once, but only when the first element reaches the filter: an empty source never
+/// calls it (and so never throws from it).
 struct LazyKnownCards<'a> {
     game: &'a Game,
     player: PlayerIndex,
@@ -122,7 +122,7 @@ impl ClassicBot {
         Self::clairvoyance_in_current_battle(game, player, ClairvoyanceQuestion::CardTypeAsWeaponInBattle)
     }
 
-    /// The shared body of the two members above (no C# counterpart): they differ only in the question.
+    /// The shared body of the two members above: they differ only in the question.
     fn clairvoyance_in_current_battle(game: &Game, player: PlayerIndex, question: ClairvoyanceQuestion) -> Option<ClairVoyanceQandA> {
         let (Some(cv), Some(qna)) = (&game.latest_clairvoyance, &game.latest_clairvoyance_qn_a) else {
             return None;
@@ -1087,7 +1087,6 @@ pub struct BattalionInLocation {
 }
 
 impl BattalionInLocation {
-    /// C#: primary constructor `BattalionInLocation(Location location, Battalion battalion)` (Bot_Knowledge.cs:728)
     pub fn new(location: Location, battalion: Battalion) -> Self {
         BattalionInLocation { location, battalion }
     }

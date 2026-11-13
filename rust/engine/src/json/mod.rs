@@ -1,7 +1,7 @@
 //! Byte-exact System.Text.Json for events and savegames, as configured in
 //! `Model/Utilities.cs` (`new JsonSerializerOptions { IncludeFields = true }`).
-//! Support module; the per-type member lists are generated into
-//! json_members.rs. See hazards.md section 12 for every rule implemented here.
+//! Support module; the per-type member lists are in
+//! members.rs. See hazards.md section 12 for every rule implemented here.
 //!
 //! Writing is hand-rolled so the output matches .NET byte for byte: members in
 //! the order C# declares them, enums as numbers, nulls written, compact, and the

@@ -37,8 +37,7 @@ pub struct BattleOutcome {
 }
 
 impl BattleOutcome {
-    /// C#: implicit parameterless constructor, with the `required` members
-    /// `Aggressor` and `Defender` set by the object initializer.
+    /// An outcome with only `aggressor` and `defender` set; every other member has its default.
     pub fn new(aggressor: PlayerIndex, defender: PlayerIndex) -> Self {
         BattleOutcome {
             agg_hero_skill_bonus: 0,

@@ -209,7 +209,7 @@ impl LeaderState {
         Self::default()
     }
 
-    /// Process-wide in C# (hazards.md 6.2); thread-local here, like `Message.Nr`.
+    /// Thread-local (hazards.md 6.2), like `Message.Nr`.
     /// Only `TimeOfDeath` reads it, which the state dump omits.
     pub fn moment() -> i32 {
         LEADER_STATE_MOMENT.with(|m| m.get())

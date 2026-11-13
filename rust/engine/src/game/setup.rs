@@ -121,7 +121,7 @@ impl Game {
         }
     }
 
-    /// `random` is `Option` because C# passes `Random!`, which may be null; only the
+    /// `random` is `Option` because `Game.Random` may be null; only the
     /// shuffle would then throw.
     pub fn create_and_shuffle_traitor_deck(&mut self, random: Option<SharedRandom>) -> Deck<Hero> {
         let mut result = Deck::new(self.traitors_in_play(), random);

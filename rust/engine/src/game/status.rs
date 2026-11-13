@@ -84,7 +84,7 @@ impl GameStatus {
     }
 
     /// `&mut Game` because `Game.NextPlayerToBattle` advances `BattleSequence` when read (hazards §4.3).
-    /// The arms below follow the C# switch expression in order; each `when` guard is evaluated
+    /// The arms below are checked in order; each guard is evaluated
     /// only when its pattern matches, and again for each later arm with the same phase.
     pub fn determine_status(game: &mut Game, me_: Option<PlayerIndex>, is_player: bool) -> GameStatus {
         let me_ = me_.and_then(crate::compat::cs::CsNull::opt);
@@ -645,7 +645,7 @@ impl GameStatus {
 
     /// The `Status(Message, Message, game.ShipmentAndMoveSequence.GetPlayersInSequence().ToList(),
     /// game.FindMostRecentEvent(typeof(EndPhase), typeof(GuildDelay), typeof(Move)))` tail shared by the
-    /// Ship & Move arms (Model/GameStatus.cs:329-413). Rust-only helper; arguments are evaluated in C# order.
+    /// Ship & Move arms. Arguments are evaluated in the order written.
     fn status_ship_and_move(g: &Game, a: Message, w: Message) -> GameStatus {
         let seq = g.shipment_and_move_sequence.as_ref().nre().get_players_in_sequence(g).collect();
         let latest = g.find_most_recent_event(vec![GameEventType::EndPhase, GameEventType::GuildDelay, GameEventType::Move]);
@@ -653,7 +653,7 @@ impl GameStatus {
     }
 
     /// `game.Players.Where(p => p.HasRoomForCards && !game.Bids.ContainsKey(p.Faction)).ToList()`
-    /// (Model/GameStatus.cs:267/302). Rust-only helper.
+    /// Shared by two bidding arms.
     fn players_with_room_and_no_bid(g: &Game) -> Vec<Option<PlayerIndex>> {
         (0..g.players.len())
             .map(|i| g.player_at(i))
@@ -1021,7 +1021,7 @@ impl GameStatus {
         flashes.push(FlashInfo { message, to_show: to_show.into() });
     }
 
-    /// C# reads `e.Game`: after an undo, another game than the one the status is for.
+    /// Reads the event's own game (`e.Game`): after an undo, another game than the one the status is for.
     pub fn flash_i_list_flash_info_game_event(game: &Game, flashes: &mut Vec<FlashInfo>, e: Option<&GameEvent>) {
         let Some(e) = e else { return };
         let own = game.enter_own_game(e.base().game.get()); // e.Game
@@ -1094,8 +1094,7 @@ impl GameStatus {
     }
 }
 
-/// C# `default(FlashInfo)` (null `Message`) is never created; every instance comes from
-/// `Flash<T>`'s object initializer, which sets both members. So there is no `new()`.
+/// Every instance is created by `Flash<T>` with both members set, so there is no `new()`.
 #[derive(Clone, Debug, Canon)]
 pub struct FlashInfo {
     pub to_show: ExpressionElement,

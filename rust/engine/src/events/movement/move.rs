@@ -117,7 +117,7 @@ impl Move {
 
 /// `Game.ContainsConflictingAlly(Player, To)` where `To` may be null.
 ///
-/// The C# method only dereferences `to` after its early returns, so a null
+/// `to` is only dereferenced after the early returns, so a null
 /// `To` gives `false` there and a NullReferenceException after them.
 pub(crate) fn contains_conflicting_ally_opt(game: &Game, initiator: PlayerIndex, to: Option<Location>) -> bool {
     let to = to.and_then(crate::compat::cs::CsNull::opt);

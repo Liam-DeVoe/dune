@@ -1,8 +1,8 @@
-//! C# compares territories by reference. Each `Map` creates every territory
-//! exactly once, so within a game reference equality is id equality, which is
-//! what this `Copy` handle implements. Territory properties never change after
-//! the map is built (`Clone()` exists in C# but nothing calls it), except
-//! `IsVisible`, which depends on the attached locations and takes the `Map`.
+//! Territories are compared by identity. Each `Map` has every territory
+//! exactly once, so within a game identity is id equality, which is what this
+//! `Copy` handle implements. Territory properties never change after the map
+//! is built, except `IsVisible`, which depends on the attached locations and
+//! takes the `Map`.
 
 use std::fmt;
 
@@ -16,9 +16,9 @@ use crate::map::data::{TERRITORIES, TERRITORY_COUNT};
 /// Handle to a territory of the map. Equality is by id, and by map: the second field
 /// is 0 for a territory of the map of the game that holds the handle, or the id of
 /// another game whose map it came from (read through an event of that game after an
-/// undo; engine-conventions.md, "Game identity and undo"). C# compares territories by
-/// reference, so a territory of another game's map is never equal to one of this map.
-/// `Territory::NULL` is a C# null reference (see `cs::CsNull`).
+/// undo; engine-conventions.md, "Game identity and undo"). A territory of another
+/// game's map is never equal to one of this map.
+/// `Territory::NULL` is the null handle (see `cs::CsNull`).
 #[derive(Copy, Clone)]
 pub struct Territory(u8, u64);
 
@@ -50,7 +50,7 @@ impl CsNull for Territory {
 }
 
 impl Territory {
-    /// C# null. Every member throws NullReferenceException.
+    /// The null handle. Every member throws NullReferenceException.
     pub const NULL: Territory = Territory(u8::MAX, 0);
 
     pub(crate) const fn from_index(i: usize) -> Territory {

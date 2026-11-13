@@ -1,12 +1,10 @@
-//! C# builds resource cards in `Map.GetResourceCardsInAndOutsidePlay` and
-//! compares them by reference: the six Shai-Hulud cards are equal in every
-//! field yet distinct objects. A `ResourceCard` is a `Copy` handle holding the
-//! card's position in that list, so the six Shai-Hulud cards are distinct
-//! handles, as in C#.
-//!
-//! One difference: C# creates new objects on every call, so cards from two
-//! calls are never equal; here they are. The engine calls it once per game
-//! (`EstablishPlayers`); the other caller (`GameStatus`) only displays cards.
+//! Resource cards are built once, in `Map.GetResourceCardsInAndOutsidePlay`,
+//! and compared by identity: the six Shai-Hulud cards are equal in every field
+//! yet distinct cards. A `ResourceCard` is a `Copy` handle holding the card's
+//! position in that list, so the six Shai-Hulud cards are distinct handles.
+//! Every call of `get_resource_cards_in_and_outside_play` returns the same
+//! handles. The engine calls it once per game (`EstablishPlayers`); the other
+//! caller (`GameStatus`) only displays cards.
 
 use std::fmt;
 use std::sync::OnceLock;
@@ -26,7 +24,7 @@ pub struct ResourceCardData {
     pub discovery_location: Option<Location>,
 }
 
-/// `ResourceCard::NULL` is a C# null reference (see `cs::CsNull`).
+/// `ResourceCard::NULL` is the null handle (see `cs::CsNull`).
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ResourceCard(u8);
 
@@ -44,7 +42,7 @@ fn cards() -> &'static (Vec<ResourceCardData>, Vec<ResourceCard>) {
     })
 }
 
-/// `Map.GetResourceCardsInAndOutsidePlay(m)` (private static in C#).
+/// `Map.GetResourceCardsInAndOutsidePlay(m)`.
 fn get_resource_cards_in_and_outside_play(m: &Map) -> Vec<ResourceCardData> {
     let card = |skin_id, location, discovery_location| ResourceCardData {
         skin_id,
@@ -78,7 +76,7 @@ fn get_resource_cards_in_and_outside_play(m: &Map) -> Vec<ResourceCardData> {
 }
 
 impl ResourceCard {
-    /// C# null. Every member throws NullReferenceException.
+    /// The null handle. Every member throws NullReferenceException.
     pub const NULL: ResourceCard = ResourceCard(u8::MAX);
 
     /// Every card of `GetResourceCardsInAndOutsidePlay`, in order.

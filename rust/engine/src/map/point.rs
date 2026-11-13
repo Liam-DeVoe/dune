@@ -1,6 +1,6 @@
 //! `PointD`, a point on the board image. Only used for drawing.
 
-/// `PointD`. `==` compares coordinates with `==` (so NaN != NaN), like C#.
+/// `PointD`. `==` compares coordinates with `==` (so NaN != NaN).
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
 pub struct PointD {
     pub x: f64,

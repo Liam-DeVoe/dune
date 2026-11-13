@@ -1,9 +1,9 @@
 //! Hazards (hazards.md 16.4, 16.5, 16.7, 16.8):
 //! - The `Where`/`Select` chains whose lambdas draw (`OccupyingOpponentIn`, `MaxPotentialForceShortage`,
 //!   `ConstructAttack`) are lazy iterator chains, so each element passes every stage before the next one.
-//! - `ValidShipmentLocations` is lazy, as in C#: `Contains`/`Any`/`FirstOrDefault` stop early, which
+//! - `ValidShipmentLocations` is lazy: `Contains`/`Any`/`FirstOrDefault` stop early, which
 //!   decides which `FindNeighbours` queries run (hazards 6.1).
-//! - Float math keeps the C# types: `float` dials, `Math.Ceiling` on the widened double, `Math.Min/Max`
+//! - Float math uses `f32` dials, `Math.Ceiling` on the value widened to `f64`, and `Math.Min/Max`
 //!   with .NET NaN rules.
 
 use crate::prelude::*;
@@ -174,7 +174,8 @@ impl ClassicBot {
         false
     }
 
-    /// The filter of `DetermineShipment_ShipDirectlyToSpiceOrDiscoveryAsGuildOrGuildAlly` (both queries), in C# `&&` order.
+    /// The filter of `DetermineShipment_ShipDirectlyToSpiceOrDiscoveryAsGuildOrGuildAlly` (both queries).
+    /// The order of the `&&` conditions is kept deliberately.
     fn suitable_for_guild_shipment(&self, game: &Game, l: Location) -> bool {
         self.valid_shipment_locations(game, false, false).cs_contains(&l)
             && self.i_dont_have_advisors_in(game, l)
@@ -1158,7 +1159,7 @@ impl ClassicBot {
         Battalion::new(faction, 1, 1, l)
     }
 
-    /// Lazy, as in C#. `forbidden` is a lazy query too, so `forbidden.Contains` runs it again for
+    /// Lazy. `forbidden` is a lazy query too, so `forbidden.Contains` runs it again for
     /// every location, stopping at the first match.
     pub fn valid_shipment_locations<'a>(&self, game: &'a Game, from_planet: bool, secret_ally: bool) -> impl Iterator<Item = Location> + 'a {
         let faction = self.faction(game);

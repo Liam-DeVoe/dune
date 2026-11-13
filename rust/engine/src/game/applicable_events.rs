@@ -937,7 +937,7 @@ impl Game {
         }
     }
 
-    /// `player == ShipmentAndMoveSequence?.CurrentPlayer` (Game_Events.cs:275/293)
+    /// Whether `player` is the current player of `ShipmentAndMoveSequence` (false if there is none).
     fn is_current_shipment_and_move_player(&self, player: PlayerIndex) -> bool {
         match &self.shipment_and_move_sequence {
             Some(seq) => seq.current_player(self) == Some(player),
@@ -945,7 +945,7 @@ impl Game {
         }
     }
 
-    /// The identical bodies of the `GuildMove` and `NonGuildMove` cases (Game_Events.cs:285-289/295-299).
+    /// The actions shared by the `GuildMove` and `NonGuildMove` cases.
     fn add_move_actions(&self, player: PlayerIndex, result: &mut Vec<GameEventType>) {
         if self.player(player).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Caravan) {
             result.push(GameEventType::Caravan);

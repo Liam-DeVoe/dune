@@ -192,7 +192,7 @@ macro_rules! dispatch {
 }
 pub(crate) use dispatch;
 
-/// C# `GameEvent` (a reference to any concrete event).
+/// A reference to any concrete event.
 #[derive(Clone)]
 pub enum GameEvent {
     AcceptOrCancelTleilaxuRevival(Rc<AcceptOrCancelTleilaxuRevival>),
@@ -1177,7 +1177,7 @@ impl From<Rc<Voice>> for GameEvent {
     }
 }
 
-/// C# `Type` of a concrete event (`GetType()`, `typeof(X)`).
+/// The type of a concrete event (`GetType()`, `typeof(X)`).
 #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
 pub enum GameEventType {
     AcceptOrCancelTleilaxuRevival,
@@ -1913,7 +1913,7 @@ impl std::fmt::Display for GameEventType {
 }
 
 impl PartialEq for GameEvent {
-    /// Reference equality (C# `==` on events).
+    /// Identity: two events are equal only if they are the same object.
     fn eq(&self, other: &Self) -> bool {
         self.ptr() == other.ptr()
     }

@@ -141,7 +141,7 @@ impl TreacheryCardManager {
             })
     }
 
-    /// `GetCardsInPlay(Rule rule)` (private in C#)
+    /// `GetCardsInPlay(Rule rule)`
     pub fn get_cards_in_play_by_rule(rule: Rule) -> impl Iterator<Item = TreacheryCard> {
         Self::items().iter().copied().filter(move |c| c.rules().contains(&rule))
     }

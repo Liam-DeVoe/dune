@@ -1,4 +1,4 @@
-//! A C# `Expression` is an `object?[]`: strings, numbers, enum values, game
+//! An `Expression` is a list of values: strings, numbers, enum values, game
 //! objects, nested messages and lists. Turning it into text is the client's
 //! job (`Skin.Describe`), so the engine stores the objects themselves.
 //! [`ExpressionElement`] is the closed set of runtime types that occur.
@@ -24,7 +24,7 @@ use crate::cards::resource_card::ResourceCard;
 use crate::map::territory::Territory;
 use crate::cards::treachery_card::TreacheryCard;
 
-/// A value of some C# enum type, boxed as `object`.
+/// A value of some game enum type, tagged with its type.
 #[derive(Clone, Copy)]
 pub struct EnumValue {
     pub ty: &'static EnumTypeInfo,
@@ -54,11 +54,11 @@ impl fmt::Debug for EnumValue {
     }
 }
 
-/// One element of an expression: the runtime type of the C# `object`.
+/// One element of an expression, by runtime type.
 ///
-/// Equality is C# `object.Equals` for the value types (a NaN float equals
-/// itself) and structural for the rest; C# compares messages and lists by
-/// reference, which Rust cannot observe.
+/// Equality is by value for numbers, strings and enums (a NaN float equals
+/// itself), each type's own `==` for game objects, and structural for
+/// messages and lists.
 #[derive(Clone, Debug)]
 pub enum ExpressionElement {
     /// `null`
@@ -69,7 +69,7 @@ pub enum ExpressionElement {
     Long(i64),
     Float(f32),
     Double(f64),
-    /// Any C# enum value (Faction, Concept, TreacheryCardType, ...).
+    /// Any enum value (Faction, Concept, TreacheryCardType, ...).
     Enum(EnumValue),
     Location(Location),
     Territory(Territory),
@@ -80,48 +80,46 @@ pub enum ExpressionElement {
     Message(Box<Message>),
     MessagePart(Box<MessagePart>),
     /// An `Exception` object (the "Game Error" message of `GameEvent.Execute`).
-    /// C# renders it with `e.ToString()`, including a stack trace, which
-    /// cannot be reproduced; compare type and message only.
+    /// Its text form includes a stack trace, which cannot be reproduced;
+    /// compare type and message only.
     Exception(crate::compat::cs::CsException),
-    /// A `Player` object (only `NexusPlayed.cs:385` logs one). `Player` doesn't
-    /// override `ToString()`, so it prints as its type name.
+    /// A `Player` object (only the Nexus card play logs one). It prints as its
+    /// type name.
     Player(crate::game::PlayerIndex),
-    /// Any other `IEnumerable` (lists, arrays, LINQ queries). `type_name` is
-    /// the C# runtime type as `ToString()` prints it, such as
+    /// Any other collection (lists, arrays, lazy queries). `type_name` is
+    /// the .NET runtime type name it prints as, such as
     /// ``System.Collections.Generic.List`1[Treachery.Shared.Faction]``.
     ///
-    /// C# keeps the enumerable object itself and enumerates it when the
-    /// message is rendered, so a live `List` shows its contents at render
-    /// time. This stores a snapshot taken when the message is built, plus,
-    /// for the few live game collections that C# logs (hazards 4.5), the
+    /// `items` is a snapshot taken when the message is built. For the few
+    /// live game collections that are logged (hazards 4.5), `live` names the
     /// source to read again when the state is dumped.
     List { type_name: String, items: Vec<ExpressionElement>, live: Option<LiveList> },
 }
 
-/// A game collection that a C# message keeps by reference, so the state dump
-/// shows its contents at dump time rather than at log time (hazards 4.5).
+/// A game collection that a message refers to rather than copies, so the state
+/// dump shows its contents at dump time rather than at log time (hazards 4.5).
 ///
-/// Every C# site that puts a collection into a message is listed, with its
+/// Every site that puts a collection into a message is listed, with its
 /// class, in `rust/docs/live-lists.md`; the sites of class (b) use one of these.
-/// A variant names the collection by where it lives in the game. That is the
-/// same object C# keeps only because none of these fields is ever reassigned
-/// (each is a get-only property, or a `set` that only `Player.Clone` uses), so
-/// a new variant needs the same check.
+/// A variant names the collection by where it lives in the game. That only
+/// identifies the logged collection because none of these fields is ever
+/// reassigned (only cloning a player copies them), so a new variant needs the
+/// same check.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LiveList {
-    /// `Player.TreacheryCards`, which C# never reassigns (only `Player.Clone`
-    /// copies it). Logged at `AmbassadorActivated.cs:333`.
+    /// `Player.TreacheryCards`, which is never reassigned. Logged when an
+    /// ambassador is activated.
     PlayerTreacheryCards(crate::game::PlayerIndex),
-    /// `Game.AuditedCards`, which C# clears and refills on the next audit
-    /// (`Game_Battle.cs:427-429`). Logged at `AuditCancelled.cs:89`.
+    /// `Game.AuditedCards`, which is cleared and refilled on the next audit.
+    /// Logged when an audit is cancelled.
     GameAuditedCards,
-    /// `Player.DiscardedTraitors`, a get-only `HashSet<IHero>` that
-    /// `TraitorsSelected` adds to. Logged at `DealAccepted.cs:152`.
+    /// `Player.DiscardedTraitors`, a set that `TraitorsSelected` adds to.
+    /// Logged when a deal is accepted.
     PlayerDiscardedTraitors(crate::game::PlayerIndex),
 }
 
 impl LiveList {
-    /// The runtime type the C# collection prints for `ToString()`.
+    /// The .NET runtime type name the collection prints as.
     pub fn type_name(self) -> String {
         match self {
             LiveList::PlayerTreacheryCards(_) | LiveList::GameAuditedCards => Vec::<TreacheryCard>::cs_type_name(),
@@ -129,9 +127,9 @@ impl LiveList {
         }
     }
 
-    /// The collection's contents now, in C# enumeration order, or `None` if
+    /// The collection's contents now, in enumeration order, or `None` if
     /// `game` can't reach that player. A player of an earlier game (after
-    /// `Undo`) is read from `game.other_games`, as C# reads that object.
+    /// `Undo`) is read from `game.other_games`.
     pub fn read(self, game: &crate::game::Game) -> Option<Vec<ExpressionElement>> {
         let cards = |c: &[TreacheryCard]| c.iter().map(|c| ExpressionElement::Hero(Hero::TreacheryCard(*c))).collect();
         let player = |p: crate::game::PlayerIndex| {
@@ -161,12 +159,12 @@ impl LiveList {
     }
 }
 
-/// The C# runtime type of a value that goes into a collection element, for
+/// The .NET runtime type of a value that goes into a collection element, for
 /// the type name a collection prints (`List<T>.ToString()`).
 pub trait CsType {
-    /// C# value type (enums, numbers, bool): `Option<T>` is then `Nullable<T>`.
+    /// A .NET value type (enums, numbers, bool): `Option<T>` is then `Nullable<T>`.
     const IS_VALUE_TYPE: bool = false;
-    /// The namespace-qualified C# type name, as `Type.ToString()` prints it.
+    /// The namespace-qualified .NET type name, as `Type.ToString()` prints it.
     fn cs_type_name() -> String;
 }
 
@@ -217,7 +215,7 @@ impl<T: CsType> CsType for Vec<T> {
 }
 
 impl ExpressionElement {
-    /// A `List<T>` element (C# passing a `List<T>`, or `ToList()`).
+    /// A `List<T>` element.
     pub fn list<T: Into<ExpressionElement> + CsType>(items: impl IntoIterator<Item = T>) -> Self {
         Self::collection(Vec::<T>::cs_type_name(), items)
     }
@@ -229,13 +227,13 @@ impl ExpressionElement {
         Self::collection(format!("{}[]", T::cs_type_name()), items)
     }
 
-    /// Any other collection, with its C# runtime type name (a LINQ query
+    /// Any other collection, with its .NET runtime type name (a lazy query
     /// prints e.g. ``System.Linq.Enumerable+WhereSelectListIterator`2[A,B]``).
     pub fn collection<T: Into<ExpressionElement>>(type_name: impl Into<String>, items: impl IntoIterator<Item = T>) -> Self {
         ExpressionElement::List { type_name: type_name.into(), items: items.into_iter().map(Into::into).collect(), live: None }
     }
 
-    /// A game collection that C# passes to a message by reference: the
+    /// A game collection that a message refers to rather than copies: the
     /// contents now, plus the source the state dump reads again. See [`LiveList`].
     pub fn live(game: &crate::game::Game, source: LiveList) -> Self {
         ExpressionElement::List { type_name: source.type_name(), items: source.read(game).unwrap_or_default(), live: Some(source) }
@@ -252,9 +250,8 @@ impl ExpressionElement {
         Self::live(game, LiveList::GameAuditedCards)
     }
 
-    /// C# `object.ToString()` of the element (what `string.Join("", Elements)`
-    /// produces when no describer is set). Game objects print their C# type
-    /// name, as `base.ToString()` does.
+    /// The element as plain text, as used when no describer is set. Game
+    /// objects print their type name.
     pub fn to_cs_string(&self) -> String {
         match self {
             ExpressionElement::Null => String::new(),
@@ -437,7 +434,7 @@ impl From<MessagePart> for ExpressionElement {
         ExpressionElement::MessagePart(Box::new(v))
     }
 }
-/// A nullable reference: `None` is C# `null`.
+/// `None` becomes [`ExpressionElement::Null`].
 impl<T: Into<ExpressionElement>> From<Option<T>> for ExpressionElement {
     fn from(v: Option<T>) -> Self {
         match v {
@@ -446,7 +443,7 @@ impl<T: Into<ExpressionElement>> From<Option<T>> for ExpressionElement {
         }
     }
 }
-/// A `List<T>`. A C# array becomes [`ExpressionElement::array`] instead.
+/// A `List<T>`. For an array, use [`ExpressionElement::array`] instead.
 impl<T: Into<ExpressionElement> + CsType> From<Vec<T>> for ExpressionElement {
     fn from(v: Vec<T>) -> Self {
         ExpressionElement::list(v)

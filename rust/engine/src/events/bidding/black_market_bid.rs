@@ -101,7 +101,7 @@ impl BlackMarketBid {
         }
     }
 
-    /// The shared "no faction bid" branch of both handlers (Events/BlackMarketBid.cs:100-104, 137-141).
+    /// The shared "no faction bid" branch of both handlers.
     fn richese_keeps_card(&self, game: &mut Game) {
         let richese = self.get_player(game, Some(Faction::Richese));
         let card = game.cards_on_auction.as_mut().map(|d| d.draw());

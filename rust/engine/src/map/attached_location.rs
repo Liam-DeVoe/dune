@@ -27,8 +27,8 @@ impl AttachedLocation {
         map.attached_to_location(self.0)
     }
 
-    /// `PointAt(game, newLocation)`. C# passes the game only to read its
-    /// version, which is always the latest:
+    /// `PointAt(game, newLocation)`. The game is not passed: it was only
+    /// needed for its version, which is always the latest:
     ///
     /// ```ignore
     /// // Game.Map.HiddenMobileStronghold.PointAt(Game, Target);

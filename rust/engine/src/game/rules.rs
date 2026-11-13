@@ -108,7 +108,7 @@ impl Game {
             || rules.contains(&Rule::StrongholdBonus)
     }
 
-    /// A C# static field: decide per site whether it is a constant table (a fn or a `static`) or process-wide state (hazards.md section 6.2).
+    /// A constant table, rebuilt on each call (hazards.md section 6.2).
     pub fn ruleset_definition() -> NetDictionary<Ruleset, Vec<Rule>> {
                 // A constant table: nothing in Shared writes RulesetDefinition, so a fresh copy per call
         // is equivalent. Insertion order is the C# initializer order.

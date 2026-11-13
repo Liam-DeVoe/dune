@@ -25,8 +25,8 @@ macro_rules! elems {
     ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
 }
 
-/// The runtime type of `Cards.Select(c => MessagePart.Express(" ", c, " "))`: `Cards` is the
-/// `List<TreacheryCard>` that `IdStringToObjects` returns (probed on .NET 10).
+/// The type name shown when the expressed `Cards` collection is rendered as text.
+/// Kept deliberately so the message text stays the same.
 const CARDS_SELECT_TYPE: &str =
     "System.Linq.Enumerable+ListSelectIterator`2[Treachery.Shared.TreacheryCard,Treachery.Shared.MessagePart]";
 

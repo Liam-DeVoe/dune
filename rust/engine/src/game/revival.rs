@@ -74,7 +74,7 @@ impl Game {
             || (p.is(Faction::Choam) && p.has_low_threshold_0(self) && self.occupier_of(World::Choam).is_none())
     }
 
-    /// Reads `g` for some values and `this` for others, like the C#; every caller passes the same game.
+    /// Reads `g` for some values and `self` for others (kept deliberately); every caller passes the same game.
     pub fn get_max_revivals(&self, g: &Game, p: PlayerIndex, emperor_secret_ally_used: bool) -> i32 {
         let pl = g.player(p);
         if pl.is(Faction::Tleilaxu) || (pl.is(Faction::Choam) && !g.prevented(FactionAdvantage::ChoamRevival)) {

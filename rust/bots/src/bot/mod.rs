@@ -29,8 +29,8 @@ pub struct ClassicBot {
     pub final_destination: Option<Location>,
 }
 
-/// C# `typeof(T)` for the `T` of `Do<T>`: the declared return type of a `Determine*` method.
-/// Support trait (no C# counterpart), implemented for every event type the dispatch uses.
+/// The event type `T` of `do_`: the declared return type of a `Determine*` method.
+/// Implemented for every event type the dispatch uses.
 pub trait EventKind: Sized {
     const TYPE: GameEventType;
     fn into_event(e: Rc<Self>) -> GameEvent;
@@ -163,7 +163,7 @@ event_kind!(
 );
 
 impl ClassicBot {
-    /// C#: `ClassicBot(Game game, Player player, BotParameters param, LoggedRandom? random = null)` (primary constructor, Bot.cs:12)
+    /// A bot for `player`. Without `random`, it uses an unseeded generator.
     pub fn new(_game: &Game, player: PlayerIndex, param: BotParameters, random: Option<SharedRandom>) -> Self {
         ClassicBot {
             player,
@@ -392,7 +392,6 @@ impl ClassicBot {
 
     /// `T` is the declared return type of `method` ([`EventKind`]). `method` gets the bot and the
     /// live game, because a decision may change both (bots-plan.md, "Bots are not pure").
-    /// The C# check `typeof(T) == typeof(GameEvent)` can't fail here: `T` is always a concrete event.
     pub fn do_<T: EventKind>(
         &mut self,
         game: &mut Game,
@@ -438,7 +437,7 @@ impl ClassicBot {
     }
 
     /// `LogBotInfo` is false, so this does nothing. Callers must still evaluate every argument,
-    /// because C# does and an argument can throw (bots-plan.md, "LogInfo and LogError arguments are evaluated").
+    /// because an argument can throw (bots-plan.md, "LogInfo and LogError arguments are evaluated").
     pub fn log_info(_msg: &str, _pars: Vec<ExpressionElement>) {
         if !Self::LOG_BOT_INFO {
             return;
@@ -478,7 +477,7 @@ impl ClassicBot {
     }
 }
 
-/// A seed for C#'s unseeded `new LoggedRandom()`. Not reproducible, as in C#.
+/// A seed from the clock, for a bot created without a random generator. Not reproducible.
 fn unseeded_seed() -> i32 {
     use std::time::{SystemTime, UNIX_EPOCH};
     let nanos = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
@@ -490,9 +489,9 @@ fn event_type_full_name(e: &GameEvent) -> String {
     format!("Treachery.Shared.{}", e.event_type().name())
 }
 
-/// `"..." + e` in a catch block: `Exception.ToString()`. C# appends the stack trace, which Rust
-/// can't reproduce. Only the braces in this text matter (it goes to `LogError`), and .NET stack
-/// trace lines contain none, so the type and message are enough.
+/// `"..." + e` in a catch block: `Exception.ToString()` without the stack trace, which can't be
+/// reproduced. Only the braces in this text matter (it goes to `LogError`), and stack trace lines
+/// contain none, so the type and message are enough.
 fn exception_to_string_with_trace(e: &CsException) -> String {
     cs::exception_to_string(e)
 }

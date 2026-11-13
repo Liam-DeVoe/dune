@@ -1,5 +1,5 @@
-//! Every C# `Game` creates its own `Map`. Most of it never changes: the static
-//! tables in `map_data.rs` hold the territories and locations, and
+//! Every `Game` has its own `Map`. Most of it never changes: the static
+//! tables in `data.rs` hold the territories and locations, and
 //! [`Location`]/[`Territory`] are handles into them. The parts that do change
 //! during a game are stored here:
 //!
@@ -8,11 +8,9 @@
 //! - `AttachedToLocation` and `Game` of the six attached locations,
 //! - the `FindNeighbours` cache (keyed on `game.History.Count`; it can return a
 //!   stale result when the storm or forces change within one event, and that
-//!   is reproduced).
+//!   is kept deliberately).
 //!
-//! C# `Game.Clone()` copies the `Map` reference, so a clone shares its map with
-//! the original. Only the C# tests call `Game.Clone()`; deriving `Clone` here
-//! gives an independent copy instead.
+//! `Map` derives `Clone`, so a cloned game gets an independent copy of the map.
 pub mod attached_location;
 pub mod data;
 pub mod discovery;
@@ -52,7 +50,7 @@ pub struct TerritoryData {
     pub location_count: u8,
 }
 
-/// The static properties of a location. `sector` is the C# `Sector` for
+/// The static properties of a location. `sector` is the `Sector` for
 /// normal locations and homeworlds (-1); attached locations compute theirs.
 #[derive(Debug)]
 pub struct LocationData {
@@ -65,7 +63,7 @@ pub struct LocationData {
     pub kind: LocationKind,
 }
 
-/// The C# runtime type of a location.
+/// The kind of a location, which decides its runtime type name.
 #[derive(Debug)]
 pub enum LocationKind {
     Normal,
@@ -89,7 +87,7 @@ pub struct HomeworldData {
 
 /// What `Map` reads from `Game`. `Game` implements this; tests use a stub.
 ///
-/// Map code in C# takes a `Game` and calls into it. Rust cannot pass `&Game`
+/// Some map code needs to ask the game about its state. It cannot take `&Game`
 /// while `game.map` is borrowed through the same `Game`, and `Map` must not
 /// depend on the whole `Game` type, so the calls it makes are listed here.
 pub trait MapGame {
@@ -123,8 +121,7 @@ pub struct NeighbourCacheKey {
 #[derive(Clone, Debug)]
 pub struct Map {
     /// `Neighbours` of every location, by index. For attached locations this
-    /// is the one-element list `[AttachedToLocation]` (or empty), matching the
-    /// list the C# getter builds.
+    /// is the one-element list `[AttachedToLocation]` (or empty).
     neighbours: Vec<Vec<Location>>,
     /// `AttachedLocation.AttachedToLocation`, by location index.
     attached_to: Vec<Option<Location>>,
@@ -132,9 +129,8 @@ pub struct Map {
     attached_to_game: Vec<bool>,
     /// `_neighbourCacheTimestamp`
     neighbour_cache_timestamp: Cell<i32>,
-    /// `_neighbourCache`. A `Dictionary` in C#; it is only cleared, added to
-    /// and looked up, so a list in insertion order has the same contents and
-    /// enumeration order.
+    /// `_neighbourCache`. It is only cleared, added to and looked up, so a list
+    /// in insertion order serves as the dictionary.
     neighbour_cache: RefCell<Vec<(NeighbourCacheKey, Vec<Location>)>>,
 }
 
@@ -269,8 +265,8 @@ impl Map {
         self.homeworlds().find(|hw| hw.world() == w)
     }
 
-    /// `Map.GetResourceCardsInPlay(g)`. C# creates new card objects on every
-    /// call; here the same handles come back each time (see `resource_card.rs`).
+    /// `Map.GetResourceCardsInPlay(g)`. The same handles come back on every
+    /// call (see `resource_card.rs`).
     /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
     pub fn get_resource_cards_in_play(g: &impl MapGame) -> impl Iterator<Item = ResourceCard> {
         ResourceCard::get_resource_cards_in_and_outside_play()
@@ -300,8 +296,7 @@ impl Map {
     // ---- pathfinding ----
 
     /// `FindNeighbours(start, distance, ignoreStorm, f, game, checkForceObstacles)`.
-    /// C# returns the cached list object itself; callers only read it, so a
-    /// copy is returned.
+    /// Returns a copy of the cached list; callers only read it.
     pub fn find_neighbours(
         &self,
         start: Location,
@@ -409,8 +404,8 @@ impl Map {
         }
     }
 
-    /// `Map.FindPaths` (static in C#; the neighbour lists come from this map).
-    /// Each path is listed from `destination` back to `start` (C# `Stack.ToList()`).
+    /// `Map.FindPaths`, using the neighbour lists of this map.
+    /// Each path is listed from `destination` back to `start`.
     pub fn find_paths(
         &self,
         start: Location,
@@ -437,7 +432,7 @@ impl Map {
         paths
     }
 
-    /// `current_path` is the C# `Stack`, bottom first.
+    /// `current_path` is a stack, bottom first.
     #[allow(clippy::too_many_arguments)]
     fn find_paths_rec(
         &self,

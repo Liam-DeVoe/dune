@@ -10,7 +10,7 @@ macro_rules! elems {
     ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
 }
 
-/// C# `Location.ToString()` with no describer set: the runtime type's full name.
+/// `Location.ToString()` with no describer set: the location type's full name.
 fn location_key_text(l: &Location) -> String {
     format!("Treachery.Shared.{}", l.type_name())
 }
@@ -138,7 +138,7 @@ impl Game {
         }
     }
 
-    /// The C# argument is always `CurrentDiscardPile!`; `discard_pile_a` says which pile that is
+    /// Discards to the current discard pile; `discard_pile_a` says which pile that is
     /// (`ResourceCardDiscardPileA` when true). Nothing in the body changes the phase.
     pub fn draw_and_discard_resource_card(&mut self, discard_pile_a: bool) -> ResourceCard {
         if self.resource_card_deck.as_ref().nre().is_empty() {

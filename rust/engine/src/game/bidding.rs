@@ -10,10 +10,10 @@ pub(crate) fn remove_card(list: &mut Vec<TreacheryCard>, card: Option<TreacheryC
 }
 
 impl Game {
-    /// Runs `f` on `BidSequence` (which C# mutates in place while the game is
-    /// also in use). `BidSequence!` throws NullReferenceException when it is
+    /// Runs `f` on `BidSequence`, which is mutated in place while the game is
+    /// also in use. Throws NullReferenceException when `BidSequence` is
     /// null. If `f` throws, the sequence is put back with whatever changes were
-    /// made before the throw, as in C#, and the exception propagates.
+    /// made before the throw, and the exception propagates.
     pub(crate) fn with_bid_sequence<R>(&mut self, f: impl FnOnce(&mut PlayerSequence, &Game) -> R) -> R {
         let mut seq = self.bid_sequence.take().nre();
         let result = cs::catch(|| f(&mut seq, &*self));
@@ -223,8 +223,7 @@ impl Game {
         self.current_report_mut().express_message(message);
     }
 
-    /// `toDrawFrom` is always `Game.CardsOnAuction` in C# (every caller passes it after
-    /// checking it is not null), so this draws from `self.cards_on_auction`.
+    /// Draws from `self.cards_on_auction`; callers check that it is not null first.
     pub fn win_by_highest_bid(&mut self, winner: PlayerIndex, bid: &GameEvent, bid_amount: i32, bid_ally_contribution_amount: i32, bid_emperor_contribution_amount: i32, payment_receiver: Faction, uses_emperor_secret_ally: bool) -> TreacheryCard {
         let mut receiver_income_message = express_part!();
 

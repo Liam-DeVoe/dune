@@ -36,7 +36,8 @@ macro_rules! elems {
     ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
 }
 
-/// The C# runtime type of `ForceLocations.Where(...).Select(...)` in `DetermineSourceLocations` (probed on .NET 10).
+/// The type name shown when the collection built in `DetermineSourceLocations` is rendered as text.
+/// Kept deliberately so the message text stays the same.
 const SOURCE_LOCATIONS_QUERY_TYPE: &str = "System.Linq.Enumerable+IEnumerableWhereSelectIterator`2[System.Collections.Generic.KeyValuePair`2[Treachery.Shared.Location,Treachery.Shared.Battalion],Treachery.Shared.MessagePart]";
 
 impl FaceDanced {
@@ -119,7 +120,7 @@ impl FaceDanced {
     }
 
     /// `MayCallFaceDancer` with a possibly null `p` (`Validate` passes `Player`, hazards 1.8):
-    /// `p` is only dereferenced where C# dereferences it.
+    /// `p` is only dereferenced where it is needed, so a null `p` throws only there.
     pub(crate) fn may_call_face_dancer_opt(g: &Game, p: Option<PlayerIndex>) -> bool {
         let p = p.and_then(crate::compat::cs::CsNull::opt);
         // `BattleWinner == Faction.None` is false while BattleWinner is null (hazards 10.1).

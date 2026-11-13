@@ -1,7 +1,7 @@
-//! In C#, `Game.Random` is one `LoggedRandom` object, and every `Deck` built
+//! `Game.Random` is one `LoggedRandom` object, and every `Deck` built
 //! with it holds a reference to that same object. [`SharedRandom`] is that
 //! shared reference: cloning it shares the generator, so draws through any
-//! deck advance the same sequence, as in C#.
+//! deck advance the same sequence.
 
 use std::cell::RefMut;
 
@@ -45,7 +45,7 @@ impl LoggedRandom {
 // bots without an explicit random. It cannot be reproduced; bots must be given
 // a seeded LoggedRandom.
 
-/// A shared reference to a `LoggedRandom` (C# reference semantics).
+/// A shared reference to a `LoggedRandom`: clones share the same generator.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SharedRandom(Shared<LoggedRandom>);
 
@@ -74,7 +74,7 @@ impl SharedRandom {
         self.0.borrow_mut()
     }
 
-    /// C# `ReferenceEquals`.
+    /// Whether both refer to the same generator.
     pub fn ptr_eq(&self, other: &SharedRandom) -> bool {
         self.0.ptr_eq(&other.0)
     }

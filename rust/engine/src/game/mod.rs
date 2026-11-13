@@ -1,3 +1,6 @@
+//! The `Game` struct and its rules. Each submodule holds the `impl Game` block for one phase or
+//! topic, plus the state types it uses; see docs/engine.md.
+
 mod alliances;
 mod applicable_events;
 mod battalion;
@@ -52,7 +55,7 @@ use crate::prelude::*;
 
 #[derive(Canon)]
 pub struct Game {
-    // ---- Game.cs ----
+    // ---- Core state ----
 
     pub seed: i32,
     #[canon(with = "crate::canon::game_random")]
@@ -120,7 +123,7 @@ pub struct Game {
     pub ecaz_loyal_leader: Option<Leader>,
     pub automation_rules: Vec<Rc<AutomationConfigured>>,
 
-    // ---- Game_Alliances.cs ----
+    // ---- Alliances ----
 
     pub current_card_trade_offer: Option<Rc<CardTraded>>,
     pub phase_before_card_trade: Option<Phase>,
@@ -145,7 +148,7 @@ pub struct Game {
     pub moritani_allows_keeping_cards: bool,
     pub ecaz_shares_ambassadors: bool,
 
-    // ---- Game_Battle.cs ----
+    // ---- Battle ----
 
     pub battle_sequence: Option<PlayerSequence>,
     pub battle_about_to_start: Option<Rc<BattleInitiated>>,
@@ -189,7 +192,7 @@ pub struct Game {
     pub assassinated: Vec<Leader>,
     pub captured_leaders: NetDictionary<Leader, Faction>,
 
-    // ---- Game_Bidding.cs ----
+    // ---- Bidding ----
 
     pub bid_sequence: Option<PlayerSequence>,
     pub cards_on_auction: Option<Deck<TreacheryCard>>,
@@ -217,7 +220,7 @@ pub struct Game {
     pub richese_occupier_specified_card: bool,
     pub latest_bid_by_atreides_or_atreides_ally_was_passed: bool,
 
-    // ---- Game_Blow.cs ----
+    // ---- Blow ----
 
     pub latest_spice_card_a: Option<ResourceCard>,
     pub latest_spice_card_b: Option<ResourceCard>,
@@ -232,11 +235,11 @@ pub struct Game {
     pub factions_that_may_draw_nexus_card: Vec<Faction>,
     pub factions_that_drew_nexus_card: Vec<Faction>,
 
-    // ---- Game_Charity.cs ----
+    // ---- Charity ----
 
     pub resource_tech_token_income: bool,
 
-    // ---- Game_Collection.cs ----
+    // ---- Collection ----
 
     pub resources_collected_by_fremen: i32,
     pub resources_collected_by_harkonnen_from_desert_or_homeworld: i32,
@@ -246,7 +249,7 @@ pub struct Game {
     pub owner_of_flight_discovery: Option<Faction>,
     pub just_revealed_discovery_strongholds: Vec<DiscoveredLocation>,
 
-    // ---- Game_Contemplate.cs ----
+    // ---- Mentat ----
 
     pub extortion_to_be_returned: bool,
     pub stronghold_ownership: NetDictionary<Location, Faction>,
@@ -254,17 +257,17 @@ pub struct Game {
     pub winners: Vec<PlayerIndex>,
     pub win_method: WinMethod,
 
-    // ---- Game_Deals.cs ----
+    // ---- Deals ----
 
     pub deal_offers: Vec<Rc<DealOffered>>,
     pub deals: Vec<Deal>,
     pub deal_responses: NetDictionary<RcKey<DealOffered>, NetDictionary<Faction, bool>>,
 
-    // ---- Game_LeaderState.cs ----
+    // ---- Leaders ----
 
     pub leader_state: NetDictionary<Hero, LeaderState>,
 
-    // ---- Game_Move.cs ----
+    // ---- Shipment and movement ----
 
     pub shipment_and_move_sequence: Option<PlayerSequence>,
     pub last_shipment_or_movement: Option<GameEvent>,
@@ -297,7 +300,7 @@ pub struct Game {
     pub choam_has_extra_move: bool,
     pub moves_logged: i32,
 
-    // ---- Game_Other.cs ----
+    // ---- Other ----
 
     pub resource_audited_factions: Vec<Faction>,
     pub phase_paused_by_clairvoyance: Phase,
@@ -328,7 +331,7 @@ pub struct Game {
     pub harkonnen_traitor_was_cancelled: bool,
     pub facedancer_was_cancelled: bool,
 
-    // ---- Game_Participation.cs ----
+    // ---- Participation ----
 
     pub players: Vec<Player>,
     pub legacy_names: NetDictionary<PlayerIndex, String>,
@@ -336,7 +339,7 @@ pub struct Game {
     /// `RestoreRecentlyUndone` and `DismissRecentlyUndone` make from this one.
     pub participation: Shared<Participation>,
 
-    // ---- Game_Revival.cs ----
+    // ---- Revival ----
 
     pub revival_tech_token_income: bool,
     pub total_revivals_this_turn: NetDictionary<Faction, i32>,
@@ -353,7 +356,7 @@ pub struct Game {
     pub current_karma_revival_prevention: Option<Rc<KarmaRevivalPrevention>>,
     pub ambassadors_placed_this_turn: i32,
 
-    // ---- Game_Setup.cs ----
+    // ---- Setup ----
 
     /// `EstablishPlayers` can assign null, hence the `Option`.
     pub settings: Option<Shared<GameSettings>>,
@@ -362,7 +365,7 @@ pub struct Game {
     pub starting_treachery_cards: Option<Deck<TreacheryCard>>,
     pub extra_starting_card_for_harkonnen: Option<TreacheryCard>,
 
-    // ---- Game_Storm.cs ----
+    // ---- Storm ----
 
     pub hms_moves_left: i32,
     pub has_battle_wheel: Vec<Faction>,
@@ -373,14 +376,14 @@ pub struct Game {
 
     // ---- Rust-only: game identity (engine-conventions.md, "Game identity and undo") ----
 
-    /// The identity of this C# `Game` object. Unique per process.
+    /// The identity of this game object. Unique per process.
     #[canon(skip)]
     pub id: GameId,
-    /// The other C# `Game` objects that this game's events, players or
+    /// The other game objects that this game's events, players or
     /// `PreviousGameState` can still reach: every game this one was made from by
     /// `Undo`, `RestoreRecentlyUndone` or `DismissRecentlyUndone`, flattened (their
-    /// own `other_games` are empty). C# keeps them alive through references; here
-    /// the current game owns them, so `player(p)` can read and write a player of
+    /// own `other_games` are empty). The current game owns them, so `player(p)` can
+    /// read and write a player of
     /// another game.
     #[canon(skip)]
     pub other_games: Vec<Game>,
@@ -401,7 +404,7 @@ impl Game {
         &self.report_list
     }
 
-    /// C# returns the live report; use [`Game::current_report_mut`] to change it.
+    /// The live report; use [`Game::current_report_mut`] to change it.
     pub fn current_report(&self) -> &Report {
         if self.report_list.len() > 0 {
             &self.report_list[self.report_list.len() - 1]
@@ -410,7 +413,7 @@ impl Game {
         }
     }
 
-    /// `CurrentReport`, for mutation (C# returns the live object).
+    /// `CurrentReport`, for mutation.
     pub fn current_report_mut(&mut self) -> &mut Report {
         if self.report_list.len() > 0 {
             let last = self.report_list.len() - 1;
@@ -424,7 +427,7 @@ impl Game {
         Self::new_int32_participation(Self::LATEST_VERSION, &Shared::new(Participation::new()))
     }
 
-    /// Like C#, the game keeps the caller's `Participation` object: changes made
+    /// The game keeps the caller's `Participation` object: changes made
     /// through either are seen by both.
     ///
     /// Only `LATEST_VERSION` is supported: any other version throws, so savegames
@@ -762,7 +765,7 @@ impl Game {
     /// The replayed events are re-initialized against the result, and the undone ones
     /// keep pointing at the old game. If an exception escapes (a negative
     /// `untilEventNr`, or `EstablishPlayers` throwing while it replays), this stays the
-    /// old game, as the C# caller keeps it, and the half-built game stays reachable
+    /// old game, and the half-built game stays reachable
     /// from it (its events were already re-initialized against that game).
     pub fn undo(&mut self, until_event_nr: i32) {
         let version = self.version;
@@ -872,8 +875,8 @@ impl Game {
         self.drop_unreachable_games();
     }
 
-    /// Drops the games in `other_games` that no C# reference reaches any more, as
-    /// C#'s garbage collector would (a game is reachable through `PreviousGameState`,
+    /// Drops the games in `other_games` that are no longer reachable
+    /// (a game is reachable through `PreviousGameState`,
     /// an event's `Game`, or a `Player`, from this game or from a reachable game).
     /// Without this, every undo would keep a whole game alive for good.
     fn drop_unreachable_games(&mut self) {
@@ -916,7 +919,7 @@ impl Game {
     }
 
     /// Runs `f` on another game held by this one, with full access to every game
-    /// (C# code running on an object that belongs to that game). Each game sees its own
+    /// (for code running on an object that belongs to that game). Each game sees its own
     /// map objects untagged while it is in this place (see `Location::map_game`).
     pub fn with_game_mut<R>(&mut self, id: GameId, f: impl FnOnce(&mut Game) -> R) -> R {
         let me = self.id;
@@ -1041,7 +1044,7 @@ impl Game {
         None
     }
 
-    /// Returns the live report, as C# does.
+    /// Returns the live report, not a copy.
     pub fn start_report(&mut self, about: MainPhase) -> &mut Report {
         // Avoid leaving an empty duplicate behind if a report for the same phase is started twice in a row
         let current_turn = self.current_turn;
@@ -1113,7 +1116,7 @@ impl Game {
         }
     }
 
-    /// The C# delegates are bound to the game; here the game is passed in.
+    /// The game is passed to the actions.
     pub fn enter_boolean_action_action(game: &mut Game, condition: bool, method_if_true: fn(&mut Game), method_otherwise: fn(&mut Game)) {
         if condition {
             method_if_true(game);
@@ -1216,8 +1219,7 @@ impl Game {
         }
     }
 
-    /// C# puts the players' live `Battalion` objects in the lists (hazards 5.4); these
-    /// are copies. No caller mutates them.
+    /// The lists hold copies of the players' battalions (hazards 5.4). No caller mutates them.
     pub fn forces(&self, include_homeworlds: bool) -> NetDictionary<Location, Vec<Battalion>> {
         let mut result: NetDictionary<Location, Vec<Battalion>> = NetDictionary::new();
 
@@ -1635,8 +1637,7 @@ impl Game {
         self.recent_milestones.push(m);
     }
 
-    /// Not ported (engine-conventions.md, "Not ported"): only the client's story view
-    /// and the C# tests call it, and a C# clone shares most state with the original.
+    /// Not ported (engine-conventions.md, "Not ported").
     pub fn cs_clone(&self) -> GameRef {
         unimplemented!("Game.Clone is not ported (see engine-conventions.md, Not ported)")
     }
@@ -1781,8 +1782,6 @@ impl Game {
         self.count_different_factions(&factions, to_exclude)
     }
 
-    /// C# passes a lazy query; nothing changes state while it is enumerated, so a
-    /// collected list gives the same result.
     pub fn count_different_factions(&self, factions: &[Faction], to_exclude: Faction) -> i32 {
         let mut result = 0;
         let ecaz_ally = self.get_ally(Some(Faction::Ecaz));
@@ -2000,12 +1999,12 @@ impl Game {
     }
 }
 
-/// `Location.ToString()` (dictionary key text in .NET exception messages).
+/// `Location.ToString()` (dictionary key text in exception messages).
 fn location_text(l: Location) -> String {
     ExpressionElement::from(l).to_cs_string()
 }
 
-/// The identity of a C# `Game` object (reference equality). `GameId(0)` is never
+/// The identity of a game object: two ids are equal only for the same game. `GameId(0)` is never
 /// a game. Every `Game` gets a new one, so ids are unique within the process.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct GameId(pub u64);
@@ -2055,9 +2054,9 @@ impl Drop for OwnGame<'_> {
     }
 }
 
-/// A C# field of type `Game` (`Player.Game`, `PlayerSequence._game`, `GameEvent.Game`):
-/// which game object it points at. The default is C# `null`. Methods still take the
-/// game as a parameter; use [`Game::game_of`] where C# reads the field itself.
+/// A field that refers to a game (`Player.Game`, `PlayerSequence._game`, `GameEvent.Game`):
+/// which game object it points at. The default is null. Methods still take the
+/// game as a parameter; use [`Game::game_of`] to resolve the field itself.
 /// The dump writes `{"$ref":"Game"}` for the dumped game and `{"$ref":"OtherGame"}`
 /// for any other.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Canon)]
@@ -2089,13 +2088,13 @@ impl Game {
         (0..self.players.len()).map(move |index| PlayerIndex { game: id, index })
     }
 
-    /// Whether `p` is a player of this game (C#: `Players.Contains(p)` by reference).
+    /// Whether `p` is a player of this game (by identity).
     pub fn is_own_player(&self, p: PlayerIndex) -> bool {
         p.game == self.id && p.index < self.players.len()
     }
 
     /// The game a `Game` field points at: this game or one of `other_games`.
-    /// `None` for C# null.
+    /// `None` when the field is null.
     pub fn game_of(&self, r: GameRef) -> Option<&Game> {
         if r.0 == self.id {
             Some(self)
@@ -2112,7 +2111,7 @@ impl Game {
     }
 
     /// The game a `Game` field points at, or this game if the field is null. For
-    /// members that C# runs on an object holding its own game (`Player.Game`,
+    /// members that run on an object holding its own game (`Player.Game`,
     /// `GameEvent.Game`): after `Undo` that can be another game.
     pub fn own_game(&self, r: GameRef) -> &Game {
         self.game_of(r).unwrap_or(self)
@@ -2132,7 +2131,7 @@ impl Game {
         OwnGame { game, previous }
     }
 
-    /// One of `other_games`. A missing game is a porting bug: C# would still hold it.
+    /// One of `other_games`. A missing game is a bug: it should still be reachable.
     pub fn other_game(&self, id: GameId) -> &Game {
         if let Some(g) = self.other_games.iter().find(|g| g.id == id) {
             return g;
@@ -2163,7 +2162,7 @@ impl Game {
         }
     }
 
-    /// `p` (C# `Player` reference). A player of another game (an event that was
+    /// The player `p` refers to. A player of another game (an event that was
     /// initialized against another game, hazards: undo) is read from that game.
     pub fn player(&self, p: PlayerIndex) -> &Player {
         if p.game == self.id {
@@ -2176,7 +2175,7 @@ impl Game {
         }
     }
 
-    /// `p`, for mutation. Writes to a player of another game go to that game, as in C#.
+    /// `p`, for mutation. Writes to a player of another game go to that game.
     pub fn player_mut(&mut self, p: PlayerIndex) -> &mut Player {
         if p.game == self.id {
             &mut self.players[p.index]
@@ -2188,7 +2187,7 @@ impl Game {
         }
     }
 
-    /// The reference to a player object (C# `this` inside a `Player` method): its
+    /// The reference to a player object (`self` inside a `Player` method): its
     /// position in this game, or in the other game it belongs to.
     pub fn index_of(&self, p: &Player) -> Option<PlayerIndex> {
         std::iter::once(self)

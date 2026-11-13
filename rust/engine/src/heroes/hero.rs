@@ -1,6 +1,7 @@
 //! `IHero` has three implementations: `Leader`, `Messiah` and `TreacheryCard`
-//! (mercenary cards). [`Hero`] is the closed union of them. Equality is C#
-//! reference equality: same leader, the one messiah, or the same card.
+//! (mercenary cards). [`Hero`] is the closed union of them. Two heroes are
+//! equal only if they are the same object: same leader, the one messiah, or
+//! the same card.
 
 use std::fmt;
 
@@ -11,10 +12,10 @@ use crate::heroes::leader::Leader;
 use crate::heroes::messiah::Messiah;
 use crate::cards::treachery_card::TreacheryCard;
 
-/// `Hero::NULL` is a C# null `IHero` (see `cs::CsNull`). It is the null card
+/// `Hero::NULL` is the null handle (see `cs::CsNull`). It is the null card
 /// wrapped as a hero, and `From<Leader>`/`From<TreacheryCard>` map a null
 /// leader or card to it, so every null hero is the same value. `as_leader`,
-/// `as_treachery_card` and `is_messiah` are false for it, like C# `is`.
+/// `as_treachery_card` and `is_messiah` are false for it.
 #[derive(Copy, Clone)]
 pub enum Hero {
     Leader(Leader),
@@ -60,7 +61,7 @@ impl std::hash::Hash for Hero {
 }
 
 impl Hero {
-    /// C# null. Every member throws NullReferenceException.
+    /// The null handle. Every member throws NullReferenceException.
     pub const NULL: Hero = Hero::TreacheryCard(TreacheryCard::NULL);
 
     /// Every null hero as `Hero::NULL`.
@@ -211,9 +212,9 @@ impl serde::Serialize for Hero {
     }
 }
 
-/// C# `ToString()` with `Message.DefaultDescriber` null (the engine never sets
-/// it): `object.ToString()`, the full type name. Used in dictionary exception
-/// messages such as `LeaderState[h]` on a missing key.
+/// The text a hero prints as when no describer is set (the engine never sets
+/// one): the full .NET type name. Used in dictionary exception messages such
+/// as `LeaderState[h]` on a missing key.
 impl dotnet_compat::exception::CsToString for Hero {
     fn cs_to_string(&self) -> String {
         match self {

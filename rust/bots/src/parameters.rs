@@ -21,7 +21,7 @@ pub struct BotParameters {
 impl BotParameters {
     pub const PENALTY_FOR_ATTACKING_BOTS: f32 = 6.0;
 
-    /// A C# static readonly field. Nothing mutates it, so a constant value is exact (hazards.md 16.8).
+    /// A fixed parameter set. Nothing mutates it, so building a fresh value on each call is exact (hazards.md 16.8).
     pub fn harkonnen_parameters() -> BotParameters {
         BotParameters {
             bidding_resources_to_keep_when_card_is_perfect: 1,
@@ -41,7 +41,7 @@ impl BotParameters {
         }
     }
 
-    /// A C# static readonly field. Nothing mutates it, so a constant value is exact (hazards.md 16.8).
+    /// A fixed parameter set. Nothing mutates it, so building a fresh value on each call is exact (hazards.md 16.8).
     pub fn atreides_parameters() -> BotParameters {
         BotParameters {
             bidding_resources_to_keep_when_card_is_perfect: 1,
@@ -61,7 +61,7 @@ impl BotParameters {
         }
     }
 
-    /// A C# static readonly field. Nothing mutates it, so a constant value is exact (hazards.md 16.8).
+    /// A fixed parameter set. Nothing mutates it, so building a fresh value on each call is exact (hazards.md 16.8).
     pub fn fremen_parameters() -> BotParameters {
         BotParameters {
             bidding_resources_to_keep_when_card_is_perfect: 0,
@@ -81,7 +81,7 @@ impl BotParameters {
         }
     }
 
-    /// A C# static readonly field. Nothing mutates it, so a constant value is exact (hazards.md 16.8).
+    /// A fixed parameter set. Nothing mutates it, so building a fresh value on each call is exact (hazards.md 16.8).
     pub fn emperor_parameters() -> BotParameters {
         BotParameters {
             bidding_resources_to_keep_when_card_is_perfect: 1,
@@ -101,7 +101,7 @@ impl BotParameters {
         }
     }
 
-    /// A C# static readonly field. Nothing mutates it, so a constant value is exact (hazards.md 16.8).
+    /// A fixed parameter set. Nothing mutates it, so building a fresh value on each call is exact (hazards.md 16.8).
     pub fn guild_parameters() -> BotParameters {
         BotParameters {
             bidding_resources_to_keep_when_card_is_perfect: 1,
@@ -121,7 +121,7 @@ impl BotParameters {
         }
     }
 
-    /// A C# static readonly field. Nothing mutates it, so a constant value is exact (hazards.md 16.8).
+    /// A fixed parameter set. Nothing mutates it, so building a fresh value on each call is exact (hazards.md 16.8).
     pub fn bene_gesserit_parameters() -> BotParameters {
         BotParameters {
             bidding_resources_to_keep_when_card_is_perfect: 1,
@@ -141,7 +141,7 @@ impl BotParameters {
         }
     }
 
-    /// A C# static readonly field. Nothing mutates it, so a constant value is exact (hazards.md 16.8).
+    /// A fixed parameter set. Nothing mutates it, so building a fresh value on each call is exact (hazards.md 16.8).
     pub fn ixian_parameters() -> BotParameters {
         BotParameters {
             bidding_resources_to_keep_when_card_is_perfect: 1,
@@ -161,7 +161,7 @@ impl BotParameters {
         }
     }
 
-    /// A C# static readonly field. Nothing mutates it, so a constant value is exact (hazards.md 16.8).
+    /// A fixed parameter set. Nothing mutates it, so building a fresh value on each call is exact (hazards.md 16.8).
     pub fn tleilaxu_parameters() -> BotParameters {
         BotParameters {
             bidding_resources_to_keep_when_card_is_perfect: 1,
@@ -181,7 +181,7 @@ impl BotParameters {
         }
     }
 
-    /// A C# static readonly field. Nothing mutates it, so a constant value is exact (hazards.md 16.8).
+    /// A fixed parameter set. Nothing mutates it, so building a fresh value on each call is exact (hazards.md 16.8).
     pub fn choam_parameters() -> BotParameters {
         BotParameters {
             bidding_resources_to_keep_when_card_is_perfect: 1,
@@ -201,7 +201,7 @@ impl BotParameters {
         }
     }
 
-    /// A C# static readonly field. Nothing mutates it, so a constant value is exact (hazards.md 16.8).
+    /// A fixed parameter set. Nothing mutates it, so building a fresh value on each call is exact (hazards.md 16.8).
     pub fn richese_parameters() -> BotParameters {
         BotParameters {
             bidding_resources_to_keep_when_card_is_perfect: 1,
@@ -221,7 +221,7 @@ impl BotParameters {
         }
     }
 
-    /// A C# static readonly field. Nothing mutates it, so a constant value is exact (hazards.md 16.8).
+    /// A fixed parameter set. Nothing mutates it, so building a fresh value on each call is exact (hazards.md 16.8).
     pub fn ecaz_parameters() -> BotParameters {
         BotParameters {
             bidding_resources_to_keep_when_card_is_perfect: 1,
@@ -241,7 +241,7 @@ impl BotParameters {
         }
     }
 
-    /// A C# static readonly field. Nothing mutates it, so a constant value is exact (hazards.md 16.8).
+    /// A fixed parameter set. Nothing mutates it, so building a fresh value on each call is exact (hazards.md 16.8).
     pub fn moritani_parameters() -> BotParameters {
         BotParameters {
             bidding_resources_to_keep_when_card_is_perfect: 1,

@@ -271,7 +271,7 @@ impl Karma {
         g.current_main_phase == phase
     }
 
-    /// Lazy like the C# `Where`: callers stop at the first match (lazy-queries.md).
+    /// Lazy: callers stop at the first match (lazy-queries.md).
     pub fn valid_karma_cards(g: &Game, p: PlayerIndex) -> impl Iterator<Item = TreacheryCard> {
         let pl = g.player(p);
         pl.treachery_cards

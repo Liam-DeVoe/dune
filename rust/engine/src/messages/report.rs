@@ -16,7 +16,7 @@ pub struct Report {
     /// `Faction::None` when nobody won.
     pub battle_decided: bool,
     pub battle_winner: Faction,
-    /// `LinkedList<Message>` in C#; only appended to and enumerated.
+    /// Only appended to and enumerated.
     pub messages: Vec<Message>,
 }
 

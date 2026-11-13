@@ -882,7 +882,7 @@ impl ClassicBot {
             as i32 as f32
     }
 
-    /// The shared condition of the two properties below (no C# counterpart); they differ only in the question.
+    /// The shared condition of the two properties below; they differ only in the question.
     fn ruling_clairvoyance_for_player_battle(&self, game: &Game, question: ClairvoyanceQuestion) -> Option<ClairVoyanceQandA> {
         let (Some(_), Some(qna)) = (&game.latest_clairvoyance, &game.latest_clairvoyance_qn_a) else {
             return None;

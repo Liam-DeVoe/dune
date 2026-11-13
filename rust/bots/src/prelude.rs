@@ -1,4 +1,4 @@
-//! Everything a bot module needs: `use crate::prelude::*;`. Support module (no C# counterpart).
+//! Everything a bot module needs: `use crate::prelude::*;`.
 
 pub use treachery_engine::prelude::*;
 pub use treachery_engine::events::GameEventType;

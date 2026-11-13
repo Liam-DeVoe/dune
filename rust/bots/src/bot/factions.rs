@@ -655,7 +655,7 @@ impl ClassicBot {
         None
     }
 
-    /// `battle` is kept by reference: `Bot_Battle.cs:165` compares it with `Game.CurrentBattle` by identity.
+    /// `battle` is kept by reference: it is later compared with `Game.CurrentBattle` by identity.
     pub fn best_voice(&self, game: &Game, battle: Option<Rc<BattleInitiated>>, p: PlayerIndex, opponent: PlayerIndex) -> VoicePlan {
         let mut result = VoicePlan {
             battle,
@@ -1806,7 +1806,7 @@ impl ClassicBot {
 
 #[derive(Clone)]
 pub struct VoicePlan {
-    /// C#: `public BattleInitiated? Battle` (Bot_FactionSpecific.cs:1228). Compared by reference.
+    /// Compared with `Game.CurrentBattle` by reference.
     pub battle: Option<Rc<BattleInitiated>>,
     pub voice: Rc<Voice>,
     pub weapon_to_use: Option<TreacheryCard>,

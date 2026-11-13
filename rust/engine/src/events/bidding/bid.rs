@@ -179,7 +179,7 @@ impl Bid {
     }
 
     /// `MayUseEmperorSecretAlly` with a possibly null player: the NullReferenceException
-    /// happens only after the auction type check, as in C#.
+    /// happens only after the auction type check.
     pub(crate) fn may_use_emperor_secret_ally_opt(game: &Game, player: Option<PlayerIndex>) -> bool {
         let player = player.and_then(crate::compat::cs::CsNull::opt);
         game.current_auction_type == AuctionType::Normal && game.player(player.nre()).nexus == Faction::Emperor && NexusPlayed::can_use_secret_ally(game, player.nre())

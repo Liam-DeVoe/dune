@@ -1,13 +1,13 @@
-//! Helpers that only the bots need. Support module (no C# counterpart).
+//! Helpers that only the bots need.
 //!
-//! The unboxing casts the bots apply to `ClairVoyancePlayed.Parameter1`/`Parameter2`, which are
-//! C# `object` (an `ExpressionElement` in Rust). Each throws where the C# cast throws, with the
-//! .NET message (probed on .NET 10):
+//! The casts the bots apply to `ClairVoyancePlayed.Parameter1`/`Parameter2`, which hold any
+//! value (an `ExpressionElement`). They follow the .NET unboxing rules and throw the .NET
+//! exceptions and messages (probed on .NET 10):
 //!
 //! - an unboxing cast (`(TreacheryCardType)o`, `(Faction)o`, `(int)o`, `(float)o`) throws
 //!   NullReferenceException for null;
-//! - an enum or `int` unboxes to any enum or to `int`: the CLR allows unboxing between an enum and
-//!   its underlying type, and between enums of the same underlying type (every C# enum here is
+//! - an enum or `int` unboxes to any enum or to `int`: .NET allows unboxing between an enum and
+//!   its underlying type, and between enums of the same underlying type (every game enum is
 //!   `int`). `(Faction)(object)TreacheryCardType.Laser` is `Faction.Fremen` (10);
 //! - `(float)o` needs a boxed `float` exactly;
 //! - a reference cast (`(IHero)o`) gives null for null, and the object for a `Leader`, `Messiah`

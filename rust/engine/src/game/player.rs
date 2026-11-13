@@ -124,7 +124,7 @@ impl Player {
             .cs_first_where(|hw| if special_forces { hw.is_home_of_special_forces() } else { hw.is_home_of_normal_forces() })
     }
 
-    /// Returns the live battalion, as C# does.
+    /// Returns the live battalion, not a copy.
     pub fn get_and_create_if_needed(&mut self, location: Location) -> &mut Battalion {
                 if !self.forces_in_locations.contains_key(&location) {
             let result = Battalion::new(self.faction, 0, 0, location);
@@ -1126,9 +1126,9 @@ impl Player {
         }
     }
 
-    /// Only `Game.Clone` calls this, and that is not ported. Returns a `Player` instead of
-    /// `object`. C#'s `MemberwiseClone` shares the HashSets (`KnownCards`, `RevealedTraitors`, ...)
-    /// and `SkillsToChooseFrom`/`HomeWorlds` with the original; this copies them.
+    /// Only `Game.Clone` calls this, and that is not ported. This is a deep copy: the sets
+    /// (`KnownCards`, `RevealedTraitors`, ...) and `SkillsToChooseFrom`/`HomeWorlds` are copied,
+    /// not shared with the original.
     pub fn cs_clone(&self) -> Player {
                 let mut result = self.clone();
         // Utilities.CloneObjectDictionary uses ToDictionary, which compacts the slots.
@@ -1138,9 +1138,10 @@ impl Player {
 
 }
 
-/// A C# `Player` reference: the game the player object belongs to and its index in that
+/// A reference to a player: the game the player object belongs to and its index in that
 /// game's `Players`. Players are only ever appended, so the index is stable, and equality
-/// is C# reference equality, also across games (after `Undo`, an event can hold a player
+/// is identity: two handles are equal only if they refer to the same player object, also
+/// across games (after `Undo`, an event can hold a player
 /// of another game). `Game::player` resolves it; `Game::player_at(i)` makes one.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Canon)]
 #[canon(manual)]
@@ -1149,13 +1150,13 @@ pub struct PlayerIndex {
     pub index: usize,
 }
 
-/// `PlayerIndex::NULL` is a C# null `Player` stored in a collection (such as
+/// `PlayerIndex::NULL` is a null player stored in a collection (such as
 /// `Game.Winners`); `Game::player` throws NullReferenceException for it.
 impl crate::compat::cs::CsNull for PlayerIndex {
     const NULL: PlayerIndex = PlayerIndex::NULL;
 }
 
 impl PlayerIndex {
-    /// C# null.
+    /// No player.
     pub const NULL: PlayerIndex = PlayerIndex { game: crate::game::GameId(0), index: usize::MAX };
 }

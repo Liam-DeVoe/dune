@@ -1,7 +1,6 @@
-//! C# leaders are created once, in `LeaderManager`, and compared by reference
-//! (the `Equals` override is commented out). A `Leader` here is a `Copy`
-//! handle (index into `LeaderManager`'s table); handle equality is that
-//! reference equality.
+//! Leaders are created once, in `LeaderManager`, and compared by identity. A
+//! `Leader` is a `Copy` handle (index into `LeaderManager`'s table), so handle
+//! equality is identity.
 
 use std::fmt;
 
@@ -20,8 +19,8 @@ pub struct LeaderData {
     pub hero_type: HeroType,
 }
 
-/// A leader, or the null leader (`Leader::NULL`, a C# null reference in a
-/// collection; see `cs::CsNull`).
+/// A leader, or the null leader (`Leader::NULL`, the null handle, which can
+/// appear in a collection; see `cs::CsNull`).
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Leader(u8);
 
@@ -30,7 +29,7 @@ impl CsNull for Leader {
 }
 
 impl Leader {
-    /// C# null. Every member throws NullReferenceException.
+    /// The null handle. Every member throws NullReferenceException.
     pub const NULL: Leader = Leader(u8::MAX);
 
     pub(crate) const fn from_index(i: usize) -> Leader {

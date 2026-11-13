@@ -248,8 +248,8 @@ impl TriggeredBureaucracy {
 
 #[derive(Clone, Debug, Canon)]
 pub struct ClairVoyanceQandA {
-    /// `Option` because `ClairVoyanceAnswered.cs:68` passes `Game.LatestClairvoyance!`, which
-    /// does not throw when it is null.
+    /// `Option` because the answer is recorded with `Game.LatestClairvoyance`, which can be
+    /// null; nothing throws in that case.
     pub question: Option<Rc<ClairVoyancePlayed>>,
     pub answer: Rc<ClairVoyanceAnswered>,
 }

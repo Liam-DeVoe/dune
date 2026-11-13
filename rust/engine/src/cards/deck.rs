@@ -1,9 +1,9 @@
 use crate::random::SharedRandom;
 use crate::throw;
 
-/// `Deck<T>`. `random` is `None` where C# would hold null (a deck created
-/// from `Game.Random` before `EstablishPlayers` sets it); shuffling such a
-/// deck throws NullReferenceException, as in C#.
+/// `Deck<T>`. `random` is `None` for a deck created from `Game.Random`
+/// before `EstablishPlayers` sets it; shuffling such a deck throws
+/// NullReferenceException.
 #[derive(Clone, Debug, canon_derive::Canon)]
 pub struct Deck<T> {
     pub items: Vec<T>,
@@ -77,8 +77,8 @@ impl<T: Clone> Deck<T> {
         self.items.is_empty()
     }
 
-    /// `Top`: `None` where C# returns `default` (null for reference types; for
-    /// value types C# returns e.g. 0, so use `.unwrap_or_default()` there).
+    /// `Top`: `None` on an empty deck. Where the top of an empty deck should
+    /// read as a default value (e.g. 0), use `.unwrap_or_default()`.
     pub fn top(&self) -> Option<T> {
         self.items.first().cloned()
     }

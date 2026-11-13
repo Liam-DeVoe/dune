@@ -55,7 +55,7 @@ impl Default for Shipment {
     }
 }
 
-/// The elements of a C# `params object?[]` argument list.
+/// Builds a list of message elements from mixed arguments.
 macro_rules! elems {
     ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
 }

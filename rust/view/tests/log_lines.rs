@@ -2,7 +2,8 @@
 //! `tests/golden/log_lines.jsonl.gz` lists, and the messages of the bot games that
 //! `log_lines_bots.jsonl.gz` lists (the first two of each shape, record type and part kinds, which
 //! reach records and parts the fixtures don't). `tests/data/log` holds two games for
-//! `WormSentLog` and `ShipMoveLoss`.
+//! `WormSentLog` and `ShipMoveLoss`. `bots-777-00012` is cut after 1072 events: the C# game used
+//! a Richese card twice there (escapes.md, "A Richese card sold twice").
 //!
 //! Each line holds the rendered parts, the message's target and heading, and its `record`,
 //! `route`, `plans` and `fact`. Its `dom` field is the text the client must show for the parts;

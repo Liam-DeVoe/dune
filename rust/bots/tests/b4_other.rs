@@ -18,6 +18,9 @@
 //! Every call gets a fresh bot with the seed C# used, so a difference in one call doesn't affect
 //! the next. A call that reaches an unported method of another package (a `todo!`) is counted
 //! as skipped, not compared; once that package is ported, the call is compared.
+//!
+//! Methods in `CHANGED_ON_PURPOSE` no longer match C# (escapes.md, step 4 of native-plan.md). A
+//! difference in one of them is counted, not failed.
 
 use std::collections::BTreeMap;
 use std::io::{BufRead, BufReader};
@@ -28,6 +31,11 @@ use serde_json::Value;
 use treachery_bots::bot::EventKind;
 use treachery_bots::prelude::*;
 use treachery_engine::game::Participation;
+
+/// Methods whose result differs from C# by design, with the fix that explains it.
+const CHANGED_ON_PURPOSE: &[(&str, &str)] = &[
+    ("DetermineTestingStationUsed", "counts the bot's own storm losses (escapes.md, \"Bots that ignored their own storm losses\")"),
+];
 
 fn ev<T: EventKind>(e: Rc<T>) -> String {
     treachery_engine::json::serialize(&T::into_event(e))
@@ -212,6 +220,7 @@ fn run(name: &str) {
     let mut count = 0;
     let mut skipped: BTreeMap<String, usize> = BTreeMap::new();
     let mut failures: Vec<String> = Vec::new();
+    let mut changed: BTreeMap<&str, usize> = BTreeMap::new();
 
     for o in lines(&format!("knowledge-{name}.jsonl.gz")) {
         match o["k"].as_str().unwrap() {
@@ -263,6 +272,10 @@ fn run(name: &str) {
                     let expected = if expected.starts_with("EX:") { "EX" } else { expected };
                     count += 1;
                     if actual != expected || draws != expected_draws {
+                        if let Some((method, _)) = CHANGED_ON_PURPOSE.iter().find(|(method, _)| *method == m) {
+                            *changed.entry(method).or_default() += 1;
+                            continue;
+                        }
                         failures.push(format!(
                             "step {n} player {pi} {m}({}): C# {expected} ({expected_draws} draws), Rust {actual} ({draws} draws)",
                             a.join(", ")
@@ -276,6 +289,9 @@ fn run(name: &str) {
 
     for (text, k) in &skipped {
         eprintln!("{name}: {k} calls skipped, they reach an unported method: {text}");
+    }
+    for (m, k) in &changed {
+        eprintln!("{name}: {k} calls of {m} differ from C# on purpose");
     }
     assert!(count > 0, "{name}: no probes");
     if !failures.is_empty() {

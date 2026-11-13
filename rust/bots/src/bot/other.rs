@@ -74,8 +74,8 @@ impl ClassicBot {
         let score = |sector: i32| {
             let locations: Vec<Location> =
                 game.map.locations(false).filter(|l| l.sector(&game.map) == sector && !l.is_protected_from_storm()).collect();
-            // C# parity: `b.Faction == Faction && b.Faction == Ally` is always false (no faction is its own ally).
-            let my_forces_killed = forces_in(game, &locations, |f| f == faction && f == ally);
+            // Mine and my ally's (C# had `&&`, which no faction matches, so it always counted 0).
+            let my_forces_killed = forces_in(game, &locations, |f| f == faction || (ally != Faction::None && f == ally));
             let my_strongholds = locations
                 .iter()
                 .filter(|l| {

@@ -35,9 +35,14 @@ fn sample_corpus_report() {
 /// Traces that differ from C# on purpose, with the line (`n`) of their first difference. Each is a
 /// C# bug fixed in Rust (rust/docs/escapes.md).
 const DELIBERATE: &[(&str, &str, &str)] = &[
-    // A Bid ran automatic passes after bidding ended, which broke a later event that C#'s undo
-    // replays, so C# stopped replaying one event earlier ("Automatic bid passes that never stop").
-    ("fuzz-2026-00009.jsonl.gz", "600", "automatic bid passes stop with the bidding phase"),
+    // A Karama bid that also passes, or has no Karama card, threw in C# and is refused now ("A
+    // Bene Gesserit intrusion left over from another phase"). In 00009 this comes before line 600,
+    // where automatic bid passes stop with the bidding phase ("Automatic bid passes that never stop").
+    ("fuzz-2026-00007.jsonl.gz", "82", "a Karama bid needs a Karama card and no pass"),
+    ("fuzz-2026-00009.jsonl.gz", "271", "a Karama bid needs a Karama card and no pass"),
+    ("fuzz-2026-00020.jsonl.gz", "68", "a Karama bid needs a Karama card and no pass"),
+    ("fuzz-2026-00039.jsonl.gz", "130", "a Karama bid needs a Karama card and no pass"),
+    ("fuzz-2026-00084.jsonl.gz", "52", "a Karama bid needs a Karama card and no pass"),
     // CardTraded must name the ally ("A card trade offered to a faction that isn't the ally").
     ("fuzz-2026-00045.jsonl.gz", "855", "card trade offers must name the ally"),
 ];

@@ -405,7 +405,11 @@ fn battle_forms_in_rare_traces() {
 
 /// The forms only `tests/data/battle` reaches. The traces are `Treachery.Oracle bots --seed 7701
 /// --dump none --hash none --gzip true` games, each cut after the event that reaches its last form
-/// here. `HMSAdvantageChosen` is covered by `hms_advantage_form_in_a_built_state` instead.
+/// here. `bots-7701-00049` is cut at event 832, where the C# game used a Richese card twice
+/// (escapes.md, "A Richese card sold twice"), which was before its Diplomacy form. Diplomacy comes
+/// from `rust-bots-7701-00150` instead: `observe record --mode bots --seed 7701 --game 150`, its
+/// accepted events in this format, cut after event 214. `HMSAdvantageChosen` is covered by
+/// `hms_advantage_form_in_a_built_state` instead.
 const RARE: &[&str] = &[
     "AuditCancelled",
     "Audited",

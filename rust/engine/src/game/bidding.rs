@@ -406,6 +406,21 @@ impl Game {
         }
     }
 
+    /// Under `Rule::RicheseTreacheryCards` Richese's cards are in the treachery deck and, with
+    /// Richese playing, in its cache too, as in C#. Once a card is taken from one of the two, it
+    /// leaves the other, so it can't be sold twice and end up in two hands (observe bots seed 1
+    /// game 163, escapes.md "A Richese card sold twice"). Without the rule nothing is in both.
+    pub fn drop_copy_in_richese_cache(&mut self, card: TreacheryCard) {
+        crate::game::remove_card(&mut self.richese_cache, Some(card));
+    }
+
+    /// See [`drop_copy_in_richese_cache`](Game::drop_copy_in_richese_cache).
+    pub fn drop_copy_in_treachery_deck(&mut self, card: TreacheryCard) {
+        if let Some(deck) = self.treachery_deck.as_mut() {
+            crate::game::remove_card(&mut deck.items, Some(card));
+        }
+    }
+
     pub fn draw_treachery_card(&mut self) -> Option<TreacheryCard> {
         if self.treachery_deck.as_ref().map(|d| d.is_empty()) == Some(true) {
             let count = self.treachery_discard_pile.as_ref().expect("treachery discard pile").items.len() as i32;
@@ -427,7 +442,9 @@ impl Game {
         // `TreacheryDeck?.Items.Count > 0`: null > 0 is false.
         if self.treachery_deck.as_ref().map_or(false, |d| d.items.len() > 0) {
             // A null card in the deck comes back as None (engine-conventions.md, "Null handles").
-            Some(self.treachery_deck.as_mut().expect("treachery deck").draw())
+            let card = self.treachery_deck.as_mut().expect("treachery deck").draw();
+            self.drop_copy_in_richese_cache(card);
+            Some(card)
         } else {
             None
         }

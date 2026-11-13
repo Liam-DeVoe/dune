@@ -395,10 +395,13 @@ impl Game {
         self.starting_treachery_cards = Some(Deck::empty(self.random.clone()));
         for p in 0..self.players.len() {
             let card = self.treachery_deck.as_mut().expect("treachery deck").draw();
+            self.drop_copy_in_richese_cache(card);
             self.starting_treachery_cards.as_mut().expect("starting treachery cards").items.push(card);
 
             if self.players[p].is(Faction::Harkonnen) {
-                self.extra_starting_card_for_harkonnen = Some(self.treachery_deck.as_mut().expect("treachery deck").draw());
+                let extra = self.treachery_deck.as_mut().expect("treachery deck").draw();
+                self.drop_copy_in_richese_cache(extra);
+                self.extra_starting_card_for_harkonnen = Some(extra);
             }
         }
 

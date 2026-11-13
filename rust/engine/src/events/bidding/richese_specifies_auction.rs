@@ -72,6 +72,7 @@ impl RicheseSpecifiesAuction {
             let card = self.card().required("card")?;
             game.cards_on_auction.as_mut().required("cards on auction")?.put_on_top(card);
             crate::game::remove_card(&mut game.richese_cache, Some(card));
+            game.drop_copy_in_treachery_deck(card);
             game.register_known(card);
 
             let occupier_of_richese_homeworld = game.occupier_of(World::Richese);

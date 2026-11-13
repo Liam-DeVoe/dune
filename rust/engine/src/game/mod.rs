@@ -914,6 +914,10 @@ impl Game {
         self.current_juice = None;
         self.bureaucrat_was_used_this_phase = false;
         self.banker_was_used_this_phase = false;
+        // An intrusion is answered right after the shipment or move that caused it. One still
+        // queued when a new phase starts can no longer be answered, and would take the place of
+        // the next real one (escapes.md, "A Bene Gesserit intrusion left over from another phase").
+        self.intrusions.clear();
     }
 
     pub fn main_phase_middle(&mut self) {

@@ -213,8 +213,16 @@ fn without_error_text(out: &str) -> &str {
 
 /// Traces that differ from C# on purpose, with the first line (`n`) that differs. Each is a C# bug
 /// fixed in Rust (rust/docs/escapes.md, "Automatic bid passes that never stop" for 00009 and "A
-/// card trade offered to a faction that isn't the ally" for 00045).
-const DELIBERATE: &[(&str, i64)] = &[("fuzz-2026-00009", 602), ("fuzz-2026-00045", 857)];
+/// card trade offered to a faction that isn't the ally" for 00045, "A Bene Gesserit intrusion left
+/// over from another phase" for the refused Karama bids of the others and the earlier line of 00009).
+const DELIBERATE: &[(&str, i64)] = &[
+    ("fuzz-2026-00007", 84),
+    ("fuzz-2026-00009", 273),
+    ("fuzz-2026-00020", 70),
+    ("fuzz-2026-00039", 132),
+    ("fuzz-2026-00045", 857),
+    ("fuzz-2026-00084", 54),
+];
 
 /// The C# text with the text fixes of rust/docs/behavior-changes.md applied ("Missing spaces",
 /// "Setting an automation rule", "Other small text quirks"), so the rest of each text is still

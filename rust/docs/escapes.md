@@ -370,3 +370,52 @@ The weak spot: events that throw halfway through `Execute` still leave partial c
 **What catches the class now.**
 - `engine/tests/pkg_k_alliances_deals_status.rs::card_trade_offer_must_name_the_ally`.
 - Nothing yet flags a game that ends with `botException` on both sides. Such endings can be C# behavior that we keep (bots that throw and skip a decision), so they still pass. Look at them by hand after a fuzz run (the ending counts in the `observe live` summary).
+
+The four entries below are C# bugs too, found by the step 4 bot fixes agent while looking at harness games.
+
+## A Richese card sold twice (2026-11)
+
+**Bug.** `Rule::RicheseTreacheryCards` puts Richese's ten cards into the treachery deck (`create_treachery_deck` takes every card whose rule applies). When Richese plays, `EndPhase::establish_decks` also puts the same ten cards in Richese's cache. So a card could be sold in a normal auction and then again by Richese with `RicheseSpecifiesAuction`. In bots seed 1 game 163, card 50 went to two players, and the next `TreacheryCalled` failed with "Card 50 is in more than one hand". The game stalled. Now a card taken from one of the two places leaves the other: a card drawn from the treachery deck (`draw_treachery_card`, the starting cards) leaves the cache, and a card Richese sells from the cache (`RicheseSpecifiesAuction`, `KarmaRicheseBuy`) leaves the deck. Both copies stay until then, so the deck is shuffled as before and a game changes only where C# would have used the same card twice. Taking the cards out of the deck at setup would have changed every such game from its first shuffle.
+
+Test data recorded from C# had such games. `view/tests/data/log/bots-777-00012` used card 52 twice at event 1072. It is cut there, and the 15 log line snapshots after the cut are gone from `log_lines_bots.jsonl.gz` (their record types are all covered by other lines). `view/tests/data/battle/bots-7701-00049` did the same at event 832, before it reached the Diplomacy form. It is cut there too, and `rust-bots-7701-00150`, a game recorded by the Rust engine, reaches Diplomacy instead.
+
+Real games can't reach this from the lobby. The rule is in no rule group, so neither the web client nor the C# client offers it. `EstablishPlayers` doesn't check its rules, so a hand-made request can set it. The C# oracle and `observe` turn it on now and then (`OtherRules` in `observe/src/config.rs`).
+
+**Why the tests missed it.** It was never a difference. C#, the reference and the working tree all sold the card twice, and a game that ends `stalled` on both sides passes. Nothing checks that every card is in exactly one place.
+
+**What catches the class now.**
+- `engine/tests/rule_fixes.rs::a_richese_card_taken_from_the_deck_or_the_cache_leaves_the_other`.
+- Nothing checks the one-place invariant for cards, leaders or forces in general, and `stalled` endings on both sides still pass. Look at them by hand after a run.
+
+## A Bene Gesserit intrusion left over from another phase (2026-11)
+
+**Bug.** Fuzz seed 42 game 110 (recorded by the shared reference, before the bot fixes) submitted a `Bid` with both `Passed` and `KarmaBid`. `Validate` returns early for a pass, so it was accepted. `handle_normal_bid` then took it as a Karama bid, and `win_with_karma` threw "Cannot resolve karma bid winner or auction deck" halfway, after changing the game. A failed event doesn't go into the history, but its changes stay. Much later an undo replayed the history without them, and the replayed game went another way: an Ecaz shipment to Sietch Tabr ran during the bidding phase, queued a Bene Gesserit intrusion, and failed. That intrusion was still queued after the undo. The next shipment, by Tleilaxu to Tuek's Sietch, brought it up, and Bene Gesserit were asked to flip in Sietch Tabr.
+
+Two fixes, in `events/bidding/bid.rs` and `game/mod.rs`:
+- `Bid` refuses a pass that is also a Karama bid, and a Karama bid without a Karama card of the bidder's. Either one threw halfway through. The web client never sends them (`BiddingPanel.tsx` sets `KarmaBid: false` on a pass and offers "Win immediately" only with a card picked).
+- `main_phase_start` drops any queued intrusion. By the rules, Bene Gesserit decide to flip right after the shipment or move that enters their territory, and a terror token or ambassador triggers right then too. In a sound game the queue is always empty when a phase starts, so this changes nothing there. It keeps a leftover intrusion from taking the place of a later one.
+
+**Why the tests missed it.** The "Automatic bid passes that never stop" entry above saw `Bid` events with contradictory fields throw halfway, and left the partial changes alone. They are the same on both sides, so the harness passes them. Here the damage showed only after an undo, through a replay of the history.
+
+**What catches the class now.**
+- `engine/tests/rule_fixes.rs::a_karama_bid_needs_a_karama_card_and_no_pass` and `an_intrusion_left_over_from_an_earlier_phase_is_dropped`.
+- The weak spot stays: any other event that passes validation and then throws leaves changes outside the history, and an undo can then replay a different game. The server's view replica also replays the history, so its views can differ from the game too. In `observe` traces this shows as a `replica` field on events. Grep for it after a fuzz run.
+
+## Bots that never shipped back to reserves (2026-11)
+
+**Bug.** The Guild bot's plan to bring a stranded battalion back to reserves (`plan_back_to_reserves`) built a shipment with negative amounts and `ShipmentType::ShipmentNormal`. `Shipment::validate` refuses negative amounts unless the type is `ShipmentBack` ("Can't ship less than zero forces"). The bot checks each plan with `is_valid` and drops invalid ones, so it never shipped back. C# had the same bug (`Bot_Shipment.cs` sets `ShipmentNormal` on every shipment). `construct_shipment` now sets `ShipmentBack` when the size is negative, as the web shipment form does.
+
+**Why the tests missed it.** C# bots had the same bug, so the differ and `observe` agreed. A plan that is always invalid looks the same as a bot that chose not to act.
+
+**What catches the class now.**
+- `bots/tests/behavior_changes.rs::the_guild_ships_a_stranded_battalion_back_to_reserves`.
+- Nothing finds other bot plans that can never be valid. A count of the plans each bot builds and drops as invalid, over a bots run, would show them.
+
+## Bots that ignored their own storm losses (2026-11)
+
+**Bug.** The Testing Station decision (`determine_testing_station_used` in `bot/other.rs`) weighs the storm's damage on each side. It counted the bot's own forces lost to the storm with `f == faction && f == ally`, which no faction matches, so its own losses were always 0. The port kept the C# condition with a `// C# parity:` comment. It now counts the bot's and its ally's forces.
+
+**Why the tests missed it.** It was C# behavior, ported on purpose, and the user's review of `// C# parity:` comments didn't list it.
+
+**What catches the class now.**
+- `bots/tests/behavior_changes.rs::the_testing_station_counts_the_bots_own_storm_losses`.

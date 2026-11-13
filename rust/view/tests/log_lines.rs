@@ -7,8 +7,6 @@
 //! Each line holds the rendered parts, the message's target and heading, and its `record`,
 //! `route`, `plans` and `fact`. Its `dom` field is the text the client must show for the parts;
 //! `npm run check:rich-text` in `web/` renders the parts with the React component and compares.
-//! The snapshots were first written from the C# client's rendering, so they hold what players
-//! saw there.
 //!
 //! After a deliberate change to log rendering, rewrite them and review the diff:
 //!

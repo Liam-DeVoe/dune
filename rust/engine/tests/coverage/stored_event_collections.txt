@@ -1,6 +1,0 @@
-Events/EmperorBidSupport.cs:45:Game.PermittedUseOfEmperorSpice = Amounts	Game.PermittedUseOfEmperorSpice	System.Collections.Generic.Dictionary<Treachery.Shared.Faction, int>	event
-Events/EstablishPlayers.cs:203:Game.Settings.AllowedFactionsInPlay = FactionsInPlay	GameSettings.AllowedFactionsInPlay	System.Collections.Generic.List<Treachery.Shared.Faction>	event
-Events/EstablishPlayers.cs:211:Game.AllRules = Game.Version < 170 ? ApplicableRules.ToList() : Game.Settings.InitialRules	Game.AllRules	System.Collections.Generic.List<Treachery.Shared.Rule>	event
-Events/EstablishPlayers.cs:268:Game.FactionsInPlay = Game.Settings.AllowedFactionsInPlay	Game.FactionsInPlay	System.Collections.Generic.List<Treachery.Shared.Faction>	event
-Events/SetIncreasedRevivalLimits.cs:52:Game.FactionsWithIncreasedRevivalLimits = Factions	Game.FactionsWithIncreasedRevivalLimits	Treachery.Shared.Faction[]	event
-Model/GameStatus.cs:39:WaitingForPlayers = waitingForPlayers	GameStatus.WaitingForPlayers	System.Collections.Generic.List<Treachery.Shared.Model.Player>	parameter

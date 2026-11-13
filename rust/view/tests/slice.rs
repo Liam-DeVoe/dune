@@ -237,7 +237,7 @@ fn replica_follows_events() {
 /// `ViewReplica::scene` seats one user for the `/scene` route: host, named "Scene", and every
 /// other seat without a user (a bot).
 #[test]
-fn scene_matches_the_csharp_scene_page() {
+fn scene_seats_one_user_and_bots() {
     let (mut r, viewer) = treachery_view::replica::ViewReplica::scene(&common::fixture("alliance"), Faction::Atreides).unwrap();
     let view = r.view(viewer);
     assert_eq!(view.viewer.faction.as_deref(), Some("Atreides"));

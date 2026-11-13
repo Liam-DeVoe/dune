@@ -818,7 +818,10 @@ impl ClassicBot {
         result.set_no_field_value(size.no_field_value);
         result.set_cunning_no_field_value(size.cunning_no_field_value);
         result.passed = false;
-        result.shipment_type = ShipmentType::ShipmentNormal;
+        // A negative size takes forces off the planet (`plan_back_to_reserves`). It has to say so, as
+        // the shipment form does: a normal shipment of negative amounts is refused. C# sent it as
+        // normal, so its bots never shipped back.
+        result.shipment_type = if size.forces + size.special_forces < 0 { ShipmentType::ShipmentBack } else { ShipmentType::ShipmentNormal };
         result.set_from(game, None);
         result.set_karma_card(None);
         result.set_to(game, Some(location));

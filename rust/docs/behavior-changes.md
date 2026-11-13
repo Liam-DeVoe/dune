@@ -195,3 +195,12 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - Area: Bots (native-plan.md step 4, not part of the review)
 - What happened: the Rock Melter decision worked out the battle on the live plans, which logged "<Mirror Weapon> becomes a <card>" and set the Diplomat's card (known-issues.md).
 - Done (0e82687): `ClassicBot::decide` takes `&Game`, so no decision can change the game. The Rock Melter decision uses `Battle::predict_battle_outcome` on copies of the plans. Engine change: rust/engine/src/events/battle/battle.rs splits `determine_battle_outcome` into the card swap, the recording of the Mirror Weapon and Diplomat (`activate_dynamic_weapons`), and a pure part shared with `predict_battle_outcome`. Tests: `deciding_never_changes_the_game` (every fixture, player and priority), `rock_melter_decision_with_a_mirror_weapon_leaves_the_game_alone` (bots/tests/behavior_changes.rs).
+
+## Bugs found while doing the fixes above
+
+Not part of the review. Each has an escapes.md entry with the details.
+
+- Richese's cards were in its cache and also in the treachery deck under `Rule::RicheseTreacheryCards`, so one could be sold twice. A card drawn from the deck now leaves the cache, and one Richese sells leaves the deck (`Game::drop_copy_in_richese_cache`, `drop_copy_in_treachery_deck`). Test: `a_richese_card_taken_from_the_deck_or_the_cache_leaves_the_other` (engine/tests/rule_fixes.rs).
+- `Bid` refuses a pass that is also a Karama bid, and a Karama bid without a Karama card of the bidder's ("You can't pass and use Karama in the same bid", "Invalid Karama card"). Both threw halfway before. A new main phase drops any intrusion still queued. Tests: `a_karama_bid_needs_a_karama_card_and_no_pass`, `an_intrusion_left_over_from_an_earlier_phase_is_dropped` (engine/tests/rule_fixes.rs).
+- The Guild bot's shipment back to reserves is a `ShipmentBack`, so validation accepts it and the bot ships back. Test: `the_guild_ships_a_stranded_battalion_back_to_reserves` (bots/tests/behavior_changes.rs).
+- The Testing Station decision counts the bot's own and its ally's forces lost to the storm. Test: `the_testing_station_counts_the_bots_own_storm_losses` (bots/tests/behavior_changes.rs).

@@ -58,6 +58,14 @@ impl Bid {
             return Some(express!("You cannot pass a silent bid"));
         }
 
+        // A Karama bid wins at once (`win_with_karma`), so with `Passed` it would win the card, and
+        // without a Karama card of the bidder's it threw halfway through, after changing the game.
+        // Those changes aren't in the history, so an undo later replayed a different game (fuzz seed
+        // 42 game 110, escapes.md). The client never sends either; C# accepted both.
+        if self.passed && self.karma_bid {
+            return Some(express!("You can't pass and use ", TreacheryCardType::Karma, " in the same bid"));
+        }
+
         if self.passed {
             return None;
         }
@@ -72,6 +80,9 @@ impl Bid {
         }
 
         if self.karma_bid {
+            if !self.karma_card().is_some_and(|c| Bid::valid_karma_cards(game, self.player_opt()).any(|v| v == c)) {
+                return Some(express!("Invalid ", TreacheryCardType::Karma, " card"));
+            }
             return None;
         }
 

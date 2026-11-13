@@ -308,3 +308,49 @@ fn bene_gesserit_prediction_draws_no_coin() {
         assert_eq!(b.random.get_count(), 3, "seed {seed}: predicted {:?}", e.to_win);
     }
 }
+
+// Bot bugs found during step 4 and fixed (rust/docs/escapes.md, "Bots that never shipped back to
+// reserves" and "Bots that ignored their own storm losses").
+
+/// The Guild takes a stranded battalion back to reserves. The bot built that shipment as a normal
+/// one with negative amounts, which validation refuses, so it never shipped back. It now marks it
+/// `ShipmentBack`, as the shipment form does.
+#[test]
+fn the_guild_ships_a_stranded_battalion_back_to_reserves() {
+    // The fixture's Guild has 4 forces in the sand, away from strongholds and spice.
+    let mut game = load("ship-guild");
+    let guild = player_of(&game, Faction::Guild);
+    let plan = bot(&game, guild).plan_back_to_reserves(&game).expect("a back-to-reserves plan");
+    let s = plan.shipment;
+    assert_eq!(s.shipment_type, ShipmentType::ShipmentBack);
+    let from = s.to(&game).unwrap();
+    assert_eq!((s.force_amount, game.player(guild).forces_in(Some(from))), (-4, 4));
+    let reserve = game.player(guild).forces_in_reserve();
+    assert!(GameEvent::Shipment(Rc::new(s)).execute(&mut game, true, false).is_none());
+    assert_eq!(game.player(guild).forces_in(Some(from)), 0);
+    assert_eq!(game.player(guild).forces_in_reserve(), reserve + 4);
+}
+
+/// The Testing Station turns the storm one sector less or more when that pays. The bot counted
+/// enemy losses but took its own as always 0 (`faction == f && ally == f`). With its own forces in
+/// the sand where the storm will end, and nothing else near, it now stops the storm short.
+#[test]
+fn the_testing_station_counts_the_bots_own_storm_losses() {
+    let mut game = load("ship");
+    let me = player_of(&game, Faction::Atreides);
+    const N: i32 = Map::NUMBER_OF_SECTORS;
+    let open = |game: &Game, sector: i32| -> Vec<Location> {
+        game.map.locations(false).filter(|l| l.sector(&game.map) == sector && !l.is_protected_from_storm()).collect()
+    };
+    let quiet = |game: &Game, sector: i32| {
+        open(game, sector).iter().all(|l| !l.is_stronghold() && game.battalions_in(*l).iter().all(|b| b.total_amount_of_forces() == 0))
+    };
+    let sector = (1..N - 1).find(|s| !open(&game, *s).is_empty() && (s - 1..=s + 1).all(|t| quiet(&game, t))).expect("a quiet stretch of sand");
+    game.next_storm_moves = (sector - game.sector_in_storm + N) % N;
+    let home = game.player(me).home_worlds[0].location();
+    let sand = open(&game, sector)[0];
+    Player::move_forces(&mut game, me, home, sand, 10);
+
+    let e = bot(&game, me).determine_testing_station_used(&game).expect("a Testing Station decision");
+    assert_eq!(e.value_added, -1);
+}

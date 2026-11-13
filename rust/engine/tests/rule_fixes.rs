@@ -190,3 +190,88 @@ fn ally_permissions_without_an_ally_store_nothing() {
     assert!(e.execute(&mut g, false, false).is_none());
     assert!(g.permitted_use_of_ally_spice.is_empty(), "{:?}", g.permitted_use_of_ally_spice);
 }
+
+/// Rule::RicheseTreacheryCards puts Richese's cards in the treachery deck. With Richese playing
+/// they are also its cache, so a card could be sold in a normal auction and then again by
+/// Richese, and the next `TreacheryCalled` failed with "Card 50 is in more than one hand"
+/// (observe bots seed 1 game 163). A card taken from one of the two now leaves the other.
+#[test]
+fn a_richese_card_taken_from_the_deck_or_the_cache_leaves_the_other() {
+    let mut g = Game::new_int32_participation(Game::LATEST_VERSION, &Shared::new(Participation::default()));
+    let mut s = GameSettings::new();
+    s.number_of_players = 3;
+    s.allowed_factions_in_play = Some(Shared::new(vec![Faction::Richese, Faction::Atreides, Faction::Emperor]));
+    s.initial_rules = Some(vec![Rule::RicheseTreacheryCards]);
+    let mut establish = EstablishPlayers::new(&g, Faction::None);
+    establish.seed = 7;
+    establish.settings = Some(Shared::new(s));
+    assert!(GameEvent::EstablishPlayers(Rc::new(establish)).execute(&mut g, false, true).is_none());
+    let end = GameEvent::EndPhase(Rc::new(EndPhase::new(&g, Faction::None)));
+    assert!(end.execute(&mut g, false, true).is_none());
+
+    let in_deck = |g: &Game, c: TreacheryCard| g.treachery_deck.as_ref().unwrap().items.contains(&c);
+    let both: Vec<TreacheryCard> = g.richese_cache.iter().copied().filter(|c| in_deck(&g, *c)).collect();
+    assert!(both.len() >= 2, "Richese cards in the deck and the cache: {both:?}");
+    let (drawn, sold) = (both[0], both[1]);
+
+    // Drawn from the deck (for an auction, or as a starting card): Richese no longer has it.
+    let items = &mut g.treachery_deck.as_mut().unwrap().items;
+    let i = items.iter().position(|c| *c == drawn).unwrap();
+    items.remove(i);
+    g.treachery_deck.as_mut().unwrap().put_on_top(drawn);
+    assert_eq!(g.draw_treachery_card(), Some(drawn));
+    assert!(!g.richese_cache.contains(&drawn));
+
+    // Sold from the cache: it leaves the deck.
+    g.cards_on_auction = Some(Deck::empty(None));
+    g.current_phase = Phase::RicheseSpecifyingAuction;
+    let mut auction = RicheseSpecifiesAuction::new(&g, Faction::Richese);
+    auction.set_card(Some(sold));
+    auction.auction_type = AuctionType::RicheseOnceAround;
+    auction.direction = 1;
+    assert!(GameEvent::RicheseSpecifiesAuction(Rc::new(auction)).execute(&mut g, false, false).is_none());
+    assert!(!g.richese_cache.contains(&sold));
+    assert!(!in_deck(&g, sold));
+}
+
+/// A Karama bid that also passes, or names no Karama card of the bidder's, passed validation and
+/// then threw halfway through, after changing the game. The changes weren't in the history, so a
+/// later undo replayed another game, one with a Bene Gesserit intrusion that was never answered
+/// (observe fuzz seed 42 game 110). Both are refused now.
+#[test]
+fn a_karama_bid_needs_a_karama_card_and_no_pass() {
+    let mut g = fixture("bid");
+    let bidder = g.bid_sequence.as_ref().unwrap().current_player(&g).expect("a bidder");
+    let faction = g.player(bidder).faction;
+    let held: Vec<TreacheryCard> = g.players.iter().flat_map(|p| p.treachery_cards.clone()).collect();
+    let karama = TreacheryCardManager::items().iter().copied().find(|c| c.type_() == TreacheryCardType::Karma && !held.contains(c)).unwrap();
+    g.player_mut(bidder).treachery_cards.push(karama);
+    let bid = |passed: bool, card: Option<TreacheryCard>, g: &Game| {
+        let mut b = Bid::new(g, faction);
+        b.passed = passed;
+        b.karma_bid = true;
+        b.set_karma_card(card);
+        GameEvent::Bid(Rc::new(b))
+    };
+    let history = g.history.len();
+    assert_eq!(submit(&mut g, |g| bid(true, Some(karama), g)).as_deref(), Some("You can't pass and use Karma in the same bid"));
+    assert_eq!(submit(&mut g, |g| bid(false, None, g)).as_deref(), Some("Invalid Karma card"));
+    assert_eq!(g.history.len(), history);
+    assert!(g.player(bidder).treachery_cards.contains(&karama));
+
+    assert_eq!(submit(&mut g, |g| bid(false, Some(karama), g)), None);
+    assert!(!g.player(bidder).treachery_cards.contains(&karama), "the Karama card is spent");
+}
+
+/// An intrusion is answered right after the shipment or move that caused it. One left queued
+/// when a new phase starts can't be answered any more; before, it came up after the next
+/// shipment, in place of that shipment's own (observe fuzz seed 42 game 110).
+#[test]
+fn an_intrusion_left_over_from_an_earlier_phase_is_dropped() {
+    let mut g = fixture("bene_gesserit");
+    let mut m = Move::new(&g, Faction::Emperor);
+    m.set_to(&g, Some(location(&g, 5)));
+    g.intrusions.push(Intrusion::new(&GameEvent::Move(Rc::new(m)), IntrusionType::BeneGesseritIntrusion));
+    g.main_phase_start(MainPhase::Battle, false);
+    assert!(g.intrusions.is_empty());
+}

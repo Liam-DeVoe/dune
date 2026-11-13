@@ -403,8 +403,13 @@ fn battle_forms_in_rare_traces() {
     assert!(missing.is_empty(), "tests/data/battle reaches no form of {missing:?}");
 }
 
-/// The forms only `tests/data/battle` reaches. The traces are bot games of seed 7701, each cut after the event that reaches its last form
-/// here. `HMSAdvantageChosen` is covered by `hms_advantage_form_in_a_built_state` instead.
+/// The forms only `tests/data/battle` reaches. The traces are bot games of seed 7701,
+/// each cut after the event that reaches its last form
+/// here. `bots-7701-00049` is cut at event 832, where the C# game used a Richese card twice
+/// (escapes.md, "A Richese card sold twice"), which was before its Diplomacy form. Diplomacy comes
+/// from `rust-bots-7701-00150` instead: `observe record --mode bots --seed 7701 --game 150`, its
+/// accepted events in this format, cut after event 214. `HMSAdvantageChosen` is covered by
+/// `hms_advantage_form_in_a_built_state` instead.
 const RARE: &[&str] = &[
     "AuditCancelled",
     "Audited",

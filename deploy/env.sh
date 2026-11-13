@@ -27,12 +27,10 @@ REMOTE_DATA=/opt/treachery/db        # sqlite database, survives redeploys
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# The art, fonts, scripts and SCSS the web client links. They still live in the old C# client's
-# tree; deploy.sh copies them from here and compiles the SCSS.
-ASSETS_SRC="$REPO_ROOT/treachery-online/Client/wwwroot"
-STYLES_SRC="$REPO_ROOT/treachery-online/Client/Styles"
-# The Dart Sass version the C# build used (AspNetCore.SassCompiler 1.103.0).
-SASS_VERSION=1.103.0
+# The art, fonts, scripts and PDFs the web client links, and the SCSS that deploy.sh compiles
+# to css/treachery.css next to them.
+ASSETS_SRC="$REPO_ROOT/web/assets"
+STYLES_SRC="$REPO_ROOT/web/styles"
 
 vm_ssh() {
     ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -i "$VM_SSH_KEY" "$VM_USER@$VM_HOST" "$@"

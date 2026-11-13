@@ -3,7 +3,7 @@
 # ///
 """Draws each leader's strength in a badge on its token.
 
-The shipped token art (Client/wwwroot/art/person*.png and .gif) has the
+The original token art (treachery-online/Client/wwwroot/art/person*.png and .gif) has the
 strength printed on the disc beside the portrait. design/leader-tokens/clean/
 holds the same tokens with that number retouched out by hand, one
 leader<id>.png per leader. This shrinks each clean token a little and draws
@@ -12,9 +12,9 @@ The disc is big enough to stick out past the token's square, so the image is
 CANVAS times the token's square, with the token in the middle. The client
 scales these images up by CANVAS (see .leader-art in _leader.scss), so the
 token draws at its usual size and the disc overhangs it. The result goes to
-Client/wwwroot/art/leader<id>.png, which DefaultSkin.cs and skin.json point at.
-Those URLs end in ?v=<n> so browsers don't keep showing old tokens: bump it in
-both files whenever the tokens are redrawn.
+web/assets/art/leader<id>.png, which rust/skin and web/public/skin/default.json
+point at. Those URLs end in ?v=<n> so browsers don't keep showing old tokens:
+bump it in both whenever the tokens are redrawn.
 
     uv run scripts/leader-tokens.py            # writes the tokens
     uv run scripts/leader-tokens.py --sheet    # also writes /tmp/leader-tokens.png to review
@@ -29,15 +29,15 @@ from PIL import Image, ImageDraw, ImageFont
 REPO = Path(__file__).resolve().parent.parent
 ROOT = REPO / "treachery-online"
 CLEAN = REPO / "design" / "leader-tokens" / "clean"
-ART = ROOT / "Client" / "wwwroot" / "art"
-DIGITS = ROOT / "Client" / "wwwroot" / "Advokat.ttf"
-LETTERS = ROOT / "Client" / "wwwroot" / "Copperplate.ttf"  # for Zoal's X, which Advokat draws oddly
+ART = REPO / "web" / "assets" / "art"
+DIGITS = REPO / "web" / "assets" / "Advokat.ttf"
+LETTERS = REPO / "web" / "assets" / "Copperplate.ttf"  # for Zoal's X, which Advokat draws oddly
 
 TOKEN_SCALE = 0.86      # the token's diameter in the new image, as a fraction of its side
 BADGE = 0.44            # the badge's diameter, same units
 BADGE_OUTLINE = 0.025   # its dark edge
 # The image's side, in the same units: room for the badge plus a hair. Keep in
-# step with $leader-art-canvas in Client/Styles/components/_leader.scss.
+# step with $leader-art-canvas in web/styles/components/_leader.scss.
 CANVAS = 1.068
 INK = (18, 8, 0, 255)
 PARCHMENT = (252, 249, 209, 255)

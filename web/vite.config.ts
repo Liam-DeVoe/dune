@@ -1,20 +1,20 @@
 // Vite config for the React client. See rust/docs/client-plan.md.
 //
-// The look must match the C# client, so the app uses the C# client's own compiled CSS and art
-// from treachery-online/Client/wwwroot, unchanged. They are served from there, not copied: in dev
-// and preview by the middleware below, in production by the Rust server, which serves the same
-// directories next to dist/.
+// assets/ holds the art, fonts, scripts, PDFs and stylesheets. They are served at the site's root
+// (/art, /css, ...) but are not part of the build. In dev and preview the middleware below serves
+// them. In production the Rust server serves the same directory next to dist/
+// (TREACHERY_ASSETS_ROOT). `npm run build:css` compiles styles/ to assets/css/treachery.css.
 import { createReadStream, existsSync, statSync } from "node:fs";
 import { extname, join, normalize, resolve } from "node:path";
 import type { Connect, Plugin } from "vite";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-const wwwroot = resolve(__dirname, "../treachery-online/Client/wwwroot");
+const assets = resolve(__dirname, "assets");
 // The path the app is served under, "/" by default. deploy/deploy-beta.sh builds with
 // TREACHERY_BASE=/beta/; the app's URLs follow it through import.meta.env.BASE_URL (src/base.ts).
 const base = (process.env.TREACHERY_BASE ?? "/").replace(/\/*$/, "/");
-// The wwwroot paths the C# index.html and skin use.
+// The URLs served from assets/.
 const shared = /^\/(art|css|fonts|js|docs)\/|^\/[^/]+\.ttf$|^\/favicon\.ico$/;
 const types: Record<string, string> = {
   ".css": "text/css", ".js": "text/javascript", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg",
@@ -24,28 +24,28 @@ const types: Record<string, string> = {
 
 const unbased = (path: string) => path.slice(base.length - 1);
 
-function serveWwwroot(): Connect.NextHandleFunction {
+function serveAssets(): Connect.NextHandleFunction {
   return (req, res, next) => {
     const url = decodeURIComponent((req.url ?? "").split("?")[0]);
     if (!url.startsWith(base)) return next();
     const path = url.slice(base.length - 1);
     if (!shared.test(path)) return next();
-    const file = normalize(join(wwwroot, path));
-    if (!file.startsWith(wwwroot) || !existsSync(file) || !statSync(file).isFile()) return next();
+    const file = normalize(join(assets, path));
+    if (!file.startsWith(assets) || !existsSync(file) || !statSync(file).isFile()) return next();
     res.setHeader("Content-Type", types[extname(file).toLowerCase()] ?? "application/octet-stream");
     createReadStream(file).pipe(res);
   };
 }
 
-const wwwrootAssets: Plugin = {
-  name: "treachery-wwwroot",
-  configureServer: (server) => { server.middlewares.use(serveWwwroot()); },
-  configurePreviewServer: (server) => { server.middlewares.use(serveWwwroot()); },
+const sharedAssets: Plugin = {
+  name: "treachery-assets",
+  configureServer: (server) => { server.middlewares.use(serveAssets()); },
+  configurePreviewServer: (server) => { server.middlewares.use(serveAssets()); },
 };
 
 export default defineConfig({
   base,
-  plugins: [react(), wwwrootAssets],
+  plugins: [react(), sharedAssets],
   // In dev, the Rust server (default http://localhost:5000, override with TREACHERY_SERVER) answers
   // the WebSocket and the dev scene endpoint.
   server: {

@@ -5,7 +5,7 @@
 //! | `TREACHERY_LISTEN` | `127.0.0.1:5000` | addresses to serve HTTP on, comma-separated. TLS is the reverse proxy's job |
 //! | `TREACHERY_DATABASE` | `treachery.db` | the SQLite file |
 //! | `TREACHERY_WEB_ROOT` | this repository's `web/dist` | the web client build |
-//! | `TREACHERY_ASSETS_ROOT` | the old client's `wwwroot` in this repository | art, fonts, scripts and CSS under `/art`, `/fonts`, `/js`, `/css`, `/docs` |
+//! | `TREACHERY_ASSETS_ROOT` | this repository's `web/assets` | art, fonts, scripts and CSS under `/art`, `/fonts`, `/js`, `/css`, `/docs` |
 //! | `TREACHERY_SITE_URL` | `https://treachery.online` | the site's address, for links in mails |
 //! | `TREACHERY_ADMIN` | none | the user name with admin rights |
 //! | `TREACHERY_SMTP_HOST` | `smtp.strato.com` | the mail server (STARTTLS on port 25) |
@@ -87,7 +87,7 @@ impl Settings {
                 .collect(),
             database: get("TREACHERY_DATABASE").unwrap_or_else(|| "treachery.db".into()).into(),
             web_root: get("TREACHERY_WEB_ROOT").map(PathBuf::from).unwrap_or_else(|| repository().join("web/dist")),
-            assets_root: get("TREACHERY_ASSETS_ROOT").map(PathBuf::from).unwrap_or_else(|| repository().join("treachery-online/Client/wwwroot")),
+            assets_root: get("TREACHERY_ASSETS_ROOT").map(PathBuf::from).unwrap_or_else(|| repository().join("web/assets")),
             site_url: get("TREACHERY_SITE_URL").unwrap_or_else(|| "https://treachery.online".into()).trim_end_matches('/').to_string(),
             admin: get("TREACHERY_ADMIN"),
             smtp,

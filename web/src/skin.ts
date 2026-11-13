@@ -1,5 +1,7 @@
-// The skin: names, images and colours, read from the C# DefaultSkin exported as JSON
-// (tools/export-skin.cs), plus the engine's static data (rust/view/examples/static_data.rs).
+// The skin: names, images and colours, read from public/skin/default.json, plus the engine's
+// static data (rust/view/examples/static_data.rs). default.json started as an export of the C#
+// DefaultSkin and is now edited by hand. The server's text labels come from rust/skin, a separate
+// copy, so a name changed here must be changed there too.
 // A port of the parts of Shared/Model/Skin.cs that turn ids and enum values into text and URLs.
 // The view never carries names or URLs; everything visual comes from here, so a custom skin
 // (RequestSetSkin) is a different JSON file and nothing else.
@@ -53,8 +55,8 @@ export class Skin {
     return (this.data[dict] as Dict | undefined)?.[String(key)] ?? "";
   }
 
-  // Skin URLs start with "." (DefaultSkin.DEFAULT_ART_LOCATION); the app serves wwwroot at its base
-  // path. Markup built as strings (popovers) keeps the skin's URL as C# does; index.html's
+  // Skin URLs start with "." (DefaultSkin.DEFAULT_ART_LOCATION); the app serves web/assets at its
+  // base path. Markup built as strings (popovers) keeps the skin's URL as C# does; index.html's
   // <base href> (the base path) resolves it.
   url(u: string | undefined): string {
     return u ? u.replace(/^\.\//, BASE) : "";

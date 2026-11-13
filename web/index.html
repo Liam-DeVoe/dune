@@ -6,16 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="Description" content="Online multiplayer game inspired by the Dune board game" />
     <title>treachery.online</title>
-    <!-- The C# client's stylesheets, unchanged (treachery-online/Client/wwwroot/index.html). -->
+    <!-- Bootstrap, then our stylesheet (styles/, compiled by `npm run build:css`) on top of it. -->
     <link href="%BASE_URL%css/bootstrap.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="%BASE_URL%css/treachery.css" />
     <link rel="icon" href="%BASE_URL%favicon.ico" />
 </head>
 <body>
     <div id="app"></div>
-    <!-- The C# client's Bootstrap bundle, for popovers (src/popover.ts). -->
+    <!-- Bootstrap's script bundle, for popovers (src/popover.ts). -->
     <script src="%BASE_URL%js/bootstrap.bundle.min.js"></script>
-    <!-- The C# client's tooltip: a hovered element's title moves to data-tip and shows in #tip. -->
+    <!-- Tooltips: a hovered element's title moves to data-tip and shows in #tip. -->
     <script src="%BASE_URL%js/tooltip.js"></script>
     <script type="module" src="/src/main.tsx"></script>
 </body>

@@ -1,5 +1,5 @@
-// The client's stylesheet. Compiled to wwwroot/css/treachery.css on build by
-// AspNetCore.SassCompiler (see sasscompiler.json) and loaded after
+// The client's stylesheet. `npm run build:css` compiles it with Dart Sass to
+// web/assets/css/treachery.css. index.html loads it after
 // bootstrap.min.css, so everything here wins over Bootstrap by source order.
 //
 // Layer order matters for the cascade:

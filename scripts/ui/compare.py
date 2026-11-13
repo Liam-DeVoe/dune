@@ -61,7 +61,7 @@ from server import FIXTURES, Handler, Server, StaticServer  # noqa: E402
 
 REPO = HERE.parent.parent
 WEB = REPO / "web"
-WWWROOT = REPO / "treachery-online" / "Client" / "wwwroot"
+ASSETS = WEB / "assets"
 # Builds and views; nothing here is kept. Each build goes to its own directory under
 # WORK/builds, with the C# client, the web client and the views, and WORK/current links to the
 # newest complete one. A run uses one build from start to end (use_build), so another agent's
@@ -252,6 +252,7 @@ def build() -> Path:
         ("C# client", [str(REPO / "scripts" / "publish-client.sh"), label], REPO),
         # vite build without tsc: a type error elsewhere in web/ should not stop a comparison.
         ("web client", ["npx", "vite", "build", "--outDir", str(building / "web"), "--emptyOutDir", "--logLevel", "warn"], WEB),
+        ("stylesheet", ["npm", "run", "--silent", "build:css"], WEB),
         ("views", ["cargo", "run", "--release", "-q", "-p", "treachery-view", "--example", "scene_views", "--", str(building / "views")], REPO / "rust"),
     ]
     procs = []
@@ -342,9 +343,9 @@ def prune_builds() -> None:
 
 
 class WebHandler(Handler):
-    """The built web client, with the C# client's wwwroot (art, css, fonts) and the views.
+    """The built web client, with web/assets (art, css, fonts) and the views.
 
-    Production serves wwwroot next to dist/ the same way (vite.config.ts)."""
+    Production serves web/assets next to dist/ the same way (vite.config.ts)."""
 
     SHARED = ("/art/", "/css/", "/fonts/", "/js/", "/docs/")
 
@@ -357,7 +358,7 @@ class WebHandler(Handler):
         if route.startswith("/views/") and (self.views / route.removeprefix("/views/")).exists():
             return str(self.views / route.removeprefix("/views/"))
         if route.startswith(self.SHARED) or (route.count("/") == 1 and route.endswith((".ttf", ".ico"))):
-            return str(WWWROOT / route.lstrip("/"))
+            return str(ASSETS / route.lstrip("/"))
         return super().translate_path(path)
 
 

@@ -20,7 +20,7 @@ Starts rust/target/release/treachery-server on a fresh database with the web bui
    replaces the view.
 
 Build first: `cargo build --release -p treachery-server` (from rust/) and `npm run build`
-(from web/). Run: `python3 scripts/ui/e2e_server.py [--port 5077] [--shots /tmp/e2e]`.
+(from web/, which also compiles the stylesheet into web/assets). Run: `python3 scripts/ui/e2e_server.py [--port 5077] [--shots /tmp/e2e]`.
 Exits non-zero on the first failed check.
 """
 
@@ -42,6 +42,17 @@ ROOT = Path(__file__).resolve().parents[2]
 SERVER = ROOT / "rust/target/release/treachery-server"
 FIXTURE = ROOT / "scripts/fixtures/alliance.json"
 EMPEROR_SEAT, ATREIDES_SEAT = 0, 3
+# Every request that failed or got an error status, on any page: a missing image or stylesheet
+# shows up here, not as a failed check.
+FAILED_REQUESTS: list[str] = []
+
+
+def watch(page: Page) -> Page:
+    page.on("pageerror", lambda e: print(f"page error: {e}"))
+    page.on("response", lambda r: r.status >= 400 and FAILED_REQUESTS.append(f"{r.status} {r.url}"))
+    # Navigating away aborts requests still in flight, which is not an error.
+    page.on("requestfailed", lambda r: "ERR_ABORTED" not in (r.failure or "") and FAILED_REQUESTS.append(f"{r.failure} {r.url}"))
+    return page
 
 
 def start_server(port: int, db: Path) -> subprocess.Popen:
@@ -102,8 +113,7 @@ def offer_alliance(page: Page, to: str) -> None:
 
 def play_scene(browser, base: str, shots: Path, name: str) -> None:
     """Opens /scene/alliance/Emperor, checks that it shows the Emperor's screen, and passes."""
-    scene = browser.new_context(viewport={"width": 1440, "height": 820}).new_page()
-    scene.on("pageerror", lambda e: print(f"page error: {e}"))
+    scene = watch(browser.new_context(viewport={"width": 1440, "height": 820}).new_page())
     scene.goto(base + "/scene/alliance/Emperor")
     scene.wait_for_function("() => document.documentElement.dataset.scene !== 'loading'", timeout=20000)
     check(scene.evaluate("document.documentElement.dataset.scene") == "ready", f"{name}: the scene opened on the server")
@@ -138,7 +148,7 @@ def main() -> None:
                 alice = browser.new_context(viewport={"width": 1440, "height": 820}).new_page()
                 bob = browser.new_context(viewport={"width": 1440, "height": 820}).new_page()
                 for p in (alice, bob):
-                    p.on("pageerror", lambda e: print(f"page error: {e}"))
+                    watch(p)
 
                 # 0: a scene first, on the fresh server.
                 play_scene(browser, base, args.shots, "0-first-scene")
@@ -177,6 +187,7 @@ def main() -> None:
                 # 4: the scene route on the server, after other clients.
                 play_scene(browser, base, args.shots, "3-scene")
                 browser.close()
+                check(not FAILED_REQUESTS, "every request succeeded" + "".join(f"\n  {r}" for r in sorted(set(FAILED_REQUESTS))))
         finally:
             server.terminate()
             server.wait(timeout=10)

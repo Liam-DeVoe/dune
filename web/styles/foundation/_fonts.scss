@@ -1,7 +1,7 @@
-// Self-hosted fonts. URLs are relative to wwwroot/css/, where the compiled
+// Self-hosted fonts. URLs are relative to web/assets/css/, where the compiled
 // sheet lives. Copperplate, Advokat and OrthodoxHerbertarian are single TTFs
-// in wwwroot/; Alegreya Sans and Alegreya are subsetted woff2 files in
-// wwwroot/fonts/.
+// in web/assets/; Alegreya Sans and Alegreya are subsetted woff2 files in
+// web/assets/fonts/.
 
 @font-face {
   font-family: "Copperplate";

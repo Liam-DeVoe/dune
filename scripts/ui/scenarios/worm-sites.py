@@ -1,7 +1,7 @@
 """Every place the skin's worm image appears, for design/worm-icon.html.
 
 Here before and after mean the old and new monster.svg: publish the client
-with each Client/wwwroot/art/monster.svg under its own label. The crops are
+with each web/assets/art/monster.svg under its own label. The crops are
 named by position; worm-icon.html uses copies renamed by hand. The
 worm-ride-ssw fixture is worm-ride with the Shield Wall worm rule (105)
 added by hand so the shield wall marker renders.

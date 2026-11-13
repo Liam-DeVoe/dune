@@ -2,7 +2,7 @@
 
 Self-hosted copy of [treachery.online](https://github.com/ronaldossendrijver/treachery.online), running at https://treachery.exe.xyz/. The site is the Rust server (`rust/server`) and the React client (`web/`). The original C# code is in `treachery-online/`; it no longer runs anywhere and is kept as the reference for the Rust port until the port's plan removes it.
 
-- `treachery-online/` is the original C# source. It was brought in with `git subtree`, so upstream history is preserved. The web client still takes its art, fonts, scripts and SCSS from `treachery-online/Client/wwwroot` and `treachery-online/Client/Styles`.
+- `treachery-online/` is the original C# source. It was brought in with `git subtree`, so upstream history is preserved. The site uses nothing from it: the art, fonts, scripts and PDFs are in `web/assets`, the SCSS in `web/styles`.
 - `deploy/` is everything needed to rebuild the box from scratch. The VM is disposable; this repo is the source of truth.
 
 ## Day to day

@@ -12,20 +12,18 @@ trap 'rm -rf "$STAGE"' EXIT
 echo "==> building web/"
 (
     cd "$REPO_ROOT/web"
-    [ -d node_modules ] || npm ci
+    # Reinstall when package-lock.json is newer than the last install.
+    [ node_modules/.package-lock.json -nt package-lock.json ] || npm ci
     npx tsc --noEmit
     npx vite build --outDir "$STAGE/web" --emptyOutDir --logLevel warn
 )
 
 echo "==> collecting assets and compiling the stylesheet"
 mkdir -p "$STAGE/assets/css"
-rsync -a \
-    --include '/art/***' --include '/fonts/***' --include '/js/***' --include '/docs/***' \
-    --include '/css/' --include '/css/bootstrap.min.css' --include '/css/open-iconic/***' \
-    --include '/favicon.ico' --include '/*.ttf' --exclude '*' \
-    "$ASSETS_SRC/" "$STAGE/assets/"
-npx --yes "sass@$SASS_VERSION" --style=expanded --no-source-map \
-    "$STYLES_SRC/treachery.scss" "$STAGE/assets/css/treachery.css"
+rsync -a --exclude '.DS_Store' --exclude '/css/treachery.css' "$ASSETS_SRC/" "$STAGE/assets/"
+# Dart Sass, at the version pinned in web/package.json.
+(cd "$REPO_ROOT/web" && npx --no-install sass --style=expanded --no-source-map \
+    "$STYLES_SRC/treachery.scss" "$STAGE/assets/css/treachery.css")
 
 echo "==> syncing rust/, the web build and the assets to $VM_HOST"
 RSYNC_SSH="ssh -o BatchMode=yes -i $VM_SSH_KEY"

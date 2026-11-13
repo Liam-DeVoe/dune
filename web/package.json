@@ -5,8 +5,9 @@
   "type": "module",
   "description": "React client for the Rust server. See rust/docs/client-plan.md.",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "npm run build:css && vite",
+    "build": "npm run build:css && tsc -b && vite build",
+    "build:css": "sass --style=expanded --no-source-map styles/treachery.scss assets/css/treachery.css",
     "typecheck": "tsc -b",
     "preview": "vite preview",
     "check:rich-text": "node tools/check-rich-text.ts",
@@ -22,6 +23,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^5.2.0",
+    "sass": "1.103.0",
     "typescript": "5.9",
     "vite": "^7.3.7"
   }

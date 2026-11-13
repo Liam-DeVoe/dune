@@ -58,9 +58,11 @@ The rules are in [protocol.md](protocol.md#visibility). They come from reading e
 
 ```
 web/
-  index.html            loads the C# client's compiled CSS from /css (wwwroot), then src/main.tsx
-  vite.config.ts        serves treachery-online/Client/wwwroot's art, css, fonts in dev and preview
-  public/skin/          DefaultSkin as JSON (tools/export-skin.cs)
+  index.html            loads the compiled CSS from /css, then src/main.tsx
+  vite.config.ts        serves assets/ (art, css, fonts, js, docs) in dev and preview
+  assets/               art, fonts, scripts, PDFs, Bootstrap; css/treachery.css is built from styles/
+  styles/               the SCSS, compiled by `npm run build:css` (Dart Sass)
+  public/skin/          the default skin as JSON, edited by hand
   public/static/        engine static data: locations (rust/view/examples/static_data.rs)
   public/views/         saved views for the skeleton and component tests (rust/view/examples/scene_view.rs)
   src/generated/        TypeScript types of the view (generated, do not edit)
@@ -106,13 +108,15 @@ The app can be served under a path prefix: `TREACHERY_BASE=/beta/ npx vite build
 
 The C# client's look is its SCSS (`treachery-online/Client/Styles`, 6200 lines) compiled to `wwwroot/css/treachery.css`, Bootstrap, the three shipped fonts and 48 MB of art. The web client loads the compiled CSS and the art from `wwwroot` unchanged: `index.html` links `/css/bootstrap.min.css` and `/css/treachery.css`, and Vite (dev, preview) and the Rust server (production) serve `/art`, `/css`, `/fonts`, `/js`, `/docs` and the fonts from `treachery-online/Client/wwwroot`. Nothing is copied, so a style fix in the C# client reaches both clients. The few razor-scoped styles (`*.razor.css`: `Image`, `NumberPickerComponent`, `SimpleNumberComponent`, `DateTimePicker`, `DealComponent`, `RunningGamesComponent`) become CSS modules next to their React components. When the C# client is retired, `Styles/` moves into `web/` and is compiled by Vite's Sass support. Design work follows `design/design-language.html`.
 
+Since native-plan.md step 5 the SCSS and the art, fonts, scripts and PDFs the site uses live in `web/styles` and `web/assets`, and `npm run build:css` compiles the SCSS with Dart Sass (pinned in `package.json`) to `web/assets/css/treachery.css`. The paths above are from before that move.
+
 The client-side JavaScript of `wwwroot/index.html` and `wwwroot/js` (board scaling `SetPlanetMapScale`, tooltips, the listbox, hover tinting through `data-ref-*`, `follow-log.js`) is ported to TypeScript modules as the components that need them are built, not loaded as globals.
 
 ### Skin
 
 Coordinator decision 1: `Skin.cs` and `DefaultSkin.cs` are ported as the shared crate `rust/skin`. The server renders all text with it: every `RichText` part has a `label` from `Skin.Describe`, so the client needs no port of `Describe` or `Format`. `describe::Describer` is implemented for `treachery_skin::Skin`; the replica holds `DefaultSkin.Default` until the server gives it the game's custom skin.
 
-The client still needs the skin for images, colours, map geometry and the popup texts (card descriptions, faction sheets), so it loads the same skin as JSON: `web/public/skin/default.json`, exported from `DefaultSkin` by `web/tools/export-skin.cs`, and the game's custom skin when the host sets one (the `SetSkin` notification carries it). Popups that C# builds as HTML in `Skin.GetPopup` (and the client's `Support.GetPopup(ResourceCard)` and place chip) are ported as string builders in `web/src/popups.ts`, reading the skin JSON, and shown by Bootstrap as in C#.
+The client still needs the skin for images, colours, map geometry and the popup texts (card descriptions, faction sheets), so it loads the same skin as JSON: `web/public/skin/default.json`, exported from `DefaultSkin` once and edited by hand since native-plan.md step 5 (`rust/skin` holds the server's separate copy), and the game's custom skin when the host sets one (the `SetSkin` notification carries it). Popups that C# builds as HTML in `Skin.GetPopup` (and the client's `Support.GetPopup(ResourceCard)` and place chip) are ported as string builders in `web/src/popups.ts`, reading the skin JSON, and shown by Bootstrap as in C#.
 
 ## Comparing with the C# client
 

@@ -104,6 +104,11 @@ impl GameEventMethods for PerformSetup {
         PerformSetup::validate(self, game)
     }
 
+    fn try_validate(&self, game: &Game) -> GameResult<Option<Message>> {
+        self.field_force_locations().as_ref().required("force locations")?;
+        Ok(PerformSetup::validate(self, game))
+    }
+
     fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         PerformSetup::execute_concrete_event(self, game)
     }

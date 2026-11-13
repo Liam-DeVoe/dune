@@ -44,7 +44,7 @@ impl KarmaHandSwapInitiated {
 
         let mut i = 0;
         while i < game.karma_hand_swap_number_of_cards {
-            let card = cards_to_draw_from.draw();
+            let card = cards_to_draw_from.try_draw()?;
             Game::register_known_player_treachery_card(game, me, Some(card));
             crate::game::remove_card(&mut game.player_mut(victim).treachery_cards, Some(card));
             game.player_mut(me).treachery_cards.push(card);

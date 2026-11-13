@@ -50,7 +50,7 @@ impl ResidualPlayed {
         leaders_to_kill.shuffle();
 
         if !leaders_to_kill.is_empty() {
-            let to_kill = leaders_to_kill.draw();
+            let to_kill = leaders_to_kill.try_draw()?;
             let opponent_plan = battle.plan_of(game, Some(opponent));
             if let Some(opponent_plan) = opponent_plan {
                 if opponent_plan.hero() == Some(to_kill) {

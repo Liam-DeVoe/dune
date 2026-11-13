@@ -65,7 +65,7 @@ impl FaceDancerReplaced {
                 game.traitor_deck.as_mut().required("traitor deck")?.put_on_top(selected_dancer);
                 game.traitor_deck.as_mut().required("traitor deck")?.shuffle();
                 game.stone(Milestone::Shuffled);
-                let leader = game.traitor_deck.as_mut().required("traitor deck")?.draw();
+                let leader = game.traitor_deck.as_mut().required("traitor deck")?.try_draw()?;
                 game.player_mut(player).face_dancers.push(leader);
                 game.player_mut(player).known_non_traitors.add(leader);
             }

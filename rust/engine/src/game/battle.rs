@@ -464,7 +464,7 @@ impl Game {
             auditable_cards.shuffle();
             let mut i = 0;
             while i < nr_of_audited_cards {
-                let card = auditable_cards.draw();
+                let card = auditable_cards.try_draw()?;
                 self.audited_cards.push(card);
                 i += 1;
             }

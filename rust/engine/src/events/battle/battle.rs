@@ -164,7 +164,7 @@ impl Battle {
                 game.reveal_current_no_field_player_territory(supplier, battle_territory);
             }
 
-            let m = express!(aggressor_plan.get_battle_plan_message(game), "; ", defender_plan.get_battle_plan_message(game))
+            let m = express!(aggressor_plan.try_get_battle_plan_message(game)?, "; ", defender_plan.try_get_battle_plan_message(game)?)
                 .with_plans(aggressor_plan.get_plan_summary(game), defender_plan.get_plan_summary(game));
             self.log_objects(game, le![m]);
 
@@ -216,11 +216,19 @@ impl Battle {
         express!(self.initiator(), " finalize their battle plan")
     }
 
+    /// The plan as the log shows it. Panics outside the plan's battle; see
+    /// [`Battle::try_get_battle_plan_message`].
     pub fn get_battle_plan_message(&self, game: &Game) -> Message {
+        self.try_get_battle_plan_message(game).expect("a battle plan message during its battle")
+    }
+
+    /// The plan as the log shows it, or why it can't be shown: the plan's own game (another game
+    /// after an undo) has no battle against an opponent.
+    pub fn try_get_battle_plan_message(&self, game: &Game) -> GameResult<Message> {
         let own = game.enter_own_game(self.game_ref()); // GameEvent.Game: another game after Undo
         let game: &Game = &own;
-        let opponent = game.current_battle.as_ref().nre().opponent_of_faction(game, self.initiator()).nre();
-        express!(
+        let opponent = game.current_battle.as_ref().required("current battle")?.opponent_of_faction(game, self.initiator()).required("opponent")?;
+        Ok(express!(
             self.initiator(),
             " Plan → leader: ",
             self.hero(),
@@ -232,7 +240,7 @@ impl Battle {
             self.weapon(),
             ", defense: ",
             self.defense()
-        )
+        ))
     }
 
     pub fn get_plan_summary(&self, game: &Game) -> PlanSummary {

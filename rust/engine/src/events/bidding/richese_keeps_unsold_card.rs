@@ -31,7 +31,7 @@ impl RicheseKeepsUnsoldCard {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
-        let card = game.cards_on_auction.as_mut().required("cards on auction")?.draw();
+        let card = game.cards_on_auction.as_mut().required("cards on auction")?.try_draw()?;
         game.register_won_card_as_known(card);
 
         if !self.passed {

@@ -10,6 +10,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - When: The shipment form offers special forces for shipping back. Needs Guild as ally or the Guild Secret Ally Nexus card.
 - Where: rust/engine/src/events/movement/shipment.rs:891
 - Note: Players lose spice for nothing in a normal alliance.
+- Done (579e70d): the special forces go back too. Bene Gesserit advisors return as fighters, as when they go to reserves in other ways, and Richese's No-Field token leaves the planet unrevealed. Validation also refuses positive amounts and more forces than the sector holds. Before, a hand-made request could ship forces from reserves to the planet at half price this way, or create forces by shipping back more than were there. Test: `shipping_back_to_reserves_moves_special_forces_too` in engine/tests/rule_fixes.rs.
 
 ## Bene Gesserit flip asks about one territory and flips another
 
@@ -19,6 +20,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - When: The two only differ if another move happens while an older intrusion is still waiting.
 - Where: rust/engine/src/events/movement/bene_gesserit_flip.rs:58
 - Note: Cheap: use the same territory in both places.
+- Done (579e70d): the flip uses the territory of the pending intrusion. A terror sneak attack is one way to get there, since it queues an intrusion without becoming the latest shipment or move. Test: `bene_gesserit_flip_happens_in_the_intruded_territory` in engine/tests/rule_fixes.rs.
 
 ## Revival form keeps a chosen leader after none can be revived
 
@@ -28,6 +30,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - When: Changing other inputs so no leader is revivable.
 - Where: rust/view/src/actions/revival.rs:196
 - Note: Validation still rejects the stale choice.
+- Done (579e70d): the comment this entry came from is in the Raise Dead form (`RaiseDeadPlayed`), not the Revival form, which already cleared the leader. The Raise Dead form now drops a leader that isn't among the revivable ones. Test: `raise_dead_drops_a_leader_that_cant_be_revived` in view/tests/revival_forms.rs.
 
 ## An invalid bot decision skips the rest of its options
 
@@ -131,6 +134,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - When: Emperor's ally with special forces (Fremen, for example) reviving in two steps.
 - Where: rust/engine/src/events/revival/revival.rs:671
 - Note: Breaks a revival limit. One condition to extend.
+- Done (579e70d). Test: `special_force_paid_by_emperor_counts_toward_the_limit` in engine/tests/rule_fixes.rs.
 
 ## Fremen can spend Karama to send a worm without choosing a territory
 
@@ -140,6 +144,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - When: Clicking confirm too early in the web client (rust/view/tests/other_forms.rs:403 shows the form accepts it).
 - Where: rust/engine/src/events/blow/karma_monster.rs:51
 - Note: A player can waste their Karama by accident.
+- Done (579e70d): `KarmaMonster` is refused without a territory ("No territory selected"), in a territory protected from the worm ("Selected territory is protected", as for `FremenSentMonster`) or elsewhere outside `valid_targets` ("Invalid territory"). The form shows the first message until a territory is picked. Tests: `karama_worm_needs_a_territory` in engine/tests/rule_fixes.rs, `dependent_inputs` in view/tests/other_forms.rs.
 
 ## Karama shipment-prevention bot ignores opponents without an ally
 
@@ -152,6 +157,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 ## Ally permissions without an ally are stored under "no faction"
 
 - No visible effect; the entry is never read. Drop it in the step 3 cleanup (rust/engine/src/events/alliances/ally_permission.rs:150 before step 2).
+- Done (579e70d): nothing is stored without an ally. Test: `ally_permissions_without_an_ally_store_nothing` in engine/tests/rule_fixes.rs.
 
 ## Bot shipment sizing prices normal forces as special forces
 
@@ -173,3 +179,5 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 
 - Setup briefly enters deck customizing or faction trading before the real next phase (rust/engine/src/game/setup.rs:73 before step 2).
 - End of storm runs its cleanup twice when storm losses are taken first; the comment saying it skips the storm report is wrong (rust/engine/src/game/storm.rs:219, :223 before step 2).
+- Done (579e70d): setup goes straight to its next phase. The extra entry only removed deals ending in `CustomizingDecks` or `TradingFactions`, which the deal form never offers.
+- Done (579e70d), partly: without storm losses the phase now ends once instead of twice in a row, which did nothing the second time. With storm losses it still ends before the losses and again after them, because the second time can end Karama preventions made while losses are taken. The comment now says what happens: `TakeLosses` comes back to `end_storm_phase`, and the storm report follows.

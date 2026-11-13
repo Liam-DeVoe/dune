@@ -1,11 +1,10 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct SetShipmentPermission {
     pub factions: Option<Vec<Faction>>,
     pub permission: ShipmentPermission,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -44,7 +43,7 @@ impl SetShipmentPermission {
         Ok(None)
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Faction> {
         // `p.Faction` is read inside the predicate, per element, as in C#.
         g.players.iter().filter(move |x| x.faction != g.player(p).faction).map(|x| x.faction)
@@ -64,7 +63,7 @@ impl SetShipmentPermission {
 
         if self.permission != ShipmentPermission::None {
             for f in factions {
-                // Dictionary.Add: ArgumentException on a faction listed twice (hazards 1.4).
+                // Dictionary.Add: ArgumentException on a faction listed twice.
                 game.shipment_permissions.insert_new(*f, self.permission);
             }
         }

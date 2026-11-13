@@ -1,10 +1,9 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct AuditCancelled {
     pub cancelled: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -88,7 +87,7 @@ impl AuditCancelled {
         if !self.cancelled {
             game.enter(Phase::Auditing, true);
             // C# passes the live Game.AuditedCards list, which the next audit clears and
-            // refills (hazards 4.5), so the message keeps it as a live list.
+            // refills, so the message keeps it as a live list.
             let audited = ExpressionElement::live_game_audited_cards(game);
             game.log_to(self.initiator(), elems![Faction::Choam, " see: ", audited]);
         } else {

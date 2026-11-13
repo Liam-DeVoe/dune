@@ -1,10 +1,9 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct KarmaShipmentPrevention {
     pub target: Faction,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -32,7 +31,7 @@ impl KarmaShipmentPrevention {
         None
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn get_valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Faction> {
         g.players_other_than(p).filter(|f| *f != Faction::Fremen)
     }

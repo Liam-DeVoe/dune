@@ -23,7 +23,7 @@ impl Game {
         self.deal_response(offer, faction).is_some()
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn deal_recipients(&self, offer: &DealOffered) -> impl Iterator<Item = Faction> {
         let initiator = offer.initiator();
         self.players
@@ -64,7 +64,7 @@ impl Game {
     }
 }
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct Deal {
     pub bound_faction: Faction,
     pub consuming_faction: Faction,

@@ -1,11 +1,9 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct ChoamMovePrevention {
-    #[canon(name = "_territoryId")]
     pub territory_id: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -41,7 +39,7 @@ impl ChoamMovePrevention {
         None
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_territories(game: &Game, p: PlayerIndex) -> impl Iterator<Item = Territory> {
         game.player(p).territories_with_forces(game)
     }

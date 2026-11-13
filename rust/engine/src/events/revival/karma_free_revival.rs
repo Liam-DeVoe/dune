@@ -1,14 +1,12 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct KarmaFreeRevival {
-    #[canon(name = "_heroId")]
     pub hero_id: i32,
     pub amount_of_forces: i32,
     pub amount_of_special_forces: i32,
     pub assign_skill: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 

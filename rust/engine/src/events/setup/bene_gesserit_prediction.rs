@@ -1,11 +1,10 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct BeneGesseritPrediction {
     pub to_win: Faction,
     pub turn: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -37,7 +36,7 @@ impl BeneGesseritPrediction {
         None
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Faction> {
         g.players_other_than(p)
     }

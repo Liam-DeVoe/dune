@@ -1,12 +1,11 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct TakeLosses {
     pub force_amount: i32,
     pub special_force_amount: i32,
     pub use_useless_card: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -82,7 +81,7 @@ impl TakeLosses {
     }
 
     pub fn half_of(amount_of_forces: i32, amount_of_special_forces: i32) -> i32 {
-        // double arithmetic; the int addition wraps first (hazards 15).
+        // double arithmetic; the int addition wraps first.
         (0.5f64 * (amount_of_forces + amount_of_special_forces) as f64).ceil() as i32
     }
 

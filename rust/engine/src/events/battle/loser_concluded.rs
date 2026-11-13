@@ -1,15 +1,12 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct LoserConcluded {
     pub karma_forced_kept_card_decision: i32,
-    #[canon(name = "_forcedKeptOrDiscardedCardIds")]
     pub forced_kept_or_discarded_card_ids: Option<String>,
     pub assassinate: bool,
-    #[canon(name = "_keptCardId")]
     pub kept_card_id: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -68,7 +65,7 @@ impl LoserConcluded {
         if karma_used && !LoserConcluded::may_use_karma_to_force_kept_cards(game, self.player()) {
             return Some(express!("You can't use ", TreacheryCardType::Karma, " to force keeping or discarding cards"));
         }
-        // C# parity: KeptCard is a stray extra argument in the next two messages (hazards 18.2).
+        // C# parity: KeptCard is a stray extra argument in the next two messages.
         if !(self.karma_forced_kept_card_decision == LoserConcluded::KARMA_NO || karma_used) {
             return Some(express!("Invalid decision", self.kept_card()));
         }

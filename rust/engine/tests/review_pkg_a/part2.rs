@@ -1,6 +1,5 @@
-//! Package A review, part 2 (included from review_pkg_a.rs): EndPhase, PlacementEvent, Utilities, GameState and the
-//! small model types. Expected values come from `csharp-ref` mode `review-a-part2`
-//! (csharp-ref/ReviewA2.cs), run on .NET 10.
+//! Part 2 of review_pkg_a.rs (included from it): EndPhase, placement events, utilities,
+//! GameState and the small model types.
 
 use treachery_engine::error::catch_panic;
 use treachery_engine::enumerations::*;

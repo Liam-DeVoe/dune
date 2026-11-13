@@ -1,16 +1,13 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct DiscoveryEntered {
     // ---- inherited from PlacementEvent ----
-    #[canon(name = "_toId")]
     pub to_id: i32,
-    #[canon(name = "_forceLocations")]
     pub force_locations: Option<String>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -44,7 +41,7 @@ impl DiscoveryEntered {
         None
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = DiscoveredLocation> {
         g.just_revealed_discovery_strongholds
             .iter()
@@ -52,7 +49,7 @@ impl DiscoveryEntered {
             .filter(move |ds| g.player(p).any_forces_in_territory(Some(ds.attached_to_location(&g.map).expect("attached to location").territory())) > 0)
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_sources(game: &Game, p: PlayerIndex, ds: DiscoveredLocation) -> impl Iterator<Item = Location> {
         ds.attached_to_location(&game.map)
             .expect("attached to location")

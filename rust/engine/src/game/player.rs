@@ -1,7 +1,6 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
-#[canon(game_field = "Game")]
+#[derive(Clone, Debug)]
 pub struct Player {
     pub faction: Faction,
     pub seat: i32,
@@ -321,7 +320,7 @@ impl Player {
                     let to_remove_in_this_location = std::cmp::min(forces_in, to_remove_in_total);
 
                     // C# parity: uses toRemoveInTotal where toRemoveInThisLocation was meant
-                    // (hazards §18): the whole remaining amount goes to reserves at every
+                    //: the whole remaining amount goes to reserves at every
                     // location, and the removal below is refused when it exceeds the forces there.
                     let faction = game.player(me).faction;
                     if special && faction != Faction::BeneGesserit {
@@ -556,7 +555,7 @@ impl Player {
         self.occupies_territory(g, Some(t)) && g.nr_of_occupants_excluding_faction_territory_faction(t, self.faction) == 0
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn territories_with_forces(&self, game: &Game) -> impl Iterator<Item = Territory> {
         game.map.territories(true).filter(move |t| self.any_forces_in_territory(Some(*t)) > 0)
     }
@@ -565,7 +564,7 @@ impl Player {
                 self.forces_in_locations.keys().copied().collect()
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn locations_with_any_forces_in_territory(&self, t: Territory) -> impl Iterator<Item = Location> {
                 t.locations().iter().copied().filter(move |l| self.any_forces_in(Some(*l)) > 0)
     }
@@ -726,12 +725,12 @@ impl Player {
                 self.treachery_cards.iter().copied().find(|c| c.type_() == type_)
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn unrevealed_traitors(&self) -> impl Iterator<Item = Hero> {
                 self.traitors.iter().copied().filter(move |f| !self.revealed_traitors.contains(f))
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn unrevealed_face_dancers(&self) -> impl Iterator<Item = Hero> {
                 self.face_dancers.iter().copied().filter(move |f| !self.revealed_face_dancers.contains(f))
     }
@@ -867,8 +866,7 @@ impl Player {
 
 /// A player of a game: its index in `Game.players`. Players are only ever appended,
 /// so the index is stable. `Game::player` resolves it; `Game::player_at(i)` makes one.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Canon)]
-#[canon(manual)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct PlayerIndex {
     pub index: usize,
 }

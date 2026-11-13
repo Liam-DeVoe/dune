@@ -3,7 +3,6 @@
 pub use std::cell::{Cell, RefCell};
 pub use std::rc::Rc;
 
-pub use canon_derive::Canon;
 pub use dotnet_compat::{NetDictionary, NetHashSet, NetRandom};
 pub use indexmap::{IndexMap, IndexSet};
 

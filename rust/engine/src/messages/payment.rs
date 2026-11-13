@@ -2,7 +2,7 @@ use crate::enumerations::Faction;
 use crate::events::GameEvent;
 
 /// `Payment`. Messages use it to print an amount of spice (`Payment.Of(3)`).
-#[derive(Clone, Debug, PartialEq, Default, canon_derive::Canon)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub struct Payment {
     pub amount: i32,
     pub by: Faction,

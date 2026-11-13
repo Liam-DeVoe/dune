@@ -1,12 +1,10 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct BattleInitiated {
-    #[canon(name = "_territoryId")]
     pub territory_id: i32,
     pub target: Faction,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -107,7 +105,7 @@ impl BattleInitiated {
 
     /// `IsTargetByJuice` with a possibly null `initiator`.
     ///
-    /// C# parity: the same predicate as IsInitiatorByJuice apart from the Juice type (hazards 18.2).
+    /// C# parity: the same predicate as IsInitiatorByJuice apart from the Juice type.
     fn is_target_by_juice_opt(g: &Game, initiator: Option<PlayerIndex>, target: PlayerIndex) -> bool {
         g.current_juice.as_ref().is_some_and(|j| {
             j.type_ == JuiceType::GoLast

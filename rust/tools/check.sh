@@ -3,7 +3,7 @@
 # Every agent runs this before reporting a change as done (PORTING.md, "Before you report done").
 #
 #   rust/tools/check.sh            # all workspace tests, release profile
-#   rust/tools/check.sh -p differ  # extra arguments go to cargo test
+#   rust/tools/check.sh -p observe # extra arguments go to cargo test
 #
 # Tests marked #[ignore] (none of which track open review items at the moment) are
 # skipped, as cargo does by default. Exit status is 0 only if everything compiled

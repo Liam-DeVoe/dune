@@ -108,7 +108,7 @@ impl Game {
             || rules.contains(&Rule::StrongholdBonus)
     }
 
-    /// A constant table, rebuilt on each call (hazards.md section 6.2).
+    /// A constant table, rebuilt on each call.
     pub fn ruleset_definition() -> IndexMap<Ruleset, Vec<Rule>> {
                 // A constant table: nothing in Shared writes RulesetDefinition, so a fresh copy per call
         // is equivalent. Insertion order is the C# initializer order.

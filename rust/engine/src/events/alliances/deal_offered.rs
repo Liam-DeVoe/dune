@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct DealOffered {
     pub to: Option<Vec<Faction>>,
     pub type_: DealType,
@@ -12,7 +12,6 @@ pub struct DealOffered {
     pub benefit: i32,
     pub cancel: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -75,7 +74,7 @@ impl DealOffered {
             && offered_deal.end_phase == self.end_phase
             // C# parity: C# 14 binds `Faction[].SequenceEqual(Faction[])` to
             // MemoryExtensions.SequenceEqual on spans, where a null array is an
-            // empty span. So null equals [] and nothing throws (docs/span-binding.md).
+            // empty span. So null equals [] and nothing throws.
             && offered_deal.to.as_deref().unwrap_or(&[]) == self.to.as_deref().unwrap_or(&[])
     }
 

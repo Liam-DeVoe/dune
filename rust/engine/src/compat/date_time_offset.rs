@@ -2,7 +2,7 @@
 //! JSON need them. Support module (no C# counterpart in Shared).
 //!
 //! Event timestamps (`GameEvent.Time`) feed game state through timers
-//! (hazards.md section 13), and they are part of the savegame JSON.
+//!, and they are part of the savegame JSON.
 
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
@@ -73,12 +73,6 @@ impl DateTimeOffset {
         }
         s.push_str(&self.offset_string());
         s
-    }
-
-    /// `ToString("o")`: always seven fraction digits (the oracle's state dump uses this).
-    pub fn to_round_trip_string(&self) -> String {
-        let frac = self.ticks.rem_euclid(TICKS_PER_SECOND);
-        format!("{}.{frac:07}{}", self.clock_string(), self.offset_string())
     }
 
     fn clock_string(&self) -> String {
@@ -243,7 +237,6 @@ mod tests {
         assert_eq!(DateTimeOffset::default().to_json_string(), "0001-01-01T00:00:00+00:00");
         let d = DateTimeOffset::parse_json("2024-02-29T13:45:01.1234500-05:30").unwrap();
         assert_eq!(d.to_json_string(), "2024-02-29T13:45:01.12345-05:30");
-        assert_eq!(d.to_round_trip_string(), "2024-02-29T13:45:01.1234500-05:30");
         assert_eq!(DateTimeOffset::parse_json("2024-01-01").unwrap().to_json_string(), "2024-01-01T00:00:00+00:00");
         assert!(DateTimeOffset::parse_json("2023-02-29T00:00:00+00:00").is_none());
     }

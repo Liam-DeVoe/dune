@@ -1,9 +1,8 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct FlightDiscoveryUsed {
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -38,7 +37,7 @@ impl FlightDiscoveryUsed {
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
-        // C# parity: "discovert" is the C# text (hazards 11).
+        // C# parity: "discovert" is the C# text.
         express!(self.initiator(), " use the ", DiscoveryToken::Flight, " discovert token to gain movement speed")
     }
 

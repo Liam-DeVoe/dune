@@ -138,7 +138,7 @@ fn deal_responses_are_keyed_by_identity() {
 }
 
 /// `Same` compares `To` with SequenceEqual. Under C# 14 that binds to the span
-/// overload, so a null array counts as empty (see docs/span-binding.md).
+/// overload, so a null array counts as empty.
 #[test]
 fn deal_same_with_null_to_matches_empty_to() {
     let g = game_with(&[Faction::Atreides]);

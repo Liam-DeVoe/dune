@@ -1,8 +1,8 @@
 #!/bin/bash
-# Runs a CPU-heavy command (differ live, oracle runs, coverage) only when a slot
+# Runs a CPU-heavy command (observe live, screenshot runs) only when a slot
 # is free, so agents don't oversubscribe the machine's 8 cores.
 #
-#   rust/tools/heavy.sh ./target/release/differ live --mode fuzz --seed 5 --games 100 --jobs 4
+#   rust/tools/heavy.sh ./target/release/observe live --mode fuzz --seed 5 --games 100 --jobs 4
 #
 # HEAVY_SLOTS sets the number of slots (default 2). A slot whose process has
 # died is reclaimed automatically.
@@ -46,7 +46,7 @@ while true; do
       echo $$ > "$slot/pid"
       trap 'rm -rf "$slot"' EXIT
       echo "heavy.sh: running in slot $i" >&2
-      # differ live takes a slot itself unless this is set (it would otherwise wait for a second one).
+      # observe live takes a slot itself unless this is set (it would otherwise wait for a second one).
       export TREACHERY_HEAVY_SLOT=$i
       "$@" &
       child=$!

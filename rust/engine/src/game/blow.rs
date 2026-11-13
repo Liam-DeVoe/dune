@@ -168,7 +168,7 @@ impl Game {
         }
 
         // foreach over a lazy Where: the predicate runs on each card just before its Add, so a
-        // card that throws leaves the earlier ones added (docs/lazy-queries.md).
+        // card that throws leaves the earlier ones added.
         let count = self.resource_card_discard_pile_a.as_ref().expect("resource card discard pile a").items.len();
         for idx in 0..count {
             let i = self.resource_card_discard_pile_a.as_ref().expect("resource card discard pile a").items[idx];
@@ -180,7 +180,7 @@ impl Game {
         self.resource_card_discard_pile_a.as_mut().expect("resource card discard pile a").clear();
 
         // foreach over a lazy Where: the predicate runs on each card just before its Add, so a
-        // card that throws leaves the earlier ones added (docs/lazy-queries.md).
+        // card that throws leaves the earlier ones added.
         let count = self.resource_card_discard_pile_b.as_ref().expect("resource card discard pile b").items.len();
         for idx in 0..count {
             let i = self.resource_card_discard_pile_b.as_ref().expect("resource card discard pile b").items[idx];
@@ -243,7 +243,7 @@ impl Game {
             self.change_resources_on_planet(location, spice_amount);
         } else {
             // C# parity: SandTroutDoublesResources is not reset when the doubled blow is lost
-            // to the storm (hazards 18.2).
+            // to the storm.
             let msg = express!(Payment::of(spice_amount), " in ", location, " is lost in the storm")
                 .with_log(BlowCardLog::new(blow_card, location, spice_amount, true, false));
             self.log(elems![msg]);
@@ -569,7 +569,7 @@ impl Game {
     }
 }
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct MonsterAppearence {
     pub territory: Territory,
     pub is_great_monster: bool,

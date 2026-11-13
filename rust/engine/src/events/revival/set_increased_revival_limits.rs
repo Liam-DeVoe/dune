@@ -1,10 +1,9 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct SetIncreasedRevivalLimits {
     pub factions: Option<Vec<Faction>>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -40,7 +39,7 @@ impl SetIncreasedRevivalLimits {
         Ok(None)
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Faction> {
         g.players.iter().filter(move |x| x.faction != g.player(p).faction).map(move |x| x.faction)
     }

@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct BattleOutcome {
     pub agg_hero_skill_bonus: i32,
     pub agg_activated_bonus_skill: LeaderSkill,

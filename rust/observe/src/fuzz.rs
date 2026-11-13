@@ -1,13 +1,11 @@
-//! Fuzz event generation for the recorder, in the spirit of the C# oracle's `client` profile
-//! (treachery-online/Oracle/Fuzzer*.cs): events of an applicable type, for the player's own
+//! Fuzz event generation for the recorder: events of an applicable type, for the player's own
 //! faction, starting from the draft the client's form would send (`treachery_view::actions::
 //! default_draft`), with some fields changed to real values of the game: the player's cards and
 //! leaders, locations and territories of the map, factions in play, small amounts. Candidates
 //! that pass validation are preferred, but invalid ones are submitted now and then.
 //!
 //! The generator reads a shadow copy of the game ([`Shadow`]), never the session's game, so it
-//! can't change state the replayer wouldn't change: drafts and validation fill caches (hazards.md
-//! 6.1, 4.3). Only the recorder runs it; the replayer reads its events from the trace.
+//! can't change state the replayer wouldn't change: drafts and validation fill caches. Only the recorder runs it; the replayer reads its events from the trace.
 
 use std::collections::BTreeMap;
 use std::panic::{self, AssertUnwindSafe};
@@ -536,8 +534,7 @@ pub fn mutate_steered(event: &mut Map<String, Value>, game: &Game, player: usize
     mutate(event, game, Some(player), 1, rng)
 }
 
-/// The events played around a fight, plus plan revision and traitor calls (the C# oracle's
-/// `Fuzzer.BattleActionTypes`).
+/// The events played around a fight, plus plan revision and traitor calls.
 pub const BATTLE_ACTION_TYPES: [&str; 24] = [
     "Voice", "Prescience", "Thought", "ThoughtAnswered", "Diplomacy", "PoisonToothCancelled", "PortableAntidoteUsed", "RockWasMelted",
     "AuditCancelled", "Audited", "FaceDanced", "FaceDancerReplaced", "FaceDancerRevealed", "ResidualPlayed", "Planetology", "JuicePlayed",
@@ -600,7 +597,7 @@ impl Fuzzer {
         self.accepted.get(&(t.name(), phase.0)).copied().unwrap_or(0) < 2
     }
 
-    /// Novelty weight of a type in a phase: 1 / (1 + accepted)^1.5, as in the C# oracle, damped by
+    /// Novelty weight of a type in a phase: 1 / (1 + accepted)^1.5, damped by
     /// how often steering already picked it.
     fn weight(&self, t: GameEventType, phase: Phase) -> f64 {
         let a = self.accepted.get(&(t.name(), phase.0)).copied().unwrap_or(0) as f64;
@@ -625,7 +622,7 @@ impl Fuzzer {
     }
 
     /// A (player or nobody, type) from everything applicable, weighted towards types rarely
-    /// executed in this phase (the C# oracle's `SteeredEvent`).
+    /// executed in this phase.
     pub fn steered_pick(&mut self, applicable: &[(Option<usize>, Vec<GameEventType>)], phase: Phase) -> Option<(Option<usize>, GameEventType)> {
         let items: Vec<((Option<usize>, GameEventType), f64)> = applicable.iter().flat_map(|(i, ts)| ts.iter().map(move |t| ((*i, *t), 0.0))).collect();
         let items: Vec<_> = items.into_iter().map(|((i, t), _)| ((i, t), self.weight(t, phase))).collect();
@@ -634,7 +631,7 @@ impl Fuzzer {
         Some(pick)
     }
 
-    /// A battle action for a player in the current battle (the C# oracle's `BattleAction`):
+    /// A battle action for a player in the current battle:
     /// an applicable one, weighted towards rare types; now and then a rare one regardless.
     pub fn battle_action(&mut self, applicable: &[(usize, Vec<GameEventType>)], phase: Phase) -> Option<(usize, GameEventType)> {
         let items: Vec<((usize, GameEventType), f64)> = applicable
@@ -656,7 +653,7 @@ impl Fuzzer {
 
     /// A battle plan this faction submitted before, with its leader, a card or its dial changed
     /// to another choice its form offers. After a `BattleRevision`, parts the opponent saw with
-    /// prescience must stay (the C# oracle's `ChangedSeenPlan`); other changes are allowed.
+    /// prescience must stay; other changes are allowed.
     pub fn changed_plan(&mut self, shadow: &Game, player: usize) -> Option<Map<String, Value>> {
         let faction = shadow.players.get(player)?.faction.0;
         let mut plan = self.plans.get(&faction)?.clone();

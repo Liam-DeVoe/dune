@@ -5,13 +5,12 @@ macro_rules! elems {
     ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
 }
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct DivideResources {
     pub portion_to_first_player: i32,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 

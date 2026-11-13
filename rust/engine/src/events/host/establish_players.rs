@@ -1,18 +1,15 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct EstablishPlayers {
     pub settings: Option<Shared<GameSettings>>,
     pub seed: i32,
     pub maximum_number_of_players: i32,
     pub maximum_turns: i32,
     pub applicable_rules: Option<Vec<Rule>>,
-    #[canon(name = "_players")]
     pub players: Option<String>,
-    #[canon(name = "_factionsInPlay")]
     pub factions_in_play: Option<String>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -162,7 +159,7 @@ impl EstablishPlayers {
         result
     }
 
-    /// Overrides `GameEvent.Execute` (hazards 1.2): no try/catch, no applicability check,
+    /// Overrides `GameEvent.Execute`: no try/catch, no applicability check,
     /// `RecentMilestones` is not cleared.
     pub fn try_execute(self: &Rc<Self>, game: &mut Game, perform_validation: bool, _is_host: bool) -> GameResult<Option<Message>> {
         if perform_validation {
@@ -189,7 +186,7 @@ impl EstablishPlayers {
 
         //Settings
 
-        // Shares the event's own settings object (hazards 5.1). A null Settings is stored,
+        // Shares the event's own settings object. A null Settings is stored,
         // and the next statement throws NullReferenceException on Game.Settings.InitialRules.
         game.settings = self.settings.clone();
 
@@ -266,7 +263,7 @@ impl EstablishPlayers {
         game.bene_gesserit_allows_use_of_voice = true;
         game.richese_allows_use_of_no_field = true;
 
-        // The same list object as Settings.AllowedFactionsInPlay (hazards 5.1). It cannot be
+        // The same list object as Settings.AllowedFactionsInPlay. It cannot be
         // null here: DetermineApproximateRuleset above would have thrown.
         game.factions_in_play = game.settings.as_ref().required("settings")?.borrow().allowed_factions_in_play.clone().required("allowed factions in play")?;
 
@@ -310,7 +307,7 @@ impl EstablishPlayers {
 
     pub fn create_and_shuffle_resource_card_deck(&self, game: &mut Game) -> Deck<ResourceCard> {
         let mut result = Deck::empty(game.random.clone());
-        // PutOnTop one by one reverses the source order (hazards 2.3).
+        // PutOnTop one by one reverses the source order.
         for c in Map::get_resource_cards_in_play(&*game) {
             result.put_on_top(c);
         }

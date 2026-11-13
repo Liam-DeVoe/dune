@@ -17,7 +17,7 @@ impl Game {
             self.shipment_and_move_sequence = Some(seq);
         }
 
-        // Every argument is evaluated before Enter runs, including the call that may log (hazards 4.2).
+        // Every argument is evaluated before Enter runs, including the call that may log.
         let condition1 = self.juice_forces_first_player() && self.current_juice.clone().expect("current juice").initiator() != Faction::Guild;
         let condition2 = self.check_if_guild_acts_or_auto_delays();
         self.enter_boolean_phase_boolean_phase_phase(condition1, Phase::NonGuildShip, condition2, Phase::GuildShip, Phase::NonGuildShip);
@@ -69,7 +69,7 @@ impl Game {
             for fl in in_territory {
                 if fl.1.total_amount_of_forces() > 0 {
                     self.perform_move_from_location(initiator, fl.0, &fl.1, to, &mut total_number_of_forces, &mut total_number_of_special_forces, false);
-                    // C# parity: Sandmaster is applied per source location (hazards 18).
+                    // C# parity: Sandmaster is applied per source location.
                     self.check_sandmaster(initiator, to, dist, fl);
                 }
             }
@@ -479,7 +479,7 @@ impl Game {
 
             Phase::GuildShip | Phase::BeneGesseritIntrudedByGuildShip | Phase::TerrorTriggeredByGuildShip | Phase::AmbassadorTriggeredByGuildShip => Phase::TerrorTriggeredByGuildShip,
 
-            // C# parity: unlike the Ambassador mapping, BeneGesseritAccompanies phases go back to the plain ship phase (hazards 18).
+            // C# parity: unlike the Ambassador mapping, BeneGesseritAccompanies phases go back to the plain ship phase.
             Phase::BeneGesseritAccompaniesGuildShip | Phase::TerrorTriggeredByBeneGesseritAccompaniesGuildShip | Phase::AmbassadorTriggeredByBeneGesseritAccompaniesGuildShip => Phase::TerrorTriggeredByGuildShip,
 
             Phase::NonGuildShip | Phase::BeneGesseritIntrudedByNonGuildShip | Phase::TerrorTriggeredByNonGuildShip | Phase::AmbassadorTriggeredByNonGuildShip => Phase::TerrorTriggeredByNonGuildShip,
@@ -835,7 +835,7 @@ impl Game {
     }
 }
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct Intrusion {
     pub triggering_event: GameEvent,
     pub type_: IntrusionType,

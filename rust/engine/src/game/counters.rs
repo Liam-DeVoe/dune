@@ -1,8 +1,7 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct ObjectCounter<T> {
-    #[canon(name = "_counters")]
     pub counters: IndexMap<T, i32>,
 }
 
@@ -66,9 +65,8 @@ impl<T: Clone + Eq + std::hash::Hash + 'static> ObjectCounter<T> {
 
 }
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct Timer<T> {
-    #[canon(name = "_times")]
     pub times: IndexMap<T, TimeSpan>,
 }
 

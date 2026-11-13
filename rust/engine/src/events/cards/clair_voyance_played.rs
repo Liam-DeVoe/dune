@@ -1,13 +1,12 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct ClairVoyancePlayed {
     pub question: ClairvoyanceQuestion,
     pub target: Faction,
     pub question_parameter1: Option<String>,
     pub question_parameter2: Option<String>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -152,12 +151,12 @@ impl ClairVoyancePlayed {
         None
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Faction> {
         g.players_other_than(p)
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_questions(g: &Game, target: Faction) -> impl Iterator<Item = ClairvoyanceQuestion> {
         use either::Either;
         let all_values: Vec<ClairvoyanceQuestion> = ClairvoyanceQuestion::ALL.iter().copied().collect();

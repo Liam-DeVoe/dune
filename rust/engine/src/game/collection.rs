@@ -70,7 +70,7 @@ impl Game {
 
             let r = &mut self.player_mut(occupier).resources;
             *r += amount_lost;
-            // C# parity: logs "0 ... goes to occupier" whenever there is an occupier (hazards 18.2).
+            // C# parity: logs "0 ... goes to occupier" whenever there is an occupier.
             let from_faction = self.player(from).faction;
             let occupier_faction = self.player(occupier).faction;
             self.log(elems![Payment::of(amount_lost), " received by ", from_faction, " goes to ", occupier_faction, " due to occupation"]);
@@ -117,7 +117,7 @@ impl Game {
         let processing_station = self.map.processing_station().location();
         let find_thief = |g: &Game| g.player_indices().find(|p| g.player(*p).occupies(g, Some(processing_station)));
 
-        // `.ToList()`: a snapshot of the pairs, in dictionary order (hazards 3.3).
+        // `.ToList()`: a snapshot of the pairs, in dictionary order.
         let snapshot: Vec<(Location, i32)> = self.resources_on_planet.iter().filter(|(_, v)| **v > 0).map(|(k, v)| (*k, *v)).collect();
         for (key, value) in snapshot {
             let mut thief = find_thief(self);
@@ -236,7 +236,7 @@ impl Game {
     }
 }
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct ResourcesToBeDivided {
     pub amount: i32,
     pub first_faction: Faction,

@@ -207,7 +207,7 @@ impl Game {
 
             self.enter(Phase::AssigningInitialSkills, true);
         } else {
-            // C# parity (hazards 18.3): TreacheryCardsBeforeTraitors requires LeaderSkills, so
+            // C# parity: TreacheryCardsBeforeTraitors requires LeaderSkills, so
             // this always calls SetupSpiceAndForces. Game.Enter(bool, Action, Action) inlined.
             if self.treachery_cards_before_traitors() {
                 self.deal_traitors();

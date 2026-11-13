@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct BiddingDrawn {
     pub count: i32,
 }
@@ -20,7 +20,7 @@ impl BiddingDrawn {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct TreacheryReshuffled {
     pub count: i32,
 }
@@ -40,7 +40,7 @@ impl TreacheryReshuffled {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct BiddingSkipped {
 }
 
@@ -54,7 +54,7 @@ impl Default for BiddingSkipped {
 impl BiddingSkipped {
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct BidShare {
     pub by: Faction,
     pub amount: i32,
@@ -76,7 +76,7 @@ impl BidShare {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct CardSold {
     pub card_number: i32,
     pub winner: Faction,
@@ -106,7 +106,7 @@ impl CardSold {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct CardWonShown {
     pub card: TreacheryCard,
 }
@@ -118,7 +118,7 @@ impl CardWonShown {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ExtraCardReceived {
     pub receiver: Faction,
 }
@@ -138,7 +138,7 @@ impl ExtraCardReceived {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ExtraCardShown {
     pub card: TreacheryCard,
 }
@@ -150,7 +150,7 @@ impl ExtraCardShown {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct BiddingPassedByAll {
     pub card_number: i32,
 }

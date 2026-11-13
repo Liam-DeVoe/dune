@@ -1,13 +1,11 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct Retreat {
     pub forces: i32,
     pub special_forces: i32,
-    #[canon(name = "_targetId")]
     pub target_id: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -56,7 +54,7 @@ impl Retreat {
         None
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
         let territory = g.current_battle.as_ref().expect("current battle").territory(g).expect("territory");
         let battalions = g.player(p).battalions_in(territory);
@@ -70,7 +68,7 @@ impl Retreat {
         let plan = current_battle.plan_of(g, Some(p));
         let opponent_plan = current_battle.plan_of_opponent(g, Some(p));
         // plan.Hero.ValueInCombatAgainst(opponentPlan.Hero): NullReferenceException when
-        // either plan or the hero is null (hazards 1.4).
+        // either plan or the hero is null.
         let hero = plan.expect("plan").hero();
         let opponent_hero = opponent_plan.expect("opponent plan").hero();
         hero.expect("hero").value_in_combat_against(opponent_hero)

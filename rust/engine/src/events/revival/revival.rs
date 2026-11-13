@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct Revival {
     pub amount_of_forces: i32,
     pub amount_of_special_forces: i32,
@@ -8,14 +8,11 @@ pub struct Revival {
     pub extra_special_forces_paid_by_emperor: i32,
     pub number_of_forces_in_location: i32,
     pub number_of_special_forces_in_location: i32,
-    #[canon(name = "_locationId")]
     pub location_id: i32,
-    #[canon(name = "_heroId")]
     pub hero_id: i32,
     pub assign_skill: bool,
     pub uses_emperor_secret_ally: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -178,7 +175,7 @@ impl Revival {
     }
 
     pub fn determine_cost_of_forces_for_emperor(g: &Game, emperor: PlayerIndex, ally: Faction, forces: i32, special_forces: i32) -> i32 {
-        // float arithmetic, then Math.Ceiling widens to double (hazards 9.1/9.2).
+        // float arithmetic, then Math.Ceiling widens to double.
         let sum: f32 = forces as f32 * Self::get_price_per_force(g, emperor)
             + special_forces as f32 * Self::get_price_per_special_force(g, emperor, ally);
         (sum as f64).ceil() as i32
@@ -245,7 +242,7 @@ impl Revival {
         cost
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     /// Only the early-revival branch is lazy; the others are computed in full.
     pub fn valid_revival_heroes(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Hero> {
         use either::Either;
@@ -486,7 +483,7 @@ impl Revival {
 
         let price_of_special_forces: i32 = if pl.faction == Faction::Ixian { 3 } else { 2 };
 
-        // Counting loops kept as loops, with wrapping arithmetic (hazards 1.9).
+        // Counting loops kept as loops, with wrapping arithmetic.
         let mut special_forces_paid_by_emperor: i32 = 0;
         while ((special_forces_paid_by_emperor + 1) * price_of_special_forces)
             <= g.player(emperor.expect("emperor")).resources
@@ -528,7 +525,7 @@ impl Revival {
         }
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     /// The predicate can throw (`AlliedPlayer` null), and callers stop enumerating at the first match.
     pub fn valid_revived_force_locations(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
         g.map.locations(false).filter(move |l| {

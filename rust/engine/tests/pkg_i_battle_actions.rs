@@ -226,7 +226,7 @@ fn thought_answered_shows_only_the_asked_card_when_held() {
 
 /// `AuditCancelled.cs:89` logs the live `Game.AuditedCards` list. The next audit clears and
 /// refills it (`Game_Battle.cs:427-429`), and the C# state dump then shows the new contents
-/// in the old message (hazards 4.5).
+/// in the old message.
 /// What a rendering of `e` with `game` shows: a live list's current contents, otherwise the
 /// items taken when the message was logged (see live_lists.rs).
 fn current(e: &ExpressionElement, game: Option<&Game>) -> Vec<ExpressionElement> {

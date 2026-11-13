@@ -1,29 +1,23 @@
 use crate::prelude::*;
 use crate::compat::random_ext::RandomExt;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct AmbassadorActivated {
     pub bene_gesserit_selected_ambassador: Ambassador,
-    #[canon(name = "_choamCardIds")]
     pub choam_card_ids: Option<String>,
     pub ecaz_offer_alliance: bool,
     pub ecaz_give_vidal_to_ally: bool,
     pub ecaz_take_vidal: bool,
-    #[canon(name = "_fremenOrGuildToId")]
     pub fremen_or_guild_to_id: i32,
-    #[canon(name = "_fremenForceLocations")]
     pub fremen_force_locations: Option<String>,
-    #[canon(name = "_ixianCardId")]
     pub ixian_card_id: i32,
     pub guild_force_amount: i32,
     pub tleilaxu_amount_of_forces: i32,
-    #[canon(name = "_tleilaxuHeroId")]
     pub tleilaxu_hero_id: i32,
     pub tleilaxu_assign_skill: bool,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -307,14 +301,14 @@ impl AmbassadorActivated {
         PlacementEvent::valid_movement_sources(g, p)
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_fremen_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
         g.map
             .locations(false)
             .filter(move |l| l.visible(&g.map) && l.sector(&g.map) != g.sector_in_storm && g.is_not_full(p, *l))
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_guild_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
         let hms = g.map.hidden_mobile_stronghold().location();
         g.map
@@ -398,7 +392,7 @@ impl AmbassadorActivated {
             Ambassador::Atreides => {
                 if !game.player(victim_player.required("victim player")?).treachery_cards.is_empty() {
                     self.log_objects(game, elems![self.initiator(), " see all treachery cards owned by ", victim]);
-                    // C# logs the live hand (hazards 4.5): the state dump shows its current contents.
+                    // The message refers to the live hand, so the log shows its current contents.
                     let cards = ExpressionElement::live_player_treachery_cards(game, victim_player.required("victim player")?);
                     self.log_to(game, self.initiator(), elems![victim, " own: ", cards]);
                 } else {

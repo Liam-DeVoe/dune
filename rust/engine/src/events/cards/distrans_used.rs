@@ -1,12 +1,10 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct DistransUsed {
     pub target: Faction,
-    #[canon(name = "_cardId")]
     pub card_id: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -45,12 +43,12 @@ impl DistransUsed {
         None
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_cards(game: &Game, p: PlayerIndex) -> impl Iterator<Item = TreacheryCard> {
         game.player(p).treachery_cards.iter().copied().filter(move |c| c.type_() != TreacheryCardType::Distrans)
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Faction> {
         g.players
             .iter()
@@ -95,7 +93,7 @@ impl DistransUsed {
 
     pub fn check_if_bidding_for_player_should_be_skipped(&self, game: &mut Game, player: PlayerIndex, had_room_for_cards: bool) {
         // C# parity: during black market bidding this also executes a regular Bid, not a BlackMarketBid.
-        // Nested Execute: pre/post-event tasks run again and the Bid is added to History (hazards 5.5).
+        // Nested Execute: pre/post-event tasks run again and the Bid is added to History.
         if game.current_phase == Phase::BlackMarketBidding && had_room_for_cards && !game.player(player).has_room_for_cards(game) && BlackMarketBid::may_be_played(game, player) {
             let mut bid = Bid::new(game, game.player(player).faction);
             bid.passed = true;

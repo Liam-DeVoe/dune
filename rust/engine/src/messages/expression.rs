@@ -89,16 +89,14 @@ pub enum ExpressionElement {
     /// ``System.Collections.Generic.List`1[Treachery.Shared.Faction]``.
     ///
     /// `items` is a snapshot taken when the message is built. For the few
-    /// live game collections that are logged (hazards 4.5), `live` names the
-    /// source to read again when the state is dumped.
+    /// live game collections that are logged, `live` names the source that the
+    /// skin and the views read again when they render the message.
     List { type_name: String, items: Vec<ExpressionElement>, live: Option<LiveList> },
 }
 
-/// A game collection that a message refers to rather than copies, so the state
-/// dump shows its contents at dump time rather than at log time (hazards 4.5).
+/// A game collection that a message refers to rather than copies, so the log
+/// shows its contents when it is rendered rather than when it was logged.
 ///
-/// Every site that puts a collection into a message is listed, with its
-/// class, in `rust/docs/live-lists.md`; the sites of class (b) use one of these.
 /// A variant names the collection by where it lives in the game. That only
 /// identifies the logged collection because none of these fields is ever
 /// reassigned (only cloning a player copies them), so a new variant needs the
@@ -215,7 +213,7 @@ impl ExpressionElement {
     }
 
     /// A game collection that a message refers to rather than copies: the
-    /// contents now, plus the source the state dump reads again. See [`LiveList`].
+    /// contents now, plus the source to read again when rendering. See [`LiveList`].
     pub fn live(game: &crate::game::Game, source: LiveList) -> Self {
         ExpressionElement::List { type_name: source.type_name(), items: source.read(game).unwrap_or_default(), live: Some(source) }
     }
@@ -240,7 +238,7 @@ impl ExpressionElement {
             ExpressionElement::Bool(b) => if *b { "True" } else { "False" }.to_string(),
             ExpressionElement::Int(i) => i.to_string(),
             ExpressionElement::Long(i) => i.to_string(),
-            // Invariant culture, which the oracle renders under (hazards 11.2).
+            // Invariant culture.
             ExpressionElement::Float(f) => dotnet_compat::fmt::f32_to_string(*f),
             ExpressionElement::Double(f) => dotnet_compat::fmt::f64_to_string(*f),
             ExpressionElement::Enum(e) => e.ty.format(e.value),
@@ -433,7 +431,7 @@ impl<T: Into<ExpressionElement> + CsType, const N: usize> From<[T; N]> for Expre
 }
 
 /// `Expression`
-#[derive(Clone, Debug, PartialEq, Default, canon_derive::Canon)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub struct Expression {
     pub elements: Vec<ExpressionElement>,
 }

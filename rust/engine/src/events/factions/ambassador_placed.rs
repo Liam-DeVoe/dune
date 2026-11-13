@@ -1,12 +1,10 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct AmbassadorPlaced {
     pub ambassador: Ambassador,
-    #[canon(name = "_strongholdId")]
     pub stronghold_id: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -47,7 +45,7 @@ impl AmbassadorPlaced {
         None
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_strongholds(g: &Game, _p: PlayerIndex) -> impl Iterator<Item = Territory> {
         g.map
             .territories(false)

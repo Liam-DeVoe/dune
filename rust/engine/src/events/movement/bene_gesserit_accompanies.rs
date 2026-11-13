@@ -1,13 +1,11 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct BeneGesseritAccompanies {
-    #[canon(name = "_targetId")]
     pub target_id: i32,
     pub accompanies: bool,
     pub extra_advisor: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -107,7 +105,7 @@ impl BeneGesseritAccompanies {
             let Some(location) = location else {
                 return Some(express!("To not selected"));
             };
-            // C# parity: unreachable, the first check already returned (hazards 18).
+            // C# parity: unreachable, the first check already returned.
             if self.accompanies && game.player(self.player()).forces_in_reserve() == 0 {
                 return Some(express!("No forces available"));
             }

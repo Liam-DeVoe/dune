@@ -7,11 +7,10 @@ macro_rules! elems {
     ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
 }
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct StormDialled {
     pub amount: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -58,7 +57,7 @@ impl StormDialled {
         game.has_acted_or_passed.push(self.initiator());
 
         if game.has_battle_wheel.iter().all(|f| game.has_acted_or_passed.contains(f)) {
-            // Arguments are evaluated left to right; a one-player game throws at Dials[1] (hazards 1.4).
+            // Arguments are evaluated left to right; a one-player game throws at Dials[1].
             let d0 = game.dials[0];
             let f0 = game.has_acted_or_passed[0];
             let d1 = game.dials[1];

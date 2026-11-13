@@ -88,7 +88,7 @@ impl Game {
         }
 
         // C# parity: C# 14 binds `Faction[].Contains` to MemoryExtensions.Contains on a
-        // span, so a null array is empty and doesn't throw (docs/span-binding.md).
+        // span, so a null array is empty and doesn't throw.
         if self.factions_with_increased_revival_limits.as_deref().unwrap_or(&[]).contains(&pl.faction) {
             return std::cmp::max(5 + low_threshold + emperor_secret_ally - already_revived, 0);
         }
@@ -152,7 +152,7 @@ impl Game {
         let mut tleilaxu_receives_income = false;
 
         if let Some(tleilaxu) = tleilaxu {
-            // C# parity: Tleilaxu also earns this when it revives its own forces for free (hazards 18).
+            // C# parity: Tleilaxu also earns this when it revives its own forces for free.
             tleilaxu_receives_income =
                 !self.tleilaxu_started_revival_with_low_threshold && !self.prevented(FactionAdvantage::TleilaxuReceiveRevive);
 
@@ -189,7 +189,7 @@ impl Game {
     }
 }
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct RevivalCost {
     pub cost_for_force_revival_for_player: i32,
     pub cost_for_emperor: i32,

@@ -1,5 +1,4 @@
-//! Game configuration drawn from a game's seed, after the C# oracle's `GameConfig.Randomize`
-//! (treachery-online/Oracle/GameConfig.cs), at `Game::LATEST_VERSION` only.
+//! Game configuration drawn from a game's seed, at `Game::LATEST_VERSION` only.
 
 use serde_json::{json, Value};
 use treachery_engine::events::EstablishPlayers;
@@ -8,7 +7,7 @@ use treachery_engine::prelude::*;
 
 use crate::rng::Rng;
 
-/// How bots and the host drive the game (trace-format.md, "Host styles").
+/// How bots and the host drive the game.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum HostStyle {
     /// Every bot sees `GetApplicableEvents(p, true)`, every bot event is submitted as host.

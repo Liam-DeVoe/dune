@@ -1,13 +1,10 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct CardsDetermined {
-    #[canon(name = "_treacheryCardIds")]
     pub treachery_card_ids: Option<String>,
-    #[canon(name = "_richeseCardIds")]
     pub richese_card_ids: Option<String>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 

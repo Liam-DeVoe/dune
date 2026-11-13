@@ -4,7 +4,7 @@ use crate::prelude::*;
 
 // C# enum `BeneGesseritReactionKind` is generated into enumerations.rs (tools/gen_enumerations.py).
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ShipLogged {
     pub faction: Faction,
     pub kind: ShipKind,
@@ -50,7 +50,7 @@ impl ShipLogged {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct MoveLogged {
     pub faction: Faction,
     pub move_: i32,
@@ -69,7 +69,7 @@ impl MoveLogged {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct MovePassed {
     pub faction: Faction,
 }
@@ -89,7 +89,7 @@ impl MovePassed {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct BeneGesseritReaction {
     pub kind: BeneGesseritReactionKind,
     pub place: ExpressionElement,
@@ -103,7 +103,7 @@ impl BeneGesseritReaction {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ShipMoveLoss {
     pub faction: Faction,
     pub storm: bool,
@@ -131,7 +131,7 @@ impl ShipMoveLoss {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct GuildDelayed {
 }
 

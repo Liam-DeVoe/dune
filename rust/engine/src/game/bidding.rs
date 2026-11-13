@@ -298,7 +298,7 @@ impl Game {
         let mut emperor_received_instead_message = express_part!();
         if emperor.is_some() && total_amount_received_by_emperor_instead_of_richese > 0 {
             let emperor = emperor.expect("emperor");
-            // C# parity: Richese's homeworld threshold and occupier are applied to Emperor's income (hazards 18.2).
+            // C# parity: Richese's homeworld threshold and occupier are applied to Emperor's income.
             self.modify_income_because_of_low_threshold_or_occupation(receiver.required("The payment receiver")?, &mut total_amount_received_by_emperor_instead_of_richese);
             {
                 let r = self.player_mut(emperor);
@@ -311,7 +311,7 @@ impl Game {
                 self.bidding_triggered_bureaucracy = Some(TriggeredBureaucracy { payment_from: Faction::Richese, payment_to: Faction::Emperor });
             }
 
-            // C# parity: records a recent payment of receiverProfit while it is still 0 (hazards 18.2).
+            // C# parity: records a recent payment of receiverProfit while it is still 0.
             let initiator_faction = self.player(initiator).faction;
             let receiver_faction = self.player(receiver.required("The payment receiver")?).faction;
             self.set_recent_payment(receiver_profit, initiator_faction, receiver_faction, bid);

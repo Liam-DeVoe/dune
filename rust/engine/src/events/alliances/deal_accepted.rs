@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct DealAccepted {
     pub bound_faction: Faction,
     pub type_: DealType,
@@ -11,7 +11,6 @@ pub struct DealAccepted {
     pub price: i32,
     pub benefit: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -83,7 +82,7 @@ impl DealAccepted {
             }
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn acceptable_deals(g: &Game, p: Option<PlayerIndex>) -> impl Iterator<Item = Rc<DealOffered>> {
         use either::Either;
         use std::iter::empty;
@@ -104,7 +103,7 @@ impl DealAccepted {
             && (g.economics_status != ChoamEconomicsStatus::Double || (offer.benefit == 0 && offer.price == 0))
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn cancellable_deals(g: &Game, p: Option<PlayerIndex>) -> impl Iterator<Item = Rc<DealOffered>> {
         use either::Either;
         use std::iter::empty;
@@ -184,8 +183,8 @@ impl DealAccepted {
 
     pub fn handle_accepted_bot_deal(&self, game: &mut Game, offer: &Rc<DealOffered>) {
         if offer.type_ == DealType::TellDiscardedTraitors {
-            // C# stores the player's DiscardedTraitors set itself in the message, so the state
-            // dump shows its contents at dump time (docs/live-lists.md).
+            // The message refers to the player's discarded traitors, so the log shows the set as
+            // it is when rendered.
             let discarded = ExpressionElement::live(game, crate::messages::expression::LiveList::PlayerDiscardedTraitors(offer.player()));
             self.log_to(
                 game,

@@ -1,6 +1,5 @@
 //! Number formatting with .NET's `ToString()` under the invariant culture.
-//! Same functions as `math::format_f32`/`math::format_f64`, under the names
-//! `docs/hazards.md` uses.
+//! Same functions as `math::format_f32`/`math::format_f64`.
 
 /// `float.ToString()` (invariant culture): shortest round-trip digits,
 /// `"1E+09"`/`"1E-05"` style exponents, `"Infinity"`, `"NaN"`, `"-0"`.

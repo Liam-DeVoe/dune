@@ -168,9 +168,8 @@ fn double_to_cs_string_small() {
 }
 
 /// Probes `float_inf_invariant` ("Infinity") and `msg_float_inf` ("∞" under
-/// en-US). Rust prints "inf", which matches neither culture. The oracle is
-/// meant to render under the invariant culture (hazards 11.2), so this checks
-/// that. `dotnet_compat::fmt::f32_to_string` already implements it.
+/// en-US). Rust prints "inf", which matches neither culture. Messages render under the
+/// invariant culture, so this checks that. `dotnet_compat::fmt::f32_to_string` already implements it.
 #[test]
 fn float_to_cs_string_infinity() {
     assert_eq!(ExpressionElement::Float(f32::INFINITY).to_cs_string(), "Infinity");

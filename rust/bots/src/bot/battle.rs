@@ -874,7 +874,7 @@ impl ClassicBot {
             }
         }
 
-        // C# parity: a MirrorWeapon chosen above is drawn again here (hazards 18.5).
+        // C# parity: a MirrorWeapon chosen above is drawn again here.
         let weapon = useful_weapons.iter().copied().filter(|w| !Self::is_known_to(game, opponent, *w)).random_or_default(&self.random);
 
         if weapon.is_some() {
@@ -1034,7 +1034,7 @@ impl ClassicBot {
             PrescienceAspect::None
         };
 
-        // C# parity: computes for Player, not p (hazards 18.5).
+        // C# parity: computes for Player, not p.
         self.get_dial_needed_for_battle(
             game,
             self.i_will_be_aggressor_against(game, Some(opponent)),

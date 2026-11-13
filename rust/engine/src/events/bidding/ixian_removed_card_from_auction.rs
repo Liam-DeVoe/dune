@@ -1,12 +1,10 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct IxianRemovedCardFromAuction {
     pub put_on_top: bool,
-    #[canon(name = "_cardId")]
     pub card_id: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 

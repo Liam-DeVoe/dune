@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct BlackMarketBid {
     pub amount: i32,
     pub ally_contribution_amount: i32,
@@ -8,7 +8,6 @@ pub struct BlackMarketBid {
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -36,7 +35,7 @@ impl BlackMarketBid {
     }
 
     pub fn total_amount(&self) -> i32 {
-        // C# int addition wraps (hazards 1.6).
+        // C# int addition wraps.
         (self.amount + self.ally_contribution_amount) + self.emperor_contribution_amount
     }
 

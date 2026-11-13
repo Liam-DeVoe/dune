@@ -1,20 +1,17 @@
 use crate::prelude::*;
 use crate::compat::random_ext::RandomExt;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct TerrorRevealed {
     pub alliance_offered: bool,
     pub type_: TerrorType,
     pub forces_in_sneak_attack: i32,
-    #[canon(name = "_sneakAttackTo")]
     pub sneak_attack_to: i32,
     pub robbery_takes_card: bool,
-    #[canon(name = "_cardToGiveInSabotageId")]
     pub card_to_give_in_sabotage_id: i32,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -149,7 +146,7 @@ impl TerrorRevealed {
         }
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn get_types(g: &Game) -> impl Iterator<Item = TerrorType> {
         use either::Either;
         use std::iter::empty;
@@ -164,7 +161,7 @@ impl TerrorRevealed {
         std::cmp::min(5, game.player(p).forces_in_reserve())
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_sneak_attack_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
         TerrorRevealed::get_territory(g)
             .expect("territory")
@@ -264,7 +261,7 @@ impl TerrorRevealed {
                         }
                     }
 
-                    // C# parity: Atomics records the Metheor milestone (hazards 18).
+                    // C# parity: Atomics records the Metheor milestone.
                     game.stone(Milestone::MetheorUsed);
                     self.log_objects(game, elems![self.initiator(), " DETONATE ATOMICS in ", territory]);
                 }
@@ -286,7 +283,7 @@ impl TerrorRevealed {
                         self.log_objects(game, elems![self.initiator(), " draw a Treachery Card"]);
                     } else {
                         let victim_player = victim_player.required("victim player")?;
-                        // (int)Math.Ceiling(0.5f * resources): the product is a float (hazards 9).
+                        // (int)Math.Ceiling(0.5f * resources): the product is a float.
                         let amount_stolen = ((0.5f32 * game.player(victim_player).resources as f32) as f64).ceil() as i32;
                         let p = game.player_mut(self.player());
                         p.resources += amount_stolen;

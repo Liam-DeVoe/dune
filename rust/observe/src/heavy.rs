@@ -1,5 +1,4 @@
-//! The machine-wide heavy-run slots of `rust/tools/heavy.sh` (PORTING.md, "CPU"). Copied from
-//! `differ/src/live.rs`, which will go away with the C# oracle.
+//! The machine-wide heavy-run slots of `rust/tools/heavy.sh` (PORTING.md, "CPU").
 
 use std::path::PathBuf;
 use std::process::{Command, Stdio};

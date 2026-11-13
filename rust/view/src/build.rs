@@ -49,7 +49,7 @@ fn name<T: ToString>(v: T) -> String {
 }
 
 /// Builds the view. Takes `&mut Game` because `GameStatus::determine_status` and
-/// `get_applicable_events` write battle-sequence state (hazards 4.3). Call it on the view
+/// `get_applicable_events` write battle-sequence state. Call it on the view
 /// replica, never on the server's game. `timer` is the bidding time limit the host set (-1 for
 /// none).
 pub fn build_view(game: &mut Game, viewer: Viewer, d: &dyn Describer, timer: i32) -> GameView {

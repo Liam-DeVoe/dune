@@ -68,7 +68,7 @@ impl Game {
 
         if self.harkonnen_traitor_was_cancelled {
             self.harkonnen_traitor_was_cancelled = false;
-            // `?.` skips the draw when Harkonnen is not playing (hazards 10.3).
+            // `?.` skips the draw when Harkonnen is not playing.
             if let Some(harkonnen) = self.get_player(Some(Faction::Harkonnen)) {
                 let traitor = self.traitor_deck.as_mut().expect("traitor deck").draw();
                 self.player_mut(harkonnen).traitors.push(traitor);
@@ -358,7 +358,7 @@ impl Game {
         if self.players.len() <= 2 { 4 } else { 3 }
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn strongholds(&self) -> impl Iterator<Item = Territory> {
         self.map.territories(false).filter(move |t| t.is_stronghold() || self.is_special_stronghold(*t))
     }
@@ -547,7 +547,7 @@ impl Game {
         t == self.map.shield_wall() && self.applicable(Rule::Ssw) && self.number_of_monsters >= 4
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn terror_in(&self, t: Territory) -> impl Iterator<Item = TerrorType> {
         self.terror_on_planet.iter().filter(move |(_, v)| **v == t).map(move |(k, _)| *k)
     }

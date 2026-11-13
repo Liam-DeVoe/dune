@@ -9,7 +9,7 @@ use treachery_engine::game::Game;
 use treachery_skin::Skin;
 
 pub trait Describer {
-    /// The skin's description of a value. Live game collections inside the value (hazards 4.5)
+    /// The skin's description of a value. Live game collections inside the value
     /// are read from `game` when one is given, so they show the game's current contents.
     fn describe_in(&self, el: &ExpressionElement, game: Option<&Game>) -> String;
 

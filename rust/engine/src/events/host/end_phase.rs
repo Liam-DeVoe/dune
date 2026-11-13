@@ -1,9 +1,8 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct EndPhase {
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -116,7 +115,7 @@ impl EndPhase {
     pub fn continue_to_revivals(&self, game: &mut Game) {
         game.enter(Phase::Resurrection, true);
 
-        // foreach over a lazy Where: the filter runs right before each body (hazards 4.1)
+        // foreach over a lazy Where: the filter runs right before each body
         for i in 0..game.players.len() {
             let p = game.player_at(i);
             if game.is_automated(AutomationRuleType::RevivalAutoClaimFreeRevival, p) {
@@ -187,7 +186,7 @@ impl EndPhase {
         }
 
         // foreach over a lazy Where: the filter runs right before each body, so a claim
-        // paid earlier in the loop can make a later player eligible (hazards 4.1)
+        // paid earlier in the loop can make a later player eligible
         for i in 0..game.players.len() {
             let p = game.player_at(i);
             if CharityClaimed::can_be_played(game, p) && game.is_automated(AutomationRuleType::CharityAutoClaim, p) {

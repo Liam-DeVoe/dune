@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["bots", "canon-derive", "dotnet-compat", "engine", "observe", "server", "skin", "view"]
+members = ["bots", "dotnet-compat", "engine", "observe", "server", "skin", "view"]
 
 [workspace.package]
 edition = "2024"

@@ -1111,7 +1111,7 @@ impl Game {
         Ok(())
     }
 
-    /// C# parity: never sets BattleWinner or BattleLoser (hazards 18.2).
+    /// C# parity: never sets BattleWinner or BattleLoser.
     pub fn two_traitors_called(&mut self, agg: &Battle, def: &Battle, aggressor: PlayerIndex, defender: PlayerIndex, territory: Territory, agg_leader: Hero, def_leader: Hero) -> GameResult {
         let had_messiah_before_losses = self.player(aggressor).messiah_available(self) || self.player(defender).messiah_available(self);
 
@@ -1326,7 +1326,7 @@ impl Game {
         }
     }
 
-    /// C# parity: a different occupation rule from `DetermineOccupationAtStartOrEndOfTurn` (hazards 18.2).
+    /// C# parity: a different occupation rule from `DetermineOccupationAtStartOrEndOfTurn`.
     pub fn determine_occupation_location(&mut self, location: Option<Location>) {
         let Some(hw) = location.and_then(|l| l.as_homeworld()) else {
             return;
@@ -1443,7 +1443,7 @@ impl Game {
         Ok(())
     }
 
-    /// Mutates `BattleSequence` when read (hazards 4.3).
+    /// Mutates `BattleSequence` when read.
     pub fn next_player_to_battle(&mut self) -> Option<PlayerIndex> {
         if self.battle_sequence.is_none() {
             return None;
@@ -1485,7 +1485,7 @@ impl Game {
     }
 
     pub fn winner_hero(&self) -> Option<Hero> {
-        // `Faction? != Faction.None`: true when BattleWinner is null (hazards 14).
+        // `Faction? != Faction.None`: true when BattleWinner is null.
         if self.battle_winner != Some(Faction::None) {
             let winner_gambit = if self.battle_winner == self.aggressor_plan.as_ref().map(|p| p.initiator()) {
                 self.aggressor_plan.as_ref()
@@ -1519,7 +1519,7 @@ impl Game {
     }
 }
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct Fight {
     pub territory: Territory,
     pub faction: Faction,
@@ -1536,7 +1536,7 @@ impl Fight {
 
 }
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct LossToTake {
     pub faction: Faction,
     /// `Option` because `new LossToTake()` leaves it null (`TakeLosses.LossesToTake` on an empty list).

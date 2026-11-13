@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct DealRejected {
     pub bound_faction: Faction,
     pub type_: DealType,
@@ -11,7 +11,6 @@ pub struct DealRejected {
     pub price: i32,
     pub benefit: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 

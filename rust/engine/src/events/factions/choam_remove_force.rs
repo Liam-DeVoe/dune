@@ -1,13 +1,11 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct ChoamRemoveForce {
     pub target: Faction,
     pub special_force: bool,
-    #[canon(name = "_locationId")]
     pub location_id: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -56,14 +54,14 @@ impl ChoamRemoveForce {
         None
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_locations(g: &Game) -> impl Iterator<Item = Location> {
         // The dictionary is built at the call, as in C#; Where and Distinct run as the caller pulls.
         let keys: Vec<Location> = g.forces_on_planet_excluding_empty_locations(false).keys().copied().collect();
         crate::iter::unique(keys.into_iter().filter(move |l| !g.is_in_storm(*l)))
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_factions(g: &Game, p: Option<PlayerIndex>, l: Option<Location>) -> impl Iterator<Item = Faction> {
         use either::Either;
         if let Some(l) = l {

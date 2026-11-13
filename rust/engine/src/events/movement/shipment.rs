@@ -1,33 +1,25 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct Shipment {
     pub shipment_type: ShipmentType,
-    #[canon(name = "_toId")]
     pub to_id: i32,
-    #[canon(name = "_fromId")]
     pub from_id: i32,
     pub force_amount: i32,
     pub special_force_amount: i32,
     pub smuggled_amount: i32,
     pub smuggled_special_amount: i32,
-    #[canon(name = "_noFieldValue")]
     pub no_field_value: i32,
-    #[canon(name = "_cunningNoFieldValue")]
     pub cunning_no_field_value: i32,
     pub ally_contribution_amount: i32,
-    #[canon(name = "_karmaCardId")]
     pub karma_card_id: i32,
     pub use_richese_secret_ally: bool,
-    #[canon(name = "_forceLocations")]
     pub force_locations: Option<String>,
     /// Interior mutability: written after the event is stored in game state.
-    #[canon(name = "_guildIncomePrevented")]
     pub guild_income_prevented: Cell<bool>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -119,7 +111,7 @@ impl Shipment {
     }
 
     pub fn is_back_to_reserves(&self) -> bool {
-        // ForceAmount + SpecialForceAmount is an unchecked int addition (hazards 1.3).
+        // ForceAmount + SpecialForceAmount is an unchecked int addition.
         self.shipment_type == ShipmentType::ShipmentBack
             || (self.shipment_type == ShipmentType::Unknown && (self.force_amount + self.special_force_amount) < 0)
     }
@@ -209,7 +201,7 @@ impl Shipment {
             return None;
         }
 
-        // `var p = Player;` may be null (hazards 1.8): it throws only where C# dereferences it.
+        // `var p = Player;` may be null: it throws only where C# dereferences it.
         let p_opt = self.player_opt();
         let p = || p_opt.expect("player");
 
@@ -304,7 +296,7 @@ impl Shipment {
             return Some(express!("Invalid Cunning No-Field value"));
         }
 
-        // C# parity: the sums wrap (hazards 1.3), so int.MaxValue + 1 passes the check.
+        // C# parity: the sums wrap, so int.MaxValue + 1 passes the check.
         if !self.is_site_to_site(game) && (self.force_amount + self.smuggled_amount) > game.player(p()).forces_in_reserve() {
             return Some(express!("Not enough ", game.player(p()).force(), " in reserve"));
         }
@@ -354,7 +346,7 @@ impl Shipment {
             return Some(express!("You can't ship that much using ", Faction::Richese, " as your secret ally"));
         }
 
-        // Sum is checked: OverflowException (hazards 1.3).
+        // Sum is checked: OverflowException.
         let number_of_forces_selected = self.force_locations(game).values().map(|b| b.amount_of_forces).sum::<i32>();
         if self.forces_added_to_location(game) > 0
             && Shipment::homeworlds_to_ship_from(game, p(), false).len() > 1
@@ -482,7 +474,7 @@ impl Shipment {
             return 0;
         }
 
-        // The int product can wrap before it is widened to double (hazards 15).
+        // The int product can wrap before it is widened to double.
         let mut cost_of_shipment: f64 =
             (total_forces.abs() * if to.territory().has_reduced_shipping_cost() { 1 } else { 2 }) as f64;
 
@@ -533,7 +525,7 @@ impl Shipment {
         if special_forces { pl.special_forces_in(source) } else { pl.forces_in(source) }
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_shipment_locations(g: &Game, p: PlayerIndex, cross_planet: bool, richese_secret_ally: bool) -> impl Iterator<Item = Location> {
         use either::Either;
         if !g.player(p).is(Faction::Fremen) || richese_secret_ally {
@@ -552,7 +544,7 @@ impl Shipment {
         }
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn regular_shipment_locations(g: &Game, p: PlayerIndex, cross_planet: bool) -> impl Iterator<Item = Location> {
         g.map
             .locations(g.applicable(Rule::Homeworlds))
@@ -710,7 +702,7 @@ impl Shipment {
             || Shipment::initiated_current_guild_secret_ally(g, p)
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_source_locations(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
         g.locations_with_any_forces_not_in_storm(p)
             .into_iter()
@@ -778,7 +770,7 @@ impl Shipment {
                         Some(hw) => hw,
                         None => game.player(me).home_worlds[0],
                     };
-                    // C# parity: only ForceAmount is moved, although special forces are charged for (hazards 18).
+                    // C# parity: only ForceAmount is moved, although special forces are charged for.
                     Player::ship_forces_location_homeworld_int32(game, me, source, target, self.force_amount);
                 }
             } else if self.is_no_field() && self.initiator() == Faction::Richese && self.to(game).is_some() {
@@ -911,7 +903,7 @@ impl Shipment {
         game.bene_gesserit_may_accompany =
             (force_amount > 0 || special_force_amount > 0) && initiator_faction != Faction::Fremen && initiator_faction != Faction::BeneGesserit;
 
-        // ForceLocations is parsed afresh on every read (hazards 12); each read gives the same result here.
+        // ForceLocations is parsed afresh on every read; each read gives the same result here.
         if Shipment::homeworlds_to_ship_from(game, self.player(), false).len() > 1 && self.force_locations(game).len() > 0 {
             let fls: Vec<(Location, Battalion)> = self
                 .force_locations(game)

@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 // C# enum `NexusAllianceChange` is generated into enumerations.rs (tools/gen_enumerations.py).
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct BlowDeckLog {
     pub deck: String,
 }
@@ -22,7 +22,7 @@ impl BlowDeckLog {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct BlowCardLog {
     pub card: ResourceCard,
     pub location: Location,
@@ -38,7 +38,7 @@ impl BlowCardLog {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct WormAppearedLog {
     pub territory: Territory,
     pub nth: i32,
@@ -51,7 +51,7 @@ impl WormAppearedLog {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct WormSentLog {
     pub by: Faction,
     pub territory: Territory,
@@ -64,7 +64,7 @@ impl WormSentLog {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct WormDevouredForcesLog {
     pub faction: Faction,
     pub forces: i32,
@@ -79,7 +79,7 @@ impl WormDevouredForcesLog {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct WormSurvivedLog {
     pub faction: Faction,
     pub location: Location,
@@ -92,7 +92,7 @@ impl WormSurvivedLog {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct WormDevouredSpiceLog {
     pub amount: i32,
     pub territory: Territory,
@@ -105,7 +105,7 @@ impl WormDevouredSpiceLog {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct WormIgnoredLog {
 }
 
@@ -119,7 +119,7 @@ impl Default for WormIgnoredLog {
 impl WormIgnoredLog {
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct BlowReshuffleLog {
     pub cards: i32,
 }
@@ -139,7 +139,7 @@ impl BlowReshuffleLog {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct NexusLog {
     pub ride: Option<NexusRide>,
     pub alliance: Option<NexusAlliance>,
@@ -161,7 +161,7 @@ impl NexusLog {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct NexusAlliance {
     pub change: NexusAllianceChange,
     pub from: Faction,
@@ -185,7 +185,7 @@ impl NexusAlliance {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct NexusRide {
     pub faction: Faction,
     pub forces: i32,

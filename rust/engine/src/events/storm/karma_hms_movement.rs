@@ -1,12 +1,10 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct KarmaHmsMovement {
     pub passed: bool,
-    #[canon(name = "_targetId")]
     pub target_id: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -43,7 +41,7 @@ impl KarmaHmsMovement {
         None
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_locations(g: &Game) -> impl Iterator<Item = Location> {
         // AttachedToLocation is null only when the HMS was never placed; FindNeighboursForHmsMovement then throws.
         let start = g.map.hidden_mobile_stronghold().attached_to_location(&g.map).expect("attached to location");

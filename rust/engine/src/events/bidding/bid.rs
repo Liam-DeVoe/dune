@@ -1,18 +1,16 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct Bid {
     pub amount: i32,
     pub ally_contribution_amount: i32,
     pub emperor_contribution_amount: i32,
     pub uses_emperor_secret_ally: bool,
-    #[canon(name = "_karmaCardId")]
     pub karma_card_id: i32,
     pub karma_bid: bool,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -47,7 +45,7 @@ impl Bid {
     }
 
     pub fn total_amount(&self) -> i32 {
-        // C# int addition wraps (hazards 1.6).
+        // C# int addition wraps.
         (self.amount + self.ally_contribution_amount) + self.emperor_contribution_amount
     }
 
@@ -192,7 +190,7 @@ impl Bid {
         let mut player_to_bid_with_pass_normal_bid = Bid::first_auto_passing_player(game);
         while let Some(p) = player_to_bid_with_pass_normal_bid.filter(|p| !auto_passed.contains(p)) {
             auto_passed.push(p);
-            // C# parity: executed through Game.ExecuteBid, not Execute, so no pre/post-event tasks and no History entry (hazards 5.5).
+            // C# parity: executed through Game.ExecuteBid, not Execute, so no pre/post-event tasks and no History entry.
             let faction = game.player(p).faction;
             let mut auto_bid = Bid::new(game, faction);
             auto_bid.passed = true;

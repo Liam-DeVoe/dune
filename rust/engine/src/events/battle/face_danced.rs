@@ -1,20 +1,16 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct FaceDanced {
-    #[canon(name = "_targetForceLocations")]
     pub target_force_locations: Option<String>,
     pub forces_from_reserve: i32,
     pub face_dancer_called: bool,
     // ---- inherited from PlacementEvent ----
-    #[canon(name = "_toId")]
     pub to_id: i32,
-    #[canon(name = "_forceLocations")]
     pub force_locations: Option<String>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -118,10 +114,10 @@ impl FaceDanced {
         Self::may_call_face_dancer_opt(g, Some(p))
     }
 
-    /// `MayCallFaceDancer` with a possibly null `p` (`Validate` passes `Player`, hazards 1.8):
+    /// `MayCallFaceDancer` with a possibly null `p` (`Validate` passes `Player`):
     /// `p` is only dereferenced where it is needed, so a null `p` throws only there.
     pub(crate) fn may_call_face_dancer_opt(g: &Game, p: Option<PlayerIndex>) -> bool {
-        // `BattleWinner == Faction.None` is false while BattleWinner is null (hazards 10.1).
+        // `BattleWinner == Faction.None` is false while BattleWinner is null.
         if g.battle_winner == Some(Faction::None) {
             return false;
         }
@@ -146,12 +142,12 @@ impl FaceDanced {
         false
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_source_locations(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
         g.locations_with_any_forces_not_in_storm(p).into_iter().filter(move |l| !l.is_homeworld())
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_target_locations(g: &Game) -> impl Iterator<Item = Location> {
         let territory = g.current_battle.as_ref().expect("current battle").territory(g).expect("territory");
         territory

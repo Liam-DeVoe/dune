@@ -136,7 +136,7 @@ fn automation_rules_create_and_delete() {
 
 // ---------------------------------------------------------------- EstablishPlayers
 
-/// The game shares the event's settings and factions list (hazards 5.1): a removal
+/// The game shares the event's settings and factions list: a removal
 /// through the game is seen by the event's settings.
 #[test]
 fn establish_players_shares_factions_list() {

@@ -3,7 +3,7 @@ use crate::random::SharedRandom;
 
 /// A deck of cards, tokens or leaders. `random` is `None` for a deck created before
 /// `EstablishPlayers` seeds the game; such a deck can't be shuffled.
-#[derive(Clone, Debug, canon_derive::Canon)]
+#[derive(Clone, Debug)]
 pub struct Deck<T> {
     pub items: Vec<T>,
     pub random: Option<SharedRandom>,

@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct Participation {
     pub player_names: IndexMap<i32, String>,
     pub seated_players: IndexMap<i32, i32>,
@@ -53,7 +53,7 @@ impl Game {
         self.get_player(f).map(|p| self.player(p).ally)
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn players_other_than(&self, p: PlayerIndex) -> impl Iterator<Item = Faction> {
         self.players.iter().filter(move |x| x.faction != self.player(p).faction).map(move |x| x.faction)
     }

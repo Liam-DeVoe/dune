@@ -106,7 +106,7 @@ impl Game {
 
     pub fn perform_storm(&mut self) {
         // `Forces()` builds a new dictionary, so it is a snapshot of locations. Its
-        // battalions are the players' live objects (hazards 5.4), but every field read
+        // battalions are the players' live objects, but every field read
         // from one below is read before anything changes that battalion (only its
         // own player's forces are killed, after the reads), so copies behave the same.
         let forces = self.forces(false);
@@ -200,11 +200,11 @@ impl Game {
         self.main_phase_end();
 
         if !self.storm_losses_to_take.is_empty() {
-            // C# parity: resumes in BlowA and skips the storm report (hazards 18.2).
+            // C# parity: resumes in BlowA and skips the storm report.
             self.phase_before_storm_loss = Phase::BlowA;
             self.enter(Phase::StormLosses, true);
         } else {
-            // C# parity: MainPhaseEnd() is called a second time (hazards 18.2).
+            // C# parity: MainPhaseEnd() is called a second time.
             self.main_phase_end();
             self.enter(Phase::StormReport, true);
         }

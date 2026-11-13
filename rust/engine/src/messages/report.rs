@@ -3,7 +3,7 @@ use crate::messages::expression::ExpressionElement;
 use crate::messages::message::Message;
 use crate::map::territory::Territory;
 
-#[derive(Clone, Debug, PartialEq, canon_derive::Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Report {
     pub about: MainPhase,
     /// The value of `Game.CurrentTurn` when this report was started (0 for the setup report).

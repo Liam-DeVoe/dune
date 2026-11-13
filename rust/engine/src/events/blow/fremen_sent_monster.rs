@@ -2,12 +2,10 @@ use crate::log::blow::WormSentLog;
 use crate::game::MonsterAppearence;
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct FremenSentMonster {
-    #[canon(name = "_territoryId")]
     pub territory_id: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -46,7 +44,7 @@ impl FremenSentMonster {
         None
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_targets(g: &Game) -> impl Iterator<Item = Territory> {
         g.map.territories(false).filter(move |t| !t.is_protected_from_worm())
     }

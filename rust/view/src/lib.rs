@@ -1,8 +1,7 @@
 //! Per-player game views for the Rust server and the React client (`web/`).
 //!
 //! The server holds the authoritative game. Views are never built from it: building one runs
-//! `GameStatus::determine_status` and `get_applicable_events`, which write game state (hazards
-//! 4.3), and draft queries fill the neighbour cache (hazards 6.1). So the server keeps a
+//! `GameStatus::determine_status` and `get_applicable_events`, which write game state, and draft queries fill the neighbour cache. So the server keeps a
 //! [`replica::ViewReplica`] per game, a second copy that executes every accepted event and
 //! answers every view and query.
 //!

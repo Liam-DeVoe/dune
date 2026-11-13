@@ -1,11 +1,9 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct PerformHmsPlacement {
-    #[canon(name = "_targetId")]
     pub target_id: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -34,7 +32,7 @@ impl PerformHmsPlacement {
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        // A null Player throws NullReferenceException in ValidLocations (hazards 1.4).
+        // A null Player throws NullReferenceException in ValidLocations.
         if !Self::valid_locations(game, self.player()).any(|l| Some(l) == self.target(game)) {
             return Some(express!("Invalid location"));
         }
@@ -42,7 +40,7 @@ impl PerformHmsPlacement {
         None
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_locations(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
         use either::Either;
         if g.player(p).faction != Faction::Ixian {

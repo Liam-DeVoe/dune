@@ -2,10 +2,9 @@ use crate::json::JsonError;
 use crate::json::utilities::Utilities;
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct GameState {
     pub version: i32,
-    #[canon(name = "_events")]
     pub events: Option<Vec<GameEvent>>,
 }
 

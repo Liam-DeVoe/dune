@@ -1,20 +1,16 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct BattleConcluded {
     pub kill: bool,
     pub capture: bool,
-    #[canon(name = "_traitorToReplaceId")]
     pub traitor_to_replace_id: i32,
-    #[canon(name = "_newTraitorId")]
     pub new_traitor_id: i32,
     pub special_force_losses_replaced: i32,
-    #[canon(name = "_cardIds")]
     pub card_ids: Option<String>,
     pub stolen_token: TechToken,
     pub add_extra_force: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -429,7 +425,7 @@ impl BattleConcluded {
         vec![CaptureDecision::Capture, CaptureDecision::Kill]
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_traitors_to_replace(game: &Game, p: PlayerIndex) -> impl Iterator<Item = Hero> {
         use either::Either;
         let pl = game.player(p);

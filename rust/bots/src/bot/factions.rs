@@ -122,7 +122,7 @@ impl OpponentCards {
                 }
             })
         } else if weapon.is_poison_weapon() {
-            // C# parity: `d.IsProjectileDefense && !d.IsProjectileDefense` is never true (hazards 18).
+            // C# parity: `d.IsProjectileDefense && !d.IsProjectileDefense` is never true.
             self.known_defense(|d| d.is_projectile_defense() && !d.is_projectile_defense()).map(must_use).or_else(|| {
                 if !names_special_cards() && self.might_have(|c| c.is_poison_defense()) {
                     Some(VoiceCommand::may_not_use(T::PoisonDefense))

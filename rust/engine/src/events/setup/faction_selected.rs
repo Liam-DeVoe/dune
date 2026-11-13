@@ -1,12 +1,11 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct FactionSelected {
     pub initiator_player_name: Option<String>,
     pub seat: i32,
     pub faction: Faction,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -36,7 +35,7 @@ impl FactionSelected {
         None
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_factions(g: &Game) -> impl Iterator<Item = Faction> {
         // The list is shared (RefCell), so take its items now. Nothing changes it while a caller enumerates.
         let factions: Vec<Faction> = g.factions_in_play.borrow().clone();

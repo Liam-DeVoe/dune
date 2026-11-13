@@ -1,6 +1,5 @@
-//! The recorder: plays one bot or fuzz game and writes its trace. The driver follows the C#
-//! oracle's `GameRunner.Play` (treachery-online/Oracle/GameRunner.cs) at the latest version:
-//! the host establishes the game, then each round the bots are queried and asked, and when no
+//! The recorder: plays one bot or fuzz game at the latest version and writes its trace. The
+//! host establishes the game, then each round the bots are queried and asked, and when no
 //! bot acts a human player passes or the host acts. Fuzz games add random events, changed bot
 //! events, events of rarely executed types, and undo.
 
@@ -360,7 +359,7 @@ impl<'a> Recorder<'a> {
         }
 
         let mut cap = 400 + self.cfg.turns as usize * self.sess.player_count().max(2) * 80;
-        // Fuzz games that reach the oracle's cap are mostly going round in circles; past 3000
+        // Fuzz games that reach this cap are mostly going round in circles; past 3000
         // events they cost a lot of time and add little.
         if self.fuzz.is_some() {
             cap = cap.min(3000);

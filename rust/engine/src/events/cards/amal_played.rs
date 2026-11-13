@@ -1,9 +1,8 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct AmalPlayed {
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -32,7 +31,7 @@ impl AmalPlayed {
 
         for i in 0..game.players.len() {
             let p = game.player_at(i);
-            // (int)Math.Ceiling(0.5 * p.Resources): double arithmetic (hazards 9).
+            // (int)Math.Ceiling(0.5 * p.Resources): double arithmetic.
             let resources_paid = (0.5f64 * game.player(p).resources as f64).ceil() as i32;
             let pl = game.player_mut(p);
             pl.resources -= resources_paid;

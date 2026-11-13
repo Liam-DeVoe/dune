@@ -31,23 +31,21 @@ thread_local! {
     static COUNTER: Cell<i32> = const { Cell::new(0) };
 }
 
-/// Structured log data attached with `WithLog` (the records in
-/// `Shared/Model/Log/`). Any `Debug` type qualifies.
-pub trait LogRecord: fmt::Debug + Any + crate::canon::Canon {
+/// Structured log data attached to a message (the records in `log/`). Any `Debug` type
+/// qualifies.
+pub trait LogRecord: fmt::Debug + Any {
     fn as_any(&self) -> &dyn Any;
 }
 
-impl<T: fmt::Debug + Any + crate::canon::Canon> LogRecord for T {
+impl<T: fmt::Debug + Any> LogRecord for T {
     fn as_any(&self) -> &dyn Any {
         self
     }
 }
 
-#[derive(Clone, canon_derive::Canon)]
+#[derive(Clone)]
 pub struct Message {
     /// `Nr`: the value of the process-wide counter when the message was created.
-    /// Left out of state dumps (trace-format.md section 8).
-    #[canon(omit)]
     pub nr: i32,
     pub target: Faction,
     pub expression: Expression,
@@ -160,7 +158,7 @@ impl PartialEq for Message {
 }
 
 /// `MessagePart`
-#[derive(Clone, Debug, PartialEq, canon_derive::Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct MessagePart {
     pub expression: Expression,
 }
@@ -256,7 +254,7 @@ pub fn params<T: Into<ExpressionElement>>(array: impl IntoIterator<Item = T>) ->
 /// Record equality compares `From` with `List<T>.Equals`, which is reference
 /// equality, so `from` is a [`Shared`] list: two routes built from separate
 /// lists are different even when the lists hold the same locations.
-#[derive(Clone, Debug, PartialEq, canon_derive::Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Route {
     pub faction: Faction,
     pub from: Shared<Vec<Location>>,
@@ -264,7 +262,7 @@ pub struct Route {
 }
 
 /// `record BattlePlans(PlanSummary Aggressor, PlanSummary Defender)`
-#[derive(Clone, Debug, PartialEq, canon_derive::Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct BattlePlans {
     pub aggressor: PlanSummary,
     pub defender: PlanSummary,
@@ -272,7 +270,7 @@ pub struct BattlePlans {
 
 /// `record PlanSummary(...)`: one side's revealed plan. Equality is record
 /// equality: `EqualityComparer<float>.Default` for `dial`, where NaN equals NaN.
-#[derive(Clone, Debug, canon_derive::Canon)]
+#[derive(Clone, Debug)]
 pub struct PlanSummary {
     pub faction: Faction,
     pub leader: Option<Hero>,
@@ -315,7 +313,7 @@ game_enum! {
 /// `record BattleFact(BattleFactKind Kind, Faction Faction) { ... }`. Only the
 /// fields its kind describes are set; the rest keep their defaults. Equality
 /// is record equality: NaN `strength` equals NaN, `cause` uses `object.Equals`.
-#[derive(Clone, Debug, canon_derive::Canon)]
+#[derive(Clone, Debug)]
 pub struct BattleFact {
     pub kind: BattleFactKind,
     pub faction: Faction,

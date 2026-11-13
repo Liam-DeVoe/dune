@@ -1,20 +1,13 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct GameStatistics {
-    #[canon(name = "date")]
     pub date: DateTimeOffset,
-    #[canon(name = "time")]
     pub time: f32,
-    #[canon(name = "turn")]
     pub turn: i32,
-    #[canon(name = "ruleset")]
     pub ruleset: String,
-    #[canon(name = "players")]
     pub players: Vec<GameStatisticsPlayerInfo>,
-    #[canon(name = "winners")]
     pub winners: Vec<String>,
-    #[canon(name = "method")]
     pub method: String,
 }
 
@@ -102,13 +95,10 @@ impl GameStatistics {
 
 }
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct GameStatisticsPlayerInfo {
-    #[canon(name = "faction")]
     pub faction: String,
-    #[canon(name = "name")]
     pub name: String,
-    #[canon(name = "id")]
     pub id: String,
 }
 

@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct BribesCollected {
     pub faction: Faction,
     pub amount: i32,
@@ -22,7 +22,7 @@ impl BribesCollected {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct WinReason {
     pub method: WinMethod,
 }
@@ -42,7 +42,7 @@ impl WinReason {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct GameEnded {
     pub winners: Vec<Faction>,
 }
@@ -62,7 +62,7 @@ impl GameEnded {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct GameWinner {
     pub faction: Faction,
 }

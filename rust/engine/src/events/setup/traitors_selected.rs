@@ -1,11 +1,9 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct TraitorsSelected {
-    #[canon(name = "_traitorId")]
     pub traitor_id: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -44,7 +42,7 @@ impl TraitorsSelected {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let me = self.player();
         let selected = self.selected_traitor();
-        // Snapshot (ToList), hazards 4.1.
+        // Snapshot (ToList).
         let to_remove: Vec<Hero> = game.player(me).traitors.iter().copied().filter(|l| Some(*l) != selected).collect();
 
         for l in to_remove {

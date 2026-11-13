@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 // C# enum `AsideKind` is generated into enumerations.rs (tools/gen_enumerations.py).
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct AsideLog {
     pub kind: AsideKind,
 }

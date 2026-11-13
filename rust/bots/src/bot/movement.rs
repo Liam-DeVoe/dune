@@ -1,6 +1,6 @@
 //! Move decisions. They read and reset the shipment the bot decided on earlier in the turn
-//! (hazards 16.8), and many of the helpers they call draw random numbers, so the order of the
-//! checks matters (hazards 16.5).
+//!, and many of the helpers they call draw random numbers, so the order of the
+//! checks matters.
 
 use crate::prelude::*;
 
@@ -157,7 +157,7 @@ impl ClassicBot {
         }
 
         // Towards the Shield Wall, to blow it up with Family Atomics
-        // C# parity: `!LastTurn` is tested twice (hazards 18).
+        // C# parity: `!LastTurn` is tested twice.
         if !self.last_turn(game) && !winning {
             if !self.last_turn(game)
                 && (0..=8).contains(&game.sector_in_storm)

@@ -1,13 +1,11 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct FaceDancerReplaced {
-    #[canon(name = "dancerId")]
     pub dancer_id: i32,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -79,7 +77,7 @@ impl FaceDancerReplaced {
         express!(self.initiator(), express_part_if!(self.passed; " don't"), " replace a Face Dancer")
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_face_dancers(game: &Game, p: PlayerIndex) -> impl Iterator<Item = Hero> {
         game.player(p).unrevealed_face_dancers()
     }

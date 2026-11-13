@@ -53,12 +53,10 @@ mod storm;
 
 use crate::prelude::*;
 
-#[derive(Canon)]
 pub struct Game {
     // ---- Core state ----
 
     pub seed: i32,
-    #[canon(with = "crate::canon::game_random")]
     pub random: Option<SharedRandom>,
     pub recent_milestones: Vec<Milestone>,
     pub version: i32,
@@ -68,13 +66,11 @@ pub struct Game {
     pub rules_for_bots: Vec<Rule>,
     /// `EstablishPlayers` can assign a null `Settings.InitialRules`, hence the `Option`.
     pub all_rules: Option<Vec<Rule>>,
-    #[canon(with = "crate::canon::history_count")]
     pub history: Vec<GameEvent>,
     pub moments: Vec<Moment>,
     pub recently_undone_event_count: i32,
     pub recently_undone_events: Vec<GameEvent>,
     /// The game as it was before the last `undo`, which `restore_recently_undone` returns to.
-    #[canon(with = "crate::canon::presence")]
     pub previous_game_state: Option<Box<Game>>,
     pub current_turn: i32,
     pub current_main_phase: MainPhase,
@@ -82,7 +78,6 @@ pub struct Game {
     pub current_phase: Phase,
     pub has_acted_or_passed: Vec<Faction>,
     pub report_list: Vec<Report>,
-    #[canon(name = "_preGameReport")]
     pub pre_game_report: Report,
     pub treachery_deck: Option<Deck<TreacheryCard>>,
     pub treachery_discard_pile: Option<Deck<TreacheryCard>>,
@@ -1062,7 +1057,7 @@ impl Game {
         }
     }
 
-    /// The lists hold copies of the players' battalions (hazards 5.4). No caller mutates them.
+    /// The lists hold copies of the players' battalions. No caller mutates them.
     pub fn forces(&self, include_homeworlds: bool) -> IndexMap<Location, Vec<Battalion>> {
         let mut result: IndexMap<Location, Vec<Battalion>> = IndexMap::new();
 
@@ -1202,7 +1197,7 @@ impl Game {
         let bg = self.get_player(Some(Faction::BeneGesserit));
         if let Some(bg) = bg {
             // A lazy Where enumerated by foreach: the filter is evaluated for each
-            // territory right before its body runs, after earlier flips (hazards 4.1).
+            // territory right before its body runs, after earlier flips.
             for t in self.map.territories(true) {
                 let matches = self.player(bg).special_forces_in_territory(Some(t)) > 0
                     && (t == self.map.polar_sink().territory()
@@ -1660,7 +1655,7 @@ impl Game {
         result + choam_extra_move_bonus
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn locations_with_any_forces_not_in_storm(&self, p: PlayerIndex) -> impl Iterator<Item = Location> {
         // `p` is dereferenced inside the predicate, per element, as in C#.
         self.map
@@ -1776,7 +1771,7 @@ impl Game {
         let mut result: Vec<Hero> = Vec::new();
 
         // `var factionsInPlay = Players.Select(p => p.Faction)` is lazy: each Contains below
-        // runs the Select again, up to the first match (docs/lazy-queries.md).
+        // runs the Select again, up to the first match.
         let factions_in_play = self.players.iter().map(|p| p.faction);
         result.extend(
             LeaderManager::leaders()

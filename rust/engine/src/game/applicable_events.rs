@@ -422,7 +422,7 @@ impl Game {
             }
 
             Phase::BattlePhase => {
-                // NextPlayerToBattle mutates BattleSequence (hazards §4.3); only read when CurrentBattle is null.
+                // NextPlayerToBattle mutates BattleSequence; only read when CurrentBattle is null.
                 if self.current_battle.is_none() && Some(player) == self.next_player_to_battle() {
                     result.push(GameEventType::BattleInitiated);
                 }
@@ -581,7 +581,7 @@ impl Game {
             }
 
             Phase::BattleReport => {
-                // NextPlayerToBattle mutates BattleSequence (hazards §4.3); only read when the
+                // NextPlayerToBattle mutates BattleSequence; only read when the
                 // preceding conditions hold.
             }
 

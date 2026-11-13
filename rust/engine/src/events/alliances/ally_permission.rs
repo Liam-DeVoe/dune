@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct AllyPermission {
     pub ally_may_ship_as_guild: bool,
     pub emperor_will_pay_for_extra_revival: i32,
@@ -16,10 +16,8 @@ pub struct AllyPermission {
     pub moritani_allows_keeping_cards: bool,
     pub ecaz_shares_ambassadors: bool,
     pub permitted_resources: i32,
-    #[canon(name = "_permittedKarmaCardId")]
     pub permitted_karma_card_id: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 

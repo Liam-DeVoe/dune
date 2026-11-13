@@ -4,12 +4,12 @@
 //! that validates. Each planner returns a [`PlannedShipment`] instead of storing it, and
 //! `determine_shipment` stores the winner in the bot so the move and battle decisions can read it.
 //!
-//! Hazards (hazards.md 16.4, 16.5, 16.7, 16.8):
+//! Hazards:
 //! - Several planners filter or map candidates through helpers that draw random numbers
 //!   (`occupying_opponent_in`, `max_potential_force_shortage`, `construct_attack`). These run as
 //!   iterator chains, so each candidate passes every stage before the next one starts.
 //! - `valid_shipment_locations` is lazy, and `any`/`find` on it stop early. That decides which
-//!   neighbour searches run, and the map caches those (hazards 6.1).
+//!   neighbour searches run, and the map caches those.
 //! - Dials are `f32`. Rounding up widens to `f64` first, and `math_min_f32`/`math_max_f32` follow
 //!   the .NET NaN rules.
 
@@ -419,7 +419,7 @@ impl ClassicBot {
     pub fn plan_strengthen_weakest_stronghold(&self, game: &Game, only_if_threatened: bool, extra_forces: i32, shortage_to_accept: f32, take_reinforcements_into_account: bool) -> Option<PlannedShipment> {
         let me = self.player;
         // `occupying_opponent_in` in the filter and `max_potential_force_shortage` in the map both
-        // draw, element by element (hazards 16.4).
+        // draw, element by element.
         let my_weak_strongholds: Vec<(Location, f32)> = self
             .valid_shipment_locations(game, false, false)
             .filter(|&s| {
@@ -605,7 +605,7 @@ impl ClassicBot {
             potential_winning_opponents = self.winning_opponents_i_wish_to_attack(game, maximum_challenged_strongholds, true);
         }
 
-        // `construct_attack` draws, element by element (hazards 16.4).
+        // `construct_attack` draws, element by element.
         let attacks: Vec<Attack> = self
             .valid_shipment_locations(game, false, false)
             .filter(|&l| {
@@ -632,7 +632,7 @@ impl ClassicBot {
             self.opponents(game).into_iter().filter(|o| self.is_almost_winning_opponent(game, *o)).collect();
 
         let me = self.player;
-        // One chain, consumed once by `lowest_or_default` (hazards 16.4).
+        // One chain, consumed once by `lowest_or_default`.
         let attack = self
             .valid_shipment_locations(game, false, false)
             .filter(|l| dangerous_opponents.is_empty() || dangerous_opponents.iter().any(|p| game.player(*p).occupies(game, Some(*l))))
@@ -741,7 +741,7 @@ impl ClassicBot {
             let mut big_enough_no_fields: Vec<i32> = no_field_values.iter().copied().filter(|v| *v >= needed).collect();
             let mut cunning_no_field_value = -1;
             if Shipment::may_use_cunning_no_field(game, me) && !no_field_values.is_empty() && big_enough_no_fields.is_empty() {
-                // Throws when there is no cunning value (hazards 16.2).
+                // Throws when there is no cunning value.
                 let biggest_cunning_no_field = Shipment::valid_cunning_no_field_values(game, me, max_forces_with_no_field).into_iter().max().expect("a value");
                 big_enough_no_fields = no_field_values.iter().copied().filter(|v| v + biggest_cunning_no_field >= needed).collect();
                 cunning_no_field_value = if !big_enough_no_fields.is_empty() { biggest_cunning_no_field } else { -1 };
@@ -1142,7 +1142,7 @@ impl ForceSizing<'_> {
             }
         }
 
-        // C# parity: this loop adds forces but prices `specialForces + 1` (hazards 18).
+        // C# parity: this loop adds forces but prices `specialForces + 1`.
         while dial_needed > 0.0 && forces_available >= 1 && affordable(forces, special_forces + 1, cost_of_battle) {
             forces += 1;
             forces_available -= 1;

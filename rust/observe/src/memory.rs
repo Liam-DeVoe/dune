@@ -1,6 +1,6 @@
 //! Per-replay memory budgets.
 //!
-//! The differ's global allocator counts the bytes each thread holds. A replay
+//! The global allocator counts the bytes each thread holds. A replay
 //! thread sets a budget with [`set_budget`]. When an allocation would take it
 //! over the budget, the allocator raises the thread's flag and then puts the
 //! thread to sleep for good, inside the allocation. It can't unwind there, and

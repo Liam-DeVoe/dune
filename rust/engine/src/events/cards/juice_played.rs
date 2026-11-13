@@ -1,10 +1,9 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct JuicePlayed {
     pub type_: JuiceType,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -31,7 +30,7 @@ impl JuicePlayed {
     pub fn valid_types(g: &Game, p: PlayerIndex) -> Vec<JuiceType> {
         let mut result = Vec::new();
 
-        // `BattleWinner == Faction.None` is false while BattleWinner is null (hazards 10.1).
+        // `BattleWinner == Faction.None` is false while BattleWinner is null.
         if let Some(battle) = g.current_battle.as_ref() {
             if battle.is_aggressor_or_defender(g, p) && g.battle_winner == Some(Faction::None) {
                 result.push(JuiceType::Aggressor);

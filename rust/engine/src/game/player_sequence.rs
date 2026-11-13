@@ -1,26 +1,16 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
-#[canon(game_field = "_game")]
+#[derive(Clone, Debug)]
 pub struct PlayerSequence {
     pub players: Vec<PlayerIndex>,
-    #[canon(name = "_played")]
     /// Elements are `Option` because a null `CurrentPlayer` can be added (see `players_in_order`).
     pub played: Vec<Option<PlayerIndex>>,
-    #[canon(name = "_skipPlayersThatCantBidOnCards")]
     pub skip_players_that_cant_bid_on_cards: bool,
-    #[canon(name = "_round")]
     pub round: i32,
-    #[canon(name = "_fullyCircled")]
     pub fully_circled: i32,
     /// `Option` because the constructor can be handed a null `toStartWith`
     /// (`richesePlayer` in `Game.StartBidSequenceAndAuctionType`).
     pub first_player: Option<PlayerIndex>,
-    /// The stored current player. Only the state dump reads it; the getter computes the
-    /// current player (see `current_player`).
-    ///
-    /// Starts as `FirstPlayer`, so it can be null too (see `first_player`).
-    pub current_player: Option<PlayerIndex>,
 }
 
 impl PlayerSequence {
@@ -36,9 +26,7 @@ impl PlayerSequence {
             round: 1,
             fully_circled: 0,
             first_player: to_start_with,
-            current_player: None,
         };
-        result.current_player = result.first_player;
 
         if begin_next_to_that_player && result.number_of_players_that_may_get_turn(game) > 1 {
             result.first_player = Some(result.player_after(game, result.first_player, false));
@@ -99,8 +87,6 @@ impl PlayerSequence {
         if self.round == 1 && self.played.is_empty() {
             self.change_first_player_if_they_cant_bid(game);
         }
-
-        self.current_player = self.determine_current_player(game);
     }
 
     /// `current_player` may be null; it then matches no player.
@@ -230,7 +216,7 @@ impl PlayerSequence {
         result
     }
 
-    /// Lazy (docs/lazy-queries.md): PlayersInOrder is computed at the
+    /// Lazy: PlayersInOrder is computed at the
     /// call, CurrentPlayer (which can throw) per element, and only if the caller enumerates.
     pub fn get_players_in_sequence(&self, game: &Game) -> impl Iterator<Item = SequenceElement> {
         self.players_in_order(game)
@@ -284,7 +270,7 @@ impl PlayerSequence {
     }
 }
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct SequenceElement {
     /// Can be null (see `PlayerSequence::players_in_order`).
     pub player: Option<PlayerIndex>,

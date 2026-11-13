@@ -1,13 +1,10 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct KarmaChoamDiscard {
-    #[canon(name = "_cardToUse")]
     pub card_to_use: i32,
-    #[canon(name = "_cardIds")]
     pub card_ids: Option<String>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -72,7 +69,7 @@ impl KarmaChoamDiscard {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let me = self.player();
-        // C# parity: plays the first valid Karama card, not the validated CardToUse (hazards 18).
+        // C# parity: plays the first valid Karama card, not the validated CardToUse.
         let card = Karma::valid_karma_cards(game, me).into_iter().next();
         let cards = self.cards();
         let parts = Self::cards_parts(&cards);

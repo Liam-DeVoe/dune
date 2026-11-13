@@ -265,7 +265,7 @@ impl Map {
 
     /// `Map.GetResourceCardsInPlay(g)`. The same handles come back on every
     /// call (see `resource_card.rs`).
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn get_resource_cards_in_play(g: &impl MapGame) -> impl Iterator<Item = ResourceCard> {
         ResourceCard::get_resource_cards_in_and_outside_play()
             .iter()
@@ -638,22 +638,12 @@ impl Map {
         }
     }
 
-    /// Read access to the neighbour cache, for state dumps.
-    /// Sets `_neighbourCacheTimestamp` to -1, so the next `FindNeighbours`
-    /// clears the cache. The replayer calls this before every event, as the
-    /// oracle does (trace-format.md section 6).
+    /// Sets the neighbour cache's timestamp to -1, so the next `find_neighbours` clears the
+    /// cache.
     pub fn mark_neighbour_cache_stale(&self) {
         self.neighbour_cache_timestamp.set(-1);
     }
 
-    pub fn neighbour_cache(&self) -> (i32, Vec<(NeighbourCacheKey, Vec<Location>)>) {
-        (self.neighbour_cache_timestamp.get(), self.neighbour_cache.borrow().clone())
-    }
-
-    /// `AttachedLocation.Game?.Version` of an attached location, for state dumps.
-    pub fn attached_to_game(&self, l: Location) -> bool {
-        self.attached_to_game[l.index()]
-    }
 }
 
 /// `Map.TerritoryFetcher`

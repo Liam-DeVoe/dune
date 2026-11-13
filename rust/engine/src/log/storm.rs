@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct StormDials {
     pub first: Faction,
     pub first_dial: i32,
@@ -26,7 +26,7 @@ impl StormDials {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct StormPlaced {
     pub sector: i32,
 }
@@ -46,7 +46,7 @@ impl StormPlaced {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct StormForecast {
     pub distance: i32,
 }
@@ -66,7 +66,7 @@ impl StormForecast {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct StormMoved {
     pub from: i32,
     pub distance: i32,
@@ -92,7 +92,7 @@ impl StormMoved {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct StormKilled {
     pub faction: Faction,
     pub location: Location,
@@ -107,7 +107,7 @@ impl StormKilled {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct StormDestroyedSpice {
     pub location: Location,
     pub amount: i32,
@@ -120,7 +120,7 @@ impl StormDestroyedSpice {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct FamilyAtomicsUsed {
     pub faction: Faction,
     pub card: Option<TreacheryCard>,
@@ -142,7 +142,7 @@ impl FamilyAtomicsUsed {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct FamilyAtomicsKilled {
     pub faction: Faction,
     pub forces: i32,
@@ -166,7 +166,7 @@ impl FamilyAtomicsKilled {
 
 }
 
-#[derive(Clone, Debug, PartialEq, Canon)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct BeneGesseritFlipped {
     pub territory: Territory,
 }

@@ -1,8 +1,7 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct Battle {
-    #[canon(name = "_heroId")]
     pub hero_id: i32,
     pub messiah: bool,
     pub forces: i32,
@@ -11,10 +10,8 @@ pub struct Battle {
     pub special_forces_at_half_strength: i32,
     pub ally_contribution_amount: i32,
     /// Interior mutability: written after the event is stored in game state.
-    #[canon(name = "_weaponCardId")]
     pub weapon_card_id: Cell<i32>,
     /// Interior mutability: written after the event is stored in game state.
-    #[canon(name = "_defenseCardId")]
     pub defense_card_id: Cell<i32>,
     pub banker_bonus: i32,
     /// Interior mutability: written after the event is stored in game state.
@@ -22,7 +19,6 @@ pub struct Battle {
     /// Interior mutability: written after the event is stored in game state.
     pub original_defense: Cell<Option<TreacheryCard>>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -309,7 +305,7 @@ impl Battle {
             0
         };
 
-        // `CurrentEcazOrAllyFighter == Faction.None` is false while it is null (hazards 10.1).
+        // `CurrentEcazOrAllyFighter == Faction.None` is false while it is null.
         if g.current_ecaz_or_ally_fighter == Some(Faction::None) || pl.faction != Faction::Ecaz {
             return Battle::force_value(g, pl.faction, opponent, forces, special_forces, forces_at_half_strength, special_forces_at_half_strength)
                 + ecaz_battle_contribution as f32;
@@ -854,7 +850,7 @@ impl Battle {
 
                     result.push(Fight::new(occupied_location.territory(), faction));
 
-                    // C# parity: `break` only leaves the innermost loop (hazards 18.2).
+                    // C# parity: `break` only leaves the innermost loop.
                     if return_only_one_battle {
                         break;
                     }
@@ -1001,7 +997,7 @@ impl Battle {
         result
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn cheap_heroes(game: &Game, p: PlayerIndex) -> impl Iterator<Item = TreacheryCard> {
         game.player(p).treachery_cards.iter().copied().filter(move |c| c.type_() == TreacheryCardType::Mercenary)
     }

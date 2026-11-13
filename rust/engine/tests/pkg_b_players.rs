@@ -56,7 +56,7 @@ fn battalion_take_half_rounds_each_kind_up() {
 // ---------------------------------------------------------------- Player forces
 
 /// `ChangeForces(loc, 0)` on a missing location adds then removes the entry, leaving a free
-/// slot that the next new location reuses (hazards §3.2).
+/// slot that the next new location reuses.
 #[test]
 fn change_forces_zero_leaves_a_hole() {
     let mut g = game_with(&[Faction::Atreides]);
@@ -73,7 +73,7 @@ fn change_forces_zero_leaves_a_hole() {
 }
 
 /// `ForcesToReserves(Territory, amount, special)` sends `toRemoveInTotal` to reserves at
-/// every location and skips the removal when it exceeds the forces there (hazards §18).
+/// every location and skips the removal when it exceeds the forces there.
 #[test]
 fn forces_to_reserves_territory_bug() {
     let mut g = game_with(&[Faction::Atreides]);

@@ -222,7 +222,7 @@ impl Game {
     }
 }
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct TriggeredBureaucracy {
     pub payment_from: Faction,
     pub payment_to: Faction,
@@ -244,7 +244,7 @@ impl TriggeredBureaucracy {
 
 }
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct ClairVoyanceQandA {
     /// `Option` because the answer is recorded with `Game.LatestClairvoyance`, which can be
     /// null; nothing throws in that case.

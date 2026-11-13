@@ -1,13 +1,11 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct RicheseSpecifiesAuction {
     pub auction_type: AuctionType,
     pub direction: i32,
-    #[canon(name = "_cardId")]
     pub card_id: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 

@@ -5,14 +5,12 @@ macro_rules! elems {
     ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
 }
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct DiscoveryRevealed {
-    #[canon(name = "_locationId")]
     pub location_id: i32,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -54,7 +52,7 @@ impl DiscoveryRevealed {
         g.current_main_phase == MainPhase::Collection && !Self::get_locations(g, p).next().is_none()
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn get_locations(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
         g.discoveries_on_planet
             .iter()

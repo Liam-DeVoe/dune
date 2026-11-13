@@ -2,8 +2,7 @@
 //! the selector helpers. C# has two versions of each: one taking a
 //! `LoggedRandom` (ported here) and one using a private, unseeded static
 //! `System.Random`, which cannot be reproduced. Those are ported against
-//! [`set_static_random_seed`], which needs a matching C# test hook (see
-//! `rust/docs/csharp-hooks.md`) before bot traces can be compared.
+//! [`set_static_random_seed`].
 //!
 //! C# returns `default` when nothing can be picked: null for reference
 //! types, but 0/false for value types. These return `Option`; at value-type

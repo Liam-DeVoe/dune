@@ -249,9 +249,8 @@ fn tf(x: bool) -> String {
 
 fn seq_state(g: &Game, s: &PlayerSequence) -> String {
     format!(
-        "fp={} cf={} played={} round={} circ={} cur={} richese={} seq={}",
+        "fp={} played={} round={} circ={} cur={} richese={} seq={}",
         seat(g, s.first_player),
-        seat(g, s.current_player),
         s.played.iter().map(|p| seat(g, *p)).collect::<Vec<_>>().join(","),
         s.round,
         s.fully_circled,

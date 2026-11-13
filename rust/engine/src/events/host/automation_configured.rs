@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct AutomationConfigured {
     /// Interior mutability: written after the event is stored in game state.
     pub automation_rule_id: Cell<i32>,
@@ -9,7 +9,6 @@ pub struct AutomationConfigured {
     pub bidding_above_amount: i32,
     pub bidding_winning_faction: Faction,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -52,7 +51,7 @@ impl AutomationConfigured {
             }
 
             ItemAction::Delete => {
-                // C# parity (hazards 1.4, 18.2): an unknown id fails the event (C#'s First throws),
+                // C# parity: an unknown id fails the event (C#'s First throws),
                 // and ownership is not checked.
                 let id = self.automation_rule_id.get();
                 let Some(i) = game.automation_rules.iter().position(|x| x.automation_rule_id.get() == id) else {
@@ -62,7 +61,7 @@ impl AutomationConfigured {
             }
 
             ItemAction::Update => {
-                // C# parity (hazards 18.2): Update does nothing.
+                // C# parity: Update does nothing.
             }
 
             _ => {}

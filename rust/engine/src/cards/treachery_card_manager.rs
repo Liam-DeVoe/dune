@@ -130,7 +130,7 @@ impl TreacheryCardManager {
     }
 
     /// `GetCardsInPlay(Game g)`
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn get_cards_in_play(g: &impl CardsGame) -> impl Iterator<Item = TreacheryCard> {
         Self::items()
             .iter()

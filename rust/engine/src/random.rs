@@ -9,12 +9,9 @@ use dotnet_compat::NetRandom;
 
 use crate::shared::Shared;
 
-#[derive(Clone, Debug, canon_derive::Canon)]
-#[canon(manual)]
+#[derive(Clone, Debug)]
 pub struct LoggedRandom {
-    #[canon(name = "_count")]
     count: i32,
-    #[canon(name = "_supply", omit)]
     supply: NetRandom,
 }
 
@@ -35,10 +32,6 @@ impl LoggedRandom {
         self.count
     }
 
-    /// The underlying `System.Random`, for state dumps.
-    pub fn supply(&self) -> &NetRandom {
-        &self.supply
-    }
 }
 
 // C# also has `new LoggedRandom()` (unseeded `new Random()`), used only by
@@ -69,7 +62,7 @@ impl SharedRandom {
         self.lock().get_count()
     }
 
-    /// Direct access, e.g. for dumping state.
+    /// The shared generator.
     pub fn lock(&self) -> RefMut<'_, LoggedRandom> {
         self.0.borrow_mut()
     }

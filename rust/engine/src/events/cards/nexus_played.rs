@@ -1,27 +1,21 @@
 use crate::prelude::*;
 use crate::compat::random_ext::RandomExt;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct NexusPlayed {
     pub faction: Faction,
     pub atreides_prescience_aspect: PrescienceAspect,
     pub tleilaxu_forces: i32,
     pub tleilaxu_special_forces: i32,
-    #[canon(name = "_tleilaxuHeroId")]
     pub tleilaxu_hero_id: i32,
     pub tleilaxu_assign_skill: bool,
-    #[canon(name = "_choamCardId")]
     pub choam_card_id: i32,
-    #[canon(name = "_ecazTerritoryId")]
     pub ecaz_territory_id: i32,
     pub ecaz_faction: Faction,
-    #[canon(name = "_moritaniTerritoryId")]
     pub moritani_territory_id: i32,
     pub tleilaxu_number_of_special_forces_in_location: i32,
-    #[canon(name = "_tleilaxuLocationId")]
     pub tleilaxu_location_id: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -336,12 +330,12 @@ impl NexusPlayed {
         RaiseDeadPlayed::valid_heroes(game, player)
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_choam_cards(game: &Game, player: PlayerIndex) -> impl Iterator<Item = TreacheryCard> {
         game.player(player).treachery_cards.iter().copied().filter(move |c| c.type_() == TreacheryCardType::Useless)
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_ecaz_territories(g: &Game) -> impl Iterator<Item = Territory> {
         use either::Either;
         use std::iter::empty;
@@ -359,7 +353,7 @@ impl NexusPlayed {
         Either::Right(empty())
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_ecaz_factions(g: &Game) -> impl Iterator<Item = Faction> {
         g.players
             .iter()
@@ -367,7 +361,7 @@ impl NexusPlayed {
             .map(move |p| p.faction)
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_moritani_territories(g: &Game) -> impl Iterator<Item = Territory> {
         crate::iter::unique(g.terror_on_planet.values().copied())
     }
@@ -460,7 +454,7 @@ impl NexusPlayed {
                     let from: ExpressionElement =
                         if p.to == Faction::None { "the Bank".into() } else { p.to.into() };
                     // C# parity: logs the Player object itself, which prints as its type name,
-                    // with no space before "get" (hazards 11).
+                    // with no space before "get".
                     self.log_objects(game, elems![actor, "get ", p.amount, " from ", from]);
                     if p.to != Faction::None {
                         let get_from = self.get_player(game, Some(p.to));
@@ -558,7 +552,7 @@ impl NexusPlayed {
                             }
                             if let Some(richese_ally) = richese_ally {
                                 if winning_bid.i_bid_emperor_contribution_amount() > 0 {
-                                    // C# parity: Emperor's contribution is refunded to Richese's ally (hazards 18).
+                                    // C# parity: Emperor's contribution is refunded to Richese's ally.
                                     let a = game.player_mut(richese_ally);
                                     a.resources += winning_bid.i_bid_emperor_contribution_amount();
                                 }
@@ -584,7 +578,7 @@ impl NexusPlayed {
 
             Faction::Moritani => {
                 if let Some(moritani_territory) = self.moritani_territory(game) {
-                    // TerrorIn iterates TerrorOnPlanet in .NET slot order (hazards 3.1). An empty
+                    // TerrorIn iterates TerrorOnPlanet in .NET slot order. An empty
                     // result gives default(TerrorType), which C# then removes and adds.
                     let terror_to_remove = game
                         .terror_in(moritani_territory)
@@ -670,7 +664,7 @@ impl NexusPlayed {
                         i += 1;
                     }
 
-                    // HashSet iteration order (hazards 3)
+                    // HashSet iteration order
                     let revealed: Vec<Hero> = game.player(tleilaxu).revealed_face_dancers.iter().copied().collect();
                     let traitor_deck = game.traitor_deck.as_mut().expect("traitor deck");
                     traitor_deck.items.extend(revealed.iter().copied());
@@ -803,7 +797,7 @@ impl NexusPlayed {
                         elems!["discard a ", TreacheryCardType::Useless, " card to get ", Payment::of(2)],
                     );
                     let Some(choam_card) = self.choam_card() else { return };
-                    // C# parity: the card is not validated here (hazards 18).
+                    // C# parity: the card is not validated here.
                     game.discard_player_treachery_card_boolean(Some(actor), Some(choam_card), true);
                     let me = game.player_mut(actor);
                     me.resources += 2;

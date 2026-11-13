@@ -1,17 +1,14 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct RaiseDeadPlayed {
     pub amount_of_forces: i32,
     pub amount_of_special_forces: i32,
     pub assign_skill: bool,
-    #[canon(name = "_heroId")]
     pub hero_id: i32,
     pub number_of_special_forces_in_location: i32,
-    #[canon(name = "_locationId")]
     pub location_id: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 

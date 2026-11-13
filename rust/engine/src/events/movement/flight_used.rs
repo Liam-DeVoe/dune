@@ -1,10 +1,9 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct FlightUsed {
     pub move_three_territories: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -44,7 +43,7 @@ impl FlightUsed {
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
-        // C# parity: the doubled spaces are in the C# text (hazards 11).
+        // C# parity: the doubled spaces are in the C# text.
         express!(
             self.initiator(),
             " use an ",

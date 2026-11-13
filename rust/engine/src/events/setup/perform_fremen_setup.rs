@@ -1,16 +1,13 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct PerformFremenSetup {
     // ---- inherited from PlacementEvent ----
-    #[canon(name = "_toId")]
     pub to_id: i32,
-    #[canon(name = "_forceLocations")]
     pub force_locations: Option<String>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 

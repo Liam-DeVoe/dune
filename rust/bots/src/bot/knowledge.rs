@@ -703,7 +703,7 @@ impl ClassicBot {
         let p = game.player(player);
         let mut count_forces_for_richese = 0;
         if p.faction == Faction::Richese && p.special_forces_in_territory(Some(t)) > 0 {
-            // C# parity: the condition is always true here (hazards 18.5), so the else branch is dead.
+            // C# parity: the condition is always true here, so the else branch is dead.
             count_forces_for_richese = if p.faction == Faction::Richese || p.ally == Faction::Richese {
                 game.current_no_field_value
             } else if game.latest_revealed_no_field_value == 5 {
@@ -795,7 +795,7 @@ impl ClassicBot {
         let opponent_resources = o.resources + o.allied_resources(game);
 
         let opponent_may_use_worthless_as_karma = o.faction == Faction::BeneGesserit && game.applicable(Rule::BeneGesseritWorthlessAsKarma);
-        // C# parity: Karma is tested twice; worthless cards never count (hazards 18.5).
+        // C# parity: Karma is tested twice; worthless cards never count.
         let has_karma = Self::known_cards_held_by_other_player(game, player, opponent).into_iter().any(|c| {
             c.type_() == TreacheryCardType::Karma || (opponent_may_use_worthless_as_karma && c.type_() == TreacheryCardType::Karma)
         });

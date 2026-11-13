@@ -1,14 +1,12 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct TerrorPlanted {
     pub type_: TerrorType,
-    #[canon(name = "_territoryId")]
     pub territory_id: i32,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -62,7 +60,7 @@ impl TerrorPlanted {
         None
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_strongholds(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Territory> {
         use either::Either;
         use std::iter::empty;
@@ -91,7 +89,7 @@ impl TerrorPlanted {
             || (game.player(p).nexus == Faction::Moritani && NexusPlayed::can_use_cunning(game, p))
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_terror_types(g: &Game, to_remove: bool) -> impl Iterator<Item = TerrorType> {
         use either::Either;
         if to_remove {

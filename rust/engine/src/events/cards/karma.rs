@@ -1,12 +1,10 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct Karma {
     pub prevented: FactionAdvantage,
-    #[canon(name = "_cardId")]
     pub card_id: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -270,7 +268,7 @@ impl Karma {
         g.current_main_phase == phase
     }
 
-    /// Lazy: callers stop at the first match (lazy-queries.md).
+    /// Lazy: callers stop at the first match.
     pub fn valid_karma_cards(g: &Game, p: PlayerIndex) -> impl Iterator<Item = TreacheryCard> {
         let pl = g.player(p);
         pl.treachery_cards
@@ -352,7 +350,7 @@ impl Karma {
     }
 
     pub fn try_get_message(&self, _game: &Game) -> GameResult<Message> {
-        // C# parity: the doubled space in "play  a" (hazards 11.x) comes from the empty ExpressIf part.
+        // C# parity: the doubled space in "play  a" comes from the empty ExpressIf part.
         let card = self.card().required("card")?;
         Ok(express!(
             self.initiator(),

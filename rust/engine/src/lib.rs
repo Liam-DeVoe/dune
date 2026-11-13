@@ -27,8 +27,7 @@ pub mod messages;
 // Iterator helpers
 pub mod iter;
 
-// Randomness, serialization and the state dump
-pub mod canon;
+// Randomness and serialization
 pub mod json;
 pub mod random;
 

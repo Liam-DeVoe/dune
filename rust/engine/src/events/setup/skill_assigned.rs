@@ -1,14 +1,12 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct SkillAssigned {
     pub skill: LeaderSkill,
-    #[canon(name = "_leaderId")]
     pub leader_id: i32,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -63,7 +61,7 @@ impl SkillAssigned {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        // C# parity (hazards 18.2): Passed is ignored.
+        // C# parity: Passed is ignored.
         self.log(game);
         let leader = match self.leader() {
             Some(l) => l,
@@ -78,7 +76,7 @@ impl SkillAssigned {
         game.set_in_front_of_shield(leader, true);
         // SkillDeck is dereferenced before Player.SkillsToChooseFrom is read.
         game.skill_deck.as_ref().required("skill deck")?;
-        // PutOnTop(IEnumerable) reverses its input (hazards 2.3).
+        // PutOnTop(IEnumerable) reverses its input.
         let remaining = game.player(me).skills_to_choose_from.clone();
         game.skill_deck.as_mut().required("skill deck")?.put_on_top_all(remaining);
         game.player_mut(me).skills_to_choose_from.clear();

@@ -7,19 +7,16 @@ macro_rules! elems {
     ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
 }
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct FremenRidesMonster {
     pub forces_from_reserves: i32,
     pub special_forces_from_reserves: i32,
     // ---- inherited from PlacementEvent ----
-    #[canon(name = "_toId")]
     pub to_id: i32,
-    #[canon(name = "_forceLocations")]
     pub force_locations: Option<String>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -111,7 +108,7 @@ impl FremenRidesMonster {
         None
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn locations_with_forces_that_can_ride<'a>(g: &'a Game, fremen: PlayerIndex, territory: Territory) -> Box<dyn Iterator<Item = Location> + 'a> {
         let may_ride_from_storm = g.applicable(Rule::FremenMayMoveIntoStorm);
 
@@ -135,7 +132,7 @@ impl FremenRidesMonster {
         Box::new(std::iter::empty())
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_sources<'a>(g: &'a Game) -> Box<dyn Iterator<Item = Location> + 'a> {
         let fremen = g.get_player(Some(Faction::Fremen));
         if let Some(fremen) = fremen {
@@ -158,7 +155,7 @@ impl FremenRidesMonster {
         0
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
         let may_move_into_storm = g.player(p).faction == Faction::Fremen
             && g.applicable(Rule::FremenMayMoveIntoStorm)
@@ -170,7 +167,7 @@ impl FremenRidesMonster {
                 (may_move_into_storm || l.sector(&g.map) != g.sector_in_storm)
                     && (match l.as_attached_location() {
                         None => true,
-                        // Reads the sector of the location it is attached to, not al.Sector (hazards).
+                        // Reads the sector of the location it is attached to, not al.Sector.
                         Some(al) => match al.attached_to_location(&g.map) {
                             Some(a) => a.sector(&g.map) != g.sector_in_storm,
                             None => false,
@@ -182,7 +179,7 @@ impl FremenRidesMonster {
     }
 
     pub fn is_either_valid_discovery_or_no_discovery(l: Location, map: &Map) -> bool {
-        // C# parity: never called in C# (hazards: uncalled helpers are ported anyway).
+        // C# parity: never called in C#.
         match l.as_discovered_location() {
             None => true,
             Some(ds) => ds.location().visible(map),

@@ -1,11 +1,9 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct PerformBeneGesseritPlacement {
-    #[canon(name = "_targetId")]
     pub target_id: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -46,7 +44,7 @@ impl PerformBeneGesseritPlacement {
         g.applicable(Rule::BeneGesseritFirstForceInAnyTerritory) || g.applicable(Rule::BeneGesseritAdvisors)
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_locations(g: &Game) -> impl Iterator<Item = Location> {
         use either::Either;
         if Self::bene_gesserit_may_place_first_force_in_any_territory(g) {

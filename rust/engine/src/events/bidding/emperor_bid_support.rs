@@ -1,10 +1,9 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct EmperorBidSupport {
     pub amounts: Option<IndexMap<Faction, i32>>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    #[canon(flatten)]
     pub base: GameEventBase,
 }
 
@@ -29,7 +28,7 @@ impl EmperorBidSupport {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        // C# assigns the event's own dictionary (aliased, hazards 5.3); nothing mutates it afterwards, so a copy is equivalent.
+        // C# assigns the event's own dictionary (aliased); nothing mutates it afterwards, so a copy is equivalent.
         // Without amounts (only without validation) the message can't be built: the event fails
         // before it is logged (C#: Log() throws ArgumentNullException in GetMessage).
         game.permitted_use_of_emperor_spice = self.amounts.clone();

@@ -2,17 +2,13 @@ use crate::prelude::*;
 
 /// The fields shared by all events, embedded as `base` in every event struct.
 /// The polymorphic `GameEvent` itself is the enum in `events/mod.rs`.
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct GameEventBase {
     /// Interior mutability: written after the event is stored in game state.
     pub initiator: Cell<Faction>,
     /// Interior mutability: the server sets this member after `Execute`, when the event is already in
     /// `History`.
     pub time: Cell<DateTimeOffset>,
-    /// Whether the event was initialized against a game (C#'s `Game` field is set). Only
-    /// the state dump reads it.
-    #[canon(name = "Game", with = "crate::canon::game_link")]
-    pub initialized: Cell<bool>,
     /// Interior mutability: written after the event is stored in game state.
     pub player: Cell<Option<PlayerIndex>>,
 }
@@ -22,7 +18,6 @@ impl Default for GameEventBase {
         GameEventBase {
             initiator: Cell::new(Default::default()),
             time: Cell::new(Default::default()),
-            initialized: Cell::new(false),
             player: Cell::new(Default::default()),
         }
     }
@@ -50,7 +45,7 @@ pub trait GameEventMethods {
         self.base().time.get()
     }
 
-    /// `Player`, dereferenced: NullReferenceException when it was never set (hazards.md 1.8).
+    /// `Player`, dereferenced: NullReferenceException when it was never set.
     fn player(&self) -> PlayerIndex {
         self.base().player.get().expect("the event has a player")
     }
@@ -81,7 +76,6 @@ pub trait GameEventMethods {
     }
 
     fn initialize(&self, game: &Game, initiator: Faction) {
-        self.base().initialized.set(true);
         self.base().initiator.set(initiator);
 
         let player = game.get_player(Some(initiator));

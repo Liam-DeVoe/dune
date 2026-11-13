@@ -56,7 +56,7 @@ impl From<DiscoveredLocation> for Location {
 
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct Discovery {
     pub token: DiscoveryToken,
     pub token_type: DiscoveryTokenType,

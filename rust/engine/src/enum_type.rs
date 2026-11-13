@@ -159,19 +159,6 @@ macro_rules! game_enum {
             }
         }
 
-        /// State dump: `"<ToString()>(<number>)"` (trace-format.md 7.3).
-        impl $crate::canon::Canon for $name {
-            fn canon(&self, w: &mut $crate::canon::CanonWriter) {
-                $crate::canon::write_enum(w, &<$name as $crate::enum_type::GameEnum>::INFO.format(self.0), self.0)
-            }
-        }
-
-        impl $crate::canon::CanonShape for $name {
-            fn canon_shape(_: &mut $crate::canon::Registry) -> $crate::canon::Shape {
-                $crate::canon::Shape::kind("str")
-            }
-        }
-
         impl From<$name> for $crate::messages::expression::ExpressionElement {
             fn from(v: $name) -> Self {
                 $crate::messages::expression::ExpressionElement::Enum($crate::messages::expression::EnumValue::of(v))

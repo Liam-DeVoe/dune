@@ -106,7 +106,7 @@ impl Game {
         self.player_indices().find(|p| self.skilled_as_player_leader_skill(*p, skill))
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn get_skilled_leaders(&self, player: PlayerIndex) -> impl Iterator<Item = Leader> {
         self.player(player).leaders.iter().copied().filter(move |l| self.is_skilled(Some(Hero::Leader(*l))))
     }
@@ -179,11 +179,10 @@ impl Game {
     }
 }
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct LeaderState {
     pub current_territory: Option<Territory>,
     pub death_counter: i32,
-    #[canon(omit)]
     pub time_of_death: i32,
     pub skill: LeaderSkill,
     pub in_front_of_shield: bool,
@@ -204,12 +203,6 @@ impl Default for LeaderState {
 impl LeaderState {
     pub fn new() -> Self {
         Self::default()
-    }
-
-    /// Thread-local (hazards.md 6.2), like `Message.Nr`.
-    /// Only `TimeOfDeath` reads it, which the state dump omits.
-    pub fn moment() -> i32 {
-        LEADER_STATE_MOMENT.with(|m| m.get())
     }
 
     pub fn alive(&self) -> bool {
@@ -256,6 +249,6 @@ impl LeaderState {
 }
 
 thread_local! {
-    /// `LeaderState.moment` (see [`LeaderState::moment`]).
+    /// A counter that orders leader deaths (`time_of_death`). Thread-local, like `Message::nr`.
     static LEADER_STATE_MOMENT: std::cell::Cell<i32> = const { std::cell::Cell::new(0) };
 }

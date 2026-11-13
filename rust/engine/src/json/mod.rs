@@ -1,7 +1,7 @@
 //! Byte-exact System.Text.Json for events and savegames, as configured in
 //! `Model/Utilities.cs` (`new JsonSerializerOptions { IncludeFields = true }`).
 //! Support module; the per-type member lists are in
-//! members.rs. See hazards.md section 12 for every rule implemented here.
+//! members.rs.
 //!
 //! Writing is hand-rolled so the output matches .NET byte for byte: members in
 //! the order C# declares them, enums as numbers, nulls written, compact, and the
@@ -180,7 +180,7 @@ impl JsonWriter {
     }
 }
 
-/// `JavaScriptEncoder.Default` escaping (hazards.md 12.1).
+/// `JavaScriptEncoder.Default` escaping.
 pub fn write_escaped(out: &mut String, s: &str) {
     out.push('"');
     for c in s.chars() {
@@ -555,7 +555,7 @@ impl<T: FromJson> FromJson for Shared<T> {
 }
 
 /// `Dictionary<TEnum, V>`: keys are written as enum names (`ToString()`), and
-/// read leniently: trimmed, case-insensitive names or integers (hazards.md 12.2).
+/// read leniently: trimmed, case-insensitive names or integers.
 impl<K: GameEnum, V: ToJson> ToJson for IndexMap<K, V> {
     fn write_json(&self, w: &mut JsonWriter) {
         w.object_value();
@@ -617,7 +617,7 @@ impl ToJson for GameEvent {
     }
 }
 
-/// Reads a polymorphic `GameEvent` (hazards.md 12.3): `$type` must be the first
+/// Reads a polymorphic `GameEvent`: `$type` must be the first
 /// member and a known discriminator; no other `$` member may follow.
 impl FromJson for GameEvent {
     fn from_json(v: &JsonValue) -> Result<Self, JsonError> {

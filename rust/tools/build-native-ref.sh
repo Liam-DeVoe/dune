@@ -28,7 +28,10 @@ set -euo pipefail
 rust_dir="$(cd "$(dirname "$0")/.." && pwd)"
 repo="$(cd "$rust_dir/.." && pwd)"
 out="$rust_dir/reference"
-crates="bots canon-derive differ dotnet-compat engine observe skin view"
+# The crates the observe binary needs. Older sources, such as the frozen copy the current reference
+# is built from, also have canon-derive and differ; each mode keeps the ones its source has.
+all_crates="bots canon-derive differ dotnet-compat engine observe skin view"
+crates_in() { for c in $all_crates; do if [ -f "$1/$c/Cargo.toml" ]; then echo "$c"; fi; done; }
 
 mode=tree
 arg=""
@@ -53,6 +56,7 @@ mkdir -p "$src"
 
 case $mode in
   tree)
+    crates=$(crates_in "$rust_dir")
     for c in $crates; do
       mkdir -p "$src/$c"
       cp "$rust_dir/$c/Cargo.toml" "$src/$c/"
@@ -64,6 +68,7 @@ case $mode in
     origin="working tree at $head ($dirty changed or new files in the crates)"
     ;;
   source)
+    crates=$(crates_in "$arg")
     for c in $crates; do
       mkdir -p "$src/$c"
       cp "$arg/$c/Cargo.toml" "$src/$c/"
@@ -73,11 +78,13 @@ case $mode in
     origin="frozen copy $arg"
     ;;
   rev)
+    crates=$(for c in $all_crates; do if git -C "$repo" cat-file -e "$arg:rust/$c/Cargo.toml" 2>/dev/null; then echo "$c"; fi; done)
     git -C "$repo" archive "$arg" rust/Cargo.toml rust/Cargo.lock $(for c in $crates; do echo "rust/$c/Cargo.toml rust/$c/src"; done) | tar -x -C "$work"
     origin="git revision $arg ($(git -C "$repo" rev-parse "$arg"))"
     ;;
   archive)
     tar -xzf "$arg" -C "$work"
+    crates=$(crates_in "$src")
     origin="archive $arg ($(cat "$src/ORIGIN" 2>/dev/null || echo unknown origin))"
     ;;
 esac

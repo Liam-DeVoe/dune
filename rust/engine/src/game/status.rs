@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct GameStatus {
     /// `Option` elements: `[game.CurrentBattle!.Territory!]` can add a null (the `!` does not throw).
     pub highlighted_territories: Vec<Option<Territory>>,
@@ -82,7 +82,7 @@ impl GameStatus {
         if self.waiting_for_me(player, is_host) { self.description_when_awaited.clone() } else { self.description_when_waiting.clone() }
     }
 
-    /// `&mut Game` because `Game.NextPlayerToBattle` advances `BattleSequence` when read (hazards §4.3).
+    /// `&mut Game` because `Game.NextPlayerToBattle` advances `BattleSequence` when read.
     /// The arms below are checked in order; each guard is evaluated
     /// only when its pattern matches, and again for each later arm with the same phase.
     pub fn determine_status(game: &mut Game, me_: Option<PlayerIndex>, is_player: bool) -> GameStatus {
@@ -583,7 +583,7 @@ impl GameStatus {
                 Self::status_game_message_message_faction_game_event(game, a, w, Some(Faction::Tleilaxu), None)
             }
 
-            // Each guard reads NextPlayerToBattle, which advances BattleSequence (hazards §4.3).
+            // Each guard reads NextPlayerToBattle, which advances BattleSequence.
             // When the first guard fails, C# reads it again for the second guard, and if that
             // read is not null either, falls through to the default arm.
             Phase::BattleReport if game.next_player_to_battle().is_some() => {
@@ -1083,7 +1083,7 @@ impl GameStatus {
 }
 
 /// Every instance is created by `Flash<T>` with both members set, so there is no `new()`.
-#[derive(Clone, Debug, Canon)]
+#[derive(Clone, Debug)]
 pub struct FlashInfo {
     pub to_show: ExpressionElement,
     pub message: Message,

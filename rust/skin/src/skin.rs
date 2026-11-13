@@ -7,7 +7,7 @@
 //!
 //! `Describe(object)` takes an [`ExpressionElement`], the engine's closed set of the runtime
 //! types a message holds. A C# message keeps live collections by reference, so it shows their
-//! contents at render time (hazards.md 4.5); the `_in` variants take the game to read those
+//! contents at render time; the `_in` variants take the game to read those
 //! from. Without a game they use the snapshot the engine took when the message was built.
 //!
 //! The faction rules sheets (`#region FactionManual`) are in [`crate::faction_manual`], and

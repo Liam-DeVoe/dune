@@ -7,6 +7,11 @@
 //   delays of the C# client's RetryPolicy, and gives up after about an hour (`status`, for the
 //   board's Disconnection banner). onOpen handlers run again, so a game screen can call
 //   RequestReconnectGame anew, as the C# client does after SignalR reconnects.
+// - The server knows who the user is per socket (protocol.md, Connection). A connection with a
+//   session (`setSession`, the token of a login) logs every new socket in with
+//   RequestResumeSession before anything else goes out. When the server says the session ended,
+//   onSessionEnded handlers run. Session tokens never go in URLs: the page keeps them in
+//   sessionStorage, and in localStorage when the user wants to stay logged in (`storeSession`).
 
 import { withBase } from "../base";
 
@@ -18,10 +23,11 @@ export interface CallResult<T = unknown> {
   Contents: T | null;
 }
 
-/** `LoginInfo` (Shared/Model/LoginInfo.cs). */
+/** `LoginInfo` (protocol.md, Payload objects). `Token` is set only by the calls that start a
+ * session. */
 export interface LoginInfo {
   UserId: number;
-  Token: string;
+  Token: string | null;
   PlayerName: string;
   UserName: string;
   Email: string;
@@ -35,8 +41,33 @@ export interface GameInitInfo {
   PhaseControl: unknown;
 }
 
-/** `ErrorType` values the client checks. */
-export const ErrorType = { None: 0, UserNameExists: 7, InvalidGameEvent: 23 } as const;
+/** `ErrorType` values the client checks. `UserTokenNotFound`: the connection isn't logged in,
+ * or its session ended. */
+export const ErrorType = { None: 0, UserNameExists: 7, UserTokenNotFound: 8, InvalidGameEvent: 23 } as const;
+
+const SESSION_KEY = "treachery.online;session";
+
+/** The session token this tab logged in with, or the one kept from an earlier visit. */
+export function storedSession(): string | null {
+  return sessionStorage.getItem(SESSION_KEY) || localStorage.getItem(SESSION_KEY) || null;
+}
+
+/** Keeps a session token for this tab, and with `remember` for later visits too. */
+export function storeSession(token: string, remember: boolean): void {
+  sessionStorage.setItem(SESSION_KEY, token);
+  if (remember) localStorage.setItem(SESSION_KEY, token);
+  else localStorage.removeItem(SESSION_KEY);
+}
+
+/** Whether the user asked to stay logged in on this browser. */
+export function sessionIsRemembered(): boolean {
+  return localStorage.getItem(SESSION_KEY) != null;
+}
+
+export function clearStoredSession(): void {
+  sessionStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(SESSION_KEY);
+}
 
 /** `Game.LatestVersion`, which `RequestLogin` must name. */
 export const LATEST_VERSION = 188;
@@ -88,8 +119,45 @@ export class Connection {
   private retryTimer: number | undefined;
   private currentStatus: ConnectionStatus = "connecting";
   private readonly statusHandlers = new Set<(s: ConnectionStatus) => void>();
+  private session: string | null = null;
+  private readonly sessionEndedHandlers = new Set<() => void>();
 
-  constructor(private readonly url: string = serverUrl()) {}
+  constructor(private readonly url: string = serverUrl()) {
+    this.on("SessionEnded", () => this.sessionEnded());
+  }
+
+  /** The session every socket of this connection logs in with; null for none. Setting one
+   * doesn't log the open socket in: the call that started the session did, or call
+   * `resumeSession`. */
+  setSession(token: string | null): void {
+    this.session = token;
+  }
+
+  get hasSession(): boolean {
+    return this.session != null;
+  }
+
+  /** Logs the open socket in with `token` and keeps it for later sockets. Resolves with the
+   * user's details, or null when the session is unknown or over. */
+  async resumeSession(token: string): Promise<LoginInfo | null> {
+    this.session = token;
+    const r = await this.call<LoginInfo>("RequestResumeSession", token);
+    if (r.Success) return r.Contents;
+    this.session = null;
+    return null;
+  }
+
+  /** Runs when the server ends this connection's session (logout elsewhere, a new password,
+   * the account deleted) or refuses to resume it. Returns an unsubscribe function. */
+  onSessionEnded(handler: () => void): () => void {
+    this.sessionEndedHandlers.add(handler);
+    return () => this.sessionEndedHandlers.delete(handler);
+  }
+
+  private sessionEnded(): void {
+    this.session = null;
+    this.sessionEndedHandlers.forEach((h) => h());
+  }
 
   /** Opens the socket (once) and resolves when it is open. */
   open(): Promise<void> {
@@ -99,9 +167,18 @@ export class Connection {
       this.socket = socket;
       socket.onopen = () => {
         this.retries = 0;
-        this.setStatus("connected");
-        resolve();
-        this.openHandlers.forEach((h) => h());
+        const ready = () => {
+          this.setStatus("connected");
+          resolve();
+          this.openHandlers.forEach((h) => h());
+        };
+        // A new socket is nobody until it logs in: resume the session first.
+        const token = this.session;
+        if (token == null) return ready();
+        this.send<LoginInfo>("RequestResumeSession", [token])
+          .then((r) => { if (!r.Success && this.session === token) this.sessionEnded(); })
+          .catch(() => {})
+          .finally(ready);
       };
       socket.onmessage = (e) => this.receive(String(e.data));
       socket.onerror = () => reject(new Error(`Cannot connect to ${this.url}`));
@@ -165,10 +242,16 @@ export class Connection {
 
   async call<T = unknown>(method: string, ...args: unknown[]): Promise<CallResult<T>> {
     await this.open();
+    return this.send<T>(method, args);
+  }
+
+  /** Sends a call on the socket, open or not yet resolved as open. */
+  private send<T>(method: string, args: unknown[]): Promise<CallResult<T>> {
     const id = this.nextId++;
     return new Promise<CallResult<T>>((resolve, reject) => {
+      if (!this.socket) return reject(new Error("The connection to the server closed."));
       this.pending.set(id, { resolve: resolve as (r: CallResult) => void, reject });
-      this.socket!.send(JSON.stringify({ type: "call", id, method, args }));
+      this.socket.send(JSON.stringify({ type: "call", id, method, args }));
     });
   }
 
@@ -200,14 +283,18 @@ export class Connection {
   }
 }
 
-/** Logs in, creating the account first when `create` is set and the name is free. */
+/** Logs the connection in, creating the account first when `create` is set and the name is
+ * free. The connection keeps the new session for its later sockets. */
 export async function login(conn: Connection, userName: string, password: string, create?: { email: string | null; playerName: string }): Promise<LoginInfo> {
   const hashed = await hashPassword(password);
   await conn.invoke("Connect");
+  let info: LoginInfo | null = null;
   if (create) {
     const r = await conn.call<LoginInfo>("RequestCreateUser", userName, hashed, create.email, create.playerName);
-    if (r.Success) return r.Contents!;
-    if (r.Error !== ErrorType.UserNameExists) throw new Error(`RequestCreateUser: error ${r.Error}`);
+    if (r.Success) info = r.Contents!;
+    else if (r.Error !== ErrorType.UserNameExists) throw new Error(`RequestCreateUser: error ${r.Error}`);
   }
-  return conn.invoke<LoginInfo>("RequestLogin", LATEST_VERSION, userName, hashed);
+  info ??= await conn.invoke<LoginInfo>("RequestLogin", LATEST_VERSION, userName, hashed);
+  conn.setSession(info.Token);
+  return info;
 }

@@ -6,11 +6,15 @@
 //
 // Every Request* method returns what the C# method returns: an error text for the screen, or
 // empty/null on success. Texts come from Skin.Describe(ErrorType) (the lobby data).
-import { Connection, type CallResult, type GameInitInfo, type LoginInfo } from "../state/connection";
+import {
+  clearStoredSession, Connection, ErrorType as CallError, sessionIsRemembered, storedSession, storeSession, type CallResult, type GameInitInfo,
+  type LoginInfo,
+} from "../state/connection";
 import { WebSocketSource, type GameEventDraft } from "../state/source";
 import type { GameView } from "../generated/GameView";
 import { PhaseValue, type Phase } from "../generated/enums";
 import { loadSkin, type Skin } from "../skin";
+import { withBase } from "../base";
 import { loadLobby, type Lobby } from "./data";
 import { Participation } from "./participation";
 import {
@@ -21,9 +25,20 @@ import {
 /** `IGameService.HeartbeatDelay`. */
 export const HEARTBEAT_DELAY = 6000;
 
-const AUTH_TOKEN_SETTING = "treachery.online;auth.token";
+const ErrorType = { InvalidGameEvent: 23 } as const;
 
-const ErrorType = { UserNotFound: 1, InvalidGameEvent: 23 } as const;
+/** `RequestLinkLogin`'s reply. */
+interface LinkLoginInfo {
+  LoginInfo: LoginInfo;
+  GameId: string | null;
+}
+
+/** How the page was opened: the lobby, a game to rejoin (`/game/:gameId`), or the login link
+ * of an async-play mail (`/link/:linkToken`). */
+export interface StartOptions {
+  gameId?: string;
+  linkToken?: string;
+}
 
 /** The game the user is in (`Client.Game`, `GameId`, `GameName`, ...). */
 export interface CurrentGame {
@@ -66,7 +81,8 @@ export class LobbyClient {
     adminInfo: null, version: 0,
   };
   private readonly listeners = new Set<() => void>();
-  private storedPassword: string | null = null;
+  /** Whether the user wants to stay logged in on this browser. */
+  private remember = sessionIsRemembered();
   private heartbeatTimer: number | undefined;
   private viewUnsubscribe: (() => void) | undefined;
   readonly conn: Connection;
@@ -86,6 +102,9 @@ export class LobbyClient {
     this.conn.on("RemoveUser", (userId, kick) => { void this.handleRemoveUser(userId as number, kick as boolean); });
     this.conn.on("LoadGame", (info) => { void this.loadGame(info as GameInitInfo); });
     this.conn.onOpen(() => { this.set({ connected: true }); });
+    this.conn.onSessionEnded(() => { void this.sessionEnded(); });
+    // Where earlier versions kept the token of a session that no longer exists.
+    localStorage.removeItem("treachery.online;auth.token");
   }
 
   // The external store (useSyncExternalStore).
@@ -119,7 +138,6 @@ export class LobbyClient {
 
   get loggedIn(): boolean { return this.state.loginInfo != null; }
   get userId(): number { return this.state.loginInfo?.UserId ?? -1; }
-  get userToken(): string | null { return this.state.loginInfo?.Token ?? null; }
   get inGameNow(): boolean { return this.state.game != null; }
   get isHost(): boolean { return this.state.game?.participation.isHost(this.userId) ?? false; }
   get isObserver(): boolean { return this.state.game?.participation.isObserver(this.userId) ?? false; }
@@ -151,20 +169,23 @@ export class LobbyClient {
 
   // Start (Client.Start).
 
-  async start(userToken?: string, gameId?: string): Promise<void> {
+  async start({ gameId, linkToken }: StartOptions = {}): Promise<void> {
     await this.conn.open();
     this.set({ connected: true });
     await this.connect();
-    if (userToken && gameId) {
-      const r = await this.conn.call<LoginInfo>("GetLoginInfo", userToken);
-      if (r.Success) {
-        this.storedPassword = null;
-        this.set({ loginInfo: r.Contents });
-        await this.enterGame(gameId, null);
+    if (linkToken) {
+      // A link works once: take it out of the address bar, then trade it for a session.
+      window.history.replaceState(null, "", withBase(""));
+      const r = await this.conn.call<LinkLoginInfo>("RequestLinkLogin", linkToken);
+      if (r.Success && r.Contents) {
+        this.loggedInWith(r.Contents.LoginInfo);
+        gameId = r.Contents.GameId ?? undefined;
+        if (gameId) window.history.replaceState(null, "", withBase(`game/${gameId}`));
       }
-    } else {
-      await this.tryResumeSavedLogin();
     }
+    if (!this.loggedIn) await this.tryResumeSavedLogin();
+    if (this.loggedIn && gameId) await this.enterGame(gameId, null);
+    else if (this.loggedIn) await this.sendHeartbeatAndGetServerStatus();
     this.scheduleHeartbeat();
   }
 
@@ -185,13 +206,10 @@ export class LobbyClient {
     }, HEARTBEAT_DELAY);
   }
 
-  /** `Client.Invoke`: a call that logs in again once with the stored password if the server forgot the user. */
+  /** `Client.Invoke`. A call refused because the connection's session is over logs the user out. */
   private async invoke<T>(method: string, ...args: unknown[]): Promise<CallResult<T>> {
-    let r = await this.conn.call<T>(method, ...args);
-    const name = this.state.loginInfo?.UserName;
-    if (!r.Success && r.Error === ErrorType.UserNotFound && this.storedPassword != null && name != null) {
-      if ((await this.requestLogin(name, this.storedPassword)).Success) r = await this.conn.call<T>(method, ...args);
-    }
+    const r = await this.conn.call<T>(method, ...args);
+    if (!r.Success && r.Error === CallError.UserTokenNotFound && this.loggedIn) await this.sessionEnded();
     return r;
   }
 
@@ -201,49 +219,64 @@ export class LobbyClient {
 
   // Authentication.
 
+  /** A call that started a session logged the connection in: keep its token for this tab (and
+   * later visits, if the user wants), so a reload or a new socket logs in again. */
+  private loggedInWith(info: LoginInfo | null): void {
+    if (info?.Token) {
+      this.conn.setSession(info.Token);
+      storeSession(info.Token, this.remember);
+    }
+    this.set({ loginInfo: info });
+  }
+
   async requestCreateUser(userName: string, hashedPassword: string, email: string | null, playerName: string): Promise<CallResult<LoginInfo>> {
     const r = await this.conn.call<LoginInfo>("RequestCreateUser", userName, hashedPassword, email, playerName);
-    if (r.Success) {
-      this.storedPassword = hashedPassword;
-      this.set({ loginInfo: r.Contents });
-    }
+    if (r.Success) this.loggedInWith(r.Contents);
     return r;
   }
 
   async requestLogin(userName: string, hashedPassword: string): Promise<CallResult<LoginInfo>> {
     const r = await this.conn.call<LoginInfo>("RequestLogin", this.lobby.data.latestVersion, userName, hashedPassword);
     if (r.Success) {
-      this.storedPassword = hashedPassword;
-      this.set({ loginInfo: r.Contents });
+      this.loggedInWith(r.Contents);
       await this.sendHeartbeatAndGetServerStatus();
-      return r;
     }
-    this.storedPassword = null;
-    this.set({ loginInfo: null });
     return r;
   }
 
-  logout(): void {
-    this.storedPassword = null;
-    localStorage.setItem(AUTH_TOKEN_SETTING, "");
+  /** Ends the session on the server, for every tab that uses it. */
+  async logout(): Promise<void> {
+    if (this.conn.hasSession) await this.conn.call("RequestLogout").catch(() => {});
+    await this.sessionEnded();
+  }
+
+  /** The session is over: forget it and show the login. */
+  private async sessionEnded(): Promise<void> {
+    this.conn.setSession(null);
+    clearStoredSession();
+    if (this.state.game) {
+      this.leaveSource();
+      this.set({ game: null, reseatRequested: false });
+    }
     this.set({ loginInfo: null });
   }
 
-  /** Keeps the session token so a reload doesn't ask for credentials. */
+  /** Whether a reload or a later visit logs in again without credentials. */
   rememberLogin(keep: boolean): void {
-    localStorage.setItem(AUTH_TOKEN_SETTING, keep && this.state.loginInfo ? this.state.loginInfo.Token : "");
+    this.remember = keep;
+    const token = storedSession();
+    if (token) storeSession(token, keep);
   }
 
   private async tryResumeSavedLogin(): Promise<boolean> {
-    const saved = localStorage.getItem(AUTH_TOKEN_SETTING);
+    const saved = storedSession();
     if (!saved) return false;
-    const r = await this.conn.call<LoginInfo>("GetLoginInfo", saved);
-    if (!r.Success) {
-      localStorage.setItem(AUTH_TOKEN_SETTING, "");
+    const info = await this.conn.resumeSession(saved);
+    if (!info) {
+      clearStoredSession();
       return false;
     }
-    this.set({ loginInfo: r.Contents });
-    await this.sendHeartbeatAndGetServerStatus();
+    this.set({ loginInfo: info });
     return true;
   }
 
@@ -254,31 +287,30 @@ export class LobbyClient {
   async requestSetPassword(userName: string, token: string, newHashedPassword: string): Promise<CallResult<LoginInfo>> {
     const r = await this.conn.call<LoginInfo>("RequestSetPassword", userName, token, newHashedPassword);
     if (r.Success) {
-      this.storedPassword = newHashedPassword;
-      this.set({ loginInfo: r.Contents });
+      this.loggedInWith(r.Contents);
+      await this.sendHeartbeatAndGetServerStatus();
     }
     return r;
   }
 
   async requestUpdateUserInfo(hashedPassword: string, email: string, playerName: string): Promise<string | null> {
     if (!this.loggedIn) return "Not logged in";
-    const r = await this.invoke<LoginInfo>("RequestUpdateUserInfo", this.userToken, hashedPassword, playerName, email);
+    const r = await this.invoke<LoginInfo>("RequestUpdateUserInfo", hashedPassword, playerName, email);
     if (!r.Success) return this.describe(r);
-    this.storedPassword = hashedPassword;
     this.set({ loginInfo: r.Contents });
     return null;
   }
 
   async requestSetUserStatus(status: number): Promise<string> {
     if (!this.loggedIn) return "Not logged in";
-    return this.updateServerStatusOnSuccess(await this.invoke<ServerStatus>("RequestSetUserStatus", this.userToken, status));
+    return this.updateServerStatusOnSuccess(await this.invoke<ServerStatus>("RequestSetUserStatus", status));
   }
 
   // Game management.
 
   async requestCreateGame(name: string, password: string, stateData: string | null = null, skinData: string | null = null): Promise<string | null> {
     if (!this.loggedIn) return "Not logged in";
-    const r = await this.invoke<GameInitInfo>("RequestCreateGame", name, this.userToken, password, stateData ?? "", skinData ?? "");
+    const r = await this.invoke<GameInitInfo>("RequestCreateGame", name, password, stateData ?? "", skinData ?? "");
     if (r.Success && r.Contents) {
       const message = await this.loadGame(r.Contents);
       if (message != null) return message;
@@ -287,15 +319,15 @@ export class LobbyClient {
   }
 
   async requestScheduleGame(dateTime: string, ruleset: number | null, numberOfPlayers: number, maximumTurns: number, allowedFactions: number[], asyncPlay: boolean): Promise<string> {
-    return this.updateServerStatusOnSuccess(await this.invoke<ServerStatus>("RequestScheduleGame", this.userToken, dateTime, ruleset, numberOfPlayers, maximumTurns, allowedFactions, asyncPlay));
+    return this.updateServerStatusOnSuccess(await this.invoke<ServerStatus>("RequestScheduleGame", dateTime, ruleset, numberOfPlayers, maximumTurns, allowedFactions, asyncPlay));
   }
 
   async requestCancelGame(scheduledGameId: string): Promise<string> {
-    return this.updateServerStatusOnSuccess(await this.invoke<ServerStatus>("RequestCancelGame", this.userToken, scheduledGameId));
+    return this.updateServerStatusOnSuccess(await this.invoke<ServerStatus>("RequestCancelGame", scheduledGameId));
   }
 
   async requestCloseGame(gameId: string): Promise<string> {
-    return this.updateServerStatusOnSuccess(await this.invoke<ServerStatus>("RequestCloseGame", this.userToken, gameId));
+    return this.updateServerStatusOnSuccess(await this.invoke<ServerStatus>("RequestCloseGame", gameId));
   }
 
   private updateServerStatusOnSuccess(r: CallResult<ServerStatus>): string {
@@ -305,22 +337,22 @@ export class LobbyClient {
   }
 
   async requestUpdateSettings(gameId: string, settings: GameSettings): Promise<string> {
-    const r = await this.invoke("RequestUpdateSettings", this.userToken, gameId, settings);
+    const r = await this.invoke("RequestUpdateSettings", gameId, settings);
     return r.Success ? "" : this.describe(r);
   }
 
   async requestJoinGame(gameId: string, password: string, seat: number): Promise<string | null> {
-    const r = await this.invoke<GameInitInfo>("RequestJoinGame", this.userToken, gameId, password, seat);
+    const r = await this.invoke<GameInitInfo>("RequestJoinGame", gameId, password, seat);
     if (!r.Success || !r.Contents) return this.describe(r);
     return this.loadGame(r.Contents);
   }
 
   async requestSubscribeGame(scheduledGameId: string, subscription: number): Promise<string> {
-    return this.updateServerStatusOnSuccess(await this.invoke<ServerStatus>("RequestSubscribeGame", this.userToken, scheduledGameId, subscription));
+    return this.updateServerStatusOnSuccess(await this.invoke<ServerStatus>("RequestSubscribeGame", scheduledGameId, subscription));
   }
 
   async requestObserveGame(gameId: string, password: string): Promise<string | null> {
-    const r = await this.invoke<GameInitInfo>("RequestObserveGame", this.userToken, gameId, password);
+    const r = await this.invoke<GameInitInfo>("RequestObserveGame", gameId, password);
     if (!r.Success || !r.Contents) return this.describe(r);
     return this.loadGame(r.Contents);
   }
@@ -330,7 +362,7 @@ export class LobbyClient {
     if (!this.loggedIn) return "Not logged in";
     const g = this.state.game;
     if (!g) return "Not in game";
-    return this.describe(await this.invoke(method, this.userToken, g.gameId, ...args));
+    return this.describe(await this.invoke(method, g.gameId, ...args));
   }
 
   requestSetOrUnsetHost(userId: number): Promise<string> { return this.gameCall("RequestSetOrUnsetHost", userId); }
@@ -343,7 +375,7 @@ export class LobbyClient {
   }
 
   async requestLeaveGame(): Promise<string> {
-    return this.updateServerStatusOnSuccess(await this.invoke<ServerStatus>("RequestLeaveGame", this.userToken, this.state.game?.gameId ?? null));
+    return this.updateServerStatusOnSuccess(await this.invoke<ServerStatus>("RequestLeaveGame", this.state.game?.gameId ?? null));
   }
 
   async requestAssignSeats(assignment: IntDict<number>): Promise<string> {
@@ -373,7 +405,7 @@ export class LobbyClient {
   // Admin (Client.Admin*).
 
   private async adminCall(method: string, ...args: unknown[]): Promise<string> {
-    const r = await this.invoke<string>(method, this.userToken, ...args);
+    const r = await this.invoke<string>(method, ...args);
     return r.Success && r.Contents != null ? r.Contents : this.describe(r);
   }
 
@@ -395,7 +427,7 @@ export class LobbyClient {
   adminDeleteUser(userId: number): Promise<string> { return this.adminCall("DeleteUser", userId); }
 
   async adminDownloadGame(gameId: string): Promise<string> {
-    const r = await this.invoke<string>("AdminDownloadGame", this.userToken, gameId);
+    const r = await this.invoke<string>("AdminDownloadGame", gameId);
     if (!r.Success || r.Contents == null) return this.describe(r);
     const url = URL.createObjectURL(new Blob([r.Contents], { type: "application/json" }));
     const a = document.createElement("a");
@@ -407,7 +439,7 @@ export class LobbyClient {
   }
 
   async getAdminInfo(): Promise<string> {
-    const r = await this.invoke<AdminInfo>("GetAdminInfo", this.userToken);
+    const r = await this.invoke<AdminInfo>("GetAdminInfo");
     if (r.Success && r.Contents) {
       this.set({ adminInfo: r.Contents });
       return "AdminInfo retrieved";
@@ -419,7 +451,7 @@ export class LobbyClient {
 
   async sendHeartbeatAndGetServerStatus(): Promise<void> {
     const scope = this.state.game ? GameListScope.None : this.isAdmin ? GameListScope.All : GameListScope.Active;
-    this.updateServerStatusOnSuccess(await this.invoke<ServerStatus>("RequestHeartbeat", this.userToken, scope));
+    this.updateServerStatusOnSuccess(await this.invoke<ServerStatus>("RequestHeartbeat", scope));
   }
 
   private handleUpdatedServerStatus(status: ServerStatus): void {
@@ -449,7 +481,7 @@ export class LobbyClient {
 
   private async enterGame(gameId: string, info: GameInitInfo | null): Promise<string | null> {
     this.leaveSource();
-    const source = new WebSocketSource(this.conn, this.userToken!, gameId);
+    const source = new WebSocketSource(this.conn, gameId);
     const game: CurrentGame = {
       gameId,
       gameName: info?.GameName ?? null,
@@ -470,7 +502,7 @@ export class LobbyClient {
       if (g && g.source === source && g.view == null) this.set({ game: { ...g, view } });
       if (!info) {
         // A reconnect by URL: the participation comes from the game state.
-        const r = await this.conn.call<GameInitInfo>("RequestGameState", this.userToken, gameId);
+        const r = await this.conn.call<GameInitInfo>("RequestGameState", gameId);
         const g2 = this.state.game;
         if (r.Success && r.Contents && g2 && g2.source === source) {
           this.set({ game: { ...g2, gameName: r.Contents.GameName, participation: new Participation(r.Contents.Participation as ParticipationJson), phaseControl: (r.Contents.PhaseControl as PhaseControlInfo | null) ?? null } });

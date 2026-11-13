@@ -1,15 +1,17 @@
 // Routes. /scene/:fixture/:faction is one game in a fixed state,
 // seen by one faction. With the Rust server running with DevScene on, it opens that game on the
 // server (POST /dev/scene) and plays it over the WebSocket; without one, it renders the saved view
-// (web/public/views, written by rust/view/examples/scene_views.rs). /:userToken/:gameId reconnects
-// to a game on the server. scene.ts gives Playwright scripts hooks into the scene page.
+// (web/public/views, written by rust/view/examples/scene_views.rs). /game/:gameId reconnects to a
+// game on the server with the session the browser keeps, and /link/:linkToken logs in with the
+// single-use link of an async-play mail. Session tokens never appear in URLs. scene.ts gives
+// Playwright scripts hooks into the scene page.
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useParams } from "react-router";
 import { GameScreen } from "./components/GameScreen";
 import { MainLayout } from "./components/MainLayout";
 import { Game, type GameContext } from "./state/context";
-import { Connection, hashPassword, login } from "./state/connection";
+import { Connection, hashPassword, login, storeSession } from "./state/connection";
 import { StaticSource, type ViewSource, WebSocketSource } from "./state/source";
 import { loadSkin } from "./skin";
 import { sceneFailed, sceneReady } from "./scene";
@@ -28,7 +30,9 @@ async function sceneOnServer(fixture: string, faction: string): Promise<WebSocke
   if (r.status === 404 || r.status === 405 || r.status >= 500) return null;
   if (!r.ok) throw new Error(`/dev/scene: ${await r.text()}`);
   const { userToken, gameId } = (await r.json()) as { userToken: string; gameId: string };
-  return new WebSocketSource(new Connection(), userToken, gameId);
+  const conn = new Connection();
+  conn.setSession(userToken);
+  return new WebSocketSource(conn, gameId);
 }
 
 /** Loads a source and the skin, then follows the source's later views. */
@@ -71,20 +75,13 @@ function Scene() {
   return <MainLayout><Game.Provider value={game}><GameScreen /></Game.Provider></MainLayout>;
 }
 
-function ServerGame() {
-  const { userToken, gameId } = useParams();
-  const { game, error } = useGameFrom(async () => new WebSocketSource(new Connection(), userToken!, gameId!), [userToken, gameId]);
-  if (error) return <div className="alert alert-danger">{error}</div>;
-  if (!game) return null;
-  return <MainLayout><Game.Provider value={game}><GameScreen /></Game.Provider></MainLayout>;
-}
-
 // The connection code, for scripts that set up games before opening them (the end-to-end test
-// scripts/ui/e2e_server.py logs in, creates and seats a game with it).
+// scripts/ui/e2e_server.py logs in, creates and seats a game with it, and keeps the session with
+// storeSession so that /game/:gameId opens the game logged in).
 declare global {
-  interface Window { treacheryClient?: { Connection: typeof Connection; login: typeof login; hashPassword: typeof hashPassword } }
+  interface Window { treacheryClient?: { Connection: typeof Connection; login: typeof login; hashPassword: typeof hashPassword; storeSession: typeof storeSession } }
 }
-window.treacheryClient = { Connection, login, hashPassword };
+window.treacheryClient = { Connection, login, hashPassword, storeSession };
 
 function Home() {
   return (
@@ -101,13 +98,13 @@ createRoot(document.getElementById("app")!).render(
   <StrictMode>
     <BrowserRouter basename={BASE}>
       <Routes>
-        {/* Main.razor's routes: the lobby, and rejoining a game (package 8). */}
+        {/* The lobby, rejoining a game, and the login link of an async-play mail. */}
         <Route path="/" element={<MainPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/scenes" element={<Home />} />
         <Route path="/scene/:fixture/:faction" element={<Scene />} />
-        <Route path="/game/:userToken/:gameId" element={<ServerGame />} />
-        <Route path="/:userToken/:gameId" element={<MainPage />} />
+        <Route path="/game/:gameId" element={<MainPage />} />
+        <Route path="/link/:linkToken" element={<MainPage />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>,

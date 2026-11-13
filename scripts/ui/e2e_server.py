@@ -13,10 +13,14 @@ Starts rust/target/release/treachery-server on a fresh database with the web bui
    (client.md, package 8), so this is the only step not done by clicking.
 2. Alice creates a game from the alliance fixture, takes the Emperor's seat and opens the
    Atreides seat; Bob joins it.
-3. Both open the game screen (/<token>/<gameId>). Alice offers an alliance to the Atreides by
+3. Both open the game screen (/game/<gameId>), logged in with the session the setup kept in the
+   tab's sessionStorage: no token in any URL. Alice offers an alliance to the Atreides by
    clicking, Bob offers one back, and both screens update to show the alliance (the log's Nexus
    line, and the offer form leaves).
-4. The scene route again, now on a server with other clients: passing in the alliance phase
+4. Carol logs in through the login form, asking to stay signed in. The session token is in
+   localStorage and in no URL; a reload and a second tab are logged in with it. Logging out
+   returns both tabs to the login form, and a reload stays logged out.
+5. The scene route again, now on a server with other clients: passing in the alliance phase
    replaces the view.
 
 Build first: `cargo build --release -p treachery-server` (from rust/) and `npm run build`
@@ -82,24 +86,67 @@ def check(condition: bool, what: str) -> None:
 
 
 SETUP_HOST = """async ([savegame, emperorSeat, atreidesSeat]) => {
-  const { Connection, login } = window.treacheryClient;
+  const { Connection, login, storeSession } = window.treacheryClient;
   const conn = new Connection();
   const me = await login(conn, "alice", "alice-password", { email: null, playerName: "Alice" });
-  const info = await conn.invoke("RequestCreateGame", "E2E", me.Token, "", savegame, "");
-  await conn.invoke("RequestAssignSeats", me.Token, info.GameId, [[me.UserId, emperorSeat]]);
-  await conn.invoke("RequestOpenOrCloseSeat", me.Token, info.GameId, atreidesSeat);
+  const info = await conn.invoke("RequestCreateGame", "E2E", "", savegame, "");
+  await conn.invoke("RequestAssignSeats", info.GameId, [[me.UserId, emperorSeat]]);
+  await conn.invoke("RequestOpenOrCloseSeat", info.GameId, atreidesSeat);
   conn.close();
-  return { token: me.Token, gameId: info.GameId };
+  storeSession(me.Token, false);
+  return { gameId: info.GameId };
 }"""
 
 SETUP_GUEST = """async ([gameId, seat]) => {
-  const { Connection, login } = window.treacheryClient;
+  const { Connection, login, storeSession } = window.treacheryClient;
   const conn = new Connection();
   const me = await login(conn, "bobby", "bob-password", { email: null, playerName: "Bobby" });
-  await conn.invoke("RequestJoinGame", me.Token, gameId, "", seat);
+  await conn.invoke("RequestJoinGame", gameId, "", seat);
   conn.close();
-  return { token: me.Token };
+  storeSession(me.Token, false);
+  return { joined: true };
 }"""
+
+
+CREATE_ACCOUNT = """async ([name, password]) => {
+  const { Connection, login } = window.treacheryClient;
+  const conn = new Connection();
+  await login(conn, name, password, { email: null, playerName: name });
+  conn.close();
+}"""
+
+SESSION_KEY = "treachery.online;session"
+
+
+def log_in_and_out(browser, base: str, shots: Path) -> None:
+    """Step 4: the login form, a kept session, and logging out."""
+    context = browser.new_context(viewport={"width": 1440, "height": 820})
+    page = watch(context.new_page())
+    page.goto(base + "/")
+    page.evaluate(CREATE_ACCOUNT, ["carol", "carol-password"])
+    page.get_by_placeholder("User name").fill("carol")
+    page.get_by_placeholder("Password").fill("carol-password")
+    page.locator("#keepSignedIn").check()
+    page.get_by_role("button", name="Log in").click()
+    page.get_by_role("button", name="Log out").wait_for(timeout=15000)
+    token = page.evaluate(f"localStorage.getItem('{SESSION_KEY}')") or ""
+    check(len(token) == 64 and token not in page.url, "Carol logged in; the session token is kept in localStorage, not in the URL")
+    page.reload()
+    page.get_by_role("button", name="Log out").wait_for(timeout=15000)
+    other = watch(context.new_page())
+    other.goto(base + "/")
+    other.get_by_role("button", name="Log out").wait_for(timeout=15000)
+    check(True, "a reload and a second tab are logged in with the kept session")
+    page.screenshot(path=str(shots / "4-logged-in.png"))
+    page.get_by_role("button", name="Log out").click()
+    for p, which in ((page, "this tab"), (other, "the other tab")):
+        p.get_by_role("button", name="Log in").wait_for(timeout=15000)
+        check(True, f"logging out shows the login form in {which}")
+    check(page.evaluate(f"localStorage.getItem('{SESSION_KEY}')") is None, "the session token is gone from localStorage")
+    page.reload()
+    page.get_by_role("button", name="Log in").wait_for(timeout=15000)
+    check(True, "a reload stays logged out")
+    context.close()
 
 
 def offer_alliance(page: Page, to: str) -> None:
@@ -159,11 +206,11 @@ def main() -> None:
                 check(bool(host["gameId"]), "Alice logged in and created a game from the alliance fixture")
                 bob.goto(base + "/")
                 guest = bob.evaluate(SETUP_GUEST, [host["gameId"], ATREIDES_SEAT])
-                check(bool(guest["token"]), "Bob logged in and joined the Atreides seat")
+                check(bool(guest["joined"]), "Bob logged in and joined the Atreides seat")
 
                 # 3: both screens, alliance events by clicking.
-                alice.goto(f"{base}/{host['token']}/{host['gameId']}")
-                bob.goto(f"{base}/{guest['token']}/{host['gameId']}")
+                alice.goto(f"{base}/game/{host['gameId']}")
+                bob.goto(f"{base}/game/{host['gameId']}")
                 for p, who in ((alice, "Alice"), (bob, "Bob")):
                     p.get_by_text("Offer a faction to form an Alliance").wait_for(timeout=15000)
                     check(True, f"{who} sees the alliance form in a view from the server")
@@ -184,7 +231,10 @@ def main() -> None:
                 alice.screenshot(path=str(args.shots / "2-alice-allied.png"))
                 bob.screenshot(path=str(args.shots / "2-bob-allied.png"))
 
-                # 4: the scene route on the server, after other clients.
+                # 4: logging in through the form, and out.
+                log_in_and_out(browser, base, args.shots)
+
+                # 5: the scene route on the server, after other clients.
                 play_scene(browser, base, args.shots, "3-scene")
                 browser.close()
                 check(not FAILED_REQUESTS, "every request succeeded" + "".join(f"\n  {r}" for r in sorted(set(FAILED_REQUESTS))))

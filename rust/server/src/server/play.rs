@@ -3,11 +3,14 @@
 
 use std::time::Duration;
 
-use treachery_engine::enumerations::{ErrorType, MainPhase};
+use serde_json::{json, Value};
+use treachery_engine::enumerations::{ErrorType, Faction, MainPhase};
 use treachery_engine::events::GameEvent;
 use treachery_engine::game::GameStatus;
+use treachery_engine::json::FromJson;
 
-use super::{done, CallError, Reply, Server};
+use super::{done, refuse, CallError, Reply, Server};
+
 use crate::connections::Notification;
 use crate::mail::{is_valid_address, Mail};
 use crate::time::{self, Time};
@@ -15,9 +18,34 @@ use crate::timers::Timer;
 use crate::render;
 
 impl Server {
-    pub(super) async fn submit_event(&mut self, token: &str, game: &str, event: GameEvent) -> Reply {
-        let (user, game) = self.user_in_game(token, game)?;
-        let as_host = self.games[&game].game.is_host(Some(user));
+    /// An event of one of the game's players. Whatever the client wrote, the event is the
+    /// caller's: the server sets `Initiator` to the caller's faction (none before factions are
+    /// dealt, or for a host without a seat), and for `FactionSelected` the seat and name too, so
+    /// the engine validates it as an action of that player and no other. Starting the game is
+    /// for hosts, and the server draws the new game's seed, which decides every deck: a seed
+    /// chosen by a player would tell them the cards to come.
+    pub(super) async fn submit_event(&mut self, user: i32, game: &str, mut event: serde_json::Map<String, Value>) -> Reply {
+        let game = self.player_of(user, game)?;
+        let g = &self.games[&game].game;
+        let as_host = g.is_host(Some(user));
+        let faction = g.get_player_by_user_id(Some(user)).map_or(Faction::None, |p| g.player(p).faction);
+        event.insert("Initiator".into(), json!(faction.0));
+        event.remove("Time");
+        match event.get("$type").and_then(Value::as_str) {
+            Some("EstablishPlayers") => {
+                if !as_host {
+                    return Err(refuse(ErrorType::NoHost));
+                }
+                event.insert("Seed".into(), json!((self.services.seeds)()));
+            }
+            Some("FactionSelected") => {
+                let seat = g.participation.borrow().seated_players.get(&user).copied().unwrap_or(-1);
+                event.insert("Seat".into(), json!(seat));
+                event.insert("InitiatorPlayerName".into(), json!(g.get_player_name(user)));
+            }
+            _ => {}
+        }
+        let event = GameEvent::from_json(&Value::Object(event)).map_err(|e| CallError::Refused(ErrorType::InvalidGameEvent, e.message))?;
         self.execute(&game, event, as_host, None, false).await?;
         done()
     }
@@ -126,6 +154,7 @@ impl Server {
 
         let seated: Vec<i32> = g.game.participation.borrow().seated_players.keys().copied().collect();
         let mut mails = Vec::new();
+        let name = g.name.clone();
         for user in seated {
             let Some(address) = self.users.get(&user).map(|u| u.email.clone()).filter(|a| is_valid_address(a)) else { continue };
             let g = self.games.get_mut(game).expect("present");
@@ -140,23 +169,19 @@ impl Server {
             } else {
                 String::new()
             };
-            // The user's newest session, so the link logs them in.
-            let token = self.sessions.iter().filter(|(_, s)| s.user == user).max_by_key(|(_, s)| s.created).map(|(t, _)| t.clone());
-            let link = match token {
-                Some(token) => format!("Jump to game: <a href=\"{site}/{token}/{game}\">{site}/</a>"),
-                None => format!("Join game at: <a href=\"{site}/\">{site}/</a>"),
-            };
-            mails.push(Mail {
+            mails.push((user, address, format!("<p>{turn}</p><p>{status_text}</p><p>{waiting}</p>")));
+        }
+        for (user, address, text) in mails {
+            // A link that logs the player in once, within a day, and opens the game.
+            let token = self.new_login_link(user, game).await?;
+            self.services.mailer.send(Mail {
                 from: "noreply@treachery.online".into(),
                 to: address,
-                subject: format!("Update for {}", g.name),
-                body: format!("<p>{turn}</p><p>{status_text}</p><p>{waiting}</p><p>{link}</p><p>{history}</p>"),
+                subject: format!("Update for {name}"),
+                body: format!("{text}<p>Jump to game: <a href=\"{site}/link/{token}\">{site}/</a></p><p>{history}</p>"),
                 attachments: vec![],
                 low_priority: false,
             });
-        }
-        for mail in mails {
-            self.services.mailer.send(mail);
         }
         if let Some(g) = self.games.get_mut(game) {
             g.last_async_mail = Some(now);

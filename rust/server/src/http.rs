@@ -142,7 +142,7 @@ async fn game_thread(settings: Settings, commands: mpsc::UnboundedSender<Command
             return;
         }
     };
-    let services = Services { db, settings, clock, timers: Rc::new(TokioTimers { commands }), mailer };
+    let services = Services { db, settings, clock, timers: Rc::new(TokioTimers { commands }), mailer, seeds: Rc::new(super::ids::new_seed) };
     let mut server = match Server::start(services).await {
         Ok(s) => s,
         Err(e) => {

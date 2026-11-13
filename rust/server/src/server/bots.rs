@@ -55,9 +55,9 @@ impl Server {
         self.services.timers.schedule(Duration::from_millis(delay), Timer::BotTurn { game: game.to_string(), turn: g.bot_turn });
     }
 
-    /// Runs the bots' turn now, at any speed but 0.
-    pub(super) async fn nudge_bots(&mut self, token: &str, game: &str) -> Reply {
-        let (_, game) = self.user_in_game(token, game)?;
+    /// Runs the bots' turn now, at any speed but 0. For the game's players.
+    pub(super) async fn nudge_bots(&mut self, user: i32, game: &str) -> Reply {
+        let game = self.player_of(user, game)?;
         match self.bot_turn(&game).await {
             Ok(()) | Err(CallError::Refused(..)) => done(),
             Err(e) => Err(e),

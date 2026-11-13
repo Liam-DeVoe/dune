@@ -9,7 +9,8 @@
 //! - [`views`]: each participant's view of a game, built on a replica of it.
 //! - [`db`]: the database, and the conversion of the old C# server's database.
 //! - [`pause_rules`]: what each pause between phases waits for.
-//! - [`settings`], [`time`], [`timers`], [`mail`], [`ids`], [`participation`],
+//! - [`passwords`]: account password hashes; [`ids`]: tokens and their digests.
+//! - [`settings`], [`time`], [`timers`], [`mail`], [`participation`],
 //!   [`render`], [`static_files`].
 
 pub mod connections;
@@ -18,6 +19,7 @@ pub mod http;
 pub mod ids;
 pub mod mail;
 pub mod participation;
+pub mod passwords;
 pub mod pause_rules;
 pub mod protocol;
 pub mod render;

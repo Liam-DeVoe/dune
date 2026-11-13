@@ -36,11 +36,11 @@ impl Server {
                 let row = UserRow {
                     id: 0,
                     name: SCENE_USER.into(),
-                    password_hash: "scene".into(),
+                    password_hash: crate::passwords::hash(&ids::new_token()),
                     email: String::new(),
                     player_name: "Scene".into(),
                     last_login: self.now(),
-                    reset_token: None,
+                    reset_token_digest: None,
                     reset_token_created: None,
                 };
                 let id = self.services.db.insert_user(&row).await.map_err(|e| e.to_string())?;
@@ -63,7 +63,7 @@ impl Server {
         running.generation = self.new_generation();
         self.games.insert(id.clone(), running);
         self.changed(&id);
-        let token = self.new_session(user).await.map_err(|e| e.to_string())?;
+        let token = self.create_session(user).await.map_err(|e| e.to_string())?;
         Ok(serde_json::json!({ "userToken": token, "gameId": id, "userId": user }))
     }
 }

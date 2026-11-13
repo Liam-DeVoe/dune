@@ -8,7 +8,7 @@ use treachery_engine::game::GameSettings;
 use treachery_engine::game::GameState;
 use treachery_engine::game::Participation;
 
-use super::{contents, done, refuse, CallError, Reply, RunningGame, Server, MAX_GAMES_PER_USER};
+use super::{contents, done, refuse, CallError, Reply, RunningGame, Server, MAX_BOT_SPEED, MAX_GAMES_PER_USER};
 use crate::connections::{ConnectionId, Notification};
 use crate::ids;
 use crate::participation;
@@ -44,13 +44,12 @@ impl Server {
     pub(super) async fn create_game(
         &mut self,
         connection: ConnectionId,
+        user: i32,
         name: Option<&str>,
-        token: &str,
         password_hash: Option<&str>,
         savegame: Option<&str>,
         skin: Option<&str>,
     ) -> Reply {
-        let user = self.session_user(token)?;
         if self.games.values().filter(|g| g.creator == user).count() >= MAX_GAMES_PER_USER {
             return Err(refuse(ErrorType::TooManyGames));
         }
@@ -81,8 +80,8 @@ impl Server {
         contents(&info)
     }
 
-    pub(super) async fn load_game(&mut self, token: &str, game: &str, savegame: &str, skin: Option<&str>) -> Reply {
-        let (_, game) = self.host_of(token, game)?;
+    pub(super) async fn load_game(&mut self, user: i32, game: &str, savegame: &str, skin: Option<&str>) -> Reply {
+        let game = self.host_of(user, game)?;
         let generation = self.new_generation();
         let g = self.games.get_mut(&game).expect("checked");
         // The loaded game keeps this game's participation.
@@ -107,8 +106,25 @@ impl Server {
         done()
     }
 
-    pub(super) fn assign_seats(&mut self, token: &str, game: &str, seats: Vec<(i32, i32)>) -> Reply {
-        let (_, game) = self.host_of(token, game)?;
+    /// Seats the game's players. Only users who play in the game can be seated, each on a seat
+    /// of the game's players or on none (-1), and no two on the same seat.
+    pub(super) fn assign_seats(&mut self, user: i32, game: &str, seats: Vec<(i32, i32)>) -> Reply {
+        let game = self.host_of(user, game)?;
+        {
+            let g = &self.games[&game].game;
+            let bad = |reason: String| Err(CallError::Refused(ErrorType::InvalidGameEvent, reason));
+            for (i, (user, seat)) in seats.iter().enumerate() {
+                if !g.is_player(*user) {
+                    return Err(refuse(ErrorType::UserNotInGame));
+                }
+                if *seat != -1 && !g.players.iter().any(|p| p.seat == *seat) {
+                    return bad(format!("There is no seat {seat}"));
+                }
+                if seats[..i].iter().any(|(u, s)| u == user || (*s == *seat && *seat != -1)) {
+                    return bad("Each user and each seat may be assigned once".into());
+                }
+            }
+        }
         {
             let g = &self.games[&game].game;
             let mut participation = g.participation.borrow_mut();
@@ -126,8 +142,8 @@ impl Server {
     /// A user who already plays in the game only follows it again. Others need the password, an
     /// open seat (or none in particular before the game starts) and not to have been kicked.
     /// Taking a seat that another user holds removes that user.
-    pub(super) fn join_game(&mut self, connection: ConnectionId, token: &str, game: &str, password_hash: Option<&str>, seat: i32) -> Reply {
-        let (user, game) = self.user_in_game(token, game)?;
+    pub(super) fn join_game(&mut self, connection: ConnectionId, user: i32, game: &str, password_hash: Option<&str>, seat: i32) -> Reply {
+        let game = self.running(game)?;
         let player_name = self.player_name(user);
         let g = self.games.get_mut(&game).expect("checked");
         if !g.game.is_player(user) {
@@ -136,7 +152,9 @@ impl Server {
                     return Err(refuse(ErrorType::IncorrectGamePassword));
                 }
             }
-            if !g.game.is_open(seat) {
+            // A particular seat must be one the host opened; before the game starts, users join
+            // without one.
+            if !g.game.is_open(seat) || (seat >= 0 && !g.game.seat_is_available(seat)) {
                 return Err(refuse(ErrorType::SeatNotAvailableNotOpen));
             }
             if g.game.was_kicked(user) {
@@ -168,13 +186,17 @@ impl Server {
         contents(&self.init_info(&game))
     }
 
-    pub(super) fn observe_game(&mut self, connection: ConnectionId, token: &str, game: &str, _password_hash: Option<&str>) -> Reply {
-        let (user, game) = self.user_in_game(token, game)?;
+    pub(super) fn observe_game(&mut self, connection: ConnectionId, user: i32, game: &str, _password_hash: Option<&str>) -> Reply {
+        let game = self.running(game)?;
         let player_name = self.player_name(user);
         let g = self.games.get_mut(&game).expect("checked");
         if !g.game.is_observer(Some(user)) {
             if g.game.is_player(user) {
                 return Err(refuse(ErrorType::AlreadyPlayer));
+            }
+            // A kicked user doesn't come back to watch either.
+            if g.game.was_kicked(user) {
+                return Err(refuse(ErrorType::SeatNotAvailableKicked));
             }
             g.game.add_observer(user, &player_name);
             self.connections.notify(&game, Notification::ObserveGame { user, name: player_name });
@@ -186,26 +208,20 @@ impl Server {
     }
 
     /// A new connection of a player or observer follows the game again.
-    pub(super) fn reconnect_game(&mut self, connection: ConnectionId, token: &str, game: &str) -> Reply {
-        let (user, game) = self.user_in_game(token, game)?;
-        if !self.games[&game].game.is_participant(user) {
-            return Err(refuse(ErrorType::UserNotInGame));
-        }
+    pub(super) fn reconnect_game(&mut self, connection: ConnectionId, user: i32, game: &str) -> Reply {
+        let game = self.participant_of(user, game)?;
         self.follow(&game, connection, user);
         contents(&self.init_info(&game))
     }
 
-    pub(super) fn game_state(&mut self, connection: ConnectionId, token: &str, game: &str) -> Reply {
-        let (user, game) = self.user_in_game(token, game)?;
-        if !self.games[&game].game.is_participant(user) {
-            return Err(refuse(ErrorType::UserNotInGame));
-        }
+    pub(super) fn game_state(&mut self, connection: ConnectionId, user: i32, game: &str) -> Reply {
+        let game = self.participant_of(user, game)?;
         self.connections.view_for(&game, connection, user);
         contents(&self.init_info(&game))
     }
 
-    pub(super) fn leave_game(&mut self, token: &str, game: &str) -> Reply {
-        let (user, game) = self.user_in_game(token, game)?;
+    pub(super) fn leave_game(&mut self, user: i32, game: &str) -> Reply {
+        let game = self.participant_of(user, game)?;
         self.remove_from_game(&game, user);
         contents(&self.lobby_status(GameListScope::Active, user))
     }
@@ -230,8 +246,12 @@ impl Server {
         self.schedule_bots(&game);
     }
 
-    pub(super) fn kick(&mut self, token: &str, game: &str, user: i32) -> Reply {
-        let (_, game) = self.host_of(token, game)?;
+    /// Removes another user of the game for good.
+    pub(super) fn kick(&mut self, host: i32, game: &str, user: i32) -> Reply {
+        let game = self.host_of(host, game)?;
+        if user == host || !self.games[&game].game.is_participant(user) {
+            return Err(refuse(ErrorType::UserNotInGame));
+        }
         self.games.get_mut(&game).expect("checked").game.remove_user(user, true);
         self.connections.notify(&game, Notification::RemoveUser { user, kick: true });
         self.connections.unfollow_user(&game, user);
@@ -240,9 +260,13 @@ impl Server {
         done()
     }
 
-    pub(super) fn set_or_unset_host(&mut self, token: &str, game: &str, user: i32) -> Reply {
-        let (host, game) = self.host_of(token, game)?;
+    /// Makes a player of the game a host, or no longer one.
+    pub(super) fn set_or_unset_host(&mut self, host: i32, game: &str, user: i32) -> Reply {
+        let game = self.host_of(host, game)?;
         let g = self.games.get_mut(&game).expect("checked");
+        if !g.game.is_player(user) {
+            return Err(refuse(ErrorType::UserNotInGame));
+        }
         if user == host && g.game.number_of_hosts() <= 1 {
             return Err(refuse(ErrorType::CannotRemoveLastHost));
         }
@@ -252,20 +276,22 @@ impl Server {
         done()
     }
 
-    pub(super) fn open_or_close_seat(&mut self, token: &str, game: &str, seat: i32) -> Reply {
-        let (_, game) = self.host_of(token, game)?;
+    /// Opens or closes the seat of one of the game's players.
+    pub(super) fn open_or_close_seat(&mut self, user: i32, game: &str, seat: i32) -> Reply {
+        let game = self.host_of(user, game)?;
+        if !self.games[&game].game.players.iter().any(|p| p.seat == seat) {
+            return Err(CallError::Refused(ErrorType::InvalidGameEvent, format!("There is no seat {seat}")));
+        }
         self.games.get_mut(&game).expect("checked").game.open_or_close_seat(seat);
         self.connections.notify(&game, Notification::OpenOrCloseSeats(vec![seat]));
         self.changed(&game);
         done()
     }
 
-    pub(super) fn update_settings(&mut self, token: &str, game: &str, settings: GameSettings) -> Reply {
-        let (user, game) = self.user_in_game(token, game)?;
+    /// The settings the host is choosing before the game starts.
+    pub(super) fn update_settings(&mut self, user: i32, game: &str, settings: GameSettings) -> Reply {
+        let game = self.host_of(user, game)?;
         let g = self.games.get_mut(&game).expect("checked");
-        if g.creator != user {
-            return Err(refuse(ErrorType::NoCreator));
-        }
         let json = serde_json::from_str(&treachery_engine::json::serialize(&settings)).expect("settings serialize to JSON");
         g.game.settings = Some(Shared::new(settings));
         self.connections.notify(&game, Notification::UpdateSettings(json));
@@ -287,8 +313,8 @@ impl Server {
         Ok(())
     }
 
-    pub(super) async fn close_game(&mut self, token: &str, game: &str) -> Reply {
-        let (user, game) = self.user_in_game(token, game)?;
+    pub(super) async fn close_game(&mut self, user: i32, game: &str) -> Reply {
+        let game = self.running(game)?;
         if self.games[&game].creator != user {
             return Err(refuse(ErrorType::NoCreator));
         }
@@ -296,23 +322,27 @@ impl Server {
         contents(&self.lobby_status(GameListScope::Active, user))
     }
 
-    pub(super) fn set_skin(&mut self, token: &str, game: &str, skin: String) -> Reply {
-        let (_, game) = self.host_of(token, game)?;
+    pub(super) fn set_skin(&mut self, user: i32, game: &str, skin: String) -> Reply {
+        let game = self.host_of(user, game)?;
         self.games.get_mut(&game).expect("checked").skin = Some(skin.clone());
         self.connections.notify(&game, Notification::SetSkin(skin));
         done()
     }
 
-    pub(super) fn set_timer(&mut self, token: &str, game: &str, value: i32) -> Reply {
-        let (_, game) = self.host_of(token, game)?;
+    pub(super) fn set_timer(&mut self, user: i32, game: &str, value: i32) -> Reply {
+        let game = self.host_of(user, game)?;
         self.games.get_mut(&game).expect("checked").timer = value;
         self.connections.notify(&game, Notification::SetTimer(value));
         done()
     }
 
-    /// The game's members hear of the new speed.
-    pub(super) fn set_bot_speed(&mut self, token: &str, game: &str, speed: i32) -> Reply {
-        let (_, game) = self.host_of(token, game)?;
+    /// The game's members hear of the new speed. A speed is 0 (paused) to [`MAX_BOT_SPEED`]: a
+    /// faster one would have the bots take the game thread from every other game.
+    pub(super) fn set_bot_speed(&mut self, user: i32, game: &str, speed: i32) -> Reply {
+        let game = self.host_of(user, game)?;
+        if !(0..=MAX_BOT_SPEED).contains(&speed) {
+            return Err(CallError::Refused(ErrorType::InvalidGameEvent, format!("The bot speed must be 0 to {MAX_BOT_SPEED}")));
+        }
         self.games[&game].game.participation.borrow_mut().bots_speed = speed;
         self.connections.notify(&game, Notification::BotSpeed(speed));
         self.changed(&game);
@@ -320,8 +350,8 @@ impl Server {
         done()
     }
 
-    pub(super) async fn undo(&mut self, token: &str, game: &str, until: i32) -> Reply {
-        let (_, game) = self.host_of(token, game)?;
+    pub(super) async fn undo(&mut self, user: i32, game: &str, until: i32) -> Reply {
+        let game = self.host_of(user, game)?;
         if until < 0 {
             return Err(CallError::Refused(ErrorType::InvalidGameEvent, format!("can't undo to event {until}")));
         }
@@ -330,15 +360,15 @@ impl Server {
         done()
     }
 
-    pub(super) async fn restore_undone(&mut self, token: &str, game: &str) -> Reply {
-        let (_, game) = self.host_of(token, game)?;
+    pub(super) async fn restore_undone(&mut self, user: i32, game: &str) -> Reply {
+        let game = self.host_of(user, game)?;
         self.games.get_mut(&game).expect("checked").game.restore_recently_undone();
         self.after_undo(&game);
         done()
     }
 
-    pub(super) async fn dismiss_undone(&mut self, token: &str, game: &str) -> Reply {
-        let (_, game) = self.host_of(token, game)?;
+    pub(super) async fn dismiss_undone(&mut self, user: i32, game: &str) -> Reply {
+        let game = self.host_of(user, game)?;
         self.games.get_mut(&game).expect("checked").game.dismiss_recently_undone();
         self.after_undo(&game);
         done()

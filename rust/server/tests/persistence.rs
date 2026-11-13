@@ -20,26 +20,27 @@ fn games_survive_a_restart() {
         let carol = s.user("carol").await;
         let game = s.fixture_game(&alice, "alliance").await;
         s.advance(std::time::Duration::from_secs(1)).await;
-        s.ok(alice.conn, "RequestAssignSeats", json!([alice.token, game, [[alice.id, 0]]])).await;
+        s.ok(alice.conn, "RequestAssignSeats", json!([game, [[alice.id, 0]]])).await;
         s.advance(std::time::Duration::from_secs(1)).await;
-        s.ok(alice.conn, "RequestOpenOrCloseSeat", json!([alice.token, game, 3])).await;
+        s.ok(alice.conn, "RequestOpenOrCloseSeat", json!([game, 3])).await;
         s.advance(std::time::Duration::from_secs(1)).await;
-        s.ok(bobby.conn, "RequestJoinGame", json!([bobby.token, game, "", 3])).await;
+        s.ok(bobby.conn, "RequestJoinGame", json!([game, "", 3])).await;
         s.advance(std::time::Duration::from_secs(1)).await;
-        s.ok(carol.conn, "RequestObserveGame", json!([carol.token, game, ""])).await;
+        s.ok(carol.conn, "RequestObserveGame", json!([game, ""])).await;
         s.advance(std::time::Duration::from_secs(1)).await;
-        s.ok(alice.conn, "SubmitEvent", json!([alice.token, game, {"$type": "AllianceOffered", "Target": faction::ATREIDES, "Initiator": faction::EMPEROR}])).await;
+        s.ok(alice.conn, "SubmitEvent", json!([game, {"$type": "AllianceOffered", "Target": faction::ATREIDES, "Initiator": faction::EMPEROR}])).await;
         s.advance(std::time::Duration::from_secs(1)).await;
-        s.ok(bobby.conn, "SubmitEvent", json!([bobby.token, game, {"$type": "AllianceOffered", "Target": faction::EMPEROR, "Initiator": faction::ATREIDES}])).await;
+        s.ok(bobby.conn, "SubmitEvent", json!([game, {"$type": "AllianceOffered", "Target": faction::EMPEROR, "Initiator": faction::ATREIDES}])).await;
         s.advance(std::time::Duration::from_secs(1)).await;
-        s.ok(alice.conn, "RequestSetBotSpeed", json!([alice.token, game, 2])).await;
+        s.ok(alice.conn, "RequestSetBotSpeed", json!([game, 2])).await;
         let before = s.latest_view(alice.conn).unwrap();
         let protected = s.new_game(&bobby, "Locked", "secret").await;
 
         let mut s = s.restart().await;
         let c = s.connect();
         s.ok(c, "Connect", json!([])).await;
-        let (reply, received) = s.call_raw(c, "RequestReconnectGame", json!([alice.token, game])).await;
+        s.ok(c, "RequestResumeSession", json!([alice.token])).await;
+        let (reply, received) = s.call_raw(c, "RequestReconnectGame", json!([game])).await;
         let info = &reply["result"]["Contents"];
         assert_eq!(reply["result"]["Success"], true, "{reply}");
         let participation = &info["Participation"];
@@ -63,12 +64,12 @@ fn games_survive_a_restart() {
         let p = games.iter().find(|g| g["GameId"] == protected.as_str()).unwrap();
         assert_eq!(p["HasPassword"], true);
         let dave = s.user("david").await;
-        assert_eq!(s.err(dave.conn, "RequestJoinGame", json!([dave.token, protected, "wrong", -1])).await, 26);
-        s.ok(dave.conn, "RequestJoinGame", json!([dave.token, protected, "secret", -1])).await;
+        assert_eq!(s.err(dave.conn, "RequestJoinGame", json!([protected, "wrong", -1])).await, 26);
+        s.ok(dave.conn, "RequestJoinGame", json!([protected, "secret", -1])).await;
 
         // The game goes on.
         let bobby = s.login("bobby").await;
-        s.ok(bobby.conn, "RequestReconnectGame", json!([bobby.token, game])).await;
+        s.ok(bobby.conn, "RequestReconnectGame", json!([game])).await;
         let view = s.latest_view(bobby.conn).unwrap();
         assert_eq!(view["me"]["faction"], "Atreides");
     });
@@ -81,17 +82,17 @@ fn changes_right_before_a_restart_are_kept() {
         let alice = s.user("alice").await;
         let bobby = s.user("bobby").await;
         let game = s.fixture_game(&alice, "alliance").await;
-        s.ok(alice.conn, "RequestAssignSeats", json!([alice.token, game, [[alice.id, 0]]])).await;
-        s.ok(alice.conn, "RequestOpenOrCloseSeat", json!([alice.token, game, 3])).await;
-        s.ok(bobby.conn, "RequestJoinGame", json!([bobby.token, game, "", 3])).await;
+        s.ok(alice.conn, "RequestAssignSeats", json!([game, [[alice.id, 0]]])).await;
+        s.ok(alice.conn, "RequestOpenOrCloseSeat", json!([game, 3])).await;
+        s.ok(bobby.conn, "RequestJoinGame", json!([game, "", 3])).await;
         // Several changes within a few seconds, the last one just before the restart.
         for target in [faction::ATREIDES] {
-            s.ok(alice.conn, "SubmitEvent", json!([alice.token, game, {"$type": "AllianceOffered", "Target": target, "Initiator": faction::EMPEROR}])).await;
+            s.ok(alice.conn, "SubmitEvent", json!([game, {"$type": "AllianceOffered", "Target": target, "Initiator": faction::EMPEROR}])).await;
         }
         let count = s.latest_view(alice.conn).unwrap()["eventNumber"].clone();
         let mut s = s.restart().await;
         let alice = s.login("alice").await;
-        s.ok(alice.conn, "RequestReconnectGame", json!([alice.token, game])).await;
+        s.ok(alice.conn, "RequestReconnectGame", json!([game])).await;
         assert_eq!(s.latest_view(alice.conn).unwrap()["eventNumber"], count);
     });
 }
@@ -154,18 +155,20 @@ fn opens_a_database_written_by_the_csharp_server() {
         let mut s = TestServer::start_on(&path).await;
         let c = s.connect();
         s.ok(c, "Connect", json!([])).await;
-        // Passwords and sessions carry over; sessions older than 90 days don't.
-        let info = s.ok(c, "GetLoginInfo", json!(["AliceToken123456"])).await;
-        assert_eq!(info["UserId"], 7);
-        assert_eq!(info["UserName"], "alice");
-        assert_eq!(s.err(c, "GetLoginInfo", json!(["OldToken12345678"])).await, 1);
+        // Passwords carry over, hashed again with Argon2id: the client's value still logs in.
+        // Sessions don't: their tokens were in URLs and mails.
+        assert_eq!(s.err(c, "RequestResumeSession", json!(["AliceToken123456"])).await, 8);
+        assert_eq!(s.err(c, "RequestResumeSession", json!(["OldToken12345678"])).await, 8);
+        assert_eq!(s.err(c, "RequestLogin", json!([VERSION, "alice", "wrong"])).await, 14);
         let bobby = s.login("bobby").await;
         assert_eq!(bobby.id, 9);
         let info = s.ok(c, "RequestLogin", json!([VERSION, "alice", ALICE_PW])).await;
+        assert_eq!(info["UserId"], 7);
+        assert_eq!(info["UserName"], "alice");
         assert_eq!(info["Email"], "alice@example.com");
 
         // The running game is back, without the one that no longer loads.
-        let alice = User { conn: c, token: "AliceToken123456".into(), id: 7, name: "alice".into() };
+        let alice = User { conn: c, token: info["Token"].as_str().unwrap().into(), id: 7, name: "alice".into() };
         let lobby = s.lobby(&alice, 3).await;
         let games = lobby["RunningGames"].as_array().unwrap();
         assert_eq!(games.len(), 1, "{games:?}");
@@ -174,11 +177,11 @@ fn opens_a_database_written_by_the_csharp_server() {
         let scheduled = lobby["ScheduledGames"].as_array().unwrap();
         assert_eq!(scheduled.len(), 1);
         assert_eq!(scheduled[0]["Subscribers"], json!([[7, 50], [9, 30]]));
-        let (reply, received) = s.call_raw(c, "RequestReconnectGame", json!([alice.token, "11111111-2222-3333-4444-555555555555"])).await;
+        let (reply, received) = s.call_raw(c, "RequestReconnectGame", json!(["11111111-2222-3333-4444-555555555555"])).await;
         assert_eq!(reply["result"]["Success"], true, "{reply}");
         assert_eq!(views(&received).pop().unwrap()["me"]["faction"], "Emperor");
         // The open seat is still open.
-        s.ok(bobby.conn, "RequestJoinGame", json!([bobby.token, "11111111-2222-3333-4444-555555555555", "", 3])).await;
+        s.ok(bobby.conn, "RequestJoinGame", json!(["11111111-2222-3333-4444-555555555555", "", 3])).await;
         assert_eq!(s.latest_view(bobby.conn).unwrap()["me"]["faction"], "Atreides");
 
         // New accounts get ids after the old ones, and everything survives another restart.
@@ -187,7 +190,7 @@ fn opens_a_database_written_by_the_csharp_server() {
         let mut s = s.restart().await;
         let c = s.connect();
         s.ok(c, "Connect", json!([])).await;
-        assert_eq!(s.ok(c, "GetLoginInfo", json!(["AliceToken123456"])).await["UserId"], 7);
+        assert_eq!(s.ok(c, "RequestResumeSession", json!([alice.token])).await["UserId"], 7);
         s.login("carol").await;
         s.ok(c, "RequestLogin", json!([VERSION, "alice", ALICE_PW])).await;
         let alice = User { conn: c, ..alice };
@@ -224,8 +227,8 @@ fn reads_a_real_database() {
         // Every account is listed for the admin, with its id.
         let c = s.connect();
         s.ok(c, "RequestCreateUser", json!(["admin", "admin-pw", "", "The Admin"])).await;
-        let token = s.ok(c, "RequestLogin", json!([VERSION, "admin", "admin-pw"])).await["Token"].as_str().unwrap().to_string();
-        let info = s.ok(c, "GetAdminInfo", json!([token])).await;
+        s.ok(c, "RequestLogin", json!([VERSION, "admin", "admin-pw"])).await;
+        let info = s.ok(c, "GetAdminInfo", json!([])).await;
         let listed: Vec<i64> = info["Users"].as_array().unwrap().iter().map(|u| u["Id"].as_i64().unwrap()).collect();
         for (id, name) in &users {
             assert!(listed.contains(id), "user {id} ({name}) is missing");

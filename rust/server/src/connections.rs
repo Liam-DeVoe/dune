@@ -1,7 +1,11 @@
 //! Open connections, the connections that follow each game, and notifications to them.
 //!
+//! A connection is logged in once a login or a resumed session binds a session to it. Every
+//! call that needs a user takes it from there (protocol.md, Connection). Ending a session logs
+//! out its connections.
+//!
 //! A connection follows a game once it created, joined, observed or reconnected to it, and
-//! stops when it closes or its user leaves or is kicked. Every notification about a game goes
+//! stops when it closes, its user leaves or is kicked, or it is logged out. Every notification about a game goes
 //! to the connections that follow it. Some notifications change what members may see; those
 //! also mark the game as needing new views, which the server sends after the call
 //! (`views.rs`), before its reply.
@@ -34,6 +38,8 @@ pub enum Notification {
     BotSpeed(i32),
     LoadGame(GameInitInfo),
     AssignSeats(Vec<(i32, i32)>),
+    /// The connection's session ended (logout, password change, account deletion).
+    SessionEnded,
 }
 
 impl Notification {
@@ -55,6 +61,7 @@ impl Notification {
             BotSpeed(speed) => ("BotSpeed", vec![json!(speed)]),
             LoadGame(info) => ("LoadGame", vec![to(info)]),
             AssignSeats(seats) => ("AssignSeats", vec![json!(seats)]),
+            SessionEnded => ("SessionEnded", vec![]),
         };
         protocol::notify(name, args)
     }
@@ -65,7 +72,7 @@ impl Notification {
         match self {
             LoadGame(_) => ViewEffect::Rebuild,
             JoinGame { .. } | RemoveUser { .. } | AssignSeats(_) | SetOrUnsetHost(_) | OpenOrCloseSeats(_) | SetSkin(_) | SetTimer(_) | BotSpeed(_) => ViewEffect::Update,
-            ChatMessage(_) | GlobalChatMessage(_) | PhaseControl(_) | UpdateSettings(_) | ObserveGame { .. } => ViewEffect::None,
+            ChatMessage(_) | GlobalChatMessage(_) | PhaseControl(_) | UpdateSettings(_) | ObserveGame { .. } | SessionEnded => ViewEffect::None,
         }
     }
 }
@@ -105,6 +112,8 @@ pub struct Connections {
     /// Game id to the connections following it, with the user each follows it as.
     groups: BTreeMap<String, BTreeMap<ConnectionId, i32>>,
     pending: BTreeMap<String, PendingViews>,
+    /// The logged-in connections: the digest of their session, and its user.
+    logins: BTreeMap<ConnectionId, (String, i32)>,
 }
 
 impl Connections {
@@ -115,10 +124,44 @@ impl Connections {
     /// Forgets a connection. Dropping its queue ends the socket's writer, which closes it.
     pub fn disconnect(&mut self, connection: ConnectionId) {
         self.sockets.remove(&connection);
+        self.logins.remove(&connection);
+        self.unfollow_connection(connection);
+    }
+
+    /// The connection stops following every game.
+    fn unfollow_connection(&mut self, connection: ConnectionId) {
         for members in self.groups.values_mut() {
             members.remove(&connection);
         }
         self.groups.retain(|_, m| !m.is_empty());
+    }
+
+    /// Binds a session to the connection. A connection that was logged in as another user stops
+    /// following the games it followed as that user.
+    pub fn log_in(&mut self, connection: ConnectionId, session: &str, user: i32) {
+        if !self.sockets.contains_key(&connection) {
+            return;
+        }
+        if self.logins.get(&connection).is_some_and(|(_, u)| *u != user) {
+            self.unfollow_connection(connection);
+        }
+        self.logins.insert(connection, (session.to_string(), user));
+    }
+
+    /// The session digest and user the connection is logged in with.
+    pub fn login(&self, connection: ConnectionId) -> Option<(&str, i32)> {
+        self.logins.get(&connection).map(|(s, u)| (s.as_str(), *u))
+    }
+
+    /// Logs out the connections of an ended session: they stop following games and get
+    /// `SessionEnded`.
+    pub fn end_session(&mut self, session: &str) {
+        let ended: Vec<ConnectionId> = self.logins.iter().filter(|(_, (s, _))| s == session).map(|(c, _)| *c).collect();
+        for connection in ended {
+            self.logins.remove(&connection);
+            self.unfollow_connection(connection);
+            self.send(connection, Notification::SessionEnded.encode());
+        }
     }
 
     pub fn send(&self, connection: ConnectionId, text: String) {
@@ -174,6 +217,16 @@ impl Connections {
             ViewEffect::None => {}
             ViewEffect::Update => self.game_changed(game),
             ViewEffect::Rebuild => self.game_replaced(game),
+        }
+    }
+
+    /// Sends a notification to the game's followers that follow it as one of `users`.
+    pub fn notify_users(&self, game: &str, users: &[i32], notification: Notification) {
+        let text = notification.encode();
+        for (connection, user) in self.groups.get(game).into_iter().flatten() {
+            if users.contains(user) {
+                self.send(*connection, text.clone());
+            }
         }
     }
 

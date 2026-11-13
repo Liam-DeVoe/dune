@@ -11,59 +11,58 @@ fn message(text: String) -> Reply {
 }
 
 impl Server {
-    fn check_admin(&self, token: &str) -> Result<(), CallError> {
-        if self.is_admin(token) {
+    fn check_admin(&self, user: i32) -> Result<(), CallError> {
+        if self.is_admin(user) {
             Ok(())
         } else {
             Err(refuse(ErrorType::InvalidUserNameOrPassword))
         }
     }
 
-    pub(super) fn set_maintenance(&mut self, token: &str, starts: Time) -> Reply {
-        self.check_admin(token)?;
+    pub(super) fn set_maintenance(&mut self, user: i32, starts: Time) -> Reply {
+        self.check_admin(user)?;
         self.maintenance = Some(starts);
         message("Maintenance window updated".into())
     }
 
     /// Saves every game with unsaved changes now.
-    pub(super) async fn save_all(&mut self, token: &str) -> Reply {
-        self.check_admin(token)?;
+    pub(super) async fn save_all(&mut self, user: i32) -> Reply {
+        self.check_admin(user)?;
         let saved = self.save_unsaved().await?;
         message(format!("Saved {saved} of {} running games.", self.games.len()))
     }
 
     /// Loads the saved games that aren't running (games added to the database by hand, for
     /// example). Running games are kept as they are.
-    pub(super) async fn reload_all(&mut self, token: &str) -> Reply {
-        self.check_admin(token)?;
+    pub(super) async fn reload_all(&mut self, user: i32) -> Reply {
+        self.check_admin(user)?;
         let (loaded, dropped) = self.load_games(true).await?;
         message(format!("Loaded {loaded} saved games that were not running; {dropped} no longer load. {} games are running.", self.games.len()))
     }
 
-    pub(super) async fn admin_close_game(&mut self, token: &str, game: &str) -> Reply {
-        self.check_admin(token)?;
+    pub(super) async fn admin_close_game(&mut self, user: i32, game: &str) -> Reply {
+        self.check_admin(user)?;
         self.end_game(game).await?;
         message("Game removed".into())
     }
 
-    pub(super) fn download_game(&self, token: &str, game: &str) -> Reply {
-        self.check_admin(token)?;
+    pub(super) fn download_game(&self, user: i32, game: &str) -> Reply {
+        self.check_admin(user)?;
         let g = self.games.get(game).ok_or(refuse(ErrorType::GameNotFound))?;
         Ok(serde_json::Value::String(super::storage::savegame(&g.game)))
     }
 
-    pub(super) async fn admin_cancel_scheduled_game(&mut self, token: &str, id: &str) -> Reply {
-        self.check_admin(token)?;
+    pub(super) async fn admin_cancel_scheduled_game(&mut self, user: i32, id: &str) -> Reply {
+        self.check_admin(user)?;
         self.scheduled.remove(id);
         self.services.db.delete_scheduled_game(id).await?;
         message("Scheduled game cancelled".into())
     }
 
     /// Users may delete themselves; the admin anyone. The games they created close, they leave
-    /// the others, and all their sessions end.
-    pub(super) async fn delete_user(&mut self, token: &str, user: i32) -> Reply {
-        let caller = self.session_user(token).map_err(|_| refuse(ErrorType::InvalidUserNameOrPassword))?;
-        if caller != user && !self.is_admin(token) {
+    /// the others, and all their sessions end, which logs out their connections.
+    pub(super) async fn delete_user(&mut self, caller: i32, user: i32) -> Reply {
+        if caller != user && !self.is_admin(caller) {
             return Err(refuse(ErrorType::NotAdmin));
         }
         let games: Vec<String> = self.games.values().filter(|g| g.creator == user).map(|g| g.id.clone()).collect();
@@ -74,15 +73,16 @@ impl Server {
         for game in joined {
             self.remove_from_game(&game, user);
         }
+        self.end_sessions_of(user, None).await?;
         self.services.db.delete_user(user).await?;
         self.users.remove(&user);
-        self.sessions.retain(|_, s| s.user != user);
+        self.login_links.retain(|_, l| l.user_id != user);
         self.presence.remove(&user);
         message("User deleted".into())
     }
 
-    pub(super) fn admin_info(&self, token: &str) -> Reply {
-        self.check_admin(token)?;
+    pub(super) fn admin_info(&self, user: i32) -> Reply {
+        self.check_admin(user)?;
         contents(&AdminInfo {
             users: self
                 .users

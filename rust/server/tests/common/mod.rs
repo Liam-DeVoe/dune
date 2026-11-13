@@ -23,6 +23,9 @@ use treachery_server::settings::Settings;
 use treachery_server::time::{self, Clock, ManualClock, Time};
 use treachery_server::timers::{RecordingTimers, Timer};
 
+/// The seed the test server draws for every new game. Clients' seeds are ignored.
+pub const GAME_SEED: i32 = 12345;
+
 /// The engine version a client logs in with.
 pub const VERSION: i32 = treachery_engine::game::Game::LATEST_VERSION;
 
@@ -99,6 +102,7 @@ impl TestServer {
             clock: clock.clone(),
             timers: timers.clone(),
             mailer: mailer.clone(),
+            seeds: Rc::new(|| GAME_SEED),
         };
         TestServer {
             server: Server::start(services).await.unwrap(),
@@ -268,7 +272,7 @@ impl TestServer {
     }
 }
 
-/// A logged-in user: their connection, token and id.
+/// A logged-in user: their connection, the token of its session, and their id.
 #[derive(Clone, Debug)]
 pub struct User {
     pub conn: Conn,
@@ -289,6 +293,13 @@ impl TestServer {
         User { conn, token: info["Token"].as_str().unwrap().to_string(), id: info["UserId"].as_i64().unwrap(), name: name.to_string() }
     }
 
+    /// Opens a connection and resumes a session with its token.
+    pub async fn resume(&mut self, token: &str) -> User {
+        let conn = self.connect();
+        let info = self.ok(conn, "RequestResumeSession", json!([token])).await;
+        User { conn, token: token.to_string(), id: info["UserId"].as_i64().unwrap(), name: info["UserName"].as_str().unwrap().to_string() }
+    }
+
     /// Opens a connection and logs in as an existing user.
     pub async fn login(&mut self, name: &str) -> User {
         let conn = self.connect();
@@ -299,20 +310,20 @@ impl TestServer {
 
     /// `user` creates a new game (no savegame) and returns its id.
     pub async fn new_game(&mut self, user: &User, name: &str, password: &str) -> String {
-        let info = self.ok(user.conn, "RequestCreateGame", json!([name, user.token, password, "", ""])).await;
+        let info = self.ok(user.conn, "RequestCreateGame", json!([name, password, "", ""])).await;
         info["GameId"].as_str().unwrap().to_string()
     }
 
     /// `user` creates a game from a fixture in scripts/fixtures.
     pub async fn fixture_game(&mut self, user: &User, fixture: &str) -> String {
-        let info = self.ok(user.conn, "RequestCreateGame", json!([fixture, user.token, "", fixture_text(fixture), ""])).await;
+        let info = self.ok(user.conn, "RequestCreateGame", json!([fixture, "", fixture_text(fixture), ""])).await;
         info["GameId"].as_str().unwrap().to_string()
     }
 
     /// The lobby as `user` sees it, after the lobby's refresh interval has passed.
     pub async fn lobby(&mut self, user: &User, scope: i64) -> Value {
         self.advance(Duration::from_secs(7)).await;
-        self.ok(user.conn, "RequestHeartbeat", json!([user.token, scope])).await
+        self.ok(user.conn, "RequestHeartbeat", json!([scope])).await
     }
 
     /// The latest game view the connection received, reading everything it received.
@@ -321,7 +332,7 @@ impl TestServer {
     }
 
     pub async fn submit(&mut self, user: &User, game: &str, event: Value) -> Value {
-        self.call(user.conn, "SubmitEvent", json!([user.token, game, event])).await
+        self.call(user.conn, "SubmitEvent", json!([game, event])).await
     }
 }
 
@@ -372,7 +383,7 @@ pub fn establish_players(players: i64, rules: &[i64], async_play: bool, interval
             "AsyncPlay": async_play,
             "AsyncPlayMessageIntervalMinutes": interval_minutes
         },
-        "Seed": 12345,
+        "Seed": 7,
         "MaximumNumberOfPlayers": players,
         "MaximumTurns": 3,
         "ApplicableRules": [],

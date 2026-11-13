@@ -421,3 +421,18 @@ Two fixes, in `events/bidding/bid.rs` and `game/mod.rs`:
 
 **What catches the class now.**
 - `bots/tests/behavior_changes.rs::the_testing_station_counts_the_bots_own_storm_losses`.
+
+## A server that trusted the client (2026-11)
+
+**Bugs.** The server kept the C# design, where the client was trusted:
+- `SubmitEvent` executed the event with whatever `Initiator` the client wrote, and the only check was that the session and the game existed. Any logged-in user who knew a game's id could act as any faction in it, or start it. `FactionSelected` took its seat from the client too, and `EstablishPlayers` its seed, so the host could choose the seed and know every deck.
+- Undo, chat as another user, bot speed, nudges, draft queries and reports checked no more than that, or only that the caller hosted.
+- Passwords were stored as the client's unsalted SHA-256, which a copy of the database turns into a login.
+- Session tokens were an argument of every call, appeared in URLs (`/<token>/<gameId>`) and in async-play mails, never ended before 90 days, and logout didn't end them.
+
+**Why the tests missed them.** The tests checked that the right user could do each thing, and only for a few calls that someone else couldn't. No test called each game method as a user outside the game, an observer and a player of another faction. Tokens and stored passwords were never looked at.
+
+**What catches the class now.**
+- `server/tests/authority.rs` calls every game method as an outsider, an observer and the other player and checks each is refused and the game unchanged. It checks that a forged `Initiator`, a forged `FactionSelected` seat and a client seed don't count, and that hosts act only on members and real seats.
+- `server/tests/accounts.rs` checks that a connection must log in before any call, that the database holds only token digests and Argon2id hashes, and that sessions expire and end on logout, a new password and the account's deletion. `play.rs` checks that the async-play mail holds a single-use login link and no session token.
+- The weak spot stays: a new method gets no check unless its author adds one to `authority.rs`.

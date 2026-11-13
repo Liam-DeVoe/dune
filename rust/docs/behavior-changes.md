@@ -67,6 +67,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - Where: rust/bots/src/
 - Note: No meaningful effect on play.
 - Done (0e82687): a Mirror Weapon pick is kept, with an even chance of killing (test: `a_mirror_weapon_pick_is_kept`, bot/battle.rs); the No-Field sizing falls back to the biggest No-Field instead of the maximum of an empty list (that branch can't be reached: the forces are capped at the biggest No-Field, so a big enough one always exists); the duplicate conditions are gone (the one in `determine_shipment` was already gone); the prediction no longer flips a coin first (test: `bene_gesserit_prediction_draws_no_coin`). The coin flip changes Bene Gesserit's draws from the first turn, so every game with a Bene Gesserit bot plays differently from then on.
+- Also done (c0f4762), found by the harness: keeping the Mirror Weapon pick let a bot hang while deciding. `TreacheryCard::countered_by` (rust/engine/src/cards/treachery_card.rs) asks the weapon a Mirror Weapon copies, so with a Mirror Weapon on both sides it asked itself forever. It now counts that as countered. Only bots call it. The old bots could reach it too, more rarely, through their second pick. Test: `a_mirror_weapon_against_a_mirror_weapon_is_countered` (bots/tests/behavior_changes.rs).
 
 ## Missing spaces: "receiving5" and "ChoamUsing"
 

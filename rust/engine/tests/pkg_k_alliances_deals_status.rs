@@ -1,7 +1,5 @@
-//! Focused tests for package K (alliances, deals, discards, status). Expected values follow the
-//! C# code in Game_Alliances.cs, Game_Deals.cs, Game_Contemplate.cs, Events/Deal*.cs,
-//! Events/Donated.cs and Model/GameStatus.cs; the comments say which C# behaviour each test
-//! pins down.
+//! Focused tests for alliances, deals, discards and the game status. The comments say which
+//! behavior each test pins down.
 
 use std::rc::Rc;
 use treachery_engine::error::catch_panic;

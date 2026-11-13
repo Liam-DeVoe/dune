@@ -1,6 +1,5 @@
-//! Focused tests for package B (players, player sequences, battalions, rules). Expected values
-//! follow the C# code in Model/Player.cs, Model/PlayerSequence.cs, Model/Battalion.cs and
-//! Game_Rules.cs; the comments say which C# behaviour each test pins down.
+//! Focused tests for players, player sequences, battalions and rules. The comments say which
+//! behavior each test pins down.
 
 use treachery_engine::error::catch_panic;
 use treachery_engine::prelude::*;

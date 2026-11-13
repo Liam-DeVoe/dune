@@ -1,5 +1,5 @@
-//! `Message.ToString()` without a describer, under the invariant culture,
-//! against tests/golden/messages.json (csharp-ref/MessageCorpus.cs).
+//! `Message::to_cs_string` (a message's text without a skin), against the snapshot in
+//! tests/golden/messages.json (see common/mod.rs for how to update it).
 //!
 //! The corpus has one entry per element: floats and doubles from random bit
 //! patterns plus NaN, the infinities, -0, subnormals and large exponents;
@@ -8,9 +8,8 @@
 //! each runtime type; exceptions of each type; nested messages. Each is
 //! rebuilt as an `ExpressionElement` and compared through `to_cs_string`.
 //!
-//! The `params` section checks how `Message.Express` treats each kind of
-//! single argument (spread or one element) against the `@params` form of the
-//! macros.
+//! The `params` section checks how `express!` treats each kind of single argument (spread or one
+//! element) and its `@params` form.
 
 mod common;
 
@@ -55,7 +54,7 @@ fn element(v: &Value) -> E {
                 "s" => E::String(rest.to_string()),
                 "e" => {
                     let (name, value) = rest.rsplit_once(':').unwrap();
-                    let ty = enum_info(name).unwrap_or_else(|| panic!("C# enum {name} has no Rust port (add it to common::enum_info)"));
+                    let ty = enum_info(name).unwrap_or_else(|| panic!("enum {name} is missing in common::enum_info"));
                     E::Enum(EnumValue { ty, value: value.parse().unwrap() })
                 }
                 "o" => match object(v).0 {
@@ -71,9 +70,8 @@ fn element(v: &Value) -> E {
         Value::Array(a) => E::list(a.iter().map(element).collect::<Vec<E>>()),
         Value::Object(o) if o.contains_key("list") => collection(v),
         Value::Object(o) if o.contains_key("exception") => {
-            // The corpus holds C# exception objects, which render as `Exception.ToString()`:
-            // "System.X: message", or just "System.X" when the message is empty. A GameError
-            // holding that text renders the same.
+            // An error element by exception type and message. Its GameError holds the text
+            // "System.X: message", or just "System.X" when the message is empty.
             let type_name = o["exception"].as_str().unwrap();
             let message = o["message"].as_str().map_or_else(|| default_message(type_name), str::to_string);
             let full_type_name = full_type_name(type_name);
@@ -90,7 +88,7 @@ fn element(v: &Value) -> E {
     }
 }
 
-/// A collection of a given C# runtime type.
+/// A collection with the given type name.
 fn collection(v: &Value) -> E {
     match v["list"].as_str().unwrap() {
         "List<Faction>" => E::list(decode_all(v, en::<Faction>)),
@@ -112,19 +110,11 @@ fn collection(v: &Value) -> E {
 
 #[test]
 fn element_to_string() {
-    let mut failures = Failures::default();
-    let entries = golden("messages.json")["elements"].as_array().unwrap();
-    for e in entries {
-        let input = &e["input"];
-        let actual = try_enc(|| express!(element(input)).to_cs_string());
-        failures.check(|| format!("{input}"), &e["expected"], &actual);
-    }
-    eprintln!("message corpus: {} elements", entries.len());
-    failures.finish("Message.ToString corpus");
+    check_entries("messages.json", "elements", "message text corpus", |e| {
+        json!({ "expected": try_enc(|| express!(element(&e["input"])).to_cs_string()) })
+    });
 }
 
-/// Encodes an element like Enc.cs, for the params check. Arrays are
-/// `{"list": "<Type.Name>", "items": [...]}`, other collections plain arrays.
 fn enc_element(e: &E) -> Value {
     match e {
         E::Null => Value::Null,
@@ -156,8 +146,7 @@ fn enc_element(e: &E) -> Value {
 fn params_spreading() {
     let m = Map::new();
     let objects = || vec![E::from("a"), E::from(1)];
-    let mut failures = Failures::default();
-    for c in golden("messages.json")["params"].as_array().unwrap() {
+    check_entries("messages.json", "params", "params spreading", |c| {
         let case = c["case"].as_str().unwrap();
         let msg = match case {
             "object[]" => express!(@params objects()),
@@ -171,30 +160,19 @@ fn params_spreading() {
             "no arguments" => express!(),
             "ExpressTo object[]" => express_to!(Faction::Atreides; @params objects()),
             "MessagePart object[]" => express!(express_part!(@params objects())),
-            // C# passes a null array: Elements is null and ToString throws.
-            // Rust has no null params array; this checks the C# side still
-            // behaves as documented in message.rs.
-            "null object[]" | "null literal" => {
-                assert!(c["elements"].is_null(), "{case}");
-                assert_eq!(c["to_string"], "x:ArgumentNullException:Value cannot be null. (Parameter 'values')", "{case}");
-                continue;
-            }
             other => panic!("messages.json has params case {other:?}, which this test does not know"),
         };
-        let actual = json!({
+        json!({
             "elements": msg.expression.elements.iter().map(enc_element).collect::<Vec<_>>(),
             "to_string": msg.to_cs_string().enc(),
-        });
-        let expected = json!({ "elements": c["elements"], "to_string": c["to_string"] });
-        failures.check(|| case.to_string(), &expected, &actual);
-    }
-    failures.finish("params spreading");
+        })
+    });
 }
 
 #[allow(dead_code)]
 fn _types(_: Hero, _: Leader, _: Location, _: Territory, _: TreacheryCard) {}
 
-/// The message of `new T()` for a .NET exception type, as the C# corpus records it.
+/// The default message of an exception type named in the corpus input.
 fn default_message(type_name: &str) -> String {
     match type_name {
         "InvalidOperationException" => "Operation is not valid due to the current state of the object.".into(),

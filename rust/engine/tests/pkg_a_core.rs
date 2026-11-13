@@ -1,6 +1,6 @@
-//! Focused tests for package A (Game.cs, GameEvent, PlacementEvent, Utilities and
-//! the small model types). Expected values marked "(.NET)" were produced by running
-//! the C# code (Shared) on .NET 10.
+//! Focused tests for the game core (Game, GameEvent, placement events, utilities and the small
+//! model types). Expected values marked "(.NET)" were first recorded from the original C#
+//! engine.
 
 use treachery_engine::error::catch_panic;
 use treachery_engine::compat::date_time_offset::TimeSpan;

@@ -1,5 +1,5 @@
-//! Focused tests for package G (shipment and movement). They build small game
-//! states by hand and check rules whose C# behaviour is easy to get wrong.
+//! Focused tests for shipment and movement. They build small game states by hand and check rules
+//! that are easy to get wrong.
 
 use treachery_engine::error::catch_panic;
 use treachery_engine::prelude::*;

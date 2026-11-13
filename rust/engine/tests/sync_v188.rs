@@ -5,13 +5,10 @@
 //! PrescienceSeenPlans (BattleRevision records the withdrawn plan, Battle.Validate
 //! holds the next plan to it, EndPhase.ResetBattle clears it).
 //!
-//! `tests/golden/sync_v188.txt` is written by the C# side of these steps:
-//!
-//!     cd rust/engine/csharp-ref && dotnet run -c Release -- sync-v188 ../tests/golden/sync_v188.txt
-//!
-//! (`SyncV188.cs`), keeping only the `v188.` lines (the C# side also writes version
-//! 187, which the engine no longer supports). This test runs the same steps in Rust
-//! and compares every line.
+//! The test plays these steps and compares every "name = value" line it writes with the
+//! snapshot `tests/golden/sync_v188.txt` (see common/mod.rs for how to update it).
+
+mod common;
 
 use std::rc::Rc;
 
@@ -25,7 +22,7 @@ use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
 use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
 
-// ReviewJ.Establish: Choam, Atreides and Richese (the same text as review_pkg_k.rs).
+// Choam, Atreides and Richese (the same text as review_pkg_k.rs).
 const ESTABLISH: &str = r#"{"$type":"EstablishPlayers","Settings":{"NumberOfPlayers":3,"MaximumTurns":8,"InitialRules":[301,300,65,60,20,1013,15,700,105,80,85,604,90,998,30,701,40,107,10,70,50,25,209,999,112],"AllowedFactionsInPlay":[90,20,100],"AutoOpenEmptySeats":true,"AsyncPlay":false,"AsyncPlayMessageIntervalMinutes":0},"Seed":1073548723,"MaximumNumberOfPlayers":3,"MaximumTurns":8,"ApplicableRules":[301,300,65,60,20,1013,15,700,105,80,85,604,90,998,30,701,40,107,10,70,50,25,209,999,112],"_players":"","_factionsInPlay":"Choam,Atreides,Richese","Initiator":0,"Time":"2024-01-01T12:02:17+00:00"}"#;
 
 #[derive(Default)]
@@ -36,7 +33,7 @@ impl Lines {
         self.0.push(format!("{name} = {v}"));
     }
 
-    /// C# `Try`: the value, or "exception <Type>: <message>".
+    /// The value, or "exception <panic message>".
     fn try_(&mut self, name: &str, f: impl FnOnce() -> String) {
         match catch_panic(f) {
             Ok(v) => self.p(name, v),
@@ -276,28 +273,10 @@ fn prescience(l: &mut Lines, v: i32) {
 }
 
 #[test]
-fn v188_rules_match_csharp() {
+fn v188_rules() {
     let mut l = Lines::default();
-    for v in [Game::LATEST_VERSION] {
-        alliance_phase(&mut l, v);
-        break_in_alliance_phase(&mut l, v);
-        prescience(&mut l, v);
-    }
-
-    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/golden/sync_v188.txt");
-    let golden = std::fs::read_to_string(&path).unwrap();
-    let expected: Vec<&str> = golden.lines().collect();
-    let mut diffs = Vec::new();
-    for (i, e) in expected.iter().enumerate() {
-        let a = l.0.get(i).map(String::as_str).unwrap_or("<missing>");
-        // A C# exception compares equal to any Rust panic: the texts are .NET's.
-        let exception_only = |l: &str| l.split_once(" = exception ").map_or(l.to_string(), |(name, _)| format!("{name} = exception"));
-        if exception_only(a) != exception_only(e) {
-            diffs.push(format!("line {}:\n  C#:   {e}\n  Rust: {a}", i + 1));
-        }
-    }
-    if l.0.len() > expected.len() {
-        diffs.push(format!("Rust has {} extra lines", l.0.len() - expected.len()));
-    }
-    assert!(diffs.is_empty(), "{} differences:\n{}", diffs.len(), diffs.join("\n"));
+    alliance_phase(&mut l, Game::LATEST_VERSION);
+    break_in_alliance_phase(&mut l, Game::LATEST_VERSION);
+    prescience(&mut l, Game::LATEST_VERSION);
+    common::snapshot_lines("sync_v188.txt", &l.0);
 }

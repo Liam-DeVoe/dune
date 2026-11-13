@@ -1,11 +1,4 @@
-//! Package E review (bidding): guard tests for message texts that bot and fuzz
-//! traces only see as part of the state hash. See docs/reviews/pkg-e.md.
-//!
-//! Expected values come from the C# probe:
-//!
-//!     cd rust/engine/csharp-ref && dotnet run -c Release -- review-e
-//!
-//! Each test names the probe line it checks.
+//! Bidding: guard tests for message texts that games only show in the log.
 
 use treachery_engine::prelude::*;
 

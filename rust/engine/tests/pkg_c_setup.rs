@@ -1,5 +1,4 @@
-//! Focused tests for package C (setup). Expected values follow the C# code in Game_Setup.cs and
-//! the setup events; the comments say which C# behaviour each test pins down.
+//! Focused tests for setup. The comments say which behavior each test pins down.
 
 use std::rc::Rc;
 use treachery_engine::error::catch_panic;

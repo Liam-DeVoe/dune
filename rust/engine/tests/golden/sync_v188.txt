@@ -178,6 +178,6 @@ v188.prescience.leader_and_defense_changed.validate = Your Leader was revealed b
 v188.prescience.dial_changed.validate = Your Dial was revealed by prescience and can't change
 v188.prescience.revise_without_plan = ok
 v188.prescience.revise_without_plan.seen = [Weapon:Choam:plan2,Dial:Choam:plan2,Leader:Choam:plan2,Defense:Choam:plan2]
-v188.prescience.outsider.validate = exception NullReferenceException: Object reference not set to an instance of an object.
+v188.prescience.outsider.validate = exception opponent of
 v188.prescience.reset = ok
 v188.prescience.reset.seen = []

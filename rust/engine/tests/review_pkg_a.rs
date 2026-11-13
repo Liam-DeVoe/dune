@@ -1,12 +1,4 @@
-//! Package A review (Game.cs, Game_Participation.cs, GameEvent.cs): tests that show
-//! where the Rust port behaves differently from C#. See docs/reviews/pkg-a.md.
-//!
-//! Expected values come from the C# probe:
-//!
-//!     cd rust/engine/csharp-ref && dotnet run -c Release -- review-a
-//!
-//! Each test names the probe line it checks. These tests are meant to FAIL until the
-//! difference is fixed.
+//! Edge cases of the game core: participation, game events and their bookkeeping.
 
 use treachery_engine::game::Game;
 use treachery_engine::shared::Shared;

@@ -3000,8 +3000,8 @@ seq 188 20 kind=1 skip=True dir=1 begin=True start=0 8 op3 ok fp=0 cf=0 played= 
 seq 188 20 kind=1 skip=True dir=1 begin=True start=0 9 op0 ok fp=0 cf=0 played= round=1 circ=5 cur=0 richese=True seq=0*
 seq 188 20 kind=1 skip=True dir=1 begin=True start=0 10 op0 ok fp=0 cf=0 played= round=1 circ=6 cur=0 richese=True seq=0*
 seq 188 20 kind=1 skip=True dir=1 begin=True start=0 11 op0 ok fp=0 cf=0 played= round=1 circ=7 cur=0 richese=True seq=0*
-seq 188 20 kind=1 skip=True dir=1 begin=True start=0 12 op2 exception:Exception:Could not find a player after Tleilaxu fp=0 cf=0 played= round=1 circ=7 cur=0 richese=True seq=0*
-seq 188 20 kind=1 skip=True dir=1 begin=True start=0 13 op2 exception:Exception:Could not find a player after Tleilaxu fp=0 cf=0 played= round=1 circ=7 cur=0 richese=True seq=0*
+seq 188 20 kind=1 skip=True dir=1 begin=True start=0 12 op2 exception fp=0 cf=0 played= round=1 circ=7 cur=0 richese=True seq=0*
+seq 188 20 kind=1 skip=True dir=1 begin=True start=0 13 op2 exception fp=0 cf=0 played= round=1 circ=7 cur=0 richese=True seq=0*
 seq 188 20 kind=1 skip=True dir=1 begin=True start=0 isafter True
 seq 188 21 kind=2 skip=False dir=1 begin=True start=0 ok
 seq 188 21 kind=2 skip=False dir=1 begin=True start=0 init fp=0 cf=0 played= round=1 circ=0 cur=0 richese=False seq=0*
@@ -3037,7 +3037,7 @@ seq 188 22 kind=2 skip=True dir=-1 begin=False start=1 11 op2 ok fp=1 cf=2 playe
 seq 188 22 kind=2 skip=True dir=-1 begin=False start=1 12 op0 ok fp=1 cf=2 played=2 round=2 circ=2 cur=3 richese=True seq=2,3*,0,1
 seq 188 22 kind=2 skip=True dir=-1 begin=False start=1 13 op1 ok fp=1 cf=2 played=2,3 round=2 circ=2 cur=0 richese=True seq=2,3,0*,1
 seq 188 22 kind=2 skip=True dir=-1 begin=False start=1 isafter True
-seq 188 23 kind=2 skip=True dir=-1 begin=False start=1 exception:Exception:Could not determine the first player.
+seq 188 23 kind=2 skip=True dir=-1 begin=False start=1 exception
 seq 188 24 kind=2 skip=True dir=-1 begin=True start=0 ok
 seq 188 24 kind=2 skip=True dir=-1 begin=True start=0 init fp=0 cf=0 played= round=1 circ=0 cur=0 richese=False seq=0*
 seq 188 24 kind=2 skip=True dir=-1 begin=True start=0 0 op1 ok fp=0 cf=0 played=0 round=1 circ=1 cur=0 richese=True seq=0*
@@ -3256,7 +3256,7 @@ seq 188 36 kind=1 skip=True dir=-1 begin=True start=0 8 op3 ok fp=0 cf=0 played=
 seq 188 36 kind=1 skip=True dir=-1 begin=True start=0 9 op4 ok fp=0 cf=0 played= round=1 circ=4 cur=0 richese=True seq=0*
 seq 188 36 kind=1 skip=True dir=-1 begin=True start=0 10 op4 ok fp=0 cf=0 played= round=1 circ=4 cur=0 richese=True seq=0*
 seq 188 36 kind=1 skip=True dir=-1 begin=True start=0 11 op3 ok fp=0 cf=0 played= round=1 circ=4 cur=0 richese=True seq=0*
-seq 188 36 kind=1 skip=True dir=-1 begin=True start=0 12 op2 exception:Exception:Could not find a player after Richese fp=0 cf=0 played= round=1 circ=4 cur=0 richese=True seq=0*
+seq 188 36 kind=1 skip=True dir=-1 begin=True start=0 12 op2 exception fp=0 cf=0 played= round=1 circ=4 cur=0 richese=True seq=0*
 seq 188 36 kind=1 skip=True dir=-1 begin=True start=0 13 op3 ok fp=0 cf=0 played= round=1 circ=4 cur=0 richese=True seq=0*
 seq 188 36 kind=1 skip=True dir=-1 begin=True start=0 isafter True
 seq 188 37 kind=1 skip=False dir=-1 begin=True start=0 ok
@@ -3499,7 +3499,7 @@ seq 188 50 kind=0 skip=False dir=1 begin=True start=1 13 op4 ok fp=0 cf=0 played
 seq 188 50 kind=0 skip=False dir=1 begin=True start=1 isafter False
 seq 188 51 kind=0 skip=True dir=-1 begin=True start=2 ok
 seq 188 51 kind=0 skip=True dir=-1 begin=True start=2 init fp=2 cf=2 played= round=1 circ=0 cur=2 richese=False seq=2*,1,0
-seq 188 51 kind=0 skip=True dir=-1 begin=True start=2 0 op2 exception:Exception:Could not find a player after Choam fp=2 cf=2 played= round=1 circ=0 cur=2 richese=False seq=2*,1,0
+seq 188 51 kind=0 skip=True dir=-1 begin=True start=2 0 op2 exception fp=2 cf=2 played= round=1 circ=0 cur=2 richese=False seq=2*,1,0
 seq 188 51 kind=0 skip=True dir=-1 begin=True start=2 1 op1 ok fp=2 cf=2 played= round=1 circ=1 cur=2 richese=True seq=2*,1,0
 seq 188 51 kind=0 skip=True dir=-1 begin=True start=2 2 op3 ok fp=2 cf=2 played= round=1 circ=1 cur=2 richese=True seq=2*,1,0
 seq 188 51 kind=0 skip=True dir=-1 begin=True start=2 3 op3 ok fp=2 cf=2 played= round=1 circ=1 cur=2 richese=True seq=2*,1,0
@@ -3507,12 +3507,12 @@ seq 188 51 kind=0 skip=True dir=-1 begin=True start=2 4 op0 ok fp=2 cf=2 played=
 seq 188 51 kind=0 skip=True dir=-1 begin=True start=2 5 op3 ok fp=2 cf=2 played= round=1 circ=2 cur=2 richese=True seq=2*,1,0
 seq 188 51 kind=0 skip=True dir=-1 begin=True start=2 6 op1 ok fp=2 cf=2 played= round=1 circ=3 cur=2 richese=True seq=2*,1,0
 seq 188 51 kind=0 skip=True dir=-1 begin=True start=2 7 op3 ok fp=2 cf=2 played= round=1 circ=3 cur=2 richese=True seq=2*,1,0
-seq 188 51 kind=0 skip=True dir=-1 begin=True start=2 8 op2 exception:Exception:Could not find a player after Choam fp=2 cf=2 played= round=1 circ=3 cur=2 richese=True seq=2*,1,0
+seq 188 51 kind=0 skip=True dir=-1 begin=True start=2 8 op2 exception fp=2 cf=2 played= round=1 circ=3 cur=2 richese=True seq=2*,1,0
 seq 188 51 kind=0 skip=True dir=-1 begin=True start=2 9 op0 ok fp=2 cf=2 played= round=1 circ=4 cur=2 richese=True seq=2*,1,0
 seq 188 51 kind=0 skip=True dir=-1 begin=True start=2 10 op4 ok fp=2 cf=2 played= round=1 circ=4 cur=2 richese=True seq=2*,1,0
 seq 188 51 kind=0 skip=True dir=-1 begin=True start=2 11 op3 ok fp=2 cf=2 played= round=1 circ=4 cur=2 richese=True seq=2*,1,0
 seq 188 51 kind=0 skip=True dir=-1 begin=True start=2 12 op3 ok fp=2 cf=2 played= round=1 circ=4 cur=2 richese=True seq=2*,1,0
-seq 188 51 kind=0 skip=True dir=-1 begin=True start=2 13 op2 exception:Exception:Could not find a player after Choam fp=2 cf=2 played= round=1 circ=4 cur=2 richese=True seq=2*,1,0
+seq 188 51 kind=0 skip=True dir=-1 begin=True start=2 13 op2 exception fp=2 cf=2 played= round=1 circ=4 cur=2 richese=True seq=2*,1,0
 seq 188 51 kind=0 skip=True dir=-1 begin=True start=2 isafter True
 seq 188 52 kind=0 skip=True dir=1 begin=True start=0 ok
 seq 188 52 kind=0 skip=True dir=1 begin=True start=0 init fp=1 cf=0 played= round=1 circ=0 cur=1 richese=False seq=1*,1,4,0,2
@@ -4138,7 +4138,7 @@ seq 188 88 kind=0 skip=True dir=1 begin=True start=0 6 op3 ok fp=0 cf=0 played= 
 seq 188 88 kind=0 skip=True dir=1 begin=True start=0 7 op3 ok fp=0 cf=0 played= round=1 circ=4 cur=0 richese=True seq=0*
 seq 188 88 kind=0 skip=True dir=1 begin=True start=0 8 op1 ok fp=0 cf=0 played= round=1 circ=5 cur=0 richese=True seq=0*
 seq 188 88 kind=0 skip=True dir=1 begin=True start=0 9 op4 ok fp=0 cf=0 played= round=1 circ=5 cur=0 richese=True seq=0*
-seq 188 88 kind=0 skip=True dir=1 begin=True start=0 10 op2 exception:Exception:Could not find a player after Choam fp=0 cf=0 played= round=1 circ=5 cur=0 richese=True seq=0*
+seq 188 88 kind=0 skip=True dir=1 begin=True start=0 10 op2 exception fp=0 cf=0 played= round=1 circ=5 cur=0 richese=True seq=0*
 seq 188 88 kind=0 skip=True dir=1 begin=True start=0 11 op1 ok fp=0 cf=0 played= round=1 circ=6 cur=0 richese=True seq=0*
 seq 188 88 kind=0 skip=True dir=1 begin=True start=0 12 op0 ok fp=0 cf=0 played= round=1 circ=7 cur=0 richese=True seq=0*
 seq 188 88 kind=0 skip=True dir=1 begin=True start=0 13 op0 ok fp=0 cf=0 played= round=1 circ=8 cur=0 richese=True seq=0*
@@ -4468,19 +4468,19 @@ seq 188 107 kind=0 skip=True dir=1 begin=True start=0 13 op4 ok fp=0 cf=0 played
 seq 188 107 kind=0 skip=True dir=1 begin=True start=0 isafter True
 seq 188 108 kind=0 skip=True dir=1 begin=False start=0 ok
 seq 188 108 kind=0 skip=True dir=1 begin=False start=0 init fp=0 cf=0 played= round=1 circ=0 cur=1 richese=False seq=1*
-seq 188 108 kind=0 skip=True dir=1 begin=False start=0 0 op2 exception:Exception:Could not find a player after Emperor fp=0 cf=0 played= round=1 circ=0 cur=1 richese=False seq=1*
+seq 188 108 kind=0 skip=True dir=1 begin=False start=0 0 op2 exception fp=0 cf=0 played= round=1 circ=0 cur=1 richese=False seq=1*
 seq 188 108 kind=0 skip=True dir=1 begin=False start=0 1 op0 ok fp=0 cf=0 played= round=1 circ=0 cur=1 richese=False seq=1*
-seq 188 108 kind=0 skip=True dir=1 begin=False start=0 2 op2 exception:Exception:Could not find a player after Emperor fp=0 cf=0 played= round=1 circ=0 cur=1 richese=False seq=1*
+seq 188 108 kind=0 skip=True dir=1 begin=False start=0 2 op2 exception fp=0 cf=0 played= round=1 circ=0 cur=1 richese=False seq=1*
 seq 188 108 kind=0 skip=True dir=1 begin=False start=0 3 op0 ok fp=0 cf=0 played= round=1 circ=0 cur=1 richese=False seq=1*
 seq 188 108 kind=0 skip=True dir=1 begin=False start=0 4 op0 ok fp=0 cf=0 played= round=1 circ=0 cur=1 richese=False seq=1*
 seq 188 108 kind=0 skip=True dir=1 begin=False start=0 5 op4 ok fp=0 cf=0 played= round=1 circ=0 cur=1 richese=False seq=1*
 seq 188 108 kind=0 skip=True dir=1 begin=False start=0 6 op3 ok fp=0 cf=1 played= round=1 circ=0 cur=1 richese=False seq=1*
-seq 188 108 kind=0 skip=True dir=1 begin=False start=0 7 op2 exception:Exception:Could not find a player after Emperor fp=0 cf=1 played= round=1 circ=0 cur=1 richese=False seq=1*
+seq 188 108 kind=0 skip=True dir=1 begin=False start=0 7 op2 exception fp=0 cf=1 played= round=1 circ=0 cur=1 richese=False seq=1*
 seq 188 108 kind=0 skip=True dir=1 begin=False start=0 8 op4 ok fp=0 cf=1 played= round=1 circ=0 cur=1 richese=False seq=1*
-seq 188 108 kind=0 skip=True dir=1 begin=False start=0 9 op2 exception:Exception:Could not find a player after Emperor fp=0 cf=1 played= round=1 circ=0 cur=1 richese=False seq=1*
+seq 188 108 kind=0 skip=True dir=1 begin=False start=0 9 op2 exception fp=0 cf=1 played= round=1 circ=0 cur=1 richese=False seq=1*
 seq 188 108 kind=0 skip=True dir=1 begin=False start=0 10 op1 ok fp=0 cf=1 played= round=1 circ=0 cur=1 richese=False seq=1*
 seq 188 108 kind=0 skip=True dir=1 begin=False start=0 11 op1 ok fp=0 cf=1 played= round=1 circ=0 cur=1 richese=False seq=1*
-seq 188 108 kind=0 skip=True dir=1 begin=False start=0 12 op2 exception:Exception:Could not find a player after Emperor fp=0 cf=1 played= round=1 circ=0 cur=1 richese=False seq=1*
+seq 188 108 kind=0 skip=True dir=1 begin=False start=0 12 op2 exception fp=0 cf=1 played= round=1 circ=0 cur=1 richese=False seq=1*
 seq 188 108 kind=0 skip=True dir=1 begin=False start=0 13 op1 ok fp=0 cf=1 played= round=1 circ=0 cur=1 richese=False seq=1*
 seq 188 108 kind=0 skip=True dir=1 begin=False start=0 isafter True
 seq 188 109 kind=1 skip=True dir=1 begin=False start=3 ok
@@ -4793,18 +4793,18 @@ seq 188 127 kind=0 skip=True dir=1 begin=False start=1 ok
 seq 188 127 kind=0 skip=True dir=1 begin=False start=1 init fp=1 cf=1 played= round=1 circ=0 cur=1 richese=False seq=1*,1,0
 seq 188 127 kind=0 skip=True dir=1 begin=False start=1 0 op4 ok fp=1 cf=1 played= round=1 circ=0 cur=1 richese=False seq=1*,1,0
 seq 188 127 kind=0 skip=True dir=1 begin=False start=1 1 op3 ok fp=1 cf=1 played= round=1 circ=0 cur=1 richese=False seq=1*,1,0
-seq 188 127 kind=0 skip=True dir=1 begin=False start=1 2 op2 exception:Exception:Could not find a player after Harkonnen fp=1 cf=1 played= round=1 circ=0 cur=1 richese=False seq=1*,1,0
+seq 188 127 kind=0 skip=True dir=1 begin=False start=1 2 op2 exception fp=1 cf=1 played= round=1 circ=0 cur=1 richese=False seq=1*,1,0
 seq 188 127 kind=0 skip=True dir=1 begin=False start=1 3 op1 ok fp=1 cf=1 played= round=1 circ=1 cur=1 richese=True seq=1*,1,0
 seq 188 127 kind=0 skip=True dir=1 begin=False start=1 4 op4 ok fp=1 cf=1 played= round=1 circ=1 cur=1 richese=True seq=1*,1,0
 seq 188 127 kind=0 skip=True dir=1 begin=False start=1 5 op3 ok fp=1 cf=1 played= round=1 circ=1 cur=1 richese=True seq=1*,1,0
-seq 188 127 kind=0 skip=True dir=1 begin=False start=1 6 op2 exception:Exception:Could not find a player after Harkonnen fp=1 cf=1 played= round=1 circ=1 cur=1 richese=True seq=1*,1,0
+seq 188 127 kind=0 skip=True dir=1 begin=False start=1 6 op2 exception fp=1 cf=1 played= round=1 circ=1 cur=1 richese=True seq=1*,1,0
 seq 188 127 kind=0 skip=True dir=1 begin=False start=1 7 op0 ok fp=1 cf=1 played= round=1 circ=2 cur=1 richese=True seq=1*,1,0
 seq 188 127 kind=0 skip=True dir=1 begin=False start=1 8 op1 ok fp=1 cf=1 played= round=1 circ=3 cur=1 richese=True seq=1*,1,0
 seq 188 127 kind=0 skip=True dir=1 begin=False start=1 9 op1 ok fp=1 cf=1 played= round=1 circ=4 cur=1 richese=True seq=1*,1,0
 seq 188 127 kind=0 skip=True dir=1 begin=False start=1 10 op4 ok fp=1 cf=1 played= round=1 circ=4 cur=1 richese=True seq=1*,1,0
 seq 188 127 kind=0 skip=True dir=1 begin=False start=1 11 op1 ok fp=1 cf=1 played= round=1 circ=5 cur=1 richese=True seq=1*,1,0
 seq 188 127 kind=0 skip=True dir=1 begin=False start=1 12 op1 ok fp=1 cf=1 played= round=1 circ=6 cur=1 richese=True seq=1*,1,0
-seq 188 127 kind=0 skip=True dir=1 begin=False start=1 13 op2 exception:Exception:Could not find a player after Harkonnen fp=1 cf=1 played= round=1 circ=6 cur=1 richese=True seq=1*,1,0
+seq 188 127 kind=0 skip=True dir=1 begin=False start=1 13 op2 exception fp=1 cf=1 played= round=1 circ=6 cur=1 richese=True seq=1*,1,0
 seq 188 127 kind=0 skip=True dir=1 begin=False start=1 isafter True
 seq 188 128 kind=0 skip=True dir=-1 begin=True start=2 ok
 seq 188 128 kind=0 skip=True dir=-1 begin=True start=2 init fp=2 cf=2 played= round=1 circ=0 cur=2 richese=False seq=2*,3,2
@@ -5027,7 +5027,7 @@ seq 188 140 kind=1 skip=False dir=1 begin=False start=3 11 op0 ok fp=2 cf=2 play
 seq 188 140 kind=1 skip=False dir=1 begin=False start=3 12 op4 ok fp=2 cf=2 played=2 round=3 circ=1 cur=3 richese=True seq=2,3*,0,1
 seq 188 140 kind=1 skip=False dir=1 begin=False start=3 13 op0 ok fp=2 cf=2 played=2,3 round=3 circ=1 cur=0 richese=True seq=2,3,0*,1
 seq 188 140 kind=1 skip=False dir=1 begin=False start=3 isafter False
-seq 188 141 kind=2 skip=True dir=-1 begin=False start=1 exception:Exception:Could not determine the first player.
+seq 188 141 kind=2 skip=True dir=-1 begin=False start=1 exception
 seq 188 142 kind=0 skip=False dir=1 begin=True start=3 ok
 seq 188 142 kind=0 skip=False dir=1 begin=True start=3 init fp=4 cf=3 played= round=1 circ=0 cur=4 richese=False seq=4*,0,1,2,3
 seq 188 142 kind=0 skip=False dir=1 begin=True start=3 0 op4 ok fp=4 cf=3 played= round=1 circ=0 cur=4 richese=False seq=4*,0,1,2,3

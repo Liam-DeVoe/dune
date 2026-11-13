@@ -1,7 +1,4 @@
-//! Tests for the package D review (rust/docs/reviews/pkg-d.md). The expected values
-//! come from the "review-d" mode of the C# reference program:
-//!
-//!   cd rust/engine/csharp-ref && dotnet run -c Release -- review-d
+//! Edge cases of storm, spice blow and charity.
 
 use treachery_engine::error::catch_panic;
 use treachery_engine::prelude::*;

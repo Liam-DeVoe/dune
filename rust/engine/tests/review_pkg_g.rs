@@ -1,11 +1,4 @@
-//! Package G review (shipment and movement): probes of C# behaviour at the edges
-//! of the shipment cost and force-location code. See docs/reviews/pkg-g.md.
-//!
-//! Expected values come from the C# probe:
-//!
-//!     cd rust/engine/csharp-ref && dotnet run -c Release -- review-g
-//!
-//! Each assertion names the probe line it checks.
+//! Shipment and movement at the edges of the shipment cost and force-location code.
 
 use treachery_engine::error::catch_panic;
 use treachery_engine::enumerations::{Faction, ShipmentType};

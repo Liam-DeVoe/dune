@@ -1,14 +1,10 @@
-//! Compares the Rust static data and pathfinding with the C# runtime.
-//!
-//! tests/golden/static_data.json is written by csharp-ref (a small C# program
-//! referencing Treachery.Shared). Each test rebuilds one section of that JSON
-//! from the Rust port and compares it value by value.
-//!
-//! Regenerate the golden file after a C# change:
-//!   cd rust/engine/csharp-ref && dotnet run -c Release -- ../tests/golden/static_data.json
+//! The static data (enums, map, leaders, cards, resource cards), pathfinding and deck shuffling,
+//! against the snapshot in tests/golden/static_data.json. Each test builds one section of that
+//! JSON and compares it value by value. See common/mod.rs for how to update the snapshot.
+
+mod common;
 
 use std::cell::Cell;
-use std::sync::OnceLock;
 
 use serde_json::{json, Value};
 use treachery_engine::error::catch_panic;
@@ -28,27 +24,23 @@ use treachery_engine::map::territory::Territory;
 use treachery_engine::cards::treachery_card::TreacheryCard;
 use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
 
-fn golden() -> &'static Value {
-    static G: OnceLock<Value> = OnceLock::new();
-    G.get_or_init(|| {
-        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden/static_data.json");
-        serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap()
-    })
+/// Compares `actual` with section `section` of the snapshot, or writes it there when updating.
+fn check(section: &str, actual: Value) {
+    common::snapshot_section("static_data.json", section, actual, |expected, actual| assert_same(section, expected, actual));
 }
 
-/// Panics with the path of the first difference. A C# exception (`"exception:<Type>:<Message>"`)
-/// matches any panic (`"exception"`).
+/// Panics with the path of the first difference.
 fn assert_same(path: &str, expected: &Value, actual: &Value) {
     match (expected, actual) {
         (Value::Object(e), Value::Object(a)) => {
             for (k, ev) in e {
                 match a.get(k) {
                     Some(av) => assert_same(&format!("{path}.{k}"), ev, av),
-                    None => panic!("{path}.{k}: missing in Rust (C#: {ev})"),
+                    None => panic!("{path}.{k}: missing (expected {ev})"),
                 }
             }
             for k in a.keys() {
-                assert!(e.contains_key(k), "{path}.{k}: only in Rust");
+                assert!(e.contains_key(k), "{path}.{k}: not expected");
             }
         }
         (Value::Array(e), Value::Array(a)) => {
@@ -57,14 +49,11 @@ fn assert_same(path: &str, expected: &Value, actual: &Value) {
             }
             assert_eq!(e.len(), a.len(), "{path}: length differs");
         }
-        (Value::String(e), _) if e.starts_with("exception:") => assert_eq!(actual, "exception", "{path}: differs (C#: {e})"),
         _ => assert_eq!(expected, actual, "{path}: differs"),
     }
 }
 
-/// The C# dumper's `Try`: the value, `"null"` for null, or `"exception"` when the lookup
-/// panics. The golden holds `"exception:<Type>:<Message>"` where C# threw; [`assert_same`]
-/// compares that as `"exception"`, since the engine no longer matches .NET exception text.
+/// The value, `"null"` for null, or `"exception"` when the lookup panics.
 fn try_value(f: impl FnOnce() -> Option<i32>) -> Value {
     match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
         Ok(Some(v)) => json!(v),
@@ -137,15 +126,13 @@ fn dump_enum<T: GameEnum>(info: &EnumTypeInfo) -> Value {
     })
 }
 
-/// Every enum in the C# golden file must have a Rust counterpart: the loop
-/// runs over the C# entries, so an enum Rust lacks fails instead of being
-/// skipped. Add new enums to `rust_enums`.
+/// Every enum, sorted by name. Add new enums to the list.
 #[test]
 fn enums() {
     macro_rules! all {
         ($($t:ident),*) => { vec![$((stringify!($t), dump_enum::<$t>(<$t as GameEnum>::INFO))),*] };
     }
-    let rust = all!(
+    let mut enums = all!(
         Faction, Nexus, Ambassador, TechToken, MainPhase, MainPhaseMoment, ChoamEconomicsStatus, Phase, Milestone,
         FactionAdvantage, FactionForce, FactionSpecialForce, Ruleset, DiscoveryToken, DiscoveryTokenType, Rule,
         RuleGroup, TreacheryCardType, Concept, WinMethod, HeroType, AuctionType, JuiceType, LeaderSkill,
@@ -154,15 +141,8 @@ fn enums() {
         SubscriptionType, GameListScope, ShipmentType, AutomationRuleType, ItemAction, BattleFactKind, AsideKind,
         NexusAllianceChange, ShipKind, BeneGesseritReactionKind, ErrorType
     );
-    let mut missing = Vec::new();
-    for expected in golden()["enums"].as_array().unwrap() {
-        let name = expected["name"].as_str().unwrap();
-        match rust.iter().find(|(n, _)| *n == name) {
-            Some((_, value)) => assert_same(&format!("enums.{name}"), expected, value),
-            None => missing.push(name),
-        }
-    }
-    assert!(missing.is_empty(), "C# enums with no Rust port (add them to this test once ported): {missing:?}");
+    enums.sort_by_key(|(name, _)| *name);
+    check("enums", Value::Array(enums.into_iter().map(|(_, v)| v).collect()));
 }
 
 #[test]
@@ -305,7 +285,7 @@ fn dump_map(m: &Map) -> Value {
 
 #[test]
 fn map() {
-    assert_same("map", &golden()["map"], &dump_map(&Map::new()));
+    check("map", dump_map(&Map::new()));
 }
 
 #[test]
@@ -352,7 +332,7 @@ fn map_attached() {
             }));
         }
     }
-    assert_same("map_attached", &golden()["map_attached"], &Value::Array(result));
+    check("map_attached", Value::Array(result));
 }
 
 #[test]
@@ -430,7 +410,7 @@ fn pathfinding() {
         "find_paths": paths,
         "cache": cache,
     });
-    assert_same("pathfinding", &golden()["pathfinding"], &actual);
+    check("pathfinding", actual);
 }
 
 #[test]
@@ -451,7 +431,7 @@ fn resource_cards() {
             })
         })
         .collect();
-    assert_same("resource_cards", &golden()["resource_cards"], &Value::Array(actual));
+    check("resource_cards", Value::Array(actual));
 }
 
 // ---------------------------------------------------------------- heroes and cards
@@ -499,7 +479,7 @@ fn leaders() {
         "hero_lookup": lookup_ids.iter().map(|i| try_value(|| LeaderManager::hero_lookup().find(*i).map(|h| h.id()))).collect::<Vec<_>>(),
         "leader_lookup": lookup_ids.iter().map(|i| try_value(|| LeaderManager::leader_lookup().find(*i).map(|h| h.id()))).collect::<Vec<_>>(),
     });
-    assert_same("leaders", &golden()["leaders"], &actual);
+    check("leaders", actual);
 }
 
 #[test]
@@ -584,7 +564,7 @@ fn cards() {
             TreacheryCardManager::CARD_JUBBA_CLOAK, TreacheryCardManager::CARD_KULON, TreacheryCardManager::CARD_LALALA,
             TreacheryCardManager::CARD_TRIP_TO_GAMONT, TreacheryCardManager::CARD_KULL_WAHAD],
     });
-    assert_same("cards", &golden()["cards"], &actual);
+    check("cards", actual);
 }
 
 // ---------------------------------------------------------------- randomness
@@ -609,7 +589,7 @@ fn deck_shuffle_and_random_or_default() {
             }));
         }
     }
-    assert_same("random", &golden()["random"], &json!({ "shuffles": shuffles }));
+    check("random", json!({ "shuffles": shuffles }));
 }
 
 #[test]
@@ -652,7 +632,7 @@ fn messages() {
         part,
         express!("inner")
     );
-    // The inner message is created first, as in C#.
+    // The inner message is created first.
     assert_eq!(msg.nr, start + 1);
     assert_eq!(msg.target, Faction::None);
     assert_eq!(msg.expression.elements[0], E::from(Faction::Atreides));

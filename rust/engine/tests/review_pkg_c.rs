@@ -1,11 +1,9 @@
-//! Package C review (setup events): the static helpers and obsolete getters that the
-//! differential traces never call. See docs/reviews/pkg-c.md.
-//!
-//! Expected values come from the C# probe, saved as tests/golden/review_c.txt:
-//!
-//!     cd rust/engine/csharp-ref && dotnet run -c Release -- review-c > ../tests/golden/review_c.txt
-//!
-//! The test rebuilds every "name = value" line from Rust and compares them all.
+//! Setup helpers that bot and fuzz games rarely reach (trade targets, automation rule types,
+//! bidding factions, game info), and events executed without validation, as "name = value"
+//! lines against the snapshots tests/golden/review_c.txt and review_c_validate_off.txt. See
+//! common/mod.rs for how to update them.
+
+mod common;
 
 use treachery_engine::error::catch_panic;
 use treachery_engine::shared::Shared;
@@ -14,8 +12,6 @@ use treachery_engine::game::Game;
 use treachery_engine::json;
 use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
-
-const EXPECTED: &str = include_str!("golden/review_c.txt");
 
 const T: &str = r#""Time":"2024-01-01T12:00:00+00:00""#;
 
@@ -53,7 +49,7 @@ fn locs(xs: Vec<Location>) -> String {
 }
 
 #[test]
-fn static_helpers_and_obsolete_getters_match_csharp() {
+fn static_helpers_and_getters() {
     let mut out: Vec<String> = Vec::new();
     let mut p = |name: String, value: String| out.push(format!("{name} = {value}"));
 
@@ -115,36 +111,15 @@ fn static_helpers_and_obsolete_getters_match_csharp() {
     p("gameinfo.canBeJoined.full".into(), if gi.can_be_joined() { "True" } else { "False" }.into());
     p("gameinfo.seat".into(), format!("{},{}", gi.your_current_seat(2), gi.your_current_seat(9)));
 
-    // A C# exception compares equal to any Rust panic: the texts are .NET's.
-    let exception_only = |l: &str| match l.split_once(" = exception:") {
-        Some((name, _)) => format!("{name} = exception"),
-        None => l.to_string(),
-    };
-    let expected: Vec<String> = EXPECTED.lines().map(exception_only).collect();
-    let mut failures = Vec::new();
-    for (i, line) in out.iter().enumerate() {
-        match expected.get(i) {
-            Some(e) if *e == exception_only(line) => {}
-            e => failures.push(format!("C#:   {}\nRust: {line}", e.map_or("<missing>", String::as_str))),
-        }
-    }
-    if expected.len() != out.len() {
-        failures.push(format!("C# wrote {} lines, Rust {}", expected.len(), out.len()));
-    }
-    assert!(failures.is_empty(), "{} differences:\n{}", failures.len(), failures.join("\n"));
+    common::snapshot_lines("review_c.txt", &out);
 }
 
 // ---------------------------------------------------------------------------------------
-// Events executed with performValidation = false (Game.Undo, the client). Expected values
-// from `dotnet run -c Release -- review-c validate-off`, saved as
-// tests/golden/review_c_validate_off.txt. See docs/reviews/pkg-c.md.
+// Events executed without validation (as undo replays them), against
+// tests/golden/review_c_validate_off.txt.
 
-const EXPECTED_VALIDATE_OFF: &str = include_str!("golden/review_c_validate_off.txt");
-
-/// "accepted", "rejected:<message>" or "error", like ReviewC.Exec. The C# golden writes a
-/// Game Error as "error:<type>:<message>"; the engine's GameError is compared as "error" (see
-/// `validate_off_matches_csharp`). A panic out of `execute` is "escaped:<type>:<message>", which
-/// never matches the golden.
+/// "accepted", "rejected:<message>", "error" for a GameError, or "escaped:<message>" for a panic
+/// out of `execute`.
 fn exec(g: &mut Game, text: &str, validate: bool) -> String {
     let e: GameEvent = json::deserialize(text).expect("event json");
     e.initialize_game(g);
@@ -153,7 +128,6 @@ fn exec(g: &mut Game, text: &str, validate: bool) -> String {
         Ok(Some(m)) => {
             for el in &m.expression.elements {
                 if let ExpressionElement::Error(_) = el {
-                    // The C# golden names the exception; the engine reports a GameError.
                     return "error".to_string();
                 }
             }
@@ -164,7 +138,7 @@ fn exec(g: &mut Game, text: &str, validate: bool) -> String {
 }
 
 #[test]
-fn validate_off_matches_csharp() {
+fn validate_off() {
     let mut out: Vec<String> = Vec::new();
 
     // PerformHmsPlacement twice: a real target, then none.
@@ -191,24 +165,5 @@ fn validate_off_matches_csharp() {
         ));
     }
 
-    // The exception type and message of a Game Error aren't compared.
-    let expected: Vec<String> = EXPECTED_VALIDATE_OFF
-        .lines()
-        .map(|l| match l.split_once(" = error:") {
-            Some((name, _)) => format!("{name} = error"),
-            None => l.to_string(),
-        })
-        .collect();
-    // Known difference: PerformHmsMovement without a target, executed without validation (out of
-    // scope, PORTING.md). C# took the HMS from its old host before failing; Rust fails first.
-    const ACCEPTED: &[&str] = &["hms.neighbourOfTarget.after = True"];
-    let mut failures = Vec::new();
-    for (i, line) in out.iter().enumerate() {
-        match expected.get(i) {
-            Some(e) if e == line => {}
-            _ if ACCEPTED.contains(&line.as_str()) => {}
-            e => failures.push(format!("C#:   {}\nRust: {line}", e.map_or("<missing>", String::as_str))),
-        }
-    }
-    assert!(failures.is_empty(), "{} differences:\n{}", failures.len(), failures.join("\n"));
+    common::snapshot_lines("review_c_validate_off.txt", &out);
 }

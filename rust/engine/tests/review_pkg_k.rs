@@ -1,12 +1,4 @@
-//! Package K review (alliances, deals, discards, status): tests that show where the
-//! Rust port behaves differently from C#. See docs/reviews/pkg-k.md.
-//!
-//! Expected values come from the C# probe:
-//!
-//!     cd rust/engine/csharp-ref && dotnet run -c Release -- review-k
-//!
-//! (`ReviewK.cs`). Each test names the probe lines it checks. These tests are meant
-//! to FAIL until the difference is fixed.
+//! Edge cases of alliances, deals, discards and the game status.
 
 use treachery_engine::events::GameEvent;
 use treachery_engine::game::Game;

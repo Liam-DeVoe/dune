@@ -1,10 +1,5 @@
-//! Behavioural differences between the foundation layer and the C# code,
-//! found by review. Each test states the C# result, taken from
-//! `cd rust/engine/csharp-ref && dotnet run -c Release -- review`
-//! (see csharp-ref/Review.cs; the probe name is given in each test).
-//!
-//! Each test failed until its difference was fixed (see rust/docs/escapes.md),
-//! except the ones marked as guards. See rust/docs/reviews/foundation.md.
+//! Edge cases of the foundation layer (messages, random helpers, JSON, map lookups). Each test
+//! failed until its bug was fixed (see rust/docs/escapes.md), except the ones marked as guards.
 
 use treachery_engine::error::catch_panic;
 use treachery_engine::enumerations::*;

@@ -1,8 +1,6 @@
-//! Focused tests for package J (Karma, Nexus, Moritani, Ecaz, Choam, clairvoyance).
-//! They build small game states by hand and check rules whose C# behaviour is
-//! easy to get wrong in a port.
+//! Focused tests for Karma, Nexus cards, Moritani, Ecaz, Choam and clairvoyance. They build small
+//! game states by hand and check rules that are easy to get wrong.
 
-use treachery_engine::canon;
 use treachery_engine::error::catch_panic;
 use treachery_engine::events::GameEventMethods;
 use treachery_engine::game::Intrusion;
@@ -44,11 +42,20 @@ fn trigger_terror(g: &mut Game, faction: Faction, t: Territory) {
 }
 
 // ---------------------------------------------------------------------------
-// Messages that keep a live hand (AmbassadorActivated.cs:333, hazards 4.5)
+// Messages that keep a live hand (ambassador activation)
 // ---------------------------------------------------------------------------
 
+/// What a rendering of `e` with `game` shows: a live list's current contents, otherwise the
+/// items taken when the message was logged (see live_lists.rs).
+fn current(e: &ExpressionElement, game: Option<&Game>) -> Vec<ExpressionElement> {
+    match e {
+        ExpressionElement::List { items, live, .. } => live.and_then(|l| game.and_then(|g| l.read(g))).unwrap_or_else(|| items.clone()),
+        other => panic!("not a list: {other:?}"),
+    }
+}
+
 #[test]
-fn live_hand_in_a_message_dumps_the_current_hand() {
+fn live_hand_in_a_message_shows_the_current_hand() {
     let mut g = game_with(&[Faction::Ecaz, Faction::Atreides]);
     let atreides = idx(&g, Faction::Atreides);
     let c1 = card_of(TreacheryCardType::Karma, 0);
@@ -56,17 +63,14 @@ fn live_hand_in_a_message_dumps_the_current_hand() {
     g.player_mut(atreides).treachery_cards.push(c1);
 
     let live = ExpressionElement::live_player_treachery_cards(&g, atreides);
-    let snapshot = ExpressionElement::list(g.player(atreides).treachery_cards.iter().copied());
-    let before = canon::dump_detached(&live, Some(&g));
-    assert_eq!(before, canon::dump_detached(&snapshot, Some(&g)));
+    let hand = |cs: &[TreacheryCard]| cs.iter().map(|c| ExpressionElement::Hero(Hero::TreacheryCard(*c))).collect::<Vec<_>>();
+    assert_eq!(current(&live, Some(&g)), hand(&[c1]));
 
-    // The hand changes after the message was logged: C# shows the new contents.
+    // The hand changes after the message was logged: the message shows the new contents.
     g.player_mut(atreides).treachery_cards.push(c2);
-    let after = String::from_utf8(canon::dump_detached(&live, Some(&g))).unwrap();
-    assert!(after.contains(&format!("\"id\":{}", c2.id())), "{after}");
-    assert_eq!(canon::dump_detached(&snapshot, Some(&g)), before);
-    // Without a game there is nothing to resolve against: the snapshot is written.
-    assert_eq!(canon::dump_detached(&live, None), before);
+    assert_eq!(current(&live, Some(&g)), hand(&[c1, c2]));
+    // Without a game there is nothing to read again: the snapshot is shown.
+    assert_eq!(current(&live, None), hand(&[c1]));
 }
 
 // ---------------------------------------------------------------------------

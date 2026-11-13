@@ -1,5 +1,5 @@
-//! Focused tests for package E (bidding). They build small game states by hand
-//! and check rules whose C# behaviour is easy to get wrong.
+//! Focused tests for bidding. They build small game states by hand and check rules that are
+//! easy to get wrong.
 
 use std::rc::Rc;
 

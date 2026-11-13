@@ -1,20 +1,21 @@
-//! Package B review (Player.cs, PlayerSequence.cs, Battalion.cs, Game_Rules.cs,
-//! Game_Events.cs). See docs/reviews/pkg-b.md.
+//! Players, player sequences and battalions, against the snapshot `review_pkg_b/probes.txt`.
 //!
-//! The expected lines come from the C# probe:
+//! `player_force_operations` applies a pseudo-random sequence of force operations (an xorshift32
+//! generator) to a game and compares the player state after every operation.
+//! `determine_first_player` checks `PlayerSequence::determine_first_player` over storm sectors
+//! and player counts. After a deliberate change, rewrite the snapshot and review the diff:
 //!
-//!     cd rust/engine/csharp-ref && dotnet run -c Release -- review-b ../tests/review_pkg_b/probes.txt
-//!
-//! `player_force_operations_match_csharp` applies the same pseudo-random sequence of
-//! force operations to a game in both engines (identical xorshift32 generator) and
-//! compares the player state after every operation. `determine_first_player_matches_csharp`
-//! checks `PlayerSequence.DetermineFirstPlayer` over storm sectors and player counts.
+//! ```sh
+//! UPDATE_GOLDENS=1 cargo test --release -p treachery-engine --test review_pkg_b
+//! ```
 
 use treachery_engine::error::catch_panic;
 use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
 
-const GOLDEN: &str = include_str!("review_pkg_b/probes.txt");
+fn snapshot_path() -> std::path::PathBuf {
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/review_pkg_b/probes.txt")
+}
 
 struct Rng(u32);
 
@@ -200,28 +201,21 @@ fn rust_lines() -> Vec<String> {
     out
 }
 
-/// The golden lines write a C# exception as `exception:<Type>:<Message>`; the Rust lines write
-/// any panic as `exception`. The exception's type and message aren't compared: everything from
-/// `exception:` to the next state field (` fp=`) becomes `exception`.
-fn without_exception_text(line: &str) -> String {
-    match line.find("exception:") {
-        Some(i) => {
-            let rest = &line[i..];
-            let end = rest.find(" fp=").unwrap_or(rest.len());
-            format!("{}exception{}", &line[..i], &rest[end..])
-        }
-        None => line.to_string(),
-    }
-}
-
 /// Runs `f`, catching any panic.
 fn catch<R>(f: impl FnOnce() -> R) -> Result<R, ()> {
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| catch_panic(f))).ok().and_then(Result::ok).ok_or(())
 }
 
 fn compare(prefix_filter: impl Fn(&str) -> bool) {
-    let expected: Vec<String> = GOLDEN.lines().filter(|l| prefix_filter(l)).map(without_exception_text).collect();
-    let actual: Vec<String> = rust_lines().into_iter().filter(|l| prefix_filter(l)).collect();
+    let mut lines = rust_lines();
+    lines.extend(sequence_lines());
+    if std::env::var_os("UPDATE_GOLDENS").is_some() {
+        std::fs::write(snapshot_path(), lines.iter().map(|l| format!("{l}\n")).collect::<String>()).unwrap();
+        return;
+    }
+    let snapshot = std::fs::read_to_string(snapshot_path()).unwrap();
+    let expected: Vec<&str> = snapshot.lines().filter(|l| prefix_filter(l)).collect();
+    let actual: Vec<&String> = lines.iter().filter(|l| prefix_filter(l)).collect();
     for (i, (e, a)) in expected.iter().zip(actual.iter()).enumerate() {
         assert_eq!(e, a, "first difference at filtered line {i}");
     }
@@ -229,12 +223,12 @@ fn compare(prefix_filter: impl Fn(&str) -> bool) {
 }
 
 #[test]
-fn player_force_operations_match_csharp() {
+fn player_force_operations() {
     compare(|l| !l.starts_with("first ") && !l.starts_with("seq "));
 }
 
 #[test]
-fn determine_first_player_matches_csharp() {
+fn determine_first_player() {
     compare(|l| l.starts_with("first "));
 }
 
@@ -366,11 +360,6 @@ fn sequence_lines() -> Vec<String> {
 }
 
 #[test]
-fn player_sequence_matches_csharp() {
-    let expected: Vec<String> = GOLDEN.lines().filter(|l| l.starts_with("seq ")).map(without_exception_text).collect();
-    let actual = sequence_lines();
-    for (i, (e, a)) in expected.iter().zip(actual.iter()).enumerate() {
-        assert_eq!(e, a, "first difference at sequence line {i}");
-    }
-    assert_eq!(expected.len(), actual.len());
+fn player_sequence() {
+    compare(|l| l.starts_with("seq "));
 }

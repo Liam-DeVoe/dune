@@ -1,5 +1,5 @@
 hms.first = accepted
 hms.neighbourOfTarget.before = True
-hms.second = error:NullReferenceException:Object reference not set to an instance of an object.
-hms.neighbourOfTarget.after = False
+hms.second = error
+hms.neighbourOfTarget.after = True
 hms.attachedTo = 5

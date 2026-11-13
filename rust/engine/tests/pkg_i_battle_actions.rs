@@ -1,6 +1,6 @@
-//! Focused tests for package I (actions around the fight: Voice, Prescience,
-//! Thought, Diplomacy, audits, face dancers, Juice, Residual, ...). They build
-//! small game states by hand and check rules whose C# behaviour is easy to get wrong.
+//! Focused tests for the actions around a fight: Voice, Prescience, Thought, Diplomacy, audits,
+//! face dancers, Juice, Residual, ... They build small game states by hand and check rules that
+//! are easy to get wrong.
 
 use treachery_engine::error::catch_panic;
 use treachery_engine::events::GameEventMethods;
@@ -227,6 +227,15 @@ fn thought_answered_shows_only_the_asked_card_when_held() {
 /// `AuditCancelled.cs:89` logs the live `Game.AuditedCards` list. The next audit clears and
 /// refills it (`Game_Battle.cs:427-429`), and the C# state dump then shows the new contents
 /// in the old message (hazards 4.5).
+/// What a rendering of `e` with `game` shows: a live list's current contents, otherwise the
+/// items taken when the message was logged (see live_lists.rs).
+fn current(e: &ExpressionElement, game: Option<&Game>) -> Vec<ExpressionElement> {
+    match e {
+        ExpressionElement::List { items, live, .. } => live.and_then(|l| game.and_then(|g| l.read(g))).unwrap_or_else(|| items.clone()),
+        other => panic!("not a list: {other:?}"),
+    }
+}
+
 #[test]
 fn audit_cancelled_logs_audited_cards_as_a_live_list() {
     let mut g = game_with(&[Faction::Choam, Faction::Emperor]);
@@ -242,12 +251,12 @@ fn audit_cancelled_logs_audited_cards_as_a_live_list() {
     let msg = g.current_report().messages.last().cloned().unwrap();
     assert_eq!(msg.target, Faction::Emperor);
     let element = msg.expression.elements[2].clone();
-    let dump = |g: &Game, e: &ExpressionElement| String::from_utf8(treachery_engine::canon::dump_detached(e, Some(g))).unwrap();
-    assert_eq!(dump(&g, &element), dump(&g, &ExpressionElement::list(vec![first])));
+    let cards = |cs: &[TreacheryCard]| cs.iter().map(|c| ExpressionElement::Hero(Hero::TreacheryCard(*c))).collect::<Vec<_>>();
+    assert_eq!(current(&element, Some(&g)), cards(&[first]));
 
     g.audited_cards.clear();
     g.audited_cards.push(second);
     g.audited_cards.push(third);
-    assert_eq!(dump(&g, &element), dump(&g, &ExpressionElement::list(vec![second, third])));
+    assert_eq!(current(&element, Some(&g)), cards(&[second, third]));
     assert_eq!(element.to_cs_string(), "System.Collections.Generic.List`1[Treachery.Shared.TreacheryCard]");
 }

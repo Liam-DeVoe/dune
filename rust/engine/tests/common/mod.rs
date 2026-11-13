@@ -1,26 +1,35 @@
-//! Shared helpers for the golden tests that compare values one by one with
-//! .NET (boundary.rs, random_helpers.rs, linq_table.rs, message_corpus.rs).
+//! Shared helpers for the snapshot tests: tests that compare what the engine computes with values
+//! recorded in `tests/golden/` (event_json.rs, message_corpus.rs, random_helpers.rs,
+//! static_data.rs, review_pkg_c.rs, sync_v188.rs).
 //!
-//! Values use the encoding of csharp-ref/Enc.cs:
+//! The recorded values pin behavior that savegames, players and bots depend on, so a difference
+//! is a change in behavior. After a deliberate change, rewrite the snapshots and review the diff:
+//!
+//! ```sh
+//! UPDATE_GOLDENS=1 cargo test --release -p treachery-engine
+//! ```
+//!
+//! Values are encoded like this:
 //!
 //! | value                  | encoding                         |
 //! |------------------------|----------------------------------|
 //! | null                   | JSON null                        |
 //! | bool, int, long        | JSON bool / number               |
-//! | float / double         | `"f:1E-05"` / `"d:0.1"` (.NET invariant ToString) |
+//! | float / double         | `"f:1E-05"` / `"d:0.1"` (as the engine prints them) |
 //! | string                 | `"s:text"`                       |
 //! | enum                   | `"e:Faction:20"`                 |
-//! | IIdentifiable          | `"o:Homeworld#105"` (runtime type and Id) |
-//! | ResourceCard           | `"rc:3"` (index in GetResourceCardsInAndOutsidePlay) |
+//! | location, card, leader | `"o:Homeworld#105"` (type and id) |
+//! | ResourceCard           | `"rc:3"` (index in `get_resource_cards_in_and_outside_play`) |
 //! | PointD                 | `"pt:1.5,-2"`                    |
-//! | Message, MessagePart   | `"m:"` + ToString()              |
-//! | IEnumerable            | JSON array                       |
+//! | Message, MessagePart   | `"m:"` + `to_cs_string()`        |
+//! | collection             | JSON array                       |
 //! | anything else          | `"?:TypeName"`                   |
-//! | exception              | `"x:Type:Message"`               |
+//! | panic                  | `"x:Type:Message"` or `"x:panic:<message>"` |
 
 #![allow(dead_code)]
 
-use std::sync::OnceLock;
+use std::path::PathBuf;
+use std::sync::{Mutex, OnceLock};
 
 use serde_json::{json, Value};
 use treachery_engine::error::catch_panic;
@@ -41,28 +50,105 @@ use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
 
 /// Loads `tests/golden/<name>` once per test binary.
 pub fn golden(name: &'static str) -> &'static Value {
-    static FILES: OnceLock<std::sync::Mutex<Vec<(&'static str, &'static Value)>>> = OnceLock::new();
+    static FILES: OnceLock<Mutex<Vec<(&'static str, &'static Value)>>> = OnceLock::new();
     let files = FILES.get_or_init(Default::default);
     let mut files = files.lock().unwrap();
     if let Some((_, v)) = files.iter().find(|(n, _)| *n == name) {
         return v;
     }
-    let path = format!("{}/tests/golden/{name}", env!("CARGO_MANIFEST_DIR"));
-    let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{path}: {e}. Regenerate with csharp-ref."));
-    let v: &'static Value = Box::leak(Box::new(serde_json::from_str(&text).unwrap()));
+    let v: &'static Value = Box::leak(Box::new(serde_json::from_str(&read_golden(name)).unwrap()));
     files.push((name, v));
     v
 }
 
-/// Reads a list file from tests/coverage: one entry per line, `#` comments.
-pub fn coverage_list(name: &str) -> Vec<String> {
-    let path = format!("{}/tests/coverage/{name}", env!("CARGO_MANIFEST_DIR"));
-    std::fs::read_to_string(&path)
-        .unwrap_or_else(|e| panic!("{path}: {e}"))
-        .lines()
-        .map(|l| l.split('#').next().unwrap().trim().to_string())
-        .filter(|l| !l.is_empty())
-        .collect()
+pub fn golden_path(name: &str) -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/golden").join(name)
+}
+
+pub fn read_golden(name: &str) -> String {
+    let path = golden_path(name);
+    std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
+}
+
+/// Whether to write the snapshots instead of comparing with them (`UPDATE_GOLDENS=1`).
+pub fn updating() -> bool {
+    std::env::var_os("UPDATE_GOLDENS").is_some()
+}
+
+/// Serializes the read-modify-write of snapshot files, since several tests write sections of
+/// the same file.
+pub fn write_lock() -> std::sync::MutexGuard<'static, ()> {
+    static LOCK: Mutex<()> = Mutex::new(());
+    LOCK.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+/// Replaces section `section` of the JSON object in `tests/golden/<file>`.
+pub fn write_section(file: &str, section: &str, value: Value) {
+    let _guard = write_lock();
+    let mut doc: Value = serde_json::from_str(&read_golden(file)).unwrap();
+    doc[section] = value;
+    std::fs::write(golden_path(file), serde_json::to_string(&doc).unwrap() + "\n").unwrap();
+}
+
+/// Compares `actual` with section `section` of `tests/golden/<file>` using `compare`, or writes
+/// it there when updating.
+pub fn snapshot_section(file: &'static str, section: &str, actual: Value, compare: impl FnOnce(&Value, &Value)) {
+    if updating() {
+        write_section(file, section, actual);
+    } else {
+        compare(&golden(file)[section], &actual);
+    }
+}
+
+/// For each entry of the array in section `section` of `tests/golden/<file>`, `f` computes the
+/// recorded fields from the entry's inputs, as an object. They must equal the entry's values for
+/// the same keys. When updating, the entries get the computed values instead.
+pub fn check_entries(file: &'static str, section: &str, what: &str, f: impl Fn(&Value) -> Value) {
+    let entries = golden(file)[section].as_array().unwrap_or_else(|| panic!("{file} has no section {section}"));
+    let mut failures = Failures::default();
+    let mut updated = Vec::new();
+    for e in entries {
+        let actual = f(e);
+        let fields = actual.as_object().expect("the computed fields are an object");
+        if updating() {
+            let mut entry = e.clone();
+            for (k, v) in fields {
+                entry[k] = v.clone();
+            }
+            updated.push(entry);
+        } else {
+            let expected: serde_json::Map<String, Value> = fields.keys().map(|k| (k.clone(), e[k].clone())).collect();
+            failures.check(|| format!("{e}"), &Value::Object(expected), &actual);
+        }
+    }
+    if updating() {
+        write_section(file, section, Value::Array(updated));
+    } else {
+        failures.finish(what);
+    }
+}
+
+/// Compares `lines` with the text snapshot `tests/golden/<file>` (one value per line), or writes
+/// them there when updating. Reports every line that differs.
+pub fn snapshot_lines(file: &str, lines: &[String]) {
+    if updating() {
+        let text: String = lines.iter().map(|l| format!("{l}\n")).collect();
+        std::fs::write(golden_path(file), text).unwrap();
+        return;
+    }
+    let text = read_golden(file);
+    let expected: Vec<&str> = text.lines().collect();
+    let mut failures = Vec::new();
+    for (i, line) in lines.iter().enumerate() {
+        match expected.get(i) {
+            Some(e) if e == line => {}
+            e => failures.push(format!("line {}:\n  expected: {}\n  actual:   {line}", i + 1, e.unwrap_or(&"<missing>"))),
+        }
+    }
+    if expected.len() != lines.len() {
+        failures.push(format!("expected {} lines, got {}", expected.len(), lines.len()));
+    }
+    assert!(failures.is_empty(), "{file}: {} differences:\n{}", failures.len(), failures.join("\n"));
 }
 
 /// A panic message as an encoded exception: `"x:Type:Message"` when it names a .NET exception
@@ -85,7 +171,7 @@ pub fn catch_any<R>(f: impl FnOnce() -> R) -> Result<R, Value> {
     }
 }
 
-/// Runs `f`; its encoded result, or the encoded C# exception.
+/// Runs `f`; its encoded result, or the encoded panic.
 pub fn try_enc<R: Enc>(f: impl FnOnce() -> R) -> Value {
     match catch_panic(f) {
         Ok(v) => v.enc(),
@@ -353,15 +439,9 @@ pub fn point(v: &Value) -> PointD {
     PointD::new(parse_net_float(x), parse_net_float(y))
 }
 
-/// Compares two encoded values; floats compare by their .NET text, so this is
-/// plain JSON equality. The one exception: where the engine now panics with a plain message
-/// (`"x:panic:..."`, see [`catch_any`]), any C# exception matches, whatever its type and message.
-/// A panic that names a .NET exception must still match C#'s exactly.
+/// Compares two encoded values. Floats are encoded as text, so this is plain JSON equality.
 pub fn same(expected: &Value, actual: &Value) -> bool {
-    match (expected.as_str(), actual.as_str()) {
-        (Some(e), Some(a)) if e.starts_with("x:") && a.starts_with("x:panic:") => true,
-        _ => expected == actual,
-    }
+    expected == actual
 }
 
 /// Collects failures and reports them all at once (up to a limit), so one
@@ -372,7 +452,7 @@ pub struct Failures(pub Vec<String>);
 impl Failures {
     pub fn check(&mut self, what: impl FnOnce() -> String, expected: &Value, actual: &Value) {
         if !same(expected, actual) {
-            self.0.push(format!("{}\n    C#:   {expected}\n    Rust: {actual}", what()));
+            self.0.push(format!("{}\n    expected: {expected}\n    actual:   {actual}", what()));
         }
     }
 
@@ -394,9 +474,8 @@ impl Failures {
     }
 }
 
-/// Every ported C# enum, by C# name. Tests that iterate golden data look
-/// enums up here and fail on a name that is missing, so add each newly
-/// ported enum.
+/// Every enum, by name. Tests that iterate snapshot data look enums up here and fail on a name
+/// that is missing, so add each new enum.
 pub fn enum_info(name: &str) -> Option<&'static treachery_engine::enum_type::EnumTypeInfo> {
     macro_rules! all {
         ($($t:ident),*) => { [$((stringify!($t), <$t as GameEnum>::INFO)),*] };

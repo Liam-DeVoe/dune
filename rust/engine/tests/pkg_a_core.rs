@@ -128,11 +128,15 @@ fn id_strings() {
 #[test]
 fn game_version_check() {
     let r = outcome(|| {
-        Game::new_int32_participation(99, &Default::default());
+        Game::new_int32_participation(Game::LATEST_VERSION - 1, &Default::default());
     });
     assert_eq!(
         r,
-        Err("ArgumentException: Game version 99 is not supported. The lowest supported version is: 100.".to_string())
+        Err(format!(
+            "ArgumentException: Game version {} is not supported. Only version {} is supported.",
+            Game::LATEST_VERSION - 1,
+            Game::LATEST_VERSION
+        ))
     );
 }
 

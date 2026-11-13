@@ -61,7 +61,7 @@ impl Diplomacy {
         let mut result = Vec::new();
         let plan = g.current_battle.as_ref().nre().plan_of(g, Some(p)).nre();
         if let Some(weapon) = plan.weapon() {
-            if weapon.is_useless() && (g.version < 179 || plan.defense().is_none()) {
+            if weapon.is_useless() && plan.defense().is_none() {
                 result.push(weapon);
             }
         }

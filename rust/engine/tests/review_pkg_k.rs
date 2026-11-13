@@ -26,7 +26,7 @@ fn new_game() -> Game {
     let mut p = Participation::new();
     p.player_names.insert(100, "Human100".to_string());
     p.seated_players.insert(100, 2);
-    let mut g = Game::new_int32_participation(187, &cs::Shared::new(p));
+    let mut g = Game::new_int32_participation(Game::LATEST_VERSION, &cs::Shared::new(p));
     let e = ev(&g, ESTABLISH);
     assert!(e.execute(&mut g, true, true).is_none(), "establish rejected");
     g

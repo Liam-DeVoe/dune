@@ -1,41 +1,88 @@
 #!/usr/bin/env bash
-# Push the local source tree to the VM, build it there, and restart the service.
-# Safe to run repeatedly. The database in /opt/treachery/data is never touched.
+# Deploy the site to https://$VM_HOST/: the Rust server (rust/server, built on the VM), the React
+# client (web/, built here) and the art, CSS and fonts it links. Also installs
+# deploy/treachery.service and deploy/Caddyfile when they changed. Safe to run repeatedly.
+# The database in $REMOTE_DATA is never touched.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 
-echo "==> syncing $SRC_DIR to $VM_HOST:$REMOTE_SRC"
-rsync -az --delete \
-    --exclude '.git' --exclude '.idea' --exclude '.DS_Store' \
-    --exclude 'bin/' --exclude 'obj/' --exclude '*.db*' \
-    -e "ssh -o BatchMode=yes -i $VM_SSH_KEY" \
-    "$SRC_DIR/" "$VM_USER@$VM_HOST:$REMOTE_SRC/"
+STAGE="$(mktemp -d)"
+trap 'rm -rf "$STAGE"' EXIT
 
-echo "==> publishing on the VM (takes about a minute)"
+echo "==> building web/"
+(
+    cd "$REPO_ROOT/web"
+    [ -d node_modules ] || npm ci
+    npx tsc --noEmit
+    npx vite build --outDir "$STAGE/web" --emptyOutDir --logLevel warn
+)
+
+echo "==> collecting assets and compiling the stylesheet"
+mkdir -p "$STAGE/assets/css"
+rsync -a \
+    --include '/art/***' --include '/fonts/***' --include '/js/***' --include '/docs/***' \
+    --include '/css/' --include '/css/bootstrap.min.css' --include '/css/open-iconic/***' \
+    --include '/favicon.ico' --include '/*.ttf' --exclude '*' \
+    "$ASSETS_SRC/" "$STAGE/assets/"
+npx --yes "sass@$SASS_VERSION" --style=expanded --no-source-map \
+    "$STYLES_SRC/treachery.scss" "$STAGE/assets/css/treachery.css"
+
+echo "==> syncing rust/, the web build and the assets to $VM_HOST"
+RSYNC_SSH="ssh -o BatchMode=yes -i $VM_SSH_KEY"
+vm_ssh "sudo mkdir -p $REMOTE_SRC $REMOTE_SERVER/incoming $REMOTE_DATA && sudo chown $VM_USER:$VM_USER $REMOTE_SRC $REMOTE_SERVER $REMOTE_SERVER/incoming $REMOTE_DATA"
+rsync -az --delete --exclude 'target/' --exclude 'traces/' --exclude '.DS_Store' \
+    -e "$RSYNC_SSH" "$REPO_ROOT/rust/" "$VM_USER@$VM_HOST:$REMOTE_SRC/"
+# Into incoming/, which persists, so later deploys send only what changed.
+rsync -az --delete -e "$RSYNC_SSH" "$STAGE/web/" "$VM_USER@$VM_HOST:$REMOTE_SERVER/incoming/web/"
+rsync -az --delete -e "$RSYNC_SSH" "$STAGE/assets/" "$VM_USER@$VM_HOST:$REMOTE_SERVER/incoming/assets/"
+rsync -az -e "$RSYNC_SSH" "$REPO_ROOT/deploy/treachery.service" "$REPO_ROOT/deploy/Caddyfile" \
+    "$VM_USER@$VM_HOST:$REMOTE_SERVER/incoming/"
+
+echo "==> building the server on the VM (a few minutes from scratch, less after)"
 vm_ssh bash -s <<EOF
 set -euo pipefail
-export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
+source ~/.cargo/env
 cd $REMOTE_SRC
-rm -rf $REMOTE_APP.new
-dotnet publish Server/Treachery.Server.csproj -c Release -o $REMOTE_APP.new 2>&1 | grep -Ev 'warning (CS|BL)' | tail -15
+cargo build --release -p treachery-server 2>&1 | tail -3
 
-# Swap the build in under the service so a failed publish never leaves a broken app dir behind.
+if ! cmp -s $REMOTE_SERVER/incoming/treachery.service /etc/systemd/system/treachery.service; then
+    echo "==> installing treachery.service"
+    sudo install -m 644 $REMOTE_SERVER/incoming/treachery.service /etc/systemd/system/treachery.service
+    sudo systemctl daemon-reload
+    sudo systemctl enable treachery.service
+fi
+
+# Swap everything in while the service is stopped, so it never runs a mix of old and new.
 sudo systemctl stop treachery.service
-rm -rf $REMOTE_APP.old
-[ -d $REMOTE_APP ] && mv $REMOTE_APP $REMOTE_APP.old
-mv $REMOTE_APP.new $REMOTE_APP
+cp target/release/treachery-server $REMOTE_SERVER/treachery-server
+rsync -a --delete $REMOTE_SERVER/incoming/web/ $REMOTE_SERVER/web/
+rsync -a --delete $REMOTE_SERVER/incoming/assets/ $REMOTE_SERVER/assets/
 sudo systemctl start treachery.service
 EOF
 
 echo "==> waiting for the service"
+up=
 for _ in $(seq 1 30); do
-    if vm_ssh "curl -sf -o /dev/null http://127.0.0.1:$APP_PORT/"; then
-        echo "==> up: https://$VM_HOST/"
-        exit 0
-    fi
+    if vm_ssh "curl -sf -o /dev/null http://127.0.0.1:$APP_PORT/"; then up=1; break; fi
     sleep 2
 done
+if [ -z "$up" ]; then
+    echo "service did not come up; recent log:" >&2
+    vm_ssh "sudo journalctl -u treachery --no-pager -n 40" >&2
+    exit 1
+fi
 
-echo "service did not come up; recent log:" >&2
-vm_ssh "sudo journalctl -u treachery --no-pager -n 40" >&2
-exit 1
+vm_ssh bash -s <<EOF
+set -euo pipefail
+if ! cmp -s $REMOTE_SERVER/incoming/Caddyfile /etc/caddy/Caddyfile; then
+    echo "==> installing the Caddyfile"
+    if ! out="\$(caddy validate --config $REMOTE_SERVER/incoming/Caddyfile --adapter caddyfile 2>&1)"; then
+        echo "\$out" >&2
+        exit 1
+    fi
+    sudo install -m 644 $REMOTE_SERVER/incoming/Caddyfile /etc/caddy/Caddyfile
+    sudo systemctl reload-or-restart caddy
+fi
+curl -sf -o /dev/null http://127.0.0.1:$PROXY_PORT/
+EOF
+echo "==> up: https://$VM_HOST/"

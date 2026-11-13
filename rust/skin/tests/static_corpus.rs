@@ -91,8 +91,7 @@ fn static_corpus_matches_csharp() {
             },
             "GetCenterAttached" => {
                 let attached = location(&a[0]).as_attached_location().expect("attached location");
-                let version = attach_game.version;
-                attached.point_at(&mut attach_game.map, version, location(&a[1]));
+                attached.point_at(&mut attach_game.map, location(&a[1]));
                 p(s.get_center(location(&a[0]), &attach_game.map))
             }
             "DescribeHero" => s.describe_hero(Some(hero(&a[0]))),

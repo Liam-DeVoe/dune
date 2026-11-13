@@ -339,4 +339,4 @@ The weak spot: .NET's parser takes far more than ISO 8601 (month names, `09/17/2
 
 **What catches the class now.**
 - `differ --bots check` runs the bots on fuzz traces of the `client` profile ([differ.md](differ.md#checking-bot-decisions)). Fuzz games undo, restore and dismiss often, so any bot code that reads an object of another game is exercised after undo.
-- `differ/tests/bots_harness.rs::a_bot_event_of_another_game_is_validated_in_that_game` replays the seed 301 game 24 trace up to line 1960 with the bots on (golden `differ/tests/golden/fuzz-301-00024-deal-after-undo.jsonl.gz`).
+- `differ/tests/bots_harness.rs::a_bot_event_of_another_game_is_validated_in_that_game` replayed the seed 301 game 24 trace up to line 1960 with the bots on. That game was at version 155, so the test and its golden were deleted when old game versions were dropped (native-plan.md step 2); `differ --bots check` on fuzz traces still covers the class.

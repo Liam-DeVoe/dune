@@ -157,26 +157,6 @@ fn exec(g: &mut Game, text: &str, validate: bool) -> String {
 fn validate_off_matches_csharp() {
     let mut out: Vec<String> = Vec::new();
 
-    // PerformBeneGesseritPlacement with no target, version 150.
-    {
-        let establish150 = format!(
-            r#"{{"$type":"EstablishPlayers","Seed":4242,"MaximumNumberOfPlayers":3,"MaximumTurns":10,"ApplicableRules":[],"_players":"a>b>c","_factionsInPlay":"BeneGesserit,Atreides,Fremen","Initiator":0,{T}}}"#
-        );
-        let mut g = Game::new_int32_participation(150, &Shared::new(Participation::new()));
-        let r = exec(&mut g, &establish150, true);
-        assert_eq!(r, "accepted");
-        out.push(format!("bene_gesserit.factions = {}", join(g.players.iter().map(|p| p.faction))));
-        let bene_gesserit = g.get_player(Some(Faction::BeneGesserit)).unwrap();
-        out.push(format!("bene_gesserit.before.reserve = {}", g.player(bene_gesserit).forces_in_reserve()));
-        out.push(format!("bene_gesserit.before.phase = {}", g.current_phase));
-        let r = exec(&mut g, &format!(r#"{{"$type":"PerformBeneGesseritPlacement","_targetId":-1,"Initiator":60,{T}}}"#), false);
-        out.push(format!("bene_gesserit.result = {r}"));
-        out.push(format!("bene_gesserit.after.reserve = {}", g.player(bene_gesserit).forces_in_reserve()));
-        out.push(format!("bene_gesserit.after.locations = {}", g.player(bene_gesserit).forces_in_locations.len()));
-        out.push(format!("bene_gesserit.after.phase = {}", g.current_phase));
-        out.push(format!("bene_gesserit.after.history = {}", g.history.len()));
-    }
-
     // PerformHmsPlacement twice: a real target, then none.
     {
         let mut g = run(&[establish()]);

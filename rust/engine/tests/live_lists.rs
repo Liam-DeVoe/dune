@@ -102,7 +102,6 @@ fn discarded_traitors_in_a_message_dump_the_current_set() {
     use treachery_engine::prelude::*;
 
     let mut g = Game::new();
-    g.version = Game::LATEST_VERSION;
     g.players.push(Player::new(&g, Faction::Harkonnen));
     let harkonnen = g.get_player(Some(Faction::Harkonnen)).unwrap();
     let mut leaders = LeaderManager::get_leaders(Faction::Emperor).map(Hero::Leader);

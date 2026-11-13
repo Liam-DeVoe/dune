@@ -445,6 +445,12 @@ impl Replayer {
             )));
         }
         let version = line.game_version.ok_or_else(|| Failure::BadTrace("header has no gameVersion".into()))?;
+        if version != Game::LATEST_VERSION {
+            return Err(Failure::BadTrace(format!(
+                "game version {version}: the engine supports only version {} (record with the oracle's --versions latest)",
+                Game::LATEST_VERSION
+            )));
+        }
         let participation = participation(line.participation.as_ref())?;
         self.bots_active = self.opts.check_bots && bots_checkable(line);
         self.during = "new Game(version, participation)".into();

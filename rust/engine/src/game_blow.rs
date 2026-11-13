@@ -31,12 +31,7 @@ impl Game {
         self.ignored_sandtrout = None;
         self.has_acted_or_passed.clear();
 
-        if self.version < 135 {
-            let condition = self.applicable(Rule::ExpansionTreacheryCardsExceptPBandSSandAmal) && (self.version <= 102 || self.current_turn > 1);
-            self.enter_boolean_phase_action(condition, Phase::Thumper, Game::enter_blow_a);
-        } else {
-            self.enter(Phase::Thumper, true);
-        }
+        self.enter(Phase::Thumper, true);
     }
 
     /// C#: `internal void DrawResourceCard()` (Game_Blow.cs:54)
@@ -55,19 +50,11 @@ impl Game {
                 break;
             }
 
-            if self.thumper_called_shai_hulud && self.version <= 150 {
-                self.thumper_called_shai_hulud = false;
-                self.number_of_monsters = self.number_of_monsters.wrapping_add(1);
-                let t = self.previous_monster_territory();
-                self.let_monster_appear(t, false);
-                if self.current_phase == Phase::FremenSendingMonsterA || self.current_phase == Phase::FremenSendingMonsterB {
-                    break;
-                }
-            } else if drawn.is_some_and(|d| d.is_shai_hulud() || d.is_great_maker()) && self.current_turn == 1 {
+            if drawn.is_some_and(|d| d.is_shai_hulud() || d.is_great_maker()) && self.current_turn == 1 {
                 self.log_ignored_monster(drawn.nre().is_great_maker());
                 let c = self.current_discard_pile_mut().nre().draw();
                 self.ignored_monsters.push(c);
-            } else if (self.thumper_called_shai_hulud && self.version > 150)
+            } else if self.thumper_called_shai_hulud
                 || drawn.is_some_and(|d| d.is_shai_hulud())
                 || drawn.is_some_and(|d| d.is_great_maker())
             {
@@ -87,7 +74,7 @@ impl Game {
                     }
                 } else {
                     //Sandtrout triggers
-                    if self.version >= 150 && self.sand_trout.is_some() {
+                    if self.sand_trout.is_some() {
                         let sand_trout = self.sand_trout.nre();
                         let pile = self.current_discard_pile_mut().nre();
                         if let Some(d) = drawn {
@@ -107,7 +94,7 @@ impl Game {
                 }
             } else if drawn.is_some_and(|d| d.is_sand_trout()) {
                 let d = drawn.nre();
-                if self.version < 150 || self.current_turn > 1 {
+                if self.current_turn > 1 {
                     self.stone(Milestone::BabyMonster);
                     self.log(elems![Concept::BabyMonster, " detected! All alliances are cancelled."]);
                     self.cancel_all_alliances();
@@ -192,11 +179,8 @@ impl Game {
             self.log(elems![msg]);
         }
 
-        let exclude_discovery_cards_when_reshuffling = self.version >= 158;
-
-        if exclude_discovery_cards_when_reshuffling
-            && (self.resource_card_discard_pile_a.as_ref().nre().items.iter().any(|c| c.is_discovery())
-                || self.resource_card_discard_pile_b.as_ref().nre().items.iter().any(|c| c.is_discovery()))
+        if self.resource_card_discard_pile_a.as_ref().nre().items.iter().any(|c| c.is_discovery())
+            || self.resource_card_discard_pile_b.as_ref().nre().items.iter().any(|c| c.is_discovery())
         {
             // C# parity: "Discovery were removed" grammar.
             self.log(elems!["Discovery were removed from the game"]);
@@ -207,7 +191,7 @@ impl Game {
         let count = self.resource_card_discard_pile_a.as_ref().nre().items.len();
         for idx in 0..count {
             let i = self.resource_card_discard_pile_a.as_ref().nre().items[idx];
-            if !exclude_discovery_cards_when_reshuffling || !i.is_discovery() {
+            if !i.is_discovery() {
                 self.resource_card_deck.as_mut().nre().items.push(i);
             }
         }
@@ -219,7 +203,7 @@ impl Game {
         let count = self.resource_card_discard_pile_b.as_ref().nre().items.len();
         for idx in 0..count {
             let i = self.resource_card_discard_pile_b.as_ref().nre().items[idx];
-            if !exclude_discovery_cards_when_reshuffling || !i.is_discovery() {
+            if !i.is_discovery() {
                 self.resource_card_deck.as_mut().nre().items.push(i);
             }
         }
@@ -472,10 +456,8 @@ impl Game {
 
     /// C#: `internal void EnterAlliancePhase(bool isA)` (Game_Blow.cs)
     pub fn enter_alliance_phase(&mut self, is_a: bool) {
-        // Since v188 every faction must pass or form an alliance before the phase ends.
-        if self.version >= 188 {
-            self.has_acted_or_passed.clear();
-        }
+        // Every faction must pass or form an alliance before the phase ends.
+        self.has_acted_or_passed.clear();
         self.enter_boolean_phase_phase(is_a, Phase::AllianceA, Phase::AllianceB);
     }
 
@@ -499,7 +481,7 @@ impl Game {
 
     /// C#: `internal void EndNexusIfEveryoneIsDone()` (Game_Blow.cs)
     pub fn end_nexus_if_everyone_is_done(&mut self) {
-        if self.version >= 188 && matches!(self.current_phase, Phase::AllianceA | Phase::AllianceB) && self.everyone_acted_or_passed() {
+        if matches!(self.current_phase, Phase::AllianceA | Phase::AllianceB) && self.everyone_acted_or_passed() {
             self.end_nexus();
         }
     }
@@ -516,17 +498,11 @@ impl Game {
             self.end_blow_phase();
         }
 
-        if self.version >= 164 {
-            self.nexus_has_occured = false;
-        }
+        self.nexus_has_occured = false;
     }
 
     /// C#: `private void EnterNexusCardPhase()` (Game_Blow.cs:413)
     pub fn enter_nexus_card_phase(&mut self) {
-        if self.version < 164 {
-            self.nexus_has_occured = false;
-        }
-
         self.factions_that_may_draw_nexus_card = self.players.iter().filter(|p| !p.has_ally()).map(|p| p.faction).collect();
         self.factions_that_drew_nexus_card.clear();
         self.enter(Phase::NexusCards, true);

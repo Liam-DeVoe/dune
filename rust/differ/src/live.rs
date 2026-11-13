@@ -121,7 +121,9 @@ fn oracle_command(o: &LiveOptions, start: i64, games: i64, out: &Path, dump: &st
         .args(["--games", &games.to_string()])
         .arg("--out")
         .arg(out)
-        .args(["--dump", dump, "--hash", "every", "--gzip", "true", "--threads", &threads.to_string()]);
+        .args(["--dump", dump, "--hash", "every", "--gzip", "true", "--threads", &threads.to_string()])
+        // The engine supports only Game::LATEST_VERSION.
+        .args(["--versions", "latest"]);
     if o.status {
         c.args(["--status", "every"]);
     }
@@ -133,7 +135,7 @@ fn oracle_command(o: &LiveOptions, start: i64, games: i64, out: &Path, dump: &st
 /// The shell command that regenerates one game with full dumps.
 pub fn reproduce_command(o: &LiveOptions, index: i64) -> String {
     format!(
-        "dotnet {} {} --seed {} --start {} --games 1 --dump every{} --gzip true --out /tmp/differ-repro && \\\n  cargo run -p differ --release -- first /tmp/differ-repro/{}-{}-{:05}.jsonl.gz{}",
+        "dotnet {} {} --seed {} --start {} --games 1 --dump every{} --gzip true --versions latest --out /tmp/differ-repro && \\\n  cargo run -p differ --release -- first /tmp/differ-repro/{}-{}-{:05}.jsonl.gz{}",
         o.oracle.display(),
         o.mode,
         o.seed,

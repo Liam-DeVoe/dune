@@ -150,7 +150,7 @@ fn table() -> Vec<(&'static str, Entry)> {
         ("Homeworld.World", R(|r, _| location(r).as_homeworld().unwrap().world().enc())),
         ("AttachedLocation.PointAt(Game,Location)", Covered("static_data.rs map_attached")),
         ("AttachedLocation.AttachedToLocation", R(|r, _| location(r).as_attached_location().unwrap().attached_to_location(&map()).enc())),
-        ("AttachedLocation.Game", R(|r, _| map().attached_game_version(location(r)).map(|_| json!("?:Game")).enc())),
+        ("AttachedLocation.Game", R(|r, _| map().attached_to_game(location(r)).then(|| json!("?:Game")).enc())),
         ("AttachedLocation.Neighbours", R(|r, _| location(r).neighbours(&map()).enc())),
         ("AttachedLocation.Sector", R(|r, _| location(r).sector(&map()).enc())),
         ("AttachedLocation.Visible", R(|r, _| location(r).visible(&map()).enc())),
@@ -694,7 +694,7 @@ mod lazy {
         let mut p = Participation::new();
         p.player_names.insert(100, "Human100".to_string());
         p.seated_players.insert(100, 2);
-        let mut g = Game::new_int32_participation(187, &cs::Shared::new(p));
+        let mut g = Game::new_int32_participation(Game::LATEST_VERSION, &cs::Shared::new(p));
         let ev: GameEvent = json::deserialize(establish).expect("event json");
         ev.initialize_game(&g);
         assert!(ev.execute(&mut g, true, true).is_none(), "establish rejected");
@@ -738,8 +738,7 @@ mod lazy {
                 let ds = g.map.location_lookup().find(int(&d[0])).unwrap().as_discovered_location().unwrap();
                 if !d[1].is_null() {
                     let target = g.map.location_lookup().find(int(&d[1])).unwrap();
-                    let version = g.version;
-                    ds.point_at(&mut g.map, version, target);
+                    ds.point_at(&mut g.map, target);
                 }
                 g.just_revealed_discovery_strongholds.push(ds);
             }

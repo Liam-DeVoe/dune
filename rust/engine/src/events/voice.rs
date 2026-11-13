@@ -106,9 +106,7 @@ impl Voice {
     /// a null player throws NullReferenceException at the first dereference, `IsInvolved(p)`.
     fn may_use_voice_opt(g: &Game, p: Option<PlayerIndex>) -> bool {
         let p = p.and_then(crate::cs::CsNull::opt);
-        let disable_when_prescience_is_used = g.version >= 108 && g.version < 178 && g.current_prescience.is_some();
-
-        if !disable_when_prescience_is_used && g.current_voice.is_none() {
+        if g.current_voice.is_none() {
             if let Some(battle) = g.current_battle.as_ref() {
                 let p = p.nre();
                 if battle.is_involved(g, p) {
@@ -153,7 +151,7 @@ impl Voice {
             match voiced_type {
                 TreacheryCardType::PoisonDefense => {
                     return card_type == TreacheryCardType::Antidote
-                        || (g.version >= 140 && card_type == TreacheryCardType::PortableAntidote)
+                        || card_type == TreacheryCardType::PortableAntidote
                         || (!as_weapon && card_type == TreacheryCardType::Chemistry)
                         || card_type == TreacheryCardType::ShieldAndAntidote;
                 }

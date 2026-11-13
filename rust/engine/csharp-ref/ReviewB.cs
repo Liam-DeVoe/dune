@@ -67,7 +67,7 @@ public static class ReviewB
 
     public static void Forces(TextWriter w)
     {
-        foreach (var version in new[] { 163, 187 })
+        foreach (var version in new[] { Game.LatestVersion })
         {
             for (uint seed = 1; seed <= 20; seed++)
             {
@@ -140,7 +140,7 @@ public static class ReviewB
         {
             for (var sector = -2; sector <= 19; sector++)
             {
-                var g = new Game(187, new Participation());
+                var g = new Game(Game.LatestVersion, new Participation());
                 var settings = new GameSettings { NumberOfPlayers = players };
                 Set(g, "Settings", settings);
                 for (var i = 0; i < players; i++)
@@ -195,7 +195,7 @@ public static class ReviewB
     public static void Sequences(TextWriter w)
     {
         var cards = TreacheryCardManager.Items;
-        foreach (var version in new[] { 117, 187 })
+        foreach (var version in new[] { Game.LatestVersion })
         {
             for (uint seed = 1; seed <= 150; seed++)
             {

@@ -15,7 +15,6 @@ fn outcome<R>(f: impl FnOnce() -> R) -> Result<R, String> {
 
 fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();
-    g.version = Game::LATEST_VERSION;
     g.treachery_discard_pile = Some(Deck::new(Vec::new(), None));
     for f in factions {
         let p = Player::new(&g, *f);
@@ -75,20 +74,13 @@ fn live_hand_in_a_message_dumps_the_current_hand() {
 // ---------------------------------------------------------------------------
 
 #[test]
-fn karma_valid_advantages_ignore_main_phase_before_150() {
+fn karma_valid_advantages_depend_on_main_phase() {
     let mut g = game_with(&[Faction::Atreides, Faction::Fremen]);
     let atreides = idx(&g, Faction::Atreides);
     g.current_main_phase = MainPhase::Bidding;
     let now = Karma::valid_faction_advantages(&g, atreides);
     assert!(!now.contains(&FactionAdvantage::FremenExtraMove));
     assert_eq!(now[0], FactionAdvantage::None);
-
-    g.version = 149;
-    let old = Karma::valid_faction_advantages(&g, atreides);
-    assert!(old.contains(&FactionAdvantage::FremenExtraMove));
-    assert!(old.contains(&FactionAdvantage::FremenControlsMonster));
-    // Never your own faction's advantages.
-    assert!(!old.contains(&FactionAdvantage::AtreidesBiddingPrescience));
 }
 
 #[test]
@@ -105,14 +97,11 @@ fn karma_choam_discard_plays_first_karma_card_not_the_selected_one() {
     e.set_cards(&[useless]);
     assert!(e.validate(&g).is_none());
 
-    // From v171 the selected card is validated; before, the first valid card.
+    // The selected card is validated.
     let mut bad = KarmaChoamDiscard::new(&g, Faction::Choam);
     bad.set_card_to_use(Some(k2));
     bad.set_cards(&[k2]);
     assert!(bad.validate(&g).is_some());
-    g.version = 170;
-    assert!(bad.validate(&g).is_none());
-    g.version = Game::LATEST_VERSION;
 
     let e = Rc::new(e);
     e.execute_concrete_event(&mut g);
@@ -385,7 +374,7 @@ fn clairvoyance_answer_without_question_stores_qna_then_throws() {
 
 #[test]
 fn bene_gesserit_prediction_valid_turns() {
-    let mut g = game_with(&[Faction::BeneGesserit, Faction::Emperor]);
+    let g = game_with(&[Faction::BeneGesserit, Faction::Emperor]);
     g.settings.as_ref().unwrap().borrow_mut().maximum_turns = 3;
     assert_eq!(BeneGesseritPrediction::valid_turns(&g), vec![1, 2, 3]);
     g.settings.as_ref().unwrap().borrow_mut().maximum_turns = -1;

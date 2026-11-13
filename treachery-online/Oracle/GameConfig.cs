@@ -63,7 +63,7 @@ public sealed class GameConfig
         .Where(r => r != Rule.None && Game.GetRuleGroup(r) != RuleGroup.Bots && r != Rule.FillWithBots)
         .ToArray();
 
-    public static GameConfig Randomize(Random rng, bool fuzz = false)
+    public static GameConfig Randomize(Random rng, bool fuzz = false, bool latestOnly = false)
     {
         int version;
         if (!fuzz)
@@ -75,6 +75,8 @@ public sealed class GameConfig
                 < 0.85 => Math.Max(100, VersionGates[rng.Next(VersionGates.Length)] - rng.Next(2)),
                 _ => rng.Next(100, Game.LatestVersion + 1)
             };
+        // The version is still drawn above, so the rest of the configuration matches the default mode's.
+        if (latestOnly) version = Game.LatestVersion;
 
         var rulesets = Game.RulesetDefinition.Keys.OrderBy(k => (int)k).ToArray();
         var ruleset = rulesets[rng.Next(rulesets.Length)];

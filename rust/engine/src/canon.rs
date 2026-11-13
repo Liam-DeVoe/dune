@@ -1298,12 +1298,12 @@ fn write_location(map: &Map, l: Location, w: &mut CanonWriter) {
 fn push_attached<'a>(map: &'a Map, l: Location, f: &mut Vec<(&'static str, Field<'a>)>) {
     let a = l.as_attached_location().expect("attached location");
     f.push(("AttachedToLocation", Field::Custom(Box::new(move |w| a.attached_to_location(map).canon(w)))));
-    // `AttachedLocation.Game` is set by `PointAt` from version 163 on.
+    // `AttachedLocation.Game` is set by `PointAt`.
     f.push((
         "Game",
-        Field::Custom(Box::new(move |w| match map.attached_game_version(l) {
-            Some(_) => w.reference("Game"),
-            None => w.null(),
+        Field::Custom(Box::new(move |w| match map.attached_to_game(l) {
+            true => w.reference("Game"),
+            false => w.null(),
         })),
     ));
 }

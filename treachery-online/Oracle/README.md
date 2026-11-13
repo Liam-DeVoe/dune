@@ -34,7 +34,7 @@ Options for `bots` and `fuzz`:
 
 ## What the fuzzer does
 
-A fuzz game is a bot game with interference. Its configuration is drawn more widely than a bots game: more than half of fuzz games use an older engine version (60% pick one side or the other of a `Version` check in Shared, or a uniform version), about a third get a rule set drawn from every `Rule` value, and a quarter run 10 to 20 turns. Bots games are unaffected, so bots traces are the same as before.
+A fuzz game is a bot game with interference. Its configuration is drawn more widely than a bots game: more than half of fuzz games use an older engine version (60% pick one side or the other of a `Version` check in Shared, or a uniform version), about a third get a rule set drawn from every `Rule` value, and a quarter run 10 to 20 turns. Bots games are unaffected, so bots traces are the same as before. `--versions latest` (on `bots` and `fuzz`) plays every game at `Game.LatestVersion` instead; the rest of the configuration is drawn as before. `differ live` always passes it, because the Rust engine supports only the latest version.
 
 Each step, the fuzzer may:
 

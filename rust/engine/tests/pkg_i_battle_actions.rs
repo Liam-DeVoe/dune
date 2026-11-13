@@ -12,7 +12,6 @@ fn outcome<R>(f: impl FnOnce() -> R) -> Result<R, String> {
 
 fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();
-    g.version = Game::LATEST_VERSION;
     for f in factions {
         let p = Player::new(&g, *f);
         g.players.push(p);
@@ -56,10 +55,7 @@ fn voice_is_voiced_by_without_special_card_rule() {
     assert!(!Voice::is_voiced_by(&g, false, false, T::Chemistry, T::Poison));
     // Chemistry as defense is a poison defense, whatever "must" is.
     assert!(Voice::is_voiced_by(&g, false, true, T::Chemistry, T::PoisonDefense));
-    // Portable antidote counts as poison defense from version 140.
-    let mut old = game_with(&[Faction::BeneGesserit]);
-    old.version = 139;
-    assert!(!Voice::is_voiced_by(&old, false, true, T::PortableAntidote, T::PoisonDefense));
+    // Portable antidote counts as poison defense.
     assert!(Voice::is_voiced_by(&g, false, true, T::PortableAntidote, T::PoisonDefense));
     // Weirding way: projectile as weapon, projectile defense only for "may not" and as defense.
     assert!(Voice::is_voiced_by(&g, true, true, T::WeirdingWay, T::Projectile));
@@ -151,16 +147,13 @@ fn face_danced_source_locations_message_is_a_lazy_query() {
 }
 
 #[test]
-fn diplomacy_valid_cards_by_version() {
+fn diplomacy_valid_cards() {
     let mut g = game_with(&[Faction::Emperor, Faction::Atreides]);
     g.current_battle = Some(battle(&g, Faction::Emperor, Faction::Atreides));
     let emperor = idx(&g, Faction::Emperor);
     let useless1 = card_of(TreacheryCardType::Useless, 0);
     let useless2 = card_of(TreacheryCardType::Useless, 1);
     g.aggressor_plan = Some(plan(&g, Faction::Emperor, Some(useless1), Some(useless2)));
-    g.version = 178;
-    assert_eq!(Diplomacy::valid_cards(&g, emperor), vec![useless1, useless2]);
-    g.version = 179;
     assert_eq!(Diplomacy::valid_cards(&g, emperor), vec![useless2]);
     // No plan: plan! throws.
     let atreides = idx(&g, Faction::Atreides);

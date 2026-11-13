@@ -85,21 +85,17 @@ fn opt_id(l: Option<Location>) -> Value {
 
 /// A `Game` with no players: what MapGame needs for the static tests.
 struct StubGame {
-    version: i32,
     sector_in_storm: Cell<i32>,
     history_count: Cell<i32>,
 }
 
 impl StubGame {
-    fn new(version: i32) -> Self {
-        StubGame { version, sector_in_storm: Cell::new(-1), history_count: Cell::new(0) }
+    fn new() -> Self {
+        StubGame { sector_in_storm: Cell::new(-1), history_count: Cell::new(0) }
     }
 }
 
 impl MapGame for StubGame {
-    fn version(&self) -> i32 {
-        self.version
-    }
     fn sector_in_storm(&self) -> i32 {
         self.sector_in_storm.get()
     }
@@ -313,8 +309,9 @@ fn map() {
 #[test]
 fn map_attached() {
     let mut result = Vec::new();
-    for version in [150, 162, 163, treachery_engine::game::Game::LATEST_VERSION] {
-        let g = StubGame::new(version);
+    {
+        let version = treachery_engine::game::Game::LATEST_VERSION;
+        let g = StubGame::new();
         let mut m = Map::new();
         let first_of = |t: Territory| t.locations()[0];
         let steps: Vec<(&str, Location, Location)> = vec![
@@ -329,7 +326,7 @@ fn map_attached() {
             ("hms->carthag again", m.hidden_mobile_stronghold().location(), m.carthag()),
         ];
         for (name, which, to) in steps {
-            which.as_attached_location().unwrap().point_at(&mut m, version, to);
+            which.as_attached_location().unwrap().point_at(&mut m, to);
             let snapshot = dump_map(&m);
             let mut neighbours = Vec::new();
             for l in m.locations(true) {
@@ -358,7 +355,7 @@ fn map_attached() {
 
 #[test]
 fn pathfinding() {
-    let g = StubGame::new(treachery_engine::game::Game::LATEST_VERSION);
+    let g = StubGame::new();
     let m = Map::new();
     let locations: Vec<Location> = m.locations(true).collect();
     let sectors = [-1, 4, 9, 13];
@@ -409,7 +406,7 @@ fn pathfinding() {
     }
 
     // Stale cache within one History.Count.
-    let g2 = StubGame::new(treachery_engine::game::Game::LATEST_VERSION);
+    let g2 = StubGame::new();
     let m2 = Map::new();
     let mut cache = Vec::new();
     g2.sector_in_storm.set(-1);

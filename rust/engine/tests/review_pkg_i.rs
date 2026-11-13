@@ -8,7 +8,7 @@
 //!     cd rust/engine/csharp-ref && dotnet run -c Release -- review-i
 //!
 //! (`ReviewI.cs`; set `REVIEW_I_DUMPS=DIR` on both sides to write the dumps for a diff.)
-//! The two prefix probes check the harness: their hashes are the trace's own.
+//! The game is played at `Game::LATEST_VERSION`; the two prefix probes check the harness.
 
 use serde_json::Value;
 use treachery_engine::canon::{self, Canon};
@@ -89,7 +89,7 @@ fn prefix(last: i64) -> Game {
     let mut p = Participation::default();
     p.player_names.add(100, "Human100".to_string());
     p.seated_players.add(100, 0);
-    let mut g = Game::new_int32_participation(187, &Shared::new(p));
+    let mut g = Game::new_int32_participation(Game::LATEST_VERSION, &Shared::new(p));
     for s in steps() {
         if s["n"].as_i64().unwrap() > last {
             break;
@@ -200,57 +200,57 @@ const FD_DANCED_SOURCES: &str = r#"{"$type":"FaceDanced","_targetForceLocations"
 
 #[test]
 fn harness_reproduces_the_trace() {
-    check("prefix127", 127, &[], "4f6ba0ca7e9b068bb1c2dbf08a0864d4227dba4c50c07277eaeee37c86c344e2", "");
-    check("prefix129", 129, &[], "da4c5b2a774a7ae47159bab31bcc8370d551def80e5163796d6293dfc615ff58", "");
+    check("prefix127", 127, &[], "a990e48d84dcc88bc7c1d69f5da0cd9629a4994ec48411487f025025e1ef51bf", "");
+    check("prefix129", 129, &[], "987abf827ba64327b1b21abebfa8d92916c6624518584da95d76cfefabbb78d7", "");
 }
 
 #[test]
 fn karma_ecaz_dial() {
-    check("ecazdial", 127, &[(ECAZ_DIAL, false, true)], "3c6a26a0dcafb070b382fe9986468cdaaaf895f26861ed06b0cdbdda7eda48d7", "null");
+    check("ecazdial", 127, &[(ECAZ_DIAL, false, true)], "0c4dd5fbbf95b4d2e3c9f20c2c7f1c791374538248bfc333ca4fe883daaca266", "null");
     check(
         "ecazdial_karma",
         127,
         &[("HOOK:give:80:23", false, false), (ECAZ_DIAL, false, true)],
-        "6ee0f3370368121279673e2bece70129c365595572761b0d804296af332714a6",
+        "14dcc89e273e620db7e8e9276775864ad87387b6715e322358f25c2fcb10a6d5",
         "null | null",
     );
 }
 
 #[test]
 fn juice_played() {
-    check("juice_aggressor", 127, &[(JUICE_AGGRESSOR, false, true)], "162edc0a27feb08ce1f11a2fe7bfdd8919b93237bae38c49632ec4b979af7ad1", NO_MATCH);
+    check("juice_aggressor", 127, &[(JUICE_AGGRESSOR, false, true)], "a40ba2debfee930b8c16a70e4f431a9af9f40520a953d9863fe522ecd78c2843", NO_MATCH);
     let not_applicable_tleilaxu = r#"{"$type":"Message","Expression":{"$type":"Expression","Elements":["Event '",{"$type":"Message","Expression":{"$type":"Expression","Elements":["Tleilaxu(80)"," don't call treachery"]},"Fact":null,"Heading":null,"Log":null,"Plans":null,"Route":null,"Target":"None(0)"},"' is not applicable"]},"Fact":null,"Heading":null,"Log":null,"Plans":null,"Route":null,"Target":"None(0)"}"#;
     check(
         "juice_swap",
         127,
         &[("HOOK:give:100:48", false, false), (JUICE_AGGRESSOR, false, true), (RICHESE_PASSES, true, false), (TLEILAXU_PASSES, true, false)],
-        "14d7ef4f184bb2c57cb7d685a8609c221773374572a74652aad90a81457d397e",
+        "29d5fa100de203ff7686a82966b772550be4874984f420396b1a5f962b6e64bd",
         &format!("null | null | null | {not_applicable_tleilaxu}"),
     );
     check(
         "juice_gofirst_at_battle",
         124,
         &[("HOOK:give:50:48", false, false), (r#"{"$type":"JuicePlayed","Type":10,"Initiator":50,"Time":"2024-01-01T21:54:00+00:00"}"#, false, true)],
-        "0d6913373f9a3d6866014bdfa6b8e591f5d8a0099dd3f416a4025e8fdbc62c3a",
+        "c862112aafee817236e8f9994aaab5898941f0d8be154b139e106fe6cebb25cb",
         "null | null",
     );
 }
 
 #[test]
 fn residual_played() {
-    check("residual", 127, &[(r#"{"$type":"ResidualPlayed","Initiator":100,"Time":"2024-01-01T21:56:00+00:00"}"#, false, true)], "4f6ba0ca7e9b068bb1c2dbf08a0864d4227dba4c50c07277eaeee37c86c344e2", NO_MATCH);
+    check("residual", 127, &[(r#"{"$type":"ResidualPlayed","Initiator":100,"Time":"2024-01-01T21:56:00+00:00"}"#, false, true)], "a990e48d84dcc88bc7c1d69f5da0cd9629a4994ec48411487f025025e1ef51bf", NO_MATCH);
     check(
         "residual_richese",
         127,
         &[("HOOK:give:100:54", false, false), (r#"{"$type":"ResidualPlayed","Initiator":100,"Time":"2024-01-01T21:56:00+00:00"}"#, false, true)],
-        "f37b646519d2bcb72558b4467a40bdd7c5dd2c9d8da0b661ebc7f41462433455",
+        "b13741f3219fd51895daff2475ece92f8bf0a6df76ca6ad49ba28782d3f37783",
         "null | null",
     );
     check(
         "residual_tleilaxu_card",
         127,
         &[("HOOK:give:80:54", false, false), (r#"{"$type":"ResidualPlayed","Initiator":80,"Time":"2024-01-01T21:56:00+00:00"}"#, false, true)],
-        "0c7345e5291ddcf65802c29c25af37d59e385fc7bfc8f793200fc465665a2f01",
+        "2527605b3fbf6e598950f96c3fa7e6e7ff2288ed682032796872787d9df74233",
         "null | null",
     );
 }
@@ -258,14 +258,14 @@ fn residual_played() {
 #[test]
 fn plan_modifiers() {
     let one = |name: &str, ev: &str, hash: &str| check(name, 127, &[(ev, false, true)], hash, "null");
-    one("rock_kill", r#"{"$type":"RockWasMelted","Kill":true,"Initiator":80,"Time":"2024-01-01T21:56:00+00:00"}"#, "5ed90969c16349e2d3e7b2d68fbe3a138d730700e2947289e9868431afb41dc5");
-    one("antidote", r#"{"$type":"PortableAntidoteUsed","Initiator":80,"Time":"2024-01-01T21:56:00+00:00"}"#, "623da6d644018680657496443fff53613dee3dc1a3dc4489e46f3e6aa49d713f");
-    one("diplomacy", r#"{"$type":"Diplomacy","_cardId":32,"Initiator":80,"Time":"2024-01-01T21:56:00+00:00"}"#, "8df77c04459f8c87e71c6d79adff7ffc216c3342fe4767ed59476a8414251f65");
-    one("karma_prescience", r#"{"$type":"KarmaPrescience","Initiator":100,"Time":"2024-01-01T21:56:00+00:00"}"#, "576aabdfdf43161f0c1760f57fcfa9ad8398ee158bff8caa7c2626c6dbe03b8a");
-    one("voice", r#"{"$type":"Voice","Must":true,"Type":30,"Initiator":60,"Time":"2024-01-01T21:56:00+00:00"}"#, "c49422471278f1cbcf94ddca22f87e2a222dd7911dd03ea079fd1ff9e71089e7");
-    one("poison_tooth", r#"{"$type":"PoisonToothCancelled","Initiator":80,"Time":"2024-01-01T21:56:00+00:00"}"#, "881465a7146c681562d6ca9409e1ecb45925153ffdf5208fee13d4b97feccda4");
-    one("bene_gesserit_announce", r#"{"$type":"BeneGesseritBattleAnnouncement","_territoryId":6,"Initiator":60,"Time":"2024-01-01T21:56:00+00:00"}"#, "220914171e09d577741e39dca71fe8a11d87cc209f523b2a87ad9eac5e970d4a");
-    one("traitor_discard", r#"{"$type":"TraitorDiscarded","_traitorId":1016,"Initiator":100,"Time":"2024-01-01T21:56:00+00:00"}"#, "73d396f272185962058dbb11ded5f93ab19d13803622ca26e12954b899414943");
+    one("rock_kill", r#"{"$type":"RockWasMelted","Kill":true,"Initiator":80,"Time":"2024-01-01T21:56:00+00:00"}"#, "170b752d498c21f6a229f0a6a9354d5e5de7e3f9649961033433b7e28b60921a");
+    one("antidote", r#"{"$type":"PortableAntidoteUsed","Initiator":80,"Time":"2024-01-01T21:56:00+00:00"}"#, "fb797af958a82cb7040893311e4fce3e168857a31c2d00ec5c64bd8965e6c39b");
+    one("diplomacy", r#"{"$type":"Diplomacy","_cardId":32,"Initiator":80,"Time":"2024-01-01T21:56:00+00:00"}"#, "a6c5530d2ad724cb54ad85ad29397cfc77d00df8926fa6ab425888a8040670a7");
+    one("karma_prescience", r#"{"$type":"KarmaPrescience","Initiator":100,"Time":"2024-01-01T21:56:00+00:00"}"#, "4e42293ad8ee7b5d4882e5b19acfedbecd9559c47a5e97ffa05438185f4795d2");
+    one("voice", r#"{"$type":"Voice","Must":true,"Type":30,"Initiator":60,"Time":"2024-01-01T21:56:00+00:00"}"#, "dc354633de938008ddd28add3d2fe4531b940ca9ceb5684c10685f5f1c7794d4");
+    one("poison_tooth", r#"{"$type":"PoisonToothCancelled","Initiator":80,"Time":"2024-01-01T21:56:00+00:00"}"#, "3a4d0794c2b2acabf8cdeccb172375263487aedf21444c1b5dba46ff1381073b");
+    one("bene_gesserit_announce", r#"{"$type":"BeneGesseritBattleAnnouncement","_territoryId":6,"Initiator":60,"Time":"2024-01-01T21:56:00+00:00"}"#, "272c9d93aa911141d538f0ce971a2c74ccd42fc36785d884875cc26e21c23ff2");
+    one("traitor_discard", r#"{"$type":"TraitorDiscarded","_traitorId":1016,"Initiator":100,"Time":"2024-01-01T21:56:00+00:00"}"#, "70768c6e146ad77c4fe52c33164925bb5acf14078d75f419b0e9ac3f39295234");
 }
 
 #[test]
@@ -277,43 +277,43 @@ fn thought() {
             (r#"{"$type":"Thought","_cardId":6,"Initiator":80,"Time":"2024-01-01T21:56:00+00:00"}"#, false, true),
             (r#"{"$type":"ThoughtAnswered","_cardId":6,"Initiator":100,"Time":"2024-01-01T21:56:30+00:00"}"#, true, true),
         ],
-        "b0073b2afda3974474a4d3dd38852da2dc9d8713875711dcf5ebed4008c41503",
+        "50553d3c523029bcfbebdffa9f5a1954132a97469f9dad933a2b755436e11fae",
         "null | null",
     );
-    check("thought_answer_none", 127, &[(r#"{"$type":"ThoughtAnswered","_cardId":6,"Initiator":100,"Time":"2024-01-01T21:56:30+00:00"}"#, false, true)], "4f6ba0ca7e9b068bb1c2dbf08a0864d4227dba4c50c07277eaeee37c86c344e2", NRE);
+    check("thought_answer_none", 127, &[(r#"{"$type":"ThoughtAnswered","_cardId":6,"Initiator":100,"Time":"2024-01-01T21:56:30+00:00"}"#, false, true)], "a990e48d84dcc88bc7c1d69f5da0cd9629a4994ec48411487f025025e1ef51bf", NRE);
 }
 
 #[test]
 fn audit() {
     let defender_traitor_null = r#"{"$type":"Message","Expression":{"$type":"Expression","Elements":["Game Error: ","Defender traitor action is null",". Technical description: ",{"$type":"$Exception","message":"Defender traitor action is null","type":"System.NullReferenceException"},"."]},"Fact":null,"Heading":null,"Log":null,"Plans":null,"Route":null,"Target":"None(0)"}"#;
-    check("audit_cancel", 127, &[(r#"{"$type":"AuditCancelled","Cancelled":true,"Initiator":100,"Time":"2024-01-01T21:56:00+00:00"}"#, false, true)], "28e04b882af32feb8bce521dd87c15019aa566635218f71653a1bf203cc774b3", defender_traitor_null);
-    check("audit_cancel_after", 129, &[(r#"{"$type":"AuditCancelled","Cancelled":true,"Initiator":80,"Time":"2024-01-01T21:58:50+00:00"}"#, false, true)], "dc89bb4ab6c5c875bc07784b1d8e794f728302a880b60a5522714aa2cd33a105", "null");
-    check("audit_keep_after", 129, &[(r#"{"$type":"AuditCancelled","Cancelled":false,"Initiator":80,"Time":"2024-01-01T21:58:50+00:00"}"#, false, true)], "3c57a3abde1eb3791b078333938c6b0ab1f5eea27be1388332c7f4d90c173f50", "null");
-    check("audited_after", 129, &[(r#"{"$type":"Audited","Initiator":90,"Time":"2024-01-01T21:58:50+00:00"}"#, false, true)], "f9dfdbb19497bfa7eb0b75f08c916e8c58fd02422734daafbcbd1f28e3d514d0", "null");
+    check("audit_cancel", 127, &[(r#"{"$type":"AuditCancelled","Cancelled":true,"Initiator":100,"Time":"2024-01-01T21:56:00+00:00"}"#, false, true)], "e91fd879ea565e3489b5893cf089afd38e881740ea65900f29eeb7cb742bf6ca", defender_traitor_null);
+    check("audit_cancel_after", 129, &[(r#"{"$type":"AuditCancelled","Cancelled":true,"Initiator":80,"Time":"2024-01-01T21:58:50+00:00"}"#, false, true)], "ead1d6bc8a7b62c283ca7808573206d1d4b9e3dd45b836c4f5ee8f3f8f0a5030", "null");
+    check("audit_keep_after", 129, &[(r#"{"$type":"AuditCancelled","Cancelled":false,"Initiator":80,"Time":"2024-01-01T21:58:50+00:00"}"#, false, true)], "06d0d6389bcba8eec821d9d30d47a0f4330d05770a49abaa750ae3c012ecc309", "null");
+    check("audited_after", 129, &[(r#"{"$type":"Audited","Initiator":90,"Time":"2024-01-01T21:58:50+00:00"}"#, false, true)], "0a284de9ca9fc2dd2ec7077c4cdb1ec450776cec2a7719f6754cf3cea6a39714", "null");
 }
 
 #[test]
 fn face_dancers() {
     let cant = r#"{"$type":"Message","Expression":{"$type":"Expression","Elements":["You can't reveal a face dancer"]},"Fact":null,"Heading":null,"Log":null,"Plans":null,"Route":null,"Target":"None(0)"}"#;
-    check("fd_reveal", 129, &[(FD_REVEAL, true, false)], "da4c5b2a774a7ae47159bab31bcc8370d551def80e5163796d6293dfc615ff58", cant);
-    check("fd_replace", 129, &[(r#"{"$type":"FaceDancerReplaced","Passed":false,"dancerId":-1,"Initiator":80,"Time":"2024-01-01T21:59:02+00:00"}"#, false, true)], "42785c942899195f217c456abbcc0288be2c2baa402db14555b5781acf3a5b14", "null");
-    check("fd_replace_one", 129, &[(r#"{"$type":"FaceDancerReplaced","Passed":false,"dancerId":1042,"Initiator":80,"Time":"2024-01-01T21:59:02+00:00"}"#, false, true)], "c357a93f5dd692f270e0e2a1727d97cbca07575a0542dac963e2282f04a56871", "null");
-    check("fd_danced", 129, &[("HOOK:fd_winner", false, false), (FD_REVEAL, true, false), (FD_DANCED, true, false)], "dff16da180d0fd0fc1fbc8c7259280795d814aa66fa147fa6ab2a9e5f0f8f9c1", "null | null | null");
+    check("fd_reveal", 129, &[(FD_REVEAL, true, false)], "987abf827ba64327b1b21abebfa8d92916c6624518584da95d76cfefabbb78d7", cant);
+    check("fd_replace", 129, &[(r#"{"$type":"FaceDancerReplaced","Passed":false,"dancerId":-1,"Initiator":80,"Time":"2024-01-01T21:59:02+00:00"}"#, false, true)], "e720e893771a72bc30e2753347d6399001df95f8c3b2b6babb5010341a39a237", "null");
+    check("fd_replace_one", 129, &[(r#"{"$type":"FaceDancerReplaced","Passed":false,"dancerId":1042,"Initiator":80,"Time":"2024-01-01T21:59:02+00:00"}"#, false, true)], "ddd92e06f69a46af629c02bb983f0996ec3a6b16d1cc13414569289de2c3a298", "null");
+    check("fd_danced", 129, &[("HOOK:fd_winner", false, false), (FD_REVEAL, true, false), (FD_DANCED, true, false)], "58b814a263e24c4160492ba30524dc881523a4647e7f88ce8cc548e4bbb3ea0c", "null | null | null");
     check(
         "fd_danced_sources",
         129,
         &[("HOOK:fd_winner", false, false), (FD_REVEAL, false, true), (FD_DANCED_SOURCES, false, true)],
-        "aae99f44bd1e1a779358c4e329de2d2b5b3016a075fa5431dabad462a3f2e78c",
+        "6773014563e1dd86d90e0c983995f20840026fd6306a77747b1efb94612da2e1",
         "null | null | null",
     );
     check(
         "fd_danced_last",
         129,
         &[("HOOK:fd_winner", false, false), ("HOOK:fd_others_revealed", false, false), (FD_REVEAL, true, false), (FD_DANCED, true, false)],
-        "3e9685cc84ddeae9031e22d47045bd0404b9343dd19756538dcfe8a91197743a",
+        "a293356c376ec4b6f1c1db3a953b10d1b5616f52e7f09e3b7bf8eb37a6521daf",
         "null | null | null | null",
     );
-    check("fd_danced_no_match", 129, &[(FD_DANCED, false, true)], "da4c5b2a774a7ae47159bab31bcc8370d551def80e5163796d6293dfc615ff58", NO_MATCH);
+    check("fd_danced_no_match", 129, &[(FD_DANCED, false, true)], "987abf827ba64327b1b21abebfa8d92916c6624518584da95d76cfefabbb78d7", NO_MATCH);
 }
 
 fn msg(elements: &str) -> String {
@@ -322,12 +322,12 @@ fn msg(elements: &str) -> String {
 
 #[test]
 fn exceptions_keep_partial_state() {
-    check("ecazdial_no_battle", 124, &[(r#"{"$type":"KarmaEcazDial","Initiator":80,"Time":"2024-01-01T21:54:00+00:00"}"#, false, true)], "a7b64a95ad2658c7434d8989cf2c858f3a5ce07d5ff22b2d7ce9d961eb3f77b4", NRE);
+    check("ecazdial_no_battle", 124, &[(r#"{"$type":"KarmaEcazDial","Initiator":80,"Time":"2024-01-01T21:54:00+00:00"}"#, false, true)], "e7671a3b0fa1eb4738c16a6c29f834178499040f55aa6f4f851f82e6ee5cdd65", NRE);
     check(
         "residual_no_battle",
         124,
         &[("HOOK:give:100:54", false, false), (r#"{"$type":"ResidualPlayed","Initiator":100,"Time":"2024-01-01T21:54:00+00:00"}"#, false, true)],
-        "171055f2a73ccdf3501e2cbfab88bb73b4fb916e78f57702a2fd6358b5bc7bd6",
+        "6e47be221fdc17ff593471d4242d6a8954ed95f0d506680e6221bda4c584b9dc",
         &format!("null | {NRE}"),
     );
 }
@@ -338,28 +338,28 @@ fn juice_then_the_rest_of_the_trace() {
         "juice_golast_cont",
         124,
         &[("HOOK:give:50:48", false, false), (r#"{"$type":"JuicePlayed","Type":20,"Initiator":50,"Time":"2024-01-01T21:54:00+00:00"}"#, false, true), ("CONTINUE", false, false)],
-        "3c135bb5da836b86dc7f63fe840eb971158a7c439e84491398d6aed3b3baaa6d",
+        "ee7d7c85b6afff93fcf1c617fcc71441d2142ea6e618fc3c3f2fe1c64edfec9d",
         "null | null | continued:aaaaaaarrrrrrrrrrrrrrrrrr",
     );
     check(
         "juice_gofirst_cont",
         124,
         &[("HOOK:give:80:48", false, false), (r#"{"$type":"JuicePlayed","Type":10,"Initiator":80,"Time":"2024-01-01T21:54:00+00:00"}"#, false, true), ("CONTINUE", false, false)],
-        "32e772dbfc892281130735d78d9c105b336ded5fdca382414b60bd0d0e4ea6a4",
+        "d3619c2753975fecab2d214e54c7ebba357b5e0ecc8ad0ce083461ca5b6e2521",
         "null | null | continued:aaaaaaaaaaaaaaaaaaaaaaaaa",
     );
     check(
         "juice_swap_cont",
         127,
         &[("HOOK:give:100:48", false, false), (JUICE_AGGRESSOR, false, true), ("CONTINUE", false, false)],
-        "a8fd1f4798860de7ccae3a03ae65a12e4e277a7d5183a817ba8968c68051187c",
+        "55072d3f20b7a084a7dd582d32b326ee05bff4e37daf5b80c8cb46fec1756afd",
         "null | null | continued:aaaaaaaaaaaaaaaaaaaaaa",
     );
     check(
         "juice_aggr_before_battle_cont",
         125,
         &[("HOOK:give:100:48", false, false), (r#"{"$type":"JuicePlayed","Type":30,"Initiator":100,"Time":"2024-01-01T21:54:30+00:00"}"#, false, true), ("CONTINUE", false, false)],
-        "908ddcb3359764300e8274ce89dfe186c5af8a79fc8ac95820e23d631ee13c92",
+        "34005ec3b860b5bbd17da8983849cc6c005b72dade2514a0f40a9b4398fbd618",
         "null | null | continued:aaaaaaaaaaaaaaaaaaaaaaaa",
     );
 }
@@ -370,7 +370,7 @@ fn face_danced_then_the_rest_of_the_trace() {
         "fd_danced_cont",
         129,
         &[("HOOK:fd_winner", false, false), (FD_REVEAL, true, false), (FD_DANCED, true, false), ("CONTINUE", false, false)],
-        "04f8543bd31341cab645ebd32953501274d85c4c3bb34eb0ae771ecd34b327ac",
+        "cb8e5ab5de0262b342f661719008e60cb1814805db43c95e0573d1d244c56d41",
         "null | null | null | continued:raaaaaaaaaaaaaaaaaaa",
     );
 }
@@ -423,7 +423,7 @@ fn validation_messages() {
         "null".to_string(),
         msg(r#""Invalid card""#),
     ];
-    check("fd_validate", 129, &events, "69199ae8f83b994f364da1a0bc52a4d690329af488fb3afea11008b36e207308", &expected.join(" | "));
+    check("fd_validate", 129, &events, "5fe27798d9a9432b3ae283174bd3c7a394adf2a4b5652d7425854d1657370e6b", &expected.join(" | "));
 }
 
 // ---- SHA-256 (the engine crate has no hashing dependency) ----

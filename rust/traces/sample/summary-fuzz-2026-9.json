@@ -1,1 +1,1 @@
-{"mode":"fuzz","masterSeed":2026,"start":9,"endReasons":{"cap":1},"games":[{"index":9,"file":"fuzz-2026-00009.jsonl.gz","endReason":"cap","detail":null,"steps":4880,"historyCount":1064,"version":101,"players":7,"hostStyle":"Tests"}]}
+{"mode":"fuzz","masterSeed":2026,"start":9,"endReasons":{"cap":1},"games":[{"index":9,"file":"fuzz-2026-00009.jsonl.gz","endReason":"cap","detail":null,"steps":4880,"historyCount":902,"version":188,"players":7,"hostStyle":"Tests"}]}

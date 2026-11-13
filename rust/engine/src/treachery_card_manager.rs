@@ -94,16 +94,11 @@ static ITEM_HANDLES: [TreacheryCard; 63] = {
 
 /// What `TreacheryCardManager.GetCardsInPlay(Game g)` reads from the game.
 pub trait CardsGame {
-    /// `g.Version`
-    fn version(&self) -> i32;
     /// `g.Applicable(rule)`
     fn applicable(&self, rule: Rule) -> bool;
 }
 
 impl<T: MapGame> CardsGame for T {
-    fn version(&self) -> i32 {
-        MapGame::version(self)
-    }
     fn applicable(&self, rule: Rule) -> bool {
         MapGame::applicable(self, rule)
     }
@@ -145,10 +140,6 @@ impl TreacheryCardManager {
             .copied()
             .filter(move |c| {
                 c.rules().iter().any(|r| g.applicable(*r))
-                    // Amal used to be included in the basic set of expansion cards
-                    || (g.version() <= 104
-                        && c.type_() == TreacheryCardType::Amal
-                        && g.applicable(Rule::ExpansionTreacheryCardsExceptPBandSSandAmal))
             })
     }
 

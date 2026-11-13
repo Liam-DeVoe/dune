@@ -201,10 +201,10 @@ impl AmbassadorActivated {
                     {
                         return Some(express!("You can't offer ", game.vidal(), " to your ally"));
                     }
-                    if game.version >= 167 && self.ecaz_take_vidal && self.ecaz_give_vidal_to_ally {
+                    if self.ecaz_take_vidal && self.ecaz_give_vidal_to_ally {
                         return Some(express!("You don't have ", game.vidal(), " yet"));
                     }
-                    if game.version >= 176 && self.ecaz_take_vidal && self.ecaz_offer_alliance {
+                    if self.ecaz_take_vidal && self.ecaz_offer_alliance {
                         return Some(express!("You can't both take ", game.vidal(), " AND offer an alliance"));
                     }
                 }
@@ -335,7 +335,7 @@ impl AmbassadorActivated {
 
     /// C#: `public static bool VidalCanBeTaken(Game g, Player p)` (Events/AmbassadorActivated.cs:205)
     pub fn vidal_can_be_taken(g: &Game, p: PlayerIndex) -> bool {
-        (g.version < 167 || (g.vidal().is_some() && !g.player(p).has_leader(g.vidal().nre())))
+        (g.vidal().is_some() && !g.player(p).has_leader(g.vidal().nre()))
             && g.vidal_is_alive()
             && !g.vidal_is_captured_or_ghola()
             && g.occupier_of(World::Ecaz).is_none()
@@ -499,8 +499,7 @@ impl AmbassadorActivated {
                     game.enter(Phase::AllianceByAmbassador, true);
                 } else {
                     if game.current_ambassador_activated.as_ref().nre().ecaz_take_vidal {
-                        let moment = if game.version >= 167 { VidalMoment::Never } else { VidalMoment::AfterUsedInBattle };
-                        game.take_vidal(self.player(), moment);
+                        game.take_vidal(self.player(), VidalMoment::Never);
                     }
 
                     game.determine_next_shipment_and_move_sub_phase();

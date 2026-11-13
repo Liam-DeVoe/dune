@@ -98,8 +98,7 @@ impl KarmaHmsMovement {
             // A null Target (only without validation): PointAt removes the HMS from its old
             // host's neighbours, then throws NullReferenceException on `newLocation.Neighbours`.
             let target = self.target(game).or_null();
-            let version = game.version;
-            hms.point_at(&mut game.map, version, target);
+            hms.point_at(&mut game.map, target);
             game.collect_spice_from(self.initiator(), target, collection_rate);
             game.karma_hms_moves_left = game.karma_hms_moves_left.wrapping_sub(1);
             game.stone(Milestone::HmsMovement);

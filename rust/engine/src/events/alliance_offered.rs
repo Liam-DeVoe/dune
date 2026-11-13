@@ -59,7 +59,7 @@ impl AllianceOffered {
 
     /// C#: `private static bool HasPassedInAlliancePhase(Game g, Player p)` (Events/AllianceOffered.cs)
     fn has_passed_in_alliance_phase(g: &Game, p: PlayerIndex) -> bool {
-        g.version >= 188 && matches!(g.current_phase, Phase::AllianceA | Phase::AllianceB) && g.has_acted_or_passed.contains(&g.player(p).faction)
+        matches!(g.current_phase, Phase::AllianceA | Phase::AllianceB) && g.has_acted_or_passed.contains(&g.player(p).faction)
     }
 
     /// C#: `protected override void ExecuteConcreteEvent()` (Events/AllianceOffered.cs:51)
@@ -77,20 +77,16 @@ impl AllianceOffered {
                 game.current_alliance_offers.remove(i);
             }
 
-            // Since v188 offers to the new allies lapse too; otherwise their makers would wait for an answer that never comes.
-            if game.version >= 188 {
-                loop {
-                    let lapsed_offer =
-                        game.current_alliance_offers.iter().position(|x| x.target == initiator || x.target == self.target);
-                    let Some(i) = lapsed_offer else { break };
-                    game.current_alliance_offers.remove(i);
-                }
+            // Offers to the new allies lapse too; otherwise their makers would wait for an answer that never comes.
+            loop {
+                let lapsed_offer =
+                    game.current_alliance_offers.iter().position(|x| x.target == initiator || x.target == self.target);
+                let Some(i) = lapsed_offer else { break };
+                game.current_alliance_offers.remove(i);
             }
 
-            if game.version > 150 {
-                game.has_acted_or_passed.push(initiator);
-                game.has_acted_or_passed.push(self.target);
-            }
+            game.has_acted_or_passed.push(initiator);
+            game.has_acted_or_passed.push(self.target);
 
             game.end_nexus_if_everyone_is_done();
         } else {

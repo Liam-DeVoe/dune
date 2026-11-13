@@ -1,7 +1,0 @@
-{"scenario": "authentication_status", "start": "2026-03-02T10:00:00+02:00"}
-{"op": "connect", "conn": 1}
-{"op": "call", "conn": 1, "method": "RequestCreateUser", "args": ["alice", "hashA", null, "Alice Player"]}
-{"op": "call", "conn": 1, "method": "RequestSetUserStatus", "args": ["nope", 20]}
-{"op": "call", "conn": 1, "method": "RequestSetUserStatus", "args": ["TOKEN00000000001", 20]}
-{"op": "advance", "minutes": 1}
-{"op": "call", "conn": 1, "method": "RequestSetUserStatus", "args": ["TOKEN00000000001", 30]}

@@ -6,7 +6,7 @@
 #![allow(unused_variables, unused_imports, unused_mut, dead_code, non_snake_case, clippy::all)]
 
 use crate::prelude::*;
-use dotnet_compat::math::{f32_to_i32, f64_to_i32};
+use dotnet_compat::math::f64_to_i32;
 
 /// C#: `public class BattleClaimed: PassableGameEvent` (Events/BattleClaimed.cs:12)
 #[derive(Clone, Debug, Canon)]
@@ -63,13 +63,8 @@ impl BattleClaimed {
             if let Some(ecaz) = ecaz {
                 let territory = game.current_battle.as_ref().nre().territory(game).nre();
                 let forces = game.player(ecaz).any_forces_in_territory(Some(territory));
-                if game.version < 159 {
-                    // (int)(0.5f * n): truncation of a float
-                    game.current_ecaz_battle_contribution = f32_to_i32(0.5f32 * forces as f32);
-                } else {
-                    // (int)Math.Ceiling(0.5f * n): the float widens to double
-                    game.current_ecaz_battle_contribution = f64_to_i32(((0.5f32 * forces as f32) as f64).ceil());
-                }
+                // (int)Math.Ceiling(0.5f * n): the float widens to double
+                game.current_ecaz_battle_contribution = f64_to_i32(((0.5f32 * forces as f32) as f64).ceil());
             }
         } else {
             game.current_ecaz_battle_contribution = 0;

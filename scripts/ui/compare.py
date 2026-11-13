@@ -395,8 +395,6 @@ def load_manifest() -> tuple[list[Scene], dict[str, str]]:
     manifest = json.loads((VIEWS / "manifest.json").read_text())
     scenes, errors = [], {}
     for f in manifest["fixtures"]:
-        # A fixture at an older game version is "skipped": the C# scene page refuses it, and it
-        # is kept only for the Rust tests (scene_views.rs).
         if f.get("error"):
             errors[f["fixture"]] = f["error"]
         for s in f["scenes"]:

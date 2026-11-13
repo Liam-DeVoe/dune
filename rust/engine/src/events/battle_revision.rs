@@ -44,11 +44,9 @@ impl BattleRevision {
         };
 
         let withdrawn = current_battle.plan_of(game, self.player_opt());
-        if game.version >= 188 {
-            if let Some(withdrawn) = withdrawn {
-                for aspect in Battle::aspects_seen_by_opponent(game, self.player()) {
-                    game.prescience_seen_plans.insert(aspect, withdrawn.clone());
-                }
+        if let Some(withdrawn) = withdrawn {
+            for aspect in Battle::aspects_seen_by_opponent(game, self.player()) {
+                game.prescience_seen_plans.insert(aspect, withdrawn.clone());
             }
         }
 

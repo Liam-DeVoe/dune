@@ -74,7 +74,7 @@ impl IxianRemovedCardFromAuction {
         self.log(game);
 
         if game.ixian_may_swap_card_on_bid() {
-            if game.version < 113 || !game.prevented(FactionAdvantage::IxianSwappingCard) {
+            if !game.prevented(FactionAdvantage::IxianSwappingCard) {
                 game.enter(Phase::IxianSwappingCard, true);
             } else {
                 game.log_prevention_by_karma(FactionAdvantage::IxianSwappingCard);

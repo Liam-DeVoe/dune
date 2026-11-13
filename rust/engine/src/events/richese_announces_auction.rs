@@ -45,20 +45,17 @@ impl RicheseAnnouncesAuction {
         game.richese_occupier_specified_card = false;
         self.log(game);
 
-        let threshold = if game.version > 150 { 0 } else { 1 };
-        if game.version > 150 {
-            game.number_of_cards_on_auction = game.number_of_cards_on_auction.wrapping_sub(1);
-        }
+        game.number_of_cards_on_auction = game.number_of_cards_on_auction.wrapping_sub(1);
 
-        if !self.first && game.number_of_cards_on_auction > threshold {
+        if !self.first && game.number_of_cards_on_auction > 0 {
             game.richese_auction_should_still_happen = true;
         }
 
-        if game.number_of_cards_on_auction == threshold {
+        if game.number_of_cards_on_auction == 0 {
             game.regular_bidding_is_done = true;
         }
 
-        let condition = self.first || game.number_of_cards_on_auction == threshold;
+        let condition = self.first || game.number_of_cards_on_auction == 0;
         game.enter_boolean_phase_action(condition, Phase::RicheseSpecifyingAuction, Game::start_regular_bidding);
     }
 

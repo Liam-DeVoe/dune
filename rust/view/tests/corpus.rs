@@ -273,7 +273,9 @@ fn views_do_not_depend_on_build_order_over_the_bot_corpus() {
         }
     }
     println!("{steps} steps; seen: {:#?}", seen.0);
-    for what in ["flash", "to bid", "terror token", "discovery token", "discovery identified", "silent bids", "partial plan", "full plan", "own plan", "playable card", "leader on planet", "recent move", "skilled leader"] {
-        assert!(seen.0.get(what).copied().unwrap_or(0) > 0, "the corpus never showed {what}");
-    }
+    let missing = ["flash", "to bid", "terror token", "discovery token", "discovery identified", "silent bids", "partial plan", "full plan", "own plan", "playable card", "leader on planet", "recent move", "skilled leader"]
+        .into_iter()
+        .filter(|what| seen.0.get(*what).copied().unwrap_or(0) == 0)
+        .collect::<Vec<_>>();
+    assert!(missing.is_empty(), "the corpus never showed {missing:?}");
 }

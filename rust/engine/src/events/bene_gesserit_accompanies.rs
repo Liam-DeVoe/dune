@@ -80,7 +80,7 @@ impl BeneGesseritAccompanies {
         if self.accompanies {
             let me = self.player();
             let location = self.location(game).nre();
-            let amount = if game.version >= 160 { self.special_forces_added_to_location(game) } else { 1 };
+            let amount = self.special_forces_added_to_location(game);
             if game.player(me).occupies_territory(game, Some(location.territory()))
                 || !game.is_occupied_territory(location.territory())
                 || !game.applicable(Rule::BeneGesseritAdvisors)
@@ -143,7 +143,7 @@ impl BeneGesseritAccompanies {
 
     /// C#: `private static bool BeneGesseritMayAccompanyToShipmentLocation(Game g)` (Events/BeneGesseritAccompanies.cs:109)
     pub fn bene_gesserit_may_accompany_to_shipment_location(g: &Game) -> bool {
-        g.applicable(Rule::BeneGesseritAccompaniesToShipmentLocation) || (g.version >= 144 && g.applicable(Rule::BeneGesseritAdvisors))
+        g.applicable(Rule::BeneGesseritAccompaniesToShipmentLocation) || g.applicable(Rule::BeneGesseritAdvisors)
     }
 
     /// C#: `public static IEnumerable<Location> ValidTargets(Game g, Player p)` (Events/BeneGesseritAccompanies.cs:115)
@@ -157,14 +157,14 @@ impl BeneGesseritAccompanies {
         // ReferenceEquals: To is read through the event's own game, so after an undo it
         // can be another map's Polar Sink.
         if !last_to.is_same_object(g.map.polar_sink())
-            && (g.version < 167 || last_to.as_homeworld().is_none())
+            && last_to.as_homeworld().is_none()
             && Some(last_to.territory()) != g.atomics_aftermath
             && !g.player(p).occupies_territory(g, Some(last_to.territory()))
             && BeneGesseritAccompanies::bene_gesserit_may_accompany_to_shipment_location(g)
             && !BeneGesseritAccompanies::ally_prevents_accompanying_to_shipment_location(g, p)
         {
             result.extend(last_to.territory().locations().iter().copied().filter(|l| {
-                g.version <= 142 || (l.sector(&g.map) != g.sector_in_storm && (g.applicable(Rule::BeneGesseritAdvisors) || g.is_not_full(p, *l)))
+                l.sector(&g.map) != g.sector_in_storm && (g.applicable(Rule::BeneGesseritAdvisors) || g.is_not_full(p, *l))
             }));
         }
 

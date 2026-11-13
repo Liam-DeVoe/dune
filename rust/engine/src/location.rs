@@ -134,8 +134,8 @@ impl Location {
         }
     }
 
-    /// `Sector`. Attached locations take their host's sector (game version
-    /// >= 159, and only once pointed at by a game of version >= 163), else -1.
+    /// `Sector`. Attached locations take their host's sector once a game has
+    /// pointed them at it, else -1.
     pub fn sector(self, map: &Map) -> i32 {
         match self.data().kind {
             LocationKind::HiddenMobileStronghold | LocationKind::Discovered { .. } => map.attached_sector(self),

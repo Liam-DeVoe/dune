@@ -37,35 +37,30 @@ fn ally(g: &mut Game, a: Faction, b: Faction) {
 
 // ---------------------------------------------------------------- Game_Alliances
 
-/// Up to version 150, breaking an alliance only resets the Guild/Emperor/Fremen permissions; after
-/// that it clears every permission of both factions through SetPermissions.
+/// Breaking an alliance clears every permission of both factions through SetPermissions.
 #[test]
-fn break_alliance_resets_permissions_by_version() {
-    for (version, expect_atreides_cleared) in [(150, false), (151, true)] {
-        let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
-        g.version = version;
-        ally(&mut g, Faction::Atreides, Faction::Emperor);
-        g.atreides_shares_prescience = true;
-        g.emperor_will_pay_for_extra_revival = 3;
-        g.permitted_use_of_ally_spice.insert(Faction::Atreides, 4);
-        g.permitted_use_of_ally_spice.insert(Faction::Emperor, 5);
+fn break_alliance_resets_permissions() {
+    let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
+    ally(&mut g, Faction::Atreides, Faction::Emperor);
+    g.atreides_shares_prescience = true;
+    g.emperor_will_pay_for_extra_revival = 3;
+    g.permitted_use_of_ally_spice.insert(Faction::Atreides, 4);
+    g.permitted_use_of_ally_spice.insert(Faction::Emperor, 5);
 
-        g.break_alliance(Faction::Atreides);
+    g.break_alliance(Faction::Atreides);
 
-        assert_eq!(g.atreides_shares_prescience, !expect_atreides_cleared, "version {version}");
-        assert_eq!(g.emperor_will_pay_for_extra_revival, 0);
-        assert!(!g.permitted_use_of_ally_spice.contains_key(&Faction::Atreides));
-        assert!(!g.permitted_use_of_ally_spice.contains_key(&Faction::Emperor));
-        assert_eq!(g.player(idx(&g, Faction::Atreides)).ally, Faction::None);
-        assert_eq!(g.player(idx(&g, Faction::Emperor)).ally, Faction::None);
-    }
+    assert!(!g.atreides_shares_prescience);
+    assert_eq!(g.emperor_will_pay_for_extra_revival, 0);
+    assert!(!g.permitted_use_of_ally_spice.contains_key(&Faction::Atreides));
+    assert!(!g.permitted_use_of_ally_spice.contains_key(&Faction::Emperor));
+    assert_eq!(g.player(idx(&g, Faction::Atreides)).ally, Faction::None);
+    assert_eq!(g.player(idx(&g, Faction::Emperor)).ally, Faction::None);
 }
 
 /// Without an allied player, BreakAlliance returns before touching anything.
 #[test]
 fn break_alliance_without_ally_is_a_no_op() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
-    g.version = 151;
     g.atreides_shares_prescience = true;
     g.break_alliance(Faction::Atreides);
     assert!(g.atreides_shares_prescience);

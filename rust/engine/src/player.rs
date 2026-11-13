@@ -290,11 +290,7 @@ impl Player {
                 return;
             };
 
-            let has_less_than_threshold = if game.version <= 163 {
-                p.any_forces_in(Some(home_world.location())) < home_world.threshold()
-            } else {
-                p.special_forces_in(Some(home_world.location())) < home_world.threshold()
-            };
+            let has_less_than_threshold = p.special_forces_in(Some(home_world.location())) < home_world.threshold();
 
             if has_less_than_threshold && !p.salusa_secundus_homeworld_is_on_low_threshold {
                 game.player_mut(me).salusa_secundus_homeworld_is_on_low_threshold = true;
@@ -806,8 +802,7 @@ impl Player {
             None => false,
             Some(l) => {
                 self.occupying_forces_in_location(l) > 0
-                    || (game.version >= 164
-                        && self.ally == Faction::Ecaz
+                    || (self.ally == Faction::Ecaz
                         && self.occupying_forces_in_location(l) > 0
                         // `AlliedPlayer?.OccupyingForcesIn(l) > 0`: null > 0 is false
                         && self.allied_player(game).is_some_and(|a| game.player(a).occupying_forces_in_location(l) > 0))
@@ -980,7 +975,7 @@ impl Player {
             _ => 0,
         };
         let atomics_penalty =
-            if game.atomics_aftermath.is_some() && (self.faction == Faction::Moritani || (game.version >= 158 && self.ally == Faction::Moritani)) { 1 } else { 0 };
+            if game.atomics_aftermath.is_some() && (self.faction == Faction::Moritani || self.ally == Faction::Moritani) { 1 } else { 0 };
 
         let amount = match self.faction {
             Faction::Harkonnen => 8,

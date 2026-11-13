@@ -6,7 +6,6 @@ use treachery_engine::prelude::*;
 
 fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();
-    g.version = Game::LATEST_VERSION;
     for f in factions {
         let p = Player::new(&g, *f);
         g.players.push(p);
@@ -57,18 +56,15 @@ fn shipment_cost_guild_discount() {
 
 #[test]
 fn shipment_cost_no_field() {
-    let mut g = game_with(&[Faction::Richese, Faction::Emperor]);
+    let g = game_with(&[Faction::Richese, Faction::Emperor]);
     let richese = idx(&g, Faction::Richese);
     let emperor = idx(&g, Faction::Emperor);
     let flat = g.map.the_great_flat();
-    // Since 167, Richese's own No-Field costs max(forces, 1).
+    // Richese's own No-Field costs max(forces, 1).
     assert_eq!(cost(&g, richese, 0, 1, flat, false, false, false, true, false), 2);
     assert_eq!(cost(&g, richese, 3, 1, flat, false, false, false, true, false), 6);
     // Others pay for a single force.
     assert_eq!(cost(&g, emperor, 3, 2, flat, false, false, false, false, true), 2);
-    // Before 167 Richese's No-Field also costs one force.
-    g.version = 166;
-    assert_eq!(cost(&g, richese, 3, 1, flat, false, false, false, true, false), 2);
 }
 
 #[test]

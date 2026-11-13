@@ -116,9 +116,6 @@ impl EndPhase {
             Phase::Contemplate => game.continue_contemplate_phase(),
 
             Phase::TurnConcluded => {
-                if game.version < 108 {
-                    game.add_bribes_to_player_resources();
-                }
                 game.enter_storm_phase();
                 game.flip_bene_gesserit_advisors_when_alone();
             }
@@ -146,7 +143,7 @@ impl EndPhase {
             game.richese_cache = TreacheryCardManager::get_richese_cards();
         }
 
-        let condition = game.applicable(Rule::CustomDecks) && game.version >= 134;
+        let condition = game.applicable(Rule::CustomDecks);
         game.enter_boolean_phase_action(condition, Phase::CustomizingDecks, Game::enter_setup_phase);
     }
 
@@ -169,11 +166,7 @@ impl EndPhase {
         game.allow(FactionAdvantage::FremenControlsMonster);
         game.allow(FactionAdvantage::FremenProtectedFromMonster);
 
-        if game.version < 122 {
-            self.start_claiming_charity(game);
-        } else {
-            game.enter(Phase::BeginningOfCharity, true);
-        }
+        game.enter(Phase::BeginningOfCharity, true);
     }
 
     /// C#: `private void StartClaimingCharity()` (Events/EndPhase.cs:234)
@@ -193,7 +186,7 @@ impl EndPhase {
         let bene_gesserit = self.get_player(game, Some(Faction::BeneGesserit));
         if let Some(bene_gesserit) = bene_gesserit {
             if game.applicable(Rule::BeneGesseritAutoCharity) {
-                if game.version < 179 || !game.charity_is_cancelled() {
+                if !game.charity_is_cancelled() {
                     if !game.prevented(FactionAdvantage::BeneGesseritCharity) {
                         game.has_acted_or_passed.push(Faction::BeneGesserit);
                         let amount = 2i32.wrapping_mul(game.current_charity_multiplier());
@@ -228,14 +221,8 @@ impl EndPhase {
             game.receive_tech_income(TechToken::Resources);
         }
 
-        if game.version < 122 {
-            game.enter_bidding_phase();
-        } else {
-            if game.version >= 132 {
-                game.main_phase_end();
-            }
-            game.enter(Phase::CharityReport, true);
-        }
+        game.main_phase_end();
+        game.enter(Phase::CharityReport, true);
     }
 
     /// C#: `private void EnterRevivalPhase()` (Events/EndPhase.cs:294)
@@ -253,11 +240,7 @@ impl EndPhase {
         //Game.HasActedOrPassed.Clear();
         game.tleilaxu_started_revival_with_low_threshold = game.has_low_threshold(Faction::Tleilaxu);
 
-        if game.version < 122 {
-            game.enter(Phase::Resurrection, true);
-        } else {
-            game.enter(Phase::BeginningOfResurrection, true);
-        }
+        game.enter(Phase::BeginningOfResurrection, true);
     }
 
     /// C#: `private void EndResurrectionPhase()` (Events/EndPhase.cs:315)
@@ -270,14 +253,8 @@ impl EndPhase {
         game.current_fremen_secret_ally = None;
         game.current_recruits_played = None;
 
-        if game.version < 122 {
-            self.enter_shipment_and_move_phase(game);
-        } else {
-            if game.version >= 132 {
-                game.main_phase_end();
-            }
-            game.enter(Phase::ResurrectionReport, true);
-        }
+        game.main_phase_end();
+        game.enter(Phase::ResurrectionReport, true);
     }
 
     /// C#: `private void EnterShipmentAndMovePhase()` (Events/EndPhase.cs:334)
@@ -305,8 +282,7 @@ impl EndPhase {
 
         game.shipment_and_move_sequence = Some(PlayerSequence::new_game(game));
 
-        let condition = game.version >= 107;
-        game.enter_boolean_phase_action(condition, Phase::BeginningOfShipAndMove, Game::start_ship_and_move_sequence);
+        game.enter(Phase::BeginningOfShipAndMove, true);
     }
 
     /// C#: `private void EnterBattlePhase()` (Events/EndPhase.cs:358)
@@ -321,15 +297,11 @@ impl EndPhase {
         }
         self.reset_battle(game);
         // Arguments are evaluated before the call (NextPlayerToBattle mutates BattleSequence).
-        let condition1 = game.next_player_to_battle().is_none();
-        let condition2 = game.version >= 107;
-        game.enter_boolean_action_boolean_phase_phase(
-            condition1,
-            enter_spice_collection_phase,
-            condition2,
-            Phase::BeginningOfBattle,
-            Phase::BattlePhase,
-        );
+        if game.next_player_to_battle().is_none() {
+            enter_spice_collection_phase(game);
+        } else {
+            game.enter(Phase::BeginningOfBattle, true);
+        }
     }
 
     /// C#: `private void ResetBattle()` (Events/EndPhase.cs:370)
@@ -427,11 +399,7 @@ fn enter_spice_collection_phase(game: &mut Game) {
         .map(|kvp| kvp.1.token)
         .collect();
 
-    if game.version < 122 {
-        game.start_collection();
-    } else {
-        game.enter(Phase::BeginningOfCollection, true);
-    }
+    game.enter(Phase::BeginningOfCollection, true);
 }
 
 /// `CallHeroesHome`

@@ -1,4 +1,4 @@
-//! The rules added in game version 188, on both sides of the version check: the
+//! The rules added in game version 188: the
 //! alliance phase that ends once every faction is done (AlliancePassed,
 //! EnterAlliancePhase, EndNexusIfEveryoneIsDone, AllianceBroken and
 //! AllianceOffered.ValidTargets), the v188 alliance status, and
@@ -9,7 +9,9 @@
 //!
 //!     cd rust/engine/csharp-ref && dotnet run -c Release -- sync-v188 ../tests/golden/sync_v188.txt
 //!
-//! (`SyncV188.cs`). This test runs the same steps in Rust and compares every line.
+//! (`SyncV188.cs`), keeping only the `v188.` lines (the C# side also writes version
+//! 187, which the engine no longer supports). This test runs the same steps in Rust
+//! and compares every line.
 
 use std::rc::Rc;
 
@@ -276,7 +278,7 @@ fn prescience(l: &mut Lines, v: i32) {
 #[test]
 fn v188_rules_match_csharp() {
     let mut l = Lines::default();
-    for v in [187, 188] {
+    for v in [Game::LATEST_VERSION] {
         alliance_phase(&mut l, v);
         break_in_alliance_phase(&mut l, v);
         prescience(&mut l, v);

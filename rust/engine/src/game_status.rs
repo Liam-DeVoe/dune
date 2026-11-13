@@ -293,8 +293,6 @@ impl GameStatus {
                 Self::status_string_string_list_player_game_event("Please vote Yes or No to a Nexus.", "Factions are voting on about a Nexus...", players, None)
             }
 
-            Phase::AllianceA | Phase::AllianceB if game.version < 188 => Self::status("Factions may now make and break alliances.", None),
-
             Phase::AllianceA | Phase::AllianceB => {
                 let players = Self::players_that_have_not_acted_or_passed(game);
                 Self::status_string_string_list_player_game_event(
@@ -609,15 +607,9 @@ impl GameStatus {
             }
 
             Phase::Facedancing => {
-                if game.version <= 150 {
-                    let a = express!("You may reveal a leader to be one of your face dancers.");
-                    let w = express!("Waiting for ", Faction::Tleilaxu, " to reveal a face dancer...");
-                    Self::status_game_message_message_faction_game_event(game, a, w, Some(Faction::Tleilaxu), None)
-                } else {
-                    let a = express!("You may now replace opponent forces by your own.");
-                    let w = express!("Waiting for ", Faction::Tleilaxu, " to replace forces...");
-                    Self::status_game_message_message_faction_game_event(game, a, w, Some(Faction::Tleilaxu), None)
-                }
+                let a = express!("You may now replace opponent forces by your own.");
+                let w = express!("Waiting for ", Faction::Tleilaxu, " to replace forces...");
+                Self::status_game_message_message_faction_game_event(game, a, w, Some(Faction::Tleilaxu), None)
             }
 
             // Each guard reads NextPlayerToBattle, which advances BattleSequence (hazards §4.3).

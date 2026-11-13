@@ -151,7 +151,7 @@ impl BattleConcluded {
 
         game.battle_was_concluded_by_winner = true;
 
-        if self.add_extra_force && game.version >= 161 {
+        if self.add_extra_force {
             let territory = current_battle.territory(game);
             let to = territory.and_then(|t| t.locations().iter().copied().find(|l| game.player(self.player()).any_forces_in(Some(*l)) > 0));
             if let Some(to) = to {
@@ -189,8 +189,11 @@ impl BattleConcluded {
         let loser = self.get_player(game, game.battle_loser);
         if !LoserConcluded::is_applicable(game, loser) {
             let condition1 = !game.is_playing(Faction::Tleilaxu) || game.battle_winner == Some(Faction::Tleilaxu);
-            let condition2 = game.version <= 150;
-            game.enter_boolean_action_boolean_phase_phase(condition1, Game::finish_battle, condition2, Phase::Facedancing, Phase::RevealingFacedancer);
+            if condition1 {
+                Game::finish_battle(game);
+            } else {
+                game.enter(Phase::RevealingFacedancer, true);
+            }
         }
     }
 
@@ -247,7 +250,7 @@ impl BattleConcluded {
             return;
         }
 
-        if game.version > 125 && game.prevented(FactionAdvantage::HarkonnenCaptureLeader) {
+        if game.prevented(FactionAdvantage::HarkonnenCaptureLeader) {
             game.log_prevention_by_karma(FactionAdvantage::HarkonnenCaptureLeader);
         } else {
             let target = current_battle.opponent_of(game, self.player());
@@ -473,9 +476,6 @@ impl BattleConcluded {
 
     /// C#: `public static IEnumerable<CaptureDecision> ValidCaptureDecisions(Game g)` (Events/BattleConcluded.cs:329)
     pub fn valid_capture_decisions(g: &Game) -> Vec<CaptureDecision> {
-        if g.version < 116 {
-            return vec![CaptureDecision::Capture, CaptureDecision::Kill, CaptureDecision::DontCapture];
-        }
         vec![CaptureDecision::Capture, CaptureDecision::Kill]
     }
 

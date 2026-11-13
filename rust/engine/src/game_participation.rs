@@ -51,14 +51,10 @@ impl Game {
 
     /// C#: `public string GetPlayerName(Player player)` (Game_Participation.cs:36)
     pub fn get_player_name_player(&self, player: PlayerIndex) -> String {
-        if self.version >= 170 {
-            if self.player(player).is_bot(self) {
-                "Bot".to_string()
-            } else {
-                self.participation.borrow().player_names.get_value_or(&self.user_id_in_seat(self.player(player).seat), "?".to_string())
-            }
+        if self.player(player).is_bot(self) {
+            "Bot".to_string()
         } else {
-            self.legacy_names.get_value_or(&player, String::new())
+            self.participation.borrow().player_names.get_value_or(&self.user_id_in_seat(self.player(player).seat), "?".to_string())
         }
     }
 

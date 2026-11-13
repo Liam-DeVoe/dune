@@ -47,8 +47,8 @@ def build_server() -> None:
 
 
 class SceneServer:
-    """The Rust server on an empty database with DevScene on, serving the web build. `clock` (an
-    ISO 8601 time) stops the server's clock there (DevSceneClock, rust/server/src/dev.rs), so
+    """The Rust server on an empty database with dev scenes on, serving the web build. `clock` (an
+    ISO 8601 time) stops the server's clock there (TREACHERY_DEV_CLOCK, rust/server/src/settings.rs), so
     events submitted to a scene carry the same time as the pages' fixed clock."""
 
     def __init__(self, web_dist: Path, tag: str = "run", clock: str | None = None):
@@ -62,11 +62,11 @@ class SceneServer:
             shutil.rmtree(work)
         work.mkdir(parents=True)
         port = free_port()
-        env = {**os.environ, "WebRoot": str(self.web_dist), "DevScene": "true", "DevSceneFixtures": str(FIXTURES),
-               "ASPNETCORE_URLS": f"http://127.0.0.1:{port}", "GameAdminUsername": "admin", "GameEndEmailUsername": "",
-               "ConnectionStrings__TreacheryDatabase": f"Data Source={work / 'scene.db'}"}
+        env = {**os.environ, "TREACHERY_WEB_ROOT": str(self.web_dist), "TREACHERY_DEV_SCENE": "true",
+               "TREACHERY_DEV_FIXTURES": str(FIXTURES), "TREACHERY_LISTEN": f"127.0.0.1:{port}", "TREACHERY_ADMIN": "admin",
+               "TREACHERY_DATABASE": str(work / "scene.db")}
         if self.clock:
-            env["DevSceneClock"] = self.clock
+            env["TREACHERY_DEV_CLOCK"] = self.clock
         log = WORK / f"{self.tag}.log"
         self.proc = subprocess.Popen([str(RUST_SERVER)], cwd=work, env=env, stdout=log.open("w"), stderr=subprocess.STDOUT)
         url = f"http://127.0.0.1:{port}"

@@ -134,9 +134,6 @@ impl Game {
             let bureaucrat = self.player_skilled_as(LeaderSkill::Bureaucrat);
             if let Some(bureaucrat) = bureaucrat {
                 if self.player(bureaucrat).faction != payer && self.player(bureaucrat).faction != receiver {
-                    if self.version < 133 {
-                        self.bureaucrat_was_used_this_phase = true;
-                    }
                     self.phase_before_bureaucrat_was_activated = self.current_phase;
                     self.target_of_bureaucracy = receiver;
                     self.enter(Phase::Bureaucracy, true);

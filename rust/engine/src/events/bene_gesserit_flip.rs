@@ -57,9 +57,7 @@ impl BeneGesseritFlip {
         let territory = game.last_shipment_or_movement.as_ref().nre().to_location(game).nre().territory();
         Player::flip_forces_territory_boolean(game, self.player(), territory, self.as_advisors);
 
-        if game.version >= 102 {
-            game.flip_bene_gesserit_advisors_when_alone();
-        }
+        game.flip_bene_gesserit_advisors_when_alone();
 
         game.dequeue_intrusion(IntrusionType::BeneGesseritIntrusion);
         game.determine_next_shipment_and_move_sub_phase();

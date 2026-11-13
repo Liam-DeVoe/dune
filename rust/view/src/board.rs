@@ -282,7 +282,7 @@ pub fn battle(game: &Game, v: &ResolvedViewer) -> Option<BattleView> {
         game.current_prescience.as_ref().is_some_and(|pr| by(pr.initiator())) || game.current_nexus_prescience.as_ref().is_some_and(|np| by(np.initiator()))
     };
     let traitor = |a: &Option<std::rc::Rc<TreacheryCalled>>| a.as_ref().is_some_and(|t| t.succeeded(game));
-    let facedanced = |f: Faction| game.version > 150 && game.current_phase == Phase::Facedancing && game.battle_winner == Some(f);
+    let facedanced = |f: Faction| game.current_phase == Phase::Facedancing && game.battle_winner == Some(f);
 
     let side = |plan: &Option<std::rc::Rc<Battle>>, opponent_plan: &Option<std::rc::Rc<Battle>>, is_aggressor: bool, traitor_called: bool| {
         let plan = plan.as_ref()?;

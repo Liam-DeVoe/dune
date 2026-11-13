@@ -22,7 +22,7 @@ public static class ReviewJ
         var p = new Participation();
         p.PlayerNames[100] = "Human100";
         p.SeatedPlayers[100] = 2;
-        var g = new Game(187, p);
+        var g = new Game(Game.LatestVersion, p);
         var e = Utilities.Deserialize<GameEvent>(Establish)!;
         e.Initialize(g);
         if (e.Execute(true, true) != null) throw new Exception("establish rejected");

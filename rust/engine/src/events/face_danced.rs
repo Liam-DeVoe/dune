@@ -78,10 +78,6 @@ impl FaceDanced {
 
     /// C#: `public override Message? Validate()` (Events/FaceDanced.cs:47)
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if game.version <= 150 && !self.face_dancer_called {
-            return None;
-        }
-
         let p = self.player_opt();
         if !Self::may_call_face_dancer_opt(game, p) {
             return Some(express!("You can't reveal a Face Dancer"));
@@ -91,14 +87,14 @@ impl FaceDanced {
         let maximum_forces = Self::maximum_number_of_forces(game, p);
         let amount_of_placed_forces =
             dotnet_compat::linq::sum_i32(self.target_force_locations(game).values().map(|b| b.total_amount_of_forces()));
-        if game.version >= 157 && amount_of_placed_forces > maximum_forces {
+        if amount_of_placed_forces > maximum_forces {
             return Some(express!("Place ", maximum_forces, " or less forces"));
         }
 
         let amount_of_forces = self
             .forces_from_reserve
             .wrapping_add(dotnet_compat::linq::sum_i32(self.force_locations(game).values().map(|b| b.total_amount_of_forces())));
-        if game.version >= 157 && amount_of_forces != amount_of_placed_forces {
+        if amount_of_forces != amount_of_placed_forces {
             return Some(express!(
                 "The amount of forces you selected from the planet and from reserves (",
                 amount_of_forces,
@@ -191,40 +187,30 @@ impl FaceDanced {
 
     /// C#: `protected override void ExecuteConcreteEvent()` (Events/FaceDanced.cs:107)
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
-        // C# parity: the second half of the condition is redundant (hazards 14.2).
-        if game.version > 150 || (game.version <= 150 && self.face_dancer_called) {
-            let me = self.player();
-            let facedancer = game
-                .player(me)
-                .face_dancers
-                .iter()
-                .copied()
-                .cs_first_where(|f| game.winner_hero().nre().is_face_dancer(*f));
+        let me = self.player();
+        let facedancer = game
+            .player(me)
+            .face_dancers
+            .iter()
+            .copied()
+            .cs_first_where(|f| game.winner_hero().nre().is_face_dancer(*f));
 
-            if game.version <= 150 {
-                game.log(elems![self.initiator(), " reveal ", facedancer, " as one of their Face Dancers!"]);
-                game.stone(Milestone::FaceDanced);
-            }
-
-            if matches!(facedancer, Hero::Leader(_)) && game.is_alive(facedancer) {
-                game.kill_hero(facedancer);
-            }
-
-            for i in 0..game.players.len() {
-                game.players[i].known_non_traitors.add(facedancer);
-            }
-
-            game.player_mut(self.player()).revealed_face_dancers.add(facedancer);
-
-            if game.player(self.player()).unrevealed_face_dancers().next().is_none() {
-                self.replace_facedancers(game);
-            }
-
-            self.replace_forces(game);
-            game.flip_bene_gesserit_advisors_when_alone();
-        } else {
-            game.log(elems![self.initiator(), " don't reveal a Face Dancer"]);
+        if matches!(facedancer, Hero::Leader(_)) && game.is_alive(facedancer) {
+            game.kill_hero(facedancer);
         }
+
+        for i in 0..game.players.len() {
+            game.players[i].known_non_traitors.add(facedancer);
+        }
+
+        game.player_mut(self.player()).revealed_face_dancers.add(facedancer);
+
+        if game.player(self.player()).unrevealed_face_dancers().next().is_none() {
+            self.replace_facedancers(game);
+        }
+
+        self.replace_forces(game);
+        game.flip_bene_gesserit_advisors_when_alone();
 
         game.finish_battle();
     }
@@ -319,9 +305,6 @@ impl FaceDanced {
 
     /// C#: `public override Message GetMessage()` (Events/FaceDanced.cs:194)
     pub fn get_message(&self, game: &Game) -> Message {
-        if game.version <= 150 {
-            return express!(self.initiator(), express_part_if!(!self.face_dancer_called; " don't"), " reveal a Face Dancer!");
-        }
         express!(
             self.initiator(),
             " replace ",

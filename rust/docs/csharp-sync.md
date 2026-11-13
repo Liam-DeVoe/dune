@@ -47,7 +47,7 @@ Run every command with .NET 10 (`export DOTNET_ROOT="$HOME/dotnet10" PATH="$HOME
 
    To find new ones, run `grep -lE '"[0-9a-f]{64}"' engine/tests/*.rs` for hashes and `grep -ln dump_game engine/tests/*.rs` for dumps. The other review probes record results but no state, and only need a rerun when the C# they probe changes.
 4. **Add new event types and tables.** A new event type needs a module and a `GameEventType` variant (glue does both), a line in the port-assignments table, and a row in `ported_types.txt` only if it is a static-data type. Check that `events.jsonl` contains it.
-5. **Rebuild the oracle and update its version gates.** Add every new `N` in `Version <op> N` to `VersionGates` in `Oracle/GameConfig.cs` (the second `csharp_sync` test lists the missing ones), then:
+5. **Rebuild the oracle and update its version gates.** The Rust engine supports only the latest game version (native-plan.md step 2), so a new `Version <op> N` check in Shared needs only its latest branch ported. Then:
    ```sh
    dotnet build -c Release treachery-online/Oracle/Treachery.Oracle.csproj
    dotnet treachery-online/Oracle/bin/Release/net10.0/Treachery.Oracle.dll enums --out rust/traces/sample/enums.json

@@ -53,8 +53,7 @@ impl Game {
         self.bid_sequence = Some(PlayerSequence::new_game(self));
         self.winning_bid = None;
 
-        let condition = self.version > 150;
-        self.enter_boolean_phase_action(condition, Phase::BeginningOfBidding, Game::start_bidding_phase);
+        self.enter(Phase::BeginningOfBidding, true);
     }
 
     /// C#: `internal void StartBiddingPhase()` (Game_Bidding.cs:68)
@@ -90,16 +89,6 @@ impl Game {
     pub fn start_regular_bidding(&mut self) {
         self.regular_bidding_is_done = true;
         let mut number_of_cards_to_draw = self.number_of_cards_on_auction;
-
-        if self.version <= 150 {
-            if self.is_playing(Faction::Richese)
-                && (self.version < 150
-                    || !self.richese_auction_should_still_happen
-                    || (self.richese_auction_should_still_happen && self.richese_cache.len() > 0))
-            {
-                number_of_cards_to_draw -= 1;
-            }
-        }
 
         if number_of_cards_to_draw > 0 && self.is_playing(Faction::Ixian) && !self.prevented(FactionAdvantage::IxianSelectingCardsOnAuction) {
             number_of_cards_to_draw += 1;
@@ -328,11 +317,11 @@ impl Game {
 
         let receiver = self.get_player(Some(payment_receiver));
         let receiver_and_ally_are_richese = self.player(initiator).ally == Faction::Richese && payment_receiver == Faction::Richese;
-        let total_amount = bid_amount.wrapping_add(if self.version >= 139 && receiver_and_ally_are_richese { 0 } else { bid_ally_contribution_amount });
+        let total_amount = bid_amount.wrapping_add(if receiver_and_ally_are_richese { 0 } else { bid_ally_contribution_amount });
 
         let emperor = self.get_player(Some(Faction::Emperor));
         let mut total_amount_received_by_emperor_instead_of_richese =
-            if self.version >= 165 && receiver_and_ally_are_richese && emperor.is_some() && !self.prevented(FactionAdvantage::EmperorReceiveBid) {
+            if receiver_and_ally_are_richese && emperor.is_some() && !self.prevented(FactionAdvantage::EmperorReceiveBid) {
                 bid_ally_contribution_amount
             } else {
                 0
@@ -494,17 +483,13 @@ impl Game {
             self.allow(FactionAdvantage::AtreidesBiddingPrescience);
         }
 
-        // C# parity: v151-158 enters ReplacingCardJustWon whenever anyone holds a Nexus card (hazards 18.2).
-        let mut enter_replacing_card_just_won = might_replace
-            && self.version > 150
-            && ((self.version < 159 && self.players.iter().any(|p| p.nexus != Faction::None))
-                || (self.version >= 159 && self.player(winner.nre()).nexus != Faction::None));
+        let mut enter_replacing_card_just_won = might_replace && self.player(winner.nre()).nexus != Faction::None;
 
         if might_replace {
             let winner = winner.nre();
             if self.player(winner).ally == Faction::Ixian
                 && self.ixian_allows_replacing_cards
-                && !(self.version >= 164 && matches!(self.current_auction_type, AuctionType::RicheseSilent | AuctionType::RicheseOnceAround))
+                && !matches!(self.current_auction_type, AuctionType::RicheseSilent | AuctionType::RicheseOnceAround)
             {
                 if !self.prevented(FactionAdvantage::IxianAllyDiscardingCard) {
                     self.faction_that_may_replace_bought_card = self.player(winner).faction;
@@ -560,19 +545,17 @@ impl Game {
         self.card_that_must_be_kept_or_given_to_ally = None;
 
         if self.ixian_may_swap_card_on_bid() {
-            if self.version < 113 || !self.prevented(FactionAdvantage::IxianSwappingCard) {
+            if !self.prevented(FactionAdvantage::IxianSwappingCard) {
                 self.enter(Phase::IxianSwappingCard, true);
             } else {
                 self.log_prevention_by_karma(FactionAdvantage::IxianSwappingCard);
                 if !self.applicable(Rule::FullPhaseKarma) {
                     self.allow(FactionAdvantage::IxianSwappingCard);
                 }
-                let condition = self.version >= 107 || self.is_playing(Faction::Atreides);
-                self.enter_boolean_phase_action(condition, Phase::WaitingForNextBiddingRound, Game::put_next_card_on_auction);
+                self.enter(Phase::WaitingForNextBiddingRound, true);
             }
         } else {
-            let condition = self.version >= 107 || self.is_playing(Faction::Atreides);
-            self.enter_boolean_phase_action(condition, Phase::WaitingForNextBiddingRound, Game::put_next_card_on_auction);
+            self.enter(Phase::WaitingForNextBiddingRound, true);
         }
     }
 
@@ -681,7 +664,7 @@ impl Game {
     /// C#: `internal bool NexusAllowsReplacingBoughtCards(Player p)` (Game_Bidding.cs:607)
     pub fn nexus_allows_replacing_bought_cards(&self, p: PlayerIndex) -> bool {
         let nexus = self.player(p).nexus;
-        (nexus == Faction::Ixian || (self.version < 159 && nexus == Faction::Richese)) && NexusPlayed::can_use_secret_ally(self, p)
+        nexus == Faction::Ixian && NexusPlayed::can_use_secret_ally(self, p)
     }
 
     /// C#: `public bool HasBidToPay(Player p)` (Game_Bidding.cs:613)

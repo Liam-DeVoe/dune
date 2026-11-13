@@ -1,1 +1,1 @@
-{"mode":"fuzz","masterSeed":2026,"start":18,"endReasons":{"gameEnded":1},"games":[{"index":18,"file":"fuzz-2026-00018.jsonl.gz","endReason":"gameEnded","detail":null,"steps":74,"historyCount":65,"version":116,"players":2,"hostStyle":"ServerHumanHost"}]}
+{"mode":"fuzz","masterSeed":2026,"start":18,"endReasons":{"gameEnded":1},"games":[{"index":18,"file":"fuzz-2026-00018.jsonl.gz","endReason":"gameEnded","detail":null,"steps":914,"historyCount":625,"version":188,"players":2,"hostStyle":"ServerHumanHost"}]}

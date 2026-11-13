@@ -59,7 +59,7 @@ impl PerformBeneGesseritPlacement {
 
     /// C#: `public static bool BeneGesseritMayPlaceFirstForceInAnyTerritory(Game g)` (Events/PerformBeneGesseritPlacement.cs:49)
     pub fn bene_gesserit_may_place_first_force_in_any_territory(g: &Game) -> bool {
-        g.applicable(Rule::BeneGesseritFirstForceInAnyTerritory) || (g.version >= 144 && g.applicable(Rule::BeneGesseritAdvisors))
+        g.applicable(Rule::BeneGesseritFirstForceInAnyTerritory) || g.applicable(Rule::BeneGesseritAdvisors)
     }
 
     /// C#: `public static IEnumerable<Location> ValidLocations(Game g)` (Events/PerformBeneGesseritPlacement.cs:54)
@@ -77,8 +77,7 @@ impl PerformBeneGesseritPlacement {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
         // A null Target (only without validation) is passed on as in C#: IsOccupied(null)
         // is false, ShipForces(null, 1) finds no homeworld to ship from, and `Target.Territory` throws.
-        let condition = (game.version <= 154 && game.is_occupied(self.target(game).or_null()))
-            || (game.version > 154 && game.is_occupied_territory(self.target(game).or_null().territory()));
+        let condition = game.is_occupied_territory(self.target(game).or_null().territory());
         if condition {
             // Player is read before Target, as in C#.
             let me = self.player();

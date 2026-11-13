@@ -30,14 +30,14 @@ impl AttachedLocation {
     }
 
     /// `PointAt(game, newLocation)`. C# passes the game only to read its
-    /// version, so pass `game.version` here:
+    /// version, which is always the latest:
     ///
     /// ```ignore
     /// // Game.Map.HiddenMobileStronghold.PointAt(Game, Target);
-    /// game.map.hidden_mobile_stronghold().point_at(&mut game.map, game.version, target);
+    /// game.map.hidden_mobile_stronghold().point_at(&mut game.map, target);
     /// ```
-    pub fn point_at(self, map: &mut Map, game_version: i32, new_location: Location) {
-        map.point_at(self.0, game_version, new_location);
+    pub fn point_at(self, map: &mut Map, new_location: Location) {
+        map.point_at(self.0, new_location);
     }
 }
 

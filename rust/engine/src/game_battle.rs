@@ -131,15 +131,9 @@ impl Game {
             }
         }
 
-        if self.version < 116 {
-            self.capture_leader_if_applicable();
-        }
-
         self.flip_bene_gesserit_advisors_when_alone();
-        if self.version >= 162 {
-            if let Some(territory) = current_battle.territory(self) {
-                self.determine_occupation(territory);
-            }
+        if let Some(territory) = current_battle.territory(self) {
+            self.determine_occupation(territory);
         }
 
         if let Some(bureaucracy) = self.battle_triggered_bureaucracy.clone() {
@@ -216,23 +210,9 @@ impl Game {
 
     /// C#: `internal bool HarkonnenMustDecideToCapture` (Game_Battle.cs:198)
     pub fn harkonnen_must_decide_to_capture(&self) -> bool {
-        self.version >= 116
-            && self.battle_winner == Some(Faction::Harkonnen)
+        self.battle_winner == Some(Faction::Harkonnen)
             && self.applicable(Rule::HarkonnenCapturesOrKillsLeaders)
             && !self.prevented(FactionAdvantage::HarkonnenCaptureLeader)
-    }
-
-    /// C#: `private void CaptureLeaderIfApplicable()` (Game_Battle.cs:200)
-    pub fn capture_leader_if_applicable(&mut self) {
-        if self.version >= 116 || self.battle_winner != Some(Faction::Harkonnen) || !self.applicable(Rule::HarkonnenCapturesOrKillsLeaders) {
-            return;
-        }
-
-        if !self.prevented(FactionAdvantage::HarkonnenCaptureLeader) {
-            self.capture_leader();
-        } else {
-            self.log_prevention_by_karma(FactionAdvantage::HarkonnenCaptureLeader);
-        }
     }
 
     /// C#: `internal void CaptureLeader()` (Game_Battle.cs:210)
@@ -314,7 +294,7 @@ impl Game {
         }
 
         if let Some(defense) = plan.defense() {
-            if defense.is_portable_antidote() || (self.version >= 158 && !(defense.is_weapon() || defense.is_defense() || defense.is_useless())) {
+            if defense.is_portable_antidote() || !(defense.is_weapon() || defense.is_defense() || defense.is_useless()) {
                 self.discard_treachery_card_boolean(plan.defense(), true);
             }
         }
@@ -328,18 +308,11 @@ impl Game {
             }
         }
 
-        if self.version >= 146 {
-            if let Some(melted) = self.current_rock_was_melted.clone() {
-                if melted.player() == plan.player() {
-                    // C# parity: from v146 to v178 this discards a Portable Antidote (hazards 18.2).
-                    let melted_card = self.player(melted.player()).card(if self.version >= 179 {
-                        TreacheryCardType::Rockmelter
-                    } else {
-                        TreacheryCardType::PortableAntidote
-                    });
-                    if melted_card.is_some() {
-                        self.discard_treachery_card_boolean(melted_card, true);
-                    }
+        if let Some(melted) = self.current_rock_was_melted.clone() {
+            if melted.player() == plan.player() {
+                let melted_card = self.player(melted.player()).card(TreacheryCardType::Rockmelter);
+                if melted_card.is_some() {
+                    self.discard_treachery_card_boolean(melted_card, true);
                 }
             }
         }
@@ -564,7 +537,7 @@ impl Game {
         }
 
         //DetermineIfLeaderUsedInBattleMustBeReleased
-        if self.version < 179 || !self.harkonnen_do_not_have_to_return_used_captured_leader {
+        if !self.harkonnen_do_not_have_to_return_used_captured_leader {
             let used_leader_in_battle = current_battle.plan_of(self, Some(harkonnen)).and_then(|p| p.hero());
             if let Some(leader) = used_leader_in_battle.and_then(|h| h.as_leader()) {
                 if self.captured_leaders.contains_key(&leader) {
@@ -867,17 +840,13 @@ impl Game {
                 if let Some(allied_player) = self.player(p).allied_player(self) {
                     let ap = self.player_mut(allied_player);
                     ap.resources = ap.resources.wrapping_sub(plan.ally_contribution_amount);
-                    if self.version >= 117 {
-                        let f = self.player(p).faction;
-                        self.decrease_permitted_use_of_ally_spice(f, plan.ally_contribution_amount);
-                    }
+                    let f = self.player(p).faction;
+                    self.decrease_permitted_use_of_ally_spice(f, plan.ally_contribution_amount);
                 }
             }
 
-            let mut dialled_resources_relevant_for_choam = cost.wrapping_sub(cost_to_choam).wrapping_sub(refunded_resources);
-            if self.version >= 155 {
-                dialled_resources_relevant_for_choam = dialled_resources_relevant_for_choam.wrapping_add(paid_by_arrakeen);
-            }
+            let dialled_resources_relevant_for_choam =
+                cost.wrapping_sub(cost_to_choam).wrapping_sub(refunded_resources).wrapping_add(paid_by_arrakeen);
 
             let receiver_profit = self.handle_choam_income(p, dialled_resources_relevant_for_choam, traitor_was_revealed);
 
@@ -900,7 +869,7 @@ impl Game {
 
         let choam = self.get_player(Some(Faction::Choam));
         if let Some(choam) = choam {
-            if self.player(paid_by).faction != Faction::Choam && (self.version < 126 || !traitor_was_revealed) {
+            if self.player(paid_by).faction != Faction::Choam && !traitor_was_revealed {
                 // (int)Math.Floor(0.5f * int): float multiply, then widened to double.
                 result = f64_to_i32(((0.5f32 * costs_excluding_payment_by_choam_ally as f32) as f64).floor());
 
@@ -954,9 +923,7 @@ impl Game {
                 .wrapping_sub(plan.forces_at_half_strength),
         );
 
-        if !self.may_substitute_force_losses(force_supplier)
-            || (self.version >= 164 && nr_of_special_force_losses_that_can_be_replaced_by_remaining_normal_forces == 0)
-        {
+        if !self.may_substitute_force_losses(force_supplier) || nr_of_special_force_losses_that_can_be_replaced_by_remaining_normal_forces == 0 {
             if plan.hero().is_some() && self.skilled_as(plan.hero().nre(), LeaderSkill::Graduate) {
                 special_forces_to_save_in_territory = std::cmp::min(special_forces_to_lose, 1);
                 forces_to_save_in_territory = std::cmp::max(0, std::cmp::min(forces_to_lose, 1 - special_forces_to_save_in_territory));
@@ -1025,7 +992,7 @@ impl Game {
 
     /// C#: `private bool MaySubstituteForceLosses(Player p)` (Game_Battle.cs:802)
     pub fn may_substitute_force_losses(&self, p: PlayerIndex) -> bool {
-        self.player(p).faction == Faction::Ixian && (self.version < 113 || !self.prevented(FactionAdvantage::IxianReplacingSpecialForces))
+        self.player(p).faction == Faction::Ixian && !self.prevented(FactionAdvantage::IxianReplacingSpecialForces)
     }
 
     /// C#: `internal void HandleForceLosses(Territory territory, Player player, int forcesLost, int specialForcesLost)` (Game_Battle.cs:807)
@@ -1404,10 +1371,8 @@ impl Game {
         }
 
         self.return_skilled_leaders_in_front_of_shield_after_battle();
-        if self.version >= 162 {
-            let territory = current_battle.territory(self).nre();
-            self.determine_occupation(territory);
-        }
+        let territory = current_battle.territory(self).nre();
+        self.determine_occupation(territory);
         if !self.applicable(Rule::FullPhaseKarma) {
             self.allow_prevented_battle_faction_advantages();
         }
@@ -1535,12 +1500,12 @@ impl Game {
 
         if may_choose_to_keep_one {
             if let Some(weapon) = plan.weapon() {
-                if self.version < 159 || self.player(p).has(Some(weapon)) {
+                if self.player(p).has(Some(weapon)) {
                     self.cards_to_be_discarded_by_loser_after_battle.push(weapon);
                 }
             }
             if let Some(defense) = plan.defense() {
-                if self.version < 159 || self.player(p).has(Some(defense)) {
+                if self.player(p).has(Some(defense)) {
                     self.cards_to_be_discarded_by_loser_after_battle.push(defense);
                 }
             }

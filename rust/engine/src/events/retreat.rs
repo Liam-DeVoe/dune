@@ -68,7 +68,7 @@ impl Retreat {
         if self.special_forces > Retreat::max_special_forces(game, p) {
             return Some(express!("You selected too many ", game.player(p).special_force()));
         }
-        if game.version >= 164 && self.forces.wrapping_add(self.special_forces) > Retreat::max_total_forces(game, p) {
+        if self.forces.wrapping_add(self.special_forces) > Retreat::max_total_forces(game, p) {
             return Some(express!("You selected too many forces"));
         }
         None

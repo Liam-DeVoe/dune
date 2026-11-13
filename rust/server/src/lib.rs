@@ -1,40 +1,31 @@
-//! Port of `treachery-online/Server`, the C# SignalR `GameHub`, to axum + tokio + sqlx.
+//! The treachery.online server: accounts, the lobby, running games and their bots, over one
+//! WebSocket per client (rust/docs/protocol.md), with SQLite for what must survive a restart.
+//! rust/docs/server.md describes how it fits together.
 //!
-//! Plan, inventory and package split: `rust/docs/server-plan.md`. Wire format:
-//! `rust/docs/protocol.md`.
-//!
-//! Layers, from the inside out:
-//!
-//! - [`hub`]: the port of the `GameHub` partial classes. Transport-free: every hub method
-//!   takes typed arguments and returns the C# result type, and sends [`clients::Callback`]s
-//!   (the C# `IGameClient` calls) through [`clients::Clients`]. This is the layer that must
-//!   be equivalent to C#, and the layer the equivalence harness drives.
-//! - [`db`]: the EF Core model (`Server/Data`) on sqlx, same SQLite schema.
-//! - [`model`]: the server types the C# keeps in `Shared/Model` (`ManagedGame`, `GameInfo`, ...).
-//! - [`transport`]: the wire format, the WebSocket and the web client's files. Thin and
-//!   replaceable.
-//! - [`views`]: the game-view layer: a view replica per game, `GameView` notifications, and the
-//!   view calls (`QueryDraft`, `RequestReport`, `RequestUndoList`). Never touches the hub's games
-//!   beyond reading their history.
-//! - [`dev`]: the development-only scene endpoint.
-//! - [`runtime`]: the hub thread that runs every hub call one at a time (see the plan,
-//!   "Concurrency"), and the axum app.
+//! - [`http`]: the process: the game thread and the HTTP server; [`socket`] is one WebSocket.
+//! - [`server`]: the state and every call's handling, on the game thread.
+//! - [`protocol`] and [`wire`]: the messages and the objects in them.
+//! - [`connections`]: which connection follows which game; notifications.
+//! - [`views`]: each participant's view of a game, built on a replica of it.
+//! - [`db`]: the database, and the conversion of the old C# server's database.
+//! - [`pause_rules`]: what each pause between phases waits for.
+//! - [`settings`], [`time`], [`timers`], [`mail`], [`ids`], [`participation`],
+//!   [`render`], [`static_files`].
 
-pub mod clients;
-pub mod clock;
-pub mod config;
+pub mod connections;
 pub mod db;
-pub mod dev;
-pub mod dotnet_string;
-pub mod hub;
-pub mod json;
-pub mod logged_in_user;
+pub mod http;
+pub mod ids;
 pub mod mail;
-pub mod model;
-pub mod net_time;
-pub mod phase_control;
+pub mod participation;
+pub mod pause_rules;
+pub mod protocol;
 pub mod render;
-pub mod runtime;
+pub mod server;
+pub mod settings;
+pub mod socket;
+pub mod static_files;
+pub mod time;
 pub mod timers;
-pub mod transport;
 pub mod views;
+pub mod wire;

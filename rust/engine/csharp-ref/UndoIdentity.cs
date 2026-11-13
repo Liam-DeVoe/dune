@@ -18,20 +18,6 @@ using Treachery.Shared;
 
 public static class UndoIdentity
 {
-    // Steps 0-6 of rust/traces/sample/fuzz-2026-00084.jsonl.gz (version 115, empty Participation).
-    // Step 0 throws after adding players, so the original game has players that a replay
-    // doesn't: replayed events whose initiator isn't seated keep the old game's Player.
-    public static readonly (string Json, bool IsHost)[] Trace84 =
-    [
-        ("""{"$type":"EstablishPlayers","Settings":{"NumberOfPlayers":5,"MaximumTurns":3,"InitialRules":[600,107,603,400,65,1015,998,109,401,120,601,602,1010],"AllowedFactionsInPlay":[80,90,40,50,20,10,70,110,100,30],"AutoOpenEmptySeats":true,"AsyncPlay":false,"AsyncPlayMessageIntervalMinutes":0},"Seed":1922928721,"MaximumNumberOfPlayers":5,"MaximumTurns":3,"ApplicableRules":[600,107,603,400,65,1015,998,109,401,120,601,602,1010],"_players":"","_factionsInPlay":"None","Initiator":0,"Time":"2024-01-01T12:01:49+00:00"}""", true),
-        ("""{"$type":"EstablishPlayers","Settings":{"NumberOfPlayers":5,"MaximumTurns":3,"InitialRules":[600,107,603,400,65,1015,998,109,401,120,601,602,1010],"AllowedFactionsInPlay":[80,90,40,50,20,10,70,110,100,30],"AutoOpenEmptySeats":true,"AsyncPlay":false,"AsyncPlayMessageIntervalMinutes":0},"Seed":1922928721,"MaximumNumberOfPlayers":5,"MaximumTurns":3,"ApplicableRules":[600,107,603,400,65,1015,998,109,401,120,601,602,1010],"_players":"","_factionsInPlay":"Tleilaxu,Choam,Emperor,Guild,Atreides,Fremen,Ixian,Ecaz,Richese,Harkonnen","Initiator":0,"Time":"2024-01-01T12:02:36+00:00"}""", true),
-        ("""{"$type":"EndPhase","Initiator":0,"Time":"2024-01-01T12:04:30+00:00"}""", true),
-        ("""{"$type":"TraitorsSelected","_traitorId":1045,"Initiator":20,"Time":"2024-01-01T12:05:41+00:00"}""", false),
-        ("""{"$type":"TraitorsSelected","_traitorId":1049,"Initiator":0,"Time":"2024-01-01T12:06:10+00:00"}""", false),
-        ("""{"$type":"TraitorsSelected","_traitorId":1026,"Initiator":100,"Time":"2024-01-01T12:06:29+00:00"}""", false),
-        ("""{"$type":"TraitorsSelected","_traitorId":1049,"Initiator":90,"Time":"2024-01-01T12:07:08+00:00"}""", false),
-    ];
-
     // Step 0 of fuzz seed 100 game 64: eight players including BeneGesserit, with BeneGesseritAdvisors.
     public const string BeneGesseritEstablish =
         """{"$type":"EstablishPlayers","Settings":{"NumberOfPlayers":8,"MaximumTurns":5,"InitialRules":[209,1013,600,110,998,300,10000,10001,212,70],"AllowedFactionsInPlay":[60,100,50,120,80,40,110,90,20,10],"AutoOpenEmptySeats":true,"AsyncPlay":false,"AsyncPlayMessageIntervalMinutes":0},"Seed":1450467322,"MaximumNumberOfPlayers":8,"MaximumTurns":5,"ApplicableRules":[209,1013,600,110,998,300,10000,10001,212,70],"_players":"","_factionsInPlay":"BeneGesserit,Richese,Guild,Moritani,Tleilaxu,Emperor,Ecaz,Choam,Atreides,Fremen","Initiator":0,"Time":"2024-01-01T12:00:55+00:00"}""";
@@ -81,7 +67,7 @@ public static class UndoIdentity
     }
 
     // The two events of ReviewA (3 players, version 187).
-    private static Game Base() => Run(new Game(187, ReviewParticipation()), [(ReviewA.Establish, true), (ReviewA.EndPhase, true)]);
+    private static Game Base() => Run(new Game(Game.LatestVersion, ReviewParticipation()), [(ReviewA.Establish, true), (ReviewA.EndPhase, true)]);
 
     private static void Set(object target, string property, object? value) =>
         target.GetType().GetProperty(property, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!.SetValue(target, value);
@@ -124,19 +110,6 @@ public static class UndoIdentity
             var r2 = r1.RestoreRecentlyUndone();
             P("undo2.restore2.is_g", ReferenceEquals(r2, g));
             P("undo2.restore2.dump", Dump(r2));
-        }
-
-        // A replayed event keeps the old game's Player when its initiator isn't seated in the new game.
-        {
-            var g = Run(new Game(115, new Participation()), Trace84);
-            P("retained.original.dump", Dump(g));
-            var u = g.Undo(4);
-            P("retained.undo.dump", Dump(u));
-            P("retained.undo.history3_player_is_old", g.Players.Any(p => ReferenceEquals(p, u.History[3].Player)));
-            P("retained.undo.history3_player_is_new", u.Players.Any(p => ReferenceEquals(p, u.History[3].Player)));
-            P("retained.restore.dump", Dump(u.RestoreRecentlyUndone()));
-            var u2 = Run(new Game(115, new Participation()), Trace84).Undo(4);
-            P("retained.dismiss.dump", Dump(u2.DismissRecentlyUndone()));
         }
 
         // pkg-a item 1: code that reads .Player of an event the restored game holds.
@@ -195,8 +168,7 @@ public static class UndoIdentity
             P("site.reinforcements.dump", Dump(r));
         }
 
-        // Map objects of another game handed back to this one, and a stored event of the
-        // undo game that keeps a player of this game (the third game seen from the undo game).
+        // Map objects of another game handed back to this one.
         {
             var bg = Base();
             var bu = bg.Undo(1);
@@ -209,17 +181,6 @@ public static class UndoIdentity
             br.LeaderState[leader].CurrentTerritory = l.Territory;
             P("handed_back.dump", Dump(br));
 
-            var g = Run(new Game(115, new Participation()), Trace84);
-            var u = g.Undo(4);
-            var r = u.RestoreRecentlyUndone();
-
-            // Richese is not seated in the undo game, so the event keeps this game's player.
-            var b = new BattleInitiated(r, Faction.Richese) { Target = Faction.Atreides };
-            b.Initialize(u);
-            P("third.player_is_restored_games", r.Players.Contains(b.Player));
-            P("third.is_involved_atreides", b.IsInvolved(Faction.Atreides));
-            P("third.is_involved_richese", b.IsInvolved(Faction.Richese));
-            P("third.opponent_of_atreides_is_null", b.OpponentOf(Faction.Atreides) == null);
         }
 
         // Members of stored events that read their own Game, after a restore.
@@ -273,7 +234,7 @@ public static class UndoIdentity
         // creates a new one keyed by the other map's location; where it doesn't, the
         // existing key of this map stays. Fuzz seed 100 game 64, step 561.
         {
-            var g = Run(new Game(187, new Participation()), [(BeneGesseritEstablish, true), (ReviewA.EndPhase, true)]);
+            var g = Run(new Game(Game.LatestVersion, new Participation()), [(BeneGesseritEstablish, true), (ReviewA.EndPhase, true)]);
             var u = g.Undo(1);
             var r = u.RestoreRecentlyUndone();
             var bene_gesserit = r.GetPlayer(Faction.BeneGesserit)!;
@@ -314,7 +275,7 @@ public static class UndoIdentity
         // pkg-a item 2: Participation is shared, not copied.
         {
             var part = new Participation();
-            var g = new Game(187, part);
+            var g = new Game(Game.LatestVersion, part);
             part.Hosts.Add(7);
             P("participation.caller_alias.is_host7", g.IsHost(7));
             var u = g.Undo(0);

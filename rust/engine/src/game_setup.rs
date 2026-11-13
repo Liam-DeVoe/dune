@@ -28,14 +28,9 @@ impl Game {
 
     /// C#: `internal void AssignFactionsAndEnterFactionTrade()` (Game_Setup.cs:34)
     pub fn assign_factions_and_enter_faction_trade(&mut self) {
-        // Version < 174 reads the list shared with the settings (hazards 5.1). The Deck
-        // constructor copies its source, so evaluating the filter here is equivalent.
-        let available_factions: Vec<Faction> = if self.version < 174 {
-            self.factions_in_play.borrow().clone()
-        } else {
-            let all = self.factions_in_play.borrow().clone();
-            all.into_iter().filter(|f| !self.is_playing(*f)).collect()
-        };
+        // The Deck constructor copies its source, so evaluating the filter here is equivalent.
+        let all = self.factions_in_play.borrow().clone();
+        let available_factions: Vec<Faction> = all.into_iter().filter(|f| !self.is_playing(*f)).collect();
         let mut selectable = Deck::new(available_factions, self.random.clone());
         self.stone(Milestone::Shuffled);
         selectable.shuffle();
@@ -47,12 +42,7 @@ impl Game {
             }
         }
 
-        if self.version < 172 {
-            self.determine_positions_at_table();
-        }
-
-        let condition = self.applicable(Rule::CustomDecks) && self.version < 134;
-        self.enter_boolean_phase_action(condition, Phase::CustomizingDecks, Game::enter_phase_trading_factions);
+        self.enter_phase_trading_factions();
     }
 
     /// C#: `internal void DeterminePositionsAtTable()` (Game_Setup.cs:52)
@@ -82,7 +72,7 @@ impl Game {
     pub fn enter_setup_phase(&mut self) {
         // C# parity: this Enter is overwritten by the Enter at the end of this method, but
         // its side effects (deal cleanup, or EnterPhaseTradingFactions) still happen.
-        let condition = self.applicable(Rule::CustomDecks) && self.version >= 134;
+        let condition = self.applicable(Rule::CustomDecks);
         self.enter_boolean_phase_action(condition, Phase::CustomizingDecks, Game::enter_phase_trading_factions);
 
         self.current_trade_offers.clear();
@@ -481,6 +471,6 @@ impl Game {
 
     /// C#: `internal bool TreacheryCardsBeforeTraitors` (Game_Setup.cs:363)
     pub fn treachery_cards_before_traitors(&self) -> bool {
-        self.version >= 121 && self.applicable(Rule::LeaderSkills)
+        self.applicable(Rule::LeaderSkills)
     }
 }

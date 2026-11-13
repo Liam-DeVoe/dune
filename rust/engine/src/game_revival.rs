@@ -33,10 +33,6 @@ impl Game {
             return 0;
         }
 
-        if self.version < 181 && self.free_revivals_this_turn.contains_key(&p.faction) {
-            return 0;
-        }
-
         let mut nr_of_free_revivals: i32 = 0;
 
         match p.faction {
@@ -56,19 +52,10 @@ impl Game {
             _ => {}
         }
 
-        if self.version < 176 && self.current_recruits_played.is_some() {
-            nr_of_free_revivals *= 2;
-        }
-
         if (p.ally == Faction::Fremen && self.fremen_allows_three_free_revivals)
             || self.current_fremen_secret_ally.as_ref().is_some_and(|e| e.player_opt() == Some(player))
         {
             nr_of_free_revivals = 3;
-        }
-
-        // C# parity: at v179 this and the `>= 179` check below both apply, so Recruits doubles twice (hazards 18).
-        if (176..=179).contains(&self.version) && self.current_recruits_played.is_some() {
-            nr_of_free_revivals *= 2;
         }
 
         if uses_emperor_secret_ally {
@@ -79,7 +66,7 @@ impl Game {
             nr_of_free_revivals += 1;
         }
 
-        if self.version >= 179 && self.current_recruits_played.is_some() {
+        if self.current_recruits_played.is_some() {
             nr_of_free_revivals *= 2;
         }
 

@@ -1,1 +1,1 @@
-{"mode":"fuzz","masterSeed":2026,"start":13,"endReasons":{"stalled":1},"games":[{"index":13,"file":"fuzz-2026-00013.jsonl.gz","endReason":"stalled","detail":"too many consecutive rejected events","steps":1273,"historyCount":90,"version":183,"players":7,"hostStyle":"ServerBotsHost"}]}
+{"mode":"fuzz","masterSeed":2026,"start":13,"endReasons":{"stalled":1},"games":[{"index":13,"file":"fuzz-2026-00013.jsonl.gz","endReason":"stalled","detail":"too many consecutive rejected events","steps":1273,"historyCount":90,"version":188,"players":7,"hostStyle":"ServerBotsHost"}]}

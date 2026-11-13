@@ -153,10 +153,7 @@ same file every time. The fixtures that exist today predate that, so
 regenerating one produces a different game in the same situation; do it
 only when the scenario that uses it changes. `worm-ride-ssw.json` was made
 by hand from `worm-ride.json` by adding rule 105 and has no generator.
-`alliance-before.json` and `alliance-allied-before.json` are `alliance` and `alliance-allied`
-at game version 187, for the `--before` shots of `scenarios/alliance.py` (in 187 the host ends
-the alliance phase). The Rust view tests read them too. `just compare` skips them, because the
-scene page plays only the latest version. The
+Every fixture is at the latest game version; the engine loads no other. The
 reskin screenshots in `design/before` and `design/after` were also taken
 by hand, not by a scenario.
 

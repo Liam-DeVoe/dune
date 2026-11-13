@@ -85,7 +85,7 @@ public static class ReviewI
     /// <summary>Replays steps 0..last, as the oracle did: queries, the event, then GetApplicableEvents for everyone.</summary>
     public static Game Prefix(int last)
     {
-        var g = new Game(187, Part());
+        var g = new Game(Game.LatestVersion, Part());
         foreach (var s in Steps())
         {
             var n = s.GetProperty("n").GetInt32();

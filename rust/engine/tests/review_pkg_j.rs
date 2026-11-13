@@ -38,7 +38,7 @@ fn new_game() -> Game {
     let mut p = Participation::new();
     p.player_names.insert(100, "Human100".to_string());
     p.seated_players.insert(100, 2);
-    let mut g = Game::new_int32_participation(187, &cs::Shared::new(p));
+    let mut g = Game::new_int32_participation(Game::LATEST_VERSION, &cs::Shared::new(p));
     let e: GameEvent = json::deserialize(ESTABLISH).expect("event json");
     e.initialize_game(&g);
     assert!(e.execute(&mut g, true, true).is_none(), "establish rejected");
@@ -153,9 +153,9 @@ fn hash(g: &Game) -> String {
 /// The phase is set directly (Contemplate), as `ReviewJ.cs` does by reflection.
 ///
 /// Probe: `richese_gave.result = null`, `richese_gave.choam_hand = [null]`,
-/// `richese_gave.hash = 754f...`, `richese_gave.nexus_result = null`,
+/// `richese_gave.hash = 63ee...`, `richese_gave.nexus_result = null`,
 /// `richese_gave.nexus_history = 3`, `richese_gave.nexus_choam_hand = [null]`,
-/// `richese_gave.nexus_atreides_nexus = None`, `richese_gave.nexus_hash = 0d4b...`.
+/// `richese_gave.nexus_atreides_nexus = None`, `richese_gave.nexus_hash = 8dcd...`.
 #[test]
 fn richese_gave_null_card_then_nexus_choam_betrayal() {
     let mut g = new_game();
@@ -173,14 +173,14 @@ fn richese_gave_null_card_then_nexus_choam_betrayal() {
     let r = exec(&mut g, r#"{"$type":"RicheseGaveCard","_cardId":-1,"Initiator":100,"Time":"2024-01-01T12:02:40+00:00"}"#);
     assert_eq!(r, None);
     assert_eq!(g.players[b].treachery_cards, vec![TreacheryCard::NULL]);
-    assert_eq!(hash(&g), "3703c926c3cec5f66c0b8f77aaa4ee6a82a52160e74950357bb1acedd9b50c8c", "state before the Nexus card");
+    assert_eq!(hash(&g), "63ee120ad2c13884acfe9287b9172c4f991b5ea199b6954d63502bbb639ffff3", "state before the Nexus card");
 
     let r = exec(&mut g, r#"{"$type":"NexusPlayed","Faction":90,"Initiator":20,"Time":"2024-01-01T12:02:41+00:00"}"#);
     assert_eq!(r, None, "C# accepts the betrayal and skips the null card");
     assert_eq!(g.history.len(), 3);
     assert_eq!(g.players[b].treachery_cards, vec![TreacheryCard::NULL]);
     assert_eq!(g.players[gr].nexus, Faction::None);
-    assert_eq!(hash(&g), "ff6e07b67926fdf83448c0ad32ec2a604433479f22e5a820e880733c7d983012");
+    assert_eq!(hash(&g), "8dcdbe046cddad8e36eb78dd043c618d58e02026594173fab94f3bdf913a36cd");
 }
 
 // ---- SHA-256 (the engine crate has no hashing dependency; copied from review_pkg_i.rs) ----

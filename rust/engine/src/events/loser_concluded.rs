@@ -130,9 +130,7 @@ impl LoserConcluded {
         if !game.is_alive(Hero::Leader(target)) || !game.player(winner.nre()).leaders.contains(&target) {
             return None;
         }
-        if game.version < 187 {
-            Some(target.cost_to_revive())
-        } else if target.hero_type() == HeroType::VariableValue {
+        if target.hero_type() == HeroType::VariableValue {
             Some(3)
         } else {
             Some(target.cost_to_revive())
@@ -310,8 +308,11 @@ impl LoserConcluded {
 
         if game.battle_was_concluded_by_winner {
             let condition1 = !self.is_playing(game, Faction::Tleilaxu) || game.battle_winner == Some(Faction::Tleilaxu);
-            let condition2 = game.version <= 150;
-            game.enter_boolean_action_boolean_phase_phase(condition1, Game::finish_battle, condition2, Phase::Facedancing, Phase::RevealingFacedancer);
+            if condition1 {
+                Game::finish_battle(game);
+            } else {
+                game.enter(Phase::RevealingFacedancer, true);
+            }
         }
     }
 

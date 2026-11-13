@@ -4,19 +4,19 @@ The Rust server and the React client talk JSON over one WebSocket. The server is
 
 This document has two owners:
 
-- **Everything except "Game view"** (connection, envelope, accounts, lobby, seating, chat, admin, notifications) is owned by the server plan, [server-plan.md](server-plan.md). These parts mirror the C# hub (`Server/GameHub*.cs`, `Shared/Model/IGameHub.cs`, `Shared/Model/IGameClient.cs`) one to one, because their server logic must stay equivalent to the C# server.
+- **Everything except "Game view"** (connection, envelope, accounts, lobby, seating, chat, admin, notifications) belongs to the server, [server.md](server.md). The method and member names still follow the C# hub the protocol started from, so the web client didn't have to change when the server was rewritten.
 - **[Game view](#game-view)** (what each participant sees, the actions they can take and their valid choices, and the queries the client makes while filling in an action) is owned by the client-architecture agent.
 
 ## Connection
 
 - Endpoint: `GET /ws`, upgraded to a WebSocket, on the origin that serves the client.
 - Each message is one UTF-8 text frame holding one JSON object. A binary frame closes the connection.
-- Incoming messages are limited to 4 MiB (4194304 bytes), the C# `MaximumReceiveMessageSize`. A larger frame closes the connection.
-- Keepalive: the server sends a WebSocket ping every 15 s and closes a connection it has heard nothing from for 30 s (SignalR's defaults). Browsers answer pings on their own. A client may also send `{"type":"ping"}`, which the server ignores.
-- The server gives each connection an internal id, like a SignalR `ConnectionId`. Joining, observing or reconnecting to a game adds the *current connection* to that game's group, and the server records which user it belongs to so it can send that user's view. After a new WebSocket is opened, the client calls `RequestReconnectGame` again, as the C# client does.
-- When a WebSocket closes, the server removes that connection from every game group. Nothing else changes: the user stays logged in and stays seated.
+- Incoming messages are limited to 4 MiB (4194304 bytes). A larger frame closes the connection.
+- Keepalive: the server sends a WebSocket ping every 15 s and closes a connection it has heard nothing from for 30 s. Browsers answer pings on their own. A client may also send `{"type":"ping"}`, which the server ignores.
+- Creating, joining, observing or reconnecting to a game makes the *current connection* follow that game (the game's group), as the user who called. After a new WebSocket is opened, the client calls `RequestReconnectGame` again.
+- When a WebSocket closes, the connection stops following every game. Nothing else changes: the user stays logged in and stays seated.
 - A frame that is not a JSON object with a known `type`, or a call without a non-negative integer `id`, closes the connection. A call with an unknown method or arguments that don't decode gets an `error` reply.
-- The same origin serves the web client's files (`WebRoot`, by default `web/dist`) and the C# client's shared assets (`SharedAssetsRoot`, by default `treachery-online/Client/wwwroot`, for `/art`, `/css`, `/fonts`, `/js`, `/docs`), and `index.html` for any other path without a file extension. Development only, with the `DevScene` setting `true`: `POST /dev/scene {"fixture","faction"}` (client-plan.md, Comparing with the C# client) answers `{"userToken","gameId","userId"}`.
+- The same origin serves the web client's files (`TREACHERY_WEB_ROOT`, by default `web/dist`) and the shared assets (`TREACHERY_ASSETS_ROOT`, for `/art`, `/css`, `/fonts`, `/js`, `/docs`), and `index.html` for any other path without a file extension. Development only, with `TREACHERY_DEV_SCENE=true`: `POST /dev/scene {"fixture","faction"}` (client-plan.md, Comparing with the C# client) answers `{"userToken","gameId","userId"}`.
 
 ## Envelope
 
@@ -37,7 +37,7 @@ Server to client, the reply to one call:
 {"type":"reply","id":7,"error":"Unknown method 'RequestFoo'"}
 ```
 
-- `result` is the method's result, a `Result` object (below). Application errors such as a wrong password or an invalid event are a `result` with `"Success":false`, exactly as the C# hub returns them.
+- `result` is the method's result, a `Result` object (below). Application errors such as a wrong password or an invalid event are a `result` with `"Success":false`.
 - `error`, a string in place of `result`, means the call itself failed: unknown method, wrong arguments, or an exception inside the server. The text is for logs.
 
 Server to client, a notification:
@@ -48,30 +48,30 @@ Server to client, a notification:
 
 Ordering:
 
-- The server handles calls one at a time, in the order they arrive (see [server-plan.md](server-plan.md#concurrency)).
+- The server handles calls one at a time, in the order they arrive (see [server.md](server.md#threads)).
 - Notifications caused by a call reach the caller before that call's reply.
 - Notifications can also arrive without a call of yours: other users' actions, timers.
 
 ## Encoding
 
-Payloads use the System.Text.Json encoding of the C# `Utilities.Serialize` (`IncludeFields = true`): C# member names in PascalCase, members in .NET's order, enums as numbers. The engine implements it byte for byte (`engine/src/json.rs`), and events submitted with `SubmitEvent` must be in this format.
+Payloads have member names in PascalCase and enums as numbers. Events and game settings are in the savegame format the engine reads and writes (`engine/src/json.rs`); events submitted with `SubmitEvent` must be in this format.
 
-| C# type | JSON |
+| Type | JSON |
 |---|---|
 | `string` | string, or `null` where marked `string?` |
 | `int`, `bool` | number, `true`/`false` |
 | enum (`Faction`, `Ruleset`, `ErrorType`, `UserStatus`, ...) | number. Values are in `engine/src/enumerations.rs` |
-| `DateTimeOffset` | string as .NET writes it, such as `"2026-09-18T00:14:35.622405-04:00"` |
+| time | RFC 3339 string. The server writes UTC with microseconds, `"2026-09-18T04:14:35.622405Z"`, and reads any offset; a time without one is UTC |
 | `List<T>`, `T[]`, `HashSet<T>` | array |
-| `Dictionary<int, V>` | array of `[key, value]` pairs in the dictionary's order: `[[12,3],[5,0]]`. Unlike C#'s object form, this keeps the server's order through `JSON.parse`, which would sort integer keys. Arguments may also use the object form. The database and the equivalence transcripts keep the object form |
+| `Dictionary<int, V>` | array of `[key, value]` pairs in the server's order: `[[12,3],[5,0]]`. An object would lose that order, because `JSON.parse` sorts integer keys. Arguments may also use the object form |
 | `GameEvent` | `{"$type":"Bid", ...members}`, the savegame format |
 | `GameSettings` | the savegame format |
 
-On input, member order doesn't matter (except that `$type` comes first in an event), unknown members are ignored, and missing members keep their C# defaults.
+On input, member order doesn't matter (except that `$type` comes first in an event), unknown members are ignored, and missing members keep their defaults.
 
 ### Result
 
-`Result<T>` (`Shared/Model/Result.cs`):
+Every call answers with a `Result`:
 
 ```json
 {"Success":false,"Error":1,"ErrorDetails":"","Contents":null}
@@ -79,24 +79,24 @@ On input, member order doesn't matter (except that `$type` comes first in an eve
 
 A void result has `"Contents":{}` on success. `ErrorType` values: `None` 0, `UserNotFound` 1, `GameNotFound` 2, `GameIdNotFound` 3, `ScheduledGameNotFound` 4, `UserNameTooShort` 5, `UserNameTooLong` 6, `UserNameExists` 7, `UserTokenNotFound` 8, `EmailExists` 9, `PlayerNameTooShort` 10, `PlayerNameTooLong` 11, `UserCreationFailed` 12, `InvalidGameVersion` 13, `InvalidUserNameOrPassword` 14, `NotAdmin` 15, `UnknownUsernameOrEmailAddress` 16, `NoEmailAddressForUser` 17, `ResetRequestTooSoon` 18, `UnknownUserName` 19, `InvalidResetToken` 20, `ResetTokenExpired` 21, `NoHost` 22, `InvalidGameEvent` 23, `TooManyGames` 24, `TooManyScheduledGames` 25, `IncorrectGamePassword` 26, `SeatNotAvailableNotOpen` 27, `SeatNotAvailableKicked` 28, `AlreadyObserver` 29, `CannotRemoveLastHost` 30, `NoCreator` 31, `AlreadyPlayer` 32, `UserNotInGame` 33.
 
-For `InvalidGameEvent`, `ErrorDetails` is the validation message rendered as text, as the C# server sends it.
+For `InvalidGameEvent`, `ErrorDetails` is the validation message rendered as text.
 
 ### Payload objects
 
-Members in the order the server writes them. Sources are under `Shared/`.
+Members in the order the server writes them (`rust/server/src/wire.rs`).
 
 | Object | Members |
 |---|---|
-| `LoginInfo` (`Model/LoginInfo.cs`) | `UserId`, `Token`, `PlayerName`, `UserName`, `Email` |
-| `GameInfo` (`Events/GameInfo.cs`), one game in the lobby | `CreatorId`, `CreatorUsername`, `CreationDate`, `GameId`, `HasPassword`, `Name`, `MaxPlayers`, `MaxTurns`, `MainPhase`, `Phase`, `Turn`, `NrOfBots`, `NrOfPlayers`, `FactionsInPlay` [Faction], `Ruleset`, `LastActivity` (nullable), `SeatedPlayers` [[userId, seat]], `AvailableSeats` [`{Seat, Faction, IsBot}`] |
+| `LoginInfo` | `UserId`, `Token`, `PlayerName`, `UserName`, `Email` |
+| `GameInfo`, one game in the lobby | `CreatorId`, `CreatorUsername`, `CreationDate`, `GameId`, `HasPassword`, `Name`, `MaxPlayers`, `MaxTurns`, `MainPhase`, `Phase`, `Turn`, `NrOfBots`, `NrOfPlayers`, `FactionsInPlay` [Faction], `Ruleset`, `LastActivity` (nullable), `SeatedPlayers` [[userId, seat]], `AvailableSeats` [`{Seat, Faction, IsBot}`] |
 | `ScheduledGameInfo` | `ScheduledGameId`, `DateTime`, `CreatorUserId`, `CreatorName`, `NumberOfPlayers` (nullable), `MaximumTurns` (nullable), `Ruleset` (nullable), `AsyncPlay`, `AllowedFactionsInPlay` [Faction], `Subscribers` [[userId, SubscriptionType]], `SubscriberNames` [[userId, name]] |
 | `LoggedInUserInfo` | `Id`, `Name`, `Status` (UserStatus), `LastSeen` (nullable) |
-| `ServerStatus` (`Model/ServerStatus.cs`), the lobby | `RunningGames` [GameInfo], `OwnGames` [GameInfo], `ScheduledGames` [ScheduledGameInfo], `RecentlySeenUsers` [LoggedInUserInfo] |
-| `Participation` (`Model/Participation.cs`) | `PlayerNames` [[userId, name]], `SeatedPlayers` [[userId, seat]], `Observers` [userId], `Hosts` [userId], `AvailableSeats` [seat], `Kicked` [userId], `BotsSpeed` |
-| `PhaseControlInfo` (`Model/PhaseControlInfo.cs`) | `Active` (false: the host alone continues this phase), `WaitingFor` [seat], `Countdown`, `CountdownEnds` (nullable; set while the countdown runs and nobody holds it), `Holding` [seat] |
-| `GameInitInfo` (`Model/GameInitInfo.cs`) | `GameId`, `GameName` (nullable), `Participation`, `PhaseControl` (nullable; set in the replies to join, observe, reconnect and game state). The C# version also carried the whole savegame in `GameState`; that is gone, the client gets a [game view](#game-view) instead |
+| `ServerStatus`, the lobby | `RunningGames` [GameInfo], `OwnGames` [GameInfo], `ScheduledGames` [ScheduledGameInfo], `RecentlySeenUsers` [LoggedInUserInfo] |
+| `Participation` | `PlayerNames` [[userId, name]], `SeatedPlayers` [[userId, seat]], `Observers` [userId], `Hosts` [userId], `AvailableSeats` [seat], `Kicked` [userId], `BotsSpeed` |
+| `PhaseControlInfo` | `Active` (false: the host alone continues this phase), `WaitingFor` [seat], `Countdown`, `CountdownEnds` (nullable; set while the countdown runs and nobody holds it), `Holding` [seat] |
+| `GameInitInfo` | `GameId`, `GameName`, `Participation`, `PhaseControl` (nullable; set in the replies to join, observe, reconnect and game state). The client gets a [game view](#game-view) for the game itself |
 | `ServerInfo` | `ScheduledMaintenance`, `AdminName` |
-| `AdminInfo` | `Users` [`{Id, Username, Email, LastLogin, PlayerName}`], `UsersByUserTokenCount`, `ConnectionInfoByUserIdCount`, `GamesByGameIdCount` |
+| `AdminInfo` | `Users` [`{Id, Username, Email, LastLogin, PlayerName}`], `UsersByUserTokenCount` (sessions), `ConnectionInfoByUserIdCount` (users with a connection that follows a game), `GamesByGameIdCount` (running games) |
 | `GameChatMessage` | `TargetUserId` (negative: everyone), `SourceUserId`, `Body` |
 | `GlobalChatMessage` | `SourceUserId`, `Body` |
 
@@ -120,7 +120,7 @@ Members in the order the server writes them. Sources are under `Shared/`.
 | `RequestSetUserStatus` | userToken, status | `ServerStatus` (scope Active) |
 | `RequestHeartbeat` | userToken, scope (GameListScope: None 1, Active 2, All 3) | `ServerStatus` |
 
-Passwords are hashed by the client, as now, and the server stores the hash as sent. The hash must be the C# client's `Support.GetHash` (Client/Support.cs:29), or existing accounts can't log in: SHA-256 of the password's UTF-8 bytes, as 64 lowercase hex digits (in the browser, `crypto.subtle.digest("SHA-256", new TextEncoder().encode(password))`; both encoders turn a lone surrogate into U+FFFD). `RequestUpdateUserInfo` takes the same hash, or an empty string to keep the password. The client should send `RequestHeartbeat` every few seconds, as the C# client does: the server runs its housekeeping from heartbeats, and the user list only shows users seen in the last minute.
+Passwords are hashed by the client, and the server stores the hash as sent. Existing accounts need the hash the C# client used: SHA-256 of the password's UTF-8 bytes, as 64 lowercase hex digits (in the browser, `crypto.subtle.digest("SHA-256", new TextEncoder().encode(password))`). `RequestUpdateUserInfo` takes the same hash, or an empty string to keep the password. Each login starts a session; a session lasts 90 days. The client should send `RequestHeartbeat` every few seconds: the user list only shows users seen in the last minute.
 
 ### Lobby and game management
 
@@ -128,7 +128,7 @@ Passwords are hashed by the client, as now, and the server stores the hash as se
 |---|---|---|
 | `RequestCreateGame` | name, userToken, hashedPassword, stateData (a savegame, or empty for a new game), skinData (or empty) | `GameInitInfo` |
 | `RequestLoadGame` | userToken, gameId, state (savegame), skin `string?` | void. Host only |
-| `RequestUpdateSettings` | userToken, gameId, settings | void. Creator only. Any rules are taken, as in C# |
+| `RequestUpdateSettings` | userToken, gameId, settings | void. Creator only. Any rules are taken |
 | `RequestCloseGame` | userToken, gameId | `ServerStatus`. Creator only |
 | `RequestGameState` | userToken, gameId | `GameInitInfo`, and resends the caller's game view |
 | `RequestScheduleGame` | userToken, dateTime, ruleset (nullable), numberOfPlayers, maximumTurns, allowedFactionsInPlay [Faction], asyncPlay | `ServerStatus` |
@@ -141,7 +141,7 @@ Passwords are hashed by the client, as now, and the server stores the hash as se
 |---|---|---|
 | `RequestJoinGame` | userToken, gameId, hashedPassword, seat (-1: no particular seat) | `GameInitInfo` |
 | `RequestObserveGame` | userToken, gameId, hashedPassword | `GameInitInfo` |
-| `RequestReconnectGame` | userToken, gameId | `GameInitInfo` (without `GameName`) |
+| `RequestReconnectGame` | userToken, gameId | `GameInitInfo` |
 | `RequestLeaveGame` | userToken, gameId | `ServerStatus` |
 | `RequestSetOrUnsetHost` | userToken, gameId, userId | void. Host only |
 | `RequestOpenOrCloseSeat` | userToken, gameId, seat | void. Host only |
@@ -167,11 +167,11 @@ Creating, joining, observing and reconnecting to a game, and `RequestGameState`,
 | `RequestPhaseRelease` | userToken, gameId | void. Players only. Stops holding |
 | `RequestPhaseContinue` | userToken, gameId, eventNumber | void. Host only. Ends the current pause, but only while the game has `eventNumber` events, so a click that arrives after the server already continued does nothing |
 
-`SubmitEvent` replaces the C# hub's 140 `Request<EventType>` methods, one per event type (`AutomationConfigured` included), which all did the same thing. The event is a `GameEvent` in the savegame format, with `$type` set to the event class and `Initiator` set to the submitter's faction. The server sets `Time`, validates and executes it, and on success sends every participant a new view. A failed validation is `InvalidGameEvent` with the message in `ErrorDetails`, rendered with the default skin and followed by `*` as the C# server sends it.
+The event is a `GameEvent` in the savegame format, with `$type` set to the event class and `Initiator` set to the submitter's faction. The server sets `Time`, validates and executes it, and on success sends every participant a new view. A failed validation is `InvalidGameEvent` with the message in `ErrorDetails`, rendered with the default skin.
 
-Pauses between phases continue on their own. After each event the server works out who the current pause waits for and whether it runs a countdown that any player can hold (`Server/PhaseControl.cs`, ported in `rust/server/src/phase_control.rs`). Once nobody is left to wait for and the countdown has run out or every holder has released it, the server submits `EndPhase` itself. A player waited for is done once they call `RequestPhaseDone`, or, in the revival step, once they revive. After an undo or a loaded game the current pause waits for the host's `RequestPhaseContinue` or the next event. Games older than version 188 keep host-only control.
+Pauses between phases continue on their own. After each event the server works out who the current pause waits for and whether it runs a countdown that any player can hold (`rust/server/src/pause_rules.rs`). Once nobody is left to wait for and the countdown has run out or every holder has released it, the server submits `EndPhase` itself. A player waited for is done once they call `RequestPhaseDone`, or, in the revival step, once they revive. After an undo or a loaded game the current pause waits for the host's `RequestPhaseContinue` or the next event. Games older than version 188 keep host-only control.
 
-An `EstablishPlayers` event also reassigns the seats (`AssignSeats` notification). As in C#, it does so and returns success even when the event itself was invalid. Seats that no user takes become bots (see [Bots](#bots)).
+A valid `EstablishPlayers` event also seats the users on the players' seats, in the order they joined (`AssignSeats` notification). Seats that no user takes become bots (see [Bots](#bots)).
 
 ### Chat
 
@@ -180,55 +180,55 @@ An `EstablishPlayers` event also reassigns the seats (`AssignSeats` notification
 | `SendChatMessage` | userToken, gameId, message (GameChatMessage) | void |
 | `SendGlobalChatMessage` | userToken, message (GlobalChatMessage) | void |
 
-The server relays chat as it is, like the C# hub: it does not check `SourceUserId` against the token, and a game message goes to everyone in the game's group whatever its `TargetUserId`. Showing only messages meant for you is the client's job.
+The server relays chat as it is: it does not check `SourceUserId` against the token, and a game message goes to everyone in the game's group whatever its `TargetUserId`. Showing only messages meant for you is the client's job.
 
 ### Admin
 
-The token's user name must be the configured `GameAdminUsername`, except for `DeleteUser`, which a user may also call on their own account.
+The token's user name must be the configured admin (`TREACHERY_ADMIN`), except for `DeleteUser`, which a user may also call on their own account. Others get `InvalidUserNameOrPassword`.
 
 | Method | Args | Result |
 |---|---|---|
 | `AdminUpdateMaintenance` | userToken, maintenanceDate | string |
-| `AdminPersistState` | userToken | string (a summary) |
-| `AdminRestoreState` | userToken | string |
-| `AdminCloseGame` | userToken, gameId | string |
+| `AdminPersistState` | userToken | string (a summary). Saves every game with unsaved changes now |
+| `AdminRestoreState` | userToken | string (a summary). Loads the saved games that aren't running; running games stay as they are |
+| `AdminCloseGame` | userToken, gameId | string. Removes everyone and deletes the game |
 | `AdminDownloadGame` | userToken, gameId | string, the savegame |
 | `AdminCancelGame` | userToken, scheduledGameId | string |
-| `DeleteUser` | userToken, userId | string |
+| `DeleteUser` | userToken, userId | string. Deletes the account and its sessions, and closes the games it created |
 | `GetAdminInfo` | userToken | `AdminInfo` |
 
 ## Notifications
 
-Each C# `IGameClient` callback becomes a notification of the same name without the `Handle` prefix, except that callbacks which carried game state now produce game views.
+Each notification names what happened. Changes to the game itself arrive as game views.
 
-| Notification | Args | Sent to | C# callback |
-|---|---|---|---|
-| `GameView` | see [Game view](#game-view) | each member of the game group, their own view | `HandleGameEvent`, `HandleUndo`, `HandleRestoreRecentlyUndone`, `HandleDismissRecentlyUndone`, and after anything else that changes the game |
-| `LoadGame` | GameInitInfo | game group, followed by a `GameView` | `HandleLoadGame` |
-| `UpdateSettings` | settings | game group | `HandleUpdateSettings` |
-| `JoinGame` | userId, userName, seat | game group | `HandleJoinGame` |
-| `ObserveGame` | userId, userName | game group | `HandleObserveGame` |
-| `SetOrUnsetHost` | userId | game group | `HandleSetOrUnsetHost` |
-| `OpenOrCloseSeats` | [seat] | game group | `HandleOpenOrCloseSeats` |
-| `RemoveUser` | userId, kick | game group | `HandleRemoveUser` |
-| `AssignSeats` | [[userId, seat]] | game group | `HandleAssignSeats` |
-| `BotSpeed` | speed | every connection, as in C# | `HandleBotSpeed` |
-| `SetTimer` | value | game group | `HandleSetTimer` |
-| `PhaseControl` | PhaseControlInfo | game group, when what the current pause waits for changes | `HandlePhaseControl` |
-| `SetSkin` | skin | game group | `HandleSetSkin` |
-| `ChatMessage` | GameChatMessage | game group | `HandleChatMessage` |
-| `GlobalChatMessage` | GlobalChatMessage | every connection | `HandleGlobalChatMessage` |
+| Notification | Args | Sent to |
+|---|---|---|
+| `GameView` | see [Game view](#game-view) | each member of the game group, their own view: after events, undo, restore, dismiss, and anything else that changes the game |
+| `LoadGame` | GameInitInfo | game group, followed by a `GameView` |
+| `UpdateSettings` | settings | game group |
+| `JoinGame` | userId, userName, seat | game group |
+| `ObserveGame` | userId, userName | game group |
+| `SetOrUnsetHost` | userId | game group |
+| `OpenOrCloseSeats` | [seat] | game group |
+| `RemoveUser` | userId, kick | game group |
+| `AssignSeats` | [[userId, seat]] | game group |
+| `BotSpeed` | speed | every connection |
+| `SetTimer` | value | game group |
+| `PhaseControl` | PhaseControlInfo | game group, when what the current pause waits for changes |
+| `SetSkin` | skin | game group |
+| `ChatMessage` | GameChatMessage | game group |
+| `GlobalChatMessage` | GlobalChatMessage | every connection |
 
-The game group is every connection that joined, observed or reconnected to the game and has not been removed from it, the caller's included. Participation changes (`JoinGame`, `RemoveUser`, `AssignSeats`, ...) can change what each member may see, so the game-view section decides whether they are followed by a `GameView`.
+The game group is every connection that created, joined, observed or reconnected to the game, until it closes or its user leaves or is kicked, the caller's included. Participation changes (`JoinGame`, `RemoveUser`, `AssignSeats`, ...) can change what each member may see, so the game-view section decides whether they are followed by a `GameView`.
 
 ## Bots
 
-The server plays every seat without a user, as the C# server does (`rust/server/src/hub/game_events.rs`, the port of `PerformBotEvent`; the bots are the `treachery-bots` port of `ClassicBot`).
+The server plays every seat without a user (`rust/server/src/server/bots.rs`; the bots are the `treachery-bots` crate).
 
 - Which seats are bots: since engine version 170, `EstablishPlayers` fills the seats that no user takes with bots (`Settings.NumberOfPlayers` players in all). A seat also becomes a bot when its user leaves or is kicked, when the host reassigns the seats without it, or when a loaded savegame has it empty. A user who takes the seat (an open seat, `RequestJoinGame`) replaces the bot. `GameView.players[].isBot` and `GameInfo.NrOfBots` show them.
-- When bots act: after every event, and after a loaded game, undo, restore or dismiss, a seat assignment, a leave or kick, a new observer, the first seated join and a bot speed change, the server schedules a bot turn after a delay that depends on the last event and the phase, divided by the bot speed (800 ms after an `AllyPermission`, `DealOffered` or `SetShipmentPermission`, 1600 ms after a `Bid`, 2400 ms in revival and charity, 9600 ms in shipment and battle, 4800 ms otherwise). A turn does nothing while the game awaits players or the speed is 0. Otherwise each bot, in a random order, is asked for its most urgent action, then the next level, and the first action found is executed as an event of that bot. The bots end phases themselves (`EndPhase` and other host actions) only when the game has no host and at least one observer. Otherwise the phase control continues the pauses, and a turn in which no bot acts tells it the bots have passed.
-- `BotsSpeed` (`Participation.BotsSpeed`, default 1) is the divisor. 0 pauses the bots. The C# client offers 0 (pause), 1, 2 and 4. Every connection gets the `BotSpeed` notification.
-- `RequestNudgeBots` runs a bot turn at once, for a game whose bots stopped (a refused bot event schedules no next turn).
+- When bots act: after every event, and after a loaded game, undo, restore or dismiss, a seat assignment, a leave or kick, a new observer, the first seated join and a bot speed change, the server schedules a bot turn, replacing one scheduled earlier, after a delay that depends on the last event and the phase, divided by the bot speed (800 ms after an `AllyPermission`, `DealOffered` or `SetShipmentPermission`, 1600 ms after a `Bid`, 2400 ms in revival and charity, 9600 ms in shipment and battle, 4800 ms otherwise). A turn does nothing while the game awaits players or the speed is 0. Otherwise each bot, in a random order, is asked for its most urgent action, then the next level, and the first action found is executed as an event of that bot. The bots end phases themselves (`EndPhase` and other host actions) only when the game has no host and at least one observer. Otherwise the phase control continues the pauses, and a turn in which no bot acts tells it the bots have passed.
+- `BotsSpeed` (`Participation.BotsSpeed`, default 1) is the divisor. 0 or less pauses the bots. The client offers 0 (pause), 1, 2 and 4. Every connection gets the `BotSpeed` notification.
+- `RequestNudgeBots` runs a bot turn at once (unless the bots are paused), for a game whose bots stopped (a refused bot event schedules no next turn).
 - A bot is created when its faction is first asked, and keeps its state for the rest of the game, across undo. A server restart creates new bots.
 
 ## Game view
@@ -277,7 +277,7 @@ Each view is complete; there are no diffs. A view of the alliance phase of a 6-p
 | `RequestUndoPreview` | userToken, gameId, gap | host only (`NoHost` otherwise): the caller's `GameView` at gap `gap`, the moment just before event `gap` (the game after `RequestUndo(gap)`), with no actions and no `playableWith`, as the C# client showed `UndoSession.Preview` (`IGameService.Actions` was empty while previewing). The gap is clamped to 1..`History.Count`. Sends no notification; the live game and its views are untouched |
 | `RequestSaveGame` | userToken, gameId | hosts and the admin (`CanSave` of `MenuComponent`; `NoHost` otherwise): the server's game as a savegame string (`GameState.GetStateAsString`), which the C# client built from its own copy. Always the live game, also while the host previews an undo |
 
-These five use the `Result` envelope of the hub methods, with `Contents` in the view's camelCase encoding. A token or game the server doesn't know gives the same errors as the hub methods (`UserNotFound`, `GameNotFound`).
+These five use the same `Result` envelope as the other calls, with `Contents` in the view's camelCase encoding. A token or game the server doesn't know gives the same errors as the other calls (`UserNotFound`, `GameNotFound`).
 
 `QueryDraft` replaces the C# components' habit of calling `Validate()` and the `Valid*`/`Max*` helpers on every render. The server sets the draft's `Initiator` to the caller's faction, so a client can't ask about another faction. A draft for an older view (`eventNumber` is not the current `History.Count`) is answered against the current game; the client discards answers for views it has replaced.
 

@@ -82,17 +82,6 @@ fn fixture(name: &str, savegame: &str, out: &Path) -> Result<Value, String> {
     // because building a view writes state (client-plan.md, The view replica).
     let probe = ViewReplica::load(savegame, &Shared::new(Participation::default()))?;
     let game = &probe.game;
-    // The C# scene page plays only the latest version (SceneGameService refuses older fixtures),
-    // so an older fixture has nothing to compare. Such fixtures stay in scripts/fixtures for the
-    // Rust tests that read every fixture, and for the "before" build in scripts/ui/shots.py.
-    if game.version != Game::LATEST_VERSION {
-        return Ok(json!({
-            "fixture": name,
-            "version": game.version,
-            "skipped": format!("game version {}; the C# scene page plays only version {}", game.version, Game::LATEST_VERSION),
-            "scenes": [],
-        }));
-    }
     let factions: Vec<Faction> = game.players.iter().map(|p| p.faction).collect();
 
     let mut scenes = Vec::new();

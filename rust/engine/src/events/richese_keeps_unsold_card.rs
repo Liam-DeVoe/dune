@@ -51,8 +51,7 @@ impl RicheseKeepsUnsoldCard {
             let me = self.player();
             game.player_mut(me).treachery_cards.push(card);
             self.log_to(game, self.initiator(), vec!["You get: ".into(), card.into()]);
-            let might_replace = game.version < 152;
-            game.finish_bid(self.player_opt(), None, card, might_replace);
+            game.finish_bid(self.player_opt(), None, card, false);
         } else {
             game.removed_treachery_cards.push(card);
             game.finish_bid(None, None, card, false);

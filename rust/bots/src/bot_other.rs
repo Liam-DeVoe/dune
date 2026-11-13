@@ -1472,7 +1472,7 @@ impl ClassicBot {
         let emperor = g.get_player(Some(Faction::Emperor)).or_null();
 
         let potential_maximum_by_emperor = if pl.ally == Faction::Emperor
-            && (g.version < 113 || !g.prevented(FactionAdvantage::EmperorLetAllyReviveExtraForces))
+            && !g.prevented(FactionAdvantage::EmperorLetAllyReviveExtraForces)
         {
             Revival::valid_max_revivals_by_emperor(g, p)
         } else {

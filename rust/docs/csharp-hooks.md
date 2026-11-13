@@ -10,7 +10,7 @@ The one hook the hazard survey asked for, a way to seed bot randomness (hazards.
 
 ## Hooks added to Server
 
-The server equivalence harness (`treachery-online/ServerOracle`, see [server-plan.md](server-plan.md#equivalence-testing)) runs the real `GameHub` on a virtual clock. It needs five hooks, all in `Server/TestHooks.cs`. Each is null by default, and every call site then runs the line it ran before, unchanged. The ServerOracle sets them for a run and clears them afterwards.
+The server equivalence harness (`treachery-online/ServerOracle`; its Rust side, `rust/server-equiv`, was removed on 2026-11-11 when the server was rewritten, see [server.md](server.md)) runs the real `GameHub` on a virtual clock. It needs five hooks, all in `Server/TestHooks.cs`. Each is null by default, and every call site then runs the line it ran before, unchanged. The ServerOracle sets them for a run and clears them afterwards.
 
 | Hook | Replaces | Call sites |
 |---|---|---|

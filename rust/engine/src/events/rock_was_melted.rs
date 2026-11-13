@@ -55,9 +55,6 @@ impl RockWasMelted {
     /// C#: `protected override void ExecuteConcreteEvent()` (Events/RockWasMelted.cs:49)
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
         self.log(game);
-        if game.version < 146 {
-            game.discard(self.player(), TreacheryCardType::Rockmelter);
-        }
         game.current_rock_was_melted = Some(self.clone());
         game.enter(Phase::CallTraitorOrPass, true);
     }

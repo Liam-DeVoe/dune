@@ -133,7 +133,7 @@ impl Bid {
             return Some(express!("You can't use ", Faction::Emperor, " cunning"));
         }
 
-        if game.version >= 155 && game.current_auction_type == AuctionType::RicheseSilent && self.total_amount() > game.player(self.player()).resources {
+        if game.current_auction_type == AuctionType::RicheseSilent && self.total_amount() > game.player(self.player()).resources {
             return Some(express!("In a Silent auction, you can't bid more than you have"));
         }
 
@@ -344,9 +344,7 @@ impl Bid {
         }
 
         while !game.cards_on_auction.as_ref().nre().is_empty() {
-            if game.version >= 131 {
-                game.cards_on_auction.as_mut().nre().shuffle();
-            }
+            game.cards_on_auction.as_mut().nre().shuffle();
 
             let card = game.cards_on_auction.as_mut().nre().draw();
             game.treachery_deck.as_mut().nre().put_on_top(card);
@@ -399,17 +397,9 @@ impl Bid {
         let richese_has_no_room = self.get_player(game, Some(Faction::Richese)).map(|w| game.player(w).has_room_for_cards(game)) == Some(false);
 
         let players_with_room = || game.players.iter().filter(|p| p.has_room_for_cards(game)).count() as i32;
-        let is_last_bid = if game.version < 140 {
-            players_with_room() == game.bids.len() as i32
-        } else {
-            (game.current_auction_type == AuctionType::RicheseSilent && players_with_room() == game.bids.len() as i32)
-                || (game.version < 151
-                    && ((game.current_auction_type == AuctionType::RicheseOnceAround && self.initiator() == Faction::Richese)
-                        || (richese_has_no_room && bid_sequence_has_passed_richese)))
-                || (game.version >= 151
-                    && game.current_auction_type == AuctionType::RicheseOnceAround
-                    && (self.initiator() == Faction::Richese || (richese_has_no_room && bid_sequence_has_passed_richese)))
-        };
+        let is_last_bid = (game.current_auction_type == AuctionType::RicheseSilent && players_with_room() == game.bids.len() as i32)
+            || (game.current_auction_type == AuctionType::RicheseOnceAround
+                && (self.initiator() == Faction::Richese || (richese_has_no_room && bid_sequence_has_passed_richese)));
 
         if is_last_bid {
             if game.current_auction_type == AuctionType::RicheseSilent {

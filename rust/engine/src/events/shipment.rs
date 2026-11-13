@@ -221,22 +221,6 @@ impl Shipment {
     pub fn determine_cost_to_initiator(&self, g: &Game) -> i32 {
         let Some(to) = self.to(g) else { return 0 };
 
-        if g.version <= 106 {
-            return Shipment::determine_cost_game_player_int32_int32_location_boolean_boolean_boolean_boolean_boolean(
-                g,
-                self.player(),
-                self.force_amount,
-                self.special_force_amount,
-                to,
-                self.is_using_karma(),
-                self.is_back_to_reserves(),
-                false,
-                self.is_no_field(),
-                false,
-            )
-            .wrapping_sub(self.ally_contribution_amount);
-        }
-
         Shipment::determine_cost(g, self.player(), self).wrapping_sub(self.ally_contribution_amount)
     }
 
@@ -298,7 +282,7 @@ impl Shipment {
                 return Some(express!("You can't ship back to reserves from there"));
             }
         }
-        if game.version >= 178 && self.is_back_to_reserves() {
+        if self.is_back_to_reserves() {
             if let Some(target) = self.target_world_for_shipment_to_reserves(game) {
                 // List<Homeworld>.Contains: Location.Equals, by Id.
                 if !game.player(p()).home_worlds.iter().any(|hw| hw.location() == target.location()) {
@@ -427,28 +411,25 @@ impl Shipment {
 
         // Sum is checked: OverflowException (hazards 1.3).
         let number_of_forces_selected = dotnet_compat::linq::sum_i32(self.force_locations(game).values().map(|b| b.amount_of_forces));
-        if game.version >= 164
-            && self.forces_added_to_location(game) > 0
+        if self.forces_added_to_location(game) > 0
             && Shipment::homeworlds_to_ship_from(game, p(), false).len() > 1
             && number_of_forces_selected <= 0
         {
             return Some(express!("Please specify where to ship your ", game.player(p()).force(), " from"));
         }
-        if game.version >= 164 && number_of_forces_selected > 0 && number_of_forces_selected != self.forces_added_to_location(game) {
+        if number_of_forces_selected > 0 && number_of_forces_selected != self.forces_added_to_location(game) {
             return Some(express!("Select the source of in total ", self.forces_added_to_location(game), game.player(p()).force()));
         }
 
         let number_of_special_forces_selected =
             dotnet_compat::linq::sum_i32(self.force_locations(game).values().map(|b| b.amount_of_special_forces));
-        if game.version >= 164
-            && self.special_forces_added_to_location(game) > 0
+        if self.special_forces_added_to_location(game) > 0
             && Shipment::homeworlds_to_ship_from(game, p(), true).len() > 1
             && number_of_special_forces_selected <= 0
         {
             return Some(express!("Please specify where to ship your ", game.player(p()).special_force(), " from"));
         }
-        if game.version >= 164
-            && number_of_special_forces_selected > 0
+        if number_of_special_forces_selected > 0
             && number_of_special_forces_selected != self.special_forces_added_to_location(game)
         {
             return Some(express!(
@@ -543,11 +524,9 @@ impl Shipment {
         let mut total_forces = forces.wrapping_add(special_forces);
         let no_field_or_secret_ally = no_field_by_richese || no_field_by_non_richese;
 
-        if g.version < 139 && total_forces > 1 && g.skilled_as_player_leader_skill(p, LeaderSkill::Smuggler) && !g.any_forces_in(to.territory()) {
-            total_forces = total_forces.wrapping_sub(1);
-        } else if (g.version < 167 && no_field_or_secret_ally) || no_field_by_non_richese {
+        if no_field_by_non_richese {
             total_forces = std::cmp::min(forces.wrapping_add(special_forces), 1);
-        } else if g.version >= 167 && no_field_by_richese {
+        } else if no_field_by_richese {
             total_forces = std::cmp::max(forces, 1);
         }
 
@@ -556,10 +535,10 @@ impl Shipment {
             return dotnet_compat::math::f64_to_i32(((0.5f32 * total_forces as f32) as f64).ceil());
         }
 
-        if (g.version < 154 || !site_to_site)
+        if !site_to_site
             && g.player(p).is(Faction::Fremen)
             && Shipment::fremen_spawn_locations(g, p).contains(&to)
-            && (g.version < 159 || !no_field_or_secret_ally)
+            && !no_field_or_secret_ally
         {
             return 0;
         }
@@ -876,7 +855,7 @@ impl Shipment {
                 let pl = game.player(self.player());
                 let to = self.to(game);
                 (pl.is(Faction::BeneGesserit) && pl.special_forces_in(to) > 0)
-                    || (game.version >= 148 && to.is_some() && pl.special_forces_in_territory(to.map(|t| t.territory())) > 0)
+                    || (to.is_some() && pl.special_forces_in_territory(to.map(|t| t.territory())) > 0)
             };
 
             if self.is_site_to_site(game) {

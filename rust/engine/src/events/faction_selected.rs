@@ -61,24 +61,10 @@ impl FactionSelected {
 
     /// C#: `protected override void ExecuteConcreteEvent()` (Events/FactionSelected.cs:54)
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
-        let initiator = if game.version < 170 {
-            let wanted = self.initiator_player_name.as_deref();
-            (0..game.players.len())
-                .map(|i| game.player_at(i))
-                .find(|p| Some(game.player(*p).name(game).as_str()) == wanted)
-        } else {
-            game.get_player_by_seat(self.seat)
-        };
+        let initiator = game.get_player_by_seat(self.seat);
 
         if let Some(initiator) = initiator {
             game.player_mut(initiator).faction = self.faction;
-            if game.version < 172 {
-                // Also changes Settings.AllowedFactionsInPlay and the EstablishPlayers event (hazards 5.1).
-                let mut list = game.factions_in_play.borrow_mut();
-                if let Some(i) = list.iter().position(|f| *f == self.faction) {
-                    list.remove(i);
-                }
-            }
 
             self.log(game);
         }

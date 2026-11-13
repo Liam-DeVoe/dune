@@ -80,11 +80,7 @@ impl CardsDetermined {
         let message = self.get_verbose_message();
         self.log_objects(game, vec![message.into()]);
         // Game.Enter(bool, Action, Action) is static in C#; inlined here.
-        if game.version < 134 {
-            game.enter_phase_trading_factions();
-        } else {
-            game.enter_setup_phase();
-        }
+        game.enter_setup_phase();
     }
 
     /// C#: `public override Message GetMessage()` (Events/CardsDetermined.cs:72)

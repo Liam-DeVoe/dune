@@ -14,12 +14,10 @@ impl Game {
             player.transferable_resources = 0;
         }
 
-        self.main_phase_start(MainPhase::Contemplate, self.version >= 103);
+        self.main_phase_start(MainPhase::Contemplate, true);
         self.allow_all_prevented_faction_advantages(&[]);
         self.handle_economics();
-        if self.version >= 108 {
-            self.add_bribes_to_player_resources();
-        }
+        self.add_bribes_to_player_resources();
         self.moritani_has_performed_terror = false;
 
         for i in 0..self.players.len() {
@@ -44,8 +42,7 @@ impl Game {
             }
         }
 
-        let condition = self.version >= 103;
-        Game::enter_boolean_action_action(self, condition, Game::enter_contemplate_pause, Game::continue_contemplate_phase);
+        self.enter_contemplate_pause();
     }
 
     /// C#: `private void HandleEconomics()` (Game_Contemplate.cs:47)
@@ -173,8 +170,7 @@ impl Game {
                 self.log(vec![express!(faction, " win!").with_log(GameWinner::new(faction)).into()]);
             }
         } else {
-            let condition = self.is_playing(Faction::Tleilaxu)
-                && (self.version < 113 || !self.prevented(FactionAdvantage::TleilaxuReplacingFaceDancer));
+            let condition = self.is_playing(Faction::Tleilaxu) && !self.prevented(FactionAdvantage::TleilaxuReplacingFaceDancer);
             self.enter_boolean_phase_phase(condition, Phase::ReplacingFaceDancer, Phase::TurnConcluded);
         }
 

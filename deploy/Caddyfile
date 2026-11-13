@@ -1,34 +1,21 @@
 # Reverse proxy on the VM. exe.dev terminates TLS and proxies https://treachery.exe.xyz/ to
-# port 8080 here. /beta goes to the Rust server (treachery-beta.service), everything else to the
-# C# server (treachery.service).
+# port 8080 here. Everything goes to the Rust server (treachery.service).
 {
 	# Plain HTTP only: TLS belongs to exe.dev.
 	auto_https off
 	admin localhost:2019
 }
 
-# exe.dev's proxy connects from loopback or the private network. Trusting it keeps its
-# X-Forwarded-Proto (https) and X-Forwarded-For, which the C# app reads
-# (ASPNETCORE_FORWARDEDHEADERS_ENABLED), instead of replacing them with Caddy's own.
-(from_exe) {
-	trusted_proxies 127.0.0.0/8 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 ::1/128 fc00::/7
-}
-
 :8080 {
-	redir /beta /beta/ 308
-
-	# The prefix is stripped, so the Rust server serves everything at "/". The web client is
-	# built with base /beta/ and puts the prefix in every URL it makes (web/src/base.ts).
-	# reverse_proxy passes WebSocket upgrades through on its own.
+	# The Rust site was a beta under /beta/ before it replaced the C# site. Old links land on
+	# the same path at the root.
+	redir /beta / 301
 	handle_path /beta/* {
-		reverse_proxy 127.0.0.1:8001 {
-			import from_exe
-		}
+		redir * {uri} 301
 	}
 
+	# reverse_proxy passes WebSocket upgrades through on its own.
 	handle {
-		reverse_proxy 127.0.0.1:8000 {
-			import from_exe
-		}
+		reverse_proxy 127.0.0.1:8000
 	}
 }

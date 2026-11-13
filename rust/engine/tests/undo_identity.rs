@@ -29,17 +29,6 @@ use treachery_engine::treachery_card_manager::TreacheryCardManager;
 const ESTABLISH: &str = r#"{"$type":"EstablishPlayers","Settings":{"NumberOfPlayers":3,"MaximumTurns":8,"InitialRules":[301,300,65,60,20,1013,15,700,105,80,85,604,90,998,30,701,40,107,10,70,50,25,209,999,112],"AllowedFactionsInPlay":[50,10,120,60,40,100,20,90,70,80,30,110],"AutoOpenEmptySeats":true,"AsyncPlay":false,"AsyncPlayMessageIntervalMinutes":0},"Seed":1073548723,"MaximumNumberOfPlayers":3,"MaximumTurns":8,"ApplicableRules":[301,300,65,60,20,1013,15,700,105,80,85,604,90,998,30,701,40,107,10,70,50,25,209,999,112],"_players":"","_factionsInPlay":"Guild,Fremen,Moritani,BeneGesserit,Emperor,Richese,Atreides,Choam,Ixian,Tleilaxu,Harkonnen,Ecaz","Initiator":0,"Time":"2024-01-01T12:02:17+00:00"}"#;
 const END_PHASE: &str = r#"{"$type":"EndPhase","Initiator":0,"Time":"2024-01-01T12:02:32+00:00"}"#;
 
-// Steps 0-6 of traces/sample/fuzz-2026-00084 (same text as UndoIdentity.cs). Step 0 throws
-// after adding players, so a replay has fewer players than the original game.
-const TRACE84: &[(&str, bool)] = &[
-    (r#"{"$type":"EstablishPlayers","Settings":{"NumberOfPlayers":5,"MaximumTurns":3,"InitialRules":[600,107,603,400,65,1015,998,109,401,120,601,602,1010],"AllowedFactionsInPlay":[80,90,40,50,20,10,70,110,100,30],"AutoOpenEmptySeats":true,"AsyncPlay":false,"AsyncPlayMessageIntervalMinutes":0},"Seed":1922928721,"MaximumNumberOfPlayers":5,"MaximumTurns":3,"ApplicableRules":[600,107,603,400,65,1015,998,109,401,120,601,602,1010],"_players":"","_factionsInPlay":"None","Initiator":0,"Time":"2024-01-01T12:01:49+00:00"}"#, true),
-    (r#"{"$type":"EstablishPlayers","Settings":{"NumberOfPlayers":5,"MaximumTurns":3,"InitialRules":[600,107,603,400,65,1015,998,109,401,120,601,602,1010],"AllowedFactionsInPlay":[80,90,40,50,20,10,70,110,100,30],"AutoOpenEmptySeats":true,"AsyncPlay":false,"AsyncPlayMessageIntervalMinutes":0},"Seed":1922928721,"MaximumNumberOfPlayers":5,"MaximumTurns":3,"ApplicableRules":[600,107,603,400,65,1015,998,109,401,120,601,602,1010],"_players":"","_factionsInPlay":"Tleilaxu,Choam,Emperor,Guild,Atreides,Fremen,Ixian,Ecaz,Richese,Harkonnen","Initiator":0,"Time":"2024-01-01T12:02:36+00:00"}"#, true),
-    (r#"{"$type":"EndPhase","Initiator":0,"Time":"2024-01-01T12:04:30+00:00"}"#, true),
-    (r#"{"$type":"TraitorsSelected","_traitorId":1045,"Initiator":20,"Time":"2024-01-01T12:05:41+00:00"}"#, false),
-    (r#"{"$type":"TraitorsSelected","_traitorId":1049,"Initiator":0,"Time":"2024-01-01T12:06:10+00:00"}"#, false),
-    (r#"{"$type":"TraitorsSelected","_traitorId":1026,"Initiator":100,"Time":"2024-01-01T12:06:29+00:00"}"#, false),
-    (r#"{"$type":"TraitorsSelected","_traitorId":1049,"Initiator":90,"Time":"2024-01-01T12:07:08+00:00"}"#, false),
-];
 
 fn golden() -> serde_json::Map<String, Value> {
     let path = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden/undo_identity.json");
@@ -92,14 +81,8 @@ fn review_participation() -> Participation {
 }
 
 fn base() -> Game {
-    let mut g = Game::new_int32_participation(187, &Shared::new(review_participation()));
+    let mut g = Game::new_int32_participation(Game::LATEST_VERSION, &Shared::new(review_participation()));
     run(&mut g, &[(ESTABLISH, true), (END_PHASE, true)]);
-    g
-}
-
-fn trace84() -> Game {
-    let mut g = Game::new_int32_participation(115, &Shared::new(Participation::new()));
-    run(&mut g, TRACE84);
     g
 }
 
@@ -168,24 +151,6 @@ fn two_undos_restore_in_order() {
     let r2 = restored(r1);
     check("undo2.restore2.is_g", r2.id == g_id);
     check_dump("undo2.restore2.dump", &r2);
-}
-
-/// `GameEvent.Initialize` only sets `Player` when the initiator is seated. A replayed
-/// event whose initiator isn't seated in the new game keeps the old game's player,
-/// and executing it changes that player. Before game identity, Rust read the new
-/// game's player at the same index (fuzz-2026-00084: 4 extra random draws).
-#[test]
-fn replayed_event_keeps_the_old_games_player() {
-    let g = trace84();
-    check_dump("retained.original.dump", &g);
-    let g_id = g.id;
-    let u = undone(g, 4);
-    check_dump("retained.undo.dump", &u);
-    let p = u.history[3].player_opt().expect("player set");
-    check("retained.undo.history3_player_is_old", p.game == g_id);
-    check("retained.undo.history3_player_is_new", p.game == u.id);
-    check_dump("retained.restore.dump", &restored(u));
-    check_dump("retained.dismiss.dump", &dismissed(undone(trace84(), 4)));
 }
 
 /// The sites of pkg-a.md item 1: after a restore, an event the game holds can belong
@@ -290,7 +255,7 @@ const BENE_GESSERIT_ESTABLISH: &str = r#"{"$type":"EstablishPlayers","Settings":
 /// The other `Player` methods that take a territory and change forces run on it too.
 #[test]
 fn bene_gesserit_flip_in_a_territory_of_another_games_map() {
-    let mut g = Game::new_int32_participation(187, &Shared::new(Participation::new()));
+    let mut g = Game::new_int32_participation(Game::LATEST_VERSION, &Shared::new(Participation::new()));
     run(&mut g, &[(BENE_GESSERIT_ESTABLISH, true), (END_PHASE, true)]);
     let u = undone(g, 1);
     let u_id = u.id;
@@ -317,23 +282,6 @@ fn bene_gesserit_flip_in_a_territory_of_another_games_map() {
     check("bene_gesserit_flip.arrakeen_key_is_this_maps", keys.iter().any(|l| l.is_same_object(arrakeen)));
     check("bene_gesserit_flip.carthag_key_is_this_maps", keys.iter().any(|l| l.is_same_object(carthag)));
     check_dump("bene_gesserit_flip.dump", &r);
-}
-
-/// A stored event of the undo game that kept a player of this game: reading the
-/// event's members goes through the undo game and back to this game's player.
-#[test]
-fn event_of_another_game_with_a_player_of_this_game() {
-    let g = trace84();
-    let u = undone(g, 4);
-    let u_id = u.id;
-    let r = restored(u);
-    let mut b = BattleInitiated::new(&r, Faction::Richese);
-    b.target = Faction::Atreides;
-    b.initialize_game(r.other_game(u_id));
-    check("third.player_is_restored_games", b.player().game == r.id);
-    check("third.is_involved_atreides", b.is_involved_faction(&r, Faction::Atreides));
-    check("third.is_involved_richese", b.is_involved_faction(&r, Faction::Richese));
-    check("third.opponent_of_atreides_is_null", b.opponent_of_faction(&r, Faction::Atreides).is_none());
 }
 
 /// Members of stored events that read their own `Game`: `ClairVoyancePlayed.Parameter1`,
@@ -403,7 +351,7 @@ fn undo_that_throws_keeps_the_old_game() {
 #[test]
 fn participation_is_shared() {
     let part = Shared::new(Participation::new());
-    let g = Game::new_int32_participation(187, &part);
+    let g = Game::new_int32_participation(Game::LATEST_VERSION, &part);
     part.borrow_mut().hosts.add(7);
     check("participation.caller_alias.is_host7", g.is_host(Some(7)));
     let mut u = undone(g, 0);

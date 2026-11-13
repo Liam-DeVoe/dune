@@ -38,7 +38,7 @@ impl MulliganPerformed {
 
     /// C#: `public override Message? Validate()` (Events/MulliganPerformed.cs:28)
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if !self.passed && game.version >= 150 && !Self::may_mulligan(game, self.player()) {
+        if !self.passed && !Self::may_mulligan(game, self.player()) {
             return Some(express!("You can't take a mulligan"));
         }
 

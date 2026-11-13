@@ -87,8 +87,6 @@ pub struct HomeworldData {
 /// while `game.map` is borrowed through the same `Game`, and `Map` must not
 /// depend on the whole `Game` type, so the calls it makes are listed here.
 pub trait MapGame {
-    /// `game.Version`
-    fn version(&self) -> i32;
     /// `game.SectorInStorm`
     fn sector_in_storm(&self) -> i32;
     /// `game.History.Count`
@@ -124,9 +122,8 @@ pub struct Map {
     neighbours: Vec<Vec<Location>>,
     /// `AttachedLocation.AttachedToLocation`, by location index.
     attached_to: Vec<Option<Location>>,
-    /// `AttachedLocation.Game?.Version`, by location index. Set by `PointAt`
-    /// only when the game version is >= 163.
-    attached_game_version: Vec<Option<i32>>,
+    /// Whether `AttachedLocation.Game` is set, by location index. Set by `PointAt`.
+    attached_to_game: Vec<bool>,
     /// `_neighbourCacheTimestamp`
     neighbour_cache_timestamp: Cell<i32>,
     /// `_neighbourCache`. A `Dictionary` in C#; it is only cleared, added to
@@ -149,7 +146,7 @@ impl Map {
         let mut map = Map {
             neighbours: vec![Vec::new(); LOCATION_COUNT],
             attached_to: vec![None; LOCATION_COUNT],
-            attached_game_version: vec![None; LOCATION_COUNT],
+            attached_to_game: vec![false; LOCATION_COUNT],
             neighbour_cache_timestamp: Cell::new(-1),
             neighbour_cache: RefCell::new(Vec::new()),
         };
@@ -178,16 +175,16 @@ impl Map {
         self.attached_to[l.index()]
     }
 
-    /// `AttachedLocation.Sector => Game?.Version >= 159 && AttachedToLocation != null ? AttachedToLocation.Sector : -1`
+    /// `AttachedLocation.Sector => Game != null && AttachedToLocation != null ? AttachedToLocation.Sector : -1`
     pub(crate) fn attached_sector(&self, l: Location) -> i32 {
-        match (self.attached_game_version[l.index()], self.attached_to[l.index()]) {
-            (Some(v), Some(host)) if v >= 159 => host.sector(self),
+        match (self.attached_to_game[l.index()], self.attached_to[l.index()]) {
+            (true, Some(host)) => host.sector(self),
             _ => -1,
         }
     }
 
     /// `AttachedLocation.PointAt`
-    pub(crate) fn point_at(&mut self, attached: Location, game_version: i32, new_location: Location) {
+    pub(crate) fn point_at(&mut self, attached: Location, new_location: Location) {
         // AttachedToLocation?.Neighbours.Remove(this): List.Remove removes the
         // first element that Equals `this`. If the host is itself attached its
         // Neighbours getter returns a temporary list, so nothing happens.
@@ -206,9 +203,7 @@ impl Map {
         self.attached_to[attached.index()] = Some(new_location);
         self.neighbours[attached.index()] = vec![new_location];
 
-        if game_version >= 163 {
-            self.attached_game_version[attached.index()] = Some(game_version);
-        }
+        self.attached_to_game[attached.index()] = true;
     }
 
     // ---- queries ----
@@ -662,8 +657,8 @@ impl Map {
     }
 
     /// `AttachedLocation.Game?.Version` of an attached location, for state dumps.
-    pub fn attached_game_version(&self, l: Location) -> Option<i32> {
-        self.attached_game_version[l.index()]
+    pub fn attached_to_game(&self, l: Location) -> bool {
+        self.attached_to_game[l.index()]
     }
 }
 

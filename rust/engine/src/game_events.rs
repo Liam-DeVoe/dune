@@ -67,20 +67,14 @@ impl Game {
             | Phase::Contemplate
             | Phase::TurnConcluded
             | Phase::CancellingTraitor => result.push(GameEventType::EndPhase),
-            Phase::ReplacingCardJustWon if self.version > 150 => result.push(GameEventType::EndPhase),
-            Phase::AllianceA | Phase::AllianceB if self.version < 188 => result.push(GameEventType::EndPhase),
+            Phase::ReplacingCardJustWon => result.push(GameEventType::EndPhase),
             _ => {}
-        }
-
-        if self.version < 170 && self.current_main_phase >= MainPhase::Setup {
-            result.push(GameEventType::PlayerReplaced);
         }
     }
 
     /// C#: `private void AddPlayerActions(Player player, bool isHost, List<Type> result)` (Game_Events.cs:82)
     pub fn add_player_actions(&mut self, player: PlayerIndex, is_host: bool, result: &mut Vec<GameEventType>) {
         let faction = self.player(player).faction;
-        let has_amal = |g: &Game| g.player(player).has_treachery_card_type(TreacheryCardType::Amal);
         let has_caravan = |g: &Game| g.player(player).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Caravan);
 
         match self.current_phase {
@@ -196,9 +190,6 @@ impl Game {
                 if self.player(player).has_treachery_card_type(TreacheryCardType::Thumper) {
                     result.push(GameEventType::ThumperPlayed);
                 }
-                if self.version < 103 && has_amal(self) {
-                    result.push(GameEventType::AmalPlayed);
-                }
             }
             Phase::VoteAllianceA | Phase::VoteAllianceB => {
                 if self.nexus_votes.iter().all(|v| v.initiator() != faction) {
@@ -233,9 +224,7 @@ impl Game {
                     if self.player(player).ally != Faction::None {
                         result.push(GameEventType::AllianceBroken);
                     }
-                    if self.version >= 188 {
-                        result.push(GameEventType::AlliancePassed);
-                    }
+                    result.push(GameEventType::AlliancePassed);
                 }
             }
             Phase::NexusCards => {
@@ -250,9 +239,6 @@ impl Game {
                 }
                 if CharityClaimed::can_be_played(self, player) {
                     result.push(GameEventType::CharityClaimed);
-                }
-                if self.version < 103 && has_amal(self) && (self.version <= 82 || self.has_acted_or_passed.is_empty()) {
-                    result.push(GameEventType::AmalPlayed);
                 }
             }
             Phase::BlackMarketAnnouncement => {
@@ -282,9 +268,6 @@ impl Game {
                 if Bid::may_be_played(self, Some(player)) {
                     result.push(GameEventType::Bid);
                 }
-                if self.version < 103 && has_amal(self) && self.card_number == 1 && self.bids.is_empty() {
-                    result.push(GameEventType::AmalPlayed);
-                }
                 if faction == Faction::Emperor && self.applicable(Rule::EmperorSupportingNonAllyBids) {
                     result.push(GameEventType::EmperorBidSupport);
                 }
@@ -299,16 +282,10 @@ impl Game {
                 if (occupier_of_ixian_homeworld.is_none() && faction == Faction::Ixian) || occupier_of_ixian_homeworld == Some(player) {
                     result.push(GameEventType::IxianRemovedCardFromAuction);
                 }
-                if self.version < 103 && has_amal(self) && self.card_number == 1 && self.bids.is_empty() {
-                    result.push(GameEventType::AmalPlayed);
-                }
             }
             Phase::IxianSwappingCard => {
                 if faction == Faction::Ixian {
                     result.push(GameEventType::IxianSwappedCardOnBid);
-                }
-                if self.version < 103 && has_amal(self) && self.card_number == 1 && self.bids.is_empty() {
-                    result.push(GameEventType::AmalPlayed);
                 }
             }
             Phase::ReplacingCardJustWon => {
@@ -324,7 +301,7 @@ impl Game {
             Phase::BiddingReport => {
                 if faction == Faction::Tleilaxu
                     && self.players.len() > 1
-                    && (self.version < 113 || !self.prevented(FactionAdvantage::TleilaxuIncreasingRevivalLimits))
+                    && !self.prevented(FactionAdvantage::TleilaxuIncreasingRevivalLimits)
                 {
                     result.push(GameEventType::SetIncreasedRevivalLimits);
                 }
@@ -336,7 +313,7 @@ impl Game {
             Phase::BeginningOfResurrection => {
                 if faction == Faction::Tleilaxu
                     && self.players.len() > 1
-                    && (self.version < 113 || !self.prevented(FactionAdvantage::TleilaxuIncreasingRevivalLimits))
+                    && !self.prevented(FactionAdvantage::TleilaxuIncreasingRevivalLimits)
                 {
                     result.push(GameEventType::SetIncreasedRevivalLimits);
                 }
@@ -362,12 +339,9 @@ impl Game {
                 }
                 if faction == Faction::Tleilaxu
                     && self.players.len() > 1
-                    && (self.version < 113 || !self.prevented(FactionAdvantage::TleilaxuIncreasingRevivalLimits))
+                    && !self.prevented(FactionAdvantage::TleilaxuIncreasingRevivalLimits)
                 {
                     result.push(GameEventType::SetIncreasedRevivalLimits);
-                }
-                if self.version < 103 && has_amal(self) && (self.version <= 82 || self.has_acted_or_passed.is_empty()) {
-                    result.push(GameEventType::AmalPlayed);
                 }
             }
 
@@ -387,9 +361,6 @@ impl Game {
                         result.push(GameEventType::Caravan);
                     }
                 }
-                if self.version < 103 && has_amal(self) && self.beginning_of_shipment_and_move_phase {
-                    result.push(GameEventType::AmalPlayed);
-                }
             }
             Phase::BeneGesseritAccompaniesGuildShip | Phase::BeneGesseritAccompaniesNonGuildShip => {
                 if faction == Faction::BeneGesserit {
@@ -402,9 +373,6 @@ impl Game {
                     if has_caravan(self) {
                         result.push(GameEventType::Caravan);
                     }
-                }
-                if self.version < 103 && has_amal(self) && self.beginning_of_shipment_and_move_phase {
-                    result.push(GameEventType::AmalPlayed);
                 }
             }
             Phase::GuildMove => {
@@ -462,9 +430,6 @@ impl Game {
             }
 
             Phase::ShipmentAndMoveConcluded => {
-                if self.version < 103 && has_amal(self) {
-                    result.push(GameEventType::AmalPlayed);
-                }
             }
 
             Phase::BattlePhase => {
@@ -511,9 +476,6 @@ impl Game {
                     }
                 }
 
-                if self.version < 103 && has_amal(self) && self.nr_of_battles_fought == 0 {
-                    result.push(GameEventType::AmalPlayed);
-                }
             }
 
             Phase::ClaimingBattle => {
@@ -632,9 +594,6 @@ impl Game {
             Phase::BattleReport => {
                 // NextPlayerToBattle mutates BattleSequence (hazards §4.3); only read when the
                 // preceding conditions hold.
-                if self.version < 103 && has_amal(self) && self.next_player_to_battle().is_none() {
-                    result.push(GameEventType::AmalPlayed);
-                }
             }
 
             Phase::DividingCollectedResources => {
@@ -668,9 +627,6 @@ impl Game {
             }
 
             Phase::Contemplate => {
-                if self.version < 103 && has_amal(self) {
-                    result.push(GameEventType::AmalPlayed);
-                }
                 if faction == Faction::Choam
                     && !self.prevented(FactionAdvantage::ChoamEconomics)
                     && self.economics_status == ChoamEconomicsStatus::None
@@ -742,10 +698,6 @@ impl Game {
             result.push(GameEventType::DiscoveryRevealed);
         }
 
-        if self.version <= 123 {
-            result.push(GameEventType::HideSecrets);
-        }
-
         if NexusPlayed::is_applicable(self, player) {
             result.push(GameEventType::NexusPlayed);
         }
@@ -754,11 +706,7 @@ impl Game {
             result.push(GameEventType::AllyPermission);
         }
 
-        let is_after_setup = if self.version < 107 {
-            self.current_phase > Phase::TradingFactions
-        } else {
-            self.current_main_phase > MainPhase::Setup
-        };
+        let is_after_setup = self.current_main_phase > MainPhase::Setup;
         let has_finalized_battle_plan_waiting_to_be_resolved = (self.current_phase == Phase::BattlePhase
             || self.current_phase == Phase::MeltingRock
             || self.current_phase == Phase::CallTraitorOrPass)
@@ -787,7 +735,7 @@ impl Game {
             }
         }
 
-        if is_after_setup && (self.version < 100 || !has_finalized_battle_plan_waiting_to_be_resolved) && !self.current_phase_cannot_be_interrupted() {
+        if is_after_setup && !has_finalized_battle_plan_waiting_to_be_resolved && !self.current_phase_cannot_be_interrupted() {
             let p = self.player(player);
 
             if self.current_main_phase < MainPhase::Battle && p.no_field_is_active() {
@@ -902,7 +850,7 @@ impl Game {
                 && !p.special_karma_power_used
                 && p.has_karma(self)
                 && self.applicable(Rule::AdvancedKarama)
-                && (self.version <= 150 || !self.has_bid_to_pay(player))
+                && !self.has_bid_to_pay(player)
             {
                 result.push(GameEventType::KarmaRicheseBuy);
             }
@@ -952,8 +900,7 @@ impl Game {
 
             if faction == Faction::BeneGesserit
                 && self.current_phase > Phase::AllianceB
-                && ((self.version <= 150 && self.current_phase < Phase::NonGuildShip)
-                    || self.current_main_phase < MainPhase::ShipmentAndMove
+                && (self.current_main_phase < MainPhase::ShipmentAndMove
                     || (p.initiated(self.current_bene_gesserit_cunning.clone().map(|c| c.into_event()).as_ref())
                         && self.current_main_phase == MainPhase::ShipmentAndMove))
                 && !BeneGesseritBattleAnnouncement::valid_territories(self, player).next().is_none()
@@ -992,18 +939,6 @@ impl Game {
                 && DistransUsed::can_be_played(self, player)
             {
                 result.push(GameEventType::DistransUsed);
-            }
-
-            if self.version >= 110 {
-                result.push(GameEventType::DealOffered);
-                result.push(GameEventType::DealAccepted);
-                result.push(GameEventType::DealRejected);
-            }
-        }
-
-        if self.version < 110 {
-            if self.player(player).ally != Faction::None {
-                result.push(GameEventType::AllyPermission);
             }
 
             result.push(GameEventType::DealOffered);
@@ -1065,6 +1000,5 @@ impl Game {
     pub fn consider_as_start_of_phase(&self) -> bool {
         self.current_moment == MainPhaseMoment::Start
             || (self.current_main_phase == MainPhase::Blow && self.current_moment == MainPhaseMoment::End)
-            || (self.version < 109 && self.current_moment == MainPhaseMoment::End)
     }
 }

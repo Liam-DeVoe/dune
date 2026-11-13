@@ -38,15 +38,9 @@ impl FactionTradeOffered {
 
     /// C#: `public override Message? Validate()` (Events/FactionTradeOffered.cs:34)
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if game.version >= 132 {
-            // `p.Faction` is read inside the lazy predicate, so a null Player throws only once the union has an element.
-            if !Self::valid_targets(game, self.player_opt().unwrap_or(PlayerIndex::NULL)).cs_contains(&self.target) {
-                return Some(express!("Invalid target"));
-            }
-        } else {
-            if !game.is_playing(self.target) {
-                return Some(express!("Invalid target"));
-            }
+        // `p.Faction` is read inside the lazy predicate, so a null Player throws only once the union has an element.
+        if !Self::valid_targets(game, self.player_opt().unwrap_or(PlayerIndex::NULL)).cs_contains(&self.target) {
+            return Some(express!("Invalid target"));
         }
 
         None
@@ -64,12 +58,6 @@ impl FactionTradeOffered {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
         if !self.is_playing(game, self.target) {
             self.log_objects(game, vec![self.initiator().into(), " switch to ".into(), self.target.into()]);
-
-            if game.version < 172 {
-                // C# parity (hazards 18.2): Target is never removed from FactionsInPlay. The list
-                // is shared with Settings and the EstablishPlayers event (hazards 5.1).
-                game.factions_in_play.borrow_mut().push(self.initiator());
-            }
 
             game.player_mut(self.player()).faction = self.target;
         } else {

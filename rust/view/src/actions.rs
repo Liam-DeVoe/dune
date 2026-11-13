@@ -54,7 +54,8 @@ pub fn action_view(game: &Game, v: &ResolvedViewer, t: GameEventType, d: &dyn De
 
 /// The event a form sends before the player touches it: the component's field initializers,
 /// after its widgets have clamped them (a number picker clamps its value into [Min, Max]).
-fn default_draft(game: &Game, _v: &ResolvedViewer, faction: Faction, t: GameEventType) -> Option<GameEvent> {
+/// Public for the observable-behavior harness (`rust/observe`), which fuzzes from these drafts.
+pub fn default_draft(game: &Game, _v: &ResolvedViewer, faction: Faction, t: GameEventType) -> Option<GameEvent> {
     if revival::TYPES.contains(&t) { return revival::default_draft(game, faction, t); }
     if setup::TYPES.contains(&t) { return setup::default_draft(game, faction, t); }
     if let Some(e) = _v.player.and_then(|p| ship_move::default_draft(game, p, faction, t)) { return Some(e); }

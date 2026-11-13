@@ -113,20 +113,11 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
         }
 
         if self.initiator() == Faction::BeneGesserit {
-            if game.version < 153 {
-                if as_advisors && pl().forces_in_territory(Some(self.to(game).nre().territory())) > 0 {
-                    return Some(express!("You have fighters there, so you can't move as advisors"));
-                }
-                if !as_advisors && pl().special_forces_in_territory(Some(self.to(game).nre().territory())) > 0 {
-                    return Some(express!("You have advisors there, so you can't move as fighters"));
-                }
-            } else {
-                if as_advisors && !PlacementEvent::may_move_as_advisors(game, p.nre(), self.to(game).nre().territory(), special_force_amount > 0) {
-                    return Some(express!("You can't be advisors there"));
-                }
-                if !as_advisors && !PlacementEvent::may_move_as_bene_gesserit_fighters(game, p.nre(), self.to(game).nre().territory()) {
-                    return Some(express!("You can't be fighters there"));
-                }
+            if as_advisors && !PlacementEvent::may_move_as_advisors(game, p.nre(), self.to(game).nre().territory(), special_force_amount > 0) {
+                return Some(express!("You can't be advisors there"));
+            }
+            if !as_advisors && !PlacementEvent::may_move_as_bene_gesserit_fighters(game, p.nre(), self.to(game).nre().territory()) {
+                return Some(express!("You can't be fighters there"));
             }
         }
 
@@ -146,7 +137,7 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
             return Some(express!("You can't move from more than two territories at the same time"));
         }
 
-        if game.version >= 156 && force_locations.keys().any(|l| game.is_in_storm(*l)) {
+        if force_locations.keys().any(|l| game.is_in_storm(*l)) {
             return Some(express!("Cannot move out of a storm"));
         }
 
@@ -202,7 +193,7 @@ impl PlacementEvent {
         player.is(Faction::BeneGesserit)
             && g.applicable(Rule::BeneGesseritAdvisors)
             && (player.special_forces_in_territory(Some(to)) > 0
-                || ((g.version < 177 || are_advisors) && player.forces_in_territory(Some(to)) == 0 && g.any_forces_in(to)))
+                || (are_advisors && player.forces_in_territory(Some(to)) == 0 && g.any_forces_in(to)))
     }
 
     /// C#: `public static bool MayMoveAsBeneGesseritFighters(Player p, Territory to)` (Events/PlacementEvent.cs:136)

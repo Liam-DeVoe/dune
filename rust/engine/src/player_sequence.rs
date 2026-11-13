@@ -33,7 +33,8 @@ pub struct PlayerSequence {
     /// Declared non-nullable in C#, but the constructor can be handed a null `toStartWith`
     /// (`richesePlayer!` in `Game.StartBidSequenceAndAuctionType`), so it is an `Option`.
     pub first_player: Option<PlayerIndex>,
-    /// `public Player CurrentPlayer { get { if (_game.Version > 117) return DetermineCurrentPlayer(); return field; } private set; }` (Model/PlayerSequence.cs:102)
+    /// The backing field of `public Player CurrentPlayer` (Model/PlayerSequence.cs:102). Only the
+    /// state dump reads it; the getter computes the current player (see `current_player`).
     ///
     /// The backing field. Starts as `FirstPlayer`, so it can be null too (see `first_player`).
     pub current_player: Option<PlayerIndex>,
@@ -64,10 +65,6 @@ impl PlayerSequence {
         }
 
         result.change_first_player_if_they_cant_bid(game);
-
-        if game.version <= 117 {
-            result.current_player = result.determine_current_player(game);
-        }
 
         result
     }
@@ -175,10 +172,7 @@ impl PlayerSequence {
     ///
     /// Can be null only when `PlayersInOrder` contains a null (see `players_in_order`).
     pub fn current_player(&self, game: &Game) -> Option<PlayerIndex> {
-        if game.version > 117 {
-            return self.determine_current_player(game);
-        }
-        self.current_player
+        self.determine_current_player(game)
     }
 
     /// C#: `private Player DetermineCurrentPlayer()` (Model/PlayerSequence.cs:114)
@@ -211,10 +205,6 @@ impl PlayerSequence {
             self.played.clear();
         }
 
-        if game.version <= 117 {
-            self.current_player = self.determine_current_player(game);
-        }
-
         if self.current_player(game) == self.first_player {
             self.fully_circled = self.fully_circled.wrapping_add(1);
         }
@@ -244,10 +234,6 @@ impl PlayerSequence {
         self.first_player = Some(self.player_after(game, self.first_player, false));
 
         self.played.clear();
-
-        if game.version <= 117 {
-            self.current_player = self.determine_current_player(game);
-        }
 
         self.round = self.round.wrapping_add(1);
     }

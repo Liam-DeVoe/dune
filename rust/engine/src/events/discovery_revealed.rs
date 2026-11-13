@@ -104,8 +104,7 @@ impl DiscoveryRevealed {
                 | DiscoveryToken::Cistern
                 | DiscoveryToken::ProcessingStation => {
                     let sh = game.map.get_discovery_stronghold(discovery.token);
-                    let version = game.version;
-                    sh.point_at(&mut game.map, version, discovery.location);
+                    sh.point_at(&mut game.map, discovery.location);
                     game.just_revealed_discovery_strongholds.push(sh);
                 }
 

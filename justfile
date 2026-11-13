@@ -3,15 +3,11 @@
 default:
     @just --list
 
-# Push the local source to the exe.dev box, build it there, restart the service.
+# Deploy the Rust server and the web client to https://treachery.exe.xyz/ (server built on the box).
 deploy:
     deploy/deploy.sh
 
-# Deploy the Rust server and the web client to https://treachery.exe.xyz/beta/ (built on the box).
-deploy-beta:
-    deploy/deploy-beta.sh
-
-# Create the box from nothing (idempotent), then deploy both.
+# Create the box from nothing (idempotent), then deploy.
 provision:
     deploy/provision.sh
 
@@ -54,10 +50,6 @@ run:
 # Tail the service log on the box.
 logs:
     ssh -i ~/.ssh/id_ed25519_exepersonal exedev@treachery.exe.xyz sudo journalctl -u treachery -f
-
-# Tail the beta's service log on the box.
-logs-beta:
-    ssh -i ~/.ssh/id_ed25519_exepersonal exedev@treachery.exe.xyz sudo journalctl -u treachery-beta -f
 
 # Format the SCSS under Client/Styles and the scoped .razor.scss files.
 fmt-css:

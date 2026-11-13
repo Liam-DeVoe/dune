@@ -63,7 +63,7 @@ impl DealAccepted {
         }
 
         let bound_player = game.get_player(Some(self.bound_faction));
-        if bound_player.is_some() && game.version >= 142 && !DealAccepted::may_deal(game, bound_player, self.benefit) {
+        if bound_player.is_some() && !DealAccepted::may_deal(game, bound_player, self.benefit) {
             return Some(express!(self.bound_faction, " currently have an outstanding bid"));
         }
         if self.price > game.player(self.player()).resources {
@@ -76,7 +76,7 @@ impl DealAccepted {
             }
         }
 
-        if (self.price > 0 || (game.version >= 142 && self.benefit > 0)) && game.applicable(Rule::DisableResourceTransfers) {
+        if (self.price > 0 || self.benefit > 0) && game.applicable(Rule::DisableResourceTransfers) {
             return Some(express!(Concept::Resource, " transfers are disabled by house rule"));
         }
         if !game.deal_offers.iter().any(|offer| offer.is_accepted_by(self)) {

@@ -127,10 +127,7 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Faction, t: GameE
         }
         GameEventType::FaceDanced => {
             let mut e = FaceDanced::new(game, faction);
-            if game.version <= 150 {
-                e.face_dancer_called = true;
-            }
-            let shows_pickers = if game.version > 150 { FaceDanced::maximum_number_of_forces(game, p) > 0 } else { FaceDanced::may_call_face_dancer(game, p) };
+            let shows_pickers = FaceDanced::maximum_number_of_forces(game, p) > 0;
             let sources: Vec<Location> = if shows_pickers { FaceDanced::valid_source_locations(game, p).collect() } else { vec![] };
             let targets: Vec<Location> = if shows_pickers { FaceDanced::valid_target_locations(game).collect() } else { vec![] };
             let zero = |ls: &[Location]| {
@@ -379,7 +376,7 @@ fn face_danced_options(game: &Game, p: PlayerIndex, draft: serde_json::Value) ->
     let pl = game.player(p);
     let at = |l: Location| FaceDancedSource { location: l.id(), forces: pl.forces_in(Some(l)), special_forces: pl.special_forces_in(Some(l)) };
     FaceDancedOptions {
-        place_only: game.version > 150,
+        place_only: true,
         may_call: FaceDanced::may_call_face_dancer(game, p),
         maximum_forces: FaceDanced::maximum_number_of_forces(game, p),
         forces_in_reserve: pl.forces_in_reserve(),

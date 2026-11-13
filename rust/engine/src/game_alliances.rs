@@ -24,10 +24,8 @@ impl Game {
             .with_log(NexusLog::new(None, Some(NexusAlliance::new(NexusAllianceChange::Made, a, b))))
             .into()]);
 
-        if self.version > 150 {
-            self.set_permissions(a, true);
-            self.set_permissions(b, true);
-        }
+        self.set_permissions(a, true);
+        self.set_permissions(b, true);
 
         while self.player(player_a).hand_size_exceeded(self) {
             let card = self.player(player_a).treachery_cards.iter().copied().random_or_default(self.random.as_ref().nre());
@@ -67,26 +65,10 @@ impl Game {
 
         let (Some(initiator), Some(current_ally)) = (initiator, current_ally) else { return };
 
-        if self.version <= 150 {
-            if f == Faction::Guild || self.player(initiator).ally == Faction::Guild {
-                self.guild_allows_shipping_discount = false;
-            }
-
-            if f == Faction::Emperor || self.player(initiator).ally == Faction::Emperor {
-                self.emperor_will_pay_for_extra_revival = 0;
-            }
-
-            if f == Faction::Fremen || self.player(initiator).ally == Faction::Fremen {
-                self.fremen_will_protect_from_monster = false;
-                self.fremen_allows_three_free_revivals = false;
-            }
-        } else {
-            self.set_permissions(f, false);
-            let ally = self.player(initiator).ally;
-            self.set_permissions(ally, false);
-        }
-
+        self.set_permissions(f, false);
         let ally = self.player(initiator).ally;
+        self.set_permissions(ally, false);
+
         self.permitted_use_of_ally_spice.remove(&f);
         self.permitted_use_of_ally_spice.remove(&ally);
         self.permitted_use_of_ally_karma.remove(&f);

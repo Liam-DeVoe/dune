@@ -91,10 +91,12 @@ pub fn bot_traces_in(dir: &std::path::Path) -> Vec<PathBuf> {
     files
 }
 
-/// The bot traces of `rust/traces/sample`, and two more in `tests/data` that reach what the
-/// sample doesn't: a discovery token its faction may identify (`bots-3141-00002`) and a silent
-/// auction with bids (`bots-3141-00009`). Both from `Treachery.Oracle bots --seed 3141 --dump
-/// none --hash none --gzip true`.
+/// The bot traces of `rust/traces/sample`, and three more in `tests/data` that reach what the
+/// sample doesn't: a discovery token its faction may identify (`bots-3141-00002`), Ecaz with a
+/// loyal leader and `SetShipmentPermission` (`bots-3141-00103`, cut after 128 events), and
+/// Moritani terror on the planet and `LoserConcluded` (`bots-3141-00114`, cut after 245 events).
+/// All from `Treachery.Oracle bots --seed 3141 --dump none --hash none --gzip true` (the last two
+/// with `--versions latest`).
 pub fn sample_bot_traces() -> Vec<PathBuf> {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let mut files = bot_traces_in(&root.join("../traces/sample"));

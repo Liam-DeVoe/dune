@@ -38,8 +38,8 @@ impl DiscoveredLocation {
     }
 
     /// `PointAt(game, newLocation)`; see [`AttachedLocation::point_at`].
-    pub fn point_at(self, map: &mut Map, game_version: i32, new_location: Location) {
-        self.attached().point_at(map, game_version, new_location)
+    pub fn point_at(self, map: &mut Map, new_location: Location) {
+        self.attached().point_at(map, new_location)
     }
 }
 

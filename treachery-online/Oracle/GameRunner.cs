@@ -135,7 +135,7 @@ public sealed class GameRunner
 
     public string FileName { get; private set; } = "";
 
-    public GameRunner(string mode, int masterSeed, int index, FuzzSettings? fuzz, bool checkBotPurity = false)
+    public GameRunner(string mode, int masterSeed, int index, FuzzSettings? fuzz, bool checkBotPurity = false, bool latestOnly = false)
     {
         _checkBotPurity = checkBotPurity;
         _mode = mode;
@@ -146,7 +146,7 @@ public sealed class GameRunner
         _fuzz = fuzz;
         _fuzzer = fuzz != null ? new Fuzzer(new Random(DeriveSeed(_gameSeed, 1, 7))) { ClientOnly = fuzz.ClientOnly } : null;
         if (_fuzzer != null && checkBotPurity) _fuzzer.StateHasher = StateHash;
-        _config = GameConfig.Randomize(_rng, fuzz != null);
+        _config = GameConfig.Randomize(_rng, fuzz != null, latestOnly);
     }
 
     public static int DeriveSeed(int a, int b, int c)

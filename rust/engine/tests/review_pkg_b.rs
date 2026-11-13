@@ -112,7 +112,7 @@ fn state(g: &Game, me: PlayerIndex) -> String {
 
 fn rust_lines() -> Vec<String> {
     let mut out = Vec::new();
-    for version in [163, 187] {
+    for version in [Game::LATEST_VERSION] {
         for seed in 1u32..=20 {
             let mut g = new_game(version);
             let locs = location_pool(&g);
@@ -179,7 +179,7 @@ fn rust_lines() -> Vec<String> {
 
     for players in 1..=12 {
         for sector in -2..=19 {
-            let mut g = Game::new_int32_participation(187, &treachery_engine::cs::Shared::new(Participation::new()));
+            let mut g = Game::new_int32_participation(Game::LATEST_VERSION, &treachery_engine::cs::Shared::new(Participation::new()));
             g.settings.as_ref().unwrap().borrow_mut().number_of_players = players;
             for i in 0..players {
                 if i % 3 == 1 {
@@ -258,7 +258,7 @@ fn seq_state(g: &Game, s: &PlayerSequence) -> String {
 fn sequence_lines() -> Vec<String> {
     let mut out = Vec::new();
     let cards = TreacheryCardManager::items();
-    for version in [117, 187] {
+    for version in [Game::LATEST_VERSION] {
         for seed in 1u32..=150 {
             let mut r = Rng::new(seed.wrapping_mul(40503).wrapping_add(7));
             let mut g = Game::new_int32_participation(version, &treachery_engine::cs::Shared::new(Participation::new()));

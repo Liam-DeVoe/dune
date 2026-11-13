@@ -41,7 +41,7 @@ impl ExtortionPrevented {
     pub fn can_be_played(g: &Game, p: PlayerIndex) -> bool {
         g.player(p).faction != Faction::Moritani
             && g.player(p).resources >= 3
-            && (g.version < 166 || g.extortion_to_be_returned)
+            && g.extortion_to_be_returned
     }
 
     /// C#: `protected override void ExecuteConcreteEvent()` (Events/ExtortionPrevented.cs:42)
@@ -50,11 +50,9 @@ impl ExtortionPrevented {
         game.extortion_to_be_returned = false;
         let p = game.player_mut(self.player());
         p.resources = p.resources.wrapping_sub(3);
-        if game.version >= 164 {
-            let moritani = self.get_player(game, Some(Faction::Moritani)).nre();
-            let c = game.player_mut(moritani);
-            c.resources = c.resources.wrapping_add(3);
-        }
+        let moritani = self.get_player(game, Some(Faction::Moritani)).nre();
+        let c = game.player_mut(moritani);
+        c.resources = c.resources.wrapping_add(3);
     }
 
     /// C#: `public override Message GetMessage()` (Events/ExtortionPrevented.cs:55)

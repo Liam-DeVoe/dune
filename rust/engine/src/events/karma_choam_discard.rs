@@ -77,13 +77,7 @@ impl KarmaChoamDiscard {
 
     /// C#: `public override Message? Validate()` (Events/KarmaChoamDiscard.cs:51)
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        let karma_card_to_use = if game.version < 171 {
-            Karma::valid_karma_cards(game, self.player()).into_iter().next()
-        } else {
-            self.card_to_use()
-        };
-
-        let Some(karma_card_to_use) = karma_card_to_use else {
+        let Some(karma_card_to_use) = self.card_to_use() else {
             return Some(express!("You must select a ", TreacheryCardType::Karma, " card to use"));
         };
 

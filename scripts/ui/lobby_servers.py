@@ -106,16 +106,19 @@ class LobbyServers:
         if work.exists():
             shutil.rmtree(work)
         work.mkdir(parents=True)
-        common = {"GameAdminUsername": "admin", "GameEndEmailUsername": ""}
         servers = {
             # Development: the C# server serves the client's static web assets from the build.
             "csharp": (["dotnet", str(CSHARP_DLL)], CSHARP_SERVER, {**dotnet_env(), "ASPNETCORE_ENVIRONMENT": "Development"}),
-            "web": ([str(RUST_SERVER)], work, {**os.environ, "WebRoot": str(self.web_dist)}),
+            "web": ([str(RUST_SERVER)], work, {**os.environ, "TREACHERY_WEB_ROOT": str(self.web_dist)}),
         }
         for client, (cmd, cwd, env) in servers.items():
             port = free_port()
-            env = {**env, **common, "ASPNETCORE_URLS": f"http://127.0.0.1:{port}",
-                   "ConnectionStrings__TreacheryDatabase": f"Data Source={work / (client + '.db')}"}
+            db = work / (client + ".db")
+            if client == "csharp":
+                env = {**env, "GameAdminUsername": "admin", "GameEndEmailUsername": "", "ASPNETCORE_URLS": f"http://127.0.0.1:{port}",
+                       "ConnectionStrings__TreacheryDatabase": f"Data Source={db}"}
+            else:
+                env = {**env, "TREACHERY_ADMIN": "admin", "TREACHERY_LISTEN": f"127.0.0.1:{port}", "TREACHERY_DATABASE": str(db)}
             log = work / f"{client}.log"
             proc = subprocess.Popen(cmd, cwd=cwd, env=env, stdout=log.open("w"), stderr=subprocess.STDOUT)
             self.procs.append(proc)

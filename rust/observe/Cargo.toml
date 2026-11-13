@@ -1,0 +1,16 @@
+[package]
+name = "observe"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+description = "Observable-behavior harness: records bot and fuzz games with a frozen reference build and replays them through the working tree. See rust/docs/native-harness.md."
+
+[dependencies]
+treachery-engine = { path = "../engine" }
+treachery-bots = { path = "../bots" }
+treachery-view = { path = "../view" }
+treachery-skin = { path = "../skin" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+flate2 = "1"
+sha2 = "0.10"

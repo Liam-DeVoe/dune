@@ -349,14 +349,10 @@ impl NexusPlayed {
             }
 
             Faction::Richese if betrayal && g.current_main_phase == MainPhase::Bidding => {
-                if g.version >= 164 {
-                    (g.richese_bidding_just_finished || g.card_sold_on_black_market.is_some())
-                        && (g.has_quite_recent_payment_to(Faction::Richese)
-                            || (g.card_just_won.is_some()
-                                && g.get_player(Some(Faction::Richese)).map(|w| g.player(w).has(g.card_just_won)) == Some(true)))
-                } else {
-                    g.richese_bidding_just_finished && g.card_just_won.is_some()
-                }
+                (g.richese_bidding_just_finished || g.card_sold_on_black_market.is_some())
+                    && (g.has_quite_recent_payment_to(Faction::Richese)
+                        || (g.card_just_won.is_some()
+                            && g.get_player(Some(Faction::Richese)).map(|w| g.player(w).has(g.card_just_won)) == Some(true)))
             }
 
             Faction::Ecaz if betrayal => {
@@ -609,24 +605,22 @@ impl NexusPlayed {
                     let card_just_won = game.card_just_won;
                     game.discard_player_treachery_card_boolean(Some(richese), card_just_won, true);
                     let winning_bid = game.winning_bid.clone();
-                    if game.version >= 174 {
-                        if let Some(winning_bid) = winning_bid {
-                            if !winning_bid.i_bid_karma_bid() && winning_bid.i_bid_initiator() == Faction::Richese {
-                                let w = game.player_mut(richese);
-                                w.resources = w.resources.wrapping_add(winning_bid.i_bid_amount());
-                                let richese_ally = game.player(richese).allied_player(game);
-                                if let Some(richese_ally) = richese_ally {
-                                    if winning_bid.i_bid_ally_contribution_amount() > 0 {
-                                        let a = game.player_mut(richese_ally);
-                                        a.resources = a.resources.wrapping_add(winning_bid.i_bid_ally_contribution_amount());
-                                    }
+                    if let Some(winning_bid) = winning_bid {
+                        if !winning_bid.i_bid_karma_bid() && winning_bid.i_bid_initiator() == Faction::Richese {
+                            let w = game.player_mut(richese);
+                            w.resources = w.resources.wrapping_add(winning_bid.i_bid_amount());
+                            let richese_ally = game.player(richese).allied_player(game);
+                            if let Some(richese_ally) = richese_ally {
+                                if winning_bid.i_bid_ally_contribution_amount() > 0 {
+                                    let a = game.player_mut(richese_ally);
+                                    a.resources = a.resources.wrapping_add(winning_bid.i_bid_ally_contribution_amount());
                                 }
-                                if let Some(richese_ally) = richese_ally {
-                                    if winning_bid.i_bid_emperor_contribution_amount() > 0 {
-                                        // C# parity: Emperor's contribution is refunded to Richese's ally (hazards 18).
-                                        let a = game.player_mut(richese_ally);
-                                        a.resources = a.resources.wrapping_add(winning_bid.i_bid_emperor_contribution_amount());
-                                    }
+                            }
+                            if let Some(richese_ally) = richese_ally {
+                                if winning_bid.i_bid_emperor_contribution_amount() > 0 {
+                                    // C# parity: Emperor's contribution is refunded to Richese's ally (hazards 18).
+                                    let a = game.player_mut(richese_ally);
+                                    a.resources = a.resources.wrapping_add(winning_bid.i_bid_emperor_contribution_amount());
                                 }
                             }
                         }
@@ -651,16 +645,14 @@ impl NexusPlayed {
             Faction::Moritani => {
                 if let Some(moritani_territory) = self.moritani_territory(game) {
                     // TerrorIn iterates TerrorOnPlanet in .NET slot order (hazards 3.1). An empty
-                    // result gives default(TerrorType), which C# then removes and (v169+) adds.
+                    // result gives default(TerrorType), which C# then removes and adds.
                     let terror_to_remove = game
                         .terror_in(moritani_territory)
                         .into_iter()
                         .random_or_default(game.random.as_ref().nre())
                         .unwrap_or_default();
                     game.terror_on_planet.remove(&terror_to_remove);
-                    if game.version >= 169 {
-                        game.unplaced_terror_tokens.push(terror_to_remove);
-                    }
+                    game.unplaced_terror_tokens.push(terror_to_remove);
                     let moritani_territory = self.moritani_territory(game);
                     game.play_nexus_card(
                         actor,

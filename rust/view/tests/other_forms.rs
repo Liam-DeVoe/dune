@@ -296,11 +296,12 @@ fn options_equal_the_engine_helpers_over_the_corpus() {
         return;
     }
     // The corpus reaches these; a form that stops being reached means the corpus changed.
-    // `tests/data/other` holds short games for the rest (generated with the oracle, bots seed 7702 and
-    // fuzz seeds 7701 and 7703, cut after the state that reaches the form).
+    // `tests/data/other` holds short games for the rest (generated with the oracle, bots seeds 7701
+    // and 7702 and fuzz seeds 7701 and 7703, cut after the state that reaches the form; bots-7701-*
+    // are `--versions latest` games for the Ecaz Secret Ally and Tleilaxu Cunning Nexus cards).
     let reached = [
-        "AllyPermission", "AutomationConfigured", "Donated", "DealOffered", "Karma", "TraitorsSelected", "NexusPlayed", "SkillAssigned", "PlayerReplaced",
-        "HideSecrets", "AllianceByTerror", "AmalPlayed", "BattleClaimed", "Captured", "ChoamExtraMove", "Discarded", "DiscardedSearched",
+        "AllyPermission", "AutomationConfigured", "Donated", "DealOffered", "Karma", "TraitorsSelected", "NexusPlayed", "SkillAssigned",
+        "AllianceByTerror", "AmalPlayed", "BattleClaimed", "Captured", "ChoamExtraMove", "Discarded", "DiscardedSearched",
         "DiscardedSearchedAnnounced", "DiscardedTaken", "DivideResources", "DivideResourcesAccepted", "ExtortionPrevented", "FlightDiscoveryUsed",
         "HarvesterPlayed", "KarmaHandSwap", "KarmaHandSwapInitiated", "KarmaMonster", "KarmaPrescience", "KarmaRicheseBuy", "NexusVoted",
         "PoisonToothCancelled", "PortableAntidoteUsed", "RecruitsPlayed", "ReplacedCardWon", "ResidualPlayed", "RicheseGaveCard", "ThumperPlayed",
@@ -309,9 +310,8 @@ fn options_equal_the_engine_helpers_over_the_corpus() {
         "NexusPlayed/Fremen/Secret Ally", "NexusPlayed/Harkonnen/Secret Ally", "NexusPlayed/Moritani/MoritaniTerritory",
         "NexusPlayed/Tleilaxu/Cunning", "NexusPlayed/Tleilaxu/Secret Ally",
     ];
-    for t in reached {
-        assert!(seen.0.contains_key(t), "the corpus reaches no {t} form");
-    }
+    let missing: Vec<&str> = reached.iter().copied().filter(|t| !seen.0.contains_key(*t)).collect();
+    assert!(missing.is_empty(), "the corpus reaches no form of {missing:?}");
 }
 
 fn fixtures() -> Vec<String> {

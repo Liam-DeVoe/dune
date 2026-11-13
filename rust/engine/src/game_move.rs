@@ -77,7 +77,7 @@ impl Game {
                 .map(|(k, v)| (*k, v.clone()))
                 .collect();
             for fl in in_territory {
-                if self.version <= 150 || fl.1.total_amount_of_forces() > 0 {
+                if fl.1.total_amount_of_forces() > 0 {
                     self.perform_move_from_location(initiator, fl.0, &fl.1, to, &mut total_number_of_forces, &mut total_number_of_special_forces, false);
                     // C# parity: Sandmaster is applied per source location (hazards 18).
                     self.check_sandmaster(initiator, to, dist, fl);
@@ -291,7 +291,7 @@ impl Game {
 
     /// C#: `private void SkipMoveIfNothingToMove()` (Game_Move.cs:303)
     pub fn skip_move_if_nothing_to_move(&mut self) {
-        if self.version < 179 || !matches!(self.current_phase, Phase::GuildMove | Phase::NonGuildMove) {
+        if !matches!(self.current_phase, Phase::GuildMove | Phase::NonGuildMove) {
             return;
         }
 
@@ -552,7 +552,7 @@ impl Game {
     pub fn check_if_forces_should_be_destroyed_by_ally_presence(&mut self, p: PlayerIndex) {
         let (p_ally, p_faction) = (self.player(p).ally, self.player(p).faction);
         if p_ally != Faction::None && p_faction != Faction::Ecaz && p_ally != Faction::Ecaz {
-            let special_forces_are_allowed = self.version >= 177 && self.player(p).is(Faction::BeneGesserit) && self.applicable(Rule::AdvisorsDontConflictWithAlly);
+            let special_forces_are_allowed = self.player(p).is(Faction::BeneGesserit) && self.applicable(Rule::AdvisorsDontConflictWithAlly);
 
             //Forces that must be destroyed because moves ended where allies are
             let mut i = 0;
@@ -744,7 +744,7 @@ impl Game {
         let ecaz_player = self.get_player(Some(Faction::Ecaz));
         if let Some(ecaz) = ecaz_player {
             let initiator = e.i_location_event_initiator();
-            if (self.version < 160 || initiator != Faction::BeneGesserit || e.i_location_event_forces_added_to_location(self) > 0)
+            if (initiator != Faction::BeneGesserit || e.i_location_event_forces_added_to_location(self) > 0)
                 && initiator != Faction::Ecaz
                 && initiator != self.player(ecaz).ally
                 && self.ambassador_in(e.to_location(self).nre().territory()) != Ambassador::None
@@ -869,6 +869,6 @@ impl Game {
 
     /// C#: `internal bool GuildMayShipOutOfTurnOrder` (Game_Move.cs:927)
     pub fn guild_may_ship_out_of_turn_order(&self) -> bool {
-        self.applicable(Rule::GuildDetermineShipment) && (self.version < 113 || !self.prevented(FactionAdvantage::GuildDetermineMoveMoment))
+        self.applicable(Rule::GuildDetermineShipment) && !self.prevented(FactionAdvantage::GuildDetermineMoveMoment)
     }
 }

@@ -141,8 +141,8 @@ impl Karma {
 
         if faction != Faction::Guild && g.is_playing(Faction::Guild) {
             if Karma::in_(g, MainPhase::ShipmentAndMove) {
-                let guild_determine_shipment_may_still_be_prevented = g.version < 156
-                    || (!g.has_acted_or_passed.contains(&Faction::Guild) && g.current_phase != Phase::GuildShip);
+                let guild_determine_shipment_may_still_be_prevented =
+                    !g.has_acted_or_passed.contains(&Faction::Guild) && g.current_phase != Phase::GuildShip;
                 if g.applicable(Rule::GuildDetermineShipment) && guild_determine_shipment_may_still_be_prevented {
                     result.push(FactionAdvantage::GuildDetermineMoveMoment);
                 }
@@ -285,7 +285,7 @@ impl Karma {
 
     /// C#: `private static bool In(Game g, MainPhase phase)` (Events/Karma.cs:226)
     pub fn in_(g: &Game, phase: MainPhase) -> bool {
-        g.version < 150 || g.current_main_phase == phase
+        g.current_main_phase == phase
     }
 
     /// C#: `public static IEnumerable<TreacheryCard> ValidKarmaCards(Game g, Player p)` (Events/Karma.cs:231)

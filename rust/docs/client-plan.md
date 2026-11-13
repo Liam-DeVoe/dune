@@ -24,7 +24,7 @@ The client is not Rust, has its own toolchain (npm, node_modules of about 80 MB)
 
 Building a view runs `GameStatus.DetermineStatus` and `Game.GetApplicableEvents`, and draft queries run `Validate()` and the `Valid*` helpers. Some of these write game state: `NextPlayerToBattle` advances the battle sequence (hazards 4.3), and pathfinding fills the neighbour cache, which serves stale results until the next event (hazards 6.1). In C# these calls ran only in each client's own copy of the game. The C# server's game never saw them, and its state after each event is what the Rust server must reproduce.
 
-So the view layer never touches the server's game (coordinator answer 4 in [server-plan.md](server-plan.md)). Each game on the server has a `ViewReplica` (`rust/view/src/replica.rs`): a second `Game` that plays the part of a C# client's copy.
+So the view layer never touches the server's game (see [server.md](server.md)). Each game on the server has a `ViewReplica` (`rust/view/src/replica.rs`): a second `Game` that plays the part of a C# client's copy.
 
 - It executes each accepted event as `Client.HandleGameEvent` does, `Execute(false, false)`: no validation.
 - After each event, every view is built from it, which runs `DetermineStatus` and `GetApplicableEvents` as `Client.PerformPostEventTasks` did.
@@ -219,7 +219,7 @@ Two choices the C# client doesn't make the same way:
 
 Tests:
 
-- `tests/view_core.rs` tests each field against the engine and against the C# component's gate. It uses the fixtures and, for the expansions the fixtures lack (terror, discoveries, ambassadors, the Hidden Mobile Stronghold, No-Field, Ecaz, Moritani, silent auctions), the first state of a sample bot game that has them. `tests/data` holds two small bot traces (seed 3141, games 2 and 9). They reach an identifiable discovery and a silent auction, which `rust/traces/sample` doesn't.
+- `tests/view_core.rs` tests each field against the engine and against the C# component's gate. It uses the fixtures and, for the expansions the fixtures lack (terror, discoveries, ambassadors, the Hidden Mobile Stronghold, No-Field, Ecaz, Moritani, silent auctions), the first state of a sample bot game that has them. `tests/data` holds three small bot traces (seed 3141, games 2, 103 and 114; the last two cut short). They reach an identifiable discovery, an Ecaz loyal leader with `SetShipmentPermission`, and Moritani terror on the planet with `LoserConcluded`, which `rust/traces/sample` doesn't. (Game 9, a silent auction at version 107, was replaced when old versions were dropped; the sample now has silent bids.)
 - `tests/corpus.rs` runs over every bot trace. After every accepted event it builds the view of every player and an observer on two replicas, in different orders, and requires equal views. It also checks every view against the visibility rules, derived from the engine state. With `VIEW_CORPUS_DIR` it runs on any directory of bot traces. It passed on 40 fresh games (`Treachery.Oracle bots --seed 3141 --games 40`, 25,190 steps), so one replica per game is enough.
 - `tests/static_data.rs` keeps `data.json` current and equal to the engine's tables.
 
@@ -265,7 +265,7 @@ Package 10, comparison harness (2026-11-09): done as described in [Harness layou
 - The `story-hide-secrets` mask only matters once a comparison opens the story modal. `comparisons/story.py` (package 9) does.
 - Fixtures at game version 187 (`alliance-before`, `alliance-allied-before`) can't be compared. The C# scene page refuses them, and the report lists them.
 
-Package 2, server glue (2026-11-10), with the server's package T (details in [server-plan.md](server-plan.md#progress-and-next-steps)):
+Package 2, server glue (2026-11-10), with the server's package T (the server plan of the time, since replaced by [server.md](server.md)):
 
 - Server: `server/src/views.rs` keeps a `ViewReplica` per game with connected members and sends each member their `GameView` after events, undo/restore/dismiss/load, participation changes, `SetSkin` and `SetTimer`, and the caller theirs after create, join, observe, reconnect and `RequestGameState`. `QueryDraft`, `RequestReport` and `RequestUndoList` are answered from the replica. `server/src/dev.rs` is `POST /dev/scene`.
 - `view/src/replica.rs` gained `report`, `undo_list` (`UndoEntry`), `set_skin` and `has_view_for`.
@@ -453,7 +453,7 @@ Cleanup A, form adjustments and lobby order (2026-11-11). This replaces two note
 
 Cleanup C, fixtures, scripted comparisons and a full check (2026-11-11). This replaces package 10's note that the version 187 fixtures can't be compared, and package 7b's note that the Retreat and BG-announcement pins and the FaceDanced pickers have no scripted comparison.
 
-- Version 187 fixtures: `alliance-before` and `alliance-allied-before` are `alliance` and `alliance-allied` at version 187, for the `--before` shots of `scripts/ui/scenarios/alliance.py`. They stay in `scripts/fixtures`, where the Rust view tests read every fixture. `scene_views.rs` lists a fixture at an older version as `skipped` with no scenes, so `just compare` no longer reports them as errors. Regenerating them at 188 would only duplicate `alliance` and `alliance-allied`.
+- Version 187 fixtures: `alliance-before` and `alliance-allied-before` are `alliance` and `alliance-allied` at version 187, for the `--before` shots of `scripts/ui/scenarios/alliance.py`. They stay in `scripts/fixtures`, where the Rust view tests read every fixture. `scene_views.rs` lists a fixture at an older version as `skipped` with no scenes, so `just compare` no longer reports them as errors. Regenerating them at 188 would only duplicate `alliance` and `alliance-allied`. (Deleted 2026-11-11 with old game versions, native-plan step 2.)
 - New fixtures, with specs in `fixture-specs.json`: `bg-announcement` (Bene Gesserit may flip advisors in Carthag, Tuek's Sietch or Habbanya Sietch), `karma-revival` (the Emperor holds Karama and may play `KarmaFreeRevival`) and `revival-planet` (Tleilaxu at high threshold under Homeworlds may revive straight to the planet). No earlier fixture reached any of these three.
 - New scripted comparisons in `scripts/ui/comparisons/`, all run with the web side on the Rust server:
   - `battle-pins`: Retreat on `retreat`/Harkonnen and the announcement on `bg-announcement`/BeneGesserit. Each one picks, re-picks and confirms from the pin.

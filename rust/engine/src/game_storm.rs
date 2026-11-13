@@ -179,9 +179,7 @@ impl Game {
             }
         }
 
-        if self.version >= 163 {
-            self.flip_bene_gesserit_advisors_when_alone();
-        }
+        self.flip_bene_gesserit_advisors_when_alone();
 
         // `Strongholds` and the predicate only read static data, SectorInStorm and
         // ShieldWallDestroyed, none of which the body changes.
@@ -221,14 +219,10 @@ impl Game {
             // C# parity: resumes in BlowA and skips the storm report (hazards 18.2).
             self.phase_before_storm_loss = Phase::BlowA;
             self.enter(Phase::StormLosses, true);
-        } else if self.version >= 103 {
-            // C# parity: MainPhaseEnd() is called a second time (hazards 18.2).
-            if self.version >= 132 {
-                self.main_phase_end();
-            }
-            self.enter(Phase::StormReport, true);
         } else {
-            self.enter_spice_blow_phase();
+            // C# parity: MainPhaseEnd() is called a second time (hazards 18.2).
+            self.main_phase_end();
+            self.enter(Phase::StormReport, true);
         }
     }
 

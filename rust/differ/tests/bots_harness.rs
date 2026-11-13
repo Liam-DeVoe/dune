@@ -209,16 +209,3 @@ fn a_bot_that_changes_the_game_is_reproduced_in_fuzz() {
     assert!(outcome.failure.is_none(), "{:?}", outcome.failure.as_ref().map(|f| f.group()));
     assert!(outcome.bot_decisions_ok > 900, "{} deliberations checked", outcome.bot_decisions_ok);
 }
-
-/// Fuzz seed 301 game 24 (escapes.md, "Bot decisions validated in the live game instead of the event's
-/// own game"): after an undo, the deal offers in the game belong to the pre-undo game, and
-/// `DealOffered.Acceptance` builds the bot's `DealAccepted` on that game. C#'s `Do` validates it there
-/// and finds it invalid, so the Richese bot chooses nothing at line 1960. The golden is the trace cut
-/// after line 1960.
-#[test]
-fn a_bot_event_of_another_game_is_validated_in_that_game() {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/golden/fuzz-301-00024-deal-after-undo.jsonl.gz");
-    let (outcome, _) = replay::replay_file(&path, &Options { check_bots: true, stop_after: Some(1960), ..Options::default() });
-    assert!(outcome.failure.is_none(), "{:?}", outcome.failure.as_ref().map(|f| f.group()));
-    assert!(outcome.bot_decisions_ok > 1000, "{} deliberations checked", outcome.bot_decisions_ok);
-}

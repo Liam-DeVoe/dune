@@ -400,9 +400,8 @@ fn battle_forms_in_rare_traces() {
     if scan.is_some() {
         return;
     }
-    for t in RARE {
-        assert!(stats.0.contains_key(*t), "tests/data/battle reaches no {t} form");
-    }
+    let missing: Vec<&str> = RARE.iter().copied().filter(|t| !stats.0.contains_key(*t)).collect();
+    assert!(missing.is_empty(), "tests/data/battle reaches no form of {missing:?}");
 }
 
 /// The forms only `tests/data/battle` reaches. The traces are `Treachery.Oracle bots --seed 7701

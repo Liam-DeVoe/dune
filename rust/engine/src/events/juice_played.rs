@@ -27,18 +27,6 @@ impl Default for JuicePlayed {
     }
 }
 
-/// Runs `PlayerSequence.CheckCurrentPlayer()` on the sequence in `slot`, which C# mutates in place.
-/// A null sequence throws NullReferenceException. If the call throws, the sequence goes back
-/// into the game with the changes made before the throw, as in C#.
-fn check_current_player(game: &mut Game, slot: fn(&mut Game) -> &mut Option<PlayerSequence>) {
-    let mut seq = slot(game).take().nre();
-    let result = cs::catch(|| seq.check_current_player(game));
-    *slot(game) = Some(seq);
-    if let Err(e) = result {
-        std::panic::resume_unwind(Box::new(e));
-    }
-}
-
 impl JuicePlayed {
     /// C#: `public JuicePlayed(Game game, Faction initiator) : base(game, initiator)` (Events/JuicePlayed.cs:17)
     pub fn new(game: &Game, initiator: Faction) -> Self {
@@ -96,14 +84,7 @@ impl JuicePlayed {
         game.current_juice = Some(self.clone());
         game.discard(self.player(), TreacheryCardType::Juice);
 
-        if (self.type_ == JuiceType::GoFirst || self.type_ == JuiceType::GoLast) && game.version <= 117 {
-            match game.current_main_phase {
-                MainPhase::Bidding => check_current_player(game, |g| &mut g.bid_sequence),
-                MainPhase::ShipmentAndMove => check_current_player(game, |g| &mut g.shipment_and_move_sequence),
-                MainPhase::Battle => check_current_player(game, |g| &mut g.battle_sequence),
-                _ => {}
-            }
-        } else if let Some(battle) = game.current_battle.clone() {
+        if let Some(battle) = game.current_battle.clone() {
             if self.type_ == JuiceType::Aggressor && battle.aggressive_player(game) != aggressor_before_juice_is_played {
                 std::mem::swap(&mut game.defender_plan, &mut game.aggressor_plan);
                 std::mem::swap(&mut game.defender_traitor_action, &mut game.aggressor_traitor_action);

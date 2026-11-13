@@ -220,7 +220,7 @@ fn reference_types_write_every_form_they_claim() {
     use treachery_engine::territory::Territory;
 
     // `old` becomes another game of `game`, as after `Undo`.
-    let mut old = Game::new_int32_participation(187, &Shared::new(Participation::new()));
+    let mut old = Game::new_int32_participation(Game::LATEST_VERSION, &Shared::new(Participation::new()));
     let p = Player::new(&old, Faction::Atreides);
     old.players.push(p);
     let old_id = old.id;

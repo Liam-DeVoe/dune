@@ -68,31 +68,12 @@ impl Game {
     /// C#: `internal void ModifyIncomeBecauseOfLowThresholdOrOccupation(Player from, ref int receivedAmount)` (Game_Collection.cs:64)
     pub fn modify_income_because_of_low_threshold_or_occupation(&mut self, from: PlayerIndex, received_amount: &mut i32) {
         if *received_amount > 1 && self.applicable(Rule::Homeworlds) {
-            let homeworld = if self.version >= 166 {
-                self.player(from).primary_homeworld()
-            } else {
-                self.player(from).home_worlds.iter().copied().cs_first()
-            };
+            let homeworld = self.player(from).primary_homeworld();
             let occupier = self.occupier_of(homeworld.world());
 
             let fp = self.player(from);
             let occupied_or_emperor_or_guild = || occupier.is_some() || fp.is(Faction::Emperor) || fp.is(Faction::Guild);
-            let half_is_lost = if self.version >= 169 {
-                occupied_or_emperor_or_guild() && fp.has_low_threshold(self, homeworld.world())
-            } else {
-                // The switch arms are tried in order; an arm whose `when` fails falls through
-                // to the next arm whose pattern matches.
-                let v = self.version;
-                if v >= 166 && occupied_or_emperor_or_guild() && fp.has_low_threshold(self, homeworld.world()) {
-                    true
-                } else if v >= 164 && occupied_or_emperor_or_guild() && fp.has_low_threshold_0(self) {
-                    true
-                } else if v < 164 && (!fp.is(Faction::Richese) || occupier.is_some()) && fp.has_low_threshold_0(self) {
-                    true
-                } else {
-                    false
-                }
-            };
+            let half_is_lost = occupied_or_emperor_or_guild() && fp.has_low_threshold(self, homeworld.world());
 
             let amount_lost = if half_is_lost { (0.5f32 * *received_amount as f32) as i32 } else { 0 };
 
@@ -151,14 +132,11 @@ impl Game {
     pub fn collect_resources_from_territories(&mut self) {
         let processing_station = self.map.processing_station().location();
         let find_thief = |g: &Game| g.player_indices().find(|p| g.player(*p).occupies(g, Some(processing_station)));
-        let mut thief = find_thief(self);
 
         // `.ToList()`: a snapshot of the pairs, in dictionary order (hazards 3.3).
         let snapshot: Vec<(Location, i32)> = self.resources_on_planet.iter().filter(|(_, v)| **v > 0).map(|(k, v)| (*k, *v)).collect();
         for (key, value) in snapshot {
-            if self.version >= 159 {
-                thief = find_thief(self);
-            }
+            let mut thief = find_thief(self);
 
             let players_to_collect: Vec<PlayerIndex> =
                 self.player_indices().filter(|y| self.player(*y).occupies(self, Some(key))).collect();
@@ -179,7 +157,7 @@ impl Game {
                 spice_left = spice_left.wrapping_sub(collected_amount_by_this_player);
 
                 if let Some(t) = thief {
-                    if collected_amount_by_this_player > 0 && (self.version < 159 || p != t) {
+                    if collected_amount_by_this_player > 0 && p != t {
                         collected_amount_by_this_player -= 1;
                         let r = &mut self.player_mut(t).resources;
                         *r = r.wrapping_add(1);
@@ -247,12 +225,9 @@ impl Game {
             let mut received_amount_by_fremen_after_taking_into_account_occupation = self.resources_collected_by_fremen;
             self.modify_income_because_of_low_threshold_or_occupation(fremen, &mut received_amount_by_fremen_after_taking_into_account_occupation);
 
-            // C# parity: before v162 the occupier is paid but Fremen is not charged (hazards 18.2).
-            if self.version >= 162 {
-                let lost = self.resources_collected_by_fremen.wrapping_sub(received_amount_by_fremen_after_taking_into_account_occupation);
-                let r = &mut self.player_mut(fremen).resources;
-                *r = r.wrapping_sub(lost);
-            }
+            let lost = self.resources_collected_by_fremen.wrapping_sub(received_amount_by_fremen_after_taking_into_account_occupation);
+            let r = &mut self.player_mut(fremen).resources;
+            *r = r.wrapping_sub(lost);
         }
 
         let harkonnen = self.get_player(Some(Faction::Harkonnen));
@@ -265,8 +240,7 @@ impl Game {
         }
 
         self.main_phase_end();
-        let condition = self.version >= 103;
-        self.enter_boolean_phase_action(condition, Phase::CollectionReport, Game::enter_contemplate_phase);
+        self.enter(Phase::CollectionReport, true);
     }
 
     /// C#: `public int ResourceCollectionRate(Player p)` (Game_Collection.cs:212)

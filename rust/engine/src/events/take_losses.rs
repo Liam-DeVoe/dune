@@ -52,18 +52,15 @@ impl TakeLosses {
         }
 
         let value_to_be_killed = TakeLosses::losses_to_take(game).amount;
-        let special_force_bonus: i32 = if game.version < 167 { 2 } else { 1 };
-        if self.force_amount.wrapping_add(special_force_bonus.wrapping_mul(self.special_force_amount)) < value_to_be_killed {
+        if self.force_amount.wrapping_add(self.special_force_amount) < value_to_be_killed {
             return Some(express!("Select a total value of at least ", value_to_be_killed, " to be killed"));
         }
 
-        if game.version >= 120 {
-            if self.force_amount > TakeLosses::valid_max_force_amount(game, self.player()) {
-                return Some(express!("Invalid amount of forces"));
-            }
-            if self.special_force_amount > TakeLosses::valid_max_special_force_amount(game, self.player()) {
-                return Some(express!("Invalid amount of forces"));
-            }
+        if self.force_amount > TakeLosses::valid_max_force_amount(game, self.player()) {
+            return Some(express!("Invalid amount of forces"));
+        }
+        if self.special_force_amount > TakeLosses::valid_max_special_force_amount(game, self.player()) {
+            return Some(express!("Invalid amount of forces"));
         }
 
         None

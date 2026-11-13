@@ -99,25 +99,6 @@ public static class ReviewC
     // and the client do. Each line is "name = value"; tests/review_pkg_c.rs compares them.
     public static void RunValidationOff()
     {
-        // Version 150 (legacy players path), three named players, BeneGesserit in play. No
-        // PlayersChooseFactions, so factions are dealt and the phase is TradingFactions.
-        const string establish150 = "{\"$type\":\"EstablishPlayers\",\"Seed\":4242,\"MaximumNumberOfPlayers\":3,\"MaximumTurns\":10,\"ApplicableRules\":[],\"_players\":\"a>b>c\",\"_factionsInPlay\":\"BeneGesserit,Atreides,Fremen\",\"Initiator\":0," + T + "}";
-
-        // PerformBeneGesseritPlacement with no target (_targetId = -1), version <= 154.
-        {
-            var g = new Game(150, new Participation());
-            Exec(g, establish150, true);
-            P("bene_gesserit.factions", () => L(g.Players.Select(p => p.Faction)));
-            var bene_gesserit = g.GetPlayer(Faction.BeneGesserit)!;
-            P("bene_gesserit.before.reserve", () => bene_gesserit.ForcesInReserve);
-            P("bene_gesserit.before.phase", () => g.CurrentPhase);
-            P("bene_gesserit.result", () => Exec(g, "{\"$type\":\"PerformBeneGesseritPlacement\",\"_targetId\":-1,\"Initiator\":60," + T + "}", false));
-            P("bene_gesserit.after.reserve", () => bene_gesserit.ForcesInReserve);
-            P("bene_gesserit.after.locations", () => bene_gesserit.ForcesInLocations.Count);
-            P("bene_gesserit.after.phase", () => g.CurrentPhase);
-            P("bene_gesserit.after.history", () => g.History.Count);
-        }
-
         // PerformHmsPlacement twice: a real target, then none. C# detaches the HMS from the
         // first target before PointAt throws on the null target.
         {

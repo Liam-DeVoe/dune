@@ -38,7 +38,7 @@ impl KarmaShipmentPrevention {
 
     /// C#: `public override Message? Validate()` (Events/KarmaShipmentPrevention.cs:34)
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if game.version >= 138 && !KarmaShipmentPrevention::get_valid_targets(game, self.player()).cs_contains(&self.target) {
+        if !KarmaShipmentPrevention::get_valid_targets(game, self.player()).cs_contains(&self.target) {
             return Some(express!("Invalid target"));
         }
 

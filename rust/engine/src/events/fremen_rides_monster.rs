@@ -73,7 +73,7 @@ impl FremenRidesMonster {
             return None;
         }
 
-        if game.version >= 155 && Self::total_amount_of_forces_added_to_location(self, game) == 0 {
+        if Self::total_amount_of_forces_added_to_location(self, game) == 0 {
             return Some(express!("No forces selected"));
         }
         if self.to(game).is_none() {
@@ -135,30 +135,26 @@ impl FremenRidesMonster {
     /// C#: `private static IEnumerable<Location> LocationsWithForcesThatCanRide(Game g, Player fremen, Territory territory)` (Events/FremenRidesMonster.cs:75)
     /// Lazy like the C# query: callers stop early (docs/lazy-queries.md).
     pub fn locations_with_forces_that_can_ride<'a>(g: &'a Game, fremen: PlayerIndex, territory: Territory) -> Box<dyn Iterator<Item = Location> + 'a> {
-        if g.version >= 136 {
-            let may_ride_from_storm = g.applicable(Rule::FremenMayMoveIntoStorm);
+        let may_ride_from_storm = g.applicable(Rule::FremenMayMoveIntoStorm);
 
-            if NexusPlayed::can_use_cunning(g, fremen) && g.player(fremen).any_forces_in_territory(Some(territory)) == 0 {
-                // ForcesOnPlanet builds its dictionary at the call; the Where runs as the caller pulls.
-                let keys: Vec<Location> = g.player(fremen).forces_on_planet().keys().copied().collect();
-                return Box::new(
-                    keys.into_iter()
-                        .filter(move |l| !l.is_protected_from_storm() && !l.is_stronghold() && (may_ride_from_storm || !g.is_in_storm(*l))),
-                );
-            }
-            if !g.prevented(FactionAdvantage::FremenRidesMonster) {
-                return Box::new(
-                    territory
-                        .locations()
-                        .iter()
-                        .copied()
-                        .filter(move |l| (may_ride_from_storm || !g.is_in_storm(*l)) && g.player(fremen).any_forces_in(Some(*l)) > 0),
-                );
-            }
-            return Box::new(std::iter::empty());
+        if NexusPlayed::can_use_cunning(g, fremen) && g.player(fremen).any_forces_in_territory(Some(territory)) == 0 {
+            // ForcesOnPlanet builds its dictionary at the call; the Where runs as the caller pulls.
+            let keys: Vec<Location> = g.player(fremen).forces_on_planet().keys().copied().collect();
+            return Box::new(
+                keys.into_iter()
+                    .filter(move |l| !l.is_protected_from_storm() && !l.is_stronghold() && (may_ride_from_storm || !g.is_in_storm(*l))),
+            );
         }
-
-        Box::new(territory.locations().iter().copied().filter(move |l| g.player(fremen).any_forces_in(Some(*l)) > 0))
+        if !g.prevented(FactionAdvantage::FremenRidesMonster) {
+            return Box::new(
+                territory
+                    .locations()
+                    .iter()
+                    .copied()
+                    .filter(move |l| (may_ride_from_storm || !g.is_in_storm(*l)) && g.player(fremen).any_forces_in(Some(*l)) > 0),
+            );
+        }
+        Box::new(std::iter::empty())
     }
 
     /// C#: `public static IEnumerable<Location> ValidSources(Game g)` (Events/FremenRidesMonster.cs:91)
@@ -224,11 +220,7 @@ impl FremenRidesMonster {
         let to_ride_index = Self::to_ride_index(game);
         let to_ride = to_ride_index.map(|i| game.monsters[i].clone());
 
-        if game.version <= 150 {
-            // List.RemoveAt(0) on an empty list: same ArgumentOutOfRangeException as list[0].
-            let _ = cs::index(&game.monsters, 0);
-            game.monsters.remove(0);
-        } else if let Some(i) = to_ride_index {
+        if let Some(i) = to_ride_index {
             // List.Remove compares by reference; ToRide returned the element at this index.
             // Remove(null) finds nothing and does nothing.
             game.monsters.remove(i);

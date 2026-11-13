@@ -3,27 +3,25 @@ name = "treachery-server"
 version = "0.1.0"
 edition.workspace = true
 license.workspace = true
-description = "Port of treachery-online/Server (the SignalR GameHub) to axum + sqlx. See rust/docs/server-plan.md."
+description = "The treachery.online server: accounts, lobby, games and bots over WebSockets, on axum, tokio and SQLite. See rust/docs/server.md."
 
 [dependencies]
 treachery-engine = { path = "../engine" }
 treachery-skin = { path = "../skin" }
-# The bots the server runs for seats without a user (GameHub_GameEvents.cs PerformBotEvent).
+# The bots that play seats without a user.
 treachery-bots = { path = "../bots" }
-dotnet-compat = { path = "../dotnet-compat" }
 axum = { version = "0.8", default-features = false, features = ["http1", "tokio", "ws", "query"] }
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros", "sync", "time", "net", "signal"] }
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "sqlite"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 futures = { version = "0.3", default-features = false, features = ["std", "async-await"] }
+serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
-# String.Normalize(NormalizationForm.FormC) in MailAddress parsing (mail.rs).
-unicode-normalization = "0.1"
-# Views for each member of a game group (src/views.rs), serialized with serde.
+# Each participant's view of a game (src/views.rs).
 treachery-view = { path = "../view" }
-# RandomIds (runtime.rs): the OS CSPRNG, as RandomNumberGenerator and Guid.NewGuid use.
+# Tokens, ids and seeds from the OS generator (src/ids.rs).
 getrandom = "0.3"
-# SmtpMailer (mail.rs): SMTP with STARTTLS, as SmtpClient with EnableSsl.
+# Mail over SMTP with STARTTLS (src/mail.rs).
 lettre = { version = "0.11", default-features = false, features = ["builder", "smtp-transport", "tokio1", "tokio1-rustls", "rustls", "ring", "webpki-roots"] }
 
 [dev-dependencies]

@@ -73,8 +73,7 @@ impl PerformHmsPlacement {
         // then throws NullReferenceException on `newLocation.Neighbours`.
         let target = self.target(game).or_null();
         let hms = game.map.hidden_mobile_stronghold();
-        let version = game.version;
-        hms.point_at(&mut game.map, version, target);
+        hms.point_at(&mut game.map, target);
         self.log(game);
         game.end_storm_phase();
         game.stone(Milestone::HmsMovement);

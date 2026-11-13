@@ -3,11 +3,11 @@ import type { FaceDancedSource } from "./FaceDancedSource";
 
 export type FaceDancedOptions = { 
 /**
- * `Game.Version > 150`: the form only places forces; before, it also asks whether to reveal.
+ * Always true: the form only places forces (the reveal is a separate `FaceDancerRevealed`).
  */
 placeOnly: boolean, 
 /**
- * `FaceDanced.MayCallFaceDancer(Game, Player)` (forms before version 151).
+ * `FaceDanced.MayCallFaceDancer(Game, Player)`.
  */
 mayCall: boolean, 
 /**

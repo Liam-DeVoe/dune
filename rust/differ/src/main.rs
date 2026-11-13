@@ -22,7 +22,8 @@ Usage:
   differ live --mode bots|fuzz --seed S --games N [--start I] [--jobs J]
               [--batch B] [--oracle DLL] [--keep-failures DIR] [--status every|none] [-v]
       Run the C# oracle and replay its traces as they are produced, deleting
-      each one after it is checked. --status every records GameStatus after
+      each one after it is checked. The oracle plays only Game.LatestVersion
+      games (--versions latest); traces of other versions are refused. --status every records GameStatus after
       every line and compares it (trace-format.md section 3); it is the default
       for fuzz runs, --status none turns it off. Games that hung in C# are
       replayed up to the hang and listed in the summary.

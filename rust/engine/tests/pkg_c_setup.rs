@@ -47,14 +47,13 @@ fn next_faction_to_perform_custom_setup_defaults_to_none() {
     assert_eq!(g.next_faction_to_perform_custom_setup(), Faction::None);
 }
 
-/// `TreacheryCardsBeforeTraitors` needs version 121 and the LeaderSkills rule.
+/// `TreacheryCardsBeforeTraitors` needs the LeaderSkills rule.
 #[test]
-fn treachery_cards_before_traitors_is_version_gated() {
+fn treachery_cards_before_traitors_needs_leader_skills() {
     let mut g = game_with(&[Faction::Atreides]);
+    assert!(!g.treachery_cards_before_traitors());
     g.rules.push(Rule::LeaderSkills);
     assert!(g.treachery_cards_before_traitors());
-    g.version = 120;
-    assert!(!g.treachery_cards_before_traitors());
 }
 
 /// An empty starting deck throws the Deck.Draw message, after earlier players got their card.
@@ -135,11 +134,11 @@ fn automation_rules_create_and_delete() {
 
 // ---------------------------------------------------------------- EstablishPlayers
 
-/// Version >= 170 shares the event's settings and factions list with the game (hazards 5.1):
-/// FactionSelected before v172 removes through the game and the event sees it.
+/// The game shares the event's settings and factions list (hazards 5.1): a removal
+/// through the game is seen by the event's settings.
 #[test]
 fn establish_players_shares_factions_list() {
-    let mut g = Game::new_int32_participation(171, &treachery_engine::cs::Shared::new(Participation::new()));
+    let mut g = Game::new();
     let s = settings(
         3,
         &[Faction::Atreides, Faction::Emperor, Faction::BeneGesserit, Faction::Fremen],

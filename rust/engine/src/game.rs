@@ -565,7 +565,7 @@ pub struct Game {
     // ---- Game_Setup.cs ----
 
     /// `public GameSettings Settings { get; set; }= new()` (Game_Setup.cs:16).
-    /// `EstablishPlayers` can assign null (version >= 170), hence the `Option`.
+    /// `EstablishPlayers` can assign null, hence the `Option`.
     pub settings: Option<Shared<GameSettings>>,
     /// `public List<FactionTradeOffered> CurrentTradeOffers { get; }= []` (Game_Setup.cs:17)
     pub current_trade_offers: Vec<Rc<FactionTradeOffered>>,
@@ -607,9 +607,6 @@ pub struct Game {
 }
 
 impl Game {
-    /// C#: `private const int LowestSupportedVersion = 100` (Game.cs:16)
-    pub const LOWEST_SUPPORTED_VERSION: i32 = 100;
-
     /// C#: `public const int LatestVersion = 188` (Game.cs:17)
     pub const LATEST_VERSION: i32 = 188;
 
@@ -657,16 +654,16 @@ impl Game {
     ///
     /// Like C#, the game keeps the caller's `Participation` object: changes made
     /// through either are seen by both.
+    ///
+    /// Only `LATEST_VERSION` is supported: any other version throws, so savegames
+    /// and event logs of older versions fail to load instead of replaying.
     pub fn new_int32_participation(version: i32, participation: &Shared<Participation>) -> Self {
-        // The C# field initializers run before the constructor body, but none of them
-        // can throw or draw randomness, so building them after the version check is
-        // equivalent.
-        if version < Self::LOWEST_SUPPORTED_VERSION {
+        if version != Self::LATEST_VERSION {
             throw!(
                 ArgumentException,
-                "Game version {} is not supported. The lowest supported version is: {}.",
+                "Game version {} is not supported. Only version {} is supported.",
                 version,
-                Self::LOWEST_SUPPORTED_VERSION
+                Self::LATEST_VERSION
             );
         }
 
@@ -1342,9 +1339,7 @@ impl Game {
 
         self.was_victim_of_bureaucracy = Faction::None;
 
-        if self.version >= 103 {
-            self.allow_all_prevented_faction_advantages(&exceptions_to_allowing);
-        }
+        self.allow_all_prevented_faction_advantages(&exceptions_to_allowing);
     }
 
     /// C#: `internal void Enter(Phase phase, bool cleanupDeals = true)` (Game.cs:337)
@@ -1642,7 +1637,7 @@ impl Game {
             // territory right before its body runs, after earlier flips (hazards 4.1).
             for t in self.map.territories(true) {
                 let matches = self.player(bg).special_forces_in_territory(Some(t)) > 0
-                    && (self.version >= 160 && t == self.map.polar_sink().territory()
+                    && (t == self.map.polar_sink().territory()
                         || !self.players.iter().any(|p| p.faction != Faction::BeneGesserit && p.any_forces_in_territory(Some(t)) > 0));
                 if !matches {
                     continue;
@@ -2188,11 +2183,11 @@ impl Game {
         }
         let player = self.player(p);
         (player.is(Faction::BeneGesserit) && player.special_forces_in(Some(l)) > 0)
-            //Looks at occupying forces since v171
+            //Looks at occupying forces
             || (player.is(Faction::Ecaz)
                 && player.has_ally()
                 && self.player(player.allied_player(self).nre()).occupying_forces_in(Some(l.territory())) > 0)
-            //Looks at occupying forces since v171
+            //Looks at occupying forces
             || (player.has_ally()
                 && player.ally == Faction::Ecaz
                 && self.player(player.allied_player(self).nre()).occupying_forces_in(Some(l.territory())) > 0)
@@ -2310,7 +2305,7 @@ impl Game {
                 .filter(|l| {
                     factions_in_play.clone().any(|f| f == l.faction())
                         && l.hero_type() != HeroType::Vidal
-                        && (self.version <= 140 || l.hero_type() != HeroType::Auditor || self.applicable(Rule::ChoamAuditor))
+                        && (l.hero_type() != HeroType::Auditor || self.applicable(Rule::ChoamAuditor))
                 })
                 .map(|l| Hero::Leader(*l)),
         );
@@ -2544,10 +2539,6 @@ impl Game {
 
 /// What `Map` needs to know about the game (see map.rs).
 impl crate::map::MapGame for Game {
-    fn version(&self) -> i32 {
-        self.version
-    }
-
     fn sector_in_storm(&self) -> i32 {
         self.sector_in_storm
     }

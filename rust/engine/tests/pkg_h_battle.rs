@@ -6,7 +6,6 @@ use treachery_engine::prelude::*;
 
 fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();
-    g.version = Game::LATEST_VERSION;
     for f in factions {
         let p = Player::new(&g, *f);
         g.players.push(p);
@@ -55,11 +54,9 @@ fn battle_concluded_capture_decision_round_trip() {
 }
 
 #[test]
-fn battle_concluded_capture_decisions_by_version() {
-    let mut g = game_with(&[Faction::Harkonnen]);
+fn battle_concluded_capture_decisions() {
+    let g = game_with(&[Faction::Harkonnen]);
     assert_eq!(BattleConcluded::valid_capture_decisions(&g), vec![CaptureDecision::Capture, CaptureDecision::Kill]);
-    g.version = 115;
-    assert_eq!(BattleConcluded::valid_capture_decisions(&g).len(), 3);
 }
 
 #[test]
@@ -181,27 +178,13 @@ fn treachery_of_matches_ally_initiator() {
 }
 
 #[test]
-fn harkonnen_must_decide_to_capture_needs_version_116() {
-    let mut g = game_with(&[Faction::Harkonnen]);
-    g.battle_winner = Some(Faction::Harkonnen);
-    g.version = 115;
-    assert!(!g.harkonnen_must_decide_to_capture());
-}
-
-#[test]
-fn lose_cards_before_159_keeps_cards_the_player_no_longer_has() {
+fn lose_cards_skips_cards_the_player_no_longer_has() {
     let mut g = game_with(&[Faction::Emperor]);
     let card = TreacheryCardManager::items()[0];
-    let mut p = Battle::new(&g, Faction::Emperor);
+    let p = Battle::new(&g, Faction::Emperor);
     p.set_weapon(Some(card));
     // _defenseCardId defaults to 0, which Lookup.Find resolves to card 0 (Battle.cs:63).
     p.set_defense(None);
-    g.version = 158;
-    g.lose_cards(&p, true);
-    assert_eq!(g.cards_to_be_discarded_by_loser_after_battle, vec![card]);
-
-    g.cards_to_be_discarded_by_loser_after_battle.clear();
-    g.version = 159;
     g.lose_cards(&p, true);
     assert!(g.cards_to_be_discarded_by_loser_after_battle.is_empty());
 }

@@ -1,11 +1,3 @@
-bene_gesserit.factions = BeneGesserit,Fremen,Atreides
-bene_gesserit.before.reserve = 0
-bene_gesserit.before.phase = TradingFactions
-bene_gesserit.result = accepted
-bene_gesserit.after.reserve = 0
-bene_gesserit.after.locations = 0
-bene_gesserit.after.phase = DiallingStorm
-bene_gesserit.after.history = 2
 hms.first = accepted
 hms.neighbourOfTarget.before = True
 hms.second = error:NullReferenceException:Object reference not set to an instance of an object.

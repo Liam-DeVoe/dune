@@ -46,7 +46,7 @@ impl Captured {
         self.log(game);
 
         if !self.passed {
-            if game.version > 125 && game.prevented(FactionAdvantage::HarkonnenCaptureLeader) {
+            if game.prevented(FactionAdvantage::HarkonnenCaptureLeader) {
                 game.log_prevention_by_karma(FactionAdvantage::HarkonnenCaptureLeader);
             } else {
                 game.capture_leader();

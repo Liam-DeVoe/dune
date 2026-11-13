@@ -53,10 +53,8 @@ impl Game {
 
         let current_owner = self.owner_of(h);
         if let (Some(current_owner), Hero::Leader(l)) = (current_owner, h) {
-            if self.version >= 154 || (self.player(initiator).faction == Faction::Tleilaxu && h.faction() != Faction::Tleilaxu) {
-                list_remove(&mut self.player_mut(current_owner).leaders, &l);
-                self.player_mut(initiator).leaders.push(l);
-            }
+            list_remove(&mut self.player_mut(current_owner).leaders, &l);
+            self.player_mut(initiator).leaders.push(l);
         }
     }
 
@@ -79,10 +77,8 @@ impl Game {
         self.leader_state.index_mut(&Hero::Leader(l)).assassinate(&mut self.skill_deck);
         self.stone(Milestone::LeaderKilled);
 
-        if self.version >= 150 {
-            self.determine_if_captured_leaders_must_be_released();
-            self.determine_if_killed_ghola_returns_to_original_faction(Hero::Leader(l));
-        }
+        self.determine_if_captured_leaders_must_be_released();
+        self.determine_if_killed_ghola_returns_to_original_faction(Hero::Leader(l));
     }
 
     /// C#: `public bool IsAlive(IHero l)` (Game_LeaderState.cs:69)

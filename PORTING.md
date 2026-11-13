@@ -17,8 +17,9 @@ This file is the shared plan. Every agent working on the port reads it first.
    not change behavior when unused (for example, a way to inject a seed where it
    currently uses an unseeded `Random`). Every such hook is listed in
    `rust/docs/csharp-hooks.md`.
-3. **Support every game version** from `Game.LowestSupportedVersion` (100) to
-   `Game.LatestVersion`. Version checks are ported as is.
+3. **Only `Game.LatestVersion` is supported** (since 2026-11-11, native-plan.md
+   step 2). The engine throws for any other version, and the oracle runs with
+   `--versions latest` for the differ.
 4. **Use the compat crate for .NET semantics.** `rust/dotnet-compat` holds exact
    copies of `System.Random`, `Dictionary`, `HashSet`, `List.Sort` and numeric
    rules. Engine code must use these wherever the C# uses the .NET type.
@@ -163,3 +164,7 @@ Five bot packages share the same done check, the differ in bots mode. To keep th
 - While iterating, run 30–50 bot games (`--games 50`), or a single game with `differ first` when chasing one mismatch.
 - Run the full 200-game check once, at the end, with `--jobs 4` through `heavy.sh`.
 - The oracle and the differ must come from the same commit: after B0 changes the trace format, rebuild the differ (`cargo build --release -p differ`) before any run.
+
+## Deploying (2026-11-11)
+
+Production (https://treachery.exe.xyz/) runs the Rust server, and `just deploy` ships the working tree, including other agents' unfinished edits. Agents never deploy unless their brief says so, and then only after `rust/tools/check.sh` passes on the whole workspace.

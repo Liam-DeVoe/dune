@@ -137,32 +137,19 @@ impl Revival {
             return Some(express!("You already revived a ", pl.special_force(), " this turn"));
         }
 
-        if game.version >= 124 {
-            let mut limit = game.get_max_revivals(game, p, self.uses_emperor_secret_ally);
-            if game.version < 180 && self.uses_emperor_secret_ally {
-                limit = limit.wrapping_add(3);
-            }
-            if self.amount_of_forces.wrapping_add(self.amount_of_special_forces) > limit {
-                return Some(express!("You can't revive more than ", limit));
-            }
-
-            let ally_limit = Self::valid_max_revivals_by_emperor(game, p);
-            if self.extra_forces_paid_by_emperor.wrapping_add(self.extra_special_forces_paid_by_emperor)
-                > Self::valid_max_revivals_by_emperor(game, p)
-            {
-                return Some(express!("Your ally won't revive more than ", ally_limit));
-            }
-        } else {
-            let emperor_revivals = Self::valid_max_revivals_by_emperor(game, p);
-            let limit = game.get_max_revivals(game, p, self.uses_emperor_secret_ally);
-            if self.amount_of_forces.wrapping_add(self.amount_of_special_forces) > limit.wrapping_add(emperor_revivals) {
-                // C# parity: the message is built but never returned, so this check has no effect.
-                let _ = express!("You can't revive that many");
-            }
+        let limit = game.get_max_revivals(game, p, self.uses_emperor_secret_ally);
+        if self.amount_of_forces.wrapping_add(self.amount_of_special_forces) > limit {
+            return Some(express!("You can't revive more than ", limit));
         }
 
-        if game.version >= 187
-            && initiator != Faction::Tleilaxu
+        let ally_limit = Self::valid_max_revivals_by_emperor(game, p);
+        if self.extra_forces_paid_by_emperor.wrapping_add(self.extra_special_forces_paid_by_emperor)
+            > Self::valid_max_revivals_by_emperor(game, p)
+        {
+            return Some(express!("Your ally won't revive more than ", ally_limit));
+        }
+
+        if initiator != Faction::Tleilaxu
             && game.leader_revivals_this_turn.get_value_or(&initiator, 0) > 0
         {
             return Some(express!("You cannot revive more leaders this turn"));
@@ -235,60 +222,30 @@ impl Revival {
         let mut result = RevivalCost::new();
         let ip = g.player(initiator);
 
-        if g.version >= 124 {
-            result.cost_for_emperor = if ip.ally == Faction::Emperor {
-                Self::determine_cost_of_forces_for_emperor(
-                    g,
-                    ip.allied_player(g).nre(),
-                    ip.faction,
-                    extra_forces_paid_by_emperor,
-                    extra_special_forces_paid_by_emperor,
-                )
-            } else {
-                0
-            };
-            let mut nr_of_paid_special_forces = 0;
-            let mut number_of_forces_revived_for_free = 0;
-            result.cost_for_force_revival_for_player = Self::get_price_of_force_revival(
+        result.cost_for_emperor = if ip.ally == Faction::Emperor {
+            Self::determine_cost_of_forces_for_emperor(
                 g,
-                initiator,
-                amount_of_forces,
-                amount_of_special_forces,
-                uses_emperor_secret_ally,
-                &mut nr_of_paid_special_forces,
-                &mut number_of_forces_revived_for_free,
-            );
-            result.includes_costs_for_special_forces = nr_of_paid_special_forces > 0;
-            result.number_of_forces_revived_for_free = number_of_forces_revived_for_free;
-        } else {
-            let mut nr_of_paid_special_forces = 0;
-            let mut number_of_forces_revived_for_free = 0;
-            let cost_for_force_revival = Self::get_price_of_force_revival(
-                g,
-                initiator,
-                amount_of_forces,
-                amount_of_special_forces,
-                uses_emperor_secret_ally,
-                &mut nr_of_paid_special_forces,
-                &mut number_of_forces_revived_for_free,
-            );
-            let amount_paid_for_by_emperor = Self::valid_max_revivals_by_emperor(g, initiator);
-            let emperor = g.get_player(Some(Faction::Emperor));
-            let emperors_spice = emperor.map_or(0, |e| g.player(e).resources);
-
-            result.cost_for_emperor = Self::determine_cost_for_emperor(
-                g,
+                ip.allied_player(g).nre(),
                 ip.faction,
-                cost_for_force_revival,
-                amount_of_forces,
-                amount_of_special_forces,
-                emperors_spice,
-                amount_paid_for_by_emperor,
-            );
-            result.cost_for_force_revival_for_player = cost_for_force_revival.wrapping_sub(result.cost_for_emperor);
-            result.includes_costs_for_special_forces = nr_of_paid_special_forces > 0;
-            result.number_of_forces_revived_for_free = number_of_forces_revived_for_free;
-        }
+                extra_forces_paid_by_emperor,
+                extra_special_forces_paid_by_emperor,
+            )
+        } else {
+            0
+        };
+        let mut nr_of_paid_special_forces = 0;
+        let mut number_of_forces_revived_for_free = 0;
+        result.cost_for_force_revival_for_player = Self::get_price_of_force_revival(
+            g,
+            initiator,
+            amount_of_forces,
+            amount_of_special_forces,
+            uses_emperor_secret_ally,
+            &mut nr_of_paid_special_forces,
+            &mut number_of_forces_revived_for_free,
+        );
+        result.includes_costs_for_special_forces = nr_of_paid_special_forces > 0;
+        result.number_of_forces_revived_for_free = number_of_forces_revived_for_free;
 
         result.cost_to_revive_hero = Self::get_price_of_hero_revival(g, initiator, hero);
         result.can_be_paid = ip.resources >= result.total_cost_for_player();
@@ -328,39 +285,6 @@ impl Revival {
         cost
     }
 
-    /// C#: `private static int DetermineCostForEmperor(Game g, Faction initiator, int totalCostForForceRevival, int amountOfForces, int amountOfSpecialForces, int empero...` (Events/Revival.cs:181)
-    pub fn determine_cost_for_emperor(g: &Game, initiator: Faction, total_cost_for_force_revival: i32, amount_of_forces: i32, amount_of_special_forces: i32, emperors_spice: i32, amount_paid_for_by_emperor: i32) -> i32 {
-        let price_of_special_forces: i32 = if initiator == Faction::Ixian { 3 } else { 2 };
-        // C# parity: the `>= 122` gate exists here but not in GetPriceOfForceRevival (hazards 18).
-        let price_of_normal_forces: i32 =
-            if initiator == Faction::Choam && !g.prevented(FactionAdvantage::ChoamRevival) && g.version >= 122 { 1 } else { 2 };
-
-        // Counting loops kept as loops, with wrapping arithmetic (hazards 1.9).
-        let mut special_forces_paid_by_emperor: i32 = 0;
-        while special_forces_paid_by_emperor.wrapping_add(1) <= amount_of_special_forces
-            && special_forces_paid_by_emperor.wrapping_add(1).wrapping_mul(price_of_special_forces) <= emperors_spice
-            && special_forces_paid_by_emperor.wrapping_add(1) <= amount_paid_for_by_emperor
-        {
-            special_forces_paid_by_emperor = special_forces_paid_by_emperor.wrapping_add(1);
-        }
-
-        let mut forces_paid_by_emperor: i32 = 0;
-        while forces_paid_by_emperor.wrapping_add(1) <= amount_of_forces
-            && special_forces_paid_by_emperor
-                .wrapping_mul(price_of_special_forces)
-                .wrapping_add(forces_paid_by_emperor.wrapping_add(1).wrapping_mul(price_of_normal_forces))
-                <= emperors_spice
-            && special_forces_paid_by_emperor.wrapping_add(forces_paid_by_emperor).wrapping_add(1) <= amount_paid_for_by_emperor
-        {
-            forces_paid_by_emperor = forces_paid_by_emperor.wrapping_add(1);
-        }
-
-        let cost_for_emperor = special_forces_paid_by_emperor
-            .wrapping_mul(price_of_special_forces)
-            .wrapping_add(forces_paid_by_emperor.wrapping_mul(price_of_normal_forces));
-        std::cmp::min(total_cost_for_force_revival, std::cmp::min(cost_for_emperor, emperors_spice))
-    }
-
     /// C#: `public static IEnumerable<IHero> ValidRevivalHeroes(Game g, Player p)` (Events/Revival.cs:204)
     /// Lazy like the C# query: callers stop early (docs/lazy-queries.md).
     /// Only the early-revival branch is lazy in C#; the others return `[]` or a List.
@@ -370,7 +294,7 @@ impl Revival {
         let pl = g.player(p);
 
         if pl.faction != Faction::Tleilaxu {
-            if g.version >= 187 && g.leader_revivals_this_turn.contains_key(&pl.faction) {
+            if g.leader_revivals_this_turn.contains_key(&pl.faction) {
                 return Either::A(Either::A(empty()));
             }
 
@@ -394,20 +318,18 @@ impl Revival {
         }
 
         let mut living_leaders = pl.leaders.iter().filter(|l| g.is_alive(Hero::Leader(**l))).count() as i32;
-        if g.version >= 139 {
-            living_leaders += g
-                .players
-                .iter()
-                .enumerate()
-                .filter(|(i, _)| g.player_at(*i) != p)
-                .flat_map(|(_, player)| player.leaders.iter().filter(|l| l.faction() == pl.faction))
-                .count() as i32;
-        }
+        living_leaders += g
+            .players
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| g.player_at(*i) != p)
+            .flat_map(|(_, player)| player.leaders.iter().filter(|l| l.faction() == pl.faction))
+            .count() as i32;
 
         if pl.is(Faction::Tleilaxu)
             && g.applicable(Rule::TleilaxuGholas)
             && living_leaders < 5
-            && (g.version < 164 || !g.prevented(FactionAdvantage::TleilaxuReviveGhola))
+            && !g.prevented(FactionAdvantage::TleilaxuReviveGhola)
         {
             result.extend(
                 g.leader_state
@@ -512,40 +434,20 @@ impl Revival {
         let normal_force_revival_limit = g.get_max_revivals(g, p, using_emperor_secret_ally);
         let pl = g.player(p);
 
-        if g.version >= 124 {
-            if !special_forces {
-                return std::cmp::min(normal_force_revival_limit, pl.forces_killed);
-            }
-
-            std::cmp::min(
-                if pl.is(Faction::Ixian) {
-                    normal_force_revival_limit
-                } else if g.factions_that_revived_special_forces_this_turn.contains(&pl.faction) {
-                    0
-                } else {
-                    1
-                },
-                pl.special_forces_killed,
-            )
-        } else {
-            let amount_paid_by_emperor = Self::emperor_extra_revival_limit(g, p);
-
-            // C# parity: an int.MaxValue limit (Tleilaxu, Choam) plus the Emperor amount wraps negative.
-            if !special_forces {
-                return std::cmp::min(normal_force_revival_limit.wrapping_add(amount_paid_by_emperor), pl.forces_killed);
-            }
-
-            std::cmp::min(
-                if pl.is(Faction::Ixian) {
-                    normal_force_revival_limit.wrapping_add(amount_paid_by_emperor)
-                } else if g.factions_that_revived_special_forces_this_turn.contains(&pl.faction) {
-                    0
-                } else {
-                    1
-                },
-                pl.special_forces_killed,
-            )
+        if !special_forces {
+            return std::cmp::min(normal_force_revival_limit, pl.forces_killed);
         }
+
+        std::cmp::min(
+            if pl.is(Faction::Ixian) {
+                normal_force_revival_limit
+            } else if g.factions_that_revived_special_forces_this_turn.contains(&pl.faction) {
+                0
+            } else {
+                1
+            },
+            pl.special_forces_killed,
+        )
     }
 
     /// C#: `public static bool MayAssignSkill(Game g, Player p, IHero? h)` (Events/Revival.cs:328)
@@ -562,7 +464,7 @@ impl Revival {
         };
 
         h.as_leader().is_some()
-            && (g.version < 147 || h.faction() == pl.faction)
+            && h.faction() == pl.faction
             && h.hero_type() != HeroType::Auditor
             && g.applicable(Rule::LeaderSkills)
             && !g.captured_leaders.iter().any(|(k, v)| *v == pl.faction && g.is_skilled(Some(Hero::Leader(*k))))
@@ -590,25 +492,14 @@ impl Revival {
         let ip = g.player(initiator);
         let mut price = hero.cost_to_revive();
 
-        if g.version < 102 {
-            if ip.is(Faction::Tleilaxu) && !tleilaxu_discount_prevented {
-                price = (0.5 * price as f64).ceil() as i32;
-            }
-
-            if !Self::normally_revivable_heroes(g, initiator).contains(&hero) {
-                if let Some(offer) = g.early_revivals_offers.get(&hero) {
-                    price = *offer;
-                }
-            }
-        } else if ip.is(Faction::Tleilaxu) && !tleilaxu_discount_prevented {
+        if ip.is(Faction::Tleilaxu) && !tleilaxu_discount_prevented {
             price = (0.5 * price as f64).ceil() as i32;
         } else if let Some(offer) = (!Self::normally_revivable_heroes(g, initiator).contains(&hero))
             .then(|| g.early_revivals_offers.get(&hero).copied())
             .flatten()
         {
             price = offer;
-        } else if g.version >= 176
-            && ip.ally == Faction::Tleilaxu
+        } else if ip.ally == Faction::Tleilaxu
             && g.tleilaxu_allows_revival_discount
             && !tleilaxu_discount_prevented
         {
@@ -631,17 +522,6 @@ impl Revival {
             * (if of_revived_forces == Faction::Ixian { 3 } else { 2 }) as f32
     }
 
-    /// C#: `private static int EmperorExtraRevivalLimit(Game g, Player p)` (Events/Revival.cs:398)
-    pub fn emperor_extra_revival_limit(g: &Game, p: PlayerIndex) -> i32 {
-        if g.player(p).ally == Faction::Emperor
-            && (g.version < 113 || !g.prevented(FactionAdvantage::EmperorLetAllyReviveExtraForces))
-        {
-            g.emperor_will_pay_for_extra_revival
-        } else {
-            0
-        }
-    }
-
     /// C#: `public static int ValidMaxRevivalsByEmperor(Game g, Player p)` (Events/Revival.cs:405)
     pub fn valid_max_revivals_by_emperor(g: &Game, p: PlayerIndex) -> i32 {
         let pl = g.player(p);
@@ -652,17 +532,11 @@ impl Revival {
         // `GetPlayer(Faction.Emperor)!`: null is only dereferenced in the loop below.
         let emperor = g.get_player(Some(Faction::Emperor));
 
-        let potential_maximum = if pl.ally == Faction::Emperor
-            && (g.version < 113 || !g.prevented(FactionAdvantage::EmperorLetAllyReviveExtraForces))
-        {
+        let potential_maximum = if pl.ally == Faction::Emperor && !g.prevented(FactionAdvantage::EmperorLetAllyReviveExtraForces) {
             g.emperor_will_pay_for_extra_revival
         } else {
             0
         };
-
-        if g.version < 115 {
-            return potential_maximum;
-        }
 
         let price_of_special_forces: i32 = if pl.faction == Faction::Ixian { 3 } else { 2 };
 
@@ -765,7 +639,7 @@ impl Revival {
 
         let high_threshold_extra_suboids = if initiator == Faction::Ixian
             && game.player(me).has_high_threshold_0(game)
-            && (game.version < 169 || cost.includes_costs_for_special_forces)
+            && cost.includes_costs_for_special_forces
         {
             std::cmp::max(
                 0,
@@ -806,7 +680,7 @@ impl Revival {
 
         if nr_of_free_revivals > 0 {
             let free_revivals_this_turn = game.free_revivals_this_turn.get_value_or(&initiator, 0);
-            first_free_revival_this_turn = game.version < 186 || free_revivals_this_turn == 0;
+            first_free_revival_this_turn = free_revivals_this_turn == 0;
             game.free_revivals_this_turn.insert(initiator, free_revivals_this_turn.wrapping_add(nr_of_free_revivals));
         }
 
@@ -844,13 +718,9 @@ impl Revival {
             if total_profits_for_tleilaxu >= 5 {
                 game.apply_bureaucracy(initiator, Faction::Tleilaxu);
             }
-
-            if game.version < 176 && cost.total_cost().wrapping_sub(total_profits_for_tleilaxu) >= 4 {
-                game.activate_banker(me);
-            }
         }
 
-        if game.version >= 176 && cost.total_cost().wrapping_sub(total_profits_for_tleilaxu) >= 4 {
+        if cost.total_cost().wrapping_sub(total_profits_for_tleilaxu) >= 4 {
             game.activate_banker(me);
         }
 
@@ -918,7 +788,7 @@ impl Revival {
                 game.last_shipment_or_movement = Some(self.clone().into_event());
             }
 
-            if game.version >= 161 && game.check_intrusion(&self.clone().into_event()) {
+            if game.check_intrusion(&self.clone().into_event()) {
                 game.phase_before_revival_caused_intrusion = game.current_phase;
                 let bene_gesserit = game.last_bene_gesserit_intrusion().is_some();
                 let terror = game.last_terror_trigger().is_some();
@@ -931,25 +801,18 @@ impl Revival {
                 );
             }
         }
-
-        if game.version < 179 && initiator != Faction::Tleilaxu {
-            game.has_acted_or_passed.push(initiator);
-        }
     }
 
     /// C#: `private void RegisterAndLogRevival(RevivalCost cost, int tleilaxuReceivedResources, bool asGhola, int highThresholdExtraSuboids)` (Events/Revival.cs:594)
     pub fn register_and_log_revival(&self, game: &mut Game, cost: &RevivalCost, tleilaxu_received_resources: i32, as_ghola: bool, high_threshold_extra_suboids: i32) {
         let initiator = self.initiator();
         let me = self.player();
-        let total_amount_of_forces = if game.version < 182 {
-            self.amount_of_forces.wrapping_add(self.extra_forces_paid_by_emperor).wrapping_add(high_threshold_extra_suboids)
-        } else {
-            self.amount_of_forces
-                .wrapping_add(self.extra_forces_paid_by_emperor)
-                .wrapping_add(self.amount_of_special_forces)
-                .wrapping_add(self.extra_special_forces_paid_by_emperor)
-                .wrapping_add(high_threshold_extra_suboids)
-        };
+        let total_amount_of_forces = self
+            .amount_of_forces
+            .wrapping_add(self.extra_forces_paid_by_emperor)
+            .wrapping_add(self.amount_of_special_forces)
+            .wrapping_add(self.extra_special_forces_paid_by_emperor)
+            .wrapping_add(high_threshold_extra_suboids);
 
         let v = game.total_revivals_this_turn.get_value_or(&initiator, 0).wrapping_add(total_amount_of_forces);
         game.total_revivals_this_turn.insert(initiator, v);

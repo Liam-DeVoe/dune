@@ -162,9 +162,9 @@ pub struct FaceDancedSource {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct FaceDancedOptions {
-    /// `Game.Version > 150`: the form only places forces; before, it also asks whether to reveal.
+    /// Always true: the form only places forces (the reveal is a separate `FaceDancerRevealed`).
     pub place_only: bool,
-    /// `FaceDanced.MayCallFaceDancer(Game, Player)` (forms before version 151).
+    /// `FaceDanced.MayCallFaceDancer(Game, Player)`.
     pub may_call: bool,
     /// `FaceDanced.MaximumNumberOfForces(Game, Player)`.
     pub maximum_forces: i32,

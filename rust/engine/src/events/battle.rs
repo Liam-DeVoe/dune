@@ -319,24 +319,7 @@ impl Battle {
             self.log_objects(game, le![self.original_weapon.get(), " becomes a ", self.weapon()]);
         }
 
-        if game.version < 179 {
-            if self.defense().is_some_and(|d| d.is_useless())
-                && game.skilled_as(hero, LeaderSkill::Diplomat)
-                && opponent_defense.is_some()
-                && opponent_weapon.is_some()
-                && self.weapon().is_some()
-                && ({
-                    let ow = opponent_weapon.nre();
-                    let od = opponent_defense.nre();
-                    ow.countered_by(Some(od), self.weapon()) || (ow.is_artillery() && od.is_shield())
-                })
-            {
-                self.original_defense.set(self.defense());
-                self.set_defense(opponent_defense);
-                self.log_objects(game, le![hero, " turns ", self.original_defense.get(), " into a ", self.defense()]);
-                game.card_used_by_diplomat = self.original_defense.get();
-            }
-        } else if game.current_diplomacy.as_ref().is_some_and(|d| d.by(self.initiator())) {
+        if game.current_diplomacy.as_ref().is_some_and(|d| d.by(self.initiator())) {
             self.original_defense.set(self.defense());
             self.set_defense(opponent_defense);
             game.card_used_by_diplomat = self.original_defense.get();
@@ -455,7 +438,7 @@ impl Battle {
             &mut result.def_saved_by_carthag,
         );
 
-        let hero_strength_counts_to_total = !artillery_used && !(game.version >= 145 && rock_melter_used && !rock_melter_used_to_kill);
+        let hero_strength_counts_to_total = !artillery_used && !(rock_melter_used && !rock_melter_used_to_kill);
 
         result.agg_hero_effective_strength = match agg.hero() {
             Some(h) if hero_strength_counts_to_total => h.value_in_combat_against(def.hero()),
@@ -484,23 +467,21 @@ impl Battle {
             result.def_messiah_contribution = if def.messiah && def.hero().is_some() { 2 } else { 0 };
         }
 
-        let agg_hero_contribution = if result.agg_hero_killed || (game.version < 145 && rock_melter_used) {
+        let agg_hero_contribution = if result.agg_hero_killed {
             0
         } else {
             result
                 .agg_hero_effective_strength
                 .wrapping_add(result.agg_hero_skill_bonus)
                 .wrapping_add(result.agg_messiah_contribution)
-                .wrapping_sub(if game.version < 164 { result.agg_battle_penalty } else { 0 })
         };
-        let def_hero_contribution = if result.def_hero_killed || (game.version < 145 && rock_melter_used) {
+        let def_hero_contribution = if result.def_hero_killed {
             0
         } else {
             result
                 .def_hero_effective_strength
                 .wrapping_add(result.def_hero_skill_bonus)
                 .wrapping_add(result.def_messiah_contribution)
-                .wrapping_sub(if game.version < 164 { result.def_battle_penalty } else { 0 })
         };
 
         let agg_ecaz_karma_contribution = if agg.initiator() == Faction::Ecaz { game.ecaz_karma_bonus } else { 0 };
@@ -526,14 +507,14 @@ impl Battle {
                 + agg_ecaz_karma_contribution as f32
                 + result.agg_homeworld_contribution as f32
                 + result.agg_reinforcements_contribution as f32
-                - (if game.version >= 164 { result.agg_battle_penalty } else { 0 }) as f32;
+                - result.agg_battle_penalty as f32;
             let aggressor_faction = game.player(result.aggressor).faction;
             result.def_total = def.dial(game, aggressor_faction)
                 + def_hero_contribution as f32
                 + def_ecaz_karma_contribution as f32
                 + result.def_homeworld_contribution as f32
                 + result.def_reinforcements_contribution as f32
-                - (if game.version >= 164 { result.def_battle_penalty } else { 0 }) as f32;
+                - result.def_battle_penalty as f32;
         } else {
             let ecaz = game.get_player(Some(Faction::Ecaz));
 
@@ -685,7 +666,7 @@ impl Battle {
             return Some(express!("You can't pay this ", LeaderSkill::Banker, " bonus"));
         }
 
-        // var opponent = Game.CurrentBattle.OpponentOf(p)!.Faction;  evaluated at every version, even with no seen plans.
+        // var opponent = Game.CurrentBattle.OpponentOf(p)!.Faction;  evaluated even with no seen plans.
         let opponent = game.player(game.current_battle.as_ref().nre().opponent_of(game, p).nre()).faction;
         for (aspect, seen) in game.prescience_seen_plans.iter() {
             if seen.initiator() == self.initiator() && !self.matches(game, seen, *aspect, opponent) {
@@ -841,7 +822,7 @@ impl Battle {
     pub fn must_pay_for_any_forces_in_battle(g: &Game, p: PlayerIndex) -> bool {
         let pl = g.player(p);
         let does_not_need_to_support_forces = !g.prevented(FactionAdvantage::FremenNotPayingForBattles)
-            && (pl.faction == Faction::Fremen || (g.version >= 169 && pl.faction == Faction::Ecaz && pl.ally == Faction::Fremen));
+            && (pl.faction == Faction::Fremen || (pl.faction == Faction::Ecaz && pl.ally == Faction::Fremen));
 
         g.applicable(Rule::AdvancedCombat) && !does_not_need_to_support_forces
     }
@@ -888,7 +869,7 @@ impl Battle {
 
     /// C#: `public static int SpecialForceCost(Game g, Player p)` (Events/Battle.cs:554)
     pub fn special_force_cost(g: &Game, p: PlayerIndex) -> i32 {
-        if g.version >= 165 && g.player(p).is(Faction::Emperor) && g.player(p).has_high_threshold(g, World::SalusaSecundus) {
+        if g.player(p).is(Faction::Emperor) && g.player(p).has_high_threshold(g, World::SalusaSecundus) {
             return 0;
         }
 
@@ -955,14 +936,12 @@ impl Battle {
                 let defenders = battalions.iter().filter(|b| b.faction != pl.faction && b.faction != pl.ally);
 
                 for faction in defenders.map(|b| b.faction) {
-                    if g.version >= 177 {
-                        if let Some(ecaz) = ecaz {
-                            let ecaz_ally = g.player(ecaz).ally;
-                            if (faction == Faction::Ecaz && result.iter().any(|f| f.faction == ecaz_ally))
-                                || (faction == ecaz_ally && result.iter().any(|f| f.faction == Faction::Ecaz))
-                            {
-                                continue;
-                            }
+                    if let Some(ecaz) = ecaz {
+                        let ecaz_ally = g.player(ecaz).ally;
+                        if (faction == Faction::Ecaz && result.iter().any(|f| f.faction == ecaz_ally))
+                            || (faction == ecaz_ally && result.iter().any(|f| f.faction == Faction::Ecaz))
+                        {
+                            continue;
                         }
                     }
 
@@ -1210,7 +1189,7 @@ impl Battle {
         if Battle::must_pay_for_any_forces_in_battle(g, p) {
             let effective_resources = Battle::cost_reduction(g, p).wrapping_add(resources);
 
-            if Battle::must_pay_for_special_forces_in_battle(g, p) || g.version <= 163 {
+            if Battle::must_pay_for_special_forces_in_battle(g, p) {
                 *special_forces_full = special_forces.min(effective_resources);
                 *special_forces_half = special_forces.wrapping_sub(*special_forces_full);
                 *forces_full = forces.min(effective_resources.wrapping_sub(*special_forces_full));

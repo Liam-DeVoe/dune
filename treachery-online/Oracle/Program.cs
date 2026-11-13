@@ -10,8 +10,8 @@ public static class Program
         Treachery.Oracle: records engine traces for the Rust port. Format: rust/docs/trace-format.md.
 
         Usage:
-          bots   --seed S --games N --out DIR [--start I] [--dump every|every:N|final|none] [--hash every|none] [--threads T] [--gzip true] [--check-bot-purity true] [--discard true] [--hang-seconds 120] [--status every] [--memory-mb 2048]
-          fuzz   --seed S --games N --out DIR [--start I] [--dump ...] [--hash ...] [--threads T] [--gzip true] [--check-bot-purity true] [--discard true] [--hang-seconds 120] [--status every] [--fuzz-profile client|wide] [--memory-mb 2048]
+          bots   --seed S --games N --out DIR [--start I] [--dump every|every:N|final|none] [--hash every|none] [--threads T] [--gzip true] [--check-bot-purity true] [--discard true] [--hang-seconds 120] [--status every] [--memory-mb 2048] [--versions all|latest]
+          fuzz   --seed S --games N --out DIR [--start I] [--dump ...] [--hash ...] [--threads T] [--gzip true] [--check-bot-purity true] [--discard true] [--hang-seconds 120] [--status every] [--fuzz-profile client|wide] [--memory-mb 2048] [--versions all|latest]
           replay --in SAVEGAME.json --out DIR [--dump ...] [--hash ...]
           verify --in FILE|DIR   (replays traces from their contents alone and checks every recorded value)
           enums  --out FILE      (writes the enum name table used by the state dump)
@@ -129,6 +129,13 @@ public static class Program
         var gzip = opts.GetValueOrDefault("gzip", "false") == "true";
         var checkPurity = opts.GetValueOrDefault("check-bot-purity", "false") == "true";
         var discard = opts.GetValueOrDefault("discard", "false") == "true";
+        // --versions latest: every game is played at Game.LatestVersion (the Rust engine no longer supports older versions).
+        var latestOnly = opts.GetValueOrDefault("versions", "all") switch
+        {
+            "all" => false,
+            "latest" => true,
+            _ => throw new ArgumentException("--versions must be all or latest")
+        };
         Directory.CreateDirectory(outDir);
 
         var hangSeconds = int.Parse(opts.GetValueOrDefault("hang-seconds", "120"));
@@ -147,7 +154,7 @@ public static class Program
             GameSummary s;
             try
             {
-                var runner = new GameRunner(mode, seed, index, fuzz, checkPurity);
+                var runner = new GameRunner(mode, seed, index, fuzz, checkPurity, latestOnly);
                 running[i] = runner;
                 s = runner.Run(outDir, policy, gzip, discard);
             }

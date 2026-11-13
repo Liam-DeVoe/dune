@@ -88,10 +88,6 @@ impl EstablishPlayers {
 
     /// C#: `public override Message? Validate()` (Events/EstablishPlayers.cs:65)
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if game.version < 170 {
-            return None;
-        }
-
         if game.current_phase != Phase::AwaitingPlayers {
             return Some(express!("Invalid game phase"));
         }
@@ -226,33 +222,16 @@ impl EstablishPlayers {
 
         //Settings
 
-        if game.version >= 170 {
-            // Shares the event's own settings object (hazards 5.1). A null Settings is stored,
-            // and the next statement throws NullReferenceException on Game.Settings.InitialRules.
-            game.settings = self.settings.clone();
-        } else {
-            let factions_in_play = {
-                let mut s = game.settings.as_ref().nre().borrow_mut();
-                s.number_of_players = self.maximum_number_of_players;
-                s.maximum_turns = self.maximum_turns;
-                drop(s);
-                self.factions_in_play()
-            };
-            game.settings.as_ref().nre().borrow_mut().allowed_factions_in_play = Some(Shared::new(factions_in_play));
-            let initial_rules = to_list(self.applicable_rules.as_ref());
-            game.settings.as_ref().nre().borrow_mut().initial_rules = Some(initial_rules);
-        }
+        // Shares the event's own settings object (hazards 5.1). A null Settings is stored,
+        // and the next statement throws NullReferenceException on Game.Settings.InitialRules.
+        game.settings = self.settings.clone();
 
         //Rules
 
-        // AllRules shares Settings.InitialRules when Version >= 170; nothing mutates either
-        // afterwards, so a copy is equivalent (engine-conventions.md).
-        game.all_rules = if game.version < 170 {
-            Some(to_list(self.applicable_rules.as_ref()))
-        } else {
-            // A null InitialRules is stored; the Where below throws ArgumentNullException.
-            game.settings.as_ref().nre().borrow().initial_rules.clone()
-        };
+        // AllRules shares Settings.InitialRules; nothing mutates either afterwards, so a copy
+        // is equivalent (engine-conventions.md). A null InitialRules is stored; the Where below
+        // throws ArgumentNullException.
+        game.all_rules = game.settings.as_ref().nre().borrow().initial_rules.clone();
 
         game.rules = cs::linq_source(game.all_rules.as_ref()).iter().copied().filter(|r| Game::get_rule_group(*r) != RuleGroup::Bots).collect();
         game.rules_for_bots =
@@ -324,13 +303,10 @@ impl EstablishPlayers {
         // null here: DetermineApproximateRuleset above would have thrown.
         game.factions_in_play = game.settings.as_ref().nre().borrow().allowed_factions_in_play.clone().nre();
 
-        self.add_players_to_game(game);
         self.fill_seats(game);
         self.remove_claimed_factions(game);
 
-        if game.version >= 172 {
-            game.determine_positions_at_table();
-        }
+        game.determine_positions_at_table();
 
         let condition = game.applicable(Rule::PlayersChooseFactions);
         game.enter_boolean_phase_action(condition, Phase::SelectingFactions, Game::assign_factions_and_enter_faction_trade);
@@ -380,62 +356,6 @@ impl EstablishPlayers {
         result
     }
 
-    /// C#: `private void AddPlayersToGame()` (Events/EstablishPlayers.cs:315)
-    pub fn add_players_to_game(&self, game: &mut Game) {
-        if game.version < 113 {
-            self.add_bots(game);
-        }
-
-        if game.version < 170 {
-            for new_player in self.players() {
-                let p = Player::new(game, Faction::None);
-                let idx = game.player_at(game.players.len());
-                game.legacy_names.add_with(idx, new_player, |_| "Treachery.Shared.Model.Player".to_string());
-                game.players.push(p);
-                let name = game.player(idx).name(game);
-                self.log_objects(game, vec![name.into(), " joins the game".into()]);
-            }
-        }
-    }
-
-    /// C#: `private void AddBots()` (Events/EstablishPlayers.cs:336)
-    pub fn add_bots(&self, game: &mut Game) {
-        //Can be removed later, this was replaced by filling empty seats with bots.
-
-        if game.applicable(Rule::GuildBot) {
-            let p = Player::new(game, Faction::Guild);
-            game.players.push(p);
-        }
-        if game.applicable(Rule::EmperorBot) {
-            let p = Player::new(game, Faction::Emperor);
-            game.players.push(p);
-        }
-        if game.applicable(Rule::HarkonnenBot) {
-            let p = Player::new(game, Faction::Harkonnen);
-            game.players.push(p);
-        }
-        if game.applicable(Rule::TleilaxuBot) {
-            let p = Player::new(game, Faction::Tleilaxu);
-            game.players.push(p);
-        }
-        if game.applicable(Rule::BeneGesseritBot) {
-            let p = Player::new(game, Faction::BeneGesserit);
-            game.players.push(p);
-        }
-        if game.applicable(Rule::AtreidesBot) {
-            let p = Player::new(game, Faction::Atreides);
-            game.players.push(p);
-        }
-        if game.applicable(Rule::FremenBot) {
-            let p = Player::new(game, Faction::Fremen);
-            game.players.push(p);
-        }
-        if game.applicable(Rule::IxianBot) {
-            let p = Player::new(game, Faction::Ixian);
-            game.players.push(p);
-        }
-    }
-
     /// C#: `private void CreateDiscoveryTokens()` (Events/EstablishPlayers.cs:350)
     pub fn create_discovery_tokens(&self, game: &mut Game) {
         game.fremen_discovery_tokens = Some(Deck::empty(game.random.clone()));
@@ -460,46 +380,11 @@ impl EstablishPlayers {
 
     /// C#: `private void FillSeats()` (Events/EstablishPlayers.cs:371)
     pub fn fill_seats(&self, game: &mut Game) {
-        if game.version >= 170 || game.applicable(Rule::FillWithBots) {
-            if game.version > 125 {
-                while (game.players.len() as i32) < game.settings.as_ref().nre().borrow().number_of_players {
-                    let player = Player::new(game, Faction::None);
-                    game.players.push(player);
-                }
-            } else {
-                let allowed = game.settings.as_ref().nre().borrow().allowed_factions_in_play.clone().nre();
-                let source: Vec<Faction> = allowed.borrow().iter().copied().filter(|f| !game.is_playing(*f)).collect();
-                let mut available = Deck::new(source, game.random.clone());
-                available.shuffle();
-
-                while (game.players.len() as i32) < game.settings.as_ref().nre().borrow().number_of_players {
-                    let faction = match available.draw() {
-                        Faction::Harkonnen => Faction::Harkonnen,
-                        Faction::BeneGesserit => Faction::BeneGesserit,
-                        Faction::Atreides => Faction::Atreides,
-                        Faction::Fremen => Faction::Fremen,
-                        Faction::Emperor => Faction::Emperor,
-                        Faction::Guild => Faction::Guild,
-                        Faction::Ixian => Faction::Ixian,
-                        Faction::Tleilaxu => Faction::Tleilaxu,
-                        Faction::Choam => Faction::Choam,
-                        Faction::Richese => Faction::Richese,
-                        Faction::Ecaz => Faction::Ecaz,
-                        Faction::Moritani => Faction::Moritani,
-                        _ => Faction::Harkonnen,
-                    };
-                    let bot = Player::new(game, faction);
-
-                    game.players.push(bot);
-                }
-            }
+        while (game.players.len() as i32) < game.settings.as_ref().nre().borrow().number_of_players {
+            let player = Player::new(game, Faction::None);
+            game.players.push(player);
         }
     }
-}
-
-/// `array.ToList()`: ArgumentNullException when the array is null.
-fn to_list(rules: Option<&Vec<Rule>>) -> Vec<Rule> {
-    cs::linq_source(rules).clone()
 }
 
 impl GameEventMethods for EstablishPlayers {

@@ -1,7 +1,7 @@
 """End to end: the web client against the running Rust server, in a browser.
 
 Starts rust/target/release/treachery-server on a fresh database with the web build
-(web/dist) and DevScene on, then drives Chromium through Playwright:
+(web/dist) and dev scenes on, then drives Chromium through Playwright:
 
 0. Before any other client connects, the scene route (/scene/alliance/Emperor) opens a game on
    the server through POST /dev/scene. The scene user must be seated as the Emperor (their
@@ -47,9 +47,9 @@ EMPEROR_SEAT, ATREIDES_SEAT = 0, 3
 def start_server(port: int, db: Path) -> subprocess.Popen:
     env = {
         **os.environ,
-        "ConnectionStrings__TreacheryDatabase": f"Data Source={db}",
-        "urls": f"http://127.0.0.1:{port}",
-        "DevScene": "true",
+        "TREACHERY_DATABASE": str(db),
+        "TREACHERY_LISTEN": f"127.0.0.1:{port}",
+        "TREACHERY_DEV_SCENE": "true",
     }
     proc = subprocess.Popen([str(SERVER)], env=env, cwd=tempfile.gettempdir())
     for _ in range(100):

@@ -84,12 +84,11 @@ fn bid_must_beat_current_bid_except_in_silent_auctions() {
     assert!(bid.validate(&g).is_some());
 
     g.current_auction_type = AuctionType::RicheseSilent;
-    g.version = 154;
     assert!(bid.validate(&g).is_none());
 }
 
 #[test]
-fn silent_bid_above_resources_only_rejected_from_version_155() {
+fn silent_bid_above_resources_is_rejected() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
     g.current_auction_type = AuctionType::RicheseSilent;
     g.player_mut(idx(&g, Faction::Atreides)).resources = 3;
@@ -99,9 +98,6 @@ fn silent_bid_above_resources_only_rejected_from_version_155() {
     bid.amount = 3;
     bid.emperor_contribution_amount = 2;
     let bid = as_player(bid, &g, Faction::Atreides);
-    g.version = 154;
-    assert!(bid.validate(&g).is_none());
-    g.version = 155;
     assert!(bid.validate(&g).is_some());
 }
 

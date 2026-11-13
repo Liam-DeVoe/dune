@@ -46,7 +46,7 @@ impl CharityClaimed {
     pub fn can_be_played(game: &Game, player: PlayerIndex) -> bool {
         game.player(player).resources <= 1
             && !game.has_acted_or_passed.contains(&game.player(player).faction)
-            && (game.version <= 139 || !game.charity_is_cancelled())
+            && !game.charity_is_cancelled()
     }
 
     /// C#: `protected override void ExecuteConcreteEvent()` (Events/CharityClaimed.cs:44)

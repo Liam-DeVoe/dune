@@ -56,9 +56,6 @@ impl AllianceByAmbassador {
 
             if activated.ecaz_give_vidal_to_ally {
                 game.take_vidal(self.player(), VidalMoment::EndOfTurn);
-            } else if game.version < 176 && activated.ecaz_take_vidal {
-                let moment = if game.version >= 167 { VidalMoment::Never } else { VidalMoment::AfterUsedInBattle };
-                game.take_vidal(activated.player(), moment);
             }
 
             if game.has_acted_or_passed.contains(&self.initiator())

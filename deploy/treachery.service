@@ -1,22 +1,30 @@
 [Unit]
-Description=treachery.online game server
+Description=treachery.online (Rust server and React client)
 After=network.target
 
 [Service]
 User=exedev
 Group=exedev
-WorkingDirectory=/opt/treachery/app
-ExecStart=/usr/bin/dotnet /opt/treachery/app/Treachery.Server.dll
+# No appsettings.json here: everything is set below.
+WorkingDirectory=/opt/treachery/server
+ExecStart=/opt/treachery/server/treachery-server
 Restart=always
 RestartSec=5
-Environment=ASPNETCORE_URLS=http://0.0.0.0:8000
-Environment=ASPNETCORE_ENVIRONMENT=Production
-# exe.dev terminates TLS in front of us. This makes the app see the original https scheme.
-Environment=ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
-# Absolute path so a redeploy of /opt/treachery/app never touches the database.
-Environment="ConnectionStrings__TreacheryDatabase=Data Source=/opt/treachery/data/treachery.db"
-Environment=DOTNET_CLI_TELEMETRY_OPTOUT=1
-Environment=DOTNET_NOLOGO=1
+# The settings are described in rust/server/src/settings.rs.
+# Caddy (deploy/Caddyfile) proxies everything here.
+Environment=TREACHERY_LISTEN=127.0.0.1:8000
+# Outside /opt/treachery/server, so a deploy never touches the database.
+Environment=TREACHERY_DATABASE=/opt/treachery/db/treachery.db
+# The web client build and the art, CSS and fonts it links (deploy/deploy.sh).
+Environment=TREACHERY_WEB_ROOT=/opt/treachery/server/web
+Environment=TREACHERY_ASSETS_ROOT=/opt/treachery/server/assets
+Environment=TREACHERY_SITE_URL=https://treachery.exe.xyz
+Environment=TREACHERY_ADMIN=admin
+# Mail is off without an SMTP user (TREACHERY_SMTP_USER, TREACHERY_SMTP_PASSWORD).
+Environment=TREACHERY_STATS_FROM=player@treachery.online
+Environment=TREACHERY_STATS_TO=admin@treachery.online
+# Unsaved games are saved on SIGTERM; give that time.
+TimeoutStopSec=30
 
 [Install]
 WantedBy=multi-user.target

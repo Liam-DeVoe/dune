@@ -1,0 +1,29 @@
+// The auction lot in the bidding panel (OtherComponents/BiddingPanel.razor,
+// web/src/components/BiddingPanel.tsx): card image beside its title and bid.
+.bidding-panel .lot {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.bidding-panel .lot > :first-child {
+  flex: none;
+}
+
+.bidding-panel .lot-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.bidding-panel .lot-title {
+  font-size: 1.05rem;
+}
+
+.bidding-panel .lot-bid {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

@@ -136,14 +136,10 @@ impl BlackMarketBid {
     /// C#: `private void HandleBlackMarketSpecialBid()` (Events/BlackMarketBid.cs:109)
     pub fn handle_black_market_special_bid(&self, game: &mut Game) {
         let players_with_room = || game.players.iter().filter(|p| p.has_room_for_cards(game)).count() as i32;
-        let is_last_bid = if game.version < 140 {
-            players_with_room() == game.bids.len() as i32
-        } else {
-            (game.current_auction_type == AuctionType::BlackMarketSilent && players_with_room() == game.bids.len() as i32)
-                || (game.current_auction_type == AuctionType::BlackMarketOnceAround && self.initiator() == Faction::Richese)
-                || (self.get_player(game, Some(Faction::Richese)).map(|w| game.player(w).has_room_for_cards(game)) == Some(false)
-                    && game.bid_sequence.as_ref().nre().has_passed_richese(game))
-        };
+        let is_last_bid = (game.current_auction_type == AuctionType::BlackMarketSilent && players_with_room() == game.bids.len() as i32)
+            || (game.current_auction_type == AuctionType::BlackMarketOnceAround && self.initiator() == Faction::Richese)
+            || (self.get_player(game, Some(Faction::Richese)).map(|w| game.player(w).has_room_for_cards(game)) == Some(false)
+                && game.bid_sequence.as_ref().nre().has_passed_richese(game));
 
         if is_last_bid {
             if game.current_auction_type == AuctionType::BlackMarketSilent {
@@ -189,9 +185,7 @@ impl BlackMarketBid {
         game.bids.clear();
         game.latest_bid_by_atreides_or_atreides_ally_was_passed = false;
 
-        let mut enter_replacing_card_just_won = game.version > 150
-            && ((game.version < 164 && game.players.iter().any(|p| p.nexus != Faction::None))
-                || (game.version >= 164 && game.player(winner).nexus != Faction::None));
+        let mut enter_replacing_card_just_won = game.player(winner).nexus != Faction::None;
 
         if game.player(winner).ally == Faction::Ixian && game.ixian_allows_replacing_cards {
             if !game.prevented(FactionAdvantage::IxianAllyDiscardingCard) {
@@ -258,10 +252,8 @@ impl BlackMarketBid {
             return Some(express!(Faction::Emperor, " won't pay that much"));
         }
 
-        if game.version >= 155 {
-            if game.current_auction_type == AuctionType::BlackMarketSilent && self.total_amount() > game.player(self.player()).resources {
-                return Some(express!("In a Silent auction, you can't bid more than you have"));
-            }
+        if game.current_auction_type == AuctionType::BlackMarketSilent && self.total_amount() > game.player(self.player()).resources {
+            return Some(express!("In a Silent auction, you can't bid more than you have"));
         }
 
         None

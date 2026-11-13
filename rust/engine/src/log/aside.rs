@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-// C# enum `AsideKind` is generated into enumerations.rs (tools/gen_enumerations.py).
+// The enum `AsideKind` is in enumerations.rs.
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct AsideLog {

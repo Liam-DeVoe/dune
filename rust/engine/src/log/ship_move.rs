@@ -1,8 +1,8 @@
 use crate::prelude::*;
 
-// C# enum `ShipKind` is generated into enumerations.rs (tools/gen_enumerations.py).
+// The enum `ShipKind` is in enumerations.rs.
 
-// C# enum `BeneGesseritReactionKind` is generated into enumerations.rs (tools/gen_enumerations.py).
+// The enum `BeneGesseritReactionKind` is in enumerations.rs.
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ShipLogged {

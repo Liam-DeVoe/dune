@@ -1,6 +1,6 @@
 # The observable-behavior harness
 
-`rust/observe` checks that the working tree behaves like a frozen reference build of the engine, as far as players can tell. It is the safety net for making the Rust code native ([native-plan.md](native-plan.md)). It replaces state-dump comparison, because native code is free to change the shape of the game state.
+`rust/observe` checks that the working tree behaves like a frozen reference build of the engine, as far as players can tell. It is the safety net for making the Rust code native ([native-plan.md](native-plan.md)). It compares only what players can observe, because native code is free to change the shape of the game state.
 
 The reference binary records bot and fuzz games at `Game::LATEST_VERSION`. Each trace lists every call the driver made on the game and what players could observe of it. The working tree makes the same calls and must observe the same things. It compares:
 
@@ -116,11 +116,11 @@ Observations are `log` (new messages as `[target, text]`), `logCut` (the log shr
 
 ## How games are made
 
-`observe/src/record.rs` follows the C# oracle's `GameRunner.Play`, at the latest version only. The configuration (`config.rs`) draws a ruleset, rule toggles, factions, player count, turns, a host style and sometimes seated humans. The host establishes the game. Then each round queries every player, asks the bots, and submits the first bot event. If no bot acts, a seated human passes in the alliance phase, or the host acts (faction selection, decks, custom setup, HMS placement, `EndPhase`).
+`observe/src/record.rs` plays games at the latest version only. The configuration (`config.rs`) draws a ruleset, rule toggles, factions, player count, turns, a host style and sometimes seated humans. The host establishes the game. Then each round queries every player, asks the bots, and submits the first bot event. If no bot acts, a seated human passes in the alliance phase, or the host acts (faction selection, decks, custom setup, HMS placement, `EndPhase`).
 
-Fuzz games (`fuzz.rs`) follow the C# oracle's `client` fuzz profile (`Oracle/Fuzzer.cs`, `FuzzerSteering.cs`). Per round they add:
+Fuzz games (`fuzz.rs`) add, per round:
 
-- a random event (12%). Usually it is steered: every player (and nobody) is queried, and a (player, type) pair is drawn with weight 1 / (1 + times accepted in this phase)^1.5, as in C#. The weight is also lowered for types picked often in this phase and for types accepted often in the whole game, so always-applicable types (deals, donations, permissions) don't take every step. Otherwise it is a random player's applicable type, or any type now and then.
+- a random event (12%). Usually it is steered: every player (and nobody) is queried, and a (player, type) pair is drawn with weight 1 / (1 + times accepted in this phase)^1.5. The weight is also lowered for types picked often in this phase and for types accepted often in the whole game, so always-applicable types (deals, donations, permissions) don't take every step. Otherwise it is a random player's applicable type, or any type now and then.
 - during a battle, a battle action for a player (25% of bot rounds): an applicable `Voice`, `Prescience`, `JuicePlayed`, `BattleRevision`, `TreacheryCalled`, `FaceDanced` and the like, weighted towards rare types. Now and then `KarmaEcazDial`, `JuicePlayed`, `ResidualPlayed` or `AuditCancelled` even when not applicable. `JuicePlayed` usually gets `Aggressor` when the form offers it.
 - a battle plan submitted again with its leader, a card or its dial changed (30% of bot rounds, when a faction that already planned this battle may plan again, mostly after `BattleRevision`). Parts the opponent saw with prescience must stay, so the engine rejects some of these.
 - an event of a type rarely executed in this phase (30% of bot rounds), changed copies of the bot's event (10%), and undo, restore and dismiss.
@@ -140,7 +140,7 @@ Measured on 2026-11-12, `--jobs 4` through `heavy.sh`, with another agent's runs
 | 200 fuzz games (seed 1) | 15 min | 47 min |
 | 200 fuzz games (seed 1), steered generator, `--memory-mb 640` | 15 min | 51 min |
 
-The C# oracle took about 23 minutes per 200 fuzz games. The harness is faster per game, but its games are longer: every game is at the latest version, and fuzz games run up to 3000 events (the recorder's cap; before the cap, 200 fuzz games took 28 minutes). Each game is computed twice, once by the reference and once by the working tree, and most of the time goes into building 3 to 13 views after every accepted event. For a quick check while working, run 30 to 50 games.
+The C# oracle, which the harness replaced, took about 23 minutes per 200 fuzz games. The harness is faster per game, but its games are longer: every game is at the latest version, and fuzz games run up to 3000 events (the recorder's cap; before the cap, 200 fuzz games took 28 minutes). Each game is computed twice, once by the reference and once by the working tree, and most of the time goes into building 3 to 13 views after every accepted event. For a quick check while working, run 30 to 50 games.
 
 ## Reach
 

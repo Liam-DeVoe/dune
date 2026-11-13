@@ -28,7 +28,7 @@ rsync -a --exclude '.DS_Store' --exclude '/css/treachery.css' "$ASSETS_SRC/" "$S
 echo "==> syncing rust/, the web build and the assets to $VM_HOST"
 RSYNC_SSH="ssh -o BatchMode=yes -i $VM_SSH_KEY"
 vm_ssh "sudo mkdir -p $REMOTE_SRC $REMOTE_SERVER/incoming $REMOTE_DATA && sudo chown $VM_USER:$VM_USER $REMOTE_SRC $REMOTE_SERVER $REMOTE_SERVER/incoming $REMOTE_DATA"
-rsync -az --delete --exclude 'target/' --exclude 'traces/' --exclude '.DS_Store' \
+rsync -az --delete --exclude 'target/' --exclude '.DS_Store' \
     -e "$RSYNC_SSH" "$REPO_ROOT/rust/" "$VM_USER@$VM_HOST:$REMOTE_SRC/"
 # Into incoming/, which persists, so later deploys send only what changed.
 rsync -az --delete -e "$RSYNC_SSH" "$STAGE/web/" "$VM_USER@$VM_HOST:$REMOTE_SERVER/incoming/web/"

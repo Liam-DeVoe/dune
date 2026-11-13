@@ -2,7 +2,7 @@
 
 `rust/dotnet-compat` reimplements the .NET 10 behavior that the engine still depends on: `System.Random`, `Dictionary` and `HashSet` (for the game fields whose .NET order players see), and number rounding, formatting and parsing. Since native-plan.md step 3c the engine uses std and `indexmap` everywhere else; [engine-conventions.md](engine-conventions.md#what-is-left-of-net) says what still needs this crate and why. `List.Sort` and the LINQ operators were removed then, because nothing used them any more.
 
-Everything here is checked against real .NET 10 output (see [Verification](#verification)).
+Everything here is checked against .NET 10 output recorded in snapshot files (see [Verification](#verification)).
 
 ## Exceptions
 
@@ -34,8 +34,8 @@ This is .NET's `Net5CompatSeedImpl` (Knuth's subtractive generator), which seede
 | `add(k, v)`, `add_with(k, v, key_text)` | `d.Add(k, v)`. Throws ArgumentException on a duplicate key. |
 | `try_add(k, v)` | `d.TryAdd(k, v)` |
 | `get(&k)`, `get_mut(&k)` | `d.TryGetValue(k, out v)` |
-| `index(&k)`, `d[&k]`, `index_mut(&k)`, `&mut d[&k]`, `index_with(&k, key_text)` | `d[k]` read. Throws KeyNotFoundException if missing. |
-| `get_value_or_default(&k)`, `get_value_or(&k, v)` | `d.GetValueOrDefault(k)`, `d.GetValueOrDefault(k, v)` |
+| `index(&k)`, `d[&k]`, `&mut d[&k]`, `index_with(&k, key_text)` | `d[k]` read. Throws KeyNotFoundException if missing. |
+| `get_value_or_default(&k)` | `d.GetValueOrDefault(k)` |
 | `contains_key`, `contains_value` | `ContainsKey`, `ContainsValue` |
 | `remove(&k)` | `d.Remove(k)` / `d.Remove(k, out v)` |
 | `clear()`, `len()`, `is_empty()` | `Clear()`, `Count` |
@@ -63,7 +63,6 @@ Slots work the same as in `NetDictionary`. The set operations also follow .NET's
 | `NetHashSet::from_enumerable(iter)`, `collect()`, `linq::to_hash_set` | `new HashSet<T>(query)` / `query.ToHashSet()` for a lazy source |
 | `union_with(iter)` | `UnionWith`: adds in the argument's order |
 | `except_with(iter)` | `ExceptWith`: removes in the argument's order. Does nothing on an empty set. |
-| `except_with_self()` | `s.ExceptWith(s)`: clears |
 | `intersect_with_collection(&list)` | `IntersectWith(list or array)`. An empty argument calls `Clear()`. |
 | `intersect_with_enumerable(iter)` | `IntersectWith(lazy query)`. An empty argument removes items one by one, which leaves free slots. |
 | `intersect_with_set(&s)` | `IntersectWith(otherHashSet)` |
@@ -71,7 +70,6 @@ Slots work the same as in `NetDictionary`. The set operations also follow .NET's
 | `symmetric_except_with_set(&s)` | `SymmetricExceptWith(otherHashSet)` |
 | `remove_where(pred)` | `RemoveWhere`: tests and removes in slot order |
 | `trim_excess()` | `TrimExcess()`: compacts |
-| `is_subset_of`, `is_superset_of`, `overlaps`, `set_equals` | same names |
 
 Pick the variant that matches the static type of the C# argument. `IntersectWith(emptyList)` and `IntersectWith(emptyQuery)` leave different slot layouts, and so give different orders after the next adds.
 
@@ -96,8 +94,6 @@ Serde writes a JSON array in enumeration order and reads one with `Add` semantic
 | `math_max_f64`, `math_min_f64`, `math_max_f32`, `math_min_f32` | `Math.Max`/`Math.Min` on floats: NaN propagates, `Max(-0, 0) = 0`, `Min(0, -0) = -0` |
 | `NET_NAN_F64`, `NET_NAN_F32` | `double.NaN`/`float.NaN`, which have the sign bit set, unlike Rust's `f64::NAN` |
 
-`docs/hazards.md` refers to some of these by other names: its `max_f32`/`min_f32` (meaning `Math.Max`/`Math.Min`) are `math_max_f32`/`math_min_f32`, `f32_compare` is `cmp_f32`, and `float_equals` is `equals_f32`.
-
 These need no helper:
 
 - `Math.Ceiling` and `Math.Floor` only take `double`. `Math.Ceiling(0.5f * x)` is `((0.5f32 * x as f32) as f64).ceil()`, because the multiply happens in `float`.
@@ -112,7 +108,7 @@ Both match `ToString()` and string interpolation under the invariant culture. Th
 
 ### Composite formatting: `fmt::string_format`
 
-`string.Format(format, args)` for string (or null) arguments, with .NET 10's parser: `{{`/`}}` escapes, `{index[,alignment][:format]}` items with optional spaces, padding counted in UTF-16 units, the 1,000,000 limit on index and alignment, and no `{` inside a format string. A string argument ignores the format string. Every error that throws `FormatException` in .NET is an `Err(FormatError)`. Checked against .NET by the 4,000 random templates of the skin's static corpus ([skin.md](skin.md)).
+`string.Format(format, args)` for string (or null) arguments, with .NET 10's parser: `{{`/`}}` escapes, `{index[,alignment][:format]}` items with optional spaces, padding counted in UTF-16 units, the 1,000,000 limit on index and alignment, and no `{` inside a format string. A string argument ignores the format string. Every error that throws `FormatException` in .NET is an `Err(FormatError)`. Checked by the 4,000 random templates of the skin's static corpus ([skin.md](skin.md)), whose expected texts were recorded from .NET.
 
 ### Parsing: `parse`
 
@@ -122,7 +118,7 @@ Each function takes `Option<&str>`, where `None` is a C# `null`, and throws like
 |---|---|
 | `int_parse(s)` | `int.Parse(s)` |
 | `convert_to_int32(s)` | `Convert.ToInt32(s)`: null gives 0 |
-| `float_parse_invariant(s)`, `double_parse_invariant(s)` | `float.Parse(s, CultureInfo.InvariantCulture)`, `double.Parse(...)` |
+| `float_parse_invariant(s)` | `float.Parse(s, CultureInfo.InvariantCulture)` |
 | `enum_parse(s, &[(name, value), ...])` | `Enum.Parse<T>(s)` for an `int` enum |
 
 Some .NET grammar that Rust's `from_str` doesn't accept or gets wrong:
@@ -137,18 +133,15 @@ Some .NET grammar that Rust's `from_str` doesn't accept or gets wrong:
 
 ## Verification
 
-`rust/dotnet-compat/csharp-ref` is a .NET 10 console program. It reads a JSON array of cases on stdin and prints one result per case. A case is a random seed plus a draw sequence, a dictionary or set operation script, or a batch of numbers or strings. (The C# program still knows sort and LINQ cases, which the Rust side no longer sends.) Floats travel as bit patterns, so formatting never gets in the way. `tests/common/mod.rs` runs the same cases through the Rust code and compares the JSON. Exceptions are compared as `"Type: message"` strings, so every exception type and message above is checked too.
+`tests/golden/{random,dict,set,math}.json` hold fixed cases whose expected results were recorded from .NET 10:
 
-There are three test layers:
+- Random: 18 edge seeds with 3000 mixed draws each, 3 seeds with 10,000 draws, and 100 random seeds.
+- Dictionary and HashSet: 200 scripts each of 300 interleaved add/set/remove/clear/copy operations, including every set operation. Separately, about 1600 HashSet cases walk the capacity boundaries that decide whether a copy keeps free slots.
+- Numbers: about 1500 doubles, floats and strings each through rounding, casts, comparison, formatting and parsing.
 
-- **Golden tests** (`tests/golden.rs`, run by `cargo test`) compare against committed .NET output in `tests/golden/*.json`. They cover:
-  - Random: 18 edge seeds with 3000 mixed draws each, 3 seeds with 10,000 draws, and 100 random seeds.
-  - Dictionary and HashSet: 200 scripts each of 300 interleaved add/set/remove/clear/copy operations, including every set operation. Separately, about 1600 HashSet cases walk the capacity boundaries that decide whether a copy keeps free slots.
-  - Numbers: about 1500 doubles, floats and strings each through rounding, casts, comparison, formatting and parsing.
+They pin the random sequence of each seed and the dictionary and set slot order, which replaying a savegame depends on. `cargo test -p dotnet-compat --test golden` runs the cases through the Rust code (`tests/common/mod.rs`) and compares. Floats travel as bit patterns, and exceptions compare as `"Type: message"` strings, so every exception type and message above is checked too. Rewrite the expected values with `UPDATE_GOLDENS=1` only together with a deliberate change to randomness or ordering, and review the diff.
 
-  Regenerate the golden files with `cargo test -p dotnet-compat --test golden -- --ignored regenerate`.
-- **Differential fuzzing** (`tests/differential.rs`, ignored by default) generates about 6200 random cases per batch and runs each batch through one C# process. Run it with `cargo test -p dotnet-compat --test differential -- --ignored --nocapture`. Set `COMPAT_FUZZ_SECONDS=N` to loop for N seconds and `COMPAT_FUZZ_SEED` to replay a failing batch. A 9-minute run of 213 batches (about 1.3 million cases) against the current code found no mismatch.
-- **API tests** (`tests/api.rs`) cover what the oracle can't see: serde, `Clone` versus the copy constructor, and exceptions for key types and closures the oracle doesn't model.
+`tests/api.rs` covers what the cases don't: serde, `Clone` versus the copy constructor, and the panics that stand for .NET exceptions.
 
 To check that the golden tests have teeth, each of these deliberate bugs was tried, and each made a golden test fail:
 
@@ -156,10 +149,7 @@ To check that the golden tests have teeth, each of these deliberate bugs was tri
 - an off-by-one in the HashSet copy threshold
 - a different shrink threshold after construction
 
-The C# tests need .NET 10 at `$DOTNET_ROOT` or `~/dotnet10`. The C# program pins the invariant culture.
-
 ## Known differences
 
-- **`int[].Sum()` overflow on long arrays.** For an `int[]` or `List<int>` of 16 or more elements on arm64 (32 with AVX2 on x64), .NET sums with SIMD lanes and checks overflow per lane. It can therefore miss an overflow that a sequential sum would catch, or catch one it wouldn't. `sum_i32` models the sequential path, which `Sum(selector)` and shorter arrays always use. This is only observable when a sum overflows `int`.
 - **NaN payloads.** `Math.Max`/`Math.Min` on arm64 quiet a signaling NaN input; `math_max_f64` and friends return it unchanged. Arithmetic never produces signaling NaNs, so only bit-level inspection of crafted values can tell the difference.
-- **Culture.** All formatting and parsing assumes the invariant culture. Shared and Bots use the host culture for `int.Parse` and `ToString()`, so the oracle must run under the invariant culture too (see `docs/hazards.md` 11.2).
+- **Culture.** All formatting and parsing assumes the invariant culture. The C# engine used the host culture for `int.Parse` and `ToString()`; the Rust engine always behaves as under the invariant culture.

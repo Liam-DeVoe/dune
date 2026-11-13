@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <title>No middle column: open questions</title>
 <style>
-@font-face { font-family: "Advokat"; src: url("../treachery-online/Client/wwwroot/Advokat.ttf"); }
-@font-face { font-family: "Copperplate Dune"; src: url("../treachery-online/Client/wwwroot/Copperplate.ttf"); }
-@font-face { font-family: "Alegreya Sans"; font-weight: 400; src: url("../treachery-online/Client/wwwroot/fonts/AlegreyaSans-400-latin.woff2"); }
-@font-face { font-family: "Alegreya Sans"; font-weight: 700; src: url("../treachery-online/Client/wwwroot/fonts/AlegreyaSans-700-latin.woff2"); }
+@font-face { font-family: "Advokat"; src: url("../web/assets/Advokat.ttf"); }
+@font-face { font-family: "Copperplate Dune"; src: url("../web/assets/Copperplate.ttf"); }
+@font-face { font-family: "Alegreya Sans"; font-weight: 400; src: url("../web/assets/fonts/AlegreyaSans-400-latin.woff2"); }
+@font-face { font-family: "Alegreya Sans"; font-weight: 700; src: url("../web/assets/fonts/AlegreyaSans-700-latin.woff2"); }
 :root {
   --ink-0: #120800; --ink-2: #2a1607; --parchment: #fcf9d1; --sand: #f3d987; --gold: #e7bf3c; --gold-2: #e3a631;
   --text-2: #d9c79a; --text-3: #a68d63; --hair: rgba(255,255,255,.09); --hair-strong: rgba(255,255,255,.16);
@@ -150,13 +150,13 @@ code { font-family: ui-monospace, Menlo, monospace; font-size: .85em; color: var
         <img src="../design/middle-column/open/bid-top.png" alt="">
         <div class="bsec">
           <div class="lot">
-            <img class="lot-card" src="../treachery-online/Client/wwwroot/art/Chaumas.gif" alt="">
+            <img class="lot-card" src="../web/assets/art/Chaumas.gif" alt="">
             <div class="lot-text">
               <div class="lot-title">Card 1 of 6</div>
-              <div class="lot-bid"><span class="pchip"><span class="sigil" style="--fc:#d29422"><img src="../treachery-online/Client/wwwroot/art/faction3.svg" alt=""></span>Fremen</span><span class="spice-amt"><img src="../treachery-online/Client/wwwroot/art/ActiveSpice.svg" alt=""><b>1</b></span></div>
+              <div class="lot-bid"><span class="pchip"><span class="sigil" style="--fc:#d29422"><img src="../web/assets/art/faction3.svg" alt=""></span>Fremen</span><span class="spice-amt"><img src="../web/assets/art/ActiveSpice.svg" alt=""><b>1</b></span></div>
             </div>
           </div>
-          <div class="bnum"><span class="ic"><img src="../treachery-online/Client/wwwroot/art/ActiveSpice.svg" alt=""></span><b>−</b><i>2</i><b>+</b></div>
+          <div class="bnum"><span class="ic"><img src="../web/assets/art/ActiveSpice.svg" alt=""></span><b>−</b><i>2</i><b>+</b></div>
           <div class="bbtns"><span>Pass</span><span>Bid 2</span></div>
           <label class="bauto"><i></i>Auto-pass</label>
         </div>
@@ -170,7 +170,7 @@ code { font-family: ui-monospace, Menlo, monospace; font-size: .85em; color: var
 </main>
 <script>
 (() => {
-  const ART = '../treachery-online/Client/wwwroot/art/';
+  const ART = '../web/assets/art/';
   const F = {
     emperor: {n: 'Emperor', c: '#b33715', i: 4}, bene_gesserit: {n: 'Bene Gesserit', c: '#385884', i: 6},
     atreides: {n: 'Atreides', c: '#63842e', i: 1}, fremen: {n: 'Fremen', c: '#d29422', i: 3},

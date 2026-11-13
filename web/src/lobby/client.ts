@@ -1,4 +1,4 @@
-// The lobby half of the C# Client (treachery-online/Client/Client.cs): the connection, the
+// The lobby half of the client: the connection, the
 // logged-in user, the server status (game lists), and the game the user is in, with its
 // participation, settings and latest view. The game screen itself renders views from a
 // WebSocketSource (state/source.ts); this store only says which screen of Main.razor to show and

@@ -20,7 +20,6 @@ How `rust/engine` and `rust/bots` are organized. Most engine code starts with `u
 | `shared.rs` | `Shared<T>` (the settings an event shares with the game) and `RcKey<T>` (an event as a map key). |
 | `random.rs` | `LoggedRandom`, the game's random number generator. |
 | `json/` | Reading and writing events and savegames, byte for byte in the established JSON format. |
-| `canon.rs` | The canonical state dump, in the C# oracle's format. rust/differ and the engine tests that compare with C# goldens (review_pkg_*, sync_v188, undo) use it; nothing in the game does. |
 | `error.rs` | `GameError`: an accepted event that failed partway (see engine-conventions.md, "Errors"). |
 | `compat/` | .NET behavior the engine still needs: `DateTimeOffset`/`TimeSpan` (event JSON) and the random selection helpers that draw from .NET's `Random` (until the RNG changes, native-plan.md step 4). |
 
@@ -30,6 +29,6 @@ Inside `game/` and `events/`, the submodules are private and their items are re-
 
 | Module | What it holds |
 |---|---|
-| `bot/` | `ClassicBot` (`mod.rs`) and its decisions. `ClassicBot::decide(game, priority, allowed)` is what the server, differ and observe harness call: it asks the decision methods of that priority round in order and returns the first valid event. One file per topic: `alliance`, `battle`, `bidding`, `deals`, `factions` (faction-specific powers), `knowledge` (what the bot knows about the board and its opponents, and the `Place` trait for questions asked about a location or a territory), `movement`, `shipment`, `other`. |
+| `bot/` | `ClassicBot` (`mod.rs`) and its decisions. `ClassicBot::decide(game, priority, allowed)` is what the server and the observe harness call: it asks the decision methods of that priority round in order and returns the first valid event. One file per topic: `alliance`, `battle`, `bidding`, `deals`, `factions` (faction-specific powers), `knowledge` (what the bot knows about the board and its opponents, and the `Place` trait for questions asked about a location or a territory), `movement`, `shipment`, `other`. |
 | `parameters.rs` | `BotParameters`, the tuning values of a bot. |
 | `support.rs` | The casts the bots apply to the untyped parameters of a Clairvoyance question. |

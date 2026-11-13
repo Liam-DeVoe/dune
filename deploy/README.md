@@ -1,8 +1,7 @@
 # treachery-online
 
-Self-hosted copy of [treachery.online](https://github.com/ronaldossendrijver/treachery.online), running at https://treachery.exe.xyz/. The site is the Rust server (`rust/server`) and the React client (`web/`). The original C# code is in `treachery-online/`; it no longer runs anywhere and is kept as the reference for the Rust port until the port's plan removes it.
+Self-hosted copy of [treachery.online](https://github.com/ronaldossendrijver/treachery.online), running at https://treachery.exe.xyz/. The site is the Rust server (`rust/server`) and the React client (`web/`), with the art, fonts, scripts and PDFs in `web/assets` and the SCSS in `web/styles`. The Rust code started as a port of the original C# code, which was brought in with `git subtree` as `treachery-online/` and deleted on 2026-11-13; it is in git history.
 
-- `treachery-online/` is the original C# source. It was brought in with `git subtree`, so upstream history is preserved. The site uses nothing from it: the art, fonts, scripts and PDFs are in `web/assets`, the SCSS in `web/styles`.
 - `deploy/` is everything needed to rebuild the box from scratch. The VM is disposable; this repo is the source of truth.
 
 ## Day to day
@@ -24,12 +23,6 @@ just provision
 Creates the VM on exe.dev, installs Rust, Caddy and sqlite3, deploys, and creates an `admin` account in the new database. The password is written to `deploy/.admin-password`, which is gitignored. Last, it points the public URL at Caddy. Overrides for the VM name, ssh key, and exe.dev account are at the top of `deploy/env.sh`.
 
 A new box starts with an empty database. To keep the accounts, copy the old box's database to `/opt/treachery/db/treachery.db` (with `sqlite3 old.db ".backup new.db"`) before the first deploy. The server brings an older database, the C# server's included, to its current schema when it starts.
-
-## Pulling upstream changes
-
-```
-git subtree pull --prefix=treachery-online https://github.com/ronaldossendrijver/treachery.online.git master --squash
-```
 
 ## On the VM
 

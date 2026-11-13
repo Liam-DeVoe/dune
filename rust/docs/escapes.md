@@ -1,10 +1,12 @@
 # Escapes
 
-This file records differences between C# and Rust that our automated tests should have caught but didn't. [PORTING.md](../../PORTING.md) rule 6 says every escaped bug is a testing bug. When something other than the differential tests finds a difference, or finds it late, we fix the code, then add an entry here. Each entry covers a whole class of bug: what went wrong, why the tests let it through, and which test now catches that class. The test change lands before the entry is written. When a new bug matches an existing entry, the guarding test has a gap, and the entry should say how that gap was closed.
+This file records bugs that our automated tests should have caught but didn't. [PORTING.md](../../PORTING.md) rule 6 says every escaped bug is a testing bug. When something other than the automated tests finds a bug, or finds it late, we fix the code, then add an entry here. Each entry covers a whole class of bug: what went wrong, why the tests let it through, and which test now catches that class. The test change lands before the entry is written. When a new bug matches an existing entry, the guarding test has a gap, and the entry should say how that gap was closed.
+
+The entries up to "Bot decisions validated in the live game" date from the port, when the tests compared Rust with the C# engine. Many of the tests they name (the C# oracle and `rust/differ`, `csharp-ref`, `csharp-gen`, boundary.rs, the Roslyn coverage lists) were deleted with the C# tree on 2026-11-13 and are in git history. The observe harness ([native-harness.md](native-harness.md)) and the snapshot tests ([engine-conventions.md](engine-conventions.md#snapshot-tests)) took their place.
 
 ## Foundation review (2026-11)
 
-The [foundation review](reviews/foundation.md) compared the first Rust modules with C# by hand. The failing tests it wrote are in [`review_foundation.rs`](../engine/tests/review_foundation.rs) and pass now. The systematic tests below came out of it. They live in `engine/tests/` and read golden files that `engine/csharp-ref` writes.
+The foundation review compared the first Rust modules with C# by hand. The failing tests it wrote are in [`review_foundation.rs`](../engine/tests/review_foundation.rs) and pass now. The systematic tests below came out of it. They live in `engine/tests/` and read golden files that `engine/csharp-ref` writes.
 
 ### Exception messages
 
@@ -136,7 +138,7 @@ Numbers now go through `dotnet_compat::fmt`.
 
 **What catches the class now.**
 - `csharp-gen --message-collections` finds every site from the Roslyn operation trees of Shared: each collection converted to `object`, each array passed as a whole `params` array, and each collection given to a log record. It writes `engine/tests/coverage/message_collections.txt`.
-- `engine/tests/live_lists.rs` fails for any site without a row in [live-lists.md](live-lists.md), for any row without a site, and for a `live` row whose `LiveList` variant doesn't exist or isn't used by any port.
+- `engine/tests/live_lists.rs` fails for any site without a row in live-lists.md, for any row without a site, and for a `live` row whose `LiveList` variant doesn't exist or isn't used by any port.
 - The conventions now send porters to that table ([engine-conventions.md](engine-conventions.md#collections-in-messages)), and `LiveList` makes a live element a one-line change.
 
 The weak spot is the generated file. It only changes when someone reruns the tool after changing Shared. Shared is the spec and rarely changes, so we accepted that.
@@ -187,9 +189,9 @@ The weak spot is event code that turns an `Option` into a handle with `nre()` an
 - Each game's map has its own `Territory` objects, and C# compares territories by reference. After a restore in the middle of a battle, `CurrentBattle.Territory` comes from the undo game's map, and C# stored it in this game's `LeaderState` (dumped with `"foreign":true`, live fuzz seed 501 game 3). Rust territory handles had no map.
 - `Location` objects are per map too. A location passed to a player of another game is the caller's map object, so C# dumps it without `"foreign":true` inside that player. Rust marked every location of another game's player foreign.
 - `GameStatus` flash messages read `e.Game` of the last history event. After a restore that is the undo game, and Rust read the current game's `TreacheryDiscardPile` (NullReferenceException in Rust only).
-- `ILocationEvent.To` of a held event (`LastShipmentOrMovement`) is read through the event's own game in C#, so `GameStatus` highlights and Bene Gesserit intrusion messages named the undo game's territory ([pkg-k review](reviews/pkg-k.md) item 3). `RevealCurrentNoField` and `BeneGesseritAccompanies` compare such locations with `ReferenceEquals`.
+- `ILocationEvent.To` of a held event (`LastShipmentOrMovement`) is read through the event's own game in C#, so `GameStatus` highlights and Bene Gesserit intrusion messages named the undo game's territory (pkg-k review item 3). `RevealCurrentNoField` and `BeneGesseritAccompanies` compare such locations with `ReferenceEquals`.
 - The first version of the Rust model kept every game ever made from the current one, so memory grew with each undo, where C# frees unreachable games. Rust now drops games no reference reaches after each undo, restore and dismiss.
-- `Participation` was copied instead of shared ([pkg-a review](reviews/pkg-a.md) item 2).
+- `Participation` was copied instead of shared (pkg-a review item 2).
 
 **Why the design missed it.**
 
@@ -208,7 +210,7 @@ The weak spot is event code that turns an `Option` into a handle with `nre()` an
 
 ## `Some(NULL)` from helpers that return a collection element (2026-11)
 
-**Bug.** `RandomOrDefault` over a hand that holds a null card returns that null. C# callers then skip it: `if (card != null)`, or `Game.Discard(TreacheryCard?)`, which returns on null. Rust's `random_or_default` returned `Some(TreacheryCard::NULL)`. `if let Some(card)` accepted it, and `discard_treachery_card_boolean` treated it as a real card. It logged the discard, removed the null from the hand and then threw ArgumentNullException on `RecentlyDiscarded.Add(null)`. The [package J review](reviews/pkg-j.md) confirmed this for CHOAM betrayal with a Nexus card (`NexusPlayed.cs:421-424`). Sabotage and the Atomics hand limit in `TerrorRevealed`, CHOAM's secret-ally audit in `NexusPlayed`, and the hand limit in `MakeAlliance` have the same shape.
+**Bug.** `RandomOrDefault` over a hand that holds a null card returns that null. C# callers then skip it: `if (card != null)`, or `Game.Discard(TreacheryCard?)`, which returns on null. Rust's `random_or_default` returned `Some(TreacheryCard::NULL)`. `if let Some(card)` accepted it, and `discard_treachery_card_boolean` treated it as a real card. It logged the discard, removed the null from the hand and then threw ArgumentNullException on `RecentlyDiscarded.Add(null)`. The package J review confirmed this for CHOAM betrayal with a Nexus card (`NexusPlayed.cs:421-424`). Sabotage and the Atomics hand limit in `TerrorRevealed`, CHOAM's secret-ally audit in `NexusPlayed`, and the hand limit in `MakeAlliance` have the same shape.
 
 **Why the null-handle fix let it through.** The conventions banned writing `Some(h)` for a handle that may be null, and the earlier entry said "the guard is the conventions plus the differ". But the `Some` was inside a generic helper, where no reviewer reads it as a handle, and none of the earlier tests took an element out of a collection that held a null.
 
@@ -240,7 +242,7 @@ Every artifact derived from the C# was also stale. The canon schema had no `Pres
 
 - `engine/tests/csharp_sync.rs::csharp_sources_match_the_synced_manifest` hashes every `.cs` file in `Shared` and `Bots`. It compares them with `engine/tests/golden/csharp_sync.sha256`, written at the last sync, and names each changed, added or removed file. Run against the pre-Nov-7 C# (the `HEAD` blobs), it lists the 17 changed files and the new `AlliancePassed.cs`.
 - `csharp_sync.rs::fuzzer_version_gates_cover_every_version_check` scans Shared for `Version <op> N` and fails for any `N` that `Oracle/GameConfig.cs` `VersionGates` leaves out. It would have failed for 188.
-- [csharp-sync.md](csharp-sync.md) lists every artifact to regenerate and the order to do it in. The manifest is updated last.
+- csharp-sync.md lists every artifact to regenerate and the order to do it in. The manifest is updated last.
 - `static_data.rs` uses `Game::LATEST_VERSION` where the C# side uses `Game.LatestVersion`.
 - `engine/tests/sync_v188.rs` runs the v188 rules at versions 187 and 188 and compares 366 lines with the C# (`csharp-ref sync-v188`). The lines cover the alliance phase in A and B, passing, breaking and offering, the status text, the seen plans after each revision, the validation messages, the outsider NullReferenceException and the reset.
 
@@ -248,8 +250,8 @@ Every artifact derived from the C# was also stale. The canon schema had no `Pres
 
 **Bugs.** About 60 C# members return a lazy `Where` or `Select`, and their callers stop early with `Any()`, `First()`, `FirstOrDefault()` or `Contains()`. The Rust ports built a `Vec` first, so the predicate ran on elements that C# never reaches. When one of those throws, Rust throws where C# returns a value. Three reviews found instances:
 
-- `Karma.ValidKarmaCards`, `ChoamDiscarded.ValidCards` and `NexusPlayed.ValidChoamCards` on a hand with a null card after the match. C# `CanKarma` returns true, and Rust threw NullReferenceException ([package J review](reviews/pkg-j.md), confirmed item 2).
-- `FremenRidesMonster.ValidTargets(...).Contains(To)` with an ally faction nobody plays. The last clause dereferences the null `AlliedPlayer` on every location after the match ([package D review](reviews/pkg-d.md)).
+- `Karma.ValidKarmaCards`, `ChoamDiscarded.ValidCards` and `NexusPlayed.ValidChoamCards` on a hand with a null card after the match. C# `CanKarma` returns true, and Rust threw NullReferenceException (package J review, confirmed item 2).
+- `FremenRidesMonster.ValidTargets(...).Contains(To)` with an ally faction nobody plays. The last clause dereferences the null `AlliedPlayer` on every location after the match (package D review).
 - The same shape in `DiscoveryEntered.ValidTargets`, `TerrorRevealed.ValidSneakAttackTargets`, `NexusPlayed.ValidEcazTerritories`, `PlayerSequence.GetPlayersInSequence`, and the `.Any()` calls in `GetApplicableEvents` (reviews D, J and B, suspected).
 - The new harness found two more. `DiscardedTaken.CanBePlayed` used `Count() > 0` where C# has `Any()`. `Game.IsNotFull` looked up the player before the stronghold test, where C# dereferences `p` only for strongholds and homeworlds, so `AmbassadorActivated.ValidFremenTargets` with a null player threw before its first location.
 
@@ -265,7 +267,7 @@ A related case is evaluation order inside the query. Several ports read `p.Facti
 **What catches the class now.**
 
 - `csharp-gen --lazy-queries` finds every lazy producer and every site from the Roslyn operation trees of Shared, with the consumer of each site: short-circuit operator, full enumeration, `foreach` with or without early exit, a local enumerated twice, or a pass to another member. It writes `engine/tests/coverage/lazy_queries.txt`.
-- `engine/tests/lazy_queries.rs` fails for a site without a row in [lazy-queries.md](lazy-queries.md), for a stale row, and for a short-circuited site whose producer isn't `iter` with a Rust function that returns an iterator. That holds through `return` chains too.
+- `engine/tests/lazy_queries.rs` fails for a site without a row in lazy-queries.md, for a stale row, and for a short-circuited site whose producer isn't `iter` with a Rust function that returns an iterator. That holds through `return` chains too.
 - The `lazy` section of `boundary.json` (`csharp-ref/LazyBoundary.cs`) runs every `iter` producer that takes a `Game` or a `Player` on states with a null card after a match, a dangling ally, an unattached discovery stronghold, and a null player. It records the items yielded up to the exception. `boundary.rs::lazy_queries_yield_like_csharp` compares, and fails on 18 cases if `Karma.ValidKarmaCards` collects before yielding. `lazy_queries.rs` fails for an `iter` producer the harness doesn't call, unless it is listed with a reason.
 - The conventions now say lazy producers return `impl Iterator` ([engine-conventions.md](engine-conventions.md#ienumerable-and-laziness)), and `lazy.rs` has `Either`, lazy `distinct` and `union`, and `cs_contains`.
 
@@ -273,7 +275,7 @@ The weak spots: the tool reads Shared only, so the bot port has to rerun it with
 
 ## Null arrays and C# 14 span binding (2026-11)
 
-**Bug.** `DealOffered.Same` ends with `offeredDeal.To.SequenceEqual(To)` on two `Faction[]` (`Events/DealOffered.cs:87`). Shared is compiled with C# 14, which converts an array to a span implicitly, also as the receiver of an extension method. So the call binds to `MemoryExtensions.SequenceEqual`, a null array is an empty span, and a cancellation with `"To":null` matches an offer with `"To":[]`. Rust ported `Enumerable.SequenceEqual` and threw ArgumentNullException ([package K review](reviews/pkg-k.md) item 1). `Game.GetMaxRevivals` reads a possibly null `FactionsWithIncreasedRevivalLimits` the same way and returns the normal limit.
+**Bug.** `DealOffered.Same` ends with `offeredDeal.To.SequenceEqual(To)` on two `Faction[]` (`Events/DealOffered.cs:87`). Shared is compiled with C# 14, which converts an array to a span implicitly, also as the receiver of an extension method. So the call binds to `MemoryExtensions.SequenceEqual`, a null array is an empty span, and a cancellation with `"To":null` matches an offer with `"To":[]`. Rust ported `Enumerable.SequenceEqual` and threw ArgumentNullException (package K review item 1). `Game.GetMaxRevivals` reads a possibly null `FactionsWithIncreasedRevivalLimits` the same way and returns the normal limit.
 
 **Why the hazard survey, the conventions and the tests missed it.**
 
@@ -285,13 +287,13 @@ The weak spots: the tool reads Shared only, so the bot port has to rerun it with
 **What catches the class now.**
 
 - `csharp-gen --span-binding` asks Roslyn's semantic model which method every call binds to and lists every conversion to `Span<T>` or `ReadOnlySpan<T>` in Shared (`engine/tests/coverage/span_binding.txt`). It also scans the IL of the compiled `Treachery.Shared.dll` and fails unless the number of `MemoryExtensions` calls matches, so the list follows the real compiler, not Roslyn's idea of it.
-- `engine/tests/span_binding.rs` fails for a site without a row in [span-binding.md](span-binding.md), for a stale row, and for a `MemoryExtensions` method that the doc doesn't compare with `Enumerable` on non-null arrays. Each row says whether the array can be null there. There are 8 sites: 2 can see null, and the other 6 read `Length` first or work on static data.
+- `engine/tests/span_binding.rs` fails for a site without a row in span-binding.md, for a stale row, and for a `MemoryExtensions` method that the doc doesn't compare with `Enumerable` on non-null arrays. Each row says whether the array can be null there. There are 8 sites: 2 can see null, and the other 6 read `Length` first or work on static data.
 
 The weak spot: the tool reads Shared only. The bot port must run it over Bots too (`Bot_FactionSpecific.cs:713` reads `FactionsWithIncreasedRevivalLimits.Length`, which throws on null).
 
 ## Event collections stored as game state (2026-11)
 
-**Bug.** `SetIncreasedRevivalLimits` executed without validation with `"Factions":null` stores null in `Game.FactionsWithIncreasedRevivalLimits` (`Events/SetIncreasedRevivalLimits.cs:52`), and C# dumps `null`. The Rust field was a `Vec`, so Rust stored `[]` ([package F review](reviews/pkg-f.md) item 1, [package K review](reviews/pkg-k.md) item 4; fuzz seed 9311, games 0 and 43). `Execute` had a comment saying "Validate has already rejected a null array", which is true only with validation on.
+**Bug.** `SetIncreasedRevivalLimits` executed without validation with `"Factions":null` stores null in `Game.FactionsWithIncreasedRevivalLimits` (`Events/SetIncreasedRevivalLimits.cs:52`), and C# dumps `null`. The Rust field was a `Vec`, so Rust stored `[]` (package F review item 1, package K review item 4; fuzz seed 9311, games 0 and 43). `Execute` had a comment saying "Validate has already rejected a null array", which is true only with validation on.
 
 **Why the hazard survey, the conventions and the tests missed it.**
 
@@ -303,7 +305,7 @@ The weak spot: the tool reads Shared only. The bot port must run it over Bots to
 **What catches the class now.**
 
 - `csharp-gen --stored-event-collections` lists every assignment of a collection taken from an event (directly, through an object reached from one, or from a collection parameter) to a field or property of anything that isn't an event (`engine/tests/coverage/stored_event_collections.txt`).
-- `engine/tests/span_binding.rs::every_stored_event_collection_is_classified` fails for a site without a row in [span-binding.md](span-binding.md), and for a `nullable` row whose `Game` field isn't an `Option` in `game.rs`. There are 6 sites. Three can store null, and all three are `Option` now.
+- `engine/tests/span_binding.rs::every_stored_event_collection_is_classified` fails for a site without a row in span-binding.md, and for a `nullable` row whose `Game` field isn't an `Option` in `game.rs`. There are 6 sites. Three can store null, and all three are `Option` now.
 - The fuzzer's unvalidated steps keep finding the runtime effects.
 
 The weak spot: the tool sees assignments only. A collection passed to a constructor of a model object, or added whole to another collection, isn't listed.
@@ -338,7 +340,7 @@ The weak spot: .NET's parser takes far more than ISO 8601 (month names, `09/17/2
 **Why the tests missed it.** Bot decisions were checked only in bots-mode games, which never undo. The B6 golden tests call `DetermineDealAccepted` on recorded states, but those come from bots games too, so no deal offer ever belonged to another game. The differ didn't run the bots on fuzz traces, where undo, restore and dismiss happen.
 
 **What catches the class now.**
-- `differ --bots check` runs the bots on fuzz traces of the `client` profile ([differ.md](differ.md#checking-bot-decisions)). Fuzz games undo, restore and dismiss often, so any bot code that reads an object of another game is exercised after undo.
+- `differ --bots check` runs the bots on fuzz traces of the `client` profile (differ.md). Fuzz games undo, restore and dismiss often, so any bot code that reads an object of another game is exercised after undo.
 - `differ/tests/bots_harness.rs::a_bot_event_of_another_game_is_validated_in_that_game` replayed the seed 301 game 24 trace up to line 1960 with the bots on. That game was at version 155, so the test and its golden were deleted when old game versions were dropped (native-plan.md step 2); `differ --bots check` on fuzz traces still covers the class.
 
 ## Automatic bid passes that never stop (2026-11)

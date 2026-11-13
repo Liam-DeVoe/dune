@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-// C# enum `NexusAllianceChange` is generated into enumerations.rs (tools/gen_enumerations.py).
+// The enum `NexusAllianceChange` is in enumerations.rs.
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct BlowDeckLog {

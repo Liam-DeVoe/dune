@@ -1,6 +1,6 @@
-# Engine porting conventions
+# Engine conventions
 
-How C# constructs in `Shared` map to Rust in `rust/engine`. Read [PORTING.md](../../PORTING.md) and the summary of [hazards.md](hazards.md) first. This file covers the patterns the foundation layer set up, so every `Game_*.cs` and `Events/*.cs` port uses the same ones.
+How `rust/engine` represents the game: enums, static data, players, events, messages, errors, randomness and collections. The engine began as a line-by-line port of the C# engine (`Shared`, still in git history before the C# tree was deleted), so many names and comments refer to the C# members they came from. [engine.md](engine.md) describes the module layout.
 
 ## Modules and names
 
@@ -8,7 +8,7 @@ How C# constructs in `Shared` map to Rust in `rust/engine`. Read [PORTING.md](..
 - Members keep their C# names in snake_case and their C# order. Properties become methods: `card.IsWeapon` is `card.is_weapon()`.
 - A name that is a Rust keyword gets a trailing underscore: `card.Type` is `card.type_()`.
 - Support modules have no C# counterpart. `shared.rs` holds `Shared<T>` and `RcKey<T>`, `enum_type.rs` defines how enums work, `iter.rs` the iterator and map helpers std lacks, `compat/date_time_offset.rs` is `DateTimeOffset`/`TimeSpan`, `compat/random_ext.rs` the random selection helpers, `json/mod.rs` and `json/members.rs` are the event JSON, and `prelude.rs` is the common import.
-- Generated files say so at the top. `map/data.rs` comes from `tools/gen_map_data.py` and `enumerations.rs` from `tools/gen_enumerations.py` (which also emits the enums declared in `Model/Log` and `Model/Result.cs`). Edit the generator, not the output. The engine skeleton came from `csharp-gen`, which is retired; see [The skeleton generator](#the-skeleton-generator).
+- `map/data.rs` and the enum declarations in `enumerations.rs` were generated from the C# source once and are edited by hand now. `tests/static_data.rs` checks them against a snapshot.
 - Mark deliberate copies of C# bugs with `// C# parity: <why>`.
 
 ## Enums
@@ -39,7 +39,7 @@ get_values_except_default(Faction::None); // Enumerations.GetValuesExceptDefault
 
 ## Static game data: handles
 
-Territories, locations, leaders, the Messiah, treachery cards and resource cards are created once per process or once per game, and C# compares them by reference or by `Id`. Within one game those agree (hazards §7.1). In Rust each is a small `Copy` handle into a static table. Its `==` matches the C# `Equals`/`==`.
+Territories, locations, leaders, the Messiah, treachery cards and resource cards are created once per process or once per game, and C# compares them by reference or by `Id`. Within one game those agree. In Rust each is a small `Copy` handle into a static table. Its `==` matches the C# `Equals`/`==`.
 
 | C# | Rust handle | Notes |
 |---|---|---|
@@ -92,7 +92,7 @@ let card = TreacheryCardManager::lookup().find(self.card_id);
 
 ### Absent values
 
-A handle (`TreacheryCard`, `Leader`, `Hero`, `Location`, `Territory`, `ResourceCard`, `PlayerIndex`) always names a real object. Where a value can be absent, the type is `Option<Handle>`; collections never hold an absent value. (Until native-plan.md step 3c every handle had a null value that imitated a C# null reference; [unreachable.md](unreachable.md) lists what changed for events executed without validation.)
+A handle (`TreacheryCard`, `Leader`, `Hero`, `Location`, `Territory`, `ResourceCard`, `PlayerIndex`) always names a real object. Where a value can be absent, the type is `Option<Handle>`; collections never hold an absent value. (Until native-plan.md step 3c every handle had a null value that imitated a C# null reference.)
 
 What to do when a value is missing:
 
@@ -139,13 +139,13 @@ game.map.find_paths(from, to, dist, ignore_storm, faction, &game)  // Map.FindPa
 game.map.find_neighbours_for_hms_movement(start, 1, false, game.sector_in_storm)
 ```
 
-`find_neighbours` keeps the C# cache, including its stale results (hazards §6.1). C# returns the cached list itself. Rust returns a copy, which is equivalent because no caller mutates the result (`grep -rn "FindNeighbours(" Shared Bots`).
+`find_neighbours` keeps the C# cache, including its stale results. C# returns the cached list itself. Rust returns a copy, which is equivalent because no caller mutates the result (`grep -rn "FindNeighbours(" Shared Bots`).
 
 ## Objects the game owns
 
 - Plain ownership is the default. `Player`, `LeaderState`, `Battalion` and the like are fields of `Game`.
 - Events stored in game state are `Rc<Event>`, shared with `History` (see [Events](#events)). The few event fields that C# writes after the event is stored are `Cell`s.
-- When C# keeps two references to one mutable object that is not an event and mutates through either, use `shared::Shared<T>`, an `Rc<RefCell<T>>` whose `==` is reference equality. The skeleton uses it for the lists that `EstablishPlayers` shares with the game (hazards §5.1):
+- When C# keeps two references to one mutable object that is not an event and mutates through either, use `shared::Shared<T>`, an `Rc<RefCell<T>>` whose `==` is reference equality. The engine uses it for the lists that `EstablishPlayers` shares with the game:
   - `Game.settings: Shared<GameSettings>` and `EstablishPlayers.settings: Option<Shared<GameSettings>>`;
   - `Game.factions_in_play: Shared<Vec<Faction>>` and `GameSettings.allowed_factions_in_play: Option<Shared<Vec<Faction>>>`.
 
@@ -161,7 +161,7 @@ game.map.find_neighbours_for_hms_movement(start, 1, false, game.sector_in_storm)
   `Game.participation` is a `Shared<Participation>` too. `new Game(version, participation)` keeps the caller's object, and the games that `Undo`, `RestoreRecentlyUndone` and `DismissRecentlyUndone` make share it, so `Game::new_int32_participation` takes a `&Shared<Participation>`.
 - When C# uses an object as an identity token, key by a stable handle: `PlayerIndex` for players (`LegacyNames`), `shared::RcKey<Event>` for events (`DealResponses` is keyed by `RcKey<DealOffered>`). Don't compare structurally.
 - `LoggedRandom` is shared between `Game.Random` and every deck built from it. That is `logged_random::SharedRandom`, a `Shared<LoggedRandom>`.
-- C# objects that hold their owning game (`Player.Game`, `PlayerSequence._game`, `GameEvent.Game`) don't keep it in Rust. Their methods take the game as a parameter. The state dump writes the C# field as `{"$ref":"Game"}` (`#[canon(game_field)]`, and `GameEventBase.initialized` for events, which are null until initialized).
+- C# objects that hold their owning game (`Player.Game`, `PlayerSequence._game`, `GameEvent.Game`) don't keep it in Rust. Their methods take the game as a parameter.
 
 ## Players
 
@@ -184,9 +184,9 @@ game.player_mut(me).resources -= self.resources;
 game.stone(Milestone::Payment);
 ```
 
-`Player`'s own methods come in three forms. The generator picked one per method from what the C# body does:
+`Player`'s own methods come in three forms, depending on what the method does:
 
-| C# body | Rust signature | Call |
+| The method | Signature | Call |
 |---|---|---|
 | reads only the player | `fn has_ally(&self) -> bool` | `game.player(p).has_ally()` |
 | changes only the player | `fn f(&mut self, ...)` | `game.player_mut(p).f(...)` |
@@ -211,7 +211,7 @@ game.battle_sequence = Some(seq);
 
 The event objects are shared between the games (`Rc`), and each replay initializes them again against the new game. An event keeps no game of its own, and a `PlayerIndex` is only a position in `players`, so nothing in one game refers to another.
 
-C# undo differs here. Its new game shares the event objects with the old one, and each event remembers the game it was last initialized against. After a restore, events that the restored game holds (`CurrentBattle`, `AggressorPlan`, deal offers) belong to the game made by the undo, and their members read that game. The Rust port imitated this until native-plan.md step 3. Snapshots drop it: a restore returns to the state before the undo, with nothing read from the discarded game. The C# differ stops comparing state hashes at a trace's first undo, because C#'s dump writes those references (`{"$ref":"OtherGame"}`) and Rust has none.
+C# undo differs here. Its new game shares the event objects with the old one, and each event remembers the game it was last initialized against. After a restore, events that the restored game holds (`CurrentBattle`, `AggressorPlan`, deal offers) belong to the game made by the undo, and their members read that game. The Rust port imitated this until native-plan.md step 3. Snapshots drop it: a restore returns to the state before the undo, with nothing read from the discarded game.
 
 The native harness sees the change in fuzz games that restore. In 200 fuzz games (seed 1), 4 differ from the reference, each after an undo that was restored. In game 18, for example, Ixian wins a Black Market card after the restore: the reference logs the win but puts the card in the hand of the discarded game's Ixian, so the live game's Ixian never gets it. The harness builds views from a separate replica, so such differences first show in a later query or bot decision.
 
@@ -247,11 +247,11 @@ self.passed                // Passed (a field on every passable event)
 
 ### Fields written after the event is shared
 
-C# events are live objects. The analysis in the generator found these fields written after the event may be stored in game state or `History`; they are `Cell`s so `&self` methods can write them:
+These event fields are written after the event may be stored in game state or `History`, so they are `Cell`s that `&self` methods can write:
 
 - `GameEventBase.initiator`, `GameEventBase.player` (`Initialize`)
-- `GameEventBase.time` (set by the server's `ValidateAndExecute` after `Execute`; seeded by hand in the generator's analysis, which only sees `Shared`)
-- `Battle.weapon_card_id`, `defense_card_id`, `original_weapon`, `original_defense` (`ActivateDynamicWeapons`, hazards §5.2)
+- `GameEventBase.time` (set by the server after `execute`)
+- `Battle.weapon_card_id`, `defense_card_id`, `original_weapon`, `original_defense` (`ActivateDynamicWeapons`)
 - `AutomationConfigured.automation_rule_id`
 - `Shipment.guild_income_prevented`
 
@@ -263,21 +263,6 @@ When the event to call is itself stored in the game, clone the `Rc` first so the
 let plan = game.aggressor_plan.clone().expect("aggressor plan");
 plan.activate_dynamic_weapons(game, hero, weapon, defense);
 ```
-
-## Signatures in the skeleton
-
-The generator derived every signature from the C# declaration and a whole-program analysis of the bodies. The rules, so you can predict and check them:
-
-- **`&self` or `&mut self`.** A `Game` method is `&mut self` when it, or anything it calls, writes game state. Reads that write (`NextPlayerToBattle`, hazards §4.3) count, so `next_player_to_battle(&mut self)` and `get_applicable_events(&mut self, ...)` are `&mut`. Writes to `Map`'s neighbour cache and draws from `Game.Random` do not count, because those have interior mutability in Rust.
-- **Explicit `Game` parameters** become `&Game` or `&mut Game` by the same analysis. A method with a `Player` parameter and no other way to reach the game gets a `game: &Game` parameter, because a `PlayerIndex` is useless without it.
-- **Nullability** follows the C# annotations: `Leader?` is `Option<Leader>`, `Leader` is `Leader`. (Handles have no null value any more; see [Absent values](#absent-values).) Exceptions: event fields of reference type are always `Option` (JSON can hold null); event members returning a handle, an event or a player are `Option` (they resolve ids that may not exist); and a method that contains `return null` returns `Option` whatever its annotation says.
-- **Collections** were `Vec`, `NetHashSet` and `NetDictionary`, both for fields and for `IEnumerable` returns (see [Collections](#collections) for what they are now). The generator could not tell lazy returns apart; those are now `impl Iterator` (see [IEnumerable and laziness](#ienumerable-and-laziness)). Parameters are borrowed: `&[T]`, `&NetHashSet<T>`, `&NetDictionary<K, V>`, `&str`. `params T[]` is `Vec<T>`. `ref`/`out` parameters are `&mut T`. C# default parameter values are not represented; pass them explicitly.
-- **Returned objects** of a model class (`Battalion`, `LeaderState`, `Report`, ...) are owned values. Where C# returns a live object that the caller mutates (`Game.CurrentReport`, `Player.GetAndCreateIfNeeded`, hazards §5.4), the porter of that method changes the return type to `&T`/`&mut T` (or adds a `_mut` variant) and fixes the callers.
-- **Delegates.** `Action` is `fn(&mut Game)`, `Func<A, R>` is `&dyn Fn(A) -> R`, `object` is `ExpressionElement`.
-- **Overloads.** The first overload keeps the name; later ones get the snake_case parameter types appended: `By(Faction)` is `by`, `By(Player)` is `by_player`. Every method's doc comment quotes the C# signature and `file:line`. C# `Clone()` is `cs_clone()`, so it never shadows `Clone::clone`.
-- **Constants** with a literal value are associated `const`s; other static fields are functions with a `todo!`, because each is either a constant table or process-wide state (hazards §6.2) and needs a decision.
-
-If a signature is wrong for the body you are porting, fix it and its callers in the same change. Callers in another package's files are fine to touch for this; keep the edit to the call site.
 
 ## Messages
 
@@ -315,12 +300,7 @@ Keep the C# numeric type: a `float` dial must go in as `f32`, not `i32`. If some
 
 ### Collections in messages
 
-A C# message keeps a collection argument by reference, and the oracle's state dump enumerates it at every step. A collection from game state that changes after it was logged shows its new contents in C#. A lazy query runs again at each dump. A Rust message stores a copy, so check each collection you pass:
-
-- If C# passes a fresh collection (`ToList()`, a getter that builds a new list), or one that nothing changes later, a copy is equivalent. Pass a `Vec`, or `ExpressionElement::collection(type_name, items)` for a lazy query, with the runtime type name .NET prints.
-- If C# passes a collection that lives in game state and changes later, use `ExpressionElement::live(game, LiveList::...)`. The variant names where the collection lives, such as `PlayerTreacheryCards(p)`. The state dump (`CanonWriter::for_game`) writes the game's current contents for it. To add a variant, give it a `type_name`, a `read` and an entry in `LiveList::all`. This is only correct while C# never reassigns that field, so check that first.
-
-[live-lists.md](live-lists.md) lists every such C# site with its class. `tests/live_lists.rs` fails for a site without a row there. We chose named variants over storing a shared `Rc<RefCell<Vec<T>>>` that the game mutates. The shared version would have changed the type of every game field that a message might log, and three fields need it.
+A message stores a copy of each collection passed to it, taken when it is built. A few messages refer to a game collection instead, so the log shows the collection as it is when the message is rendered: `ExpressionElement::live(game, LiveList::...)`. The variant names where the collection lives, such as `PlayerTreacheryCards(p)`, and `LiveList::read` reads it from the game; the skin and the views call it when they render the message. A variant is only correct while that game field is never reassigned (only mutated), so check that before adding one. `tests/live_lists.rs` checks the reading.
 
 The macro evaluates its arguments left to right before it creates the message, so nested messages get lower `Nr` values, as in C#. `express_part_if!` evaluates its arguments even when the condition is false, as C# does. Messages are data. Turning them into text is `Skin.Describe`, in the `rust/skin` crate ([skin.md](skin.md)).
 
@@ -360,8 +340,8 @@ Tests that check a panic use `error::catch_panic`, which returns the panic messa
 Rust iterator adapters are lazy and pull one element at a time, like LINQ. `filter`, `map`, `take`, `find` and `any` interleave side effects in the same order as `Where`, `Select`, `Take`, `First` and `Any`. So:
 
 - Methods returning `IEnumerable<T>` over static data return `impl Iterator<Item = T> + Clone + 'static` (see `Map::locations`).
-- Methods returning a lazy query over game state return `impl Iterator<Item = T>` too, built from the same adapters with `move` closures. Callers stop where C# stops: `Any()` is `.next().is_some()`, `Contains(x)` is `.any(|v| v == x)`, `FirstOrDefault()` is `.next()` and `FirstOrDefault(p)` is `.find(p)`. A `Vec` would run the predicate on elements that C# never reaches, and those can throw (a null card after the match). What C# evaluates at the call (the receiver of the first operator) goes before the iterator; what it evaluates inside a lambda (`p.Faction` of a possibly null `p`) goes inside the closure. [lazy-queries.md](lazy-queries.md) has the full rule and every site with its class; `tests/lazy_queries.rs` fails for an unclassified site or a short-circuited producer that returns a collection.
-- Where C# enumerates the query later, after a mutation, or more than once (hazards §4), the Rust code must re-run the query at that point. Write a comment saying so.
+- Methods returning a lazy query over game state return `impl Iterator<Item = T>` too, built from the same adapters with `move` closures. Callers stop where C# stops: `Any()` is `.next().is_some()`, `Contains(x)` is `.any(|v| v == x)`, `FirstOrDefault()` is `.next()` and `FirstOrDefault(p)` is `.find(p)`. A `Vec` would run the predicate on elements that C# never reaches, and those can throw (a null card after the match). What C# evaluates at the call (the receiver of the first operator) goes before the iterator; what it evaluates inside a lambda (`p.Faction` of a possibly null `p`) goes inside the closure.
+- Where C# enumerates the query later, after a mutation, or more than once, the Rust code must re-run the query at that point. Write a comment saying so.
 - `ToList()` is `collect::<Vec<_>>()`. `Distinct()` is `distinct()` (`iter::IterExt`), which keeps the first occurrence and uses `==`.
 - `OrderBy`/`ThenBy` are stable sorts that compute each key once, in element order, before sorting. Use `sort_by_cached_key`, or compute the keys first, when a key has side effects such as random draws. Shared and Bots never called `List.Sort`, so no unstable sort is needed.
 - Collections: see [Collections](#collections).
@@ -383,28 +363,15 @@ use crate::extension_methods::RandomExt;
 let c = player.treachery_cards.iter().copied().random_or_default(game.random.as_ref().expect("random"));
 ```
 
-`RandomOrDefault` only draws when there are two or more items. The bots' overloads that use C#'s unseeded static `Random` are the `*_unseeded` methods. They need `set_static_random_seed` and a matching C# hook before bot traces can be compared.
+`RandomOrDefault` only draws when there are two or more items. The bots' overloads that use a process-wide random are the `*_unseeded` methods, seeded with `set_static_random_seed`.
 
 ## Process-wide state
 
-`Message.Nr` comes from a counter that C# never resets. In Rust it is thread-local (`Message::reset_counter`, `Message::counter`), so parallel tests don't interfere. The oracle omits `Nr` from state dumps.
-
-## The skeleton generator
-
-`engine/csharp-gen` (Roslyn plus reflection over `Shared`) wrote the skeleton: every state type with every instance field, every event, and every member signature with a `todo!("port: File.cs:line")` body. [port-assignments.md](port-assignments.md) lists the files.
-
-```sh
-export DOTNET_ROOT="$HOME/dotnet10" PATH="$HOME/dotnet10:$PATH"
-cd rust/engine/csharp-gen && dotnet run -- --glue
-```
-
-The generator is retired (2026-11-12): the module layout no longer matches its output, so don't run it. Edit `events/mod.rs`, `log/mod.rs`, `prelude.rs` and `json/members.rs` by hand.
-
-Most modules start with `use crate::prelude::*;`, which brings in the enums, handles, collections, `Game`, `Player`, `PlayerIndex`, all events and all model types.
+`Message.Nr` comes from a counter that C# never resets. In Rust it is thread-local (`Message::reset_counter`, `Message::counter`), so parallel tests don't interfere.
 
 ## JSON
 
-`json.rs` writes and reads System.Text.Json exactly as `Utilities.Serialize`/`Deserialize` do (hazards §12): member order, escaping, number and date formats, the `$type` rules, missing members keeping their initializers, unknown members ignored. A `$`-prefixed member other than the leading `$type` is rejected in an event (a polymorphic type) and skipped as an unknown member anywhere else (`GameSettings`, `GameState`), as .NET does. `json_members.rs` holds each event's member list, generated from `JsonSerializerOptions.GetTypeInfo`.
+`json.rs` writes and reads System.Text.Json exactly as `Utilities.Serialize`/`Deserialize` do: member order, escaping, number and date formats, the `$type` rules, missing members keeping their initializers, unknown members ignored. A `$`-prefixed member other than the leading `$type` is rejected in an event (a polymorphic type) and skipped as an unknown member anywhere else (`GameSettings`, `GameState`), as .NET does. `json_members.rs` holds each event's member list, generated from `JsonSerializerOptions.GetTypeInfo`.
 
 ```rust
 let text = json::serialize(&event);                       // Utilities.Serialize<GameEvent>(e)
@@ -412,30 +379,11 @@ let event: GameEvent = json::deserialize(&text)?;         // Utilities.Deseriali
 let state: GameState = json::deserialize(&savegame)?;     // without the legacy path, see below
 ```
 
-`tests/event_json.rs` checks every event type with random member values, plus malformed variants, against the C# serializer: same accept/reject decision, byte-identical re-serialization. Regenerate its corpus after changing an event:
-
-```sh
-cd rust/engine/csharp-ref && dotnet run -c Release -- --events ../tests/golden/events.jsonl
-```
+`tests/event_json.rs` checks every event type with random member values, plus malformed variants, against a snapshot recorded from the C# serializer: same accept/reject decision, byte-identical re-serialization. A new event type needs cases added to `tests/golden/events.jsonl` by hand; a deliberate format change is recorded with `UPDATE_GOLDENS=1` (see [Snapshot tests](#snapshot-tests)).
 
 Known gaps, all on malformed input: a duplicate `$type` is not detected, nesting is limited at 128 instead of 64, `-0.0` is read as an integer, and a date without an offset is read as UTC where .NET uses machine-local time. Error messages are not .NET's.
 
-`Utilities::deserialize` includes the legacy Newtonsoft path (hazards §12.5), checked against .NET in `tests/pkg_a_core.rs`, and `GameState::load` does the `Treachery.online` replacement. One known gap: `JsonNode.Parse` throws on a duplicate key, serde_json keeps the last value.
-
-## State dump names
-
-The oracle's state dump (`Oracle/Canon/StateDumper.cs`) writes every instance field under its C# name. Every state struct derives `Canon` (from `rust/canon-derive`), and the field attributes say how each Rust field maps back:
-
-- No attribute: the C# name is the Rust name in PascalCase, with each `_` starting a new word (`resources_after_bidding` is `ResourcesAfterBidding`).
-- `#[canon(name = "_toId")]`: anything else, including private fields and acronyms.
-- `#[canon(flatten)]`: `base: GameEventBase`, whose fields belong to the event.
-- `#[canon(omit)]`: fields the dumper leaves out (`LeaderState.TimeOfDeath`, `LoggedRandom._supply`).
-- `#[canon(skip)]`: Rust-only fields with no C# counterpart.
-- `#[canon(game_field = "Game")]` on a type: the C# object has a field holding its game, which Rust doesn't keep. It is written as `{"$ref":"Game"}`.
-- `#[canon(with = "crate::canon::history_count")]`: the dumper's special cases on `Game` (`History` as its count, `PreviousGameState` as present or not, `Random` expanded).
-- `#[canon(manual)]` on a type: no derived impl. References (`PlayerIndex`), `LoggedRandom`, the static-data handles and `Map` are written by hand in `canon.rs`.
-
-A field you add while porting needs the same attribute treatment. A log record passed to `with_log` must derive `Canon`, and a new log record type must be added to the `log_records!` list in `canon.rs`. `cargo test -p differ --test field_mapping` compares every field name with the C# dumper and fails on anything missing or misnamed; [differ.md](differ.md) has the details.
+`Utilities::deserialize` includes the legacy Newtonsoft path, checked in `tests/pkg_a_core.rs`, and `GameState::load` does the `Treachery.online` replacement. One known gap: `JsonNode.Parse` throws on a duplicate key, serde_json keeps the last value.
 
 ## Not ported
 
@@ -443,17 +391,15 @@ A field you add while porting needs the same attribute treatment. A log record p
 - `Deck<T>.Randomize`, which uses an unseeded random and has no callers.
 - `Game.Clone`. Only the client's story view and the C# tests call it. `Map` derives `Clone` as an independent copy, whereas a C# clone shares its map with the original.
 
-## Checking static data against C#
+## Snapshot tests
 
-`engine/csharp-ref` is a small C# program that references `Shared`. It dumps every static table and many pathfinding results to `engine/tests/golden/static_data.json`, and `engine/tests/static_data.rs` rebuilds the same JSON from Rust. To regenerate it after a C# change:
+Several engine tests compare what the engine computes with values recorded in `tests/golden/`: the static data and pathfinding (`static_data.rs`), event JSON (`event_json.rs`), message texts (`message_corpus.rs`), the random helpers' draws (`random_helpers.rs`), and a few rule walkthroughs (`sync_v188.rs`, `review_pkg_b.rs`, `review_pkg_c.rs`). The values were first recorded from the C# engine and have matched the Rust output since. A difference is a change in behavior. After a deliberate one, rewrite the snapshots and review the diff:
 
 ```sh
-export DOTNET_ROOT="$HOME/dotnet10" PATH="$HOME/dotnet10:$PATH"
-cd rust/engine/csharp-ref && dotnet run -c Release -- ../tests/golden/static_data.json
-cd .. && python3 tools/gen_enumerations.py && python3 tools/gen_map_data.py
+UPDATE_GOLDENS=1 cargo test --release -p treachery-engine
 ```
 
-When you port something static, add it to both sides of this test.
+The bots (`rust/bots/tests`), the skin (`rust/skin/tests`) and dotnet-compat have snapshot tests that work the same way. When you add static data, add it to `static_data.rs` too.
 
 ## Collections
 
@@ -470,8 +416,3 @@ Iteration order is observable in many places: the log, the views (spice, strongh
 - `dotnet_compat::fmt` (float `ToString()`), `fmt::string_format` and `parse`: log texts and the parsing of the strings events carry (force locations, Clairvoyance parameters).
 - `compat/date_time_offset.rs`: the `Time` of events in the JSON.
 - `enum_type.rs`: open enums that print like .NET's `Enum.ToString()`.
-- The state dump (`canon.rs`, `#[derive(Canon)]`): the engine tests that compare with C# goldens and rust/differ use it.
-
-## When the C# changes
-
-`tests/csharp_sync.rs` fails as soon as any `.cs` file in `Shared` or `Bots` differs from the version the port is synced to, and it names the files. Port the change, regenerate every derived file and update the manifest as described in [csharp-sync.md](csharp-sync.md).

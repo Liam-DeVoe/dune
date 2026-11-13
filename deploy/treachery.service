@@ -10,6 +10,8 @@ WorkingDirectory=/opt/treachery/server
 ExecStart=/opt/treachery/server/treachery-server
 Restart=always
 RestartSec=5
+# A runaway game (e.g. an endless loop in the engine) must not take the VM down; systemd restarts the server from its last save.
+MemoryMax=3G
 # The settings are described in rust/server/src/settings.rs.
 # Caddy (deploy/Caddyfile) proxies everything here.
 Environment=TREACHERY_LISTEN=127.0.0.1:8000

@@ -340,3 +340,33 @@ The weak spot: .NET's parser takes far more than ISO 8601 (month names, `09/17/2
 **What catches the class now.**
 - `differ --bots check` runs the bots on fuzz traces of the `client` profile ([differ.md](differ.md#checking-bot-decisions)). Fuzz games undo, restore and dismiss often, so any bot code that reads an object of another game is exercised after undo.
 - `differ/tests/bots_harness.rs::a_bot_event_of_another_game_is_validated_in_that_game` replayed the seed 301 game 24 trace up to line 1960 with the bots on. That game was at version 155, so the test and its golden were deleted when old game versions were dropped (native-plan.md step 2); `differ --bots check` on fuzz traces still covers the class.
+
+## Automatic bid passes that never stop (2026-11)
+
+This entry and the next aren't differences between C# and Rust. They are C# bugs that the port copied, found by the steered fuzz generator of `observe` (2026-11-12). They are here because our testing had let them through, and on the Rust server they freeze every game.
+
+**Bugs.** `Bid.ExecuteConcreteEvent` ends with a loop that passes for each player whose automation rule says to ("pass when Atreides or their ally passed", "pass above an amount", "pass when a faction bids highest"). C# has the same loop (`Events/Bid.cs:154`). It never stopped in two cases:
+
+- Fuzz seed 1 game 2. Everyone passed on a card while the next player in the bid sequence had an active rule. The last pass ended the bidding phase, but the loop only asked `MayBePlayed`, which reads the bid sequence and stays true after bidding ends. Each automatic pass found again that everyone had passed, logged "Bidding ends because everyone passed" and ended the phase again. A bot's ordinary pass set it off.
+- Fuzz seed 1 game 176. The high bidder's hand filled up during the auction, so `SkipPlayersThatCantBid` skipped them, and the sequence never came back to them to win the card. The other bidders all had rules and passed around and around. The hand filled through fuzz events with contradictory fields (such as `Passed` together with `KarmaBid`) that pass validation and then throw halfway through `Bid`, after `ReturnKarmaCardUsedForBid` had already put a Karama card back. Each one added another copy of the card.
+
+Every game on the server runs on one thread, so either case would have frozen all games until the process ran out of memory. The fixes are in `events/bidding/bid.rs`. Automatic passes happen only during `Phase::Bidding`, the only phase that offers `Bid`. Each player passes automatically at most once per bid, because once a card is won no rule applies again until someone really bids. The partial changes left by throwing `Bid` events are not fixed. In game 176 the auction now waits for a pass that can't end it, so the game stalls instead of running away.
+
+**Why the tests missed them.** Neither was ever a difference. C# and Rust looped the same way, and so did the frozen reference and the working tree, so the differ and `observe` counted both games as matches. `observe live` treated a game that hung or ran out of memory at the same call on both sides as a pass, and only counted it among the endings ("memoryLimit 1"). The C# oracle's fuzzer may never have reached these states, since both need automation rules set during bidding.
+
+**What catches the class now.**
+- `engine/tests/pkg_e_bidding.rs`: `automatic_passes_stop_when_bidding_ends` builds the game 2 state and `automatic_passes_stop_when_the_high_bidder_cant_be_reached` the game 176 one. Each runs the pass on a thread and fails if the thread hasn't finished after 20 seconds.
+- `observe live` fails a game that ends with `hung` or `memoryLimit` even when the reference ended the same way, as `runaway` (`observe/src/replay.rs`). No real game should end like that.
+- The server's game thread has a watchdog (`server/src/http.rs`). If one command runs for more than 120 seconds, it prints the call or timer and aborts, and systemd restarts the server from the last saved state.
+
+The weak spot: events that throw halfway through `Execute` still leave partial changes, as in C#. `observe` only sees them when they lead to something visible.
+
+## A card trade offered to a faction that isn't the ally (2026-11)
+
+**Bug.** `CardTraded.Validate` never checked `Target`, so an offer could name any faction (C# `Events/CardTraded.cs:52`). The game then waited in `TradingCards` for that faction's answer. If the target had no ally, its answer could never be validated, because `Validate` dereferences `Player.AlliedPlayer!`, and the game stayed in that phase for good. A bot target threw a NullReferenceException on every turn (fuzz seed 1 game 31). A target with an ally of its own could answer, and the two non-allies then swapped cards. The web client always fills in the ally, so this needs a hand-made request or a fuzzed event. `Validate` now rejects a target other than the player's ally with "You can only trade cards with your ally" (`events/alliances/card_traded.rs`).
+
+**Why the tests missed it.** It was not a difference either, for the same reasons as the entry above. The game ended with `botException` on both sides, which `observe live` counts as a match. Before the steered generator, the fuzzer seldom got `CardTraded` accepted at all.
+
+**What catches the class now.**
+- `engine/tests/pkg_k_alliances_deals_status.rs::card_trade_offer_must_name_the_ally`.
+- Nothing yet flags a game that ends with `botException` on both sides. Such endings can be C# behavior that we keep (bots that throw and skip a decision), so they still pass. Look at them by hand after a fuzz run (the ending counts in the `observe live` summary).

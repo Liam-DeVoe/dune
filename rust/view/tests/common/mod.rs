@@ -50,8 +50,13 @@ pub fn load_text(savegame: &str, host_seat: i32) -> ViewReplica {
     replica
 }
 
-/// A bot-game trace of the oracle (`rust/traces/sample/bots-*.jsonl.gz`): the game version and
-/// the accepted events in savegame JSON.
+/// A recorded game (`rust/testdata/games/*.jsonl.gz`): the game version and the accepted events
+/// in savegame JSON.
+///
+/// The files are JSON Lines: a `header` line (`gameVersion`, `participation`, the configuration),
+/// then one line per call on the game: `step` (an event with `validate`, `isHost`, `source`,
+/// `result` and the `queries` made before it), `undo` (`untilEventNr`), `restoreRecentlyUndone`,
+/// `dismissRecentlyUndone`, and an `end` line with the `reason` the game stopped.
 pub struct Trace {
     pub name: String,
     pub version: i32,
@@ -91,15 +96,13 @@ pub fn bot_traces_in(dir: &std::path::Path) -> Vec<PathBuf> {
     files
 }
 
-/// The bot traces of `rust/traces/sample`, and three more in `tests/data` that reach what the
-/// sample doesn't: a discovery token its faction may identify (`bots-3141-00002`), Ecaz with a
+/// The bot games of `rust/testdata/games`, and three more in `tests/data` that reach what those
+/// don't: a discovery token its faction may identify (`bots-3141-00002`), Ecaz with a
 /// loyal leader and `SetShipmentPermission` (`bots-3141-00103`, cut after 128 events), and
 /// Moritani terror on the planet and `LoserConcluded` (`bots-3141-00114`, cut after 245 events).
-/// All from `Treachery.Oracle bots --seed 3141 --dump none --hash none --gzip true` (the last two
-/// with `--versions latest`).
 pub fn sample_bot_traces() -> Vec<PathBuf> {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let mut files = bot_traces_in(&root.join("../traces/sample"));
+    let mut files = bot_traces_in(&root.join("../testdata/games"));
     files.extend(bot_traces_in(&root.join("tests/data")));
     files
 }

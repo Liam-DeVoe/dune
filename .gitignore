@@ -6,14 +6,8 @@ design/
 *.pyc
 __pycache__/
 target/
-obj/
-bin/
 target-*/
 debug/
-
-# Oracle trace output; only the small sample corpus is checked in.
-rust/traces/*
-!rust/traces/sample/
 
 # The observable-behavior harness reference binary (rust/tools/build-native-ref.sh).
 rust/reference/

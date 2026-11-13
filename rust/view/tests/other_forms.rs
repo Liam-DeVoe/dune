@@ -256,14 +256,14 @@ fn traces_in(dir: &std::path::Path) -> Vec<PathBuf> {
 
 /// The sample bot and fuzz traces, and `tests/data/other`: short bot and fuzz games cut off
 /// after the state that reaches a form nothing else reaches. With `OTHER_FORMS_CORPUS_DIR`, the
-/// traces of that directory instead (to find such games in a fresh oracle run).
+/// traces of that directory instead (to find such games in a larger set of recorded games).
 fn traces() -> Vec<PathBuf> {
     if let Ok(dir) = std::env::var("OTHER_FORMS_CORPUS_DIR") {
         return traces_in(&PathBuf::from(dir));
     }
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let mut files = common::sample_bot_traces();
-    files.extend(traces_in(&root.join("../traces/sample")).into_iter().filter(|p| p.file_name().unwrap().to_string_lossy().starts_with("fuzz-")));
+    files.extend(traces_in(&root.join("../testdata/games")).into_iter().filter(|p| p.file_name().unwrap().to_string_lossy().starts_with("fuzz-")));
     files.extend(traces_in(&root.join("tests/data/other")));
     files
 }
@@ -293,7 +293,7 @@ fn options_equal_the_engine_helpers_over_the_corpus() {
         return;
     }
     // The corpus reaches these; a form that stops being reached means the corpus changed.
-    // `tests/data/other` holds short games for the rest (generated with the oracle, bots seeds 7701
+    // `tests/data/other` holds short games for the rest (recorded bot games, seeds 7701
     // and 7702 and fuzz seeds 7701 and 7703, cut after the state that reaches the form; bots-7701-*
     // are `--versions latest` games for the Ecaz Secret Ally and Tleilaxu Cunning Nexus cards).
     let reached = [

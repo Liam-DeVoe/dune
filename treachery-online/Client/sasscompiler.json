@@ -1,8 +1,0 @@
-{
-  "SourceFolder": "Styles",
-  "TargetFolder": "wwwroot/css",
-  "Arguments": "--style=expanded --no-source-map",
-  "GenerateScopedCss": true,
-  "ScopedCssFolders": ["Pages", "GenericComponents", "OtherComponents", "MapComponents", "GameEventComponents"],
-  "IncludePaths": []
-}

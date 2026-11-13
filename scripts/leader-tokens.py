@@ -3,7 +3,7 @@
 # ///
 """Draws each leader's strength in a badge on its token.
 
-The original token art (treachery-online/Client/wwwroot/art/person*.png and .gif) has the
+The original token art (the person*.png and .gif files of the C# client) has the
 strength printed on the disc beside the portrait. design/leader-tokens/clean/
 holds the same tokens with that number retouched out by hand, one
 leader<id>.png per leader. This shrinks each clean token a little and draws
@@ -20,14 +20,12 @@ bump it in both whenever the tokens are redrawn.
     uv run scripts/leader-tokens.py --sheet    # also writes /tmp/leader-tokens.png to review
 """
 
-import re
 import sys
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
 REPO = Path(__file__).resolve().parent.parent
-ROOT = REPO / "treachery-online"
 CLEAN = REPO / "design" / "leader-tokens" / "clean"
 ART = REPO / "web" / "assets" / "art"
 DIGITS = REPO / "web" / "assets" / "Advokat.ttf"
@@ -43,17 +41,18 @@ INK = (18, 8, 0, 255)
 PARCHMENT = (252, 249, 209, 255)
 
 
-def leaders():
-    """(id, strength text, faction colour) for every leader."""
-    manager = (ROOT / "Shared" / "LeaderManager.cs").read_text()
-    skin = (ROOT / "Shared" / "DefaultSkin.cs").read_text()
-    block = skin[skin.index("FactionColor = "):]
-    colours = dict(re.findall(r'\[Faction\.(\w+)\] = "(#[0-9A-Fa-f]{6})"', block[: block.index("};")]))
-    for m in re.finditer(r"new Leader\((\d+)\) \{([^}]*)\}", manager):
-        id, body = m.groups()
-        value = re.search(r"Value = (\d+)", body)
-        faction = re.search(r"Faction = Faction\.(\w+)", body)
-        yield id, value.group(1) if value else "X", colours[faction.group(1)]
+# Each leader's strength by id, as the engine's leader table has it
+# (rust/engine/src/heroes). Zoal (1036) has none and shows an X.
+STRENGTH = {
+    1001: "5", 1002: "5", 1003: "4", 1004: "2", 1005: "1", 1006: "5", 1007: "5", 1008: "5",
+    1009: "5", 1010: "5", 1011: "6", 1012: "5", 1013: "3", 1014: "3", 1015: "2", 1016: "7",
+    1017: "6", 1018: "5", 1019: "3", 1020: "2", 1021: "5", 1022: "3", 1023: "3", 1024: "2",
+    1025: "1", 1026: "6", 1027: "4", 1028: "3", 1029: "2", 1030: "1", 1031: "4", 1032: "5",
+    1033: "5", 1034: "2", 1035: "1", 1036: "X", 1037: "4", 1038: "3", 1039: "2", 1040: "1",
+    1041: "2", 1042: "3", 1043: "3", 1044: "4", 1045: "4", 1046: "2", 1047: "2", 1048: "2",
+    1049: "3", 1050: "4", 1051: "5", 1052: "4", 1053: "3", 1054: "3", 1055: "2", 1056: "4",
+    1057: "6", 1058: "5", 1059: "4", 1060: "2", 1061: "4", 1062: "1",
+}
 
 
 def badge(size, text):
@@ -77,12 +76,12 @@ def badge(size, text):
 
 
 def main():
-    rows = list(leaders())
-    missing = [id for id, _, _ in rows if not (CLEAN / f"leader{id}.png").exists()]
+    rows = list(STRENGTH.items())
+    missing = [id for id, _ in rows if not (CLEAN / f"leader{id}.png").exists()]
     if missing:
         sys.exit(f"no clean token for {', '.join(missing)} in {CLEAN}")
 
-    for id, value, _ in rows:
+    for id, value in rows:
         clean = Image.open(CLEAN / f"leader{id}.png").convert("RGBA")
         size = max(clean.size)
         token = clean.resize((round(TOKEN_SCALE * size),) * 2, Image.Resampling.LANCZOS)
@@ -94,7 +93,7 @@ def main():
     print(f"wrote {len(rows)} tokens to {ART}")
 
     if "--sheet" in sys.argv:
-        tiles = [Image.open(ART / f"leader{id}.png").resize((150, 150)) for id, _, _ in rows]
+        tiles = [Image.open(ART / f"leader{id}.png").resize((150, 150)) for id, _ in rows]
         sheet = Image.new("RGBA", (150 * 12, 150 * ((len(tiles) + 11) // 12)), (40, 20, 5, 255))
         for i, t in enumerate(tiles):
             sheet.paste(t, ((i % 12) * 150, (i // 12) * 150), t)

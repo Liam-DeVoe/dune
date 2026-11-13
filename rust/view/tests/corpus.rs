@@ -1,4 +1,4 @@
-//! Views over the bot-game corpus (`rust/traces/sample/bots-*.jsonl.gz` and `tests/data`): after every accepted
+//! Views over the bot-game corpus (`rust/testdata/games/bots-*.jsonl.gz` and `tests/data`): after every accepted
 //! event of every game, the view of every player and of an observer.
 //!
 //! - One replica serves all viewers of a game (client.md, The view replica). Views built in
@@ -8,8 +8,8 @@
 //! - Every view keeps the visibility rules of protocol.md, checked against the engine's state
 //!   independently of the builder.
 //!
-//! Set `VIEW_CORPUS_DIR` to run over another directory of bot traces (generate them with the
-//! oracle through `rust/tools/heavy.sh`, then delete them).
+//! Set `VIEW_CORPUS_DIR` to run over another directory of recorded bot games in the same format
+//! (see `common::Trace`).
 
 mod common;
 

@@ -368,10 +368,10 @@ fn traces_in(dir: &std::path::Path) -> Vec<PathBuf> {
     files
 }
 
-/// The battle forms no fixture or sample game reaches, in `tests/data/battle`: oracle bot and
+/// The battle forms no fixture or sample game reaches, in `tests/data/battle`: recorded bot and
 /// fuzz games (accepted events up to the first undo), cut off after the state that reaches the
 /// form. With `BATTLE_FORMS_CORPUS_DIR`, the traces of that directory instead, to find such games
-/// in a fresh oracle run; the summary names the first trace and event that reaches each form.
+/// in a larger set of recorded games; the summary names the first trace and event that reaches each form.
 #[test]
 fn battle_forms_in_rare_traces() {
     let d = default_describer();
@@ -403,8 +403,7 @@ fn battle_forms_in_rare_traces() {
     assert!(missing.is_empty(), "tests/data/battle reaches no form of {missing:?}");
 }
 
-/// The forms only `tests/data/battle` reaches. The traces are `Treachery.Oracle bots --seed 7701
-/// --dump none --hash none --gzip true` games, each cut after the event that reaches its last form
+/// The forms only `tests/data/battle` reaches. The traces are bot games of seed 7701, each cut after the event that reaches its last form
 /// here. `HMSAdvantageChosen` is covered by `hms_advantage_form_in_a_built_state` instead.
 const RARE: &[&str] = &[
     "AuditCancelled",

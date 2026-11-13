@@ -51,7 +51,7 @@ impl FactionTradeOffered {
             let r#match = game
                 .current_trade_offers
                 .iter()
-                .cs_single_or_default_where(|m| m.initiator() == target_faction && m.target == initiator)
+                .find(|m| m.initiator() == target_faction && m.target == initiator)
                 .cloned();
             if let Some(r#match) = r#match {
                 self.log_objects(

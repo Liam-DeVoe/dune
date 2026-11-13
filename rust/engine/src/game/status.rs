@@ -226,7 +226,7 @@ impl GameStatus {
                 let g: &Game = game;
                 let a = express!("Please decide which forces were killed by the storm in ", TakeLosses::losses_to_take(g).location, ".");
                 let w = express!(TakeLosses::losses_to_take(g).faction, " are deciding which forces were killed by the storm in ", TakeLosses::losses_to_take(g).location, "...");
-                let f = cs::index(&g.storm_losses_to_take, 0).faction;
+                let f = g.storm_losses_to_take[0].faction;
                 Self::status_game_message_message_faction_game_event(g, a, w, Some(f), None)
             }
 
@@ -1067,7 +1067,7 @@ impl GameStatus {
             Self::flash(flashes, msg, pile.top());
         } else {
             let msg = e.get_message(game);
-            let card = TreacheryCardManager::get_cards_in_and_outside_play().iter().copied().cs_first_where(|card| card.type_() == t);
+            let card = TreacheryCardManager::get_cards_in_and_outside_play().iter().copied().find(|card| card.type_() == t).expect("a card of this type");
             Self::flash(flashes, msg, card);
         }
     }

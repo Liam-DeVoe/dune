@@ -35,13 +35,13 @@ impl PerformFremenSetup {
     pub fn validate(&self, game: &Game) -> Option<Message> {
         let p = self.player_opt();
         let number_of_special_forces =
-            dotnet_compat::linq::sum_i32(self.force_locations(game).values().map(|b| b.amount_of_special_forces));
+            self.force_locations(game).values().map(|b| b.amount_of_special_forces).sum::<i32>();
         let p = p.nre();
         if number_of_special_forces > game.player(p).special_forces_in_reserve() {
             return Some(express!("You only have ", game.player(p).special_forces_in_reserve(), " ", FactionSpecialForce::Fremen));
         }
 
-        let number_of_forces = dotnet_compat::linq::sum_i32(self.force_locations(game).values().map(|b| b.amount_of_forces));
+        let number_of_forces = self.force_locations(game).values().map(|b| b.amount_of_forces).sum::<i32>();
         if (number_of_forces + number_of_special_forces) != 10 {
             return Some(express!("Distribute 10 forces"));
         }

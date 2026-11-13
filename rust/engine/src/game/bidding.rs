@@ -579,7 +579,7 @@ impl Game {
     }
 
     pub fn determine_highest_bid(&self, bids: &NetDictionary<Faction, GameEvent>) -> Option<GameEvent> {
-        let highest_bid_value = dotnet_compat::linq::max(bids.values().map(|b| b.i_bid_total_amount()));
+        let highest_bid_value = bids.values().map(|b| b.i_bid_total_amount()).max().expect("a bid");
         let mut determine_bid_winner_sequence = PlayerSequence::new_game_boolean_int32(self, false, 1);
 
         let mut i = 0;

@@ -109,15 +109,15 @@ impl AmbassadorActivated {
     }
 
     pub fn total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {
-        dotnet_compat::linq::sum_i32(self.fremen_force_locations(game).values().map(|b| b.total_amount_of_forces()))
+        self.fremen_force_locations(game).values().map(|b| b.total_amount_of_forces()).sum::<i32>()
     }
 
     pub fn forces_added_to_location(&self, game: &Game) -> i32 {
-        dotnet_compat::linq::sum_i32(self.fremen_force_locations(game).values().map(|b| b.amount_of_forces))
+        self.fremen_force_locations(game).values().map(|b| b.amount_of_forces).sum::<i32>()
     }
 
     pub fn special_forces_added_to_location(&self, game: &Game) -> i32 {
-        dotnet_compat::linq::sum_i32(self.fremen_force_locations(game).values().map(|b| b.amount_of_special_forces))
+        self.fremen_force_locations(game).values().map(|b| b.amount_of_special_forces).sum::<i32>()
     }
 
     pub fn force_locations(&self, game: &Game) -> NetDictionary<Location, Battalion> {

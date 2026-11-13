@@ -124,17 +124,15 @@ impl Game {
     }
 
     pub fn get_permitted_use_of_ally_karma(&self, f: Faction) -> Option<TreacheryCard> {
-        let ally = self.player_indices().cs_single_or_default_where(|p| self.player(*p).ally == f);
+        let mut allies = self.player_indices().filter(|p| self.player(*p).ally == f);
+        let ally = allies.next();
+        // With f == Faction::None this matches every unallied player; two of them is an error the
+        // ally permission form and the bots rely on (their view or decision fails).
+        assert!(allies.next().is_none(), "more than one player allied to {f}");
 
-        if let Some(ally) = ally {
-            if let Some(value) = self.permitted_use_of_ally_karma.get(&f).copied() {
-                if self.player(ally).has(Some(value)) {
-                    return Some(*self.permitted_use_of_ally_karma.index(&f));
-                }
-            }
-        }
-
-        None
+        let ally = ally?;
+        let value = self.permitted_use_of_ally_karma.get(&f).copied()?;
+        self.player(ally).has(Some(value)).then_some(value)
     }
 
     pub fn get_permitted_use_of_ally_resources(&self, f: Faction) -> i32 {

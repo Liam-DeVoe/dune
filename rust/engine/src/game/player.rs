@@ -89,11 +89,11 @@ impl Player {
     }
 
     pub fn forces_in_reserve(&self) -> i32 {
-                dotnet_compat::linq::sum_i32(self.home_worlds.iter().map(|hw| self.forces_in(Some(hw.location()))))
+                self.home_worlds.iter().map(|hw| self.forces_in(Some(hw.location()))).sum::<i32>()
     }
 
     pub fn special_forces_in_reserve(&self) -> i32 {
-                dotnet_compat::linq::sum_i32(self.home_worlds.iter().map(|hw| self.special_forces_in(Some(hw.location()))))
+                self.home_worlds.iter().map(|hw| self.special_forces_in(Some(hw.location()))).sum::<i32>()
     }
 
     pub fn any_forces_in_reserves(&self) -> i32 {
@@ -118,7 +118,8 @@ impl Player {
                 *self
             .home_worlds
             .iter()
-            .cs_first_where(|hw| if special_forces { hw.is_home_of_special_forces() } else { hw.is_home_of_normal_forces() })
+            .find(|hw| if special_forces { hw.is_home_of_special_forces() } else { hw.is_home_of_normal_forces() })
+            .expect("a homeworld for these forces")
     }
 
     /// Returns the live battalion, not a copy.
@@ -252,7 +253,7 @@ impl Player {
         let t = t.and_then(crate::compat::cs::CsNull::opt);
                 match t {
             None => 0,
-            Some(t) => dotnet_compat::linq::sum_i32(t.locations().iter().map(|l| self.occupying_forces_in_location(*l))),
+            Some(t) => t.locations().iter().map(|l| self.occupying_forces_in_location(*l)).sum::<i32>(),
         }
     }
 
@@ -260,7 +261,7 @@ impl Player {
         let t = t.and_then(crate::compat::cs::CsNull::opt);
                 match t {
             None => 0,
-            Some(t) => dotnet_compat::linq::sum_i32(t.locations().iter().map(|l| self.forces_in(Some(*l)))),
+            Some(t) => t.locations().iter().map(|l| self.forces_in(Some(*l))).sum::<i32>(),
         }
     }
 
@@ -268,7 +269,7 @@ impl Player {
         let t = t.and_then(crate::compat::cs::CsNull::opt);
                 match t {
             None => 0,
-            Some(t) => dotnet_compat::linq::sum_i32(t.locations().iter().map(|l| self.special_forces_in(Some(*l)))),
+            Some(t) => t.locations().iter().map(|l| self.special_forces_in(Some(*l))).sum::<i32>(),
         }
     }
 
@@ -276,7 +277,7 @@ impl Player {
         let t = t.and_then(crate::compat::cs::CsNull::opt);
                 match t {
             None => 0,
-            Some(t) => dotnet_compat::linq::sum_i32(t.locations().iter().map(|l| self.any_forces_in(Some(*l)))),
+            Some(t) => t.locations().iter().map(|l| self.any_forces_in(Some(*l))).sum::<i32>(),
         }
     }
 
@@ -767,7 +768,7 @@ impl Player {
     }
 
     pub fn primary_homeworld(&self) -> Homeworld {
-                *self.home_worlds.iter().cs_first()
+                *self.home_worlds.first().expect("a homeworld")
     }
 
     pub fn has_karma(&self, g: &Game) -> bool {
@@ -864,7 +865,7 @@ impl Player {
             return 0;
         }
 
-        let homeworld = where_battle_happens.locations().iter().copied().cs_first().as_homeworld();
+        let homeworld = where_battle_happens.locations().first().copied().expect("a location").as_homeworld();
 
         let Some(homeworld) = homeworld else {
             return 0;

@@ -200,9 +200,9 @@ impl EstablishPlayers {
         // throws ArgumentNullException.
         game.all_rules = game.settings.as_ref().required("settings")?.borrow().initial_rules.clone();
 
-        game.rules = cs::linq_source(game.all_rules.as_ref()).iter().copied().filter(|r| Game::get_rule_group(*r) != RuleGroup::Bots).collect();
+        game.rules = game.all_rules.as_ref().expect("rules").iter().copied().filter(|r| Game::get_rule_group(*r) != RuleGroup::Bots).collect();
         game.rules_for_bots =
-            cs::linq_source(game.all_rules.as_ref()).iter().copied().filter(|r| Game::get_rule_group(*r) == RuleGroup::Bots).collect();
+            game.all_rules.as_ref().expect("rules").iter().copied().filter(|r| Game::get_rule_group(*r) == RuleGroup::Bots).collect();
         let core_basic = Game::get_rules_in_group(RuleGroup::CoreBasic, Game::EXPANSION_LEVEL);
         game.rules.extend(core_basic);
 

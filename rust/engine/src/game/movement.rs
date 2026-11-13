@@ -55,7 +55,7 @@ impl Game {
             None
         };
 
-        let from_territories = force_locations.keys().map(|l| l.territory()).cs_distinct();
+        let from_territories = force_locations.keys().map(|l| l.territory()).distinct();
         for from_territory in from_territories {
             let mut total_number_of_forces = 0;
             let mut total_number_of_special_forces = 0;
@@ -100,7 +100,7 @@ impl Game {
             let mut most_spice = 0;
             let mut path_with_most_spice: Option<Vec<Location>> = None;
             for p in paths {
-                let amount_of_spice_locations = p.iter().filter(|l| self.resources_on_planet.contains_key(*l)).cs_distinct().len() as i32;
+                let amount_of_spice_locations = p.iter().filter(|l| self.resources_on_planet.contains_key(*l)).distinct().len() as i32;
                 if amount_of_spice_locations > most_spice {
                     most_spice = amount_of_spice_locations;
                     path_with_most_spice = Some(p);
@@ -573,7 +573,7 @@ impl Game {
                 let to_kill: Vec<Territory> = player_territories
                     .iter()
                     .copied()
-                    .cs_distinct()
+                    .distinct()
                     .into_iter()
                     .filter(|t| ally_territories.contains(t))
                     .filter(|x| *x != polar_sink)
@@ -664,7 +664,7 @@ impl Game {
             .iter()
             .map(|b| b.territory)
             .filter(|t| (ecaz.is_none() || self.player(ecaz.nre()).any_forces_in_territory(Some(*t)) == 0) && (t.is_stronghold() || self.is_special_stronghold(*t)))
-            .cs_distinct()
+            .distinct()
             .len();
 
         if nr_of_battles_in_strongholds >= 2 && !self.vidal_is_captured_or_ghola() && self.occupier_of(World::Ecaz).is_none() {

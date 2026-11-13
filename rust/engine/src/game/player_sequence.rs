@@ -243,14 +243,11 @@ impl PlayerSequence {
     }
 
     pub fn determine_first_player(g: &Game) -> PlayerIndex {
-        let start_looking_in_sector = cs::rem(
-            ((g.sector_in_storm as f32 * g.maximum_players() as f32 / Map::NUMBER_OF_SECTORS as f32) as f64).ceil() as i32,
-            g.maximum_players(),
-        );
+        let start_looking_in_sector = (((g.sector_in_storm as f32 * g.maximum_players() as f32 / Map::NUMBER_OF_SECTORS as f32) as f64).ceil() as i32) % g.maximum_players();
 
         let mut result: Option<PlayerIndex> = None;
 
-        let mut position = cs::rem(g.maximum_players() + start_looking_in_sector, g.maximum_players());
+        let mut position = (g.maximum_players() + start_looking_in_sector) % g.maximum_players();
         let mut i = 0;
         while i < g.maximum_players() {
             result = g.players.iter().position(|p| p.seat == position).map(|i| g.player_at(i));
@@ -268,7 +265,7 @@ impl PlayerSequence {
     }
 
     pub fn mod_(x: i32, m: i32) -> i32 {
-        cs::rem(cs::rem(x, m) + m, m)
+        x.rem_euclid(m)
     }
 
     pub fn is_after(g: &Game, a: PlayerIndex, b: PlayerIndex) -> bool {
@@ -276,7 +273,7 @@ impl PlayerSequence {
 
         let mut i = 0;
         while i < g.maximum_players() {
-            let position_to_check = cs::rem(g.player(first_player).seat + i, g.maximum_players());
+            let position_to_check = (g.player(first_player).seat + i) % g.maximum_players();
 
             if position_to_check == g.player(b).seat {
                 return true;

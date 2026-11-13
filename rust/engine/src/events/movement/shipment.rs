@@ -192,13 +192,13 @@ impl Shipment {
                     let location = g
                         .map
                         .location_lookup()
-                        .find(dotnet_compat::parse::convert_to_int32(Some(*cs::index_array(&location_and_amounts, 0))));
+                        .find(dotnet_compat::parse::convert_to_int32(Some(location_and_amounts[0])));
 
                     let Some(location) = location else { continue };
 
-                    let amounts: Vec<&str> = cs::index_array(&location_and_amounts, 1).split('|').collect();
-                    let amount_of_normal_forces = dotnet_compat::parse::convert_to_int32(Some(*cs::index_array(&amounts, 0)));
-                    let amount_of_normal_special_forces = dotnet_compat::parse::convert_to_int32(Some(*cs::index_array(&amounts, 1)));
+                    let amounts: Vec<&str> = location_and_amounts[1].split('|').collect();
+                    let amount_of_normal_forces = dotnet_compat::parse::convert_to_int32(Some(amounts[0]));
+                    let amount_of_normal_special_forces = dotnet_compat::parse::convert_to_int32(Some(amounts[1]));
                     result.add(location, Battalion::new(f, amount_of_normal_forces, amount_of_normal_special_forces, location));
                 }
             }
@@ -358,7 +358,7 @@ impl Shipment {
         }
 
         // Sum is checked: OverflowException (hazards 1.3).
-        let number_of_forces_selected = dotnet_compat::linq::sum_i32(self.force_locations(game).values().map(|b| b.amount_of_forces));
+        let number_of_forces_selected = self.force_locations(game).values().map(|b| b.amount_of_forces).sum::<i32>();
         if self.forces_added_to_location(game) > 0
             && Shipment::homeworlds_to_ship_from(game, p(), false).len() > 1
             && number_of_forces_selected <= 0
@@ -370,7 +370,7 @@ impl Shipment {
         }
 
         let number_of_special_forces_selected =
-            dotnet_compat::linq::sum_i32(self.force_locations(game).values().map(|b| b.amount_of_special_forces));
+            self.force_locations(game).values().map(|b| b.amount_of_special_forces).sum::<i32>();
         if self.special_forces_added_to_location(game) > 0
             && Shipment::homeworlds_to_ship_from(game, p(), true).len() > 1
             && number_of_special_forces_selected <= 0
@@ -782,7 +782,7 @@ impl Shipment {
                     let me = self.player();
                     let target = match self.target_world_for_shipment_to_reserves(game) {
                         Some(hw) => hw,
-                        None => *cs::index(&game.player(me).home_worlds, 0),
+                        None => game.player(me).home_worlds[0],
                     };
                     // C# parity: only ForceAmount is moved, although special forces are charged for (hazards 18).
                     Player::ship_forces_location_homeworld_int32(game, me, source, target, self.force_amount);

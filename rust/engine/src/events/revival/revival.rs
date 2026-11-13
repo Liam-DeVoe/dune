@@ -321,7 +321,7 @@ impl Revival {
         if Self::all_available_leaders_have_died_once(g, p) || Self::at_least_five_leaders_have_died_once(g, p) {
             if !pl.leaders.is_empty() {
                 let lowest_death_count =
-                    dotnet_compat::linq::min(pl.leaders.iter().map(|l| g.death_count(Hero::Leader(*l))));
+                    pl.leaders.iter().map(|l| g.death_count(Hero::Leader(*l))).min().expect("a leader");
 
                 result.extend(
                     pl.leaders

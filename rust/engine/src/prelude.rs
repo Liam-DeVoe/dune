@@ -6,6 +6,7 @@ pub use std::rc::Rc;
 pub use canon_derive::Canon;
 pub use dotnet_compat::{NetDictionary, NetHashSet, NetRandom};
 
+pub use crate::iter::IterExt;
 pub use crate::compat::cs::{self, CsIterExt, CsNull, NullRef, OrNull, RcKey, Shared};
 pub use crate::compat::date_time_offset::{DateTimeOffset, TimeSpan};
 pub use crate::cards::deck::Deck;

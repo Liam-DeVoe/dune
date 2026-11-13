@@ -66,7 +66,7 @@ impl<T: Clone + Eq + std::hash::Hash + 'static> ObjectCounter<T> {
             return None;
         }
 
-        let best_value = dotnet_compat::linq::max(self.counters.values().copied());
+        let best_value = self.counters.values().copied().max().expect("a counter");
         let best = self.counters.iter().find(|c| *c.1 == best_value);
         best.map(|c| c.0.clone())
     }

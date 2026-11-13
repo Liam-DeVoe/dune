@@ -68,13 +68,13 @@ impl FaceDanced {
         let p = p.nre();
         let maximum_forces = Self::maximum_number_of_forces(game, p);
         let amount_of_placed_forces =
-            dotnet_compat::linq::sum_i32(self.target_force_locations(game).values().map(|b| b.total_amount_of_forces()));
+            self.target_force_locations(game).values().map(|b| b.total_amount_of_forces()).sum::<i32>();
         if amount_of_placed_forces > maximum_forces {
             return Some(express!("Place ", maximum_forces, " or less forces"));
         }
 
         let amount_of_forces = self
-            .forces_from_reserve + dotnet_compat::linq::sum_i32(self.force_locations(game).values().map(|b| b.total_amount_of_forces()));
+            .forces_from_reserve + self.force_locations(game).values().map(|b| b.total_amount_of_forces()).sum::<i32>();
         if amount_of_forces != amount_of_placed_forces {
             return Some(express!(
                 "The amount of forces you selected from the planet and from reserves (",
@@ -233,7 +233,7 @@ impl FaceDanced {
             let winner_faction = game.player(winner).faction;
             let co_faction = co_occupying_player.map(|co| game.player(co).faction);
             let replaced_by =
-                dotnet_compat::linq::sum_i32(self.target_force_locations(game).iter().map(|(_, b)| b.total_amount_of_forces()));
+                self.target_force_locations(game).iter().map(|(_, b)| b.total_amount_of_forces()).sum::<i32>();
             let force = game.player(self.player()).force();
             let source_locations = self.determine_source_locations(game);
             game.log(elems![

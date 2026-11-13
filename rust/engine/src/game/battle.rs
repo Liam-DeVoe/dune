@@ -1348,7 +1348,7 @@ impl Game {
         let battalions = self.battalions_in(hw.into());
         let sole_player_on_planet = if battalions.len() == 1 {
             let battalions = self.battalions_in(hw.into());
-            let first = battalions.into_iter().cs_first();
+            let first = battalions.into_iter().next().expect("a battalion");
             self.get_player(Some(first.faction))
         } else {
             None

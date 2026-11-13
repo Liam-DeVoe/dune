@@ -77,7 +77,7 @@ impl DiscoveryEntered {
             // ForceLocations is re-parsed from the event's string at every access in C#; the
             // parse reads only the static lookup and the player's faction, so each access
             // yields the same dictionary.
-            let from_territories = self.force_locations(game).keys().map(|l| l.territory()).cs_distinct();
+            let from_territories = self.force_locations(game).keys().map(|l| l.territory()).distinct();
             for from_territory in from_territories {
                 let mut total_number_of_forces = 0;
                 let mut total_number_of_special_forces = 0;

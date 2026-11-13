@@ -762,7 +762,7 @@ impl Game {
         result.recently_undone_event_count = history_count - max_event_nr;
         for i in max_event_nr..history_count {
             // A negative untilEventNr throws ArgumentOutOfRangeException here.
-            result.recently_undone_events.push(cs::index(&history, i).clone());
+            result.recently_undone_events.push(history[i as usize].clone());
         }
 
         let previous = std::mem::replace(self, result);
@@ -882,8 +882,7 @@ impl Game {
 
     pub fn find_most_recent_event(&self, types: Vec<GameEventType>) -> Option<GameEvent> {
         if types.len() == 0 {
-            // History[^1]: ArgumentOutOfRangeException when History is empty
-            return Some(cs::index(&self.history, self.history.len() as i32 - 1).clone());
+            return Some(self.history.last().expect("an event in the history").clone());
         }
 
         let mut i = self.history.len() as i32 - 1;
@@ -1033,7 +1032,7 @@ impl Game {
             result.extend(ally.known_cards.iter().copied());
         }
 
-        result.into_iter().cs_distinct()
+        result.into_iter().distinct()
     }
 
     pub fn register_known(&mut self, c: TreacheryCard) {
@@ -1511,7 +1510,7 @@ impl Game {
     }
 
     pub fn recently_paid_total_amount(&self) -> i32 {
-        dotnet_compat::linq::sum_i32(self.recently_paid.iter().map(|p| p.amount))
+        self.recently_paid.iter().map(|p| p.amount).sum::<i32>()
     }
 
     pub fn occupies(&self, f: Faction, w: World) -> bool {
@@ -1623,7 +1622,7 @@ impl Game {
         let ecaz_ally = self.get_ally(Some(Faction::Ecaz));
         let mut ecaz_or_ecaz_ally_counted = false;
 
-        for faction in factions.iter().copied().cs_distinct() {
+        for faction in factions.iter().copied().distinct() {
             if faction == Faction::Ecaz || Some(faction) == ecaz_ally {
                 if !ecaz_or_ecaz_ally_counted && to_exclude != Faction::Ecaz && Some(to_exclude) != ecaz_ally {
                     result += 1;
@@ -1811,7 +1810,8 @@ impl Game {
         if self.applicable(Rule::CheapHeroTraitor) {
             let card = TreacheryCardManager::get_cards_in_play(self)
                 .into_iter()
-                .cs_first_where(|c| c.type_() == TreacheryCardType::Mercenary);
+                .find(|c| c.type_() == TreacheryCardType::Mercenary)
+                .expect("a mercenary card in play");
             result.push(Hero::TreacheryCard(card));
         }
 

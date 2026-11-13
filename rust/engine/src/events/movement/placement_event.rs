@@ -47,12 +47,12 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
     fn forces_added_to_location(&self, game: &Game) -> i32 {
         // ForceLocations != null ? ... : 0 (the dictionary is never null; parsed twice as in C#)
         let _ = self.force_locations(game);
-        dotnet_compat::linq::sum_i32(self.force_locations(game).values().map(|b| b.amount_of_forces))
+        self.force_locations(game).values().map(|b| b.amount_of_forces).sum::<i32>()
     }
 
     fn special_forces_added_to_location(&self, game: &Game) -> i32 {
         let _ = self.force_locations(game);
-        dotnet_compat::linq::sum_i32(self.force_locations(game).values().map(|b| b.amount_of_special_forces))
+        self.force_locations(game).values().map(|b| b.amount_of_special_forces).sum::<i32>()
     }
 
     fn validate_move(&self, game: &Game, as_advisors: bool) -> Option<Message> {
@@ -69,13 +69,13 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
         // kept only where the first read happens.
         let force_locations = self.force_locations(game);
 
-        let force_amount = dotnet_compat::linq::sum_i32(force_locations.values().map(|b| b.amount_of_forces));
+        let force_amount = force_locations.values().map(|b| b.amount_of_forces).sum::<i32>();
         let too_many_forces = force_locations.iter().any(|(l, b)| b.amount_of_forces > pl().forces_in(Some(*l)));
         if too_many_forces {
             return Some(express!("Invalid number of ", pl().force()));
         }
 
-        let special_force_amount = dotnet_compat::linq::sum_i32(force_locations.values().map(|b| b.amount_of_special_forces));
+        let special_force_amount = force_locations.values().map(|b| b.amount_of_special_forces).sum::<i32>();
         let too_many_special_forces = force_locations.iter().any(|(l, b)| b.amount_of_special_forces > pl().special_forces_in(Some(*l)));
         if too_many_special_forces {
             return Some(express!("Invalid number of ", pl().special_force()));
@@ -112,7 +112,7 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
             .iter()
             .filter(|kvp| kvp.1.total_amount_of_forces() > 0)
             .map(|fl| fl.0.territory())
-            .cs_distinct()
+            .distinct()
             .len();
         if number_of_selected_territories > 1 && !can_move_from_two_territories {
             return Some(express!("You can't move from two territories at the same time"));
@@ -154,11 +154,11 @@ impl PlacementEvent {
         }
         for location_amount_pair in force_locations.split(',') {
             let location_and_amounts: Vec<&str> = location_amount_pair.split(':').collect();
-            let location = g.map.location_lookup().find(dotnet_compat::parse::convert_to_int32(Some(*cs::index_array(&location_and_amounts, 0))));
+            let location = g.map.location_lookup().find(dotnet_compat::parse::convert_to_int32(Some(location_and_amounts[0])));
             let Some(location) = location else { continue };
-            let amounts: Vec<&str> = cs::index_array(&location_and_amounts, 1).split('|').collect();
-            let amount_of_normal_forces = dotnet_compat::parse::convert_to_int32(Some(*cs::index_array(&amounts, 0)));
-            let amount_of_normal_special_forces = dotnet_compat::parse::convert_to_int32(Some(*cs::index_array(&amounts, 1)));
+            let amounts: Vec<&str> = location_and_amounts[1].split('|').collect();
+            let amount_of_normal_forces = dotnet_compat::parse::convert_to_int32(Some(amounts[0]));
+            let amount_of_normal_special_forces = dotnet_compat::parse::convert_to_int32(Some(amounts[1]));
             result.add_with(
                 location,
                 Battalion::new(f, amount_of_normal_forces, amount_of_normal_special_forces, location),

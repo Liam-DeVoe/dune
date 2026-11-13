@@ -1,4 +1,3 @@
-use crate::compat::cs::CsIterExt;
 use crate::cards::deck::Deck;
 use crate::enumerations::{Rule, TreacheryCardType};
 use crate::identity::IFetcher;
@@ -153,7 +152,7 @@ impl TreacheryCardManager {
 
     /// `Get(id)`
     pub fn get(id: i32) -> Option<TreacheryCard> {
-        Self::items().iter().copied().cs_single_or_default_where(|i| i.id() == id)
+        Self::items().iter().copied().find(|i| i.id() == id)
     }
 
     /// `GetId(value)`
@@ -172,7 +171,7 @@ impl IFetcher<TreacheryCard> for TreacheryCardFetcher {
         if id < -1 {
             return None;
         }
-        TreacheryCardManager::items().iter().copied().cs_single_or_default_where(|t| t.id() == id)
+        TreacheryCardManager::items().iter().copied().find(|t| t.id() == id)
     }
 
     fn get_id(&self, obj: Option<TreacheryCard>) -> i32 {

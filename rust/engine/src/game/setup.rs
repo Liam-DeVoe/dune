@@ -67,9 +67,9 @@ impl Game {
         // Players.OrderBy(p => p.Seat) is a stable sort.
         let mut by_seat: Vec<(i32, Faction)> = self.players.iter().map(|p| (p.seat, p.faction)).collect();
         by_seat.sort_by_key(|(seat, _)| *seat);
-        let first = by_seat.iter().cs_first().1;
+        let first = by_seat.first().expect("a player").1;
         self.has_battle_wheel.push(first);
-        let last = by_seat.iter().cs_last().1;
+        let last = by_seat.last().expect("a player").1;
         self.has_battle_wheel.push(last);
 
         for p in 0..self.players.len() {
@@ -257,7 +257,7 @@ impl Game {
         let normal_force_world = self
             .map
             .homeworlds()
-            .cs_first_where(|w| w.faction() == faction && w.is_home_of_normal_forces());
+            .find(|w| w.faction() == faction && w.is_home_of_normal_forces()).expect("a normal force homeworld");
 
         match faction {
             Faction::Fremen => {
@@ -274,7 +274,7 @@ impl Game {
                     let special_world = self
                         .map
                         .homeworlds()
-                        .cs_first_where(|w| w.faction() == faction && w.is_home_of_special_forces());
+                        .find(|w| w.faction() == faction && w.is_home_of_special_forces()).expect("a special force homeworld");
                     Player::initialize_homeworld(self, p, special_world, 0, 5);
                 }
             }

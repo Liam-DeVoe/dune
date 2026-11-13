@@ -175,7 +175,7 @@ impl Game {
 
             if players_to_collect.len() > 1 {
                 let (first_faction, other_faction) = if players_to_collect.iter().any(|p| self.player(*p).is(Faction::Ecaz)) {
-                    let other = players_to_collect.iter().copied().cs_first_where(|p| !self.player(*p).is(Faction::Ecaz));
+                    let other = players_to_collect.iter().copied().find(|p| !self.player(*p).is(Faction::Ecaz)).expect("a player other than Ecaz");
                     (Faction::Ecaz, self.player(other).faction)
                 } else {
                     (self.player(players_to_collect[0]).faction, self.player(players_to_collect[1]).faction)

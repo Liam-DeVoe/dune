@@ -93,7 +93,7 @@ impl Game {
         }
 
         for _ in 0..amount.max(0) {
-            self.sector_in_storm = cs::rem(self.sector_in_storm + 1, Map::NUMBER_OF_SECTORS);
+            self.sector_in_storm = (self.sector_in_storm + 1) % Map::NUMBER_OF_SECTORS;
             self.perform_storm();
         }
 

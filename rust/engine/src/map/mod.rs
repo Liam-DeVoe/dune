@@ -22,7 +22,7 @@ pub mod territory;
 
 use std::cell::{Cell, RefCell};
 
-use crate::compat::cs::{index, CsIterExt};
+use crate::iter::IterExt;
 use crate::map::discovery::DiscoveredLocation;
 use crate::enumerations::*;
 use crate::map::homeworld::Homeworld;
@@ -365,11 +365,11 @@ impl Map {
                     && game.nr_of_occupants_excluding_faction(*l, f) >= 2
             })
             .map(|(l, _)| l)
-            .cs_distinct();
+            .distinct();
         first
             .into_iter()
             .chain(game.current_blocked_territories().into_iter().flat_map(|t| t.locations().iter().copied()))
-            .cs_distinct()
+            .distinct()
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -678,7 +678,7 @@ impl IFetcher<Territory> for TerritoryFetcher {
         if id == -1 {
             return None;
         }
-        Map::territories_static(true).cs_single_or_default_where(|t| t.id() == id)
+        Map::territories_static(true).find(|t| t.id() == id)
     }
 
     fn get_id(&self, obj: Option<Territory>) -> i32 {
@@ -692,12 +692,12 @@ impl IFetcher<Territory> for TerritoryFetcher {
 pub struct LocationFetcher;
 
 impl IFetcher<Location> for LocationFetcher {
-    /// `id == -1 ? null : map._locations[id]` (ArgumentOutOfRangeException when out of range)
+    /// `None` for -1; panics for another id out of range.
     fn find(&self, id: i32) -> Option<Location> {
         if id == -1 {
             return None;
         }
-        Some(*index(Location::all(), id))
+        Some(Location::all()[id as usize])
     }
 
     fn get_id(&self, obj: Option<Location>) -> i32 {

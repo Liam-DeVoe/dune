@@ -14,3 +14,16 @@ pub fn unique<T: PartialEq + Clone>(source: impl Iterator<Item = T>) -> impl Ite
         }
     })
 }
+
+/// Extension methods on iterators.
+pub trait IterExt: Iterator + Sized {
+    /// The first occurrence of each element, in order, compared with `==`.
+    fn distinct(self) -> Vec<Self::Item>
+    where
+        Self::Item: PartialEq + Clone,
+    {
+        unique(self).collect()
+    }
+}
+
+impl<I: Iterator> IterExt for I {}

@@ -46,7 +46,7 @@ impl CardsDetermined {
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
         let selected = (self.treachery_cards().len() as i32) + (self.richese_cards().len() as i32);
-        let needed = dotnet_compat::linq::sum_i32(game.players.iter().map(|p| p.maximum_number_of_cards(game)));
+        let needed = game.players.iter().map(|p| p.maximum_number_of_cards(game)).sum::<i32>();
         if selected < (needed + 1) {
             return Some(express!("Not enough cards selected"));
         }

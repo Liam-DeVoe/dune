@@ -16,10 +16,10 @@ mod common;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-use treachery_engine::cs::Shared;
-use treachery_engine::i_identifiable::IIdentifiable;
-use treachery_engine::leader_manager::LeaderManager;
-use treachery_engine::participation::Participation;
+use treachery_engine::compat::cs::Shared;
+use treachery_engine::identity::IIdentifiable;
+use treachery_engine::heroes::leader_manager::LeaderManager;
+use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
 use treachery_view::build::ResolvedViewer;
 use treachery_view::replica::ViewReplica;

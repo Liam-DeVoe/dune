@@ -5,7 +5,7 @@
 //! Two checks:
 //! - `every_option_handle_parameter_is_normalized` scans the engine sources. Every
 //!   function with an `Option<Handle>` parameter must start by mapping a null handle
-//!   to `None` (`let x = x.and_then(crate::cs::CsNull::opt);`). New functions are
+//!   to `None` (`let x = x.and_then(crate::compat::cs::CsNull::opt);`). New functions are
 //!   caught here, and the failure message gives the line to add.
 //! - `game_methods_treat_null_like_none` calls `Game` and `Player` methods with
 //!   `Some(NULL)` and with `None` on identical games and requires the same result
@@ -14,22 +14,22 @@
 use std::path::Path;
 
 use treachery_engine::canon;
-use treachery_engine::cs::{self, CsNull};
+use treachery_engine::compat::cs::{self, CsNull};
 use treachery_engine::enumerations::*;
 use treachery_engine::events::GameEvent;
 use treachery_engine::game::Game;
-use treachery_engine::i_hero::Hero;
+use treachery_engine::heroes::hero::Hero;
 use treachery_engine::json;
-use treachery_engine::leader::Leader;
-use treachery_engine::location::Location;
-use treachery_engine::participation::Participation;
-use treachery_engine::player::PlayerIndex;
-use treachery_engine::territory::Territory;
-use treachery_engine::treachery_card::TreacheryCard;
-use treachery_engine::treachery_card_manager::TreacheryCardManager;
+use treachery_engine::heroes::leader::Leader;
+use treachery_engine::map::location::Location;
+use treachery_engine::game::Participation;
+use treachery_engine::game::PlayerIndex;
+use treachery_engine::map::territory::Territory;
+use treachery_engine::cards::treachery_card::TreacheryCard;
+use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
 
 const HANDLES: &[&str] = &["TreacheryCard", "Leader", "Hero", "Location", "Territory", "ResourceCard", "PlayerIndex"];
-const NORMALIZE: &str = "and_then(crate::cs::CsNull::opt)";
+const NORMALIZE: &str = "and_then(crate::compat::cs::CsNull::opt)";
 
 /// The parameter list of each `fn` with a body, as (name, params, body prefix).
 fn functions(text: &str) -> Vec<(String, String, String)> {
@@ -232,9 +232,9 @@ fn game_methods_treat_null_like_none() {
 /// The OrDefault helpers return `None` for a null element, as for an empty source.
 #[test]
 fn or_default_helpers_map_null_to_none() {
-    use treachery_engine::cs::CsIterExt;
-    use treachery_engine::extension_methods::RandomExt;
-    use treachery_engine::logged_random::SharedRandom;
+    use treachery_engine::compat::cs::CsIterExt;
+    use treachery_engine::compat::random_ext::RandomExt;
+    use treachery_engine::random::SharedRandom;
     let hand = vec![TreacheryCard::NULL];
     let r = SharedRandom::from_seed(1);
     assert_eq!(hand.iter().copied().random_or_default(&r), None);

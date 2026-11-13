@@ -4,8 +4,8 @@
 
 use std::path::PathBuf;
 
-use treachery_engine::cs::Shared;
-use treachery_engine::participation::Participation;
+use treachery_engine::compat::cs::Shared;
+use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
 pub use treachery_view::build::Viewer;
 use treachery_view::replica::ViewReplica;

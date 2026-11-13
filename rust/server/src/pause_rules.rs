@@ -9,9 +9,9 @@
 //! Only reads game state, except that it calls `get_applicable_events` for `CardTraded` and the
 //! revival actions, which can advance the battle sequence.
 
-use treachery_engine::events::discovery_entered::DiscoveryEntered;
-use treachery_engine::events::terror_planted::TerrorPlanted;
-use treachery_engine::events::testing_station_used::TestingStationUsed;
+use treachery_engine::events::DiscoveryEntered;
+use treachery_engine::events::TerrorPlanted;
+use treachery_engine::events::TestingStationUsed;
 use treachery_engine::events::{GameEvent, GameEventType};
 use treachery_engine::prelude::*;
 

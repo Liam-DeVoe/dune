@@ -3,9 +3,9 @@
 //! The other seats have no user and never act, so the scene stays as the fixture left it.
 //! Only with `TREACHERY_DEV_SCENE` on.
 
-use treachery_engine::cs::Shared;
+use treachery_engine::compat::cs::Shared;
 use treachery_engine::enumerations::Faction;
-use treachery_engine::participation::Participation;
+use treachery_engine::game::Participation;
 
 use super::games::load_savegame;
 use super::{RunningGame, Server};

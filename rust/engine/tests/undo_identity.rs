@@ -11,19 +11,19 @@ use std::rc::Rc;
 
 use serde_json::Value;
 use treachery_engine::canon;
-use treachery_engine::cs::{self, Shared};
+use treachery_engine::compat::cs::{self, Shared};
 use treachery_engine::enumerations::{ClairvoyanceQuestion, Faction, Phase, TreacheryCardType};
-use treachery_engine::game_status::GameStatus;
-use treachery_engine::expression::ExpressionElement;
-use treachery_engine::i_hero::Hero;
-use treachery_engine::leader_manager::LeaderManager;
-use treachery_engine::player::Player;
+use treachery_engine::game::GameStatus;
+use treachery_engine::messages::expression::ExpressionElement;
+use treachery_engine::heroes::hero::Hero;
+use treachery_engine::heroes::leader_manager::LeaderManager;
+use treachery_engine::game::Player;
 use treachery_engine::events::{Battle, BattleInitiated, Bid, ClairVoyancePlayed, DealOffered, Move, FlightUsed, GameEvent, GameEventMethods, NexusPlayed};
 use treachery_engine::game::Game;
 use treachery_engine::json;
-use treachery_engine::participation::Participation;
-use treachery_engine::treachery_card::TreacheryCard;
-use treachery_engine::treachery_card_manager::TreacheryCardManager;
+use treachery_engine::game::Participation;
+use treachery_engine::cards::treachery_card::TreacheryCard;
+use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
 
 // The two events of ReviewA.cs (steps 1 and 2 of traces/sample/fuzz-2026-00018).
 const ESTABLISH: &str = r#"{"$type":"EstablishPlayers","Settings":{"NumberOfPlayers":3,"MaximumTurns":8,"InitialRules":[301,300,65,60,20,1013,15,700,105,80,85,604,90,998,30,701,40,107,10,70,50,25,209,999,112],"AllowedFactionsInPlay":[50,10,120,60,40,100,20,90,70,80,30,110],"AutoOpenEmptySeats":true,"AsyncPlay":false,"AsyncPlayMessageIntervalMinutes":0},"Seed":1073548723,"MaximumNumberOfPlayers":3,"MaximumTurns":8,"ApplicableRules":[301,300,65,60,20,1013,15,700,105,80,85,604,90,998,30,701,40,107,10,70,50,25,209,999,112],"_players":"","_factionsInPlay":"Guild,Fremen,Moritani,BeneGesserit,Emperor,Richese,Atreides,Choam,Ixian,Tleilaxu,Harkonnen,Ecaz","Initiator":0,"Time":"2024-01-01T12:02:17+00:00"}"#;
@@ -237,7 +237,7 @@ fn map_objects_handed_back_by_another_game() {
     Player::add_forces(&mut u, up, arrakeen, 3, false);
     let mut r = restored(u);
     let l = *r.player(up).forces_in_locations.keys().next().unwrap();
-    let own = treachery_engine::i_fetcher::IFetcher::find(&r.map.territory_lookup(), l.territory().id());
+    let own = treachery_engine::identity::IFetcher::find(&r.map.territory_lookup(), l.territory().id());
     check("handed_back.territory_is_this_maps", Some(l.territory()) == own);
     assert_eq!(l.map_game(), Some(u_id));
     let leader = Hero::Leader(LeaderManager::leaders()[0]);
@@ -268,7 +268,7 @@ fn bene_gesserit_flip_in_a_territory_of_another_games_map() {
     Player::add_special_forces(&mut r, bene_gesserit, carthag, 1, false);
     Player::flip_forces_territory_boolean(&mut r, bene_gesserit, carthag.territory().of_game_map(u_id), true);
     // The other Player methods that take a Territory and change forces.
-    let foreign = |l: treachery_engine::location::Location| l.territory().of_game_map(u_id);
+    let foreign = |l: treachery_engine::map::location::Location| l.territory().of_game_map(u_id);
     Player::kill_forces_territory_int32_boolean_boolean(&mut r, bene_gesserit, foreign(carthag), 1, true, false);
     let (tueks, tabr, habbanya) = (r.map.tueks_sietch(), r.map.sietch_tabr(), r.map.habbanya_sietch());
     Player::add_forces(&mut r, bene_gesserit, tueks, 3, false);

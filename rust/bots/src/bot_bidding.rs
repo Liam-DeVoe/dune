@@ -142,7 +142,7 @@ impl ClassicBot {
 
     /// C#: `private Bid CreateBidUsingAllyAndEmperorSpice(int amount, TreacheryCard? karmaCard)` (Bot_Bidding.cs:123)
     pub fn create_bid_using_ally_and_emperor_spice(&self, game: &Game, amount: i32, karma_card: Option<TreacheryCard>) -> Rc<Bid> {
-        let karma_card = karma_card.and_then(treachery_engine::cs::CsNull::opt);
+        let karma_card = karma_card.and_then(treachery_engine::compat::cs::CsNull::opt);
         if let Some(karma_card) = karma_card {
             let mut bid = Bid::new(game, self.faction(game));
             bid.amount = amount;

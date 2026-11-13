@@ -10,8 +10,8 @@
 use serde_json::Value;
 use treachery_bots::prelude::*;
 use treachery_bots::support::{cast_hero, unbox_enum, unbox_float, unbox_int};
-use treachery_engine::expression::EnumValue;
-use treachery_engine::i_fetcher::IFetcher;
+use treachery_engine::messages::expression::EnumValue;
+use treachery_engine::identity::IFetcher;
 
 fn value(game: &Game, kind: &str) -> ExpressionElement {
     let (k, v) = kind.split_once(':').unwrap_or((kind, ""));

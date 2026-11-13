@@ -11,7 +11,7 @@
 
 use treachery_engine::events::GameEventType;
 use treachery_engine::prelude::*;
-use treachery_engine::net_enum::NetEnum;
+use treachery_engine::compat::net_enum::NetEnum;
 
 use crate::build::{event, validate, ResolvedViewer};
 use crate::describe::Describer;

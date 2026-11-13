@@ -6,11 +6,11 @@
 mod common;
 
 use common::{load, read_trace, sample_bot_traces, viewer_of};
-use treachery_engine::cs::Shared;
+use treachery_engine::compat::cs::Shared;
 use treachery_engine::events::GameEventType;
 use treachery_engine::json;
-use treachery_engine::net_enum::NetEnum;
-use treachery_engine::participation::Participation;
+use treachery_engine::compat::net_enum::NetEnum;
+use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
 use treachery_view::actions::{self, revival};
 use treachery_view::build::{validate, ResolvedViewer};

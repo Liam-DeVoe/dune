@@ -2,7 +2,7 @@
 //! follow the C# code in Model/Player.cs, Model/PlayerSequence.cs, Model/Battalion.cs and
 //! Game_Rules.cs; the comments say which C# behaviour each test pins down.
 
-use treachery_engine::cs;
+use treachery_engine::compat::cs;
 use treachery_engine::prelude::*;
 
 fn game_with(factions: &[Faction]) -> Game {

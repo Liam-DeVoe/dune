@@ -96,7 +96,7 @@ bot deliberations: 5120 matched; 23 traces stopped at a bot difference
 ```
 17 traces: 2 passed, 15 failed (1834 lines replayed without a difference)
 
-9 traces: not ported yet: not yet implemented: port: Game_Battle.cs:1102 (at engine/src/game_battle.rs:412)
+9 traces: not ported yet: not yet implemented: port: Game_Battle.cs:1102 (at engine/src/game/battle.rs:412)
     bots-2026-00008.jsonl.gz at line 57
     ...
 

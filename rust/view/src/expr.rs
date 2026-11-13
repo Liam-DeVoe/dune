@@ -5,10 +5,10 @@
 //! `Skin.Describe` of the element. The C# reference is `rust/view/csharp-ref` (LogLines.cs),
 //! and `tests/log_lines.rs` compares every log line of the fixtures with it.
 
-use treachery_engine::expression::{EnumValue, Expression, ExpressionElement};
-use treachery_engine::i_hero::Hero;
-use treachery_engine::i_identifiable::IIdentifiable;
-use treachery_engine::message::Message;
+use treachery_engine::messages::expression::{EnumValue, Expression, ExpressionElement};
+use treachery_engine::heroes::hero::Hero;
+use treachery_engine::identity::IIdentifiable;
+use treachery_engine::messages::message::Message;
 use treachery_engine::prelude::*;
 
 use crate::describe::Describer;

@@ -5,7 +5,7 @@
 //! (coordinator decision, server-plan.md "Coordinator answers" 1); a custom skin is a
 //! `treachery_skin::Skin` loaded with `Skin::load`, which the server puts in the replica.
 
-use treachery_engine::expression::ExpressionElement;
+use treachery_engine::messages::expression::ExpressionElement;
 use treachery_engine::game::Game;
 use treachery_skin::Skin;
 

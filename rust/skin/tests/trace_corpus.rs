@@ -17,16 +17,16 @@ use std::path::Path;
 
 use common::*;
 use serde_json::Value;
-use treachery_engine::cs::{self, Shared};
+use treachery_engine::compat::cs::{self, Shared};
 use treachery_engine::enumerations::*;
 use treachery_engine::events::GameEvent;
 use treachery_engine::events::GameEventType;
 use treachery_engine::game::Game;
-use treachery_engine::game_status::GameStatus;
-use treachery_engine::i_hero::Hero;
-use treachery_engine::leader_manager::LeaderManager;
-use treachery_engine::report::Report;
-use treachery_engine::expression::ExpressionElement;
+use treachery_engine::game::GameStatus;
+use treachery_engine::heroes::hero::Hero;
+use treachery_engine::heroes::leader_manager::LeaderManager;
+use treachery_engine::messages::report::Report;
+use treachery_engine::messages::expression::ExpressionElement;
 use treachery_skin::{default_skin, Skin};
 
 /// The marker milestone of the oracle's `StepExecutor.Run`.

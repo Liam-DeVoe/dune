@@ -3,11 +3,11 @@
 use std::time::Duration;
 
 use treachery_bots::{BotParameters, ClassicBot};
-use treachery_engine::deck::Deck;
+use treachery_engine::cards::deck::Deck;
 use treachery_engine::enumerations::{ErrorType, MainPhase, Phase};
 use treachery_engine::events::GameEvent;
-use treachery_engine::logged_random::SharedRandom;
-use treachery_engine::player::PlayerIndex;
+use treachery_engine::random::SharedRandom;
+use treachery_engine::game::PlayerIndex;
 
 use super::{done, CallError, Reply, RunningGame, Server};
 use crate::ids;

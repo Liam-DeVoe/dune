@@ -6,7 +6,7 @@
 use std::cell::Cell;
 
 use chrono::{DateTime, NaiveDateTime, SecondsFormat, Utc};
-use treachery_engine::date_time_offset::DateTimeOffset;
+use treachery_engine::compat::date_time_offset::DateTimeOffset;
 
 pub type Time = DateTime<Utc>;
 

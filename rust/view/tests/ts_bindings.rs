@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use treachery_engine::enumerations::*;
-use treachery_engine::net_enum::NetEnum;
+use treachery_engine::compat::net_enum::NetEnum;
 use treachery_view::schema::{DraftResult, GameView};
 use treachery_view::static_data::StaticData;
 use ts_rs::{Config, TS};
@@ -63,7 +63,7 @@ fn enums() -> (Vec<&'static str>, String) {
         ("BeneGesseritReactionKind", union::<BeneGesseritReactionKind>()),
         ("NexusAllianceChange", union::<NexusAllianceChange>()),
         ("WinMethod", union::<WinMethod>()),
-        ("BattleFactKind", union::<treachery_engine::message::BattleFactKind>()),
+        ("BattleFactKind", union::<treachery_engine::messages::message::BattleFactKind>()),
         // The ship-and-move forms (package 7c) put these in their drafts as numbers.
         ("ShipmentType", union::<ShipmentType>() + &values::<ShipmentType>()),
         ("ShipmentPermission", union::<ShipmentPermission>() + &values::<ShipmentPermission>()),

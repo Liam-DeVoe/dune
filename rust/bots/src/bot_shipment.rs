@@ -10,7 +10,7 @@
 
 use crate::prelude::*;
 use dotnet_compat::math::{f64_to_i32, math_max_f32, math_min_f32};
-use treachery_engine::lazy::LazyQuery;
+use treachery_engine::compat::lazy::LazyQuery;
 
 impl ClassicBot {
     /// C#: `protected virtual Shipment DetermineShipment()` (Bot_Shipment.cs:18)

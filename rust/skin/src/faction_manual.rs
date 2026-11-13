@@ -6,10 +6,10 @@
 //! the same results without making `Skin` mutable.
 
 use treachery_engine::enumerations::*;
-use treachery_engine::expression::ExpressionElement;
+use treachery_engine::messages::expression::ExpressionElement;
 use treachery_engine::game::Game;
-use treachery_engine::i_fetcher::IFetcher;
-use treachery_engine::treachery_card_manager::TreacheryCardManager;
+use treachery_engine::identity::IFetcher;
+use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
 
 use crate::skin::{to_upper_invariant, Skin};
 

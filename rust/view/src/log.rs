@@ -9,12 +9,12 @@
 //! (`rust/view/csharp-ref/LogLines.cs`), and `tests/log_lines.rs` compares the two.
 
 use serde::{Deserialize, Serialize};
-use treachery_engine::expression::ExpressionElement;
-use treachery_engine::i_hero::Hero;
+use treachery_engine::messages::expression::ExpressionElement;
+use treachery_engine::heroes::hero::Hero;
 use treachery_engine::log as l;
-use treachery_engine::message::{self as m, Message};
+use treachery_engine::messages::message::{self as m, Message};
 use treachery_engine::prelude::*;
-use treachery_engine::report::Report;
+use treachery_engine::messages::report::Report;
 use ts_rs::TS;
 
 use crate::build::ResolvedViewer;

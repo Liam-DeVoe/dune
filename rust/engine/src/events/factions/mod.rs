@@ -1,0 +1,30 @@
+//! Faction powers that cut across phases: CHOAM, Moritani terror tokens, Ecaz ambassadors, bureaucracy and audits.
+
+mod ambassador_activated;
+pub use ambassador_activated::*;
+mod ambassador_placed;
+pub use ambassador_placed::*;
+mod bureaucracy;
+pub use bureaucracy::*;
+mod choam_discarded;
+pub use choam_discarded::*;
+mod choam_economics;
+pub use choam_economics::*;
+mod choam_extra_move;
+pub use choam_extra_move::*;
+mod choam_free_revival_prevention;
+pub use choam_free_revival_prevention::*;
+mod choam_karma_prevention;
+pub use choam_karma_prevention::*;
+mod choam_move_prevention;
+pub use choam_move_prevention::*;
+mod choam_remove_force;
+pub use choam_remove_force::*;
+mod karma_choam_discard;
+pub use karma_choam_discard::*;
+mod resources_audited;
+pub use resources_audited::*;
+mod terror_planted;
+pub use terror_planted::*;
+mod terror_revealed;
+pub use terror_revealed::*;

@@ -15,10 +15,10 @@ use std::cell::Cell;
 
 use common::*;
 use serde_json::{json, Value};
-use treachery_engine::deck::Deck;
+use treachery_engine::cards::deck::Deck;
 use treachery_engine::enumerations::Faction;
-use treachery_engine::extension_methods::{set_static_random_seed, static_random_next, RandomExt, UnseededRandomExt};
-use treachery_engine::logged_random::SharedRandom;
+use treachery_engine::compat::random_ext::{set_static_random_seed, static_random_next, RandomExt, UnseededRandomExt};
+use treachery_engine::random::SharedRandom;
 
 /// The key shapes of RandomGrid.Keys, by name. Calls `$body` with `$key`
 /// bound to a selector of the right key type.

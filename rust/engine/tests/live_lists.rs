@@ -40,7 +40,7 @@ fn every_message_collection_site_is_classified() {
     let stale: Vec<_> = rows.keys().filter(|k| !sites.contains(k)).collect();
     assert!(stale.is_empty(), "rows in docs/live-lists.md for sites that no longer exist: {stale:#?}");
 
-    let expression = read("src/expression.rs");
+    let expression = read("src/messages/expression.rs");
     for (key, (class, why)) in &rows {
         assert!(CLASSES.contains(&class.as_str()), "{key}: unknown class {class}");
         if class == "live" {
@@ -61,7 +61,7 @@ fn every_message_collection_site_is_classified() {
 /// live row can't be satisfied by a variant that no port uses.
 #[test]
 fn every_live_list_variant_is_used_by_a_port() {
-    let expression = read("src/expression.rs");
+    let expression = read("src/messages/expression.rs");
     let body = expression.split("pub enum LiveList {").nth(1).unwrap().split("\n}").next().unwrap();
     let variants: Vec<&str> = body
         .lines()
@@ -98,7 +98,7 @@ fn every_live_list_variant_is_used_by_a_port() {
 #[test]
 fn discarded_traitors_in_a_message_dump_the_current_set() {
     use treachery_engine::canon;
-    use treachery_engine::expression::LiveList;
+    use treachery_engine::messages::expression::LiveList;
     use treachery_engine::prelude::*;
 
     let mut g = Game::new();

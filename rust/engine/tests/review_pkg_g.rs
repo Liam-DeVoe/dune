@@ -7,14 +7,14 @@
 //!
 //! Each assertion names the probe line it checks.
 
-use treachery_engine::cs;
+use treachery_engine::compat::cs;
 use treachery_engine::enumerations::{Faction, ShipmentType};
-use treachery_engine::events::shipment::Shipment;
+use treachery_engine::events::Shipment;
 use treachery_engine::events::GameEvent;
 use treachery_engine::events::game_event::GameEventMethods;
 use treachery_engine::game::Game;
 use treachery_engine::json;
-use treachery_engine::participation::Participation;
+use treachery_engine::game::Participation;
 
 // Same text as ReviewA.Establish (step 1 of fuzz-2026-00018).
 const ESTABLISH: &str = r#"{"$type":"EstablishPlayers","Settings":{"NumberOfPlayers":3,"MaximumTurns":8,"InitialRules":[301,300,65,60,20,1013,15,700,105,80,85,604,90,998,30,701,40,107,10,70,50,25,209,999,112],"AllowedFactionsInPlay":[50,10,120,60,40,100,20,90,70,80,30,110],"AutoOpenEmptySeats":true,"AsyncPlay":false,"AsyncPlayMessageIntervalMinutes":0},"Seed":1073548723,"MaximumNumberOfPlayers":3,"MaximumTurns":8,"ApplicableRules":[301,300,65,60,20,1013,15,700,105,80,85,604,90,998,30,701,40,107,10,70,50,25,209,999,112],"_players":"","_factionsInPlay":"Guild,Fremen,Moritani,BeneGesserit,Emperor,Richese,Atreides,Choam,Ixian,Tleilaxu,Harkonnen,Ecaz","Initiator":0,"Time":"2024-01-01T12:02:17+00:00"}"#;
@@ -23,7 +23,7 @@ fn setup() -> Game {
     let mut p = Participation::new();
     p.player_names.insert(100, "Human100".to_string());
     p.seated_players.insert(100, 2);
-    let mut g = Game::new_int32_participation(Game::LATEST_VERSION, &treachery_engine::cs::Shared::new(p));
+    let mut g = Game::new_int32_participation(Game::LATEST_VERSION, &treachery_engine::compat::cs::Shared::new(p));
     let e: GameEvent = json::deserialize(ESTABLISH).expect("event json");
     e.initialize_game(&g);
     assert!(e.execute(&mut g, true, true).is_none());

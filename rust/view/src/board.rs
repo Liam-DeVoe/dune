@@ -3,9 +3,9 @@
 //! A field that the C# client shows only to some viewers is filled only for them
 //! (protocol.md, Visibility).
 
-use treachery_engine::game_status::{FlashInfo, GameStatus};
-use treachery_engine::i_hero::Hero;
-use treachery_engine::i_identifiable::IIdentifiable;
+use treachery_engine::game::{FlashInfo, GameStatus};
+use treachery_engine::heroes::hero::Hero;
+use treachery_engine::identity::IIdentifiable;
 use treachery_engine::prelude::*;
 
 use crate::build::ResolvedViewer;
@@ -18,8 +18,8 @@ fn name<T: ToString>(v: T) -> String {
     v.to_string()
 }
 
-fn seconds(t: treachery_engine::date_time_offset::TimeSpan) -> f64 {
-    t.ticks as f64 / treachery_engine::date_time_offset::TICKS_PER_SECOND as f64
+fn seconds(t: treachery_engine::compat::date_time_offset::TimeSpan) -> f64 {
+    t.ticks as f64 / treachery_engine::compat::date_time_offset::TICKS_PER_SECOND as f64
 }
 
 /// The viewer's faction, when they play (observers have none).
@@ -170,7 +170,7 @@ pub fn piles(game: &Game, v: &ResolvedViewer) -> PilesView {
     let treachery_deck = game.treachery_deck.as_ref().map(|d| d.items.len()).unwrap_or(0) as i32;
     let discard: &[TreacheryCard] = game.treachery_discard_pile.as_ref().map(|d| d.items.as_slice()).unwrap_or(&[]);
     let resource_deck = game.resource_card_deck.as_ref();
-    let pile = |d: &Option<treachery_engine::deck::Deck<ResourceCard>>| d.as_ref().map(|d| d.items.iter().map(|c| c.skin_id()).collect()).unwrap_or_default();
+    let pile = |d: &Option<treachery_engine::cards::deck::Deck<ResourceCard>>| d.as_ref().map(|d| d.items.iter().map(|c| c.skin_id()).collect()).unwrap_or_default();
     let known = me.map(|p| game.known_cards(p)).unwrap_or_default();
     PilesView {
         treachery_deck_count: treachery_deck,

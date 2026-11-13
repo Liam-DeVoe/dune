@@ -5,7 +5,7 @@
 mod common;
 
 use common::{fixture, load, truncated, load_text, viewer_of, OBSERVER};
-use treachery_engine::expression::ExpressionElement;
+use treachery_engine::messages::expression::ExpressionElement;
 use treachery_engine::prelude::*;
 use treachery_view::replica::ViewReplica;
 use treachery_view::schema::GameView;

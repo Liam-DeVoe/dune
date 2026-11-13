@@ -7,10 +7,10 @@
 //! `boundary.rs::null_receivers_throw_null_reference`.
 
 use treachery_engine::canon::dump_detached;
-use treachery_engine::cs::{self, CsNull, OrNull};
-use treachery_engine::expression::ExpressionElement;
+use treachery_engine::compat::cs::{self, CsNull, OrNull};
+use treachery_engine::messages::expression::ExpressionElement;
 use treachery_engine::prelude::*;
-use treachery_engine::player::PlayerIndex;
+use treachery_engine::game::PlayerIndex;
 
 fn err(f: impl FnOnce()) -> String {
     match cs::catch(f) {

@@ -6,18 +6,18 @@ use std::io::{BufRead, BufReader, Read};
 use std::path::Path;
 
 use serde_json::Value;
-use treachery_engine::cs::{self, CsException};
+use treachery_engine::compat::cs::{self, CsException};
 use treachery_engine::enumerations::*;
-use treachery_engine::expression::{EnumValue, ExpressionElement};
-use treachery_engine::i_fetcher::IFetcher;
-use treachery_engine::i_hero::Hero;
-use treachery_engine::leader_manager::LeaderManager;
-use treachery_engine::location::Location;
-use treachery_engine::message::BattleFactKind;
-use treachery_engine::payment::Payment;
-use treachery_engine::resource_card::ResourceCard;
-use treachery_engine::territory::Territory;
-use treachery_engine::treachery_card_manager::TreacheryCardManager;
+use treachery_engine::messages::expression::{EnumValue, ExpressionElement};
+use treachery_engine::identity::IFetcher;
+use treachery_engine::heroes::hero::Hero;
+use treachery_engine::heroes::leader_manager::LeaderManager;
+use treachery_engine::map::location::Location;
+use treachery_engine::messages::message::BattleFactKind;
+use treachery_engine::messages::payment::Payment;
+use treachery_engine::cards::resource_card::ResourceCard;
+use treachery_engine::map::territory::Territory;
+use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
 
 /// The lines of a (possibly gzipped) JSON lines file.
 pub fn read_lines(path: &Path) -> Vec<String> {
@@ -86,7 +86,7 @@ pub fn element(tok: &Value) -> ExpressionElement {
 }
 
 /// The enum value of a token, as `T`.
-pub fn enum_arg<T: treachery_engine::net_enum::NetEnum>(tok: &Value) -> T {
+pub fn enum_arg<T: treachery_engine::compat::net_enum::NetEnum>(tok: &Value) -> T {
     match element(tok) {
         ExpressionElement::Enum(e) => e.get::<T>().unwrap_or_else(|| panic!("{tok} is not a {}", T::INFO.name)),
         _ => panic!("{tok} is not an enum"),

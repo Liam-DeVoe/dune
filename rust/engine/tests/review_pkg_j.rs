@@ -16,17 +16,17 @@
 //! `push(card.or_null())` (`events/richese_gave_card.rs:69`).
 
 use treachery_engine::canon;
-use treachery_engine::cs;
+use treachery_engine::compat::cs;
 use treachery_engine::enumerations::{Faction, MainPhase, Phase};
-use treachery_engine::events::choam_discarded::ChoamDiscarded;
-use treachery_engine::events::karma::Karma;
-use treachery_engine::events::nexus_played::NexusPlayed;
+use treachery_engine::events::ChoamDiscarded;
+use treachery_engine::events::Karma;
+use treachery_engine::events::NexusPlayed;
 use treachery_engine::events::GameEvent;
 use treachery_engine::game::Game;
 use treachery_engine::json;
-use treachery_engine::participation::Participation;
-use treachery_engine::treachery_card::TreacheryCard;
-use treachery_engine::treachery_card_manager::TreacheryCardManager;
+use treachery_engine::game::Participation;
+use treachery_engine::cards::treachery_card::TreacheryCard;
+use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
 
 // ReviewA.Establish with AllowedFactionsInPlay [Choam, Atreides, Richese] (same text as ReviewJ.cs).
 const ESTABLISH: &str = r#"{"$type":"EstablishPlayers","Settings":{"NumberOfPlayers":3,"MaximumTurns":8,"InitialRules":[301,300,65,60,20,1013,15,700,105,80,85,604,90,998,30,701,40,107,10,70,50,25,209,999,112],"AllowedFactionsInPlay":[90,20,100],"AutoOpenEmptySeats":true,"AsyncPlay":false,"AsyncPlayMessageIntervalMinutes":0},"Seed":1073548723,"MaximumNumberOfPlayers":3,"MaximumTurns":8,"ApplicableRules":[301,300,65,60,20,1013,15,700,105,80,85,604,90,998,30,701,40,107,10,70,50,25,209,999,112],"_players":"","_factionsInPlay":"Choam,Atreides,Richese","Initiator":0,"Time":"2024-01-01T12:02:17+00:00"}"#;

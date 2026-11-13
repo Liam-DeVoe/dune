@@ -2,8 +2,8 @@
 //! (`NoteComponent.razor`) and which hand cards can be played now (`CardPlays.cs`).
 
 use treachery_engine::events::GameEventType;
-use treachery_engine::i_hero::Hero;
-use treachery_engine::i_identifiable::IIdentifiable;
+use treachery_engine::heroes::hero::Hero;
+use treachery_engine::identity::IIdentifiable;
 use treachery_engine::prelude::*;
 
 use crate::schema::*;

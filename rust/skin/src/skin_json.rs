@@ -12,10 +12,10 @@
 //! messages are not .NET's; only the exception type is.
 
 use serde_json::Value;
-use treachery_engine::cs::CsException;
+use treachery_engine::compat::cs::CsException;
 use treachery_engine::json::write_escaped;
-use treachery_engine::net_enum::NetEnum;
-use treachery_engine::point::PointD;
+use treachery_engine::compat::net_enum::NetEnum;
+use treachery_engine::map::point::PointD;
 
 use crate::skin::{Skin, SkinDictionary, SkinKey};
 
@@ -378,7 +378,7 @@ fn fix(to_fix: &mut Skin, donor: &Skin, states: &[(&str, ReadState)]) -> Result<
                 if *state == ReadState::Null && !d_keys.is_empty() {
                     return Err(CsException {
                         type_name: "NullReferenceException",
-                        message: treachery_engine::cs::NULL_REFERENCE_MESSAGE.into(),
+                        message: treachery_engine::compat::cs::NULL_REFERENCE_MESSAGE.into(),
                     });
                 }
                 if d_keys.iter().any(|k| !t_keys.contains(k)) {

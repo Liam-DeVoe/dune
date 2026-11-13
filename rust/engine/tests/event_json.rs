@@ -11,7 +11,7 @@
 //! renamed). Rust must throw the exception .NET throws, message included.
 
 use treachery_engine::events::GameEvent;
-use treachery_engine::game_state::GameState;
+use treachery_engine::game::GameState;
 use treachery_engine::json;
 
 #[derive(serde::Deserialize)]
@@ -64,14 +64,14 @@ struct ErrorCase {
 
 #[test]
 fn unknown_event_types_fail_like_dotnet() {
-    use treachery_engine::utilities::Utilities;
+    use treachery_engine::json::utilities::Utilities;
     let text = include_str!("golden/event_errors.jsonl");
     let mut count = 0;
     for line in text.lines() {
         let case: ErrorCase = serde_json::from_str(line).unwrap();
         count += 1;
         // The paths the C# server and Rust engine read savegames and events through.
-        let caught = treachery_engine::cs::catch(|| match case.kind.as_str() {
+        let caught = treachery_engine::compat::cs::catch(|| match case.kind.as_str() {
             "state" => drop(GameState::load(&case.json)),
             "event" => drop(Utilities::deserialize::<GameEvent>(&case.json)),
             k => panic!("unknown kind {k}"),

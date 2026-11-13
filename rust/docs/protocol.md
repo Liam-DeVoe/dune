@@ -54,7 +54,7 @@ Ordering:
 
 ## Encoding
 
-Payloads have member names in PascalCase and enums as numbers. Events and game settings are in the savegame format the engine reads and writes (`engine/src/json.rs`); events submitted with `SubmitEvent` must be in this format.
+Payloads have member names in PascalCase and enums as numbers. Events and game settings are in the savegame format the engine reads and writes (`engine/src/json/mod.rs`); events submitted with `SubmitEvent` must be in this format.
 
 | Type | JSON |
 |---|---|

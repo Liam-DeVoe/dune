@@ -6,8 +6,8 @@
 
 use std::rc::Rc;
 
-use treachery_engine::cs;
-use treachery_engine::game_status::GameStatus;
+use treachery_engine::compat::cs;
+use treachery_engine::game::GameStatus;
 use treachery_engine::prelude::*;
 
 use crate::actions;

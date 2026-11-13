@@ -4,7 +4,7 @@ How C# constructs in `Shared` map to Rust in `rust/engine`. Read [PORTING.md](..
 
 ## Modules and names
 
-- One module per C# file, snake_case: `Model/TreacheryCard.cs` becomes `src/treachery_card.rs`, `IHero.cs` becomes `i_hero.rs`. `Events/X.cs` goes in `src/events/`, `Model/Log/X.cs` in `src/log/`, everything else in `src/`. The `Game` partials are `game.rs`, `game_battle.rs` and so on, each with its own `impl Game` block; the `Game` struct with all its fields is in `game.rs`, grouped by the partial that declares them.
+- One module per C# file, snake_case: `Model/TreacheryCard.cs` becomes `src/cards/treachery_card.rs`, `IHero.cs` becomes `i_hero.rs`. `Events/X.cs` goes in `src/events/`, `Model/Log/X.cs` in `src/log/`, everything else in `src/`. The `Game` partials are `game.rs`, `game_battle.rs` and so on, each with its own `impl Game` block; the `Game` struct with all its fields is in `game.rs`, grouped by the partial that declares them.
 - Members keep their C# names in snake_case and their C# order. Properties become methods: `card.IsWeapon` is `card.is_weapon()`.
 - A name that is a Rust keyword gets a trailing underscore: `card.Type` is `card.type_()`.
 - Support modules have no C# counterpart. `cs.rs` holds exceptions, the throwing LINQ operators, `Shared<T>` and `RcKey<T>`. `net_enum.rs` defines how enums work. `date_time_offset.rs` is `DateTimeOffset`/`TimeSpan`, `json.rs` and `json_members.rs` are the event JSON, and `prelude.rs` is the common import.

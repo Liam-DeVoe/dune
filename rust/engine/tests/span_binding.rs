@@ -83,7 +83,7 @@ fn every_span_site_is_classified() {
 fn every_stored_event_collection_is_classified() {
     let (sites, rows) =
         check_rows("tests/coverage/stored_event_collections.txt", "Event collections stored in game state", &["nullable", "never-null", "not-state"]);
-    let game = read("src/game.rs");
+    let game = read("src/game/mod.rs");
     for (key, cols) in &sites {
         if rows[key][0] != "nullable" {
             continue;

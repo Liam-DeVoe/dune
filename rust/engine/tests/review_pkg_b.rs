@@ -10,8 +10,8 @@
 //! compares the player state after every operation. `determine_first_player_matches_csharp`
 //! checks `PlayerSequence.DetermineFirstPlayer` over storm sectors and player counts.
 
-use treachery_engine::cs;
-use treachery_engine::participation::Participation;
+use treachery_engine::compat::cs;
+use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
 
 const GOLDEN: &str = include_str!("review_pkg_b/probes.txt");
@@ -39,7 +39,7 @@ impl Rng {
 const FACTIONS: [Faction; 6] = [Faction::Emperor, Faction::BeneGesserit, Faction::Richese, Faction::Fremen, Faction::Ixian, Faction::Choam];
 
 fn new_game(version: i32) -> Game {
-    let mut g = Game::new_int32_participation(version, &treachery_engine::cs::Shared::new(Participation::new()));
+    let mut g = Game::new_int32_participation(version, &treachery_engine::compat::cs::Shared::new(Participation::new()));
     g.rules.push(Rule::Homeworlds);
     g.rules.push(Rule::EmperorSpecialForces);
     g.rules.push(Rule::FremenSpecialForces);
@@ -179,7 +179,7 @@ fn rust_lines() -> Vec<String> {
 
     for players in 1..=12 {
         for sector in -2..=19 {
-            let mut g = Game::new_int32_participation(Game::LATEST_VERSION, &treachery_engine::cs::Shared::new(Participation::new()));
+            let mut g = Game::new_int32_participation(Game::LATEST_VERSION, &treachery_engine::compat::cs::Shared::new(Participation::new()));
             g.settings.as_ref().unwrap().borrow_mut().number_of_players = players;
             for i in 0..players {
                 if i % 3 == 1 {
@@ -261,7 +261,7 @@ fn sequence_lines() -> Vec<String> {
     for version in [Game::LATEST_VERSION] {
         for seed in 1u32..=150 {
             let mut r = Rng::new(seed.wrapping_mul(40503).wrapping_add(7));
-            let mut g = Game::new_int32_participation(version, &treachery_engine::cs::Shared::new(Participation::new()));
+            let mut g = Game::new_int32_participation(version, &treachery_engine::compat::cs::Shared::new(Participation::new()));
             let count = 1 + r.below(6);
             let np = (count + r.below(2)) as i32;
             g.settings.as_ref().unwrap().borrow_mut().number_of_players = np;

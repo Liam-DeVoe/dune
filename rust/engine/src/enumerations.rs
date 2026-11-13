@@ -4,7 +4,7 @@
 //! reflection dump; do not edit them by hand. See net_enum.rs for what a C#
 //! enum becomes in Rust and why. The hand-written part is at the bottom.
 
-use crate::net_enum::{net_enum, NetEnum};
+use crate::compat::net_enum::{net_enum, NetEnum};
 
 net_enum! {
     /// C# `Faction`
@@ -1035,7 +1035,7 @@ impl Faction {
             Faction::Richese => Nexus::Richese,
             Faction::Ecaz => Nexus::Ecaz,
             Faction::Moritani => Nexus::Moritani,
-            _ => crate::cs::argument_out_of_range_actual("faction", &self.to_string()),
+            _ => crate::compat::cs::argument_out_of_range_actual("faction", &self.to_string()),
         }
     }
 }
@@ -1057,7 +1057,7 @@ impl Nexus {
             Nexus::Richese => Faction::Richese,
             Nexus::Ecaz => Faction::Ecaz,
             Nexus::Moritani => Faction::Moritani,
-            _ => crate::cs::argument_out_of_range_actual("nexus", &self.to_string()),
+            _ => crate::compat::cs::argument_out_of_range_actual("nexus", &self.to_string()),
         }
     }
 }

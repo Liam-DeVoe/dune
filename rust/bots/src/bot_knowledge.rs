@@ -3,7 +3,7 @@
 use crate::prelude::*;
 use dotnet_compat::linq::sum_f32;
 use dotnet_compat::math::cmp_f32;
-use treachery_engine::player_sequence::PlayerSequence;
+use treachery_engine::game::PlayerSequence;
 
 /// `game.KnownCards(player).Contains(c)` inside a LINQ lambda. C# calls `KnownCards` again for
 /// every element that reaches the lambda. It is pure, so it is computed once, but only when the

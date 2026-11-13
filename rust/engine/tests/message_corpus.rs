@@ -16,17 +16,17 @@ mod common;
 
 use common::*;
 use serde_json::{json, Value};
-use treachery_engine::cs::{self, CsException};
+use treachery_engine::compat::cs::{self, CsException};
 use treachery_engine::enumerations::Faction;
-use treachery_engine::expression::{EnumValue, ExpressionElement as E};
-use treachery_engine::i_hero::Hero;
-use treachery_engine::leader::Leader;
-use treachery_engine::location::Location;
+use treachery_engine::messages::expression::{EnumValue, ExpressionElement as E};
+use treachery_engine::heroes::hero::Hero;
+use treachery_engine::heroes::leader::Leader;
+use treachery_engine::map::location::Location;
 use treachery_engine::map::Map;
-use treachery_engine::message::{Message, MessagePart};
-use treachery_engine::payment::Payment;
-use treachery_engine::territory::Territory;
-use treachery_engine::treachery_card::TreacheryCard;
+use treachery_engine::messages::message::{Message, MessagePart};
+use treachery_engine::messages::payment::Payment;
+use treachery_engine::map::territory::Territory;
+use treachery_engine::cards::treachery_card::TreacheryCard;
 use treachery_engine::{express, express_part, express_to};
 
 fn items(v: &Value) -> &Vec<Value> {

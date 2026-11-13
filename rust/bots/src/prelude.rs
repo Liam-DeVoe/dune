@@ -3,9 +3,9 @@
 pub use treachery_engine::prelude::*;
 pub use treachery_engine::events::GameEventType;
 pub use treachery_engine::game::Game;
-pub use treachery_engine::player::{Player, PlayerIndex};
-pub use treachery_engine::object_counter::ObjectCounter;
-pub use treachery_engine::extension_methods::RandomExt;
+pub use treachery_engine::game::{Player, PlayerIndex};
+pub use treachery_engine::game::ObjectCounter;
+pub use treachery_engine::compat::random_ext::RandomExt;
 
 pub use crate::bot::ClassicBot;
 pub use crate::bot_parameters::BotParameters;

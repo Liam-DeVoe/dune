@@ -13,11 +13,11 @@ use std::collections::BTreeMap;
 use std::panic::{self, AssertUnwindSafe};
 
 use serde_json::{Map, Value};
-use treachery_engine::cs;
+use treachery_engine::compat::cs;
 use treachery_engine::events::{GameEvent, GameEventType};
 use treachery_engine::game::Game;
 use treachery_engine::json;
-use treachery_engine::participation::Participation;
+use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
 use treachery_view::build::ResolvedViewer;
 

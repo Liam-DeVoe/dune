@@ -9,14 +9,14 @@ mod common;
 
 use common::*;
 use serde_json::Value;
-use treachery_engine::cs::Shared;
-use treachery_engine::expression::ExpressionElement;
+use treachery_engine::compat::cs::Shared;
+use treachery_engine::messages::expression::ExpressionElement;
 use treachery_engine::game::Game;
-use treachery_engine::i_hero::Hero;
-use treachery_engine::location::Location;
+use treachery_engine::heroes::hero::Hero;
+use treachery_engine::map::location::Location;
 use treachery_engine::map::Map;
-use treachery_engine::participation::Participation;
-use treachery_engine::point::PointD;
+use treachery_engine::game::Participation;
+use treachery_engine::map::point::PointD;
 use treachery_skin::default_skin;
 
 fn p(p: PointD) -> String {

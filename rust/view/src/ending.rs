@@ -12,9 +12,9 @@
 
 use serde::{Deserialize, Serialize};
 use treachery_engine::events::GameEvent;
-use treachery_engine::expression::ExpressionElement;
-use treachery_engine::i_hero::Hero;
-use treachery_engine::i_identifiable::IIdentifiable;
+use treachery_engine::messages::expression::ExpressionElement;
+use treachery_engine::heroes::hero::Hero;
+use treachery_engine::identity::IIdentifiable;
 use treachery_engine::prelude::*;
 use ts_rs::TS;
 
@@ -524,7 +524,7 @@ fn table(g: &Game, finished: &Game, hidden: &dyn Fn(Faction) -> bool, mut column
 }
 
 /// One row of `StoryBattleComponent`.
-fn plan(g: &Game, b: &treachery_engine::events::battle::Battle, opponent: Faction, advanced: bool) -> StoryPlan {
+fn plan(g: &Game, b: &treachery_engine::events::Battle, opponent: Faction, advanced: bool) -> StoryPlan {
     StoryPlan {
         faction: name(b.initiator()),
         winner: g.battle_winner == Some(b.initiator()),

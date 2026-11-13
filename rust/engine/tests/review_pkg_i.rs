@@ -12,14 +12,14 @@
 
 use serde_json::Value;
 use treachery_engine::canon::{self, Canon};
-use treachery_engine::cs::{self, Shared};
+use treachery_engine::compat::cs::{self, Shared};
 use treachery_engine::enumerations::Faction;
 use treachery_engine::events::game_event::GameEventMethods;
 use treachery_engine::events::GameEvent;
 use treachery_engine::game::Game;
 use treachery_engine::json;
-use treachery_engine::participation::Participation;
-use treachery_engine::treachery_card_manager::TreacheryCardManager;
+use treachery_engine::game::Participation;
+use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
 
 fn steps() -> Vec<Value> {
     let path = format!("{}/tests/review_pkg_i/bots42.jsonl", env!("CARGO_MANIFEST_DIR"));
@@ -65,7 +65,7 @@ fn hook(g: &mut Game, what: &str) {
     } else if let Some(rest) = what.strip_prefix("givenull:") {
         let f = Faction(rest.parse().unwrap());
         let p = g.get_player(Some(f)).unwrap();
-        g.player_mut(p).treachery_cards.push(treachery_engine::treachery_card::TreacheryCard::NULL);
+        g.player_mut(p).treachery_cards.push(treachery_engine::cards::treachery_card::TreacheryCard::NULL);
     } else if let Some(rest) = what.strip_prefix("rule:") {
         g.rules.push(treachery_engine::enumerations::Rule(rest.parse().unwrap()));
     } else if let Some(rest) = what.strip_prefix("faction:") {

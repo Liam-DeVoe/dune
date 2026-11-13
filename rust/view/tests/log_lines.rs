@@ -25,8 +25,8 @@ use std::io::BufRead;
 use std::path::PathBuf;
 
 use serde_json::Value;
-use treachery_engine::cs::Shared;
-use treachery_engine::participation::Participation;
+use treachery_engine::compat::cs::Shared;
+use treachery_engine::game::Participation;
 use treachery_view::describe::InGame;
 use treachery_view::log::{log_line, NESTED_RECORD_TYPES, RECORD_TYPES};
 use treachery_view::replica::ViewReplica;
@@ -68,7 +68,7 @@ fn log_lines_match_csharp() {
         let d = InGame::new(&skin, &replica.game);
         let expected: Vec<&Value> = golden.iter().filter(|g| g["fixture"] == fixture).collect();
         let reports = replica.game.reports();
-        let messages: Vec<(usize, usize, &treachery_engine::message::Message)> =
+        let messages: Vec<(usize, usize, &treachery_engine::messages::message::Message)> =
             reports.iter().enumerate().flat_map(|(r, rep)| rep.messages.iter().enumerate().map(move |(i, m)| (r, i, m))).collect();
         assert_eq!(messages.len(), expected.len(), "{fixture}: number of messages");
         for ((r, i, m), g) in messages.into_iter().zip(expected) {
@@ -84,7 +84,7 @@ fn log_lines_match_csharp() {
 }
 
 /// The differences between the view's line for `m` and the golden line `g`, if any.
-fn compare(m: &treachery_engine::message::Message, d: &InGame, g: &Value) -> Option<String> {
+fn compare(m: &treachery_engine::messages::message::Message, d: &InGame, g: &Value) -> Option<String> {
     let line = serde_json::to_value(log_line(m, d)).unwrap();
     let mut diffs = Vec::new();
     for key in ["text", "heading", "record", "route", "plans", "fact"] {

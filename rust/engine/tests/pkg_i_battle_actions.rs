@@ -2,7 +2,7 @@
 //! Thought, Diplomacy, audits, face dancers, Juice, Residual, ...). They build
 //! small game states by hand and check rules whose C# behaviour is easy to get wrong.
 
-use treachery_engine::cs;
+use treachery_engine::compat::cs;
 use treachery_engine::events::GameEventMethods;
 use treachery_engine::prelude::*;
 

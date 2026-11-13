@@ -3,7 +3,7 @@
 use crate::prelude::*;
 use dotnet_compat::linq::sum_i32;
 use std::cell::OnceCell;
-use treachery_engine::lazy::LazyQuery;
+use treachery_engine::compat::lazy::LazyQuery;
 
 /// `Player.AnyForcesIn(Territory)`.
 fn any_forces_in_t(game: &Game, p: PlayerIndex, t: Territory) -> i32 {

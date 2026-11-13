@@ -43,34 +43,24 @@ pub fn list_sort_by<T>(items: &mut [T], mut cmp: impl FnMut(&T, &T) -> Ordering)
     let n = items.len();
     if n > 1 {
         let depth_limit = 2 * ((usize::BITS - 1 - n.leading_zeros()) as i32 + 1);
-        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            intro_sort(items, depth_limit, &mut cmp);
-        }));
-        if let Err(payload) = result {
-            if payload.downcast_ref::<RanOffTheEnd>().is_some() {
-                let full = std::any::type_name::<T>();
-                let short = full.rsplit("::").next().unwrap_or(full);
-                throw(
-                    "ArgumentException",
-                    format!(
-                        "Unable to sort because the IComparer.Compare() method returns inconsistent results. \
-                         Either a value does not compare equal to itself, or one value repeatedly compared to another \
-                         value yields different results. IComparer: 'System.Comparison`1[{short}]'."
-                    ),
-                );
-            }
-            std::panic::resume_unwind(payload);
+        if intro_sort(items, depth_limit, &mut cmp).is_err() {
+            let full = std::any::type_name::<T>();
+            let short = full.rsplit("::").next().unwrap_or(full);
+            throw(
+                "ArgumentException",
+                format!(
+                    "Unable to sort because the IComparer.Compare() method returns inconsistent results. \
+                     Either a value does not compare equal to itself, or one value repeatedly compared to another \
+                     value yields different results. IComparer: 'System.Comparison`1[{short}]'."
+                ),
+            );
         }
     }
 }
 
-/// Internal panic payload: the partition loop left the slice (.NET's
-/// IndexOutOfRangeException inside ArraySortHelper).
+/// The partition loop left the slice (.NET's IndexOutOfRangeException inside
+/// ArraySortHelper), which only an inconsistent comparer can cause.
 struct RanOffTheEnd;
-
-fn ran_off_the_end() -> ! {
-    std::panic::resume_unwind(Box::new(RanOffTheEnd))
-}
 
 /// `List<T>.Sort()` / `Array.Sort(T[])` with the default comparer, for `T`
 /// implementing `IComparable<T>` (`GenericArraySortHelper<T>`). That helper
@@ -91,32 +81,37 @@ pub fn list_sort_by_int<T>(items: &mut [T], mut cmp: impl FnMut(&T, &T) -> i32) 
     list_sort_by(items, |a, b| cmp(a, b).cmp(&0));
 }
 
-fn intro_sort<T, F: FnMut(&T, &T) -> Ordering>(keys: &mut [T], mut depth_limit: i32, cmp: &mut F) {
+fn intro_sort<T, F: FnMut(&T, &T) -> Ordering>(
+    keys: &mut [T],
+    mut depth_limit: i32,
+    cmp: &mut F,
+) -> Result<(), RanOffTheEnd> {
     let mut partition_size = keys.len();
     while partition_size > 1 {
         if partition_size <= INTROSORT_SIZE_THRESHOLD {
             if partition_size == 2 {
                 swap_if_greater(keys, cmp, 0, 1);
-                return;
+                return Ok(());
             }
             if partition_size == 3 {
                 swap_if_greater(keys, cmp, 0, 1);
                 swap_if_greater(keys, cmp, 0, 2);
                 swap_if_greater(keys, cmp, 1, 2);
-                return;
+                return Ok(());
             }
             insertion_sort(&mut keys[..partition_size], cmp);
-            return;
+            return Ok(());
         }
         if depth_limit == 0 {
             heap_sort(&mut keys[..partition_size], cmp);
-            return;
+            return Ok(());
         }
         depth_limit -= 1;
-        let p = pick_pivot_and_partition(&mut keys[..partition_size], cmp);
-        intro_sort(&mut keys[p + 1..partition_size], depth_limit, cmp);
+        let p = pick_pivot_and_partition(&mut keys[..partition_size], cmp)?;
+        intro_sort(&mut keys[p + 1..partition_size], depth_limit, cmp)?;
         partition_size = p;
     }
+    Ok(())
 }
 
 fn swap_if_greater<T, F: FnMut(&T, &T) -> Ordering>(keys: &mut [T], cmp: &mut F, i: usize, j: usize) {
@@ -125,7 +120,7 @@ fn swap_if_greater<T, F: FnMut(&T, &T) -> Ordering>(keys: &mut [T], cmp: &mut F,
     }
 }
 
-fn pick_pivot_and_partition<T, F: FnMut(&T, &T) -> Ordering>(keys: &mut [T], cmp: &mut F) -> usize {
+fn pick_pivot_and_partition<T, F: FnMut(&T, &T) -> Ordering>(keys: &mut [T], cmp: &mut F) -> Result<usize, RanOffTheEnd> {
     let hi = keys.len() - 1;
     let middle = hi >> 1;
     swap_if_greater(keys, cmp, 0, middle);
@@ -142,7 +137,7 @@ fn pick_pivot_and_partition<T, F: FnMut(&T, &T) -> Ordering>(keys: &mut [T], cmp
         loop {
             left += 1;
             if left >= keys.len() {
-                ran_off_the_end();
+                return Err(RanOffTheEnd);
             }
             if cmp(&keys[left], &keys[pivot]) != Ordering::Less {
                 break;
@@ -150,7 +145,7 @@ fn pick_pivot_and_partition<T, F: FnMut(&T, &T) -> Ordering>(keys: &mut [T], cmp
         }
         loop {
             if right == 0 {
-                ran_off_the_end();
+                return Err(RanOffTheEnd);
             }
             right -= 1;
             if cmp(&keys[pivot], &keys[right]) != Ordering::Less {
@@ -165,7 +160,7 @@ fn pick_pivot_and_partition<T, F: FnMut(&T, &T) -> Ordering>(keys: &mut [T], cmp
     if left != hi - 1 {
         keys.swap(left, hi - 1);
     }
-    left
+    Ok(left)
 }
 
 fn heap_sort<T, F: FnMut(&T, &T) -> Ordering>(keys: &mut [T], cmp: &mut F) {

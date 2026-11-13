@@ -362,7 +362,7 @@ Inside a function that returns `GameResult`, a value that must be there is `.req
 Everything else that can't happen in a valid game panics. The helpers from the C# port (`nre()`, `nn()`, `cs_first`, `cs::index`, `NetDictionary::index`, ...) still panic with the .NET exception's type and message (`"NullReferenceException: ..."`), and other invariants use `panic!` or `expect`. Nothing in the engine catches a panic. The crash barriers are outside it:
 
 - the server catches a call or timer that panics, reports it and keeps the game (`server/src/server/mod.rs`), and builds each view inside `catch_unwind` (`server/src/views.rs`);
-- a bot decision that panics is logged and counts as no decision (`ClassicBot::do_` in `bots/src/bot/mod.rs`);
+- a bot decision that panics counts as no decision (`ClassicBot::try_decide` in `bots/src/bot/mod.rs`), as C#'s `Bot.Do` catches every exception. The clairvoyance answer does the same for the question it can't work out (`determine_clair_voyance_answered`), as `Bot_Other.cs` does;
 - the view validates and builds forms for drafts, which may be missing values the engine expects, inside `treachery_view::build::draft_check` ("Validation failed").
 
 Savegames that can't be read are errors too: `GameState::load` returns `Result<GameState, JsonError>` and `Game::load` returns `Result<Game, Message>`.

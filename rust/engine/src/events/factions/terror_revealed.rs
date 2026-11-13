@@ -246,8 +246,6 @@ impl TerrorRevealed {
                 }
 
                 TerrorType::Atomics => {
-                    // A null territory (no LastTerrorTrigger): KillAllForcesIn finds no forces,
-                    // then KillAmbassadorIn throws ArgumentNullException (GetValueOrDefault(null)).
                     game.kill_all_forces_in(territory.required("territory")?, false);
                     game.kill_ambassador_in(territory.required("territory")?);
                     game.atomics_aftermath = territory;

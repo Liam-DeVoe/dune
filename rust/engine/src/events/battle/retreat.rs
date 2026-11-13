@@ -102,8 +102,6 @@ impl Retreat {
                 break;
             }
             let to_move_from_here = std::cmp::min(forces_to_move, game.player(me).forces_in(Some(l)));
-            // A null Location (only without validation): MoveForces empties `l`, then throws
-            // ArgumentNullException on the null key.
             let to = self.location(game).required("location")?;
             Player::move_forces(game, me, l, to, to_move_from_here);
             forces_to_move -= to_move_from_here;

@@ -281,7 +281,6 @@ impl Game {
             let p = check_win_sequence.current_player(self);
 
             let contested = self.applicable(Rule::ContestedStongholdsCountAsOccupied);
-            // A null CurrentPlayer throws a NullReferenceException inside MeetsNormalVictoryCondition.
             let p = p.expect("player");
             if self.meets_normal_victory_condition(p, contested) {
                 self.win_method = WinMethod::Strongholds;

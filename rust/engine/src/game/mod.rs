@@ -753,7 +753,7 @@ impl Game {
 
         result.recently_undone_event_count = history_count - max_event_nr;
         for i in max_event_nr..history_count {
-            // A negative untilEventNr throws ArgumentOutOfRangeException here.
+            // A negative event number panics here.
             result.recently_undone_events.push(history[i as usize].clone());
         }
 

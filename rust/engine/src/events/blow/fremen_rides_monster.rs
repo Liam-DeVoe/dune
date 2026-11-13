@@ -209,8 +209,6 @@ impl FremenRidesMonster {
             game.last_shipment_or_movement = Some(self.clone().into_event());
             for (from, value) in self.force_locations(game).iter() {
                 let from = *from;
-                // C# passes To (possibly null) into MoveForces, which removes the forces from
-                // `from` and then throws ArgumentNullException on the null key.
                 let ini = initiator.required("initiator")?;
                 let to = self.to(game).required("to")?;
                 Player::move_forces(game, ini, from, to, value.amount_of_forces);

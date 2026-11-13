@@ -7,7 +7,6 @@ impl Game {
         }
 
         self.player_mut(player).most_recently_revived_leader = leader;
-        // SkillDeck!.Shuffle(): the `!` does not throw, the call does (NullReferenceException).
         self.skill_deck.as_mut().expect("skill deck").shuffle();
         self.stone(Milestone::Shuffled);
         let skill = self.skill_deck.as_mut().expect("skill deck").draw();

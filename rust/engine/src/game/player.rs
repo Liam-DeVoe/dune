@@ -749,7 +749,6 @@ impl Player {
     }
 
     pub fn ally_is_bot(&self, game: &Game) -> bool {
-        // Game.IsBot(null) throws NullReferenceException.
         self.has_ally() && game.is_bot(self.allied_player(game).expect("allied player"))
     }
 

@@ -681,7 +681,7 @@ impl GameStatus {
     pub fn ally(g: &Game, f: Faction) -> MessagePart {
         let player = g.get_player(Some(f));
         let cond = player.is_some_and(|p| g.player(p).has_ally());
-        // `player!.Ally` is evaluated even when the condition is false: NullReferenceException when absent.
+        // C# parity: the ally is read even when the condition is false, so a missing player panics.
         express_part_if!(cond; g.player(player.expect("player")).ally)
     }
 

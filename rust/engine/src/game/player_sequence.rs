@@ -78,7 +78,7 @@ impl PlayerSequence {
         !self.skip_players_that_cant_bid_on_cards || game.player(p).has_room_for_cards(game)
     }
 
-    /// `MayGetTurn(p)` where `p` may be null: `p.HasRoomForCards` throws NullReferenceException.
+    /// `may_get_turn` for a player that may be missing: panics for a missing player when it matters.
     fn may_get_turn_opt(&self, game: &Game, p: Option<PlayerIndex>) -> bool {
         !self.skip_players_that_cant_bid_on_cards || game.player(p.expect("player")).has_room_for_cards(game)
     }

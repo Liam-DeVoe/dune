@@ -52,8 +52,6 @@ impl PerformHmsPlacement {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        // A null Target (only without validation): PointAt removes the HMS from its old host,
-        // then throws NullReferenceException on `newLocation.Neighbours`: the event fails there.
         let target = self.target(game).required("target")?;
         let hms = game.map.hidden_mobile_stronghold();
         hms.point_at(&mut game.map, target);

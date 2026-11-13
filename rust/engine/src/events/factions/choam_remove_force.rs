@@ -120,8 +120,6 @@ impl ChoamRemoveForce {
 
         let target = self.get_player(game, Some(self.target));
 
-        // A null Location (only without validation): C# adds the force to the reserves, then
-        // ChangeForces throws ArgumentNullException on the null key. The event fails there.
         let target = target.required("target")?;
         let location = self.location(game);
         if self.special_force {

@@ -35,6 +35,11 @@ Usage:
       (type, phase) pairs accepted, phases reached, types offered but never accepted.
   observe replay FILE... [--allow FILE] [-v]
       Replay trace files (.jsonl or .jsonl.gz).
+  observe refit IN OUT [--old FILE] [--seeds N] [--probes FILE]...
+      Carry a savegame, recorded trace or bot knowledge game over to an engine whose random draws
+      differ (see src/refit.rs). --old gives what the old engine saw: which events were valid,
+      and the phase and turn it ended in; --seeds N tries N seeds to end there. --probes rewrites
+      the step numbers of a bot probe file in place.
 
 Common options: --hang-seconds S (default 120): a call that runs longer counts as hung;
 --memory-mb M (default 640): the memory one game may use (0 = no limit).
@@ -120,6 +125,7 @@ fn main() -> ExitCode {
         "first" => cmd_first(&args),
         "replay" => cmd_replay(&args),
         "reach" => cmd_reach(&args),
+        "refit" => cmd_refit(&args),
         other => Err(format!("unknown command {other}\n\n{USAGE}")),
     };
     match result {
@@ -160,6 +166,40 @@ fn cmd_record(args: &Args) -> Result<bool, String> {
     }
     // A hung game's thread is still running; exit without waiting for it.
     std::process::exit(0);
+}
+
+fn cmd_refit(args: &Args) -> Result<bool, String> {
+    use observe::refit_files::{self, Old};
+    let [input, output] = &args.positional[..] else { return Err(format!("refit takes IN and OUT\n\n{USAGE}")) };
+    let (input, output) = (PathBuf::from(input), PathBuf::from(output));
+    // --old FILE: what the old engine saw (`{"legit": [bool per event], "phase": "...", "turn": n}`).
+    let old: Option<serde_json::Value> = match args.get("old") {
+        Some(f) => Some(serde_json::from_str(&std::fs::read_to_string(f).map_err(|e| format!("{f}: {e}"))?).map_err(|e| format!("{f}: {e}"))?),
+        None => None,
+    };
+    let target = old.as_ref().map(Old::from_json).unwrap_or_default();
+    let log = refit_files::read(&input, &target)?;
+    let (r, seed) = refit_files::refit_best(&log, &target, args.num("seeds", 1)?);
+    refit_files::write(&output, &log, &r)?;
+    let map = refit_files::step_map(&log, &r);
+    for p in args.flags.iter().filter(|(k, _)| k == "probes").filter_map(|(_, v)| v.as_ref()) {
+        refit_files::remap_probes(&PathBuf::from(p), &PathBuf::from(p), &map)?;
+    }
+    let s = &r.stats;
+    println!(
+        "{}: kept {} replaced {} added {} dropped {}; ends in {} turn {} (old: {} turn {}){}",
+        input.display(),
+        s.kept,
+        s.replaced,
+        s.added,
+        s.dropped,
+        r.game.current_phase,
+        r.game.current_turn,
+        target.end.phase.as_deref().unwrap_or("?"),
+        target.turn.map(|t| t.to_string()).unwrap_or("?".into()),
+        seed.map(|s| format!("; seed {s}")).unwrap_or_default()
+    );
+    Ok(true)
 }
 
 fn reference(args: &Args) -> Result<PathBuf, String> {

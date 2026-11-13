@@ -1,5 +1,3 @@
-//! Port of Model/Report.cs.
-
 use crate::enumerations::{Faction, MainPhase};
 use crate::messages::expression::ExpressionElement;
 use crate::messages::message::Message;

@@ -1,5 +1,3 @@
-//! Port of Model/TreacheryCard.cs.
-//!
 //! Cards are created once, in `TreacheryCardManager`, and compared by
 //! reference (the `Equals` override is commented out). A `TreacheryCard` is a
 //! `Copy` handle (index into the manager's table); handle equality is that

@@ -1,5 +1,3 @@
-//! Port of Model/AttachedLocation.cs.
-//!
 //! The hidden mobile stronghold and the discovered strongholds are locations
 //! that float: `PointAt` attaches them to a host location. Their mutable state
 //! (`AttachedToLocation`, `Game`) lives in [`Map`]; this is a handle.

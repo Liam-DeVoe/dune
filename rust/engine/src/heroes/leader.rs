@@ -1,5 +1,3 @@
-//! Port of Model/Leader.cs.
-//!
 //! C# leaders are created once, in `LeaderManager`, and compared by reference
 //! (the `Equals` override is commented out). A `Leader` here is a `Copy`
 //! handle (index into `LeaderManager`'s table); handle equality is that

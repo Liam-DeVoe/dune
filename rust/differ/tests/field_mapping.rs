@@ -211,7 +211,7 @@ fn csharp_field_types() -> BTreeMap<String, BTreeMap<String, String>> {
 #[test]
 fn reference_types_write_every_form_they_claim() {
     use treachery_engine::canon::{Canon, CanonShape};
-    use treachery_engine::compat::cs::{CsNull, Shared};
+    use treachery_engine::compat::cs::Shared;
     use treachery_engine::enumerations::Faction;
     use treachery_engine::game::{Game, GameRef};
     use treachery_engine::map::location::Location;

@@ -1,5 +1,3 @@
-//! Port of Model/Payment.cs.
-
 use crate::enumerations::Faction;
 use crate::events::GameEvent;
 

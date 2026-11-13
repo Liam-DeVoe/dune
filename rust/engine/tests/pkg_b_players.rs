@@ -190,7 +190,7 @@ fn determine_first_player_skips_empty_seats_and_throws() {
     g.settings.as_ref().unwrap().borrow_mut().number_of_players = 0;
     assert_eq!(exception_text(|| PlayerSequence::determine_first_player(&g)), "DivideByZeroException: Attempted to divide by zero.");
 
-    let mut g = game_with(&[]);
+    let g = game_with(&[]);
     g.settings.as_ref().unwrap().borrow_mut().number_of_players = 3;
     assert_eq!(exception_text(|| PlayerSequence::determine_first_player(&g)), "Exception: Could not determine the first player.");
 }

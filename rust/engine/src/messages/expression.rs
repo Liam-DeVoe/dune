@@ -1,5 +1,3 @@
-//! Port of Model/Expression.cs.
-//!
 //! A C# `Expression` is an `object?[]`: strings, numbers, enum values, game
 //! objects, nested messages and lists. Turning it into text is the client's
 //! job (`Skin.Describe`), so the engine stores the objects themselves.

@@ -1,5 +1,3 @@
-//! Port of Model/Homeworld.cs.
-
 use std::ops::Deref;
 
 use crate::enumerations::{Faction, World};

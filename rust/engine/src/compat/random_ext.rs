@@ -1,5 +1,3 @@
-//! Port of ExtensionMethods.cs.
-//!
 //! The engine only uses `RandomOrDefault(LoggedRandom)`. The bots also use
 //! the selector helpers. C# has two versions of each: one taking a
 //! `LoggedRandom` (ported here) and one using a private, unseeded static

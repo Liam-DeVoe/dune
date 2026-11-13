@@ -1,5 +1,3 @@
-//! Port of Model/Territory.cs.
-//!
 //! C# compares territories by reference. Each `Map` creates every territory
 //! exactly once, so within a game reference equality is id equality, which is
 //! what this `Copy` handle implements. Territory properties never change after

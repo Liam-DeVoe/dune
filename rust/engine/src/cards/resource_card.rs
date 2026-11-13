@@ -1,5 +1,3 @@
-//! Port of Model/ResourceCard.cs.
-//!
 //! C# builds resource cards in `Map.GetResourceCardsInAndOutsidePlay` and
 //! compares them by reference: the six Shai-Hulud cards are equal in every
 //! field yet distinct objects. A `ResourceCard` is a `Copy` handle holding the

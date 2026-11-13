@@ -1966,97 +1966,78 @@ impl GameEvent {
         dispatch!(self, e => GameEventMethods::player_opt(&**e))
     }
 
-    /// C#: `public abstract Message? Validate()`
     pub fn validate(&self, game: &Game) -> Option<Message> {
         dispatch!(self, e => GameEventMethods::validate(&**e, game))
     }
 
-    /// C#: `public bool IsValid`
     pub fn is_valid(&self, game: &Game) -> bool {
         dispatch!(self, e => GameEventMethods::is_valid(&**e, game))
     }
 
-    /// C#: `public bool IsApplicable(bool isHost)`
     pub fn is_applicable(&self, game: &mut Game, is_host: bool) -> bool {
         dispatch!(self, e => GameEventMethods::is_applicable(&**e, game, is_host))
     }
 
-    /// C#: `public void Initialize(Game game, Faction initiator)`
     pub fn initialize(&self, game: &Game, initiator: Faction) {
         dispatch!(self, e => GameEventMethods::initialize(&**e, game, initiator))
     }
 
-    /// C#: `public void Initialize(Game game)`
     pub fn initialize_game(&self, game: &Game) {
         dispatch!(self, e => GameEventMethods::initialize_game(&**e, game))
     }
 
-    /// C#: `public virtual Message? Execute(bool performValidation, bool isHost)`
     pub fn execute(&self, game: &mut Game, perform_validation: bool, is_host: bool) -> Option<Message> {
         dispatch!(self, e => GameEventMethods::execute(e, game, perform_validation, is_host))
     }
 
-    /// C#: `protected abstract void ExecuteConcreteEvent()`
     pub fn execute_concrete_event(&self, game: &mut Game) {
         dispatch!(self, e => GameEventMethods::execute_concrete_event(e, game))
     }
 
-    /// C#: `public virtual Message GetMessage()`
     pub fn get_message(&self, game: &Game) -> Message {
         dispatch!(self, e => GameEventMethods::get_message(&**e, game))
     }
 
-    /// C#: `public virtual Message GetShortMessage()`
     pub fn get_short_message(&self, game: &Game) -> Message {
         dispatch!(self, e => GameEventMethods::get_short_message(&**e, game))
     }
 
-    /// C#: `public bool By(Faction f)`
     pub fn by(&self, f: Faction) -> bool {
         dispatch!(self, e => GameEventMethods::by(&**e, f))
     }
 
-    /// C#: `public bool ByAllyOf(Faction f)`
     pub fn by_ally_of(&self, game: &Game, f: Faction) -> bool {
         dispatch!(self, e => GameEventMethods::by_ally_of(&**e, game, f))
     }
 
-    /// C#: `public bool By(Player p)`
     pub fn by_player(&self, game: &Game, p: PlayerIndex) -> bool {
         dispatch!(self, e => GameEventMethods::by_player(&**e, game, p))
     }
 
-    /// C#: `public GameEvent Clone()`
     pub fn cs_clone(&self) -> Option<GameEvent> {
         dispatch!(self, e => GameEventMethods::cs_clone(&**e))
     }
 
-    /// C#: `protected void Log()`
     pub fn log(&self, game: &mut Game) {
         dispatch!(self, e => GameEventMethods::log(&**e, game))
     }
 
-    /// C#: `protected void Log(params object?[] expression)`
     pub fn log_objects(&self, game: &mut Game, expression: Vec<ExpressionElement>) {
         dispatch!(self, e => GameEventMethods::log_objects(&**e, game, expression))
     }
 
-    /// C#: `protected void LogIf(bool condition, params object?[] expression)`
     pub fn log_if(&self, game: &mut Game, condition: bool, expression: Vec<ExpressionElement>) {
         dispatch!(self, e => GameEventMethods::log_if(&**e, game, condition, expression))
     }
 
-    /// C#: `protected void LogTo(Faction faction, params object?[] expression)`
     pub fn log_to(&self, game: &mut Game, faction: Faction, expression: Vec<ExpressionElement>) {
         dispatch!(self, e => GameEventMethods::log_to(&**e, game, faction, expression))
     }
 
-    /// C#: `protected Player? GetPlayer(Faction? f)`
     pub fn get_player(&self, game: &Game, f: Option<Faction>) -> Option<PlayerIndex> {
         dispatch!(self, e => GameEventMethods::get_player(&**e, game, f))
     }
 
-    /// C#: `protected bool IsPlaying(Faction f)`
     pub fn is_playing(&self, game: &Game, f: Faction) -> bool {
         dispatch!(self, e => GameEventMethods::is_playing(&**e, game, f))
     }
@@ -2335,4 +2316,3 @@ impl GameEvent {
     }
 
 }
-

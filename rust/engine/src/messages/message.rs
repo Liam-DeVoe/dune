@@ -1,6 +1,5 @@
-//! Port of Model/Message.cs: `Message`, `MessagePart`, and the records the
-//! client uses to draw messages (`Route`, `BattlePlans`, `PlanSummary`,
-//! `BattleFact`).
+//! `Message`, `MessagePart`, and the records the client uses to draw messages
+//! (`Route`, `BattlePlans`, `PlanSummary`, `BattleFact`).
 //!
 //! Build messages with the macros, which mirror the C# static methods:
 //!

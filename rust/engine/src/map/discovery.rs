@@ -1,5 +1,3 @@
-//! Port of Model/DiscoveryStronghold.cs (class `DiscoveredLocation`).
-
 use std::ops::Deref;
 
 use crate::map::attached_location::AttachedLocation;
@@ -58,19 +56,14 @@ impl From<DiscoveredLocation> for Location {
 
 use crate::prelude::*;
 
-/// C#: `public class Discovery` (Model/Discovery.cs:12)
 #[derive(Clone, Debug, Canon)]
 pub struct Discovery {
-    /// `public DiscoveryToken Token { get; private set; }` (Model/Discovery.cs:14)
     pub token: DiscoveryToken,
-    /// `public DiscoveryTokenType TokenType { get; private set; }` (Model/Discovery.cs:16)
     pub token_type: DiscoveryTokenType,
-    /// `public Location Location { get; private set; }` (Model/Discovery.cs:18)
     pub location: Location,
 }
 
 impl Discovery {
-    /// C#: `public Discovery(DiscoveryToken token, DiscoveryTokenType tokenType, Location location)` (Model/Discovery.cs:20)
     pub fn new(token: DiscoveryToken, token_type: DiscoveryTokenType, location: Location) -> Self {
         Discovery { token, token_type, location }
     }

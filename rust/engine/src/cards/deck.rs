@@ -1,5 +1,3 @@
-//! Port of Model/Deck.cs.
-
 use crate::random::SharedRandom;
 use crate::throw;
 

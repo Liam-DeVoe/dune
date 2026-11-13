@@ -1,5 +1,3 @@
-//! Port of Model/HiddenMobileStronghold.cs.
-
 use std::ops::Deref;
 
 use crate::map::attached_location::AttachedLocation;

@@ -14,7 +14,6 @@ use serde_json::Value;
 use treachery_engine::canon::{self, Canon};
 use treachery_engine::compat::cs::{self, Shared};
 use treachery_engine::enumerations::Faction;
-use treachery_engine::events::game_event::GameEventMethods;
 use treachery_engine::events::GameEvent;
 use treachery_engine::game::Game;
 use treachery_engine::json;

@@ -1,5 +1,3 @@
-//! Port of Model/Location.cs.
-//!
 //! In C#, a `Location` is an object owned by the game's `Map`; `Equals` and
 //! `GetHashCode` use `Id`. In Rust it is a `Copy` handle holding the id. Its
 //! static properties come from the table in `map_data.rs`; the properties that

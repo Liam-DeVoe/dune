@@ -254,23 +254,16 @@ impl crate::map::Map {
     pub fn shrine(&self) -> crate::map::discovery::DiscoveredLocation { crate::map::discovery::DiscoveredLocation::from_location(Location::from_index(103)) }
     pub fn processing_station(&self) -> crate::map::discovery::DiscoveredLocation { crate::map::discovery::DiscoveredLocation::from_location(Location::from_index(104)) }
     pub fn imperial_basin(&self) -> Territory { Territory::from_index(1) }
-    /// Private in C#.
     pub fn meridan(&self) -> Territory { Territory::from_index(9) }
-    /// Private in C#.
     pub fn cielago_east(&self) -> Territory { Territory::from_index(11) }
     pub fn false_wall_south(&self) -> Territory { Territory::from_index(13) }
     pub fn false_wall_east(&self) -> Territory { Territory::from_index(14) }
-    /// Private in C#.
     pub fn the_minor_erg(&self) -> Territory { Territory::from_index(15) }
     pub fn pasty_mesa(&self) -> Territory { Territory::from_index(16) }
-    /// Private in C#.
     pub fn hole_in_the_rock(&self) -> Territory { Territory::from_index(21) }
-    /// Private in C#.
     pub fn sihaya_ridge(&self) -> Territory { Territory::from_index(22) }
     pub fn shield_wall(&self) -> Territory { Territory::from_index(23) }
-    /// Private in C#.
     pub fn gara_kulon(&self) -> Territory { Territory::from_index(24) }
-    /// Private in C#.
     pub fn old_gap(&self) -> Territory { Territory::from_index(25) }
     pub fn broken_land(&self) -> Territory { Territory::from_index(26) }
     pub fn tsimpo(&self) -> Territory { Territory::from_index(27) }

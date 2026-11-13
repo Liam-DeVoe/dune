@@ -1,5 +1,3 @@
-//! Port of LoggedRandom.cs.
-//!
 //! In C#, `Game.Random` is one `LoggedRandom` object, and every `Deck` built
 //! with it holds a reference to that same object. [`SharedRandom`] is that
 //! shared reference: cloning it shares the generator, so draws through any

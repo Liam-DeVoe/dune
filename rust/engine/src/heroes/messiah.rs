@@ -1,5 +1,3 @@
-//! Port of Model/Messiah.cs.
-//!
 //! There is one `Messiah` object (`LeaderManager.Messiah`); it is
 //! [`Hero::Messiah`](crate::heroes::hero::Hero::Messiah) in Rust. Its `Id` and
 //! `SkinId` are set once by `LeaderManager` and never change.

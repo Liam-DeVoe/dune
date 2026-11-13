@@ -1,5 +1,4 @@
-//! Port of Model/Point.cs (`PointD`). Only used for drawing; ported because
-//! it is tiny.
+//! `PointD`, a point on the board image. Only used for drawing.
 
 /// `PointD`. `==` compares coordinates with `==` (so NaN != NaN), like C#.
 #[derive(Copy, Clone, Debug, PartialEq, Default)]

@@ -1,5 +1,3 @@
-//! Port of LeaderManager.cs.
-
 use crate::compat::cs::CsIterExt;
 use crate::enumerations::{Faction, HeroType};
 use crate::identity::IFetcher;
@@ -113,7 +111,6 @@ impl LeaderManager {
         Self::leaders().iter().copied().filter(move |l| l.faction() == faction)
     }
 }
-
 
 /// `LeaderManager.LeaderFetcher`
 #[derive(Clone, Copy, Debug)]

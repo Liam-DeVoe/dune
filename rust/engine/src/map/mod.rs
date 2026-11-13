@@ -1,5 +1,3 @@
-//! Port of Map.cs.
-//!
 //! Every C# `Game` creates its own `Map`. Most of it never changes: the static
 //! tables in `map_data.rs` hold the territories and locations, and
 //! [`Location`]/[`Territory`] are handles into them. The parts that do change
@@ -273,7 +271,7 @@ impl Map {
 
     /// `Map.GetResourceCardsInPlay(g)`. C# creates new card objects on every
     /// call; here the same handles come back each time (see `resource_card.rs`).
-    /// Lazy like the C# query: callers stop early (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
     pub fn get_resource_cards_in_play(g: &impl MapGame) -> impl Iterator<Item = ResourceCard> {
         ResourceCard::get_resource_cards_in_and_outside_play()
             .iter()

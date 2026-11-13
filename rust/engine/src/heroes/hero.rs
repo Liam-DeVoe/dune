@@ -1,5 +1,3 @@
-//! Port of Model/IHero.cs.
-//!
 //! `IHero` has three implementations: `Leader`, `Messiah` and `TreacheryCard`
 //! (mercenary cards). [`Hero`] is the closed union of them. Equality is C#
 //! reference equality: same leader, the one messiah, or the same card.

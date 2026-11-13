@@ -1,10 +1,5 @@
-//! Port of Events/AlliancePassed.cs.
-
-#![allow(unused_variables, unused_imports, unused_mut, dead_code, non_snake_case, clippy::all)]
-
 use crate::prelude::*;
 
-/// C#: `public class AlliancePassed: GameEvent` (Events/AlliancePassed.cs:16)
 #[derive(Clone, Debug, Canon)]
 pub struct AlliancePassed {
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
@@ -13,7 +8,6 @@ pub struct AlliancePassed {
 }
 
 impl Default for AlliancePassed {
-    /// The C# parameterless constructor with its field initializers.
     fn default() -> Self {
         AlliancePassed {
             base: Default::default(),
@@ -22,19 +16,16 @@ impl Default for AlliancePassed {
 }
 
 impl AlliancePassed {
-    /// C#: `public AlliancePassed(Game game, Faction initiator) : base(game, initiator)`
     pub fn new(game: &Game, initiator: Faction) -> Self {
         let e = Self::default();
         e.initialize(game, initiator);
         e
     }
 
-    /// C#: `public override Message? Validate()`
-    pub fn validate(&self, game: &Game) -> Option<Message> {
+    pub fn validate(&self, _game: &Game) -> Option<Message> {
         None
     }
 
-    /// C#: `protected override void ExecuteConcreteEvent()`
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) {
         self.log(game);
 
@@ -50,7 +41,6 @@ impl AlliancePassed {
         game.end_nexus_if_everyone_is_done();
     }
 
-    /// C#: `public override Message GetMessage()`
     pub fn get_message(&self, game: &Game) -> Message {
         let player = game.player(self.player());
         if player.has_ally() {

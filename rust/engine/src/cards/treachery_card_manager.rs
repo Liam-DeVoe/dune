@@ -1,5 +1,3 @@
-//! Port of TreacheryCardManager.cs.
-
 use crate::compat::cs::CsIterExt;
 use crate::cards::deck::Deck;
 use crate::enumerations::{Rule, TreacheryCardType};
@@ -133,7 +131,7 @@ impl TreacheryCardManager {
     }
 
     /// `GetCardsInPlay(Game g)`
-    /// Lazy like the C# query: callers stop early (docs/lazy-queries.md).
+    /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
     pub fn get_cards_in_play(g: &impl CardsGame) -> impl Iterator<Item = TreacheryCard> {
         Self::items()
             .iter()

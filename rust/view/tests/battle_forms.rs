@@ -405,10 +405,8 @@ fn battle_forms_in_rare_traces() {
 }
 
 /// The forms only `tests/data/battle` reaches. The traces are `Treachery.Oracle bots --seed 7701
-/// --dump none --hash none --gzip true` games 1, 2, 4, 9, 18 and 49, each cut after the event that
-/// reaches its last form here, and `fuzz --seed 7700` game 48 (the only one of 270 bot and fuzz
-/// games with a battle in the Hidden Mobile Stronghold fought by its owner): its history as a
-/// savegame holds it (undos applied), cut after the state where HMSAdvantageChosen applies.
+/// --dump none --hash none --gzip true` games, each cut after the event that reaches its last form
+/// here. `HMSAdvantageChosen` is covered by `hms_advantage_form_in_a_built_state` instead.
 const RARE: &[&str] = &[
     "AuditCancelled",
     "Audited",
@@ -417,9 +415,55 @@ const RARE: &[&str] = &[
     "Diplomacy",
     "FaceDanced",
     "FaceDancerReplaced",
-    "HMSAdvantageChosen",
     "JuicePlayed",
     "Planetology",
     "RockWasMelted",
     "TakeLosses",
 ];
+
+/// A battle in the Hidden Mobile Stronghold fought by its owner, who also owns Arrakeen, so the
+/// owner may choose an HMS advantage. Bot and fuzz games almost never reach it (none of 106
+/// latest-version fuzz games did), so the state is built from the `battle` fixture: the HMS is
+/// pointed at the Great Flat, the first two factions get forces in it, the first owns it and
+/// Arrakeen, and the battle between them starts there.
+fn hms_battle_state() -> ViewReplica {
+    let participation = Shared::new(Participation::default());
+    let mut r = ViewReplica::load(&common::fixture("battle"), &participation).expect("battle fixture loads");
+    let g = &mut r.game;
+    let flat = g.map.the_great_flat();
+    let hms = g.map.hidden_mobile_stronghold();
+    hms.point_at(&mut g.map, flat);
+    let (a, b) = (g.player_at(0), g.player_at(1));
+    let (fa, fb) = (g.player(a).faction, g.player(b).faction);
+    Player::add_forces(g, a, hms.location(), 3, false);
+    Player::add_forces(g, b, hms.location(), 2, false);
+    g.stronghold_ownership.insert(hms.location(), fa);
+    g.stronghold_ownership.insert(g.map.arrakeen(), fa);
+    let mut battle = BattleInitiated::new(g, fa);
+    battle.target = fb;
+    battle.territory_id = hms.location().territory().id();
+    g.current_battle = Some(std::rc::Rc::new(battle));
+    g.current_phase = Phase::BattlePhase;
+    g.chosen_hms_advantage = Some(StrongholdAdvantage::None);
+    r
+}
+
+#[test]
+fn hms_advantage_form_in_a_built_state() {
+    let d = default_describer();
+    let mut stats = Stats::default();
+    let mut r = hms_battle_state();
+    check_all_players(&mut r.game, &*d, &mut stats, "hms battle");
+    assert!(stats.0.contains_key("HMSAdvantageChosen"), "{:?}", stats.0);
+
+    // The form's choice is a valid event that the engine executes.
+    let owner = r.game.player_at(0);
+    let faction = r.game.player(owner).faction;
+    let advantage = HMSAdvantageChosen::valid_advantages(&r.game, owner)[0];
+    let mut e = HMSAdvantageChosen::new(&r.game, faction);
+    e.advantage = advantage;
+    let e = std::rc::Rc::new(e).into_event();
+    assert!(e.validate(&r.game).is_none(), "{:?}", e.validate(&r.game).map(|m| m.to_cs_string()));
+    assert!(e.execute(&mut r.game, true, true).is_none());
+    assert_eq!(r.game.chosen_hms_advantage, Some(advantage));
+}

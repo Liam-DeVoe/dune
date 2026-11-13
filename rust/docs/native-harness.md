@@ -46,13 +46,13 @@ fuzz-1-00017: first difference at trace line 304, event Bid (bot)
 
 `live` ends with the `first` command for the first failing game. Other options: `--hang-seconds` (default 60; a call that runs longer counts as hung, and if the reference hung at the same call, that's a match), `--memory-mb` (default 2048 per game), and `--reference BIN`.
 
-Time for 200 games, `--jobs 4`, on this machine: see "Timing" below. The C# oracle took about 23 minutes per 200 fuzz games.
+See "Timing" below for how long 200 games take.
 
 ## The reference binary
 
 `rust/reference/observe` (not in git) is the `observe` binary built from a frozen copy of the engine, bots and view crates. `observe live` and `first` run it as `observe record --mode M --seed S --game I` and read the trace from its stdout.
 
-The current reference is built from `~/treachery-native-ref/rust`. That's a copy of `rust/` taken on 2026-11-11, before step 2 (dropping old versions) started editing the engine, with `rust/observe` copied in. To build it again, for example after the binary was deleted:
+The current reference is built from `~/treachery-native-ref/rust`. That's a copy of `rust/` taken on 2026-11-11, before step 2 (dropping old versions) started editing the engine, with `rust/observe` copied in. It was last rebuilt on 2026-11-12 with rustc 1.100.0, after the toolchain was reinstalled; `rust/reference/SOURCE` records the compiler. If `~/treachery-native-ref` is lost, unpack `rust/reference/source.tar.gz` into `~/treachery-native-ref` (it holds `rust/<crate>/Cargo.toml` and `src` for every crate the binary needs). To build the binary again:
 
 ```sh
 rust/tools/build-native-ref.sh --source ~/treachery-native-ref/rust
@@ -93,7 +93,7 @@ One game is one JSON Lines stream (`observe/src/trace.rs`). Every line has an `o
 - `bots`: one round of asking the bots, as the server's `perform_bot_event` does it: levels Highest to Low (and End when bots act as host), players in `order`, first event wins. It lists the bots created in this round with their seeds, and the choice.
 - `event`: an event submitted with validation, with its source (`host`, `bot`, `human`, `fuzz`, `mutate`), its JSON, the result, the rendered message, and the observations.
 - `undo`, `restore`, `dismiss`: `Undo(until)`, `RestoreRecentlyUndone`, `DismissRecentlyUndone`, with observations.
-- `end`: why the game stopped (`gameEnded`, `cap`, `stalled`, `botException`, `panic`, `setupFailed`, `hung`, `memoryLimit`). For `hung` and `memoryLimit`, `pending` holds the call that never returned.
+- `end`: why the game stopped (`gameEnded`, `cap`, `stalled`, `botException`, `panic`, `setupFailed`, `recorderPanic`, `hung`, `memoryLimit`). `recorderPanic` means the recorder's own reads of the game threw, for example a fuzzed state with a null card in a hand; the replay simply stops there. For `hung` and `memoryLimit`, `pending` holds the call that never returned.
 
 Observations are `log` (new messages as `[target, text]`), `logCut` (the log shrank, after undo), `views` (16-hex-digit SHA-256 prefixes of each view's JSON: players in order, then the host, then the observer) and, with `--full-views`, `full` (the views themselves). Views are built, as on the server, from a separate replica that executes accepted events without validation, so building them never changes the game.
 

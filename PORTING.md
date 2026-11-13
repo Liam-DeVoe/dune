@@ -105,12 +105,9 @@ Several test bugs went unnoticed for a long time because agents ran only the tes
 
 ## Disk space
 
-Disk is a hard limit on this machine (under 2 GB free at times). Every agent must:
+The machine now has about 280 GB free (2026-11-12), so disk is no longer the limit it was. Still delete large trace corpora when done, keep `rust/traces/sample/` under 50 MB, and check `df -h /` before writing more than 10 GB.
 
-- Use at most one Cargo target dir per agent, and prefer the shared `rust/target`. Never create a new `target-*` dir without the coordinator's approval. Delete your target dir when you finish if no one else uses it.
-- Keep the workspace profiles as set in `rust/Cargo.toml` (line tables only, no incremental). Don't add debug info.
-- Never keep large trace corpora. Generate traces, check them, then delete them. Stream or gzip when a corpus must exist on disk, and keep `rust/traces/sample/` under 50 MB.
-- Check `df -h /` before any step that writes more than a few hundred MB, and stop and report if less than 1 GB would remain.
+Agents working in parallel on the same crates (step 3 of native-plan.md) each work in their own git worktree with their own Cargo target dir, so one agent's half-finished edit never breaks another's build. The coordinator merges their branches. Agents working alone keep using the shared `rust/target`. Delete a worktree's target dir when the agent finishes.
 
 ## CPU
 

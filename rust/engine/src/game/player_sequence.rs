@@ -1,13 +1,12 @@
 use crate::prelude::*;
 
 #[derive(Clone, Debug, Canon)]
+#[canon(game_field = "_game")]
 pub struct PlayerSequence {
     pub players: Vec<PlayerIndex>,
     #[canon(name = "_played")]
     /// Elements are `Option` because a null `CurrentPlayer` can be added (see `players_in_order`).
     pub played: Vec<Option<PlayerIndex>>,
-    #[canon(name = "_game")]
-    pub game: GameRef,
     #[canon(name = "_skipPlayersThatCantBidOnCards")]
     pub skip_players_that_cant_bid_on_cards: bool,
     #[canon(name = "_round")]
@@ -34,7 +33,6 @@ impl PlayerSequence {
         let mut result = PlayerSequence {
             players,
             played: Vec::new(),
-            game: game.reference(),
             skip_players_that_cant_bid_on_cards,
             round: 1,
             fully_circled: 0,

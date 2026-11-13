@@ -17,7 +17,7 @@ fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();
     g.treachery_discard_pile = Some(Deck::new(Vec::new(), None));
     for f in factions {
-        let p = Player::new(&g, *f);
+        let p = Player::new(*f);
         g.players.push(p);
     }
     g

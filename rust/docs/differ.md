@@ -170,10 +170,10 @@ The dump is the Rust side of `Oracle/Canon/StateDumper.cs`. It lives in `engine/
   ```
 
 - Value kinds: every value in the sample traces' dumps must be something the Rust field can write. For example, a reference must stay a reference and a list must stay a list.
-- Reference forms: for every field whose C# type the dumper writes as a reference (`Game`, `Player`, `Location`, `Territory`), the Rust field must be able to write every form the dumper can, including the ones only another game produces (`OtherGame`, a full `Player`, `"foreign":true`). This needs no trace.
+- Reference forms: for every field whose C# type the dumper writes as a reference (`Game`, `Player`, `Location`, `Territory`), the Rust field must be able to write the dumper's reference form. This needs no trace.
 - The map: a fresh Rust `Map` dumps to exactly the map in a sample trace.
 - The header's `Participation` dumps back to the same bytes.
 
 ### Games after undo
 
-After `Undo`, `RestoreRecentlyUndone` or `DismissRecentlyUndone`, some C# events and players still belong to the other game. C# writes that game as `{"$ref":"OtherGame"}`, such a player as a full `Player` object, and the locations inside that player with `"foreign":true`. Rust writes the same, from `Game.other_games` ([engine-conventions.md](engine-conventions.md#game-identity-and-undo)).
+After `Undo`, `RestoreRecentlyUndone` or `DismissRecentlyUndone`, some C# events and players still belong to the other game. C# writes that game as `{"$ref":"OtherGame"}`, such a player as a full `Player` object, and the locations inside that player with `"foreign":true`. Rust undo keeps no references to another game ([engine-conventions.md](engine-conventions.md#undo)), so the replay stops comparing state hashes at a trace's first undo line. Results, validation messages, applicable events and bot decisions are still compared. The value-kinds check skips these forms in the sample traces.

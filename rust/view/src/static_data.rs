@@ -251,7 +251,7 @@ pub fn static_data() -> StaticData {
         .map(|(_, v)| Faction(*v))
         .filter(|f| *f != Faction::None)
         .map(|f| {
-            let p = Player::new(&game, f);
+            let p = Player::new(f);
             FactionInfo { faction: name(f), force: name(p.force()), special_force: name(p.special_force()) }
         })
         .collect();

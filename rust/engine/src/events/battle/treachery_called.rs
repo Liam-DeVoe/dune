@@ -25,8 +25,6 @@ impl TreacheryCalled {
     }
 
     pub fn succeeded(&self, game: &Game) -> bool {
-        let own = game.enter_own_game(self.game_ref()); // GameEvent.Game: another game after Undo
-        let game: &Game = &own;
         self.traitor_called && (self.initiator() != Faction::Harkonnen || !game.harkonnen_traitor_was_cancelled)
     }
 

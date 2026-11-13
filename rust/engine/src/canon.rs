@@ -26,7 +26,7 @@ use crate::compat::date_time_offset::{DateTimeOffset, TimeSpan};
 use crate::enumerations::DiscoveryToken;
 use crate::events::GameEvent;
 use crate::messages::expression::ExpressionElement;
-use crate::game::{Game, GameRef};
+use crate::game::Game;
 use crate::heroes::hero::Hero;
 use crate::heroes::leader::Leader;
 use crate::map::location::Location;
@@ -45,26 +45,16 @@ use crate::cards::treachery_card::TreacheryCard;
 /// Appends canonical JSON (no whitespace) to a byte buffer, like `JsonOut.cs`.
 pub struct CanonWriter<'g> {
     pub out: Vec<u8>,
-    /// The dumped game (`StateDumper._root`): `Game` and `Player` references to it
-    /// are written as references, those to other games as `OtherGame` / in full.
+    /// The dumped game (`StateDumper._root`).
     root: Option<&'g Game>,
-    /// While a player of another game is written: that game. Its locations come from
-    /// that game's map unless tagged otherwise (`Location::map_game`).
-    context_game: Option<crate::game::GameId>,
-    /// When set, the writer records every game that a `Game` or `Player` reference
-    /// points at (see [`referenced_games`]) instead of expanding players of other games.
-    collect: Option<Vec<crate::game::GameId>>,
     /// `Game.Random` of the dumped game: other places that hold the same
     /// object are written as `{"$ref":"GameRandom"}`.
     game_random: Option<SharedRandom>,
-    /// The current contents of every game collection that C# messages keep
-    /// by reference (`expression::LiveList`, hazards 4.5, docs/live-lists.md).
-    live_lists: Vec<(crate::messages::expression::LiveList, Vec<ExpressionElement>)>,
 }
 
 impl<'g> CanonWriter<'g> {
     pub fn new(game_random: Option<SharedRandom>) -> Self {
-        CanonWriter { out: Vec::with_capacity(1 << 16), root: None, context_game: None, collect: None, game_random, live_lists: Vec::new() }
+        CanonWriter { out: Vec::with_capacity(1 << 16), root: None, game_random }
     }
 
     /// A writer for values inside `game`: live message lists show the
@@ -72,10 +62,6 @@ impl<'g> CanonWriter<'g> {
     pub fn for_game(game: &'g Game) -> Self {
         let mut w = CanonWriter::new(game.random.clone());
         w.root = Some(game);
-        w.live_lists = crate::messages::expression::LiveList::all(game)
-            .into_iter()
-            .filter_map(|l| l.read(game).map(|items| (l, items)))
-            .collect();
         w
     }
 
@@ -181,24 +167,14 @@ impl<'g> CanonWriter<'g> {
         self.obj_end();
     }
 
-    /// A `Location` or `Territory`: `{"$ref":<type>,"id":<id>}`, plus `"foreign":true`
-    /// when the object belongs to another game's map than the dumped game's.
-    /// `map_game` is the handle's tag; untagged handles belong to the map of the game
-    /// whose object is being written.
-    pub fn map_ref(&mut self, ty: &str, id: i32, map_game: Option<crate::game::GameId>) {
-        let map = map_game.or(self.context_game);
-        let foreign = matches!((map, self.root), (Some(m), Some(root)) if m != root.id);
+    /// A `Location` or `Territory`: `{"$ref":<type>,"id":<id>}`.
+    pub fn map_ref(&mut self, ty: &str, id: i32) {
         self.obj_start();
         self.key("$ref");
         self.string(ty);
         self.comma();
         self.key("id");
         self.int(id as i64);
-        if foreign {
-            self.comma();
-            self.key("foreign");
-            self.bool(true);
-        }
         self.obj_end();
     }
 
@@ -371,22 +347,6 @@ pub fn dump_game(game: &Game) -> Vec<u8> {
     let mut w = CanonWriter::for_game(game);
     game.canon(&mut w);
     w.out
-}
-
-/// Every game that `game`'s state refers to through a C# `Game` or `Player` reference:
-/// what C#'s garbage collector would keep alive through it. Walks the same fields as
-/// the dump, plus `History` (dumped as a count) and `PreviousGameState`.
-pub fn referenced_games(game: &Game) -> Vec<crate::game::GameId> {
-    let mut w = CanonWriter::new(None);
-    w.root = Some(game);
-    w.collect = Some(Vec::new());
-    game.canon(&mut w);
-    for e in &game.history {
-        e.canon(&mut w);
-    }
-    let mut found = w.collect.take().unwrap_or_default();
-    found.extend(game.previous_game_state);
-    found
 }
 
 /// The canonical rendering of a value outside the game state, such as a
@@ -700,20 +660,6 @@ impl Canon for PlayerIndex {
         if crate::compat::cs::CsNull::is_null(*self) {
             return w.null();
         }
-        if let Some(found) = &mut w.collect {
-            found.push(self.game);
-        } else if let Some(root) = w.root {
-            // A player of another game (an event initialized against another game, see
-            // engine-conventions.md "Game identity and undo") is not in the dumper's
-            // `_playerIndex`, so it is expanded in full.
-            if self.game != root.id {
-                let player = root.player(*self);
-                let outer = w.context_game.replace(self.game);
-                player.canon(w);
-                w.context_game = outer;
-                return;
-            }
-        }
         w.obj_start();
         w.key("$ref");
         w.string("Player");
@@ -724,30 +670,19 @@ impl Canon for PlayerIndex {
     }
 }
 impl CanonShape for PlayerIndex {
-    fn canon_shape(reg: &mut Registry) -> Shape {
-        Shape::kind("ref:Player").union(<crate::game::Player as CanonShape>::canon_shape(reg))
+    fn canon_shape(_: &mut Registry) -> Shape {
+        Shape::kind("ref:Player")
     }
 }
 
-/// The `Game` field of a player, sequence or event: `{"$ref":"Game"}` for the dumped
-/// game, `{"$ref":"OtherGame"}` for any other (after undo), null if never set.
-impl Canon for GameRef {
-    fn canon(&self, w: &mut CanonWriter) {
-        if self.is_null() {
-            return w.null();
-        }
-        if let Some(found) = &mut w.collect {
-            found.push(self.0);
-        }
-        match w.root {
-            Some(root) if root.id != self.0 => w.reference("OtherGame"),
-            _ => w.reference("Game"),
-        }
+/// `GameEvent.Game`: `{"$ref":"Game"}` once the event was initialized, else null.
+pub mod game_link {
+    use super::*;
+    pub fn write(initialized: &std::cell::Cell<bool>, w: &mut CanonWriter) {
+        if initialized.get() { w.reference("Game") } else { w.null() }
     }
-}
-impl CanonShape for GameRef {
-    fn canon_shape(_: &mut Registry) -> Shape {
-        Shape::kind("ref:Game").with("ref:OtherGame").with("null")
+    pub fn shape(_: &mut Registry) -> Shape {
+        Shape::kind("ref:Game").with("null")
     }
 }
 
@@ -759,11 +694,11 @@ macro_rules! location_ref {
                 if crate::compat::cs::CsNull::is_null(l) {
                     return w.null();
                 }
-                w.map_ref("Location", l.id(), l.map_game())
+                w.map_ref("Location", l.id())
             }
         }
         impl CanonShape for $t {
-            fn canon_shape(_: &mut Registry) -> Shape { Shape::kind("ref:Location").with("ref:Location+foreign") }
+            fn canon_shape(_: &mut Registry) -> Shape { Shape::kind("ref:Location") }
         }
     )*};
 }
@@ -780,12 +715,12 @@ impl Canon for Territory {
         if crate::compat::cs::CsNull::is_null(*self) {
             return w.null();
         }
-        w.map_ref("Territory", self.id(), self.map_game())
+        w.map_ref("Territory", self.id())
     }
 }
 impl CanonShape for Territory {
     fn canon_shape(_: &mut Registry) -> Shape {
-        Shape::kind("ref:Territory").with("ref:Territory+foreign")
+        Shape::kind("ref:Territory")
     }
 }
 
@@ -987,7 +922,7 @@ impl Canon for ExpressionElement {
             E::List { items, live, .. } => {
                 // A live list shows the game's contents now. Without a game
                 // (`CanonWriter::new`) the snapshot taken at log time is written.
-                let current = live.and_then(|l| w.live_lists.iter().find(|(k, _)| *k == l).map(|(_, items)| items.clone()));
+                let current = live.zip(w.root).and_then(|(l, g)| l.read(g));
                 match current {
                     Some(items) => write_seq(w, items.iter()),
                     None => write_seq(w, items.iter()),

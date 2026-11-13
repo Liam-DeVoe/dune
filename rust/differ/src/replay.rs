@@ -327,6 +327,11 @@ struct Replayer {
     csharp_hung: Option<String>,
     /// Whether this replay runs the Rust bots (`Options::check_bots` and a `bots`-mode trace).
     bots_active: bool,
+    /// Set at the first undo, restore or dismiss. C#'s undo keeps references from the new
+    /// game to the old one, which its state dump writes (`OtherGame`, players of the old
+    /// game). Rust undo is a snapshot with no such references (engine-conventions.md,
+    /// "Undo"), so from then on state hashes aren't compared; everything else still is.
+    after_undo: bool,
     /// The bots, one per faction, in creation order, as the oracle's `_bots`. They outlive undo.
     bots: Vec<RegisteredBot>,
     /// The result of the latest `GetApplicableEvents` query of each player on the current line:
@@ -388,6 +393,7 @@ impl Replayer {
             progress: None,
             csharp_hung: None,
             bots_active: false,
+            after_undo: false,
             bots: Vec::new(),
             queried: Vec::new(),
             deliberation: None,
@@ -482,6 +488,7 @@ impl Replayer {
                 event_type = Some(ev.event_type().name().to_string());
             }
             "undo" | "restoreRecentlyUndone" | "dismissRecentlyUndone" => {
+                self.after_undo = true;
                 self.during = line.kind.clone();
                 let until = line.until_event_nr;
                 let game = self.game();
@@ -547,6 +554,7 @@ impl Replayer {
                 }
                 return Ok(());
             }
+            "end" if self.after_undo => return Ok(()),
             "end" => {
                 self.during = "the final dump".into();
                 let (hash, dump) = self.dump();
@@ -598,7 +606,7 @@ impl Replayer {
         }
 
         let mut hash_failure = None;
-        if line.hash.is_some() {
+        if line.hash.is_some() && !self.after_undo {
             let (hash, dump) = self.dump();
             if let Err(f) = self.compare_hash(line, text, event_type.clone(), hash, dump) {
                 hash_failure = Some(f);

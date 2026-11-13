@@ -56,13 +56,7 @@ impl ClairVoyancePlayed {
                 LeaderManager::hero_lookup().find(dotnet_compat::parse::int_parse(Some(p1))).into()
             }
             ClairvoyanceQuestion::Prediction => Faction(dotnet_compat::parse::enum_parse(Some(p1), Faction::INFO.declared)).into(),
-            ClairvoyanceQuestion::WillAttackX => {
-                // Game.Map: after Undo, the map of another game, whose territories are its own objects.
-                let own = game.own_game(self.game_ref());
-                let t = own.map.territory_lookup().find(dotnet_compat::parse::int_parse(Some(p1)));
-                let t = if own.id == game.id { t } else { t.map(|t| t.of_game_map(own.id)) };
-                t.into()
-            }
+            ClairvoyanceQuestion::WillAttackX => game.map.territory_lookup().find(dotnet_compat::parse::int_parse(Some(p1))).into(),
             ClairvoyanceQuestion::DialOfMoreThanXInBattle => dotnet_compat::parse::float_parse_invariant(Some(p1)).into(),
             _ => ExpressionElement::Null,
         }

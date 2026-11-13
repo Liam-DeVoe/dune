@@ -248,7 +248,7 @@ pub fn options_and_validation(game: &Game, v: &ResolvedViewer, draft: &GameEvent
                 .collect(), draft: dj.clone() }),
         GameEvent::BeneGesseritBattleAnnouncement(_) => ActionOptions::BeneGesseritBattleAnnouncement(BeneGesseritBattleAnnouncementOptions {
             territories: BeneGesseritBattleAnnouncement::valid_territories(game, p).map(|t| t.id()).collect(),
-            locations: BeneGesseritBattleAnnouncement::valid_territories(game, p).flat_map(|t| t.locations_of_map()).map(|l| l.id()).collect(),
+            locations: BeneGesseritBattleAnnouncement::valid_territories(game, p).flat_map(|t| t.locations().iter().copied()).map(|l| l.id()).collect(),
             draft: dj.clone(),
         }),
         GameEvent::CardsDetermined(_) => ActionOptions::CardsDetermined(CardsDeterminedOptions {
@@ -791,7 +791,7 @@ fn battle_options(game: &Game, p: PlayerIndex, draft: &Battle, d: &dyn Describer
     let options = BattleOptions {
         territory: territory.map_or(-1, |t| t.id()),
         territory_label: territory.map(|t| d.describe(&t.into())).unwrap_or_default(),
-        territory_locations: territory.map(|t| t.locations_of_map().iter().map(|l| l.id()).collect()).unwrap_or_default(),
+        territory_locations: territory.map(|t| t.locations().iter().map(|l| l.id()).collect()).unwrap_or_default(),
         you: side(game, p, aggressor, vec![force_group(game, supplier, territory, false)]),
         opponent: side(game, opponent, aggressor, opponent_groups),
         notes: battle_notes(game, p, opponent, d),

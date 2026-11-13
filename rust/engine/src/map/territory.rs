@@ -13,37 +13,10 @@ use crate::map::location::Location;
 use crate::map::{Map, TerritoryData};
 use crate::map::data::{TERRITORIES, TERRITORY_COUNT};
 
-/// Handle to a territory of the map. Equality is by id, and by map: the second field
-/// is 0 for a territory of the map of the game that holds the handle, or the id of
-/// another game whose map it came from (read through an event of that game after an
-/// undo; engine-conventions.md, "Game identity and undo"). A territory of another
-/// game's map is never equal to one of this map.
+/// Handle to a territory of the map. Equality is by id.
 /// `Territory::NULL` is the null handle (see `cs::CsNull`).
-#[derive(Copy, Clone)]
-pub struct Territory(u8, u64);
-
-impl PartialEq for Territory {
-    fn eq(&self, other: &Territory) -> bool {
-        if self.0 != other.0 {
-            return false;
-        }
-        if self.1 == other.1 {
-            return true;
-        }
-        // Inside `Game::enter_own_game`, the entered game's own objects carry its id.
-        let own = crate::game::entered_game_id();
-        let norm = |t: u64| if t == own { 0 } else { t };
-        norm(self.1) == norm(other.1)
-    }
-}
-
-impl Eq for Territory {}
-
-impl std::hash::Hash for Territory {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.0.hash(state)
-    }
-}
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+pub struct Territory(u8);
 
 impl CsNull for Territory {
     const NULL: Territory = Territory::NULL;
@@ -51,34 +24,15 @@ impl CsNull for Territory {
 
 impl Territory {
     /// The null handle. Every member throws NullReferenceException.
-    pub const NULL: Territory = Territory(u8::MAX, 0);
+    pub const NULL: Territory = Territory(u8::MAX);
 
     pub(crate) const fn from_index(i: usize) -> Territory {
-        Territory(i as u8, 0)
+        Territory(i as u8)
     }
 
     /// The territory with this id, if it exists.
     pub fn from_id(id: i32) -> Option<Territory> {
-        if id >= 0 && (id as usize) < TERRITORY_COUNT { Some(Territory(id as u8, 0)) } else { None }
-    }
-
-    /// This territory as an object of the map of game `game` (see the type's doc).
-    pub fn of_game_map(self, game: crate::game::GameId) -> Territory {
-        if self.is_null() { self } else { Territory(self.0, game.0) }
-    }
-
-    /// The game whose map this territory object belongs to, if it isn't the
-    /// map of the game that holds the handle.
-    pub fn map_game(self) -> Option<crate::game::GameId> {
-        if self.1 == 0 { None } else { Some(crate::game::GameId(self.1)) }
-    }
-
-    /// `Territory.Locations` as objects of this territory's map (see `map_game`).
-    pub fn locations_of_map(self) -> Vec<Location> {
-        match self.map_game() {
-            Some(game) => self.locations().iter().map(|l| l.of_game_map(game)).collect(),
-            None => self.locations().to_vec(),
-        }
+        if id >= 0 && (id as usize) < TERRITORY_COUNT { Some(Territory(id as u8)) } else { None }
     }
 
     /// The static part of this territory.

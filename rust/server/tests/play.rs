@@ -156,6 +156,54 @@ fn undo_restore_and_dismiss() {
     });
 }
 
+/// Undo keeps the game it replaces: each restore brings back exactly the views from before
+/// the matching undo, also after events were played in between, and two undos restore in
+/// order.
+#[test]
+fn restore_brings_back_the_views_from_before_the_undo() {
+    rt().block_on(async {
+        let mut s = TestServer::start().await;
+        let (alice, bobby, game) = alliance_game(&mut s).await;
+        s.ok(alice.conn, "SubmitEvent", json!([alice.token, game, offer(faction::ATREIDES, faction::EMPEROR)])).await;
+        let after_offer = s.latest_view(bobby.conn).unwrap();
+        s.ok(bobby.conn, "SubmitEvent", json!([bobby.token, game, offer(faction::EMPEROR, faction::ATREIDES)])).await;
+        let allied = s.latest_view(bobby.conn).unwrap();
+        let count = event_number(&allied);
+        assert_eq!(ally(&allied, "Atreides"), "Emperor");
+
+        // A negative event number is refused and changes nothing.
+        assert_eq!(s.err(alice.conn, "RequestUndo", json!([alice.token, game, -1])).await, error::INVALID_GAME_EVENT);
+        assert!(views(&s.received(bobby.conn)).is_empty());
+
+        // Undo both offers, play a different one, then restore: the alliance is back.
+        s.ok(alice.conn, "RequestUndo", json!([alice.token, game, count - 2])).await;
+        assert_eq!(event_number(&s.latest_view(bobby.conn).unwrap()), count - 2);
+        s.ok(bobby.conn, "SubmitEvent", json!([bobby.token, game, offer(faction::EMPEROR, faction::ATREIDES)])).await;
+        assert_eq!(event_number(&s.latest_view(bobby.conn).unwrap()), count - 1);
+        s.ok(alice.conn, "RequestRestoreRecentlyUndone", json!([alice.token, game])).await;
+        assert_eq!(s.latest_view(bobby.conn).unwrap(), allied);
+
+        // Two undos in a row restore in order.
+        s.ok(alice.conn, "RequestUndo", json!([alice.token, game, count - 1])).await;
+        s.ok(alice.conn, "RequestUndo", json!([alice.token, game, count - 2])).await;
+        assert_eq!(event_number(&s.latest_view(bobby.conn).unwrap()), count - 2);
+        s.ok(alice.conn, "RequestRestoreRecentlyUndone", json!([alice.token, game])).await;
+        let first = s.latest_view(bobby.conn).unwrap();
+        assert_eq!(event_number(&first), count - 1);
+        assert_eq!(first["log"], after_offer["log"]);
+        s.ok(alice.conn, "RequestRestoreRecentlyUndone", json!([alice.token, game])).await;
+        assert_eq!(s.latest_view(bobby.conn).unwrap(), allied);
+
+        // The restored game plays on.
+        s.ok(alice.conn, "RequestUndo", json!([alice.token, game, count - 1])).await;
+        s.ok(alice.conn, "RequestDismissRecentlyUndone", json!([alice.token, game])).await;
+        s.ok(bobby.conn, "SubmitEvent", json!([bobby.token, game, offer(faction::EMPEROR, faction::ATREIDES)])).await;
+        let replayed = s.latest_view(bobby.conn).unwrap();
+        assert_eq!(event_number(&replayed), count);
+        assert_eq!(ally(&replayed, "Atreides"), "Emperor");
+    });
+}
+
 /// Alice creates a game, Bobby joins, and Alice starts it for two players.
 async fn started_game(s: &mut TestServer, async_play: bool, interval: i64) -> (User, User, String) {
     let alice = s.user("alice").await;

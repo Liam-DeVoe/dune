@@ -52,8 +52,8 @@ impl DealOffered {
     }
 
     pub fn acceptance(&self, game: &Game, by: Faction) -> Option<Rc<DealAccepted>> {
-        // new DealAccepted(Game, by): the offer's own game, another one after Undo.
-        let mut result = DealAccepted::new(game.own_game(self.game_ref()), by);
+        // new DealAccepted(Game, by)
+        let mut result = DealAccepted::new(game, by);
         result.bound_faction = self.initiator();
         result.price = self.price;
         result.type_ = self.type_;
@@ -80,8 +80,8 @@ impl DealOffered {
     }
 
     pub fn rejection(&self, game: &Game, by: Faction) -> Option<Rc<DealRejected>> {
-        // new DealRejected(Game, by): the offer's own game, another one after Undo.
-        let mut result = DealRejected::new(game.own_game(self.game_ref()), by);
+        // new DealRejected(Game, by)
+        let mut result = DealRejected::new(game, by);
         result.bound_faction = self.initiator();
         result.price = self.price;
         result.type_ = self.type_;

@@ -175,7 +175,7 @@ game.map.find_neighbours_for_hms_movement(start, 1, false, game.sector_in_storm)
   `Game.participation` is a `Shared<Participation>` too. `new Game(version, participation)` keeps the caller's object, and the games that `Undo`, `RestoreRecentlyUndone` and `DismissRecentlyUndone` make share it, so `Game::new_int32_participation` takes a `&Shared<Participation>`.
 - When C# uses an object as an identity token, key by a stable handle: `PlayerIndex` for players (`LegacyNames`), `cs::RcKey<Event>` for events (`DealResponses` is keyed by `RcKey<DealOffered>`). Don't compare structurally.
 - `LoggedRandom` is shared between `Game.Random` and every deck built from it. That is `logged_random::SharedRandom`, a `Shared<LoggedRandom>`.
-- C# objects that hold their owning game (`Player.Game`, `PlayerSequence._game`, `GameEvent.Game`) have a `GameRef` field in its place: the id of that game, or null. Their methods take the game as a parameter. After an undo the field can name another game; see [Game identity and undo](#game-identity-and-undo).
+- C# objects that hold their owning game (`Player.Game`, `PlayerSequence._game`, `GameEvent.Game`) don't keep it in Rust. Their methods take the game as a parameter. The state dump writes the C# field as `{"$ref":"Game"}` (`#[canon(game_field)]`, and `GameEventBase.initialized` for events, which are null until initialized).
 
 ## Players
 
@@ -219,38 +219,13 @@ game.battle_sequence = Some(seq);
 
 `LeaderState.Kill(Game)` and `LeaderState.Assassinate(Game)` change the leader state and the game; port them the same way, or as `Game` methods taking the hero.
 
-## Game identity and undo
+## Undo
 
-`Game.Undo`, `RestoreRecentlyUndone` and `DismissRecentlyUndone` (`Game.cs:150-224`) build a new `Game` and replay the old game's history into it. The event objects are shared between the two games, and C# never copies them:
+`game.undo(n)` replays the first `n` events of the history into a new game and puts it in `game`'s place. The events after them become `recently_undone_events`, and the game it replaced is kept, unchanged, in `previous_game_state`. `restore_recently_undone()` puts that game back. Without one (a game loaded with undone events), it replays the history and the undone events into a new game. `dismiss_recently_undone()` replays the history into a new game with neither. A negative `n` throws and leaves the game as it was.
 
-- `Initialize(newGame)` sets an event's `Game` to the new game, but sets `Player` only if the initiator is seated in the new game. Otherwise the event keeps the old game's `Player` object, and executing it changes that player.
-- The undone events (`RecentlyUndoneEvents`) are not replayed, so they keep the old game and its players.
-- `RestoreRecentlyUndone` returns the old game object itself. Its history events were re-initialized by `Undo`, so they now belong to the undo game. So do the events its state holds (`CurrentBid`, `CurrentBattle`, `AggressorPlan`, `DealOffers`, ...).
-- C# keeps every game alive that any of these references reaches.
+The event objects are shared between the games (`Rc`), and each replay initializes them again against the new game. An event keeps no game of its own, and a `PlayerIndex` is only a position in `players`, so nothing in one game refers to another.
 
-The Rust model:
-
-- Every `Game` has a process-unique `id: GameId`. `GameRef` and `PlayerIndex` carry that id, so `==` is reference equality across games.
-- `Game.other_games` owns every game this one was made from by undo, restore or dismiss that C# would still reach, flattened (a game in `other_games` has none of its own). `previous_game_state` is the id of a game in `other_games`. After each undo, restore and dismiss, `drop_unreachable_games` drops the games that no `PreviousGameState`, event `Game` or `Player` reference reaches any more (found with the dump's walk, `canon::referenced_games`), as C#'s garbage collector would. Without it a long game with many undos keeps every earlier game in memory.
-- `game.undo(n)`, `game.restore_recently_undone()` and `game.dismiss_recently_undone()` are C#'s `game = game.Undo(n)` and so on: they put the resulting game in `game`'s place and move the old one into its `other_games`. If an exception escapes (`Undo(-1)`), `game` is the old game again, as the C# caller still holds it, and the half-built game stays reachable from it.
-- `game.player(p)` and `game.player_mut(p)` resolve a player of another game through `other_games`. A write to an event's `Player` therefore changes the other game's player, as in C#, and a comparison with a player of this game is false.
-- A C# member that runs on an object holding its own game reads that game, not the one the caller has:
-  - `Player` methods that take `&Game` start with `game.enter_own_game(self.game)`.
-  - `Player` methods that take `&mut Game` call themselves through `game.with_game_mut(me.game, ...)`, which puts that game in this place for the call, with every other game held by it.
-  - Event members that game code calls on events it holds do the same with `self.game_ref()`: the `BattleInitiated` members, `Battle.GetBattlePlanMessage`, `GetPlanSummary` and `ActivateDynamicWeapons`, `TreacheryCalled.Succeeded`, `ClairVoyancePlayed.Parameter1`, `DealOffered.Acceptance`/`Rejection`, and `GameStatus`'s flash messages. `ILocationEvent.To` of a held event (`LastShipmentOrMovement`, `Intrusion.TriggeringEvent`) is `e.to_location(game)`, not `e.i_location_event_to(game)`. When you port such a member, start it with:
-
-  ```rust
-  let own = game.enter_own_game(self.game_ref()); // GameEvent.Game: another game after Undo
-  let game: &Game = &own;
-  // or, for a member that changes its game:
-  if let Some(id) = game.other_game_id(self.game_ref()) {
-      return game.with_game_mut(id, |own| self.member(own, args));
-  }
-  ```
-
-  `enter_own_game` (rather than `own_game`) lets the other game resolve players of every game this one holds, for example an event of the undo game that kept a player of this game.
-- Each game's map has its own `Location` and `Territory` objects. A handle carries the id of the game whose map it came from (`map_game`), or 0 for the map of the game in this place. When a game moves into `other_games`, its players' locations and homeworlds get its id; when it comes back, they lose it. The `&mut Game` `Player` methods tag the map objects they pass to a player of another game, `Location::territory` keeps the location's map, and members that read another game's map tag what they return. C# compares territories by reference, so `Territory`'s `==` compares maps (a territory of the game entered with `enter_own_game` counts as untagged). C# compares locations by id, so `Location`'s `==` ignores the map.
-- The state dump writes a `GameRef` to another game as `{"$ref":"OtherGame"}`, a player of another game in full, and a map object of another game's map with `"foreign":true`.
+C# undo differs here. Its new game shares the event objects with the old one, and each event remembers the game it was last initialized against. After a restore, events that the restored game holds (`CurrentBattle`, `AggressorPlan`, deal offers) belong to the game made by the undo, and their members read that game. The Rust port imitated this until native-plan.md step 3. Snapshots drop it: a restore returns to the state before the undo, with nothing read from the discarded game. The C# differ stops comparing state hashes at a trace's first undo, because C#'s dump writes those references (`{"$ref":"OtherGame"}`) and Rust has none.
 
 ## Events
 
@@ -472,9 +447,10 @@ The oracle's state dump (`Oracle/Canon/StateDumper.cs`) writes every instance fi
 - `#[canon(name = "_toId")]`: anything else, including private fields and acronyms.
 - `#[canon(flatten)]`: `base: GameEventBase`, whose fields belong to the event.
 - `#[canon(omit)]`: fields the dumper leaves out (`LeaderState.TimeOfDeath`, `LoggedRandom._supply`).
-- `#[canon(skip)]`: Rust-only fields: `Game.id` and `Game.other_games` (see [Game identity and undo](#game-identity-and-undo)).
+- `#[canon(skip)]`: Rust-only fields with no C# counterpart.
+- `#[canon(game_field = "Game")]` on a type: the C# object has a field holding its game, which Rust doesn't keep. It is written as `{"$ref":"Game"}`.
 - `#[canon(with = "crate::canon::history_count")]`: the dumper's special cases on `Game` (`History` as its count, `PreviousGameState` as present or not, `Random` expanded).
-- `#[canon(manual)]` on a type: no derived impl. References (`PlayerIndex`, `GameRef`), `LoggedRandom`, the static-data handles and `Map` are written by hand in `canon.rs`.
+- `#[canon(manual)]` on a type: no derived impl. References (`PlayerIndex`), `LoggedRandom`, the static-data handles and `Map` are written by hand in `canon.rs`.
 
 A field you add while porting needs the same attribute treatment. A log record passed to `with_log` must derive `Canon`, and a new log record type must be added to the `log_records!` list in `canon.rs`. `cargo test -p differ --test field_mapping` compares every field name with the C# dumper and fails on anything missing or misnamed; [differ.md](differ.md) has the details.
 

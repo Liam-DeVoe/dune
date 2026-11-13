@@ -9,7 +9,7 @@ use treachery_engine::prelude::*;
 fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();
     for f in factions {
-        let p = Player::new(&g, *f);
+        let p = Player::new(*f);
         g.players.push(p);
     }
     g

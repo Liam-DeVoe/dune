@@ -1,8 +1,8 @@
 use crate::prelude::*;
 
 #[derive(Clone, Debug, Canon)]
+#[canon(game_field = "Game")]
 pub struct Player {
-    pub game: GameRef,
     pub faction: Faction,
     pub seat: i32,
     pub resources: i32,
@@ -42,9 +42,8 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn new(game: &Game, faction: Faction) -> Self {
-                Player {
-            game: game.reference(),
+    pub fn new(faction: Faction) -> Self {
+        Player {
             faction,
             seat: -1,
             resources: 0,
@@ -85,9 +84,7 @@ impl Player {
     }
 
     pub fn name(&self, game: &Game) -> String {
-        let own = game.enter_own_game(self.game); // Player.Game: another game after Undo
-        let game: &Game = &own;
-                // Game.GetPlayerName(this): `self` is always one of game.players.
+        // Game.GetPlayerName(this): `self` is always one of game.players.
         game.get_player_name_player(game.index_of(self).nre())
     }
 
@@ -135,13 +132,7 @@ impl Player {
     }
 
     pub fn change_forces(game: &mut Game, me: PlayerIndex, location: Location, nr_of_forces: i32) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::change_forces(inner, me, location.of_game_map(caller), nr_of_forces));
-        }
-                let me_ = game.player_mut(me);
+        let me_ = game.player_mut(me);
         let result = me_.get_and_create_if_needed(location);
         result.change_forces(nr_of_forces);
         if result.total_amount_of_forces() == 0 {
@@ -150,13 +141,7 @@ impl Player {
     }
 
     pub fn change_special_forces(game: &mut Game, me: PlayerIndex, location: Location, nr_of_forces: i32) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::change_special_forces(inner, me, location.of_game_map(caller), nr_of_forces));
-        }
-                let me_ = game.player_mut(me);
+        let me_ = game.player_mut(me);
         let result = me_.get_and_create_if_needed(location);
         result.change_special_forces(nr_of_forces);
         if result.total_amount_of_forces() == 0 {
@@ -166,13 +151,7 @@ impl Player {
     }
 
     pub fn add_forces(game: &mut Game, me: PlayerIndex, location: Location, nr_of_forces: i32, from_reserves: bool) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::add_forces(inner, me, location.of_game_map(caller), nr_of_forces, from_reserves));
-        }
-                if from_reserves {
+        if from_reserves {
             let p = game.player(me);
             let source_world = p.home_worlds.iter().copied().find(|w| p.forces_in(Some(w.location())) >= nr_of_forces);
             if let Some(source_world) = source_world {
@@ -184,13 +163,7 @@ impl Player {
     }
 
     pub fn add_special_forces(game: &mut Game, me: PlayerIndex, location: Location, nr_of_forces: i32, from_reserves: bool) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::add_special_forces(inner, me, location.of_game_map(caller), nr_of_forces, from_reserves));
-        }
-                if from_reserves {
+        if from_reserves {
             let p = game.player(me);
             let source_world = p.home_worlds.iter().copied().find(|w| p.special_forces_in(Some(w.location())) >= nr_of_forces);
             if let Some(source_world) = source_world {
@@ -202,26 +175,14 @@ impl Player {
     }
 
     pub fn add_forces_to_reserves(game: &mut Game, me: PlayerIndex, nr_of_forces: i32) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let _caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::add_forces_to_reserves(inner, me, nr_of_forces));
-        }
-                let source_world = game.player(me).home_worlds.iter().copied().find(|w| w.is_home_of_normal_forces());
+        let source_world = game.player(me).home_worlds.iter().copied().find(|w| w.is_home_of_normal_forces());
         if let Some(source_world) = source_world {
             Player::change_forces(game, me, source_world.location(), nr_of_forces);
         }
     }
 
     pub fn check_if_emperor_star_threshold_was_passed(game: &mut Game, me: PlayerIndex) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let _caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::check_if_emperor_star_threshold_was_passed(inner, me));
-        }
-                let p = game.player(me);
+        let p = game.player(me);
         if p.faction == Faction::Emperor && game.applicable(Rule::EmperorSpecialForces) {
             let home_world = p.home_worlds.iter().copied().find(|hw| hw.world() == World::SalusaSecundus);
 
@@ -240,36 +201,18 @@ impl Player {
     }
 
     pub fn add_special_forces_to_reserves(game: &mut Game, me: PlayerIndex, nr_of_forces: i32) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let _caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::add_special_forces_to_reserves(inner, me, nr_of_forces));
-        }
-                let source_world = game.player(me).home_worlds.iter().copied().find(|w| w.is_home_of_special_forces());
+        let source_world = game.player(me).home_worlds.iter().copied().find(|w| w.is_home_of_special_forces());
         if let Some(source_world) = source_world {
             Player::change_special_forces(game, me, source_world.location(), nr_of_forces);
         }
     }
 
     pub fn remove_forces(game: &mut Game, me: PlayerIndex, location: Location, nr_of_forces: i32) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::remove_forces(inner, me, location.of_game_map(caller), nr_of_forces));
-        }
-                Player::change_forces(game, me, location, nr_of_forces.wrapping_neg());
+        Player::change_forces(game, me, location, nr_of_forces.wrapping_neg());
     }
 
     pub fn remove_special_forces(game: &mut Game, me: PlayerIndex, location: Location, nr_of_forces: i32) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::remove_special_forces(inner, me, location.of_game_map(caller), nr_of_forces));
-        }
-                Player::change_special_forces(game, me, location, nr_of_forces.wrapping_neg());
+        Player::change_special_forces(game, me, location, nr_of_forces.wrapping_neg());
     }
 
     pub fn forces_in(&self, location: Option<Location>) -> i32 {
@@ -338,13 +281,7 @@ impl Player {
     }
 
     pub fn forces_to_reserves(game: &mut Game, me: PlayerIndex, location: Location) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::forces_to_reserves(inner, me, location.of_game_map(caller)));
-        }
-                // C# holds the live Battalion object `ForcesInLocations[location]` and reads it after
+        // C# holds the live Battalion object `ForcesInLocations[location]` and reads it after
         // AddForcesToReserves. That object stays in the dictionary in between (adding a
         // non-negative amount never empties a battalion), so reading the dictionary again is
         // the same; a missing entry would mean a detached, emptied battalion, hence the 0.
@@ -367,24 +304,12 @@ impl Player {
     }
 
     pub fn forces_to_reserves_location_int32(game: &mut Game, me: PlayerIndex, location: Location, amount: i32) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::forces_to_reserves_location_int32(inner, me, location.of_game_map(caller), amount));
-        }
-                Player::add_forces_to_reserves(game, me, amount);
+        Player::add_forces_to_reserves(game, me, amount);
         Player::change_forces(game, me, location, amount.wrapping_neg());
     }
 
     pub fn special_forces_to_reserves(game: &mut Game, me: PlayerIndex, location: Location, amount: i32) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::special_forces_to_reserves(inner, me, location.of_game_map(caller), amount));
-        }
-                let faction = game.player(me).faction;
+        let faction = game.player(me).faction;
         if faction == Faction::BeneGesserit {
             Player::add_forces_to_reserves(game, me, amount);
         } else if faction != Faction::Richese {
@@ -395,13 +320,7 @@ impl Player {
     }
 
     pub fn forces_to_reserves_territory_int32_boolean(game: &mut Game, me: PlayerIndex, t: Territory, amount: i32, special: bool) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::forces_to_reserves_territory_int32_boolean(inner, me, t.of_game_map(caller), amount, special));
-        }
-                if amount > 0 {
+        if amount > 0 {
             let mut to_remove_in_total = amount;
             let mut locations: Vec<Location> = t.locations().to_vec();
             locations.sort_by_cached_key(|l| l.spice_blow_amount()); // OrderBy: stable
@@ -438,13 +357,7 @@ impl Player {
     }
 
     pub fn forces_to_reserves_territory(game: &mut Game, me: PlayerIndex, t: Territory) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::forces_to_reserves_territory(inner, me, t.of_game_map(caller)));
-        }
-                // Lazy Where: the filter is re-checked after each body ran.
+        // Lazy Where: the filter is re-checked after each body ran.
         for &l in t.locations() {
             if game.player(me).any_forces_in(Some(l)) > 0 {
                 Player::forces_to_reserves(game, me, l);
@@ -453,13 +366,7 @@ impl Player {
     }
 
     pub fn kill_all_forces(game: &mut Game, me: PlayerIndex, location: Location, in_battle: bool) -> i32 {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::kill_all_forces(inner, me, location.of_game_map(caller), in_battle));
-        }
-                let p = game.player(me);
+        let p = game.player(me);
         if let Some(battalion) = p.forces_in_locations.get(&location) {
             let kill_count = battalion.amount_of_forces;
             let special_kill_count = battalion.amount_of_special_forces;
@@ -489,13 +396,7 @@ impl Player {
     }
 
     pub fn kill_all_forces_territory_boolean(game: &mut Game, me: PlayerIndex, t: Territory, in_battle: bool) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::kill_all_forces_territory_boolean(inner, me, t.of_game_map(caller), in_battle));
-        }
-                // Lazy Where: the filter is re-checked after each body ran.
+        // Lazy Where: the filter is re-checked after each body ran.
         for &l in t.locations() {
             if game.player(me).any_forces_in(Some(l)) > 0 {
                 Player::kill_all_forces(game, me, l, in_battle);
@@ -504,13 +405,7 @@ impl Player {
     }
 
     pub fn kill_forces(game: &mut Game, me: PlayerIndex, location: Location, amount_of_forces: i32, amount_of_special_forces: i32, in_battle: bool) -> i32 {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::kill_forces(inner, me, location.of_game_map(caller), amount_of_forces, amount_of_special_forces, in_battle));
-        }
-                Player::change_forces(game, me, location, amount_of_forces.wrapping_neg());
+        Player::change_forces(game, me, location, amount_of_forces.wrapping_neg());
         Player::change_special_forces(game, me, location, amount_of_special_forces.wrapping_neg());
 
         let p = game.player_mut(me);
@@ -530,13 +425,7 @@ impl Player {
     }
 
     pub fn kill_forces_territory_int32_boolean_boolean(game: &mut Game, me: PlayerIndex, t: Territory, amount: i32, special: bool, in_battle: bool) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::kill_forces_territory_int32_boolean_boolean(inner, me, t.of_game_map(caller), amount, special, in_battle));
-        }
-                let mut to_kill = amount;
+        let mut to_kill = amount;
         let mut locations: Vec<Location> = t.locations().to_vec();
         locations.sort_by_cached_key(|l| l.spice_blow_amount()); // OrderBy: stable
         for l in locations {
@@ -559,57 +448,27 @@ impl Player {
     }
 
     pub fn revive_forces(game: &mut Game, me: PlayerIndex, amount: i32) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let _caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::revive_forces(inner, me, amount));
-        }
-                let p = game.player_mut(me);
+        let p = game.player_mut(me);
         p.forces_killed = p.forces_killed.wrapping_sub(amount);
         Player::add_forces_to_reserves(game, me, amount);
     }
 
     pub fn revive_special_forces(game: &mut Game, me: PlayerIndex, amount: i32) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let _caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::revive_special_forces(inner, me, amount));
-        }
-                let p = game.player_mut(me);
+        let p = game.player_mut(me);
         p.special_forces_killed = p.special_forces_killed.wrapping_sub(amount);
         Player::add_special_forces_to_reserves(game, me, amount);
     }
 
     pub fn ship_forces(game: &mut Game, me: PlayerIndex, to: Location, amount: i32) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::ship_forces(inner, me, to.of_game_map(caller), amount));
-        }
-                Player::add_forces(game, me, to, amount, true);
+        Player::add_forces(game, me, to, amount, true);
     }
 
     pub fn ship_forces_location_homeworld_int32(game: &mut Game, me: PlayerIndex, to: Location, from: Homeworld, amount: i32) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::ship_forces_location_homeworld_int32(inner, me, to.of_game_map(caller), from.of_game_map(caller), amount));
-        }
-                Player::move_forces(game, me, from.location(), to, amount);
+        Player::move_forces(game, me, from.location(), to, amount);
     }
 
     pub fn ship_special_forces(game: &mut Game, me: PlayerIndex, to: Location, amount: i32) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::ship_special_forces(inner, me, to.of_game_map(caller), amount));
-        }
-                if game.player(me).faction == Faction::Richese {
+        if game.player(me).faction == Faction::Richese {
             Player::change_special_forces(game, me, to, amount);
         } else {
             Player::add_special_forces(game, me, to, amount, true);
@@ -617,13 +476,7 @@ impl Player {
     }
 
     pub fn ship_special_forces_location_homeworld_int32(game: &mut Game, me: PlayerIndex, to: Location, from: Homeworld, amount: i32) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::ship_special_forces_location_homeworld_int32(inner, me, to.of_game_map(caller), from.of_game_map(caller), amount));
-        }
-                if game.player(me).faction == Faction::Richese {
+        if game.player(me).faction == Faction::Richese {
             Player::change_special_forces(game, me, to, amount);
         } else {
             Player::move_special_forces(game, me, from.location(), to, amount);
@@ -631,46 +484,22 @@ impl Player {
     }
 
     pub fn ship_advisors(game: &mut Game, me: PlayerIndex, l: Location, amount: i32) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::ship_advisors(inner, me, l.of_game_map(caller), amount));
-        }
-                Player::add_forces_to_reserves(game, me, amount.wrapping_neg());
+        Player::add_forces_to_reserves(game, me, amount.wrapping_neg());
         Player::change_special_forces(game, me, l, amount);
     }
 
     pub fn move_forces(game: &mut Game, me: PlayerIndex, from: Location, to: Location, amount: i32) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::move_forces(inner, me, from.of_game_map(caller), to.of_game_map(caller), amount));
-        }
-                Player::change_forces(game, me, from, amount.wrapping_neg());
+        Player::change_forces(game, me, from, amount.wrapping_neg());
         Player::change_forces(game, me, to, amount);
     }
 
     pub fn move_special_forces(game: &mut Game, me: PlayerIndex, from: Location, to: Location, amount: i32) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::move_special_forces(inner, me, from.of_game_map(caller), to.of_game_map(caller), amount));
-        }
-                Player::change_special_forces(game, me, from, amount.wrapping_neg());
+        Player::change_special_forces(game, me, from, amount.wrapping_neg());
         Player::change_special_forces(game, me, to, amount);
     }
 
     pub fn flip_forces(game: &mut Game, me: PlayerIndex, l: Location, as_advisors: bool) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::flip_forces(inner, me, l.of_game_map(caller), as_advisors));
-        }
-                if game.player(me).faction == Faction::BeneGesserit {
+        if game.player(me).faction == Faction::BeneGesserit {
             if as_advisors {
                 let number_of_forces = game.player(me).forces_in(Some(l));
                 Player::change_forces(game, me, l, number_of_forces.wrapping_neg());
@@ -684,15 +513,9 @@ impl Player {
     }
 
     pub fn flip_forces_territory_boolean(game: &mut Game, me: PlayerIndex, t: Territory, as_advisors: bool) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::flip_forces_territory_boolean(inner, me, t.of_game_map(caller), as_advisors));
-        }
         // `t.Locations` are objects of t's map: after an undo, t can come from an event of
         // the other game, and a battalion created for such a location keeps it as its key.
-        for l in t.locations_of_map() {
+        for l in t.locations().iter().copied() {
             Player::flip_forces(game, me, l, as_advisors);
         }
     }
@@ -703,9 +526,7 @@ impl Player {
 
     pub fn occupies(&self, game: &Game, l: Option<Location>) -> bool {
         let l = l.and_then(crate::compat::cs::CsNull::opt);
-        let own = game.enter_own_game(self.game); // Player.Game: another game after Undo
-        let game: &Game = &own;
-                match l {
+        match l {
             None => false,
             Some(l) => {
                 self.occupying_forces_in_location(l) > 0
@@ -719,39 +540,29 @@ impl Player {
 
     pub fn occupies_territory(&self, game: &Game, t: Option<Territory>) -> bool {
         let t = t.and_then(crate::compat::cs::CsNull::opt);
-        let own = game.enter_own_game(self.game); // Player.Game: another game after Undo
-        let game: &Game = &own;
-                match t {
+        match t {
             None => false,
             Some(t) => t.locations().iter().any(|l| self.occupies(game, Some(*l))),
         }
     }
 
     pub fn occupied_locations(&self, game: &Game) -> Vec<Location> {
-        let own = game.enter_own_game(self.game); // Player.Game: another game after Undo
-        let game: &Game = &own;
-                game.map.locations(true).filter(|l| self.occupies(game, Some(*l))).collect()
+        game.map.locations(true).filter(|l| self.occupies(game, Some(*l))).collect()
     }
 
     pub fn occupied_territories(&self, game: &Game) -> Vec<Territory> {
-        let own = game.enter_own_game(self.game); // Player.Game: another game after Undo
-        let game: &Game = &own;
-                game.map.territories(true).filter(|t| self.occupies_territory(game, Some(*t))).collect()
+        game.map.territories(true).filter(|t| self.occupies_territory(game, Some(*t))).collect()
     }
 
     pub fn controls(&self, g: &Game, l: Location, contested_strongholds_count_as_controlled: bool) -> bool {
-        let own = g.enter_own_game(self.game); // Player.Game: another game after Undo
-        let g: &Game = &own;
-                if contested_strongholds_count_as_controlled {
+        if contested_strongholds_count_as_controlled {
             return self.occupies(g, Some(l));
         }
         self.occupies(g, Some(l)) && g.nr_of_occupants_excluding_faction(l, self.faction) == 0
     }
 
     pub fn controls_game_territory_boolean(&self, g: &Game, t: Territory, contested_strongholds_count_as_occupied: bool) -> bool {
-        let own = g.enter_own_game(self.game); // Player.Game: another game after Undo
-        let g: &Game = &own;
-                if contested_strongholds_count_as_occupied {
+        if contested_strongholds_count_as_occupied {
             return self.occupies_territory(g, Some(t));
         }
         self.occupies_territory(g, Some(t)) && g.nr_of_occupants_excluding_faction_territory_faction(t, self.faction) == 0
@@ -759,8 +570,6 @@ impl Player {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach (docs/lazy-queries.md).
     pub fn territories_with_forces(&self, game: &Game) -> impl Iterator<Item = Territory> {
-        // C# reads Player.Game.Map, another game after Undo; Map.Territories is the same static
-        // data in every game, and the predicate reads only this player.
         game.map.territories(true).filter(move |t| self.any_forces_in_territory(Some(*t)) > 0)
     }
 
@@ -803,23 +612,17 @@ impl Player {
     }
 
     pub fn has_special_forces(&self, game: &Game) -> bool {
-        let own = game.enter_own_game(self.game); // Player.Game: another game after Undo
-        let game: &Game = &own;
-                (game.applicable(Rule::FremenSpecialForces) && self.is(Faction::Fremen))
+        (game.applicable(Rule::FremenSpecialForces) && self.is(Faction::Fremen))
             || (game.applicable(Rule::EmperorSpecialForces) && self.is(Faction::Emperor))
             || self.is(Faction::Ixian)
     }
 
     pub fn allied_player(&self, game: &Game) -> Option<PlayerIndex> {
-        let own = game.enter_own_game(self.game); // Player.Game: another game after Undo
-        let game: &Game = &own;
-                game.get_player(Some(self.ally))
+        game.get_player(Some(self.ally))
     }
 
     pub fn allied_resources(&self, game: &Game) -> i32 {
-        let own = game.enter_own_game(self.game); // Player.Game: another game after Undo
-        let game: &Game = &own;
-                match self.allied_player(game) {
+        match self.allied_player(game) {
             Some(a) => game.player(a).resources,
             None => 0,
         }
@@ -854,9 +657,7 @@ impl Player {
     }
 
     pub fn maximum_number_of_cards(&self, game: &Game) -> i32 {
-        let own = game.enter_own_game(self.game); // Player.Game: another game after Undo
-        let game: &Game = &own;
-                let occupier_of_choam_homeworld = game.occupier_of(World::Choam);
+        let occupier_of_choam_homeworld = game.occupier_of(World::Choam);
         let occupation_bonus = match occupier_of_choam_homeworld {
             Some(o) if Some(o) == game.index_of(self) || game.player(o).faction == self.ally => 1,
             _ => 0,
@@ -878,15 +679,11 @@ impl Player {
     }
 
     pub fn has_room_for_cards(&self, game: &Game) -> bool {
-        let own = game.enter_own_game(self.game); // Player.Game: another game after Undo
-        let game: &Game = &own;
-                (self.treachery_cards.len() as i32) < self.maximum_number_of_cards(game)
+        (self.treachery_cards.len() as i32) < self.maximum_number_of_cards(game)
     }
 
     pub fn hand_size_exceeded(&self, game: &Game) -> bool {
-        let own = game.enter_own_game(self.game); // Player.Game: another game after Undo
-        let game: &Game = &own;
-                (self.treachery_cards.len() as i32) > self.maximum_number_of_cards(game)
+        (self.treachery_cards.len() as i32) > self.maximum_number_of_cards(game)
     }
 
     pub fn number_of_traitors(&self) -> i32 {
@@ -927,13 +724,7 @@ impl Player {
     }
 
     pub fn assign_leaders(g: &mut Game, me: PlayerIndex) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != g.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let _caller = g.id;
-            return g.with_game_mut(me.game, |inner| Player::assign_leaders(inner, me));
-        }
-                let faction = g.player(me).faction;
+        let faction = g.player(me).faction;
         let leaders: Vec<Leader> = match faction {
             Faction::Choam => LeaderManager::get_leaders(Faction::Choam)
                 .filter(|l| g.applicable(Rule::ChoamAuditor) || l.hero_type() != HeroType::Auditor)
@@ -959,25 +750,19 @@ impl Player {
     }
 
     pub fn messiah_available(&self, game: &Game) -> bool {
-        let own = game.enter_own_game(self.game); // Player.Game: another game after Undo
-        let game: &Game = &own;
-                game.applicable(Rule::AtreidesMessiah)
+        game.applicable(Rule::AtreidesMessiah)
             && self.is(Faction::Atreides)
             && self.total_forces_killed_in_battle >= 7
             && game.is_alive(LeaderManager::messiah())
     }
 
     pub fn is_bot(&self, game: &Game) -> bool {
-        let own = game.enter_own_game(self.game); // Player.Game: another game after Undo
-        let game: &Game = &own;
-                // Game.IsBot(this): `self` is always one of game.players.
+        // Game.IsBot(this): `self` is always one of game.players.
         game.is_bot(game.index_of(self).nre())
     }
 
     pub fn ally_is_bot(&self, game: &Game) -> bool {
-        let own = game.enter_own_game(self.game); // Player.Game: another game after Undo
-        let game: &Game = &own;
-                // Game.IsBot(null) throws NullReferenceException.
+        // Game.IsBot(null) throws NullReferenceException.
         self.has_ally() && game.is_bot(self.allied_player(game).nre())
     }
 
@@ -986,21 +771,13 @@ impl Player {
     }
 
     pub fn has_karma(&self, g: &Game) -> bool {
-        let own = g.enter_own_game(self.game); // Player.Game: another game after Undo
-        let g: &Game = &own;
-                // Karma.ValidKarmaCards(g, this): `self` is always one of g.players.
+        // Karma.ValidKarmaCards(g, this): `self` is always one of g.players.
         // Any() stops at the first match.
         crate::events::Karma::valid_karma_cards(g, g.index_of(self).nre()).next().is_some()
     }
 
     pub fn initialize_homeworld(game: &mut Game, me: PlayerIndex, world: Homeworld, initial_normal_forces: i32, initial_special_forces: i32) {
-        // C# runs this on the player object, whose Game can be another game after Undo.
-        if me.game != game.id && me != PlayerIndex::NULL {
-            // The caller's map objects, stored in the other game's player.
-            let caller = game.id;
-            return game.with_game_mut(me.game, |inner| Player::initialize_homeworld(inner, me, world.of_game_map(caller), initial_normal_forces, initial_special_forces));
-        }
-                if initial_normal_forces > 0 {
+        if initial_normal_forces > 0 {
             Player::add_forces(game, me, world.location(), initial_normal_forces, false);
         }
         if initial_special_forces > 0 {
@@ -1014,9 +791,7 @@ impl Player {
     }
 
     pub fn has_high_threshold(&self, game: &Game, w: World) -> bool {
-        let own = game.enter_own_game(self.game); // Player.Game: another game after Undo
-        let game: &Game = &own;
-                if !game.applicable(Rule::Homeworlds) {
+        if !game.applicable(Rule::Homeworlds) {
             return false;
         }
 
@@ -1032,18 +807,14 @@ impl Player {
     }
 
     pub fn has_high_threshold_0(&self, game: &Game) -> bool {
-        let own = game.enter_own_game(self.game); // Player.Game: another game after Undo
-        let game: &Game = &own;
-                if !game.applicable(Rule::Homeworlds) {
+        if !game.applicable(Rule::Homeworlds) {
             return false;
         }
         self.home_worlds.iter().any(|w| self.has_high_threshold(game, w.world()))
     }
 
     pub fn has_low_threshold(&self, game: &Game, w: World) -> bool {
-        let own = game.enter_own_game(self.game); // Player.Game: another game after Undo
-        let game: &Game = &own;
-                if !game.applicable(Rule::Homeworlds) {
+        if !game.applicable(Rule::Homeworlds) {
             return false;
         }
 
@@ -1059,9 +830,7 @@ impl Player {
     }
 
     pub fn has_low_threshold_0(&self, game: &Game) -> bool {
-        let own = game.enter_own_game(self.game); // Player.Game: another game after Undo
-        let game: &Game = &own;
-                game.applicable(Rule::Homeworlds) && self.home_worlds.iter().any(|w| self.has_low_threshold(game, w.world()))
+        game.applicable(Rule::Homeworlds) && self.home_worlds.iter().any(|w| self.has_low_threshold(game, w.world()))
     }
 
     pub fn initiated(&self, e: Option<&GameEvent>) -> bool {
@@ -1084,18 +853,14 @@ impl Player {
     }
 
     pub fn have_forces_on_each_others_home_worlds(&self, game: &Game, other: PlayerIndex) -> bool {
-        let own = game.enter_own_game(self.game); // Player.Game: another game after Undo
-        let game: &Game = &own;
-                // HomeWorlds.Contains(l) with a Location argument: Enumerable.Contains, Location.Equals (by Id).
+        // HomeWorlds.Contains(l) with a Location argument: Enumerable.Contains, Location.Equals (by Id).
         let other = game.player(other);
         self.forces_in_locations.keys().any(|l| other.home_worlds.iter().any(|hw| hw.location() == *l))
             || other.forces_in_locations.keys().any(|l| self.home_worlds.iter().any(|hw| hw.location() == *l))
     }
 
     pub fn get_homeworld_battle_contribution_and_lasgun_shield_limit(&self, game: &Game, where_battle_happens: Territory) -> i32 {
-        let own = game.enter_own_game(self.game); // Player.Game: another game after Undo
-        let game: &Game = &own;
-                if !where_battle_happens.is_homeworld() || !self.is_native(where_battle_happens) {
+        if !where_battle_happens.is_homeworld() || !self.is_native(where_battle_happens) {
             return 0;
         }
 
@@ -1112,20 +877,6 @@ impl Player {
         }
     }
 
-    /// Renames this player's map objects (forces and homeworlds) from map tag `from` to
-    /// `to` (see `Location::map_game`). Rust-only: used when its game is held by another.
-    pub(crate) fn retag_map_objects(&mut self, from: u64, to: u64) {
-        for l in self.forces_in_locations.keys_mut_same_identity() {
-            l.retag(from, to);
-        }
-        for b in self.forces_in_locations.values_mut() {
-            b.location.retag(from, to);
-        }
-        for hw in &mut self.home_worlds {
-            hw.retag(from, to);
-        }
-    }
-
     /// Only `Game.Clone` calls this, and that is not ported. This is a deep copy: the sets
     /// (`KnownCards`, `RevealedTraitors`, ...) and `SkillsToChooseFrom`/`HomeWorlds` are copied,
     /// not shared with the original.
@@ -1138,15 +889,11 @@ impl Player {
 
 }
 
-/// A reference to a player: the game the player object belongs to and its index in that
-/// game's `Players`. Players are only ever appended, so the index is stable, and equality
-/// is identity: two handles are equal only if they refer to the same player object, also
-/// across games (after `Undo`, an event can hold a player
-/// of another game). `Game::player` resolves it; `Game::player_at(i)` makes one.
+/// A player of a game: its index in `Game.players`. Players are only ever appended,
+/// so the index is stable. `Game::player` resolves it; `Game::player_at(i)` makes one.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Canon)]
 #[canon(manual)]
 pub struct PlayerIndex {
-    pub game: crate::game::GameId,
     pub index: usize,
 }
 
@@ -1158,5 +905,5 @@ impl crate::compat::cs::CsNull for PlayerIndex {
 
 impl PlayerIndex {
     /// No player.
-    pub const NULL: PlayerIndex = PlayerIndex { game: crate::game::GameId(0), index: usize::MAX };
+    pub const NULL: PlayerIndex = PlayerIndex { index: usize::MAX };
 }

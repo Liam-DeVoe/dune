@@ -409,11 +409,6 @@ impl ClassicBot {
             }
 
             if let Some(a) = action.clone() {
-                // C# `action.Validate()` and `GetMessage()` read the event's own `Game`. That is the live
-                // game, except for an event built from an object of another game: `DealOffered.Acceptance`
-                // after an undo builds the `DealAccepted` on the offer's (pre-undo) game.
-                let own = game.enter_own_game(a.base().game.get());
-                let game: &Game = &own;
                 let error = a.validate(game);
                 if let Some(error) = error {
                     // The interpolation runs outside the try: GetMessage() or ToString() can throw out of Do.

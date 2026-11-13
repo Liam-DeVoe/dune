@@ -19,37 +19,18 @@ use crate::map::territory::Territory;
 
 /// Handle to a location of the map. Equality is by id.
 /// `Location::NULL` is the null handle (see `cs::CsNull`).
-///
-/// The second field says which game's map the location belongs to: 0 for the map of
-/// the game that holds the handle, otherwise the id of another game (a location passed
-/// to a player of another game after an undo; engine-conventions.md, "Game identity
-/// and undo"). Only the state dump reads it (`"foreign":true`); equality ignores it.
-#[derive(Copy, Clone)]
-pub struct Location(u8, u64);
-
-impl PartialEq for Location {
-    fn eq(&self, other: &Location) -> bool {
-        self.0 == other.0
-    }
-}
-
-impl Eq for Location {}
-
-impl std::hash::Hash for Location {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.0.hash(state)
-    }
-}
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+pub struct Location(u8);
 
 impl CsNull for Location {
     const NULL: Location = Location::NULL;
 }
 
 static ALL_LOCATIONS: [Location; LOCATION_COUNT] = {
-    let mut a = [Location(0, 0); LOCATION_COUNT];
+    let mut a = [Location(0); LOCATION_COUNT];
     let mut i = 0;
     while i < LOCATION_COUNT {
-        a[i] = Location(i as u8, 0);
+        a[i] = Location(i as u8);
         i += 1;
     }
     a
@@ -57,10 +38,10 @@ static ALL_LOCATIONS: [Location; LOCATION_COUNT] = {
 
 impl Location {
     /// The null handle. Every member throws NullReferenceException.
-    pub const NULL: Location = Location(u8::MAX, 0);
+    pub const NULL: Location = Location(u8::MAX);
 
     pub(crate) const fn from_index(i: usize) -> Location {
-        Location(i as u8, 0)
+        Location(i as u8)
     }
 
     /// Every location in `Map._locations` order.
@@ -81,18 +62,7 @@ impl Location {
     /// The location with this id, if it exists. (`Map.LocationLookup.Find`
     /// throws instead; see [`Map::location_lookup`].)
     pub fn from_id(id: i32) -> Option<Location> {
-        if id >= 0 && (id as usize) < LOCATION_COUNT { Some(Location(id as u8, 0)) } else { None }
-    }
-
-    /// This location as an object of the map of game `game` (see the type's doc).
-    pub fn of_game_map(self, game: crate::game::GameId) -> Location {
-        if self.is_null() { self } else { Location(self.0, game.0) }
-    }
-
-    /// The game whose map this location object belongs to, if it isn't the map of
-    /// the game that holds the handle.
-    pub fn map_game(self) -> Option<crate::game::GameId> {
-        if self.1 == 0 { None } else { Some(crate::game::GameId(self.1)) }
+        if id >= 0 && (id as usize) < LOCATION_COUNT { Some(Location(id as u8)) } else { None }
     }
 
     /// The static part of this location.
@@ -106,30 +76,7 @@ impl Location {
     }
 
     pub fn territory(self) -> Territory {
-        // Location.Territory: a territory of the same map as this location.
-        match self.map_game() {
-            Some(game) => self.data().territory.of_game_map(game),
-            None => self.data().territory,
-        }
-    }
-
-    /// Whether both handles refer to the same object: the same id on the same
-    /// game's map. (`==` compares ids only.)
-    pub fn is_same_object(self, other: Location) -> bool {
-        if self.0 != other.0 {
-            return false;
-        }
-        let own = crate::game::entered_game_id();
-        let norm = |t: u64| if t == own { 0 } else { t };
-        norm(self.1) == norm(other.1)
-    }
-
-    /// Changes which game's map this location object belongs to: `from` and `to` are
-    /// tags (0 is the map of the game holding the handle).
-    pub(crate) fn retag(&mut self, from: u64, to: u64) {
-        if self.1 == from && !self.is_null() {
-            self.1 = to;
-        }
+        self.data().territory
     }
 
     /// `Sector`. Attached locations take their host's sector once a game has

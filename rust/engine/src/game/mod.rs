@@ -73,9 +73,9 @@ pub struct Game {
     pub moments: Vec<Moment>,
     pub recently_undone_event_count: i32,
     pub recently_undone_events: Vec<GameEvent>,
-    /// The game itself is in `other_games` (see [`Game::other_games`]).
+    /// The game as it was before the last `undo`, which `restore_recently_undone` returns to.
     #[canon(with = "crate::canon::presence")]
-    pub previous_game_state: Option<GameId>,
+    pub previous_game_state: Option<Box<Game>>,
     pub current_turn: i32,
     pub current_main_phase: MainPhase,
     pub current_moment: MainPhaseMoment,
@@ -374,19 +374,6 @@ pub struct Game {
     pub phase_before_storm_loss: Phase,
     pub storm_losses_to_take: Vec<LossToTake>,
 
-    // ---- Rust-only: game identity (engine-conventions.md, "Game identity and undo") ----
-
-    /// The identity of this game object. Unique per process.
-    #[canon(skip)]
-    pub id: GameId,
-    /// The other game objects that this game's events, players or
-    /// `PreviousGameState` can still reach: every game this one was made from by
-    /// `Undo`, `RestoreRecentlyUndone` or `DismissRecentlyUndone`, flattened (their
-    /// own `other_games` are empty). The current game owns them, so `player(p)` can
-    /// read and write a player of
-    /// another game.
-    #[canon(skip)]
-    pub other_games: Vec<Game>,
 }
 
 impl Game {
@@ -702,8 +689,6 @@ impl Game {
             current_testing_station_used: Default::default(),
             phase_before_storm_loss: Default::default(),
             storm_losses_to_take: Vec::new(),
-            id: GameId::next(),
-            other_games: Vec::new(),
         };
 
         game.initialize_leader_state();
@@ -761,192 +746,57 @@ impl Game {
         self.moments.push(Moment::new(self.current_turn, self.current_main_phase));
     }
 
-    /// Replaces this game with the result; the old game becomes its `PreviousGameState`.
-    /// The replayed events are re-initialized against the result, and the undone ones
-    /// keep pointing at the old game. If an exception escapes (a negative
-    /// `untilEventNr`, or `EstablishPlayers` throwing while it replays), this stays the
-    /// old game, and the half-built game stays reachable
-    /// from it (its events were already re-initialized against that game).
+    /// Goes back to the state after the first `until_event_nr` events: a new game replays
+    /// them, and the events after them become `recently_undone_events`. The current game
+    /// is kept as `previous_game_state`, so `restore_recently_undone` can return to it. A
+    /// negative `until_event_nr` throws and leaves this game unchanged.
     pub fn undo(&mut self, until_event_nr: i32) {
-        let version = self.version;
-        let participation = self.participation.clone();
-        let old_id = self.id;
-        self.replace_with_new_game(version, &participation, |result, history, _| {
-            // PreviousGameState = this
-            result.previous_game_state = Some(old_id);
-            let history_count = history.len() as i32;
-            let max_event_nr = std::cmp::min(until_event_nr, history_count);
-
-            let mut i = 0;
-            while i < max_event_nr {
-                let e = history[i as usize].clone();
-                e.initialize_game(result);
-                e.execute(result, false, false);
-                i += 1;
-            }
-
-            // Store the recently undone events
-            result.recently_undone_event_count = history_count - max_event_nr;
-            let mut i = max_event_nr;
-            while i < history_count {
-                // History[i]: a negative untilEventNr throws ArgumentOutOfRangeException here
-                result.recently_undone_events.push(cs::index(&history, i).clone());
-                i += 1;
-            }
-        });
-    }
-
-    /// Becomes the stored previous game, stays this game, or becomes a new one.
-    pub fn restore_recently_undone(&mut self) {
-        if let Some(previous) = self.previous_game_state {
-            // return PreviousGameState: the earlier game object, as it is now. This
-            // game stays reachable from it (Undo re-initialized its history events
-            // against this game).
-            self.switch_to(previous);
-            self.drop_unreachable_games();
-            return;
-        }
-
-        if self.recently_undone_event_count == 0 || self.recently_undone_events.len() == 0 {
-            return;
-        }
-
-        let version = self.version;
-        let participation = self.participation.clone();
-        self.replace_with_new_game(version, &participation, |result, history, recently_undone| {
-            // Replay all current history
-            for e in history {
-                e.initialize_game(result);
-                e.execute(result, false, false);
-            }
-
-            // Add back the recently undone events to history and execute them
-            for evt in recently_undone {
-                evt.initialize_game(result);
-                evt.execute(result, false, false);
-            }
-
-            // Clear the recently undone events after restoring
-            result.recently_undone_event_count = 0;
-            result.recently_undone_events.clear();
-        });
-    }
-
-    pub fn dismiss_recently_undone(&mut self) {
-        let version = self.version;
-        let participation = self.participation.clone();
-        self.replace_with_new_game(version, &participation, |result, history, _| {
-            for e in history {
-                e.initialize_game(result);
-                e.execute(result, false, false);
-            }
-
-            // Clear the recently undone events and previous game state
-            result.recently_undone_event_count = 0;
-            result.recently_undone_events.clear();
-            result.previous_game_state = None;
-        });
-    }
-
-    /// `new Game(version, participation)`, filled by `build` while this game is still
-    /// reachable from it, then put in this game's place. `build` gets the new game and
-    /// this game's `History` and `RecentlyUndoneEvents` (shared event objects). If
-    /// `build` throws, this game is put back, keeps the new game reachable, and the
-    /// exception continues.
-    fn replace_with_new_game(
-        &mut self,
-        version: i32,
-        participation: &Shared<Participation>,
-        build: impl FnOnce(&mut Game, Vec<GameEvent>, Vec<GameEvent>),
-    ) {
         let history = self.history.clone();
-        let recently_undone = self.recently_undone_events.clone();
-        let mut result = Game::new_int32_participation(version, participation);
-        std::mem::swap(self, &mut result);
-        // Now `self` is the new game and `result` the old one.
-        let old_id = result.id;
-        self.adopt(result);
-        let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| build(self, history, recently_undone)));
-        if let Err(payload) = outcome {
-            self.switch_to(old_id);
-            self.drop_unreachable_games();
-            std::panic::resume_unwind(payload);
+        let history_count = history.len() as i32;
+        let max_event_nr = std::cmp::min(until_event_nr, history_count);
+        let mut result = self.replay(&history[..max_event_nr.max(0) as usize]);
+
+        result.recently_undone_event_count = history_count - max_event_nr;
+        for i in max_event_nr..history_count {
+            // A negative untilEventNr throws ArgumentOutOfRangeException here.
+            result.recently_undone_events.push(cs::index(&history, i).clone());
         }
-        self.drop_unreachable_games();
+
+        let previous = std::mem::replace(self, result);
+        self.previous_game_state = Some(Box::new(previous));
     }
 
-    /// Drops the games in `other_games` that are no longer reachable
-    /// (a game is reachable through `PreviousGameState`,
-    /// an event's `Game`, or a `Player`, from this game or from a reachable game).
-    /// Without this, every undo would keep a whole game alive for good.
-    fn drop_unreachable_games(&mut self) {
-        let mut live = std::collections::BTreeSet::from([self.id]);
-        let mut pending = vec![self.id];
-        while let Some(id) = pending.pop() {
-            let game = if id == self.id {
-                &*self
-            } else {
-                match self.other_games.iter().find(|g| g.id == id) {
-                    Some(g) => g,
-                    None => continue,
-                }
-            };
-            for r in crate::canon::referenced_games(game) {
-                if r != GameId(0) && live.insert(r) {
-                    pending.push(r);
-                }
-            }
+    /// Returns to the game as it was before the last `undo`. Without one (a game loaded
+    /// with undone events), replays the history followed by the undone events.
+    pub fn restore_recently_undone(&mut self) {
+        if let Some(previous) = self.previous_game_state.take() {
+            *self = *previous;
+            return;
         }
-        self.other_games.retain(|g| live.contains(&g.id));
-    }
 
-    /// Takes over `other` and every game it holds, so their events and players
-    /// stay reachable from this game (see [`Game::other_games`]).
-    fn adopt(&mut self, mut other: Game) {
-        self.other_games.append(&mut other.other_games);
-        other.park();
-        self.other_games.push(other);
-    }
-
-    /// Makes `id`, one of `other_games`, the game in this place, holding all the others.
-    fn switch_to(&mut self, id: GameId) {
-        let at = self.other_games.iter().position(|g| g.id == id).expect("the game is kept in other_games");
-        let mut next = self.other_games.remove(at);
-        next.unpark();
-        std::mem::swap(self, &mut next);
-        // `next` is the previous holder now.
-        self.adopt(next);
-    }
-
-    /// Runs `f` on another game held by this one, with full access to every game
-    /// (for code running on an object that belongs to that game). Each game sees its own
-    /// map objects untagged while it is in this place (see `Location::map_game`).
-    pub fn with_game_mut<R>(&mut self, id: GameId, f: impl FnOnce(&mut Game) -> R) -> R {
-        let me = self.id;
-        self.switch_to(id);
-        let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| f(self)));
-        self.switch_to(me);
-        match outcome {
-            Ok(r) => r,
-            Err(payload) => std::panic::resume_unwind(payload),
+        if self.recently_undone_event_count == 0 || self.recently_undone_events.is_empty() {
+            return;
         }
+
+        let events: Vec<GameEvent> = self.history.iter().chain(self.recently_undone_events.iter()).cloned().collect();
+        *self = self.replay(&events);
     }
 
-    /// This game is now held by another one: its players' map objects are named as
-    /// objects of this game's map, because untagged handles mean the holder's map.
-    fn park(&mut self) {
-        let id = self.id.0;
-        for p in &mut self.players {
-            p.retag_map_objects(0, id);
-        }
+    /// Forgets the undone events and the game before the undo: the history is replayed
+    /// into a new game.
+    pub fn dismiss_recently_undone(&mut self) {
+        let history = self.history.clone();
+        *self = self.replay(&history);
     }
 
-    /// This game holds the others again: its own map objects are untagged.
-    fn unpark(&mut self) {
-        let id = self.id.0;
-        for p in &mut self.players {
-            p.retag_map_objects(id, 0);
+    /// A new game of the same version and participation that has executed `events`.
+    fn replay(&self, events: &[GameEvent]) -> Game {
+        let mut result = Game::new_int32_participation(self.version, &self.participation);
+        for e in events {
+            e.initialize_game(&result);
+            e.execute(&mut result, false, false);
         }
+        result
     }
 
     pub fn update_timers(&mut self, e: &GameEvent) {
@@ -1637,11 +1487,6 @@ impl Game {
         self.recent_milestones.push(m);
     }
 
-    /// Not ported (engine-conventions.md, "Not ported").
-    pub fn cs_clone(&self) -> GameRef {
-        unimplemented!("Game.Clone is not ported (see engine-conventions.md, Not ported)")
-    }
-
     pub fn set_recent_payment(&mut self, amount: i32, by: Faction, to: Faction, reason: &GameEvent) {
         if amount > 0 {
             self.recently_paid.push(Payment::new_full(amount, by, to, Some(reason.clone())));
@@ -2004,195 +1849,36 @@ fn location_text(l: Location) -> String {
     ExpressionElement::from(l).to_cs_string()
 }
 
-/// The identity of a game object: two ids are equal only for the same game. `GameId(0)` is never
-/// a game. Every `Game` gets a new one, so ids are unique within the process.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct GameId(pub u64);
-
-impl GameId {
-    pub(crate) fn next() -> GameId {
-        use std::sync::atomic::{AtomicU64, Ordering};
-        static NEXT: AtomicU64 = AtomicU64::new(1);
-        GameId(NEXT.fetch_add(1, Ordering::Relaxed))
-    }
-}
-
-thread_local! {
-    /// The game whose `enter_own_game` is active (see there).
-    static FAMILY_ROOT: std::cell::Cell<*const Game> = const { std::cell::Cell::new(std::ptr::null()) };
-    /// The id of the game entered by `enter_own_game`, or 0.
-    static ENTERED: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
-}
-
-/// The game entered by the innermost active `enter_own_game`, or 0. While a game is
-/// held by another, its players' map objects carry its id; inside that game they are
-/// its own objects (see `Territory`'s `==`).
-pub(crate) fn entered_game_id() -> u64 {
-    ENTERED.with(|e| e.get())
-}
-
-/// The game an object belongs to, borrowed from the game that holds it (see
-/// [`Game::enter_own_game`]). Dereferences to that game.
-pub struct OwnGame<'a> {
-    game: &'a Game,
-    previous: Option<(*const Game, u64)>,
-}
-
-impl std::ops::Deref for OwnGame<'_> {
-    type Target = Game;
-    fn deref(&self) -> &Game {
-        self.game
-    }
-}
-
-impl Drop for OwnGame<'_> {
-    fn drop(&mut self) {
-        if let Some((root, entered)) = self.previous {
-            FAMILY_ROOT.with(|r| r.set(root));
-            ENTERED.with(|e| e.set(entered));
-        }
-    }
-}
-
-/// A field that refers to a game (`Player.Game`, `PlayerSequence._game`, `GameEvent.Game`):
-/// which game object it points at. The default is null. Methods still take the
-/// game as a parameter; use [`Game::game_of`] to resolve the field itself.
-/// The dump writes `{"$ref":"Game"}` for the dumped game and `{"$ref":"OtherGame"}`
-/// for any other.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Canon)]
-#[canon(manual)]
-pub struct GameRef(pub GameId);
-
-impl GameRef {
-    pub const NULL: GameRef = GameRef(GameId(0));
-
-    pub fn is_null(self) -> bool {
-        self.0 .0 == 0
-    }
-}
-
 impl Game {
-    /// A reference to this game object.
-    pub fn reference(&self) -> GameRef {
-        GameRef(self.id)
-    }
-
     /// The player at position `index` of `Players`.
     pub fn player_at(&self, index: usize) -> PlayerIndex {
-        PlayerIndex { game: self.id, index }
+        PlayerIndex { index }
     }
 
     /// Every player of `Players`, in order.
     pub fn player_indices(&self) -> impl Iterator<Item = PlayerIndex> + Clone + 'static {
-        let id = self.id;
-        (0..self.players.len()).map(move |index| PlayerIndex { game: id, index })
+        (0..self.players.len()).map(|index| PlayerIndex { index })
     }
 
-    /// Whether `p` is a player of this game (by identity).
-    pub fn is_own_player(&self, p: PlayerIndex) -> bool {
-        p.game == self.id && p.index < self.players.len()
-    }
-
-    /// The game a `Game` field points at: this game or one of `other_games`.
-    /// `None` when the field is null.
-    pub fn game_of(&self, r: GameRef) -> Option<&Game> {
-        if r.0 == self.id {
-            Some(self)
-        } else if r.is_null() {
-            None
-        } else {
-            Some(self.other_game(r.0))
-        }
-    }
-
-    /// The id of the game a `Game` field points at, if it is another game than this one.
-    pub fn other_game_id(&self, r: GameRef) -> Option<GameId> {
-        if r.is_null() || r.0 == self.id { None } else { Some(r.0) }
-    }
-
-    /// The game a `Game` field points at, or this game if the field is null. For
-    /// members that run on an object holding its own game (`Player.Game`,
-    /// `GameEvent.Game`): after `Undo` that can be another game.
-    pub fn own_game(&self, r: GameRef) -> &Game {
-        self.game_of(r).unwrap_or(self)
-    }
-
-    /// `own_game` for a member that reads more than one game object: while the
-    /// returned value lives, the other game can still resolve players of every game
-    /// that this one holds (an event of the undo game can keep a player of this
-    /// game). Use as `let own = game.enter_own_game(self.game_ref()); let game: &Game = &own;`.
-    pub fn enter_own_game(&self, r: GameRef) -> OwnGame<'_> {
-        let game = self.own_game(r);
-        let previous = if std::ptr::eq(game, self) {
-            None
-        } else {
-            Some((FAMILY_ROOT.with(|root| root.replace(self as *const Game)), ENTERED.with(|e| e.replace(game.id.0))))
-        };
-        OwnGame { game, previous }
-    }
-
-    /// One of `other_games`. A missing game is a bug: it should still be reachable.
-    pub fn other_game(&self, id: GameId) -> &Game {
-        if let Some(g) = self.other_games.iter().find(|g| g.id == id) {
-            return g;
-        }
-        // Inside `enter_own_game`: the games are held by the game that entered.
-        let root = FAMILY_ROOT.with(|root| root.get());
-        if !root.is_null() {
-            // SAFETY: FAMILY_ROOT is only set by `enter_own_game`, from a shared borrow
-            // of the holding game that outlives the `OwnGame` guard, and it is reset
-            // when the guard drops. Only shared references are made from it.
-            let root: &Game = unsafe { &*root };
-            if root.id == id {
-                return root;
-            }
-            if let Some(g) = root.other_games.iter().find(|g| g.id == id) {
-                return g;
-            }
-        }
-        panic!("game {:?} is not reachable from game {:?}", id, self.id)
-    }
-
-    /// One of `other_games`, for mutation.
-    pub fn other_game_mut(&mut self, id: GameId) -> &mut Game {
-        let me = self.id;
-        match self.other_games.iter_mut().find(|g| g.id == id) {
-            Some(g) => g,
-            None => panic!("game {:?} is not reachable from game {:?}", id, me),
-        }
-    }
-
-    /// The player `p` refers to. A player of another game (an event that was
-    /// initialized against another game, hazards: undo) is read from that game.
+    /// The player `p` refers to. NullReferenceException for `PlayerIndex::NULL`.
     pub fn player(&self, p: PlayerIndex) -> &Player {
-        if p.game == self.id {
-            &self.players[p.index]
-        } else {
-            if p == PlayerIndex::NULL {
-                throw!(NullReferenceException);
-            }
-            &self.other_game(p.game).players[p.index]
+        if p == PlayerIndex::NULL {
+            throw!(NullReferenceException);
         }
+        &self.players[p.index]
     }
 
-    /// `p`, for mutation. Writes to a player of another game go to that game.
+    /// `p`, for mutation.
     pub fn player_mut(&mut self, p: PlayerIndex) -> &mut Player {
-        if p.game == self.id {
-            &mut self.players[p.index]
-        } else {
-            if p == PlayerIndex::NULL {
-                throw!(NullReferenceException);
-            }
-            &mut self.other_game_mut(p.game).players[p.index]
+        if p == PlayerIndex::NULL {
+            throw!(NullReferenceException);
         }
+        &mut self.players[p.index]
     }
 
-    /// The reference to a player object (`self` inside a `Player` method): its
-    /// position in this game, or in the other game it belongs to.
+    /// The index of a player object of this game (`this` inside a `Player` method).
     pub fn index_of(&self, p: &Player) -> Option<PlayerIndex> {
-        std::iter::once(self)
-            .chain(self.other_games.iter())
-            .find_map(|g| g.players.iter().position(|x| std::ptr::eq(x, p)).map(|i| g.player_at(i)))
+        self.players.iter().position(|x| std::ptr::eq(x, p)).map(|index| PlayerIndex { index })
     }
 }
 

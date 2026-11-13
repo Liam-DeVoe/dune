@@ -17,9 +17,8 @@ impl Game {
 
         let Some(no_field_location) = no_field_location else { return };
 
-        // ReferenceEquals: after an undo the location can be another game's map object.
         if let Some(in_location) = in_location {
-            if !in_location.is_same_object(no_field_location) {
+            if in_location != no_field_location {
                 return;
             }
         }
@@ -51,7 +50,7 @@ impl Game {
         if !self.player(player).is(Faction::Richese) {
             return;
         }
-        for l in in_territory.locations_of_map() {
+        for l in in_territory.locations().iter().copied() {
             self.reveal_current_no_field(player, Some(l));
         }
     }

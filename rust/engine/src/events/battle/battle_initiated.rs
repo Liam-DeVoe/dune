@@ -28,11 +28,7 @@ impl BattleInitiated {
     }
 
     pub fn territory(&self, game: &Game) -> Option<Territory> {
-        // Game.Map: after Undo, the map of another game, whose territory objects are
-        // not this game's.
-        let own = game.own_game(self.game_ref());
-        let t = own.map.territory_lookup().find(self.territory_id);
-        if own.id == game.id { t } else { t.map(|t| t.of_game_map(own.id)) }
+        game.map.territory_lookup().find(self.territory_id)
     }
 
     pub fn set_territory(&mut self, game: &Game, value: Option<Territory>) {
@@ -41,8 +37,6 @@ impl BattleInitiated {
     }
 
     pub fn actual_initiator(&self, game: &Game) -> Faction {
-        let own = game.enter_own_game(self.game_ref()); // GameEvent.Game: another game after Undo
-        let game: &Game = &own;
         match game.current_ecaz_or_ally_fighter {
             Some(fighter) if fighter != Faction::None && Some(self.initiator()) == game.get_ally(Some(fighter)) => fighter,
             _ => self.initiator(),
@@ -50,8 +44,6 @@ impl BattleInitiated {
     }
 
     pub fn actual_target(&self, game: &Game) -> Faction {
-        let own = game.enter_own_game(self.game_ref()); // GameEvent.Game: another game after Undo
-        let game: &Game = &own;
         match game.current_ecaz_or_ally_fighter {
             Some(fighter) if fighter != Faction::None && Some(self.target) == game.get_ally(Some(fighter)) => fighter,
             _ => self.target,
@@ -59,8 +51,6 @@ impl BattleInitiated {
     }
 
     pub fn defender(&self, game: &Game) -> Faction {
-        let own = game.enter_own_game(self.game_ref()); // GameEvent.Game: another game after Undo
-        let game: &Game = &own;
         if self.actual_initiator(game) == self.aggressor(game) {
             self.actual_target(game)
         } else {
@@ -69,14 +59,10 @@ impl BattleInitiated {
     }
 
     pub fn defending_player(&self, game: &Game) -> Option<PlayerIndex> {
-        let own = game.enter_own_game(self.game_ref()); // GameEvent.Game: another game after Undo
-        let game: &Game = &own;
         game.get_player(Some(self.defender(game)))
     }
 
     pub fn aggressor(&self, game: &Game) -> Faction {
-        let own = game.enter_own_game(self.game_ref()); // GameEvent.Game: another game after Undo
-        let game: &Game = &own;
         let target = self.actual_target(game);
         let target_player = game.get_player(Some(target));
 
@@ -96,8 +82,6 @@ impl BattleInitiated {
     }
 
     pub fn aggressive_player(&self, game: &Game) -> Option<PlayerIndex> {
-        let own = game.enter_own_game(self.game_ref()); // GameEvent.Game: another game after Undo
-        let game: &Game = &own;
         game.get_player(Some(self.aggressor(game)))
     }
 
@@ -136,15 +120,11 @@ impl BattleInitiated {
     }
 
     pub fn is_involved(&self, game: &Game, p: PlayerIndex) -> bool {
-        let own = game.enter_own_game(self.game_ref()); // GameEvent.Game: another game after Undo
-        let game: &Game = &own;
         let pl = game.player(p);
         self.initiator() == pl.faction || self.target == pl.faction || self.initiator() == pl.ally || self.target == pl.ally
     }
 
     pub fn is_involved_faction(&self, game: &Game, f: Faction) -> bool {
-        let own = game.enter_own_game(self.game_ref()); // GameEvent.Game: another game after Undo
-        let game: &Game = &own;
         self.initiator() == f
             || self.target == f
             || game.player(self.player()).ally == f
@@ -152,21 +132,15 @@ impl BattleInitiated {
     }
 
     pub fn is_aggressor_or_defender(&self, game: &Game, p: PlayerIndex) -> bool {
-        let own = game.enter_own_game(self.game_ref()); // GameEvent.Game: another game after Undo
-        let game: &Game = &own;
         let f = game.player(p).faction;
         self.aggressor(game) == f || self.defender(game) == f
     }
 
     pub fn is_aggressor_or_defender_faction(&self, game: &Game, f: Faction) -> bool {
-        let own = game.enter_own_game(self.game_ref()); // GameEvent.Game: another game after Undo
-        let game: &Game = &own;
         self.aggressor(game) == f || self.defender(game) == f
     }
 
     pub fn opponent_of(&self, game: &Game, p: PlayerIndex) -> Option<PlayerIndex> {
-        let own = game.enter_own_game(self.game_ref()); // GameEvent.Game: another game after Undo
-        let game: &Game = &own;
         let pl = game.player(p);
         if pl.faction == self.initiator() || pl.ally == self.initiator() {
             return game.get_player(Some(self.actual_target(game)));
@@ -180,8 +154,6 @@ impl BattleInitiated {
     }
 
     pub fn opponent_of_faction(&self, game: &Game, f: Faction) -> Option<PlayerIndex> {
-        let own = game.enter_own_game(self.game_ref()); // GameEvent.Game: another game after Undo
-        let game: &Game = &own;
         let player = game.get_player(Some(f));
         match player {
             None => None,
@@ -191,8 +163,6 @@ impl BattleInitiated {
 
     pub fn plan_of(&self, game: &Game, p: Option<PlayerIndex>) -> Option<Rc<Battle>> {
         let p = p.and_then(crate::compat::cs::CsNull::opt);
-        let own = game.enter_own_game(self.game_ref()); // GameEvent.Game: another game after Undo
-        let game: &Game = &own;
         let Some(p) = p else { return None };
         let f = game.player(p).faction;
 
@@ -204,8 +174,6 @@ impl BattleInitiated {
 
     pub fn plan_of_opponent(&self, game: &Game, p: Option<PlayerIndex>) -> Option<Rc<Battle>> {
         let p = p.and_then(crate::compat::cs::CsNull::opt);
-        let own = game.enter_own_game(self.game_ref()); // GameEvent.Game: another game after Undo
-        let game: &Game = &own;
         match p {
             None => None,
             Some(p) => self.plan_of(game, self.opponent_of(game, p)),
@@ -213,14 +181,10 @@ impl BattleInitiated {
     }
 
     pub fn plan_of_opponent_faction(&self, game: &Game, f: Faction) -> Option<Rc<Battle>> {
-        let own = game.enter_own_game(self.game_ref()); // GameEvent.Game: another game after Undo
-        let game: &Game = &own;
         self.plan_of(game, self.opponent_of_faction(game, f))
     }
 
     pub fn plan_of_faction(&self, game: &Game, f: Faction) -> Option<Rc<Battle>> {
-        let own = game.enter_own_game(self.game_ref()); // GameEvent.Game: another game after Undo
-        let game: &Game = &own;
         if f == self.aggressor(game) {
             return game.aggressor_plan.clone();
         }
@@ -229,8 +193,6 @@ impl BattleInitiated {
     }
 
     pub fn previous_plan_of(&self, game: &Game, f: Faction) -> Option<Rc<Battle>> {
-        let own = game.enter_own_game(self.game_ref()); // GameEvent.Game: another game after Undo
-        let game: &Game = &own;
         if f == self.aggressor(game) {
             return game.previous_aggressor_plan.clone();
         }
@@ -239,15 +201,11 @@ impl BattleInitiated {
     }
 
     pub fn treachery_of_opponent(&self, game: &Game, p: PlayerIndex) -> Option<Rc<TreacheryCalled>> {
-        let own = game.enter_own_game(self.game_ref()); // GameEvent.Game: another game after Undo
-        let game: &Game = &own;
         self.treachery_of(game, self.opponent_of(game, p))
     }
 
     pub fn treachery_of(&self, game: &Game, p: Option<PlayerIndex>) -> Option<Rc<TreacheryCalled>> {
         let p = p.and_then(crate::compat::cs::CsNull::opt);
-        let own = game.enter_own_game(self.game_ref()); // GameEvent.Game: another game after Undo
-        let game: &Game = &own;
         let Some(p) = p else { return None };
         let pl = game.player(p);
 
@@ -265,8 +223,6 @@ impl BattleInitiated {
     }
 
     pub fn treachery_of_faction(&self, game: &Game, f: Faction) -> Option<Rc<TreacheryCalled>> {
-        let own = game.enter_own_game(self.game_ref()); // GameEvent.Game: another game after Undo
-        let game: &Game = &own;
         self.treachery_of(game, game.get_player(Some(f)))
     }
 

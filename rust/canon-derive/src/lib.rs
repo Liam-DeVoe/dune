@@ -27,9 +27,11 @@
 //! Container attributes:
 //!
 //! - `#[canon(manual)]`: generate nothing; the type implements the canon
-//!   traits by hand (references such as `PlayerIndex` and `GameRef`).
+//!   traits by hand (references such as `PlayerIndex`).
 //! - `#[canon(type_name = "X")]`: the C# type name, when it differs from the
 //!   Rust struct name.
+//! - `#[canon(game_field = "X")]`: the C# object has a field `X` holding its
+//!   game, which the Rust struct doesn't keep; it is written as `{"$ref":"Game"}`.
 //!
 //! Generic parameters must implement `crate::messages::expression::CsType`, which gives
 //! the C# type argument names (`Deck<TreacheryCard>`, `Timer<MainPhase>`).
@@ -61,6 +63,7 @@ struct FieldAttrs {
 struct ContainerAttrs {
     manual: bool,
     type_name: Option<String>,
+    game_field: Option<String>,
 }
 
 fn container_attrs(input: &DeriveInput) -> syn::Result<ContainerAttrs> {
@@ -77,8 +80,12 @@ fn container_attrs(input: &DeriveInput) -> syn::Result<ContainerAttrs> {
                 let s: LitStr = meta.value()?.parse()?;
                 out.type_name = Some(s.value());
                 Ok(())
+            } else if meta.path.is_ident("game_field") {
+                let s: LitStr = meta.value()?.parse()?;
+                out.game_field = Some(s.value());
+                Ok(())
             } else {
-                Err(meta.error("unknown canon container attribute (expected `manual` or `type_name`)"))
+                Err(meta.error("unknown canon container attribute (expected `manual`, `type_name` or `game_field`)"))
             }
         })?;
     }
@@ -194,6 +201,15 @@ fn expand(input: &DeriveInput) -> syn::Result<TokenStream2> {
                 });
             }
         }
+    }
+
+    if let Some(name) = &cattrs.game_field {
+        push_fields.push(quote! {
+            out.push((#name, crate::canon::Field::Custom(::std::boxed::Box::new(|w: &mut crate::canon::CanonWriter| w.reference("Game")))));
+        });
+        push_shapes.push(quote! {
+            out.push((#name, crate::canon::Shape::kind("ref:Game")));
+        });
     }
 
     // Generic parameters need the canon traits and a C# type name.

@@ -216,8 +216,6 @@ impl Battle {
     }
 
     pub fn get_battle_plan_message(&self, game: &Game) -> Message {
-        let own = game.enter_own_game(self.game_ref()); // GameEvent.Game: another game after Undo
-        let game: &Game = &own;
         let opponent = game.current_battle.as_ref().nre().opponent_of_faction(game, self.initiator()).nre();
         express!(
             self.initiator(),
@@ -235,8 +233,6 @@ impl Battle {
     }
 
     pub fn get_plan_summary(&self, game: &Game) -> PlanSummary {
-        let own = game.enter_own_game(self.game_ref()); // GameEvent.Game: another game after Undo
-        let game: &Game = &own;
         let faction = self.initiator();
         let leader = self.hero();
         let messiah = self.messiah;
@@ -258,13 +254,9 @@ impl Battle {
         }
     }
 
-    pub fn activate_dynamic_weapons(&self, game: &mut Game, hero: Hero, opponent_weapon: Option<TreacheryCard>, opponent_defense: Option<TreacheryCard>) {
+    pub fn activate_dynamic_weapons(&self, game: &mut Game, opponent_weapon: Option<TreacheryCard>, opponent_defense: Option<TreacheryCard>) {
         let opponent_weapon = opponent_weapon.and_then(crate::compat::cs::CsNull::opt);
         let opponent_defense = opponent_defense.and_then(crate::compat::cs::CsNull::opt);
-        // GameEvent.Game: the plan's own game, which after Undo can be another one.
-        if let Some(id) = game.other_game_id(self.game_ref()) {
-            return game.with_game_mut(id, |own| self.activate_dynamic_weapons(own, hero, opponent_weapon, opponent_defense));
-        }
         if self.weapon().is_some_and(|w| w.type_() == TreacheryCardType::MirrorWeapon) {
             self.original_weapon.set(self.weapon());
             self.set_weapon(opponent_weapon);
@@ -339,11 +331,11 @@ impl Battle {
 
         //Determine result
 
-        if let Some(h) = agg.hero() {
-            agg.activate_dynamic_weapons(game, h, def.weapon(), def.defense());
+        if agg.hero().is_some() {
+            agg.activate_dynamic_weapons(game, def.weapon(), def.defense());
         }
-        if let Some(h) = def.hero() {
-            def.activate_dynamic_weapons(game, h, agg.weapon(), agg.defense());
+        if def.hero().is_some() {
+            def.activate_dynamic_weapons(game, agg.weapon(), agg.defense());
         }
 
         let poison_tooth_used = !game.poison_tooth_cancelled && (agg.has_poison_tooth() || def.has_poison_tooth());

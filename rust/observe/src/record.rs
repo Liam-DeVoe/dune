@@ -41,6 +41,8 @@ struct Recorder<'a> {
     clock: i64,
     /// Events submitted so far.
     events: usize,
+    /// Report reach (`RecordOptions::reach`).
+    reach: bool,
 }
 
 /// `2024-01-01T12:00:00+00:00` plus `secs`, as .NET writes a `DateTimeOffset`.
@@ -81,6 +83,12 @@ impl<'a> Recorder<'a> {
         self.begin(&line);
         match self.sess.query(p, host) {
             Ok((result, types)) => {
+                if self.reach && p.is_some() {
+                    let phase = self.sess.game.current_phase;
+                    for t in &types {
+                        let _ = self.tx.send(Msg::Text(format!("offered\t{}\t{phase}", t.name())));
+                    }
+                }
                 self.emit(Line::Query { p, host, result });
                 Ok(types)
             }
@@ -108,6 +116,9 @@ impl<'a> Recorder<'a> {
         };
         let accepted = outcome.result == "accepted";
         let history_changed = outcome.obs.views.is_some();
+        if self.reach {
+            let _ = self.tx.send(Msg::Text(format!("event\t{type_name}\t{phase}\t{src}\t{}", outcome.result)));
+        }
         if let Line::Event { outcome: o, .. } = &mut line {
             *o = outcome;
         }
@@ -119,6 +130,15 @@ impl<'a> Recorder<'a> {
             if let Some(f) = &mut self.fuzz {
                 if let Some(t) = GameEventType::ALL.iter().find(|t| t.name() == type_name) {
                     f.note_accepted(t.name(), phase);
+                }
+                match type_name.as_str() {
+                    "Battle" => {
+                        if let (Value::Object(m), Some(i)) = (&event, event.get("Initiator").and_then(|v| v.as_i64())) {
+                            f.plans.insert(i as i32, m.clone());
+                        }
+                    }
+                    "BattleInitiated" | "BattleConcluded" => f.plans.clear(),
+                    _ => {}
                 }
             }
         }
@@ -252,11 +272,27 @@ impl<'a> Recorder<'a> {
         Ok(None)
     }
 
-    /// A fuzz event of a type applicable to a random player (or nobody).
+    /// A fuzz event: usually steered (every player is queried and a type rarely executed in this
+    /// phase is picked), otherwise of a type applicable to a random player (or nobody).
     fn random_event(&mut self) -> Result<bool, Stop> {
         let n = self.sess.player_count();
         let f = self.fuzz.as_mut().unwrap();
         let host = f.rng.chance(0.5);
+        if f.rng.chance(fuzz::STEERED) {
+            let mut applicable = Vec::new();
+            for i in 0..n {
+                applicable.push((Some(i), self.query(Some(i), host)?));
+            }
+            applicable.push((None, self.query(None, host)?));
+            let phase = self.sess.game.current_phase;
+            let f = self.fuzz.as_mut().unwrap();
+            let Some((actor, t)) = f.steered_pick(&applicable, phase) else { return Ok(false) };
+            let shadow = &self.shadow.as_ref().unwrap().game;
+            return match f.build(shadow, actor, t) {
+                Some(e) => self.submit(e, "fuzz", actor, host),
+                None => Ok(false),
+            };
+        }
         let actor = if n > 0 && f.rng.chance(0.85) { Some(f.rng.below(n)) } else { None };
         let types = self.query(actor, host)?;
         let phase = self.sess.game.current_phase;
@@ -355,6 +391,37 @@ impl<'a> Recorder<'a> {
 
             let (choice, as_host, queried) = self.deliberate()?;
 
+            if self.fuzz.is_some() {
+                // A battle plan submitted again with a part changed, when the faction may plan again.
+                let f = self.fuzz.as_mut().unwrap();
+                if !f.plans.is_empty() && f.rng.chance(fuzz::CHANGED_PLAN) {
+                    let shadow = &self.shadow.as_ref().unwrap().game;
+                    let replanning: Vec<usize> = queried
+                        .iter()
+                        .filter(|(i, ts)| ts.contains(&GameEventType::Battle) && shadow.players.get(*i).is_some_and(|p| f.plans.contains_key(&p.faction.0)))
+                        .map(|(i, _)| *i)
+                        .collect();
+                    if let Some(&i) = f.rng.pick(&replanning) {
+                        if let Some(e) = f.changed_plan(shadow, i) {
+                            self.submit(e, "fuzz", Some(i), as_host)?;
+                            continue;
+                        }
+                    }
+                }
+                // A battle action for a player in the battle.
+                let f = self.fuzz.as_mut().unwrap();
+                let shadow = &self.shadow.as_ref().unwrap().game;
+                if fuzz::battle_in_progress(shadow) && f.rng.chance(fuzz::BATTLE_ACTION) {
+                    let phase = self.sess.game.current_phase;
+                    if let Some((i, t)) = f.battle_action(&queried, phase) {
+                        if let Some(e) = f.build(shadow, Some(i), t) {
+                            self.submit(e, "fuzz", Some(i), as_host)?;
+                            continue;
+                        }
+                    }
+                }
+            }
+
             if self.fuzz.is_some() && self.fuzz.as_mut().unwrap().rng.chance(fuzz::OPPORTUNISTIC) {
                 let phase = self.sess.game.current_phase;
                 let f = self.fuzz.as_mut().unwrap();
@@ -392,11 +459,33 @@ impl<'a> Recorder<'a> {
                 Value::Object(m) => m,
                 _ => return Err(Stop("botException".into(), Some("bot event did not serialize".into()))),
             };
+            if self.fuzz.is_some() {
+                // A bot that keeps sending the same accepted event (AllyPermission when its
+                // permissions can't settle) would use up the game's events: mostly let the fuzzer
+                // act instead.
+                let mut key = event.clone();
+                key.remove("Time");
+                let g = &self.sess.game;
+                let key = (choice.p, format!("{} {} {}", g.current_turn, g.current_phase, Value::Object(key)));
+                let f = self.fuzz.as_mut().unwrap();
+                f.repeats = if f.last_bot_event.as_ref() == Some(&key) { f.repeats + 1 } else { 0 };
+                f.last_bot_event = Some(key);
+                if f.repeats >= 2 && f.rng.chance(0.8) {
+                    let ok = self.random_event()?;
+                    rejected_in_a_row = if ok { 0 } else { rejected_in_a_row + 1 };
+                    continue;
+                }
+            }
             if self.fuzz.is_some() && self.fuzz.as_mut().unwrap().rng.chance(fuzz::MUTATE_BOT_EVENT) {
                 let mut m = event.clone();
                 let f = self.fuzz.as_mut().unwrap();
                 let shadow = &self.shadow.as_ref().unwrap().game;
-                if !fuzz::mutate(&mut m, shadow, Some(choice.p), 1, &mut f.rng).is_empty() {
+                let t = m.get("$type").and_then(|t| t.as_str()).and_then(|n| GameEventType::ALL.iter().copied().find(|t| t.name() == n));
+                let changed = match t {
+                    Some(t) => fuzz::mutate_steered(&mut m, shadow, choice.p, t, &mut f.rng),
+                    None => fuzz::mutate(&mut m, shadow, Some(choice.p), 1, &mut f.rng),
+                };
+                if !changed.is_empty() {
                     self.submit(m, "mutate", Some(choice.p), host)?;
                     continue;
                 }
@@ -414,19 +503,28 @@ pub struct RecordOptions {
     pub index: u64,
     pub full_views: bool,
     pub budgets: Budgets,
+    /// Write reach lines (`event`/`offered`/`end`, tab-separated, for `observe reach`) instead of
+    /// the trace.
+    pub reach: bool,
 }
 
 /// Records one game and writes its trace to `out`. Returns the end reason.
 pub fn record_game(o: &RecordOptions, out: &mut dyn Write) -> std::io::Result<String> {
-    let (mode, seed, index, full_views) = (o.mode.clone(), o.seed, o.index, o.full_views);
+    let (mode, seed, index, full_views, reach) = (o.mode.clone(), o.seed, o.index, o.full_views, o.reach);
     let mut reason = String::from("?");
     let mut error: Option<std::io::Error> = None;
-    let mut write = |line: &Line, out: &mut dyn Write| {
+    let mut write = |text: Option<String>, out: &mut dyn Write| {
+        let Some(text) = text else { return };
         if error.is_none() {
-            if let Err(e) = writeln!(out, "{}", line.to_json()) {
+            if let Err(e) = writeln!(out, "{text}") {
                 error = Some(e);
             }
         }
+    };
+    let line_text = |line: &Line| match line {
+        _ if !reach => Some(line.to_json()),
+        Line::End { reason, .. } => Some(format!("end\t{reason}")),
+        _ => None,
     };
     let ending = watch::run(
         &o.budgets,
@@ -450,7 +548,7 @@ pub fn record_game(o: &RecordOptions, out: &mut dyn Write) -> std::io::Result<St
             let _ = tx.send(Msg::Line(Line::Header(header)));
             let shadow = fuzzing.then(|| Shadow::new(Game::LATEST_VERSION, &sess.participation));
             let fuzz = fuzzing.then(|| Fuzzer::new(rng.next_u64()));
-            let mut r = Recorder { tx, sess, rng, game_seed, cfg, fuzz, shadow, clock: 0, events: 0 };
+            let mut r = Recorder { tx, sess, rng, game_seed, cfg, fuzz, shadow, clock: 0, events: 0, reach };
             // A panic in the recorder's own reads (host actions, fuzz values) ends the game; the
             // replayer stops at the end line like for any other reason.
             let played = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| r.play()));
@@ -461,13 +559,15 @@ pub fn record_game(o: &RecordOptions, out: &mut dyn Write) -> std::io::Result<St
             };
             let _ = tx.send(Msg::Line(Line::End { reason, detail, pending: None }));
         },
-        |m| {
-            if let Msg::Line(l) = m {
+        |m| match m {
+            Msg::Line(l) => {
                 if let Line::End { reason: r, .. } = &l {
                     reason = r.clone();
                 }
-                write(&l, out);
+                write(line_text(&l), out);
             }
+            Msg::Text(t) if reach => write(Some(t), out),
+            _ => {}
         },
     );
     let end = match ending {
@@ -477,7 +577,7 @@ pub fn record_game(o: &RecordOptions, out: &mut dyn Write) -> std::io::Result<St
     };
     if let Some((r, pending)) = end {
         reason = r.to_string();
-        write(&Line::End { reason: r.into(), detail: None, pending: pending.map(Box::new) }, out);
+        write(line_text(&Line::End { reason: r.into(), detail: None, pending: pending.map(Box::new) }), out);
     }
     if let Some(e) = error {
         return Err(e);

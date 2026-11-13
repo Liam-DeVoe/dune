@@ -28,6 +28,9 @@ tools/heavy.sh ./target/release/observe live --mode fuzz --seed 1 --games 200 --
 
 # Trace files (from --keep-failures, or `observe record`)
 ./target/release/observe replay /tmp/failures/fuzz-1-00017.jsonl
+
+# What 200 fuzz games exercise, recorded by the reference (see "Reach" below)
+tools/heavy.sh ./target/release/observe reach --mode fuzz --seed 1 --games 200 --jobs 4 --recorder reference/observe
 ```
 
 `live` takes a heavy slot itself, so running it outside `heavy.sh` also waits for one, but only `heavy.sh` enforces the 3 GB memory cap. Use `--jobs 2` while trying something new and `--jobs 4` at most. Each job records a game with the reference binary into memory, then replays it, so a job uses one core at a time. Nothing goes to disk unless you pass `--keep-failures DIR`. Add `-v` for one line per game.
@@ -44,7 +47,7 @@ fuzz-1-00017: first difference at trace line 304, event Bid (bot)
     /status/message/0/v: "Choam is bidding" -> "Choam bids"
 ```
 
-`live` ends with the `first` command for the first failing game. Other options: `--hang-seconds` (default 60; a call that runs longer counts as hung, and if the reference hung at the same call, that's a match), `--memory-mb` (default 2048 per game), and `--reference BIN`.
+`live` ends with the `first` command for the first failing game. Other options: `--hang-seconds` (default 60; a call that runs longer counts as hung, and if the reference hung at the same call, that's a match), `--memory-mb` (default 640 per game), and `--reference BIN`. The default was 2048 until a fuzz game (seed 1, game 2) reached a state where a bot's `Bid` pass makes the engine allocate without end. With 4 jobs in one `live` process, that game at 2 GB plus the other three went over heavy.sh's 3 GB cap and the whole run was killed. Normal fuzz games stay well under 640 MB: all 200 games of seed 1 pass with it, and only the two runaway games end with `memoryLimit`.
 
 See "Timing" below for how long 200 games take.
 
@@ -52,7 +55,7 @@ See "Timing" below for how long 200 games take.
 
 `rust/reference/observe` (not in git) is the `observe` binary built from a frozen copy of the engine, bots and view crates. A copy sits in `~/treachery-native-ref/observe`, which `observe` uses when `rust/reference/observe` doesn't exist, as in a git worktree. `$OBSERVE_REFERENCE` or `--reference BIN` override both. `observe live` and `first` run it as `observe record --mode M --seed S --game I` and read the trace from its stdout.
 
-The current reference is built from `~/treachery-native-ref/rust`. That's a copy of `rust/` taken on 2026-11-11, before step 2 (dropping old versions) started editing the engine, with `rust/observe` copied in. It was last rebuilt on 2026-11-12 with rustc 1.100.0, after the toolchain was reinstalled; `rust/reference/SOURCE` records the compiler. If `~/treachery-native-ref` is lost, unpack `rust/reference/source.tar.gz` into `~/treachery-native-ref` (it holds `rust/<crate>/Cargo.toml` and `src` for every crate the binary needs). To build the binary again:
+The current reference is built from `~/treachery-native-ref/rust`. That's a copy of `rust/` taken on 2026-11-11, before step 2 (dropping old versions) started editing the engine, with `rust/observe` copied in. It was last rebuilt on 2026-11-12 with rustc 1.100.0, after the steered fuzz generator was copied in; `rust/reference/SOURCE` records the compiler. If `~/treachery-native-ref` is lost, unpack `rust/reference/source.tar.gz` into `~/treachery-native-ref` (it holds `rust/<crate>/Cargo.toml` and `src` for every crate the binary needs). To build the binary again:
 
 ```sh
 rust/tools/build-native-ref.sh --source ~/treachery-native-ref/rust
@@ -65,6 +68,12 @@ Rebuild the reference only on purpose. A reference built from a working tree wit
 ### Changing the harness itself
 
 The trace format is defined by `observe/src/trace.rs`, and both sides must agree on it. When native refactors change engine APIs, update the working tree's `rust/observe` (mostly `session.rs`) so it compiles and makes the same calls. Don't change what it records. If the recorder itself has to change (a new observable, a fuzzer fix), change it in both places: copy the new `rust/observe/src` into `~/treachery-native-ref/rust/observe/src` and rebuild the reference with `--source`.
+
+The fuzz generator reads the shadow game through the view (`actions::action_view`, `actions::default_draft`, `side::deals`) and a few engine fields (`players`, `forces_in_locations`, `current_main_phase`, `current_battle`). A refactor that renames these must update `fuzz.rs` in the working tree too, without changing what it generates.
+
+Changes to the recorder so far:
+
+- 2026-11-12: steered fuzz generator and `observe reach` (see "How games are made" and "Reach"). The reference before this change is kept as `~/treachery-native-ref/observe-before-fuzz-reach` with its sources in `source-before-fuzz-reach.tar.gz`.
 
 ## Deliberate behavior changes
 
@@ -101,7 +110,15 @@ Observations are `log` (new messages as `[target, text]`), `logCut` (the log shr
 
 `observe/src/record.rs` follows the C# oracle's `GameRunner.Play`, at the latest version only. The configuration (`config.rs`) draws a ruleset, rule toggles, factions, player count, turns, a host style and sometimes seated humans. The host establishes the game. Then each round queries every player, asks the bots, and submits the first bot event. If no bot acts, a seated human passes in the alliance phase, or the host acts (faction selection, decks, custom setup, HMS placement, `EndPhase`).
 
-Fuzz games (`fuzz.rs`) add, per round: random events of a type applicable to a random player (12%), changed copies of the bot's event (10%), events of types rarely executed in the current phase (30% of bot rounds), and undo, restore and dismiss. Events start from the draft the client's form would send (`treachery_view::actions::default_draft`). Then up to three fields get real values of the game: the player's cards, leaders and force locations, other locations and territories, factions in play, and small amounts. Candidates that pass validation are preferred, but invalid ones are sent now and then and must be rejected the same way. The generator reads a separate shadow copy of the game, so it can't change state that the replay wouldn't change. It is coarser than the C# oracle's steered fuzzer. It doesn't build battle-specific actions such as Voice or Prescience on purpose, and it doesn't vary enum-valued fields.
+Fuzz games (`fuzz.rs`) follow the C# oracle's `client` fuzz profile (`Oracle/Fuzzer.cs`, `FuzzerSteering.cs`). Per round they add:
+
+- a random event (12%). Usually it is steered: every player (and nobody) is queried, and a (player, type) pair is drawn with weight 1 / (1 + times accepted in this phase)^1.5, as in C#. The weight is also lowered for types picked often in this phase and for types accepted often in the whole game, so always-applicable types (deals, donations, permissions) don't take every step. Otherwise it is a random player's applicable type, or any type now and then.
+- during a battle, a battle action for a player (25% of bot rounds): an applicable `Voice`, `Prescience`, `JuicePlayed`, `BattleRevision`, `TreacheryCalled`, `FaceDanced` and the like, weighted towards rare types. Now and then `KarmaEcazDial`, `JuicePlayed`, `ResidualPlayed` or `AuditCancelled` even when not applicable. `JuicePlayed` usually gets `Aggressor` when the form offers it.
+- a battle plan submitted again with its leader, a card or its dial changed (30% of bot rounds, when a faction that already planned this battle may plan again, mostly after `BattleRevision`). Parts the opponent saw with prescience must stay, so the engine rejects some of these.
+- an event of a type rarely executed in this phase (30% of bot rounds), changed copies of the bot's event (10%), and undo, restore and dismiss.
+- when the same bot sends the same accepted event again in the same phase (bots resend `AllyPermission` when their permissions can't settle), the fuzzer acts instead 80% of the time from the third repeat on, so the loop doesn't use up the game's events.
+
+Values come from what the client's form offers. For an event type and a player, `Pools::of` reads the view's action options (`treachery_view::actions::action_view`). These hold the draft the form sends untouched (the default draft after the form adjusted it), the choice lists (heroes, weapons, targets, card types, enum members such as Voice types or Prescience aspects) and the maximums of number pickers. Each event field gets a choice from the list named like it (`heroes` for `_heroId`, `weapons` for `_weaponCardId`), or from a list holding its current value (`choices` for `JuicePlayed.Type`). Multi-select fields (`_cardIds`, arrays) get a subset of their list. Amounts get a value up to the matching maximum. Battle plans take a force mix from the form's `mixes`. Force placements use the player's own battalions or a few forces at locations the form offers. Deal answers are the accept, decline and withdraw events of the deals panel (`treachery_view::side::deals`). Fields the form offers no choice for keep the draft's value, or get the player's own cards, leaders and force locations or a small amount. Each event tries up to 8 candidates and sends a valid one 90% of the time. Invalid candidates are still sent now and then and must be rejected the same way. The generator reads a separate shadow copy of the game, so it can't change state that the replay wouldn't change.
 
 Randomness comes from SplitMix64 seeded by mode, seed and game index (`rng.rs`). The engine's seed is in the `EstablishPlayers` event and each bot's seed is in the `bots` line, so a game depends only on its mode, seed and index.
 
@@ -113,8 +130,31 @@ Measured on 2026-11-12, `--jobs 4` through `heavy.sh`, with another agent's runs
 |---|---|---|
 | 200 bots games (seed 1) | 11 min | 37 min |
 | 200 fuzz games (seed 1) | 15 min | 47 min |
+| 200 fuzz games (seed 1), steered generator, `--memory-mb 640` | 15 min | 51 min |
 
 The C# oracle took about 23 minutes per 200 fuzz games. The harness is faster per game, but its games are longer: every game is at the latest version, and fuzz games run up to 3000 events (the recorder's cap; before the cap, 200 fuzz games took 28 minutes). Each game is computed twice, once by the reference and once by the working tree, and most of the time goes into building 3 to 13 views after every accepted event. For a quick check while working, run 30 to 50 games.
+
+## Reach
+
+`observe reach` records games and counts what they exercise: event types accepted, (type, phase) pairs accepted, phases reached, and types offered to a player but never accepted. It runs `RECORDER record --reach` per game, which prints one line per submitted event and per offered type instead of the trace. Pass `--recorder reference/observe` to measure the generator the harness actually uses.
+
+Fuzz reach over 200 games (seed 1) on 2026-11-12, against the C# oracle's `fuzz --seed 1 --games 200 --versions latest` (client profile). The C# traces have no phase per step, so only event types compare across both:
+
+| | C# oracle | Rust before | Rust now |
+|---|---|---|---|
+| events submitted | 594,186 | 339,492 | 303,003 |
+| event types accepted | 124 | 129 | 130 |
+| (type, phase) pairs accepted | | 759 | 914 |
+| phases reached | | 103 | 107 |
+
+"Before" is the generator up to this change (form drafts with up to three fields set to game values). Compared with it, the steered generator executes `BattleRevision` 3.4 times as often (in 145 games instead of 81), `Caravan`, `AllianceBroken`, `CardTraded` and `FlightUsed` in about three times as many games, and `DealRejected`, which never passed validation before, in 194 games. The C# fuzzer still executes `BattleRevision` more often (4,716 times), mostly because its games are longer.
+
+What is left:
+
+- C# executed `ChoamRemoveForce` once in 200 games; the Rust generator offered it in 11 games but never got it accepted. `Diplomacy` and `KarmaMonster` were offered (in 2 and 1 games) and never accepted.
+- Deal events take about 7% of all events (20,555 `DealAccepted`/`DealRejected`, mostly fuzz), against 2,072 in C#. The fuzzer offers a deal and then answers it.
+- Rust executes 7 types C# didn't (`EmperorBidSupport`, `Discarded`, `KarmaFreeRevival`, `KarmaHmsMovement`, `KarmaRevivalPrevention`, `FlightDiscoveryUsed`, `TestingStationUsed`).
+- Fuzz games stop at 3000 events, and 70 of 200 hit that cap. Two ended in a bot exception (`NullReferenceException`), one hung, and one went over the memory limit inside a bot's `Bid` pass (with the 640 MB budget, the hung game also ends with `memoryLimit`). These end the same way in the reference and the working tree, so they don't fail the harness, but they may be real engine or bot bugs reachable from the client.
 
 ## Tests
 

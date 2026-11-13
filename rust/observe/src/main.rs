@@ -30,11 +30,14 @@ Usage:
   observe first FILE [--allow FILE]
       Replay one game (recorded now by the reference, with full views, or read from a trace
       file) and describe its first difference in detail, with a diff of the view that differs.
+  observe reach --mode bots|fuzz --seed S --games N [--start I] [--jobs J] [--recorder BIN]
+      Record games with this binary (or BIN) and report what they exercise: event types and
+      (type, phase) pairs accepted, phases reached, types offered but never accepted.
   observe replay FILE... [--allow FILE] [-v]
       Replay trace files (.jsonl or .jsonl.gz).
 
 Common options: --hang-seconds S (default 120): a call that runs longer counts as hung;
---memory-mb M (default 2048): the memory one game may use (0 = no limit).
+--memory-mb M (default 640): the memory one game may use (0 = no limit).
 --reference defaults to $OBSERVE_REFERENCE, else rust/reference/observe, else ~/treachery-native-ref/observe.
 --jobs defaults to 4 at most. live waits for a heavy slot (rust/tools/heavy.sh) unless it already
 runs inside heavy.sh.
@@ -46,7 +49,7 @@ pub struct Args {
     flags: Vec<(String, Option<String>)>,
 }
 
-const SWITCHES: [&str; 3] = ["v", "full-views", "verbose"];
+const SWITCHES: [&str; 5] = ["v", "full-views", "verbose", "reach", "quiet"];
 
 impl Args {
     fn parse(raw: &[String]) -> Args {
@@ -100,7 +103,7 @@ impl Args {
     }
 
     fn budgets(&self) -> Result<Budgets, String> {
-        Ok(Budgets { hang: Duration::from_secs(self.num("hang-seconds", 120)?), memory: self.num::<usize>("memory-mb", 2048)? << 20 })
+        Ok(Budgets { hang: Duration::from_secs(self.num("hang-seconds", 120)?), memory: self.num::<usize>("memory-mb", 640)? << 20 })
     }
 }
 
@@ -116,6 +119,7 @@ fn main() -> ExitCode {
         "live" => cmd_live(&args),
         "first" => cmd_first(&args),
         "replay" => cmd_replay(&args),
+        "reach" => cmd_reach(&args),
         other => Err(format!("unknown command {other}\n\n{USAGE}")),
     };
     match result {
@@ -135,6 +139,7 @@ fn cmd_record(args: &Args) -> Result<bool, String> {
         index: args.required("game")?,
         full_views: args.has("full-views"),
         budgets: args.budgets()?,
+        reach: args.has("reach"),
     };
     let mut out: Box<dyn Write> = match args.get("out") {
         None | Some("-") => Box::new(std::io::BufWriter::new(std::io::stdout().lock())),
@@ -234,4 +239,27 @@ fn cmd_replay(args: &Args) -> Result<bool, String> {
         println!("{} traces: no difference", args.positional.len());
     }
     Ok(ok)
+}
+
+fn cmd_reach(args: &Args) -> Result<bool, String> {
+    let cpus = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
+    let recorder = match args.get("recorder") {
+        Some(r) => PathBuf::from(r),
+        None => std::env::current_exe().map_err(|e| e.to_string())?,
+    };
+    let o = observe::reach::ReachOptions {
+        mode: args.mode()?,
+        seed: args.required("seed")?,
+        start: args.num("start", 0)?,
+        games: args.required("games")?,
+        jobs: args.num("jobs", cpus.min(4))?,
+        recorder,
+        hang_seconds: args.num("hang-seconds", 120)?,
+    };
+    let _slot = observe::heavy::acquire_heavy_slot();
+    let start = std::time::Instant::now();
+    let tally = observe::reach::run(&o);
+    print!("{}", tally.report());
+    eprintln!("{:.0} s", start.elapsed().as_secs_f64());
+    Ok(true)
 }

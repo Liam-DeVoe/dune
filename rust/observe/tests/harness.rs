@@ -16,7 +16,7 @@ fn budgets() -> Budgets {
 
 fn record(mode: &str, index: u64, full_views: bool) -> Vec<Value> {
     let mut out = Vec::new();
-    let o = RecordOptions { mode: mode.into(), seed: 7, index, full_views, budgets: budgets() };
+    let o = RecordOptions { mode: mode.into(), seed: 7, index, full_views, budgets: budgets(), reach: false };
     record_game(&o, &mut out).unwrap();
     String::from_utf8(out).unwrap().lines().map(|l| serde_json::from_str(l).unwrap()).collect()
 }

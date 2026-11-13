@@ -1,9 +1,12 @@
-//! Every Describe/Format/GetImageUrl/GetPopup overload on every static object, against C#.
+//! Every describe/format/image URL/popup call of the skin on every static object (factions,
+//! locations, leaders, cards, tokens, enum values), as a snapshot.
 //!
-//! `tests/golden/static.jsonl.gz` comes from the C# probe (`csharp-ref/Static.cs`); regenerate
-//! it as described in rust/docs/skin.md. Each line names a call and its arguments; this test
-//! makes the same call in Rust. An unknown call fails the test, so a call added to the probe
-//! must be added here too.
+//! Each line of `tests/golden/static.jsonl.gz` names a call, its arguments and the text it
+//! returned. The test makes each call again and compares. To cover a new call, add lines for it
+//! to the file and a match arm here. After a deliberate change to these texts, rewrite the
+//! snapshot and review the diff:
+//!
+//!     UPDATE_GOLDENS=1 cargo test --release -p treachery-skin --test static_corpus
 
 mod common;
 
@@ -38,18 +41,19 @@ fn hero(tok: &Value) -> Hero {
 }
 
 #[test]
-fn static_corpus_matches_csharp() {
+fn static_corpus_matches_the_snapshot() {
     let s = default_skin();
     let map = Map::new();
     let mut attach_game = Game::new_int32_participation(Game::LATEST_VERSION, &Shared::new(Participation::default()));
     let mut diffs = Diffs::new();
+    let mut lines = Vec::new();
 
     for line in read_lines(&golden("static.jsonl.gz")) {
-        let v: Value = serde_json::from_str(&line).unwrap();
-        let call = v["call"].as_str().unwrap();
-        let a = v["a"].as_array().unwrap();
-        let expected = v["out"].as_str().unwrap();
-        let actual = outcome(|| match call {
+        let mut v: Value = serde_json::from_str(&line).unwrap();
+        let call = v["call"].as_str().unwrap().to_string();
+        let a = v["a"].as_array().unwrap().clone();
+        let expected = v["out"].as_str().unwrap().to_string();
+        let actual = outcome(|| match call.as_str() {
             "Describe" => s.describe(&element(&a[0])),
             "GetImageUrl" => s.get_image_url(&element(&a[0])),
             "DescribeErrorType" => s.describe_error_type(enum_arg(&a[0])),
@@ -108,7 +112,13 @@ fn static_corpus_matches_csharp() {
             }
             other => panic!("unknown call {other} in the static corpus: add it to this test"),
         });
-        diffs.check(&format!("{call}({})", Value::Array(a.clone())), expected, &actual);
+        diffs.check(&format!("{call}({})", Value::Array(a.clone())), &expected, &actual);
+        v["out"] = Value::String(actual);
+        lines.push(v);
+    }
+    if updating() {
+        write_lines(&golden("static.jsonl.gz"), &lines);
+        return;
     }
     diffs.finish("static corpus");
 }

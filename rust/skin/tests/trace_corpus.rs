@@ -1,15 +1,13 @@
-//! Every message of real games, rendered with the default skin, against C#.
+//! Every text the recorded games of `rust/testdata/games` render with the default skin, as a
+//! snapshot: validation results, `get_message`/`get_short_message` of each event, every new report
+//! message, the `GameStatus` descriptions and flash messages of the status queries in the trace,
+//! and at the end every faction's rules sheet and leader popup. The snapshot of game `X.jsonl.gz`
+//! is `tests/golden/traces/X.skin.jsonl.gz`, one line per rendered text: the trace line `n` it
+//! belongs to, `what` was rendered, and the text `out`.
 //!
-//! The C# probe (`csharp-ref/Traces.cs`) replays oracle traces and writes, for each trace
-//! `X.jsonl.gz`, a file `X.skin.jsonl.gz` with every text it rendered: validation results,
-//! `GetMessage`/`GetShortMessage` of each event, every new report message, the `GameStatus`
-//! descriptions and flash messages of status queries, and at the end every faction's rules
-//! sheet and leader popup. This test replays the same trace with the Rust engine, renders the
-//! same texts in the same order, and compares.
+//! After a deliberate change to these texts, rewrite the snapshots and review the diff:
 //!
-//! `trace_corpus_matches_csharp` checks the goldens of `traces/sample` in `tests/golden/traces`.
-//! `fresh_trace_corpus_matches_csharp` checks any corpus: set `SKIN_TRACES` to a trace directory
-//! and `SKIN_RENDERED` to the probe's output directory for it (see rust/docs/skin.md).
+//!     UPDATE_GOLDENS=1 cargo test --release -p treachery-skin --test trace_corpus
 
 mod common;
 
@@ -20,8 +18,7 @@ use serde_json::Value;
 use treachery_engine::shared::Shared;
 use treachery_engine::enumerations::*;
 use treachery_engine::events::GameEvent;
-use treachery_engine::events::GameEventType;
-use treachery_engine::game::Game;
+use treachery_engine::game::{Game, Participation};
 use treachery_engine::game::GameStatus;
 use treachery_engine::heroes::hero::Hero;
 use treachery_engine::heroes::leader_manager::LeaderManager;
@@ -29,8 +26,29 @@ use treachery_engine::messages::report::Report;
 use treachery_engine::messages::expression::ExpressionElement;
 use treachery_skin::{default_skin, Skin};
 
-/// The marker milestone of the oracle's `StepExecutor.Run`.
-const SENTINEL: Milestone = Milestone(i32::MIN);
+/// The game's participation from a trace header.
+fn participation(o: &Value) -> Participation {
+    let int = |v: &Value| v.as_i64().unwrap() as i32;
+    let list = |k: &str| o[k].as_array().cloned().unwrap_or_default();
+    let mut p = Participation { bots_speed: o["BotsSpeed"].as_i64().unwrap_or(1) as i32, ..Default::default() };
+    for kv in list("PlayerNames") {
+        p.player_names.insert(int(&kv[0]), kv[1].as_str().unwrap().to_string());
+    }
+    for kv in list("SeatedPlayers") {
+        p.seated_players.insert(int(&kv[0]), int(&kv[1]));
+    }
+    for (key, set) in [
+        ("Observers", &mut p.observers),
+        ("Hosts", &mut p.hosts),
+        ("AvailableSeats", &mut p.available_seats),
+        ("Kicked", &mut p.kicked),
+    ] {
+        for v in list(key) {
+            set.insert(int(&v));
+        }
+    }
+    p
+}
 
 struct Renderer<'a> {
     skin: &'a Skin,
@@ -76,7 +94,7 @@ fn applicable_calls(game: &mut Game) {
     let _ = catch_any(|| game.get_applicable_events(None, true));
 }
 
-/// Replays one trace and renders what the C# probe renders.
+/// Replays one trace and renders its texts.
 fn render_trace(path: &Path, skin: &Skin) -> Vec<(i64, String, String)> {
     let mut r = Renderer { skin, out: Vec::new(), n: 0, seen: Vec::new() };
     let mut game: Option<Game> = None;
@@ -85,7 +103,7 @@ fn render_trace(path: &Path, skin: &Skin) -> Vec<(i64, String, String)> {
         let line: Value = serde_json::from_str(&text).unwrap();
         let kind = line["kind"].as_str().unwrap();
         if kind == "header" {
-            let participation = differ::replay::participation(line.get("participation")).expect("participation");
+            let participation = participation(&line["participation"]);
             game = Some(Game::new_int32_participation(line["gameVersion"].as_i64().unwrap() as i32, &Shared::new(participation)));
             continue;
         }
@@ -122,18 +140,9 @@ fn render_trace(path: &Path, skin: &Skin) -> Vec<(i64, String, String)> {
                 let ev: GameEvent = treachery_engine::json::deserialize(&line["event"].to_string()).expect("event JSON");
                 ev.initialize_game(g);
                 g.map.mark_neighbour_cache_stale();
-                let overrides = ev.event_type() == GameEventType::EstablishPlayers;
-                if !overrides {
-                    g.recent_milestones.push(SENTINEL);
-                }
                 let result = catch_any(|| {
                     ev.execute(g, line["validate"].as_bool().unwrap(), line["isHost"].as_bool().unwrap())
                 });
-                if !overrides {
-                    if let Some(i) = g.recent_milestones.iter().rposition(|m| *m == SENTINEL) {
-                        g.recent_milestones.remove(i);
-                    }
-                }
                 let gr: &Game = g;
                 match result {
                     Ok(Some(m)) => r.emit("result", || skin.message_to_string_in(&m, Some(gr))),
@@ -195,97 +204,37 @@ fn end(r: &mut Renderer, game: &Game) {
     r.emit("popup messiah", || skin.get_popup_hero_game(Some(Hero::Messiah), game));
 }
 
-/// The text of a rendering, without the details of a failure. C# renders a failed event as
-/// "Game Error: <message>. Technical description: <exception>." and a call that throws as
-/// "!<Type>: <message>". The engine's Game Errors and panics have their own messages, so only
-/// the kind of failure is compared.
-fn without_error_text(out: &str) -> &str {
-    if out.starts_with("Game Error: ") {
-        return "Game Error";
-    }
-    if let Some((name, _)) = out.strip_prefix('!').and_then(|rest| rest.split_once(": ")) {
-        if name == "panic" || name.ends_with("Exception") {
-            return "!exception";
-        }
-    }
-    out
+fn line(n: i64, what: &str, out: &str) -> Value {
+    serde_json::json!({"n": n, "what": what, "out": out})
 }
 
-/// Traces that differ from C# on purpose, with the first line (`n`) that differs. Each is a C# bug
-/// fixed in Rust (rust/docs/escapes.md, "Automatic bid passes that never stop" for 00009 and "A
-/// card trade offered to a faction that isn't the ally" for 00045).
-const DELIBERATE: &[(&str, i64)] = &[("fuzz-2026-00009", 602), ("fuzz-2026-00045", 857)];
-
-/// The C# text with the text fixes of rust/docs/behavior-changes.md applied ("Missing spaces",
-/// "Setting an automation rule", "Other small text quirks"), so the rest of each text is still
-/// compared. `actual` is needed for the automation rule descriptions, which C# doesn't have.
-fn with_text_fixes(expected: &str, actual: &str) -> String {
-    if expected.contains(" change ally permissions") && actual.contains(" an automation rule") {
-        return actual.to_string();
-    }
-    let mut e = expected.replace("from receiving", "from receiving ").replace("CHOAMUsing Karama", "CHOAM using Karama");
-    // Nexus card plays named the card type twice ("Nexus Cunning to Cunning prevent ...") or
-    // started their text with a space.
-    for t in ["Secret Ally", "Cunning", "Betrayal"] {
-        let fixed = format!("Nexus {t} to ");
-        for prefix in ["Secret Ally to ", "Secret Allyto ", "Secret Ally", "Cunningto ", "Cunning ", "Cunning", "cunningto ", " "] {
-            e = e.replace(&format!("{fixed}{prefix}"), &fixed);
-        }
-    }
-    e
-}
-
-/// Compares the probe's renderings for every trace in `traces` that has a file in `rendered`.
-fn check_corpus(traces: &Path, rendered: &Path) {
+#[test]
+fn trace_corpus_renders_like_the_snapshots() {
+    let games = Path::new(env!("CARGO_MANIFEST_DIR")).join("../testdata/games");
     let skin = default_skin();
     let mut diffs = Diffs::new();
-    let mut files = 0;
-    let mut entries: Vec<_> = std::fs::read_dir(rendered).unwrap().map(|e| e.unwrap().path()).collect();
-    entries.sort();
-    for golden_file in entries {
-        let name = golden_file.file_name().unwrap().to_str().unwrap().to_string();
-        let Some(stem) = name.strip_suffix(".skin.jsonl.gz") else { continue };
-        let trace = [format!("{stem}.jsonl.gz"), format!("{stem}.jsonl")].into_iter().map(|t| traces.join(t)).find(|p| p.exists());
-        let Some(trace) = trace else { panic!("no trace for {name} in {}", traces.display()) };
-        files += 1;
-        // A trace that differs from C# on purpose is compared up to the line where it starts to differ.
-        let stop = DELIBERATE.iter().find(|(s, _)| *s == stem).map_or(i64::MAX, |(_, n)| *n);
-        let expected: Vec<(i64, String, String)> = read_lines(&golden_file)
-            .iter()
-            .map(|l| {
-                let v: Value = serde_json::from_str(l).unwrap();
-                (v["n"].as_i64().unwrap(), v["what"].as_str().unwrap().to_string(), v["out"].as_str().unwrap().to_string())
-            })
-            .filter(|(n, _, _)| *n < stop)
-            .collect();
-        let mut actual = render_trace(&trace, skin);
-        actual.retain(|(n, _, _)| *n < stop);
-        let len = expected.len().max(actual.len());
-        for i in 0..len {
-            let key = |x: Option<&(i64, String, String)>| x.map(|(n, w, _)| format!("line {n} {w}")).unwrap_or("(missing)".into());
+    let mut traces: Vec<_> = std::fs::read_dir(&games).unwrap().map(|e| e.unwrap().path()).collect();
+    traces.retain(|p| p.to_string_lossy().ends_with(".jsonl.gz"));
+    traces.sort();
+    assert!(!traces.is_empty(), "no games in {}", games.display());
+    for trace in &traces {
+        let stem = trace.file_name().unwrap().to_str().unwrap().strip_suffix(".jsonl.gz").unwrap().to_string();
+        let snapshot = golden(&format!("traces/{stem}.skin.jsonl.gz"));
+        let actual: Vec<Value> = render_trace(trace, skin).iter().map(|(n, w, o)| line(*n, w, o)).collect();
+        if updating() {
+            write_lines(&snapshot, &actual);
+            continue;
+        }
+        let expected: Vec<Value> = read_lines(&snapshot).iter().map(|l| serde_json::from_str(l).unwrap()).collect();
+        let key = |x: Option<&Value>| x.map(|v| format!("line {} {}", v["n"], v["what"].as_str().unwrap())).unwrap_or("(missing)".into());
+        for i in 0..expected.len().max(actual.len()) {
             let (e, a) = (expected.get(i), actual.get(i));
             if key(e) != key(a) {
                 diffs.check(&format!("{stem} entry {i}"), &key(e), &key(a));
                 break;
             }
-            let actual = without_error_text(&a.unwrap().2);
-            diffs.check(&format!("{stem} {}", key(e)), &with_text_fixes(without_error_text(&e.unwrap().2), actual), actual);
+            diffs.check(&format!("{stem} {}", key(e)), e.unwrap()["out"].as_str().unwrap(), a.unwrap()["out"].as_str().unwrap());
         }
     }
-    assert!(files > 0, "no rendered traces in {}", rendered.display());
-    diffs.finish(&format!("{files} traces"));
-}
-
-#[test]
-fn trace_corpus_matches_csharp() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    check_corpus(&root.join("../traces/sample"), &golden("traces"));
-}
-
-#[test]
-#[ignore = "needs SKIN_TRACES and SKIN_RENDERED; see rust/docs/skin.md"]
-fn fresh_trace_corpus_matches_csharp() {
-    let traces = std::env::var("SKIN_TRACES").expect("SKIN_TRACES");
-    let rendered = std::env::var("SKIN_RENDERED").expect("SKIN_RENDERED");
-    check_corpus(Path::new(&traces), Path::new(&rendered));
+    diffs.finish(&format!("{} traces", traces.len()));
 }

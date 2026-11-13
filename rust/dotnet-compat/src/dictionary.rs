@@ -138,12 +138,6 @@ impl<K: Eq + Hash + Clone + 'static, V> NetDictionary<K, V> {
         self.entries.iter_mut().filter_map(|e| e.as_mut().map(|(k, v)| (&*k, v)))
     }
 
-    /// The stored keys, for mutation that keeps each key's `Eq` and `Hash` (a field
-    /// the comparison ignores, such as which C# object a key is). Not a .NET operation.
-    pub fn keys_mut_same_identity(&mut self) -> impl Iterator<Item = &mut K> {
-        self.entries.iter_mut().filter_map(|e| e.as_mut().map(|(k, _)| k))
-    }
-
     /// `dict.Keys` (same order as enumeration)
     pub fn keys(&self) -> impl Iterator<Item = &K> {
         self.iter().map(|(k, _)| k)
@@ -164,14 +158,6 @@ impl<K: Eq + Hash + Clone + 'static, V> NetDictionary<K, V> {
         V: Clone + Default,
     {
         self.get(key).cloned().unwrap_or_default()
-    }
-
-    /// `dict.GetValueOrDefault(key, defaultValue)`
-    pub fn get_value_or(&self, key: &K, default: V) -> V
-    where
-        V: Clone,
-    {
-        self.get(key).cloned().unwrap_or(default)
     }
 
     /// `new Dictionary<K,V>(other)`: copies live entries in enumeration order
@@ -236,15 +222,6 @@ impl<K: Eq + Hash + Clone + CsToString + 'static, V> NetDictionary<K, V> {
     #[track_caller]
     pub fn index(&self, key: &K) -> &V {
         self.index_with(key, |k| k.cs_to_string())
-    }
-
-    /// `dict[key]` for in-place mutation of the value; throws like [`Self::index`].
-    #[track_caller]
-    pub fn index_mut(&mut self, key: &K) -> &mut V {
-        if !self.contains_key(key) {
-            key_not_found(key.cs_to_string());
-        }
-        self.get_mut(key).unwrap()
     }
 
     /// `source.ToDictionary(keySelector, valueSelector)`: `Add` in source

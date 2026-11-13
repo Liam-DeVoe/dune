@@ -106,12 +106,6 @@ pub fn float_parse_invariant(s: Option<&str>) -> f32 {
     try_float_parse_invariant(s).unwrap_or_else(|e| throw_exception(e))
 }
 
-/// [`try_double_parse_invariant`], throwing.
-#[track_caller]
-pub fn double_parse_invariant(s: Option<&str>) -> f64 {
-    try_double_parse_invariant(s).unwrap_or_else(|e| throw_exception(e))
-}
-
 /// [`try_enum_parse`], throwing.
 #[track_caller]
 pub fn enum_parse(s: Option<&str>, members: &[(&str, i32)]) -> i32 {

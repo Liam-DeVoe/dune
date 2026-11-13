@@ -1,5 +1,4 @@
-//! Rust-only checks of API behavior that the golden/differential tests don't
-//! exercise (serde, trait impls, panics that model .NET exceptions).
+//! Checks of API behavior that the golden tests don't exercise (serde, trait impls, panics that model .NET exceptions).
 
 use dotnet_compat::{NetDictionary, NetHashSet, math};
 use std::panic::{AssertUnwindSafe, catch_unwind};

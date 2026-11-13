@@ -268,11 +268,6 @@ impl<T: Eq + Hash + Clone> NetHashSet<T> {
         }
     }
 
-    /// `set.ExceptWith(set)` (the same object): clears.
-    pub fn except_with_self(&mut self) {
-        self.clear();
-    }
-
     fn remove_slots_not_marked(&mut self, original_count: usize, keep: &[bool]) {
         for i in 0..original_count {
             if !keep[i] {
@@ -395,48 +390,6 @@ impl<T: Eq + Hash + Clone> NetHashSet<T> {
             }
         }
         removed
-    }
-
-    /// `set.IsSubsetOf(other)`
-    pub fn is_subset_of(&self, other: &NetHashSet<T>) -> bool {
-        self.iter().all(|x| other.contains(x))
-    }
-
-    /// `set.IsSupersetOf(other)`
-    pub fn is_superset_of<'a>(&self, other: impl IntoIterator<Item = &'a T>) -> bool
-    where
-        T: 'a,
-    {
-        other.into_iter().all(|x| self.contains(x))
-    }
-
-    /// `set.Overlaps(other)`
-    pub fn overlaps<'a>(&self, other: impl IntoIterator<Item = &'a T>) -> bool
-    where
-        T: 'a,
-    {
-        other.into_iter().any(|x| self.contains(x))
-    }
-
-    /// `set.SetEquals(other)`
-    pub fn set_equals<'a>(&self, other: impl IntoIterator<Item = &'a T>) -> bool
-    where
-        T: 'a,
-    {
-        let mut seen = std::collections::HashSet::new();
-        for x in other {
-            if !self.contains(x) {
-                return false;
-            }
-            seen.insert(x);
-        }
-        seen.len() == self.len()
-    }
-
-    /// .NET `_entries.Length`. Test aid.
-    #[doc(hidden)]
-    pub fn debug_capacity(&self) -> usize {
-        self.capacity
     }
 }
 

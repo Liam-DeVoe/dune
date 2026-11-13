@@ -1,8 +1,9 @@
-//! Shared helpers of the skin's differential tests.
+//! Shared helpers of the skin's snapshot tests. Each test compares what the skin renders now with
+//! a file in `tests/golden`; with `UPDATE_GOLDENS=1` it rewrites the file instead.
 
 #![allow(dead_code)]
 
-use std::io::{BufRead, BufReader, Read};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::path::Path;
 
 use serde_json::Value;
@@ -31,8 +32,27 @@ pub fn golden(name: &str) -> std::path::PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/golden").join(name)
 }
 
-/// The result of a call as the probe writes it: the text, or `!Type: message` for an exception.
-/// A panic that doesn't name a .NET exception is `!panic: message`.
+/// Whether the tests rewrite their snapshots (`UPDATE_GOLDENS=1`) instead of comparing.
+pub fn updating() -> bool {
+    std::env::var("UPDATE_GOLDENS").is_ok()
+}
+
+/// Writes JSON lines, gzipped when the path ends in `.gz`.
+pub fn write_lines(path: &Path, lines: &[Value]) {
+    let file = std::fs::File::create(path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    let mut w: Box<dyn Write> = if path.extension().is_some_and(|e| e == "gz") {
+        Box::new(flate2::write::GzEncoder::new(file, flate2::Compression::best()))
+    } else {
+        Box::new(file)
+    };
+    for l in lines {
+        writeln!(w, "{}", serde_json::to_string(l).unwrap()).unwrap();
+    }
+    w.flush().unwrap();
+}
+
+/// The result of a call as the snapshots hold it: the text, or `!Type: message` for a panic that
+/// names a .NET exception (as the skin's own errors do), `!panic: message` for any other panic.
 pub fn outcome(f: impl FnOnce() -> String) -> String {
     match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| catch_panic(f))) {
         Ok(Ok(s)) => s,
@@ -56,7 +76,7 @@ macro_rules! enum_by_name {
     };
 }
 
-/// An enum value from its C# type name and number.
+/// An enum value from its type name and number.
 pub fn enum_value(type_name: &str, v: i32) -> Option<EnumValue> {
     enum_by_name!(type_name, v;
         Ambassador, AsideKind, AuctionType, AutomationRuleType, BattleFactKind, BeneGesseritReactionKind, ChoamEconomicsStatus,
@@ -68,8 +88,8 @@ pub fn enum_value(type_name: &str, v: i32) -> Option<EnumValue> {
     )
 }
 
-/// A probe argument token (`["Faction", 20]`, `["Location", 5]`, `["string", "x"]`, ...) as
-/// the boxed C# object.
+/// An argument token (`["Faction", 20]`, `["Location", 5]`, `["string", "x"]`, ...) as
+/// the element it stands for.
 pub fn element(tok: &Value) -> ExpressionElement {
     let a = tok.as_array().expect("token is an array");
     let kind = a[0].as_str().unwrap();
@@ -127,7 +147,7 @@ impl Diffs {
     pub fn check(&mut self, key: &str, expected: &str, actual: &str) {
         self.checked += 1;
         if expected != actual {
-            self.failures.push(format!("{key}\n    C#:   {expected:?}\n    Rust: {actual:?}"));
+            self.failures.push(format!("{key}\n    snapshot: {expected:?}\n    now:      {actual:?}"));
         }
     }
 

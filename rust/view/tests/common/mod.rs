@@ -96,10 +96,14 @@ pub fn bot_traces_in(dir: &std::path::Path) -> Vec<PathBuf> {
     files
 }
 
-/// The bot games of `rust/testdata/games`, and three more in `tests/data` that reach what those
+/// The bot games of `rust/testdata/games`, and four more in `tests/data` that reach what those
 /// don't: a discovery token its faction may identify (`bots-3141-00002`), Ecaz with a
-/// loyal leader and `SetShipmentPermission` (`bots-3141-00103`, cut after 128 events), and
-/// Moritani terror on the planet and `LoserConcluded` (`bots-3141-00114`, cut after 245 events).
+/// loyal leader and `SetShipmentPermission` (`bots-3141-00103`, cut after 128 events), Moritani
+/// terror on the planet (`bots-3141-00114`, cut after 245 events), and `LoserConcluded`
+/// (`bots-1-00101`, `observe record --mode bots --seed 1 --game 101` at game version 189,
+/// converted with `rust/tools/record-to-test-trace.py` and cut after 293 events). The 3141 games
+/// were refitted to version 189 (`observe refit`); `bots-3141-00114` no longer reaches
+/// `LoserConcluded` since.
 pub fn sample_bot_traces() -> Vec<PathBuf> {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let mut files = bot_traces_in(&root.join("../testdata/games"));

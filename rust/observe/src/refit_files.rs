@@ -40,6 +40,10 @@ pub struct Old {
     pub factions: Option<Vec<i32>>,
     /// Each player's ally at the end.
     pub allies: Option<Vec<i32>>,
+    /// Actions the refitted game should offer at the end, as (faction, event type name). A
+    /// design fixture is made for the actions it ends on (`karma-monster` for Fremen's
+    /// `KarmaMonster`), and a refit that ends in the right phase may still not offer them.
+    pub offers: Vec<(i32, String)>,
 }
 
 impl Old {
@@ -50,16 +54,32 @@ impl Old {
         let position = turn.zip(v["main"].as_i64().map(|m| m as i32));
         let factions = v["factions"].as_array().map(|a| a.iter().map(|f| f.as_i64().unwrap_or(0) as i32).collect());
         let allies = v["allies"].as_array().map(|a| a.iter().map(|f| f.as_i64().unwrap_or(0) as i32).collect());
-        Old { factions, allies, legit, at, end: End { position, phase: v["phase"].as_str().map(str::to_string), battle: v["battle"].as_bool() }, turn }
+        let offers = v["offers"]
+            .as_array()
+            .map(|a| a.iter().map(|o| (o[0].as_i64().unwrap_or(0) as i32, o[1].as_str().unwrap_or("").to_string())).collect())
+            .unwrap_or_default();
+        Old { factions, allies, offers, legit, at, end: End { position, phase: v["phase"].as_str().map(str::to_string), battle: v["battle"].as_bool() }, turn }
+    }
+
+    /// How many of `offers` the refitted game doesn't offer at its end.
+    fn offers_missing(&self, r: &mut Refit) -> usize {
+        let game = &mut r.game;
+        self.offers
+            .iter()
+            .filter(|(f, t)| match game.get_player(Some(treachery_engine::prelude::Faction(*f))) {
+                Some(p) => !game.get_applicable_events(Some(p), false).iter().any(|e| e.name() == t),
+                None => true,
+            })
+            .count()
     }
 
     /// Lower is better: a different phase, battle, faction in a seat or alliance counts most, then a different turn, then the changes.
-    pub fn score(&self, r: &Refit) -> (u8, u8, usize) {
+    pub fn score(&self, r: &mut Refit) -> (u8, usize, u8, usize) {
         let seats = self.factions.as_ref().is_some_and(|f| *f != r.game.players.iter().map(|p| p.faction.0).collect::<Vec<_>>());
         let allies = self.allies.as_ref().is_some_and(|a| *a != r.game.players.iter().map(|p| p.ally.0).collect::<Vec<_>>());
         let phase = (!self.end.reached(&r.game) || seats || allies) as u8;
         let turn = self.turn.is_some_and(|t| t != r.game.current_turn) as u8;
-        (phase, turn, r.stats.dropped * 4 + r.stats.replaced + r.stats.added)
+        (phase, self.offers_missing(r), turn, r.stats.dropped * 4 + r.stats.replaced + r.stats.added)
     }
 }
 
@@ -184,14 +204,16 @@ pub fn refit_best(log: &Log, target: &Old, seeds: usize) -> (Refit, Option<i32>)
     let version = Game::LATEST_VERSION;
     let Some(own) = own_seed(log) else { return (refit(version, &log.participation, &log.items, &target.end, None), None) };
     let candidates = seats_kept(log, target, own as i32, seeds);
-    let mut best: Option<(Refit, Option<i32>)> = None;
+    let mut best: Option<(_, Refit, Option<i32>)> = None;
     for seed in candidates {
-        let r = refit(version, &log.participation, &log.items, &target.end, seed);
-        if best.as_ref().is_none_or(|(b, _)| target.score(&r) < target.score(b)) {
-            best = Some((r, seed));
+        let mut r = refit(version, &log.participation, &log.items, &target.end, seed);
+        let score = target.score(&mut r);
+        if best.as_ref().is_none_or(|(b, _, _)| score < *b) {
+            best = Some((score, r, seed));
         }
     }
-    best.expect("at least the log's own seed")
+    let (_, r, seed) = best.expect("at least the log's own seed");
+    (r, seed)
 }
 
 /// Up to `n` seeds to try: the log's own (`None`) and the next ones. When the old log's factions

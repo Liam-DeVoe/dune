@@ -7,6 +7,8 @@
 #   rust/tools/build-native-ref.sh --rev TAG       # from a git revision (must contain rust/observe)
 #   rust/tools/build-native-ref.sh --archive FILE  # from a source archive this script saved
 #   rust/tools/build-native-ref.sh --source DIR    # from a frozen copy of rust/ (DIR/engine, ...)
+#   rust/tools/build-native-ref.sh --out DIR       # into DIR only, for a branch's own reference
+#                                                  # (DEVELOPMENT.md rule 3); combines with the above
 #
 # The current reference is built from ~/treachery-native-ref/rust, a copy of rust/ frozen on
 # 2026-11-11 before step 2 started, with rust/observe copied in (native-harness.md).
@@ -15,7 +17,7 @@
 # (native-harness.md, "Deliberate behavior changes"). Rebuilding from a working tree that has an
 # unreviewed change makes that change invisible to the harness.
 #
-# Output, in rust/reference/ (not in git), with a copy of the binary and SOURCE in
+# Output, in rust/reference/ (not in git) or the --out DIR, and without --out a copy of the binary and SOURCE in
 # ~/treachery-native-ref/ for git worktrees:
 #   observe          the reference binary
 #   source.tar.gz    the sources it was built from (rebuild with --archive)
@@ -35,13 +37,16 @@ crates_in() { for c in $all_crates; do if [ -f "$1/$c/Cargo.toml" ]; then echo "
 
 mode=tree
 arg=""
-case "${1:-}" in
-  "") ;;
-  --rev) mode=rev; arg="${2:?--rev needs a revision}" ;;
-  --source) mode=source; arg="$(cd "${2:?--source needs a directory}" && pwd)" ;;
-  --archive) mode=archive; arg="$(cd "$(dirname "${2:?--archive needs a file}")" && pwd)/$(basename "$2")" ;;
-  *) echo "usage: $0 [--rev REV | --archive FILE | --source DIR]" >&2; exit 2 ;;
-esac
+shared=1
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --rev) mode=rev; arg="${2:?--rev needs a revision}"; shift 2 ;;
+    --source) mode=source; arg="$(cd "${2:?--source needs a directory}" && pwd)"; shift 2 ;;
+    --archive) mode=archive; arg="$(cd "$(dirname "${2:?--archive needs a file}")" && pwd)/$(basename "$2")"; shift 2 ;;
+    --out) mkdir -p "${2:?--out needs a directory}"; out="$(cd "$2" && pwd)"; shared=0; shift 2 ;;
+    *) echo "usage: $0 [--rev REV | --archive FILE | --source DIR] [--out DIR]" >&2; exit 2 ;;
+  esac
+done
 
 avail_kb=$(df -k "${TMPDIR:-/tmp}" | awk 'NR==2 {print $4}')
 if [ "$avail_kb" -lt 3000000 ]; then
@@ -109,9 +114,12 @@ mv "$out/source.tar.gz.new" "$out/source.tar.gz"
 } > "$out/SOURCE"
 echo "rustc:  $(rustc --version)" >> "$out/SOURCE"
 # A copy outside the repo, for git worktrees (observe looks there when rust/reference is missing).
-mkdir -p "$HOME/treachery-native-ref"
-# A new file, then a rename: macOS kills a signed binary that was overwritten in place ("Killed: 9").
-cp "$out/observe" "$HOME/treachery-native-ref/observe.new"
-mv "$HOME/treachery-native-ref/observe.new" "$HOME/treachery-native-ref/observe"
-cp "$out/SOURCE" "$HOME/treachery-native-ref/"
+# Not with --out: that reference is a branch's own, passed with --reference.
+if [ "$shared" = 1 ]; then
+  mkdir -p "$HOME/treachery-native-ref"
+  # A new file, then a rename: macOS kills a signed binary that was overwritten in place ("Killed: 9").
+  cp "$out/observe" "$HOME/treachery-native-ref/observe.new"
+  mv "$HOME/treachery-native-ref/observe.new" "$HOME/treachery-native-ref/observe"
+  cp "$out/SOURCE" "$HOME/treachery-native-ref/"
+fi
 cat "$out/SOURCE"

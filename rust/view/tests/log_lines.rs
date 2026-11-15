@@ -1,7 +1,7 @@
 //! Snapshots of the log lines the view renders: every message of the scene fixtures that
 //! `tests/golden/log_lines.jsonl.gz` lists, and the messages of the bot games that
-//! `log_lines_bots.jsonl.gz` lists (the first two of each shape, record type and part kinds, which
-//! reach records and parts the fixtures don't). `tests/data/log` holds two games for
+//! `log_lines_bots.jsonl.gz` lists (the first two of each shape: record type and the kind and enum
+//! type of each part; they reach records and parts the fixtures don't). `tests/data/log` holds two games for
 //! `WormSentLog` and `ShipMoveLoss`. `bots-777-00012` is cut after 1072 events: the C# game used
 //! a Richese card twice there (escapes.md, "A Richese card sold twice").
 //!
@@ -13,7 +13,8 @@
 //!
 //!     UPDATE_LOG_GOLDENS=1 cargo test --release -p treachery-view --test log_lines
 //!
-//! The update keeps each line's `dom`. A line that is new (its fixture has more messages now)
+//! The update picks the bot game lines again and carries `dom` over by the line's parts: a line
+//! gets the `dom` of a line with the same parts in the old snapshots. A line whose parts are new
 //! gets an empty `dom`, which `check:rich-text` reports with the text React shows; check it and
 //! copy it in.
 
@@ -91,8 +92,28 @@ fn compare(expected: &Value, actual: &Value) -> Option<String> {
     (!diffs.is_empty()).then(|| format!("({}):\n{}", expected["dom"], diffs.join("\n")))
 }
 
-fn dom_of(lines: &[&Value]) -> BTreeMap<(u64, u64), String> {
-    lines.iter().map(|g| ((g["report"].as_u64().unwrap(), g["line"].as_u64().unwrap()), g["dom"].as_str().unwrap_or("").to_string())).collect()
+/// The `dom` of each line's parts in both snapshots, keyed by the parts, so the update carries a
+/// line's `dom` over to every line with the same parts, wherever it is now.
+fn dom_by_text() -> BTreeMap<String, String> {
+    let mut out = BTreeMap::new();
+    for g in read_golden("log_lines.jsonl.gz").iter().chain(&read_golden("log_lines_bots.jsonl.gz")) {
+        let dom = g["dom"].as_str().unwrap_or("");
+        if !dom.is_empty() {
+            out.insert(normalize(&g["text"]).to_string(), dom.to_string());
+        }
+    }
+    out
+}
+
+fn dom_for(doms: &BTreeMap<String, String>, m: &Message, d: &InGame) -> String {
+    let text = serde_json::to_value(log_line(m, d)).unwrap()["text"].clone();
+    doms.get(&normalize(&text).to_string()).cloned().unwrap_or_default()
+}
+
+/// The shape of a snapshot line: its record type and the kind (and enum type) of each part.
+fn shape(line: &Value) -> String {
+    let parts: Vec<String> = line["text"].as_array().unwrap().iter().map(|p| format!("{}:{}", p["t"].as_str().unwrap_or(""), p["ty"].as_str().unwrap_or(""))).collect();
+    format!("{} {}", line["record"]["type"].as_str().unwrap_or("-"), parts.join(","))
 }
 
 fn report(failures: &[String], checked: usize) {
@@ -109,6 +130,7 @@ fn fixture_log_lines_match_the_snapshot() {
     let golden = read_golden("log_lines.jsonl.gz");
     let mut fixtures: Vec<&str> = golden.iter().map(|g| g["fixture"].as_str().unwrap()).collect();
     fixtures.dedup();
+    let doms = dom_by_text();
     let mut failures = Vec::new();
     let mut written = Vec::new();
     for fixture in fixtures {
@@ -116,14 +138,13 @@ fn fixture_log_lines_match_the_snapshot() {
         let skin = treachery_skin::default_skin();
         let d = InGame::new(&skin, &replica.game);
         let expected: Vec<&Value> = golden.iter().filter(|g| g["fixture"] == fixture).collect();
-        let dom = dom_of(&expected);
         let actual: Vec<Value> = replica
             .game
             .reports()
             .iter()
             .enumerate()
             .flat_map(|(r, rep)| rep.messages.iter().enumerate().map(move |(i, m)| (r, i, m)))
-            .map(|(r, i, m)| snapshot(("fixture", fixture), r, i, m, &d, dom.get(&(r as u64, i as u64)).map_or("", String::as_str)))
+            .map(|(r, i, m)| snapshot(("fixture", fixture), r, i, m, &d, &dom_for(&doms, m, &d)))
             .collect();
         if actual.len() != expected.len() {
             failures.push(format!("{fixture}: {} messages, the snapshot has {}", actual.len(), expected.len()));
@@ -150,6 +171,10 @@ fn bot_game_log_lines_match_the_snapshot() {
     let mut written = Vec::new();
     let mut paths = common::sample_bot_traces();
     paths.extend(common::bot_traces_in(&PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/data/log")));
+    if updating() {
+        write_golden("log_lines_bots.jsonl.gz", &bot_game_lines(&paths));
+        return;
+    }
     for path in paths {
         let trace = common::read_trace(&path);
         let expected: Vec<&Value> = golden.iter().filter(|g| g["trace"] == trace.name.as_str()).collect();
@@ -172,11 +197,35 @@ fn bot_game_log_lines_match_the_snapshot() {
             written.push(actual);
         }
     }
-    if updating() {
-        write_golden("log_lines_bots.jsonl.gz", &written);
-        return;
-    }
     assert!(golden.len() > 100);
     assert_eq!(written.len(), golden.len(), "a trace named in the snapshot is missing");
     report(&failures, written.len());
+}
+
+/// The update of `log_lines_bots.jsonl.gz`: the first two lines of each shape in the bot games,
+/// in the order of `paths`, with the `dom` of the same parts in the old snapshots.
+fn bot_game_lines(paths: &[PathBuf]) -> Vec<Value> {
+    let doms = dom_by_text();
+    let mut seen: BTreeMap<String, usize> = BTreeMap::new();
+    let mut out = Vec::new();
+    for path in paths {
+        let trace = common::read_trace(path);
+        let mut replica = ViewReplica::new(trace.version, &Shared::new(Participation::default()));
+        for e in &trace.events {
+            replica.apply(e).unwrap();
+        }
+        let skin = treachery_skin::default_skin();
+        let d = InGame::new(&skin, &replica.game);
+        for (r, rep) in replica.game.reports().iter().enumerate() {
+            for (i, m) in rep.messages.iter().enumerate() {
+                let line = snapshot(("trace", &trace.name), r, i, m, &d, &dom_for(&doms, m, &d));
+                let n = seen.entry(shape(&line)).or_default();
+                if *n < 2 {
+                    *n += 1;
+                    out.push(line);
+                }
+            }
+        }
+    }
+    out
 }

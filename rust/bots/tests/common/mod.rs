@@ -9,7 +9,9 @@
 //! ```
 //!
 //! The update rewrites only the results (`r`, `d` and the like). The games and the probes, which
-//! say what to call where, stay as they are.
+//! say what to call where, stay as they are. After the knowledge games themselves change
+//! (`observe refit`, rust/docs/native-harness.md), add `RELOCATE_PROBES=1` once to move the
+//! probes that panic now to a nearby step where they work (`relocate`).
 
 #![allow(dead_code)]
 

@@ -270,6 +270,11 @@ impl Shipment {
         if cost < self.ally_contribution_amount {
             return Some(express!("Your ally is paying more than needed"));
         }
+        // Not in C#, which let an ally pay spice it didn't have or hadn't offered
+        // (behavior-changes.md). Bid and Battle check the same limit.
+        if self.ally_contribution_amount > 0 && self.ally_contribution_amount > game.resources_your_ally_can_pay(p()) {
+            return Some(express!("Your ally won't pay that much"));
+        }
         let cross_planet = self.is_back_to_reserves() || (self.is_site_to_site(game) && !self.from(game).is_some_and(|f| f.as_homeworld().is_some()));
         if !Shipment::valid_shipment_locations(game, p(), cross_planet, self.use_richese_secret_ally).any(|v| v == to) {
             return Some(express!("Cannot ship there"));

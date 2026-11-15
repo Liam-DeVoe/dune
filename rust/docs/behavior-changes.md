@@ -204,6 +204,7 @@ Not part of the review. Each has an escapes.md entry with the details.
 - `Bid` refuses a pass that is also a Karama bid, and a Karama bid without a Karama card of the bidder's ("You can't pass and use Karama in the same bid", "Invalid Karama card"). Both threw halfway before. A new main phase drops any intrusion still queued. Tests: `a_karama_bid_needs_a_karama_card_and_no_pass`, `an_intrusion_left_over_from_an_earlier_phase_is_dropped` (engine/tests/rule_fixes.rs).
 - The Guild bot's shipment back to reserves is a `ShipmentBack`, so validation accepts it and the bot ships back. Test: `the_guild_ships_a_stranded_battalion_back_to_reserves` (bots/tests/behavior_changes.rs).
 - The Testing Station decision counts the bot's own and its ally's forces lost to the storm. Test: `the_testing_station_counts_the_bots_own_storm_losses` (bots/tests/behavior_changes.rs).
+- `Shipment` refuses an ally contribution larger than the spice the ally has or has offered (`resources_your_ally_can_pay`), with "Your ally won't pay that much", as `Bid` and `Battle` already did. Before, the ally could go below zero spice. The web form and the bots never asked for more, so only hand-made requests and replayed logs change. Test: `an_ally_pays_for_a_shipment_only_spice_it_has_and_offered` (engine/tests/rule_fixes.rs).
 
 ## Random number generator
 

@@ -293,9 +293,11 @@ fn options_equal_the_engine_helpers_over_the_corpus() {
         return;
     }
     // The corpus reaches these; a form that stops being reached means the corpus changed.
-    // `tests/data/other` holds short games for the rest (recorded bot games, seeds 7701
-    // and 7702 and fuzz seeds 7701 and 7703, cut after the state that reaches the form; bots-7701-*
-    // are `--versions latest` games for the Ecaz Secret Ally and Tleilaxu Cunning Nexus cards).
+    // `tests/data/other` holds short games for the rest, cut after the state that reaches the
+    // form: bot games of seeds 7701 and 7702 and fuzz games of seeds 7701 and 7703 refitted to
+    // game version 189 (`observe refit`; bots-7701-* are for the Ecaz Secret Ally and Tleilaxu
+    // Cunning Nexus cards), and bot games of seeds 1 and 2 and fuzz games of seed 1 recorded at
+    // version 189 and converted with `rust/tools/record-to-test-trace.py`.
     let reached = [
         "AllyPermission", "AutomationConfigured", "Donated", "DealOffered", "Karma", "TraitorsSelected", "NexusPlayed", "SkillAssigned",
         "AllianceByTerror", "AmalPlayed", "BattleClaimed", "Captured", "ChoamExtraMove", "Discarded", "DiscardedSearched",
@@ -357,7 +359,9 @@ fn fixture_forms_and_queries() {
 fn dependent_inputs() {
     // Donated: giving from the bank (host only) offers every player and -99..99.
     let mut r = common::load("alliance-allied", 0);
-    let host = common::viewer_of(&r, r.game.players[0].faction);
+    // `load` makes seat 0's user the host, whichever player sits there.
+    let host_faction = r.game.players.iter().find(|p| p.seat == 0).expect("a player in seat 0").faction;
+    let host = common::viewer_of(&r, host_faction);
     let view = r.view(host);
     let donated = view.actions.iter().find(|a| a.event_type == "Donated").expect("Donated applicable");
     let mut draft = draft_of(donated.options.as_ref().unwrap()).unwrap();
@@ -367,7 +371,7 @@ fn dependent_inputs() {
     assert_eq!((o.min, o.max), (-99, 99));
     assert_eq!(o.targets.len(), r.game.players.len());
     // A non-host can't give from the bank: the form resets the box.
-    let others: Vec<Faction> = r.game.players.iter().skip(1).map(|p| p.faction).collect();
+    let others: Vec<Faction> = r.game.players.iter().filter(|p| p.faction != host_faction).map(|p| p.faction).collect();
     let viewers: Vec<_> = others.into_iter().map(|f| common::viewer_of(&r, f)).collect();
     let other = viewers
         .into_iter()

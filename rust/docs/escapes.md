@@ -421,3 +421,13 @@ Two fixes, in `events/bidding/bid.rs` and `game/mod.rs`:
 
 **What catches the class now.**
 - `bots/tests/behavior_changes.rs::the_testing_station_counts_the_bots_own_storm_losses`.
+
+## An ally paying for a shipment with spice it didn't have (2026-11)
+
+**Bug.** `Shipment::validate` checked that the shipper and ally together could pay the cost and that the ally didn't pay more than the cost, but not that the ally had that much spice or had offered it. C# had the same gap. `Bid` and `Battle` check both through `resources_your_ally_can_pay`. Refitting the `alliance-allied` fixture to the ChaCha8 generator kept an old shipment whose ally contribution was now more than the Fremen ally held, and the Fremen ended at -1 spice. `Shipment` now refuses it with "Your ally won't pay that much".
+
+**Why the tests missed it.** The web form caps the contribution at `resources_your_ally_can_pay` and so does the bot (`use_ally_resources`), so no recorded game or bot game ever sent too much. The fuzzer builds events from the form's choices, so it didn't either. Nothing checked that spice stays at zero or above.
+
+**What catches the class now.**
+- `engine/tests/rule_fixes.rs::an_ally_pays_for_a_shipment_only_spice_it_has_and_offered`.
+- Nothing checks in general that a player's spice never goes below zero. A check after every event in `observe` recordings would find other events that pay without validating the payer's spice.

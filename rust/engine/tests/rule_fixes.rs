@@ -47,6 +47,8 @@ fn ally(g: &mut Game, a: Faction, b: Faction) {
 fn shipping_back_to_reserves_moves_special_forces_too() {
     let mut g = fixture("ship");
     let emperor = idx(&g, Faction::Emperor);
+    // Make it Emperor's turn to ship, if it isn't in the fixture.
+    g.shipment_and_move_sequence = Some(PlayerSequence::new(&g, false, 1, Some(emperor), false));
     assert_eq!(g.shipment_and_move_sequence.as_ref().unwrap().current_player(&g), Some(emperor));
     // The fixture has no Emperor forces on the planet: put some on an empty sand sector.
     let sand = g
@@ -101,10 +103,16 @@ fn shipping_back_to_reserves_moves_special_forces_too() {
 fn bene_gesserit_flip_happens_in_the_intruded_territory() {
     let mut g = fixture("bene_gesserit");
     let bg = idx(&g, Faction::BeneGesserit);
-    // Bene Gesserit advisors are in locations 5 and 8 (two strongholds).
-    let (intruded, elsewhere) = (location(&g, 5), location(&g, 8));
-    assert_eq!(g.player(bg).special_forces_in(Some(intruded)), 4);
-    assert_eq!(g.player(bg).special_forces_in(Some(elsewhere)), 6);
+    // Two locations, in different territories, with Bene Gesserit advisors and no fighters.
+    let advisors: Vec<(Location, i32)> = g
+        .player(bg)
+        .forces_on_planet()
+        .iter()
+        .filter(|(_, b)| b.amount_of_forces == 0 && b.amount_of_special_forces > 0)
+        .map(|(l, b)| (*l, b.amount_of_special_forces))
+        .collect();
+    let (intruded, n_intruded) = advisors[0];
+    let (elsewhere, n_elsewhere) = *advisors.iter().find(|(l, _)| l.territory() != intruded.territory()).expect("advisors in two territories");
 
     let mv = |to: Location, g: &Game| {
         let mut m = Move::new(g, Faction::Emperor);
@@ -121,8 +129,8 @@ fn bene_gesserit_flip_happens_in_the_intruded_territory() {
     let log = g.current_report().messages.iter().map(|m| m.to_cs_string()).collect::<Vec<_>>();
     assert!(log.iter().any(|m| m.contains("become")), "{log:?}");
     let pl = g.player(bg);
-    assert_eq!((pl.forces_in(Some(intruded)), pl.special_forces_in(Some(intruded))), (4, 0), "flipped where intruded");
-    assert_eq!((pl.forces_in(Some(elsewhere)), pl.special_forces_in(Some(elsewhere))), (0, 6), "left alone");
+    assert_eq!((pl.forces_in(Some(intruded)), pl.special_forces_in(Some(intruded))), (n_intruded, 0), "flipped where intruded");
+    assert_eq!((pl.forces_in(Some(elsewhere)), pl.special_forces_in(Some(elsewhere))), (0, n_elsewhere), "left alone");
 }
 
 /// Fremen, allied with Emperor, revive one Fedaykin with Emperor's money. That is their one
@@ -163,6 +171,11 @@ fn karama_worm_needs_a_territory() {
         GameEvent::KarmaMonster(Rc::new(m))
     };
     let karama_cards = |g: &Game| g.player(fremen).treachery_cards.iter().filter(|c| c.type_() == TreacheryCardType::Karma).count();
+    if karama_cards(&g) == 0 {
+        let held: Vec<TreacheryCard> = g.players.iter().flat_map(|p| p.treachery_cards.clone()).collect();
+        let karama = TreacheryCardManager::items().iter().copied().find(|c| c.type_() == TreacheryCardType::Karma && !held.contains(c)).unwrap();
+        g.player_mut(fremen).treachery_cards.push(karama);
+    }
     assert_eq!(karama_cards(&g), 1);
 
     assert_eq!(submit(&mut g, |g| monster(None, g)).as_deref(), Some("No territory selected"));
@@ -274,4 +287,47 @@ fn an_intrusion_left_over_from_an_earlier_phase_is_dropped() {
     g.intrusions.push(Intrusion::new(&GameEvent::Move(Rc::new(m)), IntrusionType::BeneGesseritIntrusion));
     g.main_phase_start(MainPhase::Battle, false);
     assert!(g.intrusions.is_empty());
+}
+
+/// An ally pays for a shipment only spice it has and has offered. C# checked neither, so a
+/// refitted game shipped with spice the ally didn't have and left it at -1 (the `alliance-allied`
+/// fixture, after the change to ChaCha8). Bid and Battle already checked both.
+#[test]
+fn an_ally_pays_for_a_shipment_only_spice_it_has_and_offered() {
+    let mut g = fixture("ship");
+    let shipper = g.shipment_and_move_sequence.as_ref().unwrap().current_player(&g).expect("a shipper");
+    let f = g.player(shipper).faction;
+    let other = g.players.iter().map(|p| p.faction).find(|x| *x != f && *x != Faction::Guild).unwrap();
+    ally(&mut g, f, other);
+    let pally = idx(&g, other);
+    let to = Shipment::valid_shipment_locations(&g, shipper, false, false).find(|l| l.territory().is_stronghold()).expect("a stronghold to ship to");
+    let shipment = |g: &Game, contribution: i32| {
+        let mut s = Shipment::new(g, f);
+        s.shipment_type = ShipmentType::ShipmentNormal;
+        s.set_karma_card(None);
+        s.set_no_field_value(-1);
+        s.set_cunning_no_field_value(-1);
+        s.set_to(g, Some(to));
+        s.force_amount = 2;
+        s.ally_contribution_amount = contribution;
+        s
+    };
+    let cost = Shipment::determine_cost(&g, shipper, &shipment(&g, 0));
+    assert!(cost >= 2, "cost {cost}");
+    g.player_mut(shipper).resources = 0;
+
+    // The ally offered enough but has less.
+    g.permitted_use_of_ally_spice.insert(f, cost);
+    g.player_mut(pally).resources = cost - 1;
+    assert_eq!(submit(&mut g, |g| GameEvent::Shipment(Rc::new(shipment(g, cost)))).as_deref(), Some("Your ally won't pay that much"));
+    // The ally has enough but offered less.
+    g.permitted_use_of_ally_spice.insert(f, cost - 1);
+    g.player_mut(pally).resources = cost;
+    assert_eq!(submit(&mut g, |g| GameEvent::Shipment(Rc::new(shipment(g, cost)))).as_deref(), Some("Your ally won't pay that much"));
+
+    g.permitted_use_of_ally_spice.insert(f, cost);
+    assert_eq!(submit(&mut g, |g| GameEvent::Shipment(Rc::new(shipment(g, cost)))), None);
+    assert_eq!(g.player(pally).resources, 0);
+    assert_eq!(g.player(shipper).resources, 0);
+    assert_eq!(g.permitted_use_of_ally_spice[&f], 0);
 }

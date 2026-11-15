@@ -265,7 +265,7 @@ fn traitors_told_by_the_opponent_count_as_known_traitors() {
     assert_eq!(with, 99.0);
 }
 
-/// Harkonnen, with 3 forces in Carthag and no spice, looks at Arrakeen, which holds one Emperor
+/// Harkonnen, with a few forces in Carthag and no spice, looks at Arrakeen, which holds one Emperor
 /// force and fifteen Guild forces. Emperor comes first among Harkonnen's opponents, so the bot
 /// used to estimate the battle against Emperor and found Arrakeen easy to win. It now estimates
 /// against the opponent it picked to fight there, Guild, the strongest.
@@ -282,14 +282,22 @@ fn a_weak_stronghold_is_judged_against_the_opponent_picked_to_fight() {
             Player::remove_special_forces(&mut game, p, l, s);
         }
     }
-    Player::add_forces(&mut game, me, carthag, 3, false);
     Player::add_forces(&mut game, weak, arrakeen, 1, false);
     game.player_mut(me).resources = 0;
     // Both opponents have shipped this turn, so neither can reinforce.
     game.has_acted_or_passed.extend([Faction::Emperor, Faction::Guild]);
-    let b = bot(&game, me);
-    let battalion = Battalion::new(Faction::Harkonnen, 3, 0, carthag);
-    assert_eq!(b.winnable_nearby_stronghold(&game, carthag, &battalion), Some(arrakeen), "Emperor alone is beatable");
+    // The fewest Harkonnen forces that beat Emperor's one force, given the leaders and cards the
+    // fixture deals (3 in the fixture this test was written for).
+    let mut forces = 0;
+    let battalion = loop {
+        forces += 1;
+        assert!(forces <= 10, "Emperor alone is beatable");
+        Player::add_forces(&mut game, me, carthag, 1, false);
+        let battalion = Battalion::new(Faction::Harkonnen, forces, 0, carthag);
+        if bot(&game, me).winnable_nearby_stronghold(&game, carthag, &battalion) == Some(arrakeen) {
+            break battalion;
+        }
+    };
 
     Player::add_forces(&mut game, strong, arrakeen, 15, false);
     let b = bot(&game, me);
@@ -336,10 +344,28 @@ fn bene_gesserit_prediction_draws_no_coin() {
 /// `ShipmentBack`, as the shipment form does.
 #[test]
 fn the_guild_ships_a_stranded_battalion_back_to_reserves() {
-    // The fixture's Guild has 4 forces in the sand, away from strongholds and spice.
+    // Guild's only forces on the planet: 4 in the sand, away from strongholds and spice. The
+    // fixture is at Guild's turn to ship; the first such sand location (in map order) is used.
+    // The forces are made there (not taken from reserves), so the reserves stay as they were.
     let mut game = load("ship-guild");
     let guild = player_of(&game, Faction::Guild);
-    let plan = bot(&game, guild).plan_back_to_reserves(&game).expect("a back-to-reserves plan");
+    for l in game.player(guild).forces_on_planet().keys().copied().collect::<Vec<_>>() {
+        Player::forces_to_reserves(&mut game, guild, l);
+    }
+    // Enough spice to pay for shipping them back.
+    game.player_mut(guild).resources = 10;
+    let sand: Vec<Location> = game.map.locations(false).filter(|l| !l.territory().is_stronghold() && !game.is_in_storm(*l)).collect();
+    let plan = sand
+        .into_iter()
+        .find_map(|l| {
+            Player::add_forces(&mut game, guild, l, 4, false);
+            let plan = bot(&game, guild).plan_back_to_reserves(&game);
+            if plan.is_none() {
+                Player::remove_forces(&mut game, guild, l, 4);
+            }
+            plan
+        })
+        .expect("a back-to-reserves plan");
     let s = plan.shipment;
     assert_eq!(s.shipment_type, ShipmentType::ShipmentBack);
     let from = s.to(&game).unwrap();

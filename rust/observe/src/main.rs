@@ -172,7 +172,8 @@ fn cmd_refit(args: &Args) -> Result<bool, String> {
     use observe::refit_files::{self, Old};
     let [input, output] = &args.positional[..] else { return Err(format!("refit takes IN and OUT\n\n{USAGE}")) };
     let (input, output) = (PathBuf::from(input), PathBuf::from(output));
-    // --old FILE: what the old engine saw (`{"legit": [bool per event], "phase": "...", "turn": n}`).
+    // --old FILE: what the old engine saw (`{"legit": [bool per event], "phase": "...", "turn": n}`),
+    // and optionally `"offers": [[faction, "EventType"], ...]` that the end should offer.
     let old: Option<serde_json::Value> = match args.get("old") {
         Some(f) => Some(serde_json::from_str(&std::fs::read_to_string(f).map_err(|e| format!("{f}: {e}"))?).map_err(|e| format!("{f}: {e}"))?),
         None => None,

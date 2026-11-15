@@ -150,7 +150,7 @@ pub trait GameEventMethods {
         self.player_opt() == Some(p)
     }
 
-    fn cs_clone(&self) -> Option<GameEvent>
+    fn shallow_copy(&self) -> Option<GameEvent>
     where
         Self: Clone + Sized,
     {
@@ -186,10 +186,10 @@ pub trait GameEventMethods {
 }
 
 impl GameEvent {
-    /// `((ILocationEvent)e).To` of an event the game holds (`LastShipmentOrMovement`,
+    /// `((LocationEvent)e).To` of an event the game holds (`LastShipmentOrMovement`,
     /// `Intrusion.TriggeringEvent`).
     pub fn to_location(&self, game: &Game) -> Option<Location> {
-        self.i_location_event_to(game)
+        self.location_event_to(game)
     }
 }
 
@@ -197,7 +197,7 @@ impl GameEvent {
 impl GameEvent {
     pub const ID_STRING_SEPARATOR: char = ';';
 
-    pub fn id_string_to_objects<T>(ids: Option<&str>, lookup: &dyn IFetcher<T>) -> Vec<T> {
+    pub fn id_string_to_objects<T>(ids: Option<&str>, lookup: &dyn Fetcher<T>) -> Vec<T> {
         let mut result = Vec::new();
 
         if let Some(ids) = ids {
@@ -214,7 +214,7 @@ impl GameEvent {
         result
     }
 
-    pub fn objects_to_id_string<T: Clone>(objs: &[T], lookup: &dyn IFetcher<T>) -> String {
+    pub fn objects_to_id_string<T: Clone>(objs: &[T], lookup: &dyn Fetcher<T>) -> String {
         objs.iter()
             .map(|pj| lookup.get_id(Some(pj.clone())).to_string())
             .collect::<Vec<_>>()

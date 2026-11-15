@@ -7,7 +7,7 @@ mod common;
 use common::{first_bot_state, load, load_text, viewer_of, with_rules, OBSERVER};
 use treachery_engine::events::GameEventType;
 use treachery_engine::heroes::hero::Hero;
-use treachery_engine::identity::IIdentifiable;
+use treachery_engine::identity::Identifiable;
 use treachery_engine::prelude::*;
 use treachery_view::replica::ViewReplica;
 use treachery_view::schema::*;
@@ -59,7 +59,7 @@ fn piles() {
             assert_eq!(p.latest_spice_card_a, g.latest_spice_card_a.map(|c| c.skin_id()));
             assert_eq!(p.latest_spice_card_b, g.latest_spice_card_b.map(|c| c.skin_id()));
             saw_latest |= p.latest_spice_card_a.is_some();
-            assert_eq!(p.sand_trout.is_some(), g.sand_trout_occured() && g.sand_trout.is_some());
+            assert_eq!(p.sand_trout.is_some(), g.sand_trout_occurred() && g.sand_trout.is_some());
             assert_eq!(p.richese_cache_count, g.richese_cache.len() as i32);
             assert_eq!(p.richese_cache.is_some(), f == Some(Faction::Richese));
             // No fixture enables notekeeping; see notekeeping_shows_discard_piles_and_notes.
@@ -418,7 +418,7 @@ fn bids_on_the_ring() {
     assert_eq!(b.bids.len(), r.game.bids.len());
     for (shown, (f, bid)) in b.bids.iter().zip(r.game.bids.iter()) {
         assert_eq!(shown.faction, name(*f));
-        let expected = if bid.i_bid_passed() { BidShown::Pass } else { BidShown::Bid { amount: bid.i_bid_total_amount() } };
+        let expected = if bid.bid_passed() { BidShown::Pass } else { BidShown::Bid { amount: bid.bid_total_amount() } };
         assert_eq!(shown.bid, expected);
     }
     assert!(load("alliance", 0).view(OBSERVER).bidding.is_none());
@@ -565,10 +565,10 @@ fn recent_moves() {
         let g = &r.game;
         let mut expected_ends: Vec<(String, i32)> = vec![];
         for m in &g.recent_moves {
-            let to = m.i_placement_to(g).unwrap();
+            let to = m.placement_to(g).unwrap();
             if !to.is_homeworld() {
-                for _ in m.i_placement_force_locations(g).keys() {
-                    expected_ends.push((name(m.i_placement_initiator()), to.id()));
+                for _ in m.placement_force_locations(g).keys() {
+                    expected_ends.push((name(m.placement_initiator()), to.id()));
                 }
             }
         }

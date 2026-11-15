@@ -28,13 +28,13 @@ pub struct Shadow {
 
 impl Shadow {
     pub fn new(version: i32, participation: &Shared<Participation>) -> Shadow {
-        Shadow { game: Game::new_int32_participation(version, participation), participation: participation.clone() }
+        Shadow { game: Game::with_participation(version, participation), participation: participation.clone() }
     }
 
     /// Catches up with `game`; starts over when `rebuild` or when it is ahead.
     pub fn sync(&mut self, game: &Game, rebuild: bool) {
         if rebuild || self.game.event_count() > game.event_count() {
-            self.game = Game::new_int32_participation(game.version, &self.participation);
+            self.game = Game::with_participation(game.version, &self.participation);
         }
         let done = self.game.event_count() as usize;
         for e in game.history.iter().skip(done) {
@@ -48,7 +48,7 @@ impl Shadow {
             });
             if ok.flatten().is_none() {
                 // A shadow that can't follow is rebuilt next time; generation just gets worse.
-                self.game = Game::new_int32_participation(game.version, &self.participation);
+                self.game = Game::with_participation(game.version, &self.participation);
                 return;
             }
         }

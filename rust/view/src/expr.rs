@@ -4,7 +4,7 @@
 
 use treachery_engine::messages::expression::{EnumValue, Expression, ExpressionElement};
 use treachery_engine::heroes::hero::Hero;
-use treachery_engine::identity::IIdentifiable;
+use treachery_engine::identity::Identifiable;
 use treachery_engine::messages::message::Message;
 use treachery_engine::prelude::*;
 

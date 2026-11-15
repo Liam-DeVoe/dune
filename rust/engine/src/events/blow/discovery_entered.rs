@@ -166,7 +166,7 @@ impl PlacementEventMethods for DiscoveryEntered {
 
 }
 
-impl crate::events::location_event::ILocationEvent for DiscoveryEntered {
+impl crate::events::location_event::LocationEvent for DiscoveryEntered {
     fn initiator(&self) -> Faction {
         GameEventMethods::initiator(self)
     }
@@ -189,7 +189,7 @@ impl crate::events::location_event::ILocationEvent for DiscoveryEntered {
 
 }
 
-impl crate::events::placement::IPlacement for DiscoveryEntered {
+impl crate::events::placement::Placement for DiscoveryEntered {
     fn initiator(&self) -> Faction {
         GameEventMethods::initiator(self)
     }

@@ -239,7 +239,7 @@ impl ClairVoyancePlayed {
         let card = self.card(game);
         if let Some(card) = card {
             // The question names the card, so it's not logged as a separate discard.
-            game.discard_treachery_card_boolean(Some(card), false)?;
+            game.discard_card(Some(card), false)?;
             // A parameter that doesn't fit the question fails the event after the discard.
             let m = self.try_asked(game, card.into())?.with_log(AsideLog::aside());
             self.log_objects(game, vec![m.into()]);

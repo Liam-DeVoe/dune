@@ -235,7 +235,7 @@ fn tleilaxu_limits(g: &Game) -> Option<PlayerIndex> {
 /// checked.
 fn emperor_discard(g: &Game) -> Option<PlayerIndex> {
     let p = g.get_player(Some(Faction::Emperor))?;
-    g.player(p).has_high_threshold_0(g).then_some(p)
+    g.player(p).has_any_high_threshold(g).then_some(p)
 }
 
 fn atreides(g: &Game) -> Option<PlayerIndex> {

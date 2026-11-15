@@ -92,7 +92,7 @@ impl KarmaFreeRevival {
         }
 
         let me = self.player();
-        game.discard_player_treachery_card_boolean(Some(me), card, true);
+        game.discard_card_of(Some(me), card, true);
         game.player_mut(me).special_karma_power_used = true;
 
         if let Some(hero) = hero {

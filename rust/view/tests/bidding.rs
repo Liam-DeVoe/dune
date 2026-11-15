@@ -35,7 +35,7 @@ fn expected_defaults(game: &Game, p: PlayerIndex, max_amount: i32, max_ally: i32
     if !silent(game) {
         let ally_resources = if pl.ally == Faction::None { 0 } else { game.get_permitted_use_of_ally_resources(pl.faction) };
         let bid_to_do = match &game.current_bid {
-            Some(b) => b.i_bid_total_amount() + 1,
+            Some(b) => b.bid_total_amount() + 1,
             None => 1,
         };
         ally = bid_to_do.min(ally_resources);
@@ -117,7 +117,7 @@ fn check_state(game: &mut Game, d: &dyn treachery_view::describe::Describer, see
             // Outside silent auctions the starting bid is the lowest that beats the current one,
             // so it is valid whenever the player and ally can pay for it.
             if !silent(game) {
-                let to_beat = game.current_bid.as_ref().map_or(0, |b| b.i_bid_total_amount());
+                let to_beat = game.current_bid.as_ref().map_or(0, |b| b.bid_total_amount());
                 let (amount, ally) = match &default_event {
                     GameEvent::Bid(b) => (b.amount, b.ally_contribution_amount),
                     GameEvent::BlackMarketBid(b) => (b.amount, b.ally_contribution_amount),
@@ -163,7 +163,7 @@ fn check_state(game: &mut Game, d: &dyn treachery_view::describe::Describer, see
             }
         }
         assert_eq!(panel.silent, silent(game));
-        let expected_bid = if silent(game) { None } else { game.current_bid.as_ref().map(|b| (b.i_bid_initiator().to_string(), b.i_bid_total_amount())) };
+        let expected_bid = if silent(game) { None } else { game.current_bid.as_ref().map(|b| (b.bid_initiator().to_string(), b.bid_total_amount())) };
         assert_eq!(panel.current_bid.map(|b| (b.faction, b.amount)), expected_bid, "{at}");
         if panel.black_market || game.current_auction_type != AuctionType::Normal {
             assert_eq!(panel.card_of, None);
@@ -189,7 +189,7 @@ fn bidding_options_equal_the_helpers_in_every_state() {
     for path in fixtures() {
         let state = GameState::load(&std::fs::read_to_string(&path).unwrap()).expect("savegame");
         let participation = Shared::new(Participation::default());
-        let mut game = Game::new_int32_participation(state.version, &participation);
+        let mut game = Game::with_participation(state.version, &participation);
         let name = path.file_stem().unwrap().to_string_lossy().to_string();
         for (i, e) in state.events.as_ref().unwrap().iter().enumerate() {
             e.initialize_game(&game);
@@ -272,7 +272,7 @@ fn karma_card_lifts_the_limit_in_a_draft_query() {
     assert!(matches!(with.options, Some(ActionOptions::Bid { max_amount: 100, .. })));
     let without = r.query(viewer, &draft(-1)).unwrap();
     assert!(without.validation.is_some(), "bidding more than one has needs Karma");
-    if over > r.game.current_bid.as_ref().map_or(0, |b| b.i_bid_total_amount()) {
+    if over > r.game.current_bid.as_ref().map_or(0, |b| b.bid_total_amount()) {
         assert_eq!(with.validation, None);
     }
 }

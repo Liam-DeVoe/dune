@@ -91,7 +91,7 @@ impl EndPhase {
             Phase::BattleReport => {
                 self.reset_battle(game);
                 let condition = game.next_player_to_battle().is_some();
-                game.enter_boolean_phase_action(condition, Phase::BattlePhase, enter_spice_collection_phase);
+                game.enter_or_else(condition, Phase::BattlePhase, enter_spice_collection_phase);
             }
 
             Phase::BeginningOfCollection => game.start_collection(),
@@ -130,7 +130,7 @@ impl EndPhase {
         }
 
         let condition = game.applicable(Rule::CustomDecks);
-        game.enter_boolean_phase_action(condition, Phase::CustomizingDecks, Game::enter_setup_phase);
+        game.enter_or_else(condition, Phase::CustomizingDecks, Game::enter_setup_phase);
     }
 
     pub fn enter_normal_storm_phase(&self, game: &mut Game) {
@@ -259,7 +259,7 @@ impl EndPhase {
         game.has_acted_or_passed.clear();
         game.last_shipment_or_movement = None;
 
-        game.shipment_and_move_sequence = Some(PlayerSequence::new_game(game));
+        game.shipment_and_move_sequence = Some(PlayerSequence::starting_with_first_player(game));
 
         game.enter(Phase::BeginningOfShipAndMove, true);
     }
@@ -267,7 +267,7 @@ impl EndPhase {
     pub fn enter_battle_phase(&self, game: &mut Game) {
         game.main_phase_start(MainPhase::Battle, true);
         game.nr_of_battles_fought = 0;
-        game.battle_sequence = Some(PlayerSequence::new_game(game));
+        game.battle_sequence = Some(PlayerSequence::starting_with_first_player(game));
         game.current_guild_cunning = None;
         game.current_guild_secret_ally = None;
         if game.karma_hms_moves_left != 2 {

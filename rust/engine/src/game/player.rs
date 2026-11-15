@@ -292,7 +292,7 @@ impl Player {
         Player::check_if_emperor_star_threshold_was_passed(game, me);
     }
 
-    pub fn forces_to_reserves_location_int32(game: &mut Game, me: PlayerIndex, location: Location, amount: i32) {
+    pub fn some_forces_to_reserves(game: &mut Game, me: PlayerIndex, location: Location, amount: i32) {
         Player::add_forces_to_reserves(game, me, amount);
         Player::change_forces(game, me, location, -amount);
     }
@@ -328,7 +328,7 @@ impl Player {
         }
     }
 
-    pub fn forces_to_reserves_territory_int32_boolean(game: &mut Game, me: PlayerIndex, t: Territory, amount: i32, special: bool) {
+    pub fn some_forces_in_territory_to_reserves(game: &mut Game, me: PlayerIndex, t: Territory, amount: i32, special: bool) {
         if amount > 0 {
             let mut to_remove_in_total = amount;
             let mut locations: Vec<Location> = t.locations().to_vec();
@@ -365,7 +365,7 @@ impl Player {
         }
     }
 
-    pub fn forces_to_reserves_territory(game: &mut Game, me: PlayerIndex, t: Territory) {
+    pub fn forces_in_territory_to_reserves(game: &mut Game, me: PlayerIndex, t: Territory) {
         // Lazy Where: the filter is re-checked after each body ran.
         for &l in t.locations() {
             if game.player(me).any_forces_in(Some(l)) > 0 {
@@ -404,7 +404,7 @@ impl Player {
         0
     }
 
-    pub fn kill_all_forces_territory_boolean(game: &mut Game, me: PlayerIndex, t: Territory, in_battle: bool) {
+    pub fn kill_all_forces_in_territory(game: &mut Game, me: PlayerIndex, t: Territory, in_battle: bool) {
         // Lazy Where: the filter is re-checked after each body ran.
         for &l in t.locations() {
             if game.player(me).any_forces_in(Some(l)) > 0 {
@@ -433,7 +433,7 @@ impl Player {
         amount_of_forces + amount_of_special_forces
     }
 
-    pub fn kill_forces_territory_int32_boolean_boolean(game: &mut Game, me: PlayerIndex, t: Territory, amount: i32, special: bool, in_battle: bool) {
+    pub fn kill_forces_in_territory(game: &mut Game, me: PlayerIndex, t: Territory, amount: i32, special: bool, in_battle: bool) {
         let mut to_kill = amount;
         let mut locations: Vec<Location> = t.locations().to_vec();
         locations.sort_by_cached_key(|l| l.spice_blow_amount()); // OrderBy: stable
@@ -472,7 +472,7 @@ impl Player {
         Player::add_forces(game, me, to, amount, true);
     }
 
-    pub fn ship_forces_location_homeworld_int32(game: &mut Game, me: PlayerIndex, to: Location, from: Homeworld, amount: i32) {
+    pub fn ship_forces_from_homeworld(game: &mut Game, me: PlayerIndex, to: Location, from: Homeworld, amount: i32) {
         Player::move_forces(game, me, from.location(), to, amount);
     }
 
@@ -484,7 +484,7 @@ impl Player {
         }
     }
 
-    pub fn ship_special_forces_location_homeworld_int32(game: &mut Game, me: PlayerIndex, to: Location, from: Homeworld, amount: i32) {
+    pub fn ship_special_forces_from_homeworld(game: &mut Game, me: PlayerIndex, to: Location, from: Homeworld, amount: i32) {
         if game.player(me).faction == Faction::Richese {
             Player::change_special_forces(game, me, to, amount);
         } else {
@@ -521,7 +521,7 @@ impl Player {
         }
     }
 
-    pub fn flip_forces_territory_boolean(game: &mut Game, me: PlayerIndex, t: Territory, as_advisors: bool) {
+    pub fn flip_forces_in_territory(game: &mut Game, me: PlayerIndex, t: Territory, as_advisors: bool) {
         // `t.Locations` are objects of t's map: after an undo, t can come from an event of
         // the other game, and a battalion created for such a location keeps it as its key.
         for l in t.locations().iter().copied() {
@@ -568,11 +568,11 @@ impl Player {
         self.occupies(g, Some(l)) && g.nr_of_occupants_excluding_faction(l, self.faction) == 0
     }
 
-    pub fn controls_game_territory_boolean(&self, g: &Game, t: Territory, contested_strongholds_count_as_occupied: bool) -> bool {
+    pub fn controls_territory(&self, g: &Game, t: Territory, contested_strongholds_count_as_occupied: bool) -> bool {
         if contested_strongholds_count_as_occupied {
             return self.occupies_territory(g, Some(t));
         }
-        self.occupies_territory(g, Some(t)) && g.nr_of_occupants_excluding_faction_territory_faction(t, self.faction) == 0
+        self.occupies_territory(g, Some(t)) && g.nr_of_occupants_of_territory_excluding(t, self.faction) == 0
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
@@ -811,7 +811,7 @@ impl Player {
         self.any_forces_in(Some(homeworld.location())) >= homeworld.threshold()
     }
 
-    pub fn has_high_threshold_0(&self, game: &Game) -> bool {
+    pub fn has_any_high_threshold(&self, game: &Game) -> bool {
         if !game.applicable(Rule::Homeworlds) {
             return false;
         }
@@ -834,7 +834,7 @@ impl Player {
         self.any_forces_in(Some(homeworld.location())) < homeworld.threshold()
     }
 
-    pub fn has_low_threshold_0(&self, game: &Game) -> bool {
+    pub fn has_any_low_threshold(&self, game: &Game) -> bool {
         game.applicable(Rule::Homeworlds) && self.home_worlds.iter().any(|w| self.has_low_threshold(game, w.world()))
     }
 

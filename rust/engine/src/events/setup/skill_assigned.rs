@@ -86,7 +86,7 @@ impl SkillAssigned {
             let c1 = game.current_phase != Phase::AssigningInitialSkills;
             let phase = game.phase_before_skill_assignment;
             let c2 = game.treachery_cards_before_traitors();
-            game.enter_boolean_phase_boolean_action_action(c1, phase, c2, Game::deal_traitors, Game::setup_spice_and_forces);
+            game.enter_first(&[(c1, Step::Enter(phase)), (c2, Step::Run(Game::deal_traitors))], Step::Run(Game::setup_spice_and_forces));
         }
         Ok(())
     }

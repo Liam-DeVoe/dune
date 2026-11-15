@@ -17,7 +17,7 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use treachery_engine::shared::Shared;
-use treachery_engine::identity::IIdentifiable;
+use treachery_engine::identity::Identifiable;
 use treachery_engine::heroes::leader_manager::LeaderManager;
 use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;

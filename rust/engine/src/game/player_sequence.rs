@@ -37,12 +37,12 @@ impl PlayerSequence {
         result
     }
 
-    pub fn new_game_boolean_int32(game: &Game, skip_players_that_cant_bid_on_cards: bool, direction: i32) -> Self {
+    pub fn starting_with_first_player_options(game: &Game, skip_players_that_cant_bid_on_cards: bool, direction: i32) -> Self {
         let first = PlayerSequence::determine_first_player(game);
         PlayerSequence::new(game, skip_players_that_cant_bid_on_cards, direction, Some(first), false)
     }
 
-    pub fn new_game(game: &Game) -> Self {
+    pub fn starting_with_first_player(game: &Game) -> Self {
         let first = PlayerSequence::determine_first_player(game);
         PlayerSequence::new(game, false, 1, Some(first), false)
     }

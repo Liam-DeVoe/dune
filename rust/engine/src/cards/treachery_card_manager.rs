@@ -1,6 +1,6 @@
 use crate::cards::deck::Deck;
 use crate::enumerations::{Rule, TreacheryCardType};
-use crate::identity::IFetcher;
+use crate::identity::Fetcher;
 use crate::random::SharedRandom;
 use crate::map::MapGame;
 use crate::cards::treachery_card::{TreacheryCard, TreacheryCardData};
@@ -165,7 +165,7 @@ impl TreacheryCardManager {
 #[derive(Clone, Copy, Debug)]
 pub struct TreacheryCardFetcher;
 
-impl IFetcher<TreacheryCard> for TreacheryCardFetcher {
+impl Fetcher<TreacheryCard> for TreacheryCardFetcher {
     fn find(&self, id: i32) -> Option<TreacheryCard> {
         if id < -1 {
             return None;

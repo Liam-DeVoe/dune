@@ -9,7 +9,7 @@ use std::rc::Rc;
 use common::{fixture, load, load_text, truncated, viewer_of, OBSERVER};
 use treachery_engine::events::DealAccepted;
 use treachery_engine::heroes::hero::Hero;
-use treachery_engine::identity::IIdentifiable;
+use treachery_engine::identity::Identifiable;
 use treachery_engine::prelude::*;
 use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
 use treachery_view::replica::ViewReplica;

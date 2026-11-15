@@ -78,7 +78,7 @@ impl DealAccepted {
                 let bid = g.current_bid.as_ref().expect("current bid");
                 let p_faction = g.player(p.expect("player")).faction;
                 bid.initiator() != p_faction
-                    && (bid.i_bid_ally_contribution_amount() == 0 || g.player(bid.player_opt().expect("player")).ally != p_faction)
+                    && (bid.bid_ally_contribution_amount() == 0 || g.player(bid.player_opt().expect("player")).ally != p_faction)
             }
     }
 
@@ -208,7 +208,7 @@ impl DealAccepted {
     }
 
     pub fn get_deal_description(&self, game: &Game) -> Message {
-        Deal::deal_contents_description_game_deal_type_string_int32_phase_string(
+        Deal::describe_deal_contents(
             game,
             self.type_,
             self.text.as_deref(),

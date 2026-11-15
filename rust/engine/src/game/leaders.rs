@@ -91,7 +91,7 @@ impl Game {
         self.skill(Some(leader)) == skill
     }
 
-    pub fn skilled_as_player_leader_skill(&self, p: PlayerIndex, skill: LeaderSkill) -> bool {
+    pub fn has_skill_in_front_of_shield(&self, p: PlayerIndex, skill: LeaderSkill) -> bool {
         self.player(p)
             .leaders
             .iter()
@@ -103,7 +103,7 @@ impl Game {
     }
 
     pub fn player_skilled_as(&self, skill: LeaderSkill) -> Option<PlayerIndex> {
-        self.player_indices().find(|p| self.skilled_as_player_leader_skill(*p, skill))
+        self.player_indices().find(|p| self.has_skill_in_front_of_shield(*p, skill))
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
@@ -243,7 +243,7 @@ impl LeaderState {
         self.death_counter += 1;
     }
 
-    pub fn cs_clone(&self) -> LeaderState {
+    pub fn shallow_copy(&self) -> LeaderState {
         self.clone()
     }
 }

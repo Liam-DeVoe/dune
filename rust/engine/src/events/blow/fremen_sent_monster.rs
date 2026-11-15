@@ -1,5 +1,5 @@
 use crate::log::blow::WormSentLog;
-use crate::game::MonsterAppearence;
+use crate::game::MonsterAppearance;
 use crate::prelude::*;
 
 #[derive(Clone, Debug)]
@@ -51,16 +51,16 @@ impl FremenSentMonster {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         // A null Territory (only without validation) is stored in WormSentLog and the
-        // MonsterAppearence; PerformMonster then throws on `m.Territory.Locations`.
+        // MonsterAppearance; PerformMonster then throws on `m.Territory.Locations`.
         let msg = self.get_message(game);
         let territory = self.territory(game).required("territory")?;
         let msg = msg.with_log(WormSentLog::new(self.initiator(), territory));
         self.log_objects(game, vec![ExpressionElement::from(msg)]);
-        let monster = MonsterAppearence::new(territory, false);
+        let monster = MonsterAppearance::new(territory, false);
         game.monsters.push(monster.clone());
         game.perform_monster(&monster);
         let condition = game.current_phase == Phase::FremenSendingMonsterA;
-        game.enter_boolean_phase_phase(condition, Phase::BlowA, Phase::BlowB);
+        game.enter_either(condition, Phase::BlowA, Phase::BlowB);
         game.draw_resource_card();
         game.let_factions_discard_surplus_cards();
         Ok(())

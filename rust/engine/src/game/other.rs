@@ -45,7 +45,7 @@ impl Game {
         self.current_no_field_value = -1;
     }
 
-    pub fn reveal_current_no_field_player_territory(&mut self, player: PlayerIndex, in_territory: Territory) {
+    pub fn reveal_current_no_field_in_territory(&mut self, player: PlayerIndex, in_territory: Territory) {
         if !self.player(player).is(Faction::Richese) {
             return;
         }

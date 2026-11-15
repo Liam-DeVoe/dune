@@ -53,6 +53,13 @@ mod storm;
 
 use crate::prelude::*;
 
+/// What the game does next when a phase ends: enter a phase, or run a method that decides.
+#[derive(Clone, Copy)]
+pub enum Step {
+    Enter(Phase),
+    Run(fn(&mut Game)),
+}
+
 pub struct Game {
     // ---- Core state ----
 
@@ -124,7 +131,7 @@ pub struct Game {
     pub phase_before_card_trade: Option<Phase>,
     pub last_turn_card_was_traded: i32,
     pub current_alliance_offers: Vec<Rc<AllianceOffered>>,
-    pub nexus_has_occured: bool,
+    pub nexus_has_occurred: bool,
     pub permitted_use_of_ally_spice: IndexMap<Faction, i32>,
     /// `Option` because `EmperorBidSupport` assigns its `Amounts`, which JSON can leave null.
     pub permitted_use_of_emperor_spice: Option<IndexMap<Faction, i32>>,
@@ -220,7 +227,7 @@ pub struct Game {
     pub latest_spice_card_a: Option<ResourceCard>,
     pub latest_spice_card_b: Option<ResourceCard>,
     pub ignored_monsters: Vec<ResourceCard>,
-    pub monsters: Vec<MonsterAppearence>,
+    pub monsters: Vec<MonsterAppearance>,
     pub number_of_monsters: i32,
     pub nexus_votes: Vec<Rc<NexusVoted>>,
     pub thumper_called_shai_hulud: bool,
@@ -406,7 +413,7 @@ impl Game {
     }
 
     pub fn new() -> Self {
-        Self::new_int32_participation(Self::LATEST_VERSION, &Shared::new(Participation::new()))
+        Self::with_participation(Self::LATEST_VERSION, &Shared::new(Participation::new()))
     }
 
     /// Only `LATEST_VERSION` games can be played, so savegames and event logs of older versions
@@ -422,7 +429,7 @@ impl Game {
     /// through either are seen by both.
     ///
     /// Only `LATEST_VERSION` is supported (see [`Game::check_version`]); other versions panic.
-    pub fn new_int32_participation(version: i32, participation: &Shared<Participation>) -> Self {
+    pub fn with_participation(version: i32, participation: &Shared<Participation>) -> Self {
         if let Err(e) = Self::check_version(version) {
             panic!("{e}");
         }
@@ -491,7 +498,7 @@ impl Game {
             phase_before_card_trade: None,
             last_turn_card_was_traded: -1,
             current_alliance_offers: Vec::new(),
-            nexus_has_occured: Default::default(),
+            nexus_has_occurred: Default::default(),
             permitted_use_of_ally_spice: Default::default(),
             permitted_use_of_emperor_spice: Some(IndexMap::new()),
             permitted_use_of_ally_karma: Default::default(),
@@ -781,7 +788,7 @@ impl Game {
 
     /// A new game of the same version and participation that has executed `events`.
     fn replay(&self, events: &[GameEvent]) -> Game {
-        let mut result = Game::new_int32_participation(self.version, &self.participation);
+        let mut result = Game::with_participation(self.version, &self.participation);
         for e in events {
             e.initialize_game(&result);
             e.execute(&mut result, false, false);
@@ -947,11 +954,11 @@ impl Game {
         }
     }
 
-    pub fn enter_boolean_phase_phase(&mut self, condition: bool, phase_if_true: Phase, phase_if_false: Phase) {
+    pub fn enter_either(&mut self, condition: bool, phase_if_true: Phase, phase_if_false: Phase) {
         self.enter(if condition { phase_if_true } else { phase_if_false }, true);
     }
 
-    pub fn enter_boolean_phase_action(&mut self, condition: bool, phase_if_true: Phase, method_otherwise: fn(&mut Game)) {
+    pub fn enter_or_else(&mut self, condition: bool, phase_if_true: Phase, method_otherwise: fn(&mut Game)) {
         if condition {
             self.enter(phase_if_true, true);
         } else {
@@ -960,7 +967,7 @@ impl Game {
     }
 
     /// The game is passed to the actions.
-    pub fn enter_boolean_action_action(game: &mut Game, condition: bool, method_if_true: fn(&mut Game), method_otherwise: fn(&mut Game)) {
+    pub fn run_either(game: &mut Game, condition: bool, method_if_true: fn(&mut Game), method_otherwise: fn(&mut Game)) {
         if condition {
             method_if_true(game);
         } else {
@@ -968,47 +975,12 @@ impl Game {
         }
     }
 
-    pub fn enter_boolean_phase_boolean_action_action(&mut self, condition1: bool, phase_if1_true: Phase, condition2: bool, method_if2_true: fn(&mut Game), method_otherwise: fn(&mut Game)) {
-        if condition1 {
-            self.enter(phase_if1_true, true);
-        } else {
-            Game::enter_boolean_action_action(self, condition2, method_if2_true, method_otherwise);
-        }
-    }
-
-    pub fn enter_boolean_phase_boolean_phase_phase(&mut self, condition1: bool, phase_if1_true: Phase, condition2: bool, phase_if2_true: Phase, phase_otherwise: Phase) {
-        if condition1 {
-            self.enter(phase_if1_true, true);
-        } else {
-            self.enter_boolean_phase_phase(condition2, phase_if2_true, phase_otherwise);
-        }
-    }
-
-    pub fn enter_boolean_action_boolean_phase_phase(&mut self, condition1: bool, method_if1_true: fn(&mut Game), condition2: bool, phase_if2_true: Phase, phase_otherwise: Phase) {
-        if condition1 {
-            method_if1_true(self);
-        } else {
-            self.enter_boolean_phase_phase(condition2, phase_if2_true, phase_otherwise);
-        }
-    }
-
-    pub fn enter_boolean_phase_boolean_phase_boolean_action_action(&mut self, condition1: bool, phase_if1_true: Phase, condition2: bool, phase_if2_true: Phase, condition3: bool, method_if3_true: fn(&mut Game), method_otherwise: fn(&mut Game)) {
-        if condition1 {
-            self.enter(phase_if1_true, true);
-        } else if condition2 {
-            self.enter(phase_if2_true, true);
-        } else {
-            Game::enter_boolean_action_action(self, condition3, method_if3_true, method_otherwise);
-        }
-    }
-
-    pub fn enter_boolean_phase_boolean_phase_boolean_phase_action(&mut self, condition1: bool, phase_if1_true: Phase, condition2: bool, phase_if2_true: Phase, condition3: bool, phase_if3_true: Phase, method_otherwise: fn(&mut Game)) {
-        if condition1 {
-            self.enter(phase_if1_true, true);
-        } else if condition2 {
-            self.enter(phase_if2_true, true);
-        } else {
-            self.enter_boolean_phase_action(condition3, phase_if3_true, method_otherwise);
+    /// Takes the step of the first choice whose condition holds, or `otherwise`.
+    pub fn enter_first(&mut self, choices: &[(bool, Step)], otherwise: Step) {
+        let step = choices.iter().find(|(condition, _)| *condition).map_or(otherwise, |(_, step)| *step);
+        match step {
+            Step::Enter(phase) => self.enter(phase, true),
+            Step::Run(method) => method(self),
         }
     }
 
@@ -1028,36 +1000,36 @@ impl Game {
 
     pub fn register_known(&mut self, c: TreacheryCard) {
         for i in 0..self.players.len() {
-            Game::register_known_player_treachery_card(self, self.player_at(i), Some(c));
+            Game::register_known_by_player(self, self.player_at(i), Some(c));
         }
     }
 
-    pub fn register_known_player_treachery_card(game: &mut Game, p: PlayerIndex, c: Option<TreacheryCard>) {
+    pub fn register_known_by_player(game: &mut Game, p: PlayerIndex, c: Option<TreacheryCard>) {
         if let Some(c) = c {
             game.player_mut(p).known_cards.insert(c);
         }
     }
 
-    pub fn register_known_faction_treachery_card(&mut self, f: Faction, c: TreacheryCard) {
+    pub fn register_known_by_faction(&mut self, f: Faction, c: TreacheryCard) {
         let p = self.get_player(Some(f));
         if let Some(p) = p {
-            Game::register_known_player_treachery_card(self, p, Some(c));
+            Game::register_known_by_player(self, p, Some(c));
         }
     }
 
     pub fn unregister_known(&mut self, c: TreacheryCard) {
         for i in 0..self.players.len() {
-            Game::unregister_known_player_treachery_card(self, self.player_at(i), c);
+            Game::unregister_known_by_player(self, self.player_at(i), c);
         }
     }
 
-    pub fn unregister_known_player_treachery_card(game: &mut Game, p: PlayerIndex, c: TreacheryCard) {
+    pub fn unregister_known_by_player(game: &mut Game, p: PlayerIndex, c: TreacheryCard) {
         game.player_mut(p).known_cards.remove(&c);
     }
 
-    pub fn unregister_known_player_i_enumerable_treachery_card(game: &mut Game, p: PlayerIndex, cards: &[TreacheryCard]) {
+    pub fn unregister_all_known_by_player(game: &mut Game, p: PlayerIndex, cards: &[TreacheryCard]) {
         for c in cards {
-            Game::unregister_known_player_treachery_card(game, p, *c);
+            Game::unregister_known_by_player(game, p, *c);
         }
     }
 
@@ -1210,7 +1182,7 @@ impl Game {
                     continue;
                 }
 
-                Player::flip_forces_territory_boolean(self, bg, t, false);
+                Player::flip_forces_in_territory(self, bg, t, false);
                 self.log(vec![express!(Faction::BeneGesserit, " are alone and flip to ", FactionForce::BeneGesserit, " in ", t)
                     .with_log(BeneGesseritFlipped::new(t))
                     .into()]);
@@ -1326,7 +1298,7 @@ impl Game {
     /// "X play [Karama]: <effect>". A card played as Karama that isn't one says
     /// so: "X play [Baliset] as a Karama card: <effect>".
     pub fn play_karma(&mut self, player: PlayerIndex, card: Option<TreacheryCard>, effect: Vec<ExpressionElement>) {
-        self.discard_player_treachery_card_boolean(Some(player), card, false);
+        self.discard_card_of(Some(player), card, false);
         let faction = self.player(player).faction;
         let m = Game::karma_played(faction, card, effect);
         self.log(vec![m.into()]);
@@ -1360,13 +1332,13 @@ impl Game {
             .find(|x| if bene_gesserit_karma { x.type_() == TreacheryCardType::Karma || x.type_() == TreacheryCardType::Useless } else { x.type_() == card_type })
             .ok_or_else(|| GameError::new(format!("{} have no {} card to discard", self.player(player).faction, card_type)))?;
 
-        self.discard_player_treachery_card_boolean(Some(player), Some(card), true);
+        self.discard_card_of(Some(player), Some(card), true);
         Ok(())
     }
 
     /// `log` is false when the caller logs the card's play itself, such as PlayKarma.
     /// Discards `card` from the hand that holds it. Fails if more than one hand holds it.
-    pub fn discard_treachery_card_boolean(&mut self, card: Option<TreacheryCard>, log: bool) -> GameResult {
+    pub fn discard_card(&mut self, card: Option<TreacheryCard>, log: bool) -> GameResult {
         let Some(c) = card else { return Ok(()) };
 
         let mut holders = self.player_indices().filter(|p| self.player(*p).has(Some(c)));
@@ -1374,12 +1346,12 @@ impl Game {
         if holders.next().is_some() {
             game_error!("Card {} is in more than one hand", c.id());
         }
-        self.discard_player_treachery_card_boolean(player, Some(c), log);
+        self.discard_card_of(player, Some(c), log);
         self.register_known(c);
         Ok(())
     }
 
-    pub fn discard_player_treachery_card_boolean(&mut self, player: Option<PlayerIndex>, card: Option<TreacheryCard>, log: bool) {
+    pub fn discard_card_of(&mut self, player: Option<PlayerIndex>, card: Option<TreacheryCard>, log: bool) {
         if let (Some(player), Some(card)) = (player, card) {
             let faction = self.player(player).faction;
             if log {
@@ -1406,7 +1378,7 @@ impl Game {
 
             let ecaz = self.get_player(Some(Faction::Ecaz));
             let Some(ecaz) = ecaz else { return };
-            if !self.player(ecaz).has_high_threshold_0(self) {
+            if !self.player(ecaz).has_any_high_threshold(self) {
                 return;
             }
             self.log(vec![
@@ -1424,7 +1396,7 @@ impl Game {
     /// Replays a savegame's events into a new game, or says why it can't.
     pub fn load(state: &GameState, participation: &Shared<Participation>, perform_validation: bool, is_host: bool) -> Result<Game, Message> {
         Game::check_version(state.version).map_err(|e| express!(e))?;
-        let mut game = Game::new_int32_participation(state.version, participation);
+        let mut game = Game::with_participation(state.version, participation);
         let events = state.events.as_ref().ok_or_else(|| express!("The savegame has no events"))?;
         for (nr, e) in events.iter().enumerate() {
             e.initialize_game(&game);
@@ -1467,7 +1439,7 @@ impl Game {
         }
     }
 
-    pub fn set_recent_payment_int32_faction_game_event(&mut self, amount: i32, by: Faction, reason: &GameEvent) {
+    pub fn set_recent_payment_to_bank(&mut self, amount: i32, by: Faction, reason: &GameEvent) {
         self.set_recent_payment(amount, by, Faction::None, reason);
     }
 
@@ -1536,7 +1508,7 @@ impl Game {
         self.occupier_of(world).is_some()
     }
 
-    pub fn is_occupied_by_faction_or_their_ally(&self, world: World, p: PlayerIndex) -> bool {
+    pub fn is_occupied_by_player_or_their_ally(&self, world: World, p: PlayerIndex) -> bool {
         let occupier = self.occupier_of(world);
         match occupier {
             Some(o) => o == p || self.player(o).ally == self.player(p).faction,
@@ -1544,7 +1516,7 @@ impl Game {
         }
     }
 
-    pub fn is_occupied_by_faction_or_their_ally_world_faction(&self, world: World, f: Faction) -> bool {
+    pub fn is_occupied_by_faction_or_their_ally(&self, world: World, f: Faction) -> bool {
         let occupier = self.occupier_of(world);
         match occupier {
             Some(o) => self.player(o).is(f) || self.player(o).ally == f,
@@ -1592,7 +1564,7 @@ impl Game {
         self.count_different_factions(&factions, to_exclude)
     }
 
-    pub fn nr_of_occupants_excluding_faction_territory_faction(&self, t: Territory, to_exclude: Faction) -> i32 {
+    pub fn nr_of_occupants_of_territory_excluding(&self, t: Territory, to_exclude: Faction) -> i32 {
         let factions: Vec<Faction> = t
             .locations()
             .iter()
@@ -1734,17 +1706,17 @@ impl Game {
 
     pub fn has_high_threshold(&self, f: Faction) -> bool {
         let player = self.get_player(Some(f));
-        player.map_or(false, |p| self.player(p).has_high_threshold_0(self))
+        player.map_or(false, |p| self.player(p).has_any_high_threshold(self))
     }
 
-    pub fn has_high_threshold_faction_world(&self, f: Faction, w: World) -> bool {
+    pub fn has_high_threshold_in(&self, f: Faction, w: World) -> bool {
         let player = self.get_player(Some(f));
         player.map_or(false, |p| self.player(p).has_high_threshold(self, w))
     }
 
     pub fn has_low_threshold(&self, f: Faction) -> bool {
         let player = self.get_player(Some(f));
-        player.map_or(false, |p| self.player(p).has_low_threshold_0(self))
+        player.map_or(false, |p| self.player(p).has_any_low_threshold(self))
     }
 
     pub fn has_resource_deck_prescience(&self, p: Option<PlayerIndex>) -> bool {

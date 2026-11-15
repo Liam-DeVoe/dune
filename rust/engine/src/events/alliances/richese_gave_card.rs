@@ -46,7 +46,7 @@ impl RicheseGaveCard {
 
         let card = self.card();
         crate::game::remove_card(&mut game.player_mut(me).treachery_cards, card);
-        Game::register_known_player_treachery_card(game, me, card);
+        Game::register_known_by_player(game, me, card);
         // C# adds a null card to the ally's hand when the card id is unknown.
         let target = target.required("target")?;
         game.player_mut(target).treachery_cards.push(card.required("card")?);
@@ -54,9 +54,9 @@ impl RicheseGaveCard {
         let others: Vec<PlayerIndex> = game.player_indices().filter(|p| *p != me && *p != target).collect();
         for p in others {
             let my_cards = game.player(me).treachery_cards.clone();
-            Game::unregister_known_player_i_enumerable_treachery_card(game, p, &my_cards);
+            Game::unregister_all_known_by_player(game, p, &my_cards);
             let target_cards = game.player(target).treachery_cards.clone();
-            Game::unregister_known_player_i_enumerable_treachery_card(game, p, &target_cards);
+            Game::unregister_all_known_by_player(game, p, &target_cards);
         }
 
         self.log(game);

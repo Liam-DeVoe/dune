@@ -6,7 +6,7 @@ use std::fmt;
 
 use crate::enumerations::{Faction, HeroType};
 use crate::heroes::hero::Hero;
-use crate::identity::IIdentifiable;
+use crate::identity::Identifiable;
 use crate::heroes::leader_manager::LEADERS;
 
 /// The fields of a leader, as set in `LeaderManager.Initialize`.
@@ -93,7 +93,7 @@ impl Leader {
     }
 }
 
-impl IIdentifiable for Leader {
+impl Identifiable for Leader {
     fn id(&self) -> i32 {
         Leader::id(*self)
     }

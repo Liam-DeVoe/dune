@@ -130,7 +130,7 @@ impl FaceDanced {
 
         let winner_hero = g.winner_hero();
         if let (Some(winner_hero), Some(battle_winner)) = (winner_hero, g.battle_winner) {
-            if !g.is_occupied_by_faction_or_their_ally_world_faction(World::Tleilaxu, battle_winner) {
+            if !g.is_occupied_by_faction_or_their_ally(World::Tleilaxu, battle_winner) {
                 let player = g.player(p.expect("player"));
                 return player
                     .face_dancers
@@ -207,9 +207,9 @@ impl FaceDanced {
         }
 
         if nr_of_removed_forces > 0 {
-            Player::forces_to_reserves_territory(game, winner, battle.territory(game).expect("territory"));
+            Player::forces_in_territory_to_reserves(game, winner, battle.territory(game).expect("territory"));
             if let Some(co) = co_occupying_player {
-                Player::forces_to_reserves_territory(game, co, battle.territory(game).expect("territory"));
+                Player::forces_in_territory_to_reserves(game, co, battle.territory(game).expect("territory"));
             }
             Player::add_forces_to_reserves(game, self.player(), -self.forces_from_reserve);
 
@@ -339,7 +339,7 @@ impl PlacementEventMethods for FaceDanced {
 
 }
 
-impl crate::events::location_event::ILocationEvent for FaceDanced {
+impl crate::events::location_event::LocationEvent for FaceDanced {
     fn initiator(&self) -> Faction {
         GameEventMethods::initiator(self)
     }
@@ -362,7 +362,7 @@ impl crate::events::location_event::ILocationEvent for FaceDanced {
 
 }
 
-impl crate::events::placement::IPlacement for FaceDanced {
+impl crate::events::placement::Placement for FaceDanced {
     fn initiator(&self) -> Faction {
         GameEventMethods::initiator(self)
     }

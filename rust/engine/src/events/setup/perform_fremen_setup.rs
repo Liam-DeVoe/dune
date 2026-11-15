@@ -59,15 +59,7 @@ impl PerformFremenSetup {
         let c1 = self.is_playing(game, Faction::BeneGesserit) && PerformBeneGesseritPlacement::bene_gesserit_may_place_first_force_in_any_territory(game);
         let c2 = self.is_playing(game, Faction::Moritani);
         let c3 = game.treachery_cards_before_traitors();
-        game.enter_boolean_phase_boolean_phase_boolean_action_action(
-            c1,
-            Phase::BeneGesseritSettingUp,
-            c2,
-            Phase::MoritaniSettingUp,
-            c3,
-            Game::enter_storm_phase,
-            Game::deal_starting_treachery_cards,
-        );
+        game.enter_first(&[(c1, Step::Enter(Phase::BeneGesseritSettingUp)), (c2, Step::Enter(Phase::MoritaniSettingUp)), (c3, Step::Run(Game::enter_storm_phase))], Step::Run(Game::deal_starting_treachery_cards));
         Ok(())
     }
 
@@ -130,7 +122,7 @@ impl PlacementEventMethods for PerformFremenSetup {
 
 }
 
-impl crate::events::location_event::ILocationEvent for PerformFremenSetup {
+impl crate::events::location_event::LocationEvent for PerformFremenSetup {
     fn initiator(&self) -> Faction {
         GameEventMethods::initiator(self)
     }
@@ -153,7 +145,7 @@ impl crate::events::location_event::ILocationEvent for PerformFremenSetup {
 
 }
 
-impl crate::events::placement::IPlacement for PerformFremenSetup {
+impl crate::events::placement::Placement for PerformFremenSetup {
     fn initiator(&self) -> Faction {
         GameEventMethods::initiator(self)
     }

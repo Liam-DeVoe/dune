@@ -35,7 +35,7 @@ impl ChoamExtraMove {
             game.let_player_discard_treachery_card_of_choice(self.initiator());
         } else {
             let card = ChoamExtraMove::card_to_use(game, me);
-            game.discard_treachery_card_boolean(card, true)?;
+            game.discard_card(card, true)?;
         }
 
         game.choam_has_extra_move = true;

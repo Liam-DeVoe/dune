@@ -96,7 +96,7 @@ impl TakeLosses {
                 game.play_nexus_card(player.required("player")?, vec!["prevent losing forces in ".into(), location.into()]);
                 must_discard = true;
             } else {
-                game.discard_player_treachery_card_boolean(Some(self.player()), card, true);
+                game.discard_card_of(Some(self.player()), card, true);
                 let location = game.storm_losses_to_take[0].location;
                 self.log_objects(game, vec![self.initiator().into(), " prevent losing forces in ".into(), location.into()]);
             }
@@ -117,7 +117,7 @@ impl TakeLosses {
 
         if game.phase_before_storm_loss == Phase::BlowA {
             let condition = game.storm_losses_to_take.len() > 0;
-            game.enter_boolean_phase_action(condition, Phase::StormLosses, Game::end_storm_phase);
+            game.enter_or_else(condition, Phase::StormLosses, Game::end_storm_phase);
         } else {
             let phase = game.phase_before_storm_loss;
             game.enter(phase, true);

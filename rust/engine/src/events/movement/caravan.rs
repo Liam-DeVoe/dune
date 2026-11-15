@@ -65,7 +65,7 @@ impl Caravan {
             game.phase_before_caravan_caused_intrusion = game.current_phase;
             let bene_gesserit = game.last_bene_gesserit_intrusion().is_some();
             let terror = game.last_terror_trigger().is_some();
-            game.enter_boolean_phase_boolean_phase_phase(bene_gesserit, Phase::BeneGesseritIntrudedByCaravan, terror, Phase::TerrorTriggeredByCaravan, Phase::AmbassadorTriggeredByCaravan);
+            game.enter_first(&[(bene_gesserit, Step::Enter(Phase::BeneGesseritIntrudedByCaravan)), (terror, Step::Enter(Phase::TerrorTriggeredByCaravan))], Step::Enter(Phase::AmbassadorTriggeredByCaravan));
         }
         Ok(())
     }
@@ -132,7 +132,7 @@ impl PlacementEventMethods for Caravan {
 
 }
 
-impl crate::events::location_event::ILocationEvent for Caravan {
+impl crate::events::location_event::LocationEvent for Caravan {
     fn initiator(&self) -> Faction {
         GameEventMethods::initiator(self)
     }
@@ -155,7 +155,7 @@ impl crate::events::location_event::ILocationEvent for Caravan {
 
 }
 
-impl crate::events::placement::IPlacement for Caravan {
+impl crate::events::placement::Placement for Caravan {
     fn initiator(&self) -> Faction {
         GameEventMethods::initiator(self)
     }

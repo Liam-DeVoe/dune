@@ -44,7 +44,7 @@ impl ViewReplica {
     pub fn load(savegame: &str, participation: &Shared<Participation>) -> Result<ViewReplica, String> {
         let state: GameState = GameState::load(savegame).map_err(|e| e.message)?;
         Game::check_version(state.version)?;
-        let mut game = Game::new_int32_participation(state.version, participation);
+        let mut game = Game::with_participation(state.version, participation);
         for (nr, e) in state.events.as_ref().ok_or("savegame without events")?.iter().enumerate() {
             e.initialize_game(&game);
             if let Some(m) = e.execute(&mut game, false, false) {
@@ -57,7 +57,7 @@ impl ViewReplica {
     /// A replica of a game with no events yet, as `new Game(version, participation)`. Events
     /// follow with [`ViewReplica::apply`].
     pub fn new(version: i32, participation: &Shared<Participation>) -> ViewReplica {
-        ViewReplica { game: Game::new_int32_participation(version, participation), actions: BTreeMap::new(), describer: default_describer(), timer: -1 }
+        ViewReplica { game: Game::with_participation(version, participation), actions: BTreeMap::new(), describer: default_describer(), timer: -1 }
     }
 
     /// The game of the web client's `/scene` route: a savegame replayed with one user, id 1 and
@@ -150,7 +150,7 @@ impl ViewReplica {
     pub fn preview(&self, viewer: Viewer, gap: i32) -> Result<GameView, String> {
         let count = self.game.history.len() as i32;
         let gap = gap.clamp(1.min(count), count) as usize;
-        let mut game = Game::new_int32_participation(self.game.version, &self.game.participation);
+        let mut game = Game::with_participation(self.game.version, &self.game.participation);
         for (nr, e) in self.game.history.iter().take(gap).enumerate() {
             // A copy of the event, so the replica's history stays bound to the replica's game.
             let copy: GameEvent = json::deserialize(&json::serialize(e)).map_err(|e| format!("event {nr}: {e:?}"))?;

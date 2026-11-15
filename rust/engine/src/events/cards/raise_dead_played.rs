@@ -129,7 +129,7 @@ impl RaiseDeadPlayed {
         let pl = game.player(player);
         pl.is(Faction::Fremen)
             && special_forces >= 1
-            && pl.has_high_threshold_0(game)
+            && pl.has_any_high_threshold(game)
             && Revival::valid_revived_force_locations(game, player).next().is_some()
     }
 
@@ -278,7 +278,7 @@ impl GameEventMethods for RaiseDeadPlayed {
 
 }
 
-impl crate::events::location_event::ILocationEvent for RaiseDeadPlayed {
+impl crate::events::location_event::LocationEvent for RaiseDeadPlayed {
     fn initiator(&self) -> Faction {
         GameEventMethods::initiator(self)
     }

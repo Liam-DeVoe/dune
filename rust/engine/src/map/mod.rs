@@ -26,7 +26,7 @@ use crate::iter::IterExt;
 use crate::map::discovery::DiscoveredLocation;
 use crate::enumerations::*;
 use crate::map::homeworld::Homeworld;
-use crate::identity::IFetcher;
+use crate::identity::Fetcher;
 use crate::map::location::Location;
 use crate::map::data::{INITIAL_NEIGHBOURS, LOCATION_COUNT};
 use crate::cards::resource_card::ResourceCard;
@@ -650,7 +650,7 @@ impl Map {
 #[derive(Clone, Copy, Debug)]
 pub struct TerritoryFetcher;
 
-impl IFetcher<Territory> for TerritoryFetcher {
+impl Fetcher<Territory> for TerritoryFetcher {
     /// `id == -1 ? null : map.Territories(true).SingleOrDefault(t => t.Id == id)`
     fn find(&self, id: i32) -> Option<Territory> {
         if id == -1 {
@@ -668,7 +668,7 @@ impl IFetcher<Territory> for TerritoryFetcher {
 #[derive(Clone, Copy, Debug)]
 pub struct LocationFetcher;
 
-impl IFetcher<Location> for LocationFetcher {
+impl Fetcher<Location> for LocationFetcher {
     /// `None` for -1; panics for another id out of range.
     fn find(&self, id: i32) -> Option<Location> {
         if id == -1 {

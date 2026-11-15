@@ -77,7 +77,7 @@ impl KarmaChoamDiscard {
         game.play_karma(me, card, elems!["discard ", parts, "to get ", Payment::of(amount)]);
 
         for card in self.cards() {
-            game.discard_player_treachery_card_boolean(Some(me), Some(card), true);
+            game.discard_card_of(Some(me), Some(card), true);
         }
 
         let gain = self.cards().len() as i32 * 3;

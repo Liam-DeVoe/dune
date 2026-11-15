@@ -40,7 +40,7 @@ impl Rng {
 const FACTIONS: [Faction; 6] = [Faction::Emperor, Faction::BeneGesserit, Faction::Richese, Faction::Fremen, Faction::Ixian, Faction::Choam];
 
 fn new_game(version: i32) -> Game {
-    let mut g = Game::new_int32_participation(version, &treachery_engine::shared::Shared::new(Participation::new()));
+    let mut g = Game::with_participation(version, &treachery_engine::shared::Shared::new(Participation::new()));
     g.rules.push(Rule::Homeworlds);
     g.rules.push(Rule::EmperorSpecialForces);
     g.rules.push(Rule::FremenSpecialForces);
@@ -90,7 +90,7 @@ fn state(g: &Game, me: PlayerIndex) -> String {
     s += &join(p.forces_in_locations.iter().map(|(k, v)| format!("{}:{}/{}", k.id(), v.amount_of_forces, v.amount_of_special_forces)));
     s += &format!("] k={}/{}/{}", p.forces_killed, p.special_forces_killed, p.total_forces_killed_in_battle);
     s += &format!(" res={}/{}", p.forces_in_reserve(), p.special_forces_in_reserve());
-    s += &format!(" hi={} lo={}", b(p.has_high_threshold_0(g)), b(p.has_low_threshold_0(g)));
+    s += &format!(" hi={} lo={}", b(p.has_any_high_threshold(g)), b(p.has_any_low_threshold(g)));
     for hw in &p.home_worlds {
         s += &format!(
             " w{}={}/{}/{}",
@@ -143,28 +143,28 @@ fn rust_lines() -> Vec<String> {
                         3 => Player::add_special_forces_to_reserves(g, me, n),
                         4 => Player::remove_forces(g, me, l, n),
                         5 => Player::remove_special_forces(g, me, l, n),
-                        6 => Player::forces_to_reserves_location_int32(g, me, l, n),
+                        6 => Player::some_forces_to_reserves(g, me, l, n),
                         7 => Player::special_forces_to_reserves(g, me, l, n),
-                        8 => Player::forces_to_reserves_territory_int32_boolean(g, me, t, n, bb),
-                        9 => Player::forces_to_reserves_territory(g, me, t),
+                        8 => Player::some_forces_in_territory_to_reserves(g, me, t, n, bb),
+                        9 => Player::forces_in_territory_to_reserves(g, me, t),
                         10 => ret = Some(Player::kill_all_forces(g, me, l, bb)),
-                        11 => Player::kill_all_forces_territory_boolean(g, me, t, bb),
+                        11 => Player::kill_all_forces_in_territory(g, me, t, bb),
                         12 => ret = Some(Player::kill_forces(g, me, l, n, m, bb)),
                         13 => {
                             let ib = r.bool();
-                            Player::kill_forces_territory_int32_boolean_boolean(g, me, t, n, bb, ib)
+                            Player::kill_forces_in_territory(g, me, t, n, bb, ib)
                         }
                         14 => Player::revive_forces(g, me, n),
                         15 => Player::revive_special_forces(g, me, n),
                         16 => Player::ship_forces(g, me, l, n),
-                        17 => Player::ship_forces_location_homeworld_int32(g, me, l, hw, n),
+                        17 => Player::ship_forces_from_homeworld(g, me, l, hw, n),
                         18 => Player::ship_special_forces(g, me, l, n),
-                        19 => Player::ship_special_forces_location_homeworld_int32(g, me, l, hw, n),
+                        19 => Player::ship_special_forces_from_homeworld(g, me, l, hw, n),
                         20 => Player::ship_advisors(g, me, l, n),
                         21 => Player::move_forces(g, me, l, l2, n),
                         22 => Player::move_special_forces(g, me, l, l2, n),
                         23 => Player::flip_forces(g, me, l, bb),
-                        24 => Player::flip_forces_territory_boolean(g, me, t, bb),
+                        24 => Player::flip_forces_in_territory(g, me, t, bb),
                         _ => unreachable!(),
                     }
                     ret
@@ -180,7 +180,7 @@ fn rust_lines() -> Vec<String> {
 
     for players in 1..=12 {
         for sector in -2..=19 {
-            let mut g = Game::new_int32_participation(Game::LATEST_VERSION, &treachery_engine::shared::Shared::new(Participation::new()));
+            let mut g = Game::with_participation(Game::LATEST_VERSION, &treachery_engine::shared::Shared::new(Participation::new()));
             g.settings.as_ref().unwrap().borrow_mut().number_of_players = players;
             for i in 0..players {
                 if i % 3 == 1 {
@@ -270,7 +270,7 @@ fn sequence_lines() -> Vec<String> {
     for version in [Game::LATEST_VERSION] {
         for seed in 1u32..=150 {
             let mut r = Rng::new(seed.wrapping_mul(40503).wrapping_add(7));
-            let mut g = Game::new_int32_participation(version, &treachery_engine::shared::Shared::new(Participation::new()));
+            let mut g = Game::with_participation(version, &treachery_engine::shared::Shared::new(Participation::new()));
             let count = 1 + r.below(6);
             let np = (count + r.below(2)) as i32;
             g.settings.as_ref().unwrap().borrow_mut().number_of_players = np;
@@ -320,8 +320,8 @@ fn sequence_lines() -> Vec<String> {
             let ctor = try_s(|| {
                 s = Some(match kind {
                     0 => PlayerSequence::new(&g, skip, dir, start, begin),
-                    1 => PlayerSequence::new_game_boolean_int32(&g, skip, dir),
-                    _ => PlayerSequence::new_game(&g),
+                    1 => PlayerSequence::starting_with_first_player_options(&g, skip, dir),
+                    _ => PlayerSequence::starting_with_first_player(&g),
                 });
                 "ok".to_string()
             });

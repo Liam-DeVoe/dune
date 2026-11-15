@@ -11,7 +11,7 @@ use crate::map::discovery::DiscoveredLocation;
 use crate::enumerations::{DiscoveryTokenType, StrongholdAdvantage};
 use crate::map::hidden_mobile_stronghold::HiddenMobileStronghold;
 use crate::map::homeworld::Homeworld;
-use crate::identity::IIdentifiable;
+use crate::identity::Identifiable;
 use crate::map::{LocationData, LocationKind, Map};
 use crate::map::data::{LOCATIONS, LOCATION_COUNT};
 use crate::map::territory::Territory;
@@ -179,7 +179,7 @@ impl dotnet_compat::exception::CsToString for Location {
     }
 }
 
-impl IIdentifiable for Location {
+impl Identifiable for Location {
     fn id(&self) -> i32 {
         Location::id(*self)
     }

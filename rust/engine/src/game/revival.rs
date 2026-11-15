@@ -67,9 +67,9 @@ impl Game {
 
     pub fn gets_extra_charity_and_free_revival_due_to_low_threshold(&self, player: PlayerIndex) -> bool {
         let p = self.player(player);
-        (!(p.is(Faction::Emperor) || p.is(Faction::Choam)) && p.has_low_threshold_0(self))
+        (!(p.is(Faction::Emperor) || p.is(Faction::Choam)) && p.has_any_low_threshold(self))
             || (p.is(Faction::Emperor) && p.has_low_threshold(self, World::Emperor))
-            || (p.is(Faction::Choam) && p.has_low_threshold_0(self) && self.occupier_of(World::Choam).is_none())
+            || (p.is(Faction::Choam) && p.has_any_low_threshold(self) && self.occupier_of(World::Choam).is_none())
     }
 
     /// Reads `g` for some values and `self` for others (kept deliberately); every caller passes the same game.

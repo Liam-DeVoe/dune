@@ -44,9 +44,9 @@ impl KarmaHandSwap {
         let others: Vec<PlayerIndex> = game.player_indices().filter(|p| Some(*p) != me && Some(*p) != victim).collect();
         for p in others {
             let my_cards = game.player(me.required("me")?).treachery_cards.clone();
-            Game::unregister_known_player_i_enumerable_treachery_card(game, p, &my_cards);
+            Game::unregister_all_known_by_player(game, p, &my_cards);
             let victim_cards = game.player(victim.required("victim")?).treachery_cards.clone();
-            Game::unregister_known_player_i_enumerable_treachery_card(game, p, &victim_cards);
+            Game::unregister_all_known_by_player(game, p, &victim_cards);
         }
 
         // ReturnedCards parses the id string again on every enumeration, as in C#.
@@ -56,7 +56,7 @@ impl KarmaHandSwap {
         }
 
         for returned in self.returned_cards() {
-            Game::register_known_player_treachery_card(game, me.required("me")?, Some(returned));
+            Game::register_known_by_player(game, me.required("me")?, Some(returned));
         }
         self.log(game);
         let paused = game.karma_hand_swap_paused_phase;

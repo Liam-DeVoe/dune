@@ -267,7 +267,7 @@ impl BattleInitiated {
             }
             None => false,
         };
-        game.enter_boolean_phase_action(condition, Phase::ClaimingBattle, Game::initiate_battle);
+        game.enter_or_else(condition, Phase::ClaimingBattle, Game::initiate_battle);
         Ok(())
     }
 

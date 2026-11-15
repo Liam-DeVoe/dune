@@ -22,7 +22,7 @@ fn establish() -> String {
 }
 
 fn run(events: &[String]) -> Game {
-    let mut g = Game::new_int32_participation(Game::LATEST_VERSION, &Shared::new(Participation::new()));
+    let mut g = Game::with_participation(Game::LATEST_VERSION, &Shared::new(Participation::new()));
     for text in events {
         let e: GameEvent = json::deserialize(text).expect("event json");
         e.initialize_game(&g);

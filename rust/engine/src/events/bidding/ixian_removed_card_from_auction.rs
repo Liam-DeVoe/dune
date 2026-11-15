@@ -49,7 +49,7 @@ impl IxianRemovedCardFromAuction {
             game.treachery_deck.as_mut().required("treachery deck")?.put_on_bottom(card);
         }
 
-        game.register_known_faction_treachery_card(Faction::Ixian, card);
+        game.register_known_by_faction(Faction::Ixian, card);
         game.cards_on_auction.as_mut().required("cards on auction")?.shuffle();
         game.stone(Milestone::Shuffled);
         self.log(game);

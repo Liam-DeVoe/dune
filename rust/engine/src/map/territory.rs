@@ -7,7 +7,7 @@
 use std::fmt;
 
 use crate::enumerations::StrongholdAdvantage;
-use crate::identity::IIdentifiable;
+use crate::identity::Identifiable;
 use crate::map::location::Location;
 use crate::map::{Map, TerritoryData};
 use crate::map::data::{TERRITORIES, TERRITORY_COUNT};
@@ -104,7 +104,7 @@ impl Territory {
     }
 }
 
-impl IIdentifiable for Territory {
+impl Identifiable for Territory {
     fn id(&self) -> i32 {
         Territory::id(*self)
     }

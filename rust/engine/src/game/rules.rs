@@ -482,7 +482,7 @@ impl Game {
             match rule.rule_type {
                 AutomationRuleType::BiddingPassAboveAmount => {
                     if let Some(bid) = &self.current_bid {
-                        if bid.i_bid_total_amount() >= rule.bidding_above_amount {
+                        if bid.bid_total_amount() >= rule.bidding_above_amount {
                             return true;
                         }
                     }
@@ -496,7 +496,7 @@ impl Game {
 
                 AutomationRuleType::BiddingPassWhenHighestBidByFaction => {
                     if let Some(bid) = &self.current_bid {
-                        if bid.i_bid_initiator() == rule.bidding_winning_faction {
+                        if bid.bid_initiator() == rule.bidding_winning_faction {
                             return true;
                         }
                     }

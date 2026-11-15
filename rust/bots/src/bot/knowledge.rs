@@ -295,7 +295,7 @@ impl ClassicBot {
     /// No one but me (and an ally that doesn't block me) occupies `place`.
     pub fn not_occupied_by_others(&self, game: &Game, place: impl Place) -> bool {
         let t = place.territory();
-        game.nr_of_occupants_excluding_faction_territory_faction(t, self.faction(game)) == 0 && self.ally_doesnt_block(game, t)
+        game.nr_of_occupants_of_territory_excluding(t, self.faction(game)) == 0 && self.ally_doesnt_block(game, t)
     }
 
     pub fn not_occupied(&self, game: &Game, place: impl Place) -> bool {
@@ -370,7 +370,7 @@ impl ClassicBot {
             || game.protected_from_monster(self.player)
             // Throws when there is no spice card yet, or it has no location.
             || t != game.latest_spice_card_a.expect("latest spice card a").location().expect("location").territory()
-            || game.sand_trout_occured()
+            || game.sand_trout_occurred()
             || !game.has_resource_deck_prescience(Some(self.player))
             || game.resource_card_deck.as_ref().expect("resource card deck").top().is_some_and(|c| !c.is_shai_hulud())
     }
@@ -805,7 +805,7 @@ impl ClassicBot {
         });
 
         let cost = |n: i32, s: i32| {
-            Shipment::determine_cost_game_player_int32_int32_location_boolean_boolean_boolean_boolean_boolean(
+            Shipment::determine_cost_of_forces(
                 game,
                 opponent,
                 n,

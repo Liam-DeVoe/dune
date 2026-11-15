@@ -50,7 +50,7 @@ impl SetShipmentPermission {
     }
 
     pub fn is_applicable(g: &Game, p: PlayerIndex) -> bool {
-        g.current_main_phase == MainPhase::ShipmentAndMove && g.player(p).is(Faction::Guild) && g.player(p).has_high_threshold_0(g)
+        g.current_main_phase == MainPhase::ShipmentAndMove && g.player(p).is(Faction::Guild) && g.player(p).has_any_high_threshold(g)
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {

@@ -48,7 +48,7 @@ impl ChoamFreeRevivalPrevention {
             game.let_player_discard_treachery_card_of_choice(self.initiator());
         } else {
             let card = Self::card_to_use(game, me);
-            game.discard_treachery_card_boolean(card, true)?;
+            game.discard_card(card, true)?;
         }
 
         game.current_free_revival_prevention = Some(self.clone());

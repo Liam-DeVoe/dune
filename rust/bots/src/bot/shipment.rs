@@ -720,7 +720,7 @@ impl ClassicBot {
         let size = sizing.fill(forces_available, special_forces_available);
 
         if max_forces_with_no_field < 0
-            || Shipment::determine_cost_game_player_int32_int32_location_boolean_boolean_boolean_boolean_boolean(game, me, 2, 0, location, false, false, false, false, false) == 0
+            || Shipment::determine_cost_of_forces(game, me, 2, 0, location, false, false, false, false, false) == 0
             || sizing.spice_available <= 0
         {
             return size;
@@ -802,7 +802,7 @@ impl ClassicBot {
         let me = self.player;
         let mut nr_of_smuggled_forces = 0;
         let mut nr_of_smuggled_special_forces = 0;
-        if game.skilled_as_player_leader_skill(me, LeaderSkill::Smuggler) {
+        if game.has_skill_in_front_of_shield(me, LeaderSkill::Smuggler) {
             if size.special_forces > 0 && self.faction(game) != Faction::Richese {
                 nr_of_smuggled_special_forces = 1;
             } else if size.forces > 0 {
@@ -1120,7 +1120,7 @@ impl ForceSizing<'_> {
         let mut cost_of_battle = 0;
 
         let affordable = |forces: i32, special_forces: i32, cost_of_battle: i32| {
-            let ship_cost = Shipment::determine_cost_game_player_int32_int32_location_boolean_boolean_boolean_boolean_boolean(
+            let ship_cost = Shipment::determine_cost_of_forces(
                 self.game, self.me, forces, special_forces, self.location, false, false, false, false, false,
             );
             ship_cost <= self.spice_available && ship_cost + cost_of_battle - self.spice_available < self.max_unsupported_forces

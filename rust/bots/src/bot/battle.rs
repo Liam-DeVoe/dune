@@ -139,7 +139,7 @@ impl ClassicBot {
                 me.has(Some(*card))
                     && card.type_() == TreacheryCardType::Useless
                     && faction != Faction::Choam
-                    && !game.skilled_as_player_leader_skill(self.player, LeaderSkill::Warmaster)
+                    && !game.has_skill_in_front_of_shield(self.player, LeaderSkill::Warmaster)
                     && !game.owns_stronghold(faction, game.map.tueks_sietch())
             };
             discarded.extend(plan.weapon().filter(discard_if_useless));
@@ -293,7 +293,7 @@ impl ClassicBot {
         self.avoid_lasgun_shield_explosion(game, &mut weapon, &mut defense);
 
         let mut paid_by_arrakeen = 0;
-        let cost = Battle::cost_game_player_int32_int32_int32(game, self.player, forces.forces, forces.special_forces, &mut paid_by_arrakeen);
+        let cost = Battle::cost_of_forces(game, self.player, forces.forces, forces.special_forces, &mut paid_by_arrakeen);
         let mut result = Battle::new(game, self.faction(game));
         result.set_hero(hero);
         result.messiah = messiah;
@@ -1012,7 +1012,7 @@ impl ClassicBot {
         let value = match hero {
             Some(h) => {
                 h.value_in_combat_against(highest_opponent_leader)
-                    + Battle::determine_skill_bonus_game_player_i_hero_treachery_card_treachery_card_int32_leader_skill(
+                    + Battle::determine_skill_bonus_of_parts(
                         game,
                         player,
                         Some(h),
@@ -1108,7 +1108,7 @@ impl ClassicBot {
         );
 
         let mut used_skill = LeaderSkill::None;
-        let opponent_penalty = Battle::determine_skill_penalty_game_i_hero_player_leader_skill(game, hero, opponent, &mut used_skill);
+        let opponent_penalty = Battle::determine_skill_penalty_of_hero(game, hero, opponent, &mut used_skill);
 
         if hero.is_none() {
             messiah = false;

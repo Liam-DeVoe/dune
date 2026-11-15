@@ -124,6 +124,13 @@ impl Message {
     }
 }
 
+/// A message holding just this text, as `express!(text)` makes it.
+impl From<&str> for Message {
+    fn from(text: &str) -> Message {
+        Message::express(vec![ExpressionElement::from(text)])
+    }
+}
+
 impl fmt::Debug for Message {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Message")

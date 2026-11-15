@@ -86,7 +86,7 @@ fn forces_to_reserves_territory_bug() {
     Player::add_forces(&mut g, me, locs[0], 1, false);
     Player::add_forces(&mut g, me, locs[1], 5, false);
 
-    Player::forces_to_reserves_territory_int32_boolean(&mut g, me, t, 3, false);
+    Player::some_forces_in_territory_to_reserves(&mut g, me, t, 3, false);
 
     let p = g.player(me);
     // First location: 3 to reserves, removal of 3 from 1 is refused. Second location:
@@ -199,7 +199,7 @@ fn determine_first_player_skips_empty_seats_and_panics() {
 fn sequence_goes_around_and_counts_full_circles() {
     let mut g = game_with(&[Faction::Atreides, Faction::Harkonnen, Faction::Emperor]);
     g.sector_in_storm = 7; // ceil(7*6/18) = 3 -> seat 3 is empty -> wraps to seat 0
-    let mut seq = PlayerSequence::new_game(&g);
+    let mut seq = PlayerSequence::starting_with_first_player(&g);
     let order: Vec<_> = seq.players_in_order(&g).into_iter().map(|p| p.unwrap()).collect();
     assert_eq!(order, vec![g.player_at(0), g.player_at(1), g.player_at(2)]);
     let mut seen = vec![];

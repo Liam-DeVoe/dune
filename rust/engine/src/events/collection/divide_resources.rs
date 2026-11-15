@@ -75,7 +75,7 @@ impl DivideResources {
         if self.passed {
             game.divide_resources_from_collection(false);
             let any = !game.collected_resources_to_be_divided.is_empty();
-            game.enter_boolean_phase_action(any, Phase::DividingCollectedResources, Game::end_collection_main_phase);
+            game.enter_or_else(any, Phase::DividingCollectedResources, Game::end_collection_main_phase);
         } else {
             let to_be_divided = Self::get_resources_to_be_divided(game);
             let gained_by_other_faction = Self::gained_by_other_faction(to_be_divided.as_ref(), true, self.portion_to_first_player);

@@ -583,7 +583,7 @@ impl Skin {
     }
 
     /// `private static string GetPopup(string c)`
-    pub fn get_popup_string(c: &str) -> String {
+    pub fn get_popup_text(c: &str) -> String {
         format!("<div style='background-color:white;border-color:black;border-width:1px;border-style:solid;color:black;padding:2px;'>{c}</div>")
     }
 
@@ -741,7 +741,7 @@ impl Skin {
     }
 
     /// `GetPopup(IHero? h, Game g)`
-    pub fn get_popup_hero_game(&self, h: Option<Hero>, g: &Game) -> String {
+    pub fn get_popup_hero_in_game(&self, h: Option<Hero>, g: &Game) -> String {
         let Some(h) = h else { return String::new() };
         if let Some(tc) = h.as_treachery_card() {
             return self.get_popup_treachery_card(Some(tc));
@@ -753,11 +753,11 @@ impl Skin {
             return self.get_popup_hero(h);
         }
 
-        self.get_popup_leader_leader_skill(h.as_leader(), skill)
+        self.get_popup_skilled_leader(h.as_leader(), skill)
     }
 
     /// `GetPopup(Leader? l, LeaderSkill s)`
-    pub fn get_popup_leader_leader_skill(&self, l: Option<Leader>, s: LeaderSkill) -> String {
+    pub fn get_popup_skilled_leader(&self, l: Option<Leader>, s: LeaderSkill) -> String {
         match l {
             None => String::new(),
             Some(l) => format!(
@@ -774,7 +774,7 @@ impl Skin {
     }
 
     /// `GetPopup(StrongholdAdvantage adv, Faction f)`
-    pub fn get_popup_stronghold_advantage_faction(&self, adv: StrongholdAdvantage, f: Faction) -> String {
+    pub fn get_popup_stronghold_advantage_for(&self, adv: StrongholdAdvantage, f: Faction) -> String {
         format!(
             "<div style='position:relative'><img style='position:relative;filter:drop-shadow(-3px 3px 2px black);' src='{}' width=300/><img src='{}' width=100 style='position:absolute;left:220px;top:40px;filter:drop-shadow(-3px 3px 2px black);'/></div>",
             self.get_image_url_stronghold_advantage(adv),

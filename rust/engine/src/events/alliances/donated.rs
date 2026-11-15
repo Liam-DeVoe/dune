@@ -137,7 +137,7 @@ impl Donated {
                         cards.remove(i);
                     }
                 }
-                Game::register_known_player_treachery_card(game, me, Some(card));
+                Game::register_known_by_player(game, me, Some(card));
                 game.player_mut(target).treachery_cards.push(card);
 
                 let initiator = self.initiator();
@@ -145,9 +145,9 @@ impl Donated {
                     let p = game.player_at(i);
                     if !game.player(p).is(initiator) && p != target {
                         let my_cards = game.player(me).treachery_cards.clone();
-                        Game::unregister_known_player_i_enumerable_treachery_card(game, p, &my_cards);
+                        Game::unregister_all_known_by_player(game, p, &my_cards);
                         let target_cards = game.player(target).treachery_cards.clone();
-                        Game::unregister_known_player_i_enumerable_treachery_card(game, p, &target_cards);
+                        Game::unregister_all_known_by_player(game, p, &target_cards);
                     }
                 }
             }

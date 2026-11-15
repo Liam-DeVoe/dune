@@ -53,7 +53,7 @@ impl Thought {
     }
 
     pub fn may_be_used(game: &Game, player: PlayerIndex) -> bool {
-        game.skilled_as_player_leader_skill(player, LeaderSkill::Thinker)
+        game.has_skill_in_front_of_shield(player, LeaderSkill::Thinker)
             && game.current_battle.is_some()
             && game.current_thought.is_none()
             && game.current_battle.as_ref().expect("current battle").is_aggressor_or_defender(game, player)

@@ -100,7 +100,7 @@ impl Voice {
                     // IsOccupiedByFactionOrTheirAlly(World.BeneGesserit, OpponentOf(p)): the Player overload,
                     // which dereferences a null opponent only when there is an occupier.
                     let occupied = || match battle.opponent_of(g, p) {
-                        Some(opponent) => g.is_occupied_by_faction_or_their_ally(World::BeneGesserit, opponent),
+                        Some(opponent) => g.is_occupied_by_player_or_their_ally(World::BeneGesserit, opponent),
                         None => {
                             if g.occupier_of(World::BeneGesserit).is_some() {
                                 panic!("A required value is missing")

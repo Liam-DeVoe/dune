@@ -6,7 +6,7 @@
 use std::fmt;
 
 use crate::enumerations::{Faction, HeroType};
-use crate::identity::IIdentifiable;
+use crate::identity::Identifiable;
 use crate::heroes::leader::Leader;
 use crate::heroes::messiah::Messiah;
 use crate::cards::treachery_card::TreacheryCard;
@@ -133,7 +133,7 @@ impl From<TreacheryCard> for Hero {
     }
 }
 
-impl IIdentifiable for Hero {
+impl Identifiable for Hero {
     fn id(&self) -> i32 {
         Hero::id(*self)
     }

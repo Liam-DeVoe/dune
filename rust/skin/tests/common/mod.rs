@@ -10,7 +10,7 @@ use serde_json::Value;
 use treachery_engine::error::catch_panic;
 use treachery_engine::enumerations::*;
 use treachery_engine::messages::expression::{EnumValue, ExpressionElement};
-use treachery_engine::identity::IFetcher;
+use treachery_engine::identity::Fetcher;
 use treachery_engine::heroes::hero::Hero;
 use treachery_engine::heroes::leader_manager::LeaderManager;
 use treachery_engine::map::location::Location;

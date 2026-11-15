@@ -91,7 +91,7 @@ impl Bid {
             return Some(express!("Bid must be higher than 0"));
         }
         if let Some(current_bid) = &game.current_bid {
-            if self.total_amount() <= current_bid.i_bid_total_amount() && game.current_auction_type != AuctionType::RicheseSilent {
+            if self.total_amount() <= current_bid.bid_total_amount() && game.current_auction_type != AuctionType::RicheseSilent {
                 return Some(express!("Bid not high enough"));
             }
         }
@@ -233,7 +233,7 @@ impl Bid {
                 let this = self.clone().into_event();
                 game.finish_bid(self.player_opt(), Some(&this), card, true);
             } else if let Some(GameEvent::Bid(winning_bid)) = game.current_bid.clone().filter(|cb| {
-                matches!(cb, GameEvent::Bid(_)) && game.bid_sequence.as_ref().map(|s| s.current_faction(game)) == Some(cb.i_bid_initiator())
+                matches!(cb, GameEvent::Bid(_)) && game.bid_sequence.as_ref().map(|s| s.current_faction(game)) == Some(cb.bid_initiator())
             }) {
                 if winning_bid.using_karma_to_remove_bid_limit() {
                     //Karma was used to bid any amount
@@ -270,7 +270,7 @@ impl Bid {
 
             let card = self.bid_won_by_only_player(game, self, Faction::Emperor)?;
             let this = self.clone().into_event();
-            let current_bid_player = game.current_bid.as_ref().required("current bid")?.i_bid_player();
+            let current_bid_player = game.current_bid.as_ref().required("current bid")?.bid_player();
             game.finish_bid(current_bid_player, Some(&this), card, true);
         }
         Ok(())
@@ -284,7 +284,7 @@ impl Bid {
         let winner = winner.required("winner")?;
         let karma_card = bid.karma_card().required("karma card")?;
 
-        game.discard_treachery_card_boolean(Some(karma_card), true)?;
+        game.discard_card(Some(karma_card), true)?;
 
         let sold = CardSold::new(game.card_number, bid.initiator(), 0, Faction::None, vec![], Some(karma_card));
         if karma_card.type_() == TreacheryCardType::Karma {
@@ -387,28 +387,28 @@ impl Bid {
 
         if is_last_bid {
             if game.current_auction_type == AuctionType::RicheseSilent {
-                let parts: Vec<MessagePart> = game.bids.iter().map(|(k, v)| express_part!(*k, Payment::of(v.i_bid_total_amount()), " ")).collect();
+                let parts: Vec<MessagePart> = game.bids.iter().map(|(k, v)| express_part!(*k, Payment::of(v.bid_total_amount()), " ")).collect();
                 self.log_objects(game, vec!["Bids: ".into(), parts.into()]);
             }
 
             let highest_bid = game.determine_highest_bid(&game.bids);
             match highest_bid {
-                Some(winning_bid) if winning_bid.i_bid_total_amount() > 0 => {
+                Some(winning_bid) if winning_bid.bid_total_amount() > 0 => {
                     if game.cards_on_auction.is_none() {
                         return Ok(());
                     }
 
                     let card = game.win_by_highest_bid(
-                        winning_bid.i_bid_player().required("i bid player")?,
+                        winning_bid.bid_player().required("i bid player")?,
                         &winning_bid,
-                        winning_bid.i_bid_amount(),
-                        winning_bid.i_bid_ally_contribution_amount(),
-                        winning_bid.i_bid_emperor_contribution_amount(),
-                        if winning_bid.i_bid_initiator() != Faction::Richese { Faction::Richese } else { Faction::Emperor },
+                        winning_bid.bid_amount(),
+                        winning_bid.bid_ally_contribution_amount(),
+                        winning_bid.bid_emperor_contribution_amount(),
+                        if winning_bid.bid_initiator() != Faction::Richese { Faction::Richese } else { Faction::Emperor },
                         false,
                     )?;
 
-                    game.finish_bid(winning_bid.i_bid_player(), Some(&winning_bid), card, true);
+                    game.finish_bid(winning_bid.bid_player(), Some(&winning_bid), card, true);
                 }
                 _ => {
                     self.log_objects(game, vec!["Card not sold as no faction bid on it".into()]);
@@ -478,7 +478,7 @@ impl PassableGameEventMethods for Bid {
 
 }
 
-impl crate::events::bid_trait::IBid for Bid {
+impl crate::events::bid_trait::BidEvent for Bid {
     fn total_amount(&self) -> i32 {
         Bid::total_amount(self)
     }

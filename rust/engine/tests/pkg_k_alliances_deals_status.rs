@@ -167,9 +167,9 @@ fn deal_cancellation_removes_matching_offer() {
 #[test]
 fn deal_contents_description_uses_text_when_not_blank() {
     let g = game_with(&[Faction::Atreides]);
-    let m = Deal::deal_contents_description_game_deal_type_string_int32_phase_string(&g, DealType::None, Some("  \t"), 0, Phase::BattlePhase, None);
+    let m = Deal::describe_deal_contents(&g, DealType::None, Some("  \t"), 0, Phase::BattlePhase, None);
     assert!(m.to_cs_string().contains("Custom deal"), "{}", m.to_cs_string());
-    let m = Deal::deal_contents_description_game_deal_type_string_int32_phase_string(&g, DealType::None, Some("hi"), 0, Phase::BattlePhase, None);
+    let m = Deal::describe_deal_contents(&g, DealType::None, Some("hi"), 0, Phase::BattlePhase, None);
     assert!(m.to_cs_string().starts_with("hi until"), "{}", m.to_cs_string());
 }
 
@@ -177,7 +177,7 @@ fn deal_contents_description_uses_text_when_not_blank() {
 #[test]
 fn deal_parameter_is_parsed_with_int_parse() {
     let g = game_with(&[Faction::Atreides]);
-    let text = exception_text(|| Deal::get_parameter1_game_deal_type_string(&g, DealType::DontShipOrMoveTo, ""));
+    let text = exception_text(|| Deal::parameter1_territory(&g, DealType::DontShipOrMoveTo, ""));
     assert!(text.starts_with("FormatException"), "{text}");
 }
 

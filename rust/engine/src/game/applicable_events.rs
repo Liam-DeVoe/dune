@@ -294,7 +294,7 @@ impl Game {
                 {
                     result.push(GameEventType::SetIncreasedRevivalLimits);
                 }
-                if faction == Faction::Emperor && self.player(player).has_high_threshold_0(self) && self.player(player).resources >= 2 {
+                if faction == Faction::Emperor && self.player(player).has_any_high_threshold(self) && self.player(player).resources >= 2 {
                     result.push(GameEventType::EmperorDiscarded);
                 }
             }
@@ -672,7 +672,7 @@ impl Game {
 
         if self.current_main_phase > MainPhase::Setup
             && faction == Faction::Choam
-            && self.player(player).has_low_threshold_0(self)
+            && self.player(player).has_any_low_threshold(self)
             && !self.is_occupied_world(World::Choam)
             && !ResourcesAudited::valid_factions(self, player).next().is_none()
         {

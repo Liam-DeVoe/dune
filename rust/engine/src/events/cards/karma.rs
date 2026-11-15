@@ -287,7 +287,7 @@ impl Karma {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.discard_treachery_card_boolean(self.card(), false)?;
+        game.discard_card(self.card(), false)?;
         let effect: Vec<ExpressionElement> = if self.prevented == FactionAdvantage::None {
             vec![]
         } else {

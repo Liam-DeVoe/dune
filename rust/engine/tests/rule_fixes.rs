@@ -13,7 +13,7 @@ fn fixture(name: &str) -> Game {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../scripts/fixtures").join(format!("{name}.json"));
     let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
     let state = GameState::load(&text).expect("savegame");
-    let mut game = Game::new_int32_participation(state.version, &Shared::new(Participation::default()));
+    let mut game = Game::with_participation(state.version, &Shared::new(Participation::default()));
     for e in state.events() {
         e.initialize_game(&game);
         assert!(e.execute(&mut game, false, false).is_none(), "{name}: {} failed", e.event_type().name());
@@ -210,7 +210,7 @@ fn ally_permissions_without_an_ally_store_nothing() {
 /// (observe bots seed 1 game 163). A card taken from one of the two now leaves the other.
 #[test]
 fn a_richese_card_taken_from_the_deck_or_the_cache_leaves_the_other() {
-    let mut g = Game::new_int32_participation(Game::LATEST_VERSION, &Shared::new(Participation::default()));
+    let mut g = Game::with_participation(Game::LATEST_VERSION, &Shared::new(Participation::default()));
     let mut s = GameSettings::new();
     s.number_of_players = 3;
     s.allowed_factions_in_play = Some(Shared::new(vec![Faction::Richese, Faction::Atreides, Faction::Emperor]));

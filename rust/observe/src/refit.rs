@@ -132,7 +132,7 @@ fn to_object(e: &GameEvent) -> Map<String, Value> {
 impl Refit {
     pub fn new(version: i32, participation: Shared<Participation>, seed: u64) -> Refit {
         Refit {
-            game: Game::new_int32_participation(version, &participation),
+            game: Game::with_participation(version, &participation),
             version,
             participation,
             bots: Vec::new(),
@@ -168,7 +168,7 @@ impl Refit {
     /// Replays the first `n` events of the history into a new game.
     fn rebuild(&mut self, n: usize) {
         let events: Vec<GameEvent> = self.game.history.iter().take(n).cloned().collect();
-        let mut game = Game::new_int32_participation(self.version, &self.participation);
+        let mut game = Game::with_participation(self.version, &self.participation);
         for e in events {
             let text = json::serialize(&e);
             let e: GameEvent = json::deserialize(&text).expect("a history event reads back");

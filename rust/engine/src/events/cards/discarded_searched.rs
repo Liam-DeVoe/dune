@@ -54,7 +54,7 @@ impl DiscardedSearched {
 
         for i in 0..game.players.len() {
             let items = game.treachery_discard_pile.as_ref().required("treachery discard pile")?.items.clone();
-            Game::unregister_known_player_i_enumerable_treachery_card(game, game.player_at(i), &items);
+            Game::unregister_all_known_by_player(game, game.player_at(i), &items);
         }
 
         let card = self.card().required("card")?;

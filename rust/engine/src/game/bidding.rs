@@ -34,7 +34,7 @@ impl Game {
         self.richese_auction_should_still_happen = false;
         self.current_auction_type = AuctionType::None;
         self.bidding_triggered_bureaucracy = None;
-        self.bid_sequence = Some(PlayerSequence::new_game(self));
+        self.bid_sequence = Some(PlayerSequence::starting_with_first_player(self));
         self.winning_bid = None;
 
         self.enter(Phase::BeginningOfBidding, true);
@@ -46,7 +46,7 @@ impl Game {
             && self.applicable(Rule::RicheseBlackMarket)
             && !self.prevented(FactionAdvantage::RicheseBlackMarket)
             && self.player(richese.expect("richese")).treachery_cards.len() > 0;
-        self.enter_boolean_phase_action(condition, Phase::BlackMarketAnnouncement, Game::enter_richese_bidding);
+        self.enter_or_else(condition, Phase::BlackMarketAnnouncement, Game::enter_richese_bidding);
     }
 
     pub fn enter_richese_bidding(&mut self) {
@@ -63,7 +63,7 @@ impl Game {
             self.end_bidding_phase();
         } else {
             let condition = self.is_playing(Faction::Richese) && self.richese_cache.len() > 0 && !self.prevented(FactionAdvantage::RicheseAuction);
-            self.enter_boolean_phase_action(condition, Phase::RicheseAnnouncingAuction, Game::start_regular_bidding);
+            self.enter_or_else(condition, Phase::RicheseAnnouncingAuction, Game::start_regular_bidding);
         }
     }
 
@@ -91,7 +91,7 @@ impl Game {
         self.start_bid_sequence_and_auction_type(AuctionType::Normal, None, 1);
 
         let condition = self.is_playing(Faction::Ixian) && !self.prevented(FactionAdvantage::IxianSelectingCardsOnAuction);
-        self.enter_boolean_phase_action(condition, Phase::IxianRemovingCardFromBid, Game::start_bidding_round);
+        self.enter_or_else(condition, Phase::IxianRemovingCardFromBid, Game::start_bidding_round);
     }
 
     pub fn start_bidding_round(&mut self) {
@@ -143,18 +143,18 @@ impl Game {
             None => return,
         };
 
-        let initiator = bid.i_bid_initiator();
+        let initiator = bid.bid_initiator();
         if initiator == self.player(atreides).faction || initiator == self.player(atreides).ally {
-            self.latest_bid_by_atreides_or_atreides_ally_was_passed = bid.i_bid_passed();
+            self.latest_bid_by_atreides_or_atreides_ally_was_passed = bid.bid_passed();
         }
     }
 
     pub fn return_karma_card_used_for_bid(&mut self) {
         if let Some(current_bid) = self.current_bid.clone() {
-            if current_bid.i_bid_using_karma_to_remove_bid_limit() {
-                let p = current_bid.i_bid_player().expect("i bid player");
+            if current_bid.bid_using_karma_to_remove_bid_limit() {
+                let p = current_bid.bid_player().expect("i bid player");
                 // UsingKarmaToRemoveBidLimit implies KarmaCard != null.
-                let card = current_bid.i_bid_karma_card().expect("i bid karma card");
+                let card = current_bid.bid_karma_card().expect("i bid karma card");
                 self.player_mut(p).treachery_cards.push(card);
             }
         }
@@ -241,7 +241,7 @@ impl Game {
     pub fn register_won_card_as_known(&mut self, card: TreacheryCard) {
         let players: Vec<PlayerIndex> = self.player_indices().filter(|p| self.has_bidding_prescience(*p)).collect();
         for p in players {
-            Game::register_known_player_treachery_card(self, p, Some(card));
+            Game::register_known_by_player(self, p, Some(card));
         }
     }
 
@@ -493,7 +493,7 @@ impl Game {
             }
         }
 
-        self.enter_boolean_phase_action(enter_replacing_card_just_won, Phase::ReplacingCardJustWon, Game::determine_next_step_after_card_was_sold);
+        self.enter_or_else(enter_replacing_card_just_won, Phase::ReplacingCardJustWon, Game::determine_next_step_after_card_was_sold);
 
         if let Some(b) = self.bidding_triggered_bureaucracy.clone() {
             self.apply_bureaucracy(b.payment_from, b.payment_to);
@@ -553,7 +553,7 @@ impl Game {
             self.start_bidding_round();
         } else {
             let condition = self.is_playing(Faction::Atreides);
-            self.enter_boolean_phase_action(condition, Phase::WaitingForNextBiddingRound, Game::put_next_card_on_auction);
+            self.enter_or_else(condition, Phase::WaitingForNextBiddingRound, Game::put_next_card_on_auction);
         }
     }
 
@@ -561,24 +561,24 @@ impl Game {
         match auction_type {
             AuctionType::BlackMarketNormal => {
                 self.black_market_auction_type = AuctionType::BlackMarketNormal;
-                self.bid_sequence = Some(PlayerSequence::new_game_boolean_int32(self, true, 1));
+                self.bid_sequence = Some(PlayerSequence::starting_with_first_player_options(self, true, 1));
             }
             AuctionType::BlackMarketOnceAround => {
                 self.black_market_auction_type = AuctionType::BlackMarketOnceAround;
                 self.bid_sequence = Some(PlayerSequence::new(self, true, direction, richese_player, true));
             }
             AuctionType::BlackMarketSilent => {
-                self.bid_sequence = Some(PlayerSequence::new_game_boolean_int32(self, true, 1));
+                self.bid_sequence = Some(PlayerSequence::starting_with_first_player_options(self, true, 1));
                 self.black_market_auction_type = AuctionType::BlackMarketSilent;
             }
             AuctionType::RicheseOnceAround => {
                 self.bid_sequence = Some(PlayerSequence::new(self, true, direction, richese_player, true));
             }
             AuctionType::RicheseSilent => {
-                self.bid_sequence = Some(PlayerSequence::new_game_boolean_int32(self, true, 1));
+                self.bid_sequence = Some(PlayerSequence::starting_with_first_player_options(self, true, 1));
             }
             AuctionType::Normal => {
-                self.bid_sequence = Some(PlayerSequence::new_game_boolean_int32(self, true, 1));
+                self.bid_sequence = Some(PlayerSequence::starting_with_first_player_options(self, true, 1));
                 if self.black_market_auction_type == AuctionType::BlackMarketNormal {
                     //Continue where black market bidding left off
                     self.with_bid_sequence(|seq, g| seq.next_round(g));
@@ -592,14 +592,14 @@ impl Game {
     }
 
     pub fn determine_highest_bid(&self, bids: &NetDictionary<Faction, GameEvent>) -> Option<GameEvent> {
-        let highest_bid_value = bids.values().map(|b| b.i_bid_total_amount()).max().expect("a bid");
-        let mut determine_bid_winner_sequence = PlayerSequence::new_game_boolean_int32(self, false, 1);
+        let highest_bid_value = bids.values().map(|b| b.bid_total_amount()).max().expect("a bid");
+        let mut determine_bid_winner_sequence = PlayerSequence::starting_with_first_player_options(self, false, 1);
 
         let mut i = 0;
         while i < self.maximum_players() {
             let f = determine_bid_winner_sequence.current_faction(self);
             if let Some(value) = bids.get(&f) {
-                if value.i_bid_total_amount() == highest_bid_value {
+                if value.bid_total_amount() == highest_bid_value {
                     return Some(bids[&f].clone());
                 }
             }
@@ -640,8 +640,8 @@ impl Game {
     pub fn has_bid_to_pay(&self, p: PlayerIndex) -> bool {
         match &self.current_bid {
             Some(current_bid) if self.current_phase == Phase::Bidding => {
-                current_bid.i_bid_initiator() == self.player(p).faction
-                    || (current_bid.i_bid_initiator() == self.player(p).ally && current_bid.i_bid_ally_contribution_amount() > 0)
+                current_bid.bid_initiator() == self.player(p).faction
+                    || (current_bid.bid_initiator() == self.player(p).ally && current_bid.bid_ally_contribution_amount() > 0)
             }
             _ => false,
         }
@@ -668,7 +668,7 @@ impl Game {
 
     pub fn get_card_set_aside_for_bid(&self, p: PlayerIndex) -> Option<TreacheryCard> {
         match &self.current_bid {
-            Some(current_bid) if current_bid.i_bid_player() == Some(p) && current_bid.i_bid_using_karma_to_remove_bid_limit() => current_bid.i_bid_karma_card(),
+            Some(current_bid) if current_bid.bid_player() == Some(p) && current_bid.bid_using_karma_to_remove_bid_limit() => current_bid.bid_karma_card(),
             _ => None,
         }
     }

@@ -273,7 +273,7 @@ impl EstablishPlayers {
         game.determine_positions_at_table();
 
         let condition = game.applicable(Rule::PlayersChooseFactions);
-        game.enter_boolean_phase_action(condition, Phase::SelectingFactions, Game::assign_factions_and_enter_faction_trade);
+        game.enter_or_else(condition, Phase::SelectingFactions, Game::assign_factions_and_enter_faction_trade);
         Ok(())
     }
 

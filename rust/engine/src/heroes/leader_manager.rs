@@ -1,5 +1,5 @@
 use crate::enumerations::{Faction, HeroType};
-use crate::identity::IFetcher;
+use crate::identity::Fetcher;
 use crate::heroes::hero::Hero;
 use crate::heroes::leader::{Leader, LeaderData};
 use crate::cards::treachery_card_manager::TreacheryCardManager;
@@ -115,7 +115,7 @@ impl LeaderManager {
 #[derive(Clone, Copy, Debug)]
 pub struct LeaderFetcher;
 
-impl IFetcher<Leader> for LeaderFetcher {
+impl Fetcher<Leader> for LeaderFetcher {
     fn find(&self, id: i32) -> Option<Leader> {
         if id == -1 {
             return None;
@@ -132,7 +132,7 @@ impl IFetcher<Leader> for LeaderFetcher {
 #[derive(Clone, Copy, Debug)]
 pub struct HeroFetcher;
 
-impl IFetcher<Hero> for HeroFetcher {
+impl Fetcher<Hero> for HeroFetcher {
     fn find(&self, id: i32) -> Option<Hero> {
         if id < 0 {
             return None;

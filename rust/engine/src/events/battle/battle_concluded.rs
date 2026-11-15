@@ -294,18 +294,18 @@ impl BattleConcluded {
                     0,
                     std::cmp::min(forces_to_lose - forces_to_save_in_territory, 2 - special_forces_to_save_to_reserves),
                 );
-            } else if game.skilled_as_player_leader_skill(self.player(), LeaderSkill::Graduate) {
+            } else if game.has_skill_in_front_of_shield(self.player(), LeaderSkill::Graduate) {
                 special_forces_to_save_to_reserves = std::cmp::min(special_forces_to_lose, 1);
                 forces_to_save_to_reserves = std::cmp::max(0, std::cmp::min(forces_to_lose, 1 - special_forces_to_save_to_reserves));
             }
 
             if special_forces_to_save_in_territory + forces_to_save_in_territory + special_forces_to_save_to_reserves + forces_to_save_to_reserves > 0 {
                 if special_forces_to_save_to_reserves > 0 {
-                    Player::forces_to_reserves_territory_int32_boolean(game, force_supplier_of_winner, territory, special_forces_to_save_to_reserves, true);
+                    Player::some_forces_in_territory_to_reserves(game, force_supplier_of_winner, territory, special_forces_to_save_to_reserves, true);
                 }
 
                 if forces_to_save_to_reserves > 0 {
-                    Player::forces_to_reserves_territory_int32_boolean(game, force_supplier_of_winner, territory, forces_to_save_to_reserves, false);
+                    Player::some_forces_in_territory_to_reserves(game, force_supplier_of_winner, territory, forces_to_save_to_reserves, false);
                 }
 
                 let force = game.player(force_supplier_of_winner).force();
@@ -444,7 +444,7 @@ impl BattleConcluded {
             return false;
         };
         let pl = g.player(p);
-        pl.is(Faction::Atreides) && pl.has_high_threshold_0(g) && pl.forces_in_reserve() >= 1 && pl.any_forces_in_territory(Some(territory)) > 0
+        pl.is(Faction::Atreides) && pl.has_any_high_threshold(g) && pl.forces_in_reserve() >= 1 && pl.any_forces_in_territory(Some(territory)) > 0
     }
 
 }

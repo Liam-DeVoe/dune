@@ -89,7 +89,7 @@ impl Session {
                 p.seated_players.insert(*user, *seat);
             }
         }
-        let game = Game::new_int32_participation(version, &participation);
+        let game = Game::with_participation(version, &participation);
         Session { game, participation, replica: None, bots: Vec::new(), last_query: Vec::new(), log_seen: 0, full_views }
     }
 

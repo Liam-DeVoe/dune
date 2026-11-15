@@ -248,7 +248,7 @@ impl TerrorRevealed {
 
                     while game.player(self.player()).hand_size_exceeded(game) {
                         let card = game.player(self.player()).treachery_cards.iter().copied().random_item(game.random.as_ref().required("random")?);
-                        game.discard_player_treachery_card_boolean(Some(self.player()), card, true);
+                        game.discard_card_of(Some(self.player()), card, true);
                     }
 
                     if game.player(self.player()).has_ally() {
@@ -256,7 +256,7 @@ impl TerrorRevealed {
                             let ally = game.player(self.player()).allied_player(game).required("allied player")?;
                             let ally2 = game.player(self.player()).allied_player(game).required("allied player")?;
                             let card = game.player(ally2).treachery_cards.iter().copied().random_item(game.random.as_ref().required("random")?);
-                            game.discard_player_treachery_card_boolean(Some(ally), card, true);
+                            game.discard_card_of(Some(ally), card, true);
                         }
                     }
 
@@ -307,7 +307,7 @@ impl TerrorRevealed {
                             .iter()
                             .copied()
                             .random_item(game.random.as_ref().required("random")?);
-                        game.discard_treachery_card_boolean(card, true)?;
+                        game.discard_card(card, true)?;
                     } else {
                         self.log_objects(game, elems![victim_faction, " have no treachery cards to discard"]);
                     }
@@ -397,7 +397,7 @@ impl PassableGameEventMethods for TerrorRevealed {
 
 }
 
-impl crate::events::location_event::ILocationEvent for TerrorRevealed {
+impl crate::events::location_event::LocationEvent for TerrorRevealed {
     fn initiator(&self) -> Faction {
         GameEventMethods::initiator(self)
     }

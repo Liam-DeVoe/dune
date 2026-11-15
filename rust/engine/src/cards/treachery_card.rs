@@ -7,7 +7,7 @@ use std::fmt;
 
 use crate::enumerations::{Faction, HeroType, Rule, TreacheryCardType};
 use crate::heroes::hero::Hero;
-use crate::identity::IIdentifiable;
+use crate::identity::Identifiable;
 use crate::cards::treachery_card_manager::ITEMS;
 
 /// Constructor arguments of a card.
@@ -227,7 +227,7 @@ impl TreacheryCard {
     }
 }
 
-impl IIdentifiable for TreacheryCard {
+impl Identifiable for TreacheryCard {
     fn id(&self) -> i32 {
         TreacheryCard::id(*self)
     }

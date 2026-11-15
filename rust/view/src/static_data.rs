@@ -8,7 +8,7 @@
 
 use serde::{Deserialize, Serialize};
 use treachery_engine::shared::Shared;
-use treachery_engine::identity::IIdentifiable;
+use treachery_engine::identity::Identifiable;
 use treachery_engine::heroes::leader_manager::LeaderManager;
 use treachery_engine::map::LocationKind;
 use treachery_engine::game::Participation;
@@ -162,7 +162,7 @@ pub struct NamedPlaces {
 }
 
 pub fn static_data() -> StaticData {
-    let game = Game::new_int32_participation(Game::LATEST_VERSION, &Shared::new(Participation::default()));
+    let game = Game::with_participation(Game::LATEST_VERSION, &Shared::new(Participation::default()));
     let map = &game.map;
 
     let locations = map

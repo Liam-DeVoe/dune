@@ -77,7 +77,7 @@ impl Game {
         }
 
         let condition = self.extortion_to_be_returned;
-        self.enter_boolean_phase_action(condition, Phase::Extortion, Game::end_contemplate_pause);
+        self.enter_or_else(condition, Phase::Extortion, Game::end_contemplate_pause);
     }
 
     pub fn determine_if_moritani_draws_new_traitor(&mut self) {
@@ -157,7 +157,7 @@ impl Game {
             }
         } else {
             let condition = self.is_playing(Faction::Tleilaxu) && !self.prevented(FactionAdvantage::TleilaxuReplacingFaceDancer);
-            self.enter_boolean_phase_phase(condition, Phase::ReplacingFaceDancer, Phase::TurnConcluded);
+            self.enter_either(condition, Phase::ReplacingFaceDancer, Phase::TurnConcluded);
         }
 
         self.determine_stronghold_ownership();
@@ -274,7 +274,7 @@ impl Game {
     }
 
     pub fn check_normal_win(&mut self) {
-        let mut check_win_sequence = PlayerSequence::new_game(self);
+        let mut check_win_sequence = PlayerSequence::starting_with_first_player(self);
 
         let mut i = 0;
         while i < self.players.len() {
@@ -369,10 +369,10 @@ impl Game {
             && self
                 .strongholds()
                 .filter(|t| {
-                    pl.controls_game_territory_boolean(self, *t, contested_strongholds_count_as_occupied)
+                    pl.controls_territory(self, *t, contested_strongholds_count_as_occupied)
                         && self
                             .player(pl.allied_player(self).expect("allied player"))
-                            .controls_game_territory_boolean(self, *t, contested_strongholds_count_as_occupied)
+                            .controls_territory(self, *t, contested_strongholds_count_as_occupied)
                 })
                 .count()
                 >= 3
@@ -383,10 +383,10 @@ impl Game {
         self.has_high_threshold(Faction::Ecaz)
             && ((pl.is(Faction::Ecaz) && pl.has_ally()) || pl.ally == Faction::Ecaz)
             && self.strongholds().any(|t| {
-                pl.controls_game_territory_boolean(self, t, contested_strongholds_count_as_occupied)
+                pl.controls_territory(self, t, contested_strongholds_count_as_occupied)
                     && self
                         .player(pl.allied_player(self).expect("allied player"))
-                        .controls_game_territory_boolean(self, t, contested_strongholds_count_as_occupied)
+                        .controls_territory(self, t, contested_strongholds_count_as_occupied)
             })
             && self.homeworld_occupation.values().filter(|f| **f == pl.faction || **f == pl.ally).count() >= 2
     }
@@ -401,8 +401,8 @@ impl Game {
                 .territories(false)
                 .filter(|t| t.is_stronghold() || self.is_special_stronghold(*t))
                 .filter(|l| {
-                    pl.controls_game_territory_boolean(self, *l, contested_strongholds_count_as_occupied)
-                        || allied.controls_game_territory_boolean(self, *l, contested_strongholds_count_as_occupied)
+                    pl.controls_territory(self, *l, contested_strongholds_count_as_occupied)
+                        || allied.controls_territory(self, *l, contested_strongholds_count_as_occupied)
                 })
                 .count() as i32;
             tech_token_point + count
@@ -417,7 +417,7 @@ impl Game {
         self.map
             .territories(false)
             .filter(|t| t.is_stronghold() || self.is_special_stronghold(*t))
-            .filter(|l| pl.controls_game_territory_boolean(self, *l, contested_strongholds_count_as_occupied))
+            .filter(|l| pl.controls_territory(self, *l, contested_strongholds_count_as_occupied))
             .count() as i32
     }
 
@@ -495,7 +495,7 @@ impl Game {
     pub fn check_other_win_conditions(&mut self) {
         let mut with_most_points: Option<PlayerIndex> = None;
         let mut highest_number_of_points = -1;
-        let mut check_win_sequence = PlayerSequence::new_game(self);
+        let mut check_win_sequence = PlayerSequence::starting_with_first_player(self);
 
         for _ in 0..self.players.len() {
             // A null CurrentPlayer throws inside NumberOfVictoryPoints.

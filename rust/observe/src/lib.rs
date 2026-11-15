@@ -13,6 +13,7 @@ pub mod watch;
 pub mod allow;
 pub mod events;
 pub mod compare;
+pub mod compare_refs;
 pub mod jsondiff;
 pub mod replay;
 pub mod heavy;

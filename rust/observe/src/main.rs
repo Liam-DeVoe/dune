@@ -30,6 +30,11 @@ Usage:
   observe first FILE [--allow FILE]
       Replay one game (recorded now by the reference, with full views, or read from a trace
       file) and describe its first difference in detail, with a diff of the view that differs.
+  observe compare-refs A B --mode bots|fuzz --seed S --games N [--start I] [--jobs J]
+               [--allow FILE] [--keep-failures DIR] [-v]
+      Record the same games with reference binaries A and B and compare what players observe:
+      acceptance, rejection messages, the log, views and applicable types. How events are
+      written is not compared, so A and B may use different event formats.
   observe reach --mode bots|fuzz --seed S --games N [--start I] [--jobs J] [--recorder BIN]
       Record games with this binary (or BIN) and report what they exercise: event types and
       (type, phase) pairs accepted, phases reached, types offered but never accepted.
@@ -44,7 +49,7 @@ Usage:
 Common options: --hang-seconds S (default 120): a call that runs longer counts as hung;
 --memory-mb M (default 640): the memory one game may use (0 = no limit).
 --reference defaults to $OBSERVE_REFERENCE, else rust/reference/observe, else ~/treachery-native-ref/observe.
---jobs defaults to 4 at most. live waits for a heavy slot (rust/tools/heavy.sh) unless it already
+--jobs defaults to 4 at most. live and compare-refs wait for a heavy slot (rust/tools/heavy.sh) unless it already
 runs inside heavy.sh.
 Exit code: 0 if every game matched, 1 otherwise, 2 on usage errors.
 ";
@@ -123,6 +128,7 @@ fn main() -> ExitCode {
         "record" => cmd_record(&args),
         "live" => cmd_live(&args),
         "first" => cmd_first(&args),
+        "compare-refs" => cmd_compare_refs(&args),
         "replay" => cmd_replay(&args),
         "reach" => cmd_reach(&args),
         "refit" => cmd_refit(&args),
@@ -229,10 +235,47 @@ fn cmd_live(args: &Args) -> Result<bool, String> {
     let _slot = observe::heavy::acquire_heavy_slot();
     let start = std::time::Instant::now();
     let results = live::run(&o);
-    print!("{}", report::summary(&results, start.elapsed().as_secs_f64()));
+    print!("{}", report::summary(&results, start.elapsed().as_secs_f64(), report::REPLAY_SIDES));
     if let Some(r) = results.iter().find(|r| !r.outcome.passed()) {
         println!(
             "\nTo see it again:\n  cargo run -p observe --release -- first --mode {} --seed {} --game {}{}",
+            r.game.mode,
+            r.game.seed,
+            r.game.index,
+            args.get("allow").map(|a| format!(" --allow {a}")).unwrap_or_default()
+        );
+    }
+    Ok(results.iter().all(|r| r.outcome.passed()))
+}
+
+fn cmd_compare_refs(args: &Args) -> Result<bool, String> {
+    let [a, b] = &args.positional[..] else { return Err(format!("compare-refs takes two reference binaries\n\n{USAGE}")) };
+    for bin in [a, b] {
+        if !std::path::Path::new(bin).exists() {
+            return Err(format!("compare-refs: no binary at {bin}"));
+        }
+    }
+    let cpus = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
+    let o = observe::compare_refs::Options {
+        a: PathBuf::from(a),
+        b: PathBuf::from(b),
+        mode: args.mode()?,
+        seed: args.required("seed")?,
+        start: args.num("start", 0)?,
+        games: args.required("games")?,
+        jobs: args.num("jobs", cpus.min(4))?,
+        allow: Arc::new(Allow::load(args.get("allow"))?),
+        budgets: args.budgets()?,
+        keep_failures: args.get("keep-failures").map(PathBuf::from),
+        verbose: args.has("v"),
+    };
+    let _slot = observe::heavy::acquire_heavy_slot();
+    let start = std::time::Instant::now();
+    let results = observe::compare_refs::run(&o);
+    print!("{}", report::summary(&results, start.elapsed().as_secs_f64(), observe::compare_refs::SIDES));
+    if let Some(r) = results.iter().find(|r| !r.outcome.passed()) {
+        println!(
+            "\nTo see it again:\n  cargo run -p observe --release -- compare-refs {a} {b} --mode {} --seed {} --start {} --games 1{}",
             r.game.mode,
             r.game.seed,
             r.game.index,

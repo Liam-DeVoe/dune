@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct EstablishPlayers {
-    pub settings: Option<Shared<GameSettings>>,
+    pub settings: Option<GameSettings>,
     pub seed: i32,
     pub maximum_number_of_players: i32,
     pub maximum_turns: i32,
@@ -16,7 +16,7 @@ pub struct EstablishPlayers {
 impl Default for EstablishPlayers {
     fn default() -> Self {
         EstablishPlayers {
-            settings: Some(Shared::new(Default::default())),
+            settings: Some(Default::default()),
             seed: Default::default(),
             maximum_number_of_players: 6,
             maximum_turns: 10,
@@ -58,11 +58,11 @@ impl EstablishPlayers {
         if game.turn.current_phase != Phase::AwaitingPlayers {
             return Some(express!("Invalid game phase"));
         }
-        let settings = self.settings.as_ref().expect("settings").borrow();
+        let settings = self.settings.as_ref().expect("settings");
         if settings.number_of_players < 2 {
             return Some(express!("At least two players required"));
         }
-        if settings.number_of_players > settings.allowed_factions_in_play.as_ref().expect("allowed factions in play").borrow().len() as i32 {
+        if settings.number_of_players > settings.allowed_factions_in_play.as_ref().expect("allowed factions in play").len() as i32 {
             return Some(express!("More factions required"));
         }
         if game.participation.borrow().seated_players.len() as i32 > settings.number_of_players {
@@ -72,7 +72,6 @@ impl EstablishPlayers {
             .allowed_factions_in_play
             .as_ref()
             .expect("allowed factions in play")
-            .borrow()
             .iter()
             .any(|f| !Self::available_factions().contains(f))
         {
@@ -178,16 +177,14 @@ impl EstablishPlayers {
 
         //Settings
 
-        // Shares the event's own settings object. A null Settings is stored,
-        // and the next statement throws NullReferenceException on Game.Settings.InitialRules.
+        // A copy of the event's settings. A null Settings is stored, and the next statement
+        // fails the event.
         game.rules.settings = self.settings.clone();
 
         //Rules
 
-        // AllRules shares Settings.InitialRules; nothing mutates either afterwards, so a copy
-        // is equivalent (engine-conventions.md). A null InitialRules is stored; the Where below
-        // throws ArgumentNullException.
-        game.rules.all_rules = game.rules.settings.as_ref().required("settings")?.borrow().initial_rules.clone();
+        // A null InitialRules is stored, and the filter below panics.
+        game.rules.all_rules = game.rules.settings.as_ref().required("settings")?.initial_rules.clone();
 
         game.rules.active = game.rules.all_rules.as_ref().expect("rules").iter().copied().filter(|r| Game::get_rule_group(*r) != RuleGroup::Bots).collect();
         game.rules.rules_for_bots =
@@ -195,8 +192,8 @@ impl EstablishPlayers {
         let core_basic = Game::get_rules_in_group(RuleGroup::CoreBasic, Game::EXPANSION_LEVEL);
         game.rules.active.extend(core_basic);
 
-        let allowed = game.rules.settings.as_ref().required("settings")?.borrow().allowed_factions_in_play.clone().required("allowed factions in play")?;
-        game.rules.ruleset = Game::determine_approximate_ruleset(&allowed.borrow(), &game.rules.active, Game::EXPANSION_LEVEL);
+        let allowed = game.rules.settings.as_ref().required("settings")?.allowed_factions_in_play.clone().required("allowed factions in play")?;
+        game.rules.ruleset = Game::determine_approximate_ruleset(&allowed, &game.rules.active, Game::EXPANSION_LEVEL);
         let ruleset = game.rules.ruleset;
         self.log_objects(game, vec!["Ruleset: ".into(), ruleset.into()]);
 
@@ -255,9 +252,9 @@ impl EstablishPlayers {
         game.alliances.bene_gesserit_allows_use_of_voice = true;
         game.alliances.richese_allows_use_of_no_field = true;
 
-        // The same list object as Settings.AllowedFactionsInPlay. It cannot be
-        // null here: DetermineApproximateRuleset above would have thrown.
-        game.rules.factions_in_play = game.rules.settings.as_ref().required("settings")?.borrow().allowed_factions_in_play.clone().required("allowed factions in play")?;
+        // A copy of the settings' allowed factions, which can't be null here: the ruleset above
+        // needed them.
+        game.rules.factions_in_play = game.rules.settings.as_ref().required("settings")?.allowed_factions_in_play.clone().required("allowed factions in play")?;
 
         self.fill_seats(game);
         self.remove_claimed_factions(game);
@@ -285,14 +282,18 @@ impl EstablishPlayers {
         game.decks.nexus_card_deck.as_mut().expect("nexus card deck").shuffle();
     }
 
+    /// Takes the factions players already have out of the factions in play. A validated
+    /// `EstablishPlayers` comes before anyone has a faction, so only a savegame replayed without
+    /// validation can get here with claimed factions. The settings' list and the game's list were
+    /// one object in the C# engine, so both lose the faction. The event's own settings don't.
     pub fn remove_claimed_factions(&self, game: &mut Game) {
-        // The body only changes the factions list, not Players, so collecting first is equivalent.
         let claimed: Vec<Faction> = game.players.iter().filter(|p| !p.is(Faction::None)).map(|p| p.faction).collect();
         for f in claimed {
-            let list = game.rules.settings.as_ref().expect("settings").borrow().allowed_factions_in_play.clone().expect("allowed factions in play");
-            let mut list = list.borrow_mut();
-            if let Some(i) = list.iter().position(|x| *x == f) {
-                list.remove(i);
+            let settings = game.rules.settings.as_mut().expect("settings");
+            for list in [settings.allowed_factions_in_play.as_mut().expect("allowed factions in play"), &mut game.rules.factions_in_play] {
+                if let Some(i) = list.iter().position(|x| *x == f) {
+                    list.remove(i);
+                }
             }
         }
     }
@@ -331,7 +332,7 @@ impl EstablishPlayers {
     }
 
     pub fn fill_seats(&self, game: &mut Game) {
-        while (game.players.len() as i32) < game.rules.settings.as_ref().expect("settings").borrow().number_of_players {
+        while (game.players.len() as i32) < game.rules.settings.as_ref().expect("settings").number_of_players {
             let player = Player::new(Faction::None);
             game.players.push(player);
         }

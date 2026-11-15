@@ -9,8 +9,8 @@ pub struct Rules {
     /// `EstablishPlayers` can assign a null `Settings.InitialRules`, hence the `Option`.
     pub all_rules: Option<Vec<Rule>>,
     /// `EstablishPlayers` can assign null, hence the `Option`.
-    pub settings: Option<Shared<GameSettings>>,
-    pub factions_in_play: Shared<Vec<Faction>>,
+    pub settings: Option<GameSettings>,
+    pub factions_in_play: Vec<Faction>,
     pub automation_rules: Vec<Rc<AutomationConfigured>>,
     pub secrets_remain_hidden: Vec<Faction>,
 }

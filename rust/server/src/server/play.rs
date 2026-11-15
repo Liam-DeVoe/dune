@@ -106,11 +106,8 @@ impl Server {
         let now = self.now();
         let site = self.services.settings.site_url.clone();
         let Some(g) = self.games.get_mut(game) else { return Ok(()) };
-        let Some(settings) = g.game.rules.settings.clone() else { return Ok(()) };
-        let (async_play, interval) = {
-            let s = settings.borrow();
-            (s.async_play, s.async_play_message_interval_minutes)
-        };
+        let Some(s) = &g.game.rules.settings else { return Ok(()) };
+        let (async_play, interval) = (s.async_play, s.async_play_message_interval_minutes);
         if !async_play {
             return Ok(());
         }

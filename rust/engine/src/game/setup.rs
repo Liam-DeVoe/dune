@@ -37,7 +37,7 @@ impl Game {
 
     pub fn assign_factions_and_enter_faction_trade(&mut self) {
         // The Deck constructor copies its source, so evaluating the filter here is equivalent.
-        let all = self.rules.factions_in_play.borrow().clone();
+        let all = self.rules.factions_in_play.clone();
         let available_factions: Vec<Faction> = all.into_iter().filter(|f| !self.is_playing(*f)).collect();
         let mut selectable = Deck::new(available_factions, self.random.clone());
         self.stone(Milestone::Shuffled);
@@ -56,7 +56,7 @@ impl Game {
     pub fn determine_positions_at_table(&mut self) {
         let mut seats: Deck<i32> = Deck::empty(self.random.clone());
         let mut i = 0;
-        while i < self.rules.settings.as_ref().expect("settings").borrow().number_of_players {
+        while i < self.rules.settings.as_ref().expect("settings").number_of_players {
             seats.put_on_top(i);
             i += 1;
         }

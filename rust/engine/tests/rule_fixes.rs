@@ -213,11 +213,11 @@ fn a_richese_card_taken_from_the_deck_or_the_cache_leaves_the_other() {
     let mut g = Game::with_participation(Game::LATEST_VERSION, &Shared::new(Participation::default()));
     let mut s = GameSettings::new();
     s.number_of_players = 3;
-    s.allowed_factions_in_play = Some(Shared::new(vec![Faction::Richese, Faction::Atreides, Faction::Emperor]));
+    s.allowed_factions_in_play = Some(vec![Faction::Richese, Faction::Atreides, Faction::Emperor]);
     s.initial_rules = Some(vec![Rule::RicheseTreacheryCards]);
     let mut establish = EstablishPlayers::new(&g, Faction::None);
     establish.seed = 7;
-    establish.settings = Some(Shared::new(s));
+    establish.settings = Some(s);
     assert!(GameEvent::EstablishPlayers(Rc::new(establish)).execute(&mut g, false, true).is_none());
     let end = GameEvent::EndPhase(Rc::new(EndPhase::new(&g, Faction::None)));
     assert!(end.execute(&mut g, false, true).is_none());

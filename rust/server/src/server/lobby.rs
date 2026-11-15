@@ -92,8 +92,7 @@ impl Server {
         let before_start = game.turn.current_phase <= Phase::AwaitingPlayers;
         let (factions_in_play, ruleset, max_players, max_turns) = match &game.rules.settings {
             Some(settings) => {
-                let settings = settings.borrow();
-                let allowed: Vec<Faction> = settings.allowed_factions_in_play.as_ref().map(|f| f.borrow().clone()).unwrap_or_default();
+                let allowed: Vec<Faction> = settings.allowed_factions_in_play.clone().unwrap_or_default();
                 let (factions, ruleset) = if before_start {
                     let rules = settings.initial_rules.as_ref().expect("initial rules");
                     (allowed.clone(), Game::determine_approximate_ruleset(&allowed, rules, Game::EXPANSION_LEVEL))

@@ -374,11 +374,11 @@ fn clairvoyance_answer_without_question_stores_qna_then_fails() {
 
 #[test]
 fn bene_gesserit_prediction_valid_turns() {
-    let g = game_with(&[Faction::BeneGesserit, Faction::Emperor]);
-    g.rules.settings.as_ref().unwrap().borrow_mut().maximum_turns = 3;
+    let mut g = game_with(&[Faction::BeneGesserit, Faction::Emperor]);
+    g.rules.settings.as_mut().unwrap().maximum_turns = 3;
     assert_eq!(BeneGesseritPrediction::valid_turns(&g), vec![1, 2, 3]);
     // A negative turn limit panics (C# threw ArgumentOutOfRangeException from Enumerable.Range).
-    g.rules.settings.as_ref().unwrap().borrow_mut().maximum_turns = -1;
+    g.rules.settings.as_mut().unwrap().maximum_turns = -1;
     assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| BeneGesseritPrediction::valid_turns(&g))).is_err());
 }
 

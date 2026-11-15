@@ -206,7 +206,7 @@ impl GameStatus {
 
             Phase::DiallingStorm => {
                 let g: &Game = game;
-                let factions: Vec<Faction> = g.rules.factions_in_play.borrow().iter().copied().filter(|f| g.storm.has_battle_wheel.contains(f) && !g.turn.has_acted_or_passed.contains(f)).collect();
+                let factions: Vec<Faction> = g.rules.factions_in_play.iter().copied().filter(|f| g.storm.has_battle_wheel.contains(f) && !g.turn.has_acted_or_passed.contains(f)).collect();
                 Self::factions_status(g, "Please dial a number to determine storm movement.", "Storm movement is being determined...", &factions, None)
             }
 

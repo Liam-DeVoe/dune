@@ -186,11 +186,11 @@ fn determine_first_player_skips_empty_seats_and_panics() {
     g.board.sector_in_storm = 6; // starts looking at seat 2
     assert_eq!(PlayerSequence::determine_first_player(&g), g.player_at(1));
 
-    g.rules.settings.as_ref().unwrap().borrow_mut().number_of_players = 0;
+    g.rules.settings.as_mut().unwrap().number_of_players = 0;
     assert_eq!(exception_text(|| PlayerSequence::determine_first_player(&g)), "attempt to calculate the remainder with a divisor of zero");
 
-    let g = game_with(&[]);
-    g.rules.settings.as_ref().unwrap().borrow_mut().number_of_players = 3;
+    let mut g = game_with(&[]);
+    g.rules.settings.as_mut().unwrap().number_of_players = 3;
     // No player in any seat: a plain panic (C# threw "Could not determine the first player.").
     assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| PlayerSequence::determine_first_player(&g))).is_err());
 }

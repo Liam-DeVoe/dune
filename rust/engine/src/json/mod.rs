@@ -27,7 +27,6 @@ use std::fmt::Write as _;
 
 use indexmap::IndexMap;
 
-use crate::shared::Shared;
 use crate::compat::date_time_offset::DateTimeOffset;
 use crate::events::{GameEvent, GameEventType};
 use crate::enum_type::GameEnum;
@@ -538,18 +537,6 @@ impl<T: ToJson> ToJson for RefCell<T> {
 impl<T: FromJson> FromJson for RefCell<T> {
     fn from_json(v: &JsonValue) -> Result<Self, JsonError> {
         T::from_json(v).map(RefCell::new)
-    }
-}
-
-impl<T: ToJson> ToJson for Shared<T> {
-    fn write_json(&self, w: &mut JsonWriter) {
-        self.borrow().write_json(w)
-    }
-}
-
-impl<T: FromJson> FromJson for Shared<T> {
-    fn from_json(v: &JsonValue) -> Result<Self, JsonError> {
-        T::from_json(v).map(Shared::new)
     }
 }
 

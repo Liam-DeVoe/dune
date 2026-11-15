@@ -21,7 +21,7 @@ pub fn seatless_host_may_act(v: &ResolvedViewer, t: GameEventType) -> bool {
 fn initial_settings() -> GameSettings {
     let mut s = GameSettings::default();
     s.initial_rules = Some(Game::ruleset_definition().iter().find(|(r, _)| **r == Ruleset::BasicGame).map(|(_, rules)| rules.clone()).unwrap_or_default());
-    s.allowed_factions_in_play = Some(Shared::new(get_values_except_default(Faction::None).collect()));
+    s.allowed_factions_in_play = Some(get_values_except_default(Faction::None).collect());
     s
 }
 
@@ -29,7 +29,7 @@ pub fn default_draft(game: &Game, faction: Faction, t: GameEventType) -> Option<
     Some(match t {
         GameEventType::EstablishPlayers => {
             let mut e = EstablishPlayers::new(game, faction);
-            e.settings = Some(Shared::new(initial_settings()));
+            e.settings = Some(initial_settings());
             event(e)
         }
         // No forces staged, no spice.

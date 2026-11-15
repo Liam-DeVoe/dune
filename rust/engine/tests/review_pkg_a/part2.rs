@@ -93,7 +93,7 @@ fn dollar_members_in_non_polymorphic_objects_are_ignored() {
     use treachery_engine::events::GameEvent;
     let r = Utilities::deserialize::<GameEvent>(r#"{"$type":"EstablishPlayers","Settings":{"$foo":1,"MaximumTurns":4}}"#)
         .map(|e| match e.unwrap() {
-            GameEvent::EstablishPlayers(ep) => ep.settings.as_ref().unwrap().borrow().maximum_turns,
+            GameEvent::EstablishPlayers(ep) => ep.settings.as_ref().unwrap().maximum_turns,
             _ => -1,
         })
         .map_err(|e| format!("{}: {}", e.kind, e.message));

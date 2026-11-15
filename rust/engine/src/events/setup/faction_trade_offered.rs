@@ -34,7 +34,7 @@ impl FactionTradeOffered {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Faction> {
-        let factions: Vec<Faction> = g.rules.factions_in_play.borrow().clone();
+        let factions: Vec<Faction> = g.rules.factions_in_play.clone();
         // `p.Faction` is read inside the predicate, per element.
         crate::iter::unique(factions.into_iter().chain(g.players.iter().map(|p| p.faction))).filter(move |f| *f != g.player(p).faction)
     }

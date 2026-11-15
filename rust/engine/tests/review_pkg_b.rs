@@ -181,7 +181,7 @@ fn rust_lines() -> Vec<String> {
     for players in 1..=12 {
         for sector in -2..=19 {
             let mut g = Game::with_participation(Game::LATEST_VERSION, &treachery_engine::shared::Shared::new(Participation::new()));
-            g.rules.settings.as_ref().unwrap().borrow_mut().number_of_players = players;
+            g.rules.settings.as_mut().unwrap().number_of_players = players;
             for i in 0..players {
                 if i % 3 == 1 {
                     continue;
@@ -273,7 +273,7 @@ fn sequence_lines() -> Vec<String> {
             let mut g = Game::with_participation(version, &treachery_engine::shared::Shared::new(Participation::new()));
             let count = 1 + r.below(6);
             let np = (count + r.below(2)) as i32;
-            g.rules.settings.as_ref().unwrap().borrow_mut().number_of_players = np;
+            g.rules.settings.as_mut().unwrap().number_of_players = np;
             let factions = [Faction::Atreides, Faction::Richese, Faction::Harkonnen, Faction::Emperor, Faction::Choam, Faction::BeneGesserit, Faction::Tleilaxu];
             for i in 0..count {
                 let mut p = Player::new(factions[(i + seed as usize) % factions.len()]);

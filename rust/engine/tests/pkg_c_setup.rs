@@ -25,12 +25,12 @@ fn exception_text<R>(f: impl FnOnce() -> R) -> String {
     }
 }
 
-fn settings(n: i32, factions: &[Faction], rules: &[Rule]) -> Shared<GameSettings> {
+fn settings(n: i32, factions: &[Faction], rules: &[Rule]) -> GameSettings {
     let mut s = GameSettings::new();
     s.number_of_players = n;
-    s.allowed_factions_in_play = Some(Shared::new(factions.to_vec()));
+    s.allowed_factions_in_play = Some(factions.to_vec());
     s.initial_rules = Some(rules.to_vec());
-    Shared::new(s)
+    s
 }
 
 // ---------------------------------------------------------------- Game_Setup
@@ -136,10 +136,10 @@ fn automation_rules_create_and_delete() {
 
 // ---------------------------------------------------------------- EstablishPlayers
 
-/// The game shares the event's settings and factions list: a removal
-/// through the game is seen by the event's settings.
+/// The game takes a copy of the event's settings and factions list: a removal through the game
+/// leaves the event as it was, so the event is saved as it was submitted.
 #[test]
-fn establish_players_shares_factions_list() {
+fn establish_players_copies_factions_list() {
     let mut g = Game::new();
     let s = settings(
         3,
@@ -148,23 +148,23 @@ fn establish_players_shares_factions_list() {
     );
     let mut ev = EstablishPlayers::new(&g, Faction::None);
     ev.seed = 1234;
-    ev.settings = Some(s.clone());
+    ev.settings = Some(s);
     let ev = Rc::new(ev);
     let r = ev.execute(&mut g, false, true);
     assert!(r.is_none());
     assert_eq!(g.players.len(), 3);
     assert_eq!(g.turn.current_phase, Phase::SelectingFactions);
-    assert!(g.rules.settings.as_ref().unwrap().ptr_eq(&s));
-    g.rules.factions_in_play.borrow_mut().retain(|f| *f != Faction::Atreides);
-    assert_eq!(s.borrow().allowed_factions_in_play.as_ref().unwrap().borrow().len(), 3);
+    assert_eq!(g.rules.factions_in_play.len(), 4);
+    g.rules.factions_in_play.retain(|f| *f != Faction::Atreides);
+    assert_eq!(ev.settings.as_ref().unwrap().allowed_factions_in_play.as_ref().unwrap().len(), 4);
 }
 
 /// A null InitialRules throws ArgumentNullException from Where, not NullReferenceException.
 #[test]
 fn establish_players_null_initial_rules() {
     let mut g = Game::new();
-    let s = settings(2, &[Faction::Atreides, Faction::Emperor], &[]);
-    s.borrow_mut().initial_rules = None;
+    let mut s = settings(2, &[Faction::Atreides, Faction::Emperor], &[]);
+    s.initial_rules = None;
     let mut ev = EstablishPlayers::new(&g, Faction::None);
     ev.settings = Some(s);
     let ev = Rc::new(ev);

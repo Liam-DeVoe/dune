@@ -107,11 +107,11 @@ impl Game {
     pub const LATEST_VERSION: i32 = 189;
 
     pub fn maximum_turns(&self) -> i32 {
-        self.rules.settings.as_ref().expect("settings").borrow().maximum_turns
+        self.rules.settings.as_ref().expect("settings").maximum_turns
     }
 
     pub fn maximum_players(&self) -> i32 {
-        self.rules.settings.as_ref().expect("settings").borrow().number_of_players
+        self.rules.settings.as_ref().expect("settings").number_of_players
     }
 
     pub fn new() -> Self {

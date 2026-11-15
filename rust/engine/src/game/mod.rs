@@ -1496,10 +1496,6 @@ impl Game {
         t.locations().iter().any(|l| self.is_in_storm(*l))
     }
 
-    pub fn is_occupied(&self, l: Location) -> bool {
-        self.players.iter().any(|p| p.occupies(self, Some(l)))
-    }
-
     pub fn is_occupied_territory(&self, t: Territory) -> bool {
         self.players.iter().any(|p| p.occupies_territory(self, Some(t)))
     }
@@ -1633,7 +1629,7 @@ impl Game {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn locations_with_any_forces_not_in_storm(&self, p: PlayerIndex) -> impl Iterator<Item = Location> {
-        // `p` is dereferenced inside the predicate, per element, as in C#.
+        // `p` is dereferenced inside the predicate, per element.
         self.map
             .locations(true)
             .filter(move |l| l.sector(&self.map) != self.sector_in_storm && self.player(p).any_forces_in(Some(*l)) > 0)
@@ -1680,28 +1676,6 @@ impl Game {
             && (player.faction == Faction::Fremen
                 || (player.ally == Faction::Fremen && self.fremen_shares_prescience)
                 || self.has_deal(player.faction, DealType::ShareStormPrescience))
-    }
-
-    pub fn next_storm_will_pass_over(&self, l: Location, storm_moves: i32) -> bool {
-        let mut i = 1;
-        while i <= storm_moves {
-            if (self.sector_in_storm + i) % Map::NUMBER_OF_SECTORS == l.sector(&self.map) {
-                return true;
-            }
-            i += 1;
-        }
-
-        false
-    }
-
-    pub fn distance_from_storm(&self, l: Location) -> i32 {
-        for i in 1..=Map::NUMBER_OF_SECTORS {
-            if (self.sector_in_storm + i) % Map::NUMBER_OF_SECTORS == l.sector(&self.map) {
-                return i;
-            }
-        }
-
-        -1
     }
 
     pub fn has_high_threshold(&self, f: Faction) -> bool {

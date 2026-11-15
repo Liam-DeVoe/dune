@@ -47,13 +47,12 @@ impl PerformMoritaniSetup {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        // Player is read before Target, as in C#.
+        // Player is read before Target.
         let me = self.player();
         // `Target` may be null without validation: ShipForces passes it on.
         let target = self.target(game).required("target")?;
         Player::ship_forces(game, me, target, 6);
         self.log(game);
-        // Game.Enter(bool, Action, Action) is static in C#; inlined here.
         if game.treachery_cards_before_traitors() {
             game.enter_storm_phase();
         } else {

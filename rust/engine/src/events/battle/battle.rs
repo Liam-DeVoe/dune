@@ -156,7 +156,6 @@ impl Battle {
             if let Some(battle_territory) = battle_territory {
                 let supplier = Battle::determine_force_supplier(game, aggressor_plan.player());
                 game.reveal_current_no_field_in_territory(supplier, battle_territory);
-                // C# reads Game.DefenderPlan again here; nothing in between changes it.
                 let supplier = Battle::determine_force_supplier(game, defender_plan.player());
                 game.reveal_current_no_field_in_territory(supplier, battle_territory);
             }
@@ -211,12 +210,6 @@ impl Battle {
 
     pub fn get_message(&self, _game: &Game) -> Message {
         express!(self.initiator(), " finalize their battle plan")
-    }
-
-    /// The plan as the log shows it. Panics outside the plan's battle; see
-    /// [`Battle::try_get_battle_plan_message`].
-    pub fn get_battle_plan_message(&self, game: &Game) -> Message {
-        self.try_get_battle_plan_message(game).expect("a battle plan message during its battle")
     }
 
     /// The plan as the log shows it, or why it can't be shown: the game has no battle against an
@@ -717,7 +710,7 @@ impl Battle {
             PrescienceAspect::Leader => self.hero() == seen.hero(),
             PrescienceAspect::Weapon => self.weapon() == seen.weapon(),
             PrescienceAspect::Defense => self.defense() == seen.defense(),
-            // float ==: NaN never matches, as in C#.
+            // float ==: NaN never matches.
             PrescienceAspect::Dial => self.dial(game, opponent) == seen.dial(game, opponent),
             _ => true,
         }
@@ -1101,29 +1094,6 @@ impl Battle {
             && g.can_join_current_battle(LeaderManager::messiah())
             && !g.prevented(FactionAdvantage::AtreidesUseMessiah)
             && g.applicable(Rule::AtreidesMessiah)
-    }
-
-    pub fn determine_forces(g: &Game, p: PlayerIndex, forces: i32, special_forces: i32, resources: i32, forces_full: &mut i32, forces_half: &mut i32, special_forces_full: &mut i32, special_forces_half: &mut i32) {
-        if Battle::must_pay_for_any_forces_in_battle(g, p) {
-            let effective_resources = Battle::cost_reduction(g, p) + resources;
-
-            if Battle::must_pay_for_special_forces_in_battle(g, p) {
-                *special_forces_full = special_forces.min(effective_resources);
-                *special_forces_half = special_forces - (*special_forces_full);
-                *forces_full = forces.min(effective_resources - (*special_forces_full));
-                *forces_half = forces - (*forces_full);
-            } else {
-                *special_forces_full = special_forces;
-                *special_forces_half = 0;
-                *forces_full = forces.min(effective_resources);
-                *forces_half = forces - (*forces_full);
-            }
-        } else {
-            *special_forces_full = special_forces;
-            *special_forces_half = 0;
-            *forces_full = forces;
-            *forces_half = 0;
-        }
     }
 
     pub fn determine_skill_bonus(g: &Game, plan: &Battle, activated_skill: &mut LeaderSkill) -> i32 {

@@ -1367,9 +1367,7 @@ impl Game {
             return;
         };
 
-        // The C# loop filters LeaderState lazily. The body changes only values, never
-        // the keys, so walking a snapshot of the keys and testing each one when it is
-        // reached is the same.
+        // The body changes only values, never the keys.
         let keys: Vec<Hero> = self.leader_state.keys().copied().collect();
         for key in keys {
             let Some(leader) = key.as_leader() else { continue };

@@ -30,25 +30,6 @@ impl GameStatistics {
         Self::default()
     }
 
-    pub fn get_statistics(game: &Game) -> GameStatistics {
-        let result = GameStatistics {
-            date: game.last_action(),
-            method: GameStatistics::win_method_name(game.win_method),
-            players: game
-                .players
-                .iter()
-                .map(|p| GameStatisticsPlayerInfo { name: p.name(game), faction: GameStatistics::faction_name(p.faction), id: String::new() })
-                .collect(),
-            ruleset: GameStatistics::ruleset_name(game.ruleset),
-            // DateTime - DateTime: the tick difference (offsets are already dropped).
-            time: GameStatistics::round_to_halves(TimeSpan::from_ticks(game.last_action().ticks - game.first_action().ticks).total_hours()),
-            turn: game.current_turn,
-            winners: game.winners.iter().map(|p| GameStatistics::faction_name(game.player(*p).faction)).collect(),
-        };
-
-        result
-    }
-
     pub fn round_to_halves(value: f64) -> f32 {
         // Math.Round(x, MidpointRounding.AwayFromZero) is f64::round.
         ((value * 2.0).round() as f32) / 2.0
@@ -67,7 +48,7 @@ impl GameStatistics {
         .to_string()
     }
 
-    pub fn faction_name(f: Faction) -> String {
+    pub fn to_string_faction(f: Faction) -> String {
         match f {
             Faction::Fremen => "FREMEN",
             Faction::Atreides => "ATREIDES",
@@ -84,7 +65,7 @@ impl GameStatistics {
         .to_string()
     }
 
-    pub fn ruleset_name(rules: Ruleset) -> String {
+    pub fn to_string_ruleset(rules: Ruleset) -> String {
         match rules {
             Ruleset::AdvancedGame | Ruleset::ExpansionAdvancedGame => "GF9 advanced",
             Ruleset::BasicGame | Ruleset::ExpansionBasicGame => "GF9 basic",

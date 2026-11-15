@@ -248,7 +248,6 @@ fn object_members(v: &JsonValue) -> Result<Vec<(String, JsonValue)>, JsonError> 
     }
 }
 
-/// `JsonSerializer.Serialize(value, Options)`
 pub fn serialize<T: ToJson + ?Sized>(value: &T) -> String {
     let mut w = JsonWriter::new();
     value.write_json(&mut w);

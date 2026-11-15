@@ -44,7 +44,7 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
     }
 
     fn forces_added_to_location(&self, game: &Game) -> i32 {
-        // ForceLocations != null ? ... : 0 (the dictionary is never null; parsed twice as in C#)
+        // ForceLocations != null ? ... : 0 (the dictionary is never null; parsed twice)
         let _ = self.force_locations(game);
         self.force_locations(game).values().map(|b| b.amount_of_forces).sum::<i32>()
     }
@@ -59,7 +59,7 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
             return None;
         }
 
-        // var p = Player (may be null; dereferenced only where C# does)
+        // The player may be unset; it is read only where needed.
         let p = self.player_opt();
         let pl = || game.player(p.expect("player"));
 

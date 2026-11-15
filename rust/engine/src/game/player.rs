@@ -100,21 +100,11 @@ impl Player {
     }
 
     pub fn forces_on_planet(&self) -> IndexMap<Location, Battalion> {
-                // C# shares the live Battalion objects with ForcesInLocations; no caller mutates them,
-        // so copies are equivalent.
         self.forces_in_locations.iter().filter(|(k, _)| k.as_homeworld().is_none()).map(|(k, v)| (*k, v.clone())).collect()
     }
 
     pub fn no_field_is_active(&self) -> bool {
                 self.faction == Faction::Richese && self.forces_in_locations.values().any(|b| b.amount_of_special_forces > 0)
-    }
-
-    pub fn get_homeworld(&self, special_forces: bool) -> Homeworld {
-                *self
-            .home_worlds
-            .iter()
-            .find(|hw| if special_forces { hw.is_home_of_special_forces() } else { hw.is_home_of_normal_forces() })
-            .expect("a homeworld for these forces")
     }
 
     /// Returns the live battalion, not a copy.
@@ -270,10 +260,6 @@ impl Player {
     }
 
     pub fn forces_to_reserves(game: &mut Game, me: PlayerIndex, location: Location) {
-        // C# holds the live Battalion object `ForcesInLocations[location]` and reads it after
-        // AddForcesToReserves. That object stays in the dictionary in between (adding a
-        // non-negative amount never empties a battalion), so reading the dictionary again is
-        // the same; a missing entry would mean a detached, emptied battalion, hence the 0.
         let amount_of_forces = game.player(me).forces_in_locations[&location].amount_of_forces;
 
         Player::add_forces_to_reserves(game, me, amount_of_forces);
@@ -584,11 +570,6 @@ impl Player {
                 self.forces_in_locations.keys().copied().collect()
     }
 
-    /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn locations_with_any_forces_in_territory(&self, t: Territory) -> impl Iterator<Item = Location> {
-                t.locations().iter().copied().filter(move |l| self.any_forces_in(Some(*l)) > 0)
-    }
-
     pub fn force(&self) -> FactionForce {
                 match self.faction {
             Faction::Atreides => FactionForce::Atreides,
@@ -701,7 +682,6 @@ impl Player {
     }
 
     pub fn battalions_in(&self, territory: Territory) -> IndexMap<Location, Battalion> {
-                // C# shares the live Battalion objects; no caller mutates them, so copies are equivalent.
         let mut result = IndexMap::new();
         for (k, v) in self.forces_in_locations.iter().filter(|(k, _)| k.territory() == territory) {
             result.insert_new(*k, v.clone());
@@ -723,8 +703,6 @@ impl Player {
     }
 
     pub fn battalion_in_location(&self, location: Location) -> Option<Battalion> {
-                // C# returns the live battalion when there is one, else a new detached one. No caller
-        // mutates the result, so a copy is equivalent.
         let mut result = None;
         if self.battalion_in(location, &mut result) { result } else { Some(Battalion::new(self.faction, 0, 0, location)) }
     }

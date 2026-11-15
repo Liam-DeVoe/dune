@@ -18,12 +18,10 @@ fn name<T: ToString>(v: T) -> String {
     v.to_string()
 }
 
-/// `BiddingPanel.IsSilentAuction`.
 fn is_silent(game: &Game) -> bool {
     game.current_auction_type == AuctionType::BlackMarketSilent || game.current_auction_type == AuctionType::RicheseSilent
 }
 
-/// `BiddingPanel.IsRicheseBidding`.
 fn is_richese_bidding(game: &Game) -> bool {
     game.current_auction_type == AuctionType::RicheseOnceAround || game.current_auction_type == AuctionType::RicheseSilent
 }

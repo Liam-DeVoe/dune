@@ -33,8 +33,10 @@ impl GameState {
 
     /// Reads a savegame.
     pub fn load(data: &str) -> Result<GameState, JsonError> {
-        let fixed_state_data = GameState::fix_game_state_string(data);
-        Utilities::deserialize::<GameState>(&fixed_state_data)?.ok_or_else(|| JsonError::new("JsonException", "Cannot load game state"))
+        // Old savegames named their types "Treachery.online.*". The replacement also changes
+        // any text in the savegame that contains the string, which players could see.
+        let data = data.replace("Treachery.online", "Treachery");
+        Utilities::deserialize::<GameState>(&data)?.ok_or_else(|| JsonError::new("JsonException", "Cannot load game state"))
     }
 
     pub fn get_state_as_string(g: &Game) -> String {
@@ -42,10 +44,6 @@ impl GameState {
         state.version = g.version;
         state.set_events(&g.history);
         Utilities::serialize(&state)
-    }
-
-    pub fn fix_game_state_string(state: &str) -> String {
-        state.replace("Treachery.online", "Treachery")
     }
 
 }

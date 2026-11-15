@@ -186,7 +186,6 @@ impl<T: CsType> CsType for Option<T> {
     }
 }
 
-/// `List<T>`
 impl<T: CsType> CsType for Vec<T> {
     fn cs_type_name() -> String {
         format!("System.Collections.Generic.List`1[{}]", T::cs_type_name())
@@ -430,19 +429,16 @@ impl<T: Into<ExpressionElement> + CsType, const N: usize> From<[T; N]> for Expre
     }
 }
 
-/// `Expression`
 #[derive(Clone, Debug, PartialEq, Default)]
 pub struct Expression {
     pub elements: Vec<ExpressionElement>,
 }
 
 impl Expression {
-    /// `new Expression(params object?[] elements)`
     pub fn new(elements: Vec<ExpressionElement>) -> Self {
         Expression { elements }
     }
 
-    /// `Expression.Express(params object[] list)`
     pub fn express(elements: Vec<ExpressionElement>) -> Self {
         Expression { elements }
     }

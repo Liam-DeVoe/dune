@@ -66,7 +66,6 @@ impl RicheseSpecifiesAuction {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         if !game.richese_occupier_specified_card {
             game.richese_auction_should_still_happen = false;
-            // C# puts a null card on the deck when executed without validation.
             let card = self.card().required("card")?;
             game.cards_on_auction.as_mut().required("cards on auction")?.put_on_top(card);
             crate::game::remove_card(&mut game.richese_cache, Some(card));

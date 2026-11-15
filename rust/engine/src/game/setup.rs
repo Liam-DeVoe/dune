@@ -171,7 +171,6 @@ impl Game {
             }
         }
 
-        // Game.Enter(bool, Action, Action) is static in C#; inlined here.
         if self.treachery_cards_before_traitors() {
             self.setup_spice_and_forces();
         } else {
@@ -224,7 +223,7 @@ impl Game {
                 Game::deal_starting_treachery_cards
             };
 
-            // All conditions are evaluated before the call, as in C#.
+            // All conditions are evaluated before the call.
             let c1 = self.is_playing(Faction::Fremen);
             let c2 = self.is_playing(Faction::BeneGesserit) && PerformBeneGesseritPlacement::bene_gesserit_may_place_first_force_in_any_territory(self);
             let c3 = self.is_playing(Faction::Moritani);
@@ -417,7 +416,6 @@ impl Game {
             }
         }
 
-        // Game.Enter(bool, Action, Action) is static in C#; inlined here.
         if self.treachery_cards_before_traitors() {
             self.assign_leader_skills();
         } else {

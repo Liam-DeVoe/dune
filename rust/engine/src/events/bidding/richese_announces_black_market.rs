@@ -65,7 +65,6 @@ impl RicheseAnnouncesBlackMarket {
             let me = self.player();
             let card = self.card();
             crate::game::remove_card(&mut game.player_mut(me).treachery_cards, card);
-            // C# puts a null card on the deck when executed without validation.
             let card = card.required("card")?;
             game.cards_on_auction.as_mut().required("cards on auction")?.put_on_top(card);
             game.register_known_by_faction(self.initiator(), card);

@@ -49,7 +49,7 @@ impl KarmaHandSwap {
             Game::unregister_all_known_by_player(game, p, &victim_cards);
         }
 
-        // ReturnedCards parses the id string again on every enumeration, as in C#.
+        // ReturnedCards parses the id string again on every enumeration.
         for returned in self.returned_cards() {
             game.player_mut(victim.required("victim")?).treachery_cards.push(returned);
             crate::game::remove_card(&mut game.player_mut(me.required("me")?).treachery_cards, Some(returned));

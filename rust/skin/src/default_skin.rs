@@ -8,7 +8,6 @@ use treachery_engine::map::point::PointD;
 
 use crate::skin::{Skin, SkinDictionary};
 
-/// `DefaultSkin.DEFAULT_ART_LOCATION`
 pub const DEFAULT_ART_LOCATION: &str = ".";
 
 /// `new()` of `DefaultSkin.Default`, built once per call. Use [`crate::default_skin()`] for the shared instance.

@@ -154,7 +154,6 @@ impl Connections {
     }
 
     /// Logs out the connections of an ended session: they stop following games and get
-    /// `SessionEnded`.
     pub fn end_session(&mut self, session: &str) {
         let ended: Vec<ConnectionId> = self.logins.iter().filter(|(_, (s, _))| s == session).map(|(c, _)| *c).collect();
         for connection in ended {

@@ -47,7 +47,6 @@ impl RicheseGaveCard {
         let card = self.card();
         crate::game::remove_card(&mut game.player_mut(me).treachery_cards, card);
         Game::register_known_by_player(game, me, card);
-        // C# adds a null card to the ally's hand when the card id is unknown.
         let target = target.required("target")?;
         game.player_mut(target).treachery_cards.push(card.required("card")?);
 

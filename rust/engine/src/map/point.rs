@@ -12,7 +12,4 @@ impl PointD {
         PointD { x, y }
     }
 
-    pub fn translate(self, d_x: f64, d_y: f64) -> PointD {
-        PointD::new(self.x + d_x, self.y + d_y)
-    }
 }

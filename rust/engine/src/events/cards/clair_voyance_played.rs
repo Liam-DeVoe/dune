@@ -123,14 +123,6 @@ impl ClairVoyancePlayed {
         })
     }
 
-    pub fn set_parameter2(&mut self, value: ExpressionElement) {
-        if let ExpressionElement::Null = value {
-            self.question_parameter2 = None;
-        } else {
-            self.question_parameter2 = Some(value.to_cs_string());
-        }
-    }
-
     pub fn get_question(&self, game: &Game) -> Message {
         if self.question == ClairvoyanceQuestion::None {
             return express!("");

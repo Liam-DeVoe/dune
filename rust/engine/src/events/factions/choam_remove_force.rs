@@ -56,7 +56,7 @@ impl ChoamRemoveForce {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_locations(g: &Game) -> impl Iterator<Item = Location> {
-        // The dictionary is built at the call, as in C#; Where and Distinct run as the caller pulls.
+        // The dictionary is built at the call; Where and Distinct run as the caller pulls.
         let keys: Vec<Location> = g.forces_on_planet_excluding_empty_locations(false).keys().copied().collect();
         crate::iter::unique(keys.into_iter().filter(move |l| !g.is_in_storm(*l)))
     }

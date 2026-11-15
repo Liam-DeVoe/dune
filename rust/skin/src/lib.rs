@@ -20,7 +20,7 @@ pub mod text;
 
 pub use skin::{Skin, SkinDictionary, SkinKey};
 
-/// `DefaultSkin.Default`: one shared instance per process, like the C# static.
+/// The default skin: one shared instance per process.
 pub fn default_skin() -> &'static Skin {
     static DEFAULT: std::sync::OnceLock<Skin> = std::sync::OnceLock::new();
     DEFAULT.get_or_init(default_skin::build)

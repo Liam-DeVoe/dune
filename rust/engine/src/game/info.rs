@@ -60,24 +60,4 @@ impl GameInfo {
         self.seated_players.get(&user_id).copied().unwrap_or(-1)
     }
 
-    pub fn you_are_in(&self, user_id: i32) -> bool {
-        self.seated_players.contains_key(&user_id)
-    }
-
-    /// Takes `Option<&GameInfo>`: an object of any other type is unequal, like `None`.
-    pub fn equals(&self, obj: Option<&GameInfo>) -> bool {
-        matches!(obj, Some(info) if info.game_id == self.game_id)
-    }
-
-    pub fn get_hash_code(&self) -> i32 {
-        // Not bit-equal to C#: .NET randomizes string hash codes per process, so no
-        // port can match it. Only consistency with `equals` matters (FNV-1a over UTF-16).
-        let mut h: u32 = 0x811c9dc5;
-        for u in self.game_id.encode_utf16() {
-            h ^= u as u32;
-            h = h.wrapping_mul(0x01000193);
-        }
-        h as i32
-    }
-
 }

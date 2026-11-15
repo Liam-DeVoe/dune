@@ -277,7 +277,6 @@ impl TerrorRevealed {
                 TerrorType::Robbery => {
                     if self.robbery_takes_card {
                         let card = game.draw_treachery_card();
-                        // C# adds the result even when it is null (both decks empty).
                         game.player_mut(self.player()).treachery_cards.push(card.required("card")?);
                         self.log_objects(game, elems![self.initiator(), " draw a Treachery Card"]);
                     } else {

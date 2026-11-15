@@ -24,7 +24,6 @@ fn event_json(e: GameEvent) -> serde_json::Value {
 /// The deals panel of a seated player (observers have no trade icons):
 /// offers to the viewer with their acceptance, the viewer's own offers with each recipient's
 /// answer, and every deal in force. `DealAccepted.AcceptableDeals`, `CancellableDeals` and
-/// `CurrentDeals`.
 pub fn deals(game: &Game, v: &ResolvedViewer, d: &dyn Describer) -> Option<DealsView> {
     let p = v.player.filter(|_| !v.is_observer)?;
     let faction = game.player(p).faction;

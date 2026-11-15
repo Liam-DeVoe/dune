@@ -58,7 +58,6 @@ impl CardsDetermined {
         game.richese_cache = self.richese_cards();
         let message = self.get_verbose_message();
         self.log_objects(game, vec![message.into()]);
-        // Game.Enter(bool, Action, Action) is static in C#; inlined here.
         game.enter_setup_phase();
         Ok(())
     }

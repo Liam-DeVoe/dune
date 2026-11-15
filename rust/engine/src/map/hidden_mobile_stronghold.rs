@@ -22,7 +22,6 @@ impl HiddenMobileStronghold {
         AttachedLocation::from_location(self.0)
     }
 
-    /// `AttachedToLocation`
     pub fn attached_to_location(self, map: &Map) -> Option<Location> {
         self.attached().attached_to_location(map)
     }

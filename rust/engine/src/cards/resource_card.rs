@@ -36,7 +36,6 @@ fn cards() -> &'static (Vec<ResourceCardData>, Vec<ResourceCard>) {
     })
 }
 
-/// `Map.GetResourceCardsInAndOutsidePlay(m)`.
 fn get_resource_cards_in_and_outside_play(m: &Map) -> Vec<ResourceCardData> {
     let card = |skin_id, location, discovery_location| ResourceCardData {
         skin_id,

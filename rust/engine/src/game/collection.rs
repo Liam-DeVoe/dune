@@ -244,7 +244,3 @@ pub struct ResourcesToBeDivided {
     pub territory: Territory,
 }
 
-// C#: the implicit parameterless constructor leaves `Territory` null until it is
-// assigned. Its only caller (`Game.CollectResourcesFromTerritories`) assigns every
-// field before the object is stored, so Rust builds it with a struct literal and
-// `Territory` stays non-nullable.

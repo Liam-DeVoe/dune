@@ -40,7 +40,6 @@ impl IxianRemovedCardFromAuction {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let card = self.card();
         crate::game::remove_card(&mut game.cards_on_auction.as_mut().required("cards on auction")?.items, card);
-        // C# puts a null card on the deck when the card id is unknown.
         let card = card.required("card")?;
 
         if self.put_on_top {

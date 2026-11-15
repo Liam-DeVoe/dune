@@ -16,7 +16,6 @@ use treachery_engine::shared::Shared;
 use treachery_engine::events::GameEventType;
 use treachery_engine::game::GameState;
 use treachery_engine::json;
-use treachery_engine::messages::message::Message;
 use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
 
@@ -177,9 +176,6 @@ impl ViewReplica {
         Ok(())
     }
 
-    pub fn last_message(&self) -> Option<&Message> {
-        self.game.reports().last().and_then(|r| r.messages.last())
-    }
 }
 
 /// One line of the undo list (`RequestUndoList`, protocol.md).

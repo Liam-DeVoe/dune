@@ -85,7 +85,7 @@ impl Donated {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Faction> {
-        // `p` is dereferenced inside the predicate, per element, as in C#.
+        // `p` is dereferenced inside the predicate, per element.
         g.players
             .iter()
             .filter(move |x| x.faction != g.player(p).faction && (g.player(p).is(Faction::Emperor) || x.faction != g.player(p).ally))

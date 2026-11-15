@@ -106,7 +106,6 @@ impl Game {
         }
     }
 
-    /// `PreviousBlowCard == null || PreviousBlowCard.IsShaiHulud || PreviousBlowCard.IsGreatMaker ? null : PreviousBlowCard.Territory`
     fn previous_monster_territory(&self) -> Option<Territory> {
         match self.previous_blow_card() {
             None => None,
@@ -533,10 +532,6 @@ impl Game {
             // C# parity: "11th", "21th".
             _ => format!("{}th", count),
         }
-    }
-
-    pub fn current_discard_pile(&self) -> Option<&Deck<ResourceCard>> {
-        if self.current_phase == Phase::BlowA { self.resource_card_discard_pile_a.as_ref() } else { self.resource_card_discard_pile_b.as_ref() }
     }
 
     /// `CurrentDiscardPile`, for callers that change the pile.

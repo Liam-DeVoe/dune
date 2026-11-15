@@ -110,8 +110,7 @@ impl Game {
 
     /// A constant table, rebuilt on each call.
     pub fn ruleset_definition() -> IndexMap<Ruleset, Vec<Rule>> {
-                // A constant table: nothing in Shared writes RulesetDefinition, so a fresh copy per call
-        // is equivalent. Insertion order is the C# initializer order.
+        // A constant table, built fresh on each call.
         const EXPANSION_LEVEL: i32 = Game::EXPANSION_LEVEL;
         let core_advanced = [
             Rule::AdvancedCombat,

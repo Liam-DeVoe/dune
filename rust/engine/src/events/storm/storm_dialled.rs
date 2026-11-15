@@ -131,7 +131,6 @@ impl StormDialled {
             let current = tech_token_sequence.current_player(game).expect("current player");
             if game.player(current).tech_tokens.is_empty() {
                 let token = remaining_tech_tokens.draw();
-                // CurrentPlayer is re-read in C#; nothing in between changes the sequence.
                 game.player_mut(current).tech_tokens.push(token);
                 let faction = game.player(current).faction;
                 self.log_objects(game, elems![faction, " receive ", token]);

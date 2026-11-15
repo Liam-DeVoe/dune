@@ -28,7 +28,7 @@ impl AuditCancelled {
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if self.cancelled && game.player(self.player()).resources < Self::cost_of_cancelling(game) {
+        if self.cancelled && game.player(self.player()).resources < Self::get_number_of_cards_that_may_be_audited(game) {
             return Some(express!("You can't pay enough to prevent the audit"));
         }
         None
@@ -65,7 +65,7 @@ impl AuditCancelled {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         if self.cancelled {
-            let cost = Payment::of(Self::cost_of_cancelling(game));
+            let cost = Payment::of(Self::get_number_of_cards_that_may_be_audited(game));
             let n = Self::get_number_of_cards_that_may_be_audited(game);
             game.log(elems![self.initiator(), " pay ", Faction::Choam, cost, " to cancel an audit of ", n, " cards"]);
         } else {

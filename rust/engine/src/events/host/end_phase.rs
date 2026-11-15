@@ -375,7 +375,6 @@ fn enter_spice_collection_phase(game: &mut Game) {
     game.enter(Phase::BeginningOfCollection, true);
 }
 
-/// `CallHeroesHome`
 fn call_heroes_home(game: &mut Game) {
     for ls in game.leader_state.values_mut() {
         ls.current_territory = None;

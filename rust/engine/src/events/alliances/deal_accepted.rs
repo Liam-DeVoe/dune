@@ -218,13 +218,6 @@ impl DealAccepted {
         )
     }
 
-    pub fn get_deal_contents(&self) -> Message {
-        match &self.text {
-            Some(t) if t.len() > 0 => express!(t.clone()),
-            _ => express!(self.type_),
-        }
-    }
-
 }
 
 impl GameEventMethods for DealAccepted {

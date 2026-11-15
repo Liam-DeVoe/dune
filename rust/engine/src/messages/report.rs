@@ -38,17 +38,14 @@ impl Report {
         self.aggressor != Faction::None
     }
 
-    /// `Express(params object?[] list)`
     pub fn express(&mut self, list: Vec<ExpressionElement>) {
         self.add(Message::express(list));
     }
 
-    /// `ExpressTo(to, params object?[] list)`
     pub fn express_to(&mut self, to: Faction, list: Vec<ExpressionElement>) {
         self.add(Message::express_to(to, list));
     }
 
-    /// `Express(Message m)`
     pub fn express_message(&mut self, m: Message) {
         self.add(m);
     }

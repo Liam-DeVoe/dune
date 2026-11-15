@@ -85,33 +85,27 @@ static LEADER_HANDLES: [Leader; 62] = {
 impl LeaderManager {
     pub const FIRST_ID: i32 = 1000;
 
-    /// `LeaderManager.Leaders`
     pub fn leaders() -> &'static [Leader] {
         &LEADER_HANDLES
     }
 
-    /// `LeaderManager.Messiah`
     pub fn messiah() -> Hero {
         Hero::Messiah
     }
 
-    /// `LeaderManager.LeaderLookup`
     pub fn leader_lookup() -> LeaderFetcher {
         LeaderFetcher
     }
 
-    /// `LeaderManager.HeroLookup`
     pub fn hero_lookup() -> HeroFetcher {
         HeroFetcher
     }
 
-    /// `GetLeaders(faction)`
     pub fn get_leaders(faction: Faction) -> impl Iterator<Item = Leader> + Clone {
         Self::leaders().iter().copied().filter(move |l| l.faction() == faction)
     }
 }
 
-/// `LeaderManager.LeaderFetcher`
 #[derive(Clone, Copy, Debug)]
 pub struct LeaderFetcher;
 
@@ -128,7 +122,6 @@ impl Fetcher<Leader> for LeaderFetcher {
     }
 }
 
-/// `LeaderManager.HeroFetcher`
 #[derive(Clone, Copy, Debug)]
 pub struct HeroFetcher;
 

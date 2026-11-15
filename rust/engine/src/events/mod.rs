@@ -1466,7 +1466,6 @@ impl GameEventType {
         GameEventType::Voice,
     ];
 
-    /// `Type.Name`
     pub fn name(self) -> &'static str {
         match self {
             GameEventType::AcceptOrCancelTleilaxuRevival => "AcceptOrCancelTleilaxuRevival",
@@ -1941,7 +1940,6 @@ impl GameEvent {
         dispatch!(self, e => Rc::as_ptr(e) as *const ())
     }
 
-    /// `GetType()`
     pub fn event_type(&self) -> GameEventType {
         dispatch!(self, e => e.event_type())
     }
@@ -2078,15 +2076,6 @@ impl GameEvent {
         }
     }
 
-    /// `((BidEvent)this).UsesEmperorSecretAlly`; InvalidCastException for events that do not implement `BidEvent`.
-    pub fn bid_uses_emperor_secret_ally(&self) -> bool {
-        match self {
-            GameEvent::Bid(e) => <Bid as bid_trait::BidEvent>::uses_emperor_secret_ally(&**e),
-            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::uses_emperor_secret_ally(&**e),
-            _ => panic!("{} is not a BidEvent", self.event_type().name()),
-        }
-    }
-
     /// `((BidEvent)this).Initiator`; InvalidCastException for events that do not implement `BidEvent`.
     pub fn bid_initiator(&self) -> Faction {
         match self {
@@ -2132,15 +2121,6 @@ impl GameEvent {
         }
     }
 
-    /// `((BidEvent)this).GetMessage`; InvalidCastException for events that do not implement `BidEvent`.
-    pub fn bid_get_message(&self, game: &Game) -> Message {
-        match self {
-            GameEvent::Bid(e) => <Bid as bid_trait::BidEvent>::get_message(&**e, game),
-            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::get_message(&**e, game),
-            _ => panic!("{} is not a BidEvent", self.event_type().name()),
-        }
-    }
-
     /// `((BidEvent)this).KarmaBid`; InvalidCastException for events that do not implement `BidEvent`.
     pub fn bid_karma_bid(&self) -> bool {
         match self {
@@ -2148,11 +2128,6 @@ impl GameEvent {
             GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::karma_bid(&**e),
             _ => panic!("{} is not a BidEvent", self.event_type().name()),
         }
-    }
-
-    /// `this is BidEvent`
-    pub fn is_bid_event(&self) -> bool {
-        matches!(self, GameEvent::Bid(_) | GameEvent::BlackMarketBid(_))
     }
 
     /// `((LocationEvent)this).Initiator`; InvalidCastException for events that do not implement `LocationEvent`.
@@ -2239,32 +2214,6 @@ impl GameEvent {
         }
     }
 
-    /// `((LocationEvent)this).SpecialForcesAddedToLocation`; InvalidCastException for events that do not implement `LocationEvent`.
-    pub fn location_event_special_forces_added_to_location(&self, game: &Game) -> i32 {
-        match self {
-            GameEvent::AmbassadorActivated(e) => <AmbassadorActivated as location_event::LocationEvent>::special_forces_added_to_location(&**e, game),
-            GameEvent::BeneGesseritAccompanies(e) => <BeneGesseritAccompanies as location_event::LocationEvent>::special_forces_added_to_location(&**e, game),
-            GameEvent::Caravan(e) => <Caravan as location_event::LocationEvent>::special_forces_added_to_location(&**e, game),
-            GameEvent::DiscoveryEntered(e) => <DiscoveryEntered as location_event::LocationEvent>::special_forces_added_to_location(&**e, game),
-            GameEvent::FaceDanced(e) => <FaceDanced as location_event::LocationEvent>::special_forces_added_to_location(&**e, game),
-            GameEvent::FremenRidesMonster(e) => <FremenRidesMonster as location_event::LocationEvent>::special_forces_added_to_location(&**e, game),
-            GameEvent::Move(e) => <Move as location_event::LocationEvent>::special_forces_added_to_location(&**e, game),
-            GameEvent::NexusPlayed(e) => <NexusPlayed as location_event::LocationEvent>::special_forces_added_to_location(&**e, game),
-            GameEvent::PerformFremenSetup(e) => <PerformFremenSetup as location_event::LocationEvent>::special_forces_added_to_location(&**e, game),
-            GameEvent::PerformSetup(e) => <PerformSetup as location_event::LocationEvent>::special_forces_added_to_location(&**e, game),
-            GameEvent::RaiseDeadPlayed(e) => <RaiseDeadPlayed as location_event::LocationEvent>::special_forces_added_to_location(&**e, game),
-            GameEvent::Revival(e) => <Revival as location_event::LocationEvent>::special_forces_added_to_location(&**e, game),
-            GameEvent::Shipment(e) => <Shipment as location_event::LocationEvent>::special_forces_added_to_location(&**e, game),
-            GameEvent::TerrorRevealed(e) => <TerrorRevealed as location_event::LocationEvent>::special_forces_added_to_location(&**e, game),
-            _ => panic!("{} is not a LocationEvent", self.event_type().name()),
-        }
-    }
-
-    /// `this is LocationEvent`
-    pub fn is_location_event(&self) -> bool {
-        matches!(self, GameEvent::AmbassadorActivated(_) | GameEvent::BeneGesseritAccompanies(_) | GameEvent::Caravan(_) | GameEvent::DiscoveryEntered(_) | GameEvent::FaceDanced(_) | GameEvent::FremenRidesMonster(_) | GameEvent::Move(_) | GameEvent::NexusPlayed(_) | GameEvent::PerformFremenSetup(_) | GameEvent::PerformSetup(_) | GameEvent::RaiseDeadPlayed(_) | GameEvent::Revival(_) | GameEvent::Shipment(_) | GameEvent::TerrorRevealed(_))
-    }
-
     /// `((Placement)this).Initiator`; InvalidCastException for events that do not implement `Placement`.
     pub fn placement_initiator(&self) -> Faction {
         match self {
@@ -2308,11 +2257,6 @@ impl GameEvent {
             GameEvent::PerformSetup(e) => <PerformSetup as placement::Placement>::to(&**e, game),
             _ => panic!("{} is not a Placement", self.event_type().name()),
         }
-    }
-
-    /// `this is Placement`
-    pub fn is_placement(&self) -> bool {
-        matches!(self, GameEvent::AmbassadorActivated(_) | GameEvent::Caravan(_) | GameEvent::DiscoveryEntered(_) | GameEvent::FaceDanced(_) | GameEvent::FremenRidesMonster(_) | GameEvent::Move(_) | GameEvent::PerformFremenSetup(_) | GameEvent::PerformSetup(_))
     }
 
 }

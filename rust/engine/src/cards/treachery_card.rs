@@ -71,13 +71,11 @@ impl TreacheryCard {
         0
     }
 
-    /// `IsTraitor(hero) => hero is TreacheryCard`
     #[track_caller]
     pub fn is_traitor(self, hero: Hero) -> bool {
         hero.as_treachery_card().is_some()
     }
 
-    /// `IsFaceDancer(hero) => hero is TreacheryCard`
     #[track_caller]
     pub fn is_face_dancer(self, hero: Hero) -> bool {
         hero.as_treachery_card().is_some()

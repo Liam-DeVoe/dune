@@ -1,17 +1,12 @@
-//! Port of Model/Skin.cs.
+//! The skin: names, images and the text of log messages.
 //!
-//! The members keep their C# order. Overloads of one C# name get the parameter type appended
-//! (engine-conventions.md, "Signatures"): `Describe(object)` is [`Skin::describe`],
-//! `Describe(Faction)` is [`Skin::describe_faction`], `GetImageUrl(World)` is
-//! [`Skin::get_image_url_world`].
+//! [`Skin::describe`] renders any [`ExpressionElement`], and `describe_<type>` one value of a
+//! known type, such as [`Skin::describe_faction`]. A message can hold live collections, which
+//! show their contents at render time; the `_in` variants take the game to read those from.
+//! Without a game they use the snapshot the engine took when the message was built.
 //!
-//! `Describe(object)` takes an [`ExpressionElement`], the engine's closed set of the runtime
-//! types a message holds. A C# message keeps live collections by reference, so it shows their
-//! contents at render time; the `_in` variants take the game to read those
-//! from. Without a game they use the snapshot the engine took when the message was built.
-//!
-//! The faction rules sheets (`#region FactionManual`) are in [`crate::faction_manual`], and
-//! `Load`/`SkinToString` (`#region LoadingAndSaving`) in [`crate::skin_json`].
+//! The faction rules sheets are in [`crate::faction_manual`], and loading and saving skins in
+//! [`crate::skin_json`].
 
 use treachery_engine::enumerations::*;
 use treachery_engine::messages::expression::ExpressionElement;
@@ -27,8 +22,7 @@ use treachery_engine::cards::resource_card::ResourceCard;
 use treachery_engine::map::territory::Territory;
 use treachery_engine::cards::treachery_card::TreacheryCard;
 
-/// The `Format` argument list: each argument converts with `ExpressionElement::from`, the way
-/// C# boxes it into `params object[]`.
+/// The `Format` argument list: each argument converts with `ExpressionElement::from`.
 #[macro_export]
 macro_rules! args {
     ($($a:expr),* $(,)?) => {
@@ -89,12 +83,10 @@ impl<K: SkinKey, V> SkinDictionary<K, V> {
         SkinDictionary { entries }
     }
 
-    /// `TryGetValue`
     pub fn get(&self, key: K) -> Option<&V> {
         self.entries.iter().find(|(k, _)| *k == key).map(|(_, v)| v)
     }
 
-    /// `ContainsKey`
     pub fn contains_key(&self, key: K) -> bool {
         self.get(key).is_some()
     }
@@ -115,7 +107,6 @@ impl<K: SkinKey, V> SkinDictionary<K, V> {
         }
     }
 
-    /// `Keys`
     pub fn keys(&self) -> impl Iterator<Item = K> + '_ {
         self.entries.iter().map(|(k, _)| *k)
     }
@@ -130,13 +121,11 @@ impl<K: SkinKey, V> SkinDictionary<K, V> {
 }
 
 impl<K: SkinKey> SkinDictionary<K, String> {
-    /// `GetValueOrDefault(key, fallback)`
     pub fn get_value_or_default(&self, key: K, fallback: &str) -> String {
         self.get(key).cloned().unwrap_or_else(|| fallback.to_string())
     }
 }
 
-/// C#: `public class Skin : IDescriber` (Model/Skin.cs:14)
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Skin {
     pub version: i32,
@@ -318,7 +307,6 @@ pub(crate) fn to_upper_invariant(s: &str) -> String {
 }
 
 impl Skin {
-    /// `public const int LatestVersion = 151`
     pub const LATEST_VERSION: i32 = 151;
 
     // #region Descriptions
@@ -354,7 +342,6 @@ impl Skin {
         result
     }
 
-    /// `GetCenter(Location location, Map map)`
     pub fn get_center(&self, location: Location, map: &Map) -> PointD {
         if let Some(hms) = location.as_hidden_mobile_stronghold() {
             if let Some(attached) = hms.attached_to_location(map) {
@@ -387,17 +374,14 @@ impl Skin {
         (-3 * self.player_token_radius) as f32
     }
 
-    /// `HmsRadius => 1.5f * PlayerTokenRadius`
     pub fn hms_radius(&self) -> f32 {
         1.5f32 * self.player_token_radius as f32
     }
 
-    /// `GetSpiceLocation(Location location)`
     pub fn get_spice_location(&self, location: Location) -> PointD {
         if location.spice_blow_amount() != 0 { *self.location_spice_point.index(location.id()) } else { PointD::new(0.0, 0.0) }
     }
 
-    /// `Describe(object? value)`
     pub fn describe(&self, value: &ExpressionElement) -> String {
         self.describe_in(value, None)
     }
@@ -480,7 +464,6 @@ impl Skin {
             E::Location(l) => self.describe_location(*l),
             E::Hero(h) => self.describe_hero(Some(*h)),
             E::List { items, live, .. } => {
-                // C# enumerates the collection now; a live one shows the game's current contents.
                 let current = match (live, game) {
                     (Some(source), Some(g)) => source.read(g),
                     _ => None,
@@ -492,17 +475,14 @@ impl Skin {
         }
     }
 
-    /// `private object[] Describe(object[] objects)`
     fn describe_array(&self, objects: &[ExpressionElement], game: Option<&Game>) -> Vec<String> {
         objects.iter().map(|o| self.describe_in(o, game)).collect()
     }
 
-    /// `Describe(Territory t)`
     pub fn describe_territory(&self, t: Territory) -> String {
         get_label(&self.territory_name_str, t.skin_id())
     }
 
-    /// `Describe(IHero? hero)`
     pub fn describe_hero(&self, hero: Option<Hero>) -> String {
         match hero {
             None => "?".to_string(),
@@ -512,7 +492,6 @@ impl Skin {
         }
     }
 
-    /// `Describe(Location l)`
     pub fn describe_location(&self, l: Location) -> String {
         if !l.orientation().is_empty() {
             return self.format("{0} ({1} Sector)", &args![l.territory(), l.orientation()]);
@@ -520,22 +499,18 @@ impl Skin {
         self.describe_territory(l.territory())
     }
 
-    /// `Describe(Faction f)`
     pub fn describe_faction(&self, f: Faction) -> String {
         get_label(&self.faction_name_str, f)
     }
 
-    /// `Describe(Concept c)`
     pub fn describe_concept(&self, c: Concept) -> String {
         get_label(&self.concept_str, c)
     }
 
-    /// `Describe(TreacheryCardType t)`
     pub fn describe_treachery_card_type(&self, t: TreacheryCardType) -> String {
         get_label(&self.treachery_card_type_str, t)
     }
 
-    /// `Describe(ResourceCard? c)`
     pub fn describe_resource_card(&self, c: Option<ResourceCard>) -> String {
         let Some(c) = c else { return "?".to_string() };
         if c.is_shai_hulud() {
@@ -550,12 +525,10 @@ impl Skin {
         self.describe_territory(c.location().expect("location").territory())
     }
 
-    /// `Describe(TreacheryCard c)`
     pub fn describe_treachery_card(&self, c: TreacheryCard) -> String {
         get_label(&self.treachery_card_name_str, c.skin_id())
     }
 
-    /// `Describe(PrescienceAspect aspect)`
     pub fn describe_prescience_aspect(&self, aspect: PrescienceAspect) -> String {
         match aspect {
             PrescienceAspect::Dial => "Dial",
@@ -567,24 +540,16 @@ impl Skin {
         .to_string()
     }
 
-    /// `Describe(LeaderSkill l)`
     pub fn describe_leader_skill(&self, l: LeaderSkill) -> String {
         get_label(&self.leader_skill_card_name_str, l)
     }
 
-    /// `Describe(DiscoveryToken dt)`
     pub fn describe_discovery_token(&self, dt: DiscoveryToken) -> String {
         get_label(&self.discovery_token_name_str, dt)
     }
 
-    /// `GetDiscoveryTokenDescription(DiscoveryToken dt)`
     pub fn get_discovery_token_description(&self, dt: DiscoveryToken) -> String {
         get_label(&self.discovery_token_description_str, dt)
-    }
-
-    /// `private static string GetPopup(string c)`
-    pub fn get_popup_text(c: &str) -> String {
-        format!("<div style='background-color:white;border-color:black;border-width:1px;border-style:solid;color:black;padding:2px;'>{c}</div>")
     }
 
     /// `SpiceHtml(object amount, int size = 18)`: a spice amount drawn on the harvester icon.
@@ -607,7 +572,6 @@ impl Skin {
         crate::text::replace_spice_amounts(&text, &name, |digits| self.spice_html(digits, size))
     }
 
-    /// `private string GetTokenPopup(string? imageUrl, string name, string rulesText)`
     fn get_token_popup(&self, image_url: Option<&str>, name: &str, rules_text: &str) -> String {
         let art = match image_url {
             None | Some("") => String::new(),
@@ -619,12 +583,10 @@ impl Skin {
         )
     }
 
-    /// `GetPopup(TerrorType t)`
     pub fn get_popup_terror_type(&self, t: TerrorType) -> String {
         self.get_token_popup(None, &self.describe_terror_type(t), &self.get_terror_type_description(t))
     }
 
-    /// `GetPopup(Ambassador a)`
     pub fn get_popup_ambassador(&self, a: Ambassador) -> String {
         let name = self.describe_ambassador(a);
         let mut text = self.get_ambassador_description(a);
@@ -634,7 +596,6 @@ impl Skin {
         self.get_token_popup(Some(&self.get_image_url_ambassador(a)), &format!("{name} Ambassador"), &text)
     }
 
-    /// `GetPopup(DiscoveryToken dt)`
     pub fn get_popup_discovery_token(&self, dt: DiscoveryToken) -> String {
         self.get_token_popup(
             Some(&self.get_image_url_discovery_token(dt)),
@@ -643,12 +604,10 @@ impl Skin {
         )
     }
 
-    /// `GetPopup(LeaderSkill c)`
     pub fn get_popup_leader_skill(&self, c: LeaderSkill) -> String {
         get_framed_card_html(&self.get_image_url_leader_skill(c))
     }
 
-    /// `GetPopup(TechToken tt)`
     pub fn get_popup_tech_token(&self, tt: TechToken) -> String {
         self.get_token_popup(
             Some(&self.get_image_url_tech_token(tt)),
@@ -657,17 +616,14 @@ impl Skin {
         )
     }
 
-    /// `GetNexusCardPopup(Nexus n)`
     pub fn get_nexus_card_popup(&self, n: Nexus) -> String {
         get_framed_card_html(&self.get_image_url_nexus(n))
     }
 
-    /// `GetPopup(Homeworld w)`
     pub fn get_popup_homeworld(&self, w: Homeworld) -> String {
         get_framed_card_html(&self.get_homeworld_card_image_url(w.world()))
     }
 
-    /// `GetPopup(TreacheryCard? c)`
     pub fn get_popup_treachery_card(&self, c: Option<TreacheryCard>) -> String {
         let Some(c) = c else { return String::new() };
         let (category, type_) = get_treachery_card_category(c);
@@ -679,7 +635,6 @@ impl Skin {
         )
     }
 
-    /// `private string GetTreacheryCardRulesText(TreacheryCard c)`
     fn get_treachery_card_rules_text(&self, c: TreacheryCard) -> String {
         let text = self.get_treachery_card_description(Some(c));
 
@@ -702,7 +657,6 @@ impl Skin {
         text
     }
 
-    /// `GetPopup(IHero h)`
     pub fn get_popup_hero(&self, h: Hero) -> String {
         if let Some(tc) = h.as_treachery_card() {
             return self.get_popup_treachery_card(Some(tc));
@@ -713,7 +667,6 @@ impl Skin {
         get_image_hover_html(&self.get_image_url_hero(Some(h)))
     }
 
-    /// `private string GetLeaderPopup(Leader l)`
     fn get_leader_popup(&self, l: Leader) -> String {
         let color = self.get_faction_color(l.faction());
         format!(
@@ -740,7 +693,6 @@ impl Skin {
         )
     }
 
-    /// `GetPopup(IHero? h, Game g)`
     pub fn get_popup_hero_in_game(&self, h: Option<Hero>, g: &Game) -> String {
         let Some(h) = h else { return String::new() };
         if let Some(tc) = h.as_treachery_card() {
@@ -756,7 +708,6 @@ impl Skin {
         self.get_popup_skilled_leader(h.as_leader(), skill)
     }
 
-    /// `GetPopup(Leader? l, LeaderSkill s)`
     pub fn get_popup_skilled_leader(&self, l: Option<Leader>, s: LeaderSkill) -> String {
         match l {
             None => String::new(),
@@ -768,12 +719,10 @@ impl Skin {
         }
     }
 
-    /// `GetPopup(StrongholdAdvantage adv)`
     pub fn get_popup_stronghold_advantage(&self, adv: StrongholdAdvantage) -> String {
         get_image_hover_html(&self.get_image_url_stronghold_advantage(adv))
     }
 
-    /// `GetPopup(StrongholdAdvantage adv, Faction f)`
     pub fn get_popup_stronghold_advantage_for(&self, adv: StrongholdAdvantage, f: Faction) -> String {
         format!(
             "<div style='position:relative'><img style='position:relative;filter:drop-shadow(-3px 3px 2px black);' src='{}' width=300/><img src='{}' width=100 style='position:absolute;left:220px;top:40px;filter:drop-shadow(-3px 3px 2px black);'/></div>",
@@ -782,7 +731,6 @@ impl Skin {
         )
     }
 
-    /// `GetImageUrl(object obj)`
     pub fn get_image_url(&self, obj: &ExpressionElement) -> String {
         use ExpressionElement as E;
         match obj {
@@ -814,67 +762,54 @@ impl Skin {
         }
     }
 
-    /// `GetImageUrl(DiscoveryTokenType dtt)`
     pub fn get_image_url_discovery_token_type(&self, dtt: DiscoveryTokenType) -> String {
         get_label(&self.discovery_token_type_image_url, dtt)
     }
 
-    /// `GetImageUrl(DiscoveryToken dt)`
     pub fn get_image_url_discovery_token(&self, dt: DiscoveryToken) -> String {
         get_label(&self.discovery_token_image_url, dt)
     }
 
-    /// `Describe(DiscoveryTokenType dtt)`
     pub fn describe_discovery_token_type(&self, dtt: DiscoveryTokenType) -> String {
         get_label(&self.discovery_token_type_name_str, dtt)
     }
 
-    /// `private string Describe(TerrorType terr)`
     pub fn describe_terror_type(&self, terr: TerrorType) -> String {
         get_label(&self.terror_token_name_str, terr)
     }
 
-    /// `GetTerrorTypeDescription(TerrorType terr)`
     pub fn get_terror_type_description(&self, terr: TerrorType) -> String {
         get_label(&self.terror_token_description_str, terr)
     }
 
-    /// `Describe(Ambassador ambassador)`
     pub fn describe_ambassador(&self, ambassador: Ambassador) -> String {
         get_label(&self.ambassador_name_str, ambassador)
     }
 
-    /// `GetAmbassadorDescription(Ambassador ambassador)`
     pub fn get_ambassador_description(&self, ambassador: Ambassador) -> String {
         get_label(&self.ambassador_description_str, ambassador)
     }
 
-    /// `GetImageUrl(Ambassador ambassador)`
     pub fn get_image_url_ambassador(&self, ambassador: Ambassador) -> String {
         get_label(&self.ambassador_image_url, ambassador)
     }
 
-    /// `Describe(MainPhase p)`
     pub fn describe_main_phase(&self, p: MainPhase) -> String {
         get_label(&self.main_phase_str, p)
     }
 
-    /// `private string Describe(TechToken tt)`
     pub fn describe_tech_token(&self, tt: TechToken) -> String {
         get_label(&self.tech_token_name_str, tt)
     }
 
-    /// `Describe(FactionForce f)`
     pub fn describe_faction_force(&self, f: FactionForce) -> String {
         get_label(&self.force_name_str, get_faction_faction_force(f))
     }
 
-    /// `Describe(FactionSpecialForce f)`
     pub fn describe_faction_special_force(&self, f: FactionSpecialForce) -> String {
         get_label(&self.special_force_name_str, get_faction_faction_special_force(f))
     }
 
-    /// `private string Describe(FactionAdvantage advantage)`
     pub fn describe_faction_advantage(&self, advantage: FactionAdvantage) -> String {
         use FactionAdvantage as A;
         use FactionSpecialForce as Fsf;
@@ -1002,7 +937,6 @@ impl Skin {
         }
     }
 
-    /// `private string Describe(AutomationRuleType s)`
     pub fn describe_automation_rule_type(&self, s: AutomationRuleType) -> String {
         use AutomationRuleType as A;
         match s {
@@ -1018,7 +952,6 @@ impl Skin {
         }
     }
 
-    /// `Describe(WinMethod m)`
     pub fn describe_win_method(&self, m: WinMethod) -> String {
         match m {
             WinMethod::Strongholds => "by number of victory points".to_string(),
@@ -1031,7 +964,6 @@ impl Skin {
         }
     }
 
-    /// `DescribeDetailed(AuctionType t)`
     pub fn describe_detailed(&self, t: AuctionType) -> String {
         match t {
             AuctionType::Normal => "Normal".to_string(),
@@ -1058,7 +990,6 @@ impl Skin {
         }
     }
 
-    /// `Describe(Rule r)`
     pub fn describe_rule(&self, r: Rule) -> String {
         use FactionSpecialForce as Fsf;
         use TreacheryCardType as Tct;
@@ -1207,7 +1138,6 @@ impl Skin {
         }
     }
 
-    /// `Describe(ErrorType e)`
     pub fn describe_error_type(&self, e: ErrorType) -> String {
         use ErrorType as E;
         match e {
@@ -1256,7 +1186,6 @@ impl Skin {
 
     // #region NamesAndImages
 
-    /// `GetTerritoryBorder(Territory? t)`
     pub fn get_territory_border(&self, t: Option<Territory>) -> String {
         match t {
             Some(t) => get_label(&self.territory_border_svg, t.skin_id()),
@@ -1264,7 +1193,6 @@ impl Skin {
         }
     }
 
-    /// `GetImageUrl(TreacheryCard? c)`
     pub fn get_image_url_treachery_card(&self, c: Option<TreacheryCard>) -> String {
         match c {
             Some(c) => get_label(&self.treachery_card_image_url, c.skin_id()),
@@ -1272,17 +1200,14 @@ impl Skin {
         }
     }
 
-    /// `GetImageUrl(World w)`
     pub fn get_image_url_world(&self, w: World) -> String {
         get_label(&self.home_world_image_url, w)
     }
 
-    /// `GetImageUrl(StrongholdAdvantage a)`
     pub fn get_image_url_stronghold_advantage(&self, a: StrongholdAdvantage) -> String {
         get_label(&self.stronghold_card_image_url, a)
     }
 
-    /// `GetImageUrl(ResourceCard? c)`
     pub fn get_image_url_resource_card(&self, c: Option<ResourceCard>) -> String {
         match c {
             Some(c) => get_label(&self.resource_card_image_url, c.skin_id()),
@@ -1290,12 +1215,10 @@ impl Skin {
         }
     }
 
-    /// `GetImageUrl(LeaderSkill s)`
     pub fn get_image_url_leader_skill(&self, s: LeaderSkill) -> String {
         get_label(&self.leader_skill_card_image_url, s)
     }
 
-    /// `private string GetTreacheryCardDescription(TreacheryCard? c)`
     pub fn get_treachery_card_description(&self, c: Option<TreacheryCard>) -> String {
         match c {
             Some(c) => get_label(&self.treachery_card_description_str, c.skin_id()),
@@ -1303,7 +1226,6 @@ impl Skin {
         }
     }
 
-    /// `GetImageUrl(IHero? h)`
     pub fn get_image_url_hero(&self, h: Option<Hero>) -> String {
         let Some(h) = h else { return String::new() };
         match h {
@@ -1313,67 +1235,54 @@ impl Skin {
         }
     }
 
-    /// `GetImageUrl(Faction faction)`
     pub fn get_image_url_faction(&self, faction: Faction) -> String {
         get_label(&self.faction_image_url, faction)
     }
 
-    /// `GetFactionTableImageUrl(Faction faction)`
     pub fn get_faction_table_image_url(&self, faction: Faction) -> String {
         get_label(&self.faction_table_image_url, faction)
     }
 
-    /// `GetFactionFaceDownImageUrl(Faction faction)`
     pub fn get_faction_face_down_image_url(&self, faction: Faction) -> String {
         get_label(&self.faction_facedown_image_url, faction)
     }
 
-    /// `GetFactionForceImageUrl(Faction f)`
     pub fn get_faction_force_image_url(&self, f: Faction) -> String {
         get_label(&self.faction_force_image_url, f)
     }
 
-    /// `GetFactionSpecialForceImageUrl(Faction f)`
     pub fn get_faction_special_force_image_url(&self, f: Faction) -> String {
         get_label(&self.faction_special_force_image_url, f)
     }
 
-    /// `private string GetImageUrl(FactionForce ff)`
     pub fn get_image_url_faction_force(&self, ff: FactionForce) -> String {
         self.get_faction_force_image_url(get_faction_faction_force(ff))
     }
 
-    /// `private string GetImageUrl(FactionSpecialForce fsf)`
     pub fn get_image_url_faction_special_force(&self, fsf: FactionSpecialForce) -> String {
         self.get_faction_special_force_image_url(get_faction_faction_special_force(fsf))
     }
 
-    /// `GetHomeworldCardImageUrl(World w)`
     pub fn get_homeworld_card_image_url(&self, w: World) -> String {
         get_label(&self.home_world_card_image_url, w)
     }
 
-    /// `GetImageUrl(Nexus n)`
     pub fn get_image_url_nexus(&self, n: Nexus) -> String {
         get_label(&self.nexus_card_image_url, n)
     }
 
-    /// `GetImageUrl(TechToken tech)`
     pub fn get_image_url_tech_token(&self, tech: TechToken) -> String {
         get_label(&self.tech_token_image_url, tech)
     }
 
-    /// `GetSound(Milestone m)`
     pub fn get_sound(&self, m: Milestone) -> String {
         get_label(&self.sound, m)
     }
 
-    /// `GetFactionColor(Faction faction)`
     pub fn get_faction_color(&self, faction: Faction) -> String {
         get_label(&self.faction_color, faction)
     }
 
-    /// `GetFactionColorTransparent(Faction faction, string transparency)`
     pub fn get_faction_color_transparent(&self, faction: Faction, transparency: &str) -> String {
         get_label(&self.faction_color, faction) + transparency
     }
@@ -1391,13 +1300,6 @@ impl Skin {
         m.expression.elements.iter().map(|x| self.describe_in(x, game)).collect()
     }
 
-    /// `Message.ToString()` while `Message.DefaultDescriber` is this skin (the C# server sets
-    /// `DefaultSkin.Default`): `ToString(DefaultDescriber) + "*"`.
-    pub fn message_to_string_with_default_describer(&self, m: &Message) -> String {
-        self.message_to_string(m) + "*"
-    }
-
-    /// `MessagePart.ToString(IDescriber describer)`
     pub fn message_part_to_string(&self, p: &MessagePart) -> String {
         self.message_part_to_string_in(p, None)
     }
@@ -1406,10 +1308,6 @@ impl Skin {
         p.expression.elements.iter().map(|x| self.describe_in(x, game)).collect()
     }
 
-    /// `MessagePart.ToString()` while `Message.DefaultDescriber` is this skin.
-    pub fn message_part_to_string_with_default_describer(&self, p: &MessagePart) -> String {
-        self.message_part_to_string(p) + "*"
-    }
 }
 
 /// `string.StartsWith(string)`, which is culture-sensitive in .NET. Every prefix the skin tests
@@ -1418,7 +1316,6 @@ fn starts_with_culture(text: &str, prefix: &str) -> bool {
     text.starts_with(prefix)
 }
 
-/// `private static string Describe(ClairVoyanceAnswer answer)`
 pub fn describe_clair_voyance_answer(answer: ClairVoyanceAnswer) -> String {
     match answer {
         ClairVoyanceAnswer::No => "No.",
@@ -1429,7 +1326,6 @@ pub fn describe_clair_voyance_answer(answer: ClairVoyanceAnswer) -> String {
     .to_string()
 }
 
-/// `private static string Describe(UserStatus us)`
 pub fn describe_user_status(us: UserStatus) -> String {
     match us {
         UserStatus::None => "No status",
@@ -1443,7 +1339,6 @@ pub fn describe_user_status(us: UserStatus) -> String {
     .to_string()
 }
 
-/// `private static string Describe(SubscriptionType st)`
 pub fn describe_subscription_type(st: SubscriptionType) -> String {
     match st {
         SubscriptionType::DontParticipate => "no",
@@ -1456,12 +1351,10 @@ pub fn describe_subscription_type(st: SubscriptionType) -> String {
     .to_string()
 }
 
-/// `private static string GetFramedCardHtml(string imageUrl)`
 fn get_framed_card_html(image_url: &str) -> String {
     format!("<div class='pop-art'><img src='{image_url}'/></div>")
 }
 
-/// `private static (string Category, string Type) GetTreacheryCardCategory(TreacheryCard c)`
 fn get_treachery_card_category(c: TreacheryCard) -> (&'static str, &'static str) {
     use TreacheryCardType as T;
     match c.type_() {
@@ -1480,12 +1373,10 @@ fn get_treachery_card_category(c: TreacheryCard) -> (&'static str, &'static str)
     }
 }
 
-/// `private string GetImageHoverHtml(string imageUrl)`
 fn get_image_hover_html(image_url: &str) -> String {
     format!("<img src='{image_url}' width=300 class='img-fluid' style='filter:drop-shadow(-3px 3px 2px black);'/>")
 }
 
-/// `private static Faction GetFaction(FactionForce f)`
 pub fn get_faction_faction_force(f: FactionForce) -> Faction {
     match f {
         FactionForce::Atreides => Faction::Atreides,
@@ -1504,7 +1395,6 @@ pub fn get_faction_faction_force(f: FactionForce) -> Faction {
     }
 }
 
-/// `private static Faction GetFaction(FactionSpecialForce f)`
 pub fn get_faction_faction_special_force(f: FactionSpecialForce) -> Faction {
     match f {
         FactionSpecialForce::Emperor => Faction::Emperor,
@@ -1516,7 +1406,6 @@ pub fn get_faction_faction_special_force(f: FactionSpecialForce) -> Faction {
     }
 }
 
-/// `private static string Describe(Ruleset s)`
 pub fn describe_ruleset(s: Ruleset) -> String {
     match s {
         Ruleset::BasicGame => "Standard Dune - Basic",
@@ -1537,7 +1426,6 @@ pub fn describe_ruleset(s: Ruleset) -> String {
     .to_string()
 }
 
-/// `private static string Describe(RuleGroup s)`
 pub fn describe_rule_group(s: RuleGroup) -> String {
     match s {
         RuleGroup::CoreAdvanced => "Core Game, Advanced Rules",
@@ -1560,7 +1448,6 @@ pub fn describe_rule_group(s: RuleGroup) -> String {
     .to_string()
 }
 
-/// `private static string Describe(Phase p)`
 pub fn describe_phase(p: Phase) -> String {
     match p {
         Phase::TurnConcluded => "End of turn",
@@ -1574,7 +1461,6 @@ pub fn describe_phase(p: Phase) -> String {
     .to_string()
 }
 
-/// `private static string Describe(ChoamEconomicsStatus p)`
 pub fn describe_choam_economics_status(p: ChoamEconomicsStatus) -> String {
     match p {
         ChoamEconomicsStatus::Cancel => "Cancel",
@@ -1587,7 +1473,6 @@ pub fn describe_choam_economics_status(p: ChoamEconomicsStatus) -> String {
     .to_string()
 }
 
-/// `private static string Describe(AuctionType t)`
 pub fn describe_auction_type(t: AuctionType) -> String {
     match t {
         AuctionType::Normal => "Normal",
@@ -1601,7 +1486,6 @@ pub fn describe_auction_type(t: AuctionType) -> String {
     .to_string()
 }
 
-/// `private static string Describe(JuiceType jt)`
 pub fn describe_juice_type(jt: JuiceType) -> String {
     match jt {
         JuiceType::GoFirst => "be considered first in storm order",
@@ -1612,7 +1496,6 @@ pub fn describe_juice_type(jt: JuiceType) -> String {
     .to_string()
 }
 
-/// `private static string Describe(CaptureDecision c)`
 pub fn describe_capture_decision(c: CaptureDecision) -> String {
     match c {
         CaptureDecision::Capture => "Keep",

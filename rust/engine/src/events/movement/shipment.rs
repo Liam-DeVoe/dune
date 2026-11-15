@@ -693,7 +693,6 @@ impl Shipment {
         g.player(p).nexus == Faction::Richese && NexusPlayed::can_use_secret_ally(g, p)
     }
 
-    /// `p.Initiated(g.CurrentGuildSecretAlly)`
     fn initiated_current_guild_secret_ally(g: &Game, p: PlayerIndex) -> bool {
         let e = g.current_guild_secret_ally.clone().map(|e| e.into_event());
         g.player(p).initiated(e.as_ref())

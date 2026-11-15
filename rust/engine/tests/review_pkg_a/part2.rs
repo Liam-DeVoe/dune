@@ -84,13 +84,6 @@ fn game_state_load_matches_dotnet() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
-#[test]
-fn utilities_formatting_matches_dotnet() {
-    assert_eq!(Utilities::px(f64::NAN), "NaNpx");
-    assert_eq!(Utilities::px(1e20), "1E+20px");
-    assert_eq!(Utilities::scale_font("Bold 1,000PX Arial 1.5px", 1.1), " bold 1100px arial 1.6500000953674316px");
-}
-
 /// .NET rejects `$`-prefixed members only in polymorphic types (events). In any
 /// other object they are unknown members and are skipped (probed: `$foo`, `$id`,
 /// `$ref`, `$type`, `$values` all accepted in GameState and in the GameSettings

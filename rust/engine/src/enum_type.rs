@@ -115,10 +115,6 @@ macro_rules! game_enum {
                 declared: &[$((stringify!($var), $val)),*],
             };
 
-            /// `Enum.IsDefined`
-            pub fn is_defined(self) -> bool {
-                Self::INFO.name_of(self.0).is_some()
-            }
         }
 
         impl $crate::enum_type::GameEnum for $name {

@@ -407,7 +407,7 @@ impl Game {
     }
 
     /// Under `Rule::RicheseTreacheryCards` Richese's cards are in the treachery deck and, with
-    /// Richese playing, in its cache too, as in C#. Once a card is taken from one of the two, it
+    /// Richese playing, in its cache too. Once a card is taken from one of the two, it
     /// leaves the other, so it can't be sold twice and end up in two hands (observe bots seed 1
     /// game 163, escapes.md "A Richese card sold twice"). Without the rule nothing is in both.
     pub fn drop_copy_in_richese_cache(&mut self, card: TreacheryCard) {

@@ -112,7 +112,6 @@ impl Game {
     }
 
     pub fn get_skill(&self, p: PlayerIndex) -> Option<LeaderSkill> {
-        // Lazy in C#: Where(IsSkilled) and FirstOrDefault(IsInFrontOfShield) interleave, but both only read.
         let hero = self
             .player(p)
             .leaders
@@ -210,7 +209,6 @@ impl LeaderState {
     }
 
     pub fn is_face_down_dead(&self) -> bool {
-        // C# `%` truncates, like Rust's: a negative counter gives -1/-3 here too.
         self.death_counter % 4 == 3
     }
 
@@ -243,9 +241,6 @@ impl LeaderState {
         self.death_counter += 1;
     }
 
-    pub fn shallow_copy(&self) -> LeaderState {
-        self.clone()
-    }
 }
 
 thread_local! {

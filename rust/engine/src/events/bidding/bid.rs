@@ -45,7 +45,6 @@ impl Bid {
     }
 
     pub fn total_amount(&self) -> i32 {
-        // C# int addition wraps.
         (self.amount + self.ally_contribution_amount) + self.emperor_contribution_amount
     }
 

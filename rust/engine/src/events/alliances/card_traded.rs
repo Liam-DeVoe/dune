@@ -109,7 +109,6 @@ impl CardTraded {
 
             let other_player = other_player.required("other player")?;
             let me = self.player();
-            // C# adds `Card!` even when it is null (only reachable without validation).
             let card = self.card().required("card")?;
             game.player_mut(other_player).treachery_cards.push(card);
             crate::iter::remove_first(&mut game.player_mut(me).treachery_cards, &card);

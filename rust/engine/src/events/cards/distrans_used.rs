@@ -72,7 +72,6 @@ impl DistransUsed {
         let card = self.card();
         crate::game::remove_card(&mut game.player_mut(me).treachery_cards, card);
         Game::register_known_by_player(game, me, card);
-        // C# adds a null card when executed without validation.
         game.player_mut(target).treachery_cards.push(card.required("card")?);
 
         if !game.player(me).treachery_cards.is_empty() {

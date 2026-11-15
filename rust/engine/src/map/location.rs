@@ -122,7 +122,6 @@ impl Location {
         self.territory().advantage()
     }
 
-    /// `l is Homeworld hw`
     pub fn as_homeworld(self) -> Option<Homeworld> {
         match self.data().kind {
             LocationKind::Homeworld(_) => Some(Homeworld::from_location(self)),
@@ -130,7 +129,6 @@ impl Location {
         }
     }
 
-    /// `l is DiscoveredLocation ds`
     pub fn as_discovered_location(self) -> Option<DiscoveredLocation> {
         match self.data().kind {
             LocationKind::Discovered { .. } => Some(DiscoveredLocation::from_location(self)),
@@ -138,7 +136,6 @@ impl Location {
         }
     }
 
-    /// `l is HiddenMobileStronghold hms`
     pub fn as_hidden_mobile_stronghold(self) -> Option<HiddenMobileStronghold> {
         match self.data().kind {
             LocationKind::HiddenMobileStronghold => Some(HiddenMobileStronghold::from_location(self)),

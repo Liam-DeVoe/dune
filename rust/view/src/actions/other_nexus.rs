@@ -114,7 +114,6 @@ fn map_choice(game: &Game, p: PlayerIndex, e: &NexusPlayed) -> MapChoice {
     }
 }
 
-/// `Revival.ValidRevivedForceLocations(...).Any() ? NumberOfSpecialForcesThatMayBePlacedOnPlanet : 0`.
 fn max_special_on_planet(game: &Game, p: PlayerIndex, special: i32) -> i32 {
     if Revival::valid_revived_force_locations(game, p).next().is_some() {
         Revival::number_of_special_forces_that_may_be_placed_on_planet(game, p, special)

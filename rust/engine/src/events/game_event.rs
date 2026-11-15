@@ -7,7 +7,6 @@ pub struct GameEventBase {
     /// Interior mutability: written after the event is stored in game state.
     pub initiator: Cell<Faction>,
     /// Interior mutability: the server sets this member after `Execute`, when the event is already in
-    /// `History`.
     pub time: Cell<DateTimeOffset>,
     /// Interior mutability: written after the event is stored in game state.
     pub player: Cell<Option<PlayerIndex>>,
@@ -29,18 +28,15 @@ pub trait GameEventMethods {
     /// The `GameEvent` fields of this event.
     fn base(&self) -> &GameEventBase;
 
-    /// `GetType()`
     fn event_type(&self) -> GameEventType;
 
     /// Upcast to the polymorphic event (shares the object).
     fn into_event(self: Rc<Self>) -> GameEvent;
 
-    /// `Initiator`
     fn initiator(&self) -> Faction {
         self.base().initiator.get()
     }
 
-    /// `Time`
     fn time(&self) -> DateTimeOffset {
         self.base().time.get()
     }

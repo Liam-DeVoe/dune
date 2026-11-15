@@ -70,10 +70,6 @@ impl GameStatus {
         !self.waiting_for_me(player, is_host)
     }
 
-    pub fn player_should_be_highlighted(&self, p: PlayerIndex) -> bool {
-        self.waiting_for_players.contains(&Some(p))
-    }
-
     pub fn get_message(&self, player: PlayerIndex, is_host: bool) -> Message {
         if self.waiting_for_me(player, is_host) { self.description_when_awaited.clone() } else { self.description_when_waiting.clone() }
     }
@@ -646,7 +642,6 @@ impl GameStatus {
         Self::sequence_status(a, w, seq, latest)
     }
 
-    /// `game.Players.Where(p => p.HasRoomForCards && !game.Bids.ContainsKey(p.Faction)).ToList()`
     /// Shared by two bidding arms.
     fn players_with_room_and_no_bid(g: &Game) -> Vec<Option<PlayerIndex>> {
         (0..g.players.len())

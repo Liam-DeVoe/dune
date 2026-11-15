@@ -59,7 +59,7 @@ impl PerformBeneGesseritPlacement {
         // is false, ShipForces(null, 1) finds no homeworld to ship from, and `Target.Territory` throws.
         let condition = game.is_occupied_territory(self.target(game).required("target")?.territory());
         if condition {
-            // Player is read before Target, as in C#.
+            // Player is read before Target.
             let me = self.player();
             Player::ship_advisors(game, me, self.target(game).required("target")?, 1);
         } else {

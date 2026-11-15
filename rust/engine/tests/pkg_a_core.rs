@@ -5,71 +5,14 @@
 use treachery_engine::error::catch_panic;
 use treachery_engine::compat::date_time_offset::TimeSpan;
 use treachery_engine::enumerations::*;
-use treachery_engine::events::{GameEvent, GameEventType, PlacementEvent};
+use treachery_engine::events::{GameEvent, PlacementEvent};
 use treachery_engine::game::Game;
 use treachery_engine::game::ObjectCounter;
 use treachery_engine::game::Timer;
 use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
-use treachery_engine::json::utilities::Utilities;
 
 fn outcome<R>(f: impl FnOnce() -> R) -> Result<R, String> {
     catch_panic(f)
-}
-
-#[test]
-fn legacy_newtonsoft_conversion_matches_dotnet() {
-    // (input, .NET output of Utilities.ConvertNewtonsoftJsonToPlainJson)
-    let cases: &[(&str, Result<&str, &str>)] = &[
-        (
-            r#"{"$type":"Treachery.Shared.GameState, Treachery.Shared","Version":150,"_events":{"$type":"System.Collections.Generic.List`1[[Treachery.Shared.GameEvent, Treachery.Shared]], System.Private.CoreLib","$values":[{"$type":"Treachery.Shared.EndPhase, Treachery.Shared","Initiator":0},null,{"$type":"Treachery.Shared.Removed, Treachery.Shared","X":1}]}}"#,
-            Ok(r#"{"Version":150,"_events":[{"$type":"EndPhase","Initiator":0},{"X":1}]}"#),
-        ),
-        // A wrapper at the root has no parent and stays.
-        (r#"{"$values":[1,2]}"#, Ok(r#"{"$values":[1,2]}"#)),
-        // A wrapper inside a wrapper is not replaced, and its contents are not processed.
-        (
-            r#"{"a":{"$values":[{"$values":[{"$type":"Treachery.Shared.Bid"}]}]}}"#,
-            Ok(r#"{"a":[{"$values":[{"$type":"Treachery.Shared.Bid"}]}]}"#),
-        ),
-        // A wrapper directly inside an array modifies the array during its enumeration.
-        (
-            r#"{"a":[{"$values":[1]}]}"#,
-            Err("InvalidOperationException: Collection was modified; enumeration operation may not execute."),
-        ),
-        // $type keeps its position when renamed.
-        (r#"{"b":1,"$type":"Treachery.Shared.Bid","c":2}"#, Ok(r#"{"b":1,"$type":"Bid","c":2}"#)),
-        (r#"{"$type":" Treachery.Shared.Bid"}"#, Ok(r#"{"$type":"Bid"}"#)),
-        (r#"{"$type":"Treachery.Shared.Bid , Treachery.Shared"}"#, Ok(r#"{}"#)),
-        (r#"{"$type":"Treachery.Shared.PlacementEvent"}"#, Ok(r#"{}"#)),
-        (r#"{"$type":"treachery.shared.Bid"}"#, Ok(r#"{}"#)),
-        (r#"{"$type":"Treachery.Shared.Bid,Treachery.Shared,Version=1.0.0.0"}"#, Ok(r#"{"$type":"Bid"}"#)),
-        (r#"{"$type":"Treachery.Shared.Bid, Other"}"#, Ok(r#"{}"#)),
-        (
-            r#"{"$type":5}"#,
-            Err("InvalidOperationException: An element of type 'Number' cannot be converted to a 'System.String'."),
-        ),
-        (r#"{"$type":"Treachery.Shared.Bid "}"#, Ok(r#"{}"#)),
-        ("{\"$type\":\"\\tTreachery.Shared.Bid\"}", Ok(r#"{"$type":"Bid"}"#)),
-        (r#"{"$type":"Treachery.Shared.Bid,  Treachery.Shared "}"#, Ok(r#"{"$type":"Bid"}"#)),
-        (r#"{"$type":"Treachery.Shared.Bid, treachery.shared"}"#, Ok(r#"{"$type":"Bid"}"#)),
-        (r#"{"$type":"Treachery.Shared.Bid, Treachery.Shared, Version=9.9.9.9"}"#, Ok(r#"{"$type":"Bid"}"#)),
-        (r#"{"$type":"Treachery.Shared.Bid[]"}"#, Ok(r#"{}"#)),
-        (r#"{"$type":"Treachery.Shared.Bid+X"}"#, Ok(r#"{}"#)),
-        ("null", Ok("")),
-    ];
-
-    // Where .NET threw, the conversion fails; the error text is the engine's own.
-    for (input, expected) in cases {
-        let actual = Utilities::convert_newtonsoft_json_to_plain_json(input).map_err(|_| ());
-        let expected = expected.map(|s| s.to_string()).map_err(|_| ());
-        assert_eq!(actual, expected, "input {input}");
-    }
-}
-
-#[test]
-fn determine_game_event() {
-    assert_eq!(Utilities::determine_game_event("Treachery.Shared.EndPhase"), Some(GameEventType::EndPhase));
-    assert_eq!(Utilities::determine_game_event("Treachery.Shared.GameState"), None);
 }
 
 #[test]

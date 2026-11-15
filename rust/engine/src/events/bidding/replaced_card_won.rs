@@ -34,7 +34,6 @@ impl ReplacedCardWon {
             game.discard_card(card_just_won, true)?;
             let initiator = self.get_player(game, Some(self.initiator()));
             let new_card = game.draw_treachery_card();
-            // C# adds a null card when both treachery deck and discard pile are empty.
             let initiator = initiator.required("initiator")?;
             game.player_mut(initiator).treachery_cards.push(new_card.required("new_card")?);
             game.stone(Milestone::CardWonSwapped);

@@ -55,7 +55,7 @@ impl PerformFremenSetup {
 
         self.log(game);
 
-        // All conditions are evaluated before the call, as in C#.
+        // All conditions are evaluated before the call.
         let c1 = self.is_playing(game, Faction::BeneGesserit) && PerformBeneGesseritPlacement::bene_gesserit_may_place_first_force_in_any_territory(game);
         let c2 = self.is_playing(game, Faction::Moritani);
         let c3 = game.treachery_cards_before_traitors();

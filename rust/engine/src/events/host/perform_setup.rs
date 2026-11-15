@@ -68,7 +68,6 @@ impl PerformSetup {
         game.has_acted_or_passed.push(faction);
 
         if game.players.len() == game.has_acted_or_passed.len() {
-            // Game.Enter(bool, Action, Action) is static in C#; inlined here.
             if game.treachery_cards_before_traitors() {
                 game.enter_storm_phase();
             } else {

@@ -391,7 +391,6 @@ fn plan_view(
     }
 }
 
-/// `BattlePlan.PassiveSkillIsRelevantForBattlePlan`.
 fn passive_skill_is_relevant_for_battle_plan(skill: LeaderSkill) -> bool {
     matches!(
         skill,

@@ -90,20 +90,14 @@ pub struct HomeworldData {
 /// while `game.map` is borrowed through the same `Game`, and `Map` must not
 /// depend on the whole `Game` type, so the calls it makes are listed here.
 pub trait MapGame {
-    /// `game.SectorInStorm`
     fn sector_in_storm(&self) -> i32;
-    /// `game.History.Count`
     fn history_count(&self) -> i32;
-    /// `game.Applicable(rule)`
     fn applicable(&self, rule: Rule) -> bool;
     /// `game.Forces()` (homeworlds excluded): every location with the
     /// `Faction` of each of its battalions, in dictionary enumeration order.
     fn forces_battalion_factions(&self) -> Vec<(Location, Vec<Faction>)>;
-    /// `game.GetPlayer(f)?.Ally`
     fn player_ally(&self, f: Faction) -> Option<Faction>;
-    /// `game.NrOfOccupantsExcludingFaction(l, f)`
     fn nr_of_occupants_excluding_faction(&self, l: Location, f: Faction) -> i32;
-    /// `game.CurrentBlockedTerritories`
     fn current_blocked_territories(&self) -> Vec<Territory>;
 }
 
@@ -126,7 +120,6 @@ pub struct Map {
     attached_to: Vec<Option<Location>>,
     /// Whether `AttachedLocation.Game` is set, by location index. Set by `PointAt`.
     attached_to_game: Vec<bool>,
-    /// `_neighbourCacheTimestamp`
     neighbour_cache_timestamp: Cell<i32>,
     /// `_neighbourCache`. It is only cleared, added to and looked up, so a list
     /// in insertion order serves as the dictionary.
@@ -157,8 +150,7 @@ impl Map {
     fn initialize_location_neighbours(&mut self) {
         for &(from, to) in INITIAL_NEIGHBOURS.iter() {
             let from = Location::from_index(from as usize);
-            // Adding to an attached location's Neighbours adds to a temporary
-            // list in C#, so it has no effect. (The table has no such entry.)
+            // Neighbours of attached locations are not taken from the table (it has none).
             if from.as_attached_location().is_none() {
                 self.neighbours[from.index()].push(Location::from_index(to as usize));
             }
@@ -175,7 +167,6 @@ impl Map {
         self.attached_to[l.index()]
     }
 
-    /// `AttachedLocation.Sector => Game != null && AttachedToLocation != null ? AttachedToLocation.Sector : -1`
     pub(crate) fn attached_sector(&self, l: Location) -> i32 {
         match (self.attached_to_game[l.index()], self.attached_to[l.index()]) {
             (true, Some(host)) => host.sector(self),
@@ -218,7 +209,6 @@ impl Map {
         }
     }
 
-    /// `Locations(includeHomeworlds)`
     pub fn locations(&self, include_homeworlds: bool) -> impl Iterator<Item = Location> + Clone + 'static {
         Location::all()
             .iter()
@@ -226,7 +216,6 @@ impl Map {
             .filter(move |l| include_homeworlds || l.as_homeworld().is_none())
     }
 
-    /// `Homeworlds`
     pub fn homeworlds(&self) -> impl Iterator<Item = Homeworld> + Clone + 'static {
         Location::all().iter().filter_map(|l| l.as_homeworld())
     }
@@ -253,12 +242,10 @@ impl Map {
             })
     }
 
-    /// `Strongholds => _locations.Where(l => l.Territory.IsStronghold)`
     pub fn strongholds(&self) -> impl Iterator<Item = Location> + Clone + 'static {
         Location::all().iter().copied().filter(|l| l.territory().is_stronghold())
     }
 
-    /// `GetHomeWorld(w)`
     pub fn get_home_world(&self, w: World) -> Option<Homeworld> {
         self.homeworlds().find(|hw| hw.world() == w)
     }
@@ -281,19 +268,16 @@ impl Map {
             || (c.is_discovery() && g.applicable(Rule::DiscoveryTokens))
     }
 
-    /// `Map.LocationLookup`
     pub fn location_lookup(&self) -> LocationFetcher {
         LocationFetcher
     }
 
-    /// `Map.TerritoryLookup`
     pub fn territory_lookup(&self) -> TerritoryFetcher {
         TerritoryFetcher
     }
 
     // ---- pathfinding ----
 
-    /// `FindNeighbours(start, distance, ignoreStorm, f, game, checkForceObstacles)`.
     /// Returns a copy of the cached list; callers only read it.
     pub fn find_neighbours(
         &self,
@@ -558,7 +542,6 @@ impl Map {
         None
     }
 
-    /// `Map.FindNeighboursForHmsMovement`
     pub fn find_neighbours_for_hms_movement(
         &self,
         start: Location,
@@ -610,7 +593,6 @@ impl Map {
         }
     }
 
-    /// `Map.FindNeighboursWithinTerritory`
     pub fn find_neighbours_within_territory(&self, start: Location, ignore_storm: bool, sector_in_storm: i32) -> Vec<Location> {
         let mut neighbours = Vec::new();
         self.find_neighbours_within_territory_rec(&mut neighbours, start, None, ignore_storm, sector_in_storm);
@@ -646,12 +628,10 @@ impl Map {
 
 }
 
-/// `Map.TerritoryFetcher`
 #[derive(Clone, Copy, Debug)]
 pub struct TerritoryFetcher;
 
 impl Fetcher<Territory> for TerritoryFetcher {
-    /// `id == -1 ? null : map.Territories(true).SingleOrDefault(t => t.Id == id)`
     fn find(&self, id: i32) -> Option<Territory> {
         if id == -1 {
             return None;
@@ -664,7 +644,6 @@ impl Fetcher<Territory> for TerritoryFetcher {
     }
 }
 
-/// `Map.LocationFetcher`
 #[derive(Clone, Copy, Debug)]
 pub struct LocationFetcher;
 

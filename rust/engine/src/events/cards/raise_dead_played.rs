@@ -151,7 +151,6 @@ impl RaiseDeadPlayed {
             );
             row.hero = hero;
             row.card = card;
-            // C# WithLog mutates the message in place; its result is discarded there.
             message = message.with_log(row);
         }
         game.current_report_mut().express_message(message);

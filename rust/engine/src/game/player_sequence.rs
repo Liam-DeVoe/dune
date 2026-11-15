@@ -71,10 +71,6 @@ impl PlayerSequence {
         !self.skip_players_that_cant_bid_on_cards || game.player(p.expect("player")).has_room_for_cards(game)
     }
 
-    pub fn juice_forces_last(&self, game: &Game, p: PlayerIndex) -> bool {
-        self.juice_forces_last_opt(game, Some(p))
-    }
-
     /// `JuiceForcesLast(p)` where `p` may be null.
     fn juice_forces_last_opt(&self, game: &Game, p: Option<PlayerIndex>) -> bool {
         match &game.current_juice {
@@ -129,7 +125,6 @@ impl PlayerSequence {
     pub fn determine_current_player(&self, game: &Game) -> Option<PlayerIndex> {
         if !self.played.is_empty() {
             let mut found = false;
-            // C# enumerates PlayersInOrder (a fresh list) here and again below.
             for p in self.players_in_order(game) {
                 if found {
                     return p;

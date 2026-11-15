@@ -6,11 +6,9 @@
 mod common;
 
 use common::{load, read_trace, sample_bot_traces, viewer_of};
-use treachery_engine::shared::Shared;
 use treachery_engine::events::GameEventType;
 use treachery_engine::json;
 use treachery_engine::enum_type::GameEnum;
-use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
 use treachery_view::actions::{self, revival};
 use treachery_view::build::{validate, ResolvedViewer};
@@ -231,7 +229,7 @@ fn check_state(game: &Game, p: PlayerIndex, types: &[GameEventType], d: &dyn Des
     let v = resolved(game, p);
     let mut checked = vec![];
     for t in types.iter().filter(|t| revival::TYPES.contains(t)) {
-        let a = actions::action_view(game, &v, *t, d);
+        let a = actions::action_view(game, &v, &Default::default(), *t, d);
         let options = a.options.as_ref().unwrap_or_else(|| panic!("{at}: {t:?} has options"));
         check(game, p, options, &a.validation, d, &format!("{at} {} default", t.name()));
         // Adjusting the adjusted draft changes nothing.
@@ -257,7 +255,7 @@ fn fixture_forms_match_the_engine() {
     let mut seen = std::collections::BTreeSet::new();
     for name in names {
         // Skip a fixture the engine can't load.
-        let Ok(mut r) = std::panic::catch_unwind(|| load(&name, 0)) else { continue };
+        let Ok(mut r) = std::panic::catch_unwind(|| load(&name)) else { continue };
         let fs: Vec<Faction> = r.game.players.iter().map(|p| p.faction).collect();
         for f in fs {
             let viewer = viewer_of(&r, f);
@@ -284,7 +282,7 @@ fn fixture_forms_match_the_engine() {
 /// form has nothing to show for it. The form used to keep it, and validation refused it.
 #[test]
 fn raise_dead_drops_a_leader_that_cant_be_revived() {
-    let mut r = load("revival-planet", 0);
+    let mut r = load("revival-planet");
     let viewer = viewer_of(&r, Faction::Emperor);
     let view = r.view(viewer);
     let a = view.actions.iter().find(|a| a.event_type == "RaiseDeadPlayed").expect("RaiseDeadPlayed applicable");
@@ -304,7 +302,7 @@ fn raise_dead_drops_a_leader_that_cant_be_revived() {
 /// cost more, and asking for more than the maximum is clamped to it.
 #[test]
 fn revival_draft_queries() {
-    let mut r = load("revival", 0);
+    let mut r = load("revival");
     let fs: Vec<Faction> = r.game.players.iter().map(|p| p.faction).collect();
     let mut any = false;
     for f in fs {
@@ -337,8 +335,7 @@ fn bot_game_forms_match_the_engine() {
     let mut seen = std::collections::BTreeMap::<&str, usize>::new();
     for path in sample_bot_traces() {
         let trace = read_trace(&path);
-        let participation = Shared::new(Participation::default());
-        let mut r = ViewReplica::new(trace.version, &participation);
+        let mut r = ViewReplica::new(trace.version);
         for (i, e) in trace.events.iter().enumerate() {
             r.apply(e).unwrap();
             let fs: Vec<Faction> = r.game.players.iter().map(|p| p.faction).collect();

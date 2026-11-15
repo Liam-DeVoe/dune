@@ -268,6 +268,30 @@ fn starting_with_invalid_settings_is_refused() {
     });
 }
 
+/// The engine doesn't know who waits for a seat: the server refuses a start with fewer seats
+/// than users waiting.
+#[test]
+fn starting_with_more_users_than_seats_is_refused() {
+    rt().block_on(async {
+        let mut s = TestServer::start().await;
+        let alice = s.user("alice").await;
+        let bobby = s.user("bobby").await;
+        let carol = s.user("carol").await;
+        let game = s.new_game(&alice, "Dune", "").await;
+        s.ok(bobby.conn, "RequestJoinGame", json!([game, "", -1])).await;
+        s.ok(carol.conn, "RequestJoinGame", json!([game, "", -1])).await;
+        s.received(bobby.conn);
+
+        let r = s.call(alice.conn, "SubmitEvent", json!([game, establish_players(2, &[], false, 0)])).await;
+        assert_eq!(r["Error"], error::INVALID_GAME_EVENT, "{r}");
+        assert!(r.to_string().contains("More players than seats at the table"), "{r}");
+        assert!(views(&s.received(bobby.conn)).is_empty(), "the game didn't change");
+
+        s.ok(alice.conn, "SubmitEvent", json!([game, establish_players(3, &[], false, 0)])).await;
+        assert!(find(&s.received(bobby.conn), "AssignSeats").is_some());
+    });
+}
+
 #[test]
 fn pauses_continue_when_every_player_is_done() {
     rt().block_on(async {

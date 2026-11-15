@@ -60,5 +60,3 @@ players[] =
 players[>] = <>|<>
 players[a>>b] = <a>|<>|<b>
 players[a] = <a>
-gameinfo.canBeJoined.full = False
-gameinfo.seat = 1,-1

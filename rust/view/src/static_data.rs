@@ -7,11 +7,9 @@
 //! the view's (`tests/ts_bindings.rs`).
 
 use serde::{Deserialize, Serialize};
-use treachery_engine::shared::Shared;
 use treachery_engine::identity::Identifiable;
 use treachery_engine::heroes::leader_manager::LeaderManager;
 use treachery_engine::map::LocationKind;
-use treachery_engine::game::Participation;
 use treachery_engine::game::Player;
 use treachery_engine::prelude::*;
 use treachery_engine::cards::resource_card::ResourceCard;
@@ -162,7 +160,7 @@ pub struct NamedPlaces {
 }
 
 pub fn static_data() -> StaticData {
-    let game = Game::with_participation(Game::LATEST_VERSION, &Shared::new(Participation::default()));
+    let game = Game::new();
     let map = &game.board.map;
 
     let locations = map

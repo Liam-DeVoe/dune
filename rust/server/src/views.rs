@@ -15,7 +15,6 @@ use std::panic::AssertUnwindSafe;
 use serde_json::Value;
 use treachery_engine::enumerations::ErrorType;
 use treachery_engine::json;
-use treachery_view::build::Viewer;
 use treachery_view::replica::ViewReplica;
 
 use super::connections::{ConnectionId, Connections, PendingViews};
@@ -36,12 +35,12 @@ impl Entry {
         }
         let game = &g.game;
         if let Some(r) = &self.replica {
-            if !r.game.participation.ptr_eq(&game.participation) || r.game.rules.version != game.rules.version || r.game.event_count() > game.event_count() {
+            if r.game.rules.version != game.rules.version || r.game.event_count() > game.event_count() {
                 self.replica = None;
             }
         }
         let replica = self.replica.get_or_insert_with(|| {
-            let mut r = ViewReplica::new(game.rules.version, &game.participation);
+            let mut r = ViewReplica::new(game.rules.version);
             if let Some(skin) = &g.skin {
                 // A skin that doesn't load leaves the default.
                 let _ = r.set_skin(skin);
@@ -49,6 +48,10 @@ impl Entry {
             r
         });
         replica.timer = g.timer;
+        // Seats change outside the events, so the replica gets them before it executes events
+        // that may ask which players are bots.
+        replica.seating = g.participation.seating();
+        replica.game.human_seats = game.human_seats.clone();
         let done = replica.game.event_count() as usize;
         for (nr, e) in game.history.entries.iter().enumerate().skip(done) {
             replica.apply(&json::serialize(e)).map_err(|m| format!("event {nr} ({}): {m}", e.event_type().name()))?;
@@ -96,7 +99,7 @@ impl GameViews {
                     .map(|(connection, user_id)| {
                         let text = by_user
                             .entry(user_id)
-                            .or_insert_with(|| protocol::notify("GameView", vec![serde_json::to_value(replica.view(Viewer { user_id })).expect("views serialize")]))
+                            .or_insert_with(|| protocol::notify("GameView", vec![serde_json::to_value(replica.view(g.participation.viewer(user_id))).expect("views serialize")]))
                             .clone();
                         (connection, text)
                     })
@@ -139,7 +142,7 @@ impl GameViews {
 
     /// The options and validation of a draft of one of the user's actions.
     pub fn query_draft(&mut self, g: &RunningGame, user_id: i32, draft: &str) -> Reply {
-        let viewer = Viewer { user_id };
+        let viewer = g.participation.viewer(user_id);
         self.with_replica(g, |replica| {
             if !replica.has_view_for(viewer) {
                 // The replica was rebuilt since this user's last view: build it again to know
@@ -155,7 +158,7 @@ impl GameViews {
 
     /// The lines of a report, as the user may see them.
     pub fn report(&mut self, g: &RunningGame, user_id: i32, index: i32) -> Reply {
-        self.with_replica(g, |replica| match usize::try_from(index).ok().and_then(|i| replica.report(Viewer { user_id }, i)) {
+        self.with_replica(g, |replica| match usize::try_from(index).ok().and_then(|i| replica.report(g.participation.viewer(user_id), i)) {
             Some(lines) => Ok(serde_json::to_string(&lines).expect("reports serialize")),
             None => Err(CallError::Refused(ErrorType::InvalidGameEvent, format!("There is no report {index}"))),
         })
@@ -163,7 +166,7 @@ impl GameViews {
 
     /// The events a host can undo to.
     pub fn undo_list(&mut self, g: &RunningGame, user_id: i32) -> Reply {
-        if !g.game.is_host(Some(user_id)) {
+        if !g.participation.is_host(user_id) {
             return Err(refuse(ErrorType::NoHost));
         }
         self.with_replica(g, |replica| Ok(serde_json::to_string(&replica.undo_list()).expect("undo lists serialize")))
@@ -171,10 +174,10 @@ impl GameViews {
 
     /// The host's view just before event `gap`, without actions.
     pub fn undo_preview(&mut self, g: &RunningGame, user_id: i32, gap: i32) -> Reply {
-        if !g.game.is_host(Some(user_id)) {
+        if !g.participation.is_host(user_id) {
             return Err(refuse(ErrorType::NoHost));
         }
-        self.with_replica(g, |replica| match replica.preview(Viewer { user_id }, gap) {
+        self.with_replica(g, |replica| match replica.preview(g.participation.viewer(user_id), gap) {
             Ok(view) => Ok(serde_json::to_string(&view).expect("views serialize")),
             Err(e) => Err(CallError::Refused(ErrorType::InvalidGameEvent, e)),
         })

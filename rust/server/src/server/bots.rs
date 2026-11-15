@@ -45,7 +45,7 @@ impl Server {
     /// Schedules the bots' next turn, replacing any scheduled before. Nothing at speed 0.
     pub(super) fn schedule_bots(&mut self, game: &str) {
         let Some(g) = self.games.get_mut(game) else { return };
-        let speed = g.game.participation.borrow().bots_speed;
+        let speed = g.participation.bots_speed;
         if speed <= 0 || g.scene {
             return;
         }
@@ -69,14 +69,11 @@ impl Server {
     /// passing in the current pause.
     pub(super) async fn bot_turn(&mut self, game: &str) -> Result<(), CallError> {
         let Some(g) = self.games.get_mut(game) else { return Ok(()) };
-        let (speed, no_host) = {
-            let p = g.game.participation.borrow();
-            (p.bots_speed, p.hosts.is_empty())
-        };
+        let (speed, no_host) = (g.participation.bots_speed, g.participation.hosts.is_empty());
         if speed <= 0 || g.game.turn.current_phase <= Phase::AwaitingPlayers || g.scene {
             return Ok(());
         }
-        let bots_act_as_hosts = no_host && g.game.number_of_observers() > 0;
+        let bots_act_as_hosts = no_host && g.participation.number_of_observers() > 0;
         let mut bots: Vec<PlayerIndex> = g.game.player_indices().filter(|&p| g.game.is_bot(p)).collect();
         bots.shuffle(&mut random::new_rng(ids::new_seed()));
         let options: Vec<_> = bots.iter().map(|&p| g.game.get_applicable_events(Some(p), bots_act_as_hosts)).collect();

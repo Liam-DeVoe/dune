@@ -4,8 +4,6 @@
 mod common;
 
 use common::*;
-use treachery_engine::shared::Shared;
-use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
 use treachery_view::actions::QueryError;
 use treachery_view::replica::ViewReplica;
@@ -25,22 +23,17 @@ fn settings(players: i32, factions: &[Faction]) -> String {
 
 /// A new game awaiting players: the creator (user 1) is host, user 2 has joined.
 fn awaiting() -> ViewReplica {
-    let participation = Shared::new(Participation::default());
-    {
-        let mut p = participation.borrow_mut();
-        for (user, name) in [(1, "Host"), (2, "Guest")] {
-            p.seated_players.insert(user, -1);
-            p.player_names.insert(user, name.to_string());
-        }
-        p.hosts.insert(1);
-    }
-    ViewReplica::new(Game::LATEST_VERSION, &participation)
+    let mut r = ViewReplica::new(Game::LATEST_VERSION);
+    r.game.human_seats.insert(-1);
+    r.seating.names.insert(-1, "Host".to_string());
+    r.seating.seated_users = 2;
+    r
 }
 
 #[test]
 fn a_host_without_a_seat_establishes_players() {
     let mut r = awaiting();
-    let host = Viewer { user_id: 1 };
+    let host = Viewer { user_id: 1, seat: -1, is_host: true, is_observer: false };
     let view = r.view(host);
     assert_eq!(view.phase, "AwaitingPlayers");
     let a = view.actions.iter().find(|a| a.event_type == "EstablishPlayers").expect("EstablishPlayers for the host");
@@ -55,15 +48,15 @@ fn a_host_without_a_seat_establishes_players() {
     assert_eq!(r.query(host, &settings(3, &two)).unwrap().validation, Some(text("More factions required")));
 
     // A guest has no host actions and can't query them.
-    let guest = Viewer { user_id: 2 };
+    let guest = Viewer { user_id: 2, seat: -1, is_host: false, is_observer: false };
     assert!(r.view(guest).actions.is_empty());
     assert_eq!(r.query(guest, &settings(2, &two)), Err(QueryError::NotAPlayer));
 }
 
 #[test]
 fn perform_setup_offers_the_next_factions_reserves() {
-    let mut r = load("setup-host", 0);
-    let host = Viewer { user_id: user_of_seat(0) };
+    let mut r = load("setup-host");
+    let host = seated_viewer(HOST_SEAT);
     let view = r.view(host);
     let a = view.actions.iter().find(|a| a.event_type == "PerformSetup").expect("PerformSetup for the host");
     let Some(ActionOptions::PerformSetup(o)) = &a.options else { panic!("PerformSetup options: {:?}", a.options) };

@@ -3,17 +3,15 @@
 use treachery_engine::events::GameEvent;
 use treachery_engine::game::Game;
 use treachery_engine::json;
-use treachery_engine::game::Participation;
 
 // ReviewA.Establish with AllowedFactionsInPlay [Choam, Atreides, Richese] (same text as ReviewJ.cs).
 const ESTABLISH: &str = r#"{"$type":"EstablishPlayers","Settings":{"NumberOfPlayers":3,"MaximumTurns":8,"InitialRules":[301,300,65,60,20,1013,15,700,105,80,85,604,90,998,30,701,40,107,10,70,50,25,209,999,112],"AllowedFactionsInPlay":[90,20,100],"AutoOpenEmptySeats":true,"AsyncPlay":false,"AsyncPlayMessageIntervalMinutes":0},"Seed":1073548723,"MaximumNumberOfPlayers":3,"MaximumTurns":8,"ApplicableRules":[301,300,65,60,20,1013,15,700,105,80,85,604,90,998,30,701,40,107,10,70,50,25,209,999,112],"_players":"","_factionsInPlay":"Choam,Atreides,Richese","Initiator":0,"Time":"2024-01-01T12:02:17+00:00"}"#;
 
 
 fn new_game() -> Game {
-    let mut p = Participation::new();
-    p.player_names.insert(100, "Human100".to_string());
-    p.seated_players.insert(100, 2);
-    let mut g = Game::with_participation(Game::LATEST_VERSION, &treachery_engine::shared::Shared::new(p));
+    // User 100 ("Human100") sits in seat 2.
+    let mut g = Game::of_version(Game::LATEST_VERSION);
+    g.human_seats.insert(2);
     let e = ev(&g, ESTABLISH);
     assert!(e.execute(&mut g, true, true).is_none(), "establish rejected");
     g

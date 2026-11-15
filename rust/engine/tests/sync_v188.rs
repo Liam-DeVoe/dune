@@ -18,7 +18,6 @@ use treachery_engine::game::Game;
 use treachery_engine::game::GameStatus;
 use treachery_engine::json;
 use treachery_engine::heroes::leader_manager::LeaderManager;
-use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
 use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
 
@@ -43,10 +42,9 @@ impl Lines {
 }
 
 fn new_game(version: i32) -> Game {
-    let mut p = Participation::new();
-    p.player_names.insert(100, "Human100".to_string());
-    p.seated_players.insert(100, 2);
-    let mut g = Game::with_participation(version, &treachery_engine::shared::Shared::new(p));
+    // User 100 ("Human100") sits in seat 2.
+    let mut g = Game::of_version(version);
+    g.human_seats.insert(2);
     let e: GameEvent = json::deserialize(ESTABLISH).expect("event json");
     e.initialize_game(&g);
     assert!(e.execute(&mut g, true, true).is_none(), "establish rejected");

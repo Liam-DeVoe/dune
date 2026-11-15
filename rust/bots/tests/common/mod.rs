@@ -23,7 +23,6 @@ use flate2::read::GzDecoder;
 use serde_json::{json, Value};
 use treachery_bots::prelude::*;
 use treachery_engine::error::catch_panic;
-use treachery_engine::game::Participation;
 
 /// Whether this run rewrites the snapshots instead of comparing with them.
 pub fn updating() -> bool {
@@ -60,27 +59,15 @@ pub fn write_json(name: &str, v: &Value) {
     std::fs::write(golden_path(name), serde_json::to_string_pretty(v).unwrap() + "\n").unwrap();
 }
 
-/// The game's `Participation`, as the header of a recorded game holds it.
-pub fn participation(o: &Value) -> Participation {
+/// The seats users play, from the participation in a recorded game's header (.NET `Participation`
+/// JSON): the seats of `SeatedPlayers`.
+pub fn human_seats(o: &Value) -> IndexSet<i32> {
     let int = |v: &Value| v.as_i64().unwrap() as i32;
-    let mut p = Participation { bots_speed: int(&o["BotsSpeed"]), ..Default::default() };
-    for kv in o["PlayerNames"].as_array().unwrap() {
-        p.player_names.insert(int(&kv[0]), kv[1].as_str().unwrap().to_string());
+    let mut seated: IndexMap<i32, i32> = IndexMap::new();
+    for kv in o["SeatedPlayers"].as_array().cloned().unwrap_or_default() {
+        seated.insert(int(&kv[0]), int(&kv[1]));
     }
-    for kv in o["SeatedPlayers"].as_array().unwrap() {
-        p.seated_players.insert(int(&kv[0]), int(&kv[1]));
-    }
-    for (key, set) in [
-        ("Observers", &mut p.observers),
-        ("Hosts", &mut p.hosts),
-        ("AvailableSeats", &mut p.available_seats),
-        ("Kicked", &mut p.kicked),
-    ] {
-        for v in o[key].as_array().unwrap() {
-            set.insert(int(v));
-        }
-    }
-    p
+    seated.into_values().collect()
 }
 
 /// Replays a recorded game, `knowledge-<name>.jsonl.gz`, and calls `at_step` with the game and
@@ -90,8 +77,9 @@ pub fn replay(name: &str, mut at_step: impl FnMut(&mut Game, i64)) {
     for o in lines(&format!("knowledge-{name}.jsonl.gz")) {
         match o["k"].as_str().unwrap() {
             "header" => {
-                let participation = participation(&o["participation"]);
-                game = Some(Game::with_participation(o["version"].as_i64().unwrap() as i32, &Shared::new(participation)));
+                let mut g = Game::of_version(o["version"].as_i64().unwrap() as i32);
+                g.human_seats = human_seats(&o["participation"]);
+                game = Some(g);
             }
             "step" => {
                 let game = game.as_mut().unwrap();

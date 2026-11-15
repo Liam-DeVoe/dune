@@ -214,7 +214,7 @@ impl Server {
             return Err(refuse(ErrorType::UserTokenNotFound));
         }
         let token = self.start_session(connection, link.user_id).await?;
-        let game = self.games.get(&link.game_id).filter(|g| g.game.is_participant(link.user_id)).map(|g| g.id.clone());
+        let game = self.games.get(&link.game_id).filter(|g| g.participation.is_participant(link.user_id)).map(|g| g.id.clone());
         contents(&LinkLoginInfo { login_info: login_info(&self.users[&link.user_id], Some(token)), game_id: game })
     }
 

@@ -34,7 +34,7 @@ fn all_views(r: &mut ViewReplica) -> Vec<(Option<Faction>, GameView)> {
 fn each_state(name: &str, mut each: impl FnMut(&mut ViewReplica, usize)) {
     let v: serde_json::Value = serde_json::from_str(&fixture(name)).unwrap();
     let events = v["_events"].as_array().unwrap();
-    let mut r = load_text(&truncated(name, 1), 0);
+    let mut r = load_text(&truncated(name, 1));
     each(&mut r, 1);
     for (i, e) in events.iter().enumerate().skip(1) {
         r.apply(&e.to_string()).unwrap_or_else(|m| panic!("{name} event {i}: {m}"));
@@ -172,13 +172,13 @@ fn tracker() {
 
 // ---- Bot speed ----
 
-/// `Participation.BotsSpeed`, the same for everyone, following the participation.
+/// The bot speed, the same for everyone, following the server's.
 #[test]
 fn bots_speed() {
-    let mut r = load("bid", 0);
-    let initial = r.game.participation.borrow().bots_speed;
+    let mut r = load("bid");
+    let initial = r.seating.bots_speed;
     for speed in [initial, 0, 2, 4] {
-        r.game.participation.borrow_mut().bots_speed = speed;
+        r.seating.bots_speed = speed;
         for (f, view) in all_views(&mut r) {
             assert_eq!(view.bots_speed, speed, "{f:?}");
         }
@@ -193,7 +193,7 @@ fn bots_speed() {
 fn mentat() {
     let mut saw_richese = false;
     for fx in ["bid", "blow", "ally", "nexus-moritani", "retreat", "worm"] {
-        let mut r = load(fx, 0);
+        let mut r = load(fx);
         let views = all_views(&mut r);
         let g = &r.game;
         let expected = MentatView {
@@ -259,7 +259,7 @@ fn leader_skills() {
 fn undo_list() {
     let mut unlisted_total = 0;
     for fx in ["blow", "retreat", "mc-ended", "ally", "alliance-allied"] {
-        let r = load(fx, 0);
+        let r = load(fx);
         let list = r.undo_list();
         let g = &r.game;
         assert_eq!(list.len(), g.history.entries.len(), "{fx}");
@@ -303,12 +303,12 @@ fn without_actions(mut v: GameView) -> GameView {
 #[test]
 fn undo_preview() {
     for fx in ["bid", "ally", "mc-treachery"] {
-        let mut r = load(fx, 0);
+        let mut r = load(fx);
         let count = r.game.history.entries.len() as i32;
         let live = all_views(&mut r);
         let viewers: Vec<_> = factions(&r).into_iter().map(|f| viewer_of(&r, f)).chain([OBSERVER]).collect();
         for gap in [1, count / 3, count / 2, count - 1] {
-            let mut cut = load_text(&truncated(fx, gap as i64), 0);
+            let mut cut = load_text(&truncated(fx, gap as i64));
             for v in &viewers {
                 let preview = r.preview(*v, gap).unwrap();
                 assert_eq!(preview.event_number, gap, "{fx}");

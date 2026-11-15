@@ -9,13 +9,13 @@ How `rust/engine` represents the game: enums, static data, players, events, mess
 - Where C# overloads one name, the Rust names say how the versions differ, not which parameter types they take: `Game::discard_card(card, log)` and `discard_card_of(player, card, log)`, `GameStatus::for_player` and `for_players`, `Player::kill_forces` and `kill_forces_in_territory`.
 - Comments describe the Rust code. A comment about the C# engine is only for a deliberate difference (`// Not in C#: ...`, listed in [behavior-changes.md](behavior-changes.md)) or a copied C# bug (`// C# parity: ...`).
 - A name that is a Rust keyword gets a trailing underscore: `card.Type` is `card.type_()`.
-- Support modules have no C# counterpart. `shared.rs` holds `Shared<T>` and `RcKey<T>`, `enum_type.rs` defines how enums work, `iter.rs` the iterator and map helpers std lacks, `compat/date_time_offset.rs` is `DateTimeOffset`/`TimeSpan`, `random.rs` the random number generator and selection helpers, `json/mod.rs` and `json/members.rs` are the event JSON, and `prelude.rs` is the common import.
+- Support modules have no C# counterpart. `shared.rs` holds `Shared<T>` (only the random number generator uses it) and `RcKey<T>`, `enum_type.rs` defines how enums work, `iter.rs` the iterator and map helpers std lacks, `compat/date_time_offset.rs` is `DateTimeOffset`/`TimeSpan`, `random.rs` the random number generator and selection helpers, `json/mod.rs` and `json/members.rs` are the event JSON, and `prelude.rs` is the common import.
 - `map/data.rs` and the enum declarations in `enumerations.rs` were generated from the C# source once and are edited by hand now. `tests/static_data.rs` checks them against a snapshot.
 - Mark deliberate copies of C# bugs with `// C# parity: <why>`.
 
 ## Game state
 
-`Game` holds a few fields of its own (`seed`, `random`, `players`, `participation`) and groups the rest of its state by topic, one struct per topic. Each struct is defined in the file under `game/` that holds the rules of its topic, so work on one topic stays in one file:
+`Game` holds a few fields of its own (`seed`, `random`, `players`, `human_seats`) and groups the rest of its state by topic, one struct per topic. Each struct is defined in the file under `game/` that holds the rules of its topic, so work on one topic stays in one file:
 
 | Field | Type | File | Holds |
 |---|---|---|---|
@@ -28,11 +28,16 @@ How `rust/engine` represents the game: enums, static data, players, events, mess
 | `turn` | `TurnState` | `turn.rs` | turn, main phase and phase, and what lasts for one turn or phase: payments, milestones, prevented advantages, cards and Nexus cards in effect, phases paused by Clairvoyance, discarding and Bureaucracy |
 | `history` | `History` | `history.rs` | the events (`entries`), undone events, the game before an undo, moments and timers |
 | `log` | `Log` | `log.rs` | the reports |
+| `counters` | `Counters` | `counters.rs` | numbers handed out in order: the leader deaths' `time_of_death` |
 | `setup`, `storm`, `blow`, `charity`, `bidding`, `revival`, `ship_move`, `battle`, `collection`, `contemplate` | `SetupState` ... `ContemplateState` | the phase's file (`movement.rs` for `ship_move`) | what the rules of that phase use |
 
 The phase structs are kept side by side whatever the current phase, and some of their fields last longer than the phase (`ship_move.shipment_permissions`, `revival.factions_with_increased_revival_limits`). Fields keep the names they had on `Game` (`game.battle.current_battle`), except where the old name would repeat the struct's: `rules.active`, `history.entries`, `deals.offers`, `deals.responses` and `deals.agreed`.
 
 A new field goes into the struct of its topic, or into the phase struct if only that phase's rules use it.
+
+`human_seats` is the one thing the engine knows about who sits at the table: the seats users play. Every other seat is a bot's (`Game::is_bot`), which a few rules ask (Clairvoyance questions, card trades, deals with a bot). The server owns the rest (names, hosts, observers, open seats, bot speed; `server/src/participation.rs`) and updates `human_seats` whenever seats change. The seats aren't in the history: `Game::load` takes them, `Game::new_like` copies them into a game that replays the history (undo, the view's ending), and `restore_recently_undone` keeps the current ones. Views get names and the bot speed from the caller (`treachery_view::build::Seating`).
+
+No state lives outside `Game`: the engine has no thread-locals or statics that games share, so two games on one thread don't affect each other. The one thread-local, `error.rs`'s `QUIET`, only tells the panic hook whether to print.
 
 ## Enums
 
@@ -168,22 +173,9 @@ game.board.map.find_neighbours_for_hms_movement(start, 1, false, game.board.sect
 
 - Plain ownership is the default. `Player`, `LeaderState`, `Battalion` and the like are fields of `Game`.
 - Events stored in game state are `Rc<Event>`, shared with `History` (see [Events](#events)). The few event fields that C# writes after the event is stored are `Cell`s.
-- When C# keeps two references to one mutable object that is not an event and mutates through either, use `shared::Shared<T>`, an `Rc<RefCell<T>>` whose `==` is reference equality. The engine uses it for the lists that `EstablishPlayers` shares with the game:
-  - `Game.rules.settings: Shared<GameSettings>` and `EstablishPlayers.settings: Option<Shared<GameSettings>>`;
-  - `Game.rules.factions_in_play: Shared<Vec<Faction>>` and `GameSettings.allowed_factions_in_play: Option<Shared<Vec<Faction>>>`.
-
-  ```rust
-  // Game.Settings = Settings;  Game.FactionsInPlay = Game.Settings.AllowedFactionsInPlay;
-  game.rules.settings = self.settings.clone().expect("settings");
-  game.rules.factions_in_play = game.rules.settings.borrow().allowed_factions_in_play.clone().expect("allowed factions in play");
-  game.rules.factions_in_play.borrow_mut().retain(|f| *f != faction);   // also changes the event's settings
-  ```
-
-  `AllRules`/`InitialRules`, `PermittedUseOfEmperorSpice`/`Amounts` and `FactionsWithIncreasedRevivalLimits`/`Factions` are also aliased in C#, but nothing mutates them afterwards, so they are plain copies.
-
-  `Game.participation` is a `Shared<Participation>` too. `new Game(version, participation)` keeps the caller's object, and the games that `Undo`, `RestoreRecentlyUndone` and `DismissRecentlyUndone` make share it, so `Game::with_participation` takes a `&Shared<Participation>`.
+- Where C# keeps two references to one mutable object, the game keeps its own copy if nothing mutates the object afterwards: `EstablishPlayers` copies its settings into `rules.settings`, and the allowed factions into `rules.factions_in_play`. The same goes for `AllRules`/`InitialRules`, `PermittedUseOfEmperorSpice`/`Amounts` and `FactionsWithIncreasedRevivalLimits`/`Factions`.
 - When C# uses an object as an identity token, key by a stable handle: `PlayerIndex` for players, `shared::RcKey<Event>` for events (`deals.responses` is keyed by `RcKey<DealOffered>`). Don't compare structurally.
-- The game's random number generator is shared between `Game.random` and every deck built from it. That is `random::SharedRandom`, a `Shared<GameRng>`.
+- The game's random number generator is shared between `Game.random` and every deck built from it. That is `random::SharedRandom`, a `Shared<GameRng>`, the last use of `Shared<T>` (an `Rc<RefCell<T>>` whose `==` is reference equality).
 - C# objects that hold their owning game (`Player.Game`, `PlayerSequence._game`, `GameEvent.Game`) don't keep it in Rust. Their methods take the game as a parameter.
 
 ## Players
@@ -325,7 +317,7 @@ Keep the C# numeric type: a `float` dial must go in as `f32`, not `i32`. If some
 
 A message stores a copy of each collection passed to it, taken when it is built. A few messages refer to a game collection instead, so the log shows the collection as it is when the message is rendered: `ExpressionElement::live(game, LiveList::...)`. The variant names where the collection lives, such as `PlayerTreacheryCards(p)`, and `LiveList::read` reads it from the game; the skin and the views call it when they render the message. A variant is only correct while that game field is never reassigned (only mutated), so check that before adding one. `tests/live_lists.rs` checks the reading.
 
-The macro evaluates its arguments left to right before it creates the message, so nested messages get lower `Nr` values, as in C#. `express_part_if!` evaluates its arguments even when the condition is false, as C# does. Messages are data. Turning them into text is `Skin.Describe`, in the `rust/skin` crate ([skin.md](skin.md)).
+The macro evaluates its arguments left to right. `express_part_if!` evaluates its arguments even when the condition is false, as C# does. Messages are data. Turning them into text is `Skin.Describe`, in the `rust/skin` crate ([skin.md](skin.md)).
 
 `Validate()` returns `Option<Message>`, where `None` means valid.
 
@@ -397,10 +389,6 @@ let hero = heroes.into_iter().random_highest(&self.random, |h| h.value());
 Why ChaCha8 and not `rand::rngs::StdRng`: rand may change `StdRng`'s algorithm in any release, and a different stream turns every saved game into a different game. `rand_chacha` promises the same stream for a seed on every platform and version, and rand promises the same results from `random_range`, `shuffle` and `choose` within a minor version (0.9). A new minor version of rand, or turning on rand's `unbiased` feature anywhere in the workspace, can change the draws. `deck_shuffle_and_random_item` in tests/static_data.rs pins a few streams and catches that; such a change needs a new game version (`Game::LATEST_VERSION`), like the move to this generator in version 189 ([behavior-changes.md](behavior-changes.md#random-number-generator)).
 
 Nothing counts draws any more. Tests that check how far a generator has drawn compare `SharedRandom::state()` with a generator that made the expected draws, or read its `get_word_pos()`.
-
-## Process-wide state
-
-`Message.Nr` comes from a counter that C# never resets. In Rust it is thread-local (`Message::reset_counter`, `Message::counter`), so parallel tests don't interfere.
 
 ## JSON
 

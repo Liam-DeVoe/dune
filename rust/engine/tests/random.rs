@@ -9,9 +9,8 @@ use std::collections::HashMap;
 
 use treachery_engine::cards::deck::Deck;
 use treachery_engine::events::GameEventMethods;
-use treachery_engine::game::{Game, GameState, Participation};
+use treachery_engine::game::{Game, GameState};
 use treachery_engine::random::{RandomPick, SharedRandom};
-use treachery_engine::shared::Shared;
 
 /// Asserts that every count is within `tolerance` (a fraction) of `expected`.
 fn assert_even<K: std::fmt::Debug>(what: &str, counts: &HashMap<K, usize>, cells: usize, expected: f64, tolerance: f64) {
@@ -149,7 +148,7 @@ fn game_from_seed(seed: i32) -> String {
     let events = format!("[{},{END_PHASE},{END_PHASE}]", ESTABLISH.replace("SEED", &seed.to_string()));
     let savegame = format!(r#"{{"Version":{},"_events":{events}}}"#, Game::LATEST_VERSION);
     let state = GameState::load(&savegame).unwrap();
-    let mut game = Game::with_participation(state.version, &Shared::new(Participation::default()));
+    let mut game = Game::of_version(state.version);
     for e in state.events.as_ref().unwrap() {
         e.initialize_game(&game);
         assert!(e.execute(&mut game, false, true).is_none());

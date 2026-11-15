@@ -4,7 +4,7 @@
 use treachery_engine::events::GameEventType;
 use treachery_engine::prelude::*;
 
-use crate::build::{event, validate, ResolvedViewer};
+use crate::build::{event, validate, ResolvedViewer, Seating};
 use crate::describe::Describer;
 use crate::schema::*;
 
@@ -38,9 +38,9 @@ pub fn default_draft(game: &Game, faction: Faction, t: GameEventType) -> Option<
     })
 }
 
-pub fn options_and_validation(game: &Game, _v: &ResolvedViewer, draft: &GameEvent, d: &dyn Describer) -> Option<(Option<ActionOptions>, Option<RichText>)> {
+pub fn options_and_validation(game: &Game, s: &Seating, draft: &GameEvent, d: &dyn Describer) -> Option<(Option<ActionOptions>, Option<RichText>)> {
     let options = match draft {
-        GameEvent::EstablishPlayers(_) => ActionOptions::EstablishPlayers(EstablishPlayersOptions { seated_players: game.number_of_seated_players() }),
+        GameEvent::EstablishPlayers(_) => ActionOptions::EstablishPlayers(EstablishPlayersOptions { seated_players: s.seated_users }),
         GameEvent::PerformSetup(_) => {
             let faction = game.next_faction_to_perform_custom_setup();
             let p = game.get_player(Some(faction))?;

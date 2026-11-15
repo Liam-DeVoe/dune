@@ -415,9 +415,9 @@ pub fn rt() -> tokio::runtime::Runtime {
 /// The seat of a faction in a fixture. The seats are dealt at random during setup, so tests look
 /// them up rather than assume them.
 pub fn seat_in_fixture(fixture: &str, faction: i64) -> i64 {
-    use treachery_engine::game::{Game, GameState, Participation};
+    use treachery_engine::game::{Game, GameState};
     let state = GameState::load(&fixture_text(fixture)).unwrap();
-    let game = Game::load(&state, &treachery_engine::shared::Shared::new(Participation::default()), false, true).unwrap();
+    let game = Game::load(&state, &Default::default(), false, true).unwrap();
     game.players.iter().find(|p| p.faction.0 as i64 == faction).map(|p| p.seat as i64).expect("the faction plays in the fixture")
 }
 

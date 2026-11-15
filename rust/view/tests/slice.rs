@@ -27,7 +27,7 @@ fn text(s: &str) -> RichText {
 /// the form's default (no faction picked) fails validation, which disables "Offer Alliance".
 #[test]
 fn alliance_offer_targets_are_the_engines() {
-    let mut r = load("alliance", 0);
+    let mut r = load("alliance");
     for f in factions(&r) {
         let view = r.view(viewer_of(&r, f));
         assert_eq!(view.phase, "AllianceA");
@@ -53,7 +53,7 @@ fn alliance_offer_targets_are_the_engines() {
 /// With an ally: break or keep, and the keep question names the ally.
 #[test]
 fn allied_players_may_break_or_keep() {
-    let mut r = load("alliance-allied", 0);
+    let mut r = load("alliance-allied");
     for f in factions(&r) {
         let view = r.view(viewer_of(&r, f));
         let ally = r.game.player(r.game.get_player(Some(f)).unwrap()).ally;
@@ -81,7 +81,7 @@ fn allied_players_may_break_or_keep() {
 /// Everyone is awaited in the alliance phase; observers get the waiting text and no actions.
 #[test]
 fn status_and_observer() {
-    let mut r = load("alliance", 0);
+    let mut r = load("alliance");
     let view = r.view(OBSERVER);
     assert!(view.viewer.is_observer);
     assert!(view.me.is_none());
@@ -100,7 +100,7 @@ fn status_and_observer() {
 #[test]
 fn views_hold_no_one_elses_secrets() {
     for fixture in ["alliance", "alliance-allied", "battle", "bid", "mc-traitors", "mc-prediction", "revival"] {
-        let mut r = load(fixture, 0);
+        let mut r = load(fixture);
         let mut viewers: Vec<(Viewer, Option<Faction>)> = factions(&r).into_iter().map(|f| (viewer_of(&r, f), Some(f))).collect();
         viewers.push((OBSERVER, None));
         for (viewer, faction) in viewers {
@@ -146,7 +146,7 @@ fn views_hold_no_one_elses_secrets() {
 fn private_log_lines_reach_only_their_target() {
     let mut private_total = 0;
     for fixture in ["mc-traitors", "bid", "battle", "alliance"] {
-        let r = load(fixture, 0);
+        let r = load(fixture);
         for f in factions(&r) {
             let v = viewer_of(&r, f).resolve(&r.game);
             for (i, report) in r.game.reports().iter().enumerate() {
@@ -170,10 +170,10 @@ fn private_log_lines_reach_only_their_target() {
 #[test]
 fn storm_dial_range() {
     // The alliance fixture's last storm dialled by two players: the last two dials in a row.
-    let full = load("alliance", 0);
+    let full = load("alliance");
     let dials: Vec<usize> = full.game.history.entries.iter().enumerate().filter(|(_, e)| matches!(e, GameEvent::StormDialled(_))).map(|(i, _)| i).collect();
     let first_dial = dials.windows(2).filter(|w| w[1] == w[0] + 1).last().expect("two dials in a row")[0] as i64;
-    let mut r = load_text(&truncated("alliance", first_dial), 0);
+    let mut r = load_text(&truncated("alliance", first_dial));
     let mut dialers = 0;
     for f in factions(&r) {
         let view = r.view(viewer_of(&r, f));
@@ -192,7 +192,7 @@ fn storm_dial_range() {
     assert_eq!(dialers, 2);
 
     // After one dial, only the other dialer is awaited.
-    let mut r = load_text(&truncated("alliance", first_dial + 1), 0);
+    let mut r = load_text(&truncated("alliance", first_dial + 1));
     let waiting: Vec<String> = r.view(OBSERVER).status.waiting_for;
     assert_eq!(waiting.len(), 1);
     let dialed = r.game.history.entries.last().unwrap().initiator().to_string();
@@ -203,7 +203,7 @@ fn storm_dial_range() {
 /// options and validation for them. The server sets the initiator.
 #[test]
 fn draft_queries() {
-    let mut r = load("alliance", 0);
+    let mut r = load("alliance");
     let emperor = viewer_of(&r, Faction::Emperor);
     let _ = r.view(emperor);
     let ev = |t: &str, extra: &str| format!(r#"{{"$type":"{t}"{extra},"Initiator":0,"Time":"2026-01-01T00:00:00+00:00"}}"#);
@@ -226,7 +226,7 @@ fn draft_queries() {
 /// `History.Count`.
 #[test]
 fn replica_follows_events() {
-    let mut r = load("alliance", 0);
+    let mut r = load("alliance");
     let before = r.view(OBSERVER).event_number;
     let emperor = Faction::Emperor.0;
     r.apply(&format!(r#"{{"$type":"AlliancePassed","Initiator":{emperor},"Time":"2026-01-01T00:00:00+00:00"}}"#)).unwrap();
@@ -259,8 +259,8 @@ fn scene_seats_one_user_and_bots() {
 #[test]
 fn views_do_not_depend_on_build_order() {
     for fixture in ["battle", "mc-voice", "retreat", "mc-concluded", "alliance", "bid", "move"] {
-        let mut forward = load(fixture, 0);
-        let mut backward = load(fixture, 0);
+        let mut forward = load(fixture);
+        let mut backward = load(fixture);
         let mut viewers: Vec<Viewer> = factions(&forward).into_iter().map(|f| viewer_of(&forward, f)).collect();
         viewers.push(OBSERVER);
         let a: Vec<String> = viewers.iter().map(|v| serde_json::to_string(&forward.view(*v)).unwrap()).collect();

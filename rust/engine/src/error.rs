@@ -64,6 +64,8 @@ pub fn panic_message(payload: &(dyn std::any::Any + Send)) -> String {
 }
 
 thread_local! {
+    /// How many `catch_panic` calls this thread is inside. The panic hook is the process's, so it
+    /// asks the panicking thread whether to stay quiet. This isn't game state: no game reads it.
     static QUIET: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
 }
 

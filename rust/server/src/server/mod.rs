@@ -34,6 +34,7 @@ use treachery_engine::game::Game;
 use super::connections::{ConnectionId, Connections};
 use super::db::{Db, LoginLinkRow, ScheduledGameRow, UserRow};
 use super::mail::Mailer;
+use super::participation::Participation;
 use super::protocol::{self, Message, Request};
 use super::settings::Settings;
 use super::time::{Clock, Time};
@@ -142,6 +143,8 @@ pub struct RunningGame {
     pub created: Time,
     pub last_activity: Time,
     pub game: Game,
+    /// Who plays which seat, observes or hosts. It tells `game` which seats users play.
+    pub participation: Participation,
     /// Whether the statistics mail for the game's end went out.
     pub statistics_sent: bool,
     pub last_async_mail: Option<Time>,
@@ -166,7 +169,7 @@ pub struct RunningGame {
 }
 
 impl RunningGame {
-    fn new(id: String, name: String, creator: i32, game: Game, now: Time) -> Self {
+    fn new(id: String, name: String, creator: i32, game: Game, participation: Participation, now: Time) -> Self {
         RunningGame {
             id,
             name,
@@ -175,6 +178,7 @@ impl RunningGame {
             created: now,
             last_activity: now,
             game,
+            participation,
             statistics_sent: false,
             last_async_mail: None,
             async_mail_pending: false,
@@ -456,7 +460,7 @@ impl Server {
     /// A running game the user takes part in, as a player or an observer.
     fn participant_of(&self, user: i32, game: &str) -> Result<String, CallError> {
         let game = self.running(game)?;
-        if !self.games[&game].game.is_participant(user) {
+        if !self.games[&game].participation.is_participant(user) {
             return Err(refuse(ErrorType::UserNotInGame));
         }
         Ok(game)
@@ -465,7 +469,7 @@ impl Server {
     /// A running game the user plays in. Observers may watch and nothing more.
     fn player_of(&self, user: i32, game: &str) -> Result<String, CallError> {
         let game = self.participant_of(user, game)?;
-        if !self.games[&game].game.is_player(user) {
+        if !self.games[&game].participation.is_player(user) {
             return Err(CallError::Refused(ErrorType::UserNotInGame, "Observers can't do this".into()));
         }
         Ok(game)
@@ -474,7 +478,7 @@ impl Server {
     /// A running game the user hosts.
     fn host_of(&self, user: i32, game: &str) -> Result<String, CallError> {
         let game = self.running(game)?;
-        if !self.games[&game].game.is_host(Some(user)) {
+        if !self.games[&game].participation.is_host(user) {
             return Err(refuse(ErrorType::NoHost));
         }
         Ok(game)

@@ -26,9 +26,10 @@ impl Server {
     /// chosen by a player would tell them the cards to come.
     pub(super) async fn submit_event(&mut self, user: i32, game: &str, mut event: serde_json::Map<String, Value>) -> Reply {
         let game = self.player_of(user, game)?;
-        let g = &self.games[&game].game;
-        let as_host = g.is_host(Some(user));
-        let faction = g.get_player_by_user_id(Some(user)).map_or(Faction::None, |p| g.player(p).faction);
+        let running = &self.games[&game];
+        let (g, participation) = (&running.game, &running.participation);
+        let as_host = participation.is_host(user);
+        let faction = participation.player_of(g, user).map_or(Faction::None, |p| g.player(p).faction);
         event.insert("Initiator".into(), json!(faction.0));
         event.remove("Time");
         match event.get("$type").and_then(Value::as_str) {
@@ -39,13 +40,20 @@ impl Server {
                 event.insert("Seed".into(), json!((self.services.seeds)()));
             }
             Some("FactionSelected") => {
-                let seat = g.participation.borrow().seated_players.get(&user).copied().unwrap_or(-1);
-                event.insert("Seat".into(), json!(seat));
-                event.insert("InitiatorPlayerName".into(), json!(g.get_player_name(user)));
+                event.insert("Seat".into(), json!(participation.seat_of(user)));
+                event.insert("InitiatorPlayerName".into(), json!(participation.name_of(user)));
             }
             _ => {}
         }
         let event = GameEvent::from_json(&Value::Object(event)).map_err(|e| CallError::Refused(ErrorType::InvalidGameEvent, e.message))?;
+        // The engine doesn't know who waits for a seat, so the server checks that they fit at
+        // the table, in the order of the engine's other checks.
+        if let GameEvent::EstablishPlayers(e) = &event {
+            let g = &self.games[&game];
+            if let Some(refusal) = e.validate_for_table(&g.game, Some(g.participation.number_of_seated_players())) {
+                return Err(CallError::Refused(ErrorType::InvalidGameEvent, render::message_to_string(&refusal)));
+            }
+        }
         self.execute(&game, event, as_host, None, false).await?;
         done()
     }
@@ -72,17 +80,17 @@ impl Server {
 
         // Starting the game seats the users, in the order they joined, on the players' seats.
         let seats = matches!(event, GameEvent::EstablishPlayers(_)).then(|| {
-            let mut participation = g.game.participation.borrow_mut();
-            let users: Vec<i32> = participation.seated_players.keys().copied().collect();
-            for (user, player) in users.iter().zip(&g.game.players) {
-                participation.seated_players.insert(*user, player.seat);
+            let mut seats: Vec<(i32, i32)> = g.participation.seated_players.iter().map(|(u, s)| (*u, *s)).collect();
+            for ((_, seat), player) in seats.iter_mut().zip(&g.game.players) {
+                *seat = player.seat;
             }
-            participation.seated_players.iter().map(|(u, s)| (*u, *s)).collect::<Vec<_>>()
+            g.participation.assign_seats(&mut g.game, &seats);
+            seats
         });
 
         let game_over = g.game.turn.current_main_phase == MainPhase::Ended
             && !g.statistics_sent
-            && (g.game.number_of_bots() as f32) < 0.5 * g.game.number_of_seated_players() as f32;
+            && (g.game.number_of_bots() as f32) < 0.5 * g.participation.number_of_seated_players() as f32;
         if game_over {
             g.statistics_sent = true;
             self.send_statistics_mail(game);
@@ -149,19 +157,19 @@ impl Server {
             render::format_turn_and_phase(g.game.turn.current_turn, g.game.turn.current_phase)
         };
 
-        let seated: Vec<i32> = g.game.participation.borrow().seated_players.keys().copied().collect();
+        let seated: Vec<i32> = g.participation.seated_players.keys().copied().collect();
         let mut mails = Vec::new();
         let name = g.name.clone();
         for user in seated {
             let Some(address) = self.users.get(&user).map(|u| u.email.clone()).filter(|a| is_valid_address(a)) else { continue };
             let g = self.games.get_mut(game).expect("present");
-            let Some(player) = g.game.get_player_by_user_id(Some(user)) else { continue };
+            let Some(player) = g.participation.player_of(&g.game, user) else { continue };
             let status = GameStatus::determine_status(&mut g.game, Some(player), true);
-            let status_text = render::message_to_string(&status.get_message(player, g.game.is_host(Some(user))));
+            let status_text = render::message_to_string(&status.get_message(player, g.participation.is_host(user)));
             let waiting = if status.waiting_for_host {
                 "Players are waiting for the host to continue the game".to_string()
             } else if !status.waiting_for_players.is_empty() {
-                let names: Vec<String> = status.waiting_for_players.iter().flatten().map(|p| g.game.player(*p).name(&g.game)).collect();
+                let names: Vec<String> = status.waiting_for_players.iter().flatten().map(|p| g.participation.player_name(&g.game, *p)).collect();
                 format!("Waiting for: {}", names.join(", "))
             } else {
                 String::new()
@@ -193,7 +201,7 @@ impl Server {
         let g = &self.games[game];
         let info = self.game_info(g);
         let players: Vec<(String, i32, i32)> =
-            g.game.players.iter().map(|p| (render::describe_faction(p.faction), p.seat, g.game.user_id_in_seat(p.seat))).collect();
+            g.game.players.iter().map(|p| (render::describe_faction(p.faction), p.seat, g.participation.user_in_seat(p.seat))).collect();
         let mut body = String::from("<h1>Player table in HTML format</h1>\n<table>\n<thead>\n<tr><th>Faction</th><th>Seat</th><th>UserId</th>\n</thead>\n<tbody>\n");
         for (faction, seat, user) in &players {
             body += &format!("<tr><td>{faction}</td><td>{seat}</td><td>{user}</td></tr>\n");

@@ -7,7 +7,7 @@ use treachery_engine::prelude::*;
 use treachery_view::ending::{EndingView, StoryBlock, StoryRow};
 
 fn endings(name: &str) -> Vec<EndingView> {
-    let mut r = load(name, 0);
+    let mut r = load(name);
     let factions: Vec<Faction> = r.game.players.iter().map(|p| p.faction).collect();
     let mut viewers: Vec<Viewer> = factions.iter().map(|f| viewer_of(&r, *f)).collect();
     viewers.push(OBSERVER);
@@ -26,9 +26,9 @@ fn rows(story: &[StoryBlock]) -> Vec<&StoryRow> {
 
 #[test]
 fn no_ending_before_the_game_ends() {
-    let mut r = load("mc-discard", 0);
+    let mut r = load("mc-discard");
     assert!(r.view(OBSERVER).ending.is_none());
-    let mut r = load_text(&truncated("mc-ended", -4), 0);
+    let mut r = load_text(&truncated("mc-ended", -4));
     assert_ne!(r.game.turn.current_phase, Phase::GameEnded);
     assert!(r.view(OBSERVER).ending.is_none());
 }
@@ -38,7 +38,7 @@ fn everyone_sees_the_same_story() {
     let all = endings("mc-ended");
     assert!(all.windows(2).all(|w| w[0] == w[1]), "the ending differs between viewers");
     let e = &all[0];
-    let r = load("mc-ended", 0);
+    let r = load("mc-ended");
     let winners: Vec<String> = r.game.contemplate.winners.iter().map(|p| r.game.player(*p).faction.to_string()).collect();
     assert_eq!(e.winners.iter().map(|w| w.faction.clone()).collect::<Vec<_>>(), winners);
 
@@ -61,7 +61,7 @@ fn everyone_sees_the_same_story() {
 
 #[test]
 fn the_rules_can_disable_the_story() {
-    let mut r = load_text(&with_rules("mc-ended", &[1015]), 0);
+    let mut r = load_text(&with_rules("mc-ended", &[1015]));
     let e = r.view(OBSERVER).ending.expect("ending");
     assert!(e.story.is_none());
     assert!(!e.winners.is_empty());

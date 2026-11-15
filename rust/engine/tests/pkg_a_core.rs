@@ -83,7 +83,7 @@ fn game_version_check() {
         ))
     );
     let r = std::panic::catch_unwind(|| {
-        Game::with_participation(Game::LATEST_VERSION - 1, &Default::default());
+        Game::of_version(Game::LATEST_VERSION - 1);
     });
     assert!(r.is_err());
 }

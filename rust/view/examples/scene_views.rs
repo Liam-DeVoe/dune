@@ -16,9 +16,7 @@
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};
-use treachery_engine::shared::Shared;
 use treachery_engine::enumerations::Faction;
-use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
 use treachery_view::build::Viewer;
 use treachery_view::replica::ViewReplica;
@@ -75,7 +73,7 @@ fn main() {
 fn fixture(name: &str, savegame: &str, out: &Path) -> Result<Value, String> {
     // One replay to read the game's factions and facts; each scene then replays its own copy,
     // because building a view writes state (client.md, The view replica).
-    let probe = ViewReplica::load(savegame, &Shared::new(Participation::default()))?;
+    let probe = ViewReplica::load(savegame)?;
     let game = &probe.game;
     let factions: Vec<Faction> = game.players.iter().map(|p| p.faction).collect();
 
@@ -131,12 +129,6 @@ fn client_auto_pass(replica: &mut ViewReplica, viewer: Option<Faction>, view: &t
 
 /// The observer scene: user 1, named "Scene", observing, not host.
 fn observer_scene(savegame: &str) -> Result<(ViewReplica, Viewer), String> {
-    let participation = Shared::new(Participation::default());
-    let replica = ViewReplica::load(savegame, &participation)?;
-    {
-        let mut p = participation.borrow_mut();
-        p.observers.insert(SCENE_USER_ID);
-        p.player_names.insert(SCENE_USER_ID, "Scene".to_string());
-    }
-    Ok((replica, Viewer { user_id: SCENE_USER_ID }))
+    let replica = ViewReplica::load(savegame)?;
+    Ok((replica, Viewer { user_id: SCENE_USER_ID, seat: -1, is_host: false, is_observer: true }))
 }

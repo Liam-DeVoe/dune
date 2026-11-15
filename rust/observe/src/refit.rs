@@ -18,7 +18,7 @@ use std::panic::{self, AssertUnwindSafe};
 use serde_json::{Map, Value};
 use treachery_bots::{BotParameters, ClassicBot, Priority};
 use treachery_engine::events::{AlliancePassed, CardsDetermined, EndPhase, GameEvent, GameEventType, PerformHmsPlacement, PerformSetup};
-use treachery_engine::game::{Game, Participation};
+use treachery_engine::game::Game;
 use treachery_engine::json;
 use treachery_engine::prelude::*;
 
@@ -96,8 +96,6 @@ pub struct Stats {
 
 pub struct Refit {
     pub game: Game,
-    version: i32,
-    participation: Shared<Participation>,
     bots: Vec<(Faction, ClassicBot)>,
     fuzz: Fuzzer,
     pub out: Vec<Out>,
@@ -130,13 +128,15 @@ fn to_object(e: &GameEvent) -> Map<String, Value> {
 }
 
 impl Refit {
-    pub fn new(version: i32, participation: Shared<Participation>, seed: u64) -> Refit {
+    /// `seated` holds `[userId, seat, name]` of each seated user.
+    pub fn new(version: i32, seated: &[(i32, i32, String)], seed: u64) -> Refit {
+        let (human_seats, seating) = crate::session::seats(seated);
+        let mut game = Game::of_version(version);
+        game.human_seats = human_seats;
         Refit {
-            game: Game::with_participation(version, &participation),
-            version,
-            participation,
+            game,
             bots: Vec::new(),
-            fuzz: Fuzzer::new(seed),
+            fuzz: Fuzzer::new(seed).with_seating(seating),
             out: Vec::new(),
             stats: Stats::default(),
             old_history: Vec::new(),
@@ -168,7 +168,7 @@ impl Refit {
     /// Replays the first `n` events of the history into a new game.
     fn rebuild(&mut self, n: usize) {
         let events: Vec<GameEvent> = self.game.history.entries.iter().take(n).cloned().collect();
-        let mut game = Game::with_participation(self.version, &self.participation);
+        let mut game = self.game.new_like();
         for e in events {
             let text = json::serialize(&e);
             let e: GameEvent = json::deserialize(&text).expect("a history event reads back");
@@ -469,8 +469,8 @@ impl Refit {
 }
 
 /// Refits a whole log. `seed` replaces the seed of `EstablishPlayers`, if given.
-pub fn refit(version: i32, participation: &Participation, items: &[Item], end: &End, seed: Option<i32>) -> Refit {
-    let mut r = Refit::new(version, Shared::new(participation.clone()), 1);
+pub fn refit(version: i32, seated: &[(i32, i32, String)], items: &[Item], end: &End, seed: Option<i32>) -> Refit {
+    let mut r = Refit::new(version, seated, 1);
     let mut time = Value::Null;
     for (i, item) in items.iter().enumerate() {
         if let Item::Event { event, .. } = item {

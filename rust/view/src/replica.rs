@@ -12,15 +12,13 @@
 
 use std::collections::BTreeMap;
 
-use treachery_engine::shared::Shared;
 use treachery_engine::events::GameEventType;
 use treachery_engine::game::GameState;
 use treachery_engine::json;
-use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
 
 use crate::actions::QueryError;
-use crate::build::{self, ResolvedViewer, Viewer};
+use crate::build::{self, ResolvedViewer, Seating, Viewer};
 use crate::describe::{default_describer, Describer};
 use crate::schema::{DraftResult, GameView, ReportLines, RichText};
 
@@ -35,28 +33,30 @@ pub struct ViewReplica {
     /// The bidding time limit in seconds, or -1, which the host sets with `SetTimer`. Server
     /// state, carried into `timing.timer`.
     pub timer: i32,
+    /// The names of the seated users and the bot speed. Server state, like `timer`. The server
+    /// also keeps `game.human_seats` up to date.
+    pub seating: Seating,
 }
 
 impl ViewReplica {
-    /// Replays a savegame. `participation` is shared with the server's game, so participation
-    /// changes reach the replica without a call.
-    pub fn load(savegame: &str, participation: &Shared<Participation>) -> Result<ViewReplica, String> {
+    /// Replays a savegame in a game that bots play.
+    pub fn load(savegame: &str) -> Result<ViewReplica, String> {
         let state: GameState = GameState::load(savegame).map_err(|e| e.message)?;
         Game::check_version(state.version)?;
-        let mut game = Game::with_participation(state.version, participation);
+        let mut game = Game::of_version(state.version);
         for (nr, e) in state.events.as_ref().ok_or("savegame without events")?.iter().enumerate() {
             e.initialize_game(&game);
             if let Some(m) = e.execute(&mut game, false, false) {
                 return Err(format!("event {nr} ({}) failed: {:?}", e.event_type().name(), treachery_skin::default_skin().message_to_string(&m)));
             }
         }
-        Ok(ViewReplica { game, actions: BTreeMap::new(), describer: default_describer(), timer: -1 })
+        Ok(ViewReplica { game, actions: BTreeMap::new(), describer: default_describer(), timer: -1, seating: Seating::default() })
     }
 
-    /// A replica of a game with no events yet, as `new Game(version, participation)`. Events
-    /// follow with [`ViewReplica::apply`].
-    pub fn new(version: i32, participation: &Shared<Participation>) -> ViewReplica {
-        ViewReplica { game: Game::with_participation(version, participation), actions: BTreeMap::new(), describer: default_describer(), timer: -1 }
+    /// A replica of a game with no events yet, that bots play. Events follow with
+    /// [`ViewReplica::apply`].
+    pub fn new(version: i32) -> ViewReplica {
+        ViewReplica { game: Game::of_version(version), actions: BTreeMap::new(), describer: default_describer(), timer: -1, seating: Seating::default() }
     }
 
     /// The game of the web client's `/scene` route: a savegame replayed with one user, id 1 and
@@ -64,16 +64,13 @@ impl ViewReplica {
     /// count as bots.
     pub fn scene(savegame: &str, faction: Faction) -> Result<(ViewReplica, Viewer), String> {
         const SCENE_USER_ID: i32 = 1;
-        let participation = Shared::new(Participation::default());
-        let replica = ViewReplica::load(savegame, &participation)?;
+        let mut replica = ViewReplica::load(savegame)?;
         let player = replica.game.get_player(Some(faction)).ok_or_else(|| format!("{faction} is not in this game"))?;
-        {
-            let mut p = participation.borrow_mut();
-            p.seated_players.insert_new(SCENE_USER_ID, replica.game.player(player).seat);
-            p.player_names.insert_new(SCENE_USER_ID, "Scene".to_string());
-            p.hosts.insert(SCENE_USER_ID);
-        }
-        Ok((replica, Viewer { user_id: SCENE_USER_ID }))
+        let seat = replica.game.player(player).seat;
+        replica.game.human_seats.insert(seat);
+        replica.seating.names.insert(seat, "Scene".to_string());
+        replica.seating.seated_users = 1;
+        Ok((replica, Viewer { user_id: SCENE_USER_ID, seat, is_host: true, is_observer: false }))
     }
 
     /// Executes an event that the server has accepted, without validating it again.
@@ -88,7 +85,7 @@ impl ViewReplica {
 
     /// Builds the view of `viewer` and remembers their applicable actions for queries.
     pub fn view(&mut self, viewer: Viewer) -> GameView {
-        let view = build::build_view(&mut self.game, viewer, self.describer.as_ref(), self.timer);
+        let view = build::build_view(&mut self.game, viewer, &self.seating, self.describer.as_ref(), self.timer);
         let types = view.actions.iter().filter_map(|a| GameEventType::ALL.iter().copied().find(|t| t.name() == a.event_type)).collect();
         self.actions.insert(viewer.user_id, types);
         view
@@ -97,14 +94,14 @@ impl ViewReplica {
     /// Builds the view of a viewer resolved by the caller, for games whose participation seats
     /// no users (the bot-game traces). The server uses [`ViewReplica::view`].
     pub fn view_as(&mut self, v: &ResolvedViewer) -> GameView {
-        build::build_view_resolved(&mut self.game, v, self.describer.as_ref(), self.timer)
+        build::build_view_resolved(&mut self.game, v, &self.seating, self.describer.as_ref(), self.timer)
     }
 
     /// A draft query for `viewer`. Refused unless the draft's type was among the actions of the
     /// last view built for them.
     pub fn query(&self, viewer: Viewer, draft_json: &str) -> Result<DraftResult, QueryError> {
         let applicable = self.actions.get(&viewer.user_id).map(Vec::as_slice).unwrap_or(&[]);
-        crate::actions::query(&self.game, viewer, applicable, draft_json, &crate::describe::InGame::new(self.describer.as_ref(), &self.game))
+        crate::actions::query(&self.game, viewer, &self.seating, applicable, draft_json, &crate::describe::InGame::new(self.describer.as_ref(), &self.game))
     }
 
     /// Whether a view was built for this user since the replica was made. A draft query needs
@@ -144,12 +141,12 @@ impl ViewReplica {
 
     /// `RequestUndoPreview`: the view `viewer` had at gap `gap`, the moment just before event
     /// `gap`. The gap is clamped to `1..=` the number of events. The game is replayed from this
-    /// replica's history into a new game with the same participation, so this replica is not
+    /// replica's history into a new game with the same human seats, so this replica is not
     /// touched. A preview can't be acted on, so the view has no actions and no card plays.
     pub fn preview(&self, viewer: Viewer, gap: i32) -> Result<GameView, String> {
         let count = self.game.history.entries.len() as i32;
         let gap = gap.clamp(1.min(count), count) as usize;
-        let mut game = Game::with_participation(self.game.rules.version, &self.game.participation);
+        let mut game = self.game.new_like();
         for (nr, e) in self.game.history.entries.iter().take(gap).enumerate() {
             // A copy of the event, so the replica's history stays bound to the replica's game.
             let copy: GameEvent = json::deserialize(&json::serialize(e)).map_err(|e| format!("event {nr}: {e:?}"))?;
@@ -158,7 +155,7 @@ impl ViewReplica {
                 return Err(format!("event {nr} ({}) failed: {:?}", copy.event_type().name(), treachery_skin::default_skin().message_to_string(&m)));
             }
         }
-        let mut view = build::build_view(&mut game, viewer, self.describer.as_ref(), -1);
+        let mut view = build::build_view(&mut game, viewer, &self.seating, self.describer.as_ref(), -1);
         view.actions.clear();
         if let Some(me) = &mut view.me {
             for c in &mut me.hand {

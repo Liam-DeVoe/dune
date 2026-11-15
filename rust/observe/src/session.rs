@@ -18,10 +18,9 @@ use treachery_engine::messages::expression::ExpressionElement;
 use treachery_engine::game::Game;
 use treachery_engine::json;
 use treachery_engine::messages::message::Message;
-use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
 use treachery_engine::game::PlayerIndex;
-use treachery_view::build::ResolvedViewer;
+use treachery_view::build::{ResolvedViewer, Seating};
 use treachery_view::replica::ViewReplica;
 
 use crate::trace::{BotChoice, BotsResult, EventOutcome, Obs, QueryResult, SpecialOutcome};
@@ -31,7 +30,8 @@ pub const LEVELS: [&str; 5] = ["Highest", "High", "Middle", "Low", "End"];
 
 pub struct Session {
     pub game: Game,
-    pub participation: Shared<Participation>,
+    /// What the views show of the seated users. Their seats are in `game.human_seats`.
+    pub seating: Seating,
     replica: Option<ViewReplica>,
     /// The bots, one per faction, in creation order. They outlive undo, as on the server.
     pub bots: Vec<(Faction, ClassicBot)>,
@@ -79,18 +79,23 @@ fn find_exception(m: &Message) -> bool {
     m.expression.elements.iter().any(|e| matches!(e, ExpressionElement::Error(_)))
 }
 
+/// The human seats and what the views show of them, for `[userId, seat, name]` of each seated
+/// user, as the server derives them from its participation.
+pub fn seats(seated: &[(i32, i32, String)]) -> (IndexSet<i32>, Seating) {
+    let mut seating = Seating::default();
+    for (_, seat, name) in seated {
+        seating.names.entry(*seat).or_insert_with(|| name.clone());
+    }
+    seating.seated_users = seated.len() as i32;
+    (seated.iter().map(|(_, seat, _)| *seat).collect(), seating)
+}
+
 impl Session {
     pub fn new(version: i32, seated: &[(i32, i32, String)], full_views: bool) -> Session {
-        let participation = Shared::new(Participation::default());
-        {
-            let mut p = participation.borrow_mut();
-            for (user, seat, name) in seated {
-                p.player_names.insert(*user, name.clone());
-                p.seated_players.insert(*user, *seat);
-            }
-        }
-        let game = Game::with_participation(version, &participation);
-        Session { game, participation, replica: None, bots: Vec::new(), last_query: Vec::new(), log_seen: 0, full_views }
+        let (human_seats, seating) = seats(seated);
+        let mut game = Game::of_version(version);
+        game.human_seats = human_seats;
+        Session { game, seating, replica: None, bots: Vec::new(), last_query: Vec::new(), log_seen: 0, full_views }
     }
 
     pub fn player_count(&self) -> usize {
@@ -254,7 +259,12 @@ impl Session {
         if self.replica.as_ref().is_some_and(|r| r.game.event_count() > self.game.event_count()) {
             self.replica = None;
         }
-        let replica = self.replica.get_or_insert_with(|| ViewReplica::new(self.game.rules.version, &self.participation));
+        let replica = self.replica.get_or_insert_with(|| {
+            let mut r = ViewReplica::new(self.game.rules.version);
+            r.game.human_seats = self.game.human_seats.clone();
+            r.seating = self.seating.clone();
+            r
+        });
         let done = replica.game.event_count() as usize;
         for (nr, e) in self.game.history.entries.iter().enumerate().skip(done) {
             let text = json::serialize(e);

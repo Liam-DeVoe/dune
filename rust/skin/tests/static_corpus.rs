@@ -12,13 +12,11 @@ mod common;
 
 use common::*;
 use serde_json::Value;
-use treachery_engine::shared::Shared;
 use treachery_engine::messages::expression::ExpressionElement;
 use treachery_engine::game::Game;
 use treachery_engine::heroes::hero::Hero;
 use treachery_engine::map::location::Location;
 use treachery_engine::map::Map;
-use treachery_engine::game::Participation;
 use treachery_engine::map::point::PointD;
 use treachery_skin::default_skin;
 
@@ -44,7 +42,7 @@ fn hero(tok: &Value) -> Hero {
 fn static_corpus_matches_the_snapshot() {
     let s = default_skin();
     let map = Map::new();
-    let mut attach_game = Game::with_participation(Game::LATEST_VERSION, &Shared::new(Participation::default()));
+    let mut attach_game = Game::of_version(Game::LATEST_VERSION);
     let mut diffs = Diffs::new();
     let mut lines = Vec::new();
 

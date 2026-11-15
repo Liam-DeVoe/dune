@@ -16,7 +16,7 @@ use treachery_engine::enum_type::GameEnum;
 use treachery_engine::prelude::*;
 use treachery_engine::express;
 
-use crate::build::{event, validate, ResolvedViewer};
+use crate::build::{event, validate, ResolvedViewer, Seating};
 use crate::describe::Describer;
 use crate::expr::message;
 use crate::schema::*;
@@ -159,7 +159,7 @@ fn plain(rt: &RichText) -> String {
 
 /// The first draft of the form, before the player touches it: its starting inputs (adjusted by
 /// [`normalize`] when the options are built). `None` for event types of other modules.
-pub fn default_draft(game: &Game, faction: Faction, t: GameEventType) -> Option<GameEvent> {
+pub fn default_draft(game: &Game, s: &Seating, faction: Faction, t: GameEventType) -> Option<GameEvent> {
     if !handles(t) {
         return None;
     }
@@ -212,7 +212,7 @@ pub fn default_draft(game: &Game, faction: Faction, t: GameEventType) -> Option<
         GameEventType::FactionSelected => {
             // Named and seated as the player.
             let mut e = FactionSelected::new(game);
-            e.initiator_player_name = Some(game.get_player_name_player(p));
+            e.initiator_player_name = Some(s.player_name(game, p));
             e.seat = pl.seat;
             event(e)
         }
@@ -290,7 +290,7 @@ fn deal_end_phases(t: DealType) -> Vec<Phase> {
 // Adjusting a draft as the form does.
 
 /// The draft as the form holds it after adjusting these inputs.
-pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, draft: &GameEvent) -> GameEvent {
+pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, draft: &GameEvent) -> GameEvent {
     let pl = game.player(p);
     let hand: Vec<i32> = card_ids(pl.treachery_cards.iter().copied());
     let none_card = TreacheryCardManager::get_id(None);
@@ -399,7 +399,7 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, draft: &GameEv
             let fs: Vec<Faction> = FactionSelected::valid_factions(game).collect();
             m.faction = required(m.faction, &fs, Faction::None);
             m.seat = pl.seat;
-            m.initiator_player_name = Some(game.get_player_name_player(p));
+            m.initiator_player_name = Some(s.player_name(game, p));
         }),
         GameEvent::FactionTradeOffered(e) => adjust!(e, |m| {
             let targets: Vec<Faction> = FactionTradeOffered::valid_targets(game, p).collect();
@@ -520,13 +520,13 @@ fn donation_range(game: &Game, p: PlayerIndex, from_bank: bool) -> (Vec<Faction>
 
 /// The options and validation of a form of this module for `draft`, or `None` for other event
 /// types. The draft is first adjusted as the form would ([`normalize`]).
-pub fn options_and_validation(game: &Game, v: &ResolvedViewer, draft: &GameEvent, d: &dyn Describer) -> Option<(Option<ActionOptions>, Option<RichText>)> {
+pub fn options_and_validation(game: &Game, v: &ResolvedViewer, s: &Seating, draft: &GameEvent, d: &dyn Describer) -> Option<(Option<ActionOptions>, Option<RichText>)> {
     let t = draft.event_type();
     if !handles(t) {
         return None;
     }
     let p = v.player?;
-    let draft = normalize(game, p, v, draft);
+    let draft = normalize(game, p, v, s, draft);
     let options = options(game, p, v, &draft, d);
     // The draft's `To` already says "everyone" when all are picked; picking none is the
     // client's check.

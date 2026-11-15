@@ -1,6 +1,5 @@
 //! Loading the server's state from the database, and saving games.
 
-use treachery_engine::shared::Shared;
 use treachery_engine::game::Game;
 use treachery_engine::game::GameState;
 
@@ -19,8 +18,8 @@ pub fn savegame(game: &Game) -> String {
 /// was saved, for example).
 fn restore(row: &GameRow) -> Result<RunningGame, String> {
     let participation = participation::from_json(&row.participation).map_err(|e| format!("participation: {e}"))?;
-    let game = load_savegame(&row.state, &Shared::new(participation), true)?;
-    let mut g = RunningGame::new(row.id.clone(), row.name.clone(), row.creator_id, game, row.created);
+    let game = load_savegame(&row.state, &participation, true)?;
+    let mut g = RunningGame::new(row.id.clone(), row.name.clone(), row.creator_id, game, participation, row.created);
     g.password_hash = row.password_hash.clone();
     g.last_activity = row.last_activity;
     g.statistics_sent = row.statistics_sent;
@@ -81,7 +80,7 @@ impl Server {
             last_activity: g.last_activity,
             statistics_sent: g.statistics_sent,
             last_async_mail: g.last_async_mail,
-            participation: participation::to_json(&g.game.participation.borrow()),
+            participation: participation::to_json(&g.participation),
             state: savegame(&g.game),
         };
         g.unsaved = false;

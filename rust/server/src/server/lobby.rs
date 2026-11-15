@@ -104,7 +104,7 @@ impl Server {
             }
             None => (vec![], Default::default(), 0, 0),
         };
-        let participation = game.participation.borrow();
+        let participation = &g.participation;
         GameInfo {
             creator_id: g.creator,
             creator_username: self.users.get(&g.creator).map(|u| u.name.clone()).unwrap_or_else(|| "?".into()),
@@ -126,7 +126,7 @@ impl Server {
             available_seats: game
                 .players
                 .iter()
-                .filter(|p| game.seat_is_available(p.seat))
+                .filter(|p| participation.seat_is_available(p.seat))
                 .map(|p| AvailableSeat { seat: p.seat, faction: p.faction.0, is_bot: p.is_bot(game) })
                 .collect(),
         }
@@ -189,7 +189,7 @@ impl Server {
         if message.target_user_id < 0 {
             self.connections.notify(&game, Notification::ChatMessage(message));
         } else {
-            if !self.games[&game].game.is_participant(message.target_user_id) {
+            if !self.games[&game].participation.is_participant(message.target_user_id) {
                 return Err(refuse(ErrorType::UserNotInGame));
             }
             let to = [user, message.target_user_id];

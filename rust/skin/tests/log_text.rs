@@ -3,11 +3,10 @@
 
 use std::rc::Rc;
 
-use treachery_engine::shared::Shared;
 use treachery_engine::enumerations::{AutomationRuleType, Faction, FactionAdvantage, ItemAction, TreacheryCardType};
 use treachery_engine::events::game_event::GameEventMethods;
 use treachery_engine::events::{AutomationConfigured, GameEvent, KarmaChoamDiscard, Shipment, Voice};
-use treachery_engine::game::{Game, Participation};
+use treachery_engine::game::Game;
 use treachery_engine::json;
 use treachery_engine::messages::message::{Message, MessagePart};
 use treachery_skin::default_skin;
@@ -17,10 +16,9 @@ const ESTABLISH: &str = r#"{"$type":"EstablishPlayers","Settings":{"NumberOfPlay
 /// A started three-player game whose players are Atreides (with the Harkonnen Nexus card),
 /// Guild and Choam.
 fn game() -> Game {
-    let mut p = Participation::new();
-    p.player_names.insert(100, "Human100".to_string());
-    p.seated_players.insert(100, 2);
-    let mut g = Game::with_participation(Game::LATEST_VERSION, &Shared::new(p));
+    // User 100 ("Human100") sits in seat 2.
+    let mut g = Game::new();
+    g.human_seats.insert(2);
     let e: GameEvent = json::deserialize(ESTABLISH).expect("event json");
     e.initialize_game(&g);
     assert!(e.execute(&mut g, true, true).is_none());

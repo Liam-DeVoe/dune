@@ -55,6 +55,13 @@ impl EstablishPlayers {
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
+        self.validate_for_table(game, None)
+    }
+
+    /// [`EstablishPlayers::validate`], and with `seated_users` also whether that many users fit
+    /// at the table. Only the server knows how many users hold or wait for a seat, so it checks
+    /// this before it submits the event.
+    pub fn validate_for_table(&self, game: &Game, seated_users: Option<i32>) -> Option<Message> {
         if game.turn.current_phase != Phase::AwaitingPlayers {
             return Some(express!("Invalid game phase"));
         }
@@ -65,7 +72,7 @@ impl EstablishPlayers {
         if settings.number_of_players > settings.allowed_factions_in_play.as_ref().expect("allowed factions in play").len() as i32 {
             return Some(express!("More factions required"));
         }
-        if game.participation.borrow().seated_players.len() as i32 > settings.number_of_players {
+        if seated_users.is_some_and(|n| n > settings.number_of_players) {
             return Some(express!("More players than seats at the table"));
         }
         if settings

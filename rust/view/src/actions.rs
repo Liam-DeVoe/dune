@@ -10,7 +10,7 @@ use treachery_engine::events::GameEventType;
 use treachery_engine::json;
 use treachery_engine::prelude::*;
 
-use crate::build::{event, validate, ResolvedViewer, Viewer};
+use crate::build::{event, validate, ResolvedViewer, Seating, Viewer};
 use crate::describe::Describer;
 use crate::expr::message;
 use crate::schema::*;
@@ -39,13 +39,13 @@ fn simple(title: RichText, confirm_label: &str, alert: bool) -> ActionOptions {
 }
 
 /// The entry of `GameView.actions` for one applicable event type, with the form's defaults.
-pub fn action_view(game: &Game, v: &ResolvedViewer, t: GameEventType, d: &dyn Describer) -> ActionView {
+pub fn action_view(game: &Game, v: &ResolvedViewer, s: &Seating, t: GameEventType, d: &dyn Describer) -> ActionView {
     let Some(faction) = v.faction.or_else(|| setup::seatless_host_may_act(v, t).then_some(Faction::None)) else {
         return ActionView { event_type: t.name().to_string(), options: None, validation: None };
     };
-    match default_draft(game, v, faction, t) {
+    match default_draft(game, v, s, faction, t) {
         Some(draft) => {
-            let (options, validation) = options_and_validation(game, v, &draft, d);
+            let (options, validation) = options_and_validation(game, v, s, &draft, d);
             ActionView { event_type: t.name().to_string(), options, validation }
         }
         None => ActionView { event_type: t.name().to_string(), options: None, validation: None },
@@ -55,12 +55,12 @@ pub fn action_view(game: &Game, v: &ResolvedViewer, t: GameEventType, d: &dyn De
 /// The event a form sends before the player touches it: the form's starting inputs,
 /// after its widgets have clamped them (a number picker clamps its value into its range).
 /// Public for the observable-behavior harness (`rust/observe`), which fuzzes from these drafts.
-pub fn default_draft(game: &Game, _v: &ResolvedViewer, faction: Faction, t: GameEventType) -> Option<GameEvent> {
+pub fn default_draft(game: &Game, _v: &ResolvedViewer, s: &Seating, faction: Faction, t: GameEventType) -> Option<GameEvent> {
     if revival::TYPES.contains(&t) { return revival::default_draft(game, faction, t); }
     if setup::TYPES.contains(&t) { return setup::default_draft(game, faction, t); }
     if let Some(e) = _v.player.and_then(|p| ship_move::default_draft(game, p, faction, t)) { return Some(e); }
     if let Some(d) = battle::default_draft(game, _v, faction, t) { return d; }
-    if let Some(e) = other::default_draft(game, faction, t) { return Some(e); }
+    if let Some(e) = other::default_draft(game, s, faction, t) { return Some(e); }
     Some(match t {
         GameEventType::AllianceOffered => {
             // A required image choice starts at the first target.
@@ -84,12 +84,12 @@ pub fn default_draft(game: &Game, _v: &ResolvedViewer, faction: Faction, t: Game
 }
 
 /// The options of the form for `draft`, and the validation of `draft` itself.
-fn options_and_validation(game: &Game, v: &ResolvedViewer, draft: &GameEvent, d: &dyn Describer) -> (Option<ActionOptions>, Option<RichText>) {
+fn options_and_validation(game: &Game, v: &ResolvedViewer, s: &Seating, draft: &GameEvent, d: &dyn Describer) -> (Option<ActionOptions>, Option<RichText>) {
     if let Some(r) = revival::options_and_validation(game, v, draft, d) { return r; }
-    if let Some(r) = setup::options_and_validation(game, v, draft, d) { return r; }
+    if let Some(r) = setup::options_and_validation(game, s, draft, d) { return r; }
     if let Some(r) = v.player.and_then(|p| ship_move::options_and_validation(game, p, draft, d)) { return r; }
     if let Some(r) = battle::options_and_validation(game, v, draft, d) { return r; }
-    if let Some(r) = other::options_and_validation(game, v, draft, d) { return r; }
+    if let Some(r) = other::options_and_validation(game, v, s, draft, d) { return r; }
     let options = match draft {
         GameEvent::AllianceOffered(_) => {
             let me = v.player.expect("an applicable event has a player");
@@ -134,7 +134,7 @@ pub enum QueryError {
 /// inputs the player has chosen so far. `draft_json` is the event in savegame JSON. Its
 /// `Initiator` is replaced by the viewer's faction, as the server does on submission.
 /// `applicable` is the viewer's applicable event types from the view they are looking at.
-pub fn query(game: &Game, viewer: Viewer, applicable: &[GameEventType], draft_json: &str, d: &dyn Describer) -> Result<DraftResult, QueryError> {
+pub fn query(game: &Game, viewer: Viewer, s: &Seating, applicable: &[GameEventType], draft_json: &str, d: &dyn Describer) -> Result<DraftResult, QueryError> {
     let v = viewer.resolve(game);
     let draft: GameEvent = json::deserialize(draft_json).map_err(|e| QueryError::BadJson(format!("{e:?}")))?;
     let seatless_host = setup::seatless_host_may_act(&v, draft.event_type()).then_some(Faction::None);
@@ -143,6 +143,6 @@ pub fn query(game: &Game, viewer: Viewer, applicable: &[GameEventType], draft_js
         return Err(QueryError::NotApplicable);
     }
     draft.initialize(game, faction);
-    let (options, validation) = options_and_validation(game, &v, &draft, d);
+    let (options, validation) = options_and_validation(game, &v, s, &draft, d);
     Ok(DraftResult { event_type: draft.event_type().name().to_string(), options, validation })
 }

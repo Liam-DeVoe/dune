@@ -15,10 +15,10 @@ use std::path::Path;
 
 use common::*;
 use serde_json::Value;
-use treachery_engine::shared::Shared;
 use treachery_engine::enumerations::*;
 use treachery_engine::events::GameEvent;
-use treachery_engine::game::{Game, Participation};
+use treachery_engine::game::Game;
+use treachery_engine::prelude::{IndexMap, IndexSet};
 use treachery_engine::game::GameStatus;
 use treachery_engine::heroes::hero::Hero;
 use treachery_engine::heroes::leader_manager::LeaderManager;
@@ -26,28 +26,15 @@ use treachery_engine::messages::report::Report;
 use treachery_engine::messages::expression::ExpressionElement;
 use treachery_skin::{default_skin, Skin};
 
-/// The game's participation from a trace header.
-fn participation(o: &Value) -> Participation {
+/// The seats users play, from the participation in a recorded game's header (.NET `Participation`
+/// JSON): the seats of `SeatedPlayers`.
+fn human_seats(o: &Value) -> IndexSet<i32> {
     let int = |v: &Value| v.as_i64().unwrap() as i32;
-    let list = |k: &str| o[k].as_array().cloned().unwrap_or_default();
-    let mut p = Participation { bots_speed: o["BotsSpeed"].as_i64().unwrap_or(1) as i32, ..Default::default() };
-    for kv in list("PlayerNames") {
-        p.player_names.insert(int(&kv[0]), kv[1].as_str().unwrap().to_string());
+    let mut seated: IndexMap<i32, i32> = IndexMap::new();
+    for kv in o["SeatedPlayers"].as_array().cloned().unwrap_or_default() {
+        seated.insert(int(&kv[0]), int(&kv[1]));
     }
-    for kv in list("SeatedPlayers") {
-        p.seated_players.insert(int(&kv[0]), int(&kv[1]));
-    }
-    for (key, set) in [
-        ("Observers", &mut p.observers),
-        ("Hosts", &mut p.hosts),
-        ("AvailableSeats", &mut p.available_seats),
-        ("Kicked", &mut p.kicked),
-    ] {
-        for v in list(key) {
-            set.insert(int(&v));
-        }
-    }
-    p
+    seated.into_values().collect()
 }
 
 struct Renderer<'a> {
@@ -103,8 +90,9 @@ fn render_trace(path: &Path, skin: &Skin) -> Vec<(i64, String, String)> {
         let line: Value = serde_json::from_str(&text).unwrap();
         let kind = line["kind"].as_str().unwrap();
         if kind == "header" {
-            let participation = participation(&line["participation"]);
-            game = Some(Game::with_participation(line["gameVersion"].as_i64().unwrap() as i32, &Shared::new(participation)));
+            let mut g = Game::of_version(line["gameVersion"].as_i64().unwrap() as i32);
+            g.human_seats = human_seats(&line["participation"]);
+            game = Some(g);
             continue;
         }
         let Some(g) = game.as_mut() else { break };

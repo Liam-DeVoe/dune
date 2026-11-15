@@ -79,11 +79,6 @@ pub fn deals(game: &Game, v: &ResolvedViewer, d: &dyn Describer) -> Option<Deals
     Some(DealsView { acceptable, cancellable, current })
 }
 
-/// `Game.Participation.BotsSpeed`, for the host's bot controls.
-pub fn bots_speed(game: &Game) -> i32 {
-    game.participation.borrow().bots_speed
-}
-
 /// Atreides's card tracker, shown from `Phase::SelectingTraitors` on.
 pub fn tracker(game: &Game, v: &ResolvedViewer) -> Option<TrackerView> {
     use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;

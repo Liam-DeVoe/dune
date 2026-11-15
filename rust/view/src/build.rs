@@ -3,6 +3,7 @@
 //! The rule for hidden information is in `rust/docs/protocol.md` (Game view, Visibility): a
 //! field is filled only for the viewers who may see it under the game rules.
 
+use std::collections::BTreeMap;
 use std::rc::Rc;
 
 use treachery_engine::game::GameStatus;
@@ -16,11 +17,14 @@ use crate::expr::{self, message};
 pub use crate::log::report_lines;
 use crate::schema::*;
 
-/// Who a view is for, as the server knows them: a user id, resolved against the game's
-/// participation (their player, and whether they are an observer or a host).
+/// Who a view is for, as the server knows them: a user, their seat (-1 for none), and whether
+/// they are a host or an observer.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Viewer {
     pub user_id: i32,
+    pub seat: i32,
+    pub is_host: bool,
+    pub is_observer: bool,
 }
 
 /// The viewer resolved against one game.
@@ -34,12 +38,36 @@ pub struct ResolvedViewer {
 
 impl Viewer {
     pub fn resolve(self, game: &Game) -> ResolvedViewer {
-        let player = game.get_player_by_user_id(Some(self.user_id));
-        ResolvedViewer {
-            player,
-            faction: player.map(|p| game.player(p).faction),
-            is_host: game.is_host(Some(self.user_id)),
-            is_observer: game.is_observer(Some(self.user_id)),
+        let player = game.get_player_by_seat(self.seat);
+        ResolvedViewer { player, faction: player.map(|p| game.player(p).faction), is_host: self.is_host, is_observer: self.is_observer }
+    }
+}
+
+/// What the views show of the game's seating, which the server keeps: who sits where, and how
+/// fast the bots play. Which seats are bots' is in the game (`Game::human_seats`).
+#[derive(Clone, Debug)]
+pub struct Seating {
+    /// The name of the user in each seat, of the first one when two share a seat.
+    pub names: BTreeMap<i32, String>,
+    /// How many users hold a seat or wait for one.
+    pub seated_users: i32,
+    pub bots_speed: i32,
+}
+
+impl Default for Seating {
+    /// No users, and bots at speed 1.
+    fn default() -> Self {
+        Seating { names: BTreeMap::new(), seated_users: 0, bots_speed: 1 }
+    }
+}
+
+impl Seating {
+    /// "Bot" for a bot, else the name of the user in the player's seat ("?" if it has none).
+    pub fn player_name(&self, game: &Game, p: PlayerIndex) -> String {
+        if game.is_bot(p) {
+            "Bot".to_string()
+        } else {
+            self.names.get(&game.player(p).seat).cloned().unwrap_or_else(|| "?".to_string())
         }
     }
 }
@@ -52,14 +80,14 @@ fn name<T: ToString>(v: T) -> String {
 /// `get_applicable_events` write battle-sequence state. Call it on the view
 /// replica, never on the server's game. `timer` is the bidding time limit the host set (-1 for
 /// none).
-pub fn build_view(game: &mut Game, viewer: Viewer, d: &dyn Describer, timer: i32) -> GameView {
+pub fn build_view(game: &mut Game, viewer: Viewer, s: &Seating, d: &dyn Describer, timer: i32) -> GameView {
     let v = viewer.resolve(game);
-    build_view_resolved(game, &v, d, timer)
+    build_view_resolved(game, &v, s, d, timer)
 }
 
-/// [`build_view`] for a viewer already resolved against the game's participation. Tests use it
-/// to look at games without seated users (the bot-game corpus).
-pub fn build_view_resolved(game: &mut Game, v: &ResolvedViewer, d: &dyn Describer, timer: i32) -> GameView {
+/// [`build_view`] for a viewer already resolved against the game. Tests use it to look at games
+/// without seated users (the bot-game corpus).
+pub fn build_view_resolved(game: &mut Game, v: &ResolvedViewer, s: &Seating, d: &dyn Describer, timer: i32) -> GameView {
     // Both calls can write battle-sequence state, so keep this order: status, then actions.
     let status = GameStatus::determine_status(game, v.player, !v.is_observer);
     let action_types = game.get_applicable_events(v.player, v.is_host);
@@ -78,11 +106,11 @@ pub fn build_view_resolved(game: &mut Game, v: &ResolvedViewer, d: &dyn Describe
         main_phase: name(game.turn.current_main_phase),
         phase: name(game.turn.current_phase),
         viewer: ViewerInfo { faction: v.faction.map(name), is_host: v.is_host, is_observer: v.is_observer },
-        players: game.player_indices().map(|p| public_player(game, p)).collect(),
+        players: game.player_indices().map(|p| public_player(game, s, p)).collect(),
         me: me.map(|p| shield::private_player(game, p, &action_types)),
         board: board::board(game, &status, v),
         status: status_view(game, &status, v, d),
-        actions: action_types.iter().map(|t| actions::action_view(game, v, *t, d)).collect(),
+        actions: action_types.iter().map(|t| actions::action_view(game, v, s, *t, d)).collect(),
         log: crate::log::log_view(game, v, d),
         ruleset: name(game.rules.ruleset),
         rules: game.rules.active.iter().map(|r| name(*r)).collect(),
@@ -95,22 +123,22 @@ pub fn build_view_resolved(game: &mut Game, v: &ResolvedViewer, d: &dyn Describe
         notes: me.and_then(|p| shield::notes(game, p)),
         timing: board::timing(game, timer),
         deals: crate::side::deals(game, v, d),
-        bots_speed: crate::side::bots_speed(game),
+        bots_speed: s.bots_speed,
         tracker: crate::side::tracker(game, v),
         mentat: crate::side::mentat(game),
-        ending: crate::ending::ending(game, d),
+        ending: crate::ending::ending(game, s, d),
         faction_sheets: crate::skin_texts::faction_sheets(game, d),
         rule_labels: crate::skin_texts::rule_labels(game, d),
         recent_milestones: crate::skin_texts::recent_milestones(game),
     }
 }
 
-fn public_player(game: &Game, p: PlayerIndex) -> PublicPlayer {
+fn public_player(game: &Game, s: &Seating, p: PlayerIndex) -> PublicPlayer {
     let pl = game.player(p);
     let mut out = PublicPlayer {
         faction: name(pl.faction),
         seat: pl.seat,
-        name: game.get_player_name_player(p),
+        name: s.player_name(game, p),
         is_bot: game.is_bot(p),
         ally: name(pl.ally),
         forces_in_reserve: pl.forces_in_reserve(),

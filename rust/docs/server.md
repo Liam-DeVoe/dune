@@ -18,7 +18,8 @@ A call's notifications go out as the game thread produces them, then the game vi
 | `socket.rs` | One WebSocket: 4 MiB frames, a ping every 15 s, closed after 30 s of silence |
 | `server/` | The `Server`: state and every call. `accounts`, `lobby`, `games` (seats, hosts, undo), `play` (events, mail), `bots`, `pauses`, `admin`, `storage` (loading and saving), `scene` (dev scenes) |
 | `protocol.rs` | Decodes a frame into a `Request`, encodes replies and notifications |
-| `wire.rs`, `participation.rs` | The objects in replies and notifications |
+| `participation.rs` | Each game's `Participation`: seats, names, hosts, observers, open seats, kicked users, bot speed. It tells the game which seats users play, and the views their names |
+| `wire.rs` | The objects in replies and notifications |
 | `connections.rs` | Open sockets, the session each is logged in with, which connection follows which game, notifications |
 | `views.rs` | Each participant's `GameView`, built on a replica of the game (`rust/view`), and the view calls |
 | `pause_rules.rs` | What each pause between phases waits for |
@@ -27,7 +28,7 @@ A call's notifications go out as the game thread produces them, then the game vi
 | `passwords.rs` | Argon2id hashes of account passwords |
 | `time.rs`, `timers.rs`, `mail.rs`, `ids.rs`, `render.rs`, `static_files.rs` | Clock, delayed work, mail, random tokens and ids and the digests tokens are stored as, text with the default skin, the web client's files |
 
-Views never use the running game itself: building a view asks the engine questions that can change a game's state. Each followed game has a replica that replays the running game's events (`views.rs`).
+Views never use the running game itself: building a view asks the engine questions that can change a game's state. Each followed game has a replica that replays the running game's events (`views.rs`). Seats change outside the events, so before each update the replica takes the game's human seats and the participation's names and bot speed.
 
 ## Accounts and sessions
 

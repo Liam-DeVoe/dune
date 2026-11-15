@@ -31,8 +31,6 @@ mod decks;
 pub use decks::Decks;
 mod history;
 pub use history::History;
-mod info;
-pub use info::*;
 mod leaders;
 pub use leaders::*;
 mod log;
@@ -43,8 +41,6 @@ mod movement;
 pub use movement::*;
 mod other;
 pub use other::*;
-mod participation;
-pub use participation::*;
 mod player;
 pub use player::*;
 mod player_sequence;
@@ -53,6 +49,7 @@ mod revival;
 pub use revival::*;
 mod rules;
 pub use rules::Rules;
+mod seats;
 mod settings;
 pub use settings::*;
 mod setup;
@@ -77,9 +74,10 @@ pub struct Game {
     pub random: Option<SharedRandom>,
     pub rules: Rules,
     pub players: Vec<Player>,
-    /// Shared with the caller of `new Game` and with every game `Undo`,
-    /// `RestoreRecentlyUndone` and `DismissRecentlyUndone` make from this one.
-    pub participation: Shared<Participation>,
+    /// The seats users play. Every other seat is a bot's (`is_bot`). The server seats users, so
+    /// it keeps this up to date. It isn't part of the events: replaying a game's events gives
+    /// the same game only with the same human seats.
+    pub human_seats: IndexSet<i32>,
     pub board: Board,
     pub decks: Decks,
     pub leaders: Leaders,
@@ -114,8 +112,9 @@ impl Game {
         self.rules.settings.as_ref().expect("settings").number_of_players
     }
 
+    /// A game of the latest version that bots play.
     pub fn new() -> Self {
-        Self::with_participation(Self::LATEST_VERSION, &Shared::new(Participation::new()))
+        Self::of_version(Self::LATEST_VERSION)
     }
 
     /// Only `LATEST_VERSION` games can be played, so savegames and event logs of older versions
@@ -127,11 +126,9 @@ impl Game {
         Ok(())
     }
 
-    /// The game keeps the caller's `Participation` object: changes made
-    /// through either are seen by both.
-    ///
-    /// Only `LATEST_VERSION` is supported (see [`Game::check_version`]); other versions panic.
-    pub fn with_participation(version: i32, participation: &Shared<Participation>) -> Self {
+    /// A game that bots play. Only `LATEST_VERSION` is supported (see [`Game::check_version`]);
+    /// other versions panic.
+    pub fn of_version(version: i32) -> Self {
         if let Err(e) = Self::check_version(version) {
             panic!("{e}");
         }
@@ -141,7 +138,7 @@ impl Game {
             random: None,
             rules: Rules::new(version),
             players: Vec::new(),
-            participation: participation.clone(),
+            human_seats: IndexSet::new(),
             board: Board::new(),
             decks: Decks::new(),
             leaders: Leaders::new(),
@@ -414,10 +411,18 @@ impl Game {
         .with_log(AsideLog::aside())
     }
 
-    /// Replays a savegame's events into a new game, or says why it can't.
-    pub fn load(state: &GameState, participation: &Shared<Participation>, perform_validation: bool, is_host: bool) -> Result<Game, Message> {
+    /// A new game with no events, of this game's version and with its human seats.
+    pub fn new_like(&self) -> Game {
+        let mut game = Game::of_version(self.rules.version);
+        game.human_seats = self.human_seats.clone();
+        game
+    }
+
+    /// Replays a savegame's events into a new game with these human seats, or says why it can't.
+    pub fn load(state: &GameState, human_seats: &IndexSet<i32>, perform_validation: bool, is_host: bool) -> Result<Game, Message> {
         Game::check_version(state.version).map_err(|e| express!(e))?;
-        let mut game = Game::with_participation(state.version, participation);
+        let mut game = Game::of_version(state.version);
+        game.human_seats = human_seats.clone();
         let events = state.events.as_ref().ok_or_else(|| express!("The savegame has no events"))?;
         for (nr, e) in events.iter().enumerate() {
             e.initialize_game(&game);

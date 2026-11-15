@@ -11,11 +11,9 @@ mod common;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-use treachery_engine::shared::Shared;
 use treachery_engine::events::GameEventType;
 use treachery_engine::json;
 use treachery_engine::enum_type::GameEnum;
-use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
 use treachery_view::actions::{action_view, other};
 use treachery_view::build::{validate, ResolvedViewer};
@@ -202,7 +200,7 @@ fn check_state(game: &mut Game, d: &dyn Describer, at: &str, seen: &mut Seen) {
         let game: &Game = game;
         let in_game = InGame::new(d, game);
         for t in types.into_iter().filter(|t| mine(*t)) {
-            let view = action_view(game, &v, t, &in_game);
+            let view = action_view(game, &v, &Default::default(), t, &in_game);
             let at = format!("{at} {} {}", game.player(p).faction, t.name());
             let options = view.options.as_ref().unwrap_or_else(|| panic!("{at}: no options"));
             check(game, p, &v, options, &at);
@@ -274,8 +272,7 @@ fn options_equal_the_engine_helpers_over_the_corpus() {
     let mut seen = Seen::default();
     for path in traces() {
         let trace = read_until_undo(&path);
-        let participation = Shared::new(Participation::default());
-        let mut r = ViewReplica::new(trace.version, &participation);
+        let mut r = ViewReplica::new(trace.version);
         for (i, e) in trace.events.iter().enumerate() {
             if r.apply(e).is_err() {
                 break;
@@ -330,10 +327,8 @@ fn fixtures() -> Vec<String> {
 fn fixture_forms_and_queries() {
     let mut seen = Seen::default();
     for name in fixtures() {
-        let participation = Shared::new(Participation::default());
-        let Ok(mut r) = ViewReplica::load(&common::fixture(&name), &participation) else { continue };
-        drop(participation);
-        let mut r2 = common::load(&name, 0);
+        let Ok(mut r) = ViewReplica::load(&common::fixture(&name)) else { continue };
+        let mut r2 = common::load(&name);
         let d = default_describer();
         check_state(&mut r.game, d.as_ref(), &name, &mut seen);
         let factions: Vec<Faction> = r2.game.players.iter().map(|p| p.faction).collect();
@@ -358,7 +353,7 @@ fn fixture_forms_and_queries() {
 #[test]
 fn dependent_inputs() {
     // Donated: giving from the bank (host only) offers every player and -99..99.
-    let mut r = common::load("alliance-allied", 0);
+    let mut r = common::load("alliance-allied");
     // `load` makes seat 0's user the host, whichever player sits there.
     let host_faction = r.game.players.iter().find(|p| p.seat == 0).expect("a player in seat 0").faction;
     let host = common::viewer_of(&r, host_faction);
@@ -383,7 +378,7 @@ fn dependent_inputs() {
     assert!(o.min >= 0);
 
     // A required image choice falls back to the first value; a number picker clamps.
-    let mut r = common::load("mc-prediction", 0);
+    let mut r = common::load("mc-prediction");
     let bg = common::viewer_of(&r, Faction::BeneGesserit);
     // Queries are answered for the actions of the viewer's latest view.
     let _ = r.view(bg);
@@ -396,7 +391,7 @@ fn dependent_inputs() {
 
     // Map picks: nothing picked is invalid; a picked territory makes the draft valid, and one
     // the form doesn't offer is dropped (MapPicker keeps only targets).
-    let mut r = common::load("karma-monster", 0);
+    let mut r = common::load("karma-monster");
     let fremen = common::viewer_of(&r, Faction::Fremen);
     let view = r.view(fremen);
     let a = view.actions.iter().find(|a| a.event_type == "KarmaMonster").expect("KarmaMonster applicable");
@@ -409,7 +404,7 @@ fn dependent_inputs() {
     assert_eq!(answer.validation, None);
     let Some(ActionOptions::KarmaMonster(o2)) = answer.options else { panic!("KarmaMonster options") };
     assert_eq!(o2.draft["_territoryId"], serde_json::json!(o.territories[0]));
-    let mut r = common::load("nexus-moritani", 0);
+    let mut r = common::load("nexus-moritani");
     let actor = common::viewer_of(&r, Faction::Harkonnen);
     let view = r.view(actor);
     let a = view.actions.iter().find(|a| a.event_type == "NexusPlayed").expect("NexusPlayed applicable");

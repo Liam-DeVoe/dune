@@ -231,13 +231,14 @@ impl<'a> Recorder<'a> {
         let game: &Game = &self.sess.game;
         if types.contains(&GameEventType::FactionSelected) {
             let valid: Vec<Faction> = FactionSelected::valid_factions(game).collect();
-            if let Some(p) = game.players.iter().find(|p| p.faction == Faction::None) {
+            if let Some(i) = game.players.iter().position(|p| p.faction == Faction::None) {
+                let p = &game.players[i];
                 if !valid.is_empty() {
                     let mut e = FactionSelected::new(game);
                     e.base.initiator.set(Faction::None);
                     e.seat = p.seat;
                     e.faction = valid[self.rng.below(valid.len())];
-                    e.initiator_player_name = Some(p.name(game));
+                    e.initiator_player_name = Some(self.sess.seating.player_name(game, game.player_at(i)));
                     return Ok(Some(to_object(&treachery_view::build::event(e))));
                 }
             }
@@ -481,7 +482,7 @@ impl<'a> Recorder<'a> {
                 let shadow = &self.shadow.as_ref().unwrap().game;
                 let t = m.get("$type").and_then(|t| t.as_str()).and_then(|n| GameEventType::ALL.iter().copied().find(|t| t.name() == n));
                 let changed = match t {
-                    Some(t) => fuzz::mutate_steered(&mut m, shadow, choice.p, t, &mut f.rng),
+                    Some(t) => fuzz::mutate_steered(&mut m, shadow, &f.seating, choice.p, t, &mut f.rng),
                     None => fuzz::mutate(&mut m, shadow, Some(choice.p), 1, &mut f.rng),
                 };
                 if !changed.is_empty() {
@@ -545,8 +546,8 @@ pub fn record_game(o: &RecordOptions, out: &mut dyn Write) -> std::io::Result<St
                 full_views,
             };
             let _ = tx.send(Msg::Line(Line::Header(header)));
-            let shadow = fuzzing.then(|| Shadow::new(Game::LATEST_VERSION, &sess.participation));
-            let fuzz = fuzzing.then(|| Fuzzer::new(rng.next_u64()));
+            let shadow = fuzzing.then(|| Shadow::new(&sess.game));
+            let fuzz = fuzzing.then(|| Fuzzer::new(rng.next_u64()).with_seating(sess.seating.clone()));
             let mut r = Recorder { tx, sess, rng, game_seed, cfg, fuzz, shadow, clock: 0, events: 0, reach };
             // A panic in the recorder's own reads (host actions, fuzz values) ends the game; the
             // replayer stops at the end line like for any other reason.

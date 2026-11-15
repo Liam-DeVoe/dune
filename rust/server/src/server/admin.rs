@@ -69,7 +69,7 @@ impl Server {
         for game in games {
             self.end_game(&game).await?;
         }
-        let joined: Vec<String> = self.games.values().filter(|g| g.game.is_participant(user)).map(|g| g.id.clone()).collect();
+        let joined: Vec<String> = self.games.values().filter(|g| g.participation.is_participant(user)).map(|g| g.id.clone()).collect();
         for game in joined {
             self.remove_from_game(&game, user);
         }

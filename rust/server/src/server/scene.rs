@@ -3,14 +3,13 @@
 //! The other seats have no user and never act, so the scene stays as the fixture left it.
 //! Only with `TREACHERY_DEV_SCENE` on.
 
-use treachery_engine::shared::Shared;
 use treachery_engine::enumerations::Faction;
-use treachery_engine::game::Participation;
 
 use super::games::load_savegame;
 use super::{RunningGame, Server};
 use crate::db::UserRow;
 use crate::ids;
+use crate::participation::Participation;
 
 pub const SCENE_USER: &str = "scene";
 
@@ -53,12 +52,13 @@ impl Server {
             self.end_game(&game).await.map_err(|e| e.to_string())?;
         }
 
-        let mut game = load_savegame(&savegame, &Shared::new(Participation::new()), false)?;
+        let mut participation = Participation::new();
+        let mut game = load_savegame(&savegame, &participation, false)?;
         let seat = game.get_player(Some(faction)).map(|p| game.player(p).seat).ok_or_else(|| format!("{faction} is not in {fixture}"))?;
-        game.add_player(user, "Scene", seat);
-        game.set_or_unset_host(user);
+        participation.add_player(&mut game, user, "Scene", seat);
+        participation.set_or_unset_host(user);
         let id = ids::new_id();
-        let mut running = RunningGame::new(id.clone(), fixture.to_string(), user, game, self.now());
+        let mut running = RunningGame::new(id.clone(), fixture.to_string(), user, game, participation, self.now());
         running.scene = true;
         running.generation = self.new_generation();
         self.games.insert(id.clone(), running);

@@ -5,27 +5,26 @@
 use std::path::Path;
 
 use serde_json::{Map, Value};
-use treachery_engine::game::{Game, Participation};
+use treachery_engine::game::Game;
 
 use crate::refit::{refit, End, Item, Refit};
 
-/// The game's participation from a header (.NET `Participation` JSON).
-pub fn participation(o: &Value) -> Participation {
+/// `[userId, seat, name]` of each seated user, from a header's participation (.NET
+/// `Participation` JSON). A user without a name is "?".
+pub fn seated(o: &Value) -> Vec<(i32, i32, String)> {
     let int = |v: &Value| v.as_i64().unwrap_or(0) as i32;
     let list = |k: &str| o[k].as_array().cloned().unwrap_or_default();
-    let mut p = Participation { bots_speed: o["BotsSpeed"].as_i64().unwrap_or(1) as i32, ..Default::default() };
-    for kv in list("PlayerNames") {
-        p.player_names.insert(int(&kv[0]), kv[1].as_str().unwrap_or("").to_string());
-    }
+    let names: Vec<(i32, String)> = list("PlayerNames").iter().map(|kv| (int(&kv[0]), kv[1].as_str().unwrap_or("").to_string())).collect();
+    let mut seated: Vec<(i32, i32, String)> = Vec::new();
     for kv in list("SeatedPlayers") {
-        p.seated_players.insert(int(&kv[0]), int(&kv[1]));
-    }
-    for (key, set) in [("Observers", &mut p.observers), ("Hosts", &mut p.hosts), ("AvailableSeats", &mut p.available_seats), ("Kicked", &mut p.kicked)] {
-        for v in list(key) {
-            set.insert(int(&v));
+        let (user, seat) = (int(&kv[0]), int(&kv[1]));
+        let name = names.iter().rev().find(|(u, _)| *u == user).map_or("?".to_string(), |(_, n)| n.clone());
+        match seated.iter_mut().find(|(u, _, _)| *u == user) {
+            Some(entry) => entry.1 = seat,
+            None => seated.push((user, seat, name)),
         }
     }
-    p
+    seated
 }
 
 /// What the old engine saw of a log (`--old`): per event whether it was valid and the turn and
@@ -93,7 +92,8 @@ pub enum Kind {
 /// A log read from a file.
 pub struct Log {
     pub kind: Kind,
-    pub participation: Participation,
+    /// `[userId, seat, name]` of each seated user.
+    pub seated: Vec<(i32, i32, String)>,
     pub items: Vec<Item>,
     /// For traces and knowledge games, the input line of each item.
     lines: Vec<Value>,
@@ -146,19 +146,19 @@ pub fn read(path: &Path, old: &Old) -> Result<Log, String> {
         let Value::Object(top) = serde_json::from_str(&text).map_err(|e| e.to_string())? else { return Err("not a savegame".into()) };
         let events = top.get("_events").and_then(|v| v.as_array()).cloned().unwrap_or_default();
         let items = events.iter().enumerate().map(|(i, e)| Item::Event { event: event_object(e), validate: true, host: true, legit: legit_at(i), at: old_at(i) }).collect();
-        return Ok(Log { kind: Kind::Savegame, participation: Participation::default(), items, lines: vec![], other: vec![], savegame: Some(top) });
+        return Ok(Log { kind: Kind::Savegame, seated: vec![], items, lines: vec![], other: vec![], savegame: Some(top) });
     }
     let all = read_lines(path)?;
     let knowledge = all.first().is_some_and(|l| l.get("k").is_some());
     let kind_key = if knowledge { "k" } else { "kind" };
-    let mut log = Log { kind: if knowledge { Kind::Knowledge } else { Kind::Trace }, participation: Participation::default(), items: vec![], lines: vec![], other: vec![], savegame: None };
+    let mut log = Log { kind: if knowledge { Kind::Knowledge } else { Kind::Trace }, seated: vec![], items: vec![], lines: vec![], other: vec![], savegame: None };
     let mut accepted_events = 0;
     for l in all {
         let at = log.items.len() as isize - 1;
         let item = match l[kind_key].as_str().unwrap_or("") {
             "header" => {
                 if let Some(p) = l.get("participation") {
-                    log.participation = participation(p);
+                    log.seated = seated(p);
                 }
                 None
             }
@@ -202,11 +202,11 @@ fn own_seed(log: &Log) -> Option<i64> {
 /// keeps the result closest to `target`. Returns the seed used if it isn't the log's own.
 pub fn refit_best(log: &Log, target: &Old, seeds: usize) -> (Refit, Option<i32>) {
     let version = Game::LATEST_VERSION;
-    let Some(own) = own_seed(log) else { return (refit(version, &log.participation, &log.items, &target.end, None), None) };
+    let Some(own) = own_seed(log) else { return (refit(version, &log.seated, &log.items, &target.end, None), None) };
     let candidates = seats_kept(log, target, own as i32, seeds);
     let mut best: Option<(_, Refit, Option<i32>)> = None;
     for seed in candidates {
-        let mut r = refit(version, &log.participation, &log.items, &target.end, seed);
+        let mut r = refit(version, &log.seated, &log.items, &target.end, seed);
         let score = target.score(&mut r);
         if best.as_ref().is_none_or(|(b, _, _)| score < *b) {
             best = Some((score, r, seed));
@@ -229,7 +229,7 @@ fn seats_kept(log: &Log, target: &Old, own: i32, n: usize) -> Vec<Option<i32>> {
     let mut found = Vec::new();
     for k in 0..20_000 {
         let seed = if k == 0 { None } else { Some(own.wrapping_add(k)) };
-        if seats(&refit(Game::LATEST_VERSION, &log.participation, &log.items[..setup], &none, seed)) {
+        if seats(&refit(Game::LATEST_VERSION, &log.seated, &log.items[..setup], &none, seed)) {
             found.push(seed);
             if found.len() >= n {
                 break;
@@ -299,7 +299,7 @@ pub fn write(path: &Path, log: &Log, r: &Refit) -> Result<(), String> {
     // The game the refused steps are checked against: the refitted log replayed so far.
     let mut out: Vec<Value> = Vec::new();
     let mut other = log.other.iter().peekable();
-    let mut checker = Checker::new(&log.participation);
+    let mut checker = Checker::new(&log.seated);
     let mut place_other = |out: &mut Vec<Value>, at: isize, checker: &mut Checker| {
         while let Some((a, l)) = other.peek() {
             if *a != at {
@@ -391,9 +391,10 @@ struct Checker {
 }
 
 impl Checker {
-    fn new(participation: &Participation) -> Checker {
-        let participation = treachery_engine::shared::Shared::new(participation.clone());
-        Checker { game: Game::with_participation(Game::LATEST_VERSION, &participation) }
+    fn new(seated: &[(i32, i32, String)]) -> Checker {
+        let mut game = Game::new();
+        game.human_seats = crate::session::seats(seated).0;
+        Checker { game }
     }
 
     fn event(l: &Value) -> Option<treachery_engine::events::GameEvent> {

@@ -12,12 +12,10 @@
 mod common;
 
 use common::{load, viewer_of};
-use treachery_engine::shared::Shared;
 use treachery_engine::events::GameEventType;
 use treachery_engine::messages::expression::ExpressionElement;
 use treachery_engine::json;
 use treachery_engine::enum_type::GameEnum;
-use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
 use treachery_view::actions::ship_move::{default_draft, options, options_and_validation};
 use treachery_view::build::{event, validate};
@@ -461,7 +459,7 @@ fn fixtures() {
     fixtures.sort();
     for name in fixtures {
         // Fixtures before the lowest version the scene page takes don't replay here either.
-        let Ok(mut r) = std::panic::catch_unwind(|| load(&name, 0)) else { continue };
+        let Ok(mut r) = std::panic::catch_unwind(|| load(&name)) else { continue };
         let players: Vec<PlayerIndex> = r.game.player_indices().collect();
         for p in players {
             for t in r.game.get_applicable_events(Some(p), true) {
@@ -482,8 +480,7 @@ fn bot_games() {
     let mut seen = Seen::default();
     for path in common::sample_bot_traces() {
         let trace = common::read_trace(&path);
-        let participation = Shared::new(Participation::default());
-        let mut r = ViewReplica::new(trace.version, &participation);
+        let mut r = ViewReplica::new(trace.version);
         for e in &trace.events {
             r.apply(e).unwrap();
             let players: Vec<PlayerIndex> = r.game.player_indices().collect();
@@ -506,7 +503,7 @@ fn bot_games() {
 /// (JSON, as the client sends it) answers the dependent options.
 #[test]
 fn view_and_draft_query() {
-    let mut r = load("ship", 0);
+    let mut r = load("ship");
     let viewer = viewer_of(&r, Faction::Emperor);
     let view = r.view(viewer);
     let a = view.actions.iter().find(|a| a.event_type == "Shipment").expect("Emperor ships");
@@ -528,7 +525,7 @@ fn view_and_draft_query() {
     assert_eq!(answer.validation, None, "two forces from reserves to a valid destination");
 
     // Move: picking a source gives its destinations.
-    let mut r = load("move", 0);
+    let mut r = load("move");
     let viewer = viewer_of(&r, Faction::Fremen);
     let view = r.view(viewer);
     let a = view.actions.iter().find(|a| a.event_type == "Move").unwrap();

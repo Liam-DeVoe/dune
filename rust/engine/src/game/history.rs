@@ -46,10 +46,13 @@ impl Game {
     }
 
     /// Returns to the game as it was before the last `undo`. Without one (a game loaded
-    /// with undone events), replays the history followed by the undone events.
+    /// with undone events), replays the history followed by the undone events. The human seats
+    /// stay as they are now: they aren't part of the history.
     pub fn restore_recently_undone(&mut self) {
         if let Some(previous) = self.history.previous_game_state.take() {
+            let human_seats = std::mem::take(&mut self.human_seats);
             *self = *previous;
+            self.human_seats = human_seats;
             return;
         }
 
@@ -68,9 +71,9 @@ impl Game {
         *self = self.replay(&history);
     }
 
-    /// A new game of the same version and participation that has executed `events`.
+    /// A new game of the same version and human seats that has executed `events`.
     fn replay(&self, events: &[GameEvent]) -> Game {
-        let mut result = Game::with_participation(self.rules.version, &self.participation);
+        let mut result = self.new_like();
         for e in events {
             e.initialize_game(&result);
             e.execute(&mut result, false, false);

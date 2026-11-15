@@ -76,8 +76,9 @@ impl Server {
     pub(super) async fn phase_continue(&mut self, user: i32, game: &str, event_number: i32) -> Reply {
         let game = self.host_of(user, game)?;
         let event = {
-            let g = &self.games[&game].game;
-            let faction = g.get_player_by_user_id(Some(user)).map_or(Faction::None, |p| g.player(p).faction);
+            let running = &self.games[&game];
+            let g = &running.game;
+            let faction = running.participation.player_of(g, user).map_or(Faction::None, |p| g.player(p).faction);
             GameEvent::EndPhase(Rc::new(EndPhase::new(g, faction)))
         };
         let Ok(expected) = usize::try_from(event_number) else { return done() };
@@ -87,8 +88,9 @@ impl Server {
 
     async fn change_pause(&mut self, user: i32, game: &str, change: impl FnOnce(&mut Pause, i32) + 'static) -> Reply {
         let game = self.player_of(user, game)?;
-        let g = &self.games[&game].game;
-        let Some(seat) = g.get_player_by_user_id(Some(user)).map(|p| g.player(p).seat) else {
+        let running = &self.games[&game];
+        let g = &running.game;
+        let Some(seat) = running.participation.player_of(g, user).map(|p| g.player(p).seat) else {
             return Err(CallError::Refused(ErrorType::InvalidGameEvent, "Only players with a faction can do this".into()));
         };
         self.update_pause(&game, None, Some(Box::new(move |pause: &mut Pause| change(pause, seat)))).await?;
@@ -120,6 +122,7 @@ impl Server {
         let now = self.now();
         let Some(g) = self.games.get_mut(game) else { return Ok(()) };
         let mut counter = g.pause_count;
+        let bots_speed = g.participation.bots_speed;
         let state = &mut g.game;
         let mut pause = std::mem::take(&mut g.pause);
         if pause.id == 0 {
@@ -151,7 +154,7 @@ impl Server {
             None => send(&mut pause, PhaseControlInfo::default()),
             Some(requirements) => {
                 let any_bot = state.player_indices().any(|p| state.is_bot(p));
-                let bots_done = pause.bots_passed || state.participation.borrow().bots_speed <= 0 || !any_bot;
+                let bots_done = pause.bots_passed || bots_speed <= 0 || !any_bot;
                 let waiting_for: Vec<i32> = requirements
                     .wait_for
                     .iter()

@@ -8,9 +8,8 @@
 //! each player may submit, and how far the game's random stream has advanced.
 
 use treachery_engine::error::catch_panic;
-use treachery_engine::shared::Shared;
 use treachery_engine::events::GameEvent;
-use treachery_engine::game::{Game, GameState, Participation};
+use treachery_engine::game::{Game, GameState};
 use treachery_engine::json;
 
 // The first two events of a three-player game.
@@ -69,12 +68,6 @@ fn same_dump(what: &str, actual: &str, want: &str) {
     }
 }
 
-fn participation() -> Participation {
-    let mut p = Participation::new();
-    p.player_names.insert(100, "Human100".to_string());
-    p.seated_players.insert(100, 2);
-    p
-}
 
 /// As a client submits an event: initialize, then execute with validation.
 fn run(g: &mut Game, events: &[&str]) {
@@ -86,7 +79,9 @@ fn run(g: &mut Game, events: &[&str]) {
 }
 
 fn game_after(events: &[&str]) -> Game {
-    let mut g = Game::with_participation(Game::LATEST_VERSION, &Shared::new(participation()));
+    // A user plays seat 2.
+    let mut g = Game::new();
+    g.human_seats.insert(2);
     run(&mut g, events);
     g
 }
@@ -177,22 +172,19 @@ fn undo_that_throws_keeps_the_game() {
     same_dump("undo -1", &dump(&mut g), &before);
 }
 
-/// The game keeps the caller's `Participation`, and every game made by undo, restore
-/// and dismiss shares it.
+/// Every game made by undo, restore and dismiss keeps the human seats of the game it was made
+/// from.
 #[test]
-fn participation_is_shared() {
-    let part = Shared::new(Participation::new());
-    let g = Game::with_participation(Game::LATEST_VERSION, &part);
-    part.borrow_mut().hosts.insert(7);
-    assert!(g.is_host(Some(7)));
-    let mut g = g;
+fn human_seats_are_kept() {
+    let mut g = Game::new();
+    g.human_seats.insert(7);
     g.undo(0);
-    g.add_player(5, "Late", 1);
+    assert!(g.human_seats.contains(&7));
+    g.human_seats.insert(1);
     g.restore_recently_undone();
-    assert!(g.is_participant(5));
+    assert!(g.human_seats.contains(&1));
     g.dismiss_recently_undone();
-    g.set_or_unset_host(9);
-    assert!(part.borrow().hosts.contains(&9));
+    assert_eq!(g.human_seats.iter().copied().collect::<Vec<_>>(), vec![7, 1]);
 }
 
 /// Dismiss forgets the previous game, so repeated undos keep a bounded chain of games.

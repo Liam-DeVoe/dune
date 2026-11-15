@@ -6,11 +6,9 @@
 mod common;
 
 use treachery_engine::error::catch_panic;
-use treachery_engine::shared::Shared;
 use treachery_engine::events::*;
 use treachery_engine::game::Game;
 use treachery_engine::json;
-use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
 
 const T: &str = r#""Time":"2024-01-01T12:00:00+00:00""#;
@@ -22,7 +20,7 @@ fn establish() -> String {
 }
 
 fn run(events: &[String]) -> Game {
-    let mut g = Game::with_participation(Game::LATEST_VERSION, &Shared::new(Participation::new()));
+    let mut g = Game::of_version(Game::LATEST_VERSION);
     for text in events {
         let e: GameEvent = json::deserialize(text).expect("event json");
         e.initialize_game(&g);
@@ -102,14 +100,6 @@ fn static_helpers_and_getters() {
         ep.players = Some(s.to_string());
         p(format!("players[{s}]"), ep.players().iter().map(|x| format!("<{x}>")).collect::<Vec<_>>().join("|"));
     }
-
-    let mut gi = GameInfo::default();
-    gi.phase = Phase::AwaitingPlayers;
-    gi.max_players = 2;
-    gi.seated_players.insert(1, 0);
-    gi.seated_players.insert(2, 1);
-    p("gameinfo.canBeJoined.full".into(), if gi.can_be_joined() { "True" } else { "False" }.into());
-    p("gameinfo.seat".into(), format!("{},{}", gi.your_current_seat(2), gi.your_current_seat(9)));
 
     common::snapshot_lines("review_c.txt", &out);
 }

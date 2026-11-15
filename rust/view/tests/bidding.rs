@@ -9,10 +9,8 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use common::*;
-use treachery_engine::shared::Shared;
 use treachery_engine::events::GameEventType;
 use treachery_engine::game::GameState;
-use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
 use treachery_view::actions;
 use treachery_view::build::ResolvedViewer;
@@ -74,7 +72,7 @@ fn check_state(game: &mut Game, d: &dyn treachery_view::describe::Describer, see
             if !types.contains(&t) {
                 continue;
             }
-            let view = actions::action_view(game, &v, t, d);
+            let view = actions::action_view(game, &v, &Default::default(), t, d);
             let options = view.options.unwrap_or_else(|| panic!("{at}: no options for {t:?}"));
             let emperor = game.spice_for_bids_emperor_can_pay(faction);
             let (expected, default_event) = if t == GameEventType::Bid {
@@ -188,8 +186,7 @@ fn bidding_options_equal_the_helpers_in_every_state() {
     let mut seen = Seen::default();
     for path in fixtures() {
         let state = GameState::load(&std::fs::read_to_string(&path).unwrap()).expect("savegame");
-        let participation = Shared::new(Participation::default());
-        let mut game = Game::with_participation(state.version, &participation);
+        let mut game = Game::of_version(state.version);
         let name = path.file_stem().unwrap().to_string_lossy().to_string();
         for (i, e) in state.events.as_ref().unwrap().iter().enumerate() {
             e.initialize_game(&game);
@@ -199,8 +196,7 @@ fn bidding_options_equal_the_helpers_in_every_state() {
     }
     for path in sample_bot_traces() {
         let trace = read_trace(&path);
-        let participation = Shared::new(Participation::default());
-        let mut r = treachery_view::replica::ViewReplica::new(trace.version, &participation);
+        let mut r = treachery_view::replica::ViewReplica::new(trace.version);
         for (i, e) in trace.events.iter().enumerate() {
             r.apply(e).unwrap();
             check_state(&mut r.game, d.as_ref(), &mut seen, &format!("{} after event {i}", trace.name));
@@ -222,7 +218,7 @@ fn bidding_options_equal_the_helpers_in_every_state() {
 /// view's actions carry the options and the panel the lot.
 #[test]
 fn bid_fixture_view() {
-    let mut r = load("bid", 0);
+    let mut r = load("bid");
     let mut bidders = 0;
     for f in r.game.players.iter().map(|p| p.faction).collect::<Vec<_>>() {
         let view = r.view(viewer_of(&r, f));

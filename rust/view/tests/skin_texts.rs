@@ -33,7 +33,7 @@ fn sheets_and_rules_equal_the_skin() {
     let skin = treachery_skin::default_skin();
     let mut sheets_seen = 0;
     for name in fixtures() {
-        let mut r = load(&name, 0);
+        let mut r = load(&name);
         let views = all_views(&mut r);
         let g = &r.game;
         let v = &views[0];
@@ -99,7 +99,7 @@ fn milestones_follow_each_event() {
     for name in ["bid", "blow", "mc-discard", "battle"] {
         let v: serde_json::Value = serde_json::from_str(&fixture(name)).unwrap();
         let events = v["_events"].as_array().unwrap();
-        let mut r = load_text(&truncated(name, 1), 0);
+        let mut r = load_text(&truncated(name, 1));
         for e in events.iter().skip(1) {
             r.apply(&e.to_string()).unwrap();
             let view = r.view(OBSERVER);

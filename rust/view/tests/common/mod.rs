@@ -4,8 +4,6 @@
 
 use std::path::PathBuf;
 
-use treachery_engine::shared::Shared;
-use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
 pub use treachery_view::build::Viewer;
 use treachery_view::replica::ViewReplica;
@@ -20,17 +18,25 @@ pub fn user_of_seat(seat: i32) -> i32 {
     seat + 1
 }
 
-pub const OBSERVER: Viewer = Viewer { user_id: 100 };
+/// The seat whose user hosts the games of [`load`].
+pub const HOST_SEAT: i32 = 0;
+
+pub const OBSERVER: Viewer = Viewer { user_id: 100, seat: -1, is_host: false, is_observer: true };
+
+/// The user in a seat, as [`load`] seats them.
+pub fn seated_viewer(seat: i32) -> Viewer {
+    Viewer { user_id: user_of_seat(seat), seat, is_host: seat == HOST_SEAT, is_observer: false }
+}
 
 /// Replays a fixture and seats one user per player (user id = seat + 1, named "Player <seat>"),
-/// with `host_seat`'s user as host, and user 100 as an observer.
-pub fn load(name: &str, host_seat: i32) -> ViewReplica {
-    load_text(&fixture(name), host_seat)
+/// with the user of [`HOST_SEAT`] as host, and user 100 as an observer.
+pub fn load(name: &str) -> ViewReplica {
+    load_text(&fixture(name))
 }
 
 pub fn viewer_of(replica: &ViewReplica, faction: Faction) -> Viewer {
     let p = replica.game.get_player(Some(faction)).expect("faction in game");
-    Viewer { user_id: user_of_seat(replica.game.player(p).seat) }
+    seated_viewer(replica.game.player(p).seat)
 }
 
 /// The fixture's savegame cut back to its first `n` events (negative: all but the last `-n`).
@@ -43,10 +49,9 @@ pub fn truncated(name: &str, n: i64) -> String {
 }
 
 /// Like [`load`], from savegame text.
-pub fn load_text(savegame: &str, host_seat: i32) -> ViewReplica {
-    let participation = Shared::new(Participation::default());
-    let replica = ViewReplica::load(savegame, &participation).expect("savegame replays");
-    seat_everyone(&replica, &participation, host_seat);
+pub fn load_text(savegame: &str) -> ViewReplica {
+    let mut replica = ViewReplica::load(savegame).expect("savegame replays");
+    seat_everyone(&mut replica);
     replica
 }
 
@@ -117,12 +122,11 @@ pub fn sample_bot_traces() -> Vec<PathBuf> {
 pub fn first_bot_state(what: &str, pred: impl Fn(&Game) -> bool) -> ViewReplica {
     for path in sample_bot_traces() {
         let trace = read_trace(&path);
-        let participation = Shared::new(Participation::default());
-        let mut r = ViewReplica::new(trace.version, &participation);
+        let mut r = ViewReplica::new(trace.version);
         for e in &trace.events {
             r.apply(e).unwrap();
             if pred(&r.game) {
-                seat_everyone(&r, &participation, 0);
+                seat_everyone(&mut r);
                 return r;
             }
         }
@@ -130,14 +134,13 @@ pub fn first_bot_state(what: &str, pred: impl Fn(&Game) -> bool) -> ViewReplica 
     panic!("no sample bot game reaches a state with {what}")
 }
 
-fn seat_everyone(replica: &ViewReplica, participation: &Shared<Participation>, host_seat: i32) {
-    let mut p = participation.borrow_mut();
-    for pl in &replica.game.players {
-        p.seated_players.insert(user_of_seat(pl.seat), pl.seat);
-        p.player_names.insert(user_of_seat(pl.seat), format!("Player {}", pl.seat));
+fn seat_everyone(replica: &mut ViewReplica) {
+    let seats: Vec<i32> = replica.game.players.iter().map(|pl| pl.seat).collect();
+    for seat in &seats {
+        replica.game.human_seats.insert(*seat);
+        replica.seating.names.insert(*seat, format!("Player {seat}"));
     }
-    p.hosts.insert(user_of_seat(host_seat));
-    p.observers.insert(OBSERVER.user_id);
+    replica.seating.seated_users = seats.len() as i32;
 }
 
 /// A fixture with extra rules in its `EstablishPlayers` settings (rule numbers).

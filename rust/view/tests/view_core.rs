@@ -47,7 +47,7 @@ fn name<T: ToString>(v: T) -> String {
 fn piles() {
     let mut saw_latest = false;
     for fixture in FIXTURES {
-        let mut r = load(fixture, 0);
+        let mut r = load(fixture);
         for (f, view) in all_views(&mut r) {
             let g = &r.game;
             let p = &view.piles;
@@ -75,7 +75,7 @@ fn piles() {
 /// nobody else does.
 #[test]
 fn resource_deck_top_under_prescience() {
-    let mut r = load("ship", 0);
+    let mut r = load("ship");
     assert_eq!(r.game.turn.current_main_phase, MainPhase::ShipmentAndMove);
     let top = r.game.decks.resource_card_deck.as_ref().unwrap().top().unwrap().skin_id();
     let mut seen = 0;
@@ -93,7 +93,7 @@ fn resource_deck_top_under_prescience() {
 /// own `Player.KnownCards` only), spice and victory points. Observers get none of it.
 #[test]
 fn notekeeping_shows_discard_piles_and_notes() {
-    let mut r = load_text(&with_rules("mc-concluded", &[Rule::AssistedNotekeeping.0]), 0);
+    let mut r = load_text(&with_rules("mc-concluded", &[Rule::AssistedNotekeeping.0]));
     assert!(r.game.applicable(Rule::AssistedNotekeeping));
     let mut known_somewhere = 0;
     let mut unknown_somewhere = 0;
@@ -143,7 +143,7 @@ fn notekeeping_shows_discard_piles_and_notes() {
 fn tanks() {
     let mut face_down = 0;
     for fixture in FIXTURES {
-        let mut r = load(fixture, 0);
+        let mut r = load(fixture);
         for (f, view) in all_views(&mut r) {
             let g = &r.game;
             assert_eq!(view.tanks.len(), g.players.len());
@@ -186,7 +186,7 @@ fn tanks() {
 fn ring() {
     let mut skilled = 0;
     for fixture in FIXTURES {
-        let mut r = load(fixture, 0);
+        let mut r = load(fixture);
         let view = r.view(OBSERVER);
         let g = &r.game;
         // SectorGeometry.PlayerTokenPosition places seats by Game.MaximumPlayers.
@@ -250,7 +250,7 @@ fn hand_cards_name_the_actions_that_play_them() {
     // Which player holds which card depends on the fixture's draws, so look for them.
     let playable_somewhere = |want: &[&str]| {
         FIXTURES.iter().any(|f| {
-            let mut r = load(f, 0);
+            let mut r = load(f);
             all_views(&mut r).into_iter().any(|(_, v)| v.me.is_some_and(|me| me.hand.iter().any(|c| c.playable_with == want)))
         })
     };
@@ -272,7 +272,7 @@ fn hand_cards_name_the_actions_that_play_them() {
     // Everywhere: only applicable actions, each playing a card of the right type.
     let mut playable = 0;
     for fixture in FIXTURES {
-        let mut r = load(fixture, 0);
+        let mut r = load(fixture);
         for (f, view) in all_views(&mut r) {
             let Some(me) = &view.me else { continue };
             let p = player(&r, f.unwrap());
@@ -297,7 +297,7 @@ fn hand_cards_name_the_actions_that_play_them() {
 /// has picked; Harkonnen and Tleilaxu keep all theirs and see them.
 #[test]
 fn traitors_hidden_while_picking() {
-    let mut r = load("mc-traitors", 0);
+    let mut r = load("mc-traitors");
     assert_eq!(r.game.turn.current_phase, Phase::SelectingTraitors);
     let mut hidden = 0;
     for f in factions(&r) {
@@ -359,7 +359,7 @@ fn faction_panel_extras() {
 /// `Bid.PlayersToBid` with whose turn it is, in the bidding main phase only.
 #[test]
 fn prompt_bidders() {
-    let mut r = load("bid", 0);
+    let mut r = load("bid");
     let view = r.view(OBSERVER);
     let expected: Vec<SequenceEntry> = Bid::players_to_bid(&r.game)
         .iter()
@@ -367,13 +367,13 @@ fn prompt_bidders() {
         .collect();
     assert_eq!(view.status.to_bid, expected);
     assert_eq!(view.status.to_bid.iter().filter(|e| e.has_turn).count(), 1);
-    assert!(load("alliance", 0).view(OBSERVER).status.to_bid.is_empty());
+    assert!(load("alliance").view(OBSERVER).status.to_bid.is_empty());
 }
 
 /// `GameStatus.FlashInfo`: the battle winner, the game's winners, a spice blow.
 #[test]
 fn flash() {
-    let mut r = load("mc-concluded", 0);
+    let mut r = load("mc-concluded");
     let winner = r.game.battle.battle_winner.unwrap();
     let view = r.view(OBSERVER);
     assert_eq!(view.status.flash.len(), 1);
@@ -386,12 +386,12 @@ fn flash() {
     assert_eq!(faction_of(&view.status.flash[0].message[0]), name(winner));
     assert_eq!(view.status.flash[0].message[1], Part::Text { v: " win!".into() });
 
-    let mut r = load("mc-ended", 0);
+    let mut r = load("mc-ended");
     let view = r.view(OBSERVER);
     let winners: Vec<String> = r.game.contemplate.winners.iter().map(|p| name(r.game.player(*p).faction)).collect();
     assert_eq!(view.status.flash.iter().map(|f| faction_of(&f.to_show)).collect::<Vec<_>>(), winners);
 
-    let mut r = load("blow", 0);
+    let mut r = load("blow");
     let view = r.view(OBSERVER);
     assert!(view.status.flash.iter().any(|f| matches!(f.to_show, Part::ResourceCard { .. })), "{:?}", view.status.flash);
 }
@@ -399,7 +399,7 @@ fn flash() {
 /// `EndPhase` in the prompt: "Continue", with the event's validation.
 #[test]
 fn prompt_continue() {
-    let mut r = load("blow", 0);
+    let mut r = load("blow");
     let host = r.game.players.iter().find(|p| p.seat == 0).unwrap().faction;
     let view = r.view(viewer_of(&r, host));
     let end = view.actions.iter().find(|a| a.event_type == "EndPhase").expect("the host may end the blow report");
@@ -411,7 +411,7 @@ fn prompt_continue() {
 
 #[test]
 fn bids_on_the_ring() {
-    let mut r = load("bid", 0);
+    let mut r = load("bid");
     let view = r.view(OBSERVER);
     let b = view.bidding.expect("bidding phase");
     assert_eq!(b.auction_type, name(r.game.bidding.current_auction_type));
@@ -421,7 +421,7 @@ fn bids_on_the_ring() {
         let expected = if bid.bid_passed() { BidShown::Pass } else { BidShown::Bid { amount: bid.bid_total_amount() } };
         assert_eq!(shown.bid, expected);
     }
-    assert!(load("alliance", 0).view(OBSERVER).bidding.is_none());
+    assert!(load("alliance").view(OBSERVER).bidding.is_none());
 }
 
 /// Silent auctions show "ready" for every bid, passes included.
@@ -443,7 +443,7 @@ fn silent_bids_are_ready() {
 /// Both plans in: everyone sees both, whole.
 #[test]
 fn battle_plans_once_both_are_in() {
-    let mut r = load("mc-concluded", 0);
+    let mut r = load("mc-concluded");
     let battle = r.game.battle.current_battle.clone().unwrap();
     for (f, view) in all_views(&mut r) {
         let g = &r.game;
@@ -472,7 +472,7 @@ fn battle_plans_once_both_are_in() {
 #[test]
 fn battle_plans_before_both_are_in() {
     for fixture in ["prescience-seen", "karma-prescience", "nexus-prescience", "battle", "mc-voice", "mc-prescience"] {
-        let mut r = load(fixture, 0);
+        let mut r = load(fixture);
         assert!(!(r.game.battle.aggressor_plan.is_some() && r.game.battle.defender_plan.is_some()), "{fixture}");
         let users: Vec<Faction> = r.game.battle.current_prescience.iter().map(|p| p.initiator()).chain(r.game.turn.current_nexus_prescience.iter().map(|n| n.initiator())).collect();
         for (f, view) in all_views(&mut r) {
@@ -511,7 +511,7 @@ fn battle_plans_before_both_are_in() {
 #[test]
 fn no_plans_outside_the_battle() {
     for fixture in ["alliance", "bid", "move"] {
-        let view = load(fixture, 0).view(OBSERVER);
+        let view = load(fixture).view(OBSERVER);
         assert!(view.battle.as_ref().is_none_or(|b| b.aggressor_plan.is_none() && b.defender_plan.is_none()), "{fixture}");
     }
 }
@@ -523,7 +523,7 @@ fn board_basics() {
     let mut leaders = 0;
     let mut monsters = 0;
     for fixture in FIXTURES {
-        let mut r = load(fixture, 0);
+        let mut r = load(fixture);
         for (f, view) in all_views(&mut r) {
             let g = &r.game;
             let b = &view.board;
@@ -560,7 +560,7 @@ fn board_basics() {
 fn recent_moves() {
     let mut arrows = 0;
     for fixture in ["bene_gesserit", "ship-fremen", "facedancer", "move"] {
-        let mut r = load(fixture, 0);
+        let mut r = load(fixture);
         let view = r.view(OBSERVER);
         let g = &r.game;
         let mut expected_ends: Vec<(String, i32)> = vec![];
@@ -578,7 +578,7 @@ fn recent_moves() {
         arrows += view.board.recent_moves.len();
     }
     assert!(arrows > 0);
-    assert!(load("alliance", 0).view(OBSERVER).board.recent_moves.is_empty());
+    assert!(load("alliance").view(OBSERVER).board.recent_moves.is_empty());
 }
 
 /// Tokens of the expansions, from bot games: stronghold owners, terror (identity to Moritani only),
@@ -644,7 +644,7 @@ fn expansion_tokens() {
 
 #[test]
 fn timing() {
-    let mut r = load("bid", 0);
+    let mut r = load("bid");
     r.timer = 30;
     let view = r.view(OBSERVER);
     let g = &r.game;
@@ -667,7 +667,7 @@ fn timing() {
 #[test]
 fn observer_sees_no_private_fields() {
     for fixture in FIXTURES {
-        let view = load(fixture, 0).view(OBSERVER);
+        let view = load(fixture).view(OBSERVER);
         assert!(view.me.is_none() && view.notes.is_none(), "{fixture}");
         assert!(view.piles.richese_cache.is_none() && view.piles.resource_deck_top.is_none() && view.piles.treachery_discard.is_none());
         assert!(view.board.no_field_value.is_none() && view.board.storm_prescience_moves.is_none());

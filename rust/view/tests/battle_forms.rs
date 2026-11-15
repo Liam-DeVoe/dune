@@ -10,11 +10,9 @@ mod common;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-use treachery_engine::shared::Shared;
 use treachery_engine::events::GameEventType;
 use treachery_engine::json;
 use treachery_engine::enum_type::GameEnum;
-use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
 use treachery_view::actions::{self, battle};
 use treachery_view::build::{event, ResolvedViewer};
@@ -82,7 +80,7 @@ impl Stats {
 /// Checks one applicable battle form of player `p`.
 fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, stats: &mut Stats, at: &str) {
     let v = viewer(game, p);
-    let view = actions::action_view(game, &v, t, d);
+    let view = actions::action_view(game, &v, &Default::default(), t, d);
     let options = view.options.clone().unwrap_or_else(|| panic!("{at}: no options for {}", t.name()));
     let at = format!("{at} {} {}", game.player(p).faction, t.name());
     let at = at.as_str();
@@ -312,8 +310,7 @@ fn battle_forms_in_fixtures() {
     names.sort();
     for name in names {
         let text = common::fixture(&name);
-        let participation = Shared::new(Participation::default());
-        let Ok(mut r) = ViewReplica::load(&text, &participation) else { continue };
+        let Ok(mut r) = ViewReplica::load(&text) else { continue };
         check_all_players(&mut r.game, &*d, &mut stats, &name);
     }
     eprintln!("fixtures: {:?}", stats.0);
@@ -329,8 +326,7 @@ fn battle_forms_in_bot_games() {
     let mut stats = Stats::default();
     for path in common::sample_bot_traces() {
         let trace = common::read_trace(&path);
-        let participation = Shared::new(Participation::default());
-        let mut r = ViewReplica::new(trace.version, &participation);
+        let mut r = ViewReplica::new(trace.version);
         for (n, e) in trace.events.iter().enumerate() {
             r.apply(e).unwrap();
             check_all_players(&mut r.game, &*d, &mut stats, &format!("{} step {n}", trace.name));
@@ -384,8 +380,7 @@ fn battle_forms_in_rare_traces() {
     };
     for path in traces_in(&dir) {
         let trace = read_until_undo(&path);
-        let participation = Shared::new(Participation::default());
-        let mut r = ViewReplica::new(trace.version, &participation);
+        let mut r = ViewReplica::new(trace.version);
         for (n, e) in trace.events.iter().enumerate() {
             if r.apply(e).is_err() {
                 break;
@@ -428,8 +423,7 @@ const RARE: &[&str] = &[
 /// pointed at the Great Flat, the first two factions get forces in it, the first owns it and
 /// Arrakeen, and the battle between them starts there.
 fn hms_battle_state() -> ViewReplica {
-    let participation = Shared::new(Participation::default());
-    let mut r = ViewReplica::load(&common::fixture("battle"), &participation).expect("battle fixture loads");
+    let mut r = ViewReplica::load(&common::fixture("battle")).expect("battle fixture loads");
     let g = &mut r.game;
     let flat = g.board.map.the_great_flat();
     let hms = g.board.map.hidden_mobile_stronghold();

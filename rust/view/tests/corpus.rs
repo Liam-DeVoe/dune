@@ -16,10 +16,8 @@ mod common;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-use treachery_engine::shared::Shared;
 use treachery_engine::identity::Identifiable;
 use treachery_engine::heroes::leader_manager::LeaderManager;
-use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
 use treachery_view::build::ResolvedViewer;
 use treachery_view::replica::ViewReplica;
@@ -245,9 +243,8 @@ fn views_do_not_depend_on_build_order_over_the_bot_corpus() {
     let mut seen = Seen::default();
     let mut steps = 0;
     for trace in corpus() {
-        let participation = Shared::new(Participation::default());
-        let mut forward = ViewReplica::new(trace.version, &participation);
-        let mut shuffled = ViewReplica::new(trace.version, &participation);
+        let mut forward = ViewReplica::new(trace.version);
+        let mut shuffled = ViewReplica::new(trace.version);
         for (n, event) in trace.events.iter().enumerate() {
             forward.apply(event).unwrap_or_else(|e| panic!("{} event {n}: {e}", trace.name));
             shuffled.apply(event).unwrap();

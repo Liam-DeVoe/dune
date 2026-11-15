@@ -82,11 +82,6 @@ impl Player {
         }
     }
 
-    pub fn name(&self, game: &Game) -> String {
-        // Game.GetPlayerName(this): `self` is always one of game.players.
-        game.get_player_name_player(game.index_of(self).expect("a player of this game"))
-    }
-
     pub fn forces_in_reserve(&self) -> i32 {
                 self.home_worlds.iter().map(|hw| self.forces_in(Some(hw.location()))).sum::<i32>()
     }

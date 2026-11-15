@@ -1,38 +1,17 @@
-//! Edge cases of the game core: participation, game events and their bookkeeping.
+//! Edge cases of the game core: human seats, game events and their bookkeeping.
 
 use treachery_engine::game::Game;
-use treachery_engine::shared::Shared;
-use treachery_engine::game::Participation;
 
-/// `Participation` is one shared object in C#: the game built by `Undo` and the
-/// game it keeps as `PreviousGameState` use the same instance. A seat change made
-/// on the undo game (the server's `AddPlayer`) is visible in the game that
-/// `RestoreRecentlyUndone` returns.
-///
-/// Probe: `participation.shared = True`, `participation.old.isParticipant5 = True`,
-/// `participation.old.seated = 1`.
+/// The human seats outlive undo and restore: a seat the server gives a user after an undo is
+/// still a human's seat in the game that `RestoreRecentlyUndone` returns, as the server's
+/// participation, shared by both games in C#, said.
 #[test]
-fn participation_is_shared_across_undo_and_restore() {
-    let g = Game::with_participation(Game::LATEST_VERSION, &Shared::new(Participation::new()));
-    let mut u = g;
-    u.undo(0);
-    u.add_player(5, "Late", 1);
-    let mut r = u;
-    r.restore_recently_undone();
-    assert!(r.is_participant(5), "C#: the restored game sees the player added after Undo");
-    assert_eq!(r.number_of_seated_players(), 1);
-}
-
-/// `new Game(version, participation)` keeps the caller's object. In C# a later change
-/// to it (the server keeps and edits it) is visible through the game.
-///
-/// Probe: `participation.caller_alias.isHost7 = True`.
-#[test]
-fn participation_passed_to_constructor_is_aliased() {
-    let part = Shared::new(Participation::new());
-    let g = Game::with_participation(Game::LATEST_VERSION, &part);
-    part.borrow_mut().hosts.insert(7);
-    assert!(g.is_host(Some(7)), "C#: the game reads the caller's Participation object");
+fn human_seats_survive_undo_and_restore() {
+    let mut g = Game::of_version(Game::LATEST_VERSION);
+    g.undo(0);
+    g.human_seats.insert(1);
+    g.restore_recently_undone();
+    assert!(g.human_seats.contains(&1));
 }
 
 /// EndPhase, PlacementEvent, Utilities, GameState and the small model types.

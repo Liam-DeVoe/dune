@@ -14,27 +14,26 @@ use serde_json::{Map, Value};
 use treachery_engine::events::{GameEvent, GameEventType};
 use treachery_engine::game::Game;
 use treachery_engine::json;
-use treachery_engine::game::Participation;
 use treachery_engine::prelude::*;
-use treachery_view::build::ResolvedViewer;
+use treachery_view::build::{ResolvedViewer, Seating};
 
 use crate::rng::Rng;
 
 /// A copy of the session's game, kept in step by executing its history without validation.
 pub struct Shadow {
     pub game: Game,
-    participation: Shared<Participation>,
 }
 
 impl Shadow {
-    pub fn new(version: i32, participation: &Shared<Participation>) -> Shadow {
-        Shadow { game: Game::with_participation(version, participation), participation: participation.clone() }
+    /// A shadow of `game`, which has no events yet.
+    pub fn new(game: &Game) -> Shadow {
+        Shadow { game: game.new_like() }
     }
 
     /// Catches up with `game`; starts over when `rebuild` or when it is ahead.
     pub fn sync(&mut self, game: &Game, rebuild: bool) {
         if rebuild || self.game.event_count() > game.event_count() {
-            self.game = Game::with_participation(game.rules.version, &self.participation);
+            self.game = game.new_like();
         }
         let done = self.game.event_count() as usize;
         for e in game.history.entries.iter().skip(done) {
@@ -48,7 +47,7 @@ impl Shadow {
             });
             if ok.flatten().is_none() {
                 // A shadow that can't follow is rebuilt next time; generation just gets worse.
-                self.game = Game::with_participation(game.rules.version, &self.participation);
+                self.game = game.new_like();
                 return;
             }
         }
@@ -308,7 +307,7 @@ impl Pools {
     }
 
     /// The pools of the form for event type `t` for player `i` of the shadow game.
-    pub fn of(shadow: &Game, i: usize, t: GameEventType) -> Pools {
+    pub fn of(shadow: &Game, seating: &Seating, i: usize, t: GameEventType) -> Pools {
         let mut pools = Pools::default();
         if i >= shadow.players.len() {
             return pools;
@@ -316,7 +315,7 @@ impl Pools {
         let p = shadow.player_at(i);
         let faction = shadow.players[i].faction;
         let rv = ResolvedViewer { player: Some(p), faction: Some(faction), is_host: false, is_observer: false };
-        let options = quiet(|| treachery_view::actions::action_view(shadow, &rv, t, treachery_skin::default_skin()).options.map(|o| serde_json::to_value(o).ok()))
+        let options = quiet(|| treachery_view::actions::action_view(shadow, &rv, seating, t, treachery_skin::default_skin()).options.map(|o| serde_json::to_value(o).ok()))
             .flatten()
             .flatten();
         if let Some(o) = options {
@@ -518,8 +517,8 @@ fn steer(event: &mut Map<String, Value>, pools: &Pools, game: &Game, player: Opt
 
 /// Changes one field of `event` (an event of type `t` for `player`) to another value its form
 /// offers, falling back to [`mutate`]. Returns the fields changed.
-pub fn mutate_steered(event: &mut Map<String, Value>, game: &Game, player: usize, t: GameEventType, rng: &mut Rng) -> Vec<String> {
-    let pools = Pools::of(game, player, t);
+pub fn mutate_steered(event: &mut Map<String, Value>, game: &Game, seating: &Seating, player: usize, t: GameEventType, rng: &mut Rng) -> Vec<String> {
+    let pools = Pools::of(game, seating, player, t);
     let Some(d) = quiet(|| Domains::of(game, Some(player))) else { return vec![] };
     let keys: Vec<String> = event.keys().cloned().collect();
     for _ in 0..6 {
@@ -556,6 +555,8 @@ fn type_named(name: &str) -> Option<GameEventType> {
 
 /// Generates events and remembers which (type, phase) pairs were executed, to prefer rare ones.
 pub struct Fuzzer {
+    /// The names of the seated users, which forms fill in.
+    pub seating: Seating,
     pub rng: Rng,
     accepted: BTreeMap<(&'static str, i32), u32>,
     opportunistic_tries: BTreeMap<(&'static str, i32), u32>,
@@ -585,7 +586,13 @@ const ATTEMPTS: usize = 8;
 
 impl Fuzzer {
     pub fn new(seed: u64) -> Fuzzer {
-        Fuzzer { rng: Rng::new(seed), accepted: BTreeMap::new(), opportunistic_tries: BTreeMap::new(), steered_tries: BTreeMap::new(), accepted_total: BTreeMap::new(), plans: BTreeMap::new(), last_bot_event: None, repeats: 0 }
+        Fuzzer { seating: Seating::default(), rng: Rng::new(seed), accepted: BTreeMap::new(), opportunistic_tries: BTreeMap::new(), steered_tries: BTreeMap::new(), accepted_total: BTreeMap::new(), plans: BTreeMap::new(), last_bot_event: None, repeats: 0 }
+    }
+
+    /// The fuzzer for a game with these seated users.
+    pub fn with_seating(mut self, seating: Seating) -> Fuzzer {
+        self.seating = seating;
+        self
     }
 
     pub fn note_accepted(&mut self, t: &'static str, phase: Phase) {
@@ -657,7 +664,7 @@ impl Fuzzer {
     pub fn changed_plan(&mut self, shadow: &Game, player: usize) -> Option<Map<String, Value>> {
         let faction = shadow.players.get(player)?.faction.0;
         let mut plan = self.plans.get(&faction)?.clone();
-        let pools = Pools::of(shadow, player, GameEventType::Battle);
+        let pools = Pools::of(shadow, &self.seating, player, GameEventType::Battle);
         let (field, list): (&str, Vec<Value>) = match self.rng.below(4) {
             0 => ("_heroId", pools.lists.iter().find(|(n, _, _)| n == "hero")?.1.clone()),
             1 => ("_weaponCardId", pools.lists.iter().find(|(n, _, _)| n == "weapon")?.1.clone()),
@@ -705,7 +712,7 @@ impl Fuzzer {
     /// validation.
     pub fn build(&mut self, shadow: &Game, player: Option<usize>, t: GameEventType) -> Option<Map<String, Value>> {
         let faction = player.filter(|i| *i < shadow.players.len()).map(|i| shadow.players[i].faction).unwrap_or(Faction::None);
-        let pools = player.map(|i| Pools::of(shadow, i, t)).unwrap_or_default();
+        let pools = player.map(|i| Pools::of(shadow, &self.seating, i, t)).unwrap_or_default();
         if let Some(b) = self.rng.pick(&pools.buttons).filter(|_| self.rng.chance(0.9)) {
             let mut e = b.clone();
             e.remove("Time");
@@ -715,7 +722,7 @@ impl Fuzzer {
             player.filter(|i| *i < shadow.players.len()).and_then(|i| {
                 let p = shadow.player_at(i);
                 let rv = ResolvedViewer { player: Some(p), faction: Some(faction), is_host: false, is_observer: false };
-                quiet(|| treachery_view::actions::default_draft(shadow, &rv, faction, t).map(|e| json::serialize(&e))).flatten()
+                quiet(|| treachery_view::actions::default_draft(shadow, &rv, &self.seating, faction, t).map(|e| json::serialize(&e))).flatten()
             })
         });
         let base = draft.unwrap_or_else(|| {

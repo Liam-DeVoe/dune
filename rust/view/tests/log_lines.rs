@@ -25,8 +25,6 @@ use std::io::{BufRead, Write};
 use std::path::PathBuf;
 
 use serde_json::{json, Value};
-use treachery_engine::shared::Shared;
-use treachery_engine::game::Participation;
 use treachery_engine::messages::message::Message;
 use treachery_view::describe::InGame;
 use treachery_view::log::log_line;
@@ -134,7 +132,7 @@ fn fixture_log_lines_match_the_snapshot() {
     let mut failures = Vec::new();
     let mut written = Vec::new();
     for fixture in fixtures {
-        let replica = ViewReplica::load(&common::fixture(fixture), &Shared::new(Participation::default())).unwrap();
+        let replica = ViewReplica::load(&common::fixture(fixture)).unwrap();
         let skin = treachery_skin::default_skin();
         let d = InGame::new(&skin, &replica.game);
         let expected: Vec<&Value> = golden.iter().filter(|g| g["fixture"] == fixture).collect();
@@ -181,7 +179,7 @@ fn bot_game_log_lines_match_the_snapshot() {
         if expected.is_empty() {
             continue; // every shape of this game came earlier
         }
-        let mut replica = ViewReplica::new(trace.version, &Shared::new(Participation::default()));
+        let mut replica = ViewReplica::new(trace.version);
         for e in &trace.events {
             replica.apply(e).unwrap();
         }
@@ -210,7 +208,7 @@ fn bot_game_lines(paths: &[PathBuf]) -> Vec<Value> {
     let mut out = Vec::new();
     for path in paths {
         let trace = common::read_trace(path);
-        let mut replica = ViewReplica::new(trace.version, &Shared::new(Participation::default()));
+        let mut replica = ViewReplica::new(trace.version);
         for e in &trace.events {
             replica.apply(e).unwrap();
         }

@@ -60,7 +60,7 @@ impl BeneGesseritBattleAnnouncement {
                 let t = *t;
                 (!player.has_ally() || g.player(player.allied_player(g).expect("allied player")).any_forces_in_territory(Some(t)) == 0)
                     && player.special_forces_in_territory(Some(t)) > 0
-                    && (!t.is_stronghold() || g.nr_of_occupants_excluding_faction_territory_faction(t, player.faction) <= 1)
+                    && (!t.is_stronghold() || g.nr_of_occupants_of_territory_excluding(t, player.faction) <= 1)
                     && !t.locations().iter().any(|l| l.sector(&g.map) == g.sector_in_storm && player.special_forces_in(Some(*l)) > 0)
             })
     }
@@ -69,7 +69,7 @@ impl BeneGesseritBattleAnnouncement {
         let initiator = self.get_player(game, Some(self.initiator()));
         let Some(initiator) = initiator else { return Ok(()) };
         let Some(territory) = self.territory(game) else { return Ok(()) };
-        Player::flip_forces_territory_boolean(game, initiator, territory, false);
+        Player::flip_forces_in_territory(game, initiator, territory, false);
         self.log(game);
         Ok(())
     }

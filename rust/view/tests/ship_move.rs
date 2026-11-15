@@ -378,7 +378,7 @@ fn check_placement(game: &Game, p: PlayerIndex, o: &PlacementOptions, t: GameEve
     for l in sources {
         let mut forces: IndexMap<Location, Battalion> = IndexMap::new();
         forces.insert(l, Battalion::new(f, pl.forces_in(Some(l)), pl.special_forces_in(Some(l)), l));
-        let expected = ids(PlacementEvent::valid_targets_game_player_dictionary_location_battalion(game, p, &forces));
+        let expected = ids(PlacementEvent::valid_targets_for_forces(game, p, &forces));
         let draft = placement_draft(game, f, t, &forces, None);
         let o = placement_options(opts(game, p, &draft, &*d));
         assert_eq!(o.targets, expected);
@@ -573,7 +573,7 @@ fn check_adjustments(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Des
             for l in sources {
                 let mut forces: IndexMap<Location, Battalion> = IndexMap::new();
                 forces.insert(l, Battalion::new(f, pl.forces_in(Some(l)), pl.special_forces_in(Some(l)), l));
-                let targets: Vec<Location> = PlacementEvent::valid_targets_game_player_dictionary_location_battalion(game, p, &forces);
+                let targets: Vec<Location> = PlacementEvent::valid_targets_for_forces(game, p, &forces);
                 for to in targets.into_iter().take(4) {
                     for start in [false, true] {
                         let mut e = placement_draft(game, f, t, &forces, Some(to));

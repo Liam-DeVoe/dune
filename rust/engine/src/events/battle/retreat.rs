@@ -58,7 +58,7 @@ impl Retreat {
     pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
         let territory = g.current_battle.as_ref().expect("current battle").territory(g).expect("territory");
         let battalions = g.player(p).battalions_in(territory);
-        PlacementEvent::valid_targets_game_player_dictionary_location_battalion(g, p, &battalions)
+        PlacementEvent::valid_targets_for_forces(g, p, &battalions)
             .into_iter()
             .filter(move |t| !g.any_forces_in(t.territory()) && !t.is_stronghold())
     }

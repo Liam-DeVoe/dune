@@ -155,10 +155,9 @@ impl Battle {
             let battle_territory = current_battle.territory(game);
             if let Some(battle_territory) = battle_territory {
                 let supplier = Battle::determine_force_supplier(game, aggressor_plan.player());
-                game.reveal_current_no_field_player_territory(supplier, battle_territory);
-                // C# reads Game.DefenderPlan again here; nothing in between changes it.
+                game.reveal_current_no_field_in_territory(supplier, battle_territory);
                 let supplier = Battle::determine_force_supplier(game, defender_plan.player());
-                game.reveal_current_no_field_player_territory(supplier, battle_territory);
+                game.reveal_current_no_field_in_territory(supplier, battle_territory);
             }
 
             let m = express!(aggressor_plan.try_get_battle_plan_message(game)?, "; ", defender_plan.try_get_battle_plan_message(game)?)
@@ -171,7 +170,7 @@ impl Battle {
             self.pass_tleilaxu_traitor_action(game);
 
             let melting = aggressor_plan.has_rock_melter() || defender_plan.has_rock_melter();
-            game.enter_boolean_phase_phase(melting, Phase::MeltingRock, Phase::CallTraitorOrPass);
+            game.enter_either(melting, Phase::MeltingRock, Phase::CallTraitorOrPass);
         }
         Ok(())
     }
@@ -211,12 +210,6 @@ impl Battle {
 
     pub fn get_message(&self, _game: &Game) -> Message {
         express!(self.initiator(), " finalize their battle plan")
-    }
-
-    /// The plan as the log shows it. Panics outside the plan's battle; see
-    /// [`Battle::try_get_battle_plan_message`].
-    pub fn get_battle_plan_message(&self, game: &Game) -> Message {
-        self.try_get_battle_plan_message(game).expect("a battle plan message during its battle")
     }
 
     /// The plan as the log shows it, or why it can't be shown: the game has no battle against an
@@ -307,7 +300,7 @@ impl Battle {
     }
 
     pub fn dial(&self, g: &Game, opponent: Faction) -> f32 {
-        Battle::dial_game_player_faction_int32_int32_int32_int32(
+        Battle::dial_of_forces(
             g,
             self.player(),
             opponent,
@@ -318,7 +311,7 @@ impl Battle {
         )
     }
 
-    pub fn dial_game_player_faction_int32_int32_int32_int32(g: &Game, p: PlayerIndex, opponent: Faction, forces: i32, special_forces: i32, forces_at_half_strength: i32, special_forces_at_half_strength: i32) -> f32 {
+    pub fn dial_of_forces(g: &Game, p: PlayerIndex, opponent: Faction, forces: i32, special_forces: i32, forces_at_half_strength: i32, special_forces_at_half_strength: i32) -> f32 {
         let pl = g.player(p);
         let ecaz_battle_contribution = if !g.prevented(FactionAdvantage::EcazOccupation) && (pl.faction == Faction::Ecaz || pl.ally == Faction::Ecaz) {
             g.current_ecaz_battle_contribution
@@ -337,11 +330,11 @@ impl Battle {
 
     pub fn cost(&self, g: &Game) -> i32 {
         let mut _paid = 0;
-        Battle::cost_game_player_int32_int32_int32(g, self.player(), self.forces, self.special_forces, &mut _paid)
+        Battle::cost_of_forces(g, self.player(), self.forces, self.special_forces, &mut _paid)
     }
 
-    pub fn cost_game_int32(&self, g: &Game, paid_by_arrakeen: &mut i32) -> i32 {
-        Battle::cost_game_player_int32_int32_int32(g, self.player(), self.forces, self.special_forces, paid_by_arrakeen)
+    pub fn cost_with_arrakeen_share(&self, g: &Game, paid_by_arrakeen: &mut i32) -> i32 {
+        Battle::cost_of_forces(g, self.player(), self.forces, self.special_forces, paid_by_arrakeen)
     }
 
     pub fn determine_battle_outcome(agg: &Rc<Battle>, def: &Rc<Battle>, territory: Territory, game: &mut Game) -> BattleOutcome {
@@ -555,7 +548,7 @@ impl Battle {
             return Some(express!("Too many ", pl.special_force(), " selected"));
         }
         let mut _paid = 0;
-        let cost = Battle::cost_game_player_int32_int32_int32(game, p, self.forces, self.special_forces, &mut _paid);
+        let cost = Battle::cost_of_forces(game, p, self.forces, self.special_forces, &mut _paid);
         if self.ally_contribution_amount > cost {
             return Some(express!("Your ally is paying more than needed"));
         }
@@ -717,7 +710,7 @@ impl Battle {
             PrescienceAspect::Leader => self.hero() == seen.hero(),
             PrescienceAspect::Weapon => self.weapon() == seen.weapon(),
             PrescienceAspect::Defense => self.defense() == seen.defense(),
-            // float ==: NaN never matches, as in C#.
+            // float ==: NaN never matches.
             PrescienceAspect::Dial => self.dial(game, opponent) == seen.dial(game, opponent),
             _ => true,
         }
@@ -747,7 +740,7 @@ impl Battle {
     }
 
     pub fn determine_special_force_no_spice_factor(g: &Game, player: Faction) -> f32 {
-        if player == Faction::Emperor && g.has_high_threshold_faction_world(player, World::SalusaSecundus) {
+        if player == Faction::Emperor && g.has_high_threshold_in(player, World::SalusaSecundus) {
             return 1.0;
         }
         0.5
@@ -779,14 +772,14 @@ impl Battle {
 
     pub fn must_pay_for_special_forces_in_battle(g: &Game, p: PlayerIndex) -> bool {
         Battle::must_pay_for_any_forces_in_battle(g, p)
-            && !(g.player(p).is(Faction::Emperor) && g.has_high_threshold_faction_world(Faction::Emperor, World::SalusaSecundus))
+            && !(g.player(p).is(Faction::Emperor) && g.has_high_threshold_in(Faction::Emperor, World::SalusaSecundus))
     }
 
     pub fn messiah_may_be_used_in_battle(g: &Game, p: PlayerIndex) -> bool {
         Battle::messiah_available_for_battle(g, p)
     }
 
-    pub fn cost_game_player_int32_int32_int32(g: &Game, p: PlayerIndex, amount_of_forces_at_full_strength: i32, amount_of_special_forces_at_full_strength: i32, paid_by_arrakeen: &mut i32) -> i32 {
+    pub fn cost_of_forces(g: &Game, p: PlayerIndex, amount_of_forces_at_full_strength: i32, amount_of_special_forces_at_full_strength: i32, paid_by_arrakeen: &mut i32) -> i32 {
         let cost = (amount_of_forces_at_full_strength * Battle::normal_force_cost(g, p)) + (amount_of_special_forces_at_full_strength * Battle::special_force_cost(g, p));
         *paid_by_arrakeen = Battle::cost_reduction(g, p).min(cost);
         cost - (*paid_by_arrakeen)
@@ -1103,31 +1096,8 @@ impl Battle {
             && g.applicable(Rule::AtreidesMessiah)
     }
 
-    pub fn determine_forces(g: &Game, p: PlayerIndex, forces: i32, special_forces: i32, resources: i32, forces_full: &mut i32, forces_half: &mut i32, special_forces_full: &mut i32, special_forces_half: &mut i32) {
-        if Battle::must_pay_for_any_forces_in_battle(g, p) {
-            let effective_resources = Battle::cost_reduction(g, p) + resources;
-
-            if Battle::must_pay_for_special_forces_in_battle(g, p) {
-                *special_forces_full = special_forces.min(effective_resources);
-                *special_forces_half = special_forces - (*special_forces_full);
-                *forces_full = forces.min(effective_resources - (*special_forces_full));
-                *forces_half = forces - (*forces_full);
-            } else {
-                *special_forces_full = special_forces;
-                *special_forces_half = 0;
-                *forces_full = forces.min(effective_resources);
-                *forces_half = forces - (*forces_full);
-            }
-        } else {
-            *special_forces_full = special_forces;
-            *special_forces_half = 0;
-            *forces_full = forces;
-            *forces_half = 0;
-        }
-    }
-
     pub fn determine_skill_bonus(g: &Game, plan: &Battle, activated_skill: &mut LeaderSkill) -> i32 {
-        Battle::determine_skill_bonus_game_player_i_hero_treachery_card_treachery_card_int32_leader_skill(
+        Battle::determine_skill_bonus_of_parts(
             g,
             plan.player(),
             plan.hero(),
@@ -1138,7 +1108,7 @@ impl Battle {
         )
     }
 
-    pub fn determine_skill_bonus_game_player_i_hero_treachery_card_treachery_card_int32_leader_skill(g: &Game, player: PlayerIndex, hero: Option<Hero>, weapon: Option<TreacheryCard>, defense: Option<TreacheryCard>, banker_bonus: i32, activated_skill: &mut LeaderSkill) -> i32 {
+    pub fn determine_skill_bonus_of_parts(g: &Game, player: PlayerIndex, hero: Option<Hero>, weapon: Option<TreacheryCard>, defense: Option<TreacheryCard>, banker_bonus: i32, activated_skill: &mut LeaderSkill) -> i32 {
         let hero_skilled = |skill: LeaderSkill| hero.is_some_and(|h| g.skilled_as(h, skill));
 
         if hero_skilled(LeaderSkill::Thinker) {
@@ -1157,7 +1127,7 @@ impl Battle {
                 return 3;
             }
 
-            if g.skilled_as_player_leader_skill(player, LeaderSkill::Warmaster) {
+            if g.has_skill_in_front_of_shield(player, LeaderSkill::Warmaster) {
                 *activated_skill = LeaderSkill::Warmaster;
                 return 1;
             }
@@ -1169,7 +1139,7 @@ impl Battle {
                 return 3;
             }
 
-            if g.skilled_as_player_leader_skill(player, LeaderSkill::Adept) {
+            if g.has_skill_in_front_of_shield(player, LeaderSkill::Adept) {
                 *activated_skill = LeaderSkill::Adept;
                 return 1;
             }
@@ -1181,7 +1151,7 @@ impl Battle {
                 return 3;
             }
 
-            if g.skilled_as_player_leader_skill(player, LeaderSkill::Swordmaster) {
+            if g.has_skill_in_front_of_shield(player, LeaderSkill::Swordmaster) {
                 *activated_skill = LeaderSkill::Swordmaster;
                 return 1;
             }
@@ -1202,7 +1172,7 @@ impl Battle {
                 return 3;
             }
 
-            if g.skilled_as_player_leader_skill(player, LeaderSkill::KillerMedic) {
+            if g.has_skill_in_front_of_shield(player, LeaderSkill::KillerMedic) {
                 *activated_skill = LeaderSkill::KillerMedic;
                 return 1;
             }
@@ -1214,7 +1184,7 @@ impl Battle {
                 return 3;
             }
 
-            if g.skilled_as_player_leader_skill(player, LeaderSkill::MasterOfAssassins) {
+            if g.has_skill_in_front_of_shield(player, LeaderSkill::MasterOfAssassins) {
                 *activated_skill = LeaderSkill::MasterOfAssassins;
                 return 1;
             }
@@ -1225,10 +1195,10 @@ impl Battle {
     }
 
     pub fn determine_skill_penalty(g: &Game, plan: &Battle, opponent: PlayerIndex, activated_skill: &mut LeaderSkill) -> i32 {
-        Battle::determine_skill_penalty_game_i_hero_player_leader_skill(g, plan.hero(), opponent, activated_skill)
+        Battle::determine_skill_penalty_of_hero(g, plan.hero(), opponent, activated_skill)
     }
 
-    pub fn determine_skill_penalty_game_i_hero_player_leader_skill(g: &Game, hero: Option<Hero>, opponent: PlayerIndex, activated_skill: &mut LeaderSkill) -> i32 {
+    pub fn determine_skill_penalty_of_hero(g: &Game, hero: Option<Hero>, opponent: PlayerIndex, activated_skill: &mut LeaderSkill) -> i32 {
         if hero.is_some_and(|h| g.skilled_as(h, LeaderSkill::Bureaucrat)) {
             *activated_skill = LeaderSkill::Bureaucrat;
             let o = g.player(opponent);

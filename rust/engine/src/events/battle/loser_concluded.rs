@@ -163,7 +163,7 @@ impl LoserConcluded {
         let to_discard: Vec<TreacheryCard> =
             game.cards_to_be_discarded_by_loser_after_battle.iter().copied().filter(|c| Some(*c) != kept_card).collect();
         for c in to_discard {
-            game.discard_treachery_card_boolean(Some(c), true)?;
+            game.discard_card(Some(c), true)?;
         }
 
         game.cards_to_be_discarded_by_loser_after_battle.clear();
@@ -196,7 +196,7 @@ impl LoserConcluded {
                         ],
                     );
                     if game.player(winner.required("winner")?).has(Some(c)) {
-                        game.discard_treachery_card_boolean(Some(c), true)?;
+                        game.discard_card(Some(c), true)?;
                     }
                 } else if self.karma_forced_kept_card_decision == LoserConcluded::KARMA_KEEP {
                     let winner_faction = game.player(winner.required("winner")?).faction;

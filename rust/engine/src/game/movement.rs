@@ -20,7 +20,7 @@ impl Game {
         // Every argument is evaluated before Enter runs, including the call that may log.
         let condition1 = self.juice_forces_first_player() && self.current_juice.clone().expect("current juice").initiator() != Faction::Guild;
         let condition2 = self.check_if_guild_acts_or_auto_delays();
-        self.enter_boolean_phase_boolean_phase_phase(condition1, Phase::NonGuildShip, condition2, Phase::GuildShip, Phase::NonGuildShip);
+        self.enter_first(&[(condition1, Step::Enter(Phase::NonGuildShip)), (condition2, Step::Enter(Phase::GuildShip))], Step::Enter(Phase::NonGuildShip));
     }
 
     pub fn check_if_guild_acts_or_auto_delays(&mut self) -> bool {
@@ -93,7 +93,7 @@ impl Game {
     }
 
     pub fn check_sandmaster(&mut self, initiator: PlayerIndex, to: Location, dist: i32, fl: (Location, Battalion)) {
-        if self.skilled_as_player_leader_skill(initiator, LeaderSkill::Sandmaster) {
+        if self.has_skill_in_front_of_shield(initiator, LeaderSkill::Sandmaster) {
             let faction = self.player(initiator).faction;
             let ignore_storm = faction == Faction::Fremen && self.applicable(Rule::FremenMayMoveIntoStorm);
             let paths = self.map.find_paths(fl.0, to, dist, ignore_storm, faction, &*self);
@@ -379,17 +379,17 @@ impl Game {
             Phase::GuildShip | Phase::BeneGesseritIntrudedByGuildShip | Phase::TerrorTriggeredByGuildShip | Phase::AmbassadorTriggeredByGuildShip => {
                 let c1 = self.is_playing(Faction::BeneGesserit) && self.bene_gesserit_may_accompany;
                 let c2 = !self.in_guild_cunning_shipment;
-                self.enter_boolean_phase_boolean_phase_phase(c1, Phase::BeneGesseritAccompaniesGuildShip, c2, Phase::GuildMove, Phase::NonGuildMove);
+                self.enter_first(&[(c1, Step::Enter(Phase::BeneGesseritAccompaniesGuildShip)), (c2, Step::Enter(Phase::GuildMove))], Step::Enter(Phase::NonGuildMove));
             }
 
             Phase::BeneGesseritAccompaniesGuildShip | Phase::TerrorTriggeredByBeneGesseritAccompaniesGuildShip | Phase::AmbassadorTriggeredByBeneGesseritAccompaniesGuildShip => {
                 let c = !self.in_guild_cunning_shipment;
-                self.enter_boolean_phase_phase(c, Phase::GuildMove, Phase::NonGuildMove);
+                self.enter_either(c, Phase::GuildMove, Phase::NonGuildMove);
             }
 
             Phase::NonGuildShip | Phase::BeneGesseritIntrudedByNonGuildShip | Phase::TerrorTriggeredByNonGuildShip | Phase::AmbassadorTriggeredByNonGuildShip => {
                 let c = self.is_playing(Faction::BeneGesserit) && self.bene_gesserit_may_accompany;
-                self.enter_boolean_phase_phase(c, Phase::BeneGesseritAccompaniesNonGuildShip, Phase::NonGuildMove);
+                self.enter_either(c, Phase::BeneGesseritAccompaniesNonGuildShip, Phase::NonGuildMove);
             }
 
             Phase::BeneGesseritAccompaniesNonGuildShip | Phase::TerrorTriggeredByBeneGesseritAccompaniesNonGuildShip | Phase::AmbassadorTriggeredByBeneGesseritAccompaniesNonGuildShip => {
@@ -548,8 +548,8 @@ impl Game {
                     let m = express!("All ", p_faction, " forces in ", t, " were killed due to ally presence")
                         .with_log(ShipMoveLoss::new(p_faction, false, false, 0, Some(t)));
                     self.log(elems![m]);
-                    self.reveal_current_no_field_player_territory(p, t);
-                    Player::kill_all_forces_territory_boolean(self, p, t, false);
+                    self.reveal_current_no_field_in_territory(p, t);
+                    Player::kill_all_forces_in_territory(self, p, t, false);
                 }
             }
 
@@ -582,8 +582,8 @@ impl Game {
                     let m = express!("All ", p_faction, " forces in ", t, " were killed due to ally presence")
                         .with_log(ShipMoveLoss::new(p_faction, false, false, 0, Some(t)));
                     self.log(elems![m]);
-                    self.reveal_current_no_field_player_territory(p, t);
-                    Player::kill_all_forces_territory_boolean(self, p, t, false);
+                    self.reveal_current_no_field_in_territory(p, t);
+                    Player::kill_all_forces_in_territory(self, p, t, false);
                 }
             }
         }
@@ -621,7 +621,7 @@ impl Game {
         } else {
             let c1 = self.everyone_acted_or_passed();
             let c2 = self.check_if_guild_acts_or_auto_delays();
-            self.enter_boolean_action_boolean_phase_phase(c1, Game::conclude_shipment_and_move, c2, Phase::GuildShip, Phase::NonGuildShip);
+            self.enter_first(&[(c1, Step::Run(Game::conclude_shipment_and_move)), (c2, Step::Enter(Phase::GuildShip))], Step::Enter(Phase::NonGuildShip));
         }
     }
 
@@ -634,7 +634,7 @@ impl Game {
             self.enter(Phase::GuildShip, true);
         } else {
             let c = !self.everyone_acted_or_passed();
-            self.enter_boolean_phase_action(c, Phase::NonGuildShip, Game::conclude_shipment_and_move);
+            self.enter_or_else(c, Phase::NonGuildShip, Game::conclude_shipment_and_move);
         }
     }
 
@@ -686,7 +686,7 @@ impl Game {
     }
 
     pub fn check_intrusion(&mut self, e: &GameEvent) -> GameResult<bool> {
-        let initiator = e.i_location_event_initiator();
+        let initiator = e.location_event_initiator();
         let territory = e.to_location(self).required("destination")?.territory();
         self.check_bene_gesserit_intrusion(e, initiator, territory);
         self.check_ambassador_triggered(e);
@@ -719,8 +719,8 @@ impl Game {
     pub fn check_ambassador_triggered(&mut self, e: &GameEvent) {
         let ecaz_player = self.get_player(Some(Faction::Ecaz));
         if let Some(ecaz) = ecaz_player {
-            let initiator = e.i_location_event_initiator();
-            if (initiator != Faction::BeneGesserit || e.i_location_event_forces_added_to_location(self) > 0)
+            let initiator = e.location_event_initiator();
+            if (initiator != Faction::BeneGesserit || e.location_event_forces_added_to_location(self) > 0)
                 && initiator != Faction::Ecaz
                 && initiator != self.player(ecaz).ally
                 && self.ambassador_in(e.to_location(self).expect("to location").territory()) != Ambassador::None
@@ -734,11 +734,11 @@ impl Game {
     pub fn check_terror_triggered(&mut self, e: &GameEvent) {
         let moritani_player = self.get_player(Some(Faction::Moritani));
         if let Some(moritani) = moritani_player {
-            let initiator = e.i_location_event_initiator();
-            if (e.i_location_event_total_amount_of_forces_added_to_location(self) >= 3 || !self.player(moritani).has_low_threshold_0(self))
+            let initiator = e.location_event_initiator();
+            if (e.location_event_total_amount_of_forces_added_to_location(self) >= 3 || !self.player(moritani).has_any_low_threshold(self))
                 && initiator != Faction::Moritani
                 && initiator != self.player(moritani).ally
-                && !self.is_occupied_by_faction_or_their_ally_world_faction(World::Moritani, initiator)
+                && !self.is_occupied_by_faction_or_their_ally(World::Moritani, initiator)
                 && !self.terror_in(e.to_location(self).expect("to location").territory()).next().is_none()
             {
                 self.queue_intrusion(e, IntrusionType::Terror);
@@ -848,7 +848,7 @@ impl Intrusion {
     }
 
     pub fn initiator(&self) -> Faction {
-        self.triggering_event.i_location_event_initiator()
+        self.triggering_event.location_event_initiator()
     }
 
     pub fn new(triggering_event: &GameEvent, type_: IntrusionType) -> Self {

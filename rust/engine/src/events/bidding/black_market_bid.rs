@@ -35,7 +35,6 @@ impl BlackMarketBid {
     }
 
     pub fn total_amount(&self) -> i32 {
-        // C# int addition wraps.
         (self.amount + self.ally_contribution_amount) + self.emperor_contribution_amount
     }
 
@@ -78,22 +77,22 @@ impl BlackMarketBid {
         if self.passed {
             let winning_bid = game.current_bid.clone();
 
-            if let Some(winning_bid) = winning_bid.as_ref().filter(|wb| game.bid_sequence.as_ref().expect("bid sequence").current_faction(game) == wb.i_bid_initiator()) {
+            if let Some(winning_bid) = winning_bid.as_ref().filter(|wb| game.bid_sequence.as_ref().expect("bid sequence").current_faction(game) == wb.bid_initiator()) {
                 if game.cards_on_auction.is_none() {
                     return Ok(());
                 }
 
                 let card = game.win_by_highest_bid(
-                    winning_bid.i_bid_player().required("i bid player")?,
+                    winning_bid.bid_player().required("i bid player")?,
                     winning_bid,
-                    winning_bid.i_bid_amount(),
-                    winning_bid.i_bid_ally_contribution_amount(),
-                    winning_bid.i_bid_emperor_contribution_amount(),
-                    if winning_bid.i_bid_initiator() != Faction::Richese { Faction::Richese } else { Faction::Emperor },
+                    winning_bid.bid_amount(),
+                    winning_bid.bid_ally_contribution_amount(),
+                    winning_bid.bid_emperor_contribution_amount(),
+                    if winning_bid.bid_initiator() != Faction::Richese { Faction::Richese } else { Faction::Emperor },
                     false,
                 )?;
 
-                self.finish_black_market_bid(game, winning_bid.i_bid_player().required("i bid player")?, winning_bid, card);
+                self.finish_black_market_bid(game, winning_bid.bid_player().required("i bid player")?, winning_bid, card);
             } else if winning_bid.is_none() && game.bids.len() as i32 >= game.players_that_can_bid().len() as i32 {
                 self.richese_keeps_card(game);
             }
@@ -122,28 +121,28 @@ impl BlackMarketBid {
         if is_last_bid {
             if game.current_auction_type == AuctionType::BlackMarketSilent {
                 // A List<MessagePart> is one element of the params array.
-                let parts: Vec<MessagePart> = game.bids.iter().map(|(k, v)| express_part!(*k, Payment::of(v.i_bid_total_amount()), " ")).collect();
+                let parts: Vec<MessagePart> = game.bids.iter().map(|(k, v)| express_part!(*k, Payment::of(v.bid_total_amount()), " ")).collect();
                 self.log_objects(game, vec![parts.into()]);
             }
 
             let highest_bid = game.determine_highest_bid(&game.bids);
             match highest_bid {
-                Some(highest_bid) if highest_bid.i_bid_total_amount() > 0 => {
+                Some(highest_bid) if highest_bid.bid_total_amount() > 0 => {
                     if game.cards_on_auction.is_none() {
                         return Ok(());
                     }
 
                     let card = game.win_by_highest_bid(
-                        highest_bid.i_bid_player().required("i bid player")?,
+                        highest_bid.bid_player().required("i bid player")?,
                         &highest_bid,
-                        highest_bid.i_bid_amount(),
-                        highest_bid.i_bid_ally_contribution_amount(),
-                        highest_bid.i_bid_emperor_contribution_amount(),
-                        if highest_bid.i_bid_initiator() != Faction::Richese { Faction::Richese } else { Faction::Emperor },
+                        highest_bid.bid_amount(),
+                        highest_bid.bid_ally_contribution_amount(),
+                        highest_bid.bid_emperor_contribution_amount(),
+                        if highest_bid.bid_initiator() != Faction::Richese { Faction::Richese } else { Faction::Emperor },
                         false,
                     )?;
 
-                    self.finish_black_market_bid(game, highest_bid.i_bid_player().required("i bid player")?, &highest_bid, card);
+                    self.finish_black_market_bid(game, highest_bid.bid_player().required("i bid player")?, &highest_bid, card);
                 }
                 _ => {
                     self.richese_keeps_card(game);
@@ -186,7 +185,7 @@ impl BlackMarketBid {
             game.replacing_bought_card_using_nexus = true;
         }
 
-        game.enter_boolean_phase_action(enter_replacing_card_just_won, Phase::ReplacingCardJustWon, Game::enter_richese_bidding);
+        game.enter_or_else(enter_replacing_card_just_won, Phase::ReplacingCardJustWon, Game::enter_richese_bidding);
 
         if let Some(b) = game.bidding_triggered_bureaucracy.clone() {
             game.apply_bureaucracy(b.payment_from, b.payment_to);
@@ -212,7 +211,7 @@ impl BlackMarketBid {
         }
         if game.current_auction_type != AuctionType::BlackMarketSilent {
             if let Some(current_bid) = &game.current_bid {
-                if self.total_amount() <= current_bid.i_bid_total_amount() {
+                if self.total_amount() <= current_bid.bid_total_amount() {
                     return Some(express!("Bid not high enough"));
                 }
             }
@@ -301,7 +300,7 @@ impl PassableGameEventMethods for BlackMarketBid {
 
 }
 
-impl crate::events::bid_trait::IBid for BlackMarketBid {
+impl crate::events::bid_trait::BidEvent for BlackMarketBid {
     fn total_amount(&self) -> i32 {
         BlackMarketBid::total_amount(self)
     }

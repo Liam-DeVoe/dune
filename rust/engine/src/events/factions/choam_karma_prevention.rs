@@ -47,7 +47,7 @@ impl ChoamKarmaPrevention {
             game.let_player_discard_treachery_card_of_choice(self.initiator());
         } else {
             let card = ChoamKarmaPrevention::card_to_use(game, me);
-            game.discard_treachery_card_boolean(card, true)?;
+            game.discard_card(card, true)?;
         }
 
         game.current_karma_prevention = Some(self.clone());

@@ -46,7 +46,6 @@ impl KarmaRicheseBuy {
         let me = self.player();
         let karma_card = Karma::valid_karma_cards(game, me).into_iter().next();
         game.play_karma(me, karma_card, vec!["buy a card from their cache for ".into(), Payment::of(3).into()]);
-        // C# adds a null card when executed without validation.
         let card = self.card();
         game.player_mut(me).treachery_cards.push(card.required("card")?);
         crate::game::remove_card(&mut game.richese_cache, card);

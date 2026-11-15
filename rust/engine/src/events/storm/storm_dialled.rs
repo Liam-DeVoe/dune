@@ -91,7 +91,7 @@ impl StormDialled {
         }
 
         let condition = self.is_playing(game, Faction::Ixian) || game.applicable(Rule::HmSwithoutIxian);
-        game.enter_boolean_phase_action(condition, Phase::HmsPlacement, Game::end_storm_phase);
+        game.enter_or_else(condition, Phase::HmsPlacement, Game::end_storm_phase);
     }
 
     pub fn assign_tech_tokens(&self, game: &mut Game) {
@@ -125,13 +125,12 @@ impl StormDialled {
         remaining_tech_tokens.shuffle();
         game.stone(Milestone::Shuffled);
 
-        let mut tech_token_sequence = PlayerSequence::new_game(game);
+        let mut tech_token_sequence = PlayerSequence::starting_with_first_player(game);
 
         while !remaining_tech_tokens.is_empty() && game.players.iter().any(|p| p.tech_tokens.is_empty()) {
             let current = tech_token_sequence.current_player(game).expect("current player");
             if game.player(current).tech_tokens.is_empty() {
                 let token = remaining_tech_tokens.draw();
-                // CurrentPlayer is re-read in C#; nothing in between changes the sequence.
                 game.player_mut(current).tech_tokens.push(token);
                 let faction = game.player(current).faction;
                 self.log_objects(game, elems![faction, " receive ", token]);

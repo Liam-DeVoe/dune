@@ -34,7 +34,7 @@ use std::sync::{Mutex, OnceLock};
 use serde_json::{json, Value};
 use treachery_engine::error::catch_panic;
 use treachery_engine::enumerations::*;
-use treachery_engine::identity::IFetcher;
+use treachery_engine::identity::Fetcher;
 use treachery_engine::heroes::hero::Hero;
 use treachery_engine::heroes::leader::Leader;
 use treachery_engine::heroes::leader_manager::LeaderManager;

@@ -66,7 +66,7 @@ impl ChoamMovePrevention {
             game.let_player_discard_treachery_card_of_choice(self.initiator());
         } else {
             let card = ChoamMovePrevention::card_to_use(game, me);
-            game.discard_treachery_card_boolean(card, true)?;
+            game.discard_card(card, true)?;
         }
 
         // `Territory!` does not throw: a null territory (only without validation) is stored.

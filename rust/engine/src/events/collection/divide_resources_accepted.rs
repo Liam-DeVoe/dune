@@ -40,7 +40,7 @@ impl DivideResourcesAccepted {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.divide_resources_from_collection(!self.passed);
         let any = !game.collected_resources_to_be_divided.is_empty();
-        game.enter_boolean_phase_action(any, Phase::DividingCollectedResources, Game::end_collection_main_phase);
+        game.enter_or_else(any, Phase::DividingCollectedResources, Game::end_collection_main_phase);
         Ok(())
     }
 

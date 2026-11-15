@@ -35,7 +35,7 @@ impl NexusVoted {
             let passed = game.nexus_votes.iter().filter(|v| v.passed).count() as i32;
             if (2i32 * passed) >= game.players.len() as i32 {
                 let condition = game.current_phase == Phase::VoteAllianceA && game.applicable(Rule::IncreasedResourceFlow);
-                Game::enter_boolean_action_action(game, condition, Game::enter_blow_b, Game::start_nexus_card_phase);
+                Game::run_either(game, condition, Game::enter_blow_b, Game::start_nexus_card_phase);
             } else {
                 if game.applicable(Rule::BreakAlliancesOnAlliancePhase) {
                     game.break_all_alliances();

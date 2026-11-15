@@ -211,8 +211,8 @@ impl ClassicBot {
             Faction::Emperor => {
                 let ally_bids_high = game.current_main_phase == MainPhase::Bidding
                     && game.current_bid.as_ref().is_some_and(|bid| {
-                        game.player(bid.i_bid_player().expect("i bid player")).ally == Faction::Emperor
-                            && bid.i_bid_total_amount() > 5
+                        game.player(bid.bid_player().expect("i bid player")).ally == Faction::Emperor
+                            && bid.bid_total_amount() > 5
                             && !game.prevented(FactionAdvantage::EmperorReceiveBid)
                     });
                 ally_bids_high
@@ -446,7 +446,7 @@ impl ClassicBot {
 
         let mut special_forces = 0;
         while special_forces + 1 < NexusPlayed::valid_tleilaxu_max_amount(game, self.player, true)
-            && NexusPlayed::determine_tleilaxu_cost_int32_int32(0, special_forces + 1) < resources
+            && NexusPlayed::tleilaxu_cost_of_forces(0, special_forces + 1) < resources
             && special_forces + 1 <= 5
         {
             special_forces += 1;
@@ -454,7 +454,7 @@ impl ClassicBot {
 
         let mut forces = 0;
         while forces + 1 < NexusPlayed::valid_tleilaxu_max_amount(game, self.player, false)
-            && NexusPlayed::determine_tleilaxu_cost_int32_int32(0, forces + 1) < resources
+            && NexusPlayed::tleilaxu_cost_of_forces(0, forces + 1) < resources
             && special_forces + forces + 1 <= 5
         {
             forces += 1;

@@ -1,5 +1,5 @@
-//! .NET text helpers that `Skin` calls: `WebUtility.HtmlEncode` and the regular expression of
-//! `Skin.WithSpiceIcons`. No C# counterpart file.
+//! Text helpers that `Skin` calls: HTML encoding as .NET's `WebUtility.HtmlEncode` does it, and
+//! the spice icon replacement.
 
 /// `System.Net.WebUtility.HtmlEncode(text)`: `<`, `>`, `&`, `"` and `'` become entities, and so
 /// does every character from U+00A0 to U+00FF and every character outside the BMP (a

@@ -37,12 +37,12 @@ impl PlayerSequence {
         result
     }
 
-    pub fn new_game_boolean_int32(game: &Game, skip_players_that_cant_bid_on_cards: bool, direction: i32) -> Self {
+    pub fn starting_with_first_player_options(game: &Game, skip_players_that_cant_bid_on_cards: bool, direction: i32) -> Self {
         let first = PlayerSequence::determine_first_player(game);
         PlayerSequence::new(game, skip_players_that_cant_bid_on_cards, direction, Some(first), false)
     }
 
-    pub fn new_game(game: &Game) -> Self {
+    pub fn starting_with_first_player(game: &Game) -> Self {
         let first = PlayerSequence::determine_first_player(game);
         PlayerSequence::new(game, false, 1, Some(first), false)
     }
@@ -69,10 +69,6 @@ impl PlayerSequence {
     /// `may_get_turn` for a player that may be missing: panics for a missing player when it matters.
     fn may_get_turn_opt(&self, game: &Game, p: Option<PlayerIndex>) -> bool {
         !self.skip_players_that_cant_bid_on_cards || game.player(p.expect("player")).has_room_for_cards(game)
-    }
-
-    pub fn juice_forces_last(&self, game: &Game, p: PlayerIndex) -> bool {
-        self.juice_forces_last_opt(game, Some(p))
     }
 
     /// `JuiceForcesLast(p)` where `p` may be null.
@@ -129,7 +125,6 @@ impl PlayerSequence {
     pub fn determine_current_player(&self, game: &Game) -> Option<PlayerIndex> {
         if !self.played.is_empty() {
             let mut found = false;
-            // C# enumerates PlayersInOrder (a fresh list) here and again below.
             for p in self.players_in_order(game) {
                 if found {
                     return p;

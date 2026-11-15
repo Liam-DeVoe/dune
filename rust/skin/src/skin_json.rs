@@ -292,7 +292,6 @@ enum ReadState {
 }
 
 impl Skin {
-    /// `SkinToString() => Utilities.Serialize(this)`
     pub fn skin_to_string(&self) -> String {
         let mut copy = self.clone();
         let mut out = String::from("{");

@@ -11,7 +11,7 @@ impl ClassicBot {
             .max()
             .unwrap_or(0);
 
-        let current_bid = game.current_bid.as_ref().map(|b| b.i_bid_total_amount()).unwrap_or(0);
+        let current_bid = game.current_bid.as_ref().map(|b| b.bid_total_amount()).unwrap_or(0);
         let current_bid_is_from_ally = game.current_bid.as_ref().is_some_and(|b| b.initiator() == self.ally(game));
         let top = game.cards_on_auction.as_ref().expect("cards on auction").top();
         let is_known_card = game.has_bidding_prescience(me)

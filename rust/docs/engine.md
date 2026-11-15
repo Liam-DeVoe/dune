@@ -14,7 +14,7 @@ How `rust/engine` and `rust/bots` are organized. Most engine code starts with `u
 | `heroes/` | Leaders, the Messiah and the `Hero` handle. |
 | `messages/` | `Message`, `Expression`, `Payment` and `Report`: the text of log entries and validation errors. |
 | `enumerations.rs` | Factions, phases, rules, card types and the other enums. |
-| `identity.rs` | The `IIdentifiable` and `IFetcher` traits for looking objects up by id. |
+| `identity.rs` | The `Identifiable` and `Fetcher` traits for looking objects up by id. |
 | `iter.rs` | Iterator and map helpers std lacks (`unique`, `distinct`, `remove_first`, `MapExt::insert_new`). |
 | `enum_type.rs` | How the enums are made (`game_enum!`, `GameEnum`): open `i32` newtypes that print like .NET's `Enum.ToString()`. |
 | `shared.rs` | `Shared<T>` (the settings an event shares with the game) and `RcKey<T>` (an event as a map key). |
@@ -23,7 +23,7 @@ How `rust/engine` and `rust/bots` are organized. Most engine code starts with `u
 | `error.rs` | `GameError`: an accepted event that failed partway (see engine-conventions.md, "Errors"). |
 | `compat/` | .NET behavior the engine still needs: `DateTimeOffset`/`TimeSpan`, whose text is part of the event JSON. |
 
-Inside `game/` and `events/`, the submodules are private and their items are re-exported, so a type is reached as `treachery_engine::game::Player` or `treachery_engine::events::Shipment`, wherever its file is. Three traits are the exception: `events::bid_trait::IBid`, `events::location_event::ILocationEvent` and `events::placement::IPlacement`. Their method names clash with the `GameEventMethods` ones, so they are not glob-exported, and `GameEvent` has a dispatching method for each of their members.
+Inside `game/` and `events/`, the submodules are private and their items are re-exported, so a type is reached as `treachery_engine::game::Player` or `treachery_engine::events::Shipment`, wherever its file is. Three traits are the exception: `events::bid_trait::BidEvent`, `events::location_event::LocationEvent` and `events::placement::Placement`. Their method names clash with the `GameEventMethods` ones, so they are not glob-exported, and `GameEvent` has a dispatching method for each of their members.
 
 ## rust/bots/src
 

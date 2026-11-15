@@ -17,7 +17,7 @@ fn setup() -> Game {
     let mut p = Participation::new();
     p.player_names.insert(100, "Human100".to_string());
     p.seated_players.insert(100, 2);
-    let mut g = Game::new_int32_participation(Game::LATEST_VERSION, &treachery_engine::shared::Shared::new(p));
+    let mut g = Game::with_participation(Game::LATEST_VERSION, &treachery_engine::shared::Shared::new(p));
     let e: GameEvent = json::deserialize(ESTABLISH).expect("event json");
     e.initialize_game(&g);
     assert!(e.execute(&mut g, true, true).is_none());
@@ -64,7 +64,7 @@ fn shipment_costs_match_csharp_at_the_edges() {
         .unwrap();
     assert_eq!(to.id(), 1, "probe: to = 1");
     let cost = |f: i32, s: i32, karma: bool, back: bool| {
-        show(|| Shipment::determine_cost_game_player_int32_int32_location_boolean_boolean_boolean_boolean_boolean(&g, pl, f, s, to, karma, back, false, false, false))
+        show(|| Shipment::determine_cost_of_forces(&g, pl, f, s, to, karma, back, false, false, false))
     };
     assert_eq!(cost(1073741824, 0, false, false), "-2147483648");
     assert_eq!(cost(16777217, 0, false, true), "8388608");

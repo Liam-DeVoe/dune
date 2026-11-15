@@ -10,17 +10,14 @@ pub struct Deck<T> {
 }
 
 impl<T: Clone> Deck<T> {
-    /// `new Deck<T>(items, random)`
     pub fn new(items: impl IntoIterator<Item = T>, random: Option<SharedRandom>) -> Self {
         Deck { items: items.into_iter().collect(), random }
     }
 
-    /// `new Deck<T>(random)`
     pub fn empty(random: Option<SharedRandom>) -> Self {
         Deck { items: Vec::new(), random }
     }
 
-    /// `PutOnTop(item)`
     pub fn put_on_top(&mut self, item: T) {
         self.items.insert(0, item);
     }
@@ -32,7 +29,6 @@ impl<T: Clone> Deck<T> {
         }
     }
 
-    /// `PutOnBottom(item)`
     pub fn put_on_bottom(&mut self, item: T) {
         self.items.push(item);
     }
@@ -64,7 +60,6 @@ impl<T: Clone> Deck<T> {
         }
     }
 
-    /// `IsEmpty`
     pub fn is_empty(&self) -> bool {
         self.items.is_empty()
     }
@@ -75,7 +70,6 @@ impl<T: Clone> Deck<T> {
         self.items.first().cloned()
     }
 
-    /// `Clear()`
     pub fn clear(&mut self) {
         self.items.clear();
     }

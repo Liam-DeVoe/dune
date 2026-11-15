@@ -51,11 +51,11 @@ impl IxianSwappedCardOnBid {
             let players: Vec<PlayerIndex> = game.player_indices().filter(|p| !game.has_bidding_prescience(*p)).collect();
             for p in players {
                 let my_cards = game.player(me).treachery_cards.clone();
-                Game::unregister_known_player_i_enumerable_treachery_card(game, p, &my_cards);
+                Game::unregister_all_known_by_player(game, p, &my_cards);
             }
 
             game.cards_on_auction.as_mut().required("cards on auction")?.put_on_top(card);
-            game.register_known_faction_treachery_card(Faction::Ixian, card);
+            game.register_known_by_faction(Faction::Ixian, card);
             game.stone(Milestone::CardOnBidSwapped);
             self.log(game);
         }

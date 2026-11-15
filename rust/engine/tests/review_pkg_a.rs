@@ -13,7 +13,7 @@ use treachery_engine::game::Participation;
 /// `participation.old.seated = 1`.
 #[test]
 fn participation_is_shared_across_undo_and_restore() {
-    let g = Game::new_int32_participation(Game::LATEST_VERSION, &Shared::new(Participation::new()));
+    let g = Game::with_participation(Game::LATEST_VERSION, &Shared::new(Participation::new()));
     let mut u = g;
     u.undo(0);
     u.add_player(5, "Late", 1);
@@ -30,7 +30,7 @@ fn participation_is_shared_across_undo_and_restore() {
 #[test]
 fn participation_passed_to_constructor_is_aliased() {
     let part = Shared::new(Participation::new());
-    let g = Game::new_int32_participation(Game::LATEST_VERSION, &part);
+    let g = Game::with_participation(Game::LATEST_VERSION, &part);
     part.borrow_mut().hosts.insert(7);
     assert!(g.is_host(Some(7)), "C#: the game reads the caller's Participation object");
 }

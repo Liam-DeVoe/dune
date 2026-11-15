@@ -45,7 +45,7 @@ impl Game {
         self.current_no_field_value = -1;
     }
 
-    pub fn reveal_current_no_field_player_territory(&mut self, player: PlayerIndex, in_territory: Territory) {
+    pub fn reveal_current_no_field_in_territory(&mut self, player: PlayerIndex, in_territory: Territory) {
         if !self.player(player).is(Faction::Richese) {
             return;
         }
@@ -213,13 +213,6 @@ impl Game {
         self.current_juice.as_ref().is_some_and(|j| j.type_ == JuiceType::GoLast)
     }
 
-    pub fn yields_secrets(&self, p: PlayerIndex) -> bool {
-        !self.secrets_remain_hidden.contains(&self.player(p).faction)
-    }
-
-    pub fn yields_secrets_faction(&self, f: Faction) -> bool {
-        !self.secrets_remain_hidden.contains(&f)
-    }
 }
 
 #[derive(Clone, Debug)]

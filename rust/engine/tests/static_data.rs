@@ -11,7 +11,7 @@ use treachery_engine::error::catch_panic;
 use treachery_engine::cards::deck::Deck;
 use treachery_engine::enumerations::*;
 use treachery_engine::random::RandomPick;
-use treachery_engine::identity::IFetcher;
+use treachery_engine::identity::Fetcher;
 use treachery_engine::heroes::hero::Hero;
 use treachery_engine::heroes::leader_manager::LeaderManager;
 use treachery_engine::map::location::Location;

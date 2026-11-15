@@ -44,7 +44,7 @@ fn hero(tok: &Value) -> Hero {
 fn static_corpus_matches_the_snapshot() {
     let s = default_skin();
     let map = Map::new();
-    let mut attach_game = Game::new_int32_participation(Game::LATEST_VERSION, &Shared::new(Participation::default()));
+    let mut attach_game = Game::with_participation(Game::LATEST_VERSION, &Shared::new(Participation::default()));
     let mut diffs = Diffs::new();
     let mut lines = Vec::new();
 
@@ -72,7 +72,7 @@ fn static_corpus_matches_the_snapshot() {
                 let you = bool_arg(&a[1]);
                 s.faction_chip_html(enum_arg(&a[0]), you, if a.len() > 2 { Some(&ids) } else { None })
             }
-            "GetPopupStrongholdAdvantageFaction" => s.get_popup_stronghold_advantage_faction(enum_arg(&a[0]), enum_arg(&a[1])),
+            "GetPopupStrongholdAdvantageFaction" => s.get_popup_stronghold_advantage_for(enum_arg(&a[0]), enum_arg(&a[1])),
             "GetImageUrlDiscoveryTokenType" => s.get_image_url_discovery_token_type(enum_arg(&a[0])),
             "GetImageUrlDiscoveryToken" => s.get_image_url_discovery_token(enum_arg(&a[0])),
             "GetDiscoveryTokenDescription" => s.get_discovery_token_description(enum_arg(&a[0])),
@@ -101,7 +101,7 @@ fn static_corpus_matches_the_snapshot() {
             "DescribeHero" => s.describe_hero(Some(hero(&a[0]))),
             "GetImageUrlHero" => s.get_image_url_hero(Some(hero(&a[0]))),
             "GetPopupHero" => s.get_popup_hero(hero(&a[0])),
-            "GetPopupLeaderSkillPair" => s.get_popup_leader_leader_skill(hero(&a[0]).as_leader(), enum_arg(&a[1])),
+            "GetPopupLeaderSkillPair" => s.get_popup_skilled_leader(hero(&a[0]).as_leader(), enum_arg(&a[1])),
             "GetImageUrlTreacheryCard" => s.get_image_url_treachery_card(hero(&a[0]).as_treachery_card()),
             "GetPopupTreacheryCard" => s.get_popup_treachery_card(hero(&a[0]).as_treachery_card()),
             "WithSpiceIcons" => s.with_spice_icons(&str_arg(&a[0]), int_arg(&a[1]) as i32, bool_arg(&a[2])),

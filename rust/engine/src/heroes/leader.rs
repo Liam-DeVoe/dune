@@ -6,7 +6,7 @@ use std::fmt;
 
 use crate::enumerations::{Faction, HeroType};
 use crate::heroes::hero::Hero;
-use crate::identity::IIdentifiable;
+use crate::identity::Identifiable;
 use crate::heroes::leader_manager::LEADERS;
 
 /// The fields of a leader, as set in `LeaderManager.Initialize`.
@@ -49,12 +49,10 @@ impl Leader {
         self.data().hero_type
     }
 
-    /// `Is(f)`
     pub fn is(self, f: Faction) -> bool {
         self.faction() == f
     }
 
-    /// `ValueInCombatAgainst(opposingHero)`
     pub fn value_in_combat_against(self, opposing_hero: Option<Hero>) -> i32 {
         if self.hero_type() == HeroType::VariableValue {
             return match opposing_hero {
@@ -65,7 +63,6 @@ impl Leader {
         self.value()
     }
 
-    /// `CostToRevive`
     pub fn cost_to_revive(self) -> i32 {
         if self.hero_type() == HeroType::VariableValue {
             return 6;
@@ -93,7 +90,7 @@ impl Leader {
     }
 }
 
-impl IIdentifiable for Leader {
+impl Identifiable for Leader {
     fn id(&self) -> i32 {
         Leader::id(*self)
     }

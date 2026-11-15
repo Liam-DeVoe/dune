@@ -509,7 +509,7 @@ impl Revival {
 
     pub fn number_of_forces_that_may_be_placed_on_planet(game: &Game, player: PlayerIndex, uses_emperor_secret_ally: bool, nr_of_forces_to_revive: i32) -> i32 {
         let pl = game.player(player);
-        if pl.is(Faction::Tleilaxu) && pl.has_high_threshold_0(game) {
+        if pl.is(Faction::Tleilaxu) && pl.has_any_high_threshold(game) {
             std::cmp::min(nr_of_forces_to_revive, game.free_revivals(player, uses_emperor_secret_ally))
         } else {
             0
@@ -518,7 +518,7 @@ impl Revival {
 
     pub fn number_of_special_forces_that_may_be_placed_on_planet(game: &Game, player: PlayerIndex, nr_of_special_forces_to_revive: i32) -> i32 {
         let pl = game.player(player);
-        if pl.is(Faction::Fremen) && pl.has_high_threshold_0(game) {
+        if pl.is(Faction::Fremen) && pl.has_any_high_threshold(game) {
             std::cmp::min(nr_of_special_forces_to_revive, 1)
         } else {
             0
@@ -574,7 +574,7 @@ impl Revival {
         }
 
         let high_threshold_extra_suboids = if initiator == Faction::Ixian
-            && game.player(me).has_high_threshold_0(game)
+            && game.player(me).has_any_high_threshold(game)
             && cost.includes_costs_for_special_forces
         {
             std::cmp::max(
@@ -726,13 +726,7 @@ impl Revival {
                 game.phase_before_revival_caused_intrusion = game.current_phase;
                 let bene_gesserit = game.last_bene_gesserit_intrusion().is_some();
                 let terror = game.last_terror_trigger().is_some();
-                game.enter_boolean_phase_boolean_phase_phase(
-                    bene_gesserit,
-                    Phase::BeneGesseritIntrudedByRevival,
-                    terror,
-                    Phase::TerrorTriggeredByRevival,
-                    Phase::AmbassadorTriggeredByRevival,
-                );
+                game.enter_first(&[(bene_gesserit, Step::Enter(Phase::BeneGesseritIntrudedByRevival)), (terror, Step::Enter(Phase::TerrorTriggeredByRevival))], Step::Enter(Phase::AmbassadorTriggeredByRevival));
             }
         }
         Ok(())
@@ -815,7 +809,7 @@ impl GameEventMethods for Revival {
 
 }
 
-impl crate::events::location_event::ILocationEvent for Revival {
+impl crate::events::location_event::LocationEvent for Revival {
     fn initiator(&self) -> Faction {
         GameEventMethods::initiator(self)
     }

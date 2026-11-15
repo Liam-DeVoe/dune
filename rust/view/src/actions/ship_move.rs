@@ -740,7 +740,7 @@ fn placement(game: &Game, p: PlayerIndex, forces: &IndexMap<Location, Battalion>
         .map(|l| forces_at(game, p, l))
         .collect();
     let any_forces = forces.values().map(|b| b.amount_of_forces + b.amount_of_special_forces).sum::<i32>() > 0;
-    let targets = if any_forces { ids(PlacementEvent::valid_targets_game_player_dictionary_location_battalion(game, p, forces)) } else { vec![] };
+    let targets = if any_forces { ids(PlacementEvent::valid_targets_for_forces(game, p, forces)) } else { vec![] };
     let planetology = game.current_planetology.as_ref();
     let mut o = PlacementOptions { draft: Value::Null,
         title: None,

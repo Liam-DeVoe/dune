@@ -56,7 +56,7 @@ impl ChoamRemoveForce {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_locations(g: &Game) -> impl Iterator<Item = Location> {
-        // The dictionary is built at the call, as in C#; Where and Distinct run as the caller pulls.
+        // The dictionary is built at the call; Where and Distinct run as the caller pulls.
         let keys: Vec<Location> = g.forces_on_planet_excluding_empty_locations(false).keys().copied().collect();
         crate::iter::unique(keys.into_iter().filter(move |l| !g.is_in_storm(*l)))
     }
@@ -113,7 +113,7 @@ impl ChoamRemoveForce {
             game.play_nexus_card(me, vec!["send a force back to reserves".into()]);
             game.let_player_discard_treachery_card_of_choice(self.initiator());
         } else {
-            game.discard_treachery_card_boolean(card, true)?;
+            game.discard_card(card, true)?;
         }
 
         let target = self.get_player(game, Some(self.target));
@@ -136,9 +136,9 @@ impl ChoamRemoveForce {
             }
         } else {
             match location {
-                Some(location) => Player::forces_to_reserves_location_int32(game, target, location, 1),
+                Some(location) => Player::some_forces_to_reserves(game, target, location, 1),
                 None => {
-                    // The reserves part of `Player::forces_to_reserves_location_int32`.
+                    // The reserves part of `Player::some_forces_to_reserves`.
                     Player::add_forces_to_reserves(game, target, 1);
                     game_error!("No location to remove a force from");
                 }

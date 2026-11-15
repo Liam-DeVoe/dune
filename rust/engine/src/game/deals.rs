@@ -101,11 +101,11 @@ impl Deal {
     pub fn get_parameter1(&self, g: &Game) -> Option<Territory> {
         match &self.deal_parameter1 {
             None => None,
-            Some(p) => Deal::get_parameter1_game_deal_type_string(g, self.type_, p),
+            Some(p) => Deal::parameter1_territory(g, self.type_, p),
         }
     }
 
-    pub fn get_parameter1_game_deal_type_string(g: &Game, type_: DealType, parameter: &str) -> Option<Territory> {
+    pub fn parameter1_territory(g: &Game, type_: DealType, parameter: &str) -> Option<Territory> {
         match type_ {
             DealType::DontShipOrMoveTo => g.map.territory_lookup().find(dotnet_compat::parse::int_parse(Some(parameter))),
             _ => None,
@@ -113,7 +113,7 @@ impl Deal {
     }
 
     pub fn deal_contents_description(&self, g: &Game) -> Message {
-        Deal::deal_contents_description_game_deal_type_string_int32_phase_string(
+        Deal::describe_deal_contents(
             g,
             self.type_,
             Some(self.text.as_deref().unwrap_or("")),
@@ -123,7 +123,7 @@ impl Deal {
         )
     }
 
-    /// [`deal_contents_description_game_deal_type_string_int32_phase_string`](Self::deal_contents_description_game_deal_type_string_int32_phase_string),
+    /// [`describe_deal_contents`](Self::describe_deal_contents),
     /// failing when the description needs a territory and `parameter1` isn't a number (where
     /// that one panics like .NET's `int.Parse`).
     pub fn try_deal_contents_description(g: &Game, type_: DealType, text: Option<&str>, benefit: i32, end: Phase, parameter1: Option<&str>) -> GameResult<Message> {
@@ -133,10 +133,10 @@ impl Deal {
                 return Err(GameError::new(e.message));
             }
         }
-        Ok(Deal::deal_contents_description_game_deal_type_string_int32_phase_string(g, type_, text, benefit, end, parameter1))
+        Ok(Deal::describe_deal_contents(g, type_, text, benefit, end, parameter1))
     }
 
-    pub fn deal_contents_description_game_deal_type_string_int32_phase_string(g: &Game, type_: DealType, text: Option<&str>, benefit: i32, end: Phase, parameter1: Option<&str>) -> Message {
+    pub fn describe_deal_contents(g: &Game, type_: DealType, text: Option<&str>, benefit: i32, end: Phase, parameter1: Option<&str>) -> Message {
         // string.IsNullOrWhiteSpace: char.IsWhiteSpace and Rust's char::is_whitespace agree.
         let is_null_or_white_space = text.map_or(true, |t| t.chars().all(char::is_whitespace));
         if !is_null_or_white_space {
@@ -149,7 +149,7 @@ impl Deal {
         }
         express!(
             express_part_if!(benefit > 0; "Receive ", Payment::of(benefit), " and "),
-            Deal::express(type_, Deal::get_parameter1_game_deal_type_string(g, type_, parameter1.unwrap_or("?")).into()),
+            Deal::express(type_, Deal::parameter1_territory(g, type_, parameter1.unwrap_or("?")).into()),
             " until ",
             end
         )

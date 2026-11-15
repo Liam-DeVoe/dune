@@ -91,7 +91,7 @@ impl Game {
         self.skill(Some(leader)) == skill
     }
 
-    pub fn skilled_as_player_leader_skill(&self, p: PlayerIndex, skill: LeaderSkill) -> bool {
+    pub fn has_skill_in_front_of_shield(&self, p: PlayerIndex, skill: LeaderSkill) -> bool {
         self.player(p)
             .leaders
             .iter()
@@ -103,7 +103,7 @@ impl Game {
     }
 
     pub fn player_skilled_as(&self, skill: LeaderSkill) -> Option<PlayerIndex> {
-        self.player_indices().find(|p| self.skilled_as_player_leader_skill(*p, skill))
+        self.player_indices().find(|p| self.has_skill_in_front_of_shield(*p, skill))
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
@@ -112,7 +112,6 @@ impl Game {
     }
 
     pub fn get_skill(&self, p: PlayerIndex) -> Option<LeaderSkill> {
-        // Lazy in C#: Where(IsSkilled) and FirstOrDefault(IsInFrontOfShield) interleave, but both only read.
         let hero = self
             .player(p)
             .leaders
@@ -210,7 +209,6 @@ impl LeaderState {
     }
 
     pub fn is_face_down_dead(&self) -> bool {
-        // C# `%` truncates, like Rust's: a negative counter gives -1/-3 here too.
         self.death_counter % 4 == 3
     }
 
@@ -243,9 +241,6 @@ impl LeaderState {
         self.death_counter += 1;
     }
 
-    pub fn cs_clone(&self) -> LeaderState {
-        self.clone()
-    }
 }
 
 thread_local! {

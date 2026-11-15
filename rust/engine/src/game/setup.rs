@@ -84,13 +84,7 @@ impl Game {
 
         let c1 = self.is_playing(Faction::BeneGesserit);
         let c2 = self.treachery_cards_before_traitors();
-        self.enter_boolean_phase_boolean_action_action(
-            c1,
-            Phase::BeneGesseritPredicting,
-            c2,
-            Game::deal_starting_treachery_cards,
-            Game::deal_traitors,
-        );
+        self.enter_first(&[(c1, Step::Enter(Phase::BeneGesseritPredicting)), (c2, Step::Run(Game::deal_starting_treachery_cards))], Step::Run(Game::deal_traitors));
     }
 
     pub fn deal_traitors(&mut self) {
@@ -163,7 +157,7 @@ impl Game {
         }
 
         let condition = self.players.iter().any(|p| !(p.is(Faction::Harkonnen) || p.is(Faction::Tleilaxu)));
-        self.enter_boolean_phase_action(condition, Phase::SelectingTraitors, Game::assign_face_dancers);
+        self.enter_or_else(condition, Phase::SelectingTraitors, Game::assign_face_dancers);
     }
 
     pub fn assign_face_dancers(&mut self) {
@@ -177,7 +171,6 @@ impl Game {
             }
         }
 
-        // Game.Enter(bool, Action, Action) is static in C#; inlined here.
         if self.treachery_cards_before_traitors() {
             self.setup_spice_and_forces();
         } else {
@@ -230,19 +223,11 @@ impl Game {
                 Game::deal_starting_treachery_cards
             };
 
-            // All conditions are evaluated before the call, as in C#.
+            // All conditions are evaluated before the call.
             let c1 = self.is_playing(Faction::Fremen);
             let c2 = self.is_playing(Faction::BeneGesserit) && PerformBeneGesseritPlacement::bene_gesserit_may_place_first_force_in_any_territory(self);
             let c3 = self.is_playing(Faction::Moritani);
-            self.enter_boolean_phase_boolean_phase_boolean_phase_action(
-                c1,
-                Phase::FremenSettingUp,
-                c2,
-                Phase::BeneGesseritSettingUp,
-                c3,
-                Phase::MoritaniSettingUp,
-                method_after_setting_up,
-            );
+            self.enter_first(&[(c1, Step::Enter(Phase::FremenSettingUp)), (c2, Step::Enter(Phase::BeneGesseritSettingUp)), (c3, Step::Enter(Phase::MoritaniSettingUp))], Step::Run(method_after_setting_up));
         }
     }
 
@@ -405,7 +390,7 @@ impl Game {
         }
 
         let condition = self.is_playing(Faction::Ixian);
-        self.enter_boolean_phase_action(
+        self.enter_or_else(
             condition,
             Phase::IxianSelectingCard,
             Game::deal_remaining_starting_treachery_cards_to_non_ixian,
@@ -431,7 +416,6 @@ impl Game {
             }
         }
 
-        // Game.Enter(bool, Action, Action) is static in C#; inlined here.
         if self.treachery_cards_before_traitors() {
             self.assign_leader_skills();
         } else {

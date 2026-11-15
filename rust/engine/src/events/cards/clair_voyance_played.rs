@@ -123,14 +123,6 @@ impl ClairVoyancePlayed {
         })
     }
 
-    pub fn set_parameter2(&mut self, value: ExpressionElement) {
-        if let ExpressionElement::Null = value {
-            self.question_parameter2 = None;
-        } else {
-            self.question_parameter2 = Some(value.to_cs_string());
-        }
-    }
-
     pub fn get_question(&self, game: &Game) -> Message {
         if self.question == ClairvoyanceQuestion::None {
             return express!("");
@@ -239,7 +231,7 @@ impl ClairVoyancePlayed {
         let card = self.card(game);
         if let Some(card) = card {
             // The question names the card, so it's not logged as a separate discard.
-            game.discard_treachery_card_boolean(Some(card), false)?;
+            game.discard_card(Some(card), false)?;
             // A parameter that doesn't fit the question fails the event after the discard.
             let m = self.try_asked(game, card.into())?.with_log(AsideLog::aside());
             self.log_objects(game, vec![m.into()]);

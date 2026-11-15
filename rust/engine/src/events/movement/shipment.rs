@@ -286,7 +286,7 @@ impl Shipment {
         }
 
         let is_richese_no_field_shipment = game.player(p()).faction == Faction::Richese && self.no_field_value() >= 0;
-        if is_richese_no_field_shipment && self.force_amount > 0 && !game.player(p()).has_high_threshold_0(game) {
+        if is_richese_no_field_shipment && self.force_amount > 0 && !game.player(p()).has_any_high_threshold(game) {
             return Some(express!("You can't do both normal and No-Field shipment"));
         }
         if is_richese_no_field_shipment && self.special_force_amount != 1 {
@@ -306,7 +306,7 @@ impl Shipment {
         if self.no_field_value() < 0 && self.cunning_no_field_value() >= 0 {
             return Some(express!("You can only use cunning when you also ship a regular No-Field"));
         }
-        if self.cunning_no_field_value() >= 0 && self.force_amount > 0 && !game.player(p()).has_high_threshold_0(game) {
+        if self.cunning_no_field_value() >= 0 && self.force_amount > 0 && !game.player(p()).has_any_high_threshold(game) {
             return Some(express!("You can't do both normal and No-Field shipment"));
         }
         if self.cunning_no_field_value() >= 0
@@ -446,7 +446,7 @@ impl Shipment {
             Some(to) => {
                 let forces = s.force_amount.abs();
                 let special_forces = s.special_force_amount.abs();
-                Shipment::determine_cost_game_player_int32_int32_location_boolean_boolean_boolean_boolean_boolean(
+                Shipment::determine_cost_of_forces(
                     g,
                     p,
                     forces,
@@ -470,7 +470,7 @@ impl Shipment {
         (self.initiator() != Faction::Richese && self.is_no_field()) || self.use_richese_secret_ally
     }
 
-    pub fn determine_cost_game_player_int32_int32_location_boolean_boolean_boolean_boolean_boolean(g: &Game, p: PlayerIndex, forces: i32, special_forces: i32, to: Location, karama_shipment: bool, back_to_reserves: bool, site_to_site: bool, no_field_by_richese: bool, no_field_by_non_richese: bool) -> i32 {
+    pub fn determine_cost_of_forces(g: &Game, p: PlayerIndex, forces: i32, special_forces: i32, to: Location, karama_shipment: bool, back_to_reserves: bool, site_to_site: bool, no_field_by_richese: bool, no_field_by_non_richese: bool) -> i32 {
         let mut total_forces = forces + special_forces;
         let no_field_or_secret_ally = no_field_by_richese || no_field_by_non_richese;
 
@@ -675,7 +675,7 @@ impl Shipment {
             Some(l) => {
                 !g.any_forces_in(l.territory())
                     && g.player(p).faction != Faction::Fremen
-                    && g.skilled_as_player_leader_skill(p, LeaderSkill::Smuggler)
+                    && g.has_skill_in_front_of_shield(p, LeaderSkill::Smuggler)
             }
         }
     }
@@ -693,7 +693,6 @@ impl Shipment {
         g.player(p).nexus == Faction::Richese && NexusPlayed::can_use_secret_ally(g, p)
     }
 
-    /// `p.Initiated(g.CurrentGuildSecretAlly)`
     fn initiated_current_guild_secret_ally(g: &Game, p: PlayerIndex) -> bool {
         let e = g.current_guild_secret_ally.clone().map(|e| e.into_event());
         g.player(p).initiated(e.as_ref())
@@ -853,7 +852,7 @@ impl Shipment {
 
         if self.is_using_karma() {
             let karma_card = self.karma_card();
-            game.discard_treachery_card_boolean(karma_card, true)?;
+            game.discard_card(karma_card, true)?;
             game.stone(Milestone::Karma);
         }
 
@@ -906,7 +905,7 @@ impl Shipment {
 
         let ev = self.clone().into_event();
         game.set_recent_payment(receiver_profit, self.initiator(), Faction::Guild, &ev);
-        game.set_recent_payment_int32_faction_game_event(total_cost - receiver_profit, self.initiator(), &ev);
+        game.set_recent_payment_to_bank(total_cost - receiver_profit, self.initiator(), &ev);
 
         receiver_profit
     }
@@ -933,7 +932,7 @@ impl Shipment {
                 .collect();
             for fl in fls {
                 if let Some(hw) = fl.0.as_homeworld() {
-                    Player::ship_forces_location_homeworld_int32(game, initiator, to, hw, fl.1.amount_of_forces);
+                    Player::ship_forces_from_homeworld(game, initiator, to, hw, fl.1.amount_of_forces);
                 }
             }
         } else {
@@ -949,7 +948,7 @@ impl Shipment {
                 .collect();
             for fl in fls {
                 if let Some(hw) = fl.0.as_homeworld() {
-                    Player::ship_special_forces_location_homeworld_int32(game, initiator, to, hw, fl.1.amount_of_special_forces);
+                    Player::ship_special_forces_from_homeworld(game, initiator, to, hw, fl.1.amount_of_special_forces);
                 }
             }
         } else {
@@ -1174,7 +1173,7 @@ impl PassableGameEventMethods for Shipment {
 
 }
 
-impl crate::events::location_event::ILocationEvent for Shipment {
+impl crate::events::location_event::LocationEvent for Shipment {
     fn initiator(&self) -> Faction {
         GameEventMethods::initiator(self)
     }

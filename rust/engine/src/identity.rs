@@ -1,10 +1,10 @@
-/// `IIdentifiable`: objects that JSON refers to by an integer id.
-pub trait IIdentifiable {
+/// `Identifiable`: objects that JSON refers to by an integer id.
+pub trait Identifiable {
     fn id(&self) -> i32;
 }
 
-/// `IFetcher<T>`: turns JSON ids into objects and back. `-1` stands for null.
-pub trait IFetcher<T> {
+/// `Fetcher<T>`: turns JSON ids into objects and back. `-1` stands for null.
+pub trait Fetcher<T> {
     /// `Find(id)`; `None` means null. May throw.
     fn find(&self, id: i32) -> Option<T>;
     /// `GetId(obj)`; `None` gives -1.

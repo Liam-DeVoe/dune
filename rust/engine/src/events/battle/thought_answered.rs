@@ -74,7 +74,7 @@ impl ThoughtAnswered {
                 let thought_initiator = game.current_thought.as_ref().required("current thought")?.initiator();
                 game.log(elems!["In response, ", self.initiator(), " show ", thought_initiator, " a card"]);
                 let thought_initiator = game.current_thought.as_ref().required("current thought")?.initiator();
-                game.register_known_faction_treachery_card(thought_initiator, card);
+                game.register_known_by_faction(thought_initiator, card);
             }
         }
 

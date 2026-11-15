@@ -8,7 +8,7 @@
 use treachery_engine::enumerations::*;
 use treachery_engine::messages::expression::ExpressionElement;
 use treachery_engine::game::Game;
-use treachery_engine::identity::IFetcher;
+use treachery_engine::identity::Fetcher;
 use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
 
 use crate::skin::{to_upper_invariant, Skin};
@@ -89,7 +89,6 @@ impl Skin {
         if self.faction_sheet_template(g, f, &mut r).is_empty() { None } else { r.sheet }
     }
 
-    /// `private string FactionSheetTemplate(Game g, Faction f)`
     fn faction_sheet_template(&self, g: &Game, f: Faction, r: &mut SheetReader) -> String {
         r.in_advanced = false;
         match f {
@@ -109,7 +108,6 @@ impl Skin {
         }
     }
 
-    /// `private object[] FactionSheetParameters(Game g, string sheetStyle)`
     fn faction_sheet_parameters(&self, g: &Game, sheet_style: &str) -> Vec<ExpressionElement> {
         let card_name = |id: i32| {
             let skin_id = TreacheryCardManager::lookup().find(id).map(|c| c.skin_id()).unwrap_or(-1);
@@ -171,7 +169,6 @@ impl Skin {
         ]
     }
 
-    /// `private string SheetHeader(string atStart, int resources, int freeRevival, string theme)`
     fn sheet_header(&self, r: &mut SheetReader, at_start: &str, resources: i32, free_revival: i32, theme: &str) -> String {
         if let Some(sheet) = r.sheet.as_mut() {
             sheet.at_start = at_start.to_string();
@@ -218,7 +215,6 @@ impl Skin {
         }
     }
 
-    /// `private string AdvancedHeader(Game g, params Rule[] rules)`
     fn advanced_header(&self, r: &mut SheetReader, g: &Game, rules: &[Rule]) -> String {
         if rules.iter().any(|x| g.applicable(*x)) {
             r.in_advanced = true;
@@ -226,7 +222,6 @@ impl Skin {
         if rules.iter().any(|x| g.applicable(*x)) { "<h5>Advanced Game Advantages</h5>".to_string() } else { String::new() }
     }
 
-    /// `private string GetAtreidesTemplate(Game g)`
     fn get_atreides_template(&self, g: &Game, r: &mut SheetReader) -> String {
         [
             self.sheet_header(r, "10 tokens in {6} and 10 in reserve (off-planet)", 10, 2, "You have limited prescience"),
@@ -245,7 +240,6 @@ impl Skin {
         .concat()
     }
 
-    /// `private string GetHarkonnenTemplate(Game g)`
     fn get_harkonnen_template(&self, g: &Game, r: &mut SheetReader) -> String {
         [
             self.sheet_header(r, "10 tokens in {7} and 10 tokens in reserve (off-planet)", 10, 2, "You excel in treachery"),
@@ -264,7 +258,6 @@ impl Skin {
         .concat()
     }
 
-    /// `private string GetFremenTemplate(Game g)`
     fn get_fremen_template(&self, g: &Game, r: &mut SheetReader) -> String {
         [
             self.sheet_header(r, "10 tokens distributed as you like on {9}, {10}, and {11}; and 10 tokens in on-planet reserves", 3, 3, "You are native to this planet and know its ways"),
@@ -289,7 +282,6 @@ impl Skin {
         .concat()
     }
 
-    /// `private string GetEmperorTemplate(Game g)`
     fn get_emperor_template(&self, g: &Game, r: &mut SheetReader) -> String {
         [
             self.sheet_header(r, "20 tokens in reserve (off-planet)", 10, 1, "You have access to great wealth"),
@@ -307,7 +299,6 @@ impl Skin {
         .concat()
     }
 
-    /// `private string GetGuildTemplate(Game g)`
     fn get_guild_template(&self, g: &Game, r: &mut SheetReader) -> String {
         [
             self.sheet_header(r, "5 tokens in {8} and 15 tokens in reserve (off-planet)", 5, 1, "You control all shipments onto the planet"),
@@ -327,7 +318,6 @@ impl Skin {
         .concat()
     }
 
-    /// `private string GetBeneGesseritTemplate(Game g)`
     fn get_bene_gesserit_template(&self, g: &Game, r: &mut SheetReader) -> String {
         [
             self.sheet_header(r, "1 token in {26} and 19 tokens in reserve (off-planet)", 5, 1, "You are adept in the ways of mind control"),
@@ -352,7 +342,6 @@ impl Skin {
         .concat()
     }
 
-    /// `private string GetTleilaxuTemplate(Game g)`
     fn get_tleilaxu_template(&self, g: &Game, r: &mut SheetReader) -> String {
         [
             self.sheet_header(r, "20 tokens in reserve (off-planet)", 5, 2, "You have superior genetic engineering technology"),
@@ -380,7 +369,6 @@ impl Skin {
         .concat()
     }
 
-    /// `private string GetIxianTemplate(Game g)`
     fn get_ixian_template(&self, g: &Game, r: &mut SheetReader) -> String {
         [
             self.sheet_header(r, "3 {32} and 3 {33} in the {34}. 10 {32} and 4 {33} in reserve (off-planet)", 10, 1, "You are skilled in technology and production"),
@@ -402,7 +390,6 @@ impl Skin {
         .concat()
     }
 
-    /// `private string GetRicheseTemplate(Game g)`
     fn get_richese_template(&self, g: &Game, r: &mut SheetReader) -> String {
         [
             self.sheet_header(r, "20 tokens in reserve (off-planet). Start with 5 {16}. You have a separate deck of 10 {35} cards that are not part of your hand", 5, 2, "You have alternative technology"),
@@ -427,7 +414,6 @@ impl Skin {
         .concat()
     }
 
-    /// `private string GetChoamTemplate(Game g)`
     fn get_choam_template(&self, g: &Game, r: &mut SheetReader) -> String {
         [
             self.sheet_header(r, "20 tokens in reserve (off-planet)", 2, 0, "You control economic affairs across the Imperium"),
@@ -457,7 +443,6 @@ impl Skin {
         .concat()
     }
 
-    /// `private string GetEcazTemplate(Game g)`
     fn get_ecaz_template(&self, g: &Game, r: &mut SheetReader) -> String {
         [
             self.sheet_header(r, "6 tokens in {50} and 14 in reserve (off-planet)", 12, 2, "You forge strong alliances"),
@@ -477,7 +462,6 @@ impl Skin {
         .concat()
     }
 
-    /// `private string GetMoritaniTemplate(Game g)`
     fn get_moritani_template(&self, g: &Game, r: &mut SheetReader) -> String {
         [
             self.sheet_header(r, "6 tokens in any unoccupied territory when all other factions set up and 14 in reserve (off-planet)", 12, 2, "You resort to terrorism"),
@@ -498,7 +482,6 @@ impl Skin {
 
 }
 
-/// `private void NoteAdvantage(string name)`
 fn note_advantage(r: &mut SheetReader, name: &str) {
     let in_advanced = r.in_advanced;
     let Some(sheet) = r.sheet.as_mut() else { return };

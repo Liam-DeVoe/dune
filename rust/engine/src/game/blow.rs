@@ -48,7 +48,7 @@ impl Game {
                     self.stone(if drawn.is_some_and(|d| d.is_shai_hulud()) { Milestone::Monster } else { Milestone::GreatMonster });
                 }
 
-                if !self.sand_trout_occured() {
+                if !self.sand_trout_occurred() {
                     self.sand_trout_doubles_resources = false;
                     self.number_of_monsters += 1;
                     let t = self.previous_monster_territory();
@@ -106,7 +106,6 @@ impl Game {
         }
     }
 
-    /// `PreviousBlowCard == null || PreviousBlowCard.IsShaiHulud || PreviousBlowCard.IsGreatMaker ? null : PreviousBlowCard.Territory`
     fn previous_monster_territory(&self) -> Option<Territory> {
         match self.previous_blow_card() {
             None => None,
@@ -251,7 +250,7 @@ impl Game {
 
         let condition = self.applicable(Rule::ExpansionTreacheryCardsExceptPBandSSandAmal);
         let phase = if self.current_phase == Phase::BlowA { Phase::HarvesterA } else { Phase::HarvesterB };
-        self.enter_boolean_phase_action(condition, phase, Game::move_to_next_phase_after_resource_blow);
+        self.enter_or_else(condition, phase, Game::move_to_next_phase_after_resource_blow);
     }
 
     pub fn sandtrout_message(sand_trout_doubles_resources: bool) -> MessagePart {
@@ -276,7 +275,7 @@ impl Game {
             let is_a = matches!(self.current_phase, Phase::BlowA | Phase::HarvesterA);
             if self.monsters.len() == 1 && self.monsters[0].is_great_monster {
                 self.nexus_votes.clear();
-                self.enter_boolean_phase_phase(is_a, Phase::VoteAllianceA, Phase::VoteAllianceB);
+                self.enter_either(is_a, Phase::VoteAllianceA, Phase::VoteAllianceB);
             } else {
                 self.enter_alliance_phase(is_a);
             }
@@ -286,7 +285,7 @@ impl Game {
     pub fn let_monster_appear(&mut self, t: Option<Territory>, is_great_monster: bool) {
         match t {
             Some(t) if self.current_turn != 1 => {
-                let m = MonsterAppearence::new(t, is_great_monster);
+                let m = MonsterAppearance::new(t, is_great_monster);
 
                 let appeared = WormAppearedLog::new(m.territory, (self.monsters.len() as i32) + 1);
                 if m.is_great_monster {
@@ -310,7 +309,7 @@ impl Game {
                     if self.is_playing(Faction::Fremen) && self.applicable(Rule::FremenSendingMonster) {
                         if !self.prevented(FactionAdvantage::FremenControlsMonster) {
                             let condition = self.current_phase == Phase::BlowA;
-                            self.enter_boolean_phase_phase(condition, Phase::FremenSendingMonsterA, Phase::FremenSendingMonsterB);
+                            self.enter_either(condition, Phase::FremenSendingMonsterA, Phase::FremenSendingMonsterB);
                         } else {
                             self.monsters.push(m);
                             self.log_prevention_by_karma(FactionAdvantage::FremenControlsMonster);
@@ -330,7 +329,7 @@ impl Game {
         }
     }
 
-    pub fn perform_monster(&mut self, m: &MonsterAppearence) {
+    pub fn perform_monster(&mut self, m: &MonsterAppearance) {
         for &l in m.territory.locations() {
             for p in 0..self.players.len() {
                 let p = self.player_at(p);
@@ -410,7 +409,7 @@ impl Game {
 
         if FremenRidesMonster::is_applicable(self) {
             let condition = self.current_phase == Phase::AllianceA || self.current_phase == Phase::FremenRidingMonsterA;
-            self.enter_boolean_phase_phase(condition, Phase::FremenRidingMonsterA, Phase::FremenRidingMonsterB);
+            self.enter_either(condition, Phase::FremenRidingMonsterA, Phase::FremenRidingMonsterB);
         } else if self.current_phase == Phase::FremenRidingMonsterA && self.applicable(Rule::IncreasedResourceFlow) {
             self.enter_blow_b();
         } else {
@@ -421,20 +420,20 @@ impl Game {
     pub fn enter_alliance_phase(&mut self, is_a: bool) {
         // Every faction must pass or form an alliance before the phase ends.
         self.has_acted_or_passed.clear();
-        self.enter_boolean_phase_phase(is_a, Phase::AllianceA, Phase::AllianceB);
+        self.enter_either(is_a, Phase::AllianceA, Phase::AllianceB);
     }
 
     pub fn end_nexus(&mut self) {
-        self.nexus_has_occured = true;
+        self.nexus_has_occurred = true;
         self.current_alliance_offers.clear();
 
         if FremenRidesMonster::is_applicable(self) {
             let condition = self.current_phase == Phase::AllianceA;
-            self.enter_boolean_phase_phase(condition, Phase::FremenRidingMonsterA, Phase::FremenRidingMonsterB);
+            self.enter_either(condition, Phase::FremenRidingMonsterA, Phase::FremenRidingMonsterB);
         } else {
             if self.current_phase == Phase::AllianceA {
                 let condition = self.applicable(Rule::IncreasedResourceFlow);
-                Game::enter_boolean_action_action(self, condition, Game::enter_blow_b, Game::start_nexus_card_phase);
+                Game::run_either(self, condition, Game::enter_blow_b, Game::start_nexus_card_phase);
             } else if self.current_phase == Phase::AllianceB {
                 self.start_nexus_card_phase();
             }
@@ -448,7 +447,7 @@ impl Game {
     }
 
     pub fn start_nexus_card_phase(&mut self) {
-        if self.nexus_has_occured
+        if self.nexus_has_occurred
             && self.applicable(Rule::NexusCards)
             && self.players.iter().any(|p| p.has_ally())
             && self.players.iter().any(|p| !p.has_ally())
@@ -458,7 +457,7 @@ impl Game {
             self.end_blow_phase();
         }
 
-        self.nexus_has_occured = false;
+        self.nexus_has_occurred = false;
     }
 
     pub fn enter_nexus_card_phase(&mut self) {
@@ -514,7 +513,7 @@ impl Game {
         }
     }
 
-    pub fn sand_trout_occured(&self) -> bool {
+    pub fn sand_trout_occurred(&self) -> bool {
         self.sand_trout.is_some()
     }
 
@@ -533,10 +532,6 @@ impl Game {
             // C# parity: "11th", "21th".
             _ => format!("{}th", count),
         }
-    }
-
-    pub fn current_discard_pile(&self) -> Option<&Deck<ResourceCard>> {
-        if self.current_phase == Phase::BlowA { self.resource_card_discard_pile_a.as_ref() } else { self.resource_card_discard_pile_b.as_ref() }
     }
 
     /// `CurrentDiscardPile`, for callers that change the pile.
@@ -570,14 +565,14 @@ impl Game {
 }
 
 #[derive(Clone, Debug)]
-pub struct MonsterAppearence {
+pub struct MonsterAppearance {
     pub territory: Territory,
     pub is_great_monster: bool,
 }
 
-impl MonsterAppearence {
+impl MonsterAppearance {
     pub fn new(territory: Territory, is_great_monster: bool) -> Self {
-        MonsterAppearence { territory, is_great_monster }
+        MonsterAppearance { territory, is_great_monster }
     }
 
     pub fn describing_concept(&self) -> Concept {

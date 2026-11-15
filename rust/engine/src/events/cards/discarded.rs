@@ -52,7 +52,7 @@ impl Discarded {
         fact.card = self.card();
         let m = m.with_fact(fact).with_log(AsideLog::aside());
         self.log_objects(game, vec![m.into()]);
-        game.discard_player_treachery_card_boolean(self.player_opt(), self.card(), false);
+        game.discard_card_of(self.player_opt(), self.card(), false);
 
         if game.factions_that_must_discard.is_empty() {
             let phase = game.phase_before_discarding;

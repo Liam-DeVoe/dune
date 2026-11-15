@@ -44,7 +44,7 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
     }
 
     fn forces_added_to_location(&self, game: &Game) -> i32 {
-        // ForceLocations != null ? ... : 0 (the dictionary is never null; parsed twice as in C#)
+        // ForceLocations != null ? ... : 0 (the dictionary is never null; parsed twice)
         let _ = self.force_locations(game);
         self.force_locations(game).values().map(|b| b.amount_of_forces).sum::<i32>()
     }
@@ -59,7 +59,7 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
             return None;
         }
 
-        // var p = Player (may be null; dereferenced only where C# does)
+        // The player may be unset; it is read only where needed.
         let p = self.player_opt();
         let pl = || game.player(p.expect("player"));
 
@@ -87,7 +87,7 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
         if self.to(game).is_none() {
             return Some(express!("To not selected"));
         }
-        let valid_targets = PlacementEvent::valid_targets_game_player_dictionary_location_battalion(game, p.expect("player"), &force_locations);
+        let valid_targets = PlacementEvent::valid_targets_for_forces(game, p.expect("player"), &force_locations);
         if !valid_targets.contains(&self.to(game).expect("destination")) {
             return Some(express!("Invalid To location"));
         }
@@ -181,10 +181,10 @@ impl PlacementEvent {
         let mut dict: IndexMap<Location, Battalion> = IndexMap::new();
         dict.insert_new(location, battalion.clone());
 
-        PlacementEvent::valid_targets_game_player_dictionary_location_battalion(g, p, &dict)
+        PlacementEvent::valid_targets_for_forces(g, p, &dict)
     }
 
-    pub fn valid_targets_game_player_dictionary_location_battalion(g: &Game, p: PlayerIndex, forces: &IndexMap<Location, Battalion>) -> Vec<Location> {
+    pub fn valid_targets_for_forces(g: &Game, p: PlayerIndex, forces: &IndexMap<Location, Battalion>) -> Vec<Location> {
         let mut result: Option<Vec<Location>> = None;
 
         // The targets are computed in the loop; the Intersect chain is lazy, but it

@@ -11,7 +11,7 @@ use crate::map::discovery::DiscoveredLocation;
 use crate::enumerations::{DiscoveryTokenType, StrongholdAdvantage};
 use crate::map::hidden_mobile_stronghold::HiddenMobileStronghold;
 use crate::map::homeworld::Homeworld;
-use crate::identity::IIdentifiable;
+use crate::identity::Identifiable;
 use crate::map::{LocationData, LocationKind, Map};
 use crate::map::data::{LOCATIONS, LOCATION_COUNT};
 use crate::map::territory::Territory;
@@ -122,7 +122,6 @@ impl Location {
         self.territory().advantage()
     }
 
-    /// `l is Homeworld hw`
     pub fn as_homeworld(self) -> Option<Homeworld> {
         match self.data().kind {
             LocationKind::Homeworld(_) => Some(Homeworld::from_location(self)),
@@ -130,7 +129,6 @@ impl Location {
         }
     }
 
-    /// `l is DiscoveredLocation ds`
     pub fn as_discovered_location(self) -> Option<DiscoveredLocation> {
         match self.data().kind {
             LocationKind::Discovered { .. } => Some(DiscoveredLocation::from_location(self)),
@@ -138,7 +136,6 @@ impl Location {
         }
     }
 
-    /// `l is HiddenMobileStronghold hms`
     pub fn as_hidden_mobile_stronghold(self) -> Option<HiddenMobileStronghold> {
         match self.data().kind {
             LocationKind::HiddenMobileStronghold => Some(HiddenMobileStronghold::from_location(self)),
@@ -179,7 +176,7 @@ impl dotnet_compat::exception::CsToString for Location {
     }
 }
 
-impl IIdentifiable for Location {
+impl Identifiable for Location {
     fn id(&self) -> i32 {
         Location::id(*self)
     }

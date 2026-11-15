@@ -90,7 +90,6 @@ impl DiscoveryRevealed {
                 DiscoveryToken::CardStash => {
                     let card = game.draw_treachery_card();
                     let me = self.player();
-                    // C# adds card! even when it is null.
                     game.player_mut(me).treachery_cards.push(card.required("card")?);
                     self.log_objects(game, elems![self.initiator(), " draw a treachery card"]);
                     if game.player(me).hand_size_exceeded(game) {

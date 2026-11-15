@@ -4,7 +4,7 @@
 
 use treachery_engine::game::{FlashInfo, GameStatus};
 use treachery_engine::heroes::hero::Hero;
-use treachery_engine::identity::IIdentifiable;
+use treachery_engine::identity::Identifiable;
 use treachery_engine::prelude::*;
 
 use crate::build::ResolvedViewer;
@@ -62,12 +62,12 @@ pub fn board(game: &Game, status: &GameStatus, v: &ResolvedViewer) -> BoardView 
     let mut recent_moves = Vec::new();
     if game.current_main_phase == MainPhase::ShipmentAndMove {
         for m in &game.recent_moves {
-            let Some(to) = m.i_placement_to(game) else { continue };
+            let Some(to) = m.placement_to(game) else { continue };
             if to.is_homeworld() {
                 continue;
             }
-            let initiator = m.i_placement_initiator();
-            for origin in m.i_placement_force_locations(game).keys() {
+            let initiator = m.placement_initiator();
+            for origin in m.placement_force_locations(game).keys() {
                 let path = map.find_first_shortest_path(*origin, to, false, initiator, game);
                 match path {
                     Some(path) if path.contains(&map.polar_sink()) => {
@@ -183,7 +183,7 @@ pub fn piles(game: &Game, v: &ResolvedViewer) -> PilesView {
         latest_spice_card_b: game.latest_spice_card_b.map(|c| c.skin_id()),
         resource_discard_a: notekeeping.then(|| pile(&game.resource_card_discard_pile_a)),
         resource_discard_b: notekeeping.then(|| pile(&game.resource_card_discard_pile_b)),
-        sand_trout: game.sand_trout_occured().then_some(game.sand_trout).flatten().map(|c| c.skin_id()),
+        sand_trout: game.sand_trout_occurred().then_some(game.sand_trout).flatten().map(|c| c.skin_id()),
         richese_cache_count: game.richese_cache.len() as i32,
         // Only Richese sees the cards of its cache.
         richese_cache: (viewer_faction(v) == Some(Faction::Richese)).then(|| game.richese_cache.iter().map(|c| c.id()).collect()),
@@ -236,10 +236,10 @@ pub fn bidding(game: &Game, v: &ResolvedViewer) -> Option<BiddingView> {
         .map(|(f, bid)| {
             let shown = if silent {
                 BidShown::Ready
-            } else if bid.i_bid_passed() {
+            } else if bid.bid_passed() {
                 BidShown::Pass
             } else {
-                BidShown::Bid { amount: bid.i_bid_total_amount() }
+                BidShown::Bid { amount: bid.bid_total_amount() }
             };
             MapBid { faction: name(*f), bid: shown }
         })
@@ -391,7 +391,6 @@ fn plan_view(
     }
 }
 
-/// `BattlePlan.PassiveSkillIsRelevantForBattlePlan`.
 fn passive_skill_is_relevant_for_battle_plan(skill: LeaderSkill) -> bool {
     matches!(
         skill,

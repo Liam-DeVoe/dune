@@ -31,7 +31,7 @@ impl Audited {
         // RegisterKnown only adds to the player's KnownCards, so the list does not change.
         let audited = game.audited_cards.clone();
         for card in audited {
-            Game::register_known_player_treachery_card(game, self.player(), Some(card));
+            Game::register_known_by_player(game, self.player(), Some(card));
         }
         let winner_is_none = game.battle_winner == Some(Faction::None);
         let harkonnen_must_decide = game.harkonnen_must_decide_to_capture();
@@ -39,7 +39,7 @@ impl Audited {
         if winner_is_none {
             game.finish_battle()?;
         } else {
-            game.enter_boolean_phase_phase(harkonnen_must_decide, Phase::CaptureDecision, Phase::BattleConclusion);
+            game.enter_either(harkonnen_must_decide, Phase::CaptureDecision, Phase::BattleConclusion);
         }
         Ok(())
     }

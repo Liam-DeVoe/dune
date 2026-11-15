@@ -49,7 +49,7 @@ impl EmperorDiscarded {
             let p = game.player_mut(me);
             p.resources -= 2;
         }
-        game.discard_player_treachery_card_boolean(Some(me), self.card(), true);
+        game.discard_card_of(Some(me), self.card(), true);
         Ok(())
     }
 

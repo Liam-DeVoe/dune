@@ -114,7 +114,6 @@ fn map_choice(game: &Game, p: PlayerIndex, e: &NexusPlayed) -> MapChoice {
     }
 }
 
-/// `Revival.ValidRevivedForceLocations(...).Any() ? NumberOfSpecialForcesThatMayBePlacedOnPlanet : 0`.
 fn max_special_on_planet(game: &Game, p: PlayerIndex, special: i32) -> i32 {
     if Revival::valid_revived_force_locations(game, p).next().is_some() {
         Revival::number_of_special_forces_that_may_be_placed_on_planet(game, p, special)
@@ -250,7 +249,7 @@ pub(super) fn options(game: &Game, p: PlayerIndex, e: &NexusPlayed, d: &dyn Desc
         locations: Revival::valid_revived_force_locations(game, p).map(|l| l.id()).collect(),
         heroes: hero_options(NexusPlayed::valid_tleilaxu_heroes(game, p)),
         may_assign_skill: e.tleilaxu_hero().is_some() && Revival::may_assign_skill(game, p, e.tleilaxu_hero()),
-        cost: NexusPlayed::determine_tleilaxu_cost_int32_int32(e.tleilaxu_forces, e.tleilaxu_special_forces),
+        cost: NexusPlayed::tleilaxu_cost_of_forces(e.tleilaxu_forces, e.tleilaxu_special_forces),
     });
 
     let pick = map_choice(game, p, e);

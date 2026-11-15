@@ -183,7 +183,7 @@ impl PlacementEventMethods for Move {
 
 }
 
-impl crate::events::location_event::ILocationEvent for Move {
+impl crate::events::location_event::LocationEvent for Move {
     fn initiator(&self) -> Faction {
         GameEventMethods::initiator(self)
     }
@@ -206,7 +206,7 @@ impl crate::events::location_event::ILocationEvent for Move {
 
 }
 
-impl crate::events::placement::IPlacement for Move {
+impl crate::events::placement::Placement for Move {
     fn initiator(&self) -> Faction {
         GameEventMethods::initiator(self)
     }

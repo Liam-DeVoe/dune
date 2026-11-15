@@ -149,7 +149,7 @@ fn game_from_seed(seed: i32) -> String {
     let events = format!("[{},{END_PHASE},{END_PHASE}]", ESTABLISH.replace("SEED", &seed.to_string()));
     let savegame = format!(r#"{{"Version":{},"_events":{events}}}"#, Game::LATEST_VERSION);
     let state = GameState::load(&savegame).unwrap();
-    let mut game = Game::new_int32_participation(state.version, &Shared::new(Participation::default()));
+    let mut game = Game::with_participation(state.version, &Shared::new(Participation::default()));
     for e in state.events.as_ref().unwrap() {
         e.initialize_game(&game);
         assert!(e.execute(&mut game, false, true).is_none());

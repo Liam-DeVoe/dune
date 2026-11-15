@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use treachery_engine::events::GameEvent;
 use treachery_engine::messages::expression::ExpressionElement;
 use treachery_engine::heroes::hero::Hero;
-use treachery_engine::identity::IIdentifiable;
+use treachery_engine::identity::Identifiable;
 use treachery_engine::prelude::*;
 use ts_rs::TS;
 
@@ -302,10 +302,10 @@ fn story(game: &Game, d: &dyn Describer) -> Vec<StoryBlock> {
     let mut previous_phase = Phase::AwaitingPlayers;
     let mut previous_main_phase = MainPhase::Started;
     let mut previous_winning_bid: Option<GameEvent> = None;
-    let mut replay = Game::new_int32_participation(game.version, &game.participation);
+    let mut replay = Game::with_participation(game.version, &game.participation);
 
     for original in &game.history {
-        let Some(evt) = original.cs_clone() else { continue };
+        let Some(evt) = original.shallow_copy() else { continue };
         evt.initialize_game(&replay);
         evt.execute(&mut replay, false, true);
         let r = &replay;
@@ -336,7 +336,7 @@ fn story(game: &Game, d: &dyn Describer) -> Vec<StoryBlock> {
                     out.push(StoryBlock::Purchase {
                         buyer: name(buyer),
                         card: r.card_just_won.map(|c| card(c, rd)),
-                        amount: wb.i_bid_total_amount(),
+                        amount: wb.bid_total_amount(),
                         karma_card: match wb {
                             GameEvent::Bid(b) => b.karma_card().map(|c| card(c, rd)),
                             _ => None,
@@ -476,7 +476,7 @@ fn table(g: &Game, finished: &Game, mut columns: StoryTable) -> StoryTable {
                         territory: l.territory().id(),
                         contested: l != g.map.polar_sink()
                             && p.occupies_territory(g, Some(l.territory()))
-                            && g.nr_of_occupants_excluding_faction_territory_faction(l.territory(), p.faction) > 0,
+                            && g.nr_of_occupants_of_territory_excluding(l.territory(), p.faction) > 0,
                         forces: p.forces_in(Some(l)),
                         special_forces: p.special_forces_in(Some(l)),
                     })

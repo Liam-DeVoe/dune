@@ -88,31 +88,26 @@ impl Message {
         COUNTER.with(|c| c.get())
     }
 
-    /// `WithRoute(faction, from, to)`
     pub fn with_route(mut self, faction: Faction, from: impl IntoIterator<Item = Location>, to: Option<Location>) -> Message {
         self.route = Some(Route { faction, from: Shared::new(from.into_iter().collect()), to });
         self
     }
 
-    /// `AsHeading(icon)`
     pub fn as_heading(mut self, icon: Concept) -> Message {
         self.heading = Some(icon);
         self
     }
 
-    /// `WithPlans(aggressor, defender)`
     pub fn with_plans(mut self, aggressor: PlanSummary, defender: PlanSummary) -> Message {
         self.plans = Some(BattlePlans { aggressor, defender });
         self
     }
 
-    /// `WithLog(data)`
     pub fn with_log(mut self, data: impl LogRecord) -> Message {
         self.log = Some(Rc::new(data));
         self
     }
 
-    /// `WithFact(fact)`
     pub fn with_fact(mut self, fact: BattleFact) -> Message {
         self.fact = Some(fact);
         self
@@ -121,6 +116,13 @@ impl Message {
     /// `ToString()` without a describer: `string.Join("", Expression.Elements)`.
     pub fn to_cs_string(&self) -> String {
         self.expression.elements.iter().map(|e| e.to_cs_string()).collect()
+    }
+}
+
+/// A message holding just this text, as `express!(text)` makes it.
+impl From<&str> for Message {
+    fn from(text: &str) -> Message {
+        Message::express(vec![ExpressionElement::from(text)])
     }
 }
 
@@ -157,7 +159,6 @@ impl PartialEq for Message {
     }
 }
 
-/// `MessagePart`
 #[derive(Clone, Debug, PartialEq)]
 pub struct MessagePart {
     pub expression: Expression,
@@ -220,7 +221,6 @@ macro_rules! express_to {
     };
 }
 
-/// `MessagePart.Express(...)`
 #[macro_export]
 macro_rules! express_part {
     (@params $arr:expr) => {
@@ -261,7 +261,6 @@ pub struct Route {
     pub to: Option<Location>,
 }
 
-/// `record BattlePlans(PlanSummary Aggressor, PlanSummary Defender)`
 #[derive(Clone, Debug, PartialEq)]
 pub struct BattlePlans {
     pub aggressor: PlanSummary,
@@ -319,7 +318,6 @@ pub struct BattleFact {
     pub faction: Faction,
     pub strength: f32,
     pub hero: Option<Hero>,
-    /// `object? Cause`
     pub cause: Option<ExpressionElement>,
     pub value: i32,
     pub forces: i32,

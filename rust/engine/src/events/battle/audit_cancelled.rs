@@ -28,17 +28,17 @@ impl AuditCancelled {
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if self.cancelled && game.player(self.player()).resources < Self::cost_game(game) {
+        if self.cancelled && game.player(self.player()).resources < Self::get_number_of_cards_that_may_be_audited(game) {
             return Some(express!("You can't pay enough to prevent the audit"));
         }
         None
     }
 
     pub fn cost(&self, game: &Game) -> i32 {
-        Self::cost_game(game)
+        Self::cost_of_cancelling(game)
     }
 
-    pub fn cost_game(g: &Game) -> i32 {
+    pub fn cost_of_cancelling(g: &Game) -> i32 {
         Self::get_number_of_cards_that_may_be_audited(g)
     }
 
@@ -65,7 +65,7 @@ impl AuditCancelled {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         if self.cancelled {
-            let cost = Payment::of(Self::cost_game(game));
+            let cost = Payment::of(Self::get_number_of_cards_that_may_be_audited(game));
             let n = Self::get_number_of_cards_that_may_be_audited(game);
             game.log(elems![self.initiator(), " pay ", Faction::Choam, cost, " to cancel an audit of ", n, " cards"]);
         } else {
@@ -97,7 +97,7 @@ impl AuditCancelled {
             if winner_is_none {
                 game.finish_battle()?;
             } else {
-                game.enter_boolean_phase_phase(harkonnen_must_decide, Phase::CaptureDecision, Phase::BattleConclusion);
+                game.enter_either(harkonnen_must_decide, Phase::CaptureDecision, Phase::BattleConclusion);
             }
         }
         Ok(())

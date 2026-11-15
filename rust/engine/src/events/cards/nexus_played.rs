@@ -368,15 +368,15 @@ impl NexusPlayed {
     pub fn may_select_location_for_revived_forces(game: &Game, player: PlayerIndex, special_forces: i32) -> bool {
         game.player(player).is(Faction::Fremen)
             && special_forces >= 1
-            && game.player(player).has_high_threshold_0(game)
+            && game.player(player).has_any_high_threshold(game)
             && !Revival::valid_revived_force_locations(game, player).next().is_none()
     }
 
     pub fn determine_tleilaxu_cost(&self) -> i32 {
-        NexusPlayed::determine_tleilaxu_cost_int32_int32(self.tleilaxu_forces, self.tleilaxu_special_forces)
+        NexusPlayed::tleilaxu_cost_of_forces(self.tleilaxu_forces, self.tleilaxu_special_forces)
     }
 
-    pub fn determine_tleilaxu_cost_int32_int32(forces: i32, special_forces: i32) -> i32 {
+    pub fn tleilaxu_cost_of_forces(forces: i32, special_forces: i32) -> i32 {
         forces + special_forces
     }
 
@@ -508,7 +508,7 @@ impl NexusPlayed {
                         .copied()
                         .random_item(game.random.as_ref().required("random")?);
                     if let Some(card) = card {
-                        game.discard_treachery_card_boolean(Some(card), true)?;
+                        game.discard_card(Some(card), true)?;
                     }
                 } else {
                     self.log_objects(game, elems![Faction::Choam, " have no treachery cards to discard"]);
@@ -536,24 +536,24 @@ impl NexusPlayed {
                         elems!["force ", Faction::Richese, " to discard the card they just won, refunding payment"],
                     );
                     let card_just_won = game.card_just_won;
-                    game.discard_player_treachery_card_boolean(Some(richese), card_just_won, true);
+                    game.discard_card_of(Some(richese), card_just_won, true);
                     let winning_bid = game.winning_bid.clone();
                     if let Some(winning_bid) = winning_bid {
-                        if !winning_bid.i_bid_karma_bid() && winning_bid.i_bid_initiator() == Faction::Richese {
+                        if !winning_bid.bid_karma_bid() && winning_bid.bid_initiator() == Faction::Richese {
                             let w = game.player_mut(richese);
-                            w.resources += winning_bid.i_bid_amount();
+                            w.resources += winning_bid.bid_amount();
                             let richese_ally = game.player(richese).allied_player(game);
                             if let Some(richese_ally) = richese_ally {
-                                if winning_bid.i_bid_ally_contribution_amount() > 0 {
+                                if winning_bid.bid_ally_contribution_amount() > 0 {
                                     let a = game.player_mut(richese_ally);
-                                    a.resources += winning_bid.i_bid_ally_contribution_amount();
+                                    a.resources += winning_bid.bid_ally_contribution_amount();
                                 }
                             }
                             if let Some(richese_ally) = richese_ally {
-                                if winning_bid.i_bid_emperor_contribution_amount() > 0 {
+                                if winning_bid.bid_emperor_contribution_amount() > 0 {
                                     // C# parity: Emperor's contribution is refunded to Richese's ally.
                                     let a = game.player_mut(richese_ally);
-                                    a.resources += winning_bid.i_bid_emperor_contribution_amount();
+                                    a.resources += winning_bid.bid_emperor_contribution_amount();
                                 }
                             }
                         }
@@ -564,7 +564,7 @@ impl NexusPlayed {
             Faction::Ecaz => {
                 let ecazs_ally = game.get_player(Some(Faction::Ecaz)).and_then(|p| game.player(p).allied_player(game));
                 if let (Some(ecazs_ally), Some(ecaz_territory)) = (ecazs_ally, self.ecaz_territory(game)) {
-                    Player::forces_to_reserves_territory(game, ecazs_ally, ecaz_territory);
+                    Player::forces_in_territory_to_reserves(game, ecazs_ally, ecaz_territory);
                     let ally_faction = game.player(ecazs_ally).faction;
                     let ecaz_territory = self.ecaz_territory(game);
                     game.play_nexus_card(
@@ -797,7 +797,7 @@ impl NexusPlayed {
                     );
                     let Some(choam_card) = self.choam_card() else { return };
                     // C# parity: the card is not validated here.
-                    game.discard_player_treachery_card_boolean(Some(actor), Some(choam_card), true);
+                    game.discard_card_of(Some(actor), Some(choam_card), true);
                     let me = game.player_mut(actor);
                     me.resources += 2;
                 } else if game.current_phase == Phase::BattleConclusion {
@@ -825,7 +825,7 @@ impl NexusPlayed {
                     if !auditable_cards.is_empty() {
                         let audited_card = auditable_cards.iter().copied().random_item(game.random.as_ref().expect("random"));
                         if let Some(audited_card) = audited_card {
-                            Game::register_known_player_treachery_card(game, actor, Some(audited_card));
+                            Game::register_known_by_player(game, actor, Some(audited_card));
                             self.log_to(game, self.initiator(), elems!["You see: ", audited_card]);
                             self.log_to(game, auditee_faction, elems!["You showed them: ", audited_card]);
                         }
@@ -910,7 +910,7 @@ impl GameEventMethods for NexusPlayed {
 
 }
 
-impl crate::events::location_event::ILocationEvent for NexusPlayed {
+impl crate::events::location_event::LocationEvent for NexusPlayed {
     fn initiator(&self) -> Faction {
         GameEventMethods::initiator(self)
     }

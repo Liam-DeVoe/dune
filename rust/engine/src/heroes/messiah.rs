@@ -14,11 +14,9 @@ impl Messiah {
     pub const FACTION: Faction = Faction::Atreides;
     pub const HERO_TYPE: HeroType = HeroType::Messiah;
 
-    /// `ValueInCombatAgainst(_) => Value`
     pub fn value_in_combat_against(_opposing_hero: Option<Hero>) -> i32 {
         Self::VALUE
     }
 
-    /// `CostToRevive => Value`
     pub const COST_TO_REVIVE: i32 = Self::VALUE;
 }

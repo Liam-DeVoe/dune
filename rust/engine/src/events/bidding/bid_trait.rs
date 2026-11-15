@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 /// Implemented by the events that have these members. Not in the prelude, to avoid
 /// ambiguity with the base-class traits; `GameEvent` has a dispatching method for each member.
-pub trait IBid {
+pub trait BidEvent {
     fn total_amount(&self) -> i32;
 
     fn amount(&self) -> i32;

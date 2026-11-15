@@ -86,10 +86,6 @@ impl BattleInitiated {
         g.current_juice.as_ref().is_some_and(|j| j.type_ == JuiceType::Aggressor && j.initiator() == f)
     }
 
-    pub fn is_initiator_by_juice(g: &Game, initiator: PlayerIndex, target: PlayerIndex) -> bool {
-        BattleInitiated::is_initiator_by_juice_opt(g, Some(initiator), target)
-    }
-
     /// `IsInitiatorByJuice` with a possibly null `initiator` (as `Aggressor` passes `Player`).
     fn is_initiator_by_juice_opt(g: &Game, initiator: Option<PlayerIndex>, target: PlayerIndex) -> bool {
         g.current_juice.as_ref().is_some_and(|j| {
@@ -97,10 +93,6 @@ impl BattleInitiated {
                 && j.player_opt() == initiator
                 && PlayerSequence::is_after(g, initiator.expect("initiator"), target)
         })
-    }
-
-    pub fn is_target_by_juice(g: &Game, initiator: PlayerIndex, target: PlayerIndex) -> bool {
-        BattleInitiated::is_target_by_juice_opt(g, Some(initiator), target)
     }
 
     /// `IsTargetByJuice` with a possibly null `initiator`.
@@ -267,7 +259,7 @@ impl BattleInitiated {
             }
             None => false,
         };
-        game.enter_boolean_phase_action(condition, Phase::ClaimingBattle, Game::initiate_battle);
+        game.enter_or_else(condition, Phase::ClaimingBattle, Game::initiate_battle);
         Ok(())
     }
 

@@ -405,7 +405,7 @@ impl AmbassadorActivated {
                 let mut total_earned = 0i32;
                 for c in self.choam_cards() {
                     total_earned += 3;
-                    game.discard_player_treachery_card_boolean(Some(self.player()), Some(c), true);
+                    game.discard_card_of(Some(self.player()), Some(c), true);
                 }
 
                 self.log_objects(game, elems![self.initiator(), " get ", Payment::of(total_earned)]);
@@ -480,7 +480,7 @@ impl AmbassadorActivated {
             }
 
             Ambassador::Ixian => {
-                game.discard_player_treachery_card_boolean(Some(self.player()), self.ixian_card(), true);
+                game.discard_card_of(Some(self.player()), self.ixian_card(), true);
                 self.log_objects(game, elems![self.initiator(), " draw a new card"]);
                 let drawn = game.draw_treachery_card();
                 if let Some(drawn) = drawn {
@@ -578,7 +578,7 @@ impl PassableGameEventMethods for AmbassadorActivated {
 
 }
 
-impl crate::events::location_event::ILocationEvent for AmbassadorActivated {
+impl crate::events::location_event::LocationEvent for AmbassadorActivated {
     fn initiator(&self) -> Faction {
         GameEventMethods::initiator(self)
     }
@@ -601,7 +601,7 @@ impl crate::events::location_event::ILocationEvent for AmbassadorActivated {
 
 }
 
-impl crate::events::placement::IPlacement for AmbassadorActivated {
+impl crate::events::placement::Placement for AmbassadorActivated {
     fn initiator(&self) -> Faction {
         GameEventMethods::initiator(self)
     }

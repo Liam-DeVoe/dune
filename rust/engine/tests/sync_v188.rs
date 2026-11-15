@@ -46,7 +46,7 @@ fn new_game(version: i32) -> Game {
     let mut p = Participation::new();
     p.player_names.insert(100, "Human100".to_string());
     p.seated_players.insert(100, 2);
-    let mut g = Game::new_int32_participation(version, &treachery_engine::shared::Shared::new(p));
+    let mut g = Game::with_participation(version, &treachery_engine::shared::Shared::new(p));
     let e: GameEvent = json::deserialize(ESTABLISH).expect("event json");
     e.initialize_game(&g);
     assert!(e.execute(&mut g, true, true).is_none(), "establish rejected");
@@ -83,7 +83,7 @@ fn state(l: &mut Lines, g: &mut Game, at: &str) {
     l.p(&format!("{at}.offers"), offers.join(","));
     let allies: Vec<_> = g.players.iter().map(|p| format!("{}:{}", p.faction, p.ally)).collect();
     l.p(&format!("{at}.allies"), allies.join(","));
-    l.p(&format!("{at}.nexus_occured"), if g.nexus_has_occured { "True" } else { "False" });
+    l.p(&format!("{at}.nexus_occured"), if g.nexus_has_occurred { "True" } else { "False" });
     let a = applicable(g);
     l.p(&format!("{at}.applicable"), a);
     for i in 0..g.players.len() {

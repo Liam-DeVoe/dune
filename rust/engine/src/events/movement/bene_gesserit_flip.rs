@@ -44,7 +44,7 @@ impl BeneGesseritFlip {
         self.log_objects(game, vec![m.into()]);
 
         let territory = BeneGesseritFlip::get_territory(game);
-        Player::flip_forces_territory_boolean(game, self.player(), territory, self.as_advisors);
+        Player::flip_forces_in_territory(game, self.player(), territory, self.as_advisors);
 
         game.flip_bene_gesserit_advisors_when_alone();
 

@@ -110,7 +110,7 @@ impl Game {
     }
 
     pub fn is_open(&self, seat: i32) -> bool {
-        // (a && b) || c, as in C#
+        // (a && b) || c
         self.current_phase == Phase::AwaitingPlayers && (self.participation.borrow().seated_players.len() as i32) < self.maximum_players()
             || self.seat_is_available(seat)
     }
@@ -140,7 +140,6 @@ impl Game {
     }
 
     pub fn player_names(&self) -> Vec<String> {
-        // C# returns a lazy query over Participation; callers enumerate it right away.
         let participation = self.participation.borrow();
         participation
             .player_names
@@ -151,7 +150,6 @@ impl Game {
     }
 
     pub fn observer_names(&self) -> Vec<String> {
-        // C# returns a lazy query over Participation; callers enumerate it right away.
         let participation = self.participation.borrow();
         participation
             .player_names

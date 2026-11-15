@@ -35,7 +35,7 @@ impl SetShipmentPermission {
         if factions.is_empty() {
             return Ok(Some(express!("Select one or more factions")));
         }
-        // ValidTargets is re-evaluated for every faction, as in C#.
+        // ValidTargets is re-evaluated for every faction.
         if factions.iter().any(|f| !SetShipmentPermission::valid_targets(game, self.player()).any(|v| v == *f)) {
             return Ok(Some(express!("Invalid faction")));
         }
@@ -45,12 +45,12 @@ impl SetShipmentPermission {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Faction> {
-        // `p.Faction` is read inside the predicate, per element, as in C#.
+        // `p.Faction` is read inside the predicate, per element.
         g.players.iter().filter(move |x| x.faction != g.player(p).faction).map(|x| x.faction)
     }
 
     pub fn is_applicable(g: &Game, p: PlayerIndex) -> bool {
-        g.current_main_phase == MainPhase::ShipmentAndMove && g.player(p).is(Faction::Guild) && g.player(p).has_high_threshold_0(g)
+        g.current_main_phase == MainPhase::ShipmentAndMove && g.player(p).is(Faction::Guild) && g.player(p).has_any_high_threshold(g)
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {

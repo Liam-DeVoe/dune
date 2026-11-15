@@ -104,7 +104,7 @@ fn render_trace(path: &Path, skin: &Skin) -> Vec<(i64, String, String)> {
         let kind = line["kind"].as_str().unwrap();
         if kind == "header" {
             let participation = participation(&line["participation"]);
-            game = Some(Game::new_int32_participation(line["gameVersion"].as_i64().unwrap() as i32, &Shared::new(participation)));
+            game = Some(Game::with_participation(line["gameVersion"].as_i64().unwrap() as i32, &Shared::new(participation)));
             continue;
         }
         let Some(g) = game.as_mut() else { break };
@@ -199,9 +199,9 @@ fn end(r: &mut Renderer, game: &Game) {
         });
     }
     for l in LeaderManager::leaders() {
-        r.emit(format!("popup {}", l.id()), || skin.get_popup_hero_game(Some(Hero::Leader(*l)), game));
+        r.emit(format!("popup {}", l.id()), || skin.get_popup_hero_in_game(Some(Hero::Leader(*l)), game));
     }
-    r.emit("popup messiah", || skin.get_popup_hero_game(Some(Hero::Messiah), game));
+    r.emit("popup messiah", || skin.get_popup_hero_in_game(Some(Hero::Messiah), game));
 }
 
 fn line(n: i64, what: &str, out: &str) -> Value {

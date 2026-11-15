@@ -56,7 +56,7 @@ impl Diplomacy {
     }
 
     pub fn can_be_played(g: &Game, p: PlayerIndex) -> bool {
-        if g.skilled_as_player_leader_skill(p, LeaderSkill::Diplomat) && g.current_diplomacy.is_none() {
+        if g.has_skill_in_front_of_shield(p, LeaderSkill::Diplomat) && g.current_diplomacy.is_none() {
             let plan = g.current_battle.as_ref().expect("current battle").plan_of(g, Some(p));
             let plan_of_opponent = g.current_battle.as_ref().expect("current battle").plan_of_opponent(g, Some(p));
             let Some(plan) = plan else { return false };

@@ -47,7 +47,7 @@ impl ChoamDiscarded {
             .iter()
             .copied()
             .filter(move |c| {
-                (c.type_() == TreacheryCardType::Useless && !pl.has_high_threshold_0(game))
+                (c.type_() == TreacheryCardType::Useless && !pl.has_any_high_threshold(game))
                     || (c.type_() != TreacheryCardType::Projectile
                         && c.type_() != TreacheryCardType::Poison
                         && pl.treachery_cards.iter().filter(move |to_count| to_count.type_() == c.type_()).count() > 1)
@@ -59,7 +59,7 @@ impl ChoamDiscarded {
             game_error!("Card is null");
         };
 
-        game.discard_treachery_card_boolean(Some(card), true)?;
+        game.discard_card(Some(card), true)?;
         self.log(game);
 
         let p = game.player_mut(self.player());

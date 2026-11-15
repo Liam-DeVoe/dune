@@ -22,7 +22,6 @@ impl AttachedLocation {
         self.0
     }
 
-    /// `AttachedToLocation`
     pub fn attached_to_location(self, map: &Map) -> Option<Location> {
         map.attached_to_location(self.0)
     }

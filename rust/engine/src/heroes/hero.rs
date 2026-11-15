@@ -6,7 +6,7 @@
 use std::fmt;
 
 use crate::enumerations::{Faction, HeroType};
-use crate::identity::IIdentifiable;
+use crate::identity::Identifiable;
 use crate::heroes::leader::Leader;
 use crate::heroes::messiah::Messiah;
 use crate::cards::treachery_card::TreacheryCard;
@@ -99,7 +99,6 @@ impl Hero {
         }
     }
 
-    /// `hero as Leader`
     pub fn as_leader(self) -> Option<Leader> {
         match self {
             Hero::Leader(l) => Some(l),
@@ -107,7 +106,6 @@ impl Hero {
         }
     }
 
-    /// `hero as TreacheryCard`
     pub fn as_treachery_card(self) -> Option<TreacheryCard> {
         match self {
             Hero::TreacheryCard(c) => Some(c),
@@ -115,10 +113,6 @@ impl Hero {
         }
     }
 
-    /// `hero is Messiah`
-    pub fn is_messiah(self) -> bool {
-        matches!(self, Hero::Messiah)
-    }
 }
 
 impl From<Leader> for Hero {
@@ -133,7 +127,7 @@ impl From<TreacheryCard> for Hero {
     }
 }
 
-impl IIdentifiable for Hero {
+impl Identifiable for Hero {
     fn id(&self) -> i32 {
         Hero::id(*self)
     }

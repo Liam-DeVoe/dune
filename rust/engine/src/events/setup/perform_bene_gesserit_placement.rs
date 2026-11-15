@@ -59,7 +59,7 @@ impl PerformBeneGesseritPlacement {
         // is false, ShipForces(null, 1) finds no homeworld to ship from, and `Target.Territory` throws.
         let condition = game.is_occupied_territory(self.target(game).required("target")?.territory());
         if condition {
-            // Player is read before Target, as in C#.
+            // Player is read before Target.
             let me = self.player();
             Player::ship_advisors(game, me, self.target(game).required("target")?, 1);
         } else {
@@ -70,13 +70,7 @@ impl PerformBeneGesseritPlacement {
         self.log(game);
         let c1 = self.is_playing(game, Faction::Moritani);
         let c2 = game.treachery_cards_before_traitors();
-        game.enter_boolean_phase_boolean_action_action(
-            c1,
-            Phase::MoritaniSettingUp,
-            c2,
-            Game::enter_storm_phase,
-            Game::deal_starting_treachery_cards,
-        );
+        game.enter_first(&[(c1, Step::Enter(Phase::MoritaniSettingUp)), (c2, Step::Run(Game::enter_storm_phase))], Step::Run(Game::deal_starting_treachery_cards));
         Ok(())
     }
 

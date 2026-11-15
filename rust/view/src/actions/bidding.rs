@@ -18,12 +18,10 @@ fn name<T: ToString>(v: T) -> String {
     v.to_string()
 }
 
-/// `BiddingPanel.IsSilentAuction`.
 fn is_silent(game: &Game) -> bool {
     game.current_auction_type == AuctionType::BlackMarketSilent || game.current_auction_type == AuctionType::RicheseSilent
 }
 
-/// `BiddingPanel.IsRicheseBidding`.
 fn is_richese_bidding(game: &Game) -> bool {
     game.current_auction_type == AuctionType::RicheseOnceAround || game.current_auction_type == AuctionType::RicheseSilent
 }
@@ -39,7 +37,7 @@ fn starting_amounts(game: &Game, p: PlayerIndex) -> (i32, i32) {
     let pl = game.player(p);
     let ally_resources = if pl.ally == Faction::None { 0 } else { game.get_permitted_use_of_ally_resources(pl.faction) };
     let player_resources = pl.resources;
-    let bid_to_do = game.current_bid.as_ref().map_or(1, |b| b.i_bid_total_amount() + 1);
+    let bid_to_do = game.current_bid.as_ref().map_or(1, |b| b.bid_total_amount() + 1);
     let ally = bid_to_do.min(ally_resources);
     let amount = (bid_to_do - ally).min(player_resources);
     (amount, ally)
@@ -138,7 +136,7 @@ pub fn panel(game: &Game, v: &ResolvedViewer) -> Option<BiddingPanelView> {
     let current_bid = if silent {
         None
     } else {
-        game.current_bid.as_ref().map(|b| CurrentBid { faction: name(b.i_bid_initiator()), amount: b.i_bid_total_amount() })
+        game.current_bid.as_ref().map(|b| CurrentBid { faction: name(b.bid_initiator()), amount: b.bid_total_amount() })
     };
     Some(BiddingPanelView {
         black_market,

@@ -393,7 +393,7 @@ struct Checker {
 impl Checker {
     fn new(participation: &Participation) -> Checker {
         let participation = treachery_engine::shared::Shared::new(participation.clone());
-        Checker { game: Game::new_int32_participation(Game::LATEST_VERSION, &participation) }
+        Checker { game: Game::with_participation(Game::LATEST_VERSION, &participation) }
     }
 
     fn event(l: &Value) -> Option<treachery_engine::events::GameEvent> {

@@ -100,16 +100,15 @@ impl CardTraded {
                     let p = game.player_at(i);
                     if p != other_player && p != me {
                         let other_cards = game.player(other_player).treachery_cards.clone();
-                        Game::unregister_known_player_i_enumerable_treachery_card(game, p, &other_cards);
+                        Game::unregister_all_known_by_player(game, p, &other_cards);
                         let my_cards = game.player(me).treachery_cards.clone();
-                        Game::unregister_known_player_i_enumerable_treachery_card(game, p, &my_cards);
+                        Game::unregister_all_known_by_player(game, p, &my_cards);
                     }
                 }
             }
 
             let other_player = other_player.required("other player")?;
             let me = self.player();
-            // C# adds `Card!` even when it is null (only reachable without validation).
             let card = self.card().required("card")?;
             game.player_mut(other_player).treachery_cards.push(card);
             crate::iter::remove_first(&mut game.player_mut(me).treachery_cards, &card);

@@ -3,7 +3,7 @@
 
 use treachery_engine::events::GameEventType;
 use treachery_engine::heroes::hero::Hero;
-use treachery_engine::identity::IIdentifiable;
+use treachery_engine::identity::Identifiable;
 use treachery_engine::prelude::*;
 
 use crate::schema::*;

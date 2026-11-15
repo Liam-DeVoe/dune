@@ -31,10 +31,9 @@ impl ReplacedCardWon {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         if !self.passed {
             let card_just_won = game.card_just_won;
-            game.discard_treachery_card_boolean(card_just_won, true)?;
+            game.discard_card(card_just_won, true)?;
             let initiator = self.get_player(game, Some(self.initiator()));
             let new_card = game.draw_treachery_card();
-            // C# adds a null card when both treachery deck and discard pile are empty.
             let initiator = initiator.required("initiator")?;
             game.player_mut(initiator).treachery_cards.push(new_card.required("new_card")?);
             game.stone(Milestone::CardWonSwapped);

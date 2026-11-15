@@ -1,5 +1,5 @@
 use crate::log::blow::{NexusLog, NexusRide};
-use crate::game::MonsterAppearence;
+use crate::game::MonsterAppearance;
 use crate::prelude::*;
 
 /// `params object?[]` element list for `Log(...)`.
@@ -90,7 +90,7 @@ impl FremenRidesMonster {
         Self::to_ride(g).is_some()
     }
 
-    pub fn to_ride(g: &Game) -> Option<MonsterAppearence> {
+    pub fn to_ride(g: &Game) -> Option<MonsterAppearance> {
         Self::to_ride_index(g).map(|i| g.monsters[i].clone())
     }
 
@@ -340,7 +340,7 @@ impl PlacementEventMethods for FremenRidesMonster {
 
 }
 
-impl crate::events::location_event::ILocationEvent for FremenRidesMonster {
+impl crate::events::location_event::LocationEvent for FremenRidesMonster {
     fn initiator(&self) -> Faction {
         GameEventMethods::initiator(self)
     }
@@ -363,7 +363,7 @@ impl crate::events::location_event::ILocationEvent for FremenRidesMonster {
 
 }
 
-impl crate::events::placement::IPlacement for FremenRidesMonster {
+impl crate::events::placement::Placement for FremenRidesMonster {
     fn initiator(&self) -> Faction {
         GameEventMethods::initiator(self)
     }

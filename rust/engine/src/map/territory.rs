@@ -7,7 +7,7 @@
 use std::fmt;
 
 use crate::enumerations::StrongholdAdvantage;
-use crate::identity::IIdentifiable;
+use crate::identity::Identifiable;
 use crate::map::location::Location;
 use crate::map::{Map, TerritoryData};
 use crate::map::data::{TERRITORIES, TERRITORY_COUNT};
@@ -57,7 +57,6 @@ impl Territory {
         self.is_stronghold() && self.is_discovery()
     }
 
-    /// `IsVisible => Locations.Any(l => l.Visible)`
     pub fn is_visible(self, map: &Map) -> bool {
         self.locations().iter().any(|l| l.visible(map))
     }
@@ -84,18 +83,15 @@ impl Territory {
         Location::slice(d.first_location as usize, d.location_count as usize)
     }
 
-    /// `locations[(int)(0.5 * locations.Count)]`
     pub fn middle_location(self) -> Location {
         let locations = self.locations();
         locations[(0.5 * locations.len() as f64) as usize]
     }
 
-    /// `Locations.FirstOrDefault(l => l.SpiceBlowAmount > 0)`
     pub fn resource_blow_location(self) -> Option<Location> {
         self.locations().iter().copied().find(|l| l.spice_blow_amount() > 0)
     }
 
-    /// `Locations.FirstOrDefault(l => l.DiscoveryTokenType != DiscoveryTokenType.None)`
     pub fn discovery_token_location(self) -> Option<Location> {
         self.locations()
             .iter()
@@ -104,7 +100,7 @@ impl Territory {
     }
 }
 
-impl IIdentifiable for Territory {
+impl Identifiable for Territory {
     fn id(&self) -> i32 {
         Territory::id(*self)
     }

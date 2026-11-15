@@ -79,10 +79,6 @@ impl BattleOutcome {
         if self.loser == Some(self.aggressor) { self.agg_hero_killed } else { self.def_hero_killed }
     }
 
-    pub fn winner_hero_killed(&self) -> bool {
-        if self.winner == Some(self.aggressor) { self.agg_hero_killed } else { self.def_hero_killed }
-    }
-
     pub fn get_message(&self, game: &Game) -> Message {
         express!(
             "Aggressor (",

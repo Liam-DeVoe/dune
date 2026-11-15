@@ -30,7 +30,7 @@ fn ordinal(a: &str, b: &str) -> std::cmp::Ordering {
     a.encode_utf16().cmp(b.encode_utf16())
 }
 
-fn ids<T: IIdentifiable>(xs: impl IntoIterator<Item = T>) -> Vec<i32> {
+fn ids<T: Identifiable>(xs: impl IntoIterator<Item = T>) -> Vec<i32> {
     xs.into_iter().map(|x| x.id()).collect()
 }
 
@@ -93,7 +93,7 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, stats
     let me = game.player(p);
     match (&options, &draft) {
         (ActionOptions::AuditCancelled(o), _) => {
-            assert_eq!((o.cost, o.cards), (AuditCancelled::cost_game(game), AuditCancelled::get_number_of_cards_that_may_be_audited(game)), "{at}");
+            assert_eq!((o.cost, o.cards), (AuditCancelled::cost_of_cancelling(game), AuditCancelled::get_number_of_cards_that_may_be_audited(game)), "{at}");
         }
         (ActionOptions::Audited(o), _) => assert_eq!(o.cards, ids(game.audited_cards.iter().copied()), "{at}"),
         (ActionOptions::Battle(o), GameEvent::Battle(b)) => check_battle(game, p, o, b, d, stats, at),
@@ -242,15 +242,15 @@ fn check_battle(game: &Game, p: PlayerIndex, o: &BattleOptions, draft: &Battle, 
     let mut expected = 0;
     for fs in 0..=o.special_tokens {
         for fn_ in 0..=o.normal_tokens {
-            if Battle::cost_game_player_int32_int32_int32(game, p, fn_, fs, &mut 0) <= available {
+            if Battle::cost_of_forces(game, p, fn_, fs, &mut 0) <= available {
                 expected += (if o.half_special { o.special_tokens - fs } else { 0 } + 1) * (if o.half_normal { o.normal_tokens - fn_ } else { 0 } + 1);
             }
         }
     }
     assert_eq!(o.mixes.len() as i32, expected, "{at}: mixes");
     for &(fs, hs, fn_, hn, dial, cost) in &o.mixes {
-        assert_eq!(dial, Battle::dial_game_player_faction_int32_int32_int32_int32(game, p, opponent, fn_, fs, hn, hs), "{at}");
-        assert_eq!(cost, Battle::cost_game_player_int32_int32_int32(game, p, fn_, fs, &mut 0), "{at}");
+        assert_eq!(dial, Battle::dial_of_forces(game, p, opponent, fn_, fs, hn, hs), "{at}");
+        assert_eq!(cost, Battle::cost_of_forces(game, p, fn_, fs, &mut 0), "{at}");
     }
     if o.half_normal || o.half_special {
         stats.add("Battle with half strength");

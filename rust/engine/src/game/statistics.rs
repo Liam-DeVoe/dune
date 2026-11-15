@@ -30,31 +30,12 @@ impl GameStatistics {
         Self::default()
     }
 
-    pub fn get_statistics(game: &Game) -> GameStatistics {
-        let result = GameStatistics {
-            date: game.last_action(),
-            method: GameStatistics::to_string(game.win_method),
-            players: game
-                .players
-                .iter()
-                .map(|p| GameStatisticsPlayerInfo { name: p.name(game), faction: GameStatistics::to_string_faction(p.faction), id: String::new() })
-                .collect(),
-            ruleset: GameStatistics::to_string_ruleset(game.ruleset),
-            // DateTime - DateTime: the tick difference (offsets are already dropped).
-            time: GameStatistics::round_to_halves(TimeSpan::from_ticks(game.last_action().ticks - game.first_action().ticks).total_hours()),
-            turn: game.current_turn,
-            winners: game.winners.iter().map(|p| GameStatistics::to_string_faction(game.player(*p).faction)).collect(),
-        };
-
-        result
-    }
-
     pub fn round_to_halves(value: f64) -> f32 {
         // Math.Round(x, MidpointRounding.AwayFromZero) is f64::round.
         ((value * 2.0).round() as f32) / 2.0
     }
 
-    pub fn to_string(m: WinMethod) -> String {
+    pub fn win_method_name(m: WinMethod) -> String {
         match m {
             WinMethod::Strongholds => "STRONGHOLDS",
             WinMethod::Prediction => "PREDICTION",

@@ -81,7 +81,7 @@ impl Game {
 
         if self.card_used_by_diplomat.is_some() {
             let card = self.card_used_by_diplomat;
-            self.discard_treachery_card_boolean(card, true)?;
+            self.discard_card(card, true)?;
             self.card_used_by_diplomat = None;
         }
 
@@ -254,7 +254,7 @@ impl Game {
 
     pub fn discard_one_time_cards(&mut self, plan: &Battle) -> GameResult {
         if let Some(card) = plan.hero().and_then(|h| h.as_treachery_card()) {
-            self.discard_treachery_card_boolean(Some(card), true)?;
+            self.discard_card(Some(card), true)?;
         }
 
         if let Some(weapon) = plan.weapon() {
@@ -268,13 +268,13 @@ impl Game {
                     .as_ref()
                     .is_some_and(|d| plan.initiator() == d.initiator() && Some(weapon) == d.card())
             {
-                self.discard_treachery_card_boolean(plan.weapon(), true)?;
+                self.discard_card(plan.weapon(), true)?;
             }
         }
 
         if let Some(defense) = plan.defense() {
             if defense.is_portable_antidote() || !(defense.is_weapon() || defense.is_defense() || defense.is_useless()) {
-                self.discard_treachery_card_boolean(plan.defense(), true)?;
+                self.discard_card(plan.defense(), true)?;
             }
         }
 
@@ -282,7 +282,7 @@ impl Game {
             if used.player() == plan.player() {
                 let portable_antidote = self.player(used.player()).card(TreacheryCardType::PortableAntidote);
                 if portable_antidote.is_some() {
-                    self.discard_treachery_card_boolean(portable_antidote, true)?;
+                    self.discard_card(portable_antidote, true)?;
                 }
             }
         }
@@ -291,7 +291,7 @@ impl Game {
             if melted.player() == plan.player() {
                 let melted_card = self.player(melted.player()).card(TreacheryCardType::Rockmelter);
                 if melted_card.is_some() {
-                    self.discard_treachery_card_boolean(melted_card, true)?;
+                    self.discard_card(melted_card, true)?;
                 }
             }
         }
@@ -336,7 +336,7 @@ impl Game {
     }
 
     pub fn activate_decipherer_if_applicable(&mut self, plan: &Battle) {
-        let player_is_skilled = self.skilled_as_player_leader_skill(plan.player(), LeaderSkill::Decipherer);
+        let player_is_skilled = self.has_skill_in_front_of_shield(plan.player(), LeaderSkill::Decipherer);
         let leader_is_skilled = plan.hero().is_some() && self.skilled_as(plan.hero().expect("hero"), LeaderSkill::Decipherer);
 
         if player_is_skilled || leader_is_skilled {
@@ -434,7 +434,7 @@ impl Game {
             if self.battle_winner == Some(Faction::None) {
                 self.finish_battle()?;
             } else {
-                self.enter_boolean_phase_phase(harkonnen_must_decide, Phase::CaptureDecision, Phase::BattleConclusion);
+                self.enter_either(harkonnen_must_decide, Phase::CaptureDecision, Phase::BattleConclusion);
             }
             self.let_factions_discard_surplus_cards();
         }
@@ -471,7 +471,7 @@ impl Game {
             if self.battle_winner == Some(Faction::None) {
                 self.finish_battle()?;
             } else {
-                self.enter_boolean_phase_phase(harkonnen_must_decide, Phase::CaptureDecision, Phase::BattleConclusion);
+                self.enter_either(harkonnen_must_decide, Phase::CaptureDecision, Phase::BattleConclusion);
             }
         }
 
@@ -678,8 +678,8 @@ impl Game {
         let undialed_special_forces = self
             .player(force_supplier)
             .special_forces_in_territory(Some(battle_territory)) - plan.special_forces - plan.special_forces_at_half_strength;
-        Player::forces_to_reserves_territory_int32_boolean(self, force_supplier, territory, undialed_normal_forces, false);
-        Player::forces_to_reserves_territory_int32_boolean(self, force_supplier, territory, undialed_special_forces, true);
+        Player::some_forces_in_territory_to_reserves(self, force_supplier, territory, undialed_normal_forces, false);
+        Player::some_forces_in_territory_to_reserves(self, force_supplier, territory, undialed_special_forces, true);
 
         if (undialed_normal_forces + undialed_special_forces) > 0 {
             let force = self.player(force_supplier).force();
@@ -727,7 +727,7 @@ impl Game {
 
         self.log_all_forces_lost(force_supplier, territory);
         self.pay_dialed_spice(loser, loser_gambit, false);
-        Player::kill_all_forces_territory_boolean(self, force_supplier, territory, true);
+        Player::kill_all_forces_in_territory(self, force_supplier, territory, true);
         let may_keep = self.may_keep_cards_after_losing_battle(loser);
         self.lose_cards(loser_gambit, may_keep)?;
 
@@ -742,7 +742,7 @@ impl Game {
             let ecaz = self.get_player(Some(Faction::Ecaz));
             let Some(ecaz) = ecaz else { return };
             let amount = self.current_ecaz_battle_contribution;
-            Player::kill_forces_territory_int32_boolean_boolean(self, ecaz, territory, amount, false, true);
+            Player::kill_forces_in_territory(self, ecaz, territory, amount, false, true);
             let force = self.player(ecaz).force();
             let amount = self.current_ecaz_battle_contribution;
             self.log(le![Faction::Ecaz, " lose ", amount, force]);
@@ -754,7 +754,7 @@ impl Game {
             let ecaz = self.get_player(Some(Faction::Ecaz));
             let Some(ecaz) = ecaz else { return };
             self.log_all_forces_lost(ecaz, territory);
-            Player::kill_all_forces_territory_boolean(self, ecaz, territory, true);
+            Player::kill_all_forces_in_territory(self, ecaz, territory, true);
         }
     }
 
@@ -769,7 +769,7 @@ impl Game {
 
     pub fn pay_dialed_spice(&mut self, p: PlayerIndex, plan: &Battle, traitor_was_revealed: bool) {
         let mut paid_by_arrakeen: i32 = 0;
-        let cost = plan.cost_game_int32(self, &mut paid_by_arrakeen);
+        let cost = plan.cost_with_arrakeen_share(self, &mut paid_by_arrakeen);
         let cost_to_choam = if self.player(p).ally == Faction::Choam { plan.ally_contribution_amount } else { 0 };
 
         if paid_by_arrakeen > 0 {
@@ -891,7 +891,7 @@ impl Game {
                     0,
                     std::cmp::min(forces_to_lose - forces_to_save_in_territory, 2 - special_forces_to_save_to_reserves),
                 );
-            } else if self.skilled_as_player_leader_skill(winner, LeaderSkill::Graduate) {
+            } else if self.has_skill_in_front_of_shield(winner, LeaderSkill::Graduate) {
                 special_forces_to_save_to_reserves = std::cmp::min(special_forces_to_lose, 1);
                 forces_to_save_to_reserves = std::cmp::max(0, std::cmp::min(forces_to_lose, 1 - special_forces_to_save_to_reserves));
             }
@@ -899,11 +899,11 @@ impl Game {
 
         if special_forces_to_save_in_territory + forces_to_save_in_territory + special_forces_to_save_to_reserves + forces_to_save_to_reserves > 0 {
             if special_forces_to_save_to_reserves > 0 {
-                Player::forces_to_reserves_territory_int32_boolean(self, force_supplier, territory, special_forces_to_save_to_reserves, true);
+                Player::some_forces_in_territory_to_reserves(self, force_supplier, territory, special_forces_to_save_to_reserves, true);
             }
 
             if forces_to_save_to_reserves > 0 {
-                Player::forces_to_reserves_territory_int32_boolean(self, force_supplier, territory, forces_to_save_to_reserves, false);
+                Player::some_forces_in_territory_to_reserves(self, force_supplier, territory, forces_to_save_to_reserves, false);
             }
 
             let force = self.player(force_supplier).force();
@@ -941,8 +941,8 @@ impl Game {
     pub fn handle_force_losses(&mut self, territory: Territory, player: PlayerIndex, forces_lost: i32, special_forces_lost: i32) {
         let had_messiah_before_losses = self.player(player).messiah_available(self);
 
-        Player::kill_forces_territory_int32_boolean_boolean(self, player, territory, forces_lost, false, true);
-        Player::kill_forces_territory_int32_boolean_boolean(self, player, territory, special_forces_lost, true, true);
+        Player::kill_forces_in_territory(self, player, territory, forces_lost, false, true);
+        Player::kill_forces_in_territory(self, player, territory, special_forces_lost, true, true);
 
         self.log_losses(player, forces_lost, special_forces_lost);
 
@@ -1096,11 +1096,11 @@ impl Game {
 
         if force_supplier_of_loser != loser {
             self.log_all_forces_lost(force_supplier_of_loser, territory);
-            Player::kill_all_forces_territory_boolean(self, force_supplier_of_loser, territory, true);
+            Player::kill_all_forces_in_territory(self, force_supplier_of_loser, territory, true);
         }
 
         self.log_all_forces_lost(loser, territory);
-        Player::kill_all_forces_territory_boolean(self, loser, territory, true);
+        Player::kill_all_forces_in_territory(self, loser, territory, true);
         let may_keep = self.may_keep_cards_after_losing_battle(loser);
         self.lose_cards(loser_plan, may_keep)?;
         self.pay_dialed_spice(loser, loser_plan, true);
@@ -1123,21 +1123,21 @@ impl Game {
         self.process_ecaz_occupation_loser_losses(territory, defender);
         if force_supplier_of_defender != defender {
             self.log_all_forces_lost(force_supplier_of_defender, territory);
-            Player::kill_all_forces_territory_boolean(self, force_supplier_of_defender, territory, true);
+            Player::kill_all_forces_in_territory(self, force_supplier_of_defender, territory, true);
         }
 
         self.log_all_forces_lost(defender, territory);
-        Player::kill_all_forces_territory_boolean(self, defender, territory, true);
+        Player::kill_all_forces_in_territory(self, defender, territory, true);
 
         let force_supplier_of_aggressor = Battle::determine_force_supplier(self, aggressor);
         self.process_ecaz_occupation_loser_losses(territory, aggressor);
         if force_supplier_of_aggressor != aggressor {
             self.log_all_forces_lost(force_supplier_of_aggressor, territory);
-            Player::kill_all_forces_territory_boolean(self, force_supplier_of_aggressor, territory, true);
+            Player::kill_all_forces_in_territory(self, force_supplier_of_aggressor, territory, true);
         }
 
         self.log_all_forces_lost(aggressor, territory);
-        Player::kill_all_forces_territory_boolean(self, aggressor, territory, true);
+        Player::kill_all_forces_in_territory(self, aggressor, territory, true);
 
         self.lose_cards(def, false)?;
         self.pay_dialed_spice(defender, def, true);
@@ -1198,7 +1198,7 @@ impl Game {
             let p = self.player_at(i);
             // `territory` may be null: AnyForcesIn(null) is 0.
             if self.player(p).any_forces_in_territory(Some(territory)) > 0 {
-                self.reveal_current_no_field_player_territory(p, territory);
+                self.reveal_current_no_field_in_territory(p, territory);
 
                 let homeworld_kill_limit = if in_battle {
                     self.player(p).get_homeworld_battle_contribution_and_lasgun_shield_limit(self, territory)
@@ -1208,7 +1208,7 @@ impl Game {
                 if homeworld_kill_limit == 0 {
                     let f = self.player(p).faction;
                     self.log(le!["All ", f, " forces in ", territory, " were killed"]);
-                    Player::kill_all_forces_territory_boolean(self, p, territory, in_battle);
+                    Player::kill_all_forces_in_territory(self, p, territory, in_battle);
                 } else {
                     let normal_forces_to_kill = std::cmp::min(self.player(p).forces_in_territory(Some(territory)), homeworld_kill_limit);
                     let special_forces_to_kill = std::cmp::min(
@@ -1217,10 +1217,10 @@ impl Game {
                     );
 
                     if normal_forces_to_kill > 0 {
-                        Player::kill_forces_territory_int32_boolean_boolean(self, p, territory, normal_forces_to_kill, false, in_battle);
+                        Player::kill_forces_in_territory(self, p, territory, normal_forces_to_kill, false, in_battle);
                     }
                     if special_forces_to_kill > 0 {
-                        Player::kill_forces_territory_int32_boolean_boolean(self, p, territory, special_forces_to_kill, true, in_battle);
+                        Player::kill_forces_in_territory(self, p, territory, special_forces_to_kill, true, in_battle);
                     }
 
                     let force = self.player(p).force();
@@ -1367,9 +1367,7 @@ impl Game {
             return;
         };
 
-        // The C# loop filters LeaderState lazily. The body changes only values, never
-        // the keys, so walking a snapshot of the keys and testing each one when it is
-        // reached is the same.
+        // The body changes only values, never the keys.
         let keys: Vec<Hero> = self.leader_state.keys().copied().collect();
         for key in keys {
             let Some(leader) = key.as_leader() else { continue };
@@ -1434,10 +1432,10 @@ impl Game {
             }
         } else {
             if plan.weapon().is_some() {
-                self.discard_treachery_card_boolean(plan.weapon(), true)?;
+                self.discard_card(plan.weapon(), true)?;
             }
             if plan.defense().is_some() {
-                self.discard_treachery_card_boolean(plan.defense(), true)?;
+                self.discard_card(plan.defense(), true)?;
             }
         }
         Ok(())

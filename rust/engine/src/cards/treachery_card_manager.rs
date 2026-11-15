@@ -1,6 +1,6 @@
 use crate::cards::deck::Deck;
 use crate::enumerations::{Rule, TreacheryCardType};
-use crate::identity::IFetcher;
+use crate::identity::Fetcher;
 use crate::random::SharedRandom;
 use crate::map::MapGame;
 use crate::cards::treachery_card::{TreacheryCard, TreacheryCardData};
@@ -91,7 +91,6 @@ static ITEM_HANDLES: [TreacheryCard; 63] = {
 
 /// What `TreacheryCardManager.GetCardsInPlay(Game g)` reads from the game.
 pub trait CardsGame {
-    /// `g.Applicable(rule)`
     fn applicable(&self, rule: Rule) -> bool;
 }
 
@@ -109,27 +108,22 @@ impl TreacheryCardManager {
     pub const CARD_TRIP_TO_GAMONT: i32 = 32;
     pub const CARD_KULL_WAHAD: i32 = 46;
 
-    /// `TreacheryCardManager.Items`
     pub fn items() -> &'static [TreacheryCard] {
         &ITEM_HANDLES
     }
 
-    /// `TreacheryCardManager.Lookup`
     pub fn lookup() -> TreacheryCardFetcher {
         TreacheryCardFetcher
     }
 
-    /// `CreateTreacheryDeck(g, random)`
     pub fn create_treachery_deck(g: &impl CardsGame, random: Option<SharedRandom>) -> Deck<TreacheryCard> {
         Deck::new(Self::get_cards_in_play(g), random)
     }
 
-    /// `GetRicheseCards()`
     pub fn get_richese_cards() -> Vec<TreacheryCard> {
         Self::get_cards_in_play_by_rule(Rule::RicheseTreacheryCards).collect()
     }
 
-    /// `GetCardsInPlay(Game g)`
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn get_cards_in_play(g: &impl CardsGame) -> impl Iterator<Item = TreacheryCard> {
         Self::items()
@@ -140,32 +134,27 @@ impl TreacheryCardManager {
             })
     }
 
-    /// `GetCardsInPlay(Rule rule)`
     pub fn get_cards_in_play_by_rule(rule: Rule) -> impl Iterator<Item = TreacheryCard> {
         Self::items().iter().copied().filter(move |c| c.rules().contains(&rule))
     }
 
-    /// `GetCardsInAndOutsidePlay()`
     pub fn get_cards_in_and_outside_play() -> &'static [TreacheryCard] {
         Self::items()
     }
 
-    /// `Get(id)`
     pub fn get(id: i32) -> Option<TreacheryCard> {
         Self::items().iter().copied().find(|i| i.id() == id)
     }
 
-    /// `GetId(value)`
     pub fn get_id(value: Option<TreacheryCard>) -> i32 {
         value.map_or(-1, |c| c.id())
     }
 }
 
-/// `TreacheryCardManager.TreacheryCardFetcher`
 #[derive(Clone, Copy, Debug)]
 pub struct TreacheryCardFetcher;
 
-impl IFetcher<TreacheryCard> for TreacheryCardFetcher {
+impl Fetcher<TreacheryCard> for TreacheryCardFetcher {
     fn find(&self, id: i32) -> Option<TreacheryCard> {
         if id < -1 {
             return None;

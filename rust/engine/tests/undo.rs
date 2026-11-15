@@ -86,7 +86,7 @@ fn run(g: &mut Game, events: &[&str]) {
 }
 
 fn game_after(events: &[&str]) -> Game {
-    let mut g = Game::new_int32_participation(Game::LATEST_VERSION, &Shared::new(participation()));
+    let mut g = Game::with_participation(Game::LATEST_VERSION, &Shared::new(participation()));
     run(&mut g, events);
     g
 }
@@ -182,7 +182,7 @@ fn undo_that_throws_keeps_the_game() {
 #[test]
 fn participation_is_shared() {
     let part = Shared::new(Participation::new());
-    let g = Game::new_int32_participation(Game::LATEST_VERSION, &part);
+    let g = Game::with_participation(Game::LATEST_VERSION, &part);
     part.borrow_mut().hosts.insert(7);
     assert!(g.is_host(Some(7)));
     let mut g = g;

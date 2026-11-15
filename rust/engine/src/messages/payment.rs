@@ -12,27 +12,18 @@ pub struct Payment {
 }
 
 impl Payment {
-    /// `new Payment(amount)`
     pub fn new(amount: i32) -> Self {
         Payment { amount, ..Default::default() }
     }
 
-    /// `new Payment(amount, by)`
-    pub fn new_by(amount: i32, by: Faction) -> Self {
-        Payment { amount, by, ..Default::default() }
-    }
-
-    /// `Payment.Of(amount)`
     pub fn of(amount: i32) -> Self {
         Payment { amount, ..Default::default() }
     }
 
-    /// `Payment.Of(amount, by)`
     pub fn of_by(amount: i32, by: Faction) -> Self {
         Payment { amount, by, ..Default::default() }
     }
 
-    /// `new Payment(amount, by, to, reason)`
     pub fn new_full(amount: i32, by: Faction, to: Faction, reason: Option<GameEvent>) -> Self {
         Payment { amount, by, to, reason }
     }

@@ -156,7 +156,7 @@ impl BeneGesseritAccompanies {
 
     pub fn may_send_extra_advisor(g: &Game, p: PlayerIndex, l: Location) -> bool {
         let pl = g.player(p);
-        pl.has_high_threshold_0(g) && l == g.map.polar_sink() && pl.forces_in_reserve() >= 2
+        pl.has_any_high_threshold(g) && l == g.map.polar_sink() && pl.forces_in_reserve() >= 2
     }
 
 }
@@ -188,7 +188,7 @@ impl GameEventMethods for BeneGesseritAccompanies {
 
 }
 
-impl crate::events::location_event::ILocationEvent for BeneGesseritAccompanies {
+impl crate::events::location_event::LocationEvent for BeneGesseritAccompanies {
     fn initiator(&self) -> Faction {
         GameEventMethods::initiator(self)
     }

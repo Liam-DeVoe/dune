@@ -68,7 +68,6 @@ impl PerformSetup {
         game.has_acted_or_passed.push(faction);
 
         if game.players.len() == game.has_acted_or_passed.len() {
-            // Game.Enter(bool, Action, Action) is static in C#; inlined here.
             if game.treachery_cards_before_traitors() {
                 game.enter_storm_phase();
             } else {
@@ -142,7 +141,7 @@ impl PlacementEventMethods for PerformSetup {
 
 }
 
-impl crate::events::location_event::ILocationEvent for PerformSetup {
+impl crate::events::location_event::LocationEvent for PerformSetup {
     fn initiator(&self) -> Faction {
         GameEventMethods::initiator(self)
     }
@@ -165,7 +164,7 @@ impl crate::events::location_event::ILocationEvent for PerformSetup {
 
 }
 
-impl crate::events::placement::IPlacement for PerformSetup {
+impl crate::events::placement::Placement for PerformSetup {
     fn initiator(&self) -> Faction {
         GameEventMethods::initiator(self)
     }

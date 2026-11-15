@@ -71,7 +71,6 @@ impl From<Homeworld> for Location {
     }
 }
 
-/// `HomeworldStatus`
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct HomeworldStatus {
     is_high: bool,
@@ -85,10 +84,6 @@ impl HomeworldStatus {
 
     pub fn is_high(&self) -> bool {
         self.is_high
-    }
-
-    pub fn is_low(&self) -> bool {
-        !self.is_high
     }
 
     pub fn occupant(&self) -> Faction {

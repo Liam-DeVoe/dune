@@ -1466,7 +1466,6 @@ impl GameEventType {
         GameEventType::Voice,
     ];
 
-    /// `Type.Name`
     pub fn name(self) -> &'static str {
         match self {
             GameEventType::AcceptOrCancelTleilaxuRevival => "AcceptOrCancelTleilaxuRevival",
@@ -1941,7 +1940,6 @@ impl GameEvent {
         dispatch!(self, e => Rc::as_ptr(e) as *const ())
     }
 
-    /// `GetType()`
     pub fn event_type(&self) -> GameEventType {
         dispatch!(self, e => e.event_type())
     }
@@ -2014,8 +2012,8 @@ impl GameEvent {
         dispatch!(self, e => GameEventMethods::by_player(&**e, game, p))
     }
 
-    pub fn cs_clone(&self) -> Option<GameEvent> {
-        dispatch!(self, e => GameEventMethods::cs_clone(&**e))
+    pub fn shallow_copy(&self) -> Option<GameEvent> {
+        dispatch!(self, e => GameEventMethods::shallow_copy(&**e))
     }
 
     pub fn log(&self, game: &mut Game) {
@@ -2042,277 +2040,223 @@ impl GameEvent {
         dispatch!(self, e => GameEventMethods::is_playing(&**e, game, f))
     }
 
-    /// `((IBid)this).TotalAmount`; InvalidCastException for events that do not implement `IBid`.
-    pub fn i_bid_total_amount(&self) -> i32 {
+    /// `((BidEvent)this).TotalAmount`; InvalidCastException for events that do not implement `BidEvent`.
+    pub fn bid_total_amount(&self) -> i32 {
         match self {
-            GameEvent::Bid(e) => <Bid as bid_trait::IBid>::total_amount(&**e),
-            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::IBid>::total_amount(&**e),
-            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
+            GameEvent::Bid(e) => <Bid as bid_trait::BidEvent>::total_amount(&**e),
+            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::total_amount(&**e),
+            _ => panic!("{} is not a BidEvent", self.event_type().name()),
         }
     }
 
-    /// `((IBid)this).Amount`; InvalidCastException for events that do not implement `IBid`.
-    pub fn i_bid_amount(&self) -> i32 {
+    /// `((BidEvent)this).Amount`; InvalidCastException for events that do not implement `BidEvent`.
+    pub fn bid_amount(&self) -> i32 {
         match self {
-            GameEvent::Bid(e) => <Bid as bid_trait::IBid>::amount(&**e),
-            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::IBid>::amount(&**e),
-            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
+            GameEvent::Bid(e) => <Bid as bid_trait::BidEvent>::amount(&**e),
+            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::amount(&**e),
+            _ => panic!("{} is not a BidEvent", self.event_type().name()),
         }
     }
 
-    /// `((IBid)this).AllyContributionAmount`; InvalidCastException for events that do not implement `IBid`.
-    pub fn i_bid_ally_contribution_amount(&self) -> i32 {
+    /// `((BidEvent)this).AllyContributionAmount`; InvalidCastException for events that do not implement `BidEvent`.
+    pub fn bid_ally_contribution_amount(&self) -> i32 {
         match self {
-            GameEvent::Bid(e) => <Bid as bid_trait::IBid>::ally_contribution_amount(&**e),
-            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::IBid>::ally_contribution_amount(&**e),
-            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
+            GameEvent::Bid(e) => <Bid as bid_trait::BidEvent>::ally_contribution_amount(&**e),
+            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::ally_contribution_amount(&**e),
+            _ => panic!("{} is not a BidEvent", self.event_type().name()),
         }
     }
 
-    /// `((IBid)this).EmperorContributionAmount`; InvalidCastException for events that do not implement `IBid`.
-    pub fn i_bid_emperor_contribution_amount(&self) -> i32 {
+    /// `((BidEvent)this).EmperorContributionAmount`; InvalidCastException for events that do not implement `BidEvent`.
+    pub fn bid_emperor_contribution_amount(&self) -> i32 {
         match self {
-            GameEvent::Bid(e) => <Bid as bid_trait::IBid>::emperor_contribution_amount(&**e),
-            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::IBid>::emperor_contribution_amount(&**e),
-            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
+            GameEvent::Bid(e) => <Bid as bid_trait::BidEvent>::emperor_contribution_amount(&**e),
+            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::emperor_contribution_amount(&**e),
+            _ => panic!("{} is not a BidEvent", self.event_type().name()),
         }
     }
 
-    /// `((IBid)this).UsesEmperorSecretAlly`; InvalidCastException for events that do not implement `IBid`.
-    pub fn i_bid_uses_emperor_secret_ally(&self) -> bool {
+    /// `((BidEvent)this).Initiator`; InvalidCastException for events that do not implement `BidEvent`.
+    pub fn bid_initiator(&self) -> Faction {
         match self {
-            GameEvent::Bid(e) => <Bid as bid_trait::IBid>::uses_emperor_secret_ally(&**e),
-            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::IBid>::uses_emperor_secret_ally(&**e),
-            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
+            GameEvent::Bid(e) => <Bid as bid_trait::BidEvent>::initiator(&**e),
+            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::initiator(&**e),
+            _ => panic!("{} is not a BidEvent", self.event_type().name()),
         }
     }
 
-    /// `((IBid)this).Initiator`; InvalidCastException for events that do not implement `IBid`.
-    pub fn i_bid_initiator(&self) -> Faction {
+    /// `((BidEvent)this).Player`; InvalidCastException for events that do not implement `BidEvent`.
+    pub fn bid_player(&self) -> Option<PlayerIndex> {
         match self {
-            GameEvent::Bid(e) => <Bid as bid_trait::IBid>::initiator(&**e),
-            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::IBid>::initiator(&**e),
-            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
+            GameEvent::Bid(e) => <Bid as bid_trait::BidEvent>::player(&**e),
+            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::player(&**e),
+            _ => panic!("{} is not a BidEvent", self.event_type().name()),
         }
     }
 
-    /// `((IBid)this).Player`; InvalidCastException for events that do not implement `IBid`.
-    pub fn i_bid_player(&self) -> Option<PlayerIndex> {
+    /// `((BidEvent)this).Passed`; InvalidCastException for events that do not implement `BidEvent`.
+    pub fn bid_passed(&self) -> bool {
         match self {
-            GameEvent::Bid(e) => <Bid as bid_trait::IBid>::player(&**e),
-            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::IBid>::player(&**e),
-            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
+            GameEvent::Bid(e) => <Bid as bid_trait::BidEvent>::passed(&**e),
+            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::passed(&**e),
+            _ => panic!("{} is not a BidEvent", self.event_type().name()),
         }
     }
 
-    /// `((IBid)this).Passed`; InvalidCastException for events that do not implement `IBid`.
-    pub fn i_bid_passed(&self) -> bool {
+    /// `((BidEvent)this).UsingKarmaToRemoveBidLimit`; InvalidCastException for events that do not implement `BidEvent`.
+    pub fn bid_using_karma_to_remove_bid_limit(&self) -> bool {
         match self {
-            GameEvent::Bid(e) => <Bid as bid_trait::IBid>::passed(&**e),
-            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::IBid>::passed(&**e),
-            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
+            GameEvent::Bid(e) => <Bid as bid_trait::BidEvent>::using_karma_to_remove_bid_limit(&**e),
+            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::using_karma_to_remove_bid_limit(&**e),
+            _ => panic!("{} is not a BidEvent", self.event_type().name()),
         }
     }
 
-    /// `((IBid)this).UsingKarmaToRemoveBidLimit`; InvalidCastException for events that do not implement `IBid`.
-    pub fn i_bid_using_karma_to_remove_bid_limit(&self) -> bool {
+    /// `((BidEvent)this).KarmaCard`; InvalidCastException for events that do not implement `BidEvent`.
+    pub fn bid_karma_card(&self) -> Option<TreacheryCard> {
         match self {
-            GameEvent::Bid(e) => <Bid as bid_trait::IBid>::using_karma_to_remove_bid_limit(&**e),
-            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::IBid>::using_karma_to_remove_bid_limit(&**e),
-            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
+            GameEvent::Bid(e) => <Bid as bid_trait::BidEvent>::karma_card(&**e),
+            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::karma_card(&**e),
+            _ => panic!("{} is not a BidEvent", self.event_type().name()),
         }
     }
 
-    /// `((IBid)this).KarmaCard`; InvalidCastException for events that do not implement `IBid`.
-    pub fn i_bid_karma_card(&self) -> Option<TreacheryCard> {
+    /// `((BidEvent)this).KarmaBid`; InvalidCastException for events that do not implement `BidEvent`.
+    pub fn bid_karma_bid(&self) -> bool {
         match self {
-            GameEvent::Bid(e) => <Bid as bid_trait::IBid>::karma_card(&**e),
-            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::IBid>::karma_card(&**e),
-            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
+            GameEvent::Bid(e) => <Bid as bid_trait::BidEvent>::karma_bid(&**e),
+            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::karma_bid(&**e),
+            _ => panic!("{} is not a BidEvent", self.event_type().name()),
         }
     }
 
-    /// `((IBid)this).GetMessage`; InvalidCastException for events that do not implement `IBid`.
-    pub fn i_bid_get_message(&self, game: &Game) -> Message {
+    /// `((LocationEvent)this).Initiator`; InvalidCastException for events that do not implement `LocationEvent`.
+    pub fn location_event_initiator(&self) -> Faction {
         match self {
-            GameEvent::Bid(e) => <Bid as bid_trait::IBid>::get_message(&**e, game),
-            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::IBid>::get_message(&**e, game),
-            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
+            GameEvent::AmbassadorActivated(e) => <AmbassadorActivated as location_event::LocationEvent>::initiator(&**e),
+            GameEvent::BeneGesseritAccompanies(e) => <BeneGesseritAccompanies as location_event::LocationEvent>::initiator(&**e),
+            GameEvent::Caravan(e) => <Caravan as location_event::LocationEvent>::initiator(&**e),
+            GameEvent::DiscoveryEntered(e) => <DiscoveryEntered as location_event::LocationEvent>::initiator(&**e),
+            GameEvent::FaceDanced(e) => <FaceDanced as location_event::LocationEvent>::initiator(&**e),
+            GameEvent::FremenRidesMonster(e) => <FremenRidesMonster as location_event::LocationEvent>::initiator(&**e),
+            GameEvent::Move(e) => <Move as location_event::LocationEvent>::initiator(&**e),
+            GameEvent::NexusPlayed(e) => <NexusPlayed as location_event::LocationEvent>::initiator(&**e),
+            GameEvent::PerformFremenSetup(e) => <PerformFremenSetup as location_event::LocationEvent>::initiator(&**e),
+            GameEvent::PerformSetup(e) => <PerformSetup as location_event::LocationEvent>::initiator(&**e),
+            GameEvent::RaiseDeadPlayed(e) => <RaiseDeadPlayed as location_event::LocationEvent>::initiator(&**e),
+            GameEvent::Revival(e) => <Revival as location_event::LocationEvent>::initiator(&**e),
+            GameEvent::Shipment(e) => <Shipment as location_event::LocationEvent>::initiator(&**e),
+            GameEvent::TerrorRevealed(e) => <TerrorRevealed as location_event::LocationEvent>::initiator(&**e),
+            _ => panic!("{} is not a LocationEvent", self.event_type().name()),
         }
     }
 
-    /// `((IBid)this).KarmaBid`; InvalidCastException for events that do not implement `IBid`.
-    pub fn i_bid_karma_bid(&self) -> bool {
+    /// `((LocationEvent)this).To`; InvalidCastException for events that do not implement `LocationEvent`.
+    pub fn location_event_to(&self, game: &Game) -> Option<Location> {
         match self {
-            GameEvent::Bid(e) => <Bid as bid_trait::IBid>::karma_bid(&**e),
-            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::IBid>::karma_bid(&**e),
-            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IBid'.", self.event_type().name()),
+            GameEvent::AmbassadorActivated(e) => <AmbassadorActivated as location_event::LocationEvent>::to(&**e, game),
+            GameEvent::BeneGesseritAccompanies(e) => <BeneGesseritAccompanies as location_event::LocationEvent>::to(&**e, game),
+            GameEvent::Caravan(e) => <Caravan as location_event::LocationEvent>::to(&**e, game),
+            GameEvent::DiscoveryEntered(e) => <DiscoveryEntered as location_event::LocationEvent>::to(&**e, game),
+            GameEvent::FaceDanced(e) => <FaceDanced as location_event::LocationEvent>::to(&**e, game),
+            GameEvent::FremenRidesMonster(e) => <FremenRidesMonster as location_event::LocationEvent>::to(&**e, game),
+            GameEvent::Move(e) => <Move as location_event::LocationEvent>::to(&**e, game),
+            GameEvent::NexusPlayed(e) => <NexusPlayed as location_event::LocationEvent>::to(&**e, game),
+            GameEvent::PerformFremenSetup(e) => <PerformFremenSetup as location_event::LocationEvent>::to(&**e, game),
+            GameEvent::PerformSetup(e) => <PerformSetup as location_event::LocationEvent>::to(&**e, game),
+            GameEvent::RaiseDeadPlayed(e) => <RaiseDeadPlayed as location_event::LocationEvent>::to(&**e, game),
+            GameEvent::Revival(e) => <Revival as location_event::LocationEvent>::to(&**e, game),
+            GameEvent::Shipment(e) => <Shipment as location_event::LocationEvent>::to(&**e, game),
+            GameEvent::TerrorRevealed(e) => <TerrorRevealed as location_event::LocationEvent>::to(&**e, game),
+            _ => panic!("{} is not a LocationEvent", self.event_type().name()),
         }
     }
 
-    /// `this is IBid`
-    pub fn is_i_bid(&self) -> bool {
-        matches!(self, GameEvent::Bid(_) | GameEvent::BlackMarketBid(_))
-    }
-
-    /// `((ILocationEvent)this).Initiator`; InvalidCastException for events that do not implement `ILocationEvent`.
-    pub fn i_location_event_initiator(&self) -> Faction {
+    /// `((LocationEvent)this).TotalAmountOfForcesAddedToLocation`; InvalidCastException for events that do not implement `LocationEvent`.
+    pub fn location_event_total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {
         match self {
-            GameEvent::AmbassadorActivated(e) => <AmbassadorActivated as location_event::ILocationEvent>::initiator(&**e),
-            GameEvent::BeneGesseritAccompanies(e) => <BeneGesseritAccompanies as location_event::ILocationEvent>::initiator(&**e),
-            GameEvent::Caravan(e) => <Caravan as location_event::ILocationEvent>::initiator(&**e),
-            GameEvent::DiscoveryEntered(e) => <DiscoveryEntered as location_event::ILocationEvent>::initiator(&**e),
-            GameEvent::FaceDanced(e) => <FaceDanced as location_event::ILocationEvent>::initiator(&**e),
-            GameEvent::FremenRidesMonster(e) => <FremenRidesMonster as location_event::ILocationEvent>::initiator(&**e),
-            GameEvent::Move(e) => <Move as location_event::ILocationEvent>::initiator(&**e),
-            GameEvent::NexusPlayed(e) => <NexusPlayed as location_event::ILocationEvent>::initiator(&**e),
-            GameEvent::PerformFremenSetup(e) => <PerformFremenSetup as location_event::ILocationEvent>::initiator(&**e),
-            GameEvent::PerformSetup(e) => <PerformSetup as location_event::ILocationEvent>::initiator(&**e),
-            GameEvent::RaiseDeadPlayed(e) => <RaiseDeadPlayed as location_event::ILocationEvent>::initiator(&**e),
-            GameEvent::Revival(e) => <Revival as location_event::ILocationEvent>::initiator(&**e),
-            GameEvent::Shipment(e) => <Shipment as location_event::ILocationEvent>::initiator(&**e),
-            GameEvent::TerrorRevealed(e) => <TerrorRevealed as location_event::ILocationEvent>::initiator(&**e),
-            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.ILocationEvent'.", self.event_type().name()),
+            GameEvent::AmbassadorActivated(e) => <AmbassadorActivated as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            GameEvent::BeneGesseritAccompanies(e) => <BeneGesseritAccompanies as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            GameEvent::Caravan(e) => <Caravan as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            GameEvent::DiscoveryEntered(e) => <DiscoveryEntered as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            GameEvent::FaceDanced(e) => <FaceDanced as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            GameEvent::FremenRidesMonster(e) => <FremenRidesMonster as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            GameEvent::Move(e) => <Move as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            GameEvent::NexusPlayed(e) => <NexusPlayed as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            GameEvent::PerformFremenSetup(e) => <PerformFremenSetup as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            GameEvent::PerformSetup(e) => <PerformSetup as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            GameEvent::RaiseDeadPlayed(e) => <RaiseDeadPlayed as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            GameEvent::Revival(e) => <Revival as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            GameEvent::Shipment(e) => <Shipment as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            GameEvent::TerrorRevealed(e) => <TerrorRevealed as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            _ => panic!("{} is not a LocationEvent", self.event_type().name()),
         }
     }
 
-    /// `((ILocationEvent)this).To`; InvalidCastException for events that do not implement `ILocationEvent`.
-    pub fn i_location_event_to(&self, game: &Game) -> Option<Location> {
+    /// `((LocationEvent)this).ForcesAddedToLocation`; InvalidCastException for events that do not implement `LocationEvent`.
+    pub fn location_event_forces_added_to_location(&self, game: &Game) -> i32 {
         match self {
-            GameEvent::AmbassadorActivated(e) => <AmbassadorActivated as location_event::ILocationEvent>::to(&**e, game),
-            GameEvent::BeneGesseritAccompanies(e) => <BeneGesseritAccompanies as location_event::ILocationEvent>::to(&**e, game),
-            GameEvent::Caravan(e) => <Caravan as location_event::ILocationEvent>::to(&**e, game),
-            GameEvent::DiscoveryEntered(e) => <DiscoveryEntered as location_event::ILocationEvent>::to(&**e, game),
-            GameEvent::FaceDanced(e) => <FaceDanced as location_event::ILocationEvent>::to(&**e, game),
-            GameEvent::FremenRidesMonster(e) => <FremenRidesMonster as location_event::ILocationEvent>::to(&**e, game),
-            GameEvent::Move(e) => <Move as location_event::ILocationEvent>::to(&**e, game),
-            GameEvent::NexusPlayed(e) => <NexusPlayed as location_event::ILocationEvent>::to(&**e, game),
-            GameEvent::PerformFremenSetup(e) => <PerformFremenSetup as location_event::ILocationEvent>::to(&**e, game),
-            GameEvent::PerformSetup(e) => <PerformSetup as location_event::ILocationEvent>::to(&**e, game),
-            GameEvent::RaiseDeadPlayed(e) => <RaiseDeadPlayed as location_event::ILocationEvent>::to(&**e, game),
-            GameEvent::Revival(e) => <Revival as location_event::ILocationEvent>::to(&**e, game),
-            GameEvent::Shipment(e) => <Shipment as location_event::ILocationEvent>::to(&**e, game),
-            GameEvent::TerrorRevealed(e) => <TerrorRevealed as location_event::ILocationEvent>::to(&**e, game),
-            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.ILocationEvent'.", self.event_type().name()),
+            GameEvent::AmbassadorActivated(e) => <AmbassadorActivated as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            GameEvent::BeneGesseritAccompanies(e) => <BeneGesseritAccompanies as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            GameEvent::Caravan(e) => <Caravan as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            GameEvent::DiscoveryEntered(e) => <DiscoveryEntered as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            GameEvent::FaceDanced(e) => <FaceDanced as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            GameEvent::FremenRidesMonster(e) => <FremenRidesMonster as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            GameEvent::Move(e) => <Move as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            GameEvent::NexusPlayed(e) => <NexusPlayed as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            GameEvent::PerformFremenSetup(e) => <PerformFremenSetup as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            GameEvent::PerformSetup(e) => <PerformSetup as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            GameEvent::RaiseDeadPlayed(e) => <RaiseDeadPlayed as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            GameEvent::Revival(e) => <Revival as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            GameEvent::Shipment(e) => <Shipment as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            GameEvent::TerrorRevealed(e) => <TerrorRevealed as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            _ => panic!("{} is not a LocationEvent", self.event_type().name()),
         }
     }
 
-    /// `((ILocationEvent)this).TotalAmountOfForcesAddedToLocation`; InvalidCastException for events that do not implement `ILocationEvent`.
-    pub fn i_location_event_total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {
+    /// `((Placement)this).Initiator`; InvalidCastException for events that do not implement `Placement`.
+    pub fn placement_initiator(&self) -> Faction {
         match self {
-            GameEvent::AmbassadorActivated(e) => <AmbassadorActivated as location_event::ILocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            GameEvent::BeneGesseritAccompanies(e) => <BeneGesseritAccompanies as location_event::ILocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            GameEvent::Caravan(e) => <Caravan as location_event::ILocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            GameEvent::DiscoveryEntered(e) => <DiscoveryEntered as location_event::ILocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            GameEvent::FaceDanced(e) => <FaceDanced as location_event::ILocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            GameEvent::FremenRidesMonster(e) => <FremenRidesMonster as location_event::ILocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            GameEvent::Move(e) => <Move as location_event::ILocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            GameEvent::NexusPlayed(e) => <NexusPlayed as location_event::ILocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            GameEvent::PerformFremenSetup(e) => <PerformFremenSetup as location_event::ILocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            GameEvent::PerformSetup(e) => <PerformSetup as location_event::ILocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            GameEvent::RaiseDeadPlayed(e) => <RaiseDeadPlayed as location_event::ILocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            GameEvent::Revival(e) => <Revival as location_event::ILocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            GameEvent::Shipment(e) => <Shipment as location_event::ILocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            GameEvent::TerrorRevealed(e) => <TerrorRevealed as location_event::ILocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.ILocationEvent'.", self.event_type().name()),
+            GameEvent::AmbassadorActivated(e) => <AmbassadorActivated as placement::Placement>::initiator(&**e),
+            GameEvent::Caravan(e) => <Caravan as placement::Placement>::initiator(&**e),
+            GameEvent::DiscoveryEntered(e) => <DiscoveryEntered as placement::Placement>::initiator(&**e),
+            GameEvent::FaceDanced(e) => <FaceDanced as placement::Placement>::initiator(&**e),
+            GameEvent::FremenRidesMonster(e) => <FremenRidesMonster as placement::Placement>::initiator(&**e),
+            GameEvent::Move(e) => <Move as placement::Placement>::initiator(&**e),
+            GameEvent::PerformFremenSetup(e) => <PerformFremenSetup as placement::Placement>::initiator(&**e),
+            GameEvent::PerformSetup(e) => <PerformSetup as placement::Placement>::initiator(&**e),
+            _ => panic!("{} is not a Placement", self.event_type().name()),
         }
     }
 
-    /// `((ILocationEvent)this).ForcesAddedToLocation`; InvalidCastException for events that do not implement `ILocationEvent`.
-    pub fn i_location_event_forces_added_to_location(&self, game: &Game) -> i32 {
+    /// `((Placement)this).ForceLocations`; InvalidCastException for events that do not implement `Placement`.
+    pub fn placement_force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         match self {
-            GameEvent::AmbassadorActivated(e) => <AmbassadorActivated as location_event::ILocationEvent>::forces_added_to_location(&**e, game),
-            GameEvent::BeneGesseritAccompanies(e) => <BeneGesseritAccompanies as location_event::ILocationEvent>::forces_added_to_location(&**e, game),
-            GameEvent::Caravan(e) => <Caravan as location_event::ILocationEvent>::forces_added_to_location(&**e, game),
-            GameEvent::DiscoveryEntered(e) => <DiscoveryEntered as location_event::ILocationEvent>::forces_added_to_location(&**e, game),
-            GameEvent::FaceDanced(e) => <FaceDanced as location_event::ILocationEvent>::forces_added_to_location(&**e, game),
-            GameEvent::FremenRidesMonster(e) => <FremenRidesMonster as location_event::ILocationEvent>::forces_added_to_location(&**e, game),
-            GameEvent::Move(e) => <Move as location_event::ILocationEvent>::forces_added_to_location(&**e, game),
-            GameEvent::NexusPlayed(e) => <NexusPlayed as location_event::ILocationEvent>::forces_added_to_location(&**e, game),
-            GameEvent::PerformFremenSetup(e) => <PerformFremenSetup as location_event::ILocationEvent>::forces_added_to_location(&**e, game),
-            GameEvent::PerformSetup(e) => <PerformSetup as location_event::ILocationEvent>::forces_added_to_location(&**e, game),
-            GameEvent::RaiseDeadPlayed(e) => <RaiseDeadPlayed as location_event::ILocationEvent>::forces_added_to_location(&**e, game),
-            GameEvent::Revival(e) => <Revival as location_event::ILocationEvent>::forces_added_to_location(&**e, game),
-            GameEvent::Shipment(e) => <Shipment as location_event::ILocationEvent>::forces_added_to_location(&**e, game),
-            GameEvent::TerrorRevealed(e) => <TerrorRevealed as location_event::ILocationEvent>::forces_added_to_location(&**e, game),
-            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.ILocationEvent'.", self.event_type().name()),
+            GameEvent::AmbassadorActivated(e) => <AmbassadorActivated as placement::Placement>::force_locations(&**e, game),
+            GameEvent::Caravan(e) => <Caravan as placement::Placement>::force_locations(&**e, game),
+            GameEvent::DiscoveryEntered(e) => <DiscoveryEntered as placement::Placement>::force_locations(&**e, game),
+            GameEvent::FaceDanced(e) => <FaceDanced as placement::Placement>::force_locations(&**e, game),
+            GameEvent::FremenRidesMonster(e) => <FremenRidesMonster as placement::Placement>::force_locations(&**e, game),
+            GameEvent::Move(e) => <Move as placement::Placement>::force_locations(&**e, game),
+            GameEvent::PerformFremenSetup(e) => <PerformFremenSetup as placement::Placement>::force_locations(&**e, game),
+            GameEvent::PerformSetup(e) => <PerformSetup as placement::Placement>::force_locations(&**e, game),
+            _ => panic!("{} is not a Placement", self.event_type().name()),
         }
     }
 
-    /// `((ILocationEvent)this).SpecialForcesAddedToLocation`; InvalidCastException for events that do not implement `ILocationEvent`.
-    pub fn i_location_event_special_forces_added_to_location(&self, game: &Game) -> i32 {
+    /// `((Placement)this).To`; InvalidCastException for events that do not implement `Placement`.
+    pub fn placement_to(&self, game: &Game) -> Option<Location> {
         match self {
-            GameEvent::AmbassadorActivated(e) => <AmbassadorActivated as location_event::ILocationEvent>::special_forces_added_to_location(&**e, game),
-            GameEvent::BeneGesseritAccompanies(e) => <BeneGesseritAccompanies as location_event::ILocationEvent>::special_forces_added_to_location(&**e, game),
-            GameEvent::Caravan(e) => <Caravan as location_event::ILocationEvent>::special_forces_added_to_location(&**e, game),
-            GameEvent::DiscoveryEntered(e) => <DiscoveryEntered as location_event::ILocationEvent>::special_forces_added_to_location(&**e, game),
-            GameEvent::FaceDanced(e) => <FaceDanced as location_event::ILocationEvent>::special_forces_added_to_location(&**e, game),
-            GameEvent::FremenRidesMonster(e) => <FremenRidesMonster as location_event::ILocationEvent>::special_forces_added_to_location(&**e, game),
-            GameEvent::Move(e) => <Move as location_event::ILocationEvent>::special_forces_added_to_location(&**e, game),
-            GameEvent::NexusPlayed(e) => <NexusPlayed as location_event::ILocationEvent>::special_forces_added_to_location(&**e, game),
-            GameEvent::PerformFremenSetup(e) => <PerformFremenSetup as location_event::ILocationEvent>::special_forces_added_to_location(&**e, game),
-            GameEvent::PerformSetup(e) => <PerformSetup as location_event::ILocationEvent>::special_forces_added_to_location(&**e, game),
-            GameEvent::RaiseDeadPlayed(e) => <RaiseDeadPlayed as location_event::ILocationEvent>::special_forces_added_to_location(&**e, game),
-            GameEvent::Revival(e) => <Revival as location_event::ILocationEvent>::special_forces_added_to_location(&**e, game),
-            GameEvent::Shipment(e) => <Shipment as location_event::ILocationEvent>::special_forces_added_to_location(&**e, game),
-            GameEvent::TerrorRevealed(e) => <TerrorRevealed as location_event::ILocationEvent>::special_forces_added_to_location(&**e, game),
-            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.ILocationEvent'.", self.event_type().name()),
+            GameEvent::AmbassadorActivated(e) => <AmbassadorActivated as placement::Placement>::to(&**e, game),
+            GameEvent::Caravan(e) => <Caravan as placement::Placement>::to(&**e, game),
+            GameEvent::DiscoveryEntered(e) => <DiscoveryEntered as placement::Placement>::to(&**e, game),
+            GameEvent::FaceDanced(e) => <FaceDanced as placement::Placement>::to(&**e, game),
+            GameEvent::FremenRidesMonster(e) => <FremenRidesMonster as placement::Placement>::to(&**e, game),
+            GameEvent::Move(e) => <Move as placement::Placement>::to(&**e, game),
+            GameEvent::PerformFremenSetup(e) => <PerformFremenSetup as placement::Placement>::to(&**e, game),
+            GameEvent::PerformSetup(e) => <PerformSetup as placement::Placement>::to(&**e, game),
+            _ => panic!("{} is not a Placement", self.event_type().name()),
         }
-    }
-
-    /// `this is ILocationEvent`
-    pub fn is_i_location_event(&self) -> bool {
-        matches!(self, GameEvent::AmbassadorActivated(_) | GameEvent::BeneGesseritAccompanies(_) | GameEvent::Caravan(_) | GameEvent::DiscoveryEntered(_) | GameEvent::FaceDanced(_) | GameEvent::FremenRidesMonster(_) | GameEvent::Move(_) | GameEvent::NexusPlayed(_) | GameEvent::PerformFremenSetup(_) | GameEvent::PerformSetup(_) | GameEvent::RaiseDeadPlayed(_) | GameEvent::Revival(_) | GameEvent::Shipment(_) | GameEvent::TerrorRevealed(_))
-    }
-
-    /// `((IPlacement)this).Initiator`; InvalidCastException for events that do not implement `IPlacement`.
-    pub fn i_placement_initiator(&self) -> Faction {
-        match self {
-            GameEvent::AmbassadorActivated(e) => <AmbassadorActivated as placement::IPlacement>::initiator(&**e),
-            GameEvent::Caravan(e) => <Caravan as placement::IPlacement>::initiator(&**e),
-            GameEvent::DiscoveryEntered(e) => <DiscoveryEntered as placement::IPlacement>::initiator(&**e),
-            GameEvent::FaceDanced(e) => <FaceDanced as placement::IPlacement>::initiator(&**e),
-            GameEvent::FremenRidesMonster(e) => <FremenRidesMonster as placement::IPlacement>::initiator(&**e),
-            GameEvent::Move(e) => <Move as placement::IPlacement>::initiator(&**e),
-            GameEvent::PerformFremenSetup(e) => <PerformFremenSetup as placement::IPlacement>::initiator(&**e),
-            GameEvent::PerformSetup(e) => <PerformSetup as placement::IPlacement>::initiator(&**e),
-            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IPlacement'.", self.event_type().name()),
-        }
-    }
-
-    /// `((IPlacement)this).ForceLocations`; InvalidCastException for events that do not implement `IPlacement`.
-    pub fn i_placement_force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
-        match self {
-            GameEvent::AmbassadorActivated(e) => <AmbassadorActivated as placement::IPlacement>::force_locations(&**e, game),
-            GameEvent::Caravan(e) => <Caravan as placement::IPlacement>::force_locations(&**e, game),
-            GameEvent::DiscoveryEntered(e) => <DiscoveryEntered as placement::IPlacement>::force_locations(&**e, game),
-            GameEvent::FaceDanced(e) => <FaceDanced as placement::IPlacement>::force_locations(&**e, game),
-            GameEvent::FremenRidesMonster(e) => <FremenRidesMonster as placement::IPlacement>::force_locations(&**e, game),
-            GameEvent::Move(e) => <Move as placement::IPlacement>::force_locations(&**e, game),
-            GameEvent::PerformFremenSetup(e) => <PerformFremenSetup as placement::IPlacement>::force_locations(&**e, game),
-            GameEvent::PerformSetup(e) => <PerformSetup as placement::IPlacement>::force_locations(&**e, game),
-            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IPlacement'.", self.event_type().name()),
-        }
-    }
-
-    /// `((IPlacement)this).To`; InvalidCastException for events that do not implement `IPlacement`.
-    pub fn i_placement_to(&self, game: &Game) -> Option<Location> {
-        match self {
-            GameEvent::AmbassadorActivated(e) => <AmbassadorActivated as placement::IPlacement>::to(&**e, game),
-            GameEvent::Caravan(e) => <Caravan as placement::IPlacement>::to(&**e, game),
-            GameEvent::DiscoveryEntered(e) => <DiscoveryEntered as placement::IPlacement>::to(&**e, game),
-            GameEvent::FaceDanced(e) => <FaceDanced as placement::IPlacement>::to(&**e, game),
-            GameEvent::FremenRidesMonster(e) => <FremenRidesMonster as placement::IPlacement>::to(&**e, game),
-            GameEvent::Move(e) => <Move as placement::IPlacement>::to(&**e, game),
-            GameEvent::PerformFremenSetup(e) => <PerformFremenSetup as placement::IPlacement>::to(&**e, game),
-            GameEvent::PerformSetup(e) => <PerformSetup as placement::IPlacement>::to(&**e, game),
-            _ => panic!("Unable to cast object of type 'Treachery.Shared.{}' to type 'Treachery.Shared.IPlacement'.", self.event_type().name()),
-        }
-    }
-
-    /// `this is IPlacement`
-    pub fn is_i_placement(&self) -> bool {
-        matches!(self, GameEvent::AmbassadorActivated(_) | GameEvent::Caravan(_) | GameEvent::DiscoveryEntered(_) | GameEvent::FaceDanced(_) | GameEvent::FremenRidesMonster(_) | GameEvent::Move(_) | GameEvent::PerformFremenSetup(_) | GameEvent::PerformSetup(_))
     }
 
 }

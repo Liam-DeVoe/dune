@@ -77,7 +77,7 @@ impl DealRejected {
             " offer for ",
             Payment::of(self.price),
             ": ",
-            Deal::deal_contents_description_game_deal_type_string_int32_phase_string(
+            Deal::describe_deal_contents(
                 game,
                 self.type_,
                 self.text.as_deref(),

@@ -42,7 +42,7 @@ impl RicheseAnnouncesAuction {
         }
 
         let condition = self.first || game.number_of_cards_on_auction == 0;
-        game.enter_boolean_phase_action(condition, Phase::RicheseSpecifyingAuction, Game::start_regular_bidding);
+        game.enter_or_else(condition, Phase::RicheseSpecifyingAuction, Game::start_regular_bidding);
         Ok(())
     }
 

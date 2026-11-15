@@ -11,7 +11,7 @@ impl Game {
         self.collect_resources_from_territories();
         self.collect_resources_from_strongholds_and_homeworlds();
         let condition = !self.collected_resources_to_be_divided.is_empty();
-        self.enter_boolean_phase_action(condition, Phase::DividingCollectedResources, Game::end_collection_main_phase);
+        self.enter_or_else(condition, Phase::DividingCollectedResources, Game::end_collection_main_phase);
     }
 
     pub fn divide_resources_from_collection(&mut self, division_was_agreed: bool) {
@@ -213,7 +213,7 @@ impl Game {
 
         let harkonnen = self.get_player(Some(Faction::Harkonnen));
         if self.resources_collected_by_harkonnen_from_desert_or_homeworld != 0 {
-            if let Some(harkonnen) = harkonnen.filter(|b| self.player(*b).has_high_threshold_0(self)) {
+            if let Some(harkonnen) = harkonnen.filter(|b| self.player(*b).has_any_high_threshold(self)) {
                 let r = &mut self.player_mut(harkonnen).resources;
                 *r += 2;
                 self.log(elems![Faction::Harkonnen, " get ", Payment::of(2), " extra as they collected from desert or homeworld"]);
@@ -244,7 +244,3 @@ pub struct ResourcesToBeDivided {
     pub territory: Territory,
 }
 
-// C#: the implicit parameterless constructor leaves `Territory` null until it is
-// assigned. Its only caller (`Game.CollectResourcesFromTerritories`) assigns every
-// field before the object is stored, so Rust builds it with a struct literal and
-// `Territory` stays non-nullable.

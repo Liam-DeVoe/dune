@@ -13,7 +13,7 @@ use treachery_bots::prelude::*;
 use treachery_engine::error::catch_panic;
 use treachery_bots::support::{cast_hero, unbox_enum, unbox_float, unbox_int};
 use treachery_engine::messages::expression::EnumValue;
-use treachery_engine::identity::IFetcher;
+use treachery_engine::identity::Fetcher;
 
 use common::{read_json, updating, write_json};
 

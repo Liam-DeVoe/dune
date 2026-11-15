@@ -52,8 +52,6 @@ impl Battalion {
     }
 
     pub fn take(&self, amount: i32, prefer_special: bool) -> Battalion {
-        // C# returns `this` here. Rust returns a copy; no Shared caller mutates the result
-        // (only bots call Take), so the identity difference is unobservable.
         if amount >= self.total_amount_of_forces() {
             return self.clone();
         }

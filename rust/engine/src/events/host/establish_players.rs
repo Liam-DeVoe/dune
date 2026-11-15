@@ -44,10 +44,6 @@ impl EstablishPlayers {
         players.expect("players").split('>').map(|s| s.to_string()).collect()
     }
 
-    pub fn set_players(&mut self, value: &[String]) {
-        self.players = Some(value.join(">"));
-    }
-
     pub fn factions_in_play(&self) -> Vec<Faction> {
         match self.factions_in_play.as_deref() {
             None | Some("") => Vec::new(),
@@ -56,10 +52,6 @@ impl EstablishPlayers {
                 .map(|part| Faction(dotnet_compat::parse::enum_parse(Some(part), Faction::INFO.declared)))
                 .collect(),
         }
-    }
-
-    pub fn set_factions_in_play(&mut self, value: &[Faction]) {
-        self.factions_in_play = Some(value.iter().map(|f| f.to_string()).collect::<Vec<_>>().join(","));
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
@@ -273,7 +265,7 @@ impl EstablishPlayers {
         game.determine_positions_at_table();
 
         let condition = game.applicable(Rule::PlayersChooseFactions);
-        game.enter_boolean_phase_action(condition, Phase::SelectingFactions, Game::assign_factions_and_enter_faction_trade);
+        game.enter_or_else(condition, Phase::SelectingFactions, Game::assign_factions_and_enter_faction_trade);
         Ok(())
     }
 

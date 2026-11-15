@@ -91,7 +91,7 @@ pub fn replay(name: &str, mut at_step: impl FnMut(&mut Game, i64)) {
         match o["k"].as_str().unwrap() {
             "header" => {
                 let participation = participation(&o["participation"]);
-                game = Some(Game::new_int32_participation(o["version"].as_i64().unwrap() as i32, &Shared::new(participation)));
+                game = Some(Game::with_participation(o["version"].as_i64().unwrap() as i32, &Shared::new(participation)));
             }
             "step" => {
                 let game = game.as_mut().unwrap();

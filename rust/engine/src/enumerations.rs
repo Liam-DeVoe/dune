@@ -961,7 +961,6 @@ pub fn get_values<T: GameEnum>() -> impl Iterator<Item = T> {
     T::ALL.iter().copied()
 }
 
-/// `Enumerations.GetValuesExceptDefault<T>(defaultValue)`
 pub fn get_values_except_default<T: GameEnum>(default_value: T) -> impl Iterator<Item = T> {
     get_values::<T>().filter(move |v| *v != default_value)
 }

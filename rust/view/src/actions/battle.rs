@@ -232,7 +232,7 @@ pub fn options_and_validation(game: &Game, v: &ResolvedViewer, draft: &GameEvent
     let dj = draft_json(draft);
     let options = match draft {
         GameEvent::AuditCancelled(_) => ActionOptions::AuditCancelled(AuditCancelledOptions {
-            cost: AuditCancelled::cost_game(game),
+            cost: AuditCancelled::cost_of_cancelling(game),
             cards: AuditCancelled::get_number_of_cards_that_may_be_audited(game), draft: dj.clone() }),
         GameEvent::Audited(_) => ActionOptions::Audited(AuditedOptions { cards: game.audited_cards.iter().map(|c| c.id()).collect(), draft: dj.clone() }),
         GameEvent::Battle(b) => {
@@ -556,7 +556,7 @@ fn normalize_battle(game: &Game, p: PlayerIndex, e: &mut Battle) {
     let pl = game.player(p);
     let territory = game.current_battle.as_ref().and_then(|b| b.territory(game));
     // The spice the ally pays, between what the player can't pay and what the ally can.
-    let cost = Battle::cost_game_player_int32_int32_int32(game, p, e.forces, e.special_forces, &mut 0);
+    let cost = Battle::cost_of_forces(game, p, e.forces, e.special_forces, &mut 0);
     let ally_cap = ally_cap(game, p);
     let ally_min = 0.max(cost - pl.resources);
     let ally_max = cost.min(ally_cap);
@@ -617,13 +617,13 @@ fn mixes(game: &Game, p: PlayerIndex, opponent: Faction, normal: i32, special: i
     let mut result = vec![];
     for fs in 0..=special {
         for fn_ in 0..=normal {
-            let cost = Battle::cost_game_player_int32_int32_int32(game, p, fn_, fs, &mut 0);
+            let cost = Battle::cost_of_forces(game, p, fn_, fs, &mut 0);
             if cost > available {
                 continue;
             }
             for hs in 0..=(if half_s { special - fs } else { 0 }) {
                 for hn in 0..=(if half_n { normal - fn_ } else { 0 }) {
-                    let dial = Battle::dial_game_player_faction_int32_int32_int32_int32(game, p, opponent, fn_, fs, hn, hs);
+                    let dial = Battle::dial_of_forces(game, p, opponent, fn_, fs, hn, hs);
                     result.push((fs, hs, fn_, hn, dial, cost));
                 }
             }
@@ -761,7 +761,7 @@ fn battle_options(game: &Game, p: PlayerIndex, draft: &Battle, d: &dyn Describer
     let hero = normalized.hero();
     let leader = hero.map(|h| {
         let mut skill = LeaderSkill::None;
-        let bonus = Battle::determine_skill_bonus_game_player_i_hero_treachery_card_treachery_card_int32_leader_skill(
+        let bonus = Battle::determine_skill_bonus_of_parts(
             game,
             p,
             Some(h),

@@ -7,12 +7,12 @@
 //   rust/docs/protocol.md.
 //
 // Events, in drafts and submissions, are in the savegame format: PascalCase members, enums as
-// numbers (FactionValue and friends in generated/enums.ts). The source fills in `Initiator`.
+// numbers (FactionValue and friends in generated/enums.ts). The server sets `Initiator` to the
+// faction of the logged-in user, so the client leaves it out.
 import type { DraftResult } from "../generated/DraftResult";
 import type { GameView } from "../generated/GameView";
 import type { ReportLines } from "../generated/ReportLines";
 import type { Part } from "../generated/Part";
-import { FactionValue } from "../generated/enums";
 import { type CallResult, type Connection, type ConnectionStatus, GameListScopeNone } from "./connection";
 
 export type GameEventDraft = Record<string, unknown> & { $type: string };
@@ -45,7 +45,7 @@ export interface ViewSource {
   undoPreview?(gap: number): Promise<GameView>;
   /** `RequestSaveGame`, for hosts and the admin: the live game as a savegame. */
   saveGame?(): Promise<string>;
-  /** A game method whose first arguments are userToken and gameId (`RequestUndo`,
+  /** A game method whose first argument is the gameId (`RequestUndo`,
    * `RequestSetBotSpeed`, `SendChatMessage`, ...). Resolves with the server's error text, or
    * null when it succeeded. */
   gameCall?(method: string, ...args: unknown[]): Promise<string | null>;
@@ -111,7 +111,8 @@ export class WebSocketSource implements ViewSource {
   private readonly unsubscribe: (() => void)[] = [];
   private heartbeat: number | undefined;
 
-  constructor(private readonly conn: Connection, readonly userToken: string, readonly gameId: string) {
+  /** `conn` must be logged in, or have a session to resume (`Connection.setSession`). */
+  constructor(private readonly conn: Connection, readonly gameId: string) {
     this.first = new Promise((resolve) => { this.resolveFirst = resolve; });
     this.unsubscribe.push(conn.on("GameView", (v) => this.receive(v as GameView)));
     // After a reconnection the socket is a new connection outside the game's group: rejoin it.
@@ -126,10 +127,9 @@ export class WebSocketSource implements ViewSource {
 
   private async join(): Promise<void> {
     await this.conn.invoke("Connect");
-    // GetLoginInfo restores the server's user cache after a restart, as the C# client's
-    // reconnect does; RequestReconnectGame adds this connection to the game and sends the view.
-    await this.conn.call("GetLoginInfo", this.userToken);
-    const r = await this.conn.call("RequestReconnectGame", this.userToken, this.gameId);
+    // The connection logged the socket in when it opened; RequestReconnectGame adds it to the
+    // game and sends the view.
+    const r = await this.conn.call("RequestReconnectGame", this.gameId);
     if (!r.Success) throw new Error(`RequestReconnectGame: ${errorText(r)}`);
   }
 
@@ -140,7 +140,7 @@ export class WebSocketSource implements ViewSource {
     await this.join();
     if (this.heartbeat === undefined) {
       this.heartbeat = window.setInterval(() => {
-        this.conn.call("RequestHeartbeat", this.userToken, GameListScopeNone).catch(() => {});
+        this.conn.call("RequestHeartbeat", GameListScopeNone).catch(() => {});
       }, HEARTBEAT_MS);
     }
     return this.first;
@@ -151,15 +151,8 @@ export class WebSocketSource implements ViewSource {
     return () => this.listeners.delete(onView);
   }
 
-  private withInitiator(event: GameEventDraft): GameEventDraft {
-    const faction = this.view?.viewer.faction;
-    const { $type, ...rest } = event;
-    // `$type` must come first (protocol.md, Encoding).
-    return { $type, ...rest, Initiator: faction ? FactionValue[faction] : 0 };
-  }
-
   async query(draft: GameEventDraft): Promise<DraftResult> {
-    const r = await this.conn.call<DraftResult>("QueryDraft", this.userToken, this.gameId, this.view?.eventNumber ?? 0, this.withInitiator(draft));
+    const r = await this.conn.call<DraftResult>("QueryDraft", this.gameId, this.view?.eventNumber ?? 0, draft);
     if (r.Success) return r.Contents!;
     // A refused query leaves the form's options and shows why, as a validation message.
     const action = this.view?.actions.find((a) => a.eventType === draft.$type);
@@ -168,7 +161,7 @@ export class WebSocketSource implements ViewSource {
 
   async submit(event: GameEventDraft): Promise<string | null> {
     try {
-      const r = await this.conn.call("SubmitEvent", this.userToken, this.gameId, this.withInitiator(event));
+      const r = await this.conn.call("SubmitEvent", this.gameId, event);
       return r.Success ? null : errorText(r);
     } catch (e) {
       return String(e);
@@ -177,27 +170,27 @@ export class WebSocketSource implements ViewSource {
 
   /** `RequestReport`: the lines of an earlier report. */
   report(index: number): Promise<ReportLines> {
-    return this.conn.invoke<ReportLines>("RequestReport", this.userToken, this.gameId, index);
+    return this.conn.invoke<ReportLines>("RequestReport", this.gameId, index);
   }
 
   /** `RequestUndoList`, for hosts. */
   undoList(): Promise<UndoEntry[]> {
-    return this.conn.invoke<UndoEntry[]>("RequestUndoList", this.userToken, this.gameId);
+    return this.conn.invoke<UndoEntry[]>("RequestUndoList", this.gameId);
   }
 
   /** `RequestUndoPreview`, for hosts. */
   undoPreview(gap: number): Promise<GameView> {
-    return this.conn.invoke<GameView>("RequestUndoPreview", this.userToken, this.gameId, gap);
+    return this.conn.invoke<GameView>("RequestUndoPreview", this.gameId, gap);
   }
 
   /** `RequestSaveGame`, for hosts and the admin. */
   saveGame(): Promise<string> {
-    return this.conn.invoke<string>("RequestSaveGame", this.userToken, this.gameId);
+    return this.conn.invoke<string>("RequestSaveGame", this.gameId);
   }
 
   async gameCall(method: string, ...args: unknown[]): Promise<string | null> {
     try {
-      const r = await this.conn.call(method, this.userToken, this.gameId, ...args);
+      const r = await this.conn.call(method, this.gameId, ...args);
       return r.Success ? null : errorText(r);
     } catch (e) {
       return String(e);

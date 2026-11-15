@@ -21,7 +21,7 @@ export const START_SCREEN_STYLE: React.CSSProperties = {
 };
 
 /** Starts the page's lobby client (`Client.Start`), then renders `children` with it. */
-export function WithLobby({ userToken, gameId, admin = false, children }: { userToken?: string; gameId?: string; admin?: boolean; children: ReactNode }) {
+export function WithLobby({ linkToken, gameId, admin = false, children }: { linkToken?: string; gameId?: string; admin?: boolean; children: ReactNode }) {
   const [client, setClient] = useState<LobbyClient | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
@@ -30,11 +30,11 @@ export function WithLobby({ userToken, gameId, admin = false, children }: { user
       .then(async (c) => {
         if (admin) c.isAdmin = true;
         if (live) setClient(c);
-        await c.start(userToken, gameId);
+        await c.start({ gameId, linkToken });
       })
       .catch((e: unknown) => { if (live) setError(String(e)); });
     return () => { live = false; };
-  }, [userToken, gameId, admin]);
+  }, [linkToken, gameId, admin]);
   if (error) return <MainLayout><div className="alert alert-danger">{error}</div></MainLayout>;
   if (!client) return null;
   return <LobbyContext.Provider value={client}>{children}</LobbyContext.Provider>;
@@ -105,8 +105,9 @@ function MainScreen() {
   );
 }
 
-/** Route `/`, and `/:userToken/:gameId` to rejoin a game (Main.razor's two routes). */
+/** Route `/`; `/game/:gameId` to rejoin a game with the session this browser keeps; and
+ * `/link/:linkToken`, the single-use login link of an async-play mail. */
 export function MainPage() {
-  const { userToken, gameId } = useParams();
-  return <WithLobby userToken={userToken} gameId={gameId}><MainScreen /></WithLobby>;
+  const { linkToken, gameId } = useParams();
+  return <WithLobby linkToken={linkToken} gameId={gameId}><MainScreen /></WithLobby>;
 }

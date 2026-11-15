@@ -7,9 +7,10 @@ use common::*;
 use serde_json::{json, Value};
 
 mod error {
-    pub const USER_NOT_FOUND: i64 = 1;
+    pub const USER_TOKEN_NOT_FOUND: i64 = 8;
     pub const GAME_NOT_FOUND: i64 = 2;
     pub const NO_HOST: i64 = 22;
+    pub const INVALID_GAME_EVENT: i64 = 23;
     pub const TOO_MANY_GAMES: i64 = 24;
     pub const TOO_MANY_SCHEDULED_GAMES: i64 = 25;
     pub const INCORRECT_GAME_PASSWORD: i64 = 26;
@@ -42,7 +43,7 @@ fn create_a_game_and_find_it_in_the_lobby() {
         let alice = s.user("alice").await;
         let bobby = s.user("bobby").await;
 
-        let (reply, before) = s.call_raw(alice.conn, "RequestCreateGame", json!(["", alice.token, "secret", "", ""])).await;
+        let (reply, before) = s.call_raw(alice.conn, "RequestCreateGame", json!(["", "secret", "", ""])).await;
         let info = &reply["result"]["Contents"];
         let game = info["GameId"].as_str().unwrap().to_string();
         assert_eq!(info["GameName"], "Alice Player's Game");
@@ -79,8 +80,9 @@ fn create_a_game_and_find_it_in_the_lobby() {
         assert_eq!(g["Name"], "Bobby's table");
         assert_eq!(g["HasPassword"], false);
 
-        assert_eq!(s.err(alice.conn, "RequestCreateGame", json!(["", "no such token", "", "", ""])).await, error::USER_NOT_FOUND);
-        assert_eq!(s.err(alice.conn, "RequestHeartbeat", json!(["no such token", 2])).await, error::USER_NOT_FOUND);
+        let anonymous = s.connect();
+        assert_eq!(s.err(anonymous, "RequestCreateGame", json!(["", "", "", ""])).await, error::USER_TOKEN_NOT_FOUND);
+        assert_eq!(s.err(anonymous, "RequestHeartbeat", json!([2])).await, error::USER_TOKEN_NOT_FOUND);
     });
 }
 
@@ -110,7 +112,7 @@ fn a_user_runs_at_most_ten_games() {
         for _ in 0..10 {
             s.new_game(&alice, "", "").await;
         }
-        assert_eq!(s.err(alice.conn, "RequestCreateGame", json!(["", alice.token, "", "", ""])).await, error::TOO_MANY_GAMES);
+        assert_eq!(s.err(alice.conn, "RequestCreateGame", json!(["", "", "", ""])).await, error::TOO_MANY_GAMES);
     });
 }
 
@@ -124,12 +126,12 @@ fn join_observe_and_reconnect() {
         let game = s.new_game(&alice, "", "secret").await;
         s.received(alice.conn);
 
-        assert_eq!(s.err(bobby.conn, "RequestJoinGame", json!([bobby.token, "no such game", "secret", -1])).await, error::GAME_NOT_FOUND);
-        assert_eq!(s.err(bobby.conn, "RequestJoinGame", json!([bobby.token, game, "wrong", -1])).await, error::INCORRECT_GAME_PASSWORD);
-        assert_eq!(s.err(bobby.conn, "RequestReconnectGame", json!([bobby.token, game])).await, error::USER_NOT_IN_GAME);
-        assert_eq!(s.err(bobby.conn, "RequestGameState", json!([bobby.token, game])).await, error::USER_NOT_IN_GAME);
+        assert_eq!(s.err(bobby.conn, "RequestJoinGame", json!(["no such game", "secret", -1])).await, error::GAME_NOT_FOUND);
+        assert_eq!(s.err(bobby.conn, "RequestJoinGame", json!([game, "wrong", -1])).await, error::INCORRECT_GAME_PASSWORD);
+        assert_eq!(s.err(bobby.conn, "RequestReconnectGame", json!([game])).await, error::USER_NOT_IN_GAME);
+        assert_eq!(s.err(bobby.conn, "RequestGameState", json!([game])).await, error::USER_NOT_IN_GAME);
 
-        let (reply, before) = s.call_raw(bobby.conn, "RequestJoinGame", json!([bobby.token, game, "secret", -1])).await;
+        let (reply, before) = s.call_raw(bobby.conn, "RequestJoinGame", json!([game, "secret", -1])).await;
         let info = &reply["result"]["Contents"];
         assert_eq!(info["GameName"], "Alice Player's Game");
         assert_eq!(ids(&info["Participation"]["Hosts"]), vec![alice.id]);
@@ -143,8 +145,8 @@ fn join_observe_and_reconnect() {
         assert!(!views(&to_alice).is_empty(), "members get a new view");
 
         // Observers don't need the password unless the game says so.
-        assert_eq!(s.err(bobby.conn, "RequestObserveGame", json!([bobby.token, game, ""])).await, error::ALREADY_PLAYER);
-        let (reply, before) = s.call_raw(carol.conn, "RequestObserveGame", json!([carol.token, game, ""])).await;
+        assert_eq!(s.err(bobby.conn, "RequestObserveGame", json!([game, ""])).await, error::ALREADY_PLAYER);
+        let (reply, before) = s.call_raw(carol.conn, "RequestObserveGame", json!([game, ""])).await;
         assert_eq!(reply["result"]["Success"], true);
         assert_eq!(ids(&reply["result"]["Contents"]["Participation"]["Observers"]), vec![carol.id]);
         assert_eq!(views(&before).pop().unwrap()["viewer"]["isObserver"], true);
@@ -153,27 +155,29 @@ fn join_observe_and_reconnect() {
         // A new connection rejoins the game's group with RequestReconnectGame.
         s.disconnect(bobby.conn);
         let again = s.connect();
-        let (reply, before) = s.call_raw(again, "RequestReconnectGame", json!([bobby.token, game])).await;
+        assert_eq!(s.err(again, "RequestReconnectGame", json!([game])).await, error::USER_TOKEN_NOT_FOUND);
+        s.ok(again, "RequestResumeSession", json!([bobby.token])).await;
+        let (reply, before) = s.call_raw(again, "RequestReconnectGame", json!([game])).await;
         assert_eq!(reply["result"]["Contents"]["GameId"], game.as_str());
         assert_eq!(reply["result"]["Contents"]["GameName"], "Alice Player's Game");
         assert!(!views(&before).is_empty());
-        let (reply, before) = s.call_raw(again, "RequestGameState", json!([bobby.token, game])).await;
+        let (reply, before) = s.call_raw(again, "RequestGameState", json!([game])).await;
         assert_eq!(reply["result"]["Contents"]["GameId"], game.as_str());
         assert!(!views(&before).is_empty());
         let bobby = User { conn: again, ..bobby };
 
         // Group messages reach every member, and only members.
         s.received(carol.conn);
-        s.ok(alice.conn, "RequestSetSkin", json!([alice.token, game, "{}"])).await;
+        s.ok(alice.conn, "RequestSetSkin", json!([game, "{}"])).await;
         for c in [alice.conn, bobby.conn, carol.conn] {
             assert_eq!(find(&s.received(c), "SetSkin").expect("SetSkin")["args"], json!(["{}"]));
         }
         let dave = s.user("david").await;
-        s.ok(alice.conn, "SetTimer", json!([alice.token, game, 30])).await;
+        s.ok(alice.conn, "SetTimer", json!([game, 30])).await;
         assert!(find(&s.received(dave.conn), "SetTimer").is_none());
         assert_eq!(find(&s.received(bobby.conn), "SetTimer").unwrap()["args"], json!([30]));
-        assert_eq!(s.err(bobby.conn, "SetTimer", json!([bobby.token, game, 30])).await, error::NO_HOST);
-        assert_eq!(s.err(bobby.conn, "RequestSetSkin", json!([bobby.token, game, "{}"])).await, error::NO_HOST);
+        assert_eq!(s.err(bobby.conn, "SetTimer", json!([game, 30])).await, error::NO_HOST);
+        assert_eq!(s.err(bobby.conn, "RequestSetSkin", json!([game, "{}"])).await, error::NO_HOST);
     });
 }
 
@@ -184,30 +188,31 @@ fn hosts_seats_and_kicks() {
         let alice = s.user("alice").await;
         let bobby = s.user("bobby").await;
         let game = s.new_game(&alice, "", "").await;
-        s.ok(bobby.conn, "RequestJoinGame", json!([bobby.token, game, "", -1])).await;
+        s.ok(bobby.conn, "RequestJoinGame", json!([game, "", -1])).await;
         s.received(alice.conn);
         s.received(bobby.conn);
 
-        assert_eq!(s.err(bobby.conn, "RequestSetOrUnsetHost", json!([bobby.token, game, bobby.id])).await, error::NO_HOST);
-        assert_eq!(s.err(alice.conn, "RequestSetOrUnsetHost", json!([alice.token, game, alice.id])).await, error::CANNOT_REMOVE_LAST_HOST);
-        s.ok(alice.conn, "RequestSetOrUnsetHost", json!([alice.token, game, bobby.id])).await;
+        assert_eq!(s.err(bobby.conn, "RequestSetOrUnsetHost", json!([game, bobby.id])).await, error::NO_HOST);
+        assert_eq!(s.err(alice.conn, "RequestSetOrUnsetHost", json!([game, alice.id])).await, error::CANNOT_REMOVE_LAST_HOST);
+        s.ok(alice.conn, "RequestSetOrUnsetHost", json!([game, bobby.id])).await;
         assert_eq!(find(&s.received(bobby.conn), "SetOrUnsetHost").unwrap()["args"], json!([bobby.id]));
         // Now there are two hosts, and either may step down.
-        s.ok(bobby.conn, "RequestSetOrUnsetHost", json!([bobby.token, game, bobby.id])).await;
-        assert_eq!(s.err(bobby.conn, "RequestOpenOrCloseSeat", json!([bobby.token, game, 2])).await, error::NO_HOST);
+        s.ok(bobby.conn, "RequestSetOrUnsetHost", json!([game, bobby.id])).await;
+        assert_eq!(s.err(bobby.conn, "RequestOpenOrCloseSeat", json!([game, 2])).await, error::NO_HOST);
 
         s.received(bobby.conn);
-        s.ok(alice.conn, "RequestOpenOrCloseSeat", json!([alice.token, game, 2])).await;
-        assert_eq!(find(&s.received(bobby.conn), "OpenOrCloseSeats").unwrap()["args"], json!([[2]]));
+        // Before the game starts there are no seats to open.
+        assert_eq!(s.err(alice.conn, "RequestOpenOrCloseSeat", json!([game, 2])).await, error::INVALID_GAME_EVENT);
 
         // A kicked user leaves the group and may not come back.
-        assert_eq!(s.err(bobby.conn, "RequestKick", json!([bobby.token, game, alice.id])).await, error::NO_HOST);
-        s.ok(alice.conn, "RequestKick", json!([alice.token, game, bobby.id])).await;
+        assert_eq!(s.err(bobby.conn, "RequestKick", json!([game, alice.id])).await, error::NO_HOST);
+        s.ok(alice.conn, "RequestKick", json!([game, bobby.id])).await;
         assert_eq!(find(&s.received(bobby.conn), "RemoveUser").unwrap()["args"], json!([bobby.id, true]));
         assert_eq!(find(&s.received(alice.conn), "RemoveUser").unwrap()["args"], json!([bobby.id, true]));
-        s.ok(alice.conn, "SetTimer", json!([alice.token, game, 5])).await;
+        s.ok(alice.conn, "SetTimer", json!([game, 5])).await;
         assert!(s.notifications(bobby.conn).is_empty(), "no longer in the group");
-        assert_eq!(s.err(bobby.conn, "RequestJoinGame", json!([bobby.token, game, "", -1])).await, error::SEAT_NOT_AVAILABLE_KICKED);
+        assert_eq!(s.err(bobby.conn, "RequestJoinGame", json!([game, "", -1])).await, error::SEAT_NOT_AVAILABLE_KICKED);
+        assert_eq!(s.err(bobby.conn, "RequestObserveGame", json!([game, ""])).await, error::SEAT_NOT_AVAILABLE_KICKED);
     });
 }
 
@@ -219,19 +224,19 @@ fn the_last_host_leaving_hands_over() {
         let bobby = s.user("bobby").await;
         let carol = s.user("carol").await;
         let game = s.new_game(&alice, "", "").await;
-        s.ok(bobby.conn, "RequestJoinGame", json!([bobby.token, game, "", -1])).await;
-        s.ok(carol.conn, "RequestObserveGame", json!([carol.token, game, ""])).await;
+        s.ok(bobby.conn, "RequestJoinGame", json!([game, "", -1])).await;
+        s.ok(carol.conn, "RequestObserveGame", json!([game, ""])).await;
         s.received(bobby.conn);
 
-        let status = s.ok(alice.conn, "RequestLeaveGame", json!([alice.token, game])).await;
+        let status = s.ok(alice.conn, "RequestLeaveGame", json!([game])).await;
         assert!(status["RunningGames"].is_array());
         let to_bobby = s.received(bobby.conn);
         assert_eq!(find(&to_bobby, "SetOrUnsetHost").unwrap()["args"], json!([bobby.id]));
         assert_eq!(find(&to_bobby, "RemoveUser").unwrap()["args"], json!([alice.id, false]));
-        let state = s.ok(bobby.conn, "RequestGameState", json!([bobby.token, game])).await;
+        let state = s.ok(bobby.conn, "RequestGameState", json!([game])).await;
         assert_eq!(ids(&state["Participation"]["Hosts"]), vec![bobby.id], "observers don't become hosts");
         assert!(pairs(&state["Participation"]["PlayerNames"]).iter().all(|(id, _)| *id != alice.id));
-        assert_eq!(s.err(alice.conn, "RequestGameState", json!([alice.token, game])).await, error::USER_NOT_IN_GAME);
+        assert_eq!(s.err(alice.conn, "RequestGameState", json!([game])).await, error::USER_NOT_IN_GAME);
     });
 }
 
@@ -242,24 +247,24 @@ fn settings_and_closing_belong_to_the_creator() {
         let alice = s.user("alice").await;
         let bobby = s.user("bobby").await;
         let game = s.new_game(&alice, "", "").await;
-        s.ok(bobby.conn, "RequestJoinGame", json!([bobby.token, game, "", -1])).await;
+        s.ok(bobby.conn, "RequestJoinGame", json!([game, "", -1])).await;
         s.received(bobby.conn);
 
         let settings = establish_players(4, &[], false, 0)["Settings"].clone();
-        assert_eq!(s.err(bobby.conn, "RequestUpdateSettings", json!([bobby.token, game, settings])).await, error::NO_CREATOR);
-        s.ok(alice.conn, "RequestUpdateSettings", json!([alice.token, game, settings])).await;
+        assert_eq!(s.err(bobby.conn, "RequestUpdateSettings", json!([game, settings])).await, error::NO_HOST);
+        s.ok(alice.conn, "RequestUpdateSettings", json!([game, settings])).await;
         let update = find(&s.received(bobby.conn), "UpdateSettings").expect("UpdateSettings").clone();
         assert_eq!(update["args"][0]["NumberOfPlayers"], 4);
         let g = entry(&s.lobby(&bobby, 3).await["RunningGames"], &game).unwrap().clone();
         assert_eq!(g["MaxPlayers"], 4);
 
-        assert_eq!(s.err(bobby.conn, "RequestCloseGame", json!([bobby.token, game])).await, error::NO_CREATOR);
+        assert_eq!(s.err(bobby.conn, "RequestCloseGame", json!([game])).await, error::NO_CREATOR);
         s.received(bobby.conn);
-        let status = s.ok(alice.conn, "RequestCloseGame", json!([alice.token, game])).await;
+        let status = s.ok(alice.conn, "RequestCloseGame", json!([game])).await;
         assert!(entry(&status["RunningGames"], &game).is_none());
         let removed: Vec<Value> = s.received(bobby.conn).into_iter().filter(|m| m["name"] == "RemoveUser").map(|m| m["args"].clone()).collect();
         assert!(removed.contains(&json!([alice.id, true])) && removed.contains(&json!([bobby.id, true])), "{removed:?}");
-        assert_eq!(s.err(bobby.conn, "RequestGameState", json!([bobby.token, game])).await, error::GAME_NOT_FOUND);
+        assert_eq!(s.err(bobby.conn, "RequestGameState", json!([game])).await, error::GAME_NOT_FOUND);
         assert!(entry(&s.lobby(&bobby, 3).await["RunningGames"], &game).is_none());
 
         // and stays closed after a restart.
@@ -281,18 +286,20 @@ fn seats_in_a_loaded_game() {
         let emperor = player(&view, "Emperor")["seat"].as_i64().unwrap();
         let atreides = player(&view, "Atreides")["seat"].as_i64().unwrap();
 
-        assert_eq!(s.err(bobby.conn, "RequestAssignSeats", json!([bobby.token, game, [[bobby.id, 0]]])).await, error::NO_HOST);
-        s.ok(alice.conn, "RequestAssignSeats", json!([alice.token, game, [[alice.id, emperor]]])).await;
+        assert_eq!(s.err(bobby.conn, "RequestAssignSeats", json!([game, [[bobby.id, 0]]])).await, error::NO_HOST);
+        s.ok(alice.conn, "RequestAssignSeats", json!([game, [[alice.id, emperor]]])).await;
         let received = s.received(alice.conn);
         assert_eq!(find(&received, "AssignSeats").unwrap()["args"], json!([[[alice.id, emperor]]]));
         assert_eq!(views(&received).pop().unwrap()["me"]["faction"], "Emperor");
 
         // An open seat can be taken; the seat's other players see it.
-        s.ok(alice.conn, "RequestOpenOrCloseSeat", json!([alice.token, game, atreides])).await;
+        s.received(bobby.conn);
+        s.ok(alice.conn, "RequestOpenOrCloseSeat", json!([game, atreides])).await;
+        assert!(find(&s.received(alice.conn), "OpenOrCloseSeats").is_some_and(|n| n["args"] == json!([[atreides]])));
         let lobby = s.lobby(&bobby, 3).await;
         let g = entry(&lobby["RunningGames"], &game).unwrap().clone();
         assert!(g["AvailableSeats"].as_array().unwrap().iter().any(|a| a["Seat"] == atreides && a["Faction"] == faction::ATREIDES), "{g}");
-        s.ok(bobby.conn, "RequestJoinGame", json!([bobby.token, game, "", atreides])).await;
+        s.ok(bobby.conn, "RequestJoinGame", json!([game, "", atreides])).await;
         let view = s.latest_view(bobby.conn).unwrap();
         assert_eq!(view["me"]["faction"], "Atreides");
         assert_eq!(player(&view, "Atreides")["isBot"], false);
@@ -308,15 +315,15 @@ fn load_a_savegame_into_a_game() {
         let alice = s.user("alice").await;
         let bobby = s.user("bobby").await;
         let game = s.new_game(&alice, "", "").await;
-        s.ok(bobby.conn, "RequestObserveGame", json!([bobby.token, game, ""])).await;
+        s.ok(bobby.conn, "RequestObserveGame", json!([game, ""])).await;
         s.received(bobby.conn);
 
         let savegame = fixture_text("alliance");
-        assert_eq!(s.err(bobby.conn, "RequestLoadGame", json!([bobby.token, game, savegame, ""])).await, error::NO_HOST);
-        let bad = s.call(alice.conn, "RequestLoadGame", json!([alice.token, game, "{\"Version\":0,\"_events\":[]}", ""])).await;
+        assert_eq!(s.err(bobby.conn, "RequestLoadGame", json!([game, savegame, ""])).await, error::NO_HOST);
+        let bad = s.call(alice.conn, "RequestLoadGame", json!([game, "{\"Version\":0,\"_events\":[]}", ""])).await;
         assert!(bad["Success"] == false || bad["Success"] == true);
 
-        s.ok(alice.conn, "RequestLoadGame", json!([alice.token, game, savegame, "{}"])).await;
+        s.ok(alice.conn, "RequestLoadGame", json!([game, savegame, "{}"])).await;
         let received = s.received(bobby.conn);
         let names = names(&received);
         assert!(names.contains(&"LoadGame".to_string()) && names.contains(&"SetSkin".to_string()), "{names:?}");
@@ -331,7 +338,7 @@ fn creating_from_a_bad_savegame_is_refused() {
     rt().block_on(async {
         let mut s = TestServer::start().await;
         let alice = s.user("alice").await;
-        let r = s.call_raw(alice.conn, "RequestCreateGame", json!(["", alice.token, "", "not a savegame", ""])).await.0;
+        let r = s.call_raw(alice.conn, "RequestCreateGame", json!(["", "", "not a savegame", ""])).await.0;
         assert!(r.get("error").is_some() || r["result"]["Success"] == false, "{r}");
         let lobby = s.lobby(&alice, 3).await;
         assert!(lobby["RunningGames"].as_array().unwrap().is_empty());
@@ -345,9 +352,9 @@ fn scheduled_games() {
         let alice = s.user("alice").await;
         let bobby = s.user("bobby").await;
         let when = "2026-11-20T20:00:00+01:00";
-        let schedule = |token: &str| json!([token, when, null, 6, 10, [20, 10], true]);
+        let schedule = || json!([when, null, 6, 10, [20, 10], true]);
 
-        let status = s.ok(alice.conn, "RequestScheduleGame", schedule(&alice.token)).await;
+        let status = s.ok(alice.conn, "RequestScheduleGame", schedule()).await;
         let scheduled = status["ScheduledGames"].as_array().unwrap();
         assert_eq!(scheduled.len(), 1);
         let g = scheduled[0].clone();
@@ -362,15 +369,15 @@ fn scheduled_games() {
         assert_eq!(pairs(&g["SubscriberNames"]), vec![(alice.id, json!("alice"))]);
         assert!(g["DateTime"].as_str().unwrap().starts_with("2026-11-20T"));
 
-        s.ok(alice.conn, "RequestScheduleGame", schedule(&alice.token)).await;
-        s.ok(alice.conn, "RequestScheduleGame", schedule(&alice.token)).await;
-        assert_eq!(s.err(alice.conn, "RequestScheduleGame", schedule(&alice.token)).await, error::TOO_MANY_SCHEDULED_GAMES);
+        s.ok(alice.conn, "RequestScheduleGame", schedule()).await;
+        s.ok(alice.conn, "RequestScheduleGame", schedule()).await;
+        assert_eq!(s.err(alice.conn, "RequestScheduleGame", schedule()).await, error::TOO_MANY_SCHEDULED_GAMES);
 
-        let status = s.ok(bobby.conn, "RequestSubscribeGame", json!([bobby.token, id, 30])).await;
+        let status = s.ok(bobby.conn, "RequestSubscribeGame", json!([id, 30])).await;
         let g = status["ScheduledGames"].as_array().unwrap().iter().find(|g| g["ScheduledGameId"] == id.as_str()).unwrap().clone();
         assert!(pairs(&g["Subscribers"]).contains(&(bobby.id, json!(30))));
-        assert_eq!(s.err(bobby.conn, "RequestSubscribeGame", json!([bobby.token, "nope", 30])).await, error::GAME_NOT_FOUND);
-        assert_eq!(s.err(bobby.conn, "RequestCancelGame", json!([bobby.token, id])).await, error::NO_HOST);
+        assert_eq!(s.err(bobby.conn, "RequestSubscribeGame", json!(["nope", 30])).await, error::GAME_NOT_FOUND);
+        assert_eq!(s.err(bobby.conn, "RequestCancelGame", json!([id])).await, error::NO_HOST);
 
         // Scheduled games survive a restart, subscriptions included.
         let mut s = s.restart().await;
@@ -379,7 +386,7 @@ fn scheduled_games() {
         let g = lobby["ScheduledGames"].as_array().unwrap().iter().find(|g| g["ScheduledGameId"] == id.as_str()).expect("still scheduled").clone();
         assert!(pairs(&g["Subscribers"]).contains(&(bobby.id, json!(30))));
 
-        let status = s.ok(alice.conn, "RequestCancelGame", json!([alice.token, id])).await;
+        let status = s.ok(alice.conn, "RequestCancelGame", json!([id])).await;
         assert_eq!(status["ScheduledGames"].as_array().unwrap().len(), 2);
 
         // Games more than four hours in the past are dropped.
@@ -395,27 +402,55 @@ fn chat() {
         let mut s = TestServer::start().await;
         let alice = s.user("alice").await;
         let bobby = s.user("bobby").await;
-        let outsider = s.user("carol").await;
+        let carol = s.user("carol").await;
+        let watcher = s.user("david").await;
+        let outsider = s.user("erika").await;
         let anonymous = s.connect();
         let game = s.new_game(&alice, "", "").await;
-        s.ok(bobby.conn, "RequestJoinGame", json!([bobby.token, game, "", -1])).await;
-        s.received(alice.conn);
-        s.received(bobby.conn);
+        s.ok(bobby.conn, "RequestJoinGame", json!([game, "", -1])).await;
+        s.ok(carol.conn, "RequestJoinGame", json!([game, "", -1])).await;
+        s.ok(watcher.conn, "RequestObserveGame", json!([game, ""])).await;
+        for c in [alice.conn, bobby.conn, carol.conn, watcher.conn] {
+            s.received(c);
+        }
 
         let message = json!({"TargetUserId": -1, "SourceUserId": alice.id, "Body": "hello"});
-        assert_eq!(s.err(alice.conn, "SendChatMessage", json!(["no such token", game, message])).await, error::USER_NOT_FOUND);
-        s.ok(alice.conn, "SendChatMessage", json!([alice.token, game, message])).await;
-        for c in [alice.conn, bobby.conn] {
+        assert_eq!(s.err(anonymous, "SendChatMessage", json!([game, message])).await, error::USER_TOKEN_NOT_FOUND);
+        // Outsiders and observers can't chat in the game.
+        assert_eq!(s.err(outsider.conn, "SendChatMessage", json!([game, message])).await, error::USER_NOT_IN_GAME);
+        assert_eq!(s.err(watcher.conn, "SendChatMessage", json!([game, message])).await, error::USER_NOT_IN_GAME);
+        s.ok(alice.conn, "SendChatMessage", json!([game, message])).await;
+        for c in [alice.conn, bobby.conn, carol.conn, watcher.conn] {
             assert_eq!(find(&s.received(c), "ChatMessage").expect("ChatMessage")["args"], json!([message]));
         }
         assert!(find(&s.received(outsider.conn), "ChatMessage").is_none());
 
+        // The sender is always the caller, whatever the message says.
+        let forged = json!({"TargetUserId": -1, "SourceUserId": alice.id, "Body": "from alice, honest"});
+        s.ok(bobby.conn, "SendChatMessage", json!([game, forged])).await;
+        assert_eq!(find(&s.received(carol.conn), "ChatMessage").unwrap()["args"][0]["SourceUserId"], bobby.id);
+        for c in [alice.conn, bobby.conn, watcher.conn] {
+            s.received(c);
+        }
+
+        // A message to one user reaches only them and the sender.
+        let whisper = json!({"TargetUserId": bobby.id, "SourceUserId": alice.id, "Body": "psst"});
+        s.ok(alice.conn, "SendChatMessage", json!([game, whisper])).await;
+        assert_eq!(find(&s.received(bobby.conn), "ChatMessage").expect("to Bobby")["args"], json!([whisper]));
+        assert!(find(&s.received(alice.conn), "ChatMessage").is_some(), "the sender sees it");
+        assert!(find(&s.received(carol.conn), "ChatMessage").is_none());
+        assert!(find(&s.received(watcher.conn), "ChatMessage").is_none());
+        let stranger = json!({"TargetUserId": outsider.id, "Body": "hi"});
+        assert_eq!(s.err(alice.conn, "SendChatMessage", json!([game, stranger])).await, error::USER_NOT_IN_GAME);
+
         let global = json!({"SourceUserId": bobby.id, "Body": "hi all"});
-        assert_eq!(s.err(bobby.conn, "SendGlobalChatMessage", json!(["no such token", global])).await, error::USER_NOT_FOUND);
-        s.ok(bobby.conn, "SendGlobalChatMessage", json!([bobby.token, global])).await;
+        assert_eq!(s.err(anonymous, "SendGlobalChatMessage", json!([global])).await, error::USER_TOKEN_NOT_FOUND);
+        s.ok(bobby.conn, "SendGlobalChatMessage", json!([global])).await;
         for c in [alice.conn, bobby.conn, outsider.conn, anonymous] {
             assert_eq!(find(&s.received(c), "GlobalChatMessage").expect("GlobalChatMessage")["args"], json!([global]));
         }
+        s.ok(outsider.conn, "SendGlobalChatMessage", json!([global])).await;
+        assert_eq!(find(&s.received(alice.conn), "GlobalChatMessage").unwrap()["args"][0]["SourceUserId"], outsider.id);
     });
 }
 
@@ -433,9 +468,9 @@ fn the_protocol_envelope() {
 
         let (reply, _) = s.call_raw(c, "RequestFoo", json!([])).await;
         assert_eq!(reply["error"], "Unknown method 'RequestFoo'");
-        let (reply, _) = s.call_raw(c, "GetLoginInfo", json!([])).await;
+        let (reply, _) = s.call_raw(c, "RequestResumeSession", json!([])).await;
         assert!(reply["error"].is_string(), "missing arguments: {reply}");
-        let (reply, _) = s.call_raw(c, "GetLoginInfo", json!([12])).await;
+        let (reply, _) = s.call_raw(c, "RequestResumeSession", json!([12])).await;
         assert!(reply["error"].is_string(), "wrong argument type: {reply}");
         assert!(s.is_open(c));
 

@@ -10,10 +10,20 @@ use super::time::{serde_time, Time};
 #[serde(rename_all = "PascalCase")]
 pub struct LoginInfo {
     pub user_id: i32,
-    pub token: String,
+    /// The token of the session the call started; null when it started none.
+    pub token: Option<String>,
     pub player_name: String,
     pub user_name: String,
     pub email: String,
+}
+
+/// The reply to `RequestLinkLogin`: the new session, and the game the link opens if the user
+/// is still in it.
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "PascalCase")]
+pub struct LinkLoginInfo {
+    pub login_info: LoginInfo,
+    pub game_id: Option<String>,
 }
 
 /// A game in the lobby.

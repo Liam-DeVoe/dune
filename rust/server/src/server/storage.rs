@@ -29,17 +29,17 @@ fn restore(row: &GameRow) -> Result<RunningGame, String> {
 }
 
 impl Server {
-    /// Reads everything from the database. Expired sessions are deleted. Games that no longer
-    /// load are left out with a log line, and stay in the database.
+    /// Reads everything from the database. Expired sessions and login links are deleted. Games
+    /// that no longer load are left out with a log line, and stay in the database.
     pub(super) async fn load(&mut self) -> Result<(), CallError> {
         self.users = self.services.db.users().await?.into_iter().map(|u| (u.id, u)).collect();
-        self.drop_expired_sessions().await?;
         for s in self.services.db.sessions().await? {
             if self.users.contains_key(&s.user_id) {
-                self.sessions.insert(s.token, Session { user: s.user_id, created: s.created });
+                self.sessions.insert(s.token_digest, Session { user: s.user_id, created: s.created, last_used: s.last_used });
                 self.presence.entry(s.user_id).or_insert(Presence { status: UserStatus::Online, last_seen: None });
             }
         }
+        self.login_links = self.services.db.login_links().await?.into_iter().map(|l| (l.token_digest.clone(), l)).collect();
         self.drop_expired_sessions().await?;
         let (loaded, dropped) = self.load_games(false).await?;
         self.scheduled = self.services.db.scheduled_games().await?.into_iter().map(|g| (g.id.clone(), g)).collect();

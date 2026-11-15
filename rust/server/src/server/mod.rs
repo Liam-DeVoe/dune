@@ -32,7 +32,7 @@ use treachery_engine::enumerations::{ErrorType, Faction, UserStatus};
 use treachery_engine::game::Game;
 
 use super::connections::{ConnectionId, Connections};
-use super::db::{Db, ScheduledGameRow, UserRow};
+use super::db::{Db, LoginLinkRow, ScheduledGameRow, UserRow};
 use super::mail::Mailer;
 use super::protocol::{self, Message, Request};
 use super::settings::Settings;
@@ -42,10 +42,18 @@ use super::views::GameViews;
 
 pub use pauses::Pause;
 
-/// How long a session lasts.
+/// A session ends this long after it was created,
 pub const SESSION_DAYS: i64 = 90;
+/// or this long after a connection last logged in with it, whichever comes first.
+pub const SESSION_IDLE_DAYS: i64 = 30;
+/// A user keeps at most this many sessions; a new one ends the least recently used.
+pub const MAX_SESSIONS_PER_USER: usize = 20;
+/// The login link of an async-play mail works once, within this time.
+pub const LOGIN_LINK_HOURS: i64 = 24;
 /// Games without activity for this long leave the lobby's default list.
 pub const ACTIVE_GAME_MINUTES: i64 = 120;
+/// The fastest bot speed a host may set (protocol.md, Bots).
+pub const MAX_BOT_SPEED: i32 = 4;
 /// How many running games a user may have created.
 pub const MAX_GAMES_PER_USER: usize = 10;
 /// How many scheduled games a user may have announced.
@@ -60,6 +68,8 @@ pub struct Services {
     pub clock: Rc<dyn Clock>,
     pub timers: Rc<dyn Timers>,
     pub mailer: Rc<dyn Mailer>,
+    /// Draws the seed of each new game (`ids::new_seed` in production).
+    pub seeds: Rc<dyn Fn() -> i32>,
 }
 
 /// Why a call did not succeed.
@@ -102,11 +112,18 @@ pub fn contents<T: serde::Serialize>(value: &T) -> Reply {
     Ok(serde_json::to_value(value).expect("payloads serialize"))
 }
 
-/// A logged-in session.
+/// A session, kept by the digest of its token (`ids::digest`).
 #[derive(Clone, Debug)]
 pub struct Session {
     pub user: i32,
     pub created: Time,
+    pub last_used: Time,
+}
+
+impl Session {
+    fn expired(&self, now: Time) -> bool {
+        now - self.created >= chrono::Duration::days(SESSION_DAYS) || now - self.last_used >= chrono::Duration::days(SESSION_IDLE_DAYS)
+    }
 }
 
 /// What the lobby shows about a user who is around.
@@ -180,7 +197,10 @@ pub struct Server {
     connections: Connections,
     views: GameViews,
     users: BTreeMap<i32, UserRow>,
+    /// By the digest of the session token.
     sessions: BTreeMap<String, Session>,
+    /// The login links of async-play mails, by the digest of their token.
+    login_links: BTreeMap<String, LoginLinkRow>,
     presence: BTreeMap<i32, Presence>,
     games: BTreeMap<String, RunningGame>,
     scheduled: BTreeMap<String, ScheduledGameRow>,
@@ -203,6 +223,7 @@ impl Server {
             views: GameViews::default(),
             users: BTreeMap::new(),
             sessions: BTreeMap::new(),
+            login_links: BTreeMap::new(),
             presence: BTreeMap::new(),
             games: BTreeMap::new(),
             scheduled: BTreeMap::new(),
@@ -315,125 +336,155 @@ impl Server {
 
     async fn handle(&mut self, connection: ConnectionId, request: Request) -> Reply {
         use Request::*;
+        // The calls that work without a session.
+        let request = match request {
+            Connect => return self.server_info(),
+            CreateUser { name, password_hash, email, player_name } => {
+                return self.create_user(connection, &name, &password_hash, email.as_deref(), &player_name).await
+            }
+            Login { version, name, password_hash } => return self.login(connection, version, &name, &password_hash).await,
+            ResumeSession { token } => return self.resume_session(connection, &token).await,
+            LinkLogin { token } => return self.link_login(connection, &token).await,
+            PasswordReset { name_or_email } => return self.password_reset(&name_or_email).await,
+            SetPassword { name, reset_token, password_hash } => return self.set_password(connection, &name, &reset_token, &password_hash).await,
+            request => request,
+        };
+        let user = self.caller(connection).await?;
         match request {
-            Connect => self.server_info(),
-            CreateUser { name, password_hash, email, player_name } => self.create_user(&name, &password_hash, email.as_deref(), &player_name).await,
-            Login { version, name, password_hash } => self.login(version, &name, &password_hash).await,
-            LoginInfo { token } => self.login_info(&token),
-            PasswordReset { name_or_email } => self.password_reset(&name_or_email).await,
-            SetPassword { name, reset_token, password_hash } => self.set_password(&name, &reset_token, &password_hash).await,
-            UpdateUserInfo { token, password_hash, player_name, email } => {
-                self.update_user_info(&token, password_hash.as_deref(), &player_name, email.as_deref()).await
+            Connect | CreateUser { .. } | Login { .. } | ResumeSession { .. } | LinkLogin { .. } | PasswordReset { .. } | SetPassword { .. } => {
+                unreachable!("handled above")
             }
-            SetUserStatus { token, status } => self.set_user_status(&token, status),
-            Heartbeat { token, scope } => self.heartbeat(&token, scope),
-
-            CreateGame { name, token, password_hash, savegame, skin } => {
-                self.create_game(connection, name.as_deref(), &token, password_hash.as_deref(), savegame.as_deref(), skin.as_deref()).await
+            Logout => self.logout(connection).await,
+            UpdateUserInfo { password_hash, player_name, email } => {
+                self.update_user_info(connection, user, password_hash.as_deref(), &player_name, email.as_deref()).await
             }
-            LoadGame { token, game, savegame, skin } => self.load_game(&token, &game, &savegame, skin.as_deref()).await,
-            UpdateSettings { token, game, settings } => self.update_settings(&token, &game, settings),
-            CloseGame { token, game } => self.close_game(&token, &game).await,
-            GameState { token, game } => self.game_state(connection, &token, &game),
-            ScheduleGame { token, starts, ruleset, players, max_turns, factions, async_play } => {
-                self.schedule_game(&token, starts, ruleset, players, max_turns, factions, async_play).await
+            SetUserStatus { status } => self.set_user_status(user, status),
+            Heartbeat { scope } => self.heartbeat(user, scope),
+
+            CreateGame { name, password_hash, savegame, skin } => {
+                self.create_game(connection, user, name.as_deref(), password_hash.as_deref(), savegame.as_deref(), skin.as_deref()).await
             }
-            CancelScheduledGame { token, scheduled_game } => self.cancel_scheduled_game(&token, &scheduled_game).await,
-            Subscribe { token, scheduled_game, subscription } => self.subscribe(&token, scheduled_game.as_deref(), subscription).await,
+            LoadGame { game, savegame, skin } => self.load_game(user, &game, &savegame, skin.as_deref()).await,
+            UpdateSettings { game, settings } => self.update_settings(user, &game, settings),
+            CloseGame { game } => self.close_game(user, &game).await,
+            GameState { game } => self.game_state(connection, user, &game),
+            ScheduleGame { starts, ruleset, players, max_turns, factions, async_play } => {
+                self.schedule_game(user, starts, ruleset, players, max_turns, factions, async_play).await
+            }
+            CancelScheduledGame { scheduled_game } => self.cancel_scheduled_game(user, &scheduled_game).await,
+            Subscribe { scheduled_game, subscription } => self.subscribe(user, scheduled_game.as_deref(), subscription).await,
 
-            JoinGame { token, game, password_hash, seat } => self.join_game(connection, &token, &game, password_hash.as_deref(), seat),
-            ObserveGame { token, game, password_hash } => self.observe_game(connection, &token, &game, password_hash.as_deref()),
-            ReconnectGame { token, game } => self.reconnect_game(connection, &token, &game),
-            LeaveGame { token, game } => self.leave_game(&token, &game),
-            SetOrUnsetHost { token, game, user } => self.set_or_unset_host(&token, &game, user),
-            OpenOrCloseSeat { token, game, seat } => self.open_or_close_seat(&token, &game, seat),
-            Kick { token, game, user } => self.kick(&token, &game, user),
-            AssignSeats { token, game, seats } => self.assign_seats(&token, &game, seats),
-            SetBotSpeed { token, game, speed } => self.set_bot_speed(&token, &game, speed),
-            NudgeBots { token, game } => self.nudge_bots(&token, &game).await,
+            JoinGame { game, password_hash, seat } => self.join_game(connection, user, &game, password_hash.as_deref(), seat),
+            ObserveGame { game, password_hash } => self.observe_game(connection, user, &game, password_hash.as_deref()),
+            ReconnectGame { game } => self.reconnect_game(connection, user, &game),
+            LeaveGame { game } => self.leave_game(user, &game),
+            SetOrUnsetHost { game, user: target } => self.set_or_unset_host(user, &game, target),
+            OpenOrCloseSeat { game, seat } => self.open_or_close_seat(user, &game, seat),
+            Kick { game, user: target } => self.kick(user, &game, target),
+            AssignSeats { game, seats } => self.assign_seats(user, &game, seats),
+            SetBotSpeed { game, speed } => self.set_bot_speed(user, &game, speed),
+            NudgeBots { game } => self.nudge_bots(user, &game).await,
 
-            SubmitEvent { token, game, event } => self.submit_event(&token, &game, event).await,
-            Undo { token, game, until } => self.undo(&token, &game, until).await,
-            RestoreUndone { token, game } => self.restore_undone(&token, &game).await,
-            DismissUndone { token, game } => self.dismiss_undone(&token, &game).await,
-            SetTimer { token, game, value } => self.set_timer(&token, &game, value),
-            SetSkin { token, game, skin } => self.set_skin(&token, &game, skin),
-            PhaseDone { token, game } => self.phase_done(&token, &game).await,
-            PhaseHold { token, game } => self.phase_hold(&token, &game).await,
-            PhaseRelease { token, game } => self.phase_release(&token, &game).await,
-            PhaseContinue { token, game, event_number } => self.phase_continue(&token, &game, event_number).await,
+            SubmitEvent { game, event } => self.submit_event(user, &game, event).await,
+            Undo { game, until } => self.undo(user, &game, until).await,
+            RestoreUndone { game } => self.restore_undone(user, &game).await,
+            DismissUndone { game } => self.dismiss_undone(user, &game).await,
+            SetTimer { game, value } => self.set_timer(user, &game, value),
+            SetSkin { game, skin } => self.set_skin(user, &game, skin),
+            PhaseDone { game } => self.phase_done(user, &game).await,
+            PhaseHold { game } => self.phase_hold(user, &game).await,
+            PhaseRelease { game } => self.phase_release(user, &game).await,
+            PhaseContinue { game, event_number } => self.phase_continue(user, &game, event_number).await,
 
-            Chat { token, game, message } => self.chat(&token, &game, message),
-            GlobalChat { token, message } => self.global_chat(&token, message),
+            Chat { game, message } => self.chat(user, &game, message),
+            GlobalChat { message } => self.global_chat(user, message),
 
-            SetMaintenance { token, starts } => self.set_maintenance(&token, starts),
-            SaveAll { token } => self.save_all(&token).await,
-            ReloadAll { token } => self.reload_all(&token).await,
-            AdminCloseGame { token, game } => self.admin_close_game(&token, &game).await,
-            DownloadGame { token, game } => self.download_game(&token, &game),
-            AdminCancelScheduledGame { token, scheduled_game } => self.admin_cancel_scheduled_game(&token, &scheduled_game).await,
-            DeleteUser { token, user } => self.delete_user(&token, user).await,
-            AdminInfo { token } => self.admin_info(&token),
+            SetMaintenance { starts } => self.set_maintenance(user, starts),
+            SaveAll => self.save_all(user).await,
+            ReloadAll => self.reload_all(user).await,
+            AdminCloseGame { game } => self.admin_close_game(user, &game).await,
+            DownloadGame { game } => self.download_game(user, &game),
+            AdminCancelScheduledGame { scheduled_game } => self.admin_cancel_scheduled_game(user, &scheduled_game).await,
+            DeleteUser { user: target } => self.delete_user(user, target).await,
+            AdminInfo => self.admin_info(user),
 
-            QueryDraft { token, game, event_number: _, draft } => {
-                let (user, game) = self.user_in_game(&token, &game)?;
+            QueryDraft { game, event_number: _, draft } => {
+                let game = self.player_of(user, &game)?;
                 self.views.query_draft(&self.games[&game], user, &draft)
             }
-            Report { token, game, index } => {
-                let (user, game) = self.user_in_game(&token, &game)?;
+            Report { game, index } => {
+                let game = self.participant_of(user, &game)?;
                 self.views.report(&self.games[&game], user, index)
             }
-            UndoList { token, game } => {
-                let (user, game) = self.user_in_game(&token, &game)?;
+            UndoList { game } => {
+                let game = self.host_of(user, &game)?;
                 self.views.undo_list(&self.games[&game], user)
             }
-            UndoPreview { token, game, gap } => {
-                let (user, game) = self.user_in_game(&token, &game)?;
+            UndoPreview { game, gap } => {
+                let game = self.host_of(user, &game)?;
                 self.views.undo_preview(&self.games[&game], user, gap)
             }
-            SaveGame { token, game } => {
-                let (user, game) = self.user_in_game(&token, &game)?;
-                let g = &self.games[&game];
-                if !g.game.is_host(Some(user)) && !self.is_admin(&token) {
-                    return Err(refuse(ErrorType::NoHost));
-                }
-                Ok(Value::String(storage::savegame(&g.game)))
+            SaveGame { game } => {
+                let game = if self.is_admin(user) { self.running(&game)? } else { self.host_of(user, &game)? };
+                Ok(Value::String(storage::savegame(&self.games[&game].game)))
             }
         }
     }
 
-    /// The user of a session, if the token is one that hasn't expired.
-    fn session_user(&self, token: &str) -> Result<i32, CallError> {
-        match self.sessions.get(token) {
-            Some(s) if self.now() - s.created < chrono::Duration::days(SESSION_DAYS) => Ok(s.user),
-            _ => Err(refuse(ErrorType::UserNotFound)),
+    /// The user the connection is logged in as. A session that expired since ends here.
+    async fn caller(&mut self, connection: ConnectionId) -> Result<i32, CallError> {
+        let Some((digest, user)) = self.connections.login(connection).map(|(d, u)| (d.to_string(), u)) else {
+            return Err(refuse(ErrorType::UserTokenNotFound));
+        };
+        match self.sessions.get(&digest) {
+            Some(s) if !s.expired(self.now()) => Ok(user),
+            _ => {
+                self.end_session(&digest).await?;
+                Err(refuse(ErrorType::UserTokenNotFound))
+            }
         }
     }
 
-    /// The session's user and a running game's id.
-    fn user_in_game(&self, token: &str, game: &str) -> Result<(i32, String), CallError> {
-        let user = self.session_user(token)?;
+    /// A running game's id.
+    fn running(&self, game: &str) -> Result<String, CallError> {
         if !self.games.contains_key(game) {
             return Err(refuse(ErrorType::GameNotFound));
         }
-        Ok((user, game.to_string()))
+        Ok(game.to_string())
     }
 
-    /// Like [`Self::user_in_game`], for calls only a host of the game may make.
-    fn host_of(&self, token: &str, game: &str) -> Result<(i32, String), CallError> {
-        let (user, game) = self.user_in_game(token, game)?;
+    /// A running game the user takes part in, as a player or an observer.
+    fn participant_of(&self, user: i32, game: &str) -> Result<String, CallError> {
+        let game = self.running(game)?;
+        if !self.games[&game].game.is_participant(user) {
+            return Err(refuse(ErrorType::UserNotInGame));
+        }
+        Ok(game)
+    }
+
+    /// A running game the user plays in. Observers may watch and nothing more.
+    fn player_of(&self, user: i32, game: &str) -> Result<String, CallError> {
+        let game = self.participant_of(user, game)?;
+        if !self.games[&game].game.is_player(user) {
+            return Err(CallError::Refused(ErrorType::UserNotInGame, "Observers can't do this".into()));
+        }
+        Ok(game)
+    }
+
+    /// A running game the user hosts.
+    fn host_of(&self, user: i32, game: &str) -> Result<String, CallError> {
+        let game = self.running(game)?;
         if !self.games[&game].game.is_host(Some(user)) {
             return Err(refuse(ErrorType::NoHost));
         }
-        Ok((user, game))
+        Ok(game)
     }
 
     fn player_name(&self, user: i32) -> String {
         self.users.get(&user).map(|u| u.player_name.clone()).unwrap_or_default()
     }
 
-    fn is_admin(&self, token: &str) -> bool {
-        let Ok(user) = self.session_user(token) else { return false };
+    fn is_admin(&self, user: i32) -> bool {
         match (&self.services.settings.admin, self.users.get(&user)) {
             (Some(admin), Some(u)) => *admin == u.name,
             _ => false,

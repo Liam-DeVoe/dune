@@ -1,26 +1,33 @@
-//! The SQLite database: accounts, sessions, running games and scheduled games.
+//! The SQLite database: accounts, sessions, login links, running games and scheduled games.
 //!
 //! The server keeps everything in memory while it runs and writes changes through to the
 //! database, which it reads back only at startup (and on the admin's restore). The schema's
 //! version is SQLite's `user_version`; [`Db::open`] brings any older database up to date before
 //! the server starts, in one transaction:
 //!
-//! - version 0 and empty: creates the schema.
+//! - version 0 and empty: creates the version 1 schema, then migrates it to version 2.
 //! - version 0 with the tables of the old C# server (Entity Framework's `__EFMigrationsHistory`
-//!   among them): copies accounts, sessions, games and scheduled games into the new tables and
-//!   drops the old ones. See [`migrate_from_csharp`].
-//! - version 1: the current schema.
+//!   among them): copies accounts, sessions, games and scheduled games into the version 1
+//!   tables and drops the old ones (see [`migrate_from_csharp`]), then migrates to version 2.
+//! - version 1: passwords were the client's SHA-256 as sent, sessions and reset tokens were
+//!   stored as they are. [`migrate_to_v2`] hashes each password with Argon2id
+//!   (`crate::passwords`) and marks it `password_scheme` 1, stores reset tokens as digests, and
+//!   ends every session: their tokens appeared in URLs and mails.
+//! - version 2: the current schema.
 //!
-//! Times are stored as RFC 3339 text in UTC ([`super::time::format`]).
+//! Times are stored as RFC 3339 text in UTC ([`super::time::format`]). Session, login link and
+//! reset tokens are stored as their SHA-256 digests (`crate::ids::digest`).
 
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePool, SqlitePoolOptions, SqliteRow};
 use sqlx::{Row, Sqlite, Transaction};
 
+use super::passwords;
 use super::time::{self, Time};
 
-pub const SCHEMA_VERSION: i64 = 1;
+pub const SCHEMA_VERSION: i64 = 2;
 
-const SCHEMA: &[&str] = &[
+/// The version 1 schema, which the C# conversion fills. [`migrate_to_v2`] brings it up to date.
+const SCHEMA_V1: &[&str] = &[
     "CREATE TABLE users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
@@ -68,20 +75,35 @@ pub struct UserRow {
     pub id: i32,
     /// Trimmed and in lower case.
     pub name: String,
-    /// The hash the client sends (protocol.md, Server and accounts).
+    /// The Argon2id hash of what the client sends (`crate::passwords`), `password_scheme` 1.
     pub password_hash: String,
     /// Empty when the user gave none.
     pub email: String,
     pub player_name: String,
     pub last_login: Time,
-    pub reset_token: Option<String>,
+    /// The digest of the password reset token mailed last.
+    pub reset_token_digest: Option<String>,
     pub reset_token_created: Option<Time>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SessionRow {
-    pub token: String,
+    /// The digest of the session token.
+    pub token_digest: String,
     pub user_id: i32,
+    pub created: Time,
+    /// When a connection last logged in with it.
+    pub last_used: Time,
+}
+
+/// A single-use login link from an async-play mail.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LoginLinkRow {
+    /// The digest of the link's token.
+    pub token_digest: String,
+    pub user_id: i32,
+    /// The game the link opens.
+    pub game_id: String,
     pub created: Time,
 }
 
@@ -145,8 +167,30 @@ impl UserRow {
             email: row.try_get("email")?,
             player_name: row.try_get("player_name")?,
             last_login: get_time(row, "last_login")?,
-            reset_token: row.try_get("reset_token")?,
+            reset_token_digest: row.try_get("reset_token_digest")?,
             reset_token_created: get_optional_time(row, "reset_token_created")?,
+        })
+    }
+}
+
+impl SessionRow {
+    fn from_row(row: &SqliteRow) -> Result<Self, sqlx::Error> {
+        Ok(SessionRow {
+            token_digest: row.try_get("token_digest")?,
+            user_id: row.try_get("user_id")?,
+            created: get_time(row, "created")?,
+            last_used: get_time(row, "last_used")?,
+        })
+    }
+}
+
+impl LoginLinkRow {
+    fn from_row(row: &SqliteRow) -> Result<Self, sqlx::Error> {
+        Ok(LoginLinkRow {
+            token_digest: row.try_get("token_digest")?,
+            user_id: row.try_get("user_id")?,
+            game_id: row.try_get("game_id")?,
+            created: get_time(row, "created")?,
         })
     }
 }
@@ -234,41 +278,51 @@ impl Db {
 
     async fn migrate(&self) -> Result<(), OpenError> {
         let version: i64 = sqlx::query("PRAGMA user_version").fetch_one(&self.pool).await?.get(0);
-        match version {
-            SCHEMA_VERSION => return Ok(()),
-            0 => {}
-            v => return Err(OpenError::Schema(format!("version {v} is newer than this server's ({SCHEMA_VERSION})"))),
+        if version > SCHEMA_VERSION {
+            return Err(OpenError::Schema(format!("version {version} is newer than this server's ({SCHEMA_VERSION})")));
         }
-        let tables: Vec<String> =
-            sqlx::query("SELECT name FROM sqlite_master WHERE type = 'table'").fetch_all(&self.pool).await?.iter().map(|r| r.get(0)).collect();
+        if version == SCHEMA_VERSION {
+            return Ok(());
+        }
         let mut tx = self.pool.begin().await?;
-        if tables.iter().any(|t| t == "__EFMigrationsHistory") {
-            migrate_from_csharp(&mut tx).await?;
-        } else if tables.iter().any(|t| t != "sqlite_sequence") {
-            return Err(OpenError::Schema(format!("unknown tables {tables:?}")));
-        } else {
-            create_schema(&mut tx).await?;
+        if version == 0 {
+            let tables: Vec<String> =
+                sqlx::query("SELECT name FROM sqlite_master WHERE type = 'table'").fetch_all(&mut *tx).await?.iter().map(|r| r.get(0)).collect();
+            if tables.iter().any(|t| t == "__EFMigrationsHistory") {
+                migrate_from_csharp(&mut tx).await?;
+            } else if tables.iter().any(|t| t != "sqlite_sequence") {
+                return Err(OpenError::Schema(format!("unknown tables {tables:?}")));
+            } else {
+                create_schema_v1(&mut tx).await?;
+            }
         }
+        migrate_to_v2(&mut tx).await?;
         sqlx::query(&format!("PRAGMA user_version = {SCHEMA_VERSION}")).execute(&mut *tx).await?;
         tx.commit().await?;
         Ok(())
     }
 
     pub async fn users(&self) -> Result<Vec<UserRow>, sqlx::Error> {
+        let unknown: i64 = sqlx::query("SELECT COUNT(*) FROM users WHERE password_scheme != ?").bind(passwords::SCHEME).fetch_one(&self.pool).await?.get(0);
+        if unknown > 0 {
+            return Err(sqlx::Error::Decode(format!("{unknown} users have a password scheme other than {}", passwords::SCHEME).into()));
+        }
         sqlx::query("SELECT * FROM users ORDER BY id").fetch_all(&self.pool).await?.iter().map(UserRow::from_row).collect()
     }
 
     /// Adds a user and returns its id; `user.id` is ignored.
     pub async fn insert_user(&self, user: &UserRow) -> Result<i32, sqlx::Error> {
         let r = sqlx::query(
-            "INSERT INTO users (name, password_hash, email, player_name, last_login, reset_token, reset_token_created) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO users (name, password_hash, password_scheme, email, player_name, last_login, reset_token_digest, reset_token_created)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(&user.name)
         .bind(&user.password_hash)
+        .bind(passwords::SCHEME)
         .bind(&user.email)
         .bind(&user.player_name)
         .bind(time::format(user.last_login))
-        .bind(&user.reset_token)
+        .bind(&user.reset_token_digest)
         .bind(user.reset_token_created.map(time::format))
         .execute(&self.pool)
         .await?;
@@ -277,14 +331,16 @@ impl Db {
 
     pub async fn update_user(&self, user: &UserRow) -> Result<(), sqlx::Error> {
         sqlx::query(
-            "UPDATE users SET name = ?, password_hash = ?, email = ?, player_name = ?, last_login = ?, reset_token = ?, reset_token_created = ? WHERE id = ?",
+            "UPDATE users SET name = ?, password_hash = ?, password_scheme = ?, email = ?, player_name = ?, last_login = ?, reset_token_digest = ?,
+             reset_token_created = ? WHERE id = ?",
         )
         .bind(&user.name)
         .bind(&user.password_hash)
+        .bind(passwords::SCHEME)
         .bind(&user.email)
         .bind(&user.player_name)
         .bind(time::format(user.last_login))
-        .bind(&user.reset_token)
+        .bind(&user.reset_token_digest)
         .bind(user.reset_token_created.map(time::format))
         .bind(user.id)
         .execute(&self.pool)
@@ -292,35 +348,50 @@ impl Db {
         Ok(())
     }
 
-    /// Deletes a user and their sessions.
+    /// Deletes a user, their sessions and their login links.
     pub async fn delete_user(&self, id: i32) -> Result<(), sqlx::Error> {
         sqlx::query("DELETE FROM users WHERE id = ?").bind(id).execute(&self.pool).await?;
         Ok(())
     }
 
     pub async fn sessions(&self) -> Result<Vec<SessionRow>, sqlx::Error> {
-        sqlx::query("SELECT * FROM sessions")
-            .fetch_all(&self.pool)
-            .await?
-            .iter()
-            .map(|r| Ok(SessionRow { token: r.try_get("token")?, user_id: r.try_get("user_id")?, created: get_time(r, "created")? }))
-            .collect()
+        sqlx::query("SELECT * FROM sessions").fetch_all(&self.pool).await?.iter().map(SessionRow::from_row).collect()
     }
 
-    pub async fn insert_session(&self, session: &SessionRow) -> Result<(), sqlx::Error> {
-        sqlx::query("INSERT INTO sessions (token, user_id, created) VALUES (?, ?, ?)")
-            .bind(&session.token)
+    /// Inserts or replaces the session with this digest.
+    pub async fn save_session(&self, session: &SessionRow) -> Result<(), sqlx::Error> {
+        sqlx::query("INSERT OR REPLACE INTO sessions (token_digest, user_id, created, last_used) VALUES (?, ?, ?, ?)")
+            .bind(&session.token_digest)
             .bind(session.user_id)
             .bind(time::format(session.created))
+            .bind(time::format(session.last_used))
             .execute(&self.pool)
             .await?;
         Ok(())
     }
 
-    /// Deletes the sessions created before `cutoff`.
-    pub async fn delete_sessions_before(&self, cutoff: Time) -> Result<(), sqlx::Error> {
-        // Times are stored in one format, so they compare as text.
-        sqlx::query("DELETE FROM sessions WHERE created < ?").bind(time::format(cutoff)).execute(&self.pool).await?;
+    pub async fn delete_session(&self, token_digest: &str) -> Result<(), sqlx::Error> {
+        sqlx::query("DELETE FROM sessions WHERE token_digest = ?").bind(token_digest).execute(&self.pool).await?;
+        Ok(())
+    }
+
+    pub async fn login_links(&self) -> Result<Vec<LoginLinkRow>, sqlx::Error> {
+        sqlx::query("SELECT * FROM login_links").fetch_all(&self.pool).await?.iter().map(LoginLinkRow::from_row).collect()
+    }
+
+    pub async fn insert_login_link(&self, link: &LoginLinkRow) -> Result<(), sqlx::Error> {
+        sqlx::query("INSERT INTO login_links (token_digest, user_id, game_id, created) VALUES (?, ?, ?, ?)")
+            .bind(&link.token_digest)
+            .bind(link.user_id)
+            .bind(&link.game_id)
+            .bind(time::format(link.created))
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn delete_login_link(&self, token_digest: &str) -> Result<(), sqlx::Error> {
+        sqlx::query("DELETE FROM login_links WHERE token_digest = ?").bind(token_digest).execute(&self.pool).await?;
         Ok(())
     }
 
@@ -388,9 +459,62 @@ async fn save_scheduled_game<'e>(executor: impl sqlx::Executor<'e, Database = Sq
     Ok(())
 }
 
-async fn create_schema(tx: &mut Transaction<'_, Sqlite>) -> Result<(), sqlx::Error> {
-    for statement in SCHEMA {
+async fn create_schema_v1(tx: &mut Transaction<'_, Sqlite>) -> Result<(), sqlx::Error> {
+    for statement in SCHEMA_V1 {
         sqlx::query(statement).execute(&mut **tx).await?;
+    }
+    Ok(())
+}
+
+/// Version 1 to 2. Each stored password, the client's SHA-256 as it was sent, is hashed with
+/// Argon2id once, so the same value from the client still logs in. Pending reset tokens are
+/// kept as digests. Sessions end, because their tokens appeared in URLs and mails; the new
+/// `sessions` table keeps digests and when each was last used. Login links are new.
+pub async fn migrate_to_v2(tx: &mut Transaction<'_, Sqlite>) -> Result<(), OpenError> {
+    for statement in [
+        "ALTER TABLE users ADD COLUMN password_scheme INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE users RENAME COLUMN reset_token TO reset_token_digest",
+        "DROP TABLE sessions",
+        "CREATE TABLE sessions (
+            token_digest TEXT PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+            created TEXT NOT NULL,
+            last_used TEXT NOT NULL
+        )",
+        "CREATE TABLE login_links (
+            token_digest TEXT PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+            game_id TEXT NOT NULL,
+            created TEXT NOT NULL
+        )",
+    ] {
+        sqlx::query(statement).execute(&mut **tx).await?;
+    }
+
+    let users: Vec<(i64, String, Option<String>)> = sqlx::query("SELECT id, password_hash, reset_token_digest FROM users")
+        .fetch_all(&mut **tx)
+        .await?
+        .iter()
+        .map(|r| Ok((r.try_get(0)?, r.try_get(1)?, r.try_get(2)?)))
+        .collect::<Result<_, sqlx::Error>>()?;
+    // Argon2 takes a few tens of milliseconds per hash: spread them over a few threads.
+    let threads = std::thread::available_parallelism().map_or(1, |n| n.get()).min(4);
+    let chunk = users.len().div_ceil(threads).max(1);
+    let hashed: Vec<String> = std::thread::scope(|scope| {
+        let workers: Vec<_> = users.chunks(chunk).map(|part| scope.spawn(move || part.iter().map(|(_, p, _)| passwords::hash(p)).collect::<Vec<_>>())).collect();
+        workers.into_iter().flat_map(|w| w.join().expect("hashing passwords")).collect()
+    });
+    for ((id, _, reset_token), hash) in users.iter().zip(hashed) {
+        sqlx::query("UPDATE users SET password_hash = ?, password_scheme = ?, reset_token_digest = ? WHERE id = ?")
+            .bind(hash)
+            .bind(passwords::SCHEME)
+            .bind(reset_token.as_deref().map(super::ids::digest))
+            .bind(id)
+            .execute(&mut **tx)
+            .await?;
+    }
+    if !users.is_empty() {
+        println!("database version 2: hashed {} passwords with Argon2id; every session ended", users.len());
     }
     Ok(())
 }
@@ -402,8 +526,8 @@ fn csharp_time(text: Option<String>) -> Option<Time> {
 }
 
 /// Converts a database of the old C# server (Entity Framework's schema after its last
-/// migration, `UserTokensAdded`) to the current schema. Accounts and sessions are copied as
-/// they are. Games are copied with their savegame and seats; games whose savegame no longer
+/// migration, `UserTokensAdded`) to the version 1 schema, which [`migrate_to_v2`] then brings
+/// up to date. Accounts and sessions are copied as they are. Games are copied with their savegame and seats; games whose savegame no longer
 /// loads are copied too; the server leaves them out with a log line. The tables
 /// the C# server used only for itself (`ArchivedGames`, which it never wrote, and Entity
 /// Framework's bookkeeping) are dropped.
@@ -420,7 +544,7 @@ pub async fn migrate_from_csharp(tx: &mut Transaction<'_, Sqlite>) -> Result<(),
     for old in ["Users", "UserTokens", "PersistedGames", "ScheduledGames"] {
         sqlx::query(&format!(r#"ALTER TABLE "{old}" RENAME TO "csharp_{old}""#)).execute(&mut **tx).await?;
     }
-    create_schema(tx).await?;
+    create_schema_v1(tx).await?;
 
     let users = sqlx::query(r#"SELECT * FROM "csharp_Users" ORDER BY "Id""#).fetch_all(&mut **tx).await?;
     for r in &users {
@@ -532,20 +656,28 @@ mod tests {
             email: "".into(),
             player_name: "Alice".into(),
             last_login: t("2026-11-08T12:00:00Z"),
-            reset_token: None,
+            reset_token_digest: None,
             reset_token_created: None,
         };
         user.id = db.insert_user(&user).await.unwrap();
-        user.reset_token = Some("T".into());
+        user.reset_token_digest = Some("T".into());
         user.reset_token_created = Some(t("2026-11-08T12:30:00.5Z"));
         db.update_user(&user).await.unwrap();
         assert_eq!(db.users().await.unwrap(), vec![user.clone()]);
 
-        let session = SessionRow { token: "abc".into(), user_id: user.id, created: t("2026-11-01T00:00:00Z") };
-        db.insert_session(&session).await.unwrap();
-        db.insert_session(&SessionRow { token: "new".into(), created: t("2026-11-07T00:00:00Z"), ..session.clone() }).await.unwrap();
-        db.delete_sessions_before(t("2026-11-05T00:00:00Z")).await.unwrap();
-        assert_eq!(db.sessions().await.unwrap().len(), 1);
+        let session = SessionRow { token_digest: "abc".into(), user_id: user.id, created: t("2026-11-01T00:00:00Z"), last_used: t("2026-11-01T00:00:00Z") };
+        db.save_session(&session).await.unwrap();
+        db.save_session(&SessionRow { token_digest: "new".into(), ..session.clone() }).await.unwrap();
+        let used = SessionRow { last_used: t("2026-11-07T00:00:00Z"), ..session.clone() };
+        db.save_session(&used).await.unwrap();
+        db.delete_session("new").await.unwrap();
+        assert_eq!(db.sessions().await.unwrap(), vec![used]);
+
+        let link = LoginLinkRow { token_digest: "l".into(), user_id: user.id, game_id: "g".into(), created: t("2026-11-01T00:00:00Z") };
+        db.insert_login_link(&link).await.unwrap();
+        db.insert_login_link(&LoginLinkRow { token_digest: "m".into(), ..link.clone() }).await.unwrap();
+        db.delete_login_link("m").await.unwrap();
+        assert_eq!(db.login_links().await.unwrap(), vec![link]);
 
         let game = GameRow {
             id: "g".into(),
@@ -580,9 +712,49 @@ mod tests {
         db.save_scheduled_game(&scheduled).await.unwrap();
         assert_eq!(db.scheduled_games().await.unwrap(), vec![scheduled]);
 
-        // Deleting a user deletes their sessions.
+        // Deleting a user deletes their sessions and login links.
         db.delete_user(user.id).await.unwrap();
-        assert!(db.users().await.unwrap().is_empty() && db.sessions().await.unwrap().is_empty());
+        assert!(db.users().await.unwrap().is_empty() && db.sessions().await.unwrap().is_empty() && db.login_links().await.unwrap().is_empty());
+    }
+
+    /// A version 1 database: passwords are hashed once, reset tokens become digests, and
+    /// sessions end.
+    #[tokio::test(flavor = "current_thread")]
+    async fn migrates_version_1() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("v1.db");
+        {
+            let pool = SqlitePoolOptions::new().max_connections(1).connect_with(SqliteConnectOptions::new().filename(&path).create_if_missing(true)).await.unwrap();
+            let mut tx = pool.begin().await.unwrap();
+            create_schema_v1(&mut tx).await.unwrap();
+            for (name, hash, reset) in [("alice", "alice-sha", Some("RESET")), ("bobby", "bobby-sha", None)] {
+                sqlx::query("INSERT INTO users (name, password_hash, email, player_name, last_login, reset_token, reset_token_created) VALUES (?, ?, '', ?, ?, ?, ?)")
+                    .bind(name)
+                    .bind(hash)
+                    .bind(name)
+                    .bind("2026-11-01T00:00:00Z")
+                    .bind(reset)
+                    .bind(reset.map(|_| "2026-11-01T00:00:00Z"))
+                    .execute(&mut *tx)
+                    .await
+                    .unwrap();
+            }
+            sqlx::query("INSERT INTO sessions (token, user_id, created) VALUES ('AliceToken123456', 1, '2026-11-01T00:00:00Z')").execute(&mut *tx).await.unwrap();
+            sqlx::query("PRAGMA user_version = 1").execute(&mut *tx).await.unwrap();
+            tx.commit().await.unwrap();
+            pool.close().await;
+        }
+        let db = Db::open(&path).await.unwrap();
+        let users = db.users().await.unwrap();
+        assert!(passwords::verify("alice-sha", &users[0].password_hash) && passwords::verify("bobby-sha", &users[1].password_hash));
+        assert!(!passwords::verify("bobby-sha", &users[0].password_hash));
+        assert_eq!(users[0].reset_token_digest, Some(crate::ids::digest("RESET")));
+        assert_eq!(users[1].reset_token_digest, None);
+        assert!(db.sessions().await.unwrap().is_empty());
+        db.close().await;
+        // Opening it again changes nothing.
+        let db = Db::open(&path).await.unwrap();
+        assert_eq!(db.users().await.unwrap(), users);
     }
 
     #[tokio::test(flavor = "current_thread")]

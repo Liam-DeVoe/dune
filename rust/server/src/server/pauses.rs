@@ -45,8 +45,8 @@ pub struct Pause {
 pub type PauseChange = Box<dyn FnOnce(&mut Pause)>;
 
 impl Server {
-    pub(super) async fn phase_done(&mut self, token: &str, game: &str) -> Reply {
-        self.change_pause(token, game, |pause, seat| {
+    pub(super) async fn phase_done(&mut self, user: i32, game: &str) -> Reply {
+        self.change_pause(user, game, |pause, seat| {
             pause.done.insert(seat);
             pause.holding.remove(&seat);
         })
@@ -54,8 +54,8 @@ impl Server {
     }
 
     /// Holds the running countdown; does nothing when none is running.
-    pub(super) async fn phase_hold(&mut self, token: &str, game: &str) -> Reply {
-        self.change_pause(token, game, |pause, seat| {
+    pub(super) async fn phase_hold(&mut self, user: i32, game: &str) -> Reply {
+        self.change_pause(user, game, |pause, seat| {
             if pause.countdown_ends.is_some() && !pause.countdown_expired {
                 pause.holding.insert(seat);
                 pause.was_held = true;
@@ -64,8 +64,8 @@ impl Server {
         .await
     }
 
-    pub(super) async fn phase_release(&mut self, token: &str, game: &str) -> Reply {
-        self.change_pause(token, game, |pause, seat| {
+    pub(super) async fn phase_release(&mut self, user: i32, game: &str) -> Reply {
+        self.change_pause(user, game, |pause, seat| {
             pause.holding.remove(&seat);
         })
         .await
@@ -73,8 +73,8 @@ impl Server {
 
     /// The host's Continue: ends the pause the host saw, at `event_number` events. If the game
     /// has moved on since, it does nothing.
-    pub(super) async fn phase_continue(&mut self, token: &str, game: &str, event_number: i32) -> Reply {
-        let (user, game) = self.host_of(token, game)?;
+    pub(super) async fn phase_continue(&mut self, user: i32, game: &str, event_number: i32) -> Reply {
+        let game = self.host_of(user, game)?;
         let event = {
             let g = &self.games[&game].game;
             let faction = g.get_player_by_user_id(Some(user)).map_or(Faction::None, |p| g.player(p).faction);
@@ -85,11 +85,11 @@ impl Server {
         done()
     }
 
-    async fn change_pause(&mut self, token: &str, game: &str, change: impl FnOnce(&mut Pause, i32) + 'static) -> Reply {
-        let (user, game) = self.user_in_game(token, game)?;
+    async fn change_pause(&mut self, user: i32, game: &str, change: impl FnOnce(&mut Pause, i32) + 'static) -> Reply {
+        let game = self.player_of(user, game)?;
         let g = &self.games[&game].game;
         let Some(seat) = g.get_player_by_user_id(Some(user)).map(|p| g.player(p).seat) else {
-            return Err(CallError::Refused(ErrorType::InvalidGameEvent, "Only players can do this".into()));
+            return Err(CallError::Refused(ErrorType::InvalidGameEvent, "Only players with a faction can do this".into()));
         };
         self.update_pause(&game, None, Some(Box::new(move |pause: &mut Pause| change(pause, seat)))).await?;
         done()

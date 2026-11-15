@@ -7,7 +7,8 @@ use serde_json::json;
 
 /// `ErrorType` values (protocol.md, Result).
 mod error {
-    pub const USER_NOT_FOUND: i64 = 1;
+    pub const USER_TOKEN_NOT_FOUND: i64 = 8;
+    pub const NO_HOST: i64 = 22;
     pub const USER_NAME_TOO_SHORT: i64 = 5;
     pub const USER_NAME_TOO_LONG: i64 = 6;
     pub const USER_NAME_EXISTS: i64 = 7;
@@ -78,6 +79,8 @@ fn login_and_sessions() {
         assert_eq!(s.err(c, "RequestLogin", json!([VERSION - 1, "alice", "alice-pw"])).await, error::INVALID_GAME_VERSION);
         assert_eq!(s.err(c, "RequestLogin", json!([VERSION, "alice", "wrong"])).await, error::INVALID_USER_NAME_OR_PASSWORD);
         assert_eq!(s.err(c, "RequestLogin", json!([VERSION, "nobody", "alice-pw"])).await, error::INVALID_USER_NAME_OR_PASSWORD);
+        // Without a login the connection can't make calls that need a user.
+        assert_eq!(s.err(c, "RequestHeartbeat", json!([2])).await, error::USER_TOKEN_NOT_FOUND);
 
         // The name is matched without case and surrounding spaces.
         let info = s.ok(c, "RequestLogin", json!([VERSION, " ALICE ", "alice-pw"])).await;
@@ -86,41 +89,133 @@ fn login_and_sessions() {
         assert_eq!(info["PlayerName"], "Alice Player");
         assert_eq!(info["Email"], "alice@example.com");
         let token = info["Token"].as_str().unwrap().to_string();
+        assert_eq!(token.len(), 64, "32 random bytes");
+        assert_ne!(token, alice.token, "each login starts its own session");
+        // The login logged the connection in.
+        s.ok(c, "RequestHeartbeat", json!([2])).await;
 
-        // A token resumes the session, from any connection.
+        // A token resumes the session on another connection; the reply carries no token.
         let other = s.connect();
-        let resumed = s.ok(other, "GetLoginInfo", json!([token])).await;
+        assert_eq!(s.err(other, "RequestResumeSession", json!(["no such token"])).await, error::USER_TOKEN_NOT_FOUND);
+        assert_eq!(s.err(other, "RequestHeartbeat", json!([2])).await, error::USER_TOKEN_NOT_FOUND);
+        let resumed = s.ok(other, "RequestResumeSession", json!([token])).await;
         assert_eq!(resumed["UserId"], alice.id);
-        assert_eq!(resumed["Token"], token.as_str());
-        assert_eq!(s.err(other, "GetLoginInfo", json!(["no such token"])).await, error::USER_NOT_FOUND);
+        assert!(resumed["Token"].is_null());
+        s.ok(other, "RequestHeartbeat", json!([2])).await;
 
-        // Sessions survive a restart.
+        // Sessions survive a restart; the database holds only their digests.
         let mut s = s.restart().await;
         let c = s.connect();
         s.ok(c, "Connect", json!([])).await;
-        assert_eq!(s.ok(c, "GetLoginInfo", json!([token])).await["UserId"], alice.id);
-        assert_eq!(s.ok(c, "GetLoginInfo", json!([alice.token])).await["UserId"], alice.id);
+        assert_eq!(s.ok(c, "RequestResumeSession", json!([token])).await["UserId"], alice.id);
+        assert_eq!(s.ok(c, "RequestResumeSession", json!([alice.token])).await["UserId"], alice.id);
         s.ok(c, "RequestLogin", json!([VERSION, "alice", "alice-pw"])).await;
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .connect_with(sqlx::sqlite::SqliteConnectOptions::new().filename(s.db_path()))
+            .await
+            .unwrap();
+        let stored: Vec<String> = sqlx::query_scalar("SELECT token_digest FROM sessions").fetch_all(&pool).await.unwrap();
+        assert!(!stored.is_empty() && !stored.contains(&token) && !stored.contains(&alice.token), "{stored:?}");
+        let password: String = sqlx::query_scalar("SELECT password_hash FROM users").fetch_one(&pool).await.unwrap();
+        assert!(password.starts_with("$argon2id$"), "{password}");
+        pool.close().await;
     });
 }
 
 #[test]
-fn sessions_expire_after_90_days() {
+fn logging_in_as_another_user_leaves_the_first_users_games() {
     rt().block_on(async {
         let mut s = TestServer::start().await;
         let alice = s.user("alice").await;
-        s.advance_minutes(60 * 24 * 89).await;
-        assert_eq!(s.ok(alice.conn, "GetLoginInfo", json!([alice.token])).await["UserId"], alice.id);
-        s.advance_minutes(60 * 24 + 1).await;
-        // Expired sessions are dropped by the housekeeping that heartbeats run.
-        let bob = s.user("bobby").await;
-        s.call(bob.conn, "RequestHeartbeat", json!([bob.token, 2])).await;
-        assert_eq!(s.err(alice.conn, "GetLoginInfo", json!([alice.token])).await, error::USER_NOT_FOUND);
+        let game = s.new_game(&alice, "", "").await;
+        assert_eq!(s.err(alice.conn, "RequestLogin", json!([VERSION, "bobby", "x"])).await, error::INVALID_USER_NAME_OR_PASSWORD);
+        s.ok(alice.conn, "RequestCreateUser", json!(["bobby", "bobby-pw", "", "Bobby Player"])).await;
+        s.received(alice.conn);
+        // The connection is Bobby's now: it doesn't follow Alice's game, and acts as Bobby.
+        let other = s.login("alice").await;
+        s.ok(other.conn, "SetTimer", json!([game, 5])).await;
+        assert!(s.notifications(alice.conn).is_empty());
+        assert_eq!(s.err(alice.conn, "SetTimer", json!([game, 5])).await, error::NO_HOST);
+    });
+}
+
+#[test]
+fn sessions_expire() {
+    rt().block_on(async {
+        let mut s = TestServer::start().await;
+        let alice = s.user("alice").await;
+        // 30 days without use end a session.
+        s.advance_minutes(60 * 24 * 29).await;
+        let resumed = s.resume(&alice.token).await;
+        s.ok(resumed.conn, "RequestHeartbeat", json!([2])).await;
+        s.advance_minutes(60 * 24 * 29).await;
+        s.ok(resumed.conn, "RequestHeartbeat", json!([2])).await;
+        s.resume(&alice.token).await;
+        s.advance_minutes(60 * 24 * 30).await;
+        assert_eq!(s.err(resumed.conn, "RequestHeartbeat", json!([2])).await, error::USER_TOKEN_NOT_FOUND);
+        let c = s.connect();
+        assert_eq!(s.err(c, "RequestResumeSession", json!([alice.token])).await, error::USER_TOKEN_NOT_FOUND);
+
+        // 90 days end it however often it is used.
+        let alice = s.login("alice").await;
+        for _ in 0..4 {
+            s.advance_minutes(60 * 24 * 20).await;
+            s.resume(&alice.token).await;
+        }
+        s.advance_minutes(60 * 24 * 10).await;
+        let c = s.connect();
+        assert_eq!(s.err(c, "RequestResumeSession", json!([alice.token])).await, error::USER_TOKEN_NOT_FOUND);
         // and stay gone after a restart.
         let mut s = s.restart().await;
         let c = s.connect();
-        s.ok(c, "Connect", json!([])).await;
-        assert_eq!(s.err(c, "GetLoginInfo", json!([alice.token])).await, error::USER_NOT_FOUND);
+        assert_eq!(s.err(c, "RequestResumeSession", json!([alice.token])).await, error::USER_TOKEN_NOT_FOUND);
+    });
+}
+
+#[test]
+fn logging_out_ends_the_session_everywhere() {
+    rt().block_on(async {
+        let mut s = TestServer::start().await;
+        let alice = s.user("alice").await;
+        let game = s.new_game(&alice, "", "").await;
+        let tab = s.resume(&alice.token).await;
+        s.ok(tab.conn, "RequestReconnectGame", json!([game])).await;
+        let phone = s.login("alice").await;
+        s.received(tab.conn);
+
+        let (_, before) = s.call_raw(alice.conn, "RequestLogout", json!([])).await;
+        assert!(find(&before, "SessionEnded").is_some());
+        // Every connection of the session is logged out, and stops following the game.
+        assert!(find(&s.received(tab.conn), "SessionEnded").is_some());
+        assert_eq!(s.err(alice.conn, "RequestHeartbeat", json!([2])).await, error::USER_TOKEN_NOT_FOUND);
+        assert_eq!(s.err(tab.conn, "SetTimer", json!([game, 5])).await, error::USER_TOKEN_NOT_FOUND);
+        let c = s.connect();
+        assert_eq!(s.err(c, "RequestResumeSession", json!([alice.token])).await, error::USER_TOKEN_NOT_FOUND);
+        // Another session goes on.
+        s.ok(phone.conn, "SetTimer", json!([game, 5])).await;
+        assert!(s.notifications(tab.conn).is_empty());
+        let mut s = s.restart().await;
+        let c = s.connect();
+        assert_eq!(s.err(c, "RequestResumeSession", json!([alice.token])).await, error::USER_TOKEN_NOT_FOUND);
+        s.ok(c, "RequestResumeSession", json!([phone.token])).await;
+    });
+}
+
+#[test]
+fn a_user_keeps_twenty_sessions() {
+    rt().block_on(async {
+        let mut s = TestServer::start().await;
+        let first = s.user("alice").await;
+        let mut sessions = vec![first];
+        for _ in 0..20 {
+            s.advance_minutes(1).await;
+            sessions.push(s.login("alice").await);
+        }
+        // The least recently used one ended.
+        assert_eq!(s.err(sessions[0].conn, "RequestHeartbeat", json!([2])).await, error::USER_TOKEN_NOT_FOUND);
+        for u in &sessions[1..] {
+            s.ok(u.conn, "RequestHeartbeat", json!([2])).await;
+        }
     });
 }
 
@@ -128,7 +223,7 @@ fn sessions_expire_after_90_days() {
 fn password_reset_by_mail() {
     rt().block_on(async {
         let mut s = TestServer::start().await;
-        s.user("alice").await;
+        let alice_token = s.user("alice").await.token;
         let c = s.connect();
         s.ok(c, "Connect", json!([])).await;
         s.ok(c, "RequestCreateUser", json!(["nomail", "hash", "", "No Mail"])).await;
@@ -152,8 +247,16 @@ fn password_reset_by_mail() {
 
         assert_eq!(s.err(c, "RequestSetPassword", json!(["nobody", token, "new-pw"])).await, error::UNKNOWN_USER_NAME);
         assert_eq!(s.err(c, "RequestSetPassword", json!(["alice", "WRONGTOKEN", "new-pw"])).await, error::INVALID_RESET_TOKEN);
+        let before = s.resume(&alice_token).await;
         let info = s.ok(c, "RequestSetPassword", json!([" Alice", token, "new-pw"])).await;
         assert_eq!(info["UserName"], "alice");
+        // The reset ends every earlier session and starts a new one on this connection.
+        assert!(find(&s.received(before.conn), "SessionEnded").is_some());
+        assert_eq!(s.err(before.conn, "RequestHeartbeat", json!([2])).await, error::USER_TOKEN_NOT_FOUND);
+        let d = s.connect();
+        assert_eq!(s.err(d, "RequestResumeSession", json!([alice_token])).await, error::USER_TOKEN_NOT_FOUND);
+        s.ok(c, "RequestHeartbeat", json!([2])).await;
+        s.ok(d, "RequestResumeSession", json!([info["Token"]])).await;
 
         // The token works once, and the new password replaces the old one.
         assert_eq!(s.err(c, "RequestSetPassword", json!(["alice", token, "other-pw"])).await, error::INVALID_RESET_TOKEN);
@@ -187,24 +290,37 @@ fn users_change_their_details() {
         let mut s = TestServer::start().await;
         let alice = s.user("alice").await;
         let c = alice.conn;
+        let anonymous = s.connect();
+        assert_eq!(s.err(anonymous, "RequestUpdateUserInfo", json!(["", "Name", "a@b.c"])).await, error::USER_TOKEN_NOT_FOUND);
 
-        assert_eq!(s.err(c, "RequestUpdateUserInfo", json!(["no such token", "", "Name", "a@b.c"])).await, error::USER_NOT_FOUND);
-
-        // An empty password keeps the old one.
-        let info = s.ok(c, "RequestUpdateUserInfo", json!([alice.token, "", " Lady Alice ", " lady@example.com "])).await;
+        // An empty password keeps the old one, and the sessions.
+        let other = s.login("alice").await;
+        let info = s.ok(c, "RequestUpdateUserInfo", json!(["", " Lady Alice ", " lady@example.com "])).await;
         assert_eq!(info["PlayerName"], "Lady Alice");
         assert_eq!(info["Email"], "lady@example.com");
-        assert_eq!(info["Token"], alice.token.as_str());
-        s.ok(c, "RequestLogin", json!([VERSION, "alice", "alice-pw"])).await;
-        assert_eq!(s.ok(c, "GetLoginInfo", json!([alice.token])).await["PlayerName"], "Lady Alice");
+        assert!(info["Token"].is_null(), "no new session");
+        s.ok(other.conn, "RequestHeartbeat", json!([2])).await;
+        let check = s.connect();
+        s.ok(check, "RequestLogin", json!([VERSION, "alice", "alice-pw"])).await;
+        let peek = s.connect();
+        assert_eq!(s.ok(peek, "RequestResumeSession", json!([alice.token])).await["PlayerName"], "Lady Alice");
 
-        let info = s.ok(c, "RequestUpdateUserInfo", json!([alice.token, "changed-pw", "Lady Alice", null])).await;
+        // A new password ends every other session; this one goes on.
+        let info = s.ok(c, "RequestUpdateUserInfo", json!(["changed-pw", "Lady Alice", null])).await;
         assert_eq!(info["Email"], "");
-        assert_eq!(s.err(c, "RequestLogin", json!([VERSION, "alice", "alice-pw"])).await, error::INVALID_USER_NAME_OR_PASSWORD);
-        let info = s.ok(c, "RequestLogin", json!([VERSION, "alice", "changed-pw"])).await;
+        assert!(find(&s.received(other.conn), "SessionEnded").is_some());
+        assert_eq!(s.err(other.conn, "RequestHeartbeat", json!([2])).await, error::USER_TOKEN_NOT_FOUND);
+        assert_eq!(s.err(check, "RequestHeartbeat", json!([2])).await, error::USER_TOKEN_NOT_FOUND, "logged in with the old password");
+        s.ok(c, "RequestHeartbeat", json!([2])).await;
+        let again = s.connect();
+        s.ok(again, "RequestResumeSession", json!([alice.token])).await;
+        assert_eq!(s.err(again, "RequestResumeSession", json!([other.token])).await, error::USER_TOKEN_NOT_FOUND);
+        assert_eq!(s.err(again, "RequestLogin", json!([VERSION, "alice", "alice-pw"])).await, error::INVALID_USER_NAME_OR_PASSWORD);
+        let info = s.ok(again, "RequestLogin", json!([VERSION, "alice", "changed-pw"])).await;
         assert_eq!(info["PlayerName"], "Lady Alice");
 
         // The new player name is what others see.
+        let alice = User { conn: again, ..alice };
         let game = s.new_game(&alice, "", "").await;
         let bob = s.user("bobby").await;
         let lobby = s.lobby(&bob, 3).await;
@@ -226,9 +342,10 @@ fn user_status_shows_in_the_lobby() {
         let mut s = TestServer::start().await;
         let alice = s.user("alice").await;
         let bob = s.user("bobby").await;
-        assert_eq!(s.err(alice.conn, "RequestSetUserStatus", json!(["no such token", 2])).await, error::USER_NOT_FOUND);
-        s.ok(alice.conn, "RequestHeartbeat", json!([alice.token, 2])).await;
-        let status = s.ok(alice.conn, "RequestSetUserStatus", json!([alice.token, 20])).await;
+        let anonymous = s.connect();
+        assert_eq!(s.err(anonymous, "RequestSetUserStatus", json!([2])).await, error::USER_TOKEN_NOT_FOUND);
+        s.ok(alice.conn, "RequestHeartbeat", json!([2])).await;
+        let status = s.ok(alice.conn, "RequestSetUserStatus", json!([20])).await;
         assert!(status["RunningGames"].is_array());
 
         let lobby = s.lobby(&bob, 2).await;

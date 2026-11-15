@@ -23,8 +23,7 @@ impl Server {
         })
     }
 
-    pub(super) fn heartbeat(&mut self, token: &str, scope: GameListScope) -> Reply {
-        let user = self.session_user(token)?;
+    pub(super) fn heartbeat(&mut self, user: i32, scope: GameListScope) -> Reply {
         let now = self.now();
         self.presence.entry(user).or_insert(Presence { status: UserStatus::Online, last_seen: None }).last_seen = Some(now);
         contents(&self.lobby_status(scope, user))
@@ -135,8 +134,7 @@ impl Server {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub(super) async fn schedule_game(&mut self, token: &str, starts: Time, ruleset: Option<i32>, players: i32, max_turns: i32, factions: Vec<i32>, async_play: bool) -> Reply {
-        let user = self.session_user(token)?;
+    pub(super) async fn schedule_game(&mut self, user: i32, starts: Time, ruleset: Option<i32>, players: i32, max_turns: i32, factions: Vec<i32>, async_play: bool) -> Reply {
         if self.scheduled.values().filter(|g| g.creator_id == user).count() >= MAX_SCHEDULED_GAMES_PER_USER {
             return Err(refuse(ErrorType::TooManyScheduledGames));
         }
@@ -157,8 +155,7 @@ impl Server {
         contents(&self.lobby_status(GameListScope::Active, user))
     }
 
-    pub(super) async fn cancel_scheduled_game(&mut self, token: &str, id: &str) -> Reply {
-        let user = self.session_user(token)?;
+    pub(super) async fn cancel_scheduled_game(&mut self, user: i32, id: &str) -> Reply {
         let Some(game) = self.scheduled.get(id) else {
             return Err(refuse(ErrorType::ScheduledGameNotFound));
         };
@@ -170,9 +167,8 @@ impl Server {
         contents(&self.lobby_status(GameListScope::Active, user))
     }
 
-    pub(super) async fn subscribe(&mut self, token: &str, id: Option<&str>, subscription: SubscriptionType) -> Reply {
+    pub(super) async fn subscribe(&mut self, user: i32, id: Option<&str>, subscription: SubscriptionType) -> Reply {
         let id = id.ok_or(refuse(ErrorType::GameNotFound))?;
-        let user = self.session_user(token)?;
         let Some(game) = self.scheduled.get_mut(id) else {
             return Err(refuse(ErrorType::GameNotFound));
         };
@@ -185,16 +181,27 @@ impl Server {
         contents(&self.lobby_status(GameListScope::Active, user))
     }
 
-    /// Relayed as sent to everyone following the game; showing only what is meant for a player
-    /// is the client's job.
-    pub(super) fn chat(&mut self, token: &str, game: &str, message: GameChatMessage) -> Reply {
-        let (_, game) = self.user_in_game(token, game)?;
-        self.connections.notify(&game, Notification::ChatMessage(message));
+    /// A player's message to everyone in the game (a negative `TargetUserId`) or to one other
+    /// user in it. The server sets `SourceUserId` to the caller, and a message to one user goes
+    /// only to that user and the sender.
+    pub(super) fn chat(&mut self, user: i32, game: &str, mut message: GameChatMessage) -> Reply {
+        let game = self.player_of(user, game)?;
+        message.source_user_id = user;
+        if message.target_user_id < 0 {
+            self.connections.notify(&game, Notification::ChatMessage(message));
+        } else {
+            if !self.games[&game].game.is_participant(message.target_user_id) {
+                return Err(refuse(ErrorType::UserNotInGame));
+            }
+            let to = [user, message.target_user_id];
+            self.connections.notify_users(&game, &to, Notification::ChatMessage(message));
+        }
         done()
     }
 
-    pub(super) fn global_chat(&mut self, token: &str, message: GlobalChatMessage) -> Reply {
-        self.session_user(token)?;
+    /// The server sets `SourceUserId` to the caller.
+    pub(super) fn global_chat(&mut self, user: i32, mut message: GlobalChatMessage) -> Reply {
+        message.source_user_id = user;
         self.connections.notify_all(Notification::GlobalChatMessage(message));
         done()
     }

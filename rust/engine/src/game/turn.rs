@@ -1,5 +1,12 @@
 use crate::prelude::*;
 
+/// What the game does next when a phase ends: enter a phase, or run a method that decides.
+#[derive(Clone, Copy)]
+pub enum Step {
+    Enter(Phase),
+    Run(fn(&mut Game)),
+}
+
 /// Where the game is (turn, main phase, phase) and what lasts only for the current turn or main
 /// phase: who has acted, payments and milestones, prevented advantages, cards and Nexus cards in
 /// effect, and the phases paused by Clairvoyance, discarding and Bureaucracy.
@@ -84,5 +91,146 @@ impl TurnState {
             harkonnen_traitor_was_cancelled: Default::default(),
             facedancer_was_cancelled: Default::default(),
         }
+    }
+}
+
+impl Game {
+    pub fn main_phase_start(&mut self, phase: MainPhase, start_report: bool) {
+        self.turn.current_main_phase = phase;
+        self.turn.current_moment = MainPhaseMoment::Start;
+        if start_report {
+            self.start_report(phase);
+        }
+        self.turn.current_karma_prevention = None;
+        self.turn.current_juice = None;
+        self.turn.bureaucrat_was_used_this_phase = false;
+        self.turn.banker_was_used_this_phase = false;
+        // An intrusion is answered right after the shipment or move that caused it. One still
+        // queued when a new phase starts can no longer be answered, and would take the place of
+        // the next real one (escapes.md, "A Bene Gesserit intrusion left over from another phase").
+        self.ship_move.intrusions.clear();
+    }
+
+    pub fn main_phase_middle(&mut self) {
+        if self.turn.current_moment == MainPhaseMoment::Start {
+            self.turn.current_moment = MainPhaseMoment::Middle;
+        }
+    }
+
+    pub fn main_phase_end(&mut self) {
+        self.turn.current_moment = MainPhaseMoment::End;
+
+        let mut exceptions_to_allowing: Vec<FactionAdvantage> = Vec::new();
+
+        if self.turn.current_main_phase == MainPhase::Bidding && self.prevented(FactionAdvantage::TleilaxuIncreasingRevivalLimits) {
+            exceptions_to_allowing.push(FactionAdvantage::TleilaxuIncreasingRevivalLimits);
+        }
+
+        if self.turn.current_main_phase == MainPhase::Resurrection && self.prevented(FactionAdvantage::AtreidesSpiceBlowPrescience) {
+            exceptions_to_allowing.push(FactionAdvantage::AtreidesSpiceBlowPrescience);
+        }
+
+        self.turn.was_victim_of_bureaucracy = Faction::None;
+
+        self.allow_all_prevented_faction_advantages(&exceptions_to_allowing);
+    }
+
+    pub fn allow_all_prevented_faction_advantages(&mut self, exceptions: &[FactionAdvantage]) {
+        for adv in get_values_except_default(FactionAdvantage::None) {
+            if !exceptions.contains(&adv) {
+                self.allow(adv);
+            }
+        }
+    }
+
+    pub fn enter(&mut self, phase: Phase, cleanup_deals: bool) {
+        self.turn.current_phase = phase;
+
+        if cleanup_deals {
+            self.remove_ended_deals(phase);
+        }
+    }
+
+    pub fn enter_either(&mut self, condition: bool, phase_if_true: Phase, phase_if_false: Phase) {
+        self.enter(if condition { phase_if_true } else { phase_if_false }, true);
+    }
+
+    pub fn enter_or_else(&mut self, condition: bool, phase_if_true: Phase, method_otherwise: fn(&mut Game)) {
+        if condition {
+            self.enter(phase_if_true, true);
+        } else {
+            method_otherwise(self);
+        }
+    }
+
+    /// The game is passed to the actions.
+    pub fn run_either(game: &mut Game, condition: bool, method_if_true: fn(&mut Game), method_otherwise: fn(&mut Game)) {
+        if condition {
+            method_if_true(game);
+        } else {
+            method_otherwise(game);
+        }
+    }
+
+    /// Takes the step of the first choice whose condition holds, or `otherwise`.
+    pub fn enter_first(&mut self, choices: &[(bool, Step)], otherwise: Step) {
+        let step = choices.iter().find(|(condition, _)| *condition).map_or(otherwise, |(_, step)| *step);
+        match step {
+            Step::Enter(phase) => self.enter(phase, true),
+            Step::Run(method) => method(self),
+        }
+    }
+
+    pub fn in_timed_phase(&self) -> bool {
+        self.turn.current_phase == Phase::Bidding
+            || self.turn.current_phase == Phase::GuildShip
+            || self.turn.current_phase == Phase::GuildMove
+            || self.turn.current_phase == Phase::NonGuildShip
+            || self.turn.current_phase == Phase::NonGuildMove
+            || self.turn.current_phase == Phase::BattlePhase
+    }
+
+    pub fn everyone_acted_or_passed(&self) -> bool {
+        self.turn.has_acted_or_passed.len() == self.players.len()
+    }
+
+    pub fn stone(&mut self, m: Milestone) {
+        self.turn.recent_milestones.push(m);
+    }
+
+    pub fn set_recent_payment(&mut self, amount: i32, by: Faction, to: Faction, reason: &GameEvent) {
+        if amount > 0 {
+            self.turn.recently_paid.push(Payment::new_full(amount, by, to, Some(reason.clone())));
+        }
+    }
+
+    pub fn set_recent_payment_to_bank(&mut self, amount: i32, by: Faction, reason: &GameEvent) {
+        self.set_recent_payment(amount, by, Faction::None, reason);
+    }
+
+    pub fn clear_recent_payments(&mut self) {
+        // StoredRecentlyPaid = RecentlyPaid (a reference swap); RecentlyPaid = []
+        self.turn.stored_recently_paid = std::mem::take(&mut self.turn.recently_paid);
+    }
+
+    pub fn has_recent_payment_for(&self, t: GameEventType) -> bool {
+        self.turn.recently_paid.iter().any(|p| p.reason.as_ref().map_or(false, |r| r.event_type() == t))
+    }
+
+    pub fn has_quite_recent_payment_to(&self, f: Faction) -> bool {
+        self.turn.recently_paid.iter().any(|p| p.to == f) || self.turn.stored_recently_paid.iter().any(|p| p.to == f)
+    }
+
+    pub fn quite_recent_payment_to(&self, f: Faction) -> Option<Payment> {
+        let res = self
+            .turn.recently_paid
+            .iter()
+            .find(|p| p.to == f)
+            .or_else(|| self.turn.stored_recently_paid.iter().find(|p| p.to == f));
+        res.cloned()
+    }
+
+    pub fn recently_paid_total_amount(&self) -> i32 {
+        self.turn.recently_paid.iter().map(|p| p.amount).sum::<i32>()
     }
 }

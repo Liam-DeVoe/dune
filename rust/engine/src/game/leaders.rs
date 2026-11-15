@@ -270,3 +270,60 @@ thread_local! {
     /// A counter that orders leader deaths (`time_of_death`). Thread-local, like `Message::nr`.
     static LEADER_STATE_MOMENT: std::cell::Cell<i32> = const { std::cell::Cell::new(0) };
 }
+
+impl Game {
+    pub fn initialize_leader_state(&mut self) {
+        for l in LeaderManager::leaders() {
+            self.leaders.leader_state.insert_new(Hero::Leader(*l), LeaderState { death_counter: 0, current_territory: None, skill: LeaderSkill::None, in_front_of_shield: false, ..Default::default() });
+        }
+
+        self.leaders.leader_state.insert_new(LeaderManager::messiah(), LeaderState { death_counter: 0, current_territory: None, ..Default::default() });
+    }
+
+    pub fn check_if_occupier_takes_vidal(&mut self, previous_occupier_of_ecaz_homeworld: Option<PlayerIndex>) {
+        if self.vidal().is_none() {
+            return;
+        }
+
+        let occupier_of_ecaz_homeworld = self.occupier_of(World::Ecaz);
+        if let Some(occupier) = occupier_of_ecaz_homeworld {
+            let vidal = self.vidal().expect("vidal");
+            if !self.player(occupier).leaders.contains(&vidal) {
+                self.take_vidal(occupier, VidalMoment::WhileEcazWorldIsOccupied);
+            }
+        } else if let Some(previous) = previous_occupier_of_ecaz_homeworld {
+            let vidal = self.vidal();
+            if vidal.map_or(false, |v| self.player(previous).leaders.contains(&v)) {
+                let vidal = self.vidal().expect("vidal");
+                // List.Remove: the first equal element
+                let leaders = &mut self.player_mut(previous).leaders;
+                if let Some(pos) = leaders.iter().position(|l| *l == vidal) {
+                    leaders.remove(pos);
+                }
+                let faction = self.player(previous).faction;
+                let vidal = self.vidal();
+                self.log(vec![faction.into(), " lose ".into(), vidal.into()]);
+            }
+        }
+    }
+
+    pub fn set_aside_vidal(&mut self) {
+        if self.vidal().is_none() || self.leaders.player_to_set_aside_vidal.is_none() {
+            return;
+        }
+
+        let vidal = self.vidal().expect("vidal");
+        let p = self.leaders.player_to_set_aside_vidal.expect("player to set aside vidal");
+        if self.is_alive(Hero::Leader(vidal)) && self.player(p).leaders.contains(&vidal) {
+            let leaders = &mut self.player_mut(p).leaders;
+            if let Some(pos) = leaders.iter().position(|l| *l == vidal) {
+                leaders.remove(pos);
+            }
+            let vidal = self.vidal();
+            self.log(vec![vidal.into(), " is set aside".into()]);
+        }
+
+        self.leaders.player_to_set_aside_vidal = None;
+        self.leaders.when_to_set_aside_vidal = VidalMoment::None;
+    }
+}

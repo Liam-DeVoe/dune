@@ -154,7 +154,7 @@ impl FaceDanced {
             .locations()
             .iter()
             .copied()
-            .filter(move |l| g.applicable(Rule::BattlesUnderStorm) || l.sector(&g.map) != g.sector_in_storm)
+            .filter(move |l| g.applicable(Rule::BattlesUnderStorm) || l.sector(&g.board.map) != g.board.sector_in_storm)
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
@@ -251,13 +251,13 @@ impl FaceDanced {
     pub fn replace_facedancers(&self, game: &mut Game) {
         let me = self.player();
         let face_dancers = game.player(me).face_dancers.clone();
-        game.traitor_deck.as_mut().expect("traitor deck").items.extend(face_dancers);
+        game.decks.traitor_deck.as_mut().expect("traitor deck").items.extend(face_dancers);
         game.player_mut(me).face_dancers.clear();
         game.player_mut(me).revealed_face_dancers.clear();
-        game.traitor_deck.as_mut().expect("traitor deck").shuffle();
+        game.decks.traitor_deck.as_mut().expect("traitor deck").shuffle();
         game.stone(Milestone::Shuffled);
         for _ in 0..3 {
-            let drawn = game.traitor_deck.as_mut().expect("traitor deck").draw();
+            let drawn = game.decks.traitor_deck.as_mut().expect("traitor deck").draw();
             game.player_mut(me).face_dancers.push(drawn);
         }
         game.log(elems![self.initiator(), " draw 3 new Face Dancers."]);

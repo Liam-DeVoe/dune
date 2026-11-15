@@ -44,8 +44,8 @@ impl AllianceByAmbassador {
                 game.take_vidal(self.player(), VidalMoment::EndOfTurn);
             }
 
-            if game.has_acted_or_passed.contains(&self.initiator())
-                && game.has_acted_or_passed.contains(&activated.initiator())
+            if game.turn.has_acted_or_passed.contains(&self.initiator())
+                && game.turn.has_acted_or_passed.contains(&activated.initiator())
             {
                 game.check_if_forces_should_be_destroyed_by_ally_presence(self.player());
             }

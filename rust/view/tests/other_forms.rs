@@ -128,7 +128,7 @@ fn check(game: &Game, p: PlayerIndex, v: &ResolvedViewer, o: &ActionOptions, at:
         }
         ActionOptions::KarmaHandSwapInitiated(o) => assert_eq!(targets(&o.targets), factions(game.players_other_than(p)), "{at}"),
         ActionOptions::KarmaMonster(o) => assert_eq!(o.territories, KarmaMonster::valid_targets(game).map(|t| t.id()).collect::<Vec<_>>(), "{at}"),
-        ActionOptions::KarmaRicheseBuy(o) => assert_eq!(o.cards, ids(game.richese_cache.iter().copied()), "{at}"),
+        ActionOptions::KarmaRicheseBuy(o) => assert_eq!(o.cards, ids(game.decks.richese_cache.iter().copied()), "{at}"),
         ActionOptions::MulliganPerformed(o) => assert_eq!(o.may, MulliganPerformed::may_mulligan(game, p), "{at}"),
         ActionOptions::NexusCardDrawn(o) => assert_eq!(o.may, NexusCardDrawn::may_draw(game, p), "{at}"),
         ActionOptions::NexusPlayed(o) => {
@@ -423,7 +423,7 @@ fn dependent_inputs() {
     assert_eq!(answer.validation, None);
     let Some(ActionOptions::NexusPlayed(o)) = answer.options else { panic!("NexusPlayed options") };
     assert_eq!(o.draft["_moritaniTerritoryId"], serde_json::json!(territories[0]));
-    let not_offered = r.game.map.territories(false).map(|t| t.id()).find(|t| !territories.contains(t)).unwrap();
+    let not_offered = r.game.board.map.territories(false).map(|t| t.id()).find(|t| !territories.contains(t)).unwrap();
     draft["_moritaniTerritoryId"] = serde_json::json!(not_offered);
     let answer = r.query(actor, &draft.to_string()).unwrap();
     assert!(answer.validation.is_some());

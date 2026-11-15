@@ -27,7 +27,7 @@ impl ForcesIn for Territory {
 /// Whether Arrakeen or Carthag holds no forces at all.
 fn arrakeen_or_carthag_is_empty(game: &Game) -> bool {
     let forces_in = |l: Location| game.battalions_in(l).iter().map(|b| b.total_amount_of_forces()).sum::<i32>();
-    forces_in(game.map.arrakeen()) == 0 || forces_in(game.map.carthag()) == 0
+    forces_in(game.board.map.arrakeen()) == 0 || forces_in(game.board.map.carthag()) == 0
 }
 
 /// A voice command: the opponent must use, or may not use, a card type.
@@ -190,7 +190,7 @@ impl ClassicBot {
     // ---- Guild ----
 
     pub fn determine_set_shipment_permission(&self, game: &Game) -> Option<Rc<SetShipmentPermission>> {
-        if game.current_phase != Phase::BeginningOfShipAndMove {
+        if game.turn.current_phase != Phase::BeginningOfShipAndMove {
             return None;
         }
 
@@ -338,7 +338,7 @@ impl ClassicBot {
     }
 
     pub fn determine_perform_hms_movement(&self, game: &Game) -> Rc<PerformHmsMovement> {
-        let current_location = game.map.hidden_mobile_stronghold().attached_to_location(&game.map);
+        let current_location = game.board.map.hidden_mobile_stronghold().attached_to_location(&game.board.map);
         let faction = self.faction(game);
         let target_event = |target: Option<Location>| {
             let mut e = PerformHmsMovement::new(game, faction);
@@ -358,7 +358,7 @@ impl ClassicBot {
         }
 
         let reachable_from_current_location =
-            game.map.find_neighbours(current_location.expect("location"), game.storm.hms_moves_left, false, faction, game, false);
+            game.board.map.find_neighbours(current_location.expect("location"), game.storm.hms_moves_left, false, faction, game, false);
 
         let richest_reachable_spice_location = reachable_from_current_location
             .iter()
@@ -371,7 +371,7 @@ impl ClassicBot {
 
         // With nowhere to go, move toward Imperial Basin or Polar Sink.
         let alternative_location =
-            if arrakeen_or_carthag_is_empty(game) { game.map.imperial_basin().middle_location() } else { game.map.polar_sink() };
+            if arrakeen_or_carthag_is_empty(game) { game.board.map.imperial_basin().middle_location() } else { game.board.map.polar_sink() };
 
         if current_location != Some(alternative_location) {
             let next = PerformHmsMovement::valid_locations(game)
@@ -391,12 +391,12 @@ impl ClassicBot {
     pub fn determine_perform_hms_placement(&self, game: &Game) -> Rc<PerformHmsPlacement> {
         let faction = self.faction(game);
         let target = if faction != Faction::Ixian {
-            game.map.shield_wall().locations().iter().copied().next().expect("an element")
+            game.board.map.shield_wall().locations().iter().copied().next().expect("an element")
         } else if arrakeen_or_carthag_is_empty(game) {
-            let imperial_basin = game.map.imperial_basin();
+            let imperial_basin = game.board.map.imperial_basin();
             PerformHmsPlacement::valid_locations(game, self.player).find(|l| l.territory() == imperial_basin).expect("a location in the Imperial Basin")
         } else {
-            game.map.polar_sink()
+            game.board.map.polar_sink()
         };
 
         let mut e = PerformHmsPlacement::new(game, faction);
@@ -421,7 +421,7 @@ impl ClassicBot {
         let special_forces_in_reserve = game.player(self.player).special_forces_in_reserve();
         let mut force_locations: IndexMap<Location, Battalion> = IndexMap::new();
 
-        let south = game.map.false_wall_south().middle_location();
+        let south = game.board.map.false_wall_south().middle_location();
         let forces = 3 + self.d(1, 4);
         let special = if special_forces_in_reserve > 0 { 1 } else { 0 };
         force_locations.insert_new(south, Battalion::new(faction, forces, special, south));
@@ -429,7 +429,7 @@ impl ClassicBot {
         let forces_left = 10 - (forces + special);
         if forces_left > 0 {
             let special = if special_forces_in_reserve > 1 { 1 } else { 0 };
-            let west = game.map.false_wall_west().middle_location();
+            let west = game.board.map.false_wall_west().middle_location();
             force_locations.insert_new(west, Battalion::new(faction, forces_left - special, special, west));
         }
 
@@ -451,10 +451,10 @@ impl ClassicBot {
     /// Tuek's Sietch, Carthag, Arrakeen and Habbanya Sietch that is vacant and safe from the storm,
     /// otherwise the vacant, storm-safe location with the most spice.
     fn vacant_stronghold_or_richest_spice(&self, game: &Game, valid_locations: &[Location]) -> Option<Location> {
-        let map = &game.map;
+        let map = &game.board.map;
         let usable = |l: Location| valid_locations.contains(&l) && self.vacant_and_safe_from_storm(game, l);
         [map.tueks_sietch(), map.carthag(), map.arrakeen(), map.habbanya_sietch()].into_iter().find(|l| usable(*l)).or_else(|| {
-            game.resources_on_planet
+            game.board.resources_on_planet
                 .iter()
                 .map(|(l, amount)| (*l, *amount))
                 .filter(|(l, _)| usable(*l))
@@ -483,17 +483,17 @@ impl ClassicBot {
             valid_locations
                 .iter()
                 .copied()
-                .filter(|l| game.resources_on_planet.contains_key(l) && can_take(l))
-                .random_highest(&self.random, |l| *game.resources_on_planet.index(l))
+                .filter(|l| game.board.resources_on_planet.contains_key(l) && can_take(l))
+                .random_highest(&self.random, |l| *game.board.resources_on_planet.index(l))
                 .or_else(|| {
                     valid_locations
                         .iter()
                         .copied()
-                        .filter(|l| *l != game.map.sietch_tabr() && l.is_stronghold() && can_take(l))
+                        .filter(|l| *l != game.board.map.sietch_tabr() && l.is_stronghold() && can_take(l))
                         .random_lowest(&self.random, |l| self.total_max_dial_of_opponents(game, l.territory()))
                 })
         });
-        let target = target.unwrap_or(game.map.polar_sink());
+        let target = target.unwrap_or(game.board.map.polar_sink());
 
         let total_forces = battalions_to_move.values().map(|b| b.total_amount_of_forces()).sum::<i32>()
             + forces_from_reserves
@@ -515,7 +515,7 @@ impl ClassicBot {
     // ---- BeneGesserit ----
 
     pub fn determine_bene_gesserit_placement(&self, game: &Game) -> Rc<PerformBeneGesseritPlacement> {
-        let map = &game.map;
+        let map = &game.board.map;
         let empty = |l: Location| l.forces_of(game, self.player) == 0;
         let target = if empty(map.arrakeen()) {
             map.carthag()
@@ -578,7 +578,7 @@ impl ClassicBot {
     }
 
     pub fn determine_bene_gesserit_battle_announcement(&self, game: &Game) -> Option<Rc<BeneGesseritBattleAnnouncement>> {
-        if game.current_main_phase > MainPhase::Bidding
+        if game.turn.current_main_phase > MainPhase::Bidding
             && self.nr_of_battles_to_fight(game) <= Battle::valid_battle_heroes(game, self.player).len() as i32
         {
             // The filter (which can draw) runs over every territory first, then the selector once
@@ -651,10 +651,10 @@ impl ClassicBot {
             }
         }
 
-        let polar_sink = game.map.polar_sink();
+        let polar_sink = game.board.map.polar_sink();
         if BeneGesseritAccompanies::valid_targets(game, self.player).contains(&polar_sink)
             && (self.resources_including_ally_contribution(game) < 5 || me.forces_in_reserve() > 3)
-            && !(self.last_turn(game) && game.has_acted_or_passed.contains(&faction))
+            && !(self.last_turn(game) && game.turn.has_acted_or_passed.contains(&faction))
             && polar_sink.forces_of(game, self.player) < 8
         {
             return accompany(polar_sink, BeneGesseritAccompanies::may_send_extra_advisor(game, self.player, polar_sink));
@@ -915,7 +915,7 @@ impl ClassicBot {
         let from_reserves = std::cmp::min(game.player(self.player).forces_in_reserve(), to_place);
 
         let target_location = FaceDanced::valid_target_locations(game)
-            .find(|l| game.resources_on_planet.contains_key(l))
+            .find(|l| game.board.resources_on_planet.contains_key(l))
             .or_else(|| FaceDanced::valid_target_locations(game).next());
 
         let Some(target_location) = target_location else {
@@ -964,7 +964,7 @@ impl ClassicBot {
             return None;
         }
 
-        if self.turn_when_revival_was_requested == game.current_turn {
+        if self.turn_when_revival_was_requested == game.turn.current_turn {
             return None;
         }
 
@@ -987,7 +987,7 @@ impl ClassicBot {
         }
 
         let to_revive = to_revive?;
-        self.turn_when_revival_was_requested = game.current_turn;
+        self.turn_when_revival_was_requested = game.turn.current_turn;
         let mut e = RequestTleilaxuRevival::new(game, faction);
         e.set_hero(Some(to_revive));
         Some(Rc::new(e))
@@ -1070,7 +1070,7 @@ impl ClassicBot {
     pub fn determine_choam_remove_force(&self, game: &Game) -> Option<Rc<ChoamRemoveForce>> {
         let opponents = self.winning_opponents_i_wish_to_attack(game, 20, true);
 
-        let map = &game.map;
+        let map = &game.board.map;
         let strongholds: [Location; 6] = [
             map.carthag(),
             map.arrakeen(),
@@ -1109,7 +1109,7 @@ impl ClassicBot {
     }
 
     pub fn determine_perform_moritani_setup(&self, game: &Game) -> Rc<PerformMoritaniSetup> {
-        let map = &game.map;
+        let map = &game.board.map;
         let valid = || PerformMoritaniSetup::valid_locations(game);
         let preferred = [
             map.carthag(),
@@ -1131,12 +1131,12 @@ impl ClassicBot {
     }
 
     pub fn determine_terror_planted(&self, game: &Game) -> Option<Rc<TerrorPlanted>> {
-        if game.current_main_phase != MainPhase::Contemplate {
+        if game.turn.current_main_phase != MainPhase::Contemplate {
             return None;
         }
 
         let available_to_place: Vec<TerrorType> =
-            TerrorPlanted::valid_terror_types(game, false).filter(|t| !game.terror_on_planet.contains_key(t)).collect();
+            TerrorPlanted::valid_terror_types(game, false).filter(|t| !game.board.terror_on_planet.contains_key(t)).collect();
         let valid_strongholds: Vec<Territory> = TerrorPlanted::valid_strongholds(game, self.player).collect();
 
         let mut e = TerrorPlanted::new(game, self.faction(game));
@@ -1472,11 +1472,11 @@ impl ClassicBot {
     }
 
     pub fn determine_richese_revealed_no_field(&self, game: &Game) -> Option<Rc<RicheseRevealedNoField>> {
-        if game.current_phase == Phase::ShipmentAndMoveConcluded {
+        if game.turn.current_phase == Phase::ShipmentAndMoveConcluded {
             let location_with_no_field =
                 self.forces_on_planet(game).iter().find(|(_, b)| b.amount_of_special_forces > 0).map(|(l, _)| *l);
             if let Some(l) = location_with_no_field {
-                if game.resources_on_planet.contains_key(&l) && !self.occupied_by_opponent(game, l.territory()) {
+                if game.board.resources_on_planet.contains_key(&l) && !self.occupied_by_opponent(game, l.territory()) {
                     return Some(Rc::new(RicheseRevealedNoField::new(game, self.faction(game))));
                 }
             }
@@ -1493,7 +1493,7 @@ impl ClassicBot {
 
     pub fn determine_richese_specifies_auction(&self, game: &Game) -> Rc<RicheseSpecifiesAuction> {
         // A copy of the cache, shuffled with the bot's random.
-        let mut to_auction = Deck::new(game.richese_cache.iter().copied(), Some(self.random.clone()));
+        let mut to_auction = Deck::new(game.decks.richese_cache.iter().copied(), Some(self.random.clone()));
         to_auction.shuffle();
         let mut e = RicheseSpecifiesAuction::new(game, self.faction(game));
         let card = if !to_auction.is_empty() { Some(to_auction.draw()) } else { None };

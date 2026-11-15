@@ -123,7 +123,7 @@ fn fill_placeholders(skin: &Skin, text: &str, parameters: &[ExpressionElement]) 
 /// `TurnPopover`'s descriptions of `Game.Ruleset` and `Game.Rules`.
 pub fn rule_labels(game: &Game, d: &dyn Describer) -> RuleLabels {
     let mut groups: Vec<(RuleGroup, Vec<String>)> = Vec::new();
-    for r in game.rules.iter().copied() {
+    for r in game.rules.active.iter().copied() {
         let g = Game::get_rule_group(r);
         if g == RuleGroup::CoreBasic || g == RuleGroup::Bots || g == RuleGroup::None {
             continue;
@@ -135,7 +135,7 @@ pub fn rule_labels(game: &Game, d: &dyn Describer) -> RuleLabels {
         }
     }
     RuleLabels {
-        ruleset: d.describe(&ExpressionElement::from(game.ruleset)),
+        ruleset: d.describe(&ExpressionElement::from(game.rules.ruleset)),
         groups: groups
             .into_iter()
             .map(|(g, rules)| RuleGroupLabels { group: d.describe(&ExpressionElement::from(g)), rules })
@@ -146,5 +146,5 @@ pub fn rule_labels(game: &Game, d: &dyn Describer) -> RuleLabels {
 /// What the latest event achieved. Every viewer gets them, observers included: they mark public
 /// outcomes (an auction won, a shuffle, a Karama card).
 pub fn recent_milestones(game: &Game) -> Vec<String> {
-    game.recent_milestones.iter().map(|m| m.to_string()).collect()
+    game.turn.recent_milestones.iter().map(|m| m.to_string()).collect()
 }

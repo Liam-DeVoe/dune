@@ -98,27 +98,27 @@ impl Game {
             self.log(vec![initiator.into(), " prevent ".into(), advantage.into()]);
         }
 
-        if !self.prevented_advantages.contains(&advantage) {
-            self.prevented_advantages.push(advantage);
+        if !self.turn.prevented_advantages.contains(&advantage) {
+            self.turn.prevented_advantages.push(advantage);
         }
     }
 
     pub fn allow(&mut self, advantage: FactionAdvantage) {
-        if self.prevented_advantages.contains(&advantage) {
-            if let Some(i) = self.prevented_advantages.iter().position(|a| *a == advantage) {
-                self.prevented_advantages.remove(i);
+        if self.turn.prevented_advantages.contains(&advantage) {
+            if let Some(i) = self.turn.prevented_advantages.iter().position(|a| *a == advantage) {
+                self.turn.prevented_advantages.remove(i);
             }
             self.log(vec![express!(advantage, " is no longer prevented").with_log(AsideLog::after()).into()]);
         }
     }
 
     pub fn apply_bureaucracy(&mut self, payer: Faction, receiver: Faction) {
-        if !self.bureaucrat_was_used_this_phase {
+        if !self.turn.bureaucrat_was_used_this_phase {
             let bureaucrat = self.player_skilled_as(LeaderSkill::Bureaucrat);
             if let Some(bureaucrat) = bureaucrat {
                 if self.player(bureaucrat).faction != payer && self.player(bureaucrat).faction != receiver {
-                    self.phase_before_bureaucrat_was_activated = self.current_phase;
-                    self.target_of_bureaucracy = receiver;
+                    self.turn.phase_before_bureaucrat_was_activated = self.turn.current_phase;
+                    self.turn.target_of_bureaucracy = receiver;
                     self.enter(Phase::Bureaucracy, true);
                 }
             }
@@ -126,11 +126,11 @@ impl Game {
     }
 
     pub fn activate_banker(&mut self, player_who_paid: PlayerIndex) {
-        if !self.banker_was_used_this_phase {
+        if !self.turn.banker_was_used_this_phase {
             let banker = self.player_skilled_as(LeaderSkill::Banker);
             if let Some(banker) = banker {
                 if banker != player_who_paid {
-                    self.banker_was_used_this_phase = true;
+                    self.turn.banker_was_used_this_phase = true;
                     let faction = self.player(banker).faction;
                     self.log(vec![
                         faction.into(),
@@ -194,7 +194,7 @@ impl Game {
     }
 
     pub fn prevented(&self, advantage: FactionAdvantage) -> bool {
-        self.prevented_advantages.contains(&advantage)
+        self.turn.prevented_advantages.contains(&advantage)
     }
 
     pub fn bribes_during_mentat(&self) -> bool {
@@ -202,15 +202,15 @@ impl Game {
     }
 
     pub fn karma_prevented(&self, f: Faction) -> bool {
-        self.current_karma_prevention.as_ref().is_some_and(|p| p.target == f)
+        self.turn.current_karma_prevention.as_ref().is_some_and(|p| p.target == f)
     }
 
     pub fn juice_forces_first_player(&self) -> bool {
-        self.current_juice.as_ref().is_some_and(|j| j.type_ == JuiceType::GoFirst)
+        self.turn.current_juice.as_ref().is_some_and(|j| j.type_ == JuiceType::GoFirst)
     }
 
     pub fn juice_forces_last_player(&self) -> bool {
-        self.current_juice.as_ref().is_some_and(|j| j.type_ == JuiceType::GoLast)
+        self.turn.current_juice.as_ref().is_some_and(|j| j.type_ == JuiceType::GoLast)
     }
 
 }

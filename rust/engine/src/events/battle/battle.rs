@@ -281,7 +281,7 @@ impl Battle {
 
         if Battle::is_using_portable_antidote(game, self.initiator()) {
             self.original_defense.set(self.defense());
-            let antidote = game.treachery_discard_pile.as_ref().expect("treachery discard pile").items.iter().copied().find(|c| c.is_portable_antidote());
+            let antidote = game.decks.treachery_discard_pile.as_ref().expect("treachery discard pile").items.iter().copied().find(|c| c.is_portable_antidote());
             self.set_defense(antidote);
         }
         swap
@@ -657,13 +657,13 @@ impl Battle {
     }
 
     pub fn force_value(g: &Game, player: Faction, opponent: Faction, forces: i32, special_forces: i32, forces_at_half_strength: i32, special_forces_at_half_strength: i32) -> f32 {
-        let emperor_cunning = g.current_emperor_cunning.as_ref().is_some_and(|c| c.initiator() == player);
+        let emperor_cunning = g.turn.current_emperor_cunning.as_ref().is_some_and(|c| c.initiator() == player);
 
         let nr_of_forces_to_count_as_special_due_to_emperor_cunning = if emperor_cunning { 5.min(forces) } else { 0 };
         let forces_adjusted_for_cunning = forces - nr_of_forces_to_count_as_special_due_to_emperor_cunning;
         let special_forces_adjusted_for_cunning = special_forces + nr_of_forces_to_count_as_special_due_to_emperor_cunning;
 
-        let nr_of_forces_at_half_strength_to_count_as_special_due_to_emperor_cunning = if g.current_emperor_cunning.as_ref().is_some_and(|c| c.initiator() == player) {
+        let nr_of_forces_at_half_strength_to_count_as_special_due_to_emperor_cunning = if g.turn.current_emperor_cunning.as_ref().is_some_and(|c| c.initiator() == player) {
             0.max(5.min(forces_at_half_strength) - nr_of_forces_to_count_as_special_due_to_emperor_cunning)
         } else {
             0
@@ -694,7 +694,7 @@ impl Battle {
                 result.push(prescience.aspect);
             }
         }
-        if let Some(nexus_prescience) = g.current_nexus_prescience.as_ref() {
+        if let Some(nexus_prescience) = g.turn.current_nexus_prescience.as_ref() {
             if battle.opponent_of_faction(g, nexus_prescience.initiator()) == Some(p) {
                 result.push(nexus_prescience.atreides_prescience_aspect);
             }
@@ -747,7 +747,7 @@ impl Battle {
     }
 
     pub fn determine_normal_force_strength(g: &Game, player: Faction) -> f32 {
-        if player == Faction::Ixian && g.current_ixian_cunning.is_none() {
+        if player == Faction::Ixian && g.turn.current_ixian_cunning.is_none() {
             return 0.5;
         }
 
@@ -854,14 +854,14 @@ impl Battle {
         let occupied_locations = pl.occupied_locations(g);
         for occupied_location in occupied_locations
             .into_iter()
-            .filter(|l| (may_battle_under_storm || l.sector(&g.map) != g.sector_in_storm) && l.id() != g.map.polar_sink().id())
+            .filter(|l| (may_battle_under_storm || l.sector(&g.board.map) != g.board.sector_in_storm) && l.id() != g.board.map.polar_sink().id())
         {
-            let locations_within_range = g.map.find_neighbours_within_territory(occupied_location, false, g.sector_in_storm);
+            let locations_within_range = g.board.map.find_neighbours_within_territory(occupied_location, false, g.board.sector_in_storm);
 
             let occupying_forces = g.occupying_forces_on_planet();
             for (key, battalions) in occupying_forces
                 .iter()
-                .filter(|(k, _)| (may_battle_under_storm || k.sector(&g.map) != g.sector_in_storm) && locations_within_range.contains(k))
+                .filter(|(k, _)| (may_battle_under_storm || k.sector(&g.board.map) != g.board.sector_in_storm) && locations_within_range.contains(k))
             {
                 let _ = key;
                 let defenders = battalions.iter().filter(|b| b.faction != pl.faction && b.faction != pl.ally);
@@ -1202,7 +1202,7 @@ impl Battle {
         if hero.is_some_and(|h| g.skilled_as(h, LeaderSkill::Bureaucrat)) {
             *activated_skill = LeaderSkill::Bureaucrat;
             let o = g.player(opponent);
-            return g.map.strongholds().filter(|l| o.occupies(g, Some(*l))).count() as i32;
+            return g.board.map.strongholds().filter(|l| o.occupies(g, Some(*l))).count() as i32;
         }
 
         *activated_skill = LeaderSkill::None;

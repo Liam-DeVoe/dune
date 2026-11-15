@@ -13,7 +13,7 @@ fn outcome<R>(f: impl FnOnce() -> R) -> Result<R, String> {
 
 fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();
-    g.treachery_discard_pile = Some(Deck::new(Vec::new(), None));
+    g.decks.treachery_discard_pile = Some(Deck::new(Vec::new(), None));
     for f in factions {
         let p = Player::new(*f);
         g.players.push(p);
@@ -30,7 +30,7 @@ fn card_of(t: TreacheryCardType, nth: usize) -> TreacheryCard {
 }
 
 fn a_stronghold(g: &Game) -> Territory {
-    g.map.territories(false).find(|t| t.is_stronghold() && !t.is_homeworld()).unwrap()
+    g.board.map.territories(false).find(|t| t.is_stronghold() && !t.is_homeworld()).unwrap()
 }
 
 /// Makes `faction` the triggering event of a terror intrusion in `t`.
@@ -81,7 +81,7 @@ fn live_hand_in_a_message_shows_the_current_hand() {
 fn karma_valid_advantages_depend_on_main_phase() {
     let mut g = game_with(&[Faction::Atreides, Faction::Fremen]);
     let atreides = idx(&g, Faction::Atreides);
-    g.current_main_phase = MainPhase::Bidding;
+    g.turn.current_main_phase = MainPhase::Bidding;
     let now = Karma::valid_faction_advantages(&g, atreides);
     assert!(!now.contains(&FactionAdvantage::FremenExtraMove));
     assert_eq!(now[0], FactionAdvantage::None);
@@ -139,7 +139,7 @@ fn moritani_betrayal_without_a_token_removes_and_returns_default_terror() {
     assert!(e.validate(&g).is_some());
     e.execute_concrete_event(&mut g).unwrap();
     // C# parity: RandomOrDefault of an empty sequence is TerrorType.None, which is added (v169+).
-    assert_eq!(g.unplaced_terror_tokens.last().copied(), Some(TerrorType::None));
+    assert_eq!(g.board.unplaced_terror_tokens.last().copied(), Some(TerrorType::None));
 }
 
 #[test]
@@ -148,14 +148,14 @@ fn moritani_betrayal_picks_from_dictionary_slot_order() {
     let atreides = idx(&g, Faction::Atreides);
     g.player_mut(atreides).nexus = Faction::Moritani;
     let t = a_stronghold(&g);
-    let other = g.map.territories(false).find(|x| x.is_stronghold() && *x != t && !x.is_homeworld()).unwrap();
+    let other = g.board.map.territories(false).find(|x| x.is_stronghold() && *x != t && !x.is_homeworld()).unwrap();
     let k = |k: &TerrorType| ExpressionElement::from(*k).to_cs_string();
-    g.terror_on_planet.add_with(TerrorType::Assassination, t, k);
-    g.terror_on_planet.add_with(TerrorType::Atomics, other, k);
-    g.terror_on_planet.add_with(TerrorType::Robbery, t, k);
+    g.board.terror_on_planet.add_with(TerrorType::Assassination, t, k);
+    g.board.terror_on_planet.add_with(TerrorType::Atomics, other, k);
+    g.board.terror_on_planet.add_with(TerrorType::Robbery, t, k);
     // Free slot 0; the next Add reuses it, so Sabotage iterates first.
-    g.terror_on_planet.remove(&TerrorType::Assassination);
-    g.terror_on_planet.add_with(TerrorType::Sabotage, t, k);
+    g.board.terror_on_planet.remove(&TerrorType::Assassination);
+    g.board.terror_on_planet.add_with(TerrorType::Sabotage, t, k);
     assert_eq!(g.terror_in(t).collect::<Vec<_>>(), vec![TerrorType::Sabotage, TerrorType::Robbery]);
 
     // Same seed, same draw: the pick is an index into the slot order above.
@@ -169,9 +169,9 @@ fn moritani_betrayal_picks_from_dictionary_slot_order() {
     e.moritani_territory_id = t.id();
     assert!(e.validate(&g).is_none());
     Rc::new(e).execute_concrete_event(&mut g).unwrap();
-    assert!(!g.terror_on_planet.contains_key(&expected));
-    assert_eq!(g.terror_on_planet.len(), 2);
-    assert_eq!(g.unplaced_terror_tokens.last().copied(), Some(expected));
+    assert!(!g.board.terror_on_planet.contains_key(&expected));
+    assert_eq!(g.board.terror_on_planet.len(), 2);
+    assert_eq!(g.board.unplaced_terror_tokens.last().copied(), Some(expected));
 }
 
 #[test]
@@ -202,7 +202,7 @@ fn terror_robbery_rounds_in_float() {
     let mut g = game_with(&[Faction::Atreides, Faction::Moritani]);
     g.random = Some(SharedRandom::from_seed(1));
     let t = a_stronghold(&g);
-    g.terror_on_planet.add_with(TerrorType::Robbery, t, |k| ExpressionElement::from(*k).to_cs_string());
+    g.board.terror_on_planet.add_with(TerrorType::Robbery, t, |k| ExpressionElement::from(*k).to_cs_string());
     trigger_terror(&mut g, Faction::Atreides, t);
     let atreides = idx(&g, Faction::Atreides);
     let moritani = idx(&g, Faction::Moritani);
@@ -216,7 +216,7 @@ fn terror_robbery_rounds_in_float() {
     let _ = outcome(|| e.execute_concrete_event(&mut g));
     assert_eq!(g.player(moritani).resources, 8_388_608);
     assert_eq!(g.player(atreides).resources, 16_777_217 - 8_388_608);
-    assert!(!g.terror_on_planet.contains_key(&TerrorType::Robbery));
+    assert!(!g.board.terror_on_planet.contains_key(&TerrorType::Robbery));
 }
 
 #[test]
@@ -225,7 +225,7 @@ fn terror_types_follow_the_trigger_territory() {
     assert!(TerrorRevealed::get_types(&g).next().is_none());
     assert_eq!(TerrorRevealed::get_victim(&g), Faction::None);
     let t = a_stronghold(&g);
-    g.terror_on_planet.add_with(TerrorType::Extortion, t, |k| ExpressionElement::from(*k).to_cs_string());
+    g.board.terror_on_planet.add_with(TerrorType::Extortion, t, |k| ExpressionElement::from(*k).to_cs_string());
     trigger_terror(&mut g, Faction::Atreides, t);
     assert_eq!(TerrorRevealed::get_types(&g).collect::<Vec<_>>(), vec![TerrorType::Extortion]);
     assert_eq!(TerrorRevealed::get_victim(&g), Faction::Atreides);
@@ -240,9 +240,9 @@ fn terror_types_follow_the_trigger_territory() {
 fn terror_planted_valid_types_is_an_ordered_union() {
     let mut g = game_with(&[Faction::Moritani]);
     let t = a_stronghold(&g);
-    g.unplaced_terror_tokens = vec![TerrorType::Robbery, TerrorType::Atomics, TerrorType::Robbery];
-    g.terror_on_planet.add_with(TerrorType::Sabotage, t, |k| ExpressionElement::from(*k).to_cs_string());
-    g.terror_on_planet.add_with(TerrorType::Atomics, t, |k| ExpressionElement::from(*k).to_cs_string());
+    g.board.unplaced_terror_tokens = vec![TerrorType::Robbery, TerrorType::Atomics, TerrorType::Robbery];
+    g.board.terror_on_planet.add_with(TerrorType::Sabotage, t, |k| ExpressionElement::from(*k).to_cs_string());
+    g.board.terror_on_planet.add_with(TerrorType::Atomics, t, |k| ExpressionElement::from(*k).to_cs_string());
     assert_eq!(
         TerrorPlanted::valid_terror_types(&g, false).collect::<Vec<_>>(),
         vec![TerrorType::Robbery, TerrorType::Atomics, TerrorType::Sabotage]
@@ -363,7 +363,7 @@ fn clairvoyance_answer_without_question_stores_qna_then_fails() {
     // No clairvoyance was played, so there is no question to answer.
     assert!(e.execute_concrete_event(&mut g).is_err());
     // C#: `new ClairVoyanceQandA(Game.LatestClairvoyance!, this)` and the log run first.
-    let qna = g.latest_clairvoyance_qn_a.as_ref().unwrap();
+    let qna = g.turn.latest_clairvoyance_qn_a.as_ref().unwrap();
     assert!(qna.question.is_none());
     assert_eq!(g.current_report().messages.len(), reports_before + 1);
 }
@@ -375,10 +375,10 @@ fn clairvoyance_answer_without_question_stores_qna_then_fails() {
 #[test]
 fn bene_gesserit_prediction_valid_turns() {
     let g = game_with(&[Faction::BeneGesserit, Faction::Emperor]);
-    g.settings.as_ref().unwrap().borrow_mut().maximum_turns = 3;
+    g.rules.settings.as_ref().unwrap().borrow_mut().maximum_turns = 3;
     assert_eq!(BeneGesseritPrediction::valid_turns(&g), vec![1, 2, 3]);
     // A negative turn limit panics (C# threw ArgumentOutOfRangeException from Enumerable.Range).
-    g.settings.as_ref().unwrap().borrow_mut().maximum_turns = -1;
+    g.rules.settings.as_ref().unwrap().borrow_mut().maximum_turns = -1;
     assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| BeneGesseritPrediction::valid_turns(&g))).is_err());
 }
 

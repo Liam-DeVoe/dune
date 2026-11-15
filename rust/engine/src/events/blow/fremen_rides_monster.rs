@@ -161,20 +161,20 @@ impl FremenRidesMonster {
             && g.applicable(Rule::FremenMayMoveIntoStorm)
             && g.applicable(Rule::FremenStormLosses);
 
-        g.map
+        g.board.map
             .locations(false)
             .filter(move |l| {
-                (may_move_into_storm || l.sector(&g.map) != g.sector_in_storm)
+                (may_move_into_storm || l.sector(&g.board.map) != g.board.sector_in_storm)
                     && (match l.as_attached_location() {
                         None => true,
                         // Reads the sector of the location it is attached to, not al.Sector.
-                        Some(al) => match al.attached_to_location(&g.map) {
-                            Some(a) => a.sector(&g.map) != g.sector_in_storm,
+                        Some(al) => match al.attached_to_location(&g.board.map) {
+                            Some(a) => a.sector(&g.board.map) != g.board.sector_in_storm,
                             None => false,
                         },
                     })
                     && (!l.territory().is_stronghold() || g.nr_of_occupants_excluding_faction(*l, g.player(p).faction) < 2)
-                    && (!g.player(p).has_ally() || *l == g.map.polar_sink() || !g.player(g.player(p).allied_player(g).expect("allied player")).occupies(g, Some(*l)))
+                    && (!g.player(p).has_ally() || *l == g.board.map.polar_sink() || !g.player(g.player(p).allied_player(g).expect("allied player")).occupies(g, Some(*l)))
             })
     }
 

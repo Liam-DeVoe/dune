@@ -28,11 +28,11 @@ impl Retreat {
     }
 
     pub fn location(&self, game: &Game) -> Option<Location> {
-        game.map.location_lookup().find(self.target_id)
+        game.board.map.location_lookup().find(self.target_id)
     }
 
     pub fn set_location(&mut self, game: &Game, value: Option<Location>) {
-        self.target_id = game.map.location_lookup().get_id(value);
+        self.target_id = game.board.map.location_lookup().get_id(value);
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {

@@ -47,7 +47,7 @@ fn distinct<T: PartialEq>(items: impl IntoIterator<Item = T>) -> Vec<T> {
 impl ClassicBot {
     pub fn max_expected_storm_moves(&self, game: &Game) -> i32 {
         if game.has_storm_prescience(Some(self.player)) {
-            game.next_storm_moves
+            game.board.next_storm_moves
         } else {
             self.param.shipment_expected_storm_moves_when_unknown
         }
@@ -82,28 +82,28 @@ impl ClassicBot {
         let ally = game.player(game.get_player(Some(opponent_faction)).expect("player")).ally;
         let me = game.player(self.player);
         self.faction(game) == Faction::BeneGesserit
-            && game.current_turn == me.predicted_turn
+            && game.turn.current_turn == me.predicted_turn
             && (opponent_faction == me.predicted_faction || ally == me.predicted_faction)
     }
 
     pub fn last_turn(&self, game: &Game) -> bool {
-        game.current_turn == game.maximum_turns()
+        game.turn.current_turn == game.maximum_turns()
     }
 
     pub fn almost_last_turn(&self, game: &Game) -> bool {
-        game.current_turn >= game.maximum_turns() - 1
+        game.turn.current_turn >= game.maximum_turns() - 1
     }
 
     pub fn opponents_to_ship_and_move(&self, game: &Game) -> Vec<PlayerIndex> {
         self.opponents(game)
             .into_iter()
-            .filter(|p| !game.has_acted_or_passed.contains(&game.player(*p).faction))
+            .filter(|p| !game.turn.has_acted_or_passed.contains(&game.player(*p).faction))
             .collect()
     }
 
     pub fn nr_of_non_winning_players_to_ship_and_move_including_me(&self, game: &Game) -> i32 {
         let non_winning = game.player_indices().filter(|p| !game.meets_normal_victory_condition(*p, true)).count() as i32;
-        non_winning - game.has_acted_or_passed.len() as i32
+        non_winning - game.turn.has_acted_or_passed.len() as i32
     }
 
     pub fn i_am_winning(&self, game: &Game) -> bool {
@@ -139,10 +139,10 @@ impl ClassicBot {
     /// The answer to a clairvoyance about the current battle that `player` or their ally asked:
     /// `question`, or the question that covers both weapon and defense.
     fn clairvoyance_in_current_battle(game: &Game, player: PlayerIndex, question: ClairvoyanceQuestion) -> Option<ClairVoyanceQandA> {
-        let (Some(cv), Some(qna)) = (&game.latest_clairvoyance, &game.latest_clairvoyance_qn_a) else {
+        let (Some(cv), Some(qna)) = (&game.turn.latest_clairvoyance, &game.turn.latest_clairvoyance_qn_a) else {
             return None;
         };
-        let same_battle = super::battle::is_current_battle(game, game.latest_clairvoyance_battle.as_ref());
+        let same_battle = super::battle::is_current_battle(game, game.turn.latest_clairvoyance_battle.as_ref());
         let p = game.player(player);
         let asked_by_us = cv.initiator() == p.faction || cv.initiator() == p.ally;
         let about_this = cv.question == question || cv.question == ClairvoyanceQuestion::CardTypeInBattle;
@@ -271,11 +271,11 @@ impl ClassicBot {
     }
 
     pub fn resources_in(&self, game: &Game, l: Location) -> i32 {
-        game.resources_on_planet.get(&l).copied().unwrap_or(0)
+        game.board.resources_on_planet.get(&l).copied().unwrap_or(0)
     }
 
     pub fn has_resources(&self, game: &Game, l: Location) -> bool {
-        game.resources_on_planet.contains_key(&l)
+        game.board.resources_on_planet.contains_key(&l)
     }
 
     /// A stronghold, or a discovery the bot treats as one.
@@ -321,8 +321,8 @@ impl ClassicBot {
         if game.is_protected_from_storm(l) || self.last_turn(game) {
             return false;
         }
-        let sector = l.sector(&game.map);
-        (1..=self.max_expected_storm_moves(game)).any(|i| (game.sector_in_storm + i) % Map::NUMBER_OF_SECTORS == sector)
+        let sector = l.sector(&game.board.map);
+        (1..=self.max_expected_storm_moves(game)).any(|i| (game.board.sector_in_storm + i) % Map::NUMBER_OF_SECTORS == sector)
     }
 
     pub fn vacant_and_safe_from_storm(&self, game: &Game, location: Location) -> bool {
@@ -355,24 +355,24 @@ impl ClassicBot {
         let only_advisors = b.faction == Faction::BeneGesserit && b.amount_of_forces == 0;
         let will_get_ornithopters = !only_advisors
             && !game.applicable(Rule::MovementBonusRequiresOccupationBeforeMovement)
-            && (from == game.map.arrakeen() || from == game.map.carthag());
+            && (from == game.board.map.arrakeen() || from == game.board.map.carthag());
         let ornithopter_distance = if will_get_ornithopters { 3 } else { 0 };
         let move_distance = ornithopter_distance.max(game.determine_maximum_move_distance(self.player, std::slice::from_ref(b)));
         self.within_distance(game, from, to, move_distance)
     }
 
     pub fn within_distance(&self, game: &Game, from: Location, to: Location, distance: i32) -> bool {
-        game.map.find_neighbours(from, distance, false, self.faction(game), game, true).contains(&to)
+        game.board.map.find_neighbours(from, distance, false, self.faction(game), game, true).contains(&to)
     }
 
     pub fn probably_safe_from_monster(&self, game: &Game, t: Territory) -> bool {
-        game.current_turn == game.maximum_turns()
+        game.turn.current_turn == game.maximum_turns()
             || game.protected_from_monster(self.player)
             // Throws when there is no spice card yet, or it has no location.
             || t != game.blow.latest_spice_card_a.expect("latest spice card a").location().expect("location").territory()
             || game.sand_trout_occurred()
             || !game.has_resource_deck_prescience(Some(self.player))
-            || game.resource_card_deck.as_ref().expect("resource card deck").top().is_some_and(|c| !c.is_shai_hulud())
+            || game.decks.resource_card_deck.as_ref().expect("resource card deck").top().is_some_and(|c| !c.is_shai_hulud())
     }
 
     /// Of the opponents of `player` that occupy `t`, the one with the highest dial.
@@ -394,7 +394,7 @@ impl ClassicBot {
     }
 
     pub fn in_storm(&self, game: &Game, l: Location) -> bool {
-        l.sector(&game.map) == game.sector_in_storm
+        l.sector(&game.board.map) == game.board.sector_in_storm
     }
 
     /// My battalions on the planet for which `keep` holds, in board order. `keep` runs for every
@@ -419,8 +419,8 @@ impl ClassicBot {
             return None;
         }
         let candidates =
-            self.battalions_where(game, |l, _| l != game.map.polar_sink() && !self.in_storm(game, l) && !self.ally_doesnt_block(game, l));
-        if game.has_acted_or_passed.contains(&self.ally(game)) {
+            self.battalions_where(game, |l, _| l != game.board.map.polar_sink() && !self.in_storm(game, l) && !self.ally_doesnt_block(game, l));
+        if game.turn.has_acted_or_passed.contains(&self.ally(game)) {
             self.biggest(candidates)
         } else {
             candidates.into_iter().random_lowest(&self.random, |x| x.battalion.total_amount_of_forces())
@@ -442,7 +442,7 @@ impl ClassicBot {
         !self.is_stronghold(game, l)
             && !self.in_storm(game, l)
             && self.resources_in(game, l) == 0
-            && (!game.player(self.player).has_treachery_card_type(TreacheryCardType::Metheor) || l.territory() != game.map.pasty_mesa())
+            && (!game.player(self.player).has_treachery_card_type(TreacheryCardType::Metheor) || l.territory() != game.board.map.pasty_mesa())
     }
 
     pub fn biggest_battalion_in_spiceless_non_stronghold_location_on_rock(&self, game: &Game) -> Option<BattalionInLocation> {
@@ -454,7 +454,7 @@ impl ClassicBot {
     pub fn biggest_battalion_in_spiceless_non_stronghold_location_in_sand_or_not_near_stronghold(&self, game: &Game) -> Option<BattalionInLocation> {
         self.biggest(self.battalions_where(game, |l, b| {
             self.spiceless_non_stronghold_outside_storm(game, l)
-                && (!game.is_protected_from_storm(l) || !game.map.strongholds().any(|s| self.within_range(game, l, s, b)))
+                && (!game.is_protected_from_storm(l) || !game.board.map.strongholds().any(|s| self.within_range(game, l, s, b)))
         }))
     }
 
@@ -502,7 +502,7 @@ impl ClassicBot {
 
     /// The richest spice location that `b` can safely reach from `location`.
     pub fn best_safe_and_nearby_resources(&self, game: &Game, location: Location, b: &Battalion, may_fight: bool) -> Option<Location> {
-        game.resources_on_planet
+        game.board.resources_on_planet
             .iter()
             .filter(|(l, _)| self.is_safe_and_nearby(game, location, **l, b, may_fight))
             .map(|(l, amount)| (*l, *amount))
@@ -511,7 +511,7 @@ impl ClassicBot {
     }
 
     pub fn best_safe_and_nearby_discovery(&self, game: &Game, location: Location, b: &Battalion, may_fight: bool) -> Option<Location> {
-        game.discoveries_on_planet.keys().copied().find(|l| self.is_safe_and_nearby(game, location, *l, b, may_fight))
+        game.board.discoveries_on_planet.keys().copied().find(|l| self.is_safe_and_nearby(game, location, *l, b, may_fight))
     }
 
     pub fn nearby_battalions_outside_strongholds(&self, game: &Game, l: Location) -> Vec<Battalion> {
@@ -548,7 +548,7 @@ impl ClassicBot {
             return targets;
         }
         let forbidden: Vec<Option<Territory>> = game
-            .deals
+            .deals.agreed
             .iter()
             .filter(|deal| deal.bound_faction == faction && deal.type_ == DealType::DontShipOrMoveTo)
             .map(|deal| deal.get_parameter1(game))
@@ -782,8 +782,8 @@ impl ClassicBot {
 
     /// Whether `player` still has to ship this turn.
     pub fn can_ship(game: &Game, player: PlayerIndex) -> bool {
-        game.current_main_phase < MainPhase::ShipmentAndMove
-            || (game.current_main_phase == MainPhase::ShipmentAndMove && !game.has_acted_or_passed.contains(&game.player(player).faction))
+        game.turn.current_main_phase < MainPhase::ShipmentAndMove
+            || (game.turn.current_main_phase == MainPhase::ShipmentAndMove && !game.turn.has_acted_or_passed.contains(&game.player(player).faction))
     }
 
     pub fn nr_of_battles_to_fight(&self, game: &Game) -> i32 {

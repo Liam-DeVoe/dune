@@ -46,7 +46,7 @@ impl TraitorsSelected {
         let to_remove: Vec<Hero> = game.player(me).traitors.iter().copied().filter(|l| Some(*l) != selected).collect();
 
         for l in to_remove {
-            game.traitor_deck.as_mut().required("traitor deck")?.items.push(l);
+            game.decks.traitor_deck.as_mut().required("traitor deck")?.items.push(l);
             let traitors = &mut game.player_mut(me).traitors;
             if let Some(i) = traitors.iter().position(|t| *t == l) {
                 traitors.remove(i);
@@ -55,7 +55,7 @@ impl TraitorsSelected {
             game.player_mut(me).known_non_traitors.insert(l);
         }
 
-        game.has_acted_or_passed.push(self.initiator());
+        game.turn.has_acted_or_passed.push(self.initiator());
         self.log(game);
 
         if game.everyone_acted_or_passed() {

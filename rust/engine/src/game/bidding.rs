@@ -2,7 +2,8 @@ use crate::messages::message::LogRecord;
 use crate::prelude::*;
 use crate::game::TriggeredBureaucracy;
 
-/// State of the bidding phase: the auction, the bids, Black Market and Richese auctions, and Karama hand swaps.
+/// State of the bidding phase: the auction, the bids, Black Market and Richese auctions, and Karama
+/// hand swaps.
 pub struct BiddingState {
     pub bid_sequence: Option<PlayerSequence>,
     pub cards_on_auction: Option<Deck<TreacheryCard>>,
@@ -123,7 +124,7 @@ impl Game {
             self.log(vec![express!("Bidding is skipped because no faction is able to buy cards").with_log(BiddingSkipped::default()).into()]);
             self.end_bidding_phase();
         } else {
-            let condition = self.is_playing(Faction::Richese) && self.richese_cache.len() > 0 && !self.prevented(FactionAdvantage::RicheseAuction);
+            let condition = self.is_playing(Faction::Richese) && self.decks.richese_cache.len() > 0 && !self.prevented(FactionAdvantage::RicheseAuction);
             self.enter_or_else(condition, Phase::RicheseAnnouncingAuction, Game::start_regular_bidding);
         }
     }
@@ -277,7 +278,7 @@ impl Game {
         self.current_report_mut().express_message(message);
     }
 
-    /// Draws from `self.cards_on_auction`; callers check that it is not null first.
+    /// Draws from `self.bidding.cards_on_auction`; callers check that it is not null first.
     pub fn win_by_highest_bid(&mut self, winner: PlayerIndex, bid: &GameEvent, bid_amount: i32, bid_ally_contribution_amount: i32, bid_emperor_contribution_amount: i32, payment_receiver: Faction, uses_emperor_secret_ally: bool) -> GameResult<TreacheryCard> {
         let mut receiver_income_message = express_part!();
 
@@ -472,38 +473,38 @@ impl Game {
     /// leaves the other, so it can't be sold twice and end up in two hands (observe bots seed 1
     /// game 163, escapes.md "A Richese card sold twice"). Without the rule nothing is in both.
     pub fn drop_copy_in_richese_cache(&mut self, card: TreacheryCard) {
-        crate::game::remove_card(&mut self.richese_cache, Some(card));
+        crate::game::remove_card(&mut self.decks.richese_cache, Some(card));
     }
 
     /// See [`drop_copy_in_richese_cache`](Game::drop_copy_in_richese_cache).
     pub fn drop_copy_in_treachery_deck(&mut self, card: TreacheryCard) {
-        if let Some(deck) = self.treachery_deck.as_mut() {
+        if let Some(deck) = self.decks.treachery_deck.as_mut() {
             crate::game::remove_card(&mut deck.items, Some(card));
         }
     }
 
     pub fn draw_treachery_card(&mut self) -> Option<TreacheryCard> {
-        if self.treachery_deck.as_ref().map(|d| d.is_empty()) == Some(true) {
-            let count = self.treachery_discard_pile.as_ref().expect("treachery discard pile").items.len() as i32;
+        if self.decks.treachery_deck.as_ref().map(|d| d.is_empty()) == Some(true) {
+            let count = self.decks.treachery_discard_pile.as_ref().expect("treachery discard pile").items.len() as i32;
             self.log(vec![express!("Shuffled ", count, " cards from the treachery discard pile into a new deck")
                 .with_log(TreacheryReshuffled::new(count))
                 .into()]);
 
-            let discarded: Vec<TreacheryCard> = self.treachery_discard_pile.as_ref().expect("treachery discard pile").items.clone();
+            let discarded: Vec<TreacheryCard> = self.decks.treachery_discard_pile.as_ref().expect("treachery discard pile").items.clone();
             for i in discarded {
-                self.treachery_deck.as_mut().expect("treachery deck").items.push(i);
+                self.decks.treachery_deck.as_mut().expect("treachery deck").items.push(i);
                 self.unregister_known(i);
             }
 
-            self.treachery_discard_pile.as_mut().expect("treachery discard pile").clear();
-            self.treachery_deck.as_mut().expect("treachery deck").shuffle();
+            self.decks.treachery_discard_pile.as_mut().expect("treachery discard pile").clear();
+            self.decks.treachery_deck.as_mut().expect("treachery deck").shuffle();
             self.stone(Milestone::Shuffled);
         }
 
         // `TreacheryDeck?.Items.Count > 0`: null > 0 is false.
-        if self.treachery_deck.as_ref().map_or(false, |d| d.items.len() > 0) {
+        if self.decks.treachery_deck.as_ref().map_or(false, |d| d.items.len() > 0) {
             // A null card in the deck comes back as None (engine-conventions.md, "Null handles").
-            let card = self.treachery_deck.as_mut().expect("treachery deck").draw();
+            let card = self.decks.treachery_deck.as_mut().expect("treachery deck").draw();
             self.drop_copy_in_richese_cache(card);
             Some(card)
         } else {
@@ -530,7 +531,7 @@ impl Game {
         if might_replace {
             let winner = winner.expect("winner");
             if self.player(winner).ally == Faction::Ixian
-                && self.ixian_allows_replacing_cards
+                && self.alliances.ixian_allows_replacing_cards
                 && !matches!(self.bidding.current_auction_type, AuctionType::RicheseSilent | AuctionType::RicheseOnceAround)
             {
                 if !self.prevented(FactionAdvantage::IxianAllyDiscardingCard) {
@@ -674,7 +675,7 @@ impl Game {
 
     pub fn end_bidding_phase(&mut self) {
         self.bidding.card_that_must_be_kept_or_given_to_ally = None;
-        self.current_ixian_cunning = None;
+        self.turn.current_ixian_cunning = None;
         if let Some(emperor) = self.get_player(Some(Faction::Emperor)) {
             let r = self.player_mut(emperor);
             r.resources += r.resources_after_bidding;
@@ -700,7 +701,7 @@ impl Game {
 
     pub fn has_bid_to_pay(&self, p: PlayerIndex) -> bool {
         match &self.bidding.current_bid {
-            Some(current_bid) if self.current_phase == Phase::Bidding => {
+            Some(current_bid) if self.turn.current_phase == Phase::Bidding => {
                 current_bid.bid_initiator() == self.player(p).faction
                     || (current_bid.bid_initiator() == self.player(p).ally && current_bid.bid_ally_contribution_amount() > 0)
             }

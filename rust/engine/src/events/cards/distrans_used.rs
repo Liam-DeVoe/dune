@@ -93,11 +93,11 @@ impl DistransUsed {
     pub fn check_if_bidding_for_player_should_be_skipped(&self, game: &mut Game, player: PlayerIndex, had_room_for_cards: bool) {
         // C# parity: during black market bidding this also executes a regular Bid, not a BlackMarketBid.
         // Nested Execute: pre/post-event tasks run again and the Bid is added to History.
-        if game.current_phase == Phase::BlackMarketBidding && had_room_for_cards && !game.player(player).has_room_for_cards(game) && BlackMarketBid::may_be_played(game, player) {
+        if game.turn.current_phase == Phase::BlackMarketBidding && had_room_for_cards && !game.player(player).has_room_for_cards(game) && BlackMarketBid::may_be_played(game, player) {
             let mut bid = Bid::new(game, game.player(player).faction);
             bid.passed = true;
             Rc::new(bid).execute(game, false, false);
-        } else if game.current_phase == Phase::Bidding && had_room_for_cards && !game.player(player).has_room_for_cards(game) && Bid::may_be_played(game, Some(player)) {
+        } else if game.turn.current_phase == Phase::Bidding && had_room_for_cards && !game.player(player).has_room_for_cards(game) && Bid::may_be_played(game, Some(player)) {
             let mut bid = Bid::new(game, game.player(player).faction);
             bid.passed = true;
             Rc::new(bid).execute(game, false, false);

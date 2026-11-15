@@ -115,7 +115,7 @@ impl KarmaFreeRevival {
     pub fn try_get_message(&self, game: &Game) -> GameResult<Message> {
         let p = self.player_opt();
         if let Some(hero) = self.hero() {
-            if !game.leader_state.contains_key(&hero) {
+            if !game.leaders.leader_state.contains_key(&hero) {
                 game_error!("{} is not in this game", ExpressionElement::from(hero).to_cs_string());
             }
             if !game.is_face_down_dead(hero) {

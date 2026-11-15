@@ -95,7 +95,7 @@ pub trait GameEventMethods {
 
     /// [`execute`](GameEventMethods::execute) with the failure of an accepted event as `Err`.
     fn try_execute(self: &Rc<Self>, game: &mut Game, perform_validation: bool, is_host: bool) -> GameResult<Option<Message>> {
-        let moment_just_before_event = game.current_moment;
+        let moment_just_before_event = game.turn.current_moment;
 
         if perform_validation {
             if !self.is_applicable(game, is_host) {
@@ -108,10 +108,10 @@ pub trait GameEventMethods {
         }
 
         let this: GameEvent = self.clone().into_event();
-        game.recent_milestones.clear();
+        game.turn.recent_milestones.clear();
         game.perform_pre_event_tasks(&this);
         self.execute_concrete_event(game)?;
-        let just_entered_start_of_phase = moment_just_before_event != MainPhaseMoment::Start && game.current_moment == MainPhaseMoment::Start;
+        let just_entered_start_of_phase = moment_just_before_event != MainPhaseMoment::Start && game.turn.current_moment == MainPhaseMoment::Start;
         game.perform_post_event_tasks(&this, just_entered_start_of_phase);
         Ok(None)
     }

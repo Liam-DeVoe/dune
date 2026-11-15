@@ -24,11 +24,11 @@ impl PerformMoritaniSetup {
     }
 
     pub fn target(&self, game: &Game) -> Option<Location> {
-        game.map.location_lookup().find(self.target_id)
+        game.board.map.location_lookup().find(self.target_id)
     }
 
     pub fn set_target(&mut self, game: &Game, value: Option<Location>) {
-        self.target_id = game.map.location_lookup().get_id(value);
+        self.target_id = game.board.map.location_lookup().get_id(value);
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
@@ -42,8 +42,8 @@ impl PerformMoritaniSetup {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_locations(g: &Game) -> impl Iterator<Item = Location> {
-        let hms = g.map.hidden_mobile_stronghold().location();
-        g.map.locations(false).filter(move |l| *l != hms && !g.any_forces_in(l.territory()))
+        let hms = g.board.map.hidden_mobile_stronghold().location();
+        g.board.map.locations(false).filter(move |l| *l != hms && !g.any_forces_in(l.territory()))
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {

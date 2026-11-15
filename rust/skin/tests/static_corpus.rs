@@ -95,8 +95,8 @@ fn static_corpus_matches_the_snapshot() {
             },
             "GetCenterAttached" => {
                 let attached = location(&a[0]).as_attached_location().expect("attached location");
-                attached.point_at(&mut attach_game.map, location(&a[1]));
-                p(s.get_center(location(&a[0]), &attach_game.map))
+                attached.point_at(&mut attach_game.board.map, location(&a[1]));
+                p(s.get_center(location(&a[0]), &attach_game.board.map))
             }
             "DescribeHero" => s.describe_hero(Some(hero(&a[0]))),
             "GetImageUrlHero" => s.get_image_url_hero(Some(hero(&a[0]))),

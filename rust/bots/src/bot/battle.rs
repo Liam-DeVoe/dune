@@ -140,7 +140,7 @@ impl ClassicBot {
                     && card.type_() == TreacheryCardType::Useless
                     && faction != Faction::Choam
                     && !game.has_skill_in_front_of_shield(self.player, LeaderSkill::Warmaster)
-                    && !game.owns_stronghold(faction, game.map.tueks_sietch())
+                    && !game.owns_stronghold(faction, game.board.map.tueks_sietch())
             };
             discarded.extend(plan.weapon().filter(discard_if_useless));
             discarded.extend(plan.defense().filter(discard_if_useless));
@@ -477,7 +477,7 @@ impl ClassicBot {
         let cost_per_special_force = Battle::special_force_cost(game, self.player);
 
         // With Emperor's cunning, my first five normal forces are as strong as special forces.
-        let mut forces_with_cunning_bonus = match &game.current_emperor_cunning {
+        let mut forces_with_cunning_bonus = match &game.turn.current_emperor_cunning {
             Some(c) if c.initiator() == faction => 5,
             _ => 0,
         };
@@ -728,12 +728,12 @@ impl ClassicBot {
 
     /// My clairvoyance answer about this battle that covers `question` or any card in battle.
     fn ruling_clairvoyance(&self, game: &Game, question: ClairvoyanceQuestion) -> Option<ClairVoyanceQandA> {
-        let (Some(_), Some(qna)) = (&game.latest_clairvoyance, &game.latest_clairvoyance_qn_a) else {
+        let (Some(_), Some(qna)) = (&game.turn.latest_clairvoyance, &game.turn.latest_clairvoyance_qn_a) else {
             return None;
         };
         if qna.answer.initiator() == self.faction(game)
-            && game.latest_clairvoyance_battle.is_some()
-            && is_current_battle(game, game.latest_clairvoyance_battle.as_ref())
+            && game.turn.latest_clairvoyance_battle.is_some()
+            && is_current_battle(game, game.turn.latest_clairvoyance_battle.as_ref())
             && {
                 let q = qna.question.as_ref().expect("question").question;
                 q == question || q == ClairvoyanceQuestion::CardTypeInBattle
@@ -818,7 +818,7 @@ impl ClassicBot {
 
         if let Some(my_clairvoyance) = Self::my_clairvoyance_about_enemy_defense_in_current_battle(game, player) {
             let question = my_clairvoyance.question.as_ref().expect("question");
-            let answer = || &game.latest_clairvoyance_qn_a.as_ref().expect("latest clairvoyance qn a").answer;
+            let answer = || &game.turn.latest_clairvoyance_qn_a.as_ref().expect("latest clairvoyance qn a").answer;
             // Whether a projectile (true) or a poison (false) weapon gets past the defense the answer reveals.
             let projectile_gets_through = if question.is_about(game, TreacheryCardType::ProjectileDefense) {
                 if answer().is_no() {

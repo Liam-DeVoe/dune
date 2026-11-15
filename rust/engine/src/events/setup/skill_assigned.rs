@@ -37,7 +37,7 @@ impl SkillAssigned {
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if self.passed && game.current_phase == Phase::AssigningInitialSkills {
+        if self.passed && game.turn.current_phase == Phase::AssigningInitialSkills {
             return Some(express!("You must assign a leader skill"));
         }
 
@@ -54,7 +54,7 @@ impl SkillAssigned {
 
     /// Returns `Option` elements because `p.MostRecentlyRevivedLeader` can be null.
     pub fn valid_leaders(g: &Game, p: PlayerIndex) -> Vec<Option<Leader>> {
-        if g.current_phase == Phase::AssigningInitialSkills {
+        if g.turn.current_phase == Phase::AssigningInitialSkills {
             return g.player(p).leaders.iter().copied().filter(|l| l.hero_type() != HeroType::Auditor).map(Some).collect();
         }
         vec![g.player(p).most_recently_revived_leader]
@@ -75,15 +75,15 @@ impl SkillAssigned {
         }
         game.set_in_front_of_shield(leader, true);
         // SkillDeck is dereferenced before Player.SkillsToChooseFrom is read.
-        game.skill_deck.as_ref().required("skill deck")?;
+        game.decks.skill_deck.as_ref().required("skill deck")?;
         // PutOnTop(IEnumerable) reverses its input.
         let remaining = game.player(me).skills_to_choose_from.clone();
-        game.skill_deck.as_mut().required("skill deck")?.put_on_top_all(remaining);
+        game.decks.skill_deck.as_mut().required("skill deck")?.put_on_top_all(remaining);
         game.player_mut(me).skills_to_choose_from.clear();
 
         if !Self::players_must_choose_leader_skills(game) {
-            game.skill_deck.as_mut().required("skill deck")?.shuffle();
-            let c1 = game.current_phase != Phase::AssigningInitialSkills;
+            game.decks.skill_deck.as_mut().required("skill deck")?.shuffle();
+            let c1 = game.turn.current_phase != Phase::AssigningInitialSkills;
             let phase = game.setup.phase_before_skill_assignment;
             let c2 = game.treachery_cards_before_traitors();
             game.enter_first(&[(c1, Step::Enter(phase)), (c2, Step::Run(Game::deal_traitors))], Step::Run(Game::setup_spice_and_forces));

@@ -41,8 +41,8 @@ impl GameState {
 
     pub fn get_state_as_string(g: &Game) -> String {
         let mut state = GameState::new();
-        state.version = g.version;
-        state.set_events(&g.history);
+        state.version = g.rules.version;
+        state.set_events(&g.history.entries);
         Utilities::serialize(&state)
     }
 

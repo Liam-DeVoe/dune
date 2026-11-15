@@ -32,11 +32,11 @@ impl DiscoveryRevealed {
     }
 
     pub fn location(&self, game: &Game) -> Option<Location> {
-        game.map.location_lookup().find(self.location_id)
+        game.board.map.location_lookup().find(self.location_id)
     }
 
     pub fn set_location(&mut self, game: &Game, value: Option<Location>) {
-        self.location_id = game.map.location_lookup().get_id(value);
+        self.location_id = game.board.map.location_lookup().get_id(value);
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
@@ -49,12 +49,12 @@ impl DiscoveryRevealed {
     }
 
     pub fn applicable(g: &Game, p: PlayerIndex) -> bool {
-        g.current_main_phase == MainPhase::Collection && !Self::get_locations(g, p).next().is_none()
+        g.turn.current_main_phase == MainPhase::Collection && !Self::get_locations(g, p).next().is_none()
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn get_locations(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
-        g.discoveries_on_planet
+        g.board.discoveries_on_planet
             .iter()
             .filter(move |(k, v)| g.collection.pending_discoveries.contains(&v.token) && g.player(p).occupies_territory(g, Some(k.territory())))
             .map(move |(k, _)| *k)
@@ -65,14 +65,14 @@ impl DiscoveryRevealed {
         let Some(location) = self.location(game) else {
             game_error!("Value cannot be null. (Parameter 'key')")
         };
-        let discovery = game.discoveries_on_planet[&location].clone();
+        let discovery = game.board.discoveries_on_planet[&location].clone();
         if let Some(i) = game.collection.pending_discoveries.iter().position(|t| *t == discovery.token) {
             game.collection.pending_discoveries.remove(i);
         }
 
         if !self.passed {
             game.stone(Milestone::DiscoveryRevealed);
-            game.discoveries_on_planet.remove(&discovery.location);
+            game.board.discoveries_on_planet.remove(&discovery.location);
 
             self.log_objects(game, elems![self.initiator(), " reveal ", discovery.token, " in ", discovery.location.territory()]);
 
@@ -82,8 +82,8 @@ impl DiscoveryRevealed {
                 | DiscoveryToken::TestingStation
                 | DiscoveryToken::Cistern
                 | DiscoveryToken::ProcessingStation => {
-                    let sh = game.map.get_discovery_stronghold(discovery.token);
-                    sh.point_at(&mut game.map, discovery.location);
+                    let sh = game.board.map.get_discovery_stronghold(discovery.token);
+                    sh.point_at(&mut game.board.map, discovery.location);
                     game.collection.just_revealed_discovery_strongholds.push(sh);
                 }
 

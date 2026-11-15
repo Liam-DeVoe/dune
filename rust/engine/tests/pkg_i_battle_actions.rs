@@ -31,7 +31,7 @@ fn battle(g: &Game, initiator: Faction, target: Faction) -> Rc<BattleInitiated> 
     let mut b = BattleInitiated::new(g, initiator);
     b.target = target;
     // A plain sand territory (not a homeworld).
-    let t = g.map.territories(false).find(|t| !t.is_homeworld() && !t.is_stronghold()).unwrap();
+    let t = g.board.map.territories(false).find(|t| !t.is_homeworld() && !t.is_stronghold()).unwrap();
     b.territory_id = t.id();
     Rc::new(b)
 }
@@ -69,7 +69,7 @@ fn voice_is_voiced_by_without_special_card_rule() {
 #[test]
 fn voice_is_voiced_by_with_special_card_rule() {
     let mut g = game_with(&[Faction::BeneGesserit, Faction::Emperor]);
-    g.rules.push(Rule::BeneGesseritVoiceMustNameSpecialCards);
+    g.rules.active.push(Rule::BeneGesseritVoiceMustNameSpecialCards);
     use TreacheryCardType as T;
     assert!(Voice::is_voiced_by(&g, false, true, T::Antidote, T::PoisonDefense));
     assert!(!Voice::is_voiced_by(&g, false, true, T::ShieldAndAntidote, T::PoisonDefense));
@@ -85,7 +85,7 @@ fn voice_valid_types_by_rules() {
         Voice::valid_types(&g),
         vec![T::Mercenary, T::Laser, T::Poison, T::Projectile, T::Shield, T::Antidote, T::Useless, T::PoisonDefense, T::ProjectileDefense]
     );
-    g.rules.push(Rule::BeneGesseritVoiceMustNameSpecialCards);
+    g.rules.active.push(Rule::BeneGesseritVoiceMustNameSpecialCards);
     assert_eq!(Voice::valid_types(&g).len(), 7);
 }
 
@@ -131,7 +131,7 @@ fn may_call_face_dancer_distinguishes_null_and_none_winner() {
 #[test]
 fn face_danced_source_locations_message_is_a_lazy_query() {
     let g = game_with(&[Faction::Tleilaxu]);
-    let locations: Vec<Location> = g.map.locations(false).take(2).collect();
+    let locations: Vec<Location> = g.board.map.locations(false).take(2).collect();
     let mut fd = FaceDanced::new(&g, Faction::Tleilaxu);
     fd.force_locations = Some(format!("{}:2|0,{}:0|0", locations[0].id(), locations[1].id()));
     let part = fd.determine_source_locations(&g);
@@ -165,7 +165,7 @@ fn diplomacy_valid_cards() {
 fn juice_valid_types_with_null_battle_winner() {
     let mut g = game_with(&[Faction::Emperor, Faction::Atreides]);
     let emperor = idx(&g, Faction::Emperor);
-    g.current_main_phase = MainPhase::Battle;
+    g.turn.current_main_phase = MainPhase::Battle;
     g.battle.current_battle = Some(battle(&g, Faction::Emperor, Faction::Atreides));
     g.battle.battle_winner = None;
     assert_eq!(JuicePlayed::valid_types(&g, emperor), vec![JuiceType::GoLast]);
@@ -180,20 +180,20 @@ fn traitor_discarded_appends_without_shuffling() {
     let mut g = game_with(&[Faction::Harkonnen, Faction::Emperor]);
     let harkonnen = idx(&g, Faction::Harkonnen);
     let leaders: Vec<Hero> = LeaderManager::get_leaders(Faction::Emperor).take(3).map(Hero::Leader).collect();
-    g.traitor_deck = Some(Deck::new(vec![leaders[0]], None));
+    g.decks.traitor_deck = Some(Deck::new(vec![leaders[0]], None));
     g.player_mut(harkonnen).traitors = vec![leaders[1], leaders[2]];
-    g.number_of_traitors_to_discard = 1;
-    g.phase_before_discarding_traitor = Phase::BattlePhase;
+    g.turn.number_of_traitors_to_discard = 1;
+    g.turn.phase_before_discarding_traitor = Phase::BattlePhase;
 
     let mut e = TraitorDiscarded::new(&g, Faction::Harkonnen);
     e.set_traitor(Some(leaders[2]));
     assert!(e.validate(&g).is_none());
     let e = Rc::new(e);
     e.execute_concrete_event(&mut g).unwrap();
-    assert_eq!(g.traitor_deck.as_ref().unwrap().items, vec![leaders[0], leaders[2]]);
+    assert_eq!(g.decks.traitor_deck.as_ref().unwrap().items, vec![leaders[0], leaders[2]]);
     assert_eq!(g.player(harkonnen).traitors, vec![leaders[1]]);
-    assert_eq!(g.number_of_traitors_to_discard, 0);
-    assert_eq!(g.current_phase, Phase::BattlePhase);
+    assert_eq!(g.turn.number_of_traitors_to_discard, 0);
+    assert_eq!(g.turn.current_phase, Phase::BattlePhase);
 
     let mut bad = TraitorDiscarded::new(&g, Faction::Harkonnen);
     bad.set_traitor(Some(leaders[0]));

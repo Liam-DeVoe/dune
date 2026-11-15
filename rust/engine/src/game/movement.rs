@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
-/// State of the shipment and movement phase, including the intrusions and the alliances that terror and ambassadors offer during it, and the Guild's shipment permissions.
+/// State of the shipment and movement phase, including the intrusions and the alliances that terror
+/// and ambassadors offer during it, and the Guild's shipment permissions.
 pub struct ShipMoveState {
     pub shipment_and_move_sequence: Option<PlayerSequence>,
     pub last_shipment_or_movement: Option<GameEvent>,
@@ -85,7 +86,7 @@ impl Game {
         }
 
         // Every argument is evaluated before Enter runs, including the call that may log.
-        let condition1 = self.juice_forces_first_player() && self.current_juice.clone().expect("current juice").initiator() != Faction::Guild;
+        let condition1 = self.juice_forces_first_player() && self.turn.current_juice.clone().expect("current juice").initiator() != Faction::Guild;
         let condition2 = self.check_if_guild_acts_or_auto_delays();
         self.enter_first(&[(condition1, Step::Enter(Phase::NonGuildShip)), (condition2, Step::Enter(Phase::GuildShip))], Step::Enter(Phase::NonGuildShip));
     }
@@ -94,7 +95,7 @@ impl Game {
         let guild = self.get_player(Some(Faction::Guild));
         let guild_may_delay = self.guild_may_delay();
         let guild_has_to_act = self.is_playing(Faction::Guild)
-            && self.has_acted_or_passed.iter().all(|p| *p != Faction::Guild)
+            && self.turn.has_acted_or_passed.iter().all(|p| *p != Faction::Guild)
             && self.guild_may_ship_out_of_turn_order();
         let guild_is_on_auto_delay = match guild {
             Some(o) => self.is_automated(AutomationRuleType::ShipmentGuildAutoDelay, o),
@@ -163,11 +164,11 @@ impl Game {
         if self.has_skill_in_front_of_shield(initiator, LeaderSkill::Sandmaster) {
             let faction = self.player(initiator).faction;
             let ignore_storm = faction == Faction::Fremen && self.applicable(Rule::FremenMayMoveIntoStorm);
-            let paths = self.map.find_paths(fl.0, to, dist, ignore_storm, faction, &*self);
+            let paths = self.board.map.find_paths(fl.0, to, dist, ignore_storm, faction, &*self);
             let mut most_spice = 0;
             let mut path_with_most_spice: Option<Vec<Location>> = None;
             for p in paths {
-                let amount_of_spice_locations = p.iter().filter(|l| self.resources_on_planet.contains_key(*l)).distinct().len() as i32;
+                let amount_of_spice_locations = p.iter().filter(|l| self.board.resources_on_planet.contains_key(*l)).distinct().len() as i32;
                 if amount_of_spice_locations > most_spice {
                     most_spice = amount_of_spice_locations;
                     path_with_most_spice = Some(p);
@@ -177,7 +178,7 @@ impl Game {
             if let Some(path) = path_with_most_spice {
                 if most_spice > 0 {
                     for loc in path {
-                        if self.resources_on_planet.contains_key(&loc) {
+                        if self.board.resources_on_planet.contains_key(&loc) {
                             self.change_resources_on_planet(loc, -1);
                         }
                     }
@@ -224,8 +225,8 @@ impl Game {
     pub fn must_move_through_storm(&self, initiator: PlayerIndex, from: Location, to: Location, moved: &Battalion) -> bool {
         let max = self.determine_maximum_move_distance(initiator, std::slice::from_ref(moved));
         let faction = self.player(initiator).faction;
-        let targets_avoiding_storm = self.map.find_neighbours(from, max, false, faction, self, true);
-        let targets_ignoring_storm = self.map.find_neighbours(from, max, true, faction, self, true);
+        let targets_avoiding_storm = self.board.map.find_neighbours(from, max, false, faction, self, true);
+        let targets_ignoring_storm = self.board.map.find_neighbours(from, max, true, faction, self, true);
         !targets_avoiding_storm.contains(&to) && targets_ignoring_storm.contains(&to)
     }
 
@@ -276,12 +277,12 @@ impl Game {
                 self.log(elems![f, " lose ", vidal]);
             }
 
-            self.captured_leaders.shift_remove(&vidal);
+            self.leaders.captured_leaders.shift_remove(&vidal);
         }
 
         self.player_mut(p).leaders.push(vidal);
-        self.player_to_set_aside_vidal = Some(p);
-        self.when_to_set_aside_vidal = when_to_set_aside;
+        self.leaders.player_to_set_aside_vidal = Some(p);
+        self.leaders.when_to_set_aside_vidal = when_to_set_aside;
 
         let f = self.player(p).faction;
         self.log(elems![f, " take ", vidal]);
@@ -290,8 +291,8 @@ impl Game {
     }
 
     pub fn let_player_discard_treachery_card_of_choice(&mut self, f: Faction) {
-        self.phase_before_discarding = self.current_phase;
-        self.factions_that_must_discard.push(f);
+        self.turn.phase_before_discarding = self.turn.current_phase;
+        self.turn.factions_that_must_discard.push(f);
         self.enter(Phase::Discarding, true);
     }
 
@@ -299,7 +300,7 @@ impl Game {
         let ambassador = self.ambassador_in(territory);
         if ambassador != Ambassador::None {
             let ecaz = self.get_player(Some(Faction::Ecaz));
-            self.ambassadors_on_planet.remove(&territory);
+            self.board.ambassadors_on_planet.remove(&territory);
             self.player_mut(ecaz.expect("ecaz")).ambassadors.push(ambassador);
             self.log(elems!["The ambassador in ", territory, " returns to ", Faction::Ecaz]);
         }
@@ -321,7 +322,7 @@ impl Game {
         }
 
         if !self.storm.storm_losses_to_take.is_empty() {
-            self.storm.phase_before_storm_loss = self.current_phase;
+            self.storm.phase_before_storm_loss = self.turn.current_phase;
             self.enter(Phase::StormLosses, true);
         } else if !self.ship_move.intrusions.is_empty() {
             match self.ship_move.intrusions[0].type_ {
@@ -339,11 +340,11 @@ impl Game {
     }
 
     pub fn skip_move_if_nothing_to_move(&mut self) -> GameResult {
-        if !matches!(self.current_phase, Phase::GuildMove | Phase::NonGuildMove) {
+        if !matches!(self.turn.current_phase, Phase::GuildMove | Phase::NonGuildMove) {
             return Ok(());
         }
 
-        let player = if self.current_phase == Phase::GuildMove {
+        let player = if self.turn.current_phase == Phase::GuildMove {
             self.get_player(Some(Faction::Guild))
         } else {
             self.ship_move.shipment_and_move_sequence.as_ref().required("shipment and move sequence")?.current_player(self)
@@ -357,9 +358,9 @@ impl Game {
 
         self.storm.storm_losses_to_take.clear();
         let pf = self.player(player).faction;
-        self.has_acted_or_passed.push(pf);
+        self.turn.has_acted_or_passed.push(pf);
 
-        if self.current_phase == Phase::NonGuildMove {
+        if self.turn.current_phase == Phase::NonGuildMove {
             let mut seq = self.ship_move.shipment_and_move_sequence.take().required("shipment and move sequence")?;
             seq.next_player(self);
             self.ship_move.shipment_and_move_sequence = Some(seq);
@@ -372,7 +373,7 @@ impl Game {
         }
 
         if self.ship_move.in_guild_cunning_shipment {
-            self.current_guild_cunning = None;
+            self.turn.current_guild_cunning = None;
             self.ship_move.in_guild_cunning_shipment = false;
         }
 
@@ -392,7 +393,7 @@ impl Game {
 
         self.ship_move.current_flight_used = None;
         self.ship_move.current_flight_discovery_used = None;
-        self.current_planetology = None;
+        self.turn.current_planetology = None;
         Ok(())
     }
 
@@ -428,7 +429,7 @@ impl Game {
     }
 
     pub fn determine_next_shipment_and_move_sub_phase_on_no_intrusion(&mut self) {
-        match self.current_phase {
+        match self.turn.current_phase {
             Phase::FremenRidingMonsterA
             | Phase::BeneGesseritIntrudedByFremenRidingMonsterA
             | Phase::TerrorTriggeredByFremenRidingMonsterA
@@ -480,7 +481,7 @@ impl Game {
                 let mut next_phase = self.ship_move.phase_before_revival_caused_intrusion;
                 if self.ship_move.phase_before_revival_caused_intrusion == Phase::AssigningSkill && !SkillAssigned::players_must_choose_leader_skills(self) {
                     next_phase = self.setup.phase_before_skill_assignment;
-                    if next_phase == self.current_phase {
+                    if next_phase == self.turn.current_phase {
                         next_phase = Phase::Resurrection;
                     }
                 }
@@ -493,7 +494,7 @@ impl Game {
     }
 
     pub fn determine_next_shipment_and_move_sub_phase_on_bene_gesserit_intruded(&mut self) -> GameResult {
-        let next = match self.current_phase {
+        let next = match self.turn.current_phase {
             Phase::FremenRidingMonsterA
             | Phase::BeneGesseritIntrudedByFremenRidingMonsterA
             | Phase::TerrorTriggeredByFremenRidingMonsterA
@@ -526,14 +527,14 @@ impl Game {
 
             Phase::BeneGesseritIntrudedByRevival | Phase::TerrorTriggeredByRevival | Phase::AmbassadorTriggeredByRevival => Phase::BeneGesseritIntrudedByRevival,
 
-            _ => game_error!("BeneGesserit intrusion triggered during undefined phase: {}", self.current_phase),
+            _ => game_error!("BeneGesserit intrusion triggered during undefined phase: {}", self.turn.current_phase),
         };
         self.enter(next, true);
         Ok(())
     }
 
     pub fn determine_next_shipment_and_move_sub_phase_on_terror_triggered(&mut self) -> GameResult {
-        let next = match self.current_phase {
+        let next = match self.turn.current_phase {
             Phase::FremenRidingMonsterA
             | Phase::BeneGesseritIntrudedByFremenRidingMonsterA
             | Phase::TerrorTriggeredByFremenRidingMonsterA
@@ -561,14 +562,14 @@ impl Game {
 
             Phase::BeneGesseritIntrudedByRevival | Phase::TerrorTriggeredByRevival | Phase::AmbassadorTriggeredByRevival => Phase::TerrorTriggeredByRevival,
 
-            _ => game_error!("Terror triggered during undefined phase: {}", self.current_phase),
+            _ => game_error!("Terror triggered during undefined phase: {}", self.turn.current_phase),
         };
         self.enter(next, true);
         Ok(())
     }
 
     pub fn determine_next_shipment_and_move_sub_phase_on_ambassador_triggered(&mut self) -> GameResult {
-        let next = match self.current_phase {
+        let next = match self.turn.current_phase {
             Phase::FremenRidingMonsterA
             | Phase::BeneGesseritIntrudedByFremenRidingMonsterA
             | Phase::TerrorTriggeredByFremenRidingMonsterA
@@ -595,7 +596,7 @@ impl Game {
 
             Phase::BeneGesseritIntrudedByRevival | Phase::TerrorTriggeredByRevival | Phase::AmbassadorTriggeredByRevival => Phase::AmbassadorTriggeredByRevival,
 
-            _ => game_error!("Ambassador triggered during undefined phase: {}", self.current_phase),
+            _ => game_error!("Ambassador triggered during undefined phase: {}", self.turn.current_phase),
         };
         self.enter(next, true);
         Ok(())
@@ -620,7 +621,7 @@ impl Game {
                 }
             }
 
-            if self.has_acted_or_passed.contains(&p_ally) {
+            if self.turn.has_acted_or_passed.contains(&p_ally) {
                 //Forces that must be destroyed if both the player and his ally have moved
 
                 let player_territories = if self.applicable(Rule::AdvisorsDontConflictWithAlly) {
@@ -636,7 +637,7 @@ impl Game {
                 }
                 .unwrap_or_default();
 
-                let polar_sink = self.map.polar_sink().territory();
+                let polar_sink = self.board.map.polar_sink().territory();
                 let to_kill: Vec<Territory> = player_territories
                     .iter()
                     .copied()
@@ -657,7 +658,7 @@ impl Game {
     }
 
     pub fn threatened_by_ally_presence(&self, p: PlayerIndex, t: Territory) -> bool {
-        if t == self.map.polar_sink().territory() {
+        if t == self.board.map.polar_sink().territory() {
             return false;
         }
 
@@ -696,7 +697,7 @@ impl Game {
         if self.ship_move.current_player_may_perform_extra_move {
             self.ship_move.current_player_may_perform_extra_move = false;
             self.enter(Phase::GuildMove, true);
-        } else if !self.ship_move.in_guild_cunning_shipment && self.current_guild_cunning.as_ref().is_some_and(|c| c.by(Faction::Guild)) {
+        } else if !self.ship_move.in_guild_cunning_shipment && self.turn.current_guild_cunning.as_ref().is_some_and(|c| c.by(Faction::Guild)) {
             self.ship_move.in_guild_cunning_shipment = true;
             self.enter(Phase::GuildShip, true);
         } else {
@@ -712,7 +713,7 @@ impl Game {
         self.enter(Phase::ShipmentAndMoveConcluded, true);
         self.receive_ships_tech_income();
         self.ship_move.choam_has_extra_move = false;
-        self.current_bene_gesserit_cunning = None;
+        self.turn.current_bene_gesserit_cunning = None;
     }
 
     pub fn check_if_moritani_gains_vidal(&mut self) {
@@ -764,7 +765,7 @@ impl Game {
     pub fn check_bene_gesserit_intrusion(&mut self, e: &GameEvent, initiator: Faction, territory: Territory) {
         let bg_player = self.get_player(Some(Faction::BeneGesserit));
         if let Some(bg) = bg_player {
-            if territory != self.map.polar_sink().territory()
+            if territory != self.board.map.polar_sink().territory()
                 && !territory.is_homeworld()
                 && self.applicable(Rule::BeneGesseritAdvisors)
                 && initiator != self.player(bg).ally
@@ -830,7 +831,7 @@ impl Game {
     }
 
     pub fn vidal(&self) -> Option<Leader> {
-        self.leader_state.keys().copied().find(|h| h.hero_type() == HeroType::Vidal).and_then(|h| h.as_leader())
+        self.leaders.leader_state.keys().copied().find(|h| h.hero_type() == HeroType::Vidal).and_then(|h| h.as_leader())
     }
 
     pub fn vidal_is_alive(&self) -> bool {
@@ -843,7 +844,7 @@ impl Game {
     pub fn vidal_is_captured_or_ghola(&self) -> bool {
         let player_with_vidal = self.players.iter().find(|p| p.leaders.iter().any(|l| l.hero_type() == HeroType::Vidal));
         match player_with_vidal {
-            Some(pwv) => self.captured_leaders.keys().any(|h| h.hero_type() == HeroType::Vidal) || pwv.is(Faction::Tleilaxu),
+            Some(pwv) => self.leaders.captured_leaders.keys().any(|h| h.hero_type() == HeroType::Vidal) || pwv.is(Faction::Tleilaxu),
             None => false,
         }
     }
@@ -884,7 +885,7 @@ impl Game {
     }
 
     pub fn occupies_arrakeen_or_carthag(&self, p: PlayerIndex) -> bool {
-        self.player(p).occupies(self, Some(self.map.arrakeen())) || self.player(p).occupies(self, Some(self.map.carthag()))
+        self.player(p).occupies(self, Some(self.board.map.arrakeen())) || self.player(p).occupies(self, Some(self.board.map.carthag()))
     }
 
     pub fn ambassador_of(faction: Faction) -> Ambassador {
@@ -893,8 +894,8 @@ impl Game {
 
     pub fn guild_may_delay(&self) -> bool {
         self.guild_may_ship_out_of_turn_order()
-            && ((self.players.len() as i32) - (self.has_acted_or_passed.len() as i32))
-                > (if self.juice_forces_last_player() && !self.has_acted_or_passed.contains(&self.current_juice.as_ref().expect("current juice").initiator()) { 2 } else { 1 })
+            && ((self.players.len() as i32) - (self.turn.has_acted_or_passed.len() as i32))
+                > (if self.juice_forces_last_player() && !self.turn.has_acted_or_passed.contains(&self.turn.current_juice.as_ref().expect("current juice").initiator()) { 2 } else { 1 })
     }
 
     pub fn guild_may_ship_out_of_turn_order(&self) -> bool {

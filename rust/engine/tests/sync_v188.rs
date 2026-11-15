@@ -77,9 +77,9 @@ fn applicable(g: &mut Game) -> String {
 }
 
 fn state(l: &mut Lines, g: &mut Game, at: &str) {
-    l.p(&format!("{at}.phase"), g.current_phase);
-    l.p(&format!("{at}.acted"), factions(g.has_acted_or_passed.clone()));
-    let offers: Vec<_> = g.current_alliance_offers.iter().map(|o| format!("{}>{}", o.initiator(), o.target)).collect();
+    l.p(&format!("{at}.phase"), g.turn.current_phase);
+    l.p(&format!("{at}.acted"), factions(g.turn.has_acted_or_passed.clone()));
+    let offers: Vec<_> = g.alliances.current_alliance_offers.iter().map(|o| format!("{}>{}", o.initiator(), o.target)).collect();
     l.p(&format!("{at}.offers"), offers.join(","));
     let allies: Vec<_> = g.players.iter().map(|p| format!("{}:{}", p.faction, p.ally)).collect();
     l.p(&format!("{at}.allies"), allies.join(","));
@@ -124,7 +124,7 @@ fn passed(g: &Game, by: Faction) -> GameEvent {
 fn alliance_phase(l: &mut Lines, v: i32) {
     let at = format!("v{v}.phase");
     let mut g = new_game(v);
-    g.has_acted_or_passed.push(Faction::Atreides);
+    g.turn.has_acted_or_passed.push(Faction::Atreides);
     g.enter_alliance_phase(true);
     state(l, &mut g, &format!("{at}.enter"));
 
@@ -138,7 +138,7 @@ fn alliance_phase(l: &mut Lines, v: i32) {
     exec(l, &mut g, &format!("{at}.atreides_accepts"), e);
 
     let mut g2 = new_game(v);
-    g2.has_acted_or_passed.push(Faction::Richese);
+    g2.turn.has_acted_or_passed.push(Faction::Richese);
     g2.enter_alliance_phase(false);
     state(l, &mut g2, &format!("{at}.enter_b"));
     for (name, f) in [("b_choam_passes", Faction::Choam), ("b_atreides_passes", Faction::Atreides), ("b_richese_passes", Faction::Richese)] {
@@ -201,11 +201,11 @@ fn prescience(l: &mut Lines, v: i32) {
     let leader0 = g.player(choam).leaders[0];
     let leader1 = g.player(choam).leaders[1];
     l.p(&format!("{at}.leaders"), format!("{},{}", leader0.id(), leader1.id()));
-    let arrakeen = g.map.arrakeen();
+    let arrakeen = g.board.map.arrakeen();
     Player::add_forces(&mut g, choam, arrakeen.into(), 3, false);
     let mut battle = BattleInitiated::new(&g, Faction::Atreides);
     battle.target = Faction::Choam;
-    let territory = g.map.arrakeen().territory();
+    let territory = g.board.map.arrakeen().territory();
     battle.set_territory(&g, Some(territory));
     g.battle.current_battle = Some(Rc::new(battle));
 

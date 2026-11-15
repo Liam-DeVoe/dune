@@ -4,7 +4,7 @@ impl Game {
     pub fn get_applicable_events(&mut self, player: Option<PlayerIndex>, is_host: bool) -> Vec<GameEventType> {
         let mut result: Vec<GameEventType> = Vec::new();
 
-        if self.current_phase == Phase::SelectingFactions && (player.is_none() || self.player(player.expect("player")).faction == Faction::None) {
+        if self.turn.current_phase == Phase::SelectingFactions && (player.is_none() || self.player(player.expect("player")).faction == Faction::None) {
             result.push(GameEventType::FactionSelected);
         } else if let Some(p) = player {
             if self.player(p).faction != Faction::None {
@@ -20,7 +20,7 @@ impl Game {
     }
 
     pub fn add_host_actions(&self, result: &mut Vec<GameEventType>) {
-        match self.current_phase {
+        match self.turn.current_phase {
             Phase::AwaitingPlayers => result.push(GameEventType::EstablishPlayers),
             Phase::CustomizingDecks => result.push(GameEventType::CardsDetermined),
             Phase::PerformCustomSetup => result.push(GameEventType::PerformSetup),
@@ -66,14 +66,14 @@ impl Game {
         let faction = self.player(player).faction;
         let has_caravan = |g: &Game| g.player(player).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Caravan);
 
-        match self.current_phase {
+        match self.turn.current_phase {
             Phase::Discarding => {
-                if self.factions_that_must_discard.contains(&faction) {
+                if self.turn.factions_that_must_discard.contains(&faction) {
                     result.push(GameEventType::Discarded);
                 }
             }
             Phase::DiscardingTraitor => {
-                if faction == self.faction_that_must_discard_traitor {
+                if faction == self.turn.faction_that_must_discard_traitor {
                     result.push(GameEventType::TraitorDiscarded);
                 }
             }
@@ -104,7 +104,7 @@ impl Game {
             }
             Phase::DiallingStorm => {
                 let f = self.player(player).faction;
-                if self.storm.has_battle_wheel.contains(&f) && !self.has_acted_or_passed.contains(&f) {
+                if self.storm.has_battle_wheel.contains(&f) && !self.turn.has_acted_or_passed.contains(&f) {
                     result.push(GameEventType::StormDialled);
                 }
             }
@@ -140,7 +140,7 @@ impl Game {
                 }
             }
             Phase::SelectingTraitors => {
-                if faction != Faction::Harkonnen && faction != Faction::Tleilaxu && !self.has_acted_or_passed.contains(&faction) {
+                if faction != Faction::Harkonnen && faction != Faction::Tleilaxu && !self.turn.has_acted_or_passed.contains(&faction) {
                     result.push(GameEventType::TraitorsSelected);
                 }
             }
@@ -165,7 +165,7 @@ impl Game {
                 }
             }
             Phase::MetheorAndStormSpell => {
-                if self.player(player).has_treachery_card_type(TreacheryCardType::StormSpell) && self.current_turn > 1 {
+                if self.player(player).has_treachery_card_type(TreacheryCardType::StormSpell) && self.turn.current_turn > 1 {
                     result.push(GameEventType::StormSpellPlayed);
                 }
                 if MetheorPlayed::may_play_metheor(self, player) {
@@ -206,7 +206,7 @@ impl Game {
                 }
             }
             Phase::AllianceA | Phase::AllianceB => {
-                if !self.has_acted_or_passed.contains(&faction) {
+                if !self.turn.has_acted_or_passed.contains(&faction) {
                     if self.player(player).ally == Faction::None && self.players.len() > 1 {
                         result.push(GameEventType::AllianceOffered);
                     }
@@ -413,7 +413,7 @@ impl Game {
             | Phase::AmbassadorTriggeredByFremenRidingMonsterB
             | Phase::AmbassadorTriggeredByCaravan
             | Phase::AmbassadorTriggeredByRevival => {
-                if faction == Faction::Ecaz || (self.player(player).ally == Faction::Ecaz && self.ecaz_shares_ambassadors) {
+                if faction == Faction::Ecaz || (self.player(player).ally == Faction::Ecaz && self.alliances.ecaz_shares_ambassadors) {
                     result.push(GameEventType::AmbassadorActivated);
                 }
             }
@@ -634,13 +634,13 @@ impl Game {
             }
 
             Phase::TradingCards => {
-                if Some(faction) == self.current_card_trade_offer.as_ref().map(|o| o.target) {
+                if Some(faction) == self.alliances.current_card_trade_offer.as_ref().map(|o| o.target) {
                     result.push(GameEventType::CardTraded);
                 }
             }
 
             Phase::Clairvoyance => {
-                if Some(faction) == self.latest_clairvoyance.as_ref().map(|c| c.target) {
+                if Some(faction) == self.turn.latest_clairvoyance.as_ref().map(|c| c.target) {
                     result.push(GameEventType::ClairVoyanceAnswered);
                 }
             }
@@ -666,11 +666,11 @@ impl Game {
             _ => {}
         }
 
-        if self.current_phase > Phase::TradingFactions {
+        if self.turn.current_phase > Phase::TradingFactions {
             result.push(GameEventType::AutomationConfigured);
         }
 
-        if self.current_main_phase > MainPhase::Setup
+        if self.turn.current_main_phase > MainPhase::Setup
             && faction == Faction::Choam
             && self.player(player).has_any_low_threshold(self)
             && !self.is_occupied_world(World::Choam)
@@ -679,11 +679,11 @@ impl Game {
             result.push(GameEventType::ResourcesAudited);
         }
 
-        if self.current_main_phase == MainPhase::ShipmentAndMove && SetShipmentPermission::is_applicable(self, player) {
+        if self.turn.current_main_phase == MainPhase::ShipmentAndMove && SetShipmentPermission::is_applicable(self, player) {
             result.push(GameEventType::SetShipmentPermission);
         }
 
-        if self.current_main_phase == MainPhase::Collection && DiscoveryRevealed::applicable(self, player) {
+        if self.turn.current_main_phase == MainPhase::Collection && DiscoveryRevealed::applicable(self, player) {
             result.push(GameEventType::DiscoveryRevealed);
         }
 
@@ -695,10 +695,10 @@ impl Game {
             result.push(GameEventType::AllyPermission);
         }
 
-        let is_after_setup = self.current_main_phase > MainPhase::Setup;
-        let has_finalized_battle_plan_waiting_to_be_resolved = (self.current_phase == Phase::BattlePhase
-            || self.current_phase == Phase::MeltingRock
-            || self.current_phase == Phase::CallTraitorOrPass)
+        let is_after_setup = self.turn.current_main_phase > MainPhase::Setup;
+        let has_finalized_battle_plan_waiting_to_be_resolved = (self.turn.current_phase == Phase::BattlePhase
+            || self.turn.current_phase == Phase::MeltingRock
+            || self.turn.current_phase == Phase::CallTraitorOrPass)
             && self.battle.current_battle.as_ref().is_some_and(|cb| cb.plan_of(self, Some(player)).is_some());
 
         if JuicePlayed::can_be_played_by(self, player) {
@@ -710,7 +710,7 @@ impl Game {
         }
 
         if faction == Faction::Ecaz
-            && self.current_phase == Phase::CallTraitorOrPass
+            && self.turn.current_phase == Phase::CallTraitorOrPass
             && self.battle.current_battle.is_some()
             && self.battle.current_battle.as_ref().expect("current battle").is_aggressor_or_defender(self, player)
             && !self.karma_prevented(faction)
@@ -727,7 +727,7 @@ impl Game {
         if is_after_setup && !has_finalized_battle_plan_waiting_to_be_resolved && !self.current_phase_cannot_be_interrupted() {
             let p = self.player(player);
 
-            if self.current_main_phase < MainPhase::Battle && p.no_field_is_active() {
+            if self.turn.current_main_phase < MainPhase::Battle && p.no_field_is_active() {
                 result.push(GameEventType::RicheseRevealedNoField);
             }
 
@@ -747,11 +747,11 @@ impl Game {
                 result.push(GameEventType::DiscardedTaken);
             }
 
-            if self.current_phase != Phase::SearchingDiscarded && DiscardedSearchedAnnounced::can_be_played(self, player) {
+            if self.turn.current_phase != Phase::SearchingDiscarded && DiscardedSearchedAnnounced::can_be_played(self, player) {
                 result.push(GameEventType::DiscardedSearchedAnnounced);
             }
 
-            if self.current_main_phase == MainPhase::ShipmentAndMove && ChoamMovePrevention::can_be_played_by(self, player) {
+            if self.turn.current_main_phase == MainPhase::ShipmentAndMove && ChoamMovePrevention::can_be_played_by(self, player) {
                 result.push(GameEventType::ChoamMovePrevention);
             }
 
@@ -759,15 +759,15 @@ impl Game {
                 result.push(GameEventType::ChoamKarmaPrevention);
             }
 
-            if self.current_main_phase == MainPhase::ShipmentAndMove && ChoamExtraMove::can_be_played_by(self, player) {
+            if self.turn.current_main_phase == MainPhase::ShipmentAndMove && ChoamExtraMove::can_be_played_by(self, player) {
                 result.push(GameEventType::ChoamExtraMove);
             }
 
-            if self.current_main_phase == MainPhase::Resurrection && ChoamFreeRevivalPrevention::can_be_played_by(self, player) {
+            if self.turn.current_main_phase == MainPhase::Resurrection && ChoamFreeRevivalPrevention::can_be_played_by(self, player) {
                 result.push(GameEventType::ChoamFreeRevivalPrevention);
             }
 
-            if self.current_main_phase == MainPhase::Contemplate && ChoamRemoveForce::can_be_played_by(self, player) {
+            if self.turn.current_main_phase == MainPhase::Contemplate && ChoamRemoveForce::can_be_played_by(self, player) {
                 result.push(GameEventType::ChoamRemoveForce);
             }
 
@@ -775,7 +775,7 @@ impl Game {
                 && self.consider_as_end_of_phase()
                 && !self.player(p.allied_player(self).expect("allied player")).treachery_cards.is_empty()
                 && !p.treachery_cards.is_empty()
-                && self.last_turn_card_was_traded < self.current_turn
+                && self.alliances.last_turn_card_was_traded < self.turn.current_turn
             {
                 result.push(GameEventType::CardTraded);
             }
@@ -785,7 +785,7 @@ impl Game {
             }
 
             if p.has_treachery_card_type(TreacheryCardType::Clairvoyance)
-                || (p.occupies(self, Some(self.map.shrine().location())) && p.has_karma(self))
+                || (p.occupies(self, Some(self.board.map.shrine().location())) && p.has_karma(self))
             {
                 result.push(GameEventType::ClairVoyancePlayed);
             }
@@ -799,7 +799,7 @@ impl Game {
                 && !self.karma_prevented(faction)
                 && !p.special_karma_power_used
                 && p.has_karma(self)
-                && self.current_main_phase == MainPhase::Bidding
+                && self.turn.current_main_phase == MainPhase::Bidding
                 && self.applicable(Rule::AdvancedKarama)
             {
                 result.push(GameEventType::KarmaHandSwapInitiated);
@@ -809,7 +809,7 @@ impl Game {
                 && !self.karma_prevented(faction)
                 && !p.special_karma_power_used
                 && p.has_karma(self)
-                && self.current_main_phase == MainPhase::ShipmentAndMove
+                && self.turn.current_main_phase == MainPhase::ShipmentAndMove
                 && self.applicable(Rule::AdvancedKarama)
             {
                 result.push(GameEventType::KarmaShipmentPrevention);
@@ -819,7 +819,7 @@ impl Game {
                 && !self.karma_prevented(faction)
                 && !p.special_karma_power_used
                 && p.has_karma(self)
-                && self.current_main_phase == MainPhase::Resurrection
+                && self.turn.current_main_phase == MainPhase::Resurrection
                 && self.applicable(Rule::AdvancedKarama)
             {
                 result.push(GameEventType::KarmaRevivalPrevention);
@@ -848,7 +848,7 @@ impl Game {
                 && !self.karma_prevented(faction)
                 && !p.special_karma_power_used
                 && p.has_karma(self)
-                && self.current_main_phase == MainPhase::Resurrection
+                && self.turn.current_main_phase == MainPhase::Resurrection
                 && self.applicable(Rule::AdvancedKarama)
             {
                 result.push(GameEventType::KarmaFreeRevival);
@@ -856,17 +856,17 @@ impl Game {
 
             if faction == Faction::Ixian
                 && ((!self.karma_prevented(faction) && !p.special_karma_power_used && p.has_karma(self)) || self.storm.karma_hms_moves_left == 1)
-                && self.current_main_phase == MainPhase::ShipmentAndMove
+                && self.turn.current_main_phase == MainPhase::ShipmentAndMove
                 && Some(player) == self.ship_move.shipment_and_move_sequence.as_ref().expect("shipment and move sequence").current_player(self)
-                && p.any_forces_in(Some(self.map.hidden_mobile_stronghold().location())) > 0
+                && p.any_forces_in(Some(self.board.map.hidden_mobile_stronghold().location())) > 0
                 && self.applicable(Rule::AdvancedKarama)
             {
                 result.push(GameEventType::KarmaHmsMovement);
             }
 
             if faction == Faction::Fremen
-                && self.current_main_phase == MainPhase::Blow
-                && self.current_turn > 1
+                && self.turn.current_main_phase == MainPhase::Blow
+                && self.turn.current_turn > 1
                 && !self.karma_prevented(faction)
                 && !p.special_karma_power_used
                 && p.has_karma(self)
@@ -876,7 +876,7 @@ impl Game {
             }
 
             if faction == Faction::Atreides
-                && self.current_main_phase == MainPhase::Battle
+                && self.turn.current_main_phase == MainPhase::Battle
                 && self.battle.current_battle.is_some()
                 && self.battle.current_battle.as_ref().expect("current battle").is_involved(self, player)
                 && !self.karma_prevented(faction)
@@ -888,10 +888,10 @@ impl Game {
             }
 
             if faction == Faction::BeneGesserit
-                && self.current_phase > Phase::AllianceB
-                && (self.current_main_phase < MainPhase::ShipmentAndMove
-                    || (p.initiated(self.current_bene_gesserit_cunning.clone().map(|c| c.into_event()).as_ref())
-                        && self.current_main_phase == MainPhase::ShipmentAndMove))
+                && self.turn.current_phase > Phase::AllianceB
+                && (self.turn.current_main_phase < MainPhase::ShipmentAndMove
+                    || (p.initiated(self.turn.current_bene_gesserit_cunning.clone().map(|c| c.into_event()).as_ref())
+                        && self.turn.current_main_phase == MainPhase::ShipmentAndMove))
                 && !BeneGesseritBattleAnnouncement::valid_territories(self, player).next().is_none()
             {
                 result.push(GameEventType::BeneGesseritBattleAnnouncement);
@@ -912,8 +912,8 @@ impl Game {
             }
 
             if faction == Faction::Richese
-                && self.current_phase != Phase::BlackMarketBidding
-                && self.current_phase != Phase::Bidding
+                && self.turn.current_phase != Phase::BlackMarketBidding
+                && self.turn.current_phase != Phase::Bidding
                 && !has_finalized_battle_plan_waiting_to_be_resolved
                 && p.has_ally()
                 && !RicheseGaveCard::valid_cards(self, player).next().is_none()
@@ -922,8 +922,8 @@ impl Game {
                 result.push(GameEventType::RicheseGaveCard);
             }
 
-            if self.current_phase != Phase::BlackMarketBidding
-                && (self.current_phase != Phase::Bidding || self.bidding.current_bid.is_none())
+            if self.turn.current_phase != Phase::BlackMarketBidding
+                && (self.turn.current_phase != Phase::Bidding || self.bidding.current_bid.is_none())
                 && !has_finalized_battle_plan_waiting_to_be_resolved
                 && DistransUsed::can_be_played(self, player)
             {
@@ -962,29 +962,29 @@ impl Game {
     }
 
     pub fn current_phase_cannot_be_interrupted(&self) -> bool {
-        self.current_main_phase == MainPhase::Ended
-            || self.current_phase == Phase::Discarding
-            || self.current_phase == Phase::AssigningSkill
-            || self.current_phase == Phase::Clairvoyance
-            || self.current_phase == Phase::Thought
-            || self.current_phase == Phase::TradingCards
-            || self.current_phase == Phase::Bureaucracy
-            || self.current_phase == Phase::SearchingDiscarded
-            || self.current_phase == Phase::PerformingKarmaHandSwap
-            || self.current_phase == Phase::ReplacingCardJustWon
-            || self.current_phase == Phase::DividingCollectedResources
-            || self.current_phase == Phase::AcceptingResourceDivision
+        self.turn.current_main_phase == MainPhase::Ended
+            || self.turn.current_phase == Phase::Discarding
+            || self.turn.current_phase == Phase::AssigningSkill
+            || self.turn.current_phase == Phase::Clairvoyance
+            || self.turn.current_phase == Phase::Thought
+            || self.turn.current_phase == Phase::TradingCards
+            || self.turn.current_phase == Phase::Bureaucracy
+            || self.turn.current_phase == Phase::SearchingDiscarded
+            || self.turn.current_phase == Phase::PerformingKarmaHandSwap
+            || self.turn.current_phase == Phase::ReplacingCardJustWon
+            || self.turn.current_phase == Phase::DividingCollectedResources
+            || self.turn.current_phase == Phase::AcceptingResourceDivision
     }
 
     pub fn consider_as_end_of_phase(&self) -> bool {
         // `a || b && c is X or Y` reads as `a || (b && (c is X or Y))`.
-        self.current_moment == MainPhaseMoment::End
-            || (self.current_moment == MainPhaseMoment::Start
-                && matches!(self.current_main_phase, MainPhase::Bidding | MainPhase::ShipmentAndMove))
+        self.turn.current_moment == MainPhaseMoment::End
+            || (self.turn.current_moment == MainPhaseMoment::Start
+                && matches!(self.turn.current_main_phase, MainPhase::Bidding | MainPhase::ShipmentAndMove))
     }
 
     pub fn consider_as_start_of_phase(&self) -> bool {
-        self.current_moment == MainPhaseMoment::Start
-            || (self.current_main_phase == MainPhase::Blow && self.current_moment == MainPhaseMoment::End)
+        self.turn.current_moment == MainPhaseMoment::Start
+            || (self.turn.current_main_phase == MainPhase::Blow && self.turn.current_moment == MainPhaseMoment::End)
     }
 }

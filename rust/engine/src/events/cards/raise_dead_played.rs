@@ -42,11 +42,11 @@ impl RaiseDeadPlayed {
     }
 
     pub fn location(&self, game: &Game) -> Option<Location> {
-        game.map.location_lookup().find(self.location_id)
+        game.board.map.location_lookup().find(self.location_id)
     }
 
     pub fn set_location(&mut self, game: &Game, value: Option<Location>) {
-        self.location_id = game.map.location_lookup().get_id(value);
+        self.location_id = game.board.map.location_lookup().get_id(value);
     }
 
     pub fn to(&self, game: &Game) -> Option<Location> {
@@ -202,7 +202,7 @@ impl RaiseDeadPlayed {
 
     pub fn try_get_message(&self, game: &Game) -> GameResult<Message> {
         if let Some(hero) = self.hero() {
-            if !game.leader_state.contains_key(&hero) {
+            if !game.leaders.leader_state.contains_key(&hero) {
                 game_error!("{} is not in this game", ExpressionElement::from(hero).to_cs_string());
             }
             if !game.is_face_down_dead(hero) {

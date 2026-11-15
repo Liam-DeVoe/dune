@@ -24,11 +24,11 @@ impl PerformHmsPlacement {
     }
 
     pub fn target(&self, game: &Game) -> Option<Location> {
-        game.map.location_lookup().find(self.target_id)
+        game.board.map.location_lookup().find(self.target_id)
     }
 
     pub fn set_target(&mut self, game: &Game, value: Option<Location>) {
-        self.target_id = game.map.location_lookup().get_id(value);
+        self.target_id = game.board.map.location_lookup().get_id(value);
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
@@ -44,15 +44,15 @@ impl PerformHmsPlacement {
     pub fn valid_locations(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
         use either::Either;
         if g.player(p).faction != Faction::Ixian {
-            return Either::Left(g.map.locations(false).filter(|l| !l.territory().is_stronghold()));
+            return Either::Left(g.board.map.locations(false).filter(|l| !l.territory().is_stronghold()));
         }
-        Either::Right(g.map.locations(false).filter(move |l| !l.territory().is_stronghold() && l.sector(&g.map) != g.sector_in_storm))
+        Either::Right(g.board.map.locations(false).filter(move |l| !l.territory().is_stronghold() && l.sector(&g.board.map) != g.board.sector_in_storm))
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let target = self.target(game).required("target")?;
-        let hms = game.map.hidden_mobile_stronghold();
-        hms.point_at(&mut game.map, target);
+        let hms = game.board.map.hidden_mobile_stronghold();
+        hms.point_at(&mut game.board.map, target);
         self.log(game);
         game.end_storm_phase();
         game.stone(Milestone::HmsMovement);
@@ -60,7 +60,7 @@ impl PerformHmsPlacement {
     }
 
     pub fn get_message(&self, game: &Game) -> Message {
-        express!(self.initiator(), " position the ", game.map.hidden_mobile_stronghold(), " above ", self.target(game))
+        express!(self.initiator(), " position the ", game.board.map.hidden_mobile_stronghold(), " above ", self.target(game))
     }
 
 }

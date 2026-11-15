@@ -58,18 +58,18 @@ impl SharedAdvantage {
     fn granted(self, game: &Game) -> bool {
         use SharedAdvantage::*;
         match self {
-            AtreidesSharesPrescience => game.atreides_shares_prescience,
-            FremenSharesPrescience => game.fremen_shares_prescience,
-            FremenWillProtectFromMonster => game.fremen_will_protect_from_monster,
-            FremenAllowsThreeFreeRevivals => game.fremen_allows_three_free_revivals,
-            FremenRefundsBattleDial => game.fremen_refunds_battle_dial,
-            GuildAllowsShippingDiscount => game.guild_allows_shipping_discount,
-            BeneGesseritAllowsUseOfVoice => game.bene_gesserit_allows_use_of_voice,
-            IxianAllowsReplacingCards => game.ixian_allows_replacing_cards,
-            TleilaxuAllowsRevivalDiscount => game.tleilaxu_allows_revival_discount,
-            RicheseAllowsUseOfNoField => game.richese_allows_use_of_no_field,
-            MoritaniAllowsKeepingCards => game.moritani_allows_keeping_cards,
-            EcazSharesAmbassadors => game.ecaz_shares_ambassadors,
+            AtreidesSharesPrescience => game.alliances.atreides_shares_prescience,
+            FremenSharesPrescience => game.alliances.fremen_shares_prescience,
+            FremenWillProtectFromMonster => game.alliances.fremen_will_protect_from_monster,
+            FremenAllowsThreeFreeRevivals => game.alliances.fremen_allows_three_free_revivals,
+            FremenRefundsBattleDial => game.alliances.fremen_refunds_battle_dial,
+            GuildAllowsShippingDiscount => game.alliances.guild_allows_shipping_discount,
+            BeneGesseritAllowsUseOfVoice => game.alliances.bene_gesserit_allows_use_of_voice,
+            IxianAllowsReplacingCards => game.alliances.ixian_allows_replacing_cards,
+            TleilaxuAllowsRevivalDiscount => game.alliances.tleilaxu_allows_revival_discount,
+            RicheseAllowsUseOfNoField => game.alliances.richese_allows_use_of_no_field,
+            MoritaniAllowsKeepingCards => game.alliances.moritani_allows_keeping_cards,
+            EcazSharesAmbassadors => game.alliances.ecaz_shares_ambassadors,
         }
     }
 }
@@ -104,7 +104,7 @@ impl ClassicBot {
     pub fn determine_alliance_offered(&self, game: &Game) -> Option<Rc<AllianceOffered>> {
         let faction = self.faction(game);
         let best_offer_to_me = |from_humans_only: bool| {
-            game.current_alliance_offers
+            game.alliances.current_alliance_offers
                 .iter()
                 .filter(|offer| offer.target == faction && !(from_humans_only && game.is_bot(offer.player())))
                 .cloned()
@@ -121,7 +121,7 @@ impl ClassicBot {
         let nr_of_unallied_bots = game.player_indices().filter(|&p| game.is_bot(p) && !game.player(p).has_ally()).count() as i32;
         let nr_of_unallied_humans = game.player_indices().filter(|&p| !game.is_bot(p) && !game.player(p).has_ally()).count() as i32;
         let my_offer_is_open = game
-            .current_alliance_offers
+            .alliances.current_alliance_offers
             .iter()
             .any(|o| o.initiator() == faction && game.player(game.get_player(Some(o.target)).expect("player")).ally == Faction::None);
         if nr_of_players <= 2
@@ -152,12 +152,12 @@ impl ClassicBot {
         let faction = self.faction(game);
 
         // Keep waiting while one of our offers is still open; it is withdrawn when the other faction passes
-        if game.current_alliance_offers.iter().any(|o| o.initiator() == faction) {
+        if game.alliances.current_alliance_offers.iter().any(|o| o.initiator() == faction) {
             return None;
         }
 
         // Humans may still offer us an alliance until they are done
-        if game.player_indices().any(|p| !game.is_bot(p) && !game.has_acted_or_passed.contains(&game.player(p).faction)) {
+        if game.player_indices().any(|p| !game.is_bot(p) && !game.turn.has_acted_or_passed.contains(&game.player(p).faction)) {
             return None;
         }
 
@@ -180,7 +180,7 @@ impl ClassicBot {
     pub fn determine_alliance_broken(&self, game: &Game) -> Option<Rc<AllianceBroken>> {
         let faction = self.faction(game);
         let offer = game
-            .current_alliance_offers
+            .alliances.current_alliance_offers
             .iter()
             .filter(|offer| offer.target == faction && !game.is_bot(offer.player()))
             .cloned()
@@ -208,7 +208,7 @@ impl ClassicBot {
     pub fn determine_alliance_permissions(&self, game: &Game) -> Option<Rc<AllyPermission>> {
         let ally = self.ally(game);
         if ally == Faction::None
-            || !matches!(game.current_main_phase, MainPhase::Blow | MainPhase::Bidding | MainPhase::ShipmentAndMove | MainPhase::Battle)
+            || !matches!(game.turn.current_main_phase, MainPhase::Blow | MainPhase::Bidding | MainPhase::ShipmentAndMove | MainPhase::Battle)
         {
             return None;
         }
@@ -228,7 +228,7 @@ impl ClassicBot {
         let mut extra_revivals_changed = false;
         if self.faction(game) == Faction::Emperor {
             permission.emperor_will_pay_for_extra_revival = 3;
-            extra_revivals_changed = game.emperor_will_pay_for_extra_revival != 3;
+            extra_revivals_changed = game.alliances.emperor_will_pay_for_extra_revival != 3;
         }
 
         let changed = advantages_changed
@@ -243,8 +243,8 @@ impl ClassicBot {
     pub fn determine_allowed_resources(&self, game: &Game) -> i32 {
         let faction = self.faction(game);
         let resources = self.resources(game);
-        let phase = game.current_main_phase;
-        let shipped = phase == MainPhase::ShipmentAndMove && game.has_acted_or_passed.contains(&faction);
+        let phase = game.turn.current_main_phase;
+        let shipped = phase == MainPhase::ShipmentAndMove && game.turn.has_acted_or_passed.contains(&faction);
         let above_reserve = (resources - if shipped { 5 } else { 10 }).max(0);
         match faction {
             Faction::Atreides | Faction::BeneGesserit | Faction::Richese | Faction::Harkonnen | Faction::Ecaz | Faction::Moritani | Faction::Ixian => {
@@ -265,7 +265,7 @@ impl ClassicBot {
 
     /// Answer a card trade: the card asked for, or else my worst card.
     pub fn determine_card_traded(&self, game: &Game) -> Option<Rc<CardTraded>> {
-        let offer = game.current_card_trade_offer.as_ref()?;
+        let offer = game.alliances.current_card_trade_offer.as_ref()?;
 
         let mut result = CardTraded::new(game, self.faction(game));
         result.target = offer.initiator();

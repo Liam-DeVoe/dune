@@ -24,7 +24,7 @@ impl TreacheryCalled {
     }
 
     pub fn succeeded(&self, game: &Game) -> bool {
-        self.traitor_called && (self.initiator() != Faction::Harkonnen || !game.harkonnen_traitor_was_cancelled)
+        self.traitor_called && (self.initiator() != Faction::Harkonnen || !game.turn.harkonnen_traitor_was_cancelled)
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {

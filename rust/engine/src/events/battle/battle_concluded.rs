@@ -136,7 +136,7 @@ impl BattleConcluded {
             if let Some(pos) = cards.iter().position(|x| *x == c) {
                 cards.remove(pos);
             }
-            game.treachery_discard_pile.as_mut().required("treachery discard pile")?.put_on_top(c);
+            game.decks.treachery_discard_pile.as_mut().required("treachery discard pile")?.put_on_top(c);
         }
 
         if game.battle.traitors_decipherer_can_look_at.len() > 0 {
@@ -201,11 +201,11 @@ impl BattleConcluded {
                 currently_held.remove(pos);
             }
         }
-        let Some(traitor_deck) = game.traitor_deck.as_mut() else { return };
+        let Some(traitor_deck) = game.decks.traitor_deck.as_mut() else { return };
         traitor_deck.put_on_top(traitor_to_replace);
 
         game.stone(Milestone::Shuffled);
-        game.traitor_deck.as_mut().expect("traitor deck").shuffle();
+        game.decks.traitor_deck.as_mut().expect("traitor deck").shuffle();
     }
 
     pub fn decide_fate_of_captured_leader(&self, game: &mut Game) {
@@ -346,7 +346,7 @@ impl BattleConcluded {
             }
             game.set_in_front_of_shield(victim, false);
             let target_faction = game.player(target).faction;
-            game.captured_leaders.insert_new(victim, target_faction);
+            game.leaders.captured_leaders.insert_new(victim, target_faction);
         } else if self.decision_to_capture() == CaptureDecision::Kill {
             self.log_objects(game, vec![Faction::Harkonnen.into(), " kill a leader for ".into(), Payment::of(2).into()]);
             if let Some(victim) = game.battle.harkonnen_victim {

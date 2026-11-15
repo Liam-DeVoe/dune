@@ -26,11 +26,11 @@ impl FremenSentMonster {
     }
 
     pub fn territory(&self, game: &Game) -> Option<Territory> {
-        game.map.territory_lookup().find(self.territory_id)
+        game.board.map.territory_lookup().find(self.territory_id)
     }
 
     pub fn set_territory(&mut self, game: &Game, value: Option<Territory>) {
-        self.territory_id = game.map.territory_lookup().get_id(value);
+        self.territory_id = game.board.map.territory_lookup().get_id(value);
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
@@ -46,7 +46,7 @@ impl FremenSentMonster {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_targets(g: &Game) -> impl Iterator<Item = Territory> {
-        g.map.territories(false).filter(move |t| !t.is_protected_from_worm())
+        g.board.map.territories(false).filter(move |t| !t.is_protected_from_worm())
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
@@ -59,7 +59,7 @@ impl FremenSentMonster {
         let monster = MonsterAppearance::new(territory, false);
         game.blow.monsters.push(monster.clone());
         game.perform_monster(&monster);
-        let condition = game.current_phase == Phase::FremenSendingMonsterA;
+        let condition = game.turn.current_phase == Phase::FremenSendingMonsterA;
         game.enter_either(condition, Phase::BlowA, Phase::BlowB);
         game.draw_resource_card();
         game.let_factions_discard_surplus_cards();

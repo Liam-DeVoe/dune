@@ -59,7 +59,7 @@ impl DealAccepted {
         if (self.price > 0 || self.benefit > 0) && game.applicable(Rule::DisableResourceTransfers) {
             return Some(express!(Concept::Resource, " transfers are disabled by house rule"));
         }
-        if !game.deal_offers.iter().any(|offer| offer.is_accepted_by(self)) {
+        if !game.deals.offers.iter().any(|offer| offer.is_accepted_by(self)) {
             return Some(express!("Offer is not valid (anymore)"));
         }
         if self.open_offer(game).is_none() {
@@ -70,7 +70,7 @@ impl DealAccepted {
     }
 
     pub fn may_deal(g: &Game, p: Option<PlayerIndex>, price: i32) -> bool {
-        g.current_phase != Phase::Bidding
+        g.turn.current_phase != Phase::Bidding
             || price <= 0
             || g.bidding.current_bid.is_none()
             || {
@@ -87,7 +87,7 @@ impl DealAccepted {
         use either::Either;
         use std::iter::empty;
         let Some(p) = p else { return Either::Left(empty()) };
-        Either::Right(g.deal_offers.iter().filter(move |offer| DealAccepted::is_acceptable_deal(g, p, offer)).cloned())
+        Either::Right(g.deals.offers.iter().filter(move |offer| DealAccepted::is_acceptable_deal(g, p, offer)).cloned())
     }
 
     /// The `AcceptableDeals` filter for one offer (Rust-only helper, see `acceptable_deals`).
@@ -108,15 +108,15 @@ impl DealAccepted {
         use either::Either;
         use std::iter::empty;
         let Some(p) = p else { return Either::Left(empty()) };
-        Either::Right(g.deal_offers.iter().filter(move |offer| offer.initiator() == g.player(p).faction).cloned())
+        Either::Right(g.deals.offers.iter().filter(move |offer| offer.initiator() == g.player(p).faction).cloned())
     }
 
     pub fn current_deals(g: &Game) -> Vec<Deal> {
-        g.deals.clone()
+        g.deals.agreed.clone()
     }
 
     pub fn open_offer(&self, game: &Game) -> Option<Rc<DealOffered>> {
-        game.deal_offers
+        game.deals.offers
             .iter()
             .find(|offer| offer.is_accepted_by(self) && !game.has_responded_to_deal(offer, self.initiator()))
             .cloned()
@@ -129,7 +129,7 @@ impl DealAccepted {
         // validation and may accept the same offer twice, hence the fallback.
         let offer = match self.open_offer(game) {
             Some(o) => Some(o),
-            None => game.deal_offers.iter().find(|offer| offer.is_accepted_by(self)).cloned(),
+            None => game.deals.offers.iter().find(|offer| offer.is_accepted_by(self)).cloned(),
         };
 
         if let Some(offer) = offer {

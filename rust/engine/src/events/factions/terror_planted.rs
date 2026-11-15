@@ -29,11 +29,11 @@ impl TerrorPlanted {
     }
 
     pub fn stronghold(&self, game: &Game) -> Option<Territory> {
-        game.map.territory_lookup().find(self.territory_id)
+        game.board.map.territory_lookup().find(self.territory_id)
     }
 
     pub fn set_stronghold(&mut self, game: &Game, value: Option<Territory>) {
-        self.territory_id = game.map.territory_lookup().get_id(value);
+        self.territory_id = game.board.map.territory_lookup().get_id(value);
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
@@ -43,7 +43,7 @@ impl TerrorPlanted {
 
         match self.stronghold(game) {
             None => {
-                if !game.terror_on_planet.contains_key(&self.type_) {
+                if !game.board.terror_on_planet.contains_key(&self.type_) {
                     return Some(express!("You can't remove a token that is not on the board"));
                 }
             }
@@ -64,13 +64,13 @@ impl TerrorPlanted {
     pub fn valid_strongholds(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Territory> {
         use either::Either;
         use std::iter::empty;
-        if g.current_main_phase != MainPhase::Contemplate {
+        if g.turn.current_main_phase != MainPhase::Contemplate {
             return Either::Left(empty());
         }
 
-        let hms_territory = g.map.hidden_mobile_stronghold().territory();
-        Either::Right(g.map.territories(false).filter(move |t| {
-            t.is_visible(&g.map)
+        let hms_territory = g.board.map.hidden_mobile_stronghold().territory();
+        Either::Right(g.board.map.territories(false).filter(move |t| {
+            t.is_visible(&g.board.map)
                 && t.is_stronghold()
                 && *t != hms_territory
                 // !TerrorIn(t).Any(): stops at the first token.
@@ -79,9 +79,9 @@ impl TerrorPlanted {
     }
 
     pub fn may_remove_tokens(g: &Game, p: PlayerIndex) -> bool {
-        g.current_main_phase == MainPhase::Collection
+        g.turn.current_main_phase == MainPhase::Collection
             && g.player(p).has_high_threshold(g, World::Moritani)
-            && !g.terror_on_planet.is_empty()
+            && !g.board.terror_on_planet.is_empty()
     }
 
     pub fn may_place_at_existing_token(game: &Game, p: PlayerIndex) -> bool {
@@ -94,15 +94,15 @@ impl TerrorPlanted {
         use either::Either;
         if to_remove {
             // The live KeyCollection: no callbacks, so iterating it is the same as Contains/Any on it.
-            return Either::Left(g.terror_on_planet.keys().copied());
+            return Either::Left(g.board.terror_on_planet.keys().copied());
         }
 
-        Either::Right(crate::iter::unique(g.unplaced_terror_tokens.iter().copied().chain(g.terror_on_planet.keys().copied())))
+        Either::Right(crate::iter::unique(g.board.unplaced_terror_tokens.iter().copied().chain(g.board.terror_on_planet.keys().copied())))
     }
 
     pub fn is_applicable(g: &Game, p: PlayerIndex) -> bool {
         TerrorPlanted::may_remove_tokens(g, p)
-            || (g.current_phase == Phase::Contemplate
+            || (g.turn.current_phase == Phase::Contemplate
                 && !TerrorPlanted::valid_terror_types(g, false).next().is_none()
                 && !TerrorPlanted::valid_strongholds(g, p).next().is_none()
                 && !g.contemplate.moritani_has_performed_terror
@@ -120,8 +120,8 @@ impl TerrorPlanted {
 
             match self.stronghold(game) {
                 None => {
-                    game.terror_on_planet.remove(&self.type_);
-                    game.unplaced_terror_tokens.push(self.type_);
+                    game.board.terror_on_planet.remove(&self.type_);
+                    game.board.unplaced_terror_tokens.push(self.type_);
                     let me = game.player_mut(self.player());
                     me.resources += 4;
                 }
@@ -134,15 +134,15 @@ impl TerrorPlanted {
                         );
                     }
 
-                    if game.unplaced_terror_tokens.contains(&self.type_) {
-                        game.terror_on_planet.insert_new(self.type_, stronghold);
+                    if game.board.unplaced_terror_tokens.contains(&self.type_) {
+                        game.board.terror_on_planet.insert_new(self.type_, stronghold);
                         // List.Remove: the first equal element
-                        if let Some(pos) = game.unplaced_terror_tokens.iter().position(|t| *t == self.type_) {
-                            game.unplaced_terror_tokens.remove(pos);
+                        if let Some(pos) = game.board.unplaced_terror_tokens.iter().position(|t| *t == self.type_) {
+                            game.board.unplaced_terror_tokens.remove(pos);
                         }
                     } else {
-                        game.terror_on_planet.remove(&self.type_);
-                        game.terror_on_planet.insert_new(self.type_, stronghold);
+                        game.board.terror_on_planet.remove(&self.type_);
+                        game.board.terror_on_planet.insert_new(self.type_, stronghold);
                     }
                 }
             }
@@ -156,7 +156,7 @@ impl TerrorPlanted {
         }
 
         if let Some(stronghold) = self.stronghold(game) {
-            if let Some(territory) = game.terror_on_planet.get(&self.type_).copied() {
+            if let Some(territory) = game.board.terror_on_planet.get(&self.type_).copied() {
                 return express!(self.initiator(), " move terror from ", territory, " to ", stronghold);
             }
             return express!(self.initiator(), " plant terror in ", stronghold);

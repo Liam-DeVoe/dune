@@ -59,11 +59,11 @@ impl Shipment {
     }
 
     pub fn to(&self, game: &Game) -> Option<Location> {
-        game.map.location_lookup().find(self.to_id)
+        game.board.map.location_lookup().find(self.to_id)
     }
 
     pub fn set_to(&mut self, game: &Game, value: Option<Location>) {
-        self.to_id = game.map.location_lookup().get_id(value);
+        self.to_id = game.board.map.location_lookup().get_id(value);
     }
 
     pub fn source_location_for_shipment_to_reserves(&self, game: &Game) -> Option<Location> {
@@ -71,11 +71,11 @@ impl Shipment {
     }
 
     pub fn from(&self, game: &Game) -> Option<Location> {
-        game.map.location_lookup().find(self.from_id)
+        game.board.map.location_lookup().find(self.from_id)
     }
 
     pub fn set_from(&mut self, game: &Game, value: Option<Location>) {
-        self.from_id = game.map.location_lookup().get_id(value);
+        self.from_id = game.board.map.location_lookup().get_id(value);
     }
 
     pub fn target_world_for_shipment_to_reserves(&self, game: &Game) -> Option<Homeworld> {
@@ -167,7 +167,7 @@ impl Shipment {
     pub fn force_locations_string(g: &Game, force_locations: &IndexMap<Location, Battalion>) -> String {
         force_locations
             .iter()
-            .map(|(k, v)| format!("{}:{}|{}", g.map.location_lookup().get_id(Some(*k)), v.amount_of_forces, v.amount_of_special_forces))
+            .map(|(k, v)| format!("{}:{}|{}", g.board.map.location_lookup().get_id(Some(*k)), v.amount_of_forces, v.amount_of_special_forces))
             .collect::<Vec<_>>()
             .join(",")
     }
@@ -179,7 +179,7 @@ impl Shipment {
                 for location_amount_pair in s.split(',') {
                     let location_and_amounts: Vec<&str> = location_amount_pair.split(':').collect();
                     let location = g
-                        .map
+                        .board.map
                         .location_lookup()
                         .find(dotnet_compat::parse::convert_to_int32(Some(location_and_amounts[0])));
 
@@ -408,8 +408,8 @@ impl Shipment {
     }
 
     pub fn fremen_spawn_locations(g: &Game, p: PlayerIndex) -> Vec<Location> {
-        let m = &g.map;
-        g.map
+        let m = &g.board.map;
+        g.board.map
             .locations(g.applicable(Rule::Homeworlds))
             .filter(|l| {
                 let l = *l;
@@ -565,15 +565,15 @@ impl Shipment {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn regular_shipment_locations(g: &Game, p: PlayerIndex, cross_planet: bool) -> impl Iterator<Item = Location> {
-        g.map
+        g.board.map
             .locations(g.applicable(Rule::Homeworlds))
             .filter(move |l| {
                 let l = *l;
-                Some(l.territory()) != g.atomics_aftermath
-                    && l.sector(&g.map) != g.sector_in_storm
-                    && (l.id() != g.map.hidden_mobile_stronghold().location().id() || g.player(p).is(Faction::Ixian))
+                Some(l.territory()) != g.board.atomics_aftermath
+                    && l.sector(&g.board.map) != g.board.sector_in_storm
+                    && (l.id() != g.board.map.hidden_mobile_stronghold().location().id() || g.player(p).is(Faction::Ixian))
                     && Shipment::is_either_valid_homeworld_or_no_homeworld(g, p, l, cross_planet)
-                    && Shipment::is_either_valid_discovery_or_no_discovery(&g.map, l)
+                    && Shipment::is_either_valid_discovery_or_no_discovery(&g.board.map, l)
                     && g.is_not_full(p, l)
             })
     }
@@ -610,7 +610,7 @@ impl Shipment {
 
     pub fn valid_no_field_values(g: &Game, p: PlayerIndex) -> Vec<i32> {
         let pl = g.player(p);
-        if (pl.faction != Faction::Richese || g.prevented(FactionAdvantage::RicheseNofield)) && (pl.ally != Faction::Richese || !g.richese_allows_use_of_no_field) {
+        if (pl.faction != Faction::Richese || g.prevented(FactionAdvantage::RicheseNofield)) && (pl.ally != Faction::Richese || !g.alliances.richese_allows_use_of_no_field) {
             return vec![];
         }
 
@@ -629,7 +629,7 @@ impl Shipment {
 
     pub fn valid_cunning_no_field_values(g: &Game, p: PlayerIndex, value_of_normal_no_field: i32) -> Vec<i32> {
         let pl = g.player(p);
-        if (pl.faction != Faction::Richese || g.prevented(FactionAdvantage::RicheseNofield)) && (pl.ally != Faction::Richese || !g.richese_allows_use_of_no_field) {
+        if (pl.faction != Faction::Richese || g.prevented(FactionAdvantage::RicheseNofield)) && (pl.ally != Faction::Richese || !g.alliances.richese_allows_use_of_no_field) {
             return vec![];
         }
 
@@ -682,7 +682,7 @@ impl Shipment {
 
     pub fn may_use_no_field(g: &Game, p: PlayerIndex) -> bool {
         let pl = g.player(p);
-        (pl.faction == Faction::Richese && !g.prevented(FactionAdvantage::RicheseNofield)) || (pl.ally == Faction::Richese && g.richese_allows_use_of_no_field)
+        (pl.faction == Faction::Richese && !g.prevented(FactionAdvantage::RicheseNofield)) || (pl.ally == Faction::Richese && g.alliances.richese_allows_use_of_no_field)
     }
 
     pub fn may_use_cunning_no_field(game: &Game, p: PlayerIndex) -> bool {
@@ -694,14 +694,14 @@ impl Shipment {
     }
 
     fn initiated_current_guild_secret_ally(g: &Game, p: PlayerIndex) -> bool {
-        let e = g.current_guild_secret_ally.clone().map(|e| e.into_event());
+        let e = g.turn.current_guild_secret_ally.clone().map(|e| e.into_event());
         g.player(p).initiated(e.as_ref())
     }
 
     pub fn may_ship_cross_planet(g: &Game, p: PlayerIndex) -> bool {
         let pl = g.player(p);
         (pl.is(Faction::Guild) && !g.prevented(FactionAdvantage::GuildSpecialShipments))
-            || (pl.ally == Faction::Guild && g.guild_allows_shipping_discount)
+            || (pl.ally == Faction::Guild && g.alliances.guild_allows_shipping_discount)
             || Shipment::initiated_current_guild_secret_ally(g, p)
             || g.has_shipment_permission(p, ShipmentPermission::Cross)
     }
@@ -716,7 +716,7 @@ impl Shipment {
     pub fn may_ship_with_discount(g: &Game, p: PlayerIndex) -> bool {
         let pl = g.player(p);
         (pl.is(Faction::Guild) && !g.prevented(FactionAdvantage::GuildShipmentsDiscount))
-            || (pl.ally == Faction::Guild && g.guild_allows_shipping_discount && !g.prevented(FactionAdvantage::GuildShipmentsDiscountAlly))
+            || (pl.ally == Faction::Guild && g.alliances.guild_allows_shipping_discount && !g.prevented(FactionAdvantage::GuildShipmentsDiscountAlly))
             || Shipment::initiated_current_guild_secret_ally(g, p)
     }
 
@@ -1080,7 +1080,7 @@ impl Shipment {
         };
         let blocked = self.passed && game.prevented_from_shipping(self.initiator());
         let blocked_by = if blocked {
-            game.treachery_discard_pile
+            game.decks.treachery_discard_pile
                 .as_ref()
                 .and_then(|d| d.items.iter().copied().find(|c| c.type_() == TreacheryCardType::Karma))
         } else {

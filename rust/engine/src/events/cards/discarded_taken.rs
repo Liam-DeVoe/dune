@@ -43,9 +43,9 @@ impl DiscardedTaken {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_cards(g: &Game, p: PlayerIndex) -> impl Iterator<Item = TreacheryCard> {
-        g.recently_discarded
+        g.decks.recently_discarded
             .iter()
-            .filter(move |(k, v)| **v != g.player(p).faction && g.treachery_discard_pile.as_ref().expect("treachery discard pile").items.contains(*k))
+            .filter(move |(k, v)| **v != g.player(p).faction && g.decks.treachery_discard_pile.as_ref().expect("treachery discard pile").items.contains(*k))
             .map(move |(k, _)| *k)
     }
 
@@ -61,9 +61,9 @@ impl DiscardedTaken {
         let Some(card) = self.card() else {
             game_error!("Value cannot be null. (Parameter 'key')")
         };
-        game.recently_discarded.remove(&card);
+        game.decks.recently_discarded.remove(&card);
         {
-            let items = &mut game.treachery_discard_pile.as_mut().required("treachery discard pile")?.items;
+            let items = &mut game.decks.treachery_discard_pile.as_mut().required("treachery discard pile")?.items;
             if let Some(i) = items.iter().position(|c| *c == card) {
                 items.remove(i);
             }

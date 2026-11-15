@@ -39,25 +39,25 @@ impl AutomationConfigured {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         match self.action {
             ItemAction::Create => {
-                let id = if game.automation_rules.is_empty() {
+                let id = if game.rules.automation_rules.is_empty() {
                     0
                 } else {
                     // Non-empty, so Max cannot throw.
-                    game.automation_rules.iter().map(|x| x.automation_rule_id.get()).max().required("max")? + 1
+                    game.rules.automation_rules.iter().map(|x| x.automation_rule_id.get()).max().required("max")? + 1
                 };
                 self.automation_rule_id.set(id);
 
-                game.automation_rules.push(self.clone());
+                game.rules.automation_rules.push(self.clone());
             }
 
             ItemAction::Delete => {
                 // C# parity: an unknown id fails the event (C#'s First throws),
                 // and ownership is not checked.
                 let id = self.automation_rule_id.get();
-                let Some(i) = game.automation_rules.iter().position(|x| x.automation_rule_id.get() == id) else {
+                let Some(i) = game.rules.automation_rules.iter().position(|x| x.automation_rule_id.get() == id) else {
                     game_error!("There is no automation rule {id}");
                 };
-                game.automation_rules.remove(i);
+                game.rules.automation_rules.remove(i);
             }
 
             ItemAction::Update => {

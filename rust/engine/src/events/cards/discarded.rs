@@ -44,8 +44,8 @@ impl Discarded {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let initiator = self.initiator();
-        if let Some(i) = game.factions_that_must_discard.iter().position(|f| *f == initiator) {
-            game.factions_that_must_discard.remove(i);
+        if let Some(i) = game.turn.factions_that_must_discard.iter().position(|f| *f == initiator) {
+            game.turn.factions_that_must_discard.remove(i);
         }
         let m = self.get_message(game);
         let mut fact = BattleFact::new(BattleFactKind::Discard, initiator);
@@ -54,8 +54,8 @@ impl Discarded {
         self.log_objects(game, vec![m.into()]);
         game.discard_card_of(self.player_opt(), self.card(), false);
 
-        if game.factions_that_must_discard.is_empty() {
-            let phase = game.phase_before_discarding;
+        if game.turn.factions_that_must_discard.is_empty() {
+            let phase = game.turn.phase_before_discarding;
             game.enter(phase, true);
         }
         Ok(())

@@ -26,7 +26,7 @@ impl EndPhase {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        match game.current_phase {
+        match game.turn.current_phase {
             Phase::SelectingFactions => game.assign_factions_and_enter_faction_trade(),
 
             Phase::TradingFactions => self.establish_decks(game),
@@ -126,7 +126,7 @@ impl EndPhase {
 
     pub fn establish_decks(&self, game: &mut Game) {
         if game.is_playing(Faction::Richese) {
-            game.richese_cache = TreacheryCardManager::get_richese_cards();
+            game.decks.richese_cache = TreacheryCardManager::get_richese_cards();
         }
 
         let condition = game.applicable(Rule::CustomDecks);
@@ -134,17 +134,17 @@ impl EndPhase {
     }
 
     pub fn enter_normal_storm_phase(&self, game: &mut Game) {
-        let m = express!("The storm moves ", game.next_storm_moves, " sectors")
-            .with_log(StormMoved::new(game.sector_in_storm, game.next_storm_moves, Faction::None, None));
+        let m = express!("The storm moves ", game.board.next_storm_moves, " sectors")
+            .with_log(StormMoved::new(game.board.sector_in_storm, game.board.next_storm_moves, Faction::None, None));
         self.log_objects(game, vec![m.into()]);
-        let moves = game.next_storm_moves;
+        let moves = game.board.next_storm_moves;
         game.move_storm_and_determine_next(moves);
         game.end_storm_phase();
     }
 
     pub fn enter_charity_phase(&self, game: &mut Game) {
         game.main_phase_start(MainPhase::Charity, true);
-        game.has_acted_or_passed.clear();
+        game.turn.has_acted_or_passed.clear();
         game.blow.monsters.clear();
         game.charity.resource_tech_token_income = false;
         game.allow(FactionAdvantage::FremenControlsMonster);
@@ -171,7 +171,7 @@ impl EndPhase {
             if game.applicable(Rule::BeneGesseritAutoCharity) {
                 if !game.charity_is_cancelled() {
                     if !game.prevented(FactionAdvantage::BeneGesseritCharity) {
-                        game.has_acted_or_passed.push(Faction::BeneGesserit);
+                        game.turn.has_acted_or_passed.push(Faction::BeneGesserit);
                         let amount = 2i32 * game.current_charity_multiplier();
                         game.give_charity(bene_gesserit, amount);
                         game.stone(Milestone::CharityClaimed);
@@ -230,7 +230,7 @@ impl EndPhase {
             game.receive_tech_income(TechToken::Graveyard);
         }
         game.revival.current_karma_revival_prevention = None;
-        game.current_fremen_secret_ally = None;
+        game.turn.current_fremen_secret_ally = None;
         game.revival.current_recruits_played = None;
 
         game.main_phase_end();
@@ -256,7 +256,7 @@ impl EndPhase {
         game.allow(FactionAdvantage::TleilaxuReceiveRevive);
         game.allow(FactionAdvantage::ChoamRevival);
 
-        game.has_acted_or_passed.clear();
+        game.turn.has_acted_or_passed.clear();
         game.ship_move.last_shipment_or_movement = None;
 
         game.ship_move.shipment_and_move_sequence = Some(PlayerSequence::starting_with_first_player(game));
@@ -268,8 +268,8 @@ impl EndPhase {
         game.main_phase_start(MainPhase::Battle, true);
         game.battle.nr_of_battles_fought = 0;
         game.battle.battle_sequence = Some(PlayerSequence::starting_with_first_player(game));
-        game.current_guild_cunning = None;
-        game.current_guild_secret_ally = None;
+        game.turn.current_guild_cunning = None;
+        game.turn.current_guild_secret_ally = None;
         if game.storm.karma_hms_moves_left != 2 {
             game.storm.karma_hms_moves_left = 0;
         }
@@ -283,16 +283,16 @@ impl EndPhase {
     }
 
     pub fn reset_battle(&self, game: &mut Game) {
-        game.facedancer_was_cancelled = false;
+        game.turn.facedancer_was_cancelled = false;
         game.battle.current_battle = None;
         game.battle.current_prescience = None;
         game.battle.prescience_seen_plans.clear();
         game.battle.current_thought = None;
         game.battle.current_voice = None;
-        game.current_nexus_prescience = None;
-        game.current_bene_gesserit_cunning = None;
-        game.current_emperor_cunning = None;
-        game.current_ixian_cunning = None;
+        game.turn.current_nexus_prescience = None;
+        game.turn.current_bene_gesserit_cunning = None;
+        game.turn.current_emperor_cunning = None;
+        game.turn.current_ixian_cunning = None;
         game.battle.harkonnen_victim = None;
         game.battle.aggressor_plan = None;
         game.battle.defender_plan = None;
@@ -304,7 +304,7 @@ impl EndPhase {
         game.battle.ixian_special_force_losses_to_take = 0;
         game.battle.battle_winner = Some(Faction::None);
         game.battle.battle_loser = Some(Faction::None);
-        game.has_acted_or_passed.clear();
+        game.turn.has_acted_or_passed.clear();
         game.battle.battle_triggered_bureaucracy = None;
         game.battle.cards_to_be_discarded_by_loser_after_battle.clear();
         game.battle.battle_was_concluded_by_winner = false;
@@ -366,7 +366,7 @@ fn enter_spice_collection_phase(game: &mut Game) {
     game.collection.resources_collected_by_harkonnen_from_desert_or_homeworld = 0;
     call_heroes_home(game);
     game.collection.pending_discoveries = game
-        .discoveries_on_planet
+        .board.discoveries_on_planet
         .iter()
         .filter(|kvp| game.any_forces_in(kvp.0.territory()))
         .map(|kvp| kvp.1.token)
@@ -376,7 +376,7 @@ fn enter_spice_collection_phase(game: &mut Game) {
 }
 
 fn call_heroes_home(game: &mut Game) {
-    for ls in game.leader_state.values_mut() {
+    for ls in game.leaders.leader_state.values_mut() {
         ls.current_territory = None;
     }
 }

@@ -111,7 +111,7 @@ impl Game {
 
     pub fn is_open(&self, seat: i32) -> bool {
         // (a && b) || c
-        self.current_phase == Phase::AwaitingPlayers && (self.participation.borrow().seated_players.len() as i32) < self.maximum_players()
+        self.turn.current_phase == Phase::AwaitingPlayers && (self.participation.borrow().seated_players.len() as i32) < self.maximum_players()
             || self.seat_is_available(seat)
     }
 

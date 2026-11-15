@@ -62,7 +62,7 @@ impl Caravan {
         }
 
         if game.check_intrusion(&self.clone().into_event())? {
-            game.ship_move.phase_before_caravan_caused_intrusion = game.current_phase;
+            game.ship_move.phase_before_caravan_caused_intrusion = game.turn.current_phase;
             let bene_gesserit = game.last_bene_gesserit_intrusion().is_some();
             let terror = game.last_terror_trigger().is_some();
             game.enter_first(&[(bene_gesserit, Step::Enter(Phase::BeneGesseritIntrudedByCaravan)), (terror, Step::Enter(Phase::TerrorTriggeredByCaravan))], Step::Enter(Phase::AmbassadorTriggeredByCaravan));

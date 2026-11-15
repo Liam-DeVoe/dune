@@ -40,17 +40,17 @@ fn ally(g: &mut Game, a: Faction, b: Faction) {
 fn break_alliance_resets_permissions() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
     ally(&mut g, Faction::Atreides, Faction::Emperor);
-    g.atreides_shares_prescience = true;
-    g.emperor_will_pay_for_extra_revival = 3;
-    g.permitted_use_of_ally_spice.insert(Faction::Atreides, 4);
-    g.permitted_use_of_ally_spice.insert(Faction::Emperor, 5);
+    g.alliances.atreides_shares_prescience = true;
+    g.alliances.emperor_will_pay_for_extra_revival = 3;
+    g.alliances.permitted_use_of_ally_spice.insert(Faction::Atreides, 4);
+    g.alliances.permitted_use_of_ally_spice.insert(Faction::Emperor, 5);
 
     g.break_alliance(Faction::Atreides);
 
-    assert!(!g.atreides_shares_prescience);
-    assert_eq!(g.emperor_will_pay_for_extra_revival, 0);
-    assert!(!g.permitted_use_of_ally_spice.contains_key(&Faction::Atreides));
-    assert!(!g.permitted_use_of_ally_spice.contains_key(&Faction::Emperor));
+    assert!(!g.alliances.atreides_shares_prescience);
+    assert_eq!(g.alliances.emperor_will_pay_for_extra_revival, 0);
+    assert!(!g.alliances.permitted_use_of_ally_spice.contains_key(&Faction::Atreides));
+    assert!(!g.alliances.permitted_use_of_ally_spice.contains_key(&Faction::Emperor));
     assert_eq!(g.player(idx(&g, Faction::Atreides)).ally, Faction::None);
     assert_eq!(g.player(idx(&g, Faction::Emperor)).ally, Faction::None);
 }
@@ -59,19 +59,19 @@ fn break_alliance_resets_permissions() {
 #[test]
 fn break_alliance_without_ally_is_a_no_op() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
-    g.atreides_shares_prescience = true;
+    g.alliances.atreides_shares_prescience = true;
     g.break_alliance(Faction::Atreides);
-    assert!(g.atreides_shares_prescience);
+    assert!(g.alliances.atreides_shares_prescience);
 }
 
 #[test]
 fn decrease_permitted_use_of_ally_spice_clamps_at_zero() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
     g.decrease_permitted_use_of_ally_spice(Faction::Atreides, 3); // no entry: nothing added
-    assert!(!g.permitted_use_of_ally_spice.contains_key(&Faction::Atreides));
-    g.permitted_use_of_ally_spice.insert(Faction::Atreides, 2);
+    assert!(!g.alliances.permitted_use_of_ally_spice.contains_key(&Faction::Atreides));
+    g.alliances.permitted_use_of_ally_spice.insert(Faction::Atreides, 2);
     g.decrease_permitted_use_of_ally_spice(Faction::Atreides, 3);
-    assert_eq!(*g.permitted_use_of_ally_spice.get(&Faction::Atreides).unwrap(), 0);
+    assert_eq!(*g.alliances.permitted_use_of_ally_spice.get(&Faction::Atreides).unwrap(), 0);
 }
 
 /// `Players.SingleOrDefault(p => p.Ally == f)`: two players claiming the same ally throws.
@@ -95,7 +95,7 @@ fn resources_your_ally_can_pay_is_capped_by_ally_resources() {
     let atreides = idx(&g, Faction::Atreides);
     let emperor = idx(&g, Faction::Emperor);
     assert_eq!(g.resources_your_ally_can_pay(atreides), 0);
-    g.permitted_use_of_ally_spice.insert(Faction::Atreides, 10);
+    g.alliances.permitted_use_of_ally_spice.insert(Faction::Atreides, 10);
     g.player_mut(emperor).resources = 4;
     assert_eq!(g.resources_your_ally_can_pay(atreides), 4);
     assert_eq!(g.get_permitted_use_of_ally_resources(Faction::Atreides), 4);
@@ -156,12 +156,12 @@ fn deal_cancellation_removes_matching_offer() {
     let a = offer(&g, Faction::Atreides, vec![], 2);
     a.execute_concrete_event(&mut g).unwrap();
     g.record_deal_response(&a, Faction::Emperor, false);
-    assert_eq!(g.deal_offers.len(), 1);
+    assert_eq!(g.deals.offers.len(), 1);
     let c = a.cancellation().unwrap();
     assert!(c.cancel);
     c.execute_concrete_event(&mut g).unwrap();
-    assert!(g.deal_offers.is_empty());
-    assert!(g.deal_responses.is_empty());
+    assert!(g.deals.offers.is_empty());
+    assert!(g.deals.responses.is_empty());
 }
 
 #[test]
@@ -217,7 +217,7 @@ fn threshold_for_win() {
 #[test]
 fn status_unknown_phase_waits_for_host() {
     let mut g = game_with(&[Faction::Atreides]);
-    g.current_phase = Phase::None;
+    g.turn.current_phase = Phase::None;
     let s = GameStatus::determine_status(&mut g, None, false);
     assert!(s.waiting_for_host);
     assert_eq!(s.get_message(g.player_at(0), true).to_cs_string(), "Unknown phase: None");
@@ -227,8 +227,8 @@ fn status_unknown_phase_waits_for_host() {
 #[test]
 fn status_discarding_waits_for_present_factions() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
-    g.current_phase = Phase::Discarding;
-    g.factions_that_must_discard = vec![Faction::BeneGesserit, Faction::Emperor];
+    g.turn.current_phase = Phase::Discarding;
+    g.turn.factions_that_must_discard = vec![Faction::BeneGesserit, Faction::Emperor];
     let s = GameStatus::determine_status(&mut g, None, false);
     let emperor = idx(&g, Faction::Emperor);
     assert_eq!(s.waiting_for_players, vec![Some(emperor)]);
@@ -243,7 +243,7 @@ fn status_discarding_waits_for_present_factions() {
 fn flash_battle_conclusion_with_null_winner() {
     let g = game_with(&[Faction::Atreides]);
     let mut g = g;
-    g.current_phase = Phase::BattleConclusion;
+    g.turn.current_phase = Phase::BattleConclusion;
     g.battle.battle_winner = None;
     let flashes = GameStatus::determine_flash(&g, Faction::None, false);
     assert_eq!(flashes.len(), 1);
@@ -254,7 +254,7 @@ fn flash_battle_conclusion_with_null_winner() {
 #[test]
 fn flash_game_ended_lists_winners() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
-    g.current_phase = Phase::GameEnded;
+    g.turn.current_phase = Phase::GameEnded;
     g.contemplate.winners = vec![idx(&g, Faction::Emperor), idx(&g, Faction::Atreides)];
     let flashes = GameStatus::determine_flash(&g, Faction::None, false);
     let texts: Vec<String> = flashes.iter().map(|f| f.message.to_cs_string()).collect();
@@ -267,7 +267,7 @@ fn flash_game_ended_lists_winners() {
 #[test]
 fn status_ambassador_without_ecaz_throws() {
     let mut g = game_with(&[Faction::Atreides]);
-    g.current_phase = Phase::AmbassadorTriggeredByGuildShip;
+    g.turn.current_phase = Phase::AmbassadorTriggeredByGuildShip;
     let text = exception_text(|| GameStatus::determine_status(&mut g, None, false));
     assert_eq!(text, "player");
 }
@@ -275,13 +275,13 @@ fn status_ambassador_without_ecaz_throws() {
 #[test]
 fn status_highlights_fremen_setup() {
     let mut g = game_with(&[Faction::Fremen]);
-    g.current_phase = Phase::FremenSettingUp;
+    g.turn.current_phase = Phase::FremenSettingUp;
     let s = GameStatus::determine_status(&mut g, None, false);
     assert!(s.highlighted_territories.is_empty());
     let fremen = idx(&g, Faction::Fremen);
     let s = GameStatus::determine_status(&mut g, Some(fremen), true);
     assert_eq!(s.highlighted_territories.len(), 3);
-    assert_eq!(s.highlighted_territories[1], Some(g.map.false_wall_south()));
+    assert_eq!(s.highlighted_territories[1], Some(g.board.map.false_wall_south()));
     assert_eq!(s.waiting_for_players, vec![Some(idx(&g, Faction::Fremen))]);
 }
 

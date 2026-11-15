@@ -42,18 +42,18 @@ fn fingerprint(game: &Game) -> String {
     let mut lines = vec![
         format!("history: {}", GameState::get_state_as_string(game)),
         format!("stream position: {:?}", game.random.as_ref().map(|r| r.state().get_word_pos())),
-        format!("phase: {} {} {} turn {} milestones {:?}", game.current_phase, game.current_main_phase, game.current_moment, game.current_turn, game.recent_milestones),
+        format!("phase: {} {} {} turn {} milestones {:?}", game.turn.current_phase, game.turn.current_main_phase, game.turn.current_moment, game.turn.current_turn, game.turn.recent_milestones),
         format!("battle: {:?}", game.battle.current_battle),
         format!("aggressor plan: {:?}", game.battle.aggressor_plan),
         format!("defender plan: {:?}", game.battle.defender_plan),
         format!("outcome: {:?}", game.battle.battle_outcome),
         format!("card used by diplomat: {:?}", game.battle.card_used_by_diplomat),
-        format!("leaders: {:?}", game.leader_state),
-        format!("spice on planet: {:?}", game.resources_on_planet),
-        format!("treachery deck: {:?}", game.treachery_deck),
-        format!("treachery discards: {:?}", game.treachery_discard_pile),
+        format!("leaders: {:?}", game.leaders.leader_state),
+        format!("spice on planet: {:?}", game.board.resources_on_planet),
+        format!("treachery deck: {:?}", game.decks.treachery_deck),
+        format!("treachery discards: {:?}", game.decks.treachery_discard_pile),
     ];
-    for (i, report) in std::iter::once(&game.pre_game_report).chain(game.report_list.iter()).enumerate() {
+    for (i, report) in std::iter::once(&game.log.pre_game_report).chain(game.log.report_list.iter()).enumerate() {
         lines.push(format!("report {i}: {} messages", report.messages.len()));
         for m in &report.messages {
             lines.push(format!("  {} {} {:?}", m.target, m.to_cs_string(), m.expression));
@@ -150,16 +150,16 @@ fn worthless_cards_count_as_karama_for_bene_gesserit() {
     let mut game = load("bid");
     let me = player_of(&game, Faction::Atreides);
     let bg = player_of(&game, Faction::BeneGesserit);
-    let sand = game.map.the_great_flat().territory();
+    let sand = game.board.map.the_great_flat().territory();
     game.player_mut(bg).resources = 6;
 
     let reinforcements_holding = |game: &mut Game, type_: TreacheryCardType, rule: bool| {
         let c = card(game, type_);
         game.player_mut(bg).treachery_cards = vec![c];
         game.player_mut(me).known_cards.add(c);
-        game.rules.retain(|r| *r != Rule::BeneGesseritWorthlessAsKarma);
+        game.rules.active.retain(|r| *r != Rule::BeneGesseritWorthlessAsKarma);
         if rule {
-            game.rules.push(Rule::BeneGesseritWorthlessAsKarma);
+            game.rules.active.push(Rule::BeneGesseritWorthlessAsKarma);
         }
         ClassicBot::max_reinforced_dial_to(game, me, bg, sand)
     };
@@ -179,7 +179,7 @@ fn karama_shipment_prevention_blocks_a_winning_opponent_without_ally() {
     let shipper = game.ship_move.shipment_and_move_sequence.as_ref().unwrap().current_player(&game).unwrap();
     assert_eq!(game.player(shipper).ally, Faction::None);
     assert_ne!(game.player(shipper).faction, Faction::Fremen);
-    let strongholds = [game.map.arrakeen(), game.map.carthag(), game.map.sietch_tabr(), game.map.habbanya_sietch()];
+    let strongholds = [game.board.map.arrakeen(), game.board.map.carthag(), game.board.map.sietch_tabr(), game.board.map.habbanya_sietch()];
     for s in strongholds {
         Player::add_forces(&mut game, shipper, s, 1, true);
     }
@@ -199,7 +199,7 @@ fn shipment_sizing_prices_the_normal_forces_it_adds() {
     let mut game = load("ship");
     let me = player_of(&game, Faction::Atreides);
     game.player_mut(me).resources = 7;
-    let sand = game.map.the_great_flat();
+    let sand = game.board.map.the_great_flat();
     let b = bot(&game, me);
     let size = b.shipment_size(&game, 20.0, false, sand, None, 10, 0, 0, 99, false);
     // 2 spice per force in the sand: 7 spice pays for 3.
@@ -274,7 +274,7 @@ fn a_weak_stronghold_is_judged_against_the_opponent_picked_to_fight() {
     let mut game = load("move");
     let me = player_of(&game, Faction::Harkonnen);
     let (weak, strong) = (player_of(&game, Faction::Emperor), player_of(&game, Faction::Guild));
-    let (arrakeen, carthag) = (game.map.arrakeen(), game.map.carthag());
+    let (arrakeen, carthag) = (game.board.map.arrakeen(), game.board.map.carthag());
     for p in game.player_indices().collect::<Vec<_>>() {
         for l in [arrakeen, carthag] {
             let (n, s) = (game.player(p).forces_in(Some(l)), game.player(p).special_forces_in(Some(l)));
@@ -285,7 +285,7 @@ fn a_weak_stronghold_is_judged_against_the_opponent_picked_to_fight() {
     Player::add_forces(&mut game, weak, arrakeen, 1, false);
     game.player_mut(me).resources = 0;
     // Both opponents have shipped this turn, so neither can reinforce.
-    game.has_acted_or_passed.extend([Faction::Emperor, Faction::Guild]);
+    game.turn.has_acted_or_passed.extend([Faction::Emperor, Faction::Guild]);
     // The fewest Harkonnen forces that beat Emperor's one force, given the leaders and cards the
     // fixture deals (3 in the fixture this test was written for).
     let mut forces = 0;
@@ -354,7 +354,7 @@ fn the_guild_ships_a_stranded_battalion_back_to_reserves() {
     }
     // Enough spice to pay for shipping them back.
     game.player_mut(guild).resources = 10;
-    let sand: Vec<Location> = game.map.locations(false).filter(|l| !l.territory().is_stronghold() && !game.is_in_storm(*l)).collect();
+    let sand: Vec<Location> = game.board.map.locations(false).filter(|l| !l.territory().is_stronghold() && !game.is_in_storm(*l)).collect();
     let plan = sand
         .into_iter()
         .find_map(|l| {
@@ -385,13 +385,13 @@ fn the_testing_station_counts_the_bots_own_storm_losses() {
     let me = player_of(&game, Faction::Atreides);
     const N: i32 = Map::NUMBER_OF_SECTORS;
     let open = |game: &Game, sector: i32| -> Vec<Location> {
-        game.map.locations(false).filter(|l| l.sector(&game.map) == sector && !l.is_protected_from_storm()).collect()
+        game.board.map.locations(false).filter(|l| l.sector(&game.board.map) == sector && !l.is_protected_from_storm()).collect()
     };
     let quiet = |game: &Game, sector: i32| {
         open(game, sector).iter().all(|l| !l.is_stronghold() && game.battalions_in(*l).iter().all(|b| b.total_amount_of_forces() == 0))
     };
     let sector = (1..N - 1).find(|s| !open(&game, *s).is_empty() && (s - 1..=s + 1).all(|t| quiet(&game, t))).expect("a quiet stretch of sand");
-    game.next_storm_moves = (sector - game.sector_in_storm + N) % N;
+    game.board.next_storm_moves = (sector - game.board.sector_in_storm + N) % N;
     let home = game.player(me).home_worlds[0].location();
     let sand = open(&game, sector)[0];
     Player::move_forces(&mut game, me, home, sand, 10);

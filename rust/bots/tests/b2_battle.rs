@@ -62,13 +62,13 @@ fn call(game: &mut Game, b: &ClassicBot, m: &str, a: &[String]) -> String {
         }
         "NrOfUnknownOpponentCards" => ClassicBot::nr_of_unknown_opponent_cards(game, p(game, 1), p(game, 2)).to_string(),
         "GetDialNeeded" => {
-            let t = game.map.territory_lookup().find(n(0)).unwrap();
+            let t = game.board.map.territory_lookup().find(n(0)).unwrap();
             let o = if a[1] == "N" { None } else { Some(p(game, 1)) };
             f32s(b.dial_needed_against(game, t, o, a[2] == "true"))
         }
         "DetermineDialShortageForBattle" => {
             let dial: f32 = a[0].parse().unwrap();
-            let t = game.map.territory_lookup().find(n(2)).unwrap();
+            let t = game.board.map.territory_lookup().find(n(2)).unwrap();
             f32s(b.determine_dial_shortage_for_battle(game, dial, Faction(n(1)), t, n(3), n(4), n(5)))
         }
         _ => panic!("unknown probe method {m}"),

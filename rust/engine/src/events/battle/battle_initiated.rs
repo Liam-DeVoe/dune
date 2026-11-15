@@ -26,11 +26,11 @@ impl BattleInitiated {
     }
 
     pub fn territory(&self, game: &Game) -> Option<Territory> {
-        game.map.territory_lookup().find(self.territory_id)
+        game.board.map.territory_lookup().find(self.territory_id)
     }
 
     pub fn set_territory(&mut self, game: &Game, value: Option<Territory>) {
-        self.territory_id = game.map.territory_lookup().get_id(value);
+        self.territory_id = game.board.map.territory_lookup().get_id(value);
     }
 
     pub fn actual_initiator(&self, game: &Game) -> Faction {
@@ -83,12 +83,12 @@ impl BattleInitiated {
     }
 
     pub fn is_aggressor_by_juice(g: &Game, f: Faction) -> bool {
-        g.current_juice.as_ref().is_some_and(|j| j.type_ == JuiceType::Aggressor && j.initiator() == f)
+        g.turn.current_juice.as_ref().is_some_and(|j| j.type_ == JuiceType::Aggressor && j.initiator() == f)
     }
 
     /// `IsInitiatorByJuice` with a possibly null `initiator` (as `Aggressor` passes `Player`).
     fn is_initiator_by_juice_opt(g: &Game, initiator: Option<PlayerIndex>, target: PlayerIndex) -> bool {
-        g.current_juice.as_ref().is_some_and(|j| {
+        g.turn.current_juice.as_ref().is_some_and(|j| {
             j.type_ == JuiceType::GoFirst
                 && j.player_opt() == initiator
                 && PlayerSequence::is_after(g, initiator.expect("initiator"), target)
@@ -99,7 +99,7 @@ impl BattleInitiated {
     ///
     /// C# parity: the same predicate as IsInitiatorByJuice apart from the Juice type.
     fn is_target_by_juice_opt(g: &Game, initiator: Option<PlayerIndex>, target: PlayerIndex) -> bool {
-        g.current_juice.as_ref().is_some_and(|j| {
+        g.turn.current_juice.as_ref().is_some_and(|j| {
             j.type_ == JuiceType::GoLast
                 && j.player_opt() == initiator
                 && PlayerSequence::is_after(g, initiator.expect("initiator"), target)

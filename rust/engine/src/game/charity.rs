@@ -49,7 +49,7 @@ impl Game {
 
     pub fn claim_charity(&mut self, player: PlayerIndex) {
         let faction = self.player(player).faction;
-        self.has_acted_or_passed.push(faction);
+        self.turn.has_acted_or_passed.push(faction);
 
         let basic_amount = (2i32 - self.player(player).resources) * self.current_charity_multiplier();
         self.give_charity(player, basic_amount);

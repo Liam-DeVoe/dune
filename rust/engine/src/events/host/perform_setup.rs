@@ -65,9 +65,9 @@ impl PerformSetup {
             game,
             vec![faction.into(), " initial positions set, starting with ".into(), Payment::of(self.resources).into()],
         );
-        game.has_acted_or_passed.push(faction);
+        game.turn.has_acted_or_passed.push(faction);
 
-        if game.players.len() == game.has_acted_or_passed.len() {
+        if game.players.len() == game.turn.has_acted_or_passed.len() {
             if game.treachery_cards_before_traitors() {
                 game.enter_storm_phase();
             } else {

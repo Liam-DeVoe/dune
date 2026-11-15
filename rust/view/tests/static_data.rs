@@ -48,7 +48,7 @@ fn static_data_matches_the_engine() {
     assert_eq!(ids.len(), cards.len(), "treachery card ids are unique");
 
     let game = Game::with_participation(Game::LATEST_VERSION, &treachery_engine::shared::Shared::new(Default::default()));
-    for t in game.map.territories(true) {
+    for t in game.board.map.territories(true) {
         let info = data.territories.iter().find(|i| i.id == t.id()).expect("every territory");
         assert_eq!(
             (info.is_stronghold, info.is_homeworld, info.is_protected_from_storm, info.is_protected_from_worm, info.advantage.as_str()),
@@ -59,7 +59,7 @@ fn static_data_matches_the_engine() {
             assert_eq!(li.territory, t.id());
         }
     }
-    assert_eq!(data.locations.len(), game.map.locations(true).count());
+    assert_eq!(data.locations.len(), game.board.map.locations(true).count());
     assert_eq!(data.locations.iter().filter(|l| l.kind == "hiddenMobileStronghold").count(), 1);
     assert_eq!(data.locations.iter().filter(|l| l.kind == "discovered").count(), 5);
     assert!(data.territories.iter().filter(|t| t.is_stronghold).count() >= 5);
@@ -80,5 +80,5 @@ fn static_data_matches_the_engine() {
     let atreides = data.factions.iter().find(|f| f.faction == "Atreides").unwrap();
     assert_eq!(atreides.special_force, "None");
     assert!(data.rules.iter().any(|r| r.rule == "AdvancedCombat" && r.group == "CoreAdvanced"));
-    assert_eq!(data.map.polar_sink, game.map.polar_sink().id());
+    assert_eq!(data.map.polar_sink, game.board.map.polar_sink().id());
 }

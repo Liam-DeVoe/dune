@@ -50,7 +50,7 @@ fn voice_plan(p: &VoicePlan) -> String {
 fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
     let n = |i: usize| a[i][1..].parse::<i32>().unwrap();
     let player = |i: usize| game.player_at(n(i) as usize);
-    let territory = |i: usize| game.map.territory_lookup().find(n(i)).unwrap();
+    let territory = |i: usize| game.board.map.territory_lookup().find(n(i)).unwrap();
     match m {
         "DetermineSetShipmentPermission" => opt(bot.determine_set_shipment_permission(game)),
         "DetermineEmperorDiscarded" => opt(bot.determine_emperor_discarded(game)),

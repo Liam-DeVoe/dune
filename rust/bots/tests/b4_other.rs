@@ -87,7 +87,7 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
         "OpponentMayNotUse" => b(bot.opponent_may_not_use(game, TreacheryCardType(n(0)), a[1] == "true")),
         "HeroRevivalPenalty" => bot.hero_revival_penalty(game, LeaderManager::hero_lookup().find(n(0)).unwrap()).to_string(),
         "BestRevivalLocation" => {
-            let all: Vec<Location> = game.map.locations(false).collect();
+            let all: Vec<Location> = game.board.map.locations(false).collect();
             bot.best_revival_location(game, &all).map_or_else(|| "null".to_string(), |l| format!("L{}", l.id()))
         }
         "DetermineOptimalUseOfEmperorRevivals" => {
@@ -122,14 +122,14 @@ fn setup(game: &mut Game, me: PlayerIndex, m: &str, a: &[String]) -> Setup {
             Setup::Nexus(saved)
         }
         "ClairVoyanceAnswered" => {
-            let saved = game.latest_clairvoyance.clone();
+            let saved = game.turn.latest_clairvoyance.clone();
             let initiator = Faction(a[0][1..].parse().unwrap());
             let mut cv = ClairVoyancePlayed::new(game, initiator);
             cv.target = game.player(me).faction;
             cv.question = ClairvoyanceQuestion(dotnet_compat::parse::enum_parse(Some(&a[1]), ClairvoyanceQuestion::INFO.declared));
             cv.question_parameter1 = if a[4] == "null1" { None } else { Some(a[2].clone()) };
             cv.question_parameter2 = if a[5] == "null2" { None } else { Some(a[3].clone()) };
-            game.latest_clairvoyance = Some(Rc::new(cv));
+            game.turn.latest_clairvoyance = Some(Rc::new(cv));
             Setup::Clairvoyance(saved)
         }
         _ => Setup::None,
@@ -140,7 +140,7 @@ fn undo(game: &mut Game, me: PlayerIndex, s: Setup) {
     match s {
         Setup::None => {}
         Setup::Nexus(f) => game.player_mut(me).nexus = f,
-        Setup::Clairvoyance(cv) => game.latest_clairvoyance = cv,
+        Setup::Clairvoyance(cv) => game.turn.latest_clairvoyance = cv,
     }
 }
 

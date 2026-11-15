@@ -51,20 +51,20 @@ fn piles() {
         for (f, view) in all_views(&mut r) {
             let g = &r.game;
             let p = &view.piles;
-            assert_eq!(p.treachery_deck_count, g.treachery_deck.as_ref().map_or(0, |d| d.items.len() as i32), "{fixture}");
-            let discard = g.treachery_discard_pile.as_ref().map(|d| d.items.clone()).unwrap_or_default();
+            assert_eq!(p.treachery_deck_count, g.decks.treachery_deck.as_ref().map_or(0, |d| d.items.len() as i32), "{fixture}");
+            let discard = g.decks.treachery_discard_pile.as_ref().map(|d| d.items.clone()).unwrap_or_default();
             assert_eq!(p.treachery_discard_count, discard.len() as i32);
             assert_eq!(p.treachery_discard_top, discard.first().map(|c| c.id()));
-            assert_eq!(p.resource_deck_count, g.resource_card_deck.as_ref().map_or(0, |d| d.items.len() as i32));
+            assert_eq!(p.resource_deck_count, g.decks.resource_card_deck.as_ref().map_or(0, |d| d.items.len() as i32));
             assert_eq!(p.latest_spice_card_a, g.blow.latest_spice_card_a.map(|c| c.skin_id()));
             assert_eq!(p.latest_spice_card_b, g.blow.latest_spice_card_b.map(|c| c.skin_id()));
             saw_latest |= p.latest_spice_card_a.is_some();
             assert_eq!(p.sand_trout.is_some(), g.sand_trout_occurred() && g.blow.sand_trout.is_some());
-            assert_eq!(p.richese_cache_count, g.richese_cache.len() as i32);
+            assert_eq!(p.richese_cache_count, g.decks.richese_cache.len() as i32);
             assert_eq!(p.richese_cache.is_some(), f == Some(Faction::Richese));
             // No fixture enables notekeeping; see notekeeping_shows_discard_piles_and_notes.
             assert!(p.treachery_discard.is_none() && p.resource_discard_a.is_none() && view.notes.is_none());
-            let prescience = f.is_some_and(|f| g.current_main_phase == MainPhase::ShipmentAndMove && g.has_resource_deck_prescience(Some(player(&r, f))));
+            let prescience = f.is_some_and(|f| g.turn.current_main_phase == MainPhase::ShipmentAndMove && g.has_resource_deck_prescience(Some(player(&r, f))));
             assert_eq!(p.resource_deck_top.is_some(), prescience, "{fixture} {f:?}");
         }
     }
@@ -76,8 +76,8 @@ fn piles() {
 #[test]
 fn resource_deck_top_under_prescience() {
     let mut r = load("ship", 0);
-    assert_eq!(r.game.current_main_phase, MainPhase::ShipmentAndMove);
-    let top = r.game.resource_card_deck.as_ref().unwrap().top().unwrap().skin_id();
+    assert_eq!(r.game.turn.current_main_phase, MainPhase::ShipmentAndMove);
+    let top = r.game.decks.resource_card_deck.as_ref().unwrap().top().unwrap().skin_id();
     let mut seen = 0;
     for (f, view) in all_views(&mut r) {
         let expected = f.is_some_and(|f| r.game.has_resource_deck_prescience(Some(player(&r, f))));
@@ -105,10 +105,10 @@ fn notekeeping_shows_discard_piles_and_notes() {
         };
         let me = player(&r, f);
         let known = g.known_cards(me);
-        let discard = g.treachery_discard_pile.as_ref().unwrap().items.clone();
+        let discard = g.decks.treachery_discard_pile.as_ref().unwrap().items.clone();
         let expected: Vec<Option<i32>> = discard.iter().map(|c| known.contains(c).then(|| c.id())).collect();
         assert_eq!(view.piles.treachery_discard.as_ref(), Some(&expected));
-        let a: Vec<i32> = g.resource_card_discard_pile_a.as_ref().unwrap().items.iter().map(|c| c.skin_id()).collect();
+        let a: Vec<i32> = g.decks.resource_card_discard_pile_a.as_ref().unwrap().items.iter().map(|c| c.skin_id()).collect();
         assert_eq!(view.piles.resource_discard_a.as_ref(), Some(&a));
 
         let notes = view.notes.as_ref().expect("notes for a player");
@@ -161,7 +161,7 @@ fn tanks() {
                             continue;
                         }
                     };
-                    let s = &g.leader_state[&Hero::Leader(l)];
+                    let s = &g.leaders.leader_state[&Hero::Leader(l)];
                     assert_eq!(shown.face_down, s.is_face_down_dead());
                     times.push(s.time_of_death);
                     if shown.face_down {
@@ -210,7 +210,7 @@ fn ring() {
                 .collect();
             assert_eq!(pp.skilled_leaders.iter().map(|s| (s.id, s.skill.clone())).collect::<Vec<_>>(), expected);
             skilled += expected.len();
-            assert_eq!(pp.loyal_leader.is_some(), pl.faction == Faction::Ecaz && g.ecaz_loyal_leader.is_some());
+            assert_eq!(pp.loyal_leader.is_some(), pl.faction == Faction::Ecaz && g.leaders.ecaz_loyal_leader.is_some());
         }
     }
     assert!(skilled > 0, "the retreat fixture has skilled leaders in front of shields");
@@ -219,10 +219,10 @@ fn ring() {
 /// Ecaz's loyal leader and Richese's latest revealed No-Field, from bot games with those factions.
 #[test]
 fn ring_ecaz_and_richese() {
-    let mut r = first_bot_state("a Ecaz loyal leader", |g| g.ecaz_loyal_leader.is_some() && g.is_playing(Faction::Ecaz));
+    let mut r = first_bot_state("a Ecaz loyal leader", |g| g.leaders.ecaz_loyal_leader.is_some() && g.is_playing(Faction::Ecaz));
     let view = r.view(OBSERVER);
     let ecaz = view.players.iter().find(|p| p.faction == "Ecaz").unwrap();
-    assert_eq!(ecaz.loyal_leader, r.game.ecaz_loyal_leader.map(|l| l.id()));
+    assert_eq!(ecaz.loyal_leader, r.game.leaders.ecaz_loyal_leader.map(|l| l.id()));
     assert!(view.players.iter().filter(|p| p.faction != "Ecaz").all(|p| p.loyal_leader.is_none()));
 
     let mut r = first_bot_state("a revealed No-Field", |g| g.ship_move.latest_revealed_no_field_value >= 0);
@@ -258,7 +258,7 @@ fn hand_cards_name_the_actions_that_play_them() {
     let mut r = first_bot_state("Karma Prescience", |g| {
         // When KarmaPrescience is applicable (engine/src/game/applicable_events.rs).
         g.get_player(Some(Faction::Atreides)).is_some_and(|p| {
-            g.current_main_phase == MainPhase::Battle
+            g.turn.current_main_phase == MainPhase::Battle
                 && g.battle.current_battle.as_ref().is_some_and(|b| b.is_involved(g, p))
                 && !g.karma_prevented(Faction::Atreides)
                 && !g.player(p).special_karma_power_used
@@ -298,12 +298,12 @@ fn hand_cards_name_the_actions_that_play_them() {
 #[test]
 fn traitors_hidden_while_picking() {
     let mut r = load("mc-traitors", 0);
-    assert_eq!(r.game.current_phase, Phase::SelectingTraitors);
+    assert_eq!(r.game.turn.current_phase, Phase::SelectingTraitors);
     let mut hidden = 0;
     for f in factions(&r) {
         let view = r.view(viewer_of(&r, f));
         let pl = r.game.player(player(&r, f));
-        let picking = f != Faction::Harkonnen && f != Faction::Tleilaxu && !r.game.has_acted_or_passed.contains(&f);
+        let picking = f != Faction::Harkonnen && f != Faction::Tleilaxu && !r.game.turn.has_acted_or_passed.contains(&f);
         let me = view.me.unwrap();
         if picking {
             hidden += 1;
@@ -319,7 +319,7 @@ fn traitors_hidden_while_picking() {
 /// when the viewer knows it.
 #[test]
 fn faction_panel_extras() {
-    let mut r = first_bot_state("Atreides with the Messiah rule", |g| g.applicable(Rule::AtreidesMessiah) && g.is_playing(Faction::Atreides) && g.current_turn >= 2);
+    let mut r = first_bot_state("Atreides with the Messiah rule", |g| g.applicable(Rule::AtreidesMessiah) && g.is_playing(Faction::Atreides) && g.turn.current_turn >= 2);
     for (f, view) in all_views(&mut r) {
         let Some(f) = f else { continue };
         let me = view.me.unwrap();
@@ -331,12 +331,12 @@ fn faction_panel_extras() {
         }
     }
 
-    let mut r = first_bot_state("Moritani holding terror tokens", |g| g.is_playing(Faction::Moritani) && !g.unplaced_terror_tokens.is_empty() && g.current_turn >= 1);
+    let mut r = first_bot_state("Moritani holding terror tokens", |g| g.is_playing(Faction::Moritani) && !g.board.unplaced_terror_tokens.is_empty() && g.turn.current_turn >= 1);
     for (f, view) in all_views(&mut r) {
         let Some(f) = f else { continue };
         let me = view.me.unwrap();
         if f == Faction::Moritani {
-            assert_eq!(me.unplaced_terror, Some(r.game.unplaced_terror_tokens.iter().map(|t| name(*t)).collect()));
+            assert_eq!(me.unplaced_terror, Some(r.game.board.unplaced_terror_tokens.iter().map(|t| name(*t)).collect()));
         } else {
             assert!(me.unplaced_terror.is_none());
         }
@@ -429,7 +429,7 @@ fn bids_on_the_ring() {
 fn silent_bids_are_ready() {
     let mut r = first_bot_state("a silent auction with bids", |g| {
         (g.bidding.current_auction_type == AuctionType::RicheseSilent || g.bidding.current_auction_type == AuctionType::BlackMarketSilent)
-            && g.current_main_phase == MainPhase::Bidding
+            && g.turn.current_main_phase == MainPhase::Bidding
             && !g.bidding.bids.is_empty()
     });
     for (_, view) in all_views(&mut r) {
@@ -474,7 +474,7 @@ fn battle_plans_before_both_are_in() {
     for fixture in ["prescience-seen", "karma-prescience", "nexus-prescience", "battle", "mc-voice", "mc-prescience"] {
         let mut r = load(fixture, 0);
         assert!(!(r.game.battle.aggressor_plan.is_some() && r.game.battle.defender_plan.is_some()), "{fixture}");
-        let users: Vec<Faction> = r.game.battle.current_prescience.iter().map(|p| p.initiator()).chain(r.game.current_nexus_prescience.iter().map(|n| n.initiator())).collect();
+        let users: Vec<Faction> = r.game.battle.current_prescience.iter().map(|p| p.initiator()).chain(r.game.turn.current_nexus_prescience.iter().map(|n| n.initiator())).collect();
         for (f, view) in all_views(&mut r) {
             let g = &r.game;
             let b = view.battle.as_ref().unwrap();
@@ -486,7 +486,7 @@ fn battle_plans_before_both_are_in() {
                     Some(s) if s.full => assert!(own || g.battle.atreides_karma, "{fixture}: {f:?} sees a hidden plan"),
                     Some(s) => {
                         assert!(users.iter().any(|u| f == Some(*u) || ally == Some(*u)), "{fixture}: {f:?} sees prescience it didn't ask");
-                        let aspect = g.battle.current_prescience.as_ref().map(|p| p.aspect).or(g.current_nexus_prescience.as_ref().map(|n| n.atreides_prescience_aspect)).unwrap();
+                        let aspect = g.battle.current_prescience.as_ref().map(|p| p.aspect).or(g.turn.current_nexus_prescience.as_ref().map(|n| n.atreides_prescience_aspect)).unwrap();
                         let shown_aspects = [
                             (PrescienceAspect::Dial, s.dial.is_some()),
                             (PrescienceAspect::Leader, s.hero_shown),
@@ -529,11 +529,11 @@ fn board_basics() {
             let b = &view.board;
             for fv in &b.forces {
                 let p = player(&r, Faction::ALL.iter().copied().find(|x| x.to_string() == fv.faction).unwrap());
-                let l = g.map.locations(true).find(|l| l.id() == fv.location).unwrap();
+                let l = g.board.map.locations(true).find(|l| l.id() == fv.location).unwrap();
                 assert_eq!(fv.threatened, g.threatened_by_ally_presence(p, l.territory()));
             }
             let expected: Vec<(String, i32)> = g
-                .leader_state
+                .leaders.leader_state
                 .iter()
                 .filter(|(_, s)| s.alive() && s.current_territory.is_some())
                 .map(|(h, s)| (format!("{h:?}"), s.current_territory.unwrap().id()))
@@ -542,11 +542,11 @@ fn board_basics() {
             leaders += b.leaders.len();
             assert_eq!(b.monsters.iter().map(|m| m.territory).collect::<Vec<_>>(), g.blow.monsters.iter().map(|m| m.territory.id()).collect::<Vec<_>>());
             monsters += b.monsters.len();
-            assert_eq!(b.storm_prescience_moves, g.has_storm_prescience(f.map(|f| player(&r, f))).then_some(g.next_storm_moves));
+            assert_eq!(b.storm_prescience_moves, g.has_storm_prescience(f.map(|f| player(&r, f))).then_some(g.board.next_storm_moves));
             assert_eq!(b.no_field_value.is_some(), f == Some(Faction::Richese));
-            assert_eq!(b.atomics_aftermath, g.atomics_aftermath.map(|t| t.id()));
+            assert_eq!(b.atomics_aftermath, g.board.atomics_aftermath.map(|t| t.id()));
             assert_eq!(b.number_of_monsters, g.blow.number_of_monsters);
-            for l in g.map.locations(false) {
+            for l in g.board.map.locations(false) {
                 assert_eq!(b.protected_from_storm.contains(&l.id()), g.is_protected_from_storm(l));
             }
         }
@@ -586,24 +586,24 @@ fn recent_moves() {
 /// Mobile Stronghold and discovered strongholds with their hosts, No-Field (value to Richese only).
 #[test]
 fn expansion_tokens() {
-    let mut r = first_bot_state("terror on the planet", |g| !g.terror_on_planet.is_empty() && g.is_playing(Faction::Moritani));
+    let mut r = first_bot_state("terror on the planet", |g| !g.board.terror_on_planet.is_empty() && g.is_playing(Faction::Moritani));
     for (f, view) in all_views(&mut r) {
-        assert_eq!(view.board.terror.len(), r.game.terror_on_planet.len());
-        for (t, (token, territory)) in view.board.terror.iter().zip(r.game.terror_on_planet.iter()) {
+        assert_eq!(view.board.terror.len(), r.game.board.terror_on_planet.len());
+        for (t, (token, territory)) in view.board.terror.iter().zip(r.game.board.terror_on_planet.iter()) {
             assert_eq!(t.territory, territory.id());
             assert_eq!(t.token, (f == Some(Faction::Moritani)).then(|| name(*token)), "{f:?}");
         }
     }
 
     let mut r = first_bot_state("a discovery its type's faction may identify", |g| {
-        g.discoveries_on_planet.iter().any(|(_, d)| {
+        g.board.discoveries_on_planet.iter().any(|(_, d)| {
             (d.token_type == DiscoveryTokenType::Fremen && g.is_playing(Faction::Fremen)) || (d.token_type == DiscoveryTokenType::Guild && g.is_playing(Faction::Guild))
         })
     });
     let mut identified = 0;
     for (f, view) in all_views(&mut r) {
-        assert_eq!(view.board.discoveries.len(), r.game.discoveries_on_planet.len());
-        for (d, (l, disc)) in view.board.discoveries.iter().zip(r.game.discoveries_on_planet.iter()) {
+        assert_eq!(view.board.discoveries.len(), r.game.board.discoveries_on_planet.len());
+        for (d, (l, disc)) in view.board.discoveries.iter().zip(r.game.board.discoveries_on_planet.iter()) {
             assert_eq!((d.location, d.token_type.clone()), (l.id(), name(disc.token_type)));
             let may = (f == Some(Faction::Fremen) && disc.token_type == DiscoveryTokenType::Fremen)
                 || (f == Some(Faction::Guild) && disc.token_type == DiscoveryTokenType::Guild);
@@ -613,26 +613,26 @@ fn expansion_tokens() {
     }
     assert!(identified > 0);
 
-    let mut r = first_bot_state("an ambassador on the planet", |g| !g.ambassadors_on_planet.is_empty());
+    let mut r = first_bot_state("an ambassador on the planet", |g| !g.board.ambassadors_on_planet.is_empty());
     let view = r.view(OBSERVER);
     assert_eq!(
         view.board.ambassadors.iter().map(|a| (a.territory, a.ambassador.clone())).collect::<Vec<_>>(),
-        r.game.ambassadors_on_planet.iter().map(|(t, a)| (t.id(), name(*a))).collect::<Vec<_>>()
+        r.game.board.ambassadors_on_planet.iter().map(|(t, a)| (t.id(), name(*a))).collect::<Vec<_>>()
     );
 
-    let mut r = first_bot_state("an owned stronghold", |g| !g.stronghold_ownership.is_empty());
+    let mut r = first_bot_state("an owned stronghold", |g| !g.board.stronghold_ownership.is_empty());
     let view = r.view(OBSERVER);
     assert_eq!(
         view.board.strongholds.iter().map(|s| (s.location, s.owner.clone())).collect::<Vec<_>>(),
-        r.game.stronghold_ownership.iter().map(|(l, f)| (l.id(), name(*f))).collect::<Vec<_>>()
+        r.game.board.stronghold_ownership.iter().map(|(l, f)| (l.id(), name(*f))).collect::<Vec<_>>()
     );
 
-    let mut r = first_bot_state("the Hidden Mobile Stronghold on the map", |g| g.map.hidden_mobile_stronghold().attached_to_location(&g.map).is_some());
+    let mut r = first_bot_state("the Hidden Mobile Stronghold on the map", |g| g.board.map.hidden_mobile_stronghold().attached_to_location(&g.board.map).is_some());
     let view = r.view(OBSERVER);
-    let hms = r.game.map.hidden_mobile_stronghold();
+    let hms = r.game.board.map.hidden_mobile_stronghold();
     let shown = view.board.attached.iter().find(|a| a.location == hms.location().id()).expect("the HMS is listed");
-    assert_eq!(shown.attached_to, hms.attached_to_location(&r.game.map).unwrap().id());
-    assert_eq!(shown.sector, hms.location().sector(&r.game.map));
+    assert_eq!(shown.attached_to, hms.attached_to_location(&r.game.board.map).unwrap().id());
+    assert_eq!(shown.sector, hms.location().sector(&r.game.board.map));
 
     let mut r = first_bot_state("a No-Field on the planet", |g| g.ship_move.current_no_field_value >= 0 && g.is_playing(Faction::Richese));
     for (f, view) in all_views(&mut r) {
@@ -648,8 +648,8 @@ fn timing() {
     r.timer = 30;
     let view = r.view(OBSERVER);
     let g = &r.game;
-    assert_eq!(view.timing.started, g.history[0].time().to_json_string());
-    assert_eq!(view.timing.last_activity, Some(g.history.last().unwrap().time().to_json_string()));
+    assert_eq!(view.timing.started, g.history.entries[0].time().to_json_string());
+    assert_eq!(view.timing.last_activity, Some(g.history.entries.last().unwrap().time().to_json_string()));
     assert_eq!(view.timing.duration, g.duration().ticks as f64 / 1e7);
     assert_eq!(view.timing.timer, 30);
     assert_eq!(view.timing.time_spent.len(), g.players.len());
@@ -658,8 +658,8 @@ fn timing() {
         assert_eq!(t.battle, g.time_spent(p.faction, MainPhase::Battle).ticks as f64 / 1e7);
     }
     assert!(view.timing.time_spent.iter().any(|t| t.bidding > 0.0));
-    assert_eq!(view.ruleset, name(g.ruleset));
-    assert_eq!(view.rules, g.rules.iter().map(|r| name(*r)).collect::<Vec<_>>());
+    assert_eq!(view.ruleset, name(g.rules.ruleset));
+    assert_eq!(view.rules, g.rules.active.iter().map(|r| name(*r)).collect::<Vec<_>>());
     assert_eq!(view.economics_status, name(g.charity.economics_status));
 }
 

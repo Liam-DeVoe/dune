@@ -540,11 +540,11 @@ impl Player {
     }
 
     pub fn occupied_locations(&self, game: &Game) -> Vec<Location> {
-        game.map.locations(true).filter(|l| self.occupies(game, Some(*l))).collect()
+        game.board.map.locations(true).filter(|l| self.occupies(game, Some(*l))).collect()
     }
 
     pub fn occupied_territories(&self, game: &Game) -> Vec<Territory> {
-        game.map.territories(true).filter(|t| self.occupies_territory(game, Some(*t))).collect()
+        game.board.map.territories(true).filter(|t| self.occupies_territory(game, Some(*t))).collect()
     }
 
     pub fn controls(&self, g: &Game, l: Location, contested_strongholds_count_as_controlled: bool) -> bool {
@@ -563,7 +563,7 @@ impl Player {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn territories_with_forces(&self, game: &Game) -> impl Iterator<Item = Territory> {
-        game.map.territories(true).filter(move |t| self.any_forces_in_territory(Some(*t)) > 0)
+        game.board.map.territories(true).filter(move |t| self.any_forces_in_territory(Some(*t)) > 0)
     }
 
     pub fn locations_with_any_forces(&self) -> Vec<Location> {
@@ -650,7 +650,7 @@ impl Player {
             _ => 0,
         };
         let atomics_penalty =
-            if game.atomics_aftermath.is_some() && (self.faction == Faction::Moritani || self.ally == Faction::Moritani) { 1 } else { 0 };
+            if game.board.atomics_aftermath.is_some() && (self.faction == Faction::Moritani || self.ally == Faction::Moritani) { 1 } else { 0 };
 
         let amount = match self.faction {
             Faction::Harkonnen => 8,

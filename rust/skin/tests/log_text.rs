@@ -43,7 +43,7 @@ fn log(game: &Game) -> Vec<String> {
 #[test]
 fn karama_against_guild_income_has_a_space_before_the_amount() {
     let mut g = game();
-    let to = g.map.locations(false).find(|l| l.id() != 0 && !l.territory().is_stronghold()).unwrap();
+    let to = g.board.map.locations(false).find(|l| l.id() != 0 && !l.territory().is_stronghold()).unwrap();
     let mut s = Shipment::default();
     s.force_amount = 2;
     s.karma_card_id = -1;

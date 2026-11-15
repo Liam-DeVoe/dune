@@ -66,7 +66,7 @@ impl ClairVoyancePlayed {
                 LeaderManager::hero_lookup().find(try_int_parse(Some(p1))?).into()
             }
             ClairvoyanceQuestion::Prediction => Faction(try_enum_parse(Some(p1), Faction::INFO.declared)?).into(),
-            ClairvoyanceQuestion::WillAttackX => game.map.territory_lookup().find(try_int_parse(Some(p1))?).into(),
+            ClairvoyanceQuestion::WillAttackX => game.board.map.territory_lookup().find(try_int_parse(Some(p1))?).into(),
             ClairvoyanceQuestion::DialOfMoreThanXInBattle => try_float_parse_invariant(Some(p1))?.into(),
             _ => ExpressionElement::Null,
         })
@@ -239,10 +239,10 @@ impl ClairVoyancePlayed {
         }
 
         if self.target != Faction::None {
-            game.latest_clairvoyance = Some(self.clone());
-            game.latest_clairvoyance_qn_a = None;
-            game.latest_clairvoyance_battle = game.battle.current_battle.clone();
-            game.phase_paused_by_clairvoyance = game.current_phase;
+            game.turn.latest_clairvoyance = Some(self.clone());
+            game.turn.latest_clairvoyance_qn_a = None;
+            game.turn.latest_clairvoyance_battle = game.battle.current_battle.clone();
+            game.turn.phase_paused_by_clairvoyance = game.turn.current_phase;
             game.enter(Phase::Clairvoyance, true);
         }
         Ok(())
@@ -250,7 +250,7 @@ impl ClairVoyancePlayed {
 
     pub fn card(&self, game: &Game) -> Option<TreacheryCard> {
         let me = self.player();
-        let shrine: Location = game.map.shrine().location();
+        let shrine: Location = game.board.map.shrine().location();
         let mut result: Option<TreacheryCard> = None;
         if game.player(me).occupies(game, Some(shrine)) {
             result = Karma::valid_karma_cards(game, me).into_iter().find(|c| c.type_() == TreacheryCardType::Useless);

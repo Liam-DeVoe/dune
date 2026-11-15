@@ -48,7 +48,7 @@ impl RicheseSpecifiesAuction {
     }
 
     pub fn valid_cards(g: &Game) -> Vec<TreacheryCard> {
-        g.richese_cache.clone()
+        g.decks.richese_cache.clone()
     }
 
     pub fn may_specify_card(g: &Game, p: PlayerIndex) -> bool {
@@ -68,7 +68,7 @@ impl RicheseSpecifiesAuction {
             game.bidding.richese_auction_should_still_happen = false;
             let card = self.card().required("card")?;
             game.bidding.cards_on_auction.as_mut().required("cards on auction")?.put_on_top(card);
-            crate::game::remove_card(&mut game.richese_cache, Some(card));
+            crate::game::remove_card(&mut game.decks.richese_cache, Some(card));
             game.drop_copy_in_treachery_deck(card);
             game.register_known(card);
 

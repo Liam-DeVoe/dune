@@ -85,13 +85,13 @@ fn messiah_state(game: &Game, p: PlayerIndex) -> Option<MessiahState> {
 /// The faction panel of the viewer's own seat. `actions` are the viewer's applicable events.
 pub fn private_player(game: &Game, p: PlayerIndex, actions: &[GameEventType]) -> PrivatePlayer {
     let pl = game.player(p);
-    let after_bene_gesserit_prediction = game.current_phase > Phase::BeneGesseritPredicting;
+    let after_bene_gesserit_prediction = game.turn.current_phase > Phase::BeneGesseritPredicting;
     // PlayerPanel.StillPickingTraitor: while traitors are being picked, a player who picks still
     // holds all the dealt candidates, and the panel shows none of them until they have chosen.
-    let still_picking_traitor = game.current_phase == Phase::SelectingTraitors
+    let still_picking_traitor = game.turn.current_phase == Phase::SelectingTraitors
         && pl.faction != Faction::Harkonnen
         && pl.faction != Faction::Tleilaxu
-        && !game.has_acted_or_passed.contains(&pl.faction);
+        && !game.turn.has_acted_or_passed.contains(&pl.faction);
     PrivatePlayer {
         faction: name(pl.faction),
         resources: pl.resources,
@@ -115,9 +115,9 @@ pub fn private_player(game: &Game, p: PlayerIndex, actions: &[GameEventType]) ->
         predicted_turn: (pl.faction == Faction::BeneGesserit && after_bene_gesserit_prediction).then_some(pl.predicted_turn),
         nexus: (pl.nexus != Faction::None).then(|| name(pl.nexus)),
         // After the storm is dialled, with storm prescience.
-        next_storm_moves: (game.current_phase > Phase::DiallingStorm && game.has_storm_prescience(Some(p))).then_some(game.next_storm_moves),
+        next_storm_moves: (game.turn.current_phase > Phase::DiallingStorm && game.has_storm_prescience(Some(p))).then_some(game.board.next_storm_moves),
         messiah: messiah_state(game, p),
-        unplaced_terror: (pl.faction == Faction::Moritani).then(|| game.unplaced_terror_tokens.iter().map(|t| name(*t)).collect()),
+        unplaced_terror: (pl.faction == Faction::Moritani).then(|| game.board.unplaced_terror_tokens.iter().map(|t| name(*t)).collect()),
         card_just_won: game.bidding.card_just_won.filter(|c| game.known_cards(p).contains(c)).map(|c| c.id()),
     }
 }

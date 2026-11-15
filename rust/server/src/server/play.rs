@@ -55,7 +55,7 @@ impl Server {
     pub(super) async fn execute(&mut self, game: &str, event: GameEvent, as_host: bool, expected_events: Option<usize>, by_bot: bool) -> Result<(), CallError> {
         let now = self.now();
         let Some(g) = self.games.get_mut(game) else { return Ok(()) };
-        if expected_events.is_some_and(|n| n != g.game.history.len()) {
+        if expected_events.is_some_and(|n| n != g.game.history.entries.len()) {
             return Ok(());
         }
         event.initialize_game(&mut g.game);
@@ -80,7 +80,7 @@ impl Server {
             participation.seated_players.iter().map(|(u, s)| (*u, *s)).collect::<Vec<_>>()
         });
 
-        let game_over = g.game.current_main_phase == MainPhase::Ended
+        let game_over = g.game.turn.current_main_phase == MainPhase::Ended
             && !g.statistics_sent
             && (g.game.number_of_bots() as f32) < 0.5 * g.game.number_of_seated_players() as f32;
         if game_over {
@@ -106,7 +106,7 @@ impl Server {
         let now = self.now();
         let site = self.services.settings.site_url.clone();
         let Some(g) = self.games.get_mut(game) else { return Ok(()) };
-        let Some(settings) = g.game.settings.clone() else { return Ok(()) };
+        let Some(settings) = g.game.rules.settings.clone() else { return Ok(()) };
         let (async_play, interval) = {
             let s = settings.borrow();
             (s.async_play, s.async_play_message_interval_minutes)
@@ -129,7 +129,7 @@ impl Server {
         let since = g.last_async_mail;
         let happened: Vec<&GameEvent> = g
             .game
-            .history
+            .history.entries
             .iter()
             .filter(|e| since.is_none_or(|t| time::from_event_time(&e.base().time.get()) > t) && !matches!(e, GameEvent::AllyPermission(_)))
             .collect();
@@ -146,10 +146,10 @@ impl Server {
                 .collect();
             format!("The following happened:<ul>{items}</ul>")
         };
-        let turn = if g.game.current_turn == 0 {
+        let turn = if g.game.turn.current_turn == 0 {
             "Setting up a new game".to_string()
         } else {
-            render::format_turn_and_phase(g.game.current_turn, g.game.current_phase)
+            render::format_turn_and_phase(g.game.turn.current_turn, g.game.turn.current_phase)
         };
 
         let seated: Vec<i32> = g.game.participation.borrow().seated_players.keys().copied().collect();

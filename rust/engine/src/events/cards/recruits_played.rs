@@ -26,7 +26,7 @@ impl RecruitsPlayed {
     }
 
     pub fn is_applicable(g: &Game, p: PlayerIndex) -> bool {
-        g.current_phase == Phase::BeginningOfResurrection && g.player(p).has_treachery_card_type(TreacheryCardType::Recruits)
+        g.turn.current_phase == Phase::BeginningOfResurrection && g.player(p).has_treachery_card_type(TreacheryCardType::Recruits)
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {

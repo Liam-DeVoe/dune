@@ -24,11 +24,11 @@ impl BeneGesseritBattleAnnouncement {
     }
 
     pub fn territory(&self, game: &Game) -> Option<Territory> {
-        game.map.territory_lookup().find(self.territory_id)
+        game.board.map.territory_lookup().find(self.territory_id)
     }
 
     pub fn set_territory(&mut self, game: &Game, value: Option<Territory>) {
-        self.territory_id = game.map.territory_lookup().get_id(value);
+        self.territory_id = game.board.map.territory_lookup().get_id(value);
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
@@ -54,14 +54,14 @@ impl BeneGesseritBattleAnnouncement {
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_territories(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Territory> {
         let player = g.player(p);
-        g.map
+        g.board.map
             .territories(g.applicable(Rule::Homeworlds))
             .filter(move |t| {
                 let t = *t;
                 (!player.has_ally() || g.player(player.allied_player(g).expect("allied player")).any_forces_in_territory(Some(t)) == 0)
                     && player.special_forces_in_territory(Some(t)) > 0
                     && (!t.is_stronghold() || g.nr_of_occupants_of_territory_excluding(t, player.faction) <= 1)
-                    && !t.locations().iter().any(|l| l.sector(&g.map) == g.sector_in_storm && player.special_forces_in(Some(*l)) > 0)
+                    && !t.locations().iter().any(|l| l.sector(&g.board.map) == g.board.sector_in_storm && player.special_forces_in(Some(*l)) > 0)
             })
     }
 

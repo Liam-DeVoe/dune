@@ -98,7 +98,7 @@ impl ClassicBot {
             return Some(plan);
         }
         if faction == Faction::Fremen
-            && game.current_turn < 3
+            && game.turn.current_turn < 3
             && !winning
             && let Some(plan) = self.plan_fremen_to_spice_or_discovery(game)
         {
@@ -143,7 +143,7 @@ impl ClassicBot {
             return Some(plan);
         }
         if faction == Faction::Ixian
-            && p.any_forces_in(Some(game.map.hidden_mobile_stronghold().location())) == 0
+            && p.any_forces_in(Some(game.board.map.hidden_mobile_stronghold().location())) == 0
             && let Some(plan) =
                 self.plan_attack_weak_hms(game, 1, 0, if self.last_turn(game) { 99 } else { max_unsupported_forces })
         {
@@ -199,7 +199,7 @@ impl ClassicBot {
             return Some(plan);
         }
         if faction == Faction::Fremen
-            && p.any_forces_in(Some(game.map.polar_sink())) <= 2
+            && p.any_forces_in(Some(game.board.map.polar_sink())) <= 2
             && (self.almost_last_turn(game) || self.last_turn(game) || p.forces_in_reserve() + p.special_forces_in_reserve() * 2 >= 8)
             && let Some(plan) = self.plan_fremen_to_polar_sink(game)
         {
@@ -243,7 +243,7 @@ impl ClassicBot {
     pub fn plan_discounted_to_spice_or_discovery(&self, game: &Game) -> Option<PlannedShipment> {
         let me = self.player;
         let best_location = game
-            .resources_on_planet
+            .board.resources_on_planet
             .iter()
             .map(|(k, v)| (*k, *v))
             .filter(|(k, _)| self.suitable_for_guild_shipment(game, *k) && self.nearby_battalions_outside_strongholds(game, *k).is_empty())
@@ -251,7 +251,7 @@ impl ClassicBot {
             .map(|kvp| kvp.0);
 
         if let Some(best_location) = best_location {
-            let amount = *game.resources_on_planet.index(&best_location);
+            let amount = *game.board.resources_on_planet.index(&best_location);
             let forces_needed_for_collection = self.make_even_if_efficient_for_shipping(
                 game,
                 math_min_f32(amount as f32 / game.resource_collection_rate(me) as f32, 4.0)
@@ -276,7 +276,7 @@ impl ClassicBot {
         }
 
         let best_location = game
-            .discoveries_on_planet
+            .board.discoveries_on_planet
             .iter()
             .map(|(k, _)| *k)
             .find(|k| self.suitable_for_guild_shipment(game, *k) && self.nearby_battalions_outside_strongholds(game, *k).is_empty())?;
@@ -299,7 +299,7 @@ impl ClassicBot {
     }
 
     pub fn plan_attack_weak_hms(&self, game: &Game, extra_forces: i32, min_resources_to_keep: i32, max_unsupported_forces: i32) -> Option<PlannedShipment> {
-        let hms = game.map.hidden_mobile_stronghold().location();
+        let hms = game.board.map.hidden_mobile_stronghold().location();
         let opponent = self.get_opponent_that_occupies(game, hms.territory());
 
         if opponent.is_some() && self.may_ship_to(game, hms) && self.i_dont_have_advisors_in(game, hms) {
@@ -321,7 +321,7 @@ impl ClassicBot {
             ShipmentSize::of(forces, special_forces)
         };
 
-        self.planned(game, ShipmentDecision::PolarSink, game.map.polar_sink(), &size, None, Funding::Own)
+        self.planned(game, ShipmentDecision::PolarSink, game.board.map.polar_sink(), &size, None, Funding::Own)
     }
 
     /// For Fremen: ship onto the richest uncontested spice, or else onto a discovery.
@@ -336,7 +336,7 @@ impl ClassicBot {
         };
 
         let best_location = game
-            .resources_on_planet
+            .board.resources_on_planet
             .iter()
             .map(|(k, v)| (*k, *v))
             .filter(|(k, _)| suitable(*k))
@@ -344,7 +344,7 @@ impl ClassicBot {
             .map(|kvp| kvp.0);
 
         if let Some(best_location) = best_location {
-            let amount = *game.resources_on_planet.index(&best_location);
+            let amount = *game.board.resources_on_planet.index(&best_location);
             let forces_to_rally = math_max_f32(
                 7.0,
                 2.0 + self.total_max_dial_of_opponents(game, best_location.territory()) + amount as f32 / game.resource_collection_rate(me) as f32,
@@ -356,7 +356,7 @@ impl ClassicBot {
             }
         }
 
-        let best_location = game.discoveries_on_planet.iter().map(|(k, _)| *k).find(|k| suitable(*k))?;
+        let best_location = game.board.discoveries_on_planet.iter().map(|(k, _)| *k).find(|k| suitable(*k))?;
         let forces_to_rally = math_max_f32(5.0, 2.0 + self.total_max_dial_of_opponents(game, best_location.territory()));
         let size = self.shipment_size_from_reserves(game, forces_to_rally, false, best_location, None, 0, 99, false);
         if size.shortage <= 3.0 {
@@ -486,7 +486,7 @@ impl ClassicBot {
     /// forces can move further.
     pub fn plan_unlock_move_bonus(&self, game: &Game, min_resources_to_keep: i32) -> Option<PlannedShipment> {
         let me = self.player;
-        if game.has_ornithopters(me) || game.player(me).any_forces_in(Some(game.map.polar_sink())) <= 0 {
+        if game.has_ornithopters(me) || game.player(me).any_forces_in(Some(game.board.map.polar_sink())) <= 0 {
             return None;
         }
 
@@ -494,8 +494,8 @@ impl ClassicBot {
             .valid_shipment_locations(game, false, false)
             .filter(|l| self.i_dont_have_advisors_in(game, *l))
             .filter(|l| {
-                (*l == game.map.arrakeen() && self.ally_doesnt_block(game, game.map.arrakeen()))
-                    || (*l == game.map.carthag() && self.ally_doesnt_block(game, game.map.carthag()))
+                (*l == game.board.map.arrakeen() && self.ally_doesnt_block(game, game.board.map.arrakeen()))
+                    || (*l == game.board.map.carthag() && self.ally_doesnt_block(game, game.board.map.carthag()))
             })
             .random_lowest(&self.random, |l| self.total_max_dial_of_opponents(game, l.territory()))?;
 
@@ -505,7 +505,7 @@ impl ClassicBot {
                 let take = self.opponents_to_ship_and_move(game).contains(&opponent);
                 math_max_f32(
                     0.5,
-                    self.max_potential_force_shortage(game, take, target) - game.player(me).any_forces_in(Some(game.map.polar_sink())) as f32,
+                    self.max_potential_force_shortage(game, take, target) - game.player(me).any_forces_in(Some(game.board.map.polar_sink())) as f32,
                 )
             }
             None => 0.5,
@@ -521,7 +521,7 @@ impl ClassicBot {
 
     pub fn plan_take_vacant_stronghold(&self, game: &Game, force_strength: i32, min_resources_to_keep: i32, max_unsupported_forces: i32) -> Option<PlannedShipment> {
         let me = self.player;
-        let map = &game.map;
+        let map = &game.board.map;
 
         let preferred = if self.faction(game) == Faction::Ixian && self.vacant_and_valid(game, map.hidden_mobile_stronghold().location()) {
             Some(map.hidden_mobile_stronghold().location())
@@ -592,7 +592,7 @@ impl ClassicBot {
                 .filter(|l| self.ally_doesnt_block(game, l.territory()) && self.i_dont_have_advisors_in(game, *l))
                 .any(|l| l == target)
         };
-        let target = [game.map.habbanya_sietch(), game.map.sietch_tabr()].into_iter().find(|t| valid_unblocked(*t))?;
+        let target = [game.board.map.habbanya_sietch(), game.board.map.sietch_tabr()].into_iter().find(|t| valid_unblocked(*t))?;
 
         let size = self.shipment_size_from_reserves(game, 99.0, true, target, None, 0, 99, true);
         self.planned(game, ShipmentDecision::PreventFremenWin, target, &size, None, Funding::WithAllyAndKarma)
@@ -767,7 +767,7 @@ impl ClassicBot {
     pub fn find_one_troop_that_can_safely_move(&self, game: &Game, from: Location, to: Location) -> Option<Battalion> {
         let me = self.player;
         if game.player(me).forces_in_locations.contains_key(&from)
-            && from.sector(&game.map) != game.sector_in_storm
+            && from.sector(&game.board.map) != game.board.sector_in_storm
             && self.not_occupied_by_others(game, from.territory())
         {
             let bat = game.player(me).forces_in_locations.index(&from).clone();
@@ -852,7 +852,7 @@ impl ClassicBot {
         Shipment::valid_shipment_locations(game, self.player, from_planet, secret_ally).filter(move |l| {
             let t = Some(l.territory());
             !game
-                .deals
+                .deals.agreed
                 .iter()
                 .filter(|deal| deal.bound_faction == faction && deal.type_ == DealType::DontShipOrMoveTo)
                 .map(|deal| deal.get_parameter1(game))
@@ -868,7 +868,7 @@ impl ClassicBot {
     /// into a stronghold could.
     pub fn richest_location_near_shippable_stronghold_far_from_existing_forces(&self, game: &Game) -> Option<Location> {
         let me = self.player;
-        game.resources_on_planet
+        game.board.resources_on_planet
             .iter()
             .map(|(k, v)| (*k, *v))
             .filter(|&(k, _)| {
@@ -888,7 +888,7 @@ impl ClassicBot {
 
     /// How many forces it takes to collect all the spice in `location` in one turn.
     pub fn determine_forces_needed_for_collection(&self, game: &Game, location: Location) -> i32 {
-        if let Some(value) = game.resources_on_planet.get(&location) {
+        if let Some(value) = game.board.resources_on_planet.get(&location) {
             // Divided in f32, then widened to f64 to round up.
             return f64_to_i32(((*value as f32 / game.resource_collection_rate(self.player) as f32) as f64).ceil());
         }
@@ -985,8 +985,8 @@ impl ClassicBot {
 
     /// My forces in the Polar Sink that a shipment into Arrakeen or Carthag would let move further.
     pub fn unlocked_forces_in_polar_sink(&self, game: &Game, location: Location) -> i32 {
-        if location == game.map.arrakeen() || location == game.map.carthag() {
-            game.player(self.player).any_forces_in(Some(game.map.polar_sink()))
+        if location == game.board.map.arrakeen() || location == game.board.map.carthag() {
+            game.player(self.player).any_forces_in(Some(game.board.map.polar_sink()))
         } else {
             0
         }

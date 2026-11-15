@@ -36,12 +36,12 @@ impl Entry {
         }
         let game = &g.game;
         if let Some(r) = &self.replica {
-            if !r.game.participation.ptr_eq(&game.participation) || r.game.version != game.version || r.game.event_count() > game.event_count() {
+            if !r.game.participation.ptr_eq(&game.participation) || r.game.rules.version != game.rules.version || r.game.event_count() > game.event_count() {
                 self.replica = None;
             }
         }
         let replica = self.replica.get_or_insert_with(|| {
-            let mut r = ViewReplica::new(game.version, &game.participation);
+            let mut r = ViewReplica::new(game.rules.version, &game.participation);
             if let Some(skin) = &g.skin {
                 // A skin that doesn't load leaves the default.
                 let _ = r.set_skin(skin);
@@ -50,7 +50,7 @@ impl Entry {
         });
         replica.timer = g.timer;
         let done = replica.game.event_count() as usize;
-        for (nr, e) in game.history.iter().enumerate().skip(done) {
+        for (nr, e) in game.history.entries.iter().enumerate().skip(done) {
             replica.apply(&json::serialize(e)).map_err(|m| format!("event {nr} ({}): {m}", e.event_type().name()))?;
         }
         Ok(replica)

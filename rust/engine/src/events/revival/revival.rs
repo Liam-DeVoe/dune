@@ -42,11 +42,11 @@ impl Revival {
     }
 
     pub fn location(&self, game: &Game) -> Option<Location> {
-        game.map.location_lookup().find(self.location_id)
+        game.board.map.location_lookup().find(self.location_id)
     }
 
     pub fn set_location(&mut self, game: &Game, value: Option<Location>) {
-        self.location_id = game.map.location_lookup().get_id(value);
+        self.location_id = game.board.map.location_lookup().get_id(value);
     }
 
     pub fn to(&self, game: &Game) -> Option<Location> {
@@ -289,7 +289,7 @@ impl Revival {
             && !g.prevented(FactionAdvantage::TleilaxuReviveGhola)
         {
             result.extend(
-                g.leader_state
+                g.leaders.leader_state
                     .iter()
                     .filter(|(key, value)| {
                         key.faction() != Faction::Tleilaxu
@@ -416,7 +416,7 @@ impl Revival {
             && h.faction() == pl.faction
             && h.hero_type() != HeroType::Auditor
             && g.applicable(Rule::LeaderSkills)
-            && !g.captured_leaders.iter().any(|(k, v)| *v == pl.faction && g.is_skilled(Some(Hero::Leader(*k))))
+            && !g.leaders.captured_leaders.iter().any(|(k, v)| *v == pl.faction && g.is_skilled(Some(Hero::Leader(*k))))
             && !(pl.is(Faction::Ecaz) && g.is_skilled(g.vidal().map(Hero::Leader)))
             && !pl.leaders.iter().any(|l| g.is_skilled(Some(Hero::Leader(*l))))
             && !captured_leaders_to_consider.iter().any(|l| g.is_skilled(Some(Hero::Leader(*l))))
@@ -426,7 +426,7 @@ impl Revival {
         let pl = g.player(p);
         (pl.is(Faction::Tleilaxu) && !g.prevented(FactionAdvantage::TleilaxuRevivalDiscount))
             || (pl.ally == Faction::Tleilaxu
-                && g.tleilaxu_allows_revival_discount
+                && g.alliances.tleilaxu_allows_revival_discount
                 && !g.prevented(FactionAdvantage::TleilaxuRevivalDiscountAlly))
     }
 
@@ -446,7 +446,7 @@ impl Revival {
         {
             price = offer;
         } else if ip.ally == Faction::Tleilaxu
-            && g.tleilaxu_allows_revival_discount
+            && g.alliances.tleilaxu_allows_revival_discount
             && !tleilaxu_discount_prevented
         {
             price = (0.5 * price as f64).ceil() as i32;
@@ -476,7 +476,7 @@ impl Revival {
         let emperor = g.get_player(Some(Faction::Emperor));
 
         let potential_maximum = if pl.ally == Faction::Emperor && !g.prevented(FactionAdvantage::EmperorLetAllyReviveExtraForces) {
-            g.emperor_will_pay_for_extra_revival
+            g.alliances.emperor_will_pay_for_extra_revival
         } else {
             0
         };
@@ -528,13 +528,13 @@ impl Revival {
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     /// The predicate can throw (`AlliedPlayer` null), and callers stop enumerating at the first match.
     pub fn valid_revived_force_locations(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
-        g.map.locations(false).filter(move |l| {
+        g.board.map.locations(false).filter(move |l| {
             let pl = g.player(p);
-            (pl.faction == Faction::Fremen || l.sector(&g.map) != g.sector_in_storm)
+            (pl.faction == Faction::Fremen || l.sector(&g.board.map) != g.board.sector_in_storm)
                 && (!l.territory().is_stronghold() || g.nr_of_occupants_excluding_faction(*l, pl.faction) < 2)
-                && l.visible(&g.map)
+                && l.visible(&g.board.map)
                 && (!pl.has_ally()
-                    || *l == g.map.polar_sink()
+                    || *l == g.board.map.polar_sink()
                     || !g.player(pl.allied_player(g).expect("allied player")).occupies(g, Some(*l)))
                 && (pl.faction == Faction::Tleilaxu
                     || (pl.faction == Faction::Fremen && pl.any_forces_in_territory(Some(l.territory())) >= 1))
@@ -723,7 +723,7 @@ impl Revival {
             }
 
             if game.check_intrusion(&self.clone().into_event())? {
-                game.ship_move.phase_before_revival_caused_intrusion = game.current_phase;
+                game.ship_move.phase_before_revival_caused_intrusion = game.turn.current_phase;
                 let bene_gesserit = game.last_bene_gesserit_intrusion().is_some();
                 let terror = game.last_terror_trigger().is_some();
                 game.enter_first(&[(bene_gesserit, Step::Enter(Phase::BeneGesseritIntrudedByRevival)), (terror, Step::Enter(Phase::TerrorTriggeredByRevival))], Step::Enter(Phase::AmbassadorTriggeredByRevival));

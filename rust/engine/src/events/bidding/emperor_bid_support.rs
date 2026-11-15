@@ -30,7 +30,7 @@ impl EmperorBidSupport {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         // Without amounts (only without validation) the message can't be built: the event fails
         // before it is logged.
-        game.permitted_use_of_emperor_spice = self.amounts.clone();
+        game.alliances.permitted_use_of_emperor_spice = self.amounts.clone();
         let message = self.try_get_message(game)?;
         game.current_report_mut().express_event(message);
         Ok(())

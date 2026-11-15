@@ -28,11 +28,11 @@ impl BeneGesseritAccompanies {
     }
 
     pub fn location(&self, game: &Game) -> Option<Location> {
-        game.map.location_lookup().find(self.target_id)
+        game.board.map.location_lookup().find(self.target_id)
     }
 
     pub fn set_location(&mut self, game: &Game, value: Option<Location>) {
-        self.target_id = game.map.location_lookup().get_id(value);
+        self.target_id = game.board.map.location_lookup().get_id(value);
     }
 
     pub fn to(&self, game: &Game) -> Option<Location> {
@@ -128,19 +128,19 @@ impl BeneGesseritAccompanies {
         };
 
         let mut result = Vec::new();
-        if last_to != g.map.polar_sink()
+        if last_to != g.board.map.polar_sink()
             && last_to.as_homeworld().is_none()
-            && Some(last_to.territory()) != g.atomics_aftermath
+            && Some(last_to.territory()) != g.board.atomics_aftermath
             && !g.player(p).occupies_territory(g, Some(last_to.territory()))
             && BeneGesseritAccompanies::bene_gesserit_may_accompany_to_shipment_location(g)
             && !BeneGesseritAccompanies::ally_prevents_accompanying_to_shipment_location(g, p)
         {
             result.extend(last_to.territory().locations().iter().copied().filter(|l| {
-                l.sector(&g.map) != g.sector_in_storm && (g.applicable(Rule::BeneGesseritAdvisors) || g.is_not_full(p, *l))
+                l.sector(&g.board.map) != g.board.sector_in_storm && (g.applicable(Rule::BeneGesseritAdvisors) || g.is_not_full(p, *l))
             }));
         }
 
-        result.push(g.map.polar_sink());
+        result.push(g.board.map.polar_sink());
         result
     }
 
@@ -156,7 +156,7 @@ impl BeneGesseritAccompanies {
 
     pub fn may_send_extra_advisor(g: &Game, p: PlayerIndex, l: Location) -> bool {
         let pl = g.player(p);
-        pl.has_any_high_threshold(g) && l == g.map.polar_sink() && pl.forces_in_reserve() >= 2
+        pl.has_any_high_threshold(g) && l == g.board.map.polar_sink() && pl.forces_in_reserve() >= 2
     }
 
 }

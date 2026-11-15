@@ -32,7 +32,7 @@ fn idx(g: &Game, f: Faction) -> PlayerIndex {
 }
 
 fn location(g: &Game, id: i32) -> Location {
-    g.map.location_lookup().find(id).expect("location")
+    g.board.map.location_lookup().find(id).expect("location")
 }
 
 fn ally(g: &mut Game, a: Faction, b: Faction) {
@@ -52,11 +52,11 @@ fn shipping_back_to_reserves_moves_special_forces_too() {
     assert_eq!(g.ship_move.shipment_and_move_sequence.as_ref().unwrap().current_player(&g), Some(emperor));
     // The fixture has no Emperor forces on the planet: put some on an empty sand sector.
     let sand = g
-        .map
+        .board.map
         .locations(false)
         .find(|l| {
             !l.territory().is_stronghold()
-                && l.sector(&g.map) != g.sector_in_storm
+                && l.sector(&g.board.map) != g.board.sector_in_storm
                 && g.players.iter().all(|p| p.any_forces_in(Some(*l)) == 0)
         })
         .unwrap();
@@ -121,7 +121,7 @@ fn bene_gesserit_flip_happens_in_the_intruded_territory() {
     };
     g.ship_move.intrusions.push(Intrusion::new(&mv(intruded, &g), IntrusionType::BeneGesseritIntrusion));
     g.ship_move.last_shipment_or_movement = Some(mv(elsewhere, &g));
-    g.current_phase = Phase::BeneGesseritIntrudedByNonGuildMove;
+    g.turn.current_phase = Phase::BeneGesseritIntrudedByNonGuildMove;
 
     let mut flip = BeneGesseritFlip::new(&g, Faction::BeneGesserit);
     flip.as_advisors = false;
@@ -179,7 +179,7 @@ fn karama_worm_needs_a_territory() {
     assert_eq!(karama_cards(&g), 1);
 
     assert_eq!(submit(&mut g, |g| monster(None, g)).as_deref(), Some("No territory selected"));
-    let stronghold = g.map.territories(false).find(|t| t.is_stronghold()).unwrap();
+    let stronghold = g.board.map.territories(false).find(|t| t.is_stronghold()).unwrap();
     assert_eq!(submit(&mut g, |g| monster(Some(stronghold), g)).as_deref(), Some("Selected territory is protected"));
     assert_eq!(karama_cards(&g), 1);
     assert!(!g.player(fremen).special_karma_power_used);
@@ -201,7 +201,7 @@ fn ally_permissions_without_an_ally_store_nothing() {
     permission.permitted_resources = 3;
     let e = GameEvent::AllyPermission(Rc::new(permission));
     assert!(e.execute(&mut g, false, false).is_none());
-    assert!(g.permitted_use_of_ally_spice.is_empty(), "{:?}", g.permitted_use_of_ally_spice);
+    assert!(g.alliances.permitted_use_of_ally_spice.is_empty(), "{:?}", g.alliances.permitted_use_of_ally_spice);
 }
 
 /// Rule::RicheseTreacheryCards puts Richese's cards in the treachery deck. With Richese playing
@@ -222,28 +222,28 @@ fn a_richese_card_taken_from_the_deck_or_the_cache_leaves_the_other() {
     let end = GameEvent::EndPhase(Rc::new(EndPhase::new(&g, Faction::None)));
     assert!(end.execute(&mut g, false, true).is_none());
 
-    let in_deck = |g: &Game, c: TreacheryCard| g.treachery_deck.as_ref().unwrap().items.contains(&c);
-    let both: Vec<TreacheryCard> = g.richese_cache.iter().copied().filter(|c| in_deck(&g, *c)).collect();
+    let in_deck = |g: &Game, c: TreacheryCard| g.decks.treachery_deck.as_ref().unwrap().items.contains(&c);
+    let both: Vec<TreacheryCard> = g.decks.richese_cache.iter().copied().filter(|c| in_deck(&g, *c)).collect();
     assert!(both.len() >= 2, "Richese cards in the deck and the cache: {both:?}");
     let (drawn, sold) = (both[0], both[1]);
 
     // Drawn from the deck (for an auction, or as a starting card): Richese no longer has it.
-    let items = &mut g.treachery_deck.as_mut().unwrap().items;
+    let items = &mut g.decks.treachery_deck.as_mut().unwrap().items;
     let i = items.iter().position(|c| *c == drawn).unwrap();
     items.remove(i);
-    g.treachery_deck.as_mut().unwrap().put_on_top(drawn);
+    g.decks.treachery_deck.as_mut().unwrap().put_on_top(drawn);
     assert_eq!(g.draw_treachery_card(), Some(drawn));
-    assert!(!g.richese_cache.contains(&drawn));
+    assert!(!g.decks.richese_cache.contains(&drawn));
 
     // Sold from the cache: it leaves the deck.
     g.bidding.cards_on_auction = Some(Deck::empty(None));
-    g.current_phase = Phase::RicheseSpecifyingAuction;
+    g.turn.current_phase = Phase::RicheseSpecifyingAuction;
     let mut auction = RicheseSpecifiesAuction::new(&g, Faction::Richese);
     auction.set_card(Some(sold));
     auction.auction_type = AuctionType::RicheseOnceAround;
     auction.direction = 1;
     assert!(GameEvent::RicheseSpecifiesAuction(Rc::new(auction)).execute(&mut g, false, false).is_none());
-    assert!(!g.richese_cache.contains(&sold));
+    assert!(!g.decks.richese_cache.contains(&sold));
     assert!(!in_deck(&g, sold));
 }
 
@@ -266,10 +266,10 @@ fn a_karama_bid_needs_a_karama_card_and_no_pass() {
         b.set_karma_card(card);
         GameEvent::Bid(Rc::new(b))
     };
-    let history = g.history.len();
+    let history = g.history.entries.len();
     assert_eq!(submit(&mut g, |g| bid(true, Some(karama), g)).as_deref(), Some("You can't pass and use Karma in the same bid"));
     assert_eq!(submit(&mut g, |g| bid(false, None, g)).as_deref(), Some("Invalid Karma card"));
-    assert_eq!(g.history.len(), history);
+    assert_eq!(g.history.entries.len(), history);
     assert!(g.player(bidder).treachery_cards.contains(&karama));
 
     assert_eq!(submit(&mut g, |g| bid(false, Some(karama), g)), None);
@@ -317,17 +317,17 @@ fn an_ally_pays_for_a_shipment_only_spice_it_has_and_offered() {
     g.player_mut(shipper).resources = 0;
 
     // The ally offered enough but has less.
-    g.permitted_use_of_ally_spice.insert(f, cost);
+    g.alliances.permitted_use_of_ally_spice.insert(f, cost);
     g.player_mut(pally).resources = cost - 1;
     assert_eq!(submit(&mut g, |g| GameEvent::Shipment(Rc::new(shipment(g, cost)))).as_deref(), Some("Your ally won't pay that much"));
     // The ally has enough but offered less.
-    g.permitted_use_of_ally_spice.insert(f, cost - 1);
+    g.alliances.permitted_use_of_ally_spice.insert(f, cost - 1);
     g.player_mut(pally).resources = cost;
     assert_eq!(submit(&mut g, |g| GameEvent::Shipment(Rc::new(shipment(g, cost)))).as_deref(), Some("Your ally won't pay that much"));
 
-    g.permitted_use_of_ally_spice.insert(f, cost);
+    g.alliances.permitted_use_of_ally_spice.insert(f, cost);
     assert_eq!(submit(&mut g, |g| GameEvent::Shipment(Rc::new(shipment(g, cost)))), None);
     assert_eq!(g.player(pally).resources, 0);
     assert_eq!(g.player(shipper).resources, 0);
-    assert_eq!(g.permitted_use_of_ally_spice[&f], 0);
+    assert_eq!(g.alliances.permitted_use_of_ally_spice[&f], 0);
 }

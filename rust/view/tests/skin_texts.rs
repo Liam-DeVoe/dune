@@ -61,8 +61,8 @@ fn sheets_and_rules_equal_the_skin() {
                 .iter()
                 .map(|p| match p {
                     SheetPart::Text { v } => v.clone(),
-                    SheetPart::Location { id } => skin.describe_location(g.map.locations(true).find(|l| l.id() == *id).unwrap()),
-                    SheetPart::Territory { id } => skin.describe_territory(g.map.territories(true).find(|t| t.id() == *id).unwrap()),
+                    SheetPart::Location { id } => skin.describe_location(g.board.map.locations(true).find(|l| l.id() == *id).unwrap()),
+                    SheetPart::Territory { id } => skin.describe_territory(g.board.map.territories(true).find(|t| t.id() == *id).unwrap()),
                 })
                 .collect();
             let template = format!("{}. Start with {} {{16}}.", sheet.at_start, sheet.resources);
@@ -72,9 +72,9 @@ fn sheets_and_rules_equal_the_skin() {
         }
 
         // TurnPopover's groups, in order of their first rule.
-        assert_eq!(v.rule_labels.ruleset, skin.describe(&ExpressionElement::from(g.ruleset)));
+        assert_eq!(v.rule_labels.ruleset, skin.describe(&ExpressionElement::from(g.rules.ruleset)));
         let mut groups: Vec<RuleGroup> = vec![];
-        for r in &g.rules {
+        for r in &g.rules.active {
             let gr = Game::get_rule_group(*r);
             if ![RuleGroup::CoreBasic, RuleGroup::Bots, RuleGroup::None].contains(&gr) && !groups.contains(&gr) {
                 groups.push(gr);
@@ -83,7 +83,7 @@ fn sheets_and_rules_equal_the_skin() {
         assert_eq!(v.rule_labels.groups.len(), groups.len(), "{name}");
         for (l, gr) in v.rule_labels.groups.iter().zip(&groups) {
             assert_eq!(l.group, skin.describe(&ExpressionElement::from(*gr)));
-            let rules: Vec<String> = g.rules.iter().filter(|r| Game::get_rule_group(**r) == *gr).map(|r| skin.describe(&ExpressionElement::from(*r))).collect();
+            let rules: Vec<String> = g.rules.active.iter().filter(|r| Game::get_rule_group(**r) == *gr).map(|r| skin.describe(&ExpressionElement::from(*r))).collect();
             assert_eq!(l.rules, rules, "{name}");
         }
         assert!(v.rule_labels.groups.iter().all(|gr| gr.rules.iter().all(|r| !r.is_empty())));
@@ -103,7 +103,7 @@ fn milestones_follow_each_event() {
         for e in events.iter().skip(1) {
             r.apply(&e.to_string()).unwrap();
             let view = r.view(OBSERVER);
-            let expected: Vec<String> = r.game.recent_milestones.iter().map(|m| m.to_string()).collect();
+            let expected: Vec<String> = r.game.turn.recent_milestones.iter().map(|m| m.to_string()).collect();
             assert_eq!(view.recent_milestones, expected);
             if !expected.is_empty() {
                 nonempty += 1;

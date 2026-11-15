@@ -59,10 +59,10 @@ impl FaceDancerReplaced {
                 if let Some(i) = game.player(player).face_dancers.iter().position(|d| *d == selected_dancer) {
                     game.player_mut(player).face_dancers.remove(i);
                 }
-                game.traitor_deck.as_mut().required("traitor deck")?.put_on_top(selected_dancer);
-                game.traitor_deck.as_mut().required("traitor deck")?.shuffle();
+                game.decks.traitor_deck.as_mut().required("traitor deck")?.put_on_top(selected_dancer);
+                game.decks.traitor_deck.as_mut().required("traitor deck")?.shuffle();
                 game.stone(Milestone::Shuffled);
-                let leader = game.traitor_deck.as_mut().required("traitor deck")?.try_draw()?;
+                let leader = game.decks.traitor_deck.as_mut().required("traitor deck")?.try_draw()?;
                 game.player_mut(player).face_dancers.push(leader);
                 game.player_mut(player).known_non_traitors.insert(leader);
             }

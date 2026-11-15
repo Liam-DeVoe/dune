@@ -39,14 +39,14 @@ impl StormDialled {
     }
 
     pub fn valid_min_amount(g: &Game) -> i32 {
-        if g.current_turn == 1 {
+        if g.turn.current_turn == 1 {
             return 0;
         }
         1
     }
 
     pub fn valid_max_amount(g: &Game) -> i32 {
-        if g.current_turn == 1 {
+        if g.turn.current_turn == 1 {
             return 20;
         }
         3
@@ -54,20 +54,20 @@ impl StormDialled {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.storm.dials.push(self.amount);
-        game.has_acted_or_passed.push(self.initiator());
+        game.turn.has_acted_or_passed.push(self.initiator());
 
-        if game.storm.has_battle_wheel.iter().all(|f| game.has_acted_or_passed.contains(f)) {
+        if game.storm.has_battle_wheel.iter().all(|f| game.turn.has_acted_or_passed.contains(f)) {
             // Arguments are evaluated left to right; a one-player game throws at Dials[1].
             let d0 = game.storm.dials[0];
-            let f0 = game.has_acted_or_passed[0];
+            let f0 = game.turn.has_acted_or_passed[0];
             let d1 = game.storm.dials[1];
-            let f1 = game.has_acted_or_passed[1];
+            let f1 = game.turn.has_acted_or_passed[1];
             let msg = express!("Storm dial: ", d0, f0, " + ", d1, f1, " = ", d0 + d1)
                 .with_log(StormDials::new(f0, d0, f1, d1));
             self.log_objects(game, elems![msg]);
-            game.next_storm_moves = game.storm.dials.iter().copied().sum::<i32>();
+            game.board.next_storm_moves = game.storm.dials.iter().copied().sum::<i32>();
 
-            if game.current_turn == 1 {
+            if game.turn.current_turn == 1 {
                 self.position_first_storm(game);
             } else {
                 game.reveal_storm();
@@ -77,8 +77,8 @@ impl StormDialled {
     }
 
     pub fn position_first_storm(&self, game: &mut Game) {
-        game.sector_in_storm = game.next_storm_moves % Map::NUMBER_OF_SECTORS;
-        let msg = express!("The first storm moves ", game.sector_in_storm, " sectors").with_log(StormPlaced::new(game.sector_in_storm));
+        game.board.sector_in_storm = game.board.next_storm_moves % Map::NUMBER_OF_SECTORS;
+        let msg = express!("The first storm moves ", game.board.sector_in_storm, " sectors").with_log(StormPlaced::new(game.board.sector_in_storm));
         self.log_objects(game, elems![msg]);
         game.perform_storm();
 
@@ -87,7 +87,7 @@ impl StormDialled {
         }
 
         if game.use_storm_deck() {
-            game.next_storm_moves = game.determine_later_storm_with_storm_deck();
+            game.board.next_storm_moves = game.determine_later_storm_with_storm_deck();
         }
 
         let condition = self.is_playing(game, Faction::Ixian) || game.applicable(Rule::HmSwithoutIxian);

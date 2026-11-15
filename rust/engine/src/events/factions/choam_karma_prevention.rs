@@ -50,7 +50,7 @@ impl ChoamKarmaPrevention {
             game.discard_card(card, true)?;
         }
 
-        game.current_karma_prevention = Some(self.clone());
+        game.turn.current_karma_prevention = Some(self.clone());
         game.stone(Milestone::SpecialUselessPlayed);
         Ok(())
     }

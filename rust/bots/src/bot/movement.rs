@@ -159,7 +159,7 @@ impl ClassicBot {
         // Towards the Shield Wall, to blow it up with Family Atomics
         if !self.last_turn(game)
             && !winning
-            && (0..=8).contains(&game.sector_in_storm)
+            && (0..=8).contains(&game.board.sector_in_storm)
             && game.player(me).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Metheor)
             && !MetheorPlayed::has_forces_at_or_near_shield_wall(game, me)
             && let Some(m) = self.battalion_that_will_destroy_shield_wall(game)
@@ -183,9 +183,9 @@ impl ClassicBot {
     /// One force that can move next to the Shield Wall, tried from the Polar Sink, Tuek's Sietch,
     /// Arrakeen and Carthag in that order.
     fn battalion_that_will_destroy_shield_wall(&self, game: &Game) -> Option<MovedBattalion> {
-        let map = &game.map;
+        let map = &game.board.map;
         let false_wall_east = |sector: i32| map.false_wall_east().locations().iter().copied().find(|l| l.sector(map) == sector).expect("a location in that sector");
-        let false_wall_east_target = || if game.sector_in_storm != 8 { false_wall_east(8) } else { false_wall_east(7) };
+        let false_wall_east_target = || if game.board.sector_in_storm != 8 { false_wall_east(8) } else { false_wall_east(7) };
         let pasty_mesa_target = || map.pasty_mesa().locations().iter().copied().find(|l| l.sector(map) == 7).expect("a location in sector 7");
 
         let attempts: [(Location, &dyn Fn() -> Location); 4] = [
@@ -251,12 +251,12 @@ impl ClassicBot {
         }
 
         if include_second_best_locations {
-            if !self.last_turn(game) && self.within_range(game, location, game.map.polar_sink(), battalion) {
-                return Some(game.map.polar_sink());
+            if !self.last_turn(game) && self.within_range(game, location, game.board.map.polar_sink(), battalion) {
+                return Some(game.board.map.polar_sink());
             }
 
-            if location != game.map.polar_sink() {
-                let rock = game.map.locations(false).find(|&l| {
+            if location != game.board.map.polar_sink() {
+                let rock = game.board.map.locations(false).find(|&l| {
                     game.is_protected_from_storm(l)
                         && self.within_range(game, location, l, battalion)
                         && self.not_occupied_by_others(game, l.territory())

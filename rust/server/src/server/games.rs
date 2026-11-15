@@ -293,7 +293,7 @@ impl Server {
         let game = self.host_of(user, game)?;
         let g = self.games.get_mut(&game).expect("checked");
         let json = serde_json::from_str(&treachery_engine::json::serialize(&settings)).expect("settings serialize to JSON");
-        g.game.settings = Some(Shared::new(settings));
+        g.game.rules.settings = Some(Shared::new(settings));
         self.connections.notify(&game, Notification::UpdateSettings(json));
         self.changed(&game);
         done()

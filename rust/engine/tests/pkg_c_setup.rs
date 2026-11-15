@@ -40,9 +40,9 @@ fn settings(n: i32, factions: &[Faction], rules: &[Rule]) -> Shared<GameSettings
 fn next_faction_to_perform_custom_setup_defaults_to_none() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
     assert_eq!(g.next_faction_to_perform_custom_setup(), Faction::Atreides);
-    g.has_acted_or_passed.push(Faction::Atreides);
+    g.turn.has_acted_or_passed.push(Faction::Atreides);
     assert_eq!(g.next_faction_to_perform_custom_setup(), Faction::Emperor);
-    g.has_acted_or_passed.push(Faction::Emperor);
+    g.turn.has_acted_or_passed.push(Faction::Emperor);
     assert_eq!(g.next_faction_to_perform_custom_setup(), Faction::None);
 }
 
@@ -51,7 +51,7 @@ fn next_faction_to_perform_custom_setup_defaults_to_none() {
 fn treachery_cards_before_traitors_needs_leader_skills() {
     let mut g = game_with(&[Faction::Atreides]);
     assert!(!g.treachery_cards_before_traitors());
-    g.rules.push(Rule::LeaderSkills);
+    g.rules.active.push(Rule::LeaderSkills);
     assert!(g.treachery_cards_before_traitors());
 }
 
@@ -125,13 +125,13 @@ fn automation_rules_create_and_delete() {
     assert_eq!(r2.automation_rule_id.get(), 1);
 
     mk(&g, ItemAction::Delete, 0).execute_concrete_event(&mut g).unwrap();
-    assert_eq!(g.automation_rules.len(), 1);
+    assert_eq!(g.rules.automation_rules.len(), 1);
     let r3 = mk(&g, ItemAction::Create, -1);
     r3.execute_concrete_event(&mut g).unwrap();
     assert_eq!(r3.automation_rule_id.get(), 2);
 
     assert!(mk(&g, ItemAction::Delete, 7).execute_concrete_event(&mut g).is_err());
-    assert_eq!(g.automation_rules.len(), 2);
+    assert_eq!(g.rules.automation_rules.len(), 2);
 }
 
 // ---------------------------------------------------------------- EstablishPlayers
@@ -153,9 +153,9 @@ fn establish_players_shares_factions_list() {
     let r = ev.execute(&mut g, false, true);
     assert!(r.is_none());
     assert_eq!(g.players.len(), 3);
-    assert_eq!(g.current_phase, Phase::SelectingFactions);
-    assert!(g.settings.as_ref().unwrap().ptr_eq(&s));
-    g.factions_in_play.borrow_mut().retain(|f| *f != Faction::Atreides);
+    assert_eq!(g.turn.current_phase, Phase::SelectingFactions);
+    assert!(g.rules.settings.as_ref().unwrap().ptr_eq(&s));
+    g.rules.factions_in_play.borrow_mut().retain(|f| *f != Faction::Atreides);
     assert_eq!(s.borrow().allowed_factions_in_play.as_ref().unwrap().borrow().len(), 3);
 }
 
@@ -184,7 +184,7 @@ fn establish_players_is_deterministic() {
         Rc::new(ev).execute(&mut g, false, true);
         let factions: Vec<Faction> = g.players.iter().map(|p| p.faction).collect();
         let seats: Vec<i32> = g.players.iter().map(|p| p.seat).collect();
-        (factions, seats, g.current_phase)
+        (factions, seats, g.turn.current_phase)
     };
     let (f1, s1, p1) = run();
     let (f2, s2, p2) = run();

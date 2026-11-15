@@ -30,13 +30,13 @@ impl AlliancePassed {
 
         let initiator = self.initiator();
         loop {
-            let withdrawn_offer = game.current_alliance_offers.iter().position(|x| x.initiator() == initiator || x.target == initiator);
+            let withdrawn_offer = game.alliances.current_alliance_offers.iter().position(|x| x.initiator() == initiator || x.target == initiator);
             let Some(i) = withdrawn_offer else { break };
             // List.Remove(withdrawnOffer): the first occurrence of that object, which is at i.
-            game.current_alliance_offers.remove(i);
+            game.alliances.current_alliance_offers.remove(i);
         }
 
-        game.has_acted_or_passed.push(initiator);
+        game.turn.has_acted_or_passed.push(initiator);
         game.end_nexus_if_everyone_is_done();
         Ok(())
     }

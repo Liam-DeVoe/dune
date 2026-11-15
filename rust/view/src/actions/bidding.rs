@@ -116,7 +116,7 @@ pub fn options(game: &Game, v: &ResolvedViewer, draft: &GameEvent) -> Option<Act
 /// The lot of the bidding panel, shown in `Phase::Bidding` and `Phase::BlackMarketBidding` to
 /// every player, bidding or not.
 pub fn panel(game: &Game, v: &ResolvedViewer) -> Option<BiddingPanelView> {
-    let black_market = match game.current_phase {
+    let black_market = match game.turn.current_phase {
         Phase::Bidding => false,
         Phase::BlackMarketBidding => true,
         _ => return None,

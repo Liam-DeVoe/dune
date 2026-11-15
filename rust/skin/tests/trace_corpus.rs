@@ -64,7 +64,7 @@ impl Renderer<'_> {
     }
 
     fn new_report_messages(&mut self, game: &Game) {
-        let reports: Vec<&Report> = std::iter::once(&game.pre_game_report).chain(game.report_list.iter()).collect();
+        let reports: Vec<&Report> = std::iter::once(&game.log.pre_game_report).chain(game.log.report_list.iter()).collect();
         for (i, r) in reports.iter().enumerate() {
             if self.seen.len() <= i {
                 self.seen.push(0);
@@ -139,7 +139,7 @@ fn render_trace(path: &Path, skin: &Skin) -> Vec<(i64, String, String)> {
             "step" => {
                 let ev: GameEvent = treachery_engine::json::deserialize(&line["event"].to_string()).expect("event JSON");
                 ev.initialize_game(g);
-                g.map.mark_neighbour_cache_stale();
+                g.board.map.mark_neighbour_cache_stale();
                 let result = catch_any(|| {
                     ev.execute(g, line["validate"].as_bool().unwrap(), line["isHost"].as_bool().unwrap())
                 });

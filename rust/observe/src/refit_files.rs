@@ -78,7 +78,7 @@ impl Old {
         let seats = self.factions.as_ref().is_some_and(|f| *f != r.game.players.iter().map(|p| p.faction.0).collect::<Vec<_>>());
         let allies = self.allies.as_ref().is_some_and(|a| *a != r.game.players.iter().map(|p| p.ally.0).collect::<Vec<_>>());
         let phase = (!self.end.reached(&r.game) || seats || allies) as u8;
-        let turn = self.turn.is_some_and(|t| t != r.game.current_turn) as u8;
+        let turn = self.turn.is_some_and(|t| t != r.game.turn.current_turn) as u8;
         (phase, self.offers_missing(r), turn, r.stats.dropped * 4 + r.stats.replaced + r.stats.added)
     }
 }
@@ -411,7 +411,7 @@ impl Checker {
             Some("step") => {
                 if let Some(e) = Self::event(l) {
                     e.initialize_game(game);
-                    game.map.mark_neighbour_cache_stale();
+                    game.board.map.mark_neighbour_cache_stale();
                     e.execute(game, l["validate"].as_bool().unwrap_or(true), l["isHost"].as_bool().unwrap_or(false));
                 }
             }

@@ -31,7 +31,7 @@ fn value(game: &Game, kind: &str) -> ExpressionElement {
         "leader" => ExpressionElement::Hero(LeaderManager::hero_lookup().find(n()).unwrap()),
         "messiah" => ExpressionElement::Hero(Hero::Messiah),
         "card" => ExpressionElement::Hero(Hero::TreacheryCard(TreacheryCardManager::lookup().find(n()).unwrap())),
-        "territory" => ExpressionElement::Territory(game.map.territory_lookup().find(n()).unwrap()),
+        "territory" => ExpressionElement::Territory(game.board.map.territory_lookup().find(n()).unwrap()),
         _ => panic!("unknown value kind {kind}"),
     }
 }

@@ -34,10 +34,10 @@ impl Shadow {
     /// Catches up with `game`; starts over when `rebuild` or when it is ahead.
     pub fn sync(&mut self, game: &Game, rebuild: bool) {
         if rebuild || self.game.event_count() > game.event_count() {
-            self.game = Game::with_participation(game.version, &self.participation);
+            self.game = Game::with_participation(game.rules.version, &self.participation);
         }
         let done = self.game.event_count() as usize;
-        for e in game.history.iter().skip(done) {
+        for e in game.history.entries.iter().skip(done) {
             let text = json::serialize(e);
             let shadow = &mut self.game;
             let ok = quiet(|| {
@@ -48,7 +48,7 @@ impl Shadow {
             });
             if ok.flatten().is_none() {
                 // A shadow that can't follow is rebuilt next time; generation just gets worse.
-                self.game = Game::with_participation(game.version, &self.participation);
+                self.game = Game::with_participation(game.rules.version, &self.participation);
                 return;
             }
         }
@@ -86,9 +86,9 @@ impl Domains {
         }
         let all_heroes = game.players.iter().flat_map(|p| p.leaders.iter().map(|l| l.id())).collect();
         let own_locations = me.map(|p| p.forces_in_locations.keys().map(|l| l.id()).collect()).unwrap_or_default();
-        let locations = game.map.locations(false).map(|l| l.id()).collect();
-        let strongholds = game.map.strongholds().map(|l| l.id()).collect();
-        let territories = game.map.territories(false).map(|t| t.id()).collect();
+        let locations = game.board.map.locations(false).map(|l| l.id()).collect();
+        let strongholds = game.board.map.strongholds().map(|l| l.id()).collect();
+        let territories = game.board.map.territories(false).map(|t| t.id()).collect();
         let factions = game.players.iter().map(|p| p.faction.0).filter(|f| *f != 0).collect();
         Domains { own_cards, held_cards, all_cards, own_heroes, all_heroes, own_locations, locations, strongholds, territories, factions }
     }
@@ -547,7 +547,7 @@ pub const BATTLE_ACTION_TYPES: [&str; 24] = [
 const RARE_BATTLE_ACTION_TYPES: [&str; 4] = ["KarmaEcazDial", "JuicePlayed", "ResidualPlayed", "AuditCancelled"];
 
 pub fn battle_in_progress(g: &Game) -> bool {
-    g.current_main_phase == MainPhase::Battle && g.battle.current_battle.is_some()
+    g.turn.current_main_phase == MainPhase::Battle && g.battle.current_battle.is_some()
 }
 
 fn type_named(name: &str) -> Option<GameEventType> {

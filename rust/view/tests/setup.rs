@@ -73,7 +73,7 @@ fn perform_setup_offers_the_next_factions_reserves() {
     assert_eq!(o.forces_in_reserve, p.forces_in_reserve());
     assert_eq!(o.special_forces_in_reserve, p.special_forces_in_reserve());
     assert_eq!(o.may_stage_special, p.has_special_forces(&r.game) && next != Faction::Richese);
-    assert_eq!(o.locations.len(), r.game.map.locations(false).count());
+    assert_eq!(o.locations.len(), r.game.board.map.locations(false).count());
     assert_eq!(a.validation, None);
 
     // PerformSetup.Validate: no more forces than the reserves.

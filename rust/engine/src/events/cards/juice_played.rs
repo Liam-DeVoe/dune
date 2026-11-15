@@ -37,10 +37,10 @@ impl JuicePlayed {
             }
         }
 
-        if (g.current_main_phase == MainPhase::Bidding && g.bidding.bids.len() == 0)
-            || g.current_phase == Phase::BeginningOfShipAndMove
-            || (g.current_main_phase == MainPhase::Battle && g.battle.current_battle.is_none())
-            || g.current_phase == Phase::Contemplate
+        if (g.turn.current_main_phase == MainPhase::Bidding && g.bidding.bids.len() == 0)
+            || g.turn.current_phase == Phase::BeginningOfShipAndMove
+            || (g.turn.current_main_phase == MainPhase::Battle && g.battle.current_battle.is_none())
+            || g.turn.current_phase == Phase::Contemplate
         {
             result.push(JuiceType::GoFirst);
         }
@@ -51,12 +51,12 @@ impl JuicePlayed {
     }
 
     pub fn can_be_played_by(g: &Game, player: PlayerIndex) -> bool {
-        let applicable_phase = g.current_main_phase == MainPhase::Bidding
-            || g.current_phase == Phase::BeginningOfShipAndMove
-            || g.current_phase == Phase::GuildShip
-            || g.current_phase == Phase::NonGuildShip
-            || g.current_main_phase == MainPhase::Battle
-            || g.current_phase == Phase::Contemplate;
+        let applicable_phase = g.turn.current_main_phase == MainPhase::Bidding
+            || g.turn.current_phase == Phase::BeginningOfShipAndMove
+            || g.turn.current_phase == Phase::GuildShip
+            || g.turn.current_phase == Phase::NonGuildShip
+            || g.turn.current_main_phase == MainPhase::Battle
+            || g.turn.current_phase == Phase::Contemplate;
 
         applicable_phase && g.player(player).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Juice)
     }
@@ -65,7 +65,7 @@ impl JuicePlayed {
         self.log(game);
 
         let aggressor_before_juice_is_played = game.battle.current_battle.clone().and_then(|b| b.aggressive_player(game));
-        game.current_juice = Some(self.clone());
+        game.turn.current_juice = Some(self.clone());
         game.discard(self.player(), TreacheryCardType::Juice)?;
 
         if let Some(battle) = game.battle.current_battle.clone() {

@@ -126,7 +126,7 @@ impl Server {
             pause = new_pause(&mut counter, state, None, true);
         }
         if let Some(executed) = executed {
-            if matches!(executed, GameEvent::EndPhase(_)) || pause.phase != state.current_phase || pause.turn != state.current_turn {
+            if matches!(executed, GameEvent::EndPhase(_)) || pause.phase != state.turn.current_phase || pause.turn != state.turn.current_turn {
                 pause = new_pause(&mut counter, state, Some(&pause), false);
             } else {
                 pause.suspended = false;
@@ -164,7 +164,7 @@ impl Server {
                 }
                 let countdown_done = !requirements.countdown || (pause.holding.is_empty() && (pause.countdown_expired || pause.was_held));
                 if waiting_for.is_empty() && countdown_done && bots_done {
-                    continue_at = Some(state.history.len());
+                    continue_at = Some(state.history.entries.len());
                     None
                 } else {
                     let running = requirements.countdown && !pause.countdown_expired && !pause.was_held;
@@ -206,8 +206,8 @@ fn new_pause(counter: &mut u32, g: &treachery_engine::game::Game, previous: Opti
     *counter += 1;
     Pause {
         id: *counter,
-        phase: g.current_phase,
-        turn: g.current_turn,
+        phase: g.turn.current_phase,
+        turn: g.turn.current_turn,
         suspended,
         last_sent: previous.and_then(|p| p.last_sent.clone()),
         ..Pause::default()

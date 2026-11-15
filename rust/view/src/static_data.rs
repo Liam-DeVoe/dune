@@ -163,7 +163,7 @@ pub struct NamedPlaces {
 
 pub fn static_data() -> StaticData {
     let game = Game::with_participation(Game::LATEST_VERSION, &Shared::new(Participation::default()));
-    let map = &game.map;
+    let map = &game.board.map;
 
     let locations = map
         .locations(true)

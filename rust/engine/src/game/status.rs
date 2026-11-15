@@ -78,26 +78,26 @@ impl GameStatus {
     /// The arms below are checked in order; each guard is evaluated
     /// only when its pattern matches, and again for each later arm with the same phase.
     pub fn determine_status(game: &mut Game, me_: Option<PlayerIndex>, is_player: bool) -> GameStatus {
-        let phase = game.current_phase;
+        let phase = game.turn.current_phase;
         let result = match phase {
             /* Phase Beginnings */
             Phase::BeginningOfStorm | Phase::Thumper | Phase::BeginningOfCharity | Phase::BeginningOfBidding | Phase::BeginningOfResurrection | Phase::BeginningOfCollection => Self::host_status(
-                express!("You may now continue with the ", game.current_main_phase, " phase..."),
-                express!("Waiting for the host to continue the ", game.current_main_phase, " phase..."),
+                express!("You may now continue with the ", game.turn.current_main_phase, " phase..."),
+                express!("Waiting for the host to continue the ", game.turn.current_main_phase, " phase..."),
                 None,
             ),
 
             /* Phase Endings */
             Phase::StormReport | Phase::BlowReport | Phase::CharityReport | Phase::BiddingReport | Phase::ResurrectionReport | Phase::ShipmentAndMoveConcluded | Phase::CollectionReport | Phase::TurnConcluded => {
-                Self::status(express!(game.current_main_phase, " phase ended."), None)
+                Self::status(express!(game.turn.current_main_phase, " phase ended."), None)
             }
 
             /* Non-mainphase-related phases */
             Phase::Clairvoyance => {
                 let g: &Game = game;
-                let a = express!("Please answer a question from ", g.latest_clairvoyance.as_ref().map(|c| c.initiator()), " by ", TreacheryCardType::Clairvoyance, ".");
+                let a = express!("Please answer a question from ", g.turn.latest_clairvoyance.as_ref().map(|c| c.initiator()), " by ", TreacheryCardType::Clairvoyance, ".");
                 let w = express!("Waiting for an answer to a ", TreacheryCardType::Clairvoyance, " question...");
-                let f = g.latest_clairvoyance.as_ref().expect("latest clairvoyance").target;
+                let f = g.turn.latest_clairvoyance.as_ref().expect("latest clairvoyance").target;
                 Self::faction_status(g, a, w, Some(f), None)
             }
 
@@ -109,7 +109,7 @@ impl GameStatus {
 
             Phase::TradingCards => {
                 let g: &Game = game;
-                let offer_player = g.current_card_trade_offer.as_ref().expect("current card trade offer").player();
+                let offer_player = g.alliances.current_card_trade_offer.as_ref().expect("current card trade offer").player();
                 let f = g.player(offer_player).ally;
                 Self::faction_status(g, "Please select which card to give to your ally.", "Waiting for a card to be returned...", Some(f), None)
             }
@@ -122,7 +122,7 @@ impl GameStatus {
 
             Phase::Discarding => {
                 let g: &Game = game;
-                Self::factions_status(g, "Please decide which card to discard.", "Waiting factions to discard...", &g.factions_that_must_discard, None)
+                Self::factions_status(g, "Please decide which card to discard.", "Waiting factions to discard...", &g.turn.factions_that_must_discard, None)
             }
 
             /* Setup */
@@ -206,7 +206,7 @@ impl GameStatus {
 
             Phase::DiallingStorm => {
                 let g: &Game = game;
-                let factions: Vec<Faction> = g.factions_in_play.borrow().iter().copied().filter(|f| g.storm.has_battle_wheel.contains(f) && !g.has_acted_or_passed.contains(f)).collect();
+                let factions: Vec<Faction> = g.rules.factions_in_play.borrow().iter().copied().filter(|f| g.storm.has_battle_wheel.contains(f) && !g.turn.has_acted_or_passed.contains(f)).collect();
                 Self::factions_status(g, "Please dial a number to determine storm movement.", "Storm movement is being determined...", &factions, None)
             }
 
@@ -581,7 +581,7 @@ impl GameStatus {
             Phase::BattleReport if game.next_player_to_battle().is_some() => {
                 Self::status(express!("Factions may now review the battle report before the next battle begins..."), None)
             }
-            Phase::BattleReport if game.next_player_to_battle().is_none() => Self::status(express!(game.current_main_phase, " phase ended."), None),
+            Phase::BattleReport if game.next_player_to_battle().is_none() => Self::status(express!(game.turn.current_main_phase, " phase ended."), None),
 
             /* Collection */
             Phase::DividingCollectedResources => {
@@ -619,7 +619,7 @@ impl GameStatus {
 
             Phase::GameEnded => Self::status("The game has ended.", None),
 
-            _ => Self::status(express!(format!("Unknown phase: {}", game.current_phase)), None),
+            _ => Self::status(express!(format!("Unknown phase: {}", game.turn.current_phase)), None),
         };
 
         let mut result = result;
@@ -677,8 +677,8 @@ impl GameStatus {
     }
 
     pub fn determine_highlights(game: &Game, my_faction: Faction) -> Vec<Option<Territory>> {
-        match game.current_phase {
-            Phase::FremenSettingUp if my_faction == Faction::Fremen => vec![Some(game.map.sietch_tabr().territory()), Some(game.map.false_wall_south()), Some(game.map.false_wall_west())],
+        match game.turn.current_phase {
+            Phase::FremenSettingUp if my_faction == Faction::Fremen => vec![Some(game.board.map.sietch_tabr().territory()), Some(game.board.map.false_wall_south()), Some(game.board.map.false_wall_west())],
 
             Phase::StormLosses => vec![Some(TakeLosses::losses_to_take(game).location.expect("location").territory())],
 
@@ -773,7 +773,7 @@ impl GameStatus {
     pub fn players_that_have_not_acted_or_passed(game: &Game) -> Vec<Option<PlayerIndex>> {
         (0..game.players.len())
             .map(|i| game.player_at(i))
-            .filter(|p| !game.has_acted_or_passed.contains(&game.player(*p).faction))
+            .filter(|p| !game.turn.has_acted_or_passed.contains(&game.player(*p).faction))
             .map(Some)
             .collect()
     }
@@ -846,7 +846,7 @@ impl GameStatus {
     pub fn determine_flash(g: &Game, my_faction: Faction, is_player: bool) -> Vec<FlashInfo> {
         let mut result: Vec<FlashInfo> = vec![];
 
-        if g.current_phase == Phase::GameEnded {
+        if g.turn.current_phase == Phase::GameEnded {
             for p in g.contemplate.winners.iter().copied() {
                 let f = g.player(p).faction;
                 Self::flash(&mut result, express!(f, " win!"), f);
@@ -855,12 +855,12 @@ impl GameStatus {
         }
 
         // C# parity: BattleWinner is a Faction?, so a null winner passes this check and flashes "null win!".
-        if g.current_phase == Phase::BattleConclusion && g.battle.battle_winner != Some(Faction::None) {
+        if g.turn.current_phase == Phase::BattleConclusion && g.battle.battle_winner != Some(Faction::None) {
             Self::flash(&mut result, express!(g.battle.battle_winner, " win!"), g.battle.battle_winner);
             return result;
         }
 
-        let latest_event = g.history.last().cloned();
+        let latest_event = g.history.entries.last().cloned();
 
         if let Some(latest) = &latest_event {
             match latest {
@@ -916,7 +916,7 @@ impl GameStatus {
                 GameEvent::FaceDancerReplaced(e) if !e.passed => Self::flash_event(g, &mut result, latest_event.as_ref()),
 
                 // Show Faction
-                GameEvent::EstablishPlayers(_) if g.current_phase != Phase::SelectingFactions && is_player => Self::flash_faction_played(&mut result, my_faction),
+                GameEvent::EstablishPlayers(_) if g.turn.current_phase != Phase::SelectingFactions && is_player => Self::flash_faction_played(&mut result, my_faction),
                 GameEvent::FactionTradeOffered(fto) if (fto.initiator() == my_faction || fto.target == my_faction) && g.setup.current_trade_offers.iter().all(|t| t.initiator() != my_faction) => {
                     Self::flash_faction_played(&mut result, my_faction)
                 }
@@ -931,10 +931,10 @@ impl GameStatus {
             }
         }
 
-        let nr_of_spice_blows = g.recent_milestones.iter().filter(|m| **m == Milestone::Resource).count();
+        let nr_of_spice_blows = g.turn.recent_milestones.iter().filter(|m| **m == Milestone::Resource).count();
         let mut resource_card_already_added = false;
 
-        for m in g.recent_milestones.iter().copied() {
+        for m in g.turn.recent_milestones.iter().copied() {
             match m {
                 Milestone::TreacheryCalled | Milestone::FaceDanced => {
                     Self::flash_event(g, &mut result, latest_event.as_ref());
@@ -944,8 +944,8 @@ impl GameStatus {
                     Self::flash(&mut result, express!(Concept::BabyMonster, " detected!"), c);
                 }
                 Milestone::Karma if matches!(latest_event, Some(GameEvent::Bid(_))) => {
-                    if g.treachery_discard_pile.as_ref().expect("treachery discard pile").top().is_some() {
-                        let top = g.treachery_discard_pile.as_ref().expect("treachery discard pile").top();
+                    if g.decks.treachery_discard_pile.as_ref().expect("treachery discard pile").top().is_some() {
+                        let top = g.decks.treachery_discard_pile.as_ref().expect("treachery discard pile").top();
                         Self::flash(&mut result, express!("Card was won using ", TreacheryCardType::Karma), top);
                     }
                 }
@@ -967,7 +967,7 @@ impl GameStatus {
                         } else {
                             card_to_show = g.blow.latest_spice_card_b;
                         }
-                    } else if g.applicable(Rule::IncreasedResourceFlow) && matches!(g.current_phase, Phase::AllianceB | Phase::HarvesterB | Phase::BlowReport) {
+                    } else if g.applicable(Rule::IncreasedResourceFlow) && matches!(g.turn.current_phase, Phase::AllianceB | Phase::HarvesterB | Phase::BlowReport) {
                         card_to_show = g.blow.latest_spice_card_b;
                     } else {
                         card_to_show = g.blow.latest_spice_card_a;
@@ -1028,7 +1028,7 @@ impl GameStatus {
     }
 
     pub fn flash_card_type_played(game: &Game, flashes: &mut Vec<FlashInfo>, e: &GameEvent, t: TreacheryCardType) {
-        let pile = game.treachery_discard_pile.as_ref().expect("treachery discard pile");
+        let pile = game.decks.treachery_discard_pile.as_ref().expect("treachery discard pile");
         if pile.top().expect("a discarded card").type_() == t || (t == TreacheryCardType::Karma && pile.top().expect("a discarded card").type_() == TreacheryCardType::Useless) {
             let msg = e.get_message(game);
             Self::flash(flashes, msg, pile.top());

@@ -49,13 +49,13 @@ pub fn determine(g: &mut Game) -> Option<PauseRequirements> {
     let amal = amal_in_play(g);
     let nexus = g.applicable(Rule::NexusCards);
 
-    Some(match g.current_phase {
+    Some(match g.turn.current_phase {
         Phase::SelectingFactions => wait(players(g, |g, p| g.player(p).faction == Faction::None)),
         Phase::TradingFactions => wait(g.player_indices().collect()),
 
         Phase::BeginningOfStorm => with(players(g, |g, p| DiscoveryEntered::valid_targets(g, p).next().is_some()), amal),
         Phase::MetheorAndStormSpell => {
-            let turn = g.current_turn;
+            let turn = g.turn.current_turn;
             with(players(g, |g, p| TestingStationUsed::can_be_played(g, p)), turn > 1)
         }
         Phase::StormReport => end_of_phase(g, vec![]),
@@ -110,7 +110,7 @@ pub fn determine(g: &mut Game) -> Option<PauseRequirements> {
 
         Phase::BeginningOfBattle => with(vec![], amal),
         Phase::CancellingTraitor => with(vec![], true),
-        Phase::BattleReport if g.current_moment != MainPhaseMoment::End => nothing(),
+        Phase::BattleReport if g.turn.current_moment != MainPhaseMoment::End => nothing(),
         Phase::BattleReport => end_of_phase(g, vec![]),
 
         Phase::BeginningOfCollection => with(present(&[moritani_removing_tokens(g)]), amal || g.is_playing(Faction::Ecaz)),
@@ -130,7 +130,7 @@ pub fn determine(g: &mut Game) -> Option<PauseRequirements> {
 
 /// A revival counts as its player being done with the revival pause.
 pub fn finishes_pause(g: &Game, e: &GameEvent) -> bool {
-    g.current_phase == Phase::Resurrection && matches!(e, GameEvent::Revival(_))
+    g.turn.current_phase == Phase::Resurrection && matches!(e, GameEvent::Revival(_))
 }
 
 fn players(g: &Game, can_act: impl Fn(&Game, PlayerIndex) -> bool) -> Vec<PlayerIndex> {
@@ -213,7 +213,7 @@ fn special_karma(g: &Game, f: Faction) -> Option<PlayerIndex> {
 
 /// Fremen's once-per-game Karma sandworm. Only during Spice Blow, from turn 2.
 fn fremen_sandworm(g: &Game) -> Vec<PlayerIndex> {
-    present(&[if g.current_turn > 1 { special_karma(g, Faction::Fremen) } else { None }])
+    present(&[if g.turn.current_turn > 1 { special_karma(g, Faction::Fremen) } else { None }])
 }
 
 /// Tleilaxu's once-per-game Karma, which stops a faction reviving.

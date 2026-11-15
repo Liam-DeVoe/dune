@@ -42,7 +42,7 @@ impl DiscardedSearched {
     }
 
     pub fn valid_cards(g: &Game) -> Vec<TreacheryCard> {
-        g.treachery_discard_pile.as_ref().expect("treachery discard pile").items.clone()
+        g.decks.treachery_discard_pile.as_ref().expect("treachery discard pile").items.clone()
     }
 
     pub fn can_be_played(game: &Game, p: PlayerIndex) -> bool {
@@ -53,17 +53,17 @@ impl DiscardedSearched {
         self.log(game);
 
         for i in 0..game.players.len() {
-            let items = game.treachery_discard_pile.as_ref().required("treachery discard pile")?.items.clone();
+            let items = game.decks.treachery_discard_pile.as_ref().required("treachery discard pile")?.items.clone();
             Game::unregister_all_known_by_player(game, game.player_at(i), &items);
         }
 
         let card = self.card().required("card")?;
-        crate::iter::remove_first(&mut game.treachery_discard_pile.as_mut().required("treachery discard pile")?.items, &card);
+        crate::iter::remove_first(&mut game.decks.treachery_discard_pile.as_mut().required("treachery discard pile")?.items, &card);
         let me = self.player();
         game.player_mut(me).treachery_cards.push(card);
-        game.treachery_discard_pile.as_mut().required("treachery discard pile")?.shuffle();
+        game.decks.treachery_discard_pile.as_mut().required("treachery discard pile")?.shuffle();
         game.discard(me, TreacheryCardType::SearchDiscarded)?;
-        let phase = game.phase_before_searching_discarded;
+        let phase = game.turn.phase_before_searching_discarded;
         game.enter(phase, true);
         game.stone(Milestone::Shuffled);
         Ok(())

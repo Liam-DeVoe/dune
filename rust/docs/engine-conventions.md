@@ -13,6 +13,27 @@ How `rust/engine` represents the game: enums, static data, players, events, mess
 - `map/data.rs` and the enum declarations in `enumerations.rs` were generated from the C# source once and are edited by hand now. `tests/static_data.rs` checks them against a snapshot.
 - Mark deliberate copies of C# bugs with `// C# parity: <why>`.
 
+## Game state
+
+`Game` holds a few fields of its own (`seed`, `random`, `players`, `participation`) and groups the rest of its state by topic, one struct per topic. Each struct is defined in the file under `game/` that holds the rules of its topic, so work on one topic stays in one file:
+
+| Field | Type | File | Holds |
+|---|---|---|---|
+| `rules` | `Rules` | `rules.rs` | version, ruleset, the rules in effect (`active`), settings, factions in play, automation rules, hidden secrets |
+| `board` | `Board` | `board.rs` | the map, the storm sector, spice, terror tokens, ambassadors, discoveries, stronghold ownership, homeworld occupation |
+| `decks` | `Decks` | `decks.rs` | every deck and discard pile, the Richese cache, recently discarded cards |
+| `leaders` | `Leaders` | `leaders.rs` | leader state, captured and assassinated leaders, Vidal |
+| `alliances` | `Alliances` | `alliances.rs` | alliance offers, card trades, what each faction allows its ally |
+| `deals` | `Deals` | `deals.rs` | `offers`, `responses` and the deals in force (`agreed`) |
+| `turn` | `TurnState` | `turn.rs` | turn, main phase and phase, and what lasts for one turn or phase: payments, milestones, prevented advantages, cards and Nexus cards in effect, phases paused by Clairvoyance, discarding and Bureaucracy |
+| `history` | `History` | `history.rs` | the events (`entries`), undone events, the game before an undo, moments and timers |
+| `log` | `Log` | `log.rs` | the reports |
+| `setup`, `storm`, `blow`, `charity`, `bidding`, `revival`, `ship_move`, `battle`, `collection`, `contemplate` | `SetupState` ... `ContemplateState` | the phase's file (`movement.rs` for `ship_move`) | what the rules of that phase use |
+
+The phase structs are kept side by side whatever the current phase, and some of their fields last longer than the phase (`ship_move.shipment_permissions`, `revival.factions_with_increased_revival_limits`). Fields keep the names they had on `Game` (`game.battle.current_battle`), except where the old name would repeat the struct's: `rules.active`, `history.entries`, `deals.offers`, `deals.responses` and `deals.agreed`.
+
+A new field goes into the struct of its topic, or into the phase struct if only that phase's rules use it.
+
 ## Enums
 
 A C# enum is an `int` with names, and any `int` is a legal value. JSON accepts `13` for a `Faction`, and the fuzzer sends such values. So every enum is an open newtype over `i32`, with the members as associated constants that keep their C# names:
@@ -74,11 +95,11 @@ Static collections and lookups:
 LeaderManager::leaders()                // &'static [Leader], in C# order
 LeaderManager::get_leaders(Faction::Emperor)
 TreacheryCardManager::items()
-game.map.locations(false)               // Map.Locations(false)
-game.map.territories(true)
-game.map.strongholds()
-game.map.arrakeen()                     // Map.Arrakeen
-game.map.shield_wall()                  // Map.ShieldWall (a Territory)
+game.board.map.locations(false)               // Map.Locations(false)
+game.board.map.territories(true)
+game.board.map.strongholds()
+game.board.map.arrakeen()                     // Map.Arrakeen
+game.board.map.shield_wall()                  // Map.ShieldWall (a Territory)
 ```
 
 ### Ids in events
@@ -87,7 +108,7 @@ Events store integer ids, as in C#, and resolve them through the fetchers. `Find
 
 ```rust
 use crate::identity::Fetcher;
-let to = game.map.location_lookup().find(self.to_id);        // Option<Location>
+let to = game.board.map.location_lookup().find(self.to_id);        // Option<Location>
 let hero = LeaderManager::hero_lookup().find(self.hero_id);  // Option<Hero>
 let card = TreacheryCardManager::lookup().find(self.card_id);
 ```
@@ -121,24 +142,24 @@ Most of the map never changes. Three things do, and they live in `Map` (one per 
 So the location properties that depend on them take the map:
 
 ```rust
-l.sector(&game.map)        // l.Sector
-l.visible(&game.map)       // l.Visible
-l.neighbours(&game.map)    // l.Neighbours
-t.is_visible(&game.map)    // t.IsVisible
-hms.attached_to_location(&game.map)
+l.sector(&game.board.map)        // l.Sector
+l.visible(&game.board.map)       // l.Visible
+l.neighbours(&game.board.map)    // l.Neighbours
+t.is_visible(&game.board.map)    // t.IsVisible
+hms.attached_to_location(&game.board.map)
 
 // Game.Map.HiddenMobileStronghold.PointAt(Game, Target);
-game.map.hidden_mobile_stronghold().point_at(&mut game.map, game.version, target);
+game.board.map.hidden_mobile_stronghold().point_at(&mut game.board.map, game.rules.version, target);
 ```
 
 Everything else (`territory()`, `is_stronghold()`, `spice_blow_amount()`, `orientation()` ...) is static and needs no map.
 
-`Map` reads the game through the `map::MapGame` trait, because Rust cannot pass `&Game` while `game.map` is borrowed through it. `Game` implements that trait (and through it `treachery_card_manager::CardsGame`). The C# static pathfinding methods are `Map` methods here:
+`Map` reads the game through the `map::MapGame` trait, because Rust cannot pass `&Game` while `game.board.map` is borrowed through it. `Game` implements that trait (and through it `treachery_card_manager::CardsGame`). The C# static pathfinding methods are `Map` methods here:
 
 ```rust
-game.map.find_neighbours(from, max, false, faction, &game, true)   // Map.FindNeighbours
-game.map.find_paths(from, to, dist, ignore_storm, faction, &game)  // Map.FindPaths
-game.map.find_neighbours_for_hms_movement(start, 1, false, game.sector_in_storm)
+game.board.map.find_neighbours(from, max, false, faction, &game, true)   // Map.FindNeighbours
+game.board.map.find_paths(from, to, dist, ignore_storm, faction, &game)  // Map.FindPaths
+game.board.map.find_neighbours_for_hms_movement(start, 1, false, game.board.sector_in_storm)
 ```
 
 `find_neighbours` keeps the C# cache, including its stale results. C# returns the cached list itself. Rust returns a copy, which is equivalent because no caller mutates the result (`grep -rn "FindNeighbours(" Shared Bots`).
@@ -148,20 +169,20 @@ game.map.find_neighbours_for_hms_movement(start, 1, false, game.sector_in_storm)
 - Plain ownership is the default. `Player`, `LeaderState`, `Battalion` and the like are fields of `Game`.
 - Events stored in game state are `Rc<Event>`, shared with `History` (see [Events](#events)). The few event fields that C# writes after the event is stored are `Cell`s.
 - When C# keeps two references to one mutable object that is not an event and mutates through either, use `shared::Shared<T>`, an `Rc<RefCell<T>>` whose `==` is reference equality. The engine uses it for the lists that `EstablishPlayers` shares with the game:
-  - `Game.settings: Shared<GameSettings>` and `EstablishPlayers.settings: Option<Shared<GameSettings>>`;
-  - `Game.factions_in_play: Shared<Vec<Faction>>` and `GameSettings.allowed_factions_in_play: Option<Shared<Vec<Faction>>>`.
+  - `Game.rules.settings: Shared<GameSettings>` and `EstablishPlayers.settings: Option<Shared<GameSettings>>`;
+  - `Game.rules.factions_in_play: Shared<Vec<Faction>>` and `GameSettings.allowed_factions_in_play: Option<Shared<Vec<Faction>>>`.
 
   ```rust
   // Game.Settings = Settings;  Game.FactionsInPlay = Game.Settings.AllowedFactionsInPlay;
-  game.settings = self.settings.clone().expect("settings");
-  game.factions_in_play = game.settings.borrow().allowed_factions_in_play.clone().expect("allowed factions in play");
-  game.factions_in_play.borrow_mut().retain(|f| *f != faction);   // also changes the event's settings
+  game.rules.settings = self.settings.clone().expect("settings");
+  game.rules.factions_in_play = game.rules.settings.borrow().allowed_factions_in_play.clone().expect("allowed factions in play");
+  game.rules.factions_in_play.borrow_mut().retain(|f| *f != faction);   // also changes the event's settings
   ```
 
   `AllRules`/`InitialRules`, `PermittedUseOfEmperorSpice`/`Amounts` and `FactionsWithIncreasedRevivalLimits`/`Factions` are also aliased in C#, but nothing mutates them afterwards, so they are plain copies.
 
   `Game.participation` is a `Shared<Participation>` too. `new Game(version, participation)` keeps the caller's object, and the games that `Undo`, `RestoreRecentlyUndone` and `DismissRecentlyUndone` make share it, so `Game::with_participation` takes a `&Shared<Participation>`.
-- When C# uses an object as an identity token, key by a stable handle: `PlayerIndex` for players (`LegacyNames`), `shared::RcKey<Event>` for events (`DealResponses` is keyed by `RcKey<DealOffered>`). Don't compare structurally.
+- When C# uses an object as an identity token, key by a stable handle: `PlayerIndex` for players, `shared::RcKey<Event>` for events (`deals.responses` is keyed by `RcKey<DealOffered>`). Don't compare structurally.
 - The game's random number generator is shared between `Game.random` and every deck built from it. That is `random::SharedRandom`, a `Shared<GameRng>`.
 - C# objects that hold their owning game (`Player.Game`, `PlayerSequence._game`, `GameEvent.Game`) don't keep it in Rust. Their methods take the game as a parameter.
 
@@ -200,16 +221,16 @@ Inside a `&self` method that needs its own index (C# `this` passed to the game, 
 Other objects that live inside `Game` and are mutated with the game in hand use the same idea. `PlayerSequence` methods are `fn next_player(&mut self, game: &Game)`; call them by taking the sequence out of the game and putting it back:
 
 ```rust
-let mut seq = game.battle_sequence.take().expect("battle sequence");
+let mut seq = game.battle.battle_sequence.take().expect("battle sequence");
 seq.next_player(game);
-game.battle_sequence = Some(seq);
+game.battle.battle_sequence = Some(seq);
 ```
 
 `LeaderState.Kill(Game)` and `LeaderState.Assassinate(Game)` change the leader state and the game; port them the same way, or as `Game` methods taking the hero.
 
 ## Undo
 
-`game.undo(n)` replays the first `n` events of the history into a new game and puts it in `game`'s place. The events after them become `recently_undone_events`, and the game it replaced is kept, unchanged, in `previous_game_state`. `restore_recently_undone()` puts that game back. Without one (a game loaded with undone events), it replays the history and the undone events into a new game. `dismiss_recently_undone()` replays the history into a new game with neither. A negative `n` throws and leaves the game as it was.
+`game.undo(n)` replays the first `n` events of the history into a new game and puts it in `game`'s place. The events after them become `history.recently_undone_events`, and the game it replaced is kept, unchanged, in `history.previous_game_state`. `restore_recently_undone()` puts that game back. Without one (a game loaded with undone events), it replays the history and the undone events into a new game. `dismiss_recently_undone()` replays the history into a new game with neither. A negative `n` throws and leaves the game as it was.
 
 The event objects are shared between the games (`Rc`), and each replay initializes them again against the new game. An event keeps no game of its own, and a `PlayerIndex` is only a position in `players`, so nothing in one game refers to another.
 
@@ -243,7 +264,7 @@ self.passed                // Passed (a field on every passable event)
 ### Signatures
 
 - Every override of one virtual member, and every implementation of one interface member, has the same Rust signature. That is why `Validate` takes `&Game` even where an event doesn't read the game.
-- `ExecuteConcreteEvent` and every method that stores or upcasts `this` take `self: &Rc<Self>`, so they can write `game.aggressor_plan = Some(self.clone())` or `game.last_shipment_or_movement = Some(self.clone().into_event())`.
+- `ExecuteConcreteEvent` and every method that stores or upcasts `this` take `self: &Rc<Self>`, so they can write `game.battle.aggressor_plan = Some(self.clone())` or `game.ship_move.last_shipment_or_movement = Some(self.clone().into_event())`.
 - A parameter of a concrete event type is `&Battle`, so `this` can be passed as `self`. Where the callee stores the event, the parameter is `&Rc<Battle>`.
 - Event methods only get a `game` parameter when the C# body reads `Game` or `Player`.
 
@@ -262,7 +283,7 @@ Setters of other fields take `&mut self`: call them before wrapping the event in
 When the event to call is itself stored in the game, clone the `Rc` first so the game is free to borrow mutably:
 
 ```rust
-let plan = game.aggressor_plan.clone().expect("aggressor plan");
+let plan = game.battle.aggressor_plan.clone().expect("aggressor plan");
 plan.activate_dynamic_weapons(game, hero, weapon, defense);
 ```
 
@@ -318,9 +339,9 @@ Validation doesn't rule out every event the rules can't handle, so an accepted e
 - A few events can't even be validated without a value the client left out. They implement `try_validate`, which `try_execute` calls, so such an event fails with a Game Error. Their `validate` turns the failure into a refusal for bots and views.
 
 ```rust
-let card = game.cards_on_auction.as_mut().required("cards on auction")?.try_draw()?;
+let card = game.bidding.cards_on_auction.as_mut().required("cards on auction")?.try_draw()?;
 let bene_gesserit = self.get_player(Some(Faction::BeneGesserit)).required("The Bene Gesserit player")?;
-if self.intrusions.is_empty() {
+if self.ship_move.intrusions.is_empty() {
     game_error!("No intrusions to dequeue");
 }
 ```
@@ -418,7 +439,7 @@ The bots (`rust/bots/tests`), the skin (`rust/skin/tests`) and dotnet-compat hav
 Iteration order is observable in many places: the log, the views (spice, strongholds, forces, form options), the event a bot builds, and random draws over a collection. So:
 
 - Maps and sets are `IndexMap` and `IndexSet` (insertion order). `std::collections::HashMap` and `HashSet` are only for lookups whose order can't leak. Remove with `shift_remove`, which keeps the order of the rest. `iter::MapExt::insert_new` inserts a key that must be new.
-- .NET's `Dictionary` and `HashSet` reuse the slot of a removed entry for the next new key, so after a removal their order differs from insertion order. Thirteen game fields have removals and an order players see, and keep `dotnet_compat::NetDictionary`/`NetHashSet` so that order stays the same: `Player.forces_in_locations`, `known_cards`, `revealed_traitors`, and `Game.resources_on_planet`, `terror_on_planet`, `homeworld_occupation`, `bids`, `stronghold_ownership`, `shipment_permissions`, `discoveries_on_planet`, `ambassadors_on_planet`, `recently_discarded`, `early_revivals_offers`. Changing any of them to `IndexMap` changes behavior (the harness found `ambassadors_on_planet` in the board view); do it as a deliberate change (native-plan.md step 4), with a sorted or insertion order chosen on purpose.
+- .NET's `Dictionary` and `HashSet` reuse the slot of a removed entry for the next new key, so after a removal their order differs from insertion order. Thirteen game fields have removals and an order players see, and keep `dotnet_compat::NetDictionary`/`NetHashSet` so that order stays the same: `Player.forces_in_locations`, `known_cards`, `revealed_traitors`, and on `Game`: `board.resources_on_planet`, `board.terror_on_planet`, `board.homeworld_occupation`, `bidding.bids`, `board.stronghold_ownership`, `ship_move.shipment_permissions`, `board.discoveries_on_planet`, `board.ambassadors_on_planet`, `decks.recently_discarded` and `revival.early_revivals_offers`. Changing any of them to `IndexMap` changes behavior (the harness found `ambassadors_on_planet` in the board view); do it as a deliberate change (native-plan.md step 4), with a sorted or insertion order chosen on purpose.
 - `NetDictionary` and `NetHashSet` have `insert`, `remove`, `get`, `contains_key`, `iter` and indexing like std's maps, plus `MapExt::insert_new`.
 
 ## What is left of .NET

@@ -26,7 +26,7 @@ impl HideSecrets {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.secrets_remain_hidden.push(self.initiator());
+        game.rules.secrets_remain_hidden.push(self.initiator());
         Ok(())
     }
 

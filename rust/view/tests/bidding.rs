@@ -62,7 +62,7 @@ struct Seen {
 
 /// Checks one game state: every player's bidding options and every viewer's lot.
 fn check_state(game: &mut Game, d: &dyn treachery_view::describe::Describer, seen: &mut Seen, at: &str) {
-    if game.current_main_phase != MainPhase::Bidding {
+    if game.turn.current_main_phase != MainPhase::Bidding {
         return;
     }
     let players: Vec<PlayerIndex> = game.player_indices().collect();
@@ -138,7 +138,7 @@ fn check_state(game: &mut Game, d: &dyn treachery_view::describe::Describer, see
     }
 
     // The lot, for every player and an observer.
-    let in_panel = matches!(game.current_phase, Phase::Bidding | Phase::BlackMarketBidding);
+    let in_panel = matches!(game.turn.current_phase, Phase::Bidding | Phase::BlackMarketBidding);
     let top = game.bidding.cards_on_auction.as_ref().and_then(|d| d.top());
     for viewer in players.iter().map(|p| Some(*p)).chain([None]) {
         let v = resolved(game, viewer);
@@ -146,7 +146,7 @@ fn check_state(game: &mut Game, d: &dyn treachery_view::describe::Describer, see
         // Observers get the panel of a player without prescience.
         assert_eq!(panel.is_some(), in_panel, "{at}");
         let Some(panel) = panel else { continue };
-        assert_eq!(panel.black_market, game.current_phase == Phase::BlackMarketBidding);
+        assert_eq!(panel.black_market, game.turn.current_phase == Phase::BlackMarketBidding);
         let richese = matches!(game.bidding.current_auction_type, AuctionType::RicheseOnceAround | AuctionType::RicheseSilent);
         // An observer has no prescience but sees the card in Richese's auctions, as everyone does.
         let prescience = viewer.is_some_and(|p| game.has_bidding_prescience(p));
@@ -252,7 +252,7 @@ fn bid_fixture_view() {
 #[test]
 fn karma_card_lifts_the_limit_in_a_draft_query() {
     let mut r = first_bot_state("a bidder who may use Karma", |g| {
-        g.current_phase == Phase::Bidding
+        g.turn.current_phase == Phase::Bidding
             && g.bidding.current_auction_type == AuctionType::Normal
             && g.bidding.bid_sequence.as_ref().and_then(|s| s.current_player(g)).is_some_and(|p| Bid::can_karma(g, Some(p)))
     });

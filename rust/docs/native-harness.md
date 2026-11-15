@@ -76,7 +76,7 @@ Rebuild the reference only on purpose. A reference built from a working tree wit
 
 The trace format is defined by `observe/src/trace.rs`, and both sides must agree on it. When native refactors change engine APIs, update the working tree's `rust/observe` (mostly `session.rs`) so it compiles and makes the same calls. Don't change what it records. If the recorder itself has to change (a new observable, a fuzzer fix), change it in both places: copy the new `rust/observe/src` into `~/treachery-native-ref/rust/observe/src` and rebuild the reference with `--source`.
 
-The fuzz generator reads the shadow game through the view (`actions::action_view`, `actions::default_draft`, `side::deals`) and a few engine fields (`players`, `forces_in_locations`, `current_main_phase`, `current_battle`). A refactor that renames these must update `fuzz.rs` in the working tree too, without changing what it generates.
+The fuzz generator reads the shadow game through the view (`actions::action_view`, `actions::default_draft`, `side::deals`) and a few engine fields (`players`, `forces_in_locations`, `turn.current_main_phase`, `battle.current_battle`). A refactor that renames these must update `fuzz.rs` in the working tree too, without changing what it generates.
 
 Changes to the recorder so far:
 

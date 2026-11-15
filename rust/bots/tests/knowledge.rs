@@ -146,10 +146,10 @@ impl Args<'_> {
         Faction(self.n(i))
     }
     fn l(&self, i: usize) -> Location {
-        self.game.map.location_lookup().find(self.n(i)).unwrap()
+        self.game.board.map.location_lookup().find(self.n(i)).unwrap()
     }
     fn t(&self, i: usize) -> Territory {
-        self.game.map.territory_lookup().find(self.n(i)).unwrap()
+        self.game.board.map.territory_lookup().find(self.n(i)).unwrap()
     }
     fn c(&self, i: usize) -> TreacheryCard {
         TreacheryCardManager::lookup().find(self.n(i)).unwrap()
@@ -158,7 +158,7 @@ impl Args<'_> {
         self.a[i] == "true"
     }
     fn bat(&self, i: usize) -> Battalion {
-        let l = self.game.map.location_lookup().find(self.a[i][4..].parse().unwrap()).unwrap();
+        let l = self.game.board.map.location_lookup().find(self.a[i][4..].parse().unwrap()).unwrap();
         self.bot.forces_on_planet(self.game).get(&l).unwrap().clone()
     }
     fn hand(&self, i: usize) -> Vec<TreacheryCard> {

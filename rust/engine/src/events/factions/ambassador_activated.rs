@@ -61,11 +61,11 @@ impl AmbassadorActivated {
     }
 
     pub fn fremen_or_guild_to(&self, game: &Game) -> Option<Location> {
-        game.map.location_lookup().find(self.fremen_or_guild_to_id)
+        game.board.map.location_lookup().find(self.fremen_or_guild_to_id)
     }
 
     pub fn set_fremen_or_guild_to(&mut self, game: &Game, value: Option<Location>) {
-        self.fremen_or_guild_to_id = game.map.location_lookup().get_id(value);
+        self.fremen_or_guild_to_id = game.board.map.location_lookup().get_id(value);
     }
 
     pub fn to(&self, game: &Game) -> Option<Location> {
@@ -285,7 +285,7 @@ impl AmbassadorActivated {
     }
 
     pub fn get_valid_bene_gesserit_ambassadors(g: &Game) -> Vec<Ambassador> {
-        g.unassigned_ambassadors.as_ref().expect("unassigned ambassadors").items.clone()
+        g.decks.unassigned_ambassadors.as_ref().expect("unassigned ambassadors").items.clone()
     }
 
     pub fn get_valid_choam_cards(game: &Game, p: PlayerIndex) -> Vec<TreacheryCard> {
@@ -302,22 +302,22 @@ impl AmbassadorActivated {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_fremen_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
-        g.map
+        g.board.map
             .locations(false)
-            .filter(move |l| l.visible(&g.map) && l.sector(&g.map) != g.sector_in_storm && g.is_not_full(p, *l))
+            .filter(move |l| l.visible(&g.board.map) && l.sector(&g.board.map) != g.board.sector_in_storm && g.is_not_full(p, *l))
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_guild_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
-        let hms = g.map.hidden_mobile_stronghold().location();
-        g.map
+        let hms = g.board.map.hidden_mobile_stronghold().location();
+        g.board.map
             .locations(g.applicable(Rule::Homeworlds))
             .filter(move |l| {
-                l.sector(&g.map) != g.sector_in_storm
+                l.sector(&g.board.map) != g.board.sector_in_storm
                     && (*l != hms || g.player(p).is(Faction::Ixian))
                     && !g.contains_conflicting_ally(p, *l)
                     && Shipment::is_either_valid_homeworld_or_no_homeworld(g, p, *l, false)
-                    && Shipment::is_either_valid_discovery_or_no_discovery(&g.map, *l)
+                    && Shipment::is_either_valid_discovery_or_no_discovery(&g.board.map, *l)
                     && g.is_not_full(p, *l)
             })
     }
@@ -346,7 +346,7 @@ impl AmbassadorActivated {
         game.dequeue_intrusion(IntrusionType::Ambassador)?;
 
         if let (false, Some(territory)) = (self.passed, territory) {
-            game.ambassadors_on_planet.remove(&territory);
+            game.board.ambassadors_on_planet.remove(&territory);
             game.stone(Milestone::AmbassadorActivated);
 
             let ecaz = self.get_player(game, Some(Faction::Ecaz));
@@ -358,7 +358,7 @@ impl AmbassadorActivated {
                 game.player_mut(ecaz.required("ecaz")?).ambassadors.push(ambassador_faction);
                 self.log_objects(game, elems!["The ", ambassador_faction, " Ambassador returns to supply"]);
             } else {
-                game.ambassadors_set_aside.push(ambassador_faction);
+                game.decks.ambassadors_set_aside.push(ambassador_faction);
                 self.log_objects(game, elems!["The ", ambassador_faction, " Ambassador is set aside"]);
             }
 
@@ -369,7 +369,7 @@ impl AmbassadorActivated {
                 .player(ecaz)
                 .ambassadors
                 .iter()
-                .chain(game.ambassadors_on_planet.values())
+                .chain(game.board.ambassadors_on_planet.values())
                 .all(|f| *f == Ambassador::Ecaz);
             if all_ecaz {
                 game.assign_random_ambassadors(ecaz);
@@ -427,7 +427,7 @@ impl AmbassadorActivated {
                             express_part_if!(self.ecaz_give_vidal_to_ally; " offering ", vidal, " if they accept")
                         ],
                     );
-                    game.ship_move.paused_ambassador_phase = game.current_phase;
+                    game.ship_move.paused_ambassador_phase = game.turn.current_phase;
                     game.enter(Phase::AllianceByAmbassador, true);
                 } else {
                     if game.ship_move.current_ambassador_activated.as_ref().required("current ambassador activated")?.ecaz_take_vidal {

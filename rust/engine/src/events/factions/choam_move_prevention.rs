@@ -24,11 +24,11 @@ impl ChoamMovePrevention {
     }
 
     pub fn territory(&self, game: &Game) -> Option<Territory> {
-        game.map.territory_lookup().find(self.territory_id)
+        game.board.map.territory_lookup().find(self.territory_id)
     }
 
     pub fn set_territory(&mut self, game: &Game, value: Option<Territory>) {
-        self.territory_id = game.map.territory_lookup().get_id(value);
+        self.territory_id = game.board.map.territory_lookup().get_id(value);
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {

@@ -36,15 +36,15 @@ macro_rules! elems {
 
 impl Game {
     pub fn enter_storm_phase(&mut self) {
-        self.current_turn += 1;
+        self.turn.current_turn += 1;
         self.main_phase_start(MainPhase::Storm, true);
         self.revival.factions_that_revived_special_forces_this_turn.clear();
         self.storm.storm_losses_to_take.clear();
         self.storm.current_testing_station_used = false;
 
-        if self.current_turn == 1 {
+        if self.turn.current_turn == 1 {
             self.storm.dials.clear();
-            self.has_acted_or_passed.clear();
+            self.turn.has_acted_or_passed.clear();
             self.enter(Phase::DiallingStorm, true);
         } else if !self.collection.just_revealed_discovery_strongholds.is_empty() {
             self.enter(Phase::BeginningOfStorm, true);
@@ -57,7 +57,7 @@ impl Game {
 
     pub fn move_hms_before_dialling_storm(&mut self) {
         let ixian = self.get_player(Some(Faction::Ixian));
-        let hms = self.map.hidden_mobile_stronghold();
+        let hms = self.board.map.hidden_mobile_stronghold();
         if let Some(_ixian) = ixian.filter(|g| self.player(*g).any_forces_in(Some(hms.location())) > 0) {
             if self.prevented(FactionAdvantage::IxianMovingHms) {
                 self.log_prevention_by_karma(FactionAdvantage::IxianMovingHms);
@@ -68,7 +68,7 @@ impl Game {
             } else if self.has_low_threshold(Faction::Ixian) {
                 self.log_prevention_by_low_threshold(FactionAdvantage::IxianMovingHms);
                 self.determine_storm();
-            } else if hms.attached_to_location(&self.map).map(|l| l.sector(&self.map)) == Some(self.sector_in_storm) {
+            } else if hms.attached_to_location(&self.board.map).map(|l| l.sector(&self.board.map)) == Some(self.board.sector_in_storm) {
                 self.log(elems!["The storm prevents ", hms, " from moving"]);
                 self.determine_storm();
             } else {
@@ -89,21 +89,21 @@ impl Game {
             self.reveal_storm();
         } else {
             self.storm.dials.clear();
-            self.has_acted_or_passed.clear();
+            self.turn.has_acted_or_passed.clear();
             self.enter(Phase::DiallingStorm, true);
         }
     }
 
     pub fn reveal_storm(&mut self) {
-        self.has_acted_or_passed.clear();
-        let msg = express!("The storm will move ", self.next_storm_moves, " sectors...")
-            .with_log(StormForecast::new(self.next_storm_moves));
+        self.turn.has_acted_or_passed.clear();
+        let msg = express!("The storm will move ", self.board.next_storm_moves, " sectors...")
+            .with_log(StormForecast::new(self.board.next_storm_moves));
         self.log(elems![msg]);
         self.enter(Phase::MetheorAndStormSpell, true);
     }
 
     pub fn collect_spice_from(&mut self, faction: Faction, l: Location, maximum_amount: i32) {
-        let Some(value) = self.resources_on_planet.get(&l).copied() else { return };
+        let Some(value) = self.board.resources_on_planet.get(&l).copied() else { return };
 
         let collected = value.min(maximum_amount);
         self.change_resources_on_planet(l, -collected);
@@ -119,12 +119,12 @@ impl Game {
         }
 
         for _ in 0..amount.max(0) {
-            self.sector_in_storm = (self.sector_in_storm + 1) % Map::NUMBER_OF_SECTORS;
+            self.board.sector_in_storm = (self.board.sector_in_storm + 1) % Map::NUMBER_OF_SECTORS;
             self.perform_storm();
         }
 
         if self.use_storm_deck() {
-            self.next_storm_moves = self.determine_later_storm_with_storm_deck();
+            self.board.next_storm_moves = self.determine_later_storm_with_storm_deck();
         }
 
         self.stone(Milestone::Storm);
@@ -140,7 +140,7 @@ impl Game {
             let key = *key;
             // The Where predicate is checked lazily per element; SectorInStorm does not
             // change inside the loop.
-            if !(key.sector(&self.map) == self.sector_in_storm && !self.is_protected_from_storm(key)) {
+            if !(key.sector(&self.board.map) == self.board.sector_in_storm && !self.is_protected_from_storm(key)) {
                 continue;
             }
 
@@ -197,19 +197,19 @@ impl Game {
         let strongholds: Vec<Territory> = self
             .strongholds()
             .into_iter()
-            .filter(|s| s.locations().iter().any(|l| l.sector(&self.map) == self.sector_in_storm && !self.is_protected_from_storm(*l)))
+            .filter(|s| s.locations().iter().any(|l| l.sector(&self.board.map) == self.board.sector_in_storm && !self.is_protected_from_storm(*l)))
             .collect();
         for t in strongholds {
             let ambassador = self.ambassador_in(t);
             if ambassador != Ambassador::None {
                 let Some(ecaz) = self.get_player(Some(Faction::Ecaz)) else { continue };
-                self.ambassadors_on_planet.remove(&t);
+                self.board.ambassadors_on_planet.remove(&t);
                 self.player_mut(ecaz).ambassadors.push(ambassador);
                 self.log(elems!["The ambassador in ", t, " returns to ", Faction::Ecaz]);
             }
         }
 
-        let locations: Vec<Location> = self.map.locations(false).filter(|l| l.sector(&self.map) == self.sector_in_storm).collect();
+        let locations: Vec<Location> = self.board.map.locations(false).filter(|l| l.sector(&self.board.map) == self.board.sector_in_storm).collect();
         for l in locations {
             let removed = self.remove_resources(l);
             if removed > 0 {
@@ -240,10 +240,10 @@ impl Game {
     }
 
     pub fn is_protected_from_storm(&self, l: Location) -> bool {
-        if !self.shield_wall_destroyed {
+        if !self.board.shield_wall_destroyed {
             return l.territory().is_protected_from_storm();
         }
         l.territory().is_protected_from_storm()
-            && !(l.id() == self.map.arrakeen().id() || l.territory() == self.map.imperial_basin() || l.id() == self.map.carthag().id())
+            && !(l.id() == self.board.map.arrakeen().id() || l.territory() == self.board.map.imperial_basin() || l.id() == self.board.map.carthag().id())
     }
 }

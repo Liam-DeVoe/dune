@@ -25,19 +25,19 @@ impl Game {
         self.players
             .iter()
             .map(|p| p.faction)
-            .find(|f| !self.has_acted_or_passed.contains(f))
+            .find(|f| !self.turn.has_acted_or_passed.contains(f))
             .unwrap_or_default()
     }
 
     pub fn enter_phase_awaiting_players(&mut self) {
         self.players = Vec::new();
-        self.current_turn = 0;
+        self.turn.current_turn = 0;
         self.enter(Phase::AwaitingPlayers, true);
     }
 
     pub fn assign_factions_and_enter_faction_trade(&mut self) {
         // The Deck constructor copies its source, so evaluating the filter here is equivalent.
-        let all = self.factions_in_play.borrow().clone();
+        let all = self.rules.factions_in_play.borrow().clone();
         let available_factions: Vec<Faction> = all.into_iter().filter(|f| !self.is_playing(*f)).collect();
         let mut selectable = Deck::new(available_factions, self.random.clone());
         self.stone(Milestone::Shuffled);
@@ -56,7 +56,7 @@ impl Game {
     pub fn determine_positions_at_table(&mut self) {
         let mut seats: Deck<i32> = Deck::empty(self.random.clone());
         let mut i = 0;
-        while i < self.settings.as_ref().expect("settings").borrow().number_of_players {
+        while i < self.rules.settings.as_ref().expect("settings").borrow().number_of_players {
             seats.put_on_top(i);
             i += 1;
         }
@@ -95,8 +95,8 @@ impl Game {
 
             if self.applicable(Rule::EcazLoyalty) {
                 let leaders = self.player(ecaz).leaders.clone();
-                self.ecaz_loyal_leader = leaders.into_iter().random_item(self.random.as_ref().expect("random"));
-                let pll = self.ecaz_loyal_leader;
+                self.leaders.ecaz_loyal_leader = leaders.into_iter().random_item(self.random.as_ref().expect("random"));
+                let pll = self.leaders.ecaz_loyal_leader;
                 self.log(vec![pll.into(), " is forever loyal to ".into(), Faction::Ecaz.into()]);
             }
         }
@@ -109,7 +109,7 @@ impl Game {
     pub fn deal_traitors(&mut self) {
         self.stone(Milestone::Shuffled);
         let random = self.random.clone();
-        self.traitor_deck = Some(self.create_and_shuffle_traitor_deck(random));
+        self.decks.traitor_deck = Some(self.create_and_shuffle_traitor_deck(random));
 
         if self.applicable(Rule::HarkonnenMulligan) && self.is_playing(Faction::Harkonnen) {
             self.deal_harkonnen_traitor_cards();
@@ -118,7 +118,7 @@ impl Game {
             for _i in 1..=4 {
                 for p in 0..self.players.len() {
                     if self.players[p].faction != Faction::Tleilaxu {
-                        let traitor = self.traitor_deck.as_mut().expect("traitor deck").draw();
+                        let traitor = self.decks.traitor_deck.as_mut().expect("traitor deck").draw();
                         self.players[p].traitors.push(traitor);
                     }
                 }
@@ -133,7 +133,7 @@ impl Game {
     pub fn create_and_shuffle_traitor_deck(&mut self, random: Option<SharedRandom>) -> Deck<Hero> {
         let mut result = Deck::new(self.traitors_in_play(), random);
 
-        if let Some(pll) = self.ecaz_loyal_leader {
+        if let Some(pll) = self.leaders.ecaz_loyal_leader {
             let hero = Hero::Leader(pll);
             if let Some(i) = result.items.iter().position(|h| *h == hero) {
                 result.items.remove(i);
@@ -159,20 +159,20 @@ impl Game {
             return;
         };
         for _i in 1..=4 {
-            let traitor = self.traitor_deck.as_mut().expect("traitor deck").draw();
+            let traitor = self.decks.traitor_deck.as_mut().expect("traitor deck").draw();
             self.player_mut(harkonnen).traitors.push(traitor);
         }
     }
 
     pub fn enter_select_traitors(&mut self) {
-        self.has_acted_or_passed.clear();
+        self.turn.has_acted_or_passed.clear();
 
         if self.is_playing(Faction::Harkonnen) {
-            self.has_acted_or_passed.push(Faction::Harkonnen);
+            self.turn.has_acted_or_passed.push(Faction::Harkonnen);
         }
 
         if self.is_playing(Faction::Tleilaxu) {
-            self.has_acted_or_passed.push(Faction::Tleilaxu);
+            self.turn.has_acted_or_passed.push(Faction::Tleilaxu);
         }
 
         let condition = self.players.iter().any(|p| !(p.is(Faction::Harkonnen) || p.is(Faction::Tleilaxu)));
@@ -182,9 +182,9 @@ impl Game {
     pub fn assign_face_dancers(&mut self) {
         let tleilaxu = self.get_player(Some(Faction::Tleilaxu));
         if let Some(tleilaxu) = tleilaxu {
-            self.traitor_deck.as_mut().expect("traitor deck").shuffle();
+            self.decks.traitor_deck.as_mut().expect("traitor deck").shuffle();
             for _i in 0..3 {
-                let leader = self.traitor_deck.as_mut().expect("traitor deck").draw();
+                let leader = self.decks.traitor_deck.as_mut().expect("traitor deck").draw();
                 self.player_mut(tleilaxu).face_dancers.push(leader);
                 self.player_mut(tleilaxu).known_non_traitors.insert(leader);
             }
@@ -199,14 +199,14 @@ impl Game {
 
     pub fn assign_leader_skills(&mut self) {
         if self.applicable(Rule::LeaderSkills) {
-            self.skill_deck = Some(Deck::new(get_values_except_default(LeaderSkill::None), self.random.clone()));
-            self.skill_deck.as_mut().expect("skill deck").shuffle();
+            self.decks.skill_deck = Some(Deck::new(get_values_except_default(LeaderSkill::None), self.random.clone()));
+            self.decks.skill_deck.as_mut().expect("skill deck").shuffle();
             self.stone(Milestone::Shuffled);
 
             let nr_of_skills_to_assign = if self.players.len() <= 7 { 2 } else { 1 };
             for _i in 0..nr_of_skills_to_assign {
                 for p in 0..self.players.len() {
-                    let skill = self.skill_deck.as_mut().expect("skill deck").draw();
+                    let skill = self.decks.skill_deck.as_mut().expect("skill deck").draw();
                     self.players[p].skills_to_choose_from.push(skill);
                 }
             }
@@ -229,7 +229,7 @@ impl Game {
         }
 
         if self.applicable(Rule::CustomInitialForcesAndResources) {
-            self.has_acted_or_passed.clear();
+            self.turn.has_acted_or_passed.clear();
             self.enter(Phase::PerformCustomSetup, true);
         } else {
             for p in 0..self.players.len() {
@@ -253,7 +253,7 @@ impl Game {
     pub fn setup_player_homeworld(&mut self, p: PlayerIndex) {
         let faction = self.player(p).faction;
         let normal_force_world = self
-            .map
+            .board.map
             .homeworlds()
             .find(|w| w.faction() == faction && w.is_home_of_normal_forces()).expect("a normal force homeworld");
 
@@ -270,7 +270,7 @@ impl Game {
                 if self.applicable(Rule::EmperorSpecialForces) {
                     let faction = self.player(p).faction;
                     let special_world = self
-                        .map
+                        .board.map
                         .homeworlds()
                         .find(|w| w.faction() == faction && w.is_home_of_special_forces()).expect("a special force homeworld");
                     Player::initialize_homeworld(self, p, special_world, 0, 5);
@@ -305,13 +305,13 @@ impl Game {
 
             Faction::Atreides => {
                 self.player_mut(p).resources = 10;
-                let l = self.map.arrakeen();
+                let l = self.board.map.arrakeen();
                 Player::add_forces(self, p, l, 10, true);
             }
 
             Faction::Harkonnen => {
                 self.player_mut(p).resources = 10;
-                let l = self.map.carthag();
+                let l = self.board.map.carthag();
                 Player::add_forces(self, p, l, 10, true);
             }
 
@@ -321,21 +321,21 @@ impl Game {
 
             Faction::Guild => {
                 self.player_mut(p).resources = 5;
-                let l = self.map.tueks_sietch();
+                let l = self.board.map.tueks_sietch();
                 Player::add_forces(self, p, l, 5, true);
             }
 
             Faction::BeneGesserit => {
                 self.player_mut(p).resources = 5;
                 if !PerformBeneGesseritPlacement::bene_gesserit_may_place_first_force_in_any_territory(self) {
-                    let l = self.map.polar_sink();
+                    let l = self.board.map.polar_sink();
                     Player::add_forces(self, p, l, 1, true);
                 }
             }
 
             Faction::Ixian => {
                 self.player_mut(p).resources = 10;
-                let l: Location = self.map.hidden_mobile_stronghold().into();
+                let l: Location = self.board.map.hidden_mobile_stronghold().into();
                 Player::add_forces(self, p, l, 3, true);
                 Player::add_special_forces(self, p, l, 3, true);
             }
@@ -354,7 +354,7 @@ impl Game {
 
             Faction::Ecaz => {
                 self.player_mut(p).resources = 12;
-                let l = self.map.imperial_basin().middle_location();
+                let l = self.board.map.imperial_basin().middle_location();
                 Player::add_forces(self, p, l, 6, true);
             }
 
@@ -368,7 +368,7 @@ impl Game {
 
     pub fn assign_initial_ambassadors(&mut self, p: PlayerIndex) {
         self.player_mut(p).ambassadors.push(Ambassador::Ecaz);
-        let items = &mut self.unassigned_ambassadors.as_mut().expect("unassigned ambassadors").items;
+        let items = &mut self.decks.unassigned_ambassadors.as_mut().expect("unassigned ambassadors").items;
         if let Some(i) = items.iter().position(|a| *a == Ambassador::Ecaz) {
             items.remove(i);
         }
@@ -378,18 +378,18 @@ impl Game {
     }
 
     pub fn assign_random_ambassadors(&mut self, p: PlayerIndex) {
-        let set_aside = self.ambassadors_set_aside.clone();
+        let set_aside = self.decks.ambassadors_set_aside.clone();
         for item in set_aside {
-            self.unassigned_ambassadors.as_mut().expect("unassigned ambassadors").items.push(item);
+            self.decks.unassigned_ambassadors.as_mut().expect("unassigned ambassadors").items.push(item);
         }
-        self.ambassadors_set_aside.clear();
+        self.decks.ambassadors_set_aside.clear();
 
-        self.unassigned_ambassadors.as_mut().expect("unassigned ambassadors").shuffle();
+        self.decks.unassigned_ambassadors.as_mut().expect("unassigned ambassadors").shuffle();
         self.stone(Milestone::Shuffled);
         let faction = self.player(p).faction;
         self.log(vec![faction.into(), " get 5 random Ambassadors".into()]);
         for _i in 0..5 {
-            let ambassador = self.unassigned_ambassadors.as_mut().expect("unassigned ambassadors").draw();
+            let ambassador = self.decks.unassigned_ambassadors.as_mut().expect("unassigned ambassadors").draw();
             self.player_mut(p).ambassadors.push(ambassador);
         }
     }
@@ -397,12 +397,12 @@ impl Game {
     pub fn deal_starting_treachery_cards(&mut self) {
         self.setup.starting_treachery_cards = Some(Deck::empty(self.random.clone()));
         for p in 0..self.players.len() {
-            let card = self.treachery_deck.as_mut().expect("treachery deck").draw();
+            let card = self.decks.treachery_deck.as_mut().expect("treachery deck").draw();
             self.drop_copy_in_richese_cache(card);
             self.setup.starting_treachery_cards.as_mut().expect("starting treachery cards").items.push(card);
 
             if self.players[p].is(Faction::Harkonnen) {
-                let extra = self.treachery_deck.as_mut().expect("treachery deck").draw();
+                let extra = self.decks.treachery_deck.as_mut().expect("treachery deck").draw();
                 self.drop_copy_in_richese_cache(extra);
                 self.setup.extra_starting_card_for_harkonnen = Some(extra);
             }

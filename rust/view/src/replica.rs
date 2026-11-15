@@ -125,12 +125,12 @@ impl ViewReplica {
     pub fn undo_list(&self) -> Vec<UndoEntry> {
         let d = crate::describe::InGame::new(self.describer.as_ref(), &self.game);
         self.game
-            .history
+            .history.entries
             .iter()
             .enumerate()
             .map(|(i, e)| {
                 // Moment n - 1 holds the turn and phase event n happened in.
-                let moment = i.checked_sub(1).and_then(|m| self.game.moments.get(m));
+                let moment = i.checked_sub(1).and_then(|m| self.game.history.moments.get(m));
                 UndoEntry {
                     event_number: i as i32,
                     text: crate::expr::message(&e.get_short_message(&self.game), &d),
@@ -147,10 +147,10 @@ impl ViewReplica {
     /// replica's history into a new game with the same participation, so this replica is not
     /// touched. A preview can't be acted on, so the view has no actions and no card plays.
     pub fn preview(&self, viewer: Viewer, gap: i32) -> Result<GameView, String> {
-        let count = self.game.history.len() as i32;
+        let count = self.game.history.entries.len() as i32;
         let gap = gap.clamp(1.min(count), count) as usize;
-        let mut game = Game::with_participation(self.game.version, &self.game.participation);
-        for (nr, e) in self.game.history.iter().take(gap).enumerate() {
+        let mut game = Game::with_participation(self.game.rules.version, &self.game.participation);
+        for (nr, e) in self.game.history.entries.iter().take(gap).enumerate() {
             // A copy of the event, so the replica's history stays bound to the replica's game.
             let copy: GameEvent = json::deserialize(&json::serialize(e)).map_err(|e| format!("event {nr}: {e:?}"))?;
             copy.initialize_game(&game);

@@ -26,11 +26,11 @@ impl KarmaHmsMovement {
     }
 
     pub fn target(&self, game: &Game) -> Option<Location> {
-        game.map.location_lookup().find(self.target_id)
+        game.board.map.location_lookup().find(self.target_id)
     }
 
     pub fn set_target(&mut self, game: &Game, value: Option<Location>) {
-        self.target_id = game.map.location_lookup().get_id(value);
+        self.target_id = game.board.map.location_lookup().get_id(value);
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
@@ -44,16 +44,16 @@ impl KarmaHmsMovement {
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_locations(g: &Game) -> impl Iterator<Item = Location> {
         // AttachedToLocation is null only when the HMS was never placed; FindNeighboursForHmsMovement then throws.
-        let start = g.map.hidden_mobile_stronghold().attached_to_location(&g.map).expect("attached to location");
-        g.map
-            .find_neighbours_for_hms_movement(start, 1, false, g.sector_in_storm)
+        let start = g.board.map.hidden_mobile_stronghold().attached_to_location(&g.board.map).expect("attached to location");
+        g.board.map
+            .find_neighbours_for_hms_movement(start, 1, false, g.board.sector_in_storm)
             .into_iter()
             .filter(move |l| !l.is_stronghold())
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let me = self.player();
-        let hms = game.map.hidden_mobile_stronghold();
+        let hms = game.board.map.hidden_mobile_stronghold();
         let collection_rate = game.player(me).any_forces_in(Some(hms.location())) * 2;
         if !game.player(me).special_karma_power_used {
             let card = Karma::valid_karma_cards(game, me).into_iter().next();
@@ -69,12 +69,12 @@ impl KarmaHmsMovement {
             self.log(game);
         }
 
-        let current_location = hms.attached_to_location(&game.map).required("the location of the HMS")?;
+        let current_location = hms.attached_to_location(&game.board.map).required("the location of the HMS")?;
         game.collect_spice_from(self.initiator(), current_location, collection_rate);
 
         if !self.passed {
             let target = self.target(game).required("target")?;
-            hms.point_at(&mut game.map, target);
+            hms.point_at(&mut game.board.map, target);
             game.collect_spice_from(self.initiator(), target, collection_rate);
             game.storm.karma_hms_moves_left -= 1;
             game.stone(Milestone::HmsMovement);
@@ -87,7 +87,7 @@ impl KarmaHmsMovement {
     }
 
     pub fn get_message(&self, game: &Game) -> Message {
-        let hms = game.map.hidden_mobile_stronghold();
+        let hms = game.board.map.hidden_mobile_stronghold();
         if !self.passed {
             return express!("Using ", TreacheryCardType::Karma, ", ", self.initiator(), " move the ", hms, " to ", self.target(game));
         }

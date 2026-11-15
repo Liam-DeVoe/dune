@@ -67,14 +67,14 @@ impl ClassicBot {
         let faction = self.faction(game);
         let ally = self.ally(game);
         let me = game.player(self.player);
-        let storm_end = (game.sector_in_storm + game.next_storm_moves) % N;
+        let storm_end = (game.board.sector_in_storm + game.board.next_storm_moves) % N;
 
         let holds_weakly = |p: &Player, l: Location| p.occupies(game, Some(l)) && p.any_forces_in(Some(l)) < 6;
         // What the storm passing over `sector` gains me: enemy losses and weakly held strongholds of mine
         // (worth 3 forces each) minus my own losses and enemy strongholds.
         let score = |sector: i32| {
             let locations: Vec<Location> =
-                game.map.locations(false).filter(|l| l.sector(&game.map) == sector && !l.is_protected_from_storm()).collect();
+                game.board.map.locations(false).filter(|l| l.sector(&game.board.map) == sector && !l.is_protected_from_storm()).collect();
             // Mine and my ally's (C# had `&&`, which no faction matches, so it always counted 0).
             let my_forces_killed = forces_in(game, &locations, |f| f == faction || (ally != Faction::None && f == ally));
             let my_strongholds = locations
@@ -200,8 +200,8 @@ impl ClassicBot {
             Faction::Harkonnen | Faction::Tleilaxu => game.battle.current_battle.as_ref().expect("current battle").is_involved(game, self.player),
 
             Faction::Fremen => {
-                (game.current_main_phase == MainPhase::Blow && FremenRidesMonster::is_applicable(game))
-                    || (game.current_main_phase == MainPhase::ShipmentAndMove
+                (game.turn.current_main_phase == MainPhase::Blow && FremenRidesMonster::is_applicable(game))
+                    || (game.turn.current_main_phase == MainPhase::ShipmentAndMove
                         && self
                             .almost_winning_opponents_i_wish_to_attack(game, 0, true)
                             .into_iter()
@@ -209,14 +209,14 @@ impl ClassicBot {
             }
 
             Faction::Emperor => {
-                let ally_bids_high = game.current_main_phase == MainPhase::Bidding
+                let ally_bids_high = game.turn.current_main_phase == MainPhase::Bidding
                     && game.bidding.current_bid.as_ref().is_some_and(|bid| {
                         game.player(bid.bid_player().expect("i bid player")).ally == Faction::Emperor
                             && bid.bid_total_amount() > 5
                             && !game.prevented(FactionAdvantage::EmperorReceiveBid)
                     });
                 ally_bids_high
-                    || (game.current_main_phase == MainPhase::Battle
+                    || (game.turn.current_main_phase == MainPhase::Battle
                         && self.is_winning_or_is_opponent_in_battle(game, Faction::Emperor)
                         && game
                             .player(game.get_player(Some(Faction::Emperor)).expect("player"))
@@ -249,7 +249,7 @@ impl ClassicBot {
             }
 
             Faction::Ecaz => {
-                game.current_phase == Phase::ResurrectionReport
+                game.turn.current_phase == Phase::ResurrectionReport
                     && match self.determine_territory_to_remove_ecaz_from(game) {
                         Some(t) => {
                             result.set_ecaz_territory(game, Some(t));
@@ -261,9 +261,9 @@ impl ClassicBot {
 
             Faction::Moritani => {
                 let faction = self.faction(game);
-                let my_shipment_turn = (faction == Faction::Guild && game.current_phase == Phase::GuildShip && !game.guild_may_delay())
+                let my_shipment_turn = (faction == Faction::Guild && game.turn.current_phase == Phase::GuildShip && !game.guild_may_delay())
                     || (faction != Faction::Guild
-                        && game.current_phase == Phase::NonGuildShip
+                        && game.turn.current_phase == Phase::NonGuildShip
                         && game.ship_move.shipment_and_move_sequence.as_ref().expect("shipment and move sequence").current_player(game) == Some(self.player));
                 my_shipment_turn && {
                     let territory = self.determine_shipment(game).to(game).expect("destination").territory();
@@ -310,7 +310,7 @@ impl ClassicBot {
 
     /// The current battle, if it is the battle phase and I am the aggressor or defender.
     fn battle_im_fighting<'g>(&self, game: &'g Game) -> Option<&'g Rc<BattleInitiated>> {
-        if game.current_phase != Phase::BattlePhase {
+        if game.turn.current_phase != Phase::BattlePhase {
             return None;
         }
         game.battle.current_battle.as_ref().filter(|b| b.is_aggressor_or_defender(game, self.player))
@@ -340,7 +340,7 @@ impl ClassicBot {
                 result.atreides_prescience_aspect != PrescienceAspect::None
             }),
 
-            Faction::Harkonnen => game.current_phase == Phase::ShipmentAndMoveConcluded && self.determine_worst_traitor(game).is_some(),
+            Faction::Harkonnen => game.turn.current_phase == Phase::ShipmentAndMoveConcluded && self.determine_worst_traitor(game).is_some(),
 
             Faction::Fremen => !game.blow.monsters.is_empty() && self.determine_moved_battalion(game, true).is_some(),
 
@@ -365,7 +365,7 @@ impl ClassicBot {
                 game.player(self.player).forces_in_territory(t) >= 3
             }
 
-            Faction::Tleilaxu => game.current_main_phase == MainPhase::Battle && !game.player(self.player).revealed_face_dancers.is_empty(),
+            Faction::Tleilaxu => game.turn.current_main_phase == MainPhase::Battle && !game.player(self.player).revealed_face_dancers.is_empty(),
 
             Faction::Ecaz => {
                 self.battle_im_fighting(game).is_some() && !game.vidal().is_some_and(|v| game.player(self.player).leaders.contains(&v))
@@ -387,7 +387,7 @@ impl ClassicBot {
 
             Faction::Harkonnen => self.determine_worst_traitor(game).is_some(),
 
-            Faction::Fremen => game.current_main_phase == MainPhase::Resurrection && game.player(self.player).forces_killed >= 3,
+            Faction::Fremen => game.turn.current_main_phase == MainPhase::Resurrection && game.player(self.player).forces_killed >= 3,
 
             Faction::Guild => {
                 let shipment = self.determine_shipment(game);
@@ -398,9 +398,9 @@ impl ClassicBot {
 
             Faction::Ixian => self.card_quality(game, game.bidding.card_just_won.expect("card just won"), Some(self.player)) < 2,
 
-            Faction::Tleilaxu => game.has_acted_or_passed.contains(&self.faction(game)) && self.plan_tleilaxu_secret_ally_revival(game, &mut result),
+            Faction::Tleilaxu => game.turn.has_acted_or_passed.contains(&self.faction(game)) && self.plan_tleilaxu_secret_ally_revival(game, &mut result),
 
-            Faction::Choam => match game.current_main_phase {
+            Faction::Choam => match game.turn.current_main_phase {
                 MainPhase::Collection => {
                     self.faction(game) != Faction::BeneGesserit && {
                         let card = NexusPlayed::valid_choam_cards(game, self.player).next();
@@ -512,7 +512,7 @@ impl ClassicBot {
     }
 
     pub fn determine_karma_shipment_prevention(&self, game: &Game) -> Option<Rc<KarmaShipmentPrevention>> {
-        if game.current_phase != Phase::NonGuildShip {
+        if game.turn.current_phase != Phase::NonGuildShip {
             return None;
         }
 
@@ -545,7 +545,7 @@ impl ClassicBot {
     }
 
     pub fn determine_karma_hand_swap_initiated(&self, game: &Game) -> Option<Rc<KarmaHandSwapInitiated>> {
-        if game.current_phase != Phase::BiddingReport {
+        if game.turn.current_phase != Phase::BiddingReport {
             return None;
         }
 
@@ -579,9 +579,9 @@ impl ClassicBot {
     }
 
     pub fn determine_harvester_played(&self, game: &Game) -> Option<Rc<HarvesterPlayed>> {
-        if game.current_turn > 1
-            && ((game.current_phase == Phase::HarvesterA && self.resources_in(game, game.blow.latest_spice_card_a.expect("latest spice card a").location().expect("location")) > 6)
-                || (game.current_phase == Phase::HarvesterB && self.resources_in(game, game.blow.latest_spice_card_b.expect("latest spice card b").location().expect("location")) > 6))
+        if game.turn.current_turn > 1
+            && ((game.turn.current_phase == Phase::HarvesterA && self.resources_in(game, game.blow.latest_spice_card_a.expect("latest spice card a").location().expect("location")) > 6)
+                || (game.turn.current_phase == Phase::HarvesterB && self.resources_in(game, game.blow.latest_spice_card_b.expect("latest spice card b").location().expect("location")) > 6))
         {
             return Some(Rc::new(HarvesterPlayed::new(game, self.faction(game))));
         }
@@ -608,7 +608,7 @@ impl ClassicBot {
             let opponent = battle.opponent_of(game, self.player);
             let wait_for_prescience_or_voice = battle.plan_of(game, opponent).is_none()
                 && (Prescience::may_use_prescience_opt(game, opponent) || Voice::may_use_voice_opt(game, opponent));
-            let asked_in_this_battle = game.latest_clairvoyance_battle.as_ref().is_some_and(|b| Rc::ptr_eq(b, battle));
+            let asked_in_this_battle = game.turn.latest_clairvoyance_battle.as_ref().is_some_and(|b| Rc::ptr_eq(b, battle));
 
             if !wait_for_prescience_or_voice && !asked_in_this_battle {
                 if let Some(e) = self.clairvoyance_about_battle_plan(game, battle) {
@@ -617,7 +617,7 @@ impl ClassicBot {
             }
         }
 
-        if game.current_phase == Phase::Bidding && !game.player(self.player).has_room_for_cards(game) {
+        if game.turn.current_phase == Phase::Bidding && !game.player(self.player).has_room_for_cards(game) {
             let me = game.player(self.player);
             // Looked up lazily: it fails when my ally isn't seated.
             let mut safe: Option<Vec<Hero>> = None;
@@ -716,7 +716,7 @@ impl ClassicBot {
 
     pub fn determine_clair_voyance_answered(&self, game: &Game) -> Rc<ClairVoyanceAnswered> {
         // Not caught below: without a question the whole decision fails.
-        let clairvoyance = game.latest_clairvoyance.as_ref().expect("latest clairvoyance");
+        let clairvoyance = game.turn.latest_clairvoyance.as_ref().expect("latest clairvoyance");
         let question = clairvoyance.question;
 
         let p1 = || clairvoyance.parameter1(game);
@@ -796,7 +796,7 @@ impl ClassicBot {
 
     pub fn determine_raise_dead_played(&self, game: &Game) -> Option<Rc<RaiseDeadPlayed>> {
         let me = game.player(self.player);
-        if !((game.current_main_phase == MainPhase::Bidding && !me.has_room_for_cards(game)) || game.current_main_phase == MainPhase::ShipmentAndMove) {
+        if !((game.turn.current_main_phase == MainPhase::Bidding && !me.has_room_for_cards(game)) || game.turn.current_main_phase == MainPhase::ShipmentAndMove) {
             return None;
         }
 
@@ -842,10 +842,10 @@ impl ClassicBot {
         let our_resources = self.resources(game) + ally_resources;
 
         let play = if self.faction(game) == Faction::Guild {
-            game.current_phase == Phase::Resurrection && opponents_resources() > 2 * our_resources
+            game.turn.current_phase == Phase::Resurrection && opponents_resources() > 2 * our_resources
         } else {
-            game.current_turn > 1
-                && game.current_main_phase == MainPhase::Bidding
+            game.turn.current_turn > 1
+                && game.turn.current_main_phase == MainPhase::Bidding
                 && opponents_resources() > 10
                 && opponents_resources() > (self.opponents(game).len() as i32 + 1) * our_resources
         };
@@ -866,7 +866,7 @@ impl ClassicBot {
     pub fn determine_metheor_played(&self, game: &Game) -> Option<Rc<MetheorPlayed>> {
         let faction = self.faction(game);
         let ally = self.ally(game);
-        let targets = [game.map.arrakeen(), game.map.carthag()];
+        let targets = [game.board.map.arrakeen(), game.board.map.carthag()];
         let others = forces_in(game, &targets, |f| f != faction && f != ally);
         let ours = forces_in(game, &targets, |f| f == faction || f == ally);
 
@@ -916,9 +916,9 @@ impl ClassicBot {
         let mut options = vec![StormKills { moves: 0, mine: 0, enemy: 0 }];
         let (mut mine, mut enemy) = (0, 0);
         for moves in 1..=10 {
-            let sector = (game.sector_in_storm + moves) % Map::NUMBER_OF_SECTORS;
+            let sector = (game.board.sector_in_storm + moves) % Map::NUMBER_OF_SECTORS;
             let affected_locations: Vec<Location> =
-                game.map.locations(false).filter(|l| l.sector(&game.map) == sector && !game.is_protected_from_storm(*l)).collect();
+                game.board.map.locations(false).filter(|l| l.sector(&game.board.map) == sector && !game.is_protected_from_storm(*l)).collect();
             mine += forces_in(game, &affected_locations, |f| f == faction || f == ally);
             enemy += forces_in(game, &affected_locations, |f| f != faction && f != ally);
             options.push(StormKills { moves, mine, enemy });
@@ -926,7 +926,7 @@ impl ClassicBot {
 
         let best = options.into_iter().random_highest(&self.random, |k| k.enemy - k.mine).expect("there are always 11 options");
 
-        if best.enemy - best.mine >= 10 - (game.current_turn + if game.player(self.player).has_room_for_cards(game) { 0 } else { 4 }) {
+        if best.enemy - best.mine >= 10 - (game.turn.current_turn + if game.player(self.player).has_room_for_cards(game) { 0 } else { 4 }) {
             let mut storm_spell = StormSpellPlayed::new(game, faction);
             storm_spell.move_amount = best.moves;
             return Some(Rc::new(storm_spell));
@@ -936,7 +936,7 @@ impl ClassicBot {
     }
 
     pub fn determine_distrans_used(&self, game: &Game) -> Option<Rc<DistransUsed>> {
-        if game.current_phase != Phase::WaitingForNextBiddingRound {
+        if game.turn.current_phase != Phase::WaitingForNextBiddingRound {
             return None;
         }
 
@@ -1078,13 +1078,13 @@ impl ClassicBot {
         let me = game.player(self.player);
         let few_or_vacant = |l: Location| self.vacant(game, l) || (me.any_forces_in(Some(l)) > 0 && me.any_forces_in(Some(l)) < 4);
         let first = |pred: &dyn Fn(Location) -> bool| valid_locations.iter().copied().find(|l| pred(*l));
-        let mut result = first(&|l| l == game.map.carthag() && few_or_vacant(l))
-            .or_else(|| first(&|l| l == game.map.arrakeen() && few_or_vacant(l)))
+        let mut result = first(&|l| l == game.board.map.carthag() && few_or_vacant(l))
+            .or_else(|| first(&|l| l == game.board.map.arrakeen() && few_or_vacant(l)))
             .or_else(|| first(&|l| self.resources_in(game, l) >= 4))
             .or_else(|| first(&|l| l.is_stronghold() && few_or_vacant(l)));
 
         if result.is_none() && me.forces_in_reserve() + me.special_forces_in_reserve() > 0 {
-            result = first(&|l| l == game.map.polar_sink());
+            result = first(&|l| l == game.board.map.polar_sink());
         }
 
         result
@@ -1133,7 +1133,7 @@ impl ClassicBot {
     }
 
     pub fn determine_discarded_searched_announced(&self, game: &Game) -> Option<Rc<DiscardedSearchedAnnounced>> {
-        if game.current_main_phase != MainPhase::Contemplate {
+        if game.turn.current_main_phase != MainPhase::Contemplate {
             return None;
         }
 
@@ -1163,13 +1163,13 @@ impl ClassicBot {
     }
 
     pub fn determine_juice_played(&self, game: &Game) -> Option<Rc<JuicePlayed>> {
-        let go_last_in_shipment = game.current_main_phase == MainPhase::ShipmentAndMove
-            && game.current_moment == MainPhaseMoment::Start
+        let go_last_in_shipment = game.turn.current_main_phase == MainPhase::ShipmentAndMove
+            && game.turn.current_moment == MainPhaseMoment::Start
             && self.faction(game) != Faction::Guild
             && game.ship_move.shipment_and_move_sequence.as_ref().expect("shipment and move sequence").get_players_in_sequence(game).last().and_then(|e| e.player) != Some(self.player);
         let go_last_in_battle = || {
-            game.current_main_phase == MainPhase::Battle
-                && game.current_moment == MainPhaseMoment::Start
+            game.turn.current_main_phase == MainPhase::Battle
+                && game.turn.current_moment == MainPhaseMoment::Start
                 && !Battle::battles_to_be_fought(game, self.player, false).is_empty()
         };
 
@@ -1184,7 +1184,7 @@ impl ClassicBot {
 
     pub fn determine_bureaucracy(&self, game: &Game) -> Rc<Bureaucracy> {
         let mut e = Bureaucracy::new(game, self.faction(game));
-        e.passed = game.target_of_bureaucracy == self.ally(game);
+        e.passed = game.turn.target_of_bureaucracy == self.ally(game);
         Rc::new(e)
     }
 

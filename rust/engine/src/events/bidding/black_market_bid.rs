@@ -164,7 +164,7 @@ impl BlackMarketBid {
 
         let mut enter_replacing_card_just_won = game.player(winner).nexus != Faction::None;
 
-        if game.player(winner).ally == Faction::Ixian && game.ixian_allows_replacing_cards {
+        if game.player(winner).ally == Faction::Ixian && game.alliances.ixian_allows_replacing_cards {
             if !game.prevented(FactionAdvantage::IxianAllyDiscardingCard) {
                 game.bidding.faction_that_may_replace_bought_card = game.player(winner).faction;
                 enter_replacing_card_just_won = true;

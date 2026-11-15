@@ -51,12 +51,12 @@ impl TraitorDiscarded {
         // A null Traitor (only reachable without validation) is added to the deck as null.
         let traitor = self.traitor();
         let traitor = traitor.required("traitor")?;
-        game.traitor_deck.as_mut().required("traitor deck")?.items.push(traitor);
+        game.decks.traitor_deck.as_mut().required("traitor deck")?.items.push(traitor);
         let me = self.player();
         crate::iter::remove_first(&mut game.player_mut(me).traitors, &traitor);
-        game.number_of_traitors_to_discard -= 1;
-        if game.number_of_traitors_to_discard == 0 {
-            let phase = game.phase_before_discarding_traitor;
+        game.turn.number_of_traitors_to_discard -= 1;
+        if game.turn.number_of_traitors_to_discard == 0 {
+            let phase = game.turn.phase_before_discarding_traitor;
             game.enter(phase, true);
         }
         Ok(())

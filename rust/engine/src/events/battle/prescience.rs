@@ -55,7 +55,7 @@ impl Prescience {
                 if g.player(p).faction == Faction::Atreides {
                     return battle.is_involved(g, p);
                 }
-                if g.player(p).ally == Faction::Atreides && g.atreides_shares_prescience {
+                if g.player(p).ally == Faction::Atreides && g.alliances.atreides_shares_prescience {
                     return battle.is_aggressor_or_defender(g, p);
                 }
             }

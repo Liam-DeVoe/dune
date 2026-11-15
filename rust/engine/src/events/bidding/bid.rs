@@ -216,7 +216,7 @@ impl Bid {
     /// was active, every automatic pass ended the bidding phase again, so the loop never
     /// stopped (fuzz seed 1 game 2, rust/docs/escapes.md).
     fn first_auto_passing_player(game: &Game) -> Option<PlayerIndex> {
-        if game.current_phase != Phase::Bidding {
+        if game.turn.current_phase != Phase::Bidding {
             return None;
         }
         (0..game.players.len())
@@ -333,7 +333,7 @@ impl Bid {
             game.bidding.cards_on_auction.as_mut().expect("cards on auction").shuffle();
 
             let card = game.bidding.cards_on_auction.as_mut().expect("cards on auction").draw();
-            game.treachery_deck.as_mut().expect("treachery deck").put_on_top(card);
+            game.decks.treachery_deck.as_mut().expect("treachery deck").put_on_top(card);
         }
 
         game.end_bidding_phase();
@@ -419,7 +419,7 @@ impl Bid {
                             return Ok(());
                         }
                         let card = game.bidding.cards_on_auction.as_mut().required("cards on auction")?.try_draw()?;
-                        game.removed_treachery_cards.push(card);
+                        game.decks.removed_treachery_cards.push(card);
                         game.register_won_card_as_known(card);
                         self.log_objects(game, vec![card.into(), " was removed from the game".into()]);
                         game.finish_bid(None, None, card, false);

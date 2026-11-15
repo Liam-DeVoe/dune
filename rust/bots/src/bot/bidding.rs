@@ -37,7 +37,7 @@ impl ClassicBot {
             && self.ally(game) != Faction::Emperor
             && (player.special_karma_power_used
                 || !self.param.karma_save_card_to_use_special_karma_ability
-                || game.current_turn >= 5
+                || game.turn.current_turn >= 5
                 || player.maximum_number_of_cards(game) - player.treachery_cards.len() as i32 <= 1);
         let karma_card_to_use_for_bidding = if could_use_karma_for_bid
             && ((self.may_use_useless_as_karma(game) && current_bid > 2) || current_bid > 4 || resources_available <= current_bid)

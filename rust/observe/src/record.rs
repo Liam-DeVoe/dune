@@ -83,7 +83,7 @@ impl<'a> Recorder<'a> {
         match self.sess.query(p, host) {
             Ok((result, types)) => {
                 if self.reach && p.is_some() {
-                    let phase = self.sess.game.current_phase;
+                    let phase = self.sess.game.turn.current_phase;
                     for t in &types {
                         let _ = self.tx.send(Msg::Text(format!("offered\t{}\t{phase}", t.name())));
                     }
@@ -104,7 +104,7 @@ impl<'a> Recorder<'a> {
         event.insert("Time".into(), Value::String(time_text(self.clock)));
         let event = Value::Object(event);
         self.events += 1;
-        let phase = self.sess.game.current_phase;
+        let phase = self.sess.game.turn.current_phase;
         let type_name = event.get("$type").and_then(|t| t.as_str()).unwrap_or("").to_string();
         let mut line = Line::Event { src: src.into(), p, host, event: event.clone(), outcome: Default::default() };
         self.begin(&line);
@@ -207,13 +207,13 @@ impl<'a> Recorder<'a> {
     /// Since v188 the alliance phase waits for every faction to pass, also seated humans, whom no
     /// bot plays to the end. Stand in for a human who hasn't passed yet.
     fn human_pass(&mut self) -> Result<Option<(Map<String, Value>, usize)>, Stop> {
-        if !matches!(self.sess.game.current_phase, Phase::AllianceA | Phase::AllianceB) {
+        if !matches!(self.sess.game.turn.current_phase, Phase::AllianceA | Phase::AllianceB) {
             return Ok(None);
         }
         for i in 0..self.sess.player_count() {
             let p = self.sess.game.player_at(i);
             let faction = self.sess.game.player(p).faction;
-            if self.sess.game.is_bot(p) || self.sess.game.has_acted_or_passed.contains(&faction) {
+            if self.sess.game.is_bot(p) || self.sess.game.turn.has_acted_or_passed.contains(&faction) {
                 continue;
             }
             let types = self.query(Some(i), false)?;
@@ -243,7 +243,7 @@ impl<'a> Recorder<'a> {
             }
         }
         if types.contains(&GameEventType::CardsDetermined) {
-            let cards: Vec<TreacheryCard> = game.treachery_deck.as_ref().map(|d| d.items.clone()).unwrap_or_default();
+            let cards: Vec<TreacheryCard> = game.decks.treachery_deck.as_ref().map(|d| d.items.clone()).unwrap_or_default();
             let richese = if game.is_playing(Faction::Richese) { TreacheryCardManager::get_richese_cards() } else { vec![] };
             let mut e = CardsDetermined::new(game, Faction::None);
             e.set_treachery_cards(&cards);
@@ -283,7 +283,7 @@ impl<'a> Recorder<'a> {
                 applicable.push((Some(i), self.query(Some(i), host)?));
             }
             applicable.push((None, self.query(None, host)?));
-            let phase = self.sess.game.current_phase;
+            let phase = self.sess.game.turn.current_phase;
             let f = self.fuzz.as_mut().unwrap();
             let Some((actor, t)) = f.steered_pick(&applicable, phase) else { return Ok(false) };
             let shadow = &self.shadow.as_ref().unwrap().game;
@@ -294,7 +294,7 @@ impl<'a> Recorder<'a> {
         }
         let actor = if n > 0 && f.rng.chance(0.85) { Some(f.rng.below(n)) } else { None };
         let types = self.query(actor, host)?;
-        let phase = self.sess.game.current_phase;
+        let phase = self.sess.game.turn.current_phase;
         let f = self.fuzz.as_mut().unwrap();
         // A seatless client only sends what is applicable to it (as host).
         let Some(t) = f.choose_type(&types, phase, actor.is_some()) else { return Ok(false) };
@@ -306,7 +306,7 @@ impl<'a> Recorder<'a> {
     }
 
     fn undo(&mut self) -> Result<(), Stop> {
-        let count = self.sess.game.history.len() as i32;
+        let count = self.sess.game.history.entries.len() as i32;
         let f = self.fuzz.as_mut().unwrap();
         let until = if f.rng.chance(0.7) { (count - f.rng.range(1, 6)).max(1) } else { f.rng.range(1, count) };
         self.special("undo", until)?;
@@ -335,9 +335,9 @@ impl<'a> Recorder<'a> {
                 }
             }
         }
-        if self.sess.game.current_phase == Phase::AwaitingPlayers {
+        if self.sess.game.turn.current_phase == Phase::AwaitingPlayers {
             self.submit(establish, "host", None, true)?;
-            if self.sess.game.current_phase == Phase::AwaitingPlayers {
+            if self.sess.game.turn.current_phase == Phase::AwaitingPlayers {
                 return Ok("setupFailed".into());
             }
         }
@@ -365,7 +365,7 @@ impl<'a> Recorder<'a> {
             cap = cap.min(3000);
         }
         let mut rejected_in_a_row = 0;
-        while self.sess.game.current_phase != Phase::GameEnded {
+        while self.sess.game.turn.current_phase != Phase::GameEnded {
             if self.events >= cap {
                 return Ok("cap".into());
             }
@@ -374,7 +374,7 @@ impl<'a> Recorder<'a> {
             }
             if self.fuzz.is_some() {
                 let r = self.fuzz.as_mut().unwrap().rng.f64();
-                if r < fuzz::UNDO && self.sess.game.history.len() > 3 {
+                if r < fuzz::UNDO && self.sess.game.history.entries.len() > 3 {
                     self.undo()?;
                     continue;
                 }
@@ -411,7 +411,7 @@ impl<'a> Recorder<'a> {
                 let f = self.fuzz.as_mut().unwrap();
                 let shadow = &self.shadow.as_ref().unwrap().game;
                 if fuzz::battle_in_progress(shadow) && f.rng.chance(fuzz::BATTLE_ACTION) {
-                    let phase = self.sess.game.current_phase;
+                    let phase = self.sess.game.turn.current_phase;
                     if let Some((i, t)) = f.battle_action(&queried, phase) {
                         if let Some(e) = f.build(shadow, Some(i), t) {
                             self.submit(e, "fuzz", Some(i), as_host)?;
@@ -422,7 +422,7 @@ impl<'a> Recorder<'a> {
             }
 
             if self.fuzz.is_some() && self.fuzz.as_mut().unwrap().rng.chance(fuzz::OPPORTUNISTIC) {
-                let phase = self.sess.game.current_phase;
+                let phase = self.sess.game.turn.current_phase;
                 let f = self.fuzz.as_mut().unwrap();
                 if let Some((actor, t)) = f.opportunistic(&queried, phase) {
                     let shadow = &self.shadow.as_ref().unwrap().game;
@@ -465,7 +465,7 @@ impl<'a> Recorder<'a> {
                 let mut key = event.clone();
                 key.remove("Time");
                 let g = &self.sess.game;
-                let key = (choice.p, format!("{} {} {}", g.current_turn, g.current_phase, Value::Object(key)));
+                let key = (choice.p, format!("{} {} {}", g.turn.current_turn, g.turn.current_phase, Value::Object(key)));
                 let f = self.fuzz.as_mut().unwrap();
                 f.repeats = if f.last_bot_event.as_ref() == Some(&key) { f.repeats + 1 } else { 0 };
                 f.last_bot_event = Some(key);

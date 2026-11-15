@@ -47,7 +47,7 @@ impl Donated {
         let may_donate = match self.player_opt() {
             Some(p) => Donated::may_donate(game, p),
             None => {
-                if game.current_phase == Phase::Bidding && game.bidding.current_bid.is_some() {
+                if game.turn.current_phase == Phase::Bidding && game.bidding.current_bid.is_some() {
                     return Some(express!("You are not playing"));
                 }
                 true

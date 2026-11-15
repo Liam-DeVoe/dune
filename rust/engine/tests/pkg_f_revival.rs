@@ -94,7 +94,7 @@ fn tleilaxu_revival_targets_union_killed_and_gholas() {
     g.player_mut(tleilaxu).leaders.push(ghola);
 
     // A dead emperor leader.
-    g.leader_state[&Hero::Leader(emperor_leaders[1])].kill(&mut None);
+    g.leaders.leader_state[&Hero::Leader(emperor_leaders[1])].kill(&mut None);
 
     let targets = RequestTleilaxuRevival::valid_targets(&g, emperor).collect::<Vec<_>>();
     assert_eq!(targets, vec![Hero::Leader(emperor_leaders[1]), Hero::Leader(ghola)]);

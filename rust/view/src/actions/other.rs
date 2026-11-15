@@ -250,21 +250,21 @@ fn current_permissions(game: &Game, faction: Faction, e: &mut AllyPermission) {
     e.permitted_resources = game.get_permitted_use_of_ally_resources(ally);
     e.set_permitted_karma_card(game.get_permitted_use_of_ally_karma(ally));
     match faction {
-        Faction::Tleilaxu => e.set_tleilaxu_allows_revival_discount(game.tleilaxu_allows_revival_discount),
-        Faction::Ixian => e.set_ixian_allows_replacing_cards(game.ixian_allows_replacing_cards),
-        Faction::Guild => e.set_guild_allows_shipping_discount(game.guild_allows_shipping_discount),
-        Faction::Emperor => e.emperor_will_pay_for_extra_revival = game.emperor_will_pay_for_extra_revival,
+        Faction::Tleilaxu => e.set_tleilaxu_allows_revival_discount(game.alliances.tleilaxu_allows_revival_discount),
+        Faction::Ixian => e.set_ixian_allows_replacing_cards(game.alliances.ixian_allows_replacing_cards),
+        Faction::Guild => e.set_guild_allows_shipping_discount(game.alliances.guild_allows_shipping_discount),
+        Faction::Emperor => e.emperor_will_pay_for_extra_revival = game.alliances.emperor_will_pay_for_extra_revival,
         Faction::Fremen => {
-            e.fremen_will_protect_from_monster = game.fremen_will_protect_from_monster;
-            e.fremen_allows_three_free_revivals = game.fremen_allows_three_free_revivals;
-            e.fremen_shares_prescience = game.fremen_shares_prescience;
-            e.fremen_refunds_battle_dial = game.fremen_refunds_battle_dial;
+            e.fremen_will_protect_from_monster = game.alliances.fremen_will_protect_from_monster;
+            e.fremen_allows_three_free_revivals = game.alliances.fremen_allows_three_free_revivals;
+            e.fremen_shares_prescience = game.alliances.fremen_shares_prescience;
+            e.fremen_refunds_battle_dial = game.alliances.fremen_refunds_battle_dial;
         }
-        Faction::Atreides => e.atreides_shares_prescience = game.atreides_shares_prescience,
-        Faction::BeneGesserit => e.bene_gesserit_allows_use_of_voice = game.bene_gesserit_allows_use_of_voice,
-        Faction::Richese => e.richese_allows_use_of_no_field = game.richese_allows_use_of_no_field,
-        Faction::Moritani => e.moritani_allows_keeping_cards = game.moritani_allows_keeping_cards,
-        Faction::Ecaz => e.ecaz_shares_ambassadors = game.ecaz_shares_ambassadors,
+        Faction::Atreides => e.atreides_shares_prescience = game.alliances.atreides_shares_prescience,
+        Faction::BeneGesserit => e.bene_gesserit_allows_use_of_voice = game.alliances.bene_gesserit_allows_use_of_voice,
+        Faction::Richese => e.richese_allows_use_of_no_field = game.alliances.richese_allows_use_of_no_field,
+        Faction::Moritani => e.moritani_allows_keeping_cards = game.alliances.moritani_allows_keeping_cards,
+        Faction::Ecaz => e.ecaz_shares_ambassadors = game.alliances.ecaz_shares_ambassadors,
         _ => {}
     }
 }
@@ -436,7 +436,7 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, draft: &GameEv
             m.target = required(m.target, &targets, Faction::None);
         }),
         GameEvent::KarmaRicheseBuy(e) => adjust!(e, |m| {
-            m.card_id = required(m.card_id, &card_ids(game.richese_cache.iter().copied()), none_card);
+            m.card_id = required(m.card_id, &card_ids(game.decks.richese_cache.iter().copied()), none_card);
         }),
         GameEvent::MulliganPerformed(e) => adjust!(e, |m| {
             m.passed = false;
@@ -553,7 +553,7 @@ fn options(game: &Game, p: PlayerIndex, v: &ResolvedViewer, draft: &GameEvent, d
             rule_types: AutomationConfigured::get_available_rule_types(game, p).into_iter().map(|r| enum_option(d, r)).collect(),
             bidding_factions: faction_options(AutomationConfigured::get_valid_bidding_factions(game, p)),
             rules: game
-                .automation_rules
+                .rules.automation_rules
                 .iter()
                 .filter(|r| r.base.initiator.get() == pl.faction)
                 .map(|r| AutomationRule {
@@ -672,7 +672,7 @@ fn options(game: &Game, p: PlayerIndex, v: &ResolvedViewer, draft: &GameEvent, d
                 draft: json.clone(),
             })
         }
-        GameEvent::KarmaRicheseBuy(_) => ActionOptions::KarmaRicheseBuy(cards(card_ids(game.richese_cache.iter().copied()))),
+        GameEvent::KarmaRicheseBuy(_) => ActionOptions::KarmaRicheseBuy(cards(card_ids(game.decks.richese_cache.iter().copied()))),
         GameEvent::MulliganPerformed(_) => ActionOptions::MulliganPerformed(MayOptions { may: MulliganPerformed::may_mulligan(game, p), draft: json.clone() }),
         GameEvent::NexusCardDrawn(_) => ActionOptions::NexusCardDrawn(MayOptions { may: NexusCardDrawn::may_draw(game, p), draft: json.clone() }),
         GameEvent::NexusPlayed(e) => ActionOptions::NexusPlayed(other_nexus::options(game, p, e, d, json.clone())),

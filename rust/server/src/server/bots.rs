@@ -49,7 +49,7 @@ impl Server {
         if speed <= 0 || g.scene {
             return;
         }
-        let delay = bot_delay(g.game.current_main_phase, g.game.latest_event_0().as_ref()) / speed as u64;
+        let delay = bot_delay(g.game.turn.current_main_phase, g.game.latest_event_0().as_ref()) / speed as u64;
         g.bot_turn += 1;
         self.services.timers.schedule(Duration::from_millis(delay), Timer::BotTurn { game: game.to_string(), turn: g.bot_turn });
     }
@@ -73,7 +73,7 @@ impl Server {
             let p = g.game.participation.borrow();
             (p.bots_speed, p.hosts.is_empty())
         };
-        if speed <= 0 || g.game.current_phase <= Phase::AwaitingPlayers || g.scene {
+        if speed <= 0 || g.game.turn.current_phase <= Phase::AwaitingPlayers || g.scene {
             return Ok(());
         }
         let bots_act_as_hosts = no_host && g.game.number_of_observers() > 0;

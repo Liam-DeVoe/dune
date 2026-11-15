@@ -87,7 +87,7 @@ pub struct HomeworldData {
 /// What `Map` reads from `Game`. `Game` implements this; tests use a stub.
 ///
 /// Some map code needs to ask the game about its state. It cannot take `&Game`
-/// while `game.map` is borrowed through the same `Game`, and `Map` must not
+/// while `game.board.map` is borrowed through the same `Game`, and `Map` must not
 /// depend on the whole `Game` type, so the calls it makes are listed here.
 pub trait MapGame {
     fn sector_in_storm(&self) -> i32;

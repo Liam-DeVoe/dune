@@ -31,7 +31,7 @@ impl AttachedLocation {
     ///
     /// ```ignore
     /// // Game.Map.HiddenMobileStronghold.PointAt(Game, Target);
-    /// game.map.hidden_mobile_stronghold().point_at(&mut game.map, target);
+    /// game.board.map.hidden_mobile_stronghold().point_at(&mut game.board.map, target);
     /// ```
     pub fn point_at(self, map: &mut Map, new_location: Location) {
         map.point_at(self.0, new_location)

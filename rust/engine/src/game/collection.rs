@@ -106,14 +106,14 @@ impl Game {
         if self.applicable(Rule::IncreasedResourceFlow) || self.applicable(Rule::ResourceBonusForStrongholds) {
             for i in 0..self.players.len() {
                 let player = self.player_at(i);
-                self.collect_resources_from_stronghold(self.map.arrakeen(), player, 2);
-                self.collect_resources_from_stronghold(self.map.carthag(), player, 2);
-                self.collect_resources_from_stronghold(self.map.tueks_sietch(), player, 1);
-                self.collect_resources_from_stronghold(self.map.cistern().location(), player, 2);
+                self.collect_resources_from_stronghold(self.board.map.arrakeen(), player, 2);
+                self.collect_resources_from_stronghold(self.board.map.carthag(), player, 2);
+                self.collect_resources_from_stronghold(self.board.map.tueks_sietch(), player, 1);
+                self.collect_resources_from_stronghold(self.board.map.cistern().location(), player, 2);
             }
         }
 
-        let homeworlds: Vec<Homeworld> = self.map.homeworlds().filter(|hw| hw.resource_amount() != 0).collect();
+        let homeworlds: Vec<Homeworld> = self.board.map.homeworlds().filter(|hw| hw.resource_amount() != 0).collect();
         for homeworld in homeworlds {
             if let Some(occupier) = self.occupier_of(homeworld.world()) {
                 let faction = self.player(occupier).faction;
@@ -139,11 +139,11 @@ impl Game {
     }
 
     pub fn collect_resources_from_territories(&mut self) {
-        let processing_station = self.map.processing_station().location();
+        let processing_station = self.board.map.processing_station().location();
         let find_thief = |g: &Game| g.player_indices().find(|p| g.player(*p).occupies(g, Some(processing_station)));
 
         // `.ToList()`: a snapshot of the pairs, in dictionary order.
-        let snapshot: Vec<(Location, i32)> = self.resources_on_planet.iter().filter(|(_, v)| **v > 0).map(|(k, v)| (*k, *v)).collect();
+        let snapshot: Vec<(Location, i32)> = self.board.resources_on_planet.iter().filter(|(_, v)| **v > 0).map(|(k, v)| (*k, *v)).collect();
         for (key, value) in snapshot {
             let mut thief = find_thief(self);
 
@@ -251,8 +251,8 @@ impl Game {
 
     pub fn resource_collection_rate(&self, p: PlayerIndex) -> i32 {
         let pl = self.player(p);
-        if pl.controls(self, self.map.arrakeen(), self.applicable(Rule::ContestedStongholdsCountAsOccupied))
-            || pl.controls(self, self.map.carthag(), self.applicable(Rule::ContestedStongholdsCountAsOccupied))
+        if pl.controls(self, self.board.map.arrakeen(), self.applicable(Rule::ContestedStongholdsCountAsOccupied))
+            || pl.controls(self, self.board.map.carthag(), self.applicable(Rule::ContestedStongholdsCountAsOccupied))
         {
             3
         } else {

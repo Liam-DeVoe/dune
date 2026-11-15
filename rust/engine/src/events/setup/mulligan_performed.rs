@@ -41,11 +41,11 @@ impl MulliganPerformed {
         if !self.passed {
             let me = self.player();
             // TraitorDeck is dereferenced before Player.Traitors is read.
-            game.traitor_deck.as_ref().required("traitor deck")?;
+            game.decks.traitor_deck.as_ref().required("traitor deck")?;
             let traitors = game.player(me).traitors.clone();
-            game.traitor_deck.as_mut().required("traitor deck")?.items.extend(traitors);
+            game.decks.traitor_deck.as_mut().required("traitor deck")?.items.extend(traitors);
             game.player_mut(me).traitors.clear();
-            game.traitor_deck.as_mut().required("traitor deck")?.shuffle();
+            game.decks.traitor_deck.as_mut().required("traitor deck")?.shuffle();
             game.stone(Milestone::Shuffled);
             game.deal_harkonnen_traitor_cards();
             game.enter(Phase::HarkonnenMulligan, true);
@@ -64,7 +64,7 @@ impl MulliganPerformed {
             for p in 0..game.players.len() {
                 let f = game.players[p].faction;
                 if f != Faction::Harkonnen && f != Faction::Tleilaxu {
-                    let traitor = game.traitor_deck.as_mut().expect("traitor deck").draw();
+                    let traitor = game.decks.traitor_deck.as_mut().expect("traitor deck").draw();
                     game.players[p].traitors.push(traitor);
                 }
             }

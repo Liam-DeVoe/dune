@@ -41,9 +41,9 @@ const FACTIONS: [Faction; 6] = [Faction::Emperor, Faction::BeneGesserit, Faction
 
 fn new_game(version: i32) -> Game {
     let mut g = Game::with_participation(version, &treachery_engine::shared::Shared::new(Participation::new()));
-    g.rules.push(Rule::Homeworlds);
-    g.rules.push(Rule::EmperorSpecialForces);
-    g.rules.push(Rule::FremenSpecialForces);
+    g.rules.active.push(Rule::Homeworlds);
+    g.rules.active.push(Rule::EmperorSpecialForces);
+    g.rules.active.push(Rule::FremenSpecialForces);
     for (i, f) in FACTIONS.iter().enumerate() {
         let mut p = Player::new(*f);
         p.seat = i as i32;
@@ -51,7 +51,7 @@ fn new_game(version: i32) -> Game {
     }
     for i in 0..g.players.len() {
         let f = g.players[i].faction;
-        let hws: Vec<Homeworld> = g.map.homeworlds().filter(|w| w.faction() == f).collect();
+        let hws: Vec<Homeworld> = g.board.map.homeworlds().filter(|w| w.faction() == f).collect();
         for hw in hws {
             let normal = if hw.is_home_of_normal_forces() { 10 } else { 0 };
             let special = if hw.is_home_of_special_forces() { 4 } else { 0 };
@@ -63,7 +63,7 @@ fn new_game(version: i32) -> Game {
 }
 
 fn location_pool(g: &Game) -> Vec<Location> {
-    g.map.locations(true).filter(|l| l.id() % 9 == 0 || l.as_homeworld().is_some()).collect()
+    g.board.map.locations(true).filter(|l| l.id() % 9 == 0 || l.as_homeworld().is_some()).collect()
 }
 
 fn territory_pool(g: &Game) -> Vec<Territory> {
@@ -118,7 +118,7 @@ fn rust_lines() -> Vec<String> {
             let mut g = new_game(version);
             let locs = location_pool(&g);
             let terrs = territory_pool(&g);
-            let hws: Vec<Homeworld> = g.map.homeworlds().collect();
+            let hws: Vec<Homeworld> = g.board.map.homeworlds().collect();
             if seed == 1 {
                 out.push(format!("pool {} {} | {}", version, join(locs.iter().map(|l| l.id())), join(terrs.iter().map(|t| t.id()))));
             }
@@ -181,7 +181,7 @@ fn rust_lines() -> Vec<String> {
     for players in 1..=12 {
         for sector in -2..=19 {
             let mut g = Game::with_participation(Game::LATEST_VERSION, &treachery_engine::shared::Shared::new(Participation::new()));
-            g.settings.as_ref().unwrap().borrow_mut().number_of_players = players;
+            g.rules.settings.as_ref().unwrap().borrow_mut().number_of_players = players;
             for i in 0..players {
                 if i % 3 == 1 {
                     continue;
@@ -190,7 +190,7 @@ fn rust_lines() -> Vec<String> {
                 p.seat = i;
                 g.players.push(p);
             }
-            g.sector_in_storm = sector;
+            g.board.sector_in_storm = sector;
             let res = match catch(|| PlayerSequence::determine_first_player(&g)) {
                 Ok(fp) => g.player(fp).seat.to_string(),
                 Err(()) => "exception".to_string(),
@@ -273,7 +273,7 @@ fn sequence_lines() -> Vec<String> {
             let mut g = Game::with_participation(version, &treachery_engine::shared::Shared::new(Participation::new()));
             let count = 1 + r.below(6);
             let np = (count + r.below(2)) as i32;
-            g.settings.as_ref().unwrap().borrow_mut().number_of_players = np;
+            g.rules.settings.as_ref().unwrap().borrow_mut().number_of_players = np;
             let factions = [Faction::Atreides, Faction::Richese, Faction::Harkonnen, Faction::Emperor, Faction::Choam, Faction::BeneGesserit, Faction::Tleilaxu];
             for i in 0..count {
                 let mut p = Player::new(factions[(i + seed as usize) % factions.len()]);
@@ -284,7 +284,7 @@ fn sequence_lines() -> Vec<String> {
                 }
                 g.players.push(p);
             }
-            g.sector_in_storm = r.below(18) as i32;
+            g.board.sector_in_storm = r.below(18) as i32;
             let juice = r.below(4);
             if juice > 0 {
                 let f = g.players[r.below(count)].faction;
@@ -294,7 +294,7 @@ fn sequence_lines() -> Vec<String> {
                     2 => JuiceType::GoLast,
                     _ => JuiceType::Aggressor,
                 };
-                g.current_juice = Some(std::rc::Rc::new(j));
+                g.turn.current_juice = Some(std::rc::Rc::new(j));
             }
             let skip = r.bool();
             let dir = if r.bool() { 1 } else { -1 };

@@ -89,8 +89,8 @@ impl Server {
     /// of its settings; after, those of its players.
     pub(super) fn game_info(&self, g: &RunningGame) -> GameInfo {
         let game = &g.game;
-        let before_start = game.current_phase <= Phase::AwaitingPlayers;
-        let (factions_in_play, ruleset, max_players, max_turns) = match &game.settings {
+        let before_start = game.turn.current_phase <= Phase::AwaitingPlayers;
+        let (factions_in_play, ruleset, max_players, max_turns) = match &game.rules.settings {
             Some(settings) => {
                 let settings = settings.borrow();
                 let allowed: Vec<Faction> = settings.allowed_factions_in_play.as_ref().map(|f| f.borrow().clone()).unwrap_or_default();
@@ -99,7 +99,7 @@ impl Server {
                     (allowed.clone(), Game::determine_approximate_ruleset(&allowed, rules, Game::EXPANSION_LEVEL))
                 } else {
                     let all: Vec<Faction> = game.players.iter().map(|p| p.faction).collect();
-                    (all.iter().copied().filter(|f| *f != Faction::None).collect(), Game::determine_approximate_ruleset(&all, &game.rules, Game::EXPANSION_LEVEL))
+                    (all.iter().copied().filter(|f| *f != Faction::None).collect(), Game::determine_approximate_ruleset(&all, &game.rules.active, Game::EXPANSION_LEVEL))
                 };
                 (factions, ruleset, settings.number_of_players, settings.maximum_turns)
             }
@@ -115,9 +115,9 @@ impl Server {
             name: g.name.clone(),
             max_players,
             max_turns,
-            main_phase: game.current_main_phase.0,
-            phase: game.current_phase.0,
-            turn: game.current_turn,
+            main_phase: game.turn.current_main_phase.0,
+            phase: game.turn.current_phase.0,
+            turn: game.turn.current_turn,
             nr_of_bots: game.number_of_bots(),
             nr_of_players: participation.seated_players.len() as i32,
             factions_in_play: factions_in_play.iter().map(|f| f.0).collect(),

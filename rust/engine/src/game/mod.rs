@@ -2,6 +2,7 @@
 //! topic, plus the state types it uses; see docs/engine.md.
 
 mod alliances;
+pub use alliances::Alliances;
 mod applicable_events;
 mod battalion;
 pub use battalion::*;
@@ -14,6 +15,8 @@ pub use bidding::BiddingState;
 pub(crate) use bidding::*;
 mod blow;
 pub use blow::*;
+mod board;
+pub use board::Board;
 mod charity;
 pub use charity::CharityState;
 mod collection;
@@ -24,10 +27,16 @@ mod counters;
 pub use counters::*;
 mod deals;
 pub use deals::*;
+mod decks;
+pub use decks::Decks;
+mod history;
+pub use history::History;
 mod info;
 pub use info::*;
 mod leaders;
 pub use leaders::*;
+mod log;
+pub use log::Log;
 mod moment;
 pub use moment::*;
 mod movement;
@@ -43,6 +52,7 @@ pub use player_sequence::*;
 mod revival;
 pub use revival::*;
 mod rules;
+pub use rules::Rules;
 mod settings;
 pub use settings::*;
 mod setup;
@@ -55,6 +65,8 @@ mod status;
 pub use status::*;
 mod storm;
 pub use storm::StormState;
+mod turn;
+pub use turn::TurnState;
 
 use crate::prelude::*;
 
@@ -65,177 +77,26 @@ pub enum Step {
     Run(fn(&mut Game)),
 }
 
+/// A game: its rules, players and board, and the state of each phase. Each field's type is
+/// defined in the file of its topic under `game/` (see docs/engine.md).
 pub struct Game {
-    // ---- Core state ----
-
     pub seed: i32,
     pub random: Option<SharedRandom>,
-    pub recent_milestones: Vec<Milestone>,
-    pub version: i32,
-    pub map: Map,
-    pub ruleset: Ruleset,
-    pub rules: Vec<Rule>,
-    pub rules_for_bots: Vec<Rule>,
-    /// `EstablishPlayers` can assign a null `Settings.InitialRules`, hence the `Option`.
-    pub all_rules: Option<Vec<Rule>>,
-    pub history: Vec<GameEvent>,
-    pub moments: Vec<Moment>,
-    pub recently_undone_event_count: i32,
-    pub recently_undone_events: Vec<GameEvent>,
-    /// The game as it was before the last `undo`, which `restore_recently_undone` returns to.
-    pub previous_game_state: Option<Box<Game>>,
-    pub current_turn: i32,
-    pub current_main_phase: MainPhase,
-    pub current_moment: MainPhaseMoment,
-    pub current_phase: Phase,
-    pub has_acted_or_passed: Vec<Faction>,
-    pub report_list: Vec<Report>,
-    pub pre_game_report: Report,
-    pub treachery_deck: Option<Deck<TreacheryCard>>,
-    pub treachery_discard_pile: Option<Deck<TreacheryCard>>,
-    pub removed_treachery_cards: Vec<TreacheryCard>,
-    pub resource_card_deck: Option<Deck<ResourceCard>>,
-    pub resource_card_discard_pile_a: Option<Deck<ResourceCard>>,
-    pub resource_card_discard_pile_b: Option<Deck<ResourceCard>>,
-    pub sector_in_storm: i32,
-    pub next_storm_moves: i32,
-    pub shield_wall_destroyed: bool,
-    pub resources_on_planet: NetDictionary<Location, i32>,
-    pub timers: IndexMap<Faction, Timer<MainPhase>>,
-    pub recently_discarded: NetDictionary<TreacheryCard, Faction>,
-    pub phase_before_discarding: Phase,
-    pub factions_that_must_discard: Vec<Faction>,
-    pub recently_paid: Vec<Payment>,
-    pub stored_recently_paid: Vec<Payment>,
-    pub skill_deck: Option<Deck<LeaderSkill>>,
-    pub richese_cache: Vec<TreacheryCard>,
-    pub terror_on_planet: NetDictionary<TerrorType, Territory>,
-    pub unassigned_ambassadors: Option<Deck<Ambassador>>,
-    pub atomics_aftermath: Option<Territory>,
-    pub ambassadors_set_aside: Vec<Ambassador>,
-    pub fremen_discovery_tokens: Option<Deck<DiscoveryToken>>,
-    pub guild_discovery_tokens: Option<Deck<DiscoveryToken>>,
-    pub discoveries_on_planet: NetDictionary<Location, Discovery>,
-    pub ambassadors_on_planet: NetDictionary<Territory, Ambassador>,
-    pub nexus_card_deck: Option<Deck<Faction>>,
-    pub nexus_discard_pile: Vec<Faction>,
-    pub homeworld_occupation: NetDictionary<Homeworld, Faction>,
-    pub phase_before_discarding_traitor: Phase,
-    pub faction_that_must_discard_traitor: Faction,
-    pub number_of_traitors_to_discard: i32,
-    pub factions_in_play: Shared<Vec<Faction>>,
-    pub unplaced_terror_tokens: Vec<TerrorType>,
-    pub traitor_deck: Option<Deck<Hero>>,
-    pub ecaz_loyal_leader: Option<Leader>,
-    pub automation_rules: Vec<Rc<AutomationConfigured>>,
-
-    // ---- Alliances ----
-
-    pub current_card_trade_offer: Option<Rc<CardTraded>>,
-    pub phase_before_card_trade: Option<Phase>,
-    pub last_turn_card_was_traded: i32,
-    pub current_alliance_offers: Vec<Rc<AllianceOffered>>,
-    pub permitted_use_of_ally_spice: IndexMap<Faction, i32>,
-    /// `Option` because `EmperorBidSupport` assigns its `Amounts`, which JSON can leave null.
-    pub permitted_use_of_emperor_spice: Option<IndexMap<Faction, i32>>,
-    pub permitted_use_of_ally_karma: IndexMap<Faction, TreacheryCard>,
-    pub atreides_shares_prescience: bool,
-    pub fremen_will_protect_from_monster: bool,
-    pub fremen_allows_three_free_revivals: bool,
-    pub fremen_shares_prescience: bool,
-    pub fremen_refunds_battle_dial: bool,
-    pub emperor_will_pay_for_extra_revival: i32,
-    pub guild_allows_shipping_discount: bool,
-    pub bene_gesserit_allows_use_of_voice: bool,
-    pub ixian_allows_replacing_cards: bool,
-    pub tleilaxu_allows_revival_discount: bool,
-    pub richese_allows_use_of_no_field: bool,
-    pub moritani_allows_keeping_cards: bool,
-    pub ecaz_shares_ambassadors: bool,
-
-    // ---- Battle ----
-
-    pub assassinated: Vec<Leader>,
-    pub captured_leaders: IndexMap<Leader, Faction>,
-
-    // ---- Bidding ----
-
-
-    // ---- Blow ----
-
-
-    // ---- Charity ----
-
-
-    // ---- Collection ----
-
-
-    // ---- Mentat ----
-
-    pub stronghold_ownership: NetDictionary<Location, Faction>,
-
-    // ---- Deals ----
-
-    pub deal_offers: Vec<Rc<DealOffered>>,
-    pub deals: Vec<Deal>,
-    pub deal_responses: IndexMap<RcKey<DealOffered>, IndexMap<Faction, bool>>,
-
-    // ---- Leaders ----
-
-    pub leader_state: IndexMap<Hero, LeaderState>,
-
-    // ---- Shipment and movement ----
-
-    pub player_to_set_aside_vidal: Option<PlayerIndex>,
-    pub when_to_set_aside_vidal: VidalMoment,
-
-    // ---- Other ----
-
-    pub resource_audited_factions: Vec<Faction>,
-    pub phase_paused_by_clairvoyance: Phase,
-    pub latest_clairvoyance: Option<Rc<ClairVoyancePlayed>>,
-    pub latest_clairvoyance_qn_a: Option<ClairVoyanceQandA>,
-    pub latest_clairvoyance_battle: Option<Rc<BattleInitiated>>,
-    pub secrets_remain_hidden: Vec<Faction>,
-    pub prevented_advantages: Vec<FactionAdvantage>,
-    pub phase_before_searching_discarded: Phase,
-    pub current_juice: Option<Rc<JuicePlayed>>,
-    pub bureaucrat_was_used_this_phase: bool,
-    pub phase_before_bureaucrat_was_activated: Phase,
-    pub target_of_bureaucracy: Faction,
-    pub current_nexus_prescience: Option<Rc<NexusPlayed>>,
-    pub current_fremen_secret_ally: Option<Rc<NexusPlayed>>,
-    pub current_emperor_cunning: Option<Rc<NexusPlayed>>,
-    pub current_guild_cunning: Option<Rc<NexusPlayed>>,
-    pub current_guild_secret_ally: Option<Rc<NexusPlayed>>,
-    pub current_bene_gesserit_cunning: Option<Rc<NexusPlayed>>,
-    pub current_ixian_cunning: Option<Rc<NexusPlayed>>,
-    pub was_victim_of_bureaucracy: Faction,
-    pub banker_was_used_this_phase: bool,
-    pub current_karma_prevention: Option<Rc<ChoamKarmaPrevention>>,
-    pub current_planetology: Option<Rc<Planetology>>,
-    pub harkonnen_traitor_was_cancelled: bool,
-    pub facedancer_was_cancelled: bool,
-
-    // ---- Participation ----
-
+    pub rules: Rules,
     pub players: Vec<Player>,
-    pub legacy_names: IndexMap<PlayerIndex, String>,
     /// Shared with the caller of `new Game` and with every game `Undo`,
     /// `RestoreRecentlyUndone` and `DismissRecentlyUndone` make from this one.
     pub participation: Shared<Participation>,
+    pub board: Board,
+    pub decks: Decks,
+    pub leaders: Leaders,
+    pub alliances: Alliances,
+    pub deals: Deals,
+    pub turn: TurnState,
+    pub history: History,
+    pub log: Log,
 
-    // ---- Revival ----
-
-
-    // ---- Setup ----
-
-    /// `EstablishPlayers` can assign null, hence the `Option`.
-    pub settings: Option<Shared<GameSettings>>,
-
-    // ---- Storm ----
-
-    pub contemplate: ContemplateState,
+    // The state of each phase. They are all kept side by side, whatever the current phase.
     pub setup: SetupState,
     pub storm: StormState,
     pub blow: BlowState,
@@ -245,39 +106,40 @@ pub struct Game {
     pub ship_move: ShipMoveState,
     pub battle: BattleState,
     pub collection: CollectionState,
+    pub contemplate: ContemplateState,
 }
 
 impl Game {
     pub const LATEST_VERSION: i32 = 189;
 
     pub fn maximum_turns(&self) -> i32 {
-        self.settings.as_ref().expect("settings").borrow().maximum_turns
+        self.rules.settings.as_ref().expect("settings").borrow().maximum_turns
     }
 
     pub fn maximum_players(&self) -> i32 {
-        self.settings.as_ref().expect("settings").borrow().number_of_players
+        self.rules.settings.as_ref().expect("settings").borrow().number_of_players
     }
 
     pub fn reports(&self) -> &[Report] {
-        &self.report_list
+        &self.log.report_list
     }
 
     /// The live report; use [`Game::current_report_mut`] to change it.
     pub fn current_report(&self) -> &Report {
-        if self.report_list.len() > 0 {
-            &self.report_list[self.report_list.len() - 1]
+        if self.log.report_list.len() > 0 {
+            &self.log.report_list[self.log.report_list.len() - 1]
         } else {
-            &self.pre_game_report
+            &self.log.pre_game_report
         }
     }
 
     /// `CurrentReport`, for mutation.
     pub fn current_report_mut(&mut self) -> &mut Report {
-        if self.report_list.len() > 0 {
-            let last = self.report_list.len() - 1;
-            &mut self.report_list[last]
+        if self.log.report_list.len() > 0 {
+            let last = self.log.report_list.len() - 1;
+            &mut self.log.report_list[last]
         } else {
-            &mut self.pre_game_report
+            &mut self.log.pre_game_report
         }
     }
 
@@ -306,121 +168,17 @@ impl Game {
         let mut game = Game {
             seed: -1,
             random: None,
-            recent_milestones: Vec::new(),
-            version: version,
-            map: Map::new(),
-            ruleset: Default::default(),
-            rules: Vec::new(),
-            rules_for_bots: Vec::new(),
-            all_rules: Some(Vec::new()),
-            history: Vec::new(),
-            moments: Vec::new(),
-            recently_undone_event_count: Default::default(),
-            recently_undone_events: Vec::new(),
-            previous_game_state: None,
-            current_turn: Default::default(),
-            current_main_phase: MainPhase::Started,
-            current_moment: MainPhaseMoment::None,
-            current_phase: Phase::None,
-            has_acted_or_passed: Vec::new(),
-            report_list: Vec::new(),
-            pre_game_report: Report::new(MainPhase::None, 0),
-            treachery_deck: None,
-            treachery_discard_pile: None,
-            removed_treachery_cards: Vec::new(),
-            resource_card_deck: None,
-            resource_card_discard_pile_a: None,
-            resource_card_discard_pile_b: None,
-            sector_in_storm: -1,
-            next_storm_moves: -1,
-            shield_wall_destroyed: Default::default(),
-            resources_on_planet: Default::default(),
-            timers: Default::default(),
-            recently_discarded: Default::default(),
-            phase_before_discarding: Default::default(),
-            factions_that_must_discard: Vec::new(),
-            recently_paid: Vec::new(),
-            stored_recently_paid: Vec::new(),
-            skill_deck: None,
-            richese_cache: Vec::new(),
-            terror_on_planet: Default::default(),
-            unassigned_ambassadors: None,
-            atomics_aftermath: None,
-            ambassadors_set_aside: Vec::new(),
-            fremen_discovery_tokens: None,
-            guild_discovery_tokens: None,
-            discoveries_on_planet: Default::default(),
-            ambassadors_on_planet: Default::default(),
-            nexus_card_deck: None,
-            nexus_discard_pile: Vec::new(),
-            homeworld_occupation: Default::default(),
-            phase_before_discarding_traitor: Default::default(),
-            faction_that_must_discard_traitor: Default::default(),
-            number_of_traitors_to_discard: Default::default(),
-            factions_in_play: Default::default(),
-            unplaced_terror_tokens: Vec::new(),
-            traitor_deck: None,
-            ecaz_loyal_leader: None,
-            automation_rules: Vec::new(),
-            current_card_trade_offer: None,
-            phase_before_card_trade: None,
-            last_turn_card_was_traded: -1,
-            current_alliance_offers: Vec::new(),
-            permitted_use_of_ally_spice: Default::default(),
-            permitted_use_of_emperor_spice: Some(IndexMap::new()),
-            permitted_use_of_ally_karma: Default::default(),
-            atreides_shares_prescience: Default::default(),
-            fremen_will_protect_from_monster: Default::default(),
-            fremen_allows_three_free_revivals: Default::default(),
-            fremen_shares_prescience: Default::default(),
-            fremen_refunds_battle_dial: Default::default(),
-            emperor_will_pay_for_extra_revival: Default::default(),
-            guild_allows_shipping_discount: Default::default(),
-            bene_gesserit_allows_use_of_voice: Default::default(),
-            ixian_allows_replacing_cards: Default::default(),
-            tleilaxu_allows_revival_discount: Default::default(),
-            richese_allows_use_of_no_field: Default::default(),
-            moritani_allows_keeping_cards: Default::default(),
-            ecaz_shares_ambassadors: Default::default(),
-            assassinated: Vec::new(),
-            captured_leaders: Default::default(),
-            stronghold_ownership: Default::default(),
-            deal_offers: Vec::new(),
-            deals: Vec::new(),
-            deal_responses: Default::default(),
-            leader_state: Default::default(),
-            player_to_set_aside_vidal: None,
-            when_to_set_aside_vidal: Default::default(),
-            resource_audited_factions: Vec::new(),
-            phase_paused_by_clairvoyance: Default::default(),
-            latest_clairvoyance: None,
-            latest_clairvoyance_qn_a: None,
-            latest_clairvoyance_battle: None,
-            secrets_remain_hidden: Vec::new(),
-            prevented_advantages: Vec::new(),
-            phase_before_searching_discarded: Default::default(),
-            current_juice: None,
-            bureaucrat_was_used_this_phase: Default::default(),
-            phase_before_bureaucrat_was_activated: Default::default(),
-            target_of_bureaucracy: Default::default(),
-            current_nexus_prescience: None,
-            current_fremen_secret_ally: None,
-            current_emperor_cunning: None,
-            current_guild_cunning: None,
-            current_guild_secret_ally: None,
-            current_bene_gesserit_cunning: None,
-            current_ixian_cunning: None,
-            was_victim_of_bureaucracy: Default::default(),
-            banker_was_used_this_phase: Default::default(),
-            current_karma_prevention: None,
-            current_planetology: None,
-            harkonnen_traitor_was_cancelled: Default::default(),
-            facedancer_was_cancelled: Default::default(),
+            rules: Rules::new(version),
             players: Vec::new(),
-            legacy_names: Default::default(),
             participation: participation.clone(),
-            settings: Some(Default::default()),
-            contemplate: ContemplateState::new(),
+            board: Board::new(),
+            decks: Decks::new(),
+            leaders: Leaders::new(),
+            alliances: Alliances::new(),
+            deals: Deals::new(),
+            turn: TurnState::new(),
+            history: History::new(),
+            log: Log::new(),
             setup: SetupState::new(),
             storm: StormState::new(),
             blow: BlowState::new(),
@@ -430,6 +188,7 @@ impl Game {
             ship_move: ShipMoveState::new(),
             battle: BattleState::new(),
             collection: CollectionState::new(),
+            contemplate: ContemplateState::new(),
         };
 
         game.initialize_leader_state();
@@ -439,10 +198,10 @@ impl Game {
 
     pub fn initialize_leader_state(&mut self) {
         for l in LeaderManager::leaders() {
-            self.leader_state.insert_new(Hero::Leader(*l), LeaderState { death_counter: 0, current_territory: None, skill: LeaderSkill::None, in_front_of_shield: false, ..Default::default() });
+            self.leaders.leader_state.insert_new(Hero::Leader(*l), LeaderState { death_counter: 0, current_territory: None, skill: LeaderSkill::None, in_front_of_shield: false, ..Default::default() });
         }
 
-        self.leader_state.insert_new(LeaderManager::messiah(), LeaderState { death_counter: 0, current_territory: None, ..Default::default() });
+        self.leaders.leader_state.insert_new(LeaderManager::messiah(), LeaderState { death_counter: 0, current_territory: None, ..Default::default() });
     }
 
     pub fn perform_pre_event_tasks(&mut self, e: &GameEvent) {
@@ -461,7 +220,7 @@ impl Game {
         self.clear_recent_payments();
 
         if !matches!(e, GameEvent::DealOffered(_) | GameEvent::DealAccepted(_) | GameEvent::DealRejected(_)) {
-            self.recently_discarded.clear();
+            self.decks.recently_discarded.clear();
         }
     }
 
@@ -475,8 +234,8 @@ impl Game {
             self.main_phase_middle();
         }
 
-        self.history.push(e.clone());
-        self.moments.push(Moment::new(self.current_turn, self.current_main_phase));
+        self.history.entries.push(e.clone());
+        self.history.moments.push(Moment::new(self.turn.current_turn, self.turn.current_main_phase));
     }
 
     /// Goes back to the state after the first `until_event_nr` events: a new game replays
@@ -484,47 +243,47 @@ impl Game {
     /// is kept as `previous_game_state`, so `restore_recently_undone` can return to it. A
     /// negative `until_event_nr` throws and leaves this game unchanged.
     pub fn undo(&mut self, until_event_nr: i32) {
-        let history = self.history.clone();
+        let history = self.history.entries.clone();
         let history_count = history.len() as i32;
         let max_event_nr = std::cmp::min(until_event_nr, history_count);
         let mut result = self.replay(&history[..max_event_nr.max(0) as usize]);
 
-        result.recently_undone_event_count = history_count - max_event_nr;
+        result.history.recently_undone_event_count = history_count - max_event_nr;
         for i in max_event_nr..history_count {
             // A negative event number panics here.
-            result.recently_undone_events.push(history[i as usize].clone());
+            result.history.recently_undone_events.push(history[i as usize].clone());
         }
 
         let previous = std::mem::replace(self, result);
-        self.previous_game_state = Some(Box::new(previous));
+        self.history.previous_game_state = Some(Box::new(previous));
     }
 
     /// Returns to the game as it was before the last `undo`. Without one (a game loaded
     /// with undone events), replays the history followed by the undone events.
     pub fn restore_recently_undone(&mut self) {
-        if let Some(previous) = self.previous_game_state.take() {
+        if let Some(previous) = self.history.previous_game_state.take() {
             *self = *previous;
             return;
         }
 
-        if self.recently_undone_event_count == 0 || self.recently_undone_events.is_empty() {
+        if self.history.recently_undone_event_count == 0 || self.history.recently_undone_events.is_empty() {
             return;
         }
 
-        let events: Vec<GameEvent> = self.history.iter().chain(self.recently_undone_events.iter()).cloned().collect();
+        let events: Vec<GameEvent> = self.history.entries.iter().chain(self.history.recently_undone_events.iter()).cloned().collect();
         *self = self.replay(&events);
     }
 
     /// Forgets the undone events and the game before the undo: the history is replayed
     /// into a new game.
     pub fn dismiss_recently_undone(&mut self) {
-        let history = self.history.clone();
+        let history = self.history.entries.clone();
         *self = self.replay(&history);
     }
 
     /// A new game of the same version and participation that has executed `events`.
     fn replay(&self, events: &[GameEvent]) -> Game {
-        let mut result = Game::with_participation(self.version, &self.participation);
+        let mut result = Game::with_participation(self.rules.version, &self.participation);
         for e in events {
             e.initialize_game(&result);
             e.execute(&mut result, false, false);
@@ -533,7 +292,7 @@ impl Game {
     }
 
     pub fn update_timers(&mut self, e: &GameEvent) {
-        if e.time() != DateTimeOffset::default() && self.history.len() > 0 && self.in_timed_phase() {
+        if e.time() != DateTimeOffset::default() && self.history.entries.len() > 0 && self.in_timed_phase() {
             let previous_event = match e.event_type() {
                 GameEventType::Battle => self.find_most_recent_event(vec![GameEventType::BattleInitiated]),
                 GameEventType::Move => self.find_most_recent_event(vec![GameEventType::Shipment, GameEventType::EndPhase]),
@@ -550,75 +309,75 @@ impl Game {
             }
 
             let initiator = e.initiator();
-            if self.timers.get(&initiator).is_none() {
+            if self.history.timers.get(&initiator).is_none() {
                 let timer = Timer::<MainPhase>::new();
-                self.timers.insert_new(initiator, timer);
+                self.history.timers.insert_new(initiator, timer);
             }
 
-            let phase = self.current_main_phase;
-            self.timers.get_mut(&initiator).expect("a timer for this faction").add(phase, elapsed_time);
+            let phase = self.turn.current_main_phase;
+            self.history.timers.get_mut(&initiator).expect("a timer for this faction").add(phase, elapsed_time);
         }
     }
 
     pub fn duration(&self) -> TimeSpan {
-        if self.history.len() > 0 {
-            let last = &self.history[self.history.len() - 1];
-            TimeSpan::from_ticks(last.time().utc_ticks() - self.history[0].time().utc_ticks())
+        if self.history.entries.len() > 0 {
+            let last = &self.history.entries[self.history.entries.len() - 1];
+            TimeSpan::from_ticks(last.time().utc_ticks() - self.history.entries[0].time().utc_ticks())
         } else {
             TimeSpan::default()
         }
     }
 
     pub fn time_spent(&self, faction: Faction, phase: MainPhase) -> TimeSpan {
-        if let Some(timer) = self.timers.get(&faction) {
+        if let Some(timer) = self.history.timers.get(&faction) {
             return timer.time_spent(phase);
         }
         TimeSpan::default()
     }
 
     pub fn started(&self) -> DateTimeOffset {
-        if self.history.len() > 0 {
-            self.history[0].time()
+        if self.history.entries.len() > 0 {
+            self.history.entries[0].time()
         } else {
             DateTimeOffset::default()
         }
     }
 
     pub fn in_timed_phase(&self) -> bool {
-        self.current_phase == Phase::Bidding
-            || self.current_phase == Phase::GuildShip
-            || self.current_phase == Phase::GuildMove
-            || self.current_phase == Phase::NonGuildShip
-            || self.current_phase == Phase::NonGuildMove
-            || self.current_phase == Phase::BattlePhase
+        self.turn.current_phase == Phase::Bidding
+            || self.turn.current_phase == Phase::GuildShip
+            || self.turn.current_phase == Phase::GuildMove
+            || self.turn.current_phase == Phase::NonGuildShip
+            || self.turn.current_phase == Phase::NonGuildMove
+            || self.turn.current_phase == Phase::BattlePhase
     }
 
     pub fn latest_event(&self, event_type: GameEventType) -> Option<GameEvent> {
         // List<T>.LastOrDefault(pred) walks backwards; the predicate has no side effects.
-        self.history.iter().rev().find(|e| e.event_type() == event_type).cloned()
+        self.history.entries.iter().rev().find(|e| e.event_type() == event_type).cloned()
     }
 
     pub fn latest_event_0(&self) -> Option<GameEvent> {
-        if self.history.len() > 0 {
-            Some(self.history[self.history.len() - 1].clone())
+        if self.history.entries.len() > 0 {
+            Some(self.history.entries[self.history.entries.len() - 1].clone())
         } else {
             None
         }
     }
 
     pub fn event_count(&self) -> i32 {
-        self.history.len() as i32
+        self.history.entries.len() as i32
     }
 
     pub fn find_most_recent_event(&self, types: Vec<GameEventType>) -> Option<GameEvent> {
         if types.len() == 0 {
-            return Some(self.history.last().expect("an event in the history").clone());
+            return Some(self.history.entries.last().expect("an event in the history").clone());
         }
 
-        let mut i = self.history.len() as i32 - 1;
+        let mut i = self.history.entries.len() as i32 - 1;
         while i >= 0 {
-            if types.contains(&self.history[i as usize].event_type()) {
-                return Some(self.history[i as usize].clone());
+            if types.contains(&self.history.entries[i as usize].event_type()) {
+                return Some(self.history.entries[i as usize].clone());
             }
             i -= 1;
         }
@@ -629,29 +388,29 @@ impl Game {
     /// Returns the live report, not a copy.
     pub fn start_report(&mut self, about: MainPhase) -> &mut Report {
         // Avoid leaving an empty duplicate behind if a report for the same phase is started twice in a row
-        let current_turn = self.current_turn;
-        let has_reports = self.report_list.len() > 0;
+        let current_turn = self.turn.current_turn;
+        let has_reports = self.log.report_list.len() > 0;
         let current = self.current_report();
         if has_reports && current.about == about && current.turn == current_turn && !current.is_battle() && current.messages.len() == 0 {
             return self.current_report_mut();
         }
 
-        let result = Report::new(about, self.current_turn);
-        self.report_list.push(result);
-        let last = self.report_list.len() - 1;
-        &mut self.report_list[last]
+        let result = Report::new(about, self.turn.current_turn);
+        self.log.report_list.push(result);
+        let last = self.log.report_list.len() - 1;
+        &mut self.log.report_list[last]
     }
 
     pub fn main_phase_start(&mut self, phase: MainPhase, start_report: bool) {
-        self.current_main_phase = phase;
-        self.current_moment = MainPhaseMoment::Start;
+        self.turn.current_main_phase = phase;
+        self.turn.current_moment = MainPhaseMoment::Start;
         if start_report {
             self.start_report(phase);
         }
-        self.current_karma_prevention = None;
-        self.current_juice = None;
-        self.bureaucrat_was_used_this_phase = false;
-        self.banker_was_used_this_phase = false;
+        self.turn.current_karma_prevention = None;
+        self.turn.current_juice = None;
+        self.turn.bureaucrat_was_used_this_phase = false;
+        self.turn.banker_was_used_this_phase = false;
         // An intrusion is answered right after the shipment or move that caused it. One still
         // queued when a new phase starts can no longer be answered, and would take the place of
         // the next real one (escapes.md, "A Bene Gesserit intrusion left over from another phase").
@@ -659,31 +418,31 @@ impl Game {
     }
 
     pub fn main_phase_middle(&mut self) {
-        if self.current_moment == MainPhaseMoment::Start {
-            self.current_moment = MainPhaseMoment::Middle;
+        if self.turn.current_moment == MainPhaseMoment::Start {
+            self.turn.current_moment = MainPhaseMoment::Middle;
         }
     }
 
     pub fn main_phase_end(&mut self) {
-        self.current_moment = MainPhaseMoment::End;
+        self.turn.current_moment = MainPhaseMoment::End;
 
         let mut exceptions_to_allowing: Vec<FactionAdvantage> = Vec::new();
 
-        if self.current_main_phase == MainPhase::Bidding && self.prevented(FactionAdvantage::TleilaxuIncreasingRevivalLimits) {
+        if self.turn.current_main_phase == MainPhase::Bidding && self.prevented(FactionAdvantage::TleilaxuIncreasingRevivalLimits) {
             exceptions_to_allowing.push(FactionAdvantage::TleilaxuIncreasingRevivalLimits);
         }
 
-        if self.current_main_phase == MainPhase::Resurrection && self.prevented(FactionAdvantage::AtreidesSpiceBlowPrescience) {
+        if self.turn.current_main_phase == MainPhase::Resurrection && self.prevented(FactionAdvantage::AtreidesSpiceBlowPrescience) {
             exceptions_to_allowing.push(FactionAdvantage::AtreidesSpiceBlowPrescience);
         }
 
-        self.was_victim_of_bureaucracy = Faction::None;
+        self.turn.was_victim_of_bureaucracy = Faction::None;
 
         self.allow_all_prevented_faction_advantages(&exceptions_to_allowing);
     }
 
     pub fn enter(&mut self, phase: Phase, cleanup_deals: bool) {
-        self.current_phase = phase;
+        self.turn.current_phase = phase;
 
         if cleanup_deals {
             self.remove_ended_deals(phase);
@@ -773,7 +532,7 @@ impl Game {
     pub fn forces(&self, include_homeworlds: bool) -> IndexMap<Location, Vec<Battalion>> {
         let mut result: IndexMap<Location, Vec<Battalion>> = IndexMap::new();
 
-        for l in self.map.locations(include_homeworlds) {
+        for l in self.board.map.locations(include_homeworlds) {
             result.insert_new(l, Vec::new());
         }
 
@@ -866,27 +625,27 @@ impl Game {
     }
 
     pub fn resources_in(&self, l: Location) -> i32 {
-        self.resources_on_planet.get(&l).copied().unwrap_or(0)
+        self.board.resources_on_planet.get(&l).copied().unwrap_or(0)
     }
 
     pub fn change_resources_on_planet(&mut self, location: Location, amount: i32) {
-        if self.resources_on_planet.contains_key(&location) {
-            let current = self.resources_on_planet[&location];
+        if self.board.resources_on_planet.contains_key(&location) {
+            let current = self.board.resources_on_planet[&location];
             if (current + amount) == 0 {
-                self.resources_on_planet.remove(&location);
+                self.board.resources_on_planet.remove(&location);
             } else {
-                self.resources_on_planet.insert(location, current + amount);
+                self.board.resources_on_planet.insert(location, current + amount);
             }
         } else if amount != 0 {
-            self.resources_on_planet.insert_new(location, amount);
+            self.board.resources_on_planet.insert_new(location, amount);
         }
     }
 
     pub fn remove_resources(&mut self, location: Location) -> i32 {
         let mut result = 0;
-        if self.resources_on_planet.contains_key(&location) {
-            result = self.resources_on_planet[&location];
-            self.resources_on_planet.remove(&location);
+        if self.board.resources_on_planet.contains_key(&location) {
+            result = self.board.resources_on_planet[&location];
+            self.board.resources_on_planet.remove(&location);
         }
 
         result
@@ -902,7 +661,7 @@ impl Game {
     }
 
     pub fn flip_bene_gesserit_advisors_when_alone(&mut self) {
-        if self.current_main_phase >= MainPhase::Battle && self.applicable(Rule::DisableNovaFlipping) {
+        if self.turn.current_main_phase >= MainPhase::Battle && self.applicable(Rule::DisableNovaFlipping) {
             return;
         }
 
@@ -910,9 +669,9 @@ impl Game {
         if let Some(bg) = bg {
             // A lazy Where enumerated by foreach: the filter is evaluated for each
             // territory right before its body runs, after earlier flips.
-            for t in self.map.territories(true) {
+            for t in self.board.map.territories(true) {
                 let matches = self.player(bg).special_forces_in_territory(Some(t)) > 0
-                    && (t == self.map.polar_sink().territory()
+                    && (t == self.board.map.polar_sink().territory()
                         || !self.players.iter().any(|p| p.faction != Faction::BeneGesserit && p.any_forces_in_territory(Some(t)) > 0));
                 if !matches {
                     continue;
@@ -938,7 +697,7 @@ impl Game {
         let current_occupier_of_ecaz_homeworld = self.occupier_of(World::Ecaz);
         let mut updated_occupation: NetDictionary<Homeworld, Faction> = NetDictionary::new();
 
-        for hw in self.map.homeworlds() {
+        for hw in self.board.map.homeworlds() {
             for i in 0..self.players.len() {
                 let player = self.player(self.player_at(i));
                 let faction = player.faction;
@@ -952,7 +711,7 @@ impl Game {
             }
         }
 
-        let previous: Vec<(Homeworld, Faction)> = self.homeworld_occupation.iter().map(|(k, v)| (*k, *v)).collect();
+        let previous: Vec<(Homeworld, Faction)> = self.board.homeworld_occupation.iter().map(|(k, v)| (*k, *v)).collect();
         for (key, value) in previous {
             // ICollection<KeyValuePair>.Contains: the key is present with an equal value
             if updated_occupation.get(&key) != Some(&value) {
@@ -960,7 +719,7 @@ impl Game {
             }
         }
 
-        self.homeworld_occupation = updated_occupation;
+        self.board.homeworld_occupation = updated_occupation;
 
         self.check_if_shipment_permissions_should_be_revoked();
         self.check_if_occupier_takes_vidal(current_occupier_of_ecaz_homeworld);
@@ -976,9 +735,9 @@ impl Game {
 
     pub fn let_factions_discard_surplus_cards(&mut self) {
         let factions: Vec<Faction> = self.players.iter().filter(|p| p.hand_size_exceeded(self)).map(|p| p.faction).collect();
-        self.factions_that_must_discard.extend(factions);
-        if self.factions_that_must_discard.len() > 0 {
-            self.phase_before_discarding = self.current_phase;
+        self.turn.factions_that_must_discard.extend(factions);
+        if self.turn.factions_that_must_discard.len() > 0 {
+            self.turn.phase_before_discarding = self.turn.current_phase;
             self.enter(Phase::Discarding, true);
         }
     }
@@ -1011,12 +770,12 @@ impl Game {
     }
 
     pub fn set_aside_vidal(&mut self) {
-        if self.vidal().is_none() || self.player_to_set_aside_vidal.is_none() {
+        if self.vidal().is_none() || self.leaders.player_to_set_aside_vidal.is_none() {
             return;
         }
 
         let vidal = self.vidal().expect("vidal");
-        let p = self.player_to_set_aside_vidal.expect("player to set aside vidal");
+        let p = self.leaders.player_to_set_aside_vidal.expect("player to set aside vidal");
         if self.is_alive(Hero::Leader(vidal)) && self.player(p).leaders.contains(&vidal) {
             let leaders = &mut self.player_mut(p).leaders;
             if let Some(pos) = leaders.iter().position(|l| *l == vidal) {
@@ -1026,8 +785,8 @@ impl Game {
             self.log(vec![vidal.into(), " is set aside".into()]);
         }
 
-        self.player_to_set_aside_vidal = None;
-        self.when_to_set_aside_vidal = VidalMoment::None;
+        self.leaders.player_to_set_aside_vidal = None;
+        self.leaders.when_to_set_aside_vidal = VidalMoment::None;
     }
 
     /// Discards the card a player plays as Karama and logs the play as one aside:
@@ -1100,9 +859,9 @@ impl Game {
             if let Some(pos) = cards.iter().position(|c| *c == card) {
                 cards.remove(pos);
             }
-            self.treachery_discard_pile.as_mut().expect("treachery discard pile").put_on_top(card);
+            self.decks.treachery_discard_pile.as_mut().expect("treachery discard pile").put_on_top(card);
             self.register_known(card);
-            self.recently_discarded.insert_new(card, faction);
+            self.decks.recently_discarded.insert_new(card, faction);
             self.stone(Milestone::Discard);
 
             if !matches!(
@@ -1166,12 +925,12 @@ impl Game {
     }
 
     pub fn stone(&mut self, m: Milestone) {
-        self.recent_milestones.push(m);
+        self.turn.recent_milestones.push(m);
     }
 
     pub fn set_recent_payment(&mut self, amount: i32, by: Faction, to: Faction, reason: &GameEvent) {
         if amount > 0 {
-            self.recently_paid.push(Payment::new_full(amount, by, to, Some(reason.clone())));
+            self.turn.recently_paid.push(Payment::new_full(amount, by, to, Some(reason.clone())));
         }
     }
 
@@ -1181,35 +940,35 @@ impl Game {
 
     pub fn clear_recent_payments(&mut self) {
         // StoredRecentlyPaid = RecentlyPaid (a reference swap); RecentlyPaid = []
-        self.stored_recently_paid = std::mem::take(&mut self.recently_paid);
+        self.turn.stored_recently_paid = std::mem::take(&mut self.turn.recently_paid);
     }
 
     pub fn has_recent_payment_for(&self, t: GameEventType) -> bool {
-        self.recently_paid.iter().any(|p| p.reason.as_ref().map_or(false, |r| r.event_type() == t))
+        self.turn.recently_paid.iter().any(|p| p.reason.as_ref().map_or(false, |r| r.event_type() == t))
     }
 
     pub fn has_quite_recent_payment_to(&self, f: Faction) -> bool {
-        self.recently_paid.iter().any(|p| p.to == f) || self.stored_recently_paid.iter().any(|p| p.to == f)
+        self.turn.recently_paid.iter().any(|p| p.to == f) || self.turn.stored_recently_paid.iter().any(|p| p.to == f)
     }
 
     pub fn quite_recent_payment_to(&self, f: Faction) -> Option<Payment> {
         let res = self
-            .recently_paid
+            .turn.recently_paid
             .iter()
             .find(|p| p.to == f)
-            .or_else(|| self.stored_recently_paid.iter().find(|p| p.to == f));
+            .or_else(|| self.turn.stored_recently_paid.iter().find(|p| p.to == f));
         res.cloned()
     }
 
     pub fn recently_paid_total_amount(&self) -> i32 {
-        self.recently_paid.iter().map(|p| p.amount).sum::<i32>()
+        self.turn.recently_paid.iter().map(|p| p.amount).sum::<i32>()
     }
 
     pub fn occupies(&self, f: Faction, w: World) -> bool {
         if f != Faction::None {
-            let hw_occupation = self.homeworld_occupation.keys().find(|hw| hw.world() == w).copied();
+            let hw_occupation = self.board.homeworld_occupation.keys().find(|hw| hw.world() == w).copied();
             if let Some(hw) = hw_occupation {
-                return self.homeworld_occupation.get(&hw) == Some(&f);
+                return self.board.homeworld_occupation.get(&hw) == Some(&f);
             }
         }
 
@@ -1217,15 +976,15 @@ impl Game {
     }
 
     pub fn occupier_of(&self, w: World) -> Option<PlayerIndex> {
-        let hw_occupation = self.homeworld_occupation.keys().find(|hw| hw.world() == w).copied();
+        let hw_occupation = self.board.homeworld_occupation.keys().find(|hw| hw.world() == w).copied();
         match hw_occupation {
-            Some(hw) => self.get_player(self.homeworld_occupation.get(&hw).copied()),
+            Some(hw) => self.get_player(self.board.homeworld_occupation.get(&hw).copied()),
             None => None,
         }
     }
 
     pub fn is_in_storm(&self, l: Location) -> bool {
-        l.sector(&self.map) == self.sector_in_storm
+        l.sector(&self.board.map) == self.board.sector_in_storm
     }
 
     pub fn is_in_storm_territory(&self, t: Territory) -> bool {
@@ -1258,7 +1017,7 @@ impl Game {
 
     pub fn contains_conflicting_ally(&self, initiator: PlayerIndex, to: Location) -> bool {
         let ini = self.player(initiator);
-        if !ini.has_ally() || self.map.polar_sink() == to || ini.faction == Faction::Ecaz || ini.ally == Faction::Ecaz {
+        if !ini.has_ally() || self.board.map.polar_sink() == to || ini.faction == Faction::Ecaz || ini.ally == Faction::Ecaz {
             return false;
         }
 
@@ -1285,7 +1044,7 @@ impl Game {
     }
 
     pub fn owner_of_location(&self, stronghold: Location) -> Option<PlayerIndex> {
-        match self.stronghold_ownership.get(&stronghold) {
+        match self.board.stronghold_ownership.get(&stronghold) {
             Some(value) => self.get_player(Some(*value)),
             None => None,
         }
@@ -1339,8 +1098,8 @@ impl Game {
         let player = self.player(p);
         let choam_extra_move_bonus = if player.faction == Faction::Choam && self.ship_move.choam_has_extra_move { 1 } else { 0 };
 
-        let planetology_bonus = if self.current_planetology.as_ref().map_or(false, |pl| pl.add_one_to_movement)
-            && self.current_planetology.as_ref().expect("current planetology").initiator() == player.faction
+        let planetology_bonus = if self.turn.current_planetology.as_ref().map_or(false, |pl| pl.add_one_to_movement)
+            && self.turn.current_planetology.as_ref().expect("current planetology").initiator() == player.faction
         {
             1
         } else {
@@ -1366,9 +1125,9 @@ impl Game {
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn locations_with_any_forces_not_in_storm(&self, p: PlayerIndex) -> impl Iterator<Item = Location> {
         // `p` is dereferenced inside the predicate, per element.
-        self.map
+        self.board.map
             .locations(true)
-            .filter(move |l| l.sector(&self.map) != self.sector_in_storm && self.player(p).any_forces_in(Some(*l)) > 0)
+            .filter(move |l| l.sector(&self.board.map) != self.board.sector_in_storm && self.player(p).any_forces_in(Some(*l)) > 0)
     }
 
     pub fn is_not_full(&self, p: PlayerIndex, l: Location) -> bool {
@@ -1391,7 +1150,7 @@ impl Game {
     }
 
     pub fn everyone_acted_or_passed(&self) -> bool {
-        self.has_acted_or_passed.len() == self.players.len()
+        self.turn.has_acted_or_passed.len() == self.players.len()
     }
 
     pub fn assisted_note_keeping_enabled(&self, p: Option<PlayerIndex>) -> bool {
@@ -1410,7 +1169,7 @@ impl Game {
         self.applicable(Rule::FremenDeterminesStorm)
             && !self.prevented(FactionAdvantage::FremenStormPrescience)
             && (player.faction == Faction::Fremen
-                || (player.ally == Faction::Fremen && self.fremen_shares_prescience)
+                || (player.ally == Faction::Fremen && self.alliances.fremen_shares_prescience)
                 || self.has_deal(player.faction, DealType::ShareStormPrescience))
     }
 
@@ -1435,7 +1194,7 @@ impl Game {
         !self.prevented(FactionAdvantage::AtreidesSpiceBlowPrescience)
             && !self.has_low_threshold(Faction::Atreides)
             && (player.faction == Faction::Atreides
-                || (player.ally == Faction::Atreides && self.atreides_shares_prescience)
+                || (player.ally == Faction::Atreides && self.alliances.atreides_shares_prescience)
                 || self.has_deal(player.faction, DealType::ShareResourceDeckPrescience))
     }
 
@@ -1449,7 +1208,7 @@ impl Game {
             || self.occupies(player.ally, World::Atreides)
             || (!self.prevented(FactionAdvantage::AtreidesBiddingPrescience)
                 && (player.faction == Faction::Atreides
-                    || (player.ally == Faction::Atreides && self.atreides_shares_prescience)
+                    || (player.ally == Faction::Atreides && self.alliances.atreides_shares_prescience)
                     || self.has_deal(player.faction, DealType::ShareBiddingPrescience)))
     }
 
@@ -1484,14 +1243,14 @@ impl Game {
     /// A `DateTime` (`DateTimeOffset.DateTime`: the clock time, offset dropped),
     /// returned as a `DateTimeOffset` with offset 0. `DateTime.MinValue` is tick 0.
     pub fn first_action(&self) -> DateTimeOffset {
-        match self.history.first() {
+        match self.history.entries.first() {
             Some(e) => DateTimeOffset::new(e.time().ticks, 0),
             None => DateTimeOffset::default(),
         }
     }
 
     pub fn last_action(&self) -> DateTimeOffset {
-        match self.history.last() {
+        match self.history.entries.last() {
             Some(e) => DateTimeOffset::new(e.time().ticks, 0),
             None => DateTimeOffset::default(),
         }
@@ -1528,11 +1287,11 @@ impl Game {
 /// What `Map` needs to know about the game (see map.rs).
 impl crate::map::MapGame for Game {
     fn sector_in_storm(&self) -> i32 {
-        self.sector_in_storm
+        self.board.sector_in_storm
     }
 
     fn history_count(&self) -> i32 {
-        self.history.len() as i32
+        self.history.entries.len() as i32
     }
 
     fn applicable(&self, rule: Rule) -> bool {

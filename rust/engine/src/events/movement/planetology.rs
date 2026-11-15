@@ -32,12 +32,12 @@ impl Planetology {
     }
 
     pub fn can_be_played(g: &Game, p: PlayerIndex) -> bool {
-        g.has_skill_in_front_of_shield(p, LeaderSkill::Planetologist) && g.current_planetology.is_none()
+        g.has_skill_in_front_of_shield(p, LeaderSkill::Planetologist) && g.turn.current_planetology.is_none()
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
-        game.current_planetology = Some(self.clone());
+        game.turn.current_planetology = Some(self.clone());
         Ok(())
     }
 

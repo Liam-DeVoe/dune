@@ -47,7 +47,7 @@ fn deal_cancel_with_null_to_matches_empty_to() {
         r#"{"$type":"DealOffered","To":[],"Type":0,"Text":"x","EndPhase":0,"Price":0,"Benefit":0,"Cancel":false,"Initiator":90,"Time":"2024-01-01T12:02:40+00:00"}"#,
     );
     assert!(offer.execute(&mut g, false, true).is_none());
-    assert_eq!(g.deal_offers.len(), 1);
+    assert_eq!(g.deals.offers.len(), 1);
 
     let cancel = ev(
         &g,
@@ -55,8 +55,8 @@ fn deal_cancel_with_null_to_matches_empty_to() {
     );
     let r = cancel.execute(&mut g, false, true);
     assert!(r.is_none(), "C# accepts the cancellation; Rust: {r:?}");
-    assert_eq!(g.deal_offers.len(), 0, "C# removes the offer");
-    assert_eq!(g.history.len(), 3);
+    assert_eq!(g.deals.offers.len(), 0, "C# removes the offer");
+    assert_eq!(g.history.entries.len(), 3);
 }
 
 /// The same `Same` call with the null on the other side: the stored offer has `"To":null`,
@@ -76,7 +76,7 @@ fn deal_offer_with_null_to_cancelled_by_empty_to() {
         r#"{"$type":"DealOffered","To":null,"Type":0,"Text":"x","EndPhase":0,"Price":0,"Benefit":0,"Cancel":false,"Initiator":90,"Time":"2024-01-01T12:02:40+00:00"}"#,
     );
     assert!(offer.execute(&mut g, false, true).is_none());
-    assert_eq!(g.deal_offers.len(), 1);
+    assert_eq!(g.deals.offers.len(), 1);
 
     let cancel = ev(
         &g,
@@ -84,5 +84,5 @@ fn deal_offer_with_null_to_cancelled_by_empty_to() {
     );
     let r = cancel.execute(&mut g, false, true);
     assert!(r.is_none(), "C# accepts the cancellation; Rust: {r:?}");
-    assert_eq!(g.deal_offers.len(), 0, "C# removes the offer");
+    assert_eq!(g.deals.offers.len(), 0, "C# removes the offer");
 }

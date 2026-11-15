@@ -73,7 +73,7 @@ impl PlayerSequence {
 
     /// `JuiceForcesLast(p)` where `p` may be null.
     fn juice_forces_last_opt(&self, game: &Game, p: Option<PlayerIndex>) -> bool {
-        match &game.current_juice {
+        match &game.turn.current_juice {
             Some(juice) if juice.type_ == JuiceType::GoLast => juice.player_opt() == p,
             _ => false,
         }
@@ -183,7 +183,7 @@ impl PlayerSequence {
     /// Elements are `Option` because a null `FirstPlayer` can be added to the list.
     pub fn players_in_order(&self, game: &Game) -> Vec<Option<PlayerIndex>> {
         let mut result: Vec<Option<PlayerIndex>> = Vec::new();
-        let player_with_juice = match &game.current_juice {
+        let player_with_juice = match &game.turn.current_juice {
             Some(j) if j.type_ == JuiceType::GoFirst || j.type_ == JuiceType::GoLast => j.player_opt(),
             _ => None,
         };
@@ -200,7 +200,7 @@ impl PlayerSequence {
         }
 
         if player_with_juice.is_some() {
-            let juice = game.current_juice.as_ref().expect("current juice");
+            let juice = game.turn.current_juice.as_ref().expect("current juice");
             if juice.type_ == JuiceType::GoFirst {
                 result.insert(0, player_with_juice);
             } else if juice.type_ == JuiceType::GoLast {
@@ -220,7 +220,7 @@ impl PlayerSequence {
     }
 
     pub fn determine_first_player(g: &Game) -> PlayerIndex {
-        let start_looking_in_sector = (((g.sector_in_storm as f32 * g.maximum_players() as f32 / Map::NUMBER_OF_SECTORS as f32) as f64).ceil() as i32) % g.maximum_players();
+        let start_looking_in_sector = (((g.board.sector_in_storm as f32 * g.maximum_players() as f32 / Map::NUMBER_OF_SECTORS as f32) as f64).ceil() as i32) % g.maximum_players();
 
         let mut result: Option<PlayerIndex> = None;
 

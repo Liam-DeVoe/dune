@@ -180,13 +180,13 @@ impl Session {
 
     /// The same for an event that is already decoded.
     pub fn submit_event(&mut self, ev: GameEvent, host: bool) -> Result<EventOutcome, Panicked> {
-        let before = self.game.history.len();
+        let before = self.game.history.entries.len();
         let game = &mut self.game;
         let r = guarded(|| {
             ev.initialize_game(game);
             ev.execute(game, true, host)
         })?;
-        let accepted = self.game.history.len() > before;
+        let accepted = self.game.history.entries.len() > before;
         let (result, message) = match r {
             Err(e) => ("error", Some(e)),
             Ok(None) => (if accepted { "accepted" } else { "rejected" }, None),
@@ -196,7 +196,7 @@ impl Session {
                 (kind, Some(text))
             }
         };
-        let obs = self.observe(self.game.history.len() != before, false)?;
+        let obs = self.observe(self.game.history.entries.len() != before, false)?;
         Ok(EventOutcome { result: result.into(), message, obs })
     }
 
@@ -254,9 +254,9 @@ impl Session {
         if self.replica.as_ref().is_some_and(|r| r.game.event_count() > self.game.event_count()) {
             self.replica = None;
         }
-        let replica = self.replica.get_or_insert_with(|| ViewReplica::new(self.game.version, &self.participation));
+        let replica = self.replica.get_or_insert_with(|| ViewReplica::new(self.game.rules.version, &self.participation));
         let done = replica.game.event_count() as usize;
-        for (nr, e) in self.game.history.iter().enumerate().skip(done) {
+        for (nr, e) in self.game.history.entries.iter().enumerate().skip(done) {
             let text = json::serialize(e);
             match guarded(|| replica.apply(&text))? {
                 Ok(Ok(())) => {}

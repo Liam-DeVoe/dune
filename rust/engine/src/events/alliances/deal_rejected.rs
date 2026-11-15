@@ -38,7 +38,7 @@ impl DealRejected {
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if !game.deal_offers.iter().any(|offer| offer.is_rejected_by(self)) {
+        if !game.deals.offers.iter().any(|offer| offer.is_rejected_by(self)) {
             return Some(express!("Offer is not valid (anymore)"));
         }
         if self.open_offer(game).is_none() {
@@ -51,7 +51,7 @@ impl DealRejected {
     pub fn open_offer(&self, game: &Game) -> Option<Rc<DealOffered>> {
         // AcceptableDeals(Game, Player).FirstOrDefault(...): lazy, one offer at a time.
         let Some(p) = self.player_opt() else { return None };
-        game.deal_offers
+        game.deals.offers
             .iter()
             .find(|offer| DealAccepted::is_acceptable_deal(game, p, offer) && offer.is_rejected_by(self))
             .cloned()

@@ -55,7 +55,7 @@ fn static_helpers_and_getters() {
 
     let g = run(&[establish()]);
     p("factions".into(), join(g.players.iter().map(|p| p.faction)));
-    p("phase".into(), g.current_phase.to_string());
+    p("phase".into(), g.turn.current_phase.to_string());
 
     for i in 0..g.players.len() {
         let pi = g.player_at(i);
@@ -147,21 +147,21 @@ fn validate_off() {
         let first = g.players[0].faction.0;
         let r = exec(&mut g, &format!(r#"{{"$type":"PerformHmsPlacement","_targetId":5,"Initiator":{first},{T}}}"#), false);
         out.push(format!("hms.first = {r}"));
-        let target = g.map.location_lookup().find(5).unwrap();
-        let hms: Location = g.map.hidden_mobile_stronghold().into();
+        let target = g.board.map.location_lookup().find(5).unwrap();
+        let hms: Location = g.board.map.hidden_mobile_stronghold().into();
         out.push(format!(
             "hms.neighbourOfTarget.before = {}",
-            if target.neighbours(&g.map).contains(&hms) { "True" } else { "False" }
+            if target.neighbours(&g.board.map).contains(&hms) { "True" } else { "False" }
         ));
         let r = exec(&mut g, &format!(r#"{{"$type":"PerformHmsPlacement","_targetId":-1,"Initiator":{first},{T}}}"#), false);
         out.push(format!("hms.second = {r}"));
         out.push(format!(
             "hms.neighbourOfTarget.after = {}",
-            if target.neighbours(&g.map).contains(&hms) { "True" } else { "False" }
+            if target.neighbours(&g.board.map).contains(&hms) { "True" } else { "False" }
         ));
         out.push(format!(
             "hms.attachedTo = {}",
-            g.map.hidden_mobile_stronghold().attached_to_location(&g.map).map_or(String::new(), |l| l.id().to_string())
+            g.board.map.hidden_mobile_stronghold().attached_to_location(&g.board.map).map_or(String::new(), |l| l.id().to_string())
         ));
     }
 

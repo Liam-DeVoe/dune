@@ -17,7 +17,7 @@ fn fremen_with_dangling_ally() -> (Game, PlayerIndex) {
     let mut g = game_with(&[Faction::Fremen]);
     let y = g.get_player(Some(Faction::Fremen)).unwrap();
     g.player_mut(y).ally = Faction::Atreides;
-    g.sector_in_storm = 5;
+    g.board.sector_in_storm = 5;
     (g, y)
 }
 
@@ -28,7 +28,7 @@ fn fremen_with_dangling_ally() -> (Game, PlayerIndex) {
 #[test]
 fn rides_valid_targets_contains_is_lazy() {
     let (g, y) = fremen_with_dangling_ally();
-    let polar_sink = g.map.polar_sink();
+    let polar_sink = g.board.map.polar_sink();
     let r = catch_panic(|| FremenRidesMonster::valid_targets(&g, y).any(|v| v == polar_sink));
     assert_eq!(r, Ok(true));
 }
@@ -38,7 +38,7 @@ fn rides_valid_targets_contains_is_lazy() {
 #[test]
 fn rides_valid_targets_later_location_throws_in_both() {
     let (g, y) = fremen_with_dangling_ally();
-    let arrakeen = g.map.arrakeen();
+    let arrakeen = g.board.map.arrakeen();
     let r = catch_panic(|| FremenRidesMonster::valid_targets(&g, y).any(|v| v == arrakeen));
     assert!(r.is_err());
 }

@@ -58,7 +58,7 @@ fn shipment_costs_match_csharp_at_the_edges() {
     let pl = g.player_indices().find(|p| g.player(*p).faction != Faction::Fremen).unwrap();
     assert_eq!(g.player(pl).faction, Faction::Ecaz, "probe: player0 = Ecaz");
     let to = g
-        .map
+        .board.map
         .locations(false)
         .find(|l| l.id() != 0 && !l.territory().has_reduced_shipping_cost() && !l.territory().is_stronghold())
         .unwrap();

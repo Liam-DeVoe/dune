@@ -29,7 +29,7 @@ pub fn deals(game: &Game, v: &ResolvedViewer, d: &dyn Describer) -> Option<Deals
     let faction = game.player(p).faction;
     // An offer is the event that made it, so its place in the history names it across views.
     let id_of = |o: &Rc<DealOffered>| {
-        game.history
+        game.history.entries
             .iter()
             .position(|e| matches!(e, GameEvent::DealOffered(x) if Rc::ptr_eq(x, o)))
             .map_or(-1, |i| i as i32)
@@ -88,7 +88,7 @@ pub fn bots_speed(game: &Game) -> i32 {
 pub fn tracker(game: &Game, v: &ResolvedViewer) -> Option<TrackerView> {
     use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
     let p = v.player.filter(|_| !v.is_observer)?;
-    if game.player(p).faction != Faction::Atreides || game.current_phase < Phase::SelectingTraitors {
+    if game.player(p).faction != Faction::Atreides || game.turn.current_phase < Phase::SelectingTraitors {
         return None;
     }
     let mut cards: Vec<i32> = TreacheryCardManager::get_cards_in_play(game).map(|c| c.id()).collect();
@@ -100,14 +100,14 @@ pub fn tracker(game: &Game, v: &ResolvedViewer) -> Option<TrackerView> {
         }
     }
     let skin_ids = |d: &Option<Deck<ResourceCard>>| d.as_ref().map(|d| d.items.iter().map(|c| c.skin_id()).collect::<Vec<_>>()).unwrap_or_default();
-    let mut resource_cards = skin_ids(&game.resource_card_deck);
+    let mut resource_cards = skin_ids(&game.decks.resource_card_deck);
     resource_cards.sort();
     Some(TrackerView {
         cards_in_play: cards,
         traitors_in_play: game.traitors_in_play().into_iter().map(crate::shield::hero_ref).collect(),
         resource_cards,
-        resource_discard_a: skin_ids(&game.resource_card_discard_pile_a),
-        resource_discard_b: skin_ids(&game.resource_card_discard_pile_b),
+        resource_discard_a: skin_ids(&game.decks.resource_card_discard_pile_a),
+        resource_discard_b: skin_ids(&game.decks.resource_card_discard_pile_b),
         players: game
             .player_indices()
             .map(|q| {

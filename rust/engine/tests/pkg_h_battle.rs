@@ -71,7 +71,7 @@ fn treachery_succeeded_respects_harkonnen_cancellation() {
     let mut t = TreacheryCalled::new(&g, Faction::Harkonnen);
     t.traitor_called = true;
     assert!(t.succeeded(&g));
-    g.harkonnen_traitor_was_cancelled = true;
+    g.turn.harkonnen_traitor_was_cancelled = true;
     assert!(!t.succeeded(&g));
     let mut atreides = TreacheryCalled::new(&g, Faction::Atreides);
     atreides.traitor_called = true;
@@ -134,7 +134,7 @@ fn aggressor_by_juice_swaps_roles() {
 
     let mut j = JuicePlayed::new(&g, Faction::Atreides);
     j.type_ = JuiceType::Aggressor;
-    g.current_juice = Some(Rc::new(j));
+    g.turn.current_juice = Some(Rc::new(j));
     assert_eq!(b.aggressor(&g), Faction::Atreides);
     assert_eq!(b.defender(&g), Faction::Emperor);
     assert!(BattleInitiated::is_aggressor_by_juice(&g, Faction::Atreides));

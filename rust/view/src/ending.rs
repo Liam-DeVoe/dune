@@ -230,7 +230,7 @@ pub struct StoryBattalion {
 
 /// The `ending` field: after `GameEnded` only.
 pub fn ending(game: &Game, d: &dyn Describer) -> Option<EndingView> {
-    if game.current_phase != Phase::GameEnded {
+    if game.turn.current_phase != Phase::GameEnded {
         return None;
     }
     let winners = game.contemplate.winners.iter().map(|&p| StoryWinner { faction: name(game.player(p).faction), name: game.get_player_name_player(p) }).collect();
@@ -302,9 +302,9 @@ fn story(game: &Game, d: &dyn Describer) -> Vec<StoryBlock> {
     let mut previous_phase = Phase::AwaitingPlayers;
     let mut previous_main_phase = MainPhase::Started;
     let mut previous_winning_bid: Option<GameEvent> = None;
-    let mut replay = Game::with_participation(game.version, &game.participation);
+    let mut replay = Game::with_participation(game.rules.version, &game.participation);
 
-    for original in &game.history {
+    for original in &game.history.entries {
         let Some(evt) = original.shallow_copy() else { continue };
         evt.initialize_game(&replay);
         evt.execute(&mut replay, false, true);
@@ -313,11 +313,11 @@ fn story(game: &Game, d: &dyn Describer) -> Vec<StoryBlock> {
         let rd: &dyn Describer = &rd;
 
         if matches!(previous_phase, Phase::TradingFactions | Phase::SelectingFactions)
-            && !matches!(r.current_phase, Phase::TradingFactions | Phase::SelectingFactions)
+            && !matches!(r.turn.current_phase, Phase::TradingFactions | Phase::SelectingFactions)
         {
             let custom = r.get_custom_rules();
             out.push(StoryBlock::Setup {
-                ruleset: rd.describe(&ExpressionElement::from(r.ruleset)),
+                ruleset: rd.describe(&ExpressionElement::from(r.rules.ruleset)),
                 custom_rules: (!custom.is_empty())
                     .then(|| custom.iter().map(|rule| rd.describe(&ExpressionElement::from(*rule))).collect::<Vec<_>>().join(", ")),
                 started: utc(evt.time()),
@@ -348,11 +348,11 @@ fn story(game: &Game, d: &dyn Describer) -> Vec<StoryBlock> {
             }
         }
 
-        let main_phase_started = |m: MainPhase| r.current_main_phase != previous_main_phase && r.current_main_phase == m;
+        let main_phase_started = |m: MainPhase| r.turn.current_main_phase != previous_main_phase && r.turn.current_main_phase == m;
         let show_ally = r.players.iter().any(|p| p.ally != Faction::None);
 
         if main_phase_started(MainPhase::Bidding) {
-            out.push(StoryBlock::Turn { turn: r.current_turn });
+            out.push(StoryBlock::Turn { turn: r.turn.current_turn });
             let columns = StoryTable {
                 show_ally,
                 show_cards: true,
@@ -361,17 +361,17 @@ fn story(game: &Game, d: &dyn Describer) -> Vec<StoryBlock> {
                 show_tech_tokens: r.applicable(Rule::TechTokens),
                 ..Default::default()
             };
-            out.push(StoryBlock::Situation { when: SituationWhen::StartOfBidding, turn: r.current_turn, table: table(r, game, columns) });
+            out.push(StoryBlock::Situation { when: SituationWhen::StartOfBidding, turn: r.turn.current_turn, table: table(r, game, columns) });
         }
 
         if main_phase_started(MainPhase::Resurrection) {
             let columns = StoryTable { show_cards: true, show_resources: true, ..Default::default() };
-            out.push(StoryBlock::Situation { when: SituationWhen::EndOfBidding, turn: r.current_turn, table: table(r, game, columns) });
+            out.push(StoryBlock::Situation { when: SituationWhen::EndOfBidding, turn: r.turn.current_turn, table: table(r, game, columns) });
         }
 
         if main_phase_started(MainPhase::Battle) {
             let columns = StoryTable { show_ally, show_resources: true, show_forces: true, show_leaders: true, show_points: true, ..Default::default() };
-            out.push(StoryBlock::Situation { when: SituationWhen::EndOfShipmentAndMove, turn: r.current_turn, table: table(r, game, columns) });
+            out.push(StoryBlock::Situation { when: SituationWhen::EndOfShipmentAndMove, turn: r.turn.current_turn, table: table(r, game, columns) });
         }
 
         if matches!(evt, GameEvent::BattleInitiated(_)) {
@@ -386,7 +386,7 @@ fn story(game: &Game, d: &dyn Describer) -> Vec<StoryBlock> {
             out.push(StoryBlock::Milestone { faction: name(evt.initiator()), text: crate::expr::message(&evt.get_message(r), d) });
         }
 
-        if r.current_phase != previous_phase && r.current_phase == Phase::BattleReport {
+        if r.turn.current_phase != previous_phase && r.turn.current_phase == Phase::BattleReport {
             if let (Some(a), Some(dp)) = (&r.battle.aggressor_plan, &r.battle.defender_plan) {
                 let advanced = r.applicable(Rule::AdvancedCombat);
                 out.push(StoryBlock::Battle {
@@ -397,7 +397,7 @@ fn story(game: &Game, d: &dyn Describer) -> Vec<StoryBlock> {
             }
         }
 
-        if r.current_phase != previous_phase && r.current_phase == Phase::TurnConcluded {
+        if r.turn.current_phase != previous_phase && r.turn.current_phase == Phase::TurnConcluded {
             let columns = StoryTable {
                 show_ally,
                 show_forces: true,
@@ -407,7 +407,7 @@ fn story(game: &Game, d: &dyn Describer) -> Vec<StoryBlock> {
                 show_points: true,
                 ..Default::default()
             };
-            out.push(StoryBlock::Situation { when: SituationWhen::EndOfTurn, turn: r.current_turn, table: table(r, game, columns) });
+            out.push(StoryBlock::Situation { when: SituationWhen::EndOfTurn, turn: r.turn.current_turn, table: table(r, game, columns) });
             out.push(strongholds(r));
         }
 
@@ -422,8 +422,8 @@ fn story(game: &Game, d: &dyn Describer) -> Vec<StoryBlock> {
             out.push(StoryBlock::Ended { time: utc(evt.time()) });
         }
 
-        previous_phase = r.current_phase;
-        previous_main_phase = r.current_main_phase;
+        previous_phase = r.turn.current_phase;
+        previous_main_phase = r.turn.current_main_phase;
     }
     out
 }
@@ -474,7 +474,7 @@ fn table(g: &Game, finished: &Game, mut columns: StoryTable) -> StoryTable {
                     .into_iter()
                     .map(|l| StoryForces {
                         territory: l.territory().id(),
-                        contested: l != g.map.polar_sink()
+                        contested: l != g.board.map.polar_sink()
                             && p.occupies_territory(g, Some(l.territory()))
                             && g.nr_of_occupants_of_territory_excluding(l.territory(), p.faction) > 0,
                         forces: p.forces_in(Some(l)),
@@ -523,7 +523,7 @@ fn strongholds(g: &Game) -> StoryBlock {
     let owner_column = g.applicable(Rule::StrongholdBonus);
     let terror_column = g.is_playing(Faction::Ecaz) || g.is_playing(Faction::Moritani);
     let rows = g
-        .map
+        .board.map
         .strongholds()
         .map(|sh| StoryStronghold {
             location: sh.id(),

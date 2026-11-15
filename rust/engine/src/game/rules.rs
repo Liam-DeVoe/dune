@@ -1,10 +1,41 @@
 use crate::prelude::*;
 
+/// The game's version, rules and settings, and the factions allowed to play.
+pub struct Rules {
+    pub version: i32,
+    pub ruleset: Ruleset,
+    pub active: Vec<Rule>,
+    pub rules_for_bots: Vec<Rule>,
+    /// `EstablishPlayers` can assign a null `Settings.InitialRules`, hence the `Option`.
+    pub all_rules: Option<Vec<Rule>>,
+    /// `EstablishPlayers` can assign null, hence the `Option`.
+    pub settings: Option<Shared<GameSettings>>,
+    pub factions_in_play: Shared<Vec<Faction>>,
+    pub automation_rules: Vec<Rc<AutomationConfigured>>,
+    pub secrets_remain_hidden: Vec<Faction>,
+}
+
+impl Rules {
+    pub fn new(version: i32) -> Self {
+        Rules {
+            version: version,
+            ruleset: Default::default(),
+            active: Vec::new(),
+            rules_for_bots: Vec::new(),
+            all_rules: Some(Vec::new()),
+            settings: Some(Default::default()),
+            factions_in_play: Default::default(),
+            automation_rules: Vec::new(),
+            secrets_remain_hidden: Vec::new(),
+        }
+    }
+}
+
 impl Game {
     pub const EXPANSION_LEVEL: i32 = 3;
 
     pub fn get_custom_rules(&self) -> Vec<Rule> {
-                self.rules
+                self.rules.active
             .iter()
             .copied()
             .filter(|rule| {
@@ -331,7 +362,7 @@ impl Game {
     }
 
     pub fn applicable(&self, rule: Rule) -> bool {
-                self.rules.contains(&rule) || self.rules_for_bots.contains(&rule)
+                self.rules.active.contains(&rule) || self.rules.rules_for_bots.contains(&rule)
     }
 
     pub fn get_rule_group(rule: Rule) -> RuleGroup {
@@ -473,11 +504,11 @@ impl Game {
 
     pub fn is_automated(&self, rule: AutomationRuleType, p: PlayerIndex) -> bool {
                 let faction = self.player(p).faction;
-        self.automation_rules.iter().any(|x| x.initiator() == faction && x.rule_type == rule)
+        self.rules.automation_rules.iter().any(|x| x.initiator() == faction && x.rule_type == rule)
     }
 
     pub fn is_auto_passed_bid(&self, f: Faction) -> bool {
-                for rule in self.automation_rules.iter().filter(|x| x.initiator() == f) {
+                for rule in self.rules.automation_rules.iter().filter(|x| x.initiator() == f) {
             match rule.rule_type {
                 AutomationRuleType::BiddingPassAboveAmount => {
                     if let Some(bid) = &self.bidding.current_bid {

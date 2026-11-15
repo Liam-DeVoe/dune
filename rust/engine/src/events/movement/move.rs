@@ -48,9 +48,9 @@ impl Move {
         };
 
         if !game.ship_move.current_player_may_perform_extra_move && !game.ship_move.in_guild_cunning_shipment {
-            game.has_acted_or_passed.push(self.initiator());
+            game.turn.has_acted_or_passed.push(self.initiator());
 
-            if game.current_phase == Phase::NonGuildMove {
+            if game.turn.current_phase == Phase::NonGuildMove {
                 let mut seq = game.ship_move.shipment_and_move_sequence.take().required("shipment and move sequence")?;
                 seq.next_player(game);
                 game.ship_move.shipment_and_move_sequence = Some(seq);
@@ -65,7 +65,7 @@ impl Move {
         }
 
         if game.ship_move.in_guild_cunning_shipment {
-            game.current_guild_cunning = None;
+            game.turn.current_guild_cunning = None;
             game.ship_move.in_guild_cunning_shipment = false;
         }
 
@@ -100,7 +100,7 @@ impl Move {
 
         game.ship_move.current_flight_used = None;
         game.ship_move.current_flight_discovery_used = None;
-        game.current_planetology = None;
+        game.turn.current_planetology = None;
         Ok(())
     }
 

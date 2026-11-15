@@ -113,8 +113,8 @@ fn check_visibility(game: &Game, v: &ResolvedViewer, view: &GameView, seen: &mut
     assert_eq!(view.piles.treachery_discard.is_some(), notekeeping, "{at}");
     assert_eq!(view.notes.is_some(), notekeeping, "{at}");
     if let Some(top) = view.piles.resource_deck_top {
-        assert!(game.current_main_phase == MainPhase::ShipmentAndMove && game.has_resource_deck_prescience(me), "{at}: deck top");
-        assert_eq!(Some(top), game.resource_card_deck.as_ref().and_then(|d| d.top()).map(|c| c.skin_id()), "{at}");
+        assert!(game.turn.current_main_phase == MainPhase::ShipmentAndMove && game.has_resource_deck_prescience(me), "{at}: deck top");
+        assert_eq!(Some(top), game.decks.resource_card_deck.as_ref().and_then(|d| d.top()).map(|c| c.skin_id()), "{at}");
         seen.add("resource deck top");
     }
 
@@ -156,7 +156,7 @@ fn check_visibility(game: &Game, v: &ResolvedViewer, view: &GameView, seen: &mut
                 seen.add(if own && !both { "own plan" } else { "full plan" });
             } else {
                 let users: Vec<Faction> =
-                    game.battle.current_prescience.iter().map(|p| p.initiator()).chain(game.current_nexus_prescience.iter().map(|n| n.initiator())).collect();
+                    game.battle.current_prescience.iter().map(|p| p.initiator()).chain(game.turn.current_nexus_prescience.iter().map(|n| n.initiator())).collect();
                 let ally = me.map(|p| game.player(p).ally);
                 assert!(users.iter().any(|u| my_faction == Some(*u) || ally == Some(*u)), "{at}: partial plan for a bystander");
                 seen.add("partial plan");

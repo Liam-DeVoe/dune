@@ -82,13 +82,13 @@ impl CardTraded {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        if game.current_card_trade_offer.is_none() {
+        if game.alliances.current_card_trade_offer.is_none() {
             self.log(game);
-            game.current_card_trade_offer = Some(self.clone());
-            game.phase_before_card_trade = Some(game.current_phase);
+            game.alliances.current_card_trade_offer = Some(self.clone());
+            game.alliances.phase_before_card_trade = Some(game.turn.current_phase);
             game.enter(Phase::TradingCards, true);
         } else {
-            let offer = game.current_card_trade_offer.clone().required("current card trade offer")?;
+            let offer = game.alliances.current_card_trade_offer.clone().required("current card trade offer")?;
             self.log_objects(game, vec![self.initiator().into(), " and ".into(), offer.initiator().into(), " exchange a card".into()]);
             let other_player = offer.player_opt();
 
@@ -115,10 +115,10 @@ impl CardTraded {
             let offered_card = offer.card().required("offered card")?;
             game.player_mut(me).treachery_cards.push(offered_card);
             crate::iter::remove_first(&mut game.player_mut(other_player).treachery_cards, &offered_card);
-            game.current_card_trade_offer = None;
+            game.alliances.current_card_trade_offer = None;
             game.stone(Milestone::CardTraded);
-            game.last_turn_card_was_traded = game.current_turn;
-            if let Some(phase) = game.phase_before_card_trade {
+            game.alliances.last_turn_card_was_traded = game.turn.current_turn;
+            if let Some(phase) = game.alliances.phase_before_card_trade {
                 game.enter(phase, true);
             }
         }

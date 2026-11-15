@@ -85,11 +85,11 @@ impl Game {
         self.contemplate.extortion_to_be_returned = self.players.iter().any(|p| p.extortion > 0);
         self.gain_extortions();
 
-        if self.harkonnen_traitor_was_cancelled {
-            self.harkonnen_traitor_was_cancelled = false;
+        if self.turn.harkonnen_traitor_was_cancelled {
+            self.turn.harkonnen_traitor_was_cancelled = false;
             // `?.` skips the draw when Harkonnen is not playing.
             if let Some(harkonnen) = self.get_player(Some(Faction::Harkonnen)) {
-                let traitor = self.traitor_deck.as_mut().expect("traitor deck").draw();
+                let traitor = self.decks.traitor_deck.as_mut().expect("traitor deck").draw();
                 self.player_mut(harkonnen).traitors.push(traitor);
             }
             self.log(vec![Faction::Harkonnen.into(), " drew a new traitor after having been betrayed".into()]);
@@ -104,7 +104,7 @@ impl Game {
 
         // ToList: snapshot before the loop body changes RevealedTraitors.
         let to_replace: Vec<Leader> = self
-            .assassinated
+            .leaders.assassinated
             .iter()
             .copied()
             .filter(|l| self.player(moritani).revealed_traitors.contains(&Hero::Leader(*l)))
@@ -119,7 +119,7 @@ impl Game {
                 }
             }
             self.player_mut(moritani).revealed_traitors.remove(&hero);
-            let traitor = self.traitor_deck.as_mut().expect("traitor deck").draw();
+            let traitor = self.decks.traitor_deck.as_mut().expect("traitor deck").draw();
             self.player_mut(moritani).traitors.push(traitor);
         }
     }
@@ -127,7 +127,7 @@ impl Game {
     pub fn end_contemplate_pause(&mut self) {
         if self.contemplate.extortion_to_be_returned {
             self.log(vec![Faction::Moritani.into(), " regain their ".into(), TerrorType::Extortion.into(), " token".into()]);
-            self.unplaced_terror_tokens.push(TerrorType::Extortion);
+            self.board.unplaced_terror_tokens.push(TerrorType::Extortion);
         }
 
         self.enter(Phase::Contemplate, true);
@@ -162,8 +162,8 @@ impl Game {
         self.check_bene_gesserit_prediction();
         self.check_final_turn_win();
 
-        if self.contemplate.winners.len() > 0 || self.current_turn == self.maximum_turns() {
-            self.current_main_phase = MainPhase::Ended;
+        if self.contemplate.winners.len() > 0 || self.turn.current_turn == self.maximum_turns() {
+            self.turn.current_main_phase = MainPhase::Ended;
             self.enter(Phase::GameEnded, true);
             self.stone(Milestone::GameWon);
             let winner_factions: Vec<Faction> = self.contemplate.winners.iter().map(|w| self.player(*w).faction).collect();
@@ -181,7 +181,7 @@ impl Game {
 
         self.determine_stronghold_ownership();
 
-        if self.when_to_set_aside_vidal == VidalMoment::EndOfTurn {
+        if self.leaders.when_to_set_aside_vidal == VidalMoment::EndOfTurn {
             self.set_aside_vidal();
         }
 
@@ -209,31 +209,31 @@ impl Game {
 
     pub fn determine_stronghold_ownership(&mut self) {
         if self.applicable(Rule::StrongholdBonus) {
-            let arrakeen = self.map.arrakeen();
+            let arrakeen = self.board.map.arrakeen();
             self.determine_stronghold_ownership_location(arrakeen);
-            let carthag = self.map.carthag();
+            let carthag = self.board.map.carthag();
             self.determine_stronghold_ownership_location(carthag);
-            let sietch_tabr = self.map.sietch_tabr();
+            let sietch_tabr = self.board.map.sietch_tabr();
             self.determine_stronghold_ownership_location(sietch_tabr);
-            let habbanya_sietch = self.map.habbanya_sietch();
+            let habbanya_sietch = self.board.map.habbanya_sietch();
             self.determine_stronghold_ownership_location(habbanya_sietch);
-            let tueks_sietch = self.map.tueks_sietch();
+            let tueks_sietch = self.board.map.tueks_sietch();
             self.determine_stronghold_ownership_location(tueks_sietch);
-            let hms = self.map.hidden_mobile_stronghold().location();
+            let hms = self.board.map.hidden_mobile_stronghold().location();
             self.determine_stronghold_ownership_location(hms);
         }
     }
 
     pub fn determine_stronghold_ownership_location(&mut self, location: Location) {
-        let current_owner = self.stronghold_ownership.get(&location).copied().unwrap_or(Faction::None);
+        let current_owner = self.board.stronghold_ownership.get(&location).copied().unwrap_or(Faction::None);
         let contested = self.applicable(Rule::ContestedStongholdsCountAsOccupied);
         let new_owning_player = self.players.iter().find(|p| p.controls(self, location, contested));
         let new_owner = new_owning_player.map_or(Faction::None, |p| p.faction);
 
         if current_owner != new_owner {
             if current_owner != Faction::None && new_owner != Faction::None {
-                self.stronghold_ownership.remove(&location);
-                self.stronghold_ownership.insert_new(location, new_owner);
+                self.board.stronghold_ownership.remove(&location);
+                self.board.stronghold_ownership.insert_new(location, new_owner);
                 self.log(vec![
                     new_owner.into(),
                     " take control over ".into(),
@@ -242,17 +242,17 @@ impl Game {
                     current_owner.into(),
                 ]);
             } else if current_owner != Faction::None {
-                self.stronghold_ownership.remove(&location);
+                self.board.stronghold_ownership.remove(&location);
                 self.log(vec![current_owner.into(), " lose control over ".into(), location.into()]);
             } else if new_owner != Faction::None {
-                self.stronghold_ownership.insert_new(location, new_owner);
+                self.board.stronghold_ownership.insert_new(location, new_owner);
                 self.log(vec![new_owner.into(), " take control over ".into(), location.into()]);
             }
         }
     }
 
     pub fn check_final_turn_win(&mut self) {
-        if self.current_turn != self.maximum_turns() {
+        if self.turn.current_turn != self.maximum_turns() {
             return;
         }
 
@@ -273,7 +273,7 @@ impl Game {
         if let Some(bene_gesserit) = bene_gesserit {
             let predicted_faction = self.player(bene_gesserit).predicted_faction;
             let predicted_turn = self.player(bene_gesserit).predicted_turn;
-            if predicted_turn == self.current_turn && self.contemplate.winners.iter().any(|w| self.player(*w).faction == predicted_faction) {
+            if predicted_turn == self.turn.current_turn && self.contemplate.winners.iter().any(|w| self.player(*w).faction == predicted_faction) {
                 self.log_win_reason(
                     WinMethod::Prediction,
                     vec![
@@ -379,7 +379,7 @@ impl Game {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn strongholds(&self) -> impl Iterator<Item = Territory> {
-        self.map.territories(false).filter(move |t| t.is_stronghold() || self.is_special_stronghold(*t))
+        self.board.map.territories(false).filter(move |t| t.is_stronghold() || self.is_special_stronghold(*t))
     }
 
     pub fn meets_ecaz_victory_condition(&self, p: PlayerIndex, contested_strongholds_count_as_occupied: bool) -> bool {
@@ -407,7 +407,7 @@ impl Game {
                         .player(pl.allied_player(self).expect("allied player"))
                         .controls_territory(self, t, contested_strongholds_count_as_occupied)
             })
-            && self.homeworld_occupation.values().filter(|f| **f == pl.faction || **f == pl.ally).count() >= 2
+            && self.board.homeworld_occupation.values().filter(|f| **f == pl.faction || **f == pl.ally).count() >= 2
     }
 
     pub fn number_of_victory_points(&self, p: PlayerIndex, contested_strongholds_count_as_occupied: bool) -> i32 {
@@ -416,7 +416,7 @@ impl Game {
             let allied = self.player(allied);
             let tech_token_point = if pl.tech_tokens.len() == 3 || allied.tech_tokens.len() == 3 { 1 } else { 0 };
             let count = self
-                .map
+                .board.map
                 .territories(false)
                 .filter(|t| t.is_stronghold() || self.is_special_stronghold(*t))
                 .filter(|l| {
@@ -433,7 +433,7 @@ impl Game {
 
     pub fn number_of_occupied_strongholds(&self, p: PlayerIndex, contested_strongholds_count_as_occupied: bool) -> i32 {
         let pl = self.player(p);
-        self.map
+        self.board.map
             .territories(false)
             .filter(|t| t.is_stronghold() || self.is_special_stronghold(*t))
             .filter(|l| pl.controls_territory(self, *l, contested_strongholds_count_as_occupied))
@@ -487,9 +487,9 @@ impl Game {
     }
 
     pub fn fremen_victory_condition_met(&self) -> bool {
-        let sietch_tabr = self.map.sietch_tabr();
-        let habbanya_sietch = self.map.habbanya_sietch();
-        let tueks_sietch = self.map.tueks_sietch();
+        let sietch_tabr = self.board.map.sietch_tabr();
+        let habbanya_sietch = self.board.map.habbanya_sietch();
+        let tueks_sietch = self.board.map.tueks_sietch();
         let sietch_tabr_occupied_by_other_than_fremen = self.players.iter().any(|p| {
             p.faction != Faction::Fremen
                 && (p.faction != Faction::Ecaz || p.ally != Faction::Fremen)
@@ -505,7 +505,7 @@ impl Game {
                 && p.occupies(self, Some(tueks_sietch))
         });
 
-        self.current_turn == self.maximum_turns()
+        self.turn.current_turn == self.maximum_turns()
             && !sietch_tabr_occupied_by_other_than_fremen
             && !habbanya_sietch_occupied_by_other_than_fremen
             && !tueks_sietch_occupied_by_atreides_or_harkonnen_or_emperor_or_richese
@@ -547,7 +547,7 @@ impl Game {
     }
 
     pub fn has_stronghold_advantage(&self, f: Faction, advantage: StrongholdAdvantage, battle_territory: Territory) -> bool {
-        let hms = self.map.hidden_mobile_stronghold().location();
+        let hms = self.board.map.hidden_mobile_stronghold().location();
         if battle_territory == hms.territory() && self.owns_stronghold(f, hms) && self.battle.chosen_hms_advantage == Some(advantage) {
             return true;
         }
@@ -556,18 +556,18 @@ impl Game {
     }
 
     pub fn owns_stronghold(&self, f: Faction, stronghold: Location) -> bool {
-        match self.stronghold_ownership.get(&stronghold) {
+        match self.board.stronghold_ownership.get(&stronghold) {
             Some(owner) => *owner == f,
             None => false,
         }
     }
 
     pub fn is_special_stronghold(&self, t: Territory) -> bool {
-        t == self.map.shield_wall() && self.applicable(Rule::Ssw) && self.blow.number_of_monsters >= 4
+        t == self.board.map.shield_wall() && self.applicable(Rule::Ssw) && self.blow.number_of_monsters >= 4
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn terror_in(&self, t: Territory) -> impl Iterator<Item = TerrorType> {
-        self.terror_on_planet.iter().filter(move |(_, v)| **v == t).map(move |(k, _)| *k)
+        self.board.terror_on_planet.iter().filter(move |(_, v)| **v == t).map(move |(k, _)| *k)
     }
 }

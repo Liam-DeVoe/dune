@@ -123,7 +123,7 @@ impl Karma {
         if faction != Faction::Guild && g.is_playing(Faction::Guild) {
             if Karma::in_(g, MainPhase::ShipmentAndMove) {
                 let guild_determine_shipment_may_still_be_prevented =
-                    !g.has_acted_or_passed.contains(&Faction::Guild) && g.current_phase != Phase::GuildShip;
+                    !g.turn.has_acted_or_passed.contains(&Faction::Guild) && g.turn.current_phase != Phase::GuildShip;
                 if g.applicable(Rule::GuildDetermineShipment) && guild_determine_shipment_may_still_be_prevented {
                     result.push(FactionAdvantage::GuildDetermineMoveMoment);
                 }
@@ -265,7 +265,7 @@ impl Karma {
     }
 
     pub fn in_(g: &Game, phase: MainPhase) -> bool {
-        g.current_main_phase == phase
+        g.turn.current_main_phase == phase
     }
 
     /// Lazy: callers stop at the first match.
@@ -277,7 +277,7 @@ impl Karma {
             .filter(move |c| {
                 c.type_() == TreacheryCardType::Karma
                     || (c.type_() == TreacheryCardType::Useless && pl.is(Faction::BeneGesserit) && g.applicable(Rule::BeneGesseritWorthlessAsKarma))
-                    || (c.type_() == TreacheryCardType::Clairvoyance && pl.occupies(g, Some(g.map.shrine().location())))
+                    || (c.type_() == TreacheryCardType::Clairvoyance && pl.occupies(g, Some(g.board.map.shrine().location())))
             })
     }
 
@@ -313,14 +313,14 @@ impl Karma {
 
         let me = self.player();
         if game.player(me).is(Faction::Ixian)
-            && game.current_phase == Phase::IxianSwappingCard
+            && game.turn.current_phase == Phase::IxianSwappingCard
             && game.player(me).treachery_cards.len() == 0
         {
             game.continue_after_ixian_card_swap_decision();
         }
 
         if self.prevented == FactionAdvantage::FremenRidesMonster
-            && matches!(game.current_phase, Phase::FremenRidingMonsterA | Phase::FremenRidingMonsterB)
+            && matches!(game.turn.current_phase, Phase::FremenRidingMonsterA | Phase::FremenRidingMonsterB)
         {
             game.determine_next_shipment_and_move_sub_phase()?;
         }
@@ -328,7 +328,7 @@ impl Karma {
     }
 
     pub fn revoke_battle_plans_if_needed(&self, game: &mut Game) {
-        if game.current_main_phase == MainPhase::Battle {
+        if game.turn.current_main_phase == MainPhase::Battle {
             if self.prevented == FactionAdvantage::FremenNotPayingForBattles
                 || self.prevented == FactionAdvantage::FremenSpecialForceBonus
             {

@@ -21,10 +21,10 @@ const END_PHASE: &str = r#"{"$type":"EndPhase","Initiator":0,"Time":"2024-01-01T
 fn dump(g: &mut Game) -> String {
     let mut lines = vec![
         format!("history: {}", GameState::get_state_as_string(g)),
-        format!("phase: {} turn {}", g.current_phase, g.current_turn),
+        format!("phase: {} turn {}", g.turn.current_phase, g.turn.current_turn),
         format!("stream position: {:?}", g.random.as_ref().map(|r| r.state().get_word_pos())),
     ];
-    for (i, report) in std::iter::once(&g.pre_game_report).chain(g.report_list.iter()).enumerate() {
+    for (i, report) in std::iter::once(&g.log.pre_game_report).chain(g.log.report_list.iter()).enumerate() {
         for m in &report.messages {
             lines.push(format!("report {i}: {} {}", m.target, m.to_cs_string()));
         }
@@ -99,15 +99,15 @@ fn base() -> Game {
 fn undo_replays_the_kept_events() {
     let mut g = base();
     g.undo(1);
-    assert_eq!(g.history.len(), 1);
-    assert_eq!(g.recently_undone_event_count, 1);
-    assert_eq!(g.recently_undone_events.len(), 1);
-    assert!(g.previous_game_state.is_some());
+    assert_eq!(g.history.entries.len(), 1);
+    assert_eq!(g.history.recently_undone_event_count, 1);
+    assert_eq!(g.history.recently_undone_events.len(), 1);
+    assert!(g.history.previous_game_state.is_some());
 
     // Apart from the undo bookkeeping, the state is that of a game that only ran the kept event.
-    g.recently_undone_event_count = 0;
-    g.recently_undone_events.clear();
-    g.previous_game_state = None;
+    g.history.recently_undone_event_count = 0;
+    g.history.recently_undone_events.clear();
+    g.history.previous_game_state = None;
     same_dump("undo", &dump(&mut g), &dump(&mut game_after(&[ESTABLISH])));
 }
 
@@ -118,7 +118,7 @@ fn restore_returns_to_the_state_before_the_undo() {
     g.undo(1);
     g.restore_recently_undone();
     same_dump("restore", &dump(&mut g), &before);
-    assert!(g.previous_game_state.is_none());
+    assert!(g.history.previous_game_state.is_none());
 }
 
 /// Events played after an undo are dropped by a restore.
@@ -128,7 +128,7 @@ fn restore_drops_events_played_after_the_undo() {
     let mut g = base();
     g.undo(1);
     run(&mut g, &[END_PHASE]);
-    assert_eq!(g.history.len(), 2);
+    assert_eq!(g.history.entries.len(), 2);
     g.restore_recently_undone();
     same_dump("restore after play", &dump(&mut g), &before);
 }
@@ -138,8 +138,8 @@ fn dismiss_replays_into_a_new_game() {
     let mut g = base();
     g.undo(1);
     g.dismiss_recently_undone();
-    assert!(g.previous_game_state.is_none());
-    assert_eq!(g.recently_undone_events.len(), 0);
+    assert!(g.history.previous_game_state.is_none());
+    assert_eq!(g.history.recently_undone_events.len(), 0);
     same_dump("dismiss", &dump(&mut g), &dump(&mut game_after(&[ESTABLISH])));
 }
 
@@ -148,7 +148,7 @@ fn dismiss_replays_into_a_new_game() {
 fn restore_without_previous_game_replays() {
     let mut g = base();
     g.undo(1);
-    g.previous_game_state = None;
+    g.history.previous_game_state = None;
     g.restore_recently_undone();
     same_dump("restore replay", &dump(&mut g), &dump(&mut base()));
 }
@@ -161,7 +161,7 @@ fn two_undos_restore_in_order() {
     g.undo(2);
     let after_first = dump(&mut g);
     g.undo(1);
-    assert_eq!(g.history.len(), 1);
+    assert_eq!(g.history.entries.len(), 1);
     g.restore_recently_undone();
     same_dump("first restore", &dump(&mut g), &after_first);
     g.restore_recently_undone();
@@ -206,10 +206,10 @@ fn repeated_undos_keep_a_bounded_number_of_games() {
         g.dismiss_recently_undone();
     }
     let mut depth = 0;
-    let mut p = &g.previous_game_state;
+    let mut p = &g.history.previous_game_state;
     while let Some(prev) = p {
         depth += 1;
-        p = &prev.previous_game_state;
+        p = &prev.history.previous_game_state;
     }
     assert_eq!(depth, 0);
     same_dump("after 200 rounds", &dump(&mut g), &dump(&mut game_after(&[ESTABLISH])));

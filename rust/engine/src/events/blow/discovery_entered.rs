@@ -46,12 +46,12 @@ impl DiscoveryEntered {
         g.collection.just_revealed_discovery_strongholds
             .iter()
             .copied()
-            .filter(move |ds| g.player(p).any_forces_in_territory(Some(ds.attached_to_location(&g.map).expect("attached to location").territory())) > 0)
+            .filter(move |ds| g.player(p).any_forces_in_territory(Some(ds.attached_to_location(&g.board.map).expect("attached to location").territory())) > 0)
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_sources(game: &Game, p: PlayerIndex, ds: DiscoveredLocation) -> impl Iterator<Item = Location> {
-        ds.attached_to_location(&game.map)
+        ds.attached_to_location(&game.board.map)
             .expect("attached to location")
             .territory()
             .locations()

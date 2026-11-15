@@ -1,5 +1,57 @@
 use crate::prelude::*;
 
+/// Alliance offers, card trades between allies, and what each faction allows its ally.
+pub struct Alliances {
+    pub current_alliance_offers: Vec<Rc<AllianceOffered>>,
+    pub current_card_trade_offer: Option<Rc<CardTraded>>,
+    pub phase_before_card_trade: Option<Phase>,
+    pub last_turn_card_was_traded: i32,
+    pub permitted_use_of_ally_spice: IndexMap<Faction, i32>,
+    /// `Option` because `EmperorBidSupport` assigns its `Amounts`, which JSON can leave null.
+    pub permitted_use_of_emperor_spice: Option<IndexMap<Faction, i32>>,
+    pub permitted_use_of_ally_karma: IndexMap<Faction, TreacheryCard>,
+    pub atreides_shares_prescience: bool,
+    pub fremen_will_protect_from_monster: bool,
+    pub fremen_allows_three_free_revivals: bool,
+    pub fremen_shares_prescience: bool,
+    pub fremen_refunds_battle_dial: bool,
+    pub emperor_will_pay_for_extra_revival: i32,
+    pub guild_allows_shipping_discount: bool,
+    pub bene_gesserit_allows_use_of_voice: bool,
+    pub ixian_allows_replacing_cards: bool,
+    pub tleilaxu_allows_revival_discount: bool,
+    pub richese_allows_use_of_no_field: bool,
+    pub moritani_allows_keeping_cards: bool,
+    pub ecaz_shares_ambassadors: bool,
+}
+
+impl Alliances {
+    pub fn new() -> Self {
+        Alliances {
+            current_alliance_offers: Vec::new(),
+            current_card_trade_offer: None,
+            phase_before_card_trade: None,
+            last_turn_card_was_traded: -1,
+            permitted_use_of_ally_spice: Default::default(),
+            permitted_use_of_emperor_spice: Some(IndexMap::new()),
+            permitted_use_of_ally_karma: Default::default(),
+            atreides_shares_prescience: Default::default(),
+            fremen_will_protect_from_monster: Default::default(),
+            fremen_allows_three_free_revivals: Default::default(),
+            fremen_shares_prescience: Default::default(),
+            fremen_refunds_battle_dial: Default::default(),
+            emperor_will_pay_for_extra_revival: Default::default(),
+            guild_allows_shipping_discount: Default::default(),
+            bene_gesserit_allows_use_of_voice: Default::default(),
+            ixian_allows_replacing_cards: Default::default(),
+            tleilaxu_allows_revival_discount: Default::default(),
+            richese_allows_use_of_no_field: Default::default(),
+            moritani_allows_keeping_cards: Default::default(),
+            ecaz_shares_ambassadors: Default::default(),
+        }
+    }
+}
+
 
 impl Game {
     pub fn make_alliance(&mut self, a: Faction, b: Faction) {
@@ -58,39 +110,39 @@ impl Game {
         let ally = self.player(initiator).ally;
         self.set_permissions(ally, false);
 
-        self.permitted_use_of_ally_spice.shift_remove(&f);
-        self.permitted_use_of_ally_spice.shift_remove(&ally);
-        self.permitted_use_of_ally_karma.shift_remove(&f);
-        self.permitted_use_of_ally_karma.shift_remove(&ally);
+        self.alliances.permitted_use_of_ally_spice.shift_remove(&f);
+        self.alliances.permitted_use_of_ally_spice.shift_remove(&ally);
+        self.alliances.permitted_use_of_ally_karma.shift_remove(&f);
+        self.alliances.permitted_use_of_ally_karma.shift_remove(&ally);
 
         self.player_mut(initiator).ally = Faction::None;
         self.player_mut(current_ally).ally = Faction::None;
     }
 
     pub fn decrease_permitted_use_of_ally_spice(&mut self, f: Faction, amount: i32) {
-        if self.permitted_use_of_ally_spice.contains_key(&f) {
-            let new_value = self.permitted_use_of_ally_spice[&f] - amount;
-            self.permitted_use_of_ally_spice.insert(f, 0.max(new_value));
+        if self.alliances.permitted_use_of_ally_spice.contains_key(&f) {
+            let new_value = self.alliances.permitted_use_of_ally_spice[&f] - amount;
+            self.alliances.permitted_use_of_ally_spice.insert(f, 0.max(new_value));
         }
     }
 
     pub fn set_permissions(&mut self, f: Faction, permission: bool) {
         match f {
-            Faction::Atreides => self.atreides_shares_prescience = permission,
+            Faction::Atreides => self.alliances.atreides_shares_prescience = permission,
             Faction::Fremen => {
-                self.fremen_will_protect_from_monster = permission;
-                self.fremen_allows_three_free_revivals = permission;
-                self.fremen_shares_prescience = permission;
-                self.fremen_refunds_battle_dial = permission;
+                self.alliances.fremen_will_protect_from_monster = permission;
+                self.alliances.fremen_allows_three_free_revivals = permission;
+                self.alliances.fremen_shares_prescience = permission;
+                self.alliances.fremen_refunds_battle_dial = permission;
             }
-            Faction::Emperor => self.emperor_will_pay_for_extra_revival = if permission { 3 } else { 0 },
-            Faction::Guild => self.guild_allows_shipping_discount = permission,
-            Faction::BeneGesserit => self.bene_gesserit_allows_use_of_voice = permission,
-            Faction::Ixian => self.ixian_allows_replacing_cards = permission,
-            Faction::Tleilaxu => self.tleilaxu_allows_revival_discount = permission,
-            Faction::Richese => self.richese_allows_use_of_no_field = permission,
-            Faction::Moritani => self.moritani_allows_keeping_cards = permission,
-            Faction::Ecaz => self.ecaz_shares_ambassadors = permission,
+            Faction::Emperor => self.alliances.emperor_will_pay_for_extra_revival = if permission { 3 } else { 0 },
+            Faction::Guild => self.alliances.guild_allows_shipping_discount = permission,
+            Faction::BeneGesserit => self.alliances.bene_gesserit_allows_use_of_voice = permission,
+            Faction::Ixian => self.alliances.ixian_allows_replacing_cards = permission,
+            Faction::Tleilaxu => self.alliances.tleilaxu_allows_revival_discount = permission,
+            Faction::Richese => self.alliances.richese_allows_use_of_no_field = permission,
+            Faction::Moritani => self.alliances.moritani_allows_keeping_cards = permission,
+            Faction::Ecaz => self.alliances.ecaz_shares_ambassadors = permission,
             _ => {}
         }
     }
@@ -104,7 +156,7 @@ impl Game {
     }
 
     pub fn resources_your_ally_can_pay(&self, p: PlayerIndex) -> i32 {
-        let Some(value) = self.permitted_use_of_ally_spice.get(&self.player(p).faction).copied() else { return 0 };
+        let Some(value) = self.alliances.permitted_use_of_ally_spice.get(&self.player(p).faction).copied() else { return 0 };
         let ally = self.get_player(Some(self.player(p).ally));
         match ally {
             None => 0,
@@ -113,7 +165,7 @@ impl Game {
     }
 
     pub fn spice_for_bids_emperor_can_pay(&self, f: Faction) -> i32 {
-        let Some(value) = self.permitted_use_of_emperor_spice.as_ref().expect("permitted use of emperor spice").get(&f).copied() else { return 0 };
+        let Some(value) = self.alliances.permitted_use_of_emperor_spice.as_ref().expect("permitted use of emperor spice").get(&f).copied() else { return 0 };
 
         let emperor = self.get_player(Some(Faction::Emperor));
         match emperor {
@@ -130,7 +182,7 @@ impl Game {
         assert!(allies.next().is_none(), "more than one player allied to {f}");
 
         let ally = ally?;
-        let value = self.permitted_use_of_ally_karma.get(&f).copied()?;
+        let value = self.alliances.permitted_use_of_ally_karma.get(&f).copied()?;
         self.player(ally).has(Some(value)).then_some(value)
     }
 
@@ -140,7 +192,7 @@ impl Game {
             None => None,
         };
 
-        let value = self.permitted_use_of_ally_spice.get(&f).copied();
+        let value = self.alliances.permitted_use_of_ally_spice.get(&f).copied();
         match (value, ally) {
             (Some(value), Some(ally)) => value.min(self.player(ally).resources),
             _ => 0,

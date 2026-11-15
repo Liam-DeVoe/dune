@@ -55,7 +55,7 @@ impl EstablishPlayers {
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if game.current_phase != Phase::AwaitingPlayers {
+        if game.turn.current_phase != Phase::AwaitingPlayers {
             return Some(express!("Invalid game phase"));
         }
         let settings = self.settings.as_ref().expect("settings").borrow();
@@ -172,7 +172,7 @@ impl EstablishPlayers {
         self.log_objects(game, vec!["Game started!".into()]);
         game.stone(Milestone::GameStarted);
 
-        game.current_main_phase = MainPhase::Setup;
+        game.turn.current_main_phase = MainPhase::Setup;
         game.seed = self.seed;
         game.random = Some(SharedRandom::from_seed(self.seed));
 
@@ -180,55 +180,55 @@ impl EstablishPlayers {
 
         // Shares the event's own settings object. A null Settings is stored,
         // and the next statement throws NullReferenceException on Game.Settings.InitialRules.
-        game.settings = self.settings.clone();
+        game.rules.settings = self.settings.clone();
 
         //Rules
 
         // AllRules shares Settings.InitialRules; nothing mutates either afterwards, so a copy
         // is equivalent (engine-conventions.md). A null InitialRules is stored; the Where below
         // throws ArgumentNullException.
-        game.all_rules = game.settings.as_ref().required("settings")?.borrow().initial_rules.clone();
+        game.rules.all_rules = game.rules.settings.as_ref().required("settings")?.borrow().initial_rules.clone();
 
-        game.rules = game.all_rules.as_ref().expect("rules").iter().copied().filter(|r| Game::get_rule_group(*r) != RuleGroup::Bots).collect();
-        game.rules_for_bots =
-            game.all_rules.as_ref().expect("rules").iter().copied().filter(|r| Game::get_rule_group(*r) == RuleGroup::Bots).collect();
+        game.rules.active = game.rules.all_rules.as_ref().expect("rules").iter().copied().filter(|r| Game::get_rule_group(*r) != RuleGroup::Bots).collect();
+        game.rules.rules_for_bots =
+            game.rules.all_rules.as_ref().expect("rules").iter().copied().filter(|r| Game::get_rule_group(*r) == RuleGroup::Bots).collect();
         let core_basic = Game::get_rules_in_group(RuleGroup::CoreBasic, Game::EXPANSION_LEVEL);
-        game.rules.extend(core_basic);
+        game.rules.active.extend(core_basic);
 
-        let allowed = game.settings.as_ref().required("settings")?.borrow().allowed_factions_in_play.clone().required("allowed factions in play")?;
-        game.ruleset = Game::determine_approximate_ruleset(&allowed.borrow(), &game.rules, Game::EXPANSION_LEVEL);
-        let ruleset = game.ruleset;
+        let allowed = game.rules.settings.as_ref().required("settings")?.borrow().allowed_factions_in_play.clone().required("allowed factions in play")?;
+        game.rules.ruleset = Game::determine_approximate_ruleset(&allowed.borrow(), &game.rules.active, Game::EXPANSION_LEVEL);
+        let ruleset = game.rules.ruleset;
         self.log_objects(game, vec!["Ruleset: ".into(), ruleset.into()]);
 
         let custom_rules: Vec<Rule> = game.get_custom_rules();
         self.log_if(game, !custom_rules.is_empty(), vec!["House rules: ".into(), custom_rules.into()]);
 
         if game.applicable(Rule::ExpansionTreacheryCards) {
-            if !game.rules.contains(&Rule::ExpansionTreacheryCardsExceptPBandSSandAmal) {
-                game.rules.push(Rule::ExpansionTreacheryCardsExceptPBandSSandAmal);
+            if !game.rules.active.contains(&Rule::ExpansionTreacheryCardsExceptPBandSSandAmal) {
+                game.rules.active.push(Rule::ExpansionTreacheryCardsExceptPBandSSandAmal);
             }
-            if !game.rules.contains(&Rule::ExpansionTreacheryCardsPBandSs) {
-                game.rules.push(Rule::ExpansionTreacheryCardsPBandSs);
+            if !game.rules.active.contains(&Rule::ExpansionTreacheryCardsPBandSs) {
+                game.rules.active.push(Rule::ExpansionTreacheryCardsPBandSs);
             }
-            if !game.rules.contains(&Rule::ExpansionTreacheryCardsAmal) {
-                game.rules.push(Rule::ExpansionTreacheryCardsAmal);
+            if !game.rules.active.contains(&Rule::ExpansionTreacheryCardsAmal) {
+                game.rules.active.push(Rule::ExpansionTreacheryCardsAmal);
             }
         }
 
         //Decks and card piles
 
-        game.resource_card_deck = Some(self.create_and_shuffle_resource_card_deck(game));
-        game.treachery_deck = Some(TreacheryCardManager::create_treachery_deck(&*game, game.random.clone()));
+        game.decks.resource_card_deck = Some(self.create_and_shuffle_resource_card_deck(game));
+        game.decks.treachery_deck = Some(TreacheryCardManager::create_treachery_deck(&*game, game.random.clone()));
         self.create_discovery_tokens(game);
 
         if !game.applicable(Rule::CustomDecks) {
-            game.treachery_deck.as_mut().required("treachery deck")?.shuffle();
+            game.decks.treachery_deck.as_mut().required("treachery deck")?.shuffle();
             game.stone(Milestone::Shuffled);
         }
 
-        game.treachery_discard_pile = Some(Deck::empty(game.random.clone()));
-        game.resource_card_discard_pile_a = Some(Deck::empty(game.random.clone()));
-        game.resource_card_discard_pile_b = Some(Deck::empty(game.random.clone()));
+        game.decks.treachery_discard_pile = Some(Deck::empty(game.random.clone()));
+        game.decks.resource_card_discard_pile_a = Some(Deck::empty(game.random.clone()));
+        game.decks.resource_card_discard_pile_b = Some(Deck::empty(game.random.clone()));
 
         if game.applicable(Rule::NexusCards) {
             self.create_nexus_deck(game);
@@ -236,28 +236,28 @@ impl EstablishPlayers {
 
         self.create_terror_tokens(game);
 
-        game.unassigned_ambassadors = Some(Deck::new(
+        game.decks.unassigned_ambassadors = Some(Deck::new(
             Self::available_factions().into_iter().filter(|f| *f != Faction::Moritani).map(Game::ambassador_of),
             game.random.clone(),
         ));
 
         //Initial alliance settings
 
-        game.guild_allows_shipping_discount = true;
-        game.tleilaxu_allows_revival_discount = true;
-        game.ixian_allows_replacing_cards = true;
-        game.emperor_will_pay_for_extra_revival = 0;
-        game.fremen_will_protect_from_monster = true;
-        game.fremen_allows_three_free_revivals = true;
-        game.fremen_shares_prescience = true;
-        game.fremen_refunds_battle_dial = true;
-        game.atreides_shares_prescience = true;
-        game.bene_gesserit_allows_use_of_voice = true;
-        game.richese_allows_use_of_no_field = true;
+        game.alliances.guild_allows_shipping_discount = true;
+        game.alliances.tleilaxu_allows_revival_discount = true;
+        game.alliances.ixian_allows_replacing_cards = true;
+        game.alliances.emperor_will_pay_for_extra_revival = 0;
+        game.alliances.fremen_will_protect_from_monster = true;
+        game.alliances.fremen_allows_three_free_revivals = true;
+        game.alliances.fremen_shares_prescience = true;
+        game.alliances.fremen_refunds_battle_dial = true;
+        game.alliances.atreides_shares_prescience = true;
+        game.alliances.bene_gesserit_allows_use_of_voice = true;
+        game.alliances.richese_allows_use_of_no_field = true;
 
         // The same list object as Settings.AllowedFactionsInPlay. It cannot be
         // null here: DetermineApproximateRuleset above would have thrown.
-        game.factions_in_play = game.settings.as_ref().required("settings")?.borrow().allowed_factions_in_play.clone().required("allowed factions in play")?;
+        game.rules.factions_in_play = game.rules.settings.as_ref().required("settings")?.borrow().allowed_factions_in_play.clone().required("allowed factions in play")?;
 
         self.fill_seats(game);
         self.remove_claimed_factions(game);
@@ -270,7 +270,7 @@ impl EstablishPlayers {
     }
 
     pub fn create_terror_tokens(&self, game: &mut Game) {
-        game.unplaced_terror_tokens = vec![
+        game.board.unplaced_terror_tokens = vec![
             TerrorType::Assassination,
             TerrorType::Atomics,
             TerrorType::Extortion,
@@ -281,15 +281,15 @@ impl EstablishPlayers {
     }
 
     pub fn create_nexus_deck(&self, game: &mut Game) {
-        game.nexus_card_deck = Some(Deck::new(Self::available_factions(), game.random.clone()));
-        game.nexus_card_deck.as_mut().expect("nexus card deck").shuffle();
+        game.decks.nexus_card_deck = Some(Deck::new(Self::available_factions(), game.random.clone()));
+        game.decks.nexus_card_deck.as_mut().expect("nexus card deck").shuffle();
     }
 
     pub fn remove_claimed_factions(&self, game: &mut Game) {
         // The body only changes the factions list, not Players, so collecting first is equivalent.
         let claimed: Vec<Faction> = game.players.iter().filter(|p| !p.is(Faction::None)).map(|p| p.faction).collect();
         for f in claimed {
-            let list = game.settings.as_ref().expect("settings").borrow().allowed_factions_in_play.clone().expect("allowed factions in play");
+            let list = game.rules.settings.as_ref().expect("settings").borrow().allowed_factions_in_play.clone().expect("allowed factions in play");
             let mut list = list.borrow_mut();
             if let Some(i) = list.iter().position(|x| *x == f) {
                 list.remove(i);
@@ -310,18 +310,18 @@ impl EstablishPlayers {
     }
 
     pub fn create_discovery_tokens(&self, game: &mut Game) {
-        game.fremen_discovery_tokens = Some(Deck::empty(game.random.clone()));
-        game.guild_discovery_tokens = Some(Deck::empty(game.random.clone()));
+        game.decks.fremen_discovery_tokens = Some(Deck::empty(game.random.clone()));
+        game.decks.guild_discovery_tokens = Some(Deck::empty(game.random.clone()));
 
         if game.applicable(Rule::DiscoveryTokens) {
-            let fremen = game.fremen_discovery_tokens.as_mut().expect("fremen discovery tokens");
+            let fremen = game.decks.fremen_discovery_tokens.as_mut().expect("fremen discovery tokens");
             fremen.items.push(DiscoveryToken::Jacurutu);
             fremen.items.push(DiscoveryToken::Shrine);
             fremen.items.push(DiscoveryToken::TestingStation);
             fremen.items.push(DiscoveryToken::Cistern);
             fremen.shuffle();
 
-            let guild = game.guild_discovery_tokens.as_mut().expect("guild discovery tokens");
+            let guild = game.decks.guild_discovery_tokens.as_mut().expect("guild discovery tokens");
             guild.items.push(DiscoveryToken::ProcessingStation);
             guild.items.push(DiscoveryToken::CardStash);
             guild.items.push(DiscoveryToken::ResourceStash);
@@ -331,7 +331,7 @@ impl EstablishPlayers {
     }
 
     pub fn fill_seats(&self, game: &mut Game) {
-        while (game.players.len() as i32) < game.settings.as_ref().expect("settings").borrow().number_of_players {
+        while (game.players.len() as i32) < game.rules.settings.as_ref().expect("settings").borrow().number_of_players {
             let player = Player::new(Faction::None);
             game.players.push(player);
         }

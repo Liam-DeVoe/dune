@@ -54,7 +54,7 @@ impl AllianceByTerror {
 
             game.make_alliance(self.initiator(), Faction::Moritani);
 
-            if game.has_acted_or_passed.contains(&self.initiator()) && game.has_acted_or_passed.contains(&Faction::Moritani) {
+            if game.turn.has_acted_or_passed.contains(&self.initiator()) && game.turn.has_acted_or_passed.contains(&Faction::Moritani) {
                 game.check_if_forces_should_be_destroyed_by_ally_presence(self.player());
             }
 
@@ -62,8 +62,8 @@ impl AllianceByTerror {
             self.log_objects(game, elems!["Terror in ", territory, " is returned to supplies"]);
             // ToList(): a snapshot before the dictionary changes
             for t in game.terror_in(territory).collect::<Vec<_>>() {
-                game.terror_on_planet.remove(&t);
-                game.unplaced_terror_tokens.push(t);
+                game.board.terror_on_planet.remove(&t);
+                game.board.unplaced_terror_tokens.push(t);
             }
 
             game.ship_move.alliance_by_terror_was_offered = false;

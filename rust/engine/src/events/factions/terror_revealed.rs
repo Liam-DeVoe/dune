@@ -41,11 +41,11 @@ impl TerrorRevealed {
     }
 
     pub fn sneak_attack_to(&self, game: &Game) -> Option<Location> {
-        game.map.location_lookup().find(self.sneak_attack_to)
+        game.board.map.location_lookup().find(self.sneak_attack_to)
     }
 
     pub fn set_sneak_attack_to(&mut self, game: &Game, value: Option<Location>) {
-        self.sneak_attack_to = game.map.location_lookup().get_id(value);
+        self.sneak_attack_to = game.board.map.location_lookup().get_id(value);
     }
 
     pub fn card_to_give_in_sabotage(&self) -> Option<TreacheryCard> {
@@ -173,7 +173,7 @@ impl TerrorRevealed {
     pub fn open_despite_ally_and_storm_and_occupancy(g: &Game, p: PlayerIndex, l: Location) -> bool {
         let pl = g.player(p);
         g.is_not_full(p, l)
-            && l.sector(&g.map) != g.sector_in_storm
+            && l.sector(&g.board.map) != g.board.sector_in_storm
             && (!pl.has_ally()
                 || g.player(pl.allied_player(g).expect("allied player")).any_forces_in_territory(Some(l.territory())) == 0
                 || pl.ally == Faction::Ecaz
@@ -199,12 +199,12 @@ impl TerrorRevealed {
             );
             game.ship_move.alliance_by_terror_offered_to = victim;
             game.ship_move.alliance_by_terror_was_offered = true;
-            game.ship_move.paused_terror_phase = game.current_phase;
+            game.ship_move.paused_terror_phase = game.turn.current_phase;
             game.enter(Phase::AllianceByTerror, true);
         } else {
             game.stone(Milestone::TerrorRevealed);
 
-            game.terror_on_planet.remove(&self.type_);
+            game.board.terror_on_planet.remove(&self.type_);
 
             // C# parity: Passed is always false here.
             if self.passed || TerrorRevealed::terror_in(game, territory).next().is_none() {
@@ -244,7 +244,7 @@ impl TerrorRevealed {
                 TerrorType::Atomics => {
                     game.kill_all_forces_in(territory.required("territory")?, false);
                     game.kill_ambassador_in(territory.required("territory")?);
-                    game.atomics_aftermath = territory;
+                    game.board.atomics_aftermath = territory;
 
                     while game.player(self.player()).hand_size_exceeded(game) {
                         let card = game.player(self.player()).treachery_cards.iter().copied().random_item(game.random.as_ref().required("random")?);

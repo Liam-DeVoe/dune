@@ -20,11 +20,11 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
     fn field_force_locations_mut(&mut self) -> &mut Option<String>;
 
     fn to(&self, game: &Game) -> Option<Location> {
-        game.map.location_lookup().find(*self.field_to_id())
+        game.board.map.location_lookup().find(*self.field_to_id())
     }
 
     fn set_to(&mut self, game: &Game, value: Option<Location>) {
-        *self.field_to_id_mut() = game.map.location_lookup().get_id(value);
+        *self.field_to_id_mut() = game.board.map.location_lookup().get_id(value);
     }
 
     fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
@@ -104,9 +104,9 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
             }
         }
 
-        let can_move_from_two_territories = game.current_planetology.is_some()
-            && game.current_planetology.as_ref().expect("current planetology").move_from_two_territories()
-            && game.current_planetology.as_ref().expect("current planetology").initiator() == self.initiator();
+        let can_move_from_two_territories = game.turn.current_planetology.is_some()
+            && game.turn.current_planetology.as_ref().expect("current planetology").move_from_two_territories()
+            && game.turn.current_planetology.as_ref().expect("current planetology").initiator() == self.initiator();
         let number_of_selected_territories = force_locations
             .iter()
             .filter(|kvp| kvp.1.total_amount_of_forces() > 0)
@@ -140,7 +140,7 @@ impl PlacementEvent {
     pub fn force_locations_string(g: &Game, force_locations: &IndexMap<Location, Battalion>) -> String {
         force_locations
             .iter()
-            .map(|(k, v)| format!("{}:{}|{}", g.map.location_lookup().get_id(Some(*k)), v.amount_of_forces, v.amount_of_special_forces))
+            .map(|(k, v)| format!("{}:{}|{}", g.board.map.location_lookup().get_id(Some(*k)), v.amount_of_forces, v.amount_of_special_forces))
             .collect::<Vec<_>>()
             .join(",")
     }
@@ -153,7 +153,7 @@ impl PlacementEvent {
         }
         for location_amount_pair in force_locations.split(',') {
             let location_and_amounts: Vec<&str> = location_amount_pair.split(':').collect();
-            let location = g.map.location_lookup().find(dotnet_compat::parse::convert_to_int32(Some(location_and_amounts[0])));
+            let location = g.board.map.location_lookup().find(dotnet_compat::parse::convert_to_int32(Some(location_and_amounts[0])));
             let Some(location) = location else { continue };
             let amounts: Vec<&str> = location_and_amounts[1].split('|').collect();
             let amount_of_normal_forces = dotnet_compat::parse::convert_to_int32(Some(amounts[0]));
@@ -210,14 +210,14 @@ impl PlacementEvent {
         if player.is(Faction::Emperor) && from.as_homeworld().is_some() && g.applicable(Rule::EmperorSpecialForces) {
             let hw = from.as_homeworld().expect("as homeworld");
             if hw.world() == World::Emperor {
-                let salusa_secundus = g.map.get_home_world(World::SalusaSecundus);
+                let salusa_secundus = g.board.map.get_home_world(World::SalusaSecundus);
                 if let Some(salusa_secundus) = salusa_secundus {
                     return vec![salusa_secundus.location()];
                 }
             }
 
             if hw.world() == World::SalusaSecundus {
-                let emperor = g.map.get_home_world(World::Emperor);
+                let emperor = g.board.map.get_home_world(World::Emperor);
                 if let Some(emperor) = emperor {
                     return vec![emperor.location()];
                 }
@@ -226,7 +226,7 @@ impl PlacementEvent {
             let maximum_distance = g.determine_maximum_move_distance(p, moved);
             let may_move_into_storm =
                 player.faction == Faction::Fremen && g.applicable(Rule::FremenMayMoveIntoStorm) && g.applicable(Rule::FremenStormLosses);
-            return g.map.find_neighbours(from, maximum_distance, may_move_into_storm, player.faction, g, true);
+            return g.board.map.find_neighbours(from, maximum_distance, may_move_into_storm, player.faction, g, true);
         }
 
         Vec::new()
@@ -235,19 +235,19 @@ impl PlacementEvent {
     pub fn valid_movement_sources(g: &Game, p: PlayerIndex) -> Vec<Territory> {
         let player = g.player(p);
         let mut res: Vec<Territory> = g
-            .map
+            .board.map
             .territories(false)
-            .filter(|t| t.locations().iter().any(|l| l.sector(&g.map) != g.sector_in_storm && player.any_forces_in(Some(*l)) > 0))
+            .filter(|t| t.locations().iter().any(|l| l.sector(&g.board.map) != g.board.sector_in_storm && player.any_forces_in(Some(*l)) > 0))
             .collect();
         if player.is(Faction::Emperor) && g.applicable(Rule::EmperorSpecialForces) {
-            let salusa_secundus = g.map.get_home_world(World::SalusaSecundus);
+            let salusa_secundus = g.board.map.get_home_world(World::SalusaSecundus);
             if let Some(salusa_secundus) = salusa_secundus {
                 if player.any_forces_in(Some(salusa_secundus.location())) > 0 {
                     res.push(salusa_secundus.location().territory());
                 }
             }
 
-            let emperor = g.map.get_home_world(World::Emperor);
+            let emperor = g.board.map.get_home_world(World::Emperor);
             if let Some(emperor) = emperor {
                 if player.any_forces_in(Some(emperor.location())) > 0 {
                     res.push(emperor.location().territory());

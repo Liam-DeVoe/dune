@@ -103,7 +103,7 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, seen:
         (GameEvent::Caravan(_), ActionOptions::Caravan(o)) => check_placement(game, p, &o, t),
         (GameEvent::FremenRidesMonster(_), ActionOptions::FremenRidesMonster(o)) => check_ride(game, p, &o, d),
         (GameEvent::PerformFremenSetup(_), ActionOptions::PerformFremenSetup(o)) => {
-            let m = &game.map;
+            let m = &game.board.map;
             let mut expected = vec![m.sietch_tabr().id()];
             expected.extend(sectors([m.false_wall_south(), m.false_wall_west()]));
             assert_eq!(o.targets, expected);
@@ -190,7 +190,7 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, seen:
             let locations: Vec<Location> = DiscoveryRevealed::get_locations(game, p).collect();
             assert_eq!(o.locations.iter().map(|x| x.location).collect::<Vec<_>>(), ids(locations.clone()));
             for (x, l) in o.locations.iter().zip(&locations) {
-                assert_eq!(x.token, game.discoveries_on_planet.get(l).unwrap().token.to_string());
+                assert_eq!(x.token, game.board.discoveries_on_planet.get(l).unwrap().token.to_string());
             }
             assert_eq!(e.location(game), locations.first().copied(), "the form starts on the first location");
         }
@@ -229,7 +229,7 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, seen:
             assert_eq!(o.may_remove, TerrorPlanted::may_remove_tokens(game, p));
             assert_eq!(o.remove_types, names(TerrorPlanted::valid_terror_types(game, true)));
             assert_eq!(o.place_types, names(TerrorPlanted::valid_terror_types(game, false)));
-            assert_eq!(o.unplaced, names(game.unplaced_terror_tokens.iter().copied()));
+            assert_eq!(o.unplaced, names(game.board.unplaced_terror_tokens.iter().copied()));
             assert_eq!(o.targets, sectors(TerrorPlanted::valid_strongholds(game, p)));
         }
         (GameEvent::TerrorRevealed(_), ActionOptions::TerrorRevealed(o)) => {
@@ -322,7 +322,7 @@ fn check_shipment(game: &Game, p: PlayerIndex, s: &Shipment, o: &ShipmentOptions
     assert_eq!(o.homeworlds.len(), normal.iter().chain(special.iter()).map(|h| h.location().id()).collect::<std::collections::BTreeSet<_>>().len());
     let karma = Shipment::valid_karma_cards(game, p);
     assert_eq!(o.karma_cards.iter().map(|k| (k.card, k.own)).collect::<Vec<_>>(), karma.iter().map(|c| (c.id(), pl.treachery_cards.contains(c))).collect::<Vec<_>>());
-    assert_eq!(o.great_flat, game.map.the_great_flat().territory().id());
+    assert_eq!(o.great_flat, game.board.map.the_great_flat().territory().id());
     assert_eq!(o.karma_name, d.describe(&ExpressionElement::from(TreacheryCardType::Karma)));
 
     // Each destination with one force, as InitializeAmounts opens the pinned panel.
@@ -372,7 +372,7 @@ fn check_placement(game: &Game, p: PlayerIndex, o: &PlacementOptions, t: GameEve
         .collect();
     assert_eq!(o.sources, sources.iter().map(|l| forces_at(game, p, *l)).collect::<Vec<_>>());
     assert!(o.targets.is_empty(), "no destinations before forces are selected");
-    let planetology = game.current_planetology.as_ref();
+    let planetology = game.turn.current_planetology.as_ref();
     assert_eq!(o.may_move_from_two_territories, planetology.is_some_and(|x| x.move_from_two_territories() && x.initiator() == f));
     let d = default_describer();
     for l in sources {
@@ -384,7 +384,7 @@ fn check_placement(game: &Game, p: PlayerIndex, o: &PlacementOptions, t: GameEve
         assert_eq!(o.targets, expected);
         // Pin each destination: the Bene Gesserit choice and the conflicting-ally warning.
         for to in expected.iter().take(6) {
-            let to = game.map.location_lookup().find(*to).unwrap();
+            let to = game.board.map.location_lookup().find(*to).unwrap();
             let draft = placement_draft(game, f, t, &forces, Some(to));
             let o = placement_options(opts(game, p, &draft, &*d));
             assert_eq!(o.conflicting_ally, game.contains_conflicting_ally(p, to));
@@ -521,7 +521,7 @@ fn view_and_draft_query() {
     );
     let answer = r.query(viewer, &draft).unwrap();
     let Some(ActionOptions::Shipment(q)) = answer.options else { panic!() };
-    let loc = r.game.map.location_lookup().find(to).unwrap();
+    let loc = r.game.board.map.location_lookup().find(to).unwrap();
     let expected = shipment_draft(&r.game, Faction::Emperor, ShipmentType::ShipmentNormal, None, Some(loc), 2, 0);
     assert_eq!(q.cost, Shipment::determine_cost(&r.game, p, &expected));
     assert!(q.cost > 0);

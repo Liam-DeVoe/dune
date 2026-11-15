@@ -27,8 +27,8 @@ fn cost(g: &Game, p: PlayerIndex, forces: i32, specials: i32, to: Location, karm
 fn shipment_cost_normal_and_reduced() {
     let g = game_with(&[Faction::Emperor, Faction::Atreides]);
     let emperor = idx(&g, Faction::Emperor);
-    let flat = g.map.the_great_flat();
-    let arrakeen = g.map.arrakeen();
+    let flat = g.board.map.the_great_flat();
+    let arrakeen = g.board.map.arrakeen();
     assert_eq!(cost(&g, emperor, 3, 0, flat, false, false, false, false, false), 6);
     assert_eq!(cost(&g, emperor, 3, 0, arrakeen, false, false, false, false, false), 3);
     // Karma halves, rounding up in double.
@@ -40,7 +40,7 @@ fn shipment_cost_normal_and_reduced() {
 fn shipment_cost_back_to_reserves_rounds_up_half() {
     let g = game_with(&[Faction::Guild]);
     let guild = idx(&g, Faction::Guild);
-    let flat = g.map.the_great_flat();
+    let flat = g.board.map.the_great_flat();
     assert_eq!(cost(&g, guild, 3, 0, flat, false, true, false, false, false), 2);
     assert_eq!(cost(&g, guild, 4, 0, flat, false, true, false, false, false), 2);
     assert_eq!(cost(&g, guild, 1, 0, flat, false, true, false, false, false), 1);
@@ -50,8 +50,8 @@ fn shipment_cost_back_to_reserves_rounds_up_half() {
 fn shipment_cost_guild_discount() {
     let g = game_with(&[Faction::Guild]);
     let guild = idx(&g, Faction::Guild);
-    assert_eq!(cost(&g, guild, 3, 0, g.map.the_great_flat(), false, false, false, false, false), 3);
-    assert_eq!(cost(&g, guild, 3, 0, g.map.arrakeen(), false, false, false, false, false), 2);
+    assert_eq!(cost(&g, guild, 3, 0, g.board.map.the_great_flat(), false, false, false, false, false), 3);
+    assert_eq!(cost(&g, guild, 3, 0, g.board.map.arrakeen(), false, false, false, false, false), 2);
 }
 
 #[test]
@@ -59,7 +59,7 @@ fn shipment_cost_no_field() {
     let g = game_with(&[Faction::Richese, Faction::Emperor]);
     let richese = idx(&g, Faction::Richese);
     let emperor = idx(&g, Faction::Emperor);
-    let flat = g.map.the_great_flat();
+    let flat = g.board.map.the_great_flat();
     // Richese's own No-Field costs max(forces, 1).
     assert_eq!(cost(&g, richese, 0, 1, flat, false, false, false, true, false), 2);
     assert_eq!(cost(&g, richese, 3, 1, flat, false, false, false, true, false), 6);
@@ -72,7 +72,7 @@ fn shipment_cost_product_wraps_before_widening() {
     // C# parity: Math.Abs(totalForces) * 2 is an unchecked int product.
     let g = game_with(&[Faction::Emperor]);
     let emperor = idx(&g, Faction::Emperor);
-    let c = cost(&g, emperor, i32::MAX, 0, g.map.the_great_flat(), false, false, false, false, false);
+    let c = cost(&g, emperor, i32::MAX, 0, g.board.map.the_great_flat(), false, false, false, false, false);
     assert_eq!(c, i32::MAX.wrapping_mul(2));
 }
 
@@ -159,7 +159,7 @@ fn set_shipment_permission_messages_and_duplicates() {
 #[test]
 fn choam_remove_force_special_force_choices() {
     let g = game_with(&[Faction::Choam, Faction::Emperor]);
-    let flat = g.map.the_great_flat();
+    let flat = g.board.map.the_great_flat();
     assert_eq!(ChoamRemoveForce::valid_special_force_choices(&g, None, Faction::Emperor), vec![false, true]);
     assert_eq!(ChoamRemoveForce::valid_special_force_choices(&g, Some(flat), Faction::Atreides), vec![false, true]);
     assert_eq!(ChoamRemoveForce::valid_special_force_choices(&g, Some(flat), Faction::Emperor), Vec::<bool>::new());

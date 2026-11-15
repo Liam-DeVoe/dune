@@ -114,10 +114,10 @@ fn views_hold_no_one_elses_secrets() {
                     assert_eq!(me.faction, f.to_string());
                     assert_eq!(me.hand.iter().map(|c| c.id).collect::<Vec<_>>(), p.treachery_cards.iter().map(|c| c.id()).collect::<Vec<_>>());
                     // PlayerPanel.StillPickingTraitor hides the dealt candidates until the pick.
-                    let picking = r.game.current_phase == Phase::SelectingTraitors
+                    let picking = r.game.turn.current_phase == Phase::SelectingTraitors
                         && f != Faction::Harkonnen
                         && f != Faction::Tleilaxu
-                        && !r.game.has_acted_or_passed.contains(&f);
+                        && !r.game.turn.has_acted_or_passed.contains(&f);
                     assert_eq!(me.traitors.len(), if picking { 0 } else { p.traitors.len() }, "{fixture}");
                     if f != Faction::BeneGesserit {
                         assert!(me.predicted_faction.is_none(), "{fixture}: only Bene Gesserit has a prediction");
@@ -171,7 +171,7 @@ fn private_log_lines_reach_only_their_target() {
 fn storm_dial_range() {
     // The alliance fixture's last storm dialled by two players: the last two dials in a row.
     let full = load("alliance", 0);
-    let dials: Vec<usize> = full.game.history.iter().enumerate().filter(|(_, e)| matches!(e, GameEvent::StormDialled(_))).map(|(i, _)| i).collect();
+    let dials: Vec<usize> = full.game.history.entries.iter().enumerate().filter(|(_, e)| matches!(e, GameEvent::StormDialled(_))).map(|(i, _)| i).collect();
     let first_dial = dials.windows(2).filter(|w| w[1] == w[0] + 1).last().expect("two dials in a row")[0] as i64;
     let mut r = load_text(&truncated("alliance", first_dial), 0);
     let mut dialers = 0;
@@ -195,7 +195,7 @@ fn storm_dial_range() {
     let mut r = load_text(&truncated("alliance", first_dial + 1), 0);
     let waiting: Vec<String> = r.view(OBSERVER).status.waiting_for;
     assert_eq!(waiting.len(), 1);
-    let dialed = r.game.history.last().unwrap().initiator().to_string();
+    let dialed = r.game.history.entries.last().unwrap().initiator().to_string();
     assert!(!waiting.contains(&dialed));
 }
 

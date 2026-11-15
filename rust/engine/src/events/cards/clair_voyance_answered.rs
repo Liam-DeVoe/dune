@@ -65,8 +65,8 @@ impl ClairVoyanceAnswered {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         // `Game.LatestClairvoyance!` does not throw; the NRE comes at the first member access below.
-        let latest = game.latest_clairvoyance.clone();
-        game.latest_clairvoyance_qn_a = Some(ClairVoyanceQandA::new(latest.clone(), self));
+        let latest = game.turn.latest_clairvoyance.clone();
+        game.turn.latest_clairvoyance_qn_a = Some(ClairVoyanceQandA::new(latest.clone(), self));
         let m = self.get_message(game).with_log(AsideLog::answer());
         self.log_objects(game, vec![m.into()]);
         let latest = latest.required("latest")?;
@@ -97,7 +97,7 @@ impl ClairVoyanceAnswered {
             }
         }
 
-        let paused = game.phase_paused_by_clairvoyance;
+        let paused = game.turn.phase_paused_by_clairvoyance;
         game.enter(paused, false);
         Ok(())
     }

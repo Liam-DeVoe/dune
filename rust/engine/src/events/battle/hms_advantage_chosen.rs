@@ -28,7 +28,7 @@ impl HMSAdvantageChosen {
     }
 
     pub fn can_be_played(g: &Game, p: PlayerIndex) -> bool {
-        let hms = g.map.hidden_mobile_stronghold();
+        let hms = g.board.map.hidden_mobile_stronghold();
         g.battle.chosen_hms_advantage == Some(StrongholdAdvantage::None)
             && g.battle.current_battle.is_some()
             && g.battle.current_battle.as_ref().expect("current battle").is_aggressor_or_defender(g, p)
@@ -39,19 +39,19 @@ impl HMSAdvantageChosen {
 
     pub fn valid_advantages(g: &Game, p: PlayerIndex) -> Vec<StrongholdAdvantage> {
         let mut result = Vec::new();
-        if g.owner_of_location(g.map.arrakeen()) == Some(p) {
+        if g.owner_of_location(g.board.map.arrakeen()) == Some(p) {
             result.push(StrongholdAdvantage::FreeResourcesForBattles);
         }
-        if g.owner_of_location(g.map.carthag()) == Some(p) {
+        if g.owner_of_location(g.board.map.carthag()) == Some(p) {
             result.push(StrongholdAdvantage::CountDefensesAsAntidote);
         }
-        if g.owner_of_location(g.map.sietch_tabr()) == Some(p) {
+        if g.owner_of_location(g.board.map.sietch_tabr()) == Some(p) {
             result.push(StrongholdAdvantage::CollectResourcesForDial);
         }
-        if g.owner_of_location(g.map.tueks_sietch()) == Some(p) {
+        if g.owner_of_location(g.board.map.tueks_sietch()) == Some(p) {
             result.push(StrongholdAdvantage::CollectResourcesForUseless);
         }
-        if g.owner_of_location(g.map.habbanya_sietch()) == Some(p) {
+        if g.owner_of_location(g.board.map.habbanya_sietch()) == Some(p) {
             result.push(StrongholdAdvantage::WinTies);
         }
         result

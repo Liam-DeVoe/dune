@@ -39,7 +39,7 @@ impl RicheseKeepsUnsoldCard {
             self.log_to(game, self.initiator(), vec!["You get: ".into(), card.into()]);
             game.finish_bid(self.player_opt(), None, card, false);
         } else {
-            game.removed_treachery_cards.push(card);
+            game.decks.removed_treachery_cards.push(card);
             game.finish_bid(None, None, card, false);
         }
         Ok(())

@@ -122,7 +122,7 @@ impl LoserConcluded {
             && !game.karma_prevented(pl.faction)
             && !pl.special_karma_power_used
             && pl.has_karma(game)
-            && game.current_phase == Phase::BattleConclusion
+            && game.turn.current_phase == Phase::BattleConclusion
             && game.battle.battle_loser == Some(pl.faction)
             && game.applicable(Rule::AdvancedKarama)
     }
@@ -213,7 +213,7 @@ impl LoserConcluded {
                             c.into(),
                         ],
                     );
-                    let pile = game.treachery_discard_pile.as_mut().required("treachery discard pile")?;
+                    let pile = game.decks.treachery_discard_pile.as_mut().required("treachery discard pile")?;
                     if pile.items.contains(&c) {
                         if let Some(pos) = pile.items.iter().position(|x| *x == c) {
                             pile.items.remove(pos);
@@ -230,7 +230,7 @@ impl LoserConcluded {
             let assassinated = LoserConcluded::target_of_assassination(game, self.player());
 
             let assassinated = assassinated.required("a target of the assassination")?;
-            game.assassinated.push(assassinated);
+            game.leaders.assassinated.push(assassinated);
             game.player_mut(self.player()).revealed_traitors.insert(Hero::from(assassinated));
 
             let reward = LoserConcluded::assassination_reward(game, winner, assassinated);

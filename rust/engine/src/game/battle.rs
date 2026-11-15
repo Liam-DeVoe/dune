@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
-/// State of the battle phase: the battle sequence, the current battle with its plans, traitor calls, voice and prescience, and what the winner and loser still have to do.
+/// State of the battle phase: the battle sequence, the current battle with its plans, traitor
+/// calls, voice and prescience, and what the winner and loser still have to do.
 pub struct BattleState {
     pub battle_sequence: Option<PlayerSequence>,
     pub battle_about_to_start: Option<Rc<BattleInitiated>>,
@@ -217,7 +218,7 @@ impl Game {
             self.battle.battle_triggered_bureaucracy = None;
         }
 
-        if self.current_phase != Phase::Retreating {
+        if self.turn.current_phase != Phase::Retreating {
             self.determine_how_to_proceed_after_revealing_battle_plans()?;
         }
         Ok(())
@@ -396,7 +397,7 @@ impl Game {
         };
 
         let territory = current_battle.territory(self).expect("territory");
-        let location_with_resources = territory.locations().iter().copied().find(|l| self.resources_on_planet.contains_key(l));
+        let location_with_resources = territory.locations().iter().copied().find(|l| self.board.resources_on_planet.contains_key(l));
 
         if location_with_resources.is_some()
             && plan.hero().is_some()
@@ -413,9 +414,9 @@ impl Game {
         let Some(hero) = hero else { return };
 
         if self.skilled_as(hero, LeaderSkill::Smuggler) {
-            let location_with_resources = territory.locations().iter().copied().find(|l| self.resources_on_planet.contains_key(l));
+            let location_with_resources = territory.locations().iter().copied().find(|l| self.board.resources_on_planet.contains_key(l));
             if let Some(location_with_resources) = location_with_resources {
-                let collected = std::cmp::min(self.resources_on_planet[&location_with_resources], hero.value_in_combat_against(opponent_hero));
+                let collected = std::cmp::min(self.board.resources_on_planet[&location_with_resources], hero.value_in_combat_against(opponent_hero));
                 if collected > 0 {
                     let f = self.player(player).faction;
                     self.log(le![f, LeaderSkill::Smuggler, " collects ", Payment::of(collected), " from ", territory]);
@@ -433,11 +434,11 @@ impl Game {
 
         if player_is_skilled || leader_is_skilled {
             let p = plan.player();
-            let traitor = self.traitor_deck.as_mut().expect("traitor deck").draw();
+            let traitor = self.decks.traitor_deck.as_mut().expect("traitor deck").draw();
             self.battle.traitors_decipherer_can_look_at.push(traitor);
             self.player_mut(p).known_non_traitors.insert(traitor);
 
-            let traitor = self.traitor_deck.as_mut().expect("traitor deck").draw();
+            let traitor = self.decks.traitor_deck.as_mut().expect("traitor deck").draw();
             self.battle.traitors_decipherer_can_look_at.push(traitor);
             self.player_mut(p).known_non_traitors.insert(traitor);
 
@@ -449,10 +450,10 @@ impl Game {
         if self.battle.traitors_decipherer_can_look_at.len() > 0 {
             let items = self.battle.traitors_decipherer_can_look_at.clone();
             for item in items {
-                self.traitor_deck.as_mut().expect("traitor deck").put_on_top(item);
+                self.decks.traitor_deck.as_mut().expect("traitor deck").put_on_top(item);
             }
 
-            self.traitor_deck.as_mut().expect("traitor deck").shuffle();
+            self.decks.traitor_deck.as_mut().expect("traitor deck").shuffle();
             self.stone(Milestone::Shuffled);
             self.battle.traitors_decipherer_can_look_at.clear();
         }
@@ -473,7 +474,7 @@ impl Game {
     pub fn collect_tueks_sietch_bonus(&mut self, player: PlayerIndex, card: Option<TreacheryCard>) {
         if let Some(card) = card.filter(|c| c.type_() == TreacheryCardType::Useless) {
             let f = self.player(player).faction;
-            let tueks = self.map.tueks_sietch();
+            let tueks = self.board.map.tueks_sietch();
             self.log(le![tueks, " stronghold advantage: ", f, " collect ", Payment::of(2), " for playing ", card]);
             let pl = self.player_mut(player);
             pl.resources += 2;
@@ -496,7 +497,7 @@ impl Game {
             return;
         }
 
-        let tabr = self.map.sietch_tabr();
+        let tabr = self.board.map.sietch_tabr();
         self.log(le![tabr, " stronghold advantage: ", winner_plan.initiator(), " collect ", Payment::of(collected), " from enemy force dial"]);
         let pl = self.player_mut(winner_plan.player());
         pl.resources += collected;
@@ -507,7 +508,7 @@ impl Game {
             return;
         };
 
-        let jacurutu = self.map.jacurutu();
+        let jacurutu = self.board.map.jacurutu();
         if current_battle.territory(self) != Some(jacurutu.territory()) || opponent_undialed_forces <= 0 {
             return;
         }
@@ -588,7 +589,7 @@ impl Game {
             .leaders
             .iter()
             .copied()
-            .filter(|l| self.captured_leaders.contains_key(l) && !self.is_alive(Hero::Leader(*l)))
+            .filter(|l| self.leaders.captured_leaders.contains_key(l) && !self.is_alive(Hero::Leader(*l)))
             .collect();
         for captive in dead_captives {
             self.return_captured_leader(harkonnen, captive);
@@ -598,7 +599,7 @@ impl Game {
         if !self.battle.harkonnen_do_not_have_to_return_used_captured_leader {
             let used_leader_in_battle = current_battle.plan_of(self, Some(harkonnen)).and_then(|p| p.hero());
             if let Some(leader) = used_leader_in_battle.and_then(|h| h.as_leader()) {
-                if self.captured_leaders.contains_key(&leader) {
+                if self.leaders.captured_leaders.contains_key(&leader) {
                     self.return_captured_leader(harkonnen, leader);
                 }
             }
@@ -609,9 +610,9 @@ impl Game {
             .player(harkonnen)
             .leaders
             .iter()
-            .any(|l| !self.captured_leaders.contains_key(l) && self.is_alive(Hero::Leader(*l)))
+            .any(|l| !self.leaders.captured_leaders.contains_key(l) && self.is_alive(Hero::Leader(*l)))
         {
-            let captives: Vec<Leader> = self.player(harkonnen).leaders.iter().copied().filter(|l| self.captured_leaders.contains_key(l)).collect();
+            let captives: Vec<Leader> = self.player(harkonnen).leaders.iter().copied().filter(|l| self.leaders.captured_leaders.contains_key(l)).collect();
             for captive in captives {
                 self.return_captured_leader(harkonnen, captive);
             }
@@ -619,14 +620,14 @@ impl Game {
     }
 
     pub fn return_captured_leader(&mut self, current_owner: PlayerIndex, to_return: Leader) {
-        if let Some(value) = self.captured_leaders.get(&to_return).copied() {
+        if let Some(value) = self.leaders.captured_leaders.get(&to_return).copied() {
             let original_player = self.get_player(Some(value)).expect("player");
             self.player_mut(original_player).leaders.push(to_return);
             let leaders = &mut self.player_mut(current_owner).leaders;
             if let Some(pos) = leaders.iter().position(|l| *l == to_return) {
                 leaders.remove(pos);
             }
-            self.captured_leaders.shift_remove(&to_return);
+            self.leaders.captured_leaders.shift_remove(&to_return);
 
             if !self.is_alive(Hero::Leader(to_return)) {
                 return;
@@ -698,7 +699,7 @@ impl Game {
         if outcome.agg_hero_killed && agg.hero().is_some() {
             self.kill_leader_in_battle(agg.hero().required("hero")?, outcome.agg_hero_cause_of_death, winner, outcome.agg_hero_effective_strength);
         } else {
-            let carthag = self.map.carthag();
+            let carthag = self.board.map.carthag();
             self.log_if(
                 outcome.agg_saved_by_carthag,
                 le![carthag, " stronghold advantage saves ", agg.hero(), " from death by ", TreacheryCardType::Poison],
@@ -708,7 +709,7 @@ impl Game {
         if outcome.def_hero_killed && def.hero().is_some() {
             self.kill_leader_in_battle(def.hero().required("hero")?, outcome.def_hero_cause_of_death, winner, outcome.def_hero_effective_strength);
         } else {
-            let carthag = self.map.carthag();
+            let carthag = self.board.map.carthag();
             self.log_if(
                 outcome.def_saved_by_carthag,
                 le![carthag, " stronghold advantage saves ", def.hero(), " from death by ", TreacheryCardType::Poison],
@@ -726,7 +727,7 @@ impl Game {
 
         self.battle.loser_may_try_to_assassinate = self.battle.battle_loser == Some(Faction::Moritani)
             && self.applicable(Rule::MoritaniAssassinate)
-            && self.assassinated.iter().all(|l| Some(l.faction()) != self.battle.battle_winner)
+            && self.leaders.assassinated.iter().all(|l| Some(l.faction()) != self.battle.battle_winner)
             && winner_battle_plan.hero().is_some_and(|h| h.as_leader().is_some())
             && self.is_alive(winner_battle_plan.hero().required("hero")?);
 
@@ -851,12 +852,12 @@ impl Game {
     }
 
     pub fn may_keep_cards_after_losing_battle(&self, p: PlayerIndex) -> bool {
-        (self.player(p).ally == Faction::Moritani && self.moritani_allows_keeping_cards)
+        (self.player(p).ally == Faction::Moritani && self.alliances.moritani_allows_keeping_cards)
             || (self.player(p).nexus == Faction::Moritani && NexusPlayed::can_use_secret_ally(self, p))
     }
 
     pub fn dialled_resources_are_refunded(&self, p: PlayerIndex) -> bool {
-        self.applicable(Rule::FremenAllyGetsDialedResourcesRefunded) && self.player(p).ally == Faction::Fremen && self.fremen_refunds_battle_dial
+        self.applicable(Rule::FremenAllyGetsDialedResourcesRefunded) && self.player(p).ally == Faction::Fremen && self.alliances.fremen_refunds_battle_dial
     }
 
     pub fn pay_dialed_spice(&mut self, p: PlayerIndex, plan: &Battle, traitor_was_revealed: bool) {
@@ -865,7 +866,7 @@ impl Game {
         let cost_to_choam = if self.player(p).ally == Faction::Choam { plan.ally_contribution_amount } else { 0 };
 
         if paid_by_arrakeen > 0 {
-            let arrakeen = self.map.arrakeen();
+            let arrakeen = self.board.map.arrakeen();
             self.log(le![arrakeen, " stronghold advantage supports ", Payment::of(paid_by_arrakeen)]);
         }
 
@@ -1106,11 +1107,11 @@ impl Game {
 
     pub fn set_hero_locations(&mut self, b: &Battle, territory: Territory) {
         if let Some(hero) = b.hero().filter(|h| h.as_leader().is_some()) {
-            self.leader_state[&hero].current_territory = Some(territory);
+            self.leaders.leader_state[&hero].current_territory = Some(territory);
         }
 
         if b.messiah {
-            self.leader_state[&LeaderManager::messiah()].current_territory = Some(territory);
+            self.leaders.leader_state[&LeaderManager::messiah()].current_territory = Some(territory);
         }
     }
 
@@ -1342,7 +1343,7 @@ impl Game {
             .iter()
             .copied()
             .filter(|l| {
-                l.hero_type() != HeroType::Auditor && self.leader_state[&Hero::Leader(*l)].alive() && self.can_join_current_battle(Hero::Leader(*l))
+                l.hero_type() != HeroType::Auditor && self.leaders.leader_state[&Hero::Leader(*l)].alive() && self.can_join_current_battle(Hero::Leader(*l))
             })
             .collect();
         let mut available_leaders: Deck<Leader> = Deck::new(leaders, self.random.clone());
@@ -1377,7 +1378,7 @@ impl Game {
         // `IHero? == Leader?`: true when both are null.
         let vidal = self.vidal().map(Hero::Leader);
         if aggressor_plan.hero() == vidal
-            && self.when_to_set_aside_vidal == VidalMoment::AfterUsedInBattle
+            && self.leaders.when_to_set_aside_vidal == VidalMoment::AfterUsedInBattle
             && !(aggressor_traitor_action.succeeded(self) && !defender_traitor_action.succeeded(self))
         {
             self.set_aside_vidal();
@@ -1385,7 +1386,7 @@ impl Game {
 
         let vidal = self.vidal().map(Hero::Leader);
         if defender_plan.hero() == vidal
-            && self.when_to_set_aside_vidal == VidalMoment::AfterUsedInBattle
+            && self.leaders.when_to_set_aside_vidal == VidalMoment::AfterUsedInBattle
             && !(defender_traitor_action.succeeded(self) && !aggressor_traitor_action.succeeded(self))
         {
             self.set_aside_vidal();
@@ -1397,8 +1398,8 @@ impl Game {
         if !self.applicable(Rule::FullPhaseKarma) {
             self.allow_prevented_battle_faction_advantages();
         }
-        if self.current_juice.as_ref().is_some_and(|j| j.type_ == JuiceType::Aggressor) {
-            self.current_juice = None;
+        if self.turn.current_juice.as_ref().is_some_and(|j| j.type_ == JuiceType::Aggressor) {
+            self.turn.current_juice = None;
         }
         self.battle.current_diplomacy = None;
         self.battle.current_rock_was_melted = None;
@@ -1435,11 +1436,11 @@ impl Game {
         };
 
         if let Some(sole_player_on_planet) = sole_player_on_planet {
-            self.homeworld_occupation.remove(&hw);
+            self.board.homeworld_occupation.remove(&hw);
 
             if !self.player(sole_player_on_planet).is_native_homeworld(hw) {
                 let f = self.player(sole_player_on_planet).faction;
-                self.homeworld_occupation.insert_new(hw, f);
+                self.board.homeworld_occupation.insert_new(hw, f);
                 self.log(le![f, " now occupy ", hw]);
             } else if let Some(previous_occupier) = previous_occupier {
                 let f = self.player(previous_occupier).faction;
@@ -1460,10 +1461,10 @@ impl Game {
         };
 
         // The body changes only values, never the keys.
-        let keys: Vec<Hero> = self.leader_state.keys().copied().collect();
+        let keys: Vec<Hero> = self.leaders.leader_state.keys().copied().collect();
         for key in keys {
             let Some(leader) = key.as_leader() else { continue };
-            if !(self.is_skilled(Some(key)) && !self.leader_state[&key].in_front_of_shield) {
+            if !(self.is_skilled(Some(key)) && !self.leaders.leader_state[&key].in_front_of_shield) {
                 continue;
             }
 
@@ -1472,7 +1473,7 @@ impl Game {
             let take = match current_owner {
                 None => true,
                 Some(current_owner) => {
-                    !self.captured_leaders.contains_key(&leader)
+                    !self.leaders.captured_leaders.contains_key(&leader)
                         && !(self.player(current_owner).faction != Faction::Ecaz && leader.hero_type() == HeroType::Vidal)
                         && current_battle.is_aggressor_or_defender(self, current_owner)
                 }
@@ -1504,7 +1505,7 @@ impl Game {
 
     pub fn lose_cards(&mut self, plan: &Battle, may_choose_to_keep_one: bool) -> GameResult {
         let p = plan.player();
-        if !(self.player(p).ally == Faction::Moritani && self.moritani_allows_keeping_cards)
+        if !(self.player(p).ally == Faction::Moritani && self.alliances.moritani_allows_keeping_cards)
             && self.player(p).nexus == Faction::Moritani
             && NexusPlayed::can_use_secret_ally(self, p)
         {
@@ -1604,7 +1605,7 @@ impl Game {
     }
 
     pub fn can_join_current_battle(&self, hero: Hero) -> bool {
-        let current_territory = self.leader_state[&hero].current_territory;
+        let current_territory = self.leaders.leader_state[&hero].current_territory;
         current_territory.is_none() || current_territory == self.battle.current_battle.as_ref().and_then(|b| b.territory(self))
     }
 }

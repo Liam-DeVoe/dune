@@ -48,7 +48,7 @@ fn parse_event(v: &serde_json::Value) -> GameEvent {
 
 /// The offer an id names: the `DealOffered` at that place in the history.
 fn offer_at(game: &Game, id: i32) -> Rc<treachery_engine::events::DealOffered> {
-    match &game.history[id as usize] {
+    match &game.history.entries[id as usize] {
         GameEvent::DealOffered(o) => o.clone(),
         e => panic!("deal id {id} is a {}", e.event_type().name()),
     }
@@ -77,7 +77,7 @@ fn deals() {
                 let p = g.get_player(Some(f)).unwrap();
                 let d = view.deals.as_ref().unwrap_or_else(|| panic!("{at}: no deals for {f}"));
 
-                let expected: Vec<i32> = DealAccepted::acceptable_deals(g, Some(p)).map(|o| g.history.iter().position(|e| matches!(e, GameEvent::DealOffered(x) if Rc::ptr_eq(x, &o))).unwrap() as i32).collect();
+                let expected: Vec<i32> = DealAccepted::acceptable_deals(g, Some(p)).map(|o| g.history.entries.iter().position(|e| matches!(e, GameEvent::DealOffered(x) if Rc::ptr_eq(x, &o))).unwrap() as i32).collect();
                 assert_eq!(d.acceptable.iter().map(|o| o.id).collect::<Vec<_>>(), expected, "{at} {f}");
                 for o in &d.acceptable {
                     let offer = offer_at(g, o.id);
@@ -141,7 +141,7 @@ fn tracker() {
             let at = format!("{fx} at {step}");
             for (f, view) in all_views(r) {
                 let g = &r.game;
-                let expected = f == Some(Faction::Atreides) && g.current_phase >= Phase::SelectingTraitors;
+                let expected = f == Some(Faction::Atreides) && g.turn.current_phase >= Phase::SelectingTraitors;
                 assert_eq!(view.tracker.is_some(), expected, "{at} {f:?}");
                 let Some(t) = &view.tracker else { continue };
                 shown += 1;
@@ -150,12 +150,12 @@ fn tracker() {
                     cards.extend(TreacheryCardManager::get_richese_cards().iter().map(|c| c.id()).filter(|id| !cards.contains(id)).collect::<Vec<_>>());
                 }
                 assert_eq!(t.cards_in_play, cards, "{at}");
-                let mut deck: Vec<i32> = g.resource_card_deck.as_ref().map(|d| d.items.iter().map(|c| c.skin_id()).collect()).unwrap_or_default();
+                let mut deck: Vec<i32> = g.decks.resource_card_deck.as_ref().map(|d| d.items.iter().map(|c| c.skin_id()).collect()).unwrap_or_default();
                 deck.sort();
                 assert_eq!(t.resource_cards, deck, "{at}");
                 let pile = |d: &Option<Deck<ResourceCard>>| d.as_ref().map(|d| d.items.iter().map(|c| c.skin_id()).collect::<Vec<_>>()).unwrap_or_default();
-                assert_eq!(t.resource_discard_a, pile(&g.resource_card_discard_pile_a));
-                assert_eq!(t.resource_discard_b, pile(&g.resource_card_discard_pile_b));
+                assert_eq!(t.resource_discard_a, pile(&g.decks.resource_card_discard_pile_a));
+                assert_eq!(t.resource_discard_b, pile(&g.decks.resource_card_discard_pile_b));
                 assert_eq!(t.traitors_in_play.len(), g.traitors_in_play().len());
                 assert_eq!(t.players.len(), g.players.len());
                 for (tp, pl) in t.players.iter().zip(&g.players) {
@@ -262,9 +262,9 @@ fn undo_list() {
         let r = load(fx, 0);
         let list = r.undo_list();
         let g = &r.game;
-        assert_eq!(list.len(), g.history.len(), "{fx}");
+        assert_eq!(list.len(), g.history.entries.len(), "{fx}");
         let mut unlisted = 0;
-        for (i, (entry, e)) in list.iter().zip(&g.history).enumerate() {
+        for (i, (entry, e)) in list.iter().zip(&g.history.entries).enumerate() {
             assert_eq!(entry.event_number, i as i32);
             let listed = !matches!(e, GameEvent::AllyPermission(_) | GameEvent::BattleRevision(_) | GameEvent::AutomationConfigured(_));
             assert_eq!(entry.listed, listed, "{fx} {i}");
@@ -272,14 +272,14 @@ fn undo_list() {
             if i == 0 {
                 assert_eq!((entry.turn, entry.phase.as_str()), (0, "None"));
             } else {
-                let m = &g.moments[i - 1];
+                let m = &g.history.moments[i - 1];
                 assert_eq!((entry.turn, entry.phase.clone()), (m.turn, name(m.phase)), "{fx} {i}");
             }
             assert!(!entry.text.is_empty(), "{fx} {i}");
         }
         // Turns never go back, and the last entries are in the current turn.
         assert!(list.windows(2).all(|w| w[0].turn <= w[1].turn), "{fx}");
-        assert!(list.last().unwrap().turn <= g.current_turn);
+        assert!(list.last().unwrap().turn <= g.turn.current_turn);
         unlisted_total += unlisted;
     }
     assert!(unlisted_total > 0, "the fixtures have ally permissions");
@@ -304,7 +304,7 @@ fn without_actions(mut v: GameView) -> GameView {
 fn undo_preview() {
     for fx in ["bid", "ally", "mc-treachery"] {
         let mut r = load(fx, 0);
-        let count = r.game.history.len() as i32;
+        let count = r.game.history.entries.len() as i32;
         let live = all_views(&mut r);
         let viewers: Vec<_> = factions(&r).into_iter().map(|f| viewer_of(&r, f)).chain([OBSERVER]).collect();
         for gap in [1, count / 3, count / 2, count - 1] {

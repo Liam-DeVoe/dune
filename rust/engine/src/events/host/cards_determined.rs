@@ -52,10 +52,10 @@ impl CardsDetermined {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.treachery_deck = Some(Deck::new(self.treachery_cards(), game.random.clone()));
-        game.treachery_deck.as_mut().required("treachery deck")?.shuffle();
+        game.decks.treachery_deck = Some(Deck::new(self.treachery_cards(), game.random.clone()));
+        game.decks.treachery_deck.as_mut().required("treachery deck")?.shuffle();
         game.stone(Milestone::Shuffled);
-        game.richese_cache = self.richese_cards();
+        game.decks.richese_cache = self.richese_cards();
         let message = self.get_verbose_message();
         self.log_objects(game, vec![message.into()]);
         game.enter_setup_phase();

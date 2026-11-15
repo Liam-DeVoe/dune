@@ -34,16 +34,16 @@ impl Bureaucracy {
 
         if !self.passed {
             game.stone(Milestone::Bureaucracy);
-            game.bureaucrat_was_used_this_phase = true;
-            let victim = game.get_player(Some(game.target_of_bureaucracy)).required("get player")?;
+            game.turn.bureaucrat_was_used_this_phase = true;
+            let victim = game.get_player(Some(game.turn.target_of_bureaucracy)).required("get player")?;
             let v = game.player_mut(victim);
             v.resources -= 2;
-            game.was_victim_of_bureaucracy = game.target_of_bureaucracy;
+            game.turn.was_victim_of_bureaucracy = game.turn.target_of_bureaucracy;
         }
 
-        let phase = game.phase_before_bureaucrat_was_activated;
+        let phase = game.turn.phase_before_bureaucrat_was_activated;
         game.enter(phase, true);
-        game.target_of_bureaucracy = Faction::None;
+        game.turn.target_of_bureaucracy = Faction::None;
         Ok(())
     }
 
@@ -58,7 +58,7 @@ impl Bureaucracy {
         if self.passed {
             return express!(self.initiator(), " don't apply Bureaucracy");
         }
-        express!(self.initiator(), " apply Bureaucracy → ", game.target_of_bureaucracy, " lose ", Payment::of(2))
+        express!(self.initiator(), " apply Bureaucracy → ", game.turn.target_of_bureaucracy, " lose ", Payment::of(2))
     }
 
 }

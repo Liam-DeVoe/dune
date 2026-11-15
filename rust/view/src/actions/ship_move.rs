@@ -533,7 +533,7 @@ fn build(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) -> A
         GameEvent::FremenRidesMonster(e) => O::FremenRidesMonster(fremen_ride(game, p, e, d)),
         GameEvent::PerformFremenSetup(_) => {
             let pl = game.player(p);
-            let m = &game.map;
+            let m = &game.board.map;
             let mut targets = vec![m.sietch_tabr().id()];
             targets.extend(m.false_wall_south().locations().iter().map(|l| l.id()));
             targets.extend(m.false_wall_west().locations().iter().map(|l| l.id()));
@@ -592,7 +592,7 @@ fn build(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) -> A
                 .map(|l| RevealableDiscovery {
                     location: l.id(),
                     territory: l.territory().id(),
-                    token: game.discoveries_on_planet.get(&l).map(|disc| name(disc.token)).unwrap_or_default(),
+                    token: game.board.discoveries_on_planet.get(&l).map(|disc| name(disc.token)).unwrap_or_default(),
                 })
                 .collect(),
         }),
@@ -630,7 +630,7 @@ fn build(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) -> A
             may_remove: TerrorPlanted::may_remove_tokens(game, p),
             remove_types: TerrorPlanted::valid_terror_types(game, true).map(name).collect(),
             place_types: TerrorPlanted::valid_terror_types(game, false).map(name).collect(),
-            unplaced: game.unplaced_terror_tokens.iter().map(|t| name(*t)).collect(),
+            unplaced: game.board.unplaced_terror_tokens.iter().map(|t| name(*t)).collect(),
             targets: sectors_of(TerrorPlanted::valid_strongholds(game, p)),
         }),
         GameEvent::TerrorRevealed(_) => O::TerrorRevealed(TerrorRevealedOptions { draft: Value::Null,
@@ -724,7 +724,7 @@ fn shipment(game: &Game, p: PlayerIndex, s: &Shipment, d: &dyn Describer) -> Shi
         cost,
         ally_can_pay: if pl.ally != Faction::None && cost > 0 { game.resources_your_ally_can_pay(p) } else { 0 },
         conflicting_ally: destination.is_some_and(|l| game.contains_conflicting_ally(p, l)),
-        great_flat: game.map.the_great_flat().territory().id(),
+        great_flat: game.board.map.the_great_flat().territory().id(),
         karma_name: d.describe(&ExpressionElement::from(TreacheryCardType::Karma)),
     }
 }
@@ -741,7 +741,7 @@ fn placement(game: &Game, p: PlayerIndex, forces: &IndexMap<Location, Battalion>
         .collect();
     let any_forces = forces.values().map(|b| b.amount_of_forces + b.amount_of_special_forces).sum::<i32>() > 0;
     let targets = if any_forces { ids(PlacementEvent::valid_targets_for_forces(game, p, forces)) } else { vec![] };
-    let planetology = game.current_planetology.as_ref();
+    let planetology = game.turn.current_planetology.as_ref();
     let mut o = PlacementOptions { draft: Value::Null,
         title: None,
         sources,

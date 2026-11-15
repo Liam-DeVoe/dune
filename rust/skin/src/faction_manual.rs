@@ -113,7 +113,7 @@ impl Skin {
             let skin_id = TreacheryCardManager::lookup().find(id).map(|c| c.skin_id()).unwrap_or(-1);
             self.treachery_card_name_str.get_value_or_default(skin_id, "?")
         };
-        let m = &g.map;
+        let m = &g.board.map;
         crate::args![
             Faction::Atreides,                                         //0
             Faction::Harkonnen,                                         //1

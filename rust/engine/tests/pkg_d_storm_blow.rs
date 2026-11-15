@@ -19,16 +19,16 @@ fn idx(g: &Game, f: Faction) -> PlayerIndex {
 }
 
 fn tbd(amount: i32) -> ResourcesToBeDivided {
-    ResourcesToBeDivided { amount, first_faction: Faction::Emperor, other_faction: Faction::Atreides, territory: Game::new().map.territories(false).next().unwrap() }
+    ResourcesToBeDivided { amount, first_faction: Faction::Emperor, other_faction: Faction::Atreides, territory: Game::new().board.map.territories(false).next().unwrap() }
 }
 
 #[test]
 fn storm_dial_bounds_depend_on_turn() {
     let mut g = game_with(&[Faction::Emperor, Faction::Atreides]);
-    g.current_turn = 1;
+    g.turn.current_turn = 1;
     assert_eq!(StormDialled::valid_min_amount(&g), 0);
     assert_eq!(StormDialled::valid_max_amount(&g), 20);
-    g.current_turn = 2;
+    g.turn.current_turn = 2;
     assert_eq!(StormDialled::valid_min_amount(&g), 1);
     assert_eq!(StormDialled::valid_max_amount(&g), 3);
 
@@ -91,7 +91,7 @@ fn storm_spell_range() {
 #[test]
 fn divide_resources_accepted_needs_a_pending_division() {
     let mut g = game_with(&[Faction::Emperor, Faction::Atreides]);
-    g.current_phase = Phase::AcceptingResourceDivision;
+    g.turn.current_phase = Phase::AcceptingResourceDivision;
     let atreides = idx(&g, Faction::Atreides);
     assert!(!DivideResourcesAccepted::is_applicable(&g, atreides));
     g.collection.collected_resources_to_be_divided.push(tbd(4));
@@ -105,7 +105,7 @@ fn divide_resources_is_applicable_throws_without_pending_division() {
     let mut g = game_with(&[Faction::Emperor]);
     let emperor = idx(&g, Faction::Emperor);
     assert!(!DivideResources::is_applicable(&g, emperor));
-    g.current_phase = Phase::DividingCollectedResources;
+    g.turn.current_phase = Phase::DividingCollectedResources;
     let e = catch_panic(|| DivideResources::is_applicable(&g, emperor)).unwrap_err();
     assert_eq!(e, "resources to be divided");
 }
@@ -141,7 +141,7 @@ fn charity_paid_even_when_choam_cannot_pay() {
     g.claim_charity(emperor);
     assert_eq!(g.player(emperor).resources, 2);
     assert_eq!(g.player(choam).resources, 1);
-    assert!(g.has_acted_or_passed.contains(&Faction::Emperor));
+    assert!(g.turn.has_acted_or_passed.contains(&Faction::Emperor));
 }
 
 #[test]

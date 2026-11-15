@@ -101,8 +101,8 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Faction, t: GameE
         }
         GameEventType::CardsDetermined => {
             let mut e = CardsDetermined::new(game, faction);
-            e.set_treachery_cards(&game.treachery_deck.as_ref().map(|d| d.items.clone()).unwrap_or_default());
-            e.set_richese_cards(&game.richese_cache.clone());
+            e.set_treachery_cards(&game.decks.treachery_deck.as_ref().map(|d| d.items.clone()).unwrap_or_default());
+            e.set_richese_cards(&game.decks.richese_cache.clone());
             event(e)
         }
         GameEventType::ClairVoyanceAnswered => {
@@ -251,10 +251,10 @@ pub fn options_and_validation(game: &Game, v: &ResolvedViewer, draft: &GameEvent
             draft: dj.clone(),
         }),
         GameEvent::CardsDetermined(_) => ActionOptions::CardsDetermined(CardsDeterminedOptions {
-            treachery_cards: game.treachery_deck.as_ref().map(|d| d.items.iter().map(|c| c.id()).collect()).unwrap_or_default(),
-            richese_cards: game.richese_cache.iter().map(|c| c.id()).collect(), draft: dj.clone() }),
+            treachery_cards: game.decks.treachery_deck.as_ref().map(|d| d.items.iter().map(|c| c.id()).collect()).unwrap_or_default(),
+            richese_cards: game.decks.richese_cache.iter().map(|c| c.id()).collect(), draft: dj.clone() }),
         GameEvent::ClairVoyanceAnswered(_) => {
-            let Some(latest) = game.latest_clairvoyance.as_ref() else { return Some((None, validate(game, draft.clone(), d))) };
+            let Some(latest) = game.turn.latest_clairvoyance.as_ref() else { return Some((None, validate(game, draft.clone(), d))) };
             ActionOptions::ClairVoyanceAnswered(ClairVoyanceAnsweredOptions {
                 questioner: latest.initiator().to_string(),
                 question: expr::message(&latest.get_question(game), d), draft: dj.clone() })
@@ -451,7 +451,7 @@ fn clairvoyance_lists(game: &Game, d: &dyn Describer) -> (Vec<BattleFormParam>, 
     let leaders = leaders.into_iter().map(|(label, id)| BattleFormParam { value: id.to_string(), label }).collect();
     let factions = game.players.iter().map(|p| BattleFormParam { value: p.faction.to_string(), label: d.describe(&p.faction.into()) }).collect();
     let turns = BeneGesseritPrediction::valid_turns(game).into_iter().map(|t| BattleFormParam { value: t.to_string(), label: t.to_string() }).collect();
-    let mut territories: Vec<(bool, String, i32)> = game.map.territories(true).map(|t| (t.is_stronghold(), d.describe(&t.into()), t.id())).collect();
+    let mut territories: Vec<(bool, String, i32)> = game.board.map.territories(true).map(|t| (t.is_stronghold(), d.describe(&t.into()), t.id())).collect();
     territories.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| ordinal(&a.1, &b.1)));
     let territories = territories.into_iter().map(|(_, label, id)| BattleFormParam { value: id.to_string(), label }).collect();
     (card_types, leaders, factions, turns, territories)
@@ -692,7 +692,7 @@ fn battle_notes(game: &Game, p: PlayerIndex, opponent: PlayerIndex, d: &dyn Desc
     }
     let used_by_my_side = |initiator: Option<Faction>| initiator.is_some_and(|i| i == faction || i == pl.ally);
     let prescience_by_me = used_by_my_side(game.battle.current_prescience.as_ref().map(|e| e.initiator()));
-    let nexus_by_me = used_by_my_side(game.current_nexus_prescience.as_ref().map(|e| e.initiator()));
+    let nexus_by_me = used_by_my_side(game.turn.current_nexus_prescience.as_ref().map(|e| e.initiator()));
     let atreides_side = faction == Faction::Atreides || pl.ally == Faction::Atreides;
     if atreides_side || prescience_by_me || nexus_by_me {
         let opponent_plan = if battle.aggressor(game) == faction { game.battle.defender_plan.clone() } else { game.battle.aggressor_plan.clone() };
@@ -714,7 +714,7 @@ fn battle_notes(game: &Game, p: PlayerIndex, opponent: PlayerIndex, d: &dyn Desc
                 });
             }
             if nexus_by_me {
-                let aspect = game.current_nexus_prescience.as_ref().unwrap().atreides_prescience_aspect;
+                let aspect = game.turn.current_nexus_prescience.as_ref().unwrap().atreides_prescience_aspect;
                 notes.push(match &opponent_plan {
                     Some(plan) => seen_note(game, faction, aspect, plan, false, d),
                     None => BattleNote::Later { aspect: Some(d.describe(&aspect.into())) },

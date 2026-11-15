@@ -24,11 +24,11 @@ impl PerformBeneGesseritPlacement {
     }
 
     pub fn target(&self, game: &Game) -> Option<Location> {
-        game.map.location_lookup().find(self.target_id)
+        game.board.map.location_lookup().find(self.target_id)
     }
 
     pub fn set_target(&mut self, game: &Game, value: Option<Location>) {
-        self.target_id = game.map.location_lookup().get_id(value);
+        self.target_id = game.board.map.location_lookup().get_id(value);
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
@@ -48,10 +48,10 @@ impl PerformBeneGesseritPlacement {
     pub fn valid_locations(g: &Game) -> impl Iterator<Item = Location> {
         use either::Either;
         if Self::bene_gesserit_may_place_first_force_in_any_territory(g) {
-            let hms = g.map.hidden_mobile_stronghold().location();
-            return Either::Left(g.map.locations(false).filter(move |l| *l != hms));
+            let hms = g.board.map.hidden_mobile_stronghold().location();
+            return Either::Left(g.board.map.locations(false).filter(move |l| *l != hms));
         }
-        Either::Right(std::iter::once(g.map.polar_sink()))
+        Either::Right(std::iter::once(g.board.map.polar_sink()))
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {

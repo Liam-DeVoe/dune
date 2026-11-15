@@ -26,11 +26,11 @@ impl AmbassadorPlaced {
     }
 
     pub fn stronghold(&self, game: &Game) -> Option<Territory> {
-        game.map.territory_lookup().find(self.stronghold_id)
+        game.board.map.territory_lookup().find(self.stronghold_id)
     }
 
     pub fn set_stronghold(&mut self, game: &Game, value: Option<Territory>) {
-        self.stronghold_id = game.map.territory_lookup().get_id(value);
+        self.stronghold_id = game.board.map.territory_lookup().get_id(value);
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
@@ -47,10 +47,10 @@ impl AmbassadorPlaced {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_strongholds(g: &Game, _p: PlayerIndex) -> impl Iterator<Item = Territory> {
-        g.map
+        g.board.map
             .territories(false)
             .filter(move |t| {
-                t.is_visible(&g.map) && t.is_stronghold() && !g.is_in_storm_territory(*t) && g.ambassador_in(*t) == Ambassador::None
+                t.is_visible(&g.board.map) && t.is_stronghold() && !g.is_in_storm_territory(*t) && g.ambassador_in(*t) == Ambassador::None
             })
     }
 
@@ -60,7 +60,7 @@ impl AmbassadorPlaced {
 
     pub fn is_applicable(g: &Game, p: PlayerIndex) -> bool {
         g.player(p).resources > g.revival.ambassadors_placed_this_turn
-            && g.current_phase == Phase::ResurrectionReport
+            && g.turn.current_phase == Phase::ResurrectionReport
             && !g.prevented(FactionAdvantage::EcazAmbassadors)
             && !AmbassadorPlaced::valid_ambassadors(g, p).is_empty()
             && !AmbassadorPlaced::valid_strongholds(g, p).next().is_none()
@@ -88,10 +88,10 @@ impl AmbassadorPlaced {
                 Payment::of(placed).into(),
             ],
         );
-        if game.ambassadors_on_planet.contains_key(&stronghold) {
+        if game.board.ambassadors_on_planet.contains_key(&stronghold) {
             game_error!("There already is an ambassador in {}", ExpressionElement::from(stronghold).to_cs_string());
         }
-        game.ambassadors_on_planet.insert_new(stronghold, self.ambassador);
+        game.board.ambassadors_on_planet.insert_new(stronghold, self.ambassador);
         // List.Remove: the first equal element
         let ambassadors = &mut game.player_mut(me).ambassadors;
         if let Some(pos) = ambassadors.iter().position(|a| *a == self.ambassador) {

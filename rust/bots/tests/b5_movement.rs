@@ -46,7 +46,7 @@ fn reset(b: &mut ClassicBot) {
 }
 
 fn loc(game: &Game, s: &str) -> Location {
-    game.map.location_lookup().find(s[1..].parse().unwrap()).unwrap()
+    game.board.map.location_lookup().find(s[1..].parse().unwrap()).unwrap()
 }
 
 fn call(game: &Game, b: &mut ClassicBot, m: &str, a: &[String]) -> String {

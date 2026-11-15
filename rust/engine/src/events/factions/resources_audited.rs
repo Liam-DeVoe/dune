@@ -38,7 +38,7 @@ impl ResourcesAudited {
             .filter(move |opp| {
                 let o = game.player(*opp);
                 *opp != player
-                    && !game.resource_audited_factions.contains(&o.faction)
+                    && !game.turn.resource_audited_factions.contains(&o.faction)
                     && (game.player(player).home_worlds.iter().any(|hw| o.any_forces_in(Some(hw.location())) > 0)
                         || o.home_worlds.iter().any(|hw| game.player(player).any_forces_in(Some(hw.location())) > 0))
             })
@@ -46,7 +46,7 @@ impl ResourcesAudited {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.resource_audited_factions.push(self.target);
+        game.turn.resource_audited_factions.push(self.target);
         let target = self.get_player(game, Some(self.target));
         self.log(game);
         let t = game.player(target.required("target")?);

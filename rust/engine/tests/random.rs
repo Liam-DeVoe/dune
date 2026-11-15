@@ -159,8 +159,8 @@ fn game_from_seed(seed: i32) -> String {
         .iter()
         .map(|p| format!("{} seat {} traitors {:?}", p.faction, p.seat, p.traitors.iter().map(|t| t.id()).collect::<Vec<_>>()))
         .collect();
-    let deck: Vec<i32> = game.treachery_deck.as_ref().unwrap().items.iter().map(|c| c.id()).collect();
-    format!("{}\nphase {}\ndeck {deck:?}\n{}", game.current_phase, game.history.len(), players.join("\n"))
+    let deck: Vec<i32> = game.decks.treachery_deck.as_ref().unwrap().items.iter().map(|c| c.id()).collect();
+    format!("{}\nphase {}\ndeck {deck:?}\n{}", game.turn.current_phase, game.history.entries.len(), players.join("\n"))
 }
 
 #[test]

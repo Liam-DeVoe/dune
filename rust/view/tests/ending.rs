@@ -29,7 +29,7 @@ fn no_ending_before_the_game_ends() {
     let mut r = load("mc-discard", 0);
     assert!(r.view(OBSERVER).ending.is_none());
     let mut r = load_text(&truncated("mc-ended", -4), 0);
-    assert_ne!(r.game.current_phase, Phase::GameEnded);
+    assert_ne!(r.game.turn.current_phase, Phase::GameEnded);
     assert!(r.view(OBSERVER).ending.is_none());
 }
 

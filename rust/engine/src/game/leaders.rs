@@ -1,5 +1,28 @@
 use crate::prelude::*;
 
+/// The state of every leader, and which are captured or assassinated.
+pub struct Leaders {
+    pub leader_state: IndexMap<Hero, LeaderState>,
+    pub captured_leaders: IndexMap<Leader, Faction>,
+    pub assassinated: Vec<Leader>,
+    pub ecaz_loyal_leader: Option<Leader>,
+    pub player_to_set_aside_vidal: Option<PlayerIndex>,
+    pub when_to_set_aside_vidal: VidalMoment,
+}
+
+impl Leaders {
+    pub fn new() -> Self {
+        Leaders {
+            leader_state: Default::default(),
+            captured_leaders: Default::default(),
+            assassinated: Vec::new(),
+            ecaz_loyal_leader: None,
+            player_to_set_aside_vidal: None,
+            when_to_set_aside_vidal: Default::default(),
+        }
+    }
+}
+
 /// `List<T>.Remove(item)`: removes the first equal element, returns whether it found one.
 fn list_remove<T: PartialEq>(list: &mut Vec<T>, item: &T) -> bool {
     match list.iter().position(|x| x == item) {
@@ -17,7 +40,7 @@ impl Game {
             return;
         }
 
-        self.leader_state[&h].kill(&mut self.skill_deck);
+        self.leaders.leader_state[&h].kill(&mut self.decks.skill_deck);
         self.stone(Milestone::LeaderKilled);
         self.determine_if_captured_leaders_must_be_released();
         self.determine_if_killed_ghola_returns_to_original_faction(h);
@@ -39,8 +62,8 @@ impl Game {
     }
 
     pub fn revive(&mut self, initiator: PlayerIndex, h: Hero) {
-        self.leader_state[&h].revive();
-        self.leader_state[&h].current_territory = None;
+        self.leaders.leader_state[&h].revive();
+        self.leaders.leader_state[&h].current_territory = None;
 
         let current_owner = self.owner_of(h);
         if let (Some(current_owner), Hero::Leader(l)) = (current_owner, h) {
@@ -63,7 +86,7 @@ impl Game {
     }
 
     pub fn assassinate_leader(&mut self, l: Leader) {
-        self.leader_state[&Hero::Leader(l)].assassinate(&mut self.skill_deck);
+        self.leaders.leader_state[&Hero::Leader(l)].assassinate(&mut self.decks.skill_deck);
         self.stone(Milestone::LeaderKilled);
 
         self.determine_if_captured_leaders_must_be_released();
@@ -71,19 +94,19 @@ impl Game {
     }
 
     pub fn is_alive(&self, l: Hero) -> bool {
-        self.leader_state[&l].alive()
+        self.leaders.leader_state[&l].alive()
     }
 
     pub fn is_face_down_dead(&self, l: Hero) -> bool {
-        self.leader_state[&l].is_face_down_dead()
+        self.leaders.leader_state[&l].is_face_down_dead()
     }
 
     pub fn death_count(&self, h: Hero) -> i32 {
-        self.leader_state[&h].death_counter
+        self.leaders.leader_state[&h].death_counter
     }
 
     pub fn can_fight_in(&self, h: Hero, t: Territory) -> bool {
-        let territory = self.leader_state[&h].current_territory;
+        let territory = self.leaders.leader_state[&h].current_territory;
         territory.is_none() || territory == Some(t)
     }
 
@@ -125,25 +148,25 @@ impl Game {
     pub fn skill(&self, l: Option<Hero>) -> LeaderSkill {
         let Some(l) = l else { return LeaderSkill::None };
 
-        match self.leader_state.get(&l) {
+        match self.leaders.leader_state.get(&l) {
             Some(state) => state.skill,
             None => LeaderSkill::None,
         }
     }
 
     pub fn set_skill(&mut self, l: Leader, skill: LeaderSkill) {
-        self.leader_state[&Hero::Leader(l)].skill = skill;
+        self.leaders.leader_state[&Hero::Leader(l)].skill = skill;
     }
 
     pub fn set_in_front_of_shield(&mut self, l: Leader, value: bool) {
-        if let Some(ls) = self.leader_state.get_mut(&Hero::Leader(l)) {
+        if let Some(ls) = self.leaders.leader_state.get_mut(&Hero::Leader(l)) {
             ls.in_front_of_shield = value;
         }
     }
 
     pub fn is_in_front_of_shield(&self, l: Option<Hero>) -> bool {
         let Some(l) = l else { return false };
-        self.leader_state.contains_key(&l) && self.leader_state[&l].in_front_of_shield
+        self.leaders.leader_state.contains_key(&l) && self.leaders.leader_state[&l].in_front_of_shield
     }
 
     pub fn messiah_is_alive(&self) -> bool {

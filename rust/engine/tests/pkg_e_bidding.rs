@@ -188,10 +188,10 @@ fn automatic_passes_stop_when_bidding_ends() {
             let mut rule = AutomationConfigured::default();
             rule.rule_type = AutomationRuleType::BiddingPassWhenAtreidesOrAtreidesAllyPassed;
             let rule = as_player(rule, &g, f);
-            g.automation_rules.push(Rc::new(rule));
+            g.rules.automation_rules.push(Rc::new(rule));
         }
-        g.current_main_phase = MainPhase::Bidding;
-        g.current_phase = Phase::Bidding;
+        g.turn.current_main_phase = MainPhase::Bidding;
+        g.turn.current_phase = Phase::Bidding;
         g.bidding.cards_on_auction = Some(Deck::empty(None));
         g.start_bid_sequence_and_auction_type(AuctionType::Normal, None, 1);
         let mut seq = g.bidding.bid_sequence.take().unwrap();
@@ -207,7 +207,7 @@ fn automatic_passes_stop_when_bidding_ends() {
 
         let everyone_passed =
             g.current_report().messages.iter().filter(|m| m.to_cs_string() == "Bidding ends because everyone passed").count();
-        tx.send((g.current_phase, everyone_passed)).unwrap();
+        tx.send((g.turn.current_phase, everyone_passed)).unwrap();
     });
     // Before the fix the thread never finished and its memory grew without end.
     let (phase, everyone_passed) = rx.recv_timeout(std::time::Duration::from_secs(20)).expect("Bid did not finish");
@@ -234,10 +234,10 @@ fn automatic_passes_stop_when_the_high_bidder_cant_be_reached() {
             rule.rule_type = AutomationRuleType::BiddingPassAboveAmount;
             rule.bidding_above_amount = 10;
             let rule = as_player(rule, &g, f);
-            g.automation_rules.push(Rc::new(rule));
+            g.rules.automation_rules.push(Rc::new(rule));
         }
-        g.current_main_phase = MainPhase::Bidding;
-        g.current_phase = Phase::Bidding;
+        g.turn.current_main_phase = MainPhase::Bidding;
+        g.turn.current_phase = Phase::Bidding;
         g.bidding.cards_on_auction = Some(Deck::empty(None));
         g.start_bid_sequence_and_auction_type(AuctionType::Normal, None, 1);
         let mut high = Bid::default();
@@ -257,7 +257,7 @@ fn automatic_passes_stop_when_the_high_bidder_cant_be_reached() {
         pass.passed = true;
         let pass = Rc::new(as_player(pass, &g, g.player(first).faction));
         Bid::execute_concrete_event(&pass, &mut g).unwrap();
-        tx.send(g.current_phase).unwrap();
+        tx.send(g.turn.current_phase).unwrap();
     });
     // Before the fix the thread never finished.
     let phase = rx.recv_timeout(std::time::Duration::from_secs(20)).expect("Bid did not finish");

@@ -29,13 +29,13 @@ impl SwitchedSkilledLeader {
         let faction = game.player(player).faction;
         game.player(player).leaders.iter().copied().find(|l| {
             game.is_skilled(Some(Hero::Leader(*l)))
-                && !game.captured_leaders.contains_key(l)
+                && !game.leaders.captured_leaders.contains_key(l)
                 && (faction == Faction::Ecaz || l.hero_type() != HeroType::Vidal)
         })
     }
 
     pub fn can_be_played(game: &Game, player: PlayerIndex) -> bool {
-        if game.current_phase != Phase::BattlePhase {
+        if game.turn.current_phase != Phase::BattlePhase {
             return false;
         }
         let Some(battle) = game.battle.current_battle.as_ref() else {

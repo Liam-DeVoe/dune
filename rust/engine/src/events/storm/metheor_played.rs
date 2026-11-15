@@ -30,25 +30,25 @@ impl MetheorPlayed {
     }
 
     pub fn may_play_metheor(g: &Game, p: PlayerIndex) -> bool {
-        g.current_turn > 1
+        g.turn.current_turn > 1
             && g.player(p).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Metheor)
             && MetheorPlayed::has_forces_at_or_near_shield_wall(g, p)
     }
 
     pub fn has_forces_at_or_near_shield_wall(g: &Game, p: PlayerIndex) -> bool {
         let pl = g.player(p);
-        if pl.occupies_territory(g, Some(g.map.shield_wall())) {
+        if pl.occupies_territory(g, Some(g.board.map.shield_wall())) {
             return true;
         }
 
-        for shieldwall_location in g.map.shield_wall().locations().iter().copied() {
+        for shieldwall_location in g.board.map.shield_wall().locations().iter().copied() {
             //checks locations that are immediately adjacent to the shield wall
-            if shieldwall_location.neighbours(&g.map).iter().any(|l| pl.occupies(g, Some(*l))) {
+            if shieldwall_location.neighbours(&g.board.map).iter().any(|l| pl.occupies(g, Some(*l))) {
                 return true;
             }
 
             //checks locations that are in a territory adjacent to the shield wall (but may be further away and separated by storm)
-            if g.map
+            if g.board.map
                 .find_neighbours(shieldwall_location, 1, false, pl.faction, g, false)
                 .iter()
                 .any(|l| pl.occupies(g, Some(*l)))
@@ -64,11 +64,11 @@ impl MetheorPlayed {
         let me = self.player();
         let card = game.player(me).card(TreacheryCardType::Metheor);
         game.stone(Milestone::MetheorUsed);
-        game.shield_wall_destroyed = true;
+        game.board.shield_wall_destroyed = true;
         if let Some(card) = card {
             crate::iter::remove_first(&mut game.player_mut(me).treachery_cards, &card);
         }
-        game.removed_treachery_cards.push(card.required("a Metheor card")?);
+        game.decks.removed_treachery_cards.push(card.required("a Metheor card")?);
         let m = self.get_message(game).with_log(FamilyAtomicsUsed { faction: self.initiator(), card });
         self.log_objects(game, vec![m.into()]);
 
@@ -77,7 +77,7 @@ impl MetheorPlayed {
             let mut forces = 0i32;
             let mut special_forces = 0i32;
             // Lazy Where: each location is tested after the previous one was cleared.
-            for location in game.map.shield_wall().locations().iter().copied() {
+            for location in game.board.map.shield_wall().locations().iter().copied() {
                 if !(game.player(p).any_forces_in(Some(location)) > 0) {
                     continue;
                 }
@@ -96,7 +96,7 @@ impl MetheorPlayed {
                     forces + special_forces,
                     faction,
                     " forces on the ",
-                    game.map.shield_wall()
+                    game.board.map.shield_wall()
                 )
                 .with_log(FamilyAtomicsKilled { faction, forces, special_forces });
                 self.log_objects(game, vec![m.into()]);
@@ -106,7 +106,7 @@ impl MetheorPlayed {
     }
 
     pub fn get_message(&self, game: &Game) -> Message {
-        express!(self.initiator(), " use ", TreacheryCardType::Metheor, " to destroy the ", game.map.shield_wall(), "!")
+        express!(self.initiator(), " use ", TreacheryCardType::Metheor, " to destroy the ", game.board.map.shield_wall(), "!")
     }
 }
 

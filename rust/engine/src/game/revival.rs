@@ -40,16 +40,16 @@ impl RevivalState {
 
 impl Game {
     pub fn prepare_skill_assignment_to_revived_leader(&mut self, player: PlayerIndex, leader: Option<Leader>) {
-        if self.current_phase != Phase::AssigningSkill && leader.is_some() {
-            self.setup.phase_before_skill_assignment = self.current_phase;
+        if self.turn.current_phase != Phase::AssigningSkill && leader.is_some() {
+            self.setup.phase_before_skill_assignment = self.turn.current_phase;
         }
 
         self.player_mut(player).most_recently_revived_leader = leader;
-        self.skill_deck.as_mut().expect("skill deck").shuffle();
+        self.decks.skill_deck.as_mut().expect("skill deck").shuffle();
         self.stone(Milestone::Shuffled);
-        let skill = self.skill_deck.as_mut().expect("skill deck").draw();
+        let skill = self.decks.skill_deck.as_mut().expect("skill deck").draw();
         self.player_mut(player).skills_to_choose_from.push(skill);
-        let skill = self.skill_deck.as_mut().expect("skill deck").draw();
+        let skill = self.decks.skill_deck.as_mut().expect("skill deck").draw();
         self.player_mut(player).skills_to_choose_from.push(skill);
         self.enter(Phase::AssigningSkill, true);
     }
@@ -79,8 +79,8 @@ impl Game {
             _ => {}
         }
 
-        if (p.ally == Faction::Fremen && self.fremen_allows_three_free_revivals)
-            || self.current_fremen_secret_ally.as_ref().is_some_and(|e| e.player_opt() == Some(player))
+        if (p.ally == Faction::Fremen && self.alliances.fremen_allows_three_free_revivals)
+            || self.turn.current_fremen_secret_ally.as_ref().is_some_and(|e| e.player_opt() == Some(player))
         {
             nr_of_free_revivals = 3;
         }
@@ -143,7 +143,7 @@ impl Game {
     }
 
     pub fn ambassador_in(&self, t: Territory) -> Ambassador {
-        self.ambassadors_on_planet.get(&t).copied().unwrap_or(Ambassador::None)
+        self.board.ambassadors_on_planet.get(&t).copied().unwrap_or(Ambassador::None)
     }
 
     pub fn claim_free_revival(&mut self, player: PlayerIndex) {

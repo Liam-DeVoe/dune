@@ -62,7 +62,7 @@ pub struct End {
 impl End {
     /// Whether the game is at the phase (and battle) the old log ended at.
     pub fn reached(&self, game: &Game) -> bool {
-        self.phase.as_ref().is_none_or(|p| *p == game.current_phase.to_string()) && self.battle.is_none_or(|b| b == game.battle.current_battle.is_some())
+        self.phase.as_ref().is_none_or(|p| *p == game.turn.current_phase.to_string()) && self.battle.is_none_or(|b| b == game.battle.current_battle.is_some())
     }
 }
 
@@ -148,15 +148,15 @@ impl Refit {
     fn execute(&mut self, event: &Map<String, Value>, validate: bool, host: bool) -> bool {
         let text = Value::Object(event.clone()).to_string();
         let Ok(e) = json::deserialize::<GameEvent>(&text) else { return false };
-        let before = self.game.history.len();
+        let before = self.game.history.entries.len();
         let game = &mut self.game;
         let r = quiet(|| {
             e.initialize_game(game);
-            game.map.mark_neighbour_cache_stale();
+            game.board.map.mark_neighbour_cache_stale();
             e.execute(game, validate, host)
         });
         match r {
-            Some(_) => self.game.history.len() > before,
+            Some(_) => self.game.history.entries.len() > before,
             None => {
                 // A panic may have left the game half changed: rebuild it from its history.
                 self.rebuild(before);
@@ -167,14 +167,14 @@ impl Refit {
 
     /// Replays the first `n` events of the history into a new game.
     fn rebuild(&mut self, n: usize) {
-        let events: Vec<GameEvent> = self.game.history.iter().take(n).cloned().collect();
+        let events: Vec<GameEvent> = self.game.history.entries.iter().take(n).cloned().collect();
         let mut game = Game::with_participation(self.version, &self.participation);
         for e in events {
             let text = json::serialize(&e);
             let e: GameEvent = json::deserialize(&text).expect("a history event reads back");
             quiet(|| {
                 e.initialize_game(&game);
-                game.map.mark_neighbour_cache_stale();
+                game.board.map.mark_neighbour_cache_stale();
                 e.execute(&mut game, false, true)
             });
         }
@@ -250,10 +250,10 @@ impl Refit {
             }
         }
         // A seated human who hasn't passed in the alliance phase passes (no bot does that for them).
-        if matches!(self.game.current_phase, Phase::AllianceA | Phase::AllianceB) {
+        if matches!(self.game.turn.current_phase, Phase::AllianceA | Phase::AllianceB) {
             for &(i, faction) in &players {
                 let p = self.game.player_at(i);
-                if self.game.has_acted_or_passed.contains(&faction) {
+                if self.game.turn.has_acted_or_passed.contains(&faction) {
                     continue;
                 }
                 let allowed = quiet(|| self.game.get_applicable_events(Some(p), false)).unwrap_or_default();
@@ -270,7 +270,7 @@ impl Refit {
         let game = &self.game;
         let mut candidates: Vec<GameEvent> = Vec::new();
         if host.contains(&GameEventType::CardsDetermined) {
-            let cards: Vec<TreacheryCard> = game.treachery_deck.as_ref().map(|d| d.items.clone()).unwrap_or_default();
+            let cards: Vec<TreacheryCard> = game.decks.treachery_deck.as_ref().map(|d| d.items.clone()).unwrap_or_default();
             let richese = if game.is_playing(Faction::Richese) { TreacheryCardManager::get_richese_cards() } else { vec![] };
             let mut e = CardsDetermined::new(game, Faction::None);
             e.set_treachery_cards(&cards);
@@ -342,7 +342,7 @@ impl Refit {
     }
 
     fn position(&self) -> Position {
-        (self.game.current_turn, self.game.current_main_phase.0)
+        (self.game.turn.current_turn, self.game.turn.current_main_phase.0)
     }
 
     /// Takes back what was added since `history` and `out` had these lengths.
@@ -356,13 +356,13 @@ impl Refit {
     /// The bots play until the game reaches `at`. Rounds that stop changing the phase (bots that
     /// repeat themselves) are taken back, and so is everything once the log has grown too much.
     fn catch_up(&mut self, at: Position, time: &Value) {
-        let mut checkpoint = (self.game.history.len(), self.out.len(), self.game.current_phase);
+        let mut checkpoint = (self.game.history.entries.len(), self.out.len(), self.game.turn.current_phase);
         for _ in 0..CATCH_UP_ROUNDS {
             if self.position() >= at || self.stats.added > MAX_ADDED || !self.bot_round(time) {
                 return;
             }
-            if self.game.current_phase != checkpoint.2 {
-                checkpoint = (self.game.history.len(), self.out.len(), self.game.current_phase);
+            if self.game.turn.current_phase != checkpoint.2 {
+                checkpoint = (self.game.history.entries.len(), self.out.len(), self.game.turn.current_phase);
             } else if self.out.len() - checkpoint.1 > STALL_ROUNDS {
                 break;
             }
@@ -391,7 +391,7 @@ impl Refit {
         if !legit {
             return false;
         }
-        let (history, out, here) = (self.game.history.len(), self.out.len(), self.position());
+        let (history, out, here) = (self.game.history.entries.len(), self.out.len(), self.position());
         for _ in 0..ADVANCE_ROUNDS {
             if !self.bot_round(&time) || self.position() != here {
                 break;
@@ -412,7 +412,7 @@ impl Refit {
         if self.position() != target {
             return;
         }
-        let (mut history, mut out) = (self.game.history.len(), self.out.len());
+        let (mut history, mut out) = (self.game.history.entries.len(), self.out.len());
         for _ in 0..ADVANCE_ROUNDS * 4 {
             if end.reached(&self.game) {
                 return;
@@ -424,7 +424,7 @@ impl Refit {
                 self.take_back(history, out);
                 return;
             }
-            (history, out) = (self.game.history.len(), self.out.len());
+            (history, out) = (self.game.history.entries.len(), self.out.len());
         }
     }
 
@@ -440,7 +440,7 @@ impl Refit {
                 // `until` counts events of the old history; map it to the new one.
                 let keep = (*until).clamp(0, self.old_history.len() as i32) as usize;
                 let n = if keep == 0 { 0 } else { self.old_history[keep - 1] };
-                let n = n.min(self.game.history.len()) as i32;
+                let n = n.min(self.game.history.entries.len()) as i32;
                 if quiet(|| self.game.undo(n)).is_some() {
                     self.old_history_before_undo = Some(self.old_history.clone());
                     self.old_history.truncate(keep);
@@ -463,7 +463,7 @@ impl Refit {
             }
         }
         if matches!(item, Item::Event { .. }) {
-            self.old_history.push(self.game.history.len());
+            self.old_history.push(self.game.history.entries.len());
         }
     }
 }

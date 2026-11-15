@@ -113,7 +113,7 @@ impl Voice {
                         if g.player(p).faction == Faction::BeneGesserit {
                             return battle.is_involved(g, p);
                         }
-                        if g.player(p).ally == Faction::BeneGesserit && g.bene_gesserit_allows_use_of_voice {
+                        if g.player(p).ally == Faction::BeneGesserit && g.alliances.bene_gesserit_allows_use_of_voice {
                             return battle.is_aggressor_or_defender(g, p);
                         }
                     }

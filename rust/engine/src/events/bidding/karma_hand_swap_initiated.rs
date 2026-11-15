@@ -28,7 +28,7 @@ impl KarmaHandSwapInitiated {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.bidding.karma_hand_swap_paused_phase = game.current_phase;
+        game.bidding.karma_hand_swap_paused_phase = game.turn.current_phase;
         game.enter(Phase::PerformingKarmaHandSwap, true);
         let victim = self.get_player(game, Some(self.target));
         let me = self.player();

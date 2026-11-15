@@ -1,19 +1,36 @@
 use crate::prelude::*;
 
+/// Deals offered, the responses to them, and the deals in force.
+pub struct Deals {
+    pub offers: Vec<Rc<DealOffered>>,
+    pub responses: IndexMap<RcKey<DealOffered>, IndexMap<Faction, bool>>,
+    pub agreed: Vec<Deal>,
+}
+
+impl Deals {
+    pub fn new() -> Self {
+        Deals {
+            offers: Vec::new(),
+            responses: Default::default(),
+            agreed: Vec::new(),
+        }
+    }
+}
+
 impl Game {
     pub fn record_deal_response(&mut self, offer: &Rc<DealOffered>, faction: Faction, accepted: bool) {
         let key = RcKey(offer.clone());
-        if !self.deal_responses.contains_key(&key) {
+        if !self.deals.responses.contains_key(&key) {
             // Never a duplicate: the key was just checked.
-            self.deal_responses.insert_new(key.clone(), IndexMap::new());
+            self.deals.responses.insert_new(key.clone(), IndexMap::new());
         }
 
-        self.deal_responses.get_mut(&key).expect("responses to this offer").insert(faction, accepted);
+        self.deals.responses.get_mut(&key).expect("responses to this offer").insert(faction, accepted);
     }
 
     pub fn deal_response(&self, offer: &Rc<DealOffered>, faction: Faction) -> Option<bool> {
         let key = RcKey(offer.clone());
-        match self.deal_responses.get(&key) {
+        match self.deals.responses.get(&key) {
             Some(responses) => responses.get(&faction).copied(),
             None => None,
         }
@@ -39,17 +56,17 @@ impl Game {
     }
 
     pub fn start_deal(&mut self, deal: &Deal) {
-        self.deals.push(deal.clone());
+        self.deals.agreed.push(deal.clone());
     }
 
     pub fn has_deal(&self, f: Faction, type_: DealType) -> bool {
-        self.deals.iter().any(|deal| deal.consuming_faction == f && deal.type_ == type_)
+        self.deals.agreed.iter().any(|deal| deal.consuming_faction == f && deal.type_ == type_)
     }
 
     pub fn remove_ended_deals(&mut self, phase: Phase) {
         // Deals are distinct objects, so List.Remove(deal) on the snapshot removes exactly
         // the deals whose End matches.
-        self.deals.retain(|deal| deal.end != phase);
+        self.deals.agreed.retain(|deal| deal.end != phase);
     }
 
     pub fn is_ghola(&self, l: Hero) -> bool {
@@ -107,7 +124,7 @@ impl Deal {
 
     pub fn parameter1_territory(g: &Game, type_: DealType, parameter: &str) -> Option<Territory> {
         match type_ {
-            DealType::DontShipOrMoveTo => g.map.territory_lookup().find(dotnet_compat::parse::int_parse(Some(parameter))),
+            DealType::DontShipOrMoveTo => g.board.map.territory_lookup().find(dotnet_compat::parse::int_parse(Some(parameter))),
             _ => None,
         }
     }

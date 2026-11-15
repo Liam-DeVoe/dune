@@ -34,13 +34,13 @@ impl NexusVoted {
         if game.blow.nexus_votes.len() == game.players.len() {
             let passed = game.blow.nexus_votes.iter().filter(|v| v.passed).count() as i32;
             if (2i32 * passed) >= game.players.len() as i32 {
-                let condition = game.current_phase == Phase::VoteAllianceA && game.applicable(Rule::IncreasedResourceFlow);
+                let condition = game.turn.current_phase == Phase::VoteAllianceA && game.applicable(Rule::IncreasedResourceFlow);
                 Game::run_either(game, condition, Game::enter_blow_b, Game::start_nexus_card_phase);
             } else {
                 if game.applicable(Rule::BreakAlliancesOnAlliancePhase) {
                     game.break_all_alliances();
                 }
-                let condition = game.current_phase == Phase::VoteAllianceA;
+                let condition = game.turn.current_phase == Phase::VoteAllianceA;
                 game.enter_alliance_phase(condition);
             }
         }

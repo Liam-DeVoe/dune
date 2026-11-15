@@ -43,33 +43,33 @@ impl AllianceOffered {
     }
 
     fn has_passed_in_alliance_phase(g: &Game, p: PlayerIndex) -> bool {
-        matches!(g.current_phase, Phase::AllianceA | Phase::AllianceB) && g.has_acted_or_passed.contains(&g.player(p).faction)
+        matches!(g.turn.current_phase, Phase::AllianceA | Phase::AllianceB) && g.turn.has_acted_or_passed.contains(&g.player(p).faction)
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let initiator = self.initiator();
         let matching_offer =
-            game.current_alliance_offers.iter().find(|x| x.initiator() == self.target && x.target == initiator).cloned();
+            game.alliances.current_alliance_offers.iter().find(|x| x.initiator() == self.target && x.target == initiator).cloned();
         if matching_offer.is_some() {
             game.make_alliance(initiator, self.target);
 
             loop {
-                let invalid_offer = game.current_alliance_offers.iter().position(|x| x.by(initiator) || x.initiator() == self.target);
+                let invalid_offer = game.alliances.current_alliance_offers.iter().position(|x| x.by(initiator) || x.initiator() == self.target);
                 let Some(i) = invalid_offer else { break };
                 // List.Remove(invalidOffer): the first occurrence of that object, which is at i.
-                game.current_alliance_offers.remove(i);
+                game.alliances.current_alliance_offers.remove(i);
             }
 
             // Offers to the new allies lapse too; otherwise their makers would wait for an answer that never comes.
             loop {
                 let lapsed_offer =
-                    game.current_alliance_offers.iter().position(|x| x.target == initiator || x.target == self.target);
+                    game.alliances.current_alliance_offers.iter().position(|x| x.target == initiator || x.target == self.target);
                 let Some(i) = lapsed_offer else { break };
-                game.current_alliance_offers.remove(i);
+                game.alliances.current_alliance_offers.remove(i);
             }
 
-            game.has_acted_or_passed.push(initiator);
-            game.has_acted_or_passed.push(self.target);
+            game.turn.has_acted_or_passed.push(initiator);
+            game.turn.has_acted_or_passed.push(self.target);
 
             game.end_nexus_if_everyone_is_done();
         } else {
@@ -77,7 +77,7 @@ impl AllianceOffered {
                 .get_message(game)
                 .with_log(NexusLog::new(None, Some(NexusAlliance::new(NexusAllianceChange::Offered, initiator, self.target))));
             self.log_objects(game, vec![m.into()]);
-            game.current_alliance_offers.push(self.clone());
+            game.alliances.current_alliance_offers.push(self.clone());
         }
         Ok(())
     }

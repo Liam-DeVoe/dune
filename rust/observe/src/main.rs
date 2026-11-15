@@ -200,8 +200,8 @@ fn cmd_refit(args: &Args) -> Result<bool, String> {
         s.replaced,
         s.added,
         s.dropped,
-        r.game.current_phase,
-        r.game.current_turn,
+        r.game.turn.current_phase,
+        r.game.turn.current_turn,
         target.end.phase.as_deref().unwrap_or("?"),
         target.turn.map(|t| t.to_string()).unwrap_or("?".into()),
         seed.map(|s| format!("; seed {s}")).unwrap_or_default()

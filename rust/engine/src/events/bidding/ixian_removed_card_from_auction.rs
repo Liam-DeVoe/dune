@@ -43,9 +43,9 @@ impl IxianRemovedCardFromAuction {
         let card = card.required("card")?;
 
         if self.put_on_top {
-            game.treachery_deck.as_mut().required("treachery deck")?.put_on_top(card);
+            game.decks.treachery_deck.as_mut().required("treachery deck")?.put_on_top(card);
         } else {
-            game.treachery_deck.as_mut().required("treachery deck")?.put_on_bottom(card);
+            game.decks.treachery_deck.as_mut().required("treachery deck")?.put_on_bottom(card);
         }
 
         game.register_known_by_faction(Faction::Ixian, card);

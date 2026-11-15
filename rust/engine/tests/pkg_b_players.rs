@@ -19,7 +19,7 @@ fn idx(g: &Game, f: Faction) -> PlayerIndex {
 }
 
 fn homeworld(g: &Game, w: World) -> Homeworld {
-    g.map.homeworlds().find(|h| h.world() == w).unwrap()
+    g.board.map.homeworlds().find(|h| h.world() == w).unwrap()
 }
 
 fn exception_text<R>(f: impl FnOnce() -> R) -> String {
@@ -80,7 +80,7 @@ fn forces_to_reserves_territory_bug() {
     let me = idx(&g, Faction::Atreides);
     let hw = homeworld(&g, World::Atreides);
     Player::initialize_homeworld(&mut g, me, hw, 10, 0);
-    let t = g.map.territories(false).find(|t| t.locations().len() >= 2).unwrap();
+    let t = g.board.map.territories(false).find(|t| t.locations().len() >= 2).unwrap();
     let mut locs = t.locations().to_vec();
     locs.sort_by_key(|l| l.spice_blow_amount());
     Player::add_forces(&mut g, me, locs[0], 1, false);
@@ -113,13 +113,13 @@ fn richese_special_forces_to_reserves_vanish() {
 #[test]
 fn salusa_secundus_threshold_tracks_special_forces() {
     let mut g = game_with(&[Faction::Emperor]);
-    g.rules.push(Rule::EmperorSpecialForces);
+    g.rules.active.push(Rule::EmperorSpecialForces);
     let me = idx(&g, Faction::Emperor);
     let emperor = homeworld(&g, World::Emperor);
     let star = homeworld(&g, World::SalusaSecundus);
     Player::initialize_homeworld(&mut g, me, emperor, 15, 0);
     Player::initialize_homeworld(&mut g, me, star, 0, 5);
-    g.rules.push(Rule::Homeworlds);
+    g.rules.active.push(Rule::Homeworlds);
     let low_at_start = g.player(me).has_low_threshold(&g, World::SalusaSecundus);
     let l = Location::from_id(1).unwrap();
     // The threshold is 2 (Map.cs:1273). Shipping 3 of 5 leaves 2, which is not below it;
@@ -173,7 +173,7 @@ fn determine_first_player_from_storm() {
     let mut g = game_with(&[Faction::Atreides, Faction::Harkonnen, Faction::Emperor, Faction::Fremen, Faction::BeneGesserit, Faction::Ixian]);
     // ceil(sector * 6 / 18f) % 6
     for (sector, seat) in [(0, 0), (1, 1), (3, 1), (4, 2), (17, 0), (16, 0), (15, 5)] {
-        g.sector_in_storm = sector;
+        g.board.sector_in_storm = sector;
         let first = PlayerSequence::determine_first_player(&g);
         assert_eq!(g.player(first).seat, seat, "sector {sector}");
     }
@@ -183,14 +183,14 @@ fn determine_first_player_from_storm() {
 fn determine_first_player_skips_empty_seats_and_panics() {
     let mut g = game_with(&[Faction::Atreides, Faction::Harkonnen]);
     g.player_mut(g.player_at(1)).seat = 4;
-    g.sector_in_storm = 6; // starts looking at seat 2
+    g.board.sector_in_storm = 6; // starts looking at seat 2
     assert_eq!(PlayerSequence::determine_first_player(&g), g.player_at(1));
 
-    g.settings.as_ref().unwrap().borrow_mut().number_of_players = 0;
+    g.rules.settings.as_ref().unwrap().borrow_mut().number_of_players = 0;
     assert_eq!(exception_text(|| PlayerSequence::determine_first_player(&g)), "attempt to calculate the remainder with a divisor of zero");
 
     let g = game_with(&[]);
-    g.settings.as_ref().unwrap().borrow_mut().number_of_players = 3;
+    g.rules.settings.as_ref().unwrap().borrow_mut().number_of_players = 3;
     // No player in any seat: a plain panic (C# threw "Could not determine the first player.").
     assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| PlayerSequence::determine_first_player(&g))).is_err());
 }
@@ -198,7 +198,7 @@ fn determine_first_player_skips_empty_seats_and_panics() {
 #[test]
 fn sequence_goes_around_and_counts_full_circles() {
     let mut g = game_with(&[Faction::Atreides, Faction::Harkonnen, Faction::Emperor]);
-    g.sector_in_storm = 7; // ceil(7*6/18) = 3 -> seat 3 is empty -> wraps to seat 0
+    g.board.sector_in_storm = 7; // ceil(7*6/18) = 3 -> seat 3 is empty -> wraps to seat 0
     let mut seq = PlayerSequence::starting_with_first_player(&g);
     let order: Vec<_> = seq.players_in_order(&g).into_iter().map(|p| p.unwrap()).collect();
     assert_eq!(order, vec![g.player_at(0), g.player_at(1), g.player_at(2)]);
@@ -225,7 +225,7 @@ fn reverse_direction_orders_by_negated_seat() {
 #[test]
 fn is_after_uses_first_player() {
     let mut g = game_with(&[Faction::Atreides, Faction::Harkonnen, Faction::Emperor]);
-    g.sector_in_storm = 0;
+    g.board.sector_in_storm = 0;
     assert!(PlayerSequence::is_after(&g, g.player_at(2), g.player_at(1)));
     assert!(!PlayerSequence::is_after(&g, g.player_at(0), g.player_at(1)));
 }

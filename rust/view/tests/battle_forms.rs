@@ -134,11 +134,11 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, stats
             assert_eq!(o.territories, ids(BeneGesseritBattleAnnouncement::valid_territories(game, p)), "{at}")
         }
         (ActionOptions::CardsDetermined(o), _) => {
-            assert_eq!(o.treachery_cards, ids(game.treachery_deck.as_ref().unwrap().items.iter().copied()), "{at}");
-            assert_eq!(o.richese_cards, ids(game.richese_cache.iter().copied()), "{at}");
+            assert_eq!(o.treachery_cards, ids(game.decks.treachery_deck.as_ref().unwrap().items.iter().copied()), "{at}");
+            assert_eq!(o.richese_cards, ids(game.decks.richese_cache.iter().copied()), "{at}");
         }
         (ActionOptions::ClairVoyanceAnswered(o), _) => {
-            let latest = game.latest_clairvoyance.as_ref().unwrap();
+            let latest = game.turn.latest_clairvoyance.as_ref().unwrap();
             assert_eq!(o.questioner, latest.initiator().to_string(), "{at}");
         }
         (ActionOptions::ClairVoyancePlayed(o), GameEvent::ClairVoyancePlayed(e)) => {
@@ -431,20 +431,20 @@ fn hms_battle_state() -> ViewReplica {
     let participation = Shared::new(Participation::default());
     let mut r = ViewReplica::load(&common::fixture("battle"), &participation).expect("battle fixture loads");
     let g = &mut r.game;
-    let flat = g.map.the_great_flat();
-    let hms = g.map.hidden_mobile_stronghold();
-    hms.point_at(&mut g.map, flat);
+    let flat = g.board.map.the_great_flat();
+    let hms = g.board.map.hidden_mobile_stronghold();
+    hms.point_at(&mut g.board.map, flat);
     let (a, b) = (g.player_at(0), g.player_at(1));
     let (fa, fb) = (g.player(a).faction, g.player(b).faction);
     Player::add_forces(g, a, hms.location(), 3, false);
     Player::add_forces(g, b, hms.location(), 2, false);
-    g.stronghold_ownership.insert(hms.location(), fa);
-    g.stronghold_ownership.insert(g.map.arrakeen(), fa);
+    g.board.stronghold_ownership.insert(hms.location(), fa);
+    g.board.stronghold_ownership.insert(g.board.map.arrakeen(), fa);
     let mut battle = BattleInitiated::new(g, fa);
     battle.target = fb;
     battle.territory_id = hms.location().territory().id();
     g.battle.current_battle = Some(std::rc::Rc::new(battle));
-    g.current_phase = Phase::BattlePhase;
+    g.turn.current_phase = Phase::BattlePhase;
     g.battle.chosen_hms_advantage = Some(StrongholdAdvantage::None);
     r
 }

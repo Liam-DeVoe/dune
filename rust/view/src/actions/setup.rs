@@ -51,7 +51,7 @@ pub fn options_and_validation(game: &Game, _v: &ResolvedViewer, draft: &GameEven
                 special_forces_in_reserve: placer.special_forces_in_reserve(),
                 // Richese's special forces are No-Field tokens, which are not placed this way.
                 may_stage_special: placer.has_special_forces(game) && !placer.is(Faction::Richese),
-                locations: game.map.locations(false).map(|l| l.id()).collect(),
+                locations: game.board.map.locations(false).map(|l| l.id()).collect(),
                 max_resources: 100,
             }
             .into()

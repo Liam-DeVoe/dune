@@ -8,9 +8,11 @@ The reference binary records bot and fuzz games at `Game::LATEST_VERSION`. Each 
 - the log: every new message with its target faction, rendered with the default skin;
 - the view of every player, of a seatless host and of an observer (the `rust/view` `GameView` JSON, actions and their options included), after every call that changed the history;
 - the event types each queried player may submit (the bots' and fuzzer's `GetApplicableEvents` calls);
-- each bot round's decision: which player's bot acted, and the event JSON it built.
+- each bot round's decision: which player's bot acted, and the event it built.
 
 It doesn't compare state shape, random draw counts, bot priority levels or internal ids that players never see. An event that makes the engine throw counts as "not accepted", and the text of its "Game Error" message isn't compared, so turning a C#-style exception into a `Result` or a proper validation message is not a difference.
+
+Events are compared as decoded values, not as JSON text (`observe/src/events.rs`). The working tree decodes each event of the trace with its own reader before submitting it. A bot decision is compared after both sides' events are decoded and encoded again by the working tree, so member order, whitespace and members the reader ignores make no difference. An event the working tree can't decode counts as rejected, and its message isn't compared, the same as a Game Error. When the event format changes (wave 4b in [rewrite-plan.md](rewrite-plan.md)), the reference still records the old format, and `events::from_reference` is the one place that has to read it.
 
 Since step 3b the engine no longer catches its own panics. The working tree's replay (`session.rs`, `guarded`) treats a call that panics as the server does: the call failed, with the panic message as its error, and the game goes on. So a former C# exception that is now a panic compares like the exception did. A view that fails to build is compared as failed: the reference records `error: <exception>` as the view's hash, and the error text isn't compared. Card, leader, location and territory ids are compared where they appear in views and event JSON, because clients see and send them.
 
@@ -30,6 +32,9 @@ tools/heavy.sh ./target/release/observe live --mode fuzz --seed 1 --games 200 --
 
 # Trace files (from --keep-failures, or `observe record`)
 ./target/release/observe replay /tmp/failures/fuzz-1-00017.jsonl
+
+# Two reference binaries on the same games (see "Comparing two references" below)
+tools/heavy.sh ./target/release/observe compare-refs OLD/observe NEW/observe --mode fuzz --seed 1 --games 200 --jobs 4
 
 # What 200 fuzz games exercise, recorded by the reference (see "Reach" below)
 tools/heavy.sh ./target/release/observe reach --mode fuzz --seed 1 --games 200 --jobs 4 --recorder reference/observe
@@ -94,6 +99,19 @@ Deliberate behavior changes frozen into the reference (the frozen engine edited 
   No game panics, hangs, runs out of memory or ends with a bot exception, before or after. The games that stall are bots 37, 73 and 121 in both builds (48 only before; fuzz 121 only before). Against a reference built from the branch itself (a copy of its `observe` passed with `--reference`), `live` passes 20 of 20 bots and 20 of 20 fuzz games (seed 1), so the harness records and replays games with the new generator. Promote by rebuilding the reference from the merge commit.
 
 Many failing games make `observe live` unreliable. It records each failing game again with full views, and a long game's full-view recording goes over the 640 MB budget, so the report says "hang differs at end" and hides the real first difference. Several such recordings at once also went over heavy.sh's 3 GB cap and killed the run. For a change that makes many games fail, record each game with `REF record --mode M --seed S --game I` and replay it with `observe replay FILE` instead.
+
+## Comparing two references
+
+`observe compare-refs A B` records the same games with two reference binaries and compares the two traces, without replaying anything through the working tree (`observe/src/compare_refs.rs`). It's for checking that a new recorder generates the same games as the old one, for example after the event format changes (wave 4b in rewrite-plan.md). It takes the same options as `live` (`--mode`, `--seed`, `--games`, `--start`, `--jobs`, `--allow`, `--keep-failures`, `-v`), takes a heavy slot the same way, and should run under `heavy.sh` too.
+
+Both traces must make the same calls in the same order: the same queries, bot rounds, submissions (by source, player and host flag), undos and ending. For each call it compares what `live` compares, by the same rules: whether an event was accepted, the rejection message, the log, the view hashes, the applicable types, and which player's bot acted. The event JSON is never compared, in event lines or in bot decisions, so A and B may write events in different formats. The header must agree on mode, seed, game, game version and seated humans. A game whose call hangs or runs out of memory in both at the same call fails as `runaway`, as in `live`. A failing game is recorded again with full views, so the report lists the view fields that differ. That recording is only used when it shows the same difference, because a long game can run out of memory with full views. The report calls the two sides `A` and `B`. `--keep-failures DIR` writes both traces of a failing game, as `NAME-A.jsonl` and `NAME-B.jsonl`.
+
+Checked on 2026-11-15, seed 1:
+
+- The shared reference against itself matches in 20 of 20 bots and 20 of 20 fuzz games.
+- Against a recorder that rewrites every event (members after `$type` reversed, an unknown member added, spaces around separators), it matches in 10 of 10 fuzz games. `observe replay` of one such trace (fuzz game 3) passes too. The replayer before events were compared decoded fails it at the first bot decision.
+- `observe-before-chacha` against the shared reference fails every game at line 1, because the older one records game version 188.
+- `observe-before-runaway-fixes` against `observe-runaway-fixes` (same game version) fails fuzz games 2 and 4 of 0 to 4. In game 2 the first difference is at line 9049: a `CardTraded` that the older one accepts and the newer one rejects with "Invalid requested card".
 
 ## Deliberate behavior changes
 
@@ -188,4 +206,4 @@ What is left:
 
 ## Tests
 
-`cargo test --release -p observe` (part of `check.sh`, about 5 s) checks that clean recordings replay without a difference, that recording is deterministic, and that a trace with any observable changed fails: a log message, a view hash, a rejection message, an event's validity, a bot decision, an applicable-events list, or a cut-off trace. It also checks that full views name the differing field, and that allow rules accept what they cover.
+`cargo test --release -p observe` (part of `check.sh`, about 5 s) checks that clean recordings replay without a difference, that recording is deterministic, and that a trace with any observable changed fails: a log message, a view hash, a rejection message, an event's validity, a bot decision, an applicable-events list, or a cut-off trace. It also checks that full views name the differing field, and that allow rules accept what they cover. Further tests check that events written differently but decoding to the same value replay without a difference, that an event that doesn't decode compares like a rejection, and that `compare-refs` matches the same games with every event in another format but catches any changed observation (`tests/compare_refs.rs`).

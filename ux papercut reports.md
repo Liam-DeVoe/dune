@@ -51,3 +51,8 @@
   - Non-host trade button mislabelled "Pick Atreides."
   - Ruleset label disagreeing with the report ("Standard Dune" versus "All Expansions").
   - Killed leaders stack unlabelled in the top-left corner.
+
+  Lobby (found by the e2e coverage, 2026-11-15)
+  - Two "Leave game" buttons do different things: the game menu's only goes to the main page and keeps the seat, the players panel's leaves the game.
+  - A kicked player gets no message. Their screen goes back to the lobby, and they only see "You were removed from this game" if they try to join again.
+  - A seat stays closed after a kick or a leave, with a bot playing it, until the host reopens it.

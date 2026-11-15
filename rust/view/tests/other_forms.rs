@@ -113,10 +113,10 @@ fn check(game: &Game, p: PlayerIndex, v: &ResolvedViewer, o: &ActionOptions, at:
         ActionOptions::FactionSelected(o) => assert_eq!(targets(&o.targets), factions(FactionSelected::valid_factions(game)), "{at}"),
         ActionOptions::FactionTradeOffered(o) => assert_eq!(targets(&o.targets), factions(FactionTradeOffered::valid_targets(game, p)), "{at}"),
         ActionOptions::IxianRemovedCardFromAuction(o) => {
-            assert_eq!(o.cards, ids(game.cards_on_auction.as_ref().map(|d| d.items.clone()).unwrap_or_default()), "{at}")
+            assert_eq!(o.cards, ids(game.bidding.cards_on_auction.as_ref().map(|d| d.items.clone()).unwrap_or_default()), "{at}")
         }
         ActionOptions::IxianSelectedStartingCard(o) => {
-            assert_eq!(o.cards, ids(game.starting_treachery_cards.as_ref().map(|d| d.items.clone()).unwrap_or_default()), "{at}")
+            assert_eq!(o.cards, ids(game.setup.starting_treachery_cards.as_ref().map(|d| d.items.clone()).unwrap_or_default()), "{at}")
         }
         ActionOptions::Karma(o) => {
             assert_eq!(o.cards, ids(Karma::valid_karma_cards(game, p)), "{at}");
@@ -124,7 +124,7 @@ fn check(game: &Game, p: PlayerIndex, v: &ResolvedViewer, o: &ActionOptions, at:
         }
         ActionOptions::KarmaChoamDiscard(o) => assert_eq!(o.karma_cards, ids(Karma::valid_karma_cards(game, p)), "{at}"),
         ActionOptions::KarmaHandSwap(o) => {
-            assert_eq!((o.number, o.target.clone(), o.cards.clone()), (game.karma_hand_swap_number_of_cards, game.karma_hand_swap_target.to_string(), hand), "{at}")
+            assert_eq!((o.number, o.target.clone(), o.cards.clone()), (game.bidding.karma_hand_swap_number_of_cards, game.bidding.karma_hand_swap_target.to_string(), hand), "{at}")
         }
         ActionOptions::KarmaHandSwapInitiated(o) => assert_eq!(targets(&o.targets), factions(game.players_other_than(p)), "{at}"),
         ActionOptions::KarmaMonster(o) => assert_eq!(o.territories, KarmaMonster::valid_targets(game).map(|t| t.id()).collect::<Vec<_>>(), "{at}"),

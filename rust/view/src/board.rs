@@ -61,7 +61,7 @@ pub fn board(game: &Game, status: &GameStatus, v: &ResolvedViewer) -> BoardView 
     // Only during ship and move, and not for moves to a homeworld.
     let mut recent_moves = Vec::new();
     if game.current_main_phase == MainPhase::ShipmentAndMove {
-        for m in &game.recent_moves {
+        for m in &game.ship_move.recent_moves {
             let Some(to) = m.placement_to(game) else { continue };
             if to.is_homeworld() {
                 continue;
@@ -120,13 +120,13 @@ pub fn board(game: &Game, status: &GameStatus, v: &ResolvedViewer) -> BoardView 
             .collect(),
         attached,
         leaders,
-        monsters: game.monsters.iter().map(|m| MonsterView { territory: m.territory.id(), is_great_monster: m.is_great_monster }).collect(),
-        number_of_monsters: game.number_of_monsters,
+        monsters: game.blow.monsters.iter().map(|m| MonsterView { territory: m.territory.id(), is_great_monster: m.is_great_monster }).collect(),
+        number_of_monsters: game.blow.number_of_monsters,
         special_strongholds: map.territories(true).filter(|t| game.is_special_stronghold(*t)).map(|t| t.id()).collect(),
         atomics_aftermath: game.atomics_aftermath.map(|t| t.id()),
         protected_from_storm: map.locations(false).filter(|l| game.is_protected_from_storm(*l)).map(|l| l.id()).collect(),
         // The value for Richese, "?" for everyone else.
-        no_field_value: (me == Some(Faction::Richese)).then_some(game.current_no_field_value),
+        no_field_value: (me == Some(Faction::Richese)).then_some(game.ship_move.current_no_field_value),
         storm_prescience_moves: game.has_storm_prescience(v.player).then_some(game.next_storm_moves),
         recent_moves,
     }
@@ -158,7 +158,7 @@ pub fn ring_extras(game: &Game, p: PlayerIndex, out: &mut PublicPlayer) {
         .map(|l| SkilledLeader { id: l.id(), skill: name(game.skill(Some(Hero::Leader(l)))) })
         .collect();
     out.loyal_leader = (pl.faction == Faction::Ecaz).then_some(game.ecaz_loyal_leader).flatten().map(|l| l.id());
-    out.latest_revealed_no_field = (pl.faction == Faction::Richese && game.latest_revealed_no_field_value >= 0).then_some(game.latest_revealed_no_field_value);
+    out.latest_revealed_no_field = (pl.faction == Faction::Richese && game.ship_move.latest_revealed_no_field_value >= 0).then_some(game.ship_move.latest_revealed_no_field_value);
 }
 
 /// The card piles beside the map.
@@ -179,11 +179,11 @@ pub fn piles(game: &Game, v: &ResolvedViewer) -> PilesView {
         resource_deck_top: (game.current_main_phase == MainPhase::ShipmentAndMove && game.has_resource_deck_prescience(me))
             .then(|| resource_deck.and_then(|d| d.top()).map(|c| c.skin_id()))
             .flatten(),
-        latest_spice_card_a: game.latest_spice_card_a.map(|c| c.skin_id()),
-        latest_spice_card_b: game.latest_spice_card_b.map(|c| c.skin_id()),
+        latest_spice_card_a: game.blow.latest_spice_card_a.map(|c| c.skin_id()),
+        latest_spice_card_b: game.blow.latest_spice_card_b.map(|c| c.skin_id()),
         resource_discard_a: notekeeping.then(|| pile(&game.resource_card_discard_pile_a)),
         resource_discard_b: notekeeping.then(|| pile(&game.resource_card_discard_pile_b)),
-        sand_trout: game.sand_trout_occurred().then_some(game.sand_trout).flatten().map(|c| c.skin_id()),
+        sand_trout: game.sand_trout_occurred().then_some(game.blow.sand_trout).flatten().map(|c| c.skin_id()),
         richese_cache_count: game.richese_cache.len() as i32,
         // Only Richese sees the cards of its cache.
         richese_cache: (viewer_faction(v) == Some(Faction::Richese)).then(|| game.richese_cache.iter().map(|c| c.id()).collect()),
@@ -229,9 +229,9 @@ pub fn bidding(game: &Game, v: &ResolvedViewer) -> Option<BiddingView> {
     if game.current_main_phase != MainPhase::Bidding {
         return None;
     }
-    let silent = game.current_auction_type == AuctionType::BlackMarketSilent || game.current_auction_type == AuctionType::RicheseSilent;
+    let silent = game.bidding.current_auction_type == AuctionType::BlackMarketSilent || game.bidding.current_auction_type == AuctionType::RicheseSilent;
     let bids = game
-        .bids
+        .bidding.bids
         .iter()
         .map(|(f, bid)| {
             let shown = if silent {
@@ -244,7 +244,7 @@ pub fn bidding(game: &Game, v: &ResolvedViewer) -> Option<BiddingView> {
             MapBid { faction: name(*f), bid: shown }
         })
         .collect();
-    Some(BiddingView { auction_type: name(game.current_auction_type), bids,
+    Some(BiddingView { auction_type: name(game.bidding.current_auction_type), bids,
         panel: crate::actions::bidding::panel(game, v),
         auction_won: game.recent_milestones.contains(&Milestone::AuctionWon),
     })
@@ -252,7 +252,7 @@ pub fn bidding(game: &Game, v: &ResolvedViewer) -> Option<BiddingView> {
 
 /// The current battle and the plans this viewer may see.
 pub fn battle(game: &Game, v: &ResolvedViewer) -> Option<BattleView> {
-    let current = game.current_battle.clone()?;
+    let current = game.battle.current_battle.clone()?;
     let aggressor = current.aggressor(game);
     let defender = current.defender(game);
     let territory = current.territory(game);
@@ -269,18 +269,18 @@ pub fn battle(game: &Game, v: &ResolvedViewer) -> Option<BattleView> {
 
     let me = viewer_faction(v);
     let my_ally = v.player.map(|p| game.player(p).ally);
-    let sees_atreides_karma = game.atreides_karma && (me == Some(Faction::Atreides) || my_ally == Some(Faction::Atreides));
+    let sees_atreides_karma = game.battle.atreides_karma && (me == Some(Faction::Atreides) || my_ally == Some(Faction::Atreides));
     let atreides_opponent = current.opponent_of_faction(game, Faction::Atreides);
-    let both_in = game.aggressor_plan.is_some() && game.defender_plan.is_some();
+    let both_in = game.battle.aggressor_plan.is_some() && game.battle.defender_plan.is_some();
     // What prescience revealed goes to the prescience user and their ally only (protocol.md,
     // Visibility).
     let on_side_of = |f: Faction| me == Some(f) || (my_ally == Some(f) && f != Faction::None);
     let affected_by_partial = |plan: &Battle| {
         let by = |initiator: Faction| current.opponent_of_faction(game, initiator) == Some(plan.player()) && on_side_of(initiator);
-        game.current_prescience.as_ref().is_some_and(|pr| by(pr.initiator())) || game.current_nexus_prescience.as_ref().is_some_and(|np| by(np.initiator()))
+        game.battle.current_prescience.as_ref().is_some_and(|pr| by(pr.initiator())) || game.current_nexus_prescience.as_ref().is_some_and(|np| by(np.initiator()))
     };
     let traitor = |a: &Option<std::rc::Rc<TreacheryCalled>>| a.as_ref().is_some_and(|t| t.succeeded(game));
-    let facedanced = |f: Faction| game.current_phase == Phase::Facedancing && game.battle_winner == Some(f);
+    let facedanced = |f: Faction| game.current_phase == Phase::Facedancing && game.battle.battle_winner == Some(f);
 
     let side = |plan: &Option<std::rc::Rc<Battle>>, opponent_plan: &Option<std::rc::Rc<Battle>>, is_aggressor: bool, traitor_called: bool| {
         let plan = plan.as_ref()?;
@@ -292,8 +292,8 @@ pub fn battle(game: &Game, v: &ResolvedViewer) -> Option<BattleView> {
         let facedanced = facedanced(if is_aggressor { aggressor } else { defender });
         Some(plan_view(game, plan, opponent_plan.as_deref(), full, is_aggressor, if full { traitor_called } else { false }, facedanced, territory, if is_aggressor { defender } else { aggressor }))
     };
-    view.aggressor_plan = side(&game.aggressor_plan, &game.defender_plan, true, traitor(&game.defender_traitor_action));
-    view.defender_plan = side(&game.defender_plan, &game.aggressor_plan, false, traitor(&game.aggressor_traitor_action));
+    view.aggressor_plan = side(&game.battle.aggressor_plan, &game.battle.defender_plan, true, traitor(&game.battle.defender_traitor_action));
+    view.defender_plan = side(&game.battle.defender_plan, &game.battle.aggressor_plan, false, traitor(&game.battle.aggressor_traitor_action));
     Some(view)
 }
 
@@ -311,7 +311,7 @@ fn plan_view(
     opponent: Faction,
 ) -> PlanView {
     let aspect = |a: PrescienceAspect| {
-        game.current_prescience.as_ref().is_some_and(|p| p.aspect == a) || game.current_nexus_prescience.as_ref().is_some_and(|n| n.atreides_prescience_aspect == a)
+        game.battle.current_prescience.as_ref().is_some_and(|p| p.aspect == a) || game.current_nexus_prescience.as_ref().is_some_and(|n| n.atreides_prescience_aspect == a)
     };
     let pl = game.player(plan.player());
     let initiator = plan.initiator();
@@ -372,9 +372,9 @@ fn plan_view(
         is_aggressor,
         full,
         dial: dial_shown.then(|| plan.dial(game, opponent) as f64),
-        ecaz_contribution: (dial_shown && game.current_ecaz_battle_contribution > 0 && (plan.by(Faction::Ecaz) || plan.by_ally_of(game, Faction::Ecaz)))
-            .then_some(game.current_ecaz_battle_contribution),
-        ecaz_karma_bonus: (dial_shown && initiator == Faction::Ecaz && game.ecaz_karma_bonus != 0).then_some(game.ecaz_karma_bonus),
+        ecaz_contribution: (dial_shown && game.battle.current_ecaz_battle_contribution > 0 && (plan.by(Faction::Ecaz) || plan.by_ally_of(game, Faction::Ecaz)))
+            .then_some(game.battle.current_ecaz_battle_contribution),
+        ecaz_karma_bonus: (dial_shown && initiator == Faction::Ecaz && game.battle.ecaz_karma_bonus != 0).then_some(game.battle.ecaz_karma_bonus),
         homeworld_bonus: homeworld_bonus.filter(|_| dial_shown),
         reinforcements: dial_shown && full && plan.has_reinforcements(),
         cost: full.then(|| plan.cost(game)).filter(|c| *c > 0),

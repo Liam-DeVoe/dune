@@ -28,21 +28,21 @@ impl KarmaHandSwapInitiated {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.karma_hand_swap_paused_phase = game.current_phase;
+        game.bidding.karma_hand_swap_paused_phase = game.current_phase;
         game.enter(Phase::PerformingKarmaHandSwap, true);
         let victim = self.get_player(game, Some(self.target));
         let me = self.player();
         let karama = Karma::valid_karma_cards(game, me).into_iter().next();
         game.player_mut(me).special_karma_power_used = true;
         let victim = victim.required("victim")?;
-        game.karma_hand_swap_number_of_cards = game.player(victim).treachery_cards.len() as i32;
-        game.karma_hand_swap_target = self.target;
+        game.bidding.karma_hand_swap_number_of_cards = game.player(victim).treachery_cards.len() as i32;
+        game.bidding.karma_hand_swap_target = self.target;
         let mut cards_to_draw_from = Deck::new(game.player(victim).treachery_cards.clone(), game.random.clone());
         game.stone(Milestone::Shuffled);
         cards_to_draw_from.shuffle();
 
         let mut i = 0;
-        while i < game.karma_hand_swap_number_of_cards {
+        while i < game.bidding.karma_hand_swap_number_of_cards {
             let card = cards_to_draw_from.try_draw()?;
             Game::register_known_by_player(game, me, Some(card));
             crate::game::remove_card(&mut game.player_mut(victim).treachery_cards, Some(card));

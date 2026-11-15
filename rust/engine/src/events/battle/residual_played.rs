@@ -30,13 +30,13 @@ impl ResidualPlayed {
     }
 
     pub fn may_play(g: &Game, p: PlayerIndex) -> bool {
-        g.current_battle.as_ref().expect("current battle").is_aggressor_or_defender(g, p)
+        g.battle.current_battle.as_ref().expect("current battle").is_aggressor_or_defender(g, p)
             && g.player(p).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Residual)
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.discard(self.player(), TreacheryCardType::Residual)?;
-        let battle = game.current_battle.clone().required("current battle")?;
+        let battle = game.battle.current_battle.clone().required("current battle")?;
         let opponent = battle.opponent_of_faction(game, self.initiator()).required("opponent of faction")?;
         let candidates: Vec<Hero> = game
             .player(opponent)

@@ -29,11 +29,11 @@ impl Audited {
         self.log(game);
         game.stone(Milestone::Audited);
         // RegisterKnown only adds to the player's KnownCards, so the list does not change.
-        let audited = game.audited_cards.clone();
+        let audited = game.battle.audited_cards.clone();
         for card in audited {
             Game::register_known_by_player(game, self.player(), Some(card));
         }
-        let winner_is_none = game.battle_winner == Some(Faction::None);
+        let winner_is_none = game.battle.battle_winner == Some(Faction::None);
         let harkonnen_must_decide = game.harkonnen_must_decide_to_capture();
         // Enter(condition, FinishBattle, ...), with FinishBattle's failure passed on.
         if winner_is_none {

@@ -83,7 +83,7 @@ fn state(l: &mut Lines, g: &mut Game, at: &str) {
     l.p(&format!("{at}.offers"), offers.join(","));
     let allies: Vec<_> = g.players.iter().map(|p| format!("{}:{}", p.faction, p.ally)).collect();
     l.p(&format!("{at}.allies"), allies.join(","));
-    l.p(&format!("{at}.nexus_occured"), if g.nexus_has_occurred { "True" } else { "False" });
+    l.p(&format!("{at}.nexus_occured"), if g.blow.nexus_has_occurred { "True" } else { "False" });
     let a = applicable(g);
     l.p(&format!("{at}.applicable"), a);
     for i in 0..g.players.len() {
@@ -167,7 +167,7 @@ fn break_in_alliance_phase(l: &mut Lines, v: i32) {
 
 fn seen(g: &Game, plans: &[Option<Rc<Battle>>]) -> String {
     let entries: Vec<_> = g
-        .prescience_seen_plans
+        .battle.prescience_seen_plans
         .iter()
         .map(|(aspect, plan)| {
             let i = plans.iter().position(|p| p.as_ref().is_some_and(|p| Rc::ptr_eq(p, plan))).map_or(-1, |i| i as i32);
@@ -207,7 +207,7 @@ fn prescience(l: &mut Lines, v: i32) {
     battle.target = Faction::Choam;
     let territory = g.map.arrakeen().territory();
     battle.set_territory(&g, Some(territory));
-    g.current_battle = Some(Rc::new(battle));
+    g.battle.current_battle = Some(Rc::new(battle));
 
     let plan = |g: &Game, hero: Leader, weapon: Option<TreacheryCard>, def: Option<TreacheryCard>, half: i32| -> Rc<Battle> {
         let mut b = Battle::new(g, Faction::Choam);
@@ -222,28 +222,28 @@ fn prescience(l: &mut Lines, v: i32) {
     let mut plans: Vec<Option<Rc<Battle>>> = vec![None; 6];
     plans[0] = Some(plan(&g, leader0, Some(weapons[0]), Some(defense), 0));
     validate(l, &g, &format!("{at}.plan0.validate"), plans[0].as_ref().unwrap());
-    g.defender_plan = plans[0].clone();
+    g.battle.defender_plan = plans[0].clone();
 
     let mut p = Prescience::new(&g, Faction::Atreides);
     p.aspect = PrescienceAspect::Weapon;
-    g.current_prescience = Some(Rc::new(p));
+    g.battle.current_prescience = Some(Rc::new(p));
     let aspects = |g: &Game, f: Faction| Battle::aspects_seen_by_opponent(g, idx(g, f)).iter().map(|a| a.to_string()).collect::<Vec<_>>().join(",");
     l.try_(&format!("{at}.aspects"), || aspects(&g, Faction::Choam));
     l.try_(&format!("{at}.aspects_of_atreides"), || aspects(&g, Faction::Atreides));
     l.try_(&format!("{at}.revise1"), || revise(&mut g));
     l.p(&format!("{at}.revise1.seen"), seen(&g, &plans));
-    l.p(&format!("{at}.revise1.defender_plan_is_null"), if g.defender_plan.is_none() { "True" } else { "False" });
+    l.p(&format!("{at}.revise1.defender_plan_is_null"), if g.battle.defender_plan.is_none() { "True" } else { "False" });
 
     plans[1] = Some(plan(&g, leader0, Some(weapons[1]), Some(defense), 0));
     validate(l, &g, &format!("{at}.other_weapon.validate"), plans[1].as_ref().unwrap());
     plans[2] = Some(plan(&g, leader1, Some(weapons[0]), None, 0));
     validate(l, &g, &format!("{at}.same_weapon.validate"), plans[2].as_ref().unwrap());
 
-    g.defender_plan = plans[2].clone();
-    g.atreides_karma = true;
+    g.battle.defender_plan = plans[2].clone();
+    g.battle.atreides_karma = true;
     let mut p = Prescience::new(&g, Faction::Atreides);
     p.aspect = PrescienceAspect::Dial;
-    g.current_prescience = Some(Rc::new(p));
+    g.battle.current_prescience = Some(Rc::new(p));
     l.try_(&format!("{at}.aspects_karma"), || aspects(&g, Faction::Choam));
     l.try_(&format!("{at}.revise2"), || revise(&mut g));
     l.p(&format!("{at}.revise2.seen"), seen(&g, &plans));
@@ -255,7 +255,7 @@ fn prescience(l: &mut Lines, v: i32) {
     plans[5] = Some(plan(&g, leader1, Some(weapons[0]), None, 1));
     validate(l, &g, &format!("{at}.dial_changed.validate"), plans[5].as_ref().unwrap());
 
-    g.defender_plan = None;
+    g.battle.defender_plan = None;
     l.try_(&format!("{at}.revise_without_plan"), || revise(&mut g));
     l.p(&format!("{at}.revise_without_plan.seen"), seen(&g, &plans));
 

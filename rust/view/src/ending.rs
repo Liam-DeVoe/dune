@@ -233,7 +233,7 @@ pub fn ending(game: &Game, d: &dyn Describer) -> Option<EndingView> {
     if game.current_phase != Phase::GameEnded {
         return None;
     }
-    let winners = game.winners.iter().map(|&p| StoryWinner { faction: name(game.player(p).faction), name: game.get_player_name_player(p) }).collect();
+    let winners = game.contemplate.winners.iter().map(|&p| StoryWinner { faction: name(game.player(p).faction), name: game.get_player_name_player(p) }).collect();
     let story = (!game.applicable(Rule::DisableEndOfGameReport)).then(|| story(game, d));
     Some(EndingView { winners, story })
 }
@@ -330,18 +330,18 @@ fn story(game: &Game, d: &dyn Describer) -> Vec<StoryBlock> {
         }
 
         if matches!(evt, GameEvent::Bid(_) | GameEvent::BlackMarketBid(_)) {
-            if let Some(wb) = &r.winning_bid {
+            if let Some(wb) = &r.bidding.winning_bid {
                 if previous_winning_bid.as_ref() != Some(wb) {
                     let buyer = wb.initiator();
                     out.push(StoryBlock::Purchase {
                         buyer: name(buyer),
-                        card: r.card_just_won.map(|c| card(c, rd)),
+                        card: r.bidding.card_just_won.map(|c| card(c, rd)),
                         amount: wb.bid_total_amount(),
                         karma_card: match wb {
                             GameEvent::Bid(b) => b.karma_card().map(|c| card(c, rd)),
                             _ => None,
                         },
-                        auction: (r.current_auction_type != AuctionType::Normal).then(|| describe_detailed(r.current_auction_type, rd)),
+                        auction: (r.bidding.current_auction_type != AuctionType::Normal).then(|| describe_detailed(r.bidding.current_auction_type, rd)),
                     });
                 }
                 previous_winning_bid = Some(wb.clone());
@@ -375,7 +375,7 @@ fn story(game: &Game, d: &dyn Describer) -> Vec<StoryBlock> {
         }
 
         if matches!(evt, GameEvent::BattleInitiated(_)) {
-            if let Some(t) = r.battle_about_to_start.as_ref().and_then(|b| b.territory(r)) {
+            if let Some(t) = r.battle.battle_about_to_start.as_ref().and_then(|b| b.territory(r)) {
                 out.push(StoryBlock::BattleFor { territory: t.id() });
             }
         }
@@ -387,7 +387,7 @@ fn story(game: &Game, d: &dyn Describer) -> Vec<StoryBlock> {
         }
 
         if r.current_phase != previous_phase && r.current_phase == Phase::BattleReport {
-            if let (Some(a), Some(dp)) = (&r.aggressor_plan, &r.defender_plan) {
+            if let (Some(a), Some(dp)) = (&r.battle.aggressor_plan, &r.battle.defender_plan) {
                 let advanced = r.applicable(Rule::AdvancedCombat);
                 out.push(StoryBlock::Battle {
                     aggressor: plan(r, a, dp.initiator(), advanced),
@@ -412,11 +412,11 @@ fn story(game: &Game, d: &dyn Describer) -> Vec<StoryBlock> {
         }
 
         if main_phase_started(MainPhase::Ended) {
-            for &w in &r.winners {
+            for &w in &r.contemplate.winners {
                 out.push(StoryBlock::Winner {
                     faction: name(r.player(w).faction),
                     name: r.get_player_name_player(w),
-                    method: rd.describe(&ExpressionElement::from(r.win_method)),
+                    method: rd.describe(&ExpressionElement::from(r.contemplate.win_method)),
                 });
             }
             out.push(StoryBlock::Ended { time: utc(evt.time()) });
@@ -508,7 +508,7 @@ fn table(g: &Game, finished: &Game, mut columns: StoryTable) -> StoryTable {
 fn plan(g: &Game, b: &treachery_engine::events::Battle, opponent: Faction, advanced: bool) -> StoryPlan {
     StoryPlan {
         faction: name(b.initiator()),
-        winner: g.battle_winner == Some(b.initiator()),
+        winner: g.battle.battle_winner == Some(b.initiator()),
         hero: b.hero().map(hero_ref),
         messiah: b.messiah,
         weapon: b.weapon().map(|c| c.id()),

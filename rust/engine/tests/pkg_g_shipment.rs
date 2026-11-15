@@ -130,11 +130,11 @@ fn shipment_valid_no_field_values() {
     let mut g = game_with(&[Faction::Richese, Faction::Emperor]);
     let richese = idx(&g, Faction::Richese);
     let emperor = idx(&g, Faction::Emperor);
-    g.latest_revealed_no_field_value = 3;
-    g.current_no_field_value = 5;
+    g.ship_move.latest_revealed_no_field_value = 3;
+    g.ship_move.current_no_field_value = 5;
     assert_eq!(Shipment::valid_no_field_values(&g, richese), vec![0]);
     assert_eq!(Shipment::valid_no_field_values(&g, emperor), Vec::<i32>::new());
-    g.current_no_field_value = -1;
+    g.ship_move.current_no_field_value = -1;
     assert_eq!(Shipment::valid_no_field_values(&g, richese), vec![0, 5]);
     assert_eq!(Shipment::valid_cunning_no_field_values(&g, richese, 0), vec![5]);
 }

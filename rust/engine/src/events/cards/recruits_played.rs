@@ -31,7 +31,7 @@ impl RecruitsPlayed {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
-        game.current_recruits_played = Some(self.clone());
+        game.revival.current_recruits_played = Some(self.clone());
         game.discard(self.player(), TreacheryCardType::Recruits)?;
         Ok(())
     }

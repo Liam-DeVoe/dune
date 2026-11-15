@@ -30,7 +30,7 @@ impl ReplacedCardWon {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         if !self.passed {
-            let card_just_won = game.card_just_won;
+            let card_just_won = game.bidding.card_just_won;
             game.discard_card(card_just_won, true)?;
             let initiator = self.get_player(game, Some(self.initiator()));
             let new_card = game.draw_treachery_card();
@@ -38,19 +38,19 @@ impl ReplacedCardWon {
             game.player_mut(initiator).treachery_cards.push(new_card.required("new_card")?);
             game.stone(Milestone::CardWonSwapped);
 
-            if game.replacing_bought_card_using_nexus {
+            if game.bidding.replacing_bought_card_using_nexus {
                 game.play_nexus_card(self.player(), vec!["replace the card they just bought".into()]);
-                game.replacing_bought_card_using_nexus = false;
+                game.bidding.replacing_bought_card_using_nexus = false;
             } else {
                 self.log(game);
             }
 
             let initiator_faction = game.player(initiator).faction;
-            let card_just_won = game.card_just_won;
+            let card_just_won = game.bidding.card_just_won;
             self.log_to(game, initiator_faction, vec!["You replaced your ".into(), card_just_won.into(), " with a ".into(), new_card.into()]);
         }
 
-        if game.card_just_won == game.card_sold_on_black_market {
+        if game.bidding.card_just_won == game.bidding.card_sold_on_black_market {
             game.enter_richese_bidding();
         } else {
             game.determine_next_step_after_card_was_sold();

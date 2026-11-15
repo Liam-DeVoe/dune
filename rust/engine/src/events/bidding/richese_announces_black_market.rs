@@ -66,10 +66,10 @@ impl RicheseAnnouncesBlackMarket {
             let card = self.card();
             crate::game::remove_card(&mut game.player_mut(me).treachery_cards, card);
             let card = card.required("card")?;
-            game.cards_on_auction.as_mut().required("cards on auction")?.put_on_top(card);
+            game.bidding.cards_on_auction.as_mut().required("cards on auction")?.put_on_top(card);
             game.register_known_by_faction(self.initiator(), card);
-            game.bids.clear();
-            game.current_bid = None;
+            game.bidding.bids.clear();
+            game.bidding.current_bid = None;
             game.start_bid_sequence_and_auction_type(self.auction_type, self.player_opt(), self.direction);
         } else {
             game.enter_richese_bidding();

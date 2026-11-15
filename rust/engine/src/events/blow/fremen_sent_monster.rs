@@ -57,7 +57,7 @@ impl FremenSentMonster {
         let msg = msg.with_log(WormSentLog::new(self.initiator(), territory));
         self.log_objects(game, vec![ExpressionElement::from(msg)]);
         let monster = MonsterAppearance::new(territory, false);
-        game.monsters.push(monster.clone());
+        game.blow.monsters.push(monster.clone());
         game.perform_monster(&monster);
         let condition = game.current_phase == Phase::FremenSendingMonsterA;
         game.enter_either(condition, Phase::BlowA, Phase::BlowB);

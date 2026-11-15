@@ -28,11 +28,11 @@ impl PortableAntidoteUsed {
     pub fn can_be_played(g: &Game, p: PlayerIndex) -> bool {
         let card = g.player(p).card(TreacheryCardType::PortableAntidote);
         if let Some(card) = card {
-            let plan = g.current_battle.as_ref().and_then(|b| b.plan_of(g, Some(p)));
+            let plan = g.battle.current_battle.as_ref().and_then(|b| b.plan_of(g, Some(p)));
             if let Some(plan) = plan {
                 if plan.defense().is_none()
-                    && g.current_portable_antidote_used.is_none()
-                    && Battle::valid_defenses(g, p, plan.weapon(), g.current_battle.as_ref().and_then(|b| b.territory(g)), false)
+                    && g.battle.current_portable_antidote_used.is_none()
+                    && Battle::valid_defenses(g, p, plan.weapon(), g.battle.current_battle.as_ref().and_then(|b| b.territory(g)), false)
                         .contains(&Some(card))
                 {
                     return true;
@@ -45,7 +45,7 @@ impl PortableAntidoteUsed {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
-        game.current_portable_antidote_used = Some(self.clone());
+        game.battle.current_portable_antidote_used = Some(self.clone());
         Ok(())
     }
 

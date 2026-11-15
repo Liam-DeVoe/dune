@@ -28,7 +28,7 @@ impl RockWasMelted {
     }
 
     pub fn can_be_played(g: &Game, p: PlayerIndex) -> bool {
-        let plan = g.current_battle.as_ref().expect("current battle").plan_of(g, Some(p));
+        let plan = g.battle.current_battle.as_ref().expect("current battle").plan_of(g, Some(p));
         match plan {
             Some(plan) => match plan.weapon() {
                 Some(weapon) => weapon.is_rock_melter(),
@@ -40,7 +40,7 @@ impl RockWasMelted {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
-        game.current_rock_was_melted = Some(self.clone());
+        game.battle.current_rock_was_melted = Some(self.clone());
         game.enter(Phase::CallTraitorOrPass, true);
         Ok(())
     }

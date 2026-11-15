@@ -26,13 +26,13 @@ impl FlightDiscoveryUsed {
     }
 
     pub fn is_available(g: &Game, p: PlayerIndex) -> bool {
-        g.owner_of_flight_discovery == Some(g.player(p).faction)
+        g.collection.owner_of_flight_discovery == Some(g.player(p).faction)
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
-        game.owner_of_flight_discovery = Some(Faction::None);
-        game.current_flight_discovery_used = Some(self.clone());
+        game.collection.owner_of_flight_discovery = Some(Faction::None);
+        game.ship_move.current_flight_discovery_used = Some(self.clone());
         Ok(())
     }
 

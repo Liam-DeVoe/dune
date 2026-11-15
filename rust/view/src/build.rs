@@ -87,7 +87,7 @@ pub fn build_view_resolved(game: &mut Game, v: &ResolvedViewer, d: &dyn Describe
         ruleset: name(game.ruleset),
         rules: game.rules.iter().map(|r| name(*r)).collect(),
         rules_for_bots: game.rules_for_bots.iter().map(|r| name(*r)).collect(),
-        economics_status: name(game.economics_status),
+        economics_status: name(game.charity.economics_status),
         piles: board::piles(game, v),
         tanks: board::tanks(game, v),
         bidding: board::bidding(game, v),

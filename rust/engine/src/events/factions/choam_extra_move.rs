@@ -38,7 +38,7 @@ impl ChoamExtraMove {
             game.discard_card(card, true)?;
         }
 
-        game.choam_has_extra_move = true;
+        game.ship_move.choam_has_extra_move = true;
         game.stone(Milestone::SpecialUselessPlayed);
         Ok(())
     }

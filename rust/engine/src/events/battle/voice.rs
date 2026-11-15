@@ -89,8 +89,8 @@ impl Voice {
     /// its opponent in a battle it may not fight). A missing player panics where the answer
     /// depends on it, after the checks that don't.
     pub fn may_use_voice_opt(g: &Game, p: Option<PlayerIndex>) -> bool {
-        if g.current_voice.is_none() {
-            if let Some(battle) = g.current_battle.as_ref() {
+        if g.battle.current_voice.is_none() {
+            if let Some(battle) = g.battle.current_battle.as_ref() {
                 let p = p.expect("player");
                 if battle.is_involved(g, p) {
                     if g.player(p).nexus == Faction::BeneGesserit && NexusPlayed::can_use_secret_ally(g, p) {
@@ -167,13 +167,13 @@ impl Voice {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.current_voice = Some(self.clone());
+        game.battle.current_voice = Some(self.clone());
 
         if !self.is_playing(game, Faction::BeneGesserit) {
             game.play_nexus_card(self.player(), elems!["use Voice"]);
         }
 
-        if let Some(battle) = game.current_battle.clone() {
+        if let Some(battle) = game.battle.current_battle.clone() {
             let opponent = battle.opponent_of(game, self.player());
 
             if let Some(opponent) = opponent {

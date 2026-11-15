@@ -38,7 +38,7 @@ impl FlightUsed {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
         game.discard(self.player(), TreacheryCardType::Flight)?;
-        game.current_flight_used = Some(self.clone());
+        game.ship_move.current_flight_used = Some(self.clone());
         Ok(())
     }
 

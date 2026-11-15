@@ -564,7 +564,7 @@ fn build(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) -> A
         GameEvent::AmbassadorPlaced(_) => O::AmbassadorPlaced(AmbassadorPlacedOptions { draft: Value::Null,
             ambassadors: AmbassadorPlaced::valid_ambassadors(game, p).into_iter().map(name).collect(),
             targets: sectors_of(AmbassadorPlaced::valid_strongholds(game, p)),
-            cost: game.ambassadors_placed_this_turn + 1,
+            cost: game.revival.ambassadors_placed_this_turn + 1,
         }),
         GameEvent::BeneGesseritAccompanies(e) => O::BeneGesseritAccompanies(BeneGesseritAccompaniesOptions { draft: Value::Null,
             targets: ids(BeneGesseritAccompanies::valid_targets(game, p)),
@@ -599,10 +599,10 @@ fn build(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) -> A
         GameEvent::FlightUsed(_) => O::FlightUsed(NoOptions { draft: Value::Null }),
         GameEvent::TestingStationUsed(_) => O::TestingStationUsed(NoOptions { draft: Value::Null }),
         GameEvent::KarmaHmsMovement(_) => {
-            O::KarmaHmsMovement(HmsMovementOptions { draft: Value::Null, targets: ids(KarmaHmsMovement::valid_locations(game)), moves_left: game.karma_hms_moves_left })
+            O::KarmaHmsMovement(HmsMovementOptions { draft: Value::Null, targets: ids(KarmaHmsMovement::valid_locations(game)), moves_left: game.storm.karma_hms_moves_left })
         }
         GameEvent::PerformHmsMovement(_) => {
-            O::PerformHmsMovement(HmsMovementOptions { draft: Value::Null, targets: ids(PerformHmsMovement::valid_locations(game)), moves_left: game.hms_moves_left })
+            O::PerformHmsMovement(HmsMovementOptions { draft: Value::Null, targets: ids(PerformHmsMovement::valid_locations(game)), moves_left: game.storm.hms_moves_left })
         }
         GameEvent::KarmaShipmentPrevention(_) => O::KarmaShipmentPrevention(FactionTargetsOptions { draft: Value::Null,
             targets: KarmaShipmentPrevention::get_valid_targets(game, p).map(name).collect(),
@@ -615,7 +615,7 @@ fn build(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) -> A
         GameEvent::FremenSentMonster(_) => O::FremenSentMonster(LocationPickOptions { draft: Value::Null, targets: sectors_of(FremenSentMonster::valid_targets(game)) }),
         GameEvent::SetShipmentPermission(_) => O::SetShipmentPermission(SetShipmentPermissionOptions { draft: Value::Null,
             permissions: game
-                .shipment_permissions
+                .ship_move.shipment_permissions
                 .iter()
                 .map(|(f, perm)| ShipmentPermissionRow {
                     faction: name(*f),

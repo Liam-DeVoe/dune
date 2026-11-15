@@ -167,7 +167,7 @@ impl ClairVoyancePlayed {
             | ClairvoyanceQuestion::CardTypeAsWeaponInBattle
             | ClairvoyanceQuestion::LeaderInBattle
             | ClairvoyanceQuestion::DialOfMoreThanXInBattle => {
-                g.current_battle.as_ref().map(|b| b.is_aggressor_or_defender(g, p)) == Some(true)
+                g.battle.current_battle.as_ref().map(|b| b.is_aggressor_or_defender(g, p)) == Some(true)
             }
             _ => true,
         }
@@ -241,7 +241,7 @@ impl ClairVoyancePlayed {
         if self.target != Faction::None {
             game.latest_clairvoyance = Some(self.clone());
             game.latest_clairvoyance_qn_a = None;
-            game.latest_clairvoyance_battle = game.current_battle.clone();
+            game.latest_clairvoyance_battle = game.battle.current_battle.clone();
             game.phase_paused_by_clairvoyance = game.current_phase;
             game.enter(Phase::Clairvoyance, true);
         }

@@ -4,6 +4,31 @@ use crate::game::LossToTake;
 use crate::prelude::*;
 use crate::random::Rng;
 
+/// State of the storm phase: the dials, the Hidden Mobile Stronghold's moves and storm losses.
+pub struct StormState {
+    pub hms_moves_left: i32,
+    pub karma_hms_moves_left: i32,
+    pub has_battle_wheel: Vec<Faction>,
+    pub dials: Vec<i32>,
+    pub current_testing_station_used: bool,
+    pub phase_before_storm_loss: Phase,
+    pub storm_losses_to_take: Vec<LossToTake>,
+}
+
+impl StormState {
+    pub fn new() -> Self {
+        StormState {
+            hms_moves_left: Default::default(),
+            karma_hms_moves_left: 2,
+            has_battle_wheel: Vec::new(),
+            dials: Vec::new(),
+            current_testing_station_used: Default::default(),
+            phase_before_storm_loss: Default::default(),
+            storm_losses_to_take: Vec::new(),
+        }
+    }
+}
+
 /// `params object?[]` element list for `Log(...)`.
 macro_rules! elems {
     ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
@@ -13,15 +38,15 @@ impl Game {
     pub fn enter_storm_phase(&mut self) {
         self.current_turn += 1;
         self.main_phase_start(MainPhase::Storm, true);
-        self.factions_that_revived_special_forces_this_turn.clear();
-        self.storm_losses_to_take.clear();
-        self.current_testing_station_used = false;
+        self.revival.factions_that_revived_special_forces_this_turn.clear();
+        self.storm.storm_losses_to_take.clear();
+        self.storm.current_testing_station_used = false;
 
         if self.current_turn == 1 {
-            self.dials.clear();
+            self.storm.dials.clear();
             self.has_acted_or_passed.clear();
             self.enter(Phase::DiallingStorm, true);
-        } else if !self.just_revealed_discovery_strongholds.is_empty() {
+        } else if !self.collection.just_revealed_discovery_strongholds.is_empty() {
             self.enter(Phase::BeginningOfStorm, true);
         } else {
             self.move_hms_before_dialling_storm();
@@ -47,7 +72,7 @@ impl Game {
                 self.log(elems!["The storm prevents ", hms, " from moving"]);
                 self.determine_storm();
             } else {
-                self.hms_moves_left = 3;
+                self.storm.hms_moves_left = 3;
                 self.enter(Phase::HmsMovement, true);
             }
         } else {
@@ -63,7 +88,7 @@ impl Game {
         if self.use_storm_deck() {
             self.reveal_storm();
         } else {
-            self.dials.clear();
+            self.storm.dials.clear();
             self.has_acted_or_passed.clear();
             self.enter(Phase::DiallingStorm, true);
         }
@@ -131,7 +156,7 @@ impl Game {
                         loss.location = Some(key);
                         loss.amount = TakeLosses::half_of(battalion.amount_of_forces, battalion.amount_of_special_forces);
                         loss.faction = battalion.faction;
-                        self.storm_losses_to_take.push(loss);
+                        self.storm.storm_losses_to_take.push(loss);
                     } else {
                         kill_count += self.player(player).any_forces_in(Some(key));
                         killed_forces += self.player(player).forces_in(Some(key));
@@ -148,7 +173,7 @@ impl Game {
                     loss.location = Some(key);
                     loss.amount = battalion.total_amount_of_forces();
                     loss.faction = battalion.faction;
-                    self.storm_losses_to_take.push(loss);
+                    self.storm.storm_losses_to_take.push(loss);
                 } else {
                     self.reveal_current_no_field(player, Some(key));
                     kill_count += self.player(player).any_forces_in(Some(key));
@@ -196,14 +221,14 @@ impl Game {
     }
 
     pub fn end_storm_phase(&mut self) {
-        self.just_revealed_discovery_strongholds.clear();
+        self.collection.just_revealed_discovery_strongholds.clear();
 
         self.main_phase_end();
 
-        if !self.storm_losses_to_take.is_empty() {
+        if !self.storm.storm_losses_to_take.is_empty() {
             // BlowA marks losses taken in the storm phase: once they are taken, TakeLosses calls
             // this again, which ends the phase (again) and enters the storm report.
-            self.phase_before_storm_loss = Phase::BlowA;
+            self.storm.phase_before_storm_loss = Phase::BlowA;
             self.enter(Phase::StormLosses, true);
         } else {
             self.enter(Phase::StormReport, true);

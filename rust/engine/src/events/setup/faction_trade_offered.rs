@@ -48,7 +48,7 @@ impl FactionTradeOffered {
             let initiator = self.initiator();
             let target_faction = self.target;
             let r#match = game
-                .current_trade_offers
+                .setup.current_trade_offers
                 .iter()
                 .find(|m| m.initiator() == target_faction && m.target == initiator)
                 .cloned();
@@ -69,8 +69,8 @@ impl FactionTradeOffered {
             } else {
                 let message = self.get_message(game);
                 self.log_objects(game, vec![message.into()]);
-                if !game.current_trade_offers.iter().any(|o| o.initiator() == initiator && o.target == target_faction) {
-                    game.current_trade_offers.push(self.clone());
+                if !game.setup.current_trade_offers.iter().any(|o| o.initiator() == initiator && o.target == target_faction) {
+                    game.setup.current_trade_offers.push(self.clone());
                 }
             }
         }
@@ -81,15 +81,15 @@ impl FactionTradeOffered {
         let initiator = self.initiator();
         let target = self.target;
         let invalid_offers: Vec<Rc<FactionTradeOffered>> = game
-            .current_trade_offers
+            .setup.current_trade_offers
             .iter()
             .filter(|x| x.initiator() == initiator || x.initiator() == target)
             .cloned()
             .collect();
         for invalid_offer in invalid_offers {
             // List.Remove: the first element that is the same object.
-            if let Some(i) = game.current_trade_offers.iter().position(|o| Rc::ptr_eq(o, &invalid_offer)) {
-                game.current_trade_offers.remove(i);
+            if let Some(i) = game.setup.current_trade_offers.iter().position(|o| Rc::ptr_eq(o, &invalid_offer)) {
+                game.setup.current_trade_offers.remove(i);
             }
         }
     }

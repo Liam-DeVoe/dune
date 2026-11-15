@@ -118,7 +118,7 @@ pub fn private_player(game: &Game, p: PlayerIndex, actions: &[GameEventType]) ->
         next_storm_moves: (game.current_phase > Phase::DiallingStorm && game.has_storm_prescience(Some(p))).then_some(game.next_storm_moves),
         messiah: messiah_state(game, p),
         unplaced_terror: (pl.faction == Faction::Moritani).then(|| game.unplaced_terror_tokens.iter().map(|t| name(*t)).collect()),
-        card_just_won: game.card_just_won.filter(|c| game.known_cards(p).contains(c)).map(|c| c.id()),
+        card_just_won: game.bidding.card_just_won.filter(|c| game.known_cards(p).contains(c)).map(|c| c.id()),
     }
 }
 

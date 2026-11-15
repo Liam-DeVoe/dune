@@ -1,5 +1,24 @@
 use crate::prelude::*;
 
+/// State of the Mentat Pause (contemplate) phase: extortion, terror and the game's winners.
+pub struct ContemplateState {
+    pub extortion_to_be_returned: bool,
+    pub moritani_has_performed_terror: bool,
+    pub winners: Vec<PlayerIndex>,
+    pub win_method: WinMethod,
+}
+
+impl ContemplateState {
+    pub fn new() -> Self {
+        ContemplateState {
+            extortion_to_be_returned: Default::default(),
+            moritani_has_performed_terror: Default::default(),
+            winners: Vec::new(),
+            win_method: Default::default(),
+        }
+    }
+}
+
 impl Game {
     pub fn enter_contemplate_phase(&mut self) {
         for player in self.players.iter_mut() {
@@ -10,7 +29,7 @@ impl Game {
         self.allow_all_prevented_faction_advantages(&[]);
         self.handle_economics();
         self.add_bribes_to_player_resources();
-        self.moritani_has_performed_terror = false;
+        self.contemplate.moritani_has_performed_terror = false;
 
         for i in 0..self.players.len() {
             let p = self.player_at(i);
@@ -38,21 +57,21 @@ impl Game {
     }
 
     pub fn handle_economics(&mut self) {
-        match self.economics_status {
+        match self.charity.economics_status {
             ChoamEconomicsStatus::Double => {
-                self.economics_status = ChoamEconomicsStatus::CancelFlipped;
+                self.charity.economics_status = ChoamEconomicsStatus::CancelFlipped;
                 self.log(vec![Faction::Choam.into(), " The Economics Token flips to Cancel.".into()]);
                 self.stone(Milestone::Economics);
             }
 
             ChoamEconomicsStatus::Cancel => {
-                self.economics_status = ChoamEconomicsStatus::DoubleFlipped;
+                self.charity.economics_status = ChoamEconomicsStatus::DoubleFlipped;
                 self.log(vec![Faction::Choam.into(), " The Economics Token flips to Double.".into()]);
                 self.stone(Milestone::Economics);
             }
 
             ChoamEconomicsStatus::DoubleFlipped | ChoamEconomicsStatus::CancelFlipped => {
-                self.economics_status = ChoamEconomicsStatus::RemovedFromGame;
+                self.charity.economics_status = ChoamEconomicsStatus::RemovedFromGame;
                 self.log(vec![Faction::Choam.into(), " The Economics Token has been removed from the game.".into()]);
                 self.stone(Milestone::Economics);
             }
@@ -63,7 +82,7 @@ impl Game {
 
     pub fn enter_contemplate_pause(&mut self) {
         self.determine_if_moritani_draws_new_traitor();
-        self.extortion_to_be_returned = self.players.iter().any(|p| p.extortion > 0);
+        self.contemplate.extortion_to_be_returned = self.players.iter().any(|p| p.extortion > 0);
         self.gain_extortions();
 
         if self.harkonnen_traitor_was_cancelled {
@@ -76,7 +95,7 @@ impl Game {
             self.log(vec![Faction::Harkonnen.into(), " drew a new traitor after having been betrayed".into()]);
         }
 
-        let condition = self.extortion_to_be_returned;
+        let condition = self.contemplate.extortion_to_be_returned;
         self.enter_or_else(condition, Phase::Extortion, Game::end_contemplate_pause);
     }
 
@@ -106,7 +125,7 @@ impl Game {
     }
 
     pub fn end_contemplate_pause(&mut self) {
-        if self.extortion_to_be_returned {
+        if self.contemplate.extortion_to_be_returned {
             self.log(vec![Faction::Moritani.into(), " regain their ".into(), TerrorType::Extortion.into(), " token".into()]);
             self.unplaced_terror_tokens.push(TerrorType::Extortion);
         }
@@ -143,14 +162,14 @@ impl Game {
         self.check_bene_gesserit_prediction();
         self.check_final_turn_win();
 
-        if self.winners.len() > 0 || self.current_turn == self.maximum_turns() {
+        if self.contemplate.winners.len() > 0 || self.current_turn == self.maximum_turns() {
             self.current_main_phase = MainPhase::Ended;
             self.enter(Phase::GameEnded, true);
             self.stone(Milestone::GameWon);
-            let winner_factions: Vec<Faction> = self.winners.iter().map(|w| self.player(*w).faction).collect();
+            let winner_factions: Vec<Faction> = self.contemplate.winners.iter().map(|w| self.player(*w).faction).collect();
             self.log(vec![express!("The game has ended.").with_log(GameEnded::new(winner_factions)).into()]);
 
-            let winners = self.winners.clone();
+            let winners = self.contemplate.winners.clone();
             for w in winners {
                 let faction = self.player(w).faction;
                 self.log(vec![express!(faction, " win!").with_log(GameWinner::new(faction)).into()]);
@@ -237,11 +256,11 @@ impl Game {
             return;
         }
 
-        if self.winners.len() == 0 {
+        if self.contemplate.winners.len() == 0 {
             self.check_special_win_conditions();
         }
 
-        if self.winners.len() != 0 {
+        if self.contemplate.winners.len() != 0 {
             return;
         }
 
@@ -254,7 +273,7 @@ impl Game {
         if let Some(bene_gesserit) = bene_gesserit {
             let predicted_faction = self.player(bene_gesserit).predicted_faction;
             let predicted_turn = self.player(bene_gesserit).predicted_turn;
-            if predicted_turn == self.current_turn && self.winners.iter().any(|w| self.player(*w).faction == predicted_faction) {
+            if predicted_turn == self.current_turn && self.contemplate.winners.iter().any(|w| self.player(*w).faction == predicted_faction) {
                 self.log_win_reason(
                     WinMethod::Prediction,
                     vec![
@@ -266,9 +285,9 @@ impl Game {
                         "! They had everything planned...".into(),
                     ],
                 );
-                self.win_method = WinMethod::Prediction;
-                self.winners.clear();
-                self.winners.push(bene_gesserit);
+                self.contemplate.win_method = WinMethod::Prediction;
+                self.contemplate.winners.clear();
+                self.contemplate.winners.push(bene_gesserit);
             }
         }
     }
@@ -283,18 +302,18 @@ impl Game {
             let contested = self.applicable(Rule::ContestedStongholdsCountAsOccupied);
             let p = p.expect("player");
             if self.meets_normal_victory_condition(p, contested) {
-                self.win_method = WinMethod::Strongholds;
+                self.contemplate.win_method = WinMethod::Strongholds;
 
-                self.winners.push(p);
+                self.contemplate.winners.push(p);
 
                 let ally = self.get_player(Some(self.player(p).ally));
                 if let Some(ally) = ally {
-                    self.winners.push(ally);
+                    self.contemplate.winners.push(ally);
                 }
                 self.log_normal_win(p, ally);
             }
 
-            if self.winners.len() > 0 {
+            if self.contemplate.winners.len() > 0 {
                 break;
             }
 
@@ -307,7 +326,7 @@ impl Game {
         let faction = self.player(player).faction;
         let player_ally = self.player(player).ally;
         let others_meet_condition = self.player_indices().any(|p| {
-            !self.winners.contains(&p)
+            !self.contemplate.winners.contains(&p)
                 && self.meets_normal_victory_condition(p, self.applicable(Rule::ContestedStongholdsCountAsOccupied))
         });
         if others_meet_condition {
@@ -428,22 +447,22 @@ impl Game {
         if fremen.is_some() && self.fremen_victory_condition_met() {
             let fremen = fremen.expect("fremen");
             self.log_win_reason(WinMethod::FremenSpecial, vec![Faction::Fremen.into(), " special victory conditions are met!".into()]);
-            self.win_method = WinMethod::FremenSpecial;
-            self.winners.push(fremen);
+            self.contemplate.win_method = WinMethod::FremenSpecial;
+            self.contemplate.winners.push(fremen);
             if self.player(fremen).has_ally() {
                 // The ally faction may not be playing (C# then adds a null winner).
                 if let Some(ally) = self.player(fremen).allied_player(self) {
-                    self.winners.push(ally);
+                    self.contemplate.winners.push(ally);
                 }
             }
         } else if guild.is_some() && !self.applicable(Rule::DisableGuildSpecialVictory) {
             let guild = guild.expect("guild");
             self.log_win_reason(WinMethod::GuildSpecial, vec![Faction::Guild.into(), " special victory conditions are met!".into()]);
-            self.win_method = WinMethod::GuildSpecial;
-            self.winners.push(guild);
+            self.contemplate.win_method = WinMethod::GuildSpecial;
+            self.contemplate.winners.push(guild);
             if self.player(guild).has_ally() {
                 if let Some(ally) = self.player(guild).allied_player(self) {
-                    self.winners.push(ally);
+                    self.contemplate.winners.push(ally);
                 }
             }
         } else if fremen.is_some() && !self.applicable(Rule::DisableGuildSpecialVictory) {
@@ -457,11 +476,11 @@ impl Game {
                     " are not playing and no one else won".into(),
                 ],
             );
-            self.win_method = WinMethod::GuildSpecial;
-            self.winners.push(fremen);
+            self.contemplate.win_method = WinMethod::GuildSpecial;
+            self.contemplate.winners.push(fremen);
             if self.player(fremen).has_ally() {
                 if let Some(ally) = self.player(fremen).allied_player(self) {
-                    self.winners.push(ally);
+                    self.contemplate.winners.push(ally);
                 }
             }
         }
@@ -511,8 +530,8 @@ impl Game {
         }
 
         if let Some(with_most_points) = with_most_points {
-            self.winners.push(with_most_points);
-            self.win_method = WinMethod::Strongholds;
+            self.contemplate.winners.push(with_most_points);
+            self.contemplate.win_method = WinMethod::Strongholds;
             let faction = self.player(with_most_points).faction;
             self.log_win_reason(
                 WinMethod::Strongholds,
@@ -521,7 +540,7 @@ impl Game {
 
             if self.player(with_most_points).has_ally() {
                 if let Some(ally) = self.player(with_most_points).allied_player(self) {
-                    self.winners.push(ally);
+                    self.contemplate.winners.push(ally);
                 }
             }
         }
@@ -529,7 +548,7 @@ impl Game {
 
     pub fn has_stronghold_advantage(&self, f: Faction, advantage: StrongholdAdvantage, battle_territory: Territory) -> bool {
         let hms = self.map.hidden_mobile_stronghold().location();
-        if battle_territory == hms.territory() && self.owns_stronghold(f, hms) && self.chosen_hms_advantage == Some(advantage) {
+        if battle_territory == hms.territory() && self.owns_stronghold(f, hms) && self.battle.chosen_hms_advantage == Some(advantage) {
             return true;
         }
 
@@ -544,7 +563,7 @@ impl Game {
     }
 
     pub fn is_special_stronghold(&self, t: Territory) -> bool {
-        t == self.map.shield_wall() && self.applicable(Rule::Ssw) && self.number_of_monsters >= 4
+        t == self.map.shield_wall() && self.applicable(Rule::Ssw) && self.blow.number_of_monsters >= 4
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.

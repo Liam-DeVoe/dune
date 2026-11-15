@@ -31,7 +31,7 @@ impl KarmaPrescience {
         game.play_karma(me, card, vec!["see the entire enemy battle plan".into()]);
         game.player_mut(me).special_karma_power_used = true;
         game.stone(Milestone::Karma);
-        game.atreides_karma = true;
+        game.battle.atreides_karma = true;
         Ok(())
     }
 

@@ -119,7 +119,7 @@ fn client_auto_pass(replica: &mut ViewReplica, viewer: Option<Faction>, view: &t
     }
     let game = &replica.game;
     let Some(p) = game.get_player(Some(f)) else { return Ok(false) };
-    if game.current_battle.is_none() || TreacheryCalled::may_call_treachery(game, p) {
+    if game.battle.current_battle.is_none() || TreacheryCalled::may_call_treachery(game, p) {
         return Ok(false);
     }
     let mut pass = TreacheryCalled::new(game, f);

@@ -28,7 +28,7 @@ impl Prescience {
     }
 
     pub fn valid_aspects(g: &Game, p: PlayerIndex) -> Vec<PrescienceAspect> {
-        let battle = g.current_battle.as_ref().expect("current battle");
+        let battle = g.battle.current_battle.as_ref().expect("current battle");
         let opponent = battle.opponent_of(g, p).expect("opponent of");
         // HasNoFieldIn(Territory) with a null territory: SpecialForcesIn(null) is 0, so false.
         let has_no_field = match battle.territory(g) {
@@ -49,8 +49,8 @@ impl Prescience {
     /// [`may_use_prescience`](Self::may_use_prescience) for a player that may be missing. A
     /// missing player panics where the answer depends on it, after the checks that don't.
     pub fn may_use_prescience_opt(g: &Game, p: Option<PlayerIndex>) -> bool {
-        if let Some(battle) = g.current_battle.as_ref() {
-            if g.current_prescience.is_none() && !g.prevented(FactionAdvantage::AtreidesBattlePlanPrescience) {
+        if let Some(battle) = g.battle.current_battle.as_ref() {
+            if g.battle.current_prescience.is_none() && !g.prevented(FactionAdvantage::AtreidesBattlePlanPrescience) {
                 let p = p.expect("player");
                 if g.player(p).faction == Faction::Atreides {
                     return battle.is_involved(g, p);
@@ -65,7 +65,7 @@ impl Prescience {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.current_prescience = Some(self.clone());
+        game.battle.current_prescience = Some(self.clone());
         self.log(game);
         game.stone(Milestone::Prescience);
         Ok(())

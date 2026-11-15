@@ -95,10 +95,10 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, stats
         (ActionOptions::AuditCancelled(o), _) => {
             assert_eq!((o.cost, o.cards), (AuditCancelled::cost_of_cancelling(game), AuditCancelled::get_number_of_cards_that_may_be_audited(game)), "{at}");
         }
-        (ActionOptions::Audited(o), _) => assert_eq!(o.cards, ids(game.audited_cards.iter().copied()), "{at}"),
+        (ActionOptions::Audited(o), _) => assert_eq!(o.cards, ids(game.battle.audited_cards.iter().copied()), "{at}"),
         (ActionOptions::Battle(o), GameEvent::Battle(b)) => check_battle(game, p, o, b, d, stats, at),
         (ActionOptions::BattleConcluded(o), _) => {
-            let winner = game.battle_winner == Some(me.faction);
+            let winner = game.battle.battle_winner == Some(me.faction);
             assert_eq!(o.winner, winner, "{at}");
             if winner {
                 let supplier = Battle::determine_force_supplier(game, p);
@@ -108,9 +108,9 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, stats
                     assert_eq!(c.decisions.iter().map(|x| x.value).collect::<Vec<_>>(), values(BattleConcluded::valid_capture_decisions(game)), "{at}");
                     stats.add("BattleConcluded capture");
                 }
-                let loser = game.get_player(game.battle_loser).unwrap();
+                let loser = game.get_player(game.battle.battle_loser).unwrap();
                 assert_eq!(o.tech_tokens.iter().map(|x| x.value).collect::<Vec<_>>(), values(game.player(loser).tech_tokens.iter().copied()), "{at}");
-                assert_eq!(o.decipherer_traitors.iter().map(|h| h.id).collect::<Vec<_>>(), ids(game.traitors_decipherer_can_look_at.iter().copied()), "{at}");
+                assert_eq!(o.decipherer_traitors.iter().map(|h| h.id).collect::<Vec<_>>(), ids(game.battle.traitors_decipherer_can_look_at.iter().copied()), "{at}");
                 assert_eq!(o.add_extra_force_in.is_some(), BattleConcluded::may_add_extra_force(game, p), "{at}");
                 if !BattleConcluded::may_choose_to_discard_cards(game) {
                     assert!(o.discardable_weapon.is_none() && o.discardable_defense.is_none() && o.discardable_mercenary.is_none(), "{at}");
@@ -213,7 +213,7 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, stats
 /// The battle plan: heroes, cards per draft, the mixes, the token rows and the steppers' data.
 fn check_battle(game: &Game, p: PlayerIndex, o: &BattleOptions, draft: &Battle, d: &dyn Describer, stats: &mut Stats, at: &str) {
     let v = viewer(game, p);
-    let battle = game.current_battle.as_ref().unwrap();
+    let battle = game.battle.current_battle.as_ref().unwrap();
     let territory = battle.territory(game);
     let supplier = Battle::determine_force_supplier(game, p);
     let heroes = Battle::valid_battle_heroes(game, p);
@@ -443,9 +443,9 @@ fn hms_battle_state() -> ViewReplica {
     let mut battle = BattleInitiated::new(g, fa);
     battle.target = fb;
     battle.territory_id = hms.location().territory().id();
-    g.current_battle = Some(std::rc::Rc::new(battle));
+    g.battle.current_battle = Some(std::rc::Rc::new(battle));
     g.current_phase = Phase::BattlePhase;
-    g.chosen_hms_advantage = Some(StrongholdAdvantage::None);
+    g.battle.chosen_hms_advantage = Some(StrongholdAdvantage::None);
     r
 }
 
@@ -466,5 +466,5 @@ fn hms_advantage_form_in_a_built_state() {
     let e = std::rc::Rc::new(e).into_event();
     assert!(e.validate(&r.game).is_none(), "{:?}", e.validate(&r.game).map(|m| m.to_cs_string()));
     assert!(e.execute(&mut r.game, true, true).is_none());
-    assert_eq!(r.game.chosen_hms_advantage, Some(advantage));
+    assert_eq!(r.game.battle.chosen_hms_advantage, Some(advantage));
 }

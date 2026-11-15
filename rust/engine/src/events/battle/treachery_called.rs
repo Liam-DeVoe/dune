@@ -40,8 +40,8 @@ impl TreacheryCalled {
     }
 
     pub fn may_call_treachery(g: &Game, p: PlayerIndex) -> bool {
-        if let (Some(aggressor_plan), Some(defender_plan)) = (&g.aggressor_plan, &g.defender_plan) {
-            let territory = g.current_battle.as_ref().expect("current battle").territory(g).expect("territory");
+        if let (Some(aggressor_plan), Some(defender_plan)) = (&g.battle.aggressor_plan, &g.battle.defender_plan) {
+            let territory = g.battle.current_battle.as_ref().expect("current battle").territory(g).expect("territory");
             let pl = g.player(p);
             if !territory.is_homeworld() || pl.is_native(territory) {
                 if !defender_plan.messiah {
@@ -80,30 +80,30 @@ impl TreacheryCalled {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let aggressor_plan = game.aggressor_plan.clone().required("aggressor plan")?;
+        let aggressor_plan = game.battle.aggressor_plan.clone().required("aggressor plan")?;
         if aggressor_plan.by(self.initiator()) || (self.by(Faction::Harkonnen) && game.are_allies(aggressor_plan.initiator(), Faction::Harkonnen)) {
-            game.aggressor_traitor_action = Some(self.clone());
+            game.battle.aggressor_traitor_action = Some(self.clone());
             if self.traitor_called {
                 self.log(game);
                 game.stone(Milestone::TreacheryCalled);
-                let hero = game.defender_plan.as_ref().required("defender plan")?.hero();
+                let hero = game.battle.defender_plan.as_ref().required("defender plan")?.hero();
                 game.player_mut(self.player()).revealed_traitors.insert(hero.required("hero")?);
             }
         }
 
-        let defender_plan = game.defender_plan.clone().required("defender plan")?;
+        let defender_plan = game.battle.defender_plan.clone().required("defender plan")?;
         if defender_plan.by(self.initiator()) || (self.by(Faction::Harkonnen) && game.are_allies(defender_plan.initiator(), Faction::Harkonnen)) {
-            game.defender_traitor_action = Some(self.clone());
+            game.battle.defender_traitor_action = Some(self.clone());
             if self.traitor_called {
                 self.log(game);
                 game.stone(Milestone::TreacheryCalled);
-                let hero = game.aggressor_plan.as_ref().required("aggressor plan")?.hero();
+                let hero = game.battle.aggressor_plan.as_ref().required("aggressor plan")?.hero();
                 game.player_mut(self.player()).revealed_traitors.insert(hero.required("hero")?);
             }
         }
 
-        if game.aggressor_traitor_action.is_some() && game.defender_traitor_action.is_some() {
-            let treachery = game.current_battle.clone().required("current battle")?.treachery_of_faction(game, Faction::Harkonnen);
+        if game.battle.aggressor_traitor_action.is_some() && game.battle.defender_traitor_action.is_some() {
+            let treachery = game.battle.current_battle.clone().required("current battle")?.treachery_of_faction(game, Faction::Harkonnen);
 
             if game.applicable(Rule::NexusCards) && treachery.as_ref().is_some_and(|t| t.initiator() == Faction::Harkonnen && t.traitor_called) {
                 game.enter(Phase::CancellingTraitor, true);

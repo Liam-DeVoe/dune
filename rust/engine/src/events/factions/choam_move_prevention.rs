@@ -70,7 +70,7 @@ impl ChoamMovePrevention {
         }
 
         // `Territory!` does not throw: a null territory (only without validation) is stored.
-        game.current_blocked_territories.push(self.territory(game).required("territory")?);
+        game.ship_move.current_blocked_territories.push(self.territory(game).required("territory")?);
         game.stone(Milestone::SpecialUselessPlayed);
         Ok(())
     }

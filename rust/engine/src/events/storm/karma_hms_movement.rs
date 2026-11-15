@@ -76,12 +76,12 @@ impl KarmaHmsMovement {
             let target = self.target(game).required("target")?;
             hms.point_at(&mut game.map, target);
             game.collect_spice_from(self.initiator(), target, collection_rate);
-            game.karma_hms_moves_left -= 1;
+            game.storm.karma_hms_moves_left -= 1;
             game.stone(Milestone::HmsMovement);
         }
 
         if self.passed {
-            game.karma_hms_moves_left = 0;
+            game.storm.karma_hms_moves_left = 0;
         }
         Ok(())
     }

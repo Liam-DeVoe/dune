@@ -2,6 +2,67 @@ use crate::messages::message::LogRecord;
 use crate::prelude::*;
 use crate::game::TriggeredBureaucracy;
 
+/// State of the bidding phase: the auction, the bids, Black Market and Richese auctions, and Karama hand swaps.
+pub struct BiddingState {
+    pub bid_sequence: Option<PlayerSequence>,
+    pub cards_on_auction: Option<Deck<TreacheryCard>>,
+    pub current_auction_type: AuctionType,
+    pub card_number: i32,
+    pub current_bid: Option<GameEvent>,
+    pub bids: NetDictionary<Faction, GameEvent>,
+    pub card_just_won: Option<TreacheryCard>,
+    pub winning_bid: Option<GameEvent>,
+    pub bidding_round_was_started: bool,
+    pub regular_bidding_is_done: bool,
+    pub card_that_must_be_kept_or_given_to_ally: Option<TreacheryCard>,
+    pub number_of_cards_on_auction: i32,
+    pub bidding_triggered_bureaucracy: Option<TriggeredBureaucracy>,
+    pub ixian_swapped_card_on_bid: bool,
+    pub faction_that_may_replace_bought_card: Faction,
+    pub replacing_bought_card_using_nexus: bool,
+    pub karma_hand_swap_number_of_cards: i32,
+    pub karma_hand_swap_target: Faction,
+    pub karma_hand_swap_paused_phase: Phase,
+    pub black_market_auction_type: AuctionType,
+    pub card_sold_on_black_market: Option<TreacheryCard>,
+    pub richese_auction_should_still_happen: bool,
+    pub richese_bidding_just_finished: bool,
+    pub richese_occupier_specified_card: bool,
+    pub latest_bid_by_atreides_or_atreides_ally_was_passed: bool,
+}
+
+impl BiddingState {
+    pub fn new() -> Self {
+        BiddingState {
+            bid_sequence: None,
+            cards_on_auction: None,
+            current_auction_type: Default::default(),
+            card_number: Default::default(),
+            current_bid: None,
+            bids: Default::default(),
+            card_just_won: None,
+            winning_bid: None,
+            bidding_round_was_started: Default::default(),
+            regular_bidding_is_done: Default::default(),
+            card_that_must_be_kept_or_given_to_ally: None,
+            number_of_cards_on_auction: Default::default(),
+            bidding_triggered_bureaucracy: None,
+            ixian_swapped_card_on_bid: Default::default(),
+            faction_that_may_replace_bought_card: Default::default(),
+            replacing_bought_card_using_nexus: Default::default(),
+            karma_hand_swap_number_of_cards: Default::default(),
+            karma_hand_swap_target: Default::default(),
+            karma_hand_swap_paused_phase: Default::default(),
+            black_market_auction_type: Default::default(),
+            card_sold_on_black_market: None,
+            richese_auction_should_still_happen: Default::default(),
+            richese_bidding_just_finished: Default::default(),
+            richese_occupier_specified_card: Default::default(),
+            latest_bid_by_atreides_or_atreides_ally_was_passed: Default::default(),
+        }
+    }
+}
+
 /// Removes the first occurrence of `card` from `list`, if any.
 pub(crate) fn remove_card(list: &mut Vec<TreacheryCard>, card: Option<TreacheryCard>) -> bool {
     card.is_some_and(|card| crate::iter::remove_first(list, &card))
@@ -11,9 +72,9 @@ impl Game {
     /// Runs `f` on the bid sequence, which is mutated in place while the game is also in use.
     /// Panics when there is no bid sequence (outside the bidding phase).
     pub(crate) fn with_bid_sequence<R>(&mut self, f: impl FnOnce(&mut PlayerSequence, &Game) -> R) -> R {
-        let mut seq = self.bid_sequence.take().expect("a bid sequence during bidding");
+        let mut seq = self.bidding.bid_sequence.take().expect("a bid sequence during bidding");
         let result = f(&mut seq, &*self);
-        self.bid_sequence = Some(seq);
+        self.bidding.bid_sequence = Some(seq);
         result
     }
 
@@ -25,17 +86,17 @@ impl Game {
             Some(r) => r.clone(),
             None => panic!("Random generator is not initialized"),
         };
-        self.cards_on_auction = Some(Deck::empty(Some(random)));
-        self.ixian_swapped_card_on_bid = false;
-        self.card_sold_on_black_market = None;
-        self.black_market_auction_type = AuctionType::None;
-        self.regular_bidding_is_done = false;
-        self.bidding_round_was_started = false;
-        self.richese_auction_should_still_happen = false;
-        self.current_auction_type = AuctionType::None;
-        self.bidding_triggered_bureaucracy = None;
-        self.bid_sequence = Some(PlayerSequence::starting_with_first_player(self));
-        self.winning_bid = None;
+        self.bidding.cards_on_auction = Some(Deck::empty(Some(random)));
+        self.bidding.ixian_swapped_card_on_bid = false;
+        self.bidding.card_sold_on_black_market = None;
+        self.bidding.black_market_auction_type = AuctionType::None;
+        self.bidding.regular_bidding_is_done = false;
+        self.bidding.bidding_round_was_started = false;
+        self.bidding.richese_auction_should_still_happen = false;
+        self.bidding.current_auction_type = AuctionType::None;
+        self.bidding.bidding_triggered_bureaucracy = None;
+        self.bidding.bid_sequence = Some(PlayerSequence::starting_with_first_player(self));
+        self.bidding.winning_bid = None;
 
         self.enter(Phase::BeginningOfBidding, true);
     }
@@ -50,15 +111,15 @@ impl Game {
     }
 
     pub fn enter_richese_bidding(&mut self) {
-        self.number_of_cards_on_auction = self.players_that_can_bid().len() as i32;
+        self.bidding.number_of_cards_on_auction = self.players_that_can_bid().len() as i32;
 
-        if self.card_sold_on_black_market.is_some() {
-            self.number_of_cards_on_auction -= 1;
+        if self.bidding.card_sold_on_black_market.is_some() {
+            self.bidding.number_of_cards_on_auction -= 1;
         }
 
         //CardSoldOnBlackMarket = null;
 
-        if self.number_of_cards_on_auction == 0 {
+        if self.bidding.number_of_cards_on_auction == 0 {
             self.log(vec![express!("Bidding is skipped because no faction is able to buy cards").with_log(BiddingSkipped::default()).into()]);
             self.end_bidding_phase();
         } else {
@@ -68,8 +129,8 @@ impl Game {
     }
 
     pub fn start_regular_bidding(&mut self) {
-        self.regular_bidding_is_done = true;
-        let mut number_of_cards_to_draw = self.number_of_cards_on_auction;
+        self.bidding.regular_bidding_is_done = true;
+        let mut number_of_cards_to_draw = self.bidding.number_of_cards_on_auction;
 
         if number_of_cards_to_draw > 0 && self.is_playing(Faction::Ixian) && !self.prevented(FactionAdvantage::IxianSelectingCardsOnAuction) {
             number_of_cards_to_draw += 1;
@@ -81,7 +142,7 @@ impl Game {
         while i < number_of_cards_to_draw {
             let card = self.draw_treachery_card();
             if let Some(card) = card {
-                if let Some(cards_on_auction) = self.cards_on_auction.as_mut() {
+                if let Some(cards_on_auction) = self.bidding.cards_on_auction.as_mut() {
                     cards_on_auction.put_on_bottom(card);
                 }
             }
@@ -95,12 +156,12 @@ impl Game {
     }
 
     pub fn start_bidding_round(&mut self) {
-        self.bidding_round_was_started = true;
+        self.bidding.bidding_round_was_started = true;
         self.with_bid_sequence(|seq, g| g.skip_players_that_cant_bid(seq));
         self.enter(Phase::Bidding, true);
-        self.current_bid = None;
-        self.bids.clear();
-        self.card_number = 1;
+        self.bidding.current_bid = None;
+        self.bidding.bids.clear();
+        self.bidding.card_number = 1;
     }
 
     pub fn execute_bid(&mut self, bid: &Rc<Bid>) -> GameResult {
@@ -111,7 +172,7 @@ impl Game {
                 let karma_card = bid.karma_card();
                 remove_card(&mut self.player_mut(p).treachery_cards, karma_card);
             }
-            self.current_bid = Some(bid.clone().into_event());
+            self.bidding.current_bid = Some(bid.clone().into_event());
             self.stone(Milestone::Bid);
         }
 
@@ -120,12 +181,12 @@ impl Game {
             g.skip_players_that_cant_bid(seq);
         });
         let initiator = GameEventMethods::initiator(&**bid);
-        self.bids.remove(&initiator);
-        self.bids.insert_new(initiator, bid.clone().into_event());
+        self.bidding.bids.remove(&initiator);
+        self.bidding.bids.insert_new(initiator, bid.clone().into_event());
         let as_event = bid.clone().into_event();
         self.check_if_atreides_or_atreides_ally_passed_bid(&as_event);
 
-        match self.current_auction_type {
+        match self.bidding.current_auction_type {
             AuctionType::Normal => {
                 bid.handle_normal_bid(self)?;
             }
@@ -145,12 +206,12 @@ impl Game {
 
         let initiator = bid.bid_initiator();
         if initiator == self.player(atreides).faction || initiator == self.player(atreides).ally {
-            self.latest_bid_by_atreides_or_atreides_ally_was_passed = bid.bid_passed();
+            self.bidding.latest_bid_by_atreides_or_atreides_ally_was_passed = bid.bid_passed();
         }
     }
 
     pub fn return_karma_card_used_for_bid(&mut self) {
-        if let Some(current_bid) = self.current_bid.clone() {
+        if let Some(current_bid) = self.bidding.current_bid.clone() {
             if current_bid.bid_using_karma_to_remove_bid_limit() {
                 let p = current_bid.bid_player().expect("i bid player");
                 // UsingKarmaToRemoveBidLimit implies KarmaCard != null.
@@ -162,7 +223,7 @@ impl Game {
 
     pub fn log_bid(&mut self, initiator: PlayerIndex, bid_amount: i32, bid_ally_contribution_amount: i32, bid_emperor_contribution_amount: i32, receiver_income: &MessagePart, paid_to: Faction, free: bool) {
         let bid_total_amount = bid_amount + bid_ally_contribution_amount + bid_emperor_contribution_amount;
-        let card_number = express_part_if!(self.current_auction_type == AuctionType::Normal; self.card_number);
+        let card_number = express_part_if!(self.bidding.current_auction_type == AuctionType::Normal; self.bidding.card_number);
 
         let initiator_ally = self.player(initiator).ally;
         let initiator_faction = self.player(initiator).faction;
@@ -178,7 +239,7 @@ impl Game {
         let record: Option<Rc<dyn LogRecord>> = if free {
             None
         } else {
-            Some(Rc::new(CardSold::new(self.card_number, initiator_faction, bid_total_amount, paid_to, shares, None)))
+            Some(Rc::new(CardSold::new(self.bidding.card_number, initiator_faction, bid_total_amount, paid_to, shares, None)))
         };
 
         let expression = vec![
@@ -202,7 +263,7 @@ impl Game {
 
     pub fn log_bidding(&mut self, record: Option<Rc<dyn LogRecord>>, expression: Vec<ExpressionElement>) {
         let mut message = Message::express(expression);
-        if record.is_some() && self.current_auction_type == AuctionType::Normal {
+        if record.is_some() && self.bidding.current_auction_type == AuctionType::Normal {
             message.log = record;
         }
         self.current_report_mut().express_message(message);
@@ -210,7 +271,7 @@ impl Game {
 
     pub fn log_bidding_to(&mut self, faction: Faction, record: Rc<dyn LogRecord>, expression: Vec<ExpressionElement>) {
         let mut message = Message::express_to(faction, expression);
-        if self.current_auction_type == AuctionType::Normal {
+        if self.bidding.current_auction_type == AuctionType::Normal {
             message.log = Some(record);
         }
         self.current_report_mut().express_message(message);
@@ -229,7 +290,7 @@ impl Game {
         }
 
         self.stone(Milestone::AuctionWon);
-        let card = self.cards_on_auction.as_mut().required("cards on auction")?.try_draw()?;
+        let card = self.bidding.cards_on_auction.as_mut().required("cards on auction")?.try_draw()?;
         self.register_won_card_as_known(card);
         self.player_mut(winner).treachery_cards.push(card);
         let winner_faction = self.player(winner).faction;
@@ -308,7 +369,7 @@ impl Game {
 
             if total_amount_received_by_emperor_instead_of_richese >= 5 {
                 //This should also take into account payments received by an occupier
-                self.bidding_triggered_bureaucracy = Some(TriggeredBureaucracy { payment_from: Faction::Richese, payment_to: Faction::Emperor });
+                self.bidding.bidding_triggered_bureaucracy = Some(TriggeredBureaucracy { payment_from: Faction::Richese, payment_to: Faction::Emperor });
             }
 
             // C# parity: records a recent payment of receiverProfit while it is still 0.
@@ -346,7 +407,7 @@ impl Game {
                 if receiver_profit >= 5 {
                     //This should also take into account payments received by an occupier
                     let initiator_faction = self.player(initiator).faction;
-                    self.bidding_triggered_bureaucracy = Some(TriggeredBureaucracy { payment_from: initiator_faction, payment_to: payment_receiver });
+                    self.bidding.bidding_triggered_bureaucracy = Some(TriggeredBureaucracy { payment_from: initiator_faction, payment_to: payment_receiver });
                 }
 
                 let initiator_faction = self.player(initiator).faction;
@@ -399,7 +460,7 @@ impl Game {
                     self.log_bidding_to(receiver_faction, Rc::new(ExtraCardShown::new(extra_card)), vec!["Your extra card is: ".into(), extra_card.into()]);
 
                     if extra_card_must_be_decided_about {
-                        self.card_that_must_be_kept_or_given_to_ally = Some(extra_card);
+                        self.bidding.card_that_must_be_kept_or_given_to_ally = Some(extra_card);
                     }
                 }
             }
@@ -451,14 +512,14 @@ impl Game {
     }
 
     pub fn finish_bid(&mut self, winner: Option<PlayerIndex>, winning_bid: Option<&GameEvent>, card: TreacheryCard, might_replace: bool) {
-        self.card_just_won = Some(card);
-        self.winning_bid = winning_bid.cloned();
-        self.card_sold_on_black_market = None;
-        self.current_bid = None;
-        self.faction_that_may_replace_bought_card = Faction::None;
-        self.latest_bid_by_atreides_or_atreides_ally_was_passed = false;
+        self.bidding.card_just_won = Some(card);
+        self.bidding.winning_bid = winning_bid.cloned();
+        self.bidding.card_sold_on_black_market = None;
+        self.bidding.current_bid = None;
+        self.bidding.faction_that_may_replace_bought_card = Faction::None;
+        self.bidding.latest_bid_by_atreides_or_atreides_ally_was_passed = false;
 
-        self.bids.clear();
+        self.bidding.bids.clear();
 
         if !self.applicable(Rule::FullPhaseKarma) {
             self.allow(FactionAdvantage::AtreidesBiddingPrescience);
@@ -470,10 +531,10 @@ impl Game {
             let winner = winner.expect("winner");
             if self.player(winner).ally == Faction::Ixian
                 && self.ixian_allows_replacing_cards
-                && !matches!(self.current_auction_type, AuctionType::RicheseSilent | AuctionType::RicheseOnceAround)
+                && !matches!(self.bidding.current_auction_type, AuctionType::RicheseSilent | AuctionType::RicheseOnceAround)
             {
                 if !self.prevented(FactionAdvantage::IxianAllyDiscardingCard) {
-                    self.faction_that_may_replace_bought_card = self.player(winner).faction;
+                    self.bidding.faction_that_may_replace_bought_card = self.player(winner).faction;
                     enter_replacing_card_just_won = true;
                 } else {
                     if !self.applicable(Rule::FullPhaseKarma) {
@@ -481,35 +542,35 @@ impl Game {
                     }
 
                     if self.nexus_allows_replacing_bought_cards(winner) {
-                        self.faction_that_may_replace_bought_card = self.player(winner).faction;
+                        self.bidding.faction_that_may_replace_bought_card = self.player(winner).faction;
                         enter_replacing_card_just_won = true;
-                        self.replacing_bought_card_using_nexus = true;
+                        self.bidding.replacing_bought_card_using_nexus = true;
                     }
                 }
             } else if self.nexus_allows_replacing_bought_cards(winner) {
-                self.faction_that_may_replace_bought_card = self.player(winner).faction;
+                self.bidding.faction_that_may_replace_bought_card = self.player(winner).faction;
                 enter_replacing_card_just_won = true;
-                self.replacing_bought_card_using_nexus = true;
+                self.bidding.replacing_bought_card_using_nexus = true;
             }
         }
 
         self.enter_or_else(enter_replacing_card_just_won, Phase::ReplacingCardJustWon, Game::determine_next_step_after_card_was_sold);
 
-        if let Some(b) = self.bidding_triggered_bureaucracy.clone() {
+        if let Some(b) = self.bidding.bidding_triggered_bureaucracy.clone() {
             self.apply_bureaucracy(b.payment_from, b.payment_to);
-            self.bidding_triggered_bureaucracy = None;
+            self.bidding.bidding_triggered_bureaucracy = None;
         }
     }
 
     pub fn determine_next_step_after_card_was_sold(&mut self) {
-        self.richese_bidding_just_finished =
-            self.current_auction_type == AuctionType::RicheseOnceAround || self.current_auction_type == AuctionType::RicheseSilent;
+        self.bidding.richese_bidding_just_finished =
+            self.bidding.current_auction_type == AuctionType::RicheseOnceAround || self.bidding.current_auction_type == AuctionType::RicheseSilent;
 
         // `CardsOnAuction?.IsEmpty is not true`: also taken when CardsOnAuction is null.
-        if self.cards_on_auction.as_ref().map(|d| d.is_empty()) != Some(true) {
+        if self.bidding.cards_on_auction.as_ref().map(|d| d.is_empty()) != Some(true) {
             self.move_to_next_card_on_auction();
-        } else if self.regular_bidding_is_done {
-            if self.richese_auction_should_still_happen {
+        } else if self.bidding.regular_bidding_is_done {
+            if self.bidding.richese_auction_should_still_happen {
                 self.enter(Phase::RicheseSpecifyingAuction, true);
             } else {
                 self.end_bidding_phase();
@@ -520,8 +581,8 @@ impl Game {
     }
 
     pub fn move_to_next_card_on_auction(&mut self) {
-        self.card_number += 1;
-        self.card_that_must_be_kept_or_given_to_ally = None;
+        self.bidding.card_number += 1;
+        self.bidding.card_that_must_be_kept_or_given_to_ally = None;
 
         if self.ixian_may_swap_card_on_bid() {
             if !self.prevented(FactionAdvantage::IxianSwappingCard) {
@@ -539,17 +600,17 @@ impl Game {
     }
 
     pub fn put_next_card_on_auction(&mut self) {
-        if !self.richese_bidding_just_finished {
+        if !self.bidding.richese_bidding_just_finished {
             self.with_bid_sequence(|seq, g| seq.next_round(g));
         }
 
         self.with_bid_sequence(|seq, g| g.skip_players_that_cant_bid(seq));
-        self.winning_bid = None;
+        self.bidding.winning_bid = None;
         self.enter(Phase::Bidding, true);
     }
 
     pub fn continue_after_ixian_card_swap_decision(&mut self) {
-        if !self.bidding_round_was_started {
+        if !self.bidding.bidding_round_was_started {
             self.start_bidding_round();
         } else {
             let condition = self.is_playing(Faction::Atreides);
@@ -560,35 +621,35 @@ impl Game {
     pub fn start_bid_sequence_and_auction_type(&mut self, auction_type: AuctionType, richese_player: Option<PlayerIndex>, direction: i32) {
         match auction_type {
             AuctionType::BlackMarketNormal => {
-                self.black_market_auction_type = AuctionType::BlackMarketNormal;
-                self.bid_sequence = Some(PlayerSequence::starting_with_first_player_options(self, true, 1));
+                self.bidding.black_market_auction_type = AuctionType::BlackMarketNormal;
+                self.bidding.bid_sequence = Some(PlayerSequence::starting_with_first_player_options(self, true, 1));
             }
             AuctionType::BlackMarketOnceAround => {
-                self.black_market_auction_type = AuctionType::BlackMarketOnceAround;
-                self.bid_sequence = Some(PlayerSequence::new(self, true, direction, richese_player, true));
+                self.bidding.black_market_auction_type = AuctionType::BlackMarketOnceAround;
+                self.bidding.bid_sequence = Some(PlayerSequence::new(self, true, direction, richese_player, true));
             }
             AuctionType::BlackMarketSilent => {
-                self.bid_sequence = Some(PlayerSequence::starting_with_first_player_options(self, true, 1));
-                self.black_market_auction_type = AuctionType::BlackMarketSilent;
+                self.bidding.bid_sequence = Some(PlayerSequence::starting_with_first_player_options(self, true, 1));
+                self.bidding.black_market_auction_type = AuctionType::BlackMarketSilent;
             }
             AuctionType::RicheseOnceAround => {
-                self.bid_sequence = Some(PlayerSequence::new(self, true, direction, richese_player, true));
+                self.bidding.bid_sequence = Some(PlayerSequence::new(self, true, direction, richese_player, true));
             }
             AuctionType::RicheseSilent => {
-                self.bid_sequence = Some(PlayerSequence::starting_with_first_player_options(self, true, 1));
+                self.bidding.bid_sequence = Some(PlayerSequence::starting_with_first_player_options(self, true, 1));
             }
             AuctionType::Normal => {
-                self.bid_sequence = Some(PlayerSequence::starting_with_first_player_options(self, true, 1));
-                if self.black_market_auction_type == AuctionType::BlackMarketNormal {
+                self.bidding.bid_sequence = Some(PlayerSequence::starting_with_first_player_options(self, true, 1));
+                if self.bidding.black_market_auction_type == AuctionType::BlackMarketNormal {
                     //Continue where black market bidding left off
                     self.with_bid_sequence(|seq, g| seq.next_round(g));
-                    self.winning_bid = None;
+                    self.bidding.winning_bid = None;
                 }
             }
             _ => {}
         }
 
-        self.current_auction_type = auction_type;
+        self.bidding.current_auction_type = auction_type;
     }
 
     pub fn determine_highest_bid(&self, bids: &NetDictionary<Faction, GameEvent>) -> Option<GameEvent> {
@@ -612,7 +673,7 @@ impl Game {
     }
 
     pub fn end_bidding_phase(&mut self) {
-        self.card_that_must_be_kept_or_given_to_ally = None;
+        self.bidding.card_that_must_be_kept_or_given_to_ally = None;
         self.current_ixian_cunning = None;
         if let Some(emperor) = self.get_player(Some(Faction::Emperor)) {
             let r = self.player_mut(emperor);
@@ -625,7 +686,7 @@ impl Game {
     }
 
     pub fn number_of_cards_on_regular_auction(&self) -> i32 {
-        (self.card_number + (self.cards_on_auction.as_ref().expect("cards on auction").items.len() as i32)) - 1
+        (self.bidding.card_number + (self.bidding.cards_on_auction.as_ref().expect("cards on auction").items.len() as i32)) - 1
     }
 
     pub fn players_that_can_bid(&self) -> Vec<PlayerIndex> {
@@ -638,7 +699,7 @@ impl Game {
     }
 
     pub fn has_bid_to_pay(&self, p: PlayerIndex) -> bool {
-        match &self.current_bid {
+        match &self.bidding.current_bid {
             Some(current_bid) if self.current_phase == Phase::Bidding => {
                 current_bid.bid_initiator() == self.player(p).faction
                     || (current_bid.bid_initiator() == self.player(p).ally && current_bid.bid_ally_contribution_amount() > 0)
@@ -651,7 +712,7 @@ impl Game {
         // `GetPlayer(Faction.Ixian)?.TreacheryCards.Count > 0`: null > 0 is false.
         self.get_player(Some(Faction::Ixian)).map_or(false, |g| self.player(g).treachery_cards.len() > 0)
             && self.applicable(Rule::IxianSwappingCardOnBid)
-            && !self.ixian_swapped_card_on_bid
+            && !self.bidding.ixian_swapped_card_on_bid
     }
 
     pub fn cards_owned_by(&self, p: PlayerIndex) -> Vec<TreacheryCard> {
@@ -667,7 +728,7 @@ impl Game {
     }
 
     pub fn get_card_set_aside_for_bid(&self, p: PlayerIndex) -> Option<TreacheryCard> {
-        match &self.current_bid {
+        match &self.bidding.current_bid {
             Some(current_bid) if current_bid.bid_player() == Some(p) && current_bid.bid_using_karma_to_remove_bid_limit() => current_bid.bid_karma_card(),
             _ => None,
         }

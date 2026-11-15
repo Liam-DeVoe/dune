@@ -132,9 +132,9 @@ fn check_visibility(game: &Game, v: &ResolvedViewer, view: &GameView, seen: &mut
         // The lot's card: only under bidding prescience or in Richese's auctions, where it is
         // public. Observers have no prescience.
         if let Some(card) = b.panel.as_ref().and_then(|p| p.card) {
-            let richese = matches!(game.current_auction_type, AuctionType::RicheseOnceAround | AuctionType::RicheseSilent);
+            let richese = matches!(game.bidding.current_auction_type, AuctionType::RicheseOnceAround | AuctionType::RicheseSilent);
             assert!(richese || me.is_some_and(|p| game.has_bidding_prescience(p)), "{at}: card on auction shown");
-            assert_eq!(Some(card), game.cards_on_auction.as_ref().and_then(|d| d.top()).map(|c| c.id()), "{at}");
+            assert_eq!(Some(card), game.bidding.cards_on_auction.as_ref().and_then(|d| d.top()).map(|c| c.id()), "{at}");
             seen.add("card on auction");
         }
         if my_faction.is_none() && b.panel.is_some() {
@@ -145,18 +145,18 @@ fn check_visibility(game: &Game, v: &ResolvedViewer, view: &GameView, seen: &mut
     // Battle plans: full for the plan's owner, once both are in, and under Atreides Karama;
     // partial only for the prescience user's side.
     if let Some(battle) = &view.battle {
-        let both = game.aggressor_plan.is_some() && game.defender_plan.is_some();
-        for (plan, faction_plan) in [(&battle.aggressor_plan, &game.aggressor_plan), (&battle.defender_plan, &game.defender_plan)] {
+        let both = game.battle.aggressor_plan.is_some() && game.battle.defender_plan.is_some();
+        for (plan, faction_plan) in [(&battle.aggressor_plan, &game.battle.aggressor_plan), (&battle.defender_plan, &game.battle.defender_plan)] {
             let Some(plan) = plan else { continue };
             let actual = faction_plan.as_ref().expect("a shown plan exists");
             assert_eq!(plan.faction, actual.initiator().to_string(), "{at}");
             if plan.full {
                 let own = my_faction == Some(actual.initiator());
-                assert!(own || both || game.atreides_karma, "{at}: full plan shown");
+                assert!(own || both || game.battle.atreides_karma, "{at}: full plan shown");
                 seen.add(if own && !both { "own plan" } else { "full plan" });
             } else {
                 let users: Vec<Faction> =
-                    game.current_prescience.iter().map(|p| p.initiator()).chain(game.current_nexus_prescience.iter().map(|n| n.initiator())).collect();
+                    game.battle.current_prescience.iter().map(|p| p.initiator()).chain(game.current_nexus_prescience.iter().map(|n| n.initiator())).collect();
                 let ally = me.map(|p| game.player(p).ally);
                 assert!(users.iter().any(|u| my_faction == Some(*u) || ally == Some(*u)), "{at}: partial plan for a bystander");
                 seen.add("partial plan");

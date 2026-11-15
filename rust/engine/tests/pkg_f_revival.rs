@@ -38,7 +38,7 @@ fn raise_dead_max_amounts() {
     g.player_mut(emperor).forces_killed = 9;
     assert_eq!(RaiseDeadPlayed::valid_max_amount(&g, emperor, true), 1);
     assert_eq!(RaiseDeadPlayed::valid_max_amount(&g, emperor, false), 5);
-    g.factions_that_revived_special_forces_this_turn.push(Faction::Emperor);
+    g.revival.factions_that_revived_special_forces_this_turn.push(Faction::Emperor);
     assert_eq!(RaiseDeadPlayed::valid_max_amount(&g, emperor, true), 0);
 
     let atreides = idx(&g, Faction::Atreides);
@@ -106,7 +106,7 @@ fn deny_all_requests_adds_max_offers() {
     let emperor_leaders: Vec<Leader> = LeaderManager::get_leaders(Faction::Emperor).collect();
     let mut req = RequestTleilaxuRevival::default();
     req.set_hero(Some(Hero::Leader(emperor_leaders[0])));
-    g.current_revival_requests.push(Rc::new(req));
+    g.revival.current_revival_requests.push(Rc::new(req));
 
     // _heroId defaults to 0, and HeroLookup.Find(0) is treachery card 0, not null
     // (LeaderManager.cs:137). Deny-all is Hero == null, i.e. _heroId -1.
@@ -115,8 +115,8 @@ fn deny_all_requests_adds_max_offers() {
     let deny = Rc::new(as_player(deny, &g, Faction::Tleilaxu));
     assert!(!deny.is_denial());
     deny.execute_concrete_event(&mut g).unwrap();
-    assert_eq!(g.early_revivals_offers[&Hero::Leader(emperor_leaders[0])], i32::MAX);
-    assert!(g.current_revival_requests.is_empty());
+    assert_eq!(g.revival.early_revivals_offers[&Hero::Leader(emperor_leaders[0])], i32::MAX);
+    assert!(g.revival.current_revival_requests.is_empty());
 }
 
 #[test]
@@ -124,12 +124,12 @@ fn offer_for_hero_with_existing_denial_replaces_it() {
     let mut g = game_with(&[Faction::Emperor, Faction::Tleilaxu]);
     let emperor_leaders: Vec<Leader> = LeaderManager::get_leaders(Faction::Emperor).collect();
     let hero = Hero::Leader(emperor_leaders[0]);
-    g.early_revivals_offers.insert(hero, i32::MAX);
+    g.revival.early_revivals_offers.insert(hero, i32::MAX);
 
     let mut offer = AcceptOrCancelTleilaxuRevival::default();
     offer.set_hero(Some(hero));
     offer.price = 3;
     let offer = Rc::new(as_player(offer, &g, Faction::Tleilaxu));
     offer.execute_concrete_event(&mut g).unwrap();
-    assert_eq!(g.early_revivals_offers[&hero], 3);
+    assert_eq!(g.revival.early_revivals_offers[&hero], 3);
 }

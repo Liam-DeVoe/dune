@@ -81,7 +81,7 @@ pub fn default_draft(game: &Game, faction: Faction, t: GameEventType) -> Option<
         // OnInitialized: the factions that already have the increased limit.
         GameEventType::SetIncreasedRevivalLimits => {
             let mut e = SetIncreasedRevivalLimits::new(game, faction);
-            e.factions = Some(game.factions_with_increased_revival_limits.clone().unwrap_or_default());
+            e.factions = Some(game.revival.factions_with_increased_revival_limits.clone().unwrap_or_default());
             event(e)
         }
         _ => return None,
@@ -188,7 +188,7 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
         GameEvent::AcceptOrCancelTleilaxuRevival(e) => {
             let mut e = (**e).clone();
             e.cancel = false;
-            if !game.current_revival_requests.is_empty() {
+            if !game.revival.current_revival_requests.is_empty() {
                 let heroes = request_heroes(game);
                 if !e.hero().is_some_and(|h| heroes.contains(&h)) {
                     e.set_hero(heroes.first().copied());
@@ -221,7 +221,7 @@ fn raise_dead_on_planet(game: &Game, p: PlayerIndex, e: &RaiseDeadPlayed) -> i32
 }
 
 fn request_heroes(game: &Game) -> Vec<Hero> {
-    game.current_revival_requests.iter().filter_map(|r| r.hero()).collect()
+    game.revival.current_revival_requests.iter().filter_map(|r| r.hero()).collect()
 }
 
 /// The options and validation of a revival form for `draft`, or `None` for other event types.
@@ -301,9 +301,9 @@ fn options(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) ->
         }),
         GameEvent::AcceptOrCancelTleilaxuRevival(e) => ActionOptions::AcceptOrCancelTleilaxuRevival(AcceptOrCancelTleilaxuRevivalOptions {
             requests: hero_options(request_heroes(game)),
-            bot_awaits: game.current_revival_requests.iter().any(|r| game.player(r.player()).is_bot(game)),
+            bot_awaits: game.revival.current_revival_requests.iter().any(|r| game.player(r.player()).is_bot(game)),
             offers: game
-                .early_revivals_offers
+                .revival.early_revivals_offers
                 .iter()
                 .map(|(h, price)| EarlyRevivalOffer {
                     hero: HeroOption { id: h.id(), hero: hero_ref(*h) },

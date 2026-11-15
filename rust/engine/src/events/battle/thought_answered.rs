@@ -54,7 +54,7 @@ impl ThoughtAnswered {
 
     /// `ValidCards` with a possibly null `p`: `g.CurrentThought.Card` is read before `p.Has`.
     fn valid_cards_opt(g: &Game, p: Option<PlayerIndex>) -> Vec<TreacheryCard> {
-        let card = g.current_thought.as_ref().expect("current thought").card();
+        let card = g.battle.current_thought.as_ref().expect("current thought").card();
         let p = p.expect("player");
         if g.player(p).has(card) {
             return vec![card.expect("card")];
@@ -69,11 +69,11 @@ impl ThoughtAnswered {
                 game.log(elems![self.initiator(), " don't own any cards"]);
             }
             Some(card) => {
-                let thought_initiator = game.current_thought.as_ref().required("current thought")?.initiator();
+                let thought_initiator = game.battle.current_thought.as_ref().required("current thought")?.initiator();
                 game.log_to(thought_initiator, elems!["In response, ", self.initiator(), " show you: ", card]);
-                let thought_initiator = game.current_thought.as_ref().required("current thought")?.initiator();
+                let thought_initiator = game.battle.current_thought.as_ref().required("current thought")?.initiator();
                 game.log(elems!["In response, ", self.initiator(), " show ", thought_initiator, " a card"]);
-                let thought_initiator = game.current_thought.as_ref().required("current thought")?.initiator();
+                let thought_initiator = game.battle.current_thought.as_ref().required("current thought")?.initiator();
                 game.register_known_by_faction(thought_initiator, card);
             }
         }

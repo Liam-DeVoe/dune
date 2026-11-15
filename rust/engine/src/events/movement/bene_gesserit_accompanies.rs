@@ -52,7 +52,7 @@ impl BeneGesseritAccompanies {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.bene_gesserit_may_accompany = false;
+        game.ship_move.bene_gesserit_may_accompany = false;
 
         if self.accompanies {
             let me = self.player();
@@ -71,7 +71,7 @@ impl BeneGesseritAccompanies {
                 .with_route(self.initiator(), Vec::<Location>::new(), Some(location))
                 .with_log(BeneGesseritReaction::new(BeneGesseritReactionKind::Accompany, location.into(), false));
             self.log_objects(game, vec![m.into()]);
-            game.last_shipment_or_movement = Some(self.clone().into_event());
+            game.ship_move.last_shipment_or_movement = Some(self.clone().into_event());
             game.check_intrusion(&self.clone().into_event())?;
         } else {
             let m = express!(self.initiator(), " don't accompany")
@@ -122,7 +122,7 @@ impl BeneGesseritAccompanies {
     }
 
     pub fn valid_targets(g: &Game, p: PlayerIndex) -> Vec<Location> {
-        let last_to = g.last_shipment_or_movement.as_ref().and_then(|e| e.to_location(g));
+        let last_to = g.ship_move.last_shipment_or_movement.as_ref().and_then(|e| e.to_location(g));
         let Some(last_to) = last_to else {
             panic!("LastShipmentOrMovement is null");
         };
@@ -149,7 +149,7 @@ impl BeneGesseritAccompanies {
 
         !g.applicable(Rule::AdvisorsDontConflictWithAlly)
             && ally.is_some_and(|a| {
-                let t = g.last_shipment_or_movement.as_ref().and_then(|e| e.to_location(g)).map(|l| l.territory());
+                let t = g.ship_move.last_shipment_or_movement.as_ref().and_then(|e| e.to_location(g)).map(|l| l.territory());
                 g.player(a).any_forces_in_territory(t) != 0
             })
     }

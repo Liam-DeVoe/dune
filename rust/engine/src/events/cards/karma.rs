@@ -304,11 +304,11 @@ impl Karma {
         self.revoke_battle_plans_if_needed(game);
 
         if self.prevented == FactionAdvantage::BeneGesseritUsingVoice {
-            game.current_voice = None;
+            game.battle.current_voice = None;
         }
 
         if self.prevented == FactionAdvantage::AtreidesBattlePlanPrescience {
-            game.current_prescience = None;
+            game.battle.current_prescience = None;
         }
 
         let me = self.player();

@@ -26,7 +26,7 @@ impl GuildDelay {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.beginning_of_shipment_and_move_phase = false;
+        game.ship_move.beginning_of_shipment_and_move_phase = false;
         let m = self.get_message(game).with_log(GuildDelayed::default());
         self.log_objects(game, vec![m.into()]);
         game.enter(Phase::NonGuildShip, true);

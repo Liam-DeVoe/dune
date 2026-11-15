@@ -33,11 +33,11 @@ impl AllianceByAmbassador {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let paused = game.paused_ambassador_phase;
+        let paused = game.ship_move.paused_ambassador_phase;
         game.enter(paused, true);
 
         if !self.passed {
-            let activated = game.current_ambassador_activated.clone().required("current ambassador activated")?;
+            let activated = game.ship_move.current_ambassador_activated.clone().required("current ambassador activated")?;
             game.make_alliance(self.initiator(), activated.initiator());
 
             if activated.ecaz_give_vidal_to_ally {
@@ -51,7 +51,7 @@ impl AllianceByAmbassador {
             }
             game.flip_bene_gesserit_advisors_when_alone();
         } else {
-            let activated = game.current_ambassador_activated.clone().required("current ambassador activated")?;
+            let activated = game.ship_move.current_ambassador_activated.clone().required("current ambassador activated")?;
             self.log_objects(game, elems![self.initiator(), " don't ally with ", activated.initiator()]);
             if activated.ecaz_take_vidal {
                 game.take_vidal(activated.player(), VidalMoment::AfterUsedInBattle);

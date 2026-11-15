@@ -26,7 +26,7 @@ impl PoisonToothCancelled {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.poison_tooth_cancelled = true;
+        game.battle.poison_tooth_cancelled = true;
         self.log(game);
         Ok(())
     }

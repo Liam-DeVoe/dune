@@ -37,7 +37,7 @@ impl KarmaShipmentPrevention {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.current_karma_shipment_prevention = Some(self.clone());
+        game.ship_move.current_karma_shipment_prevention = Some(self.clone());
         let me = self.player();
         let card = Karma::valid_karma_cards(game, me).into_iter().next();
         game.play_karma(me, card, vec!["prevent shipment by ".into(), self.target.into()]);

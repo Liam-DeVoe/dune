@@ -53,7 +53,7 @@ impl Bid {
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if (game.current_auction_type == AuctionType::BlackMarketSilent || game.current_auction_type == AuctionType::RicheseSilent) && self.passed {
+        if (game.bidding.current_auction_type == AuctionType::BlackMarketSilent || game.bidding.current_auction_type == AuctionType::RicheseSilent) && self.passed {
             return Some(express!("You cannot pass a silent bid"));
         }
 
@@ -69,7 +69,7 @@ impl Bid {
             return None;
         }
 
-        let is_special_auction = game.current_auction_type == AuctionType::RicheseOnceAround || game.current_auction_type == AuctionType::RicheseSilent;
+        let is_special_auction = game.bidding.current_auction_type == AuctionType::RicheseOnceAround || game.bidding.current_auction_type == AuctionType::RicheseSilent;
         if self.karma_bid && is_special_auction {
             return Some(express!("You can't use ", TreacheryCardType::Karma, " in Once Around or Silent bidding"));
         }
@@ -86,11 +86,11 @@ impl Bid {
         }
 
         let p = game.get_player(Some(self.initiator()));
-        if self.total_amount() < 1 && game.current_auction_type != AuctionType::RicheseSilent {
+        if self.total_amount() < 1 && game.bidding.current_auction_type != AuctionType::RicheseSilent {
             return Some(express!("Bid must be higher than 0"));
         }
-        if let Some(current_bid) = &game.current_bid {
-            if self.total_amount() <= current_bid.bid_total_amount() && game.current_auction_type != AuctionType::RicheseSilent {
+        if let Some(current_bid) = &game.bidding.current_bid {
+            if self.total_amount() <= current_bid.bid_total_amount() && game.bidding.current_auction_type != AuctionType::RicheseSilent {
                 return Some(express!("Bid not high enough"));
             }
         }
@@ -118,7 +118,7 @@ impl Bid {
             return Some(express!("You can't use ", Faction::Emperor, " cunning"));
         }
 
-        if game.current_auction_type == AuctionType::RicheseSilent && self.total_amount() > game.player(self.player()).resources {
+        if game.bidding.current_auction_type == AuctionType::RicheseSilent && self.total_amount() > game.player(self.player()).resources {
             return Some(express!("In a Silent auction, you can't bid more than you have"));
         }
 
@@ -141,17 +141,17 @@ impl Bid {
 
     pub fn players_to_bid(g: &Game) -> Vec<SequenceElement> {
         // GetPlayersInSequence runs now (PlayersInOrder); its selector runs only in the arms that return it.
-        let sequence_players = match &g.bid_sequence {
+        let sequence_players = match &g.bidding.bid_sequence {
             Some(s) => either::Either::Left(s.get_players_in_sequence(g)),
             None => either::Either::Right(std::iter::empty()),
         };
-        match g.current_auction_type {
+        match g.bidding.current_auction_type {
             AuctionType::Normal | AuctionType::RicheseOnceAround => sequence_players.collect(),
             AuctionType::RicheseSilent => g
                 .players
                 .iter()
                 .enumerate()
-                .map(|(i, p)| SequenceElement { player: Some(g.player_at(i)), has_turn: p.has_room_for_cards(g) && !g.bids.keys().any(|k| *k == p.faction) })
+                .map(|(i, p)| SequenceElement { player: Some(g.player_at(i)), has_turn: p.has_room_for_cards(g) && !g.bidding.bids.keys().any(|k| *k == p.faction) })
                 .collect(),
             _ => Vec::new(),
         }
@@ -161,7 +161,7 @@ impl Bid {
         use either::Either;
         use std::iter::empty;
         let Some(p) = p else { return Either::Left(empty()) };
-        if g.current_auction_type == AuctionType::Normal {
+        if g.bidding.current_auction_type == AuctionType::Normal {
             return Either::Right(Karma::valid_karma_cards(g, p));
         }
         Either::Left(empty())
@@ -174,18 +174,18 @@ impl Bid {
 
     pub fn may_be_played(game: &Game, player: Option<PlayerIndex>) -> bool {
         let Some(player) = player else { return false };
-        (game.current_auction_type == AuctionType::RicheseSilent && !game.bids.contains_key(&game.player(player).faction) && game.player(player).has_room_for_cards(game))
-            || (game.current_auction_type != AuctionType::RicheseSilent && game.bid_sequence.as_ref().map(|s| s.current_player(game)) == Some(Some(player)))
+        (game.bidding.current_auction_type == AuctionType::RicheseSilent && !game.bidding.bids.contains_key(&game.player(player).faction) && game.player(player).has_room_for_cards(game))
+            || (game.bidding.current_auction_type != AuctionType::RicheseSilent && game.bidding.bid_sequence.as_ref().map(|s| s.current_player(game)) == Some(Some(player)))
     }
 
     pub fn may_use_emperor_secret_ally(game: &Game, player: PlayerIndex) -> bool {
-        game.current_auction_type == AuctionType::Normal && game.player(player).nexus == Faction::Emperor && NexusPlayed::can_use_secret_ally(game, player)
+        game.bidding.current_auction_type == AuctionType::Normal && game.player(player).nexus == Faction::Emperor && NexusPlayed::can_use_secret_ally(game, player)
     }
 
     /// `MayUseEmperorSecretAlly` with a possibly null player: the NullReferenceException
     /// happens only after the auction type check.
     pub(crate) fn may_use_emperor_secret_ally_opt(game: &Game, player: Option<PlayerIndex>) -> bool {
-        game.current_auction_type == AuctionType::Normal && game.player(player.expect("player")).nexus == Faction::Emperor && NexusPlayed::can_use_secret_ally(game, player.expect("player"))
+        game.bidding.current_auction_type == AuctionType::Normal && game.player(player.expect("player")).nexus == Faction::Emperor && NexusPlayed::can_use_secret_ally(game, player.expect("player"))
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
@@ -231,8 +231,8 @@ impl Bid {
                 let card = self.win_with_karma(game, self)?;
                 let this = self.clone().into_event();
                 game.finish_bid(self.player_opt(), Some(&this), card, true);
-            } else if let Some(GameEvent::Bid(winning_bid)) = game.current_bid.clone().filter(|cb| {
-                matches!(cb, GameEvent::Bid(_)) && game.bid_sequence.as_ref().map(|s| s.current_faction(game)) == Some(cb.bid_initiator())
+            } else if let Some(GameEvent::Bid(winning_bid)) = game.bidding.current_bid.clone().filter(|cb| {
+                matches!(cb, GameEvent::Bid(_)) && game.bidding.bid_sequence.as_ref().map(|s| s.current_faction(game)) == Some(cb.bid_initiator())
             }) {
                 if winning_bid.using_karma_to_remove_bid_limit() {
                     //Karma was used to bid any amount
@@ -241,7 +241,7 @@ impl Bid {
                     let wb = winning_bid.clone().into_event();
                     game.finish_bid(winning_bid.player_opt(), Some(&wb), card, true);
                 } else {
-                    if game.cards_on_auction.is_none() {
+                    if game.bidding.cards_on_auction.is_none() {
                         return Ok(());
                     }
 
@@ -259,17 +259,17 @@ impl Bid {
 
                     game.finish_bid(winning_bid.player_opt(), Some(&wb), card, true);
                 }
-            } else if game.current_bid.is_none() && game.bids.len() as i32 >= game.players_that_can_bid().len() as i32 {
+            } else if game.bidding.current_bid.is_none() && game.bidding.bids.len() as i32 >= game.players_that_can_bid().len() as i32 {
                 self.everyone_passed_bid(game);
             }
-        } else if game.bid_sequence.as_ref().map(|s| s.current_faction(game)) == Some(self.initiator()) {
-            if game.cards_on_auction.is_none() || game.current_bid.is_none() {
+        } else if game.bidding.bid_sequence.as_ref().map(|s| s.current_faction(game)) == Some(self.initiator()) {
+            if game.bidding.cards_on_auction.is_none() || game.bidding.current_bid.is_none() {
                 return Ok(());
             }
 
             let card = self.bid_won_by_only_player(game, self, Faction::Emperor)?;
             let this = self.clone().into_event();
-            let current_bid_player = game.current_bid.as_ref().required("current bid")?.bid_player();
+            let current_bid_player = game.bidding.current_bid.as_ref().required("current bid")?.bid_player();
             game.finish_bid(current_bid_player, Some(&this), card, true);
         }
         Ok(())
@@ -277,7 +277,7 @@ impl Bid {
 
     pub fn win_with_karma(&self, game: &mut Game, bid: &Bid) -> GameResult<TreacheryCard> {
         let winner = self.get_player(game, Some(bid.initiator()));
-        if winner.is_none() || bid.karma_card().is_none() || game.cards_on_auction.is_none() {
+        if winner.is_none() || bid.karma_card().is_none() || game.bidding.cards_on_auction.is_none() {
             game_error!("Cannot resolve karma bid winner or auction deck");
         }
         let winner = winner.required("winner")?;
@@ -285,15 +285,15 @@ impl Bid {
 
         game.discard_card(Some(karma_card), true)?;
 
-        let sold = CardSold::new(game.card_number, bid.initiator(), 0, Faction::None, vec![], Some(karma_card));
+        let sold = CardSold::new(game.bidding.card_number, bid.initiator(), 0, Faction::None, vec![], Some(karma_card));
         if karma_card.type_() == TreacheryCardType::Karma {
-            let card_number = game.card_number;
+            let card_number = game.bidding.card_number;
             game.log_bidding(
                 Some(Rc::new(sold)),
                 vec![bid.initiator().into(), " get card ".into(), card_number.into(), " using ".into(), TreacheryCardType::Karma.into()],
             );
         } else {
-            let card_number = game.card_number;
+            let card_number = game.bidding.card_number;
             game.log_bidding(
                 Some(Rc::new(sold)),
                 vec![
@@ -311,7 +311,7 @@ impl Bid {
         game.stone(Milestone::AuctionWon);
         game.stone(Milestone::Karma);
 
-        let card = game.cards_on_auction.as_mut().required("cards on auction")?.try_draw()?;
+        let card = game.bidding.cards_on_auction.as_mut().required("cards on auction")?.try_draw()?;
         game.player_mut(winner).treachery_cards.push(card);
         game.register_won_card_as_known(card);
         let winner_faction = game.player(winner).faction;
@@ -321,18 +321,18 @@ impl Bid {
     }
 
     pub fn everyone_passed_bid(&self, game: &mut Game) {
-        let card_number = game.card_number;
+        let card_number = game.bidding.card_number;
         game.log_bidding(Some(Rc::new(BiddingPassedByAll::new(card_number))), vec!["Bidding ends because everyone passed".into()]);
         game.stone(Milestone::AuctionWon);
 
-        if game.cards_on_auction.is_none() {
+        if game.bidding.cards_on_auction.is_none() {
             return;
         }
 
-        while !game.cards_on_auction.as_ref().expect("cards on auction").is_empty() {
-            game.cards_on_auction.as_mut().expect("cards on auction").shuffle();
+        while !game.bidding.cards_on_auction.as_ref().expect("cards on auction").is_empty() {
+            game.bidding.cards_on_auction.as_mut().expect("cards on auction").shuffle();
 
-            let card = game.cards_on_auction.as_mut().expect("cards on auction").draw();
+            let card = game.bidding.cards_on_auction.as_mut().expect("cards on auction").draw();
             game.treachery_deck.as_mut().expect("treachery deck").put_on_top(card);
         }
 
@@ -341,7 +341,7 @@ impl Bid {
 
     /// The only caller passes `Game.CardsOnAuction` as `toDrawFrom`, so this draws from it.
     pub fn bid_won_by_only_player(&self, game: &mut Game, bid: &Rc<Bid>, payment_receiver: Faction) -> GameResult<TreacheryCard> {
-        game.current_bid = Some(bid.clone().into_event());
+        game.bidding.current_bid = Some(bid.clone().into_event());
         let winner = self.get_player(game, Some(bid.initiator()));
         let Some(winner) = winner else {
             game_error!("Cannot resolve winner for single-player bid");
@@ -366,7 +366,7 @@ impl Bid {
         }
 
         game.stone(Milestone::AuctionWon);
-        let card = game.cards_on_auction.as_mut().required("cards on auction")?.try_draw()?;
+        let card = game.bidding.cards_on_auction.as_mut().required("cards on auction")?.try_draw()?;
         game.register_won_card_as_known(card);
         game.player_mut(winner).treachery_cards.push(card);
         let winner_faction = game.player(winner).faction;
@@ -376,24 +376,24 @@ impl Bid {
     }
 
     pub fn handle_richese_bid(&self, game: &mut Game) -> GameResult {
-        let bid_sequence_has_passed_richese = game.bid_sequence.as_ref().map(|s| s.has_passed_richese(game)) == Some(true);
+        let bid_sequence_has_passed_richese = game.bidding.bid_sequence.as_ref().map(|s| s.has_passed_richese(game)) == Some(true);
         let richese_has_no_room = self.get_player(game, Some(Faction::Richese)).map(|w| game.player(w).has_room_for_cards(game)) == Some(false);
 
         let players_with_room = || game.players.iter().filter(|p| p.has_room_for_cards(game)).count() as i32;
-        let is_last_bid = (game.current_auction_type == AuctionType::RicheseSilent && players_with_room() == game.bids.len() as i32)
-            || (game.current_auction_type == AuctionType::RicheseOnceAround
+        let is_last_bid = (game.bidding.current_auction_type == AuctionType::RicheseSilent && players_with_room() == game.bidding.bids.len() as i32)
+            || (game.bidding.current_auction_type == AuctionType::RicheseOnceAround
                 && (self.initiator() == Faction::Richese || (richese_has_no_room && bid_sequence_has_passed_richese)));
 
         if is_last_bid {
-            if game.current_auction_type == AuctionType::RicheseSilent {
-                let parts: Vec<MessagePart> = game.bids.iter().map(|(k, v)| express_part!(*k, Payment::of(v.bid_total_amount()), " ")).collect();
+            if game.bidding.current_auction_type == AuctionType::RicheseSilent {
+                let parts: Vec<MessagePart> = game.bidding.bids.iter().map(|(k, v)| express_part!(*k, Payment::of(v.bid_total_amount()), " ")).collect();
                 self.log_objects(game, vec!["Bids: ".into(), parts.into()]);
             }
 
-            let highest_bid = game.determine_highest_bid(&game.bids);
+            let highest_bid = game.determine_highest_bid(&game.bidding.bids);
             match highest_bid {
                 Some(winning_bid) if winning_bid.bid_total_amount() > 0 => {
-                    if game.cards_on_auction.is_none() {
+                    if game.bidding.cards_on_auction.is_none() {
                         return Ok(());
                     }
 
@@ -415,10 +415,10 @@ impl Bid {
                     if richese.map(|w| game.player(w).has_room_for_cards(game)) == Some(true) {
                         game.enter(Phase::RicheseKeepingUnsoldCard, true);
                     } else {
-                        if game.cards_on_auction.is_none() {
+                        if game.bidding.cards_on_auction.is_none() {
                             return Ok(());
                         }
-                        let card = game.cards_on_auction.as_mut().required("cards on auction")?.try_draw()?;
+                        let card = game.bidding.cards_on_auction.as_mut().required("cards on auction")?.try_draw()?;
                         game.removed_treachery_cards.push(card);
                         game.register_won_card_as_known(card);
                         self.log_objects(game, vec![card.into(), " was removed from the game".into()]);

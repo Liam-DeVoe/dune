@@ -109,7 +109,7 @@ impl TerrorRevealed {
     }
 
     pub fn may_pass(g: &Game) -> bool {
-        !g.alliance_by_terror_was_offered
+        !g.ship_move.alliance_by_terror_was_offered
     }
 
     pub fn may_offer_alliance(g: &Game) -> bool {
@@ -118,7 +118,7 @@ impl TerrorRevealed {
 
         // Without a victim or a Moritani player there is nobody to ally with.
         let (Some(victim), Some(moritani)) = (victim, moritani) else { return false };
-        !g.alliance_by_terror_was_offered
+        !g.ship_move.alliance_by_terror_was_offered
             && !g.prevented(FactionAdvantage::MoritaniEnemyOfEnemy)
             && !g.player(victim).is(Faction::Ecaz)
             && !g.player(moritani).have_forces_on_each_others_home_worlds(g, victim)
@@ -189,7 +189,7 @@ impl TerrorRevealed {
 
         if self.passed {
             self.log_objects(game, elems![self.initiator(), " don't terrorize ", territory]);
-            game.alliance_by_terror_was_offered = false;
+            game.ship_move.alliance_by_terror_was_offered = false;
             game.dequeue_intrusion(IntrusionType::Terror)?;
             game.determine_next_shipment_and_move_sub_phase()?;
         } else if self.alliance_offered {
@@ -197,9 +197,9 @@ impl TerrorRevealed {
                 game,
                 elems![self.initiator(), " offer an alliance to ", victim, " as an alternative to terror"],
             );
-            game.alliance_by_terror_offered_to = victim;
-            game.alliance_by_terror_was_offered = true;
-            game.paused_terror_phase = game.current_phase;
+            game.ship_move.alliance_by_terror_offered_to = victim;
+            game.ship_move.alliance_by_terror_was_offered = true;
+            game.ship_move.paused_terror_phase = game.current_phase;
             game.enter(Phase::AllianceByTerror, true);
         } else {
             game.stone(Milestone::TerrorRevealed);
@@ -211,7 +211,7 @@ impl TerrorRevealed {
                 game.dequeue_intrusion(IntrusionType::Terror)?;
             }
 
-            game.alliance_by_terror_was_offered = false;
+            game.ship_move.alliance_by_terror_was_offered = false;
 
             match self.type_ {
                 TerrorType::Assassination => {

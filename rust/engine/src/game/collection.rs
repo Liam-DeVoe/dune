@@ -1,6 +1,31 @@
 use crate::log::collection::SpiceCollected;
 use crate::prelude::*;
 
+/// State of the spice collection phase, including the discoveries revealed during it.
+pub struct CollectionState {
+    pub resources_collected_by_fremen: i32,
+    pub resources_collected_by_harkonnen_from_desert_or_homeworld: i32,
+    pub pending_discoveries: Vec<DiscoveryToken>,
+    pub collected_resources_to_be_divided: Vec<ResourcesToBeDivided>,
+    pub current_division_proposal: Option<Rc<DivideResources>>,
+    pub owner_of_flight_discovery: Option<Faction>,
+    pub just_revealed_discovery_strongholds: Vec<DiscoveredLocation>,
+}
+
+impl CollectionState {
+    pub fn new() -> Self {
+        CollectionState {
+            resources_collected_by_fremen: Default::default(),
+            resources_collected_by_harkonnen_from_desert_or_homeworld: Default::default(),
+            pending_discoveries: Vec::new(),
+            collected_resources_to_be_divided: Vec::new(),
+            current_division_proposal: None,
+            owner_of_flight_discovery: None,
+            just_revealed_discovery_strongholds: Vec::new(),
+        }
+    }
+}
+
 /// `params object?[]` element list for `Log(...)`.
 macro_rules! elems {
     ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
@@ -10,12 +35,12 @@ impl Game {
     pub fn start_collection(&mut self) {
         self.collect_resources_from_territories();
         self.collect_resources_from_strongholds_and_homeworlds();
-        let condition = !self.collected_resources_to_be_divided.is_empty();
+        let condition = !self.collection.collected_resources_to_be_divided.is_empty();
         self.enter_or_else(condition, Phase::DividingCollectedResources, Game::end_collection_main_phase);
     }
 
     pub fn divide_resources_from_collection(&mut self, division_was_agreed: bool) {
-        let Some(proposal) = self.current_division_proposal.clone() else { return };
+        let Some(proposal) = self.collection.current_division_proposal.clone() else { return };
 
         let to_be_divided = DivideResources::get_resources_to_be_divided(self);
 
@@ -29,9 +54,9 @@ impl Game {
         self.gain_collected_resources(to_be_divided.other_faction, to_be_divided.territory, gained_by_other_faction, None, false);
 
         // `Remove(toBeDivided)` removes by reference; `toBeDivided` is the first element.
-        self.collected_resources_to_be_divided.remove(0);
+        self.collection.collected_resources_to_be_divided.remove(0);
 
-        self.current_division_proposal = None;
+        self.collection.current_division_proposal = None;
     }
 
     // field: the location collected from, when spice was taken from the desert.
@@ -45,11 +70,11 @@ impl Game {
             *r += amount;
         }
         if faction == Faction::Fremen {
-            self.resources_collected_by_fremen += amount;
+            self.collection.resources_collected_by_fremen += amount;
         }
         if faction == Faction::Harkonnen && !from.is_stronghold() && !from.is_protected_from_worm() {
-            self.resources_collected_by_harkonnen_from_desert_or_homeworld =
-                self.resources_collected_by_harkonnen_from_desert_or_homeworld + amount;
+            self.collection.resources_collected_by_harkonnen_from_desert_or_homeworld =
+                self.collection.resources_collected_by_harkonnen_from_desert_or_homeworld + amount;
         }
     }
 
@@ -187,7 +212,7 @@ impl Game {
                     other_faction,
                     territory: key.territory(),
                 };
-                self.collected_resources_to_be_divided.push(to_be_divided);
+                self.collection.collected_resources_to_be_divided.push(to_be_divided);
                 self.log(elems![
                     first_faction,
                     " and ",
@@ -203,16 +228,16 @@ impl Game {
 
     pub fn end_collection_main_phase(&mut self) {
         if let Some(fremen) = self.get_player(Some(Faction::Fremen)) {
-            let mut received_amount_by_fremen_after_taking_into_account_occupation = self.resources_collected_by_fremen;
+            let mut received_amount_by_fremen_after_taking_into_account_occupation = self.collection.resources_collected_by_fremen;
             self.modify_income_because_of_low_threshold_or_occupation(fremen, &mut received_amount_by_fremen_after_taking_into_account_occupation);
 
-            let lost = self.resources_collected_by_fremen - received_amount_by_fremen_after_taking_into_account_occupation;
+            let lost = self.collection.resources_collected_by_fremen - received_amount_by_fremen_after_taking_into_account_occupation;
             let r = &mut self.player_mut(fremen).resources;
             *r -= lost;
         }
 
         let harkonnen = self.get_player(Some(Faction::Harkonnen));
-        if self.resources_collected_by_harkonnen_from_desert_or_homeworld != 0 {
+        if self.collection.resources_collected_by_harkonnen_from_desert_or_homeworld != 0 {
             if let Some(harkonnen) = harkonnen.filter(|b| self.player(*b).has_any_high_threshold(self)) {
                 let r = &mut self.player_mut(harkonnen).resources;
                 *r += 2;

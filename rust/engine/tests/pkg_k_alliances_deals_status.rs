@@ -187,7 +187,7 @@ fn deal_parameter_is_parsed_with_int_parse() {
 #[test]
 fn donated_double_inflation_check_has_no_effect() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
-    g.economics_status = ChoamEconomicsStatus::Double;
+    g.charity.economics_status = ChoamEconomicsStatus::Double;
     let atreides = idx(&g, Faction::Atreides);
     g.player_mut(atreides).resources = 5;
     let mut d = Donated::new(&g, Faction::Atreides);
@@ -244,10 +244,10 @@ fn flash_battle_conclusion_with_null_winner() {
     let g = game_with(&[Faction::Atreides]);
     let mut g = g;
     g.current_phase = Phase::BattleConclusion;
-    g.battle_winner = None;
+    g.battle.battle_winner = None;
     let flashes = GameStatus::determine_flash(&g, Faction::None, false);
     assert_eq!(flashes.len(), 1);
-    g.battle_winner = Some(Faction::None);
+    g.battle.battle_winner = Some(Faction::None);
     assert!(GameStatus::determine_flash(&g, Faction::None, false).is_empty());
 }
 
@@ -255,7 +255,7 @@ fn flash_battle_conclusion_with_null_winner() {
 fn flash_game_ended_lists_winners() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
     g.current_phase = Phase::GameEnded;
-    g.winners = vec![idx(&g, Faction::Emperor), idx(&g, Faction::Atreides)];
+    g.contemplate.winners = vec![idx(&g, Faction::Emperor), idx(&g, Faction::Atreides)];
     let flashes = GameStatus::determine_flash(&g, Faction::None, false);
     let texts: Vec<String> = flashes.iter().map(|f| f.message.to_cs_string()).collect();
     assert_eq!(texts.len(), 2);

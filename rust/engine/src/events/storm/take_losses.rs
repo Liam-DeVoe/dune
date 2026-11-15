@@ -51,8 +51,8 @@ impl TakeLosses {
     }
 
     pub fn losses_to_take(g: &Game) -> LossToTake {
-        if g.storm_losses_to_take.len() > 0 {
-            return g.storm_losses_to_take[0].clone();
+        if g.storm.storm_losses_to_take.len() > 0 {
+            return g.storm.storm_losses_to_take[0].clone();
         }
         LossToTake::new()
     }
@@ -92,15 +92,15 @@ impl TakeLosses {
         if self.use_useless_card {
             let card = TakeLosses::valid_useless_card_to_prevent_losses(game, self.player());
             if card.is_none() && NexusPlayed::can_use_cunning(game, player.required("player")?) {
-                let location = game.storm_losses_to_take[0].location;
+                let location = game.storm.storm_losses_to_take[0].location;
                 game.play_nexus_card(player.required("player")?, vec!["prevent losing forces in ".into(), location.into()]);
                 must_discard = true;
             } else {
                 game.discard_card_of(Some(self.player()), card, true);
-                let location = game.storm_losses_to_take[0].location;
+                let location = game.storm.storm_losses_to_take[0].location;
                 self.log_objects(game, vec![self.initiator().into(), " prevent losing forces in ".into(), location.into()]);
             }
-            game.storm_losses_to_take.remove(0);
+            game.storm.storm_losses_to_take.remove(0);
             game.stone(Milestone::SpecialUselessPlayed);
         } else {
             let location = TakeLosses::losses_to_take(game).location;
@@ -110,16 +110,16 @@ impl TakeLosses {
                 game_error!("Value cannot be null. (Parameter 'key')");
             };
             Player::kill_forces(game, player, kill_location, self.force_amount, self.special_force_amount, false);
-            game.storm_losses_to_take.remove(0);
+            game.storm.storm_losses_to_take.remove(0);
             let message = self.get_message(game).with_log(StormKilled::new(self.initiator(), kill_location, self.force_amount, self.special_force_amount));
             game.log(vec![message.into()]);
         }
 
-        if game.phase_before_storm_loss == Phase::BlowA {
-            let condition = game.storm_losses_to_take.len() > 0;
+        if game.storm.phase_before_storm_loss == Phase::BlowA {
+            let condition = game.storm.storm_losses_to_take.len() > 0;
             game.enter_or_else(condition, Phase::StormLosses, Game::end_storm_phase);
         } else {
-            let phase = game.phase_before_storm_loss;
+            let phase = game.storm.phase_before_storm_loss;
             game.enter(phase, true);
             game.determine_next_shipment_and_move_sub_phase()?;
         }

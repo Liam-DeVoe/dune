@@ -67,11 +67,11 @@ impl PerformHmsMovement {
             let target = self.target(game).required("target")?;
             hms.point_at(&mut game.map, target);
             game.collect_spice_from(self.initiator(), target, collection_rate);
-            game.hms_moves_left -= 1;
+            game.storm.hms_moves_left -= 1;
             game.stone(Milestone::HmsMovement);
         }
 
-        if self.passed || game.hms_moves_left == 0 {
+        if self.passed || game.storm.hms_moves_left == 0 {
             game.determine_storm();
         }
         Ok(())

@@ -130,7 +130,7 @@ impl LiveList {
         let player = |p: crate::game::PlayerIndex| game.players.get(p.index);
         match self {
             LiveList::PlayerTreacheryCards(p) => player(p).map(|p| cards(&p.treachery_cards)),
-            LiveList::GameAuditedCards => Some(cards(&game.audited_cards)),
+            LiveList::GameAuditedCards => Some(cards(&game.battle.audited_cards)),
             LiveList::PlayerDiscardedTraitors(p) => {
                 player(p).map(|p| p.discarded_traitors.iter().map(|h| ExpressionElement::Hero(*h)).collect())
             }

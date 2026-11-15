@@ -32,14 +32,14 @@ impl KarmaHandSwap {
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if self.returned_cards().len() as i32 != game.karma_hand_swap_number_of_cards {
-            return Some(express!("Select ", game.karma_hand_swap_number_of_cards, " cards to return"));
+        if self.returned_cards().len() as i32 != game.bidding.karma_hand_swap_number_of_cards {
+            return Some(express!("Select ", game.bidding.karma_hand_swap_number_of_cards, " cards to return"));
         }
         None
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let victim = self.get_player(game, Some(game.karma_hand_swap_target));
+        let victim = self.get_player(game, Some(game.bidding.karma_hand_swap_target));
         let me = self.player_opt();
         let others: Vec<PlayerIndex> = game.player_indices().filter(|p| Some(*p) != me && Some(*p) != victim).collect();
         for p in others {
@@ -59,7 +59,7 @@ impl KarmaHandSwap {
             Game::register_known_by_player(game, me.required("me")?, Some(returned));
         }
         self.log(game);
-        let paused = game.karma_hand_swap_paused_phase;
+        let paused = game.bidding.karma_hand_swap_paused_phase;
         game.enter(paused, false);
         Ok(())
     }

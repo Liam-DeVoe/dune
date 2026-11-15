@@ -1,6 +1,21 @@
 use crate::log::charity::CharityClaim;
 use crate::prelude::*;
 
+/// State of the CHOAM charity phase.
+pub struct CharityState {
+    pub resource_tech_token_income: bool,
+    pub economics_status: ChoamEconomicsStatus,
+}
+
+impl CharityState {
+    pub fn new() -> Self {
+        CharityState {
+            resource_tech_token_income: Default::default(),
+            economics_status: ChoamEconomicsStatus::None,
+        }
+    }
+}
+
 /// `params object?[]` element list for `Log(...)`.
 macro_rules! elems {
     ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
@@ -8,7 +23,7 @@ macro_rules! elems {
 
 impl Game {
     pub fn charity_is_cancelled(&self) -> bool {
-        matches!(self.economics_status, ChoamEconomicsStatus::Cancel | ChoamEconomicsStatus::CancelFlipped)
+        matches!(self.charity.economics_status, ChoamEconomicsStatus::Cancel | ChoamEconomicsStatus::CancelFlipped)
     }
 
     pub fn receive_tech_income(&mut self, token: TechToken) {
@@ -23,10 +38,10 @@ impl Game {
     }
 
     pub fn current_charity_multiplier(&self) -> i32 {
-        if matches!(self.economics_status, ChoamEconomicsStatus::Double | ChoamEconomicsStatus::DoubleFlipped) {
+        if matches!(self.charity.economics_status, ChoamEconomicsStatus::Double | ChoamEconomicsStatus::DoubleFlipped) {
             return 2;
         }
-        if matches!(self.economics_status, ChoamEconomicsStatus::Cancel | ChoamEconomicsStatus::CancelFlipped) {
+        if matches!(self.charity.economics_status, ChoamEconomicsStatus::Cancel | ChoamEconomicsStatus::CancelFlipped) {
             return 0;
         }
         1
@@ -40,7 +55,7 @@ impl Game {
         self.give_charity(player, basic_amount);
 
         if !self.player(player).is(Faction::BeneGesserit) {
-            self.resource_tech_token_income = true;
+            self.charity.resource_tech_token_income = true;
         }
 
         self.stone(Milestone::CharityClaimed);

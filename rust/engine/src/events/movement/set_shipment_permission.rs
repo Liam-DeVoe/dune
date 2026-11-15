@@ -58,13 +58,13 @@ impl SetShipmentPermission {
 
         let factions = self.factions.as_ref().required("factions")?;
         for f in factions {
-            game.shipment_permissions.remove(f);
+            game.ship_move.shipment_permissions.remove(f);
         }
 
         if self.permission != ShipmentPermission::None {
             for f in factions {
                 // Dictionary.Add: ArgumentException on a faction listed twice.
-                game.shipment_permissions.insert_new(*f, self.permission);
+                game.ship_move.shipment_permissions.insert_new(*f, self.permission);
             }
         }
         Ok(())

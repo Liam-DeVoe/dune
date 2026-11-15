@@ -28,7 +28,7 @@ impl ChoamEconomics {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.economics_status = self.status;
+        game.charity.economics_status = self.status;
         game.stone(Milestone::Economics);
         self.log(game);
         Ok(())

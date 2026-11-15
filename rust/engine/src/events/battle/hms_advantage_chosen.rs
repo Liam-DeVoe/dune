@@ -29,10 +29,10 @@ impl HMSAdvantageChosen {
 
     pub fn can_be_played(g: &Game, p: PlayerIndex) -> bool {
         let hms = g.map.hidden_mobile_stronghold();
-        g.chosen_hms_advantage == Some(StrongholdAdvantage::None)
-            && g.current_battle.is_some()
-            && g.current_battle.as_ref().expect("current battle").is_aggressor_or_defender(g, p)
-            && g.current_battle.as_ref().expect("current battle").territory(g) == Some(hms.location().territory())
+        g.battle.chosen_hms_advantage == Some(StrongholdAdvantage::None)
+            && g.battle.current_battle.is_some()
+            && g.battle.current_battle.as_ref().expect("current battle").is_aggressor_or_defender(g, p)
+            && g.battle.current_battle.as_ref().expect("current battle").territory(g) == Some(hms.location().territory())
             && g.owns_stronghold(g.player(p).faction, hms.location())
             && !HMSAdvantageChosen::valid_advantages(g, p).is_empty()
     }
@@ -59,7 +59,7 @@ impl HMSAdvantageChosen {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
-        game.chosen_hms_advantage = Some(self.advantage);
+        game.battle.chosen_hms_advantage = Some(self.advantage);
         Ok(())
     }
 

@@ -81,7 +81,7 @@ pub fn determine(g: &mut Game) -> Option<PauseRequirements> {
             let countdown = amal || g.is_playing(Faction::Richese) || g.is_playing(Faction::Ixian);
             end_of_phase(g, vec![]).with_countdown(countdown)
         }
-        Phase::ReplacingCardJustWon => wait(present(&[g.get_player(Some(g.faction_that_may_replace_bought_card))])),
+        Phase::ReplacingCardJustWon => wait(present(&[g.get_player(Some(g.bidding.faction_that_may_replace_bought_card))])),
         Phase::WaitingForNextBiddingRound => wait(present(&[atreides(g)])),
         Phase::BiddingReport => {
             let others = present(&[tleilaxu_limits(g), emperor_discard(g)]);
@@ -227,7 +227,7 @@ fn tleilaxu_limits(g: &Game) -> Option<PlayerIndex> {
     let p = g.get_player(Some(Faction::Tleilaxu))?;
     (g.players.len() > 1
         && !g.prevented(FactionAdvantage::TleilaxuIncreasingRevivalLimits)
-        && g.factions_with_increased_revival_limits.as_ref().expect("factions with increased revival limits").is_empty())
+        && g.revival.factions_with_increased_revival_limits.as_ref().expect("factions with increased revival limits").is_empty())
     .then_some(p)
 }
 
@@ -263,7 +263,7 @@ fn moritani_removing_tokens(g: &Game) -> Option<PlayerIndex> {
 /// Moritani plants a terror token once per turn. Its unplaced tokens are secret, so they are not
 /// checked.
 fn moritani_planting(g: &Game) -> Option<PlayerIndex> {
-    if !g.moritani_has_performed_terror && !g.prevented(FactionAdvantage::MoritaniPlantingTerror) {
+    if !g.contemplate.moritani_has_performed_terror && !g.prevented(FactionAdvantage::MoritaniPlantingTerror) {
         g.get_player(Some(Faction::Moritani))
     } else {
         None
@@ -273,6 +273,6 @@ fn moritani_planting(g: &Game) -> Option<PlayerIndex> {
 /// In the Mentat phase CHOAM may play Inflation or, with cards, Trip to Gamont.
 fn choam_in_mentat(g: &Game) -> Option<PlayerIndex> {
     let p = g.get_player(Some(Faction::Choam))?;
-    let inflation = g.economics_status == ChoamEconomicsStatus::None && !g.prevented(FactionAdvantage::ChoamEconomics);
+    let inflation = g.charity.economics_status == ChoamEconomicsStatus::None && !g.prevented(FactionAdvantage::ChoamEconomics);
     (inflation || !g.player(p).treachery_cards.is_empty()).then_some(p)
 }

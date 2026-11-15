@@ -37,27 +37,27 @@ impl NexusCardDrawn {
     }
 
     pub fn may_draw(g: &Game, p: PlayerIndex) -> bool {
-        !g.factions_that_drew_nexus_card.contains(&g.player(p).faction) || g.player(p).faction == g.player(p).nexus
+        !g.blow.factions_that_drew_nexus_card.contains(&g.player(p).faction) || g.player(p).faction == g.player(p).nexus
     }
 
     pub fn applicable(g: &Game, p: PlayerIndex) -> bool {
-        g.factions_that_may_draw_nexus_card.contains(&g.player(p).faction)
+        g.blow.factions_that_may_draw_nexus_card.contains(&g.player(p).faction)
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         if !self.passed {
             self.deal_nexus_card(game);
-            game.factions_that_drew_nexus_card.push(self.initiator());
+            game.blow.factions_that_drew_nexus_card.push(self.initiator());
         }
 
         if self.passed {
             let initiator = self.initiator();
-            if let Some(i) = game.factions_that_may_draw_nexus_card.iter().position(|f| *f == initiator) {
-                game.factions_that_may_draw_nexus_card.remove(i);
+            if let Some(i) = game.blow.factions_that_may_draw_nexus_card.iter().position(|f| *f == initiator) {
+                game.blow.factions_that_may_draw_nexus_card.remove(i);
             }
         }
 
-        if game.factions_that_may_draw_nexus_card.is_empty() {
+        if game.blow.factions_that_may_draw_nexus_card.is_empty() {
             game.end_blow_phase();
         }
         Ok(())

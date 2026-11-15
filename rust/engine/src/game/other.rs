@@ -22,9 +22,9 @@ impl Game {
             }
         }
 
-        self.latest_revealed_no_field_value = self.current_no_field_value;
+        self.ship_move.latest_revealed_no_field_value = self.ship_move.current_no_field_value;
         Player::special_forces_to_reserves(self, player, no_field_location, 1);
-        let nr_of_forces = self.player(player).forces_in_reserve().min(self.current_no_field_value);
+        let nr_of_forces = self.player(player).forces_in_reserve().min(self.ship_move.current_no_field_value);
         Player::ship_forces(self, player, no_field_location, nr_of_forces);
         let faction = self.player(player).faction;
         self.log(vec![
@@ -38,11 +38,11 @@ impl Game {
             no_field_location.into(),
         ]);
 
-        if self.current_no_field_value == 0 {
+        if self.ship_move.current_no_field_value == 0 {
             self.flip_bene_gesserit_advisors_when_alone();
         }
 
-        self.current_no_field_value = -1;
+        self.ship_move.current_no_field_value = -1;
     }
 
     pub fn reveal_current_no_field_in_territory(&mut self, player: PlayerIndex, in_territory: Territory) {
@@ -75,7 +75,7 @@ impl Game {
     }
 
     pub fn revoke_plan_if_needed(&mut self, f: Faction) {
-        let plan = match self.current_battle.clone() {
+        let plan = match self.battle.current_battle.clone() {
             Some(b) => b.plan_of_faction(self, f),
             None => None,
         };
@@ -86,10 +86,10 @@ impl Game {
 
     pub fn revoke_plan(&mut self, plan: &Rc<Battle>) {
         // Event == is reference equality.
-        if self.aggressor_plan.as_ref().is_some_and(|a| Rc::ptr_eq(a, plan)) {
-            self.aggressor_plan = None;
-        } else if self.defender_plan.as_ref().is_some_and(|d| Rc::ptr_eq(d, plan)) {
-            self.defender_plan = None;
+        if self.battle.aggressor_plan.as_ref().is_some_and(|a| Rc::ptr_eq(a, plan)) {
+            self.battle.aggressor_plan = None;
+        } else if self.battle.defender_plan.as_ref().is_some_and(|d| Rc::ptr_eq(d, plan)) {
+            self.battle.defender_plan = None;
         }
     }
 

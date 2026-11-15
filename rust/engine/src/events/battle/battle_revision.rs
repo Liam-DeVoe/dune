@@ -26,21 +26,21 @@ impl BattleRevision {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let Some(current_battle) = game.current_battle.clone() else {
+        let Some(current_battle) = game.battle.current_battle.clone() else {
             game_error!("BattleRevision event executed when there is no current battle");
         };
 
         let withdrawn = current_battle.plan_of(game, self.player_opt());
         if let Some(withdrawn) = withdrawn {
             for aspect in Battle::aspects_seen_by_opponent(game, self.player()) {
-                game.prescience_seen_plans.insert(aspect, withdrawn.clone());
+                game.battle.prescience_seen_plans.insert(aspect, withdrawn.clone());
             }
         }
 
         if self.by(current_battle.aggressor(game)) {
-            game.previous_aggressor_plan = game.aggressor_plan.take();
+            game.battle.previous_aggressor_plan = game.battle.aggressor_plan.take();
         } else if self.by(current_battle.defender(game)) {
-            game.previous_defender_plan = game.defender_plan.take();
+            game.battle.previous_defender_plan = game.battle.defender_plan.take();
         }
         Ok(())
     }

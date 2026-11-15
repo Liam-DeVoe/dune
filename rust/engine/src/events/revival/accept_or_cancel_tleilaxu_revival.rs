@@ -48,27 +48,27 @@ impl AcceptOrCancelTleilaxuRevival {
 
         match self.hero() {
             None => {
-                let requests = game.current_revival_requests.clone();
+                let requests = game.revival.current_revival_requests.clone();
                 for r in requests.iter() {
                     let Some(h) = r.hero() else { game_error!("A revival request has no leader") };
-                    game.early_revivals_offers.insert_new(h, i32::MAX);
+                    game.revival.early_revivals_offers.insert_new(h, i32::MAX);
                 }
 
-                game.current_revival_requests.clear();
+                game.revival.current_revival_requests.clear();
             }
             Some(hero) => {
-                game.early_revivals_offers.remove(&hero);
+                game.revival.early_revivals_offers.remove(&hero);
 
                 if !self.cancel {
-                    game.early_revivals_offers.insert_new(hero, self.price);
+                    game.revival.early_revivals_offers.insert_new(hero, self.price);
                 }
 
                 let request_to_remove =
-                    game.current_revival_requests.iter().find(|r| r.hero() == Some(hero)).cloned();
+                    game.revival.current_revival_requests.iter().find(|r| r.hero() == Some(hero)).cloned();
                 if let Some(request_to_remove) = request_to_remove {
                     // List.Remove: events compare by reference.
-                    if let Some(i) = game.current_revival_requests.iter().position(|r| Rc::ptr_eq(r, &request_to_remove)) {
-                        game.current_revival_requests.remove(i);
+                    if let Some(i) = game.revival.current_revival_requests.iter().position(|r| Rc::ptr_eq(r, &request_to_remove)) {
+                        game.revival.current_revival_requests.remove(i);
                     }
                 }
             }

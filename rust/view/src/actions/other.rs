@@ -406,11 +406,11 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, draft: &GameEv
             m.target = required(m.target, &targets, Faction::None);
         }),
         GameEvent::IxianRemovedCardFromAuction(e) => adjust!(e, |m| {
-            let cards = card_ids(game.cards_on_auction.as_ref().map(|d| d.items.to_vec()).unwrap_or_default());
+            let cards = card_ids(game.bidding.cards_on_auction.as_ref().map(|d| d.items.to_vec()).unwrap_or_default());
             m.card_id = required(m.card_id, &cards, none_card);
         }),
         GameEvent::IxianSelectedStartingCard(e) => adjust!(e, |m| {
-            let cards = card_ids(game.starting_treachery_cards.as_ref().map(|d| d.items.to_vec()).unwrap_or_default());
+            let cards = card_ids(game.setup.starting_treachery_cards.as_ref().map(|d| d.items.to_vec()).unwrap_or_default());
             m.card_id = required(m.card_id, &cards, none_card);
         }),
         GameEvent::IxianSwappedCardOnBid(e) => adjust!(e, |m| {
@@ -641,10 +641,10 @@ fn options(game: &Game, p: PlayerIndex, v: &ResolvedViewer, draft: &GameEvent, d
             })
         }
         GameEvent::IxianRemovedCardFromAuction(_) => {
-            ActionOptions::IxianRemovedCardFromAuction(cards(card_ids(game.cards_on_auction.as_ref().map(|d| d.items.to_vec()).unwrap_or_default())))
+            ActionOptions::IxianRemovedCardFromAuction(cards(card_ids(game.bidding.cards_on_auction.as_ref().map(|d| d.items.to_vec()).unwrap_or_default())))
         }
         GameEvent::IxianSelectedStartingCard(_) => {
-            ActionOptions::IxianSelectedStartingCard(cards(card_ids(game.starting_treachery_cards.as_ref().map(|d| d.items.to_vec()).unwrap_or_default())))
+            ActionOptions::IxianSelectedStartingCard(cards(card_ids(game.setup.starting_treachery_cards.as_ref().map(|d| d.items.to_vec()).unwrap_or_default())))
         }
         GameEvent::IxianSwappedCardOnBid(_) => ActionOptions::IxianSwappedCardOnBid(cards(hand())),
         GameEvent::Karma(_) => ActionOptions::Karma(KarmaOptions {
@@ -658,8 +658,8 @@ fn options(game: &Game, p: PlayerIndex, v: &ResolvedViewer, draft: &GameEvent, d
             draft: json.clone(),
         }),
         GameEvent::KarmaHandSwap(_) => ActionOptions::KarmaHandSwap(KarmaHandSwapOptions {
-            number: game.karma_hand_swap_number_of_cards,
-            target: game.karma_hand_swap_target.to_string(),
+            number: game.bidding.karma_hand_swap_number_of_cards,
+            target: game.bidding.karma_hand_swap_target.to_string(),
             cards: hand(),
             draft: json.clone(),
         }),
@@ -811,9 +811,9 @@ fn simple_options(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describ
         GameEventType::RicheseRevealedNoField => simple(
             m(express!(
                 "Reveal your currently active No-Field of ",
-                game.current_no_field_value,
+                game.ship_move.current_no_field_value,
                 ", placing ",
-                game.current_no_field_value.min(pl.forces_in_reserve()),
+                game.ship_move.current_no_field_value.min(pl.forces_in_reserve()),
                 " ",
                 FactionForce::Richese,
                 "?"
@@ -853,7 +853,7 @@ fn yes_no_options(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Descri
         GameEventType::AllianceByTerror => yes_no(m(express!("Enter an alliance with ", Faction::Moritani, "?")), true, draft),
         GameEventType::AllianceByAmbassador => yes_no(m(express!("Enter an alliance with ", Faction::Ecaz, "?")), true, draft),
         GameEventType::BattleClaimed => {
-            let territory = game.battle_about_to_start.as_ref().and_then(|b| b.territory(game));
+            let territory = game.battle.battle_about_to_start.as_ref().and_then(|b| b.territory(game));
             let title = if game.player(p).faction == Faction::Ecaz {
                 express!("Do you wish to fight in ", territory, "? Otherwise, your ally will.")
             } else {
@@ -862,7 +862,7 @@ fn yes_no_options(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Descri
             yes_no(m(title), true, draft)
         }
         GameEventType::DivideResourcesAccepted => yes_no(text(format(d, "Agree with the proposed division of {0}?", &[Concept::Resource.into()])), true, draft),
-        GameEventType::CardGiven => yes_no(m(express!("Give your ally the ", game.card_that_must_be_kept_or_given_to_ally, " you just received?")), true, draft),
+        GameEventType::CardGiven => yes_no(m(express!("Give your ally the ", game.bidding.card_that_must_be_kept_or_given_to_ally, " you just received?")), true, draft),
         GameEventType::Bureaucracy => yes_no(m(express!("Use your ", LeaderSkill::Bureaucrat, " skill?")), true, draft),
         GameEventType::Captured => yes_no(text("Do you wish to capture a random leader from your opponent?"), true, draft),
         _ => return None,

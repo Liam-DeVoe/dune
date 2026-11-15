@@ -78,12 +78,12 @@ impl Game {
                 }
             }
             Phase::AllianceByTerror => {
-                if faction == self.alliance_by_terror_offered_to {
+                if faction == self.ship_move.alliance_by_terror_offered_to {
                     result.push(GameEventType::AllianceByTerror);
                 }
             }
             Phase::AllianceByAmbassador => {
-                if faction == self.alliance_by_ambassador_offered_to {
+                if faction == self.ship_move.alliance_by_ambassador_offered_to {
                     result.push(GameEventType::AllianceByAmbassador);
                 }
             }
@@ -104,7 +104,7 @@ impl Game {
             }
             Phase::DiallingStorm => {
                 let f = self.player(player).faction;
-                if self.has_battle_wheel.contains(&f) && !self.has_acted_or_passed.contains(&f) {
+                if self.storm.has_battle_wheel.contains(&f) && !self.has_acted_or_passed.contains(&f) {
                     result.push(GameEventType::StormDialled);
                 }
             }
@@ -181,7 +181,7 @@ impl Game {
                 }
             }
             Phase::VoteAllianceA | Phase::VoteAllianceB => {
-                if self.nexus_votes.iter().all(|v| v.initiator() != faction) {
+                if self.blow.nexus_votes.iter().all(|v| v.initiator() != faction) {
                     result.push(GameEventType::NexusVoted);
                 }
             }
@@ -278,7 +278,7 @@ impl Game {
                 }
             }
             Phase::ReplacingCardJustWon => {
-                if faction == self.faction_that_may_replace_bought_card {
+                if faction == self.bidding.faction_that_may_replace_bought_card {
                     result.push(GameEventType::ReplacedCardWon);
                 }
             }
@@ -320,7 +320,7 @@ impl Game {
                     result.push(GameEventType::RequestTleilaxuRevival);
                 }
 
-                if faction == Faction::Tleilaxu && (!self.current_revival_requests.is_empty() || !self.early_revivals_offers.is_empty()) {
+                if faction == Faction::Tleilaxu && (!self.revival.current_revival_requests.is_empty() || !self.revival.early_revivals_offers.is_empty()) {
                     result.push(GameEventType::AcceptOrCancelTleilaxuRevival);
                 }
                 if self.has_something_to_revive(player) && !self.prevented_from_reviving(faction) {
@@ -423,11 +423,11 @@ impl Game {
 
             Phase::BattlePhase => {
                 // NextPlayerToBattle mutates BattleSequence; only read when CurrentBattle is null.
-                if self.current_battle.is_none() && Some(player) == self.next_player_to_battle() {
+                if self.battle.current_battle.is_none() && Some(player) == self.next_player_to_battle() {
                     result.push(GameEventType::BattleInitiated);
                 }
 
-                if self.current_battle.is_some() && SwitchedSkilledLeader::can_be_played(self, player) {
+                if self.battle.current_battle.is_some() && SwitchedSkilledLeader::can_be_played(self, player) {
                     result.push(GameEventType::SwitchedSkilledLeader);
                 }
 
@@ -447,16 +447,16 @@ impl Game {
                     result.push(GameEventType::Prescience);
                 }
 
-                if let Some(cb) = self.current_battle.clone() {
-                    if faction == cb.aggressor(self) && self.aggressor_plan.is_none() {
+                if let Some(cb) = self.battle.current_battle.clone() {
+                    if faction == cb.aggressor(self) && self.battle.aggressor_plan.is_none() {
                         result.push(GameEventType::Battle);
-                    } else if faction == cb.defender(self) && self.defender_plan.is_none() {
+                    } else if faction == cb.defender(self) && self.battle.defender_plan.is_none() {
                         result.push(GameEventType::Battle);
                     }
 
-                    if faction == cb.aggressor(self) && self.aggressor_plan.is_some() {
+                    if faction == cb.aggressor(self) && self.battle.aggressor_plan.is_some() {
                         result.push(GameEventType::BattleRevision);
-                    } else if faction == cb.defender(self) && self.defender_plan.is_some() {
+                    } else if faction == cb.defender(self) && self.battle.defender_plan.is_some() {
                         result.push(GameEventType::BattleRevision);
                     }
 
@@ -469,7 +469,7 @@ impl Game {
 
             Phase::ClaimingBattle => {
                 if self.has_low_threshold(Faction::Ecaz) {
-                    let opponent = match &self.battle_about_to_start {
+                    let opponent = match &self.battle.battle_about_to_start {
                         Some(b) => b.opponent_of_faction(self, Faction::Ecaz),
                         None => None,
                     };
@@ -482,17 +482,17 @@ impl Game {
             }
 
             Phase::CallTraitorOrPass => {
-                if let (Some(cb), Some(ap), Some(dp)) = (&self.current_battle, &self.aggressor_plan, &self.defender_plan) {
+                if let (Some(cb), Some(ap), Some(dp)) = (&self.battle.current_battle, &self.battle.aggressor_plan, &self.battle.defender_plan) {
                     let traitors = &self.player(player).traitors;
                     let ally_of = |f: Faction| self.get_player(Some(f)).map(|p| self.player(p).ally);
-                    if (self.aggressor_traitor_action.is_none() && faction == cb.aggressor(self))
-                        || (self.aggressor_traitor_action.is_none()
+                    if (self.battle.aggressor_traitor_action.is_none() && faction == cb.aggressor(self))
+                        || (self.battle.aggressor_traitor_action.is_none()
                             && faction == Faction::Harkonnen
                             && ally_of(ap.initiator()) == Some(Faction::Harkonnen)
                             && dp.hero().is_some()
                             && traitors.contains(&dp.hero().expect("hero")))
-                        || (self.defender_traitor_action.is_none() && faction == cb.defender(self))
-                        || (self.defender_traitor_action.is_none()
+                        || (self.battle.defender_traitor_action.is_none() && faction == cb.defender(self))
+                        || (self.battle.defender_traitor_action.is_none()
                             && faction == Faction::Harkonnen
                             && ally_of(dp.initiator()) == Some(Faction::Harkonnen)
                             && ap.hero().is_some()
@@ -502,19 +502,19 @@ impl Game {
                     }
                 }
 
-                if let Some(ap) = &self.aggressor_plan {
+                if let Some(ap) = &self.battle.aggressor_plan {
                     if faction == ap.initiator()
                         && ap.weapon().is_some_and(|w| w.type_() == TreacheryCardType::PoisonTooth)
-                        && !self.poison_tooth_cancelled
+                        && !self.battle.poison_tooth_cancelled
                     {
                         result.push(GameEventType::PoisonToothCancelled);
                     }
                 }
 
-                if let Some(dp) = &self.defender_plan {
+                if let Some(dp) = &self.battle.defender_plan {
                     if faction == dp.initiator()
                         && dp.weapon().is_some_and(|w| w.type_() == TreacheryCardType::PoisonTooth)
-                        && !self.poison_tooth_cancelled
+                        && !self.battle.poison_tooth_cancelled
                     {
                         result.push(GameEventType::PoisonToothCancelled);
                     }
@@ -530,7 +530,7 @@ impl Game {
             }
 
             Phase::Retreating => {
-                if Some(faction) == self.battle_loser {
+                if Some(faction) == self.battle.battle_loser {
                     result.push(GameEventType::Retreat);
                 }
             }
@@ -548,7 +548,7 @@ impl Game {
             }
 
             Phase::BattleConclusion => {
-                if Some(faction) == self.battle_winner && !self.battle_was_concluded_by_winner {
+                if Some(faction) == self.battle.battle_winner && !self.battle.battle_was_concluded_by_winner {
                     result.push(GameEventType::BattleConcluded);
                 }
                 if LoserConcluded::is_applicable(self, Some(player)) {
@@ -618,7 +618,7 @@ impl Game {
             Phase::Contemplate => {
                 if faction == Faction::Choam
                     && !self.prevented(FactionAdvantage::ChoamEconomics)
-                    && self.economics_status == ChoamEconomicsStatus::None
+                    && self.charity.economics_status == ChoamEconomicsStatus::None
                 {
                     result.push(GameEventType::ChoamEconomics);
                 }
@@ -648,8 +648,8 @@ impl Game {
             Phase::Thought => {
                 // `CurrentBattle?.OpponentOf(CurrentThought!.Initiator)`: the argument (and its
                 // NullReferenceException) is only evaluated when CurrentBattle is not null.
-                let opponent = match &self.current_battle {
-                    Some(cb) => cb.opponent_of_faction(self, self.current_thought.as_ref().expect("current thought").initiator()),
+                let opponent = match &self.battle.current_battle {
+                    Some(cb) => cb.opponent_of_faction(self, self.battle.current_thought.as_ref().expect("current thought").initiator()),
                     None => None,
                 };
                 if Some(player) == opponent {
@@ -699,7 +699,7 @@ impl Game {
         let has_finalized_battle_plan_waiting_to_be_resolved = (self.current_phase == Phase::BattlePhase
             || self.current_phase == Phase::MeltingRock
             || self.current_phase == Phase::CallTraitorOrPass)
-            && self.current_battle.as_ref().is_some_and(|cb| cb.plan_of(self, Some(player)).is_some());
+            && self.battle.current_battle.as_ref().is_some_and(|cb| cb.plan_of(self, Some(player)).is_some());
 
         if JuicePlayed::can_be_played_by(self, player) {
             result.push(GameEventType::JuicePlayed);
@@ -711,14 +711,14 @@ impl Game {
 
         if faction == Faction::Ecaz
             && self.current_phase == Phase::CallTraitorOrPass
-            && self.current_battle.is_some()
-            && self.current_battle.as_ref().expect("current battle").is_aggressor_or_defender(self, player)
+            && self.battle.current_battle.is_some()
+            && self.battle.current_battle.as_ref().expect("current battle").is_aggressor_or_defender(self, player)
             && !self.karma_prevented(faction)
             && !self.player(player).special_karma_power_used
             && self.player(player).has_karma(self)
             && self.applicable(Rule::AdvancedKarama)
         {
-            let plan_of_ecaz = self.current_battle.as_ref().expect("current battle").plan_of_faction(self, Faction::Ecaz);
+            let plan_of_ecaz = self.battle.current_battle.as_ref().expect("current battle").plan_of_faction(self, Faction::Ecaz);
             if plan_of_ecaz.is_some_and(|p| p.defense().is_none() && p.weapon().is_none()) {
                 result.push(GameEventType::KarmaEcazDial);
             }
@@ -855,9 +855,9 @@ impl Game {
             }
 
             if faction == Faction::Ixian
-                && ((!self.karma_prevented(faction) && !p.special_karma_power_used && p.has_karma(self)) || self.karma_hms_moves_left == 1)
+                && ((!self.karma_prevented(faction) && !p.special_karma_power_used && p.has_karma(self)) || self.storm.karma_hms_moves_left == 1)
                 && self.current_main_phase == MainPhase::ShipmentAndMove
-                && Some(player) == self.shipment_and_move_sequence.as_ref().expect("shipment and move sequence").current_player(self)
+                && Some(player) == self.ship_move.shipment_and_move_sequence.as_ref().expect("shipment and move sequence").current_player(self)
                 && p.any_forces_in(Some(self.map.hidden_mobile_stronghold().location())) > 0
                 && self.applicable(Rule::AdvancedKarama)
             {
@@ -877,8 +877,8 @@ impl Game {
 
             if faction == Faction::Atreides
                 && self.current_main_phase == MainPhase::Battle
-                && self.current_battle.is_some()
-                && self.current_battle.as_ref().expect("current battle").is_involved(self, player)
+                && self.battle.current_battle.is_some()
+                && self.battle.current_battle.as_ref().expect("current battle").is_involved(self, player)
                 && !self.karma_prevented(faction)
                 && !p.special_karma_power_used
                 && p.has_karma(self)
@@ -905,8 +905,8 @@ impl Game {
                 && !Donated::valid_targets(self, player).next().is_none()
                 && (is_host || p.resources > 0)
                 && Donated::may_donate(self, player)
-                && self.aggressor_plan.as_ref().is_none_or(|ap| faction != ap.initiator())
-                && self.defender_plan.as_ref().is_none_or(|dp| faction != dp.initiator())
+                && self.battle.aggressor_plan.as_ref().is_none_or(|ap| faction != ap.initiator())
+                && self.battle.defender_plan.as_ref().is_none_or(|dp| faction != dp.initiator())
             {
                 result.push(GameEventType::Donated);
             }
@@ -923,7 +923,7 @@ impl Game {
             }
 
             if self.current_phase != Phase::BlackMarketBidding
-                && (self.current_phase != Phase::Bidding || self.current_bid.is_none())
+                && (self.current_phase != Phase::Bidding || self.bidding.current_bid.is_none())
                 && !has_finalized_battle_plan_waiting_to_be_resolved
                 && DistransUsed::can_be_played(self, player)
             {
@@ -938,7 +938,7 @@ impl Game {
 
     /// Whether `player` is the current player of `ShipmentAndMoveSequence` (false if there is none).
     fn is_current_shipment_and_move_player(&self, player: PlayerIndex) -> bool {
-        match &self.shipment_and_move_sequence {
+        match &self.ship_move.shipment_and_move_sequence {
             Some(seq) => seq.current_player(self) == Some(player),
             None => false,
         }

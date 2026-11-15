@@ -51,7 +51,7 @@ impl ChoamFreeRevivalPrevention {
             game.discard_card(card, true)?;
         }
 
-        game.current_free_revival_prevention = Some(self.clone());
+        game.revival.current_free_revival_prevention = Some(self.clone());
         game.stone(Milestone::SpecialUselessPlayed);
         Ok(())
     }

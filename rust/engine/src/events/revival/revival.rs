@@ -98,7 +98,7 @@ impl Revival {
         }
         if special_forces > 0
             && initiator != Faction::Ixian
-            && game.factions_that_revived_special_forces_this_turn.contains(&initiator)
+            && game.revival.factions_that_revived_special_forces_this_turn.contains(&initiator)
         {
             return Some(express!("You already revived a ", pl.special_force(), " this turn"));
         }
@@ -116,7 +116,7 @@ impl Revival {
         }
 
         if initiator != Faction::Tleilaxu
-            && game.leader_revivals_this_turn.get(&initiator).copied().unwrap_or(0) > 0
+            && game.revival.leader_revivals_this_turn.get(&initiator).copied().unwrap_or(0) > 0
         {
             return Some(express!("You cannot revive more leaders this turn"));
         }
@@ -251,7 +251,7 @@ impl Revival {
         let pl = g.player(p);
 
         if pl.faction != Faction::Tleilaxu {
-            if g.leader_revivals_this_turn.contains_key(&pl.faction) {
+            if g.revival.leader_revivals_this_turn.contains_key(&pl.faction) {
                 return Either::Left(Either::Left(empty()));
             }
 
@@ -305,7 +305,7 @@ impl Revival {
     }
 
     pub fn is_allowed_early_revival(g: &Game, h: Hero) -> bool {
-        g.early_revivals_offers.get(&h).is_some_and(|value| *value < i32::MAX)
+        g.revival.early_revivals_offers.get(&h).is_some_and(|value| *value < i32::MAX)
     }
 
     pub fn normally_revivable_heroes(g: &Game, p: PlayerIndex) -> Vec<Hero> {
@@ -392,7 +392,7 @@ impl Revival {
         std::cmp::min(
             if pl.is(Faction::Ixian) {
                 normal_force_revival_limit
-            } else if g.factions_that_revived_special_forces_this_turn.contains(&pl.faction) {
+            } else if g.revival.factions_that_revived_special_forces_this_turn.contains(&pl.faction) {
                 0
             } else {
                 1
@@ -441,7 +441,7 @@ impl Revival {
         if ip.is(Faction::Tleilaxu) && !tleilaxu_discount_prevented {
             price = (0.5 * price as f64).ceil() as i32;
         } else if let Some(offer) = (!Self::normally_revivable_heroes(g, initiator).contains(&hero))
-            .then(|| g.early_revivals_offers.get(&hero).copied())
+            .then(|| g.revival.early_revivals_offers.get(&hero).copied())
             .flatten()
         {
             price = offer;
@@ -602,7 +602,7 @@ impl Revival {
         );
 
         if self.amount_of_special_forces + self.extra_special_forces_paid_by_emperor > 0 {
-            game.factions_that_revived_special_forces_this_turn.push(initiator);
+            game.revival.factions_that_revived_special_forces_this_turn.push(initiator);
         }
 
         //Register free revival
@@ -613,21 +613,21 @@ impl Revival {
         );
 
         if nr_of_free_revivals > 0 {
-            let free_revivals_this_turn = game.free_revivals_this_turn.get(&initiator).copied().unwrap_or(0);
+            let free_revivals_this_turn = game.revival.free_revivals_this_turn.get(&initiator).copied().unwrap_or(0);
             first_free_revival_this_turn = free_revivals_this_turn == 0;
-            game.free_revivals_this_turn.insert(initiator, free_revivals_this_turn + nr_of_free_revivals);
+            game.revival.free_revivals_this_turn.insert(initiator, free_revivals_this_turn + nr_of_free_revivals);
         }
 
         //Tech token activated?
         if first_free_revival_this_turn && initiator != Faction::Tleilaxu {
-            game.revival_tech_token_income = true;
+            game.revival.revival_tech_token_income = true;
         }
 
         //Tleilaxu income
         let tleilaxu = game.get_player(Some(Faction::Tleilaxu));
         let mut total_profits_for_tleilaxu: i32 = 0;
         if let Some(tleilaxu) = tleilaxu {
-            if first_free_revival_this_turn && !game.tleilaxu_started_revival_with_low_threshold {
+            if first_free_revival_this_turn && !game.revival.tleilaxu_started_revival_with_low_threshold {
                 total_profits_for_tleilaxu += 1;
             }
 
@@ -661,8 +661,8 @@ impl Revival {
         //Hero revival
         let mut as_ghola = false;
         if let Some(hero) = self.hero() {
-            let v = game.leader_revivals_this_turn.get(&initiator).copied().unwrap_or(0) + 1;
-            game.leader_revivals_this_turn.insert(initiator, v);
+            let v = game.revival.leader_revivals_this_turn.get(&initiator).copied().unwrap_or(0) + 1;
+            game.revival.leader_revivals_this_turn.insert(initiator, v);
             let leader = hero.as_leader();
 
             if initiator != hero.faction() && leader.is_some() {
@@ -688,7 +688,7 @@ impl Revival {
                 game.prepare_skill_assignment_to_revived_leader(me, leader);
             }
 
-            game.early_revivals_offers.remove(&hero);
+            game.revival.early_revivals_offers.remove(&hero);
         }
 
         //Logging
@@ -719,11 +719,11 @@ impl Revival {
                     " in ".into(),
                     to.into(),
                 ]);
-                game.last_shipment_or_movement = Some(self.clone().into_event());
+                game.ship_move.last_shipment_or_movement = Some(self.clone().into_event());
             }
 
             if game.check_intrusion(&self.clone().into_event())? {
-                game.phase_before_revival_caused_intrusion = game.current_phase;
+                game.ship_move.phase_before_revival_caused_intrusion = game.current_phase;
                 let bene_gesserit = game.last_bene_gesserit_intrusion().is_some();
                 let terror = game.last_terror_trigger().is_some();
                 game.enter_first(&[(bene_gesserit, Step::Enter(Phase::BeneGesseritIntrudedByRevival)), (terror, Step::Enter(Phase::TerrorTriggeredByRevival))], Step::Enter(Phase::AmbassadorTriggeredByRevival));
@@ -738,8 +738,8 @@ impl Revival {
         let total_amount_of_forces = self
             .amount_of_forces + self.extra_forces_paid_by_emperor + self.amount_of_special_forces + self.extra_special_forces_paid_by_emperor + high_threshold_extra_suboids;
 
-        let v = game.total_revivals_this_turn.get(&initiator).copied().unwrap_or(0) + total_amount_of_forces;
-        game.total_revivals_this_turn.insert(initiator, v);
+        let v = game.revival.total_revivals_this_turn.get(&initiator).copied().unwrap_or(0) + total_amount_of_forces;
+        game.revival.total_revivals_this_turn.insert(initiator, v);
 
         // Each kind of force counted once; Ixian's free extra suboids have their own part.
         let forces = self.amount_of_forces + self.extra_forces_paid_by_emperor;

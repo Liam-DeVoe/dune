@@ -59,7 +59,7 @@ impl AmbassadorPlaced {
     }
 
     pub fn is_applicable(g: &Game, p: PlayerIndex) -> bool {
-        g.player(p).resources > g.ambassadors_placed_this_turn
+        g.player(p).resources > g.revival.ambassadors_placed_this_turn
             && g.current_phase == Phase::ResurrectionReport
             && !g.prevented(FactionAdvantage::EcazAmbassadors)
             && !AmbassadorPlaced::valid_ambassadors(g, p).is_empty()
@@ -71,9 +71,9 @@ impl AmbassadorPlaced {
             game_error!("Stronghold is null");
         };
 
-        game.ambassadors_placed_this_turn += 1;
+        game.revival.ambassadors_placed_this_turn += 1;
         let me = self.player();
-        let placed = game.ambassadors_placed_this_turn;
+        let placed = game.revival.ambassadors_placed_this_turn;
         let p = game.player_mut(me);
         p.resources -= placed;
         self.log_objects(

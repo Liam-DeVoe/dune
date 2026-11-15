@@ -60,7 +60,7 @@ impl EndPhase {
             Phase::BeginningOfBidding => game.start_bidding_phase(),
 
             Phase::ReplacingCardJustWon => {
-                if game.card_just_won == game.card_sold_on_black_market {
+                if game.bidding.card_just_won == game.bidding.card_sold_on_black_market {
                     game.enter_richese_bidding();
                 } else {
                     game.determine_next_step_after_card_was_sold();
@@ -145,8 +145,8 @@ impl EndPhase {
     pub fn enter_charity_phase(&self, game: &mut Game) {
         game.main_phase_start(MainPhase::Charity, true);
         game.has_acted_or_passed.clear();
-        game.monsters.clear();
-        game.resource_tech_token_income = false;
+        game.blow.monsters.clear();
+        game.charity.resource_tech_token_income = false;
         game.allow(FactionAdvantage::FremenControlsMonster);
         game.allow(FactionAdvantage::FremenProtectedFromMonster);
 
@@ -199,7 +199,7 @@ impl EndPhase {
     }
 
     pub fn end_charity_phase(&self, game: &mut Game) {
-        if game.resource_tech_token_income {
+        if game.charity.resource_tech_token_income {
             game.receive_tech_income(TechToken::Resources);
         }
 
@@ -208,30 +208,30 @@ impl EndPhase {
     }
 
     pub fn enter_revival_phase(&self, game: &mut Game) {
-        game.card_just_won = None;
+        game.bidding.card_just_won = None;
         game.main_phase_start(MainPhase::Resurrection, true);
         game.allow(FactionAdvantage::HarkonnenFreeCard);
         game.allow(FactionAdvantage::EmperorReceiveBid);
         game.allow(FactionAdvantage::IxianAllyDiscardingCard);
-        game.revival_tech_token_income = false;
-        game.ambassadors_placed_this_turn = 0;
-        game.free_revivals_this_turn.clear();
-        game.total_revivals_this_turn.clear();
-        game.leader_revivals_this_turn.clear();
+        game.revival.revival_tech_token_income = false;
+        game.revival.ambassadors_placed_this_turn = 0;
+        game.revival.free_revivals_this_turn.clear();
+        game.revival.total_revivals_this_turn.clear();
+        game.revival.leader_revivals_this_turn.clear();
         //Game.HasActedOrPassed.Clear();
-        game.tleilaxu_started_revival_with_low_threshold = game.has_low_threshold(Faction::Tleilaxu);
+        game.revival.tleilaxu_started_revival_with_low_threshold = game.has_low_threshold(Faction::Tleilaxu);
 
         game.enter(Phase::BeginningOfResurrection, true);
     }
 
     pub fn end_resurrection_phase(&self, game: &mut Game) {
         game.allow(FactionAdvantage::TleilaxuReviveGhola);
-        if game.revival_tech_token_income {
+        if game.revival.revival_tech_token_income {
             game.receive_tech_income(TechToken::Graveyard);
         }
-        game.current_karma_revival_prevention = None;
+        game.revival.current_karma_revival_prevention = None;
         game.current_fremen_secret_ally = None;
-        game.current_recruits_played = None;
+        game.revival.current_recruits_played = None;
 
         game.main_phase_end();
         game.enter(Phase::ResurrectionReport, true);
@@ -239,39 +239,39 @@ impl EndPhase {
 
     pub fn enter_shipment_and_move_phase(&self, game: &mut Game) {
         game.main_phase_start(MainPhase::ShipmentAndMove, true);
-        game.factions_with_ornithopters_at_start_of_movement = (0..game.players.len())
+        game.ship_move.factions_with_ornithopters_at_start_of_movement = (0..game.players.len())
             .map(|i| game.player_at(i))
             .filter(|p| game.occupies_arrakeen_or_carthag(*p))
             .map(|p| game.player(p).faction)
             .collect();
-        game.recent_moves.clear();
-        game.beginning_of_shipment_and_move_phase = true;
-        game.factions_with_increased_revival_limits = Some(Vec::new());
-        game.early_revivals_offers.clear();
+        game.ship_move.recent_moves.clear();
+        game.ship_move.beginning_of_shipment_and_move_phase = true;
+        game.revival.factions_with_increased_revival_limits = Some(Vec::new());
+        game.revival.early_revivals_offers.clear();
 
-        game.ships_tech_token_income = false;
-        game.current_free_revival_prevention = None;
+        game.ship_move.ships_tech_token_income = false;
+        game.revival.current_free_revival_prevention = None;
         game.allow(FactionAdvantage::BeneGesseritAnnouncesBattle);
         game.allow(FactionAdvantage::EmperorLetAllyReviveExtraForces);
         game.allow(FactionAdvantage::TleilaxuReceiveRevive);
         game.allow(FactionAdvantage::ChoamRevival);
 
         game.has_acted_or_passed.clear();
-        game.last_shipment_or_movement = None;
+        game.ship_move.last_shipment_or_movement = None;
 
-        game.shipment_and_move_sequence = Some(PlayerSequence::starting_with_first_player(game));
+        game.ship_move.shipment_and_move_sequence = Some(PlayerSequence::starting_with_first_player(game));
 
         game.enter(Phase::BeginningOfShipAndMove, true);
     }
 
     pub fn enter_battle_phase(&self, game: &mut Game) {
         game.main_phase_start(MainPhase::Battle, true);
-        game.nr_of_battles_fought = 0;
-        game.battle_sequence = Some(PlayerSequence::starting_with_first_player(game));
+        game.battle.nr_of_battles_fought = 0;
+        game.battle.battle_sequence = Some(PlayerSequence::starting_with_first_player(game));
         game.current_guild_cunning = None;
         game.current_guild_secret_ally = None;
-        if game.karma_hms_moves_left != 2 {
-            game.karma_hms_moves_left = 0;
+        if game.storm.karma_hms_moves_left != 2 {
+            game.storm.karma_hms_moves_left = 0;
         }
         self.reset_battle(game);
         // Arguments are evaluated before the call (NextPlayerToBattle mutates BattleSequence).
@@ -284,37 +284,37 @@ impl EndPhase {
 
     pub fn reset_battle(&self, game: &mut Game) {
         game.facedancer_was_cancelled = false;
-        game.current_battle = None;
-        game.current_prescience = None;
-        game.prescience_seen_plans.clear();
-        game.current_thought = None;
-        game.current_voice = None;
+        game.battle.current_battle = None;
+        game.battle.current_prescience = None;
+        game.battle.prescience_seen_plans.clear();
+        game.battle.current_thought = None;
+        game.battle.current_voice = None;
         game.current_nexus_prescience = None;
         game.current_bene_gesserit_cunning = None;
         game.current_emperor_cunning = None;
         game.current_ixian_cunning = None;
-        game.harkonnen_victim = None;
-        game.aggressor_plan = None;
-        game.defender_plan = None;
-        game.previous_aggressor_plan = None;
-        game.previous_defender_plan = None;
-        game.aggressor_traitor_action = None;
-        game.defender_traitor_action = None;
-        game.poison_tooth_cancelled = false;
-        game.ixian_special_force_losses_to_take = 0;
-        game.battle_winner = Some(Faction::None);
-        game.battle_loser = Some(Faction::None);
+        game.battle.harkonnen_victim = None;
+        game.battle.aggressor_plan = None;
+        game.battle.defender_plan = None;
+        game.battle.previous_aggressor_plan = None;
+        game.battle.previous_defender_plan = None;
+        game.battle.aggressor_traitor_action = None;
+        game.battle.defender_traitor_action = None;
+        game.battle.poison_tooth_cancelled = false;
+        game.battle.ixian_special_force_losses_to_take = 0;
+        game.battle.battle_winner = Some(Faction::None);
+        game.battle.battle_loser = Some(Faction::None);
         game.has_acted_or_passed.clear();
-        game.battle_triggered_bureaucracy = None;
-        game.cards_to_be_discarded_by_loser_after_battle.clear();
-        game.battle_was_concluded_by_winner = false;
-        game.loser_may_try_to_assassinate = false;
-        game.battle_winner_may_choose_to_discard = true;
-        game.battle_about_to_start = None;
-        game.current_ecaz_or_ally_fighter = Some(Faction::None);
-        game.current_ecaz_battle_contribution = 0;
-        game.atreides_karma = false;
-        game.ecaz_karma_bonus = 0;
+        game.battle.battle_triggered_bureaucracy = None;
+        game.battle.cards_to_be_discarded_by_loser_after_battle.clear();
+        game.battle.battle_was_concluded_by_winner = false;
+        game.battle.loser_may_try_to_assassinate = false;
+        game.battle.battle_winner_may_choose_to_discard = true;
+        game.battle.battle_about_to_start = None;
+        game.battle.current_ecaz_or_ally_fighter = Some(Faction::None);
+        game.battle.current_ecaz_battle_contribution = 0;
+        game.battle.atreides_karma = false;
+        game.battle.ecaz_karma_bonus = 0;
     }
 
     pub fn enter_spice_collection_phase(&self, game: &mut Game) {
@@ -362,10 +362,10 @@ impl GameEventMethods for EndPhase {
 /// the action (it only touches `Game`).
 fn enter_spice_collection_phase(game: &mut Game) {
     game.main_phase_start(MainPhase::Collection, true);
-    game.resources_collected_by_fremen = 0;
-    game.resources_collected_by_harkonnen_from_desert_or_homeworld = 0;
+    game.collection.resources_collected_by_fremen = 0;
+    game.collection.resources_collected_by_harkonnen_from_desert_or_homeworld = 0;
     call_heroes_home(game);
-    game.pending_discoveries = game
+    game.collection.pending_discoveries = game
         .discoveries_on_planet
         .iter()
         .filter(|kvp| game.any_forces_in(kvp.0.territory()))

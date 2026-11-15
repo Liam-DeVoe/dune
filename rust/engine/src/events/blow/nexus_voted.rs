@@ -30,9 +30,9 @@ impl NexusVoted {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
-        game.nexus_votes.push(self.clone());
-        if game.nexus_votes.len() == game.players.len() {
-            let passed = game.nexus_votes.iter().filter(|v| v.passed).count() as i32;
+        game.blow.nexus_votes.push(self.clone());
+        if game.blow.nexus_votes.len() == game.players.len() {
+            let passed = game.blow.nexus_votes.iter().filter(|v| v.passed).count() as i32;
             if (2i32 * passed) >= game.players.len() as i32 {
                 let condition = game.current_phase == Phase::VoteAllianceA && game.applicable(Rule::IncreasedResourceFlow);
                 Game::run_either(game, condition, Game::enter_blow_b, Game::start_nexus_card_phase);

@@ -141,17 +141,17 @@ impl Battle {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let Some(current_battle) = game.current_battle.clone() else {
+        let Some(current_battle) = game.battle.current_battle.clone() else {
             game_error!("Battle event executed when there is no current battle");
         };
 
         if self.initiator() == current_battle.aggressor(game) {
-            game.aggressor_plan = Some(self.clone());
+            game.battle.aggressor_plan = Some(self.clone());
         } else if self.initiator() == current_battle.defender(game) {
-            game.defender_plan = Some(self.clone());
+            game.battle.defender_plan = Some(self.clone());
         }
 
-        if let (Some(aggressor_plan), Some(defender_plan)) = (game.aggressor_plan.clone(), game.defender_plan.clone()) {
+        if let (Some(aggressor_plan), Some(defender_plan)) = (game.battle.aggressor_plan.clone(), game.battle.defender_plan.clone()) {
             let battle_territory = current_battle.territory(game);
             if let Some(battle_territory) = battle_territory {
                 let supplier = Battle::determine_force_supplier(game, aggressor_plan.player());
@@ -185,7 +185,7 @@ impl Battle {
     }
 
     pub fn pass_tleilaxu_traitor_action(&self, game: &mut Game) {
-        let Some(current_battle) = game.current_battle.clone() else {
+        let Some(current_battle) = game.battle.current_battle.clone() else {
             panic!("Battle event executed when there is no current battle");
         };
 
@@ -198,13 +198,13 @@ impl Battle {
         {
             let mut action = TreacheryCalled::new(game, Faction::Tleilaxu);
             action.traitor_called = false;
-            game.aggressor_traitor_action = Some(Rc::new(action));
+            game.battle.aggressor_traitor_action = Some(Rc::new(action));
         } else if current_battle.defender(game) == Faction::Tleilaxu
             && (tleilaxu_ally_is_not_harkonnen(game, self) || game.prevented(FactionAdvantage::HarkonnenCallTraitorForAlly))
         {
             let mut action = TreacheryCalled::new(game, Faction::Tleilaxu);
             action.traitor_called = false;
-            game.defender_traitor_action = Some(Rc::new(action));
+            game.battle.defender_traitor_action = Some(Rc::new(action));
         }
     }
 
@@ -215,7 +215,7 @@ impl Battle {
     /// The plan as the log shows it, or why it can't be shown: the game has no battle against an
     /// opponent (an undo replays the plan into a game whose battle is over).
     pub fn try_get_battle_plan_message(&self, game: &Game) -> GameResult<Message> {
-        let opponent = game.current_battle.as_ref().required("current battle")?.opponent_of_faction(game, self.initiator()).required("opponent")?;
+        let opponent = game.battle.current_battle.as_ref().required("current battle")?.opponent_of_faction(game, self.initiator()).required("opponent")?;
         Ok(express!(
             self.initiator(),
             " Plan → leader: ",
@@ -235,7 +235,7 @@ impl Battle {
         let faction = self.initiator();
         let leader = self.hero();
         let messiah = self.messiah;
-        let opponent = game.current_battle.as_ref().expect("current battle").opponent_of_faction(game, self.initiator()).expect("opponent of faction");
+        let opponent = game.battle.current_battle.as_ref().expect("current battle").opponent_of_faction(game, self.initiator()).expect("opponent of faction");
         let dial = self.dial(game, game.player(opponent).faction);
         let spice = if game.applicable(Rule::AdvancedCombat) { Some(self.cost(game)) } else { None };
         let ally_contribution = self.ally_contribution_amount;
@@ -259,7 +259,7 @@ impl Battle {
             self.log_objects(game, le![self.original_weapon.get(), " becomes a ", self.weapon()]);
         }
         if let Some(card) = swap.card_used_by_diplomat {
-            game.card_used_by_diplomat = card;
+            game.battle.card_used_by_diplomat = card;
         }
     }
 
@@ -273,7 +273,7 @@ impl Battle {
             swap.mirror_weapon_used = true;
         }
 
-        if game.current_diplomacy.as_ref().is_some_and(|d| d.by(self.initiator())) {
+        if game.battle.current_diplomacy.as_ref().is_some_and(|d| d.by(self.initiator())) {
             self.original_defense.set(self.defense());
             self.set_defense(opponent_defense);
             swap.card_used_by_diplomat = Some(self.original_defense.get());
@@ -314,13 +314,13 @@ impl Battle {
     pub fn dial_of_forces(g: &Game, p: PlayerIndex, opponent: Faction, forces: i32, special_forces: i32, forces_at_half_strength: i32, special_forces_at_half_strength: i32) -> f32 {
         let pl = g.player(p);
         let ecaz_battle_contribution = if !g.prevented(FactionAdvantage::EcazOccupation) && (pl.faction == Faction::Ecaz || pl.ally == Faction::Ecaz) {
-            g.current_ecaz_battle_contribution
+            g.battle.current_ecaz_battle_contribution
         } else {
             0
         };
 
         // `CurrentEcazOrAllyFighter == Faction.None` is false while it is null.
-        if g.current_ecaz_or_ally_fighter == Some(Faction::None) || pl.faction != Faction::Ecaz {
+        if g.battle.current_ecaz_or_ally_fighter == Some(Faction::None) || pl.faction != Faction::Ecaz {
             return Battle::force_value(g, pl.faction, opponent, forces, special_forces, forces_at_half_strength, special_forces_at_half_strength)
                 + ecaz_battle_contribution as f32;
         }
@@ -363,10 +363,10 @@ impl Battle {
     fn outcome_with_dynamic_weapons_active(agg: &Rc<Battle>, def: &Rc<Battle>, territory: Territory, game: &Game) -> BattleOutcome {
         let mut result = BattleOutcome::new(agg.player(), def.player());
 
-        let poison_tooth_used = !game.poison_tooth_cancelled && (agg.has_poison_tooth() || def.has_poison_tooth());
+        let poison_tooth_used = !game.battle.poison_tooth_cancelled && (agg.has_poison_tooth() || def.has_poison_tooth());
         let artillery_used = agg.has_artillery() || def.has_artillery();
         let rock_melter_used = agg.has_rock_melter() || def.has_rock_melter();
-        let rock_melter_used_to_kill = game.current_rock_was_melted.as_ref().is_some_and(|r| r.kill);
+        let rock_melter_used_to_kill = game.battle.current_rock_was_melted.as_ref().is_some_and(|r| r.kill);
 
         result.agg_hero_killed = false;
         result.agg_hero_cause_of_death = TreacheryCardType::None;
@@ -443,8 +443,8 @@ impl Battle {
                 .def_hero_effective_strength + result.def_hero_skill_bonus) + result.def_messiah_contribution
         };
 
-        let agg_ecaz_karma_contribution = if agg.initiator() == Faction::Ecaz { game.ecaz_karma_bonus } else { 0 };
-        let def_ecaz_karma_contribution = if def.initiator() == Faction::Ecaz { game.ecaz_karma_bonus } else { 0 };
+        let agg_ecaz_karma_contribution = if agg.initiator() == Faction::Ecaz { game.battle.ecaz_karma_bonus } else { 0 };
+        let def_ecaz_karma_contribution = if def.initiator() == Faction::Ecaz { game.battle.ecaz_karma_bonus } else { 0 };
 
         let agg_force_supplier = Battle::determine_force_supplier(game, result.aggressor);
         result.agg_undialed_forces = game.player(agg_force_supplier).any_forces_in_territory(Some(territory)) - agg.total_forces();
@@ -478,13 +478,13 @@ impl Battle {
             let ecaz = game.get_player(Some(Faction::Ecaz));
 
             result.agg_total = result.agg_undialed_forces as f32;
-            if Some(game.player(result.aggressor).faction) == game.current_ecaz_or_ally_fighter {
+            if Some(game.player(result.aggressor).faction) == game.battle.current_ecaz_or_ally_fighter {
                 let ecaz_forces = ecaz.map(|p| game.player(p).any_forces_in_territory(Some(territory))).unwrap_or(0);
                 result.agg_total += ((0.5f32 * ecaz_forces as f32) as f64).ceil() as i32 as f32;
             }
 
             result.def_total = result.def_undialed_forces as f32;
-            if Some(game.player(result.defender).faction) == game.current_ecaz_or_ally_fighter {
+            if Some(game.player(result.defender).faction) == game.battle.current_ecaz_or_ally_fighter {
                 let ecaz_forces = ecaz.map(|p| game.player(p).any_forces_in_territory(Some(territory))).unwrap_or(0);
                 result.def_total += ((0.5f32 * ecaz_forces as f32) as f64).ceil() as i32 as f32;
             }
@@ -579,7 +579,7 @@ impl Battle {
             return Some(express!("Can't use treachery cards without a leader"));
         }
         if let Some(hero @ Hero::Leader(_)) = self.hero() {
-            if let Some(t) = game.current_battle.as_ref().expect("current battle").territory(game) {
+            if let Some(t) = game.battle.current_battle.as_ref().expect("current battle").territory(game) {
                 if !game.can_fight_in(hero, t) {
                     return Some(express!("Selected leader already fought in another territory"));
                 }
@@ -597,11 +597,11 @@ impl Battle {
         if self.defense().is_none() && self.weapon().is_some_and(|w| w.type_() == TreacheryCardType::Chemistry) {
             return Some(express!("You can't use ", TreacheryCardType::Chemistry, " as weapon without using a defense"));
         }
-        let battle_territory = game.current_battle.as_ref().expect("current battle").territory(game);
+        let battle_territory = game.battle.current_battle.as_ref().expect("current battle").territory(game);
         if !Battle::valid_weapons(game, p, self.defense(), self.hero(), battle_territory, true).contains(&self.weapon()) {
             return Some(express!("Invalid weapon"));
         }
-        let battle_territory = game.current_battle.as_ref().expect("current battle").territory(game);
+        let battle_territory = game.battle.current_battle.as_ref().expect("current battle").territory(game);
         if !Battle::valid_defenses(game, p, self.weapon(), battle_territory, true).contains(&self.defense()) {
             return Some(express!("Invalid defense"));
         }
@@ -621,15 +621,15 @@ impl Battle {
         }
 
         // var opponent = Game.CurrentBattle.OpponentOf(p)!.Faction;  evaluated even with no seen plans.
-        let opponent = game.player(game.current_battle.as_ref().expect("current battle").opponent_of(game, p).expect("opponent of")).faction;
-        for (aspect, seen) in game.prescience_seen_plans.iter() {
+        let opponent = game.player(game.battle.current_battle.as_ref().expect("current battle").opponent_of(game, p).expect("opponent of")).faction;
+        for (aspect, seen) in game.battle.prescience_seen_plans.iter() {
             if seen.initiator() == self.initiator() && !self.matches(game, seen, *aspect, opponent) {
                 return Some(express!("Your ", *aspect, " was revealed by prescience and can't change"));
             }
         }
 
-        if self.hero().is_some() && Battle::affected_by_voice(game, self.player(), game.current_voice.as_ref()) {
-            if let Some(current_voice) = game.current_voice.as_ref().filter(|v| v.must) {
+        if self.hero().is_some() && Battle::affected_by_voice(game, self.player(), game.battle.current_voice.as_ref()) {
+            if let Some(current_voice) = game.battle.current_voice.as_ref().filter(|v| v.must) {
                 let vt = current_voice.type_;
                 if vt != TreacheryCardType::Mercenary
                     && pl
@@ -649,7 +649,7 @@ impl Battle {
 
     pub fn determine_force_supplier(g: &Game, player_that_fights: PlayerIndex) -> PlayerIndex {
         let p = g.player(player_that_fights);
-        if p.is(Faction::Ecaz) && g.current_ecaz_or_ally_fighter != Some(Faction::None) && !g.prevented(FactionAdvantage::EcazOccupation) {
+        if p.is(Faction::Ecaz) && g.battle.current_ecaz_or_ally_fighter != Some(Faction::None) && !g.prevented(FactionAdvantage::EcazOccupation) {
             return p.allied_player(g).unwrap_or(player_that_fights);
         }
 
@@ -687,9 +687,9 @@ impl Battle {
     /// caller (`BattleRevision`) enumerates once, and its loop body writes only `PrescienceSeenPlans`, which
     /// this query does not read. Nothing in here throws once `CurrentBattle` is set.
     pub fn aspects_seen_by_opponent(g: &Game, p: PlayerIndex) -> Vec<PrescienceAspect> {
-        let battle = g.current_battle.as_ref().expect("current battle");
+        let battle = g.battle.current_battle.as_ref().expect("current battle");
         let mut result = Vec::new();
-        if let Some(prescience) = g.current_prescience.as_ref() {
+        if let Some(prescience) = g.battle.current_prescience.as_ref() {
             if battle.opponent_of_faction(g, prescience.initiator()) == Some(p) {
                 result.push(prescience.aspect);
             }
@@ -699,7 +699,7 @@ impl Battle {
                 result.push(nexus_prescience.atreides_prescience_aspect);
             }
         }
-        if g.atreides_karma && battle.opponent_of_faction(g, Faction::Atreides) == Some(p) {
+        if g.battle.atreides_karma && battle.opponent_of_faction(g, Faction::Atreides) == Some(p) {
             result.extend([PrescienceAspect::Leader, PrescienceAspect::Weapon, PrescienceAspect::Defense, PrescienceAspect::Dial]);
         }
         result
@@ -717,7 +717,7 @@ impl Battle {
     }
 
     pub fn is_using_portable_antidote(g: &Game, faction: Faction) -> bool {
-        g.current_portable_antidote_used.as_ref().map(|e| e.initiator()) == Some(faction)
+        g.battle.current_portable_antidote_used.as_ref().map(|e| e.initiator()) == Some(faction)
     }
 
     pub fn determine_special_force_strength(g: &Game, player: Faction, opponent: Faction) -> f32 {
@@ -786,7 +786,7 @@ impl Battle {
     }
 
     pub fn cost_reduction(g: &Game, p: PlayerIndex) -> i32 {
-        match g.current_battle.as_ref().and_then(|b| b.territory(g)) {
+        match g.battle.current_battle.as_ref().and_then(|b| b.territory(g)) {
             Some(t) if g.has_stronghold_advantage(g.player(p).faction, StrongholdAdvantage::FreeResourcesForBattles, t) => 2,
             _ => 0,
         }
@@ -826,14 +826,14 @@ impl Battle {
     pub fn max_forces(g: &Game, p: PlayerIndex, special_forces: bool) -> i32 {
         let force_supplier = Battle::determine_force_supplier(g, p);
 
-        let Some(territory) = g.current_battle.as_ref().and_then(|b| b.territory(g)) else {
+        let Some(territory) = g.battle.current_battle.as_ref().and_then(|b| b.territory(g)) else {
             return 0;
         };
         let fs = g.player(force_supplier);
 
         if !special_forces {
             if fs.faction == Faction::Richese && fs.special_forces_in_territory(Some(territory)) > 0 {
-                return fs.forces_in_reserve().min(g.current_no_field_value) + fs.forces_in_territory(Some(territory));
+                return fs.forces_in_reserve().min(g.ship_move.current_no_field_value) + fs.forces_in_territory(Some(territory));
             }
             return fs.forces_in_territory(Some(territory));
         }
@@ -893,7 +893,7 @@ impl Battle {
         let Some(voice) = voice else {
             return false;
         };
-        let opponent = g.current_battle.as_ref().and_then(|b| b.opponent_of(g, p));
+        let opponent = g.battle.current_battle.as_ref().and_then(|b| b.opponent_of(g, p));
         match opponent {
             Some(o) => voice.initiator() == g.player(o).faction || voice.initiator() == g.player(o).ally,
             None => false,
@@ -901,11 +901,11 @@ impl Battle {
     }
 
     pub fn valid_battle_heroes(g: &Game, p: PlayerIndex) -> Vec<Hero> {
-        let affected_by_voice = Battle::affected_by_voice(g, p, g.current_voice.as_ref());
+        let affected_by_voice = Battle::affected_by_voice(g, p, g.battle.current_voice.as_ref());
         let must_use_cheap_hero =
-            affected_by_voice && g.current_voice.as_ref().is_some_and(|v| v.must && v.type_ == TreacheryCardType::Mercenary);
+            affected_by_voice && g.battle.current_voice.as_ref().is_some_and(|v| v.must && v.type_ == TreacheryCardType::Mercenary);
         let may_not_use_cheap_hero =
-            affected_by_voice && g.current_voice.as_ref().is_some_and(|v| v.may_not() && v.type_ == TreacheryCardType::Mercenary);
+            affected_by_voice && g.battle.current_voice.as_ref().is_some_and(|v| v.may_not() && v.type_ == TreacheryCardType::Mercenary);
 
         let mut result: Vec<Hero> = Vec::new();
 
@@ -943,8 +943,8 @@ impl Battle {
 
         let mut resolved_by_voice_rule = false;
 
-        if Battle::affected_by_voice(g, p, g.current_voice.as_ref()) {
-            let voice = g.current_voice.as_ref().expect("current voice");
+        if Battle::affected_by_voice(g, p, g.battle.current_voice.as_ref()) {
+            let voice = g.battle.current_voice.as_ref().expect("current voice");
             if voice.must {
                 let vt = voice.type_;
                 if selected_defense.is_some_and(|d| d.type_() == vt) {
@@ -991,8 +991,8 @@ impl Battle {
 
         let mut resolved_by_voice_rule = false;
 
-        if Battle::affected_by_voice(g, p, g.current_voice.as_ref()) {
-            let voice = g.current_voice.as_ref().expect("current voice");
+        if Battle::affected_by_voice(g, p, g.battle.current_voice.as_ref()) {
+            let voice = g.battle.current_voice.as_ref().expect("current voice");
             if voice.must {
                 let vt = voice.type_;
                 if selected_weapon.is_some_and(|w| w.type_() == vt) {
@@ -1035,7 +1035,7 @@ impl Battle {
         let fighting_on_own_homeworld = territory_of_battle.is_some_and(|t| pl.is_native(t));
         let forces_to_reveal_under_no_field =
             if territory_of_battle.is_some() && pl.is(Faction::Richese) && pl.special_forces_in_territory(territory_of_battle) != 0 {
-                pl.forces_in_reserve().min(g.current_no_field_value)
+                pl.forces_in_reserve().min(g.ship_move.current_no_field_value)
             } else {
                 0
             };
@@ -1069,7 +1069,7 @@ impl Battle {
         let fighting_on_own_homeworld = territory_of_battle.is_some_and(|t| pl.is_native(t));
         let forces_to_reveal_under_no_field =
             if territory_of_battle.is_some() && pl.is(Faction::Richese) && pl.special_forces_in_territory(territory_of_battle) != 0 {
-                pl.forces_in_reserve().min(g.current_no_field_value)
+                pl.forces_in_reserve().min(g.ship_move.current_no_field_value)
             } else {
                 0
             };
@@ -1165,7 +1165,7 @@ impl Battle {
         }
 
         if defense.is_some_and(|d| d.is_poison_defense())
-            || g.current_portable_antidote_used.as_ref().is_some_and(|e| e.player_opt() == Some(player))
+            || g.battle.current_portable_antidote_used.as_ref().is_some_and(|e| e.player_opt() == Some(player))
         {
             if hero_skilled(LeaderSkill::KillerMedic) {
                 *activated_skill = LeaderSkill::KillerMedic;

@@ -53,7 +53,7 @@ impl KarmaFreeRevival {
         if self.amount_of_special_forces > 1 {
             return Some(express!("You can only revive one ", pl.special_force(), " per turn"));
         }
-        if self.amount_of_special_forces > 0 && game.factions_that_revived_special_forces_this_turn.contains(&self.initiator()) {
+        if self.amount_of_special_forces > 0 && game.revival.factions_that_revived_special_forces_this_turn.contains(&self.initiator()) {
             return Some(express!("You already revived one ", pl.special_force(), " this turn."));
         }
         if (self.amount_of_forces + self.amount_of_special_forces) > 0 && self.hero().is_some() {
@@ -106,7 +106,7 @@ impl KarmaFreeRevival {
             Player::revive_special_forces(game, me, self.amount_of_special_forces);
 
             if self.amount_of_special_forces > 0 {
-                game.factions_that_revived_special_forces_this_turn.push(self.initiator());
+                game.revival.factions_that_revived_special_forces_this_turn.push(self.initiator());
             }
         }
         Ok(())

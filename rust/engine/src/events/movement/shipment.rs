@@ -615,13 +615,13 @@ impl Shipment {
         }
 
         let mut result = Vec::new();
-        if pl.faction == Faction::Richese && g.latest_revealed_no_field_value != 0 && g.current_no_field_value != 0 {
+        if pl.faction == Faction::Richese && g.ship_move.latest_revealed_no_field_value != 0 && g.ship_move.current_no_field_value != 0 {
             result.push(0);
         }
-        if g.latest_revealed_no_field_value != 3 && g.current_no_field_value != 3 {
+        if g.ship_move.latest_revealed_no_field_value != 3 && g.ship_move.current_no_field_value != 3 {
             result.push(3);
         }
-        if g.latest_revealed_no_field_value != 5 && g.current_no_field_value != 5 {
+        if g.ship_move.latest_revealed_no_field_value != 5 && g.ship_move.current_no_field_value != 5 {
             result.push(5);
         }
         result
@@ -634,13 +634,13 @@ impl Shipment {
         }
 
         let mut result = Vec::new();
-        if pl.faction == Faction::Richese && g.latest_revealed_no_field_value != 0 && g.current_no_field_value != 0 && value_of_normal_no_field != 0 {
+        if pl.faction == Faction::Richese && g.ship_move.latest_revealed_no_field_value != 0 && g.ship_move.current_no_field_value != 0 && value_of_normal_no_field != 0 {
             result.push(0);
         }
-        if g.latest_revealed_no_field_value != 3 && g.current_no_field_value != 3 && value_of_normal_no_field != 3 {
+        if g.ship_move.latest_revealed_no_field_value != 3 && g.ship_move.current_no_field_value != 3 && value_of_normal_no_field != 3 {
             result.push(3);
         }
-        if g.latest_revealed_no_field_value != 5 && g.current_no_field_value != 5 && value_of_normal_no_field != 5 {
+        if g.ship_move.latest_revealed_no_field_value != 5 && g.ship_move.current_no_field_value != 5 && value_of_normal_no_field != 5 {
             result.push(5);
         }
         result
@@ -728,11 +728,11 @@ impl Shipment {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.beginning_of_shipment_and_move_phase = false;
-        game.current_blocked_territories.clear();
-        game.storm_losses_to_take.clear();
-        game.chosen_destinations_with_allies.clear();
-        game.bene_gesserit_may_accompany = false;
+        game.ship_move.beginning_of_shipment_and_move_phase = false;
+        game.ship_move.current_blocked_territories.clear();
+        game.storm.storm_losses_to_take.clear();
+        game.ship_move.chosen_destinations_with_allies.clear();
+        game.ship_move.bene_gesserit_may_accompany = false;
 
         let mut received_payment_message = express_part!();
         let mut total_cost = 0;
@@ -750,28 +750,28 @@ impl Shipment {
                 if self.cunning_no_field_value() >= 0 {
                     game.reveal_current_no_field(richese, None);
                     Player::ship_special_forces(game, richese, self.to(game).required("to")?, 1);
-                    game.current_no_field_value = self.cunning_no_field_value();
+                    game.ship_move.current_no_field_value = self.cunning_no_field_value();
                     let me = self.player();
                     game.play_nexus_card(me, elems!["ship and reveal a second ", FactionSpecialForce::Richese]);
                 }
 
                 game.reveal_current_no_field(richese, None);
-                game.current_no_field_value = self.no_field_value();
+                game.ship_move.current_no_field_value = self.no_field_value();
 
                 if self.initiator() != Faction::Richese {
                     //Immediately reveal No-Field
-                    game.latest_revealed_no_field_value = self.no_field_value();
-                    game.current_no_field_value = -1;
+                    game.ship_move.latest_revealed_no_field_value = self.no_field_value();
+                    game.ship_move.current_no_field_value = -1;
                 }
             }
 
             if let Some(to) = self.to(game) {
                 if game.contains_conflicting_ally(self.player(), to) {
-                    game.chosen_destinations_with_allies.push(to.territory());
+                    game.ship_move.chosen_destinations_with_allies.push(to.territory());
                 }
             }
 
-            game.last_shipment_or_movement = Some(self.clone().into_event());
+            game.ship_move.last_shipment_or_movement = Some(self.clone().into_event());
             let must_be_advisors = {
                 let pl = game.player(self.player());
                 let to = self.to(game);
@@ -919,7 +919,7 @@ impl Shipment {
 
     pub fn perform_normal_shipment(&self, game: &mut Game, initiator: PlayerIndex, to: Location, force_amount: i32, special_force_amount: i32) {
         let initiator_faction = game.player(initiator).faction;
-        game.bene_gesserit_may_accompany =
+        game.ship_move.bene_gesserit_may_accompany =
             (force_amount > 0 || special_force_amount > 0) && initiator_faction != Faction::Fremen && initiator_faction != Faction::BeneGesserit;
 
         // ForceLocations is parsed afresh on every read; each read gives the same result here.
@@ -959,7 +959,7 @@ impl Shipment {
             let kill_count: i32;
             if !game.prevented(FactionAdvantage::FremenProtectedFromStorm) && game.applicable(Rule::FremenStormLosses) {
                 kill_count = 0;
-                game.storm_losses_to_take.push(LossToTake {
+                game.storm.storm_losses_to_take.push(LossToTake {
                     location: Some(to),
                     amount: TakeLosses::half_of(force_amount, special_force_amount),
                     faction: Faction::Fremen,
@@ -983,7 +983,7 @@ impl Shipment {
 
         let f = game.player(initiator).faction;
         if f != Faction::Fremen && f != Faction::Guild && !self.is_site_to_site(game) {
-            game.ships_tech_token_income = true;
+            game.ship_move.ships_tech_token_income = true;
         }
     }
 

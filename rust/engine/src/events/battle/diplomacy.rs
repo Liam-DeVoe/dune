@@ -41,7 +41,7 @@ impl Diplomacy {
 
     pub fn valid_cards(g: &Game, p: PlayerIndex) -> Vec<TreacheryCard> {
         let mut result = Vec::new();
-        let plan = g.current_battle.as_ref().expect("current battle").plan_of(g, Some(p)).expect("plan of");
+        let plan = g.battle.current_battle.as_ref().expect("current battle").plan_of(g, Some(p)).expect("plan of");
         if let Some(weapon) = plan.weapon() {
             if weapon.is_useless() && plan.defense().is_none() {
                 result.push(weapon);
@@ -56,9 +56,9 @@ impl Diplomacy {
     }
 
     pub fn can_be_played(g: &Game, p: PlayerIndex) -> bool {
-        if g.has_skill_in_front_of_shield(p, LeaderSkill::Diplomat) && g.current_diplomacy.is_none() {
-            let plan = g.current_battle.as_ref().expect("current battle").plan_of(g, Some(p));
-            let plan_of_opponent = g.current_battle.as_ref().expect("current battle").plan_of_opponent(g, Some(p));
+        if g.has_skill_in_front_of_shield(p, LeaderSkill::Diplomat) && g.battle.current_diplomacy.is_none() {
+            let plan = g.battle.current_battle.as_ref().expect("current battle").plan_of(g, Some(p));
+            let plan_of_opponent = g.battle.current_battle.as_ref().expect("current battle").plan_of_opponent(g, Some(p));
             let Some(plan) = plan else { return false };
             // plan.Defense is not { IsDefense: true }
             if plan.defense().is_some_and(|d| d.is_defense()) {
@@ -77,12 +77,12 @@ impl Diplomacy {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         // Game.CurrentBattle?.PlanOfOpponent(Player)?.Defense
         let opponent_defense = game
-            .current_battle
+            .battle.current_battle
             .as_ref()
             .and_then(|b| b.plan_of_opponent(game, self.player_opt()))
             .and_then(|plan| plan.defense());
         game.log(elems![self.initiator(), " use Diplomacy to turn ", self.card(), " into a ", opponent_defense]);
-        game.current_diplomacy = Some(self.clone());
+        game.battle.current_diplomacy = Some(self.clone());
         Ok(())
     }
 

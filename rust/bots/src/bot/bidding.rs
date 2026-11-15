@@ -11,9 +11,9 @@ impl ClassicBot {
             .max()
             .unwrap_or(0);
 
-        let current_bid = game.current_bid.as_ref().map(|b| b.bid_total_amount()).unwrap_or(0);
-        let current_bid_is_from_ally = game.current_bid.as_ref().is_some_and(|b| b.initiator() == self.ally(game));
-        let top = game.cards_on_auction.as_ref().expect("cards on auction").top();
+        let current_bid = game.bidding.current_bid.as_ref().map(|b| b.bid_total_amount()).unwrap_or(0);
+        let current_bid_is_from_ally = game.bidding.current_bid.as_ref().is_some_and(|b| b.initiator() == self.ally(game));
+        let top = game.bidding.cards_on_auction.as_ref().expect("cards on auction").top();
         let is_known_card = game.has_bidding_prescience(me)
             || (game.player(me).has_ally() && game.has_bidding_prescience(self.allied_player(game).expect("allied player")))
             || top.is_some_and(|top| game.known_cards(me).contains(&top));
@@ -32,7 +32,7 @@ impl ClassicBot {
             + self.resources_from_ally(game)
             + self.resources_from_emperor(game);
         let player = game.player(me);
-        let could_use_karma_for_bid = game.current_auction_type == AuctionType::Normal
+        let could_use_karma_for_bid = game.bidding.current_auction_type == AuctionType::Normal
             && !game.karma_prevented(self.faction(game))
             && self.ally(game) != Faction::Emperor
             && (player.special_karma_power_used
@@ -52,7 +52,7 @@ impl ClassicBot {
         let maximum_i_will_spend = self.d(1, resources_available.min(12) + karma_worth);
         let amount_to_bid_in_silent_or_once_around = self.d(1, resources_available.min(8));
 
-        let auction = game.current_auction_type;
+        let auction = game.bidding.current_auction_type;
         if (self.faction(game) == Faction::Richese || self.ally(game) == Faction::Richese)
             && (auction == AuctionType::BlackMarketSilent || auction == AuctionType::BlackMarketNormal || auction == AuctionType::BlackMarketOnceAround)
         {

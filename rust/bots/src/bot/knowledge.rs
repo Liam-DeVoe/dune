@@ -125,7 +125,7 @@ impl ClassicBot {
 
     /// The prescience in the current battle, if I or my ally used it.
     pub fn my_prescience(&self, game: &Game) -> Option<Rc<Prescience>> {
-        game.current_prescience.clone().filter(|p| p.initiator() == self.faction(game) || p.initiator() == self.ally(game))
+        game.battle.current_prescience.clone().filter(|p| p.initiator() == self.faction(game) || p.initiator() == self.ally(game))
     }
 
     pub fn my_clairvoyance_about_enemy_defense_in_current_battle(game: &Game, player: PlayerIndex) -> Option<ClairVoyanceQandA> {
@@ -152,7 +152,7 @@ impl ClassicBot {
     /// The Voice in the current battle, if I or my ally are Bene Gesserit.
     pub fn my_voice(&self, game: &Game) -> Option<Rc<Voice>> {
         let bene_gesserit = self.faction(game) == Faction::BeneGesserit || self.ally(game) == Faction::BeneGesserit;
-        game.current_voice.clone().filter(|_| bene_gesserit)
+        game.battle.current_voice.clone().filter(|_| bene_gesserit)
     }
 
     pub fn may_use_useless_as_karma(&self, game: &Game) -> bool {
@@ -369,7 +369,7 @@ impl ClassicBot {
         game.current_turn == game.maximum_turns()
             || game.protected_from_monster(self.player)
             // Throws when there is no spice card yet, or it has no location.
-            || t != game.latest_spice_card_a.expect("latest spice card a").location().expect("location").territory()
+            || t != game.blow.latest_spice_card_a.expect("latest spice card a").location().expect("location").territory()
             || game.sand_trout_occurred()
             || !game.has_resource_deck_prescience(Some(self.player))
             || game.resource_card_deck.as_ref().expect("resource card deck").top().is_some_and(|c| !c.is_shai_hulud())
@@ -705,8 +705,8 @@ impl ClassicBot {
         if p.faction == Faction::Richese && p.special_forces_in_territory(Some(t)) > 0 {
             // C# parity: the condition is always true here, so the else branch is dead.
             count_forces_for_richese = if p.faction == Faction::Richese || p.ally == Faction::Richese {
-                game.current_no_field_value
-            } else if game.latest_revealed_no_field_value == 5 {
+                game.ship_move.current_no_field_value
+            } else if game.ship_move.latest_revealed_no_field_value == 5 {
                 3
             } else {
                 5

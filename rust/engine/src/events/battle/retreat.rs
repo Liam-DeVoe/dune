@@ -56,7 +56,7 @@ impl Retreat {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
-        let territory = g.current_battle.as_ref().expect("current battle").territory(g).expect("territory");
+        let territory = g.battle.current_battle.as_ref().expect("current battle").territory(g).expect("territory");
         let battalions = g.player(p).battalions_in(territory);
         PlacementEvent::valid_targets_for_forces(g, p, &battalions)
             .into_iter()
@@ -64,7 +64,7 @@ impl Retreat {
     }
 
     pub fn max_total_forces(g: &Game, p: PlayerIndex) -> i32 {
-        let current_battle = g.current_battle.as_ref().expect("current battle");
+        let current_battle = g.battle.current_battle.as_ref().expect("current battle");
         let plan = current_battle.plan_of(g, Some(p));
         let opponent_plan = current_battle.plan_of_opponent(g, Some(p));
         // plan.Hero.ValueInCombatAgainst(opponentPlan.Hero): NullReferenceException when
@@ -75,7 +75,7 @@ impl Retreat {
     }
 
     pub fn max_forces(g: &Game, p: PlayerIndex) -> i32 {
-        let current_battle = g.current_battle.as_ref().expect("current battle");
+        let current_battle = g.battle.current_battle.as_ref().expect("current battle");
         let plan = current_battle.plan_of(g, Some(p));
         let forces_in = g.player(p).forces_in_territory(current_battle.territory(g));
         let plan = plan.expect("plan");
@@ -83,7 +83,7 @@ impl Retreat {
     }
 
     pub fn max_special_forces(g: &Game, p: PlayerIndex) -> i32 {
-        let current_battle = g.current_battle.as_ref().expect("current battle");
+        let current_battle = g.battle.current_battle.as_ref().expect("current battle");
         let plan = current_battle.plan_of(g, Some(p));
         let special_forces_in = g.player(p).special_forces_in_territory(current_battle.territory(g));
         let plan = plan.expect("plan");
@@ -93,7 +93,7 @@ impl Retreat {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let me = self.player();
         let mut forces_to_move = self.forces;
-        let territory = game.current_battle.as_ref().required("current battle")?.territory(game).required("territory")?;
+        let territory = game.battle.current_battle.as_ref().required("current battle")?.territory(game).required("territory")?;
         let sources: Vec<Location> = territory.locations().iter().copied().filter(|l| game.player(me).forces_in(Some(*l)) > 0).collect();
         for l in sources {
             if forces_to_move == 0 {
@@ -106,7 +106,7 @@ impl Retreat {
         }
 
         let mut special_forces_to_move = self.special_forces;
-        let territory = game.current_battle.as_ref().required("current battle")?.territory(game).required("territory")?;
+        let territory = game.battle.current_battle.as_ref().required("current battle")?.territory(game).required("territory")?;
         let sources: Vec<Location> =
             territory.locations().iter().copied().filter(|l| game.player(me).special_forces_in(Some(*l)) > 0).collect();
         for l in sources {

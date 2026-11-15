@@ -53,19 +53,19 @@ impl StormDialled {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.dials.push(self.amount);
+        game.storm.dials.push(self.amount);
         game.has_acted_or_passed.push(self.initiator());
 
-        if game.has_battle_wheel.iter().all(|f| game.has_acted_or_passed.contains(f)) {
+        if game.storm.has_battle_wheel.iter().all(|f| game.has_acted_or_passed.contains(f)) {
             // Arguments are evaluated left to right; a one-player game throws at Dials[1].
-            let d0 = game.dials[0];
+            let d0 = game.storm.dials[0];
             let f0 = game.has_acted_or_passed[0];
-            let d1 = game.dials[1];
+            let d1 = game.storm.dials[1];
             let f1 = game.has_acted_or_passed[1];
             let msg = express!("Storm dial: ", d0, f0, " + ", d1, f1, " = ", d0 + d1)
                 .with_log(StormDials::new(f0, d0, f1, d1));
             self.log_objects(game, elems![msg]);
-            game.next_storm_moves = game.dials.iter().copied().sum::<i32>();
+            game.next_storm_moves = game.storm.dials.iter().copied().sum::<i32>();
 
             if game.current_turn == 1 {
                 self.position_first_storm(game);

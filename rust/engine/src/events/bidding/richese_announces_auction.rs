@@ -28,20 +28,20 @@ impl RicheseAnnouncesAuction {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.richese_occupier_specified_card = false;
+        game.bidding.richese_occupier_specified_card = false;
         self.log(game);
 
-        game.number_of_cards_on_auction -= 1;
+        game.bidding.number_of_cards_on_auction -= 1;
 
-        if !self.first && game.number_of_cards_on_auction > 0 {
-            game.richese_auction_should_still_happen = true;
+        if !self.first && game.bidding.number_of_cards_on_auction > 0 {
+            game.bidding.richese_auction_should_still_happen = true;
         }
 
-        if game.number_of_cards_on_auction == 0 {
-            game.regular_bidding_is_done = true;
+        if game.bidding.number_of_cards_on_auction == 0 {
+            game.bidding.regular_bidding_is_done = true;
         }
 
-        let condition = self.first || game.number_of_cards_on_auction == 0;
+        let condition = self.first || game.bidding.number_of_cards_on_auction == 0;
         game.enter_or_else(condition, Phase::RicheseSpecifyingAuction, Game::start_regular_bidding);
         Ok(())
     }

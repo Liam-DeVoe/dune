@@ -30,7 +30,7 @@ impl BattleClaimed {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
-        game.current_ecaz_or_ally_fighter = if self.passed { game.get_ally(Some(Faction::Ecaz)) } else { Some(Faction::Ecaz) };
+        game.battle.current_ecaz_or_ally_fighter = if self.passed { game.get_ally(Some(Faction::Ecaz)) } else { Some(Faction::Ecaz) };
         game.enter(Phase::BattlePhase, true);
         game.initiate_battle();
         self.determine_ecaz_contribution(game);
@@ -38,21 +38,21 @@ impl BattleClaimed {
     }
 
     pub fn determine_ecaz_contribution(&self, game: &mut Game) {
-        let fighter = game.get_player(game.current_ecaz_or_ally_fighter);
+        let fighter = game.get_player(game.battle.current_ecaz_or_ally_fighter);
 
         if fighter.is_some()
-            && game.current_battle.is_some()
+            && game.battle.current_battle.is_some()
             && (game.player(fighter.expect("fighter")).is(Faction::Ecaz) || game.player(fighter.expect("fighter")).ally == Faction::Ecaz)
         {
             let ecaz = self.get_player(game, Some(Faction::Ecaz));
             if let Some(ecaz) = ecaz {
-                let territory = game.current_battle.as_ref().expect("current battle").territory(game).expect("territory");
+                let territory = game.battle.current_battle.as_ref().expect("current battle").territory(game).expect("territory");
                 let forces = game.player(ecaz).any_forces_in_territory(Some(territory));
                 // (int)Math.Ceiling(0.5f * n): the float widens to double
-                game.current_ecaz_battle_contribution = ((0.5f32 * forces as f32) as f64).ceil() as i32;
+                game.battle.current_ecaz_battle_contribution = ((0.5f32 * forces as f32) as f64).ceil() as i32;
             }
         } else {
-            game.current_ecaz_battle_contribution = 0;
+            game.battle.current_ecaz_battle_contribution = 0;
         }
     }
 

@@ -94,7 +94,7 @@ fn divide_resources_accepted_needs_a_pending_division() {
     g.current_phase = Phase::AcceptingResourceDivision;
     let atreides = idx(&g, Faction::Atreides);
     assert!(!DivideResourcesAccepted::is_applicable(&g, atreides));
-    g.collected_resources_to_be_divided.push(tbd(4));
+    g.collection.collected_resources_to_be_divided.push(tbd(4));
     assert!(DivideResourcesAccepted::is_applicable(&g, atreides));
     assert!(!DivideResourcesAccepted::is_applicable(&g, idx(&g, Faction::Emperor)));
 }
@@ -123,9 +123,9 @@ fn monster_targets_exclude_protected_territories() {
 fn charity_multiplier_and_cancellation() {
     let mut g = game_with(&[Faction::Emperor]);
     assert_eq!(g.current_charity_multiplier(), 1);
-    g.economics_status = ChoamEconomicsStatus::DoubleFlipped;
+    g.charity.economics_status = ChoamEconomicsStatus::DoubleFlipped;
     assert_eq!(g.current_charity_multiplier(), 2);
-    g.economics_status = ChoamEconomicsStatus::Cancel;
+    g.charity.economics_status = ChoamEconomicsStatus::Cancel;
     assert_eq!(g.current_charity_multiplier(), 0);
     assert!(g.charity_is_cancelled());
 }
@@ -149,7 +149,7 @@ fn nexus_card_may_draw() {
     let mut g = game_with(&[Faction::Emperor]);
     let emperor = idx(&g, Faction::Emperor);
     assert!(NexusCardDrawn::may_draw(&g, emperor));
-    g.factions_that_drew_nexus_card.push(Faction::Emperor);
+    g.blow.factions_that_drew_nexus_card.push(Faction::Emperor);
     assert!(!NexusCardDrawn::may_draw(&g, emperor));
     // A faction holding its own Nexus card may draw again.
     g.player_mut(emperor).nexus = Faction::Emperor;

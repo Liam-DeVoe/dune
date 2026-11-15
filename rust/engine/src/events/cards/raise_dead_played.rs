@@ -87,7 +87,7 @@ impl RaiseDeadPlayed {
         }
         if self.amount_of_special_forces > 0
             && initiator != Faction::Ixian
-            && game.factions_that_revived_special_forces_this_turn.contains(&initiator)
+            && game.revival.factions_that_revived_special_forces_this_turn.contains(&initiator)
         {
             return Some(express!("You already revived one ", pl.special_force(), " this turn"));
         }
@@ -184,7 +184,7 @@ impl RaiseDeadPlayed {
             Player::revive_special_forces(game, me, self.amount_of_special_forces);
 
             if self.amount_of_special_forces > 0 {
-                game.factions_that_revived_special_forces_this_turn.push(initiator);
+                game.revival.factions_that_revived_special_forces_this_turn.push(initiator);
             }
         }
 
@@ -232,7 +232,7 @@ impl RaiseDeadPlayed {
         let pl = g.player(p);
         if special_forces {
             if pl.faction == Faction::Emperor || pl.faction == Faction::Fremen {
-                if g.factions_that_revived_special_forces_this_turn.contains(&pl.faction) {
+                if g.revival.factions_that_revived_special_forces_this_turn.contains(&pl.faction) {
                     return 0;
                 }
                 return std::cmp::min(pl.special_forces_killed, 1);

@@ -56,16 +56,16 @@ impl RequestTleilaxuRevival {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let hero = self.hero();
-        let existing_request = game.current_revival_requests.iter().find(|r| r.hero() == hero).cloned();
+        let existing_request = game.revival.current_revival_requests.iter().find(|r| r.hero() == hero).cloned();
         if let Some(existing_request) = existing_request {
             // List.Remove: events compare by reference.
-            if let Some(i) = game.current_revival_requests.iter().position(|r| Rc::ptr_eq(r, &existing_request)) {
-                game.current_revival_requests.remove(i);
+            if let Some(i) = game.revival.current_revival_requests.iter().position(|r| Rc::ptr_eq(r, &existing_request)) {
+                game.revival.current_revival_requests.remove(i);
             }
         }
 
         self.log(game);
-        game.current_revival_requests.push(self.clone());
+        game.revival.current_revival_requests.push(self.clone());
         Ok(())
     }
 

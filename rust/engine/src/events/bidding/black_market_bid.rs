@@ -57,16 +57,16 @@ impl BlackMarketBid {
         });
         game.stone(Milestone::Bid);
         let initiator = self.initiator();
-        game.bids.remove(&initiator);
-        game.bids.insert_new(initiator, self.clone().into_event());
+        game.bidding.bids.remove(&initiator);
+        game.bidding.bids.insert_new(initiator, self.clone().into_event());
         let as_event = self.clone().into_event();
         game.check_if_atreides_or_atreides_ally_passed_bid(&as_event);
 
         if !self.passed {
-            game.current_bid = Some(self.clone().into_event());
+            game.bidding.current_bid = Some(self.clone().into_event());
         }
 
-        match game.current_auction_type {
+        match game.bidding.current_auction_type {
             AuctionType::BlackMarketNormal => self.handle_black_market_normal_bid(game),
             AuctionType::BlackMarketOnceAround | AuctionType::BlackMarketSilent => self.handle_black_market_special_bid(game),
             _ => Ok(()),
@@ -75,10 +75,10 @@ impl BlackMarketBid {
 
     pub fn handle_black_market_normal_bid(&self, game: &mut Game) -> GameResult {
         if self.passed {
-            let winning_bid = game.current_bid.clone();
+            let winning_bid = game.bidding.current_bid.clone();
 
-            if let Some(winning_bid) = winning_bid.as_ref().filter(|wb| game.bid_sequence.as_ref().expect("bid sequence").current_faction(game) == wb.bid_initiator()) {
-                if game.cards_on_auction.is_none() {
+            if let Some(winning_bid) = winning_bid.as_ref().filter(|wb| game.bidding.bid_sequence.as_ref().expect("bid sequence").current_faction(game) == wb.bid_initiator()) {
+                if game.bidding.cards_on_auction.is_none() {
                     return Ok(());
                 }
 
@@ -93,7 +93,7 @@ impl BlackMarketBid {
                 )?;
 
                 self.finish_black_market_bid(game, winning_bid.bid_player().required("i bid player")?, winning_bid, card);
-            } else if winning_bid.is_none() && game.bids.len() as i32 >= game.players_that_can_bid().len() as i32 {
+            } else if winning_bid.is_none() && game.bidding.bids.len() as i32 >= game.players_that_can_bid().len() as i32 {
                 self.richese_keeps_card(game);
             }
         }
@@ -103,7 +103,7 @@ impl BlackMarketBid {
     /// The shared "no faction bid" branch of both handlers.
     fn richese_keeps_card(&self, game: &mut Game) {
         let richese = self.get_player(game, Some(Faction::Richese));
-        let card = game.cards_on_auction.as_mut().map(|d| d.draw());
+        let card = game.bidding.cards_on_auction.as_mut().map(|d| d.draw());
         if let (Some(richese), Some(card)) = (richese, card) {
             game.player_mut(richese).treachery_cards.push(card);
         }
@@ -113,22 +113,22 @@ impl BlackMarketBid {
 
     pub fn handle_black_market_special_bid(&self, game: &mut Game) -> GameResult {
         let players_with_room = || game.players.iter().filter(|p| p.has_room_for_cards(game)).count() as i32;
-        let is_last_bid = (game.current_auction_type == AuctionType::BlackMarketSilent && players_with_room() == game.bids.len() as i32)
-            || (game.current_auction_type == AuctionType::BlackMarketOnceAround && self.initiator() == Faction::Richese)
+        let is_last_bid = (game.bidding.current_auction_type == AuctionType::BlackMarketSilent && players_with_room() == game.bidding.bids.len() as i32)
+            || (game.bidding.current_auction_type == AuctionType::BlackMarketOnceAround && self.initiator() == Faction::Richese)
             || (self.get_player(game, Some(Faction::Richese)).map(|w| game.player(w).has_room_for_cards(game)) == Some(false)
-                && game.bid_sequence.as_ref().required("bid sequence")?.has_passed_richese(game));
+                && game.bidding.bid_sequence.as_ref().required("bid sequence")?.has_passed_richese(game));
 
         if is_last_bid {
-            if game.current_auction_type == AuctionType::BlackMarketSilent {
+            if game.bidding.current_auction_type == AuctionType::BlackMarketSilent {
                 // A List<MessagePart> is one element of the params array.
-                let parts: Vec<MessagePart> = game.bids.iter().map(|(k, v)| express_part!(*k, Payment::of(v.bid_total_amount()), " ")).collect();
+                let parts: Vec<MessagePart> = game.bidding.bids.iter().map(|(k, v)| express_part!(*k, Payment::of(v.bid_total_amount()), " ")).collect();
                 self.log_objects(game, vec![parts.into()]);
             }
 
-            let highest_bid = game.determine_highest_bid(&game.bids);
+            let highest_bid = game.determine_highest_bid(&game.bidding.bids);
             match highest_bid {
                 Some(highest_bid) if highest_bid.bid_total_amount() > 0 => {
-                    if game.cards_on_auction.is_none() {
+                    if game.bidding.cards_on_auction.is_none() {
                         return Ok(());
                     }
 
@@ -153,20 +153,20 @@ impl BlackMarketBid {
     }
 
     pub fn finish_black_market_bid(&self, game: &mut Game, winner: PlayerIndex, winning_bid: &GameEvent, card: TreacheryCard) {
-        game.card_just_won = Some(card);
-        game.winning_bid = Some(winning_bid.clone());
-        game.card_sold_on_black_market = Some(card);
-        game.current_bid = None;
-        game.faction_that_may_replace_bought_card = Faction::None;
+        game.bidding.card_just_won = Some(card);
+        game.bidding.winning_bid = Some(winning_bid.clone());
+        game.bidding.card_sold_on_black_market = Some(card);
+        game.bidding.current_bid = None;
+        game.bidding.faction_that_may_replace_bought_card = Faction::None;
 
-        game.bids.clear();
-        game.latest_bid_by_atreides_or_atreides_ally_was_passed = false;
+        game.bidding.bids.clear();
+        game.bidding.latest_bid_by_atreides_or_atreides_ally_was_passed = false;
 
         let mut enter_replacing_card_just_won = game.player(winner).nexus != Faction::None;
 
         if game.player(winner).ally == Faction::Ixian && game.ixian_allows_replacing_cards {
             if !game.prevented(FactionAdvantage::IxianAllyDiscardingCard) {
-                game.faction_that_may_replace_bought_card = game.player(winner).faction;
+                game.bidding.faction_that_may_replace_bought_card = game.player(winner).faction;
                 enter_replacing_card_just_won = true;
             } else {
                 if !game.applicable(Rule::FullPhaseKarma) {
@@ -174,22 +174,22 @@ impl BlackMarketBid {
                 }
 
                 if game.nexus_allows_replacing_bought_cards(winner) {
-                    game.faction_that_may_replace_bought_card = game.player(winner).faction;
+                    game.bidding.faction_that_may_replace_bought_card = game.player(winner).faction;
                     enter_replacing_card_just_won = true;
-                    game.replacing_bought_card_using_nexus = true;
+                    game.bidding.replacing_bought_card_using_nexus = true;
                 }
             }
         } else if game.nexus_allows_replacing_bought_cards(winner) {
-            game.faction_that_may_replace_bought_card = game.player(winner).faction;
+            game.bidding.faction_that_may_replace_bought_card = game.player(winner).faction;
             enter_replacing_card_just_won = true;
-            game.replacing_bought_card_using_nexus = true;
+            game.bidding.replacing_bought_card_using_nexus = true;
         }
 
         game.enter_or_else(enter_replacing_card_just_won, Phase::ReplacingCardJustWon, Game::enter_richese_bidding);
 
-        if let Some(b) = game.bidding_triggered_bureaucracy.clone() {
+        if let Some(b) = game.bidding.bidding_triggered_bureaucracy.clone() {
             game.apply_bureaucracy(b.payment_from, b.payment_to);
-            game.bidding_triggered_bureaucracy = None;
+            game.bidding.bidding_triggered_bureaucracy = None;
         }
     }
 
@@ -206,11 +206,11 @@ impl BlackMarketBid {
             return None;
         }
 
-        if game.current_auction_type != AuctionType::BlackMarketSilent && self.total_amount() < 1 {
+        if game.bidding.current_auction_type != AuctionType::BlackMarketSilent && self.total_amount() < 1 {
             return Some(express!("Bid must be higher than 0"));
         }
-        if game.current_auction_type != AuctionType::BlackMarketSilent {
-            if let Some(current_bid) = &game.current_bid {
+        if game.bidding.current_auction_type != AuctionType::BlackMarketSilent {
+            if let Some(current_bid) = &game.bidding.current_bid {
                 if self.total_amount() <= current_bid.bid_total_amount() {
                     return Some(express!("Bid not high enough"));
                 }
@@ -227,7 +227,7 @@ impl BlackMarketBid {
             return Some(express!(Faction::Emperor, " won't pay that much"));
         }
 
-        if game.current_auction_type == AuctionType::BlackMarketSilent && self.total_amount() > game.player(self.player()).resources {
+        if game.bidding.current_auction_type == AuctionType::BlackMarketSilent && self.total_amount() > game.player(self.player()).resources {
             return Some(express!("In a Silent auction, you can't bid more than you have"));
         }
 
@@ -244,25 +244,25 @@ impl BlackMarketBid {
 
     pub fn players_to_bid(g: &Game) -> Vec<SequenceElement> {
         // GetPlayersInSequence runs now (PlayersInOrder); its selector runs only in the arms that return it.
-        let players_in_sequence = match &g.bid_sequence {
+        let players_in_sequence = match &g.bidding.bid_sequence {
             Some(s) => either::Either::Left(s.get_players_in_sequence(g)),
             None => either::Either::Right(std::iter::empty()),
         };
-        match g.current_auction_type {
+        match g.bidding.current_auction_type {
             AuctionType::BlackMarketNormal | AuctionType::BlackMarketOnceAround => players_in_sequence.collect(),
             AuctionType::BlackMarketSilent => g
                 .players
                 .iter()
                 .enumerate()
-                .map(|(i, p)| SequenceElement { player: Some(g.player_at(i)), has_turn: p.has_room_for_cards(g) && !g.bids.contains_key(&p.faction) })
+                .map(|(i, p)| SequenceElement { player: Some(g.player_at(i)), has_turn: p.has_room_for_cards(g) && !g.bidding.bids.contains_key(&p.faction) })
                 .collect(),
             _ => Vec::new(),
         }
     }
 
     pub fn may_be_played(game: &Game, player: PlayerIndex) -> bool {
-        (game.current_auction_type == AuctionType::BlackMarketSilent && !game.bids.contains_key(&game.player(player).faction) && game.player(player).has_room_for_cards(game))
-            || (game.current_auction_type != AuctionType::BlackMarketSilent && game.bid_sequence.as_ref().map(|s| s.current_player(game)) == Some(Some(player)))
+        (game.bidding.current_auction_type == AuctionType::BlackMarketSilent && !game.bidding.bids.contains_key(&game.player(player).faction) && game.player(player).has_room_for_cards(game))
+            || (game.bidding.current_auction_type != AuctionType::BlackMarketSilent && game.bidding.bid_sequence.as_ref().map(|s| s.current_player(game)) == Some(Some(player)))
     }
 }
 

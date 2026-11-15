@@ -31,15 +31,15 @@ impl JuicePlayed {
         let mut result = Vec::new();
 
         // `BattleWinner == Faction.None` is false while BattleWinner is null.
-        if let Some(battle) = g.current_battle.as_ref() {
-            if battle.is_aggressor_or_defender(g, p) && g.battle_winner == Some(Faction::None) {
+        if let Some(battle) = g.battle.current_battle.as_ref() {
+            if battle.is_aggressor_or_defender(g, p) && g.battle.battle_winner == Some(Faction::None) {
                 result.push(JuiceType::Aggressor);
             }
         }
 
-        if (g.current_main_phase == MainPhase::Bidding && g.bids.len() == 0)
+        if (g.current_main_phase == MainPhase::Bidding && g.bidding.bids.len() == 0)
             || g.current_phase == Phase::BeginningOfShipAndMove
-            || (g.current_main_phase == MainPhase::Battle && g.current_battle.is_none())
+            || (g.current_main_phase == MainPhase::Battle && g.battle.current_battle.is_none())
             || g.current_phase == Phase::Contemplate
         {
             result.push(JuiceType::GoFirst);
@@ -64,14 +64,14 @@ impl JuicePlayed {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
 
-        let aggressor_before_juice_is_played = game.current_battle.clone().and_then(|b| b.aggressive_player(game));
+        let aggressor_before_juice_is_played = game.battle.current_battle.clone().and_then(|b| b.aggressive_player(game));
         game.current_juice = Some(self.clone());
         game.discard(self.player(), TreacheryCardType::Juice)?;
 
-        if let Some(battle) = game.current_battle.clone() {
+        if let Some(battle) = game.battle.current_battle.clone() {
             if self.type_ == JuiceType::Aggressor && battle.aggressive_player(game) != aggressor_before_juice_is_played {
-                std::mem::swap(&mut game.defender_plan, &mut game.aggressor_plan);
-                std::mem::swap(&mut game.defender_traitor_action, &mut game.aggressor_traitor_action);
+                std::mem::swap(&mut game.battle.defender_plan, &mut game.battle.aggressor_plan);
+                std::mem::swap(&mut game.battle.defender_traitor_action, &mut game.battle.aggressor_traitor_action);
             }
         }
         Ok(())

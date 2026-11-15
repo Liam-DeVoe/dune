@@ -33,7 +33,7 @@ impl AllianceByTerror {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let paused = game.paused_terror_phase;
+        let paused = game.ship_move.paused_terror_phase;
         game.enter(paused, true);
 
         if !self.passed {
@@ -66,7 +66,7 @@ impl AllianceByTerror {
                 game.unplaced_terror_tokens.push(t);
             }
 
-            game.alliance_by_terror_was_offered = false;
+            game.ship_move.alliance_by_terror_was_offered = false;
             game.dequeue_intrusion(IntrusionType::Terror)?;
             game.determine_next_shipment_and_move_sub_phase()?;
         } else {

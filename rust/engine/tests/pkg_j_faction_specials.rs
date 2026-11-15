@@ -38,7 +38,7 @@ fn trigger_terror(g: &mut Game, faction: Faction, t: Territory) {
     let mut e = NexusPlayed::new(g, faction);
     e.tleilaxu_location_id = t.locations()[0].id();
     let e = Rc::new(e).into_event();
-    g.intrusions.push(Intrusion::new(&e, IntrusionType::Terror));
+    g.ship_move.intrusions.push(Intrusion::new(&e, IntrusionType::Terror));
 }
 
 // ---------------------------------------------------------------------------
@@ -276,7 +276,7 @@ fn ambassador_placed_twice_in_a_stronghold_fails_after_paying() {
     assert_eq!(e.message(), "There already is an ambassador in Treachery.Shared.Territory");
     // Paid 1, then 2, before the failure; the BeneGesserit ambassador stays in supply.
     assert_eq!(g.player(ecaz).resources, 7);
-    assert_eq!(g.ambassadors_placed_this_turn, 2);
+    assert_eq!(g.revival.ambassadors_placed_this_turn, 2);
     assert_eq!(g.player(ecaz).ambassadors, vec![Ambassador::BeneGesserit]);
 }
 
@@ -287,7 +287,7 @@ fn ambassador_placed_without_stronghold_fails() {
     e.set_stronghold(&g, None);
     let e = Rc::new(e);
     assert_eq!(e.execute_concrete_event(&mut g).unwrap_err().message(), "Stronghold is null");
-    assert_eq!(g.ambassadors_placed_this_turn, 0);
+    assert_eq!(g.revival.ambassadors_placed_this_turn, 0);
 }
 
 // ---------------------------------------------------------------------------

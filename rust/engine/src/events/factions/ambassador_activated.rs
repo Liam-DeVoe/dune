@@ -339,7 +339,7 @@ impl AmbassadorActivated {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.current_ambassador_activated = Some(self.clone());
+        game.ship_move.current_ambassador_activated = Some(self.clone());
         let mut ambassador_faction = AmbassadorActivated::get_ambassador(game);
         let territory = AmbassadorActivated::get_territory(game);
         let victim = AmbassadorActivated::get_victim(game);
@@ -416,7 +416,7 @@ impl AmbassadorActivated {
 
             Ambassador::Ecaz => {
                 if self.ecaz_offer_alliance {
-                    game.alliance_by_ambassador_offered_to = victim;
+                    game.ship_move.alliance_by_ambassador_offered_to = victim;
                     let vidal = game.vidal();
                     self.log_objects(
                         game,
@@ -427,10 +427,10 @@ impl AmbassadorActivated {
                             express_part_if!(self.ecaz_give_vidal_to_ally; " offering ", vidal, " if they accept")
                         ],
                     );
-                    game.paused_ambassador_phase = game.current_phase;
+                    game.ship_move.paused_ambassador_phase = game.current_phase;
                     game.enter(Phase::AllianceByAmbassador, true);
                 } else {
-                    if game.current_ambassador_activated.as_ref().required("current ambassador activated")?.ecaz_take_vidal {
+                    if game.ship_move.current_ambassador_activated.as_ref().required("current ambassador activated")?.ecaz_take_vidal {
                         game.take_vidal(self.player(), VidalMoment::Never);
                     }
 
@@ -449,7 +449,7 @@ impl AmbassadorActivated {
                 let force_locations = self.fremen_force_locations(game);
                 let this = self.clone().into_event();
                 game.perform_move_from_locations(self.player(), &force_locations, &this, false, false);
-                game.recent_moves.push(this.clone());
+                game.ship_move.recent_moves.push(this.clone());
                 game.check_intrusion(&this)?;
                 game.determine_next_shipment_and_move_sub_phase()?;
             }
@@ -508,7 +508,7 @@ impl AmbassadorActivated {
                     Player::ship_forces(game, self.player(), to, self.guild_force_amount);
                 }
                 let this = self.clone().into_event();
-                game.last_shipment_or_movement = Some(this.clone());
+                game.ship_move.last_shipment_or_movement = Some(this.clone());
                 game.check_intrusion(&this)?;
                 game.determine_next_shipment_and_move_sub_phase()?;
             }

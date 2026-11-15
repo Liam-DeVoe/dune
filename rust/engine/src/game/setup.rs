@@ -1,5 +1,24 @@
 use crate::prelude::*;
 
+/// State of the setup phases: faction trades, skill assignment and the starting cards.
+pub struct SetupState {
+    pub current_trade_offers: Vec<Rc<FactionTradeOffered>>,
+    pub phase_before_skill_assignment: Phase,
+    pub starting_treachery_cards: Option<Deck<TreacheryCard>>,
+    pub extra_starting_card_for_harkonnen: Option<TreacheryCard>,
+}
+
+impl SetupState {
+    pub fn new() -> Self {
+        SetupState {
+            current_trade_offers: Vec::new(),
+            phase_before_skill_assignment: Default::default(),
+            starting_treachery_cards: None,
+            extra_starting_card_for_harkonnen: None,
+        }
+    }
+}
+
 impl Game {
     pub fn next_faction_to_perform_custom_setup(&self) -> Faction {
         // FirstOrDefault on a value type: default(Faction) is Faction.None.
@@ -51,20 +70,20 @@ impl Game {
     }
 
     pub fn enter_phase_trading_factions(&mut self) {
-        self.current_trade_offers.clear();
+        self.setup.current_trade_offers.clear();
         self.enter(Phase::TradingFactions, true);
     }
 
     pub fn enter_setup_phase(&mut self) {
-        self.current_trade_offers.clear();
+        self.setup.current_trade_offers.clear();
 
         // Players.OrderBy(p => p.Seat) is a stable sort.
         let mut by_seat: Vec<(i32, Faction)> = self.players.iter().map(|p| (p.seat, p.faction)).collect();
         by_seat.sort_by_key(|(seat, _)| *seat);
         let first = by_seat.first().expect("a player").1;
-        self.has_battle_wheel.push(first);
+        self.storm.has_battle_wheel.push(first);
         let last = by_seat.last().expect("a player").1;
-        self.has_battle_wheel.push(last);
+        self.storm.has_battle_wheel.push(last);
 
         for p in 0..self.players.len() {
             Player::assign_leaders(self, self.player_at(p));
@@ -376,16 +395,16 @@ impl Game {
     }
 
     pub fn deal_starting_treachery_cards(&mut self) {
-        self.starting_treachery_cards = Some(Deck::empty(self.random.clone()));
+        self.setup.starting_treachery_cards = Some(Deck::empty(self.random.clone()));
         for p in 0..self.players.len() {
             let card = self.treachery_deck.as_mut().expect("treachery deck").draw();
             self.drop_copy_in_richese_cache(card);
-            self.starting_treachery_cards.as_mut().expect("starting treachery cards").items.push(card);
+            self.setup.starting_treachery_cards.as_mut().expect("starting treachery cards").items.push(card);
 
             if self.players[p].is(Faction::Harkonnen) {
                 let extra = self.treachery_deck.as_mut().expect("treachery deck").draw();
                 self.drop_copy_in_richese_cache(extra);
-                self.extra_starting_card_for_harkonnen = Some(extra);
+                self.setup.extra_starting_card_for_harkonnen = Some(extra);
             }
         }
 
@@ -403,13 +422,13 @@ impl Game {
                 continue;
             }
             let p = self.player_at(i);
-            let card = self.starting_treachery_cards.as_mut().expect("starting treachery cards").draw();
+            let card = self.setup.starting_treachery_cards.as_mut().expect("starting treachery cards").draw();
             self.player_mut(p).treachery_cards.push(card);
             let faction = self.player(p).faction;
             self.log_to(faction, vec!["Your starting treachery card is: ".into(), card.into()]);
 
             if self.player(p).is(Faction::Harkonnen) {
-                if let Some(extra) = self.extra_starting_card_for_harkonnen {
+                if let Some(extra) = self.setup.extra_starting_card_for_harkonnen {
                     self.player_mut(p).treachery_cards.push(extra);
                     self.log_to(Faction::Harkonnen, vec!["Your extra card is: ".into(), extra.into()]);
                 }

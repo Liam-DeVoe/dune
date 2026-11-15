@@ -56,10 +56,10 @@ fn piles() {
             assert_eq!(p.treachery_discard_count, discard.len() as i32);
             assert_eq!(p.treachery_discard_top, discard.first().map(|c| c.id()));
             assert_eq!(p.resource_deck_count, g.resource_card_deck.as_ref().map_or(0, |d| d.items.len() as i32));
-            assert_eq!(p.latest_spice_card_a, g.latest_spice_card_a.map(|c| c.skin_id()));
-            assert_eq!(p.latest_spice_card_b, g.latest_spice_card_b.map(|c| c.skin_id()));
+            assert_eq!(p.latest_spice_card_a, g.blow.latest_spice_card_a.map(|c| c.skin_id()));
+            assert_eq!(p.latest_spice_card_b, g.blow.latest_spice_card_b.map(|c| c.skin_id()));
             saw_latest |= p.latest_spice_card_a.is_some();
-            assert_eq!(p.sand_trout.is_some(), g.sand_trout_occurred() && g.sand_trout.is_some());
+            assert_eq!(p.sand_trout.is_some(), g.sand_trout_occurred() && g.blow.sand_trout.is_some());
             assert_eq!(p.richese_cache_count, g.richese_cache.len() as i32);
             assert_eq!(p.richese_cache.is_some(), f == Some(Faction::Richese));
             // No fixture enables notekeeping; see notekeeping_shows_discard_piles_and_notes.
@@ -225,10 +225,10 @@ fn ring_ecaz_and_richese() {
     assert_eq!(ecaz.loyal_leader, r.game.ecaz_loyal_leader.map(|l| l.id()));
     assert!(view.players.iter().filter(|p| p.faction != "Ecaz").all(|p| p.loyal_leader.is_none()));
 
-    let mut r = first_bot_state("a revealed No-Field", |g| g.latest_revealed_no_field_value >= 0);
+    let mut r = first_bot_state("a revealed No-Field", |g| g.ship_move.latest_revealed_no_field_value >= 0);
     let view = r.view(OBSERVER);
     let richese = view.players.iter().find(|p| p.faction == "Richese").unwrap();
-    assert_eq!(richese.latest_revealed_no_field, Some(r.game.latest_revealed_no_field_value));
+    assert_eq!(richese.latest_revealed_no_field, Some(r.game.ship_move.latest_revealed_no_field_value));
 }
 
 /// `Game.HomeworldOccupation`-free thresholds: a homeworld at low threshold shows as such.
@@ -259,7 +259,7 @@ fn hand_cards_name_the_actions_that_play_them() {
         // When KarmaPrescience is applicable (engine/src/game/applicable_events.rs).
         g.get_player(Some(Faction::Atreides)).is_some_and(|p| {
             g.current_main_phase == MainPhase::Battle
-                && g.current_battle.as_ref().is_some_and(|b| b.is_involved(g, p))
+                && g.battle.current_battle.as_ref().is_some_and(|b| b.is_involved(g, p))
                 && !g.karma_prevented(Faction::Atreides)
                 && !g.player(p).special_karma_power_used
                 && g.player(p).has_karma(g)
@@ -342,8 +342,8 @@ fn faction_panel_extras() {
         }
     }
 
-    let mut r = first_bot_state("a card just won", |g| g.card_just_won.is_some());
-    let card = r.game.card_just_won.unwrap();
+    let mut r = first_bot_state("a card just won", |g| g.bidding.card_just_won.is_some());
+    let card = r.game.bidding.card_just_won.unwrap();
     let mut knowers = 0;
     for (f, view) in all_views(&mut r) {
         let Some(f) = f else { continue };
@@ -374,7 +374,7 @@ fn prompt_bidders() {
 #[test]
 fn flash() {
     let mut r = load("mc-concluded", 0);
-    let winner = r.game.battle_winner.unwrap();
+    let winner = r.game.battle.battle_winner.unwrap();
     let view = r.view(OBSERVER);
     assert_eq!(view.status.flash.len(), 1);
     // Labels come from the skin; the faction is what this test is about.
@@ -388,7 +388,7 @@ fn flash() {
 
     let mut r = load("mc-ended", 0);
     let view = r.view(OBSERVER);
-    let winners: Vec<String> = r.game.winners.iter().map(|p| name(r.game.player(*p).faction)).collect();
+    let winners: Vec<String> = r.game.contemplate.winners.iter().map(|p| name(r.game.player(*p).faction)).collect();
     assert_eq!(view.status.flash.iter().map(|f| faction_of(&f.to_show)).collect::<Vec<_>>(), winners);
 
     let mut r = load("blow", 0);
@@ -414,9 +414,9 @@ fn bids_on_the_ring() {
     let mut r = load("bid", 0);
     let view = r.view(OBSERVER);
     let b = view.bidding.expect("bidding phase");
-    assert_eq!(b.auction_type, name(r.game.current_auction_type));
-    assert_eq!(b.bids.len(), r.game.bids.len());
-    for (shown, (f, bid)) in b.bids.iter().zip(r.game.bids.iter()) {
+    assert_eq!(b.auction_type, name(r.game.bidding.current_auction_type));
+    assert_eq!(b.bids.len(), r.game.bidding.bids.len());
+    for (shown, (f, bid)) in b.bids.iter().zip(r.game.bidding.bids.iter()) {
         assert_eq!(shown.faction, name(*f));
         let expected = if bid.bid_passed() { BidShown::Pass } else { BidShown::Bid { amount: bid.bid_total_amount() } };
         assert_eq!(shown.bid, expected);
@@ -428,9 +428,9 @@ fn bids_on_the_ring() {
 #[test]
 fn silent_bids_are_ready() {
     let mut r = first_bot_state("a silent auction with bids", |g| {
-        (g.current_auction_type == AuctionType::RicheseSilent || g.current_auction_type == AuctionType::BlackMarketSilent)
+        (g.bidding.current_auction_type == AuctionType::RicheseSilent || g.bidding.current_auction_type == AuctionType::BlackMarketSilent)
             && g.current_main_phase == MainPhase::Bidding
-            && !g.bids.is_empty()
+            && !g.bidding.bids.is_empty()
     });
     for (_, view) in all_views(&mut r) {
         let b = view.bidding.unwrap();
@@ -444,12 +444,12 @@ fn silent_bids_are_ready() {
 #[test]
 fn battle_plans_once_both_are_in() {
     let mut r = load("mc-concluded", 0);
-    let battle = r.game.current_battle.clone().unwrap();
+    let battle = r.game.battle.current_battle.clone().unwrap();
     for (f, view) in all_views(&mut r) {
         let g = &r.game;
         let b = view.battle.as_ref().expect("a battle");
         assert_eq!((b.aggressor.as_str(), b.defender.as_str()), (name(battle.aggressor(g)).as_str(), name(battle.defender(g)).as_str()));
-        for (shown, plan, opponent) in [(&b.aggressor_plan, &g.aggressor_plan, battle.defender(g)), (&b.defender_plan, &g.defender_plan, battle.aggressor(g))] {
+        for (shown, plan, opponent) in [(&b.aggressor_plan, &g.battle.aggressor_plan, battle.defender(g)), (&b.defender_plan, &g.battle.defender_plan, battle.aggressor(g))] {
             let shown = shown.as_ref().unwrap_or_else(|| panic!("{f:?} sees both plans"));
             let plan = plan.as_ref().unwrap();
             assert!(shown.full && shown.hero_shown && shown.weapon_shown && shown.defense_shown);
@@ -473,20 +473,20 @@ fn battle_plans_once_both_are_in() {
 fn battle_plans_before_both_are_in() {
     for fixture in ["prescience-seen", "karma-prescience", "nexus-prescience", "battle", "mc-voice", "mc-prescience"] {
         let mut r = load(fixture, 0);
-        assert!(!(r.game.aggressor_plan.is_some() && r.game.defender_plan.is_some()), "{fixture}");
-        let users: Vec<Faction> = r.game.current_prescience.iter().map(|p| p.initiator()).chain(r.game.current_nexus_prescience.iter().map(|n| n.initiator())).collect();
+        assert!(!(r.game.battle.aggressor_plan.is_some() && r.game.battle.defender_plan.is_some()), "{fixture}");
+        let users: Vec<Faction> = r.game.battle.current_prescience.iter().map(|p| p.initiator()).chain(r.game.current_nexus_prescience.iter().map(|n| n.initiator())).collect();
         for (f, view) in all_views(&mut r) {
             let g = &r.game;
             let b = view.battle.as_ref().unwrap();
             let ally = f.map(|f| g.player(player(&r, f)).ally);
-            for (shown, plan) in [(&b.aggressor_plan, &g.aggressor_plan), (&b.defender_plan, &g.defender_plan)] {
+            for (shown, plan) in [(&b.aggressor_plan, &g.battle.aggressor_plan), (&b.defender_plan, &g.battle.defender_plan)] {
                 let own = plan.as_ref().is_some_and(|p| Some(p.initiator()) == f);
                 match shown {
                     None => assert!(!own, "{fixture}: {f:?} sees their own plan"),
-                    Some(s) if s.full => assert!(own || g.atreides_karma, "{fixture}: {f:?} sees a hidden plan"),
+                    Some(s) if s.full => assert!(own || g.battle.atreides_karma, "{fixture}: {f:?} sees a hidden plan"),
                     Some(s) => {
                         assert!(users.iter().any(|u| f == Some(*u) || ally == Some(*u)), "{fixture}: {f:?} sees prescience it didn't ask");
-                        let aspect = g.current_prescience.as_ref().map(|p| p.aspect).or(g.current_nexus_prescience.as_ref().map(|n| n.atreides_prescience_aspect)).unwrap();
+                        let aspect = g.battle.current_prescience.as_ref().map(|p| p.aspect).or(g.current_nexus_prescience.as_ref().map(|n| n.atreides_prescience_aspect)).unwrap();
                         let shown_aspects = [
                             (PrescienceAspect::Dial, s.dial.is_some()),
                             (PrescienceAspect::Leader, s.hero_shown),
@@ -540,12 +540,12 @@ fn board_basics() {
                 .collect();
             assert_eq!(b.leaders.len(), expected.len());
             leaders += b.leaders.len();
-            assert_eq!(b.monsters.iter().map(|m| m.territory).collect::<Vec<_>>(), g.monsters.iter().map(|m| m.territory.id()).collect::<Vec<_>>());
+            assert_eq!(b.monsters.iter().map(|m| m.territory).collect::<Vec<_>>(), g.blow.monsters.iter().map(|m| m.territory.id()).collect::<Vec<_>>());
             monsters += b.monsters.len();
             assert_eq!(b.storm_prescience_moves, g.has_storm_prescience(f.map(|f| player(&r, f))).then_some(g.next_storm_moves));
             assert_eq!(b.no_field_value.is_some(), f == Some(Faction::Richese));
             assert_eq!(b.atomics_aftermath, g.atomics_aftermath.map(|t| t.id()));
-            assert_eq!(b.number_of_monsters, g.number_of_monsters);
+            assert_eq!(b.number_of_monsters, g.blow.number_of_monsters);
             for l in g.map.locations(false) {
                 assert_eq!(b.protected_from_storm.contains(&l.id()), g.is_protected_from_storm(l));
             }
@@ -564,7 +564,7 @@ fn recent_moves() {
         let view = r.view(OBSERVER);
         let g = &r.game;
         let mut expected_ends: Vec<(String, i32)> = vec![];
-        for m in &g.recent_moves {
+        for m in &g.ship_move.recent_moves {
             let to = m.placement_to(g).unwrap();
             if !to.is_homeworld() {
                 for _ in m.placement_force_locations(g).keys() {
@@ -634,9 +634,9 @@ fn expansion_tokens() {
     assert_eq!(shown.attached_to, hms.attached_to_location(&r.game.map).unwrap().id());
     assert_eq!(shown.sector, hms.location().sector(&r.game.map));
 
-    let mut r = first_bot_state("a No-Field on the planet", |g| g.current_no_field_value >= 0 && g.is_playing(Faction::Richese));
+    let mut r = first_bot_state("a No-Field on the planet", |g| g.ship_move.current_no_field_value >= 0 && g.is_playing(Faction::Richese));
     for (f, view) in all_views(&mut r) {
-        assert_eq!(view.board.no_field_value, (f == Some(Faction::Richese)).then_some(r.game.current_no_field_value), "{f:?}");
+        assert_eq!(view.board.no_field_value, (f == Some(Faction::Richese)).then_some(r.game.ship_move.current_no_field_value), "{f:?}");
     }
 }
 
@@ -660,7 +660,7 @@ fn timing() {
     assert!(view.timing.time_spent.iter().any(|t| t.bidding > 0.0));
     assert_eq!(view.ruleset, name(g.ruleset));
     assert_eq!(view.rules, g.rules.iter().map(|r| name(*r)).collect::<Vec<_>>());
-    assert_eq!(view.economics_status, name(g.economics_status));
+    assert_eq!(view.economics_status, name(g.charity.economics_status));
 }
 
 /// The observer's view holds nothing that only a player may see, in any fixture.

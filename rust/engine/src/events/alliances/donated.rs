@@ -47,7 +47,7 @@ impl Donated {
         let may_donate = match self.player_opt() {
             Some(p) => Donated::may_donate(game, p),
             None => {
-                if game.current_phase == Phase::Bidding && game.current_bid.is_some() {
+                if game.current_phase == Phase::Bidding && game.bidding.current_bid.is_some() {
                     return Some(express!("You are not playing"));
                 }
                 true
@@ -69,7 +69,7 @@ impl Donated {
             return Some(express!(Concept::Resource, " transfers are disabled by house rule"));
         }
         if !self.from_bank
-            && (game.economics_status == ChoamEconomicsStatus::Double || game.economics_status == ChoamEconomicsStatus::DoubleFlipped)
+            && (game.charity.economics_status == ChoamEconomicsStatus::Double || game.charity.economics_status == ChoamEconomicsStatus::DoubleFlipped)
         {
             // C# parity: the message is built but never returned, so this check has no effect.
             let _ = express!("No bribes can be made during Double Inflation");

@@ -48,8 +48,8 @@ fn shipping_back_to_reserves_moves_special_forces_too() {
     let mut g = fixture("ship");
     let emperor = idx(&g, Faction::Emperor);
     // Make it Emperor's turn to ship, if it isn't in the fixture.
-    g.shipment_and_move_sequence = Some(PlayerSequence::new(&g, false, 1, Some(emperor), false));
-    assert_eq!(g.shipment_and_move_sequence.as_ref().unwrap().current_player(&g), Some(emperor));
+    g.ship_move.shipment_and_move_sequence = Some(PlayerSequence::new(&g, false, 1, Some(emperor), false));
+    assert_eq!(g.ship_move.shipment_and_move_sequence.as_ref().unwrap().current_player(&g), Some(emperor));
     // The fixture has no Emperor forces on the planet: put some on an empty sand sector.
     let sand = g
         .map
@@ -65,7 +65,7 @@ fn shipping_back_to_reserves_moves_special_forces_too() {
     let sardaukar_home = g.player(emperor).home_worlds.iter().copied().find(|hw| g.player(emperor).special_forces_in(Some(hw.location())) > 0).unwrap();
     Player::move_special_forces(&mut g, emperor, sardaukar_home.location(), sand, 2);
     // As if the Guild had given Emperor the permission (SetShipmentPermission).
-    g.shipment_permissions.insert(Faction::Emperor, ShipmentPermission::ToHomeworld);
+    g.ship_move.shipment_permissions.insert(Faction::Emperor, ShipmentPermission::ToHomeworld);
 
     let (reserve, special_reserve, spice) = {
         let pl = g.player(emperor);
@@ -119,8 +119,8 @@ fn bene_gesserit_flip_happens_in_the_intruded_territory() {
         m.set_to(g, Some(to));
         GameEvent::Move(Rc::new(m))
     };
-    g.intrusions.push(Intrusion::new(&mv(intruded, &g), IntrusionType::BeneGesseritIntrusion));
-    g.last_shipment_or_movement = Some(mv(elsewhere, &g));
+    g.ship_move.intrusions.push(Intrusion::new(&mv(intruded, &g), IntrusionType::BeneGesseritIntrusion));
+    g.ship_move.last_shipment_or_movement = Some(mv(elsewhere, &g));
     g.current_phase = Phase::BeneGesseritIntrudedByNonGuildMove;
 
     let mut flip = BeneGesseritFlip::new(&g, Faction::BeneGesserit);
@@ -184,12 +184,12 @@ fn karama_worm_needs_a_territory() {
     assert_eq!(karama_cards(&g), 1);
     assert!(!g.player(fremen).special_karma_power_used);
 
-    let monsters = g.number_of_monsters;
+    let monsters = g.blow.number_of_monsters;
     let target = KarmaMonster::valid_targets(&g).next().unwrap();
     assert_eq!(submit(&mut g, |g| monster(Some(target), g)), None);
     assert_eq!(karama_cards(&g), 0);
     assert!(g.player(fremen).special_karma_power_used);
-    assert_eq!(g.number_of_monsters, monsters + 1);
+    assert_eq!(g.blow.number_of_monsters, monsters + 1);
 }
 
 /// Ally permissions are stored under the ally. Without an ally there is nothing to store (the
@@ -236,7 +236,7 @@ fn a_richese_card_taken_from_the_deck_or_the_cache_leaves_the_other() {
     assert!(!g.richese_cache.contains(&drawn));
 
     // Sold from the cache: it leaves the deck.
-    g.cards_on_auction = Some(Deck::empty(None));
+    g.bidding.cards_on_auction = Some(Deck::empty(None));
     g.current_phase = Phase::RicheseSpecifyingAuction;
     let mut auction = RicheseSpecifiesAuction::new(&g, Faction::Richese);
     auction.set_card(Some(sold));
@@ -254,7 +254,7 @@ fn a_richese_card_taken_from_the_deck_or_the_cache_leaves_the_other() {
 #[test]
 fn a_karama_bid_needs_a_karama_card_and_no_pass() {
     let mut g = fixture("bid");
-    let bidder = g.bid_sequence.as_ref().unwrap().current_player(&g).expect("a bidder");
+    let bidder = g.bidding.bid_sequence.as_ref().unwrap().current_player(&g).expect("a bidder");
     let faction = g.player(bidder).faction;
     let held: Vec<TreacheryCard> = g.players.iter().flat_map(|p| p.treachery_cards.clone()).collect();
     let karama = TreacheryCardManager::items().iter().copied().find(|c| c.type_() == TreacheryCardType::Karma && !held.contains(c)).unwrap();
@@ -284,9 +284,9 @@ fn an_intrusion_left_over_from_an_earlier_phase_is_dropped() {
     let mut g = fixture("bene_gesserit");
     let mut m = Move::new(&g, Faction::Emperor);
     m.set_to(&g, Some(location(&g, 5)));
-    g.intrusions.push(Intrusion::new(&GameEvent::Move(Rc::new(m)), IntrusionType::BeneGesseritIntrusion));
+    g.ship_move.intrusions.push(Intrusion::new(&GameEvent::Move(Rc::new(m)), IntrusionType::BeneGesseritIntrusion));
     g.main_phase_start(MainPhase::Battle, false);
-    assert!(g.intrusions.is_empty());
+    assert!(g.ship_move.intrusions.is_empty());
 }
 
 /// An ally pays for a shipment only spice it has and has offered. C# checked neither, so a
@@ -295,7 +295,7 @@ fn an_intrusion_left_over_from_an_earlier_phase_is_dropped() {
 #[test]
 fn an_ally_pays_for_a_shipment_only_spice_it_has_and_offered() {
     let mut g = fixture("ship");
-    let shipper = g.shipment_and_move_sequence.as_ref().unwrap().current_player(&g).expect("a shipper");
+    let shipper = g.ship_move.shipment_and_move_sequence.as_ref().unwrap().current_player(&g).expect("a shipper");
     let f = g.player(shipper).faction;
     let other = g.players.iter().map(|p| p.faction).find(|x| *x != f && *x != Faction::Guild).unwrap();
     ally(&mut g, f, other);

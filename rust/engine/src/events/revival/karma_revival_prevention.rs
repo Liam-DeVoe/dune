@@ -38,7 +38,7 @@ impl KarmaRevivalPrevention {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.current_karma_revival_prevention = Some(self.clone());
+        game.revival.current_karma_revival_prevention = Some(self.clone());
         let me = self.player();
         let card = Karma::valid_karma_cards(game, me).into_iter().next();
         game.play_karma(me, card, vec!["prevent revival by ".into(), self.target.into()]);

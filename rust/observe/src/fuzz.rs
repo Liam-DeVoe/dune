@@ -547,7 +547,7 @@ pub const BATTLE_ACTION_TYPES: [&str; 24] = [
 const RARE_BATTLE_ACTION_TYPES: [&str; 4] = ["KarmaEcazDial", "JuicePlayed", "ResidualPlayed", "AuditCancelled"];
 
 pub fn battle_in_progress(g: &Game) -> bool {
-    g.current_main_phase == MainPhase::Battle && g.current_battle.is_some()
+    g.current_main_phase == MainPhase::Battle && g.battle.current_battle.is_some()
 }
 
 fn type_named(name: &str) -> Option<GameEventType> {

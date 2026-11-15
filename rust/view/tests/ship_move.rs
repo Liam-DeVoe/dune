@@ -153,7 +153,7 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, seen:
             assert_eq!(o.ambassadors, names(valid.clone()));
             assert_eq!(e.ambassador, valid.first().copied().unwrap_or(Ambassador::None), "the required picker starts on the first ambassador");
             assert_eq!(o.targets, sectors(AmbassadorPlaced::valid_strongholds(game, p)));
-            assert_eq!(o.cost, game.ambassadors_placed_this_turn + 1);
+            assert_eq!(o.cost, game.revival.ambassadors_placed_this_turn + 1);
         }
         (GameEvent::BeneGesseritAccompanies(_), ActionOptions::BeneGesseritAccompanies(o)) => {
             let targets = BeneGesseritAccompanies::valid_targets(game, p);
@@ -198,11 +198,11 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, seen:
         (GameEvent::TestingStationUsed(e), ActionOptions::TestingStationUsed(_)) => assert_eq!(e.value_added, -1),
         (GameEvent::KarmaHmsMovement(_), ActionOptions::KarmaHmsMovement(o)) => {
             assert_eq!(o.targets, ids(KarmaHmsMovement::valid_locations(game)));
-            assert_eq!(o.moves_left, game.karma_hms_moves_left);
+            assert_eq!(o.moves_left, game.storm.karma_hms_moves_left);
         }
         (GameEvent::PerformHmsMovement(_), ActionOptions::PerformHmsMovement(o)) => {
             assert_eq!(o.targets, ids(PerformHmsMovement::valid_locations(game)));
-            assert_eq!(o.moves_left, game.hms_moves_left);
+            assert_eq!(o.moves_left, game.storm.hms_moves_left);
         }
         (GameEvent::KarmaShipmentPrevention(e), ActionOptions::KarmaShipmentPrevention(o)) => {
             let targets: Vec<Faction> = KarmaShipmentPrevention::get_valid_targets(game, p).collect();
@@ -217,8 +217,8 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, seen:
         (GameEvent::FremenSentMonster(_), ActionOptions::FremenSentMonster(o)) => assert_eq!(o.targets, sectors(FremenSentMonster::valid_targets(game))),
         (GameEvent::SetShipmentPermission(_), ActionOptions::SetShipmentPermission(o)) => {
             assert_eq!(o.targets, names(SetShipmentPermission::valid_targets(game, p)));
-            assert_eq!(o.permissions.len(), game.shipment_permissions.len());
-            for (row, (f, perm)) in o.permissions.iter().zip(game.shipment_permissions.iter()) {
+            assert_eq!(o.permissions.len(), game.ship_move.shipment_permissions.len());
+            for (row, (f, perm)) in o.permissions.iter().zip(game.ship_move.shipment_permissions.iter()) {
                 assert_eq!(row.faction, f.to_string());
                 assert_eq!(row.cross, perm.value() & 1 != 0);
                 assert_eq!(row.to_homeworld, perm.value() & 2 != 0);

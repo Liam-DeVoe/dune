@@ -54,14 +54,14 @@ impl Thought {
 
     pub fn may_be_used(game: &Game, player: PlayerIndex) -> bool {
         game.has_skill_in_front_of_shield(player, LeaderSkill::Thinker)
-            && game.current_battle.is_some()
-            && game.current_thought.is_none()
-            && game.current_battle.as_ref().expect("current battle").is_aggressor_or_defender(game, player)
+            && game.battle.current_battle.is_some()
+            && game.battle.current_thought.is_none()
+            && game.battle.current_battle.as_ref().expect("current battle").is_aggressor_or_defender(game, player)
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.current_thought = Some(self.clone());
-        let battle = game.current_battle.clone().required("current battle")?;
+        game.battle.current_thought = Some(self.clone());
+        let battle = game.battle.current_battle.clone().required("current battle")?;
         let opponent = game.player(battle.opponent_of_faction(game, self.initiator()).required("opponent of faction")?).faction;
         game.log(elems![self.initiator(), " use their ", LeaderSkill::Thinker, " skill to ask ", opponent, " if they have a ", self.card()]);
         game.stone(Milestone::Prescience);

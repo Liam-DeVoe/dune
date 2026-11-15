@@ -30,14 +30,14 @@ impl KarmaEcazDial {
         let karama = Karma::valid_karma_cards(game, me).into_iter().next();
         game.player_mut(me).special_karma_power_used = true;
         game.stone(Milestone::Karma);
-        let battle = game.current_battle.clone().required("current battle")?;
+        let battle = game.battle.current_battle.clone().required("current battle")?;
         let my_leader = battle.plan_of_faction(game, self.initiator()).required("plan of faction")?.hero();
         let opponent_leader = battle.plan_of_opponent(game, Some(me)).required("plan of opponent")?.hero();
         if let (Some(my_leader), Some(opponent_leader)) = (my_leader, opponent_leader) {
-            game.ecaz_karma_bonus =
+            game.battle.ecaz_karma_bonus =
                 (my_leader.value() - opponent_leader.value_in_combat_against(Some(my_leader))).abs();
         }
-        let bonus = game.ecaz_karma_bonus;
+        let bonus = game.battle.ecaz_karma_bonus;
         game.play_karma(me, karama, vec!["add ".into(), bonus.into(), " to their dial".into()]);
         Ok(())
     }

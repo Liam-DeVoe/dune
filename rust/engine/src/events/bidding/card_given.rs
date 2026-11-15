@@ -29,21 +29,21 @@ impl CardGiven {
     }
 
     pub fn is_applicable(game: &Game, p: PlayerIndex) -> bool {
-        game.player(p).has(game.card_that_must_be_kept_or_given_to_ally)
+        game.player(p).has(game.bidding.card_that_must_be_kept_or_given_to_ally)
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
 
-        if !self.passed && game.card_that_must_be_kept_or_given_to_ally.is_some() && game.player(self.player()).allied_player(game).is_some() {
-            let card = game.card_that_must_be_kept_or_given_to_ally;
+        if !self.passed && game.bidding.card_that_must_be_kept_or_given_to_ally.is_some() && game.player(self.player()).allied_player(game).is_some() {
+            let card = game.bidding.card_that_must_be_kept_or_given_to_ally;
             let me = self.player();
             crate::game::remove_card(&mut game.player_mut(me).treachery_cards, card);
             let ally = game.player(me).allied_player(game).required("allied player")?;
             game.player_mut(ally).treachery_cards.push(card.required("card")?);
         }
 
-        game.card_that_must_be_kept_or_given_to_ally = None;
+        game.bidding.card_that_must_be_kept_or_given_to_ally = None;
         Ok(())
     }
 

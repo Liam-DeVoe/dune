@@ -1,9 +1,47 @@
 use crate::prelude::*;
 
+/// State of the revival phase and the revival counts of the current turn.
+pub struct RevivalState {
+    pub revival_tech_token_income: bool,
+    pub total_revivals_this_turn: IndexMap<Faction, i32>,
+    pub free_revivals_this_turn: IndexMap<Faction, i32>,
+    pub factions_that_revived_special_forces_this_turn: Vec<Faction>,
+    pub leader_revivals_this_turn: IndexMap<Faction, i32>,
+    pub tleilaxu_started_revival_with_low_threshold: bool,
+    pub current_recruits_played: Option<Rc<RecruitsPlayed>>,
+    /// Null after `SetIncreasedRevivalLimits` with `"Factions":null` executed without validation.
+    pub factions_with_increased_revival_limits: Option<Vec<Faction>>,
+    pub current_revival_requests: Vec<Rc<RequestTleilaxuRevival>>,
+    pub early_revivals_offers: NetDictionary<Hero, i32>,
+    pub current_free_revival_prevention: Option<Rc<ChoamFreeRevivalPrevention>>,
+    pub current_karma_revival_prevention: Option<Rc<KarmaRevivalPrevention>>,
+    pub ambassadors_placed_this_turn: i32,
+}
+
+impl RevivalState {
+    pub fn new() -> Self {
+        RevivalState {
+            revival_tech_token_income: Default::default(),
+            total_revivals_this_turn: Default::default(),
+            free_revivals_this_turn: Default::default(),
+            factions_that_revived_special_forces_this_turn: Vec::new(),
+            leader_revivals_this_turn: Default::default(),
+            tleilaxu_started_revival_with_low_threshold: Default::default(),
+            current_recruits_played: None,
+            factions_with_increased_revival_limits: Some(Vec::new()),
+            current_revival_requests: Vec::new(),
+            early_revivals_offers: Default::default(),
+            current_free_revival_prevention: None,
+            current_karma_revival_prevention: None,
+            ambassadors_placed_this_turn: Default::default(),
+        }
+    }
+}
+
 impl Game {
     pub fn prepare_skill_assignment_to_revived_leader(&mut self, player: PlayerIndex, leader: Option<Leader>) {
         if self.current_phase != Phase::AssigningSkill && leader.is_some() {
-            self.phase_before_skill_assignment = self.current_phase;
+            self.setup.phase_before_skill_assignment = self.current_phase;
         }
 
         self.player_mut(player).most_recently_revived_leader = leader;
@@ -55,12 +93,12 @@ impl Game {
             nr_of_free_revivals += 1;
         }
 
-        if self.current_recruits_played.is_some() {
+        if self.revival.current_recruits_played.is_some() {
             nr_of_free_revivals *= 2;
         }
 
         std::cmp::max(
-            nr_of_free_revivals - self.free_revivals_this_turn.get(&p.faction).copied().unwrap_or(0),
+            nr_of_free_revivals - self.revival.free_revivals_this_turn.get(&p.faction).copied().unwrap_or(0),
             0,
         )
     }
@@ -81,15 +119,15 @@ impl Game {
 
         let emperor_secret_ally: i32 = if emperor_secret_ally_used { 3 } else { 0 };
         let low_threshold: i32 = if g.has_low_threshold(pl.faction) { 1 } else { 0 };
-        let already_revived = g.total_revivals_this_turn.get(&pl.faction).copied().unwrap_or(0);
+        let already_revived = g.revival.total_revivals_this_turn.get(&pl.faction).copied().unwrap_or(0);
 
-        if self.current_recruits_played.is_some() {
+        if self.revival.current_recruits_played.is_some() {
             return std::cmp::max(7 + emperor_secret_ally + low_threshold - already_revived, 0);
         }
 
         // C# parity: C# 14 binds `Faction[].Contains` to MemoryExtensions.Contains on a
         // span, so a null array is empty and doesn't throw.
-        if self.factions_with_increased_revival_limits.as_deref().unwrap_or(&[]).contains(&pl.faction) {
+        if self.revival.factions_with_increased_revival_limits.as_deref().unwrap_or(&[]).contains(&pl.faction) {
             return std::cmp::max(5 + low_threshold + emperor_secret_ally - already_revived, 0);
         }
 
@@ -97,11 +135,11 @@ impl Game {
     }
 
     pub fn free_revival_prevented(&self, f: Faction) -> bool {
-        self.current_free_revival_prevention.as_ref().map(|e| e.target) == Some(f)
+        self.revival.current_free_revival_prevention.as_ref().map(|e| e.target) == Some(f)
     }
 
     pub fn prevented_from_reviving(&self, f: Faction) -> bool {
-        self.current_karma_revival_prevention.as_ref().is_some_and(|e| e.target == f)
+        self.revival.current_karma_revival_prevention.as_ref().is_some_and(|e| e.target == f)
     }
 
     pub fn ambassador_in(&self, t: Territory) -> Ambassador {
@@ -145,7 +183,7 @@ impl Game {
 
         let faction = self.player(player).faction;
         if faction != Faction::Tleilaxu {
-            self.revival_tech_token_income = true;
+            self.revival.revival_tech_token_income = true;
         }
 
         let tleilaxu = self.get_player(Some(Faction::Tleilaxu));
@@ -154,7 +192,7 @@ impl Game {
         if let Some(tleilaxu) = tleilaxu {
             // C# parity: Tleilaxu also earns this when it revives its own forces for free.
             tleilaxu_receives_income =
-                !self.tleilaxu_started_revival_with_low_threshold && !self.prevented(FactionAdvantage::TleilaxuReceiveRevive);
+                !self.revival.tleilaxu_started_revival_with_low_threshold && !self.prevented(FactionAdvantage::TleilaxuReceiveRevive);
 
             if tleilaxu_receives_income {
                 let r = &mut self.player_mut(tleilaxu).resources;
@@ -163,13 +201,13 @@ impl Game {
         }
 
         let v = self
-            .free_revivals_this_turn
+            .revival.free_revivals_this_turn
             .get(&faction).copied().unwrap_or(0) + free_revived_normal_forces + free_revived_special_forces;
-        self.free_revivals_this_turn.insert(faction, v);
+        self.revival.free_revivals_this_turn.insert(faction, v);
         let v = self
-            .total_revivals_this_turn
+            .revival.total_revivals_this_turn
             .get(&faction).copied().unwrap_or(0) + free_revived_normal_forces + free_revived_special_forces;
-        self.total_revivals_this_turn.insert(faction, v);
+        self.revival.total_revivals_this_turn.insert(faction, v);
 
         let p = self.player(player);
         let mut row = RevivalRow::new(faction, free_revived_normal_forces, free_revived_special_forces, 0);

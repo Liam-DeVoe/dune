@@ -36,9 +36,9 @@ impl Caravan {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.recent_moves.push(self.clone().into_event());
+        game.ship_move.recent_moves.push(self.clone().into_event());
 
-        game.storm_losses_to_take.clear();
+        game.storm.storm_losses_to_take.clear();
 
         let me = self.player();
         game.discard(me, TreacheryCardType::Caravan)?;
@@ -48,11 +48,11 @@ impl Caravan {
 
         let to = PlacementEventMethods::to(&**self, game);
         if crate::events::contains_conflicting_ally_opt(game, me, to)? {
-            game.chosen_destinations_with_allies.push(to.required("to")?.territory());
+            game.ship_move.chosen_destinations_with_allies.push(to.required("to")?.territory());
         }
 
-        game.current_flight_used = None;
-        game.current_flight_discovery_used = None;
+        game.ship_move.current_flight_used = None;
+        game.ship_move.current_flight_discovery_used = None;
 
         if !game.applicable(Rule::FullPhaseKarma) {
             game.allow(FactionAdvantage::FremenExtraMove);
@@ -62,7 +62,7 @@ impl Caravan {
         }
 
         if game.check_intrusion(&self.clone().into_event())? {
-            game.phase_before_caravan_caused_intrusion = game.current_phase;
+            game.ship_move.phase_before_caravan_caused_intrusion = game.current_phase;
             let bene_gesserit = game.last_bene_gesserit_intrusion().is_some();
             let terror = game.last_terror_trigger().is_some();
             game.enter_first(&[(bene_gesserit, Step::Enter(Phase::BeneGesseritIntrudedByCaravan)), (terror, Step::Enter(Phase::TerrorTriggeredByCaravan))], Step::Enter(Phase::AmbassadorTriggeredByCaravan));

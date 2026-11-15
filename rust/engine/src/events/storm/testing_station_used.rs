@@ -39,12 +39,12 @@ impl TestingStationUsed {
     pub fn can_be_played(g: &Game, p: PlayerIndex) -> bool {
         g.current_phase == Phase::MetheorAndStormSpell
             && g.player(p).occupies(g, Some(g.map.testing_station().location()))
-            && !g.current_testing_station_used
+            && !g.storm.current_testing_station_used
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.stone(Milestone::WeatherControlled);
-        game.current_testing_station_used = true;
+        game.storm.current_testing_station_used = true;
         game.next_storm_moves += self.value_added;
         let next = game.next_storm_moves;
         self.log_objects(

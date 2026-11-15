@@ -39,7 +39,7 @@ impl IxianRemovedCardFromAuction {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let card = self.card();
-        crate::game::remove_card(&mut game.cards_on_auction.as_mut().required("cards on auction")?.items, card);
+        crate::game::remove_card(&mut game.bidding.cards_on_auction.as_mut().required("cards on auction")?.items, card);
         let card = card.required("card")?;
 
         if self.put_on_top {
@@ -49,7 +49,7 @@ impl IxianRemovedCardFromAuction {
         }
 
         game.register_known_by_faction(Faction::Ixian, card);
-        game.cards_on_auction.as_mut().required("cards on auction")?.shuffle();
+        game.bidding.cards_on_auction.as_mut().required("cards on auction")?.shuffle();
         game.stone(Milestone::Shuffled);
         self.log(game);
 

@@ -91,7 +91,7 @@ impl FremenRidesMonster {
     }
 
     pub fn to_ride(g: &Game) -> Option<MonsterAppearance> {
-        Self::to_ride_index(g).map(|i| g.monsters[i].clone())
+        Self::to_ride_index(g).map(|i| g.blow.monsters[i].clone())
     }
 
     /// Index in `Game.Monsters` of the monster `ToRide` returns (Rust-only: `List.Remove` in
@@ -99,7 +99,7 @@ impl FremenRidesMonster {
     fn to_ride_index(g: &Game) -> Option<usize> {
         let fremen = g.get_player(Some(Faction::Fremen));
         if let Some(fremen) = fremen {
-            return g.monsters.iter().position(|m| {
+            return g.blow.monsters.iter().position(|m| {
                 (m.is_great_monster && g.player(fremen).any_forces_in_reserves() > 0 && !g.prevented(FactionAdvantage::FremenRidesMonster))
                     || (!m.is_great_monster && Self::locations_with_forces_that_can_ride(g, fremen, m.territory).next().is_some())
             });
@@ -188,12 +188,12 @@ impl FremenRidesMonster {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let to_ride_index = Self::to_ride_index(game);
-        let to_ride = to_ride_index.map(|i| game.monsters[i].clone());
+        let to_ride = to_ride_index.map(|i| game.blow.monsters[i].clone());
 
         if let Some(i) = to_ride_index {
             // List.Remove compares by reference; ToRide returned the element at this index.
             // Remove(null) finds nothing and does nothing.
-            game.monsters.remove(i);
+            game.blow.monsters.remove(i);
         }
 
         if !self.passed {
@@ -203,7 +203,7 @@ impl FremenRidesMonster {
             }
 
             let initiator = self.get_player(game, Some(self.initiator()));
-            game.last_shipment_or_movement = Some(self.clone().into_event());
+            game.ship_move.last_shipment_or_movement = Some(self.clone().into_event());
             for (from, value) in self.force_locations(game).iter() {
                 let from = *from;
                 let ini = initiator.required("initiator")?;

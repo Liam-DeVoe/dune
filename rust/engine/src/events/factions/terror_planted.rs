@@ -105,7 +105,7 @@ impl TerrorPlanted {
             || (g.current_phase == Phase::Contemplate
                 && !TerrorPlanted::valid_terror_types(g, false).next().is_none()
                 && !TerrorPlanted::valid_strongholds(g, p).next().is_none()
-                && !g.moritani_has_performed_terror
+                && !g.contemplate.moritani_has_performed_terror
                 && !g.prevented(FactionAdvantage::MoritaniPlantingTerror))
     }
 
@@ -113,7 +113,7 @@ impl TerrorPlanted {
         let m = self.get_verbose_message(game);
         self.log_objects(game, vec![m.into()]);
 
-        game.moritani_has_performed_terror = true;
+        game.contemplate.moritani_has_performed_terror = true;
 
         if !self.passed {
             game.stone(Milestone::TerrorPlanted);

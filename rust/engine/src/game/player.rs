@@ -308,7 +308,7 @@ impl Player {
             }
             Faction::Richese => {
                 Player::change_special_forces(game, me, location, -amount);
-                game.current_no_field_value = -1;
+                game.ship_move.current_no_field_value = -1;
             }
             _ => Player::move_special_forces(game, me, location, homeworld.location(), amount),
         }

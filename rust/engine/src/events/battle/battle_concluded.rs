@@ -92,7 +92,7 @@ impl BattleConcluded {
             return Some(express!("Invalid amount of replacement forces"));
         }
 
-        if game.decipherer_may_replace_traitor {
+        if game.battle.decipherer_may_replace_traitor {
             if self.new_traitor().is_some() && self.traitor_to_replace().is_none() {
                 return Some(express!("Select a traitor to be replaced by ", self.new_traitor()));
             }
@@ -113,9 +113,9 @@ impl BattleConcluded {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let Some(current_battle) = game.current_battle.clone() else { return Ok(()) };
+        let Some(current_battle) = game.battle.current_battle.clone() else { return Ok(()) };
 
-        game.battle_was_concluded_by_winner = true;
+        game.battle.battle_was_concluded_by_winner = true;
 
         if self.add_extra_force {
             let territory = current_battle.territory(game);
@@ -139,12 +139,12 @@ impl BattleConcluded {
             game.treachery_discard_pile.as_mut().required("treachery discard pile")?.put_on_top(c);
         }
 
-        if game.traitors_decipherer_can_look_at.len() > 0 {
-            let count = game.traitors_decipherer_can_look_at.len() as i32;
+        if game.battle.traitors_decipherer_can_look_at.len() > 0 {
+            let count = game.battle.traitors_decipherer_can_look_at.len() as i32;
             self.log_objects(game, vec![self.initiator().into(), " look at ".into(), count.into(), " leaders in the traitor deck".into()]);
         }
 
-        if self.traitor_to_replace().is_some() && self.new_traitor().is_some() && game.decipherer_may_replace_traitor {
+        if self.traitor_to_replace().is_some() && self.new_traitor().is_some() && game.battle.decipherer_may_replace_traitor {
             self.decipherer_replaces_traitors(game);
         }
 
@@ -152,9 +152,9 @@ impl BattleConcluded {
         self.take_tech_token(game);
         self.process_ixian_force_losses_and_substitutions(game);
 
-        let loser = self.get_player(game, game.battle_loser);
+        let loser = self.get_player(game, game.battle.battle_loser);
         if !LoserConcluded::is_applicable(game, loser) {
-            let condition1 = !game.is_playing(Faction::Tleilaxu) || game.battle_winner == Some(Faction::Tleilaxu);
+            let condition1 = !game.is_playing(Faction::Tleilaxu) || game.battle.battle_winner == Some(Faction::Tleilaxu);
             if condition1 {
                 Game::finish_battle(game)?;
             } else {
@@ -190,8 +190,8 @@ impl BattleConcluded {
             let currently_held = if tleilaxu { &mut pl.face_dancers } else { &mut pl.traitors };
             currently_held.push(new_traitor);
         }
-        if let Some(pos) = game.traitors_decipherer_can_look_at.iter().position(|h| *h == new_traitor) {
-            game.traitors_decipherer_can_look_at.remove(pos);
+        if let Some(pos) = game.battle.traitors_decipherer_can_look_at.iter().position(|h| *h == new_traitor) {
+            game.battle.traitors_decipherer_can_look_at.remove(pos);
         }
 
         {
@@ -209,9 +209,9 @@ impl BattleConcluded {
     }
 
     pub fn decide_fate_of_captured_leader(&self, game: &mut Game) {
-        let Some(current_battle) = game.current_battle.clone() else { return };
+        let Some(current_battle) = game.battle.current_battle.clone() else { return };
 
-        if !self.by(Faction::Harkonnen) || !game.applicable(Rule::HarkonnenCapturesOrKillsLeaders) || game.harkonnen_victim.is_none() {
+        if !self.by(Faction::Harkonnen) || !game.applicable(Rule::HarkonnenCapturesOrKillsLeaders) || game.battle.harkonnen_victim.is_none() {
             return;
         }
 
@@ -227,7 +227,7 @@ impl BattleConcluded {
 
     pub fn take_tech_token(&self, game: &mut Game) {
         if self.stolen_token != TechToken::None {
-            let loser = self.get_player(game, game.battle_loser);
+            let loser = self.get_player(game, game.battle.battle_loser);
             if let Some(loser) = loser {
                 if game.player(loser).tech_tokens.contains(&self.stolen_token) {
                     let tokens = &mut game.player_mut(loser).tech_tokens;
@@ -235,7 +235,7 @@ impl BattleConcluded {
                         tokens.remove(pos);
                     }
                     game.player_mut(self.player()).tech_tokens.push(self.stolen_token);
-                    let battle_loser = game.battle_loser;
+                    let battle_loser = game.battle.battle_loser;
                     self.log_objects(game, vec![self.initiator().into(), " steal ".into(), self.stolen_token.into(), " from ".into(), battle_loser.into()]);
                 }
             }
@@ -243,8 +243,8 @@ impl BattleConcluded {
     }
 
     pub fn process_ixian_force_losses_and_substitutions(&self, game: &mut Game) {
-        if game.ixian_special_force_losses_to_take > 0 {
-            let Some(current_battle) = game.current_battle.clone() else { return };
+        if game.battle.ixian_special_force_losses_to_take > 0 {
+            let Some(current_battle) = game.battle.current_battle.clone() else { return };
 
             let plan = current_battle.plan_of(game, Some(self.player()));
             let territory = current_battle.territory(game);
@@ -338,7 +338,7 @@ impl BattleConcluded {
     pub fn capture_or_assassinate_leader(&self, game: &mut Game, harkonnen: PlayerIndex, target: PlayerIndex) {
         if self.decision_to_capture() == CaptureDecision::Capture {
             self.log_objects(game, vec![Faction::Harkonnen.into(), " capture a leader!".into()]);
-            let Some(victim) = game.harkonnen_victim else { return };
+            let Some(victim) = game.battle.harkonnen_victim else { return };
             game.player_mut(harkonnen).leaders.push(victim);
             let leaders = &mut game.player_mut(target).leaders;
             if let Some(pos) = leaders.iter().position(|l| *l == victim) {
@@ -349,7 +349,7 @@ impl BattleConcluded {
             game.captured_leaders.insert_new(victim, target_faction);
         } else if self.decision_to_capture() == CaptureDecision::Kill {
             self.log_objects(game, vec![Faction::Harkonnen.into(), " kill a leader for ".into(), Payment::of(2).into()]);
-            if let Some(victim) = game.harkonnen_victim {
+            if let Some(victim) = game.battle.harkonnen_victim {
                 game.assassinate_leader(victim);
             }
             let pl = game.player_mut(harkonnen);
@@ -364,11 +364,11 @@ impl BattleConcluded {
     }
 
     pub fn valid_replacement_force_amounts(g: &Game, p: PlayerIndex) -> Vec<i32> {
-        if g.ixian_special_force_losses_to_take == 0 {
+        if g.battle.ixian_special_force_losses_to_take == 0 {
             return vec![0];
         }
 
-        let territory = g.current_battle.as_ref().and_then(|b| b.territory(g));
+        let territory = g.battle.current_battle.as_ref().and_then(|b| b.territory(g));
         let winner_battle_action = g.winner_battle_action();
         let (Some(territory), Some(winner_battle_action)) = (territory, winner_battle_action) else {
             return vec![0];
@@ -383,7 +383,7 @@ impl BattleConcluded {
         }
 
         // Enumerable.Range(0, count) checks count when called.
-        let count = 1i32 + std::cmp::min(replacement_forces_left, g.ixian_special_force_losses_to_take);
+        let count = 1i32 + std::cmp::min(replacement_forces_left, g.battle.ixian_special_force_losses_to_take);
         if count < 0 {
             panic!("Specified argument was out of the range of valid values. (Parameter 'count')");
         }
@@ -391,11 +391,11 @@ impl BattleConcluded {
     }
 
     pub fn valid_max_replacement_force_amount(g: &Game, p: PlayerIndex) -> i32 {
-        if g.ixian_special_force_losses_to_take == 0 {
+        if g.battle.ixian_special_force_losses_to_take == 0 {
             return 0;
         }
 
-        let territory = g.current_battle.as_ref().and_then(|b| b.territory(g));
+        let territory = g.battle.current_battle.as_ref().and_then(|b| b.territory(g));
         let winner_battle_action = g.winner_battle_action();
         let (Some(territory), Some(winner_battle_action)) = (territory, winner_battle_action) else {
             return 0;
@@ -409,16 +409,16 @@ impl BattleConcluded {
             return 0;
         }
 
-        std::cmp::min(replacement_forces_left, g.ixian_special_force_losses_to_take)
+        std::cmp::min(replacement_forces_left, g.battle.ixian_special_force_losses_to_take)
     }
 
     pub fn may_capture_or_kill(g: &Game, p: Option<PlayerIndex>) -> bool {
         let Some(p) = p else { return false };
         g.player(p).faction == Faction::Harkonnen
-            && g.battle_winner == Some(Faction::Harkonnen)
+            && g.battle.battle_winner == Some(Faction::Harkonnen)
             && !g.prevented(FactionAdvantage::HarkonnenCaptureLeader)
             && g.applicable(Rule::HarkonnenCapturesOrKillsLeaders)
-            && g.harkonnen_victim.is_some()
+            && g.battle.harkonnen_victim.is_some()
     }
 
     pub fn valid_capture_decisions(_g: &Game) -> Vec<CaptureDecision> {
@@ -436,11 +436,11 @@ impl BattleConcluded {
     }
 
     pub fn may_choose_to_discard_cards(g: &Game) -> bool {
-        g.battle_winner_may_choose_to_discard
+        g.battle.battle_winner_may_choose_to_discard
     }
 
     pub fn may_add_extra_force(g: &Game, p: PlayerIndex) -> bool {
-        let Some(territory) = g.current_battle.as_ref().and_then(|b| b.territory(g)) else {
+        let Some(territory) = g.battle.current_battle.as_ref().and_then(|b| b.territory(g)) else {
             return false;
         };
         let pl = g.player(p);

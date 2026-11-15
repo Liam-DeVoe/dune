@@ -122,6 +122,15 @@ fn any_observed_difference_fails() {
 }
 
 #[test]
+fn a_game_that_runs_away_in_both_fails() {
+    let mut a = record("bots", 2);
+    let n = a.len();
+    let pending = serde_json::json!({"op": "restore"});
+    a[n - 1] = serde_json::json!({"op": "end", "reason": "hung", "pending": pending});
+    assert_eq!(failure(&compare(&a, &a)), (n, "runaway".into()));
+}
+
+#[test]
 fn a_cut_off_trace_is_bad() {
     let a = record("bots", 2);
     let t = a[..a.len() - 1].to_vec();

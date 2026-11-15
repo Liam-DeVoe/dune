@@ -93,6 +93,11 @@ fn compare_line(a: &Line, b: &Line, allow: &Allow) -> Result<(), Diff> {
             if reason != reason2 || pending_op(pending) != pending_op(pending2) {
                 return Err(Diff::new("end", show(a), show(b)));
             }
+            // Both ran away at the same call. No real game may end like this, so the game fails,
+            // as in a replay.
+            if pending.is_some() {
+                return Err(Diff::new("runaway", "the call returns".into(), format!("{reason} in both A and B")));
+            }
             Ok(())
         }
         _ => Err(calls()),
@@ -156,13 +161,14 @@ fn check_game(o: &Options, g: &Game) -> (GameResult, Option<(Vec<u8>, Vec<u8>)>)
     }
     match record(true) {
         // With full views, view rules of the allow file can accept a view difference.
+        // A long game can run out of memory with full views, so the detailed comparison is used
+        // only when it finds the same difference, or accepts a view difference by a view rule.
         Ok((fa, fb)) => {
-            let detailed = compare_traces(&fa, &fb, &o.allow);
+            let (Outcome::Fail(first), detailed) = (&outcome, compare_traces(&fa, &fb, &o.allow)) else { unreachable!("the first comparison failed") };
             match detailed {
-                Outcome::Pass { .. } if !matches!(outcome, Outcome::Fail(ref m) if m.key.starts_with("views")) => {
-                    done(Outcome::Bad(format!("failed without full views but passed with them: {}", outcome.group())), Some((fa, fb)))
-                }
-                d => done(d, Some((fa, fb))),
+                Outcome::Fail(m) if m.line == first.line && m.key.split(' ').next() == first.key.split(' ').next() =>done(Outcome::Fail(m), Some((fa, fb))),
+                Outcome::Pass { .. } if first.key.starts_with("views") => done(detailed, None),
+                _ => done(outcome, Some((a, b))),
             }
         }
         Err(_) => done(outcome, Some((a, b))),

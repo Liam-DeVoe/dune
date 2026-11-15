@@ -242,3 +242,7 @@ In 4c, every panic that `guarded` swallows today must become an explicit "no dec
 5. **Unsigned amounts.** The engine has about 960 lines mentioning `i32`. Where a value could go negative, the sweep has to choose between rejecting and saturating. Expect it to find real bugs, each a behavior change to approve.
 6. **The harness doesn't see the lobby.** 3c rests on server tests and one Playwright run. The e2e script should grow to cover join, leave, kick, reconnect and undo before 3c merges.
 7. **Wave 1 and 2d need a quiet tree.** Any other branch open during a sweep will conflict in hundreds of files, so everything else is merged or parked first.
+
+## Progress
+
+- 2026-11-15: The ChaCha8 generator (game version 189) is merged (c44151a), and the shared reference is rebuilt from it. The old one is kept as `~/treachery-native-ref/observe-before-chacha`. Against the new reference, 200 of 200 bots games and 200 of 200 fuzz games (seed 1) pass, with the same endings as the branch's check (bots 197 ended, 3 stalled; fuzz 126 ended, 74 at the cap). Decisions on section 4: a notice is enough at deploy (1), log lines take a snapshot (2), and skins aren't stored in the database, so no stored skin can break, though 3b must still load a host's skin file that has `{0}` templates (3). Unreached phases get targeted unit tests and more fuzz reach before wave 5 (4), negative amounts are decided case by case as behavior changes (5), and the e2e script grows before 3c (6). Running: wave 0 and the e2e coverage.

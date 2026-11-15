@@ -6,6 +6,8 @@ How `rust/engine` represents the game: enums, static data, players, events, mess
 
 - Modules are organized by concern; [engine.md](engine.md) describes the layout. (Until 2026-11-12 there was one module per C# file, named after it.)
 - Members keep their C# names in snake_case and their C# order. Properties become methods: `card.IsWeapon` is `card.is_weapon()`.
+- Where C# overloads one name, the Rust names say how the versions differ, not which parameter types they take: `Game::discard_card(card, log)` and `discard_card_of(player, card, log)`, `GameStatus::for_player` and `for_players`, `Player::kill_forces` and `kill_forces_in_territory`.
+- Comments describe the Rust code. A comment about the C# engine is only for a deliberate difference (`// Not in C#: ...`, listed in [behavior-changes.md](behavior-changes.md)) or a copied C# bug (`// C# parity: ...`).
 - A name that is a Rust keyword gets a trailing underscore: `card.Type` is `card.type_()`.
 - Support modules have no C# counterpart. `shared.rs` holds `Shared<T>` and `RcKey<T>`, `enum_type.rs` defines how enums work, `iter.rs` the iterator and map helpers std lacks, `compat/date_time_offset.rs` is `DateTimeOffset`/`TimeSpan`, `random.rs` the random number generator and selection helpers, `json/mod.rs` and `json/members.rs` are the event JSON, and `prelude.rs` is the common import.
 - `map/data.rs` and the enum declarations in `enumerations.rs` were generated from the C# source once and are edited by hand now. `tests/static_data.rs` checks them against a snapshot.
@@ -47,7 +49,7 @@ Territories, locations, leaders, the Messiah, treachery cards and resource cards
 | `Homeworld`, `DiscoveredLocation`, `HiddenMobileStronghold`, `AttachedLocation` | same-named handles | `Deref` to `Location`. `.location()` converts |
 | `Territory` | `territory::Territory` | |
 | `Leader` | `leader::Leader` | |
-| `IHero` | `i_hero::Hero` | `enum Hero { Leader(Leader), Messiah, TreacheryCard(TreacheryCard) }` |
+| `IHero` | `heroes::hero::Hero` | `enum Hero { Leader(Leader), Messiah, TreacheryCard(TreacheryCard) }` |
 | `Messiah` | `Hero::Messiah` | `LeaderManager::messiah()` returns it |
 | `TreacheryCard` | `treachery_card::TreacheryCard` | |
 | `ResourceCard` | `resource_card::ResourceCard` | Identity is the position in `GetResourceCardsInAndOutsidePlay`, so the six Shai-Hulud cards stay distinct |
@@ -60,7 +62,7 @@ if let Some(hw) = l.as_homeworld() { if hw.world() == World::Emperor { /* ... */
 
 // hero as Leader / hero is Messiah
 hero.as_leader();
-hero.is_messiah();
+hero == Hero::Messiah;
 
 // Messages, lists and comparisons take the plain Location
 let l: Location = hw.into();
@@ -84,7 +86,7 @@ game.map.shield_wall()                  // Map.ShieldWall (a Territory)
 Events store integer ids, as in C#, and resolve them through the fetchers. `Find` throws where C# throws: `LocationLookup.Find(200)` is ArgumentOutOfRangeException.
 
 ```rust
-use crate::i_fetcher::IFetcher;
+use crate::identity::Fetcher;
 let to = game.map.location_lookup().find(self.to_id);        // Option<Location>
 let hero = LeaderManager::hero_lookup().find(self.hero_id);  // Option<Hero>
 let card = TreacheryCardManager::lookup().find(self.card_id);
@@ -158,7 +160,7 @@ game.map.find_neighbours_for_hms_movement(start, 1, false, game.sector_in_storm)
 
   `AllRules`/`InitialRules`, `PermittedUseOfEmperorSpice`/`Amounts` and `FactionsWithIncreasedRevivalLimits`/`Factions` are also aliased in C#, but nothing mutates them afterwards, so they are plain copies.
 
-  `Game.participation` is a `Shared<Participation>` too. `new Game(version, participation)` keeps the caller's object, and the games that `Undo`, `RestoreRecentlyUndone` and `DismissRecentlyUndone` make share it, so `Game::new_int32_participation` takes a `&Shared<Participation>`.
+  `Game.participation` is a `Shared<Participation>` too. `new Game(version, participation)` keeps the caller's object, and the games that `Undo`, `RestoreRecentlyUndone` and `DismissRecentlyUndone` make share it, so `Game::with_participation` takes a `&Shared<Participation>`.
 - When C# uses an object as an identity token, key by a stable handle: `PlayerIndex` for players (`LegacyNames`), `shared::RcKey<Event>` for events (`DealResponses` is keyed by `RcKey<DealOffered>`). Don't compare structurally.
 - The game's random number generator is shared between `Game.random` and every deck built from it. That is `random::SharedRandom`, a `Shared<GameRng>`.
 - C# objects that hold their owning game (`Player.Game`, `PlayerSequence._game`, `GameEvent.Game`) don't keep it in Rust. Their methods take the game as a parameter.
@@ -220,7 +222,7 @@ The native harness sees the change in fuzz games that restore. In 200 fuzz games
 ### Representation
 
 - Each C# event class is a struct in `src/events/<name>.rs` with its fields in C# order, the fields inherited from `PassableGameEvent`/`PlacementEvent` inlined, and the `GameEvent` fields in `base: GameEventBase` (`Initiator`, `Time`, `Game`, `Player`).
-- A C# `GameEvent` reference is the enum `events::GameEvent`, with one variant per concrete event holding an `Rc`. Cloning shares the object; `==` and `Hash` are by address. A field typed as a concrete event (`Game.AggressorPlan`) is `Option<Rc<Battle>>`. A field typed as `IBid`, `ILocationEvent` or `IPlacement` is `GameEvent`.
+- A C# `GameEvent` reference is the enum `events::GameEvent`, with one variant per concrete event holding an `Rc`. Cloning shares the object; `==` and `Hash` are by address. A field typed as a concrete event (`Game.AggressorPlan`) is `Option<Rc<Battle>>`. A field typed as `BidEvent`, `LocationEvent` or `Placement` is `GameEvent`.
 - `events::GameEventType` is C# `Type` for events: `GetType()`, `typeof(Bid)`, the result of `GetApplicableEvents`. `name()` is `Type.Name`.
 - `X::default()` is `new X()` with the C# field initializers. `X::new(game, initiator)` is `new X(game, initiator)`; it calls `initialize`.
 
@@ -236,7 +238,7 @@ self.by(Faction::Emperor)      // By(Faction.Emperor)
 self.passed                // Passed (a field on every passable event)
 ```
 
-`GameEvent` (the enum) has a dispatching method for every `GameEventMethods` member: `ev.validate(&game)`, `ev.execute(&mut game, true, false)`, `ev.get_message(&game)`. Interface members dispatch as `ev.i_bid_amount()` and `ev.i_location_event_to(&game)`, which throw `InvalidCastException` for an event that does not implement the interface. The interface traits (`IBid`, `ILocationEvent`, `IPlacement`) are not in the prelude, because their method names clash with the base traits.
+`GameEvent` (the enum) has a dispatching method for every `GameEventMethods` member: `ev.validate(&game)`, `ev.execute(&mut game, true, false)`, `ev.get_message(&game)`. Interface members dispatch as `ev.bid_amount()` and `ev.location_event_to(&game)`, which panic for an event that does not implement the trait. The interface traits (`BidEvent`, `LocationEvent`, `Placement`) are not in the prelude, because their method names clash with the base traits.
 
 ### Signatures
 
@@ -393,7 +395,7 @@ let state: GameState = json::deserialize(&savegame)?;     // without the legacy 
 
 Known gaps, all on malformed input: a duplicate `$type` is not detected, nesting is limited at 128 instead of 64, `-0.0` is read as an integer, and a date without an offset is read as UTC where .NET uses machine-local time. Error messages are not .NET's.
 
-`Utilities::deserialize` includes the legacy Newtonsoft path, checked in `tests/pkg_a_core.rs`, and `GameState::load` does the `Treachery.online` replacement. One known gap: `JsonNode.Parse` throws on a duplicate key, serde_json keeps the last value.
+`Utilities::deserialize` reads only the System.Text.Json format. The Newtonsoft format of old savegames is no longer read, since those games are of versions the engine refuses anyway. `GameState::load` still replaces `Treachery.online` with `Treachery` in the text first.
 
 ## Not ported
 

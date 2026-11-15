@@ -12,11 +12,12 @@ Starts rust/target/release/treachery-server on a fresh database with the web bui
    web client's own connection code (window.treacheryClient). The lobby screens don't exist yet
    (client.md, package 8), so this is the only step not done by clicking.
 2. Alice creates a game from the alliance fixture, takes the Emperor's seat and opens the
-   Atreides seat; Bob joins it.
+   Atreides seat; Bob joins it. The fixture's seed decides the seats, so they come from the
+   view the server sends Alice.
 3. Both open the game screen (/game/<gameId>), logged in with the session the setup kept in the
    tab's sessionStorage: no token in any URL. Alice offers an alliance to the Atreides by
-   clicking, Bob offers one back, and both screens update to show the alliance (the log's Nexus
-   line, and the offer form leaves).
+   clicking, Bob offers one back, and both screens update to show the alliance (the offer form
+   leaves, and the toolbar has a button for the alliance with the other one's faction).
 4. Carol logs in through the login form, asking to stay signed in. The session token is in
    localStorage and in no URL; a reload and a second tab are logged in with it. Logging out
    returns both tabs to the login form, and a reload stays logged out.
@@ -32,7 +33,6 @@ from __future__ import annotations
 
 import argparse
 import os
-import re
 import subprocess
 import sys
 import tempfile
@@ -45,7 +45,6 @@ from playwright.sync_api import Page, sync_playwright
 ROOT = Path(__file__).resolve().parents[2]
 SERVER = ROOT / "rust/target/release/treachery-server"
 FIXTURE = ROOT / "scripts/fixtures/alliance.json"
-EMPEROR_SEAT, ATREIDES_SEAT = 0, 3
 # Every request that failed or got an error status, on any page: a missing image or stylesheet
 # shows up here, not as a failed check.
 FAILED_REQUESTS: list[str] = []
@@ -85,16 +84,22 @@ def check(condition: bool, what: str) -> None:
     print(f"ok  {what}")
 
 
-SETUP_HOST = """async ([savegame, emperorSeat, atreidesSeat]) => {
+# The fixture's seed decides which seat each faction gets, so the seats are read from the view
+# the server sends the host after creating the game.
+SETUP_HOST = """async ([savegame]) => {
   const { Connection, login, storeSession } = window.treacheryClient;
   const conn = new Connection();
   const me = await login(conn, "alice", "alice-password", { email: null, playerName: "Alice" });
+  let view = null;
+  conn.on("GameView", (v) => { view = v; });
   const info = await conn.invoke("RequestCreateGame", "E2E", "", savegame, "");
-  await conn.invoke("RequestAssignSeats", info.GameId, [[me.UserId, emperorSeat]]);
-  await conn.invoke("RequestOpenOrCloseSeat", info.GameId, atreidesSeat);
+  const seat = (faction) => view.players.find((p) => p.faction === faction).seat;
+  const seats = { emperor: seat("Emperor"), atreides: seat("Atreides") };
+  await conn.invoke("RequestAssignSeats", info.GameId, [[me.UserId, seats.emperor]]);
+  await conn.invoke("RequestOpenOrCloseSeat", info.GameId, seats.atreides);
   conn.close();
   storeSession(me.Token, false);
-  return { gameId: info.GameId };
+  return { gameId: info.GameId, ...seats };
 }"""
 
 SETUP_GUEST = """async ([gameId, seat]) => {
@@ -202,32 +207,32 @@ def main() -> None:
 
                 # 1-2: log in, create, seat.
                 alice.goto(base + "/")
-                host = alice.evaluate(SETUP_HOST, [FIXTURE.read_text(), EMPEROR_SEAT, ATREIDES_SEAT])
+                host = alice.evaluate(SETUP_HOST, [FIXTURE.read_text()])
                 check(bool(host["gameId"]), "Alice logged in and created a game from the alliance fixture")
                 bob.goto(base + "/")
-                guest = bob.evaluate(SETUP_GUEST, [host["gameId"], ATREIDES_SEAT])
+                guest = bob.evaluate(SETUP_GUEST, [host["gameId"], host["atreides"]])
                 check(bool(guest["joined"]), "Bob logged in and joined the Atreides seat")
 
                 # 3: both screens, alliance events by clicking.
                 alice.goto(f"{base}/game/{host['gameId']}")
                 bob.goto(f"{base}/game/{host['gameId']}")
-                for p, who in ((alice, "Alice"), (bob, "Bob")):
+                for p, who, faction in ((alice, "Alice", "Emperor"), (bob, "Bob", "Atreides")):
                     p.get_by_text("Offer a faction to form an Alliance").wait_for(timeout=15000)
                     check(True, f"{who} sees the alliance form in a view from the server")
+                    check(p.locator(".player-panel .pp-bar").first.inner_text().strip().startswith(faction), f"{who} plays the {faction}")
                 alice.screenshot(path=str(args.shots / "1-alice-start.png"))
 
                 offer_alliance(alice, "Atreides")
                 bob.get_by_text("Emperor").first.wait_for()
                 offer_alliance(bob, "Emperor")
-                for p, who in ((alice, "Alice"), (bob, "Bob")):
+                for p, who, ally in ((alice, "Alice", "Atreides"), (bob, "Bob", "Emperor")):
                     try:
                         p.get_by_text("Offer a faction to form an Alliance").wait_for(state="detached", timeout=15000)
-                        # The log shows the new alliance as "Nexus: <Emperor> <ally> <Atreides>".
-                        p.get_by_text(re.compile("^nexus$", re.I)).first.wait_for(timeout=15000)
+                        p.locator(f"button[title='Manage your Alliance with {ally}']").wait_for(timeout=15000)
                     except Exception:
                         p.screenshot(path=str(args.shots / f"failed-{who}.png"))
                         raise
-                    check(True, f"{who}'s screen updated: the offer form is gone, and the log shows the alliance")
+                    check(True, f"{who}'s screen updated: the offer form is gone, and the toolbar shows the alliance with the {ally}")
                 alice.screenshot(path=str(args.shots / "2-alice-allied.png"))
                 bob.screenshot(path=str(args.shots / "2-bob-allied.png"))
 

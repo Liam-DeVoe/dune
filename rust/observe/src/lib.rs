@@ -11,6 +11,8 @@ pub mod fuzz;
 pub mod record;
 pub mod watch;
 pub mod allow;
+pub mod events;
+pub mod compare;
 pub mod jsondiff;
 pub mod replay;
 pub mod heavy;

@@ -172,10 +172,14 @@ impl Session {
 
     /// Executes an event with validation, as the server does for a submission.
     pub fn submit(&mut self, event_json: &str, host: bool) -> Result<EventOutcome, Panicked> {
-        let ev: GameEvent = match json::deserialize(event_json) {
-            Ok(e) => e,
-            Err(e) => return Ok(EventOutcome { result: "unreadable".into(), message: Some(format!("{e:?}")), obs: Obs::default() }),
-        };
+        match json::deserialize(event_json) {
+            Ok(e) => self.submit_event(e, host),
+            Err(e) => Ok(EventOutcome { result: "unreadable".into(), message: Some(format!("{e:?}")), obs: Obs::default() }),
+        }
+    }
+
+    /// The same for an event that is already decoded.
+    pub fn submit_event(&mut self, ev: GameEvent, host: bool) -> Result<EventOutcome, Panicked> {
         let before = self.game.history.len();
         let game = &mut self.game;
         let r = guarded(|| {

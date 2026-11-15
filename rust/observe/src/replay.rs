@@ -5,9 +5,13 @@ use std::io::BufRead;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 
+use serde_json::Value;
+
 use crate::allow::Allow;
+use crate::compare::{self, show, Diff};
+use crate::events;
 use crate::session::Session;
-use crate::trace::{self, Line, Obs};
+use crate::trace::{self, EventOutcome, Line, Obs};
 use crate::watch::{self, Budgets, Ending, Msg};
 
 /// The first difference of a game.
@@ -25,6 +29,13 @@ pub struct Mismatch {
     pub viewer: Option<(usize, String)>,
     /// For `views`, when both sides have full views: the differing paths.
     pub view_diff: Vec<String>,
+}
+
+impl Mismatch {
+    /// A difference at trace line `n` (1-based).
+    pub fn at(n: usize, line: &Line, d: Diff) -> Mismatch {
+        Mismatch { line: n, key: d.key, context: context(line), expected: d.expected, actual: d.actual, viewer: d.viewer, view_diff: d.view_diff }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -57,21 +68,22 @@ struct Replayer<'a> {
     tx: &'a Sender<Msg>,
 }
 
-fn context(line: &Line) -> String {
+/// One line about a call, for reports.
+pub fn context(line: &Line) -> String {
     match line {
-        Line::Event { event, src, .. } => format!("event {} ({src})", event.get("$type").and_then(|t| t.as_str()).unwrap_or("?")),
+        Line::Event { event, src, .. } => format!("event {} ({src})", events::type_name(event)),
         Line::Query { p, host, .. } => format!("query (player {}, host {host})", p.map_or("none".to_string(), |p| p.to_string())),
         other => other.op().to_string(),
     }
 }
 
-fn show<T: serde::Serialize>(v: &T) -> String {
-    serde_json::to_string(v).unwrap_or_default()
-}
-
 impl<'a> Replayer<'a> {
     fn fail(&self, line: &Line, key: &str, expected: String, actual: String) -> Mismatch {
-        Mismatch { line: self.n, key: key.into(), context: context(line), expected, actual, viewer: None, view_diff: vec![] }
+        self.at(line, Diff::new(key, expected, actual))
+    }
+
+    fn at(&self, line: &Line, d: Diff) -> Mismatch {
+        Mismatch::at(self.n, line, d)
     }
 
     fn sess(&mut self) -> &mut Session {
@@ -100,14 +112,7 @@ impl<'a> Replayer<'a> {
                     Err(e) if result.panic => return Ok(self.expected_panic(e.0)),
                     Err(e) => return Err(panicked_actual(self, e.0)),
                 };
-                if result.panic {
-                    return Err(self.fail(line, "panic", "a panic".into(), show(&actual)));
-                }
-                // An exception's text is not compared (native code reports these differently).
-                let same = actual.types == result.types && actual.error.is_some() == result.error.is_some();
-                if !same {
-                    return Err(self.fail(line, "applicable", show(result), show(&actual)));
-                }
+                compare::query(result, &actual).map_err(|d| self.at(line, d))?;
                 Ok(None)
             }
             Line::Bots { order, end, created, result } => {
@@ -127,37 +132,24 @@ impl<'a> Replayer<'a> {
                     Err(e) if result.panic => return Ok(self.expected_panic(e.0)),
                     Err(e) => return Err(panicked_actual(self, e.0)),
                 };
-                if result.panic {
-                    return Err(self.fail(line, "panic", "a panic".into(), show(&actual)));
-                }
-                if self.allow.bots {
-                    return Ok(None);
-                }
-                // The level a bot decided at is internal; the player and the event are what others see.
-                let key = |r: &trace::BotsResult| (r.choice.as_ref().map(|c| (c.p, c.event.clone())), r.error.is_some(), r.panic);
-                if key(&actual) != key(result) {
-                    return Err(self.fail(line, "bot", show(result), show(&actual)));
-                }
+                // Each side's decision is decoded and encoded again by the working tree (events.rs).
+                let normalize = |v: &Value, reference: bool| if reference { events::normalize_reference(v) } else { events::normalize_working(v) };
+                compare::bots(result, &actual, &normalize, self.allow).map_err(|d| self.at(line, d))?;
                 Ok(None)
             }
             Line::Event { host, event, outcome, .. } => {
-                let actual = match self.sess().submit(&event.to_string(), *host) {
+                // The working tree decodes the reference's event itself. An event it can't decode
+                // is `unreadable`, which compares like a rejection.
+                let actual = match events::from_reference(event) {
+                    Ok(ev) => self.sess().submit_event(ev, *host),
+                    Err(e) => Ok(EventOutcome { result: "unreadable".into(), message: Some(e), obs: Obs::default() }),
+                };
+                let actual = match actual {
                     Ok(o) => o,
                     Err(e) if outcome.result == "panic" => return Ok(self.expected_panic(e.0)),
                     Err(e) => return Err(panicked_actual(self, e.0)),
                 };
-                if outcome.result == "panic" {
-                    return Err(self.fail(line, "panic", "a panic".into(), format!("{} {}", actual.result, actual.message.clone().unwrap_or_default())));
-                }
-                let class = |r: &str| if r == "rejected" || r == "error" { "not accepted".to_string() } else { r.to_string() };
-                if class(&actual.result) != class(&outcome.result) {
-                    return Err(self.fail(line, "result", format!("{} {}", outcome.result, outcome.message.clone().unwrap_or_default()), format!("{} {}", actual.result, actual.message.clone().unwrap_or_default())));
-                }
-                // Messages of engine exceptions ("Game Error: ...") are not compared: native code
-                // reports these failures differently, and that is not a change players rely on.
-                if actual.result == "rejected" && outcome.result == "rejected" && !self.allow.same_message(outcome.message.as_deref(), actual.message.as_deref()) {
-                    return Err(self.fail(line, "message", outcome.message.clone().unwrap_or_default(), actual.message.clone().unwrap_or_default()));
-                }
+                compare::event_result(outcome, &actual, self.allow).map_err(|d| self.at(line, d))?;
                 self.compare_obs(line, &outcome.obs, &actual.obs)?;
                 Ok(None)
             }
@@ -201,50 +193,8 @@ impl<'a> Replayer<'a> {
     }
 
     fn compare_obs(&mut self, line: &Line, expected: &Obs, actual: &Obs) -> Result<(), Mismatch> {
-        if expected.log_cut != actual.log_cut {
-            return Err(self.fail(line, "log", format!("log cut to {:?}", expected.log_cut), format!("log cut to {:?}", actual.log_cut)));
-        }
-        let e: Vec<&(String, String)> = expected.log.iter().filter(|m| !self.allow.ignores_log(&m.1)).collect();
-        let a: Vec<&(String, String)> = actual.log.iter().filter(|m| !self.allow.ignores_log(&m.1)).collect();
-        if e != a {
-            let i = e.iter().zip(a.iter()).position(|(x, y)| x != y).unwrap_or(e.len().min(a.len()));
-            let at = |v: &Vec<&(String, String)>| v.get(i).map_or("(no message)".to_string(), |(t, m)| if t.is_empty() { m.clone() } else { format!("[to {t}] {m}") });
-            return Err(self.fail(line, "log", format!("message {}: {}", i + 1, at(&e)), format!("message {}: {}", i + 1, at(&a))));
-        }
-        if expected.replica.is_some() != actual.replica.is_some() {
-            return Err(self.fail(line, "replica", show(&expected.replica), show(&actual.replica)));
-        }
-        match (&expected.views, &actual.views) {
-            (None, None) => Ok(()),
-            (Some(ev), Some(av)) => {
-                let labels: Vec<String> = self.sess().viewers().into_iter().map(|(l, _)| l).collect();
-                if ev.len() != av.len() {
-                    return Err(self.fail(line, "views", format!("{} viewers", ev.len()), format!("{} viewers ({})", av.len(), labels.join(", "))));
-                }
-                for i in 0..ev.len() {
-                    // A view that failed to build is compared as failed, not by its error text.
-                    if ev[i] == av[i] || (ev[i].starts_with("error: ") && av[i].starts_with("error: ")) {
-                        continue;
-                    }
-                    let label = labels.get(i).cloned().unwrap_or_default();
-                    let mut m = self.fail(line, "views", ev[i].clone(), av[i].clone());
-                    m.viewer = Some((i, label));
-                    if let (Some(ef), Some(af)) = (&expected.full, &actual.full) {
-                        let (ef, af) = (&ef[i], &af[i]);
-                        m.view_diff = crate::jsondiff::diff(ef, af, &|path| self.allow.ignores_view(path), 30);
-                        if m.view_diff.is_empty() {
-                            // Every difference is allowed.
-                            continue;
-                        }
-                    } else if self.allow.has_view_rules() {
-                        m.key = "views (hash)".into();
-                    }
-                    return Err(m);
-                }
-                Ok(())
-            }
-            (e, a) => Err(self.fail(line, "views", if e.is_some() { "views built".into() } else { "no views (history unchanged)".into() }, if a.is_some() { "views built".into() } else { "no views (history unchanged)".into() })),
-        }
+        let labels: Vec<String> = self.sess().viewers().into_iter().map(|(l, _)| l).collect();
+        compare::obs(expected, actual, self.allow, &labels).map_err(|d| self.at(line, d))
     }
 }
 

@@ -88,6 +88,7 @@ pub struct Game {
     pub turn: TurnState,
     pub history: History,
     pub log: Log,
+    pub counters: Counters,
 
     // The state of each phase. They are all kept side by side, whatever the current phase.
     pub setup: SetupState,
@@ -149,6 +150,7 @@ impl Game {
             turn: TurnState::new(),
             history: History::new(),
             log: Log::new(),
+            counters: Counters::default(),
             setup: SetupState::new(),
             storm: StormState::new(),
             blow: BlowState::new(),

@@ -618,7 +618,6 @@ fn messages() {
     use treachery_engine::messages::payment::Payment;
 
     let m = Map::new();
-    let start = treachery_engine::messages::message::Message::counter();
     let part = express_part_if!(false; "never");
     let msg = express!(
         Faction::Atreides,
@@ -633,8 +632,6 @@ fn messages() {
         part,
         express!("inner")
     );
-    // The inner message is created first.
-    assert_eq!(msg.nr, start + 1);
     assert_eq!(msg.target, Faction::None);
     assert_eq!(msg.expression.elements[0], E::from(Faction::Atreides));
     assert_eq!(msg.expression.elements[6], E::Null);
@@ -649,5 +646,4 @@ fn messages() {
     );
     let to = express_to!(Faction::Harkonnen; "secret");
     assert_eq!(to.target, Faction::Harkonnen);
-    assert_eq!(to.nr, start + 2);
 }

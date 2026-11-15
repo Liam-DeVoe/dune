@@ -94,10 +94,26 @@ fn tleilaxu_revival_targets_union_killed_and_gholas() {
     g.player_mut(tleilaxu).leaders.push(ghola);
 
     // A dead emperor leader.
-    g.leaders.leader_state[&Hero::Leader(emperor_leaders[1])].kill(&mut None);
+    g.leaders.leader_state[&Hero::Leader(emperor_leaders[1])].kill(&mut None, &mut g.counters);
 
     let targets = RequestTleilaxuRevival::valid_targets(&g, emperor).collect::<Vec<_>>();
     assert_eq!(targets, vec![Hero::Leader(emperor_leaders[1]), Hero::Leader(ghola)]);
+}
+
+/// Each game numbers its own leader deaths. They were numbered per thread, so two games on one
+/// thread (the server runs every game on one) shared the count.
+#[test]
+fn games_on_one_thread_count_leader_deaths_separately() {
+    let mut a = game_with(&[Faction::Emperor]);
+    let mut b = game_with(&[Faction::Emperor]);
+    let leaders: Vec<Leader> = LeaderManager::get_leaders(Faction::Emperor).collect();
+    let time_of_death = |g: &Game, l: Leader| g.leaders.leader_state[&Hero::Leader(l)].time_of_death;
+
+    a.kill_hero(Hero::Leader(leaders[0]));
+    a.kill_hero(Hero::Leader(leaders[1]));
+    b.kill_hero(Hero::Leader(leaders[0]));
+    assert_eq!((time_of_death(&a, leaders[0]), time_of_death(&a, leaders[1])), (0, 1));
+    assert_eq!(time_of_death(&b, leaders[0]), 0);
 }
 
 #[test]

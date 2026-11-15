@@ -4,7 +4,6 @@
 use treachery_engine::error::catch_panic;
 use treachery_engine::enumerations::*;
 use treachery_engine::messages::expression::ExpressionElement;
-use treachery_engine::messages::message::Route;
 
 fn exception_text<R>(f: impl FnOnce() -> R) -> String {
     match catch_panic(f) {
@@ -76,15 +75,4 @@ fn game_error_to_cs_string() {
 fn list_to_cs_string_type_name() {
     let l = ExpressionElement::from(vec![Faction::Atreides]);
     assert_eq!(l.to_cs_string(), "System.Collections.Generic.List`1[Treachery.Shared.Faction]");
-}
-
-/// Probe `route_equal_distinct_lists`. C# record equality compares the
-/// `List<Location> From` by reference, so two routes with separate empty
-/// lists are not equal.
-#[test]
-fn route_equality_compares_list_by_reference() {
-    let a = Route { faction: Faction::Atreides, from: treachery_engine::shared::Shared::new(Vec::new()), to: None };
-    let b = Route { faction: Faction::Atreides, from: treachery_engine::shared::Shared::new(Vec::new()), to: None };
-    assert!(a != b);
-    assert!(a == a.clone());
 }

@@ -12,24 +12,16 @@
 //! Every argument goes through `ExpressionElement::from`, see expression.rs.
 
 use std::any::Any;
-use std::cell::Cell;
 use std::fmt;
 use std::rc::Rc;
 
 
-use crate::shared::Shared;
 use crate::enumerations::{Concept, Faction};
 use crate::messages::expression::{Expression, ExpressionElement};
 use crate::heroes::hero::Hero;
 use crate::map::location::Location;
 use crate::enum_type::game_enum;
 use crate::cards::treachery_card::TreacheryCard;
-
-thread_local! {
-    /// `Message.Counter`. Thread-local so that tests
-    /// running in parallel do not disturb each other; see [`Message::reset_counter`].
-    static COUNTER: Cell<i32> = const { Cell::new(0) };
-}
 
 /// Structured log data attached to a message (the records in `log/`). Any `Debug` type
 /// qualifies.
@@ -45,8 +37,6 @@ impl<T: fmt::Debug + Any> LogRecord for T {
 
 #[derive(Clone)]
 pub struct Message {
-    /// `Nr`: the value of the process-wide counter when the message was created.
-    pub nr: i32,
     pub target: Faction,
     pub expression: Expression,
     pub route: Option<Route>,
@@ -59,12 +49,7 @@ pub struct Message {
 
 impl Message {
     fn with_expression(target: Faction, e: Expression) -> Message {
-        let nr = COUNTER.with(|c| {
-            let v = c.get();
-            c.set(v + 1);
-            v
-        });
-        Message { nr, target, expression: e, route: None, heading: None, plans: None, log: None, fact: None }
+        Message { target, expression: e, route: None, heading: None, plans: None, log: None, fact: None }
     }
 
     /// `Message.Express(params object?[] list)`. Prefer [`express!`](crate::express).
@@ -77,19 +62,8 @@ impl Message {
         Self::with_expression(to, Expression::new(list))
     }
 
-    /// Sets `Message.Counter`. The counter is never reset during a game, so
-    /// a replay must start from the value it had when the game was recorded.
-    pub fn reset_counter(value: i32) {
-        COUNTER.with(|c| c.set(value));
-    }
-
-    /// Current value of `Message.Counter`.
-    pub fn counter() -> i32 {
-        COUNTER.with(|c| c.get())
-    }
-
     pub fn with_route(mut self, faction: Faction, from: impl IntoIterator<Item = Location>, to: Option<Location>) -> Message {
-        self.route = Some(Route { faction, from: Shared::new(from.into_iter().collect()), to });
+        self.route = Some(Route { faction, from: from.into_iter().collect(), to });
         self
     }
 
@@ -129,7 +103,6 @@ impl From<&str> for Message {
 impl fmt::Debug for Message {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Message")
-            .field("nr", &self.nr)
             .field("target", &self.target)
             .field("expression", &self.expression)
             .field("route", &self.route)
@@ -144,8 +117,7 @@ impl fmt::Debug for Message {
 /// Field-wise equality; `log` compares by reference.
 impl PartialEq for Message {
     fn eq(&self, other: &Self) -> bool {
-        self.nr == other.nr
-            && self.target == other.target
+        self.target == other.target
             && self.expression == other.expression
             && self.route == other.route
             && self.heading == other.heading
@@ -248,16 +220,11 @@ pub fn params<T: Into<ExpressionElement>>(array: impl IntoIterator<Item = T>) ->
     array.into_iter().map(Into::into).collect()
 }
 
-/// `record Route(Faction Faction, List<Location> From, Location? To)`: where
-/// forces went in a message.
-///
-/// Record equality compares `From` with `List<T>.Equals`, which is reference
-/// equality, so `from` is a [`Shared`] list: two routes built from separate
-/// lists are different even when the lists hold the same locations.
+/// Where forces went in a message.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Route {
     pub faction: Faction,
-    pub from: Shared<Vec<Location>>,
+    pub from: Vec<Location>,
     pub to: Option<Location>,
 }
 

@@ -444,7 +444,7 @@ fn object(v: &ExpressionElement, d: &dyn Describer) -> Option<RichText> {
 }
 
 fn route(r: &m::Route, d: &dyn Describer) -> Route {
-    Route { faction: name(r.faction), from: r.from.borrow().iter().map(|x| location(*x, d)).collect(), to: r.to.map(|x| location(x, d)) }
+    Route { faction: name(r.faction), from: r.from.iter().map(|x| location(*x, d)).collect(), to: r.to.map(|x| location(x, d)) }
 }
 
 fn plan(p: &m::PlanSummary, d: &dyn Describer) -> PlanSummary {

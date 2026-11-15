@@ -1,5 +1,20 @@
 use crate::prelude::*;
 
+/// Numbers the game hands out in order.
+#[derive(Clone, Debug, Default)]
+pub struct Counters {
+    /// The next leader death's `time_of_death`.
+    pub leader_deaths: i32,
+}
+
+impl Counters {
+    pub fn next_leader_death(&mut self) -> i32 {
+        let moment = self.leader_deaths;
+        self.leader_deaths += 1;
+        moment
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct ObjectCounter<T> {
     pub counters: IndexMap<T, i32>,

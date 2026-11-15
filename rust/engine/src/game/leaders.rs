@@ -40,7 +40,7 @@ impl Game {
             return;
         }
 
-        self.leaders.leader_state[&h].kill(&mut self.decks.skill_deck);
+        self.leaders.leader_state[&h].kill(&mut self.decks.skill_deck, &mut self.counters);
         self.stone(Milestone::LeaderKilled);
         self.determine_if_captured_leaders_must_be_released();
         self.determine_if_killed_ghola_returns_to_original_faction(h);
@@ -86,7 +86,7 @@ impl Game {
     }
 
     pub fn assassinate_leader(&mut self, l: Leader) {
-        self.leaders.leader_state[&Hero::Leader(l)].assassinate(&mut self.decks.skill_deck);
+        self.leaders.leader_state[&Hero::Leader(l)].assassinate(&mut self.decks.skill_deck, &mut self.counters);
         self.stone(Milestone::LeaderKilled);
 
         self.determine_if_captured_leaders_must_be_released();
@@ -205,6 +205,8 @@ impl Game {
 pub struct LeaderState {
     pub current_territory: Option<Territory>,
     pub death_counter: i32,
+    /// When the leader last died, from `game.counters`. Only the order means something: the
+    /// view lists the leaders in the tanks by it.
     pub time_of_death: i32,
     pub skill: LeaderSkill,
     pub in_front_of_shield: bool,
@@ -235,9 +237,9 @@ impl LeaderState {
         self.death_counter % 4 == 3
     }
 
-    /// Takes `g.SkillDeck` instead of the game, because this state lives in
-    /// `g.LeaderState` and Rust can't borrow both.
-    pub fn kill(&mut self, skill_deck: &mut Option<Deck<LeaderSkill>>) {
+    /// Takes the skill deck and the counters instead of the game, because this state lives in
+    /// `game.leaders` and Rust can't borrow both.
+    pub fn kill(&mut self, skill_deck: &mut Option<Deck<LeaderSkill>>, counters: &mut Counters) {
         if self.skill != LeaderSkill::None {
             skill_deck.as_mut().expect("skill deck").put_on_top(self.skill);
             self.skill = LeaderSkill::None;
@@ -245,18 +247,14 @@ impl LeaderState {
         }
 
         self.death_counter += 1;
-        self.time_of_death = LEADER_STATE_MOMENT.with(|m| {
-            let v = m.get();
-            m.set(v + 1);
-            v
-        });
+        self.time_of_death = counters.next_leader_death();
     }
 
-    pub fn assassinate(&mut self, skill_deck: &mut Option<Deck<LeaderSkill>>) {
-        self.kill(skill_deck);
+    pub fn assassinate(&mut self, skill_deck: &mut Option<Deck<LeaderSkill>>, counters: &mut Counters) {
+        self.kill(skill_deck, counters);
         if !self.is_face_down_dead() {
             self.revive();
-            self.kill(skill_deck);
+            self.kill(skill_deck, counters);
         }
     }
 
@@ -264,11 +262,6 @@ impl LeaderState {
         self.death_counter += 1;
     }
 
-}
-
-thread_local! {
-    /// A counter that orders leader deaths (`time_of_death`). Thread-local, like `Message::nr`.
-    static LEADER_STATE_MOMENT: std::cell::Cell<i32> = const { std::cell::Cell::new(0) };
 }
 
 impl Game {

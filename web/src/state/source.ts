@@ -13,7 +13,7 @@ import type { DraftResult } from "../generated/DraftResult";
 import type { GameView } from "../generated/GameView";
 import type { ReportLines } from "../generated/ReportLines";
 import type { Part } from "../generated/Part";
-import { type CallResult, type Connection, type ConnectionStatus, GameListScopeNone } from "./connection";
+import { type CallResult, type Connection, type ConnectionStatus, ErrorType, type GameInitInfo, GameListScopeNone } from "./connection";
 
 export type GameEventDraft = Record<string, unknown> & { $type: string };
 
@@ -106,6 +106,7 @@ const HEARTBEAT_MS = 5000;
 export class WebSocketSource implements ViewSource {
   private view: GameView | null = null;
   private readonly listeners = new Set<(view: GameView) => void>();
+  private readonly rejoinListeners = new Set<(info: GameInitInfo | null) => void>();
   private first: Promise<GameView>;
   private resolveFirst!: (view: GameView) => void;
   private readonly unsubscribe: (() => void)[] = [];
@@ -116,7 +117,7 @@ export class WebSocketSource implements ViewSource {
     this.first = new Promise((resolve) => { this.resolveFirst = resolve; });
     this.unsubscribe.push(conn.on("GameView", (v) => this.receive(v as GameView)));
     // After a reconnection the socket is a new connection outside the game's group: rejoin it.
-    this.unsubscribe.push(conn.onOpen(() => { if (this.view) this.join().catch(() => {}); }));
+    this.unsubscribe.push(conn.onOpen(() => { if (this.view) this.rejoin().catch(() => {}); }));
   }
 
   private receive(view: GameView): void {
@@ -125,12 +126,23 @@ export class WebSocketSource implements ViewSource {
     this.listeners.forEach((l) => l(view));
   }
 
-  private async join(): Promise<void> {
+  private async reconnect(): Promise<CallResult<GameInitInfo>> {
     await this.conn.invoke("Connect");
     // The connection logged the socket in when it opened; RequestReconnectGame adds it to the
     // game and sends the view.
-    const r = await this.conn.call("RequestReconnectGame", this.gameId);
+    return this.conn.call<GameInitInfo>("RequestReconnectGame", this.gameId);
+  }
+
+  private async join(): Promise<void> {
+    const r = await this.reconnect();
     if (!r.Success) throw new Error(`RequestReconnectGame: ${errorText(r)}`);
+  }
+
+  private async rejoin(): Promise<void> {
+    const r = await this.reconnect();
+    if (r.Success && r.Contents) this.rejoinListeners.forEach((l) => l(r.Contents));
+    // The user left or was kicked while the socket was down, or the game was closed.
+    else if (r.Error === ErrorType.UserNotInGame || r.Error === ErrorType.GameNotFound) this.rejoinListeners.forEach((l) => l(null));
   }
 
   /** Joins the game's group and resolves with the first view. */
@@ -149,6 +161,15 @@ export class WebSocketSource implements ViewSource {
   subscribe(onView: (view: GameView) => void): () => void {
     this.listeners.add(onView);
     return () => this.listeners.delete(onView);
+  }
+
+  /** Runs each time the source rejoins the game on a new socket, with the game's participation
+   * as the server has it now: changes made while the socket was down sent this tab no
+   * notification. Runs with null when the server refused because the user is no longer in the
+   * game, or the game is gone. Returns an unsubscribe function. */
+  onRejoin(handler: (info: GameInitInfo | null) => void): () => void {
+    this.rejoinListeners.add(handler);
+    return () => this.rejoinListeners.delete(handler);
   }
 
   async query(draft: GameEventDraft): Promise<DraftResult> {
@@ -207,6 +228,7 @@ export class WebSocketSource implements ViewSource {
 
   dispose(): void {
     window.clearInterval(this.heartbeat);
+    this.rejoinListeners.clear();
     this.unsubscribe.forEach((u) => u());
   }
 }

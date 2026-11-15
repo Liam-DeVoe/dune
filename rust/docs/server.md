@@ -66,7 +66,7 @@ Environment variables, listed with their defaults in `src/settings.rs`. Producti
 
 The tests in `tests/` drive the server through the protocol only: they send the JSON a client sends and read what it gets back. `tests/common/mod.rs` runs a server in process on a temporary database with a manual clock, recorded timers and recorded mail, and can restart it on the same database. The files are by area: `accounts` (logins, sessions, logout, expiry), `authority` (outsiders, observers and other players refused; events rewritten as the caller's), `games` (lobby, seats, chat, the envelope), `play` (events, views, undo, pauses, bots, async mail and its login links), `admin`, `persistence` (restarts, the C# database) and `dev_scene`. The test server draws seed 12345 for every new game (`Services::seeds`), so games started in tests play out the same each time. `TREACHERY_DB=<file> cargo test -p treachery-server --test persistence` also opens a copy of a real database and checks every account is there.
 
-End to end, `scripts/ui/e2e_server.py` starts the release binary with the web build and drives browsers through Playwright: two players, logging in through the form and out, and the dev scene.
+End to end, `scripts/ui/e2e_server.py` starts the release binary with the web build and drives browsers through Playwright: two players forming an alliance, others joining, leaving, being kicked and observing, undo, a dropped connection, logging in through the form and out, and the dev scene. Its docstring lists every step.
 
 ## Behaviour that differs from the C# server
 

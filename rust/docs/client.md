@@ -68,5 +68,5 @@ web/
 
 - `rust/tools/check.sh` runs the view tests: forms against the engine, visibility over the bot-game corpus, replica order independence, the log line snapshots (`tests/log_lines.rs`), the generated types and the static data.
 - In `web/`: `npm run build` (typecheck and bundle), `npm run check:rich-text` (the React rich text shows each snapshot line's expected text), `npm run check:flash`.
-- `scripts/ui/e2e_server.py` starts the Rust server, logs in two users in Playwright, creates a game from a fixture and plays a few events over the WebSocket, then logs a third user in through the form and out again.
+- `scripts/ui/e2e_server.py` starts the Rust server and drives the web client in Playwright: two players form an alliance by clicking, others join from the lobby, leave, are kicked and observe, the host undoes, a connection drops and comes back, and a user logs in through the form and out again. Its docstring lists every step.
 - `observe live` (native-harness.md) compares every view after every event with the reference build.

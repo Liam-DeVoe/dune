@@ -496,6 +496,13 @@ export class LobbyClient {
       const g = this.state.game;
       if (g && g.source === source) this.set({ game: { ...g, view } });
     });
+    // After a dropped connection, take the participation from the rejoin: joins, leaves, kicks
+    // and seat changes made while the socket was down sent this tab no notification. A user
+    // who was kicked or left meanwhile goes back to the lobby, as with a RemoveUser.
+    source.onRejoin((rejoined) => {
+      if (this.state.game?.source !== source) return;
+      void (rejoined ? this.loadGame(rejoined) : this.exitGame());
+    });
     try {
       const view = await source.load();
       const g = this.state.game;

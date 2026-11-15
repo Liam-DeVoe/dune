@@ -446,3 +446,14 @@ Two fixes, in `events/bidding/bid.rs` and `game/mod.rs`:
 - `server/tests/authority.rs` calls every game method as an outsider, an observer and the other player and checks each is refused and the game unchanged. It checks that a forged `Initiator`, a forged `FactionSelected` seat and a client seed don't count, and that hosts act only on members and real seats.
 - `server/tests/accounts.rs` checks that a connection must log in before any call, that the database holds only token digests and Argon2id hashes, and that sessions expire and end on logout, a new password and the account's deletion. `play.rs` checks that the async-play mail holds a single-use login link and no session token.
 - The weak spot stays: a new method gets no check unless its author adds one to `authority.rs`.
+
+## A reconnected tab that kept the participation from before the drop (2026-11)
+
+**Bugs.** When a tab's WebSocket closed during a game, the client reconnected and called `RequestReconnectGame`, which sends the current view, but it threw away the reply. The reply holds the game's participation: who sits where, the hosts, the open seats, the observers and who was kicked. While the socket was down the tab got none of the notifications that change it (`JoinGame`, `RemoveUser`, `OpenOrCloseSeats`, `SetOrUnsetHost`, `AssignSeats`), so after the reconnection the players panel showed the old seats, and lobby code that reads the participation (`isHost`, `playersNeedSeating`) used them. A user who was kicked or left while the socket was down got a refused reconnection and stayed on a game screen that no longer updated. Now `WebSocketSource.onRejoin` hands the reply to the lobby client, which takes the participation from it, or returns to the lobby when the server refuses because the user is no longer in the game or the game is gone.
+
+**Why the tests missed them.** The server tests (`games.rs`) check that `RequestReconnectGame` answers with the game and sends a view, but nothing checked what the client does with the answer. The end-to-end test never dropped a connection.
+
+**What catches the class now.**
+- `scripts/ui/e2e_server.py` step 9 cuts Bob's WebSocket with Playwright. While it's down the host undoes his last event and opens a seat. After the client reconnects on its own, Bob must have the rolled-back view, see the open seat in his players panel, and be able to act.
+- Step 6 kicks Frank while his WebSocket is down. When it comes back his screen must go to the lobby.
+- The phase control comes in the same reply and is now taken from it too. Game settings (`UpdateSettings`) changed while the socket was down are still lost, which matters only before the game starts.

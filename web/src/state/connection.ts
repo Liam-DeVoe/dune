@@ -43,7 +43,7 @@ export interface GameInitInfo {
 
 /** `ErrorType` values the client checks. `UserTokenNotFound`: the connection isn't logged in,
  * or its session ended. */
-export const ErrorType = { None: 0, UserNameExists: 7, UserTokenNotFound: 8, InvalidGameEvent: 23 } as const;
+export const ErrorType = { None: 0, GameNotFound: 2, UserNameExists: 7, UserTokenNotFound: 8, InvalidGameEvent: 23, UserNotInGame: 33 } as const;
 
 const SESSION_KEY = "treachery.online;session";
 

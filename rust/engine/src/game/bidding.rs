@@ -593,62 +593,15 @@ impl Game {
 
     pub fn pay_for_card(&mut self, initiator: PlayerId, bid: &PlacedBid, bid_amount: i32, bid_ally_contribution_amount: i32, bid_emperor_contribution_amount: i32, payment_receiver: Faction, message: &mut MessagePart) -> GameResult<Option<Faction>> {
         let mut paid_to = None;
-        {
-            let p = self.player_mut(initiator);
-            crate::game::amounts::spend(&mut p.resources, bid_amount, "spice")?;
-        }
-
+        self.spend_bid(initiator, bid_amount, bid_ally_contribution_amount, bid_emperor_contribution_amount)?;
         let mut receiver_profit = 0;
-
-        if bid_ally_contribution_amount > 0 && self.player(initiator).has_ally() {
-            let ally = self.player(initiator).allied_player(self).required("The ally")?;
-            {
-                let a = self.player_mut(ally);
-                crate::game::amounts::spend(&mut a.resources, bid_ally_contribution_amount, "spice")?;
-            }
-            let initiator_faction = self.player(initiator).faction;
-            self.decrease_permitted_use_of_ally_spice(initiator_faction.required("faction")?, bid_ally_contribution_amount);
-        }
-
-        if bid_emperor_contribution_amount > 0 {
-            let emperor = self.get_player(Some(Faction::Emperor)).required("The Emperor player")?;
-            let r = self.player_mut(emperor);
-            crate::game::amounts::spend(&mut r.resources, bid_emperor_contribution_amount, "spice")?;
-        }
 
         let receiver = self.get_player(Some(payment_receiver));
         let receiver_and_ally_are_richese = self.player(initiator).ally == Some(Faction::Richese) && payment_receiver == Faction::Richese;
         let total_amount = bid_amount + if receiver_and_ally_are_richese { 0 } else { bid_ally_contribution_amount };
 
-        let emperor = self.get_player(Some(Faction::Emperor));
-        let mut total_amount_received_by_emperor_instead_of_richese =
-            if receiver_and_ally_are_richese && emperor.is_some() && !self.prevented(FactionAdvantage::EmperorReceiveBid) {
-                bid_ally_contribution_amount
-            } else {
-                0
-            };
-
-        let mut emperor_received_instead_message = express_part!();
-        if emperor.is_some() && total_amount_received_by_emperor_instead_of_richese > 0 {
-            let emperor = emperor.expect("emperor");
-            // C# parity: Richese's homeworld threshold and occupier are applied to Emperor's income.
-            self.modify_income_because_of_low_threshold_or_occupation(receiver.required("The payment receiver")?, &mut total_amount_received_by_emperor_instead_of_richese);
-            {
-                let r = self.player_mut(emperor);
-                crate::game::amounts::gain(&mut r.resources, total_amount_received_by_emperor_instead_of_richese, "spice")?;
-            }
-            emperor_received_instead_message = express_part!(" and ", Faction::Emperor, " get ", Payment::of(total_amount_received_by_emperor_instead_of_richese));
-
-            if total_amount_received_by_emperor_instead_of_richese >= 5 {
-                //This should also take into account payments received by an occupier
-                self.in_bidding_mut().bidding_triggered_bureaucracy = Some(TriggeredBureaucracy { payment_from: Some(Faction::Richese), payment_to: Some(Faction::Emperor) });
-            }
-
-            // C# parity: records a recent payment of receiverProfit while it is still 0.
-            let initiator_faction = self.player(initiator).faction;
-            let receiver_faction = self.player(receiver.required("The payment receiver")?).faction;
-            self.set_recent_payment(receiver_profit, initiator_faction, receiver_faction, bid.type_);
-        }
+        let (total_amount_received_by_emperor_instead_of_richese, emperor_received_instead_message) =
+            self.pay_emperor_instead_of_richese(initiator, bid, receiver, receiver_and_ally_are_richese, bid_ally_contribution_amount)?;
 
         if receiver.is_some() && self.player(initiator).faction != Some(payment_receiver) {
             let receiver = receiver.expect("receiver");
@@ -695,6 +648,69 @@ impl Game {
         }
 
         Ok(paid_to)
+    }
+
+    /// Takes a bid's spice from the bidder, from their ally for the ally's part, and from the
+    /// Emperor for theirs.
+    fn spend_bid(&mut self, initiator: PlayerId, bid_amount: i32, bid_ally_contribution_amount: i32, bid_emperor_contribution_amount: i32) -> GameResult {
+        {
+            let p = self.player_mut(initiator);
+            crate::game::amounts::spend(&mut p.resources, bid_amount, "spice")?;
+        }
+
+        if bid_ally_contribution_amount > 0 && self.player(initiator).has_ally() {
+            let ally = self.player(initiator).allied_player(self).required("The ally")?;
+            {
+                let a = self.player_mut(ally);
+                crate::game::amounts::spend(&mut a.resources, bid_ally_contribution_amount, "spice")?;
+            }
+            let initiator_faction = self.player(initiator).faction;
+            self.decrease_permitted_use_of_ally_spice(initiator_faction.required("faction")?, bid_ally_contribution_amount);
+        }
+
+        if bid_emperor_contribution_amount > 0 {
+            let emperor = self.get_player(Some(Faction::Emperor)).required("The Emperor player")?;
+            let r = self.player_mut(emperor);
+            crate::game::amounts::spend(&mut r.resources, bid_emperor_contribution_amount, "spice")?;
+        }
+        Ok(())
+    }
+
+    /// When Richese are paid for a card that their ally helped pay for, the Emperor gets the
+    /// ally's part instead, unless Karama prevents it. Returns what the Emperor got and the
+    /// message part saying so.
+    fn pay_emperor_instead_of_richese(&mut self, initiator: PlayerId, bid: &PlacedBid, receiver: Option<PlayerId>, receiver_and_ally_are_richese: bool, bid_ally_contribution_amount: i32) -> GameResult<(i32, MessagePart)> {
+        let emperor = self.get_player(Some(Faction::Emperor));
+        let mut total_amount_received_by_emperor_instead_of_richese =
+            if receiver_and_ally_are_richese && emperor.is_some() && !self.prevented(FactionAdvantage::EmperorReceiveBid) {
+                bid_ally_contribution_amount
+            } else {
+                0
+            };
+        // C# parity: records a recent payment of receiverProfit while it is still 0.
+        let receiver_profit = 0;
+
+        let mut emperor_received_instead_message = express_part!();
+        if emperor.is_some() && total_amount_received_by_emperor_instead_of_richese > 0 {
+            let emperor = emperor.expect("emperor");
+            // C# parity: Richese's homeworld threshold and occupier are applied to Emperor's income.
+            self.modify_income_because_of_low_threshold_or_occupation(receiver.required("The payment receiver")?, &mut total_amount_received_by_emperor_instead_of_richese);
+            {
+                let r = self.player_mut(emperor);
+                crate::game::amounts::gain(&mut r.resources, total_amount_received_by_emperor_instead_of_richese, "spice")?;
+            }
+            emperor_received_instead_message = express_part!(" and ", Faction::Emperor, " get ", Payment::of(total_amount_received_by_emperor_instead_of_richese));
+
+            if total_amount_received_by_emperor_instead_of_richese >= 5 {
+                //This should also take into account payments received by an occupier
+                self.in_bidding_mut().bidding_triggered_bureaucracy = Some(TriggeredBureaucracy { payment_from: Some(Faction::Richese), payment_to: Some(Faction::Emperor) });
+            }
+
+            let initiator_faction = self.player(initiator).faction;
+            let receiver_faction = self.player(receiver.required("The payment receiver")?).faction;
+            self.set_recent_payment(receiver_profit, initiator_faction, receiver_faction, bid.type_);
+        }
+        Ok((total_amount_received_by_emperor_instead_of_richese, emperor_received_instead_message))
     }
 
     pub fn give_player_extra_card_if_applicable(&mut self, winner: PlayerId) {
@@ -797,49 +813,48 @@ impl Game {
             self.allow(FactionAdvantage::AtreidesBiddingPrescience);
         }
 
-        let mut enter_replacing_card_just_won = might_replace && self.winner_might_replace_with_nexus();
-
-        if might_replace {
-            let winner = winner.expect("winner");
-            if self.player(winner).ally == Some(Faction::Ixian)
-                && self.alliances.ixian_allows_replacing_cards
-                && !matches!(self.in_bidding().current_auction_type, Some(AuctionType::RicheseSilent) | Some(AuctionType::RicheseOnceAround))
-            {
-                if !self.prevented(FactionAdvantage::IxianAllyDiscardingCard) {
-                    self.in_bidding_mut().faction_that_may_replace_bought_card = self.player(winner).faction;
-                    enter_replacing_card_just_won = true;
-                } else {
-                    if !self.applicable(Rule::FullPhaseKarma) {
-                        self.allow(FactionAdvantage::IxianAllyDiscardingCard);
-                    }
-
-                    if self.nexus_allows_replacing_bought_cards(winner) {
-                        self.in_bidding_mut().faction_that_may_replace_bought_card = self.player(winner).faction;
-                        enter_replacing_card_just_won = true;
-                        self.in_bidding_mut().replacing_bought_card_using_nexus = true;
-                    }
-                }
-            } else if self.nexus_allows_replacing_bought_cards(winner) {
-                self.in_bidding_mut().faction_that_may_replace_bought_card = self.player(winner).faction;
-                enter_replacing_card_just_won = true;
-                self.in_bidding_mut().replacing_bought_card_using_nexus = true;
-            }
-        }
+        let not_richese = !matches!(self.in_bidding().current_auction_type, Some(AuctionType::RicheseSilent) | Some(AuctionType::RicheseOnceAround));
+        let enter_replacing_card_just_won = might_replace && self.offer_card_replacement(winner.expect("winner"), not_richese);
 
         if enter_replacing_card_just_won {
-
             self.enter_bidding(BiddingStep::ReplacingCardJustWon);
-
         } else {
-
             self.determine_next_step_after_card_was_sold();
-
         }
 
         if let Some(b) = self.in_bidding().bidding_triggered_bureaucracy.clone() {
             self.apply_bureaucracy(b.payment_from, b.payment_to);
             self.in_bidding_mut().bidding_triggered_bureaucracy = None;
         }
+    }
+
+    /// Whether the winner of a card might replace it: as Ixian's ally, when the alliance allows it
+    /// and `ally_may_replace` (not for a Richese card), or with the Ixian Nexus card, or because
+    /// anyone might hold that Nexus card ([`Game::winner_might_replace_with_nexus`]). Records
+    /// who may replace it, and whether that uses the Nexus card.
+    pub(crate) fn offer_card_replacement(&mut self, winner: PlayerId, ally_may_replace: bool) -> bool {
+        let mut replacing = self.winner_might_replace_with_nexus();
+        if self.player(winner).ally == Some(Faction::Ixian) && self.alliances.ixian_allows_replacing_cards && ally_may_replace {
+            if !self.prevented(FactionAdvantage::IxianAllyDiscardingCard) {
+                self.in_bidding_mut().faction_that_may_replace_bought_card = self.player(winner).faction;
+                replacing = true;
+            } else {
+                if !self.applicable(Rule::FullPhaseKarma) {
+                    self.allow(FactionAdvantage::IxianAllyDiscardingCard);
+                }
+
+                if self.nexus_allows_replacing_bought_cards(winner) {
+                    self.in_bidding_mut().faction_that_may_replace_bought_card = self.player(winner).faction;
+                    replacing = true;
+                    self.in_bidding_mut().replacing_bought_card_using_nexus = true;
+                }
+            }
+        } else if self.nexus_allows_replacing_bought_cards(winner) {
+            self.in_bidding_mut().faction_that_may_replace_bought_card = self.player(winner).faction;
+            replacing = true;
+            self.in_bidding_mut().replacing_bought_card_using_nexus = true;
+        }
+        replacing
     }
 
     pub fn determine_next_step_after_card_was_sold(&mut self) {

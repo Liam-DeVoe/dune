@@ -166,37 +166,12 @@ impl BlackMarketBid {
         game.in_bidding_mut().bids.clear();
         game.in_bidding_mut().latest_bid_by_atreides_or_atreides_ally_was_passed = false;
 
-        let mut enter_replacing_card_just_won = game.winner_might_replace_with_nexus();
-
-        if game.player(winner).ally == Some(Faction::Ixian) && game.alliances.ixian_allows_replacing_cards {
-            if !game.prevented(FactionAdvantage::IxianAllyDiscardingCard) {
-                game.in_bidding_mut().faction_that_may_replace_bought_card = game.player(winner).faction;
-                enter_replacing_card_just_won = true;
-            } else {
-                if !game.applicable(Rule::FullPhaseKarma) {
-                    game.allow(FactionAdvantage::IxianAllyDiscardingCard);
-                }
-
-                if game.nexus_allows_replacing_bought_cards(winner) {
-                    game.in_bidding_mut().faction_that_may_replace_bought_card = game.player(winner).faction;
-                    enter_replacing_card_just_won = true;
-                    game.in_bidding_mut().replacing_bought_card_using_nexus = true;
-                }
-            }
-        } else if game.nexus_allows_replacing_bought_cards(winner) {
-            game.in_bidding_mut().faction_that_may_replace_bought_card = game.player(winner).faction;
-            enter_replacing_card_just_won = true;
-            game.in_bidding_mut().replacing_bought_card_using_nexus = true;
-        }
+        let enter_replacing_card_just_won = game.offer_card_replacement(winner, true);
 
         if enter_replacing_card_just_won {
-
             game.enter_bidding(BiddingStep::ReplacingCardJustWon);
-
         } else {
-
             game.enter_richese_bidding();
-
         }
 
         if let Some(b) = game.in_bidding().bidding_triggered_bureaucracy.clone() {

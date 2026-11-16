@@ -422,6 +422,29 @@ impl<'a> Recorder<'a> {
                 }
             }
 
+            if self.fuzz.is_some() && matches!(self.sess.game.turn.current_phase, Phase::AssigningInitialSkills | Phase::AssigningSkill | Phase::BattlePhase) {
+                let f = self.fuzz.as_mut().unwrap();
+                let shadow = &self.shadow.as_ref().unwrap().game;
+                if let Some((i, t)) = f.retreat_action(shadow, &queried) {
+                    if let Some(e) = f.build(shadow, Some(i), t) {
+                        self.submit(e, "fuzz", Some(i), as_host)?;
+                        continue;
+                    }
+                }
+            }
+
+            if self.fuzz.is_some() {
+                let phase = self.sess.game.turn.current_phase;
+                let f = self.fuzz.as_mut().unwrap();
+                let shadow = &self.shadow.as_ref().unwrap().game;
+                if let Some((i, t)) = f.intrusion_action(shadow, &queried, phase) {
+                    if let Some(e) = f.build(shadow, Some(i), t) {
+                        self.submit(e, "fuzz", Some(i), as_host)?;
+                        continue;
+                    }
+                }
+            }
+
             if self.fuzz.is_some() && self.fuzz.as_mut().unwrap().rng.chance(fuzz::OPPORTUNISTIC) {
                 let phase = self.sess.game.turn.current_phase;
                 let f = self.fuzz.as_mut().unwrap();

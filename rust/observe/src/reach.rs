@@ -52,7 +52,13 @@ impl Tally {
                     offered.insert(t);
                     phases.insert(phase);
                 }
-                ["end", reason] => *self.ends.entry(reason.to_string()).or_default() += 1,
+                ["end", reason] => {
+                    *self.ends.entry(reason.to_string()).or_default() += 1;
+                    // No event is submitted once the game has ended, so its phase is counted here.
+                    if *reason == "gameEnded" {
+                        phases.insert("GameEnded");
+                    }
+                }
                 _ => {}
             }
         }

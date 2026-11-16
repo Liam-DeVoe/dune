@@ -1,28 +1,11 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct KarmaHandSwap {
     pub card_ids: Option<String>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for KarmaHandSwap {
-    fn default() -> Self {
-        KarmaHandSwap {
-            card_ids: Default::default(),
-            base: Default::default(),
-        }
-    }
 }
 
 impl KarmaHandSwap {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
     pub fn returned_cards(&self) -> Vec<TreacheryCard> {
         Event::id_string_to_objects(self.card_ids.as_deref(), &TreacheryCardManager::lookup())
     }
@@ -30,17 +13,19 @@ impl KarmaHandSwap {
     pub fn set_returned_cards(&mut self, value: &[TreacheryCard]) {
         self.card_ids = Some(Event::objects_to_id_string(value, &TreacheryCardManager::lookup()));
     }
+}
 
-    pub fn validate(&self, game: &Game) -> Option<Message> {
+impl EventRules for KarmaHandSwap {
+    fn validate(&self, game: &Game, _by: By) -> Result<(), Rejection> {
         if self.returned_cards().len() as i32 != game.bidding.karma_hand_swap_number_of_cards {
-            return Some(express!("Select ", game.bidding.karma_hand_swap_number_of_cards, " cards to return"));
+            return Err(Rejection(express!("Select ", game.bidding.karma_hand_swap_number_of_cards, " cards to return")));
         }
-        None
+        Ok(())
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let victim = self.get_player(game, game.bidding.karma_hand_swap_target);
-        let me = self.player_opt();
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let victim = game.get_player(game.bidding.karma_hand_swap_target);
+        let me = by.player;
         let others: Vec<PlayerId> = game.player_indices().filter(|p| Some(*p) != me && Some(*p) != victim).collect();
         for p in others {
             let my_cards = game.player(me.required("me")?).treachery_cards.clone();
@@ -58,41 +43,14 @@ impl KarmaHandSwap {
         for returned in self.returned_cards() {
             Game::register_known_by_player(game, me.required("me")?, Some(returned));
         }
-        self.log(game);
+        let m = self.describe(game, by);
+        game.log_event(m);
         let paused = game.bidding.karma_hand_swap_paused_phase.required("karma hand swap paused phase")?;
         game.enter(paused, false);
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " return ", self.returned_cards().len() as i32, " cards")
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " return ", self.returned_cards().len() as i32, " cards")
     }
-
-}
-
-impl GameEventMethods for KarmaHandSwap {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::KarmaHandSwap
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::KarmaHandSwap(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        KarmaHandSwap::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        KarmaHandSwap::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        KarmaHandSwap::get_message(self, game)
-    }
-
 }

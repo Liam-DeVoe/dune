@@ -9,11 +9,13 @@ pub struct BiddingState {
     pub cards_on_auction: Option<Deck<TreacheryCard>>,
     pub current_auction_type: Option<AuctionType>,
     pub card_number: i32,
-    pub current_bid: Option<Event>,
+    pub current_bid: Option<PlacedBid>,
     // In the order the bids were made (a new bid of a faction replaces its old one and goes last).
-    pub bids: IndexMap<Faction, Event>,
+    pub bids: IndexMap<Faction, PlacedBid>,
     pub card_just_won: Option<TreacheryCard>,
-    pub winning_bid: Option<Event>,
+    pub winning_bid: Option<PlacedBid>,
+    /// How many bids were placed in this game, automatic passes included: the next bid's number.
+    pub bids_placed: u32,
     pub bidding_round_was_started: bool,
     pub regular_bidding_is_done: bool,
     pub card_that_must_be_kept_or_given_to_ally: Option<TreacheryCard>,
@@ -44,6 +46,7 @@ impl BiddingState {
             bids: Default::default(),
             card_just_won: None,
             winning_bid: None,
+            bids_placed: 0,
             bidding_round_was_started: Default::default(),
             regular_bidding_is_done: Default::default(),
             card_that_must_be_kept_or_given_to_ally: None,
@@ -62,6 +65,88 @@ impl BiddingState {
             richese_occupier_specified_card: Default::default(),
             latest_bid_by_atreides_or_atreides_ally_was_passed: Default::default(),
         }
+    }
+}
+
+/// A bid (`Bid` or `BlackMarketBid`) as the auction keeps it: what was offered and by whom.
+///
+/// The `bid_*` accessors keep the names the code outside bidding used on the stored event.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PlacedBid {
+    /// Numbers the bids of a game, automatic passes included, so two bids with the same values
+    /// stay apart, as the stored C# events did (the story compares winning bids).
+    pub number: u32,
+    /// `Bid` or `BlackMarketBid`.
+    pub type_: EventType,
+    pub initiator: Option<Faction>,
+    /// The initiator's player when the bid was submitted.
+    pub player: Option<PlayerId>,
+    pub amount: u16,
+    pub ally_contribution_amount: u16,
+    pub emperor_contribution_amount: u16,
+    pub uses_emperor_secret_ally: bool,
+    pub karma_card: Option<TreacheryCard>,
+    pub karma_bid: bool,
+    pub passed: bool,
+}
+
+impl PlacedBid {
+    /// What the bid offers: nothing for a pass (see [`Bid::total_amount`]).
+    pub fn bid_total_amount(&self) -> i32 {
+        if self.passed {
+            return 0;
+        }
+        i32::from(self.amount) + i32::from(self.ally_contribution_amount) + i32::from(self.emperor_contribution_amount)
+    }
+
+    pub fn bid_amount(&self) -> i32 {
+        i32::from(self.amount)
+    }
+
+    pub fn bid_ally_contribution_amount(&self) -> i32 {
+        i32::from(self.ally_contribution_amount)
+    }
+
+    pub fn bid_emperor_contribution_amount(&self) -> i32 {
+        i32::from(self.emperor_contribution_amount)
+    }
+
+    /// The bidder; panics for a bid without a faction, as the C# cast did.
+    #[track_caller]
+    pub fn bid_initiator(&self) -> Faction {
+        self.initiator.expect("faction")
+    }
+
+    pub fn bid_player(&self) -> Option<PlayerId> {
+        self.player
+    }
+
+    pub fn bid_passed(&self) -> bool {
+        self.passed
+    }
+
+    pub fn bid_using_karma_to_remove_bid_limit(&self) -> bool {
+        self.karma_card.is_some() && !self.karma_bid
+    }
+
+    pub fn bid_karma_card(&self) -> Option<TreacheryCard> {
+        self.karma_card
+    }
+
+    pub fn bid_karma_bid(&self) -> bool {
+        self.karma_bid
+    }
+
+    /// The bidder, as `Event::legacy_initiator` gave it when the auction kept the event. Kept
+    /// for alliances/deal_accepted.rs; new code reads `initiator`.
+    pub fn legacy_initiator(&self) -> Option<Faction> {
+        self.initiator
+    }
+
+    /// The bidder's player, as `Event::legacy_player` gave it when the auction kept the event.
+    /// Kept for alliances/deal_accepted.rs; new code reads `player`.
+    pub fn legacy_player(&self) -> Option<PlayerId> {
+        self.player
     }
 }
 
@@ -166,15 +251,21 @@ impl Game {
         self.bidding.card_number = 1;
     }
 
-    pub fn execute_bid(&mut self, bid: &Rc<Bid>) -> GameResult {
+    /// The next bid's number (`PlacedBid::number`).
+    pub(crate) fn number_bid(&mut self) -> u32 {
+        self.bidding.bids_placed += 1;
+        self.bidding.bids_placed
+    }
+
+    pub fn execute_bid(&mut self, bid: &PlacedBid) -> GameResult {
         if !bid.passed {
             self.return_karma_card_used_for_bid();
-            if bid.using_karma_to_remove_bid_limit() {
-                let p = GameEventMethods::player(&**bid);
+            if bid.bid_using_karma_to_remove_bid_limit() {
+                let p = bid.player.expect("the event has a player");
                 let karma_card = bid.karma_card;
                 remove_card(&mut self.player_mut(p).treachery_cards, karma_card);
             }
-            self.bidding.current_bid = Some(bid.clone().into_event());
+            self.bidding.current_bid = Some(bid.clone());
             self.stone(Milestone::Bid);
         }
 
@@ -182,25 +273,24 @@ impl Game {
             seq.next_player(g);
             g.skip_players_that_cant_bid(seq);
         });
-        let initiator = GameEventMethods::initiator(&**bid);
+        let initiator = bid.initiator;
         self.bidding.bids.shift_remove_opt(initiator);
-        self.bidding.bids.insert_new(initiator.required("faction")?, bid.clone().into_event());
-        let as_event = bid.clone().into_event();
-        self.check_if_atreides_or_atreides_ally_passed_bid(&as_event);
+        self.bidding.bids.insert_new(initiator.required("faction")?, bid.clone());
+        self.check_if_atreides_or_atreides_ally_passed_bid(bid);
 
         match self.bidding.current_auction_type {
             Some(AuctionType::Normal) => {
-                bid.handle_normal_bid(self)?;
+                Bid::handle_normal_bid(self, bid)?;
             }
             Some(AuctionType::RicheseOnceAround) | Some(AuctionType::RicheseSilent) => {
-                bid.handle_richese_bid(self)?;
+                Bid::handle_richese_bid(self, bid)?;
             }
             _ => {}
         }
         Ok(())
     }
 
-    pub fn check_if_atreides_or_atreides_ally_passed_bid(&mut self, bid: &Event) {
+    pub fn check_if_atreides_or_atreides_ally_passed_bid(&mut self, bid: &PlacedBid) {
         let atreides = match self.get_player(Some(Faction::Atreides)) {
             Some(g) => g,
             None => return,
@@ -283,7 +373,7 @@ impl Game {
     }
 
     /// Draws from `self.bidding.cards_on_auction`; callers check that it is not null first.
-    pub fn win_by_highest_bid(&mut self, winner: PlayerId, bid: &Event, bid_amount: i32, bid_ally_contribution_amount: i32, bid_emperor_contribution_amount: i32, payment_receiver: Faction, uses_emperor_secret_ally: bool) -> GameResult<TreacheryCard> {
+    pub fn win_by_highest_bid(&mut self, winner: PlayerId, bid: &PlacedBid, bid_amount: i32, bid_ally_contribution_amount: i32, bid_emperor_contribution_amount: i32, payment_receiver: Faction, uses_emperor_secret_ally: bool) -> GameResult<TreacheryCard> {
         let mut receiver_income_message = express_part!();
 
         if !uses_emperor_secret_ally {
@@ -324,7 +414,7 @@ impl Game {
         }
     }
 
-    pub fn pay_for_card(&mut self, initiator: PlayerId, bid: &Event, bid_amount: i32, bid_ally_contribution_amount: i32, bid_emperor_contribution_amount: i32, payment_receiver: Faction, message: &mut MessagePart) -> GameResult<Option<Faction>> {
+    pub fn pay_for_card(&mut self, initiator: PlayerId, bid: &PlacedBid, bid_amount: i32, bid_ally_contribution_amount: i32, bid_emperor_contribution_amount: i32, payment_receiver: Faction, message: &mut MessagePart) -> GameResult<Option<Faction>> {
         let mut paid_to = None;
         {
             let p = self.player_mut(initiator);
@@ -380,7 +470,7 @@ impl Game {
             // C# parity: records a recent payment of receiverProfit while it is still 0.
             let initiator_faction = self.player(initiator).faction;
             let receiver_faction = self.player(receiver.required("The payment receiver")?).faction;
-            self.set_recent_payment(receiver_profit, initiator_faction, receiver_faction, bid.event_type());
+            self.set_recent_payment(receiver_profit, initiator_faction, receiver_faction, bid.type_);
         }
 
         if receiver.is_some() && self.player(initiator).faction != Some(payment_receiver) {
@@ -416,7 +506,7 @@ impl Game {
                 }
 
                 let initiator_faction = self.player(initiator).faction;
-                self.set_recent_payment(receiver_profit, initiator_faction, receiver_faction, bid.event_type());
+                self.set_recent_payment(receiver_profit, initiator_faction, receiver_faction, bid.type_);
             }
         } else if total_amount_received_by_emperor_instead_of_richese > 0 {
             *message = express_part!(" → ", Faction::Emperor, " get ", Payment::of(total_amount_received_by_emperor_instead_of_richese));
@@ -516,7 +606,7 @@ impl Game {
         }
     }
 
-    pub fn finish_bid(&mut self, winner: Option<PlayerId>, winning_bid: Option<&Event>, card: TreacheryCard, might_replace: bool) {
+    pub fn finish_bid(&mut self, winner: Option<PlayerId>, winning_bid: Option<&PlacedBid>, card: TreacheryCard, might_replace: bool) {
         self.bidding.card_just_won = Some(card);
         self.bidding.winning_bid = winning_bid.cloned();
         self.bidding.card_sold_on_black_market = None;
@@ -657,7 +747,7 @@ impl Game {
         self.bidding.current_auction_type = auction_type;
     }
 
-    pub fn determine_highest_bid(&self, bids: &IndexMap<Faction, Event>) -> Option<Event> {
+    pub fn determine_highest_bid(&self, bids: &IndexMap<Faction, PlacedBid>) -> Option<PlacedBid> {
         let highest_bid_value = bids.values().map(|b| b.bid_total_amount()).max().expect("a bid");
         let mut determine_bid_winner_sequence = PlayerSequence::starting_with_first_player_options(self, false, 1);
 
@@ -729,7 +819,7 @@ impl Game {
         if !matches!(self.turn.current_phase, Phase::Bidding | Phase::BlackMarketBidding) {
             return 0;
         }
-        let pending: Vec<&Event> = match self.bidding.current_auction_type {
+        let pending: Vec<&PlacedBid> = match self.bidding.current_auction_type {
             Some(AuctionType::RicheseSilent | AuctionType::BlackMarketSilent) => self.bidding.bids.values().collect(),
             _ => self.bidding.current_bid.iter().collect(),
         };

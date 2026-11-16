@@ -238,11 +238,11 @@ fn a_richese_card_taken_from_the_deck_or_the_cache_leaves_the_other() {
     // Sold from the cache: it leaves the deck.
     g.bidding.cards_on_auction = Some(Deck::empty(None));
     g.turn.current_phase = Phase::RicheseSpecifyingAuction;
-    let mut auction = RicheseSpecifiesAuction::new(&g, Faction::Richese);
+    let mut auction = RicheseSpecifiesAuction::default();
     auction.card = Some(sold);
     auction.auction_type = Some(AuctionType::RicheseOnceAround);
     auction.direction = 1;
-    assert!(g.play_for_message(HistoryEntry::new(Faction::Richese, Rc::new(auction)), false, false).is_none());
+    assert!(g.play_for_message(HistoryEntry::new(Faction::Richese, auction), false, false).is_none());
     assert!(!g.decks.richese_cache.contains(&sold));
     assert!(!in_deck(&g, sold));
 }
@@ -259,20 +259,20 @@ fn a_karama_bid_needs_a_karama_card_and_no_pass() {
     let held: Vec<TreacheryCard> = g.players.iter().flat_map(|p| p.treachery_cards.clone()).collect();
     let karama = TreacheryCardManager::items().iter().copied().find(|c| c.type_() == TreacheryCardType::Karma && !held.contains(c)).unwrap();
     g.player_mut(bidder).treachery_cards.push(karama);
-    let bid = |passed: bool, card: Option<TreacheryCard>, g: &Game| {
-        let mut b = Bid::new(g, faction);
+    let bid = |passed: bool, card: Option<TreacheryCard>, _g: &Game| {
+        let mut b = Bid::default();
         b.passed = passed;
         b.karma_bid = true;
         b.karma_card = card;
-        Event::Bid(Rc::new(b))
+        Event::Bid(b)
     };
     let history = g.history.entries.len();
-    assert_eq!(submit(&mut g, |g| bid(true, Some(karama), g)).as_deref(), Some("You can't pass and use Karma in the same bid"));
-    assert_eq!(submit(&mut g, |g| bid(false, None, g)).as_deref(), Some("Invalid Karma card"));
+    assert_eq!(submit_by(&mut g, faction, |g| bid(true, Some(karama), g)).as_deref(), Some("You can't pass and use Karma in the same bid"));
+    assert_eq!(submit_by(&mut g, faction, |g| bid(false, None, g)).as_deref(), Some("Invalid Karma card"));
     assert_eq!(g.history.entries.len(), history);
     assert!(g.player(bidder).treachery_cards.contains(&karama));
 
-    assert_eq!(submit(&mut g, |g| bid(false, Some(karama), g)), None);
+    assert_eq!(submit_by(&mut g, faction, |g| bid(false, Some(karama), g)), None);
     assert!(!g.player(bidder).treachery_cards.contains(&karama), "the Karama card is spent");
 }
 

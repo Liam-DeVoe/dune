@@ -1,7 +1,7 @@
 use crate::prelude::*;
 
 impl ClassicBot {
-    pub fn determine_bid(&self, game: &Game) -> Rc<Bid> {
+    pub fn determine_bid(&self, game: &Game) -> Bid {
         let me = self.player;
         let max_bid_of_other_player = game
             .player_indices()
@@ -12,7 +12,7 @@ impl ClassicBot {
             .unwrap_or(0);
 
         let current_bid = game.bidding.current_bid.as_ref().map(|b| b.bid_total_amount()).unwrap_or(0);
-        let current_bid_is_from_ally = game.bidding.current_bid.as_ref().is_some_and(|b| b.legacy_initiator() == self.ally(game));
+        let current_bid_is_from_ally = game.bidding.current_bid.as_ref().is_some_and(|b| b.initiator == self.ally(game));
         let top = game.bidding.cards_on_auction.as_ref().expect("cards on auction").top();
         let is_known_card = game.has_bidding_prescience(me)
             || (game.player(me).has_ally() && game.has_bidding_prescience(self.allied_player(game).expect("allied player")))
@@ -59,7 +59,7 @@ impl ClassicBot {
             if auction == Some(AuctionType::BlackMarketSilent) {
                 return self.create_bid_using_ally_and_emperor_spice(game, 0, None);
             }
-            return self.passed_bid(game);
+            return self.passed_bid();
         }
 
         if auction == Some(AuctionType::BlackMarketSilent) || auction == Some(AuctionType::RicheseSilent) {
@@ -83,14 +83,14 @@ impl ClassicBot {
             || (this_card_is_useless && current_bid > 0)
             || (this_card_is_crappy && self.d(1, 1 + 2 * current_bid) > 1)
         {
-            return self.passed_bid(game);
+            return self.passed_bid();
         }
 
         if auction == Some(AuctionType::BlackMarketOnceAround) || auction == Some(AuctionType::RicheseOnceAround) {
             return if amount_to_bid_in_silent_or_once_around > current_bid {
                 self.create_bid_using_ally_and_emperor_spice(game, amount_to_bid_in_silent_or_once_around, None)
             } else {
-                self.passed_bid(game)
+                self.passed_bid()
             };
         }
 
@@ -99,7 +99,7 @@ impl ClassicBot {
         }
 
         if self.ally(game) != Some(Faction::Emperor) && current_bid > self.param.bidding_passing_threshold + maximum_i_will_spend {
-            return self.passed_bid(game);
+            return self.passed_bid();
         }
 
         if current_bid + 2 == max_bid_of_other_player
@@ -112,23 +112,23 @@ impl ClassicBot {
             return self.create_bid_using_ally_and_emperor_spice(game, current_bid + 1, karma_card_to_use_for_bidding);
         }
 
-        self.passed_bid(game)
+        self.passed_bid()
     }
 
-    pub fn passed_bid(&self, game: &Game) -> Rc<Bid> {
-        let mut bid = Bid::new(game, self.faction(game));
+    pub fn passed_bid(&self) -> Bid {
+        let mut bid = Bid::default();
         bid.passed = true;
-        Rc::new(bid)
+        bid
     }
 
-    pub fn create_bid_using_ally_and_emperor_spice(&self, game: &Game, amount: i32, karma_card: Option<TreacheryCard>) -> Rc<Bid> {
+    pub fn create_bid_using_ally_and_emperor_spice(&self, game: &Game, amount: i32, karma_card: Option<TreacheryCard>) -> Bid {
         if let Some(karma_card) = karma_card {
-            let mut bid = Bid::new(game, self.faction(game));
+            let mut bid = Bid::default();
             bid.amount = treachery_engine::game::amounts::clamp_u16(amount);
             bid.karma_bid = false;
             bid.karma_card = Some(karma_card);
             bid.passed = false;
-            return Rc::new(bid);
+            return bid;
         }
 
         let use_emperor_secret_ally =
@@ -141,7 +141,7 @@ impl ClassicBot {
         let ally_contribution = spice_left_to_pay.min(game.resources_your_ally_can_pay(self.player));
         spice_left_to_pay -= ally_contribution;
 
-        let mut bid = Bid::new(game, self.faction(game));
+        let mut bid = Bid::default();
         bid.amount = treachery_engine::game::amounts::clamp_u16(spice_left_to_pay);
         bid.ally_contribution_amount = treachery_engine::game::amounts::clamp_u16(ally_contribution);
         bid.emperor_contribution_amount = treachery_engine::game::amounts::clamp_u16(emperor_contribution);
@@ -149,7 +149,7 @@ impl ClassicBot {
         bid.karma_card = None;
         bid.passed = false;
         bid.uses_emperor_secret_ally = use_emperor_secret_ally;
-        Rc::new(bid)
+        bid
     }
 
     /// Whether I want `c` enough to bid on it.
@@ -182,13 +182,13 @@ impl ClassicBot {
             || (ty == T::RaiseDead && player.forces_killed > 7)
     }
 
-    pub fn determine_black_market_bid(&self, game: &Game) -> Rc<BlackMarketBid> {
+    pub fn determine_black_market_bid(&self, game: &Game) -> BlackMarketBid {
         let bid = self.determine_bid(game);
-        let mut result = BlackMarketBid::new(game, self.faction(game));
+        let mut result = BlackMarketBid::default();
         result.amount = bid.amount;
         result.ally_contribution_amount = bid.ally_contribution_amount;
         result.emperor_contribution_amount = bid.emperor_contribution_amount;
         result.passed = bid.passed;
-        Rc::new(result)
+        result
     }
 }

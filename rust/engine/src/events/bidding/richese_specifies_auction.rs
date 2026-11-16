@@ -1,12 +1,10 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct RicheseSpecifiesAuction {
     pub auction_type: Option<AuctionType>,
     pub direction: i32,
     pub card: Option<TreacheryCard>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for RicheseSpecifiesAuction {
@@ -15,30 +13,11 @@ impl Default for RicheseSpecifiesAuction {
             auction_type: Default::default(),
             direction: Default::default(),
             card: TreacheryCardManager::get(0),
-            base: Default::default(),
         }
     }
 }
 
 impl RicheseSpecifiesAuction {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        if !game.bidding.richese_occupier_specified_card && !RicheseSpecifiesAuction::valid_cards(game).iter().any(|c| Some(*c) == self.card) {
-            return Some(express!("Invalid card"));
-        }
-
-        if self.auction_type != Some(AuctionType::RicheseOnceAround) && self.auction_type != Some(AuctionType::RicheseSilent) {
-            return Some(express!("Invalid auction type"));
-        }
-
-        None
-    }
-
     pub fn valid_cards(g: &Game) -> Vec<TreacheryCard> {
         g.decks.richese_cache.clone()
     }
@@ -54,8 +33,22 @@ impl RicheseSpecifiesAuction {
         (occupier_of_richese_homeworld.is_none() && g.player(p).faction == Some(Faction::Richese))
             || (occupier_of_richese_homeworld.is_some() && g.bidding.richese_occupier_specified_card && g.player(p).faction == Some(Faction::Richese))
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+impl EventRules for RicheseSpecifiesAuction {
+    fn validate(&self, game: &Game, _by: By) -> Result<(), Rejection> {
+        if !game.bidding.richese_occupier_specified_card && !RicheseSpecifiesAuction::valid_cards(game).iter().any(|c| Some(*c) == self.card) {
+            return Err(Rejection(express!("Invalid card")));
+        }
+
+        if self.auction_type != Some(AuctionType::RicheseOnceAround) && self.auction_type != Some(AuctionType::RicheseSilent) {
+            return Err(Rejection(express!("Invalid auction type")));
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
         if !game.bidding.richese_occupier_specified_card {
             game.bidding.richese_auction_should_still_happen = false;
             let card = self.card.required("card")?;
@@ -66,11 +59,12 @@ impl RicheseSpecifiesAuction {
 
             let occupier_of_richese_homeworld = game.occupier_of(World::Richese);
             if occupier_of_richese_homeworld.is_none() {
-                self.log(game);
-                game.start_bid_sequence_and_auction_type(self.auction_type, self.player_opt(), self.direction);
+                let m = self.describe(game, by);
+                game.log_event(m);
+                game.start_bid_sequence_and_auction_type(self.auction_type, by.player, self.direction);
                 game.start_bidding_round();
             } else {
-                self.log_objects(game, vec![self.initiator().into(), " put ".into(), card.into(), " on auction".into()]);
+                game.log(vec![by.faction.into(), " put ".into(), card.into(), " on auction".into()]);
                 game.bidding.richese_occupier_specified_card = true;
             }
         } else {
@@ -83,15 +77,15 @@ impl RicheseSpecifiesAuction {
                 }
             }
 
-            self.log_objects(game, vec![self.initiator().into(), " select a ".into(), self.auction_type.into(), " auction".into(), direction_text.into()]);
+            game.log(vec![by.faction.into(), " select a ".into(), self.auction_type.into(), " auction".into(), direction_text.into()]);
 
-            game.start_bid_sequence_and_auction_type(self.auction_type, self.player_opt(), self.direction);
+            game.start_bid_sequence_and_auction_type(self.auction_type, by.player, self.direction);
             game.start_bidding_round();
         }
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn describe(&self, _game: &Game, by: By) -> Message {
         let mut direction_text = "";
         if self.auction_type == Some(AuctionType::RicheseOnceAround) {
             if self.direction == 1 {
@@ -101,34 +95,6 @@ impl RicheseSpecifiesAuction {
             }
         }
 
-        express!(self.initiator(), " put a ", Faction::Richese, " card on ", self.auction_type, " auction", direction_text)
+        express!(by.faction, " put a ", Faction::Richese, " card on ", self.auction_type, " auction", direction_text)
     }
-
-}
-
-impl GameEventMethods for RicheseSpecifiesAuction {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::RicheseSpecifiesAuction
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::RicheseSpecifiesAuction(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        RicheseSpecifiesAuction::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        RicheseSpecifiesAuction::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        RicheseSpecifiesAuction::get_message(self, game)
-    }
-
 }

@@ -1,35 +1,23 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct IxianRemovedCardFromAuction {
     pub put_on_top: bool,
     pub card: Option<TreacheryCard>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for IxianRemovedCardFromAuction {
     fn default() -> Self {
-        IxianRemovedCardFromAuction {
-            put_on_top: Default::default(),
-            card: TreacheryCardManager::get(0),
-            base: Default::default(),
-        }
+        IxianRemovedCardFromAuction { put_on_top: Default::default(), card: TreacheryCardManager::get(0) }
     }
 }
 
-impl IxianRemovedCardFromAuction {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
+impl EventRules for IxianRemovedCardFromAuction {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
     }
 
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
         let card = self.card;
         crate::game::remove_card(&mut game.bidding.cards_on_auction.as_mut().required("cards on auction")?.items, card);
         let card = card.required("card")?;
@@ -43,7 +31,8 @@ impl IxianRemovedCardFromAuction {
         game.register_known_by_faction(Faction::Ixian, card);
         game.bidding.cards_on_auction.as_mut().required("cards on auction")?.shuffle();
         game.stone(Milestone::Shuffled);
-        self.log(game);
+        let m = self.describe(game, by);
+        game.log_event(m);
 
         if game.ixian_may_swap_card_on_bid() {
             if !game.prevented(FactionAdvantage::IxianSwappingCard) {
@@ -61,38 +50,10 @@ impl IxianRemovedCardFromAuction {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn describe(&self, _game: &Game, by: By) -> Message {
         if self.put_on_top {
-            return express!(self.initiator(), " put a card on top of the Treachery Card deck");
+            return express!(by.faction, " put a card on top of the Treachery Card deck");
         }
-        express!(self.initiator(), " put a card at the bottom of the Treachery Card deck")
+        express!(by.faction, " put a card at the bottom of the Treachery Card deck")
     }
-
-}
-
-impl GameEventMethods for IxianRemovedCardFromAuction {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::IxianRemovedCardFromAuction
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::IxianRemovedCardFromAuction(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        IxianRemovedCardFromAuction::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        IxianRemovedCardFromAuction::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        IxianRemovedCardFromAuction::get_message(self, game)
-    }
-
 }

@@ -1,40 +1,27 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct IxianSwappedCardOnBid {
     pub card: Option<TreacheryCard>,
-    // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for IxianSwappedCardOnBid {
     fn default() -> Self {
-        IxianSwappedCardOnBid {
-            card: TreacheryCardManager::get(0),
-            passed: Default::default(),
-            base: Default::default(),
-        }
+        IxianSwappedCardOnBid { card: TreacheryCardManager::get(0), passed: Default::default() }
     }
 }
 
-impl IxianSwappedCardOnBid {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
+impl EventRules for IxianSwappedCardOnBid {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
     }
 
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
         if !self.passed && self.card.is_some() {
             let card = self.card.required("card")?;
             game.bidding.ixian_swapped_card_on_bid = true;
-            let me = self.player();
+            let me = by.player();
             crate::game::remove_card(&mut game.player_mut(me).treachery_cards, Some(card));
             let drawn = game.bidding.cards_on_auction.as_mut().required("cards on auction")?.try_draw()?;
             game.player_mut(me).treachery_cards.push(drawn);
@@ -49,52 +36,18 @@ impl IxianSwappedCardOnBid {
             game.bidding.cards_on_auction.as_mut().required("cards on auction")?.put_on_top(card);
             game.register_known_by_faction(Faction::Ixian, card);
             game.stone(Milestone::CardOnBidSwapped);
-            self.log(game);
+            let m = self.describe(game, by);
+            game.log_event(m);
         }
 
         game.continue_after_ixian_card_swap_decision();
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn describe(&self, _game: &Game, by: By) -> Message {
         if !self.passed {
-            return express!(self.initiator(), " swap a card from hand with the next card on bid");
+            return express!(by.faction, " swap a card from hand with the next card on bid");
         }
-        express!(self.initiator(), " don't swap a card from hand with the next card on bid")
+        express!(by.faction, " don't swap a card from hand with the next card on bid")
     }
-
-}
-
-impl GameEventMethods for IxianSwappedCardOnBid {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::IxianSwappedCardOnBid
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::IxianSwappedCardOnBid(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        IxianSwappedCardOnBid::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        IxianSwappedCardOnBid::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        IxianSwappedCardOnBid::get_message(self, game)
-    }
-
-}
-
-impl PassableGameEventMethods for IxianSwappedCardOnBid {
-    fn field_passed(&self) -> &bool {
-        &self.passed
-    }
-
 }

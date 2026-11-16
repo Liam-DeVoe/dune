@@ -2,12 +2,6 @@
 
 use treachery_engine::prelude::*;
 
-fn as_player<E: GameEventMethods>(e: E, g: &Game, f: Faction) -> E {
-    e.base().initiator.set(Some(f));
-    e.base().player.set(g.get_player(Some(f)));
-    e
-}
-
 /// Probe: `emperor_bid_support.message`, `emperor_bid_support.message_none`.
 #[test]
 fn emperor_bid_support_message_lists_the_support() {
@@ -18,9 +12,9 @@ fn emperor_bid_support_message_lists_the_support() {
     amounts.insert(Faction::Fremen, 2);
     let mut e = EmperorBidSupport::default();
     e.amounts = Some(amounts);
-    let e = as_player(e, &g, Faction::Emperor);
+    let by = By::new(&g, Faction::Emperor);
     assert_eq!(
-        e.get_message(&g).plain_text(),
+        e.describe(&g, by).plain_text(),
         "Emperor supports [Atreides:Treachery.Shared.Payment , Fremen:Treachery.Shared.Payment ]"
     );
 
@@ -28,8 +22,7 @@ fn emperor_bid_support_message_lists_the_support() {
     none.insert(Faction::Atreides, 0);
     let mut e = EmperorBidSupport::default();
     e.amounts = Some(none);
-    let e = as_player(e, &g, Faction::Emperor);
-    assert_eq!(e.get_message(&g).plain_text(), "Emperor doesn't support bids by other factions");
+    assert_eq!(e.describe(&g, by).plain_text(), "Emperor doesn't support bids by other factions");
 }
 
 /// The silent-auction log of `Bid.HandleRicheseBid` (Bid.cs:296) and

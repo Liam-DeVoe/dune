@@ -60,10 +60,10 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
     let territory = |i: usize| game.board.map.territory_lookup().find(n(i)).unwrap();
     match m {
         "DetermineSetShipmentPermission" => common::decision(bot, game, bot.determine_set_shipment_permission(game)),
-        "DetermineEmperorDiscarded" => opt(bot.determine_emperor_discarded(game)),
-        "DetermineReplacedCardWon" => ev(bot.determine_replaced_card_won(game)),
-        "DetermineIxianRemovedCardFromAuction" => ev(bot.determine_ixian_removed_card_from_auction(game)),
-        "DetermineIxianSwappedCardOnBid" => ev(bot.determine_ixian_swapped_card_on_bid(game)),
+        "DetermineEmperorDiscarded" => common::decision(bot, game, bot.determine_emperor_discarded(game)),
+        "DetermineReplacedCardWon" => common::decision(bot, game, bot.determine_replaced_card_won(game)),
+        "DetermineIxianRemovedCardFromAuction" => common::decision(bot, game, bot.determine_ixian_removed_card_from_auction(game)),
+        "DetermineIxianSwappedCardOnBid" => common::decision(bot, game, bot.determine_ixian_swapped_card_on_bid(game)),
         "DetermineIxianSelectedStartingCard" => ev(bot.determine_ixian_selected_starting_card(game)),
         "DeterminePerformHmsMovement" => ev(bot.determine_perform_hms_movement(game)),
         "DeterminePerformHmsPlacement" => ev(bot.determine_perform_hms_placement(game)),
@@ -115,11 +115,11 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
         "DetermineAmbassadorPlaced" => opt(bot.determine_ambassador_placed(game)),
         "DetermineAmbassadorActivated" => opt(bot.determine_ambassador_activated(game)),
         "PassAmbassadorActivated" => opt(bot.pass_ambassador_activated(game)),
-        "DetermineRicheseAnnouncesBlackMarket" => ev(bot.determine_richese_announces_black_market(game)),
+        "DetermineRicheseAnnouncesBlackMarket" => common::decision(bot, game, bot.determine_richese_announces_black_market(game)),
         "DetermineRicheseRevealedNoField" => common::decision(bot, game, bot.determine_richese_revealed_no_field(game)),
-        "DetermineRicheseAnnouncesAuction" => ev(bot.determine_richese_announces_auction(game)),
-        "DetermineRicheseSpecifiesAuction" => ev(bot.determine_richese_specifies_auction(game)),
-        "DetermineRicheseKeepsUnsoldCard" => ev(bot.determine_richese_keeps_unsold_card(game)),
+        "DetermineRicheseAnnouncesAuction" => common::decision(bot, game, bot.determine_richese_announces_auction(game)),
+        "DetermineRicheseSpecifiesAuction" => common::decision(bot, game, bot.determine_richese_specifies_auction(game)),
+        "DetermineRicheseKeepsUnsoldCard" => common::decision(bot, game, bot.determine_richese_keeps_unsold_card(game)),
         "DetermineCaptured" => {
             let e = bot.determine_captured(game);
             common::decision(bot, game, e)

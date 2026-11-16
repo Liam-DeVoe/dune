@@ -412,7 +412,6 @@ impl Checker {
             Some("step") => {
                 if let Some(e) = Self::event(l) {
                     e.initialize_game(game);
-                    game.board.map.mark_neighbour_cache_stale();
                     e.execute(game, l["validate"].as_bool().unwrap_or(true), l["isHost"].as_bool().unwrap_or(false));
                 }
             }

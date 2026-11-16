@@ -330,3 +330,67 @@ fn an_ally_pays_for_a_shipment_only_spice_it_has_and_offered() {
     assert_eq!(g.player(shipper).resources, 0);
     assert_eq!(g.alliances.permitted_use_of_ally_spice[&f], 0);
 }
+
+/// A revival fixture and a faction other than the Tleilaxu that may revive, given 30 spice.
+fn revival_fixture(name: &str) -> (Game, PlayerIndex) {
+    let mut g = fixture(name);
+    let candidates: Vec<PlayerIndex> = g.player_indices().filter(|p| g.player(*p).faction != Faction::Tleilaxu).collect();
+    let p = candidates
+        .into_iter()
+        .find(|p| {
+            let r = Revival::new(&g, g.player(*p).faction);
+            r.is_applicable(&mut g, false)
+        })
+        .expect("a faction that may revive");
+    g.player_mut(p).resources = 30;
+    (g, p)
+}
+
+/// Reviving a leader who was alive put them in the tanks, with no time of death. Before the fix
+/// `Revival` and `KarmaFreeRevival` accepted it.
+#[test]
+fn only_a_dead_leader_can_be_revived() {
+    let (mut g, p) = revival_fixture("revival");
+    let f = g.player(p).faction;
+    let leader = g.player(p).leaders[0];
+    assert!(g.is_alive(Hero::Leader(leader)));
+
+    let revival = |g: &Game| {
+        let mut r = Revival::new(g, f);
+        r.set_hero(Some(Hero::Leader(leader)));
+        GameEvent::Revival(Rc::new(r))
+    };
+    let karama_revival = |g: &Game| {
+        let mut r = KarmaFreeRevival::new(g, f);
+        r.set_hero(Some(Hero::Leader(leader)));
+        r.validate(g).map(|m| m.to_cs_string())
+    };
+    let refusal = Some("You can't revive a leader who isn't dead");
+    assert_eq!(submit(&mut g, revival).as_deref(), refusal);
+    assert_eq!(karama_revival(&g).as_deref(), refusal);
+    assert!(g.is_alive(Hero::Leader(leader)));
+
+    g.kill_hero(Hero::Leader(leader));
+    assert_eq!(karama_revival(&g), None);
+    assert_eq!(submit(&mut g, revival), None);
+    assert!(g.is_alive(Hero::Leader(leader)));
+}
+
+/// A living leader the Tleilaxu hold as a ghola isn't dead, but their own faction can still
+/// take them back with a revival.
+#[test]
+fn a_living_ghola_can_be_taken_back() {
+    let (mut g, p) = revival_fixture("revival-planet");
+    let f = g.player(p).faction;
+    let tleilaxu = idx(&g, Faction::Tleilaxu);
+    let leader = g.player(p).leaders[0];
+    g.player_mut(p).leaders.retain(|l| *l != leader);
+    g.player_mut(tleilaxu).leaders.push(leader);
+
+    let mut r = Revival::new(&g, f);
+    r.set_hero(Some(Hero::Leader(leader)));
+    assert_eq!(submit(&mut g, |_| GameEvent::Revival(Rc::new(r))), None);
+    assert!(g.is_alive(Hero::Leader(leader)));
+    assert!(g.player(p).leaders.contains(&leader));
+    assert!(!g.player(tleilaxu).leaders.contains(&leader));
+}

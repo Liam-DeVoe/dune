@@ -706,10 +706,6 @@ impl crate::map::MapGame for Game {
         self.board.sector_in_storm
     }
 
-    fn history_count(&self) -> i32 {
-        self.history.entries.len() as i32
-    }
-
     fn applicable(&self, rule: Rule) -> bool {
         Game::applicable(self, rule)
     }

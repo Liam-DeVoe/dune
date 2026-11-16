@@ -59,6 +59,9 @@ impl KarmaFreeRevival {
         if (self.amount_of_forces + self.amount_of_special_forces) > 0 && self.hero().is_some() {
             return Some(express!("You can't revive both forces and a leader"));
         }
+        if self.hero().is_some_and(|h| Revival::is_living_leader(game, h)) {
+            return Some(express!("You can't revive a leader who isn't dead"));
+        }
 
         None
     }

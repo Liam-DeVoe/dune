@@ -9,7 +9,7 @@ use treachery_engine::events::EventType;
 use treachery_engine::heroes::hero::Hero;
 use treachery_engine::identity::Identifiable;
 use treachery_engine::prelude::*;
-use treachery_view::replica::ViewReplica;
+use treachery_view::cache::ViewedGame;
 use treachery_view::schema::*;
 
 const FIXTURES: &[&str] = &[
@@ -19,16 +19,16 @@ const FIXTURES: &[&str] = &[
     "retreat", "revival", "setup", "ship-fremen", "tanks-face-down", "worm", "worm-ride-ssw",
 ];
 
-fn factions(r: &ViewReplica) -> Vec<Faction> {
+fn factions(r: &ViewedGame) -> Vec<Faction> {
     r.game.players.iter().filter_map(|p| p.faction).collect()
 }
 
-fn player(r: &ViewReplica, f: Faction) -> PlayerId {
+fn player(r: &ViewedGame, f: Faction) -> PlayerId {
     r.game.get_player(Some(f)).unwrap()
 }
 
 /// Every seated player's view and the observer's, with the viewer's faction.
-fn all_views(r: &mut ViewReplica) -> Vec<(Option<Faction>, GameView)> {
+fn all_views(r: &mut ViewedGame) -> Vec<(Option<Faction>, GameView)> {
     let mut out: Vec<(Option<Faction>, GameView)> = factions(r).into_iter().map(|f| (Some(f), r.view(viewer_of(r, f)))).collect();
     out.push((None, r.view(OBSERVER)));
     out
@@ -254,7 +254,7 @@ fn hand_cards_name_the_actions_that_play_them() {
             all_views(&mut r).into_iter().any(|(_, v)| v.me.is_some_and(|me| me.hand.iter().any(|c| c.playable_with == want)))
         })
     };
-    let karma_prescience = |r: &mut ViewReplica| all_views(r).into_iter().any(|(_, v)| v.me.is_some_and(|me| me.hand.iter().any(|c| c.playable_with == ["Karma", "KarmaPrescience"])));
+    let karma_prescience = |r: &mut ViewedGame| all_views(r).into_iter().any(|(_, v)| v.me.is_some_and(|me| me.hand.iter().any(|c| c.playable_with == ["Karma", "KarmaPrescience"])));
     let mut r = first_bot_state("Karma Prescience", |g| {
         // When KarmaPrescience is applicable (engine/src/game/applicable_events.rs).
         g.get_player(Some(Faction::Atreides)).is_some_and(|p| {

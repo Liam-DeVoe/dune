@@ -11,7 +11,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
-use treachery_view::replica::UndoEntry;
+use treachery_view::cache::UndoEntry;
 use treachery_view::schema::{DraftResult, GameView, ReportLines};
 use ts_rs::TS;
 

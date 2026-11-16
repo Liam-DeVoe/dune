@@ -71,7 +71,7 @@ pub fn faction_sheets(game: &Game, d: &dyn Describer) -> Vec<FactionSheetView> {
 }
 
 /// The faction sheets of the last view built, reused while what they're made from stays the
-/// same. A [`crate::replica::ViewReplica`] keeps one, so its views don't build the sheets again
+/// same. A [`crate::cache::ViewCache`] keeps one, so its views don't build the sheets again
 /// for every viewer after every event (they are about half of a view's JSON).
 ///
 /// The sheets read the skin, the game's rules (`Game::applicable`, which reads the active rules

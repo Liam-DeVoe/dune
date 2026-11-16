@@ -4,9 +4,8 @@
 //! the recorder decides the calls, the replayer reads them from the trace. Everything a call
 //! returns that a player could notice is returned as trace values, which the replayer compares.
 //!
-//! As on the server (`server/src/views.rs`), views are built from a separate view replica that
-//! executes every accepted event without validation, so building views never touches the
-//! authoritative game.
+//! As on the server (`server/src/views.rs`), views are built from the game itself, with a
+//! [`ViewCache`] that starts over after an undo, a restore or a dismiss.
 
 use std::panic::{self, AssertUnwindSafe};
 
@@ -20,7 +19,7 @@ use treachery_engine::messages::message::Message;
 use treachery_engine::prelude::*;
 use treachery_engine::game::PlayerId;
 use treachery_view::build::{ResolvedViewer, Seating};
-use treachery_view::replica::ViewReplica;
+use treachery_view::cache::ViewCache;
 
 use crate::trace::{BotChoice, BotsResult, EventOutcome, Obs, QueryResult, SpecialOutcome};
 use crate::view_hash::ViewHash;
@@ -32,7 +31,7 @@ pub struct Session {
     pub game: Game,
     /// What the views show of the seated users. Their seats are in `game.human_seats`.
     pub seating: Seating,
-    replica: Option<ViewReplica>,
+    views: ViewCache,
     /// The bots, one per faction (`None` for a player who has none yet), in creation order. They
     /// outlive undo, as on the server.
     pub bots: Vec<(Option<Faction>, ClassicBot)>,
@@ -98,7 +97,7 @@ impl Session {
         let (human_seats, seating) = seats(seated);
         let mut game = Game::of_version(version);
         game.human_seats = human_seats;
-        Session { game, seating, replica: None, bots: Vec::new(), last_query: Vec::new(), log_seen: 0, full_views, view_hash: ViewHash::LATEST }
+        Session { game, seating, views: ViewCache::default(), bots: Vec::new(), last_query: Vec::new(), log_seen: 0, full_views, view_hash: ViewHash::LATEST }
     }
 
     pub fn player_count(&self) -> usize {
@@ -112,7 +111,7 @@ impl Session {
     /// `GetApplicableEvents` for player `p` (an index) or for nobody.
     pub fn query(&mut self, p: Option<usize>, host: bool) -> Result<(QueryResult, Vec<EventType>), Panicked> {
         let player = p.map(|i| self.player(i));
-        let game = &mut self.game;
+        let game = &self.game;
         let r = guarded(|| game.get_applicable_events(player, host))?;
         let types = r.as_ref().map(|t| t.clone()).unwrap_or_default();
         if let Some(i) = p {
@@ -249,38 +248,11 @@ impl Session {
         }
         if history_changed {
             if rebuild {
-                self.replica = None;
+                self.views = ViewCache::default();
             }
-            self.sync_replica(&mut obs)?;
             self.views(&mut obs)?;
         }
         Ok(obs)
-    }
-
-    /// Brings the view replica up to date, as `server/src/views.rs` `Entry::sync` does.
-    fn sync_replica(&mut self, obs: &mut Obs) -> Result<(), Panicked> {
-        if self.replica.as_ref().is_some_and(|r| r.game.event_count() > self.game.event_count()) {
-            self.replica = None;
-        }
-        let replica = self.replica.get_or_insert_with(|| {
-            let mut r = ViewReplica::new(self.game.rules.version);
-            r.game.human_seats = self.game.human_seats.clone();
-            r.seating = self.seating.clone();
-            r
-        });
-        let done = replica.game.event_count() as usize;
-        for (nr, e) in self.game.history.entries.iter().enumerate().skip(done) {
-            let text = json::serialize(e);
-            match guarded(|| replica.apply(&text))? {
-                Ok(Ok(())) => {}
-                Ok(Err(m)) | Err(m) => {
-                    obs.replica = Some(format!("event {nr}: {m}"));
-                    self.replica = None;
-                    return Ok(());
-                }
-            }
-        }
-        Ok(())
     }
 
     /// The viewers of every view: each player, then a seatless host, then an observer.
@@ -300,16 +272,14 @@ impl Session {
 
     fn views(&mut self, obs: &mut Obs) -> Result<(), Panicked> {
         let viewers = self.viewers();
-        let Some(replica) = self.replica.as_mut() else { return Ok(()) };
         let mut hashes = Vec::new();
         let mut full = Vec::new();
         for (_, rv) in &viewers {
-            // The replica's players are the game's players, by index.
-            let rv = ResolvedViewer { player: rv.player.map(|p| replica.game.player_at(p.index())), ..*rv };
             let (kind, full_views) = (self.view_hash, self.full_views);
+            let (game, views, seating) = (&self.game, &mut self.views, &self.seating);
             // Without full views, the JSON goes straight into the hasher.
             let built = guarded(|| {
-                let view = replica.view_as(&rv);
+                let view = views.view_as(game, rv, seating, -1);
                 if full_views {
                     let bytes = serde_json::to_vec(&view).expect("views serialize");
                     (kind.of(&bytes), Some(bytes))

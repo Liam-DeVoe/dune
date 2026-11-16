@@ -6,7 +6,7 @@ mod common;
 use common::*;
 use treachery_engine::prelude::*;
 use treachery_view::actions::QueryError;
-use treachery_view::replica::ViewReplica;
+use treachery_view::cache::ViewedGame;
 use treachery_view::schema::*;
 
 fn text(s: &str) -> RichText {
@@ -22,8 +22,8 @@ fn settings(players: i32, factions: &[Faction]) -> String {
 }
 
 /// A new game awaiting players: the creator (user 1) is host, user 2 has joined.
-fn awaiting() -> ViewReplica {
-    let mut r = ViewReplica::new(Game::LATEST_VERSION);
+fn awaiting() -> ViewedGame {
+    let mut r = ViewedGame::new(Game::LATEST_VERSION);
     r.seating.seated_users = 2;
     r
 }

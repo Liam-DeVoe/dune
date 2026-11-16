@@ -195,7 +195,7 @@ fn bidding_options_equal_the_helpers_in_every_state() {
     }
     for path in sample_bot_traces() {
         let trace = read_trace(&path);
-        let mut r = treachery_view::replica::ViewReplica::new(trace.version);
+        let mut r = treachery_view::cache::ViewedGame::new(trace.version);
         for (i, e) in trace.events.iter().enumerate() {
             r.apply(e).unwrap();
             check_state(&mut r.game, d.as_ref(), &mut seen, &format!("{} after event {i}", trace.name));

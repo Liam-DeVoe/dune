@@ -18,7 +18,7 @@ use treachery_engine::prelude::*;
 use treachery_view::actions::{action_view, other};
 use treachery_view::build::{validate, ResolvedViewer};
 use treachery_view::describe::{default_describer, Describer, InGame};
-use treachery_view::replica::ViewReplica;
+use treachery_view::cache::ViewedGame;
 use treachery_view::schema::*;
 
 fn mine(t: EventType) -> bool {
@@ -271,7 +271,7 @@ fn options_equal_the_engine_helpers_over_the_corpus() {
     let mut seen = Seen::default();
     for path in traces() {
         let trace = read_until_undo(&path);
-        let mut r = ViewReplica::new(trace.version);
+        let mut r = ViewedGame::new(trace.version);
         for (i, e) in trace.events.iter().enumerate() {
             if r.apply(e).is_err() {
                 break;
@@ -326,7 +326,7 @@ fn fixtures() -> Vec<String> {
 fn fixture_forms_and_queries() {
     let mut seen = Seen::default();
     for name in fixtures() {
-        let Ok(mut r) = ViewReplica::load(&common::fixture(&name)) else { continue };
+        let Ok(mut r) = ViewedGame::load(&common::fixture(&name)) else { continue };
         let mut r2 = common::load(&name);
         let d = default_describer();
         check_state(&mut r.game, d.as_ref(), &name, &mut seen);

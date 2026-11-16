@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 use treachery_engine::prelude::*;
 pub use treachery_view::build::Viewer;
-use treachery_view::replica::ViewReplica;
+use treachery_view::cache::ViewedGame;
 
 pub fn fixture(name: &str) -> String {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../scripts/fixtures").join(format!("{name}.json"));
@@ -30,13 +30,13 @@ pub fn seated_viewer(seat: Seat) -> Viewer {
 
 /// Replays a fixture and seats one user per player (user id = seat + 1, named "Player <seat>"),
 /// with the user of [`HOST_SEAT`] as host, and user 100 as an observer.
-pub fn load(name: &str) -> ViewReplica {
+pub fn load(name: &str) -> ViewedGame {
     load_text(&fixture(name))
 }
 
-pub fn viewer_of(replica: &ViewReplica, faction: Faction) -> Viewer {
-    let p = replica.game.get_player(Some(faction)).expect("faction in game");
-    seated_viewer(replica.game.player(p).seated())
+pub fn viewer_of(viewed: &ViewedGame, faction: Faction) -> Viewer {
+    let p = viewed.game.get_player(Some(faction)).expect("faction in game");
+    seated_viewer(viewed.game.player(p).seated())
 }
 
 /// The fixture's savegame cut back to its first `n` events (negative: all but the last `-n`).
@@ -49,10 +49,10 @@ pub fn truncated(name: &str, n: i64) -> String {
 }
 
 /// Like [`load`], from savegame text.
-pub fn load_text(savegame: &str) -> ViewReplica {
-    let mut replica = ViewReplica::load(savegame).expect("savegame replays");
-    seat_everyone(&mut replica);
-    replica
+pub fn load_text(savegame: &str) -> ViewedGame {
+    let mut viewed = ViewedGame::load(savegame).expect("savegame replays");
+    seat_everyone(&mut viewed);
+    viewed
 }
 
 /// A recorded game (`rust/testdata/games/*.jsonl.gz`): the game version and the accepted events
@@ -116,13 +116,13 @@ pub fn sample_bot_traces() -> Vec<PathBuf> {
     files
 }
 
-/// The first state of any sample bot game for which `pred` holds, as a replica whose players
+/// The first state of any sample bot game for which `pred` holds, as a game whose players
 /// are seated like [`load`]'s (user id = seat + 1, seat 0 host, user 100 observing). Seating
 /// happens after the replay, so the bots' game runs as recorded.
-pub fn first_bot_state(what: &str, pred: impl Fn(&Game) -> bool) -> ViewReplica {
+pub fn first_bot_state(what: &str, pred: impl Fn(&Game) -> bool) -> ViewedGame {
     for path in sample_bot_traces() {
         let trace = read_trace(&path);
-        let mut r = ViewReplica::new(trace.version);
+        let mut r = ViewedGame::new(trace.version);
         for e in &trace.events {
             r.apply(e).unwrap();
             if pred(&r.game) {
@@ -134,13 +134,13 @@ pub fn first_bot_state(what: &str, pred: impl Fn(&Game) -> bool) -> ViewReplica 
     panic!("no sample bot game reaches a state with {what}")
 }
 
-fn seat_everyone(replica: &mut ViewReplica) {
-    let seats: Vec<Seat> = replica.game.players.iter().map(|pl| pl.seated()).collect();
+fn seat_everyone(viewed: &mut ViewedGame) {
+    let seats: Vec<Seat> = viewed.game.players.iter().map(|pl| pl.seated()).collect();
     for seat in &seats {
-        replica.game.human_seats.insert(*seat);
-        replica.seating.names.insert(*seat, format!("Player {seat}"));
+        viewed.game.human_seats.insert(*seat);
+        viewed.seating.names.insert(*seat, format!("Player {seat}"));
     }
-    replica.seating.seated_users = seats.len() as i32;
+    viewed.seating.seated_users = seats.len() as i32;
 }
 
 /// A fixture with extra rules in its `EstablishPlayers` settings (rule numbers).

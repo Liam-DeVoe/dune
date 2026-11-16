@@ -6,7 +6,7 @@
 //! - [`server`]: the state and every call's handling, on the game thread.
 //! - [`protocol`]: decoding calls and encoding replies (the messages are `treachery-protocol`).
 //! - [`connections`]: which connection follows which game; notifications.
-//! - [`views`]: each participant's view of a game, built on a replica of it.
+//! - [`views`]: each participant's view of a game.
 //! - [`db`]: the database, and the conversion of the old C# server's database.
 //! - [`pause_rules`]: what each pause between phases waits for.
 //! - [`passwords`]: account password hashes; [`ids`]: tokens and their digests.

@@ -11,7 +11,7 @@ use treachery_engine::prelude::*;
 use treachery_view::actions::QueryError;
 use treachery_view::schema::*;
 
-fn factions(r: &treachery_view::replica::ViewReplica) -> Vec<Faction> {
+fn factions(r: &treachery_view::cache::ViewedGame) -> Vec<Faction> {
     r.game.players.iter().filter_map(|p| p.faction).collect()
 }
 
@@ -222,10 +222,9 @@ fn draft_queries() {
     assert!(EventType::ALL.contains(&EventType::AllianceOffered));
 }
 
-/// Applying an accepted event to the replica moves every view on, and the event number follows
-/// `History.Count`.
+/// Applying an event moves every view on, and the event number follows `History.Count`.
 #[test]
-fn replica_follows_events() {
+fn views_follow_events() {
     let mut r = load("alliance");
     let before = r.view(OBSERVER).event_number;
     let emperor = Faction::Emperor as i32;
@@ -237,11 +236,11 @@ fn replica_follows_events() {
     assert!(action(&emperor_view, "AllianceOffered").is_none());
 }
 
-/// `ViewReplica::scene` seats one user for the `/scene` route: host, named "Scene", and every
+/// `ViewedGame::scene` seats one user for the `/scene` route: host, named "Scene", and every
 /// other seat without a user (a bot).
 #[test]
 fn scene_seats_one_user_and_bots() {
-    let (mut r, viewer) = treachery_view::replica::ViewReplica::scene(&common::fixture("alliance"), Faction::Atreides).unwrap();
+    let (mut r, viewer) = treachery_view::cache::ViewedGame::scene(&common::fixture("alliance"), Faction::Atreides).unwrap();
     let view = r.view(viewer);
     assert_eq!(view.viewer.faction.as_deref(), Some("Atreides"));
     assert!(view.viewer.is_host && !view.viewer.is_observer);
@@ -251,11 +250,11 @@ fn scene_seats_one_user_and_bots() {
             assert_eq!(p.name, "Scene");
         }
     }
-    assert!(treachery_view::replica::ViewReplica::scene(&common::fixture("alliance"), Faction::Ecaz).is_err());
+    assert!(treachery_view::cache::ViewedGame::scene(&common::fixture("alliance"), Faction::Ecaz).is_err());
 }
 
-/// One replica serves every viewer (client.md, The view replica), so views must not depend on
-/// the order in which viewers' views are built.
+/// One game and view cache serve every viewer, so views must not depend on the order in which
+/// viewers' views are built.
 #[test]
 fn views_do_not_depend_on_build_order() {
     for fixture in ["battle", "mc-voice", "retreat", "mc-concluded", "alliance", "bid", "move"] {

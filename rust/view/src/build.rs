@@ -1,4 +1,4 @@
-//! Builds a [`GameView`] for one viewer from the view replica (see `replica.rs`).
+//! Builds a [`GameView`] for one viewer from the server's game.
 //!
 //! The rule for hidden information is in `rust/docs/protocol.md` (Game view, Visibility): a
 //! field is filled only for the viewers who may see it under the game rules.
@@ -77,29 +77,24 @@ fn name<T: ToString>(v: T) -> String {
     v.to_string()
 }
 
-/// Builds the view. Takes `&mut Game` because `GameStatus::determine_status` and
-/// `get_applicable_events` write battle-sequence state. Call it on the view
-/// replica, never on the server's game. `timer` is the bidding time limit the host set (-1 for
-/// none).
-pub fn build_view(game: &mut Game, viewer: Viewer, s: &Seating, d: &dyn Describer, timer: i32) -> GameView {
+/// Builds the view. `timer` is the bidding time limit the host set (-1 for none).
+pub fn build_view(game: &Game, viewer: Viewer, s: &Seating, d: &dyn Describer, timer: i32) -> GameView {
     let v = viewer.resolve(game);
     build_view_resolved(game, &v, s, d, timer)
 }
 
 /// [`build_view`] for a viewer already resolved against the game. Tests use it to look at games
 /// without seated users (the bot-game corpus).
-pub fn build_view_resolved(game: &mut Game, v: &ResolvedViewer, s: &Seating, d: &dyn Describer, timer: i32) -> GameView {
+pub fn build_view_resolved(game: &Game, v: &ResolvedViewer, s: &Seating, d: &dyn Describer, timer: i32) -> GameView {
     build_view_cached(game, v, s, d, timer, &mut FactionSheetCache::default())
 }
 
 /// [`build_view_resolved`] with the faction sheets taken from `sheets` when they haven't changed.
-/// The view replica keeps the cache.
-pub(crate) fn build_view_cached(game: &mut Game, v: &ResolvedViewer, s: &Seating, d: &dyn Describer, timer: i32, sheets: &mut FactionSheetCache) -> GameView {
-    // Both calls can write battle-sequence state, so keep this order: status, then actions.
+/// A [`crate::cache::ViewCache`] keeps the sheets between views.
+pub(crate) fn build_view_cached(game: &Game, v: &ResolvedViewer, s: &Seating, d: &dyn Describer, timer: i32, sheets: &mut FactionSheetCache) -> GameView {
     let status = GameStatus::determine_status(game, v.player, !v.is_observer);
     let action_types = game.get_applicable_events(v.player, v.is_host);
 
-    let game: &Game = game;
     // Rich text reads live collections and leader skills from the game.
     let in_game = crate::describe::InGame::new(d, game);
     let d: &dyn Describer = &in_game;

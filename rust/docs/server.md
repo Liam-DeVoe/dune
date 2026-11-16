@@ -20,14 +20,14 @@ A call's notifications go out as the game thread produces them, then the game vi
 | `protocol.rs` | Decodes a frame into a `Call`, encodes replies and notifications. The messages themselves are the `treachery-protocol` crate (`rust/protocol`) |
 | `participation.rs` | Each game's `Participation`: seats, names, hosts, observers, open seats, kicked users, bot speed. It tells the game which seats users play, and the views their names |
 | `connections.rs` | Open sockets, the session each is logged in with, which connection follows which game, notifications |
-| `views.rs` | Each participant's `GameView`, built on a replica of the game (`rust/view`), and the view calls |
+| `views.rs` | Each participant's `GameView`, built from the running game (`rust/view`), and the view calls |
 | `pause_rules.rs` | What each pause between phases waits for |
 | `db.rs` | The database and its migrations |
 | `settings.rs` | Settings from environment variables |
 | `passwords.rs` | Argon2id hashes of account passwords |
 | `time.rs`, `timers.rs`, `mail.rs`, `ids.rs`, `render.rs`, `static_files.rs` | Clock, delayed work, mail, random tokens and ids and the digests tokens are stored as, text with the default skin, the web client's files |
 
-Views never use the running game itself: building a view asks the engine questions that can change a game's state. Each followed game has a replica that replays the running game's events (`views.rs`). Seats change outside the events, so before each update the replica takes the game's human seats and the participation's names and bot speed.
+Views are built from the running game itself, since every engine query takes `&Game`. Each followed game has a `ViewCache` (`views.rs`, `rust/view/src/cache.rs`) with the skin and the faction sheets of the last view; it starts over when the game is replaced or a view fails to build. The participation's names and bot speed and the host's timer are passed in with each build.
 
 ## Accounts and sessions
 

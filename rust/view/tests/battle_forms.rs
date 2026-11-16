@@ -17,7 +17,7 @@ use treachery_engine::prelude::*;
 use treachery_view::actions::{self, battle};
 use treachery_view::build::{event, ResolvedViewer};
 use treachery_view::describe::{default_describer, Describer, InGame};
-use treachery_view::replica::ViewReplica;
+use treachery_view::cache::ViewedGame;
 use treachery_view::schema::*;
 
 fn viewer(game: &Game, p: PlayerId) -> ResolvedViewer {
@@ -308,7 +308,7 @@ fn battle_forms_in_fixtures() {
     names.sort();
     for name in names {
         let text = common::fixture(&name);
-        let Ok(mut r) = ViewReplica::load(&text) else { continue };
+        let Ok(mut r) = ViewedGame::load(&text) else { continue };
         check_all_players(&mut r.game, &*d, &mut stats, &name);
     }
     eprintln!("fixtures: {:?}", stats.0);
@@ -324,7 +324,7 @@ fn battle_forms_in_bot_games() {
     let mut stats = Stats::default();
     for path in common::sample_bot_traces() {
         let trace = common::read_trace(&path);
-        let mut r = ViewReplica::new(trace.version);
+        let mut r = ViewedGame::new(trace.version);
         for (n, e) in trace.events.iter().enumerate() {
             r.apply(e).unwrap();
             check_all_players(&mut r.game, &*d, &mut stats, &format!("{} step {n}", trace.name));
@@ -378,7 +378,7 @@ fn battle_forms_in_rare_traces() {
     };
     for path in traces_in(&dir) {
         let trace = read_until_undo(&path);
-        let mut r = ViewReplica::new(trace.version);
+        let mut r = ViewedGame::new(trace.version);
         for (n, e) in trace.events.iter().enumerate() {
             if r.apply(e).is_err() {
                 break;
@@ -420,8 +420,8 @@ const RARE: &[&str] = &[
 /// latest-version fuzz games did), so the state is built from the `battle` fixture: the HMS is
 /// pointed at the Great Flat, the first two factions get forces in it, the first owns it and
 /// Arrakeen, and the battle between them starts there.
-fn hms_battle_state() -> ViewReplica {
-    let mut r = ViewReplica::load(&common::fixture("battle")).expect("battle fixture loads");
+fn hms_battle_state() -> ViewedGame {
+    let mut r = ViewedGame::load(&common::fixture("battle")).expect("battle fixture loads");
     let g = &mut r.game;
     let flat = g.board.map.the_great_flat();
     let hms = g.board.map.hidden_mobile_stronghold();

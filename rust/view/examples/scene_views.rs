@@ -6,7 +6,7 @@
 //! For each fixture in `scripts/fixtures` (or the ones named), and for each faction in that game
 //! plus an observer, it writes `OUT_DIR/<fixture>-<Faction>.json` (`-Observer.json` for the
 //! observer). A scene is the savegame replayed with user 1, named "Scene", seated as that
-//! faction and made host ([`ViewReplica::scene`]); the observer is user 1 as a non-host
+//! faction and made host ([`ViewedGame::scene`]); the observer is user 1 as a non-host
 //! observer. `<fixture>-<Faction>.reports.json` holds the lines of every report, for the log's
 //! history.
 //!
@@ -19,7 +19,7 @@ use serde_json::{json, Value};
 use treachery_engine::enumerations::Faction;
 use treachery_engine::prelude::*;
 use treachery_view::build::Viewer;
-use treachery_view::replica::ViewReplica;
+use treachery_view::cache::ViewedGame;
 
 const SCENE_USER_ID: i64 = 1;
 
@@ -71,28 +71,28 @@ fn main() {
 
 /// Writes the views of one fixture and returns its manifest entry.
 fn fixture(name: &str, savegame: &str, out: &Path) -> Result<Value, String> {
-    // One replay to read the game's factions and facts; each scene then replays its own copy,
-    // because building a view writes state (client.md, The view replica).
-    let probe = ViewReplica::load(savegame)?;
+    // One load to read the game's factions and facts; each scene then loads its own copy,
+    // because a scene seats its viewer and may play the client's automatic passes.
+    let probe = ViewedGame::load(savegame)?;
     let game = &probe.game;
     let factions: Vec<Faction> = game.players.iter().filter_map(|p| p.faction).collect();
 
     let mut scenes = Vec::new();
     for viewer in factions.iter().copied().map(Some).chain([None]) {
-        let (mut replica, v) = match viewer {
-            Some(f) => ViewReplica::scene(savegame, f)?,
+        let (mut viewed, v) = match viewer {
+            Some(f) => ViewedGame::scene(savegame, f)?,
             None => observer_scene(savegame)?,
         };
         let label = viewer.map_or("Observer".to_string(), |f| f.to_string());
-        let mut view = replica.view(v);
-        if client_auto_pass(&mut replica, viewer, &view)? {
-            view = replica.view(v);
+        let mut view = viewed.view(v);
+        if client_auto_pass(&mut viewed, viewer, &view)? {
+            view = viewed.view(v);
         }
         let file = format!("{name}-{label}.json");
         std::fs::write(out.join(&file), serde_json::to_string(&view).unwrap()).map_err(|e| format!("{file}: {e}"))?;
         // Every report's lines, as `RequestReport` answers them, for the log's history
         // (web/src/state/source.ts, StaticSource.report).
-        let reports: Vec<_> = (0..replica.game.reports().len()).filter_map(|i| replica.report(v, i)).collect();
+        let reports: Vec<_> = (0..viewed.game.reports().len()).filter_map(|i| viewed.report(v, i)).collect();
         let reports_file = format!("{name}-{label}.reports.json");
         std::fs::write(out.join(&reports_file), serde_json::to_string(&reports).unwrap()).map_err(|e| format!("{reports_file}: {e}"))?;
         scenes.push(json!({"faction": label, "view": file}));
@@ -110,24 +110,24 @@ fn fixture(name: &str, savegame: &str, out: &Path) -> Result<Value, String> {
 /// What the web client submits by itself once the scene is on screen: the TreacheryCalled form
 /// passes for a player who cannot call treachery. With saved views that pass can't reach a
 /// server, so the scene is written after it. Returns whether an event was applied.
-fn client_auto_pass(replica: &mut ViewReplica, viewer: Option<Faction>, view: &treachery_view::schema::GameView) -> Result<bool, String> {
+fn client_auto_pass(viewed: &mut ViewedGame, viewer: Option<Faction>, view: &treachery_view::schema::GameView) -> Result<bool, String> {
     let Some(f) = viewer else { return Ok(false) };
     if !view.actions.iter().any(|a| a.event_type == "TreacheryCalled") {
         return Ok(false);
     }
-    let game = &replica.game;
+    let game = &viewed.game;
     let Some(p) = game.get_player(Some(f)) else { return Ok(false) };
     if game.battle.current_battle.is_none() || TreacheryCalled::may_call_treachery(game, p) {
         return Ok(false);
     }
     let pass = TreacheryCalled { traitor_called: false };
     let json = treachery_engine::json::serialize(&HistoryEntry::new(f, pass));
-    replica.apply(&json)?;
+    viewed.apply(&json)?;
     Ok(true)
 }
 
 /// The observer scene: user 1, named "Scene", observing, not host.
-fn observer_scene(savegame: &str) -> Result<(ViewReplica, Viewer), String> {
-    let replica = ViewReplica::load(savegame)?;
-    Ok((replica, Viewer { user_id: SCENE_USER_ID, seat: None, is_host: false, is_observer: true }))
+fn observer_scene(savegame: &str) -> Result<(ViewedGame, Viewer), String> {
+    let viewed = ViewedGame::load(savegame)?;
+    Ok((viewed, Viewer { user_id: SCENE_USER_ID, seat: None, is_host: false, is_observer: true }))
 }

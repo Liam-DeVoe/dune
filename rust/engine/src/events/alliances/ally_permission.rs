@@ -45,9 +45,9 @@ impl Default for AllyPermission {
 }
 
 impl AllyPermission {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -91,28 +91,28 @@ impl AllyPermission {
         let ally = game.player(self.player()).ally;
 
         match self.initiator() {
-            Faction::Guild => game.alliances.guild_allows_shipping_discount = self.guild_allows_shipping_discount(),
-            Faction::Tleilaxu => game.alliances.tleilaxu_allows_revival_discount = self.tleilaxu_allows_revival_discount(),
-            Faction::Ixian => game.alliances.ixian_allows_replacing_cards = self.ixian_allows_replacing_cards(),
-            Faction::Emperor => game.alliances.emperor_will_pay_for_extra_revival = self.emperor_will_pay_for_extra_revival,
-            Faction::Fremen => {
+            Some(Faction::Guild) => game.alliances.guild_allows_shipping_discount = self.guild_allows_shipping_discount(),
+            Some(Faction::Tleilaxu) => game.alliances.tleilaxu_allows_revival_discount = self.tleilaxu_allows_revival_discount(),
+            Some(Faction::Ixian) => game.alliances.ixian_allows_replacing_cards = self.ixian_allows_replacing_cards(),
+            Some(Faction::Emperor) => game.alliances.emperor_will_pay_for_extra_revival = self.emperor_will_pay_for_extra_revival,
+            Some(Faction::Fremen) => {
                 game.alliances.fremen_will_protect_from_monster = self.fremen_will_protect_from_monster;
                 game.alliances.fremen_allows_three_free_revivals = self.fremen_allows_three_free_revivals;
                 game.alliances.fremen_shares_prescience = self.fremen_shares_prescience;
                 game.alliances.fremen_refunds_battle_dial = self.fremen_refunds_battle_dial;
             }
-            Faction::Atreides => game.alliances.atreides_shares_prescience = self.atreides_shares_prescience,
-            Faction::BeneGesserit => game.alliances.bene_gesserit_allows_use_of_voice = self.bene_gesserit_allows_use_of_voice,
-            Faction::Richese => game.alliances.richese_allows_use_of_no_field = self.richese_allows_use_of_no_field,
-            Faction::Moritani => game.alliances.moritani_allows_keeping_cards = self.moritani_allows_keeping_cards,
-            Faction::Ecaz => game.alliances.ecaz_shares_ambassadors = self.ecaz_shares_ambassadors,
+            Some(Faction::Atreides) => game.alliances.atreides_shares_prescience = self.atreides_shares_prescience,
+            Some(Faction::BeneGesserit) => game.alliances.bene_gesserit_allows_use_of_voice = self.bene_gesserit_allows_use_of_voice,
+            Some(Faction::Richese) => game.alliances.richese_allows_use_of_no_field = self.richese_allows_use_of_no_field,
+            Some(Faction::Moritani) => game.alliances.moritani_allows_keeping_cards = self.moritani_allows_keeping_cards,
+            Some(Faction::Ecaz) => game.alliances.ecaz_shares_ambassadors = self.ecaz_shares_ambassadors,
             _ => {}
         }
 
-        if ally != Faction::None {
-            game.alliances.permitted_use_of_ally_spice.insert(ally, self.permitted_resources);
+        if ally != None {
+            game.alliances.permitted_use_of_ally_spice.insert(ally.required("faction")?, self.permitted_resources);
             if let Some(card) = self.permitted_karma_card() {
-                game.alliances.permitted_use_of_ally_karma.insert(ally, card);
+                game.alliances.permitted_use_of_ally_karma.insert(ally.required("faction")?, card);
             }
         }
         Ok(())

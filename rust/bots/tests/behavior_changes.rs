@@ -56,7 +56,7 @@ fn fingerprint(game: &Game) -> String {
     for (i, report) in std::iter::once(&game.log.pre_game_report).chain(game.log.report_list.iter()).enumerate() {
         lines.push(format!("report {i}: {} messages", report.messages.len()));
         for m in &report.messages {
-            lines.push(format!("  {} {} {:?}", m.target, m.to_cs_string(), m.expression));
+            lines.push(format!("  {} {} {:?}", name_or_absent(m.target), m.to_cs_string(), m.expression));
         }
     }
     for p in &game.players {
@@ -177,8 +177,8 @@ fn worthless_cards_count_as_karama_for_bene_gesserit() {
 fn karama_shipment_prevention_blocks_a_winning_opponent_without_ally() {
     let mut game = load("ship");
     let shipper = game.ship_move.shipment_and_move_sequence.as_ref().unwrap().current_player(&game).unwrap();
-    assert_eq!(game.player(shipper).ally, Faction::None);
-    assert_ne!(game.player(shipper).faction, Faction::Fremen);
+    assert_eq!(game.player(shipper).ally, None);
+    assert_ne!(game.player(shipper).faction, Some(Faction::Fremen));
     let strongholds = [game.board.map.arrakeen(), game.board.map.carthag(), game.board.map.sietch_tabr(), game.board.map.habbanya_sietch()];
     for s in strongholds {
         Player::add_forces(&mut game, shipper, s, 1, true);
@@ -186,7 +186,7 @@ fn karama_shipment_prevention_blocks_a_winning_opponent_without_ally() {
     game.player_mut(shipper).resources = 5;
     assert!(game.player(shipper).forces_in_reserve() + game.player(shipper).special_forces_in_reserve() > 2);
 
-    let blocker = game.player_indices().find(|p| *p != shipper && game.player(*p).faction != Faction::Fremen).unwrap();
+    let blocker = game.player_indices().find(|p| *p != shipper && game.player(*p).faction != Some(Faction::Fremen)).unwrap();
     let e = bot(&game, blocker).determine_karma_shipment_prevention(&game).expect("a Karama shipment prevention");
     assert_eq!(e.target, game.player(shipper).faction);
 }
@@ -232,9 +232,9 @@ fn bene_gesserit_voices_a_useless_defense_against_poison() {
 fn dial_needed_for_another_player_is_theirs() {
     let game = load("battle");
     let territory = game.battle.current_battle.as_ref().unwrap().territory(&game).unwrap();
-    let aggressor = player_of(&game, game.battle.current_battle.as_ref().unwrap().aggressor(&game));
-    let defender = player_of(&game, game.battle.current_battle.as_ref().unwrap().defender(&game));
-    let estimator = game.player_indices().find(|p| *p != aggressor && *p != defender && game.player(*p).faction != Faction::BeneGesserit).unwrap();
+    let aggressor = player_of(&game, game.battle.current_battle.as_ref().unwrap().aggressor(&game).expect("faction"));
+    let defender = player_of(&game, game.battle.current_battle.as_ref().unwrap().defender(&game).expect("faction"));
+    let estimator = game.player_indices().find(|p| *p != aggressor && *p != defender && game.player(*p).faction != Some(Faction::BeneGesserit)).unwrap();
 
     let by_aggressor = bot(&game, aggressor).get_dial_needed(&game, aggressor, territory, defender, false);
     let by_other = bot(&game, estimator).get_dial_needed(&game, aggressor, territory, defender, false);
@@ -251,8 +251,8 @@ fn traitors_told_by_the_opponent_count_as_known_traitors() {
     let mut game = load("battle");
     let battle = game.battle.current_battle.clone().unwrap();
     let territory = battle.territory(&game).unwrap();
-    let (mut me, mut opponent) = (player_of(&game, battle.aggressor(&game)), player_of(&game, battle.defender(&game)));
-    if game.player(me).faction == Faction::Atreides {
+    let (mut me, mut opponent) = (player_of(&game, battle.aggressor(&game).expect("faction")), player_of(&game, battle.defender(&game).expect("faction")));
+    if game.player(me).faction == Some(Faction::Atreides) {
         // Avoid the Kwisatz Haderach, who makes traitors harmless.
         std::mem::swap(&mut me, &mut opponent);
     }
@@ -318,13 +318,13 @@ fn bene_gesserit_prediction_draws_no_coin() {
         let r = SharedRandom::from_seed(seed);
         let predicted = b.others(&game).into_iter().random_item(&r).unwrap();
         let faction = game.player(predicted).faction;
-        assert_ne!(faction, Faction::Tleilaxu);
+        assert_ne!(faction, Some(Faction::Tleilaxu));
         let max = game.maximum_turns();
         let d = |sides: i32| r.lock().random_range(1..=sides);
-        let turn = if faction == Faction::Harkonnen {
+        let turn = if faction == Some(Faction::Harkonnen) {
             let sides = if d(2) == 1 { std::cmp::min(3, max) } else { max };
             d(sides)
-        } else if faction == Faction::Atreides || faction == Faction::Ixian {
+        } else if faction == Some(Faction::Atreides) || faction == Some(Faction::Ixian) {
             if d(2) == 1 { d(max) } else { 2 + d(max - 2) }
         } else if d(2) == 1 {
             1 + d(max - 1)

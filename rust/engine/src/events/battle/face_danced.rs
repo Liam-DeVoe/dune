@@ -37,9 +37,9 @@ macro_rules! elems {
 const SOURCE_LOCATIONS_QUERY_TYPE: &str = "System.Linq.Enumerable+IEnumerableWhereSelectIterator`2[System.Collections.Generic.KeyValuePair`2[Treachery.Shared.Location,Treachery.Shared.Battalion],Treachery.Shared.MessagePart]";
 
 impl FaceDanced {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -48,7 +48,7 @@ impl FaceDanced {
         // first; a null string throws at `.Length`.
         let faction = game.player(self.player()).faction;
         let s = self.target_force_locations.as_deref().expect("target force locations");
-        PlacementEvent::parse_force_locations(game, faction, s)
+        PlacementEvent::parse_force_locations(game, faction.expect("faction"), s)
     }
 
     pub fn set_target_force_locations(&mut self, game: &Game, value: &IndexMap<Location, Battalion>) {
@@ -94,7 +94,7 @@ impl FaceDanced {
             Some(ally) => g.battle.battle_winner == Some(g.player(p).ally) || g.player(ally).any_forces_in_territory(territory()) == 0,
         };
         if condition {
-            let winner = g.get_player(g.battle.battle_winner);
+            let winner = g.get_player(g.battle.battle_winner.flatten());
             let coocupying_player = if g.battle.battle_winner == g.battle.current_ecaz_or_ally_fighter {
                 g.player(winner.expect("winner")).allied_player(g)
             } else {
@@ -118,7 +118,7 @@ impl FaceDanced {
     /// `p` is only dereferenced where it is needed, so a null `p` throws only there.
     pub(crate) fn may_call_face_dancer_opt(g: &Game, p: Option<PlayerIndex>) -> bool {
         // `BattleWinner == Faction.None` is false while BattleWinner is null.
-        if g.battle.battle_winner == Some(Faction::None) {
+        if g.battle.battle_winner == Some(None) {
             return false;
         }
         let Some(battle) = g.battle.current_battle.as_ref() else { return false };
@@ -130,7 +130,7 @@ impl FaceDanced {
 
         let winner_hero = g.winner_hero();
         if let (Some(winner_hero), Some(battle_winner)) = (winner_hero, g.battle.battle_winner) {
-            if !g.is_occupied_by_faction_or_their_ally(World::Tleilaxu, battle_winner) {
+            if !g.is_occupied_by_faction_or_their_ally(World::Tleilaxu, battle_winner.expect("faction")) {
                 let player = g.player(p.expect("player"));
                 return player
                     .face_dancers
@@ -194,7 +194,7 @@ impl FaceDanced {
     pub fn replace_forces(&self, game: &mut Game) {
         let Some(battle) = game.battle.current_battle.clone() else { return };
 
-        let winner = self.get_player(game, game.battle.battle_winner);
+        let winner = self.get_player(game, game.battle.battle_winner.flatten());
         let mut nr_of_removed_forces = game.player(winner.expect("winner")).any_forces_in_territory(battle.territory(game));
         let winner = winner.expect("winner");
         let co_occupying_player = if game.battle.battle_winner == game.battle.current_ecaz_or_ally_fighter {
@@ -226,7 +226,7 @@ impl FaceDanced {
             }
 
             let winner_faction = game.player(winner).faction;
-            let co_faction = co_occupying_player.map(|co| game.player(co).faction);
+            let co_faction = co_occupying_player.and_then(|co| game.player(co).faction);
             let replaced_by =
                 self.target_force_locations(game).iter().map(|(_, b)| b.total_amount_of_forces()).sum::<i32>();
             let force = game.player(self.player()).force();
@@ -341,7 +341,7 @@ impl PlacementEventMethods for FaceDanced {
 
 impl crate::events::location_event::LocationEvent for FaceDanced {
     fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self)
+        GameEventMethods::initiator(self).expect("faction")
     }
 
     fn to(&self, game: &Game) -> Option<Location> {
@@ -364,7 +364,7 @@ impl crate::events::location_event::LocationEvent for FaceDanced {
 
 impl crate::events::placement::Placement for FaceDanced {
     fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self)
+        GameEventMethods::initiator(self).expect("faction")
     }
 
     fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {

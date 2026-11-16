@@ -76,7 +76,7 @@ impl ClassicBot {
             let locations: Vec<Location> =
                 game.board.map.locations(false).filter(|l| l.sector(&game.board.map) == sector && !l.is_protected_from_storm()).collect();
             // Mine and my ally's (C# had `&&`, which no faction matches, so it always counted 0).
-            let my_forces_killed = forces_in(game, &locations, |f| f == faction || (ally != Faction::None && f == ally));
+            let my_forces_killed = forces_in(game, &locations, |f| f == faction || (ally != None && Some(f) == ally));
             let my_strongholds = locations
                 .iter()
                 .filter(|l| {
@@ -84,7 +84,7 @@ impl ClassicBot {
                         && (holds_weakly(me, **l) || (me.has_ally() && holds_weakly(game.player(self.allied_player(game).expect("allied player")), **l)))
                 })
                 .count() as i32;
-            let enemy_forces_killed = forces_in(game, &locations, |f| f != faction && f != ally);
+            let enemy_forces_killed = forces_in(game, &locations, |f| f != faction && Some(f) != ally);
             let enemy_strongholds = locations.iter().filter(|l| l.is_stronghold() && self.occupied_by_opponent(game, **l)).count() as i32;
             enemy_forces_killed + my_strongholds * 3 - my_forces_killed - enemy_strongholds * 3
         };
@@ -118,7 +118,7 @@ impl ClassicBot {
         let card = game.bidding.card_that_must_be_kept_or_given_to_ally.expect("card that must be kept or given to ally");
         let ally = self.ally(game);
         e.passed = !(self.card_quality(game, card, Some(self.player)) <= 2
-            && (ally == Faction::BeneGesserit || ally == Faction::Choam || self.card_quality(game, card, self.allied_player(game)) > 0));
+            && (ally == Some(Faction::BeneGesserit) || ally == Some(Faction::Choam) || self.card_quality(game, card, self.allied_player(game)) > 0));
         Rc::new(e)
     }
 
@@ -163,8 +163,8 @@ impl ClassicBot {
             .filter(|t| me.revealed_traitors.contains(t))
             .random_highest(&self.random, |t| t.value())
             .or_else(|| {
-                if self.ally(game) == Faction::Tleilaxu || !game.is_playing(Faction::Tleilaxu) {
-                    traitors().filter(|t| t.faction() == faction).random_lowest(&self.random, |t| t.value())
+                if self.ally(game) == Some(Faction::Tleilaxu) || !game.is_playing(Faction::Tleilaxu) {
+                    traitors().filter(|t| t.faction() == Some(faction)).random_lowest(&self.random, |t| t.value())
                 } else {
                     None
                 }
@@ -193,25 +193,25 @@ impl ClassicBot {
         }
 
         let play = match game.player(self.player).nexus {
-            Faction::Atreides => {
+            Some(Faction::Atreides) => {
                 self.is_winning_or_is_opponent_in_battle(game, Faction::Atreides) && !game.prevented(FactionAdvantage::AtreidesBattlePlanPrescience)
             }
 
-            Faction::Harkonnen | Faction::Tleilaxu => game.battle.current_battle.as_ref().expect("current battle").is_involved(game, self.player),
+            Some(Faction::Harkonnen) | Some(Faction::Tleilaxu) => game.battle.current_battle.as_ref().expect("current battle").is_involved(game, self.player),
 
-            Faction::Fremen => {
+            Some(Faction::Fremen) => {
                 (game.turn.current_main_phase == MainPhase::Blow && FremenRidesMonster::is_applicable(game))
                     || (game.turn.current_main_phase == MainPhase::ShipmentAndMove
                         && self
                             .almost_winning_opponents_i_wish_to_attack(game, 0, true)
                             .into_iter()
-                            .any(|p| game.player(p).faction == Faction::Fremen))
+                            .any(|p| game.player(p).faction == Some(Faction::Fremen)))
             }
 
-            Faction::Emperor => {
+            Some(Faction::Emperor) => {
                 let ally_bids_high = game.turn.current_main_phase == MainPhase::Bidding
                     && game.bidding.current_bid.as_ref().is_some_and(|bid| {
-                        game.player(bid.bid_player().expect("i bid player")).ally == Faction::Emperor
+                        game.player(bid.bid_player().expect("i bid player")).ally == Some(Faction::Emperor)
                             && bid.bid_total_amount() > 5
                             && !game.prevented(FactionAdvantage::EmperorReceiveBid)
                     });
@@ -224,22 +224,22 @@ impl ClassicBot {
                             >= 3)
             }
 
-            Faction::Guild => game.recently_paid_total_amount() > 5,
+            Some(Faction::Guild) => game.recently_paid_total_amount() > 5,
 
-            Faction::BeneGesserit => {
+            Some(Faction::BeneGesserit) => {
                 self.is_winning_or_is_opponent_in_battle(game, Faction::BeneGesserit) && !game.prevented(FactionAdvantage::BeneGesseritUsingVoice)
             }
 
-            Faction::Ixian => true,
+            Some(Faction::Ixian) => true,
 
-            Faction::Choam => {
+            Some(Faction::Choam) => {
                 self.is_winning_or_is_opponent_in_battle(game, Faction::Choam)
                     && Self::known_opponent_cards(game, self.player, game.get_player(Some(Faction::Choam)).expect("Choam"))
                         .iter()
                         .any(|c| c.is_weapon() || c.is_defense())
             }
 
-            Faction::Richese => {
+            Some(Faction::Richese) => {
                 let richese = game.get_player(Some(Faction::Richese)).expect("Richese");
                 if game.player(richese).has(game.bidding.card_just_won) {
                     self.card_quality(game, game.bidding.card_just_won.expect("card just won"), Some(richese)) > 2
@@ -248,7 +248,7 @@ impl ClassicBot {
                 }
             }
 
-            Faction::Ecaz => {
+            Some(Faction::Ecaz) => {
                 game.turn.current_phase == Phase::ResurrectionReport
                     && match self.determine_territory_to_remove_ecaz_from(game) {
                         Some(t) => {
@@ -259,7 +259,7 @@ impl ClassicBot {
                     }
             }
 
-            Faction::Moritani => {
+            Some(Faction::Moritani) => {
                 let faction = self.faction(game);
                 let my_shipment_turn = (faction == Faction::Guild && game.turn.current_phase == Phase::GuildShip && !game.guild_may_delay())
                     || (faction != Faction::Guild
@@ -301,9 +301,11 @@ impl ClassicBot {
         result.or_else(|| candidates.iter().copied().filter(|t| forces(t) > 7).random_highest(&self.random, forces))
     }
 
-    pub fn is_winning_or_is_opponent_in_battle(&self, game: &Game, faction: Faction) -> bool {
+    /// False for no faction, which is in no battle.
+    pub fn is_winning_or_is_opponent_in_battle(&self, game: &Game, faction: impl Into<Option<Faction>>) -> bool {
         let Some(battle) = game.battle.current_battle.as_ref() else { return false };
-        faction != self.ally(game)
+        let Some(faction) = faction.into() else { return false };
+        Some(faction) != self.ally(game)
             && ((battle.is_involved_faction(game, faction) && self.is_winning_faction(game, faction))
                 || battle.opponent_of_faction(game, faction) == Some(self.player))
     }
@@ -335,21 +337,21 @@ impl ClassicBot {
     /// Plays the nexus card of my own faction for its cunning effect.
     pub fn determine_nexus_played_cunning(&mut self, game: &Game, mut result: NexusPlayed) -> Option<Rc<NexusPlayed>> {
         let play = match game.player(self.player).nexus {
-            Faction::Atreides => game.battle.current_prescience.as_ref().is_some_and(|prescience| {
+            Some(Faction::Atreides) => game.battle.current_prescience.as_ref().is_some_and(|prescience| {
                 result.atreides_prescience_aspect = self.nexus_prescience_aspect(game, prescience.aspect);
                 result.atreides_prescience_aspect != None
             }),
 
-            Faction::Harkonnen => game.turn.current_phase == Phase::ShipmentAndMoveConcluded && self.determine_worst_traitor(game).is_some(),
+            Some(Faction::Harkonnen) => game.turn.current_phase == Phase::ShipmentAndMoveConcluded && self.determine_worst_traitor(game).is_some(),
 
-            Faction::Fremen => !game.blow.monsters.is_empty() && self.determine_moved_battalion(game, true).is_some(),
+            Some(Faction::Fremen) => !game.blow.monsters.is_empty() && self.determine_moved_battalion(game, true).is_some(),
 
-            Faction::Emperor => {
+            Some(Faction::Emperor) => {
                 let t = game.battle.current_battle.as_ref().expect("current battle").territory(game);
                 game.player(self.player).forces_in_territory(t) >= 4
             }
 
-            Faction::Guild => {
+            Some(Faction::Guild) => {
                 let shipment = self.determine_shipment(game);
                 !shipment.passed
                     && matches!(
@@ -358,16 +360,16 @@ impl ClassicBot {
                     )
             }
 
-            Faction::BeneGesserit => self.determine_bene_gesserit_battle_announcement(game).is_some(),
+            Some(Faction::BeneGesserit) => self.determine_bene_gesserit_battle_announcement(game).is_some(),
 
-            Faction::Ixian => {
+            Some(Faction::Ixian) => {
                 let t = game.battle.current_battle.as_ref().expect("current battle").territory(game);
                 game.player(self.player).forces_in_territory(t) >= 3
             }
 
-            Faction::Tleilaxu => game.turn.current_main_phase == MainPhase::Battle && !game.player(self.player).revealed_face_dancers.is_empty(),
+            Some(Faction::Tleilaxu) => game.turn.current_main_phase == MainPhase::Battle && !game.player(self.player).revealed_face_dancers.is_empty(),
 
-            Faction::Ecaz => {
+            Some(Faction::Ecaz) => {
                 self.battle_im_fighting(game).is_some() && !game.vidal().is_some_and(|v| game.player(self.player).leaders.contains(&v))
             }
 
@@ -380,27 +382,27 @@ impl ClassicBot {
     /// Plays the nexus card of my own faction for its secret ally effect.
     pub fn determine_nexus_played_secret_ally(&mut self, game: &Game, mut result: NexusPlayed) -> Option<Rc<NexusPlayed>> {
         let play = match game.player(self.player).nexus {
-            Faction::Atreides => {
+            Some(Faction::Atreides) => {
                 result.atreides_prescience_aspect = self.nexus_prescience_aspect(game, None);
                 result.atreides_prescience_aspect != None
             }
 
-            Faction::Harkonnen => self.determine_worst_traitor(game).is_some(),
+            Some(Faction::Harkonnen) => self.determine_worst_traitor(game).is_some(),
 
-            Faction::Fremen => game.turn.current_main_phase == MainPhase::Resurrection && game.player(self.player).forces_killed >= 3,
+            Some(Faction::Fremen) => game.turn.current_main_phase == MainPhase::Resurrection && game.player(self.player).forces_killed >= 3,
 
-            Faction::Guild => {
+            Some(Faction::Guild) => {
                 let shipment = self.determine_shipment(game);
                 !shipment.passed && Shipment::determine_cost(game, self.player, &shipment) > 5
             }
 
-            Faction::BeneGesserit => game.battle.current_battle.as_ref().is_some_and(|b| b.is_involved(game, self.player)),
+            Some(Faction::BeneGesserit) => game.battle.current_battle.as_ref().is_some_and(|b| b.is_involved(game, self.player)),
 
-            Faction::Ixian => self.card_quality(game, game.bidding.card_just_won.expect("card just won"), Some(self.player)) < 2,
+            Some(Faction::Ixian) => self.card_quality(game, game.bidding.card_just_won.expect("card just won"), Some(self.player)) < 2,
 
-            Faction::Tleilaxu => game.turn.has_acted_or_passed.contains(&self.faction(game)) && self.plan_tleilaxu_secret_ally_revival(game, &mut result),
+            Some(Faction::Tleilaxu) => game.turn.has_acted_or_passed.contains(&self.faction(game)) && self.plan_tleilaxu_secret_ally_revival(game, &mut result),
 
-            Faction::Choam => match game.turn.current_main_phase {
+            Some(Faction::Choam) => match game.turn.current_main_phase {
                 MainPhase::Collection => {
                     self.faction(game) != Faction::BeneGesserit && {
                         let card = NexusPlayed::valid_choam_cards(game, self.player).next();
@@ -424,9 +426,9 @@ impl ClassicBot {
                 _ => false,
             },
 
-            Faction::Ecaz => self.battle_im_fighting(game).is_some_and(|battle| {
+            Some(Faction::Ecaz) => self.battle_im_fighting(game).is_some_and(|battle| {
                 let opponent = game.player(battle.opponent_of(game, self.player).expect("opponent of"));
-                let play = opponent.faction != Faction::Tleilaxu && opponent.unrevealed_traitors().next().is_some();
+                let play = opponent.faction != Some(Faction::Tleilaxu) && opponent.unrevealed_traitors().next().is_some();
                 if play {
                     result.ecaz_faction = opponent.faction;
                 }
@@ -524,7 +526,7 @@ impl ClassicBot {
         let winning_opponent_that_can_ship_most = self
             .opponents_to_ship_and_move(game)
             .into_iter()
-            .filter(|p| valid_targets.contains(&game.player(*p).faction))
+            .filter(|p| valid_targets.contains_opt(game.player(*p).faction))
             .filter(|p| {
                 let pl = game.player(*p);
                 self.is_winning_opponent(game, *p) && reserves(pl) > 2 && resources(pl) > 2
@@ -749,7 +751,7 @@ impl ClassicBot {
                 Some(ClairvoyanceQuestion::DialOfMoreThanXInBattle) if in_battle() => {
                     let plan = my_plan();
                     let opponent = game.battle.current_battle.as_ref().expect("current battle").opponent_of(game, self.player).expect("opponent of");
-                    yes_no(plan.dial(game, game.player(opponent).faction) > unbox_float(&p1()))
+                    yes_no(plan.dial(game, game.player(opponent).faction.expect("faction")) > unbox_float(&p1()))
                 }
 
                 Some(ClairvoyanceQuestion::LeaderInBattle) if in_battle() => yes_no(my_plan().hero() == cast_hero(&p1())),
@@ -761,7 +763,7 @@ impl ClassicBot {
                 Some(ClairvoyanceQuestion::LeaderAsTraitor) => yes_no(me.traitors.iter().any(|f| cast_hero(&p1()).is_some_and(|h| f.is_traitor(h)))),
 
                 Some(ClairvoyanceQuestion::Prediction) => yes_no(
-                    me.predicted_faction == unbox_enum::<Faction>(&p1()).expect("faction") && me.predicted_turn == unbox_int(&clairvoyance.parameter2()),
+                    me.predicted_faction == unbox_enum::<Faction>(&p1()) && me.predicted_turn == unbox_int(&clairvoyance.parameter2()),
                 ),
 
                 Some(ClairvoyanceQuestion::WillAttackX) => ClairVoyanceAnswer::No,
@@ -838,7 +840,7 @@ impl ClassicBot {
 
     pub fn determine_amal_played(&self, game: &Game) -> Option<Rc<AmalPlayed>> {
         let opponents_resources = || self.opponents(game).into_iter().map(|p| game.player(p).resources).sum::<i32>();
-        let ally_resources = if self.ally(game) != Faction::None { game.player(self.player).allied_resources(game) } else { 0 };
+        let ally_resources = if self.ally(game) != None { game.player(self.player).allied_resources(game) } else { 0 };
         let our_resources = self.resources(game) + ally_resources;
 
         let play = if self.faction(game) == Faction::Guild {
@@ -867,8 +869,8 @@ impl ClassicBot {
         let faction = self.faction(game);
         let ally = self.ally(game);
         let targets = [game.board.map.arrakeen(), game.board.map.carthag()];
-        let others = forces_in(game, &targets, |f| f != faction && f != ally);
-        let ours = forces_in(game, &targets, |f| f == faction || f == ally);
+        let others = forces_in(game, &targets, |f| f != faction && Some(f) != ally);
+        let ours = forces_in(game, &targets, |f| f == faction || Some(f) == ally);
 
         (others > 2 * ours).then(|| Rc::new(MetheorPlayed::new(game, faction)))
     }
@@ -884,9 +886,9 @@ impl ClassicBot {
     pub fn determine_traitors_selected(&self, game: &Game) -> Rc<TraitorsSelected> {
         let me = game.player(self.player);
         let faction = self.faction(game);
-        let traitor = me.traitors.iter().copied().filter(|l| l.faction() != faction).random_highest(&self.random, |l| l.value()).or_else(|| {
+        let traitor = me.traitors.iter().copied().filter(|l| l.faction() != Some(faction)).random_highest(&self.random, |l| l.value()).or_else(|| {
             me.traitors.iter().copied().random_highest(&self.random, |l| {
-                l.value() - if l.faction() == Faction::Atreides && game.applicable(Rule::AtreidesMessiah) { 2 } else { 0 }
+                l.value() - if l.faction() == Some(Faction::Atreides) && game.applicable(Rule::AtreidesMessiah) { 2 } else { 0 }
             })
         });
         let mut e = TraitorsSelected::new(game, faction);
@@ -896,7 +898,7 @@ impl ClassicBot {
 
     pub fn determine_faction_trade_offered(&self, game: &Game) -> Option<Rc<FactionTradeOffered>> {
         let faction = self.faction(game);
-        let mut matching = game.setup.current_trade_offers.iter().filter(|matching_offer| matching_offer.target == faction);
+        let mut matching = game.setup.current_trade_offers.iter().filter(|matching_offer| matching_offer.target == Some(faction));
         let m = matching.next()?;
         // C# parity: SingleOrDefault throws when two factions offer me a trade.
         assert!(matching.next().is_none(), "more than one trade offer to {faction}");
@@ -919,8 +921,8 @@ impl ClassicBot {
             let sector = (game.board.sector_in_storm + moves) % Map::NUMBER_OF_SECTORS;
             let affected_locations: Vec<Location> =
                 game.board.map.locations(false).filter(|l| l.sector(&game.board.map) == sector && !game.is_protected_from_storm(*l)).collect();
-            mine += forces_in(game, &affected_locations, |f| f == faction || f == ally);
-            enemy += forces_in(game, &affected_locations, |f| f != faction && f != ally);
+            mine += forces_in(game, &affected_locations, |f| f == faction || Some(f) == ally);
+            enemy += forces_in(game, &affected_locations, |f| f != faction && Some(f) != ally);
             options.push(StormKills { moves, mine, enemy });
         }
 
@@ -947,7 +949,7 @@ impl ClassicBot {
 
         let ally = self.ally(game);
         let target = DistransUsed::valid_targets(game, self.player)
-            .filter(|f| *f != ally && (!game.applicable(Rule::BeneGesseritWorthlessAsKarma) || *f != Faction::BeneGesserit))
+            .filter(|f| Some(*f) != ally && (!game.applicable(Rule::BeneGesseritWorthlessAsKarma) || Some(*f) != Some(Faction::BeneGesserit)))
             .map(|f| game.get_player(Some(f)).expect("player"))
             .random_highest(&self.random, |p| game.number_of_victory_points(*p, true))?;
 
@@ -1093,7 +1095,7 @@ impl ClassicBot {
     /// How many (forces, special forces) the Emperor, as `p`'s ally, should pay to revive for `p`.
     pub fn determine_optimal_use_of_emperor_revivals(g: &Game, p: PlayerIndex, use_cunning: bool) -> (i32, i32) {
         let pl = g.player(p);
-        if pl.ally != Faction::Emperor {
+        if pl.ally != Some(Faction::Emperor) {
             return (0, 0);
         }
 
@@ -1113,7 +1115,7 @@ impl ClassicBot {
         while special_forces + 1 <= pl.special_forces_killed
             && special_forces + 1 <= max_special_forces
             && special_forces + 1 <= potential_maximum_by_emperor
-            && Revival::determine_cost_of_forces_for_emperor(g, emperor, pl.faction, 0, special_forces + 1) <= g.player(emperor).resources
+            && Revival::determine_cost_of_forces_for_emperor(g, emperor, pl.faction.expect("faction"), 0, special_forces + 1) <= g.player(emperor).resources
         {
             special_forces += 1;
         }
@@ -1124,7 +1126,7 @@ impl ClassicBot {
         while forces + 1 <= pl.forces_killed
             && forces + 1 <= max_forces
             && special_forces + forces + 1 <= potential_maximum_by_emperor
-            && Revival::determine_cost_of_forces_for_emperor(g, emperor, pl.faction, forces + 1, special_forces) <= g.player(emperor).resources
+            && Revival::determine_cost_of_forces_for_emperor(g, emperor, pl.faction.expect("faction"), forces + 1, special_forces) <= g.player(emperor).resources
         {
             forces += 1;
         }

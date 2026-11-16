@@ -7,7 +7,6 @@ mod common;
 use std::cell::Cell;
 
 use serde_json::{json, Value};
-use treachery_engine::error::catch_panic;
 use treachery_engine::cards::deck::Deck;
 use treachery_engine::enumerations::*;
 use treachery_engine::random::RandomPick;
@@ -98,7 +97,7 @@ impl MapGame for StubGame {
     fn player_ally(&self, _f: Faction) -> Option<Faction> {
         None
     }
-    fn nr_of_occupants_excluding_faction(&self, _l: Location, _f: Faction) -> i32 {
+    fn nr_of_occupants_excluding_faction(&self, _l: Location, _f: Option<Faction>) -> i32 {
         0
     }
     fn current_blocked_territories(&self) -> Vec<Territory> {
@@ -145,11 +144,10 @@ fn enums() {
 fn enum_ordering_and_serde() {
     assert!(Faction::Fremen < Faction::Atreides);
     assert!(Rule::AdvancedCombat < Rule::BasicTreacheryCards);
-    assert_eq!(serde_json::to_string(&Faction::Atreides).unwrap(), "20");
-    assert_eq!(serde_json::from_str::<Faction>("13").unwrap(), Faction(13));
+    assert_eq!(serde_json::to_string(&Faction::Atreides).unwrap(), "\"Atreides\"");
+    assert!(serde_json::from_str::<Faction>("13").is_err());
     assert_eq!(format!("{:?}", Faction::Atreides), "Faction::Atreides");
-    assert_eq!(Faction::Moritani.to_nexus(), Some(Nexus::Moritani));
-    assert!(catch_panic(|| Faction(13).to_nexus()).is_err());
+    assert_eq!(Faction::Moritani.to_nexus(), Nexus::Moritani);
 }
 
 // ---------------------------------------------------------------- map
@@ -173,7 +171,7 @@ fn dump_location(m: &Map, l: Location) -> Value {
     });
     if let Some(hw) = l.as_homeworld() {
         o["world"] = json!(hw.world().value());
-        o["faction"] = json!(hw.faction().0);
+        o["faction"] = json!((hw.faction() as i32));
         o["threshold"] = json!(hw.threshold());
         o["resource_amount"] = json!(hw.resource_amount());
         o["is_home_of_normal_forces"] = json!(hw.is_home_of_normal_forces());
@@ -309,7 +307,7 @@ fn map_attached() {
             let mut neighbours = Vec::new();
             for l in m.locations(true) {
                 for d in [1, 2] {
-                    neighbours.push(ids(m.find_neighbours(l, d, false, Faction::None, &g, false)));
+                    neighbours.push(ids(m.find_neighbours(l, d, false, None, &g, false)));
                 }
             }
             let hms: Vec<Value> =
@@ -348,7 +346,7 @@ fn pathfinding() {
                 within.push(ids(m.find_neighbours_within_territory(l, ignore_storm, sector)));
                 for d in 0..=4 {
                     hms.push(ids(m.find_neighbours_for_hms_movement(l, d, ignore_storm, sector)));
-                    neighbours.push(ids(m.find_neighbours(l, d, ignore_storm, Faction::None, &g, false)));
+                    neighbours.push(ids(m.find_neighbours(l, d, ignore_storm, None, &g, false)));
                 }
             }
         }
@@ -425,7 +423,7 @@ fn dump_hero(h: Hero, opponents: &[Hero]) -> Value {
         "id": h.id(),
         "skin_id": h.skin_id(),
         "value": h.value(),
-        "faction": h.faction().0,
+        "faction": treachery_engine::enum_type::value_or_absent(h.faction()),
         "hero_type": h.hero_type() as i32,
         "cost_to_revive": h.cost_to_revive(),
         "value_in_combat_against": against,
@@ -449,7 +447,7 @@ fn leaders() {
     ];
     let mut by_faction = serde_json::Map::new();
     for f in Faction::ALL {
-        by_faction.insert(f.0.to_string(), json!(LeaderManager::get_leaders(*f).map(|l| l.id()).collect::<Vec<_>>()));
+        by_faction.insert((*f as i32).to_string(), json!(LeaderManager::get_leaders(*f).map(|l| l.id()).collect::<Vec<_>>()));
     }
     let lookup_ids: Vec<i32> = (-3..107).chain(995..1070).collect();
     let actual = json!({
@@ -614,7 +612,7 @@ fn messages() {
         part,
         express!("inner")
     );
-    assert_eq!(msg.target, Faction::None);
+    assert_eq!(msg.target, None);
     assert_eq!(msg.expression.elements[0], E::from(Faction::Atreides));
     assert_eq!(msg.expression.elements[6], E::Null);
     assert_eq!(
@@ -626,6 +624,6 @@ fn messages() {
         "Atreides transfer Treachery.Shared.Payment to Treachery.Shared.LocationTreachery.Shared.Leader\
          System.Collections.Generic.List`1[Treachery.Shared.Faction] (2.5)inner"
     );
-    let to = express_to!(Faction::Harkonnen; "secret");
-    assert_eq!(to.target, Faction::Harkonnen);
+    let to = express_to!(Some(Faction::Harkonnen); "secret");
+    assert_eq!(to.target, Some(Faction::Harkonnen));
 }

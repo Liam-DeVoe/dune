@@ -17,9 +17,9 @@ impl Default for JuicePlayed {
 }
 
 impl JuicePlayed {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -32,7 +32,7 @@ impl JuicePlayed {
 
         // `BattleWinner == Faction.None` is false while BattleWinner is null.
         if let Some(battle) = g.battle.current_battle.as_ref() {
-            if battle.is_aggressor_or_defender(g, p) && g.battle.battle_winner == Some(Faction::None) {
+            if battle.is_aggressor_or_defender(g, p) && g.battle.battle_winner == Some(None) {
                 result.push(JuiceType::Aggressor);
             }
         }

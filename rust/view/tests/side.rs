@@ -20,7 +20,7 @@ fn name<T: ToString>(v: T) -> String {
 }
 
 fn factions(r: &ViewReplica) -> Vec<Faction> {
-    r.game.players.iter().map(|p| p.faction).collect()
+    r.game.players.iter().filter_map(|p| p.faction).collect()
 }
 
 /// Every seated player's view and the observer's, with the viewer's faction.
@@ -83,16 +83,16 @@ fn deals() {
                     let offer = offer_at(g, o.id);
                     // Never someone else's offer to a third party.
                     assert!(g.deal_recipients(&offer).any(|x| x == f), "{at} {f}: an offer not addressed to the viewer");
-                    assert_eq!(o.initiator, name(offer.initiator()));
+                    assert_eq!(o.initiator, name_or_absent(offer.initiator()));
                     assert_eq!(o.price, offer.price);
                     assert!(o.answers.is_empty() && o.withdraw.is_none(), "{at} {f}: answers to someone else's offer");
                     let accept = parse_event(&o.accept);
                     assert!(matches!(accept, GameEvent::DealAccepted(_)), "{at}");
-                    assert_eq!(accept.initiator(), f);
+                    assert_eq!(accept.initiator(), Some(f));
                     let acceptance = GameEvent::from(offer.acceptance(g, f).unwrap());
                     assert_eq!(o.accept_error.is_some(), acceptance.validate(g).is_some(), "{at} {f}: Accept enabled");
                     let decline = parse_event(&o.decline);
-                    assert!(matches!(decline, GameEvent::DealRejected(_)) && decline.initiator() == f, "{at}");
+                    assert!(matches!(decline, GameEvent::DealRejected(_)) && decline.initiator() == Some(f), "{at}");
                     seen[0] += 1;
                     seen[1] += o.accept_error.is_some() as usize;
                 }
@@ -104,14 +104,14 @@ fn deals() {
                     assert_eq!(o.initiator, name(f), "{at}: someone else's offer as one's own");
                     let withdraw = parse_event(o.withdraw.as_ref().expect("Withdraw"));
                     assert!(matches!(withdraw, GameEvent::DealOffered(ref w) if w.cancel), "{at}");
-                    assert_eq!(withdraw.initiator(), f);
+                    assert_eq!(withdraw.initiator(), Some(f));
                     let answers: Vec<DealAnswer> = g.deal_recipients(offer).map(|x| DealAnswer { faction: name(x), accepted: g.deal_response(offer, x) }).collect();
                     assert_eq!(o.answers, answers, "{at} {f}");
                     seen[2] += 1;
                     seen[3] += o.answers.iter().any(|a| a.accepted.is_some()) as usize;
                 }
 
-                let deals_now: Vec<(String, String)> = DealAccepted::current_deals(g).iter().map(|x| (name(x.bound_faction), name(x.consuming_faction))).collect();
+                let deals_now: Vec<(String, String)> = DealAccepted::current_deals(g).iter().map(|x| (name_or_absent(x.bound_faction), name_or_absent(x.consuming_faction))).collect();
                 assert_eq!(d.current.iter().map(|x| (x.bound.clone(), x.consuming.clone())).collect::<Vec<_>>(), deals_now, "{at}");
                 seen[4] += d.current.len();
                 // Current deals are the same for every player.
@@ -159,7 +159,7 @@ fn tracker() {
                 assert_eq!(t.traitors_in_play.len(), g.traitors_in_play().len());
                 assert_eq!(t.players.len(), g.players.len());
                 for (tp, pl) in t.players.iter().zip(&g.players) {
-                    assert_eq!(tp.faction, name(pl.faction));
+                    assert_eq!(tp.faction, name_or_absent(pl.faction));
                     assert_eq!(tp.maximum_number_of_cards, pl.maximum_number_of_cards(g));
                     assert_eq!(tp.number_of_traitors, pl.number_of_traitors());
                     assert_eq!(tp.number_of_face_dancers, pl.number_of_face_dancers());

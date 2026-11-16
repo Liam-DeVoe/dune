@@ -8,7 +8,7 @@ use treachery_engine::prelude::*;
 fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();
     for (seat, f) in factions.iter().enumerate() {
-        let mut p = Player::new(*f);
+        let mut p = Player::new(Some(*f));
         p.seat = seat as i32;
         g.players.push(p);
     }
@@ -29,8 +29,8 @@ fn exception_text<R>(f: impl FnOnce() -> R) -> String {
 fn ally(g: &mut Game, a: Faction, b: Faction) {
     let pa = idx(g, a);
     let pb = idx(g, b);
-    g.player_mut(pa).ally = b;
-    g.player_mut(pb).ally = a;
+    g.player_mut(pa).ally = Some(b);
+    g.player_mut(pb).ally = Some(a);
 }
 
 // ---------------------------------------------------------------- Game_Alliances
@@ -51,8 +51,8 @@ fn break_alliance_resets_permissions() {
     assert_eq!(g.alliances.emperor_will_pay_for_extra_revival, 0);
     assert!(!g.alliances.permitted_use_of_ally_spice.contains_key(&Faction::Atreides));
     assert!(!g.alliances.permitted_use_of_ally_spice.contains_key(&Faction::Emperor));
-    assert_eq!(g.player(idx(&g, Faction::Atreides)).ally, Faction::None);
-    assert_eq!(g.player(idx(&g, Faction::Emperor)).ally, Faction::None);
+    assert_eq!(g.player(idx(&g, Faction::Atreides)).ally, None);
+    assert_eq!(g.player(idx(&g, Faction::Emperor)).ally, None);
 }
 
 /// Without an allied player, BreakAlliance returns before touching anything.
@@ -80,8 +80,8 @@ fn permitted_use_of_ally_karma_single_or_default_throws() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor, Faction::BeneGesserit]);
     let r = idx(&g, Faction::Emperor);
     let b = idx(&g, Faction::BeneGesserit);
-    g.player_mut(r).ally = Faction::Atreides;
-    g.player_mut(b).ally = Faction::Atreides;
+    g.player_mut(r).ally = Some(Faction::Atreides);
+    g.player_mut(b).ally = Some(Faction::Atreides);
     assert_eq!(
         exception_text(|| g.get_permitted_use_of_ally_karma(Faction::Atreides)),
         "more than one player allied to Atreides"
@@ -191,7 +191,7 @@ fn donated_double_inflation_check_has_no_effect() {
     let atreides = idx(&g, Faction::Atreides);
     g.player_mut(atreides).resources = 5;
     let mut d = Donated::new(&g, Faction::Atreides);
-    d.target = Faction::Emperor;
+    d.target = Some(Faction::Emperor);
     d.resources = 2;
     assert!(d.validate(&g).is_none());
 }
@@ -246,10 +246,10 @@ fn flash_battle_conclusion_with_null_winner() {
     let mut g = g;
     g.turn.current_phase = Phase::BattleConclusion;
     g.battle.battle_winner = None;
-    let flashes = GameStatus::determine_flash(&g, Faction::None, false);
+    let flashes = GameStatus::determine_flash(&g, None, false);
     assert_eq!(flashes.len(), 1);
-    g.battle.battle_winner = Some(Faction::None);
-    assert!(GameStatus::determine_flash(&g, Faction::None, false).is_empty());
+    g.battle.battle_winner = Some(None);
+    assert!(GameStatus::determine_flash(&g, None, false).is_empty());
 }
 
 #[test]
@@ -257,7 +257,7 @@ fn flash_game_ended_lists_winners() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
     g.turn.current_phase = Phase::GameEnded;
     g.contemplate.winners = vec![idx(&g, Faction::Emperor), idx(&g, Faction::Atreides)];
-    let flashes = GameStatus::determine_flash(&g, Faction::None, false);
+    let flashes = GameStatus::determine_flash(&g, None, false);
     let texts: Vec<String> = flashes.iter().map(|f| f.message.to_cs_string()).collect();
     assert_eq!(texts.len(), 2);
     assert!(texts[0].starts_with("Emperor") || texts[0].contains("Emperor"), "{texts:?}");
@@ -301,9 +301,9 @@ fn card_trade_offer_must_name_the_ally() {
 
     let offer = |target: Faction| {
         let mut e = CardTraded::default();
-        e.base().initiator.set(Faction::Choam);
+        e.base().initiator.set(Some(Faction::Choam));
         e.base().player.set(g.get_player(Some(Faction::Choam)));
-        e.target = target;
+        e.target = Some(target);
         e.set_card(Some(cards[0]));
         e.set_requested_card(None);
         e.validate(&g).map(|m| m.to_cs_string())

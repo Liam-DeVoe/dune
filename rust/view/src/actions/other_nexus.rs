@@ -60,38 +60,38 @@ fn case(game: &Game, p: PlayerIndex) -> Option<Case> {
     let phase = game.turn.current_phase.value();
     let selecting = Phase::IxianSelectingCard.value();
     Some(match game.player(p).nexus {
-        Faction::Atreides if betrayal => AtreidesBetrayal,
-        Faction::Atreides if cunning || secret_ally => AtreidesPrescience,
-        Faction::Harkonnen if betrayal => HarkonnenBetrayal,
-        Faction::Harkonnen if cunning => HarkonnenCunning,
-        Faction::Harkonnen if secret_ally => HarkonnenSecretAlly,
-        Faction::Fremen if betrayal && mp == MainPhase::Blow => FremenBetrayalBlow,
-        Faction::Fremen if betrayal && mp == MainPhase::ShipmentAndMove => FremenBetrayalMove,
-        Faction::Fremen if cunning => FremenCunning,
-        Faction::Fremen if secret_ally && mp == MainPhase::Blow => FremenSecretAllyBlow,
-        Faction::Fremen if secret_ally && mp == MainPhase::Resurrection => FremenSecretAllyRevival,
-        Faction::Emperor if betrayal && mp == MainPhase::Bidding => EmperorBetrayalBidding,
-        Faction::Emperor if betrayal && mp == MainPhase::Battle => EmperorBetrayalBattle,
-        Faction::Emperor if cunning => EmperorCunning,
-        Faction::Guild if betrayal => GuildBetrayal,
-        Faction::Guild if cunning => GuildCunning,
-        Faction::Guild if secret_ally => GuildSecretAlly,
-        Faction::BeneGesserit if betrayal => BeneGesseritBetrayal,
-        Faction::BeneGesserit if cunning => BeneGesseritCunning,
-        Faction::Ixian if betrayal && phase < selecting => IxianBetrayalSelecting,
-        Faction::Ixian if betrayal && phase > selecting => IxianBetrayalSwapping,
-        Faction::Ixian if cunning => IxianCunning,
-        Faction::Tleilaxu if betrayal => TleilaxuBetrayal,
-        Faction::Tleilaxu if cunning => TleilaxuCunning,
-        Faction::Tleilaxu if secret_ally => TleilaxuSecretAlly,
-        Faction::Choam if betrayal => ChoamBetrayal,
-        Faction::Choam if secret_ally && mp == MainPhase::Collection => ChoamSecretAllyCollection,
-        Faction::Choam if secret_ally && mp == MainPhase::Battle => ChoamSecretAllyBattle,
-        Faction::Richese if betrayal => RicheseBetrayal,
-        Faction::Ecaz if betrayal => EcazBetrayal,
-        Faction::Ecaz if cunning => EcazCunning,
-        Faction::Ecaz if secret_ally => EcazSecretAlly,
-        Faction::Moritani if betrayal => MoritaniBetrayal,
+        Some(Faction::Atreides) if betrayal => AtreidesBetrayal,
+        Some(Faction::Atreides) if cunning || secret_ally => AtreidesPrescience,
+        Some(Faction::Harkonnen) if betrayal => HarkonnenBetrayal,
+        Some(Faction::Harkonnen) if cunning => HarkonnenCunning,
+        Some(Faction::Harkonnen) if secret_ally => HarkonnenSecretAlly,
+        Some(Faction::Fremen) if betrayal && mp == MainPhase::Blow => FremenBetrayalBlow,
+        Some(Faction::Fremen) if betrayal && mp == MainPhase::ShipmentAndMove => FremenBetrayalMove,
+        Some(Faction::Fremen) if cunning => FremenCunning,
+        Some(Faction::Fremen) if secret_ally && mp == MainPhase::Blow => FremenSecretAllyBlow,
+        Some(Faction::Fremen) if secret_ally && mp == MainPhase::Resurrection => FremenSecretAllyRevival,
+        Some(Faction::Emperor) if betrayal && mp == MainPhase::Bidding => EmperorBetrayalBidding,
+        Some(Faction::Emperor) if betrayal && mp == MainPhase::Battle => EmperorBetrayalBattle,
+        Some(Faction::Emperor) if cunning => EmperorCunning,
+        Some(Faction::Guild) if betrayal => GuildBetrayal,
+        Some(Faction::Guild) if cunning => GuildCunning,
+        Some(Faction::Guild) if secret_ally => GuildSecretAlly,
+        Some(Faction::BeneGesserit) if betrayal => BeneGesseritBetrayal,
+        Some(Faction::BeneGesserit) if cunning => BeneGesseritCunning,
+        Some(Faction::Ixian) if betrayal && phase < selecting => IxianBetrayalSelecting,
+        Some(Faction::Ixian) if betrayal && phase > selecting => IxianBetrayalSwapping,
+        Some(Faction::Ixian) if cunning => IxianCunning,
+        Some(Faction::Tleilaxu) if betrayal => TleilaxuBetrayal,
+        Some(Faction::Tleilaxu) if cunning => TleilaxuCunning,
+        Some(Faction::Tleilaxu) if secret_ally => TleilaxuSecretAlly,
+        Some(Faction::Choam) if betrayal => ChoamBetrayal,
+        Some(Faction::Choam) if secret_ally && mp == MainPhase::Collection => ChoamSecretAllyCollection,
+        Some(Faction::Choam) if secret_ally && mp == MainPhase::Battle => ChoamSecretAllyBattle,
+        Some(Faction::Richese) if betrayal => RicheseBetrayal,
+        Some(Faction::Ecaz) if betrayal => EcazBetrayal,
+        Some(Faction::Ecaz) if cunning => EcazCunning,
+        Some(Faction::Ecaz) if secret_ally => EcazSecretAlly,
+        Some(Faction::Moritani) if betrayal => MoritaniBetrayal,
         _ => return None,
     })
 }
@@ -107,9 +107,9 @@ enum MapChoice {
 
 fn map_choice(game: &Game, p: PlayerIndex, e: &NexusPlayed) -> MapChoice {
     match game.player(p).nexus {
-        Faction::Tleilaxu if NexusPlayed::can_use_secret_ally(game, p) && e.tleilaxu_number_of_special_forces_in_location > 0 => MapChoice::TleilaxuLocation,
-        Faction::Ecaz if NexusPlayed::can_use_betrayal(game, p) => MapChoice::EcazTerritory,
-        Faction::Moritani if NexusPlayed::can_use_betrayal(game, p) => MapChoice::MoritaniTerritory,
+        Some(Faction::Tleilaxu) if NexusPlayed::can_use_secret_ally(game, p) && e.tleilaxu_number_of_special_forces_in_location > 0 => MapChoice::TleilaxuLocation,
+        Some(Faction::Ecaz) if NexusPlayed::can_use_betrayal(game, p) => MapChoice::EcazTerritory,
+        Some(Faction::Moritani) if NexusPlayed::can_use_betrayal(game, p) => MapChoice::MoritaniTerritory,
         _ => MapChoice::None,
     }
 }
@@ -122,9 +122,9 @@ fn max_special_on_planet(game: &Game, p: PlayerIndex, special: i32) -> i32 {
     }
 }
 
-pub(super) fn default_draft(game: &Game, faction: Faction) -> GameEvent {
+pub(super) fn default_draft(game: &Game, faction: Option<Faction>) -> GameEvent {
     let mut e = NexusPlayed::new(game, faction);
-    if let Some(p) = game.get_player(Some(faction)) {
+    if let Some(p) = game.get_player(faction) {
         e.faction = game.player(p).nexus;
     }
     event(e)
@@ -159,7 +159,7 @@ pub(super) fn normalize(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameE
         }
         Some(Case::EcazSecretAlly) => {
             let fs: Vec<Faction> = NexusPlayed::valid_ecaz_factions(game).collect();
-            m.ecaz_faction = required(m.ecaz_faction, &fs, Faction::None);
+            m.ecaz_faction = required_opt(m.ecaz_faction, &fs);
         }
         _ => {}
     }
@@ -265,7 +265,7 @@ pub(super) fn options(game: &Game, p: PlayerIndex, e: &NexusPlayed, d: &dyn Desc
     };
 
     NexusPlayedOptions {
-        nexus: nexus.to_string(),
+        nexus: name_or_absent(nexus),
         kind: kind.to_string(),
         text,
         aspects: (c == Some(AtreidesPrescience)).then(|| Prescience::valid_aspects(game, p).into_iter().map(|a| enum_option(d, a)).collect()),

@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct BeneGesseritPrediction {
-    pub to_win: Faction,
+    pub to_win: Option<Faction>,
     pub turn: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
@@ -19,9 +19,9 @@ impl Default for BeneGesseritPrediction {
 }
 
 impl BeneGesseritPrediction {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 

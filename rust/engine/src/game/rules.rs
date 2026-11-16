@@ -507,7 +507,7 @@ impl Game {
     }
 
     pub fn is_auto_passed_bid(&self, f: Faction) -> bool {
-                for rule in self.rules.automation_rules.iter().filter(|x| x.initiator() == f) {
+                for rule in self.rules.automation_rules.iter().filter(|x| x.initiator() == Some(f)) {
             match rule.rule_type {
                 AutomationRuleType::BiddingPassAboveAmount => {
                     if let Some(bid) = &self.bidding.current_bid {
@@ -525,7 +525,7 @@ impl Game {
 
                 AutomationRuleType::BiddingPassWhenHighestBidByFaction => {
                     if let Some(bid) = &self.bidding.current_bid {
-                        if bid.bid_initiator() == rule.bidding_winning_faction {
+                        if Some(bid.bid_initiator()) == rule.bidding_winning_faction {
                             return true;
                         }
                     }

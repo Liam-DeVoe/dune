@@ -7,7 +7,7 @@ pub struct AutomationConfigured {
     pub action: ItemAction,
     pub rule_type: AutomationRuleType,
     pub bidding_above_amount: i32,
-    pub bidding_winning_faction: Faction,
+    pub bidding_winning_faction: Option<Faction>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -26,9 +26,9 @@ impl Default for AutomationConfigured {
 }
 
 impl AutomationConfigured {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -72,7 +72,7 @@ impl AutomationConfigured {
         match self.action {
             ItemAction::Create => {
                 // The description reads the initiator's player, which a seatless host doesn't have.
-                let description = game.get_player(Some(self.initiator())).and_then(|_| self.get_description(game));
+                let description = game.get_player(self.initiator()).and_then(|_| self.get_description(game));
                 match description {
                     Some(d) => express!(self.initiator(), " add an automation rule: ", d),
                     None => express!(self.initiator(), " add an automation rule"),
@@ -85,10 +85,12 @@ impl AutomationConfigured {
 
     pub fn get_available_rule_types(g: &Game, p: PlayerIndex) -> Vec<AutomationRuleType> {
         let atreides_is_playing = g.is_playing(Faction::Atreides);
-        get_values_except_default(AutomationRuleType::Unknown)
-            .into_iter()
+        AutomationRuleType::ALL
+            .iter()
+            .copied()
             .filter(|x| {
-                (*x != AutomationRuleType::BiddingPassWhenAtreidesOrAtreidesAllyPassed || atreides_is_playing)
+                *x != AutomationRuleType::Unknown
+                    && (*x != AutomationRuleType::BiddingPassWhenAtreidesOrAtreidesAllyPassed || atreides_is_playing)
                     && (*x != AutomationRuleType::CharityAutoClaim || !g.player(p).is(Faction::BeneGesserit))
                     && (*x != AutomationRuleType::ShipmentGuildAutoDelay
                         || (g.player(p).is(Faction::Guild) && g.applicable(Rule::GuildDetermineShipment)))
@@ -100,7 +102,7 @@ impl AutomationConfigured {
 
     pub fn get_valid_bidding_factions(g: &Game, p: PlayerIndex) -> Vec<Faction> {
         let faction = g.player(p).faction;
-        g.players.iter().filter(|x| x.faction != faction).map(|x| x.faction).collect()
+        g.players.iter().filter(|x| x.faction != faction).filter_map(|x| x.faction).collect()
     }
 
     pub fn get_description(&self, game: &Game) -> Option<Message> {
@@ -120,7 +122,7 @@ impl AutomationConfigured {
             AutomationRuleType::BiddingPassWhenAtreidesOrAtreidesAllyPassed => {
                 let atreides = game.get_player(Some(Faction::Atreides));
                 let has_ally = atreides.map_or(false, |g| game.player(g).has_ally());
-                let ally: Option<Faction> = atreides.map(|g| game.player(g).ally);
+                let ally: Option<Faction> = atreides.map(|g| game.player(g).ally).flatten();
                 return Some(express!(
                     "Auto pass if most recent bid by ",
                     Faction::Atreides,

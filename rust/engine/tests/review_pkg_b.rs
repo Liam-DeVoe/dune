@@ -44,13 +44,13 @@ fn new_game(version: i32) -> Game {
     g.rules.active.push(Rule::EmperorSpecialForces);
     g.rules.active.push(Rule::FremenSpecialForces);
     for (i, f) in FACTIONS.iter().enumerate() {
-        let mut p = Player::new(*f);
+        let mut p = Player::new(Some(*f));
         p.seat = i as i32;
         g.players.push(p);
     }
     for i in 0..g.players.len() {
         let f = g.players[i].faction;
-        let hws: Vec<Homeworld> = g.board.map.homeworlds().filter(|w| w.faction() == f).collect();
+        let hws: Vec<Homeworld> = g.board.map.homeworlds().filter(|w| Some(w.faction()) == f).collect();
         for hw in hws {
             let normal = if hw.is_home_of_normal_forces() { 10 } else { 0 };
             let special = if hw.is_home_of_special_forces() { 4 } else { 0 };
@@ -85,7 +85,7 @@ fn join<T: ToString>(it: impl Iterator<Item = T>) -> String {
 
 fn state(g: &Game, me: PlayerIndex) -> String {
     let p = g.player(me);
-    let mut s = format!("{} [", p.faction);
+    let mut s = format!("{} [", treachery_engine::enum_type::name_or_absent(p.faction));
     s += &join(p.forces_in_locations.iter().map(|(k, v)| format!("{}:{}/{}", k.id(), v.amount_of_forces, v.amount_of_special_forces)));
     s += &format!("] k={}/{}/{}", p.forces_killed, p.special_forces_killed, p.total_forces_killed_in_battle);
     s += &format!(" res={}/{}", p.forces_in_reserve(), p.special_forces_in_reserve());
@@ -185,7 +185,7 @@ fn rust_lines() -> Vec<String> {
                 if i % 3 == 1 {
                     continue;
                 }
-                let mut p = Player::new(FACTIONS[(i as usize) % FACTIONS.len()]);
+                let mut p = Player::new(Some(FACTIONS[(i as usize) % FACTIONS.len()]));
                 p.seat = i;
                 g.players.push(p);
             }
@@ -275,7 +275,7 @@ fn sequence_lines() -> Vec<String> {
             g.rules.settings.as_mut().unwrap().number_of_players = np;
             let factions = [Faction::Atreides, Faction::Richese, Faction::Harkonnen, Faction::Emperor, Faction::Choam, Faction::BeneGesserit, Faction::Tleilaxu];
             for i in 0..count {
-                let mut p = Player::new(factions[(i + seed as usize) % factions.len()]);
+                let mut p = Player::new(Some(factions[(i + seed as usize) % factions.len()]));
                 p.seat = if r.below(4) == 0 { r.below(count + 1) as i32 } else { i as i32 };
                 let full = if r.below(3) == 0 { 8 } else { r.below(5) };
                 for c in 0..full {

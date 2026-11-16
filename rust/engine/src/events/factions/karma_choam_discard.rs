@@ -28,9 +28,9 @@ const CARDS_SELECT_TYPE: &str =
     "System.Linq.Enumerable+ListSelectIterator`2[Treachery.Shared.TreacheryCard,Treachery.Shared.MessagePart]";
 
 impl KarmaChoamDiscard {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 

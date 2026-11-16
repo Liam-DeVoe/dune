@@ -17,9 +17,9 @@ impl Default for Prescience {
 }
 
 impl Prescience {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -52,10 +52,10 @@ impl Prescience {
         if let Some(battle) = g.battle.current_battle.as_ref() {
             if g.battle.current_prescience.is_none() && !g.prevented(FactionAdvantage::AtreidesBattlePlanPrescience) {
                 let p = p.expect("player");
-                if g.player(p).faction == Faction::Atreides {
+                if g.player(p).faction == Some(Faction::Atreides) {
                     return battle.is_involved(g, p);
                 }
-                if g.player(p).ally == Faction::Atreides && g.alliances.atreides_shares_prescience {
+                if g.player(p).ally == Some(Faction::Atreides) && g.alliances.atreides_shares_prescience {
                     return battle.is_aggressor_or_defender(g, p);
                 }
             }

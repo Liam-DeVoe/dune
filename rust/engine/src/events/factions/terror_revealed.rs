@@ -34,9 +34,9 @@ macro_rules! elems {
 }
 
 impl TerrorRevealed {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -86,7 +86,7 @@ impl TerrorRevealed {
         if !TerrorRevealed::get_types(game).any(|v| Some(v) == self.type_) {
             return Some(express!("You cannot use this token"));
         }
-        if self.initiator() != Faction::Moritani {
+        if self.initiator() != Some(Faction::Moritani) {
             return Some(express!("Your faction can't reveal terror tokens"));
         }
 
@@ -113,7 +113,7 @@ impl TerrorRevealed {
     }
 
     pub fn may_offer_alliance(g: &Game) -> bool {
-        let victim = g.get_player(Some(TerrorRevealed::get_victim(g)));
+        let victim = g.get_player(TerrorRevealed::get_victim(g));
         let moritani = g.get_player(Some(Faction::Moritani));
 
         // Without a victim or a Moritani player there is nobody to ally with.
@@ -128,10 +128,10 @@ impl TerrorRevealed {
         g.last_terror_trigger().map(|t| t.territory(g))
     }
 
-    pub fn get_victim(g: &Game) -> Faction {
+    pub fn get_victim(g: &Game) -> Option<Faction> {
         match g.last_terror_trigger() {
-            Some(t) => t.initiator(),
-            None => Faction::None,
+            Some(t) => Some(t.initiator()),
+            None => None,
         }
     }
 
@@ -176,8 +176,8 @@ impl TerrorRevealed {
             && l.sector(&g.board.map) != g.board.sector_in_storm
             && (!pl.has_ally()
                 || g.player(pl.allied_player(g).expect("allied player")).any_forces_in_territory(Some(l.territory())) == 0
-                || pl.ally == Faction::Ecaz
-                || (pl.ally == Faction::BeneGesserit
+                || pl.ally == Some(Faction::Ecaz)
+                || (pl.ally == Some(Faction::BeneGesserit)
                     && g.applicable(Rule::AdvisorsDontConflictWithAlly)
                     && g.player(pl.allied_player(g).expect("allied player")).forces_in_territory(Some(l.territory())) == 0))
     }
@@ -185,7 +185,7 @@ impl TerrorRevealed {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let territory = TerrorRevealed::get_territory(game);
         let victim = TerrorRevealed::get_victim(game);
-        let victim_player = self.get_player(game, Some(victim));
+        let victim_player = self.get_player(game, victim);
 
         if self.passed {
             self.log_objects(game, elems![self.initiator(), " don't terrorize ", territory]);
@@ -347,7 +347,7 @@ impl TerrorRevealed {
         if !self.passed && self.type_ == Some(TerrorType::Robbery) && self.robbery_takes_card {
             let me = self.player();
             if game.player(me).treachery_cards.len() as i32 > game.player(me).maximum_number_of_cards(game) {
-                game.let_player_discard_treachery_card_of_choice(self.initiator());
+                game.let_player_discard_treachery_card_of_choice(self.initiator().required("faction")?);
             }
         }
         Ok(())
@@ -400,7 +400,7 @@ impl PassableGameEventMethods for TerrorRevealed {
 
 impl crate::events::location_event::LocationEvent for TerrorRevealed {
     fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self)
+        GameEventMethods::initiator(self).expect("faction")
     }
 
     fn to(&self, game: &Game) -> Option<Location> {

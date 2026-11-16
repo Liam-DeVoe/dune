@@ -19,9 +19,9 @@ impl Default for Karma {
 }
 
 impl Karma {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -45,7 +45,7 @@ impl Karma {
         let mut result = vec![None];
         let faction = g.player(p).faction;
 
-        if faction != Faction::Atreides && g.is_playing(Faction::Atreides) {
+        if faction != Some(Faction::Atreides) && g.is_playing(Faction::Atreides) {
             if Karma::in_(g, MainPhase::Bidding) {
                 result.push(Some(FactionAdvantage::AtreidesBiddingPrescience));
             }
@@ -61,7 +61,7 @@ impl Karma {
             }
         }
 
-        if faction != Faction::Harkonnen && g.is_playing(Faction::Harkonnen) {
+        if faction != Some(Faction::Harkonnen) && g.is_playing(Faction::Harkonnen) {
             if Karma::in_(g, MainPhase::Bidding) {
                 result.push(Some(FactionAdvantage::HarkonnenFreeCard));
             }
@@ -75,7 +75,7 @@ impl Karma {
             }
         }
 
-        if faction != Faction::Fremen && g.is_playing(Faction::Fremen) {
+        if faction != Some(Faction::Fremen) && g.is_playing(Faction::Fremen) {
             if Karma::in_(g, MainPhase::Storm) {
                 if g.applicable(Rule::FremenDeterminesStorm) {
                     result.push(Some(FactionAdvantage::FremenStormPrescience));
@@ -104,7 +104,7 @@ impl Karma {
             }
         }
 
-        if faction != Faction::Emperor && g.is_playing(Faction::Emperor) {
+        if faction != Some(Faction::Emperor) && g.is_playing(Faction::Emperor) {
             result.push(Some(FactionAdvantage::EmperorGiveSpiceToAlly));
 
             if Karma::in_(g, MainPhase::Bidding) {
@@ -120,7 +120,7 @@ impl Karma {
             }
         }
 
-        if faction != Faction::Guild && g.is_playing(Faction::Guild) {
+        if faction != Some(Faction::Guild) && g.is_playing(Faction::Guild) {
             if Karma::in_(g, MainPhase::ShipmentAndMove) {
                 let guild_determine_shipment_may_still_be_prevented =
                     !g.turn.has_acted_or_passed.contains(&Faction::Guild) && g.turn.current_phase != Phase::GuildShip;
@@ -134,7 +134,7 @@ impl Karma {
             }
         }
 
-        if faction != Faction::BeneGesserit && g.is_playing(Faction::BeneGesserit) {
+        if faction != Some(Faction::BeneGesserit) && g.is_playing(Faction::BeneGesserit) {
             if Karma::in_(g, MainPhase::Charity) {
                 if g.applicable(Rule::BeneGesseritAutoCharity) {
                     result.push(Some(FactionAdvantage::BeneGesseritCharity));
@@ -160,7 +160,7 @@ impl Karma {
             }
         }
 
-        if faction != Faction::Ixian && g.is_playing(Faction::Ixian) {
+        if faction != Some(Faction::Ixian) && g.is_playing(Faction::Ixian) {
             if Karma::in_(g, MainPhase::Storm) {
                 result.push(Some(FactionAdvantage::IxianMovingHms));
             }
@@ -183,7 +183,7 @@ impl Karma {
             }
         }
 
-        if faction != Faction::Tleilaxu && g.is_playing(Faction::Tleilaxu) {
+        if faction != Some(Faction::Tleilaxu) && g.is_playing(Faction::Tleilaxu) {
             if Karma::in_(g, MainPhase::Bidding) || Karma::in_(g, MainPhase::Resurrection) {
                 result.push(Some(FactionAdvantage::TleilaxuIncreasingRevivalLimits));
             }
@@ -203,7 +203,7 @@ impl Karma {
             }
         }
 
-        if faction != Faction::Choam && g.is_playing(Faction::Choam) {
+        if faction != Some(Faction::Choam) && g.is_playing(Faction::Choam) {
             if Karma::in_(g, MainPhase::Charity) {
                 result.push(Some(FactionAdvantage::ChoamControllingCharity));
             }
@@ -226,7 +226,7 @@ impl Karma {
             }
         }
 
-        if faction != Faction::Richese && g.is_playing(Faction::Richese) {
+        if faction != Some(Faction::Richese) && g.is_playing(Faction::Richese) {
             if Karma::in_(g, MainPhase::Bidding) {
                 result.push(Some(FactionAdvantage::RicheseAuction));
                 if g.applicable(Rule::RicheseBlackMarket) {
@@ -239,7 +239,7 @@ impl Karma {
             }
         }
 
-        if faction != Faction::Ecaz && g.is_playing(Faction::Ecaz) {
+        if faction != Some(Faction::Ecaz) && g.is_playing(Faction::Ecaz) {
             if Karma::in_(g, MainPhase::Resurrection) {
                 result.push(Some(FactionAdvantage::EcazAmbassadors));
             }
@@ -251,7 +251,7 @@ impl Karma {
             }
         }
 
-        if faction != Faction::Moritani && g.is_playing(Faction::Moritani) {
+        if faction != Some(Faction::Moritani) && g.is_playing(Faction::Moritani) {
             result.push(Some(FactionAdvantage::MoritaniEnemyOfEnemy));
             if Karma::in_(g, MainPhase::ShipmentAndMove) {
                 result.push(Some(FactionAdvantage::MoritaniGainingVidal));
@@ -293,12 +293,12 @@ impl Karma {
         } else {
             vec!["prevent ".into(), self.prevented.into()]
         };
-        let m = Game::karma_played(self.initiator(), self.card(), effect);
+        let m = Game::karma_played(self.initiator().required("faction")?, self.card(), effect);
         game.log(vec![m.into()]);
         game.stone(Milestone::Karma);
 
         if let Some(prevented) = self.prevented {
-            game.prevent(self.initiator(), prevented, false);
+            game.prevent(self.initiator().required("faction")?, prevented, false);
         }
 
         self.revoke_battle_plans_if_needed(game);

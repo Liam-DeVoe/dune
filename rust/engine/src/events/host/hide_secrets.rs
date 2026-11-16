@@ -15,9 +15,9 @@ impl Default for HideSecrets {
 }
 
 impl HideSecrets {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -26,7 +26,7 @@ impl HideSecrets {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.rules.secrets_remain_hidden.push(self.initiator());
+        game.rules.secrets_remain_hidden.push(self.initiator().required("faction")?);
         Ok(())
     }
 

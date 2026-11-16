@@ -32,7 +32,7 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
         // first; a null string throws at `.Length`.
         let faction = game.player(self.player()).faction;
         let s = self.field_force_locations().as_deref().expect("field force locations");
-        PlacementEvent::parse_force_locations(game, faction, s)
+        PlacementEvent::parse_force_locations(game, faction.expect("faction"), s)
     }
 
     fn set_force_locations(&mut self, game: &Game, value: &IndexMap<Location, Battalion>) {
@@ -95,7 +95,7 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
             return Some(express!("You can't move as advisors"));
         }
 
-        if self.initiator() == Faction::BeneGesserit {
+        if self.initiator() == Some(Faction::BeneGesserit) {
             if as_advisors && !PlacementEvent::may_move_as_advisors(game, p.expect("player"), self.to(game).expect("destination").territory(), special_force_amount > 0) {
                 return Some(express!("You can't be advisors there"));
             }
@@ -124,7 +124,7 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
             return Some(express!("Cannot move out of a storm"));
         }
 
-        if self.initiator() == Faction::Richese
+        if self.initiator() == Some(Faction::Richese)
             && force_locations.values().any(|v| v.amount_of_special_forces != 0)
             && game.has_low_threshold(Faction::Richese)
         {
@@ -225,8 +225,8 @@ impl PlacementEvent {
         } else {
             let maximum_distance = g.determine_maximum_move_distance(p, moved);
             let may_move_into_storm =
-                player.faction == Faction::Fremen && g.applicable(Rule::FremenMayMoveIntoStorm) && g.applicable(Rule::FremenStormLosses);
-            return g.board.map.find_neighbours(from, maximum_distance, may_move_into_storm, player.faction, g, true);
+                player.faction == Some(Faction::Fremen) && g.applicable(Rule::FremenMayMoveIntoStorm) && g.applicable(Rule::FremenStormLosses);
+            return g.board.map.find_neighbours(from, maximum_distance, may_move_into_storm, player.faction.expect("faction"), g, true);
         }
 
         Vec::new()

@@ -1,27 +1,11 @@
 //! Edge cases of the foundation layer (messages, random helpers, JSON, map lookups). Each test
 //! failed until its bug was fixed (see rust/docs/escapes.md), except the ones marked as guards.
 
-use treachery_engine::error::catch_panic;
 use treachery_engine::enumerations::*;
 use treachery_engine::messages::expression::ExpressionElement;
 
-fn exception_text<R>(f: impl FnOnce() -> R) -> String {
-    match catch_panic(f) {
-        Ok(_) => "no exception".to_string(),
-        Err(e) => e,
-    }
-}
-
 // ---------------------------------------------------------------- enumerations.rs
 
-/// Probe `to_nexus_13`: an undefined faction panics.
-#[test]
-fn to_nexus_undefined_message() {
-    assert_eq!(
-        exception_text(|| Faction(13).to_nexus()),
-        "faction out of range: 13"
-    );
-}
 
 // ---------------------------------------------------------------- extension_methods.rs
 

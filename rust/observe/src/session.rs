@@ -33,8 +33,9 @@ pub struct Session {
     /// What the views show of the seated users. Their seats are in `game.human_seats`.
     pub seating: Seating,
     replica: Option<ViewReplica>,
-    /// The bots, one per faction, in creation order. They outlive undo, as on the server.
-    pub bots: Vec<(Faction, ClassicBot)>,
+    /// The bots, one per faction (`None` for a player who has none yet), in creation order. They
+    /// outlive undo, as on the server.
+    pub bots: Vec<(Option<Faction>, ClassicBot)>,
     /// The applicable types from the latest query of each player, for the bots.
     last_query: Vec<Option<Vec<GameEventType>>>,
     /// Number of log messages already reported.
@@ -62,8 +63,8 @@ pub fn quiet_panics() {
     }
 }
 
-pub fn faction_name(f: Faction) -> String {
-    f.to_string()
+pub fn faction_name(f: Option<Faction>) -> String {
+    name_or_absent(f)
 }
 
 pub fn parse_faction(name: &str) -> Option<Faction> {
@@ -130,7 +131,7 @@ impl Session {
     /// One round of asking the bots (`GameHub::perform_bot_event`). `seed_for` gives the seed of a
     /// bot that doesn't exist yet, or None to refuse creating it. Returns the result and the bots
     /// created, `[faction, seed]`.
-    pub fn deliberate(&mut self, order: &[usize], end: bool, seed_for: &mut dyn FnMut(Faction) -> Option<i32>) -> Result<(BotsResult, Vec<(String, i32)>), Panicked> {
+    pub fn deliberate(&mut self, order: &[usize], end: bool, seed_for: &mut dyn FnMut(Option<Faction>) -> Option<i32>) -> Result<(BotsResult, Vec<(String, i32)>), Panicked> {
         let mut created = Vec::new();
         let levels = if end { 5 } else { 4 };
         let outcome = guarded(|| -> Result<Option<(usize, usize, GameEvent)>, String> {
@@ -144,7 +145,7 @@ impl Session {
                             index
                         }
                         None => {
-                            let seed = seed_for(faction).ok_or_else(|| format!("harness: no seed for a new {faction} bot"))?;
+                            let seed = seed_for(faction).ok_or_else(|| format!("harness: no seed for a new {} bot", name_or_absent(faction)))?;
                             let bot = ClassicBot::new(p, BotParameters::for_faction(faction), SharedRandom::from_seed(seed));
                             self.bots.push((faction, bot));
                             created.push((faction_name(faction), seed));
@@ -232,7 +233,7 @@ impl Session {
             for r in reports {
                 for m in &r.messages {
                     if flat >= self.log_seen {
-                        let target = if m.target == Faction::None { String::new() } else { faction_name(m.target) };
+                        let target = if m.target == None { String::new() } else { faction_name(m.target) };
                         let text = match guarded(|| skin.message_to_string(m))? {
                             Ok(t) => t,
                             Err(e) => format!("<render error: {e}>"),
@@ -287,7 +288,7 @@ impl Session {
             .player_indices()
             .map(|p| {
                 let f = self.game.player(p).faction;
-                (format!("player {} ({})", p.index, faction_name(f)), ResolvedViewer { player: Some(p), faction: Some(f), is_host: false, is_observer: false })
+                (format!("player {} ({})", p.index, faction_name(f)), ResolvedViewer { player: Some(p), faction: f, is_host: false, is_observer: false })
             })
             .collect();
         v.push(("host".into(), ResolvedViewer { player: None, faction: None, is_host: true, is_observer: true }));

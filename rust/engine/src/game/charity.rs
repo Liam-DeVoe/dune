@@ -49,7 +49,7 @@ impl Game {
 
     pub fn claim_charity(&mut self, player: PlayerIndex) {
         let faction = self.player(player).faction;
-        self.turn.has_acted_or_passed.push(faction);
+        self.turn.has_acted_or_passed.push(faction.expect("faction"));
 
         let basic_amount = (2i32 - self.player(player).resources) * self.current_charity_multiplier();
         self.give_charity(player, basic_amount);
@@ -99,7 +99,7 @@ impl Game {
             }
             _ => {
                 let amount = basic_amount + homeworld_bonus;
-                let msg = express!(to_faction, " claim ", Payment::of(amount)).with_log(CharityClaim::new(to_faction, amount));
+                let msg = express!(to_faction, " claim ", Payment::of(amount)).with_log(CharityClaim::new(to_faction.expect("faction"), amount));
                 self.log(elems![msg]);
             }
         }

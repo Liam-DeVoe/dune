@@ -17,14 +17,14 @@ impl Default for TreacheryCalled {
 }
 
 impl TreacheryCalled {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
     pub fn succeeded(&self, game: &Game) -> bool {
-        self.traitor_called && (self.initiator() != Faction::Harkonnen || !game.turn.harkonnen_traitor_was_cancelled)
+        self.traitor_called && (self.initiator() != Some(Faction::Harkonnen) || !game.turn.harkonnen_traitor_was_cancelled)
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
@@ -76,7 +76,7 @@ impl TreacheryCalled {
     pub fn has_traitor(g: &Game, p: PlayerIndex, h: Option<Hero>) -> bool {
         let pl = g.player(p);
         pl.traitors.iter().any(|t| h.is_some_and(|h| t.is_traitor(h)))
-            || (h.is_some() && g.applicable(Rule::CapturedLeadersAreTraitorsToOwnFaction) && h.expect("hero").faction() == pl.faction)
+            || (h.is_some() && g.applicable(Rule::CapturedLeadersAreTraitorsToOwnFaction) && Some(h.expect("hero").faction()) == Some(pl.faction))
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
@@ -105,7 +105,7 @@ impl TreacheryCalled {
         if game.battle.aggressor_traitor_action.is_some() && game.battle.defender_traitor_action.is_some() {
             let treachery = game.battle.current_battle.clone().required("current battle")?.treachery_of_faction(game, Faction::Harkonnen);
 
-            if game.applicable(Rule::NexusCards) && treachery.as_ref().is_some_and(|t| t.initiator() == Faction::Harkonnen && t.traitor_called) {
+            if game.applicable(Rule::NexusCards) && treachery.as_ref().is_some_and(|t| t.initiator() == Some(Faction::Harkonnen) && t.traitor_called) {
                 game.enter(Phase::CancellingTraitor, true);
             } else {
                 game.handle_revealed_battle_plans()?;

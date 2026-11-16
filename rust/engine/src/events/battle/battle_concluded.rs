@@ -75,9 +75,9 @@ impl BattleConcluded {
         self.card_ids = Some(GameEvent::objects_to_id_string(value, &TreacheryCardManager::lookup()));
     }
 
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -152,9 +152,9 @@ impl BattleConcluded {
         self.take_tech_token(game);
         self.process_ixian_force_losses_and_substitutions(game);
 
-        let loser = self.get_player(game, game.battle.battle_loser);
+        let loser = self.get_player(game, game.battle.battle_loser.flatten());
         if !LoserConcluded::is_applicable(game, loser) {
-            let condition1 = !game.is_playing(Faction::Tleilaxu) || game.battle.battle_winner == Some(Faction::Tleilaxu);
+            let condition1 = !game.is_playing(Faction::Tleilaxu) || game.battle.battle_winner == Some(Some(Faction::Tleilaxu));
             if condition1 {
                 Game::finish_battle(game)?;
             } else {
@@ -165,7 +165,7 @@ impl BattleConcluded {
     }
 
     pub fn decipherer_replaces_traitors(&self, game: &mut Game) {
-        let to_replace = if self.initiator() == Faction::Tleilaxu { "facedancer " } else { "traitor " };
+        let to_replace = if self.initiator() == Some(Faction::Tleilaxu) { "facedancer " } else { "traitor " };
 
         self.log_objects(
             game,
@@ -179,7 +179,7 @@ impl BattleConcluded {
         );
 
         let me = self.player();
-        let tleilaxu = self.initiator() == Faction::Tleilaxu;
+        let tleilaxu = self.initiator() == Some(Faction::Tleilaxu);
 
         let (Some(new_traitor), Some(traitor_to_replace)) = (self.new_traitor(), self.traitor_to_replace()) else {
             return;
@@ -227,7 +227,7 @@ impl BattleConcluded {
 
     pub fn take_tech_token(&self, game: &mut Game) {
         if let Some(stolen_token) = self.stolen_token {
-            let loser = self.get_player(game, game.battle.battle_loser);
+            let loser = self.get_player(game, game.battle.battle_loser.flatten());
             if let Some(loser) = loser {
                 if game.player(loser).tech_tokens.contains(&stolen_token) {
                     let tokens = &mut game.player_mut(loser).tech_tokens;
@@ -235,7 +235,7 @@ impl BattleConcluded {
                         tokens.remove(pos);
                     }
                     game.player_mut(self.player()).tech_tokens.push(stolen_token);
-                    let battle_loser = game.battle.battle_loser;
+                    let battle_loser = game.battle.battle_loser.flatten();
                     self.log_objects(game, vec![self.initiator().into(), " steal ".into(), stolen_token.into(), " from ".into(), battle_loser.into()]);
                 }
             }
@@ -346,7 +346,7 @@ impl BattleConcluded {
             }
             game.set_in_front_of_shield(victim, false);
             let target_faction = game.player(target).faction;
-            game.leaders.captured_leaders.insert_new(victim, target_faction);
+            game.leaders.captured_leaders.insert_new(victim, target_faction.expect("faction"));
         } else if self.decision_to_capture() == CaptureDecision::Kill {
             self.log_objects(game, vec![Faction::Harkonnen.into(), " kill a leader for ".into(), Payment::of(2).into()]);
             if let Some(victim) = game.battle.harkonnen_victim {
@@ -414,8 +414,8 @@ impl BattleConcluded {
 
     pub fn may_capture_or_kill(g: &Game, p: Option<PlayerIndex>) -> bool {
         let Some(p) = p else { return false };
-        g.player(p).faction == Faction::Harkonnen
-            && g.battle.battle_winner == Some(Faction::Harkonnen)
+        g.player(p).faction == Some(Faction::Harkonnen)
+            && g.battle.battle_winner == Some(Some(Faction::Harkonnen))
             && !g.prevented(FactionAdvantage::HarkonnenCaptureLeader)
             && g.applicable(Rule::HarkonnenCapturesOrKillsLeaders)
             && g.battle.harkonnen_victim.is_some()
@@ -429,7 +429,7 @@ impl BattleConcluded {
     pub fn valid_traitors_to_replace(game: &Game, p: PlayerIndex) -> impl Iterator<Item = Hero> {
         use either::Either;
         let pl = game.player(p);
-        if pl.faction == Faction::Tleilaxu {
+        if pl.faction == Some(Faction::Tleilaxu) {
             return Either::Left(pl.face_dancers.iter().copied().filter(move |h| !pl.revealed_face_dancers.contains(h)));
         }
         Either::Right(pl.traitors.iter().copied().filter(move |h| !pl.revealed_traitors.contains(h)))

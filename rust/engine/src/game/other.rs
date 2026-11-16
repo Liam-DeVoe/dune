@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 impl Game {
     pub fn reveal_current_no_field(&mut self, player: PlayerIndex, in_location: Option<Location>) {
-        if self.player(player).faction != Faction::Richese {
+        if self.player(player).faction != Some(Faction::Richese) {
             return;
         }
 
@@ -61,7 +61,7 @@ impl Game {
         }
 
         if self.bribes_during_mentat() {
-            if self.player(from).faction == Faction::Emperor && self.player(target).faction == self.player(from).ally {
+            if self.player(from).faction == Some(Faction::Emperor) && self.player(target).faction == self.player(from).ally {
                 let t = self.player_mut(target);
                 t.resources += amount;
             } else {
@@ -112,7 +112,7 @@ impl Game {
         }
     }
 
-    pub fn apply_bureaucracy(&mut self, payer: Faction, receiver: Faction) {
+    pub fn apply_bureaucracy(&mut self, payer: Option<Faction>, receiver: Option<Faction>) {
         if !self.turn.bureaucrat_was_used_this_phase {
             let bureaucrat = self.player_skilled_as(LeaderSkill::Bureaucrat);
             if let Some(bureaucrat) = bureaucrat {
@@ -201,7 +201,8 @@ impl Game {
         !self.applicable(Rule::BribesAreImmediate)
     }
 
-    pub fn karma_prevented(&self, f: Faction) -> bool {
+    pub fn karma_prevented(&self, f: impl Into<Option<Faction>>) -> bool {
+        let f: Option<Faction> = f.into();
         self.turn.current_karma_prevention.as_ref().is_some_and(|p| p.target == f)
     }
 
@@ -217,8 +218,8 @@ impl Game {
 
 #[derive(Clone, Debug)]
 pub struct TriggeredBureaucracy {
-    pub payment_from: Faction,
-    pub payment_to: Faction,
+    pub payment_from: Option<Faction>,
+    pub payment_to: Option<Faction>,
 }
 
 impl Default for TriggeredBureaucracy {

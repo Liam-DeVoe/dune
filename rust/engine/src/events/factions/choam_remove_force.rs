@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct ChoamRemoveForce {
-    pub target: Faction,
+    pub target: Option<Faction>,
     pub special_force: bool,
     pub location_id: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
@@ -21,9 +21,9 @@ impl Default for ChoamRemoveForce {
 }
 
 impl ChoamRemoveForce {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -44,10 +44,10 @@ impl ChoamRemoveForce {
             return Some(express!("Invalid location"));
         }
         // Location is not null here, so ValidFactions never reads Player.
-        if !ChoamRemoveForce::valid_factions(game, self.player_opt(), location).any(|v| v == self.target) {
+        if !ChoamRemoveForce::valid_factions(game, self.player_opt(), location).any(|v| Some(v) == self.target) {
             return Some(express!("Invalid faction"));
         }
-        if !ChoamRemoveForce::valid_special_force_choices(game, location, self.target).contains(&self.special_force) {
+        if !ChoamRemoveForce::valid_special_force_choices(game, location, self.target.expect("faction")).contains(&self.special_force) {
             return Some(express!("Invalid type of forces"));
         }
 
@@ -65,14 +65,15 @@ impl ChoamRemoveForce {
     pub fn valid_factions(g: &Game, p: Option<PlayerIndex>, l: Option<Location>) -> impl Iterator<Item = Faction> {
         use either::Either;
         if let Some(l) = l {
-            return Either::Left(g.players.iter().filter(move |x| x.any_forces_in(Some(l)) > 0).map(|x| x.faction));
+            return Either::Left(g.players.iter().filter(move |x| x.any_forces_in(Some(l)) > 0).filter_map(|x| x.faction));
         }
         Either::Right(g.players_other_than(p.expect("player")))
     }
 
-    pub fn valid_special_force_choices(g: &Game, l: Option<Location>, f: Faction) -> Vec<bool> {
+    pub fn valid_special_force_choices(g: &Game, l: Option<Location>, f: impl Into<Option<Faction>>) -> Vec<bool> {
+        let f: Option<Faction> = f.into();
         let mut result = Vec::new();
-        let player_to_check = g.get_player(Some(f));
+        let player_to_check = g.get_player(f);
 
         match (l, player_to_check) {
             (Some(l), Some(pc)) => {
@@ -95,7 +96,7 @@ impl ChoamRemoveForce {
 
     pub fn can_be_played_by(g: &Game, p: PlayerIndex) -> bool {
         let pl = g.player(p);
-        pl.faction == Faction::Choam
+        pl.faction == Some(Faction::Choam)
             && ((!g.prevented(FactionAdvantage::ChoamDiscarding) && ChoamRemoveForce::card_to_use(g, p).is_some())
                 || (NexusPlayed::can_use_cunning(g, p) && !pl.treachery_cards.is_empty()))
     }
@@ -111,12 +112,12 @@ impl ChoamRemoveForce {
         let card = ChoamRemoveForce::card_to_use(game, me);
         if card.is_none() && NexusPlayed::can_use_cunning(game, me) {
             game.play_nexus_card(me, vec!["send a force back to reserves".into()]);
-            game.let_player_discard_treachery_card_of_choice(self.initiator());
+            game.let_player_discard_treachery_card_of_choice(self.initiator().required("faction")?);
         } else {
             game.discard_card(card, true)?;
         }
 
-        let target = self.get_player(game, Some(self.target));
+        let target = self.get_player(game, self.target);
 
         let target = target.required("target")?;
         let location = self.location(game);
@@ -126,9 +127,9 @@ impl ChoamRemoveForce {
                 None => {
                     // The reserves part of `Player::special_forces_to_reserves`.
                     let faction = game.player(target).faction;
-                    if faction == Faction::BeneGesserit {
+                    if faction == Some(Faction::BeneGesserit) {
                         Player::add_forces_to_reserves(game, target, 1);
-                    } else if faction != Faction::Richese {
+                    } else if faction != Some(Faction::Richese) {
                         Player::add_special_forces_to_reserves(game, target, 1);
                     }
                     game_error!("No location to remove a force from");
@@ -151,7 +152,7 @@ impl ChoamRemoveForce {
     }
 
     pub fn try_get_message(&self, game: &Game) -> GameResult<Message> {
-        let target_player = game.get_player(Some(self.target)).required("target player")?;
+        let target_player = game.get_player(self.target).required("target player")?;
         let force: ExpressionElement = if self.special_force {
             game.player(target_player).special_force().into()
         } else {

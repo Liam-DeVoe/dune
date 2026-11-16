@@ -22,7 +22,7 @@ fn fixtures() -> Vec<String> {
 }
 
 fn all_views(r: &mut ViewReplica) -> Vec<GameView> {
-    let factions: Vec<Faction> = r.game.players.iter().map(|p| p.faction).collect();
+    let factions: Vec<Faction> = r.game.players.iter().filter_map(|p| p.faction).collect();
     let mut out: Vec<GameView> = factions.into_iter().map(|f| r.view(viewer_of(r, f))).collect();
     out.push(r.view(OBSERVER));
     out
@@ -44,7 +44,7 @@ fn sheets_and_rules_equal_the_skin() {
         }
 
         // One sheet per player that has one, in player order.
-        let expected: Vec<Faction> = g.players.iter().map(|p| p.faction).filter(|f| skin.get_faction_sheet(g, *f).is_some()).collect();
+        let expected: Vec<Faction> = g.players.iter().filter_map(|p| p.faction).filter(|f| skin.get_faction_sheet(g, *f).is_some()).collect();
         let got: Vec<String> = v.faction_sheets.iter().map(|s| s.faction.clone()).collect();
         assert_eq!(got, expected.iter().map(|f| f.to_string()).collect::<Vec<_>>(), "{name}");
         for (s, f) in v.faction_sheets.iter().zip(&expected) {

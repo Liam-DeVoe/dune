@@ -17,9 +17,9 @@ impl Default for DiscardedTaken {
 }
 
 impl DiscardedTaken {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -45,7 +45,7 @@ impl DiscardedTaken {
     pub fn valid_cards(g: &Game, p: PlayerIndex) -> impl Iterator<Item = TreacheryCard> {
         g.decks.recently_discarded
             .iter()
-            .filter(move |(k, v)| **v != g.player(p).faction && g.decks.treachery_discard_pile.as_ref().expect("treachery discard pile").items.contains(*k))
+            .filter(move |(k, v)| Some(**v) != g.player(p).faction && g.decks.treachery_discard_pile.as_ref().expect("treachery discard pile").items.contains(*k))
             .map(move |(k, _)| *k)
     }
 

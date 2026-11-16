@@ -46,9 +46,9 @@ macro_rules! elems {
 }
 
 impl AmbassadorActivated {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -75,7 +75,7 @@ impl AmbassadorActivated {
     /// Re-parsed on every read.
     pub fn fremen_force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         let faction = game.player(self.player()).faction;
-        PlacementEvent::parse_force_locations(game, faction, self.fremen_force_locations.as_deref().expect("fremen force locations"))
+        PlacementEvent::parse_force_locations(game, faction.expect("faction"), self.fremen_force_locations.as_deref().expect("fremen force locations"))
     }
 
     pub fn set_fremen_force_locations(&mut self, game: &Game, value: &IndexMap<Location, Battalion>) {
@@ -247,16 +247,16 @@ impl AmbassadorActivated {
         g.last_ambassador_trigger().map(|t| t.territory(g))
     }
 
-    pub fn get_victim(g: &Game) -> Faction {
+    pub fn get_victim(g: &Game) -> Option<Faction> {
         match g.last_ambassador_trigger() {
-            Some(t) => t.initiator(),
-            None => Faction::None,
+            Some(t) => Some(t.initiator()),
+            None => None,
         }
     }
 
     pub fn get_victim_player(g: &Game) -> Option<PlayerIndex> {
         let victim = AmbassadorActivated::get_victim(g);
-        if victim != Faction::None { g.get_player(Some(victim)) } else { None }
+        if victim != None { g.get_player(victim) } else { None }
     }
 
     pub fn get_ambassador(g: &Game) -> Option<Ambassador> {
@@ -335,7 +335,7 @@ impl AmbassadorActivated {
     }
 
     pub fn may_pass(game: &Game, p: PlayerIndex) -> bool {
-        game.player(p).faction == Faction::Ecaz
+        game.player(p).faction == Some(Faction::Ecaz)
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
@@ -363,7 +363,7 @@ impl AmbassadorActivated {
                 self.log_objects(game, elems!["The ", ambassador_faction, " Ambassador is set aside"]);
             }
 
-            self.handle_ambassador(game, ambassador_faction, victim)?;
+            self.handle_ambassador(game, ambassador_faction, victim.required("faction")?)?;
 
             let ecaz = ecaz.required("ecaz")?;
             let all_ecaz = game
@@ -395,7 +395,7 @@ impl AmbassadorActivated {
                     // A copy of the hand as it is now: later changes to it don't change this message.
                     let hand = &game.player(victim_player.required("victim player")?).treachery_cards;
                     let cards = ExpressionElement::list(hand.iter().copied());
-                    self.log_to(game, self.initiator(), elems![victim, " own: ", cards]);
+                    self.log_to(game, self.initiator().required("faction")?, elems![victim, " own: ", cards]);
                 } else {
                     self.log_objects(game, elems![victim, " don't own any cards"]);
                 }
@@ -418,7 +418,7 @@ impl AmbassadorActivated {
 
             Ambassador::Ecaz => {
                 if self.ecaz_offer_alliance {
-                    game.ship_move.alliance_by_ambassador_offered_to = victim;
+                    game.ship_move.alliance_by_ambassador_offered_to = Some(victim);
                     let vidal = game.vidal();
                     self.log_objects(
                         game,
@@ -476,7 +476,7 @@ impl AmbassadorActivated {
                 };
 
                 let revealed = to_select_from.into_iter().random_item(game.random.as_ref().required("random")?);
-                self.log_to(game, self.initiator(), elems![victim, " reveal ", revealed]);
+                self.log_to(game, self.initiator().required("faction")?, elems![victim, " reveal ", revealed]);
                 self.log_to(game, victim, elems![self.initiator(), " get to see ", revealed]);
                 game.determine_next_shipment_and_move_sub_phase()?;
             }
@@ -582,7 +582,7 @@ impl PassableGameEventMethods for AmbassadorActivated {
 
 impl crate::events::location_event::LocationEvent for AmbassadorActivated {
     fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self)
+        GameEventMethods::initiator(self).expect("faction")
     }
 
     fn to(&self, game: &Game) -> Option<Location> {
@@ -605,7 +605,7 @@ impl crate::events::location_event::LocationEvent for AmbassadorActivated {
 
 impl crate::events::placement::Placement for AmbassadorActivated {
     fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self)
+        GameEventMethods::initiator(self).expect("faction")
     }
 
     fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {

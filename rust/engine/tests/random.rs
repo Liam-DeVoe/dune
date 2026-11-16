@@ -8,7 +8,6 @@
 use std::collections::HashMap;
 
 use treachery_engine::cards::deck::Deck;
-use treachery_engine::events::GameEventMethods;
 use treachery_engine::game::{Game, GameState};
 use treachery_engine::random::{RandomPick, SharedRandom};
 
@@ -156,7 +155,7 @@ fn game_from_seed(seed: i32) -> String {
     let players: Vec<String> = game
         .players
         .iter()
-        .map(|p| format!("{} seat {} traitors {:?}", p.faction, p.seat, p.traitors.iter().map(|t| t.id()).collect::<Vec<_>>()))
+        .map(|p| format!("{} seat {} traitors {:?}", treachery_engine::enum_type::name_or_absent(p.faction), p.seat, p.traitors.iter().map(|t| t.id()).collect::<Vec<_>>()))
         .collect();
     let deck: Vec<i32> = game.decks.treachery_deck.as_ref().unwrap().items.iter().map(|c| c.id()).collect();
     format!("{}\nphase {}\ndeck {deck:?}\n{}", game.turn.current_phase, game.history.entries.len(), players.join("\n"))

@@ -55,7 +55,7 @@ impl Game {
             .iter()
             .copied()
             .find(|x| if bene_gesserit_karma { x.type_() == TreacheryCardType::Karma || x.type_() == TreacheryCardType::Useless } else { x.type_() == card_type })
-            .ok_or_else(|| GameError::new(format!("{} have no {} card to discard", self.player(player).faction, card_type)))?;
+            .ok_or_else(|| GameError::new(format!("{} have no {} card to discard", name_or_absent(self.player(player).faction), card_type)))?;
 
         self.discard_card_of(Some(player), Some(card), true);
         Ok(())
@@ -80,7 +80,7 @@ impl Game {
         if let (Some(player), Some(card)) = (player, card) {
             let faction = self.player(player).faction;
             if log {
-                let mut fact = BattleFact::new(BattleFactKind::Discard, faction);
+                let mut fact = BattleFact::new(BattleFactKind::Discard, faction.expect("faction"));
                 fact.card = Some(card);
                 self.log(vec![express!(faction, " discard ", card).with_fact(fact).into()]);
             }
@@ -91,7 +91,7 @@ impl Game {
             }
             self.decks.treachery_discard_pile.as_mut().expect("treachery discard pile").put_on_top(card);
             self.register_known(card);
-            self.decks.recently_discarded.insert_new(card, faction);
+            self.decks.recently_discarded.insert_new(card, faction.expect("faction"));
             self.stone(Milestone::Discard);
 
             if !matches!(

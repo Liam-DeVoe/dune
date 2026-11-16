@@ -15,9 +15,9 @@ impl Default for EndPhase {
 }
 
 impl EndPhase {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -135,7 +135,7 @@ impl EndPhase {
 
     pub fn enter_normal_storm_phase(&self, game: &mut Game) {
         let m = express!("The storm moves ", game.board.next_storm_moves, " sectors")
-            .with_log(StormMoved::new(game.board.sector_in_storm, game.board.next_storm_moves, Faction::None, None));
+            .with_log(StormMoved::new(game.board.sector_in_storm, game.board.next_storm_moves, None, None));
         self.log_objects(game, vec![m.into()]);
         let moves = game.board.next_storm_moves;
         game.move_storm_and_determine_next(moves);
@@ -242,7 +242,7 @@ impl EndPhase {
         game.ship_move.factions_with_ornithopters_at_start_of_movement = (0..game.players.len())
             .map(|i| game.player_at(i))
             .filter(|p| game.occupies_arrakeen_or_carthag(*p))
-            .map(|p| game.player(p).faction)
+            .filter_map(|p| game.player(p).faction)
             .collect();
         game.ship_move.recent_moves.clear();
         game.ship_move.beginning_of_shipment_and_move_phase = true;
@@ -302,8 +302,8 @@ impl EndPhase {
         game.battle.defender_traitor_action = None;
         game.battle.poison_tooth_cancelled = false;
         game.battle.ixian_special_force_losses_to_take = 0;
-        game.battle.battle_winner = Some(Faction::None);
-        game.battle.battle_loser = Some(Faction::None);
+        game.battle.battle_winner = Some(None);
+        game.battle.battle_loser = Some(None);
         game.turn.has_acted_or_passed.clear();
         game.battle.battle_triggered_bureaucracy = None;
         game.battle.cards_to_be_discarded_by_loser_after_battle.clear();
@@ -311,7 +311,7 @@ impl EndPhase {
         game.battle.loser_may_try_to_assassinate = false;
         game.battle.battle_winner_may_choose_to_discard = true;
         game.battle.battle_about_to_start = None;
-        game.battle.current_ecaz_or_ally_fighter = Some(Faction::None);
+        game.battle.current_ecaz_or_ally_fighter = Some(None);
         game.battle.current_ecaz_battle_contribution = 0;
         game.battle.atreides_karma = false;
         game.battle.ecaz_karma_bonus = 0;

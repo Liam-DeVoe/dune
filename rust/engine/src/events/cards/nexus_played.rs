@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct NexusPlayed {
-    pub faction: Faction,
+    pub faction: Option<Faction>,
     pub atreides_prescience_aspect: Option<PrescienceAspect>,
     pub tleilaxu_forces: i32,
     pub tleilaxu_special_forces: i32,
@@ -10,7 +10,7 @@ pub struct NexusPlayed {
     pub tleilaxu_assign_skill: bool,
     pub choam_card_id: i32,
     pub ecaz_territory_id: i32,
-    pub ecaz_faction: Faction,
+    pub ecaz_faction: Option<Faction>,
     pub moritani_territory_id: i32,
     pub tleilaxu_number_of_special_forces_in_location: i32,
     pub tleilaxu_location_id: i32,
@@ -43,9 +43,9 @@ macro_rules! elems {
 }
 
 impl NexusPlayed {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -119,15 +119,15 @@ impl NexusPlayed {
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
         match self.faction {
-            Faction::None => return Some(express!("Invalid Nexus faction")),
+            None => return Some(express!("Invalid Nexus faction")),
 
-            Faction::Atreides => {
+            Some(Faction::Atreides) => {
                 if (self.is_cunning() || self.is_secret_ally(game)) && self.atreides_prescience_aspect == None {
                     return Some(express!("Invalid battle plan element"));
                 }
             }
 
-            Faction::Tleilaxu => {
+            Some(Faction::Tleilaxu) => {
                 if self.is_secret_ally(game) {
                     let me = self.player();
                     if self.tleilaxu_hero().is_some()
@@ -170,7 +170,7 @@ impl NexusPlayed {
                 }
             }
 
-            Faction::Choam => {
+            Some(Faction::Choam) => {
                 if self.is_cunning() {
                     if self.choam_card().is_none() {
                         return Some(express!("Select a ", TreacheryCardType::Useless, " card to discard"));
@@ -183,7 +183,7 @@ impl NexusPlayed {
                 }
             }
 
-            Faction::Ecaz => {
+            Some(Faction::Ecaz) => {
                 if self.is_betrayal(game) {
                     let Some(ecaz_territory) = self.ecaz_territory(game) else {
                         return Some(express!("Select a territory"));
@@ -192,13 +192,13 @@ impl NexusPlayed {
                         return Some(express!("Invalid territory"));
                     }
                 } else if self.is_secret_ally(game) {
-                    if !NexusPlayed::valid_ecaz_factions(game).any(|v| v == self.ecaz_faction) {
+                    if !NexusPlayed::valid_ecaz_factions(game).any(|v| Some(v) == self.ecaz_faction) {
                         return Some(express!("Invalid faction"));
                     }
                 }
             }
 
-            Faction::Moritani => {
+            Some(Faction::Moritani) => {
                 if self.is_betrayal(game)
                     && (self.moritani_territory(game).is_none()
                         || !NexusPlayed::valid_moritani_territories(game).any(|v| v == self.moritani_territory(game).expect("moritani territory")))
@@ -215,17 +215,17 @@ impl NexusPlayed {
 
     pub fn can_use_cunning(game: &Game, p: PlayerIndex) -> bool {
         let p = game.player(p);
-        p.nexus != Faction::None && p.nexus == p.faction
+        p.nexus.is_some() && p.nexus == p.faction
     }
 
     pub fn can_use_secret_ally(g: &Game, p: PlayerIndex) -> bool {
         let p = g.player(p);
-        p.nexus != Faction::None && !g.is_playing(p.nexus)
+        p.nexus != None && !g.is_playing(p.nexus)
     }
 
     pub fn can_use_betrayal(g: &Game, p: PlayerIndex) -> bool {
         let p = g.player(p);
-        p.nexus != Faction::None && p.nexus != p.faction && g.is_playing(p.nexus)
+        p.nexus.is_some() && p.nexus != p.faction && g.is_playing(p.nexus)
     }
 
     pub fn is_applicable(g: &Game, p: PlayerIndex) -> bool {
@@ -245,65 +245,65 @@ impl NexusPlayed {
         let battle = || g.battle.current_battle.as_ref().expect("current battle");
 
         match g.player(p).nexus {
-            Faction::Atreides if betrayal => game_is_in_battle && battle().is_aggressor_or_defender_faction(g, Faction::Atreides),
-            Faction::Atreides if cunning || secret_ally => is_currently_formulating_battle_plan,
+            Some(Faction::Atreides) if betrayal => game_is_in_battle && battle().is_aggressor_or_defender_faction(g, Faction::Atreides),
+            Some(Faction::Atreides) if cunning || secret_ally => is_currently_formulating_battle_plan,
 
-            Faction::Harkonnen if betrayal => g.turn.current_phase == Phase::CancellingTraitor,
-            Faction::Harkonnen if cunning => true,
-            Faction::Harkonnen if secret_ally => g.turn.current_main_phase == MainPhase::Contemplate,
+            Some(Faction::Harkonnen) if betrayal => g.turn.current_phase == Phase::CancellingTraitor,
+            Some(Faction::Harkonnen) if cunning => true,
+            Some(Faction::Harkonnen) if secret_ally => g.turn.current_main_phase == MainPhase::Contemplate,
 
-            Faction::Fremen if betrayal => {
+            Some(Faction::Fremen) if betrayal => {
                 g.turn.current_main_phase == MainPhase::Blow || g.turn.current_main_phase == MainPhase::ShipmentAndMove
             }
-            Faction::Fremen if secret_ally => {
+            Some(Faction::Fremen) if secret_ally => {
                 g.turn.current_main_phase == MainPhase::Blow || g.turn.current_main_phase == MainPhase::Resurrection
             }
 
-            Faction::Emperor if betrayal => {
+            Some(Faction::Emperor) if betrayal => {
                 g.turn.current_main_phase == MainPhase::Bidding
                     || (game_is_in_battle
                         && g.applicable(Rule::EmperorSpecialForces)
                         && battle().is_aggressor_or_defender_faction(g, Faction::Emperor))
             }
-            Faction::Emperor if cunning => is_currently_formulating_battle_plan,
+            Some(Faction::Emperor) if cunning => is_currently_formulating_battle_plan,
 
-            Faction::Guild if betrayal => {
+            Some(Faction::Guild) if betrayal => {
                 g.turn.current_main_phase == MainPhase::ShipmentAndMove && g.has_recent_payment_for(GameEventType::Shipment)
             }
-            Faction::Guild if cunning => g.turn.current_phase == Phase::GuildMove && !g.ship_move.in_guild_cunning_shipment,
-            Faction::Guild if secret_ally => g.turn.current_phase == Phase::NonGuildShip,
+            Some(Faction::Guild) if cunning => g.turn.current_phase == Phase::GuildMove && !g.ship_move.in_guild_cunning_shipment,
+            Some(Faction::Guild) if secret_ally => g.turn.current_phase == Phase::NonGuildShip,
 
-            Faction::BeneGesserit if betrayal => game_is_in_battle && battle().is_involved_faction(g, Faction::BeneGesserit),
-            Faction::BeneGesserit if cunning => g.turn.current_main_phase == MainPhase::ShipmentAndMove,
+            Some(Faction::BeneGesserit) if betrayal => game_is_in_battle && battle().is_involved_faction(g, Faction::BeneGesserit),
+            Some(Faction::BeneGesserit) if cunning => g.turn.current_main_phase == MainPhase::ShipmentAndMove,
 
-            Faction::Ixian if betrayal => g.turn.current_main_phase == MainPhase::Bidding && g.turn.current_phase < Phase::BiddingReport,
-            Faction::Ixian if cunning => is_currently_formulating_battle_plan,
+            Some(Faction::Ixian) if betrayal => g.turn.current_main_phase == MainPhase::Bidding && g.turn.current_phase < Phase::BiddingReport,
+            Some(Faction::Ixian) if cunning => is_currently_formulating_battle_plan,
 
-            Faction::Tleilaxu if betrayal => g.turn.current_phase == Phase::Facedancing,
-            Faction::Tleilaxu if cunning => true,
-            Faction::Tleilaxu if secret_ally => g.turn.current_phase == Phase::Resurrection,
+            Some(Faction::Tleilaxu) if betrayal => g.turn.current_phase == Phase::Facedancing,
+            Some(Faction::Tleilaxu) if cunning => true,
+            Some(Faction::Tleilaxu) if secret_ally => g.turn.current_phase == Phase::Resurrection,
 
-            Faction::Choam if betrayal => true,
-            Faction::Choam if secret_ally => {
+            Some(Faction::Choam) if betrayal => true,
+            Some(Faction::Choam) if secret_ally => {
                 (g.turn.current_main_phase == MainPhase::Collection && !NexusPlayed::valid_choam_cards(g, p).next().is_none())
                     || (g.turn.current_phase == Phase::BattleConclusion
                         && g.battle.current_battle.is_some()
                         && Some(g.player(p).faction) == g.battle.battle_winner)
             }
 
-            Faction::Richese if betrayal && g.turn.current_main_phase == MainPhase::Bidding => {
+            Some(Faction::Richese) if betrayal && g.turn.current_main_phase == MainPhase::Bidding => {
                 (g.bidding.richese_bidding_just_finished || g.bidding.card_sold_on_black_market.is_some())
                     && (g.has_quite_recent_payment_to(Faction::Richese)
                         || (g.bidding.card_just_won.is_some()
                             && g.get_player(Some(Faction::Richese)).map(|w| g.player(w).has(g.bidding.card_just_won)) == Some(true)))
             }
 
-            Faction::Ecaz if betrayal => {
+            Some(Faction::Ecaz) if betrayal => {
                 g.turn.current_main_phase < MainPhase::ShipmentAndMove && !NexusPlayed::valid_ecaz_territories(g).next().is_none()
             }
-            Faction::Ecaz if cunning || secret_ally => true,
+            Some(Faction::Ecaz) if cunning || secret_ally => true,
 
-            Faction::Moritani if betrayal => !NexusPlayed::valid_moritani_territories(g).next().is_none(),
+            Some(Faction::Moritani) if betrayal => !NexusPlayed::valid_moritani_territories(g).next().is_none(),
 
             _ => false,
         }
@@ -312,8 +312,8 @@ impl NexusPlayed {
     pub fn valid_tleilaxu_max_amount(g: &Game, p: PlayerIndex, special_forces: bool) -> i32 {
         let p = g.player(p);
         if special_forces {
-            if p.faction == Faction::Emperor || p.faction == Faction::Fremen {
-                if g.revival.factions_that_revived_special_forces_this_turn.contains(&p.faction) {
+            if p.faction == Some(Faction::Emperor) || p.faction == Some(Faction::Fremen) {
+                if g.revival.factions_that_revived_special_forces_this_turn.contains_opt(p.faction) {
                     return 0;
                 }
                 return std::cmp::min(p.special_forces_killed, 1);
@@ -356,8 +356,8 @@ impl NexusPlayed {
     pub fn valid_ecaz_factions(g: &Game) -> impl Iterator<Item = Faction> {
         g.players
             .iter()
-            .filter(move |p| p.faction != Faction::Ecaz && p.faction != Faction::Tleilaxu)
-            .map(move |p| p.faction)
+            .filter(move |p| p.faction != Some(Faction::Ecaz) && p.faction != Some(Faction::Tleilaxu))
+            .filter_map(move |p| p.faction)
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
@@ -395,13 +395,13 @@ impl NexusPlayed {
         let Some(actor) = self.player_opt() else { return Ok(()) };
 
         match self.faction {
-            Faction::Atreides => {
+            Some(Faction::Atreides) => {
                 game.play_nexus_card(actor, vec![]);
-                game.prevent(self.initiator(), FactionAdvantage::AtreidesBattlePlanPrescience, true);
+                game.prevent(self.initiator().required("faction")?, FactionAdvantage::AtreidesBattlePlanPrescience, true);
                 game.battle.current_prescience = None;
             }
 
-            Faction::Harkonnen => {
+            Some(Faction::Harkonnen) => {
                 let Some(current_battle) = game.battle.current_battle.clone() else { return Ok(()) };
                 if game.decks.traitor_deck.is_none() {
                     return Ok(());
@@ -425,37 +425,37 @@ impl NexusPlayed {
                 }
             }
 
-            Faction::Fremen => {
+            Some(Faction::Fremen) => {
                 game.play_nexus_card(actor, vec![]);
                 if game.turn.current_main_phase == MainPhase::Blow {
-                    game.prevent(self.initiator(), FactionAdvantage::FremenRidesMonster, true);
+                    game.prevent(self.initiator().required("faction")?, FactionAdvantage::FremenRidesMonster, true);
                     if matches!(game.turn.current_phase, Phase::FremenRidingMonsterA | Phase::FremenRidingMonsterB) {
                         game.determine_next_shipment_and_move_sub_phase()?;
                     }
                 } else if game.turn.current_main_phase == MainPhase::ShipmentAndMove {
-                    game.prevent(self.initiator(), FactionAdvantage::FremenExtraMove, true);
+                    game.prevent(self.initiator().required("faction")?, FactionAdvantage::FremenExtraMove, true);
                 }
             }
 
-            Faction::Emperor => {
+            Some(Faction::Emperor) => {
                 game.play_nexus_card(actor, vec![]);
                 if game.turn.current_main_phase == MainPhase::Bidding {
-                    game.prevent(self.initiator(), FactionAdvantage::EmperorReceiveBid, true);
+                    game.prevent(self.initiator().required("faction")?, FactionAdvantage::EmperorReceiveBid, true);
                 } else if game.turn.current_main_phase == MainPhase::Battle && game.applicable(Rule::EmperorSpecialForces) {
-                    game.prevent(self.initiator(), FactionAdvantage::EmperorSpecialForceBonus, true);
+                    game.prevent(self.initiator().required("faction")?, FactionAdvantage::EmperorSpecialForceBonus, true);
                 }
             }
 
-            Faction::Guild => {
+            Some(Faction::Guild) => {
                 game.play_nexus_card(actor, vec![]);
                 // Nothing in the loop changes StoredRecentlyPaid.
                 for p in game.turn.stored_recently_paid.clone() {
                     let from: ExpressionElement =
-                        if p.to == Faction::None { "the Bank".into() } else { p.to.into() };
+                        if p.to == None { "the Bank".into() } else { p.to.into() };
                     let actor_faction = game.player(actor).faction;
                     self.log_objects(game, elems![actor_faction, " get ", p.amount, " from ", from]);
-                    if p.to != Faction::None {
-                        let get_from = self.get_player(game, Some(p.to));
+                    if p.to != None {
+                        let get_from = self.get_player(game, p.to);
                         if let Some(get_from) = get_from {
                             let gf = game.player_mut(get_from);
                             gf.resources -= p.amount;
@@ -466,33 +466,33 @@ impl NexusPlayed {
                     me.resources += p.amount;
                 }
 
-                if game.turn.target_of_bureaucracy == Faction::Guild {
+                if game.turn.target_of_bureaucracy == Some(Faction::Guild) {
                     game.turn.target_of_bureaucracy = self.initiator();
                 }
             }
 
-            Faction::BeneGesserit => {
+            Some(Faction::BeneGesserit) => {
                 game.play_nexus_card(actor, vec![]);
-                game.prevent(self.initiator(), FactionAdvantage::BeneGesseritUsingVoice, true);
+                game.prevent(self.initiator().required("faction")?, FactionAdvantage::BeneGesseritUsingVoice, true);
                 game.battle.current_voice = None;
             }
 
-            Faction::Ixian => {
+            Some(Faction::Ixian) => {
                 game.play_nexus_card(actor, vec![]);
                 if game.turn.current_phase < Phase::IxianSelectingCard {
-                    game.prevent(self.initiator(), FactionAdvantage::IxianSelectingCardsOnAuction, true);
+                    game.prevent(self.initiator().required("faction")?, FactionAdvantage::IxianSelectingCardsOnAuction, true);
                 } else if game.turn.current_phase > Phase::IxianSelectingCard && game.turn.current_phase < Phase::BiddingReport {
-                    game.prevent(self.initiator(), FactionAdvantage::IxianSwappingCard, true);
+                    game.prevent(self.initiator().required("faction")?, FactionAdvantage::IxianSwappingCard, true);
                 }
             }
 
-            Faction::Tleilaxu => {
+            Some(Faction::Tleilaxu) => {
                 game.turn.facedancer_was_cancelled = true;
                 game.play_nexus_card(actor, elems!["cancel the ", Faction::Tleilaxu, " face dancer reveal"]);
                 game.finish_battle()?;
             }
 
-            Faction::Choam => {
+            Some(Faction::Choam) => {
                 game.play_nexus_card(
                     actor,
                     elems!["force ", Faction::Choam, " to discard one of their treachery cards at random"],
@@ -514,12 +514,12 @@ impl NexusPlayed {
                 }
             }
 
-            Faction::Richese => {
+            Some(Faction::Richese) => {
                 let payment_to_richese = game.quite_recent_payment_to(Faction::Richese);
                 let richese = self.get_player(game, Some(Faction::Richese));
                 if let Some(payment_to_richese) = payment_to_richese {
                     let amount_received = payment_to_richese
-                        .amount - (if game.turn.was_victim_of_bureaucracy == Faction::Richese { 2 } else { 0 });
+                        .amount - (if game.turn.was_victim_of_bureaucracy == Some(Faction::Richese) { 2 } else { 0 });
                     game.play_nexus_card(
                         actor,
                         elems!["let ", Faction::Richese, " return the payment of ", Payment::of(amount_received), " they just received"],
@@ -560,7 +560,7 @@ impl NexusPlayed {
                 }
             }
 
-            Faction::Ecaz => {
+            Some(Faction::Ecaz) => {
                 let ecazs_ally = game.get_player(Some(Faction::Ecaz)).and_then(|p| game.player(p).allied_player(game));
                 if let (Some(ecazs_ally), Some(ecaz_territory)) = (ecazs_ally, self.ecaz_territory(game)) {
                     Player::forces_in_territory_to_reserves(game, ecazs_ally, ecaz_territory);
@@ -574,7 +574,7 @@ impl NexusPlayed {
                 }
             }
 
-            Faction::Moritani => {
+            Some(Faction::Moritani) => {
                 if let Some(moritani_territory) = self.moritani_territory(game) {
                     // Validation only offers a territory with terror. C# took `default(TerrorType)`
                     // (None) from an empty territory and added it to the unplaced tokens.
@@ -600,12 +600,12 @@ impl NexusPlayed {
         let Some(actor) = self.player_opt() else { return };
 
         match self.faction {
-            Faction::Atreides => {
+            Some(Faction::Atreides) => {
                 game.turn.current_nexus_prescience = Some(self.clone());
                 game.play_nexus_card(actor, elems!["see their opponent's ", self.atreides_prescience_aspect]);
             }
 
-            Faction::Harkonnen => {
+            Some(Faction::Harkonnen) => {
                 if game.decks.traitor_deck.is_none() {
                     return;
                 }
@@ -618,7 +618,7 @@ impl NexusPlayed {
                 game.enter(Phase::DiscardingTraitor, true);
             }
 
-            Faction::Emperor => {
+            Some(Faction::Emperor) => {
                 game.turn.current_emperor_cunning = Some(self.clone());
                 game.play_nexus_card(
                     actor,
@@ -626,12 +626,12 @@ impl NexusPlayed {
                 );
             }
 
-            Faction::Guild => {
+            Some(Faction::Guild) => {
                 game.turn.current_guild_cunning = Some(self.clone());
                 game.play_nexus_card(actor, elems!["perform an extra shipment after their move"]);
             }
 
-            Faction::BeneGesserit => {
+            Some(Faction::BeneGesserit) => {
                 game.turn.current_bene_gesserit_cunning = Some(self.clone());
                 game.play_nexus_card(
                     actor,
@@ -639,12 +639,12 @@ impl NexusPlayed {
                 );
             }
 
-            Faction::Ixian => {
+            Some(Faction::Ixian) => {
                 game.turn.current_ixian_cunning = Some(self.clone());
                 game.play_nexus_card(actor, elems!["let ", FactionForce::Ixian, " be full strength during this battle"]);
             }
 
-            Faction::Tleilaxu => {
+            Some(Faction::Tleilaxu) => {
                 if game.decks.traitor_deck.is_none() {
                     return;
                 }
@@ -678,7 +678,7 @@ impl NexusPlayed {
                 }
             }
 
-            Faction::Ecaz => {
+            Some(Faction::Ecaz) => {
                 if game.vidal().is_some() && !game.is_alive(Hero::Leader(game.vidal().expect("vidal"))) {
                     let vidal = game.vidal().expect("vidal");
                     game.revive(actor, Hero::Leader(vidal));
@@ -701,12 +701,12 @@ impl NexusPlayed {
         let Some(actor) = self.player_opt() else { return };
 
         match self.faction {
-            Faction::Atreides => {
+            Some(Faction::Atreides) => {
                 game.turn.current_nexus_prescience = Some(self.clone());
                 game.play_nexus_card(actor, elems!["see their opponent's ", self.atreides_prescience_aspect]);
             }
 
-            Faction::Harkonnen => {
+            Some(Faction::Harkonnen) => {
                 if game.decks.traitor_deck.is_none() {
                     return;
                 }
@@ -721,7 +721,7 @@ impl NexusPlayed {
                 game.enter(Phase::DiscardingTraitor, true);
             }
 
-            Faction::Fremen => {
+            Some(Faction::Fremen) => {
                 game.turn.current_fremen_secret_ally = Some(self.clone());
                 if game.turn.current_main_phase == MainPhase::Blow {
                     game.play_nexus_card(
@@ -733,20 +733,20 @@ impl NexusPlayed {
                 }
             }
 
-            Faction::Guild => {
+            Some(Faction::Guild) => {
                 game.turn.current_guild_secret_ally = Some(self.clone());
                 game.play_nexus_card(actor, elems!["be able to ship as ", Faction::Guild]);
             }
 
-            Faction::Tleilaxu => {
+            Some(Faction::Tleilaxu) => {
                 game.stone(Milestone::RaiseDead);
-                let Some(player) = self.get_player(game, Some(self.initiator())) else { return };
+                let Some(player) = self.get_player(game, self.initiator()) else { return };
 
                 Player::revive_forces(game, player, self.tleilaxu_forces);
                 Player::revive_special_forces(game, player, self.tleilaxu_special_forces);
 
                 if self.tleilaxu_special_forces > 0 {
-                    game.revival.factions_that_revived_special_forces_this_turn.push(self.initiator());
+                    game.revival.factions_that_revived_special_forces_this_turn.push(self.initiator().expect("faction"));
                 }
 
                 if let Some(tleilaxu_hero) = self.tleilaxu_hero() {
@@ -775,7 +775,7 @@ impl NexusPlayed {
                 );
 
                 if let Some(tleilaxu_location) = self.tleilaxu_location(game) {
-                    if self.initiator() == Faction::Fremen {
+                    if self.initiator() == Some(Faction::Fremen) {
                         Player::ship_special_forces(game, player, tleilaxu_location, 1);
                         let tleilaxu_location = self.tleilaxu_location(game);
                         self.log_objects(
@@ -786,7 +786,7 @@ impl NexusPlayed {
                 }
             }
 
-            Faction::Choam => {
+            Some(Faction::Choam) => {
                 if game.turn.current_main_phase == MainPhase::Collection {
                     game.play_nexus_card(
                         actor,
@@ -823,8 +823,8 @@ impl NexusPlayed {
                         let audited_card = auditable_cards.iter().copied().random_item(game.random.as_ref().expect("random"));
                         if let Some(audited_card) = audited_card {
                             Game::register_known_by_player(game, actor, Some(audited_card));
-                            self.log_to(game, self.initiator(), elems!["You see: ", audited_card]);
-                            self.log_to(game, auditee_faction, elems!["You showed them: ", audited_card]);
+                            self.log_to(game, self.initiator().expect("faction"), elems!["You see: ", audited_card]);
+                            self.log_to(game, auditee_faction.expect("faction"), elems!["You showed them: ", audited_card]);
                         }
                     } else {
                         self.log_objects(game, elems![auditee_faction, " don't have cards to audit"]);
@@ -832,7 +832,7 @@ impl NexusPlayed {
                 }
             }
 
-            Faction::Ecaz => {
+            Some(Faction::Ecaz) => {
                 game.play_nexus_card(
                     actor,
                     elems!["force ", self.ecaz_faction, " to reveal if they have an ", Faction::Ecaz, " traitor"],
@@ -843,12 +843,12 @@ impl NexusPlayed {
                 );
                 let initiator = self.initiator();
                 let has_traitor = self
-                    .get_player(game, Some(self.ecaz_faction))
-                    .map(|p| game.player(p).traitors.iter().any(|t| t.faction() == initiator))
+                    .get_player(game, self.ecaz_faction)
+                    .map(|p| game.player(p).traitors.iter().any(|t| Some(t.faction()) == Some(initiator)))
                     == Some(true);
                 self.log_to(
                     game,
-                    self.initiator(),
+                    self.initiator().expect("faction"),
                     elems![
                         self.ecaz_faction,
                         " reveal that they ",
@@ -860,7 +860,7 @@ impl NexusPlayed {
                 );
                 self.log_to(
                     game,
-                    self.ecaz_faction,
+                    self.ecaz_faction.expect("faction"),
                     elems![
                         " you revealed to them that you ",
                         if has_traitor { "DO" } else { "DON'T" },
@@ -909,7 +909,7 @@ impl GameEventMethods for NexusPlayed {
 
 impl crate::events::location_event::LocationEvent for NexusPlayed {
     fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self)
+        GameEventMethods::initiator(self).expect("faction")
     }
 
     fn to(&self, game: &Game) -> Option<Location> {

@@ -19,9 +19,9 @@ impl Default for FremenSentMonster {
 }
 
 impl FremenSentMonster {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -54,7 +54,7 @@ impl FremenSentMonster {
         // MonsterAppearance; PerformMonster then throws on `m.Territory.Locations`.
         let msg = self.get_message(game);
         let territory = self.territory(game).required("territory")?;
-        let msg = msg.with_log(WormSentLog::new(self.initiator(), territory));
+        let msg = msg.with_log(WormSentLog::new(self.initiator().required("faction")?, territory));
         self.log_objects(game, vec![ExpressionElement::from(msg)]);
         let monster = MonsterAppearance::new(territory, false);
         game.blow.monsters.push(monster.clone());

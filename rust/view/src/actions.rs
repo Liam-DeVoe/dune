@@ -40,9 +40,11 @@ fn simple(title: RichText, confirm_label: &str, alert: bool) -> ActionOptions {
 
 /// The entry of `GameView.actions` for one applicable event type, with the form's defaults.
 pub fn action_view(game: &Game, v: &ResolvedViewer, s: &Seating, t: GameEventType, d: &dyn Describer) -> ActionView {
-    let Some(faction) = v.faction.or_else(|| setup::seatless_host_may_act(v, t).then_some(Faction::None)) else {
+    // A player without a faction yet acts as `None`, like a seatless host.
+    if v.player.is_none() && !setup::seatless_host_may_act(v, t) {
         return ActionView { event_type: t.name().to_string(), options: None, validation: None };
-    };
+    }
+    let faction = v.faction;
     match default_draft(game, v, s, faction, t) {
         Some(draft) => {
             let (options, validation) = options_and_validation(game, v, s, &draft, d);
@@ -55,7 +57,7 @@ pub fn action_view(game: &Game, v: &ResolvedViewer, s: &Seating, t: GameEventTyp
 /// The event a form sends before the player touches it: the form's starting inputs,
 /// after its widgets have clamped them (a number picker clamps its value into its range).
 /// Public for the observable-behavior harness (`rust/observe`), which fuzzes from these drafts.
-pub fn default_draft(game: &Game, _v: &ResolvedViewer, s: &Seating, faction: Faction, t: GameEventType) -> Option<GameEvent> {
+pub fn default_draft(game: &Game, _v: &ResolvedViewer, s: &Seating, faction: Option<Faction>, t: GameEventType) -> Option<GameEvent> {
     if revival::TYPES.contains(&t) { return revival::default_draft(game, faction, t); }
     if setup::TYPES.contains(&t) { return setup::default_draft(game, faction, t); }
     if let Some(e) = _v.player.and_then(|p| ship_move::default_draft(game, p, faction, t)) { return Some(e); }
@@ -66,7 +68,7 @@ pub fn default_draft(game: &Game, _v: &ResolvedViewer, s: &Seating, faction: Fac
             // A required image choice starts at the first target.
             let mut e = AllianceOffered::new(game, faction);
             if let Some(p) = _v.player {
-                e.target = AllianceOffered::valid_targets(game, p).next().unwrap_or(Faction::None);
+                e.target = AllianceOffered::valid_targets(game, p).next();
             }
             event(e)
         }
@@ -137,8 +139,10 @@ pub enum QueryError {
 pub fn query(game: &Game, viewer: Viewer, s: &Seating, applicable: &[GameEventType], draft_json: &str, d: &dyn Describer) -> Result<DraftResult, QueryError> {
     let v = viewer.resolve(game);
     let draft: GameEvent = json::deserialize(draft_json).map_err(|e| QueryError::BadJson(format!("{e:?}")))?;
-    let seatless_host = setup::seatless_host_may_act(&v, draft.event_type()).then_some(Faction::None);
-    let faction = v.faction.filter(|_| !v.is_observer).or(seatless_host).ok_or(QueryError::NotAPlayer)?;
+    if (v.player.is_none() || v.is_observer) && !setup::seatless_host_may_act(&v, draft.event_type()) {
+        return Err(QueryError::NotAPlayer);
+    }
+    let faction = if v.is_observer { None } else { v.faction };
     if !applicable.contains(&draft.event_type()) {
         return Err(QueryError::NotApplicable);
     }

@@ -17,9 +17,9 @@ impl Default for TraitorsSelected {
 }
 
 impl TraitorsSelected {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -55,7 +55,7 @@ impl TraitorsSelected {
             game.player_mut(me).known_non_traitors.insert(l);
         }
 
-        game.turn.has_acted_or_passed.push(self.initiator());
+        game.turn.has_acted_or_passed.push(self.initiator().required("faction")?);
         self.log(game);
 
         if game.everyone_acted_or_passed() {

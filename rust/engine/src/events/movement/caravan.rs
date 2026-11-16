@@ -25,9 +25,9 @@ impl Default for Caravan {
 }
 
 impl Caravan {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -43,7 +43,7 @@ impl Caravan {
         let me = self.player();
         game.discard(me, TreacheryCardType::Caravan)?;
         let force_locations = PlacementEventMethods::force_locations(&**self, game);
-        let as_advisors = self.initiator() != Faction::BeneGesserit || self.as_advisors;
+        let as_advisors = self.initiator() != Some(Faction::BeneGesserit) || self.as_advisors;
         game.perform_move_from_locations(me, &force_locations, &self.clone().into_event(), as_advisors, true);
 
         let to = PlacementEventMethods::to(&**self, game);
@@ -134,7 +134,7 @@ impl PlacementEventMethods for Caravan {
 
 impl crate::events::location_event::LocationEvent for Caravan {
     fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self)
+        GameEventMethods::initiator(self).expect("faction")
     }
 
     fn to(&self, game: &Game) -> Option<Location> {
@@ -157,7 +157,7 @@ impl crate::events::location_event::LocationEvent for Caravan {
 
 impl crate::events::placement::Placement for Caravan {
     fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self)
+        GameEventMethods::initiator(self).expect("faction")
     }
 
     fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {

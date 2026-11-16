@@ -15,9 +15,9 @@ impl Default for PortableAntidoteUsed {
 }
 
 impl PortableAntidoteUsed {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 

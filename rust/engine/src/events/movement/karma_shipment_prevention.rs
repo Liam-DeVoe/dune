@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct KarmaShipmentPrevention {
-    pub target: Faction,
+    pub target: Option<Faction>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -17,14 +17,14 @@ impl Default for KarmaShipmentPrevention {
 }
 
 impl KarmaShipmentPrevention {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if !KarmaShipmentPrevention::get_valid_targets(game, self.player()).any(|v| v == self.target) {
+        if !KarmaShipmentPrevention::get_valid_targets(game, self.player()).any(|v| Some(v) == self.target) {
             return Some(express!("Invalid target"));
         }
 

@@ -36,8 +36,8 @@ fn location(g: &Game, id: i32) -> Location {
 
 fn ally(g: &mut Game, a: Faction, b: Faction) {
     let (pa, pb) = (idx(g, a), idx(g, b));
-    g.player_mut(pa).ally = b;
-    g.player_mut(pb).ally = a;
+    g.player_mut(pa).ally = Some(b);
+    g.player_mut(pb).ally = Some(a);
 }
 
 /// Emperor ships 3 forces and 2 Sardaukar back to reserves. Before the fix the Sardaukar were
@@ -214,11 +214,11 @@ fn a_richese_card_taken_from_the_deck_or_the_cache_leaves_the_other() {
     s.number_of_players = 3;
     s.allowed_factions_in_play = Some(vec![Faction::Richese, Faction::Atreides, Faction::Emperor]);
     s.initial_rules = Some(vec![Rule::RicheseTreacheryCards]);
-    let mut establish = EstablishPlayers::new(&g, Faction::None);
+    let mut establish = EstablishPlayers::new(&g, None);
     establish.seed = 7;
     establish.settings = Some(s);
     assert!(GameEvent::EstablishPlayers(Rc::new(establish)).execute(&mut g, false, true).is_none());
-    let end = GameEvent::EndPhase(Rc::new(EndPhase::new(&g, Faction::None)));
+    let end = GameEvent::EndPhase(Rc::new(EndPhase::new(&g, None)));
     assert!(end.execute(&mut g, false, true).is_none());
 
     let in_deck = |g: &Game, c: TreacheryCard| g.decks.treachery_deck.as_ref().unwrap().items.contains(&c);
@@ -295,8 +295,8 @@ fn an_intrusion_left_over_from_an_earlier_phase_is_dropped() {
 fn an_ally_pays_for_a_shipment_only_spice_it_has_and_offered() {
     let mut g = fixture("ship");
     let shipper = g.ship_move.shipment_and_move_sequence.as_ref().unwrap().current_player(&g).expect("a shipper");
-    let f = g.player(shipper).faction;
-    let other = g.players.iter().map(|p| p.faction).find(|x| *x != f && *x != Faction::Guild).unwrap();
+    let f = g.player(shipper).faction.unwrap();
+    let other = g.players.iter().filter_map(|p| p.faction).find(|x| *x != f && *x != Faction::Guild).unwrap();
     ally(&mut g, f, other);
     let pally = idx(&g, other);
     let to = Shipment::valid_shipment_locations(&g, shipper, false, false).find(|l| l.territory().is_stronghold()).expect("a stronghold to ship to");
@@ -334,7 +334,7 @@ fn an_ally_pays_for_a_shipment_only_spice_it_has_and_offered() {
 /// A revival fixture and a faction other than the Tleilaxu that may revive, given 30 spice.
 fn revival_fixture(name: &str) -> (Game, PlayerIndex) {
     let mut g = fixture(name);
-    let candidates: Vec<PlayerIndex> = g.player_indices().filter(|p| g.player(*p).faction != Faction::Tleilaxu).collect();
+    let candidates: Vec<PlayerIndex> = g.player_indices().filter(|p| g.player(*p).faction != Some(Faction::Tleilaxu)).collect();
     let p = candidates
         .into_iter()
         .find(|p| {

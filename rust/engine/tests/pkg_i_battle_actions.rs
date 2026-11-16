@@ -13,7 +13,7 @@ fn outcome<R>(f: impl FnOnce() -> R) -> Result<R, String> {
 fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();
     for f in factions {
-        let p = Player::new(*f);
+        let p = Player::new(Some(*f));
         g.players.push(p);
     }
     g
@@ -29,7 +29,7 @@ fn card_of(t: TreacheryCardType, nth: usize) -> TreacheryCard {
 
 fn battle(g: &Game, initiator: Faction, target: Faction) -> Rc<BattleInitiated> {
     let mut b = BattleInitiated::new(g, initiator);
-    b.target = target;
+    b.target = Some(target);
     // A plain sand territory (not a homeworld).
     let t = g.board.map.territories(false).find(|t| !t.is_homeworld() && !t.is_stronghold()).unwrap();
     b.territory_id = t.id();
@@ -112,7 +112,7 @@ fn may_call_face_dancer_distinguishes_null_and_none_winner() {
     assert!(!FaceDanced::may_call_face_dancer(&g, tleilaxu));
     g.battle.current_battle = Some(battle(&g, Faction::Emperor, Faction::Atreides));
     // BattleWinner == Faction.None
-    g.battle.battle_winner = Some(Faction::None);
+    g.battle.battle_winner = Some(None);
     assert!(!FaceDanced::may_call_face_dancer(&g, tleilaxu));
 
     // Emperor wins with a leader that is one of Tleilaxu's face dancers.
@@ -120,7 +120,7 @@ fn may_call_face_dancer_distinguishes_null_and_none_winner() {
     let mut p = Battle::new(&g, Faction::Emperor);
     p.hero_id = emperor_leader.id();
     g.battle.aggressor_plan = Some(Rc::new(p));
-    g.battle.battle_winner = Some(Faction::Emperor);
+    g.battle.battle_winner = Some(Some(Faction::Emperor));
     g.player_mut(tleilaxu).face_dancers.push(Hero::Leader(emperor_leader));
     assert!(FaceDanced::may_call_face_dancer(&g, tleilaxu));
     // A revealed face dancer can't be called again.
@@ -169,7 +169,7 @@ fn juice_valid_types_with_null_battle_winner() {
     g.battle.current_battle = Some(battle(&g, Faction::Emperor, Faction::Atreides));
     g.battle.battle_winner = None;
     assert_eq!(JuicePlayed::valid_types(&g, emperor), vec![JuiceType::GoLast]);
-    g.battle.battle_winner = Some(Faction::None);
+    g.battle.battle_winner = Some(None);
     assert_eq!(JuicePlayed::valid_types(&g, emperor), vec![JuiceType::Aggressor, JuiceType::GoLast]);
     g.battle.current_battle = None;
     assert_eq!(JuicePlayed::valid_types(&g, emperor), vec![JuiceType::GoFirst, JuiceType::GoLast]);

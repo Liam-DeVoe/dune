@@ -51,10 +51,10 @@ impl Hero {
         }
     }
 
-    pub fn faction(self) -> Faction {
+    pub fn faction(self) -> Option<Faction> {
         match self {
-            Hero::Leader(l) => l.faction(),
-            Hero::Messiah => Messiah::FACTION,
+            Hero::Leader(l) => Some(l.faction()),
+            Hero::Messiah => Some(Messiah::FACTION),
             Hero::TreacheryCard(c) => c.faction(),
         }
     }
@@ -83,10 +83,11 @@ impl Hero {
         }
     }
 
-    pub fn is(self, f: Faction) -> bool {
+    pub fn is(self, f: impl Into<Option<Faction>>) -> bool {
+        let f: Option<Faction> = f.into();
         match self {
             Hero::Leader(l) => l.is(f),
-            Hero::Messiah => Messiah::FACTION == f,
+            Hero::Messiah => Some(Messiah::FACTION) == f,
             Hero::TreacheryCard(c) => c.is(f),
         }
     }

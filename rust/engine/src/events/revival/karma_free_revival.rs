@@ -23,9 +23,9 @@ impl Default for KarmaFreeRevival {
 }
 
 impl KarmaFreeRevival {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -53,7 +53,7 @@ impl KarmaFreeRevival {
         if self.amount_of_special_forces > 1 {
             return Some(express!("You can only revive one ", pl.special_force(), " per turn"));
         }
-        if self.amount_of_special_forces > 0 && game.revival.factions_that_revived_special_forces_this_turn.contains(&self.initiator()) {
+        if self.amount_of_special_forces > 0 && game.revival.factions_that_revived_special_forces_this_turn.contains_opt(self.initiator()) {
             return Some(express!("You already revived one ", pl.special_force(), " this turn."));
         }
         if (self.amount_of_forces + self.amount_of_special_forces) > 0 && self.hero().is_some() {
@@ -83,7 +83,7 @@ impl KarmaFreeRevival {
             self.log(game);
         } else {
             let mut row = RevivalRow::new(
-                self.initiator(),
+                self.initiator().required("faction")?,
                 if hero.is_none() { self.amount_of_forces } else { 0 },
                 if hero.is_none() { self.amount_of_special_forces } else { 0 },
                 0,
@@ -109,7 +109,7 @@ impl KarmaFreeRevival {
             Player::revive_special_forces(game, me, self.amount_of_special_forces);
 
             if self.amount_of_special_forces > 0 {
-                game.revival.factions_that_revived_special_forces_this_turn.push(self.initiator());
+                game.revival.factions_that_revived_special_forces_this_turn.push(self.initiator().required("faction")?);
             }
         }
         Ok(())

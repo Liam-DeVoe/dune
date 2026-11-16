@@ -4,7 +4,8 @@
 use std::time::Duration;
 
 use serde_json::{json, Value};
-use treachery_engine::enumerations::{Faction, MainPhase};
+use treachery_engine::enumerations::MainPhase;
+use treachery_engine::enum_type::value_or_absent;
 use treachery_engine::events::GameEvent;
 use treachery_engine::game::GameStatus;
 use treachery_engine::json::FromJson;
@@ -29,8 +30,8 @@ impl Server {
         let running = &self.games[&game];
         let (g, participation) = (&running.game, &running.participation);
         let as_host = participation.is_host(user);
-        let faction = participation.player_of(g, user).map_or(Faction::None, |p| g.player(p).faction);
-        event.insert("Initiator".into(), json!(faction.0));
+        let faction = participation.player_of(g, user).map_or(None, |p| g.player(p).faction);
+        event.insert("Initiator".into(), json!(value_or_absent(faction)));
         event.remove("Time");
         match event.get("$type").and_then(Value::as_str) {
             Some("EstablishPlayers") => {

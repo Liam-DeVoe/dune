@@ -21,9 +21,9 @@ impl Default for BeneGesseritAccompanies {
 }
 
 impl BeneGesseritAccompanies {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -68,7 +68,7 @@ impl BeneGesseritAccompanies {
             }
 
             let m = express!(self.initiator(), " accompany to ", location)
-                .with_route(self.initiator(), Vec::<Location>::new(), Some(location))
+                .with_route(self.initiator().required("faction")?, Vec::<Location>::new(), Some(location))
                 .with_log(BeneGesseritReaction::new(BeneGesseritReactionKind::Accompany, location.into(), false));
             self.log_objects(game, vec![m.into()]);
             game.ship_move.last_shipment_or_movement = Some(self.clone().into_event());
@@ -99,7 +99,7 @@ impl BeneGesseritAccompanies {
             if !location.is_some_and(|l| BeneGesseritAccompanies::valid_targets(game, self.player()).contains(&l)) {
                 return Some(express!("You can't accompany there"));
             }
-            if self.initiator() != Faction::BeneGesserit {
+            if self.initiator() != Some(Faction::BeneGesserit) {
                 return Some(express!("You can't accompany shipments"));
             }
             let Some(location) = location else {
@@ -145,7 +145,7 @@ impl BeneGesseritAccompanies {
     }
 
     pub fn ally_prevents_accompanying_to_shipment_location(g: &Game, p: PlayerIndex) -> bool {
-        let ally = g.get_player(Some(g.player(p).ally));
+        let ally = g.get_player(g.player(p).ally);
 
         !g.applicable(Rule::AdvisorsDontConflictWithAlly)
             && ally.is_some_and(|a| {
@@ -190,7 +190,7 @@ impl GameEventMethods for BeneGesseritAccompanies {
 
 impl crate::events::location_event::LocationEvent for BeneGesseritAccompanies {
     fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self)
+        GameEventMethods::initiator(self).expect("faction")
     }
 
     fn to(&self, game: &Game) -> Option<Location> {

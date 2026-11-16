@@ -17,9 +17,9 @@ impl Default for ChoamMovePrevention {
 }
 
 impl ChoamMovePrevention {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -46,7 +46,7 @@ impl ChoamMovePrevention {
 
     pub fn can_be_played_by(g: &Game, p: PlayerIndex) -> bool {
         let pl = g.player(p);
-        pl.faction == Faction::Choam
+        pl.faction == Some(Faction::Choam)
             && !ChoamMovePrevention::valid_territories(g, p).next().is_none()
             && ((!g.prevented(FactionAdvantage::ChoamDiscarding) && ChoamMovePrevention::card_to_use(g, p).is_some())
                 || (NexusPlayed::can_use_cunning(g, p) && !pl.treachery_cards.is_empty()))
@@ -63,7 +63,7 @@ impl ChoamMovePrevention {
         if NexusPlayed::can_use_cunning(game, me) {
             game.discard_nexus_card(me);
             game.stone(Milestone::NexusPlayed);
-            game.let_player_discard_treachery_card_of_choice(self.initiator());
+            game.let_player_discard_treachery_card_of_choice(self.initiator().required("faction")?);
         } else {
             let card = ChoamMovePrevention::card_to_use(game, me);
             game.discard_card(card, true)?;

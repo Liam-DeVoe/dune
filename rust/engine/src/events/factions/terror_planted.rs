@@ -22,9 +22,9 @@ impl Default for TerrorPlanted {
 }
 
 impl TerrorPlanted {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -86,7 +86,7 @@ impl TerrorPlanted {
 
     pub fn may_place_at_existing_token(game: &Game, p: PlayerIndex) -> bool {
         game.player(p).has_high_threshold(game, World::Moritani)
-            || (game.player(p).nexus == Faction::Moritani && NexusPlayed::can_use_cunning(game, p))
+            || (game.player(p).nexus == Some(Faction::Moritani) && NexusPlayed::can_use_cunning(game, p))
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.

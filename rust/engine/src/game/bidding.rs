@@ -20,10 +20,10 @@ pub struct BiddingState {
     pub number_of_cards_on_auction: i32,
     pub bidding_triggered_bureaucracy: Option<TriggeredBureaucracy>,
     pub ixian_swapped_card_on_bid: bool,
-    pub faction_that_may_replace_bought_card: Faction,
+    pub faction_that_may_replace_bought_card: Option<Faction>,
     pub replacing_bought_card_using_nexus: bool,
     pub karma_hand_swap_number_of_cards: i32,
-    pub karma_hand_swap_target: Faction,
+    pub karma_hand_swap_target: Option<Faction>,
     pub karma_hand_swap_paused_phase: Option<Phase>,
     pub black_market_auction_type: Option<AuctionType>,
     pub card_sold_on_black_market: Option<TreacheryCard>,
@@ -183,8 +183,8 @@ impl Game {
             g.skip_players_that_cant_bid(seq);
         });
         let initiator = GameEventMethods::initiator(&**bid);
-        self.bidding.bids.shift_remove(&initiator);
-        self.bidding.bids.insert_new(initiator, bid.clone().into_event());
+        self.bidding.bids.shift_remove_opt(initiator);
+        self.bidding.bids.insert_new(initiator.required("faction")?, bid.clone().into_event());
         let as_event = bid.clone().into_event();
         self.check_if_atreides_or_atreides_ally_passed_bid(&as_event);
 
@@ -207,7 +207,7 @@ impl Game {
         };
 
         let initiator = bid.bid_initiator();
-        if initiator == self.player(atreides).faction || initiator == self.player(atreides).ally {
+        if Some(initiator) == self.player(atreides).faction || Some(initiator) == self.player(atreides).ally {
             self.bidding.latest_bid_by_atreides_or_atreides_ally_was_passed = bid.bid_passed();
         }
     }
@@ -223,7 +223,7 @@ impl Game {
         }
     }
 
-    pub fn log_bid(&mut self, initiator: PlayerIndex, bid_amount: i32, bid_ally_contribution_amount: i32, bid_emperor_contribution_amount: i32, receiver_income: &MessagePart, paid_to: Faction, free: bool) {
+    pub fn log_bid(&mut self, initiator: PlayerIndex, bid_amount: i32, bid_ally_contribution_amount: i32, bid_emperor_contribution_amount: i32, receiver_income: &MessagePart, paid_to: Option<Faction>, free: bool) {
         let bid_total_amount = bid_amount + bid_ally_contribution_amount + bid_emperor_contribution_amount;
         // A Black Market card has no number.
         let card_number: Vec<ExpressionElement> = if self.bidding.current_auction_type == Some(AuctionType::Normal) {
@@ -246,7 +246,7 @@ impl Game {
         let record: Option<Rc<dyn LogRecord>> = if free {
             None
         } else {
-            Some(Rc::new(CardSold::new(self.bidding.card_number, initiator_faction, bid_total_amount, paid_to, shares, None)))
+            Some(Rc::new(CardSold::new(self.bidding.card_number, initiator_faction.expect("faction"), bid_total_amount, paid_to, shares, None)))
         };
 
         let mut expression = vec![ExpressionElement::from(initiator_faction)];
@@ -257,7 +257,7 @@ impl Game {
                 bid_ally_contribution_amount > 0 || bid_emperor_contribution_amount > 0;
                 " (",
                 Payment::of_by(bid_ally_contribution_amount, initiator_ally),
-                express_part_if!(bid_emperor_contribution_amount > 0; " and ", Payment::of_by(bid_emperor_contribution_amount, Faction::Emperor)),
+                express_part_if!(bid_emperor_contribution_amount > 0; " and ", Payment::of_by(bid_emperor_contribution_amount, Some(Faction::Emperor))),
                 ")"
             )),
             ExpressionElement::from(receiver_income.clone()),
@@ -275,7 +275,7 @@ impl Game {
     }
 
     pub fn log_bidding_to(&mut self, faction: Faction, record: Rc<dyn LogRecord>, expression: Vec<ExpressionElement>) {
-        let mut message = Message::express_to(faction, expression);
+        let mut message = Message::express_to(Some(faction), expression);
         if self.bidding.current_auction_type == Some(AuctionType::Normal) {
             message.log = Some(record);
         }
@@ -291,7 +291,7 @@ impl Game {
             self.log_bid(winner, bid_amount, bid_ally_contribution_amount, bid_emperor_contribution_amount, &receiver_income_message, paid_to, false);
         } else {
             self.play_nexus_card(winner, vec!["get this card for free".into()]);
-            self.log_bid(winner, 0, 0, 0, &receiver_income_message, Faction::None, true);
+            self.log_bid(winner, 0, 0, 0, &receiver_income_message, None, true);
         }
 
         self.stone(Milestone::AuctionWon);
@@ -299,7 +299,7 @@ impl Game {
         self.register_won_card_as_known(card);
         self.player_mut(winner).treachery_cards.push(card);
         let winner_faction = self.player(winner).faction;
-        self.log_bidding_to(winner_faction, Rc::new(CardWonShown::new(card)), vec!["You won: ".into(), card.into()]);
+        self.log_bidding_to(winner_faction.required("faction")?, Rc::new(CardWonShown::new(card)), vec!["You won: ".into(), card.into()]);
         self.give_player_extra_card_if_applicable(winner);
         Ok(card)
     }
@@ -324,8 +324,8 @@ impl Game {
         }
     }
 
-    pub fn pay_for_card(&mut self, initiator: PlayerIndex, bid: &GameEvent, bid_amount: i32, bid_ally_contribution_amount: i32, bid_emperor_contribution_amount: i32, payment_receiver: Faction, message: &mut MessagePart) -> GameResult<Faction> {
-        let mut paid_to = Faction::None;
+    pub fn pay_for_card(&mut self, initiator: PlayerIndex, bid: &GameEvent, bid_amount: i32, bid_ally_contribution_amount: i32, bid_emperor_contribution_amount: i32, payment_receiver: Faction, message: &mut MessagePart) -> GameResult<Option<Faction>> {
+        let mut paid_to = None;
         {
             let p = self.player_mut(initiator);
             p.resources -= bid_amount;
@@ -340,7 +340,7 @@ impl Game {
                 a.resources -= bid_ally_contribution_amount;
             }
             let initiator_faction = self.player(initiator).faction;
-            self.decrease_permitted_use_of_ally_spice(initiator_faction, bid_ally_contribution_amount);
+            self.decrease_permitted_use_of_ally_spice(initiator_faction.required("faction")?, bid_ally_contribution_amount);
         }
 
         if bid_emperor_contribution_amount > 0 {
@@ -350,7 +350,7 @@ impl Game {
         }
 
         let receiver = self.get_player(Some(payment_receiver));
-        let receiver_and_ally_are_richese = self.player(initiator).ally == Faction::Richese && payment_receiver == Faction::Richese;
+        let receiver_and_ally_are_richese = self.player(initiator).ally == Some(Faction::Richese) && payment_receiver == Faction::Richese;
         let total_amount = bid_amount + if receiver_and_ally_are_richese { 0 } else { bid_ally_contribution_amount };
 
         let emperor = self.get_player(Some(Faction::Emperor));
@@ -374,7 +374,7 @@ impl Game {
 
             if total_amount_received_by_emperor_instead_of_richese >= 5 {
                 //This should also take into account payments received by an occupier
-                self.bidding.bidding_triggered_bureaucracy = Some(TriggeredBureaucracy { payment_from: Faction::Richese, payment_to: Faction::Emperor });
+                self.bidding.bidding_triggered_bureaucracy = Some(TriggeredBureaucracy { payment_from: Some(Faction::Richese), payment_to: Some(Faction::Emperor) });
             }
 
             // C# parity: records a recent payment of receiverProfit while it is still 0.
@@ -383,7 +383,7 @@ impl Game {
             self.set_recent_payment(receiver_profit, initiator_faction, receiver_faction, bid);
         }
 
-        if receiver.is_some() && self.player(initiator).faction != payment_receiver {
+        if receiver.is_some() && self.player(initiator).faction != Some(payment_receiver) {
             let receiver = receiver.expect("receiver");
             if payment_receiver == Faction::Emperor && self.prevented(FactionAdvantage::EmperorReceiveBid) {
                 *message = express_part!(" → ", payment_receiver, " do not receive ", Concept::Resource, " for this card");
@@ -412,7 +412,7 @@ impl Game {
                 if receiver_profit >= 5 {
                     //This should also take into account payments received by an occupier
                     let initiator_faction = self.player(initiator).faction;
-                    self.bidding.bidding_triggered_bureaucracy = Some(TriggeredBureaucracy { payment_from: initiator_faction, payment_to: payment_receiver });
+                    self.bidding.bidding_triggered_bureaucracy = Some(TriggeredBureaucracy { payment_from: initiator_faction, payment_to: Some(payment_receiver) });
                 }
 
                 let initiator_faction = self.player(initiator).faction;
@@ -420,7 +420,7 @@ impl Game {
             }
         } else if total_amount_received_by_emperor_instead_of_richese > 0 {
             *message = express_part!(" → ", Faction::Emperor, " get ", Payment::of(total_amount_received_by_emperor_instead_of_richese));
-            paid_to = Faction::Emperor;
+            paid_to = Some(Faction::Emperor);
         }
 
         if (total_amount - receiver_profit - total_amount_received_by_emperor_instead_of_richese) >= 4 {
@@ -461,8 +461,8 @@ impl Game {
                 if let Some(extra_card) = extra_card {
                     self.player_mut(receiver).treachery_cards.push(extra_card);
                     let receiver_faction = self.player(receiver).faction;
-                    self.log_bidding(Some(Rc::new(ExtraCardReceived::new(receiver_faction))), vec![receiver_faction.into(), " receive an extra treachery card".into()]);
-                    self.log_bidding_to(receiver_faction, Rc::new(ExtraCardShown::new(extra_card)), vec!["Your extra card is: ".into(), extra_card.into()]);
+                    self.log_bidding(Some(Rc::new(ExtraCardReceived::new(receiver_faction.expect("faction")))), vec![receiver_faction.into(), " receive an extra treachery card".into()]);
+                    self.log_bidding_to(receiver_faction.expect("faction"), Rc::new(ExtraCardShown::new(extra_card)), vec!["Your extra card is: ".into(), extra_card.into()]);
 
                     if extra_card_must_be_decided_about {
                         self.bidding.card_that_must_be_kept_or_given_to_ally = Some(extra_card);
@@ -521,7 +521,7 @@ impl Game {
         self.bidding.winning_bid = winning_bid.cloned();
         self.bidding.card_sold_on_black_market = None;
         self.bidding.current_bid = None;
-        self.bidding.faction_that_may_replace_bought_card = Faction::None;
+        self.bidding.faction_that_may_replace_bought_card = None;
         self.bidding.latest_bid_by_atreides_or_atreides_ally_was_passed = false;
 
         self.bidding.bids.clear();
@@ -530,11 +530,11 @@ impl Game {
             self.allow(FactionAdvantage::AtreidesBiddingPrescience);
         }
 
-        let mut enter_replacing_card_just_won = might_replace && self.player(winner.expect("winner")).nexus != Faction::None;
+        let mut enter_replacing_card_just_won = might_replace && self.player(winner.expect("winner")).nexus != None;
 
         if might_replace {
             let winner = winner.expect("winner");
-            if self.player(winner).ally == Faction::Ixian
+            if self.player(winner).ally == Some(Faction::Ixian)
                 && self.alliances.ixian_allows_replacing_cards
                 && !matches!(self.bidding.current_auction_type, Some(AuctionType::RicheseSilent) | Some(AuctionType::RicheseOnceAround))
             {
@@ -700,14 +700,14 @@ impl Game {
 
     pub fn nexus_allows_replacing_bought_cards(&self, p: PlayerIndex) -> bool {
         let nexus = self.player(p).nexus;
-        nexus == Faction::Ixian && NexusPlayed::can_use_secret_ally(self, p)
+        nexus == Some(Faction::Ixian) && NexusPlayed::can_use_secret_ally(self, p)
     }
 
     pub fn has_bid_to_pay(&self, p: PlayerIndex) -> bool {
         match &self.bidding.current_bid {
             Some(current_bid) if self.turn.current_phase == Phase::Bidding => {
-                current_bid.bid_initiator() == self.player(p).faction
-                    || (current_bid.bid_initiator() == self.player(p).ally && current_bid.bid_ally_contribution_amount() > 0)
+                Some(current_bid.bid_initiator()) == self.player(p).faction
+                    || (Some(current_bid.bid_initiator()) == self.player(p).ally && current_bid.bid_ally_contribution_amount() > 0)
             }
             _ => false,
         }

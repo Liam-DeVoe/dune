@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct PlayerReplaced {
-    pub to_replace: Faction,
+    pub to_replace: Option<Faction>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -17,9 +17,9 @@ impl Default for PlayerReplaced {
 }
 
 impl PlayerReplaced {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -29,11 +29,11 @@ impl PlayerReplaced {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_targets(g: &Game) -> impl Iterator<Item = Faction> {
-        g.players.iter().map(move |p| p.faction)
+        g.players.iter().filter_map(move |p| p.faction)
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let player = self.get_player(game, Some(self.to_replace));
+        let player = self.get_player(game, self.to_replace);
         // IsBot(null) reads p.Seat: NullReferenceException.
         let is_bot = game.is_bot(player.required("player")?);
         let message = express!(self.to_replace, " will now be played by a ", if is_bot { "Bot" } else { "Human" })

@@ -29,9 +29,9 @@ impl Default for EstablishPlayers {
 }
 
 impl EstablishPlayers {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -49,7 +49,8 @@ impl EstablishPlayers {
             None | Some("") => Vec::new(),
             Some(s) => s
                 .split(',')
-                .map(|part| Faction(dotnet_compat::parse::enum_parse(Some(part), Faction::INFO.declared)))
+                // "None" and numbers that name no faction are left out.
+                .filter_map(|part| <Faction as crate::enum_type::GameEnum>::from_value(dotnet_compat::parse::enum_parse(Some(part), Faction::INFO.declared)))
                 .collect(),
         }
     }
@@ -294,7 +295,7 @@ impl EstablishPlayers {
     /// validation can get here with claimed factions. The settings' list and the game's list were
     /// one object in the C# engine, so both lose the faction. The event's own settings don't.
     pub fn remove_claimed_factions(&self, game: &mut Game) {
-        let claimed: Vec<Faction> = game.players.iter().filter(|p| !p.is(Faction::None)).map(|p| p.faction).collect();
+        let claimed: Vec<Faction> = game.players.iter().filter(|p| !p.is(None)).filter_map(|p| p.faction).collect();
         for f in claimed {
             let settings = game.rules.settings.as_mut().expect("settings");
             for list in [settings.allowed_factions_in_play.as_mut().expect("allowed factions in play"), &mut game.rules.factions_in_play] {
@@ -340,7 +341,7 @@ impl EstablishPlayers {
 
     pub fn fill_seats(&self, game: &mut Game) {
         while (game.players.len() as i32) < game.rules.settings.as_ref().expect("settings").number_of_players {
-            let player = Player::new(Faction::None);
+            let player = Player::new(None);
             game.players.push(player);
         }
     }

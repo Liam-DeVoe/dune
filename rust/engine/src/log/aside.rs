@@ -7,14 +7,6 @@ pub struct AsideLog {
     pub kind: AsideKind,
 }
 
-impl Default for AsideLog {
-    fn default() -> Self {
-        AsideLog {
-            kind: Default::default(),
-        }
-    }
-}
-
 impl AsideLog {
     pub fn new(kind: AsideKind) -> Self {
         AsideLog { kind }

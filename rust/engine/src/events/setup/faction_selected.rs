@@ -4,7 +4,7 @@ use crate::prelude::*;
 pub struct FactionSelected {
     pub initiator_player_name: Option<String>,
     pub seat: i32,
-    pub faction: Faction,
+    pub faction: Option<Faction>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -23,12 +23,12 @@ impl Default for FactionSelected {
 impl FactionSelected {
     pub fn new(game: &Game) -> Self {
         let e = Self::default();
-        e.initialize(game, Faction::None);
+        e.initialize(game, None);
         e
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if self.faction != Faction::None && !Self::valid_factions(game).any(|v| v == self.faction) {
+        if self.faction != None && !Self::valid_factions(game).any(|v| Some(v) == self.faction) {
             return Some(express!("Faction not available"));
         }
 
@@ -39,7 +39,7 @@ impl FactionSelected {
     pub fn valid_factions(g: &Game) -> impl Iterator<Item = Faction> {
         // The list is shared (RefCell), so take its items now. Nothing changes it while a caller enumerates.
         let factions: Vec<Faction> = g.rules.factions_in_play.clone();
-        factions.into_iter().filter(move |f| g.players.iter().all(|p| p.faction != *f))
+        factions.into_iter().filter(move |f| g.players.iter().all(|p| p.faction != Some(*f)))
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {

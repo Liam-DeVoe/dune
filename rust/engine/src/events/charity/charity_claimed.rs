@@ -15,9 +15,9 @@ impl Default for CharityClaimed {
 }
 
 impl CharityClaimed {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -32,7 +32,7 @@ impl CharityClaimed {
 
     pub fn can_be_played(game: &Game, player: PlayerIndex) -> bool {
         game.player(player).resources <= 1
-            && !game.turn.has_acted_or_passed.contains(&game.player(player).faction)
+            && !game.turn.has_acted_or_passed.contains_opt(game.player(player).faction)
             && !game.charity_is_cancelled()
     }
 

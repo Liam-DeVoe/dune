@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct DealAccepted {
-    pub bound_faction: Faction,
+    pub bound_faction: Option<Faction>,
     pub type_: DealType,
     pub deal_parameter1: Option<String>,
     pub deal_parameter2: Option<String>,
@@ -31,9 +31,9 @@ impl Default for DealAccepted {
 }
 
 impl DealAccepted {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -42,7 +42,7 @@ impl DealAccepted {
             return Some(express!("You currently have an outstanding bid"));
         }
 
-        let bound_player = game.get_player(Some(self.bound_faction));
+        let bound_player = game.get_player(self.bound_faction);
         if bound_player.is_some() && !DealAccepted::may_deal(game, bound_player, self.benefit) {
             return Some(express!(self.bound_faction, " currently have an outstanding bid"));
         }
@@ -97,7 +97,7 @@ impl DealAccepted {
             && offer.initiator() != pl.ally
             && {
                 let to = offer.to.as_ref().expect("destination");
-                to.len() == 0 || to.contains(&pl.faction)
+                to.len() == 0 || to.contains_opt(pl.faction)
             }
             && !g.has_responded_to_deal(offer, pl.faction)
             && (g.charity.economics_status != Some(ChoamEconomicsStatus::Double) || (offer.benefit == 0 && offer.price == 0))
@@ -133,7 +133,7 @@ impl DealAccepted {
         };
 
         if let Some(offer) = offer {
-            game.record_deal_response(&offer, self.initiator(), true);
+            game.record_deal_response(&offer, self.initiator().required("faction")?, true);
 
             let new_deal = Deal {
                 bound_faction: offer.initiator(),
@@ -147,7 +147,7 @@ impl DealAccepted {
             };
 
             game.start_deal(&new_deal);
-            let offer_initiator = self.get_player(game, Some(offer.initiator()));
+            let offer_initiator = self.get_player(game, offer.initiator());
 
             if let Some(offer_initiator) = offer_initiator {
                 if self.price > 0 {
@@ -190,7 +190,7 @@ impl DealAccepted {
             );
             self.log_to(
                 game,
-                self.initiator(),
+                self.initiator().expect("faction"),
                 vec![
                     offer.initiator().into(),
                     " discarded: ".into(),

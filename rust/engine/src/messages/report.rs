@@ -10,13 +10,13 @@ pub struct Report {
     /// The value of `Game.CurrentTurn` when this report was started (0 for the setup report).
     pub turn: i32,
     /// Only set on a report that covers a single battle (started by BattleInitiated).
-    pub aggressor: Faction,
-    pub defender: Faction,
+    pub aggressor: Option<Faction>,
+    pub defender: Option<Faction>,
     pub territory: Option<Territory>,
     /// Set once the battle outcome is resolved. `battle_winner` stays
-    /// `Faction::None` when nobody won.
+    /// `None` when nobody won.
     pub battle_decided: bool,
-    pub battle_winner: Faction,
+    pub battle_winner: Option<Faction>,
     /// Only appended to and enumerated.
     pub messages: Vec<Message>,
 }
@@ -26,17 +26,17 @@ impl Report {
         Report {
             about,
             turn,
-            aggressor: Faction::None,
-            defender: Faction::None,
+            aggressor: None,
+            defender: None,
             territory: None,
             battle_decided: false,
-            battle_winner: Faction::None,
+            battle_winner: None,
             messages: Vec::new(),
         }
     }
 
     pub fn is_battle(&self) -> bool {
-        self.aggressor != Faction::None
+        self.aggressor != None
     }
 
     pub fn express(&mut self, list: Vec<ExpressionElement>) {
@@ -44,7 +44,7 @@ impl Report {
     }
 
     pub fn express_to(&mut self, to: Faction, list: Vec<ExpressionElement>) {
-        self.add(Message::express_to(to, list));
+        self.add(Message::express_to(Some(to), list));
     }
 
     pub fn express_message(&mut self, m: Message) {

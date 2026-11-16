@@ -23,9 +23,9 @@ impl Default for PerformFremenSetup {
 }
 
 impl PerformFremenSetup {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -124,7 +124,7 @@ impl PlacementEventMethods for PerformFremenSetup {
 
 impl crate::events::location_event::LocationEvent for PerformFremenSetup {
     fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self)
+        GameEventMethods::initiator(self).expect("faction")
     }
 
     fn to(&self, game: &Game) -> Option<Location> {
@@ -147,7 +147,7 @@ impl crate::events::location_event::LocationEvent for PerformFremenSetup {
 
 impl crate::events::placement::Placement for PerformFremenSetup {
     fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self)
+        GameEventMethods::initiator(self).expect("faction")
     }
 
     fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {

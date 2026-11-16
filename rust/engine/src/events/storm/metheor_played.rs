@@ -15,9 +15,9 @@ impl Default for MetheorPlayed {
 }
 
 impl MetheorPlayed {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -49,7 +49,7 @@ impl MetheorPlayed {
 
             //checks locations that are in a territory adjacent to the shield wall (but may be further away and separated by storm)
             if g.board.map
-                .find_neighbours(shieldwall_location, 1, false, pl.faction, g, false)
+                .find_neighbours(shieldwall_location, 1, false, pl.faction.expect("faction"), g, false)
                 .iter()
                 .any(|l| pl.occupies(g, Some(*l)))
             {
@@ -69,7 +69,7 @@ impl MetheorPlayed {
             crate::iter::remove_first(&mut game.player_mut(me).treachery_cards, &card);
         }
         game.decks.removed_treachery_cards.push(card.required("a Metheor card")?);
-        let m = self.get_message(game).with_log(FamilyAtomicsUsed { faction: self.initiator(), card });
+        let m = self.get_message(game).with_log(FamilyAtomicsUsed { faction: self.initiator().required("faction")?, card });
         self.log_objects(game, vec![m.into()]);
 
         for i in 0..game.players.len() {
@@ -98,7 +98,7 @@ impl MetheorPlayed {
                     " forces on the ",
                     game.board.map.shield_wall()
                 )
-                .with_log(FamilyAtomicsKilled { faction, forces, special_forces });
+                .with_log(FamilyAtomicsKilled { faction: faction.required("faction")?, forces, special_forces });
                 self.log_objects(game, vec![m.into()]);
             }
         }

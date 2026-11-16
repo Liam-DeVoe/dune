@@ -6,7 +6,7 @@ use treachery_engine::prelude::*;
 fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();
     for f in factions {
-        let p = Player::new(*f);
+        let p = Player::new(Some(*f));
         g.players.push(p);
     }
     g
@@ -16,7 +16,7 @@ fn game_with(factions: &[Faction]) -> Game {
 fn fremen_with_dangling_ally() -> (Game, PlayerIndex) {
     let mut g = game_with(&[Faction::Fremen]);
     let y = g.get_player(Some(Faction::Fremen)).unwrap();
-    g.player_mut(y).ally = Faction::Atreides;
+    g.player_mut(y).ally = Some(Faction::Atreides);
     g.board.sector_in_storm = 5;
     (g, y)
 }
@@ -47,6 +47,6 @@ fn rides_valid_targets_later_location_throws_in_both() {
 #[test]
 fn rides_valid_targets_count_without_ally() {
     let (mut g, y) = fremen_with_dangling_ally();
-    g.player_mut(y).ally = Faction::None;
+    g.player_mut(y).ally = None;
     assert_eq!(FremenRidesMonster::valid_targets(&g, y).count(), 82);
 }

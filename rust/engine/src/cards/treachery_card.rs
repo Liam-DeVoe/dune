@@ -52,7 +52,7 @@ impl TreacheryCard {
     }
 
     #[track_caller]
-    pub fn is(self, _f: Faction) -> bool {
+    pub fn is(self, _f: impl Into<Option<Faction>>) -> bool {
         false
     }
 
@@ -62,8 +62,8 @@ impl TreacheryCard {
     }
 
     #[track_caller]
-    pub fn faction(self) -> Faction {
-        Faction::None
+    pub fn faction(self) -> Option<Faction> {
+        None
     }
 
     #[track_caller]

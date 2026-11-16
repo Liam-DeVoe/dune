@@ -18,7 +18,7 @@ use crate::describe::Describer;
 use crate::expr;
 use crate::schema::*;
 use crate::shield::hero_ref;
-use super::widgets::{picker, required, faction_options, hero_options, draft_json, describe};
+use super::widgets::{picker, required_opt, faction_options, hero_options, draft_json, describe};
 
 /// The event types this module builds forms for.
 pub const TYPES: [GameEventType; 8] = [
@@ -47,8 +47,8 @@ fn format(d: &dyn Describer, m: &str, args: &[ExpressionElement]) -> String {
 
 /// The first draft of the form, before the player touches it: its starting inputs, adjusted.
 /// `None` for event types of other modules.
-pub fn default_draft(game: &Game, faction: Faction, t: GameEventType) -> Option<GameEvent> {
-    let p = game.get_player(Some(faction))?;
+pub fn default_draft(game: &Game, faction: Option<Faction>, t: GameEventType) -> Option<GameEvent> {
+    let p = game.get_player(faction)?;
     let draft = match t {
         GameEventType::Revival => {
             let mut e = Revival::new(game, faction);
@@ -108,7 +108,7 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
     match draft {
         GameEvent::Revival(e) => {
             let mut e = (**e).clone();
-            if !(pl.nexus == Faction::Emperor && NexusPlayed::can_use_secret_ally(game, p)) {
+            if !(pl.nexus == Some(Faction::Emperor) && NexusPlayed::can_use_secret_ally(game, p)) {
                 e.uses_emperor_secret_ally = false;
             }
             let max_forces = Revival::valid_max_revivals(game, p, false, e.uses_emperor_secret_ally);
@@ -166,13 +166,13 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
         GameEvent::KarmaRevivalPrevention(e) => {
             let mut e = (**e).clone();
             let targets: Vec<Faction> = KarmaRevivalPrevention::get_valid_targets(game, p).collect();
-            e.target = required(e.target, &targets, Faction::None);
+            e.target = required_opt(e.target, &targets);
             event(e)
         }
         GameEvent::ChoamFreeRevivalPrevention(e) => {
             let mut e = (**e).clone();
             let targets: Vec<Faction> = game.players_other_than(p).collect();
-            e.target = required(e.target, &targets, Faction::None);
+            e.target = required_opt(e.target, &targets);
             event(e)
         }
         GameEvent::RequestTleilaxuRevival(e) => {
@@ -253,7 +253,7 @@ fn options(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) ->
                 e.uses_emperor_secret_ally,
             );
             ActionOptions::Revival(RevivalOptions {
-                may_use_secret_ally: pl.nexus == Faction::Emperor && NexusPlayed::can_use_secret_ally(game, p),
+                may_use_secret_ally: pl.nexus == Some(Faction::Emperor) && NexusPlayed::can_use_secret_ally(game, p),
                 max_forces: Revival::valid_max_revivals(game, p, false, e.uses_emperor_secret_ally),
                 max_special_forces: Revival::valid_max_revivals(game, p, true, e.uses_emperor_secret_ally),
                 max_by_emperor: Revival::valid_max_revivals_by_emperor(game, p),
@@ -263,7 +263,7 @@ fn options(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) ->
                 heroes: hero_options(Revival::valid_revival_heroes(game, p)),
                 may_assign_skill: e.hero().is_some_and(|h| Revival::may_assign_skill(game, p, Some(h))),
                 cost_for_player: cost.total_cost_for_player(),
-                cost_for_emperor: (pl.ally == Faction::Emperor).then_some(cost.cost_for_emperor),
+                cost_for_emperor: (pl.ally == Some(Faction::Emperor)).then_some(cost.cost_for_emperor),
                 draft: json,
             })
         }

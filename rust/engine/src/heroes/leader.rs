@@ -49,8 +49,9 @@ impl Leader {
         self.data().hero_type
     }
 
-    pub fn is(self, f: Faction) -> bool {
-        self.faction() == f
+    pub fn is(self, f: impl Into<Option<Faction>>) -> bool {
+        let f: Option<Faction> = f.into();
+        Some(self.faction()) == f
     }
 
     pub fn value_in_combat_against(self, opposing_hero: Option<Hero>) -> i32 {

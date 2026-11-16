@@ -19,9 +19,9 @@ impl Default for SetShipmentPermission {
 }
 
 impl SetShipmentPermission {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -46,7 +46,7 @@ impl SetShipmentPermission {
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Faction> {
         // `p.Faction` is read inside the predicate, per element.
-        g.players.iter().filter(move |x| x.faction != g.player(p).faction).map(|x| x.faction)
+        g.players.iter().filter(move |x| x.faction != g.player(p).faction).filter_map(|x| x.faction)
     }
 
     pub fn is_applicable(g: &Game, p: PlayerIndex) -> bool {
@@ -74,7 +74,8 @@ impl SetShipmentPermission {
         // A Faction[] is one message element (a value-type array is not spread).
         let factions: ExpressionElement = match &self.factions {
             Some(f) => ExpressionElement::array(f.iter().copied()),
-            None => ExpressionElement::from(Option::<Faction>::None),
+            // A null array, which the log prints as nothing.
+            None => ExpressionElement::Null,
         };
         if self.permission == ShipmentPermission::NONE {
             return express!(self.initiator(), " → ", factions, ": all permissions revoked");

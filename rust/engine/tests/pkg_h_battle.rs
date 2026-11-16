@@ -6,7 +6,7 @@ use treachery_engine::prelude::*;
 fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();
     for f in factions {
-        let p = Player::new(*f);
+        let p = Player::new(Some(*f));
         g.players.push(p);
     }
     g
@@ -98,7 +98,7 @@ fn winner_hero_with_null_battle_winner() {
     g.battle.defender_plan = Some(Rc::new(d));
     assert_eq!(g.winner_hero(), Some(Hero::Leader(LeaderManager::get_leaders(Faction::Atreides).next().unwrap())));
     assert!(g.winner_battle_action().is_none());
-    g.battle.battle_winner = Some(Faction::None);
+    g.battle.battle_winner = Some(None);
     assert_eq!(g.winner_hero(), None);
 }
 
@@ -106,7 +106,7 @@ fn winner_hero_with_null_battle_winner() {
 fn battle_revision_moves_the_plan_aside() {
     let mut g = game_with(&[Faction::Emperor, Faction::Atreides]);
     let mut b = BattleInitiated::new(&g, Faction::Emperor);
-    b.target = Faction::Atreides;
+    b.target = Some(Faction::Atreides);
     g.battle.current_battle = Some(Rc::new(b));
     let p = plan(&g, Faction::Atreides);
     g.battle.defender_plan = Some(p.clone());
@@ -128,26 +128,26 @@ fn battle_revision_without_battle_fails() {
 fn aggressor_by_juice_swaps_roles() {
     let mut g = game_with(&[Faction::Emperor, Faction::Atreides]);
     let mut b = BattleInitiated::new(&g, Faction::Emperor);
-    b.target = Faction::Atreides;
-    assert_eq!(b.aggressor(&g), Faction::Emperor);
-    assert_eq!(b.defender(&g), Faction::Atreides);
+    b.target = Some(Faction::Atreides);
+    assert_eq!(b.aggressor(&g), Some(Faction::Emperor));
+    assert_eq!(b.defender(&g), Some(Faction::Atreides));
 
     let mut j = JuicePlayed::new(&g, Faction::Atreides);
     j.type_ = Some(JuiceType::Aggressor);
     g.turn.current_juice = Some(Rc::new(j));
-    assert_eq!(b.aggressor(&g), Faction::Atreides);
-    assert_eq!(b.defender(&g), Faction::Emperor);
-    assert!(BattleInitiated::is_aggressor_by_juice(&g, Faction::Atreides));
+    assert_eq!(b.aggressor(&g), Some(Faction::Atreides));
+    assert_eq!(b.defender(&g), Some(Faction::Emperor));
+    assert!(BattleInitiated::is_aggressor_by_juice(&g, Some(Faction::Atreides)));
 }
 
 #[test]
 fn opponent_and_plan_lookups() {
     let mut g = game_with(&[Faction::Emperor, Faction::Atreides, Faction::Fremen]);
     // OpponentOf reads p.Ally (BattleInitiated.cs:124), so the alliance must be set on both sides.
-    g.player_mut(idx(&g, Faction::Atreides)).ally = Faction::Fremen;
-    g.player_mut(idx(&g, Faction::Fremen)).ally = Faction::Atreides;
+    g.player_mut(idx(&g, Faction::Atreides)).ally = Some(Faction::Fremen);
+    g.player_mut(idx(&g, Faction::Fremen)).ally = Some(Faction::Atreides);
     let mut b = BattleInitiated::new(&g, Faction::Emperor);
-    b.target = Faction::Atreides;
+    b.target = Some(Faction::Atreides);
     let emperor = idx(&g, Faction::Emperor);
     let fremen = idx(&g, Faction::Fremen);
     // The ally of the target sees the initiator as its opponent.
@@ -164,9 +164,9 @@ fn opponent_and_plan_lookups() {
 #[test]
 fn treachery_of_matches_ally_initiator() {
     let mut g = game_with(&[Faction::Harkonnen, Faction::Emperor, Faction::Atreides]);
-    g.player_mut(idx(&g, Faction::Emperor)).ally = Faction::Harkonnen;
+    g.player_mut(idx(&g, Faction::Emperor)).ally = Some(Faction::Harkonnen);
     let mut b = BattleInitiated::new(&g, Faction::Emperor);
-    b.target = Faction::Atreides;
+    b.target = Some(Faction::Atreides);
     let t = Rc::new(TreacheryCalled::new(&g, Faction::Harkonnen));
     g.battle.aggressor_traitor_action = Some(t.clone());
     let emperor = idx(&g, Faction::Emperor);
@@ -192,7 +192,7 @@ fn loser_concluded_applicability() {
     let mut g = game_with(&[Faction::Emperor, Faction::Atreides]);
     let emperor = idx(&g, Faction::Emperor);
     assert!(!LoserConcluded::is_applicable(&g, None));
-    g.battle.battle_loser = Some(Faction::Emperor);
+    g.battle.battle_loser = Some(Some(Faction::Emperor));
     assert!(!LoserConcluded::is_applicable(&g, Some(emperor)));
     g.battle.loser_may_try_to_assassinate = true;
     assert!(LoserConcluded::is_applicable(&g, Some(emperor)));

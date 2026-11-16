@@ -18,9 +18,9 @@ impl Default for Bureaucracy {
 }
 
 impl Bureaucracy {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -35,7 +35,7 @@ impl Bureaucracy {
         if !self.passed {
             game.stone(Milestone::Bureaucracy);
             game.turn.bureaucrat_was_used_this_phase = true;
-            let victim = game.get_player(Some(game.turn.target_of_bureaucracy)).required("get player")?;
+            let victim = game.get_player(game.turn.target_of_bureaucracy).required("get player")?;
             let v = game.player_mut(victim);
             v.resources -= 2;
             game.turn.was_victim_of_bureaucracy = game.turn.target_of_bureaucracy;
@@ -43,7 +43,7 @@ impl Bureaucracy {
 
         let phase = game.turn.phase_before_bureaucrat_was_activated.required("phase before bureaucrat was activated")?;
         game.enter(phase, true);
-        game.turn.target_of_bureaucracy = Faction::None;
+        game.turn.target_of_bureaucracy = None;
         Ok(())
     }
 

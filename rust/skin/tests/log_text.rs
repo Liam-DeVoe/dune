@@ -26,10 +26,10 @@ fn game() -> Game {
     e.initialize_game(&g);
     assert!(e.execute(&mut g, true, true).is_none());
     for (player, faction) in g.players.iter_mut().zip([Faction::Atreides, Faction::Guild, Faction::Choam]) {
-        player.faction = faction;
-        player.nexus = Faction::None;
+        player.faction = Some(faction);
+        player.nexus = None;
     }
-    g.players[0].nexus = Faction::Harkonnen;
+    g.players[0].nexus = Some(Faction::Harkonnen);
     g
 }
 
@@ -49,7 +49,7 @@ fn karama_against_guild_income_has_a_space_before_the_amount() {
     s.force_amount = 2;
     s.karma_card_id = -1;
     s.to_id = to.id();
-    s.initialize(&g, Faction::Atreides);
+    s.initialize(&g, Some(Faction::Atreides));
     let s = Rc::new(s);
     g.prevent(Faction::Atreides, FactionAdvantage::GuildReceiveShipment, false);
     let mut part = MessagePart::express(vec![]);
@@ -62,7 +62,7 @@ fn karama_against_guild_income_has_a_space_before_the_amount() {
 fn choam_karama_discard_reads_choam_using() {
     let g = game();
     let e = KarmaChoamDiscard::default();
-    e.initialize(&g, Faction::Choam);
+    e.initialize(&g, Some(Faction::Choam));
     let rendered = text(&e.get_message(&g));
     assert!(rendered.starts_with("CHOAM using Karama, CHOAM discard"), "{rendered}");
 }
@@ -70,7 +70,7 @@ fn choam_karama_discard_reads_choam_using() {
 #[test]
 fn automation_rules_are_described() {
     let g = game();
-    let message = |action: ItemAction, rule_type: AutomationRuleType, by: Faction| {
+    let message = |action: ItemAction, rule_type: AutomationRuleType, by: Option<Faction>| {
         let mut e = AutomationConfigured::default();
         e.action = action;
         e.rule_type = rule_type;
@@ -79,14 +79,14 @@ fn automation_rules_are_described() {
         text(&e.get_message(&g))
     };
     assert_eq!(
-        message(ItemAction::Create, AutomationRuleType::BiddingPassAboveAmount, Faction::Atreides),
+        message(ItemAction::Create, AutomationRuleType::BiddingPassAboveAmount, Some(Faction::Atreides)),
         "Atreides add an automation rule: Auto pass if bid is equal to or higher than 5 Spice"
     );
-    assert_eq!(message(ItemAction::Create, AutomationRuleType::Unknown, Faction::Atreides), "Atreides add an automation rule");
+    assert_eq!(message(ItemAction::Create, AutomationRuleType::Unknown, Some(Faction::Atreides)), "Atreides add an automation rule");
     // A seatless host has no player to describe the rule for.
-    assert_eq!(message(ItemAction::Create, AutomationRuleType::RevivalAutoClaimFreeRevival, Faction::None), "None add an automation rule");
-    assert_eq!(message(ItemAction::Delete, AutomationRuleType::Unknown, Faction::Atreides), "Atreides remove an automation rule");
-    assert_eq!(message(ItemAction::Update, AutomationRuleType::CharityAutoClaim, Faction::Atreides), "Atreides change an automation rule");
+    assert_eq!(message(ItemAction::Create, AutomationRuleType::RevivalAutoClaimFreeRevival, None), "None add an automation rule");
+    assert_eq!(message(ItemAction::Delete, AutomationRuleType::Unknown, Some(Faction::Atreides)), "Atreides remove an automation rule");
+    assert_eq!(message(ItemAction::Update, AutomationRuleType::CharityAutoClaim, Some(Faction::Atreides)), "Atreides change an automation rule");
 }
 
 #[test]
@@ -94,7 +94,7 @@ fn nexus_card_plays_name_the_card_type_once() {
     let mut g = game();
     let mut voice = Voice::default();
     voice.type_ = Some(TreacheryCardType::Laser);
-    voice.initialize(&g, Faction::Atreides);
+    voice.initialize(&g, Some(Faction::Atreides));
     Rc::new(voice).execute_concrete_event(&mut g).unwrap();
     let log = log(&g);
     assert!(log.iter().any(|m| m == "Atreides play Harkonnen Nexus Secret Ally to use Voice"), "{log:?}");
@@ -106,13 +106,13 @@ fn ornithopter_and_discovery_texts_have_single_spaces() {
     let flight = |three: bool| {
         let mut e = FlightUsed::default();
         e.move_three_territories = three;
-        e.initialize(&g, Faction::Atreides);
+        e.initialize(&g, Some(Faction::Atreides));
         text(&e.get_message(&g))
     };
     assert!(flight(false).ends_with(" to move an additional group of forces"), "{}", flight(false));
     assert!(flight(true).ends_with(" to gain movement speed") && !flight(true).contains("  "), "{}", flight(true));
     let e = FlightDiscoveryUsed::default();
-    e.initialize(&g, Faction::Atreides);
+    e.initialize(&g, Some(Faction::Atreides));
     let t = text(&e.get_message(&g));
     assert!(t.ends_with(" discovery token to gain movement speed"), "{t}");
 }
@@ -122,7 +122,7 @@ fn a_karama_card_play_has_single_spaces() {
     let g = game();
     let mut e = Karma::default();
     e.card_id = TreacheryCardManager::items().iter().find(|c| c.type_() == TreacheryCardType::Karma).unwrap().id();
-    e.initialize(&g, Faction::Atreides);
+    e.initialize(&g, Some(Faction::Atreides));
     assert_eq!(text(&e.get_message(&g)), "Atreides play a Karama card");
 }
 

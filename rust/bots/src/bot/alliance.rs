@@ -106,7 +106,7 @@ impl ClassicBot {
         let best_offer_to_me = |from_humans_only: bool| {
             game.alliances.current_alliance_offers
                 .iter()
-                .filter(|offer| offer.target == faction && !(from_humans_only && game.is_bot(offer.player())))
+                .filter(|offer| offer.target == Some(faction) && !(from_humans_only && game.is_bot(offer.player())))
                 .cloned()
                 .random_highest(&self.random, |offer| self.player_standing(game, offer.player()))
         };
@@ -123,7 +123,7 @@ impl ClassicBot {
         let my_offer_is_open = game
             .alliances.current_alliance_offers
             .iter()
-            .any(|o| o.initiator() == faction && game.player(game.get_player(Some(o.target)).expect("player")).ally == Faction::None);
+            .any(|o| o.initiator() == Some(faction) && game.player(game.get_player(o.target).expect("player")).ally == None);
         if nr_of_players <= 2
             || game.applicable(Rule::BotsCannotAlly)
             || (nr_of_unallied_humans != 0 && nr_of_unallied_humans >= nr_of_unallied_bots - 1)
@@ -139,7 +139,7 @@ impl ClassicBot {
                 p != me
                     && game.is_bot(p)
                     && !game.player(p).has_ally()
-                    && AllianceOffered::valid_targets(game, me).any(|f| f == game.player(p).faction)
+                    && AllianceOffered::valid_targets(game, me).any(|f| Some(f) == game.player(p).faction)
             })
             .random_highest(&self.random, |&p| self.player_standing(game, p))?;
 
@@ -152,12 +152,12 @@ impl ClassicBot {
         let faction = self.faction(game);
 
         // Keep waiting while one of our offers is still open; it is withdrawn when the other faction passes
-        if game.alliances.current_alliance_offers.iter().any(|o| o.initiator() == faction) {
+        if game.alliances.current_alliance_offers.iter().any(|o| o.initiator() == Some(faction)) {
             return None;
         }
 
         // Humans may still offer us an alliance until they are done
-        if game.player_indices().any(|p| !game.is_bot(p) && !game.turn.has_acted_or_passed.contains(&game.player(p).faction)) {
+        if game.player_indices().any(|p| !game.is_bot(p) && !game.turn.has_acted_or_passed.contains_opt(game.player(p).faction)) {
             return None;
         }
 
@@ -182,7 +182,7 @@ impl ClassicBot {
         let offer = game
             .alliances.current_alliance_offers
             .iter()
-            .filter(|offer| offer.target == faction && !game.is_bot(offer.player()))
+            .filter(|offer| offer.target == Some(faction) && !game.is_bot(offer.player()))
             .cloned()
             .random_highest(&self.random, |offer| self.player_standing(game, offer.player()))?;
 
@@ -195,10 +195,10 @@ impl ClassicBot {
         let faction = self.faction(game);
         let nexus = game.player(self.player).nexus;
         let draw = NexusCardDrawn::may_draw(game, self.player)
-            && (nexus == Faction::None
-                || (faction == Faction::Emperor && nexus == Faction::Emperor && !game.applicable(Rule::EmperorSpecialForces))
-                || (faction == Faction::BeneGesserit && nexus == Faction::BeneGesserit && !game.applicable(Rule::BeneGesseritAdvisors))
-                || (faction == Faction::Ixian && nexus == Faction::Ixian && !game.applicable(Rule::AdvancedCombat)));
+            && (nexus == None
+                || (faction == Faction::Emperor && nexus == Some(Faction::Emperor) && !game.applicable(Rule::EmperorSpecialForces))
+                || (faction == Faction::BeneGesserit && nexus == Some(Faction::BeneGesserit) && !game.applicable(Rule::BeneGesseritAdvisors))
+                || (faction == Faction::Ixian && nexus == Some(Faction::Ixian) && !game.applicable(Rule::AdvancedCombat)));
         let mut result = NexusCardDrawn::new(game, faction);
         result.passed = !draw;
         Rc::new(result)
@@ -207,7 +207,7 @@ impl ClassicBot {
     /// Share spice, a Karama card and my faction's advantages with my ally, when they changed.
     pub fn determine_alliance_permissions(&self, game: &Game) -> Option<Rc<AllyPermission>> {
         let ally = self.ally(game);
-        if ally == Faction::None
+        if ally == None
             || !matches!(game.turn.current_main_phase, MainPhase::Blow | MainPhase::Bidding | MainPhase::ShipmentAndMove | MainPhase::Battle)
         {
             return None;
@@ -233,8 +233,8 @@ impl ClassicBot {
 
         let changed = advantages_changed
             || extra_revivals_changed
-            || game.get_permitted_use_of_ally_resources(ally) != allowed_resources
-            || game.get_permitted_use_of_ally_karma(ally) != allowed_karma_card;
+            || game.get_permitted_use_of_ally_resources(ally.expect("faction")) != allowed_resources
+            || game.get_permitted_use_of_ally_karma(ally.expect("faction")) != allowed_karma_card;
         changed.then(|| Rc::new(permission))
     }
 
@@ -259,7 +259,6 @@ impl ClassicBot {
             Faction::Emperor => above_reserve,
             Faction::Tleilaxu if phase == MainPhase::Resurrection => resources,
             Faction::Tleilaxu => above_reserve,
-            _ => 0,
         }
     }
 

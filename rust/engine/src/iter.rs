@@ -1,5 +1,44 @@
 //! Iterator helpers that std doesn't have.
 
+/// `contains` for a value that may be absent, which is in no list (C#'s `None` member was in no
+/// list in a valid game).
+pub trait ContainsOpt<T> {
+    fn contains_opt(&self, v: Option<T>) -> bool;
+}
+
+impl<T: PartialEq> ContainsOpt<T> for [T] {
+    fn contains_opt(&self, v: Option<T>) -> bool {
+        v.is_some_and(|v| self.contains(&v))
+    }
+}
+
+impl<T: std::hash::Hash + Eq> ContainsOpt<T> for indexmap::IndexSet<T> {
+    fn contains_opt(&self, v: Option<T>) -> bool {
+        v.is_some_and(|v| self.contains(&v))
+    }
+}
+
+/// Map lookups by a key that may be absent, which no entry has.
+pub trait MapOpt<K, V> {
+    fn get_opt(&self, k: Option<K>) -> Option<&V>;
+    fn contains_key_opt(&self, k: Option<K>) -> bool;
+    fn shift_remove_opt(&mut self, k: Option<K>) -> Option<V>;
+}
+
+impl<K: std::hash::Hash + Eq, V> MapOpt<K, V> for indexmap::IndexMap<K, V> {
+    fn get_opt(&self, k: Option<K>) -> Option<&V> {
+        k.and_then(|k| self.get(&k))
+    }
+
+    fn contains_key_opt(&self, k: Option<K>) -> bool {
+        k.is_some_and(|k| self.contains_key(&k))
+    }
+
+    fn shift_remove_opt(&mut self, k: Option<K>) -> Option<V> {
+        k.and_then(|k| self.shift_remove(&k))
+    }
+}
+
 /// The first occurrence of each element, in order, compared with `==`. Lazy: an element
 /// is pulled from `source` only when the consumer asks for the next one, so a consumer
 /// that stops early runs no closures of `source` on the elements after it.

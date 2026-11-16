@@ -9,7 +9,7 @@ use treachery_engine::prelude::*;
 fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();
     for f in factions {
-        let p = Player::new(*f);
+        let p = Player::new(Some(*f));
         g.players.push(p);
     }
     g
@@ -20,7 +20,7 @@ fn idx(g: &Game, f: Faction) -> PlayerIndex {
 }
 
 fn as_player<E: GameEventMethods>(e: E, g: &Game, f: Faction) -> E {
-    e.base().initiator.set(f);
+    e.base().initiator.set(Some(f));
     e.base().player.set(g.get_player(Some(f)));
     e
 }
@@ -180,8 +180,8 @@ fn automatic_passes_stop_when_bidding_ends() {
         }
         let atreides = idx(&g, Faction::Atreides);
         let bene_gesserit = idx(&g, Faction::BeneGesserit);
-        g.player_mut(atreides).ally = Faction::BeneGesserit;
-        g.player_mut(bene_gesserit).ally = Faction::Atreides;
+        g.player_mut(atreides).ally = Some(Faction::BeneGesserit);
+        g.player_mut(bene_gesserit).ally = Some(Faction::Atreides);
         // Atreides has a full hand, so only Bene Gesserit and Harkonnen bid.
         g.player_mut(atreides).treachery_cards = TreacheryCardManager::items().iter().copied().take(4).collect();
         for f in [Faction::BeneGesserit, Faction::Harkonnen] {
@@ -202,7 +202,7 @@ fn automatic_passes_stop_when_bidding_ends() {
         assert_ne!(first, atreides);
         let mut pass = Bid::default();
         pass.passed = true;
-        let pass = Rc::new(as_player(pass, &g, g.player(first).faction));
+        let pass = Rc::new(as_player(pass, &g, g.player(first).faction.expect("faction")));
         Bid::execute_concrete_event(&pass, &mut g).unwrap();
 
         let everyone_passed =
@@ -255,7 +255,7 @@ fn automatic_passes_stop_when_the_high_bidder_cant_be_reached() {
         assert_ne!(first, richese);
         let mut pass = Bid::default();
         pass.passed = true;
-        let pass = Rc::new(as_player(pass, &g, g.player(first).faction));
+        let pass = Rc::new(as_player(pass, &g, g.player(first).faction.expect("faction")));
         Bid::execute_concrete_event(&pass, &mut g).unwrap();
         tx.send(g.turn.current_phase).unwrap();
     });

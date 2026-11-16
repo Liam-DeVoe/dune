@@ -38,7 +38,7 @@ fn corpus() -> Vec<common::Trace> {
 fn viewers(game: &Game) -> Vec<ResolvedViewer> {
     let mut out: Vec<ResolvedViewer> = game
         .player_indices()
-        .map(|p| ResolvedViewer { player: Some(p), faction: Some(game.player(p).faction), is_host: p.index == 0, is_observer: false })
+        .map(|p| ResolvedViewer { player: Some(p), faction: game.player(p).faction, is_host: p.index == 0, is_observer: false })
         .collect();
     out.push(ResolvedViewer { player: None, faction: None, is_host: false, is_observer: true });
     out
@@ -64,7 +64,7 @@ fn check_visibility(game: &Game, v: &ResolvedViewer, view: &GameView, seen: &mut
     match (&view.me, me) {
         (None, None) => {}
         (Some(shield), Some(p)) => {
-            assert_eq!(shield.faction, game.player(p).faction.to_string(), "{at}");
+            assert_eq!(shield.faction, name_or_absent(game.player(p).faction), "{at}");
             if !shield.hand.iter().all(|c| c.playable_with.is_empty()) {
                 seen.add("playable card");
             }
@@ -79,7 +79,7 @@ fn check_visibility(game: &Game, v: &ResolvedViewer, view: &GameView, seen: &mut
                 seen.add("face-down leader");
                 if let Some(id) = l.id {
                     let leader = LeaderManager::leaders().iter().find(|x| x.id() == id).unwrap();
-                    assert!(my_faction == Some(leader.faction()) || my_faction == Some(Faction::Tleilaxu), "{at}: face-down leader identified");
+                    assert!(my_faction == Some(Some(leader.faction())) || my_faction == Some(Some(Faction::Tleilaxu)), "{at}: face-down leader identified");
                     seen.add("face-down leader identified");
                 }
             }
@@ -89,24 +89,24 @@ fn check_visibility(game: &Game, v: &ResolvedViewer, view: &GameView, seen: &mut
     // Board tokens.
     for t in &view.board.terror {
         seen.add("terror token");
-        assert!(t.token.is_none() || my_faction == Some(Faction::Moritani), "{at}: terror identified");
+        assert!(t.token.is_none() || my_faction == Some(Some(Faction::Moritani)), "{at}: terror identified");
     }
     for d in &view.board.discoveries {
         seen.add("discovery token");
         if d.token.is_some() {
-            let allowed = (my_faction == Some(Faction::Fremen) && d.token_type == "Fremen") || (my_faction == Some(Faction::Guild) && d.token_type == "Guild");
+            let allowed = (my_faction == Some(Some(Faction::Fremen)) && d.token_type == "Fremen") || (my_faction == Some(Some(Faction::Guild)) && d.token_type == "Guild");
             assert!(allowed, "{at}: discovery identified");
             seen.add("discovery identified");
         }
     }
-    assert!(view.board.no_field_value.is_none() || my_faction == Some(Faction::Richese), "{at}: No-Field value");
+    assert!(view.board.no_field_value.is_none() || my_faction == Some(Some(Faction::Richese)), "{at}: No-Field value");
     if view.board.no_field_value.is_some_and(|n| n >= 0) {
         seen.add("No-Field value");
     }
     assert_eq!(view.board.storm_prescience_moves.is_some(), game.has_storm_prescience(me), "{at}");
 
     // Piles.
-    assert!(view.piles.richese_cache.is_none() || my_faction == Some(Faction::Richese), "{at}: Richese's cache");
+    assert!(view.piles.richese_cache.is_none() || my_faction == Some(Some(Faction::Richese)), "{at}: Richese's cache");
     let notekeeping = game.assisted_note_keeping_enabled(me);
     assert_eq!(view.piles.treachery_discard.is_some(), notekeeping, "{at}");
     assert_eq!(view.notes.is_some(), notekeeping, "{at}");
@@ -147,16 +147,16 @@ fn check_visibility(game: &Game, v: &ResolvedViewer, view: &GameView, seen: &mut
         for (plan, faction_plan) in [(&battle.aggressor_plan, &game.battle.aggressor_plan), (&battle.defender_plan, &game.battle.defender_plan)] {
             let Some(plan) = plan else { continue };
             let actual = faction_plan.as_ref().expect("a shown plan exists");
-            assert_eq!(plan.faction, actual.initiator().to_string(), "{at}");
+            assert_eq!(plan.faction, name_or_absent(actual.initiator()), "{at}");
             if plan.full {
                 let own = my_faction == Some(actual.initiator());
                 assert!(own || both || game.battle.atreides_karma, "{at}: full plan shown");
                 seen.add(if own && !both { "own plan" } else { "full plan" });
             } else {
                 let users: Vec<Faction> =
-                    game.battle.current_prescience.iter().map(|p| p.initiator()).chain(game.turn.current_nexus_prescience.iter().map(|n| n.initiator())).collect();
+                    game.battle.current_prescience.iter().filter_map(|p| p.initiator()).chain(game.turn.current_nexus_prescience.iter().filter_map(|n| n.initiator())).collect();
                 let ally = me.map(|p| game.player(p).ally);
-                assert!(users.iter().any(|u| my_faction == Some(*u) || ally == Some(*u)), "{at}: partial plan for a bystander");
+                assert!(users.iter().any(|u| my_faction == Some(Some(*u)) || ally == Some(Some(*u))), "{at}: partial plan for a bystander");
                 seen.add("partial plan");
             }
         }

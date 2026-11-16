@@ -54,7 +54,7 @@ impl ClassicBot {
     pub fn determine_battle_claimed(&self, game: &Game) -> Rc<BattleClaimed> {
         let about = game.battle.battle_about_to_start.as_ref().expect("battle about to start");
         let territory = about.territory(game);
-        let opponent = game.get_player(Some(about.target));
+        let opponent = game.get_player(about.target);
         let ecaz = game.get_player(Some(Faction::Ecaz));
         let ecaz_ally = game.player(ecaz.expect("Ecaz")).allied_player(game);
         let ecaz_is_strongest = self.get_dial_needed(game, ecaz_ally.expect("Ecaz's ally"), territory.expect("territory"), opponent.expect("opponent"), false)
@@ -97,7 +97,7 @@ impl ClassicBot {
             .expect("min by");
 
         let mut result = BattleInitiated::new(game, self.faction(game));
-        result.target = battle.faction;
+        result.target = Some(battle.faction);
         result.set_territory(game, Some(battle.territory));
         Rc::new(result)
     }
@@ -161,14 +161,14 @@ impl ClassicBot {
                 .battle.traitors_decipherer_can_look_at
                 .iter()
                 .copied()
-                .filter(|t| t.as_treachery_card().is_some() || (t.faction() != faction && game.is_alive(*t)))
+                .filter(|t| t.as_treachery_card().is_some() || (t.faction() != Some(faction) && game.is_alive(*t)))
                 .min_by_key(|t| Reverse(t.value()));
 
             if let Some(new_traitor) = new_traitor {
                 // A traitor of my own faction, else my cheapest dead one, else my cheapest one worth
                 // less than the new traitor.
                 let mut replaceable: Vec<Hero> = BattleConcluded::valid_traitors_to_replace(game, self.player).collect();
-                to_replace = replaceable.iter().copied().find(|t| t.faction() == faction);
+                to_replace = replaceable.iter().copied().find(|t| t.faction() == Some(faction));
                 replaceable.sort_by_key(|t| t.value());
                 to_replace = to_replace
                     .or_else(|| replaceable.iter().copied().find(|t| t.as_treachery_card().is_none() && !game.is_alive(*t)))
@@ -242,12 +242,12 @@ impl ClassicBot {
             dial_needed
         };
 
-        let resources_from_ally = if self.ally(game) == Faction::Choam { game.resources_your_ally_can_pay(self.player) } else { 0 };
+        let resources_from_ally = if self.ally(game) == Some(Faction::Choam) { game.resources_your_ally_can_pay(self.player) } else { 0 };
         let opponent_faction = game.player(opponent.expect("opponent")).faction;
         let mut forces = self.forces_for_dial(
             game,
             dial_to_reach,
-            opponent_faction,
+            opponent_faction.expect("faction"),
             forces_available,
             special_forces_available,
             self.resources(game) + resources_from_ally - banker_boost,
@@ -271,7 +271,7 @@ impl ClassicBot {
 
         let total_forces =
             forces.forces + forces.forces_at_half_strength + forces.special_forces + forces.special_forces_at_half_strength;
-        let minimize_spending_in_this_lost_fight = self.win_was_predicted_by_me_this_turn(game, opponent_faction)
+        let minimize_spending_in_this_lost_fight = self.win_was_predicted_by_me_this_turn(game, opponent_faction.expect("faction"))
             || (is_traitor && !messiah)
             || (self.resources(game) + self.resources_from_ally(game) < 10
                 && total_forces <= 8
@@ -478,7 +478,7 @@ impl ClassicBot {
 
         // With Emperor's cunning, my first five normal forces are as strong as special forces.
         let mut forces_with_cunning_bonus = match &game.turn.current_emperor_cunning {
-            Some(c) if c.initiator() == faction => 5,
+            Some(c) if c.initiator() == Some(faction) => 5,
             _ => 0,
         };
         let mut next_force_strength = || {
@@ -731,7 +731,7 @@ impl ClassicBot {
         let (Some(_), Some(qna)) = (&game.turn.latest_clairvoyance, &game.turn.latest_clairvoyance_qn_a) else {
             return None;
         };
-        if qna.answer.initiator() == self.faction(game)
+        if qna.answer.initiator() == Some(self.faction(game))
             && game.turn.latest_clairvoyance_battle.is_some()
             && is_current_battle(game, game.turn.latest_clairvoyance_battle.as_ref())
             && {
@@ -924,7 +924,7 @@ impl ClassicBot {
         let p = game.player(player);
         let o = game.player(opponent);
 
-        let ally = if p.ally != Faction::None { p.allied_player(game) } else { None };
+        let ally = if p.ally != None { p.allied_player(game) } else { None };
 
         // Heroes known not to be traitors for anyone who could betray me.
         let mut known_non_traitors: Vec<Hero> = p.traitors.iter().chain(p.known_non_traitors.iter()).copied().collect();
@@ -934,11 +934,11 @@ impl ClassicBot {
         }
         for x in game.player_indices() {
             let xp = game.player(x);
-            if x != opponent && (xp.ally != Faction::Harkonnen || xp.faction != o.ally) {
+            if x != opponent && (xp.ally != Some(Faction::Harkonnen) || xp.faction != o.ally) {
                 known_non_traitors.extend(xp.revealed_traitors.iter().chain(xp.told_traitors.iter()).copied());
             }
         }
-        if o.ally != Faction::Harkonnen {
+        if o.ally != Some(Faction::Harkonnen) {
             known_non_traitors.extend(o.told_non_traitors.iter().copied());
         }
 
@@ -946,7 +946,7 @@ impl ClassicBot {
         let mut known_traitors_for_opponents_in_battle: Vec<Hero> = Vec::new();
         for x in game.player_indices() {
             let xp = game.player(x);
-            if x == opponent || (xp.faction == Faction::Harkonnen && xp.faction == o.ally) {
+            if x == opponent || (xp.faction == Some(Faction::Harkonnen) && xp.faction == o.ally) {
                 known_traitors_for_opponents_in_battle.extend(xp.revealed_traitors.iter().chain(xp.told_traitors.iter()).copied());
             }
         }
@@ -954,14 +954,14 @@ impl ClassicBot {
             p.leaders
                 .iter()
                 .copied()
-                .filter(|l| game.applicable(Rule::CapturedLeadersAreTraitorsToOwnFaction) && l.faction() == o.faction)
+                .filter(|l| game.applicable(Rule::CapturedLeadersAreTraitorsToOwnFaction) && Some(l.faction()) == o.faction)
                 .map(Hero::Leader),
         );
 
         let has_unknown_traitors_that_might_be_mine = game.player_indices().any(|x| {
             let xp = game.player(x);
             x != opponent
-                && (xp.ally != Faction::Harkonnen || xp.faction != o.ally)
+                && (xp.ally != Some(Faction::Harkonnen) || xp.faction != o.ally)
                 && xp.traitors.iter().any(|l| !known_non_traitors.contains(l))
         });
 
@@ -996,7 +996,7 @@ impl ClassicBot {
         }
 
         let hero = if safe_hero.is_none()
-            || (o.faction != Faction::Harkonnen
+            || (o.faction != Some(Faction::Harkonnen)
                 && !unsafe_hero.is_some_and(|h| known_traitors_for_opponents_in_battle.contains(&h))
                 && safe_hero.unwrap().value_in_combat_against(highest_opponent_leader)
                     < unsafe_hero.expect("unsafe hero").value_in_combat_against(highest_opponent_leader) - 2)
@@ -1174,7 +1174,7 @@ impl ClassicBot {
             0
         };
         let opponent_dial = match &opponent_plan {
-            Some(plan) if prescience == Some(PrescienceAspect::Dial) => plan.dial(game, game.player(player).faction),
+            Some(plan) if prescience == Some(PrescienceAspect::Dial) => plan.dial(game, game.player(player).faction.expect("faction")),
             _ => Self::max_dial(game, opponent, territory, Some(player), false),
         };
         let my_homeworld_bonus = game.player(player).get_homeworld_battle_contribution_and_lasgun_shield_limit(game, territory);
@@ -1211,9 +1211,9 @@ impl ClassicBot {
             (!pl.messiah_available(game) && pl.traitors.contains(&l))
                 || pl.face_dancers.contains(&l)
                 || (!pl.messiah_available(game)
-                    && pl.ally == Faction::Harkonnen
+                    && pl.ally == Some(Faction::Harkonnen)
                     && game.player(pl.allied_player(game).expect("allied player")).traitors.contains(&l))
-                || (pl.ally == Faction::Tleilaxu && game.player(pl.allied_player(game).expect("allied player")).face_dancers.contains(&l))
+                || (pl.ally == Some(Faction::Tleilaxu) && game.player(pl.allied_player(game).expect("allied player")).face_dancers.contains(&l))
         })
     }
 
@@ -1369,8 +1369,8 @@ mod tests {
         let state = GameState::load(&std::fs::read_to_string(path).unwrap()).unwrap();
         let mut game = Game::load(&state, &Default::default(), false, false).unwrap();
         let battle = game.battle.current_battle.clone().unwrap();
-        let me = game.get_player(Some(battle.aggressor(&game))).unwrap();
-        let opponent = game.get_player(Some(battle.defender(&game))).unwrap();
+        let me = game.get_player(Some(battle.aggressor(&game).expect("faction"))).unwrap();
+        let opponent = game.get_player(Some(battle.defender(&game).expect("faction"))).unwrap();
         let mirror = TreacheryCardManager::items().iter().copied().find(|c| c.type_() == TreacheryCardType::MirrorWeapon).unwrap();
         game.player_mut(me).treachery_cards = vec![mirror];
         game.player_mut(opponent).known_cards.insert(mirror);

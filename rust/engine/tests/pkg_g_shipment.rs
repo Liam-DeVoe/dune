@@ -7,7 +7,7 @@ use treachery_engine::prelude::*;
 fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();
     for f in factions {
-        let p = Player::new(*f);
+        let p = Player::new(Some(*f));
         g.players.push(p);
     }
     g
@@ -143,7 +143,7 @@ fn shipment_valid_no_field_values() {
 fn set_shipment_permission_messages_and_duplicates() {
     let g = game_with(&[Faction::Guild, Faction::Emperor]);
     let mut e = SetShipmentPermission::default();
-    e.base.initiator.set(Faction::Guild);
+    e.base.initiator.set(Some(Faction::Guild));
     e.base.player.set(Some(idx(&g, Faction::Guild)));
     // No factions at all is refused (C# threw ArgumentNullException from `Any`).
     e.factions = None;

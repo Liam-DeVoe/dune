@@ -15,9 +15,9 @@ impl Default for FlightDiscoveryUsed {
 }
 
 impl FlightDiscoveryUsed {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -31,7 +31,7 @@ impl FlightDiscoveryUsed {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
-        game.collection.owner_of_flight_discovery = Some(Faction::None);
+        game.collection.owner_of_flight_discovery = Some(None);
         game.ship_move.current_flight_discovery_used = Some(self.clone());
         Ok(())
     }

@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct KarmaRevivalPrevention {
-    pub target: Faction,
+    pub target: Option<Faction>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -17,15 +17,15 @@ impl Default for KarmaRevivalPrevention {
 }
 
 impl KarmaRevivalPrevention {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
         // PlayersOtherThan(null) only dereferences the player once there is a player to compare.
-        if !Self::get_valid_targets(game, self.player()).any(|v| v == self.target) {
+        if !Self::get_valid_targets(game, self.player()).any(|v| Some(v) == self.target) {
             return Some(express!("Invalid target"));
         }
 

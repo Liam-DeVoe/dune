@@ -31,8 +31,8 @@ impl MapGame for StubGame {
     fn player_ally(&self, _f: Faction) -> Option<Faction> {
         None
     }
-    fn nr_of_occupants_excluding_faction(&self, l: Location, f: Faction) -> i32 {
-        self.forces.borrow().iter().filter(|(at, _)| *at == l).flat_map(|(_, fs)| fs.iter()).filter(|x| **x != f).count() as i32
+    fn nr_of_occupants_excluding_faction(&self, l: Location, f: Option<Faction>) -> i32 {
+        self.forces.borrow().iter().filter(|(at, _)| *at == l).flat_map(|(_, fs)| fs.iter()).filter(|x| Some(**x) != f).count() as i32
     }
     fn current_blocked_territories(&self) -> Vec<Territory> {
         self.blocked.borrow().clone()
@@ -88,7 +88,7 @@ fn a_game_finds_move_targets_for_its_current_storm() {
 
     let (p, from, battalion) = g
         .player_indices()
-        .filter(|p| g.player(*p).faction != Faction::Fremen)
+        .filter(|p| g.player(*p).faction != Some(Faction::Fremen))
         .flat_map(|p| g.player(p).forces_on_planet().into_iter().map(move |(l, b)| (p, l, b)))
         .find(|(p, l, b)| !PlacementEvent::valid_targets(&g, *p, *l, b).is_empty())
         .expect("forces that can move");

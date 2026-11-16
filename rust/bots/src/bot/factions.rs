@@ -276,7 +276,7 @@ impl ClassicBot {
             .unwrap_or_else(|| items().next().expect("an element"));
 
         let quality = self.card_quality(game, to_be_removed, p);
-        let put_on_top = (quality <= 2 && self.ally(game) == Faction::None) || (quality >= 4 && self.ally(game) != Faction::None);
+        let put_on_top = (quality <= 2 && self.ally(game) == None) || (quality >= 4 && self.ally(game) != None);
 
         let mut e = IxianRemovedCardFromAuction::new(game, self.faction(game));
         e.set_card(Some(to_be_removed));
@@ -567,7 +567,7 @@ impl ClassicBot {
         let max_dial = ClassicBot::max_dial(game, self.player, territory, Some(opponent), false);
         let dial_needed = self.dial_needed_against(game, territory, Some(opponent), false);
 
-        (!game.player(opponent).is(Faction::Harkonnen) && self.win_was_predicted_by_me_this_turn(game, game.player(opponent).faction))
+        (!game.player(opponent).is(Faction::Harkonnen) && self.win_was_predicted_by_me_this_turn(game, game.player(opponent).faction.expect("faction")))
             || dial_needed <= max_dial
             || (self.last_turn(game) && dial_needed - 1.0 <= amount_i_can_reinforce + max_dial)
             || (self.potential_winning_opponents_contains(game, Some(opponent)) && dial_needed <= amount_i_can_reinforce + max_dial)
@@ -604,7 +604,7 @@ impl ClassicBot {
 
         let last_turn_confidence_bonus = if self.last_turn(game) { 3 } else { 0 };
 
-        (territory.is_stronghold() && self.win_was_predicted_by_me_this_turn(game, game.player(opponent).faction))
+        (territory.is_stronghold() && self.win_was_predicted_by_me_this_turn(game, game.player(opponent).faction.expect("faction")))
             || dial_needed + last_turn_confidence_bonus as f32
                 <= ClassicBot::max_dial(game, self.player, territory, Some(opponent), false)
                     + ClassicBot::max_reinforced_dial_to(game, self.player, opponent, territory)
@@ -710,7 +710,7 @@ impl ClassicBot {
 
         // C# parity: when I predicted this opponent's win, a voice forcing a lasgun was built here
         // and then overwritten below; only these two flags remain.
-        let win_predicted = self.win_was_predicted_by_me_this_turn(game, game.player(opponent).faction);
+        let win_predicted = self.win_was_predicted_by_me_this_turn(game, game.player(opponent).faction.expect("faction"));
         let mut result = VoicePlan {
             battle,
             voice: Rc::new(Voice::default()),
@@ -783,7 +783,7 @@ impl ClassicBot {
                 })
             });
 
-        let mut voice = Voice::new(game, game.player(p).faction);
+        let mut voice = Voice::new(game, game.player(p).faction.expect("faction"));
         voice.must = command.must;
         voice.type_ = Some(command.type_);
         result.voice = Rc::new(voice);
@@ -954,8 +954,8 @@ impl ClassicBot {
 
     pub fn determine_request_tleilaxu_revival(&mut self, game: &Game) -> Option<Rc<RequestTleilaxuRevival>> {
         let faction = self.faction(game);
-        if game.revival.current_revival_requests.iter().any(|r| r.initiator() == faction)
-            || game.revival.early_revivals_offers.keys().any(|h| h.faction() == faction)
+        if game.revival.current_revival_requests.iter().any(|r| r.initiator() == Some(faction))
+            || game.revival.early_revivals_offers.keys().any(|h| h.faction() == Some(faction))
         {
             return None;
         }
@@ -1028,7 +1028,7 @@ impl ClassicBot {
         let me = game.player(self.player);
 
         if opponent.treachery_cards.iter().any(|tc| !me.known_cards.contains(tc))
-            && ResourcesAudited::valid_factions(game, self.player).any(|f| f == opponent.faction)
+            && ResourcesAudited::valid_factions(game, self.player).any(|f| Some(f) == opponent.faction)
         {
             let mut e = ResourcesAudited::new(game, self.faction(game));
             e.target = opponent.faction;
@@ -1045,7 +1045,7 @@ impl ClassicBot {
         game.player_indices()
             .map(|p| game.player(p))
             .filter(|p| p.faction != ally)
-            .filter(|p| p.resources < 2 || (game.applicable(Rule::BeneGesseritAutoCharity) && p.faction == Faction::BeneGesserit))
+            .filter(|p| p.resources < 2 || (game.applicable(Rule::BeneGesseritAutoCharity) && p.faction == Some(Faction::BeneGesserit)))
             .count() as i32
     }
 
@@ -1097,7 +1097,7 @@ impl ClassicBot {
     // ---- Moritani ----
 
     pub fn determine_extortion_prevented(&self, game: &Game) -> Option<Rc<ExtortionPrevented>> {
-        if game.player(self.player).ally != Faction::Moritani && self.resources(game) > 12 && self.d(1, 6) >= 3 {
+        if game.player(self.player).ally != Some(Faction::Moritani) && self.resources(game) > 12 && self.d(1, 6) >= 3 {
             return Some(Rc::new(ExtortionPrevented::new(game, self.faction(game))));
         }
 
@@ -1202,7 +1202,7 @@ impl ClassicBot {
 
         let type_ = TerrorRevealed::get_types(game).filter(token_is_valid).random_item(&self.random);
         let card_in_sabotage = game.player(self.player).treachery_cards.iter().copied().find(|c| c.is_useless());
-        let victim = game.get_player(Some(TerrorRevealed::get_victim(game)));
+        let victim = game.get_player(TerrorRevealed::get_victim(game));
 
         let offer_alliance = TerrorRevealed::may_offer_alliance(game)
             && self.player_standing(game, victim.expect("victim")) as f32 > 1.5f32 * self.player_standing(game, self.player) as f32;
@@ -1392,7 +1392,7 @@ impl ClassicBot {
                     })
                     .map(|l| self.construct_attack(game, l, 0, 0, 4))
                     .filter(|s| match s.opponent {
-                        Some(o) if s.forces_to_ship <= 4 => !self.win_was_predicted_by_me_this_turn(game, game.player(o).faction),
+                        Some(o) if s.forces_to_ship <= 4 => !self.win_was_predicted_by_me_this_turn(game, game.player(o).faction.expect("faction")),
                         _ => false,
                     })
                     .filter(|s| s.has_forces() && s.shortage_for_shipment == 0.0)

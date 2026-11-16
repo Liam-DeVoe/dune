@@ -13,10 +13,13 @@ pub struct BattleState {
     pub previous_defender_plan: Option<Rc<Battle>>,
     pub defender_traitor_action: Option<Rc<TreacheryCalled>>,
     pub battle_outcome: Option<BattleOutcome>,
-    pub battle_winner: Option<Faction>,
-    pub battle_loser: Option<Faction>,
+    /// `Some(None)`: decided, and nobody.
+    pub battle_winner: Option<Option<Faction>>,
+    /// `Some(None)`: decided, and nobody.
+    pub battle_loser: Option<Option<Faction>>,
     pub nr_of_battles_fought: i32,
-    pub current_ecaz_or_ally_fighter: Option<Faction>,
+    /// `Some(None)`: decided, and nobody.
+    pub current_ecaz_or_ally_fighter: Option<Option<Faction>>,
     pub current_ecaz_battle_contribution: i32,
     pub current_voice: Option<Rc<Voice>>,
     pub current_prescience: Option<Rc<Prescience>>,
@@ -139,11 +142,11 @@ impl Game {
         self.storm.has_battle_wheel.clear();
         if let Some(player1) = player1 {
             let f = self.player(player1).faction;
-            self.storm.has_battle_wheel.push(f);
+            self.storm.has_battle_wheel.push(f.expect("faction"));
         }
         if let Some(player2) = player2 {
             let f = self.player(player2).faction;
-            self.storm.has_battle_wheel.push(f);
+            self.storm.has_battle_wheel.push(f.expect("faction"));
         }
     }
 
@@ -283,12 +286,12 @@ impl Game {
             return;
         }
         self.current_report_mut().battle_decided = true;
-        let winner = self.battle.battle_winner.unwrap_or(Faction::None);
+        let winner = self.battle.battle_winner.unwrap_or(None);
         self.current_report_mut().battle_winner = winner;
     }
 
     pub fn harkonnen_must_decide_to_capture(&self) -> bool {
-        self.battle.battle_winner == Some(Faction::Harkonnen)
+        self.battle.battle_winner == Some(Some(Faction::Harkonnen))
             && self.applicable(Rule::HarkonnenCapturesOrKillsLeaders)
             && !self.prevented(FactionAdvantage::HarkonnenCaptureLeader)
     }
@@ -494,7 +497,7 @@ impl Game {
         }
 
         // (int)Math.Floor(float): the float widens to double.
-        let collected = (opponent_plan.dial(self, winner_plan.initiator()) as f64).floor() as i32;
+        let collected = (opponent_plan.dial(self, winner_plan.initiator().expect("faction")) as f64).floor() as i32;
         if collected <= 0 {
             return;
         }
@@ -526,7 +529,7 @@ impl Game {
         } else {
             let harkonnen_must_decide = self.harkonnen_must_decide_to_capture();
             // Enter(condition, FinishBattle, ...), with FinishBattle's failure passed on.
-            if self.battle.battle_winner == Some(Faction::None) {
+            if self.battle.battle_winner == Some(None) {
                 self.finish_battle()?;
             } else {
                 self.enter_either(harkonnen_must_decide, Phase::CaptureDecision, Phase::BattleConclusion);
@@ -563,7 +566,7 @@ impl Game {
             self.log(le![f, " don't have cards to audit"]);
             let harkonnen_must_decide = self.harkonnen_must_decide_to_capture();
             // Enter(condition, FinishBattle, ...), with FinishBattle's failure passed on.
-            if self.battle.battle_winner == Some(Faction::None) {
+            if self.battle.battle_winner == Some(None) {
                 self.finish_battle()?;
             } else {
                 self.enter_either(harkonnen_must_decide, Phase::CaptureDecision, Phase::BattleConclusion);
@@ -723,17 +726,17 @@ impl Game {
             self.log(le![agg.initiator(), " strength: ", outcome.agg_total]);
             self.log(le![def.initiator(), " strength: ", outcome.def_total, " (aggressor by ", TreacheryCardType::Juice, ")"]);
         } else {
-            self.log_strength(agg.initiator(), outcome.agg_total);
-            self.log_strength(def.initiator(), outcome.def_total);
+            self.log_strength(agg.initiator().required("faction")?, outcome.agg_total);
+            self.log_strength(def.initiator().required("faction")?, outcome.def_total);
         }
 
-        self.battle.loser_may_try_to_assassinate = self.battle.battle_loser == Some(Faction::Moritani)
+        self.battle.loser_may_try_to_assassinate = self.battle.battle_loser == Some(Some(Faction::Moritani))
             && self.applicable(Rule::MoritaniAssassinate)
-            && self.leaders.assassinated.iter().all(|l| Some(l.faction()) != self.battle.battle_winner)
+            && self.leaders.assassinated.iter().all(|l| Some(l.faction()) != self.battle.battle_winner.flatten())
             && winner_battle_plan.hero().is_some_and(|h| h.as_leader().is_some())
             && self.is_alive(winner_battle_plan.hero().required("hero")?);
 
-        let message = express!(winner_faction, " WIN THE BATTLE").with_fact(BattleFact::new(BattleFactKind::Winner, winner_faction));
+        let message = express!(winner_faction, " WIN THE BATTLE").with_fact(BattleFact::new(BattleFactKind::Winner, winner_faction.required("faction")?));
         self.log(le![message]);
 
         self.handle_harass_and_withdraw(agg, territory);
@@ -854,18 +857,18 @@ impl Game {
     }
 
     pub fn may_keep_cards_after_losing_battle(&self, p: PlayerIndex) -> bool {
-        (self.player(p).ally == Faction::Moritani && self.alliances.moritani_allows_keeping_cards)
-            || (self.player(p).nexus == Faction::Moritani && NexusPlayed::can_use_secret_ally(self, p))
+        (self.player(p).ally == Some(Faction::Moritani) && self.alliances.moritani_allows_keeping_cards)
+            || (self.player(p).nexus == Some(Faction::Moritani) && NexusPlayed::can_use_secret_ally(self, p))
     }
 
     pub fn dialled_resources_are_refunded(&self, p: PlayerIndex) -> bool {
-        self.applicable(Rule::FremenAllyGetsDialedResourcesRefunded) && self.player(p).ally == Faction::Fremen && self.alliances.fremen_refunds_battle_dial
+        self.applicable(Rule::FremenAllyGetsDialedResourcesRefunded) && self.player(p).ally == Some(Faction::Fremen) && self.alliances.fremen_refunds_battle_dial
     }
 
     pub fn pay_dialed_spice(&mut self, p: PlayerIndex, plan: &Battle, traitor_was_revealed: bool) {
         let mut paid_by_arrakeen: i32 = 0;
         let cost = plan.cost_with_arrakeen_share(self, &mut paid_by_arrakeen);
-        let cost_to_choam = if self.player(p).ally == Faction::Choam { plan.ally_contribution_amount } else { 0 };
+        let cost_to_choam = if self.player(p).ally == Some(Faction::Choam) { plan.ally_contribution_amount } else { 0 };
 
         if paid_by_arrakeen > 0 {
             let arrakeen = self.board.map.arrakeen();
@@ -893,7 +896,7 @@ impl Game {
                     let ap = self.player_mut(allied_player);
                     ap.resources -= plan.ally_contribution_amount;
                     let f = self.player(p).faction;
-                    self.decrease_permitted_use_of_ally_spice(f, plan.ally_contribution_amount);
+                    self.decrease_permitted_use_of_ally_spice(f.expect("faction"), plan.ally_contribution_amount);
                 }
             }
 
@@ -920,7 +923,7 @@ impl Game {
 
         let choam = self.get_player(Some(Faction::Choam));
         if let Some(choam) = choam {
-            if self.player(paid_by).faction != Faction::Choam && !traitor_was_revealed {
+            if self.player(paid_by).faction != Some(Faction::Choam) && !traitor_was_revealed {
                 // (int)Math.Floor(0.5f * int): float multiply, then widened to double.
                 result = ((0.5f32 * costs_excluding_payment_by_choam_ally as f32) as f64).floor() as i32;
 
@@ -933,7 +936,7 @@ impl Game {
                         if result >= 5 {
                             self.battle.battle_triggered_bureaucracy = Some(TriggeredBureaucracy {
                                 payment_from: self.player(paid_by).faction,
-                                payment_to: Faction::Choam,
+                                payment_to: Some(Faction::Choam),
                                 ..Default::default()
                             });
                         }
@@ -1030,7 +1033,7 @@ impl Game {
     }
 
     pub fn may_substitute_force_losses(&self, p: PlayerIndex) -> bool {
-        self.player(p).faction == Faction::Ixian && !self.prevented(FactionAdvantage::IxianReplacingSpecialForces)
+        self.player(p).faction == Some(Faction::Ixian) && !self.prevented(FactionAdvantage::IxianReplacingSpecialForces)
     }
 
     pub fn handle_force_losses(&mut self, territory: Territory, player: PlayerIndex, forces_lost: i32, special_forces_lost: i32) {
@@ -1048,7 +1051,7 @@ impl Game {
 
     pub fn kill_leader_in_battle(&mut self, killed_hero: Hero, cause_of_death: Option<TreacheryCardType>, winner: PlayerIndex, hero_value: i32) {
         let winner_faction = self.player(winner).faction;
-        let mut fact = BattleFact::new(BattleFactKind::Killed, winner_faction);
+        let mut fact = BattleFact::new(BattleFactKind::Killed, winner_faction.expect("faction"));
         fact.hero = Some(killed_hero);
         fact.cause = Some(ExpressionElement::from(cause_of_death));
         fact.value = hero_value;
@@ -1067,7 +1070,7 @@ impl Game {
         let faction = self.player(player).faction;
         let force = self.player(player).force();
         let special_force = self.player(player).special_force();
-        let mut fact = BattleFact::new(BattleFactKind::ForcesLost, faction);
+        let mut fact = BattleFact::new(BattleFactKind::ForcesLost, faction.expect("faction"));
         fact.forces = forces;
         fact.special_forces = special_forces;
         fact.all = true;
@@ -1093,7 +1096,7 @@ impl Game {
             let faction = self.player(player).faction;
             let force = self.player(player).force();
             let special_force = self.player(player).special_force();
-            let mut fact = BattleFact::new(BattleFactKind::ForcesLost, faction);
+            let mut fact = BattleFact::new(BattleFactKind::ForcesLost, faction.expect("faction"));
             fact.forces = forces_lost;
             fact.special_forces = special_forces_lost;
             let message = express!(
@@ -1151,27 +1154,27 @@ impl Game {
         let traitor_owner = if self.player(winner).traitors.iter().any(|t| t.is_traitor(traitor)) {
             self.player(winner).faction
         } else {
-            Faction::Harkonnen
+            Some(Faction::Harkonnen)
         };
 
         // The traitor decides the battle, but the strengths were worked out
         // already, and the log shows them.
         if let (Some(current_battle), Some(outcome)) = (self.battle.current_battle.clone(), self.battle.battle_outcome.clone()) {
             let aggressor = current_battle.aggressor(self);
-            self.log_strength(aggressor, outcome.agg_total);
+            self.log_strength(aggressor.required("faction")?, outcome.agg_total);
             let defender = current_battle.defender(self);
-            self.log_strength(defender, outcome.def_total);
+            self.log_strength(defender.required("faction")?, outcome.def_total);
         }
 
         let loser_faction = self.player(loser).faction;
-        let mut fact = BattleFact::new(BattleFactKind::Traitor, traitor_owner);
+        let mut fact = BattleFact::new(BattleFactKind::Traitor, traitor_owner.required("faction")?);
         fact.hero = Some(traitor);
         let message = express!(traitor, " is a ", traitor_owner, " traitor! ", loser_faction, " lose everything").with_fact(fact);
         self.log(le![message]);
 
         if traitor.as_leader().is_some() {
             let winner_faction = self.player(winner).faction;
-            let mut fact = BattleFact::new(BattleFactKind::Killed, winner_faction);
+            let mut fact = BattleFact::new(BattleFactKind::Killed, winner_faction.required("faction")?);
             fact.hero = Some(traitor);
             fact.cause = Some(ExpressionElement::from("Treachery"));
             fact.value = traitor_value;
@@ -1335,7 +1338,7 @@ impl Game {
     }
 
     pub fn select_victim_of_harkonnen_winner(&mut self, victim_action: &Battle) {
-        let victim = self.get_player(Some(victim_action.initiator()));
+        let victim = self.get_player(victim_action.initiator());
         let Some(victim) = victim else { return };
 
         // Get all living leaders from the opponent that haven't fought in another territory this turn
@@ -1442,7 +1445,7 @@ impl Game {
 
             if !self.player(sole_player_on_planet).is_native_homeworld(hw) {
                 let f = self.player(sole_player_on_planet).faction;
-                self.board.homeworld_occupation.insert_new(hw, f);
+                self.board.homeworld_occupation.insert_new(hw, f.expect("faction"));
                 self.log(le![f, " now occupy ", hw]);
             } else if let Some(previous_occupier) = previous_occupier {
                 let f = self.player(previous_occupier).faction;
@@ -1476,7 +1479,7 @@ impl Game {
                 None => true,
                 Some(current_owner) => {
                     !self.leaders.captured_leaders.contains_key(&leader)
-                        && !(self.player(current_owner).faction != Faction::Ecaz && leader.hero_type() == HeroType::Vidal)
+                        && !(self.player(current_owner).faction != Some(Faction::Ecaz) && leader.hero_type() == HeroType::Vidal)
                         && current_battle.is_aggressor_or_defender(self, current_owner)
                 }
             };
@@ -1507,8 +1510,8 @@ impl Game {
 
     pub fn lose_cards(&mut self, plan: &Battle, may_choose_to_keep_one: bool) -> GameResult {
         let p = plan.player();
-        if !(self.player(p).ally == Faction::Moritani && self.alliances.moritani_allows_keeping_cards)
-            && self.player(p).nexus == Faction::Moritani
+        if !(self.player(p).ally == Some(Faction::Moritani) && self.alliances.moritani_allows_keeping_cards)
+            && self.player(p).nexus == Some(Faction::Moritani)
             && NexusPlayed::can_use_secret_ally(self, p)
         {
             self.battle.secret_ally_allows_keeping_cards_after_losing_battle = true;
@@ -1579,7 +1582,7 @@ impl Game {
 
     pub fn winner_hero(&self) -> Option<Hero> {
         // `Faction? != Faction.None`: true when BattleWinner is null.
-        if self.battle.battle_winner != Some(Faction::None) {
+        if self.battle.battle_winner != Some(None) {
             let winner_gambit = if self.battle.battle_winner == self.battle.aggressor_plan.as_ref().map(|p| p.initiator()) {
                 self.battle.aggressor_plan.as_ref()
             } else {
@@ -1620,7 +1623,7 @@ pub struct Fight {
 
 impl Fight {
     pub fn id(&self) -> i32 {
-        self.territory.id() + (1000i32 * self.faction.0)
+        self.territory.id() + (1000i32 * self.faction as i32)
     }
 
     pub fn new(territory: Territory, faction: Faction) -> Self {
@@ -1631,7 +1634,7 @@ impl Fight {
 
 #[derive(Clone, Debug)]
 pub struct LossToTake {
-    pub faction: Faction,
+    pub faction: Option<Faction>,
     /// `Option` because `new LossToTake()` leaves it null (`TakeLosses.LossesToTake` on an empty list).
     pub location: Option<Location>,
     pub amount: i32,
@@ -1639,7 +1642,7 @@ pub struct LossToTake {
 
 impl LossToTake {
     pub fn new() -> Self {
-        LossToTake { faction: Faction::None, location: None, amount: 0 }
+        LossToTake { faction: None, location: None, amount: 0 }
     }
 
 }

@@ -7,14 +7,6 @@ pub struct BlowDeckLog {
     pub deck: String,
 }
 
-impl Default for BlowDeckLog {
-    fn default() -> Self {
-        BlowDeckLog {
-            deck: Default::default(),
-        }
-    }
-}
-
 impl BlowDeckLog {
     pub fn new(deck: String) -> Self {
         BlowDeckLog { deck }
@@ -105,15 +97,8 @@ impl WormDevouredSpiceLog {
 
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub struct WormIgnoredLog {
-}
-
-impl Default for WormIgnoredLog {
-    fn default() -> Self {
-        WormIgnoredLog {
-        }
-    }
 }
 
 impl WormIgnoredLog {
@@ -122,14 +107,6 @@ impl WormIgnoredLog {
 #[derive(Clone, Debug, PartialEq)]
 pub struct BlowReshuffleLog {
     pub cards: i32,
-}
-
-impl Default for BlowReshuffleLog {
-    fn default() -> Self {
-        BlowReshuffleLog {
-            cards: Default::default(),
-        }
-    }
 }
 
 impl BlowReshuffleLog {
@@ -145,15 +122,6 @@ pub struct NexusLog {
     pub alliance: Option<NexusAlliance>,
 }
 
-impl Default for NexusLog {
-    fn default() -> Self {
-        NexusLog {
-            ride: Default::default(),
-            alliance: Default::default(),
-        }
-    }
-}
-
 impl NexusLog {
     pub fn new(ride: Option<NexusRide>, alliance: Option<NexusAlliance>) -> Self {
         NexusLog { ride, alliance }
@@ -164,23 +132,13 @@ impl NexusLog {
 #[derive(Clone, Debug, PartialEq)]
 pub struct NexusAlliance {
     pub change: NexusAllianceChange,
-    pub from: Faction,
-    pub to: Faction,
-}
-
-impl Default for NexusAlliance {
-    fn default() -> Self {
-        NexusAlliance {
-            change: Default::default(),
-            from: Default::default(),
-            to: Default::default(),
-        }
-    }
+    pub from: Option<Faction>,
+    pub to: Option<Faction>,
 }
 
 impl NexusAlliance {
-    pub fn new(change: NexusAllianceChange, from: Faction, to: Faction) -> Self {
-        NexusAlliance { change, from, to }
+    pub fn new(change: NexusAllianceChange, from: impl Into<Option<Faction>>, to: impl Into<Option<Faction>>) -> Self {
+        NexusAlliance { change, from: from.into(), to: to.into() }
     }
 
 }

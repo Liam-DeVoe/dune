@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct BattleInitiated {
     pub territory_id: i32,
-    pub target: Faction,
+    pub target: Option<Faction>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -19,9 +19,9 @@ impl Default for BattleInitiated {
 }
 
 impl BattleInitiated {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -33,21 +33,21 @@ impl BattleInitiated {
         self.territory_id = game.board.map.territory_lookup().get_id(value);
     }
 
-    pub fn actual_initiator(&self, game: &Game) -> Faction {
-        match game.battle.current_ecaz_or_ally_fighter {
-            Some(fighter) if fighter != Faction::None && Some(self.initiator()) == game.get_ally(Some(fighter)) => fighter,
+    pub fn actual_initiator(&self, game: &Game) -> Option<Faction> {
+        match game.battle.current_ecaz_or_ally_fighter.flatten() {
+            Some(fighter) if self.initiator() == game.get_ally(Some(fighter)) => Some(fighter),
             _ => self.initiator(),
         }
     }
 
-    pub fn actual_target(&self, game: &Game) -> Faction {
-        match game.battle.current_ecaz_or_ally_fighter {
-            Some(fighter) if fighter != Faction::None && Some(self.target) == game.get_ally(Some(fighter)) => fighter,
+    pub fn actual_target(&self, game: &Game) -> Option<Faction> {
+        match game.battle.current_ecaz_or_ally_fighter.flatten() {
+            Some(fighter) if self.target == game.get_ally(Some(fighter)) => Some(fighter),
             _ => self.target,
         }
     }
 
-    pub fn defender(&self, game: &Game) -> Faction {
+    pub fn defender(&self, game: &Game) -> Option<Faction> {
         if self.actual_initiator(game) == self.aggressor(game) {
             self.actual_target(game)
         } else {
@@ -56,12 +56,12 @@ impl BattleInitiated {
     }
 
     pub fn defending_player(&self, game: &Game) -> Option<PlayerIndex> {
-        game.get_player(Some(self.defender(game)))
+        game.get_player(self.defender(game))
     }
 
-    pub fn aggressor(&self, game: &Game) -> Faction {
+    pub fn aggressor(&self, game: &Game) -> Option<Faction> {
         let target = self.actual_target(game);
-        let target_player = game.get_player(Some(target));
+        let target_player = game.get_player(target);
 
         let Some(target_player) = target_player else {
             return self.actual_initiator(game);
@@ -79,10 +79,10 @@ impl BattleInitiated {
     }
 
     pub fn aggressive_player(&self, game: &Game) -> Option<PlayerIndex> {
-        game.get_player(Some(self.aggressor(game)))
+        game.get_player(self.aggressor(game))
     }
 
-    pub fn is_aggressor_by_juice(g: &Game, f: Faction) -> bool {
+    pub fn is_aggressor_by_juice(g: &Game, f: Option<Faction>) -> bool {
         g.turn.current_juice.as_ref().is_some_and(|j| j.type_ == Some(JuiceType::Aggressor) && j.initiator() == f)
     }
 
@@ -112,10 +112,10 @@ impl BattleInitiated {
     }
 
     pub fn is_involved_faction(&self, game: &Game, f: Faction) -> bool {
-        self.initiator() == f
-            || self.target == f
-            || game.player(self.player()).ally == f
-            || game.get_ally(Some(self.target)) == Some(f)
+        self.initiator() == Some(f)
+            || self.target == Some(f)
+            || game.player(self.player()).ally == Some(f)
+            || game.get_ally(self.target) == Some(f)
     }
 
     pub fn is_aggressor_or_defender(&self, game: &Game, p: PlayerIndex) -> bool {
@@ -124,24 +124,25 @@ impl BattleInitiated {
     }
 
     pub fn is_aggressor_or_defender_faction(&self, game: &Game, f: Faction) -> bool {
-        self.aggressor(game) == f || self.defender(game) == f
+        self.aggressor(game) == Some(f) || self.defender(game) == Some(f)
     }
 
     pub fn opponent_of(&self, game: &Game, p: PlayerIndex) -> Option<PlayerIndex> {
         let pl = game.player(p);
         if pl.faction == self.initiator() || pl.ally == self.initiator() {
-            return game.get_player(Some(self.actual_target(game)));
+            return game.get_player(self.actual_target(game));
         }
 
         if pl.faction == self.target || pl.ally == self.target {
-            return game.get_player(Some(self.actual_initiator(game)));
+            return game.get_player(self.actual_initiator(game));
         }
 
         None
     }
 
-    pub fn opponent_of_faction(&self, game: &Game, f: Faction) -> Option<PlayerIndex> {
-        let player = game.get_player(Some(f));
+    pub fn opponent_of_faction(&self, game: &Game, f: impl Into<Option<Faction>>) -> Option<PlayerIndex> {
+        let f: Option<Faction> = f.into();
+        let player = game.get_player(f);
         match player {
             None => None,
             Some(player) => self.opponent_of(game, player),
@@ -169,7 +170,8 @@ impl BattleInitiated {
         self.plan_of(game, self.opponent_of_faction(game, f))
     }
 
-    pub fn plan_of_faction(&self, game: &Game, f: Faction) -> Option<Rc<Battle>> {
+    pub fn plan_of_faction(&self, game: &Game, f: impl Into<Option<Faction>>) -> Option<Rc<Battle>> {
+        let f: Option<Faction> = f.into();
         if f == self.aggressor(game) {
             return game.battle.aggressor_plan.clone();
         }
@@ -178,11 +180,11 @@ impl BattleInitiated {
     }
 
     pub fn previous_plan_of(&self, game: &Game, f: Faction) -> Option<Rc<Battle>> {
-        if f == self.aggressor(game) {
+        if Some(f) == self.aggressor(game) {
             return game.battle.previous_aggressor_plan.clone();
         }
 
-        if f == self.defender(game) { game.battle.previous_defender_plan.clone() } else { None }
+        if Some(f) == self.defender(game) { game.battle.previous_defender_plan.clone() } else { None }
     }
 
     pub fn treachery_of_opponent(&self, game: &Game, p: PlayerIndex) -> Option<Rc<TreacheryCalled>> {
@@ -220,12 +222,12 @@ impl BattleInitiated {
         }
         if !Battle::battles_to_be_fought(game, self.player(), false)
             .iter()
-            .any(|f| f.faction == self.target && f.territory.id() == self.territory_id)
+            .any(|f| Some(f.faction) == self.target && f.territory.id() == self.territory_id)
         {
             return Some(express!("Invalid battle selected"));
         }
 
-        let opponent = game.get_player(Some(self.defender(game)));
+        let opponent = game.get_player(self.defender(game));
         let Some(opponent) = opponent else {
             return Some(express!("Opponent not selected"));
         };

@@ -6,7 +6,6 @@ use treachery_engine::messages::expression::{EnumValue, Expression, ExpressionEl
 use treachery_engine::heroes::hero::Hero;
 use treachery_engine::identity::Identifiable;
 use treachery_engine::messages::message::Message;
-use treachery_engine::prelude::*;
 
 use crate::describe::Describer;
 use crate::schema::{Part, RichText};
@@ -109,7 +108,7 @@ fn element_marked(el: &ExpressionElement, d: &dyn Describer, out: &mut RichText,
         ExpressionElement::Float(f) => out.push(Part::Num { v: support_round(*f as f64) }),
         ExpressionElement::Double(x) => out.push(Part::Num { v: support_round(*x) }),
         ExpressionElement::Payment(p) => {
-            out.push(Part::Payment { amount: p.amount, by: (p.by != Faction::None).then(|| p.by.to_string()) })
+            out.push(Part::Payment { amount: p.amount, by: p.by.map(|f| f.to_string()) })
         }
         ExpressionElement::Enum(v) if v.ty.name == "Faction" => out.push(Part::Faction { v: enum_name(v), label: d.describe(el) }),
         ExpressionElement::Hero(h) => out.push(hero_part(*h, d)),

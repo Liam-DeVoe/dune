@@ -27,9 +27,9 @@ impl Default for RaiseDeadPlayed {
 }
 
 impl RaiseDeadPlayed {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -82,12 +82,12 @@ impl RaiseDeadPlayed {
         if (self.amount_of_forces + self.amount_of_special_forces) > 5 {
             return Some(express!("You can't revive that many"));
         }
-        if initiator != Faction::Ixian && self.amount_of_special_forces > 1 {
+        if initiator != Some(Faction::Ixian) && self.amount_of_special_forces > 1 {
             return Some(express!("You can only revive one ", pl.special_force(), " per turn"));
         }
         if self.amount_of_special_forces > 0
-            && initiator != Faction::Ixian
-            && game.revival.factions_that_revived_special_forces_this_turn.contains(&initiator)
+            && initiator != Some(Faction::Ixian)
+            && game.revival.factions_that_revived_special_forces_this_turn.contains_opt(initiator)
         {
             return Some(express!("You already revived one ", pl.special_force(), " this turn"));
         }
@@ -144,7 +144,7 @@ impl RaiseDeadPlayed {
         let mut message = self.get_message(game);
         if hero.is_none() || !game.is_face_down_dead(hero.required("hero")?) {
             let mut row = RevivalRow::new(
-                initiator,
+                initiator.required("faction")?,
                 if hero.is_none() { self.amount_of_forces } else { 0 },
                 if hero.is_none() { self.amount_of_special_forces } else { 0 },
                 0,
@@ -184,11 +184,11 @@ impl RaiseDeadPlayed {
             Player::revive_special_forces(game, me, self.amount_of_special_forces);
 
             if self.amount_of_special_forces > 0 {
-                game.revival.factions_that_revived_special_forces_this_turn.push(initiator);
+                game.revival.factions_that_revived_special_forces_this_turn.push(initiator.required("faction")?);
             }
         }
 
-        if self.location(game).is_some() && initiator == Faction::Fremen {
+        if self.location(game).is_some() && initiator == Some(Faction::Fremen) {
             let to = self.location(game).required("location")?;
             Player::ship_special_forces(game, me, to, 1);
             let location = self.location(game);
@@ -231,8 +231,8 @@ impl RaiseDeadPlayed {
     pub fn valid_max_amount(g: &Game, p: PlayerIndex, special_forces: bool) -> i32 {
         let pl = g.player(p);
         if special_forces {
-            if pl.faction == Faction::Emperor || pl.faction == Faction::Fremen {
-                if g.revival.factions_that_revived_special_forces_this_turn.contains(&pl.faction) {
+            if pl.faction == Some(Faction::Emperor) || pl.faction == Some(Faction::Fremen) {
+                if g.revival.factions_that_revived_special_forces_this_turn.contains_opt(pl.faction) {
                     return 0;
                 }
                 return std::cmp::min(pl.special_forces_killed, 1);
@@ -279,7 +279,7 @@ impl GameEventMethods for RaiseDeadPlayed {
 
 impl crate::events::location_event::LocationEvent for RaiseDeadPlayed {
     fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self)
+        GameEventMethods::initiator(self).expect("faction")
     }
 
     fn to(&self, game: &Game) -> Option<Location> {

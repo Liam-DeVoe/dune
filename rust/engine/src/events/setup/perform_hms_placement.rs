@@ -17,9 +17,9 @@ impl Default for PerformHmsPlacement {
 }
 
 impl PerformHmsPlacement {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -43,7 +43,7 @@ impl PerformHmsPlacement {
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_locations(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
         use either::Either;
-        if g.player(p).faction != Faction::Ixian {
+        if g.player(p).faction != Some(Faction::Ixian) {
             return Either::Left(g.board.map.locations(false).filter(|l| !l.territory().is_stronghold()));
         }
         Either::Right(g.board.map.locations(false).filter(move |l| !l.territory().is_stronghold() && l.sector(&g.board.map) != g.board.sector_in_storm))

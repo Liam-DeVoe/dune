@@ -8,7 +8,7 @@ use treachery_view::ending::{EndingView, StoryBlock, StoryRow};
 
 fn endings(name: &str) -> Vec<EndingView> {
     let mut r = load(name);
-    let factions: Vec<Faction> = r.game.players.iter().map(|p| p.faction).collect();
+    let factions: Vec<Faction> = r.game.players.iter().filter_map(|p| p.faction).collect();
     let mut viewers: Vec<Viewer> = factions.iter().map(|f| viewer_of(&r, *f)).collect();
     viewers.push(OBSERVER);
     viewers.into_iter().map(|v| r.view(v).ending.expect("ending after GameEnded")).collect()
@@ -39,7 +39,7 @@ fn everyone_sees_the_same_story() {
     assert!(all.windows(2).all(|w| w[0] == w[1]), "the ending differs between viewers");
     let e = &all[0];
     let r = load("mc-ended");
-    let winners: Vec<String> = r.game.contemplate.winners.iter().map(|p| r.game.player(*p).faction.to_string()).collect();
+    let winners: Vec<String> = r.game.contemplate.winners.iter().map(|p| name_or_absent(r.game.player(*p).faction)).collect();
     assert_eq!(e.winners.iter().map(|w| w.faction.clone()).collect::<Vec<_>>(), winners);
 
     let story = e.story.as_ref().expect("story");

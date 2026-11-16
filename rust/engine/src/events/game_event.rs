@@ -5,7 +5,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct GameEventBase {
     /// Interior mutability: written after the event is stored in game state.
-    pub initiator: Cell<Faction>,
+    pub initiator: Cell<Option<Faction>>,
     /// Interior mutability: the server sets this member after `Execute`, when the event is already in
     pub time: Cell<DateTimeOffset>,
     /// Interior mutability: written after the event is stored in game state.
@@ -33,7 +33,7 @@ pub trait GameEventMethods {
     /// Upcast to the polymorphic event (shares the object).
     fn into_event(self: Rc<Self>) -> GameEvent;
 
-    fn initiator(&self) -> Faction {
+    fn initiator(&self) -> Option<Faction> {
         self.base().initiator.get()
     }
 
@@ -71,10 +71,10 @@ pub trait GameEventMethods {
         game.get_applicable_events(player, is_host).contains(&self.event_type())
     }
 
-    fn initialize(&self, game: &Game, initiator: Faction) {
+    fn initialize(&self, game: &Game, initiator: Option<Faction>) {
         self.base().initiator.set(initiator);
 
-        let player = game.get_player(Some(initiator));
+        let player = game.get_player(initiator);
         if let Some(player) = player {
             self.base().player.set(Some(player));
         }
@@ -133,12 +133,13 @@ pub trait GameEventMethods {
         self.get_message(game)
     }
 
-    fn by(&self, f: Faction) -> bool {
+    fn by(&self, f: impl Into<Option<Faction>>) -> bool {
+        let f: Option<Faction> = f.into();
         self.initiator() == f
     }
 
     fn by_ally_of(&self, game: &Game, f: Faction) -> bool {
-        game.player(self.player()).ally == f
+        game.player(self.player()).ally == Some(f)
     }
 
     fn by_player(&self, _game: &Game, p: PlayerIndex) -> bool {
@@ -175,7 +176,8 @@ pub trait GameEventMethods {
         game.get_player(f)
     }
 
-    fn is_playing(&self, game: &Game, f: Faction) -> bool {
+    fn is_playing(&self, game: &Game, f: impl Into<Option<Faction>>) -> bool {
+        let f: Option<Faction> = f.into();
         game.is_playing(f)
     }
 

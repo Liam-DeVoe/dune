@@ -8,7 +8,8 @@ pub struct CollectionState {
     pub pending_discoveries: Vec<DiscoveryToken>,
     pub collected_resources_to_be_divided: Vec<ResourcesToBeDivided>,
     pub current_division_proposal: Option<Rc<DivideResources>>,
-    pub owner_of_flight_discovery: Option<Faction>,
+    /// `Some(None)`: decided, and nobody.
+    pub owner_of_flight_discovery: Option<Option<Faction>>,
     pub just_revealed_discovery_strongholds: Vec<DiscoveredLocation>,
 }
 
@@ -117,7 +118,7 @@ impl Game {
         for homeworld in homeworlds {
             if let Some(occupier) = self.occupier_of(homeworld.world()) {
                 let faction = self.player(occupier).faction;
-                self.gain_collected_resources(faction, homeworld.territory(), homeworld.resource_amount(), None, true);
+                self.gain_collected_resources(faction.expect("faction"), homeworld.territory(), homeworld.resource_amount(), None, true);
                 let r = &mut self.player_mut(occupier).transferable_resources;
                 *r += homeworld.resource_amount();
             }
@@ -134,7 +135,7 @@ impl Game {
                 && !self.player(p.allied_player(self).expect("allied player")).controls(self, stronghold, self.applicable(Rule::ContestedStongholdsCountAsOccupied)))
         {
             let faction = p.faction;
-            self.gain_collected_resources(faction, stronghold.territory(), amount, None, true);
+            self.gain_collected_resources(faction.expect("faction"), stronghold.territory(), amount, None, true);
         }
     }
 
@@ -156,7 +157,7 @@ impl Game {
                 let collection_rate = self.resource_collection_rate(p);
                 let pl = self.player(p);
                 let forces_collecting_default_amount_of_spice =
-                    if pl.faction != Faction::Ixian { pl.occupying_forces_in_location(key) } else { pl.forces_in(Some(key)) };
+                    if pl.faction != Some(Faction::Ixian) { pl.occupying_forces_in_location(key) } else { pl.forces_in(Some(key)) };
                 let forces_collecting3_spice = if pl.is(Faction::Ixian) { pl.special_forces_in(Some(key)) } else { 0 };
                 let maximum_spice_that_can_be_collected = (forces_collecting_default_amount_of_spice * collection_rate) + (forces_collecting3_spice * 3);
                 let mut collected_amount_by_this_player = spice_left.min(maximum_spice_that_can_be_collected);
@@ -187,7 +188,7 @@ impl Game {
 
                 if players_to_collect.len() == 1 {
                     let p_faction = self.player(p).faction;
-                    self.gain_collected_resources(p_faction, key.territory(), collected_amount_by_this_player, Some(key), false);
+                    self.gain_collected_resources(p_faction.expect("faction"), key.territory(), collected_amount_by_this_player, Some(key), false);
                 } else {
                     total_collected_amount += collected_amount_by_this_player;
                 }
@@ -200,7 +201,7 @@ impl Game {
             if players_to_collect.len() > 1 {
                 let (first_faction, other_faction) = if players_to_collect.iter().any(|p| self.player(*p).is(Faction::Ecaz)) {
                     let other = players_to_collect.iter().copied().find(|p| !self.player(*p).is(Faction::Ecaz)).expect("a player other than Ecaz");
-                    (Faction::Ecaz, self.player(other).faction)
+                    (Some(Faction::Ecaz), self.player(other).faction)
                 } else {
                     (self.player(players_to_collect[0]).faction, self.player(players_to_collect[1]).faction)
                 };
@@ -208,8 +209,8 @@ impl Game {
                 // `new ResourcesToBeDivided()` with every field assigned before it is stored.
                 let to_be_divided = ResourcesToBeDivided {
                     amount: total_collected_amount,
-                    first_faction,
-                    other_faction,
+                    first_faction: first_faction.expect("faction"),
+                    other_faction: other_faction.expect("faction"),
                     territory: key.territory(),
                 };
                 self.collection.collected_resources_to_be_divided.push(to_be_divided);

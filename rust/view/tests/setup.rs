@@ -14,7 +14,7 @@ fn text(s: &str) -> RichText {
 }
 
 fn settings(players: i32, factions: &[Faction]) -> String {
-    let f: Vec<String> = factions.iter().map(|f| f.0.to_string()).collect();
+    let f: Vec<String> = factions.iter().map(|f| (*f as i32).to_string()).collect();
     format!(
         r#"{{"$type":"EstablishPlayers","Initiator":0,"Settings":{{"NumberOfPlayers":{players},"MaximumTurns":10,"InitialRules":[],"AllowedFactionsInPlay":[{}],"AutoOpenEmptySeats":true,"AsyncPlay":false,"AsyncPlayMessageIntervalMinutes":0}},"Seed":7}}"#,
         f.join(",")
@@ -61,11 +61,11 @@ fn perform_setup_offers_the_next_factions_reserves() {
     let a = view.actions.iter().find(|a| a.event_type == "PerformSetup").expect("PerformSetup for the host");
     let Some(ActionOptions::PerformSetup(o)) = &a.options else { panic!("PerformSetup options: {:?}", a.options) };
     let next = r.game.next_faction_to_perform_custom_setup();
-    let p = r.game.player(r.game.get_player(Some(next)).unwrap());
-    assert_eq!(o.faction, next.to_string());
+    let p = r.game.player(r.game.get_player(next).unwrap());
+    assert_eq!(o.faction, name_or_absent(next));
     assert_eq!(o.forces_in_reserve, p.forces_in_reserve());
     assert_eq!(o.special_forces_in_reserve, p.special_forces_in_reserve());
-    assert_eq!(o.may_stage_special, p.has_special_forces(&r.game) && next != Faction::Richese);
+    assert_eq!(o.may_stage_special, p.has_special_forces(&r.game) && next != Some(Faction::Richese));
     assert_eq!(o.locations.len(), r.game.board.map.locations(false).count());
     assert_eq!(a.validation, None);
 

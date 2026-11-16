@@ -37,7 +37,8 @@ impl<T: fmt::Debug + Any> LogRecord for T {
 
 #[derive(Clone)]
 pub struct Message {
-    pub target: Faction,
+    /// `None`: everyone.
+    pub target: Option<Faction>,
     pub expression: Expression,
     pub route: Option<Route>,
     pub heading: Option<Concept>,
@@ -48,17 +49,17 @@ pub struct Message {
 }
 
 impl Message {
-    fn with_expression(target: Faction, e: Expression) -> Message {
+    fn with_expression(target: Option<Faction>, e: Expression) -> Message {
         Message { target, expression: e, route: None, heading: None, plans: None, log: None, fact: None }
     }
 
     /// `Message.Express(params object?[] list)`. Prefer [`express!`](crate::express).
     pub fn express(list: Vec<ExpressionElement>) -> Message {
-        Self::with_expression(Faction::None, Expression::new(list))
+        Self::with_expression(None, Expression::new(list))
     }
 
     /// `Message.ExpressTo(to, params object?[] list)`. Prefer [`express_to!`](crate::express_to).
-    pub fn express_to(to: Faction, list: Vec<ExpressionElement>) -> Message {
+    pub fn express_to(to: Option<Faction>, list: Vec<ExpressionElement>) -> Message {
         Self::with_expression(to, Expression::new(list))
     }
 
@@ -244,7 +245,7 @@ pub struct PlanSummary {
     pub dial: f32,
     pub spice: Option<i32>,
     pub ally_contribution: i32,
-    pub ally: Faction,
+    pub ally: Option<Faction>,
     pub weapon: Option<TreacheryCard>,
     pub defense: Option<TreacheryCard>,
 }

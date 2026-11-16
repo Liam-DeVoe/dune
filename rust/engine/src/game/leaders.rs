@@ -75,10 +75,10 @@ impl Game {
     pub fn determine_if_killed_ghola_returns_to_original_faction(&mut self, l: Hero) {
         let tleilaxu = self.get_player(Some(Faction::Tleilaxu));
         if let (Some(tleilaxu), Hero::Leader(leader)) = (tleilaxu, l) {
-            if self.player(tleilaxu).leaders.contains(&leader) && l.faction() != Faction::Tleilaxu {
+            if self.player(tleilaxu).leaders.contains(&leader) && l.faction() != Some(Faction::Tleilaxu) {
                 list_remove(&mut self.player_mut(tleilaxu).leaders, &leader);
 
-                if let Some(owner) = self.get_player(Some(l.faction())) {
+                if let Some(owner) = self.get_player(l.faction()) {
                     self.player_mut(owner).leaders.push(leader);
                 }
             }
@@ -181,9 +181,9 @@ impl Game {
                 return true;
             }
 
-            let ally = self.get_player(Some(p.ally));
+            let ally = self.get_player(p.ally);
             match ally {
-                Some(ally) if p.is(Faction::Tleilaxu) && p.ally != Faction::None => player = ally,
+                Some(ally) if p.is(Faction::Tleilaxu) && p.ally != None => player = ally,
                 _ => return false,
             }
         }

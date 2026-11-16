@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct FactionTradeOffered {
-    pub target: Faction,
+    pub target: Option<Faction>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -17,15 +17,15 @@ impl Default for FactionTradeOffered {
 }
 
 impl FactionTradeOffered {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
         // `p.Faction` is read inside the lazy predicate, so a null Player throws only once the union has an element.
-        if !Self::valid_targets(game, self.player()).any(|v| v == self.target) {
+        if !Self::valid_targets(game, self.player()).any(|v| Some(v) == self.target) {
             return Some(express!("Invalid target"));
         }
 
@@ -36,7 +36,7 @@ impl FactionTradeOffered {
     pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Faction> {
         let factions: Vec<Faction> = g.rules.factions_in_play.clone();
         // `p.Faction` is read inside the predicate, per element.
-        crate::iter::unique(factions.into_iter().chain(g.players.iter().map(|p| p.faction))).filter(move |f| *f != g.player(p).faction)
+        crate::iter::unique(factions.into_iter().chain(g.players.iter().filter_map(|p| p.faction))).filter(move |f| Some(*f) != g.player(p).faction)
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
@@ -57,7 +57,7 @@ impl FactionTradeOffered {
                     game,
                     vec![self.initiator().into(), " and ".into(), r#match.initiator().into(), " traded factions".into()],
                 );
-                let target = self.get_player(game, Some(self.target));
+                let target = self.get_player(game, self.target);
                 // (target.Faction, Player.Faction) = (Player.Faction, target.Faction);
                 let me = self.player();
                 let my_faction = game.player(me).faction;

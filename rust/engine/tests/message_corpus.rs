@@ -158,7 +158,7 @@ fn params_spreading() {
             "object[] and more" => express!(E::array(objects()), "x"),
             "(object)object[]" => express!(E::array(objects())),
             "no arguments" => express!(),
-            "ExpressTo object[]" => express_to!(Faction::Atreides; @params objects()),
+            "ExpressTo object[]" => express_to!(Some(Faction::Atreides); @params objects()),
             "MessagePart object[]" => express!(express_part!(@params objects())),
             other => panic!("messages.json has params case {other:?}, which this test does not know"),
         };

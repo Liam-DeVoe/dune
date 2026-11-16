@@ -234,7 +234,7 @@ pub fn ending(game: &Game, s: &Seating, d: &dyn Describer) -> Option<EndingView>
     if game.turn.current_phase != Phase::GameEnded {
         return None;
     }
-    let winners = game.contemplate.winners.iter().map(|&p| StoryWinner { faction: name(game.player(p).faction), name: s.player_name(game, p) }).collect();
+    let winners = game.contemplate.winners.iter().map(|&p| StoryWinner { faction: name_or_absent(game.player(p).faction), name: s.player_name(game, p) }).collect();
     let story = (!game.applicable(Rule::DisableEndOfGameReport)).then(|| story(game, s, d));
     Some(EndingView { winners, story })
 }
@@ -327,7 +327,7 @@ fn story(game: &Game, s: &Seating, d: &dyn Describer) -> Vec<StoryBlock> {
         }
 
         if let GameEvent::BeneGesseritPrediction(bp) = &evt {
-            out.push(StoryBlock::Prediction { to_win: name(bp.to_win), turn: bp.turn });
+            out.push(StoryBlock::Prediction { to_win: name_or_absent(bp.to_win), turn: bp.turn });
         }
 
         if matches!(evt, GameEvent::Bid(_) | GameEvent::BlackMarketBid(_)) {
@@ -335,7 +335,7 @@ fn story(game: &Game, s: &Seating, d: &dyn Describer) -> Vec<StoryBlock> {
                 if previous_winning_bid.as_ref() != Some(wb) {
                     let buyer = wb.initiator();
                     out.push(StoryBlock::Purchase {
-                        buyer: name(buyer),
+                        buyer: name_or_absent(buyer),
                         card: r.bidding.card_just_won.map(|c| card(c, rd)),
                         amount: wb.bid_total_amount(),
                         karma_card: match wb {
@@ -350,7 +350,7 @@ fn story(game: &Game, s: &Seating, d: &dyn Describer) -> Vec<StoryBlock> {
         }
 
         let main_phase_started = |m: MainPhase| r.turn.current_main_phase != previous_main_phase && r.turn.current_main_phase == m;
-        let show_ally = r.players.iter().any(|p| p.ally != Faction::None);
+        let show_ally = r.players.iter().any(|p| p.ally != None);
 
         if main_phase_started(MainPhase::Bidding) {
             out.push(StoryBlock::Turn { turn: r.turn.current_turn });
@@ -384,15 +384,15 @@ fn story(game: &Game, s: &Seating, d: &dyn Describer) -> Vec<StoryBlock> {
         if is_milestone(&evt) {
             // Rendered with the finished game, so the live collections in the message show their
             // contents at the end of the game.
-            out.push(StoryBlock::Milestone { faction: name(evt.initiator()), text: crate::expr::message(&evt.get_message(r), d) });
+            out.push(StoryBlock::Milestone { faction: name_or_absent(evt.initiator()), text: crate::expr::message(&evt.get_message(r), d) });
         }
 
         if r.turn.current_phase != previous_phase && r.turn.current_phase == Phase::BattleReport {
             if let (Some(a), Some(dp)) = (&r.battle.aggressor_plan, &r.battle.defender_plan) {
                 let advanced = r.applicable(Rule::AdvancedCombat);
                 out.push(StoryBlock::Battle {
-                    aggressor: plan(r, a, dp.initiator(), advanced),
-                    defender: plan(r, dp, a.initiator(), advanced),
+                    aggressor: plan(r, a, dp.initiator().expect("faction"), advanced),
+                    defender: plan(r, dp, a.initiator().expect("faction"), advanced),
                     advanced_combat: advanced,
                 });
             }
@@ -415,7 +415,7 @@ fn story(game: &Game, s: &Seating, d: &dyn Describer) -> Vec<StoryBlock> {
         if main_phase_started(MainPhase::Ended) {
             for &w in &r.contemplate.winners {
                 out.push(StoryBlock::Winner {
-                    faction: name(r.player(w).faction),
+                    faction: name_or_absent(r.player(w).faction),
                     name: s.player_name(r, w),
                     method: rd.describe(&ExpressionElement::from(r.contemplate.win_method)),
                 });
@@ -439,15 +439,15 @@ fn table(g: &Game, finished: &Game, s: &Seating, mut columns: StoryTable) -> Sto
         .player_indices()
         .map(|pi| {
             let p = g.player(pi);
-            let mut row = StoryRow { faction: name(p.faction), ..Default::default() };
+            let mut row = StoryRow { faction: name_or_absent(p.faction), ..Default::default() };
             if c.show_name {
                 row.name = s.player_name(g, pi);
             }
             if c.show_ally {
-                if p.ally != Faction::None {
-                    row.ally = Some(name(p.ally));
-                } else if p.nexus != Faction::None {
-                    row.nexus = Some(name(p.nexus));
+                if p.ally != None {
+                    row.ally = Some(name_or_absent(p.ally));
+                } else if p.nexus != None {
+                    row.nexus = Some(name_or_absent(p.nexus));
                 }
             }
             if c.show_cards {
@@ -455,7 +455,7 @@ fn table(g: &Game, finished: &Game, s: &Seating, mut columns: StoryTable) -> Sto
             }
             if c.show_traitors {
                 let t = p.traitors.iter().map(|h| StoryTraitor { hero: hero_ref(*h), discarded: false });
-                let discarded = finished.get_player(Some(p.faction)).map(|f| &finished.player(f).discarded_traitors);
+                let discarded = finished.get_player(p.faction).map(|f| &finished.player(f).discarded_traitors);
                 let dt = discarded.into_iter().flatten().map(|h| StoryTraitor { hero: hero_ref(*h), discarded: true });
                 let fd = p.face_dancers.iter().map(|h| StoryTraitor { hero: hero_ref(*h), discarded: false });
                 row.traitors = t.chain(dt).chain(fd).collect();
@@ -486,7 +486,7 @@ fn table(g: &Game, finished: &Game, s: &Seating, mut columns: StoryTable) -> Sto
             if c.show_leaders {
                 row.leaders = p.leaders.iter().filter(|l| g.is_alive(Hero::Leader(**l))).map(|l| hero_ref(Hero::Leader(*l))).collect();
                 row.messiah_available = g.applicable(Rule::AtreidesMessiah)
-                    && p.faction == Faction::Atreides
+                    && p.faction == Some(Faction::Atreides)
                     && p.total_forces_killed_in_battle >= 7
                     && g.is_alive(Hero::Messiah);
             }
@@ -494,7 +494,7 @@ fn table(g: &Game, finished: &Game, s: &Seating, mut columns: StoryTable) -> Sto
                 row.forces_killed = p.forces_killed;
                 row.special_forces_killed = p.special_forces_killed;
                 row.dead_leaders = p.leaders.iter().filter(|l| !g.is_alive(Hero::Leader(**l))).map(|l| hero_ref(Hero::Leader(*l))).collect();
-                row.messiah_dead = p.faction == Faction::Atreides && g.applicable(Rule::AtreidesMessiah) && !g.messiah_is_alive();
+                row.messiah_dead = p.faction == Some(Faction::Atreides) && g.applicable(Rule::AtreidesMessiah) && !g.messiah_is_alive();
             }
             if c.show_points {
                 row.points = g.number_of_victory_points(pi, g.applicable(Rule::ContestedStongholdsCountAsOccupied));
@@ -508,7 +508,7 @@ fn table(g: &Game, finished: &Game, s: &Seating, mut columns: StoryTable) -> Sto
 /// One side of a battle in the story.
 fn plan(g: &Game, b: &treachery_engine::events::Battle, opponent: Faction, advanced: bool) -> StoryPlan {
     StoryPlan {
-        faction: name(b.initiator()),
+        faction: name_or_absent(b.initiator()),
         winner: g.battle.battle_winner == Some(b.initiator()),
         hero: b.hero().map(hero_ref),
         messiah: b.messiah,
@@ -533,7 +533,7 @@ fn strongholds(g: &Game) -> StoryBlock {
                 .iter()
                 .map(|b| StoryBattalion { faction: name(b.faction), forces: b.amount_of_forces, special_forces: b.amount_of_special_forces })
                 .collect(),
-            owner: if owner_column { g.owner_of_location(sh).map(|p| name(g.player(p).faction)) } else { None },
+            owner: if owner_column { g.owner_of_location(sh).map(|p| name_or_absent(g.player(p).faction)) } else { None },
             ambassador: if terror_column {
                 g.ambassador_in(sh.territory()).map(name)
             } else {

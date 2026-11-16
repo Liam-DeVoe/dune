@@ -1,5 +1,5 @@
 //! The setup forms, `EstablishPlayers` and `PerformSetup`. Both are host actions, so a host
-//! without a seat acts as `Faction::None`, as every host does before factions exist.
+//! without a seat acts as `None`, as every host does before factions exist.
 
 use treachery_engine::events::GameEventType;
 use treachery_engine::prelude::*;
@@ -21,11 +21,11 @@ pub fn seatless_host_may_act(v: &ResolvedViewer, t: GameEventType) -> bool {
 fn initial_settings() -> GameSettings {
     let mut s = GameSettings::default();
     s.initial_rules = Some(Game::ruleset_definition().iter().find(|(r, _)| **r == Ruleset::BasicGame).map(|(_, rules)| rules.clone()).unwrap_or_default());
-    s.allowed_factions_in_play = Some(get_values_except_default(Faction::None).collect());
+    s.allowed_factions_in_play = Some(Faction::ALL.to_vec());
     s
 }
 
-pub fn default_draft(game: &Game, faction: Faction, t: GameEventType) -> Option<GameEvent> {
+pub fn default_draft(game: &Game, faction: Option<Faction>, t: GameEventType) -> Option<GameEvent> {
     Some(match t {
         GameEventType::EstablishPlayers => {
             let mut e = EstablishPlayers::new(game, faction);
@@ -43,10 +43,10 @@ pub fn options_and_validation(game: &Game, s: &Seating, draft: &GameEvent, d: &d
         GameEvent::EstablishPlayers(_) => ActionOptions::EstablishPlayers(EstablishPlayersOptions { seated_players: s.seated_users }),
         GameEvent::PerformSetup(_) => {
             let faction = game.next_faction_to_perform_custom_setup();
-            let p = game.get_player(Some(faction))?;
+            let p = game.get_player(faction)?;
             let placer = game.player(p);
             PerformSetupOptions {
-                faction: faction.to_string(),
+                faction: name_or_absent(faction),
                 forces_in_reserve: placer.forces_in_reserve(),
                 special_forces_in_reserve: placer.special_forces_in_reserve(),
                 // Richese's special forces are No-Field tokens, which are not placed this way.

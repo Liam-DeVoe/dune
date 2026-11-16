@@ -39,7 +39,7 @@ impl Fmt for f32 {
 }
 impl Fmt for Faction {
     fn fmt(&self) -> String {
-        format!("F{}", self.0)
+        format!("F{}", *self as i32)
     }
 }
 impl Fmt for PlayerIndex {
@@ -73,7 +73,7 @@ impl Fmt for Hero {
 }
 impl Fmt for Battalion {
     fn fmt(&self) -> String {
-        format!("B{}:{}:{}", self.faction.0, self.amount_of_forces, self.amount_of_special_forces)
+        format!("B{}:{}:{}", self.faction as i32, self.amount_of_forces, self.amount_of_special_forces)
     }
 }
 impl Fmt for BattalionInLocation {
@@ -143,7 +143,7 @@ impl Args<'_> {
         if self.is_null(i) { None } else { Some(self.p(i)) }
     }
     fn f(&self, i: usize) -> Faction {
-        Faction(self.n(i))
+        treachery_engine::enum_type::from_value_or_absent::<Faction>(self.n(i)).unwrap().expect("faction")
     }
     fn l(&self, i: usize) -> Location {
         self.game.board.map.location_lookup().find(self.n(i)).unwrap()

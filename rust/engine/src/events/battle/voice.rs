@@ -23,9 +23,9 @@ macro_rules! elems {
 }
 
 impl Voice {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -93,7 +93,7 @@ impl Voice {
             if let Some(battle) = g.battle.current_battle.as_ref() {
                 let p = p.expect("player");
                 if battle.is_involved(g, p) {
-                    if g.player(p).nexus == Faction::BeneGesserit && NexusPlayed::can_use_secret_ally(g, p) {
+                    if g.player(p).nexus == Some(Faction::BeneGesserit) && NexusPlayed::can_use_secret_ally(g, p) {
                         return battle.is_aggressor_or_defender(g, p);
                     }
 
@@ -110,10 +110,10 @@ impl Voice {
                     };
 
                     if !g.prevented(FactionAdvantage::BeneGesseritUsingVoice) && !occupied() {
-                        if g.player(p).faction == Faction::BeneGesserit {
+                        if g.player(p).faction == Some(Faction::BeneGesserit) {
                             return battle.is_involved(g, p);
                         }
-                        if g.player(p).ally == Faction::BeneGesserit && g.alliances.bene_gesserit_allows_use_of_voice {
+                        if g.player(p).ally == Some(Faction::BeneGesserit) && g.alliances.bene_gesserit_allows_use_of_voice {
                             return battle.is_aggressor_or_defender(g, p);
                         }
                     }
@@ -180,7 +180,7 @@ impl Voice {
 
             if let Some(opponent) = opponent {
                 let f = game.player(opponent).faction;
-                game.revoke_plan_if_needed(f);
+                game.revoke_plan_if_needed(f.required("faction")?);
             }
         }
 

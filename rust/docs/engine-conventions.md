@@ -41,7 +41,7 @@ No state lives outside `Game`: the engine has no thread-locals or statics that g
 
 ## Enums
 
-Change 2d of [rewrite-plan.md](rewrite-plan.md) is turning the enums into closed Rust enums, and most of them are closed already (`closed` in `enumerations.rs`). A closed enum is a Rust `enum` with the C# values as discriminants, so a number that names no member doesn't decode: event JSON holding `13` for a closed enum is refused with "13 is not a valid X". Where the C# enum had a `None = 0` member meaning "no value", the Rust enum leaves it out (`absent None = 0;`) and the game uses `Option<X>`. The C# `None` member doesn't disappear from what players see:
+Every enum is a closed Rust `enum` with the C# values as discriminants (`enumerations.rs`), so a number that names no member doesn't decode: event JSON holding `13` for a faction is refused with "13 is not a valid Faction". Where the C# enum had a `None = 0` member meaning "no value", the Rust enum leaves it out (`absent None = 0;`) and the game uses `Option<X>`. The C# `None` member doesn't disappear from what players see:
 
 - event JSON writes `None` as 0 and reads 0 as `None` (`Option<X>` has its own `ToJson`/`FromJson`, see `json::JsonNullable`);
 - a message logs `None` as the `None` member (`From<Option<X>> for ExpressionElement`), so the skin names it as before;
@@ -63,34 +63,30 @@ name_or_absent(skill);                                      // "Bureaucrat", or 
 for w in World::ALL { /* ... */ }                           // Enum.GetValues<World>() without None
 ```
 
-- `ALL` leaves the absent member out, so `get_values_except_default(X::None)` is `get_values::<X>()`. Where C# offered `None` as a choice, the list says so (`ClairVoyancePlayed::valid_questions` starts with `None`, "any question").
-- A `None` member that is a real choice stays a member: `DealType::None` is a custom deal.
-- The lobby enums (`UserStatus`, `SubscriptionType`, `GameListScope`, `ErrorType`) stay open for now, and so does `Faction` until 2d reaches them.
-- `ShipmentPermission`, a C# `[Flags]` enum, is a struct of three bools (`cross`, `to_homeworld`, `guild_rate`). Event JSON writes it as the flag number, and a number with any other bit doesn't decode.
+- `ALL` is in `Enum.GetValues` order, which is sorted by value, and leaves the absent member out. `Rule` and `Ruleset` are declared out of order, so never rebuild that list from declaration order. Where C# offered `None` as a choice, the list says so (`ClairVoyancePlayed::valid_questions` starts with `None`, "any question").
+- A `None` member that is a real choice stays a member: `DealType::None` is a custom deal, and the lobby enums (`UserStatus`, `SubscriptionType`, `GameListScope`, `ErrorType`) keep theirs.
+- `Ord` compares values, like C#. `Option<X>` sorts `None` first, where C# sorted the 0 member.
+- `Display` is `Enum.ToString()`, the member name. Use `name_or_absent` for an `Option<X>`.
+- `ShipmentPermission`, a C# `[Flags]` enum, is a struct of three bools (`cross`, `to_homeworld`, `guild_rate`) that implements `GameEnum` by hand. Event JSON writes it as the flag number, and a number with any other bit doesn't decode.
+- serde (de)serializes a closed enum as its member name. Nothing serializes enums with serde yet; event JSON goes through `json/`.
+- To declare an enum outside `enumerations.rs`, use the `game_enum!` macro (`enum_type.rs`) with `closed` (see `BattleFactKind` in `message.rs`). Give `get_values` in value order.
 
-The rest of this section describes the enums that are still open. Each is a newtype over `i32`, with the members as associated constants that keep their C# names:
+### Factions
+
+A player has no faction until faction selection (`Player.faction` is `Option<Faction>`), and neither has the host, so an event's initiator is `Option<Faction>` too, and so are `Player.ally`, `Player.nexus` and most event fields that name a faction. Some helpers take either:
 
 ```rust
-use crate::enumerations::*;
-
-let f = Faction::Fremen;                 // Faction(10)
-if f == Faction::Atreides { /* ... */ }
-match phase {
-    Phase::BlowA | Phase::BlowB => { /* ... */ }
-    _ => {}                               // always needed: the type is open
-}
-let n: i32 = f.0;                         // (int)f
-let g = Faction(n);                       // (Faction)n
-f.to_string();                            // f.ToString(): "Fremen", or "13" if undefined
-for w in World::ALL { /* ... */ }         // Enum.GetValues<World>(): sorted by value
-get_values_except_default(Faction::None); // Enumerations.GetValuesExceptDefault
+// Queries that C# called with Faction.None take `impl Into<Option<Faction>>`:
+game.is_playing(Faction::Fremen);  game.is_playing(e.initiator());
+player.is(Faction::Atreides);      // false for a player without a faction
+// Lists and maps keyed by Faction never hold an absent one:
+game.turn.has_acted_or_passed.contains_opt(e.initiator());   // iter::ContainsOpt
+game.bidding.bids.get_opt(game.player(p).faction);           // iter::MapOpt
+// An executed event from a player always has a faction:
+let me = self.initiator().required("faction")?;
 ```
 
-- `Ord` compares values, like C#.
-- `ALL` is in `Enum.GetValues` order, which is sorted by value. `Rule` and `Ruleset` are declared out of order, so never rebuild that list from declaration order.
-- `Display` is `Enum.ToString()`. That includes `[Flags]` combinations such as `"Cross, ToHomeworld"` for `ShipmentPermission`. Use it for exception messages and `$"{x}"` interpolation.
-- serde (de)serializes an open enum as its number and a closed one as its member name. Nothing serializes enums with serde yet; event JSON goes through `json/`.
-- To declare an enum outside `enumerations.rs`, use the `game_enum!` macro (`enum_type.rs`), with `closed` (see `BattleFactKind` in `message.rs`). Give `get_values` in value order.
+`battle.battle_winner`, `battle_loser`, `current_ecaz_or_ally_fighter` and `collection.owner_of_flight_discovery` are `Option<Option<Faction>>`: `None` before the battle (or the discovery) is decided, `Some(None)` when it was decided and nobody won, as C#'s nullable `Faction?` holding `None`.
 
 ## Static game data: handles
 

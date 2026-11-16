@@ -25,15 +25,15 @@ impl Default for PerformSetup {
 }
 
 impl PerformSetup {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
         let faction = game.next_faction_to_perform_custom_setup();
-        let p = game.get_player(Some(faction));
+        let p = game.get_player(faction);
         let number_of_special_forces =
             self.force_locations(game).values().map(|b| b.amount_of_special_forces).sum::<i32>();
         let Some(p) = p else { return Some(express!("No faction is setting up")) };
@@ -51,7 +51,7 @@ impl PerformSetup {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let faction = game.next_faction_to_perform_custom_setup();
-        let player = self.get_player(game, Some(faction));
+        let player = self.get_player(game, faction);
 
         for (location, battalion) in self.force_locations(game).iter() {
             let location = *location;
@@ -65,7 +65,7 @@ impl PerformSetup {
             game,
             vec![faction.into(), " initial positions set, starting with ".into(), Payment::of(self.resources).into()],
         );
-        game.turn.has_acted_or_passed.push(faction);
+        game.turn.has_acted_or_passed.push(faction.required("faction")?);
 
         if game.players.len() == game.turn.has_acted_or_passed.len() {
             if game.treachery_cards_before_traitors() {
@@ -143,7 +143,7 @@ impl PlacementEventMethods for PerformSetup {
 
 impl crate::events::location_event::LocationEvent for PerformSetup {
     fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self)
+        GameEventMethods::initiator(self).expect("faction")
     }
 
     fn to(&self, game: &Game) -> Option<Location> {
@@ -166,7 +166,7 @@ impl crate::events::location_event::LocationEvent for PerformSetup {
 
 impl crate::events::placement::Placement for PerformSetup {
     fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self)
+        GameEventMethods::initiator(self).expect("faction")
     }
 
     fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {

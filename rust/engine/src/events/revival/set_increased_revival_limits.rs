@@ -17,9 +17,9 @@ impl Default for SetIncreasedRevivalLimits {
 }
 
 impl SetIncreasedRevivalLimits {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -32,7 +32,7 @@ impl SetIncreasedRevivalLimits {
         let factions = self.factions.as_ref().required("factions")?;
         // ValidTargets is re-run lazily per faction; `p.Faction` is only read when there are players.
         let p = self.player_opt();
-        if factions.iter().any(|f| !game.players.iter().any(|x| x.faction != game.player(p.expect("player")).faction && x.faction == *f)) {
+        if factions.iter().any(|f| !game.players.iter().any(|x| x.faction != game.player(p.expect("player")).faction && x.faction == Some(*f))) {
             return Ok(Some(express!("Invalid faction")));
         }
 
@@ -41,7 +41,7 @@ impl SetIncreasedRevivalLimits {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Faction> {
-        g.players.iter().filter(move |x| x.faction != g.player(p).faction).map(move |x| x.faction)
+        g.players.iter().filter(move |x| x.faction != g.player(p).faction).filter_map(move |x| x.faction)
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {

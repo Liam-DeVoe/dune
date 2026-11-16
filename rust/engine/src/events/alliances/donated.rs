@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct Donated {
-    pub target: Faction,
+    pub target: Option<Faction>,
     pub resources: i32,
     pub from_bank: bool,
     pub card_id: i32,
@@ -23,9 +23,9 @@ impl Default for Donated {
 }
 
 impl Donated {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -62,10 +62,10 @@ impl Donated {
         if game.player(self.player()).resources < self.resources {
             return Some(express!("You can't give that much"));
         }
-        if self.initiator() != Faction::Emperor && self.target == game.player(self.player()).ally {
+        if self.initiator() != Some(Faction::Emperor) && self.target == game.player(self.player()).ally {
             return Some(express!("You can't bribe your ally"));
         }
-        if self.initiator() != Faction::Emperor && game.applicable(Rule::DisableResourceTransfers) {
+        if self.initiator() != Some(Faction::Emperor) && game.applicable(Rule::DisableResourceTransfers) {
             return Some(express!(Concept::Resource, " transfers are disabled by house rule"));
         }
         if !self.from_bank
@@ -75,7 +75,7 @@ impl Donated {
             let _ = express!("No bribes can be made during Double Inflation");
         }
 
-        let target_player = game.get_player(Some(self.target));
+        let target_player = game.get_player(self.target);
         if self.card().is_some() && !game.player(target_player.expect("target player")).has_room_for_cards(game) {
             return Some(express!("Target faction's hand is full"));
         }
@@ -89,7 +89,7 @@ impl Donated {
         g.players
             .iter()
             .filter(move |x| x.faction != g.player(p).faction && (g.player(p).is(Faction::Emperor) || x.faction != g.player(p).ally))
-            .map(move |x| x.faction)
+            .filter_map(move |x| x.faction)
     }
 
     pub fn may_donate(g: &Game, p: PlayerIndex) -> bool {
@@ -113,7 +113,7 @@ impl Donated {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         // `GetPlayer(Target)!` does not throw; a null target throws where it is dereferenced.
-        let target = self.get_player(game, Some(self.target));
+        let target = self.get_player(game, self.target);
 
         if !self.from_bank {
             match target {

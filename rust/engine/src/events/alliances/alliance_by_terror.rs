@@ -22,9 +22,9 @@ macro_rules! elems {
 }
 
 impl AllianceByTerror {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -40,7 +40,7 @@ impl AllianceByTerror {
             if game.player(self.player()).has_ally() {
                 let ally = game.player(self.player()).ally;
                 self.log_objects(game, elems![self.initiator(), " and ", ally, " end their alliance"]);
-                game.break_alliance(self.initiator());
+                game.break_alliance(self.initiator().required("faction")?);
             }
 
             let moritani = game.get_player(Some(Faction::Moritani));
@@ -52,9 +52,9 @@ impl AllianceByTerror {
                 }
             }
 
-            game.make_alliance(self.initiator(), Faction::Moritani);
+            game.make_alliance(self.initiator().required("faction")?, Faction::Moritani);
 
-            if game.turn.has_acted_or_passed.contains(&self.initiator()) && game.turn.has_acted_or_passed.contains(&Faction::Moritani) {
+            if game.turn.has_acted_or_passed.contains_opt(self.initiator()) && game.turn.has_acted_or_passed.contains(&Faction::Moritani) {
                 game.check_if_forces_should_be_destroyed_by_ally_presence(self.player());
             }
 

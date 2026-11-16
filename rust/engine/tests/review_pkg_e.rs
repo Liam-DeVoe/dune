@@ -3,7 +3,7 @@
 use treachery_engine::prelude::*;
 
 fn as_player<E: GameEventMethods>(e: E, g: &Game, f: Faction) -> E {
-    e.base().initiator.set(f);
+    e.base().initiator.set(Some(f));
     e.base().player.set(g.get_player(Some(f)));
     e
 }

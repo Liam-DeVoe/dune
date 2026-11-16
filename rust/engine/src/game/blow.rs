@@ -163,9 +163,9 @@ impl Game {
     pub fn cancel_all_alliances(&mut self) {
         for i in 0..self.players.len() {
             let p = &self.players[i];
-            if p.ally != Faction::None {
+            if p.ally != None {
                 let f = p.faction;
-                self.break_alliance(f);
+                self.break_alliance(f.expect("faction"));
             }
         }
     }
@@ -379,7 +379,7 @@ impl Game {
                             express!(m.describing_concept(), " devours ", self.player(p).any_forces_in(Some(l)), faction, " forces in ", l);
                         if !m.is_great_monster {
                             devoured = devoured.with_log(WormDevouredForcesLog::new(
-                                faction,
+                                faction.expect("faction"),
                                 self.player(p).forces_in(Some(l)),
                                 self.player(p).special_forces_in(Some(l)),
                                 l,
@@ -392,7 +392,7 @@ impl Game {
                             if !self.applicable(Rule::FullPhaseKarma) {
                                 self.allow(FactionAdvantage::FremenProtectedFromMonster);
                             }
-                        } else if self.player(p).ally == Faction::Fremen && self.alliances.fremen_will_protect_from_monster {
+                        } else if self.player(p).ally == Some(Faction::Fremen) && self.alliances.fremen_will_protect_from_monster {
                             if !self.applicable(Rule::FullPhaseKarma) {
                                 self.allow(FactionAdvantage::FremenProtectedFromMonsterAlly);
                             }
@@ -401,7 +401,7 @@ impl Game {
                         let faction = self.player(p).faction;
                         let mut survived = express!(faction, " survive ", m.describing_concept(), " in ", l);
                         if !m.is_great_monster {
-                            survived = survived.with_log(WormSurvivedLog::new(faction, l));
+                            survived = survived.with_log(WormSurvivedLog::new(faction.expect("faction"), l));
                         }
                         self.log(elems![survived]);
                     }
@@ -498,19 +498,19 @@ impl Game {
     }
 
     pub fn enter_nexus_card_phase(&mut self) {
-        self.blow.factions_that_may_draw_nexus_card = self.players.iter().filter(|p| !p.has_ally()).map(|p| p.faction).collect();
+        self.blow.factions_that_may_draw_nexus_card = self.players.iter().filter(|p| !p.has_ally()).filter_map(|p| p.faction).collect();
         self.blow.factions_that_drew_nexus_card.clear();
         self.enter(Phase::NexusCards, true);
     }
 
     pub fn discard_nexus_card(&mut self, p: PlayerIndex) {
         let nexus = self.player(p).nexus;
-        if nexus != Faction::None {
+        if nexus != None {
             let faction = self.player(p).faction;
             self.log(elems![faction, " discard the ", nexus, " Nexus Card"]);
             self.stone(Milestone::NexusPlayed);
-            self.decks.nexus_discard_pile.push(nexus);
-            self.player_mut(p).nexus = Faction::None;
+            self.decks.nexus_discard_pile.push(nexus.expect("faction"));
+            self.player_mut(p).nexus = None;
         }
     }
 
@@ -605,7 +605,7 @@ impl Game {
         if self.player(p).is(Faction::Fremen) {
             return !self.prevented(FactionAdvantage::FremenProtectedFromMonster);
         }
-        self.player(p).ally == Faction::Fremen && self.alliances.fremen_will_protect_from_monster && !self.prevented(FactionAdvantage::FremenProtectedFromMonsterAlly)
+        self.player(p).ally == Some(Faction::Fremen) && self.alliances.fremen_will_protect_from_monster && !self.prevented(FactionAdvantage::FremenProtectedFromMonsterAlly)
     }
 }
 

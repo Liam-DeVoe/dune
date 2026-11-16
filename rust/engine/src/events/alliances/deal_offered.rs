@@ -33,9 +33,9 @@ impl Default for DealOffered {
 }
 
 impl DealOffered {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -120,7 +120,7 @@ impl DealOffered {
         )
     }
 
-    pub fn matches(&self, by: Faction, bound_faction: Faction, price: i32, type_: DealType, deal_parameter1: Option<&str>, deal_parameter2: Option<&str>, text: Option<&str>, benefit: i32, end: Option<Phase>) -> bool {
+    pub fn matches(&self, by: Option<Faction>, bound_faction: Option<Faction>, price: i32, type_: DealType, deal_parameter1: Option<&str>, deal_parameter2: Option<&str>, text: Option<&str>, benefit: i32, end: Option<Phase>) -> bool {
         bound_faction == self.initiator()
             && price == self.price
             && type_ == self.type_
@@ -131,7 +131,7 @@ impl DealOffered {
             && end == self.end_phase
             && {
                 let to = self.to.as_ref().expect("destination");
-                to.len() == 0 || to.contains(&by)
+                to.len() == 0 || to.contains_opt(by)
             }
     }
 
@@ -139,7 +139,7 @@ impl DealOffered {
         let mut result = vec![DealType::None, DealType::ForfeitBattle, DealType::TellDiscardedTraitors];
 
         match g.player(p).faction {
-            Faction::Atreides => {
+            Some(Faction::Atreides) => {
                 if g.has_bidding_prescience(p) {
                     result.push(DealType::ShareBiddingPrescience);
                 }
@@ -148,7 +148,7 @@ impl DealOffered {
                 }
             }
 
-            Faction::Fremen => {
+            Some(Faction::Fremen) => {
                 if g.has_storm_prescience(Some(p)) {
                     result.push(DealType::ShareStormPrescience);
                 }

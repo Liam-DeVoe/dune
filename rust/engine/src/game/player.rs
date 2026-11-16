@@ -2,7 +2,8 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct Player {
-    pub faction: Faction,
+    /// `None` until the player has a faction.
+    pub faction: Option<Faction>,
     pub seat: i32,
     pub resources: i32,
     pub extortion: i32,
@@ -28,23 +29,23 @@ pub struct Player {
     // In map order (by location id), like spice on the board.
     pub forces_in_locations: BTreeMap<Location, Battalion>,
     pub ambassadors: Vec<Ambassador>,
-    pub predicted_faction: Faction,
+    pub predicted_faction: Option<Faction>,
     pub predicted_turn: i32,
     pub forces_killed: i32,
     pub special_forces_killed: i32,
     pub total_forces_killed_in_battle: i32,
-    pub ally: Faction,
+    pub ally: Option<Faction>,
     pub special_karma_power_used: bool,
     pub tech_tokens: Vec<TechToken>,
     pub most_recently_revived_leader: Option<Leader>,
     pub skills_to_choose_from: Vec<LeaderSkill>,
     pub home_worlds: Vec<Homeworld>,
-    pub nexus: Faction,
+    pub nexus: Option<Faction>,
     pub salusa_secundus_homeworld_is_on_low_threshold: bool,
 }
 
 impl Player {
-    pub fn new(faction: Faction) -> Self {
+    pub fn new(faction: Option<Faction>) -> Self {
         Player {
             faction,
             seat: -1,
@@ -69,18 +70,18 @@ impl Player {
             leaders: Vec::new(),
             forces_in_locations: BTreeMap::new(),
             ambassadors: Vec::new(),
-            predicted_faction: Faction::default(),
+            predicted_faction: None,
             predicted_turn: 0,
             forces_killed: 0,
             special_forces_killed: 0,
             total_forces_killed_in_battle: 0,
-            ally: Faction::default(),
+            ally: None,
             special_karma_power_used: false,
             tech_tokens: Vec::new(),
             most_recently_revived_leader: None,
             skills_to_choose_from: Vec::new(),
             home_worlds: Vec::new(),
-            nexus: Faction::None,
+            nexus: None,
             salusa_secundus_homeworld_is_on_low_threshold: false,
         }
     }
@@ -102,13 +103,13 @@ impl Player {
     }
 
     pub fn no_field_is_active(&self) -> bool {
-                self.faction == Faction::Richese && self.forces_in_locations.values().any(|b| b.amount_of_special_forces > 0)
+                self.faction == Some(Faction::Richese) && self.forces_in_locations.values().any(|b| b.amount_of_special_forces > 0)
     }
 
     /// Returns the live battalion, not a copy.
     pub fn get_and_create_if_needed(&mut self, location: Location) -> &mut Battalion {
         let faction = self.faction;
-        self.forces_in_locations.entry(location).or_insert_with(|| Battalion::new(faction, 0, 0, location))
+        self.forces_in_locations.entry(location).or_insert_with(|| Battalion::new(faction.expect("faction"), 0, 0, location))
     }
 
     pub fn change_forces(game: &mut Game, me: PlayerIndex, location: Location, nr_of_forces: i32) {
@@ -163,7 +164,7 @@ impl Player {
 
     pub fn check_if_emperor_star_threshold_was_passed(game: &mut Game, me: PlayerIndex) {
         let p = game.player(me);
-        if p.faction == Faction::Emperor && game.applicable(Rule::EmperorSpecialForces) {
+        if p.faction == Some(Faction::Emperor) && game.applicable(Rule::EmperorSpecialForces) {
             let home_world = p.home_worlds.iter().copied().find(|hw| hw.world() == World::SalusaSecundus);
 
             let Some(home_world) = home_world else {
@@ -260,10 +261,10 @@ impl Player {
 
         let live_special = |game: &Game| game.player(me).forces_in_locations.get(&location).map_or(0, |b| b.amount_of_special_forces);
         let faction = game.player(me).faction;
-        if faction == Faction::BeneGesserit {
+        if faction == Some(Faction::BeneGesserit) {
             let n = live_special(game);
             Player::add_forces_to_reserves(game, me, n);
-        } else if faction != Faction::Richese {
+        } else if faction != Some(Faction::Richese) {
             let n = live_special(game);
             Player::add_special_forces_to_reserves(game, me, n);
         }
@@ -279,9 +280,9 @@ impl Player {
 
     pub fn special_forces_to_reserves(game: &mut Game, me: PlayerIndex, location: Location, amount: i32) {
         let faction = game.player(me).faction;
-        if faction == Faction::BeneGesserit {
+        if faction == Some(Faction::BeneGesserit) {
             Player::add_forces_to_reserves(game, me, amount);
-        } else if faction != Faction::Richese {
+        } else if faction != Some(Faction::Richese) {
             Player::add_special_forces_to_reserves(game, me, amount);
         }
 
@@ -296,11 +297,11 @@ impl Player {
             return;
         }
         match game.player(me).faction {
-            Faction::BeneGesserit => {
+            Some(Faction::BeneGesserit) => {
                 Player::change_special_forces(game, me, location, -amount);
                 Player::change_forces(game, me, homeworld.location(), amount);
             }
-            Faction::Richese => {
+            Some(Faction::Richese) => {
                 Player::change_special_forces(game, me, location, -amount);
                 game.ship_move.current_no_field_value = -1;
             }
@@ -323,9 +324,9 @@ impl Player {
                     //: the whole remaining amount goes to reserves at every
                     // location, and the removal below is refused when it exceeds the forces there.
                     let faction = game.player(me).faction;
-                    if special && faction != Faction::BeneGesserit {
+                    if special && faction != Some(Faction::BeneGesserit) {
                         Player::add_special_forces_to_reserves(game, me, to_remove_in_total);
-                    } else if !special || faction != Faction::Richese {
+                    } else if !special || faction != Some(Faction::Richese) {
                         Player::add_forces_to_reserves(game, me, to_remove_in_total);
                     }
 
@@ -364,7 +365,7 @@ impl Player {
             let p = game.player_mut(me);
             p.forces_killed += kill_count;
 
-            if faction == Faction::BeneGesserit {
+            if faction == Some(Faction::BeneGesserit) {
                 p.forces_killed += special_kill_count;
             } else {
                 p.special_forces_killed += special_kill_count;
@@ -400,7 +401,7 @@ impl Player {
         let p = game.player_mut(me);
         p.forces_killed += amount_of_forces;
 
-        if p.faction == Faction::BeneGesserit {
+        if p.faction == Some(Faction::BeneGesserit) {
             p.forces_killed += amount_of_special_forces;
         } else {
             p.special_forces_killed += amount_of_special_forces;
@@ -457,7 +458,7 @@ impl Player {
     }
 
     pub fn ship_special_forces(game: &mut Game, me: PlayerIndex, to: Location, amount: i32) {
-        if game.player(me).faction == Faction::Richese {
+        if game.player(me).faction == Some(Faction::Richese) {
             Player::change_special_forces(game, me, to, amount);
         } else {
             Player::add_special_forces(game, me, to, amount, true);
@@ -465,7 +466,7 @@ impl Player {
     }
 
     pub fn ship_special_forces_from_homeworld(game: &mut Game, me: PlayerIndex, to: Location, from: Homeworld, amount: i32) {
-        if game.player(me).faction == Faction::Richese {
+        if game.player(me).faction == Some(Faction::Richese) {
             Player::change_special_forces(game, me, to, amount);
         } else {
             Player::move_special_forces(game, me, from.location(), to, amount);
@@ -488,7 +489,7 @@ impl Player {
     }
 
     pub fn flip_forces(game: &mut Game, me: PlayerIndex, l: Location, as_advisors: bool) {
-        if game.player(me).faction == Faction::BeneGesserit {
+        if game.player(me).faction == Some(Faction::BeneGesserit) {
             if as_advisors {
                 let number_of_forces = game.player(me).forces_in(Some(l));
                 Player::change_forces(game, me, l, -number_of_forces);
@@ -510,7 +511,7 @@ impl Player {
     }
 
     pub fn occupying_forces_in_location(&self, l: Location) -> i32 {
-                self.forces_in(Some(l)) + (if self.faction == Faction::BeneGesserit { 0 } else { self.special_forces_in(Some(l)) })
+                self.forces_in(Some(l)) + (if self.faction == Some(Faction::BeneGesserit) { 0 } else { self.special_forces_in(Some(l)) })
     }
 
     pub fn occupies(&self, game: &Game, l: Option<Location>) -> bool {
@@ -518,7 +519,7 @@ impl Player {
             None => false,
             Some(l) => {
                 self.occupying_forces_in_location(l) > 0
-                    || (self.ally == Faction::Ecaz
+                    || (self.ally == Some(Faction::Ecaz)
                         && self.occupying_forces_in_location(l) > 0
                         // `AlliedPlayer?.OccupyingForcesIn(l) > 0`: null > 0 is false
                         && self.allied_player(game).is_some_and(|a| game.player(a).occupying_forces_in_location(l) > 0))
@@ -566,29 +567,29 @@ impl Player {
 
     pub fn force(&self) -> Option<FactionForce> {
                 match self.faction {
-            Faction::Atreides => Some(FactionForce::Atreides),
-            Faction::Harkonnen => Some(FactionForce::Harkonnen),
-            Faction::Fremen => Some(FactionForce::Fremen),
-            Faction::Emperor => Some(FactionForce::Emperor),
-            Faction::Guild => Some(FactionForce::Guild),
-            Faction::BeneGesserit => Some(FactionForce::BeneGesserit),
-            Faction::Ixian => Some(FactionForce::Ixian),
-            Faction::Tleilaxu => Some(FactionForce::Tleilaxu),
-            Faction::Choam => Some(FactionForce::Choam),
-            Faction::Richese => Some(FactionForce::Richese),
-            Faction::Ecaz => Some(FactionForce::Ecaz),
-            Faction::Moritani => Some(FactionForce::Moritani),
+            Some(Faction::Atreides) => Some(FactionForce::Atreides),
+            Some(Faction::Harkonnen) => Some(FactionForce::Harkonnen),
+            Some(Faction::Fremen) => Some(FactionForce::Fremen),
+            Some(Faction::Emperor) => Some(FactionForce::Emperor),
+            Some(Faction::Guild) => Some(FactionForce::Guild),
+            Some(Faction::BeneGesserit) => Some(FactionForce::BeneGesserit),
+            Some(Faction::Ixian) => Some(FactionForce::Ixian),
+            Some(Faction::Tleilaxu) => Some(FactionForce::Tleilaxu),
+            Some(Faction::Choam) => Some(FactionForce::Choam),
+            Some(Faction::Richese) => Some(FactionForce::Richese),
+            Some(Faction::Ecaz) => Some(FactionForce::Ecaz),
+            Some(Faction::Moritani) => Some(FactionForce::Moritani),
             _ => None,
         }
     }
 
     pub fn special_force(&self) -> Option<FactionSpecialForce> {
                 match self.faction {
-            Faction::Emperor => Some(FactionSpecialForce::Emperor),
-            Faction::Fremen => Some(FactionSpecialForce::Fremen),
-            Faction::BeneGesserit => Some(FactionSpecialForce::BeneGesserit),
-            Faction::Ixian => Some(FactionSpecialForce::Ixian),
-            Faction::Richese => Some(FactionSpecialForce::Richese),
+            Some(Faction::Emperor) => Some(FactionSpecialForce::Emperor),
+            Some(Faction::Fremen) => Some(FactionSpecialForce::Fremen),
+            Some(Faction::BeneGesserit) => Some(FactionSpecialForce::BeneGesserit),
+            Some(Faction::Ixian) => Some(FactionSpecialForce::Ixian),
+            Some(Faction::Richese) => Some(FactionSpecialForce::Richese),
             _ => None,
         }
     }
@@ -600,7 +601,7 @@ impl Player {
     }
 
     pub fn allied_player(&self, game: &Game) -> Option<PlayerIndex> {
-        game.get_player(Some(self.ally))
+        game.get_player(self.ally)
     }
 
     pub fn allied_resources(&self, game: &Game) -> i32 {
@@ -611,7 +612,7 @@ impl Player {
     }
 
     pub fn has_ally(&self) -> bool {
-                self.ally != Faction::None
+                self.ally != None
     }
 
     pub fn has(&self, card: Option<TreacheryCard>) -> bool {
@@ -629,12 +630,13 @@ impl Player {
                 self.leaders.contains(&leader)
     }
 
-    pub fn is(&self, f: Faction) -> bool {
+    pub fn is(&self, f: impl Into<Option<Faction>>) -> bool {
+        let f: Option<Faction> = f.into();
                 self.faction == f
     }
 
     pub fn or_ally_is(&self, f: Faction) -> bool {
-                self.faction == f || self.ally == f
+                self.faction == Some(f) || self.ally == Some(f)
     }
 
     pub fn maximum_number_of_cards(&self, game: &Game) -> i32 {
@@ -644,11 +646,11 @@ impl Player {
             _ => 0,
         };
         let atomics_penalty =
-            if game.board.atomics_aftermath.is_some() && (self.faction == Faction::Moritani || self.ally == Faction::Moritani) { 1 } else { 0 };
+            if game.board.atomics_aftermath.is_some() && (self.faction == Some(Faction::Moritani) || self.ally == Some(Faction::Moritani)) { 1 } else { 0 };
 
         let amount = match self.faction {
-            Faction::Harkonnen => 8,
-            Faction::Choam => 5,
+            Some(Faction::Harkonnen) => 8,
+            Some(Faction::Choam) => 5,
             _ => 4,
         };
 
@@ -656,7 +658,7 @@ impl Player {
     }
 
     pub fn has_no_field_in(&self, territory: Territory) -> bool {
-                self.faction == Faction::Richese && self.special_forces_in_territory(Some(territory)) > 0
+                self.faction == Some(Faction::Richese) && self.special_forces_in_territory(Some(territory)) > 0
     }
 
     pub fn has_room_for_cards(&self, game: &Game) -> bool {
@@ -668,11 +670,11 @@ impl Player {
     }
 
     pub fn number_of_traitors(&self) -> i32 {
-                if self.faction == Faction::Harkonnen { 4 } else { 1 }
+                if self.faction == Some(Faction::Harkonnen) { 4 } else { 1 }
     }
 
     pub fn number_of_face_dancers(&self) -> i32 {
-                if self.faction == Faction::Tleilaxu { 3 } else { 0 }
+                if self.faction == Some(Faction::Tleilaxu) { 3 } else { 0 }
     }
 
     pub fn battalions_in(&self, territory: Territory) -> IndexMap<Location, Battalion> {
@@ -698,17 +700,17 @@ impl Player {
 
     pub fn battalion_in_location(&self, location: Location) -> Option<Battalion> {
         let mut result = None;
-        if self.battalion_in(location, &mut result) { result } else { Some(Battalion::new(self.faction, 0, 0, location)) }
+        if self.battalion_in(location, &mut result) { result } else { Some(Battalion::new(self.faction.expect("faction"), 0, 0, location)) }
     }
 
     pub fn assign_leaders(g: &mut Game, me: PlayerIndex) {
         let faction = g.player(me).faction;
         let leaders: Vec<Leader> = match faction {
-            Faction::Choam => LeaderManager::get_leaders(Faction::Choam)
+            Some(Faction::Choam) => LeaderManager::get_leaders(Faction::Choam)
                 .filter(|l| g.applicable(Rule::ChoamAuditor) || l.hero_type() != HeroType::Auditor)
                 .collect(),
-            Faction::Ecaz => LeaderManager::get_leaders(Faction::Ecaz).filter(|l| l.hero_type() != HeroType::Vidal).collect(),
-            _ => LeaderManager::get_leaders(faction).collect(),
+            Some(Faction::Ecaz) => LeaderManager::get_leaders(Faction::Ecaz).filter(|l| l.hero_type() != HeroType::Vidal).collect(),
+            _ => faction.map_or(Vec::new(), |f| LeaderManager::get_leaders(f).collect()),
         };
         g.player_mut(me).leaders = leaders;
     }

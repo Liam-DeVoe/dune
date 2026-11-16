@@ -18,9 +18,9 @@ impl Default for BattleClaimed {
 }
 
 impl BattleClaimed {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -30,7 +30,7 @@ impl BattleClaimed {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
-        game.battle.current_ecaz_or_ally_fighter = if self.passed { game.get_ally(Some(Faction::Ecaz)) } else { Some(Faction::Ecaz) };
+        game.battle.current_ecaz_or_ally_fighter = if self.passed { Some(game.get_ally(Some(Faction::Ecaz))) } else { Some(Some(Faction::Ecaz)) };
         game.enter(Phase::BattlePhase, true);
         game.initiate_battle();
         self.determine_ecaz_contribution(game);
@@ -38,11 +38,11 @@ impl BattleClaimed {
     }
 
     pub fn determine_ecaz_contribution(&self, game: &mut Game) {
-        let fighter = game.get_player(game.battle.current_ecaz_or_ally_fighter);
+        let fighter = game.get_player(game.battle.current_ecaz_or_ally_fighter.flatten());
 
         if fighter.is_some()
             && game.battle.current_battle.is_some()
-            && (game.player(fighter.expect("fighter")).is(Faction::Ecaz) || game.player(fighter.expect("fighter")).ally == Faction::Ecaz)
+            && (game.player(fighter.expect("fighter")).is(Faction::Ecaz) || game.player(fighter.expect("fighter")).ally == Some(Faction::Ecaz))
         {
             let ecaz = self.get_player(game, Some(Faction::Ecaz));
             if let Some(ecaz) = ecaz {

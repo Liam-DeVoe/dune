@@ -155,7 +155,7 @@ impl Game {
                         let mut loss = LossToTake::new();
                         loss.location = Some(key);
                         loss.amount = TakeLosses::half_of(battalion.amount_of_forces, battalion.amount_of_special_forces);
-                        loss.faction = battalion.faction;
+                        loss.faction = Some(battalion.faction);
                         self.storm.storm_losses_to_take.push(loss);
                     } else {
                         kill_count += self.player(player).any_forces_in(Some(key));
@@ -172,7 +172,7 @@ impl Game {
                     let mut loss = LossToTake::new();
                     loss.location = Some(key);
                     loss.amount = battalion.total_amount_of_forces();
-                    loss.faction = battalion.faction;
+                    loss.faction = Some(battalion.faction);
                     self.storm.storm_losses_to_take.push(loss);
                 } else {
                     self.reveal_current_no_field(player, Some(key));

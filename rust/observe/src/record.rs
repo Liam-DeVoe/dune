@@ -186,7 +186,7 @@ impl<'a> Recorder<'a> {
         let line = Line::Bots { order: order.clone(), end, created: vec![], result: Default::default() };
         self.begin(&line);
         let game_seed = self.game_seed;
-        let mut seed_for = |f: Faction| Some(Rng::new(game_seed ^ (f.0 as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15) ^ 0x424F_54).seed());
+        let mut seed_for = |f: Option<Faction>| Some(Rng::new(game_seed ^ (value_or_absent(f) as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15) ^ 0x424F_54).seed());
         match self.sess.deliberate(&order, end, &mut seed_for) {
             Ok((result, created)) => {
                 let error = result.error.clone();
@@ -213,7 +213,7 @@ impl<'a> Recorder<'a> {
         for i in 0..self.sess.player_count() {
             let p = self.sess.game.player_at(i);
             let faction = self.sess.game.player(p).faction;
-            if self.sess.game.is_bot(p) || self.sess.game.turn.has_acted_or_passed.contains(&faction) {
+            if self.sess.game.is_bot(p) || self.sess.game.turn.has_acted_or_passed.contains_opt(faction) {
                 continue;
             }
             let types = self.query(Some(i), false)?;
@@ -231,13 +231,13 @@ impl<'a> Recorder<'a> {
         let game: &Game = &self.sess.game;
         if types.contains(&GameEventType::FactionSelected) {
             let valid: Vec<Faction> = FactionSelected::valid_factions(game).collect();
-            if let Some(i) = game.players.iter().position(|p| p.faction == Faction::None) {
+            if let Some(i) = game.players.iter().position(|p| p.faction == None) {
                 let p = &game.players[i];
                 if !valid.is_empty() {
                     let mut e = FactionSelected::new(game);
-                    e.base.initiator.set(Faction::None);
+                    e.base.initiator.set(None);
                     e.seat = p.seat;
-                    e.faction = valid[self.rng.below(valid.len())];
+                    e.faction = Some(valid[self.rng.below(valid.len())]);
                     e.initiator_player_name = Some(self.sess.seating.player_name(game, game.player_at(i)));
                     return Ok(Some(to_object(&treachery_view::build::event(e))));
                 }
@@ -246,7 +246,7 @@ impl<'a> Recorder<'a> {
         if types.contains(&GameEventType::CardsDetermined) {
             let cards: Vec<TreacheryCard> = game.decks.treachery_deck.as_ref().map(|d| d.items.clone()).unwrap_or_default();
             let richese = if game.is_playing(Faction::Richese) { TreacheryCardManager::get_richese_cards() } else { vec![] };
-            let mut e = CardsDetermined::new(game, Faction::None);
+            let mut e = CardsDetermined::new(game, None);
             e.set_treachery_cards(&cards);
             e.set_richese_cards(&richese);
             return Ok(Some(to_object(&treachery_view::build::event(e))));
@@ -267,7 +267,7 @@ impl<'a> Recorder<'a> {
             }
         }
         if types.contains(&GameEventType::EndPhase) {
-            return Ok(Some(to_object(&treachery_view::build::event(EndPhase::new(game, Faction::None)))));
+            return Ok(Some(to_object(&treachery_view::build::event(EndPhase::new(game, None)))));
         }
         Ok(None)
     }
@@ -398,7 +398,7 @@ impl<'a> Recorder<'a> {
                     let shadow = &self.shadow.as_ref().unwrap().game;
                     let replanning: Vec<usize> = queried
                         .iter()
-                        .filter(|(i, ts)| ts.contains(&GameEventType::Battle) && shadow.players.get(*i).is_some_and(|p| f.plans.contains_key(&p.faction.0)))
+                        .filter(|(i, ts)| ts.contains(&GameEventType::Battle) && shadow.players.get(*i).is_some_and(|p| f.plans.contains_key(&value_or_absent(p.faction))))
                         .map(|(i, _)| *i)
                         .collect();
                     if let Some(&i) = f.rng.pick(&replanning) {

@@ -46,21 +46,6 @@ impl SkinKey for i32 {
     }
 }
 
-macro_rules! enum_keys {
-    ($($t:ty),* $(,)?) => {$(
-        impl SkinKey for $t {
-            fn key_text(self) -> String {
-                self.to_string()
-            }
-            fn parse_key(text: &str) -> Option<Self> {
-                crate::skin_json::parse_enum_key::<$t>(text)
-            }
-        }
-    )*};
-}
-
-enum_keys!(Faction);
-
 /// Keys of an enum whose C# `None` member is absence in Rust: `None` is the key "None".
 macro_rules! optional_enum_keys {
     ($($t:ty),* $(,)?) => {$(
@@ -75,7 +60,7 @@ macro_rules! optional_enum_keys {
     )*};
 }
 
-optional_enum_keys!(MainPhase, TechToken, Concept, Milestone, World, Nexus, DiscoveryToken, LeaderSkill, StrongholdAdvantage, TerrorType, DiscoveryTokenType, TreacheryCardType, Ambassador);
+optional_enum_keys!(Faction, MainPhase, TechToken, Concept, Milestone, World, Nexus, DiscoveryToken, LeaderSkill, StrongholdAdvantage, TerrorType, DiscoveryTokenType, TreacheryCardType, Ambassador);
 
 /// A C# `Dictionary<K, V>` of a skin. Entries keep insertion order (nothing is ever removed),
 /// which is the order .NET enumerates and serializes them in.
@@ -150,15 +135,15 @@ pub struct Skin {
     pub territory_border_svg: SkinDictionary<i32>,
     pub location_center_point: SkinDictionary<i32, PointD>,
     pub location_spice_point: SkinDictionary<i32, PointD>,
-    pub faction_name_str: SkinDictionary<Faction>,
-    pub faction_image_url: SkinDictionary<Faction>,
-    pub faction_table_image_url: SkinDictionary<Faction>,
-    pub faction_facedown_image_url: SkinDictionary<Faction>,
-    pub faction_force_image_url: SkinDictionary<Faction>,
-    pub faction_special_force_image_url: SkinDictionary<Faction>,
-    pub faction_color: SkinDictionary<Faction>,
-    pub force_name_str: SkinDictionary<Faction>,
-    pub special_force_name_str: SkinDictionary<Faction>,
+    pub faction_name_str: SkinDictionary<Option<Faction>>,
+    pub faction_image_url: SkinDictionary<Option<Faction>>,
+    pub faction_table_image_url: SkinDictionary<Option<Faction>>,
+    pub faction_facedown_image_url: SkinDictionary<Option<Faction>>,
+    pub faction_force_image_url: SkinDictionary<Option<Faction>>,
+    pub faction_special_force_image_url: SkinDictionary<Option<Faction>>,
+    pub faction_color: SkinDictionary<Option<Faction>>,
+    pub force_name_str: SkinDictionary<Option<Faction>>,
+    pub special_force_name_str: SkinDictionary<Option<Faction>>,
     pub tech_token_name_str: SkinDictionary<Option<TechToken>>,
     pub tech_token_image_url: SkinDictionary<Option<TechToken>>,
     pub sound: SkinDictionary<Option<Milestone>>,
@@ -403,7 +388,7 @@ impl Skin {
                 } else if let Some(v) = e.get_opt::<Concept>() {
                     self.describe_concept(v)
                 } else if let Some(v) = e.get::<Faction>() {
-                    self.describe_faction(v)
+                    self.describe_faction(Some(v))
                 } else if let Some(v) = e.get_opt::<Ambassador>() {
                     self.describe_ambassador(v)
                 } else if let Some(v) = e.get_opt::<PrescienceAspect>() {
@@ -492,7 +477,7 @@ impl Skin {
         self.describe_territory(l.territory())
     }
 
-    pub fn describe_faction(&self, f: Faction) -> String {
+    pub fn describe_faction(&self, f: Option<Faction>) -> String {
         get_label(&self.faction_name_str, f)
     }
 
@@ -714,7 +699,7 @@ impl Skin {
     /// `FactionChipHtml(Faction f, bool you = false, IEnumerable<int>? locationIds = null)`: the
     /// markup FactionChip.razor renders.
     pub fn faction_chip_html(&self, f: Faction, you: bool, location_ids: Option<&[i32]>) -> String {
-        let name = crate::text::html_encode(&self.describe_faction(f));
+        let name = crate::text::html_encode(&self.describe_faction(Some(f)));
         let locations = match location_ids {
             Some(ids) => ids.iter().map(|i| i.to_string()).collect::<Vec<_>>().join(","),
             None => String::new(),
@@ -975,7 +960,7 @@ impl Skin {
         match s {
             A::CharityAutoClaim => "Claim charity if possible".to_string(),
             A::BiddingPassWhenAtreidesOrAtreidesAllyPassed => {
-                format!("Pass if most recent bid by {} or their ally passed", self.describe_faction(Faction::Atreides))
+                format!("Pass if most recent bid by {} or their ally passed", self.describe_faction(Some(Faction::Atreides)))
             }
             A::BiddingPassAboveAmount => "Pass if current bid is equal to or higher than...".to_string(),
             A::BiddingPassWhenHighestBidByFaction => "Pass if current highest bid by...".to_string(),
@@ -1209,9 +1194,6 @@ impl Skin {
             E::NoCreator => "You are not the creator of this game",
             E::AlreadyPlayer => "You are already a player in this game",
             E::UserNotInGame => "User not found in game",
-
-            // An error shown to the player must never take the client down.
-            _ => return e.to_string(),
         }
         .to_string()
     }
@@ -1270,31 +1252,31 @@ impl Skin {
     }
 
     pub fn get_image_url_faction(&self, faction: Faction) -> String {
-        get_label(&self.faction_image_url, faction)
+        get_label(&self.faction_image_url, Some(faction))
     }
 
     pub fn get_faction_table_image_url(&self, faction: Faction) -> String {
-        get_label(&self.faction_table_image_url, faction)
+        get_label(&self.faction_table_image_url, Some(faction))
     }
 
     pub fn get_faction_face_down_image_url(&self, faction: Faction) -> String {
-        get_label(&self.faction_facedown_image_url, faction)
+        get_label(&self.faction_facedown_image_url, Some(faction))
     }
 
     pub fn get_faction_force_image_url(&self, f: Faction) -> String {
-        get_label(&self.faction_force_image_url, f)
+        get_label(&self.faction_force_image_url, Some(f))
     }
 
     pub fn get_faction_special_force_image_url(&self, f: Faction) -> String {
-        get_label(&self.faction_special_force_image_url, f)
+        get_label(&self.faction_special_force_image_url, Some(f))
     }
 
     pub fn get_image_url_faction_force(&self, ff: Option<FactionForce>) -> String {
-        self.get_faction_force_image_url(get_faction_faction_force(ff))
+        get_label(&self.faction_force_image_url, get_faction_faction_force(ff))
     }
 
     pub fn get_image_url_faction_special_force(&self, fsf: Option<FactionSpecialForce>) -> String {
-        self.get_faction_special_force_image_url(get_faction_faction_special_force(fsf))
+        get_label(&self.faction_special_force_image_url, get_faction_faction_special_force(fsf))
     }
 
     pub fn get_homeworld_card_image_url(&self, w: World) -> String {
@@ -1314,11 +1296,11 @@ impl Skin {
     }
 
     pub fn get_faction_color(&self, faction: Faction) -> String {
-        get_label(&self.faction_color, faction)
+        get_label(&self.faction_color, Some(faction))
     }
 
     pub fn get_faction_color_transparent(&self, faction: Faction, transparency: &str) -> String {
-        get_label(&self.faction_color, faction) + transparency
+        get_label(&self.faction_color, Some(faction)) + transparency
     }
 
     // #endregion NamesAndImages
@@ -1360,7 +1342,6 @@ pub fn describe_user_status(us: UserStatus) -> String {
         UserStatus::Lfg => "Looking for game",
         UserStatus::Lfm => "Looking for others to join",
         UserStatus::InGame => "In game",
-        _ => "Unknown status",
     }
     .to_string()
 }
@@ -1403,32 +1384,32 @@ fn get_image_hover_html(image_url: &str) -> String {
     format!("<img src='{image_url}' width=300 class='img-fluid' style='filter:drop-shadow(-3px 3px 2px black);'/>")
 }
 
-pub fn get_faction_faction_force(f: Option<FactionForce>) -> Faction {
+pub fn get_faction_faction_force(f: Option<FactionForce>) -> Option<Faction> {
     match f {
-        Some(FactionForce::Atreides) => Faction::Atreides,
-        Some(FactionForce::Harkonnen) => Faction::Harkonnen,
-        Some(FactionForce::Fremen) => Faction::Fremen,
-        Some(FactionForce::Emperor) => Faction::Emperor,
-        Some(FactionForce::Guild) => Faction::Guild,
-        Some(FactionForce::BeneGesserit) => Faction::BeneGesserit,
-        Some(FactionForce::Ixian) => Faction::Ixian,
-        Some(FactionForce::Tleilaxu) => Faction::Tleilaxu,
-        Some(FactionForce::Choam) => Faction::Choam,
-        Some(FactionForce::Richese) => Faction::Richese,
-        Some(FactionForce::Ecaz) => Faction::Ecaz,
-        Some(FactionForce::Moritani) => Faction::Moritani,
-        None => Faction::None,
+        Some(FactionForce::Atreides) => Some(Faction::Atreides),
+        Some(FactionForce::Harkonnen) => Some(Faction::Harkonnen),
+        Some(FactionForce::Fremen) => Some(Faction::Fremen),
+        Some(FactionForce::Emperor) => Some(Faction::Emperor),
+        Some(FactionForce::Guild) => Some(Faction::Guild),
+        Some(FactionForce::BeneGesserit) => Some(Faction::BeneGesserit),
+        Some(FactionForce::Ixian) => Some(Faction::Ixian),
+        Some(FactionForce::Tleilaxu) => Some(Faction::Tleilaxu),
+        Some(FactionForce::Choam) => Some(Faction::Choam),
+        Some(FactionForce::Richese) => Some(Faction::Richese),
+        Some(FactionForce::Ecaz) => Some(Faction::Ecaz),
+        Some(FactionForce::Moritani) => Some(Faction::Moritani),
+        None => None,
     }
 }
 
-pub fn get_faction_faction_special_force(f: Option<FactionSpecialForce>) -> Faction {
+pub fn get_faction_faction_special_force(f: Option<FactionSpecialForce>) -> Option<Faction> {
     match f {
-        Some(FactionSpecialForce::Emperor) => Faction::Emperor,
-        Some(FactionSpecialForce::Fremen) => Faction::Fremen,
-        Some(FactionSpecialForce::BeneGesserit) => Faction::BeneGesserit,
-        Some(FactionSpecialForce::Ixian) => Faction::Ixian,
-        Some(FactionSpecialForce::Richese) => Faction::Richese,
-        None => Faction::None,
+        Some(FactionSpecialForce::Emperor) => Some(Faction::Emperor),
+        Some(FactionSpecialForce::Fremen) => Some(Faction::Fremen),
+        Some(FactionSpecialForce::BeneGesserit) => Some(Faction::BeneGesserit),
+        Some(FactionSpecialForce::Ixian) => Some(Faction::Ixian),
+        Some(FactionSpecialForce::Richese) => Some(Faction::Richese),
+        None => None,
     }
 }
 

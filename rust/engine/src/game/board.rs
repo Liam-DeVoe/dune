@@ -84,11 +84,12 @@ impl Game {
         t.locations().iter().any(|l| self.is_in_storm(*l))
     }
 
-    pub fn occupies(&self, f: Faction, w: World) -> bool {
-        if f != Faction::None {
+    pub fn occupies(&self, f: impl Into<Option<Faction>>, w: World) -> bool {
+        let f: Option<Faction> = f.into();
+        if f != None {
             let hw_occupation = self.board.homeworld_occupation.keys().find(|hw| hw.world() == w).copied();
             if let Some(hw) = hw_occupation {
-                return self.board.homeworld_occupation.get(&hw) == Some(&f);
+                return self.board.homeworld_occupation.get(&hw).copied() == f;
             }
         }
 
@@ -119,7 +120,7 @@ impl Game {
                 let player = self.player(self.player_at(i));
                 let faction = player.faction;
                 if player.controls(self, hw.location(), false) && !player.is_native_homeworld(hw) {
-                    updated_occupation.insert_new(hw, faction);
+                    updated_occupation.insert_new(hw, faction.expect("faction"));
 
                     if !self.occupies(faction, hw.world()) {
                         self.log(vec![faction.into(), " now occupy ".into(), hw.location().into()]);

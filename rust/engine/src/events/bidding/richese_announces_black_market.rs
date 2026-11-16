@@ -24,9 +24,9 @@ impl Default for RicheseAnnouncesBlackMarket {
 }
 
 impl RicheseAnnouncesBlackMarket {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -67,7 +67,7 @@ impl RicheseAnnouncesBlackMarket {
             crate::game::remove_card(&mut game.player_mut(me).treachery_cards, card);
             let card = card.required("card")?;
             game.bidding.cards_on_auction.as_mut().required("cards on auction")?.put_on_top(card);
-            game.register_known_by_faction(self.initiator(), card);
+            game.register_known_by_faction(self.initiator().required("faction")?, card);
             game.bidding.bids.clear();
             game.bidding.current_bid = None;
             game.start_bid_sequence_and_auction_type(self.auction_type, self.player_opt(), self.direction);

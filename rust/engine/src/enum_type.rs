@@ -5,7 +5,7 @@
 //! enum leaves it out and the game uses `Option` instead. Event JSON still writes absence as 0,
 //! and texts and views still name it "None" (`EnumTypeInfo::absent`).
 //!
-//! ```ignore
+//! ```
 //! use treachery_engine::enumerations::Faction;
 //! use treachery_engine::enum_type::{GameEnum, name_or_absent};
 //! let f = Faction::Fremen;
@@ -15,10 +15,8 @@
 //! assert_eq!(name_or_absent::<Faction>(None), "None");
 //! ```
 //!
-//! The enums not converted yet are open newtypes over `i32`, where any number is a value.
-//!
-//! `Display` prints the member name, or for an open enum the number or a `[Flags]` combination
-//! (`"Cross, ToHomeworld"`), as the log texts always have.
+//! `Display` prints the member name, as the log texts always have. `ShipmentPermission`, a C#
+//! `[Flags]` enum, is a struct of three bools that implements [`GameEnum`] by hand.
 
 use std::fmt;
 
@@ -126,9 +124,6 @@ pub fn name_or_absent<T: GameEnum>(v: Option<T>) -> String {
 ///     get_values [Fremen, Atreides]
 /// }
 /// ```
-///
-/// Without `closed` the enum is an open `i32` newtype, as all enums were before rewrite-plan.md
-/// change 2d.
 macro_rules! game_enum {
     ($(#[$m:meta])* closed $name:ident { absent $none:ident = 0; $($var:ident = $val:literal,)* } get_values [$($gv:ident),* $(,)?]) => {
         $crate::enum_type::game_enum!(@closed true, $(#[$m])* $name { ($none = 0,) $($var = $val,)* } [$($var = $val),*] [$($gv),*]);
@@ -170,12 +165,6 @@ macro_rules! game_enum {
             }
         }
     };
-    ($(#[$m:meta])* flags $name:ident { $($var:ident = $val:expr,)* } get_values [$($gv:ident),* $(,)?]) => {
-        $crate::enum_type::game_enum!(@impl true, $(#[$m])* $name { $($var = $val,)* } [$($gv),*]);
-    };
-    ($(#[$m:meta])* $name:ident { $($var:ident = $val:expr,)* } get_values [$($gv:ident),* $(,)?]) => {
-        $crate::enum_type::game_enum!(@impl false, $(#[$m])* $name { $($var = $val,)* } [$($gv),*]);
-    };
     (@closed $absent:expr, $(#[$m:meta])* $name:ident { ($($none:ident = 0,)?) $($dvar:ident = $dval:literal,)* } [$($var:ident = $val:literal),*] [$($gv:ident),*]) => {
         $(#[$m])*
         #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, ::serde::Serialize, ::serde::Deserialize)]
@@ -211,47 +200,6 @@ macro_rules! game_enum {
                 f.write_str(match self { $($name::$var => stringify!($var),)* })
             }
         }
-
-        $crate::enum_type::game_enum!(@common $name);
-    };
-    (@impl $flags:expr, $(#[$m:meta])* $name:ident { $($var:ident = $val:expr,)* } [$($gv:ident),*]) => {
-        $(#[$m])*
-        #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Default, ::serde::Serialize, ::serde::Deserialize)]
-        #[serde(transparent)]
-        pub struct $name(pub i32);
-
-        #[allow(non_upper_case_globals)]
-        impl $name {
-            $(pub const $var: $name = $name($val);)*
-
-            /// `Enum.GetValues` order.
-            pub const ALL: &'static [$name] = &[$($name::$gv),*];
-
-            pub const INFO: $crate::enum_type::EnumTypeInfo = $crate::enum_type::EnumTypeInfo {
-                name: stringify!($name),
-                is_flags: $flags,
-                declared: &[$((stringify!($var), $val)),*],
-                absent: false,
-            };
-
-        }
-
-        impl $crate::enum_type::GameEnum for $name {
-            const INFO: &'static $crate::enum_type::EnumTypeInfo = &$name::INFO;
-            const ALL: &'static [Self] = $name::ALL;
-            fn value(self) -> i32 { self.0 }
-            fn from_value(value: i32) -> Option<Self> { Some($name(value)) }
-        }
-
-        /// `ToString()` with .NET semantics.
-        impl ::std::fmt::Display for $name {
-            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-                f.write_str(&<$name as $crate::enum_type::GameEnum>::INFO.format(self.0))
-            }
-        }
-
-        impl $crate::messages::expression::NullElement for $name {}
-        impl $crate::json::JsonNullable for $name {}
 
         $crate::enum_type::game_enum!(@common $name);
     };

@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct DealRejected {
-    pub bound_faction: Faction,
+    pub bound_faction: Option<Faction>,
     pub type_: DealType,
     pub deal_parameter1: Option<String>,
     pub deal_parameter2: Option<String>,
@@ -31,9 +31,9 @@ impl Default for DealRejected {
 }
 
 impl DealRejected {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -64,7 +64,7 @@ impl DealRejected {
 
         let offer = self.open_offer(game);
         if let Some(offer) = offer {
-            game.record_deal_response(&offer, self.initiator(), false);
+            game.record_deal_response(&offer, self.initiator().required("faction")?, false);
         }
         Ok(())
     }

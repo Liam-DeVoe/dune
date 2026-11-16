@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct AllianceOffered {
-    pub target: Faction,
+    pub target: Option<Faction>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -17,15 +17,15 @@ impl Default for AllianceOffered {
 }
 
 impl AllianceOffered {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
         // ValidTargets dereferences a null Player only inside its lazy predicate, per element.
-        if !AllianceOffered::valid_targets(game, self.player()).any(|v| v == self.target) {
+        if !AllianceOffered::valid_targets(game, self.player()).any(|v| Some(v) == self.target) {
             return Some(express!("Invalid faction"));
         }
 
@@ -39,11 +39,11 @@ impl AllianceOffered {
             .filter(move |other| {
                 p != *other && !g.player(p).have_forces_on_each_others_home_worlds(g, *other) && !AllianceOffered::has_passed_in_alliance_phase(g, *other)
             })
-            .map(move |other| g.player(other).faction)
+            .filter_map(move |other| g.player(other).faction)
     }
 
     fn has_passed_in_alliance_phase(g: &Game, p: PlayerIndex) -> bool {
-        matches!(g.turn.current_phase, Phase::AllianceA | Phase::AllianceB) && g.turn.has_acted_or_passed.contains(&g.player(p).faction)
+        matches!(g.turn.current_phase, Phase::AllianceA | Phase::AllianceB) && g.turn.has_acted_or_passed.contains_opt(g.player(p).faction)
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
@@ -51,7 +51,7 @@ impl AllianceOffered {
         let matching_offer =
             game.alliances.current_alliance_offers.iter().find(|x| x.initiator() == self.target && x.target == initiator).cloned();
         if matching_offer.is_some() {
-            game.make_alliance(initiator, self.target);
+            game.make_alliance(initiator.required("initiator")?, self.target.required("target")?);
 
             loop {
                 let invalid_offer = game.alliances.current_alliance_offers.iter().position(|x| x.by(initiator) || x.initiator() == self.target);
@@ -68,8 +68,8 @@ impl AllianceOffered {
                 game.alliances.current_alliance_offers.remove(i);
             }
 
-            game.turn.has_acted_or_passed.push(initiator);
-            game.turn.has_acted_or_passed.push(self.target);
+            game.turn.has_acted_or_passed.push(initiator.required("faction")?);
+            game.turn.has_acted_or_passed.push(self.target.required("faction")?);
 
             game.end_nexus_if_everyone_is_done();
         } else {

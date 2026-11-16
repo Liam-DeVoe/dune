@@ -75,7 +75,7 @@ fn fixture(name: &str, savegame: &str, out: &Path) -> Result<Value, String> {
     // because building a view writes state (client.md, The view replica).
     let probe = ViewReplica::load(savegame)?;
     let game = &probe.game;
-    let factions: Vec<Faction> = game.players.iter().map(|p| p.faction).collect();
+    let factions: Vec<Faction> = game.players.iter().filter_map(|p| p.faction).collect();
 
     let mut scenes = Vec::new();
     for viewer in factions.iter().copied().map(Some).chain([None]) {

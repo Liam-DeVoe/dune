@@ -108,13 +108,13 @@ impl PlayerSequence {
             Some(p) => p,
             None => {
                 let faction = game.player(current_player.expect("current player")).faction;
-                panic!("Could not find a player after {}", faction)
+                panic!("Could not find a player after {}", name_or_absent(faction))
             }
         }
     }
 
     pub fn current_faction(&self, game: &Game) -> Faction {
-        game.player(self.current_player(game).expect("current player")).faction
+        game.player(self.current_player(game).expect("current player")).faction.expect("faction")
     }
 
     /// Can be null only when `PlayersInOrder` contains a null (see `players_in_order`).
@@ -164,7 +164,7 @@ impl PlayerSequence {
         for p in self.players_in_order(game) {
             if p == current {
                 return false;
-            } else if game.player(p.expect("player")).faction == Faction::Richese {
+            } else if game.player(p.expect("player")).faction == Some(Faction::Richese) {
                 return true;
             }
         }

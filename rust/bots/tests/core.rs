@@ -60,10 +60,11 @@ fn parameters() {
     let f32s = |x: f32| dotnet_compat::fmt::f32_to_string(x);
     let mut actual = vec![];
     for o in g["parameters"].as_array().unwrap() {
-        let f = Faction(o["faction"].as_i64().unwrap() as i32);
+        // A number that names no faction can no longer reach the bots.
+        let Ok(f) = treachery_engine::enum_type::from_value_or_absent::<Faction>(o["faction"].as_i64().unwrap() as i32) else { continue };
         let p = BotParameters::for_faction(f);
         actual.push(json!({
-            "faction": f.0,
+            "faction": treachery_engine::enum_type::value_or_absent(f),
             "Bidding_ResourcesToKeepWhenCardIsPerfect": p.bidding_resources_to_keep_when_card_is_perfect.to_string(),
             "Bidding_ResourcesToKeepWhenCardIsntPerfect": p.bidding_resources_to_keep_when_card_isnt_perfect.to_string(),
             "Bidding_PassingTreshold": p.bidding_passing_threshold.to_string(),

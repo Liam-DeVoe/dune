@@ -15,7 +15,7 @@ pub const SCENE_USER: &str = "scene";
 
 /// A faction by name (`"Atreides"`).
 pub fn parse_faction(name: &str) -> Option<Faction> {
-    Faction::INFO.declared.iter().find(|(n, _)| n.eq_ignore_ascii_case(name)).map(|(_, v)| Faction(*v))
+    Faction::INFO.declared.iter().find(|(n, _)| n.eq_ignore_ascii_case(name)).and_then(|(_, v)| <Faction as treachery_engine::enum_type::GameEnum>::from_value(*v))
 }
 
 impl Server {

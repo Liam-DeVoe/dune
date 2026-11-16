@@ -39,7 +39,7 @@ pub struct ResolvedViewer {
 impl Viewer {
     pub fn resolve(self, game: &Game) -> ResolvedViewer {
         let player = game.get_player_by_seat(self.seat);
-        ResolvedViewer { player, faction: player.map(|p| game.player(p).faction), is_host: self.is_host, is_observer: self.is_observer }
+        ResolvedViewer { player, faction: player.and_then(|p| game.player(p).faction), is_host: self.is_host, is_observer: self.is_observer }
     }
 }
 
@@ -136,11 +136,11 @@ pub fn build_view_resolved(game: &mut Game, v: &ResolvedViewer, s: &Seating, d: 
 fn public_player(game: &Game, s: &Seating, p: PlayerIndex) -> PublicPlayer {
     let pl = game.player(p);
     let mut out = PublicPlayer {
-        faction: name(pl.faction),
+        faction: name_or_absent(pl.faction),
         seat: pl.seat,
         name: s.player_name(game, p),
         is_bot: game.is_bot(p),
-        ally: name(pl.ally),
+        ally: name_or_absent(pl.ally),
         forces_in_reserve: pl.forces_in_reserve(),
         special_forces_in_reserve: pl.special_forces_in_reserve(),
         forces_killed: pl.forces_killed,
@@ -179,11 +179,11 @@ fn status_view(game: &Game, status: &GameStatus, v: &ResolvedViewer, d: &dyn Des
         to_bid: board::to_bid(game),
         waiting_for_me,
         waiting_for_host: status.waiting_for_host,
-        waiting_for: status.waiting_for_players.iter().flatten().map(|p| name(game.player(*p).faction)).collect(),
+        waiting_for: status.waiting_for_players.iter().flatten().map(|p| name_or_absent(game.player(*p).faction)).collect(),
         waiting_in_sequence: status
             .waiting_in_sequence
             .iter()
-            .filter_map(|se| se.player.map(|p| SequenceEntry { faction: name(game.player(p).faction), has_turn: se.has_turn }))
+            .filter_map(|se| se.player.map(|p| SequenceEntry { faction: name_or_absent(game.player(p).faction), has_turn: se.has_turn }))
             .collect(),
         timed_event_time: status.timed_event.as_ref().map(|e| e.time().to_json_string()),
     }

@@ -78,7 +78,7 @@ pub fn playable_with(game: &Game, p: PlayerIndex, card: TreacheryCard, actions: 
 
 fn messiah_state(game: &Game, p: PlayerIndex) -> Option<MessiahState> {
     let pl = game.player(p);
-    (pl.faction == Faction::Atreides && game.applicable(Rule::AtreidesMessiah))
+    (pl.faction == Some(Faction::Atreides) && game.applicable(Rule::AtreidesMessiah))
         .then(|| MessiahState { forces_killed_in_battle: pl.total_forces_killed_in_battle, available: pl.messiah_available(game) })
 }
 
@@ -89,11 +89,11 @@ pub fn private_player(game: &Game, p: PlayerIndex, actions: &[GameEventType]) ->
     // PlayerPanel.StillPickingTraitor: while traitors are being picked, a player who picks still
     // holds all the dealt candidates, and the panel shows none of them until they have chosen.
     let still_picking_traitor = game.turn.current_phase == Phase::SelectingTraitors
-        && pl.faction != Faction::Harkonnen
-        && pl.faction != Faction::Tleilaxu
-        && !game.turn.has_acted_or_passed.contains(&pl.faction);
+        && pl.faction != Some(Faction::Harkonnen)
+        && pl.faction != Some(Faction::Tleilaxu)
+        && !game.turn.has_acted_or_passed.contains_opt(pl.faction);
     PrivatePlayer {
-        faction: name(pl.faction),
+        faction: name_or_absent(pl.faction),
         resources: pl.resources,
         hand: pl.treachery_cards.iter().map(|c| HandCard { id: c.id(), playable_with: playable_with(game, p, *c, actions) }).collect(),
         card_set_aside: game.get_card_set_aside_for_bid(p).map(|c| c.id()),
@@ -111,13 +111,13 @@ pub fn private_player(game: &Game, p: PlayerIndex, actions: &[GameEventType]) ->
             pl.traitors.iter().map(|h| hero_card(game, *h, pl.revealed_traitors.contains(h))).collect()
         },
         face_dancers: pl.face_dancers.iter().map(|h| hero_card(game, *h, pl.revealed_face_dancers.contains(h))).collect(),
-        predicted_faction: (pl.faction == Faction::BeneGesserit && after_bene_gesserit_prediction).then(|| name(pl.predicted_faction)),
-        predicted_turn: (pl.faction == Faction::BeneGesserit && after_bene_gesserit_prediction).then_some(pl.predicted_turn),
-        nexus: (pl.nexus != Faction::None).then(|| name(pl.nexus)),
+        predicted_faction: (pl.faction == Some(Faction::BeneGesserit) && after_bene_gesserit_prediction).then(|| name_or_absent(pl.predicted_faction)),
+        predicted_turn: (pl.faction == Some(Faction::BeneGesserit) && after_bene_gesserit_prediction).then_some(pl.predicted_turn),
+        nexus: (pl.nexus != None).then(|| name_or_absent(pl.nexus)),
         // After the storm is dialled, with storm prescience.
         next_storm_moves: (game.turn.current_phase > Phase::DiallingStorm && game.has_storm_prescience(Some(p))).then_some(game.board.next_storm_moves),
         messiah: messiah_state(game, p),
-        unplaced_terror: (pl.faction == Faction::Moritani).then(|| game.board.unplaced_terror_tokens.iter().map(|t| name(*t)).collect()),
+        unplaced_terror: (pl.faction == Some(Faction::Moritani)).then(|| game.board.unplaced_terror_tokens.iter().map(|t| name(*t)).collect()),
         card_just_won: game.bidding.card_just_won.filter(|c| game.known_cards(p).contains(c)).map(|c| c.id()),
     }
 }
@@ -135,7 +135,7 @@ pub fn notes(game: &Game, me: PlayerIndex) -> Option<NotesView> {
         .map(|p| {
             let pl = game.player(p);
             NotesPlayer {
-                faction: name(pl.faction),
+                faction: name_or_absent(pl.faction),
                 resources: pl.resources,
                 bribes: pl.bribes,
                 resources_after_bidding: pl.resources_after_bidding,

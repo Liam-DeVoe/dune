@@ -25,9 +25,9 @@ impl Default for DivideResources {
 }
 
 impl DivideResources {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -51,7 +51,7 @@ impl DivideResources {
 
     pub fn is_applicable(g: &Game, p: PlayerIndex) -> bool {
         g.turn.current_phase == Phase::DividingCollectedResources
-            && Self::get_resources_to_be_divided(g).expect("resources to be divided").first_faction == g.player(p).faction
+            && Some(Self::get_resources_to_be_divided(g).expect("resources to be divided").first_faction) == g.player(p).faction
     }
 
     pub fn gained_by_other_faction(tbd: Option<&ResourcesToBeDivided>, agreed: bool, portion_to_first_player: i32) -> i32 {

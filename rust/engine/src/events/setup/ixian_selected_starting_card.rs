@@ -17,9 +17,9 @@ impl Default for IxianSelectedStartingCard {
 }
 
 impl IxianSelectedStartingCard {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -36,7 +36,7 @@ impl IxianSelectedStartingCard {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let me = self.get_player(game, Some(self.initiator())).required("get player")?;
+        let me = self.get_player(game, self.initiator()).required("get player")?;
         // C# parity: Validate accepts the id of any card, not only one of the starting cards.
         let card = self.card().required("card")?;
         game.player_mut(me).treachery_cards.push(card);

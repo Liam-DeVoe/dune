@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct CardTraded {
-    pub target: Faction,
+    pub target: Option<Faction>,
     pub card_id: i32,
     pub requested_card_id: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
@@ -21,9 +21,9 @@ impl Default for CardTraded {
 }
 
 impl CardTraded {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -55,7 +55,7 @@ impl CardTraded {
             let _ = express!("Your ally does not have cards to trade");
         }
 
-        let target_player = game.get_player(Some(self.target));
+        let target_player = game.get_player(self.target);
         let Some(target_player) = target_player else { return Some(express!("Invalid target player")) };
         // Not in C#, which accepted an offer to any faction. The client always names the ally, but an
         // offer to another faction put the game in TradingCards waiting for a player whose answer

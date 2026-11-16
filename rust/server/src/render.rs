@@ -8,7 +8,7 @@ pub fn message_to_string(message: &Message) -> String {
     default_skin().message_to_string(message)
 }
 
-pub fn describe_faction(faction: Faction) -> String {
+pub fn describe_faction(faction: Option<Faction>) -> String {
     default_skin().describe_faction(faction)
 }
 
@@ -27,7 +27,7 @@ mod tests {
     fn renders_with_the_default_skin() {
         let m = express!(Faction::Atreides, " pays ", 3, " ", Concept::Resource);
         assert_eq!(message_to_string(&m), "Atreides pays 3 Spice");
-        assert_eq!(describe_faction(Faction::Harkonnen), "Harkonnen");
+        assert_eq!(describe_faction(Some(Faction::Harkonnen)), "Harkonnen");
         assert_eq!(format_turn_and_phase(3, Phase::Bidding), "Turn: 3, phase: Next bidding round");
     }
 }

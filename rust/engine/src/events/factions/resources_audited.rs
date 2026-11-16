@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct ResourcesAudited {
-    pub target: Faction,
+    pub target: Option<Faction>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -17,14 +17,14 @@ impl Default for ResourcesAudited {
 }
 
 impl ResourcesAudited {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if !ResourcesAudited::valid_factions(game, self.player()).any(|v| v == self.target) {
+        if !ResourcesAudited::valid_factions(game, self.player()).any(|v| Some(v) == self.target) {
             return Some(express!("Invalid faction"));
         }
 
@@ -38,16 +38,16 @@ impl ResourcesAudited {
             .filter(move |opp| {
                 let o = game.player(*opp);
                 *opp != player
-                    && !game.turn.resource_audited_factions.contains(&o.faction)
+                    && !game.turn.resource_audited_factions.contains_opt(o.faction)
                     && (game.player(player).home_worlds.iter().any(|hw| o.any_forces_in(Some(hw.location())) > 0)
                         || o.home_worlds.iter().any(|hw| game.player(player).any_forces_in(Some(hw.location())) > 0))
             })
-            .map(move |p| game.player(p).faction)
+            .filter_map(move |p| game.player(p).faction)
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.turn.resource_audited_factions.push(self.target);
-        let target = self.get_player(game, Some(self.target));
+        game.turn.resource_audited_factions.push(self.target.required("faction")?);
+        let target = self.get_player(game, self.target);
         self.log(game);
         let t = game.player(target.required("target")?);
         let resources = t.resources;
@@ -55,7 +55,7 @@ impl ResourcesAudited {
         let defenses = t.treachery_cards.iter().filter(|tc| tc.is_defense()).count() as i32;
         self.log_to(
             game,
-            self.initiator(),
+            self.initiator().required("faction")?,
             vec![
                 self.target.into(),
                 " own ".into(),

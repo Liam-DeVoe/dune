@@ -15,9 +15,9 @@ impl Default for Audited {
 }
 
 impl Audited {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -33,7 +33,7 @@ impl Audited {
         for card in audited {
             Game::register_known_by_player(game, self.player(), Some(card));
         }
-        let winner_is_none = game.battle.battle_winner == Some(Faction::None);
+        let winner_is_none = game.battle.battle_winner == Some(None);
         let harkonnen_must_decide = game.harkonnen_must_decide_to_capture();
         // Enter(condition, FinishBattle, ...), with FinishBattle's failure passed on.
         if winner_is_none {

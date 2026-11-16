@@ -253,11 +253,12 @@ impl ClassicBot {
         self.player = player;
     }
 
+    /// Bots only act for players who have a faction.
     pub fn faction(&self, game: &Game) -> Faction {
-        game.player(self.player).faction
+        game.player(self.player).faction.expect("a bot plays a faction")
     }
 
-    pub fn ally(&self, game: &Game) -> Faction {
+    pub fn ally(&self, game: &Game) -> Option<Faction> {
         game.player(self.player).ally
     }
 

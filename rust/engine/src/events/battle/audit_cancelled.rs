@@ -21,9 +21,9 @@ macro_rules! elems {
 }
 
 impl AuditCancelled {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -89,9 +89,9 @@ impl AuditCancelled {
             // A copy: the next audit clears and refills `audited_cards`, and this message
             // should keep showing the cards of this audit.
             let audited = ExpressionElement::list(game.battle.audited_cards.iter().copied());
-            game.log_to(self.initiator(), elems![Faction::Choam, " see: ", audited]);
+            game.log_to(self.initiator().required("faction")?, elems![Faction::Choam, " see: ", audited]);
         } else {
-            let winner_is_none = game.battle.battle_winner == Some(Faction::None);
+            let winner_is_none = game.battle.battle_winner == Some(None);
             let harkonnen_must_decide = game.harkonnen_must_decide_to_capture();
             // Enter(condition, FinishBattle, ...), with FinishBattle's failure passed on.
             if winner_is_none {

@@ -40,11 +40,11 @@ pub fn log_view(game: &Game, v: &ResolvedViewer, d: &dyn Describer) -> LogView {
             turn: r.turn,
             about: name_or_absent(r.about),
             is_battle: r.territory.is_some(),
-            aggressor: name(r.aggressor),
-            defender: name(r.defender),
+            aggressor: name_or_absent(r.aggressor),
+            defender: name_or_absent(r.defender),
             territory: r.territory.map(|t| t.id()),
             battle_decided: r.battle_decided,
-            battle_winner: name(r.battle_winner),
+            battle_winner: name_or_absent(r.battle_winner),
         })
         .collect();
     let latest = match reports.last() {
@@ -61,7 +61,7 @@ pub fn log_view(game: &Game, v: &ResolvedViewer, d: &dyn Describer) -> LogView {
 
 /// The lines of one report that the viewer may read (`RequestReport`). See [`log_view`] for `d`.
 pub fn report_lines(index: usize, r: &Report, v: &ResolvedViewer, d: &dyn Describer) -> ReportLines {
-    let lines = r.messages.iter().filter(|m| m.target == Faction::None || Some(m.target) == v.faction).map(|m| log_line(m, d)).collect();
+    let lines = r.messages.iter().filter(|m| m.target == None || m.target == v.faction).map(|m| log_line(m, d)).collect();
     ReportLines { index: index as i32, lines }
 }
 
@@ -69,7 +69,7 @@ pub fn report_lines(index: usize, r: &Report, v: &ResolvedViewer, d: &dyn Descri
 pub fn log_line(m: &Message, d: &dyn Describer) -> LogLine {
     LogLine {
         text: expr::message(m, d),
-        private: m.target != Faction::None,
+        private: m.target != None,
         heading: m.heading.map(name),
         record: m.log.as_deref().map(|r| record(r, d).unwrap_or_else(|| panic!("log record not converted: {r:?}"))),
         route: m.route.as_ref().map(|r| route(r, d)),
@@ -456,7 +456,7 @@ fn plan(p: &m::PlanSummary, d: &dyn Describer) -> PlanSummary {
         dial: p.dial,
         spice: p.spice,
         ally_contribution: p.ally_contribution,
-        ally: name(p.ally),
+        ally: name_or_absent(p.ally),
         weapon: p.weapon.map(|c| card(c, d)),
         defense: p.defense.map(|c| card(c, d)),
     }
@@ -489,7 +489,7 @@ pub fn record(r: &dyn m::LogRecord, d: &dyn Describer) -> Option<LogRecord> {
             }
         };
     }
-    let f = |v: Faction| name(v);
+    let f = |v: Option<Faction>| name_or_absent(v);
     let loc = |v: Location| location(v, d);
     let ter = |v: Territory| territory(v, d);
     let crd = |v: TreacheryCard| card(v, d);
@@ -501,14 +501,14 @@ pub fn record(r: &dyn m::LogRecord, d: &dyn Describer) -> Option<LogRecord> {
     on!(BiddingSkipped, |_r| R::BiddingSkipped {});
     on!(CardSold, |r| R::CardSold {
         card_number: r.card_number,
-        winner: f(r.winner),
+        winner: f(Some(r.winner)),
         price: r.price,
         paid_to: f(r.paid_to),
         shares: r.shares.iter().map(|s| BidShare { by: f(s.by), amount: s.amount }).collect(),
         karama_card: r.karama_card.map(crd),
     });
     on!(CardWonShown, |r| R::CardWonShown { card: crd(r.card) });
-    on!(ExtraCardReceived, |r| R::ExtraCardReceived { receiver: f(r.receiver) });
+    on!(ExtraCardReceived, |r| R::ExtraCardReceived { receiver: f(Some(r.receiver)) });
     on!(ExtraCardShown, |r| R::ExtraCardShown { card: crd(r.card) });
     on!(BiddingPassedByAll, |r| R::BiddingPassedByAll { card_number: r.card_number });
 
@@ -521,20 +521,20 @@ pub fn record(r: &dyn m::LogRecord, d: &dyn Describer) -> Option<LogRecord> {
         doubled: r.doubled,
     });
     on!(WormAppearedLog, |r| R::WormAppearedLog { territory: ter(r.territory), nth: r.nth });
-    on!(WormSentLog, |r| R::WormSentLog { by: f(r.by), territory: ter(r.territory) });
+    on!(WormSentLog, |r| R::WormSentLog { by: f(Some(r.by)), territory: ter(r.territory) });
     on!(WormDevouredForcesLog, |r| R::WormDevouredForcesLog {
-        faction: f(r.faction),
+        faction: f(Some(r.faction)),
         forces: r.forces,
         special_forces: r.special_forces,
         location: loc(r.location),
     });
-    on!(WormSurvivedLog, |r| R::WormSurvivedLog { faction: f(r.faction), location: loc(r.location) });
+    on!(WormSurvivedLog, |r| R::WormSurvivedLog { faction: f(Some(r.faction)), location: loc(r.location) });
     on!(WormDevouredSpiceLog, |r| R::WormDevouredSpiceLog { amount: r.amount, territory: ter(r.territory) });
     on!(WormIgnoredLog, |_r| R::WormIgnoredLog {});
     on!(BlowReshuffleLog, |r| R::BlowReshuffleLog { cards: r.cards });
     on!(NexusLog, |r| R::NexusLog {
         ride: r.ride.as_ref().map(|x| NexusRide {
-            faction: f(x.faction),
+            faction: f(Some(x.faction)),
             forces: x.forces,
             special_forces: x.special_forces,
             from: x.from.map(loc),
@@ -543,22 +543,22 @@ pub fn record(r: &dyn m::LogRecord, d: &dyn Describer) -> Option<LogRecord> {
         alliance: r.alliance.as_ref().map(|x| NexusAlliance { change: name(x.change), from: f(x.from), to: f(x.to) }),
     });
 
-    on!(CharityClaim, |r| R::CharityClaim { faction: f(r.faction), amount: r.amount });
+    on!(CharityClaim, |r| R::CharityClaim { faction: f(Some(r.faction)), amount: r.amount });
     on!(SpiceCollected, |r| R::SpiceCollected {
-        faction: f(r.faction),
+        faction: f(Some(r.faction)),
         territory: ter(r.territory),
         amount: r.amount,
         field: r.field.map(loc),
         income: r.income,
     });
 
-    on!(BribesCollected, |r| R::BribesCollected { faction: f(r.faction), amount: r.amount });
+    on!(BribesCollected, |r| R::BribesCollected { faction: f(Some(r.faction)), amount: r.amount });
     on!(WinReason, |r| R::WinReason { method: name(r.method) });
-    on!(GameEnded, |r| R::GameEnded { winners: r.winners.iter().map(|w| f(*w)).collect() });
-    on!(GameWinner, |r| R::GameWinner { faction: f(r.faction) });
+    on!(GameEnded, |r| R::GameEnded { winners: r.winners.iter().map(|w| f(Some(*w))).collect() });
+    on!(GameWinner, |r| R::GameWinner { faction: f(Some(r.faction)) });
 
     on!(RevivalRow, |r| R::RevivalRow {
-        faction: f(r.faction),
+        faction: f(Some(r.faction)),
         forces: r.forces,
         special_forces: r.special_forces,
         cost: r.cost,
@@ -571,7 +571,7 @@ pub fn record(r: &dyn m::LogRecord, d: &dyn Describer) -> Option<LogRecord> {
     });
 
     on!(ShipLogged, |r| R::ShipLogged {
-        faction: f(r.faction),
+        faction: f(Some(r.faction)),
         kind: name(r.kind),
         forces: r.forces,
         special_forces: r.special_forces,
@@ -587,7 +587,7 @@ pub fn record(r: &dyn m::LogRecord, d: &dyn Describer) -> Option<LogRecord> {
         plain: r.plain,
     });
     on!(MoveLogged, |r| R::MoveLogged {
-        faction: f(r.faction),
+        faction: f(Some(r.faction)),
         move_: r.move_,
         from: ter(r.from),
         forces: r.forces,
@@ -596,10 +596,10 @@ pub fn record(r: &dyn m::LogRecord, d: &dyn Describer) -> Option<LogRecord> {
         hajr: r.hajr,
         as_advisors: r.as_advisors,
     });
-    on!(MovePassed, |r| R::MovePassed { faction: f(r.faction) });
+    on!(MovePassed, |r| R::MovePassed { faction: f(Some(r.faction)) });
     on!(BeneGesseritReaction, |r| R::BeneGesseritReaction { kind: name(r.kind), place: object(&r.place, d), advisors: r.advisors });
     on!(ShipMoveLoss, |r| R::ShipMoveLoss {
-        faction: f(r.faction),
+        faction: f(Some(r.faction)),
         storm: r.storm,
         travelling: r.travelling,
         forces: r.forces,
@@ -607,19 +607,19 @@ pub fn record(r: &dyn m::LogRecord, d: &dyn Describer) -> Option<LogRecord> {
     });
     on!(GuildDelayed, |_r| R::GuildDelayed {});
 
-    on!(StormDials, |r| R::StormDials { first: f(r.first), first_dial: r.first_dial, second: f(r.second), second_dial: r.second_dial });
+    on!(StormDials, |r| R::StormDials { first: f(Some(r.first)), first_dial: r.first_dial, second: f(Some(r.second)), second_dial: r.second_dial });
     on!(StormPlaced, |r| R::StormPlaced { sector: r.sector });
     on!(StormForecast, |r| R::StormForecast { distance: r.distance });
     on!(StormMoved, |r| R::StormMoved { from: r.from, distance: r.distance, by: f(r.by), card: r.card.map(crd) });
     on!(StormKilled, |r| R::StormKilled {
-        faction: f(r.faction),
+        faction: f(Some(r.faction)),
         location: loc(r.location),
         forces: r.forces,
         special_forces: r.special_forces,
     });
     on!(StormDestroyedSpice, |r| R::StormDestroyedSpice { location: loc(r.location), amount: r.amount });
-    on!(FamilyAtomicsUsed, |r| R::FamilyAtomicsUsed { faction: f(r.faction), card: r.card.map(crd) });
-    on!(FamilyAtomicsKilled, |r| R::FamilyAtomicsKilled { faction: f(r.faction), forces: r.forces, special_forces: r.special_forces });
+    on!(FamilyAtomicsUsed, |r| R::FamilyAtomicsUsed { faction: f(Some(r.faction)), card: r.card.map(crd) });
+    on!(FamilyAtomicsKilled, |r| R::FamilyAtomicsKilled { faction: f(Some(r.faction)), forces: r.forces, special_forces: r.special_forces });
     on!(BeneGesseritFlipped, |r| R::BeneGesseritFlipped { territory: ter(r.territory) });
 
     None

@@ -23,11 +23,11 @@ pub struct ShipMoveState {
     pub current_flight_used: Option<Rc<FlightUsed>>,
     pub current_flight_discovery_used: Option<Rc<FlightDiscoveryUsed>>,
     pub current_ambassador_activated: Option<Rc<AmbassadorActivated>>,
-    pub alliance_by_ambassador_offered_to: Faction,
+    pub alliance_by_ambassador_offered_to: Option<Faction>,
     pub paused_ambassador_phase: Option<Phase>,
     pub paused_terror_phase: Option<Phase>,
     pub alliance_by_terror_was_offered: bool,
-    pub alliance_by_terror_offered_to: Faction,
+    pub alliance_by_terror_offered_to: Option<Faction>,
     pub in_guild_cunning_shipment: bool,
     pub current_blocked_territories: Vec<Territory>,
     pub choam_has_extra_move: bool,
@@ -87,7 +87,7 @@ impl Game {
         }
 
         // Every argument is evaluated before Enter runs, including the call that may log.
-        let condition1 = self.juice_forces_first_player() && self.turn.current_juice.clone().expect("current juice").initiator() != Faction::Guild;
+        let condition1 = self.juice_forces_first_player() && self.turn.current_juice.clone().expect("current juice").initiator() != Some(Faction::Guild);
         let condition2 = self.check_if_guild_acts_or_auto_delays();
         self.enter_first(&[(condition1, Step::Enter(Phase::NonGuildShip)), (condition2, Step::Enter(Phase::GuildShip))], Step::Enter(Phase::NonGuildShip));
     }
@@ -164,8 +164,8 @@ impl Game {
     pub fn check_sandmaster(&mut self, initiator: PlayerIndex, to: Location, dist: i32, fl: (Location, Battalion)) {
         if self.has_skill_in_front_of_shield(initiator, LeaderSkill::Sandmaster) {
             let faction = self.player(initiator).faction;
-            let ignore_storm = faction == Faction::Fremen && self.applicable(Rule::FremenMayMoveIntoStorm);
-            let paths = self.board.map.find_paths(fl.0, to, dist, ignore_storm, faction, &*self);
+            let ignore_storm = faction == Some(Faction::Fremen) && self.applicable(Rule::FremenMayMoveIntoStorm);
+            let paths = self.board.map.find_paths(fl.0, to, dist, ignore_storm, faction.expect("faction"), &*self);
             let mut most_spice = 0;
             let mut path_with_most_spice: Option<Vec<Location>> = None;
             for p in paths {
@@ -202,7 +202,7 @@ impl Game {
                 Player::move_forces(self, initiator, from, to, battalion.amount_of_forces);
                 Player::move_special_forces(self, initiator, from, to, battalion.amount_of_special_forces);
                 let amount = TakeLosses::half_of(battalion.amount_of_forces, battalion.amount_of_special_forces);
-                self.storm.storm_losses_to_take.push(LossToTake { location: Some(to), amount, faction: battalion.faction });
+                self.storm.storm_losses_to_take.push(LossToTake { location: Some(to), amount, faction: Some(battalion.faction) });
             } else {
                 kill_count = battalion.amount_of_forces + battalion.amount_of_special_forces;
                 Player::kill_forces(self, initiator, from, battalion.amount_of_forces, battalion.amount_of_special_forces, false);
@@ -211,7 +211,7 @@ impl Game {
             if kill_count > 0 {
                 let f = self.player(initiator).faction;
                 let m = express!(kill_count, f, " forces are killed by the storm while travelling")
-                    .with_log(ShipMoveLoss::new(f, true, true, kill_count, None));
+                    .with_log(ShipMoveLoss::new(f.expect("faction"), true, true, kill_count, None));
                 self.log(elems![m]);
             }
         } else {
@@ -226,8 +226,8 @@ impl Game {
     pub fn must_move_through_storm(&self, initiator: PlayerIndex, from: Location, to: Location, moved: &Battalion) -> bool {
         let max = self.determine_maximum_move_distance(initiator, std::slice::from_ref(moved));
         let faction = self.player(initiator).faction;
-        let targets_avoiding_storm = self.board.map.find_neighbours(from, max, false, faction, self, true);
-        let targets_ignoring_storm = self.board.map.find_neighbours(from, max, true, faction, self, true);
+        let targets_avoiding_storm = self.board.map.find_neighbours(from, max, false, faction.expect("faction"), self, true);
+        let targets_ignoring_storm = self.board.map.find_neighbours(from, max, true, faction.expect("faction"), self, true);
         !targets_avoiding_storm.contains(&to) && targets_ignoring_storm.contains(&to)
     }
 
@@ -250,10 +250,10 @@ impl Game {
             to,
             express_part_if!(bene_gesserit_as; " as ", as_what)
         )
-        .with_route(faction, from_locations.iter().copied(), Some(to));
+        .with_route(faction.expect("faction"), from_locations.iter().copied(), Some(to));
 
         if let Some(nr) = move_number {
-            message = message.with_log(MoveLogged::new(faction, nr, from, force_amount, special_force_amount, to, by_caravan, if bene_gesserit_as { Some(as_advisors) } else { None }));
+            message = message.with_log(MoveLogged::new(faction.expect("faction"), nr, from, force_amount, special_force_amount, to, by_caravan, if bene_gesserit_as { Some(as_advisors) } else { None }));
         }
 
         self.log(elems![message]);
@@ -357,7 +357,7 @@ impl Game {
 
         self.storm.storm_losses_to_take.clear();
         let pf = self.player(player).faction;
-        self.turn.has_acted_or_passed.push(pf);
+        self.turn.has_acted_or_passed.push(pf.required("faction")?);
 
         if self.turn.current_phase == Phase::NonGuildMove {
             let mut seq = self.ship_move.shipment_and_move_sequence.take().required("shipment and move sequence")?;
@@ -376,7 +376,7 @@ impl Game {
             self.ship_move.in_guild_cunning_shipment = false;
         }
 
-        let m = express!(pf, " pass movement").with_log(MovePassed::new(pf));
+        let m = express!(pf, " pass movement").with_log(MovePassed::new(pf.required("faction")?));
         self.log(elems![m]);
 
         self.determine_next_shipment_and_move_sub_phase()?;
@@ -604,7 +604,7 @@ impl Game {
 
     pub fn check_if_forces_should_be_destroyed_by_ally_presence(&mut self, p: PlayerIndex) {
         let (p_ally, p_faction) = (self.player(p).ally, self.player(p).faction);
-        if p_ally != Faction::None && p_faction != Faction::Ecaz && p_ally != Faction::Ecaz {
+        if p_ally != None && p_faction != Some(Faction::Ecaz) && p_ally != Some(Faction::Ecaz) {
             let special_forces_are_allowed = self.player(p).is(Faction::BeneGesserit) && self.applicable(Rule::AdvisorsDontConflictWithAlly);
 
             //Forces that must be destroyed because moves ended where allies are
@@ -614,14 +614,14 @@ impl Game {
                 i += 1;
                 if !(special_forces_are_allowed && self.player(p).special_forces_in_territory(Some(t)) > 0) && self.player(p).any_forces_in_territory(Some(t)) > 0 {
                     let m = express!("All ", p_faction, " forces in ", t, " were killed due to ally presence")
-                        .with_log(ShipMoveLoss::new(p_faction, false, false, 0, Some(t)));
+                        .with_log(ShipMoveLoss::new(p_faction.expect("faction"), false, false, 0, Some(t)));
                     self.log(elems![m]);
                     self.reveal_current_no_field_in_territory(p, t);
                     Player::kill_all_forces_in_territory(self, p, t, false);
                 }
             }
 
-            if self.turn.has_acted_or_passed.contains(&p_ally) {
+            if self.turn.has_acted_or_passed.contains_opt(p_ally) {
                 //Forces that must be destroyed if both the player and his ally have moved
 
                 let player_territories = if self.applicable(Rule::AdvisorsDontConflictWithAlly) {
@@ -629,7 +629,7 @@ impl Game {
                 } else {
                     self.player(p).territories_with_forces(self).collect()
                 };
-                let ally_player = self.get_player(Some(p_ally));
+                let ally_player = self.get_player(p_ally);
                 let ally_territories = if self.applicable(Rule::AdvisorsDontConflictWithAlly) {
                     ally_player.map(|a| self.player(a).occupied_territories(self))
                 } else {
@@ -648,7 +648,7 @@ impl Game {
                     .collect();
                 for t in to_kill {
                     let m = express!("All ", p_faction, " forces in ", t, " were killed due to ally presence")
-                        .with_log(ShipMoveLoss::new(p_faction, false, false, 0, Some(t)));
+                        .with_log(ShipMoveLoss::new(p_faction.expect("faction"), false, false, 0, Some(t)));
                     self.log(elems![m]);
                     self.reveal_current_no_field_in_territory(p, t);
                     Player::kill_all_forces_in_territory(self, p, t, false);
@@ -663,9 +663,9 @@ impl Game {
         }
 
         let pl = self.player(p);
-        let Some(ally) = self.get_player(Some(pl.ally)) else { return false };
+        let Some(ally) = self.get_player(pl.ally) else { return false };
 
-        if pl.faction == Faction::Ecaz || pl.ally == Faction::Ecaz {
+        if pl.faction == Some(Faction::Ecaz) || pl.ally == Some(Faction::Ecaz) {
             return false;
         }
 
@@ -674,7 +674,7 @@ impl Game {
                 return false;
             }
 
-            if pl.ally == Faction::BeneGesserit && !self.player(ally).occupies_territory(self, Some(t)) {
+            if pl.ally == Some(Faction::BeneGesserit) && !self.player(ally).occupies_territory(self, Some(t)) {
                 return false;
             }
         }
@@ -768,7 +768,7 @@ impl Game {
             if territory != self.board.map.polar_sink().territory()
                 && !territory.is_homeworld()
                 && self.applicable(Rule::BeneGesseritAdvisors)
-                && initiator != self.player(bg).ally
+                && Some(initiator) != self.player(bg).ally
                 && initiator != Faction::BeneGesserit
                 && self.player(bg).forces_in_territory(Some(territory)) > 0
             {
@@ -790,7 +790,7 @@ impl Game {
             let initiator = e.location_event_initiator();
             if (initiator != Faction::BeneGesserit || e.location_event_forces_added_to_location(self) > 0)
                 && initiator != Faction::Ecaz
-                && initiator != self.player(ecaz).ally
+                && Some(initiator) != self.player(ecaz).ally
                 && self.ambassador_in(e.to_location(self).expect("to location").territory()) != None
                 && self.ambassador_in(e.to_location(self).expect("to location").territory()) != Game::ambassador_of(initiator)
             {
@@ -805,7 +805,7 @@ impl Game {
             let initiator = e.location_event_initiator();
             if (e.location_event_total_amount_of_forces_added_to_location(self) >= 3 || !self.player(moritani).has_any_low_threshold(self))
                 && initiator != Faction::Moritani
-                && initiator != self.player(moritani).ally
+                && Some(initiator) != self.player(moritani).ally
                 && !self.is_occupied_by_faction_or_their_ally(World::Moritani, initiator)
                 && !self.terror_in(e.to_location(self).expect("to location").territory()).next().is_none()
             {
@@ -849,7 +849,8 @@ impl Game {
         }
     }
 
-    pub fn prevented_from_shipping(&self, f: Faction) -> bool {
+    pub fn prevented_from_shipping(&self, f: impl Into<Option<Faction>>) -> bool {
+        let f: Option<Faction> = f.into();
         match &self.ship_move.current_karma_shipment_prevention {
             Some(k) => k.target == f,
             None => false,
@@ -857,7 +858,7 @@ impl Game {
     }
 
     pub fn has_shipment_permission(&self, p: PlayerIndex, permission: ShipmentPermission) -> bool {
-        match self.ship_move.shipment_permissions.get(&self.player(p).faction) {
+        match self.ship_move.shipment_permissions.get_opt(self.player(p).faction) {
             Some(permissions) => permissions.contains(permission),
             None => false,
         }
@@ -889,13 +890,13 @@ impl Game {
     }
 
     pub fn ambassador_of(faction: Faction) -> Option<Ambassador> {
-        <Ambassador as crate::enum_type::GameEnum>::from_value(faction.0)
+        <Ambassador as crate::enum_type::GameEnum>::from_value(faction as i32)
     }
 
     pub fn guild_may_delay(&self) -> bool {
         self.guild_may_ship_out_of_turn_order()
             && ((self.players.len() as i32) - (self.turn.has_acted_or_passed.len() as i32))
-                > (if self.juice_forces_last_player() && !self.turn.has_acted_or_passed.contains(&self.turn.current_juice.as_ref().expect("current juice").initiator()) { 2 } else { 1 })
+                > (if self.juice_forces_last_player() && !self.turn.has_acted_or_passed.contains_opt(self.turn.current_juice.as_ref().expect("current juice").initiator()) { 2 } else { 1 })
     }
 
     pub fn guild_may_ship_out_of_turn_order(&self) -> bool {

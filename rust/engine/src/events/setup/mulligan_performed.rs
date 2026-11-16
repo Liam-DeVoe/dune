@@ -18,9 +18,9 @@ impl Default for MulliganPerformed {
 }
 
 impl MulliganPerformed {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -63,7 +63,7 @@ impl MulliganPerformed {
             // foreach over a lazy Where: the predicate is checked per player, before its body.
             for p in 0..game.players.len() {
                 let f = game.players[p].faction;
-                if f != Faction::Harkonnen && f != Faction::Tleilaxu {
+                if f != Some(Faction::Harkonnen) && f != Some(Faction::Tleilaxu) {
                     let traitor = game.decks.traitor_deck.as_mut().expect("traitor deck").draw();
                     game.players[p].traitors.push(traitor);
                 }

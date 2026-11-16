@@ -58,9 +58,9 @@ impl ClassicBot {
         let ally = self.ally(game);
         let will_do_everything_to_prevent_normal_win = !game.applicable(Rule::DisableGuildSpecialVictory)
             && (faction == Faction::Guild
-                || ally == Faction::Guild
+                || ally == Some(Faction::Guild)
                 || (faction == Faction::Fremen && !game.is_playing(Faction::Guild))
-                || (ally == Faction::Fremen && !game.is_playing(Faction::Guild)));
+                || (ally == Some(Faction::Fremen) && !game.is_playing(Faction::Guild)));
 
         let extra_forces = if self.last_turn(game) || (faction == Faction::BeneGesserit && game.applicable(Rule::BeneGesseritAdvisors)) {
             1
@@ -105,7 +105,7 @@ impl ClassicBot {
             return Some(plan);
         }
         if faction != Faction::Fremen
-            && ally != Faction::Fremen
+            && ally != Some(Faction::Fremen)
             && let Some(plan) = self.plan_prevent_fremen_win(game)
         {
             return Some(plan);
@@ -380,7 +380,7 @@ impl ClassicBot {
             .valid_shipment_locations(game, false, false)
             .find(|&sh| {
                 (!game.player(me).has_ally()
-                    || self.ally(game) == Faction::Ecaz
+                    || self.ally(game) == Some(Faction::Ecaz)
                     || game.player(self.allied_player(game).expect("allied player")).any_forces_in(Some(sh)) == 0
                     || faction != Faction::Richese
                     || !game.has_low_threshold(Faction::Richese))
@@ -646,7 +646,7 @@ impl ClassicBot {
             })
             .map(|l| self.construct_attack(game, l, extra_forces, min_resources_to_keep, max_unsupported_forces))
             .filter(|s| match s.opponent {
-                Some(o) => !self.win_was_predicted_by_me_this_turn(game, game.player(o).faction),
+                Some(o) => !self.win_was_predicted_by_me_this_turn(game, game.player(o).faction.expect("faction")),
                 None => false,
             })
             .filter(|s| s.has_forces() && s.shortage_for_shipment - self.unlocked_forces_in_polar_sink(game, s.location) as f32 <= extra_forces as f32)
@@ -708,7 +708,7 @@ impl ClassicBot {
             special_strength: Battle::determine_special_force_strength(
                 game,
                 faction,
-                opponent.map(|o| game.player(o).faction).unwrap_or(Faction::Harkonnen),
+                opponent.map(|o| game.player(o).faction).unwrap_or(Some(Faction::Harkonnen)).expect("faction"),
             ),
             spice_available: self.resources_including_ally_contribution(game) - min_resources_to_keep,
             no_spice_for_force_modifier: if must_pay_for_forces { 0.5 } else { 1.0 },
@@ -854,7 +854,7 @@ impl ClassicBot {
             !game
                 .deals.agreed
                 .iter()
-                .filter(|deal| deal.bound_faction == faction && deal.type_ == DealType::DontShipOrMoveTo)
+                .filter(|deal| deal.bound_faction == Some(faction) && deal.type_ == DealType::DontShipOrMoveTo)
                 .map(|deal| deal.get_parameter1(game))
                 .any(|f| f == t)
         })
@@ -980,7 +980,7 @@ impl ClassicBot {
     }
 
     pub fn emperor_versus_fremen(&self, game: &Game, opponent: PlayerIndex) -> bool {
-        self.faction(game) == Faction::Emperor && game.player(opponent).faction == Faction::Fremen
+        self.faction(game) == Faction::Emperor && game.player(opponent).faction == Some(Faction::Fremen)
     }
 
     /// My forces in the Polar Sink that a shipment into Arrakeen or Carthag would let move further.
@@ -1037,7 +1037,7 @@ impl ClassicBot {
     pub fn opponent_is_suitable_for_useless_card_dump_attack(&self, game: &Game, opponent: Option<PlayerIndex>) -> bool {
         let Some(opponent) = opponent else { return false };
 
-        !(game.applicable(Rule::HarkonnenCapturesOrKillsLeaders) && game.player(opponent).faction == Faction::Harkonnen)
+        !(game.applicable(Rule::HarkonnenCapturesOrKillsLeaders) && game.player(opponent).faction == Some(Faction::Harkonnen))
             && (Self::known_opponent_weapons(game, self.player, opponent).is_empty()
                 || game.player(self.player).has_treachery_card_type(TreacheryCardType::Mercenary))
     }

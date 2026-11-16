@@ -1948,7 +1948,7 @@ impl GameEvent {
         dispatch!(self, e => &e.base)
     }
 
-    pub fn initiator(&self) -> Faction {
+    pub fn initiator(&self) -> Option<Faction> {
         dispatch!(self, e => GameEventMethods::initiator(&**e))
     }
 
@@ -1976,7 +1976,7 @@ impl GameEvent {
         dispatch!(self, e => GameEventMethods::is_applicable(&**e, game, is_host))
     }
 
-    pub fn initialize(&self, game: &Game, initiator: Faction) {
+    pub fn initialize(&self, game: &Game, initiator: Option<Faction>) {
         dispatch!(self, e => GameEventMethods::initialize(&**e, game, initiator))
     }
 
@@ -2000,7 +2000,8 @@ impl GameEvent {
         dispatch!(self, e => GameEventMethods::get_short_message(&**e, game))
     }
 
-    pub fn by(&self, f: Faction) -> bool {
+    pub fn by(&self, f: impl Into<Option<Faction>>) -> bool {
+        let f: Option<Faction> = f.into();
         dispatch!(self, e => GameEventMethods::by(&**e, f))
     }
 
@@ -2036,7 +2037,8 @@ impl GameEvent {
         dispatch!(self, e => GameEventMethods::get_player(&**e, game, f))
     }
 
-    pub fn is_playing(&self, game: &Game, f: Faction) -> bool {
+    pub fn is_playing(&self, game: &Game, f: impl Into<Option<Faction>>) -> bool {
+        let f: Option<Faction> = f.into();
         dispatch!(self, e => GameEventMethods::is_playing(&**e, game, f))
     }
 

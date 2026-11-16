@@ -21,7 +21,7 @@ use treachery_view::replica::ViewReplica;
 use treachery_view::schema::*;
 
 fn viewer(game: &Game, p: PlayerIndex) -> ResolvedViewer {
-    ResolvedViewer { player: Some(p), faction: Some(game.player(p).faction), is_host: p.index == 0, is_observer: false }
+    ResolvedViewer { player: Some(p), faction: Some(game.player(p).faction.expect("faction")), is_host: p.index == 0, is_observer: false }
 }
 
 fn ordinal(a: &str, b: &str) -> std::cmp::Ordering {
@@ -52,7 +52,7 @@ fn check_draft(game: &Game, faction: Faction, draft: &serde_json::Value, t: Game
     let again: serde_json::Value = serde_json::from_str(&json::serialize(&e)).unwrap();
     assert_eq!(&again, draft, "{at}: the draft doesn't survive the engine's JSON");
     // As a draft query and a submission do: the server sets the initiator.
-    e.initialize(game, faction);
+    e.initialize(game, Some(faction));
     e
 }
 
@@ -82,9 +82,9 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, stats
     let v = viewer(game, p);
     let view = actions::action_view(game, &v, &Default::default(), t, d);
     let options = view.options.clone().unwrap_or_else(|| panic!("{at}: no options for {}", t.name()));
-    let at = format!("{at} {} {}", game.player(p).faction, t.name());
+    let at = format!("{at} {} {}", treachery_engine::enum_type::name_or_absent(game.player(p).faction), t.name());
     let at = at.as_str();
-    let draft = check_draft(game, game.player(p).faction, &draft_of(&options), t, at);
+    let draft = check_draft(game, game.player(p).faction.expect("faction"), &draft_of(&options), t, at);
     // The view's validation is the draft's.
     assert_eq!(view.validation, treachery_view::build::validate(game, draft.clone(), d), "{at}: validation");
     stats.reached(t.name(), at);
@@ -106,7 +106,7 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, stats
                     assert_eq!(c.decisions.iter().map(|x| x.value).collect::<Vec<_>>(), values(BattleConcluded::valid_capture_decisions(game)), "{at}");
                     stats.add("BattleConcluded capture");
                 }
-                let loser = game.get_player(game.battle.battle_loser).unwrap();
+                let loser = game.get_player(game.battle.battle_loser.flatten()).unwrap();
                 assert_eq!(o.tech_tokens.iter().map(|x| x.value).collect::<Vec<_>>(), values(game.player(loser).tech_tokens.iter().copied()), "{at}");
                 assert_eq!(o.decipherer_traitors.iter().map(|h| h.id).collect::<Vec<_>>(), ids(game.battle.traitors_decipherer_can_look_at.iter().copied()), "{at}");
                 assert_eq!(o.add_extra_force_in.is_some(), BattleConcluded::may_add_extra_force(game, p), "{at}");
@@ -124,7 +124,7 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, stats
             let want: Vec<(i32, i32)> = fights.iter().map(|f| (f.faction.value(), f.territory.id())).collect();
             assert_eq!(got, want, "{at}");
             // The default is the first opponent and its first territory.
-            assert_eq!(e.target, fights[0].faction, "{at}");
+            assert_eq!(e.target, Some(fights[0].faction), "{at}");
             assert_eq!(e.territory(game), Some(fights[0].territory), "{at}");
             assert_eq!(view.validation, None, "{at}: the first fight is a valid battle");
         }
@@ -137,19 +137,19 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, stats
         }
         (ActionOptions::ClairVoyanceAnswered(o), _) => {
             let latest = game.turn.latest_clairvoyance.as_ref().unwrap();
-            assert_eq!(o.questioner, latest.initiator().to_string(), "{at}");
+            assert_eq!(o.questioner, name_or_absent(latest.initiator()), "{at}");
         }
         (ActionOptions::ClairVoyancePlayed(o), GameEvent::ClairVoyancePlayed(e)) => {
             let targets: Vec<Faction> = ClairVoyancePlayed::valid_targets(game, p).collect();
             assert_eq!(o.targets.iter().map(|x| x.value).collect::<Vec<_>>(), values(targets.iter().copied()), "{at}");
-            assert_eq!(o.questions.iter().map(|x| x.value).collect::<Vec<_>>(), ClairVoyancePlayed::valid_questions(game, e.target).map(value_or_absent).collect::<Vec<_>>(), "{at}");
+            assert_eq!(o.questions.iter().map(|x| x.value).collect::<Vec<_>>(), ClairVoyancePlayed::valid_questions(game, e.target.expect("faction")).map(value_or_absent).collect::<Vec<_>>(), "{at}");
             assert_eq!(o.card_types.iter().map(|x| x.value.clone()).collect::<Vec<_>>(), Voice::valid_types(game).iter().map(|t| t.to_string()).collect::<Vec<_>>(), "{at}");
             assert_eq!(o.turns.iter().map(|x| x.value.clone()).collect::<Vec<_>>(), BeneGesseritPrediction::valid_turns(game).iter().map(|t| t.to_string()).collect::<Vec<_>>(), "{at}");
             assert_eq!(o.leaders.len(), game.traitors_in_play().len(), "{at}");
             // Dependent: the questions follow the draft's target.
             for target in targets {
                 let mut q = ClairVoyancePlayed::new(game, me.faction);
-                q.target = target;
+                q.target = Some(target);
                 let (opts, _) = battle::options_and_validation(game, &v, &event(q), d).unwrap();
                 let Some(ActionOptions::ClairVoyancePlayed(o)) = opts else { panic!("{at}") };
                 assert_eq!(o.questions.iter().map(|x| x.value).collect::<Vec<_>>(), ClairVoyancePlayed::valid_questions(game, target).map(value_or_absent).collect::<Vec<_>>(), "{at}");
@@ -221,7 +221,7 @@ fn check_battle(game: &Game, p: PlayerIndex, o: &BattleOptions, draft: &Battle, 
     assert_eq!(o.must_pay, Battle::must_pay_for_any_forces_in_battle(game, p), "{at}");
     assert_eq!(o.max_banker_boost, Battle::max_banker_boost(game, p, draft.hero()), "{at}");
     // Without a previous plan, the form starts with no cards (ids 0 are real cards).
-    if battle.previous_plan_of(game, game.player(p).faction).is_none() {
+    if battle.previous_plan_of(game, game.player(p).faction.expect("faction")).is_none() {
         assert!(draft.weapon().is_none() && draft.defense().is_none(), "{at}: default cards");
     }
     // The default draft takes the first leader when one is required, and its cards are valid for it.
@@ -247,7 +247,7 @@ fn check_battle(game: &Game, p: PlayerIndex, o: &BattleOptions, draft: &Battle, 
     }
     assert_eq!(o.mixes.len() as i32, expected, "{at}: mixes");
     for &(fs, hs, fn_, hn, dial, cost) in &o.mixes {
-        assert_eq!(dial, Battle::dial_of_forces(game, p, opponent, fn_, fs, hn, hs), "{at}");
+        assert_eq!(dial, Battle::dial_of_forces(game, p, opponent.expect("faction"), fn_, fs, hn, hs), "{at}");
         assert_eq!(cost, Battle::cost_of_forces(game, p, fn_, fs, &mut 0), "{at}");
     }
     if o.half_normal || o.half_special {
@@ -262,7 +262,7 @@ fn check_battle(game: &Game, p: PlayerIndex, o: &BattleOptions, draft: &Battle, 
         q.set_hero(hero);
         let (opts, validation) = battle::options_and_validation(game, &v, &event(q), d).unwrap();
         let Some(ActionOptions::Battle(o)) = opts else { panic!("{at}") };
-        let normalized = check_draft(game, game.player(p).faction, &o.draft, GameEventType::Battle, at);
+        let normalized = check_draft(game, game.player(p).faction.expect("faction"), &o.draft, GameEventType::Battle, at);
         let GameEvent::Battle(n) = &normalized else { unreachable!() };
         // A hero that isn't valid, or none when one is required, is replaced.
         if hero.is_some() || game.applicable(Rule::BattleWithoutLeader) || heroes.is_empty() {
@@ -432,8 +432,8 @@ fn hms_battle_state() -> ViewReplica {
     let (fa, fb) = (g.player(a).faction, g.player(b).faction);
     Player::add_forces(g, a, hms.location(), 3, false);
     Player::add_forces(g, b, hms.location(), 2, false);
-    g.board.stronghold_ownership.insert(hms.location(), fa);
-    g.board.stronghold_ownership.insert(g.board.map.arrakeen(), fa);
+    g.board.stronghold_ownership.insert(hms.location(), fa.expect("faction"));
+    g.board.stronghold_ownership.insert(g.board.map.arrakeen(), fa.expect("faction"));
     let mut battle = BattleInitiated::new(g, fa);
     battle.target = fb;
     battle.territory_id = hms.location().territory().id();

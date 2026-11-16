@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct DistransUsed {
-    pub target: Faction,
+    pub target: Option<Faction>,
     pub card_id: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
@@ -19,9 +19,9 @@ impl Default for DistransUsed {
 }
 
 impl DistransUsed {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -37,7 +37,7 @@ impl DistransUsed {
         if !DistransUsed::valid_cards(game, self.player()).any(|c| Some(c) == self.card()) {
             return Some(express!("Invalid card"));
         }
-        if !DistransUsed::valid_targets(game, self.player()).any(|v| v == self.target) {
+        if !DistransUsed::valid_targets(game, self.player()).any(|v| Some(v) == self.target) {
             return Some(express!("Invalid target"));
         }
         None
@@ -54,7 +54,7 @@ impl DistransUsed {
             .iter()
             .enumerate()
             .filter(move |(i, target)| g.player_at(*i) != p && target.has_room_for_cards(g))
-            .map(move |(_, target)| target.faction)
+            .filter_map(move |(_, target)| target.faction)
     }
 
     pub fn can_be_played(game: &Game, player: PlayerIndex) -> bool {
@@ -64,7 +64,7 @@ impl DistransUsed {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let target = self.get_player(game, Some(self.target));
+        let target = self.get_player(game, self.target);
         let target_had_room_for_cards = game.player(target.required("target")?).has_room_for_cards(game);
         let target = target.required("target")?;
         let me = self.player();
@@ -94,11 +94,11 @@ impl DistransUsed {
         // C# parity: during black market bidding this also executes a regular Bid, not a BlackMarketBid.
         // Nested Execute: pre/post-event tasks run again and the Bid is added to History.
         if game.turn.current_phase == Phase::BlackMarketBidding && had_room_for_cards && !game.player(player).has_room_for_cards(game) && BlackMarketBid::may_be_played(game, player) {
-            let mut bid = Bid::new(game, game.player(player).faction);
+            let mut bid = Bid::new(game, game.player(player).faction.expect("faction"));
             bid.passed = true;
             Rc::new(bid).execute(game, false, false);
         } else if game.turn.current_phase == Phase::Bidding && had_room_for_cards && !game.player(player).has_room_for_cards(game) && Bid::may_be_played(game, Some(player)) {
-            let mut bid = Bid::new(game, game.player(player).faction);
+            let mut bid = Bid::new(game, game.player(player).faction.expect("faction"));
             bid.passed = true;
             Rc::new(bid).execute(game, false, false);
         }

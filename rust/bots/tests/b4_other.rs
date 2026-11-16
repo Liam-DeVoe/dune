@@ -83,7 +83,7 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
         "DetermineDiplomacy" => opt(bot.determine_diplomacy(game)),
         "DetermineSkillAssigned" => ev(bot.determine_skill_assigned(game)),
         "DeterminePlanetology" => ev(bot.determine_planetology(game)),
-        "IsWinningOrIsOpponentInBattle" => b(bot.is_winning_or_is_opponent_in_battle(game, Faction(n(0)))),
+        "IsWinningOrIsOpponentInBattle" => b(bot.is_winning_or_is_opponent_in_battle(game, treachery_engine::enum_type::from_value_or_absent::<Faction>(n(0)).unwrap())),
         "OpponentMayNotUse" => b(bot.opponent_may_not_use(game, <TreacheryCardType as treachery_engine::enum_type::GameEnum>::from_value(n(0)).expect("a card type"), a[1] == "true")),
         "HeroRevivalPenalty" => bot.hero_revival_penalty(game, LeaderManager::hero_lookup().find(n(0)).unwrap()).to_string(),
         "BestRevivalLocation" => {
@@ -96,7 +96,7 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
         }
         "DetermineNexusPlayed_Betrayal" | "DetermineNexusPlayed_Cunning" | "DetermineNexusPlayed_SecretAlly" => {
             let mut result = NexusPlayed::new(game, game.player(me).faction);
-            result.faction = Faction(n(0));
+            result.faction = treachery_engine::enum_type::from_value_or_absent::<Faction>(n(0)).unwrap();
             opt(match m {
                 "DetermineNexusPlayed_Betrayal" => bot.determine_nexus_played_betrayal(game, result),
                 "DetermineNexusPlayed_Cunning" => bot.determine_nexus_played_cunning(game, result),
@@ -110,7 +110,7 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
 /// What a probe sets on the game before the call, undone afterwards.
 enum Setup {
     None,
-    Nexus(Faction),
+    Nexus(Option<Faction>),
     Clairvoyance(Option<Rc<ClairVoyancePlayed>>),
 }
 
@@ -118,12 +118,12 @@ fn setup(game: &mut Game, me: PlayerIndex, m: &str, a: &[String]) -> Setup {
     match m {
         "DetermineNexusPlayed_Betrayal" | "DetermineNexusPlayed_Cunning" | "DetermineNexusPlayed_SecretAlly" => {
             let saved = game.player(me).nexus;
-            game.player_mut(me).nexus = Faction(a[0][1..].parse().unwrap());
+            game.player_mut(me).nexus = treachery_engine::enum_type::from_value_or_absent::<Faction>(a[0][1..].parse().unwrap()).unwrap();
             Setup::Nexus(saved)
         }
         "ClairVoyanceAnswered" => {
             let saved = game.turn.latest_clairvoyance.clone();
-            let initiator = Faction(a[0][1..].parse().unwrap());
+            let initiator = treachery_engine::enum_type::from_value_or_absent::<Faction>(a[0][1..].parse().unwrap()).unwrap();
             let mut cv = ClairVoyancePlayed::new(game, initiator);
             cv.target = game.player(me).faction;
             cv.question = treachery_engine::enum_type::from_value_or_absent(dotnet_compat::parse::enum_parse(Some(&a[1]), ClairvoyanceQuestion::INFO.declared)).unwrap();

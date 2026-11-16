@@ -64,7 +64,7 @@ fn check(game: &Game, p: PlayerIndex, options: &ActionOptions, validation: &Opti
     match options {
         ActionOptions::Revival(o) => {
             let sa = draft["UsesEmperorSecretAlly"].as_bool().unwrap();
-            assert_eq!(o.may_use_secret_ally, pl.nexus == Faction::Emperor && NexusPlayed::can_use_secret_ally(game, p), "{at}");
+            assert_eq!(o.may_use_secret_ally, pl.nexus == Some(Faction::Emperor) && NexusPlayed::can_use_secret_ally(game, p), "{at}");
             assert!(o.may_use_secret_ally || !sa, "{at}: secret ally without the checkbox");
             assert_eq!(o.max_forces, Revival::valid_max_revivals(game, p, false, sa), "{at}");
             assert_eq!(o.max_special_forces, Revival::valid_max_revivals(game, p, true, sa), "{at}");
@@ -81,7 +81,7 @@ fn check(game: &Game, p: PlayerIndex, options: &ActionOptions, validation: &Opti
             assert_eq!(o.may_assign_skill, hero.is_some_and(|h| Revival::may_assign_skill(game, p, Some(h))), "{at}");
             let cost = Revival::determine_cost(game, p, hero, f, sf, ef, esf, sa);
             assert_eq!(o.cost_for_player, cost.total_cost_for_player(), "{at}");
-            assert_eq!(o.cost_for_emperor, (pl.ally == Faction::Emperor).then_some(cost.cost_for_emperor), "{at}");
+            assert_eq!(o.cost_for_emperor, (pl.ally == Some(Faction::Emperor)).then_some(cost.cost_for_emperor), "{at}");
             // The draft is what the component's widgets allow.
             assert!((0..=o.max_forces.max(0)).contains(&f) && (0..=o.max_special_forces.max(0)).contains(&sf), "{at}: {draft}");
             assert!((0..=o.max_by_emperor.max(0)).contains(&ef) && (0..=o.max_by_emperor.max(0)).contains(&esf), "{at}: {draft}");
@@ -149,7 +149,7 @@ fn check(game: &Game, p: PlayerIndex, options: &ActionOptions, validation: &Opti
 }
 
 fn resolved(game: &Game, p: PlayerIndex) -> ResolvedViewer {
-    ResolvedViewer { player: Some(p), faction: Some(game.player(p).faction), is_host: false, is_observer: false }
+    ResolvedViewer { player: Some(p), faction: Some(game.player(p).faction.expect("faction")), is_host: false, is_observer: false }
 }
 
 /// Drafts a player could make from the default one: each input moved through its range.
@@ -256,7 +256,7 @@ fn fixture_forms_match_the_engine() {
     for name in names {
         // Skip a fixture the engine can't load.
         let Ok(mut r) = std::panic::catch_unwind(|| load(&name)) else { continue };
-        let fs: Vec<Faction> = r.game.players.iter().map(|p| p.faction).collect();
+        let fs: Vec<Faction> = r.game.players.iter().filter_map(|p| p.faction).collect();
         for f in fs {
             let viewer = viewer_of(&r, f);
             let view = r.view(viewer);
@@ -303,7 +303,7 @@ fn raise_dead_drops_a_leader_that_cant_be_revived() {
 #[test]
 fn revival_draft_queries() {
     let mut r = load("revival");
-    let fs: Vec<Faction> = r.game.players.iter().map(|p| p.faction).collect();
+    let fs: Vec<Faction> = r.game.players.iter().filter_map(|p| p.faction).collect();
     let mut any = false;
     for f in fs {
         let viewer = viewer_of(&r, f);
@@ -338,7 +338,7 @@ fn bot_game_forms_match_the_engine() {
         let mut r = ViewReplica::new(trace.version);
         for (i, e) in trace.events.iter().enumerate() {
             r.apply(e).unwrap();
-            let fs: Vec<Faction> = r.game.players.iter().map(|p| p.faction).collect();
+            let fs: Vec<Faction> = r.game.players.iter().filter_map(|p| p.faction).collect();
             for f in fs {
                 let p = r.game.get_player(Some(f)).unwrap();
                 let types = r.game.get_applicable_events(Some(p), false);

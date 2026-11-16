@@ -6,7 +6,7 @@ pub use std::rc::Rc;
 pub use std::collections::BTreeMap;
 pub use indexmap::{IndexMap, IndexSet};
 
-pub use crate::iter::{IterExt, MapExt};
+pub use crate::iter::{ContainsOpt, IterExt, MapExt, MapOpt};
 pub use crate::shared::{RcKey, Shared};
 pub use crate::compat::date_time_offset::{DateTimeOffset, TimeSpan};
 pub use crate::cards::deck::Deck;

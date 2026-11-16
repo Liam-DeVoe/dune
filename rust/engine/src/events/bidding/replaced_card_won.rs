@@ -18,9 +18,9 @@ impl Default for ReplacedCardWon {
 }
 
 impl ReplacedCardWon {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -32,7 +32,7 @@ impl ReplacedCardWon {
         if !self.passed {
             let card_just_won = game.bidding.card_just_won;
             game.discard_card(card_just_won, true)?;
-            let initiator = self.get_player(game, Some(self.initiator()));
+            let initiator = self.get_player(game, self.initiator());
             let new_card = game.draw_treachery_card();
             let initiator = initiator.required("initiator")?;
             game.player_mut(initiator).treachery_cards.push(new_card.required("new_card")?);
@@ -47,7 +47,7 @@ impl ReplacedCardWon {
 
             let initiator_faction = game.player(initiator).faction;
             let card_just_won = game.bidding.card_just_won;
-            self.log_to(game, initiator_faction, vec!["You replaced your ".into(), card_just_won.into(), " with a ".into(), new_card.into()]);
+            self.log_to(game, initiator_faction.required("faction")?, vec!["You replaced your ".into(), card_just_won.into(), " with a ".into(), new_card.into()]);
         }
 
         if game.bidding.card_just_won == game.bidding.card_sold_on_black_market {

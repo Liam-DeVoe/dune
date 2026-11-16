@@ -35,7 +35,7 @@ fn starting_amounts(game: &Game, p: PlayerIndex) -> (i32, i32) {
         return (0, 0);
     }
     let pl = game.player(p);
-    let ally_resources = if pl.ally == Faction::None { 0 } else { game.get_permitted_use_of_ally_resources(pl.faction) };
+    let ally_resources = if pl.ally == None { 0 } else { game.get_permitted_use_of_ally_resources(pl.faction.expect("faction")) };
     let player_resources = pl.resources;
     let bid_to_do = game.bidding.current_bid.as_ref().map_or(1, |b| b.bid_total_amount() + 1);
     let ally = bid_to_do.min(ally_resources);
@@ -49,14 +49,14 @@ fn starting_amounts(game: &Game, p: PlayerIndex) -> (i32, i32) {
 /// it. Emperor's contribution starts at 0, inside its picker's range.
 fn clamped(game: &Game, p: PlayerIndex, (amount, ally): (i32, i32), max_amount: i32, max_ally: i32) -> (i32, i32) {
     let amount = picker(amount, 0, max_amount);
-    let ally = if game.player(p).ally != Faction::None && max_ally > 0 { picker(ally, 0, max_ally) } else { 0 };
+    let ally = if game.player(p).ally != None && max_ally > 0 { picker(ally, 0, max_ally) } else { 0 };
     (amount, ally)
 }
 
 /// The event the panel would confirm before the player touches it (`ConfirmedResult`, with
 /// `KarmaCard` null and `UseEmperorSecretAlly` false).
-pub fn default_draft(game: &Game, faction: Faction, t: GameEventType) -> Option<GameEvent> {
-    let p = game.get_player(Some(faction))?;
+pub fn default_draft(game: &Game, faction: Option<Faction>, t: GameEventType) -> Option<GameEvent> {
+    let p = game.get_player(faction)?;
     match t {
         GameEventType::Bid => {
             let (amount, ally) = clamped(game, p, starting_amounts(game, p), Bid::valid_max_amount(game, p, false), Bid::valid_max_ally_amount(game, Some(p)));
@@ -90,7 +90,7 @@ pub fn options(game: &Game, v: &ResolvedViewer, draft: &GameEvent) -> Option<Act
             Some(ActionOptions::Bid {
                 max_amount,
                 max_ally_amount,
-                max_emperor_amount: game.spice_for_bids_emperor_can_pay(faction),
+                max_emperor_amount: game.spice_for_bids_emperor_can_pay(faction.expect("faction")),
                 karma_cards: if Bid::can_karma(game, Some(p)) { Bid::valid_karma_cards(game, Some(p)).map(|c| c.id()).collect() } else { vec![] },
                 may_use_emperor_secret_ally: Bid::may_use_emperor_secret_ally(game, p),
                 default_amount,
@@ -104,7 +104,7 @@ pub fn options(game: &Game, v: &ResolvedViewer, draft: &GameEvent) -> Option<Act
             Some(ActionOptions::BlackMarketBid {
                 max_amount,
                 max_ally_amount,
-                max_emperor_amount: game.spice_for_bids_emperor_can_pay(faction),
+                max_emperor_amount: game.spice_for_bids_emperor_can_pay(faction.expect("faction")),
                 default_amount,
                 default_ally_amount,
             })
@@ -126,8 +126,8 @@ pub fn next_card(game: &Game, v: &ResolvedViewer) -> Option<NextCardView> {
         game.occupies(pl.faction, World::Atreides)
             || game.occupies(pl.ally, World::Atreides)
             || (!game.prevented(FactionAdvantage::AtreidesBiddingPrescience)
-                && (pl.faction == Faction::Atreides
-                    || (pl.ally == Faction::Atreides && game.alliances.atreides_shares_prescience)
+                && (pl.faction == Some(Faction::Atreides)
+                    || (pl.ally == Some(Faction::Atreides) && game.alliances.atreides_shares_prescience)
                     || game.has_deal(pl.faction, DealType::ShareBiddingPrescience)))
     });
     Some(NextCardView { card: prescience.then(|| top.id()) })

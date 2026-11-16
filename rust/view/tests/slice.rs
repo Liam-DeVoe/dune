@@ -12,7 +12,7 @@ use treachery_view::actions::QueryError;
 use treachery_view::schema::*;
 
 fn factions(r: &treachery_view::replica::ViewReplica) -> Vec<Faction> {
-    r.game.players.iter().map(|p| p.faction).collect()
+    r.game.players.iter().filter_map(|p| p.faction).collect()
 }
 
 fn action<'a>(view: &'a GameView, t: &str) -> Option<&'a ActionView> {
@@ -57,7 +57,7 @@ fn allied_players_may_break_or_keep() {
     for f in factions(&r) {
         let view = r.view(viewer_of(&r, f));
         let ally = r.game.player(r.game.get_player(Some(f)).unwrap()).ally;
-        assert_ne!(ally, Faction::None);
+        assert_ne!(ally, None);
         assert!(action(&view, "AllianceOffered").is_none());
         let keep = action(&view, "AlliancePassed").unwrap();
         assert_eq!(
@@ -65,7 +65,7 @@ fn allied_players_may_break_or_keep() {
             Some(ActionOptions::Simple {
                 title: Some(vec![
                     Part::Text { v: "Keep your alliance with ".into() },
-                    Part::Faction { v: ally.to_string(), label: treachery_skin::default_skin().describe_faction(ally) },
+                    Part::Faction { v: name_or_absent(ally), label: treachery_skin::default_skin().describe_faction(ally) },
                     Part::Text { v: "?".into() }
                 ]),
                 confirm_label: "Keep alliance".into(),
@@ -74,7 +74,7 @@ fn allied_players_may_break_or_keep() {
             })
         );
         assert!(action(&view, "AllianceBroken").is_some());
-        assert_eq!(view.players.iter().find(|p| p.faction == f.to_string()).unwrap().ally, ally.to_string());
+        assert_eq!(view.players.iter().find(|p| p.faction == f.to_string()).unwrap().ally, name_or_absent(ally));
     }
 }
 
@@ -151,8 +151,8 @@ fn private_log_lines_reach_only_their_target() {
             let v = viewer_of(&r, f).resolve(&r.game);
             for (i, report) in r.game.reports().iter().enumerate() {
                 let lines = treachery_view::build::report_lines(i, report, &v, &treachery_skin::default_skin()).lines;
-                assert_eq!(lines.len(), report.messages.iter().filter(|m| m.target == Faction::None || m.target == f).count());
-                let private = report.messages.iter().filter(|m| m.target == f).count();
+                assert_eq!(lines.len(), report.messages.iter().filter(|m| m.target == None || m.target == Some(f)).count());
+                let private = report.messages.iter().filter(|m| m.target == Some(f)).count();
                 assert_eq!(lines.iter().filter(|l| l.private).count(), private);
                 private_total += private;
             }
@@ -195,7 +195,7 @@ fn storm_dial_range() {
     let mut r = load_text(&truncated("alliance", first_dial + 1));
     let waiting: Vec<String> = r.view(OBSERVER).status.waiting_for;
     assert_eq!(waiting.len(), 1);
-    let dialed = r.game.history.entries.last().unwrap().initiator().to_string();
+    let dialed = name_or_absent(r.game.history.entries.last().unwrap().initiator());
     assert!(!waiting.contains(&dialed));
 }
 
@@ -208,12 +208,12 @@ fn draft_queries() {
     let _ = r.view(emperor);
     let ev = |t: &str, extra: &str| format!(r#"{{"$type":"{t}"{extra},"Initiator":0,"Time":"2026-01-01T00:00:00+00:00"}}"#);
 
-    let ok = r.query(emperor, &ev("AllianceOffered", &format!(r#","Target":{}"#, Faction::BeneGesserit.0))).unwrap();
+    let ok = r.query(emperor, &ev("AllianceOffered", &format!(r#","Target":{}"#, (Faction::BeneGesserit as i32)))).unwrap();
     assert_eq!(ok.event_type, "AllianceOffered");
     assert_eq!(ok.validation, None);
     assert!(matches!(ok.options, Some(ActionOptions::AllianceOffered { .. })));
 
-    let own = r.query(emperor, &ev("AllianceOffered", &format!(r#","Target":{}"#, Faction::Emperor.0))).unwrap();
+    let own = r.query(emperor, &ev("AllianceOffered", &format!(r#","Target":{}"#, (Faction::Emperor as i32)))).unwrap();
     assert_eq!(own.validation, Some(text("Invalid faction")));
 
     assert_eq!(r.query(emperor, &ev("StormDialled", r#","Amount":3"#)), Err(QueryError::NotApplicable));
@@ -228,7 +228,7 @@ fn draft_queries() {
 fn replica_follows_events() {
     let mut r = load("alliance");
     let before = r.view(OBSERVER).event_number;
-    let emperor = Faction::Emperor.0;
+    let emperor = Faction::Emperor as i32;
     r.apply(&format!(r#"{{"$type":"AlliancePassed","Initiator":{emperor},"Time":"2026-01-01T00:00:00+00:00"}}"#)).unwrap();
     let view = r.view(OBSERVER);
     assert_eq!(view.event_number, before + 1);

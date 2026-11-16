@@ -67,7 +67,7 @@ pub struct RuleGroupLabels {
 /// skin.
 pub fn faction_sheets(game: &Game, d: &dyn Describer) -> Vec<FactionSheetView> {
     let Some(skin) = d.skin() else { return vec![] };
-    game.player_indices().filter_map(|p| faction_sheet(skin, game, game.player(p).faction)).collect()
+    game.player_indices().filter_map(|p| game.player(p).faction.and_then(|f| faction_sheet(skin, game, f))).collect()
 }
 
 fn faction_sheet(skin: &Skin, game: &Game, f: Faction) -> Option<FactionSheetView> {

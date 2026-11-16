@@ -17,9 +17,9 @@ impl Default for BeneGesseritBattleAnnouncement {
 }
 
 impl BeneGesseritBattleAnnouncement {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -32,7 +32,7 @@ impl BeneGesseritBattleAnnouncement {
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if self.initiator() != Faction::BeneGesserit {
+        if self.initiator() != Some(Faction::BeneGesserit) {
             return Some(express!("Your faction can't announce battle"));
         }
         // p.SpecialForcesIn(Territory): the argument (a lookup that may throw) is evaluated
@@ -42,7 +42,7 @@ impl BeneGesseritBattleAnnouncement {
         if game.player(p).special_forces_in_territory(territory) == 0 {
             return Some(express!("You don't have advisors there"));
         }
-        let ally = game.get_player(Some(game.player(p).ally));
+        let ally = game.get_player(game.player(p).ally);
         if let Some(ally) = ally {
             if game.player(ally).any_forces_in_territory(self.territory(game)) > 0 {
                 return Some(express!("Can't announce battle due to ally presence"));
@@ -66,7 +66,7 @@ impl BeneGesseritBattleAnnouncement {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let initiator = self.get_player(game, Some(self.initiator()));
+        let initiator = self.get_player(game, self.initiator());
         let Some(initiator) = initiator else { return Ok(()) };
         let Some(territory) = self.territory(game) else { return Ok(()) };
         Player::flip_forces_in_territory(game, initiator, territory, false);

@@ -23,9 +23,9 @@ impl Default for LoserConcluded {
 }
 
 impl LoserConcluded {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -87,7 +87,7 @@ impl LoserConcluded {
             .find(|l| {
                 l.as_leader().is_some()
                     && Some(*l) != g.winner_hero()
-                    && (Some(l.faction()) == g.battle.battle_winner || (g.battle.battle_winner == Some(Faction::Tleilaxu) && g.is_ghola(*l)))
+                    && (Some(l.faction()) == g.battle.battle_winner || (g.battle.battle_winner == Some(Some(Faction::Tleilaxu)) && g.is_ghola(*l)))
                     && !pl.revealed_traitors.contains(l)
             })
             .and_then(|l| l.as_leader())
@@ -117,7 +117,7 @@ impl LoserConcluded {
 
     pub fn may_use_karma_to_force_kept_cards(game: &Game, player: PlayerIndex) -> bool {
         let pl = game.player(player);
-        pl.faction == Faction::Moritani
+        pl.faction == Some(Faction::Moritani)
             && !game.karma_prevented(pl.faction)
             && !pl.special_karma_power_used
             && pl.has_karma(game)
@@ -169,7 +169,7 @@ impl LoserConcluded {
 
         self.log(game);
 
-        let winner = self.get_player(game, game.battle.battle_winner);
+        let winner = self.get_player(game, game.battle.battle_winner.flatten());
 
         if self.karma_forced_kept_card_decision == LoserConcluded::KARMA_DISCARD
             || self.karma_forced_kept_card_decision == LoserConcluded::KARMA_KEEP
@@ -267,7 +267,7 @@ impl LoserConcluded {
         game.battle.loser_may_try_to_assassinate = false;
 
         if game.battle.battle_was_concluded_by_winner {
-            let condition1 = !self.is_playing(game, Faction::Tleilaxu) || game.battle.battle_winner == Some(Faction::Tleilaxu);
+            let condition1 = !self.is_playing(game, Faction::Tleilaxu) || game.battle.battle_winner == Some(Some(Faction::Tleilaxu));
             if condition1 {
                 Game::finish_battle(game)?;
             } else {

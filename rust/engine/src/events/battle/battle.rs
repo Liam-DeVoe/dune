@@ -57,9 +57,9 @@ macro_rules! le {
 }
 
 impl Battle {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -191,15 +191,15 @@ impl Battle {
 
         // `GetPlayer(Faction.Tleilaxu)?.Ally != Faction.Harkonnen` is true when Tleilaxu is not playing.
         let tleilaxu_ally_is_not_harkonnen =
-            |game: &Game, me: &Battle| me.get_player(game, Some(Faction::Tleilaxu)).map(|p| game.player(p).ally) != Some(Faction::Harkonnen);
+            |game: &Game, me: &Battle| me.get_player(game, Some(Faction::Tleilaxu)).map(|p| game.player(p).ally) != Some(Some(Faction::Harkonnen));
 
-        if current_battle.aggressor(game) == Faction::Tleilaxu
+        if current_battle.aggressor(game) == Some(Faction::Tleilaxu)
             && (tleilaxu_ally_is_not_harkonnen(game, self) || game.prevented(FactionAdvantage::HarkonnenCallTraitorForAlly))
         {
             let mut action = TreacheryCalled::new(game, Faction::Tleilaxu);
             action.traitor_called = false;
             game.battle.aggressor_traitor_action = Some(Rc::new(action));
-        } else if current_battle.defender(game) == Faction::Tleilaxu
+        } else if current_battle.defender(game) == Some(Faction::Tleilaxu)
             && (tleilaxu_ally_is_not_harkonnen(game, self) || game.prevented(FactionAdvantage::HarkonnenCallTraitorForAlly))
         {
             let mut action = TreacheryCalled::new(game, Faction::Tleilaxu);
@@ -221,7 +221,7 @@ impl Battle {
             " Plan → leader: ",
             self.hero(),
             ", dial: ",
-            self.dial(game, game.player(opponent).faction),
+            self.dial(game, game.player(opponent).faction.required("faction")?),
             express_part_if!(game.applicable(Rule::AdvancedCombat); Payment::of(self.cost(game))),
             express_part_if!(self.ally_contribution_amount > 0; " (", Payment::of_by(self.ally_contribution_amount, game.player(self.player()).ally), ")"),
             ", weapon: ",
@@ -236,12 +236,12 @@ impl Battle {
         let leader = self.hero();
         let messiah = self.messiah;
         let opponent = game.battle.current_battle.as_ref().expect("current battle").opponent_of_faction(game, self.initiator()).expect("opponent of faction");
-        let dial = self.dial(game, game.player(opponent).faction);
+        let dial = self.dial(game, game.player(opponent).faction.expect("faction"));
         let spice = if game.applicable(Rule::AdvancedCombat) { Some(self.cost(game)) } else { None };
         let ally_contribution = self.ally_contribution_amount;
         let ally = game.player(self.player()).ally;
         PlanSummary {
-            faction,
+            faction: faction.expect("faction"),
             leader,
             messiah,
             dial,
@@ -279,7 +279,7 @@ impl Battle {
             swap.card_used_by_diplomat = Some(self.original_defense.get());
         }
 
-        if Battle::is_using_portable_antidote(game, self.initiator()) {
+        if Battle::is_using_portable_antidote(game, self.initiator().expect("faction")) {
             self.original_defense.set(self.defense());
             let antidote = game.decks.treachery_discard_pile.as_ref().expect("treachery discard pile").items.iter().copied().find(|c| c.is_portable_antidote());
             self.set_defense(antidote);
@@ -313,19 +313,19 @@ impl Battle {
 
     pub fn dial_of_forces(g: &Game, p: PlayerIndex, opponent: Faction, forces: i32, special_forces: i32, forces_at_half_strength: i32, special_forces_at_half_strength: i32) -> f32 {
         let pl = g.player(p);
-        let ecaz_battle_contribution = if !g.prevented(FactionAdvantage::EcazOccupation) && (pl.faction == Faction::Ecaz || pl.ally == Faction::Ecaz) {
+        let ecaz_battle_contribution = if !g.prevented(FactionAdvantage::EcazOccupation) && (pl.faction == Some(Faction::Ecaz) || pl.ally == Some(Faction::Ecaz)) {
             g.battle.current_ecaz_battle_contribution
         } else {
             0
         };
 
         // `CurrentEcazOrAllyFighter == Faction.None` is false while it is null.
-        if g.battle.current_ecaz_or_ally_fighter == Some(Faction::None) || pl.faction != Faction::Ecaz {
-            return Battle::force_value(g, pl.faction, opponent, forces, special_forces, forces_at_half_strength, special_forces_at_half_strength)
+        if g.battle.current_ecaz_or_ally_fighter == Some(None) || pl.faction != Some(Faction::Ecaz) {
+            return Battle::force_value(g, pl.faction.expect("faction"), opponent, forces, special_forces, forces_at_half_strength, special_forces_at_half_strength)
                 + ecaz_battle_contribution as f32;
         }
 
-        Battle::force_value(g, pl.ally, opponent, forces, special_forces, forces_at_half_strength, special_forces_at_half_strength) + ecaz_battle_contribution as f32
+        Battle::force_value(g, pl.ally.expect("faction"), opponent, forces, special_forces, forces_at_half_strength, special_forces_at_half_strength) + ecaz_battle_contribution as f32
     }
 
     pub fn cost(&self, g: &Game) -> i32 {
@@ -443,8 +443,8 @@ impl Battle {
                 .def_hero_effective_strength + result.def_hero_skill_bonus) + result.def_messiah_contribution
         };
 
-        let agg_ecaz_karma_contribution = if agg.initiator() == Faction::Ecaz { game.battle.ecaz_karma_bonus } else { 0 };
-        let def_ecaz_karma_contribution = if def.initiator() == Faction::Ecaz { game.battle.ecaz_karma_bonus } else { 0 };
+        let agg_ecaz_karma_contribution = if agg.initiator() == Some(Faction::Ecaz) { game.battle.ecaz_karma_bonus } else { 0 };
+        let def_ecaz_karma_contribution = if def.initiator() == Some(Faction::Ecaz) { game.battle.ecaz_karma_bonus } else { 0 };
 
         let agg_force_supplier = Battle::determine_force_supplier(game, result.aggressor);
         result.agg_undialed_forces = game.player(agg_force_supplier).any_forces_in_territory(Some(territory)) - agg.total_forces();
@@ -461,14 +461,14 @@ impl Battle {
 
             // float + int + ... evaluates left to right, converting each int to float.
             let defender_faction = game.player(result.defender).faction;
-            result.agg_total = agg.dial(game, defender_faction)
+            result.agg_total = agg.dial(game, defender_faction.expect("faction"))
                 + agg_hero_contribution as f32
                 + agg_ecaz_karma_contribution as f32
                 + result.agg_homeworld_contribution as f32
                 + result.agg_reinforcements_contribution as f32
                 - result.agg_battle_penalty as f32;
             let aggressor_faction = game.player(result.aggressor).faction;
-            result.def_total = def.dial(game, aggressor_faction)
+            result.def_total = def.dial(game, aggressor_faction.expect("faction"))
                 + def_hero_contribution as f32
                 + def_ecaz_karma_contribution as f32
                 + result.def_homeworld_contribution as f32
@@ -623,7 +623,7 @@ impl Battle {
         // var opponent = Game.CurrentBattle.OpponentOf(p)!.Faction;  evaluated even with no seen plans.
         let opponent = game.player(game.battle.current_battle.as_ref().expect("current battle").opponent_of(game, p).expect("opponent of")).faction;
         for (aspect, seen) in game.battle.prescience_seen_plans.iter() {
-            if seen.initiator() == self.initiator() && !self.matches(game, seen, *aspect, opponent) {
+            if seen.initiator() == self.initiator() && !self.matches(game, seen, *aspect, opponent.expect("faction")) {
                 return Some(express!("Your ", *aspect, " was revealed by prescience and can't change"));
             }
         }
@@ -649,7 +649,7 @@ impl Battle {
 
     pub fn determine_force_supplier(g: &Game, player_that_fights: PlayerIndex) -> PlayerIndex {
         let p = g.player(player_that_fights);
-        if p.is(Faction::Ecaz) && g.battle.current_ecaz_or_ally_fighter != Some(Faction::None) && !g.prevented(FactionAdvantage::EcazOccupation) {
+        if p.is(Faction::Ecaz) && g.battle.current_ecaz_or_ally_fighter != Some(None) && !g.prevented(FactionAdvantage::EcazOccupation) {
             return p.allied_player(g).unwrap_or(player_that_fights);
         }
 
@@ -657,13 +657,13 @@ impl Battle {
     }
 
     pub fn force_value(g: &Game, player: Faction, opponent: Faction, forces: i32, special_forces: i32, forces_at_half_strength: i32, special_forces_at_half_strength: i32) -> f32 {
-        let emperor_cunning = g.turn.current_emperor_cunning.as_ref().is_some_and(|c| c.initiator() == player);
+        let emperor_cunning = g.turn.current_emperor_cunning.as_ref().is_some_and(|c| c.initiator() == Some(player));
 
         let nr_of_forces_to_count_as_special_due_to_emperor_cunning = if emperor_cunning { 5.min(forces) } else { 0 };
         let forces_adjusted_for_cunning = forces - nr_of_forces_to_count_as_special_due_to_emperor_cunning;
         let special_forces_adjusted_for_cunning = special_forces + nr_of_forces_to_count_as_special_due_to_emperor_cunning;
 
-        let nr_of_forces_at_half_strength_to_count_as_special_due_to_emperor_cunning = if g.turn.current_emperor_cunning.as_ref().is_some_and(|c| c.initiator() == player) {
+        let nr_of_forces_at_half_strength_to_count_as_special_due_to_emperor_cunning = if g.turn.current_emperor_cunning.as_ref().is_some_and(|c| c.initiator() == Some(player)) {
             0.max(5.min(forces_at_half_strength) - nr_of_forces_to_count_as_special_due_to_emperor_cunning)
         } else {
             0
@@ -717,7 +717,7 @@ impl Battle {
     }
 
     pub fn is_using_portable_antidote(g: &Game, faction: Faction) -> bool {
-        g.battle.current_portable_antidote_used.as_ref().map(|e| e.initiator()) == Some(faction)
+        g.battle.current_portable_antidote_used.as_ref().map(|e| e.initiator()) == Some(Some(faction))
     }
 
     pub fn determine_special_force_strength(g: &Game, player: Faction, opponent: Faction) -> f32 {
@@ -765,7 +765,7 @@ impl Battle {
     pub fn must_pay_for_any_forces_in_battle(g: &Game, p: PlayerIndex) -> bool {
         let pl = g.player(p);
         let does_not_need_to_support_forces = !g.prevented(FactionAdvantage::FremenNotPayingForBattles)
-            && (pl.faction == Faction::Fremen || (pl.faction == Faction::Ecaz && pl.ally == Faction::Fremen));
+            && (pl.faction == Some(Faction::Fremen) || (pl.faction == Some(Faction::Ecaz) && pl.ally == Some(Faction::Fremen)));
 
         g.applicable(Rule::AdvancedCombat) && !does_not_need_to_support_forces
     }
@@ -794,7 +794,7 @@ impl Battle {
 
     pub fn normal_force_cost(g: &Game, p: PlayerIndex) -> i32 {
         if Battle::must_pay_for_any_forces_in_battle(g, p) {
-            if g.player(p).faction == Faction::Ixian {
+            if g.player(p).faction == Some(Faction::Ixian) {
                 return 0;
             }
             return 1;
@@ -832,13 +832,13 @@ impl Battle {
         let fs = g.player(force_supplier);
 
         if !special_forces {
-            if fs.faction == Faction::Richese && fs.special_forces_in_territory(Some(territory)) > 0 {
+            if fs.faction == Some(Faction::Richese) && fs.special_forces_in_territory(Some(territory)) > 0 {
                 return fs.forces_in_reserve().min(g.ship_move.current_no_field_value) + fs.forces_in_territory(Some(territory));
             }
             return fs.forces_in_territory(Some(territory));
         }
 
-        if fs.faction != Faction::Richese {
+        if fs.faction != Some(Faction::Richese) {
             return fs.special_forces_in_territory(Some(territory));
         }
         0
@@ -864,13 +864,13 @@ impl Battle {
                 .filter(|(k, _)| (may_battle_under_storm || k.sector(&g.board.map) != g.board.sector_in_storm) && locations_within_range.contains(k))
             {
                 let _ = key;
-                let defenders = battalions.iter().filter(|b| b.faction != pl.faction && b.faction != pl.ally);
+                let defenders = battalions.iter().filter(|b| Some(b.faction) != pl.faction && Some(b.faction) != pl.ally);
 
                 for faction in defenders.map(|b| b.faction) {
                     if let Some(ecaz) = ecaz {
                         let ecaz_ally = g.player(ecaz).ally;
-                        if (faction == Faction::Ecaz && result.iter().any(|f| f.faction == ecaz_ally))
-                            || (faction == ecaz_ally && result.iter().any(|f| f.faction == Faction::Ecaz))
+                        if (faction == Faction::Ecaz && result.iter().any(|f| Some(f.faction) == ecaz_ally))
+                            || (Some(faction) == ecaz_ally && result.iter().any(|f| f.faction == Faction::Ecaz))
                         {
                             continue;
                         }

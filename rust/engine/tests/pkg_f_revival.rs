@@ -9,7 +9,7 @@ use treachery_engine::prelude::*;
 fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();
     for f in factions {
-        let p = Player::new(*f);
+        let p = Player::new(Some(*f));
         g.players.push(p);
         for l in LeaderManager::get_leaders(*f) {
             let last = g.player_at(g.players.len() - 1);
@@ -25,7 +25,7 @@ fn idx(g: &Game, f: Faction) -> PlayerIndex {
 }
 
 fn as_player<E: GameEventMethods>(e: E, g: &Game, f: Faction) -> E {
-    e.base().initiator.set(f);
+    e.base().initiator.set(Some(f));
     e.base().player.set(g.get_player(Some(f)));
     e
 }

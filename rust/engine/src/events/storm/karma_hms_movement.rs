@@ -19,9 +19,9 @@ impl Default for KarmaHmsMovement {
 }
 
 impl KarmaHmsMovement {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -70,12 +70,12 @@ impl KarmaHmsMovement {
         }
 
         let current_location = hms.attached_to_location(&game.board.map).required("the location of the HMS")?;
-        game.collect_spice_from(self.initiator(), current_location, collection_rate);
+        game.collect_spice_from(self.initiator().required("faction")?, current_location, collection_rate);
 
         if !self.passed {
             let target = self.target(game).required("target")?;
             hms.point_at(&mut game.board.map, target);
-            game.collect_spice_from(self.initiator(), target, collection_rate);
+            game.collect_spice_from(self.initiator().required("faction")?, target, collection_rate);
             game.storm.karma_hms_moves_left -= 1;
             game.stone(Milestone::HmsMovement);
         }

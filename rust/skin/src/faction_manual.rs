@@ -104,7 +104,6 @@ impl Skin {
             Faction::Richese => self.get_richese_template(g, r),
             Faction::Ecaz => self.get_ecaz_template(g, r),
             Faction::Moritani => self.get_moritani_template(g, r),
-            _ => String::new(),
         }
     }
 
@@ -138,14 +137,14 @@ impl Skin {
             self.concept_str.index(Some(Concept::Messiah)).clone(),       //20
             self.main_phase_str.index(Some(MainPhase::ShipmentAndMove)).clone(), //21
             m.habbanya_sietch(),                                    //22
-            self.special_force_name_str.index(Faction::Fremen).clone(), //23
-            self.special_force_name_str.index(Faction::Emperor).clone(), //24
+            self.special_force_name_str.index(Some(Faction::Fremen)).clone(), //23
+            self.special_force_name_str.index(Some(Faction::Emperor)).clone(), //24
             sheet_style,                                            //25
             m.polar_sink(),                                         //26
             Faction::Tleilaxu,                                        //27
             Faction::Ixian,                                          //28
-            self.force_name_str.index(Faction::Ixian).clone(),       //29
-            self.special_force_name_str.index(Faction::Ixian).clone(), //30
+            self.force_name_str.index(Some(Faction::Ixian)).clone(),       //29
+            self.special_force_name_str.index(Some(Faction::Ixian)).clone(), //30
             Concept::Graveyard,                                     //31
             FactionForce::Ixian,                                     //32
             FactionSpecialForce::Ixian,                              //33

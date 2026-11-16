@@ -8,7 +8,7 @@ use treachery_engine::game::ResourcesToBeDivided;
 fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();
     for f in factions {
-        let p = Player::new(*f);
+        let p = Player::new(Some(*f));
         g.players.push(p);
     }
     g
@@ -155,6 +155,6 @@ fn nexus_card_may_draw() {
     g.blow.factions_that_drew_nexus_card.push(Faction::Emperor);
     assert!(!NexusCardDrawn::may_draw(&g, emperor));
     // A faction holding its own Nexus card may draw again.
-    g.player_mut(emperor).nexus = Faction::Emperor;
+    g.player_mut(emperor).nexus = Some(Faction::Emperor);
     assert!(NexusCardDrawn::may_draw(&g, emperor));
 }

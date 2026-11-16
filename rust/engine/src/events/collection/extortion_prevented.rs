@@ -15,9 +15,9 @@ impl Default for ExtortionPrevented {
 }
 
 impl ExtortionPrevented {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -26,7 +26,7 @@ impl ExtortionPrevented {
     }
 
     pub fn can_be_played(g: &Game, p: PlayerIndex) -> bool {
-        g.player(p).faction != Faction::Moritani
+        g.player(p).faction != Some(Faction::Moritani)
             && g.player(p).resources >= 3
             && g.contemplate.extortion_to_be_returned
     }

@@ -15,7 +15,7 @@ fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();
     g.decks.treachery_discard_pile = Some(Deck::new(Vec::new(), None));
     for f in factions {
-        let p = Player::new(*f);
+        let p = Player::new(Some(*f));
         g.players.push(p);
     }
     g
@@ -95,11 +95,11 @@ fn moritani_betrayal_without_a_token_returns_nothing() {
     let mut g = game_with(&[Faction::Atreides, Faction::Moritani]);
     g.random = Some(SharedRandom::from_seed(5));
     let atreides = idx(&g, Faction::Atreides);
-    g.player_mut(atreides).nexus = Faction::Moritani;
+    g.player_mut(atreides).nexus = Some(Faction::Moritani);
     let t = a_stronghold(&g);
 
     let mut e = NexusPlayed::new(&g, Faction::Atreides);
-    e.faction = Faction::Moritani;
+    e.faction = Some(Faction::Moritani);
     e.moritani_territory_id = t.id();
     let e = Rc::new(e);
     assert!(e.is_betrayal(&g));
@@ -116,7 +116,7 @@ fn moritani_betrayal_without_a_token_returns_nothing() {
 fn moritani_betrayal_picks_in_the_order_tokens_were_placed() {
     let mut g = game_with(&[Faction::Atreides, Faction::Moritani]);
     let atreides = idx(&g, Faction::Atreides);
-    g.player_mut(atreides).nexus = Faction::Moritani;
+    g.player_mut(atreides).nexus = Some(Faction::Moritani);
     let t = a_stronghold(&g);
     let other = g.board.map.territories(false).find(|x| x.is_stronghold() && *x != t && !x.is_homeworld()).unwrap();
     g.board.terror_on_planet.insert_new(TerrorType::Assassination, t);
@@ -134,7 +134,7 @@ fn moritani_betrayal_picks_in_the_order_tokens_were_placed() {
     };
     g.random = Some(SharedRandom::from_seed(11));
     let mut e = NexusPlayed::new(&g, Faction::Atreides);
-    e.faction = Faction::Moritani;
+    e.faction = Some(Faction::Moritani);
     e.moritani_territory_id = t.id();
     assert!(e.validate(&g).is_none());
     Rc::new(e).execute_concrete_event(&mut g).unwrap();
@@ -147,11 +147,11 @@ fn moritani_betrayal_picks_in_the_order_tokens_were_placed() {
 fn nexus_tleilaxu_secret_ally_cost_is_never_paid() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
     let atreides = idx(&g, Faction::Atreides);
-    g.player_mut(atreides).nexus = Faction::Tleilaxu;
+    g.player_mut(atreides).nexus = Some(Faction::Tleilaxu);
     g.player_mut(atreides).forces_killed = 3;
     g.player_mut(atreides).resources = 10;
     let mut e = NexusPlayed::new(&g, Faction::Atreides);
-    e.faction = Faction::Tleilaxu;
+    e.faction = Some(Faction::Tleilaxu);
     e.tleilaxu_forces = 2;
     let e = Rc::new(e);
     assert!(e.is_secret_ally(&g));
@@ -192,12 +192,12 @@ fn terror_robbery_rounds_in_float() {
 fn terror_types_follow_the_trigger_territory() {
     let mut g = game_with(&[Faction::Atreides, Faction::Moritani]);
     assert!(TerrorRevealed::get_types(&g).next().is_none());
-    assert_eq!(TerrorRevealed::get_victim(&g), Faction::None);
+    assert_eq!(TerrorRevealed::get_victim(&g), None);
     let t = a_stronghold(&g);
     g.board.terror_on_planet.insert_new(TerrorType::Extortion, t);
     trigger_terror(&mut g, Faction::Atreides, t);
     assert_eq!(TerrorRevealed::get_types(&g).collect::<Vec<_>>(), vec![TerrorType::Extortion]);
-    assert_eq!(TerrorRevealed::get_victim(&g), Faction::Atreides);
+    assert_eq!(TerrorRevealed::get_victim(&g), Some(Faction::Atreides));
 
     // Only Moritani may reveal.
     let mut e = TerrorRevealed::new(&g, Faction::Atreides);

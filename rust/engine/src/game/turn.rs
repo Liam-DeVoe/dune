@@ -23,7 +23,7 @@ pub struct TurnState {
     pub phase_before_discarding: Option<Phase>,
     pub factions_that_must_discard: Vec<Faction>,
     pub phase_before_discarding_traitor: Option<Phase>,
-    pub faction_that_must_discard_traitor: Faction,
+    pub faction_that_must_discard_traitor: Option<Faction>,
     pub number_of_traitors_to_discard: i32,
     pub phase_before_searching_discarded: Option<Phase>,
     pub phase_paused_by_clairvoyance: Option<Phase>,
@@ -36,8 +36,8 @@ pub struct TurnState {
     pub current_planetology: Option<Rc<Planetology>>,
     pub bureaucrat_was_used_this_phase: bool,
     pub phase_before_bureaucrat_was_activated: Option<Phase>,
-    pub target_of_bureaucracy: Faction,
-    pub was_victim_of_bureaucracy: Faction,
+    pub target_of_bureaucracy: Option<Faction>,
+    pub was_victim_of_bureaucracy: Option<Faction>,
     pub banker_was_used_this_phase: bool,
     pub current_nexus_prescience: Option<Rc<NexusPlayed>>,
     pub current_fremen_secret_ally: Option<Rc<NexusPlayed>>,
@@ -130,7 +130,7 @@ impl Game {
             exceptions_to_allowing.push(FactionAdvantage::AtreidesSpiceBlowPrescience);
         }
 
-        self.turn.was_victim_of_bureaucracy = Faction::None;
+        self.turn.was_victim_of_bureaucracy = None;
 
         self.allow_all_prevented_faction_advantages(&exceptions_to_allowing);
     }
@@ -198,14 +198,14 @@ impl Game {
         self.turn.recent_milestones.push(m);
     }
 
-    pub fn set_recent_payment(&mut self, amount: i32, by: Faction, to: Faction, reason: &GameEvent) {
+    pub fn set_recent_payment(&mut self, amount: i32, by: Option<Faction>, to: Option<Faction>, reason: &GameEvent) {
         if amount > 0 {
             self.turn.recently_paid.push(Payment::new_full(amount, by, to, Some(reason.clone())));
         }
     }
 
-    pub fn set_recent_payment_to_bank(&mut self, amount: i32, by: Faction, reason: &GameEvent) {
-        self.set_recent_payment(amount, by, Faction::None, reason);
+    pub fn set_recent_payment_to_bank(&mut self, amount: i32, by: Option<Faction>, reason: &GameEvent) {
+        self.set_recent_payment(amount, by, None, reason);
     }
 
     pub fn clear_recent_payments(&mut self) {
@@ -218,15 +218,15 @@ impl Game {
     }
 
     pub fn has_quite_recent_payment_to(&self, f: Faction) -> bool {
-        self.turn.recently_paid.iter().any(|p| p.to == f) || self.turn.stored_recently_paid.iter().any(|p| p.to == f)
+        self.turn.recently_paid.iter().any(|p| p.to == Some(f)) || self.turn.stored_recently_paid.iter().any(|p| p.to == Some(f))
     }
 
     pub fn quite_recent_payment_to(&self, f: Faction) -> Option<Payment> {
         let res = self
             .turn.recently_paid
             .iter()
-            .find(|p| p.to == f)
-            .or_else(|| self.turn.stored_recently_paid.iter().find(|p| p.to == f));
+            .find(|p| p.to == Some(f))
+            .or_else(|| self.turn.stored_recently_paid.iter().find(|p| p.to == Some(f)));
         res.cloned()
     }
 

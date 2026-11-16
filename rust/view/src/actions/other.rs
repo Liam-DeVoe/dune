@@ -167,17 +167,17 @@ fn plain(rt: &RichText) -> String {
 
 /// The first draft of the form, before the player touches it: its starting inputs (adjusted by
 /// [`normalize`] when the options are built). `None` for event types of other modules.
-pub fn default_draft(game: &Game, s: &Seating, faction: Faction, t: GameEventType) -> Option<GameEvent> {
+pub fn default_draft(game: &Game, s: &Seating, faction: Option<Faction>, t: GameEventType) -> Option<GameEvent> {
     if !handles(t) {
         return None;
     }
-    let p = game.get_player(Some(faction))?;
+    let p = game.get_player(faction)?;
     let pl = game.player(p);
     Some(match t {
         GameEventType::AllyPermission => {
             // OnParametersSet while not edited: the permissions in force.
             let mut e = AllyPermission::new(game, faction);
-            current_permissions(game, faction, &mut e);
+            current_permissions(game, faction.expect("faction"), &mut e);
             event(e)
         }
         GameEventType::AutomationConfigured => {
@@ -281,7 +281,7 @@ fn current_permissions(game: &Game, faction: Faction, e: &mut AllyPermission) {
 /// offered to.
 fn opponents_but_ally(game: &Game, p: PlayerIndex) -> Vec<Faction> {
     let ally = game.player(p).ally;
-    game.players_other_than(p).filter(|f| *f != ally).collect()
+    game.players_other_than(p).filter(|f| Some(*f) != ally).collect()
 }
 
 /// The phases a deal offer may last until.
@@ -318,7 +318,7 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
                 AutomationRuleType::BiddingPassAboveAmount => m.bidding_above_amount = picker(m.bidding_above_amount, 0, 40),
                 AutomationRuleType::BiddingPassWhenHighestBidByFaction => {
                     let fs = AutomationConfigured::get_valid_bidding_factions(game, p);
-                    m.bidding_winning_faction = required(m.bidding_winning_faction, &fs, Faction::None);
+                    m.bidding_winning_faction = required_opt(m.bidding_winning_faction, &fs);
                 }
                 _ => {}
             }
@@ -328,13 +328,13 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
             if !Karma::can_karma(game, p) {
                 m.set_permitted_karma_card(None);
             }
-            if pl.faction == Faction::Emperor {
+            if pl.faction == Some(Faction::Emperor) {
                 m.emperor_will_pay_for_extra_revival = picker(m.emperor_will_pay_for_extra_revival, 0, 3);
             }
         }),
         GameEvent::BeneGesseritPrediction(e) => adjust!(e, |m| {
             let targets: Vec<Faction> = BeneGesseritPrediction::valid_targets(game, p).collect();
-            m.to_win = required(m.to_win, &targets, Faction::None);
+            m.to_win = required_opt(m.to_win, &targets);
             m.turn = picker(m.turn, 1, game.maximum_turns());
         }),
         GameEvent::CardTraded(e) => adjust!(e, |m| {
@@ -355,7 +355,7 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
         }),
         GameEvent::ChoamKarmaPrevention(e) => adjust!(e, |m| {
             let targets: Vec<Faction> = game.players_other_than(p).collect();
-            m.target = required(m.target, &targets, Faction::None);
+            m.target = required_opt(m.target, &targets);
         }),
         GameEvent::DealOffered(e) => adjust!(e, |m| {
             let types = DealOffered::get_standard_deal_types(game, p);
@@ -375,7 +375,7 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
         }),
         GameEvent::DistransUsed(e) => adjust!(e, |m| {
             let targets: Vec<Faction> = DistransUsed::valid_targets(game, p).collect();
-            m.target = required(m.target, &targets, Faction::None);
+            m.target = required_opt(m.target, &targets);
             m.card_id = required(m.card_id, &card_ids(DistransUsed::valid_cards(game, p)), none_card);
         }),
         GameEvent::DivideResources(e) => adjust!(e, |m| {
@@ -387,7 +387,7 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
                 m.from_bank = false;
             }
             let (targets, min, max) = donation_range(game, p, m.from_bank);
-            m.target = required(m.target, &targets, Faction::None);
+            m.target = required_opt(m.target, &targets);
             m.resources = picker(m.resources, min, max);
             if !game.applicable(Rule::CardsCanBeTraded) {
                 m.card_id = none_card;
@@ -405,13 +405,13 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
         }),
         GameEvent::FactionSelected(e) => adjust!(e, |m| {
             let fs: Vec<Faction> = FactionSelected::valid_factions(game).collect();
-            m.faction = required(m.faction, &fs, Faction::None);
+            m.faction = required_opt(m.faction, &fs);
             m.seat = pl.seat;
             m.initiator_player_name = Some(s.player_name(game, p));
         }),
         GameEvent::FactionTradeOffered(e) => adjust!(e, |m| {
             let targets: Vec<Faction> = FactionTradeOffered::valid_targets(game, p).collect();
-            m.target = required(m.target, &targets, Faction::None);
+            m.target = required_opt(m.target, &targets);
         }),
         GameEvent::IxianRemovedCardFromAuction(e) => adjust!(e, |m| {
             let cards = card_ids(game.bidding.cards_on_auction.as_ref().map(|d| d.items.to_vec()).unwrap_or_default());
@@ -441,7 +441,7 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
         }),
         GameEvent::KarmaHandSwapInitiated(e) => adjust!(e, |m| {
             let targets: Vec<Faction> = game.players_other_than(p).collect();
-            m.target = required(m.target, &targets, Faction::None);
+            m.target = required_opt(m.target, &targets);
         }),
         GameEvent::KarmaRicheseBuy(e) => adjust!(e, |m| {
             m.card_id = required(m.card_id, &card_ids(game.decks.richese_cache.iter().copied()), none_card);
@@ -458,7 +458,7 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
         }),
         GameEvent::ResourcesAudited(e) => adjust!(e, |m| {
             let targets: Vec<Faction> = ResourcesAudited::valid_factions(game, p).collect();
-            m.target = required(m.target, &targets, Faction::None);
+            m.target = required_opt(m.target, &targets);
         }),
         GameEvent::ResourcesTransferred(e) => adjust!(e, |m| {
             m.resources = picker(m.resources, 0, ResourcesTransferred::max_amount(game, p));
@@ -517,7 +517,7 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
 /// Who may receive a donation, and its minimum and maximum amount.
 fn donation_range(game: &Game, p: PlayerIndex, from_bank: bool) -> (Vec<Faction>, i32, i32) {
     if from_bank {
-        (game.players.iter().map(|pl| pl.faction).collect(), -99, 99)
+        (game.players.iter().filter_map(|pl| pl.faction).collect(), -99, 99)
     } else {
         (Donated::valid_targets(game, p).collect(), Donated::min_amount(game, p), Donated::max_amount(game, p))
     }
@@ -643,7 +643,7 @@ fn options(game: &Game, p: PlayerIndex, v: &ResolvedViewer, draft: &GameEvent, d
         GameEvent::FactionTradeOffered(_) => {
             let targets: Vec<Faction> = FactionTradeOffered::valid_targets(game, p).collect();
             ActionOptions::FactionTradeOffered(FactionTradeOfferedOptions {
-                in_play: targets.iter().filter(|f| game.players.iter().any(|pl| pl.faction == **f)).map(|f| f.to_string()).collect(),
+                in_play: targets.iter().filter(|f| game.players.iter().any(|pl| pl.faction == Some(**f))).map(|f| f.to_string()).collect(),
                 targets: faction_options(targets),
                 draft: json.clone(),
             })
@@ -667,7 +667,7 @@ fn options(game: &Game, p: PlayerIndex, v: &ResolvedViewer, draft: &GameEvent, d
         }),
         GameEvent::KarmaHandSwap(_) => ActionOptions::KarmaHandSwap(KarmaHandSwapOptions {
             number: game.bidding.karma_hand_swap_number_of_cards,
-            target: game.bidding.karma_hand_swap_target.to_string(),
+            target: name_or_absent(game.bidding.karma_hand_swap_target),
             cards: hand(),
             draft: json.clone(),
         }),
@@ -749,10 +749,10 @@ fn ally_permission(game: &Game, p: PlayerIndex, d: &dyn Describer, draft: serde_
         }
     });
     let mut current = AllyPermission::new(game, pl.faction);
-    current_permissions(game, pl.faction, &mut current);
+    current_permissions(game, pl.faction.expect("faction"), &mut current);
     let _ = d;
     AllyPermissionOptions {
-        ally: ally.to_string(),
+        ally: name_or_absent(ally),
         bot_claims,
         max_resources: pl.resources,
         current_resources: game.get_permitted_use_of_ally_resources(ally),
@@ -862,7 +862,7 @@ fn yes_no_options(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Descri
         GameEventType::AllianceByAmbassador => yes_no(m(express!("Enter an alliance with ", Faction::Ecaz, "?")), true, draft),
         GameEventType::BattleClaimed => {
             let territory = game.battle.battle_about_to_start.as_ref().and_then(|b| b.territory(game));
-            let title = if game.player(p).faction == Faction::Ecaz {
+            let title = if game.player(p).faction == Some(Faction::Ecaz) {
                 express!("Do you wish to fight in ", territory, "? Otherwise, your ally will.")
             } else {
                 express!("Should ", Faction::Ecaz, " fight the battle in ", territory, "?")

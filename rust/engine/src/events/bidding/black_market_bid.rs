@@ -24,9 +24,9 @@ impl Default for BlackMarketBid {
 }
 
 impl BlackMarketBid {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -57,8 +57,8 @@ impl BlackMarketBid {
         });
         game.stone(Milestone::Bid);
         let initiator = self.initiator();
-        game.bidding.bids.shift_remove(&initiator);
-        game.bidding.bids.insert_new(initiator, self.clone().into_event());
+        game.bidding.bids.shift_remove_opt(initiator);
+        game.bidding.bids.insert_new(initiator.required("faction")?, self.clone().into_event());
         let as_event = self.clone().into_event();
         game.check_if_atreides_or_atreides_ally_passed_bid(&as_event);
 
@@ -114,7 +114,7 @@ impl BlackMarketBid {
     pub fn handle_black_market_special_bid(&self, game: &mut Game) -> GameResult {
         let players_with_room = || game.players.iter().filter(|p| p.has_room_for_cards(game)).count() as i32;
         let is_last_bid = (game.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent) && players_with_room() == game.bidding.bids.len() as i32)
-            || (game.bidding.current_auction_type == Some(AuctionType::BlackMarketOnceAround) && self.initiator() == Faction::Richese)
+            || (game.bidding.current_auction_type == Some(AuctionType::BlackMarketOnceAround) && self.initiator() == Some(Faction::Richese))
             || (self.get_player(game, Some(Faction::Richese)).map(|w| game.player(w).has_room_for_cards(game)) == Some(false)
                 && game.bidding.bid_sequence.as_ref().required("bid sequence")?.has_passed_richese(game));
 
@@ -157,14 +157,14 @@ impl BlackMarketBid {
         game.bidding.winning_bid = Some(winning_bid.clone());
         game.bidding.card_sold_on_black_market = Some(card);
         game.bidding.current_bid = None;
-        game.bidding.faction_that_may_replace_bought_card = Faction::None;
+        game.bidding.faction_that_may_replace_bought_card = None;
 
         game.bidding.bids.clear();
         game.bidding.latest_bid_by_atreides_or_atreides_ally_was_passed = false;
 
-        let mut enter_replacing_card_just_won = game.player(winner).nexus != Faction::None;
+        let mut enter_replacing_card_just_won = game.player(winner).nexus != None;
 
-        if game.player(winner).ally == Faction::Ixian && game.alliances.ixian_allows_replacing_cards {
+        if game.player(winner).ally == Some(Faction::Ixian) && game.alliances.ixian_allows_replacing_cards {
             if !game.prevented(FactionAdvantage::IxianAllyDiscardingCard) {
                 game.bidding.faction_that_may_replace_bought_card = game.player(winner).faction;
                 enter_replacing_card_just_won = true;
@@ -254,14 +254,14 @@ impl BlackMarketBid {
                 .players
                 .iter()
                 .enumerate()
-                .map(|(i, p)| SequenceElement { player: Some(g.player_at(i)), has_turn: p.has_room_for_cards(g) && !g.bidding.bids.contains_key(&p.faction) })
+                .map(|(i, p)| SequenceElement { player: Some(g.player_at(i)), has_turn: p.has_room_for_cards(g) && !g.bidding.bids.contains_key_opt(p.faction) })
                 .collect(),
             _ => Vec::new(),
         }
     }
 
     pub fn may_be_played(game: &Game, player: PlayerIndex) -> bool {
-        (game.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent) && !game.bidding.bids.contains_key(&game.player(player).faction) && game.player(player).has_room_for_cards(game))
+        (game.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent) && !game.bidding.bids.contains_key_opt(game.player(player).faction) && game.player(player).has_room_for_cards(game))
             || (game.bidding.current_auction_type != Some(AuctionType::BlackMarketSilent) && game.bidding.bid_sequence.as_ref().map(|s| s.current_player(game)) == Some(Some(player)))
     }
 }
@@ -322,7 +322,7 @@ impl crate::events::bid_trait::BidEvent for BlackMarketBid {
     }
 
     fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self)
+        GameEventMethods::initiator(self).expect("faction")
     }
 
     fn player(&self) -> Option<PlayerIndex> {

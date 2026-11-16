@@ -7,7 +7,7 @@ use treachery_engine::prelude::*;
 fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();
     for (seat, f) in factions.iter().enumerate() {
-        let mut p = Player::new(*f);
+        let mut p = Player::new(Some(*f));
         p.seat = seat as i32;
         g.players.push(p);
     }
@@ -39,11 +39,11 @@ fn settings(n: i32, factions: &[Faction], rules: &[Rule]) -> GameSettings {
 #[test]
 fn next_faction_to_perform_custom_setup_defaults_to_none() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
-    assert_eq!(g.next_faction_to_perform_custom_setup(), Faction::Atreides);
+    assert_eq!(g.next_faction_to_perform_custom_setup(), Some(Faction::Atreides));
     g.turn.has_acted_or_passed.push(Faction::Atreides);
-    assert_eq!(g.next_faction_to_perform_custom_setup(), Faction::Emperor);
+    assert_eq!(g.next_faction_to_perform_custom_setup(), Some(Faction::Emperor));
     g.turn.has_acted_or_passed.push(Faction::Emperor);
-    assert_eq!(g.next_faction_to_perform_custom_setup(), Faction::None);
+    assert_eq!(g.next_faction_to_perform_custom_setup(), None);
 }
 
 /// `TreacheryCardsBeforeTraitors` needs the LeaderSkills rule.
@@ -91,7 +91,7 @@ fn remove_invalid_trade_offers_by_identity() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor, Faction::BeneGesserit]);
     let mk = |g: &Game, from: Faction, to: Faction| {
         let mut e = FactionTradeOffered::new(g, from);
-        e.target = to;
+        e.target = Some(to);
         Rc::new(e)
     };
     let a = mk(&g, Faction::Atreides, Faction::Emperor);
@@ -146,7 +146,7 @@ fn establish_players_copies_factions_list() {
         &[Faction::Atreides, Faction::Emperor, Faction::BeneGesserit, Faction::Fremen],
         &[Rule::PlayersChooseFactions],
     );
-    let mut ev = EstablishPlayers::new(&g, Faction::None);
+    let mut ev = EstablishPlayers::new(&g, None);
     ev.seed = 1234;
     ev.settings = Some(s);
     let ev = Rc::new(ev);
@@ -155,7 +155,7 @@ fn establish_players_copies_factions_list() {
     assert_eq!(g.players.len(), 3);
     assert_eq!(g.turn.current_phase, Phase::SelectingFactions);
     assert_eq!(g.rules.factions_in_play.len(), 4);
-    g.rules.factions_in_play.retain(|f| *f != Faction::Atreides);
+    g.rules.factions_in_play.retain(|f| Some(*f) != Some(Faction::Atreides));
     assert_eq!(ev.settings.as_ref().unwrap().allowed_factions_in_play.as_ref().unwrap().len(), 4);
 }
 
@@ -165,7 +165,7 @@ fn establish_players_null_initial_rules() {
     let mut g = Game::new();
     let mut s = settings(2, &[Faction::Atreides, Faction::Emperor], &[]);
     s.initial_rules = None;
-    let mut ev = EstablishPlayers::new(&g, Faction::None);
+    let mut ev = EstablishPlayers::new(&g, None);
     ev.settings = Some(s);
     let ev = Rc::new(ev);
     let text = exception_text(|| ev.execute(&mut g, false, true));
@@ -178,11 +178,11 @@ fn establish_players_is_deterministic() {
     let run = || {
         let mut g = Game::new();
         let s = settings(4, &[Faction::Atreides, Faction::Emperor, Faction::BeneGesserit, Faction::Fremen, Faction::Harkonnen], &[]);
-        let mut ev = EstablishPlayers::new(&g, Faction::None);
+        let mut ev = EstablishPlayers::new(&g, None);
         ev.seed = 42;
         ev.settings = Some(s);
         Rc::new(ev).execute(&mut g, false, true);
-        let factions: Vec<Faction> = g.players.iter().map(|p| p.faction).collect();
+        let factions: Vec<Option<Faction>> = g.players.iter().map(|p| p.faction).collect();
         let seats: Vec<i32> = g.players.iter().map(|p| p.seat).collect();
         (factions, seats, g.turn.current_phase)
     };
@@ -192,6 +192,6 @@ fn establish_players_is_deterministic() {
     let mut sorted = s1.clone();
     sorted.sort();
     assert_eq!(sorted, vec![0, 1, 2, 3]);
-    assert!(f1.iter().all(|f| *f != Faction::None));
+    assert!(f1.iter().all(|f| *f != None));
     assert_eq!(p1, Phase::TradingFactions);
 }

@@ -89,7 +89,7 @@ impl Domains {
         let locations = game.board.map.locations(false).map(|l| l.id()).collect();
         let strongholds = game.board.map.strongholds().map(|l| l.id()).collect();
         let territories = game.board.map.territories(false).map(|t| t.id()).collect();
-        let factions = game.players.iter().map(|p| p.faction.0).filter(|f| *f != 0).collect();
+        let factions = game.players.iter().map(|p| value_or_absent(p.faction)).filter(|f| *f != 0).collect();
         Domains { own_cards, held_cards, all_cards, own_heroes, all_heroes, own_locations, locations, strongholds, territories, factions }
     }
 }
@@ -228,7 +228,7 @@ const DESTINATION_FIELDS: [&str; 3] = ["_toId", "_locationId", "_targetId"];
 /// faction or its ally.
 pub fn intrusion_locations(game: &Game, i: usize) -> Vec<i32> {
     let Some(me) = game.players.get(i) else { return vec![] };
-    let unrelated = |f: Faction| game.get_player(Some(f)).is_some_and(|p| me.faction != f && me.ally != f && game.player(p).ally != me.faction);
+    let unrelated = |f: Faction| game.get_player(Some(f)).is_some_and(|p| me.faction != Some(f) && me.ally != Some(f) && game.player(p).ally != me.faction);
     let bene_gesserit = game.get_player(Some(Faction::BeneGesserit)).filter(|_| unrelated(Faction::BeneGesserit));
     let ecaz = unrelated(Faction::Ecaz);
     let moritani = unrelated(Faction::Moritani);
@@ -298,7 +298,7 @@ fn element_value(v: &Value) -> Option<(Value, bool)> {
     match v {
         Value::Number(_) => Some((v.clone(), false)),
         Value::String(s) => Some(match crate::session::parse_faction(s) {
-            Some(f) => (Value::from(f.0), true),
+            Some(f) => (Value::from(f as i32), true),
             None => (v.clone(), false),
         }),
         Value::Object(o) => {
@@ -363,7 +363,7 @@ impl Pools {
         }
         let p = shadow.player_at(i);
         let faction = shadow.players[i].faction;
-        let rv = ResolvedViewer { player: Some(p), faction: Some(faction), is_host: false, is_observer: false };
+        let rv = ResolvedViewer { player: Some(p), faction, is_host: false, is_observer: false };
         let options = quiet(|| treachery_view::actions::action_view(shadow, &rv, seating, t, treachery_skin::default_skin()).options.map(|o| serde_json::to_value(o).ok()))
             .flatten()
             .flatten();
@@ -784,7 +784,7 @@ impl Fuzzer {
     /// to another choice its form offers. After a `BattleRevision`, parts the opponent saw with
     /// prescience must stay; other changes are allowed.
     pub fn changed_plan(&mut self, shadow: &Game, player: usize) -> Option<Map<String, Value>> {
-        let faction = shadow.players.get(player)?.faction.0;
+        let faction = value_or_absent(shadow.players.get(player)?.faction);
         let mut plan = self.plans.get(&faction)?.clone();
         let pools = Pools::of(shadow, &self.seating, player, GameEventType::Battle);
         let (field, list): (&str, Vec<Value>) = match self.rng.below(4) {
@@ -833,7 +833,7 @@ impl Fuzzer {
     /// form offers. Returns the event JSON object (without `Time`), preferring one that passes
     /// validation.
     pub fn build(&mut self, shadow: &Game, player: Option<usize>, t: GameEventType) -> Option<Map<String, Value>> {
-        let faction = player.filter(|i| *i < shadow.players.len()).map(|i| shadow.players[i].faction).unwrap_or(Faction::None);
+        let faction = player.filter(|i| *i < shadow.players.len()).map(|i| shadow.players[i].faction).unwrap_or(None);
         let pools = player.map(|i| Pools::of(shadow, &self.seating, i, t)).unwrap_or_default();
         if let Some(b) = self.rng.pick(&pools.buttons).filter(|_| self.rng.chance(0.9)) {
             let mut e = b.clone();
@@ -843,19 +843,19 @@ impl Fuzzer {
         let draft = pools.draft.clone().map(|d| Value::Object(d).to_string()).or_else(|| {
             player.filter(|i| *i < shadow.players.len()).and_then(|i| {
                 let p = shadow.player_at(i);
-                let rv = ResolvedViewer { player: Some(p), faction: Some(faction), is_host: false, is_observer: false };
+                let rv = ResolvedViewer { player: Some(p), faction, is_host: false, is_observer: false };
                 quiet(|| treachery_view::actions::default_draft(shadow, &rv, &self.seating, faction, t).map(|e| json::serialize(&e))).flatten()
             })
         });
         let base = draft.unwrap_or_else(|| {
-            let minimal = format!("{{\"$type\":\"{}\",\"Initiator\":{}}}", t.name(), faction.0);
+            let minimal = format!("{{\"$type\":\"{}\",\"Initiator\":{}}}", t.name(), value_or_absent(faction));
             quiet(|| json::deserialize::<GameEvent>(&minimal).ok().map(|e| json::serialize(&e))).flatten().unwrap_or(minimal)
         });
         let Ok(Value::Object(mut base)) = serde_json::from_str::<Value>(&base) else { return None };
         base.remove("Time");
         // A form with a faction to pick has one picked: another faction in play.
         if base.get("Target").and_then(|v| v.as_i64()) == Some(0) {
-            let others: Vec<i32> = shadow.players.iter().map(|p| p.faction.0).filter(|f| *f != 0 && *f != faction.0).collect();
+            let others: Vec<i32> = shadow.players.iter().map(|p| value_or_absent(p.faction)).filter(|f| *f != 0 && *f != value_or_absent(faction)).collect();
             if let Some(f) = self.rng.pick(&others) {
                 base.insert("Target".into(), Value::from(*f));
             }

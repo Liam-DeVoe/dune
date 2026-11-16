@@ -3,8 +3,8 @@
 use crate::enum_type::{game_enum, GameEnum};
 
 game_enum! {
-    Faction {
-        None = 0,
+    closed Faction {
+        absent None = 0;
         Fremen = 10,
         Atreides = 20,
         Harkonnen = 30,
@@ -18,7 +18,7 @@ game_enum! {
         Ecaz = 110,
         Moritani = 120,
     }
-    get_values [None, Fremen, Atreides, Harkonnen, Emperor, Guild, BeneGesserit, Ixian, Tleilaxu, Choam, Richese, Ecaz, Moritani]
+    get_values [Fremen, Atreides, Harkonnen, Emperor, Guild, BeneGesserit, Ixian, Tleilaxu, Choam, Richese, Ecaz, Moritani]
 }
 
 game_enum! {
@@ -893,7 +893,7 @@ impl std::fmt::Debug for ShipmentPermission {
 impl crate::json::JsonNullable for ShipmentPermission {}
 
 game_enum! {
-    UserStatus {
+    closed UserStatus {
         None = 0,
         Online = 10,
         Away = 20,
@@ -905,7 +905,7 @@ game_enum! {
 }
 
 game_enum! {
-    SubscriptionType {
+    closed SubscriptionType {
         None = 0,
         DontParticipate = 10,
         MaybeAsPlayer = 20,
@@ -917,7 +917,7 @@ game_enum! {
 }
 
 game_enum! {
-    GameListScope {
+    closed GameListScope {
         None = 1,
         Active = 2,
         All = 3,
@@ -997,7 +997,7 @@ game_enum! {
 }
 
 game_enum! {
-    ErrorType {
+    closed ErrorType {
         None = 0,
         UserNotFound = 1,
         GameNotFound = 2,
@@ -1041,30 +1041,24 @@ pub fn get_values<T: GameEnum>() -> impl Iterator<Item = T> {
     T::ALL.iter().copied()
 }
 
-pub fn get_values_except_default<T: GameEnum>(default_value: T) -> impl Iterator<Item = T> {
-    get_values::<T>().filter(move |v| *v != default_value)
-}
-
 // EnumerationExtensions
 
 impl Faction {
-    /// `faction.ToNexus()`: `None` for `Faction::None`; panics for undefined values.
-    pub fn to_nexus(self) -> Option<Nexus> {
+    /// `faction.ToNexus()`.
+    pub fn to_nexus(self) -> Nexus {
         match self {
-            Faction::None => None,
-            Faction::Fremen => Some(Nexus::Fremen),
-            Faction::Atreides => Some(Nexus::Atreides),
-            Faction::Harkonnen => Some(Nexus::Harkonnen),
-            Faction::Emperor => Some(Nexus::Emperor),
-            Faction::Guild => Some(Nexus::Guild),
-            Faction::BeneGesserit => Some(Nexus::BeneGesserit),
-            Faction::Ixian => Some(Nexus::Ixian),
-            Faction::Tleilaxu => Some(Nexus::Tleilaxu),
-            Faction::Choam => Some(Nexus::Choam),
-            Faction::Richese => Some(Nexus::Richese),
-            Faction::Ecaz => Some(Nexus::Ecaz),
-            Faction::Moritani => Some(Nexus::Moritani),
-            _ => panic!("faction out of range: {self}"),
+            Faction::Fremen => Nexus::Fremen,
+            Faction::Atreides => Nexus::Atreides,
+            Faction::Harkonnen => Nexus::Harkonnen,
+            Faction::Emperor => Nexus::Emperor,
+            Faction::Guild => Nexus::Guild,
+            Faction::BeneGesserit => Nexus::BeneGesserit,
+            Faction::Ixian => Nexus::Ixian,
+            Faction::Tleilaxu => Nexus::Tleilaxu,
+            Faction::Choam => Nexus::Choam,
+            Faction::Richese => Nexus::Richese,
+            Faction::Ecaz => Nexus::Ecaz,
+            Faction::Moritani => Nexus::Moritani,
         }
     }
 }

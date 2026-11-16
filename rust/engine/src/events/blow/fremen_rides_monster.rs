@@ -34,9 +34,9 @@ impl Default for FremenRidesMonster {
 }
 
 impl FremenRidesMonster {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -157,7 +157,7 @@ impl FremenRidesMonster {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
-        let may_move_into_storm = g.player(p).faction == Faction::Fremen
+        let may_move_into_storm = g.player(p).faction == Some(Faction::Fremen)
             && g.applicable(Rule::FremenMayMoveIntoStorm)
             && g.applicable(Rule::FremenStormLosses);
 
@@ -202,7 +202,7 @@ impl FremenRidesMonster {
                 game.play_nexus_card(me, elems!["ride from any territory on the planet"]);
             }
 
-            let initiator = self.get_player(game, Some(self.initiator()));
+            let initiator = self.get_player(game, self.initiator());
             game.ship_move.last_shipment_or_movement = Some(self.clone().into_event());
             for (from, value) in self.force_locations(game).iter() {
                 let from = *from;
@@ -221,9 +221,9 @@ impl FremenRidesMonster {
                     " to ",
                     self.to(game)
                 )
-                .with_route(self.initiator(), [from], self.to(game))
+                .with_route(self.initiator().required("faction")?, [from], self.to(game))
                 .with_log(NexusLog::new(
-                    Some(NexusRide::new(self.initiator(), value.amount_of_forces, value.amount_of_special_forces, Some(from), self.to(game).required("to")?)),
+                    Some(NexusRide::new(self.initiator().required("faction")?, value.amount_of_forces, value.amount_of_special_forces, Some(from), self.to(game).required("to")?)),
                     None,
                 ));
                 self.log_objects(game, elems![msg]);
@@ -249,9 +249,9 @@ impl FremenRidesMonster {
                     " from their reserves to ",
                     self.to(game)
                 )
-                .with_route(self.initiator(), [], self.to(game))
+                .with_route(self.initiator().required("faction")?, [], self.to(game))
                 .with_log(NexusLog::new(
-                    Some(NexusRide::new(self.initiator(), self.forces_from_reserves, self.special_forces_from_reserves, None, self.to(game).required("to")?)),
+                    Some(NexusRide::new(self.initiator().required("faction")?, self.forces_from_reserves, self.special_forces_from_reserves, None, self.to(game).required("to")?)),
                     None,
                 ));
                 self.log_objects(game, elems![msg]);
@@ -276,7 +276,7 @@ impl FremenRidesMonster {
         let from = self.force_locations(game).keys().next().map(|l| l.territory());
         if let Some(from) = from {
             return express!(self.initiator(), " ride from ", from, " to ", self.to(game))
-                .with_route(self.initiator(), self.force_locations(game).keys().copied(), self.to(game));
+                .with_route(self.initiator().expect("faction"), self.force_locations(game).keys().copied(), self.to(game));
         }
         express!(self.initiator(), " ride from reserves to ", self.to(game))
     }
@@ -342,7 +342,7 @@ impl PlacementEventMethods for FremenRidesMonster {
 
 impl crate::events::location_event::LocationEvent for FremenRidesMonster {
     fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self)
+        GameEventMethods::initiator(self).expect("faction")
     }
 
     fn to(&self, game: &Game) -> Option<Location> {
@@ -365,7 +365,7 @@ impl crate::events::location_event::LocationEvent for FremenRidesMonster {
 
 impl crate::events::placement::Placement for FremenRidesMonster {
     fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self)
+        GameEventMethods::initiator(self).expect("faction")
     }
 
     fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {

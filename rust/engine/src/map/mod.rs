@@ -95,7 +95,7 @@ pub trait MapGame {
     /// `Faction` of each of its battalions, in dictionary enumeration order.
     fn forces_battalion_factions(&self) -> Vec<(Location, Vec<Faction>)>;
     fn player_ally(&self, f: Faction) -> Option<Faction>;
-    fn nr_of_occupants_excluding_faction(&self, l: Location, f: Faction) -> i32;
+    fn nr_of_occupants_excluding_faction(&self, l: Location, f: Option<Faction>) -> i32;
     fn current_blocked_territories(&self) -> Vec<Territory>;
 }
 
@@ -268,10 +268,11 @@ impl Map {
         start: Location,
         distance: i32,
         ignore_storm: bool,
-        f: Faction,
+        f: impl Into<Option<Faction>>,
         game: &impl MapGame,
         check_force_obstacles: bool,
     ) -> Vec<Location> {
+        let f: Option<Faction> = f.into();
         let mut force_obstacles = Vec::new();
         if check_force_obstacles {
             force_obstacles = Self::determine_force_obstacles(f, game);
@@ -295,11 +296,11 @@ impl Map {
         neighbours
     }
 
-    fn belongs_to(game: &impl MapGame, battalion_faction: Faction, f: Faction) -> bool {
-        battalion_faction == f || (game.player_ally(f) == Some(Faction::Ecaz) && battalion_faction == Faction::Ecaz)
+    fn belongs_to(game: &impl MapGame, battalion_faction: Faction, f: Option<Faction>) -> bool {
+        Some(battalion_faction) == f || (f.is_some_and(|f| game.player_ally(f) == Some(Faction::Ecaz)) && battalion_faction == Faction::Ecaz)
     }
 
-    fn determine_force_obstacles(f: Faction, game: &impl MapGame) -> Vec<Location> {
+    fn determine_force_obstacles(f: Option<Faction>, game: &impl MapGame) -> Vec<Location> {
         // Forces().Where(...).Select(kvp => kvp.Key).Distinct()
         //   .Union(CurrentBlockedTerritories.SelectMany(t => t.Locations)).ToList()
         let first = game
@@ -367,7 +368,7 @@ impl Map {
     ) -> Vec<Vec<Location>> {
         let mut paths = Vec::new();
         let mut route = Vec::new();
-        let obstacles = Self::determine_force_obstacles(f, game);
+        let obstacles = Self::determine_force_obstacles(Some(f), game);
         self.find_paths_rec(
             &mut paths,
             &mut route,
@@ -440,7 +441,7 @@ impl Map {
         game: &impl MapGame,
     ) -> Option<Vec<Location>> {
         let mut route = Vec::new();
-        let obstacles = Self::determine_force_obstacles(f, game);
+        let obstacles = Self::determine_force_obstacles(Some(f), game);
         for i in 0..=4 {
             let path = self.find_path(
                 &mut route,

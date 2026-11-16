@@ -4,7 +4,8 @@ use crate::prelude::*;
 pub struct History {
     pub entries: Vec<GameEvent>,
     pub moments: Vec<Moment>,
-    pub timers: IndexMap<Faction, Timer<MainPhase>>,
+    /// Keyed by the initiator, `None` for the host.
+    pub timers: IndexMap<Option<Faction>, Timer<MainPhase>>,
     pub recently_undone_event_count: i32,
     pub recently_undone_events: Vec<GameEvent>,
     /// The game as it was before the last `undo`, which `restore_recently_undone` returns to.
@@ -99,7 +100,7 @@ impl Game {
             }
 
             let initiator = e.initiator();
-            if self.history.timers.get(&initiator).is_none() {
+            if !self.history.timers.contains_key(&initiator) {
                 let timer = Timer::<MainPhase>::new();
                 self.history.timers.insert_new(initiator, timer);
             }
@@ -118,7 +119,7 @@ impl Game {
         }
     }
 
-    pub fn time_spent(&self, faction: Faction, phase: MainPhase) -> TimeSpan {
+    pub fn time_spent(&self, faction: Option<Faction>, phase: MainPhase) -> TimeSpan {
         if let Some(timer) = self.history.timers.get(&faction) {
             return timer.time_spent(phase);
         }

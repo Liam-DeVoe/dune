@@ -246,11 +246,10 @@ pub fn static_data() -> StaticData {
     let factions = Faction::INFO
         .declared
         .iter()
-        .map(|(_, v)| Faction(*v))
-        .filter(|f| *f != Faction::None)
+        .filter_map(|(_, v)| <Faction as treachery_engine::enum_type::GameEnum>::from_value(*v))
         .map(|f| {
-            let p = Player::new(f);
-            FactionInfo { faction: name(f), force: name_or_absent(p.force()), special_force: name_or_absent(p.special_force()) }
+            let p = Player::new(Some(f));
+            FactionInfo { faction: f.to_string(), force: name_or_absent(p.force()), special_force: name_or_absent(p.special_force()) }
         })
         .collect();
 

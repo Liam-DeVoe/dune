@@ -22,9 +22,9 @@ macro_rules! elems {
 }
 
 impl AllianceByAmbassador {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -38,14 +38,14 @@ impl AllianceByAmbassador {
 
         if !self.passed {
             let activated = game.ship_move.current_ambassador_activated.clone().required("current ambassador activated")?;
-            game.make_alliance(self.initiator(), activated.initiator());
+            game.make_alliance(self.initiator().required("initiator")?, activated.initiator().required("ambassador owner")?);
 
             if activated.ecaz_give_vidal_to_ally {
                 game.take_vidal(self.player(), VidalMoment::EndOfTurn);
             }
 
-            if game.turn.has_acted_or_passed.contains(&self.initiator())
-                && game.turn.has_acted_or_passed.contains(&activated.initiator())
+            if game.turn.has_acted_or_passed.contains_opt(self.initiator())
+                && game.turn.has_acted_or_passed.contains_opt(activated.initiator())
             {
                 game.check_if_forces_should_be_destroyed_by_ally_presence(self.player());
             }

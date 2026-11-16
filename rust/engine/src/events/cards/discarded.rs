@@ -17,9 +17,9 @@ impl Default for Discarded {
 }
 
 impl Discarded {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -44,11 +44,11 @@ impl Discarded {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let initiator = self.initiator();
-        if let Some(i) = game.turn.factions_that_must_discard.iter().position(|f| *f == initiator) {
+        if let Some(i) = game.turn.factions_that_must_discard.iter().position(|f| Some(*f) == initiator) {
             game.turn.factions_that_must_discard.remove(i);
         }
         let m = self.get_message(game);
-        let mut fact = BattleFact::new(BattleFactKind::Discard, initiator);
+        let mut fact = BattleFact::new(BattleFactKind::Discard, initiator.required("faction")?);
         fact.card = self.card();
         let m = m.with_fact(fact).with_log(AsideLog::aside());
         self.log_objects(game, vec![m.into()]);

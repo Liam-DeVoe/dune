@@ -18,7 +18,7 @@ use treachery_view::describe::default_describer;
 use treachery_view::schema::*;
 
 fn resolved(game: &Game, p: Option<PlayerIndex>) -> ResolvedViewer {
-    ResolvedViewer { player: p, faction: p.map(|p| game.player(p).faction), is_host: false, is_observer: p.is_none() }
+    ResolvedViewer { player: p, faction: p.map(|p| game.player(p).faction).flatten(), is_host: false, is_observer: p.is_none() }
 }
 
 fn silent(game: &Game) -> bool {
@@ -31,7 +31,7 @@ fn expected_defaults(game: &Game, p: PlayerIndex, max_amount: i32, max_ally: i32
     let pl = game.player(p);
     let (mut amount, mut ally) = (0, 0);
     if !silent(game) {
-        let ally_resources = if pl.ally == Faction::None { 0 } else { game.get_permitted_use_of_ally_resources(pl.faction) };
+        let ally_resources = if pl.ally == None { 0 } else { game.get_permitted_use_of_ally_resources(pl.faction.expect("faction")) };
         let bid_to_do = match &game.bidding.current_bid {
             Some(b) => b.bid_total_amount() + 1,
             None => 1,
@@ -41,7 +41,7 @@ fn expected_defaults(game: &Game, p: PlayerIndex, max_amount: i32, max_ally: i32
     }
     let clamp = |v: i32, max: i32| if v < 0 { 0 } else if v > max { max } else { v };
     amount = clamp(amount, max_amount);
-    ally = if pl.ally != Faction::None && max_ally > 0 { clamp(ally, max_ally) } else { 0 };
+    ally = if pl.ally != None && max_ally > 0 { clamp(ally, max_ally) } else { 0 };
     (amount, ally)
 }
 
@@ -74,7 +74,7 @@ fn check_state(game: &mut Game, d: &dyn treachery_view::describe::Describer, see
             }
             let view = actions::action_view(game, &v, &Default::default(), t, d);
             let options = view.options.unwrap_or_else(|| panic!("{at}: no options for {t:?}"));
-            let emperor = game.spice_for_bids_emperor_can_pay(faction);
+            let emperor = game.spice_for_bids_emperor_can_pay(faction.expect("faction"));
             let (expected, default_event) = if t == GameEventType::Bid {
                 let max_amount = Bid::valid_max_amount(game, p, false);
                 let max_ally = Bid::valid_max_ally_amount(game, Some(p));
@@ -110,8 +110,8 @@ fn check_state(game: &mut Game, d: &dyn treachery_view::describe::Describer, see
                     GameEvent::from(std::rc::Rc::new(e)),
                 )
             };
-            assert_eq!(options, expected, "{at}: {faction} {t:?}");
-            assert_eq!(view.validation, treachery_view::build::validate(game, default_event.clone(), d), "{at}: {faction} {t:?} validation");
+            assert_eq!(options, expected, "{at}: {faction:?} {t:?}");
+            assert_eq!(view.validation, treachery_view::build::validate(game, default_event.clone(), d), "{at}: {faction:?} {t:?} validation");
             // Outside silent auctions the starting bid is the lowest that beats the current one,
             // so it is valid whenever the player and ally can pay for it.
             if !silent(game) {
@@ -122,7 +122,7 @@ fn check_state(game: &mut Game, d: &dyn treachery_view::describe::Describer, see
                     _ => unreachable!(),
                 };
                 if amount + ally == to_beat + 1 {
-                    assert_eq!(view.validation, None, "{at}: {faction} {t:?}: the starting bid {amount}+{ally} is refused");
+                    assert_eq!(view.validation, None, "{at}: {faction:?} {t:?}: the starting bid {amount}+{ally} is refused");
                 }
                 if ally > 0 {
                     seen.ally_pays += 1;
@@ -221,10 +221,10 @@ fn bid_fixture_view() {
     let mut r = load("bid");
     let mut bidders = 0;
     for f in r.game.players.iter().map(|p| p.faction).collect::<Vec<_>>() {
-        let view = r.view(viewer_of(&r, f));
+        let view = r.view(viewer_of(&r, f.expect("faction")));
         let panel = view.bidding.as_ref().and_then(|b| b.panel.clone()).expect("bidding panel");
-        let p = r.game.get_player(Some(f)).unwrap();
-        assert_eq!(panel.card.is_some(), r.game.has_bidding_prescience(p), "{f}");
+        let p = r.game.get_player(f).unwrap();
+        assert_eq!(panel.card.is_some(), r.game.has_bidding_prescience(p), "{f:?}");
         if let Some(a) = view.actions.iter().find(|a| a.event_type == "Bid") {
             bidders += 1;
             assert!(matches!(a.options, Some(ActionOptions::Bid { .. })));
@@ -254,7 +254,7 @@ fn karma_card_lifts_the_limit_in_a_draft_query() {
     });
     let p = r.game.bidding.bid_sequence.as_ref().unwrap().current_player(&r.game).unwrap();
     let f = r.game.player(p).faction;
-    let viewer = viewer_of(&r, f);
+    let viewer = viewer_of(&r, f.expect("faction"));
     let view = r.view(viewer);
     let a = view.actions.iter().find(|a| a.event_type == "Bid").expect("Bid applicable");
     let Some(ActionOptions::Bid { max_amount, karma_cards, .. }) = &a.options else { panic!() };

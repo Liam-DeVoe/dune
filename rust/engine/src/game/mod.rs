@@ -171,7 +171,7 @@ impl Game {
         // e is AllyPermission or PlayerReplaced or NexusPlayed { IsBetrayal: true, Faction: Faction.Richese }
         let skip = match e {
             GameEvent::AllyPermission(_) | GameEvent::PlayerReplaced(_) => true,
-            GameEvent::NexusPlayed(np) => np.is_betrayal(self) && np.faction == Faction::Richese,
+            GameEvent::NexusPlayed(np) => np.is_betrayal(self) && np.faction == Some(Faction::Richese),
             _ => false,
         };
         if skip {
@@ -357,7 +357,7 @@ impl Game {
             for t in self.board.map.territories(true) {
                 let matches = self.player(bg).special_forces_in_territory(Some(t)) > 0
                     && (t == self.board.map.polar_sink().territory()
-                        || !self.players.iter().any(|p| p.faction != Faction::BeneGesserit && p.any_forces_in_territory(Some(t)) > 0));
+                        || !self.players.iter().any(|p| p.faction != Some(Faction::BeneGesserit) && p.any_forces_in_territory(Some(t)) > 0));
                 if !matches {
                     continue;
                 }
@@ -378,7 +378,7 @@ impl Game {
     }
 
     pub fn let_factions_discard_surplus_cards(&mut self) {
-        let factions: Vec<Faction> = self.players.iter().filter(|p| p.hand_size_exceeded(self)).map(|p| p.faction).collect();
+        let factions: Vec<Faction> = self.players.iter().filter(|p| p.hand_size_exceeded(self)).filter_map(|p| p.faction).collect();
         self.turn.factions_that_must_discard.extend(factions);
         if self.turn.factions_that_must_discard.len() > 0 {
             self.turn.phase_before_discarding = Some(self.turn.current_phase);
@@ -392,7 +392,7 @@ impl Game {
     pub fn play_karma(&mut self, player: PlayerIndex, card: Option<TreacheryCard>, effect: Vec<ExpressionElement>) {
         self.discard_card_of(Some(player), card, false);
         let faction = self.player(player).faction;
-        let m = Game::karma_played(faction, card, effect);
+        let m = Game::karma_played(faction.expect("faction"), card, effect);
         self.log(vec![m.into()]);
     }
 
@@ -453,20 +453,20 @@ impl Game {
     pub fn is_occupied_by_faction_or_their_ally(&self, world: World, f: Faction) -> bool {
         let occupier = self.occupier_of(world);
         match occupier {
-            Some(o) => self.player(o).is(f) || self.player(o).ally == f,
+            Some(o) => self.player(o).is(f) || self.player(o).ally == Some(f),
             None => false,
         }
     }
 
     pub fn contains_conflicting_ally(&self, initiator: PlayerIndex, to: Location) -> bool {
         let ini = self.player(initiator);
-        if !ini.has_ally() || self.board.map.polar_sink() == to || ini.faction == Faction::Ecaz || ini.ally == Faction::Ecaz {
+        if !ini.has_ally() || self.board.map.polar_sink() == to || ini.faction == Some(Faction::Ecaz) || ini.ally == Some(Faction::Ecaz) {
             return false;
         }
 
         let ally = ini.allied_player(self);
 
-        if ini.ally == Faction::BeneGesserit && self.applicable(Rule::AdvisorsDontConflictWithAlly) {
+        if ini.ally == Some(Faction::BeneGesserit) && self.applicable(Rule::AdvisorsDontConflictWithAlly) {
             return self.player(ally.expect("ally")).forces_in_territory(Some(to.territory())) > 0;
         }
 
@@ -486,12 +486,14 @@ impl Game {
         self.players.iter().position(|p| p.treachery_cards.iter().any(|c| c.type_() == card_type)).map(|i| self.player_at(i))
     }
 
-    pub fn nr_of_occupants_excluding_faction(&self, l: Location, to_exclude: Faction) -> i32 {
+    pub fn nr_of_occupants_excluding_faction(&self, l: Location, to_exclude: impl Into<Option<Faction>>) -> i32 {
+        let to_exclude: Option<Faction> = to_exclude.into();
         let factions: Vec<Faction> = self.battalions_in(l).iter().filter(|b| b.can_occupy()).map(|b| b.faction).collect();
         self.count_different_factions(&factions, to_exclude)
     }
 
-    pub fn nr_of_occupants_of_territory_excluding(&self, t: Territory, to_exclude: Faction) -> i32 {
+    pub fn nr_of_occupants_of_territory_excluding(&self, t: Territory, to_exclude: impl Into<Option<Faction>>) -> i32 {
+        let to_exclude: Option<Faction> = to_exclude.into();
         let factions: Vec<Faction> = t
             .locations()
             .iter()
@@ -500,19 +502,19 @@ impl Game {
         self.count_different_factions(&factions, to_exclude)
     }
 
-    pub fn count_different_factions(&self, factions: &[Faction], to_exclude: Faction) -> i32 {
+    pub fn count_different_factions(&self, factions: &[Faction], to_exclude: Option<Faction>) -> i32 {
         let mut result = 0;
         let ecaz_ally = self.get_ally(Some(Faction::Ecaz));
         let mut ecaz_or_ecaz_ally_counted = false;
 
         for faction in factions.iter().copied().distinct() {
             if faction == Faction::Ecaz || Some(faction) == ecaz_ally {
-                if !ecaz_or_ecaz_ally_counted && to_exclude != Faction::Ecaz && Some(to_exclude) != ecaz_ally {
+                if !ecaz_or_ecaz_ally_counted && to_exclude != Some(Faction::Ecaz) && to_exclude != ecaz_ally {
                     result += 1;
                 }
 
                 ecaz_or_ecaz_ally_counted = true;
-            } else if faction != to_exclude {
+            } else if Some(faction) != to_exclude {
                 result += 1;
             }
         }
@@ -522,7 +524,7 @@ impl Game {
 
     pub fn has_ornithopters(&self, p: PlayerIndex) -> bool {
         (if self.applicable(Rule::MovementBonusRequiresOccupationBeforeMovement) {
-            self.ship_move.factions_with_ornithopters_at_start_of_movement.contains(&self.player(p).faction)
+            self.ship_move.factions_with_ornithopters_at_start_of_movement.contains_opt(self.player(p).faction)
         } else {
             self.occupies_arrakeen_or_carthag(p)
         }) || (self.ship_move.current_flight_used.as_ref().map_or(false, |f| f.move_three_territories)
@@ -532,7 +534,7 @@ impl Game {
 
     pub fn determine_maximum_move_distance(&self, p: PlayerIndex, moved: &[Battalion]) -> i32 {
         let player = self.player(p);
-        let choam_extra_move_bonus = if player.faction == Faction::Choam && self.ship_move.choam_has_extra_move { 1 } else { 0 };
+        let choam_extra_move_bonus = if player.faction == Some(Faction::Choam) && self.ship_move.choam_has_extra_move { 1 } else { 0 };
 
         let planetology_bonus = if self.turn.current_planetology.as_ref().map_or(false, |pl| pl.add_one_to_movement)
             && self.turn.current_planetology.as_ref().expect("current planetology").initiator() == player.faction
@@ -580,7 +582,7 @@ impl Game {
                 && self.player(player.allied_player(self).expect("allied player")).occupying_forces_in(Some(l.territory())) > 0)
             //Looks at occupying forces
             || (player.has_ally()
-                && player.ally == Faction::Ecaz
+                && player.ally == Some(Faction::Ecaz)
                 && self.player(player.allied_player(self).expect("allied player")).occupying_forces_in(Some(l.territory())) > 0)
             || self.nr_of_occupants_excluding_faction(l, player.faction) < 2
     }
@@ -600,8 +602,8 @@ impl Game {
         let player = self.player(p);
         self.applicable(Rule::FremenDeterminesStorm)
             && !self.prevented(FactionAdvantage::FremenStormPrescience)
-            && (player.faction == Faction::Fremen
-                || (player.ally == Faction::Fremen && self.alliances.fremen_shares_prescience)
+            && (player.faction == Some(Faction::Fremen)
+                || (player.ally == Some(Faction::Fremen) && self.alliances.fremen_shares_prescience)
                 || self.has_deal(player.faction, DealType::ShareStormPrescience))
     }
 
@@ -625,8 +627,8 @@ impl Game {
         let player = self.player(p);
         !self.prevented(FactionAdvantage::AtreidesSpiceBlowPrescience)
             && !self.has_low_threshold(Faction::Atreides)
-            && (player.faction == Faction::Atreides
-                || (player.ally == Faction::Atreides && self.alliances.atreides_shares_prescience)
+            && (player.faction == Some(Faction::Atreides)
+                || (player.ally == Some(Faction::Atreides) && self.alliances.atreides_shares_prescience)
                 || self.has_deal(player.faction, DealType::ShareResourceDeckPrescience))
     }
 
@@ -639,8 +641,8 @@ impl Game {
             || self.occupies(player.faction, World::Atreides)
             || self.occupies(player.ally, World::Atreides)
             || (!self.prevented(FactionAdvantage::AtreidesBiddingPrescience)
-                && (player.faction == Faction::Atreides
-                    || (player.ally == Faction::Atreides && self.alliances.atreides_shares_prescience)
+                && (player.faction == Some(Faction::Atreides)
+                    || (player.ally == Some(Faction::Atreides) && self.alliances.atreides_shares_prescience)
                     || self.has_deal(player.faction, DealType::ShareBiddingPrescience)))
     }
 
@@ -654,7 +656,7 @@ impl Game {
             LeaderManager::leaders()
                 .iter()
                 .filter(|l| {
-                    factions_in_play.clone().any(|f| f == l.faction())
+                    factions_in_play.clone().any(|f| f == Some(l.faction()))
                         && l.hero_type() != HeroType::Vidal
                         && (l.hero_type() != HeroType::Auditor || self.applicable(Rule::ChoamAuditor))
                 })
@@ -716,10 +718,10 @@ impl crate::map::MapGame for Game {
     }
 
     fn player_ally(&self, f: Faction) -> Option<Faction> {
-        self.get_player(Some(f)).map(|p| self.player(p).ally)
+        self.get_player(Some(f)).map(|p| self.player(p).ally).flatten()
     }
 
-    fn nr_of_occupants_excluding_faction(&self, l: Location, f: Faction) -> i32 {
+    fn nr_of_occupants_excluding_faction(&self, l: Location, f: Option<Faction>) -> i32 {
         Game::nr_of_occupants_excluding_faction(self, l, f)
     }
 

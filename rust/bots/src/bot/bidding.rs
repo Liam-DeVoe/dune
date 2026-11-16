@@ -34,7 +34,7 @@ impl ClassicBot {
         let player = game.player(me);
         let could_use_karma_for_bid = game.bidding.current_auction_type == Some(AuctionType::Normal)
             && !game.karma_prevented(self.faction(game))
-            && self.ally(game) != Faction::Emperor
+            && self.ally(game) != Some(Faction::Emperor)
             && (player.special_karma_power_used
                 || !self.param.karma_save_card_to_use_special_karma_ability
                 || game.turn.current_turn >= 5
@@ -53,7 +53,7 @@ impl ClassicBot {
         let amount_to_bid_in_silent_or_once_around = self.d(1, resources_available.min(8));
 
         let auction = game.bidding.current_auction_type;
-        if (self.faction(game) == Faction::Richese || self.ally(game) == Faction::Richese)
+        if (self.faction(game) == Faction::Richese || self.ally(game) == Some(Faction::Richese))
             && (auction == Some(AuctionType::BlackMarketSilent) || auction == Some(AuctionType::BlackMarketNormal) || auction == Some(AuctionType::BlackMarketOnceAround))
         {
             if auction == Some(AuctionType::BlackMarketSilent) {
@@ -98,7 +98,7 @@ impl ClassicBot {
             return self.create_bid_using_ally_and_emperor_spice(game, 1, None);
         }
 
-        if self.ally(game) != Faction::Emperor && current_bid > self.param.bidding_passing_threshold + maximum_i_will_spend {
+        if self.ally(game) != Some(Faction::Emperor) && current_bid > self.param.bidding_passing_threshold + maximum_i_will_spend {
             return self.passed_bid(game);
         }
 

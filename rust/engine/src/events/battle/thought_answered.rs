@@ -21,9 +21,9 @@ macro_rules! elems {
 }
 
 impl ThoughtAnswered {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -70,11 +70,11 @@ impl ThoughtAnswered {
             }
             Some(card) => {
                 let thought_initiator = game.battle.current_thought.as_ref().required("current thought")?.initiator();
-                game.log_to(thought_initiator, elems!["In response, ", self.initiator(), " show you: ", card]);
+                game.log_to(thought_initiator.required("faction")?, elems!["In response, ", self.initiator(), " show you: ", card]);
                 let thought_initiator = game.battle.current_thought.as_ref().required("current thought")?.initiator();
                 game.log(elems!["In response, ", self.initiator(), " show ", thought_initiator, " a card"]);
                 let thought_initiator = game.battle.current_thought.as_ref().required("current thought")?.initiator();
-                game.register_known_by_faction(thought_initiator, card);
+                game.register_known_by_faction(thought_initiator.required("faction")?, card);
             }
         }
 

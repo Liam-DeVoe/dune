@@ -1,6 +1,7 @@
 //! The lobby: who is around, the running and scheduled games, and chat.
 
 use treachery_engine::enumerations::{Faction, Phase, Ruleset};
+use treachery_engine::enum_type::name_or_absent;
 use treachery_engine::game::Game;
 
 use super::{refuse, Answer, CallError, Presence, RunningGame, Server, MAX_SCHEDULED_GAMES_PER_USER};
@@ -76,7 +77,7 @@ impl Server {
                 max_turns: g.max_turns,
                 ruleset: g.ruleset.map(|r| Ruleset::INFO.format(r)),
                 async_play: g.async_play,
-                allowed_factions: g.factions.iter().map(|f| enum_name(Faction(*f))).collect(),
+                allowed_factions: g.factions.iter().map(|f| name_or_absent(treachery_engine::enum_type::from_value_or_absent::<Faction>(*f).ok().flatten())).collect(),
                 subscribers: g
                     .subscriptions
                     .iter()
@@ -104,8 +105,8 @@ impl Server {
                     let rules = settings.initial_rules.as_ref().expect("initial rules");
                     (allowed.clone(), Game::determine_approximate_ruleset(&allowed, rules, Game::EXPANSION_LEVEL))
                 } else {
-                    let all: Vec<Faction> = game.players.iter().map(|p| p.faction).collect();
-                    (all.iter().copied().filter(|f| *f != Faction::None).collect(), Game::determine_approximate_ruleset(&all, &game.rules.active, Game::EXPANSION_LEVEL))
+                    let all: Vec<Faction> = game.players.iter().filter_map(|p| p.faction).collect();
+                    (all.clone(), Game::determine_approximate_ruleset(&all, &game.rules.active, Game::EXPANSION_LEVEL))
                 };
                 (factions, Some(ruleset), settings.number_of_players, settings.maximum_turns)
             }
@@ -134,7 +135,7 @@ impl Server {
                 .players
                 .iter()
                 .filter(|p| participation.seat_is_available(p.seat))
-                .map(|p| AvailableSeat { seat: p.seat, faction: enum_name(p.faction), is_bot: p.is_bot(game) })
+                .map(|p| AvailableSeat { seat: p.seat, faction: name_or_absent(p.faction), is_bot: p.is_bot(game) })
                 .collect(),
         }
     }
@@ -159,7 +160,7 @@ impl Server {
             Some(name) => Some(Ruleset::INFO.declared.iter().find(|(n, _)| *n == name).map(|(_, v)| *v).ok_or_else(|| unknown(name))?),
             None => None,
         };
-        let factions = factions.iter().map(|name| enum_value::<Faction>(name).map(|f| f.0).ok_or_else(|| unknown(name))).collect::<Result<Vec<i32>, _>>()?;
+        let factions = factions.iter().map(|name| enum_value::<Faction>(name).map(|f| f as i32).ok_or_else(|| unknown(name))).collect::<Result<Vec<i32>, _>>()?;
         let game = ScheduledGameRow {
             id: ids::new_id(),
             creator_id: user,

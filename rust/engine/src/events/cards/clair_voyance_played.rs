@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct ClairVoyancePlayed {
     pub question: Option<ClairvoyanceQuestion>,
-    pub target: Faction,
+    pub target: Option<Faction>,
     pub question_parameter1: Option<String>,
     pub question_parameter2: Option<String>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
@@ -23,9 +23,9 @@ impl Default for ClairVoyancePlayed {
 }
 
 impl ClairVoyancePlayed {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -69,7 +69,13 @@ impl ClairVoyancePlayed {
             | Some(ClairvoyanceQuestion::LeaderInBattle) => {
                 LeaderManager::hero_lookup().find(try_int_parse(Some(p1))?).into()
             }
-            Some(ClairvoyanceQuestion::Prediction) => Faction(try_enum_parse(Some(p1), Faction::INFO.declared)?).into(),
+            Some(ClairvoyanceQuestion::Prediction) => {
+                let n = try_enum_parse(Some(p1), Faction::INFO.declared)?;
+                let Ok(faction) = crate::enum_type::from_value_or_absent::<Faction>(n) else {
+                    return Err(dotnet_compat::exception::CsException { type_name: "ArgumentException", message: format!("{n} is not a valid Faction") });
+                };
+                faction.into()
+            }
             Some(ClairvoyanceQuestion::WillAttackX) => game.board.map.territory_lookup().find(try_int_parse(Some(p1))?).into(),
             Some(ClairvoyanceQuestion::DialOfMoreThanXInBattle) => try_float_parse_invariant(Some(p1))?.into(),
             _ => ExpressionElement::Null,
@@ -153,11 +159,12 @@ impl ClairVoyancePlayed {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_questions(g: &Game, target: Faction) -> impl Iterator<Item = Option<ClairvoyanceQuestion>> {
+    pub fn valid_questions(g: &Game, target: impl Into<Option<Faction>>) -> impl Iterator<Item = Option<ClairvoyanceQuestion>> {
+        let target: Option<Faction> = target.into();
         use either::Either;
         // `None` first: "any question".
         let all_values: Vec<Option<ClairvoyanceQuestion>> = std::iter::once(None).chain(ClairvoyanceQuestion::ALL.iter().copied().map(Some)).collect();
-        let target_player = g.get_player(Some(target));
+        let target_player = g.get_player(target);
         let Some(target_player) = target_player.filter(|tp| g.is_bot(*tp)) else {
             return Either::Left(all_values.into_iter());
         };
@@ -244,7 +251,7 @@ impl ClairVoyancePlayed {
             game.stone(Milestone::Clairvoyance);
         }
 
-        if self.target != Faction::None {
+        if self.target != None {
             game.turn.latest_clairvoyance = Some(self.clone());
             game.turn.latest_clairvoyance_qn_a = None;
             game.turn.latest_clairvoyance_battle = game.battle.current_battle.clone();
@@ -282,7 +289,7 @@ impl ClairVoyancePlayed {
     }
 
     pub fn asked(&self, game: &Game, card: ExpressionElement) -> Message {
-        if self.target == Faction::None {
+        if self.target == None {
             return express!(self.initiator(), " perform ", card);
         }
 
@@ -294,7 +301,7 @@ impl ClairVoyancePlayed {
     }
 
     pub fn try_asked(&self, game: &Game, card: ExpressionElement) -> GameResult<Message> {
-        if self.target != Faction::None && self.question != None {
+        if self.target != None && self.question != None {
             self.try_get_question(game)?;
         }
         Ok(self.asked(game, card))

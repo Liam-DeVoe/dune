@@ -52,12 +52,12 @@ fn static_helpers_and_getters() {
     let mut p = |name: String, value: String| out.push(format!("{name} = {value}"));
 
     let g = run(&[establish()]);
-    p("factions".into(), join(g.players.iter().map(|p| p.faction)));
+    p("factions".into(), join(g.players.iter().map(|p| treachery_engine::enum_type::name_or_absent(p.faction))));
     p("phase".into(), g.turn.current_phase.to_string());
 
     for i in 0..g.players.len() {
         let pi = g.player_at(i);
-        let f = g.player(pi).faction;
+        let f = treachery_engine::enum_type::name_or_absent(g.player(pi).faction);
         p(format!("tradeTargets.{f}"), join(FactionTradeOffered::valid_targets(&g, pi).collect::<Vec<_>>()));
         p(format!("ruleTypes.{f}"), join(AutomationConfigured::get_available_rule_types(&g, pi)));
         p(format!("biddingFactions.{f}"), join(AutomationConfigured::get_valid_bidding_factions(&g, pi)));
@@ -75,7 +75,7 @@ fn static_helpers_and_getters() {
     p("ruleGroups".into(), join(EstablishPlayers::available_rule_groups()));
     p("maxPlayers".into(), EstablishPlayers::get_maximum_number_of_players().to_string());
     p("mustChooseSkills".into(), if SkillAssigned::players_must_choose_leader_skills(&g) { "True" } else { "False" }.into());
-    p("nextCustomSetup".into(), g.next_faction_to_perform_custom_setup().to_string());
+    p("nextCustomSetup".into(), name_or_absent(g.next_faction_to_perform_custom_setup()));
 
     let rule_types: Vec<AutomationRuleType> = AutomationRuleType::ALL.to_vec();
     for faction in [Faction::Atreides, Faction::Ixian] {
@@ -83,7 +83,7 @@ fn static_helpers_and_getters() {
             let mut e = AutomationConfigured::new(&g, faction);
             e.rule_type = *rt;
             e.bidding_above_amount = 7;
-            e.bidding_winning_faction = Faction::BeneGesserit;
+            e.bidding_winning_faction = Some(Faction::BeneGesserit);
             p(format!("description.{faction}.{}", *rt as i32), try_str(|| e.get_description(&g).map(|m| m.to_cs_string())));
         }
     }
@@ -133,7 +133,7 @@ fn validate_off() {
     // PerformHmsPlacement twice: a real target, then none.
     {
         let mut g = run(&[establish()]);
-        let first = g.players[0].faction.0;
+        let first = treachery_engine::enum_type::value_or_absent(g.players[0].faction);
         let r = exec(&mut g, &format!(r#"{{"$type":"PerformHmsPlacement","_targetId":5,"Initiator":{first},{T}}}"#), false);
         out.push(format!("hms.first = {r}"));
         let target = g.board.map.location_lookup().find(5).unwrap();

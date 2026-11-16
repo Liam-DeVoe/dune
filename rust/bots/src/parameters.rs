@@ -23,9 +23,9 @@ impl BotParameters {
     pub const PENALTY_FOR_ATTACKING_BOTS: f32 = 6.0;
 
     /// The parameters of `faction`'s bot. Harkonnen's are also the fallback.
-    pub fn for_faction(faction: Faction) -> BotParameters {
-        match faction {
-            Faction::Atreides => BotParameters {
+    pub fn for_faction(faction: impl Into<Option<Faction>>) -> BotParameters {
+        match faction.into() {
+            Some(Faction::Atreides) => BotParameters {
                 bidding_resources_to_keep_when_card_is_perfect: 1,
                 bidding_resources_to_keep_when_card_isnt_perfect: 4,
                 bidding_passing_threshold: 2,
@@ -41,7 +41,7 @@ impl BotParameters {
                 battle_minimum_chance_to_assume_my_leader_survives: 0.5,
                 battle_dial_shortage_threshold_for_throwing: 3.0,
             },
-            Faction::Fremen => BotParameters {
+            Some(Faction::Fremen) => BotParameters {
                 bidding_resources_to_keep_when_card_is_perfect: 0,
                 bidding_resources_to_keep_when_card_isnt_perfect: 0,
                 bidding_passing_threshold: 4,
@@ -57,7 +57,7 @@ impl BotParameters {
                 battle_minimum_chance_to_assume_my_leader_survives: 0.5,
                 battle_dial_shortage_threshold_for_throwing: 4.0,
             },
-            Faction::Emperor => BotParameters {
+            Some(Faction::Emperor) => BotParameters {
                 bidding_resources_to_keep_when_card_is_perfect: 1,
                 bidding_resources_to_keep_when_card_isnt_perfect: 6,
                 bidding_passing_threshold: 3,
@@ -73,7 +73,7 @@ impl BotParameters {
                 battle_minimum_chance_to_assume_my_leader_survives: 0.6,
                 battle_dial_shortage_threshold_for_throwing: 3.0,
             },
-            Faction::Guild => BotParameters {
+            Some(Faction::Guild) => BotParameters {
                 bidding_resources_to_keep_when_card_is_perfect: 1,
                 bidding_resources_to_keep_when_card_isnt_perfect: 8,
                 bidding_passing_threshold: 0,
@@ -89,7 +89,7 @@ impl BotParameters {
                 battle_minimum_chance_to_assume_my_leader_survives: 0.6,
                 battle_dial_shortage_threshold_for_throwing: 6.0,
             },
-            Faction::BeneGesserit => BotParameters {
+            Some(Faction::BeneGesserit) => BotParameters {
                 bidding_resources_to_keep_when_card_is_perfect: 1,
                 bidding_resources_to_keep_when_card_isnt_perfect: 7,
                 bidding_passing_threshold: 0,
@@ -105,7 +105,7 @@ impl BotParameters {
                 battle_minimum_chance_to_assume_my_leader_survives: 0.55,
                 battle_dial_shortage_threshold_for_throwing: 6.0,
             },
-            Faction::Ixian => BotParameters {
+            Some(Faction::Ixian) => BotParameters {
                 bidding_resources_to_keep_when_card_is_perfect: 1,
                 bidding_resources_to_keep_when_card_isnt_perfect: 5,
                 bidding_passing_threshold: 4,
@@ -121,7 +121,7 @@ impl BotParameters {
                 battle_minimum_chance_to_assume_my_leader_survives: 0.4,
                 battle_dial_shortage_threshold_for_throwing: 4.0,
             },
-            Faction::Tleilaxu => BotParameters {
+            Some(Faction::Tleilaxu) => BotParameters {
                 bidding_resources_to_keep_when_card_is_perfect: 1,
                 bidding_resources_to_keep_when_card_isnt_perfect: 5,
                 bidding_passing_threshold: 3,
@@ -137,7 +137,7 @@ impl BotParameters {
                 battle_minimum_chance_to_assume_my_leader_survives: 0.6,
                 battle_dial_shortage_threshold_for_throwing: 6.0,
             },
-            Faction::Choam => BotParameters {
+            Some(Faction::Choam) => BotParameters {
                 bidding_resources_to_keep_when_card_is_perfect: 1,
                 bidding_resources_to_keep_when_card_isnt_perfect: 8,
                 bidding_passing_threshold: 3,
@@ -153,7 +153,7 @@ impl BotParameters {
                 battle_minimum_chance_to_assume_my_leader_survives: 0.55,
                 battle_dial_shortage_threshold_for_throwing: 3.0,
             },
-            Faction::Richese => BotParameters {
+            Some(Faction::Richese) => BotParameters {
                 bidding_resources_to_keep_when_card_is_perfect: 1,
                 bidding_resources_to_keep_when_card_isnt_perfect: 5,
                 bidding_passing_threshold: 4,
@@ -169,7 +169,7 @@ impl BotParameters {
                 battle_minimum_chance_to_assume_my_leader_survives: 0.5,
                 battle_dial_shortage_threshold_for_throwing: 6.0,
             },
-            Faction::Ecaz => BotParameters {
+            Some(Faction::Ecaz) => BotParameters {
                 bidding_resources_to_keep_when_card_is_perfect: 1,
                 bidding_resources_to_keep_when_card_isnt_perfect: 5,
                 bidding_passing_threshold: 4,
@@ -185,7 +185,7 @@ impl BotParameters {
                 battle_minimum_chance_to_assume_my_leader_survives: 0.5,
                 battle_dial_shortage_threshold_for_throwing: 3.0,
             },
-            Faction::Moritani => BotParameters {
+            Some(Faction::Moritani) => BotParameters {
                 bidding_resources_to_keep_when_card_is_perfect: 1,
                 bidding_resources_to_keep_when_card_isnt_perfect: 5,
                 bidding_passing_threshold: 4,

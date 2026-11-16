@@ -15,9 +15,9 @@ impl Default for AllianceBroken {
 }
 
 impl AllianceBroken {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -39,12 +39,12 @@ impl AllianceBroken {
         // The former ally gets to act again in the alliance phase, even if they already passed.
         if matches!(game.turn.current_phase, Phase::AllianceA | Phase::AllianceB) {
             // List.Remove: the first occurrence, if any.
-            if let Some(i) = game.turn.has_acted_or_passed.iter().position(|f| *f == ally) {
+            if let Some(i) = game.turn.has_acted_or_passed.iter().position(|f| Some(*f) == ally) {
                 game.turn.has_acted_or_passed.remove(i);
             }
         }
 
-        game.break_alliance(self.initiator());
+        game.break_alliance(self.initiator().required("faction")?);
         game.let_factions_discard_surplus_cards();
         Ok(())
     }

@@ -36,16 +36,16 @@ pub fn deals(game: &Game, v: &ResolvedViewer, d: &dyn Describer) -> Option<Deals
     };
     let acceptable = DealAccepted::acceptable_deals(game, Some(p))
         .map(|o| {
-            let acceptance = o.acceptance(game, faction).expect("Acceptance builds an event");
+            let acceptance = o.acceptance(game, faction.expect("faction")).expect("Acceptance builds an event");
             DealOfferView {
                 id: id_of(&o),
-                initiator: name(o.initiator()),
+                initiator: name_or_absent(o.initiator()),
                 price: o.price,
                 description: message(&o.get_deal_description(game), d),
                 message: message(&o.get_message(game), d),
                 accept_error: validate(game, GameEvent::from(acceptance.clone()), d),
                 accept: event_json(GameEvent::from(acceptance)),
-                decline: event_json(GameEvent::from(o.rejection(game, faction).expect("Rejection builds an event"))),
+                decline: event_json(GameEvent::from(o.rejection(game, faction.expect("faction")).expect("Rejection builds an event"))),
                 withdraw: None,
                 answers: vec![],
             }
@@ -54,7 +54,7 @@ pub fn deals(game: &Game, v: &ResolvedViewer, d: &dyn Describer) -> Option<Deals
     let cancellable = DealAccepted::cancellable_deals(game, Some(p))
         .map(|o| DealOfferView {
             id: id_of(&o),
-            initiator: name(o.initiator()),
+            initiator: name_or_absent(o.initiator()),
             price: o.price,
             description: message(&o.get_deal_description(game), d),
             message: message(&o.get_message(game), d),
@@ -71,8 +71,8 @@ pub fn deals(game: &Game, v: &ResolvedViewer, d: &dyn Describer) -> Option<Deals
     let current = DealAccepted::current_deals(game)
         .iter()
         .map(|deal| CurrentDeal {
-            bound: name(deal.bound_faction),
-            consuming: name(deal.consuming_faction),
+            bound: name_or_absent(deal.bound_faction),
+            consuming: name_or_absent(deal.consuming_faction),
             description: message(&deal.deal_contents_description(game), d),
         })
         .collect();
@@ -83,7 +83,7 @@ pub fn deals(game: &Game, v: &ResolvedViewer, d: &dyn Describer) -> Option<Deals
 pub fn tracker(game: &Game, v: &ResolvedViewer) -> Option<TrackerView> {
     use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
     let p = v.player.filter(|_| !v.is_observer)?;
-    if game.player(p).faction != Faction::Atreides || game.turn.current_phase < Phase::SelectingTraitors {
+    if game.player(p).faction != Some(Faction::Atreides) || game.turn.current_phase < Phase::SelectingTraitors {
         return None;
     }
     let mut cards: Vec<i32> = TreacheryCardManager::get_cards_in_play(game).map(|c| c.id()).collect();
@@ -108,7 +108,7 @@ pub fn tracker(game: &Game, v: &ResolvedViewer) -> Option<TrackerView> {
             .map(|q| {
                 let pl = game.player(q);
                 TrackerPlayer {
-                    faction: name(pl.faction),
+                    faction: name_or_absent(pl.faction),
                     maximum_number_of_cards: pl.maximum_number_of_cards(game),
                     number_of_traitors: pl.number_of_traitors(),
                     number_of_face_dancers: pl.number_of_face_dancers(),

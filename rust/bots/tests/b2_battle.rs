@@ -69,7 +69,7 @@ fn call(game: &mut Game, b: &ClassicBot, m: &str, a: &[String]) -> String {
         "DetermineDialShortageForBattle" => {
             let dial: f32 = a[0].parse().unwrap();
             let t = game.board.map.territory_lookup().find(n(2)).unwrap();
-            f32s(b.determine_dial_shortage_for_battle(game, dial, Faction(n(1)), t, n(3), n(4), n(5)))
+            f32s(b.determine_dial_shortage_for_battle(game, dial, treachery_engine::enum_type::from_value_or_absent::<Faction>(n(1)).unwrap().expect("faction"), t, n(3), n(4), n(5)))
         }
         _ => panic!("unknown probe method {m}"),
     }

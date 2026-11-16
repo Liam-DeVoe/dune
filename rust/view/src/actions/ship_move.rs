@@ -45,13 +45,13 @@ fn forces_at(game: &Game, p: PlayerIndex, l: Location) -> ForcesAt {
 
 /// The draft a form sends before the player touches it: its starting inputs, after its widgets
 /// adjusted them (a required image choice picks the first value).
-pub fn default_draft(game: &Game, p: PlayerIndex, faction: Faction, t: GameEventType) -> Option<GameEvent> {
+pub fn default_draft(game: &Game, p: PlayerIndex, faction: Option<Faction>, t: GameEventType) -> Option<GameEvent> {
     let draft = initial_draft(game, p, faction, t)?;
     Some(normalized(game, p, &draft))
 }
 
 /// The form's starting inputs, before any adjustment.
-fn initial_draft(game: &Game, p: PlayerIndex, faction: Faction, t: GameEventType) -> Option<GameEvent> {
+fn initial_draft(game: &Game, p: PlayerIndex, faction: Option<Faction>, t: GameEventType) -> Option<GameEvent> {
     Some(match t {
         GameEventType::Shipment => {
             let mut e = Shipment::new(game, faction);
@@ -146,7 +146,7 @@ fn initial_draft(game: &Game, p: PlayerIndex, faction: Faction, t: GameEventType
         }
         GameEventType::KarmaShipmentPrevention => {
             let mut e = KarmaShipmentPrevention::new(game, faction);
-            e.target = KarmaShipmentPrevention::get_valid_targets(game, p).next().unwrap_or(Faction::None);
+            e.target = KarmaShipmentPrevention::get_valid_targets(game, p).next();
             event(e)
         }
         GameEventType::PerformBeneGesseritPlacement => {
@@ -281,7 +281,7 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
         GameEvent::Shipment(s) => {
             let mut s = (**s).clone();
             let cross = Shipment::may_ship_cross_planet(game, p);
-            let prevented = faction != Faction::Fremen && game.prevented_from_shipping(faction) && !cross;
+            let prevented = faction != Some(Faction::Fremen) && game.prevented_from_shipping(faction) && !cross;
             let ty = s.shipment_type;
             let back = ty == ShipmentType::ShipmentBack;
             let destination = if back { None } else { s.to(game) };
@@ -299,16 +299,16 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
                     s.set_no_field_value(-1);
                     s.set_cunning_no_field_value(-1);
                 }
-                if !Shipment::may_smuggle(game, p, s.to(game)) || !from_reserves || faction == Faction::Fremen {
+                if !Shipment::may_smuggle(game, p, s.to(game)) || !from_reserves || faction == Some(Faction::Fremen) {
                     s.smuggled_amount = 0;
                     s.smuggled_special_amount = 0;
                 }
-                let may_karma = Shipment::can_karma(game, p) && (faction != Faction::Fremen || ty == ShipmentType::ShipmentSiteToSite) && !cross;
+                let may_karma = Shipment::can_karma(game, p) && (faction != Some(Faction::Fremen) || ty == ShipmentType::ShipmentSiteToSite) && !cross;
                 if !may_karma {
                     s.set_karma_card(None);
                 }
                 let cost = Shipment::determine_cost(game, p, &s);
-                let ally_can_pay = if pl.ally != Faction::None && cost > 0 { game.resources_your_ally_can_pay(p) } else { 0 };
+                let ally_can_pay = if pl.ally != None && cost > 0 { game.resources_your_ally_can_pay(p) } else { 0 };
                 if ally_can_pay == 0 {
                     s.ally_contribution_amount = 0;
                 }
@@ -338,7 +338,7 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
             let mut forces = IndexMap::new();
             if let Some(ds) = e.to(game).and_then(|l| l.as_discovered_location()) {
                 for l in DiscoveryEntered::valid_sources(game, p, ds) {
-                    let b = current.get(&l).cloned().unwrap_or_else(|| Battalion::new(faction, pl.forces_in(Some(l)), pl.special_forces_in(Some(l)), l));
+                    let b = current.get(&l).cloned().unwrap_or_else(|| Battalion::new(faction.expect("faction"), pl.forces_in(Some(l)), pl.special_forces_in(Some(l)), l));
                     forces.insert_new(l, b);
                 }
             }
@@ -411,7 +411,7 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
             let mut e = (**e).clone();
             if let Some(l) = e.location(game) {
                 let factions: Vec<Faction> = ChoamRemoveForce::valid_factions(game, Some(p), Some(l)).collect();
-                e.target = required(e.target, &factions, Faction::None);
+                e.target = required_opt(e.target, &factions);
                 let choices = ChoamRemoveForce::valid_special_force_choices(game, Some(l), e.target);
                 e.special_force = required(e.special_force, &choices, false);
             }
@@ -429,7 +429,7 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
         GameEvent::KarmaShipmentPrevention(e) => {
             let mut e = (**e).clone();
             let targets: Vec<Faction> = KarmaShipmentPrevention::get_valid_targets(game, p).collect();
-            e.target = required(e.target, &targets, Faction::None);
+            e.target = required_opt(e.target, &targets);
             event(e)
         }
         // Removing: the required select. Placing: the pinned panel, drawn while a stronghold is
@@ -473,7 +473,7 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
 /// The placement form's pinned panel: Bene Gesserit move as advisors where they can't choose and
 /// may; everyone else never does.
 fn as_advisors(game: &Game, p: PlayerIndex, forces: &IndexMap<Location, Battalion>, to: Location, current: bool) -> bool {
-    if game.player(p).faction != Faction::BeneGesserit {
+    if game.player(p).faction != Some(Faction::BeneGesserit) {
         return false;
     }
     let advisors = forces.values().any(|b| b.amount_of_special_forces > 0);
@@ -633,7 +633,7 @@ fn build(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) -> A
             targets: sectors_of(TerrorPlanted::valid_strongholds(game, p)),
         }),
         GameEvent::TerrorRevealed(_) => O::TerrorRevealed(TerrorRevealedOptions { draft: Value::Null,
-            victim: name(TerrorRevealed::get_victim(game)),
+            victim: name_or_absent(TerrorRevealed::get_victim(game)),
             territory: TerrorRevealed::get_territory(game).map(|t| t.id()),
             types: TerrorRevealed::get_types(game).map(name).collect(),
             may_offer_alliance: TerrorRevealed::may_offer_alliance(game),
@@ -695,7 +695,7 @@ fn shipment(game: &Game, p: PlayerIndex, s: &Shipment, d: &dyn Describer) -> Shi
         })
         .collect();
 
-    let may_karma = Shipment::can_karma(game, p) && (faction != Faction::Fremen || ty == ShipmentType::ShipmentSiteToSite) && !cross;
+    let may_karma = Shipment::can_karma(game, p) && (faction != Some(Faction::Fremen) || ty == ShipmentType::ShipmentSiteToSite) && !cross;
     let cost = Shipment::determine_cost(game, p, s);
     // The destination is `to`, except for a shipment back to reserves.
     let destination = if ty == ShipmentType::ShipmentBack { None } else { to };
@@ -703,7 +703,7 @@ fn shipment(game: &Game, p: PlayerIndex, s: &Shipment, d: &dyn Describer) -> Shi
     ShipmentOptions { draft: Value::Null,
         may_ship_cross_planet: cross,
         may_ship_to_reserves: to_reserves,
-        prevented_from_shipping: faction != Faction::Fremen && game.prevented_from_shipping(faction) && !cross,
+        prevented_from_shipping: faction != Some(Faction::Fremen) && game.prevented_from_shipping(faction) && !cross,
         sources,
         targets,
         max_forces: max(false),
@@ -714,14 +714,14 @@ fn shipment(game: &Game, p: PlayerIndex, s: &Shipment, d: &dyn Describer) -> Shi
         no_field_values: Shipment::valid_no_field_values(game, p),
         may_use_cunning_no_field: Shipment::may_use_cunning_no_field(game, p),
         cunning_no_field_values: Shipment::valid_cunning_no_field_values(game, p, no_field),
-        default_no_field_special_force_amount: Shipment::default_no_field_special_force_amount(faction, no_field),
+        default_no_field_special_force_amount: Shipment::default_no_field_special_force_amount(faction.expect("faction"), no_field),
         richese_high_threshold: game.has_high_threshold(Faction::Richese),
         homeworlds,
         may_smuggle: Shipment::may_smuggle(game, p, to),
         may_karma,
         karma_cards: Shipment::valid_karma_cards(game, p).into_iter().map(|c| KarmaChoice { card: c.id(), own: pl.treachery_cards.contains(&c) }).collect(),
         cost,
-        ally_can_pay: if pl.ally != Faction::None && cost > 0 { game.resources_your_ally_can_pay(p) } else { 0 },
+        ally_can_pay: if pl.ally != None && cost > 0 { game.resources_your_ally_can_pay(p) } else { 0 },
         conflicting_ally: destination.is_some_and(|l| game.contains_conflicting_ally(p, l)),
         great_flat: game.board.map.the_great_flat().territory().id(),
         karma_name: d.describe(&ExpressionElement::from(TreacheryCardType::Karma)),
@@ -761,7 +761,7 @@ fn placement(game: &Game, p: PlayerIndex, forces: &IndexMap<Location, Battalion>
 /// The pinned panel's inputs for the pinned destination.
 fn destination_options(game: &Game, p: PlayerIndex, forces: &IndexMap<Location, Battalion>, to: Option<Location>, o: &mut PlacementOptions) {
     let Some(to) = to else { return };
-    if game.player(p).faction == Faction::BeneGesserit {
+    if game.player(p).faction == Some(Faction::BeneGesserit) {
         let advisors = forces.values().any(|b| b.amount_of_special_forces > 0);
         let may_move_as_advisors = PlacementEvent::may_move_as_advisors(game, p, to.territory(), advisors);
         o.advisor_choice = may_move_as_advisors && PlacementEvent::may_move_as_bene_gesserit_fighters(game, p, to.territory());
@@ -809,7 +809,7 @@ fn ambassador_activated(game: &Game, p: PlayerIndex, e: &AmbassadorActivated) ->
     let pl = game.player(p);
     AmbassadorActivatedOptions { draft: Value::Null,
         ambassador: name_or_absent(AmbassadorActivated::get_ambassador(game)),
-        victim: name(AmbassadorActivated::get_victim(game)),
+        victim: name_or_absent(AmbassadorActivated::get_victim(game)),
         bene_gesserit_ambassadors: AmbassadorActivated::get_valid_bene_gesserit_ambassadors(game).into_iter().map(name).collect(),
         choam_cards: AmbassadorActivated::get_valid_choam_cards(game, p).iter().map(|c| c.id()).collect(),
         ixian_cards: AmbassadorActivated::get_valid_ixian_cards(game, p).iter().map(|c| c.id()).collect(),

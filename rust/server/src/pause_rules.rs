@@ -50,7 +50,7 @@ pub fn determine(g: &mut Game) -> Option<PauseRequirements> {
     let nexus = g.applicable(Rule::NexusCards);
 
     Some(match g.turn.current_phase {
-        Phase::SelectingFactions => wait(players(g, |g, p| g.player(p).faction == Faction::None)),
+        Phase::SelectingFactions => wait(players(g, |g, p| g.player(p).faction == None)),
         Phase::TradingFactions => wait(g.player_indices().collect()),
 
         Phase::BeginningOfStorm => with(players(g, |g, p| DiscoveryEntered::valid_targets(g, p).next().is_some()), amal),
@@ -81,7 +81,7 @@ pub fn determine(g: &mut Game) -> Option<PauseRequirements> {
             let countdown = amal || g.is_playing(Faction::Richese) || g.is_playing(Faction::Ixian);
             end_of_phase(g, vec![]).with_countdown(countdown)
         }
-        Phase::ReplacingCardJustWon => wait(present(&[g.get_player(Some(g.bidding.faction_that_may_replace_bought_card))])),
+        Phase::ReplacingCardJustWon => wait(present(&[g.get_player(g.bidding.faction_that_may_replace_bought_card)])),
         Phase::WaitingForNextBiddingRound => wait(present(&[atreides(g)])),
         Phase::BiddingReport => {
             let others = present(&[tleilaxu_limits(g), emperor_discard(g)]);
@@ -166,7 +166,7 @@ fn end_of_phase(g: &mut Game, others: Vec<PlayerIndex>) -> PauseRequirements {
         .player_indices()
         .filter(|&p| {
             let pl = g.player(p);
-            (pl.faction == Faction::Choam && pl.has_ally()) || pl.ally == Faction::Choam
+            (pl.faction == Some(Faction::Choam) && pl.has_ally()) || pl.ally == Some(Faction::Choam)
         })
         .collect();
     for p in candidates {

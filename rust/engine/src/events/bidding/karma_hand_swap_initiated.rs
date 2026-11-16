@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct KarmaHandSwapInitiated {
-    pub target: Faction,
+    pub target: Option<Faction>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -17,9 +17,9 @@ impl Default for KarmaHandSwapInitiated {
 }
 
 impl KarmaHandSwapInitiated {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -30,7 +30,7 @@ impl KarmaHandSwapInitiated {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.bidding.karma_hand_swap_paused_phase = Some(game.turn.current_phase);
         game.enter(Phase::PerformingKarmaHandSwap, true);
-        let victim = self.get_player(game, Some(self.target));
+        let victim = self.get_player(game, self.target);
         let me = self.player();
         let karama = Karma::valid_karma_cards(game, me).into_iter().next();
         game.player_mut(me).special_karma_power_used = true;

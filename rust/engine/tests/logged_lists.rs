@@ -9,7 +9,7 @@ use treachery_engine::prelude::*;
 fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();
     for f in factions {
-        g.players.push(Player::new(*f));
+        g.players.push(Player::new(Some(*f)));
     }
     g
 }
@@ -50,7 +50,7 @@ fn an_audit_message_keeps_the_cards_of_its_audit() {
     let mut ev = AuditCancelled::new(&g, Faction::Emperor);
     ev.cancelled = false;
     Rc::new(ev).execute_concrete_event(&mut g).unwrap();
-    assert_eq!(g.current_report().messages.last().unwrap().target, Faction::Emperor);
+    assert_eq!(g.current_report().messages.last().unwrap().target, Some(Faction::Emperor));
     assert_eq!(last_logged_list(&g), cards(&[first]));
 
     g.battle.audited_cards = vec![card_of(TreacheryCardType::Shield, 0), card_of(TreacheryCardType::Shield, 1)];
@@ -88,7 +88,7 @@ fn a_deal_message_keeps_the_traitors_discarded_so_far() {
     DealAccepted::new(&g, Faction::Atreides).handle_accepted_bot_deal(&mut g, &Rc::new(offer));
     // The list is in the message to Atreides, before the public "gave the agreed information".
     let reports = g.current_report().messages.clone();
-    let to_atreides = reports.iter().rev().find(|m| m.target == Faction::Atreides).unwrap();
+    let to_atreides = reports.iter().rev().find(|m| m.target == Some(Faction::Atreides)).unwrap();
     let logged = |m: &Message| match &m.expression.elements[2] {
         ExpressionElement::List { items, .. } => items.clone(),
         other => panic!("not a list: {other:?}"),
@@ -96,6 +96,6 @@ fn a_deal_message_keeps_the_traitors_discarded_so_far() {
     assert_eq!(logged(to_atreides), vec![ExpressionElement::Hero(first)]);
 
     g.player_mut(harkonnen).discarded_traitors.insert(second);
-    let to_atreides = g.current_report().messages.iter().rev().find(|m| m.target == Faction::Atreides).unwrap();
+    let to_atreides = g.current_report().messages.iter().rev().find(|m| m.target == Some(Faction::Atreides)).unwrap();
     assert_eq!(logged(to_atreides), vec![ExpressionElement::Hero(first)]);
 }

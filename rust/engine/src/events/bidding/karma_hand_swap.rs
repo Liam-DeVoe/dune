@@ -17,9 +17,9 @@ impl Default for KarmaHandSwap {
 }
 
 impl KarmaHandSwap {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -39,7 +39,7 @@ impl KarmaHandSwap {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let victim = self.get_player(game, Some(game.bidding.karma_hand_swap_target));
+        let victim = self.get_player(game, game.bidding.karma_hand_swap_target);
         let me = self.player_opt();
         let others: Vec<PlayerIndex> = game.player_indices().filter(|p| Some(*p) != me && Some(*p) != victim).collect();
         for p in others {

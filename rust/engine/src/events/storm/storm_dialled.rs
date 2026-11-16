@@ -24,9 +24,9 @@ impl Default for StormDialled {
 }
 
 impl StormDialled {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -54,7 +54,7 @@ impl StormDialled {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.storm.dials.push(self.amount);
-        game.turn.has_acted_or_passed.push(self.initiator());
+        game.turn.has_acted_or_passed.push(self.initiator().required("faction")?);
 
         if game.storm.has_battle_wheel.iter().all(|f| game.turn.has_acted_or_passed.contains(f)) {
             // Arguments are evaluated left to right; a one-player game throws at Dials[1].

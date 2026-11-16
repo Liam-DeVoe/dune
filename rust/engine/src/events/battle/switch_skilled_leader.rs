@@ -15,9 +15,9 @@ impl Default for SwitchedSkilledLeader {
 }
 
 impl SwitchedSkilledLeader {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -30,7 +30,7 @@ impl SwitchedSkilledLeader {
         game.player(player).leaders.iter().copied().find(|l| {
             game.is_skilled(Some(Hero::Leader(*l)))
                 && !game.leaders.captured_leaders.contains_key(l)
-                && (faction == Faction::Ecaz || l.hero_type() != HeroType::Vidal)
+                && (faction == Some(Faction::Ecaz) || l.hero_type() != HeroType::Vidal)
         })
     }
 

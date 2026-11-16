@@ -25,7 +25,7 @@ fn dump(g: &mut Game) -> String {
     ];
     for (i, report) in std::iter::once(&g.log.pre_game_report).chain(g.log.report_list.iter()).enumerate() {
         for m in &report.messages {
-            lines.push(format!("report {i}: {} {}", m.target, m.to_cs_string()));
+            lines.push(format!("report {i}: {} {}", treachery_engine::enum_type::name_or_absent(m.target), m.to_cs_string()));
         }
     }
     let host: Vec<_> = g.get_applicable_events(None, true).into_iter().map(|t| t.name()).collect();
@@ -37,7 +37,7 @@ fn dump(g: &mut Game) -> String {
         let ids = |xs: &mut dyn Iterator<Item = i32>| xs.map(|x| x.to_string()).collect::<Vec<_>>().join(",");
         lines.push(format!(
             "player {i}: {} seat {} spice {} cards [{}] traitors [{}] leaders [{}] forces [{}] ally {} may: {}",
-            p.faction,
+            treachery_engine::enum_type::name_or_absent(p.faction),
             p.seat,
             p.resources,
             ids(&mut p.treachery_cards.iter().map(|c| c.id())),
@@ -48,7 +48,7 @@ fn dump(g: &mut Game) -> String {
                 .map(|(l, b)| format!("{}:{}/{}", l.id(), b.amount_of_forces, b.amount_of_special_forces))
                 .collect::<Vec<_>>()
                 .join(","),
-            p.ally,
+            treachery_engine::enum_type::name_or_absent(p.ally),
             may.join(" "),
         ));
     }

@@ -95,10 +95,10 @@ impl GameStatus {
             /* Non-mainphase-related phases */
             Phase::Clairvoyance => {
                 let g: &Game = game;
-                let a = express!("Please answer a question from ", g.turn.latest_clairvoyance.as_ref().map(|c| c.initiator()), " by ", TreacheryCardType::Clairvoyance, ".");
+                let a = express!("Please answer a question from ", g.turn.latest_clairvoyance.as_ref().and_then(|c| c.initiator()), " by ", TreacheryCardType::Clairvoyance, ".");
                 let w = express!("Waiting for an answer to a ", TreacheryCardType::Clairvoyance, " question...");
                 let f = g.turn.latest_clairvoyance.as_ref().expect("latest clairvoyance").target;
-                Self::faction_status(g, a, w, Some(f), None)
+                Self::faction_status(g, a, w, f, None)
             }
 
             Phase::SearchingDiscarded => {
@@ -111,7 +111,7 @@ impl GameStatus {
                 let g: &Game = game;
                 let offer_player = g.alliances.current_card_trade_offer.as_ref().expect("current card trade offer").player();
                 let f = g.player(offer_player).ally;
-                Self::faction_status(g, "Please select which card to give to your ally.", "Waiting for a card to be returned...", Some(f), None)
+                Self::faction_status(g, "Please select which card to give to your ally.", "Waiting for a card to be returned...", f, None)
             }
 
             Phase::Bureaucracy => {
@@ -217,7 +217,7 @@ impl GameStatus {
                 let a = express!("Please decide which forces were killed by the storm in ", TakeLosses::losses_to_take(g).location, ".");
                 let w = express!(TakeLosses::losses_to_take(g).faction, " are deciding which forces were killed by the storm in ", TakeLosses::losses_to_take(g).location, "...");
                 let f = g.storm.storm_losses_to_take[0].faction;
-                Self::faction_status(g, a, w, Some(f), None)
+                Self::faction_status(g, a, w, f, None)
             }
 
             /* Spice Blow */
@@ -309,7 +309,7 @@ impl GameStatus {
                 let a = express!("Please select a ", Faction::Richese, " card to put on auction.");
                 let w = express!(Self::faction_or_occupier(g, Faction::Richese, World::Richese), " are putting a ", Faction::Richese, " card on auction...");
                 let f = Self::faction_or_occupier(g, Faction::Richese, World::Richese);
-                Self::faction_status(g, a, w, Some(f), None)
+                Self::faction_status(g, a, w, f, None)
             }
 
             Phase::RicheseKeepingUnsoldCard => {
@@ -317,7 +317,7 @@ impl GameStatus {
                 let a = express!("Please decide if you wish to keep this unsold card.");
                 let w = express!(Self::faction_or_occupier(g, Faction::Richese, World::Richese), " are deciding about keeping the unsold card...");
                 let f = Self::faction_or_occupier(g, Faction::Richese, World::Richese);
-                Self::faction_status(g, a, w, Some(f), None)
+                Self::faction_status(g, a, w, f, None)
             }
 
             Phase::IxianRemovingCardFromBid => {
@@ -325,7 +325,7 @@ impl GameStatus {
                 let a = express!("Please put one card from the auction on top or at the bottom of the Treachery Card deck.");
                 let w = express!(Self::faction_or_occupier(g, Faction::Ixian, World::Ixian), " are putting one card from the auction on top or at the bottom of the Treachery Card deck...");
                 let f = Self::faction_or_occupier(g, Faction::Ixian, World::Ixian);
-                Self::faction_status(g, a, w, Some(f), None)
+                Self::faction_status(g, a, w, f, None)
             }
 
             Phase::IxianSwappingCard => {
@@ -353,8 +353,8 @@ impl GameStatus {
             Phase::ReplacingCardJustWon => {
                 let g: &Game = game;
                 let a = express!("You might discard the card you just won and draw a new card instead, in case you have the necessary Nexus or alliance advantage.");
-                let w = express!(g.bidding.winning_bid.as_ref().map(|b| b.initiator()), " might replace the card they just won with a card from the deck in case they have the required Nexus or alliance advantage...");
-                let p = g.get_player(g.bidding.winning_bid.as_ref().map(|b| b.initiator()));
+                let w = express!(g.bidding.winning_bid.as_ref().and_then(|b| b.initiator()), " might replace the card they just won with a card from the deck in case they have the required Nexus or alliance advantage...");
+                let p = g.get_player(g.bidding.winning_bid.as_ref().map(|b| b.initiator()).flatten());
                 Self::player_status(a, w, p, None)
             }
 
@@ -429,7 +429,7 @@ impl GameStatus {
                 let a = express!("Please decide about entering an alliance offered to you by ", Faction::Moritani);
                 let w = express!(game.ship_move.alliance_by_terror_offered_to, " are considering entering an alliance with ", Faction::Moritani, "...");
                 let f = game.ship_move.alliance_by_terror_offered_to;
-                Self::faction_status(game, a, w, Some(f), None)
+                Self::faction_status(game, a, w, f, None)
             }
 
             Phase::AmbassadorTriggeredByBeneGesseritAccompaniesNonGuildShip
@@ -453,7 +453,7 @@ impl GameStatus {
                 let a = express!("Please decide about entering an alliance offered to you by ", Faction::Ecaz);
                 let w = express!(game.ship_move.alliance_by_ambassador_offered_to, " are considering entering an alliance with ", Faction::Ecaz, "...");
                 let f = game.ship_move.alliance_by_ambassador_offered_to;
-                Self::faction_status(game, a, w, Some(f), None)
+                Self::faction_status(game, a, w, f, None)
             }
 
             // BeneGesseritIntrudedByFremenRidingMonsterA/B are also listed here in C#, but the arm above
@@ -491,7 +491,7 @@ impl GameStatus {
                 let g: &Game = game;
                 let a = express!("You may now decide who will fight in ", g.battle.battle_about_to_start.as_ref().expect("battle about to start").territory(g));
                 let battle = g.battle.battle_about_to_start.clone().expect("battle about to start");
-                let f: Option<Faction> = if g.has_low_threshold(Faction::Ecaz) { battle.opponent_of_faction(g, Faction::Ecaz).map(|p| g.player(p).faction) } else { Some(Faction::Ecaz) };
+                let f: Option<Faction> = if g.has_low_threshold(Faction::Ecaz) { battle.opponent_of_faction(g, Faction::Ecaz).map(|p| g.player(p).faction).flatten() } else { Some(Faction::Ecaz) };
                 let w = express!(f, " are deciding who will fight in ", battle.territory(g), "...");
                 let p = if g.has_low_threshold(Faction::Ecaz) { battle.opponent_of_faction(g, Faction::Ecaz) } else { g.get_player(Some(Faction::Ecaz)) };
                 Self::player_status(a, w, p, None)
@@ -502,7 +502,7 @@ impl GameStatus {
                 let a = express!(g.battle.current_thought.as_ref().expect("current thought").initiator(), " asked you a question and are waiting for your answer.");
                 let battle = g.battle.current_battle.clone().expect("current battle");
                 let thought_initiator = g.battle.current_thought.as_ref().expect("current thought").initiator();
-                let w = express!("Waiting for ", battle.opponent_of_faction(g, thought_initiator).map(|p| g.player(p).faction), " to answer a question...");
+                let w = express!("Waiting for ", battle.opponent_of_faction(g, thought_initiator).and_then(|p| g.player(p).faction), " to answer a question...");
                 let battle = g.battle.current_battle.clone().expect("current battle");
                 let p = battle.opponent_of_faction(g, g.battle.current_thought.as_ref().expect("current thought").initiator());
                 Self::player_status(a, w, p, None)
@@ -532,8 +532,8 @@ impl GameStatus {
             Phase::Retreating => {
                 let g: &Game = game;
                 let a = express!("Please decide about retreating forces from ", g.battle.current_battle.as_ref().expect("current battle").territory(g), ".");
-                let w = express!(g.battle.battle_loser, " are thinking about retreating forces from ", g.battle.current_battle.as_ref().expect("current battle").territory(g), ".");
-                Self::faction_status(g, a, w, g.battle.battle_loser, None)
+                let w = express!(g.battle.battle_loser.flatten(), " are thinking about retreating forces from ", g.battle.current_battle.as_ref().expect("current battle").territory(g), ".");
+                Self::faction_status(g, a, w, g.battle.battle_loser.flatten(), None)
             }
 
             Phase::AvoidingAudit => {
@@ -558,9 +558,9 @@ impl GameStatus {
 
             Phase::BattleConclusion => {
                 let a = express!("You won!");
-                let w = express!(game.battle.battle_winner, " are celebrating their victory in battle...");
+                let w = express!(game.battle.battle_winner.flatten(), " are celebrating their victory in battle...");
                 let f = game.battle.battle_winner;
-                Self::faction_status(game, a, w, f, None)
+                Self::faction_status(game, a, w, f.flatten(), None)
             }
 
             Phase::RevealingFacedancer => {
@@ -626,7 +626,7 @@ impl GameStatus {
         let mut result = result;
         let my_faction = match me_ {
             Some(me) => game.player(me).faction,
-            None => Faction::None,
+            None => None,
         };
         result.flash_info = Self::determine_flash(game, my_faction, is_player);
         result.highlighted_territories = Self::determine_highlights(game, my_faction);
@@ -647,17 +647,17 @@ impl GameStatus {
     fn players_with_room_and_no_bid(g: &Game) -> Vec<Option<PlayerIndex>> {
         (0..g.players.len())
             .map(|i| g.player_at(i))
-            .filter(|p| g.player(*p).has_room_for_cards(g) && !g.bidding.bids.contains_key(&g.player(*p).faction))
+            .filter(|p| g.player(*p).has_room_for_cards(g) && !g.bidding.bids.contains_key_opt(g.player(*p).faction))
             .map(Some)
             .collect()
     }
 
-    pub fn faction_or_occupier(g: &Game, f: Faction, w: World) -> Faction {
+    pub fn faction_or_occupier(g: &Game, f: Faction, w: World) -> Option<Faction> {
         let occupier = g.occupier_of(w);
         if let Some(occupier) = occupier {
             return g.player(occupier).faction;
         }
-        f
+        Some(f)
     }
 
     pub fn player_and_ally(g: &Game, f: Faction) -> Vec<Option<PlayerIndex>> {
@@ -677,9 +677,9 @@ impl GameStatus {
         express_part_if!(cond; g.player(player.expect("player")).ally)
     }
 
-    pub fn determine_highlights(game: &Game, my_faction: Faction) -> Vec<Option<Territory>> {
+    pub fn determine_highlights(game: &Game, my_faction: Option<Faction>) -> Vec<Option<Territory>> {
         match game.turn.current_phase {
-            Phase::FremenSettingUp if my_faction == Faction::Fremen => vec![Some(game.board.map.sietch_tabr().territory()), Some(game.board.map.false_wall_south()), Some(game.board.map.false_wall_west())],
+            Phase::FremenSettingUp if my_faction == Some(Faction::Fremen) => vec![Some(game.board.map.sietch_tabr().territory()), Some(game.board.map.false_wall_south()), Some(game.board.map.false_wall_west())],
 
             Phase::StormLosses => vec![Some(TakeLosses::losses_to_take(game).location.expect("location").territory())],
 
@@ -751,7 +751,7 @@ impl GameStatus {
         let battle = g.battle.current_battle.clone().expect("current battle");
         let my_faction = me_.map(|me| g.player(me).faction);
 
-        if Some(battle.aggressor(g)) == my_faction {
+        if battle.aggressor(g) == my_faction.flatten() {
             return Self::players_status(
                 express!("You are aggressor against ", battle.defender(g), " in ", battle.territory(g), "! Please confirm your Battle Plan."),
                 express!("You are waiting for ", battle.defender(g), " to defend ", battle.territory(g), "..."),
@@ -759,7 +759,7 @@ impl GameStatus {
                 latest_battle_event,
             );
         }
-        if Some(battle.defender(g)) == my_faction {
+        if battle.defender(g) == my_faction.flatten() {
             return Self::players_status(
                 express!("You must defend against ", battle.aggressor(g), " in ", battle.territory(g), "! Please confirm your Battle Plan."),
                 express!("You are waiting for ", battle.aggressor(g), " to attack ", battle.territory(g), "..."),
@@ -774,7 +774,7 @@ impl GameStatus {
     pub fn players_that_have_not_acted_or_passed(game: &Game) -> Vec<Option<PlayerIndex>> {
         (0..game.players.len())
             .map(|i| game.player_at(i))
-            .filter(|p| !game.turn.has_acted_or_passed.contains(&game.player(*p).faction))
+            .filter(|p| !game.turn.has_acted_or_passed.contains_opt(game.player(*p).faction))
             .map(Some)
             .collect()
     }
@@ -844,7 +844,7 @@ impl GameStatus {
         Self::for_player(a, w, game.get_player(waiting_for_faction), timed_event)
     }
 
-    pub fn determine_flash(g: &Game, my_faction: Faction, is_player: bool) -> Vec<FlashInfo> {
+    pub fn determine_flash(g: &Game, my_faction: Option<Faction>, is_player: bool) -> Vec<FlashInfo> {
         let mut result: Vec<FlashInfo> = vec![];
 
         if g.turn.current_phase == Phase::GameEnded {
@@ -856,8 +856,8 @@ impl GameStatus {
         }
 
         // C# parity: BattleWinner is a Faction?, so a null winner passes this check and flashes "null win!".
-        if g.turn.current_phase == Phase::BattleConclusion && g.battle.battle_winner != Some(Faction::None) {
-            Self::flash(&mut result, express!(g.battle.battle_winner, " win!"), g.battle.battle_winner);
+        if g.turn.current_phase == Phase::BattleConclusion && g.battle.battle_winner != Some(None) {
+            Self::flash(&mut result, express!(g.battle.battle_winner.flatten(), " win!"), g.battle.battle_winner.flatten());
             return result;
         }
 
@@ -923,9 +923,9 @@ impl GameStatus {
                 }
 
                 // Show Nexus card played
-                GameEvent::NexusPlayed(np) => Self::flash(&mut result, express!(np.initiator(), " play a Nexus card"), np.faction.to_nexus()),
+                GameEvent::NexusPlayed(np) => Self::flash(&mut result, express!(np.initiator(), " play a Nexus card"), np.faction.map(Faction::to_nexus)),
                 GameEvent::Revival(nexus_revival) if nexus_revival.uses_emperor_secret_ally => {
-                    Self::flash(&mut result, express!(nexus_revival.initiator(), " play a Nexus card"), Faction::Emperor.to_nexus())
+                    Self::flash(&mut result, express!(nexus_revival.initiator(), " play a Nexus card"), Some(Faction::Emperor.to_nexus()))
                 }
 
                 _ => {}
@@ -1045,7 +1045,7 @@ impl GameStatus {
         Self::flash(flashes, msg, s)
     }
 
-    pub fn flash_faction_played(flashes: &mut Vec<FlashInfo>, f: Faction) {
+    pub fn flash_faction_played(flashes: &mut Vec<FlashInfo>, f: Option<Faction>) {
         Self::flash(flashes, express!("You play ", f), f)
     }
 

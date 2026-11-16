@@ -36,8 +36,9 @@ impl Game {
         }
     }
 
-    pub fn has_responded_to_deal(&self, offer: &Rc<DealOffered>, faction: Faction) -> bool {
-        self.deal_response(offer, faction).is_some()
+    pub fn has_responded_to_deal(&self, offer: &Rc<DealOffered>, faction: impl Into<Option<Faction>>) -> bool {
+        let faction: Option<Faction> = faction.into();
+        self.deal_response(offer, faction.expect("faction")).is_some()
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
@@ -49,17 +50,18 @@ impl Game {
                 // offer.To is an array; a null To throws on .Length.
                 p.faction != initiator && p.ally != initiator && {
                     let to = offer.to.as_ref().expect("destination");
-                    to.len() == 0 || to.contains(&p.faction)
+                    to.len() == 0 || to.contains_opt(p.faction)
                 }
             })
-            .map(move |p| p.faction)
+            .filter_map(move |p| p.faction)
     }
 
     pub fn start_deal(&mut self, deal: &Deal) {
         self.deals.agreed.push(deal.clone());
     }
 
-    pub fn has_deal(&self, f: Faction, type_: DealType) -> bool {
+    pub fn has_deal(&self, f: impl Into<Option<Faction>>, type_: DealType) -> bool {
+        let f: Option<Faction> = f.into();
         self.deals.agreed.iter().any(|deal| deal.consuming_faction == f && deal.type_ == type_)
     }
 
@@ -71,7 +73,7 @@ impl Game {
 
     pub fn is_ghola(&self, l: Hero) -> bool {
         let tleilaxu = self.get_player(Some(Faction::Tleilaxu));
-        l.faction() != Faction::Tleilaxu
+        l.faction() != Some(Faction::Tleilaxu)
             && tleilaxu.is_some()
             && match l.as_leader() {
                 // Leaders.Contains(IHero): reference equality, so only a Leader can match.
@@ -83,8 +85,8 @@ impl Game {
 
 #[derive(Clone, Debug)]
 pub struct Deal {
-    pub bound_faction: Faction,
-    pub consuming_faction: Faction,
+    pub bound_faction: Option<Faction>,
+    pub consuming_faction: Option<Faction>,
     pub type_: DealType,
     pub deal_parameter1: Option<String>,
     pub deal_parameter2: Option<String>,

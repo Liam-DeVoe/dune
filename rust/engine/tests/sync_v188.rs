@@ -69,7 +69,7 @@ fn applicable(g: &mut Game) -> String {
     for i in 0..g.players.len() {
         let p = g.player_at(i);
         let names: Vec<_> = g.get_applicable_events(Some(p), false).into_iter().map(|t| t.name()).collect();
-        parts.push(format!("{}:{}", g.player(p).faction, names.join("+")));
+        parts.push(format!("{}:{}", treachery_engine::enum_type::name_or_absent(g.player(p).faction), names.join("+")));
     }
     parts.join(" ")
 }
@@ -77,9 +77,9 @@ fn applicable(g: &mut Game) -> String {
 fn state(l: &mut Lines, g: &mut Game, at: &str) {
     l.p(&format!("{at}.phase"), g.turn.current_phase);
     l.p(&format!("{at}.acted"), factions(g.turn.has_acted_or_passed.clone()));
-    let offers: Vec<_> = g.alliances.current_alliance_offers.iter().map(|o| format!("{}>{}", o.initiator(), o.target)).collect();
+    let offers: Vec<_> = g.alliances.current_alliance_offers.iter().map(|o| format!("{}>{}", treachery_engine::enum_type::name_or_absent(o.initiator()), treachery_engine::enum_type::name_or_absent(o.target))).collect();
     l.p(&format!("{at}.offers"), offers.join(","));
-    let allies: Vec<_> = g.players.iter().map(|p| format!("{}:{}", p.faction, p.ally)).collect();
+    let allies: Vec<_> = g.players.iter().map(|p| format!("{}:{}", treachery_engine::enum_type::name_or_absent(p.faction), treachery_engine::enum_type::name_or_absent(p.ally))).collect();
     l.p(&format!("{at}.allies"), allies.join(","));
     l.p(&format!("{at}.nexus_occured"), if g.blow.nexus_has_occurred { "True" } else { "False" });
     let a = applicable(g);
@@ -87,8 +87,8 @@ fn state(l: &mut Lines, g: &mut Game, at: &str) {
     for i in 0..g.players.len() {
         let p = g.player_at(i);
         let s = GameStatus::determine_status(g, Some(p), true);
-        let waiting = factions(s.waiting_for_players.iter().map(|w| g.player(w.unwrap()).faction));
-        l.p(&format!("{at}.status.{}", g.player(p).faction), format!("{} | waiting {waiting}", s.get_message(p, false).to_cs_string()));
+        let waiting = factions(s.waiting_for_players.iter().filter_map(|w| g.player(w.unwrap()).faction));
+        l.p(&format!("{at}.status.{}", treachery_engine::enum_type::name_or_absent(g.player(p).faction)), format!("{} | waiting {waiting}", s.get_message(p, false).to_cs_string()));
     }
 }
 
@@ -111,7 +111,7 @@ fn exec(l: &mut Lines, g: &mut Game, at: &str, e: GameEvent) {
 
 fn offered(g: &Game, by: Faction, target: Faction) -> GameEvent {
     let mut e = AllianceOffered::new(g, by);
-    e.target = target;
+    e.target = Some(target);
     Rc::new(e).into_event()
 }
 
@@ -150,8 +150,8 @@ fn break_in_alliance_phase(l: &mut Lines, v: i32) {
     let mut g = new_game(v);
     let choam = idx(&g, Faction::Choam);
     let atreides = idx(&g, Faction::Atreides);
-    g.player_mut(choam).ally = Faction::Atreides;
-    g.player_mut(atreides).ally = Faction::Choam;
+    g.player_mut(choam).ally = Some(Faction::Atreides);
+    g.player_mut(atreides).ally = Some(Faction::Choam);
     g.enter_alliance_phase(true);
     let e = offered(&g, Faction::Richese, Faction::Atreides);
     exec(l, &mut g, &format!("{at}.richese_offers_atreides"), e);
@@ -169,7 +169,7 @@ fn seen(g: &Game, plans: &[Option<Rc<Battle>>]) -> String {
         .iter()
         .map(|(aspect, plan)| {
             let i = plans.iter().position(|p| p.as_ref().is_some_and(|p| Rc::ptr_eq(p, plan))).map_or(-1, |i| i as i32);
-            format!("{}:{}:plan{i}", name_or_absent(*aspect), plan.initiator())
+            format!("{}:{}:plan{i}", name_or_absent(*aspect), treachery_engine::enum_type::name_or_absent(plan.initiator()))
         })
         .collect();
     format!("[{}]", entries.join(","))
@@ -202,7 +202,7 @@ fn prescience(l: &mut Lines, v: i32) {
     let arrakeen = g.board.map.arrakeen();
     Player::add_forces(&mut g, choam, arrakeen.into(), 3, false);
     let mut battle = BattleInitiated::new(&g, Faction::Atreides);
-    battle.target = Faction::Choam;
+    battle.target = Some(Faction::Choam);
     let territory = g.board.map.arrakeen().territory();
     battle.set_territory(&g, Some(territory));
     g.battle.current_battle = Some(Rc::new(battle));

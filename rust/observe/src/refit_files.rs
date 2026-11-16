@@ -5,6 +5,7 @@
 use std::path::Path;
 
 use serde_json::{Map, Value};
+use treachery_engine::enum_type::value_or_absent;
 use treachery_engine::game::Game;
 
 use crate::refit::{refit, End, Item, Refit};
@@ -65,7 +66,7 @@ impl Old {
         let game = &mut r.game;
         self.offers
             .iter()
-            .filter(|(f, t)| match game.get_player(Some(treachery_engine::prelude::Faction(*f))) {
+            .filter(|(f, t)| match game.get_player(treachery_engine::enum_type::from_value_or_absent::<treachery_engine::prelude::Faction>(*f).ok().flatten()) {
                 Some(p) => !game.get_applicable_events(Some(p), false).iter().any(|e| e.name() == t),
                 None => true,
             })
@@ -74,8 +75,8 @@ impl Old {
 
     /// Lower is better: a different phase, battle, faction in a seat or alliance counts most, then a different turn, then the changes.
     pub fn score(&self, r: &mut Refit) -> (u8, usize, u8, usize) {
-        let seats = self.factions.as_ref().is_some_and(|f| *f != r.game.players.iter().map(|p| p.faction.0).collect::<Vec<_>>());
-        let allies = self.allies.as_ref().is_some_and(|a| *a != r.game.players.iter().map(|p| p.ally.0).collect::<Vec<_>>());
+        let seats = self.factions.as_ref().is_some_and(|f| *f != r.game.players.iter().map(|p| value_or_absent(p.faction)).collect::<Vec<_>>());
+        let allies = self.allies.as_ref().is_some_and(|a| *a != r.game.players.iter().map(|p| value_or_absent(p.ally)).collect::<Vec<_>>());
         let phase = (!self.end.reached(&r.game) || seats || allies) as u8;
         let turn = self.turn.is_some_and(|t| t != r.game.turn.current_turn) as u8;
         (phase, self.offers_missing(r), turn, r.stats.dropped * 4 + r.stats.replaced + r.stats.added)
@@ -224,7 +225,7 @@ fn seats_kept(log: &Log, target: &Old, own: i32, n: usize) -> Vec<Option<i32>> {
     let plain: Vec<Option<i32>> = (0..n).map(|k| if k == 0 { None } else { Some(own.wrapping_add(k as i32)) }).collect();
     let Some(factions) = &target.factions else { return plain };
     let setup = target.at.iter().take_while(|p| p.0 == 0).count().min(log.items.len());
-    let seats = |r: &Refit| r.game.players.iter().map(|p| p.faction.0).collect::<Vec<_>>() == *factions;
+    let seats = |r: &Refit| r.game.players.iter().map(|p| value_or_absent(p.faction)).collect::<Vec<_>>() == *factions;
     let none = End::default();
     let mut found = Vec::new();
     for k in 0..20_000 {

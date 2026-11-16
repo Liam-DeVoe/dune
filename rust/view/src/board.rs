@@ -145,7 +145,7 @@ pub fn ring_extras(game: &Game, p: PlayerIndex, out: &mut PublicPlayer) {
             HomeworldView {
                 world: name(w),
                 location: h.location().id(),
-                occupier: game.is_occupied_world(w).then(|| game.occupier_of(w).map(|o| name(game.player(o).faction))).flatten(),
+                occupier: game.is_occupied_world(w).then(|| game.occupier_of(w).map(|o| name_or_absent(game.player(o).faction))).flatten(),
                 high_threshold: pl.has_high_threshold(game, w),
                 low_threshold: pl.has_low_threshold(game, w),
             }
@@ -156,8 +156,8 @@ pub fn ring_extras(game: &Game, p: PlayerIndex, out: &mut PublicPlayer) {
         .filter(|l| game.is_in_front_of_shield(Some(Hero::Leader(*l))))
         .map(|l| SkilledLeader { id: l.id(), skill: name_or_absent(game.skill(Some(Hero::Leader(l)))) })
         .collect();
-    out.loyal_leader = (pl.faction == Faction::Ecaz).then_some(game.leaders.ecaz_loyal_leader).flatten().map(|l| l.id());
-    out.latest_revealed_no_field = (pl.faction == Faction::Richese && game.ship_move.latest_revealed_no_field_value >= 0).then_some(game.ship_move.latest_revealed_no_field_value);
+    out.loyal_leader = (pl.faction == Some(Faction::Ecaz)).then_some(game.leaders.ecaz_loyal_leader).flatten().map(|l| l.id());
+    out.latest_revealed_no_field = (pl.faction == Some(Faction::Richese) && game.ship_move.latest_revealed_no_field_value >= 0).then_some(game.ship_move.latest_revealed_no_field_value);
 }
 
 /// The card piles beside the map.
@@ -209,14 +209,14 @@ pub fn tanks(game: &Game, v: &ResolvedViewer) -> Vec<TanksEntry> {
             // OrderBy(TimeOfDeath) is a stable sort.
             corpses.sort_by_key(|(_, t, _)| *t);
             TanksEntry {
-                faction: name(pl.faction),
+                faction: name_or_absent(pl.faction),
                 forces_killed: pl.forces_killed,
                 special_forces_killed: pl.special_forces_killed,
                 leaders: corpses
                     .into_iter()
                     .map(|(l, _, face_down)| DeadLeader { id: (!face_down || may_identify(l)).then(|| l.id()), face_down })
                     .collect(),
-                messiah_dead: pl.faction == Faction::Atreides && !game.messiah_is_alive(),
+                messiah_dead: pl.faction == Some(Faction::Atreides) && !game.messiah_is_alive(),
             }
         })
         .collect()
@@ -258,8 +258,8 @@ pub fn battle(game: &Game, v: &ResolvedViewer) -> Option<BattleView> {
     let territory = current.territory(game);
     let mut view = BattleView {
         territory: territory.map(|t| t.id()),
-        aggressor: name(aggressor),
-        defender: name(defender),
+        aggressor: name_or_absent(aggressor),
+        defender: name_or_absent(defender),
         aggressor_plan: None,
         defender_plan: None,
     };
@@ -269,28 +269,28 @@ pub fn battle(game: &Game, v: &ResolvedViewer) -> Option<BattleView> {
 
     let me = viewer_faction(v);
     let my_ally = v.player.map(|p| game.player(p).ally);
-    let sees_atreides_karma = game.battle.atreides_karma && (me == Some(Faction::Atreides) || my_ally == Some(Faction::Atreides));
+    let sees_atreides_karma = game.battle.atreides_karma && (me == Some(Faction::Atreides) || my_ally == Some(Some(Faction::Atreides)));
     let atreides_opponent = current.opponent_of_faction(game, Faction::Atreides);
     let both_in = game.battle.aggressor_plan.is_some() && game.battle.defender_plan.is_some();
     // What prescience revealed goes to the prescience user and their ally only (protocol.md,
     // Visibility).
-    let on_side_of = |f: Faction| me == Some(f) || (my_ally == Some(f) && f != Faction::None);
+    let on_side_of = |f: Option<Faction>| f.is_some() && (me == f || my_ally == Some(f));
     let affected_by_partial = |plan: &Battle| {
-        let by = |initiator: Faction| current.opponent_of_faction(game, initiator) == Some(plan.player()) && on_side_of(initiator);
+        let by = |initiator: Option<Faction>| current.opponent_of_faction(game, initiator) == Some(plan.player()) && on_side_of(initiator);
         game.battle.current_prescience.as_ref().is_some_and(|pr| by(pr.initiator())) || game.turn.current_nexus_prescience.as_ref().is_some_and(|np| by(np.initiator()))
     };
     let traitor = |a: &Option<std::rc::Rc<TreacheryCalled>>| a.as_ref().is_some_and(|t| t.succeeded(game));
-    let facedanced = |f: Faction| game.turn.current_phase == Phase::Facedancing && game.battle.battle_winner == Some(f);
+    let facedanced = |f: Option<Faction>| game.turn.current_phase == Phase::Facedancing && game.battle.battle_winner == Some(f);
 
     let side = |plan: &Option<std::rc::Rc<Battle>>, opponent_plan: &Option<std::rc::Rc<Battle>>, is_aggressor: bool, traitor_called: bool| {
         let plan = plan.as_ref()?;
-        let may_see = plan.initiator() == me.unwrap_or(Faction::None) && me.is_some() || (sees_atreides_karma && atreides_opponent == Some(plan.player()));
+        let may_see = plan.initiator() == me && me.is_some() || (sees_atreides_karma && atreides_opponent == Some(plan.player()));
         let full = may_see || both_in;
         if !full && !affected_by_partial(plan) {
             return None;
         }
         let facedanced = facedanced(if is_aggressor { aggressor } else { defender });
-        Some(plan_view(game, plan, opponent_plan.as_deref(), full, is_aggressor, if full { traitor_called } else { false }, facedanced, territory, if is_aggressor { defender } else { aggressor }))
+        Some(plan_view(game, plan, opponent_plan.as_deref(), full, is_aggressor, if full { traitor_called } else { false }, facedanced, territory, if is_aggressor { defender.expect("faction") } else { aggressor.expect("faction") }))
     };
     view.aggressor_plan = side(&game.battle.aggressor_plan, &game.battle.defender_plan, true, traitor(&game.battle.defender_traitor_action));
     view.defender_plan = side(&game.battle.defender_plan, &game.battle.aggressor_plan, false, traitor(&game.battle.aggressor_traitor_action));
@@ -355,7 +355,7 @@ fn plan_view(
     };
 
     let defense_shown = full || aspect(PrescienceAspect::Defense);
-    let antidote = Battle::is_using_portable_antidote(game, initiator).then(|| pl.card(TreacheryCardType::PortableAntidote)).flatten();
+    let antidote = Battle::is_using_portable_antidote(game, initiator.expect("faction")).then(|| pl.card(TreacheryCardType::PortableAntidote)).flatten();
     let defense = if !defense_shown {
         None
     } else if let Some(a) = antidote {
@@ -368,13 +368,13 @@ fn plan_view(
     let weapon = if weapon_shown { plan.weapon().filter(|w| full || w.is_weapon()).map(|w| w.id()) } else { None };
 
     PlanView {
-        faction: name(initiator),
+        faction: name_or_absent(initiator),
         is_aggressor,
         full,
         dial: dial_shown.then(|| plan.dial(game, opponent) as f64),
         ecaz_contribution: (dial_shown && game.battle.current_ecaz_battle_contribution > 0 && (plan.by(Faction::Ecaz) || plan.by_ally_of(game, Faction::Ecaz)))
             .then_some(game.battle.current_ecaz_battle_contribution),
-        ecaz_karma_bonus: (dial_shown && initiator == Faction::Ecaz && game.battle.ecaz_karma_bonus != 0).then_some(game.battle.ecaz_karma_bonus),
+        ecaz_karma_bonus: (dial_shown && initiator == Some(Faction::Ecaz) && game.battle.ecaz_karma_bonus != 0).then_some(game.battle.ecaz_karma_bonus),
         homeworld_bonus: homeworld_bonus.filter(|_| dial_shown),
         reinforcements: dial_shown && full && plan.has_reinforcements(),
         cost: full.then(|| plan.cost(game)).filter(|c| *c > 0),
@@ -383,7 +383,7 @@ fn plan_view(
         hero,
         traitor_called: hero_shown && traitor_called,
         facedanced: hero_shown && facedanced,
-        messiah: hero_shown && initiator == Faction::Atreides && plan.messiah,
+        messiah: hero_shown && initiator == Some(Faction::Atreides) && plan.messiah,
         defense_shown,
         defense,
         weapon_shown,
@@ -414,7 +414,7 @@ pub fn to_bid(game: &Game) -> Vec<SequenceEntry> {
     } else {
         Bid::players_to_bid(game)
     };
-    seq.iter().filter_map(|se| se.player.map(|p| SequenceEntry { faction: name(game.player(p).faction), has_turn: se.has_turn })).collect()
+    seq.iter().filter_map(|se| se.player.map(|p| SequenceEntry { faction: name_or_absent(game.player(p).faction), has_turn: se.has_turn })).collect()
 }
 
 /// `GameStatus.FlashInfo`, rendered.
@@ -440,7 +440,7 @@ pub fn timing(game: &Game, timer: i32) -> TimingView {
             .players
             .iter()
             .map(|p| TimeSpent {
-                faction: name(p.faction),
+                faction: name_or_absent(p.faction),
                 bidding: seconds(game.time_spent(p.faction, MainPhase::Bidding)),
                 shipment_and_move: seconds(game.time_spent(p.faction, MainPhase::ShipmentAndMove)),
                 battle: seconds(game.time_spent(p.faction, MainPhase::Battle)),

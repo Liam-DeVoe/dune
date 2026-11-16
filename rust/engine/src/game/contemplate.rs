@@ -166,13 +166,13 @@ impl Game {
             self.turn.current_main_phase = MainPhase::Ended;
             self.enter(Phase::GameEnded, true);
             self.stone(Milestone::GameWon);
-            let winner_factions: Vec<Faction> = self.contemplate.winners.iter().map(|w| self.player(*w).faction).collect();
+            let winner_factions: Vec<Faction> = self.contemplate.winners.iter().filter_map(|w| self.player(*w).faction).collect();
             self.log(vec![express!("The game has ended.").with_log(GameEnded::new(winner_factions)).into()]);
 
             let winners = self.contemplate.winners.clone();
             for w in winners {
                 let faction = self.player(w).faction;
-                self.log(vec![express!(faction, " win!").with_log(GameWinner::new(faction)).into()]);
+                self.log(vec![express!(faction, " win!").with_log(GameWinner::new(faction.expect("faction"))).into()]);
             }
         } else {
             let condition = self.is_playing(Faction::Tleilaxu) && !self.prevented(FactionAdvantage::TleilaxuReplacingFaceDancer);
@@ -200,7 +200,7 @@ impl Game {
                 let faction = self.player(p).faction;
                 let bribes = self.player(p).bribes;
                 self.log(vec![express!(faction, " add ", Payment::of(bribes), " from bribes to their reserves")
-                    .with_log(BribesCollected::new(faction, bribes))
+                    .with_log(BribesCollected::new(faction.expect("faction"), bribes))
                     .into()]);
                 self.player_mut(p).bribes = 0;
             }
@@ -225,15 +225,15 @@ impl Game {
     }
 
     pub fn determine_stronghold_ownership_location(&mut self, location: Location) {
-        let current_owner = self.board.stronghold_ownership.get(&location).copied().unwrap_or(Faction::None);
+        let current_owner = self.board.stronghold_ownership.get(&location).copied();
         let contested = self.applicable(Rule::ContestedStongholdsCountAsOccupied);
         let new_owning_player = self.players.iter().find(|p| p.controls(self, location, contested));
-        let new_owner = new_owning_player.map_or(Faction::None, |p| p.faction);
+        let new_owner = new_owning_player.map_or(None, |p| p.faction);
 
         if current_owner != new_owner {
-            if current_owner != Faction::None && new_owner != Faction::None {
+            if current_owner != None && new_owner != None {
                 self.board.stronghold_ownership.remove(&location);
-                self.board.stronghold_ownership.insert_new(location, new_owner);
+                self.board.stronghold_ownership.insert_new(location, new_owner.expect("faction"));
                 self.log(vec![
                     new_owner.into(),
                     " take control over ".into(),
@@ -241,11 +241,11 @@ impl Game {
                     " from ".into(),
                     current_owner.into(),
                 ]);
-            } else if current_owner != Faction::None {
+            } else if current_owner != None {
                 self.board.stronghold_ownership.remove(&location);
                 self.log(vec![current_owner.into(), " lose control over ".into(), location.into()]);
-            } else if new_owner != Faction::None {
-                self.board.stronghold_ownership.insert_new(location, new_owner);
+            } else if new_owner != None {
+                self.board.stronghold_ownership.insert_new(location, new_owner.expect("faction"));
                 self.log(vec![new_owner.into(), " take control over ".into(), location.into()]);
             }
         }
@@ -306,7 +306,7 @@ impl Game {
 
                 self.contemplate.winners.push(p);
 
-                let ally = self.get_player(Some(self.player(p).ally));
+                let ally = self.get_player(self.player(p).ally);
                 if let Some(ally) = ally {
                     self.contemplate.winners.push(ally);
                 }
@@ -371,7 +371,7 @@ impl Game {
     }
 
     pub fn threshold_for_win(&self, p: PlayerIndex) -> i32 {
-        if self.player(p).ally != Faction::None {
+        if self.player(p).ally != None {
             return 4;
         }
         if self.players.len() <= 2 { 4 } else { 3 }
@@ -384,7 +384,7 @@ impl Game {
 
     pub fn meets_ecaz_victory_condition(&self, p: PlayerIndex, contested_strongholds_count_as_occupied: bool) -> bool {
         let pl = self.player(p);
-        ((pl.is(Faction::Ecaz) && pl.has_ally()) || pl.ally == Faction::Ecaz)
+        ((pl.is(Faction::Ecaz) && pl.has_ally()) || pl.ally == Some(Faction::Ecaz))
             && self
                 .strongholds()
                 .filter(|t| {
@@ -400,14 +400,14 @@ impl Game {
     pub fn meets_high_threshold_ecaz_victory_condition(&self, p: PlayerIndex, contested_strongholds_count_as_occupied: bool) -> bool {
         let pl = self.player(p);
         self.has_high_threshold(Faction::Ecaz)
-            && ((pl.is(Faction::Ecaz) && pl.has_ally()) || pl.ally == Faction::Ecaz)
+            && ((pl.is(Faction::Ecaz) && pl.has_ally()) || pl.ally == Some(Faction::Ecaz))
             && self.strongholds().any(|t| {
                 pl.controls_territory(self, t, contested_strongholds_count_as_occupied)
                     && self
                         .player(pl.allied_player(self).expect("allied player"))
                         .controls_territory(self, t, contested_strongholds_count_as_occupied)
             })
-            && self.board.homeworld_occupation.values().filter(|f| **f == pl.faction || **f == pl.ally).count() >= 2
+            && self.board.homeworld_occupation.values().filter(|f| Some(**f) == pl.faction || Some(**f) == pl.ally).count() >= 2
     }
 
     pub fn number_of_victory_points(&self, p: PlayerIndex, contested_strongholds_count_as_occupied: bool) -> i32 {
@@ -491,13 +491,13 @@ impl Game {
         let habbanya_sietch = self.board.map.habbanya_sietch();
         let tueks_sietch = self.board.map.tueks_sietch();
         let sietch_tabr_occupied_by_other_than_fremen = self.players.iter().any(|p| {
-            p.faction != Faction::Fremen
-                && (p.faction != Faction::Ecaz || p.ally != Faction::Fremen)
+            p.faction != Some(Faction::Fremen)
+                && (p.faction != Some(Faction::Ecaz) || p.ally != Some(Faction::Fremen))
                 && p.occupies(self, Some(sietch_tabr))
         });
         let habbanya_sietch_occupied_by_other_than_fremen = self.players.iter().any(|p| {
-            p.faction != Faction::Fremen
-                && (p.faction != Faction::Ecaz || p.ally != Faction::Fremen)
+            p.faction != Some(Faction::Fremen)
+                && (p.faction != Some(Faction::Ecaz) || p.ally != Some(Faction::Fremen))
                 && p.occupies(self, Some(habbanya_sietch))
         });
         let tueks_sietch_occupied_by_atreides_or_harkonnen_or_emperor_or_richese = self.players.iter().any(|p| {
@@ -546,7 +546,8 @@ impl Game {
         }
     }
 
-    pub fn has_stronghold_advantage(&self, f: Faction, advantage: StrongholdAdvantage, battle_territory: Territory) -> bool {
+    pub fn has_stronghold_advantage(&self, f: impl Into<Option<Faction>>, advantage: StrongholdAdvantage, battle_territory: Territory) -> bool {
+        let f: Option<Faction> = f.into();
         let hms = self.board.map.hidden_mobile_stronghold().location();
         if battle_territory == hms.territory() && self.owns_stronghold(f, hms) && self.battle.chosen_hms_advantage == Some(Some(advantage)) {
             return true;
@@ -555,9 +556,10 @@ impl Game {
         battle_territory.advantage() == Some(advantage) && battle_territory.locations().iter().any(|l| self.owns_stronghold(f, *l))
     }
 
-    pub fn owns_stronghold(&self, f: Faction, stronghold: Location) -> bool {
+    pub fn owns_stronghold(&self, f: impl Into<Option<Faction>>, stronghold: Location) -> bool {
+        let f: Option<Faction> = f.into();
         match self.board.stronghold_ownership.get(&stronghold) {
-            Some(owner) => *owner == f,
+            Some(owner) => Some(*owner) == f,
             None => false,
         }
     }

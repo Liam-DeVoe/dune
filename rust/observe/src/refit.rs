@@ -97,7 +97,8 @@ pub struct Stats {
 
 pub struct Refit {
     pub game: Game,
-    bots: Vec<(Faction, ClassicBot)>,
+    /// Keyed by the faction, `None` for a player who has none yet.
+    bots: Vec<(Option<Faction>, ClassicBot)>,
     fuzz: Fuzzer,
     pub out: Vec<Out>,
     pub stats: Stats,
@@ -181,12 +182,12 @@ impl Refit {
     }
 
     /// The index of `faction`'s bot in `bots`, created on first use, pointed at its player.
-    fn bot(bots: &mut Vec<(Faction, ClassicBot)>, game: &Game, faction: Faction) -> Option<usize> {
-        let p = game.get_player(Some(faction))?;
+    fn bot(bots: &mut Vec<(Option<Faction>, ClassicBot)>, game: &Game, faction: Option<Faction>) -> Option<usize> {
+        let p = game.get_player(faction)?;
         let index = match bots.iter().position(|(f, _)| *f == faction) {
             Some(i) => i,
             None => {
-                let bot = ClassicBot::new(p, BotParameters::for_faction(faction), SharedRandom::from_seed(7919 * faction.0 + 1));
+                let bot = ClassicBot::new(p, BotParameters::for_faction(faction), SharedRandom::from_seed(7919 * value_or_absent(faction) + 1));
                 bots.push((faction, bot));
                 bots.len() - 1
             }
@@ -197,7 +198,7 @@ impl Refit {
 
     /// An event of type `t` for `faction` that passes validation now: the bot's, else one built
     /// from the form's choices.
-    fn replacement(&mut self, t: GameEventType, faction: Faction) -> Option<Map<String, Value>> {
+    fn replacement(&mut self, t: GameEventType, faction: Option<Faction>) -> Option<Map<String, Value>> {
         if let Some(b) = Self::bot(&mut self.bots, &self.game, faction) {
             let (bot, game) = (&mut self.bots[b].1, &self.game);
             for level in Priority::ALL {
@@ -230,12 +231,12 @@ impl Refit {
     /// One round of the bots, as the server asks them: every player's bot at the highest priority
     /// first. If no bot acts, the host ends the phase when it may. False if nothing happened.
     fn bot_round(&mut self, time: &Value) -> bool {
-        let players: Vec<(usize, Faction)> = self.game.players.iter().enumerate().map(|(i, p)| (i, p.faction)).collect();
+        let players: Vec<(usize, Faction)> = self.game.players.iter().enumerate().filter_map(|(i, p)| p.faction.map(|f| (i, f))).collect();
         for level in Priority::ALL {
             for &(i, faction) in &players {
                 let p = self.game.player_at(i);
                 let Some(allowed) = quiet(|| self.game.get_applicable_events(Some(p), false)) else { continue };
-                let Some(b) = Self::bot(&mut self.bots, &self.game, faction) else { continue };
+                let Some(b) = Self::bot(&mut self.bots, &self.game, Some(faction)) else { continue };
                 let (bot, game) = (&mut self.bots[b].1, &self.game);
                 if let Some(Some(e)) = quiet(|| bot.decide(game, level, &allowed)) {
                     let mut event = to_object(&e);
@@ -271,7 +272,7 @@ impl Refit {
         if host.contains(&GameEventType::CardsDetermined) {
             let cards: Vec<TreacheryCard> = game.decks.treachery_deck.as_ref().map(|d| d.items.clone()).unwrap_or_default();
             let richese = if game.is_playing(Faction::Richese) { TreacheryCardManager::get_richese_cards() } else { vec![] };
-            let mut e = CardsDetermined::new(game, Faction::None);
+            let mut e = CardsDetermined::new(game, None);
             e.set_treachery_cards(&cards);
             e.set_richese_cards(&richese);
             candidates.push(Rc::new(e).into_event());
@@ -292,7 +293,7 @@ impl Refit {
             }
         }
         if host.contains(&GameEventType::EndPhase) {
-            candidates.push(Rc::new(EndPhase::new(game, Faction::None)).into_event());
+            candidates.push(Rc::new(EndPhase::new(game, None)).into_event());
         }
         for e in candidates {
             if self.add(to_object(&e), true, time) {
@@ -328,7 +329,7 @@ impl Refit {
             return false;
         }
         let (Some(t), Some(initiator)) = (type_of(event), event.get("Initiator").and_then(|v| v.as_i64())) else { return false };
-        let Some(mut replacement) = self.replacement(t, Faction(initiator as i32)) else { return false };
+        let Some(mut replacement) = self.replacement(t, treachery_engine::enum_type::from_value_or_absent::<Faction>(initiator as i32).ok().flatten()) else { return false };
         if let Some(time) = event.get("Time") {
             replacement.insert("Time".into(), time.clone());
         }

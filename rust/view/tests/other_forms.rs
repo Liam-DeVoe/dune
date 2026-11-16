@@ -60,11 +60,11 @@ fn check(game: &Game, p: PlayerIndex, v: &ResolvedViewer, o: &ActionOptions, at:
         ActionOptions::Simple { confirm_label, .. } => assert!(!confirm_label.is_empty(), "{at}"),
         ActionOptions::YesNo(o) => assert!(!o.title.is_empty(), "{at}"),
         ActionOptions::AllyPermission(o) => {
-            assert_eq!(o.ally, pl.ally.to_string(), "{at}");
+            assert_eq!(o.ally, name_or_absent(pl.ally), "{at}");
             assert_eq!(o.max_resources, pl.resources, "{at}");
-            assert_eq!(o.current_resources, game.get_permitted_use_of_ally_resources(pl.ally), "{at}");
+            assert_eq!(o.current_resources, game.get_permitted_use_of_ally_resources(pl.ally.expect("faction")), "{at}");
             assert_eq!(o.karma_cards, Karma::can_karma(game, p).then(|| ids(Karma::valid_karma_cards(game, p))), "{at}");
-            assert_eq!(o.current_karma_card, game.get_permitted_use_of_ally_karma(pl.ally).map(|c| c.id()), "{at}");
+            assert_eq!(o.current_karma_card, game.get_permitted_use_of_ally_karma(pl.ally.expect("faction")).map(|c| c.id()), "{at}");
         }
         ActionOptions::AutomationConfigured(o) => {
             assert_eq!(option_names(&o.rule_types), names(AutomationConfigured::get_available_rule_types(game, p)), "{at}");
@@ -84,7 +84,7 @@ fn check(game: &Game, p: PlayerIndex, v: &ResolvedViewer, o: &ActionOptions, at:
         ActionOptions::DealOffered(o) => {
             let types: Vec<i32> = DealOffered::get_standard_deal_types(game, p).into_iter().map(|t| t.value()).collect();
             assert_eq!(o.deal_types.iter().map(|t| t.value).collect::<Vec<_>>(), types, "{at}");
-            assert_eq!(targets(&o.targets), factions(game.players_other_than(p).filter(|f| *f != pl.ally)), "{at}");
+            assert_eq!(targets(&o.targets), factions(game.players_other_than(p).filter(|f| Some(*f) != pl.ally)), "{at}");
         }
         ActionOptions::Discarded(o) | ActionOptions::EmperorDiscarded(o) | ActionOptions::IxianSwappedCardOnBid(o) => assert_eq!(o.cards, hand, "{at}"),
         ActionOptions::DiscardedSearched(o) => assert_eq!(o.cards, ids(DiscardedSearched::valid_cards(game)), "{at}"),
@@ -105,7 +105,7 @@ fn check(game: &Game, p: PlayerIndex, v: &ResolvedViewer, o: &ActionOptions, at:
             assert_eq!(o.is_host, v.is_host, "{at}");
         }
         ActionOptions::EmperorBidSupport(o) => {
-            assert_eq!(targets(&o.targets), factions(game.players_other_than(p).filter(|f| *f != pl.ally)), "{at}");
+            assert_eq!(targets(&o.targets), factions(game.players_other_than(p).filter(|f| Some(*f) != pl.ally)), "{at}");
             assert_eq!(o.max, pl.resources, "{at}");
         }
         ActionOptions::FactionSelected(o) => assert_eq!(targets(&o.targets), factions(FactionSelected::valid_factions(game)), "{at}"),
@@ -122,7 +122,7 @@ fn check(game: &Game, p: PlayerIndex, v: &ResolvedViewer, o: &ActionOptions, at:
         }
         ActionOptions::KarmaChoamDiscard(o) => assert_eq!(o.karma_cards, ids(Karma::valid_karma_cards(game, p)), "{at}"),
         ActionOptions::KarmaHandSwap(o) => {
-            assert_eq!((o.number, o.target.clone(), o.cards.clone()), (game.bidding.karma_hand_swap_number_of_cards, game.bidding.karma_hand_swap_target.to_string(), hand), "{at}")
+            assert_eq!((o.number, o.target.clone(), o.cards.clone()), (game.bidding.karma_hand_swap_number_of_cards, name_or_absent(game.bidding.karma_hand_swap_target), hand), "{at}")
         }
         ActionOptions::KarmaHandSwapInitiated(o) => assert_eq!(targets(&o.targets), factions(game.players_other_than(p)), "{at}"),
         ActionOptions::KarmaMonster(o) => assert_eq!(o.territories, KarmaMonster::valid_targets(game).map(|t| t.id()).collect::<Vec<_>>(), "{at}"),
@@ -130,7 +130,7 @@ fn check(game: &Game, p: PlayerIndex, v: &ResolvedViewer, o: &ActionOptions, at:
         ActionOptions::MulliganPerformed(o) => assert_eq!(o.may, MulliganPerformed::may_mulligan(game, p), "{at}"),
         ActionOptions::NexusCardDrawn(o) => assert_eq!(o.may, NexusCardDrawn::may_draw(game, p), "{at}"),
         ActionOptions::NexusPlayed(o) => {
-            assert_eq!(o.nexus, pl.nexus.to_string(), "{at}");
+            assert_eq!(o.nexus, name_or_absent(pl.nexus), "{at}");
             if let Some(a) = &o.aspects {
                 assert_eq!(option_names(a), names(Prescience::valid_aspects(game, p)), "{at}");
             }
@@ -195,13 +195,13 @@ impl Seen {
 fn check_state(game: &mut Game, d: &dyn Describer, at: &str, seen: &mut Seen) {
     let players: Vec<PlayerIndex> = game.player_indices().collect();
     for p in players {
-        let v = ResolvedViewer { player: Some(p), faction: Some(game.player(p).faction), is_host: p.index == 0, is_observer: false };
+        let v = ResolvedViewer { player: Some(p), faction: game.player(p).faction, is_host: p.index == 0, is_observer: false };
         let types = game.get_applicable_events(Some(p), v.is_host);
         let game: &Game = game;
         let in_game = InGame::new(d, game);
         for t in types.into_iter().filter(|t| mine(*t)) {
             let view = action_view(game, &v, &Default::default(), t, &in_game);
-            let at = format!("{at} {} {}", game.player(p).faction, t.name());
+            let at = format!("{at} {} {}", treachery_engine::enum_type::name_or_absent(game.player(p).faction), t.name());
             let options = view.options.as_ref().unwrap_or_else(|| panic!("{at}: no options"));
             check(game, p, &v, options, &at);
             if let Some(draft) = draft_of(options) {
@@ -331,7 +331,7 @@ fn fixture_forms_and_queries() {
         let mut r2 = common::load(&name);
         let d = default_describer();
         check_state(&mut r.game, d.as_ref(), &name, &mut seen);
-        let factions: Vec<Faction> = r2.game.players.iter().map(|p| p.faction).collect();
+        let factions: Vec<Faction> = r2.game.players.iter().filter_map(|p| p.faction).collect();
         for f in factions {
             let viewer = common::viewer_of(&r2, f);
             let view = r2.view(viewer);
@@ -356,7 +356,7 @@ fn dependent_inputs() {
     let mut r = common::load("alliance-allied");
     // `load` makes seat 0's user the host, whichever player sits there.
     let host_faction = r.game.players.iter().find(|p| p.seat == 0).expect("a player in seat 0").faction;
-    let host = common::viewer_of(&r, host_faction);
+    let host = common::viewer_of(&r, host_faction.expect("faction"));
     let view = r.view(host);
     let donated = view.actions.iter().find(|a| a.event_type == "Donated").expect("Donated applicable");
     let mut draft = draft_of(donated.options.as_ref().unwrap()).unwrap();
@@ -366,7 +366,7 @@ fn dependent_inputs() {
     assert_eq!((o.min, o.max), (-99, 99));
     assert_eq!(o.targets.len(), r.game.players.len());
     // A non-host can't give from the bank: the form resets the box.
-    let others: Vec<Faction> = r.game.players.iter().filter(|p| p.faction != host_faction).map(|p| p.faction).collect();
+    let others: Vec<Faction> = r.game.players.iter().filter(|p| p.faction != host_faction).filter_map(|p| p.faction).collect();
     let viewers: Vec<_> = others.into_iter().map(|f| common::viewer_of(&r, f)).collect();
     let other = viewers
         .into_iter()

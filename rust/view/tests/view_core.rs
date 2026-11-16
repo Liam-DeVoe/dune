@@ -20,7 +20,7 @@ const FIXTURES: &[&str] = &[
 ];
 
 fn factions(r: &ViewReplica) -> Vec<Faction> {
-    r.game.players.iter().map(|p| p.faction).collect()
+    r.game.players.iter().filter_map(|p| p.faction).collect()
 }
 
 fn player(r: &ViewReplica, f: Faction) -> PlayerIndex {
@@ -148,7 +148,7 @@ fn tanks() {
             let g = &r.game;
             assert_eq!(view.tanks.len(), g.players.len());
             for (row, pl) in view.tanks.iter().zip(&g.players) {
-                assert_eq!(row.faction, pl.faction.to_string());
+                assert_eq!(row.faction, name_or_absent(pl.faction));
                 assert_eq!((row.forces_killed, row.special_forces_killed), (pl.forces_killed, pl.special_forces_killed));
                 let dead: Vec<Leader> = pl.leaders.iter().copied().filter(|l| !g.is_alive(Hero::Leader(*l))).collect();
                 assert_eq!(row.leaders.len(), dead.len(), "{fixture}");
@@ -165,15 +165,15 @@ fn tanks() {
                     assert_eq!(shown.face_down, s.is_face_down_dead());
                     times.push(s.time_of_death);
                     if shown.face_down {
-                        assert!(f == Some(pl.faction) || f == Some(Faction::Tleilaxu), "{fixture}: {f:?} identifies a face-down leader");
+                        assert!(f == pl.faction || f == Some(Faction::Tleilaxu), "{fixture}: {f:?} identifies a face-down leader");
                     }
                 }
                 assert!(times.windows(2).all(|w| w[0] <= w[1]), "in order of death");
                 for shown in row.leaders.iter().filter(|l| l.face_down) {
                     face_down += 1;
-                    assert_eq!(shown.id.is_some(), f == Some(pl.faction) || f == Some(Faction::Tleilaxu), "{fixture} {f:?}");
+                    assert_eq!(shown.id.is_some(), f == pl.faction || f == Some(Faction::Tleilaxu), "{fixture} {f:?}");
                 }
-                assert_eq!(row.messiah_dead, pl.faction == Faction::Atreides && !g.messiah_is_alive());
+                assert_eq!(row.messiah_dead, pl.faction == Some(Faction::Atreides) && !g.messiah_is_alive());
             }
         }
     }
@@ -192,7 +192,7 @@ fn ring() {
         // SectorGeometry.PlayerTokenPosition places seats by Game.MaximumPlayers.
         assert_eq!(view.maximum_players, g.maximum_players());
         for (pp, pl) in view.players.iter().zip(&g.players) {
-            let p = player(&r, pl.faction);
+            let p = player(&r, pl.faction.expect("faction"));
             assert_eq!(pp.has_special_forces, pl.has_special_forces(g));
             assert_eq!(pp.has_room_for_cards, pl.has_room_for_cards(g));
             assert_eq!(pp.cards_owned, g.cards_owned_by(p).len() as i32);
@@ -210,7 +210,7 @@ fn ring() {
                 .collect();
             assert_eq!(pp.skilled_leaders.iter().map(|s| (s.id, s.skill.clone())).collect::<Vec<_>>(), expected);
             skilled += expected.len();
-            assert_eq!(pp.loyal_leader.is_some(), pl.faction == Faction::Ecaz && g.leaders.ecaz_loyal_leader.is_some());
+            assert_eq!(pp.loyal_leader.is_some(), pl.faction == Some(Faction::Ecaz) && g.leaders.ecaz_loyal_leader.is_some());
         }
     }
     assert!(skilled > 0, "the retreat fixture has skilled leaders in front of shields");
@@ -363,7 +363,7 @@ fn prompt_bidders() {
     let view = r.view(OBSERVER);
     let expected: Vec<SequenceEntry> = Bid::players_to_bid(&r.game)
         .iter()
-        .filter_map(|se| se.player.map(|p| SequenceEntry { faction: name(r.game.player(p).faction), has_turn: se.has_turn }))
+        .filter_map(|se| se.player.map(|p| SequenceEntry { faction: name_or_absent(r.game.player(p).faction), has_turn: se.has_turn }))
         .collect();
     assert_eq!(view.status.to_bid, expected);
     assert_eq!(view.status.to_bid.iter().filter(|e| e.has_turn).count(), 1);
@@ -382,13 +382,13 @@ fn flash() {
         Part::Faction { v, .. } => v.clone(),
         other => panic!("{other:?}"),
     };
-    assert_eq!(faction_of(&view.status.flash[0].to_show), name(winner));
-    assert_eq!(faction_of(&view.status.flash[0].message[0]), name(winner));
+    assert_eq!(faction_of(&view.status.flash[0].to_show), name_or_absent(winner));
+    assert_eq!(faction_of(&view.status.flash[0].message[0]), name_or_absent(winner));
     assert_eq!(view.status.flash[0].message[1], Part::Text { v: " win!".into() });
 
     let mut r = load("mc-ended");
     let view = r.view(OBSERVER);
-    let winners: Vec<String> = r.game.contemplate.winners.iter().map(|p| name(r.game.player(*p).faction)).collect();
+    let winners: Vec<String> = r.game.contemplate.winners.iter().map(|p| name_or_absent(r.game.player(*p).faction)).collect();
     assert_eq!(view.status.flash.iter().map(|f| faction_of(&f.to_show)).collect::<Vec<_>>(), winners);
 
     let mut r = load("blow");
@@ -401,7 +401,7 @@ fn flash() {
 fn prompt_continue() {
     let mut r = load("blow");
     let host = r.game.players.iter().find(|p| p.seat == 0).unwrap().faction;
-    let view = r.view(viewer_of(&r, host));
+    let view = r.view(viewer_of(&r, host.expect("faction")));
     let end = view.actions.iter().find(|a| a.event_type == "EndPhase").expect("the host may end the blow report");
     assert_eq!(end.options, Some(ActionOptions::Simple { title: None, confirm_label: "Continue".into(), alert: false, allow_auto_confirm: false }));
     assert_eq!(end.validation, None);
@@ -448,13 +448,13 @@ fn battle_plans_once_both_are_in() {
     for (f, view) in all_views(&mut r) {
         let g = &r.game;
         let b = view.battle.as_ref().expect("a battle");
-        assert_eq!((b.aggressor.as_str(), b.defender.as_str()), (name(battle.aggressor(g)).as_str(), name(battle.defender(g)).as_str()));
+        assert_eq!((b.aggressor.as_str(), b.defender.as_str()), (name_or_absent(battle.aggressor(g)).as_str(), name_or_absent(battle.defender(g)).as_str()));
         for (shown, plan, opponent) in [(&b.aggressor_plan, &g.battle.aggressor_plan, battle.defender(g)), (&b.defender_plan, &g.battle.defender_plan, battle.aggressor(g))] {
             let shown = shown.as_ref().unwrap_or_else(|| panic!("{f:?} sees both plans"));
             let plan = plan.as_ref().unwrap();
             assert!(shown.full && shown.hero_shown && shown.weapon_shown && shown.defense_shown);
-            assert_eq!(shown.faction, name(plan.initiator()));
-            assert_eq!(shown.dial, Some(plan.dial(g, opponent) as f64));
+            assert_eq!(shown.faction, name_or_absent(plan.initiator()));
+            assert_eq!(shown.dial, Some(plan.dial(g, opponent.expect("faction")) as f64));
             assert_eq!(shown.weapon, plan.weapon().map(|c| c.id()));
             assert_eq!(shown.cost, Some(plan.cost(g)).filter(|c| *c > 0));
             match (plan.hero(), &shown.hero) {
@@ -474,18 +474,18 @@ fn battle_plans_before_both_are_in() {
     for fixture in ["prescience-seen", "karma-prescience", "nexus-prescience", "battle", "mc-voice", "mc-prescience"] {
         let mut r = load(fixture);
         assert!(!(r.game.battle.aggressor_plan.is_some() && r.game.battle.defender_plan.is_some()), "{fixture}");
-        let users: Vec<Faction> = r.game.battle.current_prescience.iter().map(|p| p.initiator()).chain(r.game.turn.current_nexus_prescience.iter().map(|n| n.initiator())).collect();
+        let users: Vec<Faction> = r.game.battle.current_prescience.iter().filter_map(|p| p.initiator()).chain(r.game.turn.current_nexus_prescience.iter().filter_map(|n| n.initiator())).collect();
         for (f, view) in all_views(&mut r) {
             let g = &r.game;
             let b = view.battle.as_ref().unwrap();
             let ally = f.map(|f| g.player(player(&r, f)).ally);
             for (shown, plan) in [(&b.aggressor_plan, &g.battle.aggressor_plan), (&b.defender_plan, &g.battle.defender_plan)] {
-                let own = plan.as_ref().is_some_and(|p| Some(p.initiator()) == f);
+                let own = plan.as_ref().is_some_and(|p| p.initiator() == f);
                 match shown {
                     None => assert!(!own, "{fixture}: {f:?} sees their own plan"),
                     Some(s) if s.full => assert!(own || g.battle.atreides_karma, "{fixture}: {f:?} sees a hidden plan"),
                     Some(s) => {
-                        assert!(users.iter().any(|u| f == Some(*u) || ally == Some(*u)), "{fixture}: {f:?} sees prescience it didn't ask");
+                        assert!(users.iter().any(|u| f == Some(*u) || ally == Some(Some(*u))), "{fixture}: {f:?} sees prescience it didn't ask");
                         let aspect = g.battle.current_prescience.as_ref().map(|p| p.aspect).or(g.turn.current_nexus_prescience.as_ref().map(|n| n.atreides_prescience_aspect)).unwrap();
                         let shown_aspects = [
                             (PrescienceAspect::Dial, s.dial.is_some()),
@@ -597,7 +597,7 @@ fn board_lists_in_map_order() {
     let all: Vec<i32> = view.board.forces.iter().map(|f| f.location).collect();
     assert!(all.windows(2).all(|w| w[0] <= w[1]), "forces not in map order: {all:?}");
     for p in &r.game.players {
-        let own: Vec<i32> = view.board.forces.iter().filter(|f| f.faction == name(p.faction)).map(|f| f.location).collect();
+        let own: Vec<i32> = view.board.forces.iter().filter(|f| f.faction == name_or_absent(p.faction)).map(|f| f.location).collect();
         assert!(increasing(&own), "{:?} forces not in map order: {own:?}", p.faction);
     }
 

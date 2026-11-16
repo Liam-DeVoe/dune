@@ -13,8 +13,9 @@ impl Battalion {
         Battalion { faction, amount_of_forces, amount_of_special_forces, location }
     }
 
-    pub fn is(&self, f: Faction) -> bool {
-        self.faction == f
+    pub fn is(&self, f: impl Into<Option<Faction>>) -> bool {
+        let f: Option<Faction> = f.into();
+        Some(self.faction) == f
     }
 
     pub fn can_occupy(&self) -> bool {

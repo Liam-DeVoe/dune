@@ -15,9 +15,9 @@ impl Default for AlliancePassed {
 }
 
 impl AlliancePassed {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -36,7 +36,7 @@ impl AlliancePassed {
             game.alliances.current_alliance_offers.remove(i);
         }
 
-        game.turn.has_acted_or_passed.push(initiator);
+        game.turn.has_acted_or_passed.push(initiator.required("faction")?);
         game.end_nexus_if_everyone_is_done();
         Ok(())
     }

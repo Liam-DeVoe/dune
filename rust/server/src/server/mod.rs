@@ -151,7 +151,8 @@ pub struct RunningGame {
     pub last_async_mail: Option<Time>,
     async_mail_pending: bool,
     /// One bot per faction, created when that faction's bot first acts and kept across undo.
-    bots: Vec<(Faction, ClassicBot)>,
+    /// Keyed by the faction, `None` for a player who has none yet.
+    bots: Vec<(Option<Faction>, ClassicBot)>,
     /// Counts the bot turns scheduled; only the latest runs.
     bot_turn: u64,
     pause: Pause,

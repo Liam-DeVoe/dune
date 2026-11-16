@@ -21,9 +21,9 @@ impl Default for TakeLosses {
 }
 
 impl TakeLosses {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -67,7 +67,7 @@ impl TakeLosses {
 
     pub fn valid_useless_card_to_prevent_losses(g: &Game, p: PlayerIndex) -> Option<TreacheryCard> {
         let pl = g.player(p);
-        if pl.faction == Faction::Choam && !g.prevented(FactionAdvantage::ChoamDiscarding) {
+        if pl.faction == Some(Faction::Choam) && !g.prevented(FactionAdvantage::ChoamDiscarding) {
             return pl.treachery_cards.iter().copied().find(|c| c.id() == TreacheryCardManager::CARD_JUBBA_CLOAK);
         }
 
@@ -86,7 +86,7 @@ impl TakeLosses {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let player = self.get_player(game, Some(self.initiator()));
+        let player = self.get_player(game, self.initiator());
         let mut must_discard = false;
 
         if self.use_useless_card {
@@ -111,7 +111,7 @@ impl TakeLosses {
             };
             Player::kill_forces(game, player, kill_location, self.force_amount, self.special_force_amount, false);
             game.storm.storm_losses_to_take.remove(0);
-            let message = self.get_message(game).with_log(StormKilled::new(self.initiator(), kill_location, self.force_amount, self.special_force_amount));
+            let message = self.get_message(game).with_log(StormKilled::new(self.initiator().required("faction")?, kill_location, self.force_amount, self.special_force_amount));
             game.log(vec![message.into()]);
         }
 
@@ -125,7 +125,7 @@ impl TakeLosses {
         }
 
         if must_discard {
-            game.let_player_discard_treachery_card_of_choice(self.initiator());
+            game.let_player_discard_treachery_card_of_choice(self.initiator().required("faction")?);
         }
         Ok(())
     }

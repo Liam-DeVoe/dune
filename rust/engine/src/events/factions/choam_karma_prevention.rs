@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct ChoamKarmaPrevention {
-    pub target: Faction,
+    pub target: Option<Faction>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -17,9 +17,9 @@ impl Default for ChoamKarmaPrevention {
 }
 
 impl ChoamKarmaPrevention {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -28,7 +28,7 @@ impl ChoamKarmaPrevention {
     }
 
     pub fn can_be_played_by(g: &Game, p: PlayerIndex) -> bool {
-        g.player(p).faction == Faction::Choam
+        g.player(p).faction == Some(Faction::Choam)
             && ((!g.prevented(FactionAdvantage::ChoamDiscarding) && ChoamKarmaPrevention::card_to_use(g, p).is_some())
                 || (NexusPlayed::can_use_cunning(g, p) && !g.player(p).treachery_cards.is_empty()))
     }
@@ -44,7 +44,7 @@ impl ChoamKarmaPrevention {
         if NexusPlayed::can_use_cunning(game, me) {
             game.discard_nexus_card(me);
             game.stone(Milestone::NexusPlayed);
-            game.let_player_discard_treachery_card_of_choice(self.initiator());
+            game.let_player_discard_treachery_card_of_choice(self.initiator().required("faction")?);
         } else {
             let card = ChoamKarmaPrevention::card_to_use(game, me);
             game.discard_card(card, true)?;

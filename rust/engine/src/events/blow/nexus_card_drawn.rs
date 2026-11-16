@@ -23,9 +23,9 @@ impl Default for NexusCardDrawn {
 }
 
 impl NexusCardDrawn {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -37,22 +37,22 @@ impl NexusCardDrawn {
     }
 
     pub fn may_draw(g: &Game, p: PlayerIndex) -> bool {
-        !g.blow.factions_that_drew_nexus_card.contains(&g.player(p).faction) || g.player(p).faction == g.player(p).nexus
+        !g.blow.factions_that_drew_nexus_card.contains_opt(g.player(p).faction) || g.player(p).faction == g.player(p).nexus
     }
 
     pub fn applicable(g: &Game, p: PlayerIndex) -> bool {
-        g.blow.factions_that_may_draw_nexus_card.contains(&g.player(p).faction)
+        g.blow.factions_that_may_draw_nexus_card.contains_opt(g.player(p).faction)
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         if !self.passed {
             self.deal_nexus_card(game);
-            game.blow.factions_that_drew_nexus_card.push(self.initiator());
+            game.blow.factions_that_drew_nexus_card.push(self.initiator().required("faction")?);
         }
 
         if self.passed {
             let initiator = self.initiator();
-            if let Some(i) = game.blow.factions_that_may_draw_nexus_card.iter().position(|f| *f == initiator) {
+            if let Some(i) = game.blow.factions_that_may_draw_nexus_card.iter().position(|f| Some(*f) == initiator) {
                 game.blow.factions_that_may_draw_nexus_card.remove(i);
             }
         }
@@ -79,7 +79,7 @@ impl NexusCardDrawn {
         let faction = game.player(self.player()).faction;
         self.log_objects(game, elems![faction, " draw a Nexus Card"]);
         let card = game.decks.nexus_card_deck.as_mut().expect("nexus card deck").draw();
-        game.player_mut(self.player()).nexus = card;
+        game.player_mut(self.player()).nexus = Some(card);
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {

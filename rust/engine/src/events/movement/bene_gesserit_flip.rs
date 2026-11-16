@@ -17,14 +17,14 @@ impl Default for BeneGesseritFlip {
 }
 
 impl BeneGesseritFlip {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
     pub fn validate(&self, _game: &Game) -> Option<Message> {
-        if self.initiator() != Faction::BeneGesserit {
+        if self.initiator() != Some(Faction::BeneGesserit) {
             return Some(express!("Your faction can't flip"));
         }
 

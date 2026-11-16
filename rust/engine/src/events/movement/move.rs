@@ -25,9 +25,9 @@ impl Default for Move {
 }
 
 impl Move {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -48,7 +48,7 @@ impl Move {
         };
 
         if !game.ship_move.current_player_may_perform_extra_move && !game.ship_move.in_guild_cunning_shipment {
-            game.turn.has_acted_or_passed.push(self.initiator());
+            game.turn.has_acted_or_passed.push(self.initiator().required("faction")?);
 
             if game.turn.current_phase == Phase::NonGuildMove {
                 let mut seq = game.ship_move.shipment_and_move_sequence.take().required("shipment and move sequence")?;
@@ -79,11 +79,11 @@ impl Move {
             }
 
             let force_locations = PlacementEventMethods::force_locations(&**self, game);
-            let as_advisors = self.initiator() != Faction::BeneGesserit || self.as_advisors;
+            let as_advisors = self.initiator() != Some(Faction::BeneGesserit) || self.as_advisors;
             game.perform_move_from_locations(me, &force_locations, &self.clone().into_event(), as_advisors, false);
             game.check_intrusion(&self.clone().into_event())?;
         } else {
-            let m = express!(self.initiator(), " pass movement").with_log(MovePassed { faction: self.initiator() });
+            let m = express!(self.initiator(), " pass movement").with_log(MovePassed { faction: self.initiator().required("faction")? });
             self.log_objects(game, vec![m.into()]);
         }
 
@@ -122,7 +122,7 @@ pub(crate) fn contains_conflicting_ally_opt(game: &Game, initiator: PlayerIndex,
         Some(to) => Ok(game.contains_conflicting_ally(initiator, to)),
         None => {
             let ini = game.player(initiator);
-            if !ini.has_ally() || ini.faction == Faction::Ecaz || ini.ally == Faction::Ecaz {
+            if !ini.has_ally() || ini.faction == Some(Faction::Ecaz) || ini.ally == Some(Faction::Ecaz) {
                 return Ok(false);
             }
             game_error!("There is no destination")
@@ -185,7 +185,7 @@ impl PlacementEventMethods for Move {
 
 impl crate::events::location_event::LocationEvent for Move {
     fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self)
+        GameEventMethods::initiator(self).expect("faction")
     }
 
     fn to(&self, game: &Game) -> Option<Location> {
@@ -208,7 +208,7 @@ impl crate::events::location_event::LocationEvent for Move {
 
 impl crate::events::placement::Placement for Move {
     fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self)
+        GameEventMethods::initiator(self).expect("faction")
     }
 
     fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {

@@ -167,7 +167,7 @@ impl Config {
     /// The host's `EstablishPlayers`, in savegame JSON (without `Time`).
     pub fn establish_players(&self) -> Value {
         let rules: Vec<i32> = self.rules.iter().map(|r| *r as i32).collect();
-        let factions: Vec<i32> = self.factions.iter().map(|f| f.0).collect();
+        let factions: Vec<i32> = self.factions.iter().map(|f| *f as i32).collect();
         let names: Vec<String> = self.factions.iter().map(|f| f.to_string()).collect();
         json!({
             "$type": "EstablishPlayers",

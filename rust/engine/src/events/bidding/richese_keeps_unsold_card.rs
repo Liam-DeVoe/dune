@@ -18,9 +18,9 @@ impl Default for RicheseKeepsUnsoldCard {
 }
 
 impl RicheseKeepsUnsoldCard {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -36,7 +36,7 @@ impl RicheseKeepsUnsoldCard {
         if !self.passed {
             let me = self.player();
             game.player_mut(me).treachery_cards.push(card);
-            self.log_to(game, self.initiator(), vec!["You get: ".into(), card.into()]);
+            self.log_to(game, self.initiator().required("faction")?, vec!["You get: ".into(), card.into()]);
             game.finish_bid(self.player_opt(), None, card, false);
         } else {
             game.decks.removed_treachery_cards.push(card);

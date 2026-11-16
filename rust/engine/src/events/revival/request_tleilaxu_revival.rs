@@ -17,9 +17,9 @@ impl Default for RequestTleilaxuRevival {
 }
 
 impl RequestTleilaxuRevival {
-    pub fn new(game: &Game, initiator: Faction) -> Self {
+    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
         let e = Self::default();
-        e.initialize(game, initiator);
+        e.initialize(game, initiator.into());
         e
     }
 
@@ -46,7 +46,7 @@ impl RequestTleilaxuRevival {
         let tleilaxu = g.get_player(Some(Faction::Tleilaxu));
         // The gholas query is built first and runs lazily; its predicate reads p.Faction per element.
         let gholas = match tleilaxu {
-            Some(tleilaxu) => Either::Left(g.player(tleilaxu).leaders.iter().filter(move |l| l.faction() == g.player(p).faction).map(|l| Hero::Leader(*l))),
+            Some(tleilaxu) => Either::Left(g.player(tleilaxu).leaders.iter().filter(move |l| Some(l.faction()) == g.player(p).faction).map(|l| Hero::Leader(*l))),
             None => Either::Right(empty()),
         };
         // KilledHeroes builds its list at the call; the Union is lazy.

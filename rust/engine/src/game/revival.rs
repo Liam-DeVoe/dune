@@ -57,30 +57,30 @@ impl Game {
 
     pub fn free_revivals(&self, player: PlayerIndex, uses_emperor_secret_ally: bool) -> i32 {
         let p = self.player(player);
-        if self.free_revival_prevented(p.faction) {
+        if self.free_revival_prevented(p.faction.expect("faction")) {
             return 0;
         }
 
         let mut nr_of_free_revivals: i32 = 0;
 
         match p.faction {
-            Faction::Fremen => nr_of_free_revivals = 3,
-            Faction::Atreides => nr_of_free_revivals = 2,
-            Faction::Harkonnen => nr_of_free_revivals = 2,
-            Faction::Emperor => nr_of_free_revivals = 1,
-            Faction::Guild => nr_of_free_revivals = 1,
-            Faction::BeneGesserit => nr_of_free_revivals = 1,
-            Faction::Ixian => nr_of_free_revivals = 1,
-            Faction::Tleilaxu => nr_of_free_revivals = 2,
+            Some(Faction::Fremen) => nr_of_free_revivals = 3,
+            Some(Faction::Atreides) => nr_of_free_revivals = 2,
+            Some(Faction::Harkonnen) => nr_of_free_revivals = 2,
+            Some(Faction::Emperor) => nr_of_free_revivals = 1,
+            Some(Faction::Guild) => nr_of_free_revivals = 1,
+            Some(Faction::BeneGesserit) => nr_of_free_revivals = 1,
+            Some(Faction::Ixian) => nr_of_free_revivals = 1,
+            Some(Faction::Tleilaxu) => nr_of_free_revivals = 2,
 
-            Faction::Choam => nr_of_free_revivals = 0,
-            Faction::Richese => nr_of_free_revivals = 2,
-            Faction::Ecaz => nr_of_free_revivals = 2,
-            Faction::Moritani => nr_of_free_revivals = 2,
+            Some(Faction::Choam) => nr_of_free_revivals = 0,
+            Some(Faction::Richese) => nr_of_free_revivals = 2,
+            Some(Faction::Ecaz) => nr_of_free_revivals = 2,
+            Some(Faction::Moritani) => nr_of_free_revivals = 2,
             _ => {}
         }
 
-        if (p.ally == Faction::Fremen && self.alliances.fremen_allows_three_free_revivals)
+        if (p.ally == Some(Faction::Fremen) && self.alliances.fremen_allows_three_free_revivals)
             || self.turn.current_fremen_secret_ally.as_ref().is_some_and(|e| e.player_opt() == Some(player))
         {
             nr_of_free_revivals = 3;
@@ -99,7 +99,7 @@ impl Game {
         }
 
         std::cmp::max(
-            nr_of_free_revivals - self.revival.free_revivals_this_turn.get(&p.faction).copied().unwrap_or(0),
+            nr_of_free_revivals - self.revival.free_revivals_this_turn.get_opt(p.faction).copied().unwrap_or(0),
             0,
         )
     }
@@ -119,8 +119,8 @@ impl Game {
         }
 
         let emperor_secret_ally: i32 = if emperor_secret_ally_used { 3 } else { 0 };
-        let low_threshold: i32 = if g.has_low_threshold(pl.faction) { 1 } else { 0 };
-        let already_revived = g.revival.total_revivals_this_turn.get(&pl.faction).copied().unwrap_or(0);
+        let low_threshold: i32 = if g.has_low_threshold(pl.faction.expect("faction")) { 1 } else { 0 };
+        let already_revived = g.revival.total_revivals_this_turn.get_opt(pl.faction).copied().unwrap_or(0);
 
         if self.revival.current_recruits_played.is_some() {
             return std::cmp::max(7 + emperor_secret_ally + low_threshold - already_revived, 0);
@@ -128,7 +128,7 @@ impl Game {
 
         // C# parity: C# 14 binds `Faction[].Contains` to MemoryExtensions.Contains on a
         // span, so a null array is empty and doesn't throw.
-        if self.revival.factions_with_increased_revival_limits.as_deref().unwrap_or(&[]).contains(&pl.faction) {
+        if self.revival.factions_with_increased_revival_limits.as_deref().unwrap_or(&[]).contains_opt(pl.faction) {
             return std::cmp::max(5 + low_threshold + emperor_secret_ally - already_revived, 0);
         }
 
@@ -136,10 +136,11 @@ impl Game {
     }
 
     pub fn free_revival_prevented(&self, f: Faction) -> bool {
-        self.revival.current_free_revival_prevention.as_ref().map(|e| e.target) == Some(f)
+        self.revival.current_free_revival_prevention.as_ref().map(|e| e.target) == Some(Some(f))
     }
 
-    pub fn prevented_from_reviving(&self, f: Faction) -> bool {
+    pub fn prevented_from_reviving(&self, f: impl Into<Option<Faction>>) -> bool {
+        let f: Option<Faction> = f.into();
         self.revival.current_karma_revival_prevention.as_ref().is_some_and(|e| e.target == f)
     }
 
@@ -183,7 +184,7 @@ impl Game {
         }
 
         let faction = self.player(player).faction;
-        if faction != Faction::Tleilaxu {
+        if faction != Some(Faction::Tleilaxu) {
             self.revival.revival_tech_token_income = true;
         }
 
@@ -203,15 +204,15 @@ impl Game {
 
         let v = self
             .revival.free_revivals_this_turn
-            .get(&faction).copied().unwrap_or(0) + free_revived_normal_forces + free_revived_special_forces;
-        self.revival.free_revivals_this_turn.insert(faction, v);
+            .get_opt(faction).copied().unwrap_or(0) + free_revived_normal_forces + free_revived_special_forces;
+        self.revival.free_revivals_this_turn.insert(faction.expect("faction"), v);
         let v = self
             .revival.total_revivals_this_turn
-            .get(&faction).copied().unwrap_or(0) + free_revived_normal_forces + free_revived_special_forces;
-        self.revival.total_revivals_this_turn.insert(faction, v);
+            .get_opt(faction).copied().unwrap_or(0) + free_revived_normal_forces + free_revived_special_forces;
+        self.revival.total_revivals_this_turn.insert(faction.expect("faction"), v);
 
         let p = self.player(player);
-        let mut row = RevivalRow::new(faction, free_revived_normal_forces, free_revived_special_forces, 0);
+        let mut row = RevivalRow::new(faction.expect("faction"), free_revived_normal_forces, free_revived_special_forces, 0);
         row.tleilaxu_income = if tleilaxu_receives_income { 1 } else { 0 };
         let message = express!(
             faction,

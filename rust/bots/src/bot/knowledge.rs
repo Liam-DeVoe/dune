@@ -64,18 +64,18 @@ impl ClassicBot {
     /// Every player but me.
     pub fn others(&self, game: &Game) -> Vec<PlayerIndex> {
         let faction = self.faction(game);
-        game.player_indices().filter(|p| game.player(*p).faction != faction).collect()
+        game.player_indices().filter(|p| game.player(*p).faction != Some(faction)).collect()
     }
 
     /// Every player but me and my ally.
     pub fn opponents(&self, game: &Game) -> Vec<PlayerIndex> {
         let (faction, ally) = (self.faction(game), self.ally(game));
-        game.player_indices().filter(|p| game.player(*p).faction != faction && game.player(*p).faction != ally).collect()
+        game.player_indices().filter(|p| game.player(*p).faction != Some(faction) && game.player(*p).faction != ally).collect()
     }
 
     pub fn me_and_my_ally(&self, game: &Game) -> Vec<PlayerIndex> {
         let (faction, ally) = (self.faction(game), self.ally(game));
-        game.player_indices().filter(|p| game.player(*p).faction == faction || game.player(*p).faction == ally).collect()
+        game.player_indices().filter(|p| game.player(*p).faction == Some(faction) || game.player(*p).faction == ally).collect()
     }
 
     pub fn win_was_predicted_by_me_this_turn(&self, game: &Game, opponent_faction: Faction) -> bool {
@@ -83,7 +83,7 @@ impl ClassicBot {
         let me = game.player(self.player);
         self.faction(game) == Faction::BeneGesserit
             && game.turn.current_turn == me.predicted_turn
-            && (opponent_faction == me.predicted_faction || ally == me.predicted_faction)
+            && (Some(opponent_faction) == me.predicted_faction || ally == me.predicted_faction)
     }
 
     pub fn last_turn(&self, game: &Game) -> bool {
@@ -97,7 +97,7 @@ impl ClassicBot {
     pub fn opponents_to_ship_and_move(&self, game: &Game) -> Vec<PlayerIndex> {
         self.opponents(game)
             .into_iter()
-            .filter(|p| !game.turn.has_acted_or_passed.contains(&game.player(*p).faction))
+            .filter(|p| !game.turn.has_acted_or_passed.contains_opt(game.player(*p).faction))
             .collect()
     }
 
@@ -125,7 +125,7 @@ impl ClassicBot {
 
     /// The prescience in the current battle, if I or my ally used it.
     pub fn my_prescience(&self, game: &Game) -> Option<Rc<Prescience>> {
-        game.battle.current_prescience.clone().filter(|p| p.initiator() == self.faction(game) || p.initiator() == self.ally(game))
+        game.battle.current_prescience.clone().filter(|p| p.initiator() == Some(self.faction(game)) || p.initiator() == self.ally(game))
     }
 
     pub fn my_clairvoyance_about_enemy_defense_in_current_battle(game: &Game, player: PlayerIndex) -> Option<ClairVoyanceQandA> {
@@ -151,7 +151,7 @@ impl ClassicBot {
 
     /// The Voice in the current battle, if I or my ally are Bene Gesserit.
     pub fn my_voice(&self, game: &Game) -> Option<Rc<Voice>> {
-        let bene_gesserit = self.faction(game) == Faction::BeneGesserit || self.ally(game) == Faction::BeneGesserit;
+        let bene_gesserit = self.faction(game) == Faction::BeneGesserit || self.ally(game) == Some(Faction::BeneGesserit);
         game.battle.current_voice.clone().filter(|_| bene_gesserit)
     }
 
@@ -259,7 +259,7 @@ impl ClassicBot {
     }
 
     pub fn resources_from_ally(&self, game: &Game) -> i32 {
-        if self.ally(game) != Faction::None { game.get_permitted_use_of_ally_resources(self.faction(game)) } else { 0 }
+        if self.ally(game) != None { game.get_permitted_use_of_ally_resources(self.faction(game)) } else { 0 }
     }
 
     pub fn resources_from_emperor(&self, game: &Game) -> i32 {
@@ -341,12 +341,12 @@ impl ClassicBot {
         let t = place.territory();
         let (faction, ally) = (self.faction(game), self.ally(game));
         let advisors_dont_conflict = game.applicable(Rule::AdvisorsDontConflictWithAlly);
-        ally == Faction::None
-            || ally == Faction::Ecaz
+        ally == None
+            || ally == Some(Faction::Ecaz)
             || faction == Faction::Ecaz
             || game.player(self.allied_player(game).expect("allied player")).any_forces_in_territory(Some(t)) == 0
             || (faction == Faction::BeneGesserit && advisors_dont_conflict && game.player(self.player).special_forces_in_territory(Some(t)) > 0)
-            || (ally == Faction::BeneGesserit
+            || (ally == Some(Faction::BeneGesserit)
                 && advisors_dont_conflict
                 && game.player(self.allied_player(game).expect("allied player")).special_forces_in_territory(Some(t)) > 0)
     }
@@ -415,12 +415,12 @@ impl ClassicBot {
     /// A battalion that shares a territory with my ally: the biggest if my ally has already
     /// moved, the smallest otherwise.
     pub fn battalion_that_should_be_moved_due_to_ally_presence(&self, game: &Game) -> Option<BattalionInLocation> {
-        if self.ally(game) == Faction::None {
+        if self.ally(game) == None {
             return None;
         }
         let candidates =
             self.battalions_where(game, |l, _| l != game.board.map.polar_sink() && !self.in_storm(game, l) && !self.ally_doesnt_block(game, l));
-        if game.turn.has_acted_or_passed.contains(&self.ally(game)) {
+        if game.turn.has_acted_or_passed.contains_opt(self.ally(game)) {
             self.biggest(candidates)
         } else {
             candidates.into_iter().random_lowest(&self.random, |x| x.battalion.total_amount_of_forces())
@@ -530,7 +530,7 @@ impl ClassicBot {
         let can_beat = |opponent: PlayerIndex| {
             may_fight
                 && self.dial_needed_against(game, t, Some(opponent), false)
-                    < Self::max_dial_of_battalion(game, self.resources(game), b, game.player(opponent).faction)
+                    < Self::max_dial_of_battalion(game, self.resources(game), b, game.player(opponent).faction.expect("faction"))
         };
 
         self.within_range(game, source, destination, b)
@@ -550,7 +550,7 @@ impl ClassicBot {
         let forbidden: Vec<Option<Territory>> = game
             .deals.agreed
             .iter()
-            .filter(|deal| deal.bound_faction == faction && deal.type_ == DealType::DontShipOrMoveTo)
+            .filter(|deal| deal.bound_faction == Some(faction) && deal.type_ == DealType::DontShipOrMoveTo)
             .map(|deal| deal.get_parameter1(game))
             .collect();
         targets.into_iter().filter(|l| !forbidden.contains(&Some(l.territory()))).collect()
@@ -647,7 +647,7 @@ impl ClassicBot {
                 (include_bots || !pl.is_bot(game) || !pl.ally_is_bot(game))
                     && threatening(*p)
                     && game.count_challenged_victory_points(*p) <= maximum_challenged_strongholds
-                    && !self.win_was_predicted_by_me_this_turn(game, pl.faction)
+                    && !self.win_was_predicted_by_me_this_turn(game, pl.faction.expect("faction"))
             })
             .collect()
     }
@@ -657,7 +657,7 @@ impl ClassicBot {
     pub fn winnable_nearby_stronghold(&self, game: &Game, from: Location, battalion: &Battalion) -> Option<Location> {
         let targets = self.valid_movement_locations(game, from, battalion);
         let resources_for_battle =
-            if self.ally(game) == Faction::Choam { self.resources_including_ally_contribution(game) } else { self.resources(game) };
+            if self.ally(game) == Some(Faction::Choam) { self.resources_including_ally_contribution(game) } else { self.resources(game) };
         let me = game.player(self.player);
 
         // Each target goes through every check, with its draws, before the next one starts.
@@ -676,11 +676,11 @@ impl ClassicBot {
             let dial_needed = self.dial_needed_against(game, to.territory(), Some(opponent), true);
             let opponent = game.player(opponent).faction;
 
-            if self.win_was_predicted_by_me_this_turn(game, opponent)
+            if self.win_was_predicted_by_me_this_turn(game, opponent.expect("faction"))
                 || self.determine_dial_shortage_for_battle(
                     game,
                     dial_needed,
-                    opponent,
+                    opponent.expect("faction"),
                     to.territory(),
                     battalion.amount_of_forces + me.forces_in(Some(to)),
                     battalion.amount_of_special_forces + me.special_forces_in(Some(to)),
@@ -702,9 +702,9 @@ impl ClassicBot {
     pub fn max_dial(game: &Game, player: PlayerIndex, t: Territory, opponent: Option<PlayerIndex>, ignore_spice_dialing: bool) -> f32 {
         let p = game.player(player);
         let mut count_forces_for_richese = 0;
-        if p.faction == Faction::Richese && p.special_forces_in_territory(Some(t)) > 0 {
+        if p.faction == Some(Faction::Richese) && p.special_forces_in_territory(Some(t)) > 0 {
             // C# parity: the condition is always true here, so the else branch is dead.
-            count_forces_for_richese = if p.faction == Faction::Richese || p.ally == Faction::Richese {
+            count_forces_for_richese = if p.faction == Some(Faction::Richese) || p.ally == Some(Faction::Richese) {
                 game.ship_move.current_no_field_value
             } else if game.ship_move.latest_revealed_no_field_value == 5 {
                 3
@@ -717,9 +717,9 @@ impl ClassicBot {
             game,
             if ignore_spice_dialing { 99 } else { p.resources },
             p.forces_in_territory(Some(t)) + count_forces_for_richese,
-            if p.faction != Faction::Richese { p.special_forces_in_territory(Some(t)) } else { 0 },
+            if p.faction != Some(Faction::Richese) { p.special_forces_in_territory(Some(t)) } else { 0 },
             player,
-            opponent.map(|o| game.player(o).faction).unwrap_or(Faction::Harkonnen),
+            opponent.map(|o| game.player(o).faction).unwrap_or(Some(Faction::Harkonnen)).expect("faction"),
         )
     }
 
@@ -747,9 +747,9 @@ impl ClassicBot {
         let forces_at_half_strength = forces - forces_at_full_strength;
 
         let faction = game.player(p).faction;
-        Battle::determine_special_force_strength(game, faction, opponent_faction)
+        Battle::determine_special_force_strength(game, faction.expect("faction"), opponent_faction)
             * (special_forces_at_full_strength as f32 + 0.5 * special_forces_at_half_strength as f32)
-            + Battle::determine_normal_force_strength(game, faction) * (forces_at_full_strength as f32 + 0.5 * forces_at_half_strength as f32)
+            + Battle::determine_normal_force_strength(game, faction.expect("faction")) * (forces_at_full_strength as f32 + 0.5 * forces_at_half_strength as f32)
     }
 
     pub fn total_max_dial_of_opponents(&self, game: &Game, t: Territory) -> f32 {
@@ -783,7 +783,7 @@ impl ClassicBot {
     /// Whether `player` still has to ship this turn.
     pub fn can_ship(game: &Game, player: PlayerIndex) -> bool {
         game.turn.current_main_phase < MainPhase::ShipmentAndMove
-            || (game.turn.current_main_phase == MainPhase::ShipmentAndMove && !game.turn.has_acted_or_passed.contains(&game.player(player).faction))
+            || (game.turn.current_main_phase == MainPhase::ShipmentAndMove && !game.turn.has_acted_or_passed.contains_opt(game.player(player).faction))
     }
 
     pub fn nr_of_battles_to_fight(&self, game: &Game) -> i32 {
@@ -799,7 +799,7 @@ impl ClassicBot {
         let o = game.player(opponent);
         let opponent_resources = o.resources + o.allied_resources(game);
 
-        let opponent_may_use_worthless_as_karma = o.faction == Faction::BeneGesserit && game.applicable(Rule::BeneGesseritWorthlessAsKarma);
+        let opponent_may_use_worthless_as_karma = o.faction == Some(Faction::BeneGesserit) && game.applicable(Rule::BeneGesseritWorthlessAsKarma);
         let has_karma = Self::known_cards_held_by_other_player(game, player, opponent).into_iter().any(|c| {
             c.type_() == TreacheryCardType::Karma || (opponent_may_use_worthless_as_karma && c.type_() == TreacheryCardType::Useless)
         });
@@ -827,8 +827,8 @@ impl ClassicBot {
             normal_forces += 1;
         }
 
-        special_forces as f32 * Battle::determine_special_force_strength(game, o.faction, game.player(player).faction)
-            + normal_forces as f32 * Battle::determine_normal_force_strength(game, o.faction)
+        special_forces as f32 * Battle::determine_special_force_strength(game, o.faction.expect("faction"), game.player(player).faction.expect("faction"))
+            + normal_forces as f32 * Battle::determine_normal_force_strength(game, o.faction.expect("faction"))
     }
 
     /// The leaders that I know won't betray me: my traitors and known non-traitors and my ally's,

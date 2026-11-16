@@ -14,7 +14,7 @@ pub struct ShipLogged {
     pub to: Option<Location>,
     pub cost: i32,
     pub ally_share: i32,
-    pub ally: Faction,
+    pub ally: Option<Faction>,
     pub guild_paid: bool,
     pub karama: Option<TreacheryCard>,
     pub blocked: bool,
@@ -22,29 +22,8 @@ pub struct ShipLogged {
     pub plain: bool,
 }
 
-impl Default for ShipLogged {
-    fn default() -> Self {
-        ShipLogged {
-            faction: Default::default(),
-            kind: Default::default(),
-            forces: Default::default(),
-            special_forces: Default::default(),
-            from: Default::default(),
-            to: Default::default(),
-            cost: Default::default(),
-            ally_share: Default::default(),
-            ally: Default::default(),
-            guild_paid: Default::default(),
-            karama: Default::default(),
-            blocked: Default::default(),
-            blocked_by: Default::default(),
-            plain: Default::default(),
-        }
-    }
-}
-
 impl ShipLogged {
-    pub fn new(faction: Faction, kind: ShipKind, forces: i32, special_forces: i32, from: Option<Location>, to: Option<Location>, cost: i32, ally_share: i32, ally: Faction, guild_paid: bool, karama: Option<TreacheryCard>, blocked: bool, blocked_by: Option<TreacheryCard>, plain: bool) -> Self {
+    pub fn new(faction: Faction, kind: ShipKind, forces: i32, special_forces: i32, from: Option<Location>, to: Option<Location>, cost: i32, ally_share: i32, ally: Option<Faction>, guild_paid: bool, karama: Option<TreacheryCard>, blocked: bool, blocked_by: Option<TreacheryCard>, plain: bool) -> Self {
         ShipLogged { faction, kind, forces, special_forces, from, to, cost, ally_share, ally, guild_paid, karama, blocked, blocked_by, plain }
     }
 
@@ -72,14 +51,6 @@ impl MoveLogged {
 #[derive(Clone, Debug, PartialEq)]
 pub struct MovePassed {
     pub faction: Faction,
-}
-
-impl Default for MovePassed {
-    fn default() -> Self {
-        MovePassed {
-            faction: Default::default(),
-        }
-    }
 }
 
 impl MovePassed {
@@ -112,18 +83,6 @@ pub struct ShipMoveLoss {
     pub territory: Option<Territory>,
 }
 
-impl Default for ShipMoveLoss {
-    fn default() -> Self {
-        ShipMoveLoss {
-            faction: Default::default(),
-            storm: Default::default(),
-            travelling: Default::default(),
-            forces: Default::default(),
-            territory: Default::default(),
-        }
-    }
-}
-
 impl ShipMoveLoss {
     pub fn new(faction: Faction, storm: bool, travelling: bool, forces: i32, territory: Option<Territory>) -> Self {
         ShipMoveLoss { faction, storm, travelling, forces, territory }
@@ -131,15 +90,8 @@ impl ShipMoveLoss {
 
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub struct GuildDelayed {
-}
-
-impl Default for GuildDelayed {
-    fn default() -> Self {
-        GuildDelayed {
-        }
-    }
 }
 
 impl GuildDelayed {

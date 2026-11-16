@@ -1,8 +1,8 @@
 //! Open connections, the connections that follow each game, and notifications to them.
 //!
-//! A connection is logged in once a login or a resumed session binds a session to it. Every
-//! call that needs a user takes it from there (protocol.md, Connection). Ending a session logs
-//! out its connections.
+//! A connection is logged in once a login or `authenticate` binds a session to it. Every call
+//! that needs a user takes it from there (protocol.md, Connection). Ending a session logs out
+//! its connections.
 //!
 //! A connection follows a game once it created, joined, observed or reconnected to it, and
 //! stops when it closes, its user leaves or is kicked, or it is logged out. Every notification about a game goes
@@ -12,79 +12,22 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use serde_json::{json, Value};
 use tokio::sync::mpsc;
 
-use super::protocol;
-use super::wire::{GameChatMessage, GameInitInfo, GlobalChatMessage, PhaseControlInfo};
+use super::protocol::{self, Notification};
 
 /// Unique per WebSocket for the life of the process.
 pub type ConnectionId = u64;
 
-/// A notification (protocol.md, Notifications), apart from `GameView`.
-pub enum Notification {
-    ChatMessage(GameChatMessage),
-    GlobalChatMessage(GlobalChatMessage),
-    SetTimer(i32),
-    PhaseControl(PhaseControlInfo),
-    SetSkin(String),
-    /// The settings in the savegame format.
-    UpdateSettings(Value),
-    JoinGame { user: i32, name: String, seat: i32 },
-    SetOrUnsetHost(i32),
-    ObserveGame { user: i32, name: String },
-    OpenOrCloseSeats(Vec<i32>),
-    RemoveUser { user: i32, kick: bool },
-    BotSpeed(i32),
-    LoadGame(GameInitInfo),
-    AssignSeats(Vec<(i32, i32)>),
-    /// The connection's session ended (logout, password change, account deletion).
-    SessionEnded,
-}
-
-impl Notification {
-    fn encode(&self) -> String {
-        use Notification::*;
-        let to = |v: &dyn erased::Ser| v.value();
-        let (name, args) = match self {
-            ChatMessage(m) => ("ChatMessage", vec![to(m)]),
-            GlobalChatMessage(m) => ("GlobalChatMessage", vec![to(m)]),
-            SetTimer(v) => ("SetTimer", vec![json!(v)]),
-            PhaseControl(info) => ("PhaseControl", vec![to(info)]),
-            SetSkin(skin) => ("SetSkin", vec![json!(skin)]),
-            UpdateSettings(settings) => ("UpdateSettings", vec![settings.clone()]),
-            JoinGame { user, name, seat } => ("JoinGame", vec![json!(user), json!(name), json!(seat)]),
-            SetOrUnsetHost(user) => ("SetOrUnsetHost", vec![json!(user)]),
-            ObserveGame { user, name } => ("ObserveGame", vec![json!(user), json!(name)]),
-            OpenOrCloseSeats(seats) => ("OpenOrCloseSeats", vec![json!(seats)]),
-            RemoveUser { user, kick } => ("RemoveUser", vec![json!(user), json!(kick)]),
-            BotSpeed(speed) => ("BotSpeed", vec![json!(speed)]),
-            LoadGame(info) => ("LoadGame", vec![to(info)]),
-            AssignSeats(seats) => ("AssignSeats", vec![json!(seats)]),
-            SessionEnded => ("SessionEnded", vec![]),
-        };
-        protocol::notify(name, args)
-    }
-
-    /// What it means for the members' views.
-    fn view_effect(&self) -> ViewEffect {
-        use Notification::*;
-        match self {
-            LoadGame(_) => ViewEffect::Rebuild,
-            JoinGame { .. } | RemoveUser { .. } | AssignSeats(_) | SetOrUnsetHost(_) | OpenOrCloseSeats(_) | SetSkin(_) | SetTimer(_) | BotSpeed(_) => ViewEffect::Update,
-            ChatMessage(_) | GlobalChatMessage(_) | PhaseControl(_) | UpdateSettings(_) | ObserveGame { .. } | SessionEnded => ViewEffect::None,
+/// What a notification means for the members' views.
+fn view_effect(notification: &Notification) -> ViewEffect {
+    use Notification::*;
+    match notification {
+        LoadGame(_) => ViewEffect::Rebuild,
+        JoinGame { .. } | RemoveUser { .. } | AssignSeats { .. } | SetOrUnsetHost { .. } | OpenOrCloseSeats { .. } | SetSkin { .. } | SetTimer { .. } | BotSpeed { .. } => {
+            ViewEffect::Update
         }
-    }
-}
-
-mod erased {
-    pub trait Ser {
-        fn value(&self) -> serde_json::Value;
-    }
-    impl<T: serde::Serialize> Ser for T {
-        fn value(&self) -> serde_json::Value {
-            serde_json::to_value(self).expect("payloads serialize")
-        }
+        GameView(_) | ChatMessage(_) | GlobalChatMessage(_) | PhaseControl(_) | UpdateSettings { .. } | ObserveGame { .. } | SessionEnded => ViewEffect::None,
     }
 }
 
@@ -154,12 +97,13 @@ impl Connections {
     }
 
     /// Logs out the connections of an ended session: they stop following games and get
+    /// `sessionEnded`.
     pub fn end_session(&mut self, session: &str) {
         let ended: Vec<ConnectionId> = self.logins.iter().filter(|(_, (s, _))| s == session).map(|(c, _)| *c).collect();
         for connection in ended {
             self.logins.remove(&connection);
             self.unfollow_connection(connection);
-            self.send(connection, Notification::SessionEnded.encode());
+            self.send(connection, protocol::notify(Notification::SessionEnded));
         }
     }
 
@@ -208,11 +152,12 @@ impl Connections {
 
     /// Sends a notification to the game's followers.
     pub fn notify(&mut self, game: &str, notification: Notification) {
-        let text = notification.encode();
+        let effect = view_effect(&notification);
+        let text = protocol::notify(notification);
         for connection in self.groups.get(game).map(|m| m.keys().copied().collect::<Vec<_>>()).unwrap_or_default() {
             self.send(connection, text.clone());
         }
-        match notification.view_effect() {
+        match effect {
             ViewEffect::None => {}
             ViewEffect::Update => self.game_changed(game),
             ViewEffect::Rebuild => self.game_replaced(game),
@@ -221,7 +166,7 @@ impl Connections {
 
     /// Sends a notification to the game's followers that follow it as one of `users`.
     pub fn notify_users(&self, game: &str, users: &[i32], notification: Notification) {
-        let text = notification.encode();
+        let text = protocol::notify(notification);
         for (connection, user) in self.groups.get(game).into_iter().flatten() {
             if users.contains(user) {
                 self.send(*connection, text.clone());
@@ -231,7 +176,7 @@ impl Connections {
 
     /// Sends a notification to every open connection.
     pub fn notify_all(&self, notification: Notification) {
-        let text = notification.encode();
+        let text = protocol::notify(notification);
         for connection in self.sockets.keys() {
             self.send(*connection, text.clone());
         }

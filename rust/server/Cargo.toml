@@ -17,6 +17,8 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "std"
 futures = { version = "0.3", default-features = false, features = ["std", "async-await"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
+# The messages between client and server (src/protocol.rs).
+treachery-protocol = { path = "../protocol" }
 # Each participant's view of a game (src/views.rs).
 treachery-view = { path = "../view" }
 # Tokens, ids and seeds from the OS generator (src/ids.rs).

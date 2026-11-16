@@ -4,14 +4,14 @@
 use std::time::Duration;
 
 use serde_json::{json, Value};
-use treachery_engine::enumerations::{ErrorType, Faction, MainPhase};
+use treachery_engine::enumerations::{Faction, MainPhase};
 use treachery_engine::events::GameEvent;
 use treachery_engine::game::GameStatus;
 use treachery_engine::json::FromJson;
 
-use super::{done, refuse, CallError, Reply, Server};
+use super::{refuse, Answer, CallError, Server};
 
-use crate::connections::Notification;
+use crate::protocol::{ErrorCode, Notification};
 use crate::mail::{is_valid_address, Mail};
 use crate::time::{self, Time};
 use crate::timers::Timer;
@@ -24,7 +24,7 @@ impl Server {
     /// the engine validates it as an action of that player and no other. Starting the game is
     /// for hosts, and the server draws the new game's seed, which decides every deck: a seed
     /// chosen by a player would tell them the cards to come.
-    pub(super) async fn submit_event(&mut self, user: i32, game: &str, mut event: serde_json::Map<String, Value>) -> Reply {
+    pub(super) async fn submit_event(&mut self, user: i32, game: &str, mut event: serde_json::Map<String, Value>) -> Answer<()> {
         let game = self.player_of(user, game)?;
         let running = &self.games[&game];
         let (g, participation) = (&running.game, &running.participation);
@@ -35,7 +35,7 @@ impl Server {
         match event.get("$type").and_then(Value::as_str) {
             Some("EstablishPlayers") => {
                 if !as_host {
-                    return Err(refuse(ErrorType::NoHost));
+                    return Err(refuse(ErrorCode::NoHost));
                 }
                 event.insert("Seed".into(), json!((self.services.seeds)()));
             }
@@ -45,17 +45,16 @@ impl Server {
             }
             _ => {}
         }
-        let event = GameEvent::from_json(&Value::Object(event)).map_err(|e| CallError::Refused(ErrorType::InvalidGameEvent, e.message))?;
+        let event = GameEvent::from_json(&Value::Object(event)).map_err(|e| CallError::Refused(ErrorCode::InvalidGameEvent, e.message))?;
         // The engine doesn't know who waits for a seat, so the server checks that they fit at
         // the table, in the order of the engine's other checks.
         if let GameEvent::EstablishPlayers(e) = &event {
             let g = &self.games[&game];
             if let Some(refusal) = e.validate_for_table(&g.game, Some(g.participation.number_of_seated_players())) {
-                return Err(CallError::Refused(ErrorType::InvalidGameEvent, render::message_to_string(&refusal)));
+                return Err(CallError::Refused(ErrorCode::InvalidGameEvent, render::message_to_string(&refusal)));
             }
         }
-        self.execute(&game, event, as_host, None, false).await?;
-        done()
+        self.execute(&game, event, as_host, None, false).await
     }
 
     /// Validates and executes an event. With `expected_events`, only while the game has that
@@ -73,7 +72,7 @@ impl Server {
             if by_bot {
                 println!("game {game}: a bot's event was refused: {text}");
             }
-            return Err(CallError::Refused(ErrorType::InvalidGameEvent, text));
+            return Err(CallError::Refused(ErrorCode::InvalidGameEvent, text));
         }
         event.base().time.set(time::to_event_time(now));
         g.last_activity = now;
@@ -98,7 +97,7 @@ impl Server {
 
         self.connections.game_changed(game);
         if let Some(seats) = seats {
-            self.connections.notify(game, Notification::AssignSeats(seats));
+            self.connections.notify(game, Notification::AssignSeats { seats });
         }
         if let Err(e) = self.send_async_mail(game).await {
             println!("game {game}: async-play mail: {e:?}");
@@ -211,14 +210,13 @@ impl Server {
             body += &format!("{faction};{seat};{user}\n");
         }
         body += "</p>\n";
-        let ruleset = treachery_engine::enumerations::Ruleset(info.ruleset);
         self.services.mailer.send(Mail {
             from,
             to,
-            subject: format!("{} ({} Players, {} Bots, Turn {} - {ruleset})", info.name, info.nr_of_players, info.nr_of_bots, info.turn),
+            subject: format!("{} ({} Players, {} Bots, Turn {} - {})", info.name, info.players, info.bots, info.turn, info.ruleset),
             body,
             attachments: vec![(format!("savegame{}.json", attachment_time(self.now())), super::storage::savegame(&g.game))],
-            low_priority: (info.nr_of_bots as f32) >= 0.5 * info.nr_of_players as f32,
+            low_priority: (info.bots as f32) >= 0.5 * info.players as f32,
         });
     }
 }

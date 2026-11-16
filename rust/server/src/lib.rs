@@ -4,7 +4,7 @@
 //!
 //! - [`http`]: the process: the game thread and the HTTP server; [`socket`] is one WebSocket.
 //! - [`server`]: the state and every call's handling, on the game thread.
-//! - [`protocol`] and [`wire`]: the messages and the objects in them.
+//! - [`protocol`]: decoding calls and encoding replies (the messages are `treachery-protocol`).
 //! - [`connections`]: which connection follows which game; notifications.
 //! - [`views`]: each participant's view of a game, built on a replica of it.
 //! - [`db`]: the database, and the conversion of the old C# server's database.
@@ -30,4 +30,3 @@ pub mod static_files;
 pub mod time;
 pub mod timers;
 pub mod views;
-pub mod wire;

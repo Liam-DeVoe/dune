@@ -7,7 +7,7 @@ use super::games::load_savegame;
 use super::{CallError, Presence, RunningGame, Server, Session};
 use crate::db::GameRow;
 use crate::participation;
-use treachery_engine::enumerations::UserStatus;
+use treachery_protocol::UserStatus;
 
 /// A game as a savegame.
 pub fn savegame(game: &Game) -> String {

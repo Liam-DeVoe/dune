@@ -5,7 +5,7 @@
 
 use std::cell::Cell;
 
-use chrono::{DateTime, NaiveDateTime, SecondsFormat, Utc};
+use chrono::{DateTime, Utc};
 use treachery_engine::compat::date_time_offset::DateTimeOffset;
 
 pub type Time = DateTime<Utc>;
@@ -53,39 +53,7 @@ pub fn from_event_time(t: &DateTimeOffset) -> Time {
     DateTime::from_timestamp_micros((t.utc_ticks() - UNIX_EPOCH_TICKS) / 10).unwrap_or_default()
 }
 
-/// RFC 3339 in UTC with microseconds: how times are stored and sent.
-pub fn format(t: Time) -> String {
-    t.to_rfc3339_opts(SecondsFormat::Micros, true)
-}
-
-/// Reads a time a client or the database gives: RFC 3339 (`T` or a space between date and time,
-/// any fraction), or a date and time without an offset, which is taken as UTC.
-pub fn parse(s: &str) -> Option<Time> {
-    let s = s.trim();
-    if let Ok(t) = DateTime::parse_from_rfc3339(s) {
-        return Some(t.with_timezone(&Utc));
-    }
-    for format in ["%Y-%m-%d %H:%M:%S%.f%:z", "%Y-%m-%dT%H:%M:%S%.f%:z", "%Y-%m-%d %H:%M:%S%.f%#z", "%Y-%m-%dT%H:%M:%S%.f%#z"] {
-        if let Ok(t) = DateTime::parse_from_str(s, format) {
-            return Some(t.with_timezone(&Utc));
-        }
-    }
-    for format in ["%Y-%m-%d %H:%M:%S%.f", "%Y-%m-%dT%H:%M:%S%.f", "%Y-%m-%d"] {
-        if let Ok(t) = NaiveDateTime::parse_from_str(s, format) {
-            return Some(t.and_utc());
-        }
-    }
-    chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").ok().map(|d| d.and_hms_opt(0, 0, 0).unwrap().and_utc())
-}
-
-/// Serializes a [`Time`] as [`format`] does (`#[serde(with = "crate::time::serde_time")]`).
-pub mod serde_time {
-    use serde::Serializer;
-
-    pub fn serialize<S: Serializer>(t: &super::Time, s: S) -> Result<S::Ok, S::Error> {
-        s.serialize_str(&super::format(*t))
-    }
-}
+pub use treachery_protocol::time::{format, parse, serde_time};
 
 #[cfg(test)]
 mod tests {

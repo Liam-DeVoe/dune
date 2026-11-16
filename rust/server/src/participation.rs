@@ -2,8 +2,8 @@
 //! the bot speed. The engine knows only which seats users play (`Game::human_seats`), so every
 //! change of seats here updates the game too.
 //!
-//! Also its JSON: on the wire with integer-keyed maps as `[key, value]` pairs, and in the
-//! database with them as objects (`{"7": 0}`), the form older databases hold.
+//! Also its JSON in the database, with integer-keyed maps as objects (`{"7": 0}`), the form
+//! older databases hold, and what clients get of it (`ParticipationInfo`).
 
 use std::collections::BTreeMap;
 
@@ -11,6 +11,7 @@ use serde_json::{json, Map, Value};
 use treachery_engine::enumerations::Phase;
 use treachery_engine::game::{Game, PlayerIndex};
 use treachery_engine::prelude::{IndexMap, IndexSet};
+use treachery_protocol::ParticipationInfo;
 use treachery_view::build::{Seating, Viewer};
 
 #[derive(Clone, Debug)]
@@ -201,17 +202,17 @@ fn ids<'a>(set: impl IntoIterator<Item = &'a i32>) -> Value {
     Value::Array(set.into_iter().map(|i| json!(i)).collect())
 }
 
-/// The wire form (protocol.md, Payload objects).
-pub fn to_wire(p: &Participation) -> Value {
-    json!({
-        "PlayerNames": p.player_names.iter().map(|(k, v)| json!([k, v])).collect::<Vec<_>>(),
-        "SeatedPlayers": p.seated_players.iter().map(|(k, v)| json!([k, v])).collect::<Vec<_>>(),
-        "Observers": ids(p.observers.iter()),
-        "Hosts": ids(p.hosts.iter()),
-        "AvailableSeats": ids(p.available_seats.iter()),
-        "Kicked": ids(p.kicked.iter()),
-        "BotsSpeed": p.bots_speed,
-    })
+/// What clients get (protocol.md, Lobby objects).
+pub fn to_wire(p: &Participation) -> ParticipationInfo {
+    ParticipationInfo {
+        player_names: p.player_names.iter().map(|(k, v)| (*k, v.clone())).collect(),
+        seated_players: p.seated_players.iter().map(|(k, v)| (*k, *v)).collect(),
+        observers: p.observers.iter().copied().collect(),
+        hosts: p.hosts.iter().copied().collect(),
+        available_seats: p.available_seats.iter().copied().collect(),
+        kicked: p.kicked.iter().copied().collect(),
+        bots_speed: p.bots_speed,
+    }
 }
 
 /// The stored form.
@@ -283,9 +284,9 @@ mod tests {
         let p = from_json(text).unwrap();
         assert_eq!(to_json(&p), text);
         let wire = to_wire(&p);
-        assert_eq!(wire["PlayerNames"], json!([[7, "Alice"], [3, "Bob"]]));
-        assert_eq!(wire["SeatedPlayers"], json!([[7, 0], [3, -1]]));
-        assert_eq!(wire["BotsSpeed"], 2);
+        assert_eq!(wire.player_names, vec![(7, "Alice".to_string()), (3, "Bob".to_string())]);
+        assert_eq!(wire.seated_players, vec![(7, 0), (3, -1)]);
+        assert_eq!(wire.bots_speed, 2);
         assert_eq!(from_json("{}").unwrap().bots_speed, Participation::new().bots_speed);
         assert!(from_json("[]").is_err());
     }

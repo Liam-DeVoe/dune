@@ -3,12 +3,13 @@
 use std::time::Duration;
 
 use treachery_bots::{BotParameters, ClassicBot, Priority};
-use treachery_engine::enumerations::{ErrorType, MainPhase, Phase};
+use treachery_engine::enumerations::{MainPhase, Phase};
 use treachery_engine::events::GameEvent;
 use treachery_engine::random::{self, SharedRandom, SliceRandom};
 use treachery_engine::game::PlayerIndex;
 
-use super::{done, CallError, Reply, RunningGame, Server};
+use super::{Answer, CallError, RunningGame, Server};
+use crate::protocol::ErrorCode;
 use crate::ids;
 use crate::timers::Timer;
 
@@ -55,10 +56,10 @@ impl Server {
     }
 
     /// Runs the bots' turn now, at any speed but 0. For the game's players.
-    pub(super) async fn nudge_bots(&mut self, user: i32, game: &str) -> Reply {
+    pub(super) async fn nudge_bots(&mut self, user: i32, game: &str) -> Answer<()> {
         let game = self.player_of(user, game)?;
         match self.bot_turn(&game).await {
-            Ok(()) | Err(CallError::Refused(..)) => done(),
+            Ok(()) | Err(CallError::Refused(..)) => Ok(()),
             Err(e) => Err(e),
         }
     }
@@ -89,7 +90,7 @@ impl Server {
                 let event = bot.decide(state, Priority::ALL[level], options);
                 if let Some(event) = event {
                     return match Box::pin(self.execute(game, event, level == 4, None, true)).await {
-                        Err(CallError::Refused(ErrorType::InvalidGameEvent, _)) => Ok(()),
+                        Err(CallError::Refused(ErrorCode::InvalidGameEvent, _)) => Ok(()),
                         r => r,
                     };
                 }

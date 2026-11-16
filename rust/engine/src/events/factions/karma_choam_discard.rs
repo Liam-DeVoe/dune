@@ -1,12 +1,10 @@
 use crate::prelude::*;
 use crate::messages::part::Part;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct KarmaChoamDiscard {
     pub card_to_use: Option<TreacheryCard>,
     pub card_ids: Option<String>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for KarmaChoamDiscard {
@@ -14,22 +12,11 @@ impl Default for KarmaChoamDiscard {
         KarmaChoamDiscard {
             card_to_use: TreacheryCardManager::get(0),
             card_ids: Default::default(),
-            base: Default::default(),
         }
     }
 }
 
-macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
-}
-
 impl KarmaChoamDiscard {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
     pub fn cards(&self) -> Vec<TreacheryCard> {
         Event::id_string_to_objects(self.card_ids.as_deref(), &TreacheryCardManager::lookup())
     }
@@ -42,27 +29,29 @@ impl KarmaChoamDiscard {
     fn cards_parts(cards: &[TreacheryCard]) -> Part {
         Part::list(cards.iter().map(|c| express_part!(" ", *c, " ")))
     }
+}
 
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
+impl EventRules for KarmaChoamDiscard {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
         let Some(karma_card_to_use) = self.card_to_use else {
-            return Some(express!("You must select a ", TreacheryCardType::Karma, " card to use"));
+            return Err(Rejection(express!("You must select a ", TreacheryCardType::Karma, " card to use")));
         };
 
         if self.cards().contains(&karma_card_to_use) {
-            return Some(express!("You can't discard the card you need to play to use this power"));
+            return Err(Rejection(express!("You can't discard the card you need to play to use this power")));
         }
 
-        None
+        Ok(())
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let me = self.player();
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let me = by.player();
         // C# parity: plays the first valid Karama card, not the validated CardToUse.
         let card = Karma::valid_karma_cards(game, me).into_iter().next();
         let cards = self.cards();
         let parts = Self::cards_parts(&cards);
         let amount = self.cards().len() as i32 * 3;
-        game.play_karma(me, card, elems!["discard ", parts, "to get ", Payment::of(amount)]);
+        game.play_karma(me, card, parts!["discard ", parts, "to get ", Payment::of(amount)]);
 
         for card in self.cards() {
             game.discard_card_of(Some(me), Some(card), true);
@@ -75,45 +64,18 @@ impl KarmaChoamDiscard {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn describe(&self, _game: &Game, by: By) -> Message {
         let cards = self.cards();
         express!(
-            self.initiator(),
+            by.faction,
             " using ",
             TreacheryCardType::Karma,
             ", ",
-            self.initiator(),
+            by.faction,
             " discard ",
             Self::cards_parts(&cards),
             "to get ",
             Payment::of(self.cards().len() as i32 * 3)
         )
     }
-}
-
-impl GameEventMethods for KarmaChoamDiscard {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::KarmaChoamDiscard
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::KarmaChoamDiscard(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        KarmaChoamDiscard::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        KarmaChoamDiscard::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        KarmaChoamDiscard::get_message(self, game)
-    }
-
 }

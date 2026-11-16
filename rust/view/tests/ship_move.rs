@@ -139,7 +139,7 @@ fn check(game: &Game, p: PlayerId, t: EventType, d: &dyn Describer, seen: &mut S
             assert_eq!(o.tleilaxu_heroes.iter().map(|h| h.id).collect::<Vec<_>>(), heroes.iter().map(|h| h.id()).collect::<Vec<_>>());
             assert!(!o.may_assign_skill, "no hero picked yet");
             for h in heroes {
-                let mut e = AmbassadorActivated::new(game, f);
+                let mut e = AmbassadorActivated::default();
                 e.tleilaxu_hero = Some(h);
                 let ActionOptions::AmbassadorActivated(o) = opts(game, p, &event(e), d) else { panic!() };
                 assert_eq!(o.may_assign_skill, Revival::may_assign_skill(game, p, Some(h)));
@@ -174,7 +174,7 @@ fn check(game: &Game, p: PlayerId, t: EventType, d: &dyn Describer, seen: &mut S
             let locations: Vec<Location> = ChoamRemoveForce::valid_locations(game).collect();
             assert_eq!(o.targets, ids(locations.clone()));
             for l in locations {
-                let mut e = ChoamRemoveForce::new(game, f);
+                let mut e = ChoamRemoveForce::default();
                 e.location = Some(l);
                 let ActionOptions::ChoamRemoveForce(o) = opts(game, p, &event(e), d) else { panic!() };
                 let factions: Vec<Faction> = ChoamRemoveForce::valid_factions(game, Some(p), Some(l)).collect();
@@ -627,7 +627,7 @@ fn check_adjustments(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer)
             let heroes = AmbassadorActivated::valid_tleilaxu_heroes(game, p);
             for actual in actuals {
                 for hero in std::iter::once(None).chain(heroes.iter().copied().map(Some).take(3)) {
-                    let mut e = AmbassadorActivated::new(game, f);
+                    let mut e = AmbassadorActivated::default();
                     e.bene_gesserit_selected_ambassador = actual;
                     e.ecaz_take_vidal = true;
                     e.ecaz_offer_alliance = true;
@@ -682,7 +682,7 @@ fn check_adjustments(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer)
         }
         Event::AmbassadorPlaced(_) => {
             let valid = AmbassadorPlaced::valid_ambassadors(game, p);
-            let mut e = AmbassadorPlaced::new(game, f);
+            let mut e = AmbassadorPlaced::default();
             e.ambassador = None;
             let Event::AmbassadorPlaced(a) = adjusted(game, p, &event(e), d) else { panic!() };
             let expected = valid.first().copied();
@@ -707,7 +707,7 @@ fn check_adjustments(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer)
             for l in ChoamRemoveForce::valid_locations(game).collect::<Vec<_>>() {
                 for start in game.players.iter().map(|x| x.faction).chain([None]).collect::<Vec<_>>() {
                     for special in [false, true] {
-                        let mut e = ChoamRemoveForce::new(game, f);
+                        let mut e = ChoamRemoveForce::default();
                         e.location = Some(l);
                         e.target = start;
                         e.special_force = special;
@@ -743,7 +743,7 @@ fn check_adjustments(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer)
             let strongholds: Vec<Territory> = TerrorPlanted::valid_strongholds(game, p).take(2).collect();
             for stronghold in std::iter::once(None).chain(strongholds.into_iter().map(Some)) {
                 for ty in [Some(TerrorType::Atomics), Some(TerrorType::Robbery), None] {
-                    let mut e = TerrorPlanted::new(game, f);
+                    let mut e = TerrorPlanted::default();
                     e.type_ = ty;
                     e.stronghold = stronghold;
                     let Event::TerrorPlanted(a) = adjusted(game, p, &event(e), d) else { panic!() };
@@ -761,7 +761,7 @@ fn check_adjustments(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer)
             let types: Vec<TerrorType> = TerrorRevealed::get_types(game).collect();
             let possible = TerrorRevealed::valid_sneak_attack_targets(game, p).next().is_some();
             for ty in types.iter().copied().map(Some).chain([None]) {
-                let mut e = TerrorRevealed::new(game, f);
+                let mut e = TerrorRevealed::default();
                 e.type_ = ty;
                 e.robbery_takes_card = true;
                 e.card_to_give_in_sabotage = pl.treachery_cards.first().copied();

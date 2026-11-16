@@ -85,7 +85,10 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
         "DetermineDiscardedSearched" => ev(bot.determine_discarded_searched(game)),
         "DetermineDiscardedTaken" => opt(bot.determine_discarded_taken(game)),
         "DetermineJuicePlayed" => opt(bot.determine_juice_played(game)),
-        "DetermineBureaucracy" => ev(bot.determine_bureaucracy(game)),
+        "DetermineBureaucracy" => {
+            let e = bot.determine_bureaucracy(game);
+            common::decision(bot, game, e)
+        }
         "DetermineDiplomacy" => common::decision(bot, game, bot.determine_diplomacy(game)),
         "DetermineSkillAssigned" => common::decision(bot, game, bot.determine_skill_assigned(game)),
         "DeterminePlanetology" => common::decision(bot, game, bot.determine_planetology(game)),

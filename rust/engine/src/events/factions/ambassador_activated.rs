@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use crate::messages::part::Part;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct AmbassadorActivated {
     pub bene_gesserit_selected_ambassador: Option<Ambassador>,
     pub choam_card_ids: Option<String>,
@@ -15,10 +15,7 @@ pub struct AmbassadorActivated {
     pub tleilaxu_amount_of_forces: u16,
     pub tleilaxu_hero: Option<Hero>,
     pub tleilaxu_assign_skill: bool,
-    // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for AmbassadorActivated {
@@ -37,22 +34,11 @@ impl Default for AmbassadorActivated {
             tleilaxu_hero: None,
             tleilaxu_assign_skill: Default::default(),
             passed: Default::default(),
-            base: Default::default(),
         }
     }
 }
 
-macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
-}
-
 impl AmbassadorActivated {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
     pub fn choam_cards(&self) -> Vec<TreacheryCard> {
         Event::id_string_to_objects(self.choam_card_ids.as_deref(), &TreacheryCardManager::lookup())
     }
@@ -61,160 +47,13 @@ impl AmbassadorActivated {
         self.choam_card_ids = Some(Event::objects_to_id_string(value, &TreacheryCardManager::lookup()));
     }
 
-    pub fn to(&self, _game: &Game) -> Option<Location> {
-        self.fremen_or_guild_to
-    }
-
-    /// Re-parsed on every read.
-    pub fn fremen_force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
-        let faction = game.player(self.player()).faction;
-        PlacementEvent::parse_force_locations(game, faction.expect("faction"), self.fremen_force_locations.as_deref().expect("fremen force locations"))
+    /// The Fremen ambassador's force list, of the submitter `by`. Re-parsed on every read.
+    pub fn fremen_force_locations(&self, game: &Game, by: By) -> IndexMap<Location, Battalion> {
+        PlacementEvent::force_locations_by(game, by, &self.fremen_force_locations)
     }
 
     pub fn set_fremen_force_locations(&mut self, game: &Game, value: &IndexMap<Location, Battalion>) {
         self.fremen_force_locations = Some(PlacementEvent::force_locations_string(game, value));
-    }
-
-    pub fn total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {
-        self.fremen_force_locations(game).values().map(|b| b.total_amount_of_forces()).sum::<i32>()
-    }
-
-    pub fn forces_added_to_location(&self, game: &Game) -> i32 {
-        self.fremen_force_locations(game).values().map(|b| b.forces()).sum::<i32>()
-    }
-
-    pub fn special_forces_added_to_location(&self, game: &Game) -> i32 {
-        self.fremen_force_locations(game).values().map(|b| b.special_forces()).sum::<i32>()
-    }
-
-    pub fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
-        self.fremen_force_locations(game)
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        if !self.passed {
-            // `var player = Player;` is only dereferenced where needed.
-            let player = || self.player();
-            let mut ambassador = AmbassadorActivated::get_ambassador(game);
-
-            if ambassador == Some(Ambassador::BeneGesserit) {
-                if !AmbassadorActivated::get_valid_bene_gesserit_ambassadors(game).iter().any(|a| Some(*a) == self.bene_gesserit_selected_ambassador) {
-                    return Some(express!("Invalid Ambassador selected"));
-                }
-                ambassador = self.bene_gesserit_selected_ambassador;
-            }
-
-            match ambassador {
-                Some(Ambassador::Choam) => {
-                    if self
-                        .choam_cards()
-                        .iter()
-                        .any(|c| !AmbassadorActivated::get_valid_choam_cards(game, player()).contains(c))
-                    {
-                        return Some(express!("Invalid card selected"));
-                    }
-                }
-
-                Some(Ambassador::Ecaz) => {
-                    if self.ecaz_offer_alliance && !AmbassadorActivated::alliance_can_be_offered(game, player()) {
-                        return Some(express!("You can't offer an alliance"));
-                    }
-                    if self.ecaz_take_vidal && !AmbassadorActivated::vidal_can_be_taken(game, self.player()) {
-                        return Some(express!("You can't take ", game.vidal()));
-                    }
-                    if self.ecaz_offer_alliance
-                        && self.ecaz_give_vidal_to_ally
-                        && !AmbassadorActivated::vidal_can_be_offered_to_new_ally(game, player())
-                    {
-                        return Some(express!("You can't offer ", game.vidal(), " to your ally"));
-                    }
-                    if self.ecaz_take_vidal && self.ecaz_give_vidal_to_ally {
-                        return Some(express!("You don't have ", game.vidal(), " yet"));
-                    }
-                    if self.ecaz_take_vidal && self.ecaz_offer_alliance {
-                        return Some(express!("You can't both take ", game.vidal(), " AND offer an alliance"));
-                    }
-                }
-
-                Some(Ambassador::Fremen) => {
-                    if self.fremen_force_locations(game).iter().any(|(k, _)| game.is_in_storm(*k)) {
-                        return Some(express!("Can't move from storm"));
-                    }
-                    if self
-                        .fremen_force_locations(game)
-                        .iter()
-                        .any(|(k, v)| game.player(player()).forces_in(Some(*k)) < v.forces())
-                    {
-                        return Some(express!("Invalid amount of ", game.player(self.player()).force()));
-                    }
-                    if self
-                        .fremen_force_locations(game)
-                        .iter()
-                        .any(|(k, v)| game.player(player()).special_forces_in(Some(*k)) < v.special_forces())
-                    {
-                        return Some(express!("Invalid amount of ", game.player(self.player()).special_force()));
-                    }
-                    let to = self.fremen_or_guild_to;
-                    if !AmbassadorActivated::valid_fremen_targets(game, player()).into_iter().any(|l| Some(l) == to) {
-                        return Some(express!("Invalid target location"));
-                    }
-                }
-
-                Some(Ambassador::Ixian) => {
-                    if AmbassadorActivated::get_valid_ixian_cards(game, player()).is_empty() {
-                        return Some(express!("You don't have a card to discard"));
-                    }
-                    if self.ixian_card.is_some()
-                        && !AmbassadorActivated::get_valid_ixian_cards(game, player()).contains(&self.ixian_card.expect("ixian card"))
-                    {
-                        return Some(express!("Invalid card selected"));
-                    }
-                }
-
-                Some(Ambassador::Richese) => {
-                    if i32::from(game.player(player()).resources) < 3 {
-                        return Some(express!("You don't have enough ", Concept::Resource, " to buy a card"));
-                    }
-                    if !game.player(player()).has_room_for_cards(game) {
-                        return Some(express!("You don't have room for an additional card"));
-                    }
-                }
-
-                Some(Ambassador::Guild) => {
-                    let to = self.fremen_or_guild_to;
-                    if !AmbassadorActivated::valid_guild_targets(game, player()).into_iter().any(|l| Some(l) == to) {
-                        return Some(express!("Invalid target location"));
-                    }
-                    if i32::from(self.guild_force_amount) > AmbassadorActivated::valid_guild_max_forces(game, player()) {
-                        return Some(express!("Invalid amount of forces"));
-                    }
-                }
-
-                Some(Ambassador::Tleilaxu) => {
-                    if i32::from(self.tleilaxu_amount_of_forces) > AmbassadorActivated::valid_tleilaxu_max_amount(game, player()) {
-                        return Some(express!("You can't revive that many"));
-                    }
-                    if i32::from(self.tleilaxu_amount_of_forces) > 0 && self.tleilaxu_hero.is_some() {
-                        return Some(express!("You can't revive both forces and a leader"));
-                    }
-                    if self.tleilaxu_hero.is_some()
-                        && !AmbassadorActivated::valid_tleilaxu_heroes(game, player()).contains(&self.tleilaxu_hero.expect("tleilaxu hero"))
-                    {
-                        return Some(express!("Invalid leader"));
-                    }
-                    if self.tleilaxu_assign_skill && self.tleilaxu_hero.is_none() {
-                        return Some(express!("Select a leader to assign a skill to"));
-                    }
-                    if self.tleilaxu_assign_skill && !Revival::may_assign_skill(game, self.player(), self.tleilaxu_hero) {
-                        return Some(express!("You can't assign a skill to this leader"));
-                    }
-                }
-
-                _ => {}
-            }
-        }
-
-        None
     }
 
     pub fn get_territory(g: &Game) -> Option<Territory> {
@@ -312,66 +151,21 @@ impl AmbassadorActivated {
         game.player(p).faction == Some(Faction::Ecaz)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.ship_move.current_ambassador_activated = Some(self.clone());
-        let ambassador_faction = AmbassadorActivated::get_ambassador(game);
-        let territory = AmbassadorActivated::get_territory(game);
-        let victim = AmbassadorActivated::get_victim(game);
-        game.dequeue_intrusion(IntrusionType::Ambassador)?;
-
-        if let (false, Some(territory)) = (self.passed, territory) {
-            game.board.ambassadors_on_planet.shift_remove(&territory);
-            game.stone(Milestone::AmbassadorActivated);
-            let mut ambassador_faction = ambassador_faction.required("ambassador")?;
-
-            let ecaz = self.get_player(game, Some(Faction::Ecaz));
-
-            if ambassador_faction == Ambassador::BeneGesserit {
-                ambassador_faction = self.bene_gesserit_selected_ambassador.required("the ambassador Bene Gesserit selected")?;
-                self.log_objects(game, elems!["The ", Ambassador::BeneGesserit, " Ambassador is removed from the game"]);
-            } else if ambassador_faction == Ambassador::Ecaz {
-                game.player_mut(ecaz.required("ecaz")?).ambassadors.push(ambassador_faction);
-                self.log_objects(game, elems!["The ", ambassador_faction, " Ambassador returns to supply"]);
-            } else {
-                game.decks.ambassadors_set_aside.push(ambassador_faction);
-                self.log_objects(game, elems!["The ", ambassador_faction, " Ambassador is set aside"]);
-            }
-
-            self.handle_ambassador(game, ambassador_faction, victim.required("faction")?)?;
-
-            let ecaz = ecaz.required("ecaz")?;
-            let all_ecaz = game
-                .player(ecaz)
-                .ambassadors
-                .iter()
-                .chain(game.board.ambassadors_on_planet.values())
-                .all(|f| *f == Ambassador::Ecaz);
-            if all_ecaz {
-                game.assign_random_ambassadors(ecaz);
-                self.log_objects(game, elems![Faction::Ecaz, " draw 5 random Ambassadors"]);
-            }
-        } else {
-            self.log_objects(game, elems![self.initiator(), " don't activate an Ambassador"]);
-            game.determine_next_shipment_and_move_sub_phase()?;
-        }
-        Ok(())
-    }
-
-    pub fn handle_ambassador(self: &Rc<Self>, game: &mut Game, ambassador_faction: Ambassador, victim: Faction) -> GameResult {
+    pub fn handle_ambassador(&self, game: &mut Game, by: By, ambassador_faction: Ambassador, victim: Faction) -> GameResult {
         let victim_player = game.get_player(Some(victim));
 
-        self.log_objects(game, elems![self.initiator(), " activate the ", ambassador_faction, " ambassador"]);
+        game.log(parts![by.faction, " activate the ", ambassador_faction, " ambassador"]);
 
         match ambassador_faction {
             Ambassador::Atreides => {
                 if !game.player(victim_player.required("victim player")?).treachery_cards.is_empty() {
-                    self.log_objects(game, elems![self.initiator(), " see all treachery cards owned by ", victim]);
+                    game.log(parts![by.faction, " see all treachery cards owned by ", victim]);
                     // A copy of the hand as it is now: later changes to it don't change this message.
                     let hand = &game.player(victim_player.required("victim player")?).treachery_cards;
                     let cards = Part::list(hand.iter().copied());
-                    self.log_to(game, self.initiator().required("faction")?, elems![victim, " own: ", cards]);
+                    game.log_to(by.faction.required("faction")?, parts![victim, " own: ", cards]);
                 } else {
-                    self.log_objects(game, elems![victim, " don't own any cards"]);
+                    game.log(parts![victim, " don't own any cards"]);
                 }
 
                 game.determine_next_shipment_and_move_sub_phase()?;
@@ -381,11 +175,11 @@ impl AmbassadorActivated {
                 let mut total_earned = 0i32;
                 for c in self.choam_cards() {
                     total_earned += 3;
-                    game.discard_card_of(Some(self.player()), Some(c), true);
+                    game.discard_card_of(Some(by.player()), Some(c), true);
                 }
 
-                self.log_objects(game, elems![self.initiator(), " get ", Payment::of(total_earned)]);
-                let p = game.player_mut(self.player());
+                game.log(parts![by.faction, " get ", Payment::of(total_earned)]);
+                let p = game.player_mut(by.player());
                 crate::game::amounts::gain(&mut p.resources, total_earned, "spice")?;
                 game.determine_next_shipment_and_move_sub_phase()?;
             }
@@ -394,20 +188,17 @@ impl AmbassadorActivated {
                 if self.ecaz_offer_alliance {
                     game.ship_move.alliance_by_ambassador_offered_to = Some(victim);
                     let vidal = game.vidal();
-                    self.log_objects(
-                        game,
-                        elems![
-                            self.initiator(),
+                    game.log(parts![
+                            by.faction,
                             " offer an alliance to ",
                             victim,
                             express_part_if!(self.ecaz_give_vidal_to_ally; " offering ", vidal, " if they accept")
-                        ],
-                    );
+                        ]);
                     game.ship_move.paused_ambassador_phase = Some(game.turn.current_phase);
                     game.enter(Phase::AllianceByAmbassador, true);
                 } else {
                     if game.ship_move.current_ambassador_activated.as_ref().required("current ambassador activated")?.ecaz_take_vidal {
-                        game.take_vidal(self.player(), VidalMoment::Never);
+                        game.take_vidal(by.player(), VidalMoment::Never);
                     }
 
                     game.determine_next_shipment_and_move_sub_phase()?;
@@ -415,31 +206,28 @@ impl AmbassadorActivated {
             }
 
             Ambassador::Emperor => {
-                let p = game.player_mut(self.player());
+                let p = game.player_mut(by.player());
                 p.resources += 5;
-                self.log_objects(game, elems![self.initiator(), " get ", Payment::of(5)]);
+                game.log(parts![by.faction, " get ", Payment::of(5)]);
                 game.determine_next_shipment_and_move_sub_phase()?;
             }
 
             Ambassador::Fremen => {
-                let force_locations = self.fremen_force_locations(game);
-                let this = self.clone().into_event();
-                game.perform_move_from_locations(self.player(), &force_locations, &this, false, false)?;
-                game.ship_move.recent_moves.push(RecentMove { initiator: self.initiator().expect("faction"), to: self.fremen_or_guild_to, force_locations: force_locations.clone() });
-                game.check_intrusion(&this, self.initiator().expect("faction"))?;
+                let force_locations = self.fremen_force_locations(game, by);
+                let this = Event::from(self.clone());
+                game.perform_move_from_locations(by.player(), &force_locations, &this, false, false)?;
+                game.ship_move.recent_moves.push(RecentMove { initiator: by.faction.expect("faction"), to: self.fremen_or_guild_to, force_locations: force_locations.clone() });
+                game.check_intrusion(&this, by.faction.expect("faction"))?;
                 game.determine_next_shipment_and_move_sub_phase()?;
             }
 
             Ambassador::Harkonnen => {
                 if victim == Faction::Harkonnen {
-                    self.log_objects(game, elems![self.initiator(), " see one of the ", Faction::Harkonnen, " traitors"]);
+                    game.log(parts![by.faction, " see one of the ", Faction::Harkonnen, " traitors"]);
                 } else if victim == Faction::Tleilaxu {
-                    self.log_objects(
-                        game,
-                        elems![self.initiator(), " see one of the ", Faction::Tleilaxu, " unrevealed Face Dancers"],
-                    );
+                    game.log(parts![by.faction, " see one of the ", Faction::Tleilaxu, " unrevealed Face Dancers"]);
                 } else {
-                    self.log_objects(game, elems![self.initiator(), " see the ", victim, " traitor"]);
+                    game.log(parts![by.faction, " see the ", victim, " traitor"]);
                 }
 
                 let vp = game.player(victim_player.required("victim player")?);
@@ -450,42 +238,42 @@ impl AmbassadorActivated {
                 };
 
                 let revealed = to_select_from.into_iter().random_item(game.random.as_ref().required("random")?);
-                self.log_to(game, self.initiator().required("faction")?, elems![victim, " reveal ", revealed]);
-                self.log_to(game, victim, elems![self.initiator(), " get to see ", revealed]);
+                game.log_to(by.faction.required("faction")?, parts![victim, " reveal ", revealed]);
+                game.log_to(victim, parts![by.faction, " get to see ", revealed]);
                 game.determine_next_shipment_and_move_sub_phase()?;
             }
 
             Ambassador::Ixian => {
-                game.discard_card_of(Some(self.player()), self.ixian_card, true);
-                self.log_objects(game, elems![self.initiator(), " draw a new card"]);
+                game.discard_card_of(Some(by.player()), self.ixian_card, true);
+                game.log(parts![by.faction, " draw a new card"]);
                 let drawn = game.draw_treachery_card();
                 if let Some(drawn) = drawn {
-                    game.player_mut(self.player()).treachery_cards.push(drawn);
+                    game.player_mut(by.player()).treachery_cards.push(drawn);
                 }
                 game.determine_next_shipment_and_move_sub_phase()?;
             }
 
             Ambassador::Richese => {
-                self.log_objects(game, elems![self.initiator(), " buy a card for ", Payment::of(3)]);
-                let p = game.player_mut(self.player());
+                game.log(parts![by.faction, " buy a card for ", Payment::of(3)]);
+                let p = game.player_mut(by.player());
                 p.resources -= 3;
                 let drawn_card = game.draw_treachery_card();
                 if let Some(drawn_card) = drawn_card {
-                    game.player_mut(self.player()).treachery_cards.push(drawn_card);
+                    game.player_mut(by.player()).treachery_cards.push(drawn_card);
                 }
                 game.determine_next_shipment_and_move_sub_phase()?;
             }
 
             Ambassador::Guild => {
-                let force = game.player(self.player()).force();
+                let force = game.player(by.player()).force();
                 let to = self.fremen_or_guild_to;
-                self.log_objects(game, elems![self.initiator(), " send ", i32::from(self.guild_force_amount), force, " to ", to]);
+                game.log(parts![by.faction, " send ", i32::from(self.guild_force_amount), force, " to ", to]);
                 if let Some(to) = self.fremen_or_guild_to {
-                    Player::ship_forces(game, self.player(), to, i32::from(self.guild_force_amount))?;
+                    Player::ship_forces(game, by.player(), to, i32::from(self.guild_force_amount))?;
                 }
-                let this = self.clone().into_event();
+                let this = Event::from(self.clone());
                 game.ship_move.last_shipment_or_movement = Some(ShipmentOrMovement { to: self.fremen_or_guild_to });
-                game.check_intrusion(&this, self.initiator().expect("faction"))?;
+                game.check_intrusion(&this, by.faction.expect("faction"))?;
                 game.determine_next_shipment_and_move_sub_phase()?;
             }
 
@@ -493,20 +281,20 @@ impl AmbassadorActivated {
                 game.determine_next_shipment_and_move_sub_phase()?;
                 if let Some(tleilaxu_hero) = self.tleilaxu_hero {
                     if !game.is_face_down_dead(tleilaxu_hero) {
-                        self.log_objects(game, elems![self.initiator(), " revive ", tleilaxu_hero]);
+                        game.log(parts![by.faction, " revive ", tleilaxu_hero]);
                     } else {
-                        self.log_objects(game, elems![self.initiator(), " revive a face down leader"]);
+                        game.log(parts![by.faction, " revive a face down leader"]);
                     }
 
-                    game.revive(self.player(), tleilaxu_hero);
+                    game.revive(by.player(), tleilaxu_hero);
 
                     if self.tleilaxu_assign_skill {
-                        game.prepare_skill_assignment_to_revived_leader(self.player(), tleilaxu_hero.as_leader());
+                        game.prepare_skill_assignment_to_revived_leader(by.player(), tleilaxu_hero.as_leader());
                     }
                 } else {
-                    let force = game.player(self.player()).force();
-                    self.log_objects(game, elems![self.initiator(), " revive ", i32::from(self.tleilaxu_amount_of_forces), " ", force]);
-                    Player::revive_forces(game, self.player(), i32::from(self.tleilaxu_amount_of_forces))?;
+                    let force = game.player(by.player()).force();
+                    game.log(parts![by.faction, " revive ", i32::from(self.tleilaxu_amount_of_forces), " ", force]);
+                    Player::revive_forces(game, by.player(), i32::from(self.tleilaxu_amount_of_forces))?;
                 }
             }
 
@@ -514,72 +302,204 @@ impl AmbassadorActivated {
         }
         Ok(())
     }
-
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), if self.passed { " don't" } else { "" }, " activate an Ambassador")
-    }
 }
 
-impl GameEventMethods for AmbassadorActivated {
-    fn base(&self) -> &GameEventBase {
-        &self.base
+impl EventRules for AmbassadorActivated {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        if !self.passed {
+            // `var player = Player;` is only dereferenced where needed.
+            let player = || by.player();
+            let mut ambassador = AmbassadorActivated::get_ambassador(game);
+
+            if ambassador == Some(Ambassador::BeneGesserit) {
+                if !AmbassadorActivated::get_valid_bene_gesserit_ambassadors(game).iter().any(|a| Some(*a) == self.bene_gesserit_selected_ambassador) {
+                    return Err(Rejection(express!("Invalid Ambassador selected")));
+                }
+                ambassador = self.bene_gesserit_selected_ambassador;
+            }
+
+            match ambassador {
+                Some(Ambassador::Choam) => {
+                    if self
+                        .choam_cards()
+                        .iter()
+                        .any(|c| !AmbassadorActivated::get_valid_choam_cards(game, player()).contains(c))
+                    {
+                        return Err(Rejection(express!("Invalid card selected")));
+                    }
+                }
+
+                Some(Ambassador::Ecaz) => {
+                    if self.ecaz_offer_alliance && !AmbassadorActivated::alliance_can_be_offered(game, player()) {
+                        return Err(Rejection(express!("You can't offer an alliance")));
+                    }
+                    if self.ecaz_take_vidal && !AmbassadorActivated::vidal_can_be_taken(game, by.player()) {
+                        return Err(Rejection(express!("You can't take ", game.vidal())));
+                    }
+                    if self.ecaz_offer_alliance
+                        && self.ecaz_give_vidal_to_ally
+                        && !AmbassadorActivated::vidal_can_be_offered_to_new_ally(game, player())
+                    {
+                        return Err(Rejection(express!("You can't offer ", game.vidal(), " to your ally")));
+                    }
+                    if self.ecaz_take_vidal && self.ecaz_give_vidal_to_ally {
+                        return Err(Rejection(express!("You don't have ", game.vidal(), " yet")));
+                    }
+                    if self.ecaz_take_vidal && self.ecaz_offer_alliance {
+                        return Err(Rejection(express!("You can't both take ", game.vidal(), " AND offer an alliance")));
+                    }
+                }
+
+                Some(Ambassador::Fremen) => {
+                    if self.fremen_force_locations(game, by).iter().any(|(k, _)| game.is_in_storm(*k)) {
+                        return Err(Rejection(express!("Can't move from storm")));
+                    }
+                    if self
+                        .fremen_force_locations(game, by)
+                        .iter()
+                        .any(|(k, v)| game.player(player()).forces_in(Some(*k)) < v.forces())
+                    {
+                        return Err(Rejection(express!("Invalid amount of ", game.player(by.player()).force())));
+                    }
+                    if self
+                        .fremen_force_locations(game, by)
+                        .iter()
+                        .any(|(k, v)| game.player(player()).special_forces_in(Some(*k)) < v.special_forces())
+                    {
+                        return Err(Rejection(express!("Invalid amount of ", game.player(by.player()).special_force())));
+                    }
+                    let to = self.fremen_or_guild_to;
+                    if !AmbassadorActivated::valid_fremen_targets(game, player()).into_iter().any(|l| Some(l) == to) {
+                        return Err(Rejection(express!("Invalid target location")));
+                    }
+                }
+
+                Some(Ambassador::Ixian) => {
+                    if AmbassadorActivated::get_valid_ixian_cards(game, player()).is_empty() {
+                        return Err(Rejection(express!("You don't have a card to discard")));
+                    }
+                    if self.ixian_card.is_some()
+                        && !AmbassadorActivated::get_valid_ixian_cards(game, player()).contains(&self.ixian_card.expect("ixian card"))
+                    {
+                        return Err(Rejection(express!("Invalid card selected")));
+                    }
+                }
+
+                Some(Ambassador::Richese) => {
+                    if i32::from(game.player(player()).resources) < 3 {
+                        return Err(Rejection(express!("You don't have enough ", Concept::Resource, " to buy a card")));
+                    }
+                    if !game.player(player()).has_room_for_cards(game) {
+                        return Err(Rejection(express!("You don't have room for an additional card")));
+                    }
+                }
+
+                Some(Ambassador::Guild) => {
+                    let to = self.fremen_or_guild_to;
+                    if !AmbassadorActivated::valid_guild_targets(game, player()).into_iter().any(|l| Some(l) == to) {
+                        return Err(Rejection(express!("Invalid target location")));
+                    }
+                    if i32::from(self.guild_force_amount) > AmbassadorActivated::valid_guild_max_forces(game, player()) {
+                        return Err(Rejection(express!("Invalid amount of forces")));
+                    }
+                }
+
+                Some(Ambassador::Tleilaxu) => {
+                    if i32::from(self.tleilaxu_amount_of_forces) > AmbassadorActivated::valid_tleilaxu_max_amount(game, player()) {
+                        return Err(Rejection(express!("You can't revive that many")));
+                    }
+                    if i32::from(self.tleilaxu_amount_of_forces) > 0 && self.tleilaxu_hero.is_some() {
+                        return Err(Rejection(express!("You can't revive both forces and a leader")));
+                    }
+                    if self.tleilaxu_hero.is_some()
+                        && !AmbassadorActivated::valid_tleilaxu_heroes(game, player()).contains(&self.tleilaxu_hero.expect("tleilaxu hero"))
+                    {
+                        return Err(Rejection(express!("Invalid leader")));
+                    }
+                    if self.tleilaxu_assign_skill && self.tleilaxu_hero.is_none() {
+                        return Err(Rejection(express!("Select a leader to assign a skill to")));
+                    }
+                    if self.tleilaxu_assign_skill && !Revival::may_assign_skill(game, by.player(), self.tleilaxu_hero) {
+                        return Err(Rejection(express!("You can't assign a skill to this leader")));
+                    }
+                }
+
+                _ => {}
+            }
+        }
+
+        Ok(())
     }
 
-    fn event_type(&self) -> EventType {
-        EventType::AmbassadorActivated
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        game.ship_move.current_ambassador_activated = Some(AmbassadorActivation {
+            submitter: by,
+            ecaz_give_vidal_to_ally: self.ecaz_give_vidal_to_ally,
+            ecaz_take_vidal: self.ecaz_take_vidal,
+        });
+        let ambassador_faction = AmbassadorActivated::get_ambassador(game);
+        let territory = AmbassadorActivated::get_territory(game);
+        let victim = AmbassadorActivated::get_victim(game);
+        game.dequeue_intrusion(IntrusionType::Ambassador)?;
+
+        if let (false, Some(territory)) = (self.passed, territory) {
+            game.board.ambassadors_on_planet.shift_remove(&territory);
+            game.stone(Milestone::AmbassadorActivated);
+            let mut ambassador_faction = ambassador_faction.required("ambassador")?;
+
+            let ecaz = game.get_player(Some(Faction::Ecaz));
+
+            if ambassador_faction == Ambassador::BeneGesserit {
+                ambassador_faction = self.bene_gesserit_selected_ambassador.required("the ambassador Bene Gesserit selected")?;
+                game.log(parts!["The ", Ambassador::BeneGesserit, " Ambassador is removed from the game"]);
+            } else if ambassador_faction == Ambassador::Ecaz {
+                game.player_mut(ecaz.required("ecaz")?).ambassadors.push(ambassador_faction);
+                game.log(parts!["The ", ambassador_faction, " Ambassador returns to supply"]);
+            } else {
+                game.decks.ambassadors_set_aside.push(ambassador_faction);
+                game.log(parts!["The ", ambassador_faction, " Ambassador is set aside"]);
+            }
+
+            self.handle_ambassador(game, by, ambassador_faction, victim.required("faction")?)?;
+
+            let ecaz = ecaz.required("ecaz")?;
+            let all_ecaz = game
+                .player(ecaz)
+                .ambassadors
+                .iter()
+                .chain(game.board.ambassadors_on_planet.values())
+                .all(|f| *f == Ambassador::Ecaz);
+            if all_ecaz {
+                game.assign_random_ambassadors(ecaz);
+                game.log(parts![Faction::Ecaz, " draw 5 random Ambassadors"]);
+            }
+        } else {
+            game.log(parts![by.faction, " don't activate an Ambassador"]);
+            game.determine_next_shipment_and_move_sub_phase()?;
+        }
+        Ok(())
     }
 
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::AmbassadorActivated(self)
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, if self.passed { " don't" } else { "" }, " activate an Ambassador")
     }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        AmbassadorActivated::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        AmbassadorActivated::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        AmbassadorActivated::get_message(self, game)
-    }
-
-}
-
-impl PassableGameEventMethods for AmbassadorActivated {
-    fn field_passed(&self) -> &bool {
-        &self.passed
-    }
-
 }
 
 impl crate::events::location_event::LocationEvent for AmbassadorActivated {
-    fn to(&self, game: &Game) -> Option<Location> {
-        AmbassadorActivated::to(self, game)
+    fn to(&self, _game: &Game) -> Option<Location> {
+        self.fremen_or_guild_to
     }
 
     fn total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {
-        AmbassadorActivated::total_amount_of_forces_added_to_location(self, game)
+        let (forces, special_forces) = PlacementEvent::force_amounts(game, &self.fremen_force_locations);
+        forces + special_forces
     }
 
     fn forces_added_to_location(&self, game: &Game) -> i32 {
-        AmbassadorActivated::forces_added_to_location(self, game)
+        PlacementEvent::force_amounts(game, &self.fremen_force_locations).0
     }
 
     fn special_forces_added_to_location(&self, game: &Game) -> i32 {
-        AmbassadorActivated::special_forces_added_to_location(self, game)
+        PlacementEvent::force_amounts(game, &self.fremen_force_locations).1
     }
-
-}
-
-impl crate::events::placement::Placement for AmbassadorActivated {
-    fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
-        AmbassadorActivated::force_locations(self, game)
-    }
-
-    fn to(&self, game: &Game) -> Option<Location> {
-        AmbassadorActivated::to(self, game)
-    }
-
 }

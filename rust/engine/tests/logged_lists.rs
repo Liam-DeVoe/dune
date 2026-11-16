@@ -63,8 +63,8 @@ fn an_ambassador_message_keeps_the_hand_it_showed() {
     let first = card_of(TreacheryCardType::Karma, 0);
     g.player_mut(harkonnen).treachery_cards.push(first);
 
-    let ev = Rc::new(AmbassadorActivated::new(&g, Faction::Ecaz));
-    ev.handle_ambassador(&mut g, Ambassador::Atreides, Faction::Harkonnen).unwrap();
+    let by = By::new(&g, Faction::Ecaz);
+    AmbassadorActivated::default().handle_ambassador(&mut g, by, Ambassador::Atreides, Faction::Harkonnen).unwrap();
     assert_eq!(last_logged_list(&g), cards(&[first]));
 
     g.player_mut(harkonnen).treachery_cards.push(card_of(TreacheryCardType::Useless, 0));

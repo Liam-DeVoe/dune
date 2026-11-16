@@ -13,24 +13,9 @@
 
 mod common;
 
-use treachery_bots::bot::EventKind;
 use treachery_bots::prelude::*;
 
 use common::{run_probes, Bots};
-
-fn ev<T: EventKind>(e: Rc<T>) -> String
-where
-    Event: From<Rc<T>>,
-{
-    treachery_engine::json::serialize(&HistoryEntry::legacy(e))
-}
-
-fn opt<T: EventKind>(e: Option<Rc<T>>) -> String
-where
-    Event: From<Rc<T>>,
-{
-    e.map_or_else(|| "null".to_string(), ev)
-}
 
 fn b(v: bool) -> String {
     if v { "true".into() } else { "false".into() }
@@ -108,19 +93,43 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
             let e = bot.determine_accept_or_cancel_tleilaxu_revival(game);
             common::decision(bot, game, e)
         }
-        "DetermineResourcesAudited" => opt(bot.determine_resources_audited(game)),
-        "DetermineChoamEconomics" => opt(bot.determine_choam_economics(game)),
-        "DetermineChoamRemoveForce" => opt(bot.determine_choam_remove_force(game)),
+        "DetermineResourcesAudited" => {
+            let e = bot.determine_resources_audited(game);
+            common::decision(bot, game, e)
+        }
+        "DetermineChoamEconomics" => {
+            let e = bot.determine_choam_economics(game);
+            common::decision(bot, game, e)
+        }
+        "DetermineChoamRemoveForce" => {
+            let e = bot.determine_choam_remove_force(game);
+            common::decision(bot, game, e)
+        }
         "DetermineExtortionPrevented" => {
             let e = bot.determine_extortion_prevented(game);
             common::decision(bot, game, e)
         }
         "DeterminePerformMoritaniSetup" => common::decision(bot, game, bot.determine_perform_moritani_setup(game)),
-        "DetermineTerrorPlanted" => opt(bot.determine_terror_planted(game)),
-        "DetermineTerrorRevealed" => ev(bot.determine_terror_revealed(game)),
-        "DetermineAmbassadorPlaced" => opt(bot.determine_ambassador_placed(game)),
-        "DetermineAmbassadorActivated" => opt(bot.determine_ambassador_activated(game)),
-        "PassAmbassadorActivated" => opt(bot.pass_ambassador_activated(game)),
+        "DetermineTerrorPlanted" => {
+            let e = bot.determine_terror_planted(game);
+            common::decision(bot, game, e)
+        }
+        "DetermineTerrorRevealed" => {
+            let e = bot.determine_terror_revealed(game);
+            common::decision(bot, game, e)
+        }
+        "DetermineAmbassadorPlaced" => {
+            let e = bot.determine_ambassador_placed(game);
+            common::decision(bot, game, e)
+        }
+        "DetermineAmbassadorActivated" => {
+            let e = bot.determine_ambassador_activated(game);
+            common::decision(bot, game, e)
+        }
+        "PassAmbassadorActivated" => {
+            let e = bot.pass_ambassador_activated(game);
+            common::decision(bot, game, e)
+        }
         "DetermineRicheseAnnouncesBlackMarket" => common::decision(bot, game, bot.determine_richese_announces_black_market(game)),
         "DetermineRicheseRevealedNoField" => common::decision(bot, game, bot.determine_richese_revealed_no_field(game)),
         "DetermineRicheseAnnouncesAuction" => common::decision(bot, game, bot.determine_richese_announces_auction(game)),

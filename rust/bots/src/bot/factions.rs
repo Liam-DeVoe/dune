@@ -1028,7 +1028,7 @@ impl ClassicBot {
 
     // ---- Choam ----
 
-    pub fn determine_resources_audited(&self, game: &Game) -> Option<Rc<ResourcesAudited>> {
+    pub fn determine_resources_audited(&self, game: &Game) -> Option<ResourcesAudited> {
         let battle = match &game.battle.current_battle {
             Some(b) if b.is_aggressor_or_defender(game, self.player) => b.clone(),
             _ => return None,
@@ -1040,9 +1040,9 @@ impl ClassicBot {
         if opponent.treachery_cards.iter().any(|tc| !me.known_cards.contains(tc))
             && ResourcesAudited::valid_factions(game, self.player).any(|f| Some(f) == opponent.faction)
         {
-            let mut e = ResourcesAudited::new(game, self.faction(game));
+            let mut e = ResourcesAudited::default();
             e.target = opponent.faction;
-            return Some(Rc::new(e));
+            return Some(e);
         }
 
         None
@@ -1059,7 +1059,7 @@ impl ClassicBot {
             .count() as i32
     }
 
-    pub fn determine_choam_economics(&self, game: &Game) -> Option<Rc<ChoamEconomics>> {
+    pub fn determine_choam_economics(&self, game: &Game) -> Option<ChoamEconomics> {
         let status = if self.resources_including_ally_contribution(game) >= 14 && self.nr_of_poor_players(game) >= 2 {
             ChoamEconomicsStatus::Cancel
         } else if self.resources_including_ally_contribution(game) <= 8 && self.nr_of_poor_players(game) <= 2 {
@@ -1068,12 +1068,12 @@ impl ClassicBot {
             return None;
         };
 
-        let mut e = ChoamEconomics::new(game, self.faction(game));
+        let mut e = ChoamEconomics::default();
         e.status = Some(status);
-        Some(Rc::new(e))
+        Some(e)
     }
 
-    pub fn determine_choam_remove_force(&self, game: &Game) -> Option<Rc<ChoamRemoveForce>> {
+    pub fn determine_choam_remove_force(&self, game: &Game) -> Option<ChoamRemoveForce> {
         let opponents = self.winning_opponents_i_wish_to_attack(game, 20, true);
 
         let map = &game.board.map;
@@ -1093,11 +1093,11 @@ impl ClassicBot {
                 .find(|opp| game.player(*opp).battalion_in_location(stronghold).expect("battalion in location").total_amount_of_forces() == 1);
 
             if let Some(opp) = opponent_with_one_force_in_stronghold {
-                let mut e = ChoamRemoveForce::new(game, self.faction(game));
+                let mut e = ChoamRemoveForce::default();
                 e.location = Some(stronghold);
                 e.target = game.player(opp).faction;
                 e.special_force = game.player(opp).special_forces_in(Some(stronghold)) > 0;
-                return Some(Rc::new(e));
+                return Some(e);
             }
         }
 
@@ -1136,7 +1136,7 @@ impl ClassicBot {
         e
     }
 
-    pub fn determine_terror_planted(&self, game: &Game) -> Option<Rc<TerrorPlanted>> {
+    pub fn determine_terror_planted(&self, game: &Game) -> Option<TerrorPlanted> {
         if game.turn.current_main_phase != MainPhase::Contemplate {
             return None;
         }
@@ -1145,10 +1145,10 @@ impl ClassicBot {
             TerrorPlanted::valid_terror_types(game, false).filter(|t| !game.board.terror_on_planet.contains_key(t)).collect();
         let valid_strongholds: Vec<Territory> = TerrorPlanted::valid_strongholds(game, self.player).collect();
 
-        let mut e = TerrorPlanted::new(game, self.faction(game));
+        let mut e = TerrorPlanted::default();
         if available_to_place.is_empty() || valid_strongholds.is_empty() {
             e.passed = true;
-            return Some(Rc::new(e));
+            return Some(e);
         }
 
         let opponents = self.opponents(game);
@@ -1189,10 +1189,10 @@ impl ClassicBot {
         } else {
             e.passed = true;
         }
-        Some(Rc::new(e))
+        Some(e)
     }
 
-    pub fn determine_terror_revealed(&self, game: &Game) -> Rc<TerrorRevealed> {
+    pub fn determine_terror_revealed(&self, game: &Game) -> TerrorRevealed {
         // For now this is mostly random.
         let territory = TerrorRevealed::get_territory(game);
         // C# parity: `AlliedPlayer?.AnyForcesIn(territory) == 0` is false without an ally.
@@ -1204,10 +1204,10 @@ impl ClassicBot {
                 && (*t != TerrorType::Atomics || may_use_atomics)
         };
 
-        let mut e = TerrorRevealed::new(game, self.faction(game));
+        let mut e = TerrorRevealed::default();
         if !TerrorRevealed::get_types(game).any(|t| token_is_valid(&t)) {
             e.passed = true;
-            return Rc::new(e);
+            return e;
         }
 
         let type_ = TerrorRevealed::get_types(game).filter(token_is_valid).random_item(&self.random);
@@ -1219,19 +1219,19 @@ impl ClassicBot {
 
         if offer_alliance {
             e.alliance_offered = true;
-            return Rc::new(e);
+            return e;
         }
         e.type_ = type_;
         e.robbery_takes_card = false;
         e.card_to_give_in_sabotage = card_in_sabotage;
         e.forces_in_sneak_attack = treachery_engine::game::amounts::clamp_u16(TerrorRevealed::max_amount_of_forces_in_sneak_attack(game, self.player));
         e.sneak_attack_to = TerrorRevealed::valid_sneak_attack_targets(game, self.player).next();
-        Rc::new(e)
+        e
     }
 
     // ---- Ecaz ----
 
-    pub fn determine_ambassador_placed(&mut self, game: &Game) -> Option<Rc<AmbassadorPlaced>> {
+    pub fn determine_ambassador_placed(&mut self, game: &Game) -> Option<AmbassadorPlaced> {
         let resources = self.resources(game);
         if (resources <= 1 || game.revival.ambassadors_placed_this_turn != 0) && resources <= 3 + game.revival.ambassadors_placed_this_turn {
             return None;
@@ -1289,13 +1289,13 @@ impl ClassicBot {
         if ambassador == None {
             return None;
         }
-        let mut e = AmbassadorPlaced::new(game, self.faction(game));
+        let mut e = AmbassadorPlaced::default();
         e.ambassador = ambassador;
         e.stronghold = stronghold;
-        Some(Rc::new(e))
+        Some(e)
     }
 
-    pub fn determine_ambassador_activated(&mut self, game: &Game) -> Option<Rc<AmbassadorActivated>> {
+    pub fn determine_ambassador_activated(&mut self, game: &Game) -> Option<AmbassadorActivated> {
         let victim_player = AmbassadorActivated::get_victim_player(game);
         let mut ambassador = AmbassadorActivated::get_ambassador(game);
         let mut bene_gesserit_selected_ambassador = None;
@@ -1308,10 +1308,9 @@ impl ClassicBot {
             ambassador = bene_gesserit_selected_ambassador;
         }
 
-        let faction = self.faction(game);
         let p = Some(self.player);
         let new_event = || {
-            let mut e = AmbassadorActivated::new(game, faction);
+            let mut e = AmbassadorActivated::default();
             e.bene_gesserit_selected_ambassador = bene_gesserit_selected_ambassador;
             e
         };
@@ -1325,7 +1324,7 @@ impl ClassicBot {
                 if !to_discard.is_empty() {
                     let mut e = new_event();
                     e.set_choam_cards(&to_discard);
-                    return Some(Rc::new(e));
+                    return Some(e);
                 }
             }
 
@@ -1343,7 +1342,7 @@ impl ClassicBot {
                     e.ecaz_offer_alliance = offer_alliance;
                     e.ecaz_take_vidal = take_vidal;
                     e.ecaz_give_vidal_to_ally = offer_vidal;
-                    return Some(Rc::new(e));
+                    return Some(e);
                 }
             }
 
@@ -1360,7 +1359,7 @@ impl ClassicBot {
                             let mut e = new_event();
                             e.fremen_or_guild_to = target;
                             e.set_fremen_force_locations(game, &forces_to_move);
-                            return Some(Rc::new(e));
+                            return Some(e);
                         }
                     }
                 }
@@ -1372,13 +1371,13 @@ impl ClassicBot {
                 if to_replace.is_some() {
                     let mut e = new_event();
                     e.ixian_card = to_replace;
-                    return Some(Rc::new(e));
+                    return Some(e);
                 }
             }
 
             Some(Ambassador::Richese) => {
                 if self.resources(game) > 3 && game.player(self.player).has_room_for_cards(game) {
-                    return Some(Rc::new(new_event()));
+                    return Some(new_event());
                 }
             }
 
@@ -1412,7 +1411,7 @@ impl ClassicBot {
                     let mut e = new_event();
                     e.fremen_or_guild_to = Some(attack.location);
                     e.guild_force_amount = treachery_engine::game::amounts::clamp_u16(AmbassadorActivated::valid_guild_max_forces(game, self.player));
-                    return Some(Rc::new(e));
+                    return Some(e);
                 }
             }
 
@@ -1433,26 +1432,26 @@ impl ClassicBot {
                     let mut e = new_event();
                     e.tleilaxu_hero = hero_to_revive;
                     e.tleilaxu_assign_skill = Revival::may_assign_skill(game, self.player, hero_to_revive);
-                    return Some(Rc::new(e));
+                    return Some(e);
                 }
                 if AmbassadorActivated::valid_tleilaxu_max_amount(game, self.player) >= 3 {
                     let mut e = new_event();
                     e.tleilaxu_amount_of_forces = treachery_engine::game::amounts::clamp_u16(AmbassadorActivated::valid_tleilaxu_max_amount(game, self.player));
-                    return Some(Rc::new(e));
+                    return Some(e);
                 }
             }
 
-            _ => return Some(Rc::new(new_event())),
+            _ => return Some(new_event()),
         }
 
         self.pass_ambassador_activated(game)
     }
 
-    pub fn pass_ambassador_activated(&self, game: &Game) -> Option<Rc<AmbassadorActivated>> {
+    pub fn pass_ambassador_activated(&self, game: &Game) -> Option<AmbassadorActivated> {
         if AmbassadorActivated::may_pass(game, self.player) {
-            let mut e = AmbassadorActivated::new(game, self.faction(game));
+            let mut e = AmbassadorActivated::default();
             e.passed = true;
-            Some(Rc::new(e))
+            Some(e)
         } else {
             None
         }

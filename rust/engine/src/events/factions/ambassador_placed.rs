@@ -1,11 +1,9 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct AmbassadorPlaced {
     pub ambassador: Option<Ambassador>,
     pub stronghold: Option<Territory>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for AmbassadorPlaced {
@@ -13,30 +11,11 @@ impl Default for AmbassadorPlaced {
         AmbassadorPlaced {
             ambassador: Default::default(),
             stronghold: Territory::from_id(0),
-            base: Default::default(),
         }
     }
 }
 
 impl AmbassadorPlaced {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        let stronghold = self.stronghold;
-        if !AmbassadorPlaced::valid_strongholds(game, self.player()).into_iter().any(|t| Some(t) == stronghold) {
-            return Some(express!("Invalid stronghold"));
-        }
-        if !AmbassadorPlaced::valid_ambassadors(game, self.player()).iter().any(|a| Some(*a) == self.ambassador) {
-            return Some(express!("Ambassador not available"));
-        }
-
-        None
-    }
-
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_strongholds(g: &Game, _p: PlayerId) -> impl Iterator<Item = Territory> {
         g.board.map
@@ -57,29 +36,32 @@ impl AmbassadorPlaced {
             && !AmbassadorPlaced::valid_ambassadors(g, p).is_empty()
             && !AmbassadorPlaced::valid_strongholds(g, p).next().is_none()
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+impl EventRules for AmbassadorPlaced {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        let stronghold = self.stronghold;
+        if !AmbassadorPlaced::valid_strongholds(game, by.player()).into_iter().any(|t| Some(t) == stronghold) {
+            return Err(Rejection(express!("Invalid stronghold")));
+        }
+        if !AmbassadorPlaced::valid_ambassadors(game, by.player()).iter().any(|a| Some(*a) == self.ambassador) {
+            return Err(Rejection(express!("Ambassador not available")));
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
         let Some(stronghold) = self.stronghold else {
             game_error!("Stronghold is null");
         };
 
         game.revival.ambassadors_placed_this_turn += 1;
-        let me = self.player();
+        let me = by.player();
         let placed = game.revival.ambassadors_placed_this_turn;
         let p = game.player_mut(me);
         crate::game::amounts::spend(&mut p.resources, placed, "spice")?;
-        self.log_objects(
-            game,
-            vec![
-                self.initiator().into(),
-                " station the ".into(),
-                self.ambassador.into(),
-                " ambassador in ".into(),
-                stronghold.into(),
-                " for ".into(),
-                Payment::of(placed).into(),
-            ],
-        );
+        game.log(parts![by.faction, " station the ", self.ambassador, " ambassador in ", stronghold, " for ", Payment::of(placed)]);
         if game.board.ambassadors_on_planet.contains_key(&stronghold) {
             game_error!("There already is an ambassador in Treachery.Shared.Territory");
         }
@@ -94,34 +76,7 @@ impl AmbassadorPlaced {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " station the ", self.ambassador, " ambassador in ", self.stronghold)
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " station the ", self.ambassador, " ambassador in ", self.stronghold)
     }
-}
-
-impl GameEventMethods for AmbassadorPlaced {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::AmbassadorPlaced
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::AmbassadorPlaced(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        AmbassadorPlaced::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        AmbassadorPlaced::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        AmbassadorPlaced::get_message(self, game)
-    }
-
 }

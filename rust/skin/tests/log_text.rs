@@ -59,8 +59,7 @@ fn karama_against_guild_income_has_a_space_before_the_amount() {
 fn choam_karama_discard_reads_choam_using() {
     let g = game();
     let e = KarmaChoamDiscard::default();
-    e.initialize(&g, Some(Faction::Choam));
-    let rendered = text(&e.get_message(&g));
+    let rendered = text(&e.describe(&g, By::new(&g, Faction::Choam)));
     assert!(rendered.starts_with("CHOAM using Karama, CHOAM discard"), "{rendered}");
 }
 

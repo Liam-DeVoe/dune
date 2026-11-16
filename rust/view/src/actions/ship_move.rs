@@ -50,13 +50,13 @@ fn forces_at(game: &Game, p: PlayerId, l: Location) -> ForcesAt {
 
 /// The draft a form sends before the player touches it: its starting inputs, after its widgets
 /// adjusted them (a required image choice picks the first value).
-pub fn default_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: EventType) -> Option<Event> {
-    let draft = initial_draft(game, p, faction, t)?;
+pub fn default_draft(game: &Game, p: PlayerId, _faction: Option<Faction>, t: EventType) -> Option<Event> {
+    let draft = initial_draft(game, p, t)?;
     Some(normalized(game, p, &draft))
 }
 
 /// The form's starting inputs, before any adjustment.
-fn initial_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: EventType) -> Option<Event> {
+fn initial_draft(game: &Game, p: PlayerId, t: EventType) -> Option<Event> {
     Some(match t {
         EventType::Shipment => {
             let mut e = Shipment::default();
@@ -90,7 +90,7 @@ fn initial_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: EventTyp
             event(e)
         }
         EventType::AmbassadorActivated => {
-            let mut e = AmbassadorActivated::new(game, faction);
+            let mut e = AmbassadorActivated::default();
             let ambassador = AmbassadorActivated::get_ambassador(game);
             // BeneGesserit: the required image choice picks the first ambassador.
             let actual = if ambassador == Some(Ambassador::BeneGesserit) {
@@ -111,7 +111,7 @@ fn initial_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: EventTyp
             event(e)
         }
         EventType::AmbassadorPlaced => {
-            let mut e = AmbassadorPlaced::new(game, faction);
+            let mut e = AmbassadorPlaced::default();
             e.ambassador = AmbassadorPlaced::valid_ambassadors(game, p).first().copied();
             e.stronghold = None;
             event(e)
@@ -124,12 +124,12 @@ fn initial_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: EventTyp
         }
         EventType::BeneGesseritFlip => event(BeneGesseritFlip::default()),
         EventType::ChoamMovePrevention => {
-            let mut e = ChoamMovePrevention::new(game, faction);
+            let mut e = ChoamMovePrevention::default();
             e.territory = None;
             event(e)
         }
         EventType::ChoamRemoveForce => {
-            let mut e = ChoamRemoveForce::new(game, faction);
+            let mut e = ChoamRemoveForce::default();
             e.location = None;
             event(e)
         }
@@ -180,7 +180,7 @@ fn initial_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: EventTyp
             event(e)
         }
         EventType::TerrorPlanted => {
-            let mut e = TerrorPlanted::new(game, faction);
+            let mut e = TerrorPlanted::default();
             // Removing: the required select picks the first type. Placing: the type is
             // chosen in the pinned panel, which only shows once a stronghold is picked.
             if TerrorPlanted::may_remove_tokens(game, p) {
@@ -190,7 +190,7 @@ fn initial_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: EventTyp
             event(e)
         }
         EventType::TerrorRevealed => {
-            let mut e = TerrorRevealed::new(game, faction);
+            let mut e = TerrorRevealed::default();
             e.type_ = TerrorRevealed::get_types(game).next();
             e.card_to_give_in_sabotage = None;
             e.sneak_attack_to = None;
@@ -351,7 +351,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &Event) -> Event {
             event(e)
         }
         Event::AmbassadorActivated(e) => {
-            let mut e = (**e).clone();
+            let mut e = e.clone();
             let ambassador = AmbassadorActivated::get_ambassador(game);
             let actual = if ambassador == Some(Ambassador::BeneGesserit) {
                 required_opt(e.bene_gesserit_selected_ambassador, &AmbassadorActivated::get_valid_bene_gesserit_ambassadors(game))
@@ -397,7 +397,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &Event) -> Event {
             event(e)
         }
         Event::AmbassadorPlaced(e) => {
-            let mut e = (**e).clone();
+            let mut e = e.clone();
             e.ambassador = required_opt(e.ambassador, &AmbassadorPlaced::valid_ambassadors(game, p));
             event(e)
         }
@@ -413,7 +413,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &Event) -> Event {
         }
         // OnPickChanged and SetTarget: the faction and force type follow the pinned location.
         Event::ChoamRemoveForce(e) => {
-            let mut e = (**e).clone();
+            let mut e = e.clone();
             if let Some(l) = e.location {
                 let factions: Vec<Faction> = ChoamRemoveForce::valid_factions(game, Some(p), Some(l)).collect();
                 e.target = required_opt(e.target, &factions);
@@ -440,7 +440,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &Event) -> Event {
         // Removing: the required select. Placing: the pinned panel, drawn while a stronghold is
         // pinned.
         Event::TerrorPlanted(e) => {
-            let mut e = (**e).clone();
+            let mut e = e.clone();
             if TerrorPlanted::may_remove_tokens(game, p) {
                 let types: Vec<TerrorType> = TerrorPlanted::valid_terror_types(game, true).collect();
                 e.type_ = required_opt(e.type_, &types);
@@ -451,7 +451,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &Event) -> Event {
             event(e)
         }
         Event::TerrorRevealed(e) => {
-            let mut e = (**e).clone();
+            let mut e = e.clone();
             let types: Vec<TerrorType> = TerrorRevealed::get_types(game).collect();
             e.type_ = required_opt(e.type_, &types);
             if e.type_ != Some(TerrorType::Robbery) {

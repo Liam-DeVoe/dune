@@ -16,9 +16,8 @@ A loser may retreat only if their leader survives the battle and has the Diploma
 - A custom skin missing any default key is replaced by the default skin entirely (C#'s `FixDictionary`), so its custom names are lost.
 - The web client's Karama help text has typos ("an advantages ... occured").
 
-## Rules questions for the owner
+## Bene Gesserit fighters that accompany a shipment never trigger an ambassador
 
-Pinned as they are today by tests in `engine/tests/phases_unreached.rs`, so wave 5 can't change them silently.
+The rulebook (Ecaz & Moritani, Ecaz faction rules) says an ambassador triggers when another faction "(other than your ally, advisors, or the faction matching the marker) enters a stronghold". Accompanying Bene Gesserit normally arrive as advisors, which don't trigger, so the usual case is right. But the engine sometimes places accompanying forces as fighters (into a territory where Bene Gesserit already have fighters, or with the advisors rule off), and `BeneGesseritAccompanies::forces_added_to_location` always returns 0, so `check_ambassador_triggered` never fires for them. Fighters entering should trigger it. The fuzzer never reaches this. `engine/tests/phases_unreached.rs` pins today's behavior. Fix it in wave 5 (ship and move), with a behavior-changes.md entry, and update that test.
 
-- Accompanying Bene Gesserit fighters never trigger an Ecaz ambassador. `check_ambassador_triggered` needs the event to add fighters, and `BeneGesseritAccompanies::forces_added_to_location` always returns 0, even when they are shipped as fighters. Should they trigger it?
-- `check_terror_triggered` lets fewer than 3 forces trigger a terror token only while Moritani is not at its low threshold. Is that the right way round?
+Checked and correct (2026-11-15): at low threshold, Moritani reveals a terror token only when at least 3 forces enter. The Grumman card says "Low (0-7): ... You can only reveal terror tokens when at least 3 forces enter" (web/assets/art/GrummanCard.gif), and `check_terror_triggered` does that.

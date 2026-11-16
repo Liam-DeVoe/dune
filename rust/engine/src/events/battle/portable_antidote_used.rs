@@ -1,30 +1,9 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
-pub struct PortableAntidoteUsed {
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for PortableAntidoteUsed {
-    fn default() -> Self {
-        PortableAntidoteUsed {
-            base: Default::default(),
-        }
-    }
-}
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PortableAntidoteUsed {}
 
 impl PortableAntidoteUsed {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
     pub fn can_be_played(g: &Game, p: PlayerId) -> bool {
         let card = g.player(p).card(TreacheryCardType::PortableAntidote);
         if let Some(card) = card {
@@ -42,41 +21,21 @@ impl PortableAntidoteUsed {
 
         false
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        self.log(game);
-        game.battle.current_portable_antidote_used = Some(self.clone());
+impl EventRules for PortableAntidoteUsed {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " equip a ", TreacheryCardType::PortableAntidote)
-    }
-}
-
-impl GameEventMethods for PortableAntidoteUsed {
-    fn base(&self) -> &GameEventBase {
-        &self.base
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let m = self.describe(game, by);
+        game.log_event(m);
+        game.battle.current_portable_antidote_used = Some(AntidoteEquipped { submitter: by });
+        Ok(())
     }
 
-    fn event_type(&self) -> EventType {
-        EventType::PortableAntidoteUsed
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " equip a ", TreacheryCardType::PortableAntidote)
     }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::PortableAntidoteUsed(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        PortableAntidoteUsed::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        PortableAntidoteUsed::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        PortableAntidoteUsed::get_message(self, game)
-    }
-
 }

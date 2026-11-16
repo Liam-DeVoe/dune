@@ -97,20 +97,22 @@ fn deciding_never_changes_the_game() {
 #[test]
 fn rock_melter_decision_with_a_mirror_weapon_leaves_the_game_alone() {
     let mut game = load("mc-treachery");
-    let (agg, def) = (game.battle.aggressor_plan.clone().unwrap(), game.battle.defender_plan.clone().unwrap());
+    let (mut agg, mut def) = (game.battle.aggressor_plan.clone().unwrap(), game.battle.defender_plan.clone().unwrap());
     assert!(agg.hero.is_some() && def.hero.is_some());
     agg.set_weapon(Some(card(&game, T::MirrorWeapon)));
     def.set_weapon(Some(card(&game, T::Laser)));
+    game.battle.aggressor_plan = Some(agg.clone());
+    game.battle.defender_plan = Some(def.clone());
 
     let messages = game.current_report().messages.len();
     let before = fingerprint(&game);
     let decision = bot(&game, def.player()).determine_rock_was_melted(&game);
     assert!(fingerprint(&game) == before, "deciding changed the game");
-    assert_eq!(agg.weapon().map(|c| c.type_()), Some(T::MirrorWeapon), "the live plan keeps its Mirror Weapon");
+    assert_eq!(game.battle.aggressor_plan.as_ref().unwrap().weapon().map(|c| c.type_()), Some(T::MirrorWeapon), "the live plan keeps its Mirror Weapon");
 
     // The same outcome, worked out for real, logs the Mirror Weapon and picks the same winner.
     let territory = game.battle.current_battle.as_ref().unwrap().territory.unwrap();
-    let outcome = Battle::determine_battle_outcome(&agg, &def, territory, &mut game);
+    let outcome = Battle::determine_battle_outcome(&mut agg, &mut def, territory, &mut game);
     assert_eq!(game.current_report().messages.len(), messages + 1);
     assert_eq!(decision.kill, outcome.winner == Some(def.player()));
 }
@@ -121,12 +123,14 @@ fn rock_melter_decision_with_a_mirror_weapon_leaves_the_game_alone() {
 #[test]
 fn the_fingerprint_sees_what_the_impure_rock_melter_decision_changed() {
     let mut game = load("mc-treachery");
-    let (agg, def) = (game.battle.aggressor_plan.clone().unwrap(), game.battle.defender_plan.clone().unwrap());
+    let (mut agg, mut def) = (game.battle.aggressor_plan.clone().unwrap(), game.battle.defender_plan.clone().unwrap());
     agg.set_weapon(Some(card(&game, T::MirrorWeapon)));
     def.set_weapon(Some(card(&game, T::Laser)));
+    game.battle.aggressor_plan = Some(agg.clone());
+    game.battle.defender_plan = Some(def.clone());
     let before = fingerprint(&game);
     let territory = game.battle.current_battle.as_ref().unwrap().territory.unwrap();
-    let _ = Battle::determine_battle_outcome(&agg, &def, territory, &mut game);
+    let _ = Battle::determine_battle_outcome(&mut agg, &mut def, territory, &mut game);
     assert!(fingerprint(&game) != before);
 }
 

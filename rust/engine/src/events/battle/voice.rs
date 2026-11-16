@@ -1,26 +1,9 @@
 use crate::prelude::*;
-use crate::messages::part::Part;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Voice {
     pub must: bool,
     pub type_: Option<TreacheryCardType>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for Voice {
-    fn default() -> Self {
-        Voice {
-            must: Default::default(),
-            type_: Default::default(),
-            base: Default::default(),
-        }
-    }
-}
-
-macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
 }
 
 /// How a player gets to use Voice: openly, as the Bene Gesserit or their ally, or as a secret
@@ -32,25 +15,8 @@ pub enum VoiceRight {
 }
 
 impl Voice {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
     pub fn may_not(&self) -> bool {
         !self.must
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        if !Self::may_use_voice_opt(game, self.player_opt()) {
-            return Some(express!("You cannot use Voice"));
-        }
-        if !self.type_.is_some_and(|t| Self::valid_types(game).contains(&t)) {
-            return Some(express!("Invalid use of Voice"));
-        }
-
-        None
     }
 
     pub fn valid_types(g: &Game) -> Vec<TreacheryCardType> {
@@ -210,16 +176,29 @@ impl Voice {
 
         false
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.battle.current_voice = Some(self.clone());
+impl EventRules for Voice {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        if !Self::may_use_voice_opt(game, by.player) {
+            return Err(Rejection(express!("You cannot use Voice")));
+        }
+        if !self.type_.is_some_and(|t| Self::valid_types(game).contains(&t)) {
+            return Err(Rejection(express!("Invalid use of Voice")));
+        }
 
-        if !self.is_playing(game, Faction::BeneGesserit) {
-            game.play_nexus_card(self.player(), elems!["use Voice"]);
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        game.battle.current_voice = Some(VoiceUsed { submitter: by, must: self.must, type_: self.type_ });
+
+        if !game.is_playing(Faction::BeneGesserit) {
+            game.play_nexus_card(by.player(), parts!["use Voice"]);
         }
 
         if let Some(battle) = game.battle.current_battle.clone() {
-            let opponent = battle.opponent_of(game, self.player());
+            let opponent = battle.opponent_of(game, by.player());
 
             if let Some(opponent) = opponent {
                 let f = game.player(opponent).faction;
@@ -227,42 +206,16 @@ impl Voice {
             }
         }
 
-        self.log(game);
+        let m = self.describe(game, by);
+        game.log_event(m);
         game.stone(Milestone::Voice);
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn describe(&self, _game: &Game, by: By) -> Message {
         if self.must {
-            return express!(self.initiator(), " use Voice to force the use of ", self.type_);
+            return express!(by.faction, " use Voice to force the use of ", self.type_);
         }
-        express!(self.initiator(), " use Voice to deny the use of ", self.type_)
+        express!(by.faction, " use Voice to deny the use of ", self.type_)
     }
-}
-
-impl GameEventMethods for Voice {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::Voice
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::Voice(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        Voice::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        Voice::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        Voice::get_message(self, game)
-    }
-
 }

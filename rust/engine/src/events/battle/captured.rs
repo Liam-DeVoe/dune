@@ -1,35 +1,18 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Captured {
-    // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
-impl Default for Captured {
-    fn default() -> Self {
-        Captured {
-            passed: Default::default(),
-            base: Default::default(),
-        }
-    }
-}
-
-impl Captured {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
+impl EventRules for Captured {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
     }
 
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        self.log(game);
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let m = self.describe(game, by);
+        game.log_event(m);
 
         if !self.passed {
             if game.prevented(FactionAdvantage::HarkonnenCaptureLeader) {
@@ -43,45 +26,10 @@ impl Captured {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn describe(&self, _game: &Game, by: By) -> Message {
         if self.passed {
-            return express!(self.initiator(), " won't capture or kill a leader");
+            return express!(by.faction, " won't capture or kill a leader");
         }
-        express!(self.initiator(), " will capture or kill a random leader...")
+        express!(by.faction, " will capture or kill a random leader...")
     }
-
-}
-
-impl GameEventMethods for Captured {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::Captured
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::Captured(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        Captured::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        Captured::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        Captured::get_message(self, game)
-    }
-
-}
-
-impl PassableGameEventMethods for Captured {
-    fn field_passed(&self) -> &bool {
-        &self.passed
-    }
-
 }

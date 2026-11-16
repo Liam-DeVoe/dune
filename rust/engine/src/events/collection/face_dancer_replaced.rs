@@ -1,12 +1,9 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct FaceDancerReplaced {
     pub selected_dancer: Option<Hero>,
-    // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for FaceDancerReplaced {
@@ -14,39 +11,39 @@ impl Default for FaceDancerReplaced {
         FaceDancerReplaced {
             selected_dancer: TreacheryCardManager::get(0).map(Hero::TreacheryCard),
             passed: Default::default(),
-            base: Default::default(),
         }
     }
 }
 
 impl FaceDancerReplaced {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
+    /// Lazy: callers may stop early, so filters run only on the elements they reach.
+    pub fn valid_face_dancers(game: &Game, p: PlayerId) -> impl Iterator<Item = Hero> {
+        game.player(p).unrevealed_face_dancers()
     }
+}
 
-    pub fn validate(&self, game: &Game) -> Option<Message> {
+impl EventRules for FaceDancerReplaced {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
         if !self.passed {
             let Some(selected_dancer) = self.selected_dancer else {
-                return Some(express!("Select a leader"));
+                return Err(Rejection(express!("Select a leader")));
             };
-            let p = game.player(self.player());
+            let p = game.player(by.player());
             if p.revealed_face_dancers.contains(&selected_dancer) {
-                return Some(express!("You can't replace a revealed Face Dancer"));
+                return Err(Rejection(express!("You can't replace a revealed Face Dancer")));
             }
             if !p.face_dancers.contains(&selected_dancer) {
-                return Some(express!("Invalid Face Dancer"));
+                return Err(Rejection(express!("Invalid Face Dancer")));
             }
         }
 
-        None
+        Ok(())
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
         if !self.passed {
             if let Some(selected_dancer) = self.selected_dancer {
-                let player = self.player();
+                let player = by.player();
                 // List.Remove: the first match, if any.
                 if let Some(i) = game.player(player).face_dancers.iter().position(|d| *d == selected_dancer) {
                     game.player_mut(player).face_dancers.remove(i);
@@ -60,51 +57,13 @@ impl FaceDancerReplaced {
             }
         }
 
-        self.log(game);
+        let m = self.describe(game, by);
+        game.log_event(m);
         game.enter(Phase::TurnConcluded, true);
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), express_part_if!(self.passed; " don't"), " replace a Face Dancer")
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, express_part_if!(self.passed; " don't"), " replace a Face Dancer")
     }
-
-    /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_face_dancers(game: &Game, p: PlayerId) -> impl Iterator<Item = Hero> {
-        game.player(p).unrevealed_face_dancers()
-    }
-}
-
-impl GameEventMethods for FaceDancerReplaced {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::FaceDancerReplaced
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::FaceDancerReplaced(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        FaceDancerReplaced::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        FaceDancerReplaced::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        FaceDancerReplaced::get_message(self, game)
-    }
-
-}
-
-impl PassableGameEventMethods for FaceDancerReplaced {
-    fn field_passed(&self) -> &bool {
-        &self.passed
-    }
-
 }

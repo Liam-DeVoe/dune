@@ -1,64 +1,21 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
-pub struct PoisonToothCancelled {
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PoisonToothCancelled {}
 
-impl Default for PoisonToothCancelled {
-    fn default() -> Self {
-        PoisonToothCancelled {
-            base: Default::default(),
-        }
-    }
-}
-
-impl PoisonToothCancelled {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.battle.poison_tooth_cancelled = true;
-        self.log(game);
+impl EventRules for PoisonToothCancelled {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " don't use their ", TreacheryCardType::PoisonTooth)
-    }
-}
-
-impl GameEventMethods for PoisonToothCancelled {
-    fn base(&self) -> &GameEventBase {
-        &self.base
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        game.battle.poison_tooth_cancelled = true;
+        let m = self.describe(game, by);
+        game.log_event(m);
+        Ok(())
     }
 
-    fn event_type(&self) -> EventType {
-        EventType::PoisonToothCancelled
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " don't use their ", TreacheryCardType::PoisonTooth)
     }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::PoisonToothCancelled(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        PoisonToothCancelled::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        PoisonToothCancelled::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        PoisonToothCancelled::get_message(self, game)
-    }
-
 }

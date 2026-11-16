@@ -515,7 +515,7 @@ fn table(g: &Game, finished: &Game, s: &Seating, mut columns: StoryTable) -> Sto
 }
 
 /// One side of a battle in the story.
-fn plan(g: &Game, b: &treachery_engine::events::Battle, opponent: Faction, advanced: bool) -> StoryPlan {
+fn plan(g: &Game, b: &BattlePlan, opponent: Faction, advanced: bool) -> StoryPlan {
     StoryPlan {
         faction: name_or_absent(b.initiator()),
         winner: g.battle.battle_winner == Some(b.initiator()),

@@ -1,12 +1,10 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Retreat {
     pub forces: u16,
     pub special_forces: u16,
     pub location: Option<Location>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for Retreat {
@@ -15,37 +13,11 @@ impl Default for Retreat {
             forces: Default::default(),
             special_forces: Default::default(),
             location: Location::from_id(0),
-            base: Default::default(),
         }
     }
 }
 
 impl Retreat {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        let p = self.player();
-        let mut valid_targets = Retreat::valid_targets(game, p);
-        let location = self.location;
-        if !valid_targets.any(|v| Some(v) == location) {
-            return Some(express!("Invalid location"));
-        }
-        if i32::from(self.forces) > Retreat::max_forces(game, p) {
-            return Some(express!("You selected too many ", game.player(p).force()));
-        }
-        if i32::from(self.special_forces) > Retreat::max_special_forces(game, p) {
-            return Some(express!("You selected too many ", game.player(p).special_force()));
-        }
-        if (i32::from(self.forces) + i32::from(self.special_forces)) > Retreat::max_total_forces(game, p) {
-            return Some(express!("You selected too many forces"));
-        }
-        None
-    }
-
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_targets(g: &Game, p: PlayerId) -> impl Iterator<Item = Location> {
         let territory = g.battle.current_battle.as_ref().expect("current battle").territory.expect("territory");
@@ -81,9 +53,30 @@ impl Retreat {
         let plan = plan.expect("plan");
         (special_forces_in - i32::from(plan.special_forces)) - i32::from(plan.special_forces_at_half_strength)
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let me = self.player();
+impl EventRules for Retreat {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        let p = by.player();
+        let mut valid_targets = Retreat::valid_targets(game, p);
+        let location = self.location;
+        if !valid_targets.any(|v| Some(v) == location) {
+            return Err(Rejection(express!("Invalid location")));
+        }
+        if i32::from(self.forces) > Retreat::max_forces(game, p) {
+            return Err(Rejection(express!("You selected too many ", game.player(p).force())));
+        }
+        if i32::from(self.special_forces) > Retreat::max_special_forces(game, p) {
+            return Err(Rejection(express!("You selected too many ", game.player(p).special_force())));
+        }
+        if (i32::from(self.forces) + i32::from(self.special_forces)) > Retreat::max_total_forces(game, p) {
+            return Err(Rejection(express!("You selected too many forces")));
+        }
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let me = by.player();
         let mut forces_to_move = i32::from(self.forces);
         let territory = game.battle.current_battle.as_ref().required("current battle")?.territory.required("territory")?;
         let sources: Vec<Location> = territory.locations().iter().copied().filter(|l| game.player(me).forces_in(Some(*l)) > 0).collect();
@@ -111,19 +104,20 @@ impl Retreat {
             special_forces_to_move -= to_move_from_here;
         }
 
-        self.log(game);
+        let m = self.describe(game, by);
+        game.log_event(m);
         game.handle_losses()?;
         game.flip_bene_gesserit_advisors_when_alone()?;
         game.determine_how_to_proceed_after_revealing_battle_plans()?;
         Ok(())
     }
 
-    pub fn get_message(&self, game: &Game) -> Message {
+    fn describe(&self, game: &Game, by: By) -> Message {
         if i32::from(self.forces) > 0 || i32::from(self.special_forces) > 0 {
-            let force = game.player(self.player()).force();
-            let special_force = game.player(self.player()).special_force();
+            let force = game.player(by.player()).force();
+            let special_force = game.player(by.player()).special_force();
             return express!(
-                self.initiator(),
+                by.faction,
                 " retreat ",
                 express_part_if!(i32::from(self.forces) > 0; i32::from(self.forces), " ", force),
                 express_part_if!(i32::from(self.special_forces) > 0; i32::from(self.special_forces), " ", special_force),
@@ -131,34 +125,6 @@ impl Retreat {
                 self.location
             );
         }
-        express!(self.initiator(), " don't retreat")
+        express!(by.faction, " don't retreat")
     }
-
-}
-
-impl GameEventMethods for Retreat {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::Retreat
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::Retreat(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        Retreat::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        Retreat::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        Retreat::get_message(self, game)
-    }
-
 }

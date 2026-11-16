@@ -46,9 +46,8 @@ fn an_audit_message_keeps_the_cards_of_its_audit() {
     let first = card_of(TreacheryCardType::Laser, 0);
     g.battle.audited_cards = vec![first];
 
-    let mut ev = AuditCancelled::new(&g, Faction::Emperor);
-    ev.cancelled = false;
-    Rc::new(ev).execute_concrete_event(&mut g).unwrap();
+    let by = By::new(&g, Faction::Emperor);
+    AuditCancelled { cancelled: false }.apply(&mut g, by).unwrap();
     assert_eq!(g.current_report().messages.last().unwrap().to, Audience::Faction(Faction::Emperor));
     assert_eq!(last_logged_list(&g), cards(&[first]));
 

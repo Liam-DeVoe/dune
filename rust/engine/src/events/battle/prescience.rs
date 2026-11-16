@@ -1,32 +1,11 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Prescience {
     pub aspect: Option<PrescienceAspect>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for Prescience {
-    fn default() -> Self {
-        Prescience {
-            aspect: Default::default(),
-            base: Default::default(),
-        }
-    }
 }
 
 impl Prescience {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
     pub fn valid_aspects(g: &Game, p: PlayerId) -> Vec<PrescienceAspect> {
         let battle = g.battle.current_battle.as_ref().expect("current battle");
         let opponent = battle.opponent_of(g, p).expect("opponent of");
@@ -76,42 +55,22 @@ impl Prescience {
 
         false
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.battle.current_prescience = Some(self.clone());
-        self.log(game);
+impl EventRules for Prescience {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        game.battle.current_prescience = Some(PrescienceUsed { submitter: by, aspect: self.aspect });
+        let m = self.describe(game, by);
+        game.log_event(m);
         game.stone(Milestone::Prescience);
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " use Prescience to see the enemy ", self.aspect)
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " use Prescience to see the enemy ", self.aspect)
     }
-}
-
-impl GameEventMethods for Prescience {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::Prescience
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::Prescience(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        Prescience::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        Prescience::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        Prescience::get_message(self, game)
-    }
-
 }

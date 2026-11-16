@@ -114,9 +114,9 @@ fn try_decide_scenarios() {
         let decision = match name {
             "valid" => bot.try_decide(&mut game, &end_phase, |_, g| { called.set(true); Some(Rc::new(EndPhase::new(g, Faction::Atreides))) }),
             "notAllowed" => bot.try_decide(&mut game, &thought, |_, g| { called.set(true); Some(Rc::new(EndPhase::new(g, Faction::Atreides))) }),
-            "returnsNull" => bot.try_decide(&mut game, &thought, |_, _| -> Option<Rc<Thought>> { called.set(true); None }),
+            "returnsNull" => bot.try_decide(&mut game, &thought, |_, _| -> Option<Thought> { called.set(true); None }),
             "throws" => bot.try_decide(&mut game, &end_phase, |_, _| -> Option<Rc<EndPhase>> { called.set(true); panic!("boom") }),
-            "invalid" => bot.try_decide(&mut game, &thought, |_, g| { called.set(true); Some(Rc::new(Thought::new(g, Faction::Atreides))) }),
+            "invalid" => bot.try_decide(&mut game, &thought, |_, _| { called.set(true); Some(Thought::default()) }),
             _ => unreachable!(),
         };
         assert_eq!(matches!(decision, Some(Decision::Valid(_))), valid, "{name}: valid");
@@ -134,7 +134,7 @@ fn try_decide_scenarios() {
 fn invalid_decision_is_not_submitted() {
     let (mut game, mut bot) = bot(1);
     let allowed = [EventType::Thought];
-    let decision = bot.try_decide(&mut game, &allowed, |_, g| Some(Rc::new(Thought::new(g, Faction::Atreides))));
+    let decision = bot.try_decide(&mut game, &allowed, |_, _| Some(Thought::default()));
     assert!(matches!(decision, Some(Decision::Invalid(_))));
     assert!(decision.unwrap().valid().is_none());
 }

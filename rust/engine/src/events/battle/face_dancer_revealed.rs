@@ -1,101 +1,44 @@
 use crate::prelude::*;
-use crate::messages::part::Part;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct FaceDancerRevealed {
-    // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
-impl Default for FaceDancerRevealed {
-    fn default() -> Self {
-        FaceDancerRevealed {
-            passed: Default::default(),
-            base: Default::default(),
-        }
-    }
-}
-
-macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
-}
-
-impl FaceDancerRevealed {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
+impl EventRules for FaceDancerRevealed {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
         if self.passed {
-            return None;
+            return Ok(());
         }
-        if !FaceDanced::may_call_face_dancer_opt(game, self.player_opt()) {
-            return Some(express!("You can't reveal a face dancer"));
+        if !FaceDanced::may_call_face_dancer_opt(game, by.player) {
+            return Err(Rejection(express!("You can't reveal a face dancer")));
         }
-        None
+        Ok(())
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
         if !self.passed {
-            let face_dancers = &game.player(self.player()).face_dancers;
+            let face_dancers = &game.player(by.player()).face_dancers;
             let facedancer = if face_dancers.is_empty() {
                 None
             } else {
                 let winner = game.winner_hero().required("battle winner")?;
                 face_dancers.iter().copied().find(|f| winner.is_face_dancer(*f))
             };
-            game.log(elems![self.initiator(), " reveal ", facedancer, " as one of their Face Dancers!"]);
+            game.log(parts![by.faction, " reveal ", facedancer, " as one of their Face Dancers!"]);
             game.stone(Milestone::FaceDanced);
             game.enter(Phase::Facedancing, true);
         } else {
-            game.log(elems![self.initiator(), " don't reveal a Face Dancer"]);
+            game.log(parts![by.faction, " don't reveal a Face Dancer"]);
             game.finish_battle()?;
         }
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn describe(&self, _game: &Game, by: By) -> Message {
         if !self.passed {
-            return express!(self.initiator(), " reveal a face dancer!");
+            return express!(by.faction, " reveal a face dancer!");
         }
-        express!(self.initiator(), " don't reveal a face dancer")
+        express!(by.faction, " don't reveal a face dancer")
     }
-}
-
-impl GameEventMethods for FaceDancerRevealed {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::FaceDancerRevealed
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::FaceDancerRevealed(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        FaceDancerRevealed::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        FaceDancerRevealed::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        FaceDancerRevealed::get_message(self, game)
-    }
-
-}
-
-impl PassableGameEventMethods for FaceDancerRevealed {
-    fn field_passed(&self) -> &bool {
-        &self.passed
-    }
-
 }

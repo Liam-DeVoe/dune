@@ -146,13 +146,13 @@ impl ClassicBot {
         Rc::new(e)
     }
 
-    pub fn determine_traitor_discarded(&self, game: &Game) -> Rc<TraitorDiscarded> {
+    pub fn determine_traitor_discarded(&self, game: &Game) -> TraitorDiscarded {
         let worst_traitor = self
             .determine_worst_traitor(game)
             .or_else(|| game.player(self.player).traitors.iter().copied().random_lowest(&self.random, |t| t.value()));
-        let mut e = TraitorDiscarded::new(game, self.faction(game));
+        let mut e = TraitorDiscarded::default();
         e.traitor = worst_traitor;
-        Rc::new(e)
+        e
     }
 
     pub fn determine_worst_traitor(&self, game: &Game) -> Option<Hero> {
@@ -312,7 +312,7 @@ impl ClassicBot {
     }
 
     /// The current battle, if it is the battle phase and I am the aggressor or defender.
-    fn battle_im_fighting<'g>(&self, game: &'g Game) -> Option<&'g Rc<BattleInitiated>> {
+    fn battle_im_fighting<'g>(&self, game: &'g Game) -> Option<&'g InitiatedBattle> {
         if game.turn.current_phase != Phase::BattlePhase {
             return None;
         }
@@ -611,7 +611,7 @@ impl ClassicBot {
             let opponent = battle.opponent_of(game, self.player);
             let wait_for_prescience_or_voice = battle.plan_of(game, opponent).is_none()
                 && (Prescience::prescience_right_opt(game, opponent) || Voice::may_use_voice_opt(game, opponent));
-            let asked_in_this_battle = game.turn.latest_clairvoyance_battle.as_ref().is_some_and(|b| Rc::ptr_eq(b, battle));
+            let asked_in_this_battle = game.turn.latest_clairvoyance_battle.as_ref() == Some(battle);
 
             if !wait_for_prescience_or_voice && !asked_in_this_battle {
                 if let Some(e) = self.clairvoyance_about_battle_plan(game, battle) {
@@ -653,7 +653,7 @@ impl ClassicBot {
 
     /// Asks my opponent in `battle` whether they will defend against my weapons, or use a weapon my
     /// defenses can't both stop.
-    fn clairvoyance_about_battle_plan(&self, game: &Game, battle: &BattleInitiated) -> Option<Rc<ClairVoyancePlayed>> {
+    fn clairvoyance_about_battle_plan(&self, game: &Game, battle: &InitiatedBattle) -> Option<Rc<ClairVoyancePlayed>> {
         let opponent = battle.opponent_of(game, self.player).expect("opponent of");
         if Self::nr_of_unknown_opponent_cards(game, self.player, opponent) <= 0 {
             return None;
@@ -727,10 +727,10 @@ impl ClassicBot {
         let in_battle = || game.battle.current_battle.as_ref().is_some_and(|b| b.is_aggressor_or_defender(game, self.player));
         let my_plan = || match game.battle.current_battle.as_ref().expect("current battle").plan_of(game, Some(self.player)) {
             Some(plan) => plan,
-            None => self.determine_battle_plan(game, true),
+            None => self.determine_battle_plan(game, true).plan(By::new(game, self.faction(game))),
         };
-        let defends_with = |plan: &Battle| plan.defense().is_some() && ClairVoyanceAnswered::is_questioned_by(false, plan.defense().expect("defense").type_(), card_type());
-        let attacks_with = |plan: &Battle| plan.weapon().is_some() && ClairVoyanceAnswered::is_questioned_by(true, plan.weapon().expect("weapon").type_(), card_type());
+        let defends_with = |plan: &BattlePlan| plan.defense().is_some() && ClairVoyanceAnswered::is_questioned_by(false, plan.defense().expect("defense").type_(), card_type());
+        let attacks_with = |plan: &BattlePlan| plan.weapon().is_some() && ClairVoyanceAnswered::is_questioned_by(true, plan.weapon().expect("weapon").type_(), card_type());
 
         // A question I fail to work out gets an unknown answer.
         let answer = super::guarded(|| {
@@ -1191,13 +1191,13 @@ impl ClassicBot {
         Rc::new(e)
     }
 
-    pub fn determine_diplomacy(&self, game: &Game) -> Option<Rc<Diplomacy>> {
+    pub fn determine_diplomacy(&self, game: &Game) -> Option<Diplomacy> {
         let opponent_plan = game.battle.current_battle.as_ref().expect("current battle").plan_of_opponent(game, Some(self.player));
         let opponent_plan = opponent_plan.expect("opponent plan");
         if opponent_plan.weapon().is_some_and(|w| w.countered_by(opponent_plan.defense(), None)) {
-            let mut e = Diplomacy::new(game, self.faction(game));
+            let mut e = Diplomacy::default();
             e.card = Some(Diplomacy::valid_cards(game, self.player).into_iter().next().expect("an element"));
-            return Some(Rc::new(e));
+            return Some(e);
         }
 
         None

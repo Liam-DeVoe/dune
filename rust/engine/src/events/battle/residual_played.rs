@@ -1,44 +1,24 @@
 use crate::prelude::*;
-use crate::messages::part::Part;
 
-#[derive(Clone, Debug)]
-pub struct ResidualPlayed {
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for ResidualPlayed {
-    fn default() -> Self {
-        ResidualPlayed {
-            base: Default::default(),
-        }
-    }
-}
-
-macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
-}
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ResidualPlayed {}
 
 impl ResidualPlayed {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
     pub fn may_play(g: &Game, p: PlayerId) -> bool {
         g.battle.current_battle.as_ref().expect("current battle").is_aggressor_or_defender(g, p)
             && g.player(p).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Residual)
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.discard(self.player(), TreacheryCardType::Residual)?;
+impl EventRules for ResidualPlayed {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        game.discard(by.player(), TreacheryCardType::Residual)?;
         let battle = game.battle.current_battle.clone().required("current battle")?;
-        let opponent = battle.opponent_of_faction(game, self.initiator()).required("opponent of faction")?;
+        let opponent = battle.opponent_of_faction(game, by.faction).required("opponent of faction")?;
         let candidates: Vec<Hero> = game
             .player(opponent)
             .leaders
@@ -58,42 +38,15 @@ impl ResidualPlayed {
                 }
             }
             game.kill_hero(to_kill);
-            game.log(elems![TreacheryCardType::Residual, " kills ", to_kill]);
+            game.log(parts![TreacheryCardType::Residual, " kills ", to_kill]);
         } else {
             let faction = game.player(opponent).faction;
-            game.log(elems![faction, " have no available leaders to kill"]);
+            game.log(parts![faction, " have no available leaders to kill"]);
         }
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " use ", TreacheryCardType::Residual, " to kill a random opponent leader")
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " use ", TreacheryCardType::Residual, " to kill a random opponent leader")
     }
-}
-
-impl GameEventMethods for ResidualPlayed {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::ResidualPlayed
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::ResidualPlayed(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        ResidualPlayed::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        ResidualPlayed::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        ResidualPlayed::get_message(self, game)
-    }
-
 }

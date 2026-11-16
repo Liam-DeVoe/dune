@@ -1,30 +1,9 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
-pub struct SwitchedSkilledLeader {
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for SwitchedSkilledLeader {
-    fn default() -> Self {
-        SwitchedSkilledLeader {
-            base: Default::default(),
-        }
-    }
-}
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SwitchedSkilledLeader {}
 
 impl SwitchedSkilledLeader {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
     pub fn switchable_leader(game: &Game, player: PlayerId) -> Option<Leader> {
         let faction = game.player(player).faction;
         game.player(player).leaders.iter().copied().find(|l| {
@@ -45,9 +24,15 @@ impl SwitchedSkilledLeader {
             && battle.plan_of(game, Some(player)).is_none()
             && Self::switchable_leader(game, player).is_some()
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let leader = Self::switchable_leader(game, self.player());
+impl EventRules for SwitchedSkilledLeader {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let leader = Self::switchable_leader(game, by.player());
         let value = !game.is_in_front_of_shield(leader.map(Hero::Leader));
         let leader = match leader {
             Some(l) => l,
@@ -57,10 +42,8 @@ impl SwitchedSkilledLeader {
         let hero = Some(Hero::Leader(leader));
         let skill = game.skill(hero);
         let in_front = game.is_in_front_of_shield(hero);
-        self.log_objects(
-            game,
-            vec![
-                self.initiator().into(),
+        game.log(vec![
+                by.faction.into(),
                 " place ".into(),
                 skill.into(),
                 " ".into(),
@@ -72,35 +55,7 @@ impl SwitchedSkilledLeader {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " switch their skilled leader")
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " switch their skilled leader")
     }
-
-}
-
-impl GameEventMethods for SwitchedSkilledLeader {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::SwitchedSkilledLeader
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::SwitchedSkilledLeader(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        SwitchedSkilledLeader::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        SwitchedSkilledLeader::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        SwitchedSkilledLeader::get_message(self, game)
-    }
-
 }

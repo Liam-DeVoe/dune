@@ -1,32 +1,11 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RockWasMelted {
     pub kill: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for RockWasMelted {
-    fn default() -> Self {
-        RockWasMelted {
-            kill: Default::default(),
-            base: Default::default(),
-        }
-    }
 }
 
 impl RockWasMelted {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
     pub fn can_be_played(g: &Game, p: PlayerId) -> bool {
         let plan = g.battle.current_battle.as_ref().expect("current battle").plan_of(g, Some(p));
         match plan {
@@ -37,45 +16,25 @@ impl RockWasMelted {
             None => false,
         }
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        self.log(game);
-        game.battle.current_rock_was_melted = Some(self.clone());
+impl EventRules for RockWasMelted {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let m = self.describe(game, by);
+        game.log_event(m);
+        game.battle.current_rock_was_melted = Some(RockMelted { submitter: by, kill: self.kill });
         game.enter(Phase::CallTraitorOrPass, true);
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn describe(&self, _game: &Game, by: By) -> Message {
         if self.kill {
-            return express!(self.initiator(), " use their ", TreacheryCardType::Rockmelter, " to kill both leaders");
+            return express!(by.faction, " use their ", TreacheryCardType::Rockmelter, " to kill both leaders");
         }
-        express!(self.initiator(), " use their ", TreacheryCardType::Rockmelter, " to reduce both leaders to 0 strength")
+        express!(by.faction, " use their ", TreacheryCardType::Rockmelter, " to reduce both leaders to 0 strength")
     }
-}
-
-impl GameEventMethods for RockWasMelted {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::RockWasMelted
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::RockWasMelted(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        RockWasMelted::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        RockWasMelted::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        RockWasMelted::get_message(self, game)
-    }
-
 }

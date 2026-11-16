@@ -15,7 +15,7 @@ impl PlacementEvent {
     /// An amount in a force list. Panics on text that isn't a number, as C# threw. The JSON
     /// reader has refused amounts outside 0 to 65535 (`wire::force_list`).
     pub fn parse_force_amount(s: &str) -> u16 {
-        let n = dotnet_compat::parse::convert_to_int32(Some(s));
+        let n = crate::parse::int_or_panic(s);
         u16::try_from(n).expect("an amount of forces the event JSON reader accepted")
     }
 
@@ -37,7 +37,7 @@ impl PlacementEvent {
         }
         for location_amount_pair in force_locations.split(',') {
             let location_and_amounts: Vec<&str> = location_amount_pair.split(':').collect();
-            let location = g.board.map.location_lookup().find(dotnet_compat::parse::convert_to_int32(Some(location_and_amounts[0])));
+            let location = g.board.map.location_lookup().find(crate::parse::int_or_panic(location_and_amounts[0]));
             let Some(location) = location else { continue };
             let amounts: Vec<&str> = location_and_amounts[1].split('|').collect();
             result.push((location, PlacementEvent::parse_force_amount(amounts[0]), PlacementEvent::parse_force_amount(amounts[1])));

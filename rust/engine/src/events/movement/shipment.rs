@@ -152,7 +152,7 @@ impl Shipment {
                     let location = g
                         .board.map
                         .location_lookup()
-                        .find(dotnet_compat::parse::convert_to_int32(Some(location_and_amounts[0])));
+                        .find(crate::parse::int_or_panic(location_and_amounts[0]));
 
                     let Some(location) = location else { continue };
 

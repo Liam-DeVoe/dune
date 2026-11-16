@@ -506,7 +506,7 @@ pub fn read_force_locations(v: &JsonValue) -> Result<Option<String>, JsonError> 
     for pair in s.as_deref().unwrap_or("").split(',') {
         let Some((_, amounts)) = pair.split_once(':') else { continue };
         for amount in amounts.split('|') {
-            if let Ok(n) = dotnet_compat::parse::try_convert_to_int32(Some(amount)) {
+            if let Ok(n) = treachery_engine::parse::int(amount) {
                 if u16::try_from(n).is_err() {
                     return Err(JsonError::new("JsonException", format!("{n} is not a valid amount of forces")));
                 }

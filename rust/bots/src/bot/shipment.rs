@@ -10,11 +10,11 @@
 //!   iterator chains, so each candidate passes every stage before the next one starts.
 //! - `valid_shipment_locations` is lazy, and `any`/`find` on it stop early. That decides which
 //!   neighbour searches run, and the map caches those.
-//! - Dials are `f32`. Rounding up widens to `f64` first, and `math_min_f32`/`math_max_f32` follow
-//!   the .NET NaN rules.
+//! - Dials are `f32`. Rounding up widens to `f64` first, and `min_or_nan`/`max_or_nan` keep a
+//!   NaN, as the C# bots' `Math.Min`/`Math.Max` did.
 
 use crate::prelude::*;
-use dotnet_compat::math::{f64_to_i32, math_max_f32, math_min_f32};
+use crate::support::{max_or_nan, min_or_nan};
 
 impl ClassicBot {
     /// Picks this turn's shipment (a pass if nothing suits) and remembers it, with its reason and
@@ -254,7 +254,7 @@ impl ClassicBot {
             let amount = game.board.resources_on_planet[&best_location];
             let forces_needed_for_collection = self.make_even_if_efficient_for_shipping(
                 game,
-                math_min_f32(amount as f32 / game.resource_collection_rate(me) as f32, 4.0)
+                min_or_nan(amount as f32 / game.resource_collection_rate(me) as f32, 4.0)
                     + self.total_max_dial_of_opponents(game, best_location.territory()),
             );
 
@@ -345,7 +345,7 @@ impl ClassicBot {
 
         if let Some(best_location) = best_location {
             let amount = game.board.resources_on_planet[&best_location];
-            let forces_to_rally = math_max_f32(
+            let forces_to_rally = max_or_nan(
                 7.0,
                 2.0 + self.total_max_dial_of_opponents(game, best_location.territory()) + amount as f32 / game.resource_collection_rate(me) as f32,
             );
@@ -357,7 +357,7 @@ impl ClassicBot {
         }
 
         let best_location = game.board.discoveries_on_planet.iter().map(|(k, _)| *k).find(|k| suitable(*k))?;
-        let forces_to_rally = math_max_f32(5.0, 2.0 + self.total_max_dial_of_opponents(game, best_location.territory()));
+        let forces_to_rally = max_or_nan(5.0, 2.0 + self.total_max_dial_of_opponents(game, best_location.territory()));
         let size = self.shipment_size_from_reserves(game, forces_to_rally, false, best_location, None, 0, 99, false);
         if size.shortage <= 3.0 {
             self.planned(game, ShipmentDecision::AtResources, best_location, &size, None, Funding::Own)
@@ -503,7 +503,7 @@ impl ClassicBot {
         let needed = match opponent {
             Some(opponent) => {
                 let take = self.opponents_to_ship_and_move(game).contains(&opponent);
-                math_max_f32(
+                max_or_nan(
                     0.5,
                     self.max_potential_force_shortage(game, take, target) - game.player(me).any_forces_in(Some(game.board.map.polar_sink())) as f32,
                 )
@@ -658,7 +658,7 @@ impl ClassicBot {
     /// Rounds a dial up to whole forces, at least one, and to an even number when shipping at the
     /// discount (where two forces cost the same as one).
     pub fn make_even_if_efficient_for_shipping(&self, game: &Game, dial_needed: f32) -> i32 {
-        let mut rounded_dial_needed = f64_to_i32((dial_needed as f64).ceil());
+        let mut rounded_dial_needed = (dial_needed as f64).ceil() as i32;
         if rounded_dial_needed <= 0 {
             rounded_dial_needed = 1;
         }
@@ -890,7 +890,7 @@ impl ClassicBot {
     pub fn determine_forces_needed_for_collection(&self, game: &Game, location: Location) -> i32 {
         if let Some(value) = game.board.resources_on_planet.get(&location) {
             // Divided in f32, then widened to f64 to round up.
-            return f64_to_i32(((*value as f32 / game.resource_collection_rate(self.player) as f32) as f64).ceil());
+            return ((*value as f32 / game.resource_collection_rate(self.player) as f32) as f64).ceil() as i32;
         }
 
         0
@@ -926,7 +926,7 @@ impl ClassicBot {
                 let dial_needed = self.dial_needed_against(game, location.territory(), Some(opponent), true);
                 let size = self.shipment_size_from_reserves(
                     game,
-                    math_max_f32(dial_needed, 0.5) + extra_forces as f32,
+                    max_or_nan(dial_needed, 0.5) + extra_forces as f32,
                     true,
                     location,
                     Some(opponent),

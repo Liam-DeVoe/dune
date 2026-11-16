@@ -18,7 +18,7 @@ impl Event {
         if let Some(ids) = ids {
             if !ids.is_empty() {
                 for id in ids.split(Event::ID_STRING_SEPARATOR) {
-                    let obj = lookup.find(dotnet_compat::parse::convert_to_int32(Some(id)));
+                    let obj = lookup.find(crate::parse::int_or_panic(id));
                     if let Some(obj) = obj {
                         result.push(obj);
                     }

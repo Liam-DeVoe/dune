@@ -6,7 +6,6 @@ license.workspace = true
 
 [dependencies]
 treachery-engine = { path = "../engine" }
-dotnet-compat = { path = "../dotnet-compat" }
 
 [dev-dependencies]
 # Old savegames and event JSON in test data.

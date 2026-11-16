@@ -103,6 +103,33 @@ impl treachery_engine::random::RankKey for FloatKey {
     }
 }
 
+/// Orders floats with NaN below everything (and equal to NaN), and -0 equal to 0.
+pub fn cmp_nan_first(a: f32, b: f32) -> std::cmp::Ordering {
+    a.partial_cmp(&b).unwrap_or_else(|| b.is_nan().cmp(&a.is_nan()))
+}
+
+/// The larger of two floats: NaN if `a` is NaN, else `b` if `b` is NaN, and 0 of 0 and -0.
+pub fn max_or_nan(a: f32, b: f32) -> f32 {
+    if a != b {
+        if a.is_nan() {
+            return a;
+        }
+        return if b < a { a } else { b };
+    }
+    if b.is_sign_negative() { a } else { b }
+}
+
+/// The smaller of two floats: NaN if `a` is NaN, else `b` if `b` is NaN, and -0 of 0 and -0.
+pub fn min_or_nan(a: f32, b: f32) -> f32 {
+    if a != b {
+        if a.is_nan() {
+            return a;
+        }
+        return if a < b { a } else { b };
+    }
+    if a.is_sign_negative() { a } else { b }
+}
+
 /// `(IHero)o`: a reference cast, so null stays null.
 pub fn cast_hero(o: &Part) -> CastResult<Option<Hero>> {
     match o {

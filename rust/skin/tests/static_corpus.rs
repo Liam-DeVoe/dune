@@ -21,7 +21,7 @@ use treachery_skin::point::PointD;
 use treachery_skin::default_skin;
 
 fn p(p: PointD) -> String {
-    format!("{},{}", dotnet_compat::fmt::f64_to_string(p.x), dotnet_compat::fmt::f64_to_string(p.y))
+    format!("{},{}", p.x, p.y)
 }
 
 fn location(tok: &Value) -> Location {

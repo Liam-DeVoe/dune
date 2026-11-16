@@ -57,7 +57,7 @@ fn dice() {
 #[test]
 fn parameters() {
     let g = read_json(GOLDEN);
-    let f32s = |x: f32| dotnet_compat::fmt::f32_to_string(x);
+    let f32s = |x: f32| x.to_string();
     let mut actual = vec![];
     for o in g["parameters"].as_array().unwrap() {
         // A number that names no faction can no longer reach the bots.

@@ -31,7 +31,7 @@ rust_dir="$(cd "$(dirname "$0")/.." && pwd)"
 repo="$(cd "$rust_dir/.." && pwd)"
 out="$rust_dir/reference"
 # The crates the observe binary needs. Older sources, such as the frozen copy the current reference
-# is built from, also have canon-derive and differ; each mode keeps the ones its source has.
+# is built from, also have canon-derive, differ and dotnet-compat; each mode keeps the ones its source has.
 all_crates="bots canon-derive differ dotnet-compat engine legacy observe skin view"
 crates_in() { for c in $all_crates; do if [ -f "$1/$c/Cargo.toml" ]; then echo "$c"; fi; done; }
 

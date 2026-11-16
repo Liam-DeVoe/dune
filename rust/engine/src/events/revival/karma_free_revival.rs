@@ -110,7 +110,7 @@ impl EventRules for KarmaFreeRevival {
         let p = by.player;
         if let Some(hero) = self.hero {
             if !game.leaders.leader_state.contains_key(&hero) {
-                game_error!("{} is not in this game", dotnet_compat::exception::CsToString::cs_to_string(&hero));
+                game_error!("{} is not in this game", hero.plain_text());
             }
             if !game.is_face_down_dead(hero) {
                 return Ok(express!("Using ", TreacheryCardType::Karma, ", ", by.faction, " revive ", hero));

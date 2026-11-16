@@ -299,14 +299,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1aaf95b3e5c8f23aa320147307562d361db0ae0d51242340f558153b4eb2439b"
 
 [[package]]
-name = "dotnet-compat"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "either"
 version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1686,7 +1678,6 @@ dependencies = [
 name = "treachery-bots"
 version = "0.1.0"
 dependencies = [
- "dotnet-compat",
  "flate2",
  "serde_json",
  "treachery-engine",
@@ -1697,7 +1688,6 @@ dependencies = [
 name = "treachery-engine"
 version = "0.1.0"
 dependencies = [
- "dotnet-compat",
  "either",
  "indexmap",
  "rand",
@@ -1713,7 +1703,6 @@ dependencies = [
 name = "treachery-legacy"
 version = "0.1.0"
 dependencies = [
- "dotnet-compat",
  "indexmap",
  "serde_json",
  "sha2",
@@ -1760,7 +1749,6 @@ dependencies = [
 name = "treachery-skin"
 version = "0.1.0"
 dependencies = [
- "dotnet-compat",
  "flate2",
  "serde_json",
  "treachery-engine",
@@ -1771,7 +1759,6 @@ dependencies = [
 name = "treachery-view"
 version = "0.1.0"
 dependencies = [
- "dotnet-compat",
  "flate2",
  "serde",
  "serde_json",

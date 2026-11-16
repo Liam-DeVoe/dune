@@ -150,11 +150,10 @@ impl serde::Serialize for Hero {
     }
 }
 
-/// The text a hero prints as when no describer is set (the engine never sets
-/// one): the full .NET type name. Used in dictionary exception messages such
-/// as `LeaderState[h]` on a missing key.
-impl dotnet_compat::exception::CsToString for Hero {
-    fn cs_to_string(&self) -> String {
+impl Hero {
+    /// The text a hero prints as without a skin: the full type name the C# engine printed
+    /// (`Part::plain_text`, and the message refusing a hero that isn't in the game).
+    pub fn plain_text(&self) -> String {
         match self {
             Hero::Leader(_) => "Treachery.Shared.Leader".to_string(),
             Hero::Messiah => "Treachery.Shared.Messiah".to_string(),

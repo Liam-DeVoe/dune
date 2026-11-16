@@ -25,7 +25,7 @@ fn value(game: &Game, kind: &str) -> Part {
         "TreacheryCardType" => TreacheryCardType::from_value(n()).expect("a card type").into(),
         "Faction" => Faction::from_value(n()).expect("a faction").into(),
         "int" => Part::Number(n()),
-        "strength" => Part::Strength(HalfPoints::from_halves(dotnet_compat::parse::try_halves_parse_invariant(Some(v)).unwrap())),
+        "strength" => Part::Strength(HalfPoints::from_halves(treachery_engine::parse::halves(v).unwrap())),
         "string" => Part::from(v.to_string()),
         "leader" => LeaderManager::hero_lookup().find(n()).unwrap().into(),
         "messiah" => Part::Messiah,

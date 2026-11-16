@@ -23,6 +23,9 @@ pub mod map;
 // Messages
 pub mod messages;
 
+// Numbers and enum names in event text
+pub mod parse;
+
 // Iterator helpers
 pub mod iter;
 

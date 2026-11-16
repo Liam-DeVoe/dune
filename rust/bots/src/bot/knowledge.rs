@@ -1,7 +1,7 @@
 //! What the bot knows about the board, the cards and its opponents.
 
 use crate::prelude::*;
-use dotnet_compat::math::cmp_f32;
+use crate::support::cmp_nan_first;
 use treachery_engine::game::PlayerSequence;
 
 /// A location or a territory: questions about who is somewhere are asked per territory.
@@ -691,7 +691,7 @@ impl ClassicBot {
             }
         }
 
-        winnable.into_iter().min_by(|a, b| cmp_f32(a.1, b.1)).map(|(stronghold, _)| stronghold)
+        winnable.into_iter().min_by(|a, b| cmp_nan_first(a.1, b.1)).map(|(stronghold, _)| stronghold)
     }
 
     pub fn i_must_pay_for_forces_in_battle(&self, game: &Game) -> bool {

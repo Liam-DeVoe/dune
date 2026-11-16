@@ -46,7 +46,7 @@ impl EstablishPlayers {
             Some(s) => s
                 .split(',')
                 // "None" and numbers that name no faction are left out.
-                .filter_map(|part| <Faction as crate::enum_type::GameEnum>::from_value(dotnet_compat::parse::enum_parse(Some(part), Faction::INFO.declared)))
+                .filter_map(|part| <Faction as crate::enum_type::GameEnum>::from_value(crate::parse::enum_value_or_panic(part, Faction::INFO.declared)))
                 .collect(),
         }
     }

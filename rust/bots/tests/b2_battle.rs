@@ -16,7 +16,7 @@ use treachery_bots::prelude::*;
 use common::{run_probes, Bots};
 
 fn f32s(x: f32) -> String {
-    dotnet_compat::fmt::f32_to_string(x)
+    x.to_string()
 }
 
 fn hero(h: &Hero) -> String {

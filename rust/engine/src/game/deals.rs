@@ -277,7 +277,7 @@ impl Deal {
 
     pub fn parameter1_territory(g: &Game, type_: DealType, parameter: &str) -> Option<Territory> {
         match type_ {
-            DealType::DontShipOrMoveTo => g.board.map.territory_lookup().find(dotnet_compat::parse::int_parse(Some(parameter))),
+            DealType::DontShipOrMoveTo => g.board.map.territory_lookup().find(crate::parse::int_or_panic(parameter)),
             _ => None,
         }
     }
@@ -299,7 +299,7 @@ impl Deal {
     pub fn try_deal_contents_description(g: &Game, type_: DealType, text: Option<&str>, benefit: i32, end: Option<Phase>, parameter1: Option<&str>) -> GameResult<Message> {
         let uses_parameter = text.map_or(true, |t| t.chars().all(char::is_whitespace));
         if uses_parameter && type_ == DealType::DontShipOrMoveTo {
-            if let Err(e) = dotnet_compat::parse::try_int_parse(Some(parameter1.unwrap_or("?"))) {
+            if let Err(e) = crate::parse::int(parameter1.unwrap_or("?")) {
                 return Err(GameError::new(e.message));
             }
         }

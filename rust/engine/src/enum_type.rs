@@ -201,13 +201,6 @@ macro_rules! game_enum {
         impl $crate::random::RankKey for $name {
             fn rank(&self, other: &Self) -> ::std::cmp::Ordering { self.cmp(other) }
         }
-
-        /// `ToString()`, for exception messages that embed a key (`Dictionary.Add`, the indexer).
-        impl dotnet_compat::exception::CsToString for $name {
-            fn cs_to_string(&self) -> String {
-                self.to_string()
-            }
-        }
     };
 }
 pub(crate) use game_enum;

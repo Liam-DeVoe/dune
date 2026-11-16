@@ -8,7 +8,6 @@ description = "Per-player game views and action options built from the engine, f
 [dependencies]
 treachery-engine = { path = "../engine" }
 treachery-skin = { path = "../skin" }
-dotnet-compat = { path = "../dotnet-compat" }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 ts-rs = { version = "12", default-features = false, features = ["serde-compat"] }

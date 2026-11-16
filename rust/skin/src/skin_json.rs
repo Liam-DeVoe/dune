@@ -12,9 +12,22 @@
 //! messages are not .NET's; only the exception type is.
 
 use serde_json::Value;
-use dotnet_compat::exception::CsException;
 use treachery_engine::enum_type::GameEnum;
 use crate::point::PointD;
+
+/// Why a skin file doesn't load: the kind of error the C# version threw (`"JsonException"`,
+/// `"NullReferenceException"`, `"Exception"`) and a message.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SkinLoadError {
+    pub type_name: &'static str,
+    pub message: String,
+}
+
+impl std::fmt::Display for SkinLoadError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {}", self.type_name, self.message)
+    }
+}
 
 use crate::skin::{Skin, SkinDictionary, SkinKey};
 
@@ -60,7 +73,7 @@ enum Member<'a> {
 
 trait DictMember {
     fn write(&self, out: &mut String);
-    fn read(&mut self, v: &serde_json::Map<String, Value>) -> Result<(), CsException>;
+    fn read(&mut self, v: &serde_json::Map<String, Value>) -> Result<(), SkinLoadError>;
 }
 
 impl<K: SkinKey> DictMember for SkinDictionary<K, String> {
@@ -77,7 +90,7 @@ impl<K: SkinKey> DictMember for SkinDictionary<K, String> {
         out.push('}');
     }
 
-    fn read(&mut self, v: &serde_json::Map<String, Value>) -> Result<(), CsException> {
+    fn read(&mut self, v: &serde_json::Map<String, Value>) -> Result<(), SkinLoadError> {
         let mut d = SkinDictionary::default();
         for (k, v) in v {
             let key = K::parse_key(k).ok_or_else(|| json_error(&format!("invalid key {k}")))?;
@@ -103,7 +116,7 @@ impl<K: SkinKey> DictMember for SkinDictionary<K, PointD> {
         out.push('}');
     }
 
-    fn read(&mut self, v: &serde_json::Map<String, Value>) -> Result<(), CsException> {
+    fn read(&mut self, v: &serde_json::Map<String, Value>) -> Result<(), SkinLoadError> {
         let mut d = SkinDictionary::default();
         for (k, v) in v {
             let key = K::parse_key(k).ok_or_else(|| json_error(&format!("invalid key {k}")))?;
@@ -114,19 +127,19 @@ impl<K: SkinKey> DictMember for SkinDictionary<K, PointD> {
     }
 }
 
-fn json_error(message: &str) -> CsException {
-    CsException { type_name: "JsonException", message: message.to_string() }
+fn json_error(message: &str) -> SkinLoadError {
+    SkinLoadError { type_name: "JsonException", message: message.to_string() }
 }
 
 fn write_point(out: &mut String, p: PointD) {
     out.push_str(&format!(
         "{{\"X\":{},\"Y\":{}}}",
-        dotnet_compat::fmt::f64_to_string(p.x),
-        dotnet_compat::fmt::f64_to_string(p.y)
+        p.x,
+        p.y
     ));
 }
 
-fn read_point(v: &Value) -> Result<PointD, CsException> {
+fn read_point(v: &Value) -> Result<PointD, SkinLoadError> {
     let o = v.as_object().ok_or_else(|| json_error("a point must be an object"))?;
     let mut p = PointD::default();
     for (k, v) in o {
@@ -144,7 +157,7 @@ fn read_point(v: &Value) -> Result<PointD, CsException> {
 fn members(s: &mut Skin) -> Vec<(&'static str, Member<'_>)> {
     use Member::*;
     let hms_dx = Value::from(s.hms_dx() as f64);
-    let hms_radius = Value::String(dotnet_compat::fmt::f32_to_string(s.hms_radius()));
+    let hms_radius = Value::String(s.hms_radius().to_string());
     vec![
         ("DrawResourceIconsOnMap", Bool(&mut s.draw_resource_icons_on_map)),
         ("ShowVerboseToolipsOnMap", Bool(&mut s.show_verbose_toolips_on_map)),
@@ -312,7 +325,7 @@ impl Skin {
                 Member::Point(p) => write_point(&mut out, *p),
                 Member::Dict(d) => d.write(&mut out),
                 Member::Computed(Value::String(s)) => out.push_str(&s),
-                Member::Computed(v) => out.push_str(&dotnet_compat::fmt::f64_to_string(v.as_f64().unwrap())),
+                Member::Computed(v) => out.push_str(&v.as_f64().unwrap().to_string()),
             }
         }
         out.push('}');
@@ -321,10 +334,10 @@ impl Skin {
 
     /// `public static Skin Load(string data, Skin donor)`: reads a skin and fills what it lacks
     /// from `donor` (`Fix`). C# throws; this returns the exception.
-    pub fn load(data: &str, donor: &Skin) -> Result<Skin, CsException> {
+    pub fn load(data: &str, donor: &Skin) -> Result<Skin, SkinLoadError> {
         let v: Value = serde_json::from_str(data).map_err(|e| json_error(&e.to_string()))?;
         let o = match v {
-            Value::Null => return Err(CsException { type_name: "Exception", message: "Invalid skin".into() }),
+            Value::Null => return Err(SkinLoadError { type_name: "Exception", message: "Invalid skin".into() }),
             Value::Object(o) => o,
             _ => return Err(json_error("a skin must be an object")),
         };
@@ -346,7 +359,7 @@ impl Skin {
     }
 }
 
-fn read_member(m: Member<'_>, v: &Value) -> Result<(), CsException> {
+fn read_member(m: Member<'_>, v: &Value) -> Result<(), SkinLoadError> {
     match m {
         Member::Bool(b) => *b = v.as_bool().ok_or_else(|| json_error("expected a boolean"))?,
         Member::Int(i) => {
@@ -365,7 +378,7 @@ fn read_member(m: Member<'_>, v: &Value) -> Result<(), CsException> {
 /// zero number or point take the donor's value (`FixValue`). An empty string is kept, because
 /// `"".Equals(default(string))` is false. A `null` dictionary throws NullReferenceException in
 /// `FixDictionary` unless the donor's is empty.
-fn fix(to_fix: &mut Skin, donor: &Skin, states: &[(&str, ReadState)]) -> Result<(), CsException> {
+fn fix(to_fix: &mut Skin, donor: &Skin, states: &[(&str, ReadState)]) -> Result<(), SkinLoadError> {
     let mut donor = donor.clone();
     let donor_members = members(&mut donor);
     let to_fix_members = members(to_fix);
@@ -379,7 +392,7 @@ fn fix(to_fix: &mut Skin, donor: &Skin, states: &[(&str, ReadState)]) -> Result<
                 let t_keys = keys_of(&td);
                 let d_keys = keys_of(&dd);
                 if *state == ReadState::Null && !d_keys.is_empty() {
-                    return Err(CsException {
+                    return Err(SkinLoadError {
                         type_name: "NullReferenceException",
                         message: "Object reference not set to an instance of an object.".into(),
                     });

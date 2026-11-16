@@ -165,11 +165,10 @@ impl Location {
     }
 }
 
-/// The text a location prints as when no describer is set (the engine never sets
-/// one): "Homeworld" for a homeworld, the full .NET type name for every other
-/// location. Used in dictionary exception messages.
-impl dotnet_compat::exception::CsToString for Location {
-    fn cs_to_string(&self) -> String {
+impl Location {
+    /// The text a location prints as without a skin (`Part::plain_text`): "Homeworld" for a
+    /// homeworld, the full type name the C# engine printed for every other location.
+    pub fn plain_text(&self) -> String {
         match self.data().kind {
             LocationKind::Homeworld(_) => "Homeworld".to_string(),
             _ => format!("Treachery.Shared.{}", self.type_name()),

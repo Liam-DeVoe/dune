@@ -1,5 +1,6 @@
 use crate::prelude::*;
 use crate::messages::part::Part;
+use crate::parse::{self, ParseError};
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
 #[serde(rename_all = "camelCase", default, deny_unknown_fields)]
@@ -20,7 +21,7 @@ impl ClairVoyancePlayed {
     /// The boxed value as a message element: an enum, an `IHero`, a `Territory`, a strength, or null.
     /// Panics like .NET's parse when the parameter doesn't fit the question.
     pub fn parameter1(&self, game: &Game) -> Part {
-        self.parse_parameter1(game).unwrap_or_else(|e| panic!("{}: {}", e.type_name, e.message))
+        self.parse_parameter1(game).unwrap_or_else(|e| panic!("{e}"))
     }
 
     /// [`parameter1`](Self::parameter1), failing the event when the parameter doesn't fit the question.
@@ -28,8 +29,7 @@ impl ClairVoyancePlayed {
         self.parse_parameter1(game).map_err(|e| GameError::new(e.message))
     }
 
-    fn parse_parameter1(&self, game: &Game) -> Result<Part, dotnet_compat::exception::CsException> {
-        use dotnet_compat::parse::{try_enum_parse, try_halves_parse_invariant, try_int_parse};
+    fn parse_parameter1(&self, game: &Game) -> Result<Part, ParseError> {
         let Some(p1) = self.question_parameter1.as_deref() else {
             return Ok(Part::Null);
         };
@@ -39,26 +39,26 @@ impl ClairVoyancePlayed {
             | Some(ClairvoyanceQuestion::CardTypeAsDefenseInBattle)
             | Some(ClairvoyanceQuestion::CardTypeAsWeaponInBattle)
             | Some(ClairvoyanceQuestion::HasCardTypeInHand) => {
-                let n = try_enum_parse(Some(p1), TreacheryCardType::INFO.declared)?;
+                let n = parse::enum_value(p1, TreacheryCardType::INFO.declared)?;
                 let Ok(card_type) = crate::enum_type::from_value_or_absent::<TreacheryCardType>(n) else {
-                    return Err(dotnet_compat::exception::CsException { type_name: "ArgumentException", message: format!("{n} is not a valid TreacheryCardType") });
+                    return Err(ParseError { kind: "ArgumentException", message: format!("{n} is not a valid TreacheryCardType") });
                 };
                 card_type.into()
             }
             Some(ClairvoyanceQuestion::LeaderAsFacedancer)
             | Some(ClairvoyanceQuestion::LeaderAsTraitor)
             | Some(ClairvoyanceQuestion::LeaderInBattle) => {
-                LeaderManager::hero_lookup().find(try_int_parse(Some(p1))?).into()
+                LeaderManager::hero_lookup().find(parse::int(p1)?).into()
             }
             Some(ClairvoyanceQuestion::Prediction) => {
-                let n = try_enum_parse(Some(p1), Faction::INFO.declared)?;
+                let n = parse::enum_value(p1, Faction::INFO.declared)?;
                 let Ok(faction) = crate::enum_type::from_value_or_absent::<Faction>(n) else {
-                    return Err(dotnet_compat::exception::CsException { type_name: "ArgumentException", message: format!("{n} is not a valid Faction") });
+                    return Err(ParseError { kind: "ArgumentException", message: format!("{n} is not a valid Faction") });
                 };
                 faction.into()
             }
-            Some(ClairvoyanceQuestion::WillAttackX) => game.board.map.territory_lookup().find(try_int_parse(Some(p1))?).into(),
-            Some(ClairvoyanceQuestion::DialOfMoreThanXInBattle) => HalfPoints::from_halves(try_halves_parse_invariant(Some(p1))?).into(),
+            Some(ClairvoyanceQuestion::WillAttackX) => game.board.map.territory_lookup().find(parse::int(p1)?).into(),
+            Some(ClairvoyanceQuestion::DialOfMoreThanXInBattle) => HalfPoints::from_halves(parse::halves(p1)?).into(),
             _ => Part::Null,
         })
     }
@@ -99,7 +99,7 @@ impl ClairVoyancePlayed {
 
     /// Panics like .NET's parse when the parameter isn't a number.
     pub fn parameter2(&self) -> Part {
-        self.parse_parameter2().unwrap_or_else(|e| panic!("{}: {}", e.type_name, e.message))
+        self.parse_parameter2().unwrap_or_else(|e| panic!("{e}"))
     }
 
     /// [`parameter2`](Self::parameter2), failing the event when the parameter isn't a number.
@@ -107,12 +107,12 @@ impl ClairVoyancePlayed {
         self.parse_parameter2().map_err(|e| GameError::new(e.message))
     }
 
-    fn parse_parameter2(&self) -> Result<Part, dotnet_compat::exception::CsException> {
+    fn parse_parameter2(&self) -> Result<Part, ParseError> {
         Ok(match self.question {
             Some(ClairvoyanceQuestion::Prediction)
                 if !self.question_parameter2.as_deref().map_or(true, |s| s.is_empty()) =>
             {
-                dotnet_compat::parse::try_int_parse(self.question_parameter2.as_deref())?.into()
+                parse::int(self.question_parameter2.as_deref().expect("not empty"))?.into()
             }
             _ => Part::Null,
         })

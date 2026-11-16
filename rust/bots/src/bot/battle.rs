@@ -2,7 +2,7 @@ use std::cmp::Reverse;
 
 use crate::prelude::*;
 use crate::support::unbox_enum;
-use dotnet_compat::math::cmp_f32;
+use crate::support::cmp_nan_first;
 
 /// Whether `battle` is the battle being fought now (the same initiated battle). No battle matches no
 /// current battle.
@@ -95,7 +95,7 @@ impl ClassicBot {
             })
             .collect::<Option<Vec<_>>>()?
             .into_iter()
-            .min_by(|a, b| cmp_f32(a.0, b.0))?;
+            .min_by(|a, b| cmp_nan_first(a.0, b.0))?;
 
         let mut result = BattleInitiated::default();
         result.target = Some(battle.faction);

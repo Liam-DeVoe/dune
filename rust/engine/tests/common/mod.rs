@@ -150,7 +150,7 @@ pub fn snapshot_lines(file: &str, lines: &[String]) {
 }
 
 /// A panic message as an encoded exception: `"x:Type:Message"` when it names a .NET exception
-/// (dotnet-compat's parsing and dictionaries still panic that way), `"x:panic:<message>"` otherwise.
+/// (the engine's text parsing panics that way), `"x:panic:<message>"` otherwise.
 pub fn exception(message: &str) -> Value {
     match message.split_once(": ") {
         Some((t, m)) if t.ends_with("Exception") && t.chars().all(|c| c.is_ascii_alphabetic()) => json!(format!("x:{t}:{m}")),
@@ -210,12 +210,12 @@ impl Enc for bool {
 }
 impl Enc for f32 {
     fn enc(&self) -> Value {
-        json!(format!("f:{}", dotnet_compat::fmt::f32_to_string(*self)))
+        json!(format!("f:{}", self))
     }
 }
 impl Enc for f64 {
     fn enc(&self) -> Value {
-        json!(format!("d:{}", dotnet_compat::fmt::f64_to_string(*self)))
+        json!(format!("d:{}", self))
     }
 }
 impl Enc for str {

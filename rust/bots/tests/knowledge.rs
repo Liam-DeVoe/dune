@@ -34,7 +34,7 @@ impl Fmt for i32 {
 }
 impl Fmt for f32 {
     fn fmt(&self) -> String {
-        dotnet_compat::fmt::f32_to_string(*self)
+        self.to_string()
     }
 }
 impl Fmt for Faction {

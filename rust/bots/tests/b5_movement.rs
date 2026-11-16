@@ -93,10 +93,10 @@ fn call(game: &Game, b: &mut ClassicBot, m: &str, a: &[String]) -> String {
             let p = game.player(b.player);
             let (fr, sfr) = (p.forces_in_reserve(), p.special_forces_in_reserve());
             let s = b.shipment_size(game, 5.5, true, loc(game, &a[0]), None, fr, sfr, 1, 5, t(1));
-            let shortage = dotnet_compat::fmt::f32_to_string(s.shortage);
+            let shortage = s.shortage.to_string();
             format!("{shortage} {} {} {} {}", s.forces, s.special_forces, s.no_field_value, s.cunning_no_field_value)
         }
-        "MaxPotentialForceShortage" => dotnet_compat::fmt::f32_to_string(b.max_potential_force_shortage(game, t(0), loc(game, &a[1]))),
+        "MaxPotentialForceShortage" => b.max_potential_force_shortage(game, t(0), loc(game, &a[1])).to_string(),
         "DetermineMostSuitableNearbyLocation" => {
             let from = loc(game, &a[0]);
             let battalion = game.player(b.player).forces_on_planet()[&from].clone();

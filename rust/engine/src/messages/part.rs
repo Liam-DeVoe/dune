@@ -157,7 +157,6 @@ impl Part {
     /// The text without a skin, for tests and debugging: enum values by member name, game
     /// objects by the type name the C# engine printed for them, list items in brackets.
     pub fn plain_text(&self) -> String {
-        use dotnet_compat::exception::CsToString;
         match self {
             Part::Null => String::new(),
             Part::Text(s) => s.to_string(),
@@ -165,11 +164,11 @@ impl Part {
             Part::Number(i) => i.to_string(),
             Part::Strength(h) => h.to_string(),
             Part::Payment { .. } => "Treachery.Shared.Payment".to_string(),
-            Part::Location(l) => l.cs_to_string(),
+            Part::Location(l) => l.plain_text(),
             Part::Territory(_) => "Treachery.Shared.Territory".to_string(),
-            Part::Leader(l) => Hero::Leader(*l).cs_to_string(),
-            Part::Messiah => Hero::Messiah.cs_to_string(),
-            Part::Card(c) => Hero::TreacheryCard(*c).cs_to_string(),
+            Part::Leader(l) => Hero::Leader(*l).plain_text(),
+            Part::Messiah => Hero::Messiah.plain_text(),
+            Part::Card(c) => Hero::TreacheryCard(*c).plain_text(),
             Part::SpiceCard(_) => "Treachery.Shared.ResourceCard".to_string(),
             Part::List(items) => format!("[{}]", items.iter().map(Part::plain_text).collect::<Vec<_>>().join(", ")),
             Part::Phrase(parts) => parts.iter().map(Part::plain_text).collect(),

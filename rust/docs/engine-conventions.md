@@ -529,7 +529,7 @@ Several engine tests compare what the engine computes with values recorded in `t
 UPDATE_GOLDENS=1 cargo test --release -p treachery-engine
 ```
 
-The bots (`rust/bots/tests`), the skin (`rust/skin/tests`) and dotnet-compat have snapshot tests that work the same way. When you add static data, add it to `static_data.rs` too.
+The bots (`rust/bots/tests`) and the skin (`rust/skin/tests`) have snapshot tests that work the same way. When you add static data, add it to `static_data.rs` too.
 
 ## Collections
 
@@ -540,6 +540,5 @@ Iteration order is observable in many places: the log, the views (spice, strongh
 
 ## What is left of .NET
 
-- `dotnet_compat::parse`: the parsing of the strings events carry (force locations, Clairvoyance parameters). A Clairvoyance dial is parsed by `try_halves_parse_invariant`, so the float stays in the compat crate.
 - `compat/date_time_offset.rs`: the time of history entries (`at`).
 - `enum_type.rs`: open enums that print like .NET's `Enum.ToString()`.

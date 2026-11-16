@@ -34,7 +34,7 @@ pub fn table() -> Game {
 pub fn table_with(change_rules: impl FnOnce(&mut Vec<Rule>)) -> Game {
     let mut g = seated(change_rules);
     g.turn.current_main_phase = MainPhase::Resurrection;
-    g.enter(Phase::ResurrectionReport, false);
+    g.enter_revival(RevivalStep::Report);
 
     // ResurrectionReport -> BeginningOfShipAndMove -> the Guild's shipment.
     host_ends_phase(&mut g);
@@ -48,7 +48,7 @@ pub fn table_with(change_rules: impl FnOnce(&mut Vec<Rule>)) -> Game {
 pub fn at_resurrection() -> Game {
     let mut g = seated(|_| {});
     g.turn.current_main_phase = MainPhase::Resurrection;
-    g.enter(Phase::Resurrection, false);
+    g.enter_revival(RevivalStep::Reviving);
     g
 }
 

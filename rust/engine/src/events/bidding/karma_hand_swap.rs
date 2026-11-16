@@ -20,14 +20,17 @@ impl KarmaHandSwap {
 
 impl EventRules for KarmaHandSwap {
     fn validate(&self, game: &Game, _by: By) -> Result<(), Rejection> {
-        if self.returned_cards().len() as i32 != game.bidding.karma_hand_swap_number_of_cards {
-            return Err(Rejection(express!("Select ", game.bidding.karma_hand_swap_number_of_cards, " cards to return")));
+        let number_of_cards = game.karma_hand_swap().map_or(0, |(n, _)| n);
+        if self.returned_cards().len() as i32 != number_of_cards {
+            return Err(Rejection(express!("Select ", number_of_cards, " cards to return")));
         }
         Ok(())
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
-        let victim = game.get_player(game.bidding.karma_hand_swap_target);
+        let swap = game.karma_hand_swap_interrupt().required("a Karama hand swap")?;
+        let Interrupt::KarmaHandSwap { target, .. } = swap else { game_error!("Not a Karama hand swap") };
+        let victim = game.get_player(target);
         let me = by.player;
         let others: Vec<PlayerId> = game.player_indices().filter(|p| Some(*p) != me && Some(*p) != victim).collect();
         for p in others {
@@ -48,7 +51,7 @@ impl EventRules for KarmaHandSwap {
         }
         let m = self.describe(game, by);
         game.log_event(m);
-        game.resume(Interrupt::KarmaHandSwap, false)?;
+        game.resume(swap, false)?;
         Ok(())
     }
 

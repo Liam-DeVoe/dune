@@ -567,7 +567,7 @@ fn build(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer) -> ActionOp
         Event::AmbassadorPlaced(_) => O::AmbassadorPlaced(AmbassadorPlacedOptions { draft: Value::Null,
             ambassadors: AmbassadorPlaced::valid_ambassadors(game, p).into_iter().map(name).collect(),
             targets: sectors_of(AmbassadorPlaced::valid_strongholds(game, p)),
-            cost: game.revival.ambassadors_placed_this_turn + 1,
+            cost: game.turn.revivals.ambassadors_placed_this_turn + 1,
         }),
         Event::BeneGesseritAccompanies(e) => O::BeneGesseritAccompanies(BeneGesseritAccompaniesOptions { draft: Value::Null,
             targets: ids(BeneGesseritAccompanies::valid_targets(game, p)),

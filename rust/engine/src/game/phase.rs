@@ -20,6 +20,9 @@ pub enum PhaseState {
     /// per-phase struct on `Game`.
     Legacy(Phase),
     Battle(BattlePhase),
+    Charity(CharityState),
+    Bidding(BiddingState),
+    Revival(RevivalState),
     Collection(CollectionState),
 }
 
@@ -29,6 +32,9 @@ impl PhaseState {
         match self {
             PhaseState::Legacy(phase) => *phase,
             PhaseState::Battle(b) => b.step.phase(),
+            PhaseState::Charity(c) => c.step.phase(),
+            PhaseState::Bidding(b) => b.step.phase(),
+            PhaseState::Revival(r) => r.step.phase(),
             PhaseState::Collection(c) => c.step.phase(),
         }
     }
@@ -37,7 +43,11 @@ impl PhaseState {
     /// by its own functions (`Game::enter_collection`), never by name with [`Game::enter`],
     /// because entering it by name can't build its state.
     pub fn is_converted(phase: Phase) -> bool {
-        BattleStep::of(phase).is_some() || CollectionStep::of(phase).is_some()
+        BattleStep::of(phase).is_some()
+            || CharityStep::of(phase).is_some()
+            || BiddingStep::of(phase).is_some()
+            || RevivalStep::of(phase).is_some()
+            || CollectionStep::of(phase).is_some()
     }
 }
 
@@ -55,8 +65,8 @@ pub enum Interrupt {
     Clairvoyance,
     /// The ally answers a card trade offer.
     CardTrade,
-    /// The Karama hand swap: the player returns cards.
-    KarmaHandSwap,
+    /// The Karama hand swap: Harkonnen return `number_of_cards` cards to `target`.
+    KarmaHandSwap { number_of_cards: i32, target: Option<Faction> },
     /// The Bureaucrat decides whether to apply Bureaucracy.
     Bureaucracy,
     /// A player chooses the skill of a revived leader.
@@ -76,14 +86,15 @@ impl Interrupt {
             Interrupt::SearchingDiscarded => Phase::SearchingDiscarded,
             Interrupt::Clairvoyance => Phase::Clairvoyance,
             Interrupt::CardTrade => Phase::TradingCards,
-            Interrupt::KarmaHandSwap => Phase::PerformingKarmaHandSwap,
+            Interrupt::KarmaHandSwap { .. } => Phase::PerformingKarmaHandSwap,
             Interrupt::Bureaucracy => Phase::Bureaucracy,
             Interrupt::SkillAssignment => Phase::AssigningSkill,
             Interrupt::Legacy(phase) => phase,
         }
     }
 
-    /// The interrupt that a phase of that name is, if it is one.
+    /// The interrupt that a phase of that name is, if it is one. Not `PerformingKarmaHandSwap`,
+    /// whose interrupt carries data: only `KarmaHandSwapInitiated` pushes it.
     pub fn of(phase: Phase) -> Option<Interrupt> {
         let i = match phase {
             Phase::Discarding => Interrupt::Discarding,
@@ -91,7 +102,6 @@ impl Interrupt {
             Phase::SearchingDiscarded => Interrupt::SearchingDiscarded,
             Phase::Clairvoyance => Interrupt::Clairvoyance,
             Phase::TradingCards => Interrupt::CardTrade,
-            Phase::PerformingKarmaHandSwap => Interrupt::KarmaHandSwap,
             Phase::Bureaucracy => Interrupt::Bureaucracy,
             Phase::AssigningSkill => Interrupt::SkillAssignment,
             Phase::BeneGesseritIntrudedByNonGuildShip
@@ -253,8 +263,9 @@ impl GameStatus {
             }
 
             Phase::PerformingKarmaHandSwap => {
-                let a = express!("Please decide which ", game.bidding.karma_hand_swap_number_of_cards, " cards to return to ", game.bidding.karma_hand_swap_target, ".");
-                let w = express!(Faction::Harkonnen, " are deciding which ", game.bidding.karma_hand_swap_number_of_cards, " cards to return to ", game.bidding.karma_hand_swap_target, "...");
+                let (number_of_cards, target) = game.karma_hand_swap().expect("a Karama hand swap");
+                let a = express!("Please decide which ", number_of_cards, " cards to return to ", target, ".");
+                let w = express!(Faction::Harkonnen, " are deciding which ", number_of_cards, " cards to return to ", target, "...");
                 Self::faction_status(game, a, w, Some(Faction::Harkonnen), None)
             }
 

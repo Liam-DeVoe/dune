@@ -118,7 +118,7 @@ impl ClassicBot {
 
     pub fn determine_card_given(&self, game: &Game) -> CardGiven {
         let mut e = CardGiven::default();
-        let card = game.bidding.card_that_must_be_kept_or_given_to_ally.expect("card that must be kept or given to ally");
+        let card = game.bidding().and_then(|b| b.card_that_must_be_kept_or_given_to_ally).expect("card that must be kept or given to ally");
         let ally = self.ally(game);
         e.passed = !(self.card_quality(game, card, Some(self.player)) <= 2
             && (ally == Some(Faction::BeneGesserit) || ally == Some(Faction::Choam) || self.card_quality(game, card, self.allied_player(game)) > 0));
@@ -213,7 +213,7 @@ impl ClassicBot {
 
             Some(Faction::Emperor) => {
                 let ally_bids_high = game.turn.current_main_phase == MainPhase::Bidding
-                    && game.bidding.current_bid.as_ref().is_some_and(|bid| {
+                    && game.current_bid().is_some_and(|bid| {
                         game.player(bid.bid_player().expect("i bid player")).ally == Some(Faction::Emperor)
                             && bid.bid_total_amount() > 5
                             && !game.prevented(FactionAdvantage::EmperorReceiveBid)
@@ -244,8 +244,8 @@ impl ClassicBot {
 
             Some(Faction::Richese) => {
                 let richese = game.get_player(Some(Faction::Richese))?;
-                if game.player(richese).has(game.bidding.card_just_won) {
-                    self.card_quality(game, game.bidding.card_just_won?, Some(richese)) > 2
+                if game.player(richese).has(game.card_just_won()) {
+                    self.card_quality(game, game.card_just_won()?, Some(richese)) > 2
                 } else {
                     game.recently_paid_total_amount() > 4
                 }
@@ -402,7 +402,7 @@ impl ClassicBot {
 
             Some(Faction::BeneGesserit) => game.current_battle().is_some_and(|b| b.is_involved(game, self.player)),
 
-            Some(Faction::Ixian) => self.card_quality(game, game.bidding.card_just_won?, Some(self.player)) < 2,
+            Some(Faction::Ixian) => self.card_quality(game, game.card_just_won()?, Some(self.player)) < 2,
 
             Some(Faction::Tleilaxu) => game.turn.has_acted_or_passed.contains(&self.faction(game)) && self.plan_tleilaxu_secret_ally_revival(game, &mut result),
 
@@ -492,7 +492,7 @@ impl ClassicBot {
     }
 
     pub fn determine_charity_claimed(&self, game: &Game) -> Option<CharityClaimed> {
-        if !(game.charity.economics_status == Some(ChoamEconomicsStatus::Cancel) || game.charity.economics_status == Some(ChoamEconomicsStatus::CancelFlipped)) {
+        if !(game.board.choam_economics_status == Some(ChoamEconomicsStatus::Cancel) || game.board.choam_economics_status == Some(ChoamEconomicsStatus::CancelFlipped)) {
             return Some(CharityClaimed::default());
         }
 
@@ -518,7 +518,7 @@ impl ClassicBot {
     pub fn determine_karma_hand_swap(&self, game: &Game) -> KarmaHandSwap {
         let mut cards = game.player(self.player).treachery_cards.clone();
         cards.sort_by_cached_key(|c| self.card_quality(game, *c, Some(self.player)));
-        cards.truncate(game.bidding.karma_hand_swap_number_of_cards.try_into().unwrap_or(usize::MAX));
+        cards.truncate(game.karma_hand_swap().map_or(0, |(n, _)| n).try_into().unwrap_or(usize::MAX));
 
         let mut e = KarmaHandSwap::default();
         e.set_returned_cards(&cards);
@@ -1009,7 +1009,7 @@ impl ClassicBot {
 
     pub fn determine_revival(&self, game: &Game) -> Option<Revival> {
         let faction = self.faction(game);
-        if game.revival.current_revival_requests.iter().any(|r| r.initiator == Some(faction)) {
+        if game.turn.revivals.current_revival_requests.iter().any(|r| r.initiator == Some(faction)) {
             return None;
         }
 

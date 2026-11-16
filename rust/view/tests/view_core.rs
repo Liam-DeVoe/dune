@@ -342,8 +342,8 @@ fn faction_panel_extras() {
         }
     }
 
-    let mut r = first_bot_state("a card just won", |g| g.bidding.card_just_won.is_some());
-    let card = r.game.bidding.card_just_won.unwrap();
+    let mut r = first_bot_state("a card just won", |g| g.card_just_won().is_some());
+    let card = r.game.card_just_won().unwrap();
     let mut knowers = 0;
     for (f, view) in all_views(&mut r) {
         let Some(f) = f else { continue };
@@ -414,9 +414,9 @@ fn bids_on_the_ring() {
     let mut r = load("bid");
     let view = r.view(OBSERVER);
     let b = view.bidding.expect("bidding phase");
-    assert_eq!(b.auction_type, name_or_absent(r.game.bidding.current_auction_type));
-    assert_eq!(b.bids.len(), r.game.bidding.bids.len());
-    for (shown, (f, bid)) in b.bids.iter().zip(r.game.bidding.bids.iter()) {
+    assert_eq!(b.auction_type, name_or_absent(r.game.current_auction_type()));
+    assert_eq!(b.bids.len(), r.game.bids().len());
+    for (shown, (f, bid)) in b.bids.iter().zip(r.game.bids().iter()) {
         assert_eq!(shown.faction, name(*f));
         let expected = if bid.bid_passed() { BidShown::Pass } else { BidShown::Bid { amount: bid.bid_total_amount() } };
         assert_eq!(shown.bid, expected);
@@ -428,9 +428,9 @@ fn bids_on_the_ring() {
 #[test]
 fn silent_bids_are_ready() {
     let mut r = first_bot_state("a silent auction with bids", |g| {
-        (g.bidding.current_auction_type == Some(AuctionType::RicheseSilent) || g.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent))
+        (g.current_auction_type() == Some(AuctionType::RicheseSilent) || g.current_auction_type() == Some(AuctionType::BlackMarketSilent))
             && g.turn.current_main_phase == MainPhase::Bidding
-            && !g.bidding.bids.is_empty()
+            && !g.bids().is_empty()
     });
     for (_, view) in all_views(&mut r) {
         let b = view.bidding.unwrap();
@@ -685,7 +685,7 @@ fn timing() {
     assert!(view.timing.time_spent.iter().any(|t| t.bidding > 0.0));
     assert_eq!(view.ruleset, name_or_absent(g.rules.ruleset));
     assert_eq!(view.rules, g.rules.active.iter().map(|r| name(*r)).collect::<Vec<_>>());
-    assert_eq!(view.economics_status, name_or_absent(g.charity.economics_status));
+    assert_eq!(view.economics_status, name_or_absent(g.board.choam_economics_status));
 }
 
 /// The observer's view holds nothing that only a player may see, in any fixture.

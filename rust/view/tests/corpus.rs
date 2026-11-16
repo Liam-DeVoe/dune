@@ -130,9 +130,9 @@ fn check_visibility(game: &Game, v: &ResolvedViewer, view: &GameView, seen: &mut
         // The lot's card: only under bidding prescience or in Richese's auctions, where it is
         // public. Observers have no prescience.
         if let Some(card) = b.panel.as_ref().and_then(|p| p.card) {
-            let richese = matches!(game.bidding.current_auction_type, Some(AuctionType::RicheseOnceAround) | Some(AuctionType::RicheseSilent));
+            let richese = matches!(game.current_auction_type(), Some(AuctionType::RicheseOnceAround) | Some(AuctionType::RicheseSilent));
             assert!(richese || me.is_some_and(|p| game.has_bidding_prescience(p)), "{at}: card on auction shown");
-            assert_eq!(Some(card), game.bidding.cards_on_auction.as_ref().and_then(|d| d.top()).map(|c| c.id()), "{at}");
+            assert_eq!(Some(card), game.cards_on_auction().and_then(|d| d.top()).map(|c| c.id()), "{at}");
             seen.add("card on auction");
         }
         if my_faction.is_none() && b.panel.is_some() {

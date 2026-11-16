@@ -58,21 +58,21 @@ impl Game {
     }
 
     pub fn handle_economics(&mut self) {
-        match self.charity.economics_status {
+        match self.board.choam_economics_status {
             Some(ChoamEconomicsStatus::Double) => {
-                self.charity.economics_status = Some(ChoamEconomicsStatus::CancelFlipped);
+                self.board.choam_economics_status = Some(ChoamEconomicsStatus::CancelFlipped);
                 self.log(vec![Faction::Choam.into(), " The Economics Token flips to Cancel.".into()]);
                 self.stone(Milestone::Economics);
             }
 
             Some(ChoamEconomicsStatus::Cancel) => {
-                self.charity.economics_status = Some(ChoamEconomicsStatus::DoubleFlipped);
+                self.board.choam_economics_status = Some(ChoamEconomicsStatus::DoubleFlipped);
                 self.log(vec![Faction::Choam.into(), " The Economics Token flips to Double.".into()]);
                 self.stone(Milestone::Economics);
             }
 
             Some(ChoamEconomicsStatus::DoubleFlipped) | Some(ChoamEconomicsStatus::CancelFlipped) => {
-                self.charity.economics_status = Some(ChoamEconomicsStatus::RemovedFromGame);
+                self.board.choam_economics_status = Some(ChoamEconomicsStatus::RemovedFromGame);
                 self.log(vec![Faction::Choam.into(), " The Economics Token has been removed from the game.".into()]);
                 self.stone(Milestone::Economics);
             }
@@ -608,7 +608,7 @@ impl Game {
             Phase::Contemplate => {
                 if faction == Some(Faction::Choam)
                     && !self.prevented(FactionAdvantage::ChoamEconomics)
-                    && self.charity.economics_status == None
+                    && self.board.choam_economics_status == None
                 {
                     result.push(EventType::ChoamEconomics);
                 }

@@ -227,10 +227,10 @@ pub(super) fn options(game: &Game, p: PlayerId, e: &NexusPlayed, d: &dyn Describ
         Some(RicheseBetrayal) => {
             let richese_has_it = game
                 .get_player(Some(Faction::Richese))
-                .zip(game.bidding.card_just_won)
+                .zip(game.card_just_won())
                 .is_some_and(|(r, card)| game.player(r).treachery_cards.contains(&card));
             if richese_has_it {
-                m(express!("Force ", Faction::Richese, " to discard the ", game.bidding.card_just_won, " they just bought?"))
+                m(express!("Force ", Faction::Richese, " to discard the ", game.card_just_won(), " they just bought?"))
             } else {
                 m(express!("Prevent ", Faction::Richese, " from getting paid for a card they sold?"))
             }

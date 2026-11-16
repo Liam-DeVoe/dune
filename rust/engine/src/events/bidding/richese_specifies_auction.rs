@@ -26,19 +26,19 @@ impl RicheseSpecifiesAuction {
     pub fn may_specify_card(g: &Game, p: PlayerId) -> bool {
         let occupier_of_richese_homeworld = g.occupier_of(World::Richese);
         (occupier_of_richese_homeworld.is_none() && g.player(p).faction == Some(Faction::Richese))
-            || (occupier_of_richese_homeworld.is_some() && !g.bidding.richese_occupier_specified_card && g.player(occupier_of_richese_homeworld.expect("occupier of richese homeworld")).is(g.player(p).faction))
+            || (occupier_of_richese_homeworld.is_some() && !g.in_bidding().richese_occupier_specified_card && g.player(occupier_of_richese_homeworld.expect("occupier of richese homeworld")).is(g.player(p).faction))
     }
 
     pub fn may_specify_type_of_auction(g: &Game, p: PlayerId) -> bool {
         let occupier_of_richese_homeworld = g.occupier_of(World::Richese);
         (occupier_of_richese_homeworld.is_none() && g.player(p).faction == Some(Faction::Richese))
-            || (occupier_of_richese_homeworld.is_some() && g.bidding.richese_occupier_specified_card && g.player(p).faction == Some(Faction::Richese))
+            || (occupier_of_richese_homeworld.is_some() && g.in_bidding().richese_occupier_specified_card && g.player(p).faction == Some(Faction::Richese))
     }
 }
 
 impl EventRules for RicheseSpecifiesAuction {
     fn validate(&self, game: &Game, _by: By) -> Result<(), Rejection> {
-        if !game.bidding.richese_occupier_specified_card && !RicheseSpecifiesAuction::valid_cards(game).iter().any(|c| Some(*c) == self.card) {
+        if !game.in_bidding().richese_occupier_specified_card && !RicheseSpecifiesAuction::valid_cards(game).iter().any(|c| Some(*c) == self.card) {
             return Err(Rejection(express!("Invalid card")));
         }
 
@@ -50,10 +50,10 @@ impl EventRules for RicheseSpecifiesAuction {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
-        if !game.bidding.richese_occupier_specified_card {
-            game.bidding.richese_auction_should_still_happen = false;
+        if !game.in_bidding().richese_occupier_specified_card {
+            game.in_bidding_mut().richese_auction_should_still_happen = false;
             let card = self.card.required("card")?;
-            game.bidding.cards_on_auction.as_mut().required("cards on auction")?.put_on_top(card);
+            game.in_bidding_mut().cards_on_auction.as_mut().required("cards on auction")?.put_on_top(card);
             crate::game::remove_card(&mut game.decks.richese_cache, Some(card));
             game.drop_copy_in_treachery_deck(card);
             game.register_known(card);
@@ -66,7 +66,7 @@ impl EventRules for RicheseSpecifiesAuction {
                 game.start_bidding_round();
             } else {
                 game.log(vec![by.faction.into(), " put ".into(), card.into(), " on auction".into()]);
-                game.bidding.richese_occupier_specified_card = true;
+                game.in_bidding_mut().richese_occupier_specified_card = true;
             }
         } else {
             let mut direction_text = "";

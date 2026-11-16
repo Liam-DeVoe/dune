@@ -151,7 +151,7 @@ fn check(game: &Game, p: PlayerId, t: EventType, d: &dyn Describer, seen: &mut S
             assert_eq!(o.ambassadors, names(valid.clone()));
             assert_eq!(e.ambassador, valid.first().copied(), "the required picker starts on the first ambassador");
             assert_eq!(o.targets, sectors(AmbassadorPlaced::valid_strongholds(game, p)));
-            assert_eq!(o.cost, game.revival.ambassadors_placed_this_turn + 1);
+            assert_eq!(o.cost, game.turn.revivals.ambassadors_placed_this_turn + 1);
         }
         (Event::BeneGesseritAccompanies(_), ActionOptions::BeneGesseritAccompanies(o)) => {
             let targets = BeneGesseritAccompanies::valid_targets(game, p);

@@ -126,9 +126,9 @@ fn monster_targets_exclude_protected_territories() {
 fn charity_multiplier_and_cancellation() {
     let mut g = game_with(&[Faction::Emperor]);
     assert_eq!(g.current_charity_multiplier(), 1);
-    g.charity.economics_status = Some(ChoamEconomicsStatus::DoubleFlipped);
+    g.board.choam_economics_status = Some(ChoamEconomicsStatus::DoubleFlipped);
     assert_eq!(g.current_charity_multiplier(), 2);
-    g.charity.economics_status = Some(ChoamEconomicsStatus::Cancel);
+    g.board.choam_economics_status = Some(ChoamEconomicsStatus::Cancel);
     assert_eq!(g.current_charity_multiplier(), 0);
     assert!(g.charity_is_cancelled());
 }
@@ -137,6 +137,7 @@ fn charity_multiplier_and_cancellation() {
 fn charity_paid_even_when_choam_cannot_pay() {
     // C# parity: the claimant gets the money before Choam's balance is checked.
     let mut g = game_with(&[Faction::Emperor, Faction::Choam]);
+    g.enter_charity(CharityStep::Claiming);
     let emperor = idx(&g, Faction::Emperor);
     let choam = idx(&g, Faction::Choam);
     g.player_mut(emperor).resources = 0;

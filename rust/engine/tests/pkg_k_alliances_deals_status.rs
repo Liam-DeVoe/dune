@@ -188,7 +188,7 @@ fn deal_parameter_is_parsed_with_int_parse() {
 #[test]
 fn donated_double_inflation_check_has_no_effect() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
-    g.charity.economics_status = Some(ChoamEconomicsStatus::Double);
+    g.board.choam_economics_status = Some(ChoamEconomicsStatus::Double);
     let atreides = idx(&g, Faction::Atreides);
     g.player_mut(atreides).resources = 5;
     let mut d = Donated::default();

@@ -12,14 +12,14 @@ pub use battle::*;
 mod battle_outcome;
 pub use battle_outcome::*;
 mod bidding;
-pub use bidding::{BiddingState, PlacedBid};
+pub use bidding::{BiddingLeftovers, BiddingState, BiddingStep, PlacedBid};
 pub(crate) use bidding::*;
 mod blow;
 pub use blow::*;
 mod board;
 pub use board::Board;
 mod charity;
-pub use charity::CharityState;
+pub use charity::{CharityState, CharityStep};
 mod collection;
 pub use collection::*;
 mod contemplate;
@@ -105,9 +105,6 @@ pub struct Game {
     pub setup: SetupState,
     pub storm: StormState,
     pub blow: BlowState,
-    pub charity: CharityState,
-    pub bidding: BiddingState,
-    pub revival: RevivalState,
     pub ship_move: ShipMoveState,
     pub battle_leftovers: BattleLeftovers,
     pub contemplate: ContemplateState,
@@ -171,9 +168,6 @@ impl Game {
             setup: SetupState::new(),
             storm: StormState::new(),
             blow: BlowState::new(),
-            charity: CharityState::new(),
-            bidding: BiddingState::new(),
-            revival: RevivalState::new(),
             ship_move: ShipMoveState::new(),
             battle_leftovers: BattleLeftovers::default(),
             contemplate: ContemplateState::new(),
@@ -649,7 +643,7 @@ impl Game {
 
     pub fn has_bidding_prescience(&self, p: PlayerId) -> bool {
         let is_publicly_known =
-            self.bidding.current_auction_type == Some(AuctionType::RicheseOnceAround) || self.bidding.current_auction_type == Some(AuctionType::RicheseSilent);
+            self.current_auction_type() == Some(AuctionType::RicheseOnceAround) || self.current_auction_type() == Some(AuctionType::RicheseSilent);
         let player = self.player(p);
 
         is_publicly_known

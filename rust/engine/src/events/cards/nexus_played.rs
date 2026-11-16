@@ -149,10 +149,10 @@ impl NexusPlayed {
             }
 
             Some(Faction::Richese) if betrayal && g.turn.current_main_phase == MainPhase::Bidding => {
-                (g.bidding.richese_bidding_just_finished || g.bidding.card_sold_on_black_market.is_some())
+                g.bidding().is_some_and(|b| b.richese_bidding_just_finished || b.card_sold_on_black_market.is_some())
                     && (g.has_quite_recent_payment_to(Faction::Richese)
-                        || (g.bidding.card_just_won.is_some()
-                            && g.get_player(Some(Faction::Richese)).map(|w| g.player(w).has(g.bidding.card_just_won)) == Some(true)))
+                        || (g.card_just_won().is_some()
+                            && g.get_player(Some(Faction::Richese)).map(|w| g.player(w).has(g.card_just_won())) == Some(true)))
             }
 
             Some(Faction::Ecaz) if betrayal => {
@@ -170,7 +170,7 @@ impl NexusPlayed {
         let p = g.player(p);
         if special_forces {
             if p.faction == Some(Faction::Emperor) || p.faction == Some(Faction::Fremen) {
-                if g.revival.factions_that_revived_special_forces_this_turn.contains_opt(p.faction) {
+                if g.turn.revivals.factions_that_revived_special_forces_this_turn.contains_opt(p.faction) {
                     return 0;
                 }
                 return std::cmp::min(i32::from(p.special_forces_killed), 1);
@@ -378,15 +378,15 @@ impl NexusPlayed {
                         let w = game.player_mut(richese);
                         crate::game::amounts::spend(&mut w.resources, amount_received, "spice")?;
                     }
-                } else if richese.is_some() && game.bidding.card_just_won.is_some() && game.player(richese.required("richese")?).has(game.bidding.card_just_won) {
+                } else if richese.is_some() && game.card_just_won().is_some() && game.player(richese.required("richese")?).has(game.card_just_won()) {
                     let richese = richese.required("richese")?;
                     game.play_nexus_card(
                         actor,
                         elems!["force ", Faction::Richese, " to discard the card they just won, refunding payment"],
                     );
-                    let card_just_won = game.bidding.card_just_won;
+                    let card_just_won = game.card_just_won();
                     game.discard_card_of(Some(richese), card_just_won, true);
-                    let winning_bid = game.bidding.winning_bid.clone();
+                    let winning_bid = game.bidding().and_then(|b| b.winning_bid.clone());
                     if let Some(winning_bid) = winning_bid {
                         if !winning_bid.bid_karma_bid() && winning_bid.bid_initiator() == Faction::Richese {
                             let w = game.player_mut(richese);
@@ -594,7 +594,7 @@ impl NexusPlayed {
                 Player::revive_special_forces(game, player, i32::from(self.tleilaxu_special_forces))?;
 
                 if i32::from(self.tleilaxu_special_forces) > 0 {
-                    game.revival.factions_that_revived_special_forces_this_turn.push(by.faction.expect("faction"));
+                    game.turn.revivals.factions_that_revived_special_forces_this_turn.push(by.faction.expect("faction"));
                 }
 
                 if let Some(tleilaxu_hero) = self.tleilaxu_hero {

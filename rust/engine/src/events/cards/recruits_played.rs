@@ -18,7 +18,7 @@ impl EventRules for RecruitsPlayed {
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
         let m = self.describe(game, by);
         game.log_event(m);
-        game.revival.current_recruits_played = true;
+        game.revival_mut().required("the revival phase")?.current_recruits_played = true;
         game.discard(by.player(), TreacheryCardType::Recruits)?;
         Ok(())
     }

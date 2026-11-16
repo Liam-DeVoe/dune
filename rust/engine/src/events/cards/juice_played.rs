@@ -17,7 +17,7 @@ impl JuicePlayed {
             }
         }
 
-        if (g.turn.current_main_phase == MainPhase::Bidding && g.bidding.bids.len() == 0)
+        if (g.turn.current_main_phase == MainPhase::Bidding && g.bids().len() == 0)
             || g.phase() == Phase::BeginningOfShipAndMove
             || (g.turn.current_main_phase == MainPhase::Battle && g.current_battle().is_none())
             || g.phase() == Phase::Contemplate

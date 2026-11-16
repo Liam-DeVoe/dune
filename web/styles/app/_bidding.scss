@@ -27,3 +27,22 @@
   align-items: center;
   gap: 6px;
 }
+
+// The card that goes up next, in the status card between auctions (GameStatusComponent.tsx).
+.next-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.next-card > :first-child {
+  flex: none;
+}
+
+.next-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}

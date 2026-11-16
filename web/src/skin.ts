@@ -69,6 +69,8 @@ export class Skin {
   // Treachery cards are keyed by SkinId in the skin and by Id in the view.
   cardSkinId(id: number): number { return this.cards.get(id)?.skinId ?? id; }
   cardType(id: number): TreacheryCardType { return this.cards.get(id)?.cardType ?? "None"; }
+  // The first treachery card of a type, to picture the type by.
+  cardOfType(t: TreacheryCardType): number { return [...this.cards.values()].find((c) => c.cardType === t)?.id ?? -1; }
   card(id: number): string { return this.label(this.data.TreacheryCardName_STR, this.cardSkinId(id)); }
   cardImage(id: number): string { return this.url(this.data.TreacheryCardImage_URL[String(this.cardSkinId(id))]); }
   person(id: number): string { return this.label(this.data.PersonName_STR, id); }

@@ -113,6 +113,26 @@ pub fn options(game: &Game, v: &ResolvedViewer, draft: &GameEvent) -> Option<Act
     }
 }
 
+/// The card that goes up next, during `Phase::WaitingForNextBiddingRound`. Face up for a seated
+/// viewer with bidding prescience, leaving out `HasBiddingPrescience`'s Richese clause: the auction
+/// type may still be that of the Richese auction just sold, and the next card isn't Richese's.
+pub fn next_card(game: &Game, v: &ResolvedViewer) -> Option<NextCardView> {
+    if game.turn.current_phase != Phase::WaitingForNextBiddingRound {
+        return None;
+    }
+    let top = game.bidding.cards_on_auction.as_ref().and_then(|d| d.top())?;
+    let prescience = v.player.filter(|_| !v.is_observer).is_some_and(|p| {
+        let pl = game.player(p);
+        game.occupies(pl.faction, World::Atreides)
+            || game.occupies(pl.ally, World::Atreides)
+            || (!game.prevented(FactionAdvantage::AtreidesBiddingPrescience)
+                && (pl.faction == Faction::Atreides
+                    || (pl.ally == Faction::Atreides && game.alliances.atreides_shares_prescience)
+                    || game.has_deal(pl.faction, DealType::ShareBiddingPrescience)))
+    });
+    Some(NextCardView { card: prescience.then(|| top.id()) })
+}
+
 /// The lot of the bidding panel, shown in `Phase::Bidding` and `Phase::BlackMarketBidding` to
 /// every player, bidding or not.
 pub fn panel(game: &Game, v: &ResolvedViewer) -> Option<BiddingPanelView> {

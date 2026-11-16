@@ -2,13 +2,10 @@
 // component can use them. The guide's .card thumbnail rules are not here:
 // Bootstrap's .card is the game's panel. Order matters for the cascade.
 @use "chip";
-@use "buttons";
 @use "number";
 @use "field";
 @use "select";
 @use "panel";
-@use "prompt";
-@use "log";
 @use "report";
 @use "log-kit";
 @use "log-storm";
@@ -35,5 +32,4 @@
 @use "spice";
 @use "status";
 @use "tabs";
-@use "helpers";
 @use "map";

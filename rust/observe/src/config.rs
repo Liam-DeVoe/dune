@@ -28,7 +28,17 @@ pub struct Config {
     pub style: HostStyle,
     /// `[userId, seat, name]` of seated humans.
     pub seated: Vec<(i32, i32, String)>,
+    /// A fuzz game set up for intrusions and retreats ([`FOCUS`]).
+    pub focus: bool,
 }
+
+/// Share of fuzz games that seat the factions whose forces, ambassadors and terror tokens stop a
+/// shipment or move (Bene Gesserit, Ecaz, Moritani), with the Guild, Fremen and Tleilaxu, whose
+/// moves, worm rides and revivals to the planet can run into them, under every expansion's
+/// advanced rules. Random games rarely seat all of them, and the phases of those intrusions were
+/// never reached.
+pub const FOCUS: f64 = 0.3;
+const FOCUS_FACTIONS: [Faction; 6] = [Faction::BeneGesserit, Faction::Ecaz, Faction::Moritani, Faction::Guild, Faction::Fremen, Faction::Tleilaxu];
 
 fn toggle(rules: &mut Vec<Rule>, r: Rule) {
     if let Some(i) = rules.iter().position(|x| *x == r) {
@@ -116,6 +126,27 @@ impl Config {
         if fuzz && rng.chance(0.25) {
             turns = rng.range(10, 21);
         }
+        let mut focus = false;
+        let (mut ruleset, mut rules, mut factions, mut players) = (ruleset, rules, factions, players);
+        if fuzz && rng.chance(FOCUS) {
+            focus = true;
+            ruleset = Ruleset::AllExpansionsAdvancedGame;
+            // The house rules drawn above stay, so these games still set up decks, forces and
+            // factions by hand now and then.
+            let kept: Vec<Rule> = rules.iter().copied().filter(|r| house.contains(r) || *r == Rule::BotsCannotAlly).collect();
+            rules = definitions.iter().find(|(k, _)| **k == ruleset).map(|(_, v)| v.clone()).unwrap_or_default();
+            for r in kept.into_iter().chain([Rule::BeneGesseritAccompaniesToShipmentLocation, Rule::FillWithBots]) {
+                if !rules.contains(&r) {
+                    rules.push(r);
+                }
+            }
+            let mut others: Vec<Faction> = all.iter().copied().filter(|f| !FOCUS_FACTIONS.contains(f)).collect();
+            rng.shuffle(&mut others);
+            others.truncate(rng.below(4));
+            factions = FOCUS_FACTIONS.iter().copied().chain(others).collect();
+            rng.shuffle(&mut factions);
+            players = factions.len() as i32;
+        }
         let style = match rng.f64() {
             x if x < 0.5 => HostStyle::Tests,
             x if x < 0.75 => HostStyle::ServerBotsHost,
@@ -130,7 +161,7 @@ impl Config {
                 seated.push((100 + i, seats[i as usize], format!("Human{}", 100 + i)));
             }
         }
-        Config { ruleset, rules, factions, players, turns, engine_seed: rng.seed(), style, seated }
+        Config { ruleset, rules, factions, players, turns, engine_seed: rng.seed(), style, seated, focus }
     }
 
     /// The host's `EstablishPlayers`, in savegame JSON (without `Time`).
@@ -167,6 +198,7 @@ impl Config {
             "players": self.players,
             "turns": self.turns,
             "hostStyle": format!("{:?}", self.style),
+            "focus": self.focus,
         })
     }
 }

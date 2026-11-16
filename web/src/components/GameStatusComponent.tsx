@@ -1,15 +1,19 @@
 // OtherComponents/GameStatusComponent.razor: the prompt card. How long the game has waited, the
 // players it waits for (with the worm around the one whose turn it is, or the bidders with their
 // card counts during bidding), what the game is waiting for, and "Continue" when the viewer can
-// end the phase (the EndPhase action).
+// end the phase (the EndPhase action). Host-only controls sit apart, in a strip at the foot of the
+// card, so they don't read as the player's own.
 //
 // The pause between phases (Client.PhaseControl: "continues in 5s", Hold, Done) comes from the
 // server's phaseControl notification, which the lobby client keeps; a game shown without it (a
 // saved view) has no pause.
-import { useContext, useState, useSyncExternalStore, type CSSProperties } from "react";
+import { useContext, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import { LobbyContext } from "../lobby/context";
 import type { PhaseControlInfo } from "../lobby/types";
 import { Checkbox } from "./Checkbox";
+import { FactionChip } from "./FactionChip";
+import { Image } from "./Image";
+import { treacheryCardPopup } from "../popups";
 import type { Faction } from "../generated/enums";
 import type { GameView } from "../generated/GameView";
 import type { SequenceEntry } from "../generated/SequenceEntry";
@@ -49,14 +53,26 @@ export function GameStatusComponent() {
     && waitingFor.every((f) => view.players.find((p) => p.faction === f)?.isBot);
   const canHold = mySeat !== undefined && !!pause && pause.countdownEnds !== null && !amHolding;
   const isBidding = view.mainPhase === "Bidding";
+  // Between auctions: the card that goes up next, which Atreides looks at before opening its auction.
+  const nextCard = view.bidding?.nextCard ?? null;
+  // The host's controls, in their own strip at the foot of the card. Continue for everyone is
+  // left out when only bots are pending (they end the pause themselves) and when the host is the
+  // only one the pause waits for, with no countdown or hold, since Done does the same.
+  const hostOnlyAwaited = amWaitedFor && pause!.waitingFor.length === 1 && pause!.countdownEnds === null && pause!.holding.length === 0;
+  const showContinue = view.viewer.isHost && !!pause && !onlyBotsPending && !hostOnlyAwaited;
+  const showTimeLimit = view.viewer.isHost && isBidding && view.players.filter((p) => !p.isBot).length > 1;
   const showRow = isBidding || waitingFor.length > 0 || s.waitingInSequence.length > 0;
   // StatusStyle: a faint red text border while the viewer is awaited.
   const statusStyle: CSSProperties | undefined = (pause ? amWaitedFor : s.waitingForMe)
     ? { WebkitTextStroke: "0.3px rgba(195,50,50,.09)", textShadow: "0 0 2px rgba(195,50,50,.09)" }
     : undefined;
 
-  const pauseMessage = () => {
+  const pauseMessage = (): ReactNode => {
     const phase = skin.enumValue("MainPhase", view.mainPhase);
+    if (nextCard && amWaitedFor) return "Look at the next card";
+    if (nextCard && waitingFor.length > 0) {
+      return <>{waitingFor.map((f) => <FactionChip key={f} faction={f} />)} {waitingFor.length > 1 ? "are" : "is"} looking at the next card</>;
+    }
     if (amWaitedFor) return `You may still act before the ${phase} phase continues.`;
     if (onlyBotsPending) return `The ${phase} phase continues...`;
     if (pause!.waitingFor.length > 0) return `Waiting for players before the ${phase} phase continues...`;
@@ -80,16 +96,18 @@ export function GameStatusComponent() {
           ? (
             <>
               <div className="text-dark fw-bold text-center" style={statusStyle}>{pauseMessage()}</div>
-              {holders.length > 0 && <div className="text-dark text-center">Held by {holders.map((p) => p.name).join(", ")}</div>}
-              <div className="mt-2 text-end">
-                {view.viewer.isHost && !onlyBotsPending && (
-                  <button className="btn btn-outline-secondary me-1" onClick={() => void source.gameCall?.("phaseContinue", { eventNumber: view.eventNumber })} title="Continue without waiting">Continue now</button>
-                )}
-                {canHold && <button className="btn btn-outline-secondary me-1" onClick={() => void source.gameCall?.("phaseHold", {})}>Hold</button>}
-                {(amWaitedFor || amHolding) && (
-                  <button className="btn btn-primary" onClick={() => void source.gameCall?.(amWaitedFor ? "phaseDone" : "phaseRelease", {})}>Done</button>
-                )}
-              </div>
+              {nextCard && <NextCard card={nextCard.card} />}
+              {holders.length > 0 && <div className="text-dark text-center">Held by {holders.map((p) => <FactionChip key={p.faction} faction={p.faction} />)}</div>}
+              {(canHold || amWaitedFor || amHolding) && (
+                <div className="mt-2 text-end">
+                  {canHold && <button className="btn btn-outline-secondary me-1" onClick={() => void source.gameCall?.("phaseHold", {})}>Hold</button>}
+                  {(amWaitedFor || amHolding) && (
+                    <button className="btn btn-primary" onClick={() => void source.gameCall?.(amWaitedFor ? "phaseDone" : "phaseRelease", {})}>
+                      {amWaitedFor ? (nextCard ? "Open bidding" : "Done") : "Release hold"}
+                    </button>
+                  )}
+                </div>
+              )}
             </>
           )
           : (
@@ -97,16 +115,26 @@ export function GameStatusComponent() {
               <div className="text-dark fw-bold text-center" style={statusStyle}>
                 <RichText parts={s.message} size={20} />
               </div>
+              {nextCard && <NextCard card={nextCard.card} />}
               {endPhase && (
                 <div className="mt-2 text-end">
                   <button className="btn btn-primary" disabled={endPhase.validation !== null}
                           title={error ?? undefined}
-                          onClick={async () => setError(await source.submit({ $type: "EndPhase" }))}>Continue</button>
+                          onClick={async () => setError(await source.submit({ $type: "EndPhase" }))}>{nextCard ? "Open bidding" : "Continue"}</button>
                 </div>
               )}
             </>
           )}
-        {view.viewer.isHost && isBidding && view.players.filter((p) => !p.isBot).length > 1 && <TimeLimit view={view} />}
+        {(showContinue || showTimeLimit) && (
+          <div className="host-strip">
+            <span className="kicker">Host</span>
+            {showTimeLimit && <TimeLimit view={view} />}
+            <span className="flex-grow-1" />
+            {showContinue && (
+              <button className="btn btn-outline-secondary btn-sm" onClick={() => void source.gameCall?.("phaseContinue", { eventNumber: view.eventNumber })}>Continue for everyone</button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -122,14 +150,17 @@ function TimeLimit({ view }: { view: GameView }) {
   const down = limit > 60 ? 30 : limit > 20 ? 10 : 5;
   const change = (v: number) => { const c = Math.min(600, Math.max(10, v)); setLimit(c); update(c); };
   return (
-    <div className="mt-1">
-      <Checkbox value={set} onChange={(v: boolean) => update(v ? limit : -1)}>Time limit (seconds)</Checkbox>
+    <div className="d-flex align-items-center gap-2">
+      <Checkbox className="mb-0" value={set} onChange={(v: boolean) => update(v ? limit : -1)}>Time limit</Checkbox>
       {set && (
-        <span className="num">
-          <button onClick={() => change(limit - down)}>−</button>
-          <input value={limit} readOnly />
-          <button onClick={() => change(limit + up)}>+</button>
-        </span>
+        <>
+          <span className="num">
+            <button onClick={() => change(limit - down)}>−</button>
+            <input value={limit} readOnly />
+            <button onClick={() => change(limit + up)}>+</button>
+          </span>
+          s
+        </>
       )}
     </div>
   );
@@ -203,4 +234,17 @@ function Players({ view, waitingFor }: { view: GameView; waitingFor: Faction[] }
         : <img className="align-self-center p-2" title={name(se.faction)} src={skin.factionImage(se.faction)} width="48" style={{ position: "relative", filter: shadow }} alt={name(se.faction)} />}
     </div>
   ));
+}
+
+// The card that goes up next: face up under prescience, otherwise its back.
+function NextCard({ card }: { card: number | null }) {
+  const { skin } = useGame();
+  return (
+    <div className="next-card">
+      {card !== null
+        ? <Image src={skin.cardImage(card)} alt={skin.card(card)} width={96} popover={treacheryCardPopup(skin, card)} />
+        : <img src={skin.url(skin.str("CardBack_TreacheryCard_URL"))} width={96} alt="The next card" />}
+      {card !== null && <div className="next-card-text"><div className="kicker">Prescience</div></div>}
+    </div>
+  );
 }

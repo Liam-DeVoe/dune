@@ -825,6 +825,19 @@ pub struct BiddingView {
     /// The latest event won an auction (`Milestone::AuctionWon`): the client turns auto-pass
     /// off.
     pub auction_won: bool,
+    /// During `Phase::WaitingForNextBiddingRound`: the card that goes up next. Atreides looks at
+    /// it and then opens its auction.
+    pub next_card: Option<NextCardView>,
+}
+
+/// The card that goes up for auction next.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct NextCardView {
+    /// `Game.CardsOnAuction.Top` for a viewer with bidding prescience; null (the card back)
+    /// otherwise. Unlike the panel's card, Richese's public auctions don't show it: the next card
+    /// is a regular one.
+    pub card: Option<i32>,
 }
 
 /// The bidding panel without the bidder's inputs (those are the `Bid` and `BlackMarketBid`

@@ -7,7 +7,6 @@
 //! The generator reads a shadow copy of the game ([`Shadow`]), never the session's game, so it
 //! can't change state the replayer wouldn't change: drafts and validation fill caches. Only the recorder runs it; the replayer reads its events from the trace.
 
-use treachery_engine::enum_type::GameEnum;
 use std::collections::BTreeMap;
 use std::panic::{self, AssertUnwindSafe};
 
@@ -16,6 +15,7 @@ use treachery_engine::events::{GameEvent, GameEventType};
 use treachery_engine::game::Game;
 use treachery_engine::json;
 use treachery_engine::prelude::*;
+use treachery_engine::enum_type::GameEnum;
 use treachery_view::build::{ResolvedViewer, Seating};
 
 use crate::rng::Rng;
@@ -198,6 +198,54 @@ pub struct Pools {
     mixes: Vec<Vec<i64>>,
     /// Whole events the client offers as buttons (accepting, declining or withdrawing a deal).
     buttons: Vec<Map<String, Value>>,
+    /// The event type of the form.
+    event_type: Option<GameEventType>,
+    /// For forces arriving somewhere ([`LOCATION_EVENT_TYPES`]): locations where they would
+    /// intrude ([`intrusion_locations`]).
+    intrusions: Vec<i32>,
+    /// For a battle plan: the player's leaders with the Diplomat skill, who may retreat after losing.
+    diplomats: Vec<i32>,
+}
+
+/// Events that bring forces to a location, and can make Bene Gesserit, an Ecaz ambassador or a
+/// Moritani terror token interrupt the phase.
+pub const LOCATION_EVENT_TYPES: [GameEventType; 6] =
+    [GameEventType::Shipment, GameEventType::Move, GameEventType::Caravan, GameEventType::FremenRidesMonster, GameEventType::Revival, GameEventType::BeneGesseritAccompanies];
+
+/// Whether player `i` may place revived forces on the planet (Tleilaxu and Fremen at their high threshold).
+fn may_revive_to_planet(game: &Game, i: usize) -> bool {
+    let p = game.player_at(i);
+    Revival::valid_revived_force_locations(game, p).next().is_some()
+        && (Revival::number_of_forces_that_may_be_placed_on_planet(game, p, false, 20) > 0 || Revival::number_of_special_forces_that_may_be_placed_on_planet(game, p, 20) > 0)
+}
+
+/// Fields holding the destination of a [`LOCATION_EVENT_TYPES`] event.
+const DESTINATION_FIELDS: [&str; 3] = ["_toId", "_locationId", "_targetId"];
+
+/// Locations where forces of player `i` would trigger an intrusion, by the rules of
+/// `Game::check_intrusion`, roughly: territories (other than the Polar Sink and homeworlds) with
+/// Bene Gesserit fighters, an Ecaz ambassador or a Moritani terror token, unless `i` is that
+/// faction or its ally.
+pub fn intrusion_locations(game: &Game, i: usize) -> Vec<i32> {
+    let Some(me) = game.players.get(i) else { return vec![] };
+    let unrelated = |f: Faction| game.get_player(Some(f)).is_some_and(|p| me.faction != f && me.ally != f && game.player(p).ally != me.faction);
+    let bene_gesserit = game.get_player(Some(Faction::BeneGesserit)).filter(|_| unrelated(Faction::BeneGesserit));
+    let ecaz = unrelated(Faction::Ecaz);
+    let moritani = unrelated(Faction::Moritani);
+    let polar_sink = game.board.map.polar_sink().territory();
+    game.board
+        .map
+        .locations(false)
+        .filter(|l| {
+            let t = l.territory();
+            t != polar_sink
+                && !t.is_homeworld()
+                && (bene_gesserit.is_some_and(|b| game.player(b).forces_in_territory(Some(t)) > 0)
+                    || (ecaz && game.ambassador_in(t).is_some())
+                    || (moritani && game.terror_in(t).next().is_some()))
+        })
+        .map(|l| l.id())
+        .collect()
 }
 
 /// Singular, lower case: `heroes` -> `hero`, `karmaCards` -> `karmacard`.
@@ -319,6 +367,14 @@ impl Pools {
         let options = quiet(|| treachery_view::actions::action_view(shadow, &rv, seating, t, treachery_skin::default_skin()).options.map(|o| serde_json::to_value(o).ok()))
             .flatten()
             .flatten();
+        pools.event_type = Some(t);
+        if LOCATION_EVENT_TYPES.contains(&t) {
+            pools.intrusions = quiet(|| intrusion_locations(shadow, i)).unwrap_or_default();
+        }
+        if t == GameEventType::Battle {
+            let me = &shadow.players[i];
+            pools.diplomats = quiet(|| me.leaders.iter().filter(|l| shadow.skilled_as(Hero::from(**l), LeaderSkill::Diplomat)).map(|l| l.id()).collect()).unwrap_or_default();
+        }
         if let Some(o) = options {
             if let Some(Value::Object(d)) = o.get("draft") {
                 pools.draft = Some(d.clone());
@@ -396,7 +452,9 @@ fn bounded(max: i64, rng: &mut Rng) -> i64 {
 fn force_locations(game: &Game, player: Option<usize>, pools: &Pools, rng: &mut Rng) -> Option<String> {
     let me = &game.players[player.filter(|i| *i < game.players.len())?];
     let own: Vec<(i32, i32, i32)> = me.forces_in_locations.iter().map(|(l, b)| (l.id(), b.amount_of_forces, b.amount_of_special_forces)).collect();
-    let part = |n: i32, rng: &mut Rng| if n <= 0 { 0 } else if rng.chance(0.4) { n } else { rng.range(0, n + 1) };
+    // Forces sent where they intrude mostly go all together: a terror token needs at least three.
+    let all = if pools.intrusions.is_empty() { 0.4 } else { 0.8 };
+    let part = |n: i32, rng: &mut Rng| if n <= 0 { 0 } else if rng.chance(all) { n } else { rng.range(0, n + 1) };
     let mut parts: Vec<(i32, i32, i32)> = Vec::new();
     if !own.is_empty() && rng.chance(0.6) {
         for _ in 0..rng.range(1, 4) {
@@ -451,7 +509,25 @@ fn steered_value(key: &str, cur: &Value, keys: &[String], pools: &Pools, game: &
             Value::String(subset.iter().map(|v| v.to_string().trim_matches('"').to_string()).collect::<Vec<_>>().join(";"))
         });
     }
+    if !pools.intrusions.is_empty() && DESTINATION_FIELDS.contains(&key) && rng.chance(0.5) {
+        // A destination where the forces intrude, preferably one the form offers.
+        let offered: Vec<i32> = pools.list_for(key, cur, keys, rng).map(|l| l.iter().filter_map(|v| v.as_i64()).map(|v| v as i32).collect()).unwrap_or_default();
+        let both: Vec<i32> = pools.intrusions.iter().copied().filter(|l| offered.contains(l)).collect();
+        let from = if both.is_empty() { &pools.intrusions } else { &both };
+        return rng.pick(from).map(|l| Value::from(*l));
+    }
+    let diplomat = [LeaderSkill::Diplomat.value()];
+    let preferred: &[i32] = match (pools.event_type, key) {
+        (Some(GameEventType::SkillAssigned), "Skill") => &diplomat,
+        (Some(GameEventType::Battle), "_heroId") => &pools.diplomats,
+        _ => &[],
+    };
     if let Some(list) = pools.list_for(key, cur, keys, rng) {
+        // The Diplomat skill and leaders who have it: the only way to the retreat after a battle.
+        let preferred: Vec<&Value> = list.iter().filter(|v| v.as_i64().is_some_and(|v| preferred.contains(&(v as i32)))).collect();
+        if let Some(v) = rng.pick(&preferred).filter(|_| rng.chance(0.9)) {
+            return Some((*v).clone());
+        }
         let v = rng.pick(list).cloned()?;
         // Keep the field's JSON kind: a string field gets the choice as text.
         return Some(match (&v, cur) {
@@ -580,6 +656,13 @@ pub const RESTORE_OR_DISMISS_AFTER_UNDO: f64 = 0.3;
 pub const OPPORTUNISTIC: f64 = 0.3;
 pub const BATTLE_ACTION: f64 = 0.25;
 pub const CHANGED_PLAN: f64 = 0.3;
+/// Share of bot rounds in which a player who may ship, move or revive forces does so to a
+/// location where they intrude, when there is one.
+pub const INTRUSION_ACTION: f64 = 0.1;
+/// The same when the event type was rarely executed in this phase.
+pub const RARE_INTRUSION_ACTION: f64 = 0.6;
+/// Share of bot rounds in which [`Fuzzer::retreat_action`] acts, when it can.
+pub const RETREAT_ACTION: f64 = 0.5;
 /// Share of random events that are steered (the rest: a random player's applicable or any type).
 pub const STEERED: f64 = 0.85;
 /// Candidates built per event, looking for one that passes validation.
@@ -657,6 +740,44 @@ impl Fuzzer {
         let i = applicable[self.rng.below(applicable.len())].0;
         let t = type_named(RARE_BATTLE_ACTION_TYPES[self.rng.below(RARE_BATTLE_ACTION_TYPES.len())])?;
         Some((i, t))
+    }
+
+    /// Now and then, a (player, type) that brings forces to a location where they would intrude:
+    /// in [`INTRUSION_ACTION`] of the rounds, or [`RARE_INTRUSION_ACTION`] when the type was
+    /// rarely executed in this phase (moves of the Guild, worm rides).
+    pub fn intrusion_action(&mut self, shadow: &Game, applicable: &[(usize, Vec<GameEventType>)], phase: Phase) -> Option<(usize, GameEventType)> {
+        let x = self.rng.f64();
+        if x >= RARE_INTRUSION_ACTION {
+            return None;
+        }
+        let candidates: Vec<(usize, GameEventType)> = applicable
+            .iter()
+            .flat_map(|(i, ts)| ts.iter().filter(|t| LOCATION_EVENT_TYPES.contains(t)).map(move |t| (*i, *t)))
+            .filter(|(_, t)| x < INTRUSION_ACTION || self.rare(*t, phase))
+            .filter(|(i, t)| quiet(|| !intrusion_locations(shadow, *i).is_empty() && (*t != GameEventType::Revival || may_revive_to_planet(shadow, *i))).unwrap_or(false))
+            .collect();
+        self.rng.pick(&candidates).copied()
+    }
+
+    /// Now and then, a step towards a retreat, which needs a battle lost by a leader with the
+    /// Diplomat skill who survives: a player choosing that skill when it is offered, or a battle
+    /// plan with such a leader.
+    pub fn retreat_action(&mut self, shadow: &Game, applicable: &[(usize, Vec<GameEventType>)]) -> Option<(usize, GameEventType)> {
+        if !self.rng.chance(RETREAT_ACTION) {
+            return None;
+        }
+        let candidates: Vec<(usize, GameEventType)> = applicable
+            .iter()
+            .flat_map(|(i, ts)| ts.iter().filter(|t| matches!(t, GameEventType::SkillAssigned | GameEventType::Battle)).map(move |t| (*i, *t)))
+            .filter(|(i, t)| {
+                let pools = Pools::of(shadow, &self.seating, *i, *t);
+                match t {
+                    GameEventType::SkillAssigned => pools.lists.iter().any(|(_, l, _)| l.contains(&Value::from(LeaderSkill::Diplomat.value()))),
+                    _ => pools.lists.iter().any(|(n, l, _)| n == "hero" && l.iter().any(|h| h.as_i64().is_some_and(|h| pools.diplomats.contains(&(h as i32))))),
+                }
+            })
+            .collect();
+        self.rng.pick(&candidates).copied()
     }
 
     /// A battle plan this faction submitted before, with its leader, a card or its dial changed
@@ -751,6 +872,23 @@ impl Fuzzer {
                 // Now and then a value from the wider domains of the game (still real ids).
                 if self.rng.chance(0.1) {
                     mutate(&mut candidate, shadow, player, 1, &mut self.rng);
+                }
+            }
+            if !pools.intrusions.is_empty() && self.rng.chance(0.8) {
+                // Forces that go somewhere, rather than a pass.
+                for (k, v) in [("Passed", false), ("Accompanies", true)] {
+                    if candidate.contains_key(k) {
+                        candidate.insert(k.into(), Value::Bool(v));
+                    }
+                }
+            }
+            if t == GameEventType::Revival && candidate.get("_locationId").and_then(|v| v.as_i64()).is_some_and(|l| l >= 0) && self.rng.chance(0.7) {
+                // Revived forces placed on the planet, where they may intrude.
+                for (amount, placed) in [("AmountOfForces", "NumberOfForcesInLocation"), ("AmountOfSpecialForces", "NumberOfSpecialForcesInLocation")] {
+                    let n = candidate.get(amount).and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+                    if n > 0 {
+                        candidate.insert(placed.into(), Value::from(self.rng.range(1, n + 1)));
+                    }
                 }
             }
             if t == GameEventType::JuicePlayed && self.rng.chance(0.7) {

@@ -52,9 +52,7 @@
 .prompt-act .btn-link,
 .act-stack > .card:not(.battle-plan) .btn-link,
 .prompt-act a,
-.act-stack > .card:not(.battle-plan) a,
-.on-parchment .btn-link,
-.on-parchment a {
+.act-stack > .card:not(.battle-plan) a {
   --bs-btn-color: var(--rock-2);
   --bs-btn-hover-color: var(--ink-1);
   color: var(--rock-2);
@@ -62,10 +60,6 @@
 
 .prompt-act,
 .act-stack > .card:not(.battle-plan) {
-  .btn-quiet {
-    color: var(--rock-2);
-  }
-
   // Bootstrap's info and primary text become the rock brown.
   .text-info,
   .text-primary {
@@ -110,11 +104,6 @@
 
   .num .ic {
     border-right-color: shared.$ink-line-soft;
-  }
-
-  .check i {
-    background: shared.$parchment-check-bg;
-    border-color: shared.$ink-line-strong;
   }
 
   .seg {
@@ -184,5 +173,27 @@
 
   > .battle-plan {
     margin-top: 8px;
+  }
+}
+
+// The status card's host-only controls (Continue for everyone, the bidding time limit): a strip
+// across the foot of the card, set off by a hairline and a faint ink wash so it doesn't read as
+// one of the player's own buttons.
+.prompt-act .host-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin: 12px calc(-1 * var(--bs-card-spacer-x)) calc(-1 * var(--bs-card-spacer-y));
+  padding: 8px var(--bs-card-spacer-x);
+  border-top: 1px solid shared.$ink-line-soft;
+  background: rgba(29, 12, 0, 0.045);
+  font-size: 14px;
+
+  // Copperplate's capitals sit high in their line box; drop them to the button's centre.
+  .kicker {
+    margin: 0;
+    line-height: 1;
+    padding-top: 3px;
   }
 }

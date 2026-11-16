@@ -1,7 +1,9 @@
 // Self-hosted fonts. URLs are relative to web/assets/css/, where the compiled
-// sheet lives. Copperplate, Advokat and OrthodoxHerbertarian are single TTFs
-// in web/assets/; Alegreya Sans and Alegreya are subsetted woff2 files in
-// web/assets/fonts/.
+// sheet lives. Copperplate and Advokat are single TTFs in web/assets/; Alegreya
+// Sans is subsetted woff2 files in web/assets/fonts/.
+//
+// web/assets/OrthodoxHerbertarian.ttf has no @font-face here, but it isn't
+// unused: art/map.svg declares it itself (as "Herbert") for the map's labels.
 
 @font-face {
   font-family: "Copperplate";
@@ -13,12 +15,7 @@
   src: url("../Advokat.ttf");
 }
 
-@font-face {
-  font-family: "OrthodoxHerbertarian";
-  src: url("../OrthodoxHerbertarian.ttf");
-}
-
-// Unicode ranges for the two subsets each Alegreya face is split into.
+// Unicode ranges for the two subsets each Alegreya Sans face is split into.
 $unicode-latin-ext:
   U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
   U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
@@ -60,6 +57,3 @@ $alegreya-sans-faces: (
 @each $style, $weight, $stem in $alegreya-sans-faces {
   @include subset-faces("Alegreya Sans", $style, $weight, $stem);
 }
-
-// Alegreya ships as one variable file per subset covering 500 and 700.
-@include subset-faces("Alegreya", normal, 500 700, "Alegreya-500-700");

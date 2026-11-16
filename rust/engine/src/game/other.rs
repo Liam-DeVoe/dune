@@ -79,7 +79,7 @@ impl Game {
     }
 
     pub fn revoke_plan_if_needed(&mut self, f: Faction) {
-        let plan = match self.battle.current_battle.clone() {
+        let plan = match self.current_battle().cloned() {
             Some(b) => b.plan_of_faction(self, f),
             None => None,
         };
@@ -89,10 +89,10 @@ impl Game {
     }
 
     pub fn revoke_plan(&mut self, plan: &BattlePlan) {
-        if self.battle.aggressor_plan.as_ref() == Some(plan) {
-            self.battle.aggressor_plan = None;
-        } else if self.battle.defender_plan.as_ref() == Some(plan) {
-            self.battle.defender_plan = None;
+        if self.aggressor_plan() == Some(plan) {
+            self.fight_mut().aggressor_plan = None;
+        } else if self.defender_plan() == Some(plan) {
+            self.fight_mut().defender_plan = None;
         }
     }
 

@@ -70,13 +70,13 @@ impl Voice {
     /// may also not use it after Prescience; an open one keeps Prescience waiting instead (see
     /// [`voice_pending`](Self::voice_pending)).
     pub fn may_use_voice_opt(g: &Game, p: Option<PlayerId>) -> bool {
-        if g.battle.current_voice.is_some() || g.battle.voice_declined {
+        if g.fight().is_some_and(|c| c.voice.is_some()) || g.fight().is_some_and(|c| c.voice_declined) {
             return false;
         }
 
         match Self::voice_right(g, p) {
             Some(VoiceRight::Open) => true,
-            Some(VoiceRight::SecretAlly) => g.battle.current_prescience.is_none(),
+            Some(VoiceRight::SecretAlly) => g.fight().map_or(true, |c| c.prescience.is_none()),
             None => false,
         }
     }
@@ -84,7 +84,7 @@ impl Voice {
     /// Whether `p` could use Voice in the current battle if nobody had used or declined it yet,
     /// and on what grounds. The same panics as [`may_use_voice_opt`](Self::may_use_voice_opt).
     pub fn voice_right(g: &Game, p: Option<PlayerId>) -> Option<VoiceRight> {
-        let battle = g.battle.current_battle.as_ref()?;
+        let battle = g.current_battle()?;
         let p = p.expect("player");
         if !battle.is_involved(g, p) {
             return None;
@@ -123,9 +123,9 @@ impl Voice {
     /// while this holds. A secret ally doesn't count, as waiting for them would reveal their
     /// Nexus card.
     pub fn voice_pending(g: &Game) -> bool {
-        g.battle.current_battle.is_some()
-            && g.battle.current_voice.is_none()
-            && !g.battle.voice_declined
+        g.current_battle().is_some()
+            && g.fight().map_or(true, |c| c.voice.is_none())
+            && !g.fight().is_some_and(|c| c.voice_declined)
             && g.player_indices().any(|q| Self::voice_right(g, Some(q)) == Some(VoiceRight::Open))
     }
 
@@ -193,13 +193,13 @@ impl EventRules for Voice {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
-        game.battle.current_voice = Some(VoiceUsed { submitter: by, must: self.must, type_: self.type_ });
+        game.fight_mut().voice = Some(VoiceUsed { submitter: by, must: self.must, type_: self.type_ });
 
         if !game.is_playing(Faction::BeneGesserit) {
             game.play_nexus_card(by.player(), parts!["use Voice"]);
         }
 
-        if let Some(battle) = game.battle.current_battle.clone() {
+        if let Some(battle) = game.current_battle().cloned() {
             let opponent = battle.opponent_of(game, by.player());
 
             if let Some(opponent) = opponent {

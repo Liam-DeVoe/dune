@@ -313,11 +313,15 @@ impl EventRules for Karma {
         self.revoke_battle_plans_if_needed(game);
 
         if self.prevented == Some(FactionAdvantage::BeneGesseritUsingVoice) {
-            game.battle.current_voice = None;
+            if let Some(c) = game.battle_mut().and_then(|b| b.current.as_mut()) {
+                c.voice = None;
+            }
         }
 
         if self.prevented == Some(FactionAdvantage::AtreidesBattlePlanPrescience) {
-            game.battle.current_prescience = None;
+            if let Some(c) = game.battle_mut().and_then(|b| b.current.as_mut()) {
+                c.prescience = None;
+            }
         }
 
         let me = by.player();

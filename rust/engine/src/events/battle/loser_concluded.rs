@@ -38,7 +38,7 @@ impl LoserConcluded {
     }
 
     pub fn can_assassinate(g: &Game, p: PlayerId) -> bool {
-        g.battle.loser_may_try_to_assassinate && LoserConcluded::target_of_assassination(g, p).is_some()
+        g.fight().is_some_and(|c| c.loser_may_try_to_assassinate) && LoserConcluded::target_of_assassination(g, p).is_some()
     }
 
     pub fn target_of_assassination(g: &Game, p: PlayerId) -> Option<Leader> {
@@ -49,7 +49,7 @@ impl LoserConcluded {
             .find(|l| {
                 l.as_leader().is_some()
                     && Some(*l) != g.winner_hero()
-                    && (Some(l.faction()) == g.battle.battle_winner || (g.battle.battle_winner == Some(Some(Faction::Tleilaxu)) && g.is_ghola(*l)))
+                    && (l.faction() == g.battle_winner() || (g.battle_winner() == Some(Faction::Tleilaxu) && g.is_ghola(*l)))
                     && !pl.revealed_traitors.contains(l)
             })
             .and_then(|l| l.as_leader())
@@ -68,13 +68,13 @@ impl LoserConcluded {
     }
 
     pub fn cards_loser_may_keep(g: &Game) -> Vec<TreacheryCard> {
-        g.battle.cards_to_be_discarded_by_loser_after_battle.clone()
+        g.fight().map_or_else(Vec::new, |c| c.cards_to_be_discarded_by_loser.clone())
     }
 
     pub fn is_applicable(g: &Game, p: Option<PlayerId>) -> bool {
         let Some(p) = p else { return false };
-        Some(g.player(p).faction) == g.battle.battle_loser
-            && (!g.battle.cards_to_be_discarded_by_loser_after_battle.is_empty() || g.battle.loser_may_try_to_assassinate)
+        g.player(p).faction == g.battle_loser()
+            && (!g.fight().map_or(true, |c| c.cards_to_be_discarded_by_loser.is_empty()) || g.fight().is_some_and(|c| c.loser_may_try_to_assassinate))
     }
 
     pub fn may_use_karma_to_force_kept_cards(game: &Game, player: PlayerId) -> bool {
@@ -84,14 +84,15 @@ impl LoserConcluded {
             && !pl.special_karma_power_used
             && pl.has_karma(game)
             && game.phase() == Phase::BattleConclusion
-            && game.battle.battle_loser == Some(pl.faction)
+            && game.battle_loser() == pl.faction
             && game.applicable(Rule::AdvancedKarama)
     }
 
     pub fn cards_that_may_be_kept_or_discarded(game: &Game) -> Vec<TreacheryCard> {
-        let (Some(current_battle), Some(battle_winner)) = (&game.battle.current_battle, game.battle.battle_winner) else {
+        let Some(current_battle) = game.current_battle() else {
             return Vec::new();
         };
+        let battle_winner = game.battle_winner();
 
         let mut result: Vec<TreacheryCard> = Vec::new();
         let winner_plan = current_battle.plan_of_faction(game, battle_winner).expect("plan of faction");
@@ -137,8 +138,8 @@ impl EventRules for LoserConcluded {
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
         if let Some(kept_card) = self.kept_card {
-            if game.battle.secret_ally_allows_keeping_cards_after_losing_battle {
-                game.battle.secret_ally_allows_keeping_cards_after_losing_battle = false;
+            if game.battle_leftovers.secret_ally_allows_keeping_cards_after_losing_battle {
+                game.battle_leftovers.secret_ally_allows_keeping_cards_after_losing_battle = false;
                 game.play_nexus_card(by.player(), vec!["keep ".into(), kept_card.into()]);
             } else {
                 game.log(vec![by.faction.into(), " keep ".into(), kept_card.into()]);
@@ -148,22 +149,22 @@ impl EventRules for LoserConcluded {
         // The lazy Where reads a list that Discard doesn't change.
         let kept_card = self.kept_card;
         let to_discard: Vec<TreacheryCard> =
-            game.battle.cards_to_be_discarded_by_loser_after_battle.iter().copied().filter(|c| Some(*c) != kept_card).collect();
+            game.fight_mut().cards_to_be_discarded_by_loser.iter().copied().filter(|c| Some(*c) != kept_card).collect();
         for c in to_discard {
             game.discard_card(Some(c), true)?;
         }
 
-        game.battle.cards_to_be_discarded_by_loser_after_battle.clear();
+        game.fight_mut().cards_to_be_discarded_by_loser.clear();
 
         let m = self.describe(game, by);
         game.log_event(m);
 
-        let winner = game.get_player(game.battle.battle_winner.flatten());
+        let winner = game.get_player(game.battle_winner());
 
         if self.karma_forced_kept_card_decision == LoserConcluded::KARMA_DISCARD
             || self.karma_forced_kept_card_decision == LoserConcluded::KARMA_KEEP
         {
-            game.battle.battle_winner_may_choose_to_discard = false;
+            game.fight_mut().winner_may_choose_to_discard = false;
             game.discard(by.player(), TreacheryCardType::Karma)?;
             game.stone(Milestone::Karma);
 
@@ -245,14 +246,14 @@ impl EventRules for LoserConcluded {
             }
         }
 
-        game.battle.loser_may_try_to_assassinate = false;
+        game.fight_mut().loser_may_try_to_assassinate = false;
 
-        if game.battle.battle_was_concluded_by_winner {
-            let condition1 = !game.is_playing(Faction::Tleilaxu) || game.battle.battle_winner == Some(Some(Faction::Tleilaxu));
+        if game.fight().is_some_and(|c| c.concluded_by_winner) {
+            let condition1 = !game.is_playing(Faction::Tleilaxu) || game.battle_winner() == Some(Faction::Tleilaxu);
             if condition1 {
                 Game::finish_battle(game)?;
             } else {
-                game.enter(Phase::RevealingFacedancer, true);
+                game.enter_battle(BattleStep::RevealingFacedancer);
             }
         }
         Ok(())

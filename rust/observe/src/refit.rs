@@ -63,7 +63,7 @@ pub struct End {
 impl End {
     /// Whether the game is at the phase (and battle) the old log ended at.
     pub fn reached(&self, game: &Game) -> bool {
-        self.phase.as_ref().is_none_or(|p| *p == game.phase().to_string()) && self.battle.is_none_or(|b| b == game.battle.current_battle.is_some())
+        self.phase.as_ref().is_none_or(|p| *p == game.phase().to_string()) && self.battle.is_none_or(|b| b == game.current_battle().is_some())
     }
 }
 

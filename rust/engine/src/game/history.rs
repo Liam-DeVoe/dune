@@ -151,7 +151,7 @@ impl Game {
     /// read the sequence without changing it, so this is where the passed-over players are
     /// recorded, once per event.
     fn settle_battle_sequence(&mut self) {
-        let choosing_battle = self.phase() == Phase::BattlePhase && self.battle.current_battle.is_none();
+        let choosing_battle = self.phase() == Phase::BattlePhase && self.current_battle().is_none();
         if choosing_battle || self.phase() == Phase::BattleReport {
             self.advance_battle_sequence();
         }

@@ -143,18 +143,18 @@ fn check_visibility(game: &Game, v: &ResolvedViewer, view: &GameView, seen: &mut
     // Battle plans: full for the plan's owner, once both are in, and under Atreides Karama;
     // partial only for the prescience user's side.
     if let Some(battle) = &view.battle {
-        let both = game.battle.aggressor_plan.is_some() && game.battle.defender_plan.is_some();
-        for (plan, faction_plan) in [(&battle.aggressor_plan, &game.battle.aggressor_plan), (&battle.defender_plan, &game.battle.defender_plan)] {
+        let both = game.aggressor_plan().is_some() && game.defender_plan().is_some();
+        for (plan, faction_plan) in [(&battle.aggressor_plan, &game.aggressor_plan().cloned()), (&battle.defender_plan, &game.defender_plan().cloned())] {
             let Some(plan) = plan else { continue };
             let actual = faction_plan.as_ref().expect("a shown plan exists");
             assert_eq!(plan.faction, name_or_absent(actual.initiator()), "{at}");
             if plan.full {
                 let own = my_faction == Some(actual.initiator());
-                assert!(own || both || game.battle.atreides_karma, "{at}: full plan shown");
+                assert!(own || both || game.fight().is_some_and(|c| c.atreides_karma), "{at}: full plan shown");
                 seen.add(if own && !both { "own plan" } else { "full plan" });
             } else {
                 let users: Vec<Faction> =
-                    game.battle.current_prescience.iter().filter_map(|p| p.initiator()).chain(game.turn.current_nexus_prescience.iter().filter_map(|n| n.initiator())).collect();
+                    game.fight().and_then(|c| c.prescience.as_ref()).into_iter().filter_map(|p| p.initiator()).chain(game.turn.current_nexus_prescience.iter().filter_map(|n| n.initiator())).collect();
                 let ally = me.map(|p| game.player(p).ally);
                 assert!(users.iter().any(|u| my_faction == Some(Some(*u)) || ally == Some(Some(*u))), "{at}: partial plan for a bystander");
                 seen.add("partial plan");

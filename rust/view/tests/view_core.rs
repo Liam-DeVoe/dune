@@ -259,7 +259,7 @@ fn hand_cards_name_the_actions_that_play_them() {
         // When KarmaPrescience is applicable (engine/src/game/applicable_events.rs).
         g.get_player(Some(Faction::Atreides)).is_some_and(|p| {
             g.turn.current_main_phase == MainPhase::Battle
-                && g.battle.current_battle.as_ref().is_some_and(|b| b.is_involved(g, p))
+                && g.current_battle().is_some_and(|b| b.is_involved(g, p))
                 && !g.karma_prevented(Faction::Atreides)
                 && !g.player(p).special_karma_power_used
                 && g.player(p).has_karma(g)
@@ -374,7 +374,7 @@ fn prompt_bidders() {
 #[test]
 fn flash() {
     let mut r = load("mc-concluded");
-    let winner = r.game.battle.battle_winner.unwrap();
+    let winner = r.game.battle_winner();
     let view = r.view(OBSERVER);
     assert_eq!(view.status.flash.len(), 1);
     // Labels come from the skin; the faction is what this test is about.
@@ -444,12 +444,12 @@ fn silent_bids_are_ready() {
 #[test]
 fn battle_plans_once_both_are_in() {
     let mut r = load("mc-concluded");
-    let battle = r.game.battle.current_battle.clone().unwrap();
+    let battle = r.game.current_battle().cloned().unwrap();
     for (f, view) in all_views(&mut r) {
         let g = &r.game;
         let b = view.battle.as_ref().expect("a battle");
         assert_eq!((b.aggressor.as_str(), b.defender.as_str()), (name_or_absent(battle.aggressor(g)).as_str(), name_or_absent(battle.defender(g)).as_str()));
-        for (shown, plan, opponent) in [(&b.aggressor_plan, &g.battle.aggressor_plan, battle.defender(g)), (&b.defender_plan, &g.battle.defender_plan, battle.aggressor(g))] {
+        for (shown, plan, opponent) in [(&b.aggressor_plan, &g.aggressor_plan().cloned(), battle.defender(g)), (&b.defender_plan, &g.defender_plan().cloned(), battle.aggressor(g))] {
             let shown = shown.as_ref().unwrap_or_else(|| panic!("{f:?} sees both plans"));
             let plan = plan.as_ref().unwrap();
             assert!(shown.full && shown.hero_shown && shown.weapon_shown && shown.defense_shown);
@@ -473,20 +473,20 @@ fn battle_plans_once_both_are_in() {
 fn battle_plans_before_both_are_in() {
     for fixture in ["prescience-seen", "karma-prescience", "nexus-prescience", "battle", "mc-voice", "mc-prescience"] {
         let mut r = load(fixture);
-        assert!(!(r.game.battle.aggressor_plan.is_some() && r.game.battle.defender_plan.is_some()), "{fixture}");
-        let users: Vec<Faction> = r.game.battle.current_prescience.iter().filter_map(|p| p.initiator()).chain(r.game.turn.current_nexus_prescience.iter().filter_map(|n| n.initiator())).collect();
+        assert!(!(r.game.aggressor_plan().is_some() && r.game.defender_plan().is_some()), "{fixture}");
+        let users: Vec<Faction> = r.game.fight().and_then(|c| c.prescience.as_ref()).into_iter().filter_map(|p| p.initiator()).chain(r.game.turn.current_nexus_prescience.iter().filter_map(|n| n.initiator())).collect();
         for (f, view) in all_views(&mut r) {
             let g = &r.game;
             let b = view.battle.as_ref().unwrap();
             let ally = f.map(|f| g.player(player(&r, f)).ally);
-            for (shown, plan) in [(&b.aggressor_plan, &g.battle.aggressor_plan), (&b.defender_plan, &g.battle.defender_plan)] {
+            for (shown, plan) in [(&b.aggressor_plan, &g.aggressor_plan().cloned()), (&b.defender_plan, &g.defender_plan().cloned())] {
                 let own = plan.as_ref().is_some_and(|p| p.initiator() == f);
                 match shown {
                     None => assert!(!own, "{fixture}: {f:?} sees their own plan"),
-                    Some(s) if s.full => assert!(own || g.battle.atreides_karma, "{fixture}: {f:?} sees a hidden plan"),
+                    Some(s) if s.full => assert!(own || g.fight().is_some_and(|c| c.atreides_karma), "{fixture}: {f:?} sees a hidden plan"),
                     Some(s) => {
                         assert!(users.iter().any(|u| f == Some(*u) || ally == Some(Some(*u))), "{fixture}: {f:?} sees prescience it didn't ask");
-                        let aspect = g.battle.current_prescience.as_ref().map(|p| p.aspect).or(g.turn.current_nexus_prescience.as_ref().map(|n| n.atreides_prescience_aspect)).unwrap();
+                        let aspect = g.fight().and_then(|c| c.prescience.as_ref()).map(|p| p.aspect).or(g.turn.current_nexus_prescience.as_ref().map(|n| n.atreides_prescience_aspect)).unwrap();
                         let shown_aspects = [
                             (PrescienceAspect::Dial, s.dial.is_some()),
                             (PrescienceAspect::Leader, s.hero_shown),

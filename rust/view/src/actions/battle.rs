@@ -73,7 +73,7 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
             e.traitor_to_replace = None;
             e.new_traitor = None;
             e.set_discarded_cards(&[]);
-            if game.battle.battle_winner == Some(faction) {
+            if game.battle_winner() == faction {
                 if BattleConcluded::may_capture_or_kill(game, Some(p)) {
                     let decisions = BattleConcluded::valid_capture_decisions(game);
                     if !decisions.contains(&CaptureDecision::Kill) {
@@ -236,7 +236,7 @@ pub fn options_and_validation(game: &Game, v: &ResolvedViewer, draft: &Event, d:
         Event::AuditCancelled(_) => ActionOptions::AuditCancelled(AuditCancelledOptions {
             cost: AuditCancelled::cost_of_cancelling(game),
             cards: AuditCancelled::get_number_of_cards_that_may_be_audited(game), draft: dj.clone() }),
-        Event::Audited(_) => ActionOptions::Audited(AuditedOptions { cards: game.battle.audited_cards.iter().map(|c| c.id()).collect(), draft: dj.clone() }),
+        Event::Audited(_) => ActionOptions::Audited(AuditedOptions { cards: game.fight().map_or_else(Vec::new, |c| c.audited_cards.iter().map(|c| c.id()).collect()), draft: dj.clone() }),
         Event::Battle(b) => {
             let (options, normalized) = battle_options(game, p, b, d);
             return Some((Some(ActionOptions::Battle(options)), validate(game, faction, event(normalized), d)));
@@ -325,7 +325,7 @@ fn format1(d: &dyn Describer, before: &str, x: P, after: &str) -> String {
 }
 
 fn loser(game: &Game) -> Option<PlayerId> {
-    game.get_player(game.battle.battle_loser.flatten())
+    game.get_player(game.battle_loser())
 }
 
 /// `Voice.ValidTypes(Game).OrderBy(t => Name(t))`. Without a describer (the default draft's
@@ -372,7 +372,7 @@ fn face_danced_options(game: &Game, p: PlayerId, draft: serde_json::Value) -> Fa
     FaceDancedOptions {
         maximum_forces: FaceDanced::maximum_number_of_forces(game, p),
         forces_in_reserve: pl.forces_in_reserve(),
-        territory: game.battle.current_battle.as_ref().and_then(|b| b.territory).map_or(-1, |t| t.id()),
+        territory: game.current_battle().and_then(|b| b.territory).map_or(-1, |t| t.id()),
         sources: FaceDanced::valid_source_locations(game, p).map(at).collect(),
         targets: FaceDanced::valid_target_locations(game).map(at).collect(),
         draft,
@@ -385,7 +385,7 @@ fn loser_concluded_options(game: &Game, p: PlayerId, draft: serde_json::Value) -
         cards_to_keep: LoserConcluded::cards_loser_may_keep(game).iter().map(|c| c.id()).collect(),
         assassination: LoserConcluded::can_assassinate(game, p).then(|| {
             let target = LoserConcluded::target_of_assassination(game, p);
-            let winner = game.get_player(game.battle.battle_winner.flatten());
+            let winner = game.get_player(game.battle_winner());
             let reward = match (winner, target) {
                 (Some(w), Some(t)) => LoserConcluded::assassination_reward(game, Some(w), t),
                 _ => None,
@@ -400,18 +400,18 @@ fn loser_concluded_options(game: &Game, p: PlayerId, draft: serde_json::Value) -
 
 /// The faction's own plan in the current battle.
 fn my_plan(game: &Game, faction: Faction) -> Option<BattlePlan> {
-    let agg = game.battle.aggressor_plan.as_ref()?;
+    let agg = game.aggressor_plan()?;
     if agg.initiator() == Some(faction) {
         Some(agg.clone())
     } else {
-        game.battle.defender_plan.clone()
+        game.defender_plan().cloned()
     }
 }
 
 fn battle_concluded_options(game: &Game, p: PlayerId, d: &dyn Describer, draft: serde_json::Value) -> BattleConcludedOptions {
     let pl = game.player(p);
     let faction = pl.faction;
-    let winner = game.battle.battle_winner == Some(faction);
+    let winner = game.battle_winner() == faction;
     let supplier = Battle::determine_force_supplier(game, p);
     let plan = my_plan(game, faction.expect("faction"));
     let in_hand = |c: Option<TreacheryCard>| c.filter(|c| winner && pl.treachery_cards.contains(c)).map(|c| c.id());
@@ -428,15 +428,15 @@ fn battle_concluded_options(game: &Game, p: PlayerId, d: &dyn Describer, draft: 
         discardable_weapon: if may_discard { in_hand(plan.as_ref().and_then(|b| b.weapon())) } else { None },
         discardable_defense: if may_discard { in_hand(plan.as_ref().and_then(|b| b.defense())) } else { None },
         capture: (winner && BattleConcluded::may_capture_or_kill(game, Some(p))).then(|| BattleConcludedCapture {
-            victim: game.battle.harkonnen_victim.map_or(-1, |l| l.id()),
+            victim: game.fight().and_then(|c| c.harkonnen_victim).map_or(-1, |l| l.id()),
             decisions: BattleConcluded::valid_capture_decisions(game).into_iter().map(|c| enum_choice(c, d)).collect(),
         }),
         tech_tokens: if winner { loser(game).map(|l| game.player(l).tech_tokens.iter().map(|t| enum_choice(*t, d)).collect()).unwrap_or_default() } else { vec![] },
-        decipherer_traitors: if winner { game.battle.traitors_decipherer_can_look_at.iter().map(|h| form_hero(*h, d)).collect() } else { vec![] },
-        traitors_to_replace: (winner && !game.battle.traitors_decipherer_can_look_at.is_empty() && game.battle.decipherer_may_replace_traitor)
+        decipherer_traitors: if winner { game.fight().map_or_else(Vec::new, |c| c.traitors_decipherer_can_look_at.iter().map(|h| form_hero(*h, d)).collect()) } else { vec![] },
+        traitors_to_replace: (winner && !game.fight().map_or(true, |c| c.traitors_decipherer_can_look_at.is_empty()) && game.battle_leftovers.decipherer_may_replace_traitor)
             .then(|| BattleConcluded::valid_traitors_to_replace(game, p).map(|h| form_hero(h, d)).collect()),
         add_extra_force_in: (winner && BattleConcluded::may_add_extra_force(game, p))
-            .then(|| game.battle.current_battle.as_ref().and_then(|b| b.territory).map_or(-1, |t| t.id())),
+            .then(|| game.current_battle().and_then(|b| b.territory).map_or(-1, |t| t.id())),
         draft,
     }
 }
@@ -515,7 +515,7 @@ fn battle_default(game: &Game, p: PlayerId, faction: Faction) -> Event {
     e.hero = None;
     e.set_weapon(None);
     e.set_defense(None);
-    if let Some(battle) = game.battle.current_battle.as_ref() {
+    if let Some(battle) = game.current_battle() {
         if battle.plan_of(game, Some(p)).is_none() {
             if let Some(prev) = battle.previous_plan_of(game, faction) {
                 if prev.validate(game).is_ok() {
@@ -550,7 +550,7 @@ fn battle_default(game: &Game, p: PlayerId, faction: Faction) -> Event {
 /// The adjustments the battle plan form makes to its inputs, in order.
 fn normalize_battle(game: &Game, p: PlayerId, e: &mut Battle) {
     let pl = game.player(p);
-    let territory = game.battle.current_battle.as_ref().and_then(|b| b.territory);
+    let territory = game.current_battle().and_then(|b| b.territory);
     // The spice the ally pays, between what the player can't pay and what the ally can.
     let cost = Battle::cost_of_forces(game, p, i32::from(e.forces), i32::from(e.special_forces), &mut 0);
     let ally_cap = ally_cap(game, p);
@@ -670,16 +670,16 @@ fn seen_note(game: &Game, faction: Faction, aspect: Option<PrescienceAspect>, pl
 fn battle_notes(game: &Game, p: PlayerId, opponent: PlayerId, d: &dyn Describer) -> Vec<BattleNote> {
     let pl = game.player(p);
     let faction = pl.faction;
-    let battle = game.battle.current_battle.as_ref().expect("a battle plan needs a battle");
+    let battle = game.current_battle().expect("a battle plan needs a battle");
     let ecaz_side = faction == Some(Faction::Ecaz) || pl.ally == Some(Faction::Ecaz);
     let mut notes = vec![];
-    if game.battle.current_ecaz_battle_contribution > 0 && !ecaz_side {
-        notes.push(BattleNote::EcazOpponent { amount: game.battle.current_ecaz_battle_contribution });
+    if game.fight().map_or(0, |c| c.ecaz_battle_contribution) > 0 && !ecaz_side {
+        notes.push(BattleNote::EcazOpponent { amount: game.fight().map_or(0, |c| c.ecaz_battle_contribution) });
     }
     if Battle::valid_battle_heroes(game, opponent).is_empty() {
         notes.push(BattleNote::OpponentNoLeaders);
     }
-    if let Some(voice) = game.battle.current_voice.as_ref() {
+    if let Some(voice) = game.fight().and_then(|c| c.voice.as_ref()) {
         notes.push(BattleNote::Voice {
             mine: faction == Some(Faction::BeneGesserit) || pl.ally == Some(Faction::BeneGesserit),
             must: voice.must,
@@ -687,12 +687,12 @@ fn battle_notes(game: &Game, p: PlayerId, opponent: PlayerId, d: &dyn Describer)
         });
     }
     let used_by_my_side = |initiator: Option<Faction>| initiator.is_some_and(|i| Some(i) == faction || Some(i) == pl.ally);
-    let prescience_by_me = used_by_my_side(game.battle.current_prescience.as_ref().and_then(|e| e.initiator()));
+    let prescience_by_me = used_by_my_side(game.fight().and_then(|c| c.prescience.as_ref()).and_then(|e| e.initiator()));
     let nexus_by_me = used_by_my_side(game.turn.current_nexus_prescience.as_ref().and_then(|e| e.initiator()));
     let atreides_side = faction == Some(Faction::Atreides) || pl.ally == Some(Faction::Atreides);
     if atreides_side || prescience_by_me || nexus_by_me {
-        let opponent_plan = if battle.aggressor(game) == faction { game.battle.defender_plan.clone() } else { game.battle.aggressor_plan.clone() };
-        if game.battle.atreides_karma && atreides_side {
+        let opponent_plan = if battle.aggressor(game) == faction { game.defender_plan().cloned() } else { game.aggressor_plan().cloned() };
+        if game.fight().is_some_and(|c| c.atreides_karma) && atreides_side {
             match &opponent_plan {
                 Some(plan) => {
                     for aspect in [PrescienceAspect::Dial, PrescienceAspect::Weapon, PrescienceAspect::Defense, PrescienceAspect::Leader] {
@@ -703,7 +703,7 @@ fn battle_notes(game: &Game, p: PlayerId, opponent: PlayerId, d: &dyn Describer)
             }
         } else {
             if prescience_by_me {
-                let aspect = game.battle.current_prescience.as_ref().unwrap().aspect;
+                let aspect = game.fight().and_then(|c| c.prescience.as_ref()).unwrap().aspect;
                 notes.push(match &opponent_plan {
                     Some(plan) => seen_note(game, faction.expect("faction"), aspect, plan, false, d),
                     None => BattleNote::Later { aspect: Some(d.describe(&aspect.into())) },
@@ -718,8 +718,8 @@ fn battle_notes(game: &Game, p: PlayerId, opponent: PlayerId, d: &dyn Describer)
             }
         }
     }
-    if game.battle.current_ecaz_battle_contribution > 0 && ecaz_side {
-        notes.push(BattleNote::EcazMine { amount: game.battle.current_ecaz_battle_contribution });
+    if game.fight().map_or(0, |c| c.ecaz_battle_contribution) > 0 && ecaz_side {
+        notes.push(BattleNote::EcazMine { amount: game.fight().map_or(0, |c| c.ecaz_battle_contribution) });
     }
     notes
 }
@@ -734,7 +734,7 @@ fn by_name(cards: Vec<Option<TreacheryCard>>, d: &dyn Describer) -> Vec<i32> {
 fn battle_options(game: &Game, p: PlayerId, draft: &Battle, d: &dyn Describer) -> (BattleOptions, Battle) {
     let pl = game.player(p);
     let faction = pl.faction;
-    let battle = game.battle.current_battle.as_ref().expect("a battle plan needs a battle");
+    let battle = game.current_battle().expect("a battle plan needs a battle");
     let territory = battle.territory;
     let opponent = battle.opponent_of(game, p).expect("a battle has an opponent");
     let supplier = Battle::determine_force_supplier(game, p);

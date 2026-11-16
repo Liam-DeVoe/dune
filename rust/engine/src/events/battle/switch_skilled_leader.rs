@@ -18,7 +18,7 @@ impl SwitchedSkilledLeader {
         if game.phase() != Phase::BattlePhase {
             return false;
         }
-        let Some(battle) = game.battle.current_battle.as_ref() else {
+        let Some(battle) = game.current_battle() else {
             return false;
         };
         battle.is_aggressor_or_defender(game, player)

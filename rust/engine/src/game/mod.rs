@@ -109,7 +109,7 @@ pub struct Game {
     pub bidding: BiddingState,
     pub revival: RevivalState,
     pub ship_move: ShipMoveState,
-    pub battle: BattleState,
+    pub battle_leftovers: BattleLeftovers,
     pub contemplate: ContemplateState,
 }
 
@@ -175,7 +175,7 @@ impl Game {
             bidding: BiddingState::new(),
             revival: RevivalState::new(),
             ship_move: ShipMoveState::new(),
-            battle: BattleState::new(),
+            battle_leftovers: BattleLeftovers::default(),
             contemplate: ContemplateState::new(),
         };
 

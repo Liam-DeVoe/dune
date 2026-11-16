@@ -849,7 +849,7 @@ fn yes_no_options(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer) ->
         EventType::AllianceByTerror => yes_no(m(express!("Enter an alliance with ", Faction::Moritani, "?")), true, draft),
         EventType::AllianceByAmbassador => yes_no(m(express!("Enter an alliance with ", Faction::Ecaz, "?")), true, draft),
         EventType::BattleClaimed => {
-            let territory = game.battle.battle_about_to_start.as_ref().and_then(|b| b.territory);
+            let territory = game.battle_about_to_start().and_then(|b| b.territory);
             let title = if game.player(p).faction == Some(Faction::Ecaz) {
                 express!("Do you wish to fight in ", territory, "? Otherwise, your ally will.")
             } else {

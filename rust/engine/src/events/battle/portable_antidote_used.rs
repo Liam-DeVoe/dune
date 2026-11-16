@@ -8,11 +8,11 @@ impl PortableAntidoteUsed {
     pub fn can_be_played(g: &Game, p: PlayerId) -> bool {
         let card = g.player(p).card(TreacheryCardType::PortableAntidote);
         if let Some(card) = card {
-            let plan = g.battle.current_battle.as_ref().and_then(|b| b.plan_of(g, Some(p)));
+            let plan = g.current_battle().and_then(|b| b.plan_of(g, Some(p)));
             if let Some(plan) = plan {
                 if plan.defense().is_none()
-                    && g.battle.current_portable_antidote_used.is_none()
-                    && Battle::valid_defenses(g, p, plan.weapon(), g.battle.current_battle.as_ref().and_then(|b| b.territory), false)
+                    && g.fight().map_or(true, |c| c.portable_antidote_used.is_none())
+                    && Battle::valid_defenses(g, p, plan.weapon(), g.current_battle().and_then(|b| b.territory), false)
                         .contains(&Some(card))
                 {
                     return true;
@@ -32,7 +32,7 @@ impl EventRules for PortableAntidoteUsed {
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
         let m = self.describe(game, by);
         game.log_event(m);
-        game.battle.current_portable_antidote_used = Some(AntidoteEquipped { submitter: by });
+        game.fight_mut().portable_antidote_used = Some(AntidoteEquipped { submitter: by });
         Ok(())
     }
 

@@ -122,7 +122,7 @@ impl Game {
         let has_finalized_battle_plan_waiting_to_be_resolved = (self.phase() == Phase::BattlePhase
             || self.phase() == Phase::MeltingRock
             || self.phase() == Phase::CallTraitorOrPass)
-            && self.battle.current_battle.as_ref().is_some_and(|cb| cb.plan_of(self, Some(player)).is_some());
+            && self.current_battle().is_some_and(|cb| cb.plan_of(self, Some(player)).is_some());
 
         if JuicePlayed::can_be_played_by(self, player) {
             result.push(EventType::JuicePlayed);
@@ -134,14 +134,14 @@ impl Game {
 
         if faction == Some(Faction::Ecaz)
             && self.phase() == Phase::CallTraitorOrPass
-            && self.battle.current_battle.is_some()
-            && self.battle.current_battle.as_ref().expect("current battle").is_aggressor_or_defender(self, player)
+            && self.current_battle().is_some()
+            && self.current_battle().expect("current battle").is_aggressor_or_defender(self, player)
             && !self.karma_prevented(faction)
             && !self.player(player).special_karma_power_used
             && self.player(player).has_karma(self)
             && self.applicable(Rule::AdvancedKarama)
         {
-            let plan_of_ecaz = self.battle.current_battle.as_ref().expect("current battle").plan_of_faction(self, Faction::Ecaz);
+            let plan_of_ecaz = self.current_battle().expect("current battle").plan_of_faction(self, Faction::Ecaz);
             if plan_of_ecaz.is_some_and(|p| p.defense().is_none() && p.weapon().is_none()) {
                 result.push(EventType::KarmaEcazDial);
             }
@@ -300,8 +300,8 @@ impl Game {
 
             if faction == Some(Faction::Atreides)
                 && self.turn.current_main_phase == MainPhase::Battle
-                && self.battle.current_battle.is_some()
-                && self.battle.current_battle.as_ref().expect("current battle").is_involved(self, player)
+                && self.current_battle().is_some()
+                && self.current_battle().expect("current battle").is_involved(self, player)
                 && !self.karma_prevented(faction)
                 && !p.special_karma_power_used
                 && p.has_karma(self)
@@ -328,8 +328,8 @@ impl Game {
                 && !Donated::valid_targets(self, player).next().is_none()
                 && (is_host || i32::from(p.resources) > 0)
                 && Donated::may_donate(self, player)
-                && self.battle.aggressor_plan.as_ref().is_none_or(|ap| faction != ap.initiator())
-                && self.battle.defender_plan.as_ref().is_none_or(|dp| faction != dp.initiator())
+                && self.aggressor_plan().is_none_or(|ap| faction != ap.initiator())
+                && self.defender_plan().is_none_or(|dp| faction != dp.initiator())
             {
                 result.push(EventType::Donated);
             }

@@ -550,7 +550,7 @@ impl Game {
     pub fn has_stronghold_advantage(&self, f: impl Into<Option<Faction>>, advantage: StrongholdAdvantage, battle_territory: Territory) -> bool {
         let f: Option<Faction> = f.into();
         let hms = self.board.map.hidden_mobile_stronghold().location();
-        if battle_territory == hms.territory() && self.owns_stronghold(f, hms) && self.battle.chosen_hms_advantage == Some(Some(advantage)) {
+        if battle_territory == hms.territory() && self.owns_stronghold(f, hms) && self.fight().is_some_and(|c| c.chosen_hms_advantage == Some(advantage)) {
             return true;
         }
 

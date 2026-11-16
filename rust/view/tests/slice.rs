@@ -283,18 +283,18 @@ fn views_leave_the_battle_sequence_alone() {
         seq.current_player(g).is_some_and(|p| Battle::battles_to_be_fought(g, p, false).is_empty())
     };
     let mut r = common::first_bot_state("a battle to choose, with a player before it who has none", |g| {
-        g.phase() == Phase::BattlePhase && g.battle.current_battle.is_none() && g.next_player_to_battle().is_some() && passes_someone(g)
+        g.phase() == Phase::BattlePhase && g.current_battle().is_none() && g.next_player_to_battle().is_some() && passes_someone(g)
     });
-    r.game.battle.battle_sequence = Some(PlayerSequence::starting_with_first_player(&r.game));
-    let before = format!("{:?}", r.game.battle.battle_sequence);
+    r.game.battle_mut().unwrap().order = PlayerSequence::starting_with_first_player(&r.game);
+    let before = format!("{:?}", r.game.battle().unwrap().order);
     let next = r.game.next_player_to_battle();
     let mut viewers: Vec<Viewer> = factions(&r).into_iter().map(|f| viewer_of(&r, f)).collect();
     viewers.push(OBSERVER);
     let views: Vec<GameView> = viewers.iter().map(|v| r.view(*v)).collect();
-    assert_eq!(format!("{:?}", r.game.battle.battle_sequence), before);
+    assert_eq!(format!("{:?}", r.game.battle().unwrap().order), before);
     let choosing = views.iter().filter(|v| action(v, "BattleInitiated").is_some()).count();
     assert_eq!(choosing, 1, "one player may initiate a battle");
     assert_eq!(r.game.advance_battle_sequence(), next);
-    assert_ne!(format!("{:?}", r.game.battle.battle_sequence), before);
+    assert_ne!(format!("{:?}", r.game.battle().unwrap().order), before);
     assert_eq!(r.game.next_player_to_battle(), next);
 }

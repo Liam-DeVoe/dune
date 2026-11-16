@@ -94,12 +94,12 @@ impl NexusPlayed {
         let secret_ally = NexusPlayed::can_use_secret_ally(g, p);
         let betrayal = NexusPlayed::can_use_betrayal(g, p);
 
-        let game_is_in_battle = g.phase() == Phase::BattlePhase && g.battle.current_battle.is_some();
+        let game_is_in_battle = g.phase() == Phase::BattlePhase && g.current_battle().is_some();
         let is_currently_formulating_battle_plan = game_is_in_battle
-            && g.battle.current_battle.as_ref().expect("current battle").is_aggressor_or_defender(g, p)
-            && (g.battle.defender_plan.is_none() || g.battle.aggressor_plan.is_none());
+            && g.current_battle().expect("current battle").is_aggressor_or_defender(g, p)
+            && (g.defender_plan().is_none() || g.aggressor_plan().is_none());
 
-        let battle = || g.battle.current_battle.as_ref().expect("current battle");
+        let battle = || g.current_battle().expect("current battle");
 
         match g.player(p).nexus {
             Some(Faction::Atreides) if betrayal => game_is_in_battle && battle().is_aggressor_or_defender_faction(g, Faction::Atreides),
@@ -144,8 +144,8 @@ impl NexusPlayed {
             Some(Faction::Choam) if secret_ally => {
                 (g.turn.current_main_phase == MainPhase::Collection && !NexusPlayed::valid_choam_cards(g, p).next().is_none())
                     || (g.phase() == Phase::BattleConclusion
-                        && g.battle.current_battle.is_some()
-                        && Some(g.player(p).faction) == g.battle.battle_winner)
+                        && g.current_battle().is_some()
+                        && g.player(p).faction == g.battle_winner())
             }
 
             Some(Faction::Richese) if betrayal && g.turn.current_main_phase == MainPhase::Bidding => {
@@ -244,11 +244,13 @@ impl NexusPlayed {
             Some(Faction::Atreides) => {
                 game.play_nexus_card(actor, vec![]);
                 game.prevent(by.faction.required("faction")?, FactionAdvantage::AtreidesBattlePlanPrescience, true);
-                game.battle.current_prescience = None;
+                if let Some(c) = game.battle_mut().and_then(|b| b.current.as_mut()) {
+                    c.prescience = None;
+                }
             }
 
             Some(Faction::Harkonnen) => {
-                let Some(current_battle) = game.battle.current_battle.clone() else { return Ok(()) };
+                let Some(current_battle) = game.current_battle().cloned() else { return Ok(()) };
                 if game.decks.traitor_deck.is_none() {
                     return Ok(());
                 }
@@ -266,7 +268,7 @@ impl NexusPlayed {
                     game.stone(Milestone::Shuffled);
                     game.turn.harkonnen_traitor_was_cancelled = true;
                     game.play_nexus_card(actor, elems!["cancel the ", Faction::Harkonnen, " traitor call"]);
-                    game.enter(Phase::CallTraitorOrPass, true);
+                    game.enter_battle(BattleStep::CallingTraitor);
                     game.handle_revealed_battle_plans()?;
                 }
             }
@@ -320,7 +322,9 @@ impl NexusPlayed {
             Some(Faction::BeneGesserit) => {
                 game.play_nexus_card(actor, vec![]);
                 game.prevent(by.faction.required("faction")?, FactionAdvantage::BeneGesseritUsingVoice, true);
-                game.battle.current_voice = None;
+                if let Some(c) = game.battle_mut().and_then(|b| b.current.as_mut()) {
+                    c.voice = None;
+                }
             }
 
             Some(Faction::Ixian) => {
@@ -641,7 +645,7 @@ impl NexusPlayed {
                     let me = game.player_mut(actor);
                     me.resources += 2;
                 } else if game.phase() == Phase::BattleConclusion {
-                    let Some(current_battle) = game.battle.current_battle.clone() else { return Ok(()) };
+                    let Some(current_battle) = game.current_battle().cloned() else { return Ok(()) };
 
                     let Some(auditee) = current_battle.opponent_of_faction(game, by.faction) else { return Ok(()) };
                     let Some(recent_battle_plan) = current_battle.plan_of(game, Some(auditee)) else { return Ok(()) };

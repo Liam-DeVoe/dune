@@ -1,7 +1,6 @@
 @use "../shared";
 
-// Popover box: a small floating ink card with a heading, paragraphs and
-// .kv rows of label/value pairs.
+// Popover box: a small floating ink card with a heading and paragraphs.
 .pop {
   background: var(--ink-0);
   border: 1px solid shared.$hairline-strong;
@@ -17,15 +16,6 @@
     font-weight: 400;
     font-size: 20px;
     color: var(--sand);
-  }
-
-  .kv {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid shared.$hairline;
   }
 
   p {
@@ -544,6 +534,130 @@
   justify-content: center;
   align-items: flex-start;
   padding: 12px 16px 12px 14px;
+}
+
+// Kwisatz Haderach popover: the leader popover with the +2 beside the faction
+// chip and the rules from the Atreides sheet under a hairline, one sentence a
+// line. As wide as the card popover, since the rules run about as long. The
+// art sits at the top, since the rules make the box tall.
+.pop-messiah {
+  width: 460px;
+
+  .pop-leader-art {
+    align-content: start;
+    padding-top: 16px;
+  }
+
+  .pop-leader-body {
+    justify-content: flex-start;
+    min-width: 0;
+    padding-bottom: 14px;
+  }
+
+  .plus {
+    font-family: var(--font-display);
+    font-size: 16px;
+    color: var(--sand);
+  }
+
+  .chip.faction {
+    cursor: default;
+  }
+}
+
+.pop-messiah-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+
+  .chip {
+    margin-top: 0;
+  }
+
+  .plus {
+    font-size: 18px;
+  }
+}
+
+.pop-messiah-rules {
+  align-self: stretch;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid shared.$hairline;
+
+  p {
+    margin: 0;
+    font-size: 14.5px;
+    line-height: 1.55;
+    color: var(--text-2);
+  }
+
+  p + p {
+    margin-top: 3px;
+  }
+
+  b {
+    font-weight: 500;
+    color: var(--parchment);
+  }
+
+  .chip {
+    margin-top: 0;
+  }
+
+  .kh {
+    width: 19px;
+    height: 19px;
+    margin: 0 1px;
+    vertical-align: -4px;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.7));
+  }
+
+  .forces {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    vertical-align: -3px;
+    white-space: nowrap;
+    font-family: var(--font-display);
+    font-size: 16px;
+    color: var(--sand);
+
+    img {
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  // A treachery card type, as the log draws a card: its art and name in a
+  // near-square chip.
+  .card-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 1px 7px 1px 1px;
+    border-radius: 4px;
+    background: rgba(18, 8, 0, 0.55);
+    border: 1px solid rgba(252, 249, 209, 0.12);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--parchment);
+    white-space: nowrap;
+    vertical-align: -1px;
+
+    img {
+      width: 14px;
+      height: 19px;
+      border-radius: 2px;
+      object-fit: cover;
+    }
+  }
+
+  .nowrap {
+    white-space: nowrap;
+  }
 }
 
 // Faction popover on the map (Support.FactionPopupHtml): who it is, its

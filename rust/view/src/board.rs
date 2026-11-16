@@ -247,6 +247,7 @@ pub fn bidding(game: &Game, v: &ResolvedViewer) -> Option<BiddingView> {
     Some(BiddingView { auction_type: name(game.bidding.current_auction_type), bids,
         panel: crate::actions::bidding::panel(game, v),
         auction_won: game.turn.recent_milestones.contains(&Milestone::AuctionWon),
+        next_card: crate::actions::bidding::next_card(game, v),
     })
 }
 

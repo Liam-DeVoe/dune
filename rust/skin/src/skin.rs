@@ -19,6 +19,7 @@ use treachery_engine::map::point::PointD;
 use treachery_engine::cards::resource_card::ResourceCard;
 use treachery_engine::map::territory::Territory;
 use treachery_engine::cards::treachery_card::TreacheryCard;
+use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
 
 /// The `Format` argument list: each argument converts with `ExpressionElement::from`.
 #[macro_export]
@@ -643,7 +644,48 @@ impl Skin {
         if let Some(l) = h.as_leader() {
             return self.get_leader_popup(l);
         }
-        get_image_hover_html(&self.get_image_url_hero(Some(h)))
+        self.get_messiah_popup()
+    }
+
+    /// The leader popover's frame for the Messiah, with its paragraph of the Atreides sheet
+    /// (`faction_manual.rs`) under the name, one sentence a line and its nouns drawn as icons.
+    /// `messiahPopup` in web/src/popups.ts is the same.
+    fn get_messiah_popup(&self) -> String {
+        let image = &self.messiah_url;
+        let name = self.describe_concept(Concept::Messiah);
+        let color = self.get_faction_color(Faction::Atreides);
+        let chip = self.faction_chip_html(Faction::Atreides, false, None);
+        let kh = format!("<img class='kh' src='{image}' alt='{name}' title='{name}'/>");
+        let card = |t: TreacheryCardType| {
+            let first = TreacheryCardManager::items().iter().copied().find(|c| c.type_() == t);
+            format!(
+                "<span class='card-chip'><img src='{}' alt=''/>{}</span>",
+                self.get_image_url_treachery_card(first),
+                self.describe_treachery_card_type(t)
+            )
+        };
+        let cheap_hero = card(TreacheryCardType::Mercenary);
+        let forces = format!(
+            "<span class='forces'>7<img src='{}' alt='forces' title='forces'/></span>",
+            self.get_faction_force_image_url(Faction::Atreides)
+        );
+        let rules = [
+            format!("After losing a total of at least {forces} in battle, you may use {kh}."),
+            format!("It cannot be used alone in battle but may add its <span class='plus'>+2</span> strength to any one leader or {cheap_hero} per turn."),
+            format!("If the leader or {cheap_hero} is killed, {kh} has no effect in the battle."),
+            format!("A leader accompanied by {kh} <b>cannot turn traitor</b>."),
+            format!(
+                "{kh} can only be killed if blown up by a <span class='nowrap'>{}/{}</span> explosion.",
+                card(TreacheryCardType::Laser),
+                card(TreacheryCardType::Shield)
+            ),
+            format!("If killed, {kh} must be revived like any other leader."),
+            format!("{kh} has no effect on {chip} leader revival."),
+        ];
+        let rules: String = rules.iter().map(|r| format!("<p>{r}</p>")).collect();
+        format!(
+            "<div class='pop-leader pop-messiah'><div class='pop-leader-art' style='--fc:{color}'><img src='{image}'/></div><div class='pop-leader-body'><h6>{name}</h6><div class='pop-messiah-head'>{chip}<span class='plus'>+2</span></div><div class='pop-messiah-rules'>{rules}</div></div></div>"
+        )
     }
 
     fn get_leader_popup(&self, l: Leader) -> String {

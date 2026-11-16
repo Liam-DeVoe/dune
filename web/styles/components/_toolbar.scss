@@ -1,7 +1,6 @@
 @use "../shared";
 
-// Toolbar: a strip of square icon buttons. .on is the active tool, .dot is
-// an unread marker, and .tip is the tooltip shown below a button.
+// Toolbar: a strip of square icon buttons. .on is the active tool.
 .toolbar {
   display: flex;
   gap: 2px;
@@ -32,17 +31,6 @@
       color: var(--gold);
     }
 
-    .dot {
-      position: absolute;
-      top: 5px;
-      right: 6px;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--spice);
-      border: 1.5px solid var(--ink-0);
-    }
-
     svg {
       width: 18px;
       height: 18px;
@@ -55,17 +43,3 @@
   }
 }
 
-.tip {
-  position: absolute;
-  top: 44px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--ink-0);
-  color: var(--parchment);
-  font-size: 13px;
-  padding: 4px 8px;
-  border-radius: var(--r-1);
-  white-space: nowrap;
-  border: 1px solid shared.$hairline-strong;
-  pointer-events: none;
-}

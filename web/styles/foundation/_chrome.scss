@@ -46,12 +46,6 @@
   z-index: 1;
 }
 
-.top-row {
-  height: 3.5rem;
-  display: flex;
-  align-items: center;
-}
-
 // Popovers and tooltips are display-only: large enough for card images and
 // never intercept the pointer.
 .popover {

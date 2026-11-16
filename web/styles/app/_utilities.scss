@@ -14,12 +14,6 @@ hr.hr-hairline {
   background-color: var(--ink-3);
 }
 
-// The ink 2 veil over the faction sigil watermark in the player panel. It is
-// translucent only so the sigil behind it stays visible.
-.veil-ink-2 {
-  background-color: rgba(42, 22, 7, 0.6);
-}
-
 // A player's name in a list (JoinedPlayersPanel), in the body face at 18px.
 // .you is the gold "this is me" state.
 .player-name {
@@ -34,11 +28,6 @@ hr.hr-hairline {
 // The divider between list rows.
 .hairline-top {
   border-top: 1px solid shared.$hairline;
-}
-
-// Plain parchment text.
-.text-parchment {
-  color: var(--parchment);
 }
 
 // A game action panel flagged IsUrgent gets the brighter hairline the

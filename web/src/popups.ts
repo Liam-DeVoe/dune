@@ -86,9 +86,30 @@ export function leaderPopup(skin: Skin, id: number, skill: LeaderSkill | null): 
   return `<div class='pop-leader'><div class='pop-leader-art' style='--fc:${skin.data.FactionColor[faction] ?? ""}'><img src='${image}'/></div><div class='pop-leader-body'><h6>${skin.get("PersonName_STR", id)}</h6>${factionChipHtml(skin, faction)}</div></div>`;
 }
 
-// Skin.GetPopup(IHero) for the Messiah.
+// Skin.GetPopup(IHero) for the Messiah: the leader popover's frame, with the Messiah paragraph
+// of the Atreides sheet (rust/skin/src/faction_manual.rs) under the name, one sentence a line.
+// Its nouns are drawn as icons, which take no article. Skin.GetMessiahPopup is the same.
 export function messiahPopup(skin: Skin): string {
-  return imageHover(skin.str("Messiah_URL"));
+  const image = skin.str("Messiah_URL");
+  const name = skin.concept("Messiah");
+  const color = skin.data.FactionColor.Atreides ?? "";
+  const kh = `<img class='kh' src='${image}' alt='${name}' title='${name}'/>`;
+  // A treachery card type as a chip: the art of its first card and the type's name, as the
+  // sheet names it.
+  const card = (type: TreacheryCardType) =>
+    `<span class='card-chip'><img src='${skin.get("TreacheryCardImage_URL", skin.cardSkinId(skin.cardOfType(type)))}' alt=''/>${skin.enumValue("TreacheryCardType", type)}</span>`;
+  const cheapHero = card("Mercenary");
+  const forces = `<span class='forces'>7<img src='${skin.get("FactionForceImage_URL", "Atreides")}' alt='forces' title='forces'/></span>`;
+  const rules = [
+    `After losing a total of at least ${forces} in battle, you may use ${kh}.`,
+    `It cannot be used alone in battle but may add its <span class='plus'>+2</span> strength to any one leader or ${cheapHero} per turn.`,
+    `If the leader or ${cheapHero} is killed, ${kh} has no effect in the battle.`,
+    `A leader accompanied by ${kh} <b>cannot turn traitor</b>.`,
+    `${kh} can only be killed if blown up by a <span class='nowrap'>${card("Laser")}/${card("Shield")}</span> explosion.`,
+    `If killed, ${kh} must be revived like any other leader.`,
+    `${kh} has no effect on ${factionChipHtml(skin, "Atreides")} leader revival.`,
+  ];
+  return `<div class='pop-leader pop-messiah'><div class='pop-leader-art' style='--fc:${color}'><img src='${image}'/></div><div class='pop-leader-body'><h6>${name}</h6><div class='pop-messiah-head'>${factionChipHtml(skin, "Atreides")}<span class='plus'>+2</span></div><div class='pop-messiah-rules'>${rules.map((r) => `<p>${r}</p>`).join("")}</div></div></div>`;
 }
 
 // Skin.GetPopup(LeaderSkill).

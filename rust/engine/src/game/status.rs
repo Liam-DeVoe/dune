@@ -122,7 +122,7 @@ impl GameStatus {
 
             Phase::Discarding => {
                 let g: &Game = game;
-                Self::factions_status(g, "Please decide which card to discard.", "Waiting factions to discard...", &g.turn.factions_that_must_discard, None)
+                Self::factions_status(g, "Please decide which card to discard.", "Waiting for factions to discard...", &g.turn.factions_that_must_discard, None)
             }
 
             /* Setup */
@@ -253,7 +253,7 @@ impl GameStatus {
 
             Phase::VoteAllianceA | Phase::VoteAllianceB => {
                 let players = Self::players_that_have_not_acted_or_passed(game);
-                Self::players_status("Please vote Yes or No to a Nexus.", "Factions are voting on about a Nexus...", players, None)
+                Self::players_status("Please vote Yes or No to a Nexus.", "Factions are voting on a Nexus...", players, None)
             }
 
             Phase::AllianceA | Phase::AllianceB => {
@@ -277,7 +277,7 @@ impl GameStatus {
 
             /* Bidding */
             Phase::BlackMarketAnnouncement => {
-                let a = express!("You may now select a card to sell on the Harkonnen Markt, or pass.");
+                let a = express!("You may now select a card to sell on the Black Market, or pass.");
                 let w = express!(Faction::Richese, " are thinking about selling one of their cards on the Black Market...");
                 Self::faction_status(game, a, w, Some(Faction::Richese), None)
             }
@@ -551,7 +551,7 @@ impl GameStatus {
             }
 
             Phase::Auditing => {
-                let a = express!("Please conclude the audit when done inspecting your opponents cards.");
+                let a = express!("Please conclude the audit when done inspecting your opponent's cards.");
                 let w = express!(Faction::Choam, " are performing their audit...");
                 Self::faction_status(game, a, w, Some(Faction::Choam), None)
             }
@@ -570,7 +570,7 @@ impl GameStatus {
             }
 
             Phase::Facedancing => {
-                let a = express!("You may now replace opponent forces by your own.");
+                let a = express!("You may now replace opponent forces with your own.");
                 let w = express!("Waiting for ", Faction::Tleilaxu, " to replace forces...");
                 Self::faction_status(game, a, w, Some(Faction::Tleilaxu), None)
             }

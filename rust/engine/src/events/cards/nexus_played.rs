@@ -452,9 +452,8 @@ impl NexusPlayed {
                 for p in game.turn.stored_recently_paid.clone() {
                     let from: ExpressionElement =
                         if p.to == Faction::None { "the Bank".into() } else { p.to.into() };
-                    // C# parity: logs the Player object itself, which prints as its type name,
-                    // with no space before "get".
-                    self.log_objects(game, elems![actor, "get ", p.amount, " from ", from]);
+                    let actor_faction = game.player(actor).faction;
+                    self.log_objects(game, elems![actor_faction, " get ", p.amount, " from ", from]);
                     if p.to != Faction::None {
                         let get_from = self.get_player(game, Some(p.to));
                         if let Some(get_from) = get_from {
@@ -638,7 +637,7 @@ impl NexusPlayed {
                 game.turn.current_bene_gesserit_cunning = Some(self.clone());
                 game.play_nexus_card(
                     actor,
-                    elems!["be able to flip advisor to fighters during ", MainPhase::ShipmentAndMove],
+                    elems!["be able to flip advisors to fighters during ", MainPhase::ShipmentAndMove],
                 );
             }
 

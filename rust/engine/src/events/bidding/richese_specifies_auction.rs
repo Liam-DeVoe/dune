@@ -91,8 +91,7 @@ impl RicheseSpecifiesAuction {
                 }
             }
 
-            // C# parity: the typo "put select a" is in the C# log text.
-            self.log_objects(game, vec![self.initiator().into(), " put select a ".into(), self.auction_type.into(), " auction".into(), direction_text.into()]);
+            self.log_objects(game, vec![self.initiator().into(), " select a ".into(), self.auction_type.into(), " auction".into(), direction_text.into()]);
 
             game.start_bid_sequence_and_auction_type(self.auction_type, self.player_opt(), self.direction);
             game.start_bidding_round();

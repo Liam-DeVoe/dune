@@ -65,12 +65,11 @@ impl LoserConcluded {
         if karma_used && !LoserConcluded::may_use_karma_to_force_kept_cards(game, self.player()) {
             return Some(express!("You can't use ", TreacheryCardType::Karma, " to force keeping or discarding cards"));
         }
-        // C# parity: KeptCard is a stray extra argument in the next two messages.
         if !(self.karma_forced_kept_card_decision == LoserConcluded::KARMA_NO || karma_used) {
-            return Some(express!("Invalid decision", self.kept_card()));
+            return Some(express!("Invalid decision"));
         }
         if !karma_used && !self.forced_kept_or_discarded_cards().is_empty() {
-            return Some(express!("You need to decide to either force keeping or discarding cards", self.kept_card()));
+            return Some(express!("You need to decide to either force keeping or discarding cards"));
         }
 
         None

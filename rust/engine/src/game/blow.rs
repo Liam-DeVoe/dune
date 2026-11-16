@@ -187,8 +187,7 @@ impl Game {
         if self.applicable(Rule::IncreasedResourceFlow) {
             let count_a = self.decks.resource_card_discard_pile_a.as_ref().expect("resource card discard pile a").items.len() as i32;
             let count_b = self.decks.resource_card_discard_pile_b.as_ref().expect("resource card discard pile b").items.len() as i32;
-            // C# parity: "A en B" typo.
-            self.log(elems![count_a + count_b, " cards were shuffled from ", Concept::Resource, " discard piles A en B into a new deck."]);
+            self.log(elems![count_a + count_b, " cards were shuffled from ", Concept::Resource, " discard piles A and B into a new deck."]);
         } else {
             let count_a = self.decks.resource_card_discard_pile_a.as_ref().expect("resource card discard pile a").items.len() as i32;
             let msg = express!(count_a, " cards were shuffled from the ", Concept::Resource, " discard pile into a new deck")
@@ -199,8 +198,7 @@ impl Game {
         if self.decks.resource_card_discard_pile_a.as_ref().expect("resource card discard pile a").items.iter().any(|c| c.is_discovery())
             || self.decks.resource_card_discard_pile_b.as_ref().expect("resource card discard pile b").items.iter().any(|c| c.is_discovery())
         {
-            // C# parity: "Discovery were removed" grammar.
-            self.log(elems!["Discovery were removed from the game"]);
+            self.log(elems!["Discovery cards were removed from the game"]);
         }
 
         // foreach over a lazy Where: the predicate runs on each card just before its Add, so a
@@ -566,8 +564,16 @@ impl Game {
             8 => "eighth".to_string(),
             9 => "ninth".to_string(),
             10 => "tenth".to_string(),
-            // C# parity: "11th", "21th".
-            _ => format!("{}th", count),
+            _ => {
+                let suffix = match (count % 10, count % 100) {
+                    (_, 11..=13) => "th",
+                    (1, _) => "st",
+                    (2, _) => "nd",
+                    (3, _) => "rd",
+                    _ => "th",
+                };
+                format!("{count}{suffix}")
+            }
         }
     }
 

@@ -66,7 +66,7 @@ impl FaceDanced {
         let amount_of_placed_forces =
             self.target_force_locations(game).values().map(|b| b.total_amount_of_forces()).sum::<i32>();
         if amount_of_placed_forces > maximum_forces {
-            return Some(express!("Place ", maximum_forces, " or less forces"));
+            return Some(express!("Place ", maximum_forces, " or fewer forces"));
         }
 
         let amount_of_forces = self
@@ -281,7 +281,7 @@ impl FaceDanced {
             self.initiator(),
             " replace ",
             <Self as PlacementEventMethods>::total_amount_of_forces_added_to_location(self, game),
-            " forces by their own"
+            " forces with their own"
         )
     }
 }

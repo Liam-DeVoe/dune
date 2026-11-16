@@ -43,13 +43,12 @@ impl FlightUsed {
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
-        // C# parity: the doubled spaces are in the C# text.
         express!(
             self.initiator(),
             " use an ",
             TreacheryCardType::Flight,
             " to ",
-            if self.extra_move() { " move an additional group of forces " } else { " gain movement speed" }
+            if self.extra_move() { "move an additional group of forces" } else { "gain movement speed" }
         )
     }
 

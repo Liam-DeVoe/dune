@@ -63,9 +63,12 @@ fn agreed_division_of_nothing_reads_tbd_only_for_the_other_faction() {
 fn natural_numbers() {
     assert_eq!(Game::natural(1), "first");
     assert_eq!(Game::natural(10), "tenth");
-    // C# parity: no special case for 11-13 or 21.
     assert_eq!(Game::natural(11), "11th");
-    assert_eq!(Game::natural(21), "21th");
+    assert_eq!(Game::natural(13), "13th");
+    assert_eq!(Game::natural(21), "21st");
+    assert_eq!(Game::natural(22), "22nd");
+    assert_eq!(Game::natural(23), "23rd");
+    assert_eq!(Game::natural(111), "111th");
 }
 
 #[test]

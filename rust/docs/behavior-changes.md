@@ -222,3 +222,36 @@ Not part of the review. Each has an escapes.md entry with the details.
 - Now: each of these messages holds a copy of the list taken when it is logged. `LiveList` is gone, and so are the renderers that took the game for it (`Skin::describe_in`, `format_in`, `join_in`, `message_to_string_in`, `message_part_to_string_in`, and `describe_in` on the view's `Describer`).
 - Why: a message that reads the game when it's rendered can't be plain data, which wave 3b needs.
 - Test: `engine/tests/logged_lists.rs` logs each of the three messages, changes the list, and checks that the message still holds the old contents.
+
+## Typos and grammar in log, status, form and skin texts
+
+- Area: log and message text (rewrite-plan.md 2c). Most were copied from C# on purpose and marked `// C# parity`.
+- Log:
+  - "N cards were shuffled from Spice discard piles A en B into a new deck." → "... A and B ..."
+  - "Discovery were removed from the game" → "Discovery cards were removed from the game"
+  - "Shai-Hulud appears a 21th time" → "21st" (also "22nd", "23rd"; 11 to 13 keep "th")
+  - "X play  a Karama card" → "X play a Karama card"
+  - "X use an Ornithopter to  move an additional group of forces " and "... to  gain movement speed" → one space, no trailing space
+  - "X use the Flight discovert token to gain movement speed" → "discovery token"
+  - "Richese put select a Silent auction" → "Richese select a Silent auction"
+  - The Guild Nexus card's refund: "Treachery.Shared.Playerget 3 from the Bank" → "Guild get 3 from the Bank" (the faction that played the card)
+  - A won card: "X get card 1 for 7 Spice(7 Spice)  → Y get 7 Spice" → "X get card 1 for 7 Spice (7 Spice) → Y get 7 Spice", and a Black Market sale "X get card  for 2 Spice" → "X get card for 2 Spice"
+  - Deals: "Share prescience of the top Spicecard" → "top Spice card"
+  - Suk Graduate: "Suk Graduate rescues  and 3 to reserves" → "Suk Graduate rescues 3 to reserves" (the " and " now only joins forces kept on site and forces sent to reserves)
+  - "X force Y to reveal amount of weapons, defenses and Spice" → "reveal the amount of"
+  - Face dancers: "X replace 3 forces by their own" → "with their own"
+  - Bene Gesserit Nexus card: "be able to flip advisor to fighters" → "advisors to fighters"
+- Status:
+  - "You may now select a card to sell on the Harkonnen Markt, or pass." → "on the Black Market" (it's Richese's)
+  - "Waiting factions to discard..." → "Waiting for factions to discard..."
+  - "Factions are voting on about a Nexus..." → "Factions are voting on a Nexus..."
+  - "Please conclude the audit when done inspecting your opponents cards." → "opponent's cards"
+  - "You may now replace opponent forces by your own." → "with your own"
+- Forms: the Harkonnen Nexus questions "then shufle one of your traitors" → "shuffle", and the Bene Gesserit one "flip advisor to fighters" → "advisors".
+- Refusals:
+  - "Place 3 or less forces" → "or fewer forces"
+  - "Invalid decision" and "You need to decide to either force keeping or discarding cards" no longer end with the kept card's name glued on
+  - "Select the source of in total 3 forces" → "Select the sources of 3 forces in total"
+- Skin: "You are not ad administrator" → "an administrator"; the house rule "Alliances are  broken at the start of each alliance phase" → one space; card texts "cause both factions to loose the battle" → "causing both factions to lose the battle" (Lasgun), "Instead of normal storm moved" → "normal storm movement" (Weather Control), "The revival limits is increased to 7" → "limit is" (Recruits); the faction sheets "as long has" → "as long as", "If that factions wins" → "faction wins", "your revive at half price" → "you revive", "you split the it" → "split it", "one of your leader (selected randomly)" → "leaders". The card texts are also fixed in the client's copy (web/public/skin/default.json). Skin JSON keys don't change, so custom skins load as before.
+- Left alone: "X is a Y facedancer!", "CHOAM The Economics Token flips to ...", and the missing space between a number and a force name in plain text ("3forces"), which the client draws as separate tokens.
+- Tests: `skin/tests/log_text.rs` (the Ornithopter, discovery token, Karama, deal and ordinal texts); `natural_numbers` in engine/tests/pkg_d_storm_blow.rs (ordinals); the snapshots in `skin/tests/golden`, `view/tests/golden/log_lines*` and web/public/static/lobby.json were rewritten with their update modes, keeping each unchanged line as it was, and each changed line was read. The new log lines' `dom` texts were filled with `npm run check:rich-text -- --fill` and read.

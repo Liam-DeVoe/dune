@@ -37,8 +37,7 @@ impl FlightDiscoveryUsed {
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
-        // C# parity: "discovert" is the C# text.
-        express!(self.initiator(), " use the ", DiscoveryToken::Flight, " discovert token to gain movement speed")
+        express!(self.initiator(), " use the ", DiscoveryToken::Flight, " discovery token to gain movement speed")
     }
 
 }

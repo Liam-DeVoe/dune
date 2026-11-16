@@ -655,7 +655,7 @@ pub fn build() -> Skin {
         (57, "Harass and Withdraw".to_string()),
     ]);
     s.treachery_card_description_str = SkinDictionary::from_vec(vec![
-        (0, "Weapon - Special - Play as part of your Battle Plan. Automatically kills your opponent's leader. Causes an explosion when a Shield is used in the same battle, killing both leaders and all forces in the territory, cause both factions to loose the battle.".to_string()),
+        (0, "Weapon - Special - Play as part of your Battle Plan. Automatically kills your opponent's leader. Causes an explosion when a Shield is used in the same battle, killing both leaders and all forces in the territory, causing both factions to lose the battle.".to_string()),
         (1, "Weapon - Projectile - Play as part of your Battle Plan. Kills opponent's leader before battle is resolved. Opponent may protect leader with a Shield. You may keep this card if you win the battle.".to_string()),
         (2, "Weapon - Projectile - Play as part of your Battle Plan. Kills opponent's leader before battle is resolved. Opponent may protect leader with a Shield. You may keep this card if you win the battle.".to_string()),
         (3, "Weapon - Projectile - Play as part of your Battle Plan. Kills opponent's leader before battle is resolved. Opponent may protect leader with a Shield. You may keep this card if you win the battle.".to_string()),
@@ -674,7 +674,7 @@ pub fn build() -> Skin {
         (22, "Play during your turn at the Movement phase to perform an additional move.".to_string()),
         (23, "Allows you to prevent use of a Faction Advantage. Allows you to bid any amount of spice on a card or immediately win a card on bid. Allows you to ship at half price. In the advanced game, allows use of your Special Karama Power once during the game. Discard after use.".to_string()),
         (25, "Publicly ask one player a yes or no question about the game. That question must be answered truthfully.".to_string()),
-        (27, "Can be played after turn 1 just before the storm moves. Instead of normal storm moved, you can move the storm 0 to 10 sectors.".to_string()),
+        (27, "Can be played after turn 1 just before the storm moves. Instead of normal storm movement, you can move the storm 0 to 10 sectors.".to_string()),
         (28, "Worthless Card - Play as part of your Battle Plan, in place of a weapon, defense, or both. This card has no value in play, and you can discard it only by playing it in your Battle plan.".to_string()),
         (29, "Worthless Card - Play as part of your Battle Plan, in place of a weapon, defense, or both. This card has no value in play, and you can discard it only by playing it in your Battle plan.".to_string()),
         (30, "Worthless Card - Play as part of your Battle Plan, in place of a weapon, defense, or both. This card has no value in play, and you can discard it only by playing it in your Battle plan.".to_string()),
@@ -702,7 +702,7 @@ pub fn build() -> Skin {
         (52, "Residual Poison - Play against your opponent in battle before making battle plans. Kills one of their available leaders at random. No spice is collected for it. Discard after use.".to_string()),
         (53, "Weapon - Special - Play as part of your Battle Plan. You choose after plans are revealed to either kill both leaders or reduce the strength of both leaders to 0. The player with the highest number of undialed forces wins the battle. Dialed forces are lost normally. Discard after use.".to_string()),
         (54, "Allows you to prevent use of a Faction Advantage. Allows you to bid any amount of spice on a card or immediately win a card on bid. Allows you to ship at half price. In the advanced game, allows use of your Special Karama Power once during the game. Discard after use.".to_string()),
-        (55, "Play during Revival. All factions double their Free Revival rates. The revival limits is increased to 7. Discard after use.".to_string()),
+        (55, "Play during Revival. All factions double their Free Revival rates. The revival limit is increased to 7. Discard after use.".to_string()),
         (56, "Play as part of your battle plan in place of a weapon or defense if you have at least 3 forces in reserves. Add 2 to your dialed number, then send 3 forces from reserves to the Tanks. Discard after use.".to_string()),
         (57, "Play as part of your battle plan in place of a weapon or defense when not on your own Home World. Your undialed forces return to your reserves. Your leader may be killed as normal. If your opponent calls traitor, this effect is cancelled. Discard after use.".to_string()),
     ]);

@@ -350,13 +350,12 @@ impl Karma {
     }
 
     pub fn try_get_message(&self, _game: &Game) -> GameResult<Message> {
-        // C# parity: the doubled space in "play  a" comes from the empty ExpressIf part.
         let card = self.card().required("card")?;
         Ok(express!(
             self.initiator(),
             " play ",
             express_part_if!(card.type_() != TreacheryCardType::Karma; card, " as "),
-            " a ",
+            "a ",
             TreacheryCardType::Karma,
             " card"
         ))

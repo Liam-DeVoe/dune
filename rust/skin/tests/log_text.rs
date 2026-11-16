@@ -1,11 +1,14 @@
 //! Log and event texts that were fixed on purpose after the port (behavior-changes.md:
-//! "Missing spaces", "Setting an automation rule", "Other small text quirks").
+//! "Missing spaces", "Setting an automation rule", "Other small text quirks", "Typos and grammar").
 
 use std::rc::Rc;
 
-use treachery_engine::enumerations::{AutomationRuleType, Faction, FactionAdvantage, ItemAction, TreacheryCardType};
+use treachery_engine::enumerations::{AutomationRuleType, DealType, Faction, FactionAdvantage, ItemAction, TreacheryCardType};
+use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
+use treachery_engine::game::Deal;
+use treachery_engine::messages::expression::ExpressionElement;
 use treachery_engine::events::game_event::GameEventMethods;
-use treachery_engine::events::{AutomationConfigured, GameEvent, KarmaChoamDiscard, Shipment, Voice};
+use treachery_engine::events::{AutomationConfigured, FlightDiscoveryUsed, FlightUsed, GameEvent, Karma, KarmaChoamDiscard, Shipment, Voice};
 use treachery_engine::game::Game;
 use treachery_engine::json;
 use treachery_engine::messages::message::{Message, MessagePart};
@@ -95,4 +98,36 @@ fn nexus_card_plays_name_the_card_type_once() {
     Rc::new(voice).execute_concrete_event(&mut g).unwrap();
     let log = log(&g);
     assert!(log.iter().any(|m| m == "Atreides play Harkonnen Nexus Secret Ally to use Voice"), "{log:?}");
+}
+
+#[test]
+fn ornithopter_and_discovery_texts_have_single_spaces() {
+    let g = game();
+    let flight = |three: bool| {
+        let mut e = FlightUsed::default();
+        e.move_three_territories = three;
+        e.initialize(&g, Faction::Atreides);
+        text(&e.get_message(&g))
+    };
+    assert!(flight(false).ends_with(" to move an additional group of forces"), "{}", flight(false));
+    assert!(flight(true).ends_with(" to gain movement speed") && !flight(true).contains("  "), "{}", flight(true));
+    let e = FlightDiscoveryUsed::default();
+    e.initialize(&g, Faction::Atreides);
+    let t = text(&e.get_message(&g));
+    assert!(t.ends_with(" discovery token to gain movement speed"), "{t}");
+}
+
+#[test]
+fn a_karama_card_play_has_single_spaces() {
+    let g = game();
+    let mut e = Karma::default();
+    e.card_id = TreacheryCardManager::items().iter().find(|c| c.type_() == TreacheryCardType::Karma).unwrap().id();
+    e.initialize(&g, Faction::Atreides);
+    assert_eq!(text(&e.get_message(&g)), "Atreides play a Karama card");
+}
+
+#[test]
+fn the_spice_card_prescience_deal_has_a_space() {
+    let t = text(&Deal::express(DealType::ShareResourceDeckPrescience, ExpressionElement::Null));
+    assert_eq!(t, "Share prescience of the top Spice card");
 }

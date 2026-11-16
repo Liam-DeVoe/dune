@@ -182,7 +182,7 @@ impl Deal {
             DealType::None => express!("Custom deal"),
             DealType::DontShipOrMoveTo => express!("Don't ship or move to ", p),
             DealType::ShareBiddingPrescience => express!("Share treachery card prescience"),
-            DealType::ShareResourceDeckPrescience => express!("Share prescience of the top ", Concept::Resource, "card"),
+            DealType::ShareResourceDeckPrescience => express!("Share prescience of the top ", Concept::Resource, " card"),
             DealType::ShareStormPrescience => express!("Share storm prescience"),
             DealType::ForfeitBattle => express!("Forfeit this battle (no weapons and defenses, lowest leader, zero dial)"),
             DealType::TellDiscardedTraitors => express!("Tell which traitors were discarded"),

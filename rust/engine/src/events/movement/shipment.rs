@@ -374,7 +374,7 @@ impl Shipment {
             return Some(express!("Please specify where to ship your ", game.player(p()).force(), " from"));
         }
         if number_of_forces_selected > 0 && number_of_forces_selected != self.forces_added_to_location(game) {
-            return Some(express!("Select the source of in total ", self.forces_added_to_location(game), game.player(p()).force()));
+            return Some(express!("Select the sources of ", self.forces_added_to_location(game), game.player(p()).force(), " in total"));
         }
 
         let number_of_special_forces_selected =

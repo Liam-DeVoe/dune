@@ -1007,7 +1007,7 @@ impl Game {
                 express_part_if!(forces_to_save_in_territory > 0; forces_to_save_in_territory, force),
                 express_part_if!(special_forces_to_save_in_territory > 0; special_forces_to_save_in_territory, special_force),
                 express_part_if!(forces_to_save_in_territory > 0 || special_forces_to_save_in_territory > 0; " on site"),
-                express_part_if!(forces_to_save_to_reserves > 0 || special_forces_to_save_to_reserves > 0; " and "),
+                express_part_if!((forces_to_save_in_territory > 0 || special_forces_to_save_in_territory > 0) && (forces_to_save_to_reserves > 0 || special_forces_to_save_to_reserves > 0); " and "),
                 express_part_if!(forces_to_save_to_reserves > 0; forces_to_save_to_reserves, force),
                 express_part_if!(special_forces_to_save_to_reserves > 0; special_forces_to_save_to_reserves, special_force),
                 express_part_if!(forces_to_save_to_reserves > 0 || special_forces_to_save_to_reserves > 0; " to reserves")

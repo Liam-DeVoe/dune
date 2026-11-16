@@ -75,7 +75,7 @@ impl ResourcesAudited {
             self.initiator(),
             " force ",
             self.target,
-            " to reveal amount of weapons, defenses and ",
+            " to reveal the amount of weapons, defenses and ",
             Concept::Resource
         )
     }

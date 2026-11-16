@@ -1111,7 +1111,7 @@ impl Skin {
                 "{0} ally may get {1} dialled in battles refunded in {2} phase",
                 &args![Faction::Fremen, Concept::Resource, MainPhase::Contemplate],
             ),
-            Rule::BreakAlliancesOnAlliancePhase => s("Alliances are  broken at the start of each alliance phase"),
+            Rule::BreakAlliancesOnAlliancePhase => s("Alliances are broken at the start of each alliance phase"),
 
             _ => s("unknown rule"),
         }
@@ -1135,7 +1135,7 @@ impl Skin {
             E::UserCreationFailed => "User creation failed",
             E::InvalidGameVersion => "Invalid game version",
             E::InvalidUserNameOrPassword => "Invalid user name or password",
-            E::NotAdmin => "You are not ad administrator",
+            E::NotAdmin => "You are not an administrator",
             E::UnknownUsernameOrEmailAddress => "Unknown user name or email address",
             E::NoEmailAddressForUser => "This account has no e-mail address, so its password cannot be reset",
             E::ResetRequestTooSoon => "Please wait at least 5 minutes before requesting another password reset",

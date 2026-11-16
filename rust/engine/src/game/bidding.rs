@@ -224,7 +224,12 @@ impl Game {
 
     pub fn log_bid(&mut self, initiator: PlayerIndex, bid_amount: i32, bid_ally_contribution_amount: i32, bid_emperor_contribution_amount: i32, receiver_income: &MessagePart, paid_to: Faction, free: bool) {
         let bid_total_amount = bid_amount + bid_ally_contribution_amount + bid_emperor_contribution_amount;
-        let card_number = express_part_if!(self.bidding.current_auction_type == AuctionType::Normal; self.bidding.card_number);
+        // A Black Market card has no number.
+        let card_number: Vec<ExpressionElement> = if self.bidding.current_auction_type == AuctionType::Normal {
+            vec![" get card ".into(), express_part!(self.bidding.card_number).into(), " for ".into()]
+        } else {
+            vec![" get card for ".into()]
+        };
 
         let initiator_ally = self.player(initiator).ally;
         let initiator_faction = self.player(initiator).faction;
@@ -243,21 +248,19 @@ impl Game {
             Some(Rc::new(CardSold::new(self.bidding.card_number, initiator_faction, bid_total_amount, paid_to, shares, None)))
         };
 
-        let expression = vec![
-            ExpressionElement::from(initiator_faction),
-            ExpressionElement::from(" get card "),
-            ExpressionElement::from(card_number),
-            ExpressionElement::from(" for "),
+        let mut expression = vec![ExpressionElement::from(initiator_faction)];
+        expression.extend(card_number);
+        expression.extend([
             ExpressionElement::from(Payment::of(bid_total_amount)),
             ExpressionElement::from(express_part_if!(
                 bid_ally_contribution_amount > 0 || bid_emperor_contribution_amount > 0;
-                "(",
+                " (",
                 Payment::of_by(bid_ally_contribution_amount, initiator_ally),
                 express_part_if!(bid_emperor_contribution_amount > 0; " and ", Payment::of_by(bid_emperor_contribution_amount, Faction::Emperor)),
-                ") "
+                ")"
             )),
             ExpressionElement::from(receiver_income.clone()),
-        ];
+        ]);
 
         self.log_bidding(record, expression);
     }

@@ -15,6 +15,7 @@ use treachery_engine::events::{GameEvent, GameEventType};
 use treachery_engine::game::Game;
 use treachery_engine::json;
 use treachery_engine::prelude::*;
+use treachery_engine::enum_type::GameEnum;
 use treachery_view::build::{ResolvedViewer, Seating};
 
 use crate::rng::Rng;
@@ -240,7 +241,7 @@ pub fn intrusion_locations(game: &Game, i: usize) -> Vec<i32> {
             t != polar_sink
                 && !t.is_homeworld()
                 && (bene_gesserit.is_some_and(|b| game.player(b).forces_in_territory(Some(t)) > 0)
-                    || (ecaz && game.ambassador_in(t) != Ambassador::None)
+                    || (ecaz && game.ambassador_in(t).is_some())
                     || (moritani && game.terror_in(t).next().is_some()))
         })
         .map(|l| l.id())
@@ -515,8 +516,9 @@ fn steered_value(key: &str, cur: &Value, keys: &[String], pools: &Pools, game: &
         let from = if both.is_empty() { &pools.intrusions } else { &both };
         return rng.pick(from).map(|l| Value::from(*l));
     }
+    let diplomat = [LeaderSkill::Diplomat.value()];
     let preferred: &[i32] = match (pools.event_type, key) {
-        (Some(GameEventType::SkillAssigned), "Skill") => &[LeaderSkill::Diplomat.0],
+        (Some(GameEventType::SkillAssigned), "Skill") => &diplomat,
         (Some(GameEventType::Battle), "_heroId") => &pools.diplomats,
         _ => &[],
     };
@@ -770,7 +772,7 @@ impl Fuzzer {
             .filter(|(i, t)| {
                 let pools = Pools::of(shadow, &self.seating, *i, *t);
                 match t {
-                    GameEventType::SkillAssigned => pools.lists.iter().any(|(_, l, _)| l.contains(&Value::from(LeaderSkill::Diplomat.0))),
+                    GameEventType::SkillAssigned => pools.lists.iter().any(|(_, l, _)| l.contains(&Value::from(LeaderSkill::Diplomat.value()))),
                     _ => pools.lists.iter().any(|(n, l, _)| n == "hero" && l.iter().any(|h| h.as_i64().is_some_and(|h| pools.diplomats.contains(&(h as i32))))),
                 }
             })

@@ -4,7 +4,7 @@
 //!
 //! Each pair of tests pins one phase: `enters` submits the event that intrudes and checks the
 //! phase and who is asked to react, and `resumes` reacts (Bene Gesserit stay fighters, Moritani
-//! and Ecaz pass) and checks where the game goes on. Fuzz games reach most of these phases in
+//! and Ecaz pass) and checks where the game goes on. Fuzz games reach several of these phases in
 //! only a few games per 200 (rust/docs/native-harness.md, "Phases the fuzzer doesn't reach"),
 //! and wave 5 of rust/docs/rewrite-plan.md replaces how they suspend and resume, so these tests
 //! hold today's behavior in place. The phases entered while Bene Gesserit accompany a shipment

@@ -67,6 +67,10 @@ fn lower(c: char) -> char {
 /// replace(m.Groups[1].Value), RegexOptions.IgnoreCase)`, where `name` is
 /// `Regex.Escape(Describe(Concept.Resource))` and so matches the label literally.
 pub fn replace_spice_amounts(text: &str, name: &str, mut replace: impl FnMut(&str) -> String) -> String {
+    // A match starts with a digit.
+    if !text.chars().any(is_digit) {
+        return text.to_string();
+    }
     let chars: Vec<char> = text.chars().collect();
     let mut out = String::with_capacity(text.len());
     let mut i = 0;
@@ -85,7 +89,8 @@ pub fn replace_spice_amounts(text: &str, name: &str, mut replace: impl FnMut(&st
 
 /// The end of a match starting at `i`, if the pattern matches there.
 fn spice_match_at(chars: &[char], i: usize, name: &str) -> Option<usize> {
-    if !is_boundary(chars, i) {
+    // `\d+` first: it is the cheaper test, and most characters fail it.
+    if !is_digit(chars[i]) || !is_boundary(chars, i) {
         return None;
     }
     let mut j = i;

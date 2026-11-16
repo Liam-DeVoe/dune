@@ -330,8 +330,11 @@ impl EventRules for EstablishPlayers {
 
         game.determine_positions_at_table();
 
-        let condition = game.applicable(Rule::PlayersChooseFactions);
-        game.enter_or_else(condition, Phase::SelectingFactions, Game::assign_factions_and_enter_faction_trade);
+        if game.applicable(Rule::PlayersChooseFactions) {
+            game.enter_setup(SetupStep::SelectingFactions);
+        } else {
+            game.assign_factions_and_enter_faction_trade();
+        }
         Ok(())
     }
 

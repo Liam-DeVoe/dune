@@ -41,6 +41,10 @@ impl EventRules for PerformHmsMovement {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        // Only reached outside the phase when events are replayed without validation.
+        if game.storm().is_none() {
+            game_error!("Not in the storm phase");
+        }
         let me = by.player();
         let hms = game.board.map.hidden_mobile_stronghold();
         let collection_rate = game.player(me).any_forces_in(Some(hms.location())) * 2;
@@ -54,11 +58,11 @@ impl EventRules for PerformHmsMovement {
             let target = self.target.required("target")?;
             hms.point_at(&mut game.board.map, target);
             game.collect_spice_from(by.faction.required("faction")?, target, collection_rate)?;
-            game.storm.hms_moves_left -= 1;
+            game.board.hms_moves_left -= 1;
             game.stone(Milestone::HmsMovement);
         }
 
-        if self.passed || game.storm.hms_moves_left == 0 {
+        if self.passed || game.board.hms_moves_left == 0 {
             game.determine_storm();
         }
         Ok(())

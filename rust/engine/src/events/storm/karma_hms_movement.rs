@@ -64,12 +64,12 @@ impl EventRules for KarmaHmsMovement {
             let target = self.target.required("target")?;
             hms.point_at(&mut game.board.map, target);
             game.collect_spice_from(by.faction.required("faction")?, target, collection_rate)?;
-            game.storm.karma_hms_moves_left -= 1;
+            game.board.karma_hms_moves_left -= 1;
             game.stone(Milestone::HmsMovement);
         }
 
         if self.passed {
-            game.storm.karma_hms_moves_left = 0;
+            game.board.karma_hms_moves_left = 0;
         }
         Ok(())
     }

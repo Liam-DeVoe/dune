@@ -347,7 +347,7 @@ impl Game {
                 Player::move_forces(self, initiator, from, to, battalion.forces())?;
                 Player::move_special_forces(self, initiator, from, to, battalion.special_forces())?;
                 let amount = TakeLosses::half_of(battalion.forces(), battalion.special_forces());
-                self.storm.storm_losses_to_take.push(LossToTake { location: Some(to), amount, faction: Some(battalion.faction) });
+                self.turn.storm_losses_to_take.push(LossToTake { location: Some(to), amount, faction: Some(battalion.faction) });
             } else {
                 kill_count = battalion.total_amount_of_forces();
                 Player::kill_forces(self, initiator, from, battalion.forces(), battalion.special_forces(), false)?;
@@ -465,9 +465,8 @@ impl Game {
             }
         }
 
-        if !self.storm.storm_losses_to_take.is_empty() {
-            self.storm.phase_before_storm_loss = Some(self.phase());
-            self.enter(Phase::StormLosses, true);
+        if !self.turn.storm_losses_to_take.is_empty() {
+            self.interrupt(Interrupt::StormLosses);
         } else if let Some(next) = self.turn.intrusions.first() {
             let kind = next.type_;
             let Some(cause) = self.current_intrusion_cause() else {
@@ -499,7 +498,7 @@ impl Game {
             return Ok(());
         }
 
-        self.storm.storm_losses_to_take.clear();
+        self.turn.storm_losses_to_take.clear();
         let pf = self.player(player).faction;
         self.turn.has_acted_or_passed.push(pf.required("faction")?);
 

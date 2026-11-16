@@ -36,6 +36,10 @@ impl EventRules for FremenSentMonster {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        // Only reached outside the phase when events are replayed without validation.
+        if game.blow().is_none() {
+            game_error!("Not in the spice blow phase");
+        }
         // A null Territory (only without validation) is stored in WormSentLog and the
         // MonsterAppearance; PerformMonster then throws on `m.Territory.Locations`.
         let msg = self.describe(game, by);
@@ -43,10 +47,10 @@ impl EventRules for FremenSentMonster {
         let msg = msg.with_log(WormSentLog::new(by.faction.required("faction")?, territory));
         game.log(parts![msg]);
         let monster = MonsterAppearance::new(territory, false);
-        game.blow.monsters.push(monster.clone());
+        game.board.monsters.push(monster.clone());
         game.perform_monster(&monster)?;
         let condition = game.phase() == Phase::FremenSendingMonsterA;
-        game.enter_either(condition, Phase::BlowA, Phase::BlowB);
+        game.enter_blow(BlowStep::either(condition, BlowStep::BlowA, BlowStep::BlowB));
         game.draw_resource_card()?;
         game.let_factions_discard_surplus_cards();
         Ok(())

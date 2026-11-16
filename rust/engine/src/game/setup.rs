@@ -7,19 +7,121 @@ pub struct TradeOffer {
     pub target: Option<Faction>,
 }
 
-/// State of the setup phases: faction trades, skill assignment and the starting cards.
+/// The setup (`PhaseState::Setup`), from choosing factions until the first storm: its step, the
+/// faction trade offers and the extra starting card of Harkonnen. It is dropped when the first
+/// storm phase starts.
 pub struct SetupState {
+    pub step: SetupStep,
     pub current_trade_offers: Vec<TradeOffer>,
-    pub starting_treachery_cards: Option<Deck<TreacheryCard>>,
     pub extra_starting_card_for_harkonnen: Option<TreacheryCard>,
 }
 
 impl SetupState {
-    pub fn new() -> Self {
+    pub fn new(step: SetupStep) -> Self {
         SetupState {
+            step,
             current_trade_offers: Vec::new(),
-            starting_treachery_cards: None,
             extra_starting_card_for_harkonnen: None,
+        }
+    }
+}
+
+/// Where the setup is.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SetupStep {
+    SelectingFactions,
+    TradingFactions,
+    CustomizingDecks,
+    BeneGesseritPredicting,
+    HarkonnenMulligan,
+    AssigningInitialSkills,
+    SelectingTraitors,
+    PerformCustomSetup,
+    FremenSettingUp,
+    BeneGesseritSettingUp,
+    MoritaniSettingUp,
+    IxianSelectingCard,
+}
+
+impl SetupStep {
+    pub fn phase(self) -> Phase {
+        match self {
+            SetupStep::SelectingFactions => Phase::SelectingFactions,
+            SetupStep::TradingFactions => Phase::TradingFactions,
+            SetupStep::CustomizingDecks => Phase::CustomizingDecks,
+            SetupStep::BeneGesseritPredicting => Phase::BeneGesseritPredicting,
+            SetupStep::HarkonnenMulligan => Phase::HarkonnenMulligan,
+            SetupStep::AssigningInitialSkills => Phase::AssigningInitialSkills,
+            SetupStep::SelectingTraitors => Phase::SelectingTraitors,
+            SetupStep::PerformCustomSetup => Phase::PerformCustomSetup,
+            SetupStep::FremenSettingUp => Phase::FremenSettingUp,
+            SetupStep::BeneGesseritSettingUp => Phase::BeneGesseritSettingUp,
+            SetupStep::MoritaniSettingUp => Phase::MoritaniSettingUp,
+            SetupStep::IxianSelectingCard => Phase::IxianSelectingCard,
+        }
+    }
+
+    pub fn of(phase: Phase) -> Option<SetupStep> {
+        let step = match phase {
+            Phase::SelectingFactions => SetupStep::SelectingFactions,
+            Phase::TradingFactions => SetupStep::TradingFactions,
+            Phase::CustomizingDecks => SetupStep::CustomizingDecks,
+            Phase::BeneGesseritPredicting => SetupStep::BeneGesseritPredicting,
+            Phase::HarkonnenMulligan => SetupStep::HarkonnenMulligan,
+            Phase::AssigningInitialSkills => SetupStep::AssigningInitialSkills,
+            Phase::SelectingTraitors => SetupStep::SelectingTraitors,
+            Phase::PerformCustomSetup => SetupStep::PerformCustomSetup,
+            Phase::FremenSettingUp => SetupStep::FremenSettingUp,
+            Phase::BeneGesseritSettingUp => SetupStep::BeneGesseritSettingUp,
+            Phase::MoritaniSettingUp => SetupStep::MoritaniSettingUp,
+            Phase::IxianSelectingCard => SetupStep::IxianSelectingCard,
+            _ => return None,
+        };
+        Some(step)
+    }
+}
+
+impl Game {
+    /// The setup's state, while the game is in it (an interrupt may suspend it).
+    pub fn setup(&self) -> Option<&SetupState> {
+        match &self.phase {
+            PhaseState::Setup(s) => Some(s),
+            _ => None,
+        }
+    }
+
+    pub fn setup_mut(&mut self) -> Option<&mut SetupState> {
+        match &mut self.phase {
+            PhaseState::Setup(s) => Some(s),
+            _ => None,
+        }
+    }
+
+    /// The setup's state, for code that only runs during the setup.
+    pub(crate) fn setup_state(&mut self) -> &mut SetupState {
+        self.setup_mut().expect("the setup")
+    }
+
+    /// Moves the setup to `step`, dropping any interrupt, as entering a phase did. Starts the
+    /// setup if the game isn't in it yet.
+    pub fn enter_setup(&mut self, step: SetupStep) {
+        match self.setup_mut() {
+            Some(s) => {
+                s.step = step;
+                self.interrupts.clear();
+                self.remove_ended_deals(step.phase());
+            }
+            None => self.enter_state(PhaseState::Setup(SetupState::new(step))),
+        }
+    }
+
+    /// Enters setup step `step` if `condition` holds, or else runs `otherwise`.
+    pub fn enter_setup_or_else(&mut self, condition: bool, step: SetupStep, otherwise: fn(&mut Game) -> GameResult) -> GameResult {
+        if condition {
+            self.enter_setup(step);
+            Ok(())
+        } else {
+            otherwise(self)
         }
     }
 }
@@ -32,7 +134,7 @@ impl Game {
     pub fn enter_phase_awaiting_players(&mut self) {
         self.players = Vec::new();
         self.turn.current_turn = Turn::BEFORE_START;
-        self.enter(Phase::AwaitingPlayers, true);
+        self.enter_state(PhaseState::AwaitingPlayers);
     }
 
     pub fn assign_factions_and_enter_faction_trade(&mut self) {
@@ -70,20 +172,20 @@ impl Game {
     }
 
     pub fn enter_phase_trading_factions(&mut self) {
-        self.setup.current_trade_offers.clear();
-        self.enter(Phase::TradingFactions, true);
+        self.enter_setup(SetupStep::TradingFactions);
+        self.setup_state().current_trade_offers.clear();
     }
 
     pub fn enter_setup_phase(&mut self) -> GameResult {
-        self.setup.current_trade_offers.clear();
+        self.setup_state().current_trade_offers.clear();
 
         // Players.OrderBy(p => p.Seat) is a stable sort.
         let mut by_seat: Vec<(Option<Seat>, Option<Faction>)> = self.players.iter().map(|p| (p.seat, p.faction)).collect();
         by_seat.sort_by_key(|(seat, _)| *seat);
         let first = by_seat.first().expect("a player").1.expect("faction");
-        self.storm.has_battle_wheel.push(first);
+        self.board.has_battle_wheel.push(first);
         let last = by_seat.last().expect("a player").1.expect("faction");
-        self.storm.has_battle_wheel.push(last);
+        self.board.has_battle_wheel.push(last);
 
         for p in 0..self.players.len() {
             Player::assign_leaders(self, self.player_at(p));
@@ -101,10 +203,14 @@ impl Game {
             }
         }
 
-        let c1 = self.is_playing(Faction::BeneGesserit);
-        let c2 = self.treachery_cards_before_traitors();
-        self.enter_first(&[(c1, Step::Enter(Phase::BeneGesseritPredicting)), (c2, Step::Run(Game::deal_starting_treachery_cards))], Step::Run(Game::deal_traitors))?;
-        Ok(())
+        if self.is_playing(Faction::BeneGesserit) {
+            self.enter_setup(SetupStep::BeneGesseritPredicting);
+            Ok(())
+        } else if self.treachery_cards_before_traitors() {
+            self.deal_starting_treachery_cards()
+        } else {
+            self.deal_traitors()
+        }
     }
 
     pub fn deal_traitors(&mut self) -> GameResult {
@@ -113,7 +219,7 @@ impl Game {
 
         if self.applicable(Rule::HarkonnenMulligan) && self.is_playing(Faction::Harkonnen) {
             self.deal_harkonnen_traitor_cards();
-            self.enter(Phase::HarkonnenMulligan, true);
+            self.enter_setup(SetupStep::HarkonnenMulligan);
         } else {
             for _i in 1..=4 {
                 for p in 0..self.players.len() {
@@ -175,8 +281,7 @@ impl Game {
         }
 
         let condition = self.players.iter().any(|p| !(p.is(Faction::Harkonnen) || p.is(Faction::Tleilaxu)));
-        self.enter_or_else_try(condition, Phase::SelectingTraitors, Game::assign_face_dancers)?;
-        Ok(())
+        self.enter_setup_or_else(condition, SetupStep::SelectingTraitors, Game::assign_face_dancers)
     }
 
     pub fn assign_face_dancers(&mut self) -> GameResult {
@@ -212,7 +317,7 @@ impl Game {
                 }
             }
 
-            self.enter(Phase::AssigningInitialSkills, true);
+            self.enter_setup(SetupStep::AssigningInitialSkills);
         } else {
             // C# parity: TreacheryCardsBeforeTraitors requires LeaderSkills, so
             // this always calls SetupSpiceAndForces. Game.Enter(bool, Action, Action) inlined.
@@ -232,7 +337,7 @@ impl Game {
 
         if self.applicable(Rule::CustomInitialForcesAndResources) {
             self.turn.has_acted_or_passed.clear();
-            self.enter(Phase::PerformCustomSetup, true);
+            self.enter_setup(SetupStep::PerformCustomSetup);
         } else {
             for p in 0..self.players.len() {
                 self.setup_player_spice_and_forces_on_planet(self.player_at(p))?;
@@ -248,7 +353,15 @@ impl Game {
             let c1 = self.is_playing(Faction::Fremen);
             let c2 = self.is_playing(Faction::BeneGesserit) && PerformBeneGesseritPlacement::bene_gesserit_may_place_first_force_in_any_territory(self);
             let c3 = self.is_playing(Faction::Moritani);
-            self.enter_first(&[(c1, Step::Enter(Phase::FremenSettingUp)), (c2, Step::Enter(Phase::BeneGesseritSettingUp)), (c3, Step::Enter(Phase::MoritaniSettingUp))], Step::Run(method_after_setting_up))?;
+            if c1 {
+                self.enter_setup(SetupStep::FremenSettingUp);
+            } else if c2 {
+                self.enter_setup(SetupStep::BeneGesseritSettingUp);
+            } else if c3 {
+                self.enter_setup(SetupStep::MoritaniSettingUp);
+            } else {
+                method_after_setting_up(self)?;
+            }
         }
         Ok(())
     }
@@ -400,22 +513,21 @@ impl Game {
     }
 
     pub fn deal_starting_treachery_cards(&mut self) -> GameResult {
-        self.setup.starting_treachery_cards = Some(Deck::empty());
+        self.decks.starting_treachery_cards = Some(Deck::empty());
         for p in 0..self.players.len() {
             let card = self.decks.treachery_deck.as_mut().expect("treachery deck").draw();
             self.drop_copy_in_richese_cache(card);
-            self.setup.starting_treachery_cards.as_mut().expect("starting treachery cards").items.push(card);
+            self.decks.starting_treachery_cards.as_mut().expect("starting treachery cards").items.push(card);
 
             if self.players[p].is(Faction::Harkonnen) {
                 let extra = self.decks.treachery_deck.as_mut().expect("treachery deck").draw();
                 self.drop_copy_in_richese_cache(extra);
-                self.setup.extra_starting_card_for_harkonnen = Some(extra);
+                self.setup_state().extra_starting_card_for_harkonnen = Some(extra);
             }
         }
 
         let condition = self.is_playing(Faction::Ixian);
-        self.enter_or_else_try(condition, Phase::IxianSelectingCard, Game::deal_remaining_starting_treachery_cards_to_non_ixian)?;
-        Ok(())
+        self.enter_setup_or_else(condition, SetupStep::IxianSelectingCard, Game::deal_remaining_starting_treachery_cards_to_non_ixian)
     }
 
     pub fn deal_remaining_starting_treachery_cards_to_non_ixian(&mut self) -> GameResult {
@@ -424,13 +536,13 @@ impl Game {
                 continue;
             }
             let p = self.player_at(i);
-            let card = self.setup.starting_treachery_cards.as_mut().expect("starting treachery cards").draw();
+            let card = self.decks.starting_treachery_cards.as_mut().expect("starting treachery cards").draw();
             self.player_mut(p).treachery_cards.push(card);
             let faction = self.player(p).faction;
             self.log_to(faction.expect("faction"), vec!["Your starting treachery card is: ".into(), card.into()]);
 
             if self.player(p).is(Faction::Harkonnen) {
-                if let Some(extra) = self.setup.extra_starting_card_for_harkonnen {
+                if let Some(extra) = self.setup_state().extra_starting_card_for_harkonnen {
                     self.player_mut(p).treachery_cards.push(extra);
                     self.log_to(Faction::Harkonnen, vec!["Your extra card is: ".into(), extra.into()]);
                 }

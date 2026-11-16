@@ -278,7 +278,7 @@ impl Game {
             }
 
             if faction == Some(Faction::Ixian)
-                && ((!self.karma_prevented(faction) && !p.special_karma_power_used && p.has_karma(self)) || self.storm.karma_hms_moves_left == 1)
+                && ((!self.karma_prevented(faction) && !p.special_karma_power_used && p.has_karma(self)) || self.board.karma_hms_moves_left == 1)
                 && self.turn.current_main_phase == MainPhase::ShipmentAndMove
                 && Some(player) == self.shipment_and_move_sequence().expect("shipment and move sequence").current_player(self)
                 && p.any_forces_in(Some(self.board.map.hidden_mobile_stronghold().location())) > 0

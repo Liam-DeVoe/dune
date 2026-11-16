@@ -60,7 +60,8 @@ fn treachery_cards_before_traitors_needs_leader_skills() {
 fn deal_remaining_starting_cards_panics_on_empty_deck_after_partial_deal() {
     let mut g = game_with(&[Faction::Atreides, Faction::Ixian, Faction::Emperor]);
     let card = TreacheryCardManager::items()[0];
-    g.setup.starting_treachery_cards = Some(Deck::new(vec![card]));
+    g.enter_setup(SetupStep::IxianSelectingCard);
+    g.decks.starting_treachery_cards = Some(Deck::new(vec![card]));
     let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| g.deal_remaining_starting_treachery_cards_to_non_ixian()));
     assert!(r.is_err());
     assert_eq!(g.players[0].treachery_cards, vec![card]);
@@ -90,12 +91,13 @@ fn remove_invalid_trade_offers_by_either_party() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor, Faction::BeneGesserit]);
     let mk = |from: Faction, to: Faction| TradeOffer { initiator: Some(from), target: Some(to) };
     let b = mk(Faction::BeneGesserit, Faction::Atreides);
-    g.setup.current_trade_offers = vec![mk(Faction::Atreides, Faction::Emperor), b, mk(Faction::Emperor, Faction::BeneGesserit)];
+    g.enter_setup(SetupStep::TradingFactions);
+    g.setup_mut().unwrap().current_trade_offers = vec![mk(Faction::Atreides, Faction::Emperor), b, mk(Faction::Emperor, Faction::BeneGesserit)];
     let trade = FactionTradeOffered { target: Some(Faction::Emperor) };
     let by = By::new(&g, Faction::Atreides);
     trade.remove_invalid_trade_offers(&mut g, by);
     // Initiator Atreides or Emperor: the first and last go, b (by BeneGesserit) stays.
-    assert_eq!(g.setup.current_trade_offers, vec![b]);
+    assert_eq!(g.setup().unwrap().current_trade_offers, vec![b]);
 }
 
 // ---------------------------------------------------------------- AutomationConfigured

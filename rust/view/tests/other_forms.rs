@@ -113,7 +113,7 @@ fn check(game: &Game, p: PlayerId, v: &ResolvedViewer, o: &ActionOptions, at: &s
             assert_eq!(o.cards, ids(game.cards_on_auction().map(|d| d.items.clone()).unwrap_or_default()), "{at}")
         }
         ActionOptions::IxianSelectedStartingCard(o) => {
-            assert_eq!(o.cards, ids(game.setup.starting_treachery_cards.as_ref().map(|d| d.items.clone()).unwrap_or_default()), "{at}")
+            assert_eq!(o.cards, ids(game.decks.starting_treachery_cards.as_ref().map(|d| d.items.clone()).unwrap_or_default()), "{at}")
         }
         ActionOptions::Karma(o) => {
             assert_eq!(o.cards, ids(Karma::valid_karma_cards(game, p)), "{at}");

@@ -19,6 +19,11 @@ pub enum PhaseState {
     /// A phase that has no variant of its own yet: only its name. Its state is still in the
     /// per-phase struct on `Game`.
     Legacy(Phase),
+    /// Before the game starts: the host configures it and players join.
+    AwaitingPlayers,
+    Setup(SetupState),
+    Storm(StormState),
+    Blow(BlowState),
     Battle(BattlePhase),
     Charity(CharityState),
     Bidding(BiddingState),
@@ -35,6 +40,10 @@ impl PhaseState {
     pub fn phase(&self) -> Phase {
         match self {
             PhaseState::Legacy(phase) => *phase,
+            PhaseState::AwaitingPlayers => Phase::AwaitingPlayers,
+            PhaseState::Setup(s) => s.step.phase(),
+            PhaseState::Storm(s) => s.step.phase(),
+            PhaseState::Blow(b) => b.step.phase(),
             PhaseState::Battle(b) => b.step.phase(),
             PhaseState::Charity(c) => c.step.phase(),
             PhaseState::Bidding(b) => b.step.phase(),
@@ -50,7 +59,11 @@ impl PhaseState {
     /// by its own functions (`Game::enter_collection`), never by name with [`Game::enter`],
     /// because entering it by name can't build its state.
     pub fn is_converted(phase: Phase) -> bool {
-        BattleStep::of(phase).is_some()
+        phase == Phase::AwaitingPlayers
+            || SetupStep::of(phase).is_some()
+            || StormStep::of(phase).is_some()
+            || BlowStep::of(phase).is_some()
+            || BattleStep::of(phase).is_some()
             || CharityStep::of(phase).is_some()
             || BiddingStep::of(phase).is_some()
             || RevivalStep::of(phase).is_some()
@@ -80,6 +93,9 @@ pub enum Interrupt {
     KarmaHandSwap { number_of_cards: i32, target: Option<Faction> },
     /// The Bureaucrat decides whether `target`, who just received a payment, loses 2 spice.
     Bureaucracy { target: Option<Faction> },
+    /// Fremen (or CHOAM) decide which forces a shipment or move into the storm lost
+    /// (`storm_losses_to_take`). Storm losses in the storm phase are a storm step instead.
+    StormLosses,
     /// A player chooses the skill of a revived leader.
     SkillAssignment,
     /// Forces entered a territory and the Bene Gesserit, a terror token or an ambassador there
@@ -91,9 +107,6 @@ pub enum Interrupt {
     /// An Ecaz ambassador offered an alliance, and `offered_to` decides. `offered_by` activated
     /// the ambassador (Ecaz, or their ally), and the two flags are its Vidal options.
     AllianceByAmbassador { offered_to: Faction, offered_by: By, give_vidal_to_ally: bool, take_vidal: bool },
-    /// A suspension not converted yet, by the phase it shows: storm losses taken during a
-    /// shipment or move.
-    Legacy(Phase),
 }
 
 impl Interrupt {
@@ -107,11 +120,11 @@ impl Interrupt {
             Interrupt::CardTrade { .. } => Phase::TradingCards,
             Interrupt::KarmaHandSwap { .. } => Phase::PerformingKarmaHandSwap,
             Interrupt::Bureaucracy { .. } => Phase::Bureaucracy,
+            Interrupt::StormLosses => Phase::StormLosses,
             Interrupt::SkillAssignment => Phase::AssigningSkill,
             Interrupt::Intrusion { kind, cause } => cause.intrusion_phase(*kind),
             Interrupt::AllianceByTerror { .. } => Phase::AllianceByTerror,
             Interrupt::AllianceByAmbassador { .. } => Phase::AllianceByAmbassador,
-            Interrupt::Legacy(phase) => *phase,
         }
     }
 
@@ -125,7 +138,6 @@ impl Interrupt {
             Phase::SearchingDiscarded => Interrupt::SearchingDiscarded,
             Phase::Clairvoyance => Interrupt::Clairvoyance,
             Phase::AssigningSkill => Interrupt::SkillAssignment,
-            Phase::StormLosses => Interrupt::Legacy(phase),
             _ => return None,
         };
         Some(i)

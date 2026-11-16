@@ -119,8 +119,8 @@ pub fn board(game: &Game, status: &GameStatus, v: &ResolvedViewer) -> BoardView 
             .collect(),
         attached,
         leaders,
-        monsters: game.blow.monsters.iter().map(|m| MonsterView { territory: m.territory.id(), is_great_monster: m.is_great_monster }).collect(),
-        number_of_monsters: game.blow.number_of_monsters,
+        monsters: game.board.monsters.iter().map(|m| MonsterView { territory: m.territory.id(), is_great_monster: m.is_great_monster }).collect(),
+        number_of_monsters: game.board.number_of_monsters,
         special_strongholds: map.territories(true).filter(|t| game.is_special_stronghold(*t)).map(|t| t.id()).collect(),
         atomics_aftermath: game.board.atomics_aftermath.map(|t| t.id()),
         protected_from_storm: map.locations(false).filter(|l| game.is_protected_from_storm(*l)).map(|l| l.id()).collect(),
@@ -178,11 +178,11 @@ pub fn piles(game: &Game, v: &ResolvedViewer) -> PilesView {
         resource_deck_top: (game.turn.current_main_phase == MainPhase::ShipmentAndMove && game.has_resource_deck_prescience(me))
             .then(|| resource_deck.and_then(|d| d.top()).map(|c| c.skin_id()))
             .flatten(),
-        latest_spice_card_a: game.blow.latest_spice_card_a.map(|c| c.skin_id()),
-        latest_spice_card_b: game.blow.latest_spice_card_b.map(|c| c.skin_id()),
+        latest_spice_card_a: game.board.latest_spice_card_a.map(|c| c.skin_id()),
+        latest_spice_card_b: game.board.latest_spice_card_b.map(|c| c.skin_id()),
         resource_discard_a: notekeeping.then(|| pile(&game.decks.resource_card_discard_pile_a)),
         resource_discard_b: notekeeping.then(|| pile(&game.decks.resource_card_discard_pile_b)),
-        sand_trout: game.sand_trout_occurred().then_some(game.blow.sand_trout).flatten().map(|c| c.skin_id()),
+        sand_trout: game.sand_trout_occurred().then_some(game.board.sand_trout).flatten().map(|c| c.skin_id()),
         richese_cache_count: game.decks.richese_cache.len() as i32,
         // Only Richese sees the cards of its cache.
         richese_cache: (viewer_faction(v) == Some(Faction::Richese)).then(|| game.decks.richese_cache.iter().map(|c| c.id()).collect()),

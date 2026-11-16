@@ -37,6 +37,10 @@ impl EventRules for MulliganPerformed {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        // Only reached outside the phase when events are replayed without validation.
+        if game.setup().is_none() {
+            game_error!("Not in the setup phase");
+        }
         if !self.passed {
             let me = by.player();
             // TraitorDeck is dereferenced before Player.Traitors is read.
@@ -47,7 +51,7 @@ impl EventRules for MulliganPerformed {
             game.decks.traitor_deck.as_mut().required("traitor deck")?.shuffle(&mut game.rng);
             game.stone(Milestone::Shuffled);
             game.deal_harkonnen_traitor_cards();
-            game.enter(Phase::HarkonnenMulligan, true);
+            game.enter_setup(SetupStep::HarkonnenMulligan);
         } else {
             self.deal_non_harkonnen_traitor_cards(game);
             game.enter_select_traitors()?;

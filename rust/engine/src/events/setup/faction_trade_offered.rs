@@ -18,7 +18,7 @@ impl FactionTradeOffered {
         let initiator = by.faction;
         let target = self.target;
         // C# removed each matching offer by reference; no two offers are equal, so this removes the same ones.
-        game.setup.current_trade_offers.retain(|x| !(x.initiator == initiator || x.initiator == target));
+        game.setup_state().current_trade_offers.retain(|x| !(x.initiator == initiator || x.initiator == target));
     }
 }
 
@@ -33,6 +33,10 @@ impl EventRules for FactionTradeOffered {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        // Only reached outside the phase when events are replayed without validation.
+        if game.setup().is_none() {
+            game_error!("Not in the setup phase");
+        }
         if !game.is_playing(self.target) {
             game.log(vec![by.faction.into(), " switch to ".into(), self.target.into()]);
 
@@ -41,7 +45,7 @@ impl EventRules for FactionTradeOffered {
             let initiator = by.faction;
             let target_faction = self.target;
             let r#match = game
-                .setup.current_trade_offers
+                .setup_state().current_trade_offers
                 .iter()
                 .find(|m| m.initiator == target_faction && m.target == initiator)
                 .cloned();
@@ -60,8 +64,8 @@ impl EventRules for FactionTradeOffered {
             } else {
                 let message = self.describe(game, by);
                 game.log(vec![message.into()]);
-                if !game.setup.current_trade_offers.iter().any(|o| o.initiator == initiator && o.target == target_faction) {
-                    game.setup.current_trade_offers.push(TradeOffer { initiator, target: target_faction });
+                if !game.setup_state().current_trade_offers.iter().any(|o| o.initiator == initiator && o.target == target_faction) {
+                    game.setup_state().current_trade_offers.push(TradeOffer { initiator, target: target_faction });
                 }
             }
         }

@@ -56,10 +56,10 @@ fn piles() {
             assert_eq!(p.treachery_discard_count, discard.len() as i32);
             assert_eq!(p.treachery_discard_top, discard.first().map(|c| c.id()));
             assert_eq!(p.resource_deck_count, g.decks.resource_card_deck.as_ref().map_or(0, |d| d.items.len() as i32));
-            assert_eq!(p.latest_spice_card_a, g.blow.latest_spice_card_a.map(|c| c.skin_id()));
-            assert_eq!(p.latest_spice_card_b, g.blow.latest_spice_card_b.map(|c| c.skin_id()));
+            assert_eq!(p.latest_spice_card_a, g.board.latest_spice_card_a.map(|c| c.skin_id()));
+            assert_eq!(p.latest_spice_card_b, g.board.latest_spice_card_b.map(|c| c.skin_id()));
             saw_latest |= p.latest_spice_card_a.is_some();
-            assert_eq!(p.sand_trout.is_some(), g.sand_trout_occurred() && g.blow.sand_trout.is_some());
+            assert_eq!(p.sand_trout.is_some(), g.sand_trout_occurred() && g.board.sand_trout.is_some());
             assert_eq!(p.richese_cache_count, g.decks.richese_cache.len() as i32);
             assert_eq!(p.richese_cache.is_some(), f == Some(Faction::Richese));
             // No fixture enables notekeeping; see notekeeping_shows_discard_piles_and_notes.
@@ -540,12 +540,12 @@ fn board_basics() {
                 .collect();
             assert_eq!(b.leaders.len(), expected.len());
             leaders += b.leaders.len();
-            assert_eq!(b.monsters.iter().map(|m| m.territory).collect::<Vec<_>>(), g.blow.monsters.iter().map(|m| m.territory.id()).collect::<Vec<_>>());
+            assert_eq!(b.monsters.iter().map(|m| m.territory).collect::<Vec<_>>(), g.board.monsters.iter().map(|m| m.territory.id()).collect::<Vec<_>>());
             monsters += b.monsters.len();
             assert_eq!(b.storm_prescience_moves, g.has_storm_prescience(f.map(|f| player(&r, f))).then_some(g.board.next_storm_moves));
             assert_eq!(b.no_field_value.is_some(), f == Some(Faction::Richese));
             assert_eq!(b.atomics_aftermath, g.board.atomics_aftermath.map(|t| t.id()));
-            assert_eq!(b.number_of_monsters, g.blow.number_of_monsters);
+            assert_eq!(b.number_of_monsters, g.board.number_of_monsters);
             for l in g.board.map.locations(false) {
                 assert_eq!(b.protected_from_storm.contains(&l.id()), g.is_protected_from_storm(l));
             }

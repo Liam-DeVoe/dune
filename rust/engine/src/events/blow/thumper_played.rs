@@ -11,11 +11,15 @@ impl EventRules for ThumperPlayed {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        // Only reached outside the phase when events are replayed without validation.
+        if game.blow().is_none() {
+            game_error!("Not in the spice blow phase");
+        }
         game.discard(by.player(), TreacheryCardType::Thumper)?;
         let m = self.describe(game, by);
         game.log_event(m);
         game.stone(Milestone::Thumper);
-        game.blow.thumper_called_shai_hulud = game.turn.current_turn > Turn::FIRST;
+        game.blow_state().thumper_called_shai_hulud = game.turn.current_turn > Turn::FIRST;
         game.enter_blow_a()?;
         Ok(())
     }

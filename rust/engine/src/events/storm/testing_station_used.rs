@@ -10,7 +10,7 @@ impl TestingStationUsed {
     pub fn can_be_played(g: &Game, p: PlayerId) -> bool {
         g.phase() == Phase::MetheorAndStormSpell
             && g.player(p).occupies(g, Some(g.board.map.testing_station().location()))
-            && !g.storm.current_testing_station_used
+            && !g.storm().is_some_and(|s| s.current_testing_station_used)
     }
 }
 
@@ -24,8 +24,12 @@ impl EventRules for TestingStationUsed {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        // Only reached outside the phase when events are replayed without validation.
+        if game.storm().is_none() {
+            game_error!("Not in the storm phase");
+        }
         game.stone(Milestone::WeatherControlled);
-        game.storm.current_testing_station_used = true;
+        game.storm_state().current_testing_station_used = true;
         game.board.next_storm_moves += self.value_added;
         let next = game.board.next_storm_moves;
         game.log(parts![by.faction, " use ", DiscoveryToken::TestingStation, ": storm ", if self.value_added > 0 { "increases" } else { "weakens" }, " to ", next],

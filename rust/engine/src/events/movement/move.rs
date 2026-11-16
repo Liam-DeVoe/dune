@@ -49,7 +49,7 @@ impl EventRules for Move {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
-        game.storm.storm_losses_to_take.clear();
+        game.turn.storm_losses_to_take.clear();
 
         let extra_move = match &game.turn.current_flight_used {
             Some(fu) => fu.by.faction == by.faction && fu.extra_move(),

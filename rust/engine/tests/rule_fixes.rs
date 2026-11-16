@@ -178,12 +178,12 @@ fn karama_worm_needs_a_territory() {
     assert_eq!(karama_cards(&g), 1);
     assert!(!g.player(fremen).special_karma_power_used);
 
-    let monsters = g.blow.number_of_monsters;
+    let monsters = g.board.number_of_monsters;
     let target = KarmaMonster::valid_targets(&g).next().unwrap();
     assert_eq!(submit_by(&mut g, Faction::Fremen, |g| monster(Some(target), g)), None);
     assert_eq!(karama_cards(&g), 0);
     assert!(g.player(fremen).special_karma_power_used);
-    assert_eq!(g.blow.number_of_monsters, monsters + 1);
+    assert_eq!(g.board.number_of_monsters, monsters + 1);
 }
 
 /// Ally permissions are stored under the ally. Without an ally there is nothing to store (the

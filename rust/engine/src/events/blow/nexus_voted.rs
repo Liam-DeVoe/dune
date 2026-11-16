@@ -13,11 +13,15 @@ impl EventRules for NexusVoted {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        // Only reached outside the phase when events are replayed without validation.
+        if game.blow().is_none() {
+            game_error!("Not in the spice blow phase");
+        }
         let m = self.describe(game, by);
         game.log_event(m);
-        game.blow.nexus_votes.push(NexusVote { initiator: by.faction, passed: self.passed });
-        if game.blow.nexus_votes.len() == game.players.len() {
-            let passed = game.blow.nexus_votes.iter().filter(|v| v.passed).count() as i32;
+        game.blow_state().nexus_votes.push(NexusVote { initiator: by.faction, passed: self.passed });
+        if game.blow_state().nexus_votes.len() == game.players.len() {
+            let passed = game.blow_state().nexus_votes.iter().filter(|v| v.passed).count() as i32;
             if (2i32 * passed) >= game.players.len() as i32 {
                 let condition = game.phase() == Phase::VoteAllianceA && game.applicable(Rule::IncreasedResourceFlow);
                 if condition { game.enter_blow_b()? } else { game.start_nexus_card_phase() }

@@ -196,11 +196,11 @@ fn check(game: &Game, p: PlayerId, t: EventType, d: &dyn Describer, seen: &mut S
         (Event::TestingStationUsed(e), ActionOptions::TestingStationUsed(_)) => assert_eq!(e.value_added, -1),
         (Event::KarmaHmsMovement(_), ActionOptions::KarmaHmsMovement(o)) => {
             assert_eq!(o.targets, ids(KarmaHmsMovement::valid_locations(game)));
-            assert_eq!(o.moves_left, game.storm.karma_hms_moves_left);
+            assert_eq!(o.moves_left, game.board.karma_hms_moves_left);
         }
         (Event::PerformHmsMovement(_), ActionOptions::PerformHmsMovement(o)) => {
             assert_eq!(o.targets, ids(PerformHmsMovement::valid_locations(game)));
-            assert_eq!(o.moves_left, game.storm.hms_moves_left);
+            assert_eq!(o.moves_left, game.board.hms_moves_left);
         }
         (Event::KarmaShipmentPrevention(e), ActionOptions::KarmaShipmentPrevention(o)) => {
             let targets: Vec<Faction> = KarmaShipmentPrevention::get_valid_targets(game, p).collect();

@@ -162,8 +162,7 @@ fn bene_gesserit_advisors_accompanying_a_shipment_dont_trigger_an_ambassador() {
 // BlowA and BlowB.
 //
 // Neither is ever a resting phase: `enter_blow_a` and `enter_blow_b` draw spice cards until a
-// blow and leave the phase within the same event. `StormLosses` also uses `BlowA` as a marker:
-// `phase_before_storm_loss == BlowA` means the losses came from the storm phase.
+// blow and leave the phase within the same event.
 
 #[test]
 fn the_spice_blow_passes_through_blow_a_and_blow_b_in_one_event() {
@@ -198,15 +197,16 @@ fn fremen_in_sector(g: &mut Game, sector: Sector, forces: i32, avoid: &[Territor
 fn storm_losses_taken_in_the_storm_phase_end_in_the_storm_report() {
     let mut g = seated(|_| {});
     g.turn.current_main_phase = MainPhase::Storm;
-    g.enter(Phase::MetheorAndStormSpell, false);
+    g.enter_storm(StormStep::MetheorAndStormSpell);
     g.board.next_storm_moves = 1;
     let first = fremen_in_sector(&mut g, STORM.moved(1), 4, &[]);
     let second = fremen_in_sector(&mut g, STORM.moved(1), 2, &[first.territory()]);
 
     host_ends_phase(&mut g);
     assert_eq!(phase(&g), Phase::StormLosses);
-    assert_eq!(g.storm.phase_before_storm_loss, Some(Phase::BlowA), "the marker for the storm phase");
-    assert_eq!(g.storm.storm_losses_to_take.len(), 2);
+    assert_eq!(g.storm().map(|s| s.step), Some(StormStep::Losses), "a step of the storm phase");
+    assert!(g.interrupts.is_empty(), "not an interrupt");
+    assert_eq!(g.turn.storm_losses_to_take.len(), 2);
     assert_eq!(asked(&mut g, EventType::TakeLosses), [Faction::Fremen]);
 
     accept(&mut g, &take_losses(FREMEN, 2));
@@ -229,7 +229,8 @@ fn storm_losses_taken_during_a_shipment_go_back_to_the_shipment() {
 
     accept(&mut g, &shipment(FREMEN, flat, 4));
     assert_eq!(phase(&g), Phase::StormLosses);
-    assert_eq!(g.storm.phase_before_storm_loss, Some(Phase::NonGuildShip));
+    assert_eq!(g.interrupts.last(), Some(&Interrupt::StormLosses));
+    assert_eq!(g.phase_under(Interrupt::StormLosses), Some(Phase::NonGuildShip));
     assert_eq!(asked(&mut g, EventType::TakeLosses), [Faction::Fremen]);
 
     // Back in the shipment, which is over, so the game goes on to Fremen's move.

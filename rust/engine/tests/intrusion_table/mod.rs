@@ -57,7 +57,7 @@ pub fn at_blow(phase: Phase) -> Game {
     let mut g = seated(|_| {});
     g.turn.current_turn = Turn::new(2);
     g.turn.current_main_phase = MainPhase::Blow;
-    g.enter(phase, false);
+    g.enter_blow(BlowStep::of(phase).expect("a spice blow step"));
     g
 }
 

@@ -369,7 +369,7 @@ impl ClassicBot {
         game.turn.current_turn == game.maximum_turns()
             || game.protected_from_monster(self.player)
             // Throws when there is no spice card yet, or it has no location.
-            || t != game.blow.latest_spice_card_a.expect("latest spice card a").location().expect("location").territory()
+            || t != game.board.latest_spice_card_a.expect("latest spice card a").location().expect("location").territory()
             || game.sand_trout_occurred()
             || !game.has_resource_deck_prescience(Some(self.player))
             || game.decks.resource_card_deck.as_ref().expect("resource card deck").top().is_some_and(|c| !c.is_shai_hulud())

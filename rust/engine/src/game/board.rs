@@ -25,6 +25,27 @@ pub struct Board {
     pub owner_of_flight_discovery: Option<Option<Faction>>,
     /// Strongholds revealed as discoveries that forces may still enter, until the next storm.
     pub just_revealed_discovery_strongholds: Vec<DiscoveredLocation>,
+    /// The factions whose battle wheels dial the storm: first and last at the table, then those
+    /// of the latest battle.
+    pub has_battle_wheel: Vec<Faction>,
+    /// Sectors the Ixian may still move the Hidden Mobile Stronghold in the storm phase: 3 when
+    /// it starts moving, kept after the phase.
+    pub hms_moves_left: i32,
+    /// Sectors the Ixian may still move the Hidden Mobile Stronghold with Karama: 2 until they
+    /// use it, then 0 from the next battle phase on.
+    pub karma_hms_moves_left: i32,
+    /// The latest card drawn from spice deck A and from deck B, shown until the next one.
+    pub latest_spice_card_a: Option<ResourceCard>,
+    pub latest_spice_card_b: Option<ResourceCard>,
+    /// The worms of the latest spice blow (of deck A or B), until the next blow or the charity
+    /// phase.
+    pub monsters: Vec<MonsterAppearance>,
+    /// Worms that appeared in the game (for the Shield Wall stronghold rule).
+    pub number_of_monsters: i32,
+    /// A sandtrout waiting for the next worm, which it cancels.
+    pub sand_trout: Option<ResourceCard>,
+    /// A sandtrout cancelled a worm, so the next spice blow is doubled.
+    pub sand_trout_doubles_resources: bool,
     /// The CHOAM economics token, once CHOAM has played it (`ChoamEconomics`). The mentat pause
     /// flips it; charity, deals and donations read it.
     pub choam_economics_status: Option<ChoamEconomicsStatus>,
@@ -52,6 +73,15 @@ impl Board {
             pending_discoveries: Vec::new(),
             owner_of_flight_discovery: None,
             just_revealed_discovery_strongholds: Vec::new(),
+            has_battle_wheel: Vec::new(),
+            hms_moves_left: 0,
+            karma_hms_moves_left: 2,
+            latest_spice_card_a: None,
+            latest_spice_card_b: None,
+            monsters: Vec::new(),
+            number_of_monsters: 0,
+            sand_trout: None,
+            sand_trout_doubles_resources: false,
             choam_economics_status: None,
             current_no_field_value: -1,
             latest_revealed_no_field_value: -1,

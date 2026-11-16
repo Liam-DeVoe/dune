@@ -153,7 +153,8 @@ fn nexus_card_may_draw() {
     let mut g = game_with(&[Faction::Emperor]);
     let emperor = idx(&g, Faction::Emperor);
     assert!(NexusCardDrawn::may_draw(&g, emperor));
-    g.blow.factions_that_drew_nexus_card.push(Faction::Emperor);
+    g.enter_blow(BlowStep::NexusCards);
+    g.blow_mut().unwrap().factions_that_drew_nexus_card.push(Faction::Emperor);
     assert!(!NexusCardDrawn::may_draw(&g, emperor));
     // A faction holding its own Nexus card may draw again.
     g.player_mut(emperor).nexus = Some(Faction::Emperor);

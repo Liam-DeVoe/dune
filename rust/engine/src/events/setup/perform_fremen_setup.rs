@@ -41,6 +41,10 @@ impl EventRules for PerformFremenSetup {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        // Only reached outside the phase when events are replayed without validation.
+        if game.setup().is_none() {
+            game_error!("Not in the setup phase");
+        }
         for (location, battalion) in self.force_locations(game, by).iter() {
             let location = *location;
             Player::ship_forces(game, by.player(), location, battalion.forces())?;
@@ -54,8 +58,17 @@ impl EventRules for PerformFremenSetup {
         let c1 = game.is_playing(Faction::BeneGesserit) && PerformBeneGesseritPlacement::bene_gesserit_may_place_first_force_in_any_territory(game);
         let c2 = game.is_playing(Faction::Moritani);
         let c3 = game.treachery_cards_before_traitors();
-        game.enter_first(&[(c1, Step::Enter(Phase::BeneGesseritSettingUp)), (c2, Step::Enter(Phase::MoritaniSettingUp)), (c3, Step::Run(Game::enter_storm_phase))], Step::Run(Game::deal_starting_treachery_cards))?;
-        Ok(())
+        if c1 {
+            game.enter_setup(SetupStep::BeneGesseritSettingUp);
+            Ok(())
+        } else if c2 {
+            game.enter_setup(SetupStep::MoritaniSettingUp);
+            Ok(())
+        } else if c3 {
+            game.enter_storm_phase()
+        } else {
+            game.deal_starting_treachery_cards()
+        }
     }
 
     fn describe(&self, _game: &Game, by: By) -> Message {

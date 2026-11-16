@@ -5,28 +5,63 @@ use crate::prelude::*;
 use crate::messages::part::Part;
 use crate::random::Rng;
 
-/// State of the storm phase: the dials, the Hidden Mobile Stronghold's moves and storm losses.
+/// The storm phase (`PhaseState::Storm`): its step, the dials and whether the Testing Station
+/// was used. It is dropped when the phase ends.
 pub struct StormState {
-    pub hms_moves_left: i32,
-    pub karma_hms_moves_left: i32,
-    pub has_battle_wheel: Vec<Faction>,
+    pub step: StormStep,
     pub dials: Vec<i32>,
     pub current_testing_station_used: bool,
-    pub phase_before_storm_loss: Option<Phase>,
-    pub storm_losses_to_take: Vec<LossToTake>,
 }
 
 impl StormState {
-    pub fn new() -> Self {
-        StormState {
-            hms_moves_left: Default::default(),
-            karma_hms_moves_left: 2,
-            has_battle_wheel: Vec::new(),
-            dials: Vec::new(),
-            current_testing_station_used: Default::default(),
-            phase_before_storm_loss: Default::default(),
-            storm_losses_to_take: Vec::new(),
+    pub fn new(step: StormStep) -> Self {
+        StormState { step, dials: Vec::new(), current_testing_station_used: false }
+    }
+}
+
+/// Where the storm phase is.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StormStep {
+    /// Before the storm moves, while forces may enter a just revealed discovery stronghold.
+    Beginning,
+    /// The Ixian moves the Hidden Mobile Stronghold.
+    HmsMovement,
+    /// The two factions with a battle wheel dial the storm.
+    Dialling,
+    /// The first turn: the Ixian places the Hidden Mobile Stronghold.
+    HmsPlacement,
+    /// Factions may play Weather Control, Family Atomics or the Testing Station.
+    MetheorAndStormSpell,
+    /// Fremen (or CHOAM) decide which forces the storm killed (`storm_losses_to_take`).
+    Losses,
+    Report,
+}
+
+impl StormStep {
+    pub fn phase(self) -> Phase {
+        match self {
+            StormStep::Beginning => Phase::BeginningOfStorm,
+            StormStep::HmsMovement => Phase::HmsMovement,
+            StormStep::Dialling => Phase::DiallingStorm,
+            StormStep::HmsPlacement => Phase::HmsPlacement,
+            StormStep::MetheorAndStormSpell => Phase::MetheorAndStormSpell,
+            StormStep::Losses => Phase::StormLosses,
+            StormStep::Report => Phase::StormReport,
         }
+    }
+
+    pub fn of(phase: Phase) -> Option<StormStep> {
+        let step = match phase {
+            Phase::BeginningOfStorm => StormStep::Beginning,
+            Phase::HmsMovement => StormStep::HmsMovement,
+            Phase::DiallingStorm => StormStep::Dialling,
+            Phase::HmsPlacement => StormStep::HmsPlacement,
+            Phase::MetheorAndStormSpell => StormStep::MetheorAndStormSpell,
+            Phase::StormLosses => StormStep::Losses,
+            Phase::StormReport => StormStep::Report,
+            _ => return None,
+        };
+        Some(step)
     }
 }
 
@@ -36,19 +71,52 @@ macro_rules! elems {
 }
 
 impl Game {
+    /// The storm phase's state, while the game is in it (an interrupt may suspend it).
+    pub fn storm(&self) -> Option<&StormState> {
+        match &self.phase {
+            PhaseState::Storm(s) => Some(s),
+            _ => None,
+        }
+    }
+
+    pub fn storm_mut(&mut self) -> Option<&mut StormState> {
+        match &mut self.phase {
+            PhaseState::Storm(s) => Some(s),
+            _ => None,
+        }
+    }
+
+    /// The storm phase's state, for code that only runs in the storm phase.
+    pub(crate) fn storm_state(&mut self) -> &mut StormState {
+        self.storm_mut().expect("the storm phase")
+    }
+
+    /// Moves the storm phase to `step`, dropping any interrupt, as entering a phase did. Starts
+    /// the storm phase if the game isn't in it yet: [`Game::enter_storm_phase`] enters its first
+    /// step only once it knows which one that is, so no deals end at a step it skips.
+    pub fn enter_storm(&mut self, step: StormStep) {
+        match self.storm_mut() {
+            Some(s) => {
+                s.step = step;
+                self.interrupts.clear();
+                self.remove_ended_deals(step.phase());
+            }
+            None => self.enter_state(PhaseState::Storm(StormState::new(step))),
+        }
+    }
+
     pub fn enter_storm_phase(&mut self) -> GameResult {
         self.turn.current_turn = self.turn.current_turn.next().expect("a game has at most 255 turns");
         self.main_phase_start(MainPhase::Storm, true);
         self.turn.revivals.factions_that_revived_special_forces_this_turn.clear();
-        self.storm.storm_losses_to_take.clear();
-        self.storm.current_testing_station_used = false;
+        self.turn.storm_losses_to_take.clear();
 
+        // The new storm state has no dials yet and the Testing Station unused.
         if self.turn.current_turn == Turn::FIRST {
-            self.storm.dials.clear();
             self.turn.has_acted_or_passed.clear();
-            self.enter(Phase::DiallingStorm, true);
+            self.enter_storm(StormStep::Dialling);
         } else if !self.board.just_revealed_discovery_strongholds.is_empty() {
-            self.enter(Phase::BeginningOfStorm, true);
+            self.enter_storm(StormStep::Beginning);
         } else {
             self.move_hms_before_dialling_storm();
         }
@@ -74,8 +142,8 @@ impl Game {
                 self.log(elems!["The storm prevents ", hms, " from moving"]);
                 self.determine_storm();
             } else {
-                self.storm.hms_moves_left = 3;
-                self.enter(Phase::HmsMovement, true);
+                self.enter_storm(StormStep::HmsMovement);
+                self.board.hms_moves_left = 3;
             }
         } else {
             self.determine_storm();
@@ -90,9 +158,9 @@ impl Game {
         if self.use_storm_deck() {
             self.reveal_storm();
         } else {
-            self.storm.dials.clear();
             self.turn.has_acted_or_passed.clear();
-            self.enter(Phase::DiallingStorm, true);
+            self.enter_storm(StormStep::Dialling);
+            self.storm_state().dials.clear();
         }
     }
 
@@ -101,7 +169,7 @@ impl Game {
         let msg = express!("The storm will move ", self.board.next_storm_moves, " sectors...")
             .with_log(StormForecast::new(self.board.next_storm_moves));
         self.log(elems![msg]);
-        self.enter(Phase::MetheorAndStormSpell, true);
+        self.enter_storm(StormStep::MetheorAndStormSpell);
     }
 
     pub fn collect_spice_from(&mut self, faction: Faction, l: Location, maximum_amount: i32) -> GameResult {
@@ -160,7 +228,7 @@ impl Game {
                         loss.location = Some(key);
                         loss.amount = TakeLosses::half_of(battalion.forces(), battalion.special_forces());
                         loss.faction = Some(battalion.faction);
-                        self.storm.storm_losses_to_take.push(loss);
+                        self.turn.storm_losses_to_take.push(loss);
                     } else {
                         kill_count += self.player(player).any_forces_in(Some(key));
                         killed_forces += self.player(player).forces_in(Some(key));
@@ -177,7 +245,7 @@ impl Game {
                     loss.location = Some(key);
                     loss.amount = battalion.total_amount_of_forces();
                     loss.faction = Some(battalion.faction);
-                    self.storm.storm_losses_to_take.push(loss);
+                    self.turn.storm_losses_to_take.push(loss);
                 } else {
                     self.reveal_current_no_field(player, Some(key))?;
                     kill_count += self.player(player).any_forces_in(Some(key));
@@ -229,13 +297,12 @@ impl Game {
 
         self.main_phase_end();
 
-        if !self.storm.storm_losses_to_take.is_empty() {
-            // BlowA marks losses taken in the storm phase: once they are taken, TakeLosses calls
-            // this again, which ends the phase (again) and enters the storm report.
-            self.storm.phase_before_storm_loss = Some(Phase::BlowA);
-            self.enter(Phase::StormLosses, true);
+        if !self.turn.storm_losses_to_take.is_empty() {
+            // Once they are taken, TakeLosses calls this again, which ends the phase (again) and
+            // enters the storm report.
+            self.enter_storm(StormStep::Losses);
         } else {
-            self.enter(Phase::StormReport, true);
+            self.enter_storm(StormStep::Report);
         }
     }
 
@@ -264,7 +331,7 @@ impl GameStatus {
             }
 
             Phase::DiallingStorm => {
-                let factions: Vec<Faction> = g.rules.factions_in_play.iter().copied().filter(|f| g.storm.has_battle_wheel.contains(f) && !g.turn.has_acted_or_passed.contains(f)).collect();
+                let factions: Vec<Faction> = g.rules.factions_in_play.iter().copied().filter(|f| g.board.has_battle_wheel.contains(f) && !g.turn.has_acted_or_passed.contains(f)).collect();
                 Self::factions_status(g, "Please dial a number to determine storm movement.", "Storm movement is being determined...", &factions, None)
             }
 
@@ -273,7 +340,7 @@ impl GameStatus {
             Phase::StormLosses => {
                 let a = express!("Please decide which forces were killed by the storm in ", TakeLosses::losses_to_take(g).location, ".");
                 let w = express!(TakeLosses::losses_to_take(g).faction, " are deciding which forces were killed by the storm in ", TakeLosses::losses_to_take(g).location, "...");
-                let f = g.storm.storm_losses_to_take[0].faction;
+                let f = g.turn.storm_losses_to_take[0].faction;
                 Self::faction_status(g, a, w, f, None)
             }
 
@@ -289,7 +356,7 @@ impl Game {
         match self.phase() {
             Phase::DiallingStorm => {
                 let f = self.player(player).faction;
-                if self.storm.has_battle_wheel.contains_opt(f) && !self.turn.has_acted_or_passed.contains_opt(f) {
+                if self.board.has_battle_wheel.contains_opt(f) && !self.turn.has_acted_or_passed.contains_opt(f) {
                     result.push(EventType::StormDialled);
                 }
             }

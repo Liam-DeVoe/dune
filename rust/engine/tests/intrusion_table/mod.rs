@@ -255,14 +255,14 @@ pub fn an_ambassador(g: &Game) -> Ambassador {
 
 pub fn shipment(f: i32, to: Location, forces: i32) -> String {
     format!(
-        r#"{{"$type":"Shipment","ShipmentType":0,"ForceAmount":{forces},"SpecialForceAmount":0,"SmuggledAmount":0,"SmuggledSpecialAmount":0,"AllyContributionAmount":0,"UseRicheseSecretAlly":false,"_toId":{},"_fromId":-1,"_noFieldValue":-1,"_cunningNoFieldValue":-1,"_karmaCardId":-1,"_forceLocations":"","Passed":false,"Initiator":{f}}}"#,
+        r#"{{"$type":"Shipment","ShipmentType":0,"ForceAmount":{forces},"SpecialForceAmount":0,"SmuggledAmount":0,"SmuggledSpecialAmount":0,"AllyContributionAmount":0,"UseRicheseSecretAlly":false,"_toId":{},"_fromId":-1,"_noFieldValue":0,"_cunningNoFieldValue":0,"_karmaCardId":-1,"_forceLocations":"","Passed":false,"Initiator":{f}}}"#,
         to.id()
     )
 }
 
 pub fn shipment_passed(f: i32) -> String {
     format!(
-        r#"{{"$type":"Shipment","ShipmentType":0,"ForceAmount":0,"SpecialForceAmount":0,"SmuggledAmount":0,"SmuggledSpecialAmount":0,"AllyContributionAmount":0,"UseRicheseSecretAlly":false,"_toId":-1,"_fromId":-1,"_noFieldValue":-1,"_cunningNoFieldValue":-1,"_karmaCardId":-1,"_forceLocations":"","Passed":true,"Initiator":{f}}}"#
+        r#"{{"$type":"Shipment","ShipmentType":0,"ForceAmount":0,"SpecialForceAmount":0,"SmuggledAmount":0,"SmuggledSpecialAmount":0,"AllyContributionAmount":0,"UseRicheseSecretAlly":false,"_toId":-1,"_fromId":-1,"_noFieldValue":0,"_cunningNoFieldValue":0,"_karmaCardId":-1,"_forceLocations":"","Passed":true,"Initiator":{f}}}"#
     )
 }
 

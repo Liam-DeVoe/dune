@@ -8,7 +8,7 @@ macro_rules! elems {
 
 #[derive(Clone, Debug)]
 pub struct DivideResources {
-    pub portion_to_first_player: i32,
+    pub portion_to_first_player: u16,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
@@ -39,7 +39,7 @@ impl DivideResources {
 
         let to_be_divided = Self::get_resources_to_be_divided(game);
         let Some(to_be_divided) = to_be_divided else { return Some(express!("No collections to be divided")) };
-        if self.portion_to_first_player > Self::get_resources_to_be_divided(game).expect("resources to be divided").amount {
+        if i32::from(self.portion_to_first_player) > Self::get_resources_to_be_divided(game).expect("resources to be divided").amount {
             return Some(express!("Too much assigned to ", to_be_divided.first_faction));
         }
 
@@ -79,11 +79,11 @@ impl DivideResources {
             game.enter_or_else(any, Phase::DividingCollectedResources, Game::end_collection_main_phase);
         } else {
             let to_be_divided = Self::get_resources_to_be_divided(game);
-            let gained_by_other_faction = Self::gained_by_other_faction(to_be_divided.as_ref(), true, self.portion_to_first_player);
+            let gained_by_other_faction = Self::gained_by_other_faction(to_be_divided.as_ref(), true, i32::from(self.portion_to_first_player));
             let other = to_be_divided.required("to be divided")?.other_faction;
             self.log_objects(
                 game,
-                elems![self.initiator(), " propose that they take ", Payment::of(self.portion_to_first_player), " and ", other, " take ", Payment::of(gained_by_other_faction)],
+                elems![self.initiator(), " propose that they take ", Payment::of(i32::from(self.portion_to_first_player)), " and ", other, " take ", Payment::of(gained_by_other_faction)],
             );
             game.enter(Phase::AcceptingResourceDivision, true);
         }

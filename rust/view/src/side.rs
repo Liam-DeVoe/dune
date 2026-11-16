@@ -40,7 +40,7 @@ pub fn deals(game: &Game, v: &ResolvedViewer, d: &dyn Describer) -> Option<Deals
             DealOfferView {
                 id: id_of(&o),
                 initiator: name_or_absent(o.initiator()),
-                price: o.price,
+                price: i32::from(o.price),
                 description: message(&o.get_deal_description(game), d),
                 message: message(&o.get_message(game), d),
                 accept_error: validate(game, GameEvent::from(acceptance.clone()), d),
@@ -55,7 +55,7 @@ pub fn deals(game: &Game, v: &ResolvedViewer, d: &dyn Describer) -> Option<Deals
         .map(|o| DealOfferView {
             id: id_of(&o),
             initiator: name_or_absent(o.initiator()),
-            price: o.price,
+            price: i32::from(o.price),
             description: message(&o.get_deal_description(game), d),
             message: message(&o.get_message(game), d),
             accept_error: None,

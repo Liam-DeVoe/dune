@@ -84,8 +84,8 @@ fn check_state(game: &mut Game, d: &dyn treachery_view::describe::Describer, see
                     seen.karma += 1;
                 }
                 let mut e = Bid::new(game, faction);
-                e.amount = amount;
-                e.ally_contribution_amount = ally;
+                e.amount = treachery_engine::game::amounts::clamp_u16(amount);
+                e.ally_contribution_amount = treachery_engine::game::amounts::clamp_u16(ally);
                 (
                     ActionOptions::Bid {
                         max_amount,
@@ -103,8 +103,8 @@ fn check_state(game: &mut Game, d: &dyn treachery_view::describe::Describer, see
                 let max_ally = BlackMarketBid::valid_max_ally_amount(game, p);
                 let (amount, ally) = expected_defaults(game, p, max_amount, max_ally);
                 let mut e = BlackMarketBid::new(game, faction);
-                e.amount = amount;
-                e.ally_contribution_amount = ally;
+                e.amount = treachery_engine::game::amounts::clamp_u16(amount);
+                e.ally_contribution_amount = treachery_engine::game::amounts::clamp_u16(ally);
                 (
                     ActionOptions::BlackMarketBid { max_amount, max_ally_amount: max_ally, max_emperor_amount: emperor, default_amount: amount, default_ally_amount: ally },
                     GameEvent::from(std::rc::Rc::new(e)),
@@ -117,8 +117,8 @@ fn check_state(game: &mut Game, d: &dyn treachery_view::describe::Describer, see
             if !silent(game) {
                 let to_beat = game.bidding.current_bid.as_ref().map_or(0, |b| b.bid_total_amount());
                 let (amount, ally) = match &default_event {
-                    GameEvent::Bid(b) => (b.amount, b.ally_contribution_amount),
-                    GameEvent::BlackMarketBid(b) => (b.amount, b.ally_contribution_amount),
+                    GameEvent::Bid(b) => (i32::from(b.amount), i32::from(b.ally_contribution_amount)),
+                    GameEvent::BlackMarketBid(b) => (i32::from(b.amount), i32::from(b.ally_contribution_amount)),
                     _ => unreachable!(),
                 };
                 if amount + ally == to_beat + 1 {

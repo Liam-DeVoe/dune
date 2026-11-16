@@ -207,7 +207,7 @@ fn prescience(l: &mut Lines, v: i32) {
     battle.territory = Some(territory);
     g.battle.current_battle = Some(Rc::new(battle));
 
-    let plan = |g: &Game, hero: Leader, weapon: Option<TreacheryCard>, def: Option<TreacheryCard>, half: i32| -> Rc<Battle> {
+    let plan = |g: &Game, hero: Leader, weapon: Option<TreacheryCard>, def: Option<TreacheryCard>, half: u16| -> Rc<Battle> {
         let mut b = Battle::new(g, Faction::Choam);
         b.hero = Some(Hero::Leader(hero));
         b.set_weapon(weapon);

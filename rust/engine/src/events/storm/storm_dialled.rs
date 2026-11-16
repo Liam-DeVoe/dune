@@ -10,7 +10,7 @@ macro_rules! elems {
 
 #[derive(Clone, Debug)]
 pub struct StormDialled {
-    pub amount: i32,
+    pub amount: u16,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -32,7 +32,7 @@ impl StormDialled {
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if self.amount < Self::valid_min_amount(game) || self.amount > Self::valid_max_amount(game) {
+        if i32::from(self.amount) < Self::valid_min_amount(game) || i32::from(self.amount) > Self::valid_max_amount(game) {
             return Some(express!("Invalid amount"));
         }
 
@@ -54,7 +54,7 @@ impl StormDialled {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.storm.dials.push(self.amount);
+        game.storm.dials.push(i32::from(self.amount));
         game.turn.has_acted_or_passed.push(self.initiator().required("faction")?);
 
         if game.storm.has_battle_wheel.iter().all(|f| game.turn.has_acted_or_passed.contains(f)) {

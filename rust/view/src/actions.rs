@@ -77,7 +77,7 @@ pub fn default_draft(game: &Game, _v: &ResolvedViewer, s: &Seating, faction: Opt
         GameEventType::EndPhase => event(EndPhase::new(game, faction)),
         GameEventType::StormDialled => {
             let mut e = StormDialled::new(game, faction);
-            e.amount = 0i32.clamp(StormDialled::valid_min_amount(game), StormDialled::valid_max_amount(game).max(StormDialled::valid_min_amount(game)));
+            e.amount = treachery_engine::game::amounts::clamp_u16(0i32.clamp(StormDialled::valid_min_amount(game), StormDialled::valid_max_amount(game).max(StormDialled::valid_min_amount(game))));
             event(e)
         }
         GameEventType::Bid | GameEventType::BlackMarketBid => return bidding::default_draft(game, faction, t),

@@ -4,7 +4,7 @@ use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct StormSpellPlayed {
-    pub move_amount: i32,
+    pub move_amount: u16,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -26,7 +26,7 @@ impl StormSpellPlayed {
     }
 
     pub fn validate(&self, _game: &Game) -> Option<Message> {
-        if self.move_amount < 0 || self.move_amount > 10 {
+        if self.move_amount > 10 {
             return Some(express!("Invalid number of sectors"));
         }
 
@@ -36,15 +36,15 @@ impl StormSpellPlayed {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let card = game.player(self.player()).card(TreacheryCardType::StormSpell);
         game.discard(self.player(), TreacheryCardType::StormSpell)?;
-        let msg = self.get_message(game).with_log(StormMoved::new(game.board.sector_in_storm, self.move_amount, self.initiator(), card));
+        let msg = self.get_message(game).with_log(StormMoved::new(game.board.sector_in_storm, i32::from(self.move_amount), self.initiator(), card));
         self.log_objects(game, vec![Part::from(msg)]);
-        game.move_storm_and_determine_next(self.move_amount)?;
+        game.move_storm_and_determine_next(i32::from(self.move_amount))?;
         game.end_storm_phase();
         Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " use ", TreacheryCardType::StormSpell, " to move the storm ", self.move_amount, " sectors")
+        express!(self.initiator(), " use ", TreacheryCardType::StormSpell, " to move the storm ", i32::from(self.move_amount), " sectors")
     }
 
 }

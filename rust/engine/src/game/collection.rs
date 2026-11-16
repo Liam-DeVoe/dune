@@ -47,9 +47,9 @@ impl Game {
         let to_be_divided = DivideResources::get_resources_to_be_divided(self);
 
         let gained_by_first_faction =
-            DivideResources::gained_by_first_faction(to_be_divided.as_ref(), division_was_agreed, proposal.portion_to_first_player);
+            DivideResources::gained_by_first_faction(to_be_divided.as_ref(), division_was_agreed, i32::from(proposal.portion_to_first_player));
         let gained_by_other_faction =
-            DivideResources::gained_by_other_faction(to_be_divided.as_ref(), division_was_agreed, proposal.portion_to_first_player);
+            DivideResources::gained_by_other_faction(to_be_divided.as_ref(), division_was_agreed, i32::from(proposal.portion_to_first_player));
 
         let to_be_divided = to_be_divided.expect("to be divided");
         self.gain_collected_resources(to_be_divided.first_faction, to_be_divided.territory, gained_by_first_faction, None, false);

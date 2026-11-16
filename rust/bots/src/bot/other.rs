@@ -36,7 +36,7 @@ impl ClassicBot {
         let amount = ResourcesTransferred::max_amount(game, self.player);
         if self.resources(game) - amount > 15 && game.player(self.player).allied_resources(game) < self.resources(game) {
             let mut e = ResourcesTransferred::new(game, self.faction(game));
-            e.resources = amount;
+            e.resources = treachery_engine::game::amounts::clamp_u16(amount);
             return Some(Rc::new(e));
         }
 
@@ -111,7 +111,7 @@ impl ClassicBot {
         let tbd = DivideResources::get_resources_to_be_divided(game);
         let spice_i_want = std::cmp::max(0, tbd.expect("resources to be divided").amount - self.resources(game));
         let mut e = DivideResources::new(game, self.faction(game));
-        e.portion_to_first_player = spice_i_want;
+        e.portion_to_first_player = treachery_engine::game::amounts::clamp_u16(spice_i_want);
         Rc::new(e)
     }
 
@@ -127,7 +127,7 @@ impl ClassicBot {
     pub fn determine_divide_resources_accepted(&self, game: &Game) -> Rc<DivideResourcesAccepted> {
         let tbd = DivideResources::get_resources_to_be_divided(game);
 
-        let portion = game.collection.current_division_proposal.as_ref().expect("current division proposal").portion_to_first_player;
+        let portion = i32::from(game.collection.current_division_proposal.as_ref().expect("current division proposal").portion_to_first_player);
         let i_get_when_agreed = DivideResources::gained_by_other_faction(tbd.as_ref(), true, portion);
         let i_get_when_denied = DivideResources::gained_by_other_faction(tbd.as_ref(), false, portion);
 
@@ -469,14 +469,14 @@ impl ClassicBot {
             return false;
         }
 
-        result.tleilaxu_forces = forces;
-        result.tleilaxu_special_forces = special_forces;
+        result.tleilaxu_forces = treachery_engine::game::amounts::clamp_u16(forces);
+        result.tleilaxu_special_forces = treachery_engine::game::amounts::clamp_u16(special_forces);
         result.tleilaxu_hero = hero;
         result.tleilaxu_assign_skill = Revival::may_assign_skill(game, self.player, hero);
 
         let to_planet = Revival::number_of_special_forces_that_may_be_placed_on_planet(game, self.player, special_forces);
         let (location, to_planet) = self.revival_target(game, to_planet);
-        result.tleilaxu_number_of_special_forces_in_location = to_planet;
+        result.tleilaxu_number_of_special_forces_in_location = treachery_engine::game::amounts::clamp_u16(to_planet);
         result.tleilaxu_location = location;
         true
     }
@@ -497,8 +497,8 @@ impl ClassicBot {
             let forces = std::cmp::max(0, std::cmp::min(3, forces_killed) - special_forces_that_can_be_revived);
             let mut e = KarmaFreeRevival::new(game, self.faction(game));
             e.hero = None;
-            e.amount_of_forces = forces;
-            e.amount_of_special_forces = special_forces_that_can_be_revived;
+            e.amount_of_forces = treachery_engine::game::amounts::clamp_u16(forces);
+            e.amount_of_special_forces = treachery_engine::game::amounts::clamp_u16(special_forces_that_can_be_revived);
             return Some(Rc::new(e));
         }
 
@@ -816,11 +816,11 @@ impl ClassicBot {
 
             let mut e = RaiseDeadPlayed::new(game, self.faction(game));
             e.hero = None;
-            e.amount_of_forces = forces;
-            e.amount_of_special_forces = special_forces_that_can_be_revived;
+            e.amount_of_forces = treachery_engine::game::amounts::clamp_u16(forces);
+            e.amount_of_special_forces = treachery_engine::game::amounts::clamp_u16(special_forces_that_can_be_revived);
             e.assign_skill = false;
             e.location = target_of_forces;
-            e.number_of_special_forces_in_location = special_forces_to_planet;
+            e.number_of_special_forces_in_location = treachery_engine::game::amounts::clamp_u16(special_forces_to_planet);
             return Some(Rc::new(e));
         }
 
@@ -881,7 +881,7 @@ impl ClassicBot {
         let min = StormDialled::valid_min_amount(game);
         let max = StormDialled::valid_max_amount(game);
         let mut e = StormDialled::new(game, self.faction(game));
-        e.amount = min + self.d(1, 1 + max - min) - 1;
+        e.amount = treachery_engine::game::amounts::clamp_u16(min + self.d(1, 1 + max - min) - 1);
         Rc::new(e)
     }
 
@@ -932,7 +932,7 @@ impl ClassicBot {
 
         if best.enemy - best.mine >= 10 - (i32::from(game.turn.current_turn) + if game.player(self.player).has_room_for_cards(game) { 0 } else { 4 }) {
             let mut storm_spell = StormSpellPlayed::new(game, faction);
-            storm_spell.move_amount = best.moves;
+            storm_spell.move_amount = treachery_engine::game::amounts::clamp_u16(best.moves);
             return Some(Rc::new(storm_spell));
         }
 
@@ -1053,15 +1053,15 @@ impl ClassicBot {
 
         let mut e = Revival::new(game, faction);
         e.hero = leader_to_revive;
-        e.amount_of_forces = normal_forces_to_revive;
-        e.extra_forces_paid_by_emperor = forces_revived_by_emperor;
-        e.amount_of_special_forces = special_forces_to_revive;
-        e.extra_special_forces_paid_by_emperor = special_forces_revived_by_emperor;
+        e.amount_of_forces = treachery_engine::game::amounts::clamp_u16(normal_forces_to_revive);
+        e.extra_forces_paid_by_emperor = treachery_engine::game::amounts::clamp_u16(forces_revived_by_emperor);
+        e.amount_of_special_forces = treachery_engine::game::amounts::clamp_u16(special_forces_to_revive);
+        e.extra_special_forces_paid_by_emperor = treachery_engine::game::amounts::clamp_u16(special_forces_revived_by_emperor);
         e.assign_skill = assign_skill;
         e.uses_emperor_secret_ally = use_secret_ally;
         e.location = target_of_forces;
-        e.number_of_forces_in_location = forces_to_planet;
-        e.number_of_special_forces_in_location = special_forces_to_planet;
+        e.number_of_forces_in_location = treachery_engine::game::amounts::clamp_u16(forces_to_planet);
+        e.number_of_special_forces_in_location = treachery_engine::game::amounts::clamp_u16(special_forces_to_planet);
         Some(Rc::new(e))
     }
 

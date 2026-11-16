@@ -5,7 +5,7 @@ use crate::messages::part::Part;
 pub struct TerrorRevealed {
     pub alliance_offered: bool,
     pub type_: Option<TerrorType>,
-    pub forces_in_sneak_attack: i32,
+    pub forces_in_sneak_attack: u16,
     pub sneak_attack_to: Option<Location>,
     pub robbery_takes_card: bool,
     pub card_to_give_in_sabotage: Option<TreacheryCard>,
@@ -46,11 +46,11 @@ impl TerrorRevealed {
     }
 
     pub fn total_amount_of_forces_added_to_location(&self, _game: &Game) -> i32 {
-        self.forces_in_sneak_attack
+        i32::from(self.forces_in_sneak_attack)
     }
 
     pub fn forces_added_to_location(&self, _game: &Game) -> i32 {
-        self.forces_in_sneak_attack
+        i32::from(self.forces_in_sneak_attack)
     }
 
     pub fn special_forces_added_to_location(&self, _game: &Game) -> i32 {
@@ -75,7 +75,7 @@ impl TerrorRevealed {
             return Some(express!("Your faction can't reveal terror tokens"));
         }
 
-        if self.type_ == Some(TerrorType::SneakAttack) && self.sneak_attack_to.is_none() && self.forces_in_sneak_attack > 0 {
+        if self.type_ == Some(TerrorType::SneakAttack) && self.sneak_attack_to.is_none() && i32::from(self.forces_in_sneak_attack) > 0 {
             return Some(express!("You cannot send forces there"));
         }
         if self.type_ == Some(TerrorType::SneakAttack)
@@ -85,7 +85,7 @@ impl TerrorRevealed {
             return Some(express!("Invalid location of sneak attack"));
         }
         if self.type_ == Some(TerrorType::SneakAttack)
-            && self.forces_in_sneak_attack > TerrorRevealed::max_amount_of_forces_in_sneak_attack(game, self.player())
+            && i32::from(self.forces_in_sneak_attack) > TerrorRevealed::max_amount_of_forces_in_sneak_attack(game, self.player())
         {
             return Some(express!("Too many forces selected"));
         }
@@ -316,9 +316,9 @@ impl TerrorRevealed {
                         let force = game.player(self.player()).force();
                         self.log_objects(
                             game,
-                            elems![self.initiator(), " sneak attack ", territory, " with ", self.forces_in_sneak_attack, force],
+                            elems![self.initiator(), " sneak attack ", territory, " with ", i32::from(self.forces_in_sneak_attack), force],
                         );
-                        Player::ship_forces(game, self.player(), sneak_attack_to, self.forces_in_sneak_attack)?;
+                        Player::ship_forces(game, self.player(), sneak_attack_to, i32::from(self.forces_in_sneak_attack))?;
                         game.check_intrusion(&self.clone().into_event())?;
                     }
                 }

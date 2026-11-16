@@ -248,13 +248,13 @@ pub fn default_draft(game: &Game, s: &Seating, faction: Option<Faction>, t: Game
 /// The permissions in force, which the ally permission form starts from.
 fn current_permissions(game: &Game, faction: Faction, e: &mut AllyPermission) {
     let ally = game.player(game.get_player(Some(faction)).expect("player")).ally;
-    e.permitted_resources = game.get_permitted_use_of_ally_resources(ally);
+    e.permitted_resources = treachery_engine::game::amounts::clamp_u16(game.get_permitted_use_of_ally_resources(ally));
     e.permitted_karma_card = game.get_permitted_use_of_ally_karma(ally);
     match faction {
         Faction::Tleilaxu => e.set_tleilaxu_allows_revival_discount(game.alliances.tleilaxu_allows_revival_discount),
         Faction::Ixian => e.set_ixian_allows_replacing_cards(game.alliances.ixian_allows_replacing_cards),
         Faction::Guild => e.set_guild_allows_shipping_discount(game.alliances.guild_allows_shipping_discount),
-        Faction::Emperor => e.emperor_will_pay_for_extra_revival = game.alliances.emperor_will_pay_for_extra_revival,
+        Faction::Emperor => e.emperor_will_pay_for_extra_revival = treachery_engine::game::amounts::clamp_u16(game.alliances.emperor_will_pay_for_extra_revival),
         Faction::Fremen => {
             e.fremen_will_protect_from_monster = game.alliances.fremen_will_protect_from_monster;
             e.fremen_allows_three_free_revivals = game.alliances.fremen_allows_three_free_revivals;
@@ -307,7 +307,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
             m.rule_type = required(m.rule_type, &types, AutomationRuleType::default());
             m.action = ItemAction::Create;
             match m.rule_type {
-                AutomationRuleType::BiddingPassAboveAmount => m.bidding_above_amount = picker(m.bidding_above_amount, 0, 40),
+                AutomationRuleType::BiddingPassAboveAmount => m.bidding_above_amount = treachery_engine::game::amounts::clamp_u16(picker(i32::from(m.bidding_above_amount), 0, 40)),
                 AutomationRuleType::BiddingPassWhenHighestBidByFaction => {
                     let fs = AutomationConfigured::get_valid_bidding_factions(game, p);
                     m.bidding_winning_faction = required_opt(m.bidding_winning_faction, &fs);
@@ -316,12 +316,12 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
             }
         }),
         GameEvent::AllyPermission(e) => adjust!(e, |m| {
-            m.permitted_resources = picker(m.permitted_resources, 0, i32::from(pl.resources));
+            m.permitted_resources = treachery_engine::game::amounts::clamp_u16(picker(i32::from(m.permitted_resources), 0, i32::from(pl.resources)));
             if !Karma::can_karma(game, p) {
                 m.permitted_karma_card = None;
             }
             if pl.faction == Some(Faction::Emperor) {
-                m.emperor_will_pay_for_extra_revival = picker(m.emperor_will_pay_for_extra_revival, 0, 3);
+                m.emperor_will_pay_for_extra_revival = treachery_engine::game::amounts::clamp_u16(picker(i32::from(m.emperor_will_pay_for_extra_revival), 0, 3));
             }
         }),
         GameEvent::BeneGesseritPrediction(e) => adjust!(e, |m| {
@@ -353,8 +353,8 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
             let types = DealOffered::get_standard_deal_types(game, p);
             m.type_ = required(m.type_, &types, DealType::None);
             m.end_phase = required(m.end_phase, &deal_end_phases(m.type_), None);
-            m.price = picker(m.price, 0, 50);
-            m.benefit = picker(m.benefit, 0, 50);
+            m.price = treachery_engine::game::amounts::clamp_u16(picker(i32::from(m.price), 0, 50));
+            m.benefit = treachery_engine::game::amounts::clamp_u16(picker(i32::from(m.benefit), 0, 50));
         }),
         GameEvent::Discarded(e) => adjust!(e, |m| {
             m.card = required_opt(m.card, &hand);
@@ -372,7 +372,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
         }),
         GameEvent::DivideResources(e) => adjust!(e, |m| {
             let amount = DivideResources::get_resources_to_be_divided(game).map_or(0, |t| t.amount);
-            m.portion_to_first_player = picker(m.portion_to_first_player, 0, amount);
+            m.portion_to_first_player = treachery_engine::game::amounts::clamp_u16(picker(i32::from(m.portion_to_first_player), 0, amount));
         }),
         GameEvent::Donated(e) => adjust!(e, |m| {
             if !v.is_host {
@@ -453,7 +453,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
             m.target = required_opt(m.target, &targets);
         }),
         GameEvent::ResourcesTransferred(e) => adjust!(e, |m| {
-            m.resources = picker(m.resources, 0, ResourcesTransferred::max_amount(game, p));
+            m.resources = treachery_engine::game::amounts::clamp_u16(picker(i32::from(m.resources), 0, ResourcesTransferred::max_amount(game, p)));
         }),
         GameEvent::SkillAssigned(e) => adjust!(e, |m| {
             m.passed = false;
@@ -462,7 +462,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
             m.leader = required(m.leader, &leaders, None);
         }),
         GameEvent::StormSpellPlayed(e) => adjust!(e, |m| {
-            m.move_amount = picker(m.move_amount, 0, 10);
+            m.move_amount = treachery_engine::game::amounts::clamp_u16(picker(i32::from(m.move_amount), 0, 10));
         }),
         GameEvent::TraitorDiscarded(e) => adjust!(e, |m| {
             let heroes: Vec<Hero> = TraitorDiscarded::valid_traitors(game, p).into_iter().collect();
@@ -608,8 +608,8 @@ fn options(game: &Game, p: PlayerId, v: &ResolvedViewer, draft: &GameEvent, d: &
                 amount: tbd.amount,
                 territory: tbd.territory.id(),
                 other_faction: tbd.other_faction.to_string(),
-                gained_if_passed: DivideResources::gained_by_first_faction(Some(&tbd), false, e.portion_to_first_player),
-                other_gains_if_passed: DivideResources::gained_by_other_faction(Some(&tbd), false, e.portion_to_first_player),
+                gained_if_passed: DivideResources::gained_by_first_faction(Some(&tbd), false, i32::from(e.portion_to_first_player)),
+                other_gains_if_passed: DivideResources::gained_by_other_faction(Some(&tbd), false, i32::from(e.portion_to_first_player)),
                 draft: json.clone(),
             })
         }

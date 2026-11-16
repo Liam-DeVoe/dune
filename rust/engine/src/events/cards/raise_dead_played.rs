@@ -2,11 +2,11 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct RaiseDeadPlayed {
-    pub amount_of_forces: i32,
-    pub amount_of_special_forces: i32,
+    pub amount_of_forces: u16,
+    pub amount_of_special_forces: u16,
     pub assign_skill: bool,
     pub hero: Option<Hero>,
-    pub number_of_special_forces_in_location: i32,
+    pub number_of_special_forces_in_location: u16,
     pub location: Option<Location>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
@@ -38,7 +38,7 @@ impl RaiseDeadPlayed {
     }
 
     pub fn total_amount_of_forces_added_to_location(&self, _game: &Game) -> i32 {
-        self.number_of_special_forces_in_location
+        i32::from(self.number_of_special_forces_in_location)
     }
 
     pub fn forces_added_to_location(&self, _game: &Game) -> i32 {
@@ -46,36 +46,33 @@ impl RaiseDeadPlayed {
     }
 
     pub fn special_forces_added_to_location(&self, _game: &Game) -> i32 {
-        self.number_of_special_forces_in_location
+        i32::from(self.number_of_special_forces_in_location)
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
         let p_opt = self.player_opt();
         let initiator = self.initiator();
-        if self.amount_of_forces < 0 || self.amount_of_special_forces < 0 {
-            return Some(express!("You can't revive a negative amount of forces"));
-        }
         let p = p_opt.expect("player");
         let pl = game.player(p);
-        if self.amount_of_forces > i32::from(pl.forces_killed) {
+        if i32::from(self.amount_of_forces) > i32::from(pl.forces_killed) {
             return Some(express!("You can't revive that many"));
         }
-        if self.amount_of_special_forces > i32::from(pl.special_forces_killed) {
+        if i32::from(self.amount_of_special_forces) > i32::from(pl.special_forces_killed) {
             return Some(express!("You can't revive that many"));
         }
-        if (self.amount_of_forces + self.amount_of_special_forces) > 5 {
+        if (i32::from(self.amount_of_forces) + i32::from(self.amount_of_special_forces)) > 5 {
             return Some(express!("You can't revive that many"));
         }
-        if initiator != Some(Faction::Ixian) && self.amount_of_special_forces > 1 {
+        if initiator != Some(Faction::Ixian) && i32::from(self.amount_of_special_forces) > 1 {
             return Some(express!("You can only revive one ", pl.special_force(), " per turn"));
         }
-        if self.amount_of_special_forces > 0
+        if i32::from(self.amount_of_special_forces) > 0
             && initiator != Some(Faction::Ixian)
             && game.revival.factions_that_revived_special_forces_this_turn.contains_opt(initiator)
         {
             return Some(express!("You already revived one ", pl.special_force(), " this turn"));
         }
-        if (self.amount_of_forces + self.amount_of_special_forces) > 0 && self.hero.is_some() {
+        if (i32::from(self.amount_of_forces) + i32::from(self.amount_of_special_forces)) > 0 && self.hero.is_some() {
             return Some(express!("You can't revive both forces and a leader"));
         }
         if self.hero.is_some() && !Self::valid_heroes(game, p).contains(&self.hero.expect("hero")) {
@@ -95,8 +92,8 @@ impl RaiseDeadPlayed {
                 return Some(express!("You can't place revived forces there"));
             }
 
-            if self.number_of_special_forces_in_location
-                > Revival::number_of_special_forces_that_may_be_placed_on_planet(game, p, self.amount_of_special_forces)
+            if i32::from(self.number_of_special_forces_in_location)
+                > Revival::number_of_special_forces_that_may_be_placed_on_planet(game, p, i32::from(self.amount_of_special_forces))
             {
                 return Some(express!("You can't place that many forces directly on the planet"));
             }
@@ -129,8 +126,8 @@ impl RaiseDeadPlayed {
         if hero.is_none() || !game.is_face_down_dead(hero.required("hero")?) {
             let mut row = RevivalRow::new(
                 initiator.required("faction")?,
-                if hero.is_none() { self.amount_of_forces } else { 0 },
-                if hero.is_none() { self.amount_of_special_forces } else { 0 },
+                if hero.is_none() { i32::from(self.amount_of_forces) } else { 0 },
+                if hero.is_none() { i32::from(self.amount_of_special_forces) } else { 0 },
                 0,
             );
             row.hero = hero;
@@ -164,10 +161,10 @@ impl RaiseDeadPlayed {
                 game.prepare_skill_assignment_to_revived_leader(me, hero.as_leader());
             }
         } else {
-            Player::revive_forces(game, me, self.amount_of_forces)?;
-            Player::revive_special_forces(game, me, self.amount_of_special_forces)?;
+            Player::revive_forces(game, me, i32::from(self.amount_of_forces))?;
+            Player::revive_special_forces(game, me, i32::from(self.amount_of_special_forces))?;
 
-            if self.amount_of_special_forces > 0 {
+            if i32::from(self.amount_of_special_forces) > 0 {
                 game.revival.factions_that_revived_special_forces_this_turn.push(initiator.required("faction")?);
             }
         }
@@ -202,9 +199,9 @@ impl RaiseDeadPlayed {
             ", ",
             self.initiator(),
             " revive ",
-            express_part_if!(self.amount_of_forces > 0; self.amount_of_forces, " ", pl.force()),
-            express_part_if!(self.amount_of_forces > 0 && self.amount_of_special_forces > 0; " and "),
-            express_part_if!(self.amount_of_special_forces > 0; self.amount_of_special_forces, " ", pl.special_force())
+            express_part_if!(i32::from(self.amount_of_forces) > 0; i32::from(self.amount_of_forces), " ", pl.force()),
+            express_part_if!(i32::from(self.amount_of_forces) > 0 && i32::from(self.amount_of_special_forces) > 0; " and "),
+            express_part_if!(i32::from(self.amount_of_special_forces) > 0; i32::from(self.amount_of_special_forces), " ", pl.special_force())
         ))
     }
 

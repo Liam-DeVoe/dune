@@ -84,7 +84,7 @@ fn deals() {
                     // Never someone else's offer to a third party.
                     assert!(g.deal_recipients(&offer).any(|x| x == f), "{at} {f}: an offer not addressed to the viewer");
                     assert_eq!(o.initiator, name_or_absent(offer.initiator()));
-                    assert_eq!(o.price, offer.price);
+                    assert_eq!(o.price, i32::from(offer.price));
                     assert!(o.answers.is_empty() && o.withdraw.is_none(), "{at} {f}: answers to someone else's offer");
                     let accept = parse_event(&o.accept);
                     assert!(matches!(accept, GameEvent::DealAccepted(_)), "{at}");

@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct AllyPermission {
     pub ally_may_ship_as_guild: bool,
-    pub emperor_will_pay_for_extra_revival: i32,
+    pub emperor_will_pay_for_extra_revival: u16,
     pub fremen_will_protect_from_monster: bool,
     pub fremen_allows_three_free_revivals: bool,
     pub fremen_shares_prescience: bool,
@@ -15,7 +15,7 @@ pub struct AllyPermission {
     pub richese_allows_use_of_no_field: bool,
     pub moritani_allows_keeping_cards: bool,
     pub ecaz_shares_ambassadors: bool,
-    pub permitted_resources: i32,
+    pub permitted_resources: u16,
     pub permitted_karma_card: Option<TreacheryCard>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
@@ -86,7 +86,7 @@ impl AllyPermission {
             Some(Faction::Guild) => game.alliances.guild_allows_shipping_discount = self.guild_allows_shipping_discount(),
             Some(Faction::Tleilaxu) => game.alliances.tleilaxu_allows_revival_discount = self.tleilaxu_allows_revival_discount(),
             Some(Faction::Ixian) => game.alliances.ixian_allows_replacing_cards = self.ixian_allows_replacing_cards(),
-            Some(Faction::Emperor) => game.alliances.emperor_will_pay_for_extra_revival = self.emperor_will_pay_for_extra_revival,
+            Some(Faction::Emperor) => game.alliances.emperor_will_pay_for_extra_revival = i32::from(self.emperor_will_pay_for_extra_revival),
             Some(Faction::Fremen) => {
                 game.alliances.fremen_will_protect_from_monster = self.fremen_will_protect_from_monster;
                 game.alliances.fremen_allows_three_free_revivals = self.fremen_allows_three_free_revivals;
@@ -102,7 +102,7 @@ impl AllyPermission {
         }
 
         if ally != None {
-            game.alliances.permitted_use_of_ally_spice.insert(ally.required("faction")?, self.permitted_resources);
+            game.alliances.permitted_use_of_ally_spice.insert(ally.required("faction")?, i32::from(self.permitted_resources));
             if let Some(card) = self.permitted_karma_card {
                 game.alliances.permitted_use_of_ally_karma.insert(ally.required("faction")?, card);
             }

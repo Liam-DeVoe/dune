@@ -105,51 +105,51 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &GameEvent) -> GameEvent {
             }
             let max_forces = Revival::valid_max_revivals(game, p, false, e.uses_emperor_secret_ally);
             let max_special = Revival::valid_max_revivals(game, p, true, e.uses_emperor_secret_ally);
-            e.amount_of_forces = forces(e.amount_of_forces, max_forces);
-            e.amount_of_special_forces = forces(e.amount_of_special_forces, max_special);
+            e.amount_of_forces = treachery_engine::game::amounts::clamp_u16(forces(i32::from(e.amount_of_forces), max_forces));
+            e.amount_of_special_forces = treachery_engine::game::amounts::clamp_u16(forces(i32::from(e.amount_of_special_forces), max_special));
             let by_emperor = Revival::valid_max_revivals_by_emperor(game, p);
             if by_emperor > 0 {
-                e.extra_forces_paid_by_emperor = if max_forces > 0 { picker(e.extra_forces_paid_by_emperor, 0, by_emperor) } else { 0 };
-                e.extra_special_forces_paid_by_emperor = if max_special > 0 { picker(e.extra_special_forces_paid_by_emperor, 0, by_emperor) } else { 0 };
+                e.extra_forces_paid_by_emperor = treachery_engine::game::amounts::clamp_u16(if max_forces > 0 { picker(i32::from(e.extra_forces_paid_by_emperor), 0, by_emperor) } else { 0 });
+                e.extra_special_forces_paid_by_emperor = treachery_engine::game::amounts::clamp_u16(if max_special > 0 { picker(i32::from(e.extra_special_forces_paid_by_emperor), 0, by_emperor) } else { 0 });
             } else {
                 e.extra_forces_paid_by_emperor = 0;
                 e.extra_special_forces_paid_by_emperor = 0;
             }
             let (on_planet, special_on_planet) = revival_on_planet(game, p, &e);
-            e.number_of_forces_in_location = forces(e.number_of_forces_in_location, on_planet);
-            e.number_of_special_forces_in_location = forces(e.number_of_special_forces_in_location, special_on_planet);
+            e.number_of_forces_in_location = treachery_engine::game::amounts::clamp_u16(forces(i32::from(e.number_of_forces_in_location), on_planet));
+            e.number_of_special_forces_in_location = treachery_engine::game::amounts::clamp_u16(forces(i32::from(e.number_of_special_forces_in_location), special_on_planet));
             if Revival::valid_revival_heroes(game, p).next().is_none() {
                 e.hero = None;
             }
             if !e.hero.is_some_and(|h| Revival::may_assign_skill(game, p, Some(h))) {
                 e.assign_skill = false;
             }
-            let pick_enabled = e.number_of_forces_in_location > 0 || e.number_of_special_forces_in_location > 0;
+            let pick_enabled = i32::from(e.number_of_forces_in_location) > 0 || i32::from(e.number_of_special_forces_in_location) > 0;
             let location = e.location.filter(|l| pick_enabled && Revival::valid_revived_force_locations(game, p).any(|v| v == *l));
             e.location = location;
             event(e)
         }
         GameEvent::RaiseDeadPlayed(e) => {
             let mut e = (**e).clone();
-            e.amount_of_forces = forces(e.amount_of_forces, RaiseDeadPlayed::valid_max_amount(game, p, false));
-            e.amount_of_special_forces = forces(e.amount_of_special_forces, RaiseDeadPlayed::valid_max_amount(game, p, true));
+            e.amount_of_forces = treachery_engine::game::amounts::clamp_u16(forces(i32::from(e.amount_of_forces), RaiseDeadPlayed::valid_max_amount(game, p, false)));
+            e.amount_of_special_forces = treachery_engine::game::amounts::clamp_u16(forces(i32::from(e.amount_of_special_forces), RaiseDeadPlayed::valid_max_amount(game, p, true)));
             let special_on_planet = raise_dead_on_planet(game, p, &e);
-            e.number_of_special_forces_in_location = forces(e.number_of_special_forces_in_location, special_on_planet);
+            e.number_of_special_forces_in_location = treachery_engine::game::amounts::clamp_u16(forces(i32::from(e.number_of_special_forces_in_location), special_on_planet));
             if !e.hero.is_some_and(|h| RaiseDeadPlayed::valid_heroes(game, p).contains(&h)) {
                 e.hero = None;
             }
             if !e.hero.is_some_and(|h| Revival::may_assign_skill(game, p, Some(h))) {
                 e.assign_skill = false;
             }
-            let pick_enabled = e.number_of_special_forces_in_location > 0;
+            let pick_enabled = i32::from(e.number_of_special_forces_in_location) > 0;
             let location = e.location.filter(|l| pick_enabled && Revival::valid_revived_force_locations(game, p).any(|v| v == *l));
             e.location = location;
             event(e)
         }
         GameEvent::KarmaFreeRevival(e) => {
             let mut e = (**e).clone();
-            e.amount_of_forces = forces(e.amount_of_forces, KarmaFreeRevival::valid_max_amount(game, p, false));
-            e.amount_of_special_forces = forces(e.amount_of_special_forces, KarmaFreeRevival::valid_max_amount(game, p, true));
+            e.amount_of_forces = treachery_engine::game::amounts::clamp_u16(forces(i32::from(e.amount_of_forces), KarmaFreeRevival::valid_max_amount(game, p, false)));
+            e.amount_of_special_forces = treachery_engine::game::amounts::clamp_u16(forces(i32::from(e.amount_of_special_forces), KarmaFreeRevival::valid_max_amount(game, p, true)));
             if !e.hero.is_some_and(|h| Revival::may_assign_skill(game, p, Some(h))) {
                 e.assign_skill = false;
             }
@@ -199,8 +199,8 @@ fn revival_on_planet(game: &Game, p: PlayerId, e: &Revival) -> (i32, i32) {
         return (0, 0);
     }
     (
-        Revival::number_of_forces_that_may_be_placed_on_planet(game, p, e.uses_emperor_secret_ally, e.amount_of_forces + e.extra_forces_paid_by_emperor),
-        Revival::number_of_special_forces_that_may_be_placed_on_planet(game, p, e.amount_of_special_forces + e.extra_special_forces_paid_by_emperor),
+        Revival::number_of_forces_that_may_be_placed_on_planet(game, p, e.uses_emperor_secret_ally, i32::from(e.amount_of_forces) + i32::from(e.extra_forces_paid_by_emperor)),
+        Revival::number_of_special_forces_that_may_be_placed_on_planet(game, p, i32::from(e.amount_of_special_forces) + i32::from(e.extra_special_forces_paid_by_emperor)),
     )
 }
 
@@ -209,7 +209,7 @@ fn raise_dead_on_planet(game: &Game, p: PlayerId, e: &RaiseDeadPlayed) -> i32 {
     if Revival::valid_revived_force_locations(game, p).next().is_none() {
         return 0;
     }
-    Revival::number_of_special_forces_that_may_be_placed_on_planet(game, p, e.amount_of_special_forces)
+    Revival::number_of_special_forces_that_may_be_placed_on_planet(game, p, i32::from(e.amount_of_special_forces))
 }
 
 fn request_heroes(game: &Game) -> Vec<Hero> {
@@ -238,10 +238,10 @@ fn options(game: &Game, p: PlayerId, draft: &GameEvent, d: &dyn Describer) -> Ac
                 game,
                 p,
                 e.hero,
-                e.amount_of_forces,
-                e.amount_of_special_forces,
-                e.extra_forces_paid_by_emperor,
-                e.extra_special_forces_paid_by_emperor,
+                i32::from(e.amount_of_forces),
+                i32::from(e.amount_of_special_forces),
+                i32::from(e.extra_forces_paid_by_emperor),
+                i32::from(e.extra_special_forces_paid_by_emperor),
                 e.uses_emperor_secret_ally,
             );
             ActionOptions::Revival(RevivalOptions {

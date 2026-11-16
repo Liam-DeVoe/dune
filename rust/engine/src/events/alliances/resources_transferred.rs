@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct ResourcesTransferred {
-    pub resources: i32,
+    pub resources: u16,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -24,12 +24,7 @@ impl ResourcesTransferred {
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        // Not in C#, where a negative amount took spice from the ally (behavior-changes.md,
-        // "Turns, sectors and amounts out of range").
-        if self.resources < 0 {
-            return Some(express!("Invalid amount"));
-        }
-        if self.resources > ResourcesTransferred::max_amount(game, self.player()) {
+        if i32::from(self.resources) > ResourcesTransferred::max_amount(game, self.player()) {
             return Some(express!("You can't transfer more than ", Payment::of(ResourcesTransferred::max_amount(game, self.player()))));
         }
         if !ResourcesTransferred::may_transfer(game, self.player()) {
@@ -37,7 +32,7 @@ impl ResourcesTransferred {
         }
         // Not in C#, which let a player give away spice they still had to pay for a bid
         // (escapes.md, "Forces below zero").
-        if !game.may_give_away_spice(self.player(), self.resources) {
+        if !game.may_give_away_spice(self.player(), i32::from(self.resources)) {
             return Some(express!("You need that spice to pay your bid"));
         }
 
@@ -62,17 +57,17 @@ impl ResourcesTransferred {
         let me = self.player();
         {
             let p = game.player_mut(me);
-            crate::game::amounts::spend(&mut p.resources, self.resources, "spice")?;
-            crate::game::amounts::spend(&mut p.transferable_resources, self.resources, "transferable spice")?;
+            crate::game::amounts::spend(&mut p.resources, i32::from(self.resources), "spice")?;
+            crate::game::amounts::spend(&mut p.transferable_resources, i32::from(self.resources), "transferable spice")?;
         }
         let ally = game.player(me).allied_player(game).required("allied player")?;
         let a = game.player_mut(ally);
-        crate::game::amounts::gain(&mut a.resources, self.resources, "spice")?;
+        crate::game::amounts::gain(&mut a.resources, i32::from(self.resources), "spice")?;
         Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " transfer ", Payment::of(self.resources), " to their ally")
+        express!(self.initiator(), " transfer ", Payment::of(i32::from(self.resources)), " to their ally")
     }
 
 }

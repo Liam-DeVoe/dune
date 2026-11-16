@@ -5,15 +5,15 @@ use crate::messages::part::Part;
 pub struct NexusPlayed {
     pub faction: Option<Faction>,
     pub atreides_prescience_aspect: Option<PrescienceAspect>,
-    pub tleilaxu_forces: i32,
-    pub tleilaxu_special_forces: i32,
+    pub tleilaxu_forces: u16,
+    pub tleilaxu_special_forces: u16,
     pub tleilaxu_hero: Option<Hero>,
     pub tleilaxu_assign_skill: bool,
     pub choam_card: Option<TreacheryCard>,
     pub ecaz_territory: Option<Territory>,
     pub ecaz_faction: Option<Faction>,
     pub moritani_territory: Option<Territory>,
-    pub tleilaxu_number_of_special_forces_in_location: i32,
+    pub tleilaxu_number_of_special_forces_in_location: u16,
     pub tleilaxu_location: Option<Location>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
@@ -55,7 +55,7 @@ impl NexusPlayed {
     }
 
     pub fn total_amount_of_forces_added_to_location(&self, _game: &Game) -> i32 {
-        self.tleilaxu_number_of_special_forces_in_location
+        i32::from(self.tleilaxu_number_of_special_forces_in_location)
     }
 
     pub fn forces_added_to_location(&self, _game: &Game) -> i32 {
@@ -63,7 +63,7 @@ impl NexusPlayed {
     }
 
     pub fn special_forces_added_to_location(&self, _game: &Game) -> i32 {
-        self.tleilaxu_number_of_special_forces_in_location
+        i32::from(self.tleilaxu_number_of_special_forces_in_location)
     }
 
     pub fn is_cunning(&self) -> bool {
@@ -96,20 +96,16 @@ impl NexusPlayed {
                     {
                         return Some(express!("Invalid leader"));
                     }
-                    // Not in C#: a negative amount went from reserves into the tanks.
-                    if self.tleilaxu_forces < 0 || self.tleilaxu_special_forces < 0 {
-                        return Some(express!("Invalid amount"));
-                    }
-                    if self.tleilaxu_forces > NexusPlayed::valid_tleilaxu_max_amount(game, me, false) {
+                    if i32::from(self.tleilaxu_forces) > NexusPlayed::valid_tleilaxu_max_amount(game, me, false) {
                         return Some(express!("You can't revive that many ", game.player(me).force()));
                     }
-                    if self.tleilaxu_special_forces > NexusPlayed::valid_tleilaxu_max_amount(game, me, true) {
+                    if i32::from(self.tleilaxu_special_forces) > NexusPlayed::valid_tleilaxu_max_amount(game, me, true) {
                         return Some(express!("You can't revive that many ", game.player(me).special_force()));
                     }
                     if self.determine_tleilaxu_cost() > i32::from(game.player(me).resources) {
                         return Some(express!("You can't pay that much"));
                     }
-                    if (self.tleilaxu_forces + self.tleilaxu_special_forces) > 5 {
+                    if (i32::from(self.tleilaxu_forces) + i32::from(self.tleilaxu_special_forces)) > 5 {
                         return Some(express!("You can't revive that many forces"));
                     }
                     if self.tleilaxu_assign_skill && self.tleilaxu_hero.is_none() {
@@ -126,8 +122,8 @@ impl NexusPlayed {
                             return Some(express!("You can't place revived forces there"));
                         }
 
-                        if self.tleilaxu_number_of_special_forces_in_location
-                            > Revival::number_of_special_forces_that_may_be_placed_on_planet(game, me, self.tleilaxu_special_forces)
+                        if i32::from(self.tleilaxu_number_of_special_forces_in_location)
+                            > Revival::number_of_special_forces_that_may_be_placed_on_planet(game, me, i32::from(self.tleilaxu_special_forces))
                         {
                             return Some(express!("You can't place that many forces directly on the planet"));
                         }
@@ -338,7 +334,7 @@ impl NexusPlayed {
     }
 
     pub fn determine_tleilaxu_cost(&self) -> i32 {
-        NexusPlayed::tleilaxu_cost_of_forces(self.tleilaxu_forces, self.tleilaxu_special_forces)
+        NexusPlayed::tleilaxu_cost_of_forces(i32::from(self.tleilaxu_forces), i32::from(self.tleilaxu_special_forces))
     }
 
     pub fn tleilaxu_cost_of_forces(forces: i32, special_forces: i32) -> i32 {
@@ -707,10 +703,10 @@ impl NexusPlayed {
                 game.stone(Milestone::RaiseDead);
                 let Some(player) = self.get_player(game, self.initiator()) else { return Ok(()) };
 
-                Player::revive_forces(game, player, self.tleilaxu_forces)?;
-                Player::revive_special_forces(game, player, self.tleilaxu_special_forces)?;
+                Player::revive_forces(game, player, i32::from(self.tleilaxu_forces))?;
+                Player::revive_special_forces(game, player, i32::from(self.tleilaxu_special_forces))?;
 
-                if self.tleilaxu_special_forces > 0 {
+                if i32::from(self.tleilaxu_special_forces) > 0 {
                     game.revival.factions_that_revived_special_forces_this_turn.push(self.initiator().expect("faction"));
                 }
 
@@ -724,7 +720,7 @@ impl NexusPlayed {
                     }
                 }
 
-                let total = self.tleilaxu_forces + self.tleilaxu_special_forces;
+                let total = i32::from(self.tleilaxu_forces) + i32::from(self.tleilaxu_special_forces);
                 let force = game.player(player).force();
                 let special_force = game.player(player).special_force();
                 game.play_nexus_card(
@@ -733,9 +729,9 @@ impl NexusPlayed {
                         "revive ",
                         express_part_if!(self.tleilaxu_hero.is_some(); self.tleilaxu_hero),
                         express_part_if!(self.tleilaxu_hero.is_some() && total > 0; " and "),
-                        express_part_if!(self.tleilaxu_forces > 0; self.tleilaxu_forces, " ", force),
-                        express_part_if!(self.tleilaxu_forces > 0 && self.tleilaxu_special_forces > 0; " and "),
-                        express_part_if!(self.tleilaxu_special_forces > 0; self.tleilaxu_special_forces, " ", special_force)
+                        express_part_if!(i32::from(self.tleilaxu_forces) > 0; i32::from(self.tleilaxu_forces), " ", force),
+                        express_part_if!(i32::from(self.tleilaxu_forces) > 0 && i32::from(self.tleilaxu_special_forces) > 0; " and "),
+                        express_part_if!(i32::from(self.tleilaxu_special_forces) > 0; i32::from(self.tleilaxu_special_forces), " ", special_force)
                     ],
                 );
 

@@ -100,8 +100,6 @@ fn shipment_no_field_values_are_offset_by_one() {
     s.set_no_field_value(3);
     assert_eq!(s.no_field_value, 4);
     assert!(s.is_no_field());
-    s.no_field_value = i32::MIN;
-    assert_eq!(s.no_field_value(), i32::MAX);
 }
 
 #[test]

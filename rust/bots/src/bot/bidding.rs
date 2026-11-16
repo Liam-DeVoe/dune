@@ -124,7 +124,7 @@ impl ClassicBot {
     pub fn create_bid_using_ally_and_emperor_spice(&self, game: &Game, amount: i32, karma_card: Option<TreacheryCard>) -> Rc<Bid> {
         if let Some(karma_card) = karma_card {
             let mut bid = Bid::new(game, self.faction(game));
-            bid.amount = amount;
+            bid.amount = treachery_engine::game::amounts::clamp_u16(amount);
             bid.karma_bid = false;
             bid.karma_card = Some(karma_card);
             bid.passed = false;
@@ -142,9 +142,9 @@ impl ClassicBot {
         spice_left_to_pay -= ally_contribution;
 
         let mut bid = Bid::new(game, self.faction(game));
-        bid.amount = spice_left_to_pay;
-        bid.ally_contribution_amount = ally_contribution;
-        bid.emperor_contribution_amount = emperor_contribution;
+        bid.amount = treachery_engine::game::amounts::clamp_u16(spice_left_to_pay);
+        bid.ally_contribution_amount = treachery_engine::game::amounts::clamp_u16(ally_contribution);
+        bid.emperor_contribution_amount = treachery_engine::game::amounts::clamp_u16(emperor_contribution);
         bid.karma_bid = false;
         bid.karma_card = None;
         bid.passed = false;

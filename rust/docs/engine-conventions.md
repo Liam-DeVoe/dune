@@ -116,7 +116,7 @@ game.change_resources_on_planet(l, -collected)?;
 
 A change that would go below zero is a Game Error, never a negative amount, and C#'s habit of ignoring such a change silently is gone. So every `Player` function that moves, kills or revives forces returns `GameResult`. If a player can cause the error, refuse the event in `validate` instead. Where the rules take "as much as possible", take `min(amount, have)` first, as `some_forces_in_territory_to_reserves` and the collection of spice do. Don't write `+=` or `-=` on these fields: in a release build a `u16` wraps silently.
 
-Event fields stay `i32` (rewrite-plan.md, change 2d), except the force lists (`_forceLocations` and the like), whose amounts the JSON reader checks (`json::read_force_locations`) so that they fit a `Battalion`.
+Amounts in events are `u16` as well, and the JSON reader refuses one outside 0 to 65535, so validation never sees a negative amount. Reads widen the same way: `i32::from(self.amount)`. Code that computes an amount as `i32` for an event, as bots and forms do, sets it with `amounts::clamp_u16`. The force lists (`_forceLocations` and the like) are strings, and the JSON reader checks their amounts too (`json::read_force_locations`). A few event fields stay `i32` because a negative value means something, such as a shipment back to reserves (behavior-changes.md, "Turns, sectors and amounts out of range").
 
 ## Static game data: handles
 

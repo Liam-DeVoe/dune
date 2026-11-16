@@ -6,7 +6,7 @@ pub struct BattleConcluded {
     pub capture: bool,
     pub traitor_to_replace: Option<Hero>,
     pub new_traitor: Option<Hero>,
-    pub special_force_losses_replaced: i32,
+    pub special_force_losses_replaced: u16,
     pub card_ids: Option<String>,
     pub stolen_token: Option<TechToken>,
     pub add_extra_force: bool,
@@ -67,11 +67,11 @@ impl BattleConcluded {
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
         let p = self.player();
-        if self.special_force_losses_replaced > 0 && game.prevented(FactionAdvantage::IxianReplacingSpecialForces) {
+        if i32::from(self.special_force_losses_replaced) > 0 && game.prevented(FactionAdvantage::IxianReplacingSpecialForces) {
             return Some(express!(TreacheryCardType::Karma, " prevents replacing ", FactionSpecialForce::Ixian, " losses"));
         }
-        if self.special_force_losses_replaced > 0
-            && !BattleConcluded::valid_replacement_force_amounts(game, p).contains(&self.special_force_losses_replaced)
+        if i32::from(self.special_force_losses_replaced) > 0
+            && !BattleConcluded::valid_replacement_force_amounts(game, p).contains(&i32::from(self.special_force_losses_replaced))
         {
             return Some(express!("Invalid amount of replacement forces"));
         }
@@ -235,10 +235,9 @@ impl BattleConcluded {
             let (Some(plan), Some(territory)) = (plan, territory) else { return Ok(()) };
 
             let Some(winner_gambit) = game.winner_battle_action() else { return Ok(()) };
-            let forces_to_lose = winner_gambit
-                .forces + winner_gambit.forces_at_half_strength + self.special_force_losses_replaced;
-            let special_forces_to_lose = winner_gambit
-                .special_forces + winner_gambit.special_forces_at_half_strength - self.special_force_losses_replaced;
+            let forces_to_lose = i32::from(winner_gambit.forces) + i32::from(winner_gambit.forces_at_half_strength) + i32::from(self.special_force_losses_replaced);
+            let special_forces_to_lose = i32::from(winner_gambit.special_forces) + i32::from(winner_gambit.special_forces_at_half_strength)
+                - i32::from(self.special_force_losses_replaced);
 
             let force_supplier_of_winner = Battle::determine_force_supplier(game, self.player());
 
@@ -250,7 +249,7 @@ impl BattleConcluded {
                 vec![
                     faction.into(),
                     " substitute ".into(),
-                    self.special_force_losses_replaced.into(),
+                    i32::from(self.special_force_losses_replaced).into(),
                     special_force.into(),
                     " losses by ".into(),
                     force.into(),
@@ -361,7 +360,7 @@ impl BattleConcluded {
 
         let replacement_forces_left = g
             .player(p)
-            .forces_in_territory(Some(territory)) - (winner_battle_action.forces + winner_battle_action.forces_at_half_strength);
+            .forces_in_territory(Some(territory)) - (i32::from(winner_battle_action.forces) + i32::from(winner_battle_action.forces_at_half_strength));
 
         if replacement_forces_left <= 0 {
             return vec![0];
@@ -388,7 +387,7 @@ impl BattleConcluded {
 
         let replacement_forces_left = g
             .player(p)
-            .forces_in_territory(Some(territory)) - (winner_battle_action.forces + winner_battle_action.forces_at_half_strength);
+            .forces_in_territory(Some(territory)) - (i32::from(winner_battle_action.forces) + i32::from(winner_battle_action.forces_at_half_strength));
 
         if replacement_forces_left <= 0 {
             return 0;

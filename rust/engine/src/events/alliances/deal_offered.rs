@@ -9,8 +9,8 @@ pub struct DealOffered {
     pub deal_parameter2: Option<String>,
     pub text: Option<String>,
     pub end_phase: Option<Phase>,
-    pub price: i32,
-    pub benefit: i32,
+    pub price: u16,
+    pub benefit: u16,
     pub cancel: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
@@ -66,12 +66,12 @@ impl DealOffered {
     }
 
     pub fn same(&self, offered_deal: &DealOffered) -> bool {
-        offered_deal.price == self.price
+        i32::from(offered_deal.price) == i32::from(self.price)
             && offered_deal.type_ == self.type_
             && offered_deal.deal_parameter1 == self.deal_parameter1
             && offered_deal.deal_parameter2 == self.deal_parameter2
             && offered_deal.text == self.text
-            && offered_deal.benefit == self.benefit
+            && i32::from(offered_deal.benefit) == i32::from(self.benefit)
             && offered_deal.end_phase == self.end_phase
             // C# parity: C# 14 binds `Faction[].SequenceEqual(Faction[])` to
             // MemoryExtensions.SequenceEqual on spans, where a null array is an
@@ -97,12 +97,12 @@ impl DealOffered {
         self.matches(
             accepted_deal.initiator(),
             accepted_deal.bound_faction,
-            accepted_deal.price,
+            i32::from(accepted_deal.price),
             accepted_deal.type_,
             accepted_deal.deal_parameter1.as_deref(),
             accepted_deal.deal_parameter2.as_deref(),
             accepted_deal.text.as_deref(),
-            accepted_deal.benefit,
+            i32::from(accepted_deal.benefit),
             accepted_deal.end,
         )
     }
@@ -111,24 +111,24 @@ impl DealOffered {
         self.matches(
             rejected_deal.initiator(),
             rejected_deal.bound_faction,
-            rejected_deal.price,
+            i32::from(rejected_deal.price),
             rejected_deal.type_,
             rejected_deal.deal_parameter1.as_deref(),
             rejected_deal.deal_parameter2.as_deref(),
             rejected_deal.text.as_deref(),
-            rejected_deal.benefit,
+            i32::from(rejected_deal.benefit),
             rejected_deal.end,
         )
     }
 
     pub fn matches(&self, by: Option<Faction>, bound_faction: Option<Faction>, price: i32, type_: DealType, deal_parameter1: Option<&str>, deal_parameter2: Option<&str>, text: Option<&str>, benefit: i32, end: Option<Phase>) -> bool {
         bound_faction == self.initiator()
-            && price == self.price
+            && price == i32::from(self.price)
             && type_ == self.type_
             && deal_parameter1 == self.deal_parameter1.as_deref()
             && deal_parameter2 == self.deal_parameter2.as_deref()
             && text == self.text.as_deref()
-            && benefit == self.benefit
+            && benefit == i32::from(self.benefit)
             && end == self.end_phase
             && {
                 let to = self.to.as_ref().expect("destination");
@@ -166,7 +166,7 @@ impl DealOffered {
             game,
             self.type_,
             self.text.as_deref(),
-            self.benefit,
+            i32::from(self.benefit),
             self.end_phase,
             self.deal_parameter1.as_deref(),
         )
@@ -196,13 +196,13 @@ impl DealOffered {
                 " offer ",
                 express_part_if!(to.len() != 0; Part::list(to.iter().copied()), " "),
                 "for ",
-                Payment::of(self.price),
+                Payment::of(i32::from(self.price)),
                 ": ",
                 Deal::describe_deal_contents(
                     game,
                     self.type_,
                     self.text.as_deref(),
-                    self.benefit,
+                    i32::from(self.benefit),
                     self.end_phase,
                     self.deal_parameter1.as_deref(),
                 )

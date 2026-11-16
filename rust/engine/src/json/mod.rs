@@ -447,6 +447,20 @@ impl FromJson for i32 {
     }
 }
 
+impl ToJson for u16 {
+    fn write_json(&self, w: &mut JsonWriter) {
+        w.int(i64::from(*self))
+    }
+}
+
+/// An amount in an event (spice, forces, a dial): 0 to 65535. Anything else is refused when
+/// decoded: "-1 is not a valid amount".
+impl FromJson for u16 {
+    fn from_json(v: &JsonValue) -> Result<Self, JsonError> {
+        read_bounded::<u16>(v, "amount")
+    }
+}
+
 /// Reads an integer that must fit `T`, refusing one that doesn't with "N is not a valid NAME".
 fn read_bounded<T: TryFrom<i32>>(v: &JsonValue, name: &str) -> Result<T, JsonError> {
     let n = i32::from_json(v)?;

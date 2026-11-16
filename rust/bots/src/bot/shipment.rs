@@ -813,8 +813,8 @@ impl ClassicBot {
         let mut result = Shipment::new(game, self.faction(game));
         result.force_amount = size.forces - nr_of_smuggled_forces;
         result.special_force_amount = size.special_forces - nr_of_smuggled_special_forces;
-        result.smuggled_amount = nr_of_smuggled_forces;
-        result.smuggled_special_amount = nr_of_smuggled_special_forces;
+        result.smuggled_amount = treachery_engine::game::amounts::clamp_u16(nr_of_smuggled_forces);
+        result.smuggled_special_amount = treachery_engine::game::amounts::clamp_u16(nr_of_smuggled_special_forces);
         result.set_no_field_value(size.no_field_value);
         result.set_cunning_no_field_value(size.cunning_no_field_value);
         result.passed = false;
@@ -910,8 +910,10 @@ impl ClassicBot {
     }
 
     pub fn use_ally_resources(&self, game: &Game, shipment: &mut Shipment) {
-        shipment.ally_contribution_amount =
-            std::cmp::min(shipment.determine_cost_to_initiator(game), game.resources_your_ally_can_pay(self.player));
+        shipment.ally_contribution_amount = treachery_engine::game::amounts::clamp_u16(std::cmp::min(
+            shipment.determine_cost_to_initiator(game),
+            game.resources_your_ally_can_pay(self.player),
+        ));
     }
 
     /// Sizes an attack on whoever occupies `location`. Without an occupant the attack is empty.

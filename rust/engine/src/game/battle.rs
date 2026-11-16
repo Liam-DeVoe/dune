@@ -772,11 +772,11 @@ impl Game {
         let battle_territory = current_battle.territory.expect("territory");
         let undialed_normal_forces = self
             .player(force_supplier)
-            .forces_in_territory(Some(battle_territory)) - plan.forces - plan.forces_at_half_strength;
+            .forces_in_territory(Some(battle_territory)) - i32::from(plan.forces) - i32::from(plan.forces_at_half_strength);
         let battle_territory = current_battle.territory.expect("territory");
         let undialed_special_forces = self
             .player(force_supplier)
-            .special_forces_in_territory(Some(battle_territory)) - plan.special_forces - plan.special_forces_at_half_strength;
+            .special_forces_in_territory(Some(battle_territory)) - i32::from(plan.special_forces) - i32::from(plan.special_forces_at_half_strength);
         Player::some_forces_in_territory_to_reserves(self, force_supplier, territory, undialed_normal_forces, false)?;
         Player::some_forces_in_territory_to_reserves(self, force_supplier, territory, undialed_special_forces, true)?;
 
@@ -872,7 +872,7 @@ impl Game {
     pub fn pay_dialed_spice(&mut self, p: PlayerId, plan: &Battle, traitor_was_revealed: bool) {
         let mut paid_by_arrakeen: i32 = 0;
         let cost = plan.cost_with_arrakeen_share(self, &mut paid_by_arrakeen);
-        let cost_to_choam = if self.player(p).ally == Some(Faction::Choam) { plan.ally_contribution_amount } else { 0 };
+        let cost_to_choam = if self.player(p).ally == Some(Faction::Choam) { i32::from(plan.ally_contribution_amount) } else { 0 };
 
         if paid_by_arrakeen > 0 {
             let arrakeen = self.board.map.arrakeen();
@@ -880,7 +880,7 @@ impl Game {
         }
 
         if (cost + paid_by_arrakeen) > 0 {
-            let cost_for_player = cost - plan.ally_contribution_amount;
+            let cost_for_player = cost - i32::from(plan.ally_contribution_amount);
             let mut refunded_resources = 0;
 
             if cost_for_player > 0 {
@@ -895,12 +895,12 @@ impl Game {
                 }
             }
 
-            if plan.ally_contribution_amount > 0 {
+            if i32::from(plan.ally_contribution_amount) > 0 {
                 if let Some(allied_player) = self.player(p).allied_player(self) {
                     let ap = self.player_mut(allied_player);
-                    crate::game::amounts::spend(&mut ap.resources, plan.ally_contribution_amount, "spice").expect("the ally's spice dialled in battle");
+                    crate::game::amounts::spend(&mut ap.resources, i32::from(plan.ally_contribution_amount), "spice").expect("the ally's spice dialled in battle");
                     let f = self.player(p).faction;
-                    self.decrease_permitted_use_of_ally_spice(f.expect("faction"), plan.ally_contribution_amount);
+                    self.decrease_permitted_use_of_ally_spice(f.expect("faction"), i32::from(plan.ally_contribution_amount));
                 }
             }
 
@@ -914,11 +914,11 @@ impl Game {
             }
         }
 
-        if plan.banker_bonus > 0 {
+        if i32::from(plan.banker_bonus) > 0 {
             let pl = self.player_mut(p);
-            crate::game::amounts::spend(&mut pl.resources, plan.banker_bonus, "spice").expect("spice paid for the Banker");
+            crate::game::amounts::spend(&mut pl.resources, i32::from(plan.banker_bonus), "spice").expect("spice paid for the Banker");
             let f = self.player(p).faction;
-            self.log(le![f, " paid ", Payment::of(plan.banker_bonus), " as ", LeaderSkill::Banker]);
+            self.log(le![f, " paid ", Payment::of(i32::from(plan.banker_bonus)), " as ", LeaderSkill::Banker]);
         }
     }
 
@@ -964,8 +964,8 @@ impl Game {
         let force_supplier = Battle::determine_force_supplier(self, winner);
         self.process_ecaz_occupation_winner_losses(territory, winner)?;
 
-        let special_forces_to_lose = plan.special_forces + plan.special_forces_at_half_strength;
-        let forces_to_lose = plan.forces + plan.forces_at_half_strength;
+        let special_forces_to_lose = i32::from(plan.special_forces) + i32::from(plan.special_forces_at_half_strength);
+        let forces_to_lose = i32::from(plan.forces) + i32::from(plan.forces_at_half_strength);
 
         let mut special_forces_to_save_to_reserves = 0;
         let mut forces_to_save_to_reserves = 0;
@@ -975,7 +975,7 @@ impl Game {
         let nr_of_special_force_losses_that_can_be_replaced_by_remaining_normal_forces = std::cmp::min(
             special_forces_to_lose,
             (self.player(force_supplier)
-                .forces_in_territory(Some(territory)) - plan.forces) - plan.forces_at_half_strength,
+                .forces_in_territory(Some(territory)) - i32::from(plan.forces)) - i32::from(plan.forces_at_half_strength),
         );
 
         if !self.may_substitute_force_losses(force_supplier) || nr_of_special_force_losses_that_can_be_replaced_by_remaining_normal_forces == 0 {
@@ -1027,7 +1027,7 @@ impl Game {
         if !self.may_substitute_force_losses(force_supplier)
             || (special_forces_to_lose - special_forces_to_save_to_reserves - special_forces_to_save_in_territory)
                 == 0
-            || self.player(force_supplier).forces_in_territory(Some(territory)) <= (plan.forces + plan.forces_at_half_strength)
+            || self.player(force_supplier).forces_in_territory(Some(territory)) <= (i32::from(plan.forces) + i32::from(plan.forces_at_half_strength))
         {
             let winner_forces_lost = forces_to_lose - forces_to_save_to_reserves - forces_to_save_in_territory;
             let winner_special_forces_lost = special_forces_to_lose - special_forces_to_save_to_reserves - special_forces_to_save_in_territory;

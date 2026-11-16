@@ -6,7 +6,7 @@ pub struct AutomationConfigured {
     pub automation_rule_id: Cell<i32>,
     pub action: ItemAction,
     pub rule_type: AutomationRuleType,
-    pub bidding_above_amount: i32,
+    pub bidding_above_amount: u16,
     pub bidding_winning_faction: Option<Faction>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
@@ -112,7 +112,7 @@ impl AutomationConfigured {
             }
 
             AutomationRuleType::BiddingPassAboveAmount => {
-                return Some(express!("Auto pass if bid is equal to or higher than ", Payment::of(self.bidding_above_amount)));
+                return Some(express!("Auto pass if bid is equal to or higher than ", Payment::of(i32::from(self.bidding_above_amount))));
             }
 
             AutomationRuleType::BiddingPassWhenHighestBidByFaction => {

@@ -37,7 +37,7 @@ fn trigger_terror(g: &mut Game, faction: Faction, t: Territory) {
     let mut e = NexusPlayed::default();
     e.tleilaxu_location = Some(t.locations()[0]);
     let to = e.tleilaxu_location;
-    g.ship_move.intrusions.push(Intrusion { initiator: faction, to, type_: IntrusionType::Terror });
+    g.turn.intrusions.push(Intrusion { initiator: faction, to, type_: IntrusionType::Terror, alliance_offered: false });
 }
 
 // ---------------------------------------------------------------------------

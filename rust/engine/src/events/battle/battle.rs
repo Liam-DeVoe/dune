@@ -812,7 +812,7 @@ impl Battle {
 
         if !special_forces {
             if fs.faction == Some(Faction::Richese) && fs.special_forces_in_territory(Some(territory)) > 0 {
-                return fs.forces_in_reserve().min(g.ship_move.current_no_field_value) + fs.forces_in_territory(Some(territory));
+                return fs.forces_in_reserve().min(g.board.current_no_field_value) + fs.forces_in_territory(Some(territory));
             }
             return fs.forces_in_territory(Some(territory));
         }
@@ -1014,7 +1014,7 @@ impl Battle {
         let fighting_on_own_homeworld = territory_of_battle.is_some_and(|t| pl.is_native(t));
         let forces_to_reveal_under_no_field =
             if territory_of_battle.is_some() && pl.is(Faction::Richese) && pl.special_forces_in_territory(territory_of_battle) != 0 {
-                pl.forces_in_reserve().min(g.ship_move.current_no_field_value)
+                pl.forces_in_reserve().min(g.board.current_no_field_value)
             } else {
                 0
             };
@@ -1048,7 +1048,7 @@ impl Battle {
         let fighting_on_own_homeworld = territory_of_battle.is_some_and(|t| pl.is_native(t));
         let forces_to_reveal_under_no_field =
             if territory_of_battle.is_some() && pl.is(Faction::Richese) && pl.special_forces_in_territory(territory_of_battle) != 0 {
-                pl.forces_in_reserve().min(g.ship_move.current_no_field_value)
+                pl.forces_in_reserve().min(g.board.current_no_field_value)
             } else {
                 0
             };

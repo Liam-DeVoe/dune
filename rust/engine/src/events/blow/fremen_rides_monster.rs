@@ -192,7 +192,7 @@ impl EventRules for FremenRidesMonster {
             }
 
             let initiator = game.get_player(by.faction);
-            game.ship_move.last_shipment_or_movement = Some(ShipmentOrMovement { to: self.to });
+            game.turn.last_shipment_or_movement = Some(ShipmentOrMovement { to: self.to });
             for (from, value) in self.force_locations(game, by).iter() {
                 let from = *from;
                 let ini = initiator.required("initiator")?;

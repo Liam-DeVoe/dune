@@ -8,11 +8,13 @@ pub struct Counters {
     /// How many bids were placed in this game, automatic passes included: the latest bid's
     /// number (`PlacedBid::number`).
     pub bids: u32,
+    /// The moves logged so far, which number the move records.
+    pub moves_logged: i32,
 }
 
 impl Default for Counters {
     fn default() -> Self {
-        Counters { leader_deaths: 0, bids: 0 }
+        Counters { leader_deaths: 0, bids: 0, moves_logged: 0 }
     }
 }
 

@@ -129,7 +129,7 @@ impl GameStatus {
     /// game.FindMostRecentEvent(typeof(EndPhase), typeof(GuildDelay), typeof(Move)))` tail shared by the
     /// Ship & Move arms. Arguments are evaluated in the order written.
     pub(crate) fn status_ship_and_move(g: &Game, a: Message, w: Message) -> GameStatus {
-        let seq = g.ship_move.shipment_and_move_sequence.as_ref().expect("shipment and move sequence").get_players_in_sequence(g).collect();
+        let seq = g.shipment_and_move_sequence().expect("shipment and move sequence").get_players_in_sequence(g).collect();
         let latest = g.find_most_recent_event(vec![EventType::EndPhase, EventType::GuildDelay, EventType::Move]);
         Self::sequence_status(a, w, seq, latest)
     }
@@ -203,9 +203,9 @@ impl GameStatus {
             | Phase::BeneGesseritIntrudedByFremenRidingMonsterB
             | Phase::BeneGesseritAccompaniesGuildShip
             | Phase::BeneGesseritAccompaniesNonGuildShip
-                if game.ship_move.last_shipment_or_movement.is_some() =>
+                if game.turn.last_shipment_or_movement.is_some() =>
             {
-                let e = game.ship_move.last_shipment_or_movement.as_ref().expect("last shipment or movement");
+                let e = game.turn.last_shipment_or_movement.as_ref().expect("last shipment or movement");
                 vec![Some(e.to_location(game).expect("to location").territory())]
             }
 

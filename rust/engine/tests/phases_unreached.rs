@@ -21,9 +21,9 @@ fn moritani_to_low_threshold(g: &mut Game) {
 // Terror triggered while Bene Gesserit accompany a shipment.
 //
 // `TerrorTriggeredByBeneGesseritAccompaniesNonGuildShip` and `...GuildShip` are never entered:
-// `determine_next_shipment_and_move_sub_phase_on_terror_triggered` sends a token triggered by
-// accompanying forces to the shipment's own phase, as C# did. The game then goes on to the move
-// without asking Bene Gesserit to accompany again.
+// `Interrupt::intrusion` counts a token triggered by accompanying forces as triggered by the
+// shipment itself, as C# did. The game then goes on to the move without asking Bene Gesserit to
+// accompany again.
 //
 // Bene Gesserit can only accompany into the shipment's territory (or the Polar Sink), so the
 // shipment itself mustn't trigger the token: here Moritani, or its ally, ship.
@@ -41,8 +41,8 @@ fn terror_triggered_by_bene_gesserit_accompanying_a_non_guild_shipment() {
     accept(&mut g, &accompany(to));
     assert_eq!(phase(&g), Phase::TerrorTriggeredByNonGuildShip);
     assert_eq!(asked(&mut g, EventType::TerrorRevealed), [Faction::Moritani]);
-    assert_eq!(g.ship_move.intrusions.len(), 1);
-    assert_eq!(g.ship_move.intrusions[0].initiator(), Faction::BeneGesserit);
+    assert_eq!(g.turn.intrusions.len(), 1);
+    assert_eq!(g.turn.intrusions[0].initiator(), Faction::BeneGesserit);
 
     accept(&mut g, &terror_passed());
     assert_eq!(phase(&g), Phase::NonGuildMove);
@@ -63,7 +63,7 @@ fn terror_triggered_by_bene_gesserit_accompanying_the_guilds_shipment() {
     accept(&mut g, &accompany(to));
     assert_eq!(phase(&g), Phase::TerrorTriggeredByGuildShip);
     assert_eq!(asked(&mut g, EventType::TerrorRevealed), [Faction::Moritani]);
-    assert_eq!(g.ship_move.intrusions[0].initiator(), Faction::BeneGesserit);
+    assert_eq!(g.turn.intrusions[0].initiator(), Faction::BeneGesserit);
 
     accept(&mut g, &terror_passed());
     assert_eq!(phase(&g), Phase::GuildMove);
@@ -86,58 +86,77 @@ fn bene_gesserit_accompanying_dont_trigger_terror_when_moritani_is_at_its_low_th
     assert_eq!(phase(&g), Phase::BeneGesseritAccompaniesNonGuildShip);
     accept(&mut g, &accompany(to));
     assert_eq!(phase(&g), Phase::NonGuildMove);
-    assert!(g.ship_move.intrusions.is_empty());
+    assert!(g.turn.intrusions.is_empty());
 }
 
 // Ambassadors and Bene Gesserit accompanying a shipment.
 //
-// `AmbassadorTriggeredByBeneGesseritAccompaniesNonGuildShip` and `...GuildShip` are never
-// entered. `check_ambassador_triggered` lets Bene Gesserit trigger an ambassador only when the
-// event adds fighters, and `BeneGesseritAccompanies::forces_added_to_location` is always 0: it
-// counts the accompanying forces as advisors.
-//
-// RULES QUESTION for the owner: Bene Gesserit accompany as fighters when they occupy the
-// territory, when it is empty, or when the advisors rule is off (`execute_concrete_event`). These
-// tests use the last case. Should fighters that accompany a shipment trigger an ambassador? Today
-// they don't, and the game goes on to the move.
+// Bene Gesserit accompany as fighters when they occupy the territory, when it is empty, or when
+// the advisors rule is off. Fighters trigger an ambassador, advisors don't (behavior-changes.md,
+// "Bene Gesserit fighters that accompany a shipment trigger an ambassador"). These tests use the
+// advisors rule off. The fuzzer doesn't reach `AmbassadorTriggeredByBeneGesseritAccompanies*`.
 
-#[test]
-fn bene_gesserit_fighters_accompanying_a_non_guild_shipment_dont_trigger_an_ambassador() {
+fn bene_gesserit_fighters_accompany_into_an_ambassador(guild: bool) -> (Game, Location, Ambassador) {
     let mut g = table_with(|rules| rules.retain(|r| *r != Rule::BeneGesseritAdvisors));
-    pass_until_shipment_of(&mut g, Faction::Ecaz);
+    if guild {
+        ally(&mut g, Faction::Guild, Faction::Ecaz);
+    } else {
+        pass_until_shipment_of(&mut g, Faction::Ecaz);
+    }
     let to = open_sand(&g, &[]);
     let a = an_ambassador(&g);
     put_ambassador(&mut g, to.territory(), a);
 
-    accept(&mut g, &shipment(ECAZ, to, 3));
-    assert_eq!(phase(&g), Phase::BeneGesseritAccompaniesNonGuildShip, "Ecaz's own ambassador");
+    accept(&mut g, &shipment(if guild { GUILD } else { ECAZ }, to, 3));
+    let accompanying = if guild { Phase::BeneGesseritAccompaniesGuildShip } else { Phase::BeneGesseritAccompaniesNonGuildShip };
+    assert_eq!(phase(&g), accompanying, "the shipment of Ecaz or their ally doesn't trigger it");
 
     accept(&mut g, &accompany(to));
     let bg = idx(&g, Faction::BeneGesserit);
     assert_eq!((g.player(bg).forces_in(Some(to)), g.player(bg).special_forces_in(Some(to))), (1, 0), "one fighter");
-    // Today's behavior; see the rules question above.
-    assert_eq!(phase(&g), Phase::NonGuildMove);
-    assert!(g.ship_move.intrusions.is_empty());
-    assert_eq!(g.ambassador_in(to.territory()), Some(a));
+    (g, to, a)
 }
 
 #[test]
-fn bene_gesserit_fighters_accompanying_the_guilds_shipment_dont_trigger_an_ambassador() {
-    let mut g = table_with(|rules| rules.retain(|r| *r != Rule::BeneGesseritAdvisors));
-    ally(&mut g, Faction::Guild, Faction::Ecaz);
+fn bene_gesserit_fighters_accompanying_a_non_guild_shipment_trigger_an_ambassador() {
+    let (mut g, to, a) = bene_gesserit_fighters_accompany_into_an_ambassador(false);
+    assert_eq!(phase(&g), Phase::AmbassadorTriggeredByBeneGesseritAccompaniesNonGuildShip);
+    assert_eq!(asked(&mut g, EventType::AmbassadorActivated), [Faction::Ecaz]);
+    assert_eq!(g.turn.intrusions.len(), 1);
+    assert_eq!(g.turn.intrusions[0].initiator(), Faction::BeneGesserit);
+
+    accept(&mut g, &ambassador_passed());
+    assert_eq!(phase(&g), Phase::NonGuildMove);
+    assert!(g.turn.intrusions.is_empty());
+    assert_eq!(g.ambassador_in(to.territory()), Some(a), "passed: the ambassador stays");
+}
+
+#[test]
+fn bene_gesserit_fighters_accompanying_the_guilds_shipment_trigger_an_ambassador() {
+    let (mut g, _, _) = bene_gesserit_fighters_accompany_into_an_ambassador(true);
+    assert_eq!(phase(&g), Phase::AmbassadorTriggeredByBeneGesseritAccompaniesGuildShip);
+    assert_eq!(asked(&mut g, EventType::AmbassadorActivated), [Faction::Ecaz]);
+
+    accept(&mut g, &ambassador_passed());
+    assert_eq!(phase(&g), Phase::GuildMove);
+    assert!(g.turn.intrusions.is_empty());
+}
+
+#[test]
+fn bene_gesserit_advisors_accompanying_a_shipment_dont_trigger_an_ambassador() {
+    let mut g = table();
+    pass_until_shipment_of(&mut g, Faction::Ecaz);
     let to = open_sand(&g, &[]);
     let a = an_ambassador(&g);
     put_ambassador(&mut g, to.territory(), a);
-
-    accept(&mut g, &shipment(GUILD, to, 3));
-    assert_eq!(phase(&g), Phase::BeneGesseritAccompaniesGuildShip, "the ambassador of the Guild's ally");
+    accept(&mut g, &shipment(ECAZ, to, 3));
+    assert_eq!(phase(&g), Phase::BeneGesseritAccompaniesNonGuildShip);
 
     accept(&mut g, &accompany(to));
     let bg = idx(&g, Faction::BeneGesserit);
-    assert_eq!(g.player(bg).forces_in(Some(to)), 1, "one fighter");
-    // Today's behavior; see the rules question above.
-    assert_eq!(phase(&g), Phase::GuildMove);
-    assert!(g.ship_move.intrusions.is_empty());
+    assert_eq!((g.player(bg).forces_in(Some(to)), g.player(bg).special_forces_in(Some(to))), (0, 1), "one advisor");
+    assert_eq!(phase(&g), Phase::NonGuildMove);
+    assert!(g.turn.intrusions.is_empty());
 }
 
 // BlowA and BlowB.

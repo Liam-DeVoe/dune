@@ -61,7 +61,7 @@ pub fn board(game: &Game, status: &GameStatus, v: &ResolvedViewer) -> BoardView 
     // Only during ship and move, and not for moves to a homeworld.
     let mut recent_moves = Vec::new();
     if game.turn.current_main_phase == MainPhase::ShipmentAndMove {
-        for m in &game.ship_move.recent_moves {
+        for m in &game.turn.recent_moves {
             let Some(to) = m.placement_to(game) else { continue };
             if to.is_homeworld() {
                 continue;
@@ -125,7 +125,7 @@ pub fn board(game: &Game, status: &GameStatus, v: &ResolvedViewer) -> BoardView 
         atomics_aftermath: game.board.atomics_aftermath.map(|t| t.id()),
         protected_from_storm: map.locations(false).filter(|l| game.is_protected_from_storm(*l)).map(|l| l.id()).collect(),
         // The value for Richese, "?" for everyone else.
-        no_field_value: (me == Some(Faction::Richese)).then_some(game.ship_move.current_no_field_value),
+        no_field_value: (me == Some(Faction::Richese)).then_some(game.board.current_no_field_value),
         storm_prescience_moves: game.has_storm_prescience(v.player).then_some(game.board.next_storm_moves),
         recent_moves,
     }
@@ -157,7 +157,7 @@ pub fn ring_extras(game: &Game, p: PlayerId, out: &mut PublicPlayer) {
         .map(|l| SkilledLeader { id: l.id(), skill: name_or_absent(game.skill(Some(Hero::Leader(l)))) })
         .collect();
     out.loyal_leader = (pl.faction == Some(Faction::Ecaz)).then_some(game.leaders.ecaz_loyal_leader).flatten().map(|l| l.id());
-    out.latest_revealed_no_field = (pl.faction == Some(Faction::Richese) && game.ship_move.latest_revealed_no_field_value >= 0).then_some(game.ship_move.latest_revealed_no_field_value);
+    out.latest_revealed_no_field = (pl.faction == Some(Faction::Richese) && game.board.latest_revealed_no_field_value >= 0).then_some(game.board.latest_revealed_no_field_value);
 }
 
 /// The card piles beside the map.

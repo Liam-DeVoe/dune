@@ -428,7 +428,7 @@ Validation doesn't rule out every event the rules can't handle, so an accepted e
 ```rust
 let card = game.bidding.cards_on_auction.as_mut().required("cards on auction")?.try_draw()?;
 let bene_gesserit = self.get_player(Some(Faction::BeneGesserit)).required("The Bene Gesserit player")?;
-if self.ship_move.intrusions.is_empty() {
+if self.turn.intrusions.is_empty() {
     game_error!("No intrusions to dequeue");
 }
 ```

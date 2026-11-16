@@ -22,6 +22,11 @@ pub(super) fn required<T: PartialEq + Copy>(value: T, values: &[T], default: T) 
     if values.contains(&value) { value } else { values.first().copied().unwrap_or(default) }
 }
 
+/// [`required`] for a value whose C# default was the enum's `None` member: `None` when there is no choice.
+pub(super) fn required_opt<T: PartialEq + Copy>(value: Option<T>, values: &[T]) -> Option<T> {
+    if value.is_some_and(|v| values.contains(&v)) { value } else { values.first().copied() }
+}
+
 pub(super) fn faction_options(factions: impl IntoIterator<Item = Faction>) -> Vec<FactionOption> {
     factions.into_iter().map(|f| FactionOption { faction: f.to_string(), value: f.value() }).collect()
 }

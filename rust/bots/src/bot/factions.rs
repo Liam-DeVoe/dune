@@ -810,7 +810,7 @@ impl ClassicBot {
             return None;
         }
 
-        let existing_aspect = game.battle.current_prescience.as_ref().map_or(PrescienceAspect::None, |p| p.aspect);
+        let existing_aspect = game.battle.current_prescience.as_ref().map_or(None, |p| p.aspect);
         let mut e = Prescience::new(game, self.faction(game));
         let territory = battle.territory(game).expect("territory");
         let max_dial = ClassicBot::max_dial(game, self.player, territory, opponent, false);
@@ -819,7 +819,7 @@ impl ClassicBot {
     }
 
     /// Which aspect of `opponent`'s battle plan `p` should ask for, other than `earlier_prescience`.
-    pub fn best_prescience(&self, game: &Game, p: PlayerIndex, opponent: PlayerIndex, max_force_strength_in_battle: f32, earlier_prescience: PrescienceAspect, territory: Territory) -> PrescienceAspect {
+    pub fn best_prescience(&self, game: &Game, p: PlayerIndex, opponent: PlayerIndex, max_force_strength_in_battle: f32, earlier_prescience: Option<PrescienceAspect>, territory: Territory) -> Option<PrescienceAspect> {
         use TreacheryCardType as T;
         let known_cards = game.known_cards(p);
         let my_defenses: Vec<TreacheryCard> =
@@ -835,30 +835,30 @@ impl ClassicBot {
 
         // Knowing the weapon helps when I must pick a defense; a shield snooper makes it moot.
         let may_ask_weapon =
-            earlier_prescience != PrescienceAspect::Weapon && !weapon_is_certain && !i_have_defense(|d| d.type_() == T::ShieldAndAntidote);
+            earlier_prescience != Some(PrescienceAspect::Weapon) && !weapon_is_certain && !i_have_defense(|d| d.type_() == T::ShieldAndAntidote);
         // Knowing the defense helps when I must pick a weapon; a poison blade makes it moot.
         let may_ask_defense =
-            earlier_prescience != PrescienceAspect::Defense && !defense_is_certain && !i_have_weapon(|w| w.type_() == T::ProjectileAndPoison);
+            earlier_prescience != Some(PrescienceAspect::Defense) && !defense_is_certain && !i_have_weapon(|w| w.type_() == T::ProjectileAndPoison);
         let choice_of_defense = i_have_defense(|d| d.is_projectile_defense()) && i_have_defense(|d| d.is_poison_defense());
         let choice_of_weapon = i_have_weapon(|w| w.is_projectile_weapon()) && i_have_weapon(|w| w.is_poison_weapon());
 
         if may_ask_weapon && choice_of_defense {
-            PrescienceAspect::Weapon
+            Some(PrescienceAspect::Weapon)
         } else if may_ask_defense && choice_of_weapon {
-            PrescienceAspect::Defense
+            Some(PrescienceAspect::Defense)
         } else if may_ask_weapon && !my_defenses.is_empty() {
-            PrescienceAspect::Weapon
+            Some(PrescienceAspect::Weapon)
         } else if may_ask_defense && !my_weapons.is_empty() {
-            PrescienceAspect::Defense
-        } else if earlier_prescience != PrescienceAspect::Dial
+            Some(PrescienceAspect::Defense)
+        } else if earlier_prescience != Some(PrescienceAspect::Dial)
             && max_force_strength_in_battle > 2.0
             && Prescience::valid_aspects(game, p).contains(&PrescienceAspect::Dial)
         {
-            PrescienceAspect::Dial
-        } else if earlier_prescience != PrescienceAspect::Leader {
-            PrescienceAspect::Leader
+            Some(PrescienceAspect::Dial)
+        } else if earlier_prescience != Some(PrescienceAspect::Leader) {
+            Some(PrescienceAspect::Leader)
         } else {
-            PrescienceAspect::None
+            None
         }
     }
 
@@ -1151,21 +1151,21 @@ impl ClassicBot {
         let type_ = if can_place(TerrorType::Robbery)
             && opponents.iter().map(|p| game.player(*p).resources).sum::<i32>() > opponents.len() as i32 * 10
         {
-            TerrorType::Robbery
+            Some(TerrorType::Robbery)
         } else if can_place(TerrorType::Atomics)
             && valid_strongholds
                 .iter()
                 .any(|t| t.forces_of_all(game, &opponents) > 12 && t.forces_of_all(game, &self.me_and_my_ally(game)) < 2)
         {
-            TerrorType::Atomics
+            Some(TerrorType::Atomics)
         } else if can_place(TerrorType::Extortion) && self.resources(game) < 5 {
-            TerrorType::Extortion
+            Some(TerrorType::Extortion)
         } else {
-            available_to_place.iter().copied().random_item(&self.random).unwrap_or_default()
+            available_to_place.iter().copied().random_item(&self.random)
         };
 
         let strongholds = || valid_strongholds.iter().copied();
-        let mut stronghold = if type_ == TerrorType::Atomics {
+        let mut stronghold = if type_ == Some(TerrorType::Atomics) {
             strongholds().random_highest(&self.random, |t| t.forces_of_all(game, &opponents))
         } else {
             strongholds().random_highest(&self.random, |t| t.forces_of(game, self.player))
@@ -1204,7 +1204,7 @@ impl ClassicBot {
             return Rc::new(e);
         }
 
-        let type_ = TerrorRevealed::get_types(game).filter(token_is_valid).random_item(&self.random).unwrap_or_default();
+        let type_ = TerrorRevealed::get_types(game).filter(token_is_valid).random_item(&self.random);
         let card_in_sabotage = game.player(self.player).treachery_cards.iter().copied().find(|c| c.is_useless());
         let victim = game.get_player(Some(TerrorRevealed::get_victim(game)));
 

@@ -271,7 +271,7 @@ fn is_milestone(e: &GameEvent) -> bool {
         E::FaceDancerRevealed(e) => !e.passed,
         E::TreacheryCalled(e) => e.traitor_called,
         E::IxianSwappedCardOnBid(e) => !e.passed,
-        E::TerrorRevealed(e) => e.type_ == TerrorType::Atomics,
+        E::TerrorRevealed(e) => e.type_ == Some(TerrorType::Atomics),
         E::PoisonToothCancelled(_)
         | E::ReplacedCardWon(_)
         | E::Voice(_)

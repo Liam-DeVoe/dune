@@ -21,9 +21,11 @@ pub struct BattleState {
     pub current_voice: Option<Rc<Voice>>,
     pub current_prescience: Option<Rc<Prescience>>,
     /// The values are the live plan events, shared with `History` and the plan fields.
-    pub prescience_seen_plans: IndexMap<PrescienceAspect, Rc<Battle>>,
+    pub prescience_seen_plans: IndexMap<Option<PrescienceAspect>, Rc<Battle>>,
     pub current_thought: Option<Rc<Thought>>,
-    pub chosen_hms_advantage: Option<StrongholdAdvantage>,
+    // C#: `StrongholdAdvantage?`. Outside a battle it is `None`; in one, `Some(None)` until the
+    // advantage is chosen.
+    pub chosen_hms_advantage: Option<Option<StrongholdAdvantage>>,
     pub current_portable_antidote_used: Option<Rc<PortableAntidoteUsed>>,
     pub poison_tooth_cancelled: bool,
     pub current_rock_was_melted: Option<Rc<RockWasMelted>>,
@@ -108,7 +110,7 @@ impl Game {
         self.battle.current_battle = Some(current_battle.clone());
         self.update_battle_report_participants(&current_battle);
 
-        self.battle.chosen_hms_advantage = Some(StrongholdAdvantage::None);
+        self.battle.chosen_hms_advantage = Some(None);
         self.battle.battle_outcome = None;
         self.battle.nr_of_battles_fought += 1;
 

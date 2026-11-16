@@ -142,7 +142,7 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, stats
         (ActionOptions::ClairVoyancePlayed(o), GameEvent::ClairVoyancePlayed(e)) => {
             let targets: Vec<Faction> = ClairVoyancePlayed::valid_targets(game, p).collect();
             assert_eq!(o.targets.iter().map(|x| x.value).collect::<Vec<_>>(), values(targets.iter().copied()), "{at}");
-            assert_eq!(o.questions.iter().map(|x| x.value).collect::<Vec<_>>(), values(ClairVoyancePlayed::valid_questions(game, e.target)), "{at}");
+            assert_eq!(o.questions.iter().map(|x| x.value).collect::<Vec<_>>(), ClairVoyancePlayed::valid_questions(game, e.target).map(value_or_absent).collect::<Vec<_>>(), "{at}");
             assert_eq!(o.card_types.iter().map(|x| x.value.clone()).collect::<Vec<_>>(), Voice::valid_types(game).iter().map(|t| t.to_string()).collect::<Vec<_>>(), "{at}");
             assert_eq!(o.turns.iter().map(|x| x.value.clone()).collect::<Vec<_>>(), BeneGesseritPrediction::valid_turns(game).iter().map(|t| t.to_string()).collect::<Vec<_>>(), "{at}");
             assert_eq!(o.leaders.len(), game.traitors_in_play().len(), "{at}");
@@ -152,7 +152,7 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, stats
                 q.target = target;
                 let (opts, _) = battle::options_and_validation(game, &v, &event(q), d).unwrap();
                 let Some(ActionOptions::ClairVoyancePlayed(o)) = opts else { panic!("{at}") };
-                assert_eq!(o.questions.iter().map(|x| x.value).collect::<Vec<_>>(), values(ClairVoyancePlayed::valid_questions(game, target)), "{at}");
+                assert_eq!(o.questions.iter().map(|x| x.value).collect::<Vec<_>>(), ClairVoyancePlayed::valid_questions(game, target).map(value_or_absent).collect::<Vec<_>>(), "{at}");
             }
         }
         (ActionOptions::Diplomacy(o), _) => assert_eq!(o.cards, ids(Diplomacy::valid_cards(game, p)), "{at}"),
@@ -439,7 +439,7 @@ fn hms_battle_state() -> ViewReplica {
     battle.territory_id = hms.location().territory().id();
     g.battle.current_battle = Some(std::rc::Rc::new(battle));
     g.turn.current_phase = Phase::BattlePhase;
-    g.battle.chosen_hms_advantage = Some(StrongholdAdvantage::None);
+    g.battle.chosen_hms_advantage = Some(None);
     r
 }
 
@@ -456,9 +456,9 @@ fn hms_advantage_form_in_a_built_state() {
     let faction = r.game.player(owner).faction;
     let advantage = HMSAdvantageChosen::valid_advantages(&r.game, owner)[0];
     let mut e = HMSAdvantageChosen::new(&r.game, faction);
-    e.advantage = advantage;
+    e.advantage = Some(advantage);
     let e = std::rc::Rc::new(e).into_event();
     assert!(e.validate(&r.game).is_none(), "{:?}", e.validate(&r.game).map(|m| m.to_cs_string()));
     assert!(e.execute(&mut r.game, true, true).is_none());
-    assert_eq!(r.game.battle.chosen_hms_advantage, Some(advantage));
+    assert_eq!(r.game.battle.chosen_hms_advantage, Some(Some(advantage)));
 }

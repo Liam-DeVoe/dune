@@ -169,7 +169,7 @@ fn seen(g: &Game, plans: &[Option<Rc<Battle>>]) -> String {
         .iter()
         .map(|(aspect, plan)| {
             let i = plans.iter().position(|p| p.as_ref().is_some_and(|p| Rc::ptr_eq(p, plan))).map_or(-1, |i| i as i32);
-            format!("{aspect}:{}:plan{i}", plan.initiator())
+            format!("{}:{}:plan{i}", name_or_absent(*aspect), plan.initiator())
         })
         .collect();
     format!("[{}]", entries.join(","))
@@ -223,9 +223,9 @@ fn prescience(l: &mut Lines, v: i32) {
     g.battle.defender_plan = plans[0].clone();
 
     let mut p = Prescience::new(&g, Faction::Atreides);
-    p.aspect = PrescienceAspect::Weapon;
+    p.aspect = Some(PrescienceAspect::Weapon);
     g.battle.current_prescience = Some(Rc::new(p));
-    let aspects = |g: &Game, f: Faction| Battle::aspects_seen_by_opponent(g, idx(g, f)).iter().map(|a| a.to_string()).collect::<Vec<_>>().join(",");
+    let aspects = |g: &Game, f: Faction| Battle::aspects_seen_by_opponent(g, idx(g, f)).iter().map(|a| name_or_absent(*a)).collect::<Vec<_>>().join(",");
     l.try_(&format!("{at}.aspects"), || aspects(&g, Faction::Choam));
     l.try_(&format!("{at}.aspects_of_atreides"), || aspects(&g, Faction::Atreides));
     l.try_(&format!("{at}.revise1"), || revise(&mut g));
@@ -240,7 +240,7 @@ fn prescience(l: &mut Lines, v: i32) {
     g.battle.defender_plan = plans[2].clone();
     g.battle.atreides_karma = true;
     let mut p = Prescience::new(&g, Faction::Atreides);
-    p.aspect = PrescienceAspect::Dial;
+    p.aspect = Some(PrescienceAspect::Dial);
     g.battle.current_prescience = Some(Rc::new(p));
     l.try_(&format!("{at}.aspects_karma"), || aspects(&g, Faction::Choam));
     l.try_(&format!("{at}.revise2"), || revise(&mut g));

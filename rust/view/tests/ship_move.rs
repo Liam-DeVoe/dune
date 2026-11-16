@@ -742,14 +742,14 @@ fn check_adjustments(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Des
             let removing = TerrorPlanted::may_remove_tokens(game, p);
             let strongholds: Vec<Territory> = TerrorPlanted::valid_strongholds(game, p).take(2).collect();
             for stronghold in std::iter::once(None).chain(strongholds.into_iter().map(Some)) {
-                for ty in [TerrorType::Atomics, TerrorType::Robbery, TerrorType::None] {
+                for ty in [Some(TerrorType::Atomics), Some(TerrorType::Robbery), None] {
                     let mut e = TerrorPlanted::new(game, f);
                     e.type_ = ty;
                     e.set_stronghold(game, stronghold);
                     let GameEvent::TerrorPlanted(a) = adjusted(game, p, &event(e), d) else { panic!() };
                     let expected = if removing || stronghold.is_some() {
                         let types: Vec<TerrorType> = TerrorPlanted::valid_terror_types(game, removing).collect();
-                        if types.contains(&ty) { ty } else { types.first().copied().unwrap_or(TerrorType::None) }
+                        if ty.is_some_and(|t| types.contains(&t)) { ty } else { types.first().copied() }
                     } else {
                         ty
                     };
@@ -760,15 +760,15 @@ fn check_adjustments(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Des
         GameEvent::TerrorRevealed(_) => {
             let types: Vec<TerrorType> = TerrorRevealed::get_types(game).collect();
             let possible = TerrorRevealed::valid_sneak_attack_targets(game, p).next().is_some();
-            for ty in types.iter().copied().chain([TerrorType::None]) {
+            for ty in types.iter().copied().map(Some).chain([None]) {
                 let mut e = TerrorRevealed::new(game, f);
                 e.type_ = ty;
                 e.robbery_takes_card = true;
                 e.set_card_to_give_in_sabotage(pl.treachery_cards.first().copied());
                 e.forces_in_sneak_attack = 2;
                 let GameEvent::TerrorRevealed(a) = adjusted(game, p, &event(e), d) else { panic!() };
-                let ty = if types.contains(&ty) { ty } else { types[0] };
-                assert_eq!(a.type_, ty);
+                let ty = match ty { Some(t) if types.contains(&t) => t, _ => types[0] };
+                assert_eq!(a.type_, Some(ty));
                 assert_eq!(a.robbery_takes_card, ty == TerrorType::Robbery);
                 assert_eq!(a.card_to_give_in_sabotage(), if ty == TerrorType::Sabotage { pl.treachery_cards.first().copied() } else { None });
                 assert_eq!(a.forces_in_sneak_attack, if ty == TerrorType::SneakAttack && possible { 2 } else { 0 });

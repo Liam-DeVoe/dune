@@ -58,7 +58,7 @@ macro_rules! enum_keys {
     )*};
 }
 
-enum_keys!(MainPhase, Faction, TreacheryCardType, LeaderSkill, StrongholdAdvantage, TerrorType, DiscoveryTokenType, Ambassador);
+enum_keys!(MainPhase, Faction, TreacheryCardType, Ambassador);
 
 /// Keys of an enum whose C# `None` member is absence in Rust: `None` is the key "None".
 macro_rules! optional_enum_keys {
@@ -74,7 +74,7 @@ macro_rules! optional_enum_keys {
     )*};
 }
 
-optional_enum_keys!(TechToken, Concept, Milestone, World, Nexus, DiscoveryToken);
+optional_enum_keys!(TechToken, Concept, Milestone, World, Nexus, DiscoveryToken, LeaderSkill, StrongholdAdvantage, TerrorType, DiscoveryTokenType);
 
 /// A C# `Dictionary<K, V>` of a skin. Entries keep insertion order (nothing is ever removed),
 /// which is the order .NET enumerates and serializes them in.
@@ -167,20 +167,20 @@ pub struct Skin {
     pub treachery_card_image_url: SkinDictionary<i32>,
     pub tech_token_description_str: SkinDictionary<Option<TechToken>>,
     pub resource_card_image_url: SkinDictionary<i32>,
-    pub leader_skill_card_name_str: SkinDictionary<LeaderSkill>,
-    pub leader_skill_card_image_url: SkinDictionary<LeaderSkill>,
+    pub leader_skill_card_name_str: SkinDictionary<Option<LeaderSkill>>,
+    pub leader_skill_card_image_url: SkinDictionary<Option<LeaderSkill>>,
     pub stronghold_card_name_str: SkinDictionary<i32>,
-    pub stronghold_card_image_url: SkinDictionary<StrongholdAdvantage>,
+    pub stronghold_card_image_url: SkinDictionary<Option<StrongholdAdvantage>>,
     pub home_world_image_url: SkinDictionary<Option<World>>,
     pub home_world_card_image_url: SkinDictionary<Option<World>>,
     pub nexus_card_image_url: SkinDictionary<Option<Nexus>>,
-    pub terror_token_name_str: SkinDictionary<TerrorType>,
-    pub terror_token_description_str: SkinDictionary<TerrorType>,
+    pub terror_token_name_str: SkinDictionary<Option<TerrorType>>,
+    pub terror_token_description_str: SkinDictionary<Option<TerrorType>>,
     pub discovery_token_name_str: SkinDictionary<Option<DiscoveryToken>>,
     pub discovery_token_description_str: SkinDictionary<Option<DiscoveryToken>>,
     pub discovery_token_image_url: SkinDictionary<Option<DiscoveryToken>>,
-    pub discovery_token_type_name_str: SkinDictionary<DiscoveryTokenType>,
-    pub discovery_token_type_image_url: SkinDictionary<DiscoveryTokenType>,
+    pub discovery_token_type_name_str: SkinDictionary<Option<DiscoveryTokenType>>,
+    pub discovery_token_type_image_url: SkinDictionary<Option<DiscoveryTokenType>>,
     pub ambassador_image_url: SkinDictionary<Ambassador>,
     pub ambassador_name_str: SkinDictionary<Ambassador>,
     pub ambassador_description_str: SkinDictionary<Ambassador>,
@@ -405,23 +405,23 @@ impl Skin {
                     self.describe_faction(v)
                 } else if let Some(v) = e.get::<Ambassador>() {
                     self.describe_ambassador(v)
-                } else if let Some(v) = e.get::<PrescienceAspect>() {
+                } else if let Some(v) = e.get_opt::<PrescienceAspect>() {
                     self.describe_prescience_aspect(v)
                 } else if let Some(v) = e.get_opt::<FactionForce>() {
                     self.describe_faction_force(v)
                 } else if let Some(v) = e.get_opt::<FactionSpecialForce>() {
                     self.describe_faction_special_force(v)
-                } else if let Some(v) = e.get::<FactionAdvantage>() {
+                } else if let Some(v) = e.get_opt::<FactionAdvantage>() {
                     self.describe_faction_advantage(v)
                 } else if let Some(v) = e.get::<TreacheryCardType>() {
                     self.describe_treachery_card_type(v)
-                } else if let Some(v) = e.get::<LeaderSkill>() {
+                } else if let Some(v) = e.get_opt::<LeaderSkill>() {
                     self.describe_leader_skill(v)
-                } else if let Some(v) = e.get::<TerrorType>() {
+                } else if let Some(v) = e.get_opt::<TerrorType>() {
                     self.describe_terror_type(v)
                 } else if let Some(v) = e.get_opt::<DiscoveryToken>() {
                     self.describe_discovery_token(v)
-                } else if let Some(v) = e.get::<DiscoveryTokenType>() {
+                } else if let Some(v) = e.get_opt::<DiscoveryTokenType>() {
                     self.describe_discovery_token_type(v)
                 } else if let Some(v) = e.get::<Ruleset>() {
                     describe_ruleset(v)
@@ -447,7 +447,7 @@ impl Skin {
                     describe_juice_type(v)
                 } else if let Some(v) = e.get_opt::<CaptureDecision>() {
                     describe_capture_decision(v)
-                } else if let Some(v) = e.get::<StrongholdAdvantage>() {
+                } else if let Some(v) = e.get_opt::<StrongholdAdvantage>() {
                     self.describe_stronghold_advantage(v)
                 } else if let Some(v) = e.get_opt::<ClairVoyanceAnswer>() {
                     describe_clair_voyance_answer(v)
@@ -521,18 +521,18 @@ impl Skin {
         get_label(&self.treachery_card_name_str, c.skin_id())
     }
 
-    pub fn describe_prescience_aspect(&self, aspect: PrescienceAspect) -> String {
+    pub fn describe_prescience_aspect(&self, aspect: Option<PrescienceAspect>) -> String {
         match aspect {
-            PrescienceAspect::Dial => "Dial",
-            PrescienceAspect::Leader => "Leader",
-            PrescienceAspect::Weapon => "Weapon",
-            PrescienceAspect::Defense => "Defense",
-            _ => "",
+            Some(PrescienceAspect::Dial) => "Dial",
+            Some(PrescienceAspect::Leader) => "Leader",
+            Some(PrescienceAspect::Weapon) => "Weapon",
+            Some(PrescienceAspect::Defense) => "Defense",
+            None => "",
         }
         .to_string()
     }
 
-    pub fn describe_leader_skill(&self, l: LeaderSkill) -> String {
+    pub fn describe_leader_skill(&self, l: Option<LeaderSkill>) -> String {
         get_label(&self.leader_skill_card_name_str, l)
     }
 
@@ -576,7 +576,7 @@ impl Skin {
     }
 
     pub fn get_popup_terror_type(&self, t: TerrorType) -> String {
-        self.get_token_popup(None, &self.describe_terror_type(t), &self.get_terror_type_description(t))
+        self.get_token_popup(None, &self.describe_terror_type(Some(t)), &self.get_terror_type_description(t))
     }
 
     pub fn get_popup_ambassador(&self, a: Ambassador) -> String {
@@ -597,7 +597,7 @@ impl Skin {
     }
 
     pub fn get_popup_leader_skill(&self, c: LeaderSkill) -> String {
-        get_framed_card_html(&self.get_image_url_leader_skill(c))
+        get_framed_card_html(&self.get_image_url_leader_skill(Some(c)))
     }
 
     pub fn get_popup_tech_token(&self, tt: TechToken) -> String {
@@ -693,11 +693,10 @@ impl Skin {
 
         let skill = g.skill(Some(h));
 
-        if skill == LeaderSkill::None {
-            return self.get_popup_hero(h);
+        match skill {
+            None => self.get_popup_hero(h),
+            Some(skill) => self.get_popup_skilled_leader(h.as_leader(), skill),
         }
-
-        self.get_popup_skilled_leader(h.as_leader(), skill)
     }
 
     pub fn get_popup_skilled_leader(&self, l: Option<Leader>, s: LeaderSkill) -> String {
@@ -705,20 +704,20 @@ impl Skin {
             None => String::new(),
             Some(l) => format!(
                 "<div style='position:relative'><img style='position:relative;filter:drop-shadow(-3px 3px 2px black);' src='{}' width=300/><img src='{}' width=140 style='position:absolute;left:200px;top:120px;filter:drop-shadow(-2px 2px 2px black);'/></div>",
-                self.get_image_url_leader_skill(s),
+                self.get_image_url_leader_skill(Some(s)),
                 self.get_image_url_hero(Some(Hero::Leader(l)))
             ),
         }
     }
 
     pub fn get_popup_stronghold_advantage(&self, adv: StrongholdAdvantage) -> String {
-        get_image_hover_html(&self.get_image_url_stronghold_advantage(adv))
+        get_image_hover_html(&self.get_image_url_stronghold_advantage(Some(adv)))
     }
 
     pub fn get_popup_stronghold_advantage_for(&self, adv: StrongholdAdvantage, f: Faction) -> String {
         format!(
             "<div style='position:relative'><img style='position:relative;filter:drop-shadow(-3px 3px 2px black);' src='{}' width=300/><img src='{}' width=100 style='position:absolute;left:220px;top:40px;filter:drop-shadow(-3px 3px 2px black);'/></div>",
-            self.get_image_url_stronghold_advantage(adv),
+            self.get_image_url_stronghold_advantage(Some(adv)),
             self.get_image_url_faction(f)
         )
     }
@@ -730,7 +729,7 @@ impl Skin {
             E::ResourceCard(rc) => self.get_image_url_resource_card(Some(*rc)),
             E::Hero(h) => self.get_image_url_hero(Some(*h)),
             E::Enum(e) => {
-                if let Some(v) = e.get::<LeaderSkill>() {
+                if let Some(v) = e.get_opt::<LeaderSkill>() {
                     self.get_image_url_leader_skill(v)
                 } else if let Some(v) = e.get_opt::<TechToken>() {
                     self.get_image_url_tech_token(v)
@@ -744,7 +743,7 @@ impl Skin {
                     self.get_image_url_faction_force(v)
                 } else if let Some(v) = e.get_opt::<FactionSpecialForce>() {
                     self.get_image_url_faction_special_force(v)
-                } else if let Some(v) = e.get::<StrongholdAdvantage>() {
+                } else if let Some(v) = e.get_opt::<StrongholdAdvantage>() {
                     self.get_image_url_stronghold_advantage(v)
                 } else {
                     String::new()
@@ -755,23 +754,23 @@ impl Skin {
     }
 
     pub fn get_image_url_discovery_token_type(&self, dtt: DiscoveryTokenType) -> String {
-        get_label(&self.discovery_token_type_image_url, dtt)
+        get_label(&self.discovery_token_type_image_url, Some(dtt))
     }
 
     pub fn get_image_url_discovery_token(&self, dt: DiscoveryToken) -> String {
         get_label(&self.discovery_token_image_url, Some(dt))
     }
 
-    pub fn describe_discovery_token_type(&self, dtt: DiscoveryTokenType) -> String {
+    pub fn describe_discovery_token_type(&self, dtt: Option<DiscoveryTokenType>) -> String {
         get_label(&self.discovery_token_type_name_str, dtt)
     }
 
-    pub fn describe_terror_type(&self, terr: TerrorType) -> String {
+    pub fn describe_terror_type(&self, terr: Option<TerrorType>) -> String {
         get_label(&self.terror_token_name_str, terr)
     }
 
     pub fn get_terror_type_description(&self, terr: TerrorType) -> String {
-        get_label(&self.terror_token_description_str, terr)
+        get_label(&self.terror_token_description_str, Some(terr))
     }
 
     pub fn describe_ambassador(&self, ambassador: Ambassador) -> String {
@@ -802,128 +801,128 @@ impl Skin {
         get_label(&self.special_force_name_str, get_faction_faction_special_force(f))
     }
 
-    pub fn describe_faction_advantage(&self, advantage: FactionAdvantage) -> String {
+    pub fn describe_faction_advantage(&self, advantage: Option<FactionAdvantage>) -> String {
         use FactionAdvantage as A;
         use FactionSpecialForce as Fsf;
         match advantage {
-            A::None => "- Any stoppable advantage not listed below -".to_string(),
-            A::AtreidesBiddingPrescience => self.format("{0} seeing the card on auction", &args![Faction::Atreides]),
-            A::AtreidesSpiceBlowPrescience => {
+            None => "- Any stoppable advantage not listed below -".to_string(),
+            Some(A::AtreidesBiddingPrescience) => self.format("{0} seeing the card on auction", &args![Faction::Atreides]),
+            Some(A::AtreidesSpiceBlowPrescience) => {
                 let resource = self.concept_str.index(Some(Concept::Resource)).clone();
                 self.format("{0} seeing the top {1} card this turn", &args![Faction::Atreides, resource])
             }
-            A::AtreidesBattlePlanPrescience => self.format("{0} seeing part of the opponent battle plan", &args![Faction::Atreides]),
-            A::AtreidesUseMessiah => {
+            Some(A::AtreidesBattlePlanPrescience) => self.format("{0} seeing part of the opponent battle plan", &args![Faction::Atreides]),
+            Some(A::AtreidesUseMessiah) => {
                 let messiah = self.concept_str.index(Some(Concept::Messiah)).clone();
                 self.format("{0} using the {1} in this battle", &args![Faction::Atreides, messiah])
             }
-            A::HarkonnenFreeCard => self.format("{0} taking a free treachery card", &args![Faction::Harkonnen]),
-            A::HarkonnenCaptureLeader => self.format("{0} capturing a leader after this battle", &args![Faction::Harkonnen]),
-            A::HarkonnenCallTraitorForAlly => self.format("{0} calling TREACHERY for their ally in this battle", &args![Faction::Harkonnen]),
-            A::BeneGesseritAccompanies => self.format("{0} accompanying shipment", &args![Faction::BeneGesserit]),
-            A::BeneGesseritAnnouncesBattle => self.format("{0} flipping advisors to fighters*", &args![Faction::BeneGesserit]),
-            A::BeneGesseritIntrusion => self.format("{0} becoming advisors on intrusion", &args![Faction::BeneGesserit]),
-            A::BeneGesseritUsingVoice => self.format("{0} using Voice during this battle", &args![Faction::BeneGesserit]),
-            A::BeneGesseritWorthlessAsKarma => self.format(
+            Some(A::HarkonnenFreeCard) => self.format("{0} taking a free treachery card", &args![Faction::Harkonnen]),
+            Some(A::HarkonnenCaptureLeader) => self.format("{0} capturing a leader after this battle", &args![Faction::Harkonnen]),
+            Some(A::HarkonnenCallTraitorForAlly) => self.format("{0} calling TREACHERY for their ally in this battle", &args![Faction::Harkonnen]),
+            Some(A::BeneGesseritAccompanies) => self.format("{0} accompanying shipment", &args![Faction::BeneGesserit]),
+            Some(A::BeneGesseritAnnouncesBattle) => self.format("{0} flipping advisors to fighters*", &args![Faction::BeneGesserit]),
+            Some(A::BeneGesseritIntrusion) => self.format("{0} becoming advisors on intrusion", &args![Faction::BeneGesserit]),
+            Some(A::BeneGesseritUsingVoice) => self.format("{0} using Voice during this battle", &args![Faction::BeneGesserit]),
+            Some(A::BeneGesseritWorthlessAsKarma) => self.format(
                 "{0} using a {1} as a {2} card*",
                 &args![Faction::BeneGesserit, TreacheryCardType::Useless, TreacheryCardType::Karma],
             ),
-            A::BeneGesseritCharity => {
+            Some(A::BeneGesseritCharity) => {
                 self.format("{0} receiving 2 {1} at {2}", &args![Faction::BeneGesserit, Concept::Resource, MainPhase::Charity])
             }
-            A::FremenControlsMonster => self.format(
+            Some(A::FremenControlsMonster) => self.format(
                 "{0} sending {1} when a subsequent {1} card is drawn",
                 &args![Faction::Fremen, Concept::Monster],
             ),
-            A::FremenRidesMonster => self.format("{0} riding {1}", &args![Faction::Fremen, Concept::Monster]),
-            A::FremenNotPayingForBattles => self.format("{0} not paying for forces in this battle", &args![Faction::Fremen]),
-            A::FremenSpecialForceBonus => {
+            Some(A::FremenRidesMonster) => self.format("{0} riding {1}", &args![Faction::Fremen, Concept::Monster]),
+            Some(A::FremenNotPayingForBattles) => self.format("{0} not paying for forces in this battle", &args![Faction::Fremen]),
+            Some(A::FremenSpecialForceBonus) => {
                 self.format("{0} counting {1} bonus in this battle", &args![Faction::Fremen, Fsf::Fremen])
             }
-            A::FremenExtraMove => {
+            Some(A::FremenExtraMove) => {
                 self.format("{0} moving two territories as part of their move action", &args![Faction::Fremen])
             }
-            A::FremenProtectedFromStorm => self.format("{0} not taking storm losses when hit", &args![Faction::Fremen]),
-            A::FremenProtectedFromMonster => {
+            Some(A::FremenProtectedFromStorm) => self.format("{0} not taking storm losses when hit", &args![Faction::Fremen]),
+            Some(A::FremenProtectedFromMonster) => {
                 self.format("{0} not being devoured by {1}", &args![Faction::Fremen, Concept::Monster])
             }
-            A::FremenProtectedFromMonsterAlly => {
+            Some(A::FremenProtectedFromMonsterAlly) => {
                 self.format("{0} ally not being devoured by {1}", &args![Faction::Fremen, Concept::Monster])
             }
-            A::FremenStormPrescience => self.format("{0} seeing the storm movement this turn", &args![Faction::Fremen]),
-            A::EmperorSpecialForceBonus => self.format("{0} counting {1} bonus in this battle", &args![Faction::Emperor, Fsf::Emperor]),
-            A::EmperorReceiveBid => {
+            Some(A::FremenStormPrescience) => self.format("{0} seeing the storm movement this turn", &args![Faction::Fremen]),
+            Some(A::EmperorSpecialForceBonus) => self.format("{0} counting {1} bonus in this battle", &args![Faction::Emperor, Fsf::Emperor]),
+            Some(A::EmperorReceiveBid) => {
                 self.format("{0} receiving {1} for a treachery card", &args![Faction::Emperor, Concept::Resource])
             }
-            A::EmperorGiveSpiceToAlly => self.format("{0} giving {1} to their ally*", &args![Faction::Emperor, Concept::Resource]),
-            A::EmperorLetAllyReviveExtraForces => self.format(
+            Some(A::EmperorGiveSpiceToAlly) => self.format("{0} giving {1} to their ally*", &args![Faction::Emperor, Concept::Resource]),
+            Some(A::EmperorLetAllyReviveExtraForces) => self.format(
                 "{0} allowing their ally to revive 3 extra forces",
                 &args![Faction::Emperor, Concept::Resource],
             ),
-            A::GuildDetermineMoveMoment => self.format(
+            Some(A::GuildDetermineMoveMoment) => self.format(
                 "{0} shipping out of turn order (play before their normal turn)",
                 &args![Faction::Guild],
             ),
-            A::GuildSpecialShipments => {
+            Some(A::GuildSpecialShipments) => {
                 self.format("{0} (and ally) shipping site-to-site or back to reserves", &args![Faction::Guild])
             }
-            A::GuildShipmentsDiscount => self.format("{0} shipping at half price", &args![Faction::Guild]),
-            A::GuildShipmentsDiscountAlly => self.format("{0} ally shipping at half price", &args![Faction::Guild]),
-            A::GuildReceiveShipment => {
+            Some(A::GuildShipmentsDiscount) => self.format("{0} shipping at half price", &args![Faction::Guild]),
+            Some(A::GuildShipmentsDiscountAlly) => self.format("{0} ally shipping at half price", &args![Faction::Guild]),
+            Some(A::GuildReceiveShipment) => {
                 self.format("{0} receiving {1} for a shipment", &args![Faction::Guild, Concept::Resource])
             }
-            A::TleilaxuRevivalDiscount => self.format("{0} reviving at half price", &args![Faction::Tleilaxu]),
-            A::TleilaxuRevivalDiscountAlly => self.format("{0} ally reviving at half price", &args![Faction::Tleilaxu]),
-            A::TleilaxuReplacingFaceDancer => {
+            Some(A::TleilaxuRevivalDiscount) => self.format("{0} reviving at half price", &args![Faction::Tleilaxu]),
+            Some(A::TleilaxuRevivalDiscountAlly) => self.format("{0} ally reviving at half price", &args![Faction::Tleilaxu]),
+            Some(A::TleilaxuReplacingFaceDancer) => {
                 self.format("{0} replacing a face dancer at end of turn", &args![Faction::Tleilaxu])
             }
-            A::TleilaxuIncreasingRevivalLimits => self.format("{0} increasing revival limits", &args![Faction::Tleilaxu]),
-            A::TleilaxuReceiveRevive => {
+            Some(A::TleilaxuIncreasingRevivalLimits) => self.format("{0} increasing revival limits", &args![Faction::Tleilaxu]),
+            Some(A::TleilaxuReceiveRevive) => {
                 self.format("{0} receiving {1} for revival", &args![Faction::Tleilaxu, Concept::Resource])
             }
-            A::TleilaxuEarlyLeaderRevive => {
+            Some(A::TleilaxuEarlyLeaderRevive) => {
                 self.format("{0} allowing early revival of a leader*", &args![Faction::Tleilaxu])
             }
-            A::TleilaxuReviveGhola => self.format("{0} reviving a leader as a Ghola", &args![Faction::Tleilaxu]),
-            A::IxianMovingHms => self.format("{0} moving the Hidden Mobile Stronghold", &args![Faction::Ixian]),
-            A::IxianSpecialForceBonus => self.format("{0} counting {1} bonus in this battle", &args![Faction::Ixian, Fsf::Ixian]),
-            A::IxianSelectingCardsOnAuction => self.format(
+            Some(A::TleilaxuReviveGhola) => self.format("{0} reviving a leader as a Ghola", &args![Faction::Tleilaxu]),
+            Some(A::IxianMovingHms) => self.format("{0} moving the Hidden Mobile Stronghold", &args![Faction::Ixian]),
+            Some(A::IxianSpecialForceBonus) => self.format("{0} counting {1} bonus in this battle", &args![Faction::Ixian, Fsf::Ixian]),
+            Some(A::IxianSelectingCardsOnAuction) => self.format(
                 "{0} selecting a card to go on top or bottom (play before they draw cards on auction)",
                 &args![Faction::Ixian],
             ),
-            A::IxianCyborgExtraMove => self.format("{0} moving {1} two territories", &args![Faction::Ixian, Fsf::Ixian]),
-            A::IxianReplacingSpecialForces => self.format(
+            Some(A::IxianCyborgExtraMove) => self.format("{0} moving {1} two territories", &args![Faction::Ixian, Fsf::Ixian]),
+            Some(A::IxianReplacingSpecialForces) => self.format(
                 "{0} replacing {1} lost in battle with {2}",
                 &args![Faction::Ixian, Fsf::Ixian, FactionForce::Ixian],
             ),
-            A::IxianAllyDiscardingCard => {
+            Some(A::IxianAllyDiscardingCard) => {
                 self.format("{0} allowing their ally to replace a won card", &args![Faction::Ixian])
             }
-            A::IxianSwappingCard => self.format("{0} replacing a treachery card during bidding", &args![Faction::Ixian]),
-            A::ChoamControllingCharity => self.format(
+            Some(A::IxianSwappingCard) => self.format("{0} replacing a treachery card during bidding", &args![Faction::Ixian]),
+            Some(A::ChoamControllingCharity) => self.format(
                 "{0} receiving and giving {1} during {2}",
                 &args![Faction::Choam, Concept::Resource, MainPhase::Charity],
             ),
-            A::ChoamDiscarding => self.format(
+            Some(A::ChoamDiscarding) => self.format(
                 "{0} discarding cards for {1} or a {2} card for its special effect*",
                 &args![Faction::Choam, Concept::Resource, TreacheryCardType::Useless],
             ),
-            A::ChoamRevival => self.format(
+            Some(A::ChoamRevival) => self.format(
                 "{0} having unlimited force revival and reduced revival cost",
                 &args![Faction::Choam],
             ),
-            A::ChoamEconomics => self.format(
+            Some(A::ChoamEconomics) => self.format(
                 "{0} playing their Inflation token during {1}",
                 &args![Faction::Choam, MainPhase::Contemplate],
             ),
-            A::ChoamReceiveForcePayment => self.format(
+            Some(A::ChoamReceiveForcePayment) => self.format(
                 "{0} collecting {1} payment for forces this battle",
                 &args![Faction::Choam, Concept::Resource],
             ),
-            A::ChoamAudit => self.format("{0} auditing their opponent after this battle", &args![Faction::Choam]),
-            A::RicheseAuction => self.format("{0} auctioning a card from their card cache", &args![Faction::Richese]),
-            A::RicheseNofield => self.format("{0} using a No-Field to ship", &args![Faction::Richese]),
-            A::RicheseBlackMarket => self.format("{0} selling a card from their hand", &args![Faction::Richese]),
+            Some(A::ChoamAudit) => self.format("{0} auditing their opponent after this battle", &args![Faction::Choam]),
+            Some(A::RicheseAuction) => self.format("{0} auctioning a card from their card cache", &args![Faction::Richese]),
+            Some(A::RicheseNofield) => self.format("{0} using a No-Field to ship", &args![Faction::Richese]),
+            Some(A::RicheseBlackMarket) => self.format("{0} selling a card from their hand", &args![Faction::Richese]),
 
             _ => "Unknown".to_string(),
         }
@@ -970,14 +969,14 @@ impl Skin {
 
     /// `private string Describe(StrongholdAdvantage sa)`. The labels come from the dictionary's
     /// indexer, which throws KeyNotFoundException for a skin without them.
-    pub fn describe_stronghold_advantage(&self, sa: StrongholdAdvantage) -> String {
+    pub fn describe_stronghold_advantage(&self, sa: Option<StrongholdAdvantage>) -> String {
         use StrongholdAdvantage as S;
         match sa {
-            S::CollectResourcesForDial => self.stronghold_card_name_str.index(5).clone(),
-            S::CollectResourcesForUseless => self.stronghold_card_name_str.index(4).clone(),
-            S::CountDefensesAsAntidote => self.stronghold_card_name_str.index(2).clone(),
-            S::FreeResourcesForBattles => self.stronghold_card_name_str.index(3).clone(),
-            S::WinTies => self.stronghold_card_name_str.index(6).clone(),
+            Some(S::CollectResourcesForDial) => self.stronghold_card_name_str.index(5).clone(),
+            Some(S::CollectResourcesForUseless) => self.stronghold_card_name_str.index(4).clone(),
+            Some(S::CountDefensesAsAntidote) => self.stronghold_card_name_str.index(2).clone(),
+            Some(S::FreeResourcesForBattles) => self.stronghold_card_name_str.index(3).clone(),
+            Some(S::WinTies) => self.stronghold_card_name_str.index(6).clone(),
             _ => "None".to_string(),
         }
     }
@@ -1196,7 +1195,7 @@ impl Skin {
         get_label(&self.home_world_image_url, Some(w))
     }
 
-    pub fn get_image_url_stronghold_advantage(&self, a: StrongholdAdvantage) -> String {
+    pub fn get_image_url_stronghold_advantage(&self, a: Option<StrongholdAdvantage>) -> String {
         get_label(&self.stronghold_card_image_url, a)
     }
 
@@ -1207,7 +1206,7 @@ impl Skin {
         }
     }
 
-    pub fn get_image_url_leader_skill(&self, s: LeaderSkill) -> String {
+    pub fn get_image_url_leader_skill(&self, s: Option<LeaderSkill>) -> String {
         get_label(&self.leader_skill_card_image_url, s)
     }
 

@@ -3,13 +3,13 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct BattleOutcome {
     pub agg_hero_skill_bonus: i32,
-    pub agg_activated_bonus_skill: LeaderSkill,
+    pub agg_activated_bonus_skill: Option<LeaderSkill>,
     pub def_hero_skill_bonus: i32,
-    pub def_activated_bonus_skill: LeaderSkill,
+    pub def_activated_bonus_skill: Option<LeaderSkill>,
     pub agg_battle_penalty: i32,
-    pub agg_activated_penalty_skill: LeaderSkill,
+    pub agg_activated_penalty_skill: Option<LeaderSkill>,
     pub def_battle_penalty: i32,
-    pub def_activated_penalty_skill: LeaderSkill,
+    pub def_activated_penalty_skill: Option<LeaderSkill>,
     pub agg_messiah_contribution: i32,
     pub def_messiah_contribution: i32,
     pub agg_homeworld_contribution: i32,

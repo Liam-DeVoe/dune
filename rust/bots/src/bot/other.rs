@@ -316,15 +316,15 @@ impl ClassicBot {
         game.battle.current_battle.as_ref().filter(|b| b.is_aggressor_or_defender(game, self.player))
     }
 
-    /// The aspect to ask about with Atreides prescience from a nexus card, or `PrescienceAspect::None`
+    /// The aspect to ask about with Atreides prescience from a nexus card, or `None`
     /// to wait: until the opponent has used voice, or when I'm not fighting this battle.
-    fn nexus_prescience_aspect(&self, game: &Game, earlier: PrescienceAspect) -> PrescienceAspect {
+    fn nexus_prescience_aspect(&self, game: &Game, earlier: Option<PrescienceAspect>) -> Option<PrescienceAspect> {
         let battle = game.battle.current_battle.as_ref().expect("current battle");
         let opponent = battle.opponent_of_faction(game, self.faction(game));
         let voice_still_to_come =
             Voice::may_use_voice_opt(game, opponent) && game.battle.current_voice.is_none() && battle.plan_of(game, opponent).is_none();
         if voice_still_to_come || !battle.is_aggressor_or_defender(game, self.player) {
-            return PrescienceAspect::None;
+            return None;
         }
 
         let territory = battle.territory(game);
@@ -337,7 +337,7 @@ impl ClassicBot {
         let play = match game.player(self.player).nexus {
             Faction::Atreides => game.battle.current_prescience.as_ref().is_some_and(|prescience| {
                 result.atreides_prescience_aspect = self.nexus_prescience_aspect(game, prescience.aspect);
-                result.atreides_prescience_aspect != PrescienceAspect::None
+                result.atreides_prescience_aspect != None
             }),
 
             Faction::Harkonnen => game.turn.current_phase == Phase::ShipmentAndMoveConcluded && self.determine_worst_traitor(game).is_some(),
@@ -381,8 +381,8 @@ impl ClassicBot {
     pub fn determine_nexus_played_secret_ally(&mut self, game: &Game, mut result: NexusPlayed) -> Option<Rc<NexusPlayed>> {
         let play = match game.player(self.player).nexus {
             Faction::Atreides => {
-                result.atreides_prescience_aspect = self.nexus_prescience_aspect(game, PrescienceAspect::None);
-                result.atreides_prescience_aspect != PrescienceAspect::None
+                result.atreides_prescience_aspect = self.nexus_prescience_aspect(game, None);
+                result.atreides_prescience_aspect != None
             }
 
             Faction::Harkonnen => self.determine_worst_traitor(game).is_some(),
@@ -639,7 +639,7 @@ impl ClassicBot {
             if let (Some(leader), Some(p)) = (best_leader_to_ask_about, best_player_to_ask) {
                 let mut e = ClairVoyancePlayed::new(game, self.faction(game));
                 e.target = game.player(p).faction;
-                e.question = ClairvoyanceQuestion::LeaderAsTraitor;
+                e.question = Some(ClairvoyanceQuestion::LeaderAsTraitor);
                 e.set_parameter1(ExpressionElement::Int(leader.id()));
                 return Some(Rc::new(e));
             }
@@ -659,7 +659,7 @@ impl ClassicBot {
         let ask = |question: ClairvoyanceQuestion, card_type: TreacheryCardType| {
             let mut e = ClairVoyancePlayed::new(game, self.faction(game));
             e.target = game.player(opponent).faction;
-            e.question = question;
+            e.question = Some(question);
             e.question_parameter1 = Some(card_type.to_string());
             Some(Rc::new(e))
         };
@@ -675,7 +675,7 @@ impl ClassicBot {
             .filter(|w| known.get_or_insert_with(|| game.known_cards(self.player)).contains(w))
             .collect();
 
-        if !self.my_prescience(game).is_some_and(|p| p.aspect == PrescienceAspect::Defense)
+        if !self.my_prescience(game).is_some_and(|p| p.aspect == Some(PrescienceAspect::Defense))
             && my_weapons.iter().all(|w| w.type_() != TreacheryCardType::ProjectileAndPoison)
         {
             if my_weapons.iter().any(|w| w.is_poison_weapon())
@@ -695,7 +695,7 @@ impl ClassicBot {
         let my_defenses: Vec<TreacheryCard> =
             Battle::valid_defenses(game, self.player, None, territory, false).into_iter().flatten().collect();
 
-        if !self.my_prescience(game).is_some_and(|p| p.aspect == PrescienceAspect::Weapon)
+        if !self.my_prescience(game).is_some_and(|p| p.aspect == Some(PrescienceAspect::Weapon))
             && my_defenses.iter().all(|w| w.type_() != TreacheryCardType::ShieldAndAntidote)
             && my_defenses.iter().any(|w| w.is_poison_defense())
             && my_defenses.iter().any(|w| w.is_projectile_defense())
@@ -733,11 +733,11 @@ impl ClassicBot {
         let answer = super::guarded(|| {
             let me = game.player(self.player);
             match question {
-                ClairvoyanceQuestion::CardTypeAsDefenseInBattle if in_battle() => yes_no(defends_with(&my_plan())),
+                Some(ClairvoyanceQuestion::CardTypeAsDefenseInBattle) if in_battle() => yes_no(defends_with(&my_plan())),
 
-                ClairvoyanceQuestion::CardTypeAsWeaponInBattle if in_battle() => yes_no(attacks_with(&my_plan())),
+                Some(ClairvoyanceQuestion::CardTypeAsWeaponInBattle) if in_battle() => yes_no(attacks_with(&my_plan())),
 
-                ClairvoyanceQuestion::CardTypeInBattle if in_battle() => {
+                Some(ClairvoyanceQuestion::CardTypeInBattle) if in_battle() => {
                     let plan = my_plan();
                     yes_no(
                         defends_with(&plan)
@@ -746,25 +746,25 @@ impl ClassicBot {
                     )
                 }
 
-                ClairvoyanceQuestion::DialOfMoreThanXInBattle if in_battle() => {
+                Some(ClairvoyanceQuestion::DialOfMoreThanXInBattle) if in_battle() => {
                     let plan = my_plan();
                     let opponent = game.battle.current_battle.as_ref().expect("current battle").opponent_of(game, self.player).expect("opponent of");
                     yes_no(plan.dial(game, game.player(opponent).faction) > unbox_float(&p1()))
                 }
 
-                ClairvoyanceQuestion::LeaderInBattle if in_battle() => yes_no(my_plan().hero() == cast_hero(&p1())),
+                Some(ClairvoyanceQuestion::LeaderInBattle) if in_battle() => yes_no(my_plan().hero() == cast_hero(&p1())),
 
-                ClairvoyanceQuestion::HasCardTypeInHand => yes_no(me.treachery_cards.iter().any(|c| covers(c.type_(), card_type()))),
+                Some(ClairvoyanceQuestion::HasCardTypeInHand) => yes_no(me.treachery_cards.iter().any(|c| covers(c.type_(), card_type()))),
 
-                ClairvoyanceQuestion::LeaderAsFacedancer => yes_no(me.face_dancers.iter().any(|f| cast_hero(&p1()).is_some_and(|h| f.is_face_dancer(h)))),
+                Some(ClairvoyanceQuestion::LeaderAsFacedancer) => yes_no(me.face_dancers.iter().any(|f| cast_hero(&p1()).is_some_and(|h| f.is_face_dancer(h)))),
 
-                ClairvoyanceQuestion::LeaderAsTraitor => yes_no(me.traitors.iter().any(|f| cast_hero(&p1()).is_some_and(|h| f.is_traitor(h)))),
+                Some(ClairvoyanceQuestion::LeaderAsTraitor) => yes_no(me.traitors.iter().any(|f| cast_hero(&p1()).is_some_and(|h| f.is_traitor(h)))),
 
-                ClairvoyanceQuestion::Prediction => yes_no(
+                Some(ClairvoyanceQuestion::Prediction) => yes_no(
                     me.predicted_faction == unbox_enum::<Faction>(&p1()).expect("faction") && me.predicted_turn == unbox_int(&clairvoyance.parameter2()),
                 ),
 
-                ClairvoyanceQuestion::WillAttackX => ClairVoyanceAnswer::No,
+                Some(ClairvoyanceQuestion::WillAttackX) => ClairVoyanceAnswer::No,
 
                 _ => ClairVoyanceAnswer::Unknown,
             }
@@ -1238,7 +1238,7 @@ impl ClassicBot {
         let mut e = SkillAssigned::new(game, self.faction(game));
         e.passed = false;
         e.set_leader(leader);
-        e.skill = skill;
+        e.skill = Some(skill);
         Rc::new(e)
     }
 

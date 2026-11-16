@@ -686,7 +686,7 @@ impl Battle {
     /// The elements of this player's plan that the other side's prescience lets them see. Eager: the only
     /// caller (`BattleRevision`) enumerates once, and its loop body writes only `PrescienceSeenPlans`, which
     /// this query does not read. Nothing in here throws once `CurrentBattle` is set.
-    pub fn aspects_seen_by_opponent(g: &Game, p: PlayerIndex) -> Vec<PrescienceAspect> {
+    pub fn aspects_seen_by_opponent(g: &Game, p: PlayerIndex) -> Vec<Option<PrescienceAspect>> {
         let battle = g.battle.current_battle.as_ref().expect("current battle");
         let mut result = Vec::new();
         if let Some(prescience) = g.battle.current_prescience.as_ref() {
@@ -700,19 +700,19 @@ impl Battle {
             }
         }
         if g.battle.atreides_karma && battle.opponent_of_faction(g, Faction::Atreides) == Some(p) {
-            result.extend([PrescienceAspect::Leader, PrescienceAspect::Weapon, PrescienceAspect::Defense, PrescienceAspect::Dial]);
+            result.extend([Some(PrescienceAspect::Leader), Some(PrescienceAspect::Weapon), Some(PrescienceAspect::Defense), Some(PrescienceAspect::Dial)]);
         }
         result
     }
 
-    fn matches(&self, game: &Game, seen: &Battle, aspect: PrescienceAspect, opponent: Faction) -> bool {
+    fn matches(&self, game: &Game, seen: &Battle, aspect: Option<PrescienceAspect>, opponent: Faction) -> bool {
         match aspect {
-            PrescienceAspect::Leader => self.hero() == seen.hero(),
-            PrescienceAspect::Weapon => self.weapon() == seen.weapon(),
-            PrescienceAspect::Defense => self.defense() == seen.defense(),
+            Some(PrescienceAspect::Leader) => self.hero() == seen.hero(),
+            Some(PrescienceAspect::Weapon) => self.weapon() == seen.weapon(),
+            Some(PrescienceAspect::Defense) => self.defense() == seen.defense(),
             // float ==: NaN never matches.
-            PrescienceAspect::Dial => self.dial(game, opponent) == seen.dial(game, opponent),
-            _ => true,
+            Some(PrescienceAspect::Dial) => self.dial(game, opponent) == seen.dial(game, opponent),
+            None => true,
         }
     }
 
@@ -1096,7 +1096,7 @@ impl Battle {
             && g.applicable(Rule::AtreidesMessiah)
     }
 
-    pub fn determine_skill_bonus(g: &Game, plan: &Battle, activated_skill: &mut LeaderSkill) -> i32 {
+    pub fn determine_skill_bonus(g: &Game, plan: &Battle, activated_skill: &mut Option<LeaderSkill>) -> i32 {
         Battle::determine_skill_bonus_of_parts(
             g,
             plan.player(),
@@ -1108,58 +1108,58 @@ impl Battle {
         )
     }
 
-    pub fn determine_skill_bonus_of_parts(g: &Game, player: PlayerIndex, hero: Option<Hero>, weapon: Option<TreacheryCard>, defense: Option<TreacheryCard>, banker_bonus: i32, activated_skill: &mut LeaderSkill) -> i32 {
+    pub fn determine_skill_bonus_of_parts(g: &Game, player: PlayerIndex, hero: Option<Hero>, weapon: Option<TreacheryCard>, defense: Option<TreacheryCard>, banker_bonus: i32, activated_skill: &mut Option<LeaderSkill>) -> i32 {
         let hero_skilled = |skill: LeaderSkill| hero.is_some_and(|h| g.skilled_as(h, skill));
 
         if hero_skilled(LeaderSkill::Thinker) {
-            *activated_skill = LeaderSkill::Thinker;
+            *activated_skill = Some(LeaderSkill::Thinker);
             return 2;
         }
 
         if hero_skilled(LeaderSkill::Banker) {
-            *activated_skill = LeaderSkill::Banker;
+            *activated_skill = Some(LeaderSkill::Banker);
             return banker_bonus;
         }
 
         if weapon.is_some_and(|w| w.is_useless()) || defense.is_some_and(|d| d.is_useless()) {
             if hero_skilled(LeaderSkill::Warmaster) {
-                *activated_skill = LeaderSkill::Warmaster;
+                *activated_skill = Some(LeaderSkill::Warmaster);
                 return 3;
             }
 
             if g.has_skill_in_front_of_shield(player, LeaderSkill::Warmaster) {
-                *activated_skill = LeaderSkill::Warmaster;
+                *activated_skill = Some(LeaderSkill::Warmaster);
                 return 1;
             }
         }
 
         if defense.is_some_and(|d| d.is_projectile_defense()) {
             if hero_skilled(LeaderSkill::Adept) {
-                *activated_skill = LeaderSkill::Adept;
+                *activated_skill = Some(LeaderSkill::Adept);
                 return 3;
             }
 
             if g.has_skill_in_front_of_shield(player, LeaderSkill::Adept) {
-                *activated_skill = LeaderSkill::Adept;
+                *activated_skill = Some(LeaderSkill::Adept);
                 return 1;
             }
         }
 
         if weapon.is_some_and(|w| w.is_projectile_weapon()) {
             if hero_skilled(LeaderSkill::Swordmaster) {
-                *activated_skill = LeaderSkill::Swordmaster;
+                *activated_skill = Some(LeaderSkill::Swordmaster);
                 return 3;
             }
 
             if g.has_skill_in_front_of_shield(player, LeaderSkill::Swordmaster) {
-                *activated_skill = LeaderSkill::Swordmaster;
+                *activated_skill = Some(LeaderSkill::Swordmaster);
                 return 1;
             }
         }
 
         if weapon.is_some_and(|w| w.is_atreides()) {
             if hero_skilled(LeaderSkill::Planetologist) {
-                *activated_skill = LeaderSkill::Planetologist;
+                *activated_skill = Some(LeaderSkill::Planetologist);
                 return 2;
             }
         }
@@ -1168,44 +1168,44 @@ impl Battle {
             || g.battle.current_portable_antidote_used.as_ref().is_some_and(|e| e.player_opt() == Some(player))
         {
             if hero_skilled(LeaderSkill::KillerMedic) {
-                *activated_skill = LeaderSkill::KillerMedic;
+                *activated_skill = Some(LeaderSkill::KillerMedic);
                 return 3;
             }
 
             if g.has_skill_in_front_of_shield(player, LeaderSkill::KillerMedic) {
-                *activated_skill = LeaderSkill::KillerMedic;
+                *activated_skill = Some(LeaderSkill::KillerMedic);
                 return 1;
             }
         }
 
         if weapon.is_some_and(|w| w.is_poison_weapon() || w.is_poison_tooth()) {
             if hero_skilled(LeaderSkill::MasterOfAssassins) {
-                *activated_skill = LeaderSkill::MasterOfAssassins;
+                *activated_skill = Some(LeaderSkill::MasterOfAssassins);
                 return 3;
             }
 
             if g.has_skill_in_front_of_shield(player, LeaderSkill::MasterOfAssassins) {
-                *activated_skill = LeaderSkill::MasterOfAssassins;
+                *activated_skill = Some(LeaderSkill::MasterOfAssassins);
                 return 1;
             }
         }
 
-        *activated_skill = LeaderSkill::None;
+        *activated_skill = None;
         0
     }
 
-    pub fn determine_skill_penalty(g: &Game, plan: &Battle, opponent: PlayerIndex, activated_skill: &mut LeaderSkill) -> i32 {
+    pub fn determine_skill_penalty(g: &Game, plan: &Battle, opponent: PlayerIndex, activated_skill: &mut Option<LeaderSkill>) -> i32 {
         Battle::determine_skill_penalty_of_hero(g, plan.hero(), opponent, activated_skill)
     }
 
-    pub fn determine_skill_penalty_of_hero(g: &Game, hero: Option<Hero>, opponent: PlayerIndex, activated_skill: &mut LeaderSkill) -> i32 {
+    pub fn determine_skill_penalty_of_hero(g: &Game, hero: Option<Hero>, opponent: PlayerIndex, activated_skill: &mut Option<LeaderSkill>) -> i32 {
         if hero.is_some_and(|h| g.skilled_as(h, LeaderSkill::Bureaucrat)) {
-            *activated_skill = LeaderSkill::Bureaucrat;
+            *activated_skill = Some(LeaderSkill::Bureaucrat);
             let o = g.player(opponent);
             return g.board.map.strongholds().filter(|l| o.occupies(g, Some(*l))).count() as i32;
         }
 
-        *activated_skill = LeaderSkill::None;
+        *activated_skill = None;
         0
     }
 }

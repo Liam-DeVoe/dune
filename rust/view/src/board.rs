@@ -155,7 +155,7 @@ pub fn ring_extras(game: &Game, p: PlayerIndex, out: &mut PublicPlayer) {
     out.skilled_leaders = game
         .get_skilled_leaders(p)
         .filter(|l| game.is_in_front_of_shield(Some(Hero::Leader(*l))))
-        .map(|l| SkilledLeader { id: l.id(), skill: name(game.skill(Some(Hero::Leader(l)))) })
+        .map(|l| SkilledLeader { id: l.id(), skill: name_or_absent(game.skill(Some(Hero::Leader(l)))) })
         .collect();
     out.loyal_leader = (pl.faction == Faction::Ecaz).then_some(game.leaders.ecaz_loyal_leader).flatten().map(|l| l.id());
     out.latest_revealed_no_field = (pl.faction == Faction::Richese && game.ship_move.latest_revealed_no_field_value >= 0).then_some(game.ship_move.latest_revealed_no_field_value);
@@ -311,7 +311,7 @@ fn plan_view(
     opponent: Faction,
 ) -> PlanView {
     let aspect = |a: PrescienceAspect| {
-        game.battle.current_prescience.as_ref().is_some_and(|p| p.aspect == a) || game.turn.current_nexus_prescience.as_ref().is_some_and(|n| n.atreides_prescience_aspect == a)
+        game.battle.current_prescience.as_ref().is_some_and(|p| p.aspect == Some(a)) || game.turn.current_nexus_prescience.as_ref().is_some_and(|n| n.atreides_prescience_aspect == Some(a))
     };
     let pl = game.player(plan.player());
     let initiator = plan.initiator();
@@ -328,19 +328,19 @@ fn plan_view(
             Some(Hero::Leader(l)) => {
                 let h = Hero::Leader(l);
                 let skill = game.skill(Some(h));
-                let passive = game.get_skill(plan.player()).filter(|s| *s != skill && passive_skill_is_relevant_for_battle_plan(*s));
-                let mut used = LeaderSkill::None;
+                let passive = game.get_skill(plan.player()).filter(|s| Some(*s) != skill && passive_skill_is_relevant_for_battle_plan(*s));
+                let mut used = None;
                 let bonus = Battle::determine_skill_bonus(game, plan, &mut used);
                 let penalty = match opponent_plan {
                     Some(op) if game.turn.current_phase > Phase::BattlePhase && game.turn.current_phase < Phase::BattleConclusion => {
                         let amount = Battle::determine_skill_penalty(game, op, plan.player(), &mut used);
-                        (amount != 0).then(|| SkillPenalty { amount, skill: name(used) })
+                        (amount != 0).then(|| SkillPenalty { amount, skill: name_or_absent(used) })
                     }
                     _ => None,
                 };
                 Some(PlanHero::Leader {
                     id: l.id(),
-                    skill: (skill != LeaderSkill::None).then(|| name(skill)),
+                    skill: skill.map(name),
                     passive_skill: passive.map(name),
                     bonus: (bonus != 0).then_some(bonus),
                     penalty,

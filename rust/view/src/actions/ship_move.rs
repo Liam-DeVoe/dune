@@ -24,7 +24,7 @@ use crate::describe::Describer;
 use crate::expr::message;
 use crate::schema::*;
 use crate::shield::hero_ref;
-use super::widgets::{draft_json, required};
+use super::widgets::{draft_json, required, required_opt};
 
 fn name<T: ToString>(v: T) -> String {
     v.to_string()
@@ -180,14 +180,14 @@ fn initial_draft(game: &Game, p: PlayerIndex, faction: Faction, t: GameEventType
             // Removing: the required select picks the first type. Placing: the type is
             // chosen in the pinned panel, which only shows once a stronghold is picked.
             if TerrorPlanted::may_remove_tokens(game, p) {
-                e.type_ = TerrorPlanted::valid_terror_types(game, true).next().unwrap_or(TerrorType::None);
+                e.type_ = TerrorPlanted::valid_terror_types(game, true).next();
             }
             e.set_stronghold(game, None);
             event(e)
         }
         GameEventType::TerrorRevealed => {
             let mut e = TerrorRevealed::new(game, faction);
-            e.type_ = TerrorRevealed::get_types(game).next().unwrap_or(TerrorType::None);
+            e.type_ = TerrorRevealed::get_types(game).next();
             e.set_card_to_give_in_sabotage(None);
             e.set_sneak_attack_to(game, None);
             event(e)
@@ -439,24 +439,24 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
             let mut e = (**e).clone();
             if TerrorPlanted::may_remove_tokens(game, p) {
                 let types: Vec<TerrorType> = TerrorPlanted::valid_terror_types(game, true).collect();
-                e.type_ = required(e.type_, &types, TerrorType::None);
+                e.type_ = required_opt(e.type_, &types);
             } else if e.stronghold(game).is_some() {
                 let types: Vec<TerrorType> = TerrorPlanted::valid_terror_types(game, false).collect();
-                e.type_ = required(e.type_, &types, TerrorType::None);
+                e.type_ = required_opt(e.type_, &types);
             }
             event(e)
         }
         GameEvent::TerrorRevealed(e) => {
             let mut e = (**e).clone();
             let types: Vec<TerrorType> = TerrorRevealed::get_types(game).collect();
-            e.type_ = required(e.type_, &types, TerrorType::None);
-            if e.type_ != TerrorType::Robbery {
+            e.type_ = required_opt(e.type_, &types);
+            if e.type_ != Some(TerrorType::Robbery) {
                 e.robbery_takes_card = false;
             }
-            if e.type_ != TerrorType::Sabotage {
+            if e.type_ != Some(TerrorType::Sabotage) {
                 e.set_card_to_give_in_sabotage(None);
             }
-            if e.type_ != TerrorType::SneakAttack || TerrorRevealed::valid_sneak_attack_targets(game, p).next().is_none() {
+            if e.type_ != Some(TerrorType::SneakAttack) || TerrorRevealed::valid_sneak_attack_targets(game, p).next().is_none() {
                 e.forces_in_sneak_attack = 0;
             }
             event(e)

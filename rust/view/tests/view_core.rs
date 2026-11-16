@@ -206,7 +206,7 @@ fn ring() {
             let expected: Vec<(i32, String)> = g
                 .get_skilled_leaders(p)
                 .filter(|l| g.is_in_front_of_shield(Some(Hero::Leader(*l))))
-                .map(|l| (l.id(), name(g.skill(Some(Hero::Leader(l))))))
+                .map(|l| (l.id(), name_or_absent(g.skill(Some(Hero::Leader(l))))))
                 .collect();
             assert_eq!(pp.skilled_leaders.iter().map(|s| (s.id, s.skill.clone())).collect::<Vec<_>>(), expected);
             skilled += expected.len();
@@ -494,10 +494,10 @@ fn battle_plans_before_both_are_in() {
                             (PrescienceAspect::Defense, s.defense_shown),
                         ];
                         for (a, on) in shown_aspects {
-                            assert_eq!(on, a == aspect, "{fixture}: {a:?} for prescience of {aspect:?}");
+                            assert_eq!(on, Some(a) == aspect, "{fixture}: {a:?} for prescience of {aspect:?}");
                         }
                         let p = plan.as_ref().unwrap();
-                        if aspect == PrescienceAspect::Weapon {
+                        if aspect == Some(PrescienceAspect::Weapon) {
                             assert_eq!(s.weapon, p.weapon().filter(|w| w.is_weapon()).map(|w| w.id()));
                         }
                     }

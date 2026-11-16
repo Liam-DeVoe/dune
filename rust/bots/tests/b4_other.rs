@@ -126,7 +126,7 @@ fn setup(game: &mut Game, me: PlayerIndex, m: &str, a: &[String]) -> Setup {
             let initiator = Faction(a[0][1..].parse().unwrap());
             let mut cv = ClairVoyancePlayed::new(game, initiator);
             cv.target = game.player(me).faction;
-            cv.question = ClairvoyanceQuestion(dotnet_compat::parse::enum_parse(Some(&a[1]), ClairvoyanceQuestion::INFO.declared));
+            cv.question = treachery_engine::enum_type::from_value_or_absent(dotnet_compat::parse::enum_parse(Some(&a[1]), ClairvoyanceQuestion::INFO.declared)).unwrap();
             cv.question_parameter1 = if a[4] == "null1" { None } else { Some(a[2].clone()) };
             cv.question_parameter2 = if a[5] == "null2" { None } else { Some(a[3].clone()) };
             game.turn.latest_clairvoyance = Some(Rc::new(cv));

@@ -136,7 +136,7 @@ impl Game {
     }
 
     pub fn allow_all_prevented_faction_advantages(&mut self, exceptions: &[FactionAdvantage]) {
-        for adv in get_values_except_default(FactionAdvantage::None) {
+        for adv in get_values::<FactionAdvantage>() {
             if !exceptions.contains(&adv) {
                 self.allow(adv);
             }

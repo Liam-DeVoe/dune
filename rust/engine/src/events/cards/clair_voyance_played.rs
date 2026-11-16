@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct ClairVoyancePlayed {
-    pub question: ClairvoyanceQuestion,
+    pub question: Option<ClairvoyanceQuestion>,
     pub target: Faction,
     pub question_parameter1: Option<String>,
     pub question_parameter2: Option<String>,
@@ -54,20 +54,20 @@ impl ClairVoyancePlayed {
         };
 
         Ok(match self.question {
-            ClairvoyanceQuestion::CardTypeInBattle
-            | ClairvoyanceQuestion::CardTypeAsDefenseInBattle
-            | ClairvoyanceQuestion::CardTypeAsWeaponInBattle
-            | ClairvoyanceQuestion::HasCardTypeInHand => {
+            Some(ClairvoyanceQuestion::CardTypeInBattle)
+            | Some(ClairvoyanceQuestion::CardTypeAsDefenseInBattle)
+            | Some(ClairvoyanceQuestion::CardTypeAsWeaponInBattle)
+            | Some(ClairvoyanceQuestion::HasCardTypeInHand) => {
                 TreacheryCardType(try_enum_parse(Some(p1), TreacheryCardType::INFO.declared)?).into()
             }
-            ClairvoyanceQuestion::LeaderAsFacedancer
-            | ClairvoyanceQuestion::LeaderAsTraitor
-            | ClairvoyanceQuestion::LeaderInBattle => {
+            Some(ClairvoyanceQuestion::LeaderAsFacedancer)
+            | Some(ClairvoyanceQuestion::LeaderAsTraitor)
+            | Some(ClairvoyanceQuestion::LeaderInBattle) => {
                 LeaderManager::hero_lookup().find(try_int_parse(Some(p1))?).into()
             }
-            ClairvoyanceQuestion::Prediction => Faction(try_enum_parse(Some(p1), Faction::INFO.declared)?).into(),
-            ClairvoyanceQuestion::WillAttackX => game.board.map.territory_lookup().find(try_int_parse(Some(p1))?).into(),
-            ClairvoyanceQuestion::DialOfMoreThanXInBattle => try_float_parse_invariant(Some(p1))?.into(),
+            Some(ClairvoyanceQuestion::Prediction) => Faction(try_enum_parse(Some(p1), Faction::INFO.declared)?).into(),
+            Some(ClairvoyanceQuestion::WillAttackX) => game.board.map.territory_lookup().find(try_int_parse(Some(p1))?).into(),
+            Some(ClairvoyanceQuestion::DialOfMoreThanXInBattle) => try_float_parse_invariant(Some(p1))?.into(),
             _ => ExpressionElement::Null,
         })
     }
@@ -77,7 +77,7 @@ impl ClairVoyancePlayed {
             self.question_parameter1 = None;
         } else {
             self.question_parameter1 = Some(match self.question {
-                ClairvoyanceQuestion::DialOfMoreThanXInBattle => match value {
+                Some(ClairvoyanceQuestion::DialOfMoreThanXInBattle) => match value {
                     // ((float)value).ToString(CultureInfo.InvariantCulture)
                     ExpressionElement::Float(f) => dotnet_compat::fmt::f32_to_string(f),
                     other => panic!("Unable to cast object of type '{}' to type 'System.Single'.",
@@ -114,7 +114,7 @@ impl ClairVoyancePlayed {
 
     fn parse_parameter2(&self) -> Result<ExpressionElement, dotnet_compat::exception::CsException> {
         Ok(match self.question {
-            ClairvoyanceQuestion::Prediction
+            Some(ClairvoyanceQuestion::Prediction)
                 if !self.question_parameter2.as_deref().map_or(true, |s| s.is_empty()) =>
             {
                 dotnet_compat::parse::try_int_parse(self.question_parameter2.as_deref())?.into()
@@ -124,7 +124,7 @@ impl ClairVoyancePlayed {
     }
 
     pub fn get_question(&self, game: &Game) -> Message {
-        if self.question == ClairvoyanceQuestion::None {
+        if self.question == None {
             return express!("");
         }
 
@@ -132,7 +132,7 @@ impl ClairVoyancePlayed {
     }
 
     pub fn try_get_question(&self, game: &Game) -> GameResult<Message> {
-        if self.question == ClairvoyanceQuestion::None {
+        if self.question == None {
             return Ok(express!(""));
         }
 
@@ -149,9 +149,10 @@ impl ClairVoyancePlayed {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_questions(g: &Game, target: Faction) -> impl Iterator<Item = ClairvoyanceQuestion> {
+    pub fn valid_questions(g: &Game, target: Faction) -> impl Iterator<Item = Option<ClairvoyanceQuestion>> {
         use either::Either;
-        let all_values: Vec<ClairvoyanceQuestion> = ClairvoyanceQuestion::ALL.iter().copied().collect();
+        // `None` first: "any question".
+        let all_values: Vec<Option<ClairvoyanceQuestion>> = std::iter::once(None).chain(ClairvoyanceQuestion::ALL.iter().copied().map(Some)).collect();
         let target_player = g.get_player(Some(target));
         let Some(target_player) = target_player.filter(|tp| g.is_bot(*tp)) else {
             return Either::Left(all_values.into_iter());
@@ -160,20 +161,22 @@ impl ClairVoyancePlayed {
         Either::Right(all_values.into_iter().filter(move |v| ClairVoyancePlayed::applies_to_bot(*v, g, target_player)))
     }
 
-    pub fn applies_to_bot(q: ClairvoyanceQuestion, g: &Game, p: PlayerIndex) -> bool {
+    pub fn applies_to_bot(q: Option<ClairvoyanceQuestion>, g: &Game, p: PlayerIndex) -> bool {
         match q {
-            ClairvoyanceQuestion::CardTypeInBattle
-            | ClairvoyanceQuestion::CardTypeAsDefenseInBattle
-            | ClairvoyanceQuestion::CardTypeAsWeaponInBattle
-            | ClairvoyanceQuestion::LeaderInBattle
-            | ClairvoyanceQuestion::DialOfMoreThanXInBattle => {
+            Some(
+                ClairvoyanceQuestion::CardTypeInBattle
+                | ClairvoyanceQuestion::CardTypeAsDefenseInBattle
+                | ClairvoyanceQuestion::CardTypeAsWeaponInBattle
+                | ClairvoyanceQuestion::LeaderInBattle
+                | ClairvoyanceQuestion::DialOfMoreThanXInBattle,
+            ) => {
                 g.battle.current_battle.as_ref().map(|b| b.is_aggressor_or_defender(g, p)) == Some(true)
             }
             _ => true,
         }
     }
 
-    pub fn express(q: ClairvoyanceQuestion, parameter1: ExpressionElement, parameter2: ExpressionElement) -> Message {
+    pub fn express(q: Option<ClairvoyanceQuestion>, parameter1: ExpressionElement, parameter2: ExpressionElement) -> Message {
         let p1: ExpressionElement = match parameter1 {
             ExpressionElement::Null => "...".into(),
             v => v,
@@ -184,18 +187,17 @@ impl ClairVoyancePlayed {
         };
 
         match q {
-            ClairvoyanceQuestion::None => express!("Any question"),
-            ClairvoyanceQuestion::CardTypeInBattle => express!("In this battle, is one of your cards a ", p1),
-            ClairvoyanceQuestion::CardTypeAsDefenseInBattle => express!("In this battle, will you use ", p1, " as defense?"),
-            ClairvoyanceQuestion::CardTypeAsWeaponInBattle => express!("In this battle, will you use ", p1, " as weapon?"),
-            ClairvoyanceQuestion::HasCardTypeInHand => express!("Do you own a ", p1, "?"),
-            ClairvoyanceQuestion::LeaderInBattle => express!("In this battle, is your leader ", p1, "?"),
-            ClairvoyanceQuestion::DialOfMoreThanXInBattle => express!("In this battle, is your dial higher than ", p1, "?"),
-            ClairvoyanceQuestion::LeaderAsFacedancer => express!("Is ", p1, " one of your face dancers?"),
-            ClairvoyanceQuestion::LeaderAsTraitor => express!("Is ", p1, " one of your traitors?"),
-            ClairvoyanceQuestion::Prediction => express!("Did you predict a ", p1, " win in turn ", p2, "?"),
-            ClairvoyanceQuestion::WillAttackX => express!("Will you ship or move to ", p1, " this turn?"),
-            _ => express!("unknown question"),
+            None => express!("Any question"),
+            Some(ClairvoyanceQuestion::CardTypeInBattle) => express!("In this battle, is one of your cards a ", p1),
+            Some(ClairvoyanceQuestion::CardTypeAsDefenseInBattle) => express!("In this battle, will you use ", p1, " as defense?"),
+            Some(ClairvoyanceQuestion::CardTypeAsWeaponInBattle) => express!("In this battle, will you use ", p1, " as weapon?"),
+            Some(ClairvoyanceQuestion::HasCardTypeInHand) => express!("Do you own a ", p1, "?"),
+            Some(ClairvoyanceQuestion::LeaderInBattle) => express!("In this battle, is your leader ", p1, "?"),
+            Some(ClairvoyanceQuestion::DialOfMoreThanXInBattle) => express!("In this battle, is your dial higher than ", p1, "?"),
+            Some(ClairvoyanceQuestion::LeaderAsFacedancer) => express!("Is ", p1, " one of your face dancers?"),
+            Some(ClairvoyanceQuestion::LeaderAsTraitor) => express!("Is ", p1, " one of your traitors?"),
+            Some(ClairvoyanceQuestion::Prediction) => express!("Did you predict a ", p1, " win in turn ", p2, "?"),
+            Some(ClairvoyanceQuestion::WillAttackX) => express!("Will you ship or move to ", p1, " this turn?"),
         }
     }
 
@@ -280,7 +282,7 @@ impl ClairVoyancePlayed {
             return express!(self.initiator(), " perform ", card);
         }
 
-        if self.question == ClairvoyanceQuestion::None {
+        if self.question == None {
             return express!("By ", card, ", ", self.initiator(), " ask ", self.target, " a question");
         }
 
@@ -288,7 +290,7 @@ impl ClairVoyancePlayed {
     }
 
     pub fn try_asked(&self, game: &Game, card: ExpressionElement) -> GameResult<Message> {
-        if self.target != Faction::None && self.question != ClairvoyanceQuestion::None {
+        if self.target != Faction::None && self.question != None {
             self.try_get_question(game)?;
         }
         Ok(self.asked(game, card))

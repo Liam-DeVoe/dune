@@ -118,7 +118,7 @@ fn check(game: &Game, p: PlayerIndex, v: &ResolvedViewer, o: &ActionOptions, at:
         }
         ActionOptions::Karma(o) => {
             assert_eq!(o.cards, ids(Karma::valid_karma_cards(game, p)), "{at}");
-            assert_eq!(option_names(&o.advantages), names(Karma::valid_faction_advantages(game, p)), "{at}");
+            assert_eq!(option_names(&o.advantages), Karma::valid_faction_advantages(game, p).into_iter().map(name_or_absent).collect::<Vec<_>>(), "{at}");
         }
         ActionOptions::KarmaChoamDiscard(o) => assert_eq!(o.karma_cards, ids(Karma::valid_karma_cards(game, p)), "{at}"),
         ActionOptions::KarmaHandSwap(o) => {

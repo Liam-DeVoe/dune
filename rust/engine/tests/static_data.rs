@@ -164,11 +164,11 @@ fn dump_location(m: &Map, l: Location) -> Value {
         "neighbours": ids(l.neighbours(m).iter().copied()),
         "orientation": l.orientation(),
         "spice_blow_amount": l.spice_blow_amount(),
-        "discovery_token_type": l.discovery_token_type().0,
+        "discovery_token_type": treachery_engine::enum_type::value_or_absent(l.discovery_token_type()),
         "is_stronghold": l.is_stronghold(),
         "is_homeworld": l.is_homeworld(),
         "is_protected_from_storm": l.is_protected_from_storm(),
-        "advantage": l.advantage().0,
+        "advantage": treachery_engine::enum_type::value_or_absent(l.advantage()),
         "hash": l.id(),
     });
     if let Some(hw) = l.as_homeworld() {
@@ -202,7 +202,7 @@ fn dump_territory(m: &Map, t: Territory) -> Value {
         "is_stronghold": t.is_stronghold(),
         "is_protected_from_storm": t.is_protected_from_storm(),
         "is_protected_from_worm": t.is_protected_from_worm(),
-        "advantage": t.advantage().0,
+        "advantage": treachery_engine::enum_type::value_or_absent(t.advantage()),
         "locations": ids(t.locations().iter().copied()),
         "middle_location": t.middle_location().id(),
         "resource_blow_location": opt_id(t.resource_blow_location()),

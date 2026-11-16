@@ -232,7 +232,7 @@ fn leader_skills() {
             for l in &me.leaders {
                 let leader = treachery_engine::heroes::leader_manager::LeaderManager::leaders().iter().copied().find(|x| x.id() == l.id).unwrap();
                 let skill = g.skill(Some(Hero::Leader(leader)));
-                assert_eq!(l.skill, (skill != LeaderSkill::None).then(|| name(skill)), "{f:?} at {step}");
+                assert_eq!(l.skill, skill.map(name), "{f:?} at {step}");
                 own += l.skill.is_some() as usize;
             }
             for c in me.traitors.iter().chain(&me.face_dancers) {
@@ -242,7 +242,7 @@ fn leader_skills() {
                 };
                 let leader = treachery_engine::heroes::leader_manager::LeaderManager::leaders().iter().copied().find(|x| x.id() == id).unwrap();
                 let skill = g.skill(Some(Hero::Leader(leader)));
-                assert_eq!(c.skill, (skill != LeaderSkill::None).then(|| name(skill)), "{f:?} at {step}");
+                assert_eq!(c.skill, skill.map(name), "{f:?} at {step}");
                 traitors += c.skill.is_some() as usize;
             }
         }

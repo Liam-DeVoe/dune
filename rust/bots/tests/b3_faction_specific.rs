@@ -98,8 +98,8 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
         "BestVoice" => voice_plan(&bot.best_voice(game, None, player(1), player(2))),
         "BestPrescience" => {
             let strength = a[2][1..].parse::<f32>().unwrap();
-            let aspect = PrescienceAspect(n(3));
-            bot.best_prescience(game, player(0), player(1), strength, aspect, territory(4)).0.to_string()
+            let aspect = treachery_engine::enum_type::from_value_or_absent::<PrescienceAspect>(n(3)).unwrap();
+            treachery_engine::enum_type::value_or_absent(bot.best_prescience(game, player(0), player(1), strength, aspect, territory(4))).to_string()
         }
         _ => panic!("unknown probe method {m}"),
     }

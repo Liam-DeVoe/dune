@@ -243,7 +243,7 @@ impl Game {
 
             let mut drawn_token = None;
             let discovery_location = blow_card.discovery_location().expect("discovery location");
-            if discovery_location.discovery_token_type() == DiscoveryTokenType::Guild {
+            if discovery_location.discovery_token_type() == Some(DiscoveryTokenType::Guild) {
                 if !self.decks.guild_discovery_tokens.as_ref().expect("guild discovery tokens").is_empty() {
                     let token = self.decks.guild_discovery_tokens.as_mut().expect("guild discovery tokens").draw();
                     drawn_token = Some(token);
@@ -251,7 +251,7 @@ impl Game {
                 } else {
                     self.log(elems!["There are no more ", DiscoveryTokenType::Guild, " discoveries left"]);
                 }
-            } else if discovery_location.discovery_token_type() == DiscoveryTokenType::Fremen {
+            } else if discovery_location.discovery_token_type() == Some(DiscoveryTokenType::Fremen) {
                 if !self.decks.fremen_discovery_tokens.as_ref().expect("fremen discovery tokens").is_empty() {
                     let token = self.decks.fremen_discovery_tokens.as_mut().expect("fremen discovery tokens").draw();
                     drawn_token = Some(token);

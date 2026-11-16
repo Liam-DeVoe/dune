@@ -178,7 +178,7 @@ pub fn static_data() -> StaticData {
                 orientation: l.orientation().to_string(),
                 sector: l.sector(map),
                 spice_blow_amount: l.spice_blow_amount(),
-                discovery_token_type: name(l.discovery_token_type()),
+                discovery_token_type: name_or_absent(l.discovery_token_type()),
                 kind: kind.to_string(),
                 discovery,
             }
@@ -195,7 +195,7 @@ pub fn static_data() -> StaticData {
             is_protected_from_storm: t.is_protected_from_storm(),
             is_protected_from_worm: t.is_protected_from_worm(),
             has_reduced_shipping_cost: t.has_reduced_shipping_cost(),
-            advantage: name(t.advantage()),
+            advantage: name_or_absent(t.advantage()),
             middle_location: t.middle_location().id(),
             locations: t.locations().iter().map(|l| l.id()).collect(),
         })

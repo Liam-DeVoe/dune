@@ -22,7 +22,7 @@ use crate::expr::message;
 use crate::schema::*;
 
 use super::other_nexus;
-use super::widgets::{picker, required, faction_options, hero_options, card_ids, draft_json, describe};
+use super::widgets::{picker, required, required_opt, faction_options, hero_options, card_ids, draft_json, describe};
 
 /// The event types drawn as a simple confirm form (`ActionOptions::Simple`).
 pub const SIMPLE: [GameEventType; 19] = [
@@ -122,6 +122,14 @@ pub(super) fn format(d: &dyn Describer, m: &str, args: &[ExpressionElement]) -> 
 
 pub(super) fn enum_option<T: GameEnum + Into<ExpressionElement> + Copy + ToString>(d: &dyn Describer, v: T) -> EnumOption {
     EnumOption { name: v.to_string(), value: v.value(), label: describe(d, v) }
+}
+
+/// [`enum_option`] for an enum whose C# `None` member is `None` in Rust.
+pub(super) fn enum_option_opt<T: GameEnum>(d: &dyn Describer, v: Option<T>) -> EnumOption
+where
+    Option<T>: Into<ExpressionElement>,
+{
+    EnumOption { name: name_or_absent(v), value: value_or_absent(v), label: describe(d, v) }
 }
 
 fn labelled<T: GameEnum + Copy + ToString>(v: T, label: &str) -> EnumOption {
@@ -419,7 +427,7 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
         }),
         GameEvent::Karma(e) => adjust!(e, |m| {
             m.card_id = required(m.card_id, &card_ids(Karma::valid_karma_cards(game, p)), none_card);
-            m.prevented = required(m.prevented, &Karma::valid_faction_advantages(game, p), FactionAdvantage::default());
+            m.prevented = required(m.prevented, &Karma::valid_faction_advantages(game, p), None);
         }),
         GameEvent::KarmaChoamDiscard(e) => adjust!(e, |m| {
             let karma = card_ids(Karma::valid_karma_cards(game, p));
@@ -457,7 +465,7 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
         }),
         GameEvent::SkillAssigned(e) => adjust!(e, |m| {
             m.passed = false;
-            m.skill = required(m.skill, &SkillAssigned::valid_skills(game, p), LeaderSkill::None);
+            m.skill = required_opt(m.skill, &SkillAssigned::valid_skills(game, p));
             let leaders: Vec<i32> = SkillAssigned::valid_leaders(game, p).into_iter().map(|l| l.map_or(-1, |l| l.id())).collect();
             m.leader_id = required(m.leader_id, &leaders, -1);
         }),
@@ -649,7 +657,7 @@ fn options(game: &Game, p: PlayerIndex, v: &ResolvedViewer, draft: &GameEvent, d
         GameEvent::IxianSwappedCardOnBid(_) => ActionOptions::IxianSwappedCardOnBid(cards(hand())),
         GameEvent::Karma(_) => ActionOptions::Karma(KarmaOptions {
             cards: card_ids(Karma::valid_karma_cards(game, p)),
-            advantages: Karma::valid_faction_advantages(game, p).into_iter().map(|a| enum_option(d, a)).collect(),
+            advantages: Karma::valid_faction_advantages(game, p).into_iter().map(|a| enum_option_opt(d, a)).collect(),
             draft: json.clone(),
         }),
         GameEvent::KarmaChoamDiscard(e) => ActionOptions::KarmaChoamDiscard(KarmaChoamDiscardOptions {

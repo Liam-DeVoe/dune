@@ -230,7 +230,7 @@ impl ClassicBot {
                 opponent.expect("opponent"),
                 territory.expect("territory"),
                 voice,
-                self.my_prescience(game).map(|p| p.aspect).unwrap_or(PrescienceAspect::None),
+                self.my_prescience(game).and_then(|p| p.aspect),
                 false,
                 include_leader_in_front_of_shield,
             );
@@ -727,7 +727,7 @@ impl ClassicBot {
     }
 
     /// My clairvoyance answer about this battle that covers `question` or any card in battle.
-    fn ruling_clairvoyance(&self, game: &Game, question: ClairvoyanceQuestion) -> Option<ClairVoyanceQandA> {
+    fn ruling_clairvoyance(&self, game: &Game, question: Option<ClairvoyanceQuestion>) -> Option<ClairVoyanceQandA> {
         let (Some(_), Some(qna)) = (&game.turn.latest_clairvoyance, &game.turn.latest_clairvoyance_qn_a) else {
             return None;
         };
@@ -736,7 +736,7 @@ impl ClassicBot {
             && is_current_battle(game, game.turn.latest_clairvoyance_battle.as_ref())
             && {
                 let q = qna.question.as_ref().expect("question").question;
-                q == question || q == ClairvoyanceQuestion::CardTypeInBattle
+                q == question || q == Some(ClairvoyanceQuestion::CardTypeInBattle)
             }
         {
             Some(qna.clone())
@@ -746,11 +746,11 @@ impl ClassicBot {
     }
 
     pub fn ruling_weapon_clairvoyance(&self, game: &Game) -> Option<ClairVoyanceQandA> {
-        self.ruling_clairvoyance(game, ClairvoyanceQuestion::CardTypeAsWeaponInBattle)
+        self.ruling_clairvoyance(game, Some(ClairvoyanceQuestion::CardTypeAsWeaponInBattle))
     }
 
     pub fn ruling_defense_clairvoyance(&self, game: &Game) -> Option<ClairVoyanceQandA> {
-        self.ruling_clairvoyance(game, ClairvoyanceQuestion::CardTypeAsDefenseInBattle)
+        self.ruling_clairvoyance(game, Some(ClairvoyanceQuestion::CardTypeAsDefenseInBattle))
     }
 
     /// The weapon to use against the enemy leader and the chance that it kills them.
@@ -1008,7 +1008,7 @@ impl ClassicBot {
 
         let is_traitor = !messiah_used && hero.is_some_and(|h| known_traitors_for_opponents_in_battle.contains(&h));
 
-        let mut used_skill = LeaderSkill::None;
+        let mut used_skill = None;
         let value = match hero {
             Some(h) => {
                 h.value_in_combat_against(highest_opponent_leader)
@@ -1031,9 +1031,9 @@ impl ClassicBot {
         let voice_plan = if Voice::may_use_voice(game, p) { Some(self.best_voice(game, None, p, opponent)) } else { None };
         let strength_of_opponent = Self::max_dial(game, opponent, territory, Some(p), false);
         let prescience = if Prescience::may_use_prescience(game, p) {
-            self.best_prescience(game, p, opponent, strength_of_opponent, PrescienceAspect::None, territory)
+            self.best_prescience(game, p, opponent, strength_of_opponent, None, territory)
         } else {
-            PrescienceAspect::None
+            None
         };
 
         self.get_dial_needed_for_battle(
@@ -1058,13 +1058,13 @@ impl ClassicBot {
     }
 
     /// The dial `player` needs to beat `opponent` in `territory`, with the leader and cards they'd use.
-    fn get_dial_needed_for_battle(&self, game: &Game, player: PlayerIndex, i_am_aggressor: bool, opponent: PlayerIndex, territory: Territory, voice: Option<&VoicePlan>, prescience: PrescienceAspect, take_reinforcements_into_account: bool, include_in_front_of_shield: bool) -> DialEstimate {
+    fn get_dial_needed_for_battle(&self, game: &Game, player: PlayerIndex, i_am_aggressor: bool, opponent: PlayerIndex, territory: Territory, voice: Option<&VoicePlan>, prescience: Option<PrescienceAspect>, take_reinforcements_into_account: bool, include_in_front_of_shield: bool) -> DialEstimate {
         let param = &self.param;
-        let enemy = self.chance_of_enemy_leader_dying(game, player, opponent, voice, Some(prescience));
+        let enemy = self.chance_of_enemy_leader_dying(game, player, opponent, voice, prescience);
         let mut weapon = enemy.weapon;
         let mut chance_of_enemy_hero_surviving = 1.0 - enemy.kill_chance;
         let (mut chance_of_my_hero_surviving, mut defense) =
-            self.chance_of_my_leader_surviving(game, player, opponent, voice, Some(prescience), weapon);
+            self.chance_of_my_leader_surviving(game, player, opponent, voice, prescience, weapon);
 
         if weapon.is_none()
             && chance_of_my_hero_surviving < param.battle_minimum_chance_to_assume_my_leader_survives
@@ -1088,8 +1088,8 @@ impl ClassicBot {
         let i_assume_enemy_leader_will_die = chance_of_enemy_hero_surviving < param.battle_minimum_chance_to_assume_enemy_hero_survives;
 
         let opponent_plan = game.battle.current_battle.as_ref().and_then(|b| b.plan_of(game, Some(opponent)));
-        let opponent_weapon = if prescience == PrescienceAspect::Weapon { opponent_plan.as_ref().and_then(|p| p.weapon()) } else { None };
-        let opponent_defense = if prescience == PrescienceAspect::Defense { opponent_plan.as_ref().and_then(|p| p.defense()) } else { None };
+        let opponent_weapon = if prescience == Some(PrescienceAspect::Weapon) { opponent_plan.as_ref().and_then(|p| p.weapon()) } else { None };
+        let opponent_defense = if prescience == Some(PrescienceAspect::Defense) { opponent_plan.as_ref().and_then(|p| p.defense()) } else { None };
         let lasgun_shield = Self::has_lasgun_shield(weapon, defense, opponent_weapon, opponent_defense);
         let stone_burner = weapon.is_some_and(|w| w.is_rock_melter()) || opponent_weapon.is_some_and(|w| w.is_rock_melter());
 
@@ -1107,7 +1107,7 @@ impl ClassicBot {
             include_in_front_of_shield,
         );
 
-        let mut used_skill = LeaderSkill::None;
+        let mut used_skill = None;
         let opponent_penalty = Battle::determine_skill_penalty_of_hero(game, hero, opponent, &mut used_skill);
 
         if hero.is_none() {
@@ -1142,7 +1142,7 @@ impl ClassicBot {
             return estimate(0.5, weapon, defense, 0);
         }
 
-        let banker_boost = if game.skill(hero) == LeaderSkill::Banker && !i_assume_my_leader_will_die {
+        let banker_boost = if game.skill(hero) == Some(LeaderSkill::Banker) && !i_assume_my_leader_will_die {
             game.player(player).resources.min(3)
         } else {
             0
@@ -1156,7 +1156,7 @@ impl ClassicBot {
         }
 
         let opponent_leader = match &opponent_plan {
-            Some(plan) if prescience == PrescienceAspect::Leader => plan.hero(),
+            Some(plan) if prescience == Some(PrescienceAspect::Leader) => plan.hero(),
             _ => {
                 // The opponent's strongest leader that isn't my traitor.
                 let traitors = &game.player(player).traitors;
@@ -1174,7 +1174,7 @@ impl ClassicBot {
             0
         };
         let opponent_dial = match &opponent_plan {
-            Some(plan) if prescience == PrescienceAspect::Dial => plan.dial(game, game.player(player).faction),
+            Some(plan) if prescience == Some(PrescienceAspect::Dial) => plan.dial(game, game.player(player).faction),
             _ => Self::max_dial(game, opponent, territory, Some(player), false),
         };
         let my_homeworld_bonus = game.player(player).get_homeworld_battle_contribution_and_lasgun_shield_limit(game, territory);
@@ -1304,8 +1304,7 @@ impl ClassicBot {
             .into_iter()
             .find(|(wanted, advantage)| *wanted && valid.contains(advantage))
             .map(|(_, advantage)| advantage)
-            .or(valid.first().copied())
-            .unwrap_or(A::None);
+            .or(valid.first().copied());
 
         let mut result = HMSAdvantageChosen::new(game, self.faction(game));
         result.advantage = advantage;

@@ -296,8 +296,8 @@ game_enum! {
 }
 
 game_enum! {
-    FactionAdvantage {
-        None = 0,
+    closed FactionAdvantage {
+        absent None = 0;
         AtreidesBiddingPrescience = 20,
         AtreidesSpiceBlowPrescience = 30,
         AtreidesBattlePlanPrescience = 35,
@@ -359,7 +359,7 @@ game_enum! {
         MoritaniGainingVidal = 171,
         MoritaniEnemyOfEnemy = 172,
     }
-    get_values [None, AtreidesBiddingPrescience, AtreidesSpiceBlowPrescience, AtreidesBattlePlanPrescience, AtreidesUseMessiah, HarkonnenFreeCard, HarkonnenCaptureLeader, HarkonnenCallTraitorForAlly, BeneGesseritAccompanies, BeneGesseritUsingVoice, BeneGesseritWorthlessAsKarma, BeneGesseritAnnouncesBattle, BeneGesseritIntrusion, BeneGesseritCharity, FremenControlsMonster, FremenRidesMonster, FremenNotPayingForBattles, FremenSpecialForceBonus, FremenExtraMove, FremenProtectedFromStorm, FremenProtectedFromMonster, FremenProtectedFromMonsterAlly, FremenStormPrescience, EmperorSpecialForceBonus, EmperorReceiveBid, EmperorGiveSpiceToAlly, EmperorLetAllyReviveExtraForces, GuildDetermineMoveMoment, GuildSpecialShipments, GuildShipmentsDiscount, GuildShipmentsDiscountAlly, GuildReceiveShipment, TleilaxuRevivalDiscount, TleilaxuRevivalDiscountAlly, TleilaxuReplacingFaceDancer, TleilaxuIncreasingRevivalLimits, TleilaxuReceiveRevive, TleilaxuEarlyLeaderRevive, TleilaxuReviveGhola, IxianMovingHms, IxianSpecialForceBonus, IxianSelectingCardsOnAuction, IxianCyborgExtraMove, IxianReplacingSpecialForces, IxianAllyDiscardingCard, IxianSwappingCard, ChoamControllingCharity, ChoamDiscarding, ChoamRevival, ChoamEconomics, ChoamReceiveForcePayment, ChoamAudit, RicheseAuction, RicheseNofield, RicheseBlackMarket, EcazAmbassadors, EcazOccupation, EcazCollection, MoritaniPlantingTerror, MoritaniGainingVidal, MoritaniEnemyOfEnemy]
+    get_values [AtreidesBiddingPrescience, AtreidesSpiceBlowPrescience, AtreidesBattlePlanPrescience, AtreidesUseMessiah, HarkonnenFreeCard, HarkonnenCaptureLeader, HarkonnenCallTraitorForAlly, BeneGesseritAccompanies, BeneGesseritUsingVoice, BeneGesseritWorthlessAsKarma, BeneGesseritAnnouncesBattle, BeneGesseritIntrusion, BeneGesseritCharity, FremenControlsMonster, FremenRidesMonster, FremenNotPayingForBattles, FremenSpecialForceBonus, FremenExtraMove, FremenProtectedFromStorm, FremenProtectedFromMonster, FremenProtectedFromMonsterAlly, FremenStormPrescience, EmperorSpecialForceBonus, EmperorReceiveBid, EmperorGiveSpiceToAlly, EmperorLetAllyReviveExtraForces, GuildDetermineMoveMoment, GuildSpecialShipments, GuildShipmentsDiscount, GuildShipmentsDiscountAlly, GuildReceiveShipment, TleilaxuRevivalDiscount, TleilaxuRevivalDiscountAlly, TleilaxuReplacingFaceDancer, TleilaxuIncreasingRevivalLimits, TleilaxuReceiveRevive, TleilaxuEarlyLeaderRevive, TleilaxuReviveGhola, IxianMovingHms, IxianSpecialForceBonus, IxianSelectingCardsOnAuction, IxianCyborgExtraMove, IxianReplacingSpecialForces, IxianAllyDiscardingCard, IxianSwappingCard, ChoamControllingCharity, ChoamDiscarding, ChoamRevival, ChoamEconomics, ChoamReceiveForcePayment, ChoamAudit, RicheseAuction, RicheseNofield, RicheseBlackMarket, EcazAmbassadors, EcazOccupation, EcazCollection, MoritaniPlantingTerror, MoritaniGainingVidal, MoritaniEnemyOfEnemy]
 }
 
 game_enum! {
@@ -428,12 +428,12 @@ game_enum! {
 }
 
 game_enum! {
-    DiscoveryTokenType {
-        None = 0,
+    closed DiscoveryTokenType {
+        absent None = 0;
         Fremen = 10,
         Guild = 20,
     }
-    get_values [None, Fremen, Guild]
+    get_values [Fremen, Guild]
 }
 
 game_enum! {
@@ -654,8 +654,8 @@ game_enum! {
 }
 
 game_enum! {
-    LeaderSkill {
-        None = 0,
+    closed LeaderSkill {
+        absent None = 0;
         Bureaucrat = 10,
         Diplomat = 20,
         Decipherer = 30,
@@ -671,12 +671,12 @@ game_enum! {
         Thinker = 130,
         Banker = 140,
     }
-    get_values [None, Bureaucrat, Diplomat, Decipherer, Smuggler, Graduate, Planetologist, Warmaster, Adept, Swordmaster, KillerMedic, MasterOfAssassins, Sandmaster, Thinker, Banker]
+    get_values [Bureaucrat, Diplomat, Decipherer, Smuggler, Graduate, Planetologist, Warmaster, Adept, Swordmaster, KillerMedic, MasterOfAssassins, Sandmaster, Thinker, Banker]
 }
 
 game_enum! {
-    StrongholdAdvantage {
-        None = 0,
+    closed StrongholdAdvantage {
+        absent None = 0;
         FreeResourcesForBattles = 10,
         CollectResourcesForUseless = 20,
         CountDefensesAsAntidote = 30,
@@ -684,7 +684,7 @@ game_enum! {
         CollectResourcesForDial = 50,
         AnyOtherAdvantage = 60,
     }
-    get_values [None, FreeResourcesForBattles, CollectResourcesForUseless, CountDefensesAsAntidote, WinTies, CollectResourcesForDial, AnyOtherAdvantage]
+    get_values [FreeResourcesForBattles, CollectResourcesForUseless, CountDefensesAsAntidote, WinTies, CollectResourcesForDial, AnyOtherAdvantage]
 }
 
 game_enum! {
@@ -731,8 +731,8 @@ game_enum! {
 }
 
 game_enum! {
-    TerrorType {
-        None = 0,
+    closed TerrorType {
+        absent None = 0;
         Assassination = 10,
         Atomics = 30,
         Extortion = 50,
@@ -740,7 +740,7 @@ game_enum! {
         Sabotage = 70,
         SneakAttack = 80,
     }
-    get_values [None, Assassination, Atomics, Extortion, Robbery, Sabotage, SneakAttack]
+    get_values [Assassination, Atomics, Extortion, Robbery, Sabotage, SneakAttack]
 }
 
 game_enum! {
@@ -775,8 +775,8 @@ game_enum! {
 }
 
 game_enum! {
-    ClairvoyanceQuestion {
-        None = 0,
+    closed ClairvoyanceQuestion {
+        absent None = 0;
         Prediction = 10,
         LeaderAsTraitor = 20,
         LeaderAsFacedancer = 30,
@@ -788,18 +788,18 @@ game_enum! {
         DialOfMoreThanXInBattle = 120,
         WillAttackX = 200,
     }
-    get_values [None, Prediction, LeaderAsTraitor, LeaderAsFacedancer, HasCardTypeInHand, LeaderInBattle, CardTypeInBattle, CardTypeAsDefenseInBattle, CardTypeAsWeaponInBattle, DialOfMoreThanXInBattle, WillAttackX]
+    get_values [Prediction, LeaderAsTraitor, LeaderAsFacedancer, HasCardTypeInHand, LeaderInBattle, CardTypeInBattle, CardTypeAsDefenseInBattle, CardTypeAsWeaponInBattle, DialOfMoreThanXInBattle, WillAttackX]
 }
 
 game_enum! {
-    PrescienceAspect {
-        None = 0,
+    closed PrescienceAspect {
+        absent None = 0;
         Dial = 10,
         Leader = 20,
         Weapon = 30,
         Defense = 40,
     }
-    get_values [None, Dial, Leader, Weapon, Defense]
+    get_values [Dial, Leader, Weapon, Defense]
 }
 
 game_enum! {

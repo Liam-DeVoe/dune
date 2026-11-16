@@ -148,7 +148,7 @@ fn enum_ordering_and_serde() {
     assert_eq!(serde_json::to_string(&Faction::Atreides).unwrap(), "20");
     assert_eq!(serde_json::from_str::<Faction>("13").unwrap(), Faction(13));
     assert_eq!(format!("{:?}", Faction::Atreides), "Faction::Atreides");
-    assert_eq!(Faction::Moritani.to_nexus(), Nexus::Moritani);
+    assert_eq!(Faction::Moritani.to_nexus(), Some(Nexus::Moritani));
     assert!(catch_panic(|| Faction(13).to_nexus()).is_err());
 }
 
@@ -172,7 +172,7 @@ fn dump_location(m: &Map, l: Location) -> Value {
         "hash": l.id(),
     });
     if let Some(hw) = l.as_homeworld() {
-        o["world"] = json!(hw.world().0);
+        o["world"] = json!(hw.world().value());
         o["faction"] = json!(hw.faction().0);
         o["threshold"] = json!(hw.threshold());
         o["resource_amount"] = json!(hw.resource_amount());
@@ -185,7 +185,7 @@ fn dump_location(m: &Map, l: Location) -> Value {
         o["attached_to"] = opt_id(al.attached_to_location(m));
     }
     if let Some(dl) = l.as_discovered_location() {
-        o["discovery"] = json!(dl.discovery().0);
+        o["discovery"] = json!(dl.discovery().value());
     }
     o
 }
@@ -254,11 +254,11 @@ fn dump_map(m: &Map) -> Value {
 
     let mut get_home_world = serde_json::Map::new();
     for w in World::ALL {
-        get_home_world.insert(w.0.to_string(), opt_id(m.get_home_world(*w).map(|h| h.location())));
+        get_home_world.insert(w.value().to_string(), opt_id(m.get_home_world(*w).map(|h| h.location())));
     }
     let mut get_discovery_stronghold = serde_json::Map::new();
     for d in DiscoveryToken::ALL {
-        get_discovery_stronghold.insert(d.0.to_string(), try_value(|| Some(m.get_discovery_stronghold(*d).id())));
+        get_discovery_stronghold.insert(d.value().to_string(), try_value(|| Some(m.get_discovery_stronghold(*d).id())));
     }
 
     json!({

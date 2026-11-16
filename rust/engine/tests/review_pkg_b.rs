@@ -93,7 +93,7 @@ fn state(g: &Game, me: PlayerIndex) -> String {
     for hw in &p.home_worlds {
         s += &format!(
             " w{}={}/{}/{}",
-            hw.world().0,
+            hw.world() as i32,
             b(p.has_high_threshold(g, hw.world())),
             b(p.has_low_threshold(g, hw.world())),
             p.get_homeworld_battle_contribution_and_lasgun_shield_limit(g, hw.location().territory())

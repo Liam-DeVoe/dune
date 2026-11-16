@@ -267,7 +267,7 @@ impl ClassicBot {
         let faction = self.faction(game);
         if faction == Faction::Atreides
             && game.turn.current_main_phase == MainPhase::Bidding
-            && game.bidding.current_auction_type == AuctionType::Normal
+            && game.bidding.current_auction_type == Some(AuctionType::Normal)
             && game.has_bidding_prescience(self.player)
             && !game.deals.offers.iter().any(|deal| {
                 deal.initiator() == faction && deal.type_ == DealType::ShareBiddingPrescience && deal.end_phase == Phase::Bidding

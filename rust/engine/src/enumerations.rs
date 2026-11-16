@@ -22,8 +22,8 @@ game_enum! {
 }
 
 game_enum! {
-    Nexus {
-        None = 0,
+    closed Nexus {
+        absent None = 0;
         Fremen = 10,
         Atreides = 20,
         Harkonnen = 30,
@@ -37,7 +37,7 @@ game_enum! {
         Ecaz = 110,
         Moritani = 120,
     }
-    get_values [None, Fremen, Atreides, Harkonnen, Emperor, Guild, BeneGesserit, Ixian, Tleilaxu, Choam, Richese, Ecaz, Moritani]
+    get_values [Fremen, Atreides, Harkonnen, Emperor, Guild, BeneGesserit, Ixian, Tleilaxu, Choam, Richese, Ecaz, Moritani]
 }
 
 game_enum! {
@@ -241,8 +241,8 @@ game_enum! {
 }
 
 game_enum! {
-    Milestone {
-        None = 0,
+    closed Milestone {
+        absent None = 0;
         GameStarted = 50,
         Monster = 100,
         GreatMonster = 110,
@@ -292,7 +292,7 @@ game_enum! {
         Bureaucracy = 4000,
         Audited = 4100,
     }
-    get_values [None, GameStarted, Monster, GreatMonster, BabyMonster, Resource, MetheorUsed, AuctionWon, Shipment, LeaderKilled, Messiah, Explosion, GameWon, CharityClaimed, CardOnBidSwapped, Bid, CardWonSwapped, Shuffled, Revival, Move, TreacheryCalled, FaceDanced, Clairvoyance, Karma, Bribe, Amal, Thumper, Harvester, HmsMovement, RaiseDead, WeatherControlled, Storm, Voice, Prescience, ResourcesReceived, Economics, CardTraded, Discard, SpecialUselessPlayed, TerrorPlanted, TerrorRevealed, AmbassadorPlaced, AmbassadorActivated, NexusPlayed, DiscoveryAppeared, DiscoveryRevealed, Assassination, Bureaucracy, Audited]
+    get_values [GameStarted, Monster, GreatMonster, BabyMonster, Resource, MetheorUsed, AuctionWon, Shipment, LeaderKilled, Messiah, Explosion, GameWon, CharityClaimed, CardOnBidSwapped, Bid, CardWonSwapped, Shuffled, Revival, Move, TreacheryCalled, FaceDanced, Clairvoyance, Karma, Bribe, Amal, Thumper, Harvester, HmsMovement, RaiseDead, WeatherControlled, Storm, Voice, Prescience, ResourcesReceived, Economics, CardTraded, Discard, SpecialUselessPlayed, TerrorPlanted, TerrorRevealed, AmbassadorPlaced, AmbassadorActivated, NexusPlayed, DiscoveryAppeared, DiscoveryRevealed, Assassination, Bureaucracy, Audited]
 }
 
 game_enum! {
@@ -363,8 +363,8 @@ game_enum! {
 }
 
 game_enum! {
-    FactionForce {
-        None = 0,
+    closed FactionForce {
+        absent None = 0;
         Fremen = 10,
         Atreides = 20,
         Harkonnen = 30,
@@ -378,19 +378,19 @@ game_enum! {
         Ecaz = 110,
         Moritani = 120,
     }
-    get_values [None, Fremen, Atreides, Harkonnen, Emperor, Guild, BeneGesserit, Ixian, Tleilaxu, Choam, Richese, Ecaz, Moritani]
+    get_values [Fremen, Atreides, Harkonnen, Emperor, Guild, BeneGesserit, Ixian, Tleilaxu, Choam, Richese, Ecaz, Moritani]
 }
 
 game_enum! {
-    FactionSpecialForce {
-        None = 0,
+    closed FactionSpecialForce {
+        absent None = 0;
         Fremen = 10,
         Emperor = 20,
         BeneGesserit = 30,
         Ixian = 40,
         Richese = 50,
     }
-    get_values [None, Fremen, Emperor, BeneGesserit, Ixian, Richese]
+    get_values [Fremen, Emperor, BeneGesserit, Ixian, Richese]
 }
 
 game_enum! {
@@ -413,8 +413,8 @@ game_enum! {
 }
 
 game_enum! {
-    DiscoveryToken {
-        None = 0,
+    closed DiscoveryToken {
+        absent None = 0;
         Jacurutu = 10,
         Shrine = 20,
         TestingStation = 30,
@@ -424,7 +424,7 @@ game_enum! {
         ResourceStash = 70,
         Flight = 80,
     }
-    get_values [None, Jacurutu, Shrine, TestingStation, Cistern, ProcessingStation, CardStash, ResourceStash, Flight]
+    get_values [Jacurutu, Shrine, TestingStation, Cistern, ProcessingStation, CardStash, ResourceStash, Flight]
 }
 
 game_enum! {
@@ -592,8 +592,8 @@ game_enum! {
 }
 
 game_enum! {
-    Concept {
-        None = 0,
+    closed Concept {
+        absent None = 0;
         Messiah = 10,
         Resource = 20,
         Monster = 30,
@@ -601,7 +601,7 @@ game_enum! {
         BabyMonster = 50,
         GreatMonster = 60,
     }
-    get_values [None, Messiah, Resource, Monster, Graveyard, BabyMonster, GreatMonster]
+    get_values [Messiah, Resource, Monster, Graveyard, BabyMonster, GreatMonster]
 }
 
 game_enum! {
@@ -631,8 +631,8 @@ game_enum! {
 }
 
 game_enum! {
-    AuctionType {
-        None = 0,
+    closed AuctionType {
+        absent None = 0;
         Normal = 10,
         BlackMarketNormal = 20,
         BlackMarketOnceAround = 30,
@@ -640,7 +640,7 @@ game_enum! {
         RicheseOnceAround = 60,
         RicheseSilent = 70,
     }
-    get_values [None, Normal, BlackMarketNormal, BlackMarketOnceAround, BlackMarketSilent, RicheseOnceAround, RicheseSilent]
+    get_values [Normal, BlackMarketNormal, BlackMarketOnceAround, BlackMarketSilent, RicheseOnceAround, RicheseSilent]
 }
 
 game_enum! {
@@ -688,8 +688,8 @@ game_enum! {
 }
 
 game_enum! {
-    World {
-        None = 0,
+    closed World {
+        absent None = 0;
         Fremen = 10,
         Atreides = 20,
         Harkonnen = 30,
@@ -704,7 +704,7 @@ game_enum! {
         Ecaz = 110,
         Moritani = 120,
     }
-    get_values [None, Fremen, Atreides, Harkonnen, Emperor, SalusaSecundus, Guild, BeneGesserit, Ixian, Tleilaxu, Choam, Richese, Ecaz, Moritani]
+    get_values [Fremen, Atreides, Harkonnen, Emperor, SalusaSecundus, Guild, BeneGesserit, Ixian, Tleilaxu, Choam, Richese, Ecaz, Moritani]
 }
 
 game_enum! {
@@ -718,7 +718,7 @@ game_enum! {
 }
 
 game_enum! {
-    DealType {
+    closed DealType {
         None = 0,
         DontShipOrMoveTo = 10,
         ShareBiddingPrescience = 30,
@@ -968,32 +968,31 @@ pub fn get_values_except_default<T: GameEnum>(default_value: T) -> impl Iterator
 // EnumerationExtensions
 
 impl Faction {
-    /// `faction.ToNexus()`; panics for undefined values.
-    pub fn to_nexus(self) -> Nexus {
+    /// `faction.ToNexus()`: `None` for `Faction::None`; panics for undefined values.
+    pub fn to_nexus(self) -> Option<Nexus> {
         match self {
-            Faction::None => Nexus::None,
-            Faction::Fremen => Nexus::Fremen,
-            Faction::Atreides => Nexus::Atreides,
-            Faction::Harkonnen => Nexus::Harkonnen,
-            Faction::Emperor => Nexus::Emperor,
-            Faction::Guild => Nexus::Guild,
-            Faction::BeneGesserit => Nexus::BeneGesserit,
-            Faction::Ixian => Nexus::Ixian,
-            Faction::Tleilaxu => Nexus::Tleilaxu,
-            Faction::Choam => Nexus::Choam,
-            Faction::Richese => Nexus::Richese,
-            Faction::Ecaz => Nexus::Ecaz,
-            Faction::Moritani => Nexus::Moritani,
+            Faction::None => None,
+            Faction::Fremen => Some(Nexus::Fremen),
+            Faction::Atreides => Some(Nexus::Atreides),
+            Faction::Harkonnen => Some(Nexus::Harkonnen),
+            Faction::Emperor => Some(Nexus::Emperor),
+            Faction::Guild => Some(Nexus::Guild),
+            Faction::BeneGesserit => Some(Nexus::BeneGesserit),
+            Faction::Ixian => Some(Nexus::Ixian),
+            Faction::Tleilaxu => Some(Nexus::Tleilaxu),
+            Faction::Choam => Some(Nexus::Choam),
+            Faction::Richese => Some(Nexus::Richese),
+            Faction::Ecaz => Some(Nexus::Ecaz),
+            Faction::Moritani => Some(Nexus::Moritani),
             _ => panic!("faction out of range: {self}"),
         }
     }
 }
 
 impl Nexus {
-    /// `nexus.ToFaction()`; panics for undefined values.
+    /// `nexus.ToFaction()`.
     pub fn to_faction(self) -> Faction {
         match self {
-            Nexus::None => Faction::None,
             Nexus::Fremen => Faction::Fremen,
             Nexus::Atreides => Faction::Atreides,
             Nexus::Harkonnen => Faction::Harkonnen,
@@ -1006,7 +1005,6 @@ impl Nexus {
             Nexus::Richese => Faction::Richese,
             Nexus::Ecaz => Faction::Ecaz,
             Nexus::Moritani => Faction::Moritani,
-            _ => panic!("nexus out of range: {self}"),
         }
     }
 }

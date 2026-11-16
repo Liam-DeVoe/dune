@@ -229,7 +229,7 @@ pub fn bidding(game: &Game, v: &ResolvedViewer) -> Option<BiddingView> {
     if game.turn.current_main_phase != MainPhase::Bidding {
         return None;
     }
-    let silent = game.bidding.current_auction_type == AuctionType::BlackMarketSilent || game.bidding.current_auction_type == AuctionType::RicheseSilent;
+    let silent = game.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent) || game.bidding.current_auction_type == Some(AuctionType::RicheseSilent);
     let bids = game
         .bidding.bids
         .iter()
@@ -244,7 +244,7 @@ pub fn bidding(game: &Game, v: &ResolvedViewer) -> Option<BiddingView> {
             MapBid { faction: name(*f), bid: shown }
         })
         .collect();
-    Some(BiddingView { auction_type: name(game.bidding.current_auction_type), bids,
+    Some(BiddingView { auction_type: name_or_absent(game.bidding.current_auction_type), bids,
         panel: crate::actions::bidding::panel(game, v),
         auction_won: game.turn.recent_milestones.contains(&Milestone::AuctionWon),
     })
@@ -319,7 +319,7 @@ fn plan_view(
     let dial_shown = full || aspect(PrescienceAspect::Dial);
     let homeworld_bonus = territory.and_then(|t| {
         let amount = pl.get_homeworld_battle_contribution_and_lasgun_shield_limit(game, t);
-        (amount != 0).then(|| HomeworldBonus { world: name(t.locations()[0].as_homeworld().map(|h| h.world()).unwrap_or_default()), amount })
+        (amount != 0).then(|| HomeworldBonus { world: name_or_absent(t.locations()[0].as_homeworld().map(|h| h.world())), amount })
     });
 
     let hero_shown = full || aspect(PrescienceAspect::Leader);

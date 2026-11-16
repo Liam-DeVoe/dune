@@ -224,13 +224,13 @@ pub fn default_draft(game: &Game, s: &Seating, faction: Faction, t: GameEventTyp
         }
         GameEventType::RicheseAnnouncesBlackMarket => {
             let mut e = RicheseAnnouncesBlackMarket::new(game, faction);
-            e.auction_type = AuctionType::BlackMarketNormal;
+            e.auction_type = Some(AuctionType::BlackMarketNormal);
             e.direction = 1;
             event(e)
         }
         GameEventType::RicheseSpecifiesAuction => {
             let mut e = RicheseSpecifiesAuction::new(game, faction);
-            e.auction_type = AuctionType::RicheseOnceAround;
+            e.auction_type = Some(AuctionType::RicheseOnceAround);
             e.direction = 1;
             event(e)
         }
@@ -478,9 +478,9 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
         GameEvent::RicheseAnnouncesBlackMarket(e) => adjust!(e, |m| {
             m.passed = false;
             m.card_id = required(m.card_id, &card_ids(RicheseAnnouncesBlackMarket::valid_cards(game, p)), none_card);
-            let types = [AuctionType::BlackMarketNormal, AuctionType::BlackMarketOnceAround, AuctionType::BlackMarketSilent];
-            m.auction_type = required(m.auction_type, &types, AuctionType::None);
-            if m.auction_type == AuctionType::BlackMarketOnceAround {
+            let types = [Some(AuctionType::BlackMarketNormal), Some(AuctionType::BlackMarketOnceAround), Some(AuctionType::BlackMarketSilent)];
+            m.auction_type = required(m.auction_type, &types, None);
+            if m.auction_type == Some(AuctionType::BlackMarketOnceAround) {
                 m.direction = required(m.direction, &[1, -1], 0);
             }
         }),
@@ -495,9 +495,9 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
                 m.card_id = required(m.card_id, &card_ids(RicheseSpecifiesAuction::valid_cards(game)), none_card);
             }
             if RicheseSpecifiesAuction::may_specify_type_of_auction(game, p) {
-                let types = [AuctionType::RicheseOnceAround, AuctionType::RicheseSilent];
-                m.auction_type = required(m.auction_type, &types, AuctionType::None);
-                if m.auction_type == AuctionType::RicheseOnceAround {
+                let types = [Some(AuctionType::RicheseOnceAround), Some(AuctionType::RicheseSilent)];
+                m.auction_type = required(m.auction_type, &types, None);
+                if m.auction_type == Some(AuctionType::RicheseOnceAround) {
                     m.direction = required(m.direction, &[1, -1], 0);
                 }
             }

@@ -1463,7 +1463,7 @@ impl ClassicBot {
             e.passed = false;
             e.set_card(card);
             // The auction type is drawn before the direction.
-            e.auction_type = if self.d(1, 2) > 1 { AuctionType::BlackMarketSilent } else { AuctionType::BlackMarketOnceAround };
+            e.auction_type = if self.d(1, 2) > 1 { Some(AuctionType::BlackMarketSilent) } else { Some(AuctionType::BlackMarketOnceAround) };
             e.direction = if self.d(1, 2) > 1 { 1 } else { -1 };
             return Rc::new(e);
         }
@@ -1498,7 +1498,7 @@ impl ClassicBot {
         let mut e = RicheseSpecifiesAuction::new(game, self.faction(game));
         let card = if !to_auction.is_empty() { Some(to_auction.draw()) } else { None };
         e.set_card(card);
-        e.auction_type = if self.d(1, 2) > 1 { AuctionType::RicheseSilent } else { AuctionType::RicheseOnceAround };
+        e.auction_type = if self.d(1, 2) > 1 { Some(AuctionType::RicheseSilent) } else { Some(AuctionType::RicheseOnceAround) };
         e.direction = if self.d(1, 2) > 1 { 1 } else { -1 };
         Rc::new(e)
     }

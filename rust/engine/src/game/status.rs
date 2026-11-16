@@ -282,7 +282,7 @@ impl GameStatus {
                 Self::faction_status(game, a, w, Some(Faction::Richese), None)
             }
 
-            Phase::BlackMarketBidding if game.bidding.current_auction_type != AuctionType::BlackMarketSilent => {
+            Phase::BlackMarketBidding if game.bidding.current_auction_type != Some(AuctionType::BlackMarketSilent) => {
                 let g: &Game = game;
                 let a = express!("Please bid or pass.");
                 let w = express!(g.bidding.bid_sequence.as_ref().expect("bid sequence").current_faction(g), " are thinking about their bid...");
@@ -291,7 +291,7 @@ impl GameStatus {
                 Self::sequence_status(a, w, seq, latest)
             }
 
-            Phase::BlackMarketBidding if game.bidding.current_auction_type == AuctionType::BlackMarketSilent => {
+            Phase::BlackMarketBidding if game.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent) => {
                 let g: &Game = game;
                 let players = Self::players_with_room_and_no_bid(g);
                 let latest = g.latest_event(GameEventType::RicheseAnnouncesBlackMarket);
@@ -334,7 +334,7 @@ impl GameStatus {
                 Self::faction_status(game, a, w, Some(Faction::Ixian), None)
             }
 
-            Phase::Bidding if game.bidding.current_auction_type != AuctionType::RicheseSilent => {
+            Phase::Bidding if game.bidding.current_auction_type != Some(AuctionType::RicheseSilent) => {
                 let g: &Game = game;
                 let a = express!("Please bid or pass.");
                 let w = express!(g.bidding.bid_sequence.as_ref().expect("bid sequence").current_faction(g), " are thinking about their bid...");
@@ -343,7 +343,7 @@ impl GameStatus {
                 Self::sequence_status(a, w, seq, latest)
             }
 
-            Phase::Bidding if game.bidding.current_auction_type == AuctionType::RicheseSilent => {
+            Phase::Bidding if game.bidding.current_auction_type == Some(AuctionType::RicheseSilent) => {
                 let g: &Game = game;
                 let players = Self::players_with_room_and_no_bid(g);
                 let latest = g.latest_event(GameEventType::RicheseSpecifiesAuction);

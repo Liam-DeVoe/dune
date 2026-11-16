@@ -250,16 +250,16 @@ fn card(c: TreacheryCard, d: &dyn Describer) -> StoryCard {
 }
 
 /// `Skin.DescribeDetailed(AuctionType)`.
-fn describe_detailed(t: AuctionType, d: &dyn Describer) -> String {
+fn describe_detailed(t: Option<AuctionType>, d: &dyn Describer) -> String {
     let richese = || d.describe(&ExpressionElement::from(Faction::Richese));
     match t {
-        AuctionType::Normal => "Normal".to_string(),
-        AuctionType::BlackMarketNormal => "Black Market / Normal".to_string(),
-        AuctionType::BlackMarketSilent => "Black Market / Silent".to_string(),
-        AuctionType::BlackMarketOnceAround => "Black Market / Once Around".to_string(),
-        AuctionType::RicheseSilent => format!("{} / Silent", richese()),
-        AuctionType::RicheseOnceAround => format!("{} / Once Around", richese()),
-        _ => "None".to_string(),
+        Some(AuctionType::Normal) => "Normal".to_string(),
+        Some(AuctionType::BlackMarketNormal) => "Black Market / Normal".to_string(),
+        Some(AuctionType::BlackMarketSilent) => "Black Market / Silent".to_string(),
+        Some(AuctionType::BlackMarketOnceAround) => "Black Market / Once Around".to_string(),
+        Some(AuctionType::RicheseSilent) => format!("{} / Silent", richese()),
+        Some(AuctionType::RicheseOnceAround) => format!("{} / Once Around", richese()),
+        None => "None".to_string(),
     }
 }
 
@@ -342,7 +342,7 @@ fn story(game: &Game, s: &Seating, d: &dyn Describer) -> Vec<StoryBlock> {
                             GameEvent::Bid(b) => b.karma_card().map(|c| card(c, rd)),
                             _ => None,
                         },
-                        auction: (r.bidding.current_auction_type != AuctionType::Normal).then(|| describe_detailed(r.bidding.current_auction_type, rd)),
+                        auction: (r.bidding.current_auction_type != Some(AuctionType::Normal)).then(|| describe_detailed(r.bidding.current_auction_type, rd)),
                     });
                 }
                 previous_winning_bid = Some(wb.clone());

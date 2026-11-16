@@ -32,7 +32,7 @@ impl ClassicBot {
             + self.resources_from_ally(game)
             + self.resources_from_emperor(game);
         let player = game.player(me);
-        let could_use_karma_for_bid = game.bidding.current_auction_type == AuctionType::Normal
+        let could_use_karma_for_bid = game.bidding.current_auction_type == Some(AuctionType::Normal)
             && !game.karma_prevented(self.faction(game))
             && self.ally(game) != Faction::Emperor
             && (player.special_karma_power_used
@@ -54,15 +54,15 @@ impl ClassicBot {
 
         let auction = game.bidding.current_auction_type;
         if (self.faction(game) == Faction::Richese || self.ally(game) == Faction::Richese)
-            && (auction == AuctionType::BlackMarketSilent || auction == AuctionType::BlackMarketNormal || auction == AuctionType::BlackMarketOnceAround)
+            && (auction == Some(AuctionType::BlackMarketSilent) || auction == Some(AuctionType::BlackMarketNormal) || auction == Some(AuctionType::BlackMarketOnceAround))
         {
-            if auction == AuctionType::BlackMarketSilent {
+            if auction == Some(AuctionType::BlackMarketSilent) {
                 return self.create_bid_using_ally_and_emperor_spice(game, 0, None);
             }
             return self.passed_bid(game);
         }
 
-        if auction == AuctionType::BlackMarketSilent || auction == AuctionType::RicheseSilent {
+        if auction == Some(AuctionType::BlackMarketSilent) || auction == Some(AuctionType::RicheseSilent) {
             if this_card_is_useless || this_card_is_crappy {
                 let to_bid = if this_card_is_useless || 0i32.max(self.resources(game) - resources_to_keep) < 2 {
                     0
@@ -86,7 +86,7 @@ impl ClassicBot {
             return self.passed_bid(game);
         }
 
-        if auction == AuctionType::BlackMarketOnceAround || auction == AuctionType::RicheseOnceAround {
+        if auction == Some(AuctionType::BlackMarketOnceAround) || auction == Some(AuctionType::RicheseOnceAround) {
             return if amount_to_bid_in_silent_or_once_around > current_bid {
                 self.create_bid_using_ally_and_emperor_spice(game, amount_to_bid_in_silent_or_once_around, None)
             } else {

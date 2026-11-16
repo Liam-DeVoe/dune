@@ -58,10 +58,7 @@ macro_rules! enum_keys {
     )*};
 }
 
-enum_keys!(
-    Concept, MainPhase, Faction, Milestone, TreacheryCardType, LeaderSkill, StrongholdAdvantage, World, Nexus,
-    TerrorType, DiscoveryToken, DiscoveryTokenType, Ambassador,
-);
+enum_keys!(MainPhase, Faction, TreacheryCardType, LeaderSkill, StrongholdAdvantage, TerrorType, DiscoveryTokenType, Ambassador);
 
 /// Keys of an enum whose C# `None` member is absence in Rust: `None` is the key "None".
 macro_rules! optional_enum_keys {
@@ -77,7 +74,7 @@ macro_rules! optional_enum_keys {
     )*};
 }
 
-optional_enum_keys!(TechToken);
+optional_enum_keys!(TechToken, Concept, Milestone, World, Nexus, DiscoveryToken);
 
 /// A C# `Dictionary<K, V>` of a skin. Entries keep insertion order (nothing is ever removed),
 /// which is the order .NET enumerates and serializes them in.
@@ -144,7 +141,7 @@ impl<K: SkinKey> SkinDictionary<K, String> {
 pub struct Skin {
     pub version: i32,
 
-    pub concept_str: SkinDictionary<Concept>,
+    pub concept_str: SkinDictionary<Option<Concept>>,
     pub main_phase_str: SkinDictionary<MainPhase>,
     pub person_name_str: SkinDictionary<i32>,
     pub person_image_url: SkinDictionary<i32>,
@@ -163,7 +160,7 @@ pub struct Skin {
     pub special_force_name_str: SkinDictionary<Faction>,
     pub tech_token_name_str: SkinDictionary<Option<TechToken>>,
     pub tech_token_image_url: SkinDictionary<Option<TechToken>>,
-    pub sound: SkinDictionary<Milestone>,
+    pub sound: SkinDictionary<Option<Milestone>>,
     pub treachery_card_type_str: SkinDictionary<TreacheryCardType>,
     pub treachery_card_name_str: SkinDictionary<i32>,
     pub treachery_card_description_str: SkinDictionary<i32>,
@@ -174,14 +171,14 @@ pub struct Skin {
     pub leader_skill_card_image_url: SkinDictionary<LeaderSkill>,
     pub stronghold_card_name_str: SkinDictionary<i32>,
     pub stronghold_card_image_url: SkinDictionary<StrongholdAdvantage>,
-    pub home_world_image_url: SkinDictionary<World>,
-    pub home_world_card_image_url: SkinDictionary<World>,
-    pub nexus_card_image_url: SkinDictionary<Nexus>,
+    pub home_world_image_url: SkinDictionary<Option<World>>,
+    pub home_world_card_image_url: SkinDictionary<Option<World>>,
+    pub nexus_card_image_url: SkinDictionary<Option<Nexus>>,
     pub terror_token_name_str: SkinDictionary<TerrorType>,
     pub terror_token_description_str: SkinDictionary<TerrorType>,
-    pub discovery_token_name_str: SkinDictionary<DiscoveryToken>,
-    pub discovery_token_description_str: SkinDictionary<DiscoveryToken>,
-    pub discovery_token_image_url: SkinDictionary<DiscoveryToken>,
+    pub discovery_token_name_str: SkinDictionary<Option<DiscoveryToken>>,
+    pub discovery_token_description_str: SkinDictionary<Option<DiscoveryToken>>,
+    pub discovery_token_image_url: SkinDictionary<Option<DiscoveryToken>>,
     pub discovery_token_type_name_str: SkinDictionary<DiscoveryTokenType>,
     pub discovery_token_type_image_url: SkinDictionary<DiscoveryTokenType>,
     pub ambassador_image_url: SkinDictionary<Ambassador>,
@@ -402,7 +399,7 @@ impl Skin {
                     describe_user_status(v)
                 } else if let Some(v) = e.get::<SubscriptionType>() {
                     describe_subscription_type(v)
-                } else if let Some(v) = e.get::<Concept>() {
+                } else if let Some(v) = e.get_opt::<Concept>() {
                     self.describe_concept(v)
                 } else if let Some(v) = e.get::<Faction>() {
                     self.describe_faction(v)
@@ -410,9 +407,9 @@ impl Skin {
                     self.describe_ambassador(v)
                 } else if let Some(v) = e.get::<PrescienceAspect>() {
                     self.describe_prescience_aspect(v)
-                } else if let Some(v) = e.get::<FactionForce>() {
+                } else if let Some(v) = e.get_opt::<FactionForce>() {
                     self.describe_faction_force(v)
-                } else if let Some(v) = e.get::<FactionSpecialForce>() {
+                } else if let Some(v) = e.get_opt::<FactionSpecialForce>() {
                     self.describe_faction_special_force(v)
                 } else if let Some(v) = e.get::<FactionAdvantage>() {
                     self.describe_faction_advantage(v)
@@ -422,7 +419,7 @@ impl Skin {
                     self.describe_leader_skill(v)
                 } else if let Some(v) = e.get::<TerrorType>() {
                     self.describe_terror_type(v)
-                } else if let Some(v) = e.get::<DiscoveryToken>() {
+                } else if let Some(v) = e.get_opt::<DiscoveryToken>() {
                     self.describe_discovery_token(v)
                 } else if let Some(v) = e.get::<DiscoveryTokenType>() {
                     self.describe_discovery_token_type(v)
@@ -444,7 +441,7 @@ impl Skin {
                     describe_phase(v)
                 } else if let Some(v) = e.get_opt::<ChoamEconomicsStatus>() {
                     describe_choam_economics_status(v)
-                } else if let Some(v) = e.get::<AuctionType>() {
+                } else if let Some(v) = e.get_opt::<AuctionType>() {
                     describe_auction_type(v)
                 } else if let Some(v) = e.get_opt::<JuiceType>() {
                     describe_juice_type(v)
@@ -482,7 +479,7 @@ impl Skin {
         match hero {
             None => "?".to_string(),
             Some(Hero::Leader(l)) => get_label(&self.person_name_str, l.skin_id()),
-            Some(Hero::Messiah) => self.describe_concept(Concept::Messiah),
+            Some(Hero::Messiah) => self.describe_concept(Some(Concept::Messiah)),
             Some(Hero::TreacheryCard(tc)) => self.describe_treachery_card(tc),
         }
     }
@@ -498,7 +495,7 @@ impl Skin {
         get_label(&self.faction_name_str, f)
     }
 
-    pub fn describe_concept(&self, c: Concept) -> String {
+    pub fn describe_concept(&self, c: Option<Concept>) -> String {
         get_label(&self.concept_str, c)
     }
 
@@ -509,13 +506,13 @@ impl Skin {
     pub fn describe_resource_card(&self, c: Option<ResourceCard>) -> String {
         let Some(c) = c else { return "?".to_string() };
         if c.is_shai_hulud() {
-            return self.describe_concept(Concept::Monster);
+            return self.describe_concept(Some(Concept::Monster));
         }
         if c.is_great_maker() {
-            return self.describe_concept(Concept::GreatMonster);
+            return self.describe_concept(Some(Concept::GreatMonster));
         }
         if c.is_sand_trout() {
-            return self.describe_concept(Concept::BabyMonster);
+            return self.describe_concept(Some(Concept::BabyMonster));
         }
         self.describe_territory(c.location().expect("location").territory())
     }
@@ -539,17 +536,17 @@ impl Skin {
         get_label(&self.leader_skill_card_name_str, l)
     }
 
-    pub fn describe_discovery_token(&self, dt: DiscoveryToken) -> String {
+    pub fn describe_discovery_token(&self, dt: Option<DiscoveryToken>) -> String {
         get_label(&self.discovery_token_name_str, dt)
     }
 
     pub fn get_discovery_token_description(&self, dt: DiscoveryToken) -> String {
-        get_label(&self.discovery_token_description_str, dt)
+        get_label(&self.discovery_token_description_str, Some(dt))
     }
 
     /// `SpiceHtml(object amount, int size = 18)`: a spice amount drawn on the harvester icon.
     pub fn spice_html(&self, amount: &str, size: i32) -> String {
-        let name = self.describe_concept(Concept::Resource);
+        let name = self.describe_concept(Some(Concept::Resource));
         format!(
             "<span class='spice-amt' style='--s:{size}px' title='{name}'><img src='{}' alt='{name}'/><b>{amount}</b></span>",
             self.harvester_url
@@ -563,7 +560,7 @@ impl Skin {
             return String::new();
         }
         let text = if encode { crate::text::html_encode(text) } else { text.to_string() };
-        let name = self.describe_concept(Concept::Resource);
+        let name = self.describe_concept(Some(Concept::Resource));
         crate::text::replace_spice_amounts(&text, &name, |digits| self.spice_html(digits, size))
     }
 
@@ -594,7 +591,7 @@ impl Skin {
     pub fn get_popup_discovery_token(&self, dt: DiscoveryToken) -> String {
         self.get_token_popup(
             Some(&self.get_image_url_discovery_token(dt)),
-            &self.describe_discovery_token(dt),
+            &self.describe_discovery_token(Some(dt)),
             &self.get_discovery_token_description(dt),
         )
     }
@@ -612,7 +609,7 @@ impl Skin {
     }
 
     pub fn get_nexus_card_popup(&self, n: Nexus) -> String {
-        get_framed_card_html(&self.get_image_url_nexus(n))
+        get_framed_card_html(&self.get_image_url_nexus(Some(n)))
     }
 
     pub fn get_popup_homeworld(&self, w: Homeworld) -> String {
@@ -739,13 +736,13 @@ impl Skin {
                     self.get_image_url_tech_token(v)
                 } else if let Some(v) = e.get::<Faction>() {
                     self.get_image_url_faction(v)
-                } else if let Some(v) = e.get::<Nexus>() {
+                } else if let Some(v) = e.get_opt::<Nexus>() {
                     self.get_image_url_nexus(v)
                 } else if let Some(v) = e.get::<Ambassador>() {
                     self.get_image_url_ambassador(v)
-                } else if let Some(v) = e.get::<FactionForce>() {
+                } else if let Some(v) = e.get_opt::<FactionForce>() {
                     self.get_image_url_faction_force(v)
-                } else if let Some(v) = e.get::<FactionSpecialForce>() {
+                } else if let Some(v) = e.get_opt::<FactionSpecialForce>() {
                     self.get_image_url_faction_special_force(v)
                 } else if let Some(v) = e.get::<StrongholdAdvantage>() {
                     self.get_image_url_stronghold_advantage(v)
@@ -762,7 +759,7 @@ impl Skin {
     }
 
     pub fn get_image_url_discovery_token(&self, dt: DiscoveryToken) -> String {
-        get_label(&self.discovery_token_image_url, dt)
+        get_label(&self.discovery_token_image_url, Some(dt))
     }
 
     pub fn describe_discovery_token_type(&self, dtt: DiscoveryTokenType) -> String {
@@ -797,11 +794,11 @@ impl Skin {
         get_label(&self.tech_token_name_str, tt)
     }
 
-    pub fn describe_faction_force(&self, f: FactionForce) -> String {
+    pub fn describe_faction_force(&self, f: Option<FactionForce>) -> String {
         get_label(&self.force_name_str, get_faction_faction_force(f))
     }
 
-    pub fn describe_faction_special_force(&self, f: FactionSpecialForce) -> String {
+    pub fn describe_faction_special_force(&self, f: Option<FactionSpecialForce>) -> String {
         get_label(&self.special_force_name_str, get_faction_faction_special_force(f))
     }
 
@@ -812,12 +809,12 @@ impl Skin {
             A::None => "- Any stoppable advantage not listed below -".to_string(),
             A::AtreidesBiddingPrescience => self.format("{0} seeing the card on auction", &args![Faction::Atreides]),
             A::AtreidesSpiceBlowPrescience => {
-                let resource = self.concept_str.index(Concept::Resource).clone();
+                let resource = self.concept_str.index(Some(Concept::Resource)).clone();
                 self.format("{0} seeing the top {1} card this turn", &args![Faction::Atreides, resource])
             }
             A::AtreidesBattlePlanPrescience => self.format("{0} seeing part of the opponent battle plan", &args![Faction::Atreides]),
             A::AtreidesUseMessiah => {
-                let messiah = self.concept_str.index(Concept::Messiah).clone();
+                let messiah = self.concept_str.index(Some(Concept::Messiah)).clone();
                 self.format("{0} using the {1} in this battle", &args![Faction::Atreides, messiah])
             }
             A::HarkonnenFreeCard => self.format("{0} taking a free treachery card", &args![Faction::Harkonnen]),
@@ -959,15 +956,15 @@ impl Skin {
         }
     }
 
-    pub fn describe_detailed(&self, t: AuctionType) -> String {
+    pub fn describe_detailed(&self, t: Option<AuctionType>) -> String {
         match t {
-            AuctionType::Normal => "Normal".to_string(),
-            AuctionType::BlackMarketNormal => "Black Market / Normal".to_string(),
-            AuctionType::BlackMarketSilent => "Black Market / Silent".to_string(),
-            AuctionType::BlackMarketOnceAround => "Black Market / Once Around".to_string(),
-            AuctionType::RicheseSilent => self.format("{0} / Silent", &args![Faction::Richese]),
-            AuctionType::RicheseOnceAround => self.format("{0} / Once Around", &args![Faction::Richese]),
-            _ => "None".to_string(),
+            Some(AuctionType::Normal) => "Normal".to_string(),
+            Some(AuctionType::BlackMarketNormal) => "Black Market / Normal".to_string(),
+            Some(AuctionType::BlackMarketSilent) => "Black Market / Silent".to_string(),
+            Some(AuctionType::BlackMarketOnceAround) => "Black Market / Once Around".to_string(),
+            Some(AuctionType::RicheseSilent) => self.format("{0} / Silent", &args![Faction::Richese]),
+            Some(AuctionType::RicheseOnceAround) => self.format("{0} / Once Around", &args![Faction::Richese]),
+            None => "None".to_string(),
         }
     }
 
@@ -1057,7 +1054,7 @@ impl Skin {
             }
             Rule::ExpansionTreacheryCardsAmal => self.format("Treachery Card: {0}", &args![Tct::Amal]),
             Rule::CheapHeroTraitor => s("Cheap Hero Traitor"),
-            Rule::SandTrout => self.describe_concept(Concept::BabyMonster),
+            Rule::SandTrout => self.describe_concept(Some(Concept::BabyMonster)),
             Rule::TleilaxuGholas => self.format("{0} may revive leaders as Gholas", &args![Faction::Tleilaxu]),
             Rule::IxianSwappingCardOnBid => {
                 self.format("{0} may swap one card on bid with a card from their hand", &args![Faction::Ixian])
@@ -1196,7 +1193,7 @@ impl Skin {
     }
 
     pub fn get_image_url_world(&self, w: World) -> String {
-        get_label(&self.home_world_image_url, w)
+        get_label(&self.home_world_image_url, Some(w))
     }
 
     pub fn get_image_url_stronghold_advantage(&self, a: StrongholdAdvantage) -> String {
@@ -1250,19 +1247,19 @@ impl Skin {
         get_label(&self.faction_special_force_image_url, f)
     }
 
-    pub fn get_image_url_faction_force(&self, ff: FactionForce) -> String {
+    pub fn get_image_url_faction_force(&self, ff: Option<FactionForce>) -> String {
         self.get_faction_force_image_url(get_faction_faction_force(ff))
     }
 
-    pub fn get_image_url_faction_special_force(&self, fsf: FactionSpecialForce) -> String {
+    pub fn get_image_url_faction_special_force(&self, fsf: Option<FactionSpecialForce>) -> String {
         self.get_faction_special_force_image_url(get_faction_faction_special_force(fsf))
     }
 
     pub fn get_homeworld_card_image_url(&self, w: World) -> String {
-        get_label(&self.home_world_card_image_url, w)
+        get_label(&self.home_world_card_image_url, Some(w))
     }
 
-    pub fn get_image_url_nexus(&self, n: Nexus) -> String {
+    pub fn get_image_url_nexus(&self, n: Option<Nexus>) -> String {
         get_label(&self.nexus_card_image_url, n)
     }
 
@@ -1271,7 +1268,7 @@ impl Skin {
     }
 
     pub fn get_sound(&self, m: Milestone) -> String {
-        get_label(&self.sound, m)
+        get_label(&self.sound, Some(m))
     }
 
     pub fn get_faction_color(&self, faction: Faction) -> String {
@@ -1364,32 +1361,32 @@ fn get_image_hover_html(image_url: &str) -> String {
     format!("<img src='{image_url}' width=300 class='img-fluid' style='filter:drop-shadow(-3px 3px 2px black);'/>")
 }
 
-pub fn get_faction_faction_force(f: FactionForce) -> Faction {
+pub fn get_faction_faction_force(f: Option<FactionForce>) -> Faction {
     match f {
-        FactionForce::Atreides => Faction::Atreides,
-        FactionForce::Harkonnen => Faction::Harkonnen,
-        FactionForce::Fremen => Faction::Fremen,
-        FactionForce::Emperor => Faction::Emperor,
-        FactionForce::Guild => Faction::Guild,
-        FactionForce::BeneGesserit => Faction::BeneGesserit,
-        FactionForce::Ixian => Faction::Ixian,
-        FactionForce::Tleilaxu => Faction::Tleilaxu,
-        FactionForce::Choam => Faction::Choam,
-        FactionForce::Richese => Faction::Richese,
-        FactionForce::Ecaz => Faction::Ecaz,
-        FactionForce::Moritani => Faction::Moritani,
-        _ => Faction::None,
+        Some(FactionForce::Atreides) => Faction::Atreides,
+        Some(FactionForce::Harkonnen) => Faction::Harkonnen,
+        Some(FactionForce::Fremen) => Faction::Fremen,
+        Some(FactionForce::Emperor) => Faction::Emperor,
+        Some(FactionForce::Guild) => Faction::Guild,
+        Some(FactionForce::BeneGesserit) => Faction::BeneGesserit,
+        Some(FactionForce::Ixian) => Faction::Ixian,
+        Some(FactionForce::Tleilaxu) => Faction::Tleilaxu,
+        Some(FactionForce::Choam) => Faction::Choam,
+        Some(FactionForce::Richese) => Faction::Richese,
+        Some(FactionForce::Ecaz) => Faction::Ecaz,
+        Some(FactionForce::Moritani) => Faction::Moritani,
+        None => Faction::None,
     }
 }
 
-pub fn get_faction_faction_special_force(f: FactionSpecialForce) -> Faction {
+pub fn get_faction_faction_special_force(f: Option<FactionSpecialForce>) -> Faction {
     match f {
-        FactionSpecialForce::Emperor => Faction::Emperor,
-        FactionSpecialForce::Fremen => Faction::Fremen,
-        FactionSpecialForce::BeneGesserit => Faction::BeneGesserit,
-        FactionSpecialForce::Ixian => Faction::Ixian,
-        FactionSpecialForce::Richese => Faction::Richese,
-        _ => Faction::None,
+        Some(FactionSpecialForce::Emperor) => Faction::Emperor,
+        Some(FactionSpecialForce::Fremen) => Faction::Fremen,
+        Some(FactionSpecialForce::BeneGesserit) => Faction::BeneGesserit,
+        Some(FactionSpecialForce::Ixian) => Faction::Ixian,
+        Some(FactionSpecialForce::Richese) => Faction::Richese,
+        None => Faction::None,
     }
 }
 
@@ -1460,15 +1457,15 @@ pub fn describe_choam_economics_status(p: Option<ChoamEconomicsStatus>) -> Strin
     .to_string()
 }
 
-pub fn describe_auction_type(t: AuctionType) -> String {
+pub fn describe_auction_type(t: Option<AuctionType>) -> String {
     match t {
-        AuctionType::Normal => "Normal",
-        AuctionType::BlackMarketNormal => "Normal",
-        AuctionType::BlackMarketSilent => "Silent",
-        AuctionType::BlackMarketOnceAround => "Once Around",
-        AuctionType::RicheseSilent => "Silent",
-        AuctionType::RicheseOnceAround => "Once Around",
-        _ => "None",
+        Some(AuctionType::Normal) => "Normal",
+        Some(AuctionType::BlackMarketNormal) => "Normal",
+        Some(AuctionType::BlackMarketSilent) => "Silent",
+        Some(AuctionType::BlackMarketOnceAround) => "Once Around",
+        Some(AuctionType::RicheseSilent) => "Silent",
+        Some(AuctionType::RicheseOnceAround) => "Once Around",
+        None => "None",
     }
     .to_string()
 }

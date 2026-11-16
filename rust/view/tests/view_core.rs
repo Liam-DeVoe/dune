@@ -414,7 +414,7 @@ fn bids_on_the_ring() {
     let mut r = load("bid");
     let view = r.view(OBSERVER);
     let b = view.bidding.expect("bidding phase");
-    assert_eq!(b.auction_type, name(r.game.bidding.current_auction_type));
+    assert_eq!(b.auction_type, name_or_absent(r.game.bidding.current_auction_type));
     assert_eq!(b.bids.len(), r.game.bidding.bids.len());
     for (shown, (f, bid)) in b.bids.iter().zip(r.game.bidding.bids.iter()) {
         assert_eq!(shown.faction, name(*f));
@@ -428,7 +428,7 @@ fn bids_on_the_ring() {
 #[test]
 fn silent_bids_are_ready() {
     let mut r = first_bot_state("a silent auction with bids", |g| {
-        (g.bidding.current_auction_type == AuctionType::RicheseSilent || g.bidding.current_auction_type == AuctionType::BlackMarketSilent)
+        (g.bidding.current_auction_type == Some(AuctionType::RicheseSilent) || g.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent))
             && g.turn.current_main_phase == MainPhase::Bidding
             && !g.bidding.bids.is_empty()
     });

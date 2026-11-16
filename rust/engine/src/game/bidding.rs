@@ -7,7 +7,7 @@ use crate::game::TriggeredBureaucracy;
 pub struct BiddingState {
     pub bid_sequence: Option<PlayerSequence>,
     pub cards_on_auction: Option<Deck<TreacheryCard>>,
-    pub current_auction_type: AuctionType,
+    pub current_auction_type: Option<AuctionType>,
     pub card_number: i32,
     pub current_bid: Option<GameEvent>,
     // In the order the bids were made (a new bid of a faction replaces its old one and goes last).
@@ -25,7 +25,7 @@ pub struct BiddingState {
     pub karma_hand_swap_number_of_cards: i32,
     pub karma_hand_swap_target: Faction,
     pub karma_hand_swap_paused_phase: Phase,
-    pub black_market_auction_type: AuctionType,
+    pub black_market_auction_type: Option<AuctionType>,
     pub card_sold_on_black_market: Option<TreacheryCard>,
     pub richese_auction_should_still_happen: bool,
     pub richese_bidding_just_finished: bool,
@@ -91,11 +91,11 @@ impl Game {
         self.bidding.cards_on_auction = Some(Deck::empty(Some(random)));
         self.bidding.ixian_swapped_card_on_bid = false;
         self.bidding.card_sold_on_black_market = None;
-        self.bidding.black_market_auction_type = AuctionType::None;
+        self.bidding.black_market_auction_type = None;
         self.bidding.regular_bidding_is_done = false;
         self.bidding.bidding_round_was_started = false;
         self.bidding.richese_auction_should_still_happen = false;
-        self.bidding.current_auction_type = AuctionType::None;
+        self.bidding.current_auction_type = None;
         self.bidding.bidding_triggered_bureaucracy = None;
         self.bidding.bid_sequence = Some(PlayerSequence::starting_with_first_player(self));
         self.bidding.winning_bid = None;
@@ -151,7 +151,7 @@ impl Game {
             i += 1;
         }
 
-        self.start_bid_sequence_and_auction_type(AuctionType::Normal, None, 1);
+        self.start_bid_sequence_and_auction_type(Some(AuctionType::Normal), None, 1);
 
         let condition = self.is_playing(Faction::Ixian) && !self.prevented(FactionAdvantage::IxianSelectingCardsOnAuction);
         self.enter_or_else(condition, Phase::IxianRemovingCardFromBid, Game::start_bidding_round);
@@ -189,10 +189,10 @@ impl Game {
         self.check_if_atreides_or_atreides_ally_passed_bid(&as_event);
 
         match self.bidding.current_auction_type {
-            AuctionType::Normal => {
+            Some(AuctionType::Normal) => {
                 bid.handle_normal_bid(self)?;
             }
-            AuctionType::RicheseOnceAround | AuctionType::RicheseSilent => {
+            Some(AuctionType::RicheseOnceAround) | Some(AuctionType::RicheseSilent) => {
                 bid.handle_richese_bid(self)?;
             }
             _ => {}
@@ -226,7 +226,7 @@ impl Game {
     pub fn log_bid(&mut self, initiator: PlayerIndex, bid_amount: i32, bid_ally_contribution_amount: i32, bid_emperor_contribution_amount: i32, receiver_income: &MessagePart, paid_to: Faction, free: bool) {
         let bid_total_amount = bid_amount + bid_ally_contribution_amount + bid_emperor_contribution_amount;
         // A Black Market card has no number.
-        let card_number: Vec<ExpressionElement> = if self.bidding.current_auction_type == AuctionType::Normal {
+        let card_number: Vec<ExpressionElement> = if self.bidding.current_auction_type == Some(AuctionType::Normal) {
             vec![" get card ".into(), express_part!(self.bidding.card_number).into(), " for ".into()]
         } else {
             vec![" get card for ".into()]
@@ -268,7 +268,7 @@ impl Game {
 
     pub fn log_bidding(&mut self, record: Option<Rc<dyn LogRecord>>, expression: Vec<ExpressionElement>) {
         let mut message = Message::express(expression);
-        if record.is_some() && self.bidding.current_auction_type == AuctionType::Normal {
+        if record.is_some() && self.bidding.current_auction_type == Some(AuctionType::Normal) {
             message.log = record;
         }
         self.current_report_mut().express_message(message);
@@ -276,7 +276,7 @@ impl Game {
 
     pub fn log_bidding_to(&mut self, faction: Faction, record: Rc<dyn LogRecord>, expression: Vec<ExpressionElement>) {
         let mut message = Message::express_to(faction, expression);
-        if self.bidding.current_auction_type == AuctionType::Normal {
+        if self.bidding.current_auction_type == Some(AuctionType::Normal) {
             message.log = Some(record);
         }
         self.current_report_mut().express_message(message);
@@ -536,7 +536,7 @@ impl Game {
             let winner = winner.expect("winner");
             if self.player(winner).ally == Faction::Ixian
                 && self.alliances.ixian_allows_replacing_cards
-                && !matches!(self.bidding.current_auction_type, AuctionType::RicheseSilent | AuctionType::RicheseOnceAround)
+                && !matches!(self.bidding.current_auction_type, Some(AuctionType::RicheseSilent) | Some(AuctionType::RicheseOnceAround))
             {
                 if !self.prevented(FactionAdvantage::IxianAllyDiscardingCard) {
                     self.bidding.faction_that_may_replace_bought_card = self.player(winner).faction;
@@ -569,7 +569,7 @@ impl Game {
 
     pub fn determine_next_step_after_card_was_sold(&mut self) {
         self.bidding.richese_bidding_just_finished =
-            self.bidding.current_auction_type == AuctionType::RicheseOnceAround || self.bidding.current_auction_type == AuctionType::RicheseSilent;
+            self.bidding.current_auction_type == Some(AuctionType::RicheseOnceAround) || self.bidding.current_auction_type == Some(AuctionType::RicheseSilent);
 
         // `CardsOnAuction?.IsEmpty is not true`: also taken when CardsOnAuction is null.
         if self.bidding.cards_on_auction.as_ref().map(|d| d.is_empty()) != Some(true) {
@@ -623,35 +623,35 @@ impl Game {
         }
     }
 
-    pub fn start_bid_sequence_and_auction_type(&mut self, auction_type: AuctionType, richese_player: Option<PlayerIndex>, direction: i32) {
+    pub fn start_bid_sequence_and_auction_type(&mut self, auction_type: Option<AuctionType>, richese_player: Option<PlayerIndex>, direction: i32) {
         match auction_type {
-            AuctionType::BlackMarketNormal => {
-                self.bidding.black_market_auction_type = AuctionType::BlackMarketNormal;
+            Some(AuctionType::BlackMarketNormal) => {
+                self.bidding.black_market_auction_type = Some(AuctionType::BlackMarketNormal);
                 self.bidding.bid_sequence = Some(PlayerSequence::starting_with_first_player_options(self, true, 1));
             }
-            AuctionType::BlackMarketOnceAround => {
-                self.bidding.black_market_auction_type = AuctionType::BlackMarketOnceAround;
+            Some(AuctionType::BlackMarketOnceAround) => {
+                self.bidding.black_market_auction_type = Some(AuctionType::BlackMarketOnceAround);
                 self.bidding.bid_sequence = Some(PlayerSequence::new(self, true, direction, richese_player, true));
             }
-            AuctionType::BlackMarketSilent => {
+            Some(AuctionType::BlackMarketSilent) => {
                 self.bidding.bid_sequence = Some(PlayerSequence::starting_with_first_player_options(self, true, 1));
-                self.bidding.black_market_auction_type = AuctionType::BlackMarketSilent;
+                self.bidding.black_market_auction_type = Some(AuctionType::BlackMarketSilent);
             }
-            AuctionType::RicheseOnceAround => {
+            Some(AuctionType::RicheseOnceAround) => {
                 self.bidding.bid_sequence = Some(PlayerSequence::new(self, true, direction, richese_player, true));
             }
-            AuctionType::RicheseSilent => {
+            Some(AuctionType::RicheseSilent) => {
                 self.bidding.bid_sequence = Some(PlayerSequence::starting_with_first_player_options(self, true, 1));
             }
-            AuctionType::Normal => {
+            Some(AuctionType::Normal) => {
                 self.bidding.bid_sequence = Some(PlayerSequence::starting_with_first_player_options(self, true, 1));
-                if self.bidding.black_market_auction_type == AuctionType::BlackMarketNormal {
+                if self.bidding.black_market_auction_type == Some(AuctionType::BlackMarketNormal) {
                     //Continue where black market bidding left off
                     self.with_bid_sequence(|seq, g| seq.next_round(g));
                     self.bidding.winning_bid = None;
                 }
             }
-            _ => {}
+            None => {}
         }
 
         self.bidding.current_auction_type = auction_type;

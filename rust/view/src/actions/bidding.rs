@@ -19,11 +19,11 @@ fn name<T: ToString>(v: T) -> String {
 }
 
 fn is_silent(game: &Game) -> bool {
-    game.bidding.current_auction_type == AuctionType::BlackMarketSilent || game.bidding.current_auction_type == AuctionType::RicheseSilent
+    game.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent) || game.bidding.current_auction_type == Some(AuctionType::RicheseSilent)
 }
 
 fn is_richese_bidding(game: &Game) -> bool {
-    game.bidding.current_auction_type == AuctionType::RicheseOnceAround || game.bidding.current_auction_type == AuctionType::RicheseSilent
+    game.bidding.current_auction_type == Some(AuctionType::RicheseOnceAround) || game.bidding.current_auction_type == Some(AuctionType::RicheseSilent)
 }
 
 /// The amounts the panel starts with, before the pickers clamp them:
@@ -131,7 +131,7 @@ pub fn panel(game: &Game, v: &ResolvedViewer) -> Option<BiddingPanelView> {
     let silent = is_silent(game);
     // NormalBiddingPanel.AuctionDescription: "Card {CardNumber} of {NumberOfCardsOnRegularAuction}"
     // in normal auctions; Richese's auctions and the black market name the auction instead.
-    let card_of = (!black_market && game.bidding.current_auction_type == AuctionType::Normal)
+    let card_of = (!black_market && game.bidding.current_auction_type == Some(AuctionType::Normal))
         .then(|| CardOf { number: game.bidding.card_number, of: game.number_of_cards_on_regular_auction() });
     let current_bid = if silent {
         None

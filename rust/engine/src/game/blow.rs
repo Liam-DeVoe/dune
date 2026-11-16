@@ -241,25 +241,27 @@ impl Game {
             let devoured_resources = self.remove_resources_territory(territory);
             self.log_if(devoured_resources > 0, elems![Payment::of(devoured_resources), " in ", territory, " is destroyed"]);
 
-            let mut drawn_token = DiscoveryToken::None;
+            let mut drawn_token = None;
             let discovery_location = blow_card.discovery_location().expect("discovery location");
             if discovery_location.discovery_token_type() == DiscoveryTokenType::Guild {
                 if !self.decks.guild_discovery_tokens.as_ref().expect("guild discovery tokens").is_empty() {
-                    drawn_token = self.decks.guild_discovery_tokens.as_mut().expect("guild discovery tokens").draw();
-                    self.board.discoveries_on_planet.insert_new(discovery_location, Discovery::new(drawn_token, DiscoveryTokenType::Guild, discovery_location));
+                    let token = self.decks.guild_discovery_tokens.as_mut().expect("guild discovery tokens").draw();
+                    drawn_token = Some(token);
+                    self.board.discoveries_on_planet.insert_new(discovery_location, Discovery::new(token, DiscoveryTokenType::Guild, discovery_location));
                 } else {
                     self.log(elems!["There are no more ", DiscoveryTokenType::Guild, " discoveries left"]);
                 }
             } else if discovery_location.discovery_token_type() == DiscoveryTokenType::Fremen {
                 if !self.decks.fremen_discovery_tokens.as_ref().expect("fremen discovery tokens").is_empty() {
-                    drawn_token = self.decks.fremen_discovery_tokens.as_mut().expect("fremen discovery tokens").draw();
-                    self.board.discoveries_on_planet.insert_new(discovery_location, Discovery::new(drawn_token, DiscoveryTokenType::Fremen, discovery_location));
+                    let token = self.decks.fremen_discovery_tokens.as_mut().expect("fremen discovery tokens").draw();
+                    drawn_token = Some(token);
+                    self.board.discoveries_on_planet.insert_new(discovery_location, Discovery::new(token, DiscoveryTokenType::Fremen, discovery_location));
                 } else {
                     self.log(elems!["There are no more ", DiscoveryTokenType::Fremen, " discoveries left"]);
                 }
             }
 
-            if drawn_token != DiscoveryToken::None {
+            if drawn_token != None {
                 self.stone(Milestone::DiscoveryAppeared);
                 self.log(elems!["A ", discovery_location.discovery_token_type(), " discovery awaits in ", discovery_location.territory(), "..."]);
             }

@@ -15,6 +15,7 @@ import { PhaseValue, type Faction, type Phase, type Ruleset } from "../generated
 import type { NewSession } from "../protocol/NewSession";
 import { loadSkin, type Skin } from "../skin";
 import { withBase } from "../base";
+import { LATEST_VERSION } from "../generated/version";
 import { loadLobby, type Lobby } from "./data";
 import { Participation } from "./participation";
 import {
@@ -231,7 +232,7 @@ export class LobbyClient {
 
   /** Resolves with the error text, or null once logged in. */
   async requestLogin(userName: string, passwordHash: string): Promise<string | null> {
-    const r = await this.conn.call("login", { version: this.lobby.data.latestVersion, userName, passwordHash });
+    const r = await this.conn.call("login", { version: LATEST_VERSION, userName, passwordHash });
     if (failed(r)) return r.err.message;
     this.loggedInWith(r.ok);
     await this.sendHeartbeatAndGetServerStatus();

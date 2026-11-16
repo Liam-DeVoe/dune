@@ -51,7 +51,8 @@ Everything after step 2 is done by clicking, except where the client has no scre
 - Steps 1 and 2 log in, create, seat and join through the web client's connection code
   (window.treacheryClient). The lobby has screens for creating a game from a savegame and for
   seating, but the setup doesn't use them yet.
-- Step 11 creates Carol's account through window.treacheryClient before logging in.
+- Step 11 creates Carol's account through window.treacheryClient, and logs her in through it
+  once, before logging in with the form.
 - Steps 6 and 9 cut a connection by routing the page's WebSocket through Playwright
   (page.route_web_socket) and closing it. The client's own retry reconnects once the route
   lets it through again.
@@ -160,6 +161,16 @@ CREATE_ACCOUNT = """async ([name, password]) => {
   conn.close();
 }"""
 
+# Logs an existing account in through the same helper, which then sends `login` with the game
+# version instead of creating the account.
+LOG_IN = """async ([name, password]) => {
+  const { Connection, login } = window.treacheryClient;
+  const conn = new Connection();
+  const me = await login(conn, name, password);
+  conn.close();
+  return me.account.userName;
+}"""
+
 SESSION_KEY = "treachery.online;session"
 
 
@@ -169,6 +180,7 @@ def log_in_and_out(browser, base: str, shots: Path) -> None:
     page = watch(context.new_page())
     page.goto(base + "/")
     page.evaluate(CREATE_ACCOUNT, ["carol", "carol-password"])
+    check(page.evaluate(LOG_IN, ["carol", "carol-password"]) == "carol", "the client's login helper logs in an existing account")
     page.get_by_placeholder("User name").fill("carol")
     page.get_by_placeholder("Password").fill("carol-password")
     page.locator("#keepSignedIn").check()

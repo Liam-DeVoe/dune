@@ -39,8 +39,8 @@ const border: CSSProperties = { WebkitTextStroke: "0.6px var(--ink-0)", textShad
 // `view` is the live game's view, not an undo preview's: leaving a preview must not flash again.
 export function ImageFlash({ view }: { view: GameView }) {
   const { skin } = useGame();
-  // Deviation 6 (protocol.md): a flash after every new event that brings one, not only on the
-  // first render as in C# (flashTrigger.ts).
+  // A flash after every new event that brings one, not only on the first render as in C#
+  // (flashTrigger.ts).
   const [state, setState] = useState(() => initialFlash(view.eventNumber, view.status.flash));
   const next = nextFlash(state, view.eventNumber, view.status.flash);
   if (next !== state) setState(next);

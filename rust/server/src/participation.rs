@@ -202,7 +202,7 @@ fn numbers<T: serde::Serialize>(set: impl IntoIterator<Item = T>) -> Value {
     Value::Array(set.into_iter().map(|i| json!(i)).collect())
 }
 
-/// What clients get (protocol.md, Lobby objects).
+/// What clients get (protocol.md, Seating and participation).
 pub fn to_wire(p: &Participation) -> ParticipationInfo {
     ParticipationInfo {
         player_names: p.player_names.iter().map(|(k, v)| (*k, v.clone())).collect(),

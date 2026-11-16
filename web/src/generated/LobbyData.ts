@@ -7,7 +7,7 @@ import type { EnumMember } from "./EnumMember";
  */
 export type LobbyData = { 
 /**
- * `Game.LatestVersion`: sent with `RequestLogin`, shown under the login form.
+ * `Game::LATEST_VERSION`, shown under the login form.
  */
 latestVersion: number, 
 /**

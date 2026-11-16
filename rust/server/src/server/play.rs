@@ -19,8 +19,8 @@ use crate::render;
 
 impl Server {
     /// An event of one of the game's players. Whatever the client wrote, the event is the
-    /// caller's: the server sets `Initiator` to the caller's faction (none before factions are
-    /// dealt, or for a host without a seat), and for `FactionSelected` the seat and name too, so
+    /// caller's: the server makes the caller's faction its submitter (none before factions are
+    /// dealt, or for a host without a seat), and for `FactionSelected` sets the seat and name too, so
     /// the engine validates it as an action of that player and no other. Starting the game is
     /// for hosts, and the server draws the new game's seed, which decides every deck: a seed
     /// chosen by a player would tell them the cards to come.

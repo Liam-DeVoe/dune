@@ -98,8 +98,7 @@ pub struct Game {
     /// What suspends the phase, the latest last.
     pub interrupts: Vec<Interrupt>,
 
-    // The state of the phases that have no `PhaseState` variant yet (rewrite-plan.md, wave 5).
-    // They are kept side by side, whatever the current phase.
+    // Two battle flags that outlive their battle, so they are kept whatever the current phase.
     pub battle_leftovers: BattleLeftovers,
 }
 

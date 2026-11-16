@@ -69,7 +69,7 @@ if (onScene) {
   window.treacheryScene = {
     error: null,
     locations: {},
-    click: () => Promise.reject(new Error("the web client has no board yet (client.md package 4)")),
+    click: () => Promise.reject(new Error("no board is on screen")),
     async button(label) {
       if (!pressButton(label)) throw new Error(`No visible button labelled '${label}'.`);
       await settled();
@@ -93,7 +93,7 @@ export function sceneFailed(error: string): void {
   document.documentElement.dataset.scene = "error";
 }
 
-/** The board is on screen: its locations by skin name, and how to click one (package 4). */
+/** The board is on screen: its locations by skin name, and how to click one. */
 export function registerSceneBoard(
   locations: Record<string, SceneLocation>,
   click: (id: number, options: { shift?: boolean; ctrl?: boolean; right?: boolean }) => void,

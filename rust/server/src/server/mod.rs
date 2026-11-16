@@ -77,7 +77,7 @@ pub struct Services {
 /// Why a call did not succeed.
 #[derive(Debug)]
 pub enum CallError {
-    /// Refused, with the code and a text for the user (protocol.md, Replies). An empty text
+    /// Refused, with the code and a text for the user (protocol.md, Errors). An empty text
     /// gives the code's usual one.
     Refused(ErrorCode, String),
     /// The call itself failed (a database error, a bug): a `serverError`.

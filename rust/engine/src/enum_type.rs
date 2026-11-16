@@ -2,8 +2,9 @@
 //!
 //! A closed enum is a Rust `enum` with the C# member values as discriminants. Decoding a number
 //! that names no member fails. Where the C# enum had a `None = 0` member for "no value", the Rust
-//! enum leaves it out and the game uses `Option` instead. Event JSON still writes absence as 0,
-//! and texts and views still name it "None" (`EnumTypeInfo::absent`).
+//! enum leaves it out and the game uses `Option` instead. Event JSON writes absence as `null`.
+//! Texts and views still name it "None", and the C# savegame format still writes it as 0
+//! (`EnumTypeInfo::absent`).
 //!
 //! ```
 //! use treachery_engine::enumerations::Faction;
@@ -31,7 +32,8 @@ pub struct EnumTypeInfo {
     /// Rust type leaves out (see `absent`).
     pub declared: &'static [(&'static str, i32)],
     /// The C# type had a `None = 0` member for "no value". In Rust absence is `Option::None`,
-    /// written as 0 in event JSON and named "None" in texts and views.
+    /// written as `null` in event JSON, as 0 in the C# savegame format, and named "None" in texts
+    /// and views.
     pub absent: bool,
 }
 
@@ -85,13 +87,13 @@ pub trait GameEnum: Copy + Eq + Ord + std::hash::Hash + fmt::Debug + 'static {
     fn from_value(value: i32) -> Option<Self>;
 }
 
-/// The number an optional enum is written as in event JSON: absent is 0.
+/// The number of an optional enum, with absent as 0, as the C# savegame format writes it.
 pub fn value_or_absent<T: GameEnum>(v: Option<T>) -> i32 {
     v.map_or(0, T::value)
 }
 
-/// Reads an optional enum from its number in event JSON: 0 is absent, and a number that names no
-/// member is an error.
+/// Reads an optional enum from its number, as the C# savegame format writes it: 0 is absent, and
+/// a number that names no member is an error.
 pub fn from_value_or_absent<T: GameEnum>(value: i32) -> Result<Option<T>, String> {
     if value == 0 && T::INFO.absent {
         return Ok(None);

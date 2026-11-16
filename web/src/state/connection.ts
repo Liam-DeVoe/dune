@@ -15,6 +15,7 @@
 //   localStorage when the user wants to stay logged in (`storeSession`).
 
 import { withBase } from "../base";
+import { LATEST_VERSION } from "../generated/version";
 import type { Account } from "../protocol/Account";
 import type { Call } from "../protocol/Call";
 import type { CallError } from "../protocol/CallError";
@@ -68,9 +69,6 @@ export function clearStoredSession(): void {
   sessionStorage.removeItem(SESSION_KEY);
   localStorage.removeItem(SESSION_KEY);
 }
-
-/** `Game.LatestVersion`, which `login` must name. */
-export const LATEST_VERSION = 189;
 
 /** The C# client's `Support.GetHash`: SHA-256 of the UTF-8 bytes as 64 lowercase hex digits. */
 export async function hashPassword(password: string): Promise<string> {

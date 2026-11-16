@@ -39,7 +39,7 @@ Async-play mails carry a login link instead of a session token: a token for `lin
 
 ## Who may do what
 
-The server is the only judge of who acts in a game. Each call checks the caller's role (protocol.md, Methods): players for events, draft queries, pauses, nudging the bots and game chat; members (players and observers) for reports, the game state and reconnecting; hosts for undo, loading, settings, seats, hosts, kicks, the timer, the skin, bot speed and Continue. A submitted event is rewritten as the caller's: `Initiator` is the caller's faction, `FactionSelected` gets the caller's seat and name, and the server draws the seed of `EstablishPlayers`, which only hosts may submit. Chat messages get the caller as their source, and a message to one user reaches only that user and the sender.
+The server is the only judge of who acts in a game. Each call checks the caller's role (protocol.md, Calls): players for events, draft queries, pauses, nudging the bots and game chat; members (players and observers) for reports, the game state and reconnecting; hosts for undo, loading, settings, seats, hosts, kicks, the timer, the skin, bot speed and Continue. A submitted event is rewritten as the caller's: its submitter is the caller's faction, `FactionSelected` gets the caller's seat and name, and the server draws the seed of `EstablishPlayers`, which only hosts may submit. Chat messages get the caller as their source, and a message to one user reaches only that user and the sender.
 
 ## Persistence
 

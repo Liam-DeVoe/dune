@@ -72,8 +72,8 @@ pub fn default_draft(game: &Game, _v: &ResolvedViewer, s: &Seating, faction: Opt
             }
             event(e)
         }
-        EventType::AlliancePassed => event(AlliancePassed::new(game, faction)),
-        EventType::AllianceBroken => event(AllianceBroken::new(game, faction)),
+        EventType::AlliancePassed => event(AlliancePassed::default()),
+        EventType::AllianceBroken => event(AllianceBroken::default()),
         EventType::EndPhase => event(EndPhase::default()),
         EventType::StormDialled => {
             let mut e = StormDialled::default();

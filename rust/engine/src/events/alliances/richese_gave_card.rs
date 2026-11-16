@@ -1,39 +1,32 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct RicheseGaveCard {
     pub card: Option<TreacheryCard>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for RicheseGaveCard {
     fn default() -> Self {
         RicheseGaveCard {
             card: None,
-            base: Default::default(),
         }
     }
 }
 
 impl RicheseGaveCard {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_cards(game: &Game, p: PlayerId) -> impl Iterator<Item = TreacheryCard> {
         game.player(p).treachery_cards.iter().copied().filter(move |c| c.rules().contains(&Rule::RicheseTreacheryCards))
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let me = self.player();
+impl EventRules for RicheseGaveCard {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let me = by.player();
         let target = game.player(me).allied_player(game);
 
         let card = self.card;
@@ -50,39 +43,12 @@ impl RicheseGaveCard {
             Game::unregister_all_known_by_player(game, p, &target_cards);
         }
 
-        self.log(game);
+        let m = self.describe(game, by);
+        game.log_event(m);
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " give a card to their ally")
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " give a card to their ally")
     }
-
-}
-
-impl GameEventMethods for RicheseGaveCard {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::RicheseGaveCard
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::RicheseGaveCard(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        RicheseGaveCard::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        RicheseGaveCard::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        RicheseGaveCard::get_message(self, game)
-    }
-
 }

@@ -46,7 +46,7 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
     let n = |i: usize| a[i][1..].parse::<i32>().unwrap();
     let me = bot.player;
     match m {
-        "DetermineResourcesTransferred" => opt(bot.determine_resources_transferred(game)),
+        "DetermineResourcesTransferred" => common::decision(bot, game, bot.determine_resources_transferred(game)),
         "DetermineDiscoveryEntered" => common::decision(bot, game, bot.determine_discovery_entered(game)),
         "DetermineDiscoveryRevealed" => common::decision(bot, game, bot.determine_discovery_revealed(game)),
         "DetermineTestingStationUsed" => common::decision(bot, game, bot.determine_testing_station_used(game)),

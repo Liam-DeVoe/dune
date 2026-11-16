@@ -1,13 +1,11 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Donated {
     pub target: Option<Faction>,
     pub resources: i32,
     pub from_bank: bool,
     pub card: Option<TreacheryCard>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for Donated {
@@ -17,74 +15,11 @@ impl Default for Donated {
             resources: Default::default(),
             from_bank: false,
             card: None,
-            base: Default::default(),
         }
     }
 }
 
 impl Donated {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        if self.from_bank {
-            return None;
-        }
-
-        // MayDonate(Game, Player) only dereferences a null Player inside HasBidToPay, where C#
-        // threw NullReferenceException.
-        let may_donate = match self.player_opt() {
-            Some(p) => Donated::may_donate(game, p),
-            None => {
-                if game.turn.current_phase == Phase::Bidding && game.bidding.current_bid.is_some() {
-                    return Some(express!("You are not playing"));
-                }
-                true
-            }
-        };
-        if !may_donate {
-            return Some(express!("You currently have an outstanding bid"));
-        }
-        if self.card.is_none() && self.resources <= 0 {
-            return Some(express!("Invalid amount"));
-        }
-        // Not in C#, where giving a card with a negative amount took that spice from the target
-        // (behavior-changes.md, "Turns, sectors and amounts out of range").
-        if !self.from_bank && self.resources < 0 {
-            return Some(express!("Invalid amount"));
-        }
-        if i32::from(game.player(self.player()).resources) < self.resources {
-            return Some(express!("You can't give that much"));
-        }
-        if self.initiator() != Some(Faction::Emperor) && self.target == game.player(self.player()).ally {
-            return Some(express!("You can't bribe your ally"));
-        }
-        if self.initiator() != Some(Faction::Emperor) && game.applicable(Rule::DisableResourceTransfers) {
-            return Some(express!(Concept::Resource, " transfers are disabled by house rule"));
-        }
-        if !self.from_bank
-            && (game.charity.economics_status == Some(ChoamEconomicsStatus::Double) || game.charity.economics_status == Some(ChoamEconomicsStatus::DoubleFlipped))
-        {
-            // C# parity: the message is built but never returned, so this check has no effect.
-            let _ = express!("No bribes can be made during Double Inflation");
-        }
-
-        let target_player = game.get_player(self.target);
-        if self.card.is_some() && !game.player(target_player.expect("target player")).has_room_for_cards(game) {
-            return Some(express!("Target faction's hand is full"));
-        }
-        // Not in C#, which let a player give away spice they still had to pay for a bid
-        // (escapes.md, "Forces below zero").
-        if !game.may_give_away_spice(self.player(), self.resources) {
-            return Some(express!("You need that spice to pay your bid"));
-        }
-
-        None
-    }
-
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_targets(g: &Game, p: PlayerId) -> impl Iterator<Item = Faction> {
         // `p` is dereferenced inside the predicate, per element.
@@ -112,17 +47,75 @@ impl Donated {
     pub fn max_amount(game: &Game, p: PlayerId) -> i32 {
         i32::from(game.player(p).resources)
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+impl EventRules for Donated {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        if self.from_bank {
+            return Ok(());
+        }
+
+        // MayDonate(Game, Player) only dereferences a null Player inside HasBidToPay, where C#
+        // threw NullReferenceException.
+        let may_donate = match by.player {
+            Some(p) => Donated::may_donate(game, p),
+            None => {
+                if game.turn.current_phase == Phase::Bidding && game.bidding.current_bid.is_some() {
+                    return Err(Rejection(express!("You are not playing")));
+                }
+                true
+            }
+        };
+        if !may_donate {
+            return Err(Rejection(express!("You currently have an outstanding bid")));
+        }
+        if self.card.is_none() && self.resources <= 0 {
+            return Err(Rejection(express!("Invalid amount")));
+        }
+        // Not in C#, where giving a card with a negative amount took that spice from the target
+        // (behavior-changes.md, "Turns, sectors and amounts out of range").
+        if !self.from_bank && self.resources < 0 {
+            return Err(Rejection(express!("Invalid amount")));
+        }
+        if i32::from(game.player(by.player()).resources) < self.resources {
+            return Err(Rejection(express!("You can't give that much")));
+        }
+        if by.faction != Some(Faction::Emperor) && self.target == game.player(by.player()).ally {
+            return Err(Rejection(express!("You can't bribe your ally")));
+        }
+        if by.faction != Some(Faction::Emperor) && game.applicable(Rule::DisableResourceTransfers) {
+            return Err(Rejection(express!(Concept::Resource, " transfers are disabled by house rule")));
+        }
+        if !self.from_bank
+            && (game.charity.economics_status == Some(ChoamEconomicsStatus::Double) || game.charity.economics_status == Some(ChoamEconomicsStatus::DoubleFlipped))
+        {
+            // C# parity: the message is built but never returned, so this check has no effect.
+            let _ = express!("No bribes can be made during Double Inflation");
+        }
+
+        let target_player = game.get_player(self.target);
+        if self.card.is_some() && !game.player(target_player.expect("target player")).has_room_for_cards(game) {
+            return Err(Rejection(express!("Target faction's hand is full")));
+        }
+        // Not in C#, which let a player give away spice they still had to pay for a bid
+        // (escapes.md, "Forces below zero").
+        if !game.may_give_away_spice(by.player(), self.resources) {
+            return Err(Rejection(express!("You need that spice to pay your bid")));
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
         // `GetPlayer(Target)!` does not throw; a null target throws where it is dereferenced.
-        let target = self.get_player(game, self.target);
+        let target = game.get_player(self.target);
 
         if !self.from_bank {
             match target {
-                Some(target) => game.exchange_resources_in_bribe(self.player(), target, self.resources)?,
+                Some(target) => game.exchange_resources_in_bribe(by.player(), target, self.resources)?,
                 None => {
                     // ExchangeResourcesInBribe(Player, null, Resources): the payer pays first.
-                    let me = self.player();
+                    let me = by.player();
                     let from = game.player_mut(me);
                     crate::game::amounts::spend(&mut from.resources, self.resources, "spice")?;
                     let _ = game.bribes_during_mentat();
@@ -132,7 +125,7 @@ impl Donated {
             let target = target.required("target")?;
 
             if let Some(card) = self.card {
-                let me = self.player();
+                let me = by.player();
                 {
                     let cards = &mut game.player_mut(me).treachery_cards;
                     if let Some(i) = cards.iter().position(|c| *c == card) {
@@ -142,7 +135,7 @@ impl Donated {
                 Game::register_known_by_player(game, me, Some(card));
                 game.player_mut(target).treachery_cards.push(card);
 
-                let initiator = self.initiator();
+                let initiator = by.faction;
                 for i in 0..game.players.len() {
                     let p = game.player_at(i);
                     if !game.player(p).is(initiator) && p != target {
@@ -154,16 +147,14 @@ impl Donated {
                 }
             }
 
-            let m = self.get_message(game).with_log(AsideLog::aside());
-            self.log_objects(game, vec![m.into()]);
+            let m = self.describe(game, by).with_log(AsideLog::aside());
+            game.log(vec![m.into()]);
             game.stone(Milestone::Bribe);
         } else if self.resources < 0 {
             let abs = self.resources.abs();
             let resources_to_take = abs.min(i32::from(game.player(target.required("target")?).resources));
             let target = target.required("target")?;
-            self.log_objects(
-                game,
-                vec![
+            game.log(vec![
                     "Host puts ".into(),
                     Payment::of(resources_to_take).into(),
                     " from ".into(),
@@ -176,9 +167,7 @@ impl Donated {
             let t = game.player_mut(target);
             crate::game::amounts::spend(&mut t.resources, resources_to_take, "spice")?;
         } else {
-            self.log_objects(
-                game,
-                vec![
+            game.log(vec![
                     "Host gives ".into(),
                     self.target.into(),
                     Payment::of(self.resources).into(),
@@ -193,9 +182,9 @@ impl Donated {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn describe(&self, _game: &Game, by: By) -> Message {
         express!(
-            self.initiator(),
+            by.faction,
             " give ",
             Payment::of(self.resources),
             express_part_if!(self.card.is_some(); " and a card"),
@@ -203,32 +192,4 @@ impl Donated {
             self.target
         )
     }
-
-}
-
-impl GameEventMethods for Donated {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::Donated
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::Donated(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        Donated::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        Donated::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        Donated::get_message(self, game)
-    }
-
 }

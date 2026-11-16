@@ -91,8 +91,9 @@ fn state(l: &mut Lines, g: &mut Game, at: &str) {
     }
 }
 
-fn exec(l: &mut Lines, g: &mut Game, at: &str, e: Event) {
-    let by = e.legacy_initiator();
+fn exec(l: &mut Lines, g: &mut Game, at: &str, entry: HistoryEntry) {
+    let by = entry.by;
+    let e = entry.event;
     let applicable = catch_panic(|| g.get_applicable_events(By::new(g, by).player, false).contains(&e.event_type()));
     match applicable {
         Ok(b) => l.p(&format!("{at}.applicable"), if b { "True" } else { "False" }),
@@ -108,14 +109,14 @@ fn exec(l: &mut Lines, g: &mut Game, at: &str, e: Event) {
     state(l, g, at);
 }
 
-fn offered(g: &Game, by: Faction, target: Faction) -> Event {
+fn offered(g: &Game, by: Faction, target: Faction) -> HistoryEntry {
     let mut e = AllianceOffered::new(g, by);
     e.target = Some(target);
-    Rc::new(e).into_event()
+    HistoryEntry::legacy(Rc::new(e))
 }
 
-fn passed(g: &Game, by: Faction) -> Event {
-    Rc::new(AlliancePassed::new(g, by)).into_event()
+fn passed(_g: &Game, by: Faction) -> HistoryEntry {
+    HistoryEntry::new(by, AlliancePassed::default())
 }
 
 fn alliance_phase(l: &mut Lines, v: i32) {
@@ -156,7 +157,7 @@ fn break_in_alliance_phase(l: &mut Lines, v: i32) {
     exec(l, &mut g, &format!("{at}.richese_offers_atreides"), e);
     let e = passed(&g, Faction::Atreides);
     exec(l, &mut g, &format!("{at}.atreides_passes"), e);
-    let e = Rc::new(AllianceBroken::new(&g, Faction::Choam)).into_event();
+    let e = HistoryEntry::new(Faction::Choam, AllianceBroken::default());
     exec(l, &mut g, &format!("{at}.choam_breaks"), e);
     let e = offered(&g, Faction::Atreides, Faction::Richese);
     exec(l, &mut g, &format!("{at}.atreides_offers_richese"), e);

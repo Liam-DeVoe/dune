@@ -1,40 +1,23 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AllianceBroken {
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
-impl Default for AllianceBroken {
-    fn default() -> Self {
-        AllianceBroken {
-            base: Default::default(),
-        }
-    }
-}
-
-impl AllianceBroken {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        if !game.player(self.player()).has_ally() {
-            return Some(express!("You currently have no ally"));
+impl EventRules for AllianceBroken {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        if !game.player(by.player()).has_ally() {
+            return Err(Rejection(express!("You currently have no ally")));
         }
 
-        None
+        Ok(())
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let ally = game.player(self.player()).ally;
-        let m = self
-            .get_message(game)
-            .with_log(NexusLog::new(None, Some(NexusAlliance::new(NexusAllianceChange::Ended, self.initiator(), ally))));
-        self.log_objects(game, vec![m.into()]);
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let ally = game.player(by.player()).ally;
+        let m = self.describe(game, by)
+            .with_log(NexusLog::new(None, Some(NexusAlliance::new(NexusAllianceChange::Ended, by.faction, ally))));
+        game.log(vec![m.into()]);
 
         // The former ally gets to act again in the alliance phase, even if they already passed.
         if matches!(game.turn.current_phase, Phase::AllianceA | Phase::AllianceB) {
@@ -44,40 +27,12 @@ impl AllianceBroken {
             }
         }
 
-        game.break_alliance(self.initiator().required("faction")?);
+        game.break_alliance(by.faction.required("faction")?);
         game.let_factions_discard_surplus_cards();
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " end their alliance")
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " end their alliance")
     }
-
-}
-
-impl GameEventMethods for AllianceBroken {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::AllianceBroken
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::AllianceBroken(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        AllianceBroken::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        AllianceBroken::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        AllianceBroken::get_message(self, game)
-    }
-
 }

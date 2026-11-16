@@ -229,8 +229,8 @@ impl<'a> Recorder<'a> {
             }
             let types = self.query(Some(i), false)?;
             if types.contains(&EventType::AlliancePassed) {
-                let e = AlliancePassed::new(&self.sess.game, faction);
-                return Ok(Some((to_object(&HistoryEntry::legacy(treachery_view::build::event(e))), i)));
+                let e = AlliancePassed::default();
+                return Ok(Some((to_object(&HistoryEntry::new(faction, e)), i)));
             }
         }
         Ok(None)

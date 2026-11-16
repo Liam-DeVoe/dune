@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct AllyPermission {
     pub ally_may_ship_as_guild: bool,
     pub emperor_will_pay_for_extra_revival: u16,
@@ -17,8 +17,6 @@ pub struct AllyPermission {
     pub ecaz_shares_ambassadors: bool,
     pub permitted_resources: u16,
     pub permitted_karma_card: Option<TreacheryCard>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for AllyPermission {
@@ -39,18 +37,11 @@ impl Default for AllyPermission {
             ecaz_shares_ambassadors: Default::default(),
             permitted_resources: Default::default(),
             permitted_karma_card: TreacheryCardManager::get(0),
-            base: Default::default(),
         }
     }
 }
 
 impl AllyPermission {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
     pub fn guild_allows_shipping_discount(&self) -> bool {
         self.ally_may_ship_as_guild
     }
@@ -74,15 +65,17 @@ impl AllyPermission {
     pub fn set_ixian_allows_replacing_cards(&mut self, value: bool) {
         self.ally_may_replace_cards = value;
     }
+}
 
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
+impl EventRules for AllyPermission {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let ally = game.player(self.player()).ally;
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let ally = game.player(by.player()).ally;
 
-        match self.initiator() {
+        match by.faction {
             Some(Faction::Guild) => game.alliances.guild_allows_shipping_discount = self.guild_allows_shipping_discount(),
             Some(Faction::Tleilaxu) => game.alliances.tleilaxu_allows_revival_discount = self.tleilaxu_allows_revival_discount(),
             Some(Faction::Ixian) => game.alliances.ixian_allows_replacing_cards = self.ixian_allows_replacing_cards(),
@@ -110,35 +103,7 @@ impl AllyPermission {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " change ally permissions")
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " change ally permissions")
     }
-
-}
-
-impl GameEventMethods for AllyPermission {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::AllyPermission
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::AllyPermission(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        AllyPermission::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        AllyPermission::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        AllyPermission::get_message(self, game)
-    }
-
 }

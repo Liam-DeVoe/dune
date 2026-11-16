@@ -18,7 +18,7 @@ use std::panic::{self, AssertUnwindSafe};
 
 use serde_json::{Map, Value};
 use treachery_bots::{BotParameters, ClassicBot, Priority};
-use treachery_engine::events::{AlliancePassed, CardsDetermined, EndPhase, EventType, PerformHmsPlacement, PerformSetup};
+use treachery_engine::events::{AlliancePassed, CardsDetermined, EndPhase, Event, EventType, PerformHmsPlacement, PerformSetup};
 use treachery_engine::game::Game;
 use treachery_engine::json;
 use treachery_engine::prelude::*;
@@ -251,7 +251,7 @@ impl Refit {
                 }
                 let allowed = quiet(|| self.game.get_applicable_events(Some(p), false)).unwrap_or_default();
                 if allowed.contains(&EventType::AlliancePassed) {
-                    let e = Rc::new(AlliancePassed::new(&self.game, faction)).into_event();
+                    let e = Event::from(AlliancePassed::default());
                     if self.add(to_object(&HistoryEntry::new(Some(faction), e)), false, time) {
                         return true;
                     }

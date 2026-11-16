@@ -169,7 +169,7 @@ pub fn default_draft(game: &Game, s: &Seating, faction: Option<Faction>, t: Even
     Some(match t {
         EventType::AllyPermission => {
             // OnParametersSet while not edited: the permissions in force.
-            let mut e = AllyPermission::new(game, faction);
+            let mut e = AllyPermission::default();
             current_permissions(game, faction.expect("faction"), &mut e);
             event(e)
         }
@@ -321,7 +321,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
                 _ => {}
             }
         }),
-        Event::AllyPermission(e) => adjust!(e, |m| {
+        Event::AllyPermission(e) => adjust!(@plain e, |m| {
             m.permitted_resources = treachery_engine::game::amounts::clamp_u16(picker(i32::from(m.permitted_resources), 0, i32::from(pl.resources)));
             if !Karma::can_karma(game, p) {
                 m.permitted_karma_card = None;
@@ -380,7 +380,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
             let amount = DivideResources::get_resources_to_be_divided(game).map_or(0, |t| t.amount);
             m.portion_to_first_player = treachery_engine::game::amounts::clamp_u16(picker(i32::from(m.portion_to_first_player), 0, amount));
         }),
-        Event::Donated(e) => adjust!(e, |m| {
+        Event::Donated(e) => adjust!(@plain e, |m| {
             if !v.is_host {
                 m.from_bank = false;
             }
@@ -458,7 +458,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
             let targets: Vec<Faction> = ResourcesAudited::valid_factions(game, p).collect();
             m.target = required_opt(m.target, &targets);
         }),
-        Event::ResourcesTransferred(e) => adjust!(e, |m| {
+        Event::ResourcesTransferred(e) => adjust!(@plain e, |m| {
             m.resources = treachery_engine::game::amounts::clamp_u16(picker(i32::from(m.resources), 0, ResourcesTransferred::max_amount(game, p)));
         }),
         Event::SkillAssigned(e) => adjust!(@plain e, |m| {
@@ -489,7 +489,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
                 m.direction = required(m.direction, &[1, -1], 0);
             }
         }),
-        Event::RicheseGaveCard(e) => adjust!(e, |m| {
+        Event::RicheseGaveCard(e) => adjust!(@plain e, |m| {
             m.card = required_opt(m.card, &RicheseGaveCard::valid_cards(game, p).into_iter().collect::<Vec<_>>());
         }),
         Event::RicheseKeepsUnsoldCard(e) => adjust!(@plain e, |m| {
@@ -745,7 +745,7 @@ fn ally_permission(game: &Game, p: PlayerId, d: &dyn Describer, draft: serde_jso
             resources: i32::from(al.resources),
         }
     });
-    let mut current = AllyPermission::new(game, pl.faction);
+    let mut current = AllyPermission::default();
     current_permissions(game, pl.faction.expect("faction"), &mut current);
     let _ = d;
     AllyPermissionOptions {

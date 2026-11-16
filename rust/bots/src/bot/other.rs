@@ -31,12 +31,12 @@ struct StormKills {
 }
 
 impl ClassicBot {
-    pub fn determine_resources_transferred(&self, game: &Game) -> Option<Rc<ResourcesTransferred>> {
+    pub fn determine_resources_transferred(&self, game: &Game) -> Option<ResourcesTransferred> {
         let amount = ResourcesTransferred::max_amount(game, self.player);
         if self.resources(game) - amount > 15 && game.player(self.player).allied_resources(game) < self.resources(game) {
-            let mut e = ResourcesTransferred::new(game, self.faction(game));
+            let mut e = ResourcesTransferred::default();
             e.resources = treachery_engine::game::amounts::clamp_u16(amount);
-            return Some(Rc::new(e));
+            return Some(e);
         }
 
         None

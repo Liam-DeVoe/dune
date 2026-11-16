@@ -190,10 +190,10 @@ fn donated_double_inflation_check_has_no_effect() {
     g.charity.economics_status = Some(ChoamEconomicsStatus::Double);
     let atreides = idx(&g, Faction::Atreides);
     g.player_mut(atreides).resources = 5;
-    let mut d = Donated::new(&g, Faction::Atreides);
+    let mut d = Donated::default();
     d.target = Some(Faction::Emperor);
     d.resources = 2;
-    assert!(d.validate(&g).is_none());
+    assert!(d.validate(&g, By::new(&g, Faction::Atreides)).is_ok());
 }
 
 // ---------------------------------------------------------------- Game_Contemplate

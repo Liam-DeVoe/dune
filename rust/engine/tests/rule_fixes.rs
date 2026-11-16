@@ -3,7 +3,6 @@
 //! situation, and submits events with validation, as the server does.
 
 use std::path::PathBuf;
-use std::rc::Rc;
 
 use treachery_engine::game::{GameState, Intrusion};
 use treachery_engine::prelude::*;
@@ -142,9 +141,9 @@ fn special_force_paid_by_emperor_counts_toward_the_limit() {
     ally(&mut g, Faction::Fremen, Faction::Emperor);
     g.player_mut(fremen).special_forces_killed = 2;
 
-    let mut permission = AllyPermission::new(&g, Faction::Emperor);
+    let mut permission = AllyPermission::default();
     permission.emperor_will_pay_for_extra_revival = 3;
-    assert_eq!(submit(&mut g, |_| Event::AllyPermission(Rc::new(permission))), None);
+    assert_eq!(submit_by(&mut g, Faction::Emperor, |_| Event::AllyPermission(permission)), None);
 
     let revival = |own: u16, by_emperor: u16, _g: &Game| {
         let mut r = Revival::default();
@@ -197,9 +196,9 @@ fn karama_worm_needs_a_territory() {
 #[test]
 fn ally_permissions_without_an_ally_store_nothing() {
     let mut g = fixture("ship");
-    let mut permission = AllyPermission::new(&g, Faction::Guild);
+    let mut permission = AllyPermission::default();
     permission.permitted_resources = 3;
-    let e = HistoryEntry::new(Faction::Guild, Rc::new(permission));
+    let e = HistoryEntry::new(Faction::Guild, permission);
     assert!(g.play_for_message(e, false, false).is_none());
     assert!(g.alliances.permitted_use_of_ally_spice.is_empty(), "{:?}", g.alliances.permitted_use_of_ally_spice);
 }

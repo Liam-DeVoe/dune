@@ -75,10 +75,10 @@ impl GameStatus {
         if self.waiting_for_me(player, is_host) { self.description_when_awaited.clone() } else { self.description_when_waiting.clone() }
     }
 
-    /// `&mut Game` because `Game.NextPlayerToBattle` advances `BattleSequence` when read.
     /// The arms below are checked in order; each guard is evaluated
     /// only when its pattern matches, and again for each later arm with the same phase.
-    pub fn determine_status(game: &mut Game, me_: Option<PlayerId>, is_player: bool) -> GameStatus {
+    pub fn determine_status(game: &Game, me_: Option<PlayerId>, is_player: bool) -> GameStatus {
+        let g = game;
         let phase = game.turn.current_phase;
         let result = match phase {
             /* Phase Beginnings */
@@ -95,7 +95,6 @@ impl GameStatus {
 
             /* Non-mainphase-related phases */
             Phase::Clairvoyance => {
-                let g: &Game = game;
                 let a = express!("Please answer a question from ", g.turn.latest_clairvoyance.as_ref().map(|c| c.initiator()), " by ", TreacheryCardType::Clairvoyance, ".");
                 let w = express!("Waiting for an answer to a ", TreacheryCardType::Clairvoyance, " question...");
                 let f = g.turn.latest_clairvoyance.as_ref().expect("latest clairvoyance").target;
@@ -103,26 +102,22 @@ impl GameStatus {
             }
 
             Phase::SearchingDiscarded => {
-                let g: &Game = game;
                 let p = g.owner_of_treachery_card_type(TreacheryCardType::SearchDiscarded);
                 Self::player_status("Please take a card from the treachery discard pile.", "Waiting for a card to be taken from the treachery discard pile...", p, None)
             }
 
             Phase::TradingCards => {
-                let g: &Game = game;
                 let offer_player = g.alliances.current_card_trade_offer.as_ref().expect("current card trade offer").player();
                 let f = g.player(offer_player).ally;
                 Self::faction_status(g, "Please select which card to give to your ally.", "Waiting for a card to be returned...", f, None)
             }
 
             Phase::Bureaucracy => {
-                let g: &Game = game;
                 let p = g.player_skilled_as(LeaderSkill::Bureaucrat);
                 Self::player_status("Please decide whether to apply Bureaucracy to the latest payment.", "Waiting for Bureaucracy to be applied to the latest payment...", p, None)
             }
 
             Phase::Discarding => {
-                let g: &Game = game;
                 Self::factions_status(g, "Please decide which card to discard.", "Waiting for factions to discard...", &g.turn.factions_that_must_discard, None)
             }
 
@@ -138,7 +133,6 @@ impl GameStatus {
             Phase::TradingFactions => Self::status("Players may now trade factions...", None),
 
             Phase::AssigningInitialSkills | Phase::AssigningSkill => {
-                let g: &Game = game;
                 let players: Vec<Option<PlayerId>> = (0..g.players.len()).filter(|i| g.players[*i].skills_to_choose_from.len() > 0).map(|i| Some(g.player_at(i))).collect();
                 Self::players_status("You may now assign a skill to a leader.", "Waiting for factions to assign leader skills...", players, None)
             }
@@ -206,7 +200,6 @@ impl GameStatus {
             }
 
             Phase::DiallingStorm => {
-                let g: &Game = game;
                 let factions: Vec<Faction> = g.rules.factions_in_play.iter().copied().filter(|f| g.storm.has_battle_wheel.contains(f) && !g.turn.has_acted_or_passed.contains(f)).collect();
                 Self::factions_status(g, "Please dial a number to determine storm movement.", "Storm movement is being determined...", &factions, None)
             }
@@ -214,7 +207,6 @@ impl GameStatus {
             Phase::MetheorAndStormSpell => Self::status(express!("Factions may now use ", TreacheryCardType::Metheor, " or ", TreacheryCardType::StormSpell, "..."), None),
 
             Phase::StormLosses => {
-                let g: &Game = game;
                 let a = express!("Please decide which forces were killed by the storm in ", TakeLosses::losses_to_take(g).location, ".");
                 let w = express!(TakeLosses::losses_to_take(g).faction, " are deciding which forces were killed by the storm in ", TakeLosses::losses_to_take(g).location, "...");
                 let f = g.storm.storm_losses_to_take[0].faction;
@@ -237,7 +229,6 @@ impl GameStatus {
             // C# parity: these two phases are listed again in the BeneGesseritIntrudedBy... arm below, which
             // is unreachable for them; this arm (with `LastShipmentOrMovement!`) wins.
             Phase::BeneGesseritIntrudedByFremenRidingMonsterA | Phase::BeneGesseritIntrudedByFremenRidingMonsterB => {
-                let g: &Game = game;
                 let a = express!("Please decide what to do in response to an intrusion of ", g.ship_move.last_shipment_or_movement.as_ref().expect("last shipment or movement").to_location(g).map(|l| l.territory()), "; be fighters or advisors?");
                 let w = express!(Faction::BeneGesserit, " are deciding what to do in response to an intrusion of ", g.ship_move.last_shipment_or_movement.as_ref().expect("last shipment or movement").to_location(g).map(|l| l.territory()), "...");
                 Self::faction_status(g, a, w, Some(Faction::BeneGesserit), None)
@@ -268,7 +259,6 @@ impl GameStatus {
             }
 
             Phase::NexusCards => {
-                let g: &Game = game;
                 let players: Vec<Option<PlayerId>> = g.player_indices().filter(|p| NexusCardDrawn::applicable(g, *p)).map(Some).collect();
                 Self::players_status("Do you wish to draw a Nexus card in case you have none or have your own faction?", "Factions are thinking about drawing Nexus cards...", players, None)
             }
@@ -284,7 +274,6 @@ impl GameStatus {
             }
 
             Phase::BlackMarketBidding if game.bidding.current_auction_type != Some(AuctionType::BlackMarketSilent) => {
-                let g: &Game = game;
                 let a = express!("Please bid or pass.");
                 let w = express!(g.bidding.bid_sequence.as_ref().expect("bid sequence").current_faction(g), " are thinking about their bid...");
                 let seq = BlackMarketBid::players_to_bid(g);
@@ -293,7 +282,6 @@ impl GameStatus {
             }
 
             Phase::BlackMarketBidding if game.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent) => {
-                let g: &Game = game;
                 let players = Self::players_with_room_and_no_bid(g);
                 let latest = g.latest_event(EventType::RicheseAnnouncesBlackMarket);
                 Self::players_status("Please bid.", "Factions are thinking about their bids...", players, latest)
@@ -306,7 +294,6 @@ impl GameStatus {
             }
 
             Phase::RicheseSpecifyingAuction => {
-                let g: &Game = game;
                 let a = express!("Please select a ", Faction::Richese, " card to put on auction.");
                 let w = express!(Self::faction_or_occupier(g, Faction::Richese, World::Richese), " are putting a ", Faction::Richese, " card on auction...");
                 let f = Self::faction_or_occupier(g, Faction::Richese, World::Richese);
@@ -314,7 +301,6 @@ impl GameStatus {
             }
 
             Phase::RicheseKeepingUnsoldCard => {
-                let g: &Game = game;
                 let a = express!("Please decide if you wish to keep this unsold card.");
                 let w = express!(Self::faction_or_occupier(g, Faction::Richese, World::Richese), " are deciding about keeping the unsold card...");
                 let f = Self::faction_or_occupier(g, Faction::Richese, World::Richese);
@@ -322,7 +308,6 @@ impl GameStatus {
             }
 
             Phase::IxianRemovingCardFromBid => {
-                let g: &Game = game;
                 let a = express!("Please put one card from the auction on top or at the bottom of the Treachery Card deck.");
                 let w = express!(Self::faction_or_occupier(g, Faction::Ixian, World::Ixian), " are putting one card from the auction on top or at the bottom of the Treachery Card deck...");
                 let f = Self::faction_or_occupier(g, Faction::Ixian, World::Ixian);
@@ -336,7 +321,6 @@ impl GameStatus {
             }
 
             Phase::Bidding if game.bidding.current_auction_type != Some(AuctionType::RicheseSilent) => {
-                let g: &Game = game;
                 let a = express!("Please bid or pass.");
                 let w = express!(g.bidding.bid_sequence.as_ref().expect("bid sequence").current_faction(g), " are thinking about their bid...");
                 let seq = Bid::players_to_bid(g);
@@ -345,14 +329,12 @@ impl GameStatus {
             }
 
             Phase::Bidding if game.bidding.current_auction_type == Some(AuctionType::RicheseSilent) => {
-                let g: &Game = game;
                 let players = Self::players_with_room_and_no_bid(g);
                 let latest = g.latest_event(EventType::RicheseSpecifiesAuction);
                 Self::players_status("Please bid.", "Factions are thinking about their bids...", players, latest)
             }
 
             Phase::ReplacingCardJustWon => {
-                let g: &Game = game;
                 let a = express!("You might discard the card you just won and draw a new card instead, in case you have the necessary Nexus or alliance advantage.");
                 let w = express!(g.bidding.winning_bid.as_ref().map(|b| b.initiator), " might replace the card they just won with a card from the deck in case they have the required Nexus or alliance advantage...");
                 let p = g.get_player(g.bidding.winning_bid.as_ref().map(|b| b.initiator).flatten());
@@ -378,28 +360,24 @@ impl GameStatus {
             ),
 
             Phase::NonGuildShip if game.ship_move.shipment_and_move_sequence.as_ref().expect("shipment and move sequence").current_faction(game) == Faction::Fremen => {
-                let g: &Game = game;
                 let a = express!("Please decide to rally forces or pass.");
                 let w = express!(Faction::Fremen, " are thinking about rallying forces...");
                 Self::status_ship_and_move(g, a, w)
             }
 
             Phase::NonGuildShip if game.ship_move.shipment_and_move_sequence.as_ref().expect("shipment and move sequence").current_faction(game) != Faction::Fremen => {
-                let g: &Game = game;
                 let a = express!("Please decide to ship forces or pass.");
                 let w = express!(g.ship_move.shipment_and_move_sequence.as_ref().expect("shipment and move sequence").current_faction(g), " are thinking about shipping forces...");
                 Self::status_ship_and_move(g, a, w)
             }
 
             Phase::GuildShip if game.guild_may_delay() => {
-                let g: &Game = game;
                 let a = express!("Please decide to ship now or delay your turn and let other factions go first.");
                 let w = express!(Faction::Guild, " are deciding about taking their turn now...");
                 Self::status_ship_and_move(g, a, w)
             }
 
             Phase::GuildShip if !game.guild_may_delay() => {
-                let g: &Game = game;
                 let a = express!("Please decide to ship forces or pass.");
                 let w = express!(Faction::Guild, " are thinking about shipping forces...");
                 Self::status_ship_and_move(g, a, w)
@@ -443,7 +421,6 @@ impl GameStatus {
             | Phase::AmbassadorTriggeredByGuildMove
             | Phase::AmbassadorTriggeredByCaravan
             | Phase::AmbassadorTriggeredByRevival => {
-                let g: &Game = game;
                 let a = express!("Do you wish to activate your ambassador?");
                 let w = express!(Faction::Ecaz, Self::ally(g, Faction::Ecaz), " are thinking about activating their ambassador...");
                 let players = Self::player_and_ally(g, Faction::Ecaz);
@@ -465,21 +442,18 @@ impl GameStatus {
             | Phase::BeneGesseritIntrudedByGuildMove
             | Phase::BeneGesseritIntrudedByCaravan
             | Phase::BeneGesseritIntrudedByRevival => {
-                let g: &Game = game;
                 let a = express!("Please decide how to respond to the intrusion in ", g.ship_move.last_shipment_or_movement.as_ref().and_then(|e| e.to_location(g)).map(|l| l.territory()), "; be fighters or advisors?");
                 let w = express!(Faction::BeneGesserit, " are deciding how to respond to the intrusion in ", g.ship_move.last_shipment_or_movement.as_ref().and_then(|e| e.to_location(g)).map(|l| l.territory()), "...");
                 Self::faction_status(g, a, w, Some(Faction::BeneGesserit), None)
             }
 
             Phase::NonGuildMove => {
-                let g: &Game = game;
                 let a = express!("Please decide to move forces or pass.");
                 let w = express!(g.ship_move.shipment_and_move_sequence.as_ref().expect("shipment and move sequence").current_faction(g), " are thinking about moving forces.");
                 Self::status_ship_and_move(g, a, w)
             }
 
             Phase::GuildMove => {
-                let g: &Game = game;
                 let a = express!("Please decide to move forces or pass.");
                 let w = express!(Faction::Guild, " are thinking about moving forces.");
                 Self::status_ship_and_move(g, a, w)
@@ -489,7 +463,6 @@ impl GameStatus {
             Phase::BeginningOfBattle => Self::host_status("You may proceed to the first battle when ready.", "Waiting for the host to proceed to the first battle...", None),
 
             Phase::ClaimingBattle => {
-                let g: &Game = game;
                 let a = express!("You may now decide who will fight in ", g.battle.battle_about_to_start.as_ref().expect("battle about to start").territory);
                 let battle = g.battle.battle_about_to_start.clone().expect("battle about to start");
                 let f: Option<Option<Faction>> = if g.has_low_threshold(Faction::Ecaz) { battle.opponent_of_faction(g, Faction::Ecaz).map(|p| g.player(p).faction) } else { Some(Some(Faction::Ecaz)) };
@@ -499,7 +472,6 @@ impl GameStatus {
             }
 
             Phase::Thought => {
-                let g: &Game = game;
                 let a = express!(g.battle.current_thought.as_ref().expect("current thought").initiator(), " asked you a question and are waiting for your answer.");
                 let battle = g.battle.current_battle.clone().expect("current battle");
                 let thought_initiator = g.battle.current_thought.as_ref().expect("current thought").initiator();
@@ -512,7 +484,6 @@ impl GameStatus {
             Phase::BattlePhase => Self::determine_battle_status(game, me_),
 
             Phase::MeltingRock => {
-                let g: &Game = game;
                 let a = express!("Please decide how to use your ", TreacheryCardType::Rockmelter, ".");
                 let w = express!("Waiting for a decision on how they wish to use their ", TreacheryCardType::Rockmelter, "...");
                 let p = if g.battle.aggressor_plan.as_ref().expect("aggressor plan").has_rock_melter() {
@@ -531,14 +502,12 @@ impl GameStatus {
             Phase::CancellingTraitor => Self::host_status("You may proceed when done waiting for players to cancel a traitor call.", "Players may now try to cancel a traitor call...", None),
 
             Phase::Retreating => {
-                let g: &Game = game;
                 let a = express!("Please decide about retreating forces from ", g.battle.current_battle.as_ref().expect("current battle").territory, ".");
                 let w = express!(g.battle.battle_loser, " are thinking about retreating forces from ", g.battle.current_battle.as_ref().expect("current battle").territory, ".");
                 Self::faction_status(g, a, w, g.battle.battle_loser.flatten(), None)
             }
 
             Phase::AvoidingAudit => {
-                let g: &Game = game;
                 let a = express!("Please decide if you wish to avoid being audited.");
                 let w = express!(g.player(g.auditee().expect("auditee")).faction, " are thinking about avoiding a scheduled audit...");
                 let p = g.auditee();
@@ -576,9 +545,6 @@ impl GameStatus {
                 Self::faction_status(game, a, w, Some(Faction::Tleilaxu), None)
             }
 
-            // Each guard reads NextPlayerToBattle, which advances BattleSequence.
-            // When the first guard fails, C# reads it again for the second guard, and if that
-            // read is not null either, falls through to the default arm.
             Phase::BattleReport if game.next_player_to_battle().is_some() => {
                 Self::status(express!("Factions may now review the battle report before the next battle begins..."), None)
             }
@@ -586,7 +552,6 @@ impl GameStatus {
 
             /* Collection */
             Phase::DividingCollectedResources => {
-                let g: &Game = game;
                 let a = express!("Please make a proposal about how to divide collected ", Concept::Resource, ".");
                 let w = express!("Waiting for ", g.collection.collected_resources_to_be_divided.first().map(|r| Some(r.first_faction)), " to propose how to divide collected ", Concept::Resource);
                 let f = g.collection.collected_resources_to_be_divided.first().map(|r| r.first_faction);
@@ -594,7 +559,6 @@ impl GameStatus {
             }
 
             Phase::AcceptingResourceDivision => {
-                let g: &Game = game;
                 let a = express!("Please decide about the proposed division of ", Concept::Resource, ".");
                 let w = express!(g.collection.collected_resources_to_be_divided.first().map(|r| Some(r.other_faction)), " are thinking about the proposed division");
                 let f = g.collection.collected_resources_to_be_divided.first().map(|r| r.other_faction);
@@ -737,7 +701,8 @@ impl GameStatus {
         }
     }
 
-    pub fn determine_battle_status(game: &mut Game, me_: Option<PlayerId>) -> GameStatus {
+    pub fn determine_battle_status(game: &Game, me_: Option<PlayerId>) -> GameStatus {
+        let g = game;
         if game.battle.current_battle.is_none() {
             let a = express!("Please choose whom and where to battle.");
             let next = game.next_player_to_battle().expect("next player to battle");
@@ -746,7 +711,6 @@ impl GameStatus {
             return Self::player_status(a, w, p, None);
         }
 
-        let g: &Game = game;
         let latest_battle_event = g.latest_event(EventType::BattleInitiated);
         let mut to_make_plan = Self::players_that_need_to_make_a_battle_plan(g);
         let battle = g.battle.current_battle.clone().expect("current battle");

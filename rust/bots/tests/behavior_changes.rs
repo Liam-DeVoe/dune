@@ -76,7 +76,7 @@ fn deciding_never_changes_the_game() {
     assert!(names.len() > 40);
     let mut decisions = 0;
     for name in names {
-        let mut game = load(&name);
+        let game = load(&name);
         for player in game.player_indices().collect::<Vec<_>>() {
             let allowed = game.get_applicable_events(Some(player), true);
             let mut b = bot(&game, player);

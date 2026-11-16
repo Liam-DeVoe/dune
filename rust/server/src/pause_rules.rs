@@ -6,8 +6,7 @@
 //! countdown instead, which any player can hold. Countdown conditions only use what is fixed when
 //! the game starts: settings, the factions playing and the turn number.
 //!
-//! Only reads game state, except that it calls `get_applicable_events` for `CardTraded` and the
-//! revival actions, which can advance the battle sequence.
+//! Only reads game state.
 
 use treachery_engine::events::DiscoveryEntered;
 use treachery_engine::events::TerrorPlanted;
@@ -64,7 +63,7 @@ impl PauseRequirements {
 }
 
 /// None when the current phase is not a pause this controls; the host keeps sole control.
-pub fn determine(g: &mut Game) -> Option<PauseRequirements> {
+pub fn determine(g: &Game) -> Option<PauseRequirements> {
     let amal = amal_in_play(g);
     let nexus = g.applicable(Rule::NexusCards);
 
@@ -183,7 +182,7 @@ fn merge(mut r: PauseRequirements, others: Vec<(PlayerId, R)>) -> PauseRequireme
 
 /// An end-of-phase pause: CHOAM may discard and CHOAM may trade a card with its ally, plus
 /// whoever else may act there.
-fn end_of_phase(g: &mut Game, others: Vec<(PlayerId, R)>) -> PauseRequirements {
+fn end_of_phase(g: &Game, others: Vec<(PlayerId, R)>) -> PauseRequirements {
     let mut result = vec![];
 
     if let Some(choam) = g.get_player(Some(Faction::Choam)) {
@@ -211,7 +210,7 @@ fn end_of_phase(g: &mut Game, others: Vec<(PlayerId, R)>) -> PauseRequirements {
 
 /// Players who may revive, ask Tleilaxu for a revival or answer such a request, or (for
 /// Tleilaxu) still set revival limits.
-fn revivers(g: &mut Game) -> Vec<(PlayerId, R)> {
+fn revivers(g: &Game) -> Vec<(PlayerId, R)> {
     let revival_actions = [EventType::Revival, EventType::RequestTleilaxuRevival, EventType::AcceptOrCancelTleilaxuRevival];
     let limits = tleilaxu_limits(g);
 

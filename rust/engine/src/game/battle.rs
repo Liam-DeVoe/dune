@@ -1540,7 +1540,7 @@ impl Game {
         self.battle.current_portable_antidote_used = None;
         self.battle.harkonnen_do_not_have_to_return_used_captured_leader = false;
         self.finish_decipherer_if_applicable();
-        if self.next_player_to_battle().is_none() {
+        if self.advance_battle_sequence().is_none() {
             self.main_phase_end();
         }
         self.enter(Phase::BattleReport, true);
@@ -1668,26 +1668,36 @@ impl Game {
         Ok(())
     }
 
-    /// Mutates `BattleSequence` when read.
-    pub fn next_player_to_battle(&mut self) -> Option<PlayerId> {
-        if self.battle.battle_sequence.is_none() {
-            return None;
-        }
+    /// The player whose turn it is to initiate a battle: the current player of the battle
+    /// sequence, or the first after them who has a battle to fight. `None` when nobody has one.
+    /// Reads the sequence without changing it; [`Game::advance_battle_sequence`] moves it on.
+    pub fn next_player_to_battle(&self) -> Option<PlayerId> {
+        let mut seq = self.battle.battle_sequence.clone()?;
+        self.skip_players_without_battles(&mut seq)
+    }
 
-        let mut i = 0;
-        while i < self.players.len() {
-            let player_to_check = self.battle.battle_sequence.as_ref().expect("battle sequence").current_player(self);
+    /// Moves the battle sequence past the players who have no battle to fight, to the player
+    /// [`Game::next_player_to_battle`] names. The battle phase does this when it starts, after
+    /// each battle, and after each event while a player is to initiate a battle or the battle
+    /// report is shown (`Game::play`), so a player passed over stays passed over.
+    pub fn advance_battle_sequence(&mut self) -> Option<PlayerId> {
+        let mut seq = self.battle.battle_sequence.take()?;
+        let next = self.skip_players_without_battles(&mut seq);
+        self.battle.battle_sequence = Some(seq);
+        next
+    }
+
+    /// Advances `seq` (this game's battle sequence) until its current player has a battle to
+    /// fight, at most once around the table.
+    fn skip_players_without_battles(&self, seq: &mut PlayerSequence) -> Option<PlayerId> {
+        for _ in 0..self.players.len() {
+            let player_to_check = seq.current_player(self);
             // BattlesToBeFought dereferences the player before anything else that has effects.
             if !Battle::battles_to_be_fought(self, player_to_check.expect("player to check"), false).is_empty() {
                 return player_to_check;
             }
-
-            let mut seq = self.battle.battle_sequence.take().expect("battle sequence");
             seq.next_player(self);
-            self.battle.battle_sequence = Some(seq);
-            i += 1;
         }
-
         None
     }
 

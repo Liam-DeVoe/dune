@@ -207,11 +207,10 @@ crate::iter::remove_first(&mut game.player_mut(other).treachery_cards, &card);
 
 ### Map state
 
-Most of the map never changes. Three things do, and they live in `Map` (one per game, like `Game.Map`):
+Most of the map never changes. Two things do, and they live in `Map` (one per game, like `Game.Map`):
 
 - the `Neighbours` lists, because `PointAt` moves the attached locations;
-- `AttachedToLocation` of the hidden mobile stronghold and the discovered locations;
-- the `FindNeighbours` cache.
+- `AttachedToLocation` of the hidden mobile stronghold and the discovered locations.
 
 So the location properties that depend on them take the map:
 
@@ -236,7 +235,7 @@ game.board.map.find_paths(from, to, dist, ignore_storm, faction, &game)  // Map.
 game.board.map.find_neighbours_for_hms_movement(start, 1, false, game.board.sector_in_storm)
 ```
 
-`find_neighbours` keeps the C# cache, including its stale results. C# returns the cached list itself. Rust returns a copy, which is equivalent because no caller mutates the result (`grep -rn "FindNeighbours(" Shared Bots`).
+Pathfinding keeps no cache: every call works from the game as it is now.
 
 ## Objects the game owns
 
@@ -322,6 +321,10 @@ game.history.stamp_last(now);                        // the server sets the time
 ```
 
 `SubmitError` is `NotApplicable(Message)`, `Rejected(Rejection)` or `Failed(GameError)`, and `message()` gives the text the player sees ("Event '...' is not applicable", the rejection, or "Game Error: ..."). `play` checks the applicable events (`get_applicable_events(by.player, is_host)`), runs `try_validate`, clears the recent milestones, runs the pre-event tasks, applies the event, runs the post-event tasks and adds the entry to the history. `EstablishPlayers` skips the applicability check and keeps the milestones, as C# did. An event sees `at` while it is applied; the server submits with no time and stamps the entry afterwards, so the timers only count on a replay, as in C#.
+
+### Queries
+
+Every question asked of a game takes `&Game`: `get_applicable_events`, `GameStatus::determine_status`, `next_player_to_battle`, pathfinding, the views and the bots' reads. A query never writes state, so views are built from the server's own game, and asking twice, or in another order, gives the same answers. State a query used to write as a side effect is written by `play` instead. The battle sequence is the one case: `next_player_to_battle` reads a copy of it, moved past the players without a battle, and `play` moves the sequence itself on after each event while a player is to initiate a battle or the battle report is shown (`settle_battle_sequence` in history.rs), as the views' queries did in C#.
 
 ### An event
 

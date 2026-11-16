@@ -146,16 +146,16 @@ fn special_force_paid_by_emperor_counts_toward_the_limit() {
     permission.emperor_will_pay_for_extra_revival = 3;
     assert_eq!(submit(&mut g, |_| Event::AllyPermission(Rc::new(permission))), None);
 
-    let revival = |own: u16, by_emperor: u16, g: &Game| {
-        let mut r = Revival::new(g, Faction::Fremen);
+    let revival = |own: u16, by_emperor: u16, _g: &Game| {
+        let mut r = Revival::default();
         r.hero = None;
         r.amount_of_special_forces = own;
         r.extra_special_forces_paid_by_emperor = by_emperor;
-        Event::Revival(Rc::new(r))
+        Event::Revival(r)
     };
-    assert_eq!(submit(&mut g, |g| revival(0, 1, g)), None);
+    assert_eq!(submit_by(&mut g, Faction::Fremen, |g| revival(0, 1, g)), None);
     assert_eq!(g.player(fremen).special_forces_killed, 1);
-    assert_eq!(submit(&mut g, |g| revival(1, 0, g)).as_deref(), Some("You already revived a Fremen this turn"));
+    assert_eq!(submit_by(&mut g, Faction::Fremen, |g| revival(1, 0, g)).as_deref(), Some("You already revived a Fremen this turn"));
     assert_eq!(g.player(fremen).special_forces_killed, 1);
 }
 
@@ -353,24 +353,24 @@ fn only_a_dead_leader_can_be_revived() {
     let leader = g.player(p).leaders[0];
     assert!(g.is_alive(Hero::Leader(leader)));
 
-    let revival = |g: &Game| {
-        let mut r = Revival::new(g, f);
+    let revival = |_g: &Game| {
+        let mut r = Revival::default();
         r.hero = Some(Hero::Leader(leader));
-        Event::Revival(Rc::new(r))
+        Event::Revival(r)
     };
     let karama_revival = |g: &Game| {
-        let mut r = KarmaFreeRevival::new(g, f);
+        let mut r = KarmaFreeRevival::default();
         r.hero = Some(Hero::Leader(leader));
-        r.validate(g).map(|m| m.plain_text())
+        r.validate(g, By::new(g, f)).err().map(|r| r.0.plain_text())
     };
     let refusal = Some("You can't revive a leader who isn't dead");
-    assert_eq!(submit(&mut g, revival).as_deref(), refusal);
+    assert_eq!(submit_by(&mut g, f, revival).as_deref(), refusal);
     assert_eq!(karama_revival(&g).as_deref(), refusal);
     assert!(g.is_alive(Hero::Leader(leader)));
 
     g.kill_hero(Hero::Leader(leader));
     assert_eq!(karama_revival(&g), None);
-    assert_eq!(submit(&mut g, revival), None);
+    assert_eq!(submit_by(&mut g, f, revival), None);
     assert!(g.is_alive(Hero::Leader(leader)));
 }
 
@@ -385,9 +385,9 @@ fn a_living_ghola_can_be_taken_back() {
     g.player_mut(p).leaders.retain(|l| *l != leader);
     g.player_mut(tleilaxu).leaders.push(leader);
 
-    let mut r = Revival::new(&g, f);
+    let mut r = Revival::default();
     r.hero = Some(Hero::Leader(leader));
-    assert_eq!(submit(&mut g, |_| Event::Revival(Rc::new(r))), None);
+    assert_eq!(submit_by(&mut g, f, |_| Event::Revival(r)), None);
     assert!(g.is_alive(Hero::Leader(leader)));
     assert!(g.player(p).leaders.contains(&leader));
     assert!(!g.player(tleilaxu).leaders.contains(&leader));

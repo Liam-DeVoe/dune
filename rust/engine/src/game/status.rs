@@ -938,7 +938,7 @@ impl GameStatus {
                 // Show Nexus card played
                 Event::NexusPlayed(np) => Self::flash(&mut result, express!(np.initiator(), " play a Nexus card"), np.faction.map(Faction::to_nexus)),
                 Event::Revival(nexus_revival) if nexus_revival.uses_emperor_secret_ally => {
-                    Self::flash(&mut result, express!(nexus_revival.initiator(), " play a Nexus card"), Some(Faction::Emperor.to_nexus()))
+                    Self::flash(&mut result, express!(latest.by, " play a Nexus card"), Some(Faction::Emperor.to_nexus()))
                 }
 
                 _ => {}

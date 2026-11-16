@@ -61,7 +61,7 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
             bot.determine_territory_to_remove_ecaz_from(game).map_or_else(|| "null".to_string(), |t| format!("T{}", t.id()))
         }
         "DetermineCharityClaimed" => common::decision(bot, game, bot.determine_charity_claimed(game)),
-        "DetermineKarmaFreeRevival" => opt(bot.determine_karma_free_revival(game)),
+        "DetermineKarmaFreeRevival" => common::decision(bot, game, bot.determine_karma_free_revival(game)),
         "DetermineKarmaHandSwap" => common::decision(bot, game, bot.determine_karma_hand_swap(game)),
         "DetermineKarmaShipmentPrevention" => common::decision(bot, game, bot.determine_karma_shipment_prevention(game)),
         "DetermineKarmaHandSwapInitiated" => common::decision(bot, game, bot.determine_karma_hand_swap_initiated(game)),
@@ -80,7 +80,7 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
         "DetermineThumperPlayed" => common::decision(bot, game, bot.determine_thumper_played(game)),
         "DetermineStormSpellPlayed" => common::decision(bot, game, bot.determine_storm_spell_played(game)),
         "DetermineDistransUsed" => opt(bot.determine_distrans_used(game)),
-        "DetermineRevival" => opt(bot.determine_revival(game)),
+        "DetermineRevival" => common::decision(bot, game, bot.determine_revival(game)),
         "DetermineDiscardedSearchedAnnounced" => opt(bot.determine_discarded_searched_announced(game)),
         "DetermineDiscardedSearched" => ev(bot.determine_discarded_searched(game)),
         "DetermineDiscardedTaken" => opt(bot.determine_discarded_taken(game)),

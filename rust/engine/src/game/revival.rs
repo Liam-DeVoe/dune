@@ -1,5 +1,20 @@
 use crate::prelude::*;
 
+/// A request of `initiator` to Tleilaxu to revive `hero` early (`RequestTleilaxuRevival`).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct RevivalRequest {
+    pub initiator: Option<Faction>,
+    /// The submitter's player when the request was made.
+    pub player: Option<PlayerId>,
+    pub hero: Option<Hero>,
+}
+
+/// A Karama (or CHOAM) prevention of `target`'s revival this turn.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct RevivalPrevention {
+    pub target: Option<Faction>,
+}
+
 /// State of the revival phase and the revival counts of the current turn.
 pub struct RevivalState {
     pub revival_tech_token_income: bool,
@@ -11,11 +26,11 @@ pub struct RevivalState {
     pub current_recruits_played: Option<Rc<RecruitsPlayed>>,
     /// Null after `SetIncreasedRevivalLimits` with `"Factions":null` executed without validation.
     pub factions_with_increased_revival_limits: Option<Vec<Faction>>,
-    pub current_revival_requests: Vec<Rc<RequestTleilaxuRevival>>,
+    pub current_revival_requests: Vec<RevivalRequest>,
     // In the order Tleilaxu made the offers.
     pub early_revivals_offers: IndexMap<Hero, i32>,
     pub current_free_revival_prevention: Option<Rc<ChoamFreeRevivalPrevention>>,
-    pub current_karma_revival_prevention: Option<Rc<KarmaRevivalPrevention>>,
+    pub current_karma_revival_prevention: Option<RevivalPrevention>,
     pub ambassadors_placed_this_turn: i32,
 }
 

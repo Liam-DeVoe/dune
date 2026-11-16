@@ -870,12 +870,12 @@ impl ClassicBot {
 
     // ---- Tleilaxu ----
 
-    pub fn determine_set_increased_revival_limits(&self, game: &Game) -> Option<Rc<SetIncreasedRevivalLimits>> {
+    pub fn determine_set_increased_revival_limits(&self, game: &Game) -> Option<SetIncreasedRevivalLimits> {
         let targets: Vec<Faction> = SetIncreasedRevivalLimits::valid_targets(game, self.player).collect();
         if game.revival.factions_with_increased_revival_limits.as_ref().expect("factions with increased revival limits").len() != targets.len() {
-            let mut e = SetIncreasedRevivalLimits::new(game, self.faction(game));
+            let mut e = SetIncreasedRevivalLimits::default();
             e.factions = Some(targets);
-            return Some(Rc::new(e));
+            return Some(e);
         }
 
         None
@@ -962,9 +962,9 @@ impl ClassicBot {
         e
     }
 
-    pub fn determine_request_tleilaxu_revival(&mut self, game: &Game) -> Option<Rc<RequestTleilaxuRevival>> {
+    pub fn determine_request_tleilaxu_revival(&mut self, game: &Game) -> Option<RequestTleilaxuRevival> {
         let faction = self.faction(game);
-        if game.revival.current_revival_requests.iter().any(|r| r.initiator() == Some(faction))
+        if game.revival.current_revival_requests.iter().any(|r| r.initiator == Some(faction))
             || game.revival.early_revivals_offers.keys().any(|h| h.faction() == Some(faction))
         {
             return None;
@@ -994,16 +994,16 @@ impl ClassicBot {
 
         let to_revive = to_revive?;
         self.turn_when_revival_was_requested = Some(game.turn.current_turn);
-        let mut e = RequestTleilaxuRevival::new(game, faction);
+        let mut e = RequestTleilaxuRevival::default();
         e.hero = Some(to_revive);
-        Some(Rc::new(e))
+        Some(e)
     }
 
-    pub fn determine_accept_or_cancel_tleilaxu_revival(&mut self, game: &Game) -> Option<Rc<AcceptOrCancelTleilaxuRevival>> {
+    pub fn determine_accept_or_cancel_tleilaxu_revival(&mut self, game: &Game) -> Option<AcceptOrCancelTleilaxuRevival> {
         let request_to_handle = game.revival.current_revival_requests.first().cloned()?;
         let hero = request_to_handle.hero.expect("hero");
 
-        let price = if request_to_handle.initiator() == self.ally(game) {
+        let price = if request_to_handle.initiator == self.ally(game) {
             0
         } else if let Some(price) = self.price_set_earlier.get(&hero) {
             *price
@@ -1019,11 +1019,11 @@ impl ClassicBot {
             price
         };
 
-        let mut e = AcceptOrCancelTleilaxuRevival::new(game, self.faction(game));
+        let mut e = AcceptOrCancelTleilaxuRevival::default();
         e.hero = Some(hero);
         e.price = price;
         e.cancel = false;
-        Some(Rc::new(e))
+        Some(e)
     }
 
     // ---- Choam ----

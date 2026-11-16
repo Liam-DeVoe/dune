@@ -139,7 +139,7 @@ fn check(game: &Game, p: PlayerId, options: &ActionOptions, validation: &Option<
             assert_eq!(o.requests, heroes(requests.clone()), "{at}");
             let offers: Vec<(i32, Option<i32>)> = game.revival.early_revivals_offers.iter().map(|(h, v)| (h.id(), (*v != i32::MAX).then_some(*v))).collect();
             assert_eq!(o.offers.iter().map(|x| (x.hero.id, x.price)).collect::<Vec<_>>(), offers, "{at}");
-            assert_eq!(o.bot_awaits, game.revival.current_revival_requests.iter().any(|r| game.is_bot(r.player())), "{at}");
+            assert_eq!(o.bot_awaits, game.revival.current_revival_requests.iter().any(|r| game.is_bot(r.player.expect("player"))), "{at}");
             if !requests.is_empty() {
                 assert!(hero_of(draft).is_some_and(|h| requests.contains(&h)), "{at}: a request is picked");
                 assert!((0..=50).contains(&int(draft, "Price")), "{at}");

@@ -87,7 +87,7 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
             let e = bot.determine_prescience(game);
             common::decision(bot, game, e)
         }
-        "DetermineSetIncreasedRevivalLimits" => opt(bot.determine_set_increased_revival_limits(game)),
+        "DetermineSetIncreasedRevivalLimits" => common::decision(bot, game, bot.determine_set_increased_revival_limits(game)),
         "DetermineFaceDancerRevealed" => {
             let e = bot.determine_face_dancer_revealed(game);
             common::decision(bot, game, e)
@@ -100,8 +100,14 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
             let e = bot.determine_face_dancer_replaced(game);
             common::decision(bot, game, e)
         }
-        "DetermineRequestTleilaxuRevival" => opt(bot.determine_request_tleilaxu_revival(game)),
-        "DetermineAcceptOrCancelTleilaxuRevival" => opt(bot.determine_accept_or_cancel_tleilaxu_revival(game)),
+        "DetermineRequestTleilaxuRevival" => {
+            let e = bot.determine_request_tleilaxu_revival(game);
+            common::decision(bot, game, e)
+        }
+        "DetermineAcceptOrCancelTleilaxuRevival" => {
+            let e = bot.determine_accept_or_cancel_tleilaxu_revival(game);
+            common::decision(bot, game, e)
+        }
         "DetermineResourcesAudited" => opt(bot.determine_resources_audited(game)),
         "DetermineChoamEconomics" => opt(bot.determine_choam_economics(game)),
         "DetermineChoamRemoveForce" => opt(bot.determine_choam_remove_force(game)),

@@ -1,45 +1,30 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct KarmaRevivalPrevention {
     pub target: Option<Faction>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for KarmaRevivalPrevention {
-    fn default() -> Self {
-        KarmaRevivalPrevention {
-            target: Default::default(),
-            base: Default::default(),
-        }
-    }
 }
 
 impl KarmaRevivalPrevention {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        // PlayersOtherThan(null) only dereferences the player once there is a player to compare.
-        if !Self::get_valid_targets(game, self.player()).any(|v| Some(v) == self.target) {
-            return Some(express!("Invalid target"));
-        }
-
-        None
-    }
-
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn get_valid_targets(g: &Game, p: PlayerId) -> impl Iterator<Item = Faction> {
         g.players_other_than(p)
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.revival.current_karma_revival_prevention = Some(self.clone());
-        let me = self.player();
+impl EventRules for KarmaRevivalPrevention {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        // PlayersOtherThan(null) only dereferences the player once there is a player to compare.
+        if !Self::get_valid_targets(game, by.player()).any(|v| Some(v) == self.target) {
+            return Err(Rejection(express!("Invalid target")));
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        game.revival.current_karma_revival_prevention = Some(RevivalPrevention { target: self.target });
+        let me = by.player();
         let card = Karma::valid_karma_cards(game, me).into_iter().next();
         game.play_karma(me, card, vec!["prevent revival by ".into(), self.target.into()]);
         game.player_mut(me).special_karma_power_used = true;
@@ -47,35 +32,7 @@ impl KarmaRevivalPrevention {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!("Using ", TreacheryCardType::Karma, ", ", self.initiator(), " prevent revival by ", self.target)
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!("Using ", TreacheryCardType::Karma, ", ", by.faction, " prevent revival by ", self.target)
     }
-
-}
-
-impl GameEventMethods for KarmaRevivalPrevention {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::KarmaRevivalPrevention
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::KarmaRevivalPrevention(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        KarmaRevivalPrevention::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        KarmaRevivalPrevention::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        KarmaRevivalPrevention::get_message(self, game)
-    }
-
 }

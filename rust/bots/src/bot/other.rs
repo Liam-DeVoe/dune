@@ -488,17 +488,17 @@ impl ClassicBot {
         None
     }
 
-    pub fn determine_karma_free_revival(&self, game: &Game) -> Option<Rc<KarmaFreeRevival>> {
+    pub fn determine_karma_free_revival(&self, game: &Game) -> Option<KarmaFreeRevival> {
         let special_forces_that_can_be_revived = std::cmp::min(3, Revival::valid_max_revivals(game, self.player, true, false));
         let forces_killed = i32::from(game.player(self.player).forces_killed);
 
         if self.last_turn(game) || forces_killed + special_forces_that_can_be_revived >= 6 {
             let forces = std::cmp::max(0, std::cmp::min(3, forces_killed) - special_forces_that_can_be_revived);
-            let mut e = KarmaFreeRevival::new(game, self.faction(game));
+            let mut e = KarmaFreeRevival::default();
             e.hero = None;
             e.amount_of_forces = treachery_engine::game::amounts::clamp_u16(forces);
             e.amount_of_special_forces = treachery_engine::game::amounts::clamp_u16(special_forces_that_can_be_revived);
-            return Some(Rc::new(e));
+            return Some(e);
         }
 
         None
@@ -971,9 +971,9 @@ impl ClassicBot {
         0
     }
 
-    pub fn determine_revival(&self, game: &Game) -> Option<Rc<Revival>> {
+    pub fn determine_revival(&self, game: &Game) -> Option<Revival> {
         let faction = self.faction(game);
-        if game.revival.current_revival_requests.iter().any(|r| r.by(faction)) {
+        if game.revival.current_revival_requests.iter().any(|r| r.initiator == Some(faction)) {
             return None;
         }
 
@@ -1050,7 +1050,7 @@ impl ClassicBot {
             return None;
         }
 
-        let mut e = Revival::new(game, faction);
+        let mut e = Revival::default();
         e.hero = leader_to_revive;
         e.amount_of_forces = treachery_engine::game::amounts::clamp_u16(normal_forces_to_revive);
         e.extra_forces_paid_by_emperor = treachery_engine::game::amounts::clamp_u16(forces_revived_by_emperor);
@@ -1061,7 +1061,7 @@ impl ClassicBot {
         e.location = target_of_forces;
         e.number_of_forces_in_location = treachery_engine::game::amounts::clamp_u16(forces_to_planet);
         e.number_of_special_forces_in_location = treachery_engine::game::amounts::clamp_u16(special_forces_to_planet);
-        Some(Rc::new(e))
+        Some(e)
     }
 
     /// Where `count` revived forces go on the planet, and how many of them do: all of them, or none

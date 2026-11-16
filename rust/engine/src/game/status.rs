@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct GameStatus {
@@ -984,7 +985,7 @@ impl GameStatus {
         result
     }
 
-    pub fn flash<T: Into<ExpressionElement>>(flashes: &mut Vec<FlashInfo>, message: Message, to_show: T) {
+    pub fn flash<T: Into<Part>>(flashes: &mut Vec<FlashInfo>, message: Message, to_show: T) {
         flashes.push(FlashInfo { message, to_show: to_show.into() });
     }
 
@@ -1049,7 +1050,7 @@ impl GameStatus {
     }
 
     /// The calls above use `express!` directly, which is the same `Message.Express(elements)`.
-    pub fn express(elements: Vec<ExpressionElement>) -> Message {
+    pub fn express(elements: Vec<Part>) -> Message {
         Message::express(elements)
     }
 }
@@ -1057,6 +1058,6 @@ impl GameStatus {
 /// Every instance is created by `Flash<T>` with both members set, so there is no `new()`.
 #[derive(Clone, Debug)]
 pub struct FlashInfo {
-    pub to_show: ExpressionElement,
+    pub to_show: Part,
     pub message: Message,
 }

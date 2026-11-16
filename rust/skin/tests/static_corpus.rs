@@ -1,4 +1,4 @@
-//! Every describe/format/image URL/popup call of the skin on every static object (factions,
+//! Every describe/image URL/popup call of the skin on every static object (factions,
 //! locations, leaders, cards, tokens, enum values), as a snapshot.
 //!
 //! Each line of `tests/golden/static.jsonl.gz` names a call, its arguments and the text it
@@ -12,7 +12,7 @@ mod common;
 
 use common::*;
 use serde_json::Value;
-use treachery_engine::messages::expression::ExpressionElement;
+use treachery_engine::messages::part::Part;
 use treachery_engine::game::Game;
 use treachery_engine::heroes::hero::Hero;
 use treachery_engine::map::location::Location;
@@ -26,16 +26,13 @@ fn p(p: PointD) -> String {
 
 fn location(tok: &Value) -> Location {
     match element(tok) {
-        ExpressionElement::Location(l) => l,
+        Part::Location(l) => l,
         _ => panic!("{tok} is not a location"),
     }
 }
 
 fn hero(tok: &Value) -> Hero {
-    match element(tok) {
-        ExpressionElement::Hero(h) => h,
-        _ => panic!("{tok} is not a hero"),
-    }
+    element(tok).hero().unwrap_or_else(|| panic!("{tok} is not a hero"))
 }
 
 #[test]
@@ -51,6 +48,10 @@ fn static_corpus_matches_the_snapshot() {
         let call = v["call"].as_str().unwrap().to_string();
         let a = v["a"].as_array().unwrap().clone();
         let expected = v["out"].as_str().unwrap().to_string();
+        // Enum numbers that name no member of a closed enum can't be passed any more.
+        if a.iter().any(names_no_member) {
+            continue;
+        }
         let actual = outcome(|| match call.as_str() {
             "Describe" => s.describe(&element(&a[0])),
             "GetImageUrl" => s.get_image_url(&element(&a[0])),
@@ -88,7 +89,7 @@ fn static_corpus_matches_the_snapshot() {
             "GetSpiceLocation" => p(s.get_spice_location(location(&a[0]))),
             "GetPopupHomeworld" => s.get_popup_homeworld(location(&a[0]).as_homeworld().expect("homeworld")),
             "GetTerritoryBorder" => match element(&a[0]) {
-                ExpressionElement::Territory(t) => s.get_territory_border(Some(t)),
+                Part::Territory(t) => s.get_territory_border(Some(t)),
                 _ => panic!("not a territory"),
             },
             "GetCenterAttached" => {
@@ -104,10 +105,6 @@ fn static_corpus_matches_the_snapshot() {
             "GetPopupTreacheryCard" => s.get_popup_treachery_card(hero(&a[0]).as_treachery_card()),
             "WithSpiceIcons" => s.with_spice_icons(&str_arg(&a[0]), int_arg(&a[1]) as i32, bool_arg(&a[2])),
             "SpiceHtml" => s.spice_html(&str_arg(&a[0]), int_arg(&a[1]) as i32),
-            "Format" => {
-                let args: Vec<ExpressionElement> = a[1..].iter().map(element).collect();
-                s.format(&str_arg(&a[0]), &args)
-            }
             other => panic!("unknown call {other} in the static corpus: add it to this test"),
         });
         diffs.check(&format!("{call}({})", Value::Array(a.clone())), &expected, &actual);

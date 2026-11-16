@@ -1,6 +1,7 @@
 use crate::log::blow::WormSentLog;
 use crate::game::MonsterAppearance;
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct FremenSentMonster {
@@ -55,7 +56,7 @@ impl FremenSentMonster {
         let msg = self.get_message(game);
         let territory = self.territory(game).required("territory")?;
         let msg = msg.with_log(WormSentLog::new(self.initiator(), territory));
-        self.log_objects(game, vec![ExpressionElement::from(msg)]);
+        self.log_objects(game, vec![Part::from(msg)]);
         let monster = MonsterAppearance::new(territory, false);
         game.blow.monsters.push(monster.clone());
         game.perform_monster(&monster);

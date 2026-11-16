@@ -1,33 +1,26 @@
 //! The skin: names, images and the text of log messages.
 //!
-//! [`Skin::describe`] renders any [`ExpressionElement`], and `describe_<type>` one value of a
+//! [`Skin::render`] renders a message, [`Skin::describe`] any [`Part`], and `describe_<type>` one value of a
 //! known type, such as [`Skin::describe_faction`].
 //!
 //! The faction rules sheets are in [`crate::faction_manual`], and loading and saving skins in
 //! [`crate::skin_json`].
 
 use treachery_engine::enumerations::*;
-use treachery_engine::messages::expression::ExpressionElement;
+use treachery_engine::messages::part::Part;
+use treachery_engine::parts;
 use treachery_engine::game::Game;
 use treachery_engine::map::homeworld::Homeworld;
 use treachery_engine::heroes::hero::Hero;
 use treachery_engine::heroes::leader::Leader;
 use treachery_engine::map::location::Location;
 use treachery_engine::map::Map;
-use treachery_engine::messages::message::{Message, MessagePart};
+use treachery_engine::messages::message::Message;
 use treachery_engine::map::point::PointD;
 use treachery_engine::cards::resource_card::ResourceCard;
 use treachery_engine::map::territory::Territory;
 use treachery_engine::cards::treachery_card::TreacheryCard;
 use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
-
-/// The `Format` argument list: each argument converts with `ExpressionElement::from`.
-#[macro_export]
-macro_rules! args {
-    ($($a:expr),* $(,)?) => {
-        vec![$(::treachery_engine::messages::expression::ExpressionElement::from($a)),*]
-    };
-}
 
 /// A key of a skin dictionary: an `int` or an enum.
 pub trait SkinKey: Copy + PartialEq + 'static {
@@ -323,21 +316,18 @@ impl Skin {
 
     // #region Descriptions
 
-    /// `Format(string m, params object[] list)`: `string.Format` over the described arguments.
-    /// Any exception, in `Describe` or in `string.Format`, gives back `m` unchanged.
-    pub fn format(&self, m: &str, list: &[ExpressionElement]) -> String {
-        if list.is_empty() {
-            return m.to_string();
-        }
-        let args = self.describe_array(list);
-        let args: Vec<Option<&str>> = args.iter().map(|a| Some(a.as_str())).collect();
-        dotnet_compat::fmt::string_format(m, &args).unwrap_or_else(|_| m.to_string())
+    /// A message's text: each part described, one after the other.
+    pub fn render(&self, m: &Message) -> String {
+        self.render_parts(&m.parts)
     }
 
-    /// `Join<T>(IEnumerable<T>? items)`: the described items joined with `", "`, or `"-"` when
-    /// that is empty.
-    pub fn join(&self, items: Option<&[ExpressionElement]>) -> String {
-        let Some(items) = items else { return String::new() };
+    /// The text of these parts, each described, one after the other.
+    pub fn render_parts(&self, parts: &[Part]) -> String {
+        parts.iter().map(|p| self.describe(p)).collect()
+    }
+
+    /// The described items joined with `", "`, or `"-"` when that is empty.
+    pub fn join(&self, items: &[Part]) -> String {
         let result = items.iter().map(|i| self.describe(i)).collect::<Vec<_>>().join(", ");
         if result.is_empty() {
             return "-".to_string();
@@ -385,91 +375,61 @@ impl Skin {
         if location.spice_blow_amount() != 0 { *self.location_spice_point.index(location.id()) } else { PointD::new(0.0, 0.0) }
     }
 
-    /// `Describe(object? value)`.
-    pub fn describe(&self, value: &ExpressionElement) -> String {
-        use ExpressionElement as E;
-        match value {
-            E::Null => String::new(),
-            E::String(s) => s.clone(),
-            E::Bool(b) => if *b { "Yes" } else { "No" }.to_string(),
-            E::Message(m) => self.message_to_string(m),
-            E::MessagePart(p) => self.message_part_to_string(p),
-            E::Payment(p) => self.format("{0} {1}", &args![p.amount, Concept::Resource]),
-            E::Enum(e) => {
-                if let Some(v) = e.get::<UserStatus>() {
-                    describe_user_status(v)
-                } else if let Some(v) = e.get::<SubscriptionType>() {
-                    describe_subscription_type(v)
-                } else if let Some(v) = e.get_opt::<Concept>() {
-                    self.describe_concept(v)
-                } else if let Some(v) = e.get::<Faction>() {
-                    self.describe_faction(v)
-                } else if let Some(v) = e.get_opt::<Ambassador>() {
-                    self.describe_ambassador(v)
-                } else if let Some(v) = e.get_opt::<PrescienceAspect>() {
-                    self.describe_prescience_aspect(v)
-                } else if let Some(v) = e.get_opt::<FactionForce>() {
-                    self.describe_faction_force(v)
-                } else if let Some(v) = e.get_opt::<FactionSpecialForce>() {
-                    self.describe_faction_special_force(v)
-                } else if let Some(v) = e.get_opt::<FactionAdvantage>() {
-                    self.describe_faction_advantage(v)
-                } else if let Some(v) = e.get_opt::<TreacheryCardType>() {
-                    self.describe_treachery_card_type(v)
-                } else if let Some(v) = e.get_opt::<LeaderSkill>() {
-                    self.describe_leader_skill(v)
-                } else if let Some(v) = e.get_opt::<TerrorType>() {
-                    self.describe_terror_type(v)
-                } else if let Some(v) = e.get_opt::<DiscoveryToken>() {
-                    self.describe_discovery_token(v)
-                } else if let Some(v) = e.get_opt::<DiscoveryTokenType>() {
-                    self.describe_discovery_token_type(v)
-                } else if let Some(v) = e.get_opt::<Ruleset>() {
-                    describe_ruleset(v)
-                } else if let Some(v) = e.get::<AutomationRuleType>() {
-                    self.describe_automation_rule_type(v)
-                } else if let Some(v) = e.get_opt::<RuleGroup>() {
-                    describe_rule_group(v)
-                } else if let Some(v) = e.get_opt::<Rule>() {
-                    self.describe_rule(v)
-                } else if let Some(v) = e.get::<MainPhase>() {
-                    self.describe_main_phase(v)
-                } else if let Some(v) = e.get_opt::<TechToken>() {
-                    self.describe_tech_token(v)
-                } else if let Some(v) = e.get_opt::<WinMethod>() {
-                    self.describe_win_method(v)
-                } else if let Some(v) = e.get::<Phase>() {
-                    describe_phase(v)
-                } else if let Some(v) = e.get_opt::<ChoamEconomicsStatus>() {
-                    describe_choam_economics_status(v)
-                } else if let Some(v) = e.get_opt::<AuctionType>() {
-                    describe_auction_type(v)
-                } else if let Some(v) = e.get_opt::<JuiceType>() {
-                    describe_juice_type(v)
-                } else if let Some(v) = e.get_opt::<CaptureDecision>() {
-                    describe_capture_decision(v)
-                } else if let Some(v) = e.get_opt::<StrongholdAdvantage>() {
-                    self.describe_stronghold_advantage(v)
-                } else if let Some(v) = e.get_opt::<ClairVoyanceAnswer>() {
-                    describe_clair_voyance_answer(v)
-                } else {
-                    // `value.ToString()`: the enum's name (or number, or flags list).
-                    value.to_cs_string()
-                }
-            }
-            E::ResourceCard(rc) => self.describe_resource_card(Some(*rc)),
-            E::Hero(Hero::TreacheryCard(tc)) => self.describe_treachery_card(*tc),
-            E::Territory(t) => self.describe_territory(*t),
-            E::Location(l) => self.describe_location(*l),
-            E::Hero(h) => self.describe_hero(Some(*h)),
-            E::List { items, .. } => self.join(Some(items)),
-            // `value.ToString()`: numbers (invariant culture), exceptions, `Player`.
-            E::Int(_) | E::Long(_) | E::Float(_) | E::Double(_) | E::Error(_) | E::Player(_) => value.to_cs_string(),
+    /// The text of one part.
+    pub fn describe(&self, part: &Part) -> String {
+        match part {
+            Part::Null => String::new(),
+            Part::Text(s) => s.to_string(),
+            Part::Bool(b) => if *b { "Yes" } else { "No" }.to_string(),
+            Part::Number(i) => i.to_string(),
+            // Printed as .NET prints them, under the invariant culture.
+            Part::Float(f) => dotnet_compat::fmt::f32_to_string(*f),
+            Part::Double(f) => dotnet_compat::fmt::f64_to_string(*f),
+            Part::Payment { amount, .. } => self.render_parts(&parts![*amount, " ", Concept::Resource]),
+            Part::Location(l) => self.describe_location(*l),
+            Part::Territory(t) => self.describe_territory(*t),
+            Part::Leader(l) => self.describe_hero(Some(Hero::Leader(*l))),
+            Part::Messiah => self.describe_hero(Some(Hero::Messiah)),
+            Part::Card(c) => self.describe_treachery_card(*c),
+            Part::SpiceCard(c) => self.describe_resource_card(Some(*c)),
+            Part::List(items) => self.join(items),
+            Part::Phrase(parts) => self.render_parts(parts),
+            Part::Message(m) => self.render(m),
+            Part::Error(e) => e.to_string(),
+            Part::UserStatus(v) => describe_user_status(*v),
+            Part::SubscriptionType(v) => describe_subscription_type(*v),
+            Part::Concept(v) => self.describe_concept(*v),
+            Part::Faction(v) => self.describe_faction(*v),
+            Part::Ambassador(v) => self.describe_ambassador(*v),
+            Part::PrescienceAspect(v) => self.describe_prescience_aspect(*v),
+            Part::FactionForce(v) => self.describe_faction_force(*v),
+            Part::FactionSpecialForce(v) => self.describe_faction_special_force(*v),
+            Part::FactionAdvantage(v) => self.describe_faction_advantage(*v),
+            Part::TreacheryCardType(v) => self.describe_treachery_card_type(*v),
+            Part::LeaderSkill(v) => self.describe_leader_skill(*v),
+            Part::TerrorType(v) => self.describe_terror_type(*v),
+            Part::DiscoveryToken(v) => self.describe_discovery_token(*v),
+            Part::DiscoveryTokenType(v) => self.describe_discovery_token_type(*v),
+            Part::Ruleset(v) => describe_ruleset(*v),
+            Part::AutomationRuleType(v) => self.describe_automation_rule_type(*v),
+            Part::RuleGroup(v) => describe_rule_group(*v),
+            Part::Rule(v) => self.describe_rule(*v),
+            Part::MainPhase(v) => self.describe_main_phase(*v),
+            Part::TechToken(v) => self.describe_tech_token(*v),
+            Part::WinMethod(v) => self.describe_win_method(*v),
+            Part::Phase(v) => describe_phase(*v),
+            Part::ChoamEconomicsStatus(v) => describe_choam_economics_status(*v),
+            Part::AuctionType(v) => describe_auction_type(*v),
+            Part::JuiceType(v) => describe_juice_type(*v),
+            Part::CaptureDecision(v) => describe_capture_decision(*v),
+            Part::StrongholdAdvantage(v) => self.describe_stronghold_advantage(*v),
+            Part::ClairVoyanceAnswer(v) => describe_clair_voyance_answer(*v),
+            // Any other enum: its member name.
+            other => match other.enum_value() {
+                Some((info, value)) => info.format(value),
+                None => unreachable!("every part that isn't an enum is described above"),
+            },
         }
-    }
-
-    fn describe_array(&self, objects: &[ExpressionElement]) -> Vec<String> {
-        objects.iter().map(|o| self.describe(o)).collect()
     }
 
     pub fn describe_territory(&self, t: Territory) -> String {
@@ -487,7 +447,7 @@ impl Skin {
 
     pub fn describe_location(&self, l: Location) -> String {
         if !l.orientation().is_empty() {
-            return self.format("{0} ({1} Sector)", &args![l.territory(), l.orientation()]);
+            return self.render_parts(&parts![l.territory(), " (", l.orientation(), " Sector)"]);
         }
         self.describe_territory(l.territory())
     }
@@ -764,33 +724,21 @@ impl Skin {
         )
     }
 
-    pub fn get_image_url(&self, obj: &ExpressionElement) -> String {
-        use ExpressionElement as E;
-        match obj {
-            E::Hero(Hero::TreacheryCard(tc)) => self.get_image_url_treachery_card(Some(*tc)),
-            E::ResourceCard(rc) => self.get_image_url_resource_card(Some(*rc)),
-            E::Hero(h) => self.get_image_url_hero(Some(*h)),
-            E::Enum(e) => {
-                if let Some(v) = e.get_opt::<LeaderSkill>() {
-                    self.get_image_url_leader_skill(v)
-                } else if let Some(v) = e.get_opt::<TechToken>() {
-                    self.get_image_url_tech_token(v)
-                } else if let Some(v) = e.get::<Faction>() {
-                    self.get_image_url_faction(v)
-                } else if let Some(v) = e.get_opt::<Nexus>() {
-                    self.get_image_url_nexus(v)
-                } else if let Some(v) = e.get_opt::<Ambassador>() {
-                    self.get_image_url_ambassador(v)
-                } else if let Some(v) = e.get_opt::<FactionForce>() {
-                    self.get_image_url_faction_force(v)
-                } else if let Some(v) = e.get_opt::<FactionSpecialForce>() {
-                    self.get_image_url_faction_special_force(v)
-                } else if let Some(v) = e.get_opt::<StrongholdAdvantage>() {
-                    self.get_image_url_stronghold_advantage(v)
-                } else {
-                    String::new()
-                }
-            }
+    /// The image of a card, hero or enum value, or `""` for any other part.
+    pub fn get_image_url(&self, part: &Part) -> String {
+        match part {
+            Part::Card(tc) => self.get_image_url_treachery_card(Some(*tc)),
+            Part::SpiceCard(rc) => self.get_image_url_resource_card(Some(*rc)),
+            Part::Leader(l) => self.get_image_url_hero(Some(Hero::Leader(*l))),
+            Part::Messiah => self.get_image_url_hero(Some(Hero::Messiah)),
+            Part::LeaderSkill(v) => self.get_image_url_leader_skill(*v),
+            Part::TechToken(v) => self.get_image_url_tech_token(*v),
+            Part::Faction(v) => self.get_image_url_faction(*v),
+            Part::Nexus(v) => self.get_image_url_nexus(*v),
+            Part::Ambassador(v) => self.get_image_url_ambassador(*v),
+            Part::FactionForce(v) => self.get_image_url_faction_force(*v),
+            Part::FactionSpecialForce(v) => self.get_image_url_faction_special_force(*v),
+            Part::StrongholdAdvantage(v) => self.get_image_url_stronghold_advantage(*v),
             _ => String::new(),
         }
     }
@@ -848,123 +796,90 @@ impl Skin {
         use FactionSpecialForce as Fsf;
         match advantage {
             None => "- Any stoppable advantage not listed below -".to_string(),
-            Some(A::AtreidesBiddingPrescience) => self.format("{0} seeing the card on auction", &args![Faction::Atreides]),
+            Some(A::AtreidesBiddingPrescience) => self.render_parts(&parts![Faction::Atreides, " seeing the card on auction"]),
             Some(A::AtreidesSpiceBlowPrescience) => {
                 let resource = self.concept_str.index(Some(Concept::Resource)).clone();
-                self.format("{0} seeing the top {1} card this turn", &args![Faction::Atreides, resource])
+                self.render_parts(&parts![Faction::Atreides, " seeing the top ", resource, " card this turn"])
             }
-            Some(A::AtreidesBattlePlanPrescience) => self.format("{0} seeing part of the opponent battle plan", &args![Faction::Atreides]),
+            Some(A::AtreidesBattlePlanPrescience) => self.render_parts(&parts![Faction::Atreides, " seeing part of the opponent battle plan"]),
             Some(A::AtreidesUseMessiah) => {
                 let messiah = self.concept_str.index(Some(Concept::Messiah)).clone();
-                self.format("{0} using the {1} in this battle", &args![Faction::Atreides, messiah])
+                self.render_parts(&parts![Faction::Atreides, " using the ", messiah, " in this battle"])
             }
-            Some(A::HarkonnenFreeCard) => self.format("{0} taking a free treachery card", &args![Faction::Harkonnen]),
-            Some(A::HarkonnenCaptureLeader) => self.format("{0} capturing a leader after this battle", &args![Faction::Harkonnen]),
-            Some(A::HarkonnenCallTraitorForAlly) => self.format("{0} calling TREACHERY for their ally in this battle", &args![Faction::Harkonnen]),
-            Some(A::BeneGesseritAccompanies) => self.format("{0} accompanying shipment", &args![Faction::BeneGesserit]),
-            Some(A::BeneGesseritAnnouncesBattle) => self.format("{0} flipping advisors to fighters*", &args![Faction::BeneGesserit]),
-            Some(A::BeneGesseritIntrusion) => self.format("{0} becoming advisors on intrusion", &args![Faction::BeneGesserit]),
-            Some(A::BeneGesseritUsingVoice) => self.format("{0} using Voice during this battle", &args![Faction::BeneGesserit]),
-            Some(A::BeneGesseritWorthlessAsKarma) => self.format(
-                "{0} using a {1} as a {2} card*",
-                &args![Faction::BeneGesserit, TreacheryCardType::Useless, TreacheryCardType::Karma],
-            ),
+            Some(A::HarkonnenFreeCard) => self.render_parts(&parts![Faction::Harkonnen, " taking a free treachery card"]),
+            Some(A::HarkonnenCaptureLeader) => self.render_parts(&parts![Faction::Harkonnen, " capturing a leader after this battle"]),
+            Some(A::HarkonnenCallTraitorForAlly) => self.render_parts(&parts![Faction::Harkonnen, " calling TREACHERY for their ally in this battle"]),
+            Some(A::BeneGesseritAccompanies) => self.render_parts(&parts![Faction::BeneGesserit, " accompanying shipment"]),
+            Some(A::BeneGesseritAnnouncesBattle) => self.render_parts(&parts![Faction::BeneGesserit, " flipping advisors to fighters*"]),
+            Some(A::BeneGesseritIntrusion) => self.render_parts(&parts![Faction::BeneGesserit, " becoming advisors on intrusion"]),
+            Some(A::BeneGesseritUsingVoice) => self.render_parts(&parts![Faction::BeneGesserit, " using Voice during this battle"]),
+            Some(A::BeneGesseritWorthlessAsKarma) => self.render_parts(&parts![Faction::BeneGesserit, " using a ", TreacheryCardType::Useless, " as a ", TreacheryCardType::Karma, " card*"]),
             Some(A::BeneGesseritCharity) => {
-                self.format("{0} receiving 2 {1} at {2}", &args![Faction::BeneGesserit, Concept::Resource, MainPhase::Charity])
+                self.render_parts(&parts![Faction::BeneGesserit, " receiving 2 ", Concept::Resource, " at ", MainPhase::Charity])
             }
-            Some(A::FremenControlsMonster) => self.format(
-                "{0} sending {1} when a subsequent {1} card is drawn",
-                &args![Faction::Fremen, Concept::Monster],
-            ),
-            Some(A::FremenRidesMonster) => self.format("{0} riding {1}", &args![Faction::Fremen, Concept::Monster]),
-            Some(A::FremenNotPayingForBattles) => self.format("{0} not paying for forces in this battle", &args![Faction::Fremen]),
+            Some(A::FremenControlsMonster) => self.render_parts(&parts![Faction::Fremen, " sending ", Concept::Monster, " when a subsequent ", Concept::Monster, " card is drawn"]),
+            Some(A::FremenRidesMonster) => self.render_parts(&parts![Faction::Fremen, " riding ", Concept::Monster]),
+            Some(A::FremenNotPayingForBattles) => self.render_parts(&parts![Faction::Fremen, " not paying for forces in this battle"]),
             Some(A::FremenSpecialForceBonus) => {
-                self.format("{0} counting {1} bonus in this battle", &args![Faction::Fremen, Fsf::Fremen])
+                self.render_parts(&parts![Faction::Fremen, " counting ", Fsf::Fremen, " bonus in this battle"])
             }
             Some(A::FremenExtraMove) => {
-                self.format("{0} moving two territories as part of their move action", &args![Faction::Fremen])
+                self.render_parts(&parts![Faction::Fremen, " moving two territories as part of their move action"])
             }
-            Some(A::FremenProtectedFromStorm) => self.format("{0} not taking storm losses when hit", &args![Faction::Fremen]),
+            Some(A::FremenProtectedFromStorm) => self.render_parts(&parts![Faction::Fremen, " not taking storm losses when hit"]),
             Some(A::FremenProtectedFromMonster) => {
-                self.format("{0} not being devoured by {1}", &args![Faction::Fremen, Concept::Monster])
+                self.render_parts(&parts![Faction::Fremen, " not being devoured by ", Concept::Monster])
             }
             Some(A::FremenProtectedFromMonsterAlly) => {
-                self.format("{0} ally not being devoured by {1}", &args![Faction::Fremen, Concept::Monster])
+                self.render_parts(&parts![Faction::Fremen, " ally not being devoured by ", Concept::Monster])
             }
-            Some(A::FremenStormPrescience) => self.format("{0} seeing the storm movement this turn", &args![Faction::Fremen]),
-            Some(A::EmperorSpecialForceBonus) => self.format("{0} counting {1} bonus in this battle", &args![Faction::Emperor, Fsf::Emperor]),
+            Some(A::FremenStormPrescience) => self.render_parts(&parts![Faction::Fremen, " seeing the storm movement this turn"]),
+            Some(A::EmperorSpecialForceBonus) => self.render_parts(&parts![Faction::Emperor, " counting ", Fsf::Emperor, " bonus in this battle"]),
             Some(A::EmperorReceiveBid) => {
-                self.format("{0} receiving {1} for a treachery card", &args![Faction::Emperor, Concept::Resource])
+                self.render_parts(&parts![Faction::Emperor, " receiving ", Concept::Resource, " for a treachery card"])
             }
-            Some(A::EmperorGiveSpiceToAlly) => self.format("{0} giving {1} to their ally*", &args![Faction::Emperor, Concept::Resource]),
-            Some(A::EmperorLetAllyReviveExtraForces) => self.format(
-                "{0} allowing their ally to revive 3 extra forces",
-                &args![Faction::Emperor, Concept::Resource],
-            ),
-            Some(A::GuildDetermineMoveMoment) => self.format(
-                "{0} shipping out of turn order (play before their normal turn)",
-                &args![Faction::Guild],
-            ),
+            Some(A::EmperorGiveSpiceToAlly) => self.render_parts(&parts![Faction::Emperor, " giving ", Concept::Resource, " to their ally*"]),
+            Some(A::EmperorLetAllyReviveExtraForces) => self.render_parts(&parts![Faction::Emperor, " allowing their ally to revive 3 extra forces"]),
+            Some(A::GuildDetermineMoveMoment) => self.render_parts(&parts![Faction::Guild, " shipping out of turn order (play before their normal turn)"]),
             Some(A::GuildSpecialShipments) => {
-                self.format("{0} (and ally) shipping site-to-site or back to reserves", &args![Faction::Guild])
+                self.render_parts(&parts![Faction::Guild, " (and ally) shipping site-to-site or back to reserves"])
             }
-            Some(A::GuildShipmentsDiscount) => self.format("{0} shipping at half price", &args![Faction::Guild]),
-            Some(A::GuildShipmentsDiscountAlly) => self.format("{0} ally shipping at half price", &args![Faction::Guild]),
+            Some(A::GuildShipmentsDiscount) => self.render_parts(&parts![Faction::Guild, " shipping at half price"]),
+            Some(A::GuildShipmentsDiscountAlly) => self.render_parts(&parts![Faction::Guild, " ally shipping at half price"]),
             Some(A::GuildReceiveShipment) => {
-                self.format("{0} receiving {1} for a shipment", &args![Faction::Guild, Concept::Resource])
+                self.render_parts(&parts![Faction::Guild, " receiving ", Concept::Resource, " for a shipment"])
             }
-            Some(A::TleilaxuRevivalDiscount) => self.format("{0} reviving at half price", &args![Faction::Tleilaxu]),
-            Some(A::TleilaxuRevivalDiscountAlly) => self.format("{0} ally reviving at half price", &args![Faction::Tleilaxu]),
+            Some(A::TleilaxuRevivalDiscount) => self.render_parts(&parts![Faction::Tleilaxu, " reviving at half price"]),
+            Some(A::TleilaxuRevivalDiscountAlly) => self.render_parts(&parts![Faction::Tleilaxu, " ally reviving at half price"]),
             Some(A::TleilaxuReplacingFaceDancer) => {
-                self.format("{0} replacing a face dancer at end of turn", &args![Faction::Tleilaxu])
+                self.render_parts(&parts![Faction::Tleilaxu, " replacing a face dancer at end of turn"])
             }
-            Some(A::TleilaxuIncreasingRevivalLimits) => self.format("{0} increasing revival limits", &args![Faction::Tleilaxu]),
+            Some(A::TleilaxuIncreasingRevivalLimits) => self.render_parts(&parts![Faction::Tleilaxu, " increasing revival limits"]),
             Some(A::TleilaxuReceiveRevive) => {
-                self.format("{0} receiving {1} for revival", &args![Faction::Tleilaxu, Concept::Resource])
+                self.render_parts(&parts![Faction::Tleilaxu, " receiving ", Concept::Resource, " for revival"])
             }
             Some(A::TleilaxuEarlyLeaderRevive) => {
-                self.format("{0} allowing early revival of a leader*", &args![Faction::Tleilaxu])
+                self.render_parts(&parts![Faction::Tleilaxu, " allowing early revival of a leader*"])
             }
-            Some(A::TleilaxuReviveGhola) => self.format("{0} reviving a leader as a Ghola", &args![Faction::Tleilaxu]),
-            Some(A::IxianMovingHms) => self.format("{0} moving the Hidden Mobile Stronghold", &args![Faction::Ixian]),
-            Some(A::IxianSpecialForceBonus) => self.format("{0} counting {1} bonus in this battle", &args![Faction::Ixian, Fsf::Ixian]),
-            Some(A::IxianSelectingCardsOnAuction) => self.format(
-                "{0} selecting a card to go on top or bottom (play before they draw cards on auction)",
-                &args![Faction::Ixian],
-            ),
-            Some(A::IxianCyborgExtraMove) => self.format("{0} moving {1} two territories", &args![Faction::Ixian, Fsf::Ixian]),
-            Some(A::IxianReplacingSpecialForces) => self.format(
-                "{0} replacing {1} lost in battle with {2}",
-                &args![Faction::Ixian, Fsf::Ixian, FactionForce::Ixian],
-            ),
+            Some(A::TleilaxuReviveGhola) => self.render_parts(&parts![Faction::Tleilaxu, " reviving a leader as a Ghola"]),
+            Some(A::IxianMovingHms) => self.render_parts(&parts![Faction::Ixian, " moving the Hidden Mobile Stronghold"]),
+            Some(A::IxianSpecialForceBonus) => self.render_parts(&parts![Faction::Ixian, " counting ", Fsf::Ixian, " bonus in this battle"]),
+            Some(A::IxianSelectingCardsOnAuction) => self.render_parts(&parts![Faction::Ixian, " selecting a card to go on top or bottom (play before they draw cards on auction)"]),
+            Some(A::IxianCyborgExtraMove) => self.render_parts(&parts![Faction::Ixian, " moving ", Fsf::Ixian, " two territories"]),
+            Some(A::IxianReplacingSpecialForces) => self.render_parts(&parts![Faction::Ixian, " replacing ", Fsf::Ixian, " lost in battle with ", FactionForce::Ixian]),
             Some(A::IxianAllyDiscardingCard) => {
-                self.format("{0} allowing their ally to replace a won card", &args![Faction::Ixian])
+                self.render_parts(&parts![Faction::Ixian, " allowing their ally to replace a won card"])
             }
-            Some(A::IxianSwappingCard) => self.format("{0} replacing a treachery card during bidding", &args![Faction::Ixian]),
-            Some(A::ChoamControllingCharity) => self.format(
-                "{0} receiving and giving {1} during {2}",
-                &args![Faction::Choam, Concept::Resource, MainPhase::Charity],
-            ),
-            Some(A::ChoamDiscarding) => self.format(
-                "{0} discarding cards for {1} or a {2} card for its special effect*",
-                &args![Faction::Choam, Concept::Resource, TreacheryCardType::Useless],
-            ),
-            Some(A::ChoamRevival) => self.format(
-                "{0} having unlimited force revival and reduced revival cost",
-                &args![Faction::Choam],
-            ),
-            Some(A::ChoamEconomics) => self.format(
-                "{0} playing their Inflation token during {1}",
-                &args![Faction::Choam, MainPhase::Contemplate],
-            ),
-            Some(A::ChoamReceiveForcePayment) => self.format(
-                "{0} collecting {1} payment for forces this battle",
-                &args![Faction::Choam, Concept::Resource],
-            ),
-            Some(A::ChoamAudit) => self.format("{0} auditing their opponent after this battle", &args![Faction::Choam]),
-            Some(A::RicheseAuction) => self.format("{0} auctioning a card from their card cache", &args![Faction::Richese]),
-            Some(A::RicheseNofield) => self.format("{0} using a No-Field to ship", &args![Faction::Richese]),
-            Some(A::RicheseBlackMarket) => self.format("{0} selling a card from their hand", &args![Faction::Richese]),
+            Some(A::IxianSwappingCard) => self.render_parts(&parts![Faction::Ixian, " replacing a treachery card during bidding"]),
+            Some(A::ChoamControllingCharity) => self.render_parts(&parts![Faction::Choam, " receiving and giving ", Concept::Resource, " during ", MainPhase::Charity]),
+            Some(A::ChoamDiscarding) => self.render_parts(&parts![Faction::Choam, " discarding cards for ", Concept::Resource, " or a ", TreacheryCardType::Useless, " card for its special effect*"]),
+            Some(A::ChoamRevival) => self.render_parts(&parts![Faction::Choam, " having unlimited force revival and reduced revival cost"]),
+            Some(A::ChoamEconomics) => self.render_parts(&parts![Faction::Choam, " playing their Inflation token during ", MainPhase::Contemplate]),
+            Some(A::ChoamReceiveForcePayment) => self.render_parts(&parts![Faction::Choam, " collecting ", Concept::Resource, " payment for forces this battle"]),
+            Some(A::ChoamAudit) => self.render_parts(&parts![Faction::Choam, " auditing their opponent after this battle"]),
+            Some(A::RicheseAuction) => self.render_parts(&parts![Faction::Richese, " auctioning a card from their card cache"]),
+            Some(A::RicheseNofield) => self.render_parts(&parts![Faction::Richese, " using a No-Field to ship"]),
+            Some(A::RicheseBlackMarket) => self.render_parts(&parts![Faction::Richese, " selling a card from their hand"]),
 
             _ => "Unknown".to_string(),
         }
@@ -991,8 +906,8 @@ impl Skin {
             Some(WinMethod::Prediction) => "by prediction".to_string(),
             Some(WinMethod::Timeout) => "by running out of time".to_string(),
             Some(WinMethod::Forfeit) => "by forfeit".to_string(),
-            Some(WinMethod::FremenSpecial) => self.format("by {0} special victory", &args![Faction::Fremen]),
-            Some(WinMethod::GuildSpecial) => self.format("by {0} special victory", &args![Faction::Guild]),
+            Some(WinMethod::FremenSpecial) => self.render_parts(&parts!["by ", Faction::Fremen, " special victory"]),
+            Some(WinMethod::GuildSpecial) => self.render_parts(&parts!["by ", Faction::Guild, " special victory"]),
             _ => "None".to_string(),
         }
     }
@@ -1003,8 +918,8 @@ impl Skin {
             Some(AuctionType::BlackMarketNormal) => "Black Market / Normal".to_string(),
             Some(AuctionType::BlackMarketSilent) => "Black Market / Silent".to_string(),
             Some(AuctionType::BlackMarketOnceAround) => "Black Market / Once Around".to_string(),
-            Some(AuctionType::RicheseSilent) => self.format("{0} / Silent", &args![Faction::Richese]),
-            Some(AuctionType::RicheseOnceAround) => self.format("{0} / Once Around", &args![Faction::Richese]),
+            Some(AuctionType::RicheseSilent) => self.render_parts(&parts![Faction::Richese, " / Silent"]),
+            Some(AuctionType::RicheseOnceAround) => self.render_parts(&parts![Faction::Richese, " / Once Around"]),
             None => "None".to_string(),
         }
     }
@@ -1036,92 +951,89 @@ impl Skin {
             Rule::IncreasedResourceFlow => s("Increased Spice Flow"),
             Rule::AdvancedKarama => s("Advanced Karama Cards"),
             Rule::FremenDeterminesStorm => {
-                self.format("{0} determine storm movement with the Storm Deck", &args![Faction::Fremen])
+                self.render_parts(&parts![Faction::Fremen, " determine storm movement with the Storm Deck"])
             }
-            Rule::FremenStormLosses => self.format("{0} storm losses are halved", &args![Faction::Fremen]),
-            Rule::FremenSendingMonster => self.format("{0} place additional {1}s", &args![Faction::Fremen, Concept::Monster]),
-            Rule::FremenSpecialForces => self.format("{0} can use {1}", &args![Faction::Fremen, Fsf::Fremen]),
-            Rule::AtreidesMessiah => self.format("Enable {0}", &args![Concept::Messiah]),
-            Rule::HarkonnenCapturesOrKillsLeaders => self.format("{0} can kill or capture leaders", &args![Faction::Harkonnen]),
+            Rule::FremenStormLosses => self.render_parts(&parts![Faction::Fremen, " storm losses are halved"]),
+            Rule::FremenSendingMonster => self.render_parts(&parts![Faction::Fremen, " place additional ", Concept::Monster, "s"]),
+            Rule::FremenSpecialForces => self.render_parts(&parts![Faction::Fremen, " can use ", Fsf::Fremen]),
+            Rule::AtreidesMessiah => self.render_parts(&parts!["Enable ", Concept::Messiah]),
+            Rule::HarkonnenCapturesOrKillsLeaders => self.render_parts(&parts![Faction::Harkonnen, " can kill or capture leaders"]),
             Rule::BeneGesseritFirstForceInAnyTerritory => {
-                self.format("{0} can put their initial force anywhere", &args![Faction::BeneGesserit])
+                self.render_parts(&parts![Faction::BeneGesserit, " can put their initial force anywhere"])
             }
-            Rule::BeneGesseritAutoCharity => self.format("{0} get 2 charity each turn", &args![Faction::BeneGesserit]),
+            Rule::BeneGesseritAutoCharity => self.render_parts(&parts![Faction::BeneGesserit, " get 2 charity each turn"]),
             Rule::BeneGesseritWorthlessAsKarma => {
-                self.format("{0} can use {1} cards for {2}", &args![Faction::BeneGesserit, Tct::Useless, Tct::Karma])
+                self.render_parts(&parts![Faction::BeneGesserit, " can use ", Tct::Useless, " cards for ", Tct::Karma])
             }
-            Rule::BeneGesseritAdvisors => self.format("{0} can use {1}", &args![Faction::BeneGesserit, Fsf::BeneGesserit]),
+            Rule::BeneGesseritAdvisors => self.render_parts(&parts![Faction::BeneGesserit, " can use ", Fsf::BeneGesserit]),
             Rule::BeneGesseritAccompaniesToShipmentLocation => {
-                self.format("{0} can accompany to the shipped to territory", &args![Faction::BeneGesserit])
+                self.render_parts(&parts![Faction::BeneGesserit, " can accompany to the shipped to territory"])
             }
             Rule::GuildDetermineShipment => {
-                self.format("{0} can determine when they ship and move", &args![Faction::Guild])
+                self.render_parts(&parts![Faction::Guild, " can determine when they ship and move"])
             }
-            Rule::EmperorSpecialForces => self.format("{0} can use {1}", &args![Faction::Emperor, Fsf::Emperor]),
+            Rule::EmperorSpecialForces => self.render_parts(&parts![Faction::Emperor, " can use ", Fsf::Emperor]),
             Rule::BribesAreImmediate => {
-                self.format("{0} bribes are immediately added to reserves", &args![Concept::Resource])
+                self.render_parts(&parts![Concept::Resource, " bribes are immediately added to reserves"])
             }
             Rule::ContestedStongholdsCountAsOccupied => s("Contested strongholds count as occupied @ end of turn"),
             Rule::AdvisorsDontConflictWithAlly => {
-                self.format("{0} {1} can coexist with allied forces", &args![Faction::BeneGesserit, Fsf::BeneGesserit])
+                self.render_parts(&parts![Faction::BeneGesserit, " ", Fsf::BeneGesserit, " can coexist with allied forces"])
             }
             Rule::GuildShipmentContributionsFlowBack => {
-                self.format("{0} contributions to shipments flow back to them", &args![Faction::Guild])
+                self.render_parts(&parts![Faction::Guild, " contributions to shipments flow back to them"])
             }
             Rule::CustomInitialForcesAndResources => {
-                self.format("Custom initial {0} and force positions (for Spice Harvest)", &args![Concept::Resource])
+                self.render_parts(&parts!["Custom initial ", Concept::Resource, " and force positions (for Spice Harvest)"])
             }
             Rule::HmSwithoutIxian => {
-                self.format("Use the {0} if {1} are not in play", &args!["Hidden Mobile Stronghold", Faction::Ixian])
+                self.render_parts(&parts!["Use the ", "Hidden Mobile Stronghold", " if ", Faction::Ixian, " are not in play"])
             }
             Rule::StormDeckWithoutFremen => {
-                self.format("Use the Storm Deck if {0} are not in play", &args![Faction::Fremen])
+                self.render_parts(&parts!["Use the Storm Deck if ", Faction::Fremen, " are not in play"])
             }
 
             Rule::Ssw => {
-                self.format("SSW: {0} counts for victory after fourth {1}", &args!["Shield Wall", Concept::Monster])
+                self.render_parts(&parts!["SSW: ", "Shield Wall", " counts for victory after fourth ", Concept::Monster])
             }
             Rule::HarkonnenMulligan => {
-                self.format("{0} mulligan traitors when they drew > 1 of their own", &args![Faction::Harkonnen])
+                self.render_parts(&parts![Faction::Harkonnen, " mulligan traitors when they drew > 1 of their own"])
             }
 
             Rule::TechTokens => s("Tech Tokens"),
             Rule::ExpansionTreacheryCards => s("Expansion Treachery Cards"),
-            Rule::ExpansionTreacheryCardsExceptPBandSSandAmal => self.format(
-                "Treachery Cards: all except {0}, {1} and {2}",
-                &args![Tct::ProjectileAndPoison, Tct::ShieldAndAntidote, Tct::Amal],
-            ),
+            Rule::ExpansionTreacheryCardsExceptPBandSSandAmal => self.render_parts(&parts!["Treachery Cards: all except ", Tct::ProjectileAndPoison, ", ", Tct::ShieldAndAntidote, " and ", Tct::Amal]),
             Rule::ExpansionTreacheryCardsPBandSs => {
-                self.format("Treachery Cards: {0} and {1}", &args![Tct::ProjectileAndPoison, Tct::ShieldAndAntidote])
+                self.render_parts(&parts!["Treachery Cards: ", Tct::ProjectileAndPoison, " and ", Tct::ShieldAndAntidote])
             }
-            Rule::ExpansionTreacheryCardsAmal => self.format("Treachery Card: {0}", &args![Tct::Amal]),
+            Rule::ExpansionTreacheryCardsAmal => self.render_parts(&parts!["Treachery Card: ", Tct::Amal]),
             Rule::CheapHeroTraitor => s("Cheap Hero Traitor"),
             Rule::SandTrout => self.describe_concept(Some(Concept::BabyMonster)),
-            Rule::TleilaxuGholas => self.format("{0} may revive leaders as Gholas", &args![Faction::Tleilaxu]),
+            Rule::TleilaxuGholas => self.render_parts(&parts![Faction::Tleilaxu, " may revive leaders as Gholas"]),
             Rule::IxianSwappingCardOnBid => {
-                self.format("{0} may swap one card on bid with a card from their hand", &args![Faction::Ixian])
+                self.render_parts(&parts![Faction::Ixian, " may swap one card on bid with a card from their hand"])
             }
 
             Rule::LeaderSkills => s("Leader Skills"),
             Rule::Expansion2TreacheryCards => {
-                self.format("Treachery Cards: {0} and {1}", &args![Tct::ArtilleryStrike, Tct::PoisonTooth])
+                self.render_parts(&parts!["Treachery Cards: ", Tct::ArtilleryStrike, " and ", Tct::PoisonTooth])
             }
             Rule::StrongholdBonus => s("Stronghold Bonus"),
-            Rule::ChoamAuditor => self.format("{0} gains the Auditor leader", &args![Faction::Choam]),
-            Rule::RicheseBlackMarket => self.format("{0} Black Market bidding", &args![Faction::Richese]),
+            Rule::ChoamAuditor => self.render_parts(&parts![Faction::Choam, " gains the Auditor leader"]),
+            Rule::RicheseBlackMarket => self.render_parts(&parts![Faction::Richese, " Black Market bidding"]),
 
             Rule::GreatMaker => s("Great Maker"),
             Rule::DiscoveryTokens => s("Discovery Tokens"),
             Rule::Homeworlds => s("Homeworlds"),
             Rule::NexusCards => s("Nexus Cards"),
             Rule::Expansion3TreacheryCards => s("Expansion Treachery Cards"),
-            Rule::MoritaniAssassinate => self.format("{0} can assassinate leaders", &args![Faction::Moritani]),
-            Rule::EcazLoyalty => self.format("{0} gain a loyal leader", &args![Faction::Ecaz]),
+            Rule::MoritaniAssassinate => self.render_parts(&parts![Faction::Moritani, " can assassinate leaders"]),
+            Rule::EcazLoyalty => self.render_parts(&parts![Faction::Ecaz, " gain a loyal leader"]),
 
             Rule::CustomDecks => s("Customized Treachery Card Deck"),
-            Rule::ExtraKaramaCards => self.format("Add three extra {0} cards to the game", &args![Tct::Karma]),
-            Rule::FullPhaseKarma => self.format("Full phase {0} (instead of single instance)", &args![Tct::Karma]),
-            Rule::FremenMayMoveIntoStorm => self.format("{0} may move into storm", &args![Faction::Fremen]),
+            Rule::ExtraKaramaCards => self.render_parts(&parts!["Add three extra ", Tct::Karma, " cards to the game"]),
+            Rule::FullPhaseKarma => self.render_parts(&parts!["Full phase ", Tct::Karma, " (instead of single instance)"]),
+            Rule::FremenMayMoveIntoStorm => self.render_parts(&parts![Faction::Fremen, " may move into storm"]),
             Rule::BeneGesseritVoiceMustNameSpecialCards => s("Voice must target special cards by name"),
             Rule::BattlesUnderStorm => s("Battles may happen under the storm"),
             Rule::MovementBonusRequiresOccupationBeforeMovement => {
@@ -1129,27 +1041,26 @@ impl Skin {
             }
             Rule::AssistedNotekeeping => s("Mentat: auto notekeeping of knowable info (spice owned, cards seen, ...)"),
             Rule::AssistedNotekeepingForAtreides => {
-                self.format("Mentat: auto notekeeping for {0}", &args![Faction::Atreides])
+                self.render_parts(&parts!["Mentat: auto notekeeping for ", Faction::Atreides])
             }
             Rule::ResourceBonusForStrongholds => s("Stronghold spice bonus (even without increased spice flow)"),
             Rule::DisableNovaFlipping => s("No Nova flipping (advisors will not auto flip after shipment phase)"),
 
             Rule::FillWithBots => s("Fill empty seats with random Bots"),
-            Rule::GuildBot => self.format("{0}Bot", &args![Faction::Guild]),
-            Rule::EmperorBot => self.format("{0}Bot", &args![Faction::Emperor]),
-            Rule::HarkonnenBot => self.format("{0}Bot", &args![Faction::Harkonnen]),
-            Rule::TleilaxuBot => self.format("{0}Bot", &args![Faction::Tleilaxu]),
-            Rule::AtreidesBot => self.format("{0}Bot", &args![Faction::Atreides]),
-            Rule::BeneGesseritBot => self.format("{0}Bot", &args![Faction::BeneGesserit]),
-            Rule::FremenBot => self.format("{0}Bot", &args![Faction::Fremen]),
-            Rule::IxianBot => self.format("{0}Bot", &args![Faction::Ixian]),
+            Rule::GuildBot => self.render_parts(&parts![Faction::Guild, "Bot"]),
+            Rule::EmperorBot => self.render_parts(&parts![Faction::Emperor, "Bot"]),
+            Rule::HarkonnenBot => self.render_parts(&parts![Faction::Harkonnen, "Bot"]),
+            Rule::TleilaxuBot => self.render_parts(&parts![Faction::Tleilaxu, "Bot"]),
+            Rule::AtreidesBot => self.render_parts(&parts![Faction::Atreides, "Bot"]),
+            Rule::BeneGesseritBot => self.render_parts(&parts![Faction::BeneGesserit, "Bot"]),
+            Rule::FremenBot => self.render_parts(&parts![Faction::Fremen, "Bot"]),
+            Rule::IxianBot => self.render_parts(&parts![Faction::Ixian, "Bot"]),
 
             Rule::BotsCannotAlly => s("Bots may not initiate alliances"),
-            // `Format(m)` with no arguments returns `m` as is.
-            Rule::CardsCanBeTraded => self.format("Allow players to give cards to each other", &[]),
-            Rule::PlayersChooseFactions => self.format("Let players choose their factions at start", &[]),
+            Rule::CardsCanBeTraded => s("Allow players to give cards to each other"),
+            Rule::PlayersChooseFactions => s("Let players choose their factions at start"),
             Rule::EmperorSupportingNonAllyBids => {
-                self.format("{0} may support bids of non-ally players", &args![Faction::Emperor])
+                self.render_parts(&parts![Faction::Emperor, " may support bids of non-ally players"])
             }
             Rule::BattleWithoutLeader => s("Allow leaderless battles even if leaders are available"),
             Rule::CapturedLeadersAreTraitorsToOwnFaction => {
@@ -1157,15 +1068,12 @@ impl Skin {
             }
             Rule::DisableEndOfGameReport => s("Disable end-of-game report (don't reveal player shields)"),
             Rule::DisableGuildSpecialVictory => {
-                self.format("Disable {0} special victory condition", &args![Faction::Guild])
+                self.render_parts(&parts!["Disable ", Faction::Guild, " special victory condition"])
             }
             Rule::DisableResourceTransfers => {
-                self.format("Only allow transfer of {0} by alliance rules", &args![Concept::Resource])
+                self.render_parts(&parts!["Only allow transfer of ", Concept::Resource, " by alliance rules"])
             }
-            Rule::FremenAllyGetsDialedResourcesRefunded => self.format(
-                "{0} ally may get {1} dialled in battles refunded in {2} phase",
-                &args![Faction::Fremen, Concept::Resource, MainPhase::Contemplate],
-            ),
+            Rule::FremenAllyGetsDialedResourcesRefunded => self.render_parts(&parts![Faction::Fremen, " ally may get ", Concept::Resource, " dialled in battles refunded in ", MainPhase::Contemplate, " phase"]),
             Rule::BreakAlliancesOnAlliancePhase => s("Alliances are broken at the start of each alliance phase"),
 
             _ => s("unknown rule"),
@@ -1323,16 +1231,6 @@ impl Skin {
 
     // #endregion NamesAndImages
 
-    // Message.cs: the rendering half of `Message` and `MessagePart`.
-
-    /// `Message.ToString(IDescriber describer)`: every element described and concatenated.
-    pub fn message_to_string(&self, m: &Message) -> String {
-        m.expression.elements.iter().map(|x| self.describe(x)).collect()
-    }
-
-    pub fn message_part_to_string(&self, p: &MessagePart) -> String {
-        p.expression.elements.iter().map(|x| self.describe(x)).collect()
-    }
 
 }
 

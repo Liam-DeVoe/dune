@@ -3,7 +3,7 @@
 
 use treachery_engine::enum_type::GameEnum;
 use treachery_engine::json;
-use treachery_engine::messages::expression::ExpressionElement;
+use treachery_engine::messages::part::Part as P;
 use treachery_engine::prelude::*;
 
 use crate::describe::Describer;
@@ -44,7 +44,12 @@ pub(super) fn draft_json(e: &GameEvent) -> serde_json::Value {
     serde_json::from_str(&json::serialize(e)).expect("the engine writes valid JSON")
 }
 
+/// The skin's text of these parts, one after the other.
+pub(super) fn render(d: &dyn Describer, parts: &[P]) -> String {
+    parts.iter().map(|p| d.describe(p)).collect()
+}
+
 /// The skin's description of a value, without a game.
-pub(super) fn describe(d: &dyn Describer, el: impl Into<ExpressionElement>) -> String {
+pub(super) fn describe(d: &dyn Describer, el: impl Into<P>) -> String {
     d.describe(&el.into())
 }

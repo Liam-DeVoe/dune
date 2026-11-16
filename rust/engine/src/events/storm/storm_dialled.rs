@@ -1,10 +1,11 @@
 use crate::log::storm::{StormDials, StormPlaced};
 use crate::game::PlayerSequence;
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 /// `params object?[]` element list for `Log(...)`.
 macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
+    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
 }
 
 #[derive(Clone, Debug)]

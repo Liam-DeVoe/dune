@@ -9,168 +9,146 @@
 //! - `express_part_if!(cond; a, b)` builds a `MessagePart` that is empty
 //!   unless `cond` holds.
 //!
-//! Every argument goes through `ExpressionElement::from`, see expression.rs.
-
-use std::any::Any;
-use std::fmt;
-use std::rc::Rc;
-
+//! Every argument goes through `Part::from`, see part.rs.
 
 use crate::enumerations::{Concept, Faction};
-use crate::messages::expression::{Expression, ExpressionElement};
+use crate::messages::part::Part;
 use crate::heroes::hero::Hero;
 use crate::map::location::Location;
 use crate::enum_type::game_enum;
 use crate::cards::treachery_card::TreacheryCard;
+use crate::log::LogRecord;
 
-/// Structured log data attached to a message (the records in `log/`). Any `Debug` type
-/// qualifies.
-pub trait LogRecord: fmt::Debug + Any {
-    fn as_any(&self) -> &dyn Any;
+/// Who may read a message.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Audience {
+    Everyone,
+    Faction(Faction),
 }
 
-impl<T: fmt::Debug + Any> LogRecord for T {
-    fn as_any(&self) -> &dyn Any {
-        self
+impl Audience {
+    /// `Faction::None` means everyone.
+    pub fn of(faction: Faction) -> Audience {
+        if faction == Faction::None { Audience::Everyone } else { Audience::Faction(faction) }
+    }
+
+    /// The faction a private message is for, or `Faction::None` for everyone.
+    pub fn faction(self) -> Faction {
+        match self {
+            Audience::Everyone => Faction::None,
+            Audience::Faction(f) => f,
+        }
+    }
+
+    pub fn is_everyone(self) -> bool {
+        self == Audience::Everyone
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Message {
-    pub target: Faction,
-    pub expression: Expression,
-    pub route: Option<Route>,
+    pub to: Audience,
+    pub parts: Vec<Part>,
+    /// What the log draws besides the text. Most messages have none.
+    pub detail: Option<Box<LogDetail>>,
+}
+
+/// The data a log line is drawn from besides its text.
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct LogDetail {
+    /// The concept whose icon heads a section of the log.
     pub heading: Option<Concept>,
+    pub route: Option<Route>,
     pub plans: Option<BattlePlans>,
-    /// `Log`: any log record, or none. Clones of the message share it.
-    pub log: Option<Rc<dyn LogRecord>>,
     pub fact: Option<BattleFact>,
+    /// The record a phase's log design draws from (the types in `log/`).
+    pub record: Option<LogRecord>,
 }
 
 impl Message {
-    fn with_expression(target: Faction, e: Expression) -> Message {
-        Message { target, expression: e, route: None, heading: None, plans: None, log: None, fact: None }
+    /// A message for everyone. Prefer [`express!`](crate::express).
+    pub fn express(parts: Vec<Part>) -> Message {
+        Message { to: Audience::Everyone, parts, detail: None }
     }
 
-    /// `Message.Express(params object?[] list)`. Prefer [`express!`](crate::express).
-    pub fn express(list: Vec<ExpressionElement>) -> Message {
-        Self::with_expression(Faction::None, Expression::new(list))
+    /// A message for one faction. Prefer [`express_to!`](crate::express_to).
+    pub fn express_to(to: Faction, parts: Vec<Part>) -> Message {
+        Message { to: Audience::of(to), parts, detail: None }
     }
 
-    /// `Message.ExpressTo(to, params object?[] list)`. Prefer [`express_to!`](crate::express_to).
-    pub fn express_to(to: Faction, list: Vec<ExpressionElement>) -> Message {
-        Self::with_expression(to, Expression::new(list))
+    /// The text without a skin, for tests and debugging ([`Part::plain_text`]).
+    pub fn plain_text(&self) -> String {
+        self.parts.iter().map(Part::plain_text).collect()
+    }
+
+    fn detail_mut(&mut self) -> &mut LogDetail {
+        self.detail.get_or_insert_with(Default::default)
+    }
+
+    pub fn detail(&self) -> Option<&LogDetail> {
+        self.detail.as_deref()
     }
 
     pub fn with_route(mut self, faction: Faction, from: impl IntoIterator<Item = Location>, to: Option<Location>) -> Message {
-        self.route = Some(Route { faction, from: from.into_iter().collect(), to });
+        self.detail_mut().route = Some(Route { faction, from: from.into_iter().collect(), to });
         self
     }
 
     pub fn as_heading(mut self, icon: Concept) -> Message {
-        self.heading = Some(icon);
+        self.detail_mut().heading = Some(icon);
         self
     }
 
     pub fn with_plans(mut self, aggressor: PlanSummary, defender: PlanSummary) -> Message {
-        self.plans = Some(BattlePlans { aggressor, defender });
+        self.detail_mut().plans = Some(BattlePlans { aggressor, defender });
         self
     }
 
-    pub fn with_log(mut self, data: impl LogRecord) -> Message {
-        self.log = Some(Rc::new(data));
+    pub fn with_log(mut self, record: impl Into<LogRecord>) -> Message {
+        self.detail_mut().record = Some(record.into());
         self
     }
 
     pub fn with_fact(mut self, fact: BattleFact) -> Message {
-        self.fact = Some(fact);
+        self.detail_mut().fact = Some(fact);
         self
-    }
-
-    /// `ToString()` without a describer: `string.Join("", Expression.Elements)`.
-    pub fn to_cs_string(&self) -> String {
-        self.expression.elements.iter().map(|e| e.to_cs_string()).collect()
     }
 }
 
 /// A message holding just this text, as `express!(text)` makes it.
-impl From<&str> for Message {
-    fn from(text: &str) -> Message {
-        Message::express(vec![ExpressionElement::from(text)])
-    }
-}
-
-impl fmt::Debug for Message {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Message")
-            .field("target", &self.target)
-            .field("expression", &self.expression)
-            .field("route", &self.route)
-            .field("heading", &self.heading)
-            .field("plans", &self.plans)
-            .field("log", &self.log)
-            .field("fact", &self.fact)
-            .finish()
-    }
-}
-
-/// Field-wise equality; `log` compares by reference.
-impl PartialEq for Message {
-    fn eq(&self, other: &Self) -> bool {
-        self.target == other.target
-            && self.expression == other.expression
-            && self.route == other.route
-            && self.heading == other.heading
-            && self.plans == other.plans
-            && match (&self.log, &other.log) {
-                (None, None) => true,
-                (Some(a), Some(b)) => Rc::ptr_eq(a, b),
-                _ => false,
-            }
-            && self.fact == other.fact
+impl From<&'static str> for Message {
+    fn from(text: &'static str) -> Message {
+        Message::express(vec![Part::from(text)])
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct MessagePart {
-    pub expression: Expression,
+    pub parts: Vec<Part>,
 }
 
 impl MessagePart {
-    /// `MessagePart.Express(params object[] list)`. Prefer [`express_part!`](crate::express_part).
-    pub fn express(list: Vec<ExpressionElement>) -> MessagePart {
-        MessagePart { expression: Expression::new(list) }
+    /// Prefer [`express_part!`](crate::express_part).
+    pub fn express(parts: Vec<Part>) -> MessagePart {
+        MessagePart { parts }
     }
 
-    /// `MessagePart.ExpressIf(condition, params object?[] list)`. The
-    /// arguments are evaluated either way.
-    pub fn express_if(condition: bool, list: Vec<ExpressionElement>) -> MessagePart {
-        if condition {
-            MessagePart { expression: Expression::new(list) }
-        } else {
-            MessagePart { expression: Expression::new(Vec::new()) }
-        }
+    /// The text without a skin, for tests and debugging ([`Part::plain_text`]).
+    pub fn plain_text(&self) -> String {
+        self.parts.iter().map(Part::plain_text).collect()
     }
 
-    pub fn to_cs_string(&self) -> String {
-        self.expression.elements.iter().map(|e| e.to_cs_string()).collect()
+    /// Prefer [`express_part_if!`](crate::express_part_if). The arguments are evaluated either
+    /// way.
+    pub fn express_if(condition: bool, parts: Vec<Part>) -> MessagePart {
+        MessagePart { parts: if condition { parts } else { Vec::new() } }
     }
 }
 
-// `params object?[]`: in C#, a single argument whose static type converts to
-// `object?[]` IS the parameter array. That is `object[]` and, through array
-// covariance, every reference-type array (`string[]`, `Location[]`). Its items
-// become the elements. Anything else, including a value-type array
-// (`Faction[]`, `int[]`), a `List<T>` or an array cast to `object`, is one
-// element. Checked against .NET in tests/message_corpus.rs.
-//
-// The macros take each argument as one element. For the spread form write
-// `@params`, followed by anything iterable whose items convert to elements:
-//
-//     Message.Express(objects)        express!(@params objects)
-//     Message.Express(objects, "x")   express!(objects, "x")    (the array is one element)
+// Each argument of the macros is one part. `@params` spreads an iterable into one part per
+// item instead: `express!(@params items)`.
 
-/// `Message.Express(...)`: `express!(Faction::Atreides, " pays ", amount)`, or
+/// A message for everyone: `express!(Faction::Atreides, " pays ", amount)`, or
 /// `express!(@params items)` to spread one iterable into separate elements.
 #[macro_export]
 macro_rules! express {
@@ -178,7 +156,7 @@ macro_rules! express {
         $crate::messages::message::Message::express($crate::messages::message::params($arr))
     };
     ($($e:expr),* $(,)?) => {
-        $crate::messages::message::Message::express(vec![$($crate::messages::expression::ExpressionElement::from($e)),*])
+        $crate::messages::message::Message::express(vec![$($crate::messages::part::Part::from($e)),*])
     };
 }
 
@@ -189,7 +167,7 @@ macro_rules! express_to {
         $crate::messages::message::Message::express_to($to, $crate::messages::message::params($arr))
     };
     ($to:expr; $($e:expr),* $(,)?) => {
-        $crate::messages::message::Message::express_to($to, vec![$($crate::messages::expression::ExpressionElement::from($e)),*])
+        $crate::messages::message::Message::express_to($to, vec![$($crate::messages::part::Part::from($e)),*])
     };
 }
 
@@ -199,7 +177,7 @@ macro_rules! express_part {
         $crate::messages::message::MessagePart::express($crate::messages::message::params($arr))
     };
     ($($e:expr),* $(,)?) => {
-        $crate::messages::message::MessagePart::express(vec![$($crate::messages::expression::ExpressionElement::from($e)),*])
+        $crate::messages::message::MessagePart::express(vec![$($crate::messages::part::Part::from($e)),*])
     };
 }
 
@@ -210,13 +188,12 @@ macro_rules! express_part_if {
         $crate::messages::message::MessagePart::express_if($cond, $crate::messages::message::params($arr))
     };
     ($cond:expr; $($e:expr),* $(,)?) => {
-        $crate::messages::message::MessagePart::express_if($cond, vec![$($crate::messages::expression::ExpressionElement::from($e)),*])
+        $crate::messages::message::MessagePart::express_if($cond, vec![$($crate::messages::part::Part::from($e)),*])
     };
 }
 
-/// The element list of a reference-type array passed as the whole
-/// `params object?[]` argument (the `@params` form of the macros).
-pub fn params<T: Into<ExpressionElement>>(array: impl IntoIterator<Item = T>) -> Vec<ExpressionElement> {
+/// One part per item (the `@params` form of the macros).
+pub fn params<T: Into<Part>>(array: impl IntoIterator<Item = T>) -> Vec<Part> {
     array.into_iter().map(Into::into).collect()
 }
 
@@ -285,7 +262,7 @@ pub struct BattleFact {
     pub faction: Faction,
     pub strength: f32,
     pub hero: Option<Hero>,
-    pub cause: Option<ExpressionElement>,
+    pub cause: Option<Part>,
     pub value: i32,
     pub forces: i32,
     pub special_forces: i32,
@@ -325,3 +302,9 @@ impl BattleFact {
         }
     }
 }
+
+/// Messages are plain data that can move between threads.
+const _: fn() = || {
+    fn plain_data<T: Clone + PartialEq + Send + Sync + 'static>() {}
+    plain_data::<Message>();
+};

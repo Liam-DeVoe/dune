@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 /// State of the Mentat Pause (contemplate) phase: extortion, terror and the game's winners.
 pub struct ContemplateState {
@@ -356,7 +357,7 @@ impl Game {
         }
     }
 
-    pub fn log_win_reason(&mut self, method: WinMethod, expression: Vec<ExpressionElement>) {
+    pub fn log_win_reason(&mut self, method: WinMethod, expression: Vec<Part>) {
         self.log(vec![Message::express(expression).with_log(WinReason::new(method)).into()]);
     }
 

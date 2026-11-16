@@ -151,8 +151,8 @@ fn private_log_lines_reach_only_their_target() {
             let v = viewer_of(&r, f).resolve(&r.game);
             for (i, report) in r.game.reports().iter().enumerate() {
                 let lines = treachery_view::build::report_lines(i, report, &v, &treachery_skin::default_skin()).lines;
-                assert_eq!(lines.len(), report.messages.iter().filter(|m| m.target == Faction::None || m.target == f).count());
-                let private = report.messages.iter().filter(|m| m.target == f).count();
+                assert_eq!(lines.len(), report.messages.iter().filter(|m| m.to == Audience::Everyone || m.to == Audience::Faction(f)).count());
+                let private = report.messages.iter().filter(|m| m.to == Audience::Faction(f)).count();
                 assert_eq!(lines.iter().filter(|l| l.private).count(), private);
                 private_total += private;
             }

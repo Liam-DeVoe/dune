@@ -25,7 +25,7 @@ fn dump(g: &mut Game) -> String {
     ];
     for (i, report) in std::iter::once(&g.log.pre_game_report).chain(g.log.report_list.iter()).enumerate() {
         for m in &report.messages {
-            lines.push(format!("report {i}: {} {}", m.target, m.to_cs_string()));
+            lines.push(format!("report {i}: {:?} {:?}", m.to, m.parts));
         }
     }
     let host: Vec<_> = g.get_applicable_events(None, true).into_iter().map(|t| t.name()).collect();

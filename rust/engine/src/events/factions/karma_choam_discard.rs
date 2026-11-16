@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct KarmaChoamDiscard {
@@ -19,13 +20,8 @@ impl Default for KarmaChoamDiscard {
 }
 
 macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
+    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
 }
-
-/// The type name shown when the expressed `Cards` collection is rendered as text.
-/// Kept deliberately so the message text stays the same.
-const CARDS_SELECT_TYPE: &str =
-    "System.Linq.Enumerable+ListSelectIterator`2[Treachery.Shared.TreacheryCard,Treachery.Shared.MessagePart]";
 
 impl KarmaChoamDiscard {
     pub fn new(game: &Game, initiator: Faction) -> Self {
@@ -51,8 +47,8 @@ impl KarmaChoamDiscard {
     }
 
     /// `Cards.Select(c => MessagePart.Express(" ", c, " "))` as one message element.
-    fn cards_parts(cards: &[TreacheryCard]) -> ExpressionElement {
-        ExpressionElement::collection(CARDS_SELECT_TYPE, cards.iter().map(|c| express_part!(" ", *c, " ")))
+    fn cards_parts(cards: &[TreacheryCard]) -> Part {
+        Part::list(cards.iter().map(|c| express_part!(" ", *c, " ")))
     }
 
     pub fn validate(&self, _game: &Game) -> Option<Message> {

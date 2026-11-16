@@ -14,7 +14,7 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 use treachery_bots::{BotParameters, ClassicBot, Priority};
 use treachery_engine::events::{GameEvent, GameEventType};
-use treachery_engine::messages::expression::ExpressionElement;
+use treachery_engine::messages::part::Part;
 use treachery_engine::game::Game;
 use treachery_engine::json;
 use treachery_engine::messages::message::Message;
@@ -76,7 +76,7 @@ fn short_hash(bytes: &[u8]) -> String {
 }
 
 fn find_exception(m: &Message) -> bool {
-    m.expression.elements.iter().any(|e| matches!(e, ExpressionElement::Error(_)))
+    m.parts.iter().any(|e| matches!(e, Part::Error(_)))
 }
 
 /// The human seats and what the views show of them, for `[userId, seat, name]` of each seated
@@ -196,7 +196,7 @@ impl Session {
             Err(e) => ("error", Some(e)),
             Ok(None) => (if accepted { "accepted" } else { "rejected" }, None),
             Ok(Some(m)) => {
-                let text = treachery_skin::default_skin().message_to_string(&m);
+                let text = treachery_skin::default_skin().render(&m);
                 let kind = if accepted { "accepted" } else if find_exception(&m) { "error" } else { "rejected" };
                 (kind, Some(text))
             }
@@ -232,8 +232,11 @@ impl Session {
             for r in reports {
                 for m in &r.messages {
                     if flat >= self.log_seen {
-                        let target = if m.target == Faction::None { String::new() } else { faction_name(m.target) };
-                        let text = match guarded(|| skin.message_to_string(m))? {
+                        let target = match m.to {
+                            Audience::Everyone => String::new(),
+                            Audience::Faction(f) => faction_name(f),
+                        };
+                        let text = match guarded(|| skin.render(m))? {
                             Ok(t) => t,
                             Err(e) => format!("<render error: {e}>"),
                         };

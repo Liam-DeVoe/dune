@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct DealOffered {
@@ -193,7 +194,7 @@ impl DealOffered {
             express!(
                 self.initiator(),
                 " offer ",
-                express_part_if!(to.len() != 0; ExpressionElement::array(to.iter().copied()), " "),
+                express_part_if!(to.len() != 0; Part::list(to.iter().copied()), " "),
                 "for ",
                 Payment::of(self.price),
                 ": ",

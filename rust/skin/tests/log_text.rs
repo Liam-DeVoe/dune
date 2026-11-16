@@ -6,7 +6,7 @@ use std::rc::Rc;
 use treachery_engine::enumerations::{AutomationRuleType, DealType, Faction, FactionAdvantage, ItemAction, TreacheryCardType};
 use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
 use treachery_engine::game::Deal;
-use treachery_engine::messages::expression::ExpressionElement;
+use treachery_engine::messages::part::Part;
 use treachery_engine::events::game_event::GameEventMethods;
 use treachery_engine::events::{AutomationConfigured, FlightDiscoveryUsed, FlightUsed, GameEvent, Karma, KarmaChoamDiscard, Shipment, Voice};
 use treachery_engine::game::Game;
@@ -34,7 +34,7 @@ fn game() -> Game {
 }
 
 fn text(m: &Message) -> String {
-    default_skin().message_to_string(m)
+    default_skin().render(m)
 }
 
 fn log(game: &Game) -> Vec<String> {
@@ -54,7 +54,7 @@ fn karama_against_guild_income_has_a_space_before_the_amount() {
     g.prevent(Faction::Atreides, FactionAdvantage::GuildReceiveShipment, false);
     let mut part = MessagePart::express(vec![]);
     s.handle_received_shipment_payment(&mut g, &mut part);
-    let rendered = default_skin().message_part_to_string(&part);
+    let rendered = default_skin().render_parts(&part.parts);
     assert_eq!(rendered, " → Karama prevents Guild from receiving 4 Spice");
 }
 
@@ -128,6 +128,6 @@ fn a_karama_card_play_has_single_spaces() {
 
 #[test]
 fn the_spice_card_prescience_deal_has_a_space() {
-    let t = text(&Deal::express(DealType::ShareResourceDeckPrescience, ExpressionElement::Null));
+    let t = text(&Deal::express(DealType::ShareResourceDeckPrescience, Part::Null));
     assert_eq!(t, "Share prescience of the top Spice card");
 }

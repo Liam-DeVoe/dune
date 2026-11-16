@@ -13,7 +13,7 @@ mod common;
 
 use common::{load, viewer_of};
 use treachery_engine::events::GameEventType;
-use treachery_engine::messages::expression::ExpressionElement;
+use treachery_engine::messages::part::Part as P;
 use treachery_engine::json;
 use treachery_engine::enum_type::GameEnum;
 use treachery_engine::prelude::*;
@@ -321,7 +321,7 @@ fn check_shipment(game: &Game, p: PlayerIndex, s: &Shipment, o: &ShipmentOptions
     let karma = Shipment::valid_karma_cards(game, p);
     assert_eq!(o.karma_cards.iter().map(|k| (k.card, k.own)).collect::<Vec<_>>(), karma.iter().map(|c| (c.id(), pl.treachery_cards.contains(c))).collect::<Vec<_>>());
     assert_eq!(o.great_flat, game.board.map.the_great_flat().territory().id());
-    assert_eq!(o.karma_name, d.describe(&ExpressionElement::from(TreacheryCardType::Karma)));
+    assert_eq!(o.karma_name, d.describe(&P::from(TreacheryCardType::Karma)));
 
     // Each destination with one force, as InitializeAmounts opens the pinned panel.
     for to in Shipment::valid_shipment_locations(game, p, false, false).collect::<Vec<_>>() {

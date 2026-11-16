@@ -71,7 +71,7 @@ fn snapshot(source: (&str, &str), report: usize, line: usize, m: &Message, d: &I
     out.insert(source.0.into(), json!(source.1));
     out.insert("report".into(), json!(report));
     out.insert("line".into(), json!(line));
-    out.insert("target".into(), json!(m.target.to_string()));
+    out.insert("target".into(), json!(m.to.faction().to_string()));
     for key in RENDERED {
         out.insert(key.into(), rendered[key].clone());
     }

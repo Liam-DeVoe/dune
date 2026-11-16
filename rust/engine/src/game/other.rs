@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 impl Game {
     pub fn reveal_current_no_field(&mut self, player: PlayerIndex, in_location: Option<Location>) {
@@ -148,7 +149,7 @@ impl Game {
         }
     }
 
-    pub fn play_nexus_card(&mut self, initiator: PlayerIndex, message_elements: Vec<ExpressionElement>) {
+    pub fn play_nexus_card(&mut self, initiator: PlayerIndex, message_elements: Vec<Part>) {
         self.stone(Milestone::NexusPlayed);
 
         let type_of_nexus = if NexusPlayed::can_use_cunning(self, initiator) {
@@ -182,7 +183,7 @@ impl Game {
             .iter()
             .copied()
             .find(|c| c.type_() == TreacheryCardType::Karma);
-        let karama_or_type: ExpressionElement = match karama {
+        let karama_or_type: Part = match karama {
             Some(c) => c.into(),
             None => TreacheryCardType::Karma.into(),
         };

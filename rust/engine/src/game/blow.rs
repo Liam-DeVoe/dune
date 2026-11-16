@@ -4,6 +4,7 @@ use crate::log::blow::{
     WormSurvivedLog,
 };
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 /// State of the spice blow phase, including the Nexus that a Shai-Hulud starts.
 pub struct BlowState {
@@ -44,7 +45,7 @@ impl BlowState {
 
 /// `params object?[]` element list for `Log(...)`.
 macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
+    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
 }
 
 

@@ -49,10 +49,10 @@ impl Default for Battle {
     }
 }
 
-/// `vec![ExpressionElement::from(a), ...]`: the `params object?[]` of `Log(...)`.
+/// `vec![Part::from(a), ...]`: the `params object?[]` of `Log(...)`.
 macro_rules! le {
     ($($e:expr),* $(,)?) => {
-        vec![$($crate::messages::expression::ExpressionElement::from($e)),*]
+        vec![$($crate::messages::part::Part::from($e)),*]
     };
 }
 

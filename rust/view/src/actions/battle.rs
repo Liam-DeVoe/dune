@@ -9,6 +9,7 @@
 
 use treachery_engine::events::GameEventType;
 use treachery_engine::prelude::*;
+use treachery_engine::messages::part::Part as P;
 use treachery_engine::enum_type::GameEnum;
 
 use crate::build::{event, validate, ResolvedViewer};
@@ -290,7 +291,7 @@ pub fn options_and_validation(game: &Game, v: &ResolvedViewer, draft: &GameEvent
                 max_special_forces: TakeLosses::valid_max_special_force_amount(game, p),
                 useless_card: useless.map(|c| c.id()),
                 useless_label: (faction == Faction::Choam && TakeLosses::can_prevent_losses(game, p))
-                    .then(|| format1(d, "Use ", useless.map(ExpressionElement::from).unwrap_or(ExpressionElement::Null), " to prevent losses")), draft: dj.clone() })
+                    .then(|| format1(d, "Use ", useless.map(P::from).unwrap_or(P::Null), " to prevent losses")), draft: dj.clone() })
         }
         GameEvent::ThoughtAnswered(_) => ActionOptions::ThoughtAnswered(BattleCardsOptions { cards: ThoughtAnswered::valid_cards(game, p).iter().map(|c| c.id()).collect(), draft: dj.clone() }),
         GameEvent::Thought(_) => ActionOptions::Thought(BattleCardsOptions { cards: Thought::valid_cards(game).map(|c| c.id()).collect(), draft: dj.clone() }),
@@ -311,7 +312,7 @@ fn d_none<'a>() -> Option<&'a dyn Describer> {
     None
 }
 
-fn enum_choice<T: GameEnum + Into<ExpressionElement>>(v: T, d: &dyn Describer) -> BattleFormEnum {
+fn enum_choice<T: GameEnum + Into<P>>(v: T, d: &dyn Describer) -> BattleFormEnum {
     BattleFormEnum { value: v.value(), name: T::INFO.format(v.value()), label: d.describe(&v.into()) }
 }
 
@@ -319,8 +320,8 @@ fn form_hero(h: Hero, d: &dyn Describer) -> BattleFormHero {
     BattleFormHero { id: h.id(), hero: hero_ref(h), label: d.describe(&h.into()) }
 }
 
-/// `Skin.Format("<before>{0}<after>", x)`: the label of `x` between two texts.
-fn format1(d: &dyn Describer, before: &str, x: ExpressionElement, after: &str) -> String {
+/// The label of `x` between two texts.
+fn format1(d: &dyn Describer, before: &str, x: P, after: &str) -> String {
     format!("{before}{}{after}", d.describe(&x))
 }
 
@@ -496,7 +497,7 @@ fn clairvoyance_options(game: &Game, p: PlayerIndex, target: Faction, d: &dyn De
         targets: ClairVoyancePlayed::valid_targets(game, p).map(|f| enum_choice(f, d)).collect(),
         questions: ClairVoyancePlayed::valid_questions(game, target)
             .map(|q| {
-                let label = d.describe(&ClairVoyancePlayed::express(q, ExpressionElement::Null, ExpressionElement::Null).into());
+                let label = d.describe(&ClairVoyancePlayed::express(q, P::Null, P::Null).into());
                 BattleFormEnum { value: value_or_absent(q), name: name_or_absent(q), label }
             })
             .collect(),
@@ -654,7 +655,7 @@ fn side(game: &Game, p: PlayerIndex, aggressor: Faction, groups: Vec<BattleForce
 
 /// The note on the battle plan form saying what of `plan` prescience shows.
 fn seen_note(game: &Game, faction: Faction, aspect: Option<PrescienceAspect>, plan: &Battle, show_everything: bool, d: &dyn Describer) -> BattleNote {
-    let shown: Option<ExpressionElement> = match aspect {
+    let shown: Option<P> = match aspect {
         Some(PrescienceAspect::Defense) => plan.defense().filter(|c| show_everything || c.is_defense()).map(Into::into),
         Some(PrescienceAspect::Weapon) => plan.weapon().filter(|c| show_everything || c.is_weapon()).map(Into::into),
         Some(PrescienceAspect::Leader) => plan.hero().map(Into::into),
@@ -775,7 +776,7 @@ fn battle_options(game: &Game, p: PlayerIndex, draft: &Battle, d: &dyn Describer
     let banker_label = format!(
         "Boost {} {} with {}?",
         d.describe(&LeaderSkill::Banker.into()),
-        d.describe(&hero.map(ExpressionElement::from).unwrap_or(ExpressionElement::Null)),
+        d.describe(&hero.map(P::from).unwrap_or(P::Null)),
         d.describe(&Concept::Resource.into())
     );
 

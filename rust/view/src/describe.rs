@@ -4,13 +4,13 @@
 //! (`rust/skin`). A custom skin is a `treachery_skin::Skin` loaded with `Skin::load`, which the
 //! server puts in the replica.
 
-use treachery_engine::messages::expression::ExpressionElement;
+use treachery_engine::messages::part::Part as P;
 use treachery_engine::game::Game;
 use treachery_skin::Skin;
 
 pub trait Describer {
     /// `Skin.Describe(object)`: the skin's description of a value.
-    fn describe(&self, el: &ExpressionElement) -> String;
+    fn describe(&self, el: &P) -> String;
 
     /// The game text is rendered for: a leader's popover shows the skill it has in it
     /// (`Game::skill`).
@@ -26,7 +26,7 @@ pub trait Describer {
 }
 
 impl Describer for Skin {
-    fn describe(&self, el: &ExpressionElement) -> String {
+    fn describe(&self, el: &P) -> String {
         Skin::describe(self, el)
     }
     fn skin(&self) -> Option<&Skin> {
@@ -35,7 +35,7 @@ impl Describer for Skin {
 }
 
 impl<T: Describer + ?Sized> Describer for &T {
-    fn describe(&self, el: &ExpressionElement) -> String {
+    fn describe(&self, el: &P) -> String {
         (**self).describe(el)
     }
     fn game(&self) -> Option<&Game> {
@@ -65,7 +65,7 @@ impl<'a> InGame<'a> {
 }
 
 impl Describer for InGame<'_> {
-    fn describe(&self, el: &ExpressionElement) -> String {
+    fn describe(&self, el: &P) -> String {
         self.skin.describe(el)
     }
     fn game(&self) -> Option<&Game> {

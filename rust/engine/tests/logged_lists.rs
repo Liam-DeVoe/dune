@@ -3,7 +3,7 @@
 //! message holding one of the game's lists, changes the list, and checks that the message still
 //! holds what the list held when it was logged.
 
-use treachery_engine::messages::expression::ExpressionElement;
+use treachery_engine::messages::part::Part;
 use treachery_engine::prelude::*;
 
 fn game_with(factions: &[Faction]) -> Game {
@@ -22,18 +22,17 @@ fn card_of(t: TreacheryCardType, nth: usize) -> TreacheryCard {
     TreacheryCardManager::items().iter().copied().filter(|c| c.type_() == t).nth(nth).unwrap()
 }
 
-fn cards(cs: &[TreacheryCard]) -> Vec<ExpressionElement> {
-    cs.iter().map(|c| ExpressionElement::Hero(Hero::TreacheryCard(*c))).collect()
+fn cards(cs: &[TreacheryCard]) -> Vec<Part> {
+    cs.iter().map(|c| Part::Card(*c)).collect()
 }
 
 /// The items of the list in the last message logged.
-fn last_logged_list(g: &Game) -> Vec<ExpressionElement> {
+fn last_logged_list(g: &Game) -> Vec<Part> {
     let m = g.current_report().messages.last().unwrap();
-    m.expression
-        .elements
+    m.parts
         .iter()
         .find_map(|e| match e {
-            ExpressionElement::List { items, .. } => Some(items.clone()),
+            Part::List(items) => Some(items.clone()),
             _ => None,
         })
         .unwrap_or_else(|| panic!("no list in {m:?}"))
@@ -50,7 +49,7 @@ fn an_audit_message_keeps_the_cards_of_its_audit() {
     let mut ev = AuditCancelled::new(&g, Faction::Emperor);
     ev.cancelled = false;
     Rc::new(ev).execute_concrete_event(&mut g).unwrap();
-    assert_eq!(g.current_report().messages.last().unwrap().target, Faction::Emperor);
+    assert_eq!(g.current_report().messages.last().unwrap().to, Audience::Faction(Faction::Emperor));
     assert_eq!(last_logged_list(&g), cards(&[first]));
 
     g.battle.audited_cards = vec![card_of(TreacheryCardType::Shield, 0), card_of(TreacheryCardType::Shield, 1)];
@@ -88,14 +87,14 @@ fn a_deal_message_keeps_the_traitors_discarded_so_far() {
     DealAccepted::new(&g, Faction::Atreides).handle_accepted_bot_deal(&mut g, &Rc::new(offer));
     // The list is in the message to Atreides, before the public "gave the agreed information".
     let reports = g.current_report().messages.clone();
-    let to_atreides = reports.iter().rev().find(|m| m.target == Faction::Atreides).unwrap();
-    let logged = |m: &Message| match &m.expression.elements[2] {
-        ExpressionElement::List { items, .. } => items.clone(),
+    let to_atreides = reports.iter().rev().find(|m| m.to == Audience::Faction(Faction::Atreides)).unwrap();
+    let logged = |m: &Message| match &m.parts[2] {
+        Part::List(items) => items.clone(),
         other => panic!("not a list: {other:?}"),
     };
-    assert_eq!(logged(to_atreides), vec![ExpressionElement::Hero(first)]);
+    assert_eq!(logged(to_atreides), vec![Part::from(first)]);
 
     g.player_mut(harkonnen).discarded_traitors.insert(second);
-    let to_atreides = g.current_report().messages.iter().rev().find(|m| m.target == Faction::Atreides).unwrap();
-    assert_eq!(logged(to_atreides), vec![ExpressionElement::Hero(first)]);
+    let to_atreides = g.current_report().messages.iter().rev().find(|m| m.to == Audience::Faction(Faction::Atreides)).unwrap();
+    assert_eq!(logged(to_atreides), vec![Part::from(first)]);
 }

@@ -10,7 +10,7 @@
 //! of the inputs the form shows, and the options carry the adjusted draft back to the client.
 
 use treachery_engine::events::GameEventType;
-use treachery_engine::messages::expression::ExpressionElement;
+use treachery_engine::messages::part::Part as P;
 use treachery_engine::json;
 use treachery_engine::enum_type::GameEnum;
 use treachery_engine::prelude::*;
@@ -22,7 +22,7 @@ use crate::expr::message;
 use crate::schema::*;
 
 use super::other_nexus;
-use super::widgets::{picker, required, required_opt, faction_options, hero_options, card_ids, draft_json, describe};
+use super::widgets::{picker, required, required_opt, faction_options, hero_options, card_ids, draft_json, describe, render};
 
 /// The event types drawn as a simple confirm form (`ActionOptions::Simple`).
 pub const SIMPLE: [GameEventType; 19] = [
@@ -112,22 +112,14 @@ fn handles(t: GameEventType) -> bool {
 // ---------------------------------------------------------------------------------------------
 // Widget rules and helpers shared with other_nexus.rs.
 
-/// `Skin.Format(m, args)`: `string.Format` over the described arguments; `m` itself when that
-/// fails.
-pub(super) fn format(d: &dyn Describer, m: &str, args: &[ExpressionElement]) -> String {
-    let described: Vec<String> = args.iter().map(|a| d.describe(a)).collect();
-    let refs: Vec<Option<&str>> = described.iter().map(|s| Some(s.as_str())).collect();
-    dotnet_compat::fmt::string_format(m, &refs).unwrap_or_else(|_| m.to_string())
-}
-
-pub(super) fn enum_option<T: GameEnum + Into<ExpressionElement> + Copy + ToString>(d: &dyn Describer, v: T) -> EnumOption {
+pub(super) fn enum_option<T: GameEnum + Into<P> + Copy + ToString>(d: &dyn Describer, v: T) -> EnumOption {
     EnumOption { name: v.to_string(), value: v.value(), label: describe(d, v) }
 }
 
 /// [`enum_option`] for an enum whose C# `None` member is `None` in Rust.
 pub(super) fn enum_option_opt<T: GameEnum>(d: &dyn Describer, v: Option<T>) -> EnumOption
 where
-    Option<T>: Into<ExpressionElement>,
+    Option<T>: Into<P>,
 {
     EnumOption { name: name_or_absent(v), value: value_or_absent(v), label: describe(d, v) }
 }
@@ -597,7 +589,7 @@ fn options(game: &Game, p: PlayerIndex, v: &ResolvedViewer, draft: &GameEvent, d
                 .into_iter()
                 .map(|t| DealTypeOption {
                     value: t.value(),
-                    label: plain(&message(&Deal::express(t, ExpressionElement::Null), d)),
+                    label: plain(&message(&Deal::express(t, P::Null), d)),
                     end_phases: deal_end_phases(t).into_iter().map(|ph| enum_option(d, ph)).collect(),
                 })
                 .collect(),
@@ -774,11 +766,11 @@ fn simple(title: RichText, confirm_label: impl Into<String>, alert: bool) -> Act
 
 /// "Use <card type>?", with the skin's name of the card type.
 fn describe_card(d: &dyn Describer, t: TreacheryCardType) -> RichText {
-    text(format(d, "Use {0}?", &[t.into()]))
+    text(render(d, &parts!["Use ", t, "?"]))
 }
 
 fn use_card(d: &dyn Describer, verb: &str, t: TreacheryCardType) -> String {
-    format(d, &format!("{verb} {{0}}"), &[t.into()])
+    render(d, &parts![format!("{verb} "), t])
 }
 
 fn simple_options(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer) -> Option<ActionOptions> {
@@ -795,9 +787,9 @@ fn simple_options(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describ
             allow_auto_confirm: true,
         },
         GameEventType::BattleRevision => simple(text("Change your battle plan?"), "Change Plan", false),
-        GameEventType::KarmaPrescience => simple(text(format(d, "Use {0} to see the entire enemy battle plan", &[C::Karma.into()])), use_card(d, "Use", C::Karma), false),
+        GameEventType::KarmaPrescience => simple(text(render(d, &parts!["Use ", C::Karma, " to see the entire enemy battle plan"])), use_card(d, "Use", C::Karma), false),
         GameEventType::KarmaEcazDial => {
-            simple(text(format(d, "Use {0} to add the difference between the leader discs to your dial", &[C::Karma.into()])), use_card(d, "Use", C::Karma), false)
+            simple(text(render(d, &parts!["Use ", C::Karma, " to add the difference between the leader discs to your dial"])), use_card(d, "Use", C::Karma), false)
         }
         GameEventType::AmalPlayed => simple(describe_card(d, C::Amal), use_card(d, "Use", C::Amal), false),
         GameEventType::RecruitsPlayed => simple(describe_card(d, C::Recruits), use_card(d, "Play", C::Recruits), false),
@@ -830,7 +822,7 @@ fn simple_options(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describ
             false,
         ),
         GameEventType::ResidualPlayed => {
-            simple(text(format(d, "Use {0} to kill a random available opponent leader?", &[C::Residual.into()])), use_card(d, "Use", C::Residual), false)
+            simple(text(render(d, &parts!["Use ", C::Residual, " to kill a random available opponent leader?"])), use_card(d, "Use", C::Residual), false)
         }
         GameEventType::FlightDiscoveryUsed => simple(m(express!("Use your ", DiscoveryToken::Flight, " Discovery Token to gain extra movement speed?")), "Yes", false),
         GameEventType::DiscardedSearchedAnnounced => simple(
@@ -838,12 +830,12 @@ fn simple_options(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describ
             use_card(d, "Use", C::SearchDiscarded),
             false,
         ),
-        GameEventType::PortableAntidoteUsed => simple(text(format(d, "Use your {0}?", &[C::PortableAntidote.into()])), use_card(d, "Use", C::PortableAntidote), false),
+        GameEventType::PortableAntidoteUsed => simple(text(render(d, &parts!["Use your ", C::PortableAntidote, "?"])), use_card(d, "Use", C::PortableAntidote), false),
         GameEventType::SwitchedSkilledLeader => {
             let leader = SwitchedSkilledLeader::switchable_leader(game, p);
             let in_front = game.is_in_front_of_shield(leader.map(Hero::Leader));
             let side = if in_front { " behind" } else { " in front of" };
-            let label = format(d, "Put {0} shield", &[(if in_front { "behind" } else { "in front of" }).into()]);
+            let label = render(d, &parts!["Put ", if in_front { "behind" } else { "in front of" }, " shield"]);
             simple(m(express!("Place ", leader, side, " your player shield?")), label, false)
         }
         _ => return None,
@@ -869,7 +861,7 @@ fn yes_no_options(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Descri
             };
             yes_no(m(title), true, draft)
         }
-        GameEventType::DivideResourcesAccepted => yes_no(text(format(d, "Agree with the proposed division of {0}?", &[Concept::Resource.into()])), true, draft),
+        GameEventType::DivideResourcesAccepted => yes_no(text(render(d, &parts!["Agree with the proposed division of ", Concept::Resource, "?"])), true, draft),
         GameEventType::CardGiven => yes_no(m(express!("Give your ally the ", game.bidding.card_that_must_be_kept_or_given_to_ally, " you just received?")), true, draft),
         GameEventType::Bureaucracy => yes_no(m(express!("Use your ", LeaderSkill::Bureaucrat, " skill?")), true, draft),
         GameEventType::Captured => yes_no(text("Do you wish to capture a random leader from your opponent?"), true, draft),

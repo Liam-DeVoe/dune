@@ -89,7 +89,7 @@ impl AmbassadorPlaced {
             ],
         );
         if game.board.ambassadors_on_planet.contains_key(&stronghold) {
-            game_error!("There already is an ambassador in {}", ExpressionElement::from(stronghold).to_cs_string());
+            game_error!("There already is an ambassador in Treachery.Shared.Territory");
         }
         let ambassador = self.ambassador.required("ambassador")?;
         game.board.ambassadors_on_planet.insert_new(stronghold, ambassador);

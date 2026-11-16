@@ -1,5 +1,5 @@
 use crate::enumerations::{Faction, MainPhase};
-use crate::messages::expression::ExpressionElement;
+use crate::messages::part::Part;
 use crate::messages::message::Message;
 use crate::map::territory::Territory;
 
@@ -38,11 +38,11 @@ impl Report {
         self.aggressor != Faction::None
     }
 
-    pub fn express(&mut self, list: Vec<ExpressionElement>) {
+    pub fn express(&mut self, list: Vec<Part>) {
         self.add(Message::express(list));
     }
 
-    pub fn express_to(&mut self, to: Faction, list: Vec<ExpressionElement>) {
+    pub fn express_to(&mut self, to: Faction, list: Vec<Part>) {
         self.add(Message::express_to(to, list));
     }
 

@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 /// State of the shipment and movement phase, including the intrusions and the alliances that terror
 /// and ambassadors offer during it, and the Guild's shipment permissions.
@@ -71,7 +72,7 @@ impl ShipMoveState {
 
 /// Builds a list of message elements from mixed arguments.
 macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
+    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
 }
 
 impl Game {
@@ -237,7 +238,7 @@ impl Game {
         let faction = pl.faction;
         let force = pl.force();
         let special_force = pl.special_force();
-        let as_what: ExpressionElement = if as_advisors { special_force.into() } else { force.into() };
+        let as_what: Part = if as_advisors { special_force.into() } else { force.into() };
         let mut message = express!(
             Game::caravan_message(by_caravan),
             faction,

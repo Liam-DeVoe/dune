@@ -300,9 +300,9 @@ fn clairvoyance_parameters_parse_like_dotnet() {
     e.question = Some(ClairvoyanceQuestion::DialOfMoreThanXInBattle);
     // "1,5" is 15 under the invariant culture (thousands separator).
     e.question_parameter1 = Some("1,5".to_string());
-    assert_eq!(e.parameter1(&g), ExpressionElement::Float(15.0));
+    assert_eq!(e.parameter1(&g), treachery_engine::messages::part::Part::Float(15.0));
     e.question_parameter1 = None;
-    assert_eq!(e.parameter1(&g), ExpressionElement::Null);
+    assert_eq!(e.parameter1(&g), treachery_engine::messages::part::Part::Null);
 
     e.question = Some(ClairvoyanceQuestion::HasCardTypeInHand);
     e.question_parameter1 = Some("Laser".to_string());
@@ -317,7 +317,7 @@ fn clairvoyance_parameters_parse_like_dotnet() {
     e.question = Some(ClairvoyanceQuestion::Prediction);
     e.question_parameter1 = Some("Emperor".to_string());
     e.question_parameter2 = Some(String::new());
-    assert_eq!(e.parameter2(), ExpressionElement::Null);
+    assert_eq!(e.parameter2(), treachery_engine::messages::part::Part::Null);
     // A faction is not a card type.
     assert!(!e.is_about(&g, TreacheryCardType::Laser));
     e.question_parameter2 = Some("x".to_string());

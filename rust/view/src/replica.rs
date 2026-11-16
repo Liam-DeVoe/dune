@@ -47,7 +47,7 @@ impl ViewReplica {
         for (nr, e) in state.events.as_ref().ok_or("savegame without events")?.iter().enumerate() {
             e.initialize_game(&game);
             if let Some(m) = e.execute(&mut game, false, false) {
-                return Err(format!("event {nr} ({}) failed: {:?}", e.event_type().name(), treachery_skin::default_skin().message_to_string(&m)));
+                return Err(format!("event {nr} ({}) failed: {:?}", e.event_type().name(), treachery_skin::default_skin().render(&m)));
             }
         }
         Ok(ViewReplica { game, actions: BTreeMap::new(), describer: default_describer(), timer: -1, seating: Seating::default() })
@@ -79,7 +79,7 @@ impl ViewReplica {
         e.initialize_game(&self.game);
         match e.execute(&mut self.game, false, false) {
             None => Ok(()),
-            Some(m) => Err(format!("{:?}", treachery_skin::default_skin().message_to_string(&m))),
+            Some(m) => Err(format!("{:?}", treachery_skin::default_skin().render(&m))),
         }
     }
 
@@ -152,7 +152,7 @@ impl ViewReplica {
             let copy: GameEvent = json::deserialize(&json::serialize(e)).map_err(|e| format!("event {nr}: {e:?}"))?;
             copy.initialize_game(&game);
             if let Some(m) = copy.execute(&mut game, false, false) {
-                return Err(format!("event {nr} ({}) failed: {:?}", copy.event_type().name(), treachery_skin::default_skin().message_to_string(&m)));
+                return Err(format!("event {nr} ({}) failed: {:?}", copy.event_type().name(), treachery_skin::default_skin().render(&m)));
             }
         }
         let mut view = build::build_view(&mut game, viewer, &self.seating, self.describer.as_ref(), -1);

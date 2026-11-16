@@ -168,9 +168,9 @@ fn deal_cancellation_removes_matching_offer() {
 fn deal_contents_description_uses_text_when_not_blank() {
     let g = game_with(&[Faction::Atreides]);
     let m = Deal::describe_deal_contents(&g, DealType::None, Some("  \t"), 0, Phase::BattlePhase, None);
-    assert!(m.to_cs_string().contains("Custom deal"), "{}", m.to_cs_string());
+    assert!(m.plain_text().contains("Custom deal"), "{}", m.plain_text());
     let m = Deal::describe_deal_contents(&g, DealType::None, Some("hi"), 0, Phase::BattlePhase, None);
-    assert!(m.to_cs_string().starts_with("hi until"), "{}", m.to_cs_string());
+    assert!(m.plain_text().starts_with("hi until"), "{}", m.plain_text());
 }
 
 /// DontShipOrMoveTo parses its parameter with int.Parse, so an empty one is a FormatException.
@@ -220,7 +220,7 @@ fn status_unknown_phase_waits_for_host() {
     g.turn.current_phase = Phase::None;
     let s = GameStatus::determine_status(&mut g, None, false);
     assert!(s.waiting_for_host);
-    assert_eq!(s.get_message(g.player_at(0), true).to_cs_string(), "Unknown phase: None");
+    assert_eq!(s.get_message(g.player_at(0), true).plain_text(), "Unknown phase: None");
 }
 
 /// Discarding waits for the factions that must discard, skipping factions not in the game.
@@ -234,7 +234,7 @@ fn status_discarding_waits_for_present_factions() {
     assert_eq!(s.waiting_for_players, vec![Some(emperor)]);
     assert!(s.waiting_for_me(emperor, false));
     assert!(s.waiting_for_others(g.player_at(0), true));
-    assert_eq!(s.get_message(emperor, false).to_cs_string(), "Please decide which card to discard.");
+    assert_eq!(s.get_message(emperor, false).plain_text(), "Please decide which card to discard.");
 }
 
 /// `BattleWinner` is a `Faction?`, so `BattleWinner != Faction.None` holds for null, and the
@@ -257,7 +257,7 @@ fn flash_game_ended_lists_winners() {
     g.turn.current_phase = Phase::GameEnded;
     g.contemplate.winners = vec![idx(&g, Faction::Emperor), idx(&g, Faction::Atreides)];
     let flashes = GameStatus::determine_flash(&g, Faction::None, false);
-    let texts: Vec<String> = flashes.iter().map(|f| f.message.to_cs_string()).collect();
+    let texts: Vec<String> = flashes.iter().map(|f| f.message.plain_text()).collect();
     assert_eq!(texts.len(), 2);
     assert!(texts[0].starts_with("Emperor") || texts[0].contains("Emperor"), "{texts:?}");
 }
@@ -305,7 +305,7 @@ fn card_trade_offer_must_name_the_ally() {
         e.target = target;
         e.set_card(Some(cards[0]));
         e.set_requested_card(None);
-        e.validate(&g).map(|m| m.to_cs_string())
+        e.validate(&g).map(|m| m.plain_text())
     };
     assert_eq!(offer(Faction::Atreides), None);
     assert_eq!(offer(Faction::Guild).as_deref(), Some("You can only trade cards with your ally"));

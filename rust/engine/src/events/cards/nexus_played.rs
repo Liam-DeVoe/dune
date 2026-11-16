@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct NexusPlayed {
@@ -39,7 +40,7 @@ impl Default for NexusPlayed {
 }
 
 macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
+    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
 }
 
 impl NexusPlayed {
@@ -450,7 +451,7 @@ impl NexusPlayed {
                 game.play_nexus_card(actor, vec![]);
                 // Nothing in the loop changes StoredRecentlyPaid.
                 for p in game.turn.stored_recently_paid.clone() {
-                    let from: ExpressionElement =
+                    let from: Part =
                         if p.to == Faction::None { "the Bank".into() } else { p.to.into() };
                     let actor_faction = game.player(actor).faction;
                     self.log_objects(game, elems![actor_faction, " get ", p.amount, " from ", from]);

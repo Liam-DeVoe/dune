@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 /// State of the battle phase: the battle sequence, the current battle with its plans, traitor
 /// calls, voice and prescience, and what the winner and loser still have to do.
@@ -95,10 +96,10 @@ impl BattleState {
     }
 }
 
-/// `vec![ExpressionElement::from(a), ...]`: the `params object?[]` of `Log(...)`.
+/// `vec![Part::from(a), ...]`: the `params object?[]` of `Log(...)`.
 macro_rules! le {
     ($($e:expr),* $(,)?) => {
-        vec![$($crate::messages::expression::ExpressionElement::from($e)),*]
+        vec![$($crate::messages::part::Part::from($e)),*]
     };
 }
 
@@ -1050,7 +1051,7 @@ impl Game {
         let winner_faction = self.player(winner).faction;
         let mut fact = BattleFact::new(BattleFactKind::Killed, winner_faction);
         fact.hero = Some(killed_hero);
-        fact.cause = Some(ExpressionElement::from(cause_of_death));
+        fact.cause = Some(Part::from(cause_of_death));
         fact.value = hero_value;
         let message = express!(cause_of_death, " kills ", killed_hero, " → ", winner_faction, " get ", Payment::of(hero_value)).with_fact(fact);
         self.log(le![message]);
@@ -1173,7 +1174,7 @@ impl Game {
             let winner_faction = self.player(winner).faction;
             let mut fact = BattleFact::new(BattleFactKind::Killed, winner_faction);
             fact.hero = Some(traitor);
-            fact.cause = Some(ExpressionElement::from("Treachery"));
+            fact.cause = Some(Part::from("Treachery"));
             fact.value = traitor_value;
             let message = express!("Treachery kills ", traitor, " → ", winner_faction, " get ", Payment::of(traitor_value)).with_fact(fact);
             self.log(le![message]);

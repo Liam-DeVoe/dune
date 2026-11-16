@@ -2,6 +2,7 @@ use crate::events::TakeLosses;
 use crate::log::storm::{StormDestroyedSpice, StormForecast, StormKilled};
 use crate::game::LossToTake;
 use crate::prelude::*;
+use crate::messages::part::Part;
 use crate::random::Rng;
 
 /// State of the storm phase: the dials, the Hidden Mobile Stronghold's moves and storm losses.
@@ -31,7 +32,7 @@ impl StormState {
 
 /// `params object?[]` element list for `Log(...)`.
 macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
+    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
 }
 
 impl Game {

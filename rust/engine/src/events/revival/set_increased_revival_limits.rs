@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct SetIncreasedRevivalLimits {
@@ -57,7 +58,7 @@ impl SetIncreasedRevivalLimits {
     pub fn try_get_message(&self, _game: &Game) -> GameResult<Message> {
         let factions = self.factions.as_ref().required("factions")?;
         if !factions.is_empty() {
-            return Ok(express!(self.initiator(), " grant a revival limit of ", 5, " to ", ExpressionElement::array(factions.iter().copied())));
+            return Ok(express!(self.initiator(), " grant a revival limit of ", 5, " to ", Part::list(factions.iter().copied())));
         }
 
         Ok(express!(self.initiator(), " don't grant increased revival limits"))

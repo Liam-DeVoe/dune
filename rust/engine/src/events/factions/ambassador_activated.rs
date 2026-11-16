@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct AmbassadorActivated {
@@ -42,7 +43,7 @@ impl Default for AmbassadorActivated {
 }
 
 macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
+    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
 }
 
 impl AmbassadorActivated {
@@ -394,7 +395,7 @@ impl AmbassadorActivated {
                     self.log_objects(game, elems![self.initiator(), " see all treachery cards owned by ", victim]);
                     // A copy of the hand as it is now: later changes to it don't change this message.
                     let hand = &game.player(victim_player.required("victim player")?).treachery_cards;
-                    let cards = ExpressionElement::list(hand.iter().copied());
+                    let cards = Part::list(hand.iter().copied());
                     self.log_to(game, self.initiator(), elems![victim, " own: ", cards]);
                 } else {
                     self.log_objects(game, elems![victim, " don't own any cards"]);

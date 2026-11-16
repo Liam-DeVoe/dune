@@ -21,7 +21,7 @@
 //! | location, card, leader | `"o:Homeworld#105"` (type and id) |
 //! | ResourceCard           | `"rc:3"` (index in `get_resource_cards_in_and_outside_play`) |
 //! | PointD                 | `"pt:1.5,-2"`                    |
-//! | Message, MessagePart   | `"m:"` + `to_cs_string()`        |
+//! | Message, MessagePart   | `"m:"` + `plain_text()`          |
 //! | collection             | JSON array                       |
 //! | anything else          | `"?:TypeName"`                   |
 //! | panic                  | `"x:Type:Message"` or `"x:panic:<message>"` |
@@ -290,12 +290,12 @@ impl Enc for PointD {
 }
 impl Enc for Message {
     fn enc(&self) -> Value {
-        json!(format!("m:{}", self.to_cs_string()))
+        json!(format!("m:{}", self.plain_text()))
     }
 }
 impl Enc for MessagePart {
     fn enc(&self) -> Value {
-        json!(format!("m:{}", self.to_cs_string()))
+        json!(format!("m:{}", self.plain_text()))
     }
 }
 impl<T: Enc> Enc for Option<T> {

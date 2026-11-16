@@ -66,6 +66,7 @@ mod turn;
 pub use turn::{Step, TurnState};
 
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 /// A game: its rules, players and board, and the state of each phase. Each field's type is
 /// defined in the file of its topic under `game/` (see docs/engine.md).
@@ -389,15 +390,15 @@ impl Game {
     /// Discards the card a player plays as Karama and logs the play as one aside:
     /// "X play [Karama]: <effect>". A card played as Karama that isn't one says
     /// so: "X play [Baliset] as a Karama card: <effect>".
-    pub fn play_karma(&mut self, player: PlayerIndex, card: Option<TreacheryCard>, effect: Vec<ExpressionElement>) {
+    pub fn play_karma(&mut self, player: PlayerIndex, card: Option<TreacheryCard>, effect: Vec<Part>) {
         self.discard_card_of(Some(player), card, false);
         let faction = self.player(player).faction;
         let m = Game::karma_played(faction, card, effect);
         self.log(vec![m.into()]);
     }
 
-    pub fn karma_played(initiator: Faction, card: Option<TreacheryCard>, effect: Vec<ExpressionElement>) -> Message {
-        let card_or_karma: ExpressionElement = match card {
+    pub fn karma_played(initiator: Faction, card: Option<TreacheryCard>, effect: Vec<Part>) -> Message {
+        let card_or_karma: Part = match card {
             Some(c) => c.into(),
             None => TreacheryCardType::Karma.into(),
         };

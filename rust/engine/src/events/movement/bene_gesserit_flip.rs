@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct BeneGesseritFlip {
@@ -75,7 +76,7 @@ impl BeneGesseritFlip {
         let territory = BeneGesseritFlip::get_territory(game);
         let has_advisors_there = game.player(self.player()).special_forces_in_territory(Some(territory)) > 0;
 
-        let force: ExpressionElement = if self.as_advisors { FactionSpecialForce::BeneGesserit.into() } else { FactionForce::BeneGesserit.into() };
+        let force: Part = if self.as_advisors { FactionSpecialForce::BeneGesserit.into() } else { FactionForce::BeneGesserit.into() };
         express!(
             self.initiator(),
             if has_advisors_there ^ self.as_advisors { " become " } else { " stay as " },

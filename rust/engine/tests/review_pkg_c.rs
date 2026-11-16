@@ -84,7 +84,7 @@ fn static_helpers_and_getters() {
             e.rule_type = *rt;
             e.bidding_above_amount = 7;
             e.bidding_winning_faction = Faction::BeneGesserit;
-            p(format!("description.{faction}.{}", *rt as i32), try_str(|| e.get_description(&g).map(|m| m.to_cs_string())));
+            p(format!("description.{faction}.{}", *rt as i32), try_str(|| e.get_description(&g).map(|m| m.plain_text())));
         }
     }
 
@@ -115,12 +115,12 @@ fn exec(g: &mut Game, text: &str, validate: bool) -> String {
     match catch_panic(|| e.execute(g, validate, true)) {
         Ok(None) => "accepted".to_string(),
         Ok(Some(m)) => {
-            for el in &m.expression.elements {
-                if let ExpressionElement::Error(_) = el {
+            for el in &m.parts {
+                if let treachery_engine::messages::part::Part::Error(_) = el {
                     return "error".to_string();
                 }
             }
-            format!("rejected:{}", m.to_cs_string())
+            format!("rejected:{}", m.plain_text())
         }
         Err(x) => format!("escaped:{}", x.replacen(": ", ":", 1)),
     }

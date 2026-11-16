@@ -6,7 +6,7 @@
 //! the same results without making `Skin` mutable.
 
 use treachery_engine::enumerations::*;
-use treachery_engine::messages::expression::ExpressionElement;
+use treachery_engine::messages::part::Part;
 use treachery_engine::game::Game;
 use treachery_engine::identity::Fetcher;
 use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
@@ -24,7 +24,7 @@ pub struct FactionSheet {
     pub theme: String,
     pub advantages: Vec<String>,
     pub advanced_advantages: Vec<String>,
-    pub parameters: Vec<ExpressionElement>,
+    pub parameters: Vec<Part>,
 }
 
 /// `_sheetBeingRead` and `_sheetInAdvanced`.
@@ -37,7 +37,7 @@ pub struct SheetReader {
 /// `Describe` takes.
 pub enum Title {
     Str(&'static str),
-    Object(ExpressionElement),
+    Object(Part),
 }
 
 impl From<&'static str> for Title {
@@ -50,7 +50,7 @@ macro_rules! title_from {
     ($($t:ty),*) => {$(
         impl From<$t> for Title {
             fn from(v: $t) -> Self {
-                Title::Object(ExpressionElement::from(v))
+                Title::Object(Part::from(v))
             }
         }
     )*};
@@ -67,8 +67,35 @@ impl Skin {
         if template.is_empty() {
             String::new()
         } else {
-            self.with_spice_icons(&self.format(&template, &parameters), 20, false)
+            self.with_spice_icons(&self.fill_sheet(&template, &parameters), 20, false)
         }
+    }
+
+    /// The sheet template with each `{N}` replaced by the description of parameter N, and `{{`
+    /// and `}}` by single braces. A template with any other brace comes back unchanged.
+    pub fn fill_sheet(&self, template: &str, parameters: &[Part]) -> String {
+        let mut out = String::with_capacity(template.len() * 2);
+        let mut rest = template;
+        while let Some(i) = rest.find(['{', '}']) {
+            out.push_str(&rest[..i]);
+            let (brace, after) = (rest.as_bytes()[i], &rest[i + 1..]);
+            if after.as_bytes().first() == Some(&brace) {
+                out.push(brace as char);
+                rest = &after[1..];
+                continue;
+            }
+            let digits = after.bytes().take_while(u8::is_ascii_digit).count();
+            let parameter = after[..digits].parse::<usize>().ok().and_then(|n| parameters.get(n));
+            match parameter {
+                Some(p) if brace == b'{' && after[digits..].starts_with('}') => {
+                    out.push_str(&self.describe(p));
+                    rest = &after[digits + 1..];
+                }
+                _ => return template.to_string(),
+            }
+        }
+        out.push_str(rest);
+        out
     }
 
     /// `GetFactionSheet(Game g, Faction f)`: the parts of the sheet a summary needs, or `None`
@@ -108,13 +135,13 @@ impl Skin {
         }
     }
 
-    fn faction_sheet_parameters(&self, g: &Game, sheet_style: &str) -> Vec<ExpressionElement> {
+    fn faction_sheet_parameters(&self, g: &Game, sheet_style: &str) -> Vec<Part> {
         let card_name = |id: i32| {
             let skin_id = TreacheryCardManager::lookup().find(id).map(|c| c.skin_id()).unwrap_or(-1);
             self.treachery_card_name_str.get_value_or_default(skin_id, "?")
         };
         let m = &g.board.map;
-        crate::args![
+        treachery_engine::parts![
             Faction::Atreides,                                         //0
             Faction::Harkonnen,                                         //1
             Faction::Emperor,                                           //2
@@ -140,7 +167,7 @@ impl Skin {
             m.habbanya_sietch(),                                    //22
             self.special_force_name_str.index(Faction::Fremen).clone(), //23
             self.special_force_name_str.index(Faction::Emperor).clone(), //24
-            sheet_style,                                            //25
+            sheet_style.to_string(),                                //25
             m.polar_sink(),                                         //26
             Faction::Tleilaxu,                                        //27
             Faction::Ixian,                                          //28
@@ -184,12 +211,12 @@ impl Skin {
 
     /// `Advantage(string advantageName, ...)` and `Advantage(object title, ...)` with a `condition`.
     fn advantage(&self, r: &mut SheetReader, title: Title, advantage_description: &str, condition: bool) -> String {
-        let advantage_name = self.title_text(title);
+        let (advantage_name, heading) = self.title_text(title);
         if condition {
             note_advantage(r, &advantage_name);
         }
         if condition {
-            format!("<p><strong>{}</strong> - {advantage_description}", to_upper_invariant(&advantage_name))
+            format!("<p><strong>{heading}</strong> - {advantage_description}")
         } else {
             String::new()
         }
@@ -197,21 +224,27 @@ impl Skin {
 
     /// `Advantage(Game g, Rule rule, string advantageName, ...)` and `Advantage(Game g, Rule rule, object title, ...)`
     fn advantage_rule(&self, r: &mut SheetReader, g: &Game, rule: Rule, title: Title, advantage_description: &str) -> String {
-        let advantage_name = self.title_text(title);
+        let (advantage_name, heading) = self.title_text(title);
         if g.applicable(rule) {
             note_advantage(r, &advantage_name);
         }
         if g.applicable(rule) {
-            format!("<p><strong>{}</strong> - {advantage_description}", to_upper_invariant(&advantage_name))
+            format!("<p><strong>{heading}</strong> - {advantage_description}")
         } else {
             String::new()
         }
     }
 
-    fn title_text(&self, title: Title) -> String {
+    /// The advantage's name, and its heading as sheet template text. A title of the template
+    /// may hold placeholders. A skin's label is text, so its braces are escaped.
+    fn title_text(&self, title: Title) -> (String, String) {
         match title {
-            Title::Str(s) => s.to_string(),
-            Title::Object(o) => self.describe(&o),
+            Title::Str(s) => (s.to_string(), to_upper_invariant(s)),
+            Title::Object(o) => {
+                let label = self.describe(&o);
+                let heading = escape_braces(&to_upper_invariant(&label));
+                (label, heading)
+            }
         }
     }
 
@@ -486,4 +519,9 @@ fn note_advantage(r: &mut SheetReader, name: &str) {
     let in_advanced = r.in_advanced;
     let Some(sheet) = r.sheet.as_mut() else { return };
     if in_advanced { &mut sheet.advanced_advantages } else { &mut sheet.advantages }.push(name.to_string());
+}
+
+/// A label as template text that [`Skin::fill_sheet`] prints as it is.
+fn escape_braces(label: &str) -> String {
+    label.replace('{', "{{").replace('}', "}}")
 }

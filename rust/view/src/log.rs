@@ -8,10 +8,10 @@
 //! keeps snapshots of the lines.
 
 use serde::{Deserialize, Serialize};
-use treachery_engine::messages::expression::ExpressionElement;
 use treachery_engine::heroes::hero::Hero;
 use treachery_engine::log as l;
 use treachery_engine::messages::message::{self as m, Message};
+use treachery_engine::messages::part::Part as P;
 use treachery_engine::prelude::*;
 use treachery_engine::messages::report::Report;
 use ts_rs::TS;
@@ -60,20 +60,29 @@ pub fn log_view(game: &Game, v: &ResolvedViewer, d: &dyn Describer) -> LogView {
 
 /// The lines of one report that the viewer may read (`RequestReport`). See [`log_view`] for `d`.
 pub fn report_lines(index: usize, r: &Report, v: &ResolvedViewer, d: &dyn Describer) -> ReportLines {
-    let lines = r.messages.iter().filter(|m| m.target == Faction::None || Some(m.target) == v.faction).map(|m| log_line(m, d)).collect();
+    let lines = r
+        .messages
+        .iter()
+        .filter(|msg| match msg.to {
+            m::Audience::Everyone => true,
+            m::Audience::Faction(f) => Some(f) == v.faction,
+        })
+        .map(|msg| log_line(msg, d))
+        .collect();
     ReportLines { index: index as i32, lines }
 }
 
 /// One message as the log draws it.
 pub fn log_line(m: &Message, d: &dyn Describer) -> LogLine {
+    let detail = m.detail();
     LogLine {
         text: expr::message(m, d),
-        private: m.target != Faction::None,
-        heading: m.heading.map(name),
-        record: m.log.as_deref().map(|r| record(r, d).unwrap_or_else(|| panic!("log record not converted: {r:?}"))),
-        route: m.route.as_ref().map(|r| route(r, d)),
-        plans: m.plans.as_ref().map(|p| BattlePlans { aggressor: plan(&p.aggressor, d), defender: plan(&p.defender, d) }),
-        fact: m.fact.as_ref().map(|f| fact(f, d)),
+        private: !m.to.is_everyone(),
+        heading: detail.and_then(|x| x.heading).map(name),
+        record: detail.and_then(|x| x.record.as_ref()).map(|r| record(r, d)),
+        route: detail.and_then(|x| x.route.as_ref()).map(|r| route(r, d)),
+        plans: detail.and_then(|x| x.plans.as_ref()).map(|p| BattlePlans { aggressor: plan(&p.aggressor, d), defender: plan(&p.defender, d) }),
+        fact: detail.and_then(|x| x.fact.as_ref()).map(|f| fact(f, d)),
     }
 }
 
@@ -418,11 +427,11 @@ pub struct BattleFact {
 }
 
 fn location(v: Location, d: &dyn Describer) -> Part {
-    expr::part(&ExpressionElement::Location(v), d).expect("location")
+    expr::part(&P::Location(v), d).expect("location")
 }
 
 fn territory(v: Territory, d: &dyn Describer) -> Part {
-    expr::part(&ExpressionElement::Territory(v), d).expect("territory")
+    expr::part(&P::Territory(v), d).expect("territory")
 }
 
 fn hero(v: Hero, d: &dyn Describer) -> Part {
@@ -434,8 +443,8 @@ fn card(v: TreacheryCard, d: &dyn Describer) -> Part {
 }
 
 /// An untyped field: null, or the element as rich text.
-fn object(v: &ExpressionElement, d: &dyn Describer) -> Option<RichText> {
-    if matches!(v, ExpressionElement::Null) {
+fn object(v: &P, d: &dyn Describer) -> Option<RichText> {
+    if matches!(v, P::Null) {
         return None;
     }
     let mut out = Vec::new();
@@ -476,15 +485,13 @@ fn fact(f: &m::BattleFact, d: &dyn Describer) -> BattleFact {
     }
 }
 
-/// Converts `Message.Log`. `None` for a type this module doesn't know, which
-/// [`log_line`] reports.
-pub fn record(r: &dyn m::LogRecord, d: &dyn Describer) -> Option<LogRecord> {
-    use LogRecord as R;
-    let any = r.as_any();
+/// Converts a message's log record.
+pub fn record(r: &l::LogRecord, d: &dyn Describer) -> LogRecord {
+    use self::LogRecord as R;
     macro_rules! on {
         ($T:ident, |$r:ident| $body:expr) => {
-            if let Some($r) = any.downcast_ref::<l::$T>() {
-                return Some($body);
+            if let l::LogRecord::$T($r) = r {
+                return $body;
             }
         };
     }
@@ -513,7 +520,7 @@ pub fn record(r: &dyn m::LogRecord, d: &dyn Describer) -> Option<LogRecord> {
 
     on!(BlowDeckLog, |r| R::BlowDeckLog { deck: r.deck.clone() });
     on!(BlowCardLog, |r| R::BlowCardLog {
-        card: expr::part(&ExpressionElement::ResourceCard(r.card), d).expect("resource card"),
+        card: expr::part(&P::SpiceCard(r.card), d).expect("resource card"),
         location: loc(r.location),
         amount: r.amount,
         lost: r.lost,
@@ -621,5 +628,5 @@ pub fn record(r: &dyn m::LogRecord, d: &dyn Describer) -> Option<LogRecord> {
     on!(FamilyAtomicsKilled, |r| R::FamilyAtomicsKilled { faction: f(r.faction), forces: r.forces, special_forces: r.special_forces });
     on!(BeneGesseritFlipped, |r| R::BeneGesseritFlipped { territory: ter(r.territory) });
 
-    None
+    unreachable!("every log record is converted above")
 }

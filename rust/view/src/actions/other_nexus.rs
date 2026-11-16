@@ -192,7 +192,7 @@ pub(super) fn options(game: &Game, p: PlayerIndex, e: &NexusPlayed, d: &dyn Desc
         "Betrayal"
     };
     let m = |x: Message| Some(message(&x, d));
-    let name = |x: treachery_engine::messages::expression::ExpressionElement| describe(d, x);
+    let name = |x: treachery_engine::messages::part::Part| describe(d, x);
     let c = case(game, p);
     let text = match c {
         Some(AtreidesBetrayal) => m(express!("Prevent ", name(FactionAdvantage::AtreidesBattlePlanPrescience.into()), "?")),

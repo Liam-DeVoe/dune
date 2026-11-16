@@ -186,7 +186,7 @@ fn automatic_passes_stop_when_bidding_ends() {
             g.rules.automation_rules.push(rule.rule(-1, By::new(&g, f)));
         }
         g.turn.current_main_phase = MainPhase::Bidding;
-        g.turn.current_phase = Phase::Bidding;
+        g.enter(Phase::Bidding, false);
         g.bidding.cards_on_auction = Some(Deck::empty());
         g.start_bid_sequence_and_auction_type(Some(AuctionType::Normal), None, 1);
         let mut seq = g.bidding.bid_sequence.take().unwrap();
@@ -202,7 +202,7 @@ fn automatic_passes_stop_when_bidding_ends() {
 
         let everyone_passed =
             g.current_report().messages.iter().filter(|m| m.plain_text() == "Bidding ends because everyone passed").count();
-        tx.send((g.turn.current_phase, everyone_passed)).unwrap();
+        tx.send((g.phase(), everyone_passed)).unwrap();
     });
     // Before the fix the thread never finished and its memory grew without end.
     let (phase, everyone_passed) = rx.recv_timeout(std::time::Duration::from_secs(20)).expect("Bid did not finish");
@@ -231,7 +231,7 @@ fn automatic_passes_stop_when_the_high_bidder_cant_be_reached() {
             g.rules.automation_rules.push(rule.rule(-1, By::new(&g, f)));
         }
         g.turn.current_main_phase = MainPhase::Bidding;
-        g.turn.current_phase = Phase::Bidding;
+        g.enter(Phase::Bidding, false);
         g.bidding.cards_on_auction = Some(Deck::empty());
         g.start_bid_sequence_and_auction_type(Some(AuctionType::Normal), None, 1);
         let mut high = Bid::default();
@@ -250,7 +250,7 @@ fn automatic_passes_stop_when_the_high_bidder_cant_be_reached() {
         pass.passed = true;
         let by = By::new(&g, g.player(first).faction.expect("faction"));
         pass.apply(&mut g, by).unwrap();
-        tx.send(g.turn.current_phase).unwrap();
+        tx.send(g.phase()).unwrap();
     });
     // Before the fix the thread never finished.
     let phase = rx.recv_timeout(std::time::Duration::from_secs(20)).expect("Bid did not finish");

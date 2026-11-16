@@ -104,7 +104,7 @@ fn fixture(name: &str, savegame: &str, out: &Path) -> Result<Value, String> {
         "fixture": name,
         "version": game.rules.version,
         "turn": game.turn.current_turn,
-        "phase": game.turn.current_phase.to_string(),
+        "phase": game.phase().to_string(),
         "factions": factions.iter().map(|f| f.to_string()).collect::<Vec<_>>(),
         "scenes": scenes,
     }))

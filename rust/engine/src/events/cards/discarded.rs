@@ -39,8 +39,7 @@ impl EventRules for Discarded {
         game.discard_card_of(by.player, self.card, false);
 
         if game.turn.factions_that_must_discard.is_empty() {
-            let phase = game.turn.phase_before_discarding.required("phase before discarding")?;
-            game.enter(phase, true);
+            game.resume(Interrupt::Discarding, true)?;
         }
         Ok(())
     }

@@ -20,7 +20,7 @@ const END_PHASE: &str = r#"{"$type":"EndPhase","Initiator":0,"Time":"2024-01-01T
 fn dump(g: &mut Game) -> String {
     let mut lines = vec![
         format!("history: {}", GameState::get_state_as_string(g)),
-        format!("phase: {} turn {}", g.turn.current_phase, g.turn.current_turn),
+        format!("phase: {} turn {}", g.phase(), g.turn.current_turn),
         format!("stream position: {:?}", g.rng.get_word_pos()),
     ];
     for (i, report) in std::iter::once(&g.log.pre_game_report).chain(g.log.report_list.iter()).enumerate() {

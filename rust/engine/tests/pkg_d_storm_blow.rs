@@ -94,10 +94,10 @@ fn storm_spell_range() {
 #[test]
 fn divide_resources_accepted_needs_a_pending_division() {
     let mut g = game_with(&[Faction::Emperor, Faction::Atreides]);
-    g.turn.current_phase = Phase::AcceptingResourceDivision;
+    g.enter_collection(CollectionStep::Accepting);
     let atreides = idx(&g, Faction::Atreides);
     assert!(!DivideResourcesAccepted::is_applicable(&g, atreides));
-    g.collection.collected_resources_to_be_divided.push(tbd(4));
+    g.collection_mut().unwrap().collected_resources_to_be_divided.push(tbd(4));
     assert!(DivideResourcesAccepted::is_applicable(&g, atreides));
     assert!(!DivideResourcesAccepted::is_applicable(&g, idx(&g, Faction::Emperor)));
 }
@@ -108,7 +108,7 @@ fn divide_resources_is_applicable_throws_without_pending_division() {
     let mut g = game_with(&[Faction::Emperor]);
     let emperor = idx(&g, Faction::Emperor);
     assert!(!DivideResources::is_applicable(&g, emperor));
-    g.turn.current_phase = Phase::DividingCollectedResources;
+    g.enter_collection(CollectionStep::Dividing);
     let e = catch_panic(|| DivideResources::is_applicable(&g, emperor)).unwrap_err();
     assert_eq!(e, "resources to be divided");
 }

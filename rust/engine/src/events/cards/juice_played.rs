@@ -18,9 +18,9 @@ impl JuicePlayed {
         }
 
         if (g.turn.current_main_phase == MainPhase::Bidding && g.bidding.bids.len() == 0)
-            || g.turn.current_phase == Phase::BeginningOfShipAndMove
+            || g.phase() == Phase::BeginningOfShipAndMove
             || (g.turn.current_main_phase == MainPhase::Battle && g.battle.current_battle.is_none())
-            || g.turn.current_phase == Phase::Contemplate
+            || g.phase() == Phase::Contemplate
         {
             result.push(JuiceType::GoFirst);
         }
@@ -31,11 +31,11 @@ impl JuicePlayed {
 
     pub fn can_be_played_by(g: &Game, player: PlayerId) -> bool {
         let applicable_phase = g.turn.current_main_phase == MainPhase::Bidding
-            || g.turn.current_phase == Phase::BeginningOfShipAndMove
-            || g.turn.current_phase == Phase::GuildShip
-            || g.turn.current_phase == Phase::NonGuildShip
+            || g.phase() == Phase::BeginningOfShipAndMove
+            || g.phase() == Phase::GuildShip
+            || g.phase() == Phase::NonGuildShip
             || g.turn.current_main_phase == MainPhase::Battle
-            || g.turn.current_phase == Phase::Contemplate;
+            || g.phase() == Phase::Contemplate;
         applicable_phase && g.player(player).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Juice)
     }
 }

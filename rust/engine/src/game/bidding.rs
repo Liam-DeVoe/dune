@@ -26,7 +26,6 @@ pub struct BiddingState {
     pub replacing_bought_card_using_nexus: bool,
     pub karma_hand_swap_number_of_cards: i32,
     pub karma_hand_swap_target: Option<Faction>,
-    pub karma_hand_swap_paused_phase: Option<Phase>,
     pub black_market_auction_type: Option<AuctionType>,
     pub card_sold_on_black_market: Option<TreacheryCard>,
     pub richese_auction_should_still_happen: bool,
@@ -57,7 +56,6 @@ impl BiddingState {
             replacing_bought_card_using_nexus: Default::default(),
             karma_hand_swap_number_of_cards: Default::default(),
             karma_hand_swap_target: Default::default(),
-            karma_hand_swap_paused_phase: Default::default(),
             black_market_auction_type: Default::default(),
             card_sold_on_black_market: None,
             richese_auction_should_still_happen: Default::default(),
@@ -786,7 +784,7 @@ impl Game {
 
     pub fn has_bid_to_pay(&self, p: PlayerId) -> bool {
         match &self.bidding.current_bid {
-            Some(current_bid) if self.turn.current_phase == Phase::Bidding => {
+            Some(current_bid) if self.phase() == Phase::Bidding => {
                 Some(current_bid.bid_initiator()) == self.player(p).faction
                     || (Some(current_bid.bid_initiator()) == self.player(p).ally && current_bid.bid_ally_contribution_amount() > 0)
             }
@@ -800,7 +798,7 @@ impl Game {
     /// no spice. Spice given away in between was paid anyway,
     /// which left the winner below zero (escapes.md, "Forces below zero").
     pub fn spice_committed_to_bids(&self, p: PlayerId) -> i32 {
-        if !matches!(self.turn.current_phase, Phase::Bidding | Phase::BlackMarketBidding) {
+        if !matches!(self.phase(), Phase::Bidding | Phase::BlackMarketBidding) {
             return 0;
         }
         let pending: Vec<&PlacedBid> = match self.bidding.current_auction_type {

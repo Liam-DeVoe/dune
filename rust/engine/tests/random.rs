@@ -136,7 +136,7 @@ fn game_from_seed(seed: i32) -> String {
         .map(|p| format!("{} seat {} traitors {:?}", treachery_engine::enum_type::name_or_absent(p.faction), treachery_engine::game::Seat::number_or_minus_one(p.seat), p.traitors.iter().map(|t| t.id()).collect::<Vec<_>>()))
         .collect();
     let deck: Vec<i32> = game.decks.treachery_deck.as_ref().unwrap().items.iter().map(|c| c.id()).collect();
-    format!("{}\nphase {}\ndeck {deck:?}\n{}", game.turn.current_phase, game.history.entries.len(), players.join("\n"))
+    format!("{}\nphase {}\ndeck {deck:?}\n{}", game.phase(), game.history.entries.len(), players.join("\n"))
 }
 
 #[test]

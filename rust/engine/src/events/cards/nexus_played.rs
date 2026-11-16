@@ -86,7 +86,7 @@ impl NexusPlayed {
     }
 
     pub fn is_applicable(g: &Game, p: PlayerId) -> bool {
-        if g.turn.current_phase == Phase::NexusCards || g.current_phase_cannot_be_interrupted() {
+        if g.phase() == Phase::NexusCards || g.current_phase_cannot_be_interrupted() {
             return false;
         }
 
@@ -94,7 +94,7 @@ impl NexusPlayed {
         let secret_ally = NexusPlayed::can_use_secret_ally(g, p);
         let betrayal = NexusPlayed::can_use_betrayal(g, p);
 
-        let game_is_in_battle = g.turn.current_phase == Phase::BattlePhase && g.battle.current_battle.is_some();
+        let game_is_in_battle = g.phase() == Phase::BattlePhase && g.battle.current_battle.is_some();
         let is_currently_formulating_battle_plan = game_is_in_battle
             && g.battle.current_battle.as_ref().expect("current battle").is_aggressor_or_defender(g, p)
             && (g.battle.defender_plan.is_none() || g.battle.aggressor_plan.is_none());
@@ -105,7 +105,7 @@ impl NexusPlayed {
             Some(Faction::Atreides) if betrayal => game_is_in_battle && battle().is_aggressor_or_defender_faction(g, Faction::Atreides),
             Some(Faction::Atreides) if cunning || secret_ally => is_currently_formulating_battle_plan,
 
-            Some(Faction::Harkonnen) if betrayal => g.turn.current_phase == Phase::CancellingTraitor,
+            Some(Faction::Harkonnen) if betrayal => g.phase() == Phase::CancellingTraitor,
             Some(Faction::Harkonnen) if cunning => true,
             Some(Faction::Harkonnen) if secret_ally => g.turn.current_main_phase == MainPhase::Contemplate,
 
@@ -127,23 +127,23 @@ impl NexusPlayed {
             Some(Faction::Guild) if betrayal => {
                 g.turn.current_main_phase == MainPhase::ShipmentAndMove && g.has_recent_payment_for(EventType::Shipment)
             }
-            Some(Faction::Guild) if cunning => g.turn.current_phase == Phase::GuildMove && !g.ship_move.in_guild_cunning_shipment,
-            Some(Faction::Guild) if secret_ally => g.turn.current_phase == Phase::NonGuildShip,
+            Some(Faction::Guild) if cunning => g.phase() == Phase::GuildMove && !g.ship_move.in_guild_cunning_shipment,
+            Some(Faction::Guild) if secret_ally => g.phase() == Phase::NonGuildShip,
 
             Some(Faction::BeneGesserit) if betrayal => game_is_in_battle && battle().is_involved_faction(g, Faction::BeneGesserit),
             Some(Faction::BeneGesserit) if cunning => g.turn.current_main_phase == MainPhase::ShipmentAndMove,
 
-            Some(Faction::Ixian) if betrayal => g.turn.current_main_phase == MainPhase::Bidding && g.turn.current_phase < Phase::BiddingReport,
+            Some(Faction::Ixian) if betrayal => g.turn.current_main_phase == MainPhase::Bidding && g.phase() < Phase::BiddingReport,
             Some(Faction::Ixian) if cunning => is_currently_formulating_battle_plan,
 
-            Some(Faction::Tleilaxu) if betrayal => g.turn.current_phase == Phase::Facedancing,
+            Some(Faction::Tleilaxu) if betrayal => g.phase() == Phase::Facedancing,
             Some(Faction::Tleilaxu) if cunning => true,
-            Some(Faction::Tleilaxu) if secret_ally => g.turn.current_phase == Phase::Resurrection,
+            Some(Faction::Tleilaxu) if secret_ally => g.phase() == Phase::Resurrection,
 
             Some(Faction::Choam) if betrayal => true,
             Some(Faction::Choam) if secret_ally => {
                 (g.turn.current_main_phase == MainPhase::Collection && !NexusPlayed::valid_choam_cards(g, p).next().is_none())
-                    || (g.turn.current_phase == Phase::BattleConclusion
+                    || (g.phase() == Phase::BattleConclusion
                         && g.battle.current_battle.is_some()
                         && Some(g.player(p).faction) == g.battle.battle_winner)
             }
@@ -275,7 +275,7 @@ impl NexusPlayed {
                 game.play_nexus_card(actor, vec![]);
                 if game.turn.current_main_phase == MainPhase::Blow {
                     game.prevent(by.faction.required("faction")?, FactionAdvantage::FremenRidesMonster, true);
-                    if matches!(game.turn.current_phase, Phase::FremenRidingMonsterA | Phase::FremenRidingMonsterB) {
+                    if matches!(game.phase(), Phase::FremenRidingMonsterA | Phase::FremenRidingMonsterB) {
                         game.determine_next_shipment_and_move_sub_phase()?;
                     }
                 } else if game.turn.current_main_phase == MainPhase::ShipmentAndMove {
@@ -325,9 +325,9 @@ impl NexusPlayed {
 
             Some(Faction::Ixian) => {
                 game.play_nexus_card(actor, vec![]);
-                if game.turn.current_phase < Phase::IxianSelectingCard {
+                if game.phase() < Phase::IxianSelectingCard {
                     game.prevent(by.faction.required("faction")?, FactionAdvantage::IxianSelectingCardsOnAuction, true);
-                } else if game.turn.current_phase > Phase::IxianSelectingCard && game.turn.current_phase < Phase::BiddingReport {
+                } else if game.phase() > Phase::IxianSelectingCard && game.phase() < Phase::BiddingReport {
                     game.prevent(by.faction.required("faction")?, FactionAdvantage::IxianSwappingCard, true);
                 }
             }
@@ -455,13 +455,12 @@ impl NexusPlayed {
                 if game.decks.traitor_deck.is_none() {
                     return;
                 }
-                game.turn.phase_before_discarding_traitor = Some(game.turn.current_phase);
                 game.turn.faction_that_must_discard_traitor = by.faction;
                 game.turn.number_of_traitors_to_discard = 1;
                 game.play_nexus_card(actor, elems!["draw a new traitor"]);
                 let t = game.decks.traitor_deck.as_mut().expect("traitor deck").draw();
                 game.player_mut(actor).traitors.push(t);
-                game.enter(Phase::DiscardingTraitor, true);
+                game.interrupt(Interrupt::DiscardingTraitor);
             }
 
             Some(Faction::Emperor) => {
@@ -556,7 +555,6 @@ impl NexusPlayed {
                 if game.decks.traitor_deck.is_none() {
                     return Ok(());
                 }
-                game.turn.phase_before_discarding_traitor = Some(game.turn.current_phase);
                 game.turn.faction_that_must_discard_traitor = by.faction;
                 game.turn.number_of_traitors_to_discard = 2;
                 game.play_nexus_card(actor, elems!["draw two new traitors"]);
@@ -564,7 +562,7 @@ impl NexusPlayed {
                 game.player_mut(actor).traitors.push(t);
                 let t = game.decks.traitor_deck.as_mut().expect("traitor deck").draw();
                 game.player_mut(actor).traitors.push(t);
-                game.enter(Phase::DiscardingTraitor, true);
+                game.interrupt(Interrupt::DiscardingTraitor);
             }
 
             Some(Faction::Fremen) => {
@@ -642,7 +640,7 @@ impl NexusPlayed {
                     game.discard_card_of(Some(actor), Some(choam_card), true);
                     let me = game.player_mut(actor);
                     me.resources += 2;
-                } else if game.turn.current_phase == Phase::BattleConclusion {
+                } else if game.phase() == Phase::BattleConclusion {
                     let Some(current_battle) = game.battle.current_battle.clone() else { return Ok(()) };
 
                     let Some(auditee) = current_battle.opponent_of_faction(game, by.faction) else { return Ok(()) };

@@ -73,7 +73,7 @@ impl Game {
             let condition = if self.blow.thumper_called_shai_hulud {
                 true
             } else {
-                let d = self.draw_and_discard_resource_card(self.turn.current_phase == Phase::BlowA);
+                let d = self.draw_and_discard_resource_card(self.phase() == Phase::BlowA);
                 drawn = Some(d);
                 !d.is_spice_blow()
             };
@@ -100,7 +100,7 @@ impl Game {
                     let is_great = !self.blow.thumper_called_shai_hulud && drawn.is_some_and(|d| d.is_great_maker());
                     self.let_monster_appear(t, is_great)?;
                     // C# parity: this break skips the `ThumperCalledShaiHulud = false` below.
-                    if matches!(self.turn.current_phase, Phase::FremenSendingMonsterA | Phase::FremenSendingMonsterB) {
+                    if matches!(self.phase(), Phase::FremenSendingMonsterA | Phase::FremenSendingMonsterB) {
                         break;
                     }
                 } else {
@@ -143,7 +143,7 @@ impl Game {
             self.blow.thumper_called_shai_hulud = false;
         }
 
-        if self.turn.current_phase != Phase::FremenSendingMonsterA && self.turn.current_phase != Phase::FremenSendingMonsterB {
+        if self.phase() != Phase::FremenSendingMonsterA && self.phase() != Phase::FremenSendingMonsterB {
             if let Some(d) = drawn {
                 self.set_previous_blow_card(Some(d));
                 self.process_blow_card(d)?;
@@ -295,7 +295,7 @@ impl Game {
         }
 
         let condition = self.applicable(Rule::ExpansionTreacheryCardsExceptPBandSSandAmal);
-        let phase = if self.turn.current_phase == Phase::BlowA { Phase::HarvesterA } else { Phase::HarvesterB };
+        let phase = if self.phase() == Phase::BlowA { Phase::HarvesterA } else { Phase::HarvesterB };
         self.enter_or_else_try(condition, phase, Game::move_to_next_phase_after_resource_blow)?;
         Ok(())
     }
@@ -307,7 +307,7 @@ impl Game {
     pub fn move_to_next_phase_after_resource_blow(&mut self) -> GameResult {
         if self.blow.monsters.is_empty() {
             // Static `Enter(bool, Action, Action)`, inlined.
-            if (self.turn.current_phase == Phase::BlowA || self.turn.current_phase == Phase::HarvesterA) && self.applicable(Rule::IncreasedResourceFlow) {
+            if (self.phase() == Phase::BlowA || self.phase() == Phase::HarvesterA) && self.applicable(Rule::IncreasedResourceFlow) {
                 self.enter_blow_b()?;
             } else {
                 self.start_nexus_card_phase();
@@ -319,7 +319,7 @@ impl Game {
                 self.break_all_alliances();
             }
 
-            let is_a = matches!(self.turn.current_phase, Phase::BlowA | Phase::HarvesterA);
+            let is_a = matches!(self.phase(), Phase::BlowA | Phase::HarvesterA);
             if self.blow.monsters.len() == 1 && self.blow.monsters[0].is_great_monster {
                 self.blow.nexus_votes.clear();
                 self.enter_either(is_a, Phase::VoteAllianceA, Phase::VoteAllianceB);
@@ -356,7 +356,7 @@ impl Game {
                 if !self.blow.monsters.is_empty() {
                     if self.is_playing(Faction::Fremen) && self.applicable(Rule::FremenSendingMonster) {
                         if !self.prevented(FactionAdvantage::FremenControlsMonster) {
-                            let condition = self.turn.current_phase == Phase::BlowA;
+                            let condition = self.phase() == Phase::BlowA;
                             self.enter_either(condition, Phase::FremenSendingMonsterA, Phase::FremenSendingMonsterB);
                         } else {
                             self.blow.monsters.push(m);
@@ -457,12 +457,12 @@ impl Game {
     }
 
     pub fn end_worm_ride_during_phase(&mut self, phase: Phase) -> GameResult {
-        self.turn.current_phase = phase;
+        self.enter(phase, false);
 
         if FremenRidesMonster::is_applicable(self) {
-            let condition = self.turn.current_phase == Phase::AllianceA || self.turn.current_phase == Phase::FremenRidingMonsterA;
+            let condition = self.phase() == Phase::AllianceA || self.phase() == Phase::FremenRidingMonsterA;
             self.enter_either(condition, Phase::FremenRidingMonsterA, Phase::FremenRidingMonsterB);
-        } else if self.turn.current_phase == Phase::FremenRidingMonsterA && self.applicable(Rule::IncreasedResourceFlow) {
+        } else if self.phase() == Phase::FremenRidingMonsterA && self.applicable(Rule::IncreasedResourceFlow) {
             self.enter_blow_b()?;
         } else {
             self.start_nexus_card_phase();
@@ -481,13 +481,13 @@ impl Game {
         self.alliances.current_alliance_offers.clear();
 
         if FremenRidesMonster::is_applicable(self) {
-            let condition = self.turn.current_phase == Phase::AllianceA;
+            let condition = self.phase() == Phase::AllianceA;
             self.enter_either(condition, Phase::FremenRidingMonsterA, Phase::FremenRidingMonsterB);
         } else {
-            if self.turn.current_phase == Phase::AllianceA {
+            if self.phase() == Phase::AllianceA {
                 let condition = self.applicable(Rule::IncreasedResourceFlow);
                 if condition { self.enter_blow_b()? } else { self.start_nexus_card_phase() }
-            } else if self.turn.current_phase == Phase::AllianceB {
+            } else if self.phase() == Phase::AllianceB {
                 self.start_nexus_card_phase();
             }
         }
@@ -495,7 +495,7 @@ impl Game {
     }
 
     pub fn end_nexus_if_everyone_is_done(&mut self) -> GameResult {
-        if matches!(self.turn.current_phase, Phase::AllianceA | Phase::AllianceB) && self.everyone_acted_or_passed() {
+        if matches!(self.phase(), Phase::AllianceA | Phase::AllianceB) && self.everyone_acted_or_passed() {
             self.end_nexus()?;
         }
         Ok(())
@@ -599,15 +599,15 @@ impl Game {
 
     /// `CurrentDiscardPile`, for callers that change the pile.
     pub fn current_discard_pile_mut(&mut self) -> Option<&mut Deck<ResourceCard>> {
-        if self.turn.current_phase == Phase::BlowA { self.decks.resource_card_discard_pile_a.as_mut() } else { self.decks.resource_card_discard_pile_b.as_mut() }
+        if self.phase() == Phase::BlowA { self.decks.resource_card_discard_pile_a.as_mut() } else { self.decks.resource_card_discard_pile_b.as_mut() }
     }
 
     pub fn previous_blow_card(&self) -> Option<ResourceCard> {
-        if self.turn.current_phase == Phase::BlowA { self.blow.latest_spice_card_a } else { self.blow.latest_spice_card_b }
+        if self.phase() == Phase::BlowA { self.blow.latest_spice_card_a } else { self.blow.latest_spice_card_b }
     }
 
     pub fn set_previous_blow_card(&mut self, value: Option<ResourceCard>) {
-        if self.turn.current_phase == Phase::BlowA {
+        if self.phase() == Phase::BlowA {
             self.blow.latest_spice_card_a = value;
         } else {
             self.blow.latest_spice_card_b = value;

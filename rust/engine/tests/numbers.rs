@@ -253,7 +253,7 @@ fn spice_bid_in_a_silent_auction_cant_be_given_away() {
     let mut g = game_with(&[Faction::Fremen, Faction::Emperor]);
     let fremen = g.get_player(Some(Faction::Fremen)).unwrap();
     g.player_mut(fremen).resources = 3;
-    g.turn.current_phase = Phase::Bidding;
+    g.enter(Phase::Bidding, false);
     g.bidding.current_auction_type = Some(AuctionType::RicheseSilent);
     let mut bid = Bid::default();
     bid.amount = 2;

@@ -57,9 +57,7 @@ impl RevivalState {
 
 impl Game {
     pub fn prepare_skill_assignment_to_revived_leader(&mut self, player: PlayerId, leader: Option<Leader>) {
-        if self.turn.current_phase != Phase::AssigningSkill && leader.is_some() {
-            self.setup.phase_before_skill_assignment = Some(self.turn.current_phase);
-        }
+        let already_assigning = self.phase() == Phase::AssigningSkill;
 
         self.player_mut(player).most_recently_revived_leader = leader;
         self.decks.skill_deck.as_mut().expect("skill deck").shuffle(&mut self.rng);
@@ -68,7 +66,11 @@ impl Game {
         self.player_mut(player).skills_to_choose_from.push(skill);
         let skill = self.decks.skill_deck.as_mut().expect("skill deck").draw();
         self.player_mut(player).skills_to_choose_from.push(skill);
-        self.enter(Phase::AssigningSkill, true);
+        if already_assigning {
+            self.remove_ended_deals(Phase::AssigningSkill);
+        } else {
+            self.interrupt(Interrupt::SkillAssignment);
+        }
     }
 
     pub fn free_revivals(&self, player: PlayerId, uses_emperor_secret_ally: bool) -> i32 {

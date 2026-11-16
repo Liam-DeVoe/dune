@@ -48,8 +48,7 @@ impl EventRules for KarmaHandSwap {
         }
         let m = self.describe(game, by);
         game.log_event(m);
-        let paused = game.bidding.karma_hand_swap_paused_phase.required("karma hand swap paused phase")?;
-        game.enter(paused, false);
+        game.resume(Interrupt::KarmaHandSwap, false)?;
         Ok(())
     }
 

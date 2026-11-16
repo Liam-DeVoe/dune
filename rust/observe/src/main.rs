@@ -213,7 +213,7 @@ fn cmd_refit(args: &Args) -> Result<bool, String> {
         s.replaced,
         s.added,
         s.dropped,
-        r.game.turn.current_phase,
+        r.game.phase(),
         r.game.turn.current_turn,
         target.end.phase.as_deref().unwrap_or("?"),
         target.turn.map(|t| t.to_string()).unwrap_or("?".into()),

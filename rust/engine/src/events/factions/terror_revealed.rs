@@ -171,7 +171,7 @@ impl EventRules for TerrorRevealed {
             game.log(parts![by.faction, " offer an alliance to ", victim, " as an alternative to terror"]);
             game.ship_move.alliance_by_terror_offered_to = victim;
             game.ship_move.alliance_by_terror_was_offered = true;
-            game.ship_move.paused_terror_phase = Some(game.turn.current_phase);
+            game.ship_move.paused_terror_phase = Some(game.phase());
             game.enter(Phase::AllianceByTerror, true);
         } else {
             game.stone(Milestone::TerrorRevealed);

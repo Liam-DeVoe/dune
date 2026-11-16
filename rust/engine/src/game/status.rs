@@ -79,7 +79,7 @@ impl GameStatus {
     /// only when its pattern matches, and again for each later arm with the same phase.
     pub fn determine_status(game: &Game, me_: Option<PlayerId>, is_player: bool) -> GameStatus {
         let g = game;
-        let phase = game.turn.current_phase;
+        let phase = game.phase();
         let result = match phase {
             /* Phase Beginnings */
             Phase::BeginningOfStorm | Phase::Thumper | Phase::BeginningOfCharity | Phase::BeginningOfBidding | Phase::BeginningOfResurrection | Phase::BeginningOfCollection => Self::host_status(
@@ -553,15 +553,15 @@ impl GameStatus {
             /* Collection */
             Phase::DividingCollectedResources => {
                 let a = express!("Please make a proposal about how to divide collected ", Concept::Resource, ".");
-                let w = express!("Waiting for ", g.collection.collected_resources_to_be_divided.first().map(|r| Some(r.first_faction)), " to propose how to divide collected ", Concept::Resource);
-                let f = g.collection.collected_resources_to_be_divided.first().map(|r| r.first_faction);
+                let w = express!("Waiting for ", g.collection().and_then(|c| c.collected_resources_to_be_divided.first()).map(|r| Some(r.first_faction)), " to propose how to divide collected ", Concept::Resource);
+                let f = g.collection().and_then(|c| c.collected_resources_to_be_divided.first()).map(|r| r.first_faction);
                 Self::faction_status(g, a, w, f, None)
             }
 
             Phase::AcceptingResourceDivision => {
                 let a = express!("Please decide about the proposed division of ", Concept::Resource, ".");
-                let w = express!(g.collection.collected_resources_to_be_divided.first().map(|r| Some(r.other_faction)), " are thinking about the proposed division");
-                let f = g.collection.collected_resources_to_be_divided.first().map(|r| r.other_faction);
+                let w = express!(g.collection().and_then(|c| c.collected_resources_to_be_divided.first()).map(|r| Some(r.other_faction)), " are thinking about the proposed division");
+                let f = g.collection().and_then(|c| c.collected_resources_to_be_divided.first()).map(|r| r.other_faction);
                 Self::faction_status(g, a, w, f, None)
             }
 
@@ -585,7 +585,7 @@ impl GameStatus {
             Phase::GameEnded => Self::status("The game has ended.", None),
 
             // DiscardingTraitor, the one phase C# had no status for, and the guarded phases above.
-            _ => Self::status(express!(format!("Unknown phase: {}", game.turn.current_phase)), None),
+            _ => Self::status(express!(format!("Unknown phase: {}", game.phase())), None),
         };
 
         let mut result = result;
@@ -643,7 +643,7 @@ impl GameStatus {
     }
 
     pub fn determine_highlights(game: &Game, my_faction: Option<Faction>) -> Vec<Option<Territory>> {
-        match game.turn.current_phase {
+        match game.phase() {
             Phase::FremenSettingUp if my_faction == Some(Faction::Fremen) => vec![Some(game.board.map.sietch_tabr().territory()), Some(game.board.map.false_wall_south()), Some(game.board.map.false_wall_west())],
 
             Phase::StormLosses => vec![Some(TakeLosses::losses_to_take(game).location.expect("location").territory())],
@@ -824,7 +824,7 @@ impl GameStatus {
     pub fn determine_flash(g: &Game, my_faction: Option<Faction>, is_player: bool) -> Vec<FlashInfo> {
         let mut result: Vec<FlashInfo> = vec![];
 
-        if g.turn.current_phase == Phase::GameEnded {
+        if g.phase() == Phase::GameEnded {
             for p in g.contemplate.winners.iter().copied() {
                 let f = g.player(p).faction;
                 Self::flash(&mut result, express!(f, " win!"), f);
@@ -833,7 +833,7 @@ impl GameStatus {
         }
 
         // C# parity: BattleWinner is a Faction?, so a null winner passes this check and flashes "null win!".
-        if g.turn.current_phase == Phase::BattleConclusion && g.battle.battle_winner != Some(None) {
+        if g.phase() == Phase::BattleConclusion && g.battle.battle_winner != Some(None) {
             Self::flash(&mut result, express!(g.battle.battle_winner, " win!"), g.battle.battle_winner);
             return result;
         }
@@ -894,7 +894,7 @@ impl GameStatus {
                 Event::FaceDancerReplaced(e) if !e.passed => Self::flash_event(g, &mut result, latest_event.as_ref()),
 
                 // Show Faction
-                Event::EstablishPlayers(_) if g.turn.current_phase != Phase::SelectingFactions && is_player => Self::flash_faction_played(&mut result, my_faction),
+                Event::EstablishPlayers(_) if g.phase() != Phase::SelectingFactions && is_player => Self::flash_faction_played(&mut result, my_faction),
                 Event::FactionTradeOffered(fto) if (latest.by == my_faction || fto.target == my_faction) && g.setup.current_trade_offers.iter().all(|t| t.initiator != my_faction) => {
                     Self::flash_faction_played(&mut result, my_faction)
                 }
@@ -945,7 +945,7 @@ impl GameStatus {
                         } else {
                             card_to_show = g.blow.latest_spice_card_b;
                         }
-                    } else if g.applicable(Rule::IncreasedResourceFlow) && matches!(g.turn.current_phase, Phase::AllianceB | Phase::HarvesterB | Phase::BlowReport) {
+                    } else if g.applicable(Rule::IncreasedResourceFlow) && matches!(g.phase(), Phase::AllianceB | Phase::HarvesterB | Phase::BlowReport) {
                         card_to_show = g.blow.latest_spice_card_b;
                     } else {
                         card_to_show = g.blow.latest_spice_card_a;

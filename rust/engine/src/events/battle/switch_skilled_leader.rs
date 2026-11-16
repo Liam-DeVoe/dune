@@ -15,7 +15,7 @@ impl SwitchedSkilledLeader {
     }
 
     pub fn can_be_played(game: &Game, player: PlayerId) -> bool {
-        if game.turn.current_phase != Phase::BattlePhase {
+        if game.phase() != Phase::BattlePhase {
             return false;
         }
         let Some(battle) = game.battle.current_battle.as_ref() else {

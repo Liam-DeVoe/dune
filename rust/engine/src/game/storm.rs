@@ -47,7 +47,7 @@ impl Game {
             self.storm.dials.clear();
             self.turn.has_acted_or_passed.clear();
             self.enter(Phase::DiallingStorm, true);
-        } else if !self.collection.just_revealed_discovery_strongholds.is_empty() {
+        } else if !self.board.just_revealed_discovery_strongholds.is_empty() {
             self.enter(Phase::BeginningOfStorm, true);
         } else {
             self.move_hms_before_dialling_storm();
@@ -225,7 +225,7 @@ impl Game {
     }
 
     pub fn end_storm_phase(&mut self) {
-        self.collection.just_revealed_discovery_strongholds.clear();
+        self.board.just_revealed_discovery_strongholds.clear();
 
         self.main_phase_end();
 

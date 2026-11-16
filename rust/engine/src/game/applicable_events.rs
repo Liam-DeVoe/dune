@@ -4,7 +4,7 @@ impl Game {
     pub fn get_applicable_events(&self, player: Option<PlayerId>, is_host: bool) -> Vec<EventType> {
         let mut result: Vec<EventType> = Vec::new();
 
-        if self.turn.current_phase == Phase::SelectingFactions && (player.is_none() || self.player(player.expect("player")).faction == None) {
+        if self.phase() == Phase::SelectingFactions && (player.is_none() || self.player(player.expect("player")).faction == None) {
             result.push(EventType::FactionSelected);
         } else if let Some(p) = player {
             if self.player(p).faction != None {
@@ -20,7 +20,7 @@ impl Game {
     }
 
     pub fn add_host_actions(&self, result: &mut Vec<EventType>) {
-        match self.turn.current_phase {
+        match self.phase() {
             Phase::AwaitingPlayers => result.push(EventType::EstablishPlayers),
             Phase::CustomizingDecks => result.push(EventType::CardsDetermined),
             Phase::PerformCustomSetup => result.push(EventType::PerformSetup),
@@ -66,7 +66,7 @@ impl Game {
         let faction = self.player(player).faction;
         let has_caravan = |g: &Game| g.player(player).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Caravan);
 
-        match self.turn.current_phase {
+        match self.phase() {
             Phase::Discarding => {
                 if self.turn.factions_that_must_discard.contains_opt(faction) {
                     result.push(EventType::Discarded);
@@ -670,7 +670,7 @@ impl Game {
             _ => {}
         }
 
-        if self.turn.current_phase > Phase::TradingFactions {
+        if self.phase() > Phase::TradingFactions {
             result.push(EventType::AutomationConfigured);
         }
 
@@ -700,9 +700,9 @@ impl Game {
         }
 
         let is_after_setup = self.turn.current_main_phase > MainPhase::Setup;
-        let has_finalized_battle_plan_waiting_to_be_resolved = (self.turn.current_phase == Phase::BattlePhase
-            || self.turn.current_phase == Phase::MeltingRock
-            || self.turn.current_phase == Phase::CallTraitorOrPass)
+        let has_finalized_battle_plan_waiting_to_be_resolved = (self.phase() == Phase::BattlePhase
+            || self.phase() == Phase::MeltingRock
+            || self.phase() == Phase::CallTraitorOrPass)
             && self.battle.current_battle.as_ref().is_some_and(|cb| cb.plan_of(self, Some(player)).is_some());
 
         if JuicePlayed::can_be_played_by(self, player) {
@@ -714,7 +714,7 @@ impl Game {
         }
 
         if faction == Some(Faction::Ecaz)
-            && self.turn.current_phase == Phase::CallTraitorOrPass
+            && self.phase() == Phase::CallTraitorOrPass
             && self.battle.current_battle.is_some()
             && self.battle.current_battle.as_ref().expect("current battle").is_aggressor_or_defender(self, player)
             && !self.karma_prevented(faction)
@@ -751,7 +751,7 @@ impl Game {
                 result.push(EventType::DiscardedTaken);
             }
 
-            if self.turn.current_phase != Phase::SearchingDiscarded && DiscardedSearchedAnnounced::can_be_played(self, player) {
+            if self.phase() != Phase::SearchingDiscarded && DiscardedSearchedAnnounced::can_be_played(self, player) {
                 result.push(EventType::DiscardedSearchedAnnounced);
             }
 
@@ -892,7 +892,7 @@ impl Game {
             }
 
             if faction == Some(Faction::BeneGesserit)
-                && self.turn.current_phase > Phase::AllianceB
+                && self.phase() > Phase::AllianceB
                 && (self.turn.current_main_phase < MainPhase::ShipmentAndMove
                     || (p.initiated(self.turn.current_bene_gesserit_cunning.as_ref())
                         && self.turn.current_main_phase == MainPhase::ShipmentAndMove))
@@ -916,8 +916,8 @@ impl Game {
             }
 
             if faction == Some(Faction::Richese)
-                && self.turn.current_phase != Phase::BlackMarketBidding
-                && self.turn.current_phase != Phase::Bidding
+                && self.phase() != Phase::BlackMarketBidding
+                && self.phase() != Phase::Bidding
                 && !has_finalized_battle_plan_waiting_to_be_resolved
                 && p.has_ally()
                 && !RicheseGaveCard::valid_cards(self, player).next().is_none()
@@ -926,8 +926,8 @@ impl Game {
                 result.push(EventType::RicheseGaveCard);
             }
 
-            if self.turn.current_phase != Phase::BlackMarketBidding
-                && (self.turn.current_phase != Phase::Bidding || self.bidding.current_bid.is_none())
+            if self.phase() != Phase::BlackMarketBidding
+                && (self.phase() != Phase::Bidding || self.bidding.current_bid.is_none())
                 && !has_finalized_battle_plan_waiting_to_be_resolved
                 && DistransUsed::can_be_played(self, player)
             {
@@ -967,17 +967,17 @@ impl Game {
 
     pub fn current_phase_cannot_be_interrupted(&self) -> bool {
         self.turn.current_main_phase == MainPhase::Ended
-            || self.turn.current_phase == Phase::Discarding
-            || self.turn.current_phase == Phase::AssigningSkill
-            || self.turn.current_phase == Phase::Clairvoyance
-            || self.turn.current_phase == Phase::Thought
-            || self.turn.current_phase == Phase::TradingCards
-            || self.turn.current_phase == Phase::Bureaucracy
-            || self.turn.current_phase == Phase::SearchingDiscarded
-            || self.turn.current_phase == Phase::PerformingKarmaHandSwap
-            || self.turn.current_phase == Phase::ReplacingCardJustWon
-            || self.turn.current_phase == Phase::DividingCollectedResources
-            || self.turn.current_phase == Phase::AcceptingResourceDivision
+            || self.phase() == Phase::Discarding
+            || self.phase() == Phase::AssigningSkill
+            || self.phase() == Phase::Clairvoyance
+            || self.phase() == Phase::Thought
+            || self.phase() == Phase::TradingCards
+            || self.phase() == Phase::Bureaucracy
+            || self.phase() == Phase::SearchingDiscarded
+            || self.phase() == Phase::PerformingKarmaHandSwap
+            || self.phase() == Phase::ReplacingCardJustWon
+            || self.phase() == Phase::DividingCollectedResources
+            || self.phase() == Phase::AcceptingResourceDivision
     }
 
     pub fn consider_as_end_of_phase(&self) -> bool {

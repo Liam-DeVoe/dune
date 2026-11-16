@@ -106,7 +106,7 @@ pub(crate) fn build_view_cached(game: &Game, v: &ResolvedViewer, s: &Seating, d:
         maximum_turns: game.maximum_turns(),
         maximum_players: game.maximum_players(),
         main_phase: name(game.turn.current_main_phase),
-        phase: name(game.turn.current_phase),
+        phase: name(game.phase()),
         viewer: ViewerInfo { faction: v.player.map(|_| name_or_absent(v.faction)), is_host: v.is_host, is_observer: v.is_observer },
         players: game.player_indices().map(|p| public_player(game, s, p)).collect(),
         me: me.map(|p| shield::private_player(game, p, &action_types)),

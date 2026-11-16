@@ -48,7 +48,7 @@ impl EventRules for KarmaMonster {
         let territory = self.territory;
         game.let_monster_appear(territory, false)?;
 
-        if game.turn.current_phase == Phase::BlowReport {
+        if game.phase() == Phase::BlowReport {
             game.enter_alliance_phase(false);
         }
         Ok(())

@@ -63,7 +63,7 @@ impl TerrorPlanted {
 
     pub fn is_applicable(g: &Game, p: PlayerId) -> bool {
         TerrorPlanted::may_remove_tokens(g, p)
-            || (g.turn.current_phase == Phase::Contemplate
+            || (g.phase() == Phase::Contemplate
                 && !TerrorPlanted::valid_terror_types(g, false).next().is_none()
                 && !TerrorPlanted::valid_strongholds(g, p).next().is_none()
                 && !g.contemplate.moritani_has_performed_terror

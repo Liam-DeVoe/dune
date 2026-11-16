@@ -63,7 +63,7 @@ pub struct End {
 impl End {
     /// Whether the game is at the phase (and battle) the old log ended at.
     pub fn reached(&self, game: &Game) -> bool {
-        self.phase.as_ref().is_none_or(|p| *p == game.turn.current_phase.to_string()) && self.battle.is_none_or(|b| b == game.battle.current_battle.is_some())
+        self.phase.as_ref().is_none_or(|p| *p == game.phase().to_string()) && self.battle.is_none_or(|b| b == game.battle.current_battle.is_some())
     }
 }
 
@@ -242,7 +242,7 @@ impl Refit {
             }
         }
         // A seated human who hasn't passed in the alliance phase passes (no bot does that for them).
-        if matches!(self.game.turn.current_phase, Phase::AllianceA | Phase::AllianceB) {
+        if matches!(self.game.phase(), Phase::AllianceA | Phase::AllianceB) {
             for &(i, faction) in &players {
                 let p = self.game.player_at(i);
                 if self.game.turn.has_acted_or_passed.contains(&faction) {
@@ -349,13 +349,13 @@ impl Refit {
     /// The bots play until the game reaches `at`. Rounds that stop changing the phase (bots that
     /// repeat themselves) are taken back, and so is everything once the log has grown too much.
     fn catch_up(&mut self, at: Position, time: &Value) {
-        let mut checkpoint = (self.game.history.entries.len(), self.out.len(), self.game.turn.current_phase);
+        let mut checkpoint = (self.game.history.entries.len(), self.out.len(), self.game.phase());
         for _ in 0..CATCH_UP_ROUNDS {
             if self.position() >= at || self.stats.added > MAX_ADDED || !self.bot_round(time) {
                 return;
             }
-            if self.game.turn.current_phase != checkpoint.2 {
-                checkpoint = (self.game.history.entries.len(), self.out.len(), self.game.turn.current_phase);
+            if self.game.phase() != checkpoint.2 {
+                checkpoint = (self.game.history.entries.len(), self.out.len(), self.game.phase());
             } else if self.out.len() - checkpoint.1 > STALL_ROUNDS {
                 break;
             }

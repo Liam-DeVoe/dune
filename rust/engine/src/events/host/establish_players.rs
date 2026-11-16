@@ -55,7 +55,7 @@ impl EstablishPlayers {
     /// at the table. Only the server knows how many users hold or wait for a seat, so it checks
     /// this before it submits the event.
     pub fn validate_for_table(&self, game: &Game, seated_users: Option<i32>) -> Option<Message> {
-        if game.turn.current_phase != Phase::AwaitingPlayers {
+        if game.phase() != Phase::AwaitingPlayers {
             return Some(express!("Invalid game phase"));
         }
         let settings = self.settings.as_ref().expect("settings");

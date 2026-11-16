@@ -382,9 +382,8 @@ impl Game {
     }
 
     pub fn let_player_discard_treachery_card_of_choice(&mut self, f: Faction) {
-        self.turn.phase_before_discarding = Some(self.turn.current_phase);
         self.turn.factions_that_must_discard.push(f);
-        self.enter(Phase::Discarding, true);
+        self.interrupt(Interrupt::Discarding);
     }
 
     pub fn kill_ambassador_in(&mut self, territory: Territory) {
@@ -412,7 +411,7 @@ impl Game {
         }
 
         if !self.storm.storm_losses_to_take.is_empty() {
-            self.storm.phase_before_storm_loss = Some(self.turn.current_phase);
+            self.storm.phase_before_storm_loss = Some(self.phase());
             self.enter(Phase::StormLosses, true);
         } else if !self.ship_move.intrusions.is_empty() {
             match self.ship_move.intrusions[0].type_ {
@@ -429,11 +428,11 @@ impl Game {
     }
 
     pub fn skip_move_if_nothing_to_move(&mut self) -> GameResult {
-        if !matches!(self.turn.current_phase, Phase::GuildMove | Phase::NonGuildMove) {
+        if !matches!(self.phase(), Phase::GuildMove | Phase::NonGuildMove) {
             return Ok(());
         }
 
-        let player = if self.turn.current_phase == Phase::GuildMove {
+        let player = if self.phase() == Phase::GuildMove {
             self.get_player(Some(Faction::Guild))
         } else {
             self.ship_move.shipment_and_move_sequence.as_ref().required("shipment and move sequence")?.current_player(self)
@@ -449,7 +448,7 @@ impl Game {
         let pf = self.player(player).faction;
         self.turn.has_acted_or_passed.push(pf.required("faction")?);
 
-        if self.turn.current_phase == Phase::NonGuildMove {
+        if self.phase() == Phase::NonGuildMove {
             let mut seq = self.ship_move.shipment_and_move_sequence.take().required("shipment and move sequence")?;
             seq.next_player(self);
             self.ship_move.shipment_and_move_sequence = Some(seq);
@@ -518,7 +517,7 @@ impl Game {
     }
 
     pub fn determine_next_shipment_and_move_sub_phase_on_no_intrusion(&mut self) -> GameResult {
-        match self.turn.current_phase {
+        match self.phase() {
             Phase::FremenRidingMonsterA
             | Phase::BeneGesseritIntrudedByFremenRidingMonsterA
             | Phase::TerrorTriggeredByFremenRidingMonsterA
@@ -569,8 +568,8 @@ impl Game {
             Phase::BeneGesseritIntrudedByRevival | Phase::TerrorTriggeredByRevival | Phase::AmbassadorTriggeredByRevival => {
                 let mut next_phase = self.ship_move.phase_before_revival_caused_intrusion.required("phase before revival caused intrusion")?;
                 if next_phase == Phase::AssigningSkill && !SkillAssigned::players_must_choose_leader_skills(self) {
-                    next_phase = self.setup.phase_before_skill_assignment.required("phase before skill assignment")?;
-                    if next_phase == self.turn.current_phase {
+                    next_phase = self.phase_under(Interrupt::SkillAssignment).required("phase before skill assignment")?;
+                    if next_phase == self.phase() {
                         next_phase = Phase::Resurrection;
                     }
                 }
@@ -584,7 +583,7 @@ impl Game {
     }
 
     pub fn determine_next_shipment_and_move_sub_phase_on_bene_gesserit_intruded(&mut self) -> GameResult {
-        let next = match self.turn.current_phase {
+        let next = match self.phase() {
             Phase::FremenRidingMonsterA
             | Phase::BeneGesseritIntrudedByFremenRidingMonsterA
             | Phase::TerrorTriggeredByFremenRidingMonsterA
@@ -617,14 +616,14 @@ impl Game {
 
             Phase::BeneGesseritIntrudedByRevival | Phase::TerrorTriggeredByRevival | Phase::AmbassadorTriggeredByRevival => Phase::BeneGesseritIntrudedByRevival,
 
-            _ => game_error!("BeneGesserit intrusion triggered during undefined phase: {}", self.turn.current_phase),
+            _ => game_error!("BeneGesserit intrusion triggered during undefined phase: {}", self.phase()),
         };
         self.enter(next, true);
         Ok(())
     }
 
     pub fn determine_next_shipment_and_move_sub_phase_on_terror_triggered(&mut self) -> GameResult {
-        let next = match self.turn.current_phase {
+        let next = match self.phase() {
             Phase::FremenRidingMonsterA
             | Phase::BeneGesseritIntrudedByFremenRidingMonsterA
             | Phase::TerrorTriggeredByFremenRidingMonsterA
@@ -652,14 +651,14 @@ impl Game {
 
             Phase::BeneGesseritIntrudedByRevival | Phase::TerrorTriggeredByRevival | Phase::AmbassadorTriggeredByRevival => Phase::TerrorTriggeredByRevival,
 
-            _ => game_error!("Terror triggered during undefined phase: {}", self.turn.current_phase),
+            _ => game_error!("Terror triggered during undefined phase: {}", self.phase()),
         };
         self.enter(next, true);
         Ok(())
     }
 
     pub fn determine_next_shipment_and_move_sub_phase_on_ambassador_triggered(&mut self) -> GameResult {
-        let next = match self.turn.current_phase {
+        let next = match self.phase() {
             Phase::FremenRidingMonsterA
             | Phase::BeneGesseritIntrudedByFremenRidingMonsterA
             | Phase::TerrorTriggeredByFremenRidingMonsterA
@@ -686,7 +685,7 @@ impl Game {
 
             Phase::BeneGesseritIntrudedByRevival | Phase::TerrorTriggeredByRevival | Phase::AmbassadorTriggeredByRevival => Phase::AmbassadorTriggeredByRevival,
 
-            _ => game_error!("Ambassador triggered during undefined phase: {}", self.turn.current_phase),
+            _ => game_error!("Ambassador triggered during undefined phase: {}", self.phase()),
         };
         self.enter(next, true);
         Ok(())

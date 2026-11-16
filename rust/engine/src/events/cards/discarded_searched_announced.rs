@@ -21,11 +21,10 @@ impl EventRules for DiscardedSearchedAnnounced {
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
         let m = self.describe(game, by);
         game.log_event(m);
-        game.turn.phase_before_searching_discarded = Some(game.turn.current_phase);
         let me = by.player();
         let p = game.player_mut(me);
         p.resources -= 2;
-        game.enter(Phase::SearchingDiscarded, true);
+        game.interrupt(Interrupt::SearchingDiscarded);
         game.stone(Milestone::CardWonSwapped);
         Ok(())
     }

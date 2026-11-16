@@ -17,7 +17,7 @@ pub struct DealAccepted {
 
 impl DealAccepted {
     pub fn may_deal(g: &Game, p: Option<PlayerId>, price: i32) -> bool {
-        g.turn.current_phase != Phase::Bidding
+        g.phase() != Phase::Bidding
             || price <= 0
             || g.bidding.current_bid.is_none()
             || {

@@ -229,7 +229,7 @@ impl EventRules for EndPhase {
     }
 
     fn apply(&self, game: &mut Game, _by: By) -> GameResult {
-        match game.turn.current_phase {
+        match game.phase() {
             Phase::SelectingFactions => game.assign_factions_and_enter_faction_trade(),
 
             Phase::TradingFactions => self.establish_decks(game)?,
@@ -325,17 +325,15 @@ impl EventRules for EndPhase {
 /// the action (it only touches `Game`).
 fn enter_spice_collection_phase(game: &mut Game) {
     game.main_phase_start(MainPhase::Collection, true);
-    game.collection.resources_collected_by_fremen = 0;
-    game.collection.resources_collected_by_harkonnen_from_desert_or_homeworld = 0;
     call_heroes_home(game);
-    game.collection.pending_discoveries = game
+    game.board.pending_discoveries = game
         .board.discoveries_on_planet
         .iter()
         .filter(|kvp| game.any_forces_in(kvp.0.territory()))
         .map(|kvp| kvp.1.token)
         .collect();
 
-    game.enter(Phase::BeginningOfCollection, true);
+    game.begin_collection();
 }
 
 fn call_heroes_home(game: &mut Game) {

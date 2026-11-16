@@ -32,10 +32,10 @@ impl DistransUsed {
         // C# parity: during black market bidding this also executes a regular Bid, not a BlackMarketBid.
         // Nested Execute: pre/post-event tasks run again and the Bid is added to History.
         let pass = Bid { passed: true, ..Bid::default() };
-        if game.turn.current_phase == Phase::BlackMarketBidding && had_room_for_cards && !game.player(player).has_room_for_cards(game) && BlackMarketBid::may_be_played(game, player) {
+        if game.phase() == Phase::BlackMarketBidding && had_room_for_cards && !game.player(player).has_room_for_cards(game) && BlackMarketBid::may_be_played(game, player) {
             let faction = game.player(player).faction.expect("faction");
             let _ = game.play(HistoryEntry::new(faction, pass), false, false);
-        } else if game.turn.current_phase == Phase::Bidding && had_room_for_cards && !game.player(player).has_room_for_cards(game) && Bid::may_be_played(game, Some(player)) {
+        } else if game.phase() == Phase::Bidding && had_room_for_cards && !game.player(player).has_room_for_cards(game) && Bid::may_be_played(game, Some(player)) {
             let faction = game.player(player).faction.expect("faction");
             let _ = game.play(HistoryEntry::new(faction, pass), false, false);
         }

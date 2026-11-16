@@ -211,7 +211,7 @@ impl Bid {
     /// was active, every automatic pass ended the bidding phase again, so the loop never
     /// stopped (fuzz seed 1 game 2, rust/docs/escapes.md).
     fn first_auto_passing_player(game: &Game) -> Option<PlayerId> {
-        if game.turn.current_phase != Phase::Bidding {
+        if game.phase() != Phase::Bidding {
             return None;
         }
         (0..game.players.len())

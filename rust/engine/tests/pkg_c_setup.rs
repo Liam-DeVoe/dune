@@ -138,7 +138,7 @@ fn establish_players_copies_factions_list() {
     let r = g.play_for_message(HistoryEntry::new(None, ev.clone()), false, true);
     assert!(r.is_none());
     assert_eq!(g.players.len(), 3);
-    assert_eq!(g.turn.current_phase, Phase::SelectingFactions);
+    assert_eq!(g.phase(), Phase::SelectingFactions);
     assert_eq!(g.rules.factions_in_play.len(), 4);
     g.rules.factions_in_play.retain(|f| Some(*f) != Some(Faction::Atreides));
     assert_eq!(ev.settings.as_ref().unwrap().allowed_factions_in_play.as_ref().unwrap().len(), 4);
@@ -168,7 +168,7 @@ fn establish_players_is_deterministic() {
         g.play_for_message(HistoryEntry::new(None, ev), false, true);
         let factions: Vec<Option<Faction>> = g.players.iter().map(|p| p.faction).collect();
         let seats: Vec<Option<Seat>> = g.players.iter().map(|p| p.seat).collect();
-        (factions, seats, g.turn.current_phase)
+        (factions, seats, g.phase())
     };
     let (f1, s1, p1) = run();
     let (f2, s2, p2) = run();

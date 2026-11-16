@@ -139,7 +139,7 @@ fn tracker() {
             let at = format!("{fx} at {step}");
             for (f, view) in all_views(r) {
                 let g = &r.game;
-                let expected = f == Some(Faction::Atreides) && g.turn.current_phase >= Phase::SelectingTraitors;
+                let expected = f == Some(Faction::Atreides) && g.phase() >= Phase::SelectingTraitors;
                 assert_eq!(view.tracker.is_some(), expected, "{at} {f:?}");
                 let Some(t) = &view.tracker else { continue };
                 shown += 1;

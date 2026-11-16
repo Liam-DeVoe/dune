@@ -44,6 +44,8 @@ mod movement;
 pub use movement::*;
 mod other;
 pub use other::*;
+mod phase;
+pub use phase::{Interrupt, PhaseState};
 mod player;
 pub use player::*;
 mod player_sequence;
@@ -93,8 +95,13 @@ pub struct Game {
     pub history: History,
     pub log: Log,
     pub counters: Counters,
+    /// The phase the game is in, with its state. Read the flat phase with [`Game::phase`].
+    pub phase: PhaseState,
+    /// What suspends the phase, the latest last.
+    pub interrupts: Vec<Interrupt>,
 
-    // The state of each phase. They are all kept side by side, whatever the current phase.
+    // The state of the phases that have no `PhaseState` variant yet (rewrite-plan.md, wave 5).
+    // They are kept side by side, whatever the current phase.
     pub setup: SetupState,
     pub storm: StormState,
     pub blow: BlowState,
@@ -103,7 +110,6 @@ pub struct Game {
     pub revival: RevivalState,
     pub ship_move: ShipMoveState,
     pub battle: BattleState,
-    pub collection: CollectionState,
     pub contemplate: ContemplateState,
 }
 
@@ -160,6 +166,8 @@ impl Game {
             history: History::new(),
             log: Log::new(),
             counters: Counters::default(),
+            phase: PhaseState::Legacy(Phase::AwaitingPlayers),
+            interrupts: Vec::new(),
             setup: SetupState::new(),
             storm: StormState::new(),
             blow: BlowState::new(),
@@ -168,7 +176,6 @@ impl Game {
             revival: RevivalState::new(),
             ship_move: ShipMoveState::new(),
             battle: BattleState::new(),
-            collection: CollectionState::new(),
             contemplate: ContemplateState::new(),
         };
 
@@ -395,8 +402,7 @@ impl Game {
         let factions: Vec<Faction> = self.players.iter().filter(|p| p.hand_size_exceeded(self)).filter_map(|p| p.faction).collect();
         self.turn.factions_that_must_discard.extend(factions);
         if self.turn.factions_that_must_discard.len() > 0 {
-            self.turn.phase_before_discarding = Some(self.turn.current_phase);
-            self.enter(Phase::Discarding, true);
+            self.interrupt(Interrupt::Discarding);
         }
     }
 

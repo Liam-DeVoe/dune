@@ -240,7 +240,7 @@ pub struct StoryBattalion {
 
 /// The `ending` field: after `GameEnded` only.
 pub fn ending(game: &Game, s: &Seating, d: &dyn Describer) -> Option<EndingView> {
-    if game.turn.current_phase != Phase::GameEnded {
+    if game.phase() != Phase::GameEnded {
         return None;
     }
     let winners = game.contemplate.winners.iter().map(|&p| StoryWinner { faction: name_or_absent(game.player(p).faction), name: s.player_name(game, p) }).collect();
@@ -323,7 +323,7 @@ fn story(game: &Game, s: &Seating, d: &dyn Describer) -> Vec<StoryBlock> {
         let rd: &dyn Describer = &rd;
 
         if matches!(previous_phase, Phase::TradingFactions | Phase::SelectingFactions)
-            && !matches!(r.turn.current_phase, Phase::TradingFactions | Phase::SelectingFactions)
+            && !matches!(r.phase(), Phase::TradingFactions | Phase::SelectingFactions)
         {
             let custom = r.get_custom_rules();
             out.push(StoryBlock::Setup {
@@ -393,7 +393,7 @@ fn story(game: &Game, s: &Seating, d: &dyn Describer) -> Vec<StoryBlock> {
             out.push(StoryBlock::Milestone { faction: name_or_absent(original.by), text: crate::expr::message(&evt.describe(r, By::new(r, original.by)), d) });
         }
 
-        if r.turn.current_phase != previous_phase && r.turn.current_phase == Phase::BattleReport {
+        if r.phase() != previous_phase && r.phase() == Phase::BattleReport {
             if let (Some(a), Some(dp)) = (&r.battle.aggressor_plan, &r.battle.defender_plan) {
                 let advanced = r.applicable(Rule::AdvancedCombat);
                 out.push(StoryBlock::Battle {
@@ -404,7 +404,7 @@ fn story(game: &Game, s: &Seating, d: &dyn Describer) -> Vec<StoryBlock> {
             }
         }
 
-        if r.turn.current_phase != previous_phase && r.turn.current_phase == Phase::TurnConcluded {
+        if r.phase() != previous_phase && r.phase() == Phase::TurnConcluded {
             let columns = StoryTable {
                 show_ally,
                 show_forces: true,
@@ -429,7 +429,7 @@ fn story(game: &Game, s: &Seating, d: &dyn Describer) -> Vec<StoryBlock> {
             out.push(StoryBlock::Ended { time: utc(original.at) });
         }
 
-        previous_phase = r.turn.current_phase;
+        previous_phase = r.phase();
         previous_main_phase = r.turn.current_main_phase;
     }
     out

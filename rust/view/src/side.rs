@@ -80,7 +80,7 @@ pub fn deals(game: &Game, v: &ResolvedViewer, d: &dyn Describer) -> Option<Deals
 pub fn tracker(game: &Game, v: &ResolvedViewer) -> Option<TrackerView> {
     use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
     let p = v.player.filter(|_| !v.is_observer)?;
-    if game.player(p).faction != Some(Faction::Atreides) || game.turn.current_phase < Phase::SelectingTraitors {
+    if game.player(p).faction != Some(Faction::Atreides) || game.phase() < Phase::SelectingTraitors {
         return None;
     }
     let mut cards: Vec<i32> = TreacheryCardManager::get_cards_in_play(game).map(|c| c.id()).collect();

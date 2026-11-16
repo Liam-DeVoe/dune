@@ -117,7 +117,7 @@ pub fn options(game: &Game, v: &ResolvedViewer, draft: &Event) -> Option<ActionO
 /// viewer with bidding prescience, leaving out `HasBiddingPrescience`'s Richese clause: the auction
 /// type may still be that of the Richese auction just sold, and the next card isn't Richese's.
 pub fn next_card(game: &Game, v: &ResolvedViewer) -> Option<NextCardView> {
-    if game.turn.current_phase != Phase::WaitingForNextBiddingRound {
+    if game.phase() != Phase::WaitingForNextBiddingRound {
         return None;
     }
     let top = game.bidding.cards_on_auction.as_ref().and_then(|d| d.top())?;
@@ -136,7 +136,7 @@ pub fn next_card(game: &Game, v: &ResolvedViewer) -> Option<NextCardView> {
 /// The lot of the bidding panel, shown in `Phase::Bidding` and `Phase::BlackMarketBidding` to
 /// every player, bidding or not.
 pub fn panel(game: &Game, v: &ResolvedViewer) -> Option<BiddingPanelView> {
-    let black_market = match game.turn.current_phase {
+    let black_market = match game.phase() {
         Phase::Bidding => false,
         Phase::BlackMarketBidding => true,
         _ => return None,

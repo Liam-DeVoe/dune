@@ -26,7 +26,7 @@ impl DiscoveryRevealed {
     pub fn get_locations(g: &Game, p: PlayerId) -> impl Iterator<Item = Location> {
         g.board.discoveries_on_planet
             .iter()
-            .filter(move |(k, v)| g.collection.pending_discoveries.contains(&v.token) && g.player(p).occupies_territory(g, Some(k.territory())))
+            .filter(move |(k, v)| g.board.pending_discoveries.contains(&v.token) && g.player(p).occupies_territory(g, Some(k.territory())))
             .map(move |(k, _)| *k)
     }
 }
@@ -47,8 +47,8 @@ impl EventRules for DiscoveryRevealed {
             game_error!("Value cannot be null. (Parameter 'key')")
         };
         let discovery = game.board.discoveries_on_planet[&location].clone();
-        if let Some(i) = game.collection.pending_discoveries.iter().position(|t| *t == discovery.token) {
-            game.collection.pending_discoveries.remove(i);
+        if let Some(i) = game.board.pending_discoveries.iter().position(|t| *t == discovery.token) {
+            game.board.pending_discoveries.remove(i);
         }
 
         if !self.passed {
@@ -65,7 +65,7 @@ impl EventRules for DiscoveryRevealed {
                 | DiscoveryToken::ProcessingStation => {
                     let sh = game.board.map.get_discovery_stronghold(discovery.token);
                     sh.point_at(&mut game.board.map, discovery.location);
-                    game.collection.just_revealed_discovery_strongholds.push(sh);
+                    game.board.just_revealed_discovery_strongholds.push(sh);
                 }
 
                 DiscoveryToken::CardStash => {
@@ -86,7 +86,7 @@ impl EventRules for DiscoveryRevealed {
                 }
 
                 DiscoveryToken::Flight => {
-                    game.collection.owner_of_flight_discovery = Some(by.faction);
+                    game.board.owner_of_flight_discovery = Some(by.faction);
                     game.log(parts![by.faction, " gain the ", discovery.token, " discovery token"]);
                 }
             }

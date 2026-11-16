@@ -6,7 +6,7 @@ pub struct RecruitsPlayed {}
 
 impl RecruitsPlayed {
     pub fn is_applicable(g: &Game, p: PlayerId) -> bool {
-        g.turn.current_phase == Phase::BeginningOfResurrection && g.player(p).has_treachery_card_type(TreacheryCardType::Recruits)
+        g.phase() == Phase::BeginningOfResurrection && g.player(p).has_treachery_card_type(TreacheryCardType::Recruits)
     }
 }
 

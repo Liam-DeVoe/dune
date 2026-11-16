@@ -346,7 +346,7 @@ impl Game {
             self.battle.battle_triggered_bureaucracy = None;
         }
 
-        if self.turn.current_phase != Phase::Retreating {
+        if self.phase() != Phase::Retreating {
             self.determine_how_to_proceed_after_revealing_battle_plans()?;
         }
         Ok(())

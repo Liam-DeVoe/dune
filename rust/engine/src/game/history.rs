@@ -241,20 +241,4 @@ impl Game {
 
         None
     }
-
-    /// A `DateTime` (`DateTimeOffset.DateTime`: the clock time, offset dropped),
-    /// returned as a `DateTimeOffset` with offset 0. `DateTime.MinValue` is tick 0.
-    pub fn first_action(&self) -> DateTimeOffset {
-        match self.history.entries.first() {
-            Some(e) => DateTimeOffset::new(e.at.ticks, 0),
-            None => DateTimeOffset::default(),
-        }
-    }
-
-    pub fn last_action(&self) -> DateTimeOffset {
-        match self.history.entries.last() {
-            Some(e) => DateTimeOffset::new(e.at.ticks, 0),
-            None => DateTimeOffset::default(),
-        }
-    }
 }

@@ -380,8 +380,6 @@ impl Skin {
             Part::Phrase(parts) => self.render_parts(parts),
             Part::Message(m) => self.render(m),
             Part::Error(e) => e.to_string(),
-            Part::UserStatus(v) => describe_user_status(*v),
-            Part::SubscriptionType(v) => describe_subscription_type(*v),
             Part::Concept(v) => self.describe_concept(*v),
             Part::Faction(v) => self.describe_faction(*v),
             Part::Ambassador(v) => self.describe_ambassador(*v),
@@ -1062,47 +1060,6 @@ impl Skin {
 
             _ => s("unknown rule"),
         }
-    }
-
-    pub fn describe_error_type(&self, e: ErrorType) -> String {
-        use ErrorType as E;
-        match e {
-            E::None => "",
-            E::UserNotFound => "User not found",
-            E::GameNotFound => "Game not found",
-            E::GameIdNotFound => "No game was given",
-            E::UserTokenNotFound => "You are not logged in",
-            E::ScheduledGameNotFound => "Game not found",
-            E::UserNameTooShort => "Username must be more than 3 characters",
-            E::PlayerNameTooShort => "Player name must be more than 3 characters",
-            E::UserNameTooLong => "Username must be 40 characters or less",
-            E::PlayerNameTooLong => "Player name must be 40 characters or less",
-            E::UserNameExists => "This username already exists",
-            E::EmailExists => "This e-mail address is already in use",
-            E::UserCreationFailed => "User creation failed",
-            E::InvalidGameVersion => "Invalid game version",
-            E::InvalidUserNameOrPassword => "Invalid user name or password",
-            E::NotAdmin => "You are not an administrator",
-            E::UnknownUsernameOrEmailAddress => "Unknown user name or email address",
-            E::NoEmailAddressForUser => "This account has no e-mail address, so its password cannot be reset",
-            E::ResetRequestTooSoon => "Please wait at least 5 minutes before requesting another password reset",
-            E::UnknownUserName => "Unknown user name",
-            E::InvalidResetToken => "Invalid password reset token",
-            E::ResetTokenExpired => "Your password reset token has expired",
-            E::NoHost => "You are not a host",
-            E::InvalidGameEvent => "Invalid game action",
-            E::TooManyGames => "You cannot have more than 3 active games, delete a game first",
-            E::TooManyScheduledGames => "You cannot schedule more than 10 games, delete a game first",
-            E::IncorrectGamePassword => "Incorrect password",
-            E::SeatNotAvailableNotOpen => "Seat is not available",
-            E::SeatNotAvailableKicked => "You were removed from this game",
-            E::AlreadyObserver => "You are already an observer in this game",
-            E::CannotRemoveLastHost => "You cannot remove the only remaining host from the game",
-            E::NoCreator => "You are not the creator of this game",
-            E::AlreadyPlayer => "You are already a player in this game",
-            E::UserNotInGame => "User not found in game",
-        }
-        .to_string()
     }
 
     // #endregion Descriptions

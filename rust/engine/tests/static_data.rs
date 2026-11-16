@@ -134,8 +134,8 @@ fn enums() {
         RuleGroup, TreacheryCardType, Concept, WinMethod, HeroType, AuctionType, JuiceType, LeaderSkill,
         StrongholdAdvantage, World, CaptureDecision, DealType, TerrorType, IntrusionType, VidalMoment,
         ClairVoyanceAnswer, ClairvoyanceQuestion, PrescienceAspect, ShipmentPermission, UserStatus,
-        SubscriptionType, GameListScope, ShipmentType, AutomationRuleType, ItemAction, BattleFactKind, AsideKind,
-        NexusAllianceChange, ShipKind, BeneGesseritReactionKind, ErrorType
+        SubscriptionType, ShipmentType, AutomationRuleType, ItemAction, BattleFactKind, AsideKind,
+        NexusAllianceChange, ShipKind, BeneGesseritReactionKind
     );
     enums.sort_by_key(|(name, _)| *name);
     check("enums", Value::Array(enums.into_iter().map(|(_, v)| v).collect()));

@@ -16,4 +16,3 @@ ts-rs = { version = "12", default-features = false, features = ["serde-compat", 
 [dev-dependencies]
 # Old savegames and event JSON in test data.
 treachery-legacy = { path = "../legacy" }
-sha2 = "0.10"

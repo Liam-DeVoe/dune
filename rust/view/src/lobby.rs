@@ -43,7 +43,7 @@ pub struct LobbyData {
     /// `EstablishPlayers.GetMaximumNumberOfTurns()`.
     pub maximum_turns: i32,
     /// Per enum type (`Faction`, `Ruleset`, `Rule`, `RuleGroup`, `MainPhase`, `Phase`,
-    /// `ErrorType`, `UserStatus`, `SubscriptionType`), its members in `Enum.GetValues` order.
+    /// `UserStatus`, `SubscriptionType`), its members in `Enum.GetValues` order.
     pub enums: BTreeMap<String, Vec<EnumMember>>,
     /// `EstablishPlayers.AvailableFactions()`, names.
     #[ts(type = "Array<Faction>")]
@@ -97,10 +97,8 @@ pub fn lobby_data() -> LobbyData {
         ("RuleGroup".to_string(), members::<RuleGroup>()),
         ("MainPhase".to_string(), members::<MainPhase>()),
         ("Phase".to_string(), members::<Phase>()),
-        // `Skin.Describe(ErrorType)` is its own overload, not the `Describe(object)` dispatch.
-        ("ErrorType".to_string(), members_with(|e: Option<ErrorType>| treachery_skin::default_skin().describe_error_type(e.expect("ErrorType is open")))),
-        ("UserStatus".to_string(), members::<UserStatus>()),
-        ("SubscriptionType".to_string(), members::<SubscriptionType>()),
+        ("UserStatus".to_string(), members_with(|v: Option<UserStatus>| treachery_skin::skin::describe_user_status(v.expect("UserStatus has no absent member")))),
+        ("SubscriptionType".to_string(), members_with(|v: Option<SubscriptionType>| treachery_skin::skin::describe_subscription_type(v.expect("SubscriptionType has no absent member")))),
     ]);
     LobbyData {
         latest_version: Game::LATEST_VERSION,

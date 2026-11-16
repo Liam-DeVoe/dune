@@ -9,6 +9,3 @@ description = "The event and savegame JSON of game version 190 and before (Syste
 treachery-engine = { path = "../engine" }
 indexmap = "2"
 serde_json = { version = "1", features = ["preserve_order"] }
-
-[dev-dependencies]
-sha2 = "0.10"

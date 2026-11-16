@@ -92,10 +92,6 @@ impl Game {
         self.players.iter().position(|p| p.faction == f).map(|i| self.player_at(i))
     }
 
-    pub fn get_faction_in_seat(&self, seat: Seat) -> Option<Faction> {
-        self.get_player_by_seat(seat).map(|p| self.player(p).faction).flatten()
-    }
-
     pub fn get_ally(&self, f: Option<Faction>) -> Option<Faction> {
         self.get_player(f).map(|p| self.player(p).ally).flatten()
     }

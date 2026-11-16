@@ -205,10 +205,6 @@ impl Event {
         self.rules().validate(game, by)
     }
 
-    pub fn is_valid(&self, game: &Game, by: By) -> bool {
-        self.validate(game, by).is_ok()
-    }
-
     /// The validation `Game::submit` runs (see [`EventRules::try_validate`]).
     pub fn try_validate(&self, game: &Game, by: By) -> GameResult<Result<(), Rejection>> {
         self.rules().try_validate(game, by)

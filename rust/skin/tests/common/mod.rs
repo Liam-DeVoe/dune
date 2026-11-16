@@ -89,10 +89,10 @@ pub fn enum_value(type_name: &str, v: i32) -> Option<Part> {
     enum_by_name!(type_name, v;
         Ambassador, AsideKind, AuctionType, AutomationRuleType, BattleFactKind, BeneGesseritReactionKind, ChoamEconomicsStatus,
         CaptureDecision, ClairVoyanceAnswer, ClairvoyanceQuestion, Concept, DealType, DiscoveryToken, DiscoveryTokenType,
-        ErrorType, Faction, FactionAdvantage, FactionForce, FactionSpecialForce, GameListScope, HeroType, IntrusionType,
+        Faction, FactionAdvantage, FactionForce, FactionSpecialForce, HeroType, IntrusionType,
         ItemAction, JuiceType, LeaderSkill, MainPhase, MainPhaseMoment, Milestone, Nexus, NexusAllianceChange, Phase,
         PrescienceAspect, Rule, RuleGroup, Ruleset, ShipKind, ShipmentPermission, ShipmentType, StrongholdAdvantage,
-        SubscriptionType, TechToken, TerrorType, TreacheryCardType, UserStatus, VidalMoment, WinMethod, World,
+        TechToken, TerrorType, TreacheryCardType, VidalMoment, WinMethod, World,
     )
 }
 

@@ -918,15 +918,6 @@ game_enum! {
 }
 
 game_enum! {
-    closed GameListScope {
-        None = 1,
-        Active = 2,
-        All = 3,
-    }
-    get_values [None, Active, All]
-}
-
-game_enum! {
     closed ShipmentType {
         Unknown = 0,
         ShipmentNormal = 1,
@@ -995,46 +986,6 @@ game_enum! {
         StayAs = 3,
     }
     get_values [Accompany, DontAccompany, Become, StayAs]
-}
-
-game_enum! {
-    closed ErrorType {
-        None = 0,
-        UserNotFound = 1,
-        GameNotFound = 2,
-        GameIdNotFound = 3,
-        ScheduledGameNotFound = 4,
-        UserNameTooShort = 5,
-        UserNameTooLong = 6,
-        UserNameExists = 7,
-        UserTokenNotFound = 8,
-        EmailExists = 9,
-        PlayerNameTooShort = 10,
-        PlayerNameTooLong = 11,
-        UserCreationFailed = 12,
-        InvalidGameVersion = 13,
-        InvalidUserNameOrPassword = 14,
-        NotAdmin = 15,
-        UnknownUsernameOrEmailAddress = 16,
-        NoEmailAddressForUser = 17,
-        ResetRequestTooSoon = 18,
-        UnknownUserName = 19,
-        InvalidResetToken = 20,
-        ResetTokenExpired = 21,
-        NoHost = 22,
-        InvalidGameEvent = 23,
-        TooManyGames = 24,
-        TooManyScheduledGames = 25,
-        IncorrectGamePassword = 26,
-        SeatNotAvailableNotOpen = 27,
-        SeatNotAvailableKicked = 28,
-        AlreadyObserver = 29,
-        CannotRemoveLastHost = 30,
-        NoCreator = 31,
-        AlreadyPlayer = 32,
-        UserNotInGame = 33,
-    }
-    get_values [None, UserNotFound, GameNotFound, GameIdNotFound, ScheduledGameNotFound, UserNameTooShort, UserNameTooLong, UserNameExists, UserTokenNotFound, EmailExists, PlayerNameTooShort, PlayerNameTooLong, UserCreationFailed, InvalidGameVersion, InvalidUserNameOrPassword, NotAdmin, UnknownUsernameOrEmailAddress, NoEmailAddressForUser, ResetRequestTooSoon, UnknownUserName, InvalidResetToken, ResetTokenExpired, NoHost, InvalidGameEvent, TooManyGames, TooManyScheduledGames, IncorrectGamePassword, SeatNotAvailableNotOpen, SeatNotAvailableKicked, AlreadyObserver, CannotRemoveLastHost, NoCreator, AlreadyPlayer, UserNotInGame]
 }
 
 /// `Enumerations.GetValues<T>()`: every value in `Enum.GetValues` order.

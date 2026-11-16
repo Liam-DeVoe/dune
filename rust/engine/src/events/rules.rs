@@ -126,11 +126,6 @@ impl HistoryEntry {
         By::new(game, self.by)
     }
 
-    /// Whether `f` submitted the event.
-    pub fn is_by(&self, f: impl Into<Option<Faction>>) -> bool {
-        self.by == f.into()
-    }
-
     /// The log line of the event in `game`.
     pub fn describe(&self, game: &Game) -> Message {
         self.event.describe(game, self.by_in(game))

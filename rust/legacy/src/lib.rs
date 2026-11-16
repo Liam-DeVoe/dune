@@ -853,11 +853,6 @@ pub fn load_any(data: &str) -> Result<treachery_engine::game::GameState, String>
     if is_legacy_savegame(data) { load_savegame(data).map_err(|e| e.message) } else { treachery_engine::game::GameState::load(data) }
 }
 
-/// Writes a savegame in the old format, with the version it had there.
-pub fn savegame_text(events: &[HistoryEntry]) -> String {
-    serialize(&LegacyGameState { version: LAST_LEGACY_VERSION, events: Some(events.to_vec()) })
-}
-
 /// Declares the members of every event: [`write_event_members`] and [`read_event`]. A missing
 /// or extra event type is a compile error, because both match exhaustively.
 macro_rules! legacy_events {

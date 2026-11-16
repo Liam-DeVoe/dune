@@ -127,7 +127,7 @@ macro_rules! part {
 
 part! {
     plain [
-        ShipmentPermission, UserStatus, SubscriptionType, GameListScope, ErrorType, DealType, ShipmentType, AutomationRuleType, ItemAction, AsideKind, NexusAllianceChange, ShipKind,
+        ShipmentPermission, DealType, ShipmentType, AutomationRuleType, ItemAction, AsideKind, NexusAllianceChange, ShipKind,
         BeneGesseritReactionKind, BattleFactKind,
     ]
     optional [

@@ -66,7 +66,7 @@ for w in World::ALL { /* ... */ }                           // Enum.GetValues<Wo
 ```
 
 - `ALL` is in `Enum.GetValues` order, which is sorted by value, and leaves the absent member out. `Rule` and `Ruleset` are declared out of order, so never rebuild that list from declaration order. Where C# offered `None` as a choice, the list says so (`ClairVoyancePlayed::valid_questions` starts with `None`, "any question").
-- A `None` member that is a real choice stays a member: `DealType::None` is a custom deal, and the lobby enums (`UserStatus`, `SubscriptionType`, `GameListScope`, `ErrorType`) keep theirs.
+- A `None` member that is a real choice stays a member: `DealType::None` is a custom deal, and the lobby enums (`UserStatus`, `SubscriptionType`) keep theirs.
 - `Ord` compares values, like C#. `Option<X>` sorts `None` first, where C# sorted the 0 member.
 - `Display` is `Enum.ToString()`, the member name. Use `name_or_absent` for an `Option<X>`.
 - `ShipmentPermission`, a C# `[Flags]` enum, is a struct of three bools (`cross`, `to_homeworld`, `guild_rate`) that implements `GameEnum` by hand. Event JSON writes the three bools (`{"cross":true,"toHomeworld":false,"guildRate":false}`); savegames of version 190 wrote the flag number.

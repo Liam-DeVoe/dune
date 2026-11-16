@@ -36,9 +36,6 @@ fn lobby_data_matches_the_engine_and_skin() {
     let faction = |n: &str| d.enums["Faction"].iter().find(|m| m.name == n).unwrap().clone();
     assert_eq!(faction("Atreides").value, Faction::Atreides.value());
     assert_eq!(faction("BeneGesserit").label, "Bene Gesserit");
-    let error = |v: ErrorType| d.enums["ErrorType"].iter().find(|m| m.value == v.value()).unwrap().label.clone();
-    assert_eq!(error(ErrorType::InvalidUserNameOrPassword), "Invalid user name or password");
-    assert_eq!(error(ErrorType::None), "");
     let ruleset = |v: Ruleset| d.enums["Ruleset"].iter().find(|m| m.value == v.value()).unwrap().label.clone();
     assert_eq!(ruleset(Ruleset::BasicGame), "Standard Dune - Basic");
     let sub = |v: SubscriptionType| d.enums["SubscriptionType"].iter().find(|m| m.value == v.value()).unwrap().label.clone();

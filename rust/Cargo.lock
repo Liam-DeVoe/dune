@@ -1694,7 +1694,6 @@ dependencies = [
  "rand_chacha",
  "serde",
  "serde_json",
- "sha2",
  "treachery-legacy",
  "ts-rs",
 ]
@@ -1705,7 +1704,6 @@ version = "0.1.0"
 dependencies = [
  "indexmap",
  "serde_json",
- "sha2",
  "treachery-engine",
 ]
 

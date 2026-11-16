@@ -112,11 +112,6 @@ impl Game {
         }
     }
 
-    /// The phase state under the interrupts.
-    pub fn phase_state(&self) -> &PhaseState {
-        &self.phase
-    }
-
     /// Replaces the phase state, dropping every interrupt, and ends the deals that last until
     /// the phase it shows.
     pub fn enter_state(&mut self, state: PhaseState) {

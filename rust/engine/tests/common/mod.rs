@@ -477,8 +477,8 @@ pub fn enum_info(name: &str) -> Option<&'static treachery_engine::enum_type::Enu
         RuleGroup, TreacheryCardType, Concept, WinMethod, HeroType, AuctionType, JuiceType, LeaderSkill,
         StrongholdAdvantage, World, CaptureDecision, DealType, TerrorType, IntrusionType, VidalMoment,
         ClairVoyanceAnswer, ClairvoyanceQuestion, PrescienceAspect, ShipmentPermission, UserStatus,
-        SubscriptionType, GameListScope, ShipmentType, AutomationRuleType, ItemAction, BattleFactKind,
-        AsideKind, NexusAllianceChange, ShipKind, BeneGesseritReactionKind, ErrorType
+        SubscriptionType, ShipmentType, AutomationRuleType, ItemAction, BattleFactKind,
+        AsideKind, NexusAllianceChange, ShipKind, BeneGesseritReactionKind
     );
     all.iter().find(|(n, _)| *n == name).map(|(_, i)| *i)
 }

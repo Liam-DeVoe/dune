@@ -20,7 +20,7 @@ maximumPlayers: number,
 maximumTurns: number, 
 /**
  * Per enum type (`Faction`, `Ruleset`, `Rule`, `RuleGroup`, `MainPhase`, `Phase`,
- * `ErrorType`, `UserStatus`, `SubscriptionType`), its members in `Enum.GetValues` order.
+ * `UserStatus`, `SubscriptionType`), its members in `Enum.GetValues` order.
  */
 enums: { [key in string]: Array<EnumMember> }, 
 /**

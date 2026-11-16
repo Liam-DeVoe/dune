@@ -62,8 +62,6 @@ mod setup;
 pub use setup::{SetupState, SetupStep, TradeOffer};
 mod state;
 pub use state::*;
-mod statistics;
-pub use statistics::*;
 mod status;
 pub use status::*;
 mod storm;

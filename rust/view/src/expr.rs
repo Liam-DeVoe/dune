@@ -17,13 +17,6 @@ pub fn enum_name(info: &EnumTypeInfo, value: i32) -> String {
     info.name_of(value).map(str::to_string).unwrap_or_else(|| value.to_string())
 }
 
-/// A `float` or `double` rounded to three decimals, to even, before it becomes a number part.
-/// The client prints the result in JavaScript's shortest round-trip form.
-pub fn support_round(x: f64) -> f64 {
-    // Larger numbers have no digits after the point to round.
-    if x.abs() < 1e16 { (x * 1000.0).round_ties_even() / 1000.0 } else { x }
-}
-
 /// A strength as the number views write: exact, since it is a whole number of halves.
 pub fn strength_f64(h: HalfPoints) -> f64 {
     h.halves() as f64 / 2.0

@@ -83,17 +83,6 @@ pub fn to_trace(event: &Map<String, Value>) -> (Value, Result<HistoryEntry, Stri
     }
 }
 
-/// An event of a trace or a session (either format) as an object of the old format, for the
-/// fuzzer. None when it doesn't decode.
-pub fn to_legacy_object(v: &Value) -> Option<Map<String, Value>> {
-    if let Value::Object(m) = v {
-        if is_legacy(v) {
-            return Some(m.clone());
-        }
-    }
-    decode(v).ok().map(|e| legacy_object(&e))
-}
-
 /// Rewrites the events in a view's JSON (the drafts and the current permissions of action
 /// options, the deals panel's buttons) as objects of the old format submitted by `by`, as the
 /// fuzzer reads them. Views write them in the engine's format, without a submitter or time.

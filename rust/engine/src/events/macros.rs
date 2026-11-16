@@ -25,8 +25,6 @@ macro_rules! events {
     (@ts $name:ident) => {
         format!("  | ({{ type: \"{0}\" }} & {0})", stringify!($name))
     };
-    (@passable pass) => { true };
-    (@passable) => { false };
     ($( $name:ident $(: $pass:ident)? ),* $(,)?) => {
         /// Any event.
         #[derive(Clone, PartialEq)]
@@ -72,13 +70,6 @@ macro_rules! events {
             pub fn default_event(self) -> Event {
                 match self {
                     $( EventType::$name => Event::$name(<$name>::default()), )*
-                }
-            }
-
-            /// Whether the event can be passed, which it is written as `play: null`.
-            pub fn is_passable(self) -> bool {
-                match self {
-                    $( EventType::$name => $crate::events::macros::events!(@passable $($pass)?), )*
                 }
             }
         }

@@ -3,7 +3,6 @@
 //! are easy to get wrong.
 
 use treachery_engine::error::catch_panic;
-use treachery_engine::events::GameEventMethods;
 use treachery_engine::prelude::*;
 
 fn outcome<R>(f: impl FnOnce() -> R) -> Result<R, String> {
@@ -27,20 +26,14 @@ fn card_of(t: TreacheryCardType, nth: usize) -> TreacheryCard {
     TreacheryCardManager::items().iter().copied().filter(|c| c.type_() == t).nth(nth).unwrap()
 }
 
-fn battle(g: &Game, initiator: Faction, target: Faction) -> Rc<BattleInitiated> {
-    let mut b = BattleInitiated::new(g, initiator);
-    b.target = Some(target);
+fn battle(g: &Game, initiator: Faction, target: Faction) -> InitiatedBattle {
     // A plain sand territory (not a homeworld).
     let t = g.board.map.territories(false).find(|t| !t.is_homeworld() && !t.is_stronghold()).unwrap();
-    b.territory = Some(t);
-    Rc::new(b)
+    BattleInitiated { target: Some(target), territory: Some(t) }.battle(By::new(g, initiator), 0)
 }
 
-fn plan(g: &Game, f: Faction, weapon: Option<TreacheryCard>, defense: Option<TreacheryCard>) -> Rc<Battle> {
-    let b = Battle::new(g, f);
-    b.weapon.set(weapon);
-    b.defense.set(defense);
-    Rc::new(b)
+fn plan(g: &Game, f: Faction, weapon: Option<TreacheryCard>, defense: Option<TreacheryCard>) -> BattlePlan {
+    Battle { weapon, defense, ..Default::default() }.plan(By::new(g, f))
 }
 
 #[test]
@@ -93,14 +86,15 @@ fn voice_valid_types_by_rules() {
 fn voice_validate_with_null_player() {
     let mut g = game_with(&[Faction::Emperor, Faction::Atreides]);
     // BeneGesserit is not playing, so Player stays null.
-    let v = Voice::new(&g, Faction::BeneGesserit);
-    assert!(v.player_opt().is_none());
+    let v = Voice::default();
+    let by = By::new(&g, Faction::BeneGesserit);
+    assert!(by.player.is_none());
     // No battle: MayUseVoice returns false before touching the player.
-    let r = outcome(|| v.validate(&g).map(|m| m.plain_text()));
+    let r = outcome(|| v.validate(&g, by).err().map(|m| m.0.plain_text()));
     assert_eq!(r, Ok(Some("You cannot use Voice".to_string())));
     // With a battle, IsInvolved(p) dereferences the null player.
     g.battle.current_battle = Some(battle(&g, Faction::Emperor, Faction::Atreides));
-    let r = outcome(|| v.validate(&g).map(|m| m.plain_text()));
+    let r = outcome(|| v.validate(&g, by).err().map(|m| m.0.plain_text()));
     assert!(r.is_err());
 }
 
@@ -117,9 +111,9 @@ fn may_call_face_dancer_distinguishes_null_and_none_winner() {
 
     // Emperor wins with a leader that is one of Tleilaxu's face dancers.
     let emperor_leader = LeaderManager::get_leaders(Faction::Emperor).next().unwrap();
-    let mut p = Battle::new(&g, Faction::Emperor);
+    let mut p = plan(&g, Faction::Emperor, None, None);
     p.hero = Some(Hero::Leader(emperor_leader));
-    g.battle.aggressor_plan = Some(Rc::new(p));
+    g.battle.aggressor_plan = Some(p);
     g.battle.battle_winner = Some(Some(Faction::Emperor));
     g.player_mut(tleilaxu).face_dancers.push(Hero::Leader(emperor_leader));
     assert!(FaceDanced::may_call_face_dancer(&g, tleilaxu));
@@ -132,9 +126,10 @@ fn may_call_face_dancer_distinguishes_null_and_none_winner() {
 fn face_danced_source_locations_message() {
     let g = game_with(&[Faction::Tleilaxu]);
     let locations: Vec<Location> = g.board.map.locations(false).take(2).collect();
-    let mut fd = FaceDanced::new(&g, Faction::Tleilaxu);
+    let by = By::new(&g, Faction::Tleilaxu);
+    let mut fd = FaceDanced::default();
     fd.force_locations = Some(format!("{}:2|0,{}:0|0", locations[0].id(), locations[1].id()));
-    let part = fd.determine_source_locations(&g);
+    let part = fd.determine_source_locations(&g, by);
     let rendered = part.plain_text();
     assert_eq!(
         rendered,
@@ -143,7 +138,7 @@ fn face_danced_source_locations_message() {
 
     // An empty string gives a condition of false, so no elements.
     fd.force_locations = Some(String::new());
-    assert_eq!(fd.determine_source_locations(&g).plain_text(), "");
+    assert_eq!(fd.determine_source_locations(&g, by).plain_text(), "");
 }
 
 #[test]
@@ -185,19 +180,19 @@ fn traitor_discarded_appends_without_shuffling() {
     g.turn.number_of_traitors_to_discard = 1;
     g.turn.phase_before_discarding_traitor = Some(Phase::BattlePhase);
 
-    let mut e = TraitorDiscarded::new(&g, Faction::Harkonnen);
+    let by = By::new(&g, Faction::Harkonnen);
+    let mut e = TraitorDiscarded::default();
     e.traitor = Some(leaders[2]);
-    assert!(e.validate(&g).is_none());
-    let e = Rc::new(e);
-    e.execute_concrete_event(&mut g).unwrap();
+    assert!(e.validate(&g, by).is_ok());
+    e.apply(&mut g, by).unwrap();
     assert_eq!(g.decks.traitor_deck.as_ref().unwrap().items, vec![leaders[0], leaders[2]]);
     assert_eq!(g.player(harkonnen).traitors, vec![leaders[1]]);
     assert_eq!(g.turn.number_of_traitors_to_discard, 0);
     assert_eq!(g.turn.current_phase, Phase::BattlePhase);
 
-    let mut bad = TraitorDiscarded::new(&g, Faction::Harkonnen);
+    let mut bad = TraitorDiscarded::default();
     bad.traitor = Some(leaders[0]);
-    assert_eq!(bad.validate(&g).map(|m| m.plain_text()), Some("Invalid traitor".to_string()));
+    assert_eq!(bad.validate(&g, by).err().map(|m| m.0.plain_text()), Some("Invalid traitor".to_string()));
 }
 
 #[test]
@@ -207,15 +202,11 @@ fn thought_answered_shows_only_the_asked_card_when_held() {
     let laser = card_of(TreacheryCardType::Laser, 0);
     let shield = card_of(TreacheryCardType::Shield, 0);
     g.player_mut(atreides).treachery_cards = vec![shield, laser];
-    let mut t = Thought::new(&g, Faction::Emperor);
-    t.card = Some(laser);
-    g.battle.current_thought = Some(Rc::new(t));
+    g.battle.current_thought = Some(ThoughtAsked { submitter: By::new(&g, Faction::Emperor), card: Some(laser) });
     assert_eq!(ThoughtAnswered::valid_cards(&g, atreides), vec![laser]);
 
-    let mut t = Thought::new(&g, Faction::Emperor);
-    t.card = Some(card_of(TreacheryCardType::Laser, 0));
     g.player_mut(atreides).treachery_cards = vec![shield];
-    g.battle.current_thought = Some(Rc::new(t));
+    g.battle.current_thought = Some(ThoughtAsked { submitter: By::new(&g, Faction::Emperor), card: Some(card_of(TreacheryCardType::Laser, 0)) });
     assert_eq!(ThoughtAnswered::valid_cards(&g, atreides), vec![shield]);
 
     // No thought: CurrentThought.Card throws.

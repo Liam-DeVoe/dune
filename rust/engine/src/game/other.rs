@@ -88,11 +88,10 @@ impl Game {
         }
     }
 
-    pub fn revoke_plan(&mut self, plan: &Rc<Battle>) {
-        // Event == is reference equality.
-        if self.battle.aggressor_plan.as_ref().is_some_and(|a| Rc::ptr_eq(a, plan)) {
+    pub fn revoke_plan(&mut self, plan: &BattlePlan) {
+        if self.battle.aggressor_plan.as_ref() == Some(plan) {
             self.battle.aggressor_plan = None;
-        } else if self.battle.defender_plan.as_ref().is_some_and(|d| Rc::ptr_eq(d, plan)) {
+        } else if self.battle.defender_plan.as_ref() == Some(plan) {
             self.battle.defender_plan = None;
         }
     }

@@ -275,14 +275,14 @@ pub fn battle(game: &Game, v: &ResolvedViewer) -> Option<BattleView> {
     // What prescience revealed goes to the prescience user and their ally only (protocol.md,
     // Visibility).
     let on_side_of = |f: Option<Faction>| f.is_some() && (me == f || my_ally == Some(f));
-    let affected_by_partial = |plan: &Battle| {
+    let affected_by_partial = |plan: &BattlePlan| {
         let by = |initiator: Option<Faction>| current.opponent_of_faction(game, initiator) == Some(plan.player()) && on_side_of(initiator);
         game.battle.current_prescience.as_ref().is_some_and(|pr| by(pr.initiator())) || game.turn.current_nexus_prescience.as_ref().is_some_and(|np| by(np.initiator()))
     };
-    let traitor = |a: &Option<std::rc::Rc<TreacheryCalled>>| a.as_ref().is_some_and(|t| t.succeeded(game));
+    let traitor = |a: &Option<TraitorCall>| a.as_ref().is_some_and(|t| t.succeeded(game));
     let facedanced = |f: Option<Faction>| game.turn.current_phase == Phase::Facedancing && game.battle.battle_winner == Some(f);
 
-    let side = |plan: &Option<std::rc::Rc<Battle>>, opponent_plan: &Option<std::rc::Rc<Battle>>, is_aggressor: bool, traitor_called: bool| {
+    let side = |plan: &Option<BattlePlan>, opponent_plan: &Option<BattlePlan>, is_aggressor: bool, traitor_called: bool| {
         let plan = plan.as_ref()?;
         let may_see = plan.initiator() == me && me.is_some() || (sees_atreides_karma && atreides_opponent == Some(plan.player()));
         let full = may_see || both_in;
@@ -290,7 +290,7 @@ pub fn battle(game: &Game, v: &ResolvedViewer) -> Option<BattleView> {
             return None;
         }
         let facedanced = facedanced(if is_aggressor { aggressor } else { defender });
-        Some(plan_view(game, plan, opponent_plan.as_deref(), full, is_aggressor, if full { traitor_called } else { false }, facedanced, territory, if is_aggressor { defender.expect("faction") } else { aggressor.expect("faction") }))
+        Some(plan_view(game, plan, opponent_plan.as_ref(), full, is_aggressor, if full { traitor_called } else { false }, facedanced, territory, if is_aggressor { defender.expect("faction") } else { aggressor.expect("faction") }))
     };
     view.aggressor_plan = side(&game.battle.aggressor_plan, &game.battle.defender_plan, true, traitor(&game.battle.defender_traitor_action));
     view.defender_plan = side(&game.battle.defender_plan, &game.battle.aggressor_plan, false, traitor(&game.battle.aggressor_traitor_action));
@@ -301,8 +301,8 @@ pub fn battle(game: &Game, v: &ResolvedViewer) -> Option<BattleView> {
 #[allow(clippy::too_many_arguments)]
 fn plan_view(
     game: &Game,
-    plan: &Battle,
-    opponent_plan: Option<&Battle>,
+    plan: &BattlePlan,
+    opponent_plan: Option<&BattlePlan>,
     full: bool,
     is_aggressor: bool,
     traitor_called: bool,

@@ -1,42 +1,11 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct BattleClaimed {
-    // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for BattleClaimed {
-    fn default() -> Self {
-        BattleClaimed {
-            passed: Default::default(),
-            base: Default::default(),
-        }
-    }
 }
 
 impl BattleClaimed {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        self.log(game);
-        game.battle.current_ecaz_or_ally_fighter = if self.passed { Some(game.get_ally(Some(Faction::Ecaz))) } else { Some(Some(Faction::Ecaz)) };
-        game.enter(Phase::BattlePhase, true);
-        game.initiate_battle();
-        self.determine_ecaz_contribution(game);
-        Ok(())
-    }
-
     pub fn determine_ecaz_contribution(&self, game: &mut Game) {
         let fighter = game.get_player(game.battle.current_ecaz_or_ally_fighter.flatten());
 
@@ -44,7 +13,7 @@ impl BattleClaimed {
             && game.battle.current_battle.is_some()
             && (game.player(fighter.expect("fighter")).is(Faction::Ecaz) || game.player(fighter.expect("fighter")).ally == Some(Faction::Ecaz))
         {
-            let ecaz = self.get_player(game, Some(Faction::Ecaz));
+            let ecaz = game.get_player(Some(Faction::Ecaz));
             if let Some(ecaz) = ecaz {
                 let territory = game.battle.current_battle.as_ref().expect("current battle").territory.expect("territory");
                 let forces = game.player(ecaz).any_forces_in_territory(Some(territory));
@@ -54,46 +23,27 @@ impl BattleClaimed {
             game.battle.current_ecaz_battle_contribution = 0;
         }
     }
+}
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+impl EventRules for BattleClaimed {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let m = self.describe(game, by);
+        game.log_event(m);
+        game.battle.current_ecaz_or_ally_fighter = if self.passed { Some(game.get_ally(Some(Faction::Ecaz))) } else { Some(Some(Faction::Ecaz)) };
+        game.enter(Phase::BattlePhase, true);
+        game.initiate_battle();
+        self.determine_ecaz_contribution(game);
+        Ok(())
+    }
+
+    fn describe(&self, _game: &Game, _by: By) -> Message {
         if !self.passed {
             return express!(Faction::Ecaz, " will fight this battle");
         }
         express!(Faction::Ecaz, "'s ally will fight this battle")
     }
-
-}
-
-impl GameEventMethods for BattleClaimed {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::BattleClaimed
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::BattleClaimed(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        BattleClaimed::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        BattleClaimed::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        BattleClaimed::get_message(self, game)
-    }
-
-}
-
-impl PassableGameEventMethods for BattleClaimed {
-    fn field_passed(&self) -> &bool {
-        &self.passed
-    }
-
 }

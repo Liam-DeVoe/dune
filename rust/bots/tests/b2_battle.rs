@@ -11,24 +11,9 @@
 
 mod common;
 
-use treachery_bots::bot::EventKind;
 use treachery_bots::prelude::*;
 
 use common::{run_probes, Bots};
-
-fn ev<T: EventKind>(e: Rc<T>) -> String
-where
-    Event: From<Rc<T>>,
-{
-    treachery_engine::json::serialize(&HistoryEntry::legacy(e))
-}
-
-fn opt<T: EventKind>(e: Option<Rc<T>>) -> String
-where
-    Event: From<Rc<T>>,
-{
-    e.map_or_else(|| "null".to_string(), ev)
-}
 
 fn f32s(x: f32) -> String {
     dotnet_compat::fmt::f32_to_string(x)
@@ -42,23 +27,23 @@ fn call(game: &mut Game, b: &ClassicBot, m: &str, a: &[String]) -> String {
     let n = |i: usize| a[i][1..].parse::<i32>().unwrap();
     let p = |game: &Game, i: usize| game.player_at(n(i) as usize);
     match m {
-        "DetermineBattleClaimed" => ev(b.determine_battle_claimed(game)),
-        "DetermineSwitchedSkilledLeader" => opt(b.determine_switched_skilled_leader(game)),
-        "DetermineBattleInitiated" => ev(b.determine_battle_initiated(game)),
-        "DetermineTreacheryCalled" => opt(b.determine_treachery_called(game)),
-        "DetermineAuditCancelled" => ev(b.determine_audit_cancelled(game)),
-        "DetermineAudited" => ev(b.determine_audited(game)),
-        "DetermineBattleConcluded" => ev(b.determine_battle_concluded(game)),
-        "DetermineBattle" => opt(b.determine_battle(game)),
-        "DetermineBattlePlan" => ev(b.determine_battle_plan(game, a[0] == "true")),
-        "DetermineRockWasMelted" => ev(b.determine_rock_was_melted(game)),
-        "DetermineResidualPlayed" => ev(b.determine_residual_played(game)),
-        "DeterminePortableAntidoteUsed" => opt(b.determine_portable_antidote_used(game)),
-        "DetermineThought" => opt(b.determine_thought(game)),
-        "DetermineThoughtAnswered" => ev(b.determine_thought_answered(game)),
-        "DetermineHmsAdvantageChosen" => ev(b.determine_hms_advantage_chosen(game)),
-        "DetermineRetreat" => opt(b.determine_retreat(game)),
-        "DetermineLoserConcluded" => ev(b.determine_loser_concluded(game)),
+        "DetermineBattleClaimed" => common::decision(b, game, b.determine_battle_claimed(game)),
+        "DetermineSwitchedSkilledLeader" => common::decision(b, game, b.determine_switched_skilled_leader(game)),
+        "DetermineBattleInitiated" => common::decision(b, game, b.determine_battle_initiated(game)),
+        "DetermineTreacheryCalled" => common::decision(b, game, b.determine_treachery_called(game)),
+        "DetermineAuditCancelled" => common::decision(b, game, b.determine_audit_cancelled(game)),
+        "DetermineAudited" => common::decision(b, game, b.determine_audited(game)),
+        "DetermineBattleConcluded" => common::decision(b, game, b.determine_battle_concluded(game)),
+        "DetermineBattle" => common::decision(b, game, b.determine_battle(game)),
+        "DetermineBattlePlan" => common::decision(b, game, b.determine_battle_plan(game, a[0] == "true")),
+        "DetermineRockWasMelted" => common::decision(b, game, b.determine_rock_was_melted(game)),
+        "DetermineResidualPlayed" => common::decision(b, game, b.determine_residual_played(game)),
+        "DeterminePortableAntidoteUsed" => common::decision(b, game, b.determine_portable_antidote_used(game)),
+        "DetermineThought" => common::decision(b, game, b.determine_thought(game)),
+        "DetermineThoughtAnswered" => common::decision(b, game, b.determine_thought_answered(game)),
+        "DetermineHmsAdvantageChosen" => common::decision(b, game, b.determine_hms_advantage_chosen(game)),
+        "DetermineRetreat" => common::decision(b, game, b.determine_retreat(game)),
+        "DetermineLoserConcluded" => common::decision(b, game, b.determine_loser_concluded(game)),
         "CanOnlyUseTraitorsOrFacedancers" => {
             if ClassicBot::can_only_use_traitors_or_facedancers(game, p(game, 0)) { "true".into() } else { "false".into() }
         }

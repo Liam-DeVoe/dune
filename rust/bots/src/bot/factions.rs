@@ -578,7 +578,7 @@ impl ClassicBot {
             || (self.potential_winning_opponents_contains(game, Some(opponent)) && dial_needed <= amount_i_can_reinforce + max_dial)
     }
 
-    pub fn determine_bene_gesserit_battle_announcement(&self, game: &Game) -> Option<Rc<BeneGesseritBattleAnnouncement>> {
+    pub fn determine_bene_gesserit_battle_announcement(&self, game: &Game) -> Option<BeneGesseritBattleAnnouncement> {
         if game.turn.current_main_phase > MainPhase::Bidding
             && self.nr_of_battles_to_fight(game) <= Battle::valid_battle_heroes(game, self.player).len() as i32
         {
@@ -591,9 +591,9 @@ impl ClassicBot {
                 });
 
             if let Some(territory) = territory {
-                let mut e = BeneGesseritBattleAnnouncement::new(game, self.faction(game));
+                let mut e = BeneGesseritBattleAnnouncement::default();
                 e.territory = Some(territory);
-                return Some(Rc::new(e));
+                return Some(e);
             }
         }
 
@@ -692,7 +692,7 @@ impl ClassicBot {
         Rc::new(e)
     }
 
-    pub fn determine_voice(&mut self, game: &Game) -> Option<Rc<Voice>> {
+    pub fn determine_voice(&mut self, game: &Game) -> Option<Voice> {
         self.voice_plan = None;
 
         let battle = game.battle.current_battle.clone().expect("current battle");
@@ -709,14 +709,14 @@ impl ClassicBot {
 
     /// Declines Voice when I won't use it (I only voice in battles I fight), so that Prescience,
     /// which waits for Voice, can go ahead.
-    pub fn determine_voice_declined(&mut self, game: &Game) -> Option<Rc<VoiceDeclined>> {
-        Some(Rc::new(VoiceDeclined::new(game, self.faction(game))))
+    pub fn determine_voice_declined(&mut self, _game: &Game) -> Option<VoiceDeclined> {
+        Some(VoiceDeclined::default())
     }
 
     /// The voice `p` should use against `opponent`, with the weapon and defense it is meant to
     /// support. `battle` is kept by reference: it is later compared with the current battle by
     /// identity.
-    pub fn best_voice(&self, game: &Game, battle: Option<Rc<BattleInitiated>>, p: PlayerId, opponent: PlayerId) -> VoicePlan {
+    pub fn best_voice(&self, game: &Game, battle: Option<InitiatedBattle>, p: PlayerId, opponent: PlayerId) -> VoicePlan {
         use TreacheryCardType as T;
 
         // C# parity: when I predicted this opponent's win, a voice forcing a lasgun was built here
@@ -724,7 +724,7 @@ impl ClassicBot {
         let win_predicted = self.win_was_predicted_by_me_this_turn(game, game.player(opponent).faction.expect("faction"));
         let mut result = VoicePlan {
             battle,
-            voice: Rc::new(Voice::default()),
+            voice: Voice::default(),
             weapon_to_use: None,
             defense_to_use: None,
             player_hero_will_certainly_survive: win_predicted,
@@ -794,17 +794,17 @@ impl ClassicBot {
                 })
             });
 
-        let mut voice = Voice::new(game, game.player(p).faction.expect("faction"));
+        let mut voice = Voice::default();
         voice.must = command.must;
         voice.type_ = Some(command.type_);
-        result.voice = Rc::new(voice);
+        result.voice = voice;
 
         result
     }
 
     // ---- Atreides ----
 
-    pub fn determine_prescience(&self, game: &Game) -> Option<Rc<Prescience>> {
+    pub fn determine_prescience(&self, game: &Game) -> Option<Prescience> {
         let battle = game.battle.current_battle.clone().expect("current battle");
         let opponent = battle.opponent_of_faction(game, self.faction(game));
 
@@ -818,11 +818,11 @@ impl ClassicBot {
         }
 
         let existing_aspect = game.battle.current_prescience.as_ref().map_or(None, |p| p.aspect);
-        let mut e = Prescience::new(game, self.faction(game));
+        let mut e = Prescience::default();
         let territory = battle.territory.expect("territory");
         let max_dial = ClassicBot::max_dial(game, self.player, territory, opponent, false);
         e.aspect = self.best_prescience(game, self.player, opponent.expect("opponent"), max_dial, existing_aspect, territory);
-        Some(Rc::new(e))
+        Some(e)
     }
 
     /// Which aspect of `opponent`'s battle plan `p` should ask for, other than `earlier_prescience`.
@@ -882,8 +882,8 @@ impl ClassicBot {
         None
     }
 
-    pub fn determine_face_dancer_revealed(&self, game: &Game) -> Rc<FaceDancerRevealed> {
-        let mut e = FaceDancerRevealed::new(game, self.faction(game));
+    pub fn determine_face_dancer_revealed(&self, game: &Game) -> FaceDancerRevealed {
+        let mut e = FaceDancerRevealed::default();
         e.passed = true;
 
         if FaceDanced::may_call_face_dancer(game, self.player) {
@@ -899,15 +899,15 @@ impl ClassicBot {
             }
         }
 
-        Rc::new(e)
+        e
     }
 
-    pub fn determine_face_danced(&self, game: &Game) -> Rc<FaceDanced> {
+    pub fn determine_face_danced(&self, game: &Game) -> FaceDanced {
         let faction = self.faction(game);
         let passed = || {
-            let mut e = FaceDanced::new(game, faction);
+            let mut e = FaceDanced::default();
             e.passed = true;
-            Rc::new(e)
+            e
         };
 
         let mut to_place = FaceDanced::maximum_number_of_forces(game, self.player);
@@ -934,14 +934,14 @@ impl ClassicBot {
         let mut forces_from_planet: IndexMap<Location, Battalion> = IndexMap::new();
         forces_from_planet.insert_new(biggest.location, to_take);
 
-        let mut result = FaceDanced::new(game, faction);
+        let mut result = FaceDanced::default();
         result.set_force_locations(game, &forces_from_planet);
         result.forces_from_reserve = treachery_engine::game::amounts::clamp_u16(from_reserves);
         result.set_target_force_locations(game, &target_locations);
-        Rc::new(result)
+        result
     }
 
-    pub fn determine_face_dancer_replaced(&self, game: &Game) -> Rc<FaceDancerReplaced> {
+    pub fn determine_face_dancer_replaced(&self, game: &Game) -> FaceDancerReplaced {
         let mut replaceable: Vec<Hero> = FaceDancerReplaced::valid_face_dancers(game, self.player).collect();
         replaceable.sort_by_key(|f| f.value());
 
@@ -955,12 +955,12 @@ impl ClassicBot {
             .find(|f| leaders_contain(&me.leaders, *f) || allied_leaders.as_ref().is_some_and(|al| leaders_contain(al, *f)))
             .or_else(|| replaceable.iter().copied().find(|f| f.as_leader().is_some() && !game.is_alive(*f)));
 
-        let mut e = FaceDancerReplaced::new(game, self.faction(game));
+        let mut e = FaceDancerReplaced::default();
         e.passed = to_replace.is_none();
         if to_replace.is_some() {
             e.selected_dancer = to_replace;
         }
-        Rc::new(e)
+        e
     }
 
     pub fn determine_request_tleilaxu_revival(&mut self, game: &Game) -> Option<Rc<RequestTleilaxuRevival>> {
@@ -1517,18 +1517,18 @@ impl ClassicBot {
 
     // ---- Harkonnen ----
 
-    pub fn determine_captured(&self, game: &Game) -> Rc<Captured> {
-        let mut e = Captured::new(game, self.faction(game));
+    pub fn determine_captured(&self, _game: &Game) -> Captured {
+        let mut e = Captured::default();
         e.passed = false;
-        Rc::new(e)
+        e
     }
 }
 
 #[derive(Clone)]
 pub struct VoicePlan {
     /// Compared with the current battle by identity.
-    pub battle: Option<Rc<BattleInitiated>>,
-    pub voice: Rc<Voice>,
+    pub battle: Option<InitiatedBattle>,
+    pub voice: Voice,
     pub weapon_to_use: Option<TreacheryCard>,
     pub defense_to_use: Option<TreacheryCard>,
     pub player_hero_will_certainly_survive: bool,

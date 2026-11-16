@@ -1,37 +1,21 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
-pub struct Audited {
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Audited {}
 
-impl Default for Audited {
-    fn default() -> Self {
-        Audited {
-            base: Default::default(),
-        }
-    }
-}
-
-impl Audited {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
+impl EventRules for Audited {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
     }
 
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        self.log(game);
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let m = self.describe(game, by);
+        game.log_event(m);
         game.stone(Milestone::Audited);
         // RegisterKnown only adds to the player's KnownCards, so the list does not change.
         let audited = game.battle.audited_cards.clone();
         for card in audited {
-            Game::register_known_by_player(game, self.player(), Some(card));
+            Game::register_known_by_player(game, by.player(), Some(card));
         }
         let winner_is_none = game.battle.battle_winner == Some(None);
         let harkonnen_must_decide = game.harkonnen_must_decide_to_capture();
@@ -44,34 +28,7 @@ impl Audited {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn describe(&self, _game: &Game, _by: By) -> Message {
         express!(Faction::Choam, " finish their audit")
     }
-}
-
-impl GameEventMethods for Audited {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::Audited
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::Audited(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        Audited::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        Audited::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        Audited::get_message(self, game)
-    }
-
 }

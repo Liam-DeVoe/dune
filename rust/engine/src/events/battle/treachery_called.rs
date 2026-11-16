@@ -1,44 +1,11 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct TreacheryCalled {
     pub traitor_called: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for TreacheryCalled {
-    fn default() -> Self {
-        TreacheryCalled {
-            traitor_called: Default::default(),
-            base: Default::default(),
-        }
-    }
 }
 
 impl TreacheryCalled {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn succeeded(&self, game: &Game) -> bool {
-        self.traitor_called && (self.initiator() != Some(Faction::Harkonnen) || !game.turn.harkonnen_traitor_was_cancelled)
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        if !self.traitor_called {
-            return None;
-        }
-
-        if !TreacheryCalled::may_call_treachery(game, self.player()) {
-            return Some(express!("You cannot call TREACHERY"));
-        }
-
-        None
-    }
-
     pub fn may_call_treachery(g: &Game, p: PlayerId) -> bool {
         if let (Some(aggressor_plan), Some(defender_plan)) = (&g.battle.aggressor_plan, &g.battle.defender_plan) {
             let territory = g.battle.current_battle.as_ref().expect("current battle").territory.expect("territory");
@@ -78,27 +45,43 @@ impl TreacheryCalled {
         pl.traitors.iter().any(|t| h.is_some_and(|h| t.is_traitor(h)))
             || (h.is_some() && g.applicable(Rule::CapturedLeadersAreTraitorsToOwnFaction) && Some(h.expect("hero").faction()) == Some(pl.faction))
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+impl EventRules for TreacheryCalled {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        if !self.traitor_called {
+            return Ok(());
+        }
+
+        if !TreacheryCalled::may_call_treachery(game, by.player()) {
+            return Err(Rejection(express!("You cannot call TREACHERY")));
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
         let aggressor_plan = game.battle.aggressor_plan.clone().required("aggressor plan")?;
-        if aggressor_plan.by(self.initiator()) || (self.by(Faction::Harkonnen) && game.are_allies(aggressor_plan.initiator(), Faction::Harkonnen)) {
-            game.battle.aggressor_traitor_action = Some(self.clone());
+        if aggressor_plan.by(by.faction) || (by.is(Faction::Harkonnen) && game.are_allies(aggressor_plan.initiator(), Faction::Harkonnen)) {
+            game.battle.aggressor_traitor_action = Some(TraitorCall { submitter: by, traitor_called: self.traitor_called });
             if self.traitor_called {
-                self.log(game);
+                let m = self.describe(game, by);
+                game.log_event(m);
                 game.stone(Milestone::TreacheryCalled);
                 let hero = game.battle.defender_plan.as_ref().required("defender plan")?.hero;
-                game.player_mut(self.player()).revealed_traitors.insert(hero.required("hero")?);
+                game.player_mut(by.player()).revealed_traitors.insert(hero.required("hero")?);
             }
         }
 
         let defender_plan = game.battle.defender_plan.clone().required("defender plan")?;
-        if defender_plan.by(self.initiator()) || (self.by(Faction::Harkonnen) && game.are_allies(defender_plan.initiator(), Faction::Harkonnen)) {
-            game.battle.defender_traitor_action = Some(self.clone());
+        if defender_plan.by(by.faction) || (by.is(Faction::Harkonnen) && game.are_allies(defender_plan.initiator(), Faction::Harkonnen)) {
+            game.battle.defender_traitor_action = Some(TraitorCall { submitter: by, traitor_called: self.traitor_called });
             if self.traitor_called {
-                self.log(game);
+                let m = self.describe(game, by);
+                game.log_event(m);
                 game.stone(Milestone::TreacheryCalled);
                 let hero = game.battle.aggressor_plan.as_ref().required("aggressor plan")?.hero;
-                game.player_mut(self.player()).revealed_traitors.insert(hero.required("hero")?);
+                game.player_mut(by.player()).revealed_traitors.insert(hero.required("hero")?);
             }
         }
 
@@ -114,38 +97,10 @@ impl TreacheryCalled {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn describe(&self, _game: &Game, by: By) -> Message {
         if self.traitor_called {
-            return express!(self.initiator(), " call TREACHERY!");
+            return express!(by.faction, " call TREACHERY!");
         }
-        express!(self.initiator(), " don't call treachery")
+        express!(by.faction, " don't call treachery")
     }
-
-}
-
-impl GameEventMethods for TreacheryCalled {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::TreacheryCalled
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::TreacheryCalled(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        TreacheryCalled::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        TreacheryCalled::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        TreacheryCalled::get_message(self, game)
-    }
-
 }

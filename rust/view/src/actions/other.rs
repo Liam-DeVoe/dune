@@ -470,7 +470,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
         Event::StormSpellPlayed(e) => adjust!(e, |m| {
             m.move_amount = treachery_engine::game::amounts::clamp_u16(picker(i32::from(m.move_amount), 0, 10));
         }),
-        Event::TraitorDiscarded(e) => adjust!(e, |m| {
+        Event::TraitorDiscarded(e) => adjust!(@plain e, |m| {
             let heroes: Vec<Hero> = TraitorDiscarded::valid_traitors(game, p).into_iter().collect();
             m.traitor = required_opt(m.traitor, &heroes);
         }),

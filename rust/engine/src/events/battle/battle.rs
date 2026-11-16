@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+/// A faction's battle plan: leader, forces dialed, spice, weapon and defense.
+#[derive(Clone, Debug, PartialEq)]
 pub struct Battle {
     pub hero: Option<Hero>,
     pub messiah: bool,
@@ -9,17 +10,9 @@ pub struct Battle {
     pub special_forces: u16,
     pub special_forces_at_half_strength: u16,
     pub ally_contribution_amount: u16,
-    /// Interior mutability: written after the event is stored in game state.
-    pub weapon: Cell<Option<TreacheryCard>>,
-    /// Interior mutability: written after the event is stored in game state.
-    pub defense: Cell<Option<TreacheryCard>>,
+    pub weapon: Option<TreacheryCard>,
+    pub defense: Option<TreacheryCard>,
     pub banker_bonus: u16,
-    /// Interior mutability: written after the event is stored in game state.
-    pub original_weapon: Cell<Option<TreacheryCard>>,
-    /// Interior mutability: written after the event is stored in game state.
-    pub original_defense: Cell<Option<TreacheryCard>>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 /// What swapping in a plan's dynamic weapons changed that the game records.
@@ -39,44 +32,69 @@ impl Default for Battle {
             special_forces: Default::default(),
             special_forces_at_half_strength: Default::default(),
             ally_contribution_amount: Default::default(),
-            weapon: Cell::new(TreacheryCardManager::get(0)),
-            defense: Cell::new(TreacheryCardManager::get(0)),
+            weapon: TreacheryCardManager::get(0),
+            defense: TreacheryCardManager::get(0),
             banker_bonus: Default::default(),
-            original_weapon: Cell::new(Default::default()),
-            original_defense: Cell::new(Default::default()),
-            base: Default::default(),
         }
     }
 }
 
-/// `vec![Part::from(a), ...]`: the `params object?[]` of `Log(...)`.
-macro_rules! le {
-    ($($e:expr),* $(,)?) => {
-        vec![$($crate::messages::part::Part::from($e)),*]
-    };
-}
-
 impl Battle {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
     pub fn weapon(&self) -> Option<TreacheryCard> {
-        self.weapon.get()
+        self.weapon
     }
 
-    pub fn set_weapon(&self, value: Option<TreacheryCard>) {
-        self.weapon.set(value);
+    pub fn set_weapon(&mut self, value: Option<TreacheryCard>) {
+        self.weapon = value;
     }
 
     pub fn defense(&self) -> Option<TreacheryCard> {
-        self.defense.get()
+        self.defense
     }
 
-    pub fn set_defense(&self, value: Option<TreacheryCard>) {
-        self.defense.set(value);
+    pub fn set_defense(&mut self, value: Option<TreacheryCard>) {
+        self.defense = value;
+    }
+
+    /// The plan as the game keeps it once `by` has submitted it.
+    pub fn plan(&self, by: By) -> BattlePlan {
+        BattlePlan {
+            submitter: by,
+            hero: self.hero,
+            messiah: self.messiah,
+            forces: self.forces,
+            forces_at_half_strength: self.forces_at_half_strength,
+            special_forces: self.special_forces,
+            special_forces_at_half_strength: self.special_forces_at_half_strength,
+            ally_contribution_amount: self.ally_contribution_amount,
+            weapon: self.weapon,
+            defense: self.defense,
+            banker_bonus: self.banker_bonus,
+            original_weapon: None,
+            original_defense: None,
+        }
+    }
+}
+
+impl BattlePlan {
+    pub fn by_ally_of(&self, game: &Game, f: Faction) -> bool {
+        game.player(self.player()).ally == Some(f)
+    }
+
+    pub fn weapon(&self) -> Option<TreacheryCard> {
+        self.weapon
+    }
+
+    pub fn set_weapon(&mut self, value: Option<TreacheryCard>) {
+        self.weapon = value;
+    }
+
+    pub fn defense(&self) -> Option<TreacheryCard> {
+        self.defense
+    }
+
+    pub fn set_defense(&mut self, value: Option<TreacheryCard>) {
+        self.defense = value;
     }
 
     pub fn total_forces(&self) -> i32 {
@@ -132,78 +150,6 @@ impl Battle {
         self.weapon().is_some_and(|w| w.is_useless()) || self.defense().is_some_and(|d| d.is_useless())
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let Some(current_battle) = game.battle.current_battle.clone() else {
-            game_error!("Battle event executed when there is no current battle");
-        };
-
-        if self.initiator() == current_battle.aggressor(game) {
-            game.battle.aggressor_plan = Some(self.clone());
-        } else if self.initiator() == current_battle.defender(game) {
-            game.battle.defender_plan = Some(self.clone());
-        }
-
-        if let (Some(aggressor_plan), Some(defender_plan)) = (game.battle.aggressor_plan.clone(), game.battle.defender_plan.clone()) {
-            let battle_territory = current_battle.territory;
-            if let Some(battle_territory) = battle_territory {
-                let supplier = Battle::determine_force_supplier(game, aggressor_plan.player());
-                game.reveal_current_no_field_in_territory(supplier, battle_territory)?;
-                let supplier = Battle::determine_force_supplier(game, defender_plan.player());
-                game.reveal_current_no_field_in_territory(supplier, battle_territory)?;
-            }
-
-            let m = express!(aggressor_plan.try_get_battle_plan_message(game)?, "; ", defender_plan.try_get_battle_plan_message(game)?)
-                .with_plans(aggressor_plan.get_plan_summary(game), defender_plan.get_plan_summary(game));
-            self.log_objects(game, le![m]);
-
-            self.register_known_cards(game, &aggressor_plan);
-            self.register_known_cards(game, &defender_plan);
-
-            self.pass_tleilaxu_traitor_action(game);
-
-            let melting = aggressor_plan.has_rock_melter() || defender_plan.has_rock_melter();
-            game.enter_either(melting, Phase::MeltingRock, Phase::CallTraitorOrPass);
-        }
-        Ok(())
-    }
-
-    pub fn register_known_cards(&self, game: &mut Game, battle: &Battle) {
-        if let Some(w) = battle.weapon() {
-            game.register_known(w);
-        }
-        if let Some(d) = battle.defense() {
-            game.register_known(d);
-        }
-    }
-
-    pub fn pass_tleilaxu_traitor_action(&self, game: &mut Game) {
-        let Some(current_battle) = game.battle.current_battle.clone() else {
-            panic!("Battle event executed when there is no current battle");
-        };
-
-        // `GetPlayer(Faction.Tleilaxu)?.Ally != Faction.Harkonnen` is true when Tleilaxu is not playing.
-        let tleilaxu_ally_is_not_harkonnen =
-            |game: &Game, me: &Battle| me.get_player(game, Some(Faction::Tleilaxu)).map(|p| game.player(p).ally) != Some(Some(Faction::Harkonnen));
-
-        if current_battle.aggressor(game) == Some(Faction::Tleilaxu)
-            && (tleilaxu_ally_is_not_harkonnen(game, self) || game.prevented(FactionAdvantage::HarkonnenCallTraitorForAlly))
-        {
-            let mut action = TreacheryCalled::new(game, Faction::Tleilaxu);
-            action.traitor_called = false;
-            game.battle.aggressor_traitor_action = Some(Rc::new(action));
-        } else if current_battle.defender(game) == Some(Faction::Tleilaxu)
-            && (tleilaxu_ally_is_not_harkonnen(game, self) || game.prevented(FactionAdvantage::HarkonnenCallTraitorForAlly))
-        {
-            let mut action = TreacheryCalled::new(game, Faction::Tleilaxu);
-            action.traitor_called = false;
-            game.battle.defender_traitor_action = Some(Rc::new(action));
-        }
-    }
-
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " finalize their battle plan")
-    }
-
     /// The plan as the log shows it, or why it can't be shown: the game has no battle against an
     /// opponent (an undo replays the plan into a game whose battle is over).
     pub fn try_get_battle_plan_message(&self, game: &Game) -> GameResult<Message> {
@@ -245,10 +191,10 @@ impl Battle {
         }
     }
 
-    pub fn activate_dynamic_weapons(&self, game: &mut Game, opponent_weapon: Option<TreacheryCard>, opponent_defense: Option<TreacheryCard>) {
+    pub fn activate_dynamic_weapons(&mut self, game: &mut Game, opponent_weapon: Option<TreacheryCard>, opponent_defense: Option<TreacheryCard>) {
         let swap = self.swap_in_dynamic_weapons(game, opponent_weapon, opponent_defense);
         if swap.mirror_weapon_used {
-            self.log_objects(game, le![self.original_weapon.get(), " becomes a ", self.weapon()]);
+            game.log(parts![self.original_weapon, " becomes a ", self.weapon()]);
         }
         if let Some(card) = swap.card_used_by_diplomat {
             game.battle.card_used_by_diplomat = card;
@@ -257,37 +203,40 @@ impl Battle {
 
     /// Puts the cards a Mirror Weapon, a Diplomat or a Portable Antidote stand for into this
     /// plan, without changing the game. `activate_dynamic_weapons` also records them in the game.
-    fn swap_in_dynamic_weapons(&self, game: &Game, opponent_weapon: Option<TreacheryCard>, opponent_defense: Option<TreacheryCard>) -> DynamicWeaponSwap {
+    fn swap_in_dynamic_weapons(&mut self, game: &Game, opponent_weapon: Option<TreacheryCard>, opponent_defense: Option<TreacheryCard>) -> DynamicWeaponSwap {
         let mut swap = DynamicWeaponSwap { mirror_weapon_used: false, card_used_by_diplomat: None };
         if self.weapon().is_some_and(|w| w.type_() == TreacheryCardType::MirrorWeapon) {
-            self.original_weapon.set(self.weapon());
+            self.original_weapon = self.weapon();
             self.set_weapon(opponent_weapon);
             swap.mirror_weapon_used = true;
         }
 
         if game.battle.current_diplomacy.as_ref().is_some_and(|d| d.by(self.initiator())) {
-            self.original_defense.set(self.defense());
+            self.original_defense = self.defense();
             self.set_defense(opponent_defense);
-            swap.card_used_by_diplomat = Some(self.original_defense.get());
+            swap.card_used_by_diplomat = Some(self.original_defense);
         }
 
         if Battle::is_using_portable_antidote(game, self.initiator().expect("faction")) {
-            self.original_defense.set(self.defense());
+            self.original_defense = self.defense();
             let antidote = game.decks.treachery_discard_pile.as_ref().expect("treachery discard pile").items.iter().copied().find(|c| c.is_portable_antidote());
             self.set_defense(antidote);
         }
         swap
     }
 
-    pub fn deactivate_dynamic_weapons(&self) {
-        if self.original_weapon.get().is_some() {
-            self.set_weapon(self.original_weapon.get());
-            self.original_weapon.set(None);
+    /// Puts back the cards `swap_in_dynamic_weapons` replaced. A replaced card that was no card
+    /// isn't put back, so a Diplomat's or Portable Antidote's card stays in a plan without a
+    /// defense, as in C#.
+    pub fn deactivate_dynamic_weapons(&mut self) {
+        if self.original_weapon.is_some() {
+            self.set_weapon(self.original_weapon);
+            self.original_weapon = None;
         }
 
-        if self.original_defense.get().is_some() {
-            self.set_defense(self.original_defense.get());
-            self.original_defense.set(None);
+        if self.original_defense.is_some() {
+            self.set_defense(self.original_defense);
+            self.original_defense = None;
         }
     }
 
@@ -301,6 +250,166 @@ impl Battle {
             i32::from(self.forces_at_half_strength),
             i32::from(self.special_forces_at_half_strength),
         )
+    }
+
+    pub fn cost(&self, g: &Game) -> i32 {
+        let mut _paid = 0;
+        Battle::cost_of_forces(g, self.player(), i32::from(self.forces), i32::from(self.special_forces), &mut _paid)
+    }
+
+    pub fn cost_with_arrakeen_share(&self, g: &Game, paid_by_arrakeen: &mut i32) -> i32 {
+        Battle::cost_of_forces(g, self.player(), i32::from(self.forces), i32::from(self.special_forces), paid_by_arrakeen)
+    }
+
+    fn matches(&self, game: &Game, seen: &BattlePlan, aspect: Option<PrescienceAspect>, opponent: Faction) -> bool {
+        match aspect {
+            Some(PrescienceAspect::Leader) => self.hero == seen.hero,
+            Some(PrescienceAspect::Weapon) => self.weapon() == seen.weapon(),
+            Some(PrescienceAspect::Defense) => self.defense() == seen.defense(),
+            Some(PrescienceAspect::Dial) => self.dial(game, opponent) == seen.dial(game, opponent),
+            None => true,
+        }
+    }
+
+
+    /// The rules of `Battle` for this plan.
+    pub fn validate(&self, game: &Game) -> Result<(), Rejection> {
+        let p = self.player();
+        let pl = game.player(p);
+        if (i32::from(self.forces) + i32::from(self.forces_at_half_strength)) > Battle::max_forces(game, p, false) {
+            return Err(Rejection(express!("Too many ", pl.force(), " selected")));
+        }
+        if (i32::from(self.special_forces) + i32::from(self.special_forces_at_half_strength)) > Battle::max_forces(game, p, true) {
+            return Err(Rejection(express!("Too many ", pl.special_force(), " selected")));
+        }
+        let mut _paid = 0;
+        let cost = Battle::cost_of_forces(game, p, i32::from(self.forces), i32::from(self.special_forces), &mut _paid);
+        if i32::from(self.ally_contribution_amount) > cost {
+            return Err(Rejection(express!("Your ally is paying more than needed")));
+        }
+        if i32::from(self.ally_contribution_amount) > Battle::max_ally_resources(game, p, i32::from(self.forces), i32::from(self.special_forces)) {
+            return Err(Rejection(express!("Your ally won't pay that much")));
+        }
+        if cost > (i32::from(pl.resources) + i32::from(self.ally_contribution_amount)) {
+            return Err(Rejection(express!(
+                "You can't pay ",
+                Payment::of(cost),
+                " to fight with ",
+                i32::from(self.forces) + i32::from(self.special_forces),
+                " forces at full strength"
+            )));
+        }
+        if self.hero.is_none() && !Battle::valid_battle_heroes(game, p).is_empty() && !game.applicable(Rule::BattleWithoutLeader) {
+            return Err(Rejection(express!("You must select a leader")));
+        }
+        if let Some(hero) = self.hero {
+            if !Battle::valid_battle_heroes(game, p).contains(&hero) {
+                return Err(Rejection(express!("Invalid leader")));
+            }
+        }
+        if self.weapon().is_some() && self.weapon() == self.defense() {
+            return Err(Rejection(express!("Can't use the same card as weapon and defense")));
+        }
+        if self.hero.is_none() && (self.weapon().is_some() || self.defense().is_some()) {
+            return Err(Rejection(express!("Can't use treachery cards without a leader")));
+        }
+        if let Some(hero @ Hero::Leader(_)) = self.hero {
+            if let Some(t) = game.battle.current_battle.as_ref().expect("current battle").territory {
+                if !game.can_fight_in(hero, t) {
+                    return Err(Rejection(express!("Selected leader already fought in another territory")));
+                }
+            }
+        }
+        if self.hero.is_none() && self.messiah {
+            return Err(Rejection(express!("Can't use ", Concept::Messiah, " without a leader")));
+        }
+        if self.messiah && !Battle::messiah_may_be_used_in_battle(game, p) {
+            return Err(Rejection(express!(Concept::Messiah, " is not available")));
+        }
+        if self.weapon().is_none() && self.defense().is_some_and(|d| d.type_() == TreacheryCardType::WeirdingWay) {
+            return Err(Rejection(express!("You can't use ", TreacheryCardType::WeirdingWay, " as defense without using a weapon")));
+        }
+        if self.defense().is_none() && self.weapon().is_some_and(|w| w.type_() == TreacheryCardType::Chemistry) {
+            return Err(Rejection(express!("You can't use ", TreacheryCardType::Chemistry, " as weapon without using a defense")));
+        }
+        let battle_territory = game.battle.current_battle.as_ref().expect("current battle").territory;
+        if !Battle::valid_weapons(game, p, self.defense(), self.hero, battle_territory, true).contains(&self.weapon()) {
+            return Err(Rejection(express!("Invalid weapon")));
+        }
+        let battle_territory = game.battle.current_battle.as_ref().expect("current battle").territory;
+        if !Battle::valid_defenses(game, p, self.weapon(), battle_territory, true).contains(&self.defense()) {
+            return Err(Rejection(express!("Invalid defense")));
+        }
+        if game.is_in_front_of_shield(self.hero) {
+            return Err(Rejection(express!(self.hero, " is currently in front of your player shield")));
+        }
+        if let Some(hero) = self.hero {
+            if i32::from(self.banker_bonus) > 0 && !game.skilled_as(hero, LeaderSkill::Banker) {
+                return Err(Rejection(express!("Only a leader skilled as ", LeaderSkill::Banker, " can be boosted by ", Concept::Resource)));
+            }
+        }
+        if i32::from(self.banker_bonus) > Battle::max_banker_boost(game, self.player(), self.hero) {
+            return Err(Rejection(express!("You cannot boost your leader this much")));
+        }
+        if (cost + i32::from(self.banker_bonus)) > (i32::from(pl.resources) + i32::from(self.ally_contribution_amount)) {
+            return Err(Rejection(express!("You can't pay this ", LeaderSkill::Banker, " bonus")));
+        }
+
+        // var opponent = Game.CurrentBattle.OpponentOf(p)!.Faction;  evaluated even with no seen plans.
+        let opponent = game.player(game.battle.current_battle.as_ref().expect("current battle").opponent_of(game, p).expect("opponent of")).faction;
+        for (aspect, seen) in game.battle.prescience_seen_plans.iter() {
+            if seen.initiator() == self.initiator() && !self.matches(game, seen, *aspect, opponent.expect("faction")) {
+                return Err(Rejection(express!("Your ", *aspect, " was revealed by prescience and can't change")));
+            }
+        }
+
+        if self.hero.is_some() && Battle::affected_by_voice(game, self.player(), game.battle.current_voice.as_ref()) {
+            if let Some(current_voice) = game.battle.current_voice.as_ref().filter(|v| v.must) {
+                let vt = current_voice.type_;
+                if vt != Some(TreacheryCardType::Mercenary)
+                    && pl
+                        .treachery_cards
+                        .iter()
+                        .any(|c| Voice::is_voiced_by(game, true, true, c.type_(), vt) || Voice::is_voiced_by(game, false, true, c.type_(), vt))
+                    && self.weapon().map_or(true, |w| !Voice::is_voiced_by(game, true, true, w.type_(), vt))
+                    && self.defense().map_or(true, |d| !Voice::is_voiced_by(game, false, true, d.type_(), vt))
+                {
+                    return Err(Rejection(express!("You must use a ", vt)));
+                }
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl Battle {
+    pub fn register_known_cards(game: &mut Game, battle: &BattlePlan) {
+        if let Some(w) = battle.weapon() {
+            game.register_known(w);
+        }
+        if let Some(d) = battle.defense() {
+            game.register_known(d);
+        }
+    }
+
+    pub fn pass_tleilaxu_traitor_action(game: &mut Game) {
+        let Some(current_battle) = game.battle.current_battle.clone() else {
+            panic!("Battle event executed when there is no current battle");
+        };
+
+        // `GetPlayer(Faction.Tleilaxu)?.Ally != Faction.Harkonnen` is true when Tleilaxu is not playing.
+        let tleilaxu_ally_is_not_harkonnen = |game: &Game| game.get_player(Some(Faction::Tleilaxu)).map(|p| game.player(p).ally) != Some(Some(Faction::Harkonnen));
+
+        if current_battle.aggressor(game) == Some(Faction::Tleilaxu)
+            && (tleilaxu_ally_is_not_harkonnen(game) || game.prevented(FactionAdvantage::HarkonnenCallTraitorForAlly))
+        {
+            game.battle.aggressor_traitor_action = Some(TraitorCall { submitter: By::new(game, Faction::Tleilaxu), traitor_called: false });
+        } else if current_battle.defender(game) == Some(Faction::Tleilaxu)
+            && (tleilaxu_ally_is_not_harkonnen(game) || game.prevented(FactionAdvantage::HarkonnenCallTraitorForAlly))
+        {
+            game.battle.defender_traitor_action = Some(TraitorCall { submitter: By::new(game, Faction::Tleilaxu), traitor_called: false });
+        }
     }
 
     pub fn dial_of_forces(g: &Game, p: PlayerId, opponent: Faction, forces: i32, special_forces: i32, forces_at_half_strength: i32, special_forces_at_half_strength: i32) -> HalfPoints {
@@ -320,16 +429,10 @@ impl Battle {
         Battle::force_value(g, pl.ally.expect("faction"), opponent, forces, special_forces, forces_at_half_strength, special_forces_at_half_strength) + HalfPoints::whole(ecaz_battle_contribution)
     }
 
-    pub fn cost(&self, g: &Game) -> i32 {
-        let mut _paid = 0;
-        Battle::cost_of_forces(g, self.player(), i32::from(self.forces), i32::from(self.special_forces), &mut _paid)
-    }
-
-    pub fn cost_with_arrakeen_share(&self, g: &Game, paid_by_arrakeen: &mut i32) -> i32 {
-        Battle::cost_of_forces(g, self.player(), i32::from(self.forces), i32::from(self.special_forces), paid_by_arrakeen)
-    }
-
-    pub fn determine_battle_outcome(agg: &Rc<Battle>, def: &Rc<Battle>, territory: Territory, game: &mut Game) -> BattleOutcome {
+    /// Works out the battle between `agg` and `def` with their dynamic weapons swapped in, which
+    /// the log and the game record. See `BattlePlan::deactivate_dynamic_weapons` for what the
+    /// plans keep afterwards.
+    pub fn determine_battle_outcome(agg: &mut BattlePlan, def: &mut BattlePlan, territory: Territory, game: &mut Game) -> BattleOutcome {
         if agg.hero.is_some() {
             agg.activate_dynamic_weapons(game, def.weapon(), def.defense());
         }
@@ -340,19 +443,20 @@ impl Battle {
     }
 
     /// The outcome `determine_battle_outcome` would give, without changing the game: the Mirror
-    /// Weapon message and the Diplomat's card aren't recorded. The plans' cards are swapped while
-    /// it runs and swapped back at the end, as in `determine_battle_outcome`.
-    pub fn predict_battle_outcome(agg: &Rc<Battle>, def: &Rc<Battle>, territory: Territory, game: &Game) -> BattleOutcome {
+    /// Weapon message and the Diplomat's card aren't recorded, and it
+    /// works on copies of the plans.
+    pub fn predict_battle_outcome(agg: &BattlePlan, def: &BattlePlan, territory: Territory, game: &Game) -> BattleOutcome {
+        let (mut agg, mut def) = (agg.clone(), def.clone());
         if agg.hero.is_some() {
             agg.swap_in_dynamic_weapons(game, def.weapon(), def.defense());
         }
         if def.hero.is_some() {
             def.swap_in_dynamic_weapons(game, agg.weapon(), agg.defense());
         }
-        Battle::outcome_with_dynamic_weapons_active(agg, def, territory, game)
+        Battle::outcome_with_dynamic_weapons_active(&mut agg, &mut def, territory, game)
     }
 
-    fn outcome_with_dynamic_weapons_active(agg: &Rc<Battle>, def: &Rc<Battle>, territory: Territory, game: &Game) -> BattleOutcome {
+    fn outcome_with_dynamic_weapons_active(agg: &mut BattlePlan, def: &mut BattlePlan, territory: Territory, game: &Game) -> BattleOutcome {
         let mut result = BattleOutcome::new(agg.player(), def.player());
 
         let poison_tooth_used = !game.battle.poison_tooth_cancelled && (agg.has_poison_tooth() || def.has_poison_tooth());
@@ -507,7 +611,7 @@ impl Battle {
         result
     }
 
-    pub fn determine_cause_of_death(player_plan: &Battle, opponent_plan: &Battle, the_hero: Option<Hero>, poison_tooth_used: bool, artillery_used: bool, rock_melter_was_used_to_kill: bool, is_protected_by_carthag_advantage: bool, hero_dies: &mut bool, cause_of_death: &mut Option<TreacheryCardType>, saved_by_carthag: &mut bool) {
+    pub fn determine_cause_of_death(player_plan: &BattlePlan, opponent_plan: &BattlePlan, the_hero: Option<Hero>, poison_tooth_used: bool, artillery_used: bool, rock_melter_was_used_to_kill: bool, is_protected_by_carthag_advantage: bool, hero_dies: &mut bool, cause_of_death: &mut Option<TreacheryCardType>, saved_by_carthag: &mut bool) {
         *hero_dies = false;
         *cause_of_death = None;
         *saved_by_carthag = is_protected_by_carthag_advantage && opponent_plan.has_poison() && !player_plan.has_antidote();
@@ -525,115 +629,6 @@ impl Battle {
             *hero_is_killed = true;
             *cause_of_death = Some(by_weapon);
         }
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        let p = self.player();
-        let pl = game.player(p);
-        if (i32::from(self.forces) + i32::from(self.forces_at_half_strength)) > Battle::max_forces(game, p, false) {
-            return Some(express!("Too many ", pl.force(), " selected"));
-        }
-        if (i32::from(self.special_forces) + i32::from(self.special_forces_at_half_strength)) > Battle::max_forces(game, p, true) {
-            return Some(express!("Too many ", pl.special_force(), " selected"));
-        }
-        let mut _paid = 0;
-        let cost = Battle::cost_of_forces(game, p, i32::from(self.forces), i32::from(self.special_forces), &mut _paid);
-        if i32::from(self.ally_contribution_amount) > cost {
-            return Some(express!("Your ally is paying more than needed"));
-        }
-        if i32::from(self.ally_contribution_amount) > Battle::max_ally_resources(game, p, i32::from(self.forces), i32::from(self.special_forces)) {
-            return Some(express!("Your ally won't pay that much"));
-        }
-        if cost > (i32::from(pl.resources) + i32::from(self.ally_contribution_amount)) {
-            return Some(express!(
-                "You can't pay ",
-                Payment::of(cost),
-                " to fight with ",
-                i32::from(self.forces) + i32::from(self.special_forces),
-                " forces at full strength"
-            ));
-        }
-        if self.hero.is_none() && !Battle::valid_battle_heroes(game, p).is_empty() && !game.applicable(Rule::BattleWithoutLeader) {
-            return Some(express!("You must select a leader"));
-        }
-        if let Some(hero) = self.hero {
-            if !Battle::valid_battle_heroes(game, p).contains(&hero) {
-                return Some(express!("Invalid leader"));
-            }
-        }
-        if self.weapon().is_some() && self.weapon() == self.defense() {
-            return Some(express!("Can't use the same card as weapon and defense"));
-        }
-        if self.hero.is_none() && (self.weapon().is_some() || self.defense().is_some()) {
-            return Some(express!("Can't use treachery cards without a leader"));
-        }
-        if let Some(hero @ Hero::Leader(_)) = self.hero {
-            if let Some(t) = game.battle.current_battle.as_ref().expect("current battle").territory {
-                if !game.can_fight_in(hero, t) {
-                    return Some(express!("Selected leader already fought in another territory"));
-                }
-            }
-        }
-        if self.hero.is_none() && self.messiah {
-            return Some(express!("Can't use ", Concept::Messiah, " without a leader"));
-        }
-        if self.messiah && !Battle::messiah_may_be_used_in_battle(game, p) {
-            return Some(express!(Concept::Messiah, " is not available"));
-        }
-        if self.weapon().is_none() && self.defense().is_some_and(|d| d.type_() == TreacheryCardType::WeirdingWay) {
-            return Some(express!("You can't use ", TreacheryCardType::WeirdingWay, " as defense without using a weapon"));
-        }
-        if self.defense().is_none() && self.weapon().is_some_and(|w| w.type_() == TreacheryCardType::Chemistry) {
-            return Some(express!("You can't use ", TreacheryCardType::Chemistry, " as weapon without using a defense"));
-        }
-        let battle_territory = game.battle.current_battle.as_ref().expect("current battle").territory;
-        if !Battle::valid_weapons(game, p, self.defense(), self.hero, battle_territory, true).contains(&self.weapon()) {
-            return Some(express!("Invalid weapon"));
-        }
-        let battle_territory = game.battle.current_battle.as_ref().expect("current battle").territory;
-        if !Battle::valid_defenses(game, p, self.weapon(), battle_territory, true).contains(&self.defense()) {
-            return Some(express!("Invalid defense"));
-        }
-        if game.is_in_front_of_shield(self.hero) {
-            return Some(express!(self.hero, " is currently in front of your player shield"));
-        }
-        if let Some(hero) = self.hero {
-            if i32::from(self.banker_bonus) > 0 && !game.skilled_as(hero, LeaderSkill::Banker) {
-                return Some(express!("Only a leader skilled as ", LeaderSkill::Banker, " can be boosted by ", Concept::Resource));
-            }
-        }
-        if i32::from(self.banker_bonus) > Battle::max_banker_boost(game, self.player(), self.hero) {
-            return Some(express!("You cannot boost your leader this much"));
-        }
-        if (cost + i32::from(self.banker_bonus)) > (i32::from(pl.resources) + i32::from(self.ally_contribution_amount)) {
-            return Some(express!("You can't pay this ", LeaderSkill::Banker, " bonus"));
-        }
-
-        // var opponent = Game.CurrentBattle.OpponentOf(p)!.Faction;  evaluated even with no seen plans.
-        let opponent = game.player(game.battle.current_battle.as_ref().expect("current battle").opponent_of(game, p).expect("opponent of")).faction;
-        for (aspect, seen) in game.battle.prescience_seen_plans.iter() {
-            if seen.initiator() == self.initiator() && !self.matches(game, seen, *aspect, opponent.expect("faction")) {
-                return Some(express!("Your ", *aspect, " was revealed by prescience and can't change"));
-            }
-        }
-
-        if self.hero.is_some() && Battle::affected_by_voice(game, self.player(), game.battle.current_voice.as_ref()) {
-            if let Some(current_voice) = game.battle.current_voice.as_ref().filter(|v| v.must) {
-                let vt = current_voice.type_;
-                if vt != Some(TreacheryCardType::Mercenary)
-                    && pl
-                        .treachery_cards
-                        .iter()
-                        .any(|c| Voice::is_voiced_by(game, true, true, c.type_(), vt) || Voice::is_voiced_by(game, false, true, c.type_(), vt))
-                    && self.weapon().map_or(true, |w| !Voice::is_voiced_by(game, true, true, w.type_(), vt))
-                    && self.defense().map_or(true, |d| !Voice::is_voiced_by(game, false, true, d.type_(), vt))
-                {
-                    return Some(express!("You must use a ", vt));
-                }
-            }
-        }
-
-        None
     }
 
     pub fn determine_force_supplier(g: &Game, player_that_fights: PlayerId) -> PlayerId {
@@ -690,16 +685,6 @@ impl Battle {
             result.extend([Some(PrescienceAspect::Leader), Some(PrescienceAspect::Weapon), Some(PrescienceAspect::Defense), Some(PrescienceAspect::Dial)]);
         }
         result
-    }
-
-    fn matches(&self, game: &Game, seen: &Battle, aspect: Option<PrescienceAspect>, opponent: Faction) -> bool {
-        match aspect {
-            Some(PrescienceAspect::Leader) => self.hero == seen.hero,
-            Some(PrescienceAspect::Weapon) => self.weapon() == seen.weapon(),
-            Some(PrescienceAspect::Defense) => self.defense() == seen.defense(),
-            Some(PrescienceAspect::Dial) => self.dial(game, opponent) == seen.dial(game, opponent),
-            None => true,
-        }
     }
 
     pub fn is_using_portable_antidote(g: &Game, faction: Faction) -> bool {
@@ -882,7 +867,7 @@ impl Battle {
         result
     }
 
-    pub fn affected_by_voice(g: &Game, p: PlayerId, voice: Option<&Rc<Voice>>) -> bool {
+    pub fn affected_by_voice(g: &Game, p: PlayerId, voice: Option<&VoiceUsed>) -> bool {
         let Some(voice) = voice else {
             return false;
         };
@@ -1089,7 +1074,7 @@ impl Battle {
             && g.applicable(Rule::AtreidesMessiah)
     }
 
-    pub fn determine_skill_bonus(g: &Game, plan: &Battle, activated_skill: &mut Option<LeaderSkill>) -> i32 {
+    pub fn determine_skill_bonus(g: &Game, plan: &BattlePlan, activated_skill: &mut Option<LeaderSkill>) -> i32 {
         Battle::determine_skill_bonus_of_parts(
             g,
             plan.player(),
@@ -1187,7 +1172,7 @@ impl Battle {
         0
     }
 
-    pub fn determine_skill_penalty(g: &Game, plan: &Battle, opponent: PlayerId, activated_skill: &mut Option<LeaderSkill>) -> i32 {
+    pub fn determine_skill_penalty(g: &Game, plan: &BattlePlan, opponent: PlayerId, activated_skill: &mut Option<LeaderSkill>) -> i32 {
         Battle::determine_skill_penalty_of_hero(g, plan.hero, opponent, activated_skill)
     }
 
@@ -1203,29 +1188,47 @@ impl Battle {
     }
 }
 
-impl GameEventMethods for Battle {
-    fn base(&self) -> &GameEventBase {
-        &self.base
+impl EventRules for Battle {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        self.plan(by).validate(game)
     }
 
-    fn event_type(&self) -> EventType {
-        EventType::Battle
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let Some(current_battle) = game.battle.current_battle.clone() else {
+            game_error!("Battle event executed when there is no current battle");
+        };
+
+        if by.faction == current_battle.aggressor(game) {
+            game.battle.aggressor_plan = Some(self.plan(by));
+        } else if by.faction == current_battle.defender(game) {
+            game.battle.defender_plan = Some(self.plan(by));
+        }
+
+        if let (Some(aggressor_plan), Some(defender_plan)) = (game.battle.aggressor_plan.clone(), game.battle.defender_plan.clone()) {
+            let battle_territory = current_battle.territory;
+            if let Some(battle_territory) = battle_territory {
+                let supplier = Battle::determine_force_supplier(game, aggressor_plan.player());
+                game.reveal_current_no_field_in_territory(supplier, battle_territory)?;
+                let supplier = Battle::determine_force_supplier(game, defender_plan.player());
+                game.reveal_current_no_field_in_territory(supplier, battle_territory)?;
+            }
+
+            let m = express!(aggressor_plan.try_get_battle_plan_message(game)?, "; ", defender_plan.try_get_battle_plan_message(game)?)
+                .with_plans(aggressor_plan.get_plan_summary(game), defender_plan.get_plan_summary(game));
+            game.log(parts![m]);
+
+            Battle::register_known_cards(game, &aggressor_plan);
+            Battle::register_known_cards(game, &defender_plan);
+
+            Battle::pass_tleilaxu_traitor_action(game);
+
+            let melting = aggressor_plan.has_rock_melter() || defender_plan.has_rock_melter();
+            game.enter_either(melting, Phase::MeltingRock, Phase::CallTraitorOrPass);
+        }
+        Ok(())
     }
 
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::Battle(self)
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " finalize their battle plan")
     }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        Battle::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        Battle::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        Battle::get_message(self, game)
-    }
-
 }

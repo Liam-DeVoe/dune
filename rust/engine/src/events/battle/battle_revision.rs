@@ -1,79 +1,34 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
-pub struct BattleRevision {
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct BattleRevision {}
 
-impl Default for BattleRevision {
-    fn default() -> Self {
-        BattleRevision {
-            base: Default::default(),
-        }
-    }
-}
-
-impl BattleRevision {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
+impl EventRules for BattleRevision {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
     }
 
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
         let Some(current_battle) = game.battle.current_battle.clone() else {
             game_error!("BattleRevision event executed when there is no current battle");
         };
 
-        let withdrawn = current_battle.plan_of(game, self.player_opt());
+        let withdrawn = current_battle.plan_of(game, by.player);
         if let Some(withdrawn) = withdrawn {
-            for aspect in Battle::aspects_seen_by_opponent(game, self.player()) {
+            for aspect in Battle::aspects_seen_by_opponent(game, by.player()) {
                 game.battle.prescience_seen_plans.insert(aspect, withdrawn.clone());
             }
         }
 
-        if self.by(current_battle.aggressor(game)) {
+        if by.is(current_battle.aggressor(game)) {
             game.battle.previous_aggressor_plan = game.battle.aggressor_plan.take();
-        } else if self.by(current_battle.defender(game)) {
+        } else if by.is(current_battle.defender(game)) {
             game.battle.previous_defender_plan = game.battle.defender_plan.take();
         }
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " revise their battle plan")
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " revise their battle plan")
     }
-
-}
-
-impl GameEventMethods for BattleRevision {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::BattleRevision
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::BattleRevision(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        BattleRevision::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        BattleRevision::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        BattleRevision::get_message(self, game)
-    }
-
 }

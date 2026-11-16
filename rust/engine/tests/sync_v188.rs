@@ -162,12 +162,12 @@ fn break_in_alliance_phase(l: &mut Lines, v: i32) {
     exec(l, &mut g, &format!("{at}.atreides_offers_richese"), e);
 }
 
-fn seen(g: &Game, plans: &[Option<Rc<Battle>>]) -> String {
+fn seen(g: &Game, plans: &[Option<BattlePlan>]) -> String {
     let entries: Vec<_> = g
         .battle.prescience_seen_plans
         .iter()
         .map(|(aspect, plan)| {
-            let i = plans.iter().position(|p| p.as_ref().is_some_and(|p| Rc::ptr_eq(p, plan))).map_or(-1, |i| i as i32);
+            let i = plans.iter().position(|p| p.as_ref() == Some(plan)).map_or(-1, |i| i as i32);
             format!("{}:{}:plan{i}", name_or_absent(*aspect), treachery_engine::enum_type::name_or_absent(plan.initiator()))
         })
         .collect();
@@ -175,7 +175,7 @@ fn seen(g: &Game, plans: &[Option<Rc<Battle>>]) -> String {
 }
 
 fn revise(g: &mut Game) -> String {
-    let e = Rc::new(BattleRevision::new(g, Faction::Choam)).into_event();
+    let e = Event::from(BattleRevision::default());
     message(g.play_for_message(HistoryEntry::new(Faction::Choam, e), false, true), "ok")
 }
 
@@ -200,30 +200,22 @@ fn prescience(l: &mut Lines, v: i32) {
     l.p(&format!("{at}.leaders"), format!("{},{}", leader0.id(), leader1.id()));
     let arrakeen = g.board.map.arrakeen();
     Player::add_forces(&mut g, choam, arrakeen.into(), 3, false).unwrap();
-    let mut battle = BattleInitiated::new(&g, Faction::Atreides);
-    battle.target = Some(Faction::Choam);
     let territory = g.board.map.arrakeen().territory();
-    battle.territory = Some(territory);
-    g.battle.current_battle = Some(Rc::new(battle));
+    let battle = BattleInitiated { target: Some(Faction::Choam), territory: Some(territory) };
+    g.battle.current_battle = Some(battle.battle(By::new(&g, Faction::Atreides), 0));
 
-    let plan = |g: &Game, hero: Leader, weapon: Option<TreacheryCard>, def: Option<TreacheryCard>, half: u16| -> Rc<Battle> {
-        let mut b = Battle::new(g, Faction::Choam);
-        b.hero = Some(Hero::Leader(hero));
-        b.set_weapon(weapon);
-        b.set_defense(def);
-        b.forces_at_half_strength = half;
-        Rc::new(b)
+    let plan = |g: &Game, hero: Leader, weapon: Option<TreacheryCard>, def: Option<TreacheryCard>, half: u16| -> BattlePlan {
+        let b = Battle { hero: Some(Hero::Leader(hero)), weapon, defense: def, forces_at_half_strength: half, ..Default::default() };
+        b.plan(By::new(g, Faction::Choam))
     };
-    let validate = |l: &mut Lines, g: &Game, name: &str, p: &Rc<Battle>| l.try_(name, || message(p.validate(g), "valid"));
+    let validate = |l: &mut Lines, g: &Game, name: &str, p: &BattlePlan| l.try_(name, || message(p.validate(g).err().map(|r| r.0), "valid"));
 
-    let mut plans: Vec<Option<Rc<Battle>>> = vec![None; 6];
+    let mut plans: Vec<Option<BattlePlan>> = vec![None; 6];
     plans[0] = Some(plan(&g, leader0, Some(weapons[0]), Some(defense), 0));
     validate(l, &g, &format!("{at}.plan0.validate"), plans[0].as_ref().unwrap());
     g.battle.defender_plan = plans[0].clone();
 
-    let mut p = Prescience::new(&g, Faction::Atreides);
-    p.aspect = Some(PrescienceAspect::Weapon);
-    g.battle.current_prescience = Some(Rc::new(p));
+    g.battle.current_prescience = Some(PrescienceUsed { submitter: By::new(&g, Faction::Atreides), aspect: Some(PrescienceAspect::Weapon) });
     let aspects = |g: &Game, f: Faction| Battle::aspects_seen_by_opponent(g, idx(g, f)).iter().map(|a| name_or_absent(*a)).collect::<Vec<_>>().join(",");
     l.try_(&format!("{at}.aspects"), || aspects(&g, Faction::Choam));
     l.try_(&format!("{at}.aspects_of_atreides"), || aspects(&g, Faction::Atreides));
@@ -238,9 +230,7 @@ fn prescience(l: &mut Lines, v: i32) {
 
     g.battle.defender_plan = plans[2].clone();
     g.battle.atreides_karma = true;
-    let mut p = Prescience::new(&g, Faction::Atreides);
-    p.aspect = Some(PrescienceAspect::Dial);
-    g.battle.current_prescience = Some(Rc::new(p));
+    g.battle.current_prescience = Some(PrescienceUsed { submitter: By::new(&g, Faction::Atreides), aspect: Some(PrescienceAspect::Dial) });
     l.try_(&format!("{at}.aspects_karma"), || aspects(&g, Faction::Choam));
     l.try_(&format!("{at}.revise2"), || revise(&mut g));
     l.p(&format!("{at}.revise2.seen"), seen(&g, &plans));
@@ -256,11 +246,8 @@ fn prescience(l: &mut Lines, v: i32) {
     l.try_(&format!("{at}.revise_without_plan"), || revise(&mut g));
     l.p(&format!("{at}.revise_without_plan.seen"), seen(&g, &plans));
 
-    let mut richese = Battle::new(&g, Faction::Richese);
-    richese.hero = None;
-    richese.set_weapon(None);
-    richese.set_defense(None);
-    l.try_(&format!("{at}.outsider.validate"), || message(richese.validate(&g), "valid"));
+    let richese = Battle { hero: None, weapon: None, defense: None, ..Default::default() };
+    l.try_(&format!("{at}.outsider.validate"), || message(richese.validate(&g, By::new(&g, Faction::Richese)).err().map(|r| r.0), "valid"));
 
     l.try_(&format!("{at}.reset"), || {
         EndPhase::new(&g, Faction::Choam).reset_battle(&mut g);

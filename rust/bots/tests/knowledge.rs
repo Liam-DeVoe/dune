@@ -86,12 +86,12 @@ impl Fmt for ClairVoyanceQandA {
         "QandA".into()
     }
 }
-impl Fmt for Rc<Prescience> {
+impl Fmt for PrescienceUsed {
     fn fmt(&self) -> String {
         "Prescience".into()
     }
 }
-impl Fmt for Rc<Voice> {
+impl Fmt for VoiceUsed {
     fn fmt(&self) -> String {
         "Voice".into()
     }

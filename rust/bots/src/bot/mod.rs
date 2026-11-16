@@ -489,8 +489,8 @@ mod tests {
 
     impl ClassicBot {
         /// A Thought without a card, which the game rejects.
-        fn invalid_thought(&self, game: &Game) -> Rc<Thought> {
-            Rc::new(Thought::new(game, Faction::Atreides))
+        fn invalid_thought(&self, _game: &Game) -> Thought {
+            Thought::default()
         }
 
         fn end_phase(&self, game: &Game) -> Rc<EndPhase> {

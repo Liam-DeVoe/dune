@@ -41,11 +41,12 @@ fn title_bool(v: bool) -> &'static str {
     if v { "True" } else { "False" }
 }
 
-fn voice_plan(p: &VoicePlan) -> String {
+/// `voice` is the faction that would use the voice.
+fn voice_plan(p: &VoicePlan, voice: Option<Faction>) -> String {
     format!(
         "battle:{} voice:{} weapon:{} defense:{} survive:{} zero:{}",
         if p.battle.is_some() { "set" } else { "null" },
-        ev(p.voice.clone()),
+        treachery_engine::json::serialize(&HistoryEntry::new(voice, p.voice.clone())),
         p.weapon_to_use.map_or(-1, |c| c.id()),
         p.defense_to_use.map_or(-1, |c| c.id()),
         title_bool(p.player_hero_will_certainly_survive),
@@ -72,21 +73,42 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
         "DetermineFremenRidesMonster" => ev(bot.determine_fremen_rides_monster(game)),
         "DetermineBeneGesseritPlacement" => ev(bot.determine_bene_gesserit_placement(game)),
         "DetermineBeneGesseritFlip" => ev(bot.determine_bene_gesserit_flip(game)),
-        "DetermineBeneGesseritBattleAnnouncement" => opt(bot.determine_bene_gesserit_battle_announcement(game)),
+        "DetermineBeneGesseritBattleAnnouncement" => {
+            let e = bot.determine_bene_gesserit_battle_announcement(game);
+            common::decision(bot, game, e)
+        }
         "DetermineBeneGesseritAccompanies" => ev(bot.determine_bene_gesserit_accompanies(game)),
         "DetermineBeneGesseritPrediction" => ev(bot.determine_bene_gesserit_prediction(game)),
-        "DetermineVoice" => opt(bot.determine_voice(game)),
-        "DeterminePrescience" => opt(bot.determine_prescience(game)),
+        "DetermineVoice" => {
+            let e = bot.determine_voice(game);
+            common::decision(bot, game, e)
+        }
+        "DeterminePrescience" => {
+            let e = bot.determine_prescience(game);
+            common::decision(bot, game, e)
+        }
         "DetermineSetIncreasedRevivalLimits" => opt(bot.determine_set_increased_revival_limits(game)),
-        "DetermineFaceDancerRevealed" => ev(bot.determine_face_dancer_revealed(game)),
-        "DetermineFaceDanced" => ev(bot.determine_face_danced(game)),
-        "DetermineFaceDancerReplaced" => ev(bot.determine_face_dancer_replaced(game)),
+        "DetermineFaceDancerRevealed" => {
+            let e = bot.determine_face_dancer_revealed(game);
+            common::decision(bot, game, e)
+        }
+        "DetermineFaceDanced" => {
+            let e = bot.determine_face_danced(game);
+            common::decision(bot, game, e)
+        }
+        "DetermineFaceDancerReplaced" => {
+            let e = bot.determine_face_dancer_replaced(game);
+            common::decision(bot, game, e)
+        }
         "DetermineRequestTleilaxuRevival" => opt(bot.determine_request_tleilaxu_revival(game)),
         "DetermineAcceptOrCancelTleilaxuRevival" => opt(bot.determine_accept_or_cancel_tleilaxu_revival(game)),
         "DetermineResourcesAudited" => opt(bot.determine_resources_audited(game)),
         "DetermineChoamEconomics" => opt(bot.determine_choam_economics(game)),
         "DetermineChoamRemoveForce" => opt(bot.determine_choam_remove_force(game)),
-        "DetermineExtortionPrevented" => common::decision(bot, game, bot.determine_extortion_prevented(game)),
+        "DetermineExtortionPrevented" => {
+            let e = bot.determine_extortion_prevented(game);
+            common::decision(bot, game, e)
+        }
         "DeterminePerformMoritaniSetup" => ev(bot.determine_perform_moritani_setup(game)),
         "DetermineTerrorPlanted" => opt(bot.determine_terror_planted(game)),
         "DetermineTerrorRevealed" => ev(bot.determine_terror_revealed(game)),
@@ -98,10 +120,13 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
         "DetermineRicheseAnnouncesAuction" => ev(bot.determine_richese_announces_auction(game)),
         "DetermineRicheseSpecifiesAuction" => ev(bot.determine_richese_specifies_auction(game)),
         "DetermineRicheseKeepsUnsoldCard" => ev(bot.determine_richese_keeps_unsold_card(game)),
-        "DetermineCaptured" => ev(bot.determine_captured(game)),
+        "DetermineCaptured" => {
+            let e = bot.determine_captured(game);
+            common::decision(bot, game, e)
+        }
         "IWantToBeFightersIn" => b(bot.i_want_to_be_fighters_in(game, territory(0))),
         "IWantToAnnounceBattleIn" => b(bot.i_want_to_announce_battle_in(game, territory(0))),
-        "BestVoice" => voice_plan(&bot.best_voice(game, None, player(1), player(2))),
+        "BestVoice" => voice_plan(&bot.best_voice(game, None, player(1), player(2)), game.player(player(1)).faction),
         "BestPrescience" => {
             let strength = a[2][1..].parse::<f32>().unwrap();
             let aspect = treachery_engine::enum_type::from_value_or_absent::<PrescienceAspect>(n(3)).unwrap();

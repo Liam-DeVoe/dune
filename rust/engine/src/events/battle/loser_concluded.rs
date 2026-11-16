@@ -1,13 +1,11 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct LoserConcluded {
     pub karma_forced_kept_card_decision: i32,
     pub forced_kept_or_discarded_card_ids: Option<String>,
     pub assassinate: bool,
     pub kept_card: Option<TreacheryCard>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for LoserConcluded {
@@ -17,18 +15,11 @@ impl Default for LoserConcluded {
             forced_kept_or_discarded_card_ids: Default::default(),
             assassinate: Default::default(),
             kept_card: TreacheryCardManager::get(0),
-            base: Default::default(),
         }
     }
 }
 
 impl LoserConcluded {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
     pub const KARMA_NO: i32 = 0;
 
     pub const KARMA_KEEP: i32 = 1;
@@ -41,30 +32,6 @@ impl LoserConcluded {
 
     pub fn set_forced_kept_or_discarded_cards(&mut self, value: &[TreacheryCard]) {
         self.forced_kept_or_discarded_card_ids = Some(Event::objects_to_id_string(value, &TreacheryCardManager::lookup()));
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        if self.assassinate && !LoserConcluded::can_assassinate(game, self.player()) {
-            return Some(express!("You can't assassinate"));
-        }
-        if let Some(kept_card) = self.kept_card {
-            if !LoserConcluded::cards_loser_may_keep(game).contains(&kept_card) {
-                return Some(express!("You can't keep ", kept_card));
-            }
-        }
-        let karma_used = self.karma_forced_kept_card_decision == LoserConcluded::KARMA_KEEP
-            || self.karma_forced_kept_card_decision == LoserConcluded::KARMA_DISCARD;
-        if karma_used && !LoserConcluded::may_use_karma_to_force_kept_cards(game, self.player()) {
-            return Some(express!("You can't use ", TreacheryCardType::Karma, " to force keeping or discarding cards"));
-        }
-        if !(self.karma_forced_kept_card_decision == LoserConcluded::KARMA_NO || karma_used) {
-            return Some(express!("Invalid decision"));
-        }
-        if !karma_used && !self.forced_kept_or_discarded_cards().is_empty() {
-            return Some(express!("You need to decide to either force keeping or discarding cards"));
-        }
-
-        None
     }
 
     pub fn can_assassinate(g: &Game, p: PlayerId) -> bool {
@@ -138,14 +105,40 @@ impl LoserConcluded {
 
         result
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+impl EventRules for LoserConcluded {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        if self.assassinate && !LoserConcluded::can_assassinate(game, by.player()) {
+            return Err(Rejection(express!("You can't assassinate")));
+        }
+        if let Some(kept_card) = self.kept_card {
+            if !LoserConcluded::cards_loser_may_keep(game).contains(&kept_card) {
+                return Err(Rejection(express!("You can't keep ", kept_card)));
+            }
+        }
+        let karma_used = self.karma_forced_kept_card_decision == LoserConcluded::KARMA_KEEP
+            || self.karma_forced_kept_card_decision == LoserConcluded::KARMA_DISCARD;
+        if karma_used && !LoserConcluded::may_use_karma_to_force_kept_cards(game, by.player()) {
+            return Err(Rejection(express!("You can't use ", TreacheryCardType::Karma, " to force keeping or discarding cards")));
+        }
+        if !(self.karma_forced_kept_card_decision == LoserConcluded::KARMA_NO || karma_used) {
+            return Err(Rejection(express!("Invalid decision")));
+        }
+        if !karma_used && !self.forced_kept_or_discarded_cards().is_empty() {
+            return Err(Rejection(express!("You need to decide to either force keeping or discarding cards")));
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
         if let Some(kept_card) = self.kept_card {
             if game.battle.secret_ally_allows_keeping_cards_after_losing_battle {
                 game.battle.secret_ally_allows_keeping_cards_after_losing_battle = false;
-                game.play_nexus_card(self.player(), vec!["keep ".into(), kept_card.into()]);
+                game.play_nexus_card(by.player(), vec!["keep ".into(), kept_card.into()]);
             } else {
-                self.log_objects(game, vec![self.initiator().into(), " keep ".into(), kept_card.into()]);
+                game.log(vec![by.faction.into(), " keep ".into(), kept_card.into()]);
             }
         }
 
@@ -159,27 +152,26 @@ impl LoserConcluded {
 
         game.battle.cards_to_be_discarded_by_loser_after_battle.clear();
 
-        self.log(game);
+        let m = self.describe(game, by);
+        game.log_event(m);
 
-        let winner = self.get_player(game, game.battle.battle_winner.flatten());
+        let winner = game.get_player(game.battle.battle_winner.flatten());
 
         if self.karma_forced_kept_card_decision == LoserConcluded::KARMA_DISCARD
             || self.karma_forced_kept_card_decision == LoserConcluded::KARMA_KEEP
         {
             game.battle.battle_winner_may_choose_to_discard = false;
-            game.discard(self.player(), TreacheryCardType::Karma)?;
+            game.discard(by.player(), TreacheryCardType::Karma)?;
             game.stone(Milestone::Karma);
 
             for c in self.forced_kept_or_discarded_cards() {
                 if self.karma_forced_kept_card_decision == LoserConcluded::KARMA_DISCARD {
                     let winner_faction = game.player(winner.required("winner")?).faction;
-                    self.log_objects(
-                        game,
-                        vec![
+                    game.log(vec![
                             "Using ".into(),
                             TreacheryCardType::Karma.into(),
                             ", ".into(),
-                            self.initiator().into(),
+                            by.faction.into(),
                             " force ".into(),
                             winner_faction.into(),
                             " to discard ".into(),
@@ -191,13 +183,11 @@ impl LoserConcluded {
                     }
                 } else if self.karma_forced_kept_card_decision == LoserConcluded::KARMA_KEEP {
                     let winner_faction = game.player(winner.required("winner")?).faction;
-                    self.log_objects(
-                        game,
-                        vec![
+                    game.log(vec![
                             "Using ".into(),
                             TreacheryCardType::Karma.into(),
                             ", ".into(),
-                            self.initiator().into(),
+                            by.faction.into(),
                             " force ".into(),
                             winner_faction.into(),
                             " to keep ".into(),
@@ -218,19 +208,17 @@ impl LoserConcluded {
         if self.assassinate {
             game.stone(Milestone::Assassination);
 
-            let assassinated = LoserConcluded::target_of_assassination(game, self.player());
+            let assassinated = LoserConcluded::target_of_assassination(game, by.player());
 
             let assassinated = assassinated.required("a target of the assassination")?;
             game.leaders.assassinated.push(assassinated);
-            game.player_mut(self.player()).revealed_traitors.insert(Hero::from(assassinated));
+            game.player_mut(by.player()).revealed_traitors.insert(Hero::from(assassinated));
 
             let reward = LoserConcluded::assassination_reward(game, winner, assassinated);
             match reward {
                 None => {
-                    self.log_objects(
-                        game,
-                        vec![
-                            self.initiator().into(),
+                    game.log(vec![
+                            by.faction.into(),
                             " reveal ".into(),
                             assassinated.into(),
                             " as their assassination target, but don't collect spice as this leader is in the tanks.".into(),
@@ -238,10 +226,8 @@ impl LoserConcluded {
                     );
                 }
                 Some(reward) => {
-                    self.log_objects(
-                        game,
-                        vec![
-                            self.initiator().into(),
+                    game.log(vec![
+                            by.faction.into(),
                             " get ".into(),
                             Payment::of(reward).into(),
                             " by ASSASSINATING ".into(),
@@ -249,7 +235,7 @@ impl LoserConcluded {
                             "!".into(),
                         ],
                     );
-                    let pl = game.player_mut(self.player());
+                    let pl = game.player_mut(by.player());
                     crate::game::amounts::gain(&mut pl.resources, reward, "spice")?;
                     game.kill_hero(Hero::Leader(assassinated));
                 }
@@ -259,7 +245,7 @@ impl LoserConcluded {
         game.battle.loser_may_try_to_assassinate = false;
 
         if game.battle.battle_was_concluded_by_winner {
-            let condition1 = !self.is_playing(game, Faction::Tleilaxu) || game.battle.battle_winner == Some(Some(Faction::Tleilaxu));
+            let condition1 = !game.is_playing(Faction::Tleilaxu) || game.battle.battle_winner == Some(Some(Faction::Tleilaxu));
             if condition1 {
                 Game::finish_battle(game)?;
             } else {
@@ -269,35 +255,7 @@ impl LoserConcluded {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " conclude the battle")
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " conclude the battle")
     }
-
-}
-
-impl GameEventMethods for LoserConcluded {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::LoserConcluded
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::LoserConcluded(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        LoserConcluded::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        LoserConcluded::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        LoserConcluded::get_message(self, game)
-    }
-
 }

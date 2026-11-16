@@ -5,14 +5,14 @@ use crate::messages::part::Part;
 /// calls, voice and prescience, and what the winner and loser still have to do.
 pub struct BattleState {
     pub battle_sequence: Option<PlayerSequence>,
-    pub battle_about_to_start: Option<Rc<BattleInitiated>>,
-    pub current_battle: Option<Rc<BattleInitiated>>,
-    pub aggressor_plan: Option<Rc<Battle>>,
-    pub previous_aggressor_plan: Option<Rc<Battle>>,
-    pub aggressor_traitor_action: Option<Rc<TreacheryCalled>>,
-    pub defender_plan: Option<Rc<Battle>>,
-    pub previous_defender_plan: Option<Rc<Battle>>,
-    pub defender_traitor_action: Option<Rc<TreacheryCalled>>,
+    pub battle_about_to_start: Option<InitiatedBattle>,
+    pub current_battle: Option<InitiatedBattle>,
+    pub aggressor_plan: Option<BattlePlan>,
+    pub previous_aggressor_plan: Option<BattlePlan>,
+    pub aggressor_traitor_action: Option<TraitorCall>,
+    pub defender_plan: Option<BattlePlan>,
+    pub previous_defender_plan: Option<BattlePlan>,
+    pub defender_traitor_action: Option<TraitorCall>,
     pub battle_outcome: Option<BattleOutcome>,
     /// `Some(None)`: decided, and nobody.
     pub battle_winner: Option<Option<Faction>>,
@@ -22,26 +22,26 @@ pub struct BattleState {
     /// `Some(None)`: decided, and nobody.
     pub current_ecaz_or_ally_fighter: Option<Option<Faction>>,
     pub current_ecaz_battle_contribution: i32,
-    pub current_voice: Option<Rc<Voice>>,
+    pub current_voice: Option<VoiceUsed>,
     /// Someone who may use Voice declined it this battle (`VoiceDeclined`), so it is closed.
     pub voice_declined: bool,
-    pub current_prescience: Option<Rc<Prescience>>,
-    /// The values are the live plan events, shared with `History` and the plan fields.
-    pub prescience_seen_plans: IndexMap<Option<PrescienceAspect>, Rc<Battle>>,
-    pub current_thought: Option<Rc<Thought>>,
+    pub current_prescience: Option<PrescienceUsed>,
+    /// The plans as they were when a revision withdrew them.
+    pub prescience_seen_plans: IndexMap<Option<PrescienceAspect>, BattlePlan>,
+    pub current_thought: Option<ThoughtAsked>,
     // C#: `StrongholdAdvantage?`. Outside a battle it is `None`; in one, `Some(None)` until the
     // advantage is chosen.
     pub chosen_hms_advantage: Option<Option<StrongholdAdvantage>>,
-    pub current_portable_antidote_used: Option<Rc<PortableAntidoteUsed>>,
+    pub current_portable_antidote_used: Option<AntidoteEquipped>,
     pub poison_tooth_cancelled: bool,
-    pub current_rock_was_melted: Option<Rc<RockWasMelted>>,
+    pub current_rock_was_melted: Option<RockMelted>,
     pub traitors_decipherer_can_look_at: Vec<Hero>,
     pub decipherer_may_replace_traitor: bool,
     pub loser_may_try_to_assassinate: bool,
     pub battle_winner_may_choose_to_discard: bool,
     pub secret_ally_allows_keeping_cards_after_losing_battle: bool,
     pub cards_to_be_discarded_by_loser_after_battle: Vec<TreacheryCard>,
-    pub current_diplomacy: Option<Rc<Diplomacy>>,
+    pub current_diplomacy: Option<DiplomacyUsed>,
     pub audited_cards: Vec<TreacheryCard>,
     pub harkonnen_victim: Option<Leader>,
     pub ixian_special_force_losses_to_take: i32,
@@ -102,6 +102,124 @@ impl BattleState {
     }
 }
 
+/// The methods that read who played an event, for the state that a played event leaves.
+macro_rules! played_by {
+    ($($t:ty),* $(,)?) => {$(
+        impl $t {
+            pub fn initiator(&self) -> Option<Faction> {
+                self.submitter.faction
+            }
+
+            #[track_caller]
+            pub fn player(&self) -> PlayerId {
+                self.submitter.player()
+            }
+
+            pub fn player_opt(&self) -> Option<PlayerId> {
+                self.submitter.player
+            }
+
+            pub fn by(&self, f: impl Into<Option<Faction>>) -> bool {
+                self.submitter.is(f)
+            }
+        }
+    )*};
+}
+
+played_by!(InitiatedBattle, BattlePlan, TraitorCall, VoiceUsed, PrescienceUsed, ThoughtAsked, DiplomacyUsed, AntidoteEquipped, RockMelted);
+
+/// A battle that was initiated (`BattleInitiated`): who started it, against whom, and where.
+#[derive(Clone, Debug, PartialEq)]
+pub struct InitiatedBattle {
+    pub submitter: By,
+    pub territory: Option<Territory>,
+    pub target: Option<Faction>,
+    /// Tells two battles with the same factions and territory apart: the number of the event
+    /// that initiated it. C# compared the events by reference.
+    pub id: usize,
+}
+
+/// A finalized battle plan (`Battle`). Revealing the plans can swap in the cards a Mirror Weapon,
+/// a Diplomat or a Portable Antidote stand for; `original_weapon` and `original_defense` keep
+/// the cards they replaced while that lasts.
+#[derive(Clone, Debug, PartialEq)]
+pub struct BattlePlan {
+    pub submitter: By,
+    pub hero: Option<Hero>,
+    pub messiah: bool,
+    pub forces: u16,
+    pub forces_at_half_strength: u16,
+    pub special_forces: u16,
+    pub special_forces_at_half_strength: u16,
+    pub ally_contribution_amount: u16,
+    pub weapon: Option<TreacheryCard>,
+    pub defense: Option<TreacheryCard>,
+    pub banker_bonus: u16,
+    pub original_weapon: Option<TreacheryCard>,
+    pub original_defense: Option<TreacheryCard>,
+}
+
+/// Whether a faction called treachery (`TreacheryCalled`).
+#[derive(Clone, Debug, PartialEq)]
+pub struct TraitorCall {
+    pub submitter: By,
+    pub traitor_called: bool,
+}
+
+/// The Voice used in the current battle (`Voice`).
+#[derive(Clone, Debug, PartialEq)]
+pub struct VoiceUsed {
+    pub submitter: By,
+    pub must: bool,
+    pub type_: Option<TreacheryCardType>,
+}
+
+/// The Prescience used in the current battle (`Prescience`).
+#[derive(Clone, Debug, PartialEq)]
+pub struct PrescienceUsed {
+    pub submitter: By,
+    pub aspect: Option<PrescienceAspect>,
+}
+
+/// The question a Thinker asked in the current battle (`Thought`).
+#[derive(Clone, Debug, PartialEq)]
+pub struct ThoughtAsked {
+    pub submitter: By,
+    pub card: Option<TreacheryCard>,
+}
+
+/// The card a Diplomat turns into the opponent's defense (`Diplomacy`).
+#[derive(Clone, Debug, PartialEq)]
+pub struct DiplomacyUsed {
+    pub submitter: By,
+    pub card: Option<TreacheryCard>,
+}
+
+/// Who equipped a Portable Antidote in the current battle (`PortableAntidoteUsed`).
+#[derive(Clone, Debug, PartialEq)]
+pub struct AntidoteEquipped {
+    pub submitter: By,
+}
+
+/// How a Rock Melter was used in the current battle (`RockWasMelted`).
+#[derive(Clone, Debug, PartialEq)]
+pub struct RockMelted {
+    pub submitter: By,
+    pub kill: bool,
+}
+
+impl TraitorCall {
+    pub fn succeeded(&self, game: &Game) -> bool {
+        self.traitor_called && (self.initiator() != Some(Faction::Harkonnen) || !game.turn.harkonnen_traitor_was_cancelled)
+    }
+}
+
+impl VoiceUsed {
+    pub fn may_not(&self) -> bool {
+        !self.must
+    }
+}
+
 /// `vec![Part::from(a), ...]`: the `params object?[]` of `Log(...)`.
 macro_rules! le {
     ($($e:expr),* $(,)?) => {
@@ -130,7 +248,7 @@ impl Game {
         self.assign_battle_wheels(aggressive_player, defending_player);
     }
 
-    pub fn update_battle_report_participants(&mut self, battle: &BattleInitiated) {
+    pub fn update_battle_report_participants(&mut self, battle: &InitiatedBattle) {
         if !self.current_report().is_battle() {
             return;
         }
@@ -163,7 +281,7 @@ impl Game {
     }
 
     pub fn handle_revealed_battle_plans(&mut self) -> GameResult {
-        let (Some(current_battle), Some(aggressor_plan), Some(defender_plan), Some(aggressor_traitor_action), Some(defender_traitor_action)) = (
+        let (Some(current_battle), Some(mut aggressor_plan), Some(mut defender_plan), Some(aggressor_traitor_action), Some(defender_traitor_action)) = (
             self.battle.current_battle.clone(),
             self.battle.aggressor_plan.clone(),
             self.battle.defender_plan.clone(),
@@ -178,7 +296,7 @@ impl Game {
 
         self.discard_one_time_cards_used_in_battle(&aggressor_traitor_action, &defender_traitor_action)?;
 
-        self.resolve_battle(&current_battle, &aggressor_plan, &defender_plan, &aggressor_traitor_action, &defender_traitor_action)?;
+        self.resolve_battle(&current_battle, &mut aggressor_plan, &mut defender_plan, &aggressor_traitor_action, &defender_traitor_action)?;
         self.record_battle_outcome_in_report();
 
         if self.battle.card_used_by_diplomat.is_some() {
@@ -233,7 +351,7 @@ impl Game {
         Ok(())
     }
 
-    pub fn discard_one_time_cards_used_in_battle(&mut self, aggressor_call: &TreacheryCalled, defender_call: &TreacheryCalled) -> GameResult {
+    pub fn discard_one_time_cards_used_in_battle(&mut self, aggressor_call: &TraitorCall, defender_call: &TraitorCall) -> GameResult {
         let (Some(aggressor_plan), Some(defender_plan)) = (self.battle.aggressor_plan.clone(), self.battle.defender_plan.clone()) else {
             return Ok(());
         };
@@ -250,9 +368,15 @@ impl Game {
         Ok(())
     }
 
-    pub fn resolve_battle(&mut self, b: &BattleInitiated, agg: &Rc<Battle>, def: &Rc<Battle>, aggressor_treachery: &TreacheryCalled, defender_treachery: &TreacheryCalled) -> GameResult {
+    /// Works out the battle between the plans the game holds, `agg` and `def`. A Diplomat's or
+    /// Portable Antidote's card can stay in a plan after the battle is worked out (see
+    /// `BattlePlan::deactivate_dynamic_weapons`); the game's plans and `agg` and `def` keep it.
+    pub fn resolve_battle(&mut self, b: &InitiatedBattle, agg: &mut BattlePlan, def: &mut BattlePlan, aggressor_treachery: &TraitorCall, defender_treachery: &TraitorCall) -> GameResult {
         let territory = b.territory.required("territory")?;
         let outcome = Battle::determine_battle_outcome(agg, def, territory, self);
+        self.battle.aggressor_plan = Some(agg.clone());
+        self.battle.defender_plan = Some(def.clone());
+        let (agg, def) = (&*agg, &*def);
         self.battle.battle_outcome = Some(outcome.clone());
 
         let lasgun_shield = !aggressor_treachery.succeeded(self)
@@ -308,7 +432,7 @@ impl Game {
         self.select_victim_of_harkonnen_winner(&victim);
     }
 
-    pub fn handle_reinforcements(&mut self, plan: &Battle) -> GameResult {
+    pub fn handle_reinforcements(&mut self, plan: &BattlePlan) -> GameResult {
         if plan.has_reinforcements() {
             let p = plan.player();
             let forces_to_remove = std::cmp::min(3, self.player(p).forces_in_reserve());
@@ -332,7 +456,7 @@ impl Game {
         Ok(())
     }
 
-    pub fn activate_smuggler(&mut self, aggressor_treachery: &TreacheryCalled, defender_treachery: &TreacheryCalled, outcome: &BattleOutcome, lasgun_shield: bool) {
+    pub fn activate_smuggler(&mut self, aggressor_treachery: &TraitorCall, defender_treachery: &TraitorCall, outcome: &BattleOutcome, lasgun_shield: bool) {
         let (Some(aggressor_plan), Some(defender_plan), Some(current_battle)) = (self.battle.aggressor_plan.clone(), self.battle.defender_plan.clone(), self.battle.current_battle.clone()) else {
             return;
         };
@@ -351,7 +475,7 @@ impl Game {
         }
     }
 
-    pub fn discard_one_time_cards(&mut self, plan: &Battle) -> GameResult {
+    pub fn discard_one_time_cards(&mut self, plan: &BattlePlan) -> GameResult {
         if let Some(card) = plan.hero.and_then(|h| h.as_treachery_card()) {
             self.discard_card(Some(card), true)?;
         }
@@ -397,7 +521,7 @@ impl Game {
         Ok(())
     }
 
-    pub fn activate_sandmaster_if_applicable(&mut self, plan: &Battle) {
+    pub fn activate_sandmaster_if_applicable(&mut self, plan: &BattlePlan) {
         let Some(current_battle) = self.battle.current_battle.clone() else {
             return;
         };
@@ -435,7 +559,7 @@ impl Game {
         }
     }
 
-    pub fn activate_decipherer_if_applicable(&mut self, plan: &Battle) {
+    pub fn activate_decipherer_if_applicable(&mut self, plan: &BattlePlan) {
         let player_is_skilled = self.has_skill_in_front_of_shield(plan.player(), LeaderSkill::Decipherer);
         let leader_is_skilled = plan.hero.is_some() && self.skilled_as(plan.hero.expect("hero"), LeaderSkill::Decipherer);
 
@@ -466,7 +590,7 @@ impl Game {
         }
     }
 
-    pub fn resolve_effect_of_owned_tueks_sietch(&mut self, player_plan: &Battle) {
+    pub fn resolve_effect_of_owned_tueks_sietch(&mut self, player_plan: &BattlePlan) {
         let Some(current_battle) = self.battle.current_battle.clone() else {
             return;
         };
@@ -487,7 +611,7 @@ impl Game {
         }
     }
 
-    pub fn resolve_effect_of_owned_sietch_tabr(&mut self, winner_plan: &Battle, opponent_plan: &Battle) {
+    pub fn resolve_effect_of_owned_sietch_tabr(&mut self, winner_plan: &BattlePlan, opponent_plan: &BattlePlan) {
         let Some(current_battle) = self.battle.current_battle.clone() else {
             return;
         };
@@ -508,7 +632,7 @@ impl Game {
         crate::game::amounts::gain(&mut pl.resources, collected, "spice").expect("collected spice");
     }
 
-    pub fn resolve_effect_of_occupied_jacurutu(&mut self, winner_plan: &Battle, opponent_undialed_forces: i32) {
+    pub fn resolve_effect_of_occupied_jacurutu(&mut self, winner_plan: &BattlePlan, opponent_undialed_forces: i32) {
         let Some(current_battle) = self.battle.current_battle.clone() else {
             return;
         };
@@ -659,7 +783,7 @@ impl Game {
         }
     }
 
-    pub fn handle_battle_outcome(&mut self, agg: &Battle, def: &Battle, territory: Territory) -> GameResult {
+    pub fn handle_battle_outcome(&mut self, agg: &BattlePlan, def: &BattlePlan, territory: Territory) -> GameResult {
         let Some(outcome) = self.battle.battle_outcome.clone() else {
             game_error!("A required value is missing");
         };
@@ -757,7 +881,7 @@ impl Game {
         Ok(())
     }
 
-    pub fn handle_harass_and_withdraw(&mut self, plan: &Battle, territory: Territory) -> GameResult {
+    pub fn handle_harass_and_withdraw(&mut self, plan: &BattlePlan, territory: Territory) -> GameResult {
         let Some(current_battle) = self.battle.current_battle.clone() else {
             return Ok(());
         };
@@ -812,14 +936,14 @@ impl Game {
         Ok(())
     }
 
-    pub fn is_protected_by_carthag_advantage(&self, plan: &Battle, territory: Territory) -> bool {
+    pub fn is_protected_by_carthag_advantage(&self, plan: &BattlePlan, territory: Territory) -> bool {
         self.has_stronghold_advantage(plan.initiator(), StrongholdAdvantage::CountDefensesAsAntidote, territory)
             && !plan.has_poison()
             && !plan.has_poison_tooth()
             && plan.defense().is_some_and(|d| d.is_defense())
     }
 
-    pub fn process_loser_losses(&mut self, territory: Territory, loser: PlayerId, loser_gambit: &Battle) -> GameResult {
+    pub fn process_loser_losses(&mut self, territory: Territory, loser: PlayerId, loser_gambit: &BattlePlan) -> GameResult {
         let had_messiah_before_losses = self.player(loser).messiah_available(self);
         let force_supplier = Battle::determine_force_supplier(self, loser);
         self.process_ecaz_occupation_loser_losses(territory, loser)?;
@@ -868,7 +992,7 @@ impl Game {
         self.applicable(Rule::FremenAllyGetsDialedResourcesRefunded) && self.player(p).ally == Some(Faction::Fremen) && self.alliances.fremen_refunds_battle_dial
     }
 
-    pub fn pay_dialed_spice(&mut self, p: PlayerId, plan: &Battle, traitor_was_revealed: bool) {
+    pub fn pay_dialed_spice(&mut self, p: PlayerId, plan: &BattlePlan, traitor_was_revealed: bool) {
         let mut paid_by_arrakeen: i32 = 0;
         let cost = plan.cost_with_arrakeen_share(self, &mut paid_by_arrakeen);
         let cost_to_choam = if self.player(p).ally == Some(Faction::Choam) { i32::from(plan.ally_contribution_amount) } else { 0 };
@@ -953,13 +1077,13 @@ impl Game {
         result
     }
 
-    pub fn process_winner_losses(&mut self, territory: Territory, winner: PlayerId, plan: &Battle, traitor_was_revealed: bool) -> GameResult {
+    pub fn process_winner_losses(&mut self, territory: Territory, winner: PlayerId, plan: &BattlePlan, traitor_was_revealed: bool) -> GameResult {
         self.pay_dialed_spice(winner, plan, traitor_was_revealed);
         self.process_winner_force_losses(territory, winner, plan)?;
         Ok(())
     }
 
-    pub fn process_winner_force_losses(&mut self, territory: Territory, winner: PlayerId, plan: &Battle) -> GameResult {
+    pub fn process_winner_force_losses(&mut self, territory: Territory, winner: PlayerId, plan: &BattlePlan) -> GameResult {
         let force_supplier = Battle::determine_force_supplier(self, winner);
         self.process_ecaz_occupation_winner_losses(territory, winner)?;
 
@@ -1116,7 +1240,7 @@ impl Game {
         }
     }
 
-    pub fn set_hero_locations(&mut self, b: &Battle, territory: Territory) {
+    pub fn set_hero_locations(&mut self, b: &BattlePlan, territory: Territory) {
         if let Some(hero) = b.hero.filter(|h| h.as_leader().is_some()) {
             self.leaders.leader_state[&hero].current_territory = Some(territory);
         }
@@ -1126,7 +1250,7 @@ impl Game {
         }
     }
 
-    pub fn traitor_called(&mut self, b: &BattleInitiated, agg: &Rc<Battle>, def: &Rc<Battle>, defender_treachery: &TreacheryCalled, agg_leader: Option<Hero>, def_leader: Option<Hero>) -> GameResult {
+    pub fn traitor_called(&mut self, b: &InitiatedBattle, agg: &BattlePlan, def: &BattlePlan, defender_treachery: &TraitorCall, agg_leader: Option<Hero>, def_leader: Option<Hero>) -> GameResult {
         let aggressor_traitor_action = self.battle.aggressor_traitor_action.clone();
         if aggressor_traitor_action.as_ref().is_some_and(|a| a.succeeded(self)) && defender_treachery.succeeded(self) {
             let (Some(agg_leader), Some(def_leader)) = (agg_leader, def_leader) else {
@@ -1150,7 +1274,7 @@ impl Game {
         Ok(())
     }
 
-    pub fn one_traitor_called(&mut self, territory: Territory, winner: PlayerId, loser: PlayerId, loser_plan: &Battle, winner_plan: &Battle) -> GameResult {
+    pub fn one_traitor_called(&mut self, territory: Territory, winner: PlayerId, loser: PlayerId, loser_plan: &BattlePlan, winner_plan: &BattlePlan) -> GameResult {
         let Some(traitor) = loser_plan.hero else {
             game_error!("Traitor cannot be null in OneTraitorCalled");
         };
@@ -1216,7 +1340,7 @@ impl Game {
     }
 
     /// C# parity: never sets BattleWinner or BattleLoser.
-    pub fn two_traitors_called(&mut self, agg: &Battle, def: &Battle, aggressor: PlayerId, defender: PlayerId, territory: Territory, agg_leader: Hero, def_leader: Hero) -> GameResult {
+    pub fn two_traitors_called(&mut self, agg: &BattlePlan, def: &BattlePlan, aggressor: PlayerId, defender: PlayerId, territory: Territory, agg_leader: Hero, def_leader: Hero) -> GameResult {
         let had_messiah_before_losses = self.player(aggressor).messiah_available(self) || self.player(defender).messiah_available(self);
 
         self.log(le!["Treachery kills both ", def_leader, " and ", agg_leader]);
@@ -1255,7 +1379,7 @@ impl Game {
         Ok(())
     }
 
-    pub fn lasgun_shield_explosion(&mut self, agg: &Battle, def: &Battle, aggressor: PlayerId, defender: PlayerId, territory: Territory, agg_leader: Option<Hero>, def_leader: Option<Hero>) -> GameResult {
+    pub fn lasgun_shield_explosion(&mut self, agg: &BattlePlan, def: &BattlePlan, aggressor: PlayerId, defender: PlayerId, territory: Territory, agg_leader: Option<Hero>, def_leader: Option<Hero>) -> GameResult {
         let had_messiah_before_losses = self.player(aggressor).messiah_available(self) || self.player(defender).messiah_available(self);
 
         self.log(le!["A ", TreacheryCardType::Laser, "/", TreacheryCardType::Shield, " explosion occurs!"]);
@@ -1344,7 +1468,7 @@ impl Game {
         Ok(())
     }
 
-    pub fn select_victim_of_harkonnen_winner(&mut self, victim_action: &Battle) {
+    pub fn select_victim_of_harkonnen_winner(&mut self, victim_action: &BattlePlan) {
         let victim = self.get_player(victim_action.initiator());
         let Some(victim) = victim else { return };
 
@@ -1515,7 +1639,7 @@ impl Game {
         self.allow(FactionAdvantage::ChoamReceiveForcePayment);
     }
 
-    pub fn lose_cards(&mut self, plan: &Battle, may_choose_to_keep_one: bool) -> GameResult {
+    pub fn lose_cards(&mut self, plan: &BattlePlan, may_choose_to_keep_one: bool) -> GameResult {
         let p = plan.player();
         if !(self.player(p).ally == Some(Faction::Moritani) && self.alliances.moritani_allows_keeping_cards)
             && self.player(p).nexus == Some(Faction::Moritani)
@@ -1601,7 +1725,7 @@ impl Game {
         None
     }
 
-    pub fn winner_battle_action(&self) -> Option<Rc<Battle>> {
+    pub fn winner_battle_action(&self) -> Option<BattlePlan> {
         if let Some(aggressor_plan) = &self.battle.aggressor_plan {
             if Some(aggressor_plan.initiator()) == self.battle.battle_winner {
                 return Some(aggressor_plan.clone());

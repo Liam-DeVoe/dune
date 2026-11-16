@@ -124,7 +124,7 @@ impl ClassicBot {
     }
 
     /// The prescience in the current battle, if I or my ally used it.
-    pub fn my_prescience(&self, game: &Game) -> Option<Rc<Prescience>> {
+    pub fn my_prescience(&self, game: &Game) -> Option<PrescienceUsed> {
         game.battle.current_prescience.clone().filter(|p| p.initiator() == Some(self.faction(game)) || p.initiator() == self.ally(game))
     }
 
@@ -150,7 +150,7 @@ impl ClassicBot {
     }
 
     /// The Voice in the current battle, if I or my ally are Bene Gesserit.
-    pub fn my_voice(&self, game: &Game) -> Option<Rc<Voice>> {
+    pub fn my_voice(&self, game: &Game) -> Option<VoiceUsed> {
         let bene_gesserit = self.faction(game) == Faction::BeneGesserit || self.ally(game) == Some(Faction::BeneGesserit);
         game.battle.current_voice.clone().filter(|_| bene_gesserit)
     }

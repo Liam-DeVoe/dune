@@ -54,7 +54,7 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
         "DetermineCardGiven" => ev(bot.determine_card_given(game)),
         "DetermineDivideResourcesAccepted" => common::decision(bot, game, bot.determine_divide_resources_accepted(game)),
         "DetermineDiscarded" => ev(bot.determine_discarded(game)),
-        "DetermineTraitorDiscarded" => ev(bot.determine_traitor_discarded(game)),
+        "DetermineTraitorDiscarded" => common::decision(bot, game, bot.determine_traitor_discarded(game)),
         "DetermineWorstTraitor" => hero(bot.determine_worst_traitor(game)),
         "DetermineNexusPlayed" => opt(bot.determine_nexus_played(game)),
         "DetermineTerritoryToRemoveEcazFrom" => {
@@ -86,7 +86,7 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
         "DetermineDiscardedTaken" => opt(bot.determine_discarded_taken(game)),
         "DetermineJuicePlayed" => opt(bot.determine_juice_played(game)),
         "DetermineBureaucracy" => ev(bot.determine_bureaucracy(game)),
-        "DetermineDiplomacy" => opt(bot.determine_diplomacy(game)),
+        "DetermineDiplomacy" => common::decision(bot, game, bot.determine_diplomacy(game)),
         "DetermineSkillAssigned" => ev(bot.determine_skill_assigned(game)),
         "DeterminePlanetology" => common::decision(bot, game, bot.determine_planetology(game)),
         "IsWinningOrIsOpponentInBattle" => b(bot.is_winning_or_is_opponent_in_battle(game, treachery_engine::enum_type::from_value_or_absent::<Faction>(n(0)).unwrap())),

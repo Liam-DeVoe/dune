@@ -1,32 +1,11 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct HMSAdvantageChosen {
     pub advantage: Option<StrongholdAdvantage>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for HMSAdvantageChosen {
-    fn default() -> Self {
-        HMSAdvantageChosen {
-            advantage: Default::default(),
-            base: Default::default(),
-        }
-    }
 }
 
 impl HMSAdvantageChosen {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
     pub fn can_be_played(g: &Game, p: PlayerId) -> bool {
         let hms = g.board.map.hidden_mobile_stronghold();
         g.battle.chosen_hms_advantage == Some(None)
@@ -56,42 +35,21 @@ impl HMSAdvantageChosen {
         }
         result
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        self.log(game);
+impl EventRules for HMSAdvantageChosen {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let m = self.describe(game, by);
+        game.log_event(m);
         game.battle.chosen_hms_advantage = Some(self.advantage);
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " use the ", self.advantage, " stronghold advantage for this battle")
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " use the ", self.advantage, " stronghold advantage for this battle")
     }
-
-}
-
-impl GameEventMethods for HMSAdvantageChosen {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::HMSAdvantageChosen
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::HMSAdvantageChosen(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        HMSAdvantageChosen::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        HMSAdvantageChosen::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        HMSAdvantageChosen::get_message(self, game)
-    }
-
 }

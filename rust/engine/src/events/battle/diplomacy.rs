@@ -1,37 +1,19 @@
 use crate::prelude::*;
-use crate::messages::part::Part;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Diplomacy {
     pub card: Option<TreacheryCard>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for Diplomacy {
     fn default() -> Self {
         Diplomacy {
             card: TreacheryCardManager::get(0),
-            base: Default::default(),
         }
     }
 }
 
-macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
-}
-
 impl Diplomacy {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
     pub fn valid_cards(g: &Game, p: PlayerId) -> Vec<TreacheryCard> {
         let mut result = Vec::new();
         let plan = g.battle.current_battle.as_ref().expect("current battle").plan_of(g, Some(p)).expect("plan of");
@@ -66,47 +48,26 @@ impl Diplomacy {
 
         false
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+impl EventRules for Diplomacy {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
         // Game.CurrentBattle?.PlanOfOpponent(Player)?.Defense
         let opponent_defense = game
             .battle.current_battle
             .as_ref()
-            .and_then(|b| b.plan_of_opponent(game, self.player_opt()))
+            .and_then(|b| b.plan_of_opponent(game, by.player))
             .and_then(|plan| plan.defense());
-        game.log(elems![self.initiator(), " use Diplomacy to turn ", self.card, " into a ", opponent_defense]);
-        game.battle.current_diplomacy = Some(self.clone());
+        game.log(parts![by.faction, " use Diplomacy to turn ", self.card, " into a ", opponent_defense]);
+        game.battle.current_diplomacy = Some(DiplomacyUsed { submitter: by, card: self.card });
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " use Diplomacy to turn ", self.card, " into a copy of the opponent's defense")
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " use Diplomacy to turn ", self.card, " into a copy of the opponent's defense")
     }
-}
-
-impl GameEventMethods for Diplomacy {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::Diplomacy
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::Diplomacy(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        Diplomacy::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        Diplomacy::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        Diplomacy::get_message(self, game)
-    }
-
 }

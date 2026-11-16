@@ -1,46 +1,19 @@
 use crate::prelude::*;
-use crate::messages::part::Part;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ThoughtAnswered {
     pub card: Option<TreacheryCard>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for ThoughtAnswered {
     fn default() -> Self {
         ThoughtAnswered {
             card: TreacheryCardManager::get(0),
-            base: Default::default(),
         }
     }
-}
-
-macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
 }
 
 impl ThoughtAnswered {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        if Self::valid_cards_opt(game, self.player_opt()).is_empty() {
-            return None;
-        }
-        // Enumerable.Contains(null) on a sequence of cards is false.
-        let card = self.card;
-        if !Self::valid_cards_opt(game, self.player_opt()).into_iter().any(|c| Some(c) == card) {
-            return Some(express!("Select a valid card to show"));
-        }
-
-        None
-    }
-
     pub fn valid_cards(g: &Game, p: PlayerId) -> Vec<TreacheryCard> {
         Self::valid_cards_opt(g, Some(p))
     }
@@ -55,17 +28,32 @@ impl ThoughtAnswered {
 
         g.player(p).treachery_cards.clone()
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+impl EventRules for ThoughtAnswered {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        if Self::valid_cards_opt(game, by.player).is_empty() {
+            return Ok(());
+        }
+        // Enumerable.Contains(null) on a sequence of cards is false.
+        let card = self.card;
+        if !Self::valid_cards_opt(game, by.player).into_iter().any(|c| Some(c) == card) {
+            return Err(Rejection(express!("Select a valid card to show")));
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
         match self.card {
             None => {
-                game.log(elems![self.initiator(), " don't own any cards"]);
+                game.log(parts![by.faction, " don't own any cards"]);
             }
             Some(card) => {
                 let thought_initiator = game.battle.current_thought.as_ref().required("current thought")?.initiator();
-                game.log_to(thought_initiator.required("faction")?, elems!["In response, ", self.initiator(), " show you: ", card]);
+                game.log_to(thought_initiator.required("faction")?, parts!["In response, ", by.faction, " show you: ", card]);
                 let thought_initiator = game.battle.current_thought.as_ref().required("current thought")?.initiator();
-                game.log(elems!["In response, ", self.initiator(), " show ", thought_initiator, " a card"]);
+                game.log(parts!["In response, ", by.faction, " show ", thought_initiator, " a card"]);
                 let thought_initiator = game.battle.current_thought.as_ref().required("current thought")?.initiator();
                 game.register_known_by_faction(thought_initiator.required("faction")?, card);
             }
@@ -75,37 +63,10 @@ impl ThoughtAnswered {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn describe(&self, _game: &Game, by: By) -> Message {
         if self.card.is_none() {
-            return express!(self.initiator(), " don't have a card to show");
+            return express!(by.faction, " don't have a card to show");
         }
-        express!(self.initiator(), " show one of their cards")
+        express!(by.faction, " show one of their cards")
     }
-}
-
-impl GameEventMethods for ThoughtAnswered {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::ThoughtAnswered
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::ThoughtAnswered(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        ThoughtAnswered::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        ThoughtAnswered::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        ThoughtAnswered::get_message(self, game)
-    }
-
 }

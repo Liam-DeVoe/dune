@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use crate::messages::part::Part;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct FaceDanced {
     pub target_force_locations: Option<String>,
     pub forces_from_reserve: u16,
@@ -9,10 +9,7 @@ pub struct FaceDanced {
     // ---- inherited from PlacementEvent ----
     pub to: Option<Location>,
     pub force_locations: Option<String>,
-    // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for FaceDanced {
@@ -24,72 +21,21 @@ impl Default for FaceDanced {
             to: Location::from_id(0),
             force_locations: Some("".to_string()),
             passed: Default::default(),
-            base: Default::default(),
         }
     }
 }
 
-macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
-}
-
 impl FaceDanced {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn target_force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
+    pub fn target_force_locations(&self, game: &Game, by: By) -> IndexMap<Location, Battalion> {
         // ParseForceLocations(Game, Player.Faction, _targetForceLocations): Player is dereferenced
         // first; a null string throws at `.Length`.
-        let faction = game.player(self.player()).faction;
+        let faction = game.player(by.player()).faction;
         let s = self.target_force_locations.as_deref().expect("target force locations");
         PlacementEvent::parse_force_locations(game, faction.expect("faction"), s)
     }
 
     pub fn set_target_force_locations(&mut self, game: &Game, value: &IndexMap<Location, Battalion>) {
         self.target_force_locations = Some(PlacementEvent::force_locations_string(game, value));
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        let p = self.player_opt();
-        if !Self::may_call_face_dancer_opt(game, p) {
-            return Some(express!("You can't reveal a Face Dancer"));
-        }
-
-        let p = p.expect("player");
-        let maximum_forces = Self::maximum_number_of_forces(game, p);
-        let amount_of_placed_forces =
-            self.target_force_locations(game).values().map(|b| b.total_amount_of_forces()).sum::<i32>();
-        if amount_of_placed_forces > maximum_forces {
-            return Some(express!("Place ", maximum_forces, " or fewer forces"));
-        }
-
-        // C# checked neither, so the forces came from reserves and locations that didn't hold
-        // them (escapes.md, "Forces below zero").
-        let pl = game.player(p);
-        if i32::from(self.forces_from_reserve) > pl.forces_in_reserve() {
-            return Some(express!("Invalid number of forces from reserves"));
-        }
-        if self.force_locations(game).iter().any(|(l, b)| b.forces() > pl.forces_in(Some(*l)) || b.special_forces() > pl.special_forces_in(Some(*l))) {
-            return Some(express!("Invalid number of forces"));
-        }
-
-        let amount_of_forces = i32::from(self.forces_from_reserve) + self.force_locations(game).values().map(|b| b.total_amount_of_forces()).sum::<i32>();
-        if amount_of_forces != amount_of_placed_forces {
-            return Some(express!(
-                "The amount of forces you selected from the planet and from reserves (",
-                amount_of_forces,
-                ") should equal the amount you wish to put in ",
-                game.battle.current_battle.as_ref().expect("current battle").territory,
-                " (",
-                amount_of_placed_forces,
-                ")"
-            ));
-        }
-
-        None
     }
 
     pub fn maximum_number_of_forces(g: &Game, p: PlayerId) -> i32 {
@@ -163,8 +109,157 @@ impl FaceDanced {
             .filter(move |l| g.applicable(Rule::BattlesUnderStorm) || !Sector::in_storm(l.sector(&g.board.map), g.board.sector_in_storm))
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let me = self.player();
+    pub fn replace_forces(&self, game: &mut Game, by: By) -> GameResult {
+        let Some(battle) = game.battle.current_battle.clone() else { return Ok(()) };
+
+        let winner = game.get_player(game.battle.battle_winner.flatten());
+        let mut nr_of_removed_forces = game.player(winner.expect("winner")).any_forces_in_territory(battle.territory);
+        let winner = winner.expect("winner");
+        let co_occupying_player = if game.battle.battle_winner == game.battle.current_ecaz_or_ally_fighter {
+            game.player(winner).allied_player(game)
+        } else {
+            None
+        };
+        if let Some(co) = co_occupying_player {
+            nr_of_removed_forces += game.player(co).any_forces_in_territory(battle.territory);
+        }
+
+        if nr_of_removed_forces > 0 {
+            Player::forces_in_territory_to_reserves(game, winner, battle.territory.expect("territory"))?;
+            if let Some(co) = co_occupying_player {
+                Player::forces_in_territory_to_reserves(game, co, battle.territory.expect("territory"))?;
+            }
+            Player::add_forces_to_reserves(game, by.player(), -i32::from(self.forces_from_reserve))?;
+
+            for (location, battalion) in self.force_locations(game, by).iter() {
+                let location = *location;
+                Player::remove_forces(game, by.player(), location, battalion.forces())?;
+                Player::remove_special_forces(game, by.player(), location, battalion.special_forces())?;
+            }
+
+            for (location, battalion) in self.target_force_locations(game, by).iter() {
+                let location = *location;
+                Player::add_forces(game, by.player(), location, battalion.forces(), false)?;
+                Player::add_special_forces(game, by.player(), location, battalion.special_forces(), false)?;
+            }
+
+            let winner_faction = game.player(winner).faction;
+            let co_faction = co_occupying_player.and_then(|co| game.player(co).faction);
+            let replaced_by =
+                self.target_force_locations(game, by).iter().map(|(_, b)| b.total_amount_of_forces()).sum::<i32>();
+            let force = game.player(by.player()).force();
+            let source_locations = self.determine_source_locations(game, by);
+            game.log(parts![
+                nr_of_removed_forces,
+                " ",
+                winner_faction,
+                express_part_if!(co_occupying_player.is_some(); co_faction),
+                " forces go back to reserves and are replaced by ",
+                replaced_by,
+                force,
+                " (",
+                i32::from(self.forces_from_reserve),
+                " from reserves",
+                source_locations,
+                ")"
+            ]);
+        }
+        Ok(())
+    }
+
+    pub fn replace_facedancers(&self, game: &mut Game, by: By) {
+        let me = by.player();
+        let face_dancers = game.player(me).face_dancers.clone();
+        game.decks.traitor_deck.as_mut().expect("traitor deck").items.extend(face_dancers);
+        game.player_mut(me).face_dancers.clear();
+        game.player_mut(me).revealed_face_dancers.clear();
+        game.decks.traitor_deck.as_mut().expect("traitor deck").shuffle();
+        game.stone(Milestone::Shuffled);
+        for _ in 0..3 {
+            let drawn = game.decks.traitor_deck.as_mut().expect("traitor deck").draw();
+            game.player_mut(me).face_dancers.push(drawn);
+        }
+        game.log(parts![by.faction, " draw 3 new Face Dancers."]);
+    }
+
+    pub fn determine_source_locations(&self, game: &Game, by: By) -> MessagePart {
+        // ForceLocations is parsed once for Count and once more for the query.
+        let any = self.force_locations(game, by).len() > 0;
+        let query = Part::list(
+            self.force_locations(game, by)
+                .iter()
+                .filter(|(_, b)| b.total_amount_of_forces() > 0)
+                .map(|(l, b)| express_part!(", ", b.amount_of_forces, " from ", *l)),
+        );
+        express_part_if!(any; query)
+    }
+}
+
+impl FaceDanced {
+    /// Where the forces that replace the loser's come from: the reserves (`forces_from_reserve`)
+    /// and these locations of the submitter `by`.
+    pub fn force_locations(&self, game: &Game, by: By) -> IndexMap<Location, Battalion> {
+        // ParseForceLocations(Game, Player.Faction, _forceLocations): Player is dereferenced
+        // first; a null string throws at `.Length`.
+        let faction = game.player(by.player()).faction;
+        let s = self.force_locations.as_deref().expect("field force locations");
+        PlacementEvent::parse_force_locations(game, faction.expect("faction"), s)
+    }
+
+    pub fn set_force_locations(&mut self, game: &Game, value: &IndexMap<Location, Battalion>) {
+        self.force_locations = Some(PlacementEvent::force_locations_string(game, value));
+    }
+
+    pub fn total_amount_of_forces_added_to_location(&self, game: &Game, by: By) -> i32 {
+        let forces: i32 = self.force_locations(game, by).values().map(|b| b.forces()).sum();
+        let special_forces: i32 = self.force_locations(game, by).values().map(|b| b.special_forces()).sum();
+        forces + special_forces
+    }
+}
+
+impl EventRules for FaceDanced {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        let p = by.player;
+        if !Self::may_call_face_dancer_opt(game, p) {
+            return Err(Rejection(express!("You can't reveal a Face Dancer")));
+        }
+
+        let p = p.expect("player");
+        let maximum_forces = Self::maximum_number_of_forces(game, p);
+        let amount_of_placed_forces =
+            self.target_force_locations(game, by).values().map(|b| b.total_amount_of_forces()).sum::<i32>();
+        if amount_of_placed_forces > maximum_forces {
+            return Err(Rejection(express!("Place ", maximum_forces, " or fewer forces")));
+        }
+
+        // C# checked neither, so the forces came from reserves and locations that didn't hold
+        // them (escapes.md, "Forces below zero").
+        let pl = game.player(p);
+        if i32::from(self.forces_from_reserve) > pl.forces_in_reserve() {
+            return Err(Rejection(express!("Invalid number of forces from reserves")));
+        }
+        if self.force_locations(game, by).iter().any(|(l, b)| b.forces() > pl.forces_in(Some(*l)) || b.special_forces() > pl.special_forces_in(Some(*l))) {
+            return Err(Rejection(express!("Invalid number of forces")));
+        }
+
+        let amount_of_forces = i32::from(self.forces_from_reserve) + self.force_locations(game, by).values().map(|b| b.total_amount_of_forces()).sum::<i32>();
+        if amount_of_forces != amount_of_placed_forces {
+            return Err(Rejection(express!(
+                "The amount of forces you selected from the planet and from reserves (",
+                amount_of_forces,
+                ") should equal the amount you wish to put in ",
+                game.battle.current_battle.as_ref().expect("current battle").territory,
+                " (",
+                amount_of_placed_forces,
+                ")"
+            )));
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let me = by.player();
         // C#: FaceDancers.First(f => WinnerHero.IsFaceDancer(f)) throws when no face dancer
         // matches the winner (or there is no winner).
         let winner = game.winner_hero();
@@ -184,193 +279,25 @@ impl FaceDanced {
             game.players[i].known_non_traitors.insert(facedancer);
         }
 
-        game.player_mut(self.player()).revealed_face_dancers.insert(facedancer);
+        game.player_mut(by.player()).revealed_face_dancers.insert(facedancer);
 
-        if game.player(self.player()).unrevealed_face_dancers().next().is_none() {
-            self.replace_facedancers(game);
+        if game.player(by.player()).unrevealed_face_dancers().next().is_none() {
+            self.replace_facedancers(game, by);
         }
 
-        self.replace_forces(game)?;
+        self.replace_forces(game, by)?;
         game.flip_bene_gesserit_advisors_when_alone()?;
 
         game.finish_battle()?;
         Ok(())
     }
 
-    pub fn replace_forces(&self, game: &mut Game) -> GameResult {
-        let Some(battle) = game.battle.current_battle.clone() else { return Ok(()) };
-
-        let winner = self.get_player(game, game.battle.battle_winner.flatten());
-        let mut nr_of_removed_forces = game.player(winner.expect("winner")).any_forces_in_territory(battle.territory);
-        let winner = winner.expect("winner");
-        let co_occupying_player = if game.battle.battle_winner == game.battle.current_ecaz_or_ally_fighter {
-            game.player(winner).allied_player(game)
-        } else {
-            None
-        };
-        if let Some(co) = co_occupying_player {
-            nr_of_removed_forces += game.player(co).any_forces_in_territory(battle.territory);
-        }
-
-        if nr_of_removed_forces > 0 {
-            Player::forces_in_territory_to_reserves(game, winner, battle.territory.expect("territory"))?;
-            if let Some(co) = co_occupying_player {
-                Player::forces_in_territory_to_reserves(game, co, battle.territory.expect("territory"))?;
-            }
-            Player::add_forces_to_reserves(game, self.player(), -i32::from(self.forces_from_reserve))?;
-
-            for (location, battalion) in self.force_locations(game).iter() {
-                let location = *location;
-                Player::remove_forces(game, self.player(), location, battalion.forces())?;
-                Player::remove_special_forces(game, self.player(), location, battalion.special_forces())?;
-            }
-
-            for (location, battalion) in self.target_force_locations(game).iter() {
-                let location = *location;
-                Player::add_forces(game, self.player(), location, battalion.forces(), false)?;
-                Player::add_special_forces(game, self.player(), location, battalion.special_forces(), false)?;
-            }
-
-            let winner_faction = game.player(winner).faction;
-            let co_faction = co_occupying_player.and_then(|co| game.player(co).faction);
-            let replaced_by =
-                self.target_force_locations(game).iter().map(|(_, b)| b.total_amount_of_forces()).sum::<i32>();
-            let force = game.player(self.player()).force();
-            let source_locations = self.determine_source_locations(game);
-            game.log(elems![
-                nr_of_removed_forces,
-                " ",
-                winner_faction,
-                express_part_if!(co_occupying_player.is_some(); co_faction),
-                " forces go back to reserves and are replaced by ",
-                replaced_by,
-                force,
-                " (",
-                i32::from(self.forces_from_reserve),
-                " from reserves",
-                source_locations,
-                ")"
-            ]);
-        }
-        Ok(())
-    }
-
-    pub fn replace_facedancers(&self, game: &mut Game) {
-        let me = self.player();
-        let face_dancers = game.player(me).face_dancers.clone();
-        game.decks.traitor_deck.as_mut().expect("traitor deck").items.extend(face_dancers);
-        game.player_mut(me).face_dancers.clear();
-        game.player_mut(me).revealed_face_dancers.clear();
-        game.decks.traitor_deck.as_mut().expect("traitor deck").shuffle();
-        game.stone(Milestone::Shuffled);
-        for _ in 0..3 {
-            let drawn = game.decks.traitor_deck.as_mut().expect("traitor deck").draw();
-            game.player_mut(me).face_dancers.push(drawn);
-        }
-        game.log(elems![self.initiator(), " draw 3 new Face Dancers."]);
-    }
-
-    pub fn determine_source_locations(&self, game: &Game) -> MessagePart {
-        // ForceLocations is parsed once for Count and once more for the query.
-        let any = self.force_locations(game).len() > 0;
-        let query = Part::list(
-            self.force_locations(game)
-                .iter()
-                .filter(|(_, b)| b.total_amount_of_forces() > 0)
-                .map(|(l, b)| express_part!(", ", b.amount_of_forces, " from ", *l)),
-        );
-        express_part_if!(any; query)
-    }
-
-    pub fn get_message(&self, game: &Game) -> Message {
+    fn describe(&self, game: &Game, by: By) -> Message {
         express!(
-            self.initiator(),
+            by.faction,
             " replace ",
-            <Self as PlacementEventMethods>::total_amount_of_forces_added_to_location(self, game),
+            self.total_amount_of_forces_added_to_location(game, by),
             " forces with their own"
         )
     }
-}
-
-impl GameEventMethods for FaceDanced {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::FaceDanced
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::FaceDanced(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        FaceDanced::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        FaceDanced::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        FaceDanced::get_message(self, game)
-    }
-
-}
-
-impl PassableGameEventMethods for FaceDanced {
-    fn field_passed(&self) -> &bool {
-        &self.passed
-    }
-
-}
-
-impl PlacementEventMethods for FaceDanced {
-    fn field_to(&self) -> &Option<Location> {
-        &self.to
-    }
-
-    fn field_force_locations(&self) -> &Option<String> {
-        &self.force_locations
-    }
-
-    fn field_to_mut(&mut self) -> &mut Option<Location> {
-        &mut self.to
-    }
-
-    fn field_force_locations_mut(&mut self) -> &mut Option<String> {
-        &mut self.force_locations
-    }
-
-}
-
-impl crate::events::location_event::LocationEvent for FaceDanced {
-    fn to(&self, _game: &Game) -> Option<Location> {
-        self.to
-    }
-
-    fn total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {
-        <Self as PlacementEventMethods>::total_amount_of_forces_added_to_location(self, game)
-    }
-
-    fn forces_added_to_location(&self, game: &Game) -> i32 {
-        <Self as PlacementEventMethods>::forces_added_to_location(self, game)
-    }
-
-    fn special_forces_added_to_location(&self, game: &Game) -> i32 {
-        <Self as PlacementEventMethods>::special_forces_added_to_location(self, game)
-    }
-
-}
-
-impl crate::events::placement::Placement for FaceDanced {
-    fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
-        <Self as PlacementEventMethods>::force_locations(self, game)
-    }
-
-    fn to(&self, _game: &Game) -> Option<Location> {
-        self.to
-    }
-
 }

@@ -1,40 +1,12 @@
 use crate::prelude::*;
 use crate::messages::part::Part;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AuditCancelled {
     pub cancelled: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for AuditCancelled {
-    fn default() -> Self {
-        AuditCancelled {
-            cancelled: Default::default(),
-            base: Default::default(),
-        }
-    }
-}
-
-macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
 }
 
 impl AuditCancelled {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        if self.cancelled && i32::from(game.player(self.player()).resources) < Self::get_number_of_cards_that_may_be_audited(game) {
-            return Some(express!("You can't pay enough to prevent the audit"));
-        }
-        None
-    }
-
     pub fn cost(&self, game: &Game) -> i32 {
         Self::cost_of_cancelling(game)
     }
@@ -63,22 +35,31 @@ impl AuditCancelled {
         }
         Vec::new()
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+impl EventRules for AuditCancelled {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        if self.cancelled && i32::from(game.player(by.player()).resources) < Self::get_number_of_cards_that_may_be_audited(game) {
+            return Err(Rejection(express!("You can't pay enough to prevent the audit")));
+        }
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
         if self.cancelled {
             let cost = Payment::of(Self::get_number_of_cards_that_may_be_audited(game));
             let n = Self::get_number_of_cards_that_may_be_audited(game);
-            game.log(elems![self.initiator(), " pay ", Faction::Choam, cost, " to cancel an audit of ", n, " cards"]);
+            game.log(parts![by.faction, " pay ", Faction::Choam, cost, " to cancel an audit of ", n, " cards"]);
         } else {
             let n = Self::get_number_of_cards_that_may_be_audited(game);
-            game.log(elems![self.initiator(), " don't cancel an audit targeting ", n, " of their cards"]);
+            game.log(parts![by.faction, " don't cancel an audit targeting ", n, " of their cards"]);
         }
 
         if self.cancelled {
-            let me = self.player();
+            let me = by.player();
             let cost = self.cost(game);
             crate::game::amounts::spend(&mut game.player_mut(me).resources, cost, "spice")?;
-            let choam = self.get_player(game, Some(Faction::Choam));
+            let choam = game.get_player(Some(Faction::Choam));
             if let Some(choam) = choam {
                 let cost = self.cost(game);
                 crate::game::amounts::gain(&mut game.player_mut(choam).resources, cost, "spice")?;
@@ -90,7 +71,7 @@ impl AuditCancelled {
             // A copy: the next audit clears and refills `audited_cards`, and this message
             // should keep showing the cards of this audit.
             let audited = Part::list(game.battle.audited_cards.iter().copied());
-            game.log_to(self.initiator().required("faction")?, elems![Faction::Choam, " see: ", audited]);
+            game.log_to(by.faction.required("faction")?, parts![Faction::Choam, " see: ", audited]);
         } else {
             let winner_is_none = game.battle.battle_winner == Some(None);
             let harkonnen_must_decide = game.harkonnen_must_decide_to_capture();
@@ -104,37 +85,10 @@ impl AuditCancelled {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn describe(&self, _game: &Game, by: By) -> Message {
         if self.cancelled {
-            return express!(self.initiator(), " pay to cancel an audit");
+            return express!(by.faction, " pay to cancel an audit");
         }
-        express!(self.initiator(), " don't pay to cancel an audit")
+        express!(by.faction, " don't pay to cancel an audit")
     }
-}
-
-impl GameEventMethods for AuditCancelled {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::AuditCancelled
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::AuditCancelled(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        AuditCancelled::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        AuditCancelled::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        AuditCancelled::get_message(self, game)
-    }
-
 }

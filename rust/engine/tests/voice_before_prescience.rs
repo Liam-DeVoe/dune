@@ -19,11 +19,9 @@ fn idx(g: &Game, f: Faction) -> PlayerId {
 }
 
 fn start_battle(g: &mut Game, initiator: Faction, target: Faction) {
-    let mut b = BattleInitiated::new(g, initiator);
-    b.target = Some(target);
     let t = g.board.map.territories(false).find(|t| !t.is_homeworld() && !t.is_stronghold()).unwrap();
-    b.territory = Some(t);
-    g.battle.current_battle = Some(Rc::new(b));
+    let b = BattleInitiated { target: Some(target), territory: Some(t) };
+    g.battle.current_battle = Some(b.battle(By::new(g, initiator), 0));
 }
 
 fn ally(g: &mut Game, a: Faction, b: Faction) {
@@ -33,23 +31,21 @@ fn ally(g: &mut Game, a: Faction, b: Faction) {
 }
 
 fn decline(g: &mut Game, f: Faction) {
-    let e = VoiceDeclined::new(g, f);
-    assert_eq!(e.validate(g), None, "{f:?} may decline Voice");
-    Rc::new(e).execute_concrete_event(g).unwrap();
+    let by = By::new(g, f);
+    assert_eq!(VoiceDeclined::default().validate(g, by), Ok(()), "{f:?} may decline Voice");
+    VoiceDeclined::default().apply(g, by).unwrap();
 }
 
 fn voice(g: &mut Game, f: Faction) {
-    let mut e = Voice::new(g, f);
-    e.must = true;
-    e.type_ = Some(TreacheryCardType::Laser);
-    assert_eq!(e.validate(g), None, "{f:?} may use Voice");
-    Rc::new(e).execute_concrete_event(g).unwrap();
+    let by = By::new(g, f);
+    let e = Voice { must: true, type_: Some(TreacheryCardType::Laser) };
+    assert_eq!(e.validate(g, by), Ok(()), "{f:?} may use Voice");
+    e.apply(g, by).unwrap();
 }
 
 fn prescience(g: &mut Game) {
-    let mut e = Prescience::new(g, Faction::Atreides);
-    e.aspect = Some(PrescienceAspect::Weapon);
-    Rc::new(e).execute_concrete_event(g).unwrap();
+    let by = By::new(g, Faction::Atreides);
+    Prescience { aspect: Some(PrescienceAspect::Weapon) }.apply(g, by).unwrap();
 }
 
 #[test]

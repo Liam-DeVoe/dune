@@ -1,43 +1,19 @@
 use crate::prelude::*;
-use crate::messages::part::Part;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Thought {
     pub card: Option<TreacheryCard>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for Thought {
     fn default() -> Self {
         Thought {
             card: TreacheryCardManager::get(0),
-            base: Default::default(),
         }
     }
-}
-
-macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
 }
 
 impl Thought {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        // Enumerable.Contains(null) on a sequence of cards is false.
-        let card = self.card;
-        if !Self::valid_cards(game).into_iter().any(|c| Some(c) == card) {
-            return Some(express!("Invalid card"));
-        }
-
-        None
-    }
-
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_cards(g: &Game) -> impl Iterator<Item = TreacheryCard> {
         TreacheryCardManager::get_cards_in_play(g)
@@ -51,45 +27,30 @@ impl Thought {
             && game.battle.current_thought.is_none()
             && game.battle.current_battle.as_ref().expect("current battle").is_aggressor_or_defender(game, player)
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.battle.current_thought = Some(self.clone());
+impl EventRules for Thought {
+    fn validate(&self, game: &Game, _by: By) -> Result<(), Rejection> {
+        // Enumerable.Contains(null) on a sequence of cards is false.
+        let card = self.card;
+        if !Self::valid_cards(game).into_iter().any(|c| Some(c) == card) {
+            return Err(Rejection(express!("Invalid card")));
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        game.battle.current_thought = Some(ThoughtAsked { submitter: by, card: self.card });
         let battle = game.battle.current_battle.clone().required("current battle")?;
-        let opponent = game.player(battle.opponent_of_faction(game, self.initiator()).required("opponent of faction")?).faction;
-        game.log(elems![self.initiator(), " use their ", LeaderSkill::Thinker, " skill to ask ", opponent, " if they have a ", self.card]);
+        let opponent = game.player(battle.opponent_of_faction(game, by.faction).required("opponent of faction")?).faction;
+        game.log(parts![by.faction, " use their ", LeaderSkill::Thinker, " skill to ask ", opponent, " if they have a ", self.card]);
         game.stone(Milestone::Prescience);
         game.enter(Phase::Thought, true);
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " use their ", LeaderSkill::Thinker, " skill to ask a question")
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " use their ", LeaderSkill::Thinker, " skill to ask a question")
     }
-}
-
-impl GameEventMethods for Thought {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::Thought
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::Thought(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        Thought::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        Thought::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        Thought::get_message(self, game)
-    }
-
 }

@@ -69,7 +69,7 @@ pub struct TurnState {
     pub phase_paused_by_clairvoyance: Option<Phase>,
     pub latest_clairvoyance: Option<Rc<ClairVoyancePlayed>>,
     pub latest_clairvoyance_qn_a: Option<ClairVoyanceQandA>,
-    pub latest_clairvoyance_battle: Option<Rc<BattleInitiated>>,
+    pub latest_clairvoyance_battle: Option<InitiatedBattle>,
     pub resource_audited_factions: Vec<Faction>,
     pub current_juice: Option<Rc<JuicePlayed>>,
     pub current_karma_prevention: Option<Rc<ChoamKarmaPrevention>>,

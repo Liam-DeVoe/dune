@@ -1,30 +1,50 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+/// A faction starts one of its battles.
+#[derive(Clone, Debug, PartialEq)]
 pub struct BattleInitiated {
     pub territory: Option<Territory>,
     pub target: Option<Faction>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for BattleInitiated {
     fn default() -> Self {
-        BattleInitiated {
-            territory: Territory::from_id(0),
-            target: Default::default(),
-            base: Default::default(),
-        }
+        BattleInitiated { territory: Territory::from_id(0), target: Default::default() }
     }
 }
 
 impl BattleInitiated {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
+    /// The battle this event starts, when `by` submits it as event number `id`.
+    pub fn battle(&self, by: By, id: usize) -> InitiatedBattle {
+        InitiatedBattle { submitter: by, territory: self.territory, target: self.target, id }
     }
 
+    pub fn is_aggressor_by_juice(g: &Game, f: Option<Faction>) -> bool {
+        g.turn.current_juice.as_ref().is_some_and(|j| j.type_ == Some(JuiceType::Aggressor) && j.initiator() == f)
+    }
+
+    /// `IsInitiatorByJuice` with a possibly null `initiator` (as `Aggressor` passes `Player`).
+    fn is_initiator_by_juice_opt(g: &Game, initiator: Option<PlayerId>, target: PlayerId) -> bool {
+        g.turn.current_juice.as_ref().is_some_and(|j| {
+            j.type_ == Some(JuiceType::GoFirst)
+                && j.player_opt() == initiator
+                && PlayerSequence::is_after(g, initiator.expect("initiator"), target)
+        })
+    }
+
+    /// `IsTargetByJuice` with a possibly null `initiator`.
+    ///
+    /// C# parity: the same predicate as IsInitiatorByJuice apart from the Juice type.
+    fn is_target_by_juice_opt(g: &Game, initiator: Option<PlayerId>, target: PlayerId) -> bool {
+        g.turn.current_juice.as_ref().is_some_and(|j| {
+            j.type_ == Some(JuiceType::GoLast)
+                && j.player_opt() == initiator
+                && PlayerSequence::is_after(g, initiator.expect("initiator"), target)
+        })
+    }
+}
+
+impl InitiatedBattle {
     pub fn actual_initiator(&self, game: &Game) -> Option<Faction> {
         match game.battle.current_ecaz_or_ally_fighter.flatten() {
             Some(fighter) if self.initiator() == game.get_ally(Some(fighter)) => Some(fighter),
@@ -74,30 +94,6 @@ impl BattleInitiated {
         game.get_player(self.aggressor(game))
     }
 
-    pub fn is_aggressor_by_juice(g: &Game, f: Option<Faction>) -> bool {
-        g.turn.current_juice.as_ref().is_some_and(|j| j.type_ == Some(JuiceType::Aggressor) && j.initiator() == f)
-    }
-
-    /// `IsInitiatorByJuice` with a possibly null `initiator` (as `Aggressor` passes `Player`).
-    fn is_initiator_by_juice_opt(g: &Game, initiator: Option<PlayerId>, target: PlayerId) -> bool {
-        g.turn.current_juice.as_ref().is_some_and(|j| {
-            j.type_ == Some(JuiceType::GoFirst)
-                && j.player_opt() == initiator
-                && PlayerSequence::is_after(g, initiator.expect("initiator"), target)
-        })
-    }
-
-    /// `IsTargetByJuice` with a possibly null `initiator`.
-    ///
-    /// C# parity: the same predicate as IsInitiatorByJuice apart from the Juice type.
-    fn is_target_by_juice_opt(g: &Game, initiator: Option<PlayerId>, target: PlayerId) -> bool {
-        g.turn.current_juice.as_ref().is_some_and(|j| {
-            j.type_ == Some(JuiceType::GoLast)
-                && j.player_opt() == initiator
-                && PlayerSequence::is_after(g, initiator.expect("initiator"), target)
-        })
-    }
-
     pub fn is_involved(&self, game: &Game, p: PlayerId) -> bool {
         let pl = game.player(p);
         self.initiator() == pl.faction || self.target == pl.faction || self.initiator() == pl.ally || self.target == pl.ally
@@ -141,7 +137,7 @@ impl BattleInitiated {
         }
     }
 
-    pub fn plan_of(&self, game: &Game, p: Option<PlayerId>) -> Option<Rc<Battle>> {
+    pub fn plan_of(&self, game: &Game, p: Option<PlayerId>) -> Option<BattlePlan> {
         let Some(p) = p else { return None };
         let f = game.player(p).faction;
 
@@ -151,18 +147,18 @@ impl BattleInitiated {
         if f == self.defender(game) { game.battle.defender_plan.clone() } else { None }
     }
 
-    pub fn plan_of_opponent(&self, game: &Game, p: Option<PlayerId>) -> Option<Rc<Battle>> {
+    pub fn plan_of_opponent(&self, game: &Game, p: Option<PlayerId>) -> Option<BattlePlan> {
         match p {
             None => None,
             Some(p) => self.plan_of(game, self.opponent_of(game, p)),
         }
     }
 
-    pub fn plan_of_opponent_faction(&self, game: &Game, f: Faction) -> Option<Rc<Battle>> {
+    pub fn plan_of_opponent_faction(&self, game: &Game, f: Faction) -> Option<BattlePlan> {
         self.plan_of(game, self.opponent_of_faction(game, f))
     }
 
-    pub fn plan_of_faction(&self, game: &Game, f: impl Into<Option<Faction>>) -> Option<Rc<Battle>> {
+    pub fn plan_of_faction(&self, game: &Game, f: impl Into<Option<Faction>>) -> Option<BattlePlan> {
         let f: Option<Faction> = f.into();
         if f == self.aggressor(game) {
             return game.battle.aggressor_plan.clone();
@@ -171,7 +167,7 @@ impl BattleInitiated {
         if f == self.defender(game) { game.battle.defender_plan.clone() } else { None }
     }
 
-    pub fn previous_plan_of(&self, game: &Game, f: Faction) -> Option<Rc<Battle>> {
+    pub fn previous_plan_of(&self, game: &Game, f: Faction) -> Option<BattlePlan> {
         if Some(f) == self.aggressor(game) {
             return game.battle.previous_aggressor_plan.clone();
         }
@@ -179,11 +175,11 @@ impl BattleInitiated {
         if Some(f) == self.defender(game) { game.battle.previous_defender_plan.clone() } else { None }
     }
 
-    pub fn treachery_of_opponent(&self, game: &Game, p: PlayerId) -> Option<Rc<TreacheryCalled>> {
+    pub fn treachery_of_opponent(&self, game: &Game, p: PlayerId) -> Option<TraitorCall> {
         self.treachery_of(game, self.opponent_of(game, p))
     }
 
-    pub fn treachery_of(&self, game: &Game, p: Option<PlayerId>) -> Option<Rc<TreacheryCalled>> {
+    pub fn treachery_of(&self, game: &Game, p: Option<PlayerId>) -> Option<TraitorCall> {
         let Some(p) = p else { return None };
         let pl = game.player(p);
 
@@ -200,52 +196,55 @@ impl BattleInitiated {
         None
     }
 
-    pub fn treachery_of_faction(&self, game: &Game, f: Faction) -> Option<Rc<TreacheryCalled>> {
+    pub fn treachery_of_faction(&self, game: &Game, f: Faction) -> Option<TraitorCall> {
         self.treachery_of(game, game.get_player(Some(f)))
     }
+}
 
-    pub fn validate(&self, game: &Game) -> Option<Message> {
+impl EventRules for BattleInitiated {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
         let Some(territory) = self.territory else {
-            return Some(express!("Territory not selected"));
+            return Err(Rejection(express!("Territory not selected")));
         };
 
-        if !game.player(self.player()).occupies_territory(game, Some(territory)) {
-            return Some(express!("You have no forces in this territory"));
+        if !game.player(by.player()).occupies_territory(game, Some(territory)) {
+            return Err(Rejection(express!("You have no forces in this territory")));
         }
-        if !Battle::battles_to_be_fought(game, self.player(), false)
+        if !Battle::battles_to_be_fought(game, by.player(), false)
             .iter()
             .any(|f| Some(f.faction) == self.target && Some(f.territory) == self.territory)
         {
-            return Some(express!("Invalid battle selected"));
+            return Err(Rejection(express!("Invalid battle selected")));
         }
 
-        let opponent = game.get_player(self.defender(game));
+        let opponent = game.get_player(self.battle(by, 0).defender(game));
         let Some(opponent) = opponent else {
-            return Some(express!("Opponent not selected"));
+            return Err(Rejection(express!("Opponent not selected")));
         };
         if !game.player(opponent).occupies_territory(game, Some(territory)) {
-            return Some(express!("Opponent has no forces in this territory"));
+            return Err(Rejection(express!("Opponent has no forces in this territory")));
         }
 
-        None
+        Ok(())
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let battle = self.battle(by, game.history.entries.len());
         // Not logged: the report panel shows who attacks whom where in the battle's heading.
         // Aggressor, Defender and Territory only read state that StartReport doesn't touch.
-        let aggressor = self.aggressor(game);
-        let defender = self.defender(game);
+        let aggressor = battle.aggressor(game);
+        let defender = battle.defender(game);
         let territory = self.territory;
         let report = game.start_report(MainPhase::Battle);
         report.aggressor = aggressor;
         report.defender = defender;
         report.territory = territory;
-        game.battle.battle_about_to_start = Some(self.clone());
+        game.battle.battle_about_to_start = Some(battle.clone());
 
-        let ecaz = self.get_player(game, Some(Faction::Ecaz));
+        let ecaz = game.get_player(Some(Faction::Ecaz));
         let condition = match ecaz {
             Some(ecaz) => {
-                self.is_involved_faction(game, Faction::Ecaz)
+                battle.is_involved_faction(game, Faction::Ecaz)
                     && territory.is_some()
                     && game.player(ecaz).occupies_territory(game, territory)
                     && game.player(ecaz).has_ally()
@@ -257,42 +256,14 @@ impl BattleInitiated {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn describe(&self, _game: &Game, by: By) -> Message {
         let territory = self.territory;
         express!(
-            self.initiator(),
+            by.faction,
             " initiate battle against ",
             self.target,
             if territory.is_some_and(|t| t.is_homeworld()) { " on " } else { " in " },
             territory
         )
     }
-
-}
-
-impl GameEventMethods for BattleInitiated {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::BattleInitiated
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::BattleInitiated(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        BattleInitiated::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        BattleInitiated::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        BattleInitiated::get_message(self, game)
-    }
-
 }

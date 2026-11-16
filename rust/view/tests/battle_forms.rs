@@ -259,7 +259,7 @@ fn check_battle(game: &Game, p: PlayerId, o: &BattleOptions, draft: &Battle, d: 
     let mut choices: Vec<Option<Hero>> = heroes.iter().map(|h| Some(*h)).collect();
     choices.push(None);
     for hero in choices {
-        let mut q = Battle::new(game, game.player(p).faction);
+        let mut q = Battle::default();
         q.hero = hero;
         let (opts, validation) = battle::options_and_validation(game, &v, &event(q), d).unwrap();
         let Some(ActionOptions::Battle(o)) = opts else { panic!("{at}") };
@@ -272,7 +272,7 @@ fn check_battle(game: &Game, p: PlayerId, o: &BattleOptions, draft: &Battle, d: 
         assert_eq!(validation, treachery_view::build::validate(game, game.player(p).faction, normalized.clone(), d), "{at}");
         assert_eq!(o.weapons, cards_by_name(Battle::valid_weapons(game, p, None, n.hero, territory, false), d), "{at}");
         for &w in &o.weapons {
-            let mut q = Battle::new(game, game.player(p).faction);
+            let mut q = Battle::default();
             q.hero = n.hero;
             q.set_weapon(TreacheryCardManager::lookup().find(w));
             let (opts, _) = battle::options_and_validation(game, &v, &event(q), d).unwrap();
@@ -435,10 +435,8 @@ fn hms_battle_state() -> ViewReplica {
     Player::add_forces(g, b, hms.location(), 2, false).unwrap();
     g.board.stronghold_ownership.insert(hms.location(), fa.expect("faction"));
     g.board.stronghold_ownership.insert(g.board.map.arrakeen(), fa.expect("faction"));
-    let mut battle = BattleInitiated::new(g, fa);
-    battle.target = fb;
-    battle.territory = Some(hms.location().territory());
-    g.battle.current_battle = Some(std::rc::Rc::new(battle));
+    let battle = BattleInitiated { target: fb, territory: Some(hms.location().territory()) };
+    g.battle.current_battle = Some(battle.battle(By::new(g, fa), 0));
     g.turn.current_phase = Phase::BattlePhase;
     g.battle.chosen_hms_advantage = Some(None);
     r
@@ -456,9 +454,7 @@ fn hms_advantage_form_in_a_built_state() {
     let owner = r.game.player_at(0);
     let faction = r.game.player(owner).faction;
     let advantage = HMSAdvantageChosen::valid_advantages(&r.game, owner)[0];
-    let mut e = HMSAdvantageChosen::new(&r.game, faction);
-    e.advantage = Some(advantage);
-    let e = std::rc::Rc::new(e).into_event();
+    let e = Event::from(HMSAdvantageChosen { advantage: Some(advantage) });
     assert!(e.validate_for(&r.game, faction).is_ok(), "{:?}", e.validate_for(&r.game, faction).err().map(|r| r.0.plain_text()));
     assert!(r.game.play_for_message(HistoryEntry::new(faction, e), true, true).is_none());
     assert_eq!(r.game.battle.chosen_hms_advantage, Some(Some(advantage)));

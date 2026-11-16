@@ -61,14 +61,14 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
     let Some(p) = v.player else { return Some(None) };
     Some(Some(match t {
         EventType::AuditCancelled => {
-            let mut e = AuditCancelled::new(game, faction);
+            let mut e = AuditCancelled::default();
             e.cancelled = true;
             event(e)
         }
-        EventType::Audited => event(Audited::new(game, faction)),
+        EventType::Audited => event(Audited::default()),
         EventType::Battle => return Some(Some(battle_default(game, p, faction.expect("faction")))),
         EventType::BattleConcluded => {
-            let mut e = BattleConcluded::new(game, faction);
+            let mut e = BattleConcluded::default();
             e.set_decision_to_capture(Some(CaptureDecision::Kill));
             e.traitor_to_replace = None;
             e.new_traitor = None;
@@ -87,7 +87,7 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
             event(e)
         }
         EventType::BattleInitiated => {
-            let mut e = BattleInitiated::new(game, faction);
+            let mut e = BattleInitiated::default();
             let fights = Battle::battles_to_be_fought(game, p, false);
             if let Some(first) = fights.first() {
                 e.target = Some(first.faction);
@@ -97,7 +97,7 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
             event(e)
         }
         EventType::BeneGesseritBattleAnnouncement => {
-            let mut e = BeneGesseritBattleAnnouncement::new(game, faction);
+            let mut e = BeneGesseritBattleAnnouncement::default();
             e.territory = None;
             event(e)
         }
@@ -122,12 +122,12 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
             event(e)
         }
         EventType::Diplomacy => {
-            let mut e = Diplomacy::new(game, faction);
+            let mut e = Diplomacy::default();
             e.card = Diplomacy::valid_cards(game, p).first().copied();
             event(e)
         }
         EventType::FaceDanced => {
-            let mut e = FaceDanced::new(game, faction);
+            let mut e = FaceDanced::default();
             let shows_pickers = FaceDanced::maximum_number_of_forces(game, p) > 0;
             let sources: Vec<Location> = if shows_pickers { FaceDanced::valid_source_locations(game, p).collect() } else { vec![] };
             let targets: Vec<Location> = if shows_pickers { FaceDanced::valid_target_locations(game).collect() } else { vec![] };
@@ -143,19 +143,19 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
             event(e)
         }
         EventType::FaceDancerReplaced => {
-            let mut e = FaceDancerReplaced::new(game, faction);
+            let mut e = FaceDancerReplaced::default();
             e.passed = false;
             e.selected_dancer = FaceDancerReplaced::valid_face_dancers(game, p).next();
             event(e)
         }
         EventType::FaceDancerRevealed => {
             // ConfirmedResult: reveal. Without a face dancer to call only "No" is drawn.
-            let mut e = FaceDancerRevealed::new(game, faction);
+            let mut e = FaceDancerRevealed::default();
             e.passed = false;
             event(e)
         }
         EventType::HMSAdvantageChosen => {
-            let mut e = HMSAdvantageChosen::new(game, faction);
+            let mut e = HMSAdvantageChosen::default();
             e.advantage = HMSAdvantageChosen::valid_advantages(game, p).first().copied();
             event(e)
         }
@@ -165,7 +165,7 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
             event(e)
         }
         EventType::LoserConcluded => {
-            let mut e = LoserConcluded::new(game, faction);
+            let mut e = LoserConcluded::default();
             e.kept_card = None;
             e.karma_forced_kept_card_decision = LoserConcluded::KARMA_NO;
             e.set_forced_kept_or_discarded_cards(&[]);
@@ -177,12 +177,12 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
             event(e)
         }
         EventType::Prescience => {
-            let mut e = Prescience::new(game, faction);
+            let mut e = Prescience::default();
             e.aspect = Prescience::valid_aspects(game, p).first().copied();
             event(e)
         }
         EventType::Retreat => {
-            let mut e = Retreat::new(game, faction);
+            let mut e = Retreat::default();
             e.location = None;
             let (f, s) = retreat_defaults(game, p);
             e.forces = treachery_engine::game::amounts::clamp_u16(f);
@@ -190,30 +190,30 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
             event(e)
         }
         EventType::RockWasMelted => {
-            let mut e = RockWasMelted::new(game, faction);
+            let mut e = RockWasMelted::default();
             e.kill = true;
             event(e)
         }
         EventType::TakeLosses => event(TakeLosses::new(game, faction)),
         EventType::ThoughtAnswered => {
-            let mut e = ThoughtAnswered::new(game, faction);
+            let mut e = ThoughtAnswered::default();
             e.card = ThoughtAnswered::valid_cards(game, p).first().copied();
             event(e)
         }
         EventType::Thought => {
-            let mut e = Thought::new(game, faction);
+            let mut e = Thought::default();
             e.card = Thought::valid_cards(game).next();
             event(e)
         }
         EventType::TreacheryCalled => {
             // The form calls the traitor. It is shown only when the player may call; otherwise
             // the client passes for them.
-            let mut e = TreacheryCalled::new(game, faction);
+            let mut e = TreacheryCalled::default();
             e.traitor_called = true;
             event(e)
         }
         EventType::Voice => {
-            let mut e = Voice::new(game, faction);
+            let mut e = Voice::default();
             e.must = true;
             e.type_ = voice_types(game, &d_none()).first().and_then(|t| TreacheryCardType::from_value(t.value));
             event(e)
@@ -399,7 +399,7 @@ fn loser_concluded_options(game: &Game, p: PlayerId, draft: serde_json::Value) -
 }
 
 /// The faction's own plan in the current battle.
-fn my_plan(game: &Game, faction: Faction) -> Option<Rc<Battle>> {
+fn my_plan(game: &Game, faction: Faction) -> Option<BattlePlan> {
     let agg = game.battle.aggressor_plan.as_ref()?;
     if agg.initiator() == Some(faction) {
         Some(agg.clone())
@@ -511,14 +511,14 @@ fn clairvoyance_options(game: &Game, p: PlayerId, target: Option<Faction>, d: &d
 /// yet, the token rows trimmed to the forces there, the first leader when one is required.
 fn battle_default(game: &Game, p: PlayerId, faction: Faction) -> Event {
     // ConfirmedResult sets every member; a fresh event's ids are 0, which are real objects.
-    let mut e = Battle::new(game, faction);
+    let mut e = Battle::default();
     e.hero = None;
     e.set_weapon(None);
     e.set_defense(None);
     if let Some(battle) = game.battle.current_battle.as_ref() {
         if battle.plan_of(game, Some(p)).is_none() {
             if let Some(prev) = battle.previous_plan_of(game, faction) {
-                if prev.validate(game).is_none() {
+                if prev.validate(game).is_ok() {
                     e.forces = prev.forces;
                     e.forces_at_half_strength = prev.forces_at_half_strength;
                     e.special_forces = prev.special_forces;
@@ -649,7 +649,7 @@ fn side(game: &Game, p: PlayerId, aggressor: Faction, groups: Vec<BattleForceGro
 }
 
 /// The note on the battle plan form saying what of `plan` prescience shows.
-fn seen_note(game: &Game, faction: Faction, aspect: Option<PrescienceAspect>, plan: &Battle, show_everything: bool, d: &dyn Describer) -> BattleNote {
+fn seen_note(game: &Game, faction: Faction, aspect: Option<PrescienceAspect>, plan: &BattlePlan, show_everything: bool, d: &dyn Describer) -> BattleNote {
     let shown: Option<P> = match aspect {
         Some(PrescienceAspect::Defense) => plan.defense().filter(|c| show_everything || c.is_defense()).map(Into::into),
         Some(PrescienceAspect::Weapon) => plan.weapon().filter(|c| show_everything || c.is_weapon()).map(Into::into),

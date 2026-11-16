@@ -16,8 +16,16 @@ fn idx(g: &Game, f: Faction) -> PlayerId {
     g.get_player(Some(f)).unwrap()
 }
 
-fn plan(g: &Game, f: Faction) -> Rc<Battle> {
-    Rc::new(Battle::new(g, f))
+fn plan(g: &Game, f: Faction) -> BattlePlan {
+    Battle::default().plan(By::new(g, f))
+}
+
+fn battle(g: &Game, initiator: Faction, target: Faction) -> InitiatedBattle {
+    BattleInitiated { target: Some(target), ..Default::default() }.battle(By::new(g, initiator), 0)
+}
+
+fn call(g: &Game, f: Faction, traitor_called: bool) -> TraitorCall {
+    TraitorCall { submitter: By::new(g, f), traitor_called }
 }
 
 #[test]
@@ -68,13 +76,11 @@ fn battle_concluded_discarded_cards_null_string() {
 #[test]
 fn treachery_succeeded_respects_harkonnen_cancellation() {
     let mut g = game_with(&[Faction::Harkonnen, Faction::Atreides]);
-    let mut t = TreacheryCalled::new(&g, Faction::Harkonnen);
-    t.traitor_called = true;
+    let t = call(&g, Faction::Harkonnen, true);
     assert!(t.succeeded(&g));
     g.turn.harkonnen_traitor_was_cancelled = true;
     assert!(!t.succeeded(&g));
-    let mut atreides = TreacheryCalled::new(&g, Faction::Atreides);
-    atreides.traitor_called = true;
+    let atreides = call(&g, Faction::Atreides, true);
     assert!(atreides.succeeded(&g));
 }
 
@@ -93,9 +99,9 @@ fn winner_hero_with_null_battle_winner() {
     assert_eq!(g.battle.battle_winner, None);
     assert_eq!(g.winner_hero(), None);
     g.battle.aggressor_plan = Some(plan(&g, Faction::Emperor));
-    let mut d = Battle::new(&g, Faction::Atreides);
+    let mut d = plan(&g, Faction::Atreides);
     d.hero = Some(Hero::Leader(LeaderManager::get_leaders(Faction::Atreides).next().unwrap()));
-    g.battle.defender_plan = Some(Rc::new(d));
+    g.battle.defender_plan = Some(d);
     assert_eq!(g.winner_hero(), Some(Hero::Leader(LeaderManager::get_leaders(Faction::Atreides).next().unwrap())));
     assert!(g.winner_battle_action().is_none());
     g.battle.battle_winner = Some(None);
@@ -105,30 +111,27 @@ fn winner_hero_with_null_battle_winner() {
 #[test]
 fn battle_revision_moves_the_plan_aside() {
     let mut g = game_with(&[Faction::Emperor, Faction::Atreides]);
-    let mut b = BattleInitiated::new(&g, Faction::Emperor);
-    b.target = Some(Faction::Atreides);
-    g.battle.current_battle = Some(Rc::new(b));
+    g.battle.current_battle = Some(battle(&g, Faction::Emperor, Faction::Atreides));
     let p = plan(&g, Faction::Atreides);
     g.battle.defender_plan = Some(p.clone());
-    let rev = Rc::new(BattleRevision::new(&g, Faction::Atreides));
-    rev.execute_concrete_event(&mut g).unwrap();
+    let by = By::new(&g, Faction::Atreides);
+    BattleRevision::default().apply(&mut g, by).unwrap();
     assert!(g.battle.defender_plan.is_none());
-    assert!(Rc::ptr_eq(g.battle.previous_defender_plan.as_ref().unwrap(), &p));
+    assert_eq!(g.battle.previous_defender_plan.as_ref(), Some(&p));
 }
 
 #[test]
 fn battle_revision_without_battle_fails() {
     let mut g = game_with(&[Faction::Emperor]);
-    let rev = Rc::new(BattleRevision::new(&g, Faction::Emperor));
-    let e = rev.execute_concrete_event(&mut g).unwrap_err();
+    let by = By::new(&g, Faction::Emperor);
+    let e = BattleRevision::default().apply(&mut g, by).unwrap_err();
     assert_eq!(e.message(), "BattleRevision event executed when there is no current battle");
 }
 
 #[test]
 fn aggressor_by_juice_swaps_roles() {
     let mut g = game_with(&[Faction::Emperor, Faction::Atreides]);
-    let mut b = BattleInitiated::new(&g, Faction::Emperor);
-    b.target = Some(Faction::Atreides);
+    let b = battle(&g, Faction::Emperor, Faction::Atreides);
     assert_eq!(b.aggressor(&g), Some(Faction::Emperor));
     assert_eq!(b.defender(&g), Some(Faction::Atreides));
 
@@ -146,8 +149,7 @@ fn opponent_and_plan_lookups() {
     // OpponentOf reads p.Ally (BattleInitiated.cs:124), so the alliance must be set on both sides.
     g.player_mut(idx(&g, Faction::Atreides)).ally = Some(Faction::Fremen);
     g.player_mut(idx(&g, Faction::Fremen)).ally = Some(Faction::Atreides);
-    let mut b = BattleInitiated::new(&g, Faction::Emperor);
-    b.target = Some(Faction::Atreides);
+    let b = battle(&g, Faction::Emperor, Faction::Atreides);
     let emperor = idx(&g, Faction::Emperor);
     let fremen = idx(&g, Faction::Fremen);
     // The ally of the target sees the initiator as its opponent.
@@ -157,7 +159,7 @@ fn opponent_and_plan_lookups() {
 
     let a = plan(&g, Faction::Emperor);
     g.battle.aggressor_plan = Some(a.clone());
-    assert!(Rc::ptr_eq(&b.plan_of_faction(&g, Faction::Emperor).unwrap(), &a));
+    assert_eq!(b.plan_of_faction(&g, Faction::Emperor), Some(a));
     assert!(b.plan_of_faction(&g, Faction::Fremen).is_none());
 }
 
@@ -165,21 +167,20 @@ fn opponent_and_plan_lookups() {
 fn treachery_of_matches_ally_initiator() {
     let mut g = game_with(&[Faction::Harkonnen, Faction::Emperor, Faction::Atreides]);
     g.player_mut(idx(&g, Faction::Emperor)).ally = Some(Faction::Harkonnen);
-    let mut b = BattleInitiated::new(&g, Faction::Emperor);
-    b.target = Some(Faction::Atreides);
-    let t = Rc::new(TreacheryCalled::new(&g, Faction::Harkonnen));
+    let b = battle(&g, Faction::Emperor, Faction::Atreides);
+    let t = call(&g, Faction::Harkonnen, false);
     g.battle.aggressor_traitor_action = Some(t.clone());
     let emperor = idx(&g, Faction::Emperor);
-    assert!(Rc::ptr_eq(&b.treachery_of(&g, Some(emperor)).unwrap(), &t));
+    assert_eq!(b.treachery_of(&g, Some(emperor)), Some(t.clone()));
     let atreides = idx(&g, Faction::Atreides);
-    assert!(Rc::ptr_eq(&b.treachery_of_opponent(&g, atreides).unwrap(), &t));
+    assert_eq!(b.treachery_of_opponent(&g, atreides), Some(t));
 }
 
 #[test]
 fn lose_cards_skips_cards_the_player_no_longer_has() {
     let mut g = game_with(&[Faction::Emperor]);
     let card = TreacheryCardManager::items()[0];
-    let p = Battle::new(&g, Faction::Emperor);
+    let mut p = plan(&g, Faction::Emperor);
     p.set_weapon(Some(card));
     // _defenseCardId defaults to 0, which Lookup.Find resolves to card 0 (Battle.cs:63).
     p.set_defense(None);

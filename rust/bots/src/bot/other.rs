@@ -1223,7 +1223,7 @@ impl ClassicBot {
 
     pub fn determine_bureaucracy(&self, game: &Game) -> Bureaucracy {
         let mut e = Bureaucracy::default();
-        e.passed = game.turn.target_of_bureaucracy == self.ally(game);
+        e.passed = game.target_of_bureaucracy() == self.ally(game);
         e
     }
 

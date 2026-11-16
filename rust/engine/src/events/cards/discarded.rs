@@ -28,8 +28,10 @@ impl EventRules for Discarded {
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
         let initiator = by.faction;
-        if let Some(i) = game.turn.factions_that_must_discard.iter().position(|f| Some(*f) == initiator) {
-            game.turn.factions_that_must_discard.remove(i);
+        if let Some(factions) = game.factions_that_must_discard_mut() {
+            if let Some(i) = factions.iter().position(|f| Some(*f) == initiator) {
+                factions.remove(i);
+            }
         }
         let m = self.describe(game, by);
         let mut fact = BattleFact::new(BattleFactKind::Discard, initiator.required("faction")?);
@@ -38,8 +40,8 @@ impl EventRules for Discarded {
         game.log(vec![m.into()]);
         game.discard_card_of(by.player, self.card, false);
 
-        if game.turn.factions_that_must_discard.is_empty() {
-            game.resume(Interrupt::Discarding, true)?;
+        if game.factions_that_must_discard().is_none_or(|f| f.is_empty()) {
+            game.resume_phase(Phase::Discarding, true)?;
         }
         Ok(())
     }

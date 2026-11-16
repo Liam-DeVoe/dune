@@ -351,7 +351,7 @@ impl GameStatus {
         let mut result: Vec<FlashInfo> = vec![];
 
         if g.phase() == Phase::GameEnded {
-            for p in g.contemplate.winners.iter().copied() {
+            for p in g.winners().iter().copied() {
                 let f = g.player(p).faction;
                 Self::flash(&mut result, express!(f, " win!"), f);
             }

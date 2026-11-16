@@ -66,7 +66,7 @@ impl TerrorPlanted {
             || (g.phase() == Phase::Contemplate
                 && !TerrorPlanted::valid_terror_types(g, false).next().is_none()
                 && !TerrorPlanted::valid_strongholds(g, p).next().is_none()
-                && !g.contemplate.moritani_has_performed_terror
+                && !g.contemplate().is_some_and(|c| c.moritani_has_performed_terror)
                 && !g.prevented(FactionAdvantage::MoritaniPlantingTerror))
     }
 
@@ -115,7 +115,11 @@ impl EventRules for TerrorPlanted {
         let m = self.get_verbose_message(game, by);
         game.log(parts![m]);
 
-        game.contemplate.moritani_has_performed_terror = true;
+        // Outside the Mentat Pause (Moritani remove a token in the collection phase) this
+        // wrote a flag that the next pause reset before reading.
+        if let Some(c) = game.contemplate_mut() {
+            c.moritani_has_performed_terror = true;
+        }
 
         if !self.passed {
             let type_ = self.type_.required("terror type")?;

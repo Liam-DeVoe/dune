@@ -12,7 +12,7 @@ impl Bureaucracy {
         if self.passed {
             return express!(by.faction, " don't apply Bureaucracy");
         }
-        express!(by.faction, " apply Bureaucracy → ", game.turn.target_of_bureaucracy, " lose ", Payment::of(2))
+        express!(by.faction, " apply Bureaucracy → ", game.target_of_bureaucracy(), " lose ", Payment::of(2))
     }
 }
 
@@ -25,17 +25,17 @@ impl EventRules for Bureaucracy {
         let m = self.get_dynamic_message(game, by);
         game.log(parts![m]);
 
+        let target = game.target_of_bureaucracy();
         if !self.passed {
             game.stone(Milestone::Bureaucracy);
             game.turn.bureaucrat_was_used_this_phase = true;
-            let victim = game.get_player(game.turn.target_of_bureaucracy).required("get player")?;
+            let victim = game.get_player(target).required("get player")?;
             let v = game.player_mut(victim);
             v.resources -= 2;
-            game.turn.was_victim_of_bureaucracy = game.turn.target_of_bureaucracy;
+            game.turn.was_victim_of_bureaucracy = target;
         }
 
-        game.resume(Interrupt::Bureaucracy, true)?;
-        game.turn.target_of_bureaucracy = None;
+        game.resume_phase(Phase::Bureaucracy, true)?;
         Ok(())
     }
 

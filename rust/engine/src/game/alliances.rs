@@ -3,7 +3,6 @@ use crate::prelude::*;
 /// Alliance offers, card trades between allies, and what each faction allows its ally.
 pub struct Alliances {
     pub current_alliance_offers: Vec<AllianceOffer>,
-    pub current_card_trade_offer: Option<CardTradeOffer>,
     pub last_turn_card_was_traded: Option<Turn>,
     pub permitted_use_of_ally_spice: IndexMap<Faction, i32>,
     /// `Option` because `EmperorBidSupport` assigns its `Amounts`, which JSON can leave null.
@@ -41,7 +40,7 @@ impl AllianceOffer {
 }
 
 /// The card one ally offers the other (`CardTraded`), until the other answers.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CardTradeOffer {
     pub initiator: Option<Faction>,
     pub player: Option<PlayerId>,
@@ -62,7 +61,6 @@ impl Alliances {
     pub fn new() -> Self {
         Alliances {
             current_alliance_offers: Vec::new(),
-            current_card_trade_offer: None,
             last_turn_card_was_traded: None,
             permitted_use_of_ally_spice: Default::default(),
             permitted_use_of_emperor_spice: Some(IndexMap::new()),

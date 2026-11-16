@@ -303,7 +303,7 @@ fn moritani_removing_tokens(g: &Game) -> Option<PlayerId> {
 /// Moritani plants a terror token once per turn. Its unplaced tokens are secret, so they are not
 /// checked.
 fn moritani_planting(g: &Game) -> Option<PlayerId> {
-    if !g.contemplate.moritani_has_performed_terror && !g.prevented(FactionAdvantage::MoritaniPlantingTerror) {
+    if !g.contemplate().is_some_and(|c| c.moritani_has_performed_terror) &&!g.prevented(FactionAdvantage::MoritaniPlantingTerror) {
         g.get_player(Some(Faction::Moritani))
     } else {
         None

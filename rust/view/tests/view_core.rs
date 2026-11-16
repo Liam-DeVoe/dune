@@ -388,7 +388,7 @@ fn flash() {
 
     let mut r = load("mc-ended");
     let view = r.view(OBSERVER);
-    let winners: Vec<String> = r.game.contemplate.winners.iter().map(|p| name_or_absent(r.game.player(*p).faction)).collect();
+    let winners: Vec<String> = r.game.winners().iter().map(|p| name_or_absent(r.game.player(*p).faction)).collect();
     assert_eq!(view.status.flash.iter().map(|f| faction_of(&f.to_show)).collect::<Vec<_>>(), winners);
 
     let mut r = load("blow");

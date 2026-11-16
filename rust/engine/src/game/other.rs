@@ -120,8 +120,7 @@ impl Game {
             let bureaucrat = self.player_skilled_as(LeaderSkill::Bureaucrat);
             if let Some(bureaucrat) = bureaucrat {
                 if self.player(bureaucrat).faction != payer && self.player(bureaucrat).faction != receiver {
-                    self.turn.target_of_bureaucracy = receiver;
-                    self.interrupt(Interrupt::Bureaucracy);
+                    self.interrupt(Interrupt::Bureaucracy { target: receiver });
                 }
             }
         }

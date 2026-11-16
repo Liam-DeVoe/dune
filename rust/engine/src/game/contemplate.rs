@@ -1,22 +1,104 @@
 use crate::prelude::*;
 use crate::messages::part::Part;
 
-/// State of the Mentat Pause (contemplate) phase: extortion, terror and the game's winners.
+/// The Mentat Pause (`PhaseState::Contemplate`): its step, and the extortion and terror of this
+/// turn's pause. It is dropped when the turn ends.
 pub struct ContemplateState {
+    pub step: ContemplateStep,
+    /// Moritani regain their Extortion token at the end of the pause, unless someone pays.
     pub extortion_to_be_returned: bool,
+    /// Moritani planted terror (or passed) in this pause. `TerrorPlanted` also sets it when
+    /// Moritani remove a token in the collection phase, but the pause began with it false and
+    /// it was read only in the pause, so that write had no effect and is dropped.
     pub moritani_has_performed_terror: bool,
+}
+
+impl ContemplateState {
+    pub fn new(step: ContemplateStep) -> Self {
+        ContemplateState { step, extortion_to_be_returned: false, moritani_has_performed_terror: false }
+    }
+}
+
+/// Where the Mentat Pause is.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ContemplateStep {
+    /// Players may pay to keep Moritani from regaining the Extortion token.
+    Extortion,
+    /// The host checks for victories. CHOAM and Moritani may act first.
+    Contemplate,
+    /// Tleilaxu may replace a Face Dancer.
+    ReplacingFaceDancer,
+    TurnConcluded,
+}
+
+impl ContemplateStep {
+    pub fn phase(self) -> Phase {
+        match self {
+            ContemplateStep::Extortion => Phase::Extortion,
+            ContemplateStep::Contemplate => Phase::Contemplate,
+            ContemplateStep::ReplacingFaceDancer => Phase::ReplacingFaceDancer,
+            ContemplateStep::TurnConcluded => Phase::TurnConcluded,
+        }
+    }
+
+    pub fn of(phase: Phase) -> Option<ContemplateStep> {
+        match phase {
+            Phase::Extortion => Some(ContemplateStep::Extortion),
+            Phase::Contemplate => Some(ContemplateStep::Contemplate),
+            Phase::ReplacingFaceDancer => Some(ContemplateStep::ReplacingFaceDancer),
+            Phase::TurnConcluded => Some(ContemplateStep::TurnConcluded),
+            _ => None,
+        }
+    }
+}
+
+/// How the game ended (`PhaseState::Ended`, shown as `Phase::GameEnded`).
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Ending {
     pub winners: Vec<PlayerId>,
     pub win_method: Option<WinMethod>,
 }
 
-impl ContemplateState {
-    pub fn new() -> Self {
-        ContemplateState {
-            extortion_to_be_returned: Default::default(),
-            moritani_has_performed_terror: Default::default(),
-            winners: Vec::new(),
-            win_method: Default::default(),
+impl Game {
+    /// The Mentat Pause's state, while the game is in it (an interrupt may suspend it).
+    pub fn contemplate(&self) -> Option<&ContemplateState> {
+        match &self.phase {
+            PhaseState::Contemplate(c) => Some(c),
+            _ => None,
         }
+    }
+
+    pub fn contemplate_mut(&mut self) -> Option<&mut ContemplateState> {
+        match &mut self.phase {
+            PhaseState::Contemplate(c) => Some(c),
+            _ => None,
+        }
+    }
+
+    /// Moves the Mentat Pause to `step`, dropping any interrupt, as entering a phase did, or
+    /// starts the pause there.
+    pub fn enter_contemplate(&mut self, step: ContemplateStep) {
+        match self.contemplate_mut() {
+            Some(c) => {
+                c.step = step;
+                self.interrupts.clear();
+                self.remove_ended_deals(step.phase());
+            }
+            None => self.enter_state(PhaseState::Contemplate(ContemplateState::new(step))),
+        }
+    }
+
+    /// How the game ended, once it has.
+    pub fn ending(&self) -> Option<&Ending> {
+        match &self.phase {
+            PhaseState::Ended(e) => Some(e),
+            _ => None,
+        }
+    }
+
+    /// The winners: empty until the game has ended.
+    pub fn winners(&self) -> &[PlayerId] {
+        self.ending().map_or(&[], |e| &e.winners)
     }
 }
 
@@ -30,7 +112,6 @@ impl Game {
         self.allow_all_prevented_faction_advantages(&[]);
         self.handle_economics();
         self.add_bribes_to_player_resources();
-        self.contemplate.moritani_has_performed_terror = false;
 
         for i in 0..self.players.len() {
             let p = self.player_at(i);
@@ -83,7 +164,7 @@ impl Game {
 
     pub fn enter_contemplate_pause(&mut self) {
         self.determine_if_moritani_draws_new_traitor();
-        self.contemplate.extortion_to_be_returned = self.players.iter().any(|p| i32::from(p.extortion) > 0);
+        let extortion_to_be_returned = self.players.iter().any(|p| i32::from(p.extortion) > 0);
         self.gain_extortions();
 
         if self.turn.harkonnen_traitor_was_cancelled {
@@ -96,8 +177,13 @@ impl Game {
             self.log(vec![Faction::Harkonnen.into(), " drew a new traitor after having been betrayed".into()]);
         }
 
-        let condition = self.contemplate.extortion_to_be_returned;
-        self.enter_or_else(condition, Phase::Extortion, Game::end_contemplate_pause);
+        if extortion_to_be_returned {
+            let mut state = ContemplateState::new(ContemplateStep::Extortion);
+            state.extortion_to_be_returned = true;
+            self.enter_state(PhaseState::Contemplate(state));
+        } else {
+            self.end_contemplate_pause();
+        }
     }
 
     pub fn determine_if_moritani_draws_new_traitor(&mut self) {
@@ -125,13 +211,15 @@ impl Game {
         }
     }
 
+    /// Ends the Extortion step, or stands in for it when there is no extortion to return (the
+    /// pause hasn't started then, and starts here).
     pub fn end_contemplate_pause(&mut self) {
-        if self.contemplate.extortion_to_be_returned {
+        if self.contemplate().is_some_and(|c| c.extortion_to_be_returned) {
             self.log(vec![Faction::Moritani.into(), " regain their ".into(), TerrorType::Extortion.into(), " token".into()]);
             self.board.unplaced_terror_tokens.push(TerrorType::Extortion);
         }
 
-        self.enter(Phase::Contemplate, true);
+        self.enter_contemplate(ContemplateStep::Contemplate);
         self.determine_occupation_at_start_or_end_of_turn();
     }
 
@@ -158,26 +246,20 @@ impl Game {
         }
     }
 
+    /// The host ends the `Contemplate` step: the game ends if someone won or this was the last
+    /// turn, otherwise the turn concludes.
     pub fn continue_contemplate_phase(&mut self) {
-        self.check_normal_win();
-        self.check_bene_gesserit_prediction();
-        self.check_final_turn_win();
+        let mut ending = Ending::default();
+        self.check_normal_win(&mut ending);
+        self.check_bene_gesserit_prediction(&mut ending);
+        self.check_final_turn_win(&mut ending);
 
-        if self.contemplate.winners.len() > 0 || self.turn.current_turn == self.maximum_turns() {
-            self.turn.current_main_phase = MainPhase::Ended;
-            self.enter(Phase::GameEnded, true);
-            self.stone(Milestone::GameWon);
-            let winner_factions: Vec<Faction> = self.contemplate.winners.iter().filter_map(|w| self.player(*w).faction).collect();
-            self.log(vec![express!("The game has ended.").with_log(GameEnded::new(winner_factions)).into()]);
-
-            let winners = self.contemplate.winners.clone();
-            for w in winners {
-                let faction = self.player(w).faction;
-                self.log(vec![express!(faction, " win!").with_log(GameWinner::new(faction.expect("faction"))).into()]);
-            }
+        if !ending.winners.is_empty() || self.turn.current_turn == self.maximum_turns() {
+            self.end_game(ending);
+        } else if self.is_playing(Faction::Tleilaxu) && !self.prevented(FactionAdvantage::TleilaxuReplacingFaceDancer) {
+            self.enter_contemplate(ContemplateStep::ReplacingFaceDancer);
         } else {
-            let condition = self.is_playing(Faction::Tleilaxu) && !self.prevented(FactionAdvantage::TleilaxuReplacingFaceDancer);
-            self.enter_either(condition, Phase::ReplacingFaceDancer, Phase::TurnConcluded);
+            self.enter_contemplate(ContemplateStep::TurnConcluded);
         }
 
         self.determine_stronghold_ownership();
@@ -187,6 +269,20 @@ impl Game {
         }
 
         self.main_phase_end();
+    }
+
+    fn end_game(&mut self, ending: Ending) {
+        self.turn.current_main_phase = MainPhase::Ended;
+        let winners = ending.winners.clone();
+        self.enter_state(PhaseState::Ended(ending));
+        self.stone(Milestone::GameWon);
+        let winner_factions: Vec<Faction> = winners.iter().filter_map(|w| self.player(*w).faction).collect();
+        self.log(vec![express!("The game has ended.").with_log(GameEnded::new(winner_factions)).into()]);
+
+        for w in winners {
+            let faction = self.player(w).faction;
+            self.log(vec![express!(faction, " win!").with_log(GameWinner::new(faction.expect("faction"))).into()]);
+        }
     }
 
     pub fn add_bribes_to_player_resources(&mut self) {
@@ -252,29 +348,29 @@ impl Game {
         }
     }
 
-    pub fn check_final_turn_win(&mut self) {
+    pub fn check_final_turn_win(&mut self, ending: &mut Ending) {
         if self.turn.current_turn != self.maximum_turns() {
             return;
         }
 
-        if self.contemplate.winners.len() == 0 {
-            self.check_special_win_conditions();
+        if ending.winners.len() == 0 {
+            self.check_special_win_conditions(ending);
         }
 
-        if self.contemplate.winners.len() != 0 {
+        if ending.winners.len() != 0 {
             return;
         }
 
-        self.check_other_win_conditions();
-        self.check_bene_gesserit_prediction();
+        self.check_other_win_conditions(ending);
+        self.check_bene_gesserit_prediction(ending);
     }
 
-    pub fn check_bene_gesserit_prediction(&mut self) {
+    pub fn check_bene_gesserit_prediction(&mut self, ending: &mut Ending) {
         let bene_gesserit = self.get_player(Some(Faction::BeneGesserit));
         if let Some(bene_gesserit) = bene_gesserit {
             let predicted_faction = self.player(bene_gesserit).predicted_faction;
             let predicted_turn = self.player(bene_gesserit).predicted_turn;
-            if predicted_turn == Some(self.turn.current_turn) && self.contemplate.winners.iter().any(|w| self.player(*w).faction == predicted_faction) {
+            if predicted_turn == Some(self.turn.current_turn) && ending.winners.iter().any(|w| self.player(*w).faction == predicted_faction) {
                 self.log_win_reason(
                     WinMethod::Prediction,
                     vec![
@@ -286,14 +382,14 @@ impl Game {
                         "! They had everything planned...".into(),
                     ],
                 );
-                self.contemplate.win_method = Some(WinMethod::Prediction);
-                self.contemplate.winners.clear();
-                self.contemplate.winners.push(bene_gesserit);
+                ending.win_method = Some(WinMethod::Prediction);
+                ending.winners.clear();
+                ending.winners.push(bene_gesserit);
             }
         }
     }
 
-    pub fn check_normal_win(&mut self) {
+    pub fn check_normal_win(&mut self, ending: &mut Ending) {
         let mut check_win_sequence = PlayerSequence::starting_with_first_player(self);
 
         let mut i = 0;
@@ -303,18 +399,18 @@ impl Game {
             let contested = self.applicable(Rule::ContestedStongholdsCountAsOccupied);
             let p = p.expect("player");
             if self.meets_normal_victory_condition(p, contested) {
-                self.contemplate.win_method = Some(WinMethod::Strongholds);
+                ending.win_method = Some(WinMethod::Strongholds);
 
-                self.contemplate.winners.push(p);
+                ending.winners.push(p);
 
                 let ally = self.get_player(self.player(p).ally);
                 if let Some(ally) = ally {
-                    self.contemplate.winners.push(ally);
+                    ending.winners.push(ally);
                 }
-                self.log_normal_win(p, ally);
+                self.log_normal_win(p, ally, &ending.winners);
             }
 
-            if self.contemplate.winners.len() > 0 {
+            if ending.winners.len() > 0 {
                 break;
             }
 
@@ -323,11 +419,11 @@ impl Game {
         }
     }
 
-    pub fn log_normal_win(&mut self, player: PlayerId, ally: Option<PlayerId>) {
+    pub fn log_normal_win(&mut self, player: PlayerId, ally: Option<PlayerId>, winners: &[PlayerId]) {
         let faction = self.player(player).faction;
         let player_ally = self.player(player).ally;
         let others_meet_condition = self.player_indices().any(|p| {
-            !self.contemplate.winners.contains(&p)
+            !winners.contains(&p)
                 && self.meets_normal_victory_condition(p, self.applicable(Rule::ContestedStongholdsCountAsOccupied))
         });
         if others_meet_condition {
@@ -441,29 +537,29 @@ impl Game {
             .count() as i32
     }
 
-    pub fn check_special_win_conditions(&mut self) {
+    pub fn check_special_win_conditions(&mut self, ending: &mut Ending) {
         let fremen = self.get_player(Some(Faction::Fremen));
         let guild = self.get_player(Some(Faction::Guild));
 
         if fremen.is_some() && self.fremen_victory_condition_met() {
             let fremen = fremen.expect("fremen");
             self.log_win_reason(WinMethod::FremenSpecial, vec![Faction::Fremen.into(), " special victory conditions are met!".into()]);
-            self.contemplate.win_method = Some(WinMethod::FremenSpecial);
-            self.contemplate.winners.push(fremen);
+            ending.win_method = Some(WinMethod::FremenSpecial);
+            ending.winners.push(fremen);
             if self.player(fremen).has_ally() {
                 // The ally faction may not be playing (C# then adds a null winner).
                 if let Some(ally) = self.player(fremen).allied_player(self) {
-                    self.contemplate.winners.push(ally);
+                    ending.winners.push(ally);
                 }
             }
         } else if guild.is_some() && !self.applicable(Rule::DisableGuildSpecialVictory) {
             let guild = guild.expect("guild");
             self.log_win_reason(WinMethod::GuildSpecial, vec![Faction::Guild.into(), " special victory conditions are met!".into()]);
-            self.contemplate.win_method = Some(WinMethod::GuildSpecial);
-            self.contemplate.winners.push(guild);
+            ending.win_method = Some(WinMethod::GuildSpecial);
+            ending.winners.push(guild);
             if self.player(guild).has_ally() {
                 if let Some(ally) = self.player(guild).allied_player(self) {
-                    self.contemplate.winners.push(ally);
+                    ending.winners.push(ally);
                 }
             }
         } else if fremen.is_some() && !self.applicable(Rule::DisableGuildSpecialVictory) {
@@ -477,11 +573,11 @@ impl Game {
                     " are not playing and no one else won".into(),
                 ],
             );
-            self.contemplate.win_method = Some(WinMethod::GuildSpecial);
-            self.contemplate.winners.push(fremen);
+            ending.win_method = Some(WinMethod::GuildSpecial);
+            ending.winners.push(fremen);
             if self.player(fremen).has_ally() {
                 if let Some(ally) = self.player(fremen).allied_player(self) {
-                    self.contemplate.winners.push(ally);
+                    ending.winners.push(ally);
                 }
             }
         }
@@ -512,7 +608,7 @@ impl Game {
             && !tueks_sietch_occupied_by_atreides_or_harkonnen_or_emperor_or_richese
     }
 
-    pub fn check_other_win_conditions(&mut self) {
+    pub fn check_other_win_conditions(&mut self, ending: &mut Ending) {
         let mut with_most_points: Option<PlayerId> = None;
         let mut highest_number_of_points = -1;
         let mut check_win_sequence = PlayerSequence::starting_with_first_player(self);
@@ -531,8 +627,8 @@ impl Game {
         }
 
         if let Some(with_most_points) = with_most_points {
-            self.contemplate.winners.push(with_most_points);
-            self.contemplate.win_method = Some(WinMethod::Strongholds);
+            ending.winners.push(with_most_points);
+            ending.win_method = Some(WinMethod::Strongholds);
             let faction = self.player(with_most_points).faction;
             self.log_win_reason(
                 WinMethod::Strongholds,
@@ -541,7 +637,7 @@ impl Game {
 
             if self.player(with_most_points).has_ally() {
                 if let Some(ally) = self.player(with_most_points).allied_player(self) {
-                    self.contemplate.winners.push(ally);
+                    ending.winners.push(ally);
                 }
             }
         }

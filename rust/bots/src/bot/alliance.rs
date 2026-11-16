@@ -263,7 +263,7 @@ impl ClassicBot {
 
     /// Answer a card trade: the card asked for, or else my worst card.
     pub fn determine_card_traded(&self, game: &Game) -> Option<CardTraded> {
-        let offer = game.alliances.current_card_trade_offer.as_ref()?;
+        let offer = game.card_trade_offer()?;
 
         let mut result = CardTraded::default();
         result.target = offer.initiator;

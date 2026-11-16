@@ -41,9 +41,11 @@ impl EventRules for TraitorDiscarded {
         game.decks.traitor_deck.as_mut().required("traitor deck")?.items.push(traitor);
         let me = by.player();
         crate::iter::remove_first(&mut game.player_mut(me).traitors, &traitor);
-        game.turn.number_of_traitors_to_discard -= 1;
-        if game.turn.number_of_traitors_to_discard == 0 {
-            game.resume(Interrupt::DiscardingTraitor, true)?;
+        let remaining = game.traitors_to_discard_mut().required("traitors to discard")?;
+        *remaining -= 1;
+        let remaining = *remaining;
+        if remaining == 0 {
+            game.resume_phase(Phase::DiscardingTraitor, true)?;
         }
         Ok(())
     }

@@ -382,8 +382,7 @@ impl Game {
     }
 
     pub fn let_player_discard_treachery_card_of_choice(&mut self, f: Faction) {
-        self.turn.factions_that_must_discard.push(f);
-        self.interrupt(Interrupt::Discarding);
+        self.interrupt(Interrupt::Discarding { factions: vec![f] });
     }
 
     pub fn kill_ambassador_in(&mut self, territory: Territory) {

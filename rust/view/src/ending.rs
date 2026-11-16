@@ -243,7 +243,7 @@ pub fn ending(game: &Game, s: &Seating, d: &dyn Describer) -> Option<EndingView>
     if game.phase() != Phase::GameEnded {
         return None;
     }
-    let winners = game.contemplate.winners.iter().map(|&p| StoryWinner { faction: name_or_absent(game.player(p).faction), name: s.player_name(game, p) }).collect();
+    let winners = game.winners().iter().map(|&p| StoryWinner { faction: name_or_absent(game.player(p).faction), name: s.player_name(game, p) }).collect();
     let story = (!game.applicable(Rule::DisableEndOfGameReport)).then(|| story(game, s, d));
     Some(EndingView { winners, story })
 }
@@ -419,11 +419,12 @@ fn story(game: &Game, s: &Seating, d: &dyn Describer) -> Vec<StoryBlock> {
         }
 
         if main_phase_started(MainPhase::Ended) {
-            for &w in &r.contemplate.winners {
+            let win_method = r.ending().and_then(|e| e.win_method);
+            for &w in r.winners() {
                 out.push(StoryBlock::Winner {
                     faction: name_or_absent(r.player(w).faction),
                     name: s.player_name(r, w),
-                    method: rd.describe(&P::from(r.contemplate.win_method)),
+                    method: rd.describe(&P::from(win_method)),
                 });
             }
             out.push(StoryBlock::Ended { time: utc(original.at) });

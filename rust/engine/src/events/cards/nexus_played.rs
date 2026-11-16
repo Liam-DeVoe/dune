@@ -312,8 +312,9 @@ impl NexusPlayed {
                     crate::game::amounts::gain(&mut me.resources, p.amount, "spice")?;
                 }
 
-                if game.turn.target_of_bureaucracy == Some(Faction::Guild) {
-                    game.turn.target_of_bureaucracy = by.faction;
+                // Bureaucracy on the payment Guild just received now falls on whoever took it.
+                if let Some(target) = game.target_of_bureaucracy_mut().filter(|t| **t == Some(Faction::Guild)) {
+                    *target = by.faction;
                 }
             }
 
@@ -455,12 +456,10 @@ impl NexusPlayed {
                 if game.decks.traitor_deck.is_none() {
                     return;
                 }
-                game.turn.faction_that_must_discard_traitor = by.faction;
-                game.turn.number_of_traitors_to_discard = 1;
                 game.play_nexus_card(actor, elems!["draw a new traitor"]);
                 let t = game.decks.traitor_deck.as_mut().expect("traitor deck").draw();
                 game.player_mut(actor).traitors.push(t);
-                game.interrupt(Interrupt::DiscardingTraitor);
+                game.interrupt(Interrupt::DiscardingTraitor { faction: by.faction, remaining: 1 });
             }
 
             Some(Faction::Emperor) => {
@@ -555,14 +554,12 @@ impl NexusPlayed {
                 if game.decks.traitor_deck.is_none() {
                     return Ok(());
                 }
-                game.turn.faction_that_must_discard_traitor = by.faction;
-                game.turn.number_of_traitors_to_discard = 2;
                 game.play_nexus_card(actor, elems!["draw two new traitors"]);
                 let t = game.decks.traitor_deck.as_mut().expect("traitor deck").draw();
                 game.player_mut(actor).traitors.push(t);
                 let t = game.decks.traitor_deck.as_mut().expect("traitor deck").draw();
                 game.player_mut(actor).traitors.push(t);
-                game.interrupt(Interrupt::DiscardingTraitor);
+                game.interrupt(Interrupt::DiscardingTraitor { faction: by.faction, remaining: 2 });
             }
 
             Some(Faction::Fremen) => {

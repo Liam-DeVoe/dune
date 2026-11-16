@@ -39,7 +39,7 @@ fn everyone_sees_the_same_story() {
     assert!(all.windows(2).all(|w| w[0] == w[1]), "the ending differs between viewers");
     let e = &all[0];
     let r = load("mc-ended");
-    let winners: Vec<String> = r.game.contemplate.winners.iter().map(|p| name_or_absent(r.game.player(*p).faction)).collect();
+    let winners: Vec<String> = r.game.winners().iter().map(|p| name_or_absent(r.game.player(*p).faction)).collect();
     assert_eq!(e.winners.iter().map(|w| w.faction.clone()).collect::<Vec<_>>(), winners);
 
     let story = e.story.as_ref().expect("story");

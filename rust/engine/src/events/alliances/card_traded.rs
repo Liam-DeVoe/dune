@@ -61,19 +61,19 @@ impl EventRules for CardTraded {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
-        if game.alliances.current_card_trade_offer.is_none() {
+        if game.card_trade_offer().is_none() {
             let m = self.describe(game, by);
             game.log_event(m);
-            game.alliances.current_card_trade_offer = Some(CardTradeOffer {
+            let offer = CardTradeOffer {
                 initiator: by.faction,
                 player: by.player,
                 target: self.target,
                 card: self.card,
                 requested_card: self.requested_card,
-            });
-            game.interrupt(Interrupt::CardTrade);
+            };
+            game.interrupt(Interrupt::CardTrade { offer });
         } else {
-            let offer = game.alliances.current_card_trade_offer.clone().required("current card trade offer")?;
+            let offer = game.card_trade_offer().cloned().required("current card trade offer")?;
             game.log(parts![by.faction, " and ", offer.initiator, " exchange a card"]);
             let other_player = offer.player;
 
@@ -99,10 +99,9 @@ impl EventRules for CardTraded {
             let offered_card = offer.card.required("offered card")?;
             game.player_mut(me).treachery_cards.push(offered_card);
             crate::iter::remove_first(&mut game.player_mut(other_player).treachery_cards, &offered_card);
-            game.alliances.current_card_trade_offer = None;
             game.stone(Milestone::CardTraded);
             game.alliances.last_turn_card_was_traded = Some(game.turn.current_turn);
-            game.resume(Interrupt::CardTrade, true)?;
+            game.resume_phase(Phase::TradingCards, true)?;
         }
         Ok(())
     }

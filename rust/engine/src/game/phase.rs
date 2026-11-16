@@ -20,6 +20,9 @@ pub enum PhaseState {
     /// per-phase struct on `Game`.
     Legacy(Phase),
     Collection(CollectionState),
+    Contemplate(ContemplateState),
+    /// The game is over (`Phase::GameEnded`).
+    Ended(Ending),
 }
 
 impl PhaseState {
@@ -28,6 +31,8 @@ impl PhaseState {
         match self {
             PhaseState::Legacy(phase) => *phase,
             PhaseState::Collection(c) => c.step.phase(),
+            PhaseState::Contemplate(c) => c.step.phase(),
+            PhaseState::Ended(_) => Phase::GameEnded,
         }
     }
 
@@ -36,27 +41,30 @@ impl PhaseState {
     /// because entering it by name can't build its state.
     pub fn is_converted(phase: Phase) -> bool {
         CollectionStep::of(phase).is_some()
+            || ContemplateStep::of(phase).is_some()
+            || phase == Phase::GameEnded
     }
 }
 
 /// Something that suspends the phase until it is resolved. When it is, the game goes back to
 /// what it suspended ([`Game::resume`]).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Interrupt {
-    /// Players discard down to their hand limit (`factions_that_must_discard`).
-    Discarding,
-    /// Harkonnen shuffle traitors back after a Nexus card gave them new ones.
-    DiscardingTraitor,
+    /// `factions` must each discard a card, to their hand limit or by choice. A faction listed
+    /// twice discards twice.
+    Discarding { factions: Vec<Faction> },
+    /// `faction` puts `remaining` traitors back after a Nexus card gave them new ones.
+    DiscardingTraitor { faction: Option<Faction>, remaining: i32 },
     /// A player takes a card from the treachery discard pile.
     SearchingDiscarded,
     /// The target of a Clairvoyance question answers it.
     Clairvoyance,
     /// The ally answers a card trade offer.
-    CardTrade,
+    CardTrade { offer: CardTradeOffer },
     /// The Karama hand swap: the player returns cards.
     KarmaHandSwap,
-    /// The Bureaucrat decides whether to apply Bureaucracy.
-    Bureaucracy,
+    /// The Bureaucrat decides whether `target`, who just received a payment, loses 2 spice.
+    Bureaucracy { target: Option<Faction> },
     /// A player chooses the skill of a revived leader.
     SkillAssignment,
     /// A suspension not converted yet, by the phase it shows: an intrusion (Bene Gesserit,
@@ -67,30 +75,28 @@ pub enum Interrupt {
 
 impl Interrupt {
     /// The flat phase the game shows while this interrupt is on top.
-    pub fn phase(self) -> Phase {
+    pub fn phase(&self) -> Phase {
         match self {
-            Interrupt::Discarding => Phase::Discarding,
-            Interrupt::DiscardingTraitor => Phase::DiscardingTraitor,
+            Interrupt::Discarding { .. } => Phase::Discarding,
+            Interrupt::DiscardingTraitor { .. } => Phase::DiscardingTraitor,
             Interrupt::SearchingDiscarded => Phase::SearchingDiscarded,
             Interrupt::Clairvoyance => Phase::Clairvoyance,
-            Interrupt::CardTrade => Phase::TradingCards,
+            Interrupt::CardTrade { .. } => Phase::TradingCards,
             Interrupt::KarmaHandSwap => Phase::PerformingKarmaHandSwap,
-            Interrupt::Bureaucracy => Phase::Bureaucracy,
+            Interrupt::Bureaucracy { .. } => Phase::Bureaucracy,
             Interrupt::SkillAssignment => Phase::AssigningSkill,
-            Interrupt::Legacy(phase) => phase,
+            Interrupt::Legacy(phase) => *phase,
         }
     }
 
-    /// The interrupt that a phase of that name is, if it is one.
+    /// The interrupt that a phase of that name is, if it is one that holds no data. The others
+    /// (`Discarding`, `DiscardingTraitor`, `CardTrade`, `Bureaucracy`) are pushed by the code
+    /// that knows their data, never by name.
     pub fn of(phase: Phase) -> Option<Interrupt> {
         let i = match phase {
-            Phase::Discarding => Interrupt::Discarding,
-            Phase::DiscardingTraitor => Interrupt::DiscardingTraitor,
             Phase::SearchingDiscarded => Interrupt::SearchingDiscarded,
             Phase::Clairvoyance => Interrupt::Clairvoyance,
-            Phase::TradingCards => Interrupt::CardTrade,
             Phase::PerformingKarmaHandSwap => Interrupt::KarmaHandSwap,
-            Phase::Bureaucracy => Interrupt::Bureaucracy,
             Phase::AssigningSkill => Interrupt::SkillAssignment,
             Phase::BeneGesseritIntrudedByNonGuildShip
             | Phase::BeneGesseritIntrudedByGuildShip
@@ -165,6 +171,10 @@ impl Game {
             self.interrupts.push(i);
         } else {
             assert!(!PhaseState::is_converted(phase), "{phase} has its own phase state; enter it with its own function");
+            assert!(
+                !matches!(phase, Phase::Discarding | Phase::DiscardingTraitor | Phase::TradingCards | Phase::Bureaucracy),
+                "{phase} is an interrupt with data; push it with Game::interrupt"
+            );
             self.interrupts.clear();
             self.phase = PhaseState::Legacy(phase);
         }
@@ -185,8 +195,82 @@ impl Game {
 
     /// Suspends the phase with `interrupt`, and ends the deals that last until it.
     pub fn interrupt(&mut self, interrupt: Interrupt) {
+        let phase = interrupt.phase();
         self.interrupts.push(interrupt);
-        self.remove_ended_deals(interrupt.phase());
+        self.remove_ended_deals(phase);
+    }
+
+    /// As [`Game::resume`], for the latest interrupt that shows `phase`, whatever its data.
+    pub fn resume_phase(&mut self, phase: Phase, cleanup_deals: bool) -> GameResult {
+        let Some(i) = self.interrupts.iter().rposition(|x| x.phase() == phase) else {
+            game_error!("Nothing to resume after {}", phase);
+        };
+        let interrupt = self.interrupts[i].clone();
+        self.resume(interrupt, cleanup_deals)
+    }
+
+    /// The latest interrupt `pick` accepts, as `pick` returns it.
+    fn latest_interrupt<'a, T>(&'a self, pick: impl Fn(&'a Interrupt) -> Option<T>) -> Option<T> {
+        self.interrupts.iter().rev().find_map(pick)
+    }
+
+    fn latest_interrupt_mut<'a, T>(&'a mut self, pick: impl Fn(&'a mut Interrupt) -> Option<T>) -> Option<T> {
+        self.interrupts.iter_mut().rev().find_map(pick)
+    }
+
+    /// The factions that must still discard, while `Discarding` suspends the game.
+    pub fn factions_that_must_discard(&self) -> Option<&Vec<Faction>> {
+        self.latest_interrupt(|i| match i {
+            Interrupt::Discarding { factions } => Some(factions),
+            _ => None,
+        })
+    }
+
+    pub fn factions_that_must_discard_mut(&mut self) -> Option<&mut Vec<Faction>> {
+        self.latest_interrupt_mut(|i| match i {
+            Interrupt::Discarding { factions } => Some(factions),
+            _ => None,
+        })
+    }
+
+    /// Who must put traitors back and how many are left, while `DiscardingTraitor` suspends
+    /// the game.
+    pub fn traitors_to_discard(&self) -> Option<(Option<Faction>, i32)> {
+        self.latest_interrupt(|i| match i {
+            Interrupt::DiscardingTraitor { faction, remaining } => Some((*faction, *remaining)),
+            _ => None,
+        })
+    }
+
+    pub fn traitors_to_discard_mut(&mut self) -> Option<&mut i32> {
+        self.latest_interrupt_mut(|i| match i {
+            Interrupt::DiscardingTraitor { remaining, .. } => Some(remaining),
+            _ => None,
+        })
+    }
+
+    /// The pending card trade offer, while its target is to answer it.
+    pub fn card_trade_offer(&self) -> Option<&CardTradeOffer> {
+        self.latest_interrupt(|i| match i {
+            Interrupt::CardTrade { offer } => Some(offer),
+            _ => None,
+        })
+    }
+
+    /// The faction Bureaucracy would make lose spice, while the Bureaucrat decides.
+    pub fn target_of_bureaucracy(&self) -> Option<Faction> {
+        self.latest_interrupt(|i| match i {
+            Interrupt::Bureaucracy { target } => Some(*target),
+            _ => None,
+        })
+        .flatten()
+    }
+
+    pub fn target_of_bureaucracy_mut(&mut self) -> Option<&mut Option<Faction>> {
+        self.latest_interrupt_mut(|i| match i {
+            Interrupt::Bureaucracy { target } => Some(target),
+            _ => None,
+        })
     }
 
     /// Goes back to what the latest `interrupt` suspended, dropping it and anything pushed
@@ -236,7 +320,7 @@ impl GameStatus {
             }
 
             Phase::TradingCards => {
-                let offer_player = g.alliances.current_card_trade_offer.as_ref().expect("current card trade offer").player();
+                let offer_player = g.card_trade_offer().expect("current card trade offer").player();
                 let f = g.player(offer_player).ally;
                 Self::faction_status(g, "Please select which card to give to your ally.", "Waiting for a card to be returned...", f, None)
             }
@@ -247,7 +331,7 @@ impl GameStatus {
             }
 
             Phase::Discarding => {
-                Self::factions_status(g, "Please decide which card to discard.", "Waiting for factions to discard...", &g.turn.factions_that_must_discard, None)
+                Self::factions_status(g, "Please decide which card to discard.", "Waiting for factions to discard...", g.factions_that_must_discard().map_or(&[], |f| f), None)
             }
 
             Phase::PerformingKarmaHandSwap => {
@@ -267,13 +351,13 @@ impl Game {
         let faction = self.player(player).faction;
         match self.phase() {
             Phase::Discarding => {
-                if self.turn.factions_that_must_discard.contains_opt(faction) {
+                if self.factions_that_must_discard().is_some_and(|f| f.contains_opt(faction)) {
                     result.push(EventType::Discarded);
                 }
             }
 
             Phase::DiscardingTraitor => {
-                if faction == self.turn.faction_that_must_discard_traitor {
+                if self.traitors_to_discard().is_some_and(|(f, _)| f == faction) {
                     result.push(EventType::TraitorDiscarded);
                 }
             }
@@ -291,7 +375,7 @@ impl Game {
             }
 
             Phase::TradingCards => {
-                if Some(faction) == self.alliances.current_card_trade_offer.as_ref().map(|o| o.target) {
+                if Some(faction) == self.card_trade_offer().map(|o| o.target) {
                     result.push(EventType::CardTraded);
                 }
             }

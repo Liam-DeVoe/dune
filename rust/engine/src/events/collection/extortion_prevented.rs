@@ -9,7 +9,7 @@ impl ExtortionPrevented {
     pub fn can_be_played(g: &Game, p: PlayerId) -> bool {
         g.player(p).faction != Some(Faction::Moritani)
             && i32::from(g.player(p).resources) >= 3
-            && g.contemplate.extortion_to_be_returned
+            && g.contemplate().is_some_and(|c| c.extortion_to_be_returned)
     }
 }
 
@@ -21,7 +21,9 @@ impl EventRules for ExtortionPrevented {
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
         let m = self.describe(game, by);
         game.log_event(m);
-        game.contemplate.extortion_to_be_returned = false;
+        if let Some(c) = game.contemplate_mut() {
+            c.extortion_to_be_returned = false;
+        }
         let p = game.player_mut(by.player());
         p.resources -= 3;
         let moritani = game.get_player(Some(Faction::Moritani)).required("get player")?;

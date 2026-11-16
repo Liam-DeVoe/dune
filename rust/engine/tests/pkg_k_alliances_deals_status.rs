@@ -229,8 +229,7 @@ fn status_unknown_phase_waits_for_host() {
 #[test]
 fn status_discarding_waits_for_present_factions() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
-    g.enter(Phase::Discarding, false);
-    g.turn.factions_that_must_discard = vec![Faction::BeneGesserit, Faction::Emperor];
+    g.interrupt(Interrupt::Discarding { factions: vec![Faction::BeneGesserit, Faction::Emperor] });
     let s = GameStatus::determine_status(&mut g, None, false);
     let emperor = idx(&g, Faction::Emperor);
     assert_eq!(s.waiting_for_players, vec![Some(emperor)]);
@@ -256,8 +255,8 @@ fn flash_battle_conclusion_with_null_winner() {
 #[test]
 fn flash_game_ended_lists_winners() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
-    g.enter(Phase::GameEnded, false);
-    g.contemplate.winners = vec![idx(&g, Faction::Emperor), idx(&g, Faction::Atreides)];
+    let winners = vec![idx(&g, Faction::Emperor), idx(&g, Faction::Atreides)];
+    g.enter_state(PhaseState::Ended(Ending { winners, win_method: None }));
     let flashes = GameStatus::determine_flash(&g, None, false);
     let texts: Vec<String> = flashes.iter().map(|f| f.message.plain_text()).collect();
     assert_eq!(texts.len(), 2);

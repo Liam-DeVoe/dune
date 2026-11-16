@@ -248,7 +248,7 @@ fn discarding_after_robbery_returns_to_the_phase_after_the_terror() {
     );
     accept(&mut g, &robbery);
     assert_eq!(phase(&g), Phase::Discarding);
-    assert_eq!(g.phase_under(Interrupt::Discarding), Some(Phase::BeneGesseritAccompaniesNonGuildShip));
+    assert_eq!(g.phase_under(Interrupt::Discarding { factions: vec![Faction::Moritani] }), Some(Phase::BeneGesseritAccompaniesNonGuildShip));
     assert_eq!(asked(&mut g, EventType::Discarded), [Faction::Moritani]);
     assert_eq!(g.player(moritani).treachery_cards.len(), 5);
 

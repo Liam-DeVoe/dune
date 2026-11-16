@@ -23,7 +23,7 @@ pub use charity::CharityState;
 mod collection;
 pub use collection::*;
 mod contemplate;
-pub use contemplate::ContemplateState;
+pub use contemplate::{ContemplateState, ContemplateStep, Ending};
 mod counters;
 pub use counters::*;
 mod deals;
@@ -110,7 +110,6 @@ pub struct Game {
     pub revival: RevivalState,
     pub ship_move: ShipMoveState,
     pub battle: BattleState,
-    pub contemplate: ContemplateState,
 }
 
 // A game can move to another thread: it holds no `Rc` or `Cell`.
@@ -176,7 +175,6 @@ impl Game {
             revival: RevivalState::new(),
             ship_move: ShipMoveState::new(),
             battle: BattleState::new(),
-            contemplate: ContemplateState::new(),
         };
 
         game.initialize_leader_state();
@@ -400,9 +398,8 @@ impl Game {
 
     pub fn let_factions_discard_surplus_cards(&mut self) {
         let factions: Vec<Faction> = self.players.iter().filter(|p| p.hand_size_exceeded(self)).filter_map(|p| p.faction).collect();
-        self.turn.factions_that_must_discard.extend(factions);
-        if self.turn.factions_that_must_discard.len() > 0 {
-            self.interrupt(Interrupt::Discarding);
+        if !factions.is_empty() {
+            self.interrupt(Interrupt::Discarding { factions });
         }
     }
 

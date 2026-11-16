@@ -61,7 +61,7 @@ impl EventRules for FaceDancerReplaced {
 
         let m = self.describe(game, by);
         game.log_event(m);
-        game.enter(Phase::TurnConcluded, true);
+        game.enter_contemplate(ContemplateStep::TurnConcluded);
         Ok(())
     }
 
